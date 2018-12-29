@@ -18,7 +18,7 @@ const opCancelRotateSecret = "CancelRotateSecret"
 // CancelRotateSecretRequest generates a "aws/request.Request" representing the
 // client's request for the CancelRotateSecret operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -157,7 +157,7 @@ const opCreateSecret = "CreateSecret"
 // CreateSecretRequest generates a "aws/request.Request" representing the
 // client's request for the CreateSecret operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -342,7 +342,7 @@ const opDeleteResourcePolicy = "DeleteResourcePolicy"
 // DeleteResourcePolicyRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteResourcePolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -452,7 +452,7 @@ const opDeleteSecret = "DeleteSecret"
 // DeleteSecretRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteSecret operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -585,7 +585,7 @@ const opDescribeSecret = "DescribeSecret"
 // DescribeSecretRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeSecret operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -685,7 +685,7 @@ const opGetRandomPassword = "GetRandomPassword"
 // GetRandomPasswordRequest generates a "aws/request.Request" representing the
 // client's request for the GetRandomPassword operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -789,7 +789,7 @@ const opGetResourcePolicy = "GetResourcePolicy"
 // GetResourcePolicyRequest generates a "aws/request.Request" representing the
 // client's request for the GetResourcePolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -902,7 +902,7 @@ const opGetSecretValue = "GetSecretValue"
 // GetSecretValueRequest generates a "aws/request.Request" representing the
 // client's request for the GetSecretValue operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1022,7 +1022,7 @@ const opListSecretVersionIds = "ListSecretVersionIds"
 // ListSecretVersionIdsRequest generates a "aws/request.Request" representing the
 // client's request for the ListSecretVersionIds operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1182,7 +1182,7 @@ const opListSecrets = "ListSecrets"
 // ListSecretsRequest generates a "aws/request.Request" representing the
 // client's request for the ListSecrets operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1342,7 +1342,7 @@ const opPutResourcePolicy = "PutResourcePolicy"
 // PutResourcePolicyRequest generates a "aws/request.Request" representing the
 // client's request for the PutResourcePolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1468,7 +1468,7 @@ const opPutSecretValue = "PutSecretValue"
 // PutSecretValueRequest generates a "aws/request.Request" representing the
 // client's request for the PutSecretValue operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1647,7 +1647,7 @@ const opRestoreSecret = "RestoreSecret"
 // RestoreSecretRequest generates a "aws/request.Request" representing the
 // client's request for the RestoreSecret operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1756,7 +1756,7 @@ const opRotateSecret = "RotateSecret"
 // RotateSecretRequest generates a "aws/request.Request" representing the
 // client's request for the RotateSecret operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1909,7 +1909,7 @@ const opTagResource = "TagResource"
 // TagResourceRequest generates a "aws/request.Request" representing the
 // client's request for the TagResource operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2051,7 +2051,7 @@ const opUntagResource = "UntagResource"
 // UntagResourceRequest generates a "aws/request.Request" representing the
 // client's request for the UntagResource operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2172,7 +2172,7 @@ const opUpdateSecret = "UpdateSecret"
 // UpdateSecretRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateSecret operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2351,7 +2351,7 @@ const opUpdateSecretVersionStage = "UpdateSecretVersionStage"
 // UpdateSecretVersionStageRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateSecretVersionStage operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.

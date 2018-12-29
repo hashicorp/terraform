@@ -3,6 +3,7 @@
 package statemgr
 
 import (
+	"log"
 	"math"
 	"syscall"
 	"unsafe"
@@ -22,6 +23,8 @@ const (
 )
 
 func (s *Filesystem) lock() error {
+	log.Printf("[TRACE] statemgr.Filesystem: locking %s using LockFileEx", s.path)
+
 	// even though we're failing immediately, an overlapped event structure is
 	// required
 	ol, err := newOverlapped()
@@ -41,6 +44,8 @@ func (s *Filesystem) lock() error {
 }
 
 func (s *Filesystem) unlock() error {
+	log.Printf("[TRACE] statemgr.Filesystem: unlocked by closing %s", s.path)
+
 	// the file is closed in Unlock
 	return nil
 }

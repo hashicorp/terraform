@@ -84,7 +84,7 @@ func TestSession_basicState(t *testing.T) {
 				{
 					Input:         "test_instance.bar.id",
 					Error:         true,
-					ErrorContains: `A resource "test_instance" "bar" has not been declared`,
+					ErrorContains: `A managed resource "test_instance" "bar" has not been declared`,
 				},
 			},
 		})
@@ -95,9 +95,22 @@ func TestSession_basicState(t *testing.T) {
 			State: state,
 			Inputs: []testSessionInput{
 				{
+					Input:         "module.child",
+					Error:         true,
+					ErrorContains: `No module call named "child" is declared in the root module.`,
+				},
+			},
+		})
+	})
+
+	t.Run("missing module referencing just one output", func(t *testing.T) {
+		testSession(t, testSessionTest{
+			State: state,
+			Inputs: []testSessionInput{
+				{
 					Input:         "module.child.foo",
 					Error:         true,
-					ErrorContains: `The configuration contains no module.child`,
+					ErrorContains: `No module call named "child" is declared in the root module.`,
 				},
 			},
 		})
@@ -176,6 +189,8 @@ func TestSession_stateless(t *testing.T) {
 }
 
 func testSession(t *testing.T, test testSessionTest) {
+	t.Helper()
+
 	p := &terraform.MockProvider{}
 	p.GetSchemaReturn = &terraform.ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{

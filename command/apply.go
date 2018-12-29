@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-getter"
-
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/config/hcl2shim"
@@ -39,7 +38,7 @@ func (c *ApplyCommand) Run(args []string) int {
 		cmdName = "destroy"
 	}
 
-	cmdFlags := c.Meta.flagSet(cmdName)
+	cmdFlags := c.Meta.extendedFlagSet(cmdName)
 	cmdFlags.BoolVar(&autoApprove, "auto-approve", false, "skip interactive approval of plan before applying")
 	if c.Destroy {
 		cmdFlags.BoolVar(&destroyForce, "force", false, "deprecated: same as auto-approve")
@@ -178,18 +177,19 @@ func (c *ApplyCommand) Run(args []string) int {
 	// Build the operation
 	opReq := c.Operation(be)
 	opReq.AutoApprove = autoApprove
-	opReq.Destroy = c.Destroy
 	opReq.ConfigDir = configPath
+	opReq.Destroy = c.Destroy
+	opReq.DestroyForce = destroyForce
 	opReq.PlanFile = planFile
 	opReq.PlanRefresh = refresh
 	opReq.Type = backend.OperationTypeApply
-	opReq.AutoApprove = autoApprove
-	opReq.DestroyForce = destroyForce
+
 	opReq.ConfigLoader, err = c.initConfigLoader()
 	if err != nil {
 		c.showDiagnostics(err)
 		return 1
 	}
+
 	{
 		var moreDiags tfdiags.Diagnostics
 		opReq.Variables, moreDiags = c.collectVariableValues()

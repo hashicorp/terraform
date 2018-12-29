@@ -8,7 +8,6 @@ import (
 	"log"
 
 	"github.com/hashicorp/errwrap"
-
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statefile"
@@ -25,7 +24,6 @@ func (b *Local) opApply(
 	log.Printf("[INFO] backend/local: starting Apply operation")
 
 	var diags tfdiags.Diagnostics
-	var err error
 
 	// If we have a nil module at this point, then set it to an empty tree
 	// to avoid any potential crashes.
@@ -33,7 +31,9 @@ func (b *Local) opApply(
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"No configuration files",
-			"Apply requires configuration to be present. Applying without a configuration would mark everything for destruction, which is normally not what is desired. If you would like to destroy everything, run 'terraform destroy' instead.",
+			"Apply requires configuration to be present. Applying without a configuration "+
+				"would mark everything for destruction, which is normally not what is desired. "+
+				"If you would like to destroy everything, run 'terraform destroy' instead.",
 		))
 		b.ReportResult(runningOp, diags)
 		return
@@ -155,7 +155,7 @@ func (b *Local) opApply(
 
 	// Store the final state
 	runningOp.State = applyState
-	err = statemgr.WriteAndPersist(opState, applyState)
+	err := statemgr.WriteAndPersist(opState, applyState)
 	if err != nil {
 		diags = diags.Append(b.backupStateForError(applyState, err))
 		b.ReportResult(runningOp, diags)

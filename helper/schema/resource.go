@@ -155,6 +155,27 @@ type Resource struct {
 	Timeouts *ResourceTimeout
 }
 
+// ShimInstanceStateFromValue converts a cty.Value to a
+// terraform.InstanceState.
+func (r *Resource) ShimInstanceStateFromValue(state cty.Value) (*terraform.InstanceState, error) {
+	// Get the raw shimmed value. While this is correct, the set hashes don't
+	// match those from the Schema.
+	s := terraform.NewInstanceStateShimmedFromValue(state, r.SchemaVersion)
+
+	// We now rebuild the state through the ResourceData, so that the set indexes
+	// match what helper/schema expects.
+	data, err := schemaMap(r.Schema).Data(s, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	s = data.State()
+	if s == nil {
+		s = &terraform.InstanceState{}
+	}
+	return s, nil
+}
+
 // See Resource documentation.
 type CreateFunc func(*ResourceData, interface{}) error
 
@@ -320,14 +341,25 @@ func (r *Resource) simpleDiff(
 		return instanceDiff, err
 	}
 
-	if instanceDiff != nil {
-		if err := t.DiffEncode(instanceDiff); err != nil {
-			log.Printf("[ERR] Error encoding timeout to instance diff: %s", err)
-		}
-	} else {
-		log.Printf("[DEBUG] Instance Diff is nil in Diff()")
+	if instanceDiff == nil {
+		log.Printf("[DEBUG] Instance Diff is nil in SimpleDiff()")
+		return nil, err
 	}
 
+	// Make sure the old value is set in each of the instance diffs.
+	// This was done by the RequiresNew logic in the full legacy Diff.
+	for k, attr := range instanceDiff.Attributes {
+		if attr == nil {
+			continue
+		}
+		if s != nil {
+			attr.Old = s.Attributes[k]
+		}
+	}
+
+	if err := t.DiffEncode(instanceDiff); err != nil {
+		log.Printf("[ERR] Error encoding timeout to instance diff: %s", err)
+	}
 	return instanceDiff, err
 }
 
@@ -539,8 +571,7 @@ func (r *Resource) upgradeState(s *terraform.InstanceState, meta interface{}) (*
 		return nil, err
 	}
 
-	s = InstanceStateFromStateValue(stateVal, r.SchemaVersion)
-	return s, nil
+	return r.ShimInstanceStateFromValue(stateVal)
 }
 
 // InternalValidate should be called to validate the structure

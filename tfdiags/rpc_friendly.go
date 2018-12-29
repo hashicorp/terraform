@@ -48,6 +48,12 @@ func (d *rpcFriendlyDiag) Source() Source {
 	}
 }
 
+func (d rpcFriendlyDiag) FromExpr() *FromExpr {
+	// RPC-friendly diagnostics cannot preserve expression information because
+	// expressions themselves are not RPC-friendly.
+	return nil
+}
+
 func init() {
 	gob.Register((*rpcFriendlyDiag)(nil))
 }

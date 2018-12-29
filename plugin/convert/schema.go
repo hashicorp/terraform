@@ -6,7 +6,7 @@ import (
 	"sort"
 
 	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/plugin/proto"
+	proto "github.com/hashicorp/terraform/internal/tfplugin5"
 	"github.com/hashicorp/terraform/providers"
 )
 
@@ -57,7 +57,7 @@ func protoSchemaNestedBlock(name string, b *configschema.NestedBlock) *proto.Sch
 // ProtoToProviderSchema takes a proto.Schema and converts it to a providers.Schema.
 func ProtoToProviderSchema(s *proto.Schema) providers.Schema {
 	return providers.Schema{
-		Version: uint64(s.Version),
+		Version: s.Version,
 		Block:   ProtoToConfigSchema(s.Block),
 	}
 }

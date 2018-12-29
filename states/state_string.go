@@ -121,7 +121,7 @@ func (m *Module) testString() string {
 			}
 		}
 
-		id := legacyInstanceObjectID(is.Current)
+		id := LegacyInstanceObjectID(is.Current)
 
 		taintStr := ""
 		if is.Current != nil && is.Current.Status == ObjectTainted {
@@ -164,8 +164,13 @@ func (m *Module) testString() string {
 			}
 		}
 		attrKeys := make([]string, 0, len(attributes))
-		for ak, _ := range attributes {
+		for ak, val := range attributes {
 			if ak == "id" {
+				continue
+			}
+
+			// don't show empty containers in the output
+			if val == "0" && (strings.HasSuffix(ak, ".#") || strings.HasSuffix(ak, ".%")) {
 				continue
 			}
 
@@ -184,7 +189,7 @@ func (m *Module) testString() string {
 		// if there is more than one deposed object.
 		i := 1
 		for _, t := range is.Deposed {
-			id := legacyInstanceObjectID(t)
+			id := LegacyInstanceObjectID(t)
 			taintStr := ""
 			if t.Status == ObjectTainted {
 				taintStr = " (tainted)"
@@ -242,12 +247,12 @@ func (m *Module) testString() string {
 	return buf.String()
 }
 
-// legacyInstanceObjectID is a helper for extracting an object id value from
+// LegacyInstanceObjectID is a helper for extracting an object id value from
 // an instance object in a way that approximates how we used to do this
 // for the old state types. ID is no longer first-class, so this is preserved
 // only for compatibility with old tests that include the id as part of their
 // expected value.
-func legacyInstanceObjectID(obj *ResourceInstanceObjectSrc) string {
+func LegacyInstanceObjectID(obj *ResourceInstanceObjectSrc) string {
 	if obj == nil {
 		return "<not created>"
 	}

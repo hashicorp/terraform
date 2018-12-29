@@ -109,7 +109,7 @@ high-level steps that must be done. Examples are available in the
   1. Choose the interface(s) you want to expose for plugins.
 
   2. For each interface, implement an implementation of that interface
-     that communicates over a `net/rpc` connection or other a
+     that communicates over a `net/rpc` connection or over a
      [gRPC](http://www.grpc.io) connection or both. You'll have to implement
      both a client and server implementation.
 
@@ -150,19 +150,19 @@ user experience.
 
 When we started using plugins (late 2012, early 2013), plugins over RPC
 were the only option since Go didn't support dynamic library loading. Today,
-Go still doesn't support dynamic library loading, but they do intend to.
-Since 2012, our plugin system has stabilized from millions of users using it,
-and has many benefits we've come to value greatly.
+Go supports the [plugin](https://golang.org/pkg/plugin/) standard library with
+a number of  limitations. Since 2012, our plugin system has stabilized 
+from tens of millions of users using it, and has many benefits we've come to 
+value greatly.
 
-For example, we intend to use this plugin system in
-[Vault](https://www.vaultproject.io), and dynamic library loading will
-simply never be acceptable in Vault for security reasons. That is an extreme
+For example, we use this plugin system in
+[Vault](https://www.vaultproject.io) where dynamic library loading is
+not acceptable for security reasons. That is an extreme
 example, but we believe our library system has more upsides than downsides
 over dynamic library loading and since we've had it built and tested for years,
-we'll likely continue to use it.
+we'll continue to use it.
 
 Shared libraries have one major advantage over our system which is much
 higher performance. In real world scenarios across our various tools,
 we've never required any more performance out of our plugin system and it
 has seen very high throughput, so this isn't a concern for us at the moment.
-

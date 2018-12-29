@@ -3,6 +3,7 @@ package regsrc
 import (
 	"fmt"
 	"runtime"
+	"strings"
 
 	"github.com/hashicorp/terraform/svchost"
 )
@@ -10,7 +11,7 @@ import (
 var (
 	// DefaultProviderNamespace represents the namespace for canonical
 	// HashiCorp-controlled providers.
-	DefaultProviderNamespace = "terraform-providers"
+	DefaultProviderNamespace = "-"
 )
 
 // TerraformProvider describes a Terraform Registry Provider source.
@@ -31,9 +32,14 @@ func NewTerraformProvider(name, os, arch string) *TerraformProvider {
 		arch = runtime.GOARCH
 	}
 
+	// separate namespace if included
+	namespace := DefaultProviderNamespace
+	if names := strings.SplitN(name, "/", 2); len(names) == 2 {
+		namespace, name = names[0], names[1]
+	}
 	p := &TerraformProvider{
 		RawHost:      PublicRegistryHost,
-		RawNamespace: DefaultProviderNamespace,
+		RawNamespace: namespace,
 		RawName:      name,
 		OS:           os,
 		Arch:         arch,

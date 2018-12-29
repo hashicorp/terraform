@@ -254,8 +254,8 @@ func TestBackendPrefixInWorkspace(t *testing.T) {
 	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
 
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"bucket": bucketName,
-		"key":    "test-env.tfstate",
+		"bucket":               bucketName,
+		"key":                  "test-env.tfstate",
 		"workspace_key_prefix": "env",
 	})).(*Backend)
 

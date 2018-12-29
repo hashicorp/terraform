@@ -26,10 +26,10 @@ type MockProvider struct {
 	GetSchemaCalled bool
 	GetSchemaReturn *ProviderSchema // This is using ProviderSchema directly rather than providers.GetSchemaResponse for compatibility with old tests
 
-	ValidateProviderConfigCalled   bool
-	ValidateProviderConfigResponse providers.ValidateProviderConfigResponse
-	ValidateProviderConfigRequest  providers.ValidateProviderConfigRequest
-	ValidateProviderConfigFn       func(providers.ValidateProviderConfigRequest) providers.ValidateProviderConfigResponse
+	PrepareProviderConfigCalled   bool
+	PrepareProviderConfigResponse providers.PrepareProviderConfigResponse
+	PrepareProviderConfigRequest  providers.PrepareProviderConfigRequest
+	PrepareProviderConfigFn       func(providers.PrepareProviderConfigRequest) providers.PrepareProviderConfigResponse
 
 	ValidateResourceTypeConfigCalled   bool
 	ValidateResourceTypeConfigTypeName string
@@ -125,7 +125,8 @@ func (p *MockProvider) getSchema() providers.GetSchemaResponse {
 		}
 		for n, s := range p.GetSchemaReturn.ResourceTypes {
 			ret.ResourceTypes[n] = providers.Schema{
-				Block: s,
+				Version: int64(p.GetSchemaReturn.ResourceTypeSchemaVersions[n]),
+				Block:   s,
 			}
 		}
 	}
@@ -133,16 +134,16 @@ func (p *MockProvider) getSchema() providers.GetSchemaResponse {
 	return ret
 }
 
-func (p *MockProvider) ValidateProviderConfig(r providers.ValidateProviderConfigRequest) providers.ValidateProviderConfigResponse {
+func (p *MockProvider) PrepareProviderConfig(r providers.PrepareProviderConfigRequest) providers.PrepareProviderConfigResponse {
 	p.Lock()
 	defer p.Unlock()
 
-	p.ValidateProviderConfigCalled = true
-	p.ValidateProviderConfigRequest = r
-	if p.ValidateProviderConfigFn != nil {
-		return p.ValidateProviderConfigFn(r)
+	p.PrepareProviderConfigCalled = true
+	p.PrepareProviderConfigRequest = r
+	if p.PrepareProviderConfigFn != nil {
+		return p.PrepareProviderConfigFn(r)
 	}
-	return p.ValidateProviderConfigResponse
+	return p.PrepareProviderConfigResponse
 }
 
 func (p *MockProvider) ValidateResourceTypeConfig(r providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
@@ -282,6 +283,7 @@ func (p *MockProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 		}
 		priorState := NewInstanceStateShimmedFromValue(r.PriorState, 0)
 		cfg := NewResourceConfigShimmed(r.Config, schema)
+
 		legacyDiff, err := p.DiffFn(info, priorState, cfg)
 
 		var res providers.PlanResourceChangeResponse
@@ -294,6 +296,7 @@ func (p *MockProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 			if err != nil {
 				res.Diagnostics = res.Diagnostics.Append(err)
 			}
+
 			res.PlannedState = newVal
 
 			var requiresNew []string

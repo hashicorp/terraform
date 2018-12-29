@@ -1,7 +1,6 @@
 package command
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"strings"
@@ -23,14 +22,12 @@ type ShowCommand struct {
 }
 
 func (c *ShowCommand) Run(args []string) int {
-
 	args, err := c.Meta.process(args, false)
 	if err != nil {
 		return 1
 	}
 
-	cmdFlags := flag.NewFlagSet("show", flag.ContinueOnError)
-
+	cmdFlags := c.Meta.defaultFlagSet("show")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -88,6 +85,7 @@ func (c *ShowCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Get the schemas from the context
 	schemas := ctx.Schemas()
 
 	env := c.Workspace()
@@ -173,9 +171,6 @@ Usage: terraform show [options] [path]
   form. If no path is specified, the current state will be shown.
 
 Options:
-
-  -module-depth=n     Specifies the depth of modules to show in the output.
-                      By default this is -1, which will expand all.
 
   -no-color           If specified, output won't contain any color.
 

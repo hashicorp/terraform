@@ -10,8 +10,8 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	plugin "github.com/hashicorp/go-plugin"
+	proto "github.com/hashicorp/terraform/internal/tfplugin5"
 	"github.com/hashicorp/terraform/plugin/convert"
-	"github.com/hashicorp/terraform/plugin/proto"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/version"
 	"github.com/zclconf/go-cty/cty/msgpack"
@@ -147,25 +147,37 @@ func (p *GRPCProvider) GetSchema() (resp providers.GetSchemaResponse) {
 	return resp
 }
 
-func (p *GRPCProvider) ValidateProviderConfig(r providers.ValidateProviderConfigRequest) (resp providers.ValidateProviderConfigResponse) {
-	log.Printf("[TRACE] GRPCProvider: ValidateProviderConfig")
+func (p *GRPCProvider) PrepareProviderConfig(r providers.PrepareProviderConfigRequest) (resp providers.PrepareProviderConfigResponse) {
+	log.Printf("[TRACE] GRPCProvider: PrepareProviderConfig")
 
 	schema := p.getSchema()
-	mp, err := msgpack.Marshal(r.Config, schema.Provider.Block.ImpliedType())
+	ty := schema.Provider.Block.ImpliedType()
+
+	mp, err := msgpack.Marshal(r.Config, ty)
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
 	}
 
-	protoReq := &proto.ValidateProviderConfig_Request{
+	protoReq := &proto.PrepareProviderConfig_Request{
 		Config: &proto.DynamicValue{Msgpack: mp},
 	}
 
-	protoResp, err := p.client.ValidateProviderConfig(p.ctx, protoReq)
+	protoResp, err := p.client.PrepareProviderConfig(p.ctx, protoReq)
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
 	}
+
+	config := cty.NullVal(ty)
+	if protoResp.PreparedConfig != nil {
+		config, err = msgpack.Unmarshal(protoResp.PreparedConfig.Msgpack, ty)
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
+		}
+	}
+	resp.PreparedConfig = config
 
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 	return resp
@@ -346,6 +358,13 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
 	}
+
+	configMP, err := msgpack.Marshal(r.Config, resSchema.Block.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
 	propMP, err := msgpack.Marshal(r.ProposedNewState, resSchema.Block.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
@@ -355,6 +374,7 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 	protoReq := &proto.PlanResourceChange_Request{
 		TypeName:         r.TypeName,
 		PriorState:       &proto.DynamicValue{Msgpack: priorMP},
+		Config:           &proto.DynamicValue{Msgpack: configMP},
 		ProposedNewState: &proto.DynamicValue{Msgpack: propMP},
 		PriorPrivate:     r.PriorPrivate,
 	}
@@ -508,7 +528,17 @@ func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 
 // closing the grpc connection is final, and terraform will call it at the end of every phase.
 func (p *GRPCProvider) Close() error {
-	// check this since it's not automatically inserted during plugin creation
+	log.Printf("[TRACE] GRPCProvider: Close")
+
+	// close the remote listener if we're running within a test
+	if p.TestListener != nil {
+		p.TestListener.Close()
+	}
+
+	// Check this since it's not automatically inserted during plugin creation.
+	// It's currently only inserted by the command package, because that is
+	// where the factory is built and is the only point with access to the
+	// plugin.Client.
 	if p.PluginClient == nil {
 		log.Println("[DEBUG] provider has no plugin.Client")
 		return nil

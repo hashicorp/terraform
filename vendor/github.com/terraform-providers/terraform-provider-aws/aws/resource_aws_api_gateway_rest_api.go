@@ -45,7 +45,7 @@ func resourceAwsApiGatewayRestApi() *schema.Resource {
 			"policy": {
 				Type:             schema.TypeString,
 				Optional:         true,
-				ValidateFunc:     validateJsonString,
+				ValidateFunc:     validation.ValidateJsonString,
 				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 			},
 
@@ -64,7 +64,7 @@ func resourceAwsApiGatewayRestApi() *schema.Resource {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				Default:      -1,
-				ValidateFunc: validateIntegerInRange(-1, 10485760),
+				ValidateFunc: validation.IntBetween(-1, 10485760),
 			},
 
 			"root_resource_id": {

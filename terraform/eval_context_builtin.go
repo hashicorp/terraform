@@ -289,6 +289,7 @@ func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, keyData
 		Evaluator:       ctx.Evaluator,
 		ModulePath:      ctx.PathValue,
 		InstanceKeyData: keyData,
+		Operation:       ctx.Evaluator.Operation,
 	}
 	return ctx.Evaluator.Scope(data, self)
 }

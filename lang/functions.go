@@ -53,6 +53,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"element":      funcs.ElementFunc,
 			"chunklist":    funcs.ChunklistFunc,
 			"file":         funcs.MakeFileFunc(s.BaseDir, false),
+			"fileexists":   funcs.MakeFileExistsFunc(s.BaseDir),
 			"filebase64":   funcs.MakeFileFunc(s.BaseDir, true),
 			"flatten":      funcs.FlattenFunc,
 			"floor":        funcs.FloorFunc,

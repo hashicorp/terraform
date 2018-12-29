@@ -98,11 +98,11 @@ func (n *EvalValidateProvider) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, diags.NonFatalErr()
 	}
 
-	req := providers.ValidateProviderConfigRequest{
+	req := providers.PrepareProviderConfigRequest{
 		Config: configVal,
 	}
 
-	validateResp := provider.ValidateProviderConfig(req)
+	validateResp := provider.PrepareProviderConfig(req)
 	diags = diags.Append(validateResp.Diagnostics)
 
 	return nil, diags.NonFatalErr()
@@ -366,6 +366,17 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 				Subject:  ref.Remaining.SourceRange().Ptr(),
 			})
 		}
+
+		// The ref must also refer to something that exists. To test that,
+		// we'll just eval it and count on the fact that our evaluator will
+		// detect references to non-existent objects.
+		if !diags.HasErrors() {
+			scope := ctx.EvaluationScope(nil, EvalDataForNoInstanceKey)
+			if scope != nil { // sometimes nil in tests, due to incomplete mocks
+				_, refDiags = scope.EvalReference(ref, cty.DynamicPseudoType)
+				diags = diags.Append(refDiags)
+			}
+		}
 	}
 
 	// Provider entry point varies depending on resource mode, because
@@ -373,8 +384,8 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 	// in the provider abstraction.
 	switch mode {
 	case addrs.ManagedResourceMode:
-		schema, exists := schema.ResourceTypes[cfg.Type]
-		if !exists {
+		schema, _ := schema.SchemaForResourceType(mode, cfg.Type)
+		if schema == nil {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid resource type",
@@ -390,6 +401,13 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 			return nil, diags.Err()
 		}
 
+		if cfg.Managed != nil { // can be nil only in tests with poorly-configured mocks
+			for _, traversal := range cfg.Managed.IgnoreChanges {
+				moreDiags := schema.StaticValidateTraversal(traversal)
+				diags = diags.Append(moreDiags)
+			}
+		}
+
 		req := providers.ValidateResourceTypeConfigRequest{
 			TypeName: cfg.Type,
 			Config:   configVal,
@@ -403,8 +421,8 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 		}
 
 	case addrs.DataResourceMode:
-		schema, exists := schema.DataSources[cfg.Type]
-		if !exists {
+		schema, _ := schema.SchemaForResourceType(mode, cfg.Type)
+		if schema == nil {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid data source",

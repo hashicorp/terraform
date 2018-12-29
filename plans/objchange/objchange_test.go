@@ -65,6 +65,42 @@ func TestProposedNewObject(t *testing.T) {
 				}),
 			}),
 		},
+		"no prior with set": {
+			// This one is here because our handling of sets is more complex
+			// than others (due to the fuzzy correlation heuristic) and
+			// historically that caused us some panic-related grief.
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"baz": {
+						Nesting: configschema.NestingSet,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"boz": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.NullVal(cty.DynamicPseudoType),
+			cty.ObjectVal(map[string]cty.Value{
+				"baz": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"boz": cty.StringVal("world"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"baz": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"boz": cty.StringVal("world"),
+					}),
+				}),
+			}),
+		},
 		"prior attributes": {
 			&configschema.Block{
 				Attributes: map[string]*configschema.Attribute{

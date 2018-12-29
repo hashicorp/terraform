@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/plans"
@@ -26,13 +27,13 @@ func (b *Local) opPlan(
 	log.Printf("[INFO] backend/local: starting Plan operation")
 
 	var diags tfdiags.Diagnostics
-	var err error
 
-	if b.CLI != nil && op.PlanFile != nil {
+	if op.PlanFile != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Can't re-plan a saved plan",
-			"The plan command was given a saved plan file as its input. This command generates a new plan, and so it requires a configuration directory as its argument.",
+			"The plan command was given a saved plan file as its input. This command generates "+
+				"a new plan, and so it requires a configuration directory as its argument.",
 		))
 		b.ReportResult(runningOp, diags)
 		return
@@ -43,7 +44,10 @@ func (b *Local) opPlan(
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"No configuration files",
-			"Plan requires configuration to be present. Planning without a configuration would mark everything for destruction, which is normally not what is desired. If you would like to destroy everything, run plan with the -destroy option. Otherwise, create a Terraform configuration file (.tf file) and try again.",
+			"Plan requires configuration to be present. Planning without a configuration would "+
+				"mark everything for destruction, which is normally not what is desired. If you "+
+				"would like to destroy everything, run plan with the -destroy option. Otherwise, "+
+				"create a Terraform configuration file (.tf file) and try again.",
 		))
 		b.ReportResult(runningOp, diags)
 		return
@@ -122,7 +126,9 @@ func (b *Local) opPlan(
 		if op.PlanOutBackend == nil {
 			// This is always a bug in the operation caller; it's not valid
 			// to set PlanOutPath without also setting PlanOutBackend.
-			diags = diags.Append(fmt.Errorf("PlanOutPath set without also setting PlanOutBackend (this is a bug in Terraform)"))
+			diags = diags.Append(fmt.Errorf(
+				"PlanOutPath set without also setting PlanOutBackend (this is a bug in Terraform)"),
+			)
 			b.ReportResult(runningOp, diags)
 			return
 		}
@@ -134,7 +140,7 @@ func (b *Local) opPlan(
 		plannedStateFile := statemgr.PlannedStateUpdate(opState, baseState)
 
 		log.Printf("[INFO] backend/local: writing plan output to: %s", path)
-		err = planfile.Create(path, configSnap, plannedStateFile, plan)
+		err := planfile.Create(path, configSnap, plannedStateFile, plan)
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -183,34 +189,37 @@ func (b *Local) opPlan(
 }
 
 func (b *Local) renderPlan(plan *plans.Plan, schemas *terraform.Schemas) {
-
 	counts := map[plans.Action]int{}
+	var rChanges []*plans.ResourceInstanceChangeSrc
 	for _, change := range plan.Changes.Resources {
+		if change.Action == plans.Delete && change.Addr.Resource.Resource.Mode == addrs.DataResourceMode {
+			// Avoid rendering data sources on deletion
+			continue
+		}
+
+		rChanges = append(rChanges, change)
 		counts[change.Action]++
 	}
 
 	headerBuf := &bytes.Buffer{}
 	fmt.Fprintf(headerBuf, "\n%s\n", strings.TrimSpace(planHeaderIntro))
 	if counts[plans.Create] > 0 {
-		fmt.Fprintf(headerBuf, "%s create\n", format.DiffActionSymbol(terraform.DiffCreate))
+		fmt.Fprintf(headerBuf, "%s create\n", format.DiffActionSymbol(plans.Create))
 	}
 	if counts[plans.Update] > 0 {
-		fmt.Fprintf(headerBuf, "%s update in-place\n", format.DiffActionSymbol(terraform.DiffUpdate))
+		fmt.Fprintf(headerBuf, "%s update in-place\n", format.DiffActionSymbol(plans.Update))
 	}
 	if counts[plans.Delete] > 0 {
-		fmt.Fprintf(headerBuf, "%s destroy\n", format.DiffActionSymbol(terraform.DiffDestroy))
+		fmt.Fprintf(headerBuf, "%s destroy\n", format.DiffActionSymbol(plans.Delete))
 	}
 	if counts[plans.DeleteThenCreate] > 0 {
-		fmt.Fprintf(headerBuf, "%s destroy and then create replacement\n", format.DiffActionSymbol(terraform.DiffDestroyCreate))
+		fmt.Fprintf(headerBuf, "%s destroy and then create replacement\n", format.DiffActionSymbol(plans.DeleteThenCreate))
 	}
 	if counts[plans.CreateThenDelete] > 0 {
-		// FIXME: This shows the wrong symbol, because our old diff action
-		// type can't represent CreateThenDelete. We should switch
-		// format.DiffActionSymbol over to using plans.Action instead.
-		fmt.Fprintf(headerBuf, "%s create replacement and then destroy prior\n", format.DiffActionSymbol(terraform.DiffDestroyCreate))
+		fmt.Fprintf(headerBuf, "%s create replacement and then destroy\n", format.DiffActionSymbol(plans.CreateThenDelete))
 	}
 	if counts[plans.Read] > 0 {
-		fmt.Fprintf(headerBuf, "%s read (data resources)\n", format.DiffActionSymbol(terraform.DiffRefresh))
+		fmt.Fprintf(headerBuf, "%s read (data resources)\n", format.DiffActionSymbol(plans.Read))
 	}
 
 	b.CLI.Output(b.Colorize().Color(headerBuf.String()))
@@ -221,7 +230,6 @@ func (b *Local) renderPlan(plan *plans.Plan, schemas *terraform.Schemas) {
 	// here. The ordering of resource changes in a plan is not significant,
 	// but we can only do this safely here because we can assume that nobody
 	// is concurrently modifying our changes while we're trying to print it.
-	rChanges := plan.Changes.Resources
 	sort.Slice(rChanges, func(i, j int) bool {
 		iA := rChanges[i].Addr
 		jA := rChanges[j].Addr
@@ -241,7 +249,7 @@ func (b *Local) renderPlan(plan *plans.Plan, schemas *terraform.Schemas) {
 			b.CLI.Output(fmt.Sprintf("(schema missing for %s)\n", rcs.ProviderAddr))
 			continue
 		}
-		rSchema := providerSchema.SchemaForResourceAddr(rcs.Addr.Resource.Resource)
+		rSchema, _ := providerSchema.SchemaForResourceAddr(rcs.Addr.Resource.Resource)
 		if rSchema == nil {
 			// Should never happen
 			b.CLI.Output(fmt.Sprintf("(schema missing for %s)\n", rcs.Addr))

@@ -3,12 +3,17 @@ package plugin
 import (
 	"context"
 	"fmt"
+	"reflect"
+	"strconv"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/plugin/proto"
+	proto "github.com/hashicorp/terraform/internal/tfplugin5"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/msgpack"
@@ -387,8 +392,8 @@ func TestApplyResourceChange(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// A propsed state with only the ID unknown will produce a nil diff, and
-	// should return the propsed state value.
+	// A proposed state with only the ID unknown will produce a nil diff, and
+	// should return the proposed state value.
 	plannedVal, err := schema.CoerceValue(cty.ObjectVal(map[string]cty.Value{
 		"id": cty.UnknownVal(cty.String),
 	}))
@@ -423,5 +428,289 @@ func TestApplyResourceChange(t *testing.T) {
 	id := newStateVal.GetAttr("id").AsString()
 	if id != "bar" {
 		t.Fatalf("incorrect final state: %#v\n", newStateVal)
+	}
+}
+
+func TestPrepareProviderConfig(t *testing.T) {
+	for _, tc := range []struct {
+		Name         string
+		Schema       map[string]*schema.Schema
+		ConfigVal    cty.Value
+		ExpectError  string
+		ExpectConfig cty.Value
+	}{
+		{
+			Name: "test prepare",
+			Schema: map[string]*schema.Schema{
+				"foo": &schema.Schema{
+					Type:     schema.TypeString,
+					Optional: true,
+				},
+			},
+			ConfigVal: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.StringVal("bar"),
+			}),
+			ExpectConfig: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.StringVal("bar"),
+			}),
+		},
+		{
+			Name: "test default",
+			Schema: map[string]*schema.Schema{
+				"foo": &schema.Schema{
+					Type:     schema.TypeString,
+					Optional: true,
+					Default:  "default",
+				},
+			},
+			ConfigVal: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.NullVal(cty.String),
+			}),
+			ExpectConfig: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.StringVal("default"),
+			}),
+		},
+		{
+			Name: "test defaultfunc",
+			Schema: map[string]*schema.Schema{
+				"foo": &schema.Schema{
+					Type:     schema.TypeString,
+					Optional: true,
+					DefaultFunc: func() (interface{}, error) {
+						return "defaultfunc", nil
+					},
+				},
+			},
+			ConfigVal: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.NullVal(cty.String),
+			}),
+			ExpectConfig: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.StringVal("defaultfunc"),
+			}),
+		},
+		{
+			Name: "test default required",
+			Schema: map[string]*schema.Schema{
+				"foo": &schema.Schema{
+					Type:     schema.TypeString,
+					Required: true,
+					DefaultFunc: func() (interface{}, error) {
+						return "defaultfunc", nil
+					},
+				},
+			},
+			ConfigVal: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.NullVal(cty.String),
+			}),
+			ExpectConfig: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.StringVal("defaultfunc"),
+			}),
+		},
+		{
+			Name: "test incorrect type",
+			Schema: map[string]*schema.Schema{
+				"foo": &schema.Schema{
+					Type:     schema.TypeString,
+					Required: true,
+				},
+			},
+			ConfigVal: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.NumberIntVal(3),
+			}),
+			ExpectConfig: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.StringVal("3"),
+			}),
+		},
+		{
+			Name: "test incorrect default type",
+			Schema: map[string]*schema.Schema{
+				"foo": &schema.Schema{
+					Type:     schema.TypeString,
+					Optional: true,
+					Default:  true,
+				},
+			},
+			ConfigVal: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.NullVal(cty.String),
+			}),
+			ExpectConfig: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.StringVal("true"),
+			}),
+		},
+		{
+			Name: "test incorrect default bool type",
+			Schema: map[string]*schema.Schema{
+				"foo": &schema.Schema{
+					Type:     schema.TypeBool,
+					Optional: true,
+					Default:  "",
+				},
+			},
+			ConfigVal: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.NullVal(cty.Bool),
+			}),
+			ExpectConfig: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.False,
+			}),
+		},
+		{
+			Name: "test deprecated default",
+			Schema: map[string]*schema.Schema{
+				"foo": &schema.Schema{
+					Type:     schema.TypeString,
+					Optional: true,
+					Default:  "do not use",
+					Removed:  "don't use this",
+				},
+			},
+			ConfigVal: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.NullVal(cty.String),
+			}),
+			ExpectConfig: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.NullVal(cty.String),
+			}),
+		},
+	} {
+		t.Run(tc.Name, func(t *testing.T) {
+			server := &GRPCProviderServer{
+				provider: &schema.Provider{
+					Schema: tc.Schema,
+				},
+			}
+
+			block := schema.InternalMap(tc.Schema).CoreConfigSchema()
+
+			rawConfig, err := msgpack.Marshal(tc.ConfigVal, block.ImpliedType())
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			testReq := &proto.PrepareProviderConfig_Request{
+				Config: &proto.DynamicValue{
+					Msgpack: rawConfig,
+				},
+			}
+
+			resp, err := server.PrepareProviderConfig(nil, testReq)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if tc.ExpectError != "" && len(resp.Diagnostics) > 0 {
+				for _, d := range resp.Diagnostics {
+					if !strings.Contains(d.Summary, tc.ExpectError) {
+						t.Fatalf("Unexpected error: %s/%s", d.Summary, d.Detail)
+					}
+				}
+				return
+			}
+
+			// we should have no errors past this point
+			for _, d := range resp.Diagnostics {
+				if d.Severity == proto.Diagnostic_ERROR {
+					t.Fatal(resp.Diagnostics)
+				}
+			}
+
+			val, err := msgpack.Unmarshal(resp.PreparedConfig.Msgpack, block.ImpliedType())
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if tc.ExpectConfig.GoString() != val.GoString() {
+				t.Fatalf("\nexpected: %#v\ngot: %#v", tc.ExpectConfig, val)
+			}
+		})
+	}
+}
+
+func TestGetSchemaTimeouts(t *testing.T) {
+	r := &schema.Resource{
+		SchemaVersion: 4,
+		Timeouts: &schema.ResourceTimeout{
+			Create:  schema.DefaultTimeout(time.Second),
+			Read:    schema.DefaultTimeout(2 * time.Second),
+			Update:  schema.DefaultTimeout(3 * time.Second),
+			Default: schema.DefaultTimeout(10 * time.Second),
+		},
+		Schema: map[string]*schema.Schema{
+			"foo": {
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
+		},
+	}
+
+	// verify that the timeouts appear in the schema as defined
+	block := r.CoreConfigSchema()
+	timeoutsBlock := block.BlockTypes["timeouts"]
+	if timeoutsBlock == nil {
+		t.Fatal("missing timeouts in schema")
+	}
+
+	if timeoutsBlock.Attributes["create"] == nil {
+		t.Fatal("missing create timeout in schema")
+	}
+	if timeoutsBlock.Attributes["read"] == nil {
+		t.Fatal("missing read timeout in schema")
+	}
+	if timeoutsBlock.Attributes["update"] == nil {
+		t.Fatal("missing update timeout in schema")
+	}
+	if d := timeoutsBlock.Attributes["delete"]; d != nil {
+		t.Fatalf("unexpected delete timeout in schema: %#v", d)
+	}
+	if timeoutsBlock.Attributes["default"] == nil {
+		t.Fatal("missing default timeout in schema")
+	}
+}
+
+func TestNormalizeFlatmapContainers(t *testing.T) {
+	for i, tc := range []struct {
+		prior  map[string]string
+		attrs  map[string]string
+		expect map[string]string
+	}{
+		{
+			attrs:  map[string]string{"id": "1", "multi.2.set.#": "1", "multi.1.set.#": "0", "single.#": "0"},
+			expect: map[string]string{"id": "1"},
+		},
+		{
+			attrs:  map[string]string{"id": "1", "multi.2.set.#": "2", "multi.2.set.1.foo": "bar", "multi.1.set.#": "0", "single.#": "0"},
+			expect: map[string]string{"id": "1", "multi.2.set.#": "1", "multi.2.set.1.foo": "bar"},
+		},
+		{
+			attrs:  map[string]string{"id": "78629a0f5f3f164f", "multi.#": "1"},
+			expect: map[string]string{"id": "78629a0f5f3f164f"},
+		},
+		{
+			attrs:  map[string]string{"multi.529860700.set.#": "1", "multi.#": "1", "id": "78629a0f5f3f164f"},
+			expect: map[string]string{"id": "78629a0f5f3f164f"},
+		},
+		{
+			attrs:  map[string]string{"set.2.required": "bar", "set.2.list.#": "1", "set.2.list.0": "x", "set.1.list.#": "0", "set.#": "2"},
+			expect: map[string]string{"set.2.list.#": "1", "set.2.list.0": "x", "set.2.required": "bar", "set.#": "1"},
+		},
+		{
+			attrs:  map[string]string{"map.%": hcl2shim.UnknownVariableValue, "list.#": hcl2shim.UnknownVariableValue, "id": "1"},
+			expect: map[string]string{"id": "1", "map.%": hcl2shim.UnknownVariableValue, "list.#": hcl2shim.UnknownVariableValue},
+		},
+		{
+			prior:  map[string]string{"map.%": "0"},
+			attrs:  map[string]string{"map.%": "0", "list.#": "0", "id": "1"},
+			expect: map[string]string{"id": "1", "map.%": "0"},
+		},
+		{
+			prior:  map[string]string{"map.%": hcl2shim.UnknownVariableValue, "list.#": "0"},
+			attrs:  map[string]string{"map.%": "0", "list.#": "0", "id": "1"},
+			expect: map[string]string{"id": "1", "map.%": "0", "list.#": "0"},
+		},
+	} {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			got := normalizeFlatmapContainers(tc.prior, tc.attrs)
+			if !reflect.DeepEqual(tc.expect, got) {
+				t.Fatalf("expected:\n%#v\ngot:\n%#v\n", tc.expect, got)
+			}
+		})
 	}
 }

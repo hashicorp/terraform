@@ -28,7 +28,7 @@ terraform {
 ```hcl
 data "terraform_remote_state" "foo" {
   backend = "etcd"
-  config {
+  config = {
     path      = "path/to/terraform.tfstate"
     endpoints = "http://one:4001 http://two:4001"
   }

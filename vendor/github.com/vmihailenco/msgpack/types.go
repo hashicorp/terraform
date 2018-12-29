@@ -179,12 +179,15 @@ func getFields(typ reflect.Type, useJSONTag bool) *fields {
 			field.name = f.Name
 		}
 
-		if f.Anonymous {
-			if opt.Contains("inline") {
+		if f.Anonymous && !opt.Contains("noinline") {
+			inline := opt.Contains("inline")
+			if inline {
 				inlineFields(fs, f.Type, field, useJSONTag)
-				continue
+			} else {
+				inline = autoinlineFields(fs, f.Type, field, useJSONTag)
 			}
-			if autoinlineFields(fs, f.Type, field, useJSONTag) {
+			if inline {
+				fs.Table[field.name] = field
 				continue
 			}
 		}
@@ -242,7 +245,7 @@ func autoinlineFields(fs *fields, typ reflect.Type, f *field, useJSONTag bool) b
 	inlinedFields := getFields(typ, useJSONTag).List
 	for _, field := range inlinedFields {
 		if _, ok := fs.Table[field.name]; ok {
-			// Don't inline shadowed fields.
+			// Don't auto inline if there are shadowed fields.
 			return false
 		}
 	}

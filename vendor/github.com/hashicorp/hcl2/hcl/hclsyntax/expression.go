@@ -132,7 +132,7 @@ type RelativeTraversalExpr struct {
 }
 
 func (e *RelativeTraversalExpr) walkChildNodes(w internalWalkFunc) {
-	e.Source = w(e.Source).(Expression)
+	w(e.Source)
 }
 
 func (e *RelativeTraversalExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
@@ -181,8 +181,8 @@ type FunctionCallExpr struct {
 }
 
 func (e *FunctionCallExpr) walkChildNodes(w internalWalkFunc) {
-	for i, arg := range e.Args {
-		e.Args[i] = w(arg).(Expression)
+	for _, arg := range e.Args {
+		w(arg)
 	}
 }
 
@@ -463,9 +463,9 @@ type ConditionalExpr struct {
 }
 
 func (e *ConditionalExpr) walkChildNodes(w internalWalkFunc) {
-	e.Condition = w(e.Condition).(Expression)
-	e.TrueResult = w(e.TrueResult).(Expression)
-	e.FalseResult = w(e.FalseResult).(Expression)
+	w(e.Condition)
+	w(e.TrueResult)
+	w(e.FalseResult)
 }
 
 func (e *ConditionalExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
@@ -593,8 +593,8 @@ type IndexExpr struct {
 }
 
 func (e *IndexExpr) walkChildNodes(w internalWalkFunc) {
-	e.Collection = w(e.Collection).(Expression)
-	e.Key = w(e.Key).(Expression)
+	w(e.Collection)
+	w(e.Key)
 }
 
 func (e *IndexExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
@@ -604,8 +604,9 @@ func (e *IndexExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
 	diags = append(diags, collDiags...)
 	diags = append(diags, keyDiags...)
 
-	val, diags := hcl.Index(coll, key, &e.SrcRange)
-	setDiagEvalContext(diags, e, ctx)
+	val, indexDiags := hcl.Index(coll, key, &e.SrcRange)
+	setDiagEvalContext(indexDiags, e, ctx)
+	diags = append(diags, indexDiags...)
 	return val, diags
 }
 
@@ -625,8 +626,8 @@ type TupleConsExpr struct {
 }
 
 func (e *TupleConsExpr) walkChildNodes(w internalWalkFunc) {
-	for i, expr := range e.Exprs {
-		e.Exprs[i] = w(expr).(Expression)
+	for _, expr := range e.Exprs {
+		w(expr)
 	}
 }
 
@@ -674,9 +675,9 @@ type ObjectConsItem struct {
 }
 
 func (e *ObjectConsExpr) walkChildNodes(w internalWalkFunc) {
-	for i, item := range e.Items {
-		e.Items[i].KeyExpr = w(item.KeyExpr).(Expression)
-		e.Items[i].ValueExpr = w(item.ValueExpr).(Expression)
+	for _, item := range e.Items {
+		w(item.KeyExpr)
+		w(item.ValueExpr)
 	}
 }
 
@@ -727,8 +728,8 @@ func (e *ObjectConsExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics
 				Severity:    hcl.DiagError,
 				Summary:     "Incorrect key type",
 				Detail:      fmt.Sprintf("Can't use this value as a key: %s.", err.Error()),
-				Subject:     item.ValueExpr.Range().Ptr(),
-				Expression:  item.ValueExpr,
+				Subject:     item.KeyExpr.Range().Ptr(),
+				Expression:  item.KeyExpr,
 				EvalContext: ctx,
 			})
 			known = false
@@ -792,11 +793,31 @@ func (e *ObjectConsKeyExpr) walkChildNodes(w internalWalkFunc) {
 	// We only treat our wrapped expression as a real expression if we're
 	// not going to interpret it as a literal.
 	if e.literalName() == "" {
-		e.Wrapped = w(e.Wrapped).(Expression)
+		w(e.Wrapped)
 	}
 }
 
 func (e *ObjectConsKeyExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
+	// Because we accept a naked identifier as a literal key rather than a
+	// reference, it's confusing to accept a traversal containing periods
+	// here since we can't tell if the user intends to create a key with
+	// periods or actually reference something. To avoid confusing downstream
+	// errors we'll just prohibit a naked multi-step traversal here and
+	// require the user to state their intent more clearly.
+	// (This is handled at evaluation time rather than parse time because
+	// an application using static analysis _can_ accept a naked multi-step
+	// traversal here, if desired.)
+	if travExpr, isTraversal := e.Wrapped.(*ScopeTraversalExpr); isTraversal && len(travExpr.Traversal) > 1 {
+		var diags hcl.Diagnostics
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Ambiguous attribute key",
+			Detail:   "If this expression is intended to be a reference, wrap it in parentheses. If it's instead intended as a literal name containing periods, wrap it in quotes to create a string literal.",
+			Subject:  e.Range().Ptr(),
+		})
+		return cty.DynamicVal, diags
+	}
+
 	if ln := e.literalName(); ln != "" {
 		return cty.StringVal(ln), nil
 	}
@@ -1157,7 +1178,7 @@ func (e *ForExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
 }
 
 func (e *ForExpr) walkChildNodes(w internalWalkFunc) {
-	e.CollExpr = w(e.CollExpr).(Expression)
+	w(e.CollExpr)
 
 	scopeNames := map[string]struct{}{}
 	if e.KeyVar != "" {
@@ -1170,17 +1191,17 @@ func (e *ForExpr) walkChildNodes(w internalWalkFunc) {
 	if e.KeyExpr != nil {
 		w(ChildScope{
 			LocalNames: scopeNames,
-			Expr:       &e.KeyExpr,
+			Expr:       e.KeyExpr,
 		})
 	}
 	w(ChildScope{
 		LocalNames: scopeNames,
-		Expr:       &e.ValExpr,
+		Expr:       e.ValExpr,
 	})
 	if e.CondExpr != nil {
 		w(ChildScope{
 			LocalNames: scopeNames,
-			Expr:       &e.CondExpr,
+			Expr:       e.CondExpr,
 		})
 	}
 }
@@ -1226,16 +1247,61 @@ func (e *SplatExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
 		})
 		return cty.DynamicVal, diags
 	}
-	if !sourceVal.IsKnown() {
+
+	sourceTy := sourceVal.Type()
+	if sourceTy == cty.DynamicPseudoType {
+		// If we don't even know the _type_ of our source value yet then
+		// we'll need to defer all processing, since we can't decide our
+		// result type either.
 		return cty.DynamicVal, diags
 	}
 
 	// A "special power" of splat expressions is that they can be applied
 	// both to tuples/lists and to other values, and in the latter case
-	// the value will be treated as an implicit single-value list. We'll
+	// the value will be treated as an implicit single-value tuple. We'll
 	// deal with that here first.
-	if !(sourceVal.Type().IsTupleType() || sourceVal.Type().IsListType() || sourceVal.Type().IsSetType()) {
-		sourceVal = cty.ListVal([]cty.Value{sourceVal})
+	if !(sourceTy.IsTupleType() || sourceTy.IsListType() || sourceTy.IsSetType()) {
+		sourceVal = cty.TupleVal([]cty.Value{sourceVal})
+		sourceTy = sourceVal.Type()
+	}
+
+	// We'll compute our result type lazily if we need it. In the normal case
+	// it's inferred automatically from the value we construct.
+	resultTy := func() (cty.Type, hcl.Diagnostics) {
+		chiCtx := ctx.NewChild()
+		var diags hcl.Diagnostics
+		switch {
+		case sourceTy.IsListType() || sourceTy.IsSetType():
+			ety := sourceTy.ElementType()
+			e.Item.setValue(chiCtx, cty.UnknownVal(ety))
+			val, itemDiags := e.Each.Value(chiCtx)
+			diags = append(diags, itemDiags...)
+			e.Item.clearValue(chiCtx) // clean up our temporary value
+			return cty.List(val.Type()), diags
+		case sourceTy.IsTupleType():
+			etys := sourceTy.TupleElementTypes()
+			resultTys := make([]cty.Type, 0, len(etys))
+			for _, ety := range etys {
+				e.Item.setValue(chiCtx, cty.UnknownVal(ety))
+				val, itemDiags := e.Each.Value(chiCtx)
+				diags = append(diags, itemDiags...)
+				e.Item.clearValue(chiCtx) // clean up our temporary value
+				resultTys = append(resultTys, val.Type())
+			}
+			return cty.Tuple(resultTys), diags
+		default:
+			// Should never happen because of our promotion to list above.
+			return cty.DynamicPseudoType, diags
+		}
+	}
+
+	if !sourceVal.IsKnown() {
+		// We can't produce a known result in this case, but we'll still
+		// indicate what the result type would be, allowing any downstream type
+		// checking to proceed.
+		ty, tyDiags := resultTy()
+		diags = append(diags, tyDiags...)
+		return cty.UnknownVal(ty), diags
 	}
 
 	vals := make([]cty.Value, 0, sourceVal.LengthInt())
@@ -1259,15 +1325,28 @@ func (e *SplatExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
 	e.Item.clearValue(ctx) // clean up our temporary value
 
 	if !isKnown {
-		return cty.DynamicVal, diags
+		// We'll ingore the resultTy diagnostics in this case since they
+		// will just be the same errors we saw while iterating above.
+		ty, _ := resultTy()
+		return cty.UnknownVal(ty), diags
 	}
 
-	return cty.TupleVal(vals), diags
+	switch {
+	case sourceTy.IsListType() || sourceTy.IsSetType():
+		if len(vals) == 0 {
+			ty, tyDiags := resultTy()
+			diags = append(diags, tyDiags...)
+			return cty.ListValEmpty(ty.ElementType()), diags
+		}
+		return cty.ListVal(vals), diags
+	default:
+		return cty.TupleVal(vals), diags
+	}
 }
 
 func (e *SplatExpr) walkChildNodes(w internalWalkFunc) {
-	e.Source = w(e.Source).(Expression)
-	e.Each = w(e.Each).(Expression)
+	w(e.Source)
+	w(e.Each)
 }
 
 func (e *SplatExpr) Range() hcl.Range {

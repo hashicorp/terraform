@@ -12,7 +12,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/backend"
-	backendinit "github.com/hashicorp/terraform/backend/init"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
@@ -21,6 +20,8 @@ import (
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
+
+	backendInit "github.com/hashicorp/terraform/backend/init"
 )
 
 // InitCommand is a Command implementation that takes a Terraform
@@ -49,7 +50,8 @@ func (c *InitCommand) Run(args []string) int {
 	if err != nil {
 		return 1
 	}
-	cmdFlags := c.flagSet("init")
+
+	cmdFlags := c.Meta.extendedFlagSet("init")
 	cmdFlags.BoolVar(&flagBackend, "backend", true, "")
 	cmdFlags.Var(flagConfigExtra, "backend-config", "")
 	cmdFlags.StringVar(&flagFromModule, "from-module", "", "copy the source of the given module into the directory before init")
@@ -62,7 +64,6 @@ func (c *InitCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&flagUpgrade, "upgrade", false, "")
 	cmdFlags.Var(&flagPluginPath, "plugin-dir", "plugin directory")
 	cmdFlags.BoolVar(&flagVerifyPlugins, "verify-plugins", true, "verify plugins")
-
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -153,10 +154,12 @@ func (c *InitCommand) Run(args []string) int {
 
 	// If our directory is empty, then we're done. We can't get or setup
 	// the backend with an empty directory.
-	if empty, err := config.IsEmptyDir(path); err != nil {
+	empty, err := config.IsEmptyDir(path)
+	if err != nil {
 		diags = diags.Append(fmt.Errorf("Error checking configuration: %s", err))
 		return 1
-	} else if empty {
+	}
+	if empty {
 		c.Ui.Output(c.Colorize().Color(strings.TrimSpace(outputInitEmpty)))
 		return 0
 	}
@@ -212,7 +215,7 @@ func (c *InitCommand) Run(args []string) int {
 				c.Ui.Output(c.Colorize().Color(fmt.Sprintf("\n[reset][bold]Initializing the backend...")))
 
 				backendType := config.Backend.Type
-				bf := backendinit.Backend(backendType)
+				bf := backendInit.Backend(backendType)
 				if bf == nil {
 					diags = diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
@@ -254,6 +257,24 @@ func (c *InitCommand) Run(args []string) int {
 		}
 	}
 
+	// With modules now installed, we should be able to load the whole
+	// configuration and check the core version constraints.
+	config, confDiags := c.loadConfig(path)
+	diags = diags.Append(confDiags)
+	if confDiags.HasErrors() {
+		// Since this may be the user's first ever interaction with Terraform,
+		// we'll provide some additional context in this case.
+		c.Ui.Error(strings.TrimSpace(errInitConfigError))
+		c.showDiagnostics(diags)
+		return 1
+	}
+	confDiags = terraform.CheckCoreVersionRequirements(config)
+	diags = diags.Append(confDiags)
+	if confDiags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
 	if back == nil {
 		// If we didn't initialize a backend then we'll try to at least
 		// instantiate one. This might fail if it wasn't already initalized
@@ -275,14 +296,12 @@ func (c *InitCommand) Run(args []string) int {
 	if back != nil {
 		sMgr, err := back.StateMgr(c.Workspace())
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf(
-				"Error loading state: %s", err))
+			c.Ui.Error(fmt.Sprintf("Error loading state: %s", err))
 			return 1
 		}
 
 		if err := sMgr.RefreshState(); err != nil {
-			c.Ui.Error(fmt.Sprintf(
-				"Error refreshing state: %s", err))
+			c.Ui.Error(fmt.Sprintf("Error refreshing state: %s", err))
 			return 1
 		}
 
@@ -699,7 +718,7 @@ suggested below.
 const errProviderNotFound = `
 [reset][bold][red]Provider %[1]q not available for installation.[reset][red]
 
-A provider named %[1]q could not be found in the official repository.
+A provider named %[1]q could not be found in the Terraform Registry.
 
 This may result from mistyping the provider name, or the given provider may
 be a third-party provider that cannot be installed automatically.

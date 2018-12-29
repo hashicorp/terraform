@@ -43,10 +43,10 @@ func (n *EvalCheckPlannedChange) Eval(ctx EvalContext) (interface{}, error) {
 	plannedChange := *n.Planned
 	actualChange := *n.Actual
 
-	schema := providerSchema.ResourceTypes[n.Addr.Resource.Type]
+	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource())
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
-		return nil, fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Type)
+		return nil, fmt.Errorf("provider does not support %q", n.Addr.Resource.Type)
 	}
 
 	var diags tfdiags.Diagnostics
@@ -129,7 +129,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	var diags tfdiags.Diagnostics
 
 	// Evaluate the configuration
-	schema := providerSchema.ResourceTypes[n.Addr.Resource.Type]
+	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource())
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
 		return nil, fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Type)
@@ -310,11 +310,15 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		// from known prior values to unknown values, unless the provider is
 		// able to predict new values for any of these computed attributes.
 		nullPriorVal := cty.NullVal(schema.ImpliedType())
+
+		// create a new proposed value from the null state and the config
+		proposedNewVal = objchange.ProposedNewObject(schema, nullPriorVal, configVal)
+
 		resp = provider.PlanResourceChange(providers.PlanResourceChangeRequest{
 			TypeName:         n.Addr.Resource.Type,
 			Config:           configVal,
 			PriorState:       nullPriorVal,
-			ProposedNewState: configVal,
+			ProposedNewState: proposedNewVal,
 			PriorPrivate:     plannedPrivate,
 		})
 		// We need to tread carefully here, since if there are any warnings
@@ -829,7 +833,7 @@ func (n *EvalReadDiff) Eval(ctx EvalContext) (interface{}, error) {
 	changes := ctx.Changes()
 	addr := n.Addr.Absolute(ctx.Path())
 
-	schema := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource())
+	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource())
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
 		return nil, fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Type)
@@ -890,7 +894,7 @@ func (n *EvalWriteDiff) Eval(ctx EvalContext) (interface{}, error) {
 		panic("inconsistent address and/or deposed key in EvalWriteDiff")
 	}
 
-	schema := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource())
+	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource())
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
 		return nil, fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Type)

@@ -130,6 +130,7 @@ func testHandler(w http.ResponseWriter, r *http.Request) {
 
 func testReleaseServer() *httptest.Server {
 	handler := http.NewServeMux()
+	handler.HandleFunc("/v1/providers/-/", testHandler)
 	handler.HandleFunc("/v1/providers/terraform-providers/", testHandler)
 	handler.HandleFunc("/terraform-provider-template/", testChecksumHandler)
 	handler.HandleFunc("/terraform-provider-badsig/", testChecksumHandler)
@@ -369,23 +370,57 @@ func TestProviderInstallerPurgeUnused(t *testing.T) {
 
 // Test fetching a provider's checksum file while verifying its signature.
 func TestProviderChecksum(t *testing.T) {
+	hashicorpKey, err := ioutil.ReadFile("testdata/hashicorp.asc")
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	tests := []struct {
+		Name string
 		URLs *response.TerraformProviderPlatformLocation
 		Err  bool
 	}{
 		{
+			"good",
 			&response.TerraformProviderPlatformLocation{
+				Filename:            "terraform-provider-template_0.1.0_darwin_amd64.zip",
 				ShasumsURL:          "http://127.0.0.1:8080/terraform-provider-template/0.1.0/terraform-provider-template_0.1.0_SHA256SUMS",
 				ShasumsSignatureURL: "http://127.0.0.1:8080/terraform-provider-template/0.1.0/terraform-provider-template_0.1.0_SHA256SUMS.sig",
-				Filename:            "terraform-provider-template_0.1.0_darwin_amd64.zip",
+				SigningKeys: response.SigningKeyList{
+					GPGKeys: []*response.GPGKey{
+						&response.GPGKey{
+							ASCIIArmor: string(hashicorpKey),
+						},
+					},
+				},
 			},
 			false,
 		},
 		{
+			"bad",
 			&response.TerraformProviderPlatformLocation{
+				Filename:            "terraform-provider-template_0.1.0_darwin_amd64.zip",
 				ShasumsURL:          "http://127.0.0.1:8080/terraform-provider-badsig/0.1.0/terraform-provider-badsig_0.1.0_SHA256SUMS",
 				ShasumsSignatureURL: "http://127.0.0.1:8080/terraform-provider-badsig/0.1.0/terraform-provider-badsig_0.1.0_SHA256SUMS.sig",
+				SigningKeys: response.SigningKeyList{
+					GPGKeys: []*response.GPGKey{
+						&response.GPGKey{
+							ASCIIArmor: string(hashicorpKey),
+						},
+					},
+				},
+			},
+			true,
+		},
+		{
+			"no keys",
+			&response.TerraformProviderPlatformLocation{
 				Filename:            "terraform-provider-template_0.1.0_darwin_amd64.zip",
+				ShasumsURL:          "http://127.0.0.1:8080/terraform-provider-template/0.1.0/terraform-provider-template_0.1.0_SHA256SUMS",
+				ShasumsSignatureURL: "http://127.0.0.1:8080/terraform-provider-template/0.1.0/terraform-provider-template_0.1.0_SHA256SUMS.sig",
+				SigningKeys: response.SigningKeyList{
+					GPGKeys: []*response.GPGKey{},
+				},
 			},
 			true,
 		},
@@ -445,7 +480,7 @@ func Disco(s *httptest.Server) *disco.Disco {
 }
 
 var versionList = response.TerraformProvider{
-	ID: "test",
+	ID: "terraform-providers/test",
 	Versions: []*response.TerraformProviderVersion{
 		{Version: "1.2.1"},
 		{Version: "1.2.3"},

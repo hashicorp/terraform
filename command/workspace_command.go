@@ -22,7 +22,7 @@ func (c *WorkspaceCommand) Run(args []string) int {
 
 	envCommandShowWarning(c.Ui, c.LegacyName)
 
-	cmdFlags := c.Meta.flagSet("workspace")
+	cmdFlags := c.Meta.extendedFlagSet("workspace")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 
 	c.Ui.Output(c.Help())

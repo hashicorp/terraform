@@ -8,6 +8,9 @@ description: |-
 
 # terraform enterprise
 
+-> **Deprecated** Please use the new enhanced [remote](/docs/backends/types/remote.html)
+backend for storing state and running remote operations in Terraform Enterprise.
+
 **Kind: Standard (with no locking)**
 
 Reads and writes state from a [Terraform Enterprise](/docs/enterprise/index.html)
@@ -46,7 +49,7 @@ omitting the access token, which can be provided as an environment variable.
 ```hcl
 data "terraform_remote_state" "foo" {
   backend = "atlas"
-  config {
+  config = {
     name = "example_corp/networking-prod"
   }
 }

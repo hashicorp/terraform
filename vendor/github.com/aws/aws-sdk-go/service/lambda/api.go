@@ -18,7 +18,7 @@ const opAddPermission = "AddPermission"
 // AddPermissionRequest generates a "aws/request.Request" representing the
 // client's request for the AddPermission operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -59,17 +59,16 @@ func (c *Lambda) AddPermissionRequest(input *AddPermissionInput) (req *request.R
 //
 // Adds a permission to the resource policy associated with the specified AWS
 // Lambda function. You use resource policies to grant permissions to event
-// sources that use push model. In a push model, event sources (such as Amazon
-// S3 and custom applications) invoke your Lambda function. Each permission
-// you add to the resource policy allows an event source, permission to invoke
+// sources that use the push model. In a push model, event sources (such as
+// Amazon S3 and custom applications) invoke your Lambda function. Each permission
+// you add to the resource policy allows an event source permission to invoke
 // the Lambda function.
 //
-// For information about the push model, see Lambda Functions (http://docs.aws.amazon.com/lambda/latest/dg/lambda-introduction.html).
-//
-// If you are using versioning, the permissions you add are specific to the
-// Lambda function version or alias you specify in the AddPermission request
-// via the Qualifier parameter. For more information about versioning, see AWS
-// Lambda Function Versioning and Aliases (http://docs.aws.amazon.com/lambda/latest/dg/versioning-aliases.html).
+// Permissions apply to the Amazon Resource Name (ARN) used to invoke the function,
+// which can be unqualified (the unpublished version of the function), or include
+// a version or alias. If a client uses a version or alias to invoke a function,
+// use the Qualifier parameter to apply permissions to that ARN. For more information
+// about versioning, see AWS Lambda Function Versioning and Aliases (http://docs.aws.amazon.com/lambda/latest/dg/versioning-aliases.html).
 //
 // This operation requires permission for the lambda:AddPermission action.
 //
@@ -100,6 +99,7 @@ func (c *Lambda) AddPermissionRequest(input *AddPermissionInput) (req *request.R
 //   Lambda function access policy is limited to 20 KB.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   Request throughput limit exceeded
 //
 //   * ErrCodePreconditionFailedException "PreconditionFailedException"
 //   The RevisionId provided does not match the latest RevisionId for the Lambda
@@ -133,7 +133,7 @@ const opCreateAlias = "CreateAlias"
 // CreateAliasRequest generates a "aws/request.Request" representing the
 // client's request for the CreateAlias operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -202,6 +202,7 @@ func (c *Lambda) CreateAliasRequest(input *CreateAliasInput) (req *request.Reque
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   Request throughput limit exceeded
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/CreateAlias
 func (c *Lambda) CreateAlias(input *CreateAliasInput) (*AliasConfiguration, error) {
@@ -230,7 +231,7 @@ const opCreateEventSourceMapping = "CreateEventSourceMapping"
 // CreateEventSourceMappingRequest generates a "aws/request.Request" representing the
 // client's request for the CreateEventSourceMapping operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -270,8 +271,8 @@ func (c *Lambda) CreateEventSourceMappingRequest(input *CreateEventSourceMapping
 // CreateEventSourceMapping API operation for AWS Lambda.
 //
 // Identifies a poll-based event source for a Lambda function. It can be either
-// an Amazon Kinesis or DynamoDB stream, or an Amazon SQS queue. AWS Lambda
-// invokes the specified function when records are posted to the event source.
+// an Amazon Kinesis or DynamoDB stream. AWS Lambda invokes the specified function
+// when records are posted to the event source.
 //
 // This association between a poll-based source and a Lambda function is called
 // the event source mapping.
@@ -284,6 +285,9 @@ func (c *Lambda) CreateEventSourceMappingRequest(input *CreateEventSourceMapping
 // AWS event sources. For Amazon SQS, you can configure multiple queues as event
 // sources for a single Lambda function, but an SQS queue can be mapped only
 // to a single Lambda function.
+//
+// You can configure an SQS queue in an account separate from your Lambda function's
+// account. Also the queue needs to reside in the same AWS region as your function.
 //
 // If you are using versioning, you can specify a specific function version
 // or an alias via the function name parameter. For more information about versioning,
@@ -312,6 +316,7 @@ func (c *Lambda) CreateEventSourceMappingRequest(input *CreateEventSourceMapping
 //   The resource already exists.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   Request throughput limit exceeded
 //
 //   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The resource (for example, a Lambda function or access policy statement)
@@ -344,7 +349,7 @@ const opCreateFunction = "CreateFunction"
 // CreateFunctionRequest generates a "aws/request.Request" representing the
 // client's request for the CreateFunction operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -383,14 +388,9 @@ func (c *Lambda) CreateFunctionRequest(input *CreateFunctionInput) (req *request
 
 // CreateFunction API operation for AWS Lambda.
 //
-// Creates a new Lambda function. The function metadata is created from the
-// request parameters, and the code for the function is provided by a .zip file
-// in the request body. If the function name already exists, the operation will
-// fail. Note that the function name is case-sensitive.
-//
-// If you are using versioning, you can also publish a version of the Lambda
-// function you are creating using the Publish parameter. For more information
-// about versioning, see AWS Lambda Function Versioning and Aliases (http://docs.aws.amazon.com/lambda/latest/dg/versioning-aliases.html).
+// Creates a new Lambda function. The function configuration is created from
+// the request parameters, and the code for the function is provided by a .zip
+// file. The function name is case-sensitive.
 //
 // This operation requires permission for the lambda:CreateFunction action.
 //
@@ -418,6 +418,7 @@ func (c *Lambda) CreateFunctionRequest(input *CreateFunctionInput) (req *request
 //   The resource already exists.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   Request throughput limit exceeded
 //
 //   * ErrCodeCodeStorageExceededException "CodeStorageExceededException"
 //   You have exceeded your maximum total code size per account. Limits (http://docs.aws.amazon.com/lambda/latest/dg/limits.html)
@@ -449,7 +450,7 @@ const opDeleteAlias = "DeleteAlias"
 // DeleteAliasRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteAlias operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -512,6 +513,7 @@ func (c *Lambda) DeleteAliasRequest(input *DeleteAliasInput) (req *request.Reque
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   Request throughput limit exceeded
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/DeleteAlias
 func (c *Lambda) DeleteAlias(input *DeleteAliasInput) (*DeleteAliasOutput, error) {
@@ -540,7 +542,7 @@ const opDeleteEventSourceMapping = "DeleteEventSourceMapping"
 // DeleteEventSourceMappingRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteEventSourceMapping operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -606,6 +608,7 @@ func (c *Lambda) DeleteEventSourceMappingRequest(input *DeleteEventSourceMapping
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   Request throughput limit exceeded
 //
 //   * ErrCodeResourceInUseException "ResourceInUseException"
 //   The operation conflicts with the resource's availability. For example, you
@@ -639,7 +642,7 @@ const opDeleteFunction = "DeleteFunction"
 // DeleteFunctionRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteFunction operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -680,17 +683,9 @@ func (c *Lambda) DeleteFunctionRequest(input *DeleteFunctionInput) (req *request
 
 // DeleteFunction API operation for AWS Lambda.
 //
-// Deletes the specified Lambda function code and configuration.
-//
-// If you are using the versioning feature and you don't specify a function
-// version in your DeleteFunction request, AWS Lambda will delete the function,
-// including all its versions, and any aliases pointing to the function versions.
-// To delete a specific function version, you must provide the function version
-// via the Qualifier parameter. For information about function versioning, see
-// AWS Lambda Function Versioning and Aliases (http://docs.aws.amazon.com/lambda/latest/dg/versioning-aliases.html).
-//
-// When you delete a function the associated resource policy is also deleted.
-// You will need to delete the event source mappings explicitly.
+// Deletes a Lambda function. To delete a specific function version, use the
+// Qualifier parameter. Otherwise, all versions and aliases are deleted. Event
+// source mappings are not deleted.
 //
 // This operation requires permission for the lambda:DeleteFunction action.
 //
@@ -710,6 +705,7 @@ func (c *Lambda) DeleteFunctionRequest(input *DeleteFunctionInput) (req *request
 //   specified in the request does not exist.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   Request throughput limit exceeded
 //
 //   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
@@ -746,7 +742,7 @@ const opDeleteFunctionConcurrency = "DeleteFunctionConcurrency"
 // DeleteFunctionConcurrencyRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteFunctionConcurrency operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -788,7 +784,7 @@ func (c *Lambda) DeleteFunctionConcurrencyRequest(input *DeleteFunctionConcurren
 // DeleteFunctionConcurrency API operation for AWS Lambda.
 //
 // Removes concurrent execution limits from this function. For more information,
-// see concurrent-executions.
+// see Managing Concurrency (http://docs.aws.amazon.com/lambda/latest/dg/concurrent-executions.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -806,6 +802,7 @@ func (c *Lambda) DeleteFunctionConcurrencyRequest(input *DeleteFunctionConcurren
 //   specified in the request does not exist.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   Request throughput limit exceeded
 //
 //   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
@@ -839,7 +836,7 @@ const opGetAccountSettings = "GetAccountSettings"
 // GetAccountSettingsRequest generates a "aws/request.Request" representing the
 // client's request for the GetAccountSettings operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -878,13 +875,8 @@ func (c *Lambda) GetAccountSettingsRequest(input *GetAccountSettingsInput) (req 
 
 // GetAccountSettings API operation for AWS Lambda.
 //
-// Returns a customer's account settings.
-//
-// You can use this operation to retrieve Lambda limits information, such as
-// code size and concurrency limits. For more information about limits, see
-// AWS Lambda Limits (http://docs.aws.amazon.com/lambda/latest/dg/limits.html).
-// You can also retrieve resource usage statistics, such as code storage usage
-// and function count.
+// Retrieves details about your account's limits (http://docs.aws.amazon.com/lambda/latest/dg/limits.html)
+// and usage in a region.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -895,6 +887,7 @@ func (c *Lambda) GetAccountSettingsRequest(input *GetAccountSettingsInput) (req 
 //
 // Returned Error Codes:
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   Request throughput limit exceeded
 //
 //   * ErrCodeServiceException "ServiceException"
 //   The AWS Lambda service encountered an internal error.
@@ -926,7 +919,7 @@ const opGetAlias = "GetAlias"
 // GetAliasRequest generates a "aws/request.Request" representing the
 // client's request for the GetAlias operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -992,6 +985,7 @@ func (c *Lambda) GetAliasRequest(input *GetAliasInput) (req *request.Request, ou
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   Request throughput limit exceeded
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/GetAlias
 func (c *Lambda) GetAlias(input *GetAliasInput) (*AliasConfiguration, error) {
@@ -1020,7 +1014,7 @@ const opGetEventSourceMapping = "GetEventSourceMapping"
 // GetEventSourceMappingRequest generates a "aws/request.Request" representing the
 // client's request for the GetEventSourceMapping operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1085,6 +1079,7 @@ func (c *Lambda) GetEventSourceMappingRequest(input *GetEventSourceMappingInput)
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   Request throughput limit exceeded
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/GetEventSourceMapping
 func (c *Lambda) GetEventSourceMapping(input *GetEventSourceMappingInput) (*EventSourceMappingConfiguration, error) {
@@ -1113,7 +1108,7 @@ const opGetFunction = "GetFunction"
 // GetFunctionRequest generates a "aws/request.Request" representing the
 // client's request for the GetFunction operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1158,11 +1153,9 @@ func (c *Lambda) GetFunctionRequest(input *GetFunctionInput) (req *request.Reque
 // information is the same information you provided as parameters when uploading
 // the function.
 //
-// Using the optional Qualifier parameter, you can specify a specific function
-// version for which you want this information. If you don't specify this parameter,
-// the API uses unqualified function ARN which return information about the
-// $LATEST version of the Lambda function. For more information, see AWS Lambda
-// Function Versioning and Aliases (http://docs.aws.amazon.com/lambda/latest/dg/versioning-aliases.html).
+// Use the Qualifier parameter to retrieve a published version of the function.
+// Otherwise, returns the unpublished version ($LATEST). For more information,
+// see AWS Lambda Function Versioning and Aliases (http://docs.aws.amazon.com/lambda/latest/dg/versioning-aliases.html).
 //
 // This operation requires permission for the lambda:GetFunction action.
 //
@@ -1182,6 +1175,7 @@ func (c *Lambda) GetFunctionRequest(input *GetFunctionInput) (req *request.Reque
 //   specified in the request does not exist.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   Request throughput limit exceeded
 //
 //   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
@@ -1215,7 +1209,7 @@ const opGetFunctionConfiguration = "GetFunctionConfiguration"
 // GetFunctionConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the GetFunctionConfiguration operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1284,6 +1278,7 @@ func (c *Lambda) GetFunctionConfigurationRequest(input *GetFunctionConfiguration
 //   specified in the request does not exist.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   Request throughput limit exceeded
 //
 //   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
@@ -1317,7 +1312,7 @@ const opGetPolicy = "GetPolicy"
 // GetPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the GetPolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1358,12 +1353,7 @@ func (c *Lambda) GetPolicyRequest(input *GetPolicyInput) (req *request.Request, 
 //
 // Returns the resource policy associated with the specified Lambda function.
 //
-// If you are using the versioning feature, you can get the resource policy
-// associated with the specific Lambda function version or alias by specifying
-// the version or alias name using the Qualifier parameter. For more information
-// about versioning, see AWS Lambda Function Versioning and Aliases (http://docs.aws.amazon.com/lambda/latest/dg/versioning-aliases.html).
-//
-// You need permission for the lambda:GetPolicy action.
+// This action requires permission for the lambda:GetPolicy action.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1381,6 +1371,7 @@ func (c *Lambda) GetPolicyRequest(input *GetPolicyInput) (req *request.Request, 
 //   specified in the request does not exist.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   Request throughput limit exceeded
 //
 //   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
@@ -1414,7 +1405,7 @@ const opInvoke = "Invoke"
 // InvokeRequest generates a "aws/request.Request" representing the
 // client's request for the Invoke operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1453,16 +1444,22 @@ func (c *Lambda) InvokeRequest(input *InvokeInput) (req *request.Request, output
 
 // Invoke API operation for AWS Lambda.
 //
-// Invokes a specific Lambda function. For an example, see Create the Lambda
-// Function and Test It Manually (http://docs.aws.amazon.com/lambda/latest/dg/with-dynamodb-create-function.html#with-dbb-invoke-manually).
+// Invokes a Lambda function. For an example, see Create the Lambda Function
+// and Test It Manually (http://docs.aws.amazon.com/lambda/latest/dg/with-dynamodb-create-function.html#with-dbb-invoke-manually).
 //
-// If you are using the versioning feature, you can invoke the specific function
-// version by providing function version or alias name that is pointing to the
-// function version using the Qualifier parameter in the request. If you don't
-// provide the Qualifier parameter, the $LATEST version of the Lambda function
-// is invoked. Invocations occur at least once in response to an event and functions
-// must be idempotent to handle this. For information about the versioning feature,
-// see AWS Lambda Function Versioning and Aliases (http://docs.aws.amazon.com/lambda/latest/dg/versioning-aliases.html).
+// Specify just a function name to invoke the latest version of the function.
+// To invoke a published version, use the Qualifier parameter to specify a version
+// or alias (http://docs.aws.amazon.com/lambda/latest/dg/versioning-aliases.html).
+//
+// If you use the RequestResponse (synchronous) invocation option, the function
+// will be invoked only once. If you use the Event (asynchronous) invocation
+// option, the function will be invoked at least once in response to an event
+// and the function must be idempotent to handle this.
+//
+// For functions with a long timeout, your client may be disconnected during
+// synchronous invocation while it waits for a response. Configure your HTTP
+// client, SDK, firewall, proxy, or operating system to allow for long connections
+// with timeout or keep-alive settings.
 //
 // This operation requires permission for the lambda:InvokeFunction action.
 //
@@ -1499,6 +1496,7 @@ func (c *Lambda) InvokeRequest(input *InvokeInput) (req *request.Request, output
 //   The content type of the Invoke request body is not JSON.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   Request throughput limit exceeded
 //
 //   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
@@ -1523,6 +1521,7 @@ func (c *Lambda) InvokeRequest(input *InvokeInput) (req *request.Request, output
 //   using the execution role provided for the Lambda function.
 //
 //   * ErrCodeEC2AccessDeniedException "EC2AccessDeniedException"
+//   Need additional permissions to configure VPC settings.
 //
 //   * ErrCodeInvalidSubnetIDException "InvalidSubnetIDException"
 //   The Subnet ID provided in the Lambda function VPC configuration is invalid.
@@ -1532,7 +1531,7 @@ func (c *Lambda) InvokeRequest(input *InvokeInput) (req *request.Request, output
 //   invalid.
 //
 //   * ErrCodeInvalidZipFileException "InvalidZipFileException"
-//   AWS Lambda could not unzip the function zip file.
+//   AWS Lambda could not unzip the deployment package.
 //
 //   * ErrCodeKMSDisabledException "KMSDisabledException"
 //   Lambda was unable to decrypt the environment variables because the KMS key
@@ -1580,7 +1579,7 @@ const opInvokeAsync = "InvokeAsync"
 // InvokeAsyncRequest generates a "aws/request.Request" representing the
 // client's request for the InvokeAsync operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1624,7 +1623,7 @@ func (c *Lambda) InvokeAsyncRequest(input *InvokeAsyncInput) (req *request.Reque
 
 // InvokeAsync API operation for AWS Lambda.
 //
-// This API is deprecated. We recommend you use Invoke API (see Invoke).
+// For asynchronous function invocation, use Invoke.
 //
 // Submits an invocation request to AWS Lambda. Upon receiving the request,
 // Lambda executes the specified function asynchronously. To see the logs generated
@@ -1684,7 +1683,7 @@ const opListAliases = "ListAliases"
 // ListAliasesRequest generates a "aws/request.Request" representing the
 // client's request for the ListAliases operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1751,6 +1750,7 @@ func (c *Lambda) ListAliasesRequest(input *ListAliasesInput) (req *request.Reque
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   Request throughput limit exceeded
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/ListAliases
 func (c *Lambda) ListAliases(input *ListAliasesInput) (*ListAliasesOutput, error) {
@@ -1779,7 +1779,7 @@ const opListEventSourceMappings = "ListEventSourceMappings"
 // ListEventSourceMappingsRequest generates a "aws/request.Request" representing the
 // client's request for the ListEventSourceMappings operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1830,11 +1830,6 @@ func (c *Lambda) ListEventSourceMappingsRequest(input *ListEventSourceMappingsIn
 // For each mapping, the API returns configuration information. You can optionally
 // specify filters to retrieve specific event source mappings.
 //
-// If you are using the versioning feature, you can get list of event source
-// mappings for a specific Lambda function version or an alias as described
-// in the FunctionName parameter. For information about the versioning feature,
-// see AWS Lambda Function Versioning and Aliases (http://docs.aws.amazon.com/lambda/latest/dg/versioning-aliases.html).
-//
 // This operation requires permission for the lambda:ListEventSourceMappings
 // action.
 //
@@ -1859,6 +1854,7 @@ func (c *Lambda) ListEventSourceMappingsRequest(input *ListEventSourceMappingsIn
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   Request throughput limit exceeded
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/ListEventSourceMappings
 func (c *Lambda) ListEventSourceMappings(input *ListEventSourceMappingsInput) (*ListEventSourceMappingsOutput, error) {
@@ -1937,7 +1933,7 @@ const opListFunctions = "ListFunctions"
 // ListFunctionsRequest generates a "aws/request.Request" representing the
 // client's request for the ListFunctions operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2004,6 +2000,7 @@ func (c *Lambda) ListFunctionsRequest(input *ListFunctionsInput) (req *request.R
 //   The AWS Lambda service encountered an internal error.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   Request throughput limit exceeded
 //
 //   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
@@ -2087,7 +2084,7 @@ const opListTags = "ListTags"
 // ListTagsRequest generates a "aws/request.Request" representing the
 // client's request for the ListTags operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2152,6 +2149,7 @@ func (c *Lambda) ListTagsRequest(input *ListTagsInput) (req *request.Request, ou
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   Request throughput limit exceeded
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/ListTags
 func (c *Lambda) ListTags(input *ListTagsInput) (*ListTagsOutput, error) {
@@ -2180,7 +2178,7 @@ const opListVersionsByFunction = "ListVersionsByFunction"
 // ListVersionsByFunctionRequest generates a "aws/request.Request" representing the
 // client's request for the ListVersionsByFunction operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2219,8 +2217,8 @@ func (c *Lambda) ListVersionsByFunctionRequest(input *ListVersionsByFunctionInpu
 
 // ListVersionsByFunction API operation for AWS Lambda.
 //
-// List all versions of a function. For information about the versioning feature,
-// see AWS Lambda Function Versioning and Aliases (http://docs.aws.amazon.com/lambda/latest/dg/versioning-aliases.html).
+// Lists all versions of a function. For information about versioning, see AWS
+// Lambda Function Versioning and Aliases (http://docs.aws.amazon.com/lambda/latest/dg/versioning-aliases.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2243,6 +2241,7 @@ func (c *Lambda) ListVersionsByFunctionRequest(input *ListVersionsByFunctionInpu
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   Request throughput limit exceeded
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/ListVersionsByFunction
 func (c *Lambda) ListVersionsByFunction(input *ListVersionsByFunctionInput) (*ListVersionsByFunctionOutput, error) {
@@ -2271,7 +2270,7 @@ const opPublishVersion = "PublishVersion"
 // PublishVersionRequest generates a "aws/request.Request" representing the
 // client's request for the PublishVersion operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2337,6 +2336,7 @@ func (c *Lambda) PublishVersionRequest(input *PublishVersionInput) (req *request
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   Request throughput limit exceeded
 //
 //   * ErrCodeCodeStorageExceededException "CodeStorageExceededException"
 //   You have exceeded your maximum total code size per account. Limits (http://docs.aws.amazon.com/lambda/latest/dg/limits.html)
@@ -2373,7 +2373,7 @@ const opPutFunctionConcurrency = "PutFunctionConcurrency"
 // PutFunctionConcurrencyRequest generates a "aws/request.Request" representing the
 // client's request for the PutFunctionConcurrency operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2417,7 +2417,7 @@ func (c *Lambda) PutFunctionConcurrencyRequest(input *PutFunctionConcurrencyInpu
 // Note that Lambda automatically reserves a buffer of 100 concurrent executions
 // for functions without any reserved concurrency limit. This means if your
 // account limit is 1000, you have a total of 900 available to allocate to individual
-// functions. For more information, see concurrent-executions.
+// functions. For more information, see Managing Concurrency (http://docs.aws.amazon.com/lambda/latest/dg/concurrent-executions.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2440,6 +2440,7 @@ func (c *Lambda) PutFunctionConcurrencyRequest(input *PutFunctionConcurrencyInpu
 //   specified in the request does not exist.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   Request throughput limit exceeded
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/PutFunctionConcurrency
 func (c *Lambda) PutFunctionConcurrency(input *PutFunctionConcurrencyInput) (*PutFunctionConcurrencyOutput, error) {
@@ -2468,7 +2469,7 @@ const opRemovePermission = "RemovePermission"
 // RemovePermissionRequest generates a "aws/request.Request" representing the
 // client's request for the RemovePermission operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2509,17 +2510,17 @@ func (c *Lambda) RemovePermissionRequest(input *RemovePermissionInput) (req *req
 
 // RemovePermission API operation for AWS Lambda.
 //
-// You can remove individual permissions from an resource policy associated
-// with a Lambda function by providing a statement ID that you provided when
-// you added the permission.
+// Removes permissions from a function. You can remove individual permissions
+// from an resource policy associated with a Lambda function by providing a
+// statement ID that you provided when you added the permission. When you remove
+// permissions, disable the event source mapping or trigger configuration first
+// to avoid errors.
 //
-// If you are using versioning, the permissions you remove are specific to the
-// Lambda function version or alias you specify in the AddPermission request
-// via the Qualifier parameter. For more information about versioning, see AWS
-// Lambda Function Versioning and Aliases (http://docs.aws.amazon.com/lambda/latest/dg/versioning-aliases.html).
-//
-// Note that removal of a permission will cause an active event source to lose
-// permission to the function.
+// Permissions apply to the Amazon Resource Name (ARN) used to invoke the function,
+// which can be unqualified (the unpublished version of the function), or include
+// a version or alias. If a client uses a version or alias to invoke a function,
+// use the Qualifier parameter to apply permissions to that ARN. For more information
+// about versioning, see AWS Lambda Function Versioning and Aliases (http://docs.aws.amazon.com/lambda/latest/dg/versioning-aliases.html).
 //
 // You need permission for the lambda:RemovePermission action.
 //
@@ -2544,6 +2545,7 @@ func (c *Lambda) RemovePermissionRequest(input *RemovePermissionInput) (req *req
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   Request throughput limit exceeded
 //
 //   * ErrCodePreconditionFailedException "PreconditionFailedException"
 //   The RevisionId provided does not match the latest RevisionId for the Lambda
@@ -2577,7 +2579,7 @@ const opTagResource = "TagResource"
 // TagResourceRequest generates a "aws/request.Request" representing the
 // client's request for the TagResource operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2645,6 +2647,7 @@ func (c *Lambda) TagResourceRequest(input *TagResourceInput) (req *request.Reque
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   Request throughput limit exceeded
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/TagResource
 func (c *Lambda) TagResource(input *TagResourceInput) (*TagResourceOutput, error) {
@@ -2673,7 +2676,7 @@ const opUntagResource = "UntagResource"
 // UntagResourceRequest generates a "aws/request.Request" representing the
 // client's request for the UntagResource operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2739,6 +2742,7 @@ func (c *Lambda) UntagResourceRequest(input *UntagResourceInput) (req *request.R
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   Request throughput limit exceeded
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/UntagResource
 func (c *Lambda) UntagResource(input *UntagResourceInput) (*UntagResourceOutput, error) {
@@ -2767,7 +2771,7 @@ const opUpdateAlias = "UpdateAlias"
 // UpdateAliasRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateAlias operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2833,6 +2837,7 @@ func (c *Lambda) UpdateAliasRequest(input *UpdateAliasInput) (req *request.Reque
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   Request throughput limit exceeded
 //
 //   * ErrCodePreconditionFailedException "PreconditionFailedException"
 //   The RevisionId provided does not match the latest RevisionId for the Lambda
@@ -2866,7 +2871,7 @@ const opUpdateEventSourceMapping = "UpdateEventSourceMapping"
 // UpdateEventSourceMappingRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateEventSourceMapping operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2910,11 +2915,6 @@ func (c *Lambda) UpdateEventSourceMappingRequest(input *UpdateEventSourceMapping
 // stream. You can change which function will receive the stream records, but
 // to change the stream itself, you must create a new mapping.
 //
-// If you are using the versioning feature, you can update the event source
-// mapping to map to a specific Lambda function version or alias as described
-// in the FunctionName parameter. For information about the versioning feature,
-// see AWS Lambda Function Versioning and Aliases (http://docs.aws.amazon.com/lambda/latest/dg/versioning-aliases.html).
-//
 // If you disable the event source mapping, AWS Lambda stops polling. If you
 // enable again, it will resume polling from the time it had stopped polling,
 // so you don't lose processing of any records. However, if you delete event
@@ -2944,6 +2944,7 @@ func (c *Lambda) UpdateEventSourceMappingRequest(input *UpdateEventSourceMapping
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   Request throughput limit exceeded
 //
 //   * ErrCodeResourceConflictException "ResourceConflictException"
 //   The resource already exists.
@@ -2980,7 +2981,7 @@ const opUpdateFunctionCode = "UpdateFunctionCode"
 // UpdateFunctionCodeRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateFunctionCode operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3050,6 +3051,7 @@ func (c *Lambda) UpdateFunctionCodeRequest(input *UpdateFunctionCodeInput) (req 
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   Request throughput limit exceeded
 //
 //   * ErrCodeCodeStorageExceededException "CodeStorageExceededException"
 //   You have exceeded your maximum total code size per account. Limits (http://docs.aws.amazon.com/lambda/latest/dg/limits.html)
@@ -3086,7 +3088,7 @@ const opUpdateFunctionConfiguration = "UpdateFunctionConfiguration"
 // UpdateFunctionConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateFunctionConfiguration operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3158,6 +3160,7 @@ func (c *Lambda) UpdateFunctionConfigurationRequest(input *UpdateFunctionConfigu
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   Request throughput limit exceeded
 //
 //   * ErrCodeResourceConflictException "ResourceConflictException"
 //   The resource already exists.
@@ -3190,7 +3193,8 @@ func (c *Lambda) UpdateFunctionConfigurationWithContext(ctx aws.Context, input *
 }
 
 // Provides limits of code size and concurrency associated with the current
-// account and region.
+// account and region. For more information or to request a limit increase for
+// concurrent executions, see Lambda Limits (http://docs.aws.amazon.com/lambda/latest/dg/limits.html).
 type AccountLimit struct {
 	_ struct{} `type:"structure"`
 
@@ -3203,10 +3207,8 @@ type AccountLimit struct {
 	// larger files. Default limit is 50 MB.
 	CodeSizeZipped *int64 `type:"long"`
 
-	// Number of simultaneous executions of your function per region. For more information
-	// or to request a limit increase for concurrent executions, see Lambda Function
-	// Concurrent Executions (http://docs.aws.amazon.com/lambda/latest/dg/concurrent-executions.html).
-	// The default limit is 1000.
+	// Number of simultaneous executions of your function per region. The default
+	// limit is 1000.
 	ConcurrentExecutions *int64 `type:"integer"`
 
 	// Maximum size, in bytes, of a code package you can upload per region. The
@@ -3214,7 +3216,7 @@ type AccountLimit struct {
 	TotalCodeSize *int64 `type:"long"`
 
 	// The number of concurrent executions available to functions that do not have
-	// concurrency limits set. For more information, see concurrent-executions.
+	// concurrency limits set. For more information, see Managing Concurrency (http://docs.aws.amazon.com/lambda/latest/dg/concurrent-executions.html).
 	UnreservedConcurrentExecutions *int64 `type:"integer"`
 }
 
@@ -3307,52 +3309,40 @@ type AddPermissionInput struct {
 	// This is currently only used for Alexa Smart Home functions.
 	EventSourceToken *string `type:"string"`
 
-	// Name of the Lambda function whose resource policy you are updating by adding
-	// a new permission.
+	// The name of the lambda function.
 	//
-	// You can specify a function name (for example, Thumbnail) or you can specify
-	// Amazon Resource Name (ARN) of the function (for example, arn:aws:lambda:us-west-2:account-id:function:ThumbNail).
-	// AWS Lambda also allows you to specify partial ARN (for example, account-id:Thumbnail).
-	// Note that the length constraint applies only to the ARN. If you specify only
-	// the function name, it is limited to 64 characters in length.
+	// Name formats
+	//
+	//    * Function name - MyFunction.
+	//
+	//    * Function ARN - arn:aws:lambda:us-west-2:123456789012:function:MyFunction.
+	//
+	//    * Partial ARN - 123456789012:function:MyFunction.
+	//
+	// The length constraint applies only to the full ARN. If you specify only the
+	// function name, it is limited to 64 characters in length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
 
-	// The principal who is getting this permission. It can be Amazon S3 service
-	// Principal (s3.amazonaws.com) if you want Amazon S3 to invoke the function,
-	// an AWS account ID if you are granting cross-account permission, or any valid
-	// AWS service principal such as sns.amazonaws.com. For example, you might want
-	// to allow a custom application in another AWS account to push events to AWS
-	// Lambda by invoking your function.
+	// The principal who is getting this permission. The principal can be an AWS
+	// service (e.g. s3.amazonaws.com or sns.amazonaws.com) for service triggers,
+	// or an account ID for cross-account access. If you specify a service as a
+	// principal, use the SourceArn parameter to limit who can invoke the function
+	// through that service.
 	//
 	// Principal is a required field
 	Principal *string `type:"string" required:"true"`
 
-	// You can use this optional query parameter to describe a qualified ARN using
-	// a function version or an alias name. The permission will then apply to the
-	// specific qualified ARN. For example, if you specify function version 2 as
-	// the qualifier, then permission applies only when request is made using qualified
-	// function ARN:
-	//
-	// arn:aws:lambda:aws-region:acct-id:function:function-name:2
-	//
-	// If you specify an alias name, for example PROD, then the permission is valid
-	// only for requests made using the alias ARN:
-	//
-	// arn:aws:lambda:aws-region:acct-id:function:function-name:PROD
-	//
-	// If the qualifier is not specified, the permission is valid only when requests
-	// is made using unqualified function ARN.
-	//
-	// arn:aws:lambda:aws-region:acct-id:function:function-name
+	// Specify a version or alias to add permissions to a published version of the
+	// function.
 	Qualifier *string `location:"querystring" locationName:"Qualifier" min:"1" type:"string"`
 
 	// An optional value you can use to ensure you are updating the latest update
 	// of the function version or alias. If the RevisionID you pass doesn't match
 	// the latest RevisionId of the function or alias, it will fail with an error
 	// message, advising you to retrieve the latest function version or alias RevisionID
-	// using either or .
+	// using either GetFunction or GetAlias
 	RevisionId *string `type:"string"`
 
 	// This parameter is used for S3 and SES. The AWS account ID (without a hyphen)
@@ -3364,14 +3354,11 @@ type AddPermissionInput struct {
 	// you don't specify the SourceArn) owned by a specific account.
 	SourceAccount *string `type:"string"`
 
-	// This is optional; however, when granting permission to invoke your function,
-	// you should specify this field with the Amazon Resource Name (ARN) as its
-	// value. This ensures that only events generated from the specified source
-	// can invoke the function.
+	// The Amazon Resource Name of the invoker.
 	//
-	// If you add a permission without providing the source ARN, any AWS account
-	// that creates a mapping to your function ARN can send events to invoke your
-	// Lambda function.
+	// If you add a permission to a service principal without providing the source
+	// ARN, any AWS account that creates a mapping to your function ARN can invoke
+	// your Lambda function.
 	SourceArn *string `type:"string"`
 
 	// A unique statement identifier.
@@ -3522,8 +3509,7 @@ type AliasConfiguration struct {
 	RevisionId *string `type:"string"`
 
 	// Specifies an additional function versions the alias points to, allowing you
-	// to dictate what percentage of traffic will invoke each version. For more
-	// information, see lambda-traffic-shifting-using-aliases.
+	// to dictate what percentage of traffic will invoke each version.
 	RoutingConfig *AliasRoutingConfiguration `type:"structure"`
 }
 
@@ -3573,14 +3559,13 @@ func (s *AliasConfiguration) SetRoutingConfig(v *AliasRoutingConfiguration) *Ali
 	return s
 }
 
-// The parent object that implements what percentage of traffic will invoke
-// each function version. For more information, see lambda-traffic-shifting-using-aliases.
+// The alias's traffic shifting (http://docs.aws.amazon.com/lambda/latest/dg/lambda-traffic-shifting-using-aliases.html)
+// configuration.
 type AliasRoutingConfiguration struct {
 	_ struct{} `type:"structure"`
 
-	// Set this value to dictate what percentage of traffic will invoke the updated
-	// function version. If set to an empty string, 100 percent of traffic will
-	// invoke function-version. For more information, see lambda-traffic-shifting-using-aliases.
+	// The name of the second alias, and the percentage of traffic that is routed
+	// to it.
 	AdditionalVersionWeights map[string]*float64 `type:"map"`
 }
 
@@ -3606,9 +3591,18 @@ type CreateAliasInput struct {
 	// Description of the alias.
 	Description *string `type:"string"`
 
-	// Name of the Lambda function for which you want to create an alias. Note that
-	// the length constraint applies only to the ARN. If you specify only the function
-	// name, it is limited to 64 characters in length.
+	// The name of the lambda function.
+	//
+	// Name formats
+	//
+	//    * Function name - MyFunction.
+	//
+	//    * Function ARN - arn:aws:lambda:us-west-2:123456789012:function:MyFunction.
+	//
+	//    * Partial ARN - 123456789012:function:MyFunction.
+	//
+	// The length constraint applies only to the full ARN. If you specify only the
+	// function name, it is limited to 64 characters in length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
@@ -3625,7 +3619,7 @@ type CreateAliasInput struct {
 
 	// Specifies an additional version your alias can point to, allowing you to
 	// dictate what percentage of traffic will invoke each version. For more information,
-	// see lambda-traffic-shifting-using-aliases.
+	// see Traffic Shifting Using Aliases (http://docs.aws.amazon.com/lambda/latest/dg/lambda-traffic-shifting-using-aliases.html).
 	RoutingConfig *AliasRoutingConfiguration `type:"structure"`
 }
 
@@ -3703,36 +3697,32 @@ type CreateEventSourceMappingInput struct {
 	// The largest number of records that AWS Lambda will retrieve from your event
 	// source at the time of invoking your function. Your function receives an event
 	// with all the retrieved records. The default for Amazon Kinesis and Amazon
-	// DynamoDB is 100 records. For SQS, the default is 1.
+	// DynamoDB is 100 records. Both the default and maximum for Amazon SQS are
+	// 10 messages.
 	BatchSize *int64 `min:"1" type:"integer"`
 
-	// Indicates whether AWS Lambda should begin polling the event source. By default,
-	// Enabled is true.
+	// Set to false to disable the event source upon creation.
 	Enabled *bool `type:"boolean"`
 
-	// The Amazon Resource Name (ARN) of the event source. Any record added to this
-	// source could cause AWS Lambda to invoke your Lambda function, it depends
-	// on the BatchSize. AWS Lambda POSTs the event's records to your Lambda function
-	// as JSON.
+	// The Amazon Resource Name (ARN) of the event source.
 	//
 	// EventSourceArn is a required field
 	EventSourceArn *string `type:"string" required:"true"`
 
-	// The Lambda function to invoke when AWS Lambda detects an event on the stream.
+	// The name of the lambda function.
 	//
-	// You can specify the function name (for example, Thumbnail) or you can specify
-	// Amazon Resource Name (ARN) of the function (for example, arn:aws:lambda:us-west-2:account-id:function:ThumbNail).
+	// Name formats
 	//
-	// If you are using versioning, you can also provide a qualified function ARN
-	// (ARN that is qualified with function version or alias name as suffix). For
-	// more information about versioning, see AWS Lambda Function Versioning and
-	// Aliases (http://docs.aws.amazon.com/lambda/latest/dg/versioning-aliases.html)
+	//    * Function name - MyFunction.
 	//
-	// AWS Lambda also allows you to specify only the function name with the account
-	// ID qualifier (for example, account-id:Thumbnail).
+	//    * Function ARN - arn:aws:lambda:us-west-2:123456789012:function:MyFunction.
 	//
-	// Note that the length constraint applies only to the ARN. If you specify only
-	// the function name, it is limited to 64 characters in length.
+	//    * Version or Alias ARN - arn:aws:lambda:us-west-2:123456789012:function:MyFunction:PROD.
+	//
+	//    * Partial ARN - 123456789012:function:MyFunction.
+	//
+	// The length constraint applies only to the full ARN. If you specify only the
+	// function name, it is limited to 64 characters in length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `min:"1" type:"string" required:"true"`
@@ -3824,76 +3814,62 @@ func (s *CreateEventSourceMappingInput) SetStartingPositionTimestamp(v time.Time
 type CreateFunctionInput struct {
 	_ struct{} `type:"structure"`
 
-	// The code for the Lambda function.
+	// The code for the function.
 	//
 	// Code is a required field
 	Code *FunctionCode `type:"structure" required:"true"`
 
-	// The parent object that contains the target ARN (Amazon Resource Name) of
-	// an Amazon SQS queue or Amazon SNS topic. For more information, see dlq.
+	// A dead letter queue configuration that specifies the queue or topic where
+	// Lambda sends asynchronous events when they fail processing. For more information,
+	// see Dead Letter Queues (http://docs.aws.amazon.com/lambda/latest/dg/dlq.html).
 	DeadLetterConfig *DeadLetterConfig `type:"structure"`
 
-	// A short, user-defined function description. Lambda does not use this value.
-	// Assign a meaningful description as you see fit.
+	// A description of the function.
 	Description *string `type:"string"`
 
-	// The parent object that contains your environment's configuration settings.
+	// Environment variables that are accessible from function code during execution.
 	Environment *Environment `type:"structure"`
 
-	// The name you want to assign to the function you are uploading. The function
-	// names appear in the console and are returned in the ListFunctions API. Function
-	// names are used to specify functions to other AWS Lambda API operations, such
-	// as Invoke. Note that the length constraint applies only to the ARN. If you
-	// specify only the function name, it is limited to 64 characters in length.
+	// The name of the lambda function.
+	//
+	// Name formats
+	//
+	//    * Function name - MyFunction.
+	//
+	//    * Function ARN - arn:aws:lambda:us-west-2:123456789012:function:MyFunction.
+	//
+	//    * Partial ARN - 123456789012:function:MyFunction.
+	//
+	// The length constraint applies only to the full ARN. If you specify only the
+	// function name, it is limited to 64 characters in length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `min:"1" type:"string" required:"true"`
 
-	// The function within your code that Lambda calls to begin execution. For Node.js,
-	// it is the module-name.export value in your function. For Java, it can be
-	// package.class-name::handler or package.class-name. For more information,
-	// see Lambda Function Handler (Java) (http://docs.aws.amazon.com/lambda/latest/dg/java-programming-model-handler-types.html).
+	// The name of the method within your code that Lambda calls to execute your
+	// function. For more information, see Programming Model (http://docs.aws.amazon.com/lambda/latest/dg/programming-model-v2.html).
 	//
 	// Handler is a required field
 	Handler *string `type:"string" required:"true"`
 
-	// The Amazon Resource Name (ARN) of the KMS key used to encrypt your function's
-	// environment variables. If not provided, AWS Lambda will use a default service
-	// key.
+	// The ARN of the KMS key used to encrypt your function's environment variables.
+	// If not provided, AWS Lambda will use a default service key.
 	KMSKeyArn *string `type:"string"`
 
-	// The amount of memory, in MB, your Lambda function is given. Lambda uses this
-	// memory size to infer the amount of CPU and memory allocated to your function.
-	// Your function use-case determines your CPU and memory requirements. For example,
-	// a database operation might need less memory compared to an image processing
-	// function. The default value is 128 MB. The value must be a multiple of 64
-	// MB.
+	// The amount of memory that your function has access to. Increasing the function's
+	// memory also increases it's CPU allocation. The default value is 128 MB. The
+	// value must be a multiple of 64 MB.
 	MemorySize *int64 `min:"128" type:"integer"`
 
-	// This boolean parameter can be used to request AWS Lambda to create the Lambda
-	// function and publish a version as an atomic operation.
+	// Set to true to publish the first version of the function during creation.
 	Publish *bool `type:"boolean"`
 
-	// The Amazon Resource Name (ARN) of the IAM role that Lambda assumes when it
-	// executes your function to access any other Amazon Web Services (AWS) resources.
-	// For more information, see AWS Lambda: How it Works (http://docs.aws.amazon.com/lambda/latest/dg/lambda-introduction.html).
+	// The Amazon Resource Name (ARN) of the function's execution role (http://docs.aws.amazon.com/lambda/latest/dg/intro-permission-model.html#lambda-intro-execution-role).
 	//
 	// Role is a required field
 	Role *string `type:"string" required:"true"`
 
-	// The runtime environment for the Lambda function you are uploading.
-	//
-	// To use the Python runtime v3.6, set the value to "python3.6". To use the
-	// Python runtime v2.7, set the value to "python2.7". To use the Node.js runtime
-	// v6.10, set the value to "nodejs6.10". To use the Node.js runtime v4.3, set
-	// the value to "nodejs4.3". To use the .NET Core runtime v1.0, set the value
-	// to "dotnetcore1.0". To use the .NET Core runtime v2.0, set the value to "dotnetcore2.0".
-	//
-	// Node v0.10.42 is currently marked as deprecated. You must migrate existing
-	// functions to the newer Node.js runtime versions available on AWS Lambda (nodejs4.3
-	// or nodejs6.10) as soon as possible. Failure to do so will result in an invalid
-	// parameter error being returned. Note that you will have to follow this procedure
-	// for each region that contains functions written in the Node v0.10.42 runtime.
+	// The runtime version for the function.
 	//
 	// Runtime is a required field
 	Runtime *string `type:"string" required:"true" enum:"Runtime"`
@@ -3903,12 +3879,12 @@ type CreateFunctionInput struct {
 	// in the AWS Lambda Developer Guide.
 	Tags map[string]*string `type:"map"`
 
-	// The function execution time at which Lambda should terminate the function.
-	// Because the execution time has cost implications, we recommend you set this
-	// value based on your expected execution time. The default is 3 seconds.
+	// The amount of time that Lambda allows a function to run before terminating
+	// it. The default is 3 seconds. The maximum allowed value is 900 seconds.
 	Timeout *int64 `min:"1" type:"integer"`
 
-	// The parent object that contains your function's tracing settings.
+	// Set Mode to Active to sample and trace a subset of incoming requests with
+	// AWS X-Ray.
 	TracingConfig *TracingConfig `type:"structure"`
 
 	// If your Lambda function accesses resources in a VPC, you provide this parameter
@@ -4057,14 +4033,12 @@ func (s *CreateFunctionInput) SetVpcConfig(v *VpcConfig) *CreateFunctionInput {
 	return s
 }
 
-// The Amazon Resource Name (ARN) of an Amazon SQS queue or Amazon SNS topic
-// you specify as your Dead Letter Queue (DLQ). For more information, see dlq.
+// The dead letter queue (http://docs.aws.amazon.com/lambda/latest/dg/dlq.html)
+// for failed asynchronous invocations.
 type DeadLetterConfig struct {
 	_ struct{} `type:"structure"`
 
-	// The Amazon Resource Name (ARN) of an Amazon SQS queue or Amazon SNS topic
-	// you specify as your Dead Letter Queue (DLQ). dlq. For more information, see
-	// dlq.
+	// The Amazon Resource Name (ARN) of an Amazon SQS queue or Amazon SNS topic.
 	TargetArn *string `type:"string"`
 }
 
@@ -4087,10 +4061,18 @@ func (s *DeadLetterConfig) SetTargetArn(v string) *DeadLetterConfig {
 type DeleteAliasInput struct {
 	_ struct{} `type:"structure"`
 
-	// The Lambda function name for which the alias is created. Deleting an alias
-	// does not delete the function version to which it is pointing. Note that the
-	// length constraint applies only to the ARN. If you specify only the function
-	// name, it is limited to 64 characters in length.
+	// The name of the lambda function.
+	//
+	// Name formats
+	//
+	//    * Function name - MyFunction.
+	//
+	//    * Function ARN - arn:aws:lambda:us-west-2:123456789012:function:MyFunction.
+	//
+	//    * Partial ARN - 123456789012:function:MyFunction.
+	//
+	// The length constraint applies only to the full ARN. If you specify only the
+	// function name, it is limited to 64 characters in length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
@@ -4200,8 +4182,18 @@ func (s *DeleteEventSourceMappingInput) SetUUID(v string) *DeleteEventSourceMapp
 type DeleteFunctionConcurrencyInput struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the function you are removing concurrent execution limits from.
-	// For more information, see concurrent-executions.
+	// The name of the lambda function.
+	//
+	// Name formats
+	//
+	//    * Function name - MyFunction.
+	//
+	//    * Function ARN - arn:aws:lambda:us-west-2:123456789012:function:MyFunction.
+	//
+	//    * Partial ARN - 123456789012:function:MyFunction.
+	//
+	// The length constraint applies only to the full ARN. If you specify only the
+	// function name, it is limited to 64 characters in length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
@@ -4256,33 +4248,24 @@ func (s DeleteFunctionConcurrencyOutput) GoString() string {
 type DeleteFunctionInput struct {
 	_ struct{} `type:"structure"`
 
-	// The Lambda function to delete.
+	// The name of the lambda function.
 	//
-	// You can specify the function name (for example, Thumbnail) or you can specify
-	// Amazon Resource Name (ARN) of the function (for example, arn:aws:lambda:us-west-2:account-id:function:ThumbNail).
-	// If you are using versioning, you can also provide a qualified function ARN
-	// (ARN that is qualified with function version or alias name as suffix). AWS
-	// Lambda also allows you to specify only the function name with the account
-	// ID qualifier (for example, account-id:Thumbnail). Note that the length constraint
-	// applies only to the ARN. If you specify only the function name, it is limited
-	// to 64 characters in length.
+	// Name formats
+	//
+	//    * Function name - MyFunction.
+	//
+	//    * Function ARN - arn:aws:lambda:us-west-2:123456789012:function:MyFunction.
+	//
+	//    * Partial ARN - 123456789012:function:MyFunction.
+	//
+	// The length constraint applies only to the full ARN. If you specify only the
+	// function name, it is limited to 64 characters in length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
 
-	// Using this optional parameter you can specify a function version (but not
-	// the $LATEST version) to direct AWS Lambda to delete a specific function version.
-	// If the function version has one or more aliases pointing to it, you will
-	// get an error because you cannot have aliases pointing to it. You can delete
-	// any function version but not the $LATEST, that is, you cannot specify $LATEST
-	// as the value of this parameter. The $LATEST version can be deleted only when
-	// you want to delete all the function versions and aliases.
-	//
-	// You can only specify a function version, not an alias name, using this parameter.
-	// You cannot delete a function version using its alias.
-	//
-	// If you don't specify this parameter, AWS Lambda will delete the function,
-	// including all of its versions and aliases.
+	// Specify a version to delete. You cannot delete a version that is referenced
+	// by an alias.
 	Qualifier *string `location:"querystring" locationName:"Qualifier" min:"1" type:"string"`
 }
 
@@ -4341,11 +4324,11 @@ func (s DeleteFunctionOutput) GoString() string {
 	return s.String()
 }
 
-// The parent object that contains your environment's configuration settings.
+// A function's environment variable settings.
 type Environment struct {
 	_ struct{} `type:"structure"`
 
-	// The key-value pairs that represent your environment's configuration settings.
+	// Environment variable key-value pairs.
 	Variables map[string]*string `type:"map"`
 }
 
@@ -4365,15 +4348,14 @@ func (s *Environment) SetVariables(v map[string]*string) *Environment {
 	return s
 }
 
-// The parent object that contains error information associated with your configuration
-// settings.
+// Error messages for environment variables that could not be applied.
 type EnvironmentError struct {
 	_ struct{} `type:"structure"`
 
-	// The error code returned by the environment error object.
+	// The error code.
 	ErrorCode *string `type:"string"`
 
-	// The message returned by the environment error object.
+	// The error message.
 	Message *string `type:"string"`
 }
 
@@ -4399,17 +4381,14 @@ func (s *EnvironmentError) SetMessage(v string) *EnvironmentError {
 	return s
 }
 
-// The parent object returned that contains your environment's configuration
-// settings or any error information associated with your configuration settings.
+// The results of a configuration update that applied environment variables.
 type EnvironmentResponse struct {
 	_ struct{} `type:"structure"`
 
-	// The parent object that contains error information associated with your configuration
-	// settings.
+	// Error messages for environment variables that could not be applied.
 	Error *EnvironmentError `type:"structure"`
 
-	// The key-value pairs returned that represent your environment's configuration
-	// settings or error information.
+	// Environment variable key-value pairs.
 	Variables map[string]*string `type:"map"`
 }
 
@@ -4435,8 +4414,8 @@ func (s *EnvironmentResponse) SetVariables(v map[string]*string) *EnvironmentRes
 	return s
 }
 
-// Describes mapping between an Amazon Kinesis or DynamoDB stream or an Amazon
-// SQS queue and a Lambda function.
+// Describes mapping between an Amazon Kinesis or DynamoDB stream and a Lambda
+// function.
 type EventSourceMappingConfiguration struct {
 	_ struct{} `type:"structure"`
 
@@ -4445,8 +4424,8 @@ type EventSourceMappingConfiguration struct {
 	// with all the retrieved records.
 	BatchSize *int64 `min:"1" type:"integer"`
 
-	// The Amazon Resource Name (ARN) of the Amazon Kinesis or DynamoDB stream or
-	// the SQS queue that is the source of events.
+	// The Amazon Resource Name (ARN) of the Amazon Kinesis or DynamoDB stream that
+	// is the source of events.
 	EventSourceArn *string `type:"string"`
 
 	// The Lambda function to invoke when AWS Lambda detects an event on the poll-based
@@ -4456,7 +4435,8 @@ type EventSourceMappingConfiguration struct {
 	// The UTC time string indicating the last time the event mapping was updated.
 	LastModified *time.Time `type:"timestamp"`
 
-	// The result of the last AWS Lambda invocation of your Lambda function.
+	// The result of the last AWS Lambda invocation of your Lambda function. This
+	// value will be null if an SQS queue is the event source.
 	LastProcessingResult *string `type:"string"`
 
 	// The state of the event source mapping. It can be Creating, Enabled, Disabled,
@@ -4529,27 +4509,22 @@ func (s *EventSourceMappingConfiguration) SetUUID(v string) *EventSourceMappingC
 	return s
 }
 
-// The code for the Lambda function.
+// The code for the Lambda function. You can specify either an S3 location,
+// or upload a deployment package directly.
 type FunctionCode struct {
 	_ struct{} `type:"structure"`
 
-	// Amazon S3 bucket name where the .zip file containing your deployment package
-	// is stored. This bucket must reside in the same AWS region where you are creating
-	// the Lambda function.
+	// An Amazon S3 bucket in the same region as your function.
 	S3Bucket *string `min:"3" type:"string"`
 
-	// The Amazon S3 object (the deployment package) key name you want to upload.
+	// The Amazon S3 key of the deployment package.
 	S3Key *string `min:"1" type:"string"`
 
-	// The Amazon S3 object (the deployment package) version you want to upload.
+	// For versioned objects, the version of the deployment package object to use.
 	S3ObjectVersion *string `min:"1" type:"string"`
 
-	// The contents of your zip file containing your deployment package. If you
-	// are using the web API directly, the contents of the zip file must be base64-encoded.
-	// If you are using the AWS SDKs or the AWS CLI, the SDKs or CLI will do the
-	// encoding for you. For more information about creating a .zip file, see Execution
-	// Permissions (http://docs.aws.amazon.com/lambda/latest/dg/intro-permission-model.html#lambda-intro-execution-role.html)
-	// in the AWS Lambda Developer Guide.
+	// The base64-encoded contents of your zip file containing your deployment package.
+	// AWS SDK and AWS CLI clients handle the encoding for you.
 	//
 	// ZipFile is automatically base64 encoded/decoded by the SDK.
 	ZipFile []byte `type:"blob"`
@@ -4642,77 +4617,68 @@ func (s *FunctionCodeLocation) SetRepositoryType(v string) *FunctionCodeLocation
 	return s
 }
 
-// A complex type that describes function metadata.
+// A Lambda function's configuration settings.
 type FunctionConfiguration struct {
 	_ struct{} `type:"structure"`
 
-	// It is the SHA256 hash of your function deployment package.
+	// The SHA256 hash of the function's deployment package.
 	CodeSha256 *string `type:"string"`
 
-	// The size, in bytes, of the function .zip file you uploaded.
+	// The size of the function's deployment package in bytes.
 	CodeSize *int64 `type:"long"`
 
-	// The parent object that contains the target ARN (Amazon Resource Name) of
-	// an Amazon SQS queue or Amazon SNS topic. For more information, see dlq.
+	// The function's dead letter queue.
 	DeadLetterConfig *DeadLetterConfig `type:"structure"`
 
-	// The user-provided description.
+	// The function's description.
 	Description *string `type:"string"`
 
-	// The parent object that contains your environment's configuration settings.
+	// The function's environment variables.
 	Environment *EnvironmentResponse `type:"structure"`
 
-	// The Amazon Resource Name (ARN) assigned to the function.
+	// The function's Amazon Resource Name.
 	FunctionArn *string `type:"string"`
 
-	// The name of the function. Note that the length constraint applies only to
-	// the ARN. If you specify only the function name, it is limited to 64 characters
-	// in length.
+	// The name of the function.
 	FunctionName *string `min:"1" type:"string"`
 
 	// The function Lambda calls to begin executing your function.
 	Handler *string `type:"string"`
 
-	// The Amazon Resource Name (ARN) of the KMS key used to encrypt your function's
-	// environment variables. If empty, it means you are using the AWS Lambda default
-	// service key.
+	// The KMS key used to encrypt the function's environment variables. Only returned
+	// if you've configured a customer managed CMK.
 	KMSKeyArn *string `type:"string"`
 
-	// The time stamp of the last time you updated the function. The time stamp
-	// is conveyed as a string complying with ISO-8601 in this way YYYY-MM-DDThh:mm:ssTZD
-	// (e.g., 1997-07-16T19:20:30+01:00). For more information, see Date and Time
-	// Formats (https://www.w3.org/TR/NOTE-datetime).
+	// The date and time that the function was last updated, in ISO-8601 format
+	// (https://www.w3.org/TR/NOTE-datetime) (YYYY-MM-DDThh:mm:ssTZD).
 	LastModified *string `type:"string"`
 
-	// Returns the ARN (Amazon Resource Name) of the master function.
+	// The ARN of the master function.
 	MasterArn *string `type:"string"`
 
-	// The memory size, in MB, you configured for the function. Must be a multiple
-	// of 64 MB.
+	// The memory allocated to the function
 	MemorySize *int64 `min:"128" type:"integer"`
 
 	// Represents the latest updated revision of the function or alias.
 	RevisionId *string `type:"string"`
 
-	// The Amazon Resource Name (ARN) of the IAM role that Lambda assumes when it
-	// executes your function to access any other Amazon Web Services (AWS) resources.
+	// The function's execution role.
 	Role *string `type:"string"`
 
 	// The runtime environment for the Lambda function.
 	Runtime *string `type:"string" enum:"Runtime"`
 
-	// The function execution time at which Lambda should terminate the function.
-	// Because the execution time has cost implications, we recommend you set this
-	// value based on your expected execution time. The default is 3 seconds.
+	// The amount of time that Lambda allows a function to run before terminating
+	// it.
 	Timeout *int64 `min:"1" type:"integer"`
 
-	// The parent object that contains your function's tracing settings.
+	// The function's AWS X-Ray tracing configuration.
 	TracingConfig *TracingConfigResponse `type:"structure"`
 
 	// The version of the Lambda function.
 	Version *string `min:"1" type:"string"`
 
-	// VPC configuration associated with your Lambda function.
+	// The function's networking configuration.
 	VpcConfig *VpcConfigResponse `type:"structure"`
 }
 
@@ -4857,12 +4823,10 @@ func (s GetAccountSettingsInput) GoString() string {
 type GetAccountSettingsOutput struct {
 	_ struct{} `type:"structure"`
 
-	// Provides limits of code size and concurrency associated with the current
-	// account and region.
+	// Limits related to concurrency and code storage.
 	AccountLimit *AccountLimit `type:"structure"`
 
-	// Provides code size usage and function count associated with the current account
-	// and region.
+	// The number of functions and amount of storage in use.
 	AccountUsage *AccountUsage `type:"structure"`
 }
 
@@ -4891,11 +4855,18 @@ func (s *GetAccountSettingsOutput) SetAccountUsage(v *AccountUsage) *GetAccountS
 type GetAliasInput struct {
 	_ struct{} `type:"structure"`
 
-	// Function name for which the alias is created. An alias is a subresource that
-	// exists only in the context of an existing Lambda function so you must specify
-	// the function name. Note that the length constraint applies only to the ARN.
-	// If you specify only the function name, it is limited to 64 characters in
-	// length.
+	// The name of the lambda function.
+	//
+	// Name formats
+	//
+	//    * Function name - MyFunction.
+	//
+	//    * Function ARN - arn:aws:lambda:us-west-2:123456789012:function:MyFunction.
+	//
+	//    * Partial ARN - 123456789012:function:MyFunction.
+	//
+	// The length constraint applies only to the full ARN. If you specify only the
+	// function name, it is limited to 64 characters in length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
@@ -4991,26 +4962,24 @@ func (s *GetEventSourceMappingInput) SetUUID(v string) *GetEventSourceMappingInp
 type GetFunctionConfigurationInput struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the Lambda function for which you want to retrieve the configuration
-	// information.
+	// The name of the lambda function.
 	//
-	// You can specify a function name (for example, Thumbnail) or you can specify
-	// Amazon Resource Name (ARN) of the function (for example, arn:aws:lambda:us-west-2:account-id:function:ThumbNail).
-	// AWS Lambda also allows you to specify a partial ARN (for example, account-id:Thumbnail).
-	// Note that the length constraint applies only to the ARN. If you specify only
-	// the function name, it is limited to 64 characters in length.
+	// Name formats
+	//
+	//    * Function name - MyFunction.
+	//
+	//    * Function ARN - arn:aws:lambda:us-west-2:123456789012:function:MyFunction.
+	//
+	//    * Partial ARN - 123456789012:function:MyFunction.
+	//
+	// The length constraint applies only to the full ARN. If you specify only the
+	// function name, it is limited to 64 characters in length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
 
-	// Using this optional parameter you can specify a function version or an alias
-	// name. If you specify function version, the API uses qualified function ARN
-	// and returns information about the specific function version. If you specify
-	// an alias name, the API uses the alias ARN and returns information about the
-	// function version to which the alias points.
-	//
-	// If you don't specify this parameter, the API uses unqualified function ARN,
-	// and returns information about the $LATEST function version.
+	// Specify a version or alias to get details about a published version of the
+	// function.
 	Qualifier *string `location:"querystring" locationName:"Qualifier" min:"1" type:"string"`
 }
 
@@ -5058,24 +5027,24 @@ func (s *GetFunctionConfigurationInput) SetQualifier(v string) *GetFunctionConfi
 type GetFunctionInput struct {
 	_ struct{} `type:"structure"`
 
-	// The Lambda function name.
+	// The name of the lambda function.
 	//
-	// You can specify a function name (for example, Thumbnail) or you can specify
-	// Amazon Resource Name (ARN) of the function (for example, arn:aws:lambda:us-west-2:account-id:function:ThumbNail).
-	// AWS Lambda also allows you to specify a partial ARN (for example, account-id:Thumbnail).
-	// Note that the length constraint applies only to the ARN. If you specify only
-	// the function name, it is limited to 64 characters in length.
+	// Name formats
+	//
+	//    * Function name - MyFunction.
+	//
+	//    * Function ARN - arn:aws:lambda:us-west-2:123456789012:function:MyFunction.
+	//
+	//    * Partial ARN - 123456789012:function:MyFunction.
+	//
+	// The length constraint applies only to the full ARN. If you specify only the
+	// function name, it is limited to 64 characters in length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
 
-	// Use this optional parameter to specify a function version or an alias name.
-	// If you specify function version, the API uses qualified function ARN for
-	// the request and returns information about the specific Lambda function version.
-	// If you specify an alias name, the API uses the alias ARN and returns information
-	// about the function version to which the alias points. If you don't provide
-	// this parameter, the API uses unqualified function ARN and returns information
-	// about the $LATEST version of the Lambda function.
+	// Specify a version or alias to get details about a published version of the
+	// function.
 	Qualifier *string `location:"querystring" locationName:"Qualifier" min:"1" type:"string"`
 }
 
@@ -5124,14 +5093,14 @@ func (s *GetFunctionInput) SetQualifier(v string) *GetFunctionInput {
 type GetFunctionOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The object for the Lambda function location.
+	// The function's code.
 	Code *FunctionCodeLocation `type:"structure"`
 
 	// The concurrent execution limit set for this function. For more information,
-	// see concurrent-executions.
+	// see Managing Concurrency (http://docs.aws.amazon.com/lambda/latest/dg/concurrent-executions.html).
 	Concurrency *PutFunctionConcurrencyOutput `type:"structure"`
 
-	// A complex type that describes function metadata.
+	// The function's configuration.
 	Configuration *FunctionConfiguration `type:"structure"`
 
 	// Returns the list of tags associated with the function. For more information,
@@ -5177,16 +5146,18 @@ func (s *GetFunctionOutput) SetTags(v map[string]*string) *GetFunctionOutput {
 type GetPolicyInput struct {
 	_ struct{} `type:"structure"`
 
-	// Function name whose resource policy you want to retrieve.
+	// The name of the lambda function.
 	//
-	// You can specify the function name (for example, Thumbnail) or you can specify
-	// Amazon Resource Name (ARN) of the function (for example, arn:aws:lambda:us-west-2:account-id:function:ThumbNail).
-	// If you are using versioning, you can also provide a qualified function ARN
-	// (ARN that is qualified with function version or alias name as suffix). AWS
-	// Lambda also allows you to specify only the function name with the account
-	// ID qualifier (for example, account-id:Thumbnail). Note that the length constraint
-	// applies only to the ARN. If you specify only the function name, it is limited
-	// to 64 characters in length.
+	// Name formats
+	//
+	//    * Function name - MyFunction.
+	//
+	//    * Function ARN - arn:aws:lambda:us-west-2:123456789012:function:MyFunction.
+	//
+	//    * Partial ARN - 123456789012:function:MyFunction.
+	//
+	// The length constraint applies only to the full ARN. If you specify only the
+	// function name, it is limited to 64 characters in length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
@@ -5277,9 +5248,18 @@ func (s *GetPolicyOutput) SetRevisionId(v string) *GetPolicyOutput {
 type InvokeAsyncInput struct {
 	_ struct{} `deprecated:"true" type:"structure" payload:"InvokeArgs"`
 
-	// The Lambda function name. Note that the length constraint applies only to
-	// the ARN. If you specify only the function name, it is limited to 64 characters
-	// in length.
+	// The name of the lambda function.
+	//
+	// Name formats
+	//
+	//    * Function name - MyFunction.
+	//
+	//    * Function ARN - arn:aws:lambda:us-west-2:123456789012:function:MyFunction.
+	//
+	//    * Partial ARN - 123456789012:function:MyFunction.
+	//
+	// The length constraint applies only to the full ARN. If you specify only the
+	// function name, it is limited to 64 characters in length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
@@ -5368,26 +5348,37 @@ type InvokeInput struct {
 	//
 	// The ClientContext JSON must be base64-encoded and has a maximum size of 3583
 	// bytes.
+	//
+	// ClientContext information is returned only if you use the synchronous (RequestResponse)
+	// invocation type.
 	ClientContext *string `location:"header" locationName:"X-Amz-Client-Context" type:"string"`
 
-	// The Lambda function name.
+	// The name of the lambda function.
 	//
-	// You can specify a function name (for example, Thumbnail) or you can specify
-	// Amazon Resource Name (ARN) of the function (for example, arn:aws:lambda:us-west-2:account-id:function:ThumbNail).
-	// AWS Lambda also allows you to specify a partial ARN (for example, account-id:Thumbnail).
-	// Note that the length constraint applies only to the ARN. If you specify only
-	// the function name, it is limited to 64 characters in length.
+	// Name formats
+	//
+	//    * Function name - MyFunction.
+	//
+	//    * Function ARN - arn:aws:lambda:us-west-2:123456789012:function:MyFunction.
+	//
+	//    * Partial ARN - 123456789012:function:MyFunction.
+	//
+	// The length constraint applies only to the full ARN. If you specify only the
+	// function name, it is limited to 64 characters in length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
 
-	// By default, the Invoke API assumes RequestResponse invocation type. You can
-	// optionally request asynchronous execution by specifying Event as the InvocationType.
-	// You can also use this parameter to request AWS Lambda to not execute the
-	// function but do some verification, such as if the caller is authorized to
-	// invoke the function and if the inputs are valid. You request this by specifying
-	// DryRun as the InvocationType. This is useful in a cross-account scenario
-	// when you want to verify access to a function without running it.
+	// Choose from the following options.
+	//
+	//    * RequestResponse (default) - Invoke the function synchronously. Keep
+	//    the connection open until the function returns a response or times out.
+	//
+	//    * Event - Invoke the function asynchronously. Send events that fail multiple
+	//    times to the function's dead-letter queue (if configured).
+	//
+	//    * DryRun - Validate parameter values and verify that the user or role
+	//    has permission to invoke the function.
 	InvocationType *string `location:"header" locationName:"X-Amz-Invocation-Type" type:"string" enum:"InvocationType"`
 
 	// You can set this optional parameter to Tail in the request only if you specify
@@ -5399,14 +5390,7 @@ type InvokeInput struct {
 	// JSON that you want to provide to your Lambda function as input.
 	Payload []byte `type:"blob"`
 
-	// You can use this optional parameter to specify a Lambda function version
-	// or alias name. If you specify a function version, the API uses the qualified
-	// function ARN to invoke a specific Lambda function. If you specify an alias
-	// name, the API uses the alias ARN to invoke the Lambda function version to
-	// which the alias points.
-	//
-	// If you don't provide this parameter, then the API uses unqualified function
-	// ARN which results in invocation of the $LATEST version.
+	// Specify a version or alias to invoke a published version of the function.
 	Qualifier *string `location:"querystring" locationName:"Qualifier" min:"1" type:"string"`
 }
 
@@ -5480,7 +5464,8 @@ type InvokeOutput struct {
 	_ struct{} `type:"structure" payload:"Payload"`
 
 	// The function version that has been executed. This value is returned only
-	// if the invocation type is RequestResponse. For more information, see lambda-traffic-shifting-using-aliases.
+	// if the invocation type is RequestResponse. For more information, see Traffic
+	// Shifting Using Aliases (http://docs.aws.amazon.com/lambda/latest/dg/lambda-traffic-shifting-using-aliases.html).
 	ExecutedVersion *string `location:"header" locationName:"X-Amz-Executed-Version" min:"1" type:"string"`
 
 	// Indicates whether an error occurred while executing the Lambda function.
@@ -5554,9 +5539,18 @@ func (s *InvokeOutput) SetStatusCode(v int64) *InvokeOutput {
 type ListAliasesInput struct {
 	_ struct{} `type:"structure"`
 
-	// Lambda function name for which the alias is created. Note that the length
-	// constraint applies only to the ARN. If you specify only the function name,
-	// it is limited to 64 characters in length.
+	// The name of the lambda function.
+	//
+	// Name formats
+	//
+	//    * Function name - MyFunction.
+	//
+	//    * Function ARN - arn:aws:lambda:us-west-2:123456789012:function:MyFunction.
+	//
+	//    * Partial ARN - 123456789012:function:MyFunction.
+	//
+	// The length constraint applies only to the full ARN. If you specify only the
+	// function name, it is limited to 64 characters in length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
@@ -5666,20 +5660,24 @@ func (s *ListAliasesOutput) SetNextMarker(v string) *ListAliasesOutput {
 type ListEventSourceMappingsInput struct {
 	_ struct{} `type:"structure"`
 
-	// The Amazon Resource Name (ARN) of the Amazon Kinesis or DynamoDB stream,
-	// or an SQS queue. (This parameter is optional.)
+	// The Amazon Resource Name (ARN) of the Amazon Kinesis or DynamoDB stream.
+	// (This parameter is optional.)
 	EventSourceArn *string `location:"querystring" locationName:"EventSourceArn" type:"string"`
 
-	// The name of the Lambda function.
+	// The name of the lambda function.
 	//
-	// You can specify the function name (for example, Thumbnail) or you can specify
-	// Amazon Resource Name (ARN) of the function (for example, arn:aws:lambda:us-west-2:account-id:function:ThumbNail).
-	// If you are using versioning, you can also provide a qualified function ARN
-	// (ARN that is qualified with function version or alias name as suffix). AWS
-	// Lambda also allows you to specify only the function name with the account
-	// ID qualifier (for example, account-id:Thumbnail). Note that the length constraint
-	// applies only to the ARN. If you specify only the function name, it is limited
-	// to 64 characters in length.
+	// Name formats
+	//
+	//    * Function name - MyFunction.
+	//
+	//    * Function ARN - arn:aws:lambda:us-west-2:123456789012:function:MyFunction.
+	//
+	//    * Version or Alias ARN - arn:aws:lambda:us-west-2:123456789012:function:MyFunction:PROD.
+	//
+	//    * Partial ARN - 123456789012:function:MyFunction.
+	//
+	// The length constraint applies only to the full ARN. If you specify only the
+	// function name, it is limited to 64 characters in length.
 	FunctionName *string `location:"querystring" locationName:"FunctionName" min:"1" type:"string"`
 
 	// Optional string. An opaque pagination token returned from a previous ListEventSourceMappings
@@ -5778,33 +5776,22 @@ func (s *ListEventSourceMappingsOutput) SetNextMarker(v string) *ListEventSource
 type ListFunctionsInput struct {
 	_ struct{} `type:"structure"`
 
-	// Optional string. If not specified, only the unqualified functions ARNs (Amazon
-	// Resource Names) will be returned.
-	//
-	// Valid value:
-	//
-	// ALL: Will return all versions, including $LATEST which will have fully qualified
-	// ARNs (Amazon Resource Names).
+	// Set to ALL to list all published versions. If not specified, only the latest
+	// unpublished version ARN is returned.
 	FunctionVersion *string `location:"querystring" locationName:"FunctionVersion" type:"string" enum:"FunctionVersion"`
 
 	// Optional string. An opaque pagination token returned from a previous ListFunctions
 	// operation. If present, indicates where to continue the listing.
 	Marker *string `location:"querystring" locationName:"Marker" type:"string"`
 
-	// Optional string. If not specified, will return only regular function versions
-	// (i.e., non-replicated versions).
-	//
-	// Valid values are:
-	//
-	// The region from which the functions are replicated. For example, if you specify
-	// us-east-1, only functions replicated from that region will be returned.
-	//
-	// ALL: Will return all functions from any region. If specified, you also must
-	// specify a valid FunctionVersion parameter.
+	// Specify a region (e.g. us-east-2) to only list functions that were created
+	// in that region, or ALL to include functions replicated from any region. If
+	// specified, you also must specify the FunctionVersion.
 	MasterRegion *string `location:"querystring" locationName:"MasterRegion" type:"string"`
 
 	// Optional integer. Specifies the maximum number of AWS Lambda functions to
-	// return in response. This parameter value must be greater than 0.
+	// return in response. This parameter value must be greater than 0. The absolute
+	// maximum of AWS Lambda functions that can be returned is 50.
 	MaxItems *int64 `location:"querystring" locationName:"MaxItems" min:"1" type:"integer"`
 }
 
@@ -5855,7 +5842,7 @@ func (s *ListFunctionsInput) SetMaxItems(v int64) *ListFunctionsInput {
 	return s
 }
 
-// Contains a list of AWS Lambda function configurations (see FunctionConfiguration.
+// A list of Lambda functions.
 type ListFunctionsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5956,12 +5943,18 @@ func (s *ListTagsOutput) SetTags(v map[string]*string) *ListTagsOutput {
 type ListVersionsByFunctionInput struct {
 	_ struct{} `type:"structure"`
 
-	// Function name whose versions to list. You can specify a function name (for
-	// example, Thumbnail) or you can specify Amazon Resource Name (ARN) of the
-	// function (for example, arn:aws:lambda:us-west-2:account-id:function:ThumbNail).
-	// AWS Lambda also allows you to specify a partial ARN (for example, account-id:Thumbnail).
-	// Note that the length constraint applies only to the ARN. If you specify only
-	// the function name, it is limited to 64 characters in length.
+	// The name of the lambda function.
+	//
+	// Name formats
+	//
+	//    * Function name - MyFunction.
+	//
+	//    * Function ARN - arn:aws:lambda:us-west-2:123456789012:function:MyFunction.
+	//
+	//    * Partial ARN - 123456789012:function:MyFunction.
+	//
+	// The length constraint applies only to the full ARN. If you specify only the
+	// function name, it is limited to 64 characters in length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
@@ -6068,12 +6061,18 @@ type PublishVersionInput struct {
 	// Lambda copies the description from the $LATEST version.
 	Description *string `type:"string"`
 
-	// The Lambda function name. You can specify a function name (for example, Thumbnail)
-	// or you can specify Amazon Resource Name (ARN) of the function (for example,
-	// arn:aws:lambda:us-west-2:account-id:function:ThumbNail). AWS Lambda also
-	// allows you to specify a partial ARN (for example, account-id:Thumbnail).
-	// Note that the length constraint applies only to the ARN. If you specify only
-	// the function name, it is limited to 64 characters in length.
+	// The name of the lambda function.
+	//
+	// Name formats
+	//
+	//    * Function name - MyFunction.
+	//
+	//    * Function ARN - arn:aws:lambda:us-west-2:123456789012:function:MyFunction.
+	//
+	//    * Partial ARN - 123456789012:function:MyFunction.
+	//
+	// The length constraint applies only to the full ARN. If you specify only the
+	// function name, it is limited to 64 characters in length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
@@ -6081,8 +6080,8 @@ type PublishVersionInput struct {
 	// An optional value you can use to ensure you are updating the latest update
 	// of the function version or alias. If the RevisionID you pass doesn't match
 	// the latest RevisionId of the function or alias, it will fail with an error
-	// message, advising you to retrieve the latest function version or alias RevisionID
-	// using either or .
+	// message, advising you retrieve the latest function version or alias RevisionID
+	// using either GetFunction or GetAlias.
 	RevisionId *string `type:"string"`
 }
 
@@ -6139,14 +6138,23 @@ func (s *PublishVersionInput) SetRevisionId(v string) *PublishVersionInput {
 type PutFunctionConcurrencyInput struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the function you are setting concurrent execution limits on.
-	// For more information, see concurrent-executions.
+	// The name of the lambda function.
+	//
+	// Name formats
+	//
+	//    * Function name - MyFunction.
+	//
+	//    * Function ARN - arn:aws:lambda:us-west-2:123456789012:function:MyFunction.
+	//
+	//    * Partial ARN - 123456789012:function:MyFunction.
+	//
+	// The length constraint applies only to the full ARN. If you specify only the
+	// function name, it is limited to 64 characters in length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
 
-	// The concurrent execution limit reserved for this function. For more information,
-	// see concurrent-executions.
+	// The concurrent execution limit reserved for this function.
 	//
 	// ReservedConcurrentExecutions is a required field
 	ReservedConcurrentExecutions *int64 `type:"integer" required:"true"`
@@ -6197,7 +6205,7 @@ type PutFunctionConcurrencyOutput struct {
 	_ struct{} `type:"structure"`
 
 	// The number of concurrent executions reserved for this function. For more
-	// information, see concurrent-executions.
+	// information, see Managing Concurrency (http://docs.aws.amazon.com/lambda/latest/dg/concurrent-executions.html).
 	ReservedConcurrentExecutions *int64 `type:"integer"`
 }
 
@@ -6220,28 +6228,31 @@ func (s *PutFunctionConcurrencyOutput) SetReservedConcurrentExecutions(v int64) 
 type RemovePermissionInput struct {
 	_ struct{} `type:"structure"`
 
-	// Lambda function whose resource policy you want to remove a permission from.
+	// The name of the lambda function.
 	//
-	// You can specify a function name (for example, Thumbnail) or you can specify
-	// Amazon Resource Name (ARN) of the function (for example, arn:aws:lambda:us-west-2:account-id:function:ThumbNail).
-	// AWS Lambda also allows you to specify a partial ARN (for example, account-id:Thumbnail).
-	// Note that the length constraint applies only to the ARN. If you specify only
-	// the function name, it is limited to 64 characters in length.
+	// Name formats
+	//
+	//    * Function name - MyFunction.
+	//
+	//    * Function ARN - arn:aws:lambda:us-west-2:123456789012:function:MyFunction.
+	//
+	//    * Partial ARN - 123456789012:function:MyFunction.
+	//
+	// The length constraint applies only to the full ARN. If you specify only the
+	// function name, it is limited to 64 characters in length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
 
-	// You can specify this optional parameter to remove permission associated with
-	// a specific function version or function alias. If you don't specify this
-	// parameter, the API removes permission associated with the unqualified function
-	// ARN.
+	// Specify a version or alias to remove permissions from a published version
+	// of the function.
 	Qualifier *string `location:"querystring" locationName:"Qualifier" min:"1" type:"string"`
 
 	// An optional value you can use to ensure you are updating the latest update
 	// of the function version or alias. If the RevisionID you pass doesn't match
 	// the latest RevisionId of the function or alias, it will fail with an error
 	// message, advising you to retrieve the latest function version or alias RevisionID
-	// using either or .
+	// using either GetFunction or GetAlias.
 	RevisionId *string `location:"querystring" locationName:"RevisionId" type:"string"`
 
 	// Statement ID of the permission to remove.
@@ -6393,15 +6404,11 @@ func (s TagResourceOutput) GoString() string {
 	return s.String()
 }
 
-// The parent object that contains your function's tracing settings.
+// The function's AWS X-Ray tracing configuration.
 type TracingConfig struct {
 	_ struct{} `type:"structure"`
 
-	// Can be either PassThrough or Active. If PassThrough, Lambda will only trace
-	// the request from an upstream service if it contains a tracing header with
-	// "sampled=1". If Active, Lambda will respect any tracing header it receives
-	// from an upstream service. If no tracing header is received, Lambda will call
-	// X-Ray for a tracing decision.
+	// The tracing mode.
 	Mode *string `type:"string" enum:"TracingMode"`
 }
 
@@ -6421,11 +6428,11 @@ func (s *TracingConfig) SetMode(v string) *TracingConfig {
 	return s
 }
 
-// Parent object of the tracing information associated with your Lambda function.
+// The function's AWS X-Ray tracing configuration.
 type TracingConfigResponse struct {
 	_ struct{} `type:"structure"`
 
-	// The tracing mode associated with your Lambda function.
+	// The tracing mode.
 	Mode *string `type:"string" enum:"TracingMode"`
 }
 
@@ -6521,9 +6528,18 @@ type UpdateAliasInput struct {
 	// You can change the description of the alias using this parameter.
 	Description *string `type:"string"`
 
-	// The function name for which the alias is created. Note that the length constraint
-	// applies only to the ARN. If you specify only the function name, it is limited
-	// to 64 characters in length.
+	// The name of the lambda function.
+	//
+	// Name formats
+	//
+	//    * Function name - MyFunction.
+	//
+	//    * Function ARN - arn:aws:lambda:us-west-2:123456789012:function:MyFunction.
+	//
+	//    * Partial ARN - 123456789012:function:MyFunction.
+	//
+	// The length constraint applies only to the full ARN. If you specify only the
+	// function name, it is limited to 64 characters in length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
@@ -6540,13 +6556,13 @@ type UpdateAliasInput struct {
 	// An optional value you can use to ensure you are updating the latest update
 	// of the function version or alias. If the RevisionID you pass doesn't match
 	// the latest RevisionId of the function or alias, it will fail with an error
-	// message, advising you to retrieve the latest function version or alias RevisionID
-	// using either or .
+	// message, advising you retrieve the latest function version or alias RevisionID
+	// using either GetFunction or GetAlias.
 	RevisionId *string `type:"string"`
 
 	// Specifies an additional version your alias can point to, allowing you to
 	// dictate what percentage of traffic will invoke each version. For more information,
-	// see lambda-traffic-shifting-using-aliases.
+	// see Traffic Shifting Using Aliases (http://docs.aws.amazon.com/lambda/latest/dg/lambda-traffic-shifting-using-aliases.html).
 	RoutingConfig *AliasRoutingConfiguration `type:"structure"`
 }
 
@@ -6624,29 +6640,29 @@ func (s *UpdateAliasInput) SetRoutingConfig(v *AliasRoutingConfiguration) *Updat
 type UpdateEventSourceMappingInput struct {
 	_ struct{} `type:"structure"`
 
-	// The maximum number of stream records that can be sent to your Lambda function
-	// for a single invocation.
+	// The largest number of records that AWS Lambda will retrieve from your event
+	// source at the time of invoking your function. Your function receives an event
+	// with all the retrieved records.
 	BatchSize *int64 `min:"1" type:"integer"`
 
 	// Specifies whether AWS Lambda should actively poll the stream or not. If disabled,
 	// AWS Lambda will not poll the stream.
 	Enabled *bool `type:"boolean"`
 
-	// The Lambda function to which you want the stream records sent.
+	// The name of the lambda function.
 	//
-	// You can specify a function name (for example, Thumbnail) or you can specify
-	// Amazon Resource Name (ARN) of the function (for example, arn:aws:lambda:us-west-2:account-id:function:ThumbNail).
-	// AWS Lambda also allows you to specify a partial ARN (for example, account-id:Thumbnail).
-	// Note that the length constraint applies only to the ARN. If you specify only
-	// the function name, it is limited to 64 characters in length.
+	// Name formats
 	//
-	// If you are using versioning, you can also provide a qualified function ARN
-	// (ARN that is qualified with function version or alias name as suffix). For
-	// more information about versioning, see AWS Lambda Function Versioning and
-	// Aliases (http://docs.aws.amazon.com/lambda/latest/dg/versioning-aliases.html)
+	//    * Function name - MyFunction.
 	//
-	// Note that the length constraint applies only to the ARN. If you specify only
-	// the function name, it is limited to 64 character in length.
+	//    * Function ARN - arn:aws:lambda:us-west-2:123456789012:function:MyFunction.
+	//
+	//    * Version or Alias ARN - arn:aws:lambda:us-west-2:123456789012:function:MyFunction:PROD.
+	//
+	//    * Partial ARN - 123456789012:function:MyFunction.
+	//
+	// The length constraint applies only to the full ARN. If you specify only the
+	// function name, it is limited to 64 characters in length.
 	FunctionName *string `min:"1" type:"string"`
 
 	// The event source mapping identifier.
@@ -6719,13 +6735,18 @@ type UpdateFunctionCodeInput struct {
 	// returned in the response.
 	DryRun *bool `type:"boolean"`
 
-	// The existing Lambda function name whose code you want to replace.
+	// The name of the lambda function.
 	//
-	// You can specify a function name (for example, Thumbnail) or you can specify
-	// Amazon Resource Name (ARN) of the function (for example, arn:aws:lambda:us-west-2:account-id:function:ThumbNail).
-	// AWS Lambda also allows you to specify a partial ARN (for example, account-id:Thumbnail).
-	// Note that the length constraint applies only to the ARN. If you specify only
-	// the function name, it is limited to 64 characters in length.
+	// Name formats
+	//
+	//    * Function name - MyFunction.
+	//
+	//    * Function ARN - arn:aws:lambda:us-west-2:123456789012:function:MyFunction.
+	//
+	//    * Partial ARN - 123456789012:function:MyFunction.
+	//
+	// The length constraint applies only to the full ARN. If you specify only the
+	// function name, it is limited to 64 characters in length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
@@ -6738,7 +6759,7 @@ type UpdateFunctionCodeInput struct {
 	// of the function version or alias. If the RevisionID you pass doesn't match
 	// the latest RevisionId of the function or alias, it will fail with an error
 	// message, advising you to retrieve the latest function version or alias RevisionID
-	// using either or .
+	// using either using using either GetFunction or GetAlias.
 	RevisionId *string `type:"string"`
 
 	// Amazon S3 bucket name where the .zip file containing your deployment package
@@ -6848,8 +6869,9 @@ func (s *UpdateFunctionCodeInput) SetZipFile(v []byte) *UpdateFunctionCodeInput 
 type UpdateFunctionConfigurationInput struct {
 	_ struct{} `type:"structure"`
 
-	// The parent object that contains the target ARN (Amazon Resource Name) of
-	// an Amazon SQS queue or Amazon SNS topic. For more information, see dlq.
+	// A dead letter queue configuration that specifies the queue or topic where
+	// Lambda sends asynchronous events when they fail processing. For more information,
+	// see Dead Letter Queues (http://docs.aws.amazon.com/lambda/latest/dg/dlq.html).
 	DeadLetterConfig *DeadLetterConfig `type:"structure"`
 
 	// A short user-defined function description. AWS Lambda does not use this value.
@@ -6859,13 +6881,18 @@ type UpdateFunctionConfigurationInput struct {
 	// The parent object that contains your environment's configuration settings.
 	Environment *Environment `type:"structure"`
 
-	// The name of the Lambda function.
+	// The name of the lambda function.
 	//
-	// You can specify a function name (for example, Thumbnail) or you can specify
-	// Amazon Resource Name (ARN) of the function (for example, arn:aws:lambda:us-west-2:account-id:function:ThumbNail).
-	// AWS Lambda also allows you to specify a partial ARN (for example, account-id:Thumbnail).
-	// Note that the length constraint applies only to the ARN. If you specify only
-	// the function name, it is limited to 64 character in length.
+	// Name formats
+	//
+	//    * Function name - MyFunction.
+	//
+	//    * Function ARN - arn:aws:lambda:us-west-2:123456789012:function:MyFunction.
+	//
+	//    * Partial ARN - 123456789012:function:MyFunction.
+	//
+	// The length constraint applies only to the full ARN. If you specify only the
+	// function name, it is limited to 64 characters in length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
@@ -6891,40 +6918,26 @@ type UpdateFunctionConfigurationInput struct {
 	// of the function version or alias. If the RevisionID you pass doesn't match
 	// the latest RevisionId of the function or alias, it will fail with an error
 	// message, advising you to retrieve the latest function version or alias RevisionID
-	// using either or .
+	// using either GetFunction or GetAlias.
 	RevisionId *string `type:"string"`
 
 	// The Amazon Resource Name (ARN) of the IAM role that Lambda will assume when
 	// it executes your function.
 	Role *string `type:"string"`
 
-	// The runtime environment for the Lambda function.
-	//
-	// To use the Python runtime v3.6, set the value to "python3.6". To use the
-	// Python runtime v2.7, set the value to "python2.7". To use the Node.js runtime
-	// v6.10, set the value to "nodejs6.10". To use the Node.js runtime v4.3, set
-	// the value to "nodejs4.3". To use the .NET Core runtime v1.0, set the value
-	// to "dotnetcore1.0". To use the .NET Core runtime v2.0, set the value to "dotnetcore2.0".
-	//
-	// Node v0.10.42 is currently marked as deprecated. You must migrate existing
-	// functions to the newer Node.js runtime versions available on AWS Lambda (nodejs4.3
-	// or nodejs6.10) as soon as possible. Failure to do so will result in an invalid
-	// parameter error being returned. Note that you will have to follow this procedure
-	// for each region that contains functions written in the Node v0.10.42 runtime.
+	// The runtime version for the function.
 	Runtime *string `type:"string" enum:"Runtime"`
 
-	// The function execution time at which AWS Lambda should terminate the function.
-	// Because the execution time has cost implications, we recommend you set this
-	// value based on your expected execution time. The default is 3 seconds.
+	// The amount of time that Lambda allows a function to run before terminating
+	// it. The default is 3 seconds. The maximum allowed value is 900 seconds.
 	Timeout *int64 `min:"1" type:"integer"`
 
-	// The parent object that contains your function's tracing settings.
+	// Set Mode to Active to sample and trace a subset of incoming requests with
+	// AWS X-Ray.
 	TracingConfig *TracingConfig `type:"structure"`
 
-	// If your Lambda function accesses resources in a VPC, you provide this parameter
-	// identifying the list of security group IDs and subnet IDs. These must belong
-	// to the same VPC. You must provide at least one security group and one subnet
-	// ID.
+	// Specify security groups and subnets in a VPC to which your Lambda function
+	// needs access.
 	VpcConfig *VpcConfig `type:"structure"`
 }
 
@@ -7038,17 +7051,14 @@ func (s *UpdateFunctionConfigurationInput) SetVpcConfig(v *VpcConfig) *UpdateFun
 	return s
 }
 
-// If your Lambda function accesses resources in a VPC, you provide this parameter
-// identifying the list of security group IDs and subnet IDs. These must belong
-// to the same VPC. You must provide at least one security group and one subnet
-// ID.
+// The VPC security groups and subnets attached to a Lambda function.
 type VpcConfig struct {
 	_ struct{} `type:"structure"`
 
-	// A list of one or more security groups IDs in your VPC.
+	// A list of VPC security groups IDs.
 	SecurityGroupIds []*string `type:"list"`
 
-	// A list of one or more subnet IDs in your VPC.
+	// A list of VPC subnet IDs.
 	SubnetIds []*string `type:"list"`
 }
 
@@ -7074,17 +7084,17 @@ func (s *VpcConfig) SetSubnetIds(v []*string) *VpcConfig {
 	return s
 }
 
-// VPC configuration associated with your Lambda function.
+// The VPC security groups and subnets attached to a Lambda function.
 type VpcConfigResponse struct {
 	_ struct{} `type:"structure"`
 
-	// A list of security group IDs associated with the Lambda function.
+	// A list of VPC security groups IDs.
 	SecurityGroupIds []*string `type:"list"`
 
-	// A list of subnet IDs associated with the Lambda function.
+	// A list of VPC subnet IDs.
 	SubnetIds []*string `type:"list"`
 
-	// The VPC ID associated with you Lambda function.
+	// The ID of the VPC.
 	VpcId *string `type:"string"`
 }
 

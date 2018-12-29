@@ -64,7 +64,7 @@ func TestApply(t *testing.T) {
 func TestApply_lockedState(t *testing.T) {
 	statePath := testTempFile(t)
 
-	unlock, err := testLockState("./testdata", statePath)
+	unlock, err := testLockState(testDataDir, statePath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -98,7 +98,7 @@ func TestApply_lockedState(t *testing.T) {
 func TestApply_lockedStateWait(t *testing.T) {
 	statePath := testTempFile(t)
 
-	unlock, err := testLockState("./testdata", statePath)
+	unlock, err := testLockState(testDataDir, statePath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -585,8 +585,9 @@ func TestApply_plan_backup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	args := []string{
-		"-state-out", statePath,
+		"-state", statePath,
 		"-backup", backupPath,
 		planPath,
 	}
@@ -650,9 +651,8 @@ func TestApply_plan_remoteState(t *testing.T) {
 
 	// Create a remote state
 	state := testState()
-	backendState, srv := testRemoteState(t, state, 200)
+	_, srv := testRemoteState(t, state, 200)
 	defer srv.Close()
-	testStateFileRemote(t, backendState)
 
 	_, snap := testModuleWithSnapshot(t, "apply")
 	backendConfig := cty.ObjectVal(map[string]cty.Value{
@@ -701,8 +701,8 @@ func TestApply_plan_remoteState(t *testing.T) {
 	}
 
 	// Check that there is no remote state config
-	if _, err := os.Stat(remoteStatePath); err == nil {
-		t.Fatalf("has remote state config")
+	if src, err := ioutil.ReadFile(remoteStatePath); err == nil {
+		t.Fatalf("has %s file; should not\n%s", remoteStatePath, src)
 	}
 }
 
@@ -796,8 +796,8 @@ func TestApply_planNoModuleFiles(t *testing.T) {
 		planPath,
 	}
 	apply.Run(args)
-	if p.ValidateProviderConfigCalled {
-		t.Fatal("Validate should not be called with a plan")
+	if p.PrepareProviderConfigCalled {
+		t.Fatal("Prepare provider config should not be called with a plan")
 	}
 }
 
@@ -964,7 +964,7 @@ func TestApply_state(t *testing.T) {
 				Name: "foo",
 			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 			&states.ResourceInstanceObjectSrc{
-				AttrsJSON: []byte(`{"ami":"bar"}`),
+				AttrsJSON: []byte(`{"ami":"foo"}`),
 				Status:    states.ObjectReady,
 			},
 			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
@@ -1006,7 +1006,7 @@ func TestApply_state(t *testing.T) {
 	actual := p.PlanResourceChangeRequest.PriorState
 	expected := cty.ObjectVal(map[string]cty.Value{
 		"id":  cty.NullVal(cty.String),
-		"ami": cty.StringVal("bar"),
+		"ami": cty.StringVal("foo"),
 	})
 	if !expected.RawEquals(actual) {
 		t.Fatalf("wrong prior state during plan\ngot: %#v\nwant: %#v", actual, expected)
@@ -1015,9 +1015,9 @@ func TestApply_state(t *testing.T) {
 	actual = p.ApplyResourceChangeRequest.PriorState
 	expected = cty.ObjectVal(map[string]cty.Value{
 		"id":  cty.NullVal(cty.String),
-		"ami": cty.StringVal("bar"),
+		"ami": cty.StringVal("foo"),
 	})
-	if actual != expected {
+	if !expected.RawEquals(actual) {
 		t.Fatalf("wrong prior state during apply\ngot: %#v\nwant: %#v", actual, expected)
 	}
 

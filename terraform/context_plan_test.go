@@ -2075,7 +2075,56 @@ func TestContext2Plan_computedList(t *testing.T) {
 			},
 		},
 	}
-	p.DiffFn = testDiffFn
+	p.DiffFn = func(info *InstanceInfo, s *InstanceState, c *ResourceConfig) (*InstanceDiff, error) {
+		diff := &InstanceDiff{
+			Attributes: map[string]*ResourceAttrDiff{},
+		}
+
+		computedKeys := map[string]bool{}
+		for _, k := range c.ComputedKeys {
+			computedKeys[k] = true
+		}
+
+		compute, _ := c.Raw["compute"].(string)
+		if compute != "" {
+			diff.Attributes[compute] = &ResourceAttrDiff{
+				Old:         "",
+				New:         "",
+				NewComputed: true,
+			}
+		}
+
+		fooOld := s.Attributes["foo"]
+		fooNew, _ := c.Raw["foo"].(string)
+		if fooOld != fooNew {
+			diff.Attributes["foo"] = &ResourceAttrDiff{
+				Old:         fooOld,
+				New:         fooNew,
+				NewComputed: computedKeys["foo"],
+			}
+		}
+
+		numOld := s.Attributes["num"]
+		numNew, _ := c.Raw["num"].(string)
+		if numOld != numNew {
+			diff.Attributes["num"] = &ResourceAttrDiff{
+				Old:         numOld,
+				New:         numNew,
+				NewComputed: computedKeys["num"],
+			}
+		}
+
+		listOld := s.Attributes["list.#"]
+		if listOld == "" {
+			diff.Attributes["list.#"] = &ResourceAttrDiff{
+				Old:         "",
+				New:         "",
+				NewComputed: true,
+			}
+		}
+
+		return diff, nil
+	}
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -2110,7 +2159,8 @@ func TestContext2Plan_computedList(t *testing.T) {
 		switch i := ric.Addr.String(); i {
 		case "aws_instance.bar":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"foo": cty.UnknownVal(cty.String),
+				"list": cty.UnknownVal(cty.List(cty.String)),
+				"foo":  cty.UnknownVal(cty.String),
 			}), ric.After)
 		case "aws_instance.foo":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
@@ -2129,6 +2179,7 @@ func TestContext2Plan_computedMultiIndex(t *testing.T) {
 	m := testModule(t, "plan-computed-multi-index")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
+
 	p.GetSchemaReturn = &ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
@@ -2139,6 +2190,47 @@ func TestContext2Plan_computedMultiIndex(t *testing.T) {
 				},
 			},
 		},
+	}
+
+	p.DiffFn = func(info *InstanceInfo, s *InstanceState, c *ResourceConfig) (*InstanceDiff, error) {
+		diff := &InstanceDiff{
+			Attributes: map[string]*ResourceAttrDiff{},
+		}
+
+		compute, _ := c.Raw["compute"].(string)
+		if compute != "" {
+			diff.Attributes[compute] = &ResourceAttrDiff{
+				Old:         "",
+				New:         "",
+				NewComputed: true,
+			}
+		}
+
+		fooOld := s.Attributes["foo"]
+		fooNew, _ := c.Raw["foo"].(string)
+		fooComputed := false
+		for _, k := range c.ComputedKeys {
+			if k == "foo" {
+				fooComputed = true
+			}
+		}
+		if fooNew != "" {
+			diff.Attributes["foo"] = &ResourceAttrDiff{
+				Old:         fooOld,
+				New:         fooNew,
+				NewComputed: fooComputed,
+			}
+		}
+
+		ipOld := s.Attributes["ip"]
+		ipComputed := ipOld == ""
+		diff.Attributes["ip"] = &ResourceAttrDiff{
+			Old:         ipOld,
+			New:         "",
+			NewComputed: ipComputed,
+		}
+
+		return diff, nil
 	}
 
 	ctx := testContext2(t, &ContextOpts{
@@ -2174,14 +2266,17 @@ func TestContext2Plan_computedMultiIndex(t *testing.T) {
 		switch i := ric.Addr.String(); i {
 		case "aws_instance.foo[0]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"ip": cty.UnknownVal(cty.List(cty.String)),
+				"ip":  cty.UnknownVal(cty.List(cty.String)),
+				"foo": cty.ListValEmpty(cty.String),
 			}), ric.After)
 		case "aws_instance.foo[1]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"ip": cty.UnknownVal(cty.List(cty.String)),
+				"ip":  cty.UnknownVal(cty.List(cty.String)),
+				"foo": cty.ListValEmpty(cty.String),
 			}), ric.After)
 		case "aws_instance.bar[0]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"ip":  cty.UnknownVal(cty.List(cty.String)),
 				"foo": cty.UnknownVal(cty.List(cty.String)),
 			}), ric.After)
 		default:
@@ -5512,4 +5607,138 @@ func objectVal(t *testing.T, schema *configschema.Block, m map[string]cty.Value)
 		t.Fatal(err)
 	}
 	return v
+}
+
+func TestContext2Plan_requiredModuleOutput(t *testing.T) {
+	m := testModule(t, "plan-required-output")
+	p := testProvider("test")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":       {Type: cty.String, Computed: true},
+					"required": {Type: cty.String, Required: true},
+				},
+			},
+		},
+	}
+	p.DiffFn = testDiffFn
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+
+	schema := p.GetSchemaReturn.ResourceTypes["test_resource"]
+	ty := schema.ImpliedType()
+
+	if len(plan.Changes.Resources) != 2 {
+		t.Fatal("expected 2 changes, got", len(plan.Changes.Resources))
+	}
+
+	for _, res := range plan.Changes.Resources {
+		t.Run(fmt.Sprintf("%s %s", res.Action, res.Addr), func(t *testing.T) {
+			if res.Action != plans.Create {
+				t.Fatalf("expected resource creation, got %s", res.Action)
+			}
+			ric, err := res.Decode(ty)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			var expected cty.Value
+			switch i := ric.Addr.String(); i {
+			case "test_resource.root":
+				expected = objectVal(t, schema, map[string]cty.Value{
+					"id":       cty.UnknownVal(cty.String),
+					"required": cty.UnknownVal(cty.String),
+				})
+			case "module.mod.test_resource.for_output":
+				expected = objectVal(t, schema, map[string]cty.Value{
+					"id":       cty.UnknownVal(cty.String),
+					"required": cty.StringVal("val"),
+				})
+			default:
+				t.Fatal("unknown instance:", i)
+			}
+
+			checkVals(t, expected, ric.After)
+		})
+	}
+}
+
+func TestContext2Plan_requiredModuleObject(t *testing.T) {
+	m := testModule(t, "plan-required-whole-mod")
+	p := testProvider("test")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":       {Type: cty.String, Computed: true},
+					"required": {Type: cty.String, Required: true},
+				},
+			},
+		},
+	}
+	p.DiffFn = testDiffFn
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+
+	schema := p.GetSchemaReturn.ResourceTypes["test_resource"]
+	ty := schema.ImpliedType()
+
+	if len(plan.Changes.Resources) != 2 {
+		t.Fatal("expected 2 changes, got", len(plan.Changes.Resources))
+	}
+
+	for _, res := range plan.Changes.Resources {
+		t.Run(fmt.Sprintf("%s %s", res.Action, res.Addr), func(t *testing.T) {
+			if res.Action != plans.Create {
+				t.Fatalf("expected resource creation, got %s", res.Action)
+			}
+			ric, err := res.Decode(ty)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			var expected cty.Value
+			switch i := ric.Addr.String(); i {
+			case "test_resource.root":
+				expected = objectVal(t, schema, map[string]cty.Value{
+					"id":       cty.UnknownVal(cty.String),
+					"required": cty.UnknownVal(cty.String),
+				})
+			case "module.mod.test_resource.for_output":
+				expected = objectVal(t, schema, map[string]cty.Value{
+					"id":       cty.UnknownVal(cty.String),
+					"required": cty.StringVal("val"),
+				})
+			default:
+				t.Fatal("unknown instance:", i)
+			}
+
+			checkVals(t, expected, ric.After)
+		})
+	}
 }

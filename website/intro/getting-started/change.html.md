@@ -71,7 +71,7 @@ AMI for an EC2 instance requires recreating it. Terraform handles these details
 for you, and the execution plan makes it clear what Terraform will do.
 
 Additionally, the execution plan shows that the AMI change is what
-required resource to be replaced. Using this information,
+required the resource to be replaced. Using this information,
 you can adjust your changes to possibly avoid destroy/create updates
 if they are not acceptable in some situations.
 

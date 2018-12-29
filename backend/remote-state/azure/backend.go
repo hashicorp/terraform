@@ -4,17 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	armStorage "github.com/Azure/azure-sdk-for-go/arm/storage"
-	"github.com/Azure/azure-sdk-for-go/storage"
-	"github.com/Azure/go-autorest/autorest"
-	"github.com/Azure/go-autorest/autorest/adal"
-	"github.com/Azure/go-autorest/autorest/azure"
-
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-// New creates a new backend for S3 remote state.
+// New creates a new backend for Azure remote state.
 func New() backend.Backend {
 	s := &schema.Backend{
 		Schema: map[string]*schema.Schema{
@@ -40,7 +34,7 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The Azure cloud environment.",
-				DefaultFunc: schema.EnvDefaultFunc("ARM_ENVIRONMENT", ""),
+				DefaultFunc: schema.EnvDefaultFunc("ARM_ENVIRONMENT", "public"),
 			},
 
 			"access_key": {
@@ -50,38 +44,95 @@ func New() backend.Backend {
 				DefaultFunc: schema.EnvDefaultFunc("ARM_ACCESS_KEY", ""),
 			},
 
+			"sas_token": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A SAS Token used to interact with the Blob Storage Account.",
+				DefaultFunc: schema.EnvDefaultFunc("ARM_SAS_TOKEN", ""),
+			},
+
 			"resource_group_name": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The resource group name.",
 			},
 
-			"arm_subscription_id": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The Subscription ID.",
-				DefaultFunc: schema.EnvDefaultFunc("ARM_SUBSCRIPTION_ID", ""),
-			},
-
-			"arm_client_id": {
+			"client_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The Client ID.",
 				DefaultFunc: schema.EnvDefaultFunc("ARM_CLIENT_ID", ""),
 			},
 
-			"arm_client_secret": {
+			"client_secret": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The Client Secret.",
 				DefaultFunc: schema.EnvDefaultFunc("ARM_CLIENT_SECRET", ""),
 			},
 
-			"arm_tenant_id": {
+			"subscription_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The Subscription ID.",
+				DefaultFunc: schema.EnvDefaultFunc("ARM_SUBSCRIPTION_ID", ""),
+			},
+
+			"tenant_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The Tenant ID.",
 				DefaultFunc: schema.EnvDefaultFunc("ARM_TENANT_ID", ""),
+			},
+
+			"use_msi": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Should Managed Service Identity be used?.",
+				DefaultFunc: schema.EnvDefaultFunc("ARM_USE_MSI", false),
+			},
+
+			"msi_endpoint": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The Managed Service Identity Endpoint.",
+				DefaultFunc: schema.EnvDefaultFunc("ARM_MSI_ENDPOINT", ""),
+			},
+
+			"endpoint": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A custom Endpoint used to access the Azure Resource Manager API's.",
+				DefaultFunc: schema.EnvDefaultFunc("ARM_ENDPOINT", ""),
+			},
+
+			// Deprecated fields
+			"arm_client_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The Client ID.",
+				Deprecated:  "`arm_client_id` has been replaced by `client_id`",
+			},
+
+			"arm_client_secret": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The Client Secret.",
+				Deprecated:  "`arm_client_secret` has been replaced by `client_secret`",
+			},
+
+			"arm_subscription_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The Subscription ID.",
+				Deprecated:  "`arm_subscription_id` has been replaced by `subscription_id`",
+			},
+
+			"arm_tenant_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The Tenant ID.",
+				Deprecated:  "`arm_tenant_id` has been replaced by `tenant_id`",
 			},
 		},
 	}
@@ -95,22 +146,27 @@ type Backend struct {
 	*schema.Backend
 
 	// The fields below are set from configure
-	blobClient storage.BlobStorageClient
-
+	armClient     *ArmClient
 	containerName string
 	keyName       string
-	leaseID       string
 }
 
 type BackendConfig struct {
-	AccessKey          string
-	Environment        string
-	ClientID           string
-	ClientSecret       string
-	ResourceGroupName  string
+	// Required
 	StorageAccountName string
-	SubscriptionID     string
-	TenantID           string
+
+	// Optional
+	AccessKey                     string
+	ClientID                      string
+	ClientSecret                  string
+	CustomResourceManagerEndpoint string
+	Environment                   string
+	MsiEndpoint                   string
+	ResourceGroupName             string
+	SasToken                      string
+	SubscriptionID                string
+	TenantID                      string
+	UseMsi                        bool
 }
 
 func (b *Backend) configure(ctx context.Context) error {
@@ -120,107 +176,49 @@ func (b *Backend) configure(ctx context.Context) error {
 
 	// Grab the resource data
 	data := schema.FromContextBackendConfig(ctx)
-
 	b.containerName = data.Get("container_name").(string)
 	b.keyName = data.Get("key").(string)
 
+	// support for previously deprecated fields
+	clientId := valueFromDeprecatedField(data, "client_id", "arm_client_id")
+	clientSecret := valueFromDeprecatedField(data, "client_secret", "arm_client_secret")
+	subscriptionId := valueFromDeprecatedField(data, "subscription_id", "arm_subscription_id")
+	tenantId := valueFromDeprecatedField(data, "tenant_id", "arm_tenant_id")
+
 	config := BackendConfig{
-		AccessKey:          data.Get("access_key").(string),
-		ClientID:           data.Get("arm_client_id").(string),
-		ClientSecret:       data.Get("arm_client_secret").(string),
-		Environment:        data.Get("environment").(string),
-		ResourceGroupName:  data.Get("resource_group_name").(string),
-		StorageAccountName: data.Get("storage_account_name").(string),
-		SubscriptionID:     data.Get("arm_subscription_id").(string),
-		TenantID:           data.Get("arm_tenant_id").(string),
+		AccessKey:                     data.Get("access_key").(string),
+		ClientID:                      clientId,
+		ClientSecret:                  clientSecret,
+		CustomResourceManagerEndpoint: data.Get("endpoint").(string),
+		Environment:                   data.Get("environment").(string),
+		MsiEndpoint:                   data.Get("msi_endpoint").(string),
+		ResourceGroupName:             data.Get("resource_group_name").(string),
+		SasToken:                      data.Get("sas_token").(string),
+		StorageAccountName:            data.Get("storage_account_name").(string),
+		SubscriptionID:                subscriptionId,
+		TenantID:                      tenantId,
+		UseMsi:                        data.Get("use_msi").(bool),
 	}
 
-	blobClient, err := getBlobClient(config)
+	armClient, err := buildArmClient(config)
 	if err != nil {
 		return err
 	}
-	b.blobClient = blobClient
 
+	if config.AccessKey == "" && config.SasToken == "" && config.ResourceGroupName == "" {
+		return fmt.Errorf("Either an Access Key / SAS Token or the Resource Group for the Storage Account must be specified")
+	}
+
+	b.armClient = armClient
 	return nil
 }
 
-func getBlobClient(config BackendConfig) (storage.BlobStorageClient, error) {
-	var client storage.BlobStorageClient
+func valueFromDeprecatedField(d *schema.ResourceData, key, deprecatedFieldKey string) string {
+	v := d.Get(key).(string)
 
-	env, err := getAzureEnvironment(config.Environment)
-	if err != nil {
-		return client, err
+	if v == "" {
+		v = d.Get(deprecatedFieldKey).(string)
 	}
 
-	accessKey, err := getAccessKey(config, env)
-	if err != nil {
-		return client, err
-	}
-
-	storageClient, err := storage.NewClient(config.StorageAccountName, accessKey, env.StorageEndpointSuffix,
-		storage.DefaultAPIVersion, true)
-	if err != nil {
-		return client, fmt.Errorf("Error creating storage client for storage account %q: %s", config.StorageAccountName, err)
-	}
-
-	client = storageClient.GetBlobService()
-	return client, nil
-}
-
-func getAccessKey(config BackendConfig, env azure.Environment) (string, error) {
-	if config.AccessKey != "" {
-		return config.AccessKey, nil
-	}
-
-	rgOk := config.ResourceGroupName != ""
-	subOk := config.SubscriptionID != ""
-	clientIDOk := config.ClientID != ""
-	clientSecretOK := config.ClientSecret != ""
-	tenantIDOk := config.TenantID != ""
-	if !rgOk || !subOk || !clientIDOk || !clientSecretOK || !tenantIDOk {
-		return "", fmt.Errorf("resource_group_name and credentials must be provided when access_key is absent")
-	}
-
-	oauthConfig, err := adal.NewOAuthConfig(env.ActiveDirectoryEndpoint, config.TenantID)
-	if err != nil {
-		return "", err
-	}
-
-	spt, err := adal.NewServicePrincipalToken(*oauthConfig, config.ClientID, config.ClientSecret, env.ResourceManagerEndpoint)
-	if err != nil {
-		return "", err
-	}
-
-	accountsClient := armStorage.NewAccountsClientWithBaseURI(env.ResourceManagerEndpoint, config.SubscriptionID)
-	accountsClient.Authorizer = autorest.NewBearerAuthorizer(spt)
-
-	keys, err := accountsClient.ListKeys(config.ResourceGroupName, config.StorageAccountName)
-	if err != nil {
-		return "", fmt.Errorf("Error retrieving keys for storage account %q: %s", config.StorageAccountName, err)
-	}
-
-	if keys.Keys == nil {
-		return "", fmt.Errorf("Nil key returned for storage account %q", config.StorageAccountName)
-	}
-
-	accessKeys := *keys.Keys
-	return *accessKeys[0].Value, nil
-}
-
-func getAzureEnvironment(environment string) (azure.Environment, error) {
-	if environment == "" {
-		return azure.PublicCloud, nil
-	}
-
-	env, err := azure.EnvironmentFromName(environment)
-	if err != nil {
-		// try again with wrapped value to support readable values like german instead of AZUREGERMANCLOUD
-		var innerErr error
-		env, innerErr = azure.EnvironmentFromName(fmt.Sprintf("AZURE%sCLOUD", environment))
-		if innerErr != nil {
-			return env, fmt.Errorf("invalid 'environment' configuration: %s", err)
-		}
-	}
-
-	return env, nil
+	return v
 }

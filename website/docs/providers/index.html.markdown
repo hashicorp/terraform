@@ -92,58 +92,63 @@ down to see all providers.
     <td><a href="/docs/providers/librato/index.html">Librato</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/linode/index.html">Linode</a></td>
     <td><a href="/docs/providers/local/index.html">Local</a></td>
     <td><a href="/docs/providers/logentries/index.html">Logentries</a></td>
-    <td><a href="/docs/providers/logicmonitor/index.html">LogicMonitor</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/logicmonitor/index.html">LogicMonitor</a></td>
     <td><a href="/docs/providers/mailgun/index.html">Mailgun</a></td>
     <td><a href="/docs/providers/mysql/index.html">MySQL</a></td>
-    <td><a href="/docs/providers/netlify/index.html">Netlify</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/netlify/index.html">Netlify</a></td>
     <td><a href="/docs/providers/newrelic/index.html">New Relic</a></td>
     <td><a href="/docs/providers/nomad/index.html">Nomad</a></td>
-    <td><a href="/docs/providers/ns1/index.html">NS1</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/ns1/index.html">NS1</a></td>
     <td><a href="/docs/providers/null/index.html">Null</a></td>
     <td><a href="/docs/providers/nutanix/index.html">Nutanix</a></td>
-    <td><a href="/docs/providers/oneandone/index.html">1&1</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/oneandone/index.html">1&1</a></td>
     <td><a href="/docs/providers/openstack/index.html">OpenStack</a></td>
     <td><a href="/docs/providers/opentelekomcloud/index.html">OpenTelekomCloud</a></td>
-    <td><a href="/docs/providers/opsgenie/index.html">OpsGenie</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/opsgenie/index.html">OpsGenie</a></td>
     <td><a href="/docs/providers/oci/index.html">Oracle Cloud Infrastructure</a></td>
     <td><a href="/docs/providers/oraclepaas/index.html">Oracle Cloud Platform</a></td>
-    <td><a href="/docs/providers/opc/index.html">Oracle Public Cloud</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/opc/index.html">Oracle Public Cloud</a></td>
     <td><a href="/docs/providers/ovh/index.html">OVH</a></td>
     <td><a href="/docs/providers/packet/index.html">Packet</a></td>
-    <td><a href="/docs/providers/pagerduty/index.html">PagerDuty</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/pagerduty/index.html">PagerDuty</a></td>
     <td><a href="/docs/providers/panos/index.html">Palo Alto Networks</a></td>
     <td><a href="/docs/providers/postgresql/index.html">PostgreSQL</a></td>
-    <td><a href="/docs/providers/powerdns/index.html">PowerDNS</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/powerdns/index.html">PowerDNS</a></td>
     <td><a href="/docs/providers/profitbricks/index.html">ProfitBricks</a></td>
     <td><a href="/docs/providers/rabbitmq/index.html">RabbitMQ</a></td>
-    <td><a href="/docs/providers/rancher/index.html">Rancher</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/rancher/index.html">Rancher</a></td>
     <td><a href="/docs/providers/random/index.html">Random</a></td>
     <td><a href="/docs/providers/rightscale/index.html">RightScale</a></td>
-    <td><a href="/docs/providers/rundeck/index.html">Rundeck</a></td>
     </tr>
     <tr>
+    <td><a href="/docs/providers/rundeck/index.html">Rundeck</a></td>
     <td><a href="/docs/providers/runscope/index.html">RunScope</a></td>
     <td><a href="/docs/providers/scaleway/index.html">Scaleway</a></td>
+    </tr>
+    <tr>
+    <td><a href="/docs/providers/selvpc/index.html">Selectel</a></td>
+    <td><a href="/docs/providers/skytap/index.html">Skytap</a></td>
     <td><a href="/docs/providers/softlayer/index.html">SoftLayer</a></td>
     </tr>
     <tr>

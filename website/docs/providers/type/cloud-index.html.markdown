@@ -39,6 +39,8 @@ vendor in close collaboration with HashiCorp, and are tested by HashiCorp.
 
 [HuaweiCloud](/docs/providers/huaweicloud/index.html)
 
+[Linode](/docs/providers/linode/index.html)
+
 [Nutanix](/docs/providers/nutanix/index.html)
 
 [OpenStack](/docs/providers/openstack/index.html)
@@ -52,6 +54,10 @@ vendor in close collaboration with HashiCorp, and are tested by HashiCorp.
 [ProfitBricks](/docs/providers/profitbricks/index.html)
 
 [Scaleway](/docs/providers/scaleway/index.html)
+
+[Skytap](/docs/providers/skytap/index.html)
+
+[Selectel](/docs/providers/selvpc/index.html)
 
 [SoftLayer](/docs/providers/softlayer/index.html)
 

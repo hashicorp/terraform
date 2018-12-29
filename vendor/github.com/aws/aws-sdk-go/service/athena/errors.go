@@ -21,6 +21,7 @@ const (
 	// ErrCodeTooManyRequestsException for service response error code
 	// "TooManyRequestsException".
 	//
-	// Indicates that the request was throttled.
+	// Indicates that the request was throttled and includes the reason for throttling,
+	// for example, the limit of concurrent queries has been exceeded.
 	ErrCodeTooManyRequestsException = "TooManyRequestsException"
 )

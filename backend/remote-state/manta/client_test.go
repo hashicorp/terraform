@@ -21,8 +21,8 @@ func TestRemoteClient(t *testing.T) {
 	keyName := "testState"
 
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"path":       directory,
-		"objectName": keyName,
+		"path":        directory,
+		"object_name": keyName,
 	})).(*Backend)
 
 	createMantaFolder(t, b.storageClient, directory)
@@ -42,13 +42,13 @@ func TestRemoteClientLocks(t *testing.T) {
 	keyName := "testState"
 
 	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"path":       directory,
-		"objectName": keyName,
+		"path":        directory,
+		"object_name": keyName,
 	})).(*Backend)
 
 	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"path":       directory,
-		"objectName": keyName,
+		"path":        directory,
+		"object_name": keyName,
 	})).(*Backend)
 
 	createMantaFolder(t, b1.storageClient, directory)

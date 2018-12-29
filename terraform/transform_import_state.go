@@ -16,10 +16,18 @@ type ImportStateTransformer struct {
 
 func (t *ImportStateTransformer) Transform(g *Graph) error {
 	for _, target := range t.Targets {
+		// The ProviderAddr may not be supplied for non-aliased providers.
+		// This will be populated if the targets come from the cli, but tests
+		// may not specify implied provider addresses.
+		providerAddr := target.ProviderAddr
+		if providerAddr.ProviderConfig.Type == "" {
+			providerAddr = target.Addr.Resource.Resource.DefaultProviderConfig().Absolute(target.Addr.Module)
+		}
+
 		node := &graphNodeImportState{
 			Addr:         target.Addr,
 			ID:           target.ID,
-			ProviderAddr: target.ProviderAddr,
+			ProviderAddr: providerAddr,
 		}
 		g.Add(node)
 	}

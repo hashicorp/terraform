@@ -8,7 +8,7 @@ import (
 )
 
 func TestObjectValueIDOrName(t *testing.T) {
-	tests := []struct{
+	tests := []struct {
 		obj    cty.Value
 		id     [2]string
 		name   [2]string
@@ -34,7 +34,7 @@ func TestObjectValueIDOrName(t *testing.T) {
 		},
 		{
 			cty.ObjectVal(map[string]cty.Value{
-				"id":   cty.StringVal("foo-123"),
+				"id": cty.StringVal("foo-123"),
 			}),
 			[...]string{"id", "foo-123"},
 			[...]string{"", ""},
@@ -95,7 +95,7 @@ func TestObjectValueIDOrName(t *testing.T) {
 		// in this formatter, this is the place to add a new test case.
 		{
 			cty.ObjectVal(map[string]cty.Value{
-				"id":   cty.True,
+				"id": cty.True,
 			}),
 			[...]string{"", ""},
 			[...]string{"", ""},
@@ -103,7 +103,7 @@ func TestObjectValueIDOrName(t *testing.T) {
 		},
 		{
 			cty.ObjectVal(map[string]cty.Value{
-				"id":   cty.NullVal(cty.String),
+				"id": cty.NullVal(cty.String),
 			}),
 			[...]string{"", ""},
 			[...]string{"", ""},
@@ -111,7 +111,7 @@ func TestObjectValueIDOrName(t *testing.T) {
 		},
 		{
 			cty.ObjectVal(map[string]cty.Value{
-				"id":   cty.UnknownVal(cty.String),
+				"id": cty.UnknownVal(cty.String),
 			}),
 			[...]string{"", ""},
 			[...]string{"", ""},
@@ -172,9 +172,9 @@ func TestObjectValueIDOrName(t *testing.T) {
 			[...]string{"", ""},
 		},
 	}
-	
+
 	for _, test := range tests {
-		t.Run(fmt.Sprintf("%#v", test.obj), func (t *testing.T) {
+		t.Run(fmt.Sprintf("%#v", test.obj), func(t *testing.T) {
 			obj := test.obj
 			gotIDKey, gotIDVal := ObjectValueID(obj)
 			gotNameKey, gotNameVal := ObjectValueName(obj)

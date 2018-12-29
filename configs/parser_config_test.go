@@ -102,7 +102,7 @@ func TestParserLoadConfigFileFailureMessages(t *testing.T) {
 		{
 			"invalid-files/unexpected-attr.tf",
 			hcl.DiagError,
-			"Unsupported attribute",
+			"Unsupported argument",
 		},
 		{
 			"invalid-files/unexpected-block.tf",

@@ -127,6 +127,11 @@ func TestForComparison(t *testing.T) {
 			false,
 		},
 		{
+			"1example.com",
+			"1example.com",
+			false,
+		},
+		{
 			"Испытание.com",
 			"xn--80akhbyknj4f.com",
 			false,

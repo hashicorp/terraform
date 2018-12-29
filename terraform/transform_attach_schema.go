@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/dag"
 )
@@ -15,7 +14,7 @@ type GraphNodeAttachResourceSchema interface {
 	GraphNodeResource
 	GraphNodeProviderConsumer
 
-	AttachResourceSchema(*configschema.Block)
+	AttachResourceSchema(schema *configschema.Block, version uint64)
 }
 
 // GraphNodeAttachProviderConfigSchema is an interface implemented by node types
@@ -62,19 +61,13 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 			providerAddr, _ := tv.ProvidedBy()
 			providerType := providerAddr.ProviderConfig.Type
 
-			var schema *configschema.Block
-			switch mode {
-			case addrs.ManagedResourceMode:
-				schema = t.Schemas.ResourceTypeConfig(providerType, typeName)
-			case addrs.DataResourceMode:
-				schema = t.Schemas.DataSourceConfig(providerType, typeName)
-			}
+			schema, version := t.Schemas.ResourceTypeConfig(providerType, mode, typeName)
 			if schema == nil {
 				log.Printf("[ERROR] AttachSchemaTransformer: No resource schema available for %s", addr)
 				continue
 			}
 			log.Printf("[TRACE] AttachSchemaTransformer: attaching resource schema to %s", dag.VertexName(v))
-			tv.AttachResourceSchema(schema)
+			tv.AttachResourceSchema(schema, version)
 		}
 
 		if tv, ok := v.(GraphNodeAttachProviderConfigSchema); ok {

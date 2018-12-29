@@ -5,7 +5,19 @@ package statemgr
 
 import (
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/statefile"
+	"github.com/hashicorp/terraform/version"
 )
+
+// NewStateFile creates a new statefile.File object, with a newly-minted
+// lineage identifier and serial 0, and returns a pointer to it.
+func NewStateFile() *statefile.File {
+	return &statefile.File{
+		Lineage:          NewLineage(),
+		TerraformVersion: version.SemVer,
+		State:            states.NewState(),
+	}
+}
 
 // RefreshAndRead refreshes the persistent snapshot in the given state manager
 // and then returns it.

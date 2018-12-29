@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/apparentlymart/go-textseg/textseg"
+	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/hcl2/hcl/hclsyntax"
 )
 
@@ -20,6 +21,23 @@ type Token struct {
 	// surgical changes in-place. When _new_ code is created it will always
 	// be in the canonical style, but we preserve layout of existing code.
 	SpacesBefore int
+}
+
+// asHCLSyntax returns the receiver expressed as an incomplete hclsyntax.Token.
+// A complete token is not possible since we don't have source location
+// information here, and so this method is unexported so we can be sure it will
+// only be used for internal purposes where we know the range isn't important.
+//
+// This is primarily intended to allow us to re-use certain functionality from
+// hclsyntax rather than re-implementing it against our own token type here.
+func (t *Token) asHCLSyntax() hclsyntax.Token {
+	return hclsyntax.Token{
+		Type:  t.Type,
+		Bytes: t.Bytes,
+		Range: hcl.Range{
+			Filename: "<invalid>",
+		},
+	}
 }
 
 // Tokens is a flat list of tokens.
@@ -51,7 +69,7 @@ func (ts Tokens) Columns() int {
 // WriteTo takes an io.Writer and writes the bytes for each token to it,
 // along with the spacing that separates each token. In other words, this
 // allows serializing the tokens to a file or other such byte stream.
-func (ts Tokens) WriteTo(wr io.Writer) (int, error) {
+func (ts Tokens) WriteTo(wr io.Writer) (int64, error) {
 	// We know we're going to be writing a lot of small chunks of repeated
 	// space characters, so we'll prepare a buffer of these that we can
 	// easily pass to wr.Write without any further allocation.
@@ -60,7 +78,7 @@ func (ts Tokens) WriteTo(wr io.Writer) (int, error) {
 		spaces[i] = ' '
 	}
 
-	var n int
+	var n int64
 	var err error
 	for _, token := range ts {
 		if err != nil {
@@ -74,7 +92,7 @@ func (ts Tokens) WriteTo(wr io.Writer) (int, error) {
 			}
 			var thisN int
 			thisN, err = wr.Write(spaces[:thisChunk])
-			n += thisN
+			n += int64(thisN)
 			if err != nil {
 				return n, err
 			}
@@ -82,7 +100,7 @@ func (ts Tokens) WriteTo(wr io.Writer) (int, error) {
 
 		var thisN int
 		thisN, err = wr.Write(token.Bytes)
-		n += thisN
+		n += int64(thisN)
 	}
 
 	return n, err

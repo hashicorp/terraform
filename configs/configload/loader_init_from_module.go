@@ -127,6 +127,23 @@ func (l *Loader) InitDirFromModule(rootDir, sourceAddr string, hooks InstallHook
 		},
 	}
 
+	// -from-module allows relative paths but it's different than a normal
+	// module address where it'd be resolved relative to the module call
+	// (which is synthetic, here.) To address this, we'll just patch up any
+	// relative paths to be absolute paths before we run, ensuring we'll
+	// get the right result. This also, as an important side-effect, ensures
+	// that the result will be "downloaded" with go-getter (copied from the
+	// source location), rather than just recorded as a relative path.
+	{
+		maybePath := filepath.ToSlash(sourceAddr)
+		if maybePath == "." || strings.HasPrefix(maybePath, "./") || strings.HasPrefix(maybePath, "../") {
+			if wd, err := os.Getwd(); err == nil {
+				sourceAddr = filepath.Join(wd, sourceAddr)
+				log.Printf("[TRACE] -from-module relative path rewritten to absolute path %s", sourceAddr)
+			}
+		}
+	}
+
 	// Now we need to create an artificial root module that will seed our
 	// installation process.
 	fakeRootModule := &configs.Module{

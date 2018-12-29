@@ -443,3 +443,81 @@ output "value_from_map_from_list" {
 func testAccCheckResourceDestroy(s *terraform.State) error {
 	return nil
 }
+
+func TestResource_removeForceNew(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+	required           = "yep"
+	required_map = {
+	  key = "value"
+	}
+	optional_force_new = "here"
+}
+				`),
+			},
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+	required           = "yep"
+	required_map = {
+	  key = "value"
+	}
+}
+				`),
+			},
+		},
+	})
+}
+
+func TestResource_unknownFuncInMap(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+	required           = "ok"
+	required_map = {
+	  key = "${uuid()}"
+	}
+}
+				`),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+// Verify that we can destroy when a managed resource references something with
+// a count of 1.
+func TestResource_countRefDestroyError(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: strings.TrimSpace(`
+resource "test_resource" "one" {
+	count = 1
+	required     = "ok"
+	required_map = {
+	  key = "val"
+	}
+}
+
+resource "test_resource" "two" {
+	required     = test_resource.one[0].id
+	required_map = {
+	  key = "val"
+	}
+}
+				`),
+			},
+		},
+	})
+}

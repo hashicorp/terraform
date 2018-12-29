@@ -28,46 +28,46 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
     </tr>
     <tr>
     <td><a href="https://github.com/AviatrixSystems/terraform-provider-aviatrix">Aviatrix</a></td>
+    <td><a href="https://github.com/agarciamiravet/terraform-provider-azuredevops">Azure Devops</a></td>
     <td><a href="https://github.com/cloudamqp/terraform-provider">CloudAMQP</a></td>
-    <td><a href="https://github.com/cloudkarafka/terraform-provider">CloudKarafka</a></td>
     </tr>
     <tr>
+    <td><a href="https://github.com/cloudkarafka/terraform-provider">CloudKarafka</a></td>
     <td><a href="https://github.com/cloudmqtt/terraform-provider">CloudMQTT</a></td>
     <td><a href="https://github.com/Ashald/terraform-provider-consulacl">Consul ACL</a></td>
-    <td><a href="https://github.com/coreos/terraform-provider-ct">CoreOS Container Linux Configs</a></td>
     </tr>
     <tr>
+    <td><a href="https://github.com/coreos/terraform-provider-ct">CoreOS Container Linux Configs</a></td>
     <td><a href="https://github.com/nicolai86/terraform-provider-couchdb">CouchDB</a></td>
     <td><a href="https://github.com/betabandido/terraform-provider-databricks">Databricks</a></td>
-    <td><a href="https://github.com/plukevdh/terraform-provider-dmsnitch">Dead Man's Snitch</a></td>
     </tr>
     <tr>
+    <td><a href="https://github.com/plukevdh/terraform-provider-dmsnitch">Dead Man's Snitch</a></td>
     <td><a href="https://github.com/rackn/terraform-provider-drp/">Digital Rebar</a></td>
     <td><a href="https://github.com/gstruct/terraform-provider-dockermachine">Docker Machine</a></td>
-    <td><a href="https://github.com/artisanofcode/terraform-provider-drone">Drone</a></td>
     </tr>
     <tr>
+    <td><a href="https://github.com/artisanofcode/terraform-provider-drone">Drone</a></td>
     <td><a href="https://github.com/callensm/terraform-provider-dropbox">Dropbox</a></td>
     <td><a href="https://github.com/alexissavin/terraform-provider-solidserver">EfficientIP</a></td>
-    <td><a href="https://github.com/elephantsql/terraform-provider">ElephantSQL</a></td>
     </tr>
     <tr>
+    <td><a href="https://github.com/elephantsql/terraform-provider">ElephantSQL</a></td>
     <td><a href="https://github.com/josenk/terraform-provider-esxi">ESXI</a></td>
     <td><a href="https://github.com/tiramiseb/terraform-provider-gandi">Gandi</a></td>
-    <td><a href="https://github.com/Mastercard/terraform-provider-restapi">Generic Rest API</a></td>
     </tr>
     <tr>
+    <td><a href="https://github.com/Mastercard/terraform-provider-restapi">Generic Rest API</a></td>
     <td><a href="https://github.com/MikeSouza/terraform-provider-glue">Glue</a></td>  
     <td><a href="https://github.com/drewsonne/terraform-provider-gocd">GoCD</a></td>
-    <td><a href="https://github.com/sethvargo/terraform-provider-googlecalendar">Google Calendar</a></td>
     </tr>
     <tr>
+    <td><a href="https://github.com/sethvargo/terraform-provider-googlecalendar">Google Calendar</a></td>
     <td><a href="https://github.com/DeviaVir/terraform-provider-gsuite">Google G Suite</a></td>
-    <td><a href="https://github.com/mcuadros/terraform-provider-helm">Helm</a></td>
     <td><a href="https://github.com/ribbybibby/terraform-provider-hiera">Hiera</a></td>
     </tr>
     <tr>
-    <td><a href="https://github.com/GSLabDev/terraform-provider-httpfileupload">HTTP File Upload</a></td>>
+    <td><a href="https://github.com/GSLabDev/terraform-provider-httpfileupload">HTTP File Upload</a></td>
     <td><a href="https://github.com/HewlettPackard/terraform-provider-oneview">HP OneView</a></td>
     <td><a href="https://github.com/IBM-Cloud/terraform-provider-ibm">IBM Cloud</a></td>
     </tr>
@@ -84,6 +84,11 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
     <tr>
     <td><a href="https://github.com/ewilde/terraform-provider-kibana">Kibana</a></td>
     <td><a href="https://github.com/kevholditch/terraform-provider-kong">Kong</a></td>
+    <td><a href="https://github.com/dmacvicar/terraform-provider-libvirt">libvirt</a></td>
+    </tr>
+    <tr>
+    <td><a href="https://github.com/dikhan/terraform-provider-logentries">Logentries</a></td>
+    <td><a href="https://github.com/jonboydell/logzio_terraform_provider">Logz.io</a></td>
     <td><a href="https://github.com/sl1pm4t/terraform-provider-lxd">LXD</a></td>
     </tr>
     <tr>
@@ -93,7 +98,7 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
     </tr>
     <tr>
     <td><a href="https://github.com/GSLabDev/terraform-provider-nsxv">NSX-V</a></td>
-    <td><a href="https://github.com/nutanix/terraform-provider-nutanix">Nutanix</a></td>
+    <td><a href="https://github.com/articulate/terraform-provider-okta">Okta<a/></td>
     <td><a href="https://github.com/src-d/terraform-provider-online-net">Online.net</a></td>
     </tr>
     <tr>
@@ -102,7 +107,12 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
     <td><a href="https://github.com/ewilde/terraform-provider-openfaas">OpenFaaS</a></td>
     </tr>
     <tr>
+    <td><a href="https://github.com/imjoey/terraform-provider-ovirt">oVirt</a></td>
     <td><a href="https://github.com/camptocamp/terraform-provider-pass">Pass</a></td>
+    <td><a href="https://bitbucket.org/devops_sysops/pingdom-provider">Pingdom</a></td>
+    </tr>
+    <tr>
+    <td><a href="https://github.com/Telmate/terraform-provider-proxmox">Proxmox</a></td>
     <td><a href="https://github.com/camptocamp/terraform-provider-puppetca">Puppet CA</a></td>
     <td><a href="https://github.com/camptocamp/terraform-provider-puppetdb">PuppetDB</a></td>
     </tr>
@@ -122,9 +132,14 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
     <td><a href="https://github.com/Yelp/terraform-provider-signalform">SignalFx</a></td>
     </tr>
     <tr>
+    <td><a href="https://github.com/changli3/terraform-provider-smartronix">Smartronix</a></td>
     <td><a href="https://github.com/ShopRunner/terraform-provider-snowflake">Snowflake</a></td>
     <td><a href="https://github.com/Ashald/terraform-provider-stateful">Stateful</a></td>
+    </tr>
+    <tr>
     <td><a href="https://github.com/franckverrot/terraform-provider-stripe">Stripe</a></td>
+    <td><a href="https://github.com/SumoLogic/sumologic-terraform-provider">Sumo Logic</a></td>
+    <td><a href="https://github.com/cvbarros/terraform-provider-teamcity">TeamCity</a></td>
     </tr>
     <tr>
     <td><a href="https://github.com/bocodigitalmedia/terraform-provider-transloadit">Transloadit</a></td>
@@ -138,8 +153,8 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
     </tr>
     <tr>
     <td><a href="https://github.com/Venafi/terraform-provider-venafi">Venafi</a></td>
+    <td><a href="https://github.com/squat/terraform-provider-vultr">Vultr</a></td>
     <td><a href="https://github.com/cormacrelf/terraform-provider-zerotier">ZeroTier</a></td>
-    <td><a></a></td>
     </tr>
 
 </table>

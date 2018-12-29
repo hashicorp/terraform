@@ -47,8 +47,9 @@ type NodeAbstractResource struct {
 	// interfaces if you're running those transforms, but also be explicitly
 	// set if you already have that information.
 
-	Schema *configschema.Block // Schema for processing the configuration body
-	Config *configs.Resource   // Config is the resource in the config
+	Schema        *configschema.Block // Schema for processing the configuration body
+	SchemaVersion uint64              // Schema version of "Schema", as decided by the provider
+	Config        *configs.Resource   // Config is the resource in the config
 
 	ProvisionerSchemas map[string]*configschema.Block
 
@@ -181,7 +182,7 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 		if n.Schema == nil {
 			// Should never happens, but we'll log if it does so that we can
 			// see this easily when debugging.
-			log.Printf("[WARN] no schema is attached to %s, so references cannot be detected", n.Name())
+			log.Printf("[WARN] no schema is attached to %s, so config references cannot be detected", n.Name())
 		}
 
 		refs, _ := lang.ReferencesInExpr(c.Count)
@@ -219,6 +220,13 @@ func (n *NodeAbstractResourceInstance) References() []*addrs.Reference {
 	// embedded abstract resource, which knows how to extract dependencies
 	// from configuration.
 	if n.Config != nil {
+		if n.Schema == nil {
+			// We'll produce a log message about this out here so that
+			// we can include the full instance address, since the equivalent
+			// message in NodeAbstractResource.References cannot see it.
+			log.Printf("[WARN] no schema is attached to %s, so config references cannot be detected", n.Name())
+			return nil
+		}
 		return n.NodeAbstractResource.References()
 	}
 
@@ -423,8 +431,9 @@ func (n *NodeAbstractResource) AttachResourceConfig(c *configs.Resource) {
 }
 
 // GraphNodeAttachResourceSchema impl
-func (n *NodeAbstractResource) AttachResourceSchema(schema *configschema.Block) {
+func (n *NodeAbstractResource) AttachResourceSchema(schema *configschema.Block, version uint64) {
 	n.Schema = schema
+	n.SchemaVersion = version
 }
 
 // GraphNodeDotter impl.

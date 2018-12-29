@@ -14,9 +14,9 @@ type Interface interface {
 	// GetSchema returns the complete schema for the provider.
 	GetSchema() GetSchemaResponse
 
-	// ValidateProviderConfig allows the provider to validate the configuration
-	// values.
-	ValidateProviderConfig(ValidateProviderConfigRequest) ValidateProviderConfigResponse
+	// PrepareProviderConfig allows the provider to validate the configuration
+	// values, and set or override any values with defaults.
+	PrepareProviderConfig(PrepareProviderConfigRequest) PrepareProviderConfigResponse
 
 	// ValidateResourceTypeConfig allows the provider to validate the resource
 	// configuration values.
@@ -86,16 +86,18 @@ type GetSchemaResponse struct {
 // Schema pairs a provider or resource schema with that schema's version.
 // This is used to be able to upgrade the schema in UpgradeResourceState.
 type Schema struct {
-	Version uint64
+	Version int64
 	Block   *configschema.Block
 }
 
-type ValidateProviderConfigRequest struct {
-	// Config is the complete configuration value for the provider.
+type PrepareProviderConfigRequest struct {
+	// Config is the raw configuration value for the provider.
 	Config cty.Value
 }
 
-type ValidateProviderConfigResponse struct {
+type PrepareProviderConfigResponse struct {
+	// PreparedConfig is the configuration as prepared by the provider.
+	PreparedConfig cty.Value
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
 }
@@ -133,7 +135,7 @@ type UpgradeResourceStateRequest struct {
 	TypeName string
 
 	// Version is version of the schema that created the current state.
-	Version int
+	Version int64
 
 	// RawStateJSON and RawStateFlatmap contiain the state that needs to be
 	// upgraded to match the current schema version. Because the schema is

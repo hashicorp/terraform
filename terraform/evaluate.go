@@ -91,6 +91,10 @@ type evaluationStateData struct {
 	// since the user specifies in that case which variable name to locally
 	// shadow.)
 	InstanceKeyData InstanceKeyEvalData
+
+	// Operation records the type of walk the evaluationStateData is being used
+	// for.
+	Operation walkOperation
 }
 
 // InstanceKeyEvalData is used during evaluation to specify which values,
@@ -296,8 +300,8 @@ func (d *evaluationStateData) GetModuleInstance(addr addrs.ModuleCallInstance, r
 	// type even if our data is incomplete for some reason.
 	moduleConfig := d.Evaluator.Config.DescendentForInstance(moduleAddr)
 	if moduleConfig == nil {
-		// should never happen, since we can't be evaluating in a module
-		// that wasn't mentioned in configuration.
+		// should never happen, since this should've been caught during
+		// static validation.
 		panic(fmt.Sprintf("output value read from %s, which has no configuration", moduleAddr))
 	}
 	outputConfigs := moduleConfig.Module.Outputs
@@ -305,14 +309,31 @@ func (d *evaluationStateData) GetModuleInstance(addr addrs.ModuleCallInstance, r
 	vals := map[string]cty.Value{}
 	for n := range outputConfigs {
 		addr := addrs.OutputValue{Name: n}.Absolute(moduleAddr)
-		os := d.Evaluator.State.OutputValue(addr)
-		if os == nil {
-			// Not evaluated yet?
-			vals[n] = cty.DynamicVal
-			continue
-		}
 
-		vals[n] = os.Value
+		// If a pending change is present in our current changeset then its value
+		// takes priority over what's in state. (It will usually be the same but
+		// will differ if the new value is unknown during planning.)
+		if changeSrc := d.Evaluator.Changes.GetOutputChange(addr); changeSrc != nil {
+			change, err := changeSrc.Decode()
+			if err != nil {
+				// This should happen only if someone has tampered with a plan
+				// file, so we won't bother with a pretty error for it.
+				diags = diags.Append(fmt.Errorf("planned change for %s could not be decoded: %s", addr, err))
+				vals[n] = cty.DynamicVal
+				continue
+			}
+			// We care only about the "after" value, which is the value this output
+			// will take on after the plan is applied.
+			vals[n] = change.After
+		} else {
+			os := d.Evaluator.State.OutputValue(addr)
+			if os == nil {
+				// Not evaluated yet?
+				vals[n] = cty.DynamicVal
+				continue
+			}
+			vals[n] = os.Value
+		}
 	}
 	return cty.ObjectVal(vals), diags
 }
@@ -486,6 +507,12 @@ func (d *evaluationStateData) GetResourceInstance(addr addrs.ResourceInstance, r
 		// (In practice we should only end up here during the validate walk,
 		// since later walks should have at least partial states populated
 		// for all resources in the configuration.)
+		return cty.DynamicVal, diags
+	}
+
+	// Break out early during validation, because resource may not be expanded
+	// yet and indexed references may show up as invalid.
+	if d.Operation == walkValidate {
 		return cty.DynamicVal, diags
 	}
 
@@ -781,17 +808,9 @@ func (d *evaluationStateData) getResourceInstancesAll(addr addrs.Resource, rng t
 
 func (d *evaluationStateData) getResourceSchema(addr addrs.Resource, providerAddr addrs.AbsProviderConfig) *configschema.Block {
 	providerType := providerAddr.ProviderConfig.Type
-	typeName := addr.Type
 	schemas := d.Evaluator.Schemas
-	switch addr.Mode {
-	case addrs.ManagedResourceMode:
-		return schemas.ResourceTypeConfig(providerType, typeName)
-	case addrs.DataResourceMode:
-		return schemas.DataSourceConfig(providerType, typeName)
-	default:
-		log.Printf("[WARN] Don't know how to fetch schema for resource %s", providerAddr)
-		return nil
-	}
+	schema, _ := schemas.ResourceTypeConfig(providerType, addr.Mode, addr.Type)
+	return schema
 }
 
 // coerceInstanceKey attempts to convert the given key to the type expected
