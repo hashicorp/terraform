@@ -68,6 +68,16 @@ func decodeVariableBlock(block *hcl.Block, override bool) (*Variable, hcl.Diagno
 			})
 		}
 	}
+	for _, blockS := range moduleBlockSchema.Blocks {
+		if blockS.Type == v.Name {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid variable name",
+				Detail:   fmt.Sprintf("The variable name %q is reserved due to its special meaning inside module blocks.", blockS.Type),
+				Subject:  &block.LabelRanges[0],
+			})
+		}
+	}
 
 	if attr, exists := content.Attributes["description"]; exists {
 		valDiags := gohcl.DecodeExpression(attr.Expr, nil, &v.Description)

@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // backend.Local implementation.
@@ -66,7 +67,7 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, *configload.
 	// Load the latest state. If we enter contextFromPlanFile below then the
 	// state snapshot in the plan file must match this, or else it'll return
 	// error diagnostics.
-	log.Printf("[TRACE] backend/local: retrieving the local state snapshot for workspace %q", op.Workspace)
+	log.Printf("[TRACE] backend/local: retrieving local state snapshot for workspace %q", op.Workspace)
 	opts.State = s.State()
 
 	var tfCtx *terraform.Context
@@ -219,16 +220,7 @@ func (b *Local) contextFromPlanFile(pf *planfile.Reader, opts terraform.ContextO
 
 	variables := terraform.InputValues{}
 	for name, dyVal := range plan.VariableValues {
-		ty, err := dyVal.ImpliedType()
-		if err != nil {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				errSummary,
-				fmt.Sprintf("Invalid value for variable %q recorded in plan file: %s.", name, err),
-			))
-			continue
-		}
-		val, err := dyVal.Decode(ty)
+		val, err := dyVal.Decode(cty.DynamicPseudoType)
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,

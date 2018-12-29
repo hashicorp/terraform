@@ -19,20 +19,17 @@ type PlanCommand struct {
 func (c *PlanCommand) Run(args []string) int {
 	var destroy, refresh, detailed bool
 	var outPath string
-	var moduleDepth int
 
 	args, err := c.Meta.process(args, true)
 	if err != nil {
 		return 1
 	}
 
-	cmdFlags := c.Meta.flagSet("plan")
+	cmdFlags := c.Meta.extendedFlagSet("plan")
 	cmdFlags.BoolVar(&destroy, "destroy", false, "destroy")
 	cmdFlags.BoolVar(&refresh, "refresh", true, "refresh")
-	c.addModuleDepthFlag(cmdFlags, &moduleDepth)
 	cmdFlags.StringVar(&outPath, "out", "", "path")
-	cmdFlags.IntVar(
-		&c.Meta.parallelism, "parallelism", DefaultParallelism, "parallelism")
+	cmdFlags.IntVar(&c.Meta.parallelism, "parallelism", DefaultParallelism, "parallelism")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
 	cmdFlags.BoolVar(&detailed, "detailed-exitcode", false, "detailed-exitcode")
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
@@ -97,17 +94,19 @@ func (c *PlanCommand) Run(args []string) int {
 
 	// Build the operation
 	opReq := c.Operation(b)
-	opReq.Destroy = destroy
 	opReq.ConfigDir = configPath
+	opReq.Destroy = destroy
 	opReq.PlanRefresh = refresh
 	opReq.PlanOutPath = outPath
 	opReq.PlanRefresh = refresh
 	opReq.Type = backend.OperationTypePlan
+
 	opReq.ConfigLoader, err = c.initConfigLoader()
 	if err != nil {
 		c.showDiagnostics(err)
 		return 1
 	}
+
 	{
 		var moreDiags tfdiags.Diagnostics
 		opReq.Variables, moreDiags = c.collectVariableValues()
@@ -220,10 +219,6 @@ Options:
   -lock=true          Lock the state file when locking is supported.
 
   -lock-timeout=0s    Duration to retry a state lock.
-
-  -module-depth=n     Specifies the depth of modules to show in the output.
-                      This does not affect the plan itself, only the output
-                      shown. By default, this is -1, which will expand all.
 
   -no-color           If specified, output won't contain any color.
 

@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/hcl2/hcl/hclsyntax"
 	hcljson "github.com/hashicorp/hcl2/hcl/json"
-
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/terraform"
@@ -59,12 +58,12 @@ func (m *Meta) collectVariableValues() (map[string]backend.UnparsedVariableValue
 	// (DefaultVarsFilename) along with the later-added search for all files
 	// ending in .auto.tfvars.
 	if _, err := os.Stat(DefaultVarsFilename); err == nil {
-		moreDiags := m.addVarsFromFile(DefaultVarsFilename, terraform.ValueFromFile, ret)
+		moreDiags := m.addVarsFromFile(DefaultVarsFilename, terraform.ValueFromAutoFile, ret)
 		diags = diags.Append(moreDiags)
 	}
 	const defaultVarsFilenameJSON = DefaultVarsFilename + ".json"
 	if _, err := os.Stat(defaultVarsFilenameJSON); err == nil {
-		moreDiags := m.addVarsFromFile(defaultVarsFilenameJSON, terraform.ValueFromFile, ret)
+		moreDiags := m.addVarsFromFile(defaultVarsFilenameJSON, terraform.ValueFromAutoFile, ret)
 		diags = diags.Append(moreDiags)
 	}
 	if infos, err := ioutil.ReadDir("."); err == nil {
@@ -74,7 +73,7 @@ func (m *Meta) collectVariableValues() (map[string]backend.UnparsedVariableValue
 			if !isAutoVarFile(name) {
 				continue
 			}
-			moreDiags := m.addVarsFromFile(name, terraform.ValueFromFile, ret)
+			moreDiags := m.addVarsFromFile(name, terraform.ValueFromAutoFile, ret)
 			diags = diags.Append(moreDiags)
 		}
 	}
@@ -106,7 +105,7 @@ func (m *Meta) collectVariableValues() (map[string]backend.UnparsedVariableValue
 			}
 
 		case "-var-file":
-			moreDiags := m.addVarsFromFile(rawFlag.Value, terraform.ValueFromFile, ret)
+			moreDiags := m.addVarsFromFile(rawFlag.Value, terraform.ValueFromNamedFile, ret)
 			diags = diags.Append(moreDiags)
 
 		default:

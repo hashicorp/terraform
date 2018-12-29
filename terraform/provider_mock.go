@@ -125,7 +125,8 @@ func (p *MockProvider) getSchema() providers.GetSchemaResponse {
 		}
 		for n, s := range p.GetSchemaReturn.ResourceTypes {
 			ret.ResourceTypes[n] = providers.Schema{
-				Block: s,
+				Version: int64(p.GetSchemaReturn.ResourceTypeSchemaVersions[n]),
+				Block:   s,
 			}
 		}
 	}
@@ -282,6 +283,7 @@ func (p *MockProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 		}
 		priorState := NewInstanceStateShimmedFromValue(r.PriorState, 0)
 		cfg := NewResourceConfigShimmed(r.Config, schema)
+
 		legacyDiff, err := p.DiffFn(info, priorState, cfg)
 
 		var res providers.PlanResourceChangeResponse
@@ -294,6 +296,7 @@ func (p *MockProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 			if err != nil {
 				res.Diagnostics = res.Diagnostics.Append(err)
 			}
+
 			res.PlannedState = newVal
 
 			var requiresNew []string

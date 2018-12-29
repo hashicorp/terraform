@@ -51,7 +51,7 @@ func (ts Tokens) Columns() int {
 // WriteTo takes an io.Writer and writes the bytes for each token to it,
 // along with the spacing that separates each token. In other words, this
 // allows serializing the tokens to a file or other such byte stream.
-func (ts Tokens) WriteTo(wr io.Writer) (int, error) {
+func (ts Tokens) WriteTo(wr io.Writer) (int64, error) {
 	// We know we're going to be writing a lot of small chunks of repeated
 	// space characters, so we'll prepare a buffer of these that we can
 	// easily pass to wr.Write without any further allocation.
@@ -60,7 +60,7 @@ func (ts Tokens) WriteTo(wr io.Writer) (int, error) {
 		spaces[i] = ' '
 	}
 
-	var n int
+	var n int64
 	var err error
 	for _, token := range ts {
 		if err != nil {
@@ -74,7 +74,7 @@ func (ts Tokens) WriteTo(wr io.Writer) (int, error) {
 			}
 			var thisN int
 			thisN, err = wr.Write(spaces[:thisChunk])
-			n += thisN
+			n += int64(thisN)
 			if err != nil {
 				return n, err
 			}
@@ -82,7 +82,7 @@ func (ts Tokens) WriteTo(wr io.Writer) (int, error) {
 
 		var thisN int
 		thisN, err = wr.Write(token.Bytes)
-		n += thisN
+		n += int64(thisN)
 	}
 
 	return n, err

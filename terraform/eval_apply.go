@@ -46,7 +46,7 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 		state = &states.ResourceInstanceObject{}
 	}
 
-	schema := (*n.ProviderSchema).ResourceTypes[n.Addr.Resource.Type]
+	schema, _ := (*n.ProviderSchema).SchemaForResourceType(n.Addr.Resource.Mode, n.Addr.Resource.Type)
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
 		return nil, fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Type)

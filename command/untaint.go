@@ -5,12 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/states"
-
-	"github.com/hashicorp/terraform/tfdiags"
-
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/command/clistate"
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // UntaintCommand is a cli.Command implementation that manually untaints
@@ -25,16 +23,16 @@ func (c *UntaintCommand) Run(args []string) int {
 		return 1
 	}
 
-	var allowMissing bool
 	var module string
-	cmdFlags := c.Meta.flagSet("untaint")
+	var allowMissing bool
+	cmdFlags := c.Meta.defaultFlagSet("untaint")
 	cmdFlags.BoolVar(&allowMissing, "allow-missing", false, "module")
-	cmdFlags.StringVar(&module, "module", "", "module")
-	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
-	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
 	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
+	cmdFlags.StringVar(&module, "module", "", "module")
+	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
+	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -72,7 +70,7 @@ func (c *UntaintCommand) Run(args []string) int {
 
 	// Get the state
 	workspace := c.Workspace()
-	st, err := b.StateMgr(workspace)
+	stateMgr, err := b.StateMgr(workspace)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 		return 1
@@ -80,21 +78,21 @@ func (c *UntaintCommand) Run(args []string) int {
 
 	if c.stateLock {
 		stateLocker := clistate.NewLocker(context.Background(), c.stateLockTimeout, c.Ui, c.Colorize())
-		if err := stateLocker.Lock(st, "untaint"); err != nil {
+		if err := stateLocker.Lock(stateMgr, "untaint"); err != nil {
 			c.Ui.Error(fmt.Sprintf("Error locking state: %s", err))
 			return 1
 		}
 		defer stateLocker.Unlock(nil)
 	}
 
-	if err := st.RefreshState(); err != nil {
+	if err := stateMgr.RefreshState(); err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 		return 1
 	}
 
 	// Get the actual state structure
-	s := st.State()
-	if s.Empty() {
+	state := stateMgr.State()
+	if state.Empty() {
 		if allowMissing {
 			return c.allowMissingExit(addr)
 		}
@@ -108,11 +106,11 @@ func (c *UntaintCommand) Run(args []string) int {
 		return 1
 	}
 
-	state := s.SyncWrapper()
+	ss := state.SyncWrapper()
 
 	// Get the resource and instance we're going to taint
-	rs := state.Resource(addr.ContainingResource())
-	is := state.ResourceInstance(addr)
+	rs := ss.Resource(addr.ContainingResource())
+	is := ss.ResourceInstance(addr)
 	if is == nil {
 		if allowMissing {
 			return c.allowMissingExit(addr)
@@ -157,13 +155,13 @@ func (c *UntaintCommand) Run(args []string) int {
 		return 1
 	}
 	obj.Status = states.ObjectReady
-	state.SetResourceInstanceCurrent(addr, obj, rs.ProviderConfig)
+	ss.SetResourceInstanceCurrent(addr, obj, rs.ProviderConfig)
 
-	if err := st.WriteState(s); err != nil {
+	if err := stateMgr.WriteState(state); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
 		return 1
 	}
-	if err := st.PersistState(); err != nil {
+	if err := stateMgr.PersistState(); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
 		return 1
 	}
@@ -201,8 +199,6 @@ Options:
   -module=path        The module path where the resource lives. By
                       default this will be root. Child modules can be specified
                       by names. Ex. "consul" or "consul.vpc" (nested modules).
-
-  -no-color           If specified, output won't contain any color.
 
   -state=path         Path to read and save state (unless state-out
                       is specified). Defaults to "terraform.tfstate".

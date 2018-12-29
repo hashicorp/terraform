@@ -15,26 +15,8 @@ func NewStateFile() *statefile.File {
 	return &statefile.File{
 		Lineage:          NewLineage(),
 		TerraformVersion: version.SemVer,
+		State:            states.NewState(),
 	}
-}
-
-// StateFile is a special helper to obtain a statefile representation
-// of a state snapshot that can be written later by a call
-func StateFile(mgr Storage, state *states.State) *statefile.File {
-	ret := &statefile.File{
-		State:            state.DeepCopy(),
-		TerraformVersion: version.SemVer,
-	}
-
-	// If the given manager uses snapshot metadata then we'll save that
-	// in our file so we can check it again during WritePlannedStateUpdate.
-	if mr, ok := mgr.(PersistentMeta); ok {
-		m := mr.StateSnapshotMeta()
-		ret.Lineage = m.Lineage
-		ret.Serial = m.Serial
-	}
-
-	return ret
 }
 
 // RefreshAndRead refreshes the persistent snapshot in the given state manager

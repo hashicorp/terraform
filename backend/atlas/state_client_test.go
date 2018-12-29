@@ -2,6 +2,7 @@ package atlas
 
 import (
 	"bytes"
+	"context"
 	"crypto/md5"
 	"crypto/tls"
 	"crypto/x509"
@@ -29,7 +30,7 @@ func testStateClient(t *testing.T, c map[string]string) remote.Client {
 	}
 	synthBody := configs.SynthBody("<test>", vals)
 
-	b := backend.TestBackendConfig(t, &Backend{}, synthBody)
+	b := backend.TestBackendConfig(t, New(), synthBody)
 	raw, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -83,12 +84,12 @@ func TestStateClient_noRetryOnBadCerts(t *testing.T) {
 	// Instrument CheckRetry to make sure we didn't retry
 	retries := 0
 	oldCheck := httpClient.CheckRetry
-	httpClient.CheckRetry = func(resp *http.Response, err error) (bool, error) {
+	httpClient.CheckRetry = func(ctx context.Context, resp *http.Response, err error) (bool, error) {
 		if retries > 0 {
 			t.Fatal("retried after certificate error")
 		}
 		retries++
-		return oldCheck(resp, err)
+		return oldCheck(ctx, resp, err)
 	}
 
 	_, err = client.Get()

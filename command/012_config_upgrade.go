@@ -29,7 +29,7 @@ func (c *ZeroTwelveUpgradeCommand) Run(args []string) int {
 
 	var skipConfirm, force bool
 
-	flags := c.Meta.flagSet("0.12upgrade")
+	flags := c.Meta.extendedFlagSet("0.12upgrade")
 	flags.BoolVar(&skipConfirm, "yes", false, "skip confirmation prompt")
 	flags.BoolVar(&force, "force", false, "override duplicate upgrade heuristic")
 	if err := flags.Parse(args); err != nil {

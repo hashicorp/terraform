@@ -4,13 +4,11 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform/tfdiags"
-
-	"github.com/hashicorp/terraform/configs"
-
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // EvalReadState is an EvalNode implementation that reads the
@@ -49,16 +47,20 @@ func (n *EvalReadState) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, nil
 	}
 
-	// TODO: Update n.ResourceTypeSchema to be a providers.Schema and then
-	// check the version number here and upgrade if necessary.
-	/*
-		if src.SchemaVersion < n.ResourceTypeSchema.Version {
-			// TODO: Implement schema upgrades
-			return nil, fmt.Errorf("schema upgrading is not yet implemented to take state from version %d to version %d", src.SchemaVersion, n.ResourceTypeSchema.Version)
-		}
-	*/
-
-	schema := (*n.ProviderSchema).SchemaForResourceAddr(n.Addr.ContainingResource())
+	schema, currentVersion := (*n.ProviderSchema).SchemaForResourceAddr(n.Addr.ContainingResource())
+	if schema == nil {
+		// Shouldn't happen since we should've failed long ago if no schema is present
+		return nil, fmt.Errorf("no schema available for %s while reading state; this is a bug in Terraform and should be reported", absAddr)
+	}
+	var diags tfdiags.Diagnostics
+	src, diags = UpgradeResourceState(absAddr, *n.Provider, src, schema, currentVersion)
+	if diags.HasErrors() {
+		// Note that we don't have any channel to return warnings here. We'll
+		// accept that for now since warnings during a schema upgrade would
+		// be pretty weird anyway, since this operation is supposed to seem
+		// invisible to the user.
+		return nil, diags.Err()
+	}
 
 	obj, err := src.Decode(schema.ImpliedType())
 	if err != nil {
@@ -93,6 +95,13 @@ type EvalReadStateDeposed struct {
 }
 
 func (n *EvalReadStateDeposed) Eval(ctx EvalContext) (interface{}, error) {
+	if n.Provider == nil || *n.Provider == nil {
+		panic("EvalReadStateDeposed used with no Provider object")
+	}
+	if n.ProviderSchema == nil || *n.ProviderSchema == nil {
+		panic("EvalReadStateDeposed used with no ProviderSchema object")
+	}
+
 	key := n.Key
 	if key == states.NotDeposed {
 		return nil, fmt.Errorf("EvalReadStateDeposed used with no instance key; this is a bug in Terraform and should be reported")
@@ -107,16 +116,21 @@ func (n *EvalReadStateDeposed) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, nil
 	}
 
-	// TODO: Update n.ResourceTypeSchema to be a providers.Schema and then
-	// check the version number here and upgrade if necessary.
-	/*
-		if src.SchemaVersion < n.ResourceTypeSchema.Version {
-			// TODO: Implement schema upgrades
-			return nil, fmt.Errorf("schema upgrading is not yet implemented to take state from version %d to version %d", src.SchemaVersion, n.ResourceTypeSchema.Version)
-		}
-	*/
+	schema, currentVersion := (*n.ProviderSchema).SchemaForResourceAddr(n.Addr.ContainingResource())
+	if schema == nil {
+		// Shouldn't happen since we should've failed long ago if no schema is present
+		return nil, fmt.Errorf("no schema available for %s while reading state; this is a bug in Terraform and should be reported", absAddr)
+	}
+	var diags tfdiags.Diagnostics
+	src, diags = UpgradeResourceState(absAddr, *n.Provider, src, schema, currentVersion)
+	if diags.HasErrors() {
+		// Note that we don't have any channel to return warnings here. We'll
+		// accept that for now since warnings during a schema upgrade would
+		// be pretty weird anyway, since this operation is supposed to seem
+		// invisible to the user.
+		return nil, diags.Err()
+	}
 
-	schema := (*n.ProviderSchema).SchemaForResourceAddr(n.Addr.ContainingResource())
 	obj, err := src.Decode(schema.ImpliedType())
 	if err != nil {
 		return nil, err
@@ -216,16 +230,14 @@ func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
 		log.Printf("[TRACE] EvalWriteState: removing current state object for %s", absAddr)
 	}
 
-	// TODO: Update this to use providers.Schema and populate the real
-	// schema version in the second argument to Encode below.
-	schema := (*n.ProviderSchema).SchemaForResourceAddr(n.Addr.ContainingResource())
+	schema, currentVersion := (*n.ProviderSchema).SchemaForResourceAddr(n.Addr.ContainingResource())
 	if schema == nil {
 		// It shouldn't be possible to get this far in any real scenario
 		// without a schema, but we might end up here in contrived tests that
 		// fail to set up their world properly.
 		return nil, fmt.Errorf("failed to encode %s in state: no resource type schema available", absAddr)
 	}
-	src, err := obj.Encode(schema.ImpliedType(), 0)
+	src, err := obj.Encode(schema.ImpliedType(), currentVersion)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode %s in state: %s", absAddr, err)
 	}
@@ -282,16 +294,14 @@ func (n *EvalWriteStateDeposed) Eval(ctx EvalContext) (interface{}, error) {
 		panic("EvalWriteStateDeposed used with no ProviderSchema object")
 	}
 
-	// TODO: Update this to use providers.Schema and populate the real
-	// schema version in the second argument to Encode below.
-	schema := (*n.ProviderSchema).SchemaForResourceAddr(n.Addr.ContainingResource())
+	schema, currentVersion := (*n.ProviderSchema).SchemaForResourceAddr(n.Addr.ContainingResource())
 	if schema == nil {
 		// It shouldn't be possible to get this far in any real scenario
 		// without a schema, but we might end up here in contrived tests that
 		// fail to set up their world properly.
 		return nil, fmt.Errorf("failed to encode %s in state: no resource type schema available", absAddr)
 	}
-	src, err := obj.Encode(schema.ImpliedType(), 0)
+	src, err := obj.Encode(schema.ImpliedType(), currentVersion)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode %s in state: %s", absAddr, err)
 	}

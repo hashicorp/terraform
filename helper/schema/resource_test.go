@@ -220,10 +220,9 @@ func TestResourceDiff_Timeout_diff(t *testing.T) {
 	raw, err := config.NewRawConfig(
 		map[string]interface{}{
 			"foo": 42,
-			"timeouts": []map[string]interface{}{
-				map[string]interface{}{
-					"create": "2h",
-				}},
+			TimeoutsConfigKey: map[string]interface{}{
+				"create": "2h",
+			},
 		})
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -256,7 +255,7 @@ func TestResourceDiff_Timeout_diff(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("Not equal in Timeout Diff:\n\texpected: %#v\n\tactual: %#v", expected.Meta, actual.Meta)
+		t.Fatalf("Not equal Meta in Timeout Diff:\n\texpected: %#v\n\tactual: %#v", expected.Meta, actual.Meta)
 	}
 }
 

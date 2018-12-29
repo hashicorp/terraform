@@ -37,9 +37,9 @@ func (c *ImportCommand) Run(args []string) int {
 		return 1
 	}
 
-	cmdFlags := c.Meta.flagSet("import")
+	cmdFlags := c.Meta.extendedFlagSet("import")
 	cmdFlags.IntVar(&c.Meta.parallelism, "parallelism", 0, "parallelism")
-	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
+	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
 	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
 	cmdFlags.StringVar(&configPath, "config", pwd, "path")
@@ -235,6 +235,7 @@ func (c *ImportCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Make sure to unlock the state
 	defer func() {
 		err := opReq.StateLocker.Unlock(nil)
 		if err != nil {

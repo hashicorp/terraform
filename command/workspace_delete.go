@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -24,23 +25,28 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 
 	envCommandShowWarning(c.Ui, c.LegacyName)
 
-	force := false
-	cmdFlags := c.Meta.flagSet("workspace")
+	var force bool
+	var stateLock bool
+	var stateLockTimeout time.Duration
+	cmdFlags := c.Meta.defaultFlagSet("workspace delete")
 	cmdFlags.BoolVar(&force, "force", false, "force removal of a non-empty workspace")
+	cmdFlags.BoolVar(&stateLock, "lock", true, "lock state")
+	cmdFlags.DurationVar(&stateLockTimeout, "lock-timeout", 0, "lock timeout")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
 	}
+
 	args = cmdFlags.Args()
 	if len(args) == 0 {
 		c.Ui.Error("expected NAME.\n")
 		return cli.RunResultHelp
 	}
 
-	delEnv := args[0]
+	workspace := args[0]
 
-	if !validWorkspaceName(delEnv) {
-		c.Ui.Error(fmt.Sprintf(envInvalidName, delEnv))
+	if !validWorkspaceName(workspace) {
+		c.Ui.Error(fmt.Sprintf(envInvalidName, workspace))
 		return 1
 	}
 
@@ -69,41 +75,41 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 		return 1
 	}
 
-	states, err := b.Workspaces()
+	workspaces, err := b.Workspaces()
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
 	}
 
 	exists := false
-	for _, s := range states {
-		if delEnv == s {
+	for _, ws := range workspaces {
+		if workspace == ws {
 			exists = true
 			break
 		}
 	}
 
 	if !exists {
-		c.Ui.Error(fmt.Sprintf(strings.TrimSpace(envDoesNotExist), delEnv))
+		c.Ui.Error(fmt.Sprintf(strings.TrimSpace(envDoesNotExist), workspace))
 		return 1
 	}
 
-	if delEnv == c.Workspace() {
-		c.Ui.Error(fmt.Sprintf(strings.TrimSpace(envDelCurrent), delEnv))
+	if workspace == c.Workspace() {
+		c.Ui.Error(fmt.Sprintf(strings.TrimSpace(envDelCurrent), workspace))
 		return 1
 	}
 
 	// we need the actual state to see if it's empty
-	sMgr, err := b.StateMgr(delEnv)
+	stateMgr, err := b.StateMgr(workspace)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
 	}
 
 	var stateLocker clistate.Locker
-	if c.stateLock {
-		stateLocker = clistate.NewLocker(context.Background(), c.stateLockTimeout, c.Ui, c.Colorize())
-		if err := stateLocker.Lock(sMgr, "workspace_delete"); err != nil {
+	if stateLock {
+		stateLocker = clistate.NewLocker(context.Background(), stateLockTimeout, c.Ui, c.Colorize())
+		if err := stateLocker.Lock(stateMgr, "workspace_delete"); err != nil {
 			c.Ui.Error(fmt.Sprintf("Error locking state: %s", err))
 			return 1
 		}
@@ -111,15 +117,15 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 		stateLocker = clistate.NewNoopLocker()
 	}
 
-	if err := sMgr.RefreshState(); err != nil {
+	if err := stateMgr.RefreshState(); err != nil {
 		c.Ui.Error(err.Error())
 		return 1
 	}
 
-	hasResources := sMgr.State().HasResources()
+	hasResources := stateMgr.State().HasResources()
 
 	if hasResources && !force {
-		c.Ui.Error(fmt.Sprintf(strings.TrimSpace(envNotEmpty), delEnv))
+		c.Ui.Error(fmt.Sprintf(strings.TrimSpace(envNotEmpty), workspace))
 		return 1
 	}
 
@@ -134,7 +140,7 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 	// be delegated from the Backend to the State itself.
 	stateLocker.Unlock(nil)
 
-	err = b.DeleteWorkspace(delEnv)
+	err = b.DeleteWorkspace(workspace)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
@@ -142,14 +148,14 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 
 	c.Ui.Output(
 		c.Colorize().Color(
-			fmt.Sprintf(envDeleted, delEnv),
+			fmt.Sprintf(envDeleted, workspace),
 		),
 	)
 
 	if hasResources {
 		c.Ui.Output(
 			c.Colorize().Color(
-				fmt.Sprintf(envWarnNotEmpty, delEnv),
+				fmt.Sprintf(envWarnNotEmpty, workspace),
 			),
 		)
 	}
@@ -181,6 +187,11 @@ Usage: terraform workspace delete [OPTIONS] NAME [DIR]
 Options:
 
     -force    remove a non-empty workspace.
+
+    -lock=true          Lock the state file when locking is supported.
+
+    -lock-timeout=0s    Duration to retry a state lock.
+
 `
 	return strings.TrimSpace(helpText)
 }

@@ -10,20 +10,21 @@ description: |-
 
 **Kind: Standard (with no locking)**
 
-Stores the state as an artifact in [Swift](http://docs.openstack.org/developer/swift/).
+Stores the state as an artifact in [Swift](http://docs.openstack.org/developer/swift/latest/).
 
-~> Warning! It is highly recommended that you enable [Object Versioning](https://docs.openstack.org/developer/swift/overview_object_versioning.html) by setting the [`expire_after`](https://www.terraform.io/docs/backends/types/swift.html#archive_path) configuration. This allows for state recovery in the case of accidental deletions and human error.
+~> Warning! It is highly recommended that you enable [Object Versioning](https://docs.openstack.org/developer/swift/latest/overview_object_versioning.html) by setting the [`archive_container`](https://www.terraform.io/docs/backends/types/swift.html#archive_container) configuration. This allows for state recovery in the case of accidental deletions and human error.
 
 ## Example Configuration
 
 ```hcl
 terraform {
   backend "swift" {
-    path = "terraform-state"
+    container         = "terraform-state"
+    archive_container = "terraform-state-archive"
   }
 }
 ```
-This will create a container called `terraform-state` and an object within that container called `tfstate.tf`.
+This will create a container called `terraform-state` and an object within that container called `tfstate.tf`. It will enable versioning using the `terraform-state-archive` container to contain the older version.
 
 -> Note: Currently, the object name is statically defined as 'tfstate.tf'. Therefore Swift [pseudo-folders](https://docs.openstack.org/user-guide/cli-swift-pseudo-hierarchical-folders-directories.html) are not currently supported.
 
@@ -36,7 +37,8 @@ For the access credentials we recommend using a
 data "terraform_remote_state" "foo" {
   backend = "swift"
   config = {
-    path = "terraform_state"
+    container         = "terraform_state"
+    archive_container = "terraform_state-archive"
   }
 }
 ```
@@ -99,11 +101,12 @@ The following configuration options are supported:
    If omitted the `OS_KEY` environment variable is used.
 
  * `archive_container` - (Optional) The container to create to store archived copies
-   of the Terraform state file. If specified, Swift [object versioning](https://docs.openstack.org/developer/swift/overview_object_versioning.html) is enabled on the container created at `container`.
+   of the Terraform state file. If specified, Swift [object versioning](https://docs.openstack.org/developer/swift/latest/overview_object_versioning.html) is enabled on the container created at `container`.
 
  * `archive_path` - (Optional) DEPRECATED: Use `archive_container` instead.
    The path to store archived copied of `terraform.tfstate`. If specified,
-   Swift [object versioning](https://docs.openstack.org/developer/swift/overview_object_versioning.html) is enabled on the container created at `path`.
+   Swift [object versioning](https://docs.openstack.org/developer/swift/latest/overview_object_versioning.html) is enabled on the container created at `path`.
 
- * `expire_after` - (Optional) How long should the `terraform.tfstate` created at `path`
-   be retained for? Supported durations: `m` - Minutes, `h` - Hours, `d` - Days.
+ * `expire_after` - (Optional) How long should the `terraform.tfstate` created at `container`
+   be retained for? If specified, Swift [expiring object support](https://docs.openstack.org/developer/swift/latest/overview_expiring_objects.html) is enabled on the state. Supported durations: `m` - Minutes, `h` - Hours, `d` - Days.
+   ~> **NOTE:** Since Terraform is inherently stateful - we'd strongly recommend against auto-expiring Statefiles.

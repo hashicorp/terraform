@@ -296,8 +296,8 @@ func (d *evaluationStateData) GetModuleInstance(addr addrs.ModuleCallInstance, r
 	// type even if our data is incomplete for some reason.
 	moduleConfig := d.Evaluator.Config.DescendentForInstance(moduleAddr)
 	if moduleConfig == nil {
-		// should never happen, since we can't be evaluating in a module
-		// that wasn't mentioned in configuration.
+		// should never happen, since this should've been caught during
+		// static validation.
 		panic(fmt.Sprintf("output value read from %s, which has no configuration", moduleAddr))
 	}
 	outputConfigs := moduleConfig.Module.Outputs
@@ -798,17 +798,9 @@ func (d *evaluationStateData) getResourceInstancesAll(addr addrs.Resource, rng t
 
 func (d *evaluationStateData) getResourceSchema(addr addrs.Resource, providerAddr addrs.AbsProviderConfig) *configschema.Block {
 	providerType := providerAddr.ProviderConfig.Type
-	typeName := addr.Type
 	schemas := d.Evaluator.Schemas
-	switch addr.Mode {
-	case addrs.ManagedResourceMode:
-		return schemas.ResourceTypeConfig(providerType, typeName)
-	case addrs.DataResourceMode:
-		return schemas.DataSourceConfig(providerType, typeName)
-	default:
-		log.Printf("[WARN] Don't know how to fetch schema for resource %s", providerAddr)
-		return nil
-	}
+	schema, _ := schemas.ResourceTypeConfig(providerType, addr.Mode, addr.Type)
+	return schema
 }
 
 // coerceInstanceKey attempts to convert the given key to the type expected

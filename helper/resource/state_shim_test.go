@@ -31,7 +31,6 @@ func TestStateShim(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
 			AttrsFlat: map[string]string{"id": "foo", "bazzle": "dazzle"},
-			//AttrsJSON:     []byte(`{"id": "foo", "bazzle":"dazzle"}`),
 			Dependencies: []addrs.Referenceable{
 				addrs.ResourceInstance{
 					Resource: addrs.Resource{
@@ -53,8 +52,7 @@ func TestStateShim(t *testing.T) {
 			Name: "baz",
 		}.Instance(addrs.NoKey),
 		&states.ResourceInstanceObjectSrc{
-			Status: states.ObjectReady,
-			//AttrsJSON:     []byte(`{"id": "baz", "bazzle":"dazzle"}`),
+			Status:       states.ObjectReady,
 			AttrsFlat:    map[string]string{"id": "baz", "bazzle": "dazzle"},
 			Dependencies: []addrs.Referenceable{},
 		},
@@ -72,8 +70,7 @@ func TestStateShim(t *testing.T) {
 			Name: "foo",
 		}.Instance(addrs.NoKey),
 		&states.ResourceInstanceObjectSrc{
-			Status: states.ObjectReady,
-			//AttrsFlat: map[string]string{"id": "bar", "fuzzle": "wuzzle"},
+			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id": "bar", "fuzzle":"wuzzle"}`),
 			Dependencies: []addrs.Referenceable{},
 		},
@@ -88,8 +85,7 @@ func TestStateShim(t *testing.T) {
 			Name: "baz",
 		}.Instance(addrs.NoKey),
 		&states.ResourceInstanceObjectSrc{
-			Status: states.ObjectReady,
-			//AttrsFlat: map[string]string{"id": "bar", "fizzle": "wizzle"},
+			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id": "bar", "fizzle":"wizzle"}`),
 			Dependencies: []addrs.Referenceable{
 				addrs.ResourceInstance{
@@ -116,7 +112,6 @@ func TestStateShim(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
 			AttrsFlat: map[string]string{"id": "old", "fizzle": "wizzle"},
-			//AttrsJSON: []byte(`{"id": "old", "fizzle":"wizzle"}`),
 			Dependencies: []addrs.Referenceable{
 				addrs.ResourceInstance{
 					Resource: addrs.Resource{
@@ -139,9 +134,8 @@ func TestStateShim(t *testing.T) {
 			Name: "lots",
 		}.Instance(addrs.IntKey(0)),
 		&states.ResourceInstanceObjectSrc{
-			Status:    states.ObjectReady,
-			AttrsFlat: map[string]string{"id": "0", "bazzle": "dazzle"},
-			//AttrsJSON:     []byte(`{"id": "0", "bazzle":"dazzle"}`),
+			Status:       states.ObjectReady,
+			AttrsFlat:    map[string]string{"id": "0", "bazzle": "dazzle"},
 			Dependencies: []addrs.Referenceable{},
 		},
 		addrs.ProviderConfig{
@@ -155,9 +149,24 @@ func TestStateShim(t *testing.T) {
 			Name: "lots",
 		}.Instance(addrs.IntKey(1)),
 		&states.ResourceInstanceObjectSrc{
-			Status:    states.ObjectTainted,
-			AttrsFlat: map[string]string{"id": "1", "bazzle": "dazzle"},
-			//AttrsJSON:     []byte(`{"id": "1", "bazzle":"dazzle"}`),
+			Status:       states.ObjectTainted,
+			AttrsFlat:    map[string]string{"id": "1", "bazzle": "dazzle"},
+			Dependencies: []addrs.Referenceable{},
+		},
+		addrs.ProviderConfig{
+			Type: "test",
+		}.Absolute(childInstance),
+	)
+
+	childModule.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_thing",
+			Name: "single_count",
+		}.Instance(addrs.IntKey(0)),
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id": "single", "bazzle":"dazzle"}`),
 			Dependencies: []addrs.Referenceable{},
 		},
 		addrs.ProviderConfig{
@@ -259,6 +268,16 @@ func TestStateShim(t *testing.T) {
 							Tainted: true,
 						},
 					},
+					"test_thing.single_count": &terraform.ResourceState{
+						Type: "test_thing",
+						Primary: &terraform.InstanceState{
+							ID: "single",
+							Attributes: map[string]string{
+								"id":     "single",
+								"bazzle": "dazzle",
+							},
+						},
+					},
 				},
 			},
 		},
@@ -309,6 +328,6 @@ func TestStateShim(t *testing.T) {
 	}
 
 	if !expected.Equal(shimmed) {
-		t.Fatalf("\nexpected state:\n%s\ngot state:\n%s", expected, shimmed)
+		t.Fatalf("\nexpected state:\n%s\n\ngot state:\n%s", expected, shimmed)
 	}
 }

@@ -85,6 +85,36 @@ func assertDiagnosticSummary(t *testing.T, diags hcl.Diagnostics, want string) b
 	return true
 }
 
+func assertExactDiagnostics(t *testing.T, diags hcl.Diagnostics, want []string) bool {
+	t.Helper()
+
+	gotDiags := map[string]bool{}
+	wantDiags := map[string]bool{}
+
+	for _, diag := range diags {
+		gotDiags[diag.Error()] = true
+	}
+	for _, msg := range want {
+		wantDiags[msg] = true
+	}
+
+	bad := false
+	for got := range gotDiags {
+		if _, exists := wantDiags[got]; !exists {
+			t.Errorf("unexpected diagnostic: %s", got)
+			bad = true
+		}
+	}
+	for want := range wantDiags {
+		if _, exists := gotDiags[want]; !exists {
+			t.Errorf("missing expected diagnostic: %s", want)
+			bad = true
+		}
+	}
+
+	return bad
+}
+
 func assertResultDeepEqual(t *testing.T, got, want interface{}) bool {
 	t.Helper()
 	if !reflect.DeepEqual(got, want) {

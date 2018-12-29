@@ -10,23 +10,24 @@ import (
 	"fmt"
 	"log"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/hcl2/hcldec"
-	"github.com/zclconf/go-cty/cty"
-	ctyjson "github.com/zclconf/go-cty/cty/json"
-
 	"github.com/hashicorp/terraform/backend"
-	backendinit "github.com/hashicorp/terraform/backend/init"
-	backendlocal "github.com/hashicorp/terraform/backend/local"
 	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/zclconf/go-cty/cty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
+
+	backendInit "github.com/hashicorp/terraform/backend/init"
+	backendLocal "github.com/hashicorp/terraform/backend/local"
 )
 
 // BackendOpts are the options used to initialize a backend.Backend.
@@ -88,10 +89,10 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, tfdiags.Diagnostics
 			return nil, diags
 		}
 
-		log.Printf("[INFO] command: backend initialized: %T", b)
+		log.Printf("[TRACE] Meta.Backend: instantiated backend of type %T", b)
 	}
 
-	// Setup the CLI opts we pass into backends that support it
+	// Setup the CLI opts we pass into backends that support it.
 	cliOpts := m.backendCLIOpts()
 	cliOpts.Validation = true
 
@@ -110,6 +111,7 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, tfdiags.Diagnostics
 	// If the result of loading the backend is an enhanced backend,
 	// then return that as-is. This works even if b == nil (it will be !ok).
 	if enhanced, ok := b.(backend.Enhanced); ok {
+		log.Printf("[TRACE] Meta.Backend: backend %T supports operations", b)
 		return enhanced, nil
 	}
 
@@ -118,11 +120,11 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, tfdiags.Diagnostics
 	// non-enhanced (if any) as the state backend.
 
 	if !opts.ForceLocal {
-		log.Printf("[INFO] command: backend %T is not enhanced, wrapping in local", b)
+		log.Printf("[TRACE] Meta.Backend: backend %T does not support operations, so wrapping it in a local backend", b)
 	}
 
 	// Build the local backend
-	local := &backendlocal.Local{Backend: b}
+	local := backendLocal.NewWithBackend(b)
 	if err := local.CLIInit(cliOpts); err != nil {
 		// Local backend isn't allowed to fail. It would be a bug.
 		panic(err)
@@ -163,12 +165,13 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, tfdiags.Diagnostics
 func (m *Meta) BackendForPlan(settings plans.Backend) (backend.Enhanced, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	f := backendinit.Backend(settings.Type)
+	f := backendInit.Backend(settings.Type)
 	if f == nil {
 		diags = diags.Append(fmt.Errorf(strings.TrimSpace(errBackendSavedUnknown), settings.Type))
 		return nil, diags
 	}
 	b := f()
+	log.Printf("[TRACE] Meta.BackendForPlan: instantiated backend of type %T", b)
 
 	schema := b.ConfigSchema()
 	configVal, err := settings.Config.Decode(schema.ImpliedType())
@@ -202,14 +205,16 @@ func (m *Meta) BackendForPlan(settings plans.Backend) (backend.Enhanced, tfdiags
 	// If the result of loading the backend is an enhanced backend,
 	// then return that as-is. This works even if b == nil (it will be !ok).
 	if enhanced, ok := b.(backend.Enhanced); ok {
+		log.Printf("[TRACE] Meta.BackendForPlan: backend %T supports operations", b)
 		return enhanced, nil
 	}
 
 	// Otherwise, we'll wrap our state-only remote backend in the local backend
 	// to cause any operations to be run locally.
+	log.Printf("[TRACE] Meta.Backend: backend %T does not support operations, so wrapping it in a local backend", b)
 	cliOpts := m.backendCLIOpts()
 	cliOpts.Validation = false // don't validate here in case config contains file(...) calls where the file doesn't exist
-	local := &backendlocal.Local{Backend: b}
+	local := backendLocal.NewWithBackend(b)
 	if err := local.CLIInit(cliOpts); err != nil {
 		// Local backend should never fail, so this is always a bug.
 		panic(err)
@@ -238,7 +243,7 @@ func (m *Meta) backendCLIOpts() *backend.CLIOpts {
 // for some checks that require a remote backend.
 func (m *Meta) IsLocalBackend(b backend.Backend) bool {
 	// Is it a local backend?
-	bLocal, ok := b.(*backendlocal.Local)
+	bLocal, ok := b.(*backendLocal.Local)
 
 	// If it is, does it not have an alternate state backend?
 	if ok {
@@ -267,6 +272,7 @@ func (m *Meta) Operation(b backend.Backend) *backend.Operation {
 
 	return &backend.Operation{
 		PlanOutBackend:   planOutBackend,
+		Parallelism:      m.parallelism,
 		Targets:          m.targets,
 		UIIn:             m.UIInput(),
 		UIOut:            m.Ui,
@@ -288,22 +294,22 @@ func (m *Meta) backendConfig(opts *BackendOpts) (*configs.Backend, int, tfdiags.
 		}
 
 		if conf == nil {
-			log.Println("[INFO] command: no config, returning nil")
+			log.Println("[TRACE] Meta.Backend: no config given or present on disk, so returning nil config")
 			return nil, 0, nil
 		}
 
-		log.Println("[WARN] BackendOpts.Config not set, but config found")
+		log.Printf("[TRACE] Meta.Backend: BackendOpts.Config not set, so using settings loaded from %s", conf.DeclRange)
 		opts.Config = conf
 	}
 
 	c := opts.Config
 
 	if c == nil {
-		log.Println("[INFO] command: no explicit backend config")
+		log.Println("[TRACE] Meta.Backend: no explicit backend config, so returning nil config")
 		return nil, 0, nil
 	}
 
-	bf := backendinit.Backend(c.Type)
+	bf := backendInit.Backend(c.Type)
 	if bf == nil {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
@@ -321,13 +327,16 @@ func (m *Meta) backendConfig(opts *BackendOpts) (*configs.Backend, int, tfdiags.
 
 	// If we have an override configuration body then we must apply it now.
 	if opts.ConfigOverride != nil {
+		log.Println("[TRACE] Meta.Backend: merging -backend-config=... CLI overrides into backend configuration")
 		configBody = configs.MergeBodies(configBody, opts.ConfigOverride)
 	}
+
+	log.Printf("[TRACE] Meta.Backend: built configuration for %q backend with hash value %d", c.Type, configHash)
 
 	// We'll shallow-copy configs.Backend here so that we can replace the
 	// body without affecting others that hold this reference.
 	configCopy := *c
-	c.Config = configBody
+	configCopy.Config = configBody
 	return &configCopy, configHash, diags
 }
 
@@ -380,8 +389,12 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 	// Load the state, it must be non-nil for the tests below but can be empty
 	s := sMgr.State()
 	if s == nil {
-		log.Printf("[DEBUG] command: no data state file found for backend config")
+		log.Printf("[TRACE] Meta.Backend: backend has not previously been initialized in this working directory")
 		s = terraform.NewState()
+	} else if s.Backend != nil {
+		log.Printf("[TRACE] Meta.Backend: working directory was previously initialized for %q backend", s.Backend.Type)
+	} else {
+		log.Printf("[TRACE] Meta.Backend: working directory was previously initialized but has no backend (is using legacy remote state?)")
 	}
 
 	// if we want to force reconfiguration of the backend, we set the backend
@@ -416,10 +429,12 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 	switch {
 	// No configuration set at all. Pure local state.
 	case c == nil && s.Backend.Empty():
+		log.Printf("[TRACE] Meta.Backend: using default local state only (no backend configuration, and no existing initialized backend)")
 		return nil, nil
 
 	// We're unsetting a backend (moving from backend => local)
 	case c == nil && !s.Backend.Empty():
+		log.Printf("[TRACE] Meta.Backend: previously-initialized %q backend is no longer present in config", s.Backend.Type)
 		if !opts.Init {
 			initReason := fmt.Sprintf(
 				"Unsetting the previously set backend %q",
@@ -433,6 +448,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 
 	// Configuring a backend for the first time.
 	case c != nil && s.Backend.Empty():
+		log.Printf("[TRACE] Meta.Backend: moving from default local state only to %q backend", c.Type)
 		if !opts.Init {
 			initReason := fmt.Sprintf(
 				"Initial configuration of the requested backend %q",
@@ -446,14 +462,23 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 
 	// Potentially changing a backend configuration
 	case c != nil && !s.Backend.Empty():
+		// If we're not initializing, then it's sufficient for the configuration
+		// hashes to match, since that suggests that the static backend
+		// settings in the configuration files are unchanged. (The only
+		// record we have of CLI overrides is in the settings cache in this
+		// case, so we have no other source to compare with.
+		if !opts.Init && cHash == s.Backend.Hash {
+			log.Printf("[TRACE] Meta.Backend: using already-initialized, unchanged %q backend configuration", c.Type)
+			return m.backend_C_r_S_unchanged(c, cHash, sMgr)
+		}
+
 		// If our configuration is the same, then we're just initializing
 		// a previously configured remote backend.
-		if !s.Backend.Empty() {
-			storedHash := s.Backend.Hash
-			if storedHash == cHash {
-				return m.backend_C_r_S_unchanged(c, cHash, sMgr)
-			}
+		if !m.backendConfigNeedsMigration(c, s.Backend) {
+			log.Printf("[TRACE] Meta.Backend: using already-initialized %q backend configuration", c.Type)
+			return m.backend_C_r_S_unchanged(c, cHash, sMgr)
 		}
+		log.Printf("[TRACE] Meta.Backend: backend configuration has changed (from type %q to type %q)", s.Backend.Type, c.Type)
 
 		if !opts.Init {
 			initReason := fmt.Sprintf(
@@ -464,9 +489,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			return nil, diags
 		}
 
-		log.Printf(
-			"[WARN] command: backend config change! saved: %d, new: %d",
-			s.Backend.Hash, cHash)
+		log.Printf("[WARN] backend config has changed since last init")
 		return m.backend_C_r_S_changed(c, cHash, sMgr, true)
 
 	default:
@@ -598,22 +621,34 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *state.LocalSta
 		return nil, diags
 	}
 
-	workspace := m.Workspace()
-
-	localState, err := localB.StateMgr(workspace)
+	workspaces, err := localB.Workspaces()
 	if err != nil {
 		diags = diags.Append(fmt.Errorf(errBackendLocalRead, err))
 		return nil, diags
 	}
-	if err := localState.RefreshState(); err != nil {
-		diags = diags.Append(fmt.Errorf(errBackendLocalRead, err))
-		return nil, diags
+
+	var localStates []state.State
+	for _, workspace := range workspaces {
+		localState, err := localB.StateMgr(workspace)
+		if err != nil {
+			diags = diags.Append(fmt.Errorf(errBackendLocalRead, err))
+			return nil, diags
+		}
+		if err := localState.RefreshState(); err != nil {
+			diags = diags.Append(fmt.Errorf(errBackendLocalRead, err))
+			return nil, diags
+		}
+
+		// We only care about non-empty states.
+		if localS := localState.State(); !localS.Empty() {
+			log.Printf("[TRACE] Meta.Backend: will need to migrate workspace states because of existing %q workspace", workspace)
+			localStates = append(localStates, localState)
+		} else {
+			log.Printf("[TRACE] Meta.Backend: ignoring local %q workspace because its state is empty", workspace)
+		}
 	}
 
-	// If the local state is not empty, we need to potentially do a
-	// state migration to the new backend (with user permission), unless the
-	// destination is also "local"
-	if localS := localState.State(); !localS.Empty() {
+	if len(localStates) > 0 {
 		// Perform the migration
 		err = m.backendMigrateState(&backendMigrateOpts{
 			OneType: "local",
@@ -631,23 +666,27 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *state.LocalSta
 		// can get us here too. Don't delete our state if the old and new paths
 		// are the same.
 		erase := true
-		if newLocalB, ok := b.(*backendlocal.Local); ok {
-			if localB, ok := localB.(*backendlocal.Local); ok {
-				if newLocalB.StatePath == localB.StatePath {
+		if newLocalB, ok := b.(*backendLocal.Local); ok {
+			if localB, ok := localB.(*backendLocal.Local); ok {
+				if newLocalB.PathsConflictWith(localB) {
 					erase = false
+					log.Printf("[TRACE] Meta.Backend: both old and new backends share the same local state paths, so not erasing old state")
 				}
 			}
 		}
 
 		if erase {
-			// We always delete the local state, unless that was our new state too.
-			if err := localState.WriteState(nil); err != nil {
-				diags = diags.Append(fmt.Errorf(errBackendMigrateLocalDelete, err))
-				return nil, diags
-			}
-			if err := localState.PersistState(); err != nil {
-				diags = diags.Append(fmt.Errorf(errBackendMigrateLocalDelete, err))
-				return nil, diags
+			log.Printf("[TRACE] Meta.Backend: removing old state snapshots from old backend")
+			for _, localState := range localStates {
+				// We always delete the local state, unless that was our new state too.
+				if err := localState.WriteState(nil); err != nil {
+					diags = diags.Append(fmt.Errorf(errBackendMigrateLocalDelete, err))
+					return nil, diags
+				}
+				if err := localState.PersistState(); err != nil {
+					diags = diags.Append(fmt.Errorf(errBackendMigrateLocalDelete, err))
+					return nil, diags
+				}
 			}
 		}
 	}
@@ -687,11 +726,70 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *state.LocalSta
 		return nil, diags
 	}
 
+	// By now the backend is successfully configured.
 	m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
 		"[reset][green]\n"+strings.TrimSpace(successBackendSet), s.Backend.Type)))
 
+	// Its possible that the currently selected workspace is not migrated,
+	// so we call selectWorkspace to ensure a valid workspace is selected.
+	if err := m.selectWorkspace(b); err != nil {
+		diags = diags.Append(err)
+		return nil, diags
+	}
+
 	// Return the backend
 	return b, diags
+}
+
+// selectWorkspace gets a list of migrated workspaces and then checks
+// if the currently selected workspace is valid. If not, it will ask
+// the user to select a workspace from the list.
+func (m *Meta) selectWorkspace(b backend.Backend) error {
+	workspaces, err := b.Workspaces()
+	if err != nil {
+		if err == backend.ErrWorkspacesNotSupported {
+			return nil
+		}
+		return fmt.Errorf("Failed to get migrated workspaces: %s", err)
+	}
+
+	if len(workspaces) == 0 {
+		return fmt.Errorf(strings.TrimSpace(errBackendNoMigratedWorkspaces))
+	}
+
+	// Get the currently selected workspace.
+	workspace := m.Workspace()
+
+	// Check if any of the migrated workspaces match the selected workspace
+	// and create a numbered list with migrated workspaces.
+	var list strings.Builder
+	for i, w := range workspaces {
+		if w == workspace {
+			return nil
+		}
+		fmt.Fprintf(&list, "%d. %s\n", i+1, w)
+	}
+
+	// If the selected workspace is not migrated, ask the user to select
+	// a workspace from the list of migrated workspaces.
+	v, err := m.UIInput().Input(&terraform.InputOpts{
+		Id: "select-workspace",
+		Query: fmt.Sprintf(
+			"\n[reset][bold][yellow]The currently selected workspace (%s) is not migrated.[reset]",
+			workspace),
+		Description: fmt.Sprintf(
+			strings.TrimSpace(inputBackendSelectWorkspace), list.String()),
+	})
+	if err != nil {
+		return fmt.Errorf("Failed to select workspace: %s", err)
+	}
+
+	idx, err := strconv.Atoi(v)
+	if err != nil || (idx < 1 || idx > len(workspaces)) {
+		return fmt.Errorf("Failed to select workspace: input not a valid number")
+	}
+
+	return m.SetWorkspace(workspaces[idx-1])
 }
 
 // Changing a previously saved backend.
@@ -797,7 +895,7 @@ func (m *Meta) backend_C_r_S_unchanged(c *configs.Backend, cHash int, sMgr *stat
 	}
 
 	// Get the backend
-	f := backendinit.Backend(s.Backend.Type)
+	f := backendInit.Backend(s.Backend.Type)
 	if f == nil {
 		diags = diags.Append(fmt.Errorf(strings.TrimSpace(errBackendSavedUnknown), s.Backend.Type))
 		return nil, diags
@@ -857,11 +955,65 @@ func (m *Meta) backend_C_R_S_unchanged(c *configs.Backend, sMgr *state.LocalStat
 // Reusable helper functions for backend management
 //-------------------------------------------------------------------
 
+// backendConfigNeedsMigration returns true if migration might be required to
+// move from the configured backend to the given cached backend config.
+//
+// This must be called with the synthetic *configs.Backend that results from
+// merging in any command-line options for correct behavior.
+//
+// If either the given configuration or cached configuration are invalid then
+// this function will conservatively assume that migration is required,
+// expecting that the migration code will subsequently deal with the same
+// errors.
+func (m *Meta) backendConfigNeedsMigration(c *configs.Backend, s *terraform.BackendState) bool {
+	if s == nil || s.Empty() {
+		log.Print("[TRACE] backendConfigNeedsMigration: no cached config, so migration is required")
+		return true
+	}
+	if c.Type != s.Type {
+		log.Printf("[TRACE] backendConfigNeedsMigration: type changed from %q to %q, so migration is required", s.Type, c.Type)
+		return true
+	}
+
+	// We need the backend's schema to do our comparison here.
+	f := backendInit.Backend(c.Type)
+	if f == nil {
+		log.Printf("[TRACE] backendConfigNeedsMigration: no backend of type %q, which migration codepath must handle", c.Type)
+		return true // let the migration codepath deal with the missing backend
+	}
+	b := f()
+
+	schema := b.ConfigSchema()
+	decSpec := schema.NoneRequired().DecoderSpec()
+	givenVal, diags := hcldec.Decode(c.Config, decSpec, nil)
+	if diags.HasErrors() {
+		log.Printf("[TRACE] backendConfigNeedsMigration: failed to decode given config; migration codepath must handle problem: %s", diags.Error())
+		return true // let the migration codepath deal with these errors
+	}
+
+	cachedVal, err := s.Config(schema)
+	if err != nil {
+		log.Printf("[TRACE] backendConfigNeedsMigration: failed to decode cached config; migration codepath must handle problem: %s", err)
+		return true // let the migration codepath deal with the error
+	}
+
+	// If we get all the way down here then it's the exact equality of the
+	// two decoded values that decides our outcome. It's safe to use RawEquals
+	// here (rather than Equals) because we know that unknown values can
+	// never appear in backend configurations.
+	if cachedVal.RawEquals(givenVal) {
+		log.Print("[TRACE] backendConfigNeedsMigration: given configuration matches cached configuration, so no migration is required")
+		return false
+	}
+	log.Print("[TRACE] backendConfigNeedsMigration: configuration values have changed, so migration is required")
+	return true
+}
+
 func (m *Meta) backendInitFromConfig(c *configs.Backend) (backend.Backend, cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// Get the backend
-	f := backendinit.Backend(c.Type)
+	f := backendInit.Backend(c.Type)
 	if f == nil {
 		diags = diags.Append(fmt.Errorf(strings.TrimSpace(errBackendNewUnknown), c.Type))
 		return nil, cty.NilVal, diags
@@ -869,7 +1021,7 @@ func (m *Meta) backendInitFromConfig(c *configs.Backend) (backend.Backend, cty.V
 	b := f()
 
 	schema := b.ConfigSchema()
-	decSpec := schema.DecoderSpec()
+	decSpec := schema.NoneRequired().DecoderSpec()
 	configVal, hclDiags := hcldec.Decode(c.Config, decSpec, nil)
 	diags = diags.Append(hclDiags)
 	if hclDiags.HasErrors() {
@@ -901,7 +1053,7 @@ func (m *Meta) backendInitFromSaved(s *terraform.BackendState) (backend.Backend,
 	var diags tfdiags.Diagnostics
 
 	// Get the backend
-	f := backendinit.Backend(s.Type)
+	f := backendInit.Backend(s.Type)
 	if f == nil {
 		diags = diags.Append(fmt.Errorf(strings.TrimSpace(errBackendSavedUnknown), s.Type))
 		return nil, diags
@@ -1017,6 +1169,14 @@ backend type. Please check your configuration and your Terraform version.
 
 If you'd like to run Terraform and store state locally, you can fix this
 error by removing the backend configuration from your configuration.
+`
+
+const errBackendNoMigratedWorkspaces = `
+No workspaces are migrated.
+
+Use the "terraform workspace" command to create and select a new workspace.
+If the backend already contains existing workspaces, you may need to update
+the backend configuration.
 `
 
 const errBackendRemoteRead = `

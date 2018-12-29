@@ -64,7 +64,7 @@ func TestApply(t *testing.T) {
 func TestApply_lockedState(t *testing.T) {
 	statePath := testTempFile(t)
 
-	unlock, err := testLockState("./testdata", statePath)
+	unlock, err := testLockState(testDataDir, statePath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -98,7 +98,7 @@ func TestApply_lockedState(t *testing.T) {
 func TestApply_lockedStateWait(t *testing.T) {
 	statePath := testTempFile(t)
 
-	unlock, err := testLockState("./testdata", statePath)
+	unlock, err := testLockState(testDataDir, statePath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -651,9 +651,8 @@ func TestApply_plan_remoteState(t *testing.T) {
 
 	// Create a remote state
 	state := testState()
-	backendState, srv := testRemoteState(t, state, 200)
+	_, srv := testRemoteState(t, state, 200)
 	defer srv.Close()
-	testStateFileRemote(t, backendState)
 
 	_, snap := testModuleWithSnapshot(t, "apply")
 	backendConfig := cty.ObjectVal(map[string]cty.Value{
@@ -702,8 +701,8 @@ func TestApply_plan_remoteState(t *testing.T) {
 	}
 
 	// Check that there is no remote state config
-	if _, err := os.Stat(remoteStatePath); err == nil {
-		t.Fatalf("has remote state config")
+	if src, err := ioutil.ReadFile(remoteStatePath); err == nil {
+		t.Fatalf("has %s file; should not\n%s", remoteStatePath, src)
 	}
 }
 

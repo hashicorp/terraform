@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/registry/regsrc"
+	"github.com/hashicorp/terraform/svchost/disco"
 )
 
 type errModuleNotFound struct {
@@ -42,15 +43,6 @@ func IsProviderNotFound(err error) bool {
 // error. This allows callers to recognize this particular error condition
 // as distinct from operational errors such as poor network connectivity.
 func IsServiceNotProvided(err error) bool {
-	_, ok := err.(*errServiceNotProvided)
+	_, ok := err.(*disco.ErrServiceNotProvided)
 	return ok
-}
-
-type errServiceNotProvided struct {
-	host    string
-	service string
-}
-
-func (e *errServiceNotProvided) Error() string {
-	return fmt.Sprintf("host %s does not provide %s", e.host, e.service)
 }

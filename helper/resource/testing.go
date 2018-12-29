@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"io"
@@ -14,21 +15,21 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/hashicorp/terraform/configs/configschema"
-
-	"github.com/hashicorp/terraform/providers"
-
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/logutils"
+	"github.com/mitchellh/colorstring"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/helper/logging"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // flagSweep is a flag available when running tests on the command line. It
@@ -480,42 +481,6 @@ func Test(t TestT, c TestCase) {
 		t.Fatal(err)
 	}
 
-	// collect the provider schemas
-	schemas := &terraform.Schemas{
-		Providers: make(map[string]*terraform.ProviderSchema),
-	}
-	factories, err := testProviderFactories(c)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for providerName, f := range factories {
-		p, err := f()
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		resp := p.GetSchema()
-		if resp.Diagnostics.HasErrors() {
-			t.Fatal(fmt.Sprintf("error fetching schema for %q: %v", providerName, resp.Diagnostics.Err()))
-		}
-
-		providerSchema := &terraform.ProviderSchema{
-			Provider:      resp.Provider.Block,
-			ResourceTypes: make(map[string]*configschema.Block),
-			DataSources:   make(map[string]*configschema.Block),
-		}
-
-		for r, s := range resp.ResourceTypes {
-			providerSchema.ResourceTypes[r] = s.Block
-		}
-
-		for d, s := range resp.DataSources {
-			providerSchema.DataSources[d] = s.Block
-		}
-
-		schemas.Providers[providerName] = providerSchema
-	}
-
 	opts := terraform.ContextOpts{ProviderResolver: providerResolver}
 
 	// A single state variable to track the lifecycle, starting with no state
@@ -552,9 +517,9 @@ func Test(t TestT, c TestCase) {
 
 				// Can optionally set step.Config in addition to
 				// step.ImportState, to provide config for the import.
-				state, err = testStepImportState(opts, state, step, schemas)
+				state, err = testStepImportState(opts, state, step)
 			} else {
-				state, err = testStepConfig(opts, state, step, schemas)
+				state, err = testStepConfig(opts, state, step)
 			}
 		}
 
@@ -580,8 +545,7 @@ func Test(t TestT, c TestCase) {
 				}
 			} else {
 				errored = true
-				t.Error(fmt.Sprintf(
-					"Step %d error: %s", i, err))
+				t.Error(fmt.Sprintf("Step %d error: %s", i, detailedErrorMessage(err)))
 				break
 			}
 		}
@@ -639,7 +603,7 @@ func Test(t TestT, c TestCase) {
 		}
 
 		log.Printf("[WARN] Test: Executing destroy step")
-		state, err := testStep(opts, state, destroyStep, schemas)
+		state, err := testStep(opts, state, destroyStep)
 		if err != nil {
 			t.Error(fmt.Sprintf(
 				"Error destroying resource! WARNING: Dangling resources\n"+
@@ -685,28 +649,18 @@ func testProviderResolver(c TestCase) (providers.Resolver, error) {
 	// called from terraform.
 	newProviders := make(map[string]providers.Factory)
 
-	// reset the providers if needed
 	for k, pf := range ctxProviders {
-		// we can ignore any errors here, if we don't have a provider to reset
-		// the error will be handled later
-		p, err := pf()
-		if err != nil {
-			return nil, err
-		}
-
-		// FIXME: verify if this is still needed with the new plugins being
-		// closed after every walk.
-		if p, ok := p.(TestProvider); ok {
-			err := p.TestReset()
+		newProviders[k] = func() (providers.Interface, error) {
+			p, err := pf()
 			if err != nil {
-				return nil, fmt.Errorf("[ERROR] failed to reset provider %q: %s", k, err)
+				return nil, err
 			}
-		}
 
-		// The provider is wrapped in a GRPCTestProvider so that it can be
-		// passed back to terraform core as a providers.Interface, rather
-		// than the legacy ResourceProvider.
-		newProviders[k] = providers.FactoryFixed(GRPCTestProvider(p))
+			// The provider is wrapped in a GRPCTestProvider so that it can be
+			// passed back to terraform core as a providers.Interface, rather
+			// than the legacy ResourceProvider.
+			return GRPCTestProvider(p), nil
+		}
 	}
 
 	return providers.ResolverFixed(newProviders), nil
@@ -724,15 +678,16 @@ func testProviderFactories(c TestCase) (map[string]providers.Factory, error) {
 		factories[k] = terraform.ResourceProviderFactoryFixed(p)
 	}
 
-	// now that the provider are all loaded in factories, fix each of them into
-	// a providers.Factory
+	// wrap the providers to be GRPC mocks rather than legacy terraform.ResourceProvider
 	newFactories := make(map[string]providers.Factory)
 	for k, pf := range factories {
-		p, err := pf()
-		if err != nil {
-			return nil, err
+		newFactories[k] = func() (providers.Interface, error) {
+			p, err := pf()
+			if err != nil {
+				return nil, err
+			}
+			return GRPCTestProvider(p), nil
 		}
-		newFactories[k] = providers.FactoryFixed(GRPCTestProvider(p))
 	}
 	return newFactories, nil
 }
@@ -1270,4 +1225,48 @@ func modulePathPrimaryInstanceState(s *terraform.State, mp addrs.ModuleInstance,
 func primaryInstanceState(s *terraform.State, name string) (*terraform.InstanceState, error) {
 	ms := s.RootModule()
 	return modulePrimaryInstanceState(s, ms, name)
+}
+
+// operationError is a specialized implementation of error used to describe
+// failures during one of the several operations performed for a particular
+// test case.
+type operationError struct {
+	OpName string
+	Diags  tfdiags.Diagnostics
+}
+
+func newOperationError(opName string, diags tfdiags.Diagnostics) error {
+	return operationError{opName, diags}
+}
+
+// Error returns a terse error string containing just the basic diagnostic
+// messages, for situations where normal Go error behavior is appropriate.
+func (err operationError) Error() string {
+	return fmt.Sprintf("errors during %s: %s", err.OpName, err.Diags.Err().Error())
+}
+
+// ErrorDetail is like Error except it includes verbosely-rendered diagnostics
+// similar to what would come from a normal Terraform run, which include
+// additional context not included in Error().
+func (err operationError) ErrorDetail() string {
+	var buf bytes.Buffer
+	fmt.Fprintf(&buf, "errors during %s:", err.OpName)
+	clr := &colorstring.Colorize{Disable: true, Colors: colorstring.DefaultColors}
+	for _, diag := range err.Diags {
+		diagStr := format.Diagnostic(diag, nil, clr, 78)
+		buf.WriteByte('\n')
+		buf.WriteString(diagStr)
+	}
+	return buf.String()
+}
+
+// detailedErrorMessage is a helper for calling ErrorDetail on an error if
+// it is an operationError or just taking Error otherwise.
+func detailedErrorMessage(err error) string {
+	switch tErr := err.(type) {
+	case operationError:
+		return tErr.ErrorDetail()
+	default:
+		return err.Error()
+	}
 }

@@ -58,10 +58,39 @@ func (m schemaMap) CoreConfigSchema() *configschema.Block {
 // Elem is an instance of Schema. Use coreConfigSchemaBlock for collections
 // whose elem is a whole resource.
 func (s *Schema) coreConfigSchemaAttribute() *configschema.Attribute {
+	// The Schema.DefaultFunc capability adds some extra weirdness here since
+	// it can be combined with "Required: true" to create a sitution where
+	// required-ness is conditional. Terraform Core doesn't share this concept,
+	// so we must sniff for this possibility here and conditionally turn
+	// off the "Required" flag if it looks like the DefaultFunc is going
+	// to provide a value.
+	// This is not 100% true to the original interface of DefaultFunc but
+	// works well enough for the EnvDefaultFunc and MultiEnvDefaultFunc
+	// situations, which are the main cases we care about.
+	//
+	// Note that this also has a consequence for commands that return schema
+	// information for documentation purposes: running those for certain
+	// providers will produce different results depending on which environment
+	// variables are set. We accept that weirdness in order to keep this
+	// interface to core otherwise simple.
+	reqd := s.Required
+	opt := s.Optional
+	if reqd && s.DefaultFunc != nil {
+		v, err := s.DefaultFunc()
+		// We can't report errors from here, so we'll instead just force
+		// "Required" to false and let the provider try calling its
+		// DefaultFunc again during the validate step, where it can then
+		// return the error.
+		if err != nil || (err == nil && v != nil) {
+			reqd = false
+			opt = true
+		}
+	}
+
 	return &configschema.Attribute{
 		Type:        s.coreConfigSchemaType(),
-		Optional:    s.Optional,
-		Required:    s.Required,
+		Optional:    opt,
+		Required:    reqd,
 		Computed:    s.Computed,
 		Sensitive:   s.Sensitive,
 		Description: s.Description,
@@ -95,6 +124,20 @@ func (s *Schema) coreConfigSchemaBlock() *configschema.NestedBlock {
 		// configschema doesn't have a "required" representation for nested
 		// blocks, but we can fake it by requiring at least one item.
 		ret.MinItems = 1
+	}
+	if s.Optional && s.MinItems > 0 {
+		// Historically helper/schema would ignore MinItems if Optional were
+		// set, so we must mimic this behavior here to ensure that providers
+		// relying on that undocumented behavior can continue to operate as
+		// they did before.
+		ret.MinItems = 0
+	}
+	if s.Computed && !s.Optional {
+		// MinItems/MaxItems are meaningless for computed nested blocks, since
+		// they are never set by the user anyway. This ensures that we'll never
+		// generate weird errors about them.
+		ret.MinItems = 0
+		ret.MaxItems = 0
 	}
 
 	return ret

@@ -93,6 +93,7 @@ func (u *Upgrader) Upgrade(input ModuleSources) (ModuleSources, tfdiags.Diagnost
 					name,
 				),
 			})
+			ret[name] = src // unchanged
 			continue
 		}
 

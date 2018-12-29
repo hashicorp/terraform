@@ -148,11 +148,11 @@ func TestOutputWithoutValueShouldFail(t *testing.T) {
 	if code != 1 {
 		t.Fatalf("Should have failed: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
-	wantError := `The attribute "value" is required, but no definition was found.`
+	wantError := `The argument "value" is required, but no definition was found.`
 	if !strings.Contains(ui.ErrorWriter.String(), wantError) {
 		t.Fatalf("Missing error string %q\n\n'%s'", wantError, ui.ErrorWriter.String())
 	}
-	wantError = `An attribute named "values" is not expected here. Did you mean "value"?`
+	wantError = `An argument named "values" is not expected here. Did you mean "value"?`
 	if !strings.Contains(ui.ErrorWriter.String(), wantError) {
 		t.Fatalf("Missing error string %q\n\n'%s'", wantError, ui.ErrorWriter.String())
 	}

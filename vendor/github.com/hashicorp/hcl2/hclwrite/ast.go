@@ -12,6 +12,17 @@ type File struct {
 	body     *node
 }
 
+// NewEmptyFile constructs a new file with no content, ready to be mutated
+// by other calls that append to its body.
+func NewEmptyFile() *File {
+	f := &File{
+		inTree: newInTree(),
+	}
+	body := newBody()
+	f.body = f.children.Append(body)
+	return f
+}
+
 // Body returns the root body of the file, which contains the top-level
 // attributes and blocks.
 func (f *File) Body() *Body {
@@ -22,7 +33,7 @@ func (f *File) Body() *Body {
 //
 // The tokens first have a simple formatting pass applied that adjusts only
 // the spaces between them.
-func (f *File) WriteTo(wr io.Writer) (int, error) {
+func (f *File) WriteTo(wr io.Writer) (int64, error) {
 	tokens := f.inTree.children.BuildTokens(nil)
 	format(tokens)
 	return tokens.WriteTo(wr)

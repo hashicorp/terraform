@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/states"
 )
 
 func TestContext2Refresh(t *testing.T) {
@@ -1565,5 +1566,171 @@ aws_instance.bar:
 	actual := state.String()
 	if actual != expected {
 		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	}
+}
+
+func TestContext2Refresh_schemaUpgradeFlatmap(t *testing.T) {
+	m := testModule(t, "empty")
+	p := testProvider("test")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_thing": {
+				Attributes: map[string]*configschema.Attribute{
+					"name": { // imagining we renamed this from "id"
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+		},
+		ResourceTypeSchemaVersions: map[string]uint64{
+			"test_thing": 5,
+		},
+	}
+	p.UpgradeResourceStateResponse = providers.UpgradeResourceStateResponse{
+		UpgradedState: cty.ObjectVal(map[string]cty.Value{
+			"name": cty.StringVal("foo"),
+		}),
+	}
+
+	s := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_thing",
+				Name: "bar",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				Status:        states.ObjectReady,
+				SchemaVersion: 3,
+				AttrsFlat: map[string]string{
+					"id": "foo",
+				},
+			},
+			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+		)
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+		State: s,
+	})
+
+	state, diags := ctx.Refresh()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	{
+		got := p.UpgradeResourceStateRequest
+		want := providers.UpgradeResourceStateRequest{
+			TypeName: "test_thing",
+			Version:  3,
+			RawStateFlatmap: map[string]string{
+				"id": "foo",
+			},
+		}
+		if !cmp.Equal(got, want) {
+			t.Errorf("wrong upgrade request\n%s", cmp.Diff(want, got))
+		}
+	}
+
+	{
+		got := state.String()
+		want := strings.TrimSpace(`
+test_thing.bar:
+  ID = 
+  provider = provider.test
+  name = foo
+`)
+		if got != want {
+			t.Fatalf("wrong result state\ngot:\n%s\n\nwant:\n%s", got, want)
+		}
+	}
+}
+
+func TestContext2Refresh_schemaUpgradeJSON(t *testing.T) {
+	m := testModule(t, "empty")
+	p := testProvider("test")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_thing": {
+				Attributes: map[string]*configschema.Attribute{
+					"name": { // imagining we renamed this from "id"
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+		},
+		ResourceTypeSchemaVersions: map[string]uint64{
+			"test_thing": 5,
+		},
+	}
+	p.UpgradeResourceStateResponse = providers.UpgradeResourceStateResponse{
+		UpgradedState: cty.ObjectVal(map[string]cty.Value{
+			"name": cty.StringVal("foo"),
+		}),
+	}
+
+	s := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_thing",
+				Name: "bar",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				Status:        states.ObjectReady,
+				SchemaVersion: 3,
+				AttrsJSON:     []byte(`{"id":"foo"}`),
+			},
+			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+		)
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+		State: s,
+	})
+
+	state, diags := ctx.Refresh()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	{
+		got := p.UpgradeResourceStateRequest
+		want := providers.UpgradeResourceStateRequest{
+			TypeName:     "test_thing",
+			Version:      3,
+			RawStateJSON: []byte(`{"id":"foo"}`),
+		}
+		if !cmp.Equal(got, want) {
+			t.Errorf("wrong upgrade request\n%s", cmp.Diff(want, got))
+		}
+	}
+
+	{
+		got := state.String()
+		want := strings.TrimSpace(`
+test_thing.bar:
+  ID = 
+  provider = provider.test
+  name = foo
+`)
+		if got != want {
+			t.Fatalf("wrong result state\ngot:\n%s\n\nwant:\n%s", got, want)
+		}
 	}
 }

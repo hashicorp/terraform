@@ -211,8 +211,8 @@ locations, depending on the host operating system:
 
 Operating system  | User plugins directory
 ------------------|-----------------------
-Windows           | `terraform.d\plugins` in your user's "Application Data" directory
-All other systems | `.terraform.d/plugins` in your user's home directory
+Windows           | `%APPDATA%\terraform.d\plugins`
+All other systems | `~/.terraform.d/plugins`
 
 Once a plugin is installed, `terraform init` can initialize it normally.
 

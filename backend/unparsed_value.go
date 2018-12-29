@@ -45,7 +45,7 @@ func ParseVariableValues(vv map[string]UnparsedVariableValue, decls map[string]*
 
 		if !declared {
 			switch val.SourceType {
-			case terraform.ValueFromConfig, terraform.ValueFromFile:
+			case terraform.ValueFromConfig, terraform.ValueFromAutoFile, terraform.ValueFromNamedFile:
 				// These source types have source ranges, so we can produce
 				// a nice error message with good context.
 				diags = diags.Append(&hcl.Diagnostic{
