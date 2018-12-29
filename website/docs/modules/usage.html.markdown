@@ -27,7 +27,7 @@ the [Consul module for AWS](https://registry.terraform.io/modules/hashicorp/cons
 from the [Terraform Registry](https://registry.terraform.io). Other source
 types are supported, as described in the following section.
 
-Just like a resource, the a module's configuration can be deleted to destroy the
+Just like a resource, a module's configuration can be deleted to destroy the
 resources belonging to the module.
 
 ## Source
@@ -36,16 +36,18 @@ The only required configuration key for a module is the `source` parameter. The
 value of this tells Terraform where to download the module's source code.
 Terraform comes with support for a variety of module sources.
 
-The recommended source for external modules is a
-[Terraform Registry](/docs/registry/index.html), which provides the full
-capabilities of modules such as version constraints.
+We recommend using modules from the public [Terraform Registry](/docs/registry/index.html)
+or from [Terraform Enterprise's private module registry](/docs/enterprise/registry/index.html).
+These sources support version constraints for a more reliable experience, and
+provide a searchable marketplace for finding the modules you need.
+
 Registry modules are specified using a simple slash-separated path like the
 `hashicorp/consul/aws` path used in the above example. The full source string
 for each registry module can be found from the registry website.
 
 Terraform also supports modules in local directories, identified by a relative
 path starting with either `./` or `../`. Such local modules are useful to
-organize code more complex repositories, and are described in more detail
+organize code in more complex repositories, and are described in more detail
 in [_Creating Modules_](/docs/modules/create.html).
 
 Finally, Terraform can download modules directly from various storage providers
@@ -66,17 +68,16 @@ as well as performing other Terraform working directory initialization such
 as installing providers.
 
 By default the command will not check for available updates to already-installed
-modules, but you can use the `-update` option to check for available upgrades.
+modules, but you can use the `-upgrade` option to check for available upgrades.
 When version constraints are specified (as described in the following section)
 a newer version will be used only if it is within the given constraint.
 
 ## Module Versions
 
-It is recommended to explicitly constrain the acceptable version numbers for
-each external module so that upstream changes aren't automatically adopted,
-since this may result in unexpected or unwanted changes changes.
+We recommend explicitly constraining the acceptable version numbers for
+each external module to avoid unexpected or unwanted changes.
 
-The `version` attribute within the `module` block is used for this purpose:
+Use the `version` attribute in the `module` block to specify versions:
 
 ```shell
 module "consul" {
@@ -93,7 +94,8 @@ syntax to specify a _range_ of versions that are acceptable:
 
 * `>= 1.2.0`: version 1.2.0 or newer
 * `<= 1.2.0`: version 1.2.0 or older
-* `~> 1.2`: any non-beta patch release within the `1.2` range
+* `~> 1.2.0`: any non-beta version `>= 1.2.0` and `< 1.3.0`, e.g. `1.2.X`
+* `~> 1.2`: any non-beta version `>= 1.2.0` and `< 2.0.0`, e.g. `1.X.Y`
 * `>= 1.0.0, <= 2.0.0`: any version between 1.0.0 and 2.0.0 inclusive
 
 When depending on third-party modules, references to specific versions are
@@ -104,12 +106,13 @@ may be appropriate if a semantic versioning methodology is used consistently
 or if there is a well-defined release process that avoids unwanted updates.
 
 Version constraints are supported only for modules installed from a module
-registry, such as the [Terraform Registry](https://registry.terraform.io/).
-Other module sources may provide their own versioning mechanisms within the
-source string itself, or they may not support versions at all. In particular,
-modules whose sources are local file paths do not support `version` because
-they are constrained to share the same version as their caller by being
-obtained by the same source repository.
+registry, such as the [Terraform Registry](https://registry.terraform.io/) or
+[Terraform Enterprise's private module registry](/docs/enterprise/registry/index.html).
+Other module sources can provide their own versioning mechanisms within the
+source string itself, or might not support versions at all. In particular,
+modules sourced from local file paths do not support `version`; since
+they're loaded from the same source repository, they always share the same
+version as their caller.
 
 ## Configuration
 
@@ -147,16 +150,86 @@ than waiting for the entire module to be complete before proceeding.
 
 ## Providers within Modules
 
-For convenience in simple configurations, child modules by default inherit
-provider configurations from their parent. This means that in most cases
-only the root module needs explicit `provider` blocks, and then any defined
-provider can be freely used with the same settings in child modules.
+In a configuration with multiple modules, there are some special considerations
+for how resources are associated with provider configurations.
 
-In more complex situations it may be necessary for a child module to use
-different provider settings than its parent. In this situation it is
-possible to define
-[multiple provider instances](/docs/configuration/providers.html#multiple-provider-instances)
-and pass them explicitly and selectively to a child module:
+While in principle `provider` blocks can appear in any module, it is recommended
+that they be placed only in the _root_ module of a configuration, since this
+approach allows users to configure providers just once and re-use them across
+all descendent modules.
+
+Each resource in the configuration must be associated with one provider
+configuration, which may either be within the same module as the resource
+or be passed from the parent module. Providers can be passed down to descendent
+modules in two ways: either _implicitly_ through inheritance, or _explicitly_
+via the `providers` argument within a `module` block. These two options are
+discussed in more detail in the following sections.
+
+In all cases it is recommended to keep explicit provider configurations only in
+the root module and pass them (whether implicitly or explicitly) down to
+descendent modules. This avoids the provider configurations from being "lost"
+when descendent modules are removed from the configuration. It also allows
+the user of a configuration to determine which providers require credentials
+by inspecting only the root module.
+
+Provider configurations are used for all operations on associated resources,
+including destroying remote objects and refreshing state. Terraform retains, as
+part of its state, a reference to the provider configuration that was most
+recently used to apply changes to each resource. When a `resource` block is
+removed from the configuration, this record in the state is used to locate the
+appropriate configuration because the resource's `provider` argument (if any)
+is no longer present in the configuration.
+
+As a consequence, it is required that all resources created for a particular
+provider configuration must be destroyed before that provider configuration is
+removed, unless the related resources are re-configured to use a different
+provider configuration first.
+
+### Implicit Provider Inheritance
+
+For convenience in simple configurations, a child module automatically inherits
+default (un-aliased) provider configurations from its parent. This means that
+explicit `provider` blocks appear only in the root module, and downstream
+modules can simply declare resources for that provider and have them
+automatically associated with the root provider configurations.
+
+For example, the root module might contain only a `provider` block and a
+`module` block to instantiate a child module:
+
+```hcl
+provider "aws" {
+  region = "us-west-1"
+}
+
+module "child" {
+  source = "./child"
+}
+```
+
+The child module can then use any resource from this provider with no further
+provider configuration required:
+
+```hcl
+resource "aws_s3_bucket" "example" {
+  bucket = "provider-inherit-example"
+}
+```
+
+This approach is recommended in the common case where only a single
+configuration is needed for each provider across the entire configuration.
+
+In more complex situations there may be [multiple provider instances](/docs/configuration/providers.html#multiple-provider-instances),
+or a child module may need to use different provider settings than
+its parent. For such situations, it's necessary to pass providers explicitly
+as we will see in the next section.
+
+## Passing Providers Explicitly
+
+When child modules each need a different configuration of a particular
+provider, or where the child module requires a different provider configuration
+than its parent, the `providers` argument within a `module` block can be
+used to define explicitly which provider configs are made available to the
+child module. For example:
 
 ```hcl
 # The default "aws" configuration is used for AWS resources in the root
@@ -182,19 +255,20 @@ module "example" {
 }
 ```
 
-The `providers` argument within a `module` block serves the same purpose as
+The `providers` argument within a `module` block is similar to
 the `provider` argument within a resource as described for
 [multiple provider instances](/docs/configuration/providers.html#multiple-provider-instances),
 but is a map rather than a single string because a module may contain resources
 from many different providers.
 
-Once the `providers` argument is used in a `module` block it overrides all of
+Once the `providers` argument is used in a `module` block, it overrides all of
 the default inheritance behavior, so it is necessary to enumerate mappings
 for _all_ of the required providers. This is to avoid confusion and surprises
-when mixing both implicit and explicit provider passing.
+that may result when mixing both implicit and explicit provider passing.
 
-In more complex situations it may be necessary for a child module _itself_
-to have multiple instances of the same provider. For example, a module
+Additional provider configurations (those with the `alias` argument set) are
+_never_ inherited automatically by child modules, and so must always be passed
+explicitly using the `providers` map. For example, a module
 that configures connectivity between networks in two AWS regions is likely
 to need both a source and a destination region. In that case, the root module
 may look something like this:
@@ -213,16 +287,20 @@ provider "aws" {
 module "tunnel" {
   source    = "./tunnel"
   providers = {
-    "aws.src" = "aws.usw1"
-    "aws.dst" = "aws.usw2"
+    aws.src = "aws.usw1"
+    aws.dst = "aws.usw2"
   }
 }
 ```
 
-The subdirectory `./tunnel` should then contain configuration like the
-following, to declare the two provider aliases it expects:
+In the `providers` map, the keys are provider names as expected by the child
+module, while the values are the names of corresponding configurations in
+the _current_ module. The subdirectory `./tunnel` must then contain
+_proxy configuration blocks_ like the following, to declare that it
+requires configurations to be passed with these from the `providers` block in
+the parent's `module` block:
 
-```
+```hcl
 provider "aws" {
   alias = "src"
 }
@@ -233,18 +311,21 @@ provider "aws" {
 ```
 
 Each resource should then have its own `provider` attribute set to either
-`"aws.src"` or `"aws.dst"` to choose which of the provider instances to use.
+`"aws.src"` or `"aws.dst"` to choose which of the two provider instances to use.
 
-It is recommended to use the default inheritance behavior in most cases where
-only a single default instance of each provider is used, and switch to
-passing providers explicitly as soon as multiple instances are needed.
+At this time it is required to write an explicit proxy configuration block
+even for default (un-aliased) provider configurations when they will be passed
+via an explicit `providers` block:
 
-In all cases it is recommended to keep explicit provider declarations only in
-the root module and pass them (either implicitly or explicitly) down to
-descendent modules. This avoids the provider configurations being "lost"
-when descendent providers are removed from the configuration. It also allows
-the user of a configuration to determine which providers require credentials
-by inspecting only the root module.
+```hcl
+provider "aws" {
+}
+```
+
+If such a block is not present, the child module will behave as if it has no
+configurations of this type at all, which may cause input prompts to supply
+any required provider configuration arguments. This limitation will be
+addressed in a future version of Terraform.
 
 ## Multiple Instances of a Module
 
@@ -309,9 +390,8 @@ several regions or datacenters.
 
 ## Summarizing Modules in the UI
 
-By default, commands such as the [plan command](/docs/commands/plan.html) and
-[graph command](/docs/commands/graph.html) will show each resource in a nested
-module to represent the full scope of the configuration. For more complex
+By default the [graph command](/docs/commands/graph.html) will show each resource
+in a nested module to represent the full scope of the configuration. For more complex
 configurations, the `-module-depth` option may be useful to summarize some or all
 of the modules as single objects.
 
@@ -323,10 +403,6 @@ graph output looks like the following:
 If we instead set `-module-depth=0`, the graph will look like this:
 
 ![Terraform Module Graph](docs/module_graph.png)
-
-Other commands work similarly with modules. Note that `-module-depth` only
-affects how modules are presented in the UI; it does not affect how modules
-and their contained resources are processed by Terraform operations.
 
 ## Tainting resources within a module
 

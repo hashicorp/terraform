@@ -1,9 +1,21 @@
 package terraform
 
+import (
+	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/provisioners"
+)
+
 // ResourceProvisioner is an interface that must be implemented by any
 // resource provisioner: the thing that initializes resources in
 // a Terraform configuration.
 type ResourceProvisioner interface {
+	// GetConfigSchema returns the schema for the provisioner type's main
+	// configuration block. This is called prior to Validate to enable some
+	// basic structural validation to be performed automatically and to allow
+	// the configuration to be properly extracted from potentially-ambiguous
+	// configuration file formats.
+	GetConfigSchema() (*configschema.Block, error)
+
 	// Validate is called once at the beginning with the raw
 	// configuration (no interpolation done) and can return a list of warnings
 	// and/or errors.
@@ -52,3 +64,7 @@ type ResourceProvisionerCloser interface {
 // ResourceProvisionerFactory is a function type that creates a new instance
 // of a resource provisioner.
 type ResourceProvisionerFactory func() (ResourceProvisioner, error)
+
+// ProvisionerFactory is a function type that creates a new instance
+// of a provisioners.Interface.
+type ProvisionerFactory = provisioners.Factory

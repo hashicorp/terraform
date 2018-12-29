@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/service/cloudfront"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -81,17 +82,22 @@ func resourceAwsCloudFrontOriginAccessIdentityRead(d *schema.ResourceData, meta 
 	d.Set("etag", resp.ETag)
 	d.Set("s3_canonical_user_id", resp.CloudFrontOriginAccessIdentity.S3CanonicalUserId)
 	d.Set("cloudfront_access_identity_path", fmt.Sprintf("origin-access-identity/cloudfront/%s", *resp.CloudFrontOriginAccessIdentity.Id))
-	d.Set("iam_arn", fmt.Sprintf("arn:%s:iam::cloudfront:user/CloudFront Origin Access Identity %s",
-		meta.(*AWSClient).partition, *resp.CloudFrontOriginAccessIdentity.Id))
+	iamArn := arn.ARN{
+		Partition: meta.(*AWSClient).partition,
+		Service:   "iam",
+		AccountID: "cloudfront",
+		Resource:  fmt.Sprintf("user/CloudFront Origin Access Identity %s", *resp.CloudFrontOriginAccessIdentity.Id),
+	}.String()
+	d.Set("iam_arn", iamArn)
 	return nil
 }
 
 func resourceAwsCloudFrontOriginAccessIdentityUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).cloudfrontconn
 	params := &cloudfront.UpdateCloudFrontOriginAccessIdentityInput{
-		Id: aws.String(d.Id()),
+		Id:                                   aws.String(d.Id()),
 		CloudFrontOriginAccessIdentityConfig: expandOriginAccessIdentityConfig(d),
-		IfMatch: aws.String(d.Get("etag").(string)),
+		IfMatch:                              aws.String(d.Get("etag").(string)),
 	}
 	_, err := conn.UpdateCloudFrontOriginAccessIdentity(params)
 	if err != nil {
@@ -113,8 +119,6 @@ func resourceAwsCloudFrontOriginAccessIdentityDelete(d *schema.ResourceData, met
 		return err
 	}
 
-	// Done
-	d.SetId("")
 	return nil
 }
 

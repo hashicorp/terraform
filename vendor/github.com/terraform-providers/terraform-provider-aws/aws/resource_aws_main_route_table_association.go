@@ -17,12 +17,12 @@ func resourceAwsMainRouteTableAssociation() *schema.Resource {
 		Delete: resourceAwsMainRouteTableAssociationDelete,
 
 		Schema: map[string]*schema.Schema{
-			"vpc_id": &schema.Schema{
+			"vpc_id": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"route_table_id": &schema.Schema{
+			"route_table_id": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
@@ -31,7 +31,7 @@ func resourceAwsMainRouteTableAssociation() *schema.Resource {
 			// created when the VPC is created. We need this to be able to "destroy"
 			// our main route table association, which we do by returning this route
 			// table to its original place as the Main Route Table for the VPC.
-			"original_route_table_id": &schema.Schema{
+			"original_route_table_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},

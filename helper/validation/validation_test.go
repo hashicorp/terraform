@@ -13,6 +13,69 @@ type testCase struct {
 	expectedErr *regexp.Regexp
 }
 
+func TestValidationAll(t *testing.T) {
+	runTestCases(t, []testCase{
+		{
+			val: "valid",
+			f: All(
+				StringLenBetween(5, 42),
+				StringMatch(regexp.MustCompile(`[a-zA-Z0-9]+`), "value must be alphanumeric"),
+			),
+		},
+		{
+			val: "foo",
+			f: All(
+				StringLenBetween(5, 42),
+				StringMatch(regexp.MustCompile(`[a-zA-Z0-9]+`), "value must be alphanumeric"),
+			),
+			expectedErr: regexp.MustCompile("expected length of [\\w]+ to be in the range \\(5 - 42\\), got foo"),
+		},
+		{
+			val: "!!!!!",
+			f: All(
+				StringLenBetween(5, 42),
+				StringMatch(regexp.MustCompile(`[a-zA-Z0-9]+`), "value must be alphanumeric"),
+			),
+			expectedErr: regexp.MustCompile("value must be alphanumeric"),
+		},
+	})
+}
+
+func TestValidationAny(t *testing.T) {
+	runTestCases(t, []testCase{
+		{
+			val: 43,
+			f: Any(
+				IntAtLeast(42),
+				IntAtMost(5),
+			),
+		},
+		{
+			val: 4,
+			f: Any(
+				IntAtLeast(42),
+				IntAtMost(5),
+			),
+		},
+		{
+			val: 7,
+			f: Any(
+				IntAtLeast(42),
+				IntAtMost(5),
+			),
+			expectedErr: regexp.MustCompile("expected [\\w]+ to be at least \\(42\\), got 7"),
+		},
+		{
+			val: 7,
+			f: Any(
+				IntAtLeast(42),
+				IntAtMost(5),
+			),
+			expectedErr: regexp.MustCompile("expected [\\w]+ to be at most \\(5\\), got 7"),
+		},
+	})
+}
+
 func TestValidationIntBetween(t *testing.T) {
 	runTestCases(t, []testCase{
 		{
@@ -82,6 +145,25 @@ func TestValidationIntAtMost(t *testing.T) {
 	})
 }
 
+func TestValidationIntInSlice(t *testing.T) {
+	runTestCases(t, []testCase{
+		{
+			val: 42,
+			f:   IntInSlice([]int{1, 42}),
+		},
+		{
+			val:         42,
+			f:           IntInSlice([]int{10, 20}),
+			expectedErr: regexp.MustCompile("expected [\\w]+ to be one of \\[10 20\\], got 42"),
+		},
+		{
+			val:         "InvalidValue",
+			f:           IntInSlice([]int{10, 20}),
+			expectedErr: regexp.MustCompile("expected type of [\\w]+ to be an integer"),
+		},
+	})
+}
+
 func TestValidationStringInSlice(t *testing.T) {
 	runTestCases(t, []testCase{
 		{
@@ -111,6 +193,25 @@ func TestValidationStringInSlice(t *testing.T) {
 	})
 }
 
+func TestValidationStringMatch(t *testing.T) {
+	runTestCases(t, []testCase{
+		{
+			val: "foobar",
+			f:   StringMatch(regexp.MustCompile(".*foo.*"), ""),
+		},
+		{
+			val:         "bar",
+			f:           StringMatch(regexp.MustCompile(".*foo.*"), ""),
+			expectedErr: regexp.MustCompile("expected value of [\\w]+ to match regular expression " + regexp.QuoteMeta(`".*foo.*"`)),
+		},
+		{
+			val:         "bar",
+			f:           StringMatch(regexp.MustCompile(".*foo.*"), "value must contain foo"),
+			expectedErr: regexp.MustCompile("invalid value for [\\w]+ \\(value must contain foo\\)"),
+		},
+	})
+}
+
 func TestValidationRegexp(t *testing.T) {
 	runTestCases(t, []testCase{
 		{
@@ -121,6 +222,101 @@ func TestValidationRegexp(t *testing.T) {
 			val:         "foo(bar",
 			f:           ValidateRegexp,
 			expectedErr: regexp.MustCompile(regexp.QuoteMeta("error parsing regexp: missing closing ): `foo(bar`")),
+		},
+	})
+}
+
+func TestValidationSingleIP(t *testing.T) {
+	runTestCases(t, []testCase{
+		{
+			val: "172.10.10.10",
+			f:   SingleIP(),
+		},
+		{
+			val:         "1.1.1",
+			f:           SingleIP(),
+			expectedErr: regexp.MustCompile(regexp.QuoteMeta("expected test_property to contain a valid IP, got:")),
+		},
+		{
+			val:         "1.1.1.0/20",
+			f:           SingleIP(),
+			expectedErr: regexp.MustCompile(regexp.QuoteMeta("expected test_property to contain a valid IP, got:")),
+		},
+		{
+			val:         "256.1.1.1",
+			f:           SingleIP(),
+			expectedErr: regexp.MustCompile(regexp.QuoteMeta("expected test_property to contain a valid IP, got:")),
+		},
+	})
+}
+
+func TestValidationIPRange(t *testing.T) {
+	runTestCases(t, []testCase{
+		{
+			val: "172.10.10.10-172.10.10.12",
+			f:   IPRange(),
+		},
+		{
+			val:         "172.10.10.20",
+			f:           IPRange(),
+			expectedErr: regexp.MustCompile(regexp.QuoteMeta("expected test_property to contain a valid IP range, got:")),
+		},
+		{
+			val:         "172.10.10.20-172.10.10.12",
+			f:           IPRange(),
+			expectedErr: regexp.MustCompile(regexp.QuoteMeta("expected test_property to contain a valid IP range, got:")),
+		},
+	})
+}
+
+func TestValidateRFC3339TimeString(t *testing.T) {
+	runTestCases(t, []testCase{
+		{
+			val: "2018-03-01T00:00:00Z",
+			f:   ValidateRFC3339TimeString,
+		},
+		{
+			val: "2018-03-01T00:00:00-05:00",
+			f:   ValidateRFC3339TimeString,
+		},
+		{
+			val: "2018-03-01T00:00:00+05:00",
+			f:   ValidateRFC3339TimeString,
+		},
+		{
+			val:         "03/01/2018",
+			f:           ValidateRFC3339TimeString,
+			expectedErr: regexp.MustCompile(regexp.QuoteMeta(`invalid RFC3339 timestamp`)),
+		},
+		{
+			val:         "03-01-2018",
+			f:           ValidateRFC3339TimeString,
+			expectedErr: regexp.MustCompile(regexp.QuoteMeta(`invalid RFC3339 timestamp`)),
+		},
+		{
+			val:         "2018-03-01",
+			f:           ValidateRFC3339TimeString,
+			expectedErr: regexp.MustCompile(regexp.QuoteMeta(`invalid RFC3339 timestamp`)),
+		},
+		{
+			val:         "2018-03-01T",
+			f:           ValidateRFC3339TimeString,
+			expectedErr: regexp.MustCompile(regexp.QuoteMeta(`invalid RFC3339 timestamp`)),
+		},
+		{
+			val:         "2018-03-01T00:00:00",
+			f:           ValidateRFC3339TimeString,
+			expectedErr: regexp.MustCompile(regexp.QuoteMeta(`invalid RFC3339 timestamp`)),
+		},
+		{
+			val:         "2018-03-01T00:00:00Z05:00",
+			f:           ValidateRFC3339TimeString,
+			expectedErr: regexp.MustCompile(regexp.QuoteMeta(`invalid RFC3339 timestamp`)),
+		},
+		{
+			val:         "2018-03-01T00:00:00Z-05:00",
+			f:           ValidateRFC3339TimeString,
+			expectedErr: regexp.MustCompile(regexp.QuoteMeta(`invalid RFC3339 timestamp`)),
 		},
 	})
 }

@@ -10,6 +10,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
+	"github.com/hashicorp/terraform/addrs"
+
 	"github.com/hashicorp/terraform/config"
 )
 
@@ -51,13 +54,13 @@ func TestStateValidate(t *testing.T) {
 
 func TestStateAddModule(t *testing.T) {
 	cases := []struct {
-		In  [][]string
+		In  []addrs.ModuleInstance
 		Out [][]string
 	}{
 		{
-			[][]string{
-				[]string{"root"},
-				[]string{"root", "child"},
+			[]addrs.ModuleInstance{
+				addrs.RootModuleInstance,
+				addrs.RootModuleInstance.Child("child", addrs.NoKey),
 			},
 			[][]string{
 				[]string{"root"},
@@ -66,11 +69,11 @@ func TestStateAddModule(t *testing.T) {
 		},
 
 		{
-			[][]string{
-				[]string{"root", "foo", "bar"},
-				[]string{"root", "foo"},
-				[]string{"root"},
-				[]string{"root", "bar"},
+			[]addrs.ModuleInstance{
+				addrs.RootModuleInstance.Child("foo", addrs.NoKey).Child("bar", addrs.NoKey),
+				addrs.RootModuleInstance.Child("foo", addrs.NoKey),
+				addrs.RootModuleInstance,
+				addrs.RootModuleInstance.Child("bar", addrs.NoKey),
 			},
 			[][]string{
 				[]string{"root"},
@@ -81,12 +84,12 @@ func TestStateAddModule(t *testing.T) {
 		},
 		// Same last element, different middle element
 		{
-			[][]string{
-				[]string{"root", "foo", "bar"}, // This one should sort after...
-				[]string{"root", "foo"},
-				[]string{"root"},
-				[]string{"root", "bar", "bar"}, // ...this one.
-				[]string{"root", "bar"},
+			[]addrs.ModuleInstance{
+				addrs.RootModuleInstance.Child("foo", addrs.NoKey).Child("bar", addrs.NoKey), // This one should sort after...
+				addrs.RootModuleInstance.Child("foo", addrs.NoKey),
+				addrs.RootModuleInstance,
+				addrs.RootModuleInstance.Child("bar", addrs.NoKey).Child("bar", addrs.NoKey), // ...this one.
+				addrs.RootModuleInstance.Child("bar", addrs.NoKey),
 			},
 			[][]string{
 				[]string{"root"},
@@ -110,7 +113,7 @@ func TestStateAddModule(t *testing.T) {
 		}
 
 		if !reflect.DeepEqual(actual, tc.Out) {
-			t.Fatalf("In: %#v\n\nOut: %#v", tc.In, actual)
+			t.Fatalf("wrong result\ninput: %sgot:   %#v\nwant:  %#v", spew.Sdump(tc.In), actual, tc.Out)
 		}
 	}
 }
@@ -119,7 +122,7 @@ func TestStateOutputTypeRoundTrip(t *testing.T) {
 	state := &State{
 		Modules: []*ModuleState{
 			&ModuleState{
-				Path: RootModulePath,
+				Path: []string{"root"},
 				Outputs: map[string]*OutputState{
 					"string_output": &OutputState{
 						Value: "String Value",
@@ -144,113 +147,6 @@ func TestStateOutputTypeRoundTrip(t *testing.T) {
 	if !reflect.DeepEqual(state, roundTripped) {
 		t.Logf("expected:\n%#v", state)
 		t.Fatalf("got:\n%#v", roundTripped)
-	}
-}
-
-func TestStateModuleOrphans(t *testing.T) {
-	state := &State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: RootModulePath,
-			},
-			&ModuleState{
-				Path: []string{RootModuleName, "foo"},
-			},
-			&ModuleState{
-				Path: []string{RootModuleName, "bar"},
-			},
-		},
-	}
-
-	state.init()
-
-	config := testModule(t, "state-module-orphans").Config()
-	actual := state.ModuleOrphans(RootModulePath, config)
-	expected := [][]string{
-		[]string{RootModuleName, "foo"},
-	}
-
-	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("bad: %#v", actual)
-	}
-}
-
-func TestStateModuleOrphans_nested(t *testing.T) {
-	state := &State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: RootModulePath,
-			},
-			&ModuleState{
-				Path: []string{RootModuleName, "foo", "bar"},
-			},
-		},
-	}
-
-	state.init()
-
-	actual := state.ModuleOrphans(RootModulePath, nil)
-	expected := [][]string{
-		[]string{RootModuleName, "foo"},
-	}
-
-	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("bad: %#v", actual)
-	}
-}
-
-func TestStateModuleOrphans_nilConfig(t *testing.T) {
-	state := &State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: RootModulePath,
-			},
-			&ModuleState{
-				Path: []string{RootModuleName, "foo"},
-			},
-			&ModuleState{
-				Path: []string{RootModuleName, "bar"},
-			},
-		},
-	}
-
-	state.init()
-
-	actual := state.ModuleOrphans(RootModulePath, nil)
-	expected := [][]string{
-		[]string{RootModuleName, "foo"},
-		[]string{RootModuleName, "bar"},
-	}
-
-	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("bad: %#v", actual)
-	}
-}
-
-func TestStateModuleOrphans_deepNestedNilConfig(t *testing.T) {
-	state := &State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: RootModulePath,
-			},
-			&ModuleState{
-				Path: []string{RootModuleName, "parent", "childfoo"},
-			},
-			&ModuleState{
-				Path: []string{RootModuleName, "parent", "childbar"},
-			},
-		},
-	}
-
-	state.init()
-
-	actual := state.ModuleOrphans(RootModulePath, nil)
-	expected := [][]string{
-		[]string{RootModuleName, "parent"},
-	}
-
-	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("bad: %#v", actual)
 	}
 }
 
@@ -360,7 +256,7 @@ func TestStateEqual(t *testing.T) {
 			&State{
 				Modules: []*ModuleState{
 					&ModuleState{
-						Path: RootModulePath,
+						Path: []string{"root"},
 					},
 				},
 			},
@@ -373,14 +269,14 @@ func TestStateEqual(t *testing.T) {
 			&State{
 				Modules: []*ModuleState{
 					&ModuleState{
-						Path: RootModulePath,
+						Path: []string{"root"},
 					},
 				},
 			},
 			&State{
 				Modules: []*ModuleState{
 					&ModuleState{
-						Path: RootModulePath,
+						Path: []string{"root"},
 					},
 				},
 			},
@@ -790,291 +686,6 @@ func TestStateMarshalEqual(t *testing.T) {
 				t.Logf("\nState 1: %s\nState 2: %s", s1Buf.Bytes(), s2Buf.Bytes())
 			}
 		})
-	}
-}
-
-func TestStateRemove(t *testing.T) {
-	cases := map[string]struct {
-		Address  string
-		One, Two *State
-	}{
-		"simple resource": {
-			"test_instance.foo",
-			&State{
-				Modules: []*ModuleState{
-					&ModuleState{
-						Path: rootModulePath,
-						Resources: map[string]*ResourceState{
-							"test_instance.foo": &ResourceState{
-								Type: "test_instance",
-								Primary: &InstanceState{
-									ID: "foo",
-								},
-							},
-
-							"test_instance.bar": &ResourceState{
-								Type: "test_instance",
-								Primary: &InstanceState{
-									ID: "foo",
-								},
-							},
-						},
-					},
-				},
-			},
-			&State{
-				Modules: []*ModuleState{
-					&ModuleState{
-						Path: rootModulePath,
-						Resources: map[string]*ResourceState{
-							"test_instance.bar": &ResourceState{
-								Type: "test_instance",
-								Primary: &InstanceState{
-									ID: "foo",
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-
-		"single instance": {
-			"test_instance.foo.primary",
-			&State{
-				Modules: []*ModuleState{
-					&ModuleState{
-						Path: rootModulePath,
-						Resources: map[string]*ResourceState{
-							"test_instance.foo": &ResourceState{
-								Type: "test_instance",
-								Primary: &InstanceState{
-									ID: "foo",
-								},
-							},
-						},
-					},
-				},
-			},
-			&State{
-				Modules: []*ModuleState{
-					&ModuleState{
-						Path:      rootModulePath,
-						Resources: map[string]*ResourceState{},
-					},
-				},
-			},
-		},
-
-		"single instance in multi-count": {
-			"test_instance.foo[0]",
-			&State{
-				Modules: []*ModuleState{
-					&ModuleState{
-						Path: rootModulePath,
-						Resources: map[string]*ResourceState{
-							"test_instance.foo.0": &ResourceState{
-								Type: "test_instance",
-								Primary: &InstanceState{
-									ID: "foo",
-								},
-							},
-
-							"test_instance.foo.1": &ResourceState{
-								Type: "test_instance",
-								Primary: &InstanceState{
-									ID: "foo",
-								},
-							},
-						},
-					},
-				},
-			},
-			&State{
-				Modules: []*ModuleState{
-					&ModuleState{
-						Path: rootModulePath,
-						Resources: map[string]*ResourceState{
-							"test_instance.foo.1": &ResourceState{
-								Type: "test_instance",
-								Primary: &InstanceState{
-									ID: "foo",
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-
-		"single resource, multi-count": {
-			"test_instance.foo",
-			&State{
-				Modules: []*ModuleState{
-					&ModuleState{
-						Path: rootModulePath,
-						Resources: map[string]*ResourceState{
-							"test_instance.foo.0": &ResourceState{
-								Type: "test_instance",
-								Primary: &InstanceState{
-									ID: "foo",
-								},
-							},
-
-							"test_instance.foo.1": &ResourceState{
-								Type: "test_instance",
-								Primary: &InstanceState{
-									ID: "foo",
-								},
-							},
-						},
-					},
-				},
-			},
-			&State{
-				Modules: []*ModuleState{
-					&ModuleState{
-						Path:      rootModulePath,
-						Resources: map[string]*ResourceState{},
-					},
-				},
-			},
-		},
-
-		"full module": {
-			"module.foo",
-			&State{
-				Modules: []*ModuleState{
-					&ModuleState{
-						Path: rootModulePath,
-						Resources: map[string]*ResourceState{
-							"test_instance.foo": &ResourceState{
-								Type: "test_instance",
-								Primary: &InstanceState{
-									ID: "foo",
-								},
-							},
-						},
-					},
-
-					&ModuleState{
-						Path: []string{"root", "foo"},
-						Resources: map[string]*ResourceState{
-							"test_instance.foo": &ResourceState{
-								Type: "test_instance",
-								Primary: &InstanceState{
-									ID: "foo",
-								},
-							},
-
-							"test_instance.bar": &ResourceState{
-								Type: "test_instance",
-								Primary: &InstanceState{
-									ID: "foo",
-								},
-							},
-						},
-					},
-				},
-			},
-			&State{
-				Modules: []*ModuleState{
-					&ModuleState{
-						Path: rootModulePath,
-						Resources: map[string]*ResourceState{
-							"test_instance.foo": &ResourceState{
-								Type: "test_instance",
-								Primary: &InstanceState{
-									ID: "foo",
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-
-		"module and children": {
-			"module.foo",
-			&State{
-				Modules: []*ModuleState{
-					&ModuleState{
-						Path: rootModulePath,
-						Resources: map[string]*ResourceState{
-							"test_instance.foo": &ResourceState{
-								Type: "test_instance",
-								Primary: &InstanceState{
-									ID: "foo",
-								},
-							},
-						},
-					},
-
-					&ModuleState{
-						Path: []string{"root", "foo"},
-						Resources: map[string]*ResourceState{
-							"test_instance.foo": &ResourceState{
-								Type: "test_instance",
-								Primary: &InstanceState{
-									ID: "foo",
-								},
-							},
-
-							"test_instance.bar": &ResourceState{
-								Type: "test_instance",
-								Primary: &InstanceState{
-									ID: "foo",
-								},
-							},
-						},
-					},
-
-					&ModuleState{
-						Path: []string{"root", "foo", "bar"},
-						Resources: map[string]*ResourceState{
-							"test_instance.foo": &ResourceState{
-								Type: "test_instance",
-								Primary: &InstanceState{
-									ID: "foo",
-								},
-							},
-
-							"test_instance.bar": &ResourceState{
-								Type: "test_instance",
-								Primary: &InstanceState{
-									ID: "foo",
-								},
-							},
-						},
-					},
-				},
-			},
-			&State{
-				Modules: []*ModuleState{
-					&ModuleState{
-						Path: rootModulePath,
-						Resources: map[string]*ResourceState{
-							"test_instance.foo": &ResourceState{
-								Type: "test_instance",
-								Primary: &InstanceState{
-									ID: "foo",
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	for k, tc := range cases {
-		if err := tc.One.Remove(tc.Address); err != nil {
-			t.Fatalf("bad: %s\n\n%s", k, err)
-		}
-
-		if !tc.One.Equal(tc.Two) {
-			t.Fatalf("Bad: %s\n\n%s\n\n%s", k, tc.One.String(), tc.Two.String())
-		}
 	}
 }
 
@@ -1862,28 +1473,6 @@ func TestParseResourceStateKey(t *testing.T) {
 			t.Fatalf("%s: expected err: %t, got %s", tc.Input, tc.ExpectedErr, err)
 		}
 	}
-}
-
-func TestStateModuleOrphans_empty(t *testing.T) {
-	state := &State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: RootModulePath,
-			},
-			&ModuleState{
-				Path: []string{RootModuleName, "foo", "bar"},
-			},
-			&ModuleState{
-				Path: []string{},
-			},
-			nil,
-		},
-	}
-
-	state.init()
-
-	// just calling this to check for panic
-	state.ModuleOrphans(RootModulePath, nil)
 }
 
 func TestReadState_prune(t *testing.T) {

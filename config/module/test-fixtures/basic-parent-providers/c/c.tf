@@ -1,2 +1,0 @@
-# Hello
-provider "bottom" {}

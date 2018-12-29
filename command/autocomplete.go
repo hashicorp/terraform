@@ -2,7 +2,6 @@ package command
 
 import (
 	"github.com/posener/complete"
-	"github.com/posener/complete/match"
 )
 
 // This file contains some re-usable predictors for auto-complete. The
@@ -50,30 +49,19 @@ func (m *Meta) completePredictWorkspaceName() complete.Predictor {
 			return nil
 		}
 
-		cfg, err := m.Config(configPath)
-		if err != nil {
+		backendConfig, diags := m.loadBackendConfig(configPath)
+		if diags.HasErrors() {
 			return nil
 		}
 
-		b, err := m.Backend(&BackendOpts{
-			Config: cfg,
+		b, diags := m.Backend(&BackendOpts{
+			Config: backendConfig,
 		})
-		if err != nil {
+		if diags.HasErrors() {
 			return nil
 		}
 
-		names, _ := b.States()
-
-		if a.Last != "" {
-			// filter for names that match the prefix only
-			filtered := make([]string, 0, len(names))
-			for _, name := range names {
-				if match.Prefix(name, a.Last) {
-					filtered = append(filtered, name)
-				}
-			}
-			names = filtered
-		}
+		names, _ := b.Workspaces()
 		return names
 	})
 }

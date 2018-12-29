@@ -9,11 +9,10 @@ import (
 	"log"
 	"path"
 
-	"strings"
-
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
+	tritonErrors "github.com/joyent/triton-go/errors"
 	"github.com/joyent/triton-go/storage"
 )
 
@@ -34,7 +33,7 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 		ObjectPath: path.Join(mantaDefaultRootStore, c.directoryName, c.keyName),
 	})
 	if err != nil {
-		if strings.Contains(err.Error(), "ResourceNotFound") {
+		if tritonErrors.IsResourceNotFound(err) {
 			return nil, nil
 		}
 		return nil, err
@@ -88,7 +87,6 @@ func (c *RemoteClient) Delete() error {
 }
 
 func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
-
 	//At Joyent, we want to make sure that the State directory exists before we interact with it
 	//We don't expect users to have to create it in advance
 	//The order of operations of Backend State as follows:
@@ -108,7 +106,7 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 	lockErr := &state.LockError{}
 	lockInfo, err := c.getLockInfo()
 	if err != nil {
-		if !strings.Contains(err.Error(), "ResourceNotFound") {
+		if !tritonErrors.IsResourceNotFound(err) {
 			lockErr.Err = fmt.Errorf("failed to retrieve lock info: %s", err)
 			return "", lockErr
 		}
@@ -143,6 +141,7 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 		ContentLength: uint64(contentLength),
 		ObjectPath:    path.Join(mantaDefaultRootStore, c.directoryName, lockFileName),
 		ObjectReader:  bytes.NewReader(data),
+		ForceInsert:   true,
 	}
 
 	log.Printf("[DEBUG] Creating manta state lock: %#v", params)

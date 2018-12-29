@@ -85,7 +85,7 @@ It contains the IP, just as we asked!
 ## Failed Provisioners and Tainted Resources
 
 If a resource successfully creates but fails during provisioning,
-Terraform will error and mark the resource as "tainted." A
+Terraform will error and mark the resource as "tainted". A
 resource that is tainted has been physically created, but can't
 be considered safe to use since provisioning failed.
 

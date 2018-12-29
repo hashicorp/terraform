@@ -25,6 +25,11 @@ const ErrorNoVersionCompatible = Error("no available version is compatible with 
 // ErrorNoSuchProvider indicates that no provider exists with a name given
 const ErrorNoSuchProvider = Error("no provider exists with the given name")
 
+// ErrorNoVersionCompatibleWithPlatform indicates that all of the available
+// versions that otherwise met constraints are not compatible with the
+// requested platform
+const ErrorNoVersionCompatibleWithPlatform = Error("no available version is compatible for the requested platform")
+
 func (err Error) Error() string {
 	return string(err)
 }

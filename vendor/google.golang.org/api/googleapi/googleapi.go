@@ -50,7 +50,7 @@ const (
 	// UserAgent is the header string used to identify this package.
 	UserAgent = "google-api-go-client/" + Version
 
-	// The default chunk size to use for resumable uplods if not specified by the user.
+	// The default chunk size to use for resumable uploads if not specified by the user.
 	DefaultUploadChunkSize = 8 * 1024 * 1024
 
 	// The minimum chunk size that can be used for resumable uploads.  All
@@ -149,12 +149,12 @@ func IsNotModified(err error) bool {
 // CheckMediaResponse returns an error (of type *Error) if the response
 // status code is not 2xx. Unlike CheckResponse it does not assume the
 // body is a JSON error document.
+// It is the caller's responsibility to close res.Body.
 func CheckMediaResponse(res *http.Response) error {
 	if res.StatusCode >= 200 && res.StatusCode <= 299 {
 		return nil
 	}
 	slurp, _ := ioutil.ReadAll(io.LimitReader(res.Body, 1<<20))
-	res.Body.Close()
 	return &Error{
 		Code: res.StatusCode,
 		Body: string(slurp),
@@ -270,38 +270,21 @@ func ProcessMediaOptions(opts []MediaOption) *MediaOptions {
 
 func ResolveRelative(basestr, relstr string) string {
 	u, _ := url.Parse(basestr)
+	afterColonPath := ""
+	if i := strings.IndexRune(relstr, ':'); i > 0 {
+		afterColonPath = relstr[i+1:]
+		relstr = relstr[:i]
+	}
 	rel, _ := url.Parse(relstr)
 	u = u.ResolveReference(rel)
 	us := u.String()
+	if afterColonPath != "" {
+		us = fmt.Sprintf("%s:%s", us, afterColonPath)
+	}
 	us = strings.Replace(us, "%7B", "{", -1)
 	us = strings.Replace(us, "%7D", "}", -1)
+	us = strings.Replace(us, "%2A", "*", -1)
 	return us
-}
-
-// has4860Fix is whether this Go environment contains the fix for
-// http://golang.org/issue/4860
-var has4860Fix bool
-
-// init initializes has4860Fix by checking the behavior of the net/http package.
-func init() {
-	r := http.Request{
-		URL: &url.URL{
-			Scheme: "http",
-			Opaque: "//opaque",
-		},
-	}
-	b := &bytes.Buffer{}
-	r.Write(b)
-	has4860Fix = bytes.HasPrefix(b.Bytes(), []byte("GET http"))
-}
-
-// SetOpaque sets u.Opaque from u.Path such that HTTP requests to it
-// don't alter any hex-escaped characters in u.Path.
-func SetOpaque(u *url.URL) {
-	u.Opaque = "//" + u.Host + u.Path
-	if !has4860Fix {
-		u.Opaque = u.Scheme + ":" + u.Opaque
-	}
 }
 
 // Expand subsitutes any {encoded} strings in the URL passed in using
@@ -309,10 +292,10 @@ func SetOpaque(u *url.URL) {
 //
 // This calls SetOpaque to avoid encoding of the parameters in the URL path.
 func Expand(u *url.URL, expansions map[string]string) {
-	expanded, err := uritemplates.Expand(u.Path, expansions)
+	escaped, unescaped, err := uritemplates.Expand(u.Path, expansions)
 	if err == nil {
-		u.Path = expanded
-		SetOpaque(u)
+		u.Path = unescaped
+		u.RawPath = escaped
 	}
 }
 

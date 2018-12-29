@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsS3BucketPolicy() *schema.Resource {
@@ -29,7 +30,7 @@ func resourceAwsS3BucketPolicy() *schema.Resource {
 			"policy": {
 				Type:             schema.TypeString,
 				Required:         true,
-				ValidateFunc:     validateJsonString,
+				ValidateFunc:     validation.ValidateJsonString,
 				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 			},
 		},
@@ -41,8 +42,6 @@ func resourceAwsS3BucketPolicyPut(d *schema.ResourceData, meta interface{}) erro
 
 	bucket := d.Get("bucket").(string)
 	policy := d.Get("policy").(string)
-
-	d.SetId(bucket)
 
 	log.Printf("[DEBUG] S3 bucket: %s, put policy: %s", bucket, policy)
 
@@ -66,6 +65,8 @@ func resourceAwsS3BucketPolicyPut(d *schema.ResourceData, meta interface{}) erro
 	if err != nil {
 		return fmt.Errorf("Error putting S3 policy: %s", err)
 	}
+
+	d.SetId(bucket)
 
 	return nil
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -30,7 +31,7 @@ func resourceAwsConfigConfigRule() *schema.Resource {
 			"name": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: validateMaxLength(64),
+				ValidateFunc: validation.StringLenBetween(0, 64),
 			},
 			"rule_id": {
 				Type:     schema.TypeString,
@@ -43,17 +44,17 @@ func resourceAwsConfigConfigRule() *schema.Resource {
 			"description": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: validateMaxLength(256),
+				ValidateFunc: validation.StringLenBetween(0, 256),
 			},
 			"input_parameters": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: validateJsonString,
+				ValidateFunc: validation.ValidateJsonString,
 			},
 			"maximum_execution_frequency": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: validateConfigExecutionFrequency,
+				ValidateFunc: validateConfigExecutionFrequency(),
 			},
 			"scope": {
 				Type:     schema.TypeList,
@@ -64,7 +65,7 @@ func resourceAwsConfigConfigRule() *schema.Resource {
 						"compliance_resource_id": {
 							Type:         schema.TypeString,
 							Optional:     true,
-							ValidateFunc: validateMaxLength(256),
+							ValidateFunc: validation.StringLenBetween(0, 256),
 						},
 						"compliance_resource_types": {
 							Type:     schema.TypeSet,
@@ -72,19 +73,19 @@ func resourceAwsConfigConfigRule() *schema.Resource {
 							MaxItems: 100,
 							Elem: &schema.Schema{
 								Type:         schema.TypeString,
-								ValidateFunc: validateMaxLength(256),
+								ValidateFunc: validation.StringLenBetween(0, 256),
 							},
 							Set: schema.HashString,
 						},
 						"tag_key": {
 							Type:         schema.TypeString,
 							Optional:     true,
-							ValidateFunc: validateMaxLength(128),
+							ValidateFunc: validation.StringLenBetween(0, 128),
 						},
 						"tag_value": {
 							Type:         schema.TypeString,
 							Optional:     true,
-							ValidateFunc: validateMaxLength(256),
+							ValidateFunc: validation.StringLenBetween(0, 256),
 						},
 					},
 				},
@@ -96,9 +97,12 @@ func resourceAwsConfigConfigRule() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"owner": {
-							Type:         schema.TypeString,
-							Required:     true,
-							ValidateFunc: validateConfigRuleSourceOwner,
+							Type:     schema.TypeString,
+							Required: true,
+							ValidateFunc: validation.StringInSlice([]string{
+								configservice.OwnerCustomLambda,
+								configservice.OwnerAws,
+							}, false),
 						},
 						"source_detail": {
 							Type:     schema.TypeSet,
@@ -115,7 +119,7 @@ func resourceAwsConfigConfigRule() *schema.Resource {
 									"maximum_execution_frequency": {
 										Type:         schema.TypeString,
 										Optional:     true,
-										ValidateFunc: validateConfigExecutionFrequency,
+										ValidateFunc: validateConfigExecutionFrequency(),
 									},
 									"message_type": {
 										Type:     schema.TypeString,
@@ -127,7 +131,7 @@ func resourceAwsConfigConfigRule() *schema.Resource {
 						"source_identifier": {
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validateMaxLength(256),
+							ValidateFunc: validation.StringLenBetween(0, 256),
 						},
 					},
 				},
@@ -142,12 +146,8 @@ func resourceAwsConfigConfigRulePut(d *schema.ResourceData, meta interface{}) er
 	name := d.Get("name").(string)
 	ruleInput := configservice.ConfigRule{
 		ConfigRuleName: aws.String(name),
+		Scope:          expandConfigRuleScope(d.Get("scope").([]interface{})),
 		Source:         expandConfigRuleSource(d.Get("source").([]interface{})),
-	}
-
-	scopes := d.Get("scope").([]interface{})
-	if len(scopes) > 0 {
-		ruleInput.Scope = expandConfigRuleScope(scopes[0].(map[string]interface{}))
 	}
 
 	if v, ok := d.GetOk("description"); ok {
@@ -291,7 +291,6 @@ func resourceAwsConfigConfigRuleDelete(d *schema.ResourceData, meta interface{})
 
 	log.Printf("[DEBUG] AWS Config config rule %q deleted", name)
 
-	d.SetId("")
 	return nil
 }
 

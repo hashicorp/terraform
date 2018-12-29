@@ -2,10 +2,10 @@ package aws
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -30,7 +30,15 @@ func dataSourceAwsIAMInstanceProfile() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			"role_arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"role_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"role_name": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -47,9 +55,10 @@ func dataSourceAwsIAMInstanceProfileRead(d *schema.ResourceData, meta interface{
 		InstanceProfileName: aws.String(name),
 	}
 
+	log.Printf("[DEBUG] Reading IAM Instance Profile: %s", req)
 	resp, err := iamconn.GetInstanceProfile(req)
 	if err != nil {
-		return errwrap.Wrapf("Error getting instance profiles: {{err}}", err)
+		return fmt.Errorf("Error getting instance profiles: %s", err)
 	}
 	if resp == nil {
 		return fmt.Errorf("no IAM instance profile found")
@@ -62,8 +71,11 @@ func dataSourceAwsIAMInstanceProfileRead(d *schema.ResourceData, meta interface{
 	d.Set("create_date", fmt.Sprintf("%v", instanceProfile.CreateDate))
 	d.Set("path", instanceProfile.Path)
 
-	for _, r := range instanceProfile.Roles {
-		d.Set("role_id", r.RoleId)
+	if len(instanceProfile.Roles) > 0 {
+		role := instanceProfile.Roles[0]
+		d.Set("role_arn", role.Arn)
+		d.Set("role_id", role.RoleId)
+		d.Set("role_name", role.RoleName)
 	}
 
 	return nil

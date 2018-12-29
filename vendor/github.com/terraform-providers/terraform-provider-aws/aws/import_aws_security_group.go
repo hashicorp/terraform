@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -51,7 +50,7 @@ func resourceAwsSecurityGroupImportState(
 
 func resourceAwsSecurityGroupImportStatePerm(sg *ec2.SecurityGroup, ruleType string, perm *ec2.IpPermission) ([]*schema.ResourceData, error) {
 	/*
-	   Create a seperate Security Group Rule for:
+	   Create a separate Security Group Rule for:
 	   * The collection of IpRanges (cidr_blocks)
 	   * The collection of Ipv6Ranges (ipv6_cidr_blocks)
 	   * Each individual UserIdGroupPair (source_security_group_id)
@@ -179,7 +178,7 @@ func resourceAwsSecurityGroupImportStatePermPair(sg *ec2.SecurityGroup, ruleType
 	}
 
 	if err := setFromIPPerm(d, sg, perm); err != nil {
-		return nil, errwrap.Wrapf("Error importing AWS Security Group: {{err}}", err)
+		return nil, fmt.Errorf("Error importing AWS Security Group: %s", err)
 	}
 
 	return d, nil

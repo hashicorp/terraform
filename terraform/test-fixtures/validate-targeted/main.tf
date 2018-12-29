@@ -1,13 +1,9 @@
 resource "aws_instance" "foo" {
-    num = "2"
-    provisioner "shell" {
-       command = "echo hi"
-    }
+  num         = "2"
+  provisioner "shell"     {}
 }
 
 resource "aws_instance" "bar" {
-    foo = "bar"
-    provisioner "shell" {
-       command = "echo hi"
-    }
+  foo         = "bar"
+  provisioner "shell"     {}
 }

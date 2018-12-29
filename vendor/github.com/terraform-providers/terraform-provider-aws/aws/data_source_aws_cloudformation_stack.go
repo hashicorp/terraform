@@ -2,10 +2,10 @@ package aws
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -73,11 +73,12 @@ func dataSourceAwsCloudFormationStack() *schema.Resource {
 func dataSourceAwsCloudFormationStackRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).cfconn
 	name := d.Get("name").(string)
-	input := cloudformation.DescribeStacksInput{
+	input := &cloudformation.DescribeStacksInput{
 		StackName: aws.String(name),
 	}
 
-	out, err := conn.DescribeStacks(&input)
+	log.Printf("[DEBUG] Reading CloudFormation Stack: %s", input)
+	out, err := conn.DescribeStacks(input)
 	if err != nil {
 		return fmt.Errorf("Failed describing CloudFormation stack (%s): %s", name, err)
 	}
@@ -114,7 +115,7 @@ func dataSourceAwsCloudFormationStackRead(d *schema.ResourceData, meta interface
 
 	template, err := normalizeCloudFormationTemplate(*tOut.TemplateBody)
 	if err != nil {
-		return errwrap.Wrapf("template body contains an invalid JSON or YAML: {{err}}", err)
+		return fmt.Errorf("template body contains an invalid JSON or YAML: %s", err)
 	}
 	d.Set("template_body", template)
 

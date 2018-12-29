@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -25,6 +25,10 @@ func resourceAwsEbsVolume() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
+			"arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"availability_zone": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -136,7 +140,7 @@ func resourceAwsEbsVolumeCreate(d *schema.ResourceData, meta interface{}) error 
 
 	if _, ok := d.GetOk("tags"); ok {
 		if err := setTags(conn, d); err != nil {
-			return errwrap.Wrapf("Error setting tags for EBS Volume: {{err}}", err)
+			return fmt.Errorf("Error setting tags for EBS Volume: %s", err)
 		}
 	}
 
@@ -147,7 +151,7 @@ func resourceAWSEbsVolumeUpdate(d *schema.ResourceData, meta interface{}) error 
 	conn := meta.(*AWSClient).ec2conn
 	if _, ok := d.GetOk("tags"); ok {
 		if err := setTags(conn, d); err != nil {
-			return errwrap.Wrapf("Error updating tags for EBS Volume: {{err}}", err)
+			return fmt.Errorf("Error updating tags for EBS Volume: %s", err)
 		}
 	}
 
@@ -238,7 +242,7 @@ func resourceAwsEbsVolumeRead(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error reading EC2 volume %s: %s", d.Id(), err)
 	}
 
-	return readVolume(d, response.Volumes[0])
+	return readVolume(d, meta.(*AWSClient), response.Volumes[0])
 }
 
 func resourceAwsEbsVolumeDelete(d *schema.ResourceData, meta interface{}) error {
@@ -267,8 +271,17 @@ func resourceAwsEbsVolumeDelete(d *schema.ResourceData, meta interface{}) error 
 
 }
 
-func readVolume(d *schema.ResourceData, volume *ec2.Volume) error {
+func readVolume(d *schema.ResourceData, client *AWSClient, volume *ec2.Volume) error {
 	d.SetId(*volume.VolumeId)
+
+	arn := arn.ARN{
+		Partition: client.partition,
+		Region:    client.region,
+		Service:   "ec2",
+		AccountID: client.accountid,
+		Resource:  fmt.Sprintf("volume/%s", d.Id()),
+	}
+	d.Set("arn", arn.String())
 
 	d.Set("availability_zone", *volume.AvailabilityZone)
 	if volume.Encrypted != nil {

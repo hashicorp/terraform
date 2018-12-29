@@ -3,21 +3,25 @@ package gcs
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
 
 	"cloud.google.com/go/storage"
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/helper/pathorcontents"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/httpclient"
+	"golang.org/x/oauth2/jwt"
 	"google.golang.org/api/option"
 )
 
-// gcsBackend implements "backend".Backend for GCS.
+// Backend implements "backend".Backend for GCS.
 // Input(), Validate() and Configure() are implemented by embedding *schema.Backend.
 // State(), DeleteState() and States() are implemented explicitly.
-type gcsBackend struct {
+type Backend struct {
 	*schema.Backend
 
 	storageClient  *storage.Client
@@ -27,14 +31,16 @@ type gcsBackend struct {
 	prefix           string
 	defaultStateFile string
 
+	encryptionKey []byte
+
 	projectID string
 	region    string
 }
 
 func New() backend.Backend {
-	be := &gcsBackend{}
-	be.Backend = &schema.Backend{
-		ConfigureFunc: be.configure,
+	b := &Backend{}
+	b.Backend = &schema.Backend{
+		ConfigureFunc: b.configure,
 		Schema: map[string]*schema.Schema{
 			"bucket": {
 				Type:        schema.TypeString,
@@ -62,6 +68,13 @@ func New() backend.Backend {
 				Default:     "",
 			},
 
+			"encryption_key": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A 32 byte base64 encoded 'customer supplied encryption key' used to encrypt all state.",
+				Default:     "",
+			},
+
 			"project": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -78,10 +91,10 @@ func New() backend.Backend {
 		},
 	}
 
-	return be
+	return b
 }
 
-func (b *gcsBackend) configure(ctx context.Context) error {
+func (b *Backend) configure(ctx context.Context) error {
 	if b.storageClient != nil {
 		return nil
 	}
@@ -96,6 +109,9 @@ func (b *gcsBackend) configure(ctx context.Context) error {
 
 	b.bucketName = data.Get("bucket").(string)
 	b.prefix = strings.TrimLeft(data.Get("prefix").(string), "/")
+	if b.prefix != "" && !strings.HasSuffix(b.prefix, "/") {
+		b.prefix = b.prefix + "/"
+	}
 
 	b.defaultStateFile = strings.TrimLeft(data.Get("path").(string), "/")
 
@@ -108,16 +124,39 @@ func (b *gcsBackend) configure(ctx context.Context) error {
 		b.region = r
 	}
 
-	opts := []option.ClientOption{
-		option.WithScopes(storage.ScopeReadWrite),
-		option.WithUserAgent(terraform.UserAgentString()),
-	}
-	if credentialsFile := data.Get("credentials").(string); credentialsFile != "" {
-		opts = append(opts, option.WithCredentialsFile(credentialsFile))
-	} else if credentialsFile := os.Getenv("GOOGLE_CREDENTIALS"); credentialsFile != "" {
-		opts = append(opts, option.WithCredentialsFile(credentialsFile))
+	var opts []option.ClientOption
+
+	creds := data.Get("credentials").(string)
+	if creds == "" {
+		creds = os.Getenv("GOOGLE_CREDENTIALS")
 	}
 
+	if creds != "" {
+		var account accountFile
+
+		// to mirror how the provider works, we accept the file path or the contents
+		contents, _, err := pathorcontents.Read(creds)
+		if err != nil {
+			return fmt.Errorf("Error loading credentials: %s", err)
+		}
+
+		if err := json.Unmarshal([]byte(contents), &account); err != nil {
+			return fmt.Errorf("Error parsing credentials '%s': %s", contents, err)
+		}
+
+		conf := jwt.Config{
+			Email:      account.ClientEmail,
+			PrivateKey: []byte(account.PrivateKey),
+			Scopes:     []string{storage.ScopeReadWrite},
+			TokenURL:   "https://accounts.google.com/o/oauth2/token",
+		}
+
+		opts = append(opts, option.WithHTTPClient(conf.Client(ctx)))
+	} else {
+		opts = append(opts, option.WithScopes(storage.ScopeReadWrite))
+	}
+
+	opts = append(opts, option.WithUserAgent(httpclient.UserAgentString()))
 	client, err := storage.NewClient(b.storageContext, opts...)
 	if err != nil {
 		return fmt.Errorf("storage.NewClient() failed: %v", err)
@@ -125,22 +164,37 @@ func (b *gcsBackend) configure(ctx context.Context) error {
 
 	b.storageClient = client
 
-	return b.ensureBucketExists()
+	key := data.Get("encryption_key").(string)
+	if key == "" {
+		key = os.Getenv("GOOGLE_ENCRYPTION_KEY")
+	}
+
+	if key != "" {
+		kc, _, err := pathorcontents.Read(key)
+		if err != nil {
+			return fmt.Errorf("Error loading encryption key: %s", err)
+		}
+
+		// The GCS client expects a customer supplied encryption key to be
+		// passed in as a 32 byte long byte slice. The byte slice is base64
+		// encoded before being passed to the API. We take a base64 encoded key
+		// to remain consistent with the GCS docs.
+		// https://cloud.google.com/storage/docs/encryption#customer-supplied
+		// https://github.com/GoogleCloudPlatform/google-cloud-go/blob/def681/storage/storage.go#L1181
+		k, err := base64.StdEncoding.DecodeString(kc)
+		if err != nil {
+			return fmt.Errorf("Error decoding encryption key: %s", err)
+		}
+		b.encryptionKey = k
+	}
+
+	return nil
 }
 
-func (b *gcsBackend) ensureBucketExists() error {
-	_, err := b.storageClient.Bucket(b.bucketName).Attrs(b.storageContext)
-	if err != storage.ErrBucketNotExist {
-		return err
-	}
-
-	if b.projectID == "" {
-		return fmt.Errorf("bucket %q does not exist; specify the \"project\" option or create the bucket manually using `gsutil mb gs://%s`", b.bucketName, b.bucketName)
-	}
-
-	attrs := &storage.BucketAttrs{
-		Location: b.region,
-	}
-
-	return b.storageClient.Bucket(b.bucketName).Create(b.storageContext, b.projectID, attrs)
+// accountFile represents the structure of the account file JSON file.
+type accountFile struct {
+	PrivateKeyId string `json:"private_key_id"`
+	PrivateKey   string `json:"private_key"`
+	ClientEmail  string `json:"client_email"`
+	ClientId     string `json:"client_id"`
 }

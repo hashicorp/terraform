@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cognitoidentity"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -28,6 +29,11 @@ func resourceAwsCognitoIdentityPool() *schema.Resource {
 				Required:     true,
 				ForceNew:     true,
 				ValidateFunc: validateCognitoIdentityPoolName,
+			},
+
+			"arn": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 
 			"cognito_identity_providers": {
@@ -151,32 +157,32 @@ func resourceAwsCognitoIdentityPoolRead(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
+	arn := arn.ARN{
+		Partition: meta.(*AWSClient).partition,
+		Region:    meta.(*AWSClient).region,
+		Service:   "cognito-identity",
+		AccountID: meta.(*AWSClient).accountid,
+		Resource:  fmt.Sprintf("identitypool/%s", d.Id()),
+	}
+	d.Set("arn", arn.String())
 	d.Set("identity_pool_name", ip.IdentityPoolName)
 	d.Set("allow_unauthenticated_identities", ip.AllowUnauthenticatedIdentities)
 	d.Set("developer_provider_name", ip.DeveloperProviderName)
 
-	if ip.CognitoIdentityProviders != nil {
-		if err := d.Set("cognito_identity_providers", flattenCognitoIdentityProviders(ip.CognitoIdentityProviders)); err != nil {
-			return fmt.Errorf("[DEBUG] Error setting cognito_identity_providers error: %#v", err)
-		}
+	if err := d.Set("cognito_identity_providers", flattenCognitoIdentityProviders(ip.CognitoIdentityProviders)); err != nil {
+		return fmt.Errorf("Error setting cognito_identity_providers error: %#v", err)
 	}
 
-	if ip.OpenIdConnectProviderARNs != nil {
-		if err := d.Set("openid_connect_provider_arns", flattenStringList(ip.OpenIdConnectProviderARNs)); err != nil {
-			return fmt.Errorf("[DEBUG] Error setting openid_connect_provider_arns error: %#v", err)
-		}
+	if err := d.Set("openid_connect_provider_arns", flattenStringList(ip.OpenIdConnectProviderARNs)); err != nil {
+		return fmt.Errorf("Error setting openid_connect_provider_arns error: %#v", err)
 	}
 
-	if ip.SamlProviderARNs != nil {
-		if err := d.Set("saml_provider_arns", flattenStringList(ip.SamlProviderARNs)); err != nil {
-			return fmt.Errorf("[DEBUG] Error setting saml_provider_arns error: %#v", err)
-		}
+	if err := d.Set("saml_provider_arns", flattenStringList(ip.SamlProviderARNs)); err != nil {
+		return fmt.Errorf("Error setting saml_provider_arns error: %#v", err)
 	}
 
-	if ip.SupportedLoginProviders != nil {
-		if err := d.Set("supported_login_providers", flattenCognitoSupportedLoginProviders(ip.SupportedLoginProviders)); err != nil {
-			return fmt.Errorf("[DEBUG] Error setting supported_login_providers error: %#v", err)
-		}
+	if err := d.Set("supported_login_providers", flattenCognitoSupportedLoginProviders(ip.SupportedLoginProviders)); err != nil {
+		return fmt.Errorf("Error setting supported_login_providers error: %#v", err)
 	}
 
 	return nil

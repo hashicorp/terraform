@@ -13,7 +13,7 @@ const (
 	// ErrCodeInsufficientPrivilegesException for service response error code
 	// "InsufficientPrivilegesException".
 	//
-	// The specified account does not have sufficient privileges for one of more
+	// The specified account does not have sufficient privileges for one or more
 	// AWS services.
 	ErrCodeInsufficientPrivilegesException = "InsufficientPrivilegesException"
 
@@ -44,6 +44,19 @@ const (
 	// running on it.
 	ErrCodePlatformVersionStillReferencedException = "PlatformVersionStillReferencedException"
 
+	// ErrCodeResourceNotFoundException for service response error code
+	// "ResourceNotFoundException".
+	//
+	// A resource doesn't exist for the specified Amazon Resource Name (ARN).
+	ErrCodeResourceNotFoundException = "ResourceNotFoundException"
+
+	// ErrCodeResourceTypeNotSupportedException for service response error code
+	// "ResourceTypeNotSupportedException".
+	//
+	// The type of the specified Amazon Resource Name (ARN) isn't supported for
+	// this operation.
+	ErrCodeResourceTypeNotSupportedException = "ResourceTypeNotSupportedException"
+
 	// ErrCodeS3LocationNotInServiceRegionException for service response error code
 	// "S3LocationNotInServiceRegionException".
 	//
@@ -64,10 +77,10 @@ const (
 	ErrCodeS3SubscriptionRequiredException = "S3SubscriptionRequiredException"
 
 	// ErrCodeServiceException for service response error code
-	// "ServiceException".
+	// "ElasticBeanstalkServiceException".
 	//
 	// A generic service exception has occurred.
-	ErrCodeServiceException = "ServiceException"
+	ErrCodeServiceException = "ElasticBeanstalkServiceException"
 
 	// ErrCodeSourceBundleDeletionException for service response error code
 	// "SourceBundleDeletionFailure".
@@ -112,4 +125,14 @@ const (
 	// You have exceeded the maximum number of allowed platforms associated with
 	// the account.
 	ErrCodeTooManyPlatformsException = "TooManyPlatformsException"
+
+	// ErrCodeTooManyTagsException for service response error code
+	// "TooManyTagsException".
+	//
+	// The number of tags in the resource would exceed the number of tags that each
+	// resource can have.
+	//
+	// To calculate this, the operation considers both the number of tags the resource
+	// already has and the tags this operation would add if it succeeded.
+	ErrCodeTooManyTagsException = "TooManyTagsException"
 )

@@ -851,7 +851,6 @@ func TestLoadFile_ignoreChanges(t *testing.T) {
 	}
 
 	actual := resourcesStr(c.Resources)
-	print(actual)
 	if actual != strings.TrimSpace(ignoreChangesResourcesStr) {
 		t.Fatalf("bad:\n%s", actual)
 	}
@@ -943,7 +942,6 @@ func TestLoad_hclAttributes(t *testing.T) {
 	}
 
 	actual := resourcesStr(c.Resources)
-	print(actual)
 	if actual != strings.TrimSpace(jsonAttributeStr) {
 		t.Fatalf("bad:\n%s", actual)
 	}
@@ -988,7 +986,6 @@ func TestLoad_jsonAttributes(t *testing.T) {
 	}
 
 	actual := resourcesStr(c.Resources)
-	print(actual)
 	if actual != strings.TrimSpace(jsonAttributeStr) {
 		t.Fatalf("bad:\n%s", actual)
 	}

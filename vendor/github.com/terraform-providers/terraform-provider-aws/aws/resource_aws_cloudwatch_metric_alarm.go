@@ -30,13 +30,18 @@ func resourceAwsCloudWatchMetricAlarm() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+			"arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"comparison_operator": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 			"evaluation_periods": {
-				Type:     schema.TypeInt,
-				Required: true,
+				Type:         schema.TypeInt,
+				Required:     true,
+				ValidateFunc: validation.IntAtLeast(1),
 			},
 			"metric_name": {
 				Type:     schema.TypeString,
@@ -67,12 +72,20 @@ func resourceAwsCloudWatchMetricAlarm() *schema.Resource {
 			"alarm_actions": {
 				Type:     schema.TypeSet,
 				Optional: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set:      schema.HashString,
+				Elem: &schema.Schema{
+					Type:         schema.TypeString,
+					ValidateFunc: validateArn,
+				},
+				Set: schema.HashString,
 			},
 			"alarm_description": {
 				Type:     schema.TypeString,
 				Optional: true,
+			},
+			"datapoints_to_alarm": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: validation.IntAtLeast(1),
 			},
 			"dimensions": {
 				Type:     schema.TypeMap,
@@ -157,7 +170,9 @@ func resourceAwsCloudWatchMetricAlarmRead(d *schema.ResourceData, meta interface
 	}
 	d.Set("alarm_description", a.AlarmDescription)
 	d.Set("alarm_name", a.AlarmName)
+	d.Set("arn", a.AlarmArn)
 	d.Set("comparison_operator", a.ComparisonOperator)
+	d.Set("datapoints_to_alarm", a.DatapointsToAlarm)
 	if err := d.Set("dimensions", flattenDimensions(a.Dimensions)); err != nil {
 		return err
 	}
@@ -219,7 +234,6 @@ func resourceAwsCloudWatchMetricAlarmDelete(d *schema.ResourceData, meta interfa
 	}
 	log.Println("[INFO] CloudWatch Metric Alarm deleted")
 
-	d.SetId("")
 	return nil
 }
 
@@ -241,6 +255,10 @@ func getAwsCloudWatchPutMetricAlarmInput(d *schema.ResourceData) cloudwatch.PutM
 
 	if v, ok := d.GetOk("alarm_description"); ok {
 		params.AlarmDescription = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("datapoints_to_alarm"); ok {
+		params.DatapointsToAlarm = aws.Int64(int64(v.(int)))
 	}
 
 	if v, ok := d.GetOk("unit"); ok {
@@ -313,7 +331,7 @@ func getAwsCloudWatchMetricAlarm(d *schema.ResourceData, meta interface{}) (*clo
 
 	// Find it and return it
 	for idx, ma := range resp.MetricAlarms {
-		if *ma.AlarmName == d.Id() {
+		if aws.StringValue(ma.AlarmName) == d.Id() {
 			return resp.MetricAlarms[idx], nil
 		}
 	}
@@ -324,7 +342,7 @@ func getAwsCloudWatchMetricAlarm(d *schema.ResourceData, meta interface{}) (*clo
 func _strArrPtrToList(strArrPtr []*string) []string {
 	var result []string
 	for _, elem := range strArrPtr {
-		result = append(result, *elem)
+		result = append(result, aws.StringValue(elem))
 	}
 	return result
 }

@@ -42,6 +42,9 @@ type HostCredentials interface {
 	// receiving credentials. The usual behavior of this method is to
 	// add some sort of Authorization header to the request.
 	PrepareRequest(req *http.Request)
+
+	// Token returns the authentication token.
+	Token() string
 }
 
 // ForHost iterates over the contained CredentialsSource objects and

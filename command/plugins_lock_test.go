@@ -7,7 +7,7 @@ import (
 )
 
 func TestPluginSHA256LockFile(t *testing.T) {
-	f, err := ioutil.TempFile("", "tf-pluginsha1lockfile-test-")
+	f, err := ioutil.TempFile(testingDir, "tf-pluginsha1lockfile-test-")
 	if err != nil {
 		t.Fatalf("failed to create temporary file: %s", err)
 	}

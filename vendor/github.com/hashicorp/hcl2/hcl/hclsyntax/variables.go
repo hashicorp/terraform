@@ -72,15 +72,15 @@ func (w *variablesWalker) Exit(n Node) hcl.Diagnostics {
 // that the child scope struct wraps.
 type ChildScope struct {
 	LocalNames map[string]struct{}
-	Expr       *Expression // pointer because it can be replaced on walk
+	Expr       Expression
 }
 
 func (e ChildScope) walkChildNodes(w internalWalkFunc) {
-	*(e.Expr) = w(*(e.Expr)).(Expression)
+	w(e.Expr)
 }
 
 // Range returns the range of the expression that the ChildScope is
 // encapsulating. It isn't really very useful to call Range on a ChildScope.
 func (e ChildScope) Range() hcl.Range {
-	return (*e.Expr).Range()
+	return e.Expr.Range()
 }

@@ -3,16 +3,17 @@ package terraform
 import (
 	"log"
 
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/states"
 )
 
 // OrphanOutputTransformer finds the outputs that aren't present
 // in the given config that are in the state and adds them to the graph
 // for deletion.
 type OrphanOutputTransformer struct {
-	Module *module.Tree // Root module
-	State  *State       // State is the root state
+	Config *configs.Config // Root of config tree
+	State  *states.State   // State is the root state
 }
 
 func (t *OrphanOutputTransformer) Transform(g *Graph) error {
@@ -21,43 +22,38 @@ func (t *OrphanOutputTransformer) Transform(g *Graph) error {
 		return nil
 	}
 
-	return t.transform(g, t.Module)
-}
-
-func (t *OrphanOutputTransformer) transform(g *Graph, m *module.Tree) error {
-	// Get our configuration, and recurse into children
-	var c *config.Config
-	if m != nil {
-		c = m.Config()
-		for _, child := range m.Children() {
-			if err := t.transform(g, child); err != nil {
-				return err
-			}
+	for _, ms := range t.State.Modules {
+		if err := t.transform(g, ms); err != nil {
+			return err
 		}
 	}
+	return nil
+}
 
-	// Get the state. If there is no state, then we have no orphans!
-	path := normalizeModulePath(m.Path())
-	state := t.State.ModuleByPath(path)
-	if state == nil {
+func (t *OrphanOutputTransformer) transform(g *Graph, ms *states.Module) error {
+	if ms == nil {
 		return nil
 	}
 
-	// Make a map of the valid outputs
-	valid := make(map[string]struct{})
-	for _, o := range c.Outputs {
-		valid[o.Name] = struct{}{}
+	moduleAddr := ms.Addr
+
+	// Get the config for this path, which is nil if the entire module has been
+	// removed.
+	var outputs map[string]*configs.Output
+	if c := t.Config.DescendentForInstance(moduleAddr); c != nil {
+		outputs = c.Module.Outputs
 	}
 
-	// Go through the outputs and find the ones that aren't in our config.
-	for n, _ := range state.Outputs {
-		// If it is in the valid map, then ignore
-		if _, ok := valid[n]; ok {
+	// An output is "orphaned" if it's present in the state but not declared
+	// in the configuration.
+	for name := range ms.OutputValues {
+		if _, exists := outputs[name]; exists {
 			continue
 		}
 
-		// Orphan!
-		g.Add(&NodeOutputOrphan{OutputName: n, PathValue: path})
+		g.Add(&NodeOutputOrphan{
+			Addr: addrs.OutputValue{Name: name}.Absolute(moduleAddr),
+		})
 	}
 
 	return nil

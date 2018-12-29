@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -14,52 +16,72 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
+var resourceAwsApiGatewayMethodResponseMutex = &sync.Mutex{}
+
 func resourceAwsApiGatewayMethodResponse() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsApiGatewayMethodResponseCreate,
 		Read:   resourceAwsApiGatewayMethodResponseRead,
 		Update: resourceAwsApiGatewayMethodResponseUpdate,
 		Delete: resourceAwsApiGatewayMethodResponseDelete,
+		Importer: &schema.ResourceImporter{
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				idParts := strings.Split(d.Id(), "/")
+				if len(idParts) != 4 || idParts[0] == "" || idParts[1] == "" || idParts[2] == "" || idParts[3] == "" {
+					return nil, fmt.Errorf("Unexpected format of ID (%q), expected REST-API-ID/RESOURCE-ID/HTTP-METHOD/STATUS-CODE", d.Id())
+				}
+				restApiID := idParts[0]
+				resourceID := idParts[1]
+				httpMethod := idParts[2]
+				statusCode := idParts[3]
+				d.Set("http_method", httpMethod)
+				d.Set("status_code", statusCode)
+				d.Set("resource_id", resourceID)
+				d.Set("rest_api_id", restApiID)
+				d.SetId(fmt.Sprintf("agmr-%s-%s-%s-%s", restApiID, resourceID, httpMethod, statusCode))
+				return []*schema.ResourceData{d}, nil
+			},
+		},
 
 		Schema: map[string]*schema.Schema{
-			"rest_api_id": &schema.Schema{
+			"rest_api_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"resource_id": &schema.Schema{
+			"resource_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"http_method": &schema.Schema{
+			"http_method": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				ValidateFunc: validateHTTPMethod,
+				ValidateFunc: validateHTTPMethod(),
 			},
 
-			"status_code": &schema.Schema{
+			"status_code": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"response_models": &schema.Schema{
+			"response_models": {
 				Type:     schema.TypeMap,
 				Optional: true,
-				Elem:     schema.TypeString,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
-			"response_parameters": &schema.Schema{
+			"response_parameters": {
 				Type:          schema.TypeMap,
-				Elem:          schema.TypeBool,
+				Elem:          &schema.Schema{Type: schema.TypeBool},
 				Optional:      true,
 				ConflictsWith: []string{"response_parameters_in_json"},
 			},
 
-			"response_parameters_in_json": &schema.Schema{
+			"response_parameters_in_json": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ConflictsWith: []string{"response_parameters"},
@@ -93,14 +115,20 @@ func resourceAwsApiGatewayMethodResponseCreate(d *schema.ResourceData, meta inte
 		}
 	}
 
-	_, err := conn.PutMethodResponse(&apigateway.PutMethodResponseInput{
-		HttpMethod:         aws.String(d.Get("http_method").(string)),
-		ResourceId:         aws.String(d.Get("resource_id").(string)),
-		RestApiId:          aws.String(d.Get("rest_api_id").(string)),
-		StatusCode:         aws.String(d.Get("status_code").(string)),
-		ResponseModels:     aws.StringMap(models),
-		ResponseParameters: aws.BoolMap(parameters),
+	resourceAwsApiGatewayMethodResponseMutex.Lock()
+	defer resourceAwsApiGatewayMethodResponseMutex.Unlock()
+
+	_, err := retryOnAwsCode(apigateway.ErrCodeConflictException, func() (interface{}, error) {
+		return conn.PutMethodResponse(&apigateway.PutMethodResponseInput{
+			HttpMethod:         aws.String(d.Get("http_method").(string)),
+			ResourceId:         aws.String(d.Get("resource_id").(string)),
+			RestApiId:          aws.String(d.Get("rest_api_id").(string)),
+			StatusCode:         aws.String(d.Get("status_code").(string)),
+			ResponseModels:     aws.StringMap(models),
+			ResponseParameters: aws.BoolMap(parameters),
+		})
 	})
+
 	if err != nil {
 		return fmt.Errorf("Error creating API Gateway Method Response: %s", err)
 	}
@@ -114,7 +142,7 @@ func resourceAwsApiGatewayMethodResponseCreate(d *schema.ResourceData, meta inte
 func resourceAwsApiGatewayMethodResponseRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).apigateway
 
-	log.Printf("[DEBUG] Reading API Gateway Method %s", d.Id())
+	log.Printf("[DEBUG] Reading API Gateway Method Response %s", d.Id())
 	methodResponse, err := conn.GetMethodResponse(&apigateway.GetMethodResponseInput{
 		HttpMethod: aws.String(d.Get("http_method").(string)),
 		ResourceId: aws.String(d.Get("resource_id").(string)),
@@ -123,17 +151,30 @@ func resourceAwsApiGatewayMethodResponseRead(d *schema.ResourceData, meta interf
 	})
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NotFoundException" {
+			log.Printf("[WARN] API Gateway Response (%s) not found, removing from state", d.Id())
 			d.SetId("")
 			return nil
 		}
 		return err
 	}
 
-	log.Printf("[DEBUG] Received API Gateway Method: %s", methodResponse)
-	d.Set("response_models", aws.StringValueMap(methodResponse.ResponseModels))
-	d.Set("response_parameters", aws.BoolValueMap(methodResponse.ResponseParameters))
-	d.Set("response_parameters_in_json", aws.BoolValueMap(methodResponse.ResponseParameters))
-	d.SetId(fmt.Sprintf("agmr-%s-%s-%s-%s", d.Get("rest_api_id").(string), d.Get("resource_id").(string), d.Get("http_method").(string), d.Get("status_code").(string)))
+	log.Printf("[DEBUG] Received API Gateway Method Response: %s", methodResponse)
+
+	if err := d.Set("response_models", aws.StringValueMap(methodResponse.ResponseModels)); err != nil {
+		return fmt.Errorf("error setting response_models: %s", err)
+	}
+
+	if err := d.Set("response_parameters", aws.BoolValueMap(methodResponse.ResponseParameters)); err != nil {
+		return fmt.Errorf("error setting response_parameters: %s", err)
+	}
+
+	// KNOWN ISSUE: This next d.Set() is broken as it should be a JSON string of the map,
+	//              however leaving as-is since this attribute has been deprecated
+	//              for a very long time and will be removed soon in the next major release.
+	//              Not worth the effort of fixing, acceptance testing, and potential JSON equivalence bugs.
+	if _, ok := d.GetOk("response_parameters_in_json"); ok {
+		d.Set("response_parameters_in_json", aws.BoolValueMap(methodResponse.ResponseParameters))
+	}
 
 	return nil
 }

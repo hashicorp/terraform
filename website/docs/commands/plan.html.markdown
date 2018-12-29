@@ -52,10 +52,6 @@ The command-line flags are all optional. The list of available flags are:
 
 * `-lock-timeout=0s` - Duration to retry a state lock.
 
-* `-module-depth=n` - Specifies the depth of modules to show in the output.
-  This does not affect the plan itself, only the output shown. By default,
-  this is -1, which will expand all.
-
 * `-no-color` - Disables output with coloring.
 
 * `-out=path` - The path to save the generated execution plan. This plan
@@ -100,7 +96,7 @@ to specify the constraint. The resource address is interpreted as follows:
   is specified in the address, all of the instances sharing the given
   resource name are targeted.
 
-* The the given address _does not_ have a resource spec, and instead just
+* If the given address _does not_ have a resource spec, and instead just
   specifies a module path, the target applies to all resources in the
   specified module _and_ all of the descendent modules of the specified
   module.

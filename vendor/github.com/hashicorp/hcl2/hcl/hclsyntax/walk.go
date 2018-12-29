@@ -15,9 +15,8 @@ type VisitFunc func(node Node) hcl.Diagnostics
 // and returned as a single set.
 func VisitAll(node Node, f VisitFunc) hcl.Diagnostics {
 	diags := f(node)
-	node.walkChildNodes(func(node Node) Node {
+	node.walkChildNodes(func(node Node) {
 		diags = append(diags, VisitAll(node, f)...)
-		return node
 	})
 	return diags
 }
@@ -33,45 +32,10 @@ type Walker interface {
 // Enter and Exit functions.
 func Walk(node Node, w Walker) hcl.Diagnostics {
 	diags := w.Enter(node)
-	node.walkChildNodes(func(node Node) Node {
+	node.walkChildNodes(func(node Node) {
 		diags = append(diags, Walk(node, w)...)
-		return node
 	})
+	moreDiags := w.Exit(node)
+	diags = append(diags, moreDiags...)
 	return diags
-}
-
-// Transformer is an interface used with Transform
-type Transformer interface {
-	// Transform accepts a node and returns a replacement node along with
-	// a flag for whether to also visit child nodes. If the flag is false,
-	// none of the child nodes will be visited and the TransformExit method
-	// will not be called for the node.
-	//
-	// It is acceptable and appropriate for Transform to return the same node
-	// it was given, for situations where no transform is needed.
-	Transform(node Node) (Node, bool, hcl.Diagnostics)
-
-	// TransformExit signals the end of transformations of child nodes of the
-	// given node. If Transform returned a new node, the given node is the
-	// node that was returned, rather than the node that was originally
-	// encountered.
-	TransformExit(node Node) hcl.Diagnostics
-}
-
-// Transform allows for in-place transformations of an AST starting with a
-// particular node. The provider Transformer implementation drives the
-// transformation process. The return value is the node that replaced the
-// given top-level node.
-func Transform(node Node, t Transformer) (Node, hcl.Diagnostics) {
-	newNode, descend, diags := t.Transform(node)
-	if !descend {
-		return newNode, diags
-	}
-	node.walkChildNodes(func(node Node) Node {
-		newNode, newDiags := Transform(node, t)
-		diags = append(diags, newDiags...)
-		return newNode
-	})
-	diags = append(diags, t.TransformExit(newNode)...)
-	return newNode, diags
 }

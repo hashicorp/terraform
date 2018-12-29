@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 
 	getter "github.com/hashicorp/go-getter"
+	"github.com/hashicorp/terraform/registry"
 	"github.com/hashicorp/terraform/registry/regsrc"
-	"github.com/hashicorp/terraform/svchost/auth"
 	"github.com/hashicorp/terraform/svchost/disco"
 	"github.com/mitchellh/cli"
 )
@@ -63,30 +63,24 @@ type Storage struct {
 	// StorageDir is the full path to the directory where all modules will be
 	// stored.
 	StorageDir string
-	// Services is a required *disco.Disco, which may have services and
-	// credentials pre-loaded.
-	Services *disco.Disco
-	// Creds optionally provides credentials for communicating with service
-	// providers.
-	Creds auth.CredentialsSource
+
 	// Ui is an optional cli.Ui for user output
 	Ui cli.Ui
+
 	// Mode is the GetMode that will be used for various operations.
 	Mode GetMode
+
+	registry *registry.Client
 }
 
-func NewStorage(dir string, services *disco.Disco, creds auth.CredentialsSource) *Storage {
-	s := &Storage{
-		StorageDir: dir,
-		Services:   services,
-		Creds:      creds,
-	}
+// NewStorage returns a new initialized Storage object.
+func NewStorage(dir string, services *disco.Disco) *Storage {
+	regClient := registry.NewClient(services, nil)
 
-	// make sure this isn't nil
-	if s.Services == nil {
-		s.Services = disco.NewDisco()
+	return &Storage{
+		StorageDir: dir,
+		registry:   regClient,
 	}
-	return s
 }
 
 // loadManifest returns the moduleManifest file from the parent directory.
@@ -297,17 +291,17 @@ func (s Storage) findRegistryModule(mSource, constraint string) (moduleRecord, e
 	}
 	rec.registry = true
 
-	log.Printf("[TRACE] %q is a registry module", mod.Module())
+	log.Printf("[TRACE] %q is a registry module", mod.Display())
 
 	versions, err := s.moduleVersions(mod.String())
 	if err != nil {
-		log.Printf("[ERROR] error looking up versions for %q: %s", mod.Module(), err)
+		log.Printf("[ERROR] error looking up versions for %q: %s", mod.Display(), err)
 		return rec, err
 	}
 
 	match, err := newestRecord(versions, constraint)
 	if err != nil {
-		log.Printf("[INFO] no matching version for %q<%s>, %s", mod.Module(), constraint, err)
+		log.Printf("[INFO] no matching version for %q<%s>, %s", mod.Display(), constraint, err)
 	}
 	log.Printf("[DEBUG] matched %q version %s for %s", mod, match.Version, constraint)
 
@@ -318,13 +312,13 @@ func (s Storage) findRegistryModule(mSource, constraint string) (moduleRecord, e
 	// we need to lookup available versions
 	// Only on Get if it's not found, on unconditionally on Update
 	if (s.Mode == GetModeGet && !found) || (s.Mode == GetModeUpdate) {
-		resp, err := s.lookupModuleVersions(mod)
+		resp, err := s.registry.ModuleVersions(mod)
 		if err != nil {
 			return rec, err
 		}
 
 		if len(resp.Modules) == 0 {
-			return rec, fmt.Errorf("module %q not found in registry", mod.Module())
+			return rec, fmt.Errorf("module %q not found in registry", mod.Display())
 		}
 
 		match, err := newestVersion(resp.Modules[0].Versions, constraint)
@@ -333,17 +327,19 @@ func (s Storage) findRegistryModule(mSource, constraint string) (moduleRecord, e
 		}
 
 		if match == nil {
-			return rec, fmt.Errorf("no versions for %q found matching %q", mod.Module(), constraint)
+			return rec, fmt.Errorf("no versions for %q found matching %q", mod.Display(), constraint)
 		}
 
 		rec.Version = match.Version
 
-		rec.url, err = s.lookupModuleLocation(mod, rec.Version)
+		rec.url, err = s.registry.ModuleLocation(mod, rec.Version)
 		if err != nil {
 			return rec, err
 		}
 
-		s.output(fmt.Sprintf("  Found version %s of %s on %s", rec.Version, mod.Module(), mod.RawHost.Display()))
+		// we've already validated this by now
+		host, _ := mod.SvcHost()
+		s.output(fmt.Sprintf("  Found version %s of %s on %s", rec.Version, mod.Module(), host.ForDisplay()))
 
 	}
 	return rec, nil

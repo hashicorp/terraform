@@ -26,6 +26,12 @@ func New() backend.Backend {
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"TRITON_ACCOUNT", "SDC_ACCOUNT"}, ""),
 			},
 
+			"user": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"TRITON_USER", "SDC_USER"}, ""),
+			},
+
 			"url": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -55,7 +61,7 @@ func New() backend.Backend {
 				Required: true,
 			},
 
-			"objectName": {
+			"object_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "terraform.tfstate",
@@ -80,6 +86,7 @@ type Backend struct {
 
 type BackendConfig struct {
 	AccountId   string
+	Username    string
 	KeyId       string
 	AccountUrl  string
 	KeyMaterial string
@@ -100,12 +107,21 @@ func (b *Backend) configure(ctx context.Context) error {
 		SkipTls:    data.Get("insecure_skip_tls_verify").(bool),
 	}
 
+	if v, ok := data.GetOk("user"); ok {
+		config.Username = v.(string)
+	}
+
 	if v, ok := data.GetOk("key_material"); ok {
 		config.KeyMaterial = v.(string)
 	}
 
 	b.path = data.Get("path").(string)
-	b.objectName = data.Get("objectName").(string)
+	b.objectName = data.Get("object_name").(string)
+
+	// If object_name is not set, try the deprecated objectName.
+	if b.objectName == "" {
+		b.objectName = data.Get("objectName").(string)
+	}
 
 	var validationError *multierror.Error
 
@@ -127,7 +143,12 @@ func (b *Backend) configure(ctx context.Context) error {
 	var err error
 
 	if config.KeyMaterial == "" {
-		signer, err = authentication.NewSSHAgentSigner(config.KeyId, config.AccountId)
+		input := authentication.SSHAgentSignerInput{
+			KeyID:       config.KeyId,
+			AccountName: config.AccountId,
+			Username:    config.Username,
+		}
+		signer, err = authentication.NewSSHAgentSigner(input)
 		if err != nil {
 			return errwrap.Wrapf("Error Creating SSH Agent Signer: {{err}}", err)
 		}
@@ -155,7 +176,14 @@ func (b *Backend) configure(ctx context.Context) error {
 			keyBytes = []byte(config.KeyMaterial)
 		}
 
-		signer, err = authentication.NewPrivateKeySigner(config.KeyId, keyBytes, config.AccountId)
+		input := authentication.PrivateKeySignerInput{
+			KeyID:              config.KeyId,
+			PrivateKeyMaterial: keyBytes,
+			AccountName:        config.AccountId,
+			Username:           config.Username,
+		}
+
+		signer, err = authentication.NewPrivateKeySigner(input)
 		if err != nil {
 			return errwrap.Wrapf("Error Creating SSH Private Key Signer: {{err}}", err)
 		}
@@ -164,6 +192,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	clientConfig := &triton.ClientConfig{
 		MantaURL:    config.AccountUrl,
 		AccountName: config.AccountId,
+		Username:    config.Username,
 		Signers:     []authentication.Signer{signer},
 	}
 	triton, err := storage.NewClient(clientConfig)

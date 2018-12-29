@@ -4,95 +4,111 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/tfdiags"
+
+	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl2/hcltest"
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/zclconf/go-cty/cty"
 )
 
-func TestEvalValidateResourceSelfRef(t *testing.T) {
-	cases := []struct {
-		Name   string
-		Addr   string
-		Config map[string]interface{}
-		Err    bool
+func TestEvalValidateSelfRef(t *testing.T) {
+	rAddr := addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: "aws_instance",
+		Name: "foo",
+	}
+
+	tests := []struct {
+		Name string
+		Addr addrs.Referenceable
+		Expr hcl.Expression
+		Err  bool
 	}{
 		{
-			"no interpolations",
-			"aws_instance.foo",
-			map[string]interface{}{
-				"foo": "bar",
-			},
+			"no references at all",
+			rAddr,
+			hcltest.MockExprLiteral(cty.StringVal("bar")),
 			false,
 		},
 
 		{
 			"non self reference",
-			"aws_instance.foo",
-			map[string]interface{}{
-				"foo": "${aws_instance.bar.id}",
-			},
+			rAddr,
+			hcltest.MockExprTraversalSrc("aws_instance.bar.id"),
 			false,
 		},
 
 		{
 			"self reference",
-			"aws_instance.foo",
-			map[string]interface{}{
-				"foo": "hello ${aws_instance.foo.id}",
-			},
+			rAddr,
+			hcltest.MockExprTraversalSrc("aws_instance.foo.id"),
 			true,
 		},
 
 		{
 			"self reference other index",
-			"aws_instance.foo",
-			map[string]interface{}{
-				"foo": "hello ${aws_instance.foo.4.id}",
-			},
+			rAddr,
+			hcltest.MockExprTraversalSrc("aws_instance.foo[4].id"),
 			false,
 		},
 
 		{
 			"self reference same index",
-			"aws_instance.foo[4]",
-			map[string]interface{}{
-				"foo": "hello ${aws_instance.foo.4.id}",
-			},
+			rAddr.Instance(addrs.IntKey(4)),
+			hcltest.MockExprTraversalSrc("aws_instance.foo[4].id"),
 			true,
 		},
 
 		{
-			"self reference multi",
-			"aws_instance.foo[4]",
-			map[string]interface{}{
-				"foo": "hello ${aws_instance.foo.*.id}",
-			},
-			true,
-		},
-
-		{
-			"self reference multi single",
-			"aws_instance.foo",
-			map[string]interface{}{
-				"foo": "hello ${aws_instance.foo.*.id}",
-			},
+			"self reference whole",
+			rAddr.Instance(addrs.IntKey(4)),
+			hcltest.MockExprTraversalSrc("aws_instance.foo"),
 			true,
 		},
 	}
 
-	for i, tc := range cases {
-		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
-			addr, err := ParseResourceAddress(tc.Addr)
-			if err != nil {
-				t.Fatalf("err: %s", err)
-			}
-			conf := config.TestRawConfig(t, tc.Config)
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("%d-%s", i, test.Name), func(t *testing.T) {
+			body := hcltest.MockBody(&hcl.BodyContent{
+				Attributes: hcl.Attributes{
+					"foo": {
+						Name: "foo",
+						Expr: test.Expr,
+					},
+				},
+			})
 
-			n := &EvalValidateResourceSelfRef{Addr: &addr, Config: &conf}
+			ps := &ProviderSchema{
+				ResourceTypes: map[string]*configschema.Block{
+					"aws_instance": &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"foo": {
+								Type:     cty.String,
+								Required: true,
+							},
+						},
+					},
+				},
+			}
+
+			n := &EvalValidateSelfRef{
+				Addr:           test.Addr,
+				Config:         body,
+				ProviderSchema: &ps,
+			}
 			result, err := n.Eval(nil)
 			if result != nil {
 				t.Fatal("result should always be nil")
 			}
-			if (err != nil) != tc.Err {
-				t.Fatalf("err: %s", err)
+			diags := tfdiags.Diagnostics(nil).Append(err)
+			if diags.HasErrors() != test.Err {
+				if test.Err {
+					t.Errorf("unexpected success; want error")
+				} else {
+					t.Errorf("unexpected error\n\n%s", diags.Err())
+				}
 			}
 		})
 	}

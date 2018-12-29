@@ -45,7 +45,7 @@ func TestDiscover(t *testing.T) {
 			t.Fatalf("test server hostname is invalid: %s", err)
 		}
 
-		d := NewDisco()
+		d := New()
 		discovered := d.Discover(host)
 		gotURL := discovered.ServiceURL("thingy.v1")
 		if gotURL == nil {
@@ -80,7 +80,7 @@ func TestDiscover(t *testing.T) {
 			t.Fatalf("test server hostname is invalid: %s", err)
 		}
 
-		d := NewDisco()
+		d := New()
 		discovered := d.Discover(host)
 		gotURL := discovered.ServiceURL("wotsit.v2")
 		if gotURL == nil {
@@ -107,7 +107,7 @@ func TestDiscover(t *testing.T) {
 			t.Fatalf("test server hostname is invalid: %s", err)
 		}
 
-		d := NewDisco()
+		d := New()
 		d.SetCredentialsSource(auth.StaticCredentialsSource(map[svchost.Hostname]map[string]interface{}{
 			host: map[string]interface{}{
 				"token": "abc123",
@@ -124,7 +124,7 @@ func TestDiscover(t *testing.T) {
 			"wotsit.v2": "/foo",
 		}
 
-		d := NewDisco()
+		d := New()
 		d.ForceHostServices(svchost.Hostname("example.com"), forced)
 
 		givenHost := "example.com"
@@ -167,7 +167,7 @@ func TestDiscover(t *testing.T) {
 			t.Fatalf("test server hostname is invalid: %s", err)
 		}
 
-		d := NewDisco()
+		d := New()
 		discovered := d.Discover(host)
 
 		// result should be empty, which we can verify only by reaching into
@@ -190,7 +190,7 @@ func TestDiscover(t *testing.T) {
 			t.Fatalf("test server hostname is invalid: %s", err)
 		}
 
-		d := NewDisco()
+		d := New()
 		discovered := d.Discover(host)
 
 		// result should be empty, which we can verify only by reaching into
@@ -217,7 +217,7 @@ func TestDiscover(t *testing.T) {
 			t.Fatalf("test server hostname is invalid: %s", err)
 		}
 
-		d := NewDisco()
+		d := New()
 		discovered := d.Discover(host)
 
 		if discovered.services == nil {
@@ -236,7 +236,7 @@ func TestDiscover(t *testing.T) {
 			t.Fatalf("test server hostname is invalid: %s", err)
 		}
 
-		d := NewDisco()
+		d := New()
 		discovered := d.Discover(host)
 
 		// result should be empty, which we can verify only by reaching into
@@ -267,7 +267,7 @@ func TestDiscover(t *testing.T) {
 			t.Fatalf("test server hostname is invalid: %s", err)
 		}
 
-		d := NewDisco()
+		d := New()
 		discovered := d.Discover(host)
 
 		gotURL := discovered.ServiceURL("thingy.v1")

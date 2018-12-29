@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/apigateway"
-	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -47,7 +47,7 @@ func resourceAwsApiGatewayDeployment() *schema.Resource {
 				Type:     schema.TypeMap,
 				Optional: true,
 				ForceNew: true,
-				Elem:     schema.TypeString,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
 			"created_date": {
@@ -107,6 +107,7 @@ func resourceAwsApiGatewayDeploymentRead(d *schema.ResourceData, meta interface{
 	})
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NotFoundException" {
+			log.Printf("[WARN] API Gateway Deployment (%s) not found, removing from state", d.Id())
 			d.SetId("")
 			return nil
 		}
@@ -120,12 +121,14 @@ func resourceAwsApiGatewayDeploymentRead(d *schema.ResourceData, meta interface{
 
 	d.Set("invoke_url", buildApiGatewayInvokeURL(restApiId, region, stageName))
 
-	accountId := meta.(*AWSClient).accountid
-	arn, err := buildApiGatewayExecutionARN(restApiId, region, accountId)
-	if err != nil {
-		return err
-	}
-	d.Set("execution_arn", arn+"/"+stageName)
+	executionArn := arn.ARN{
+		Partition: meta.(*AWSClient).partition,
+		Service:   "execute-api",
+		Region:    meta.(*AWSClient).region,
+		AccountID: meta.(*AWSClient).accountid,
+		Resource:  fmt.Sprintf("%s/%s", restApiId, stageName),
+	}.String()
+	d.Set("execution_arn", executionArn)
 
 	if err := d.Set("created_date", out.CreatedDate.Format(time.RFC3339)); err != nil {
 		log.Printf("[DEBUG] Error setting created_date: %s", err)
@@ -169,32 +172,44 @@ func resourceAwsApiGatewayDeploymentDelete(d *schema.ResourceData, meta interfac
 	conn := meta.(*AWSClient).apigateway
 	log.Printf("[DEBUG] Deleting API Gateway Deployment: %s", d.Id())
 
-	return resource.Retry(5*time.Minute, func() *resource.RetryError {
-		log.Printf("[DEBUG] schema is %#v", d)
+	// If the stage has been updated to point at a different deployment, then
+	// the stage should not be removed then this deployment is deleted.
+	shouldDeleteStage := false
+
+	stage, err := conn.GetStage(&apigateway.GetStageInput{
+		StageName: aws.String(d.Get("stage_name").(string)),
+		RestApiId: aws.String(d.Get("rest_api_id").(string)),
+	})
+
+	if err != nil && !isAWSErr(err, apigateway.ErrCodeNotFoundException, "") {
+		return fmt.Errorf("error getting referenced stage: %s", err)
+	}
+
+	if stage != nil && aws.StringValue(stage.DeploymentId) == d.Id() {
+		shouldDeleteStage = true
+	}
+
+	if shouldDeleteStage {
 		if _, err := conn.DeleteStage(&apigateway.DeleteStageInput{
 			StageName: aws.String(d.Get("stage_name").(string)),
 			RestApiId: aws.String(d.Get("rest_api_id").(string)),
 		}); err == nil {
 			return nil
 		}
+	}
 
-		_, err := conn.DeleteDeployment(&apigateway.DeleteDeploymentInput{
-			DeploymentId: aws.String(d.Id()),
-			RestApiId:    aws.String(d.Get("rest_api_id").(string)),
-		})
-		if err == nil {
-			return nil
-		}
-
-		apigatewayErr, ok := err.(awserr.Error)
-		if apigatewayErr.Code() == "NotFoundException" {
-			return nil
-		}
-
-		if !ok {
-			return resource.NonRetryableError(err)
-		}
-
-		return resource.NonRetryableError(err)
+	_, err = conn.DeleteDeployment(&apigateway.DeleteDeploymentInput{
+		DeploymentId: aws.String(d.Id()),
+		RestApiId:    aws.String(d.Get("rest_api_id").(string)),
 	})
+
+	if isAWSErr(err, apigateway.ErrCodeNotFoundException, "") {
+		return nil
+	}
+
+	if err != nil {
+		return fmt.Errorf("error deleting API Gateway Deployment (%s): %s", d.Id(), err)
+	}
+
+	return nil
 }

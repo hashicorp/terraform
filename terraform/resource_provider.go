@@ -5,6 +5,7 @@ import (
 
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/plugin/discovery"
+	"github.com/hashicorp/terraform/providers"
 )
 
 // ResourceProvider is an interface that must be implemented by any
@@ -30,13 +31,12 @@ type ResourceProvider interface {
 	// resource or data source has the SchemaAvailable flag set.
 	GetSchema(*ProviderSchemaRequest) (*ProviderSchema, error)
 
-	// Input is called to ask the provider to ask the user for input
-	// for completing the configuration if necesarry.
+	// Input was used prior to v0.12 to ask the provider to prompt the user
+	// for input to complete the configuration.
 	//
-	// This may or may not be called, so resource provider writers shouldn't
-	// rely on this being available to set some default values for validate
-	// later. Example of a situation where this wouldn't be called is if
-	// the user is not using a TTY.
+	// From v0.12 onwards this method is never called because Terraform Core
+	// is able to handle the necessary input logic itself based on the
+	// schema returned from GetSchema.
 	Input(UIInput, *ResourceConfig) (*ResourceConfig, error)
 
 	// Validate is called once at the beginning with the raw configuration
@@ -296,7 +296,7 @@ func ProviderHasDataSource(p ResourceProvider, n string) bool {
 // This should be called only with configurations that have passed calls
 // to config.Validate(), which ensures that all of the given version
 // constraints are valid. It will panic if any invalid constraints are present.
-func resourceProviderFactories(resolver ResourceProviderResolver, reqd discovery.PluginRequirements) (map[string]ResourceProviderFactory, error) {
+func resourceProviderFactories(resolver providers.Resolver, reqd discovery.PluginRequirements) (map[string]providers.Factory, error) {
 	ret, errs := resolver.ResolveProviders(reqd)
 	if errs != nil {
 		return nil, &ResourceProviderError{

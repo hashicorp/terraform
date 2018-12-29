@@ -19,12 +19,12 @@ func resourceAwsProxyProtocolPolicy() *schema.Resource {
 		Delete: resourceAwsProxyProtocolPolicyDelete,
 
 		Schema: map[string]*schema.Schema{
-			"load_balancer": &schema.Schema{
+			"load_balancer": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"instance_ports": &schema.Schema{
+			"instance_ports": {
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Required: true,
@@ -41,7 +41,7 @@ func resourceAwsProxyProtocolPolicyCreate(d *schema.ResourceData, meta interface
 	input := &elb.CreateLoadBalancerPolicyInput{
 		LoadBalancerName: elbname,
 		PolicyAttributes: []*elb.PolicyAttribute{
-			&elb.PolicyAttribute{
+			{
 				AttributeName:  aws.String("ProxyProtocol"),
 				AttributeValue: aws.String("True"),
 			},
@@ -166,8 +166,6 @@ func resourceAwsProxyProtocolPolicyDelete(d *schema.ResourceData, meta interface
 	resp, err := elbconn.DescribeLoadBalancers(req)
 	if err != nil {
 		if isLoadBalancerNotFound(err) {
-			// The ELB is gone now, so just remove it from the state
-			d.SetId("")
 			return nil
 		}
 		return fmt.Errorf("Error retrieving ELB attributes: %s", err)

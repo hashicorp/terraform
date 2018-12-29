@@ -9,6 +9,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/hashicorp/terraform/tfdiags"
+
 	getter "github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/config"
 )
@@ -188,11 +190,6 @@ func (t *Tree) Load(s *Storage) error {
 	// Set our tree up
 	t.children = children
 
-	// if we're the root module, we can now set the provider inheritance
-	if len(t.path) == 0 {
-		t.inheritProviderConfigs(nil)
-	}
-
 	return nil
 }
 
@@ -348,93 +345,6 @@ func (t *Tree) getChildren(s *Storage) (map[string]*Tree, error) {
 	return children, nil
 }
 
-// inheritProviderConfig resolves all provider config inheritance after the
-// tree is loaded.
-//
-// If there is a provider block without a config, look in the parent's Module
-// block for a provider, and fetch that provider's configuration. If that
-// doesn't exist, assume a default empty config. Implicit providers can still
-// inherit their config all the way up from the root, so walk up the tree and
-// copy the first matching provider into the module.
-func (t *Tree) inheritProviderConfigs(stack []*Tree) {
-	// the recursive calls only append, so we don't need to worry about copying
-	// this slice.
-	stack = append(stack, t)
-	for _, c := range t.children {
-		c.inheritProviderConfigs(stack)
-	}
-
-	if len(stack) == 1 {
-		return
-	}
-
-	providers := make(map[string]*config.ProviderConfig)
-	missingProviders := make(map[string]bool)
-
-	for _, p := range t.config.ProviderConfigs {
-		providers[p.FullName()] = p
-	}
-
-	for _, r := range t.config.Resources {
-		p := r.ProviderFullName()
-		if _, ok := providers[p]; !(ok || strings.Contains(p, ".")) {
-			missingProviders[p] = true
-		}
-	}
-
-	// get our parent's module config block
-	parent := stack[len(stack)-2]
-	var parentModule *config.Module
-	for _, m := range parent.config.Modules {
-		if m.Name == t.name {
-			parentModule = m
-			break
-		}
-	}
-
-	if parentModule == nil {
-		panic("can't be a module without a parent module config")
-	}
-
-	// now look for providers that need a config
-	for p, pc := range providers {
-		if len(pc.RawConfig.RawMap()) > 0 {
-			log.Printf("[TRACE] provider %q has a config, continuing", p)
-			continue
-		}
-
-		// this provider has no config yet, check for one being passed in
-		parentProviderName, ok := parentModule.Providers[p]
-		if !ok {
-			continue
-		}
-
-		var parentProvider *config.ProviderConfig
-		// there's a config for us in the parent module
-		for _, pp := range parent.config.ProviderConfigs {
-			if pp.FullName() == parentProviderName {
-				parentProvider = pp
-				break
-			}
-		}
-
-		if parentProvider == nil {
-			// no config found, assume defaults
-			continue
-		}
-
-		// Copy it in, but set an interpolation Scope.
-		// An interpolation Scope always need to have "root"
-		pc.Path = append([]string{RootName}, parent.path...)
-		pc.RawConfig = parentProvider.RawConfig
-		log.Printf("[TRACE] provider %q inheriting config from %q",
-			strings.Join(append(t.Path(), pc.FullName()), "."),
-			strings.Join(append(parent.Path(), parentProvider.FullName()), "."),
-		)
-	}
-
-}
-
 // Path is the full path to this tree.
 func (t *Tree) Path() []string {
 	return t.path
@@ -475,32 +385,35 @@ func (t *Tree) String() string {
 // as verifying things such as parameters/outputs between the various modules.
 //
 // Load must be called prior to calling Validate or an error will be returned.
-func (t *Tree) Validate() error {
-	if !t.Loaded() {
-		return fmt.Errorf("tree must be loaded before calling Validate")
-	}
+func (t *Tree) Validate() tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 
-	// If something goes wrong, here is our error template
-	newErr := &treeError{Name: []string{t.Name()}}
+	if !t.Loaded() {
+		diags = diags.Append(fmt.Errorf(
+			"tree must be loaded before calling Validate",
+		))
+		return diags
+	}
 
 	// Terraform core does not handle root module children named "root".
 	// We plan to fix this in the future but this bug was brought up in
 	// the middle of a release and we don't want to introduce wide-sweeping
 	// changes at that time.
 	if len(t.path) == 1 && t.name == "root" {
-		return fmt.Errorf("root module cannot contain module named 'root'")
+		diags = diags.Append(fmt.Errorf(
+			"root module cannot contain module named 'root'",
+		))
+		return diags
 	}
 
 	// Validate our configuration first.
-	if err := t.config.Validate(); err != nil {
-		newErr.Add(err)
-	}
+	diags = diags.Append(t.config.Validate())
 
 	// If we're the root, we do extra validation. This validation usually
 	// requires the entire tree (since children don't have parent pointers).
 	if len(t.path) == 0 {
 		if err := t.validateProviderAlias(); err != nil {
-			newErr.Add(err)
+			diags = diags.Append(err)
 		}
 	}
 
@@ -509,20 +422,11 @@ func (t *Tree) Validate() error {
 
 	// Validate all our children
 	for _, c := range children {
-		err := c.Validate()
-		if err == nil {
+		childDiags := c.Validate()
+		diags = diags.Append(childDiags)
+		if diags.HasErrors() {
 			continue
 		}
-
-		verr, ok := err.(*treeError)
-		if !ok {
-			// Unknown error, just return...
-			return err
-		}
-
-		// Append ourselves to the error and then return
-		verr.Name = append(verr.Name, t.Name())
-		newErr.AddChild(verr)
 	}
 
 	// Go over all the modules and verify that any parameters are valid
@@ -548,9 +452,10 @@ func (t *Tree) Validate() error {
 		// Compare to the keys in our raw config for the module
 		for k, _ := range m.RawConfig.Raw {
 			if _, ok := varMap[k]; !ok {
-				newErr.Add(fmt.Errorf(
-					"module %s: %s is not a valid parameter",
-					m.Name, k))
+				diags = diags.Append(fmt.Errorf(
+					"module %q: %q is not a valid argument",
+					m.Name, k,
+				))
 			}
 
 			// Remove the required
@@ -559,9 +464,10 @@ func (t *Tree) Validate() error {
 
 		// If we have any required left over, they aren't set.
 		for k, _ := range requiredMap {
-			newErr.Add(fmt.Errorf(
-				"module %s: required variable %q not set",
-				m.Name, k))
+			diags = diags.Append(fmt.Errorf(
+				"module %q: missing required argument %q",
+				m.Name, k,
+			))
 		}
 	}
 
@@ -576,9 +482,10 @@ func (t *Tree) Validate() error {
 
 			tree, ok := children[mv.Name]
 			if !ok {
-				newErr.Add(fmt.Errorf(
-					"%s: undefined module referenced %s",
-					source, mv.Name))
+				diags = diags.Append(fmt.Errorf(
+					"%s: reference to undefined module %q",
+					source, mv.Name,
+				))
 				continue
 			}
 
@@ -590,14 +497,15 @@ func (t *Tree) Validate() error {
 				}
 			}
 			if !found {
-				newErr.Add(fmt.Errorf(
-					"%s: %s is not a valid output for module %s",
-					source, mv.Field, mv.Name))
+				diags = diags.Append(fmt.Errorf(
+					"%s: %q is not a valid output for module %q",
+					source, mv.Field, mv.Name,
+				))
 			}
 		}
 	}
 
-	return newErr.ErrOrNil()
+	return diags
 }
 
 // versionedPathKey returns a path string with every levels full name, version

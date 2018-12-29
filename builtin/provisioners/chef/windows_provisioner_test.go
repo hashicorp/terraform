@@ -72,6 +72,26 @@ func TestResourceProvider_windowsInstallChefClient(t *testing.T) {
 				"ChefClient.ps1": versionWindowsInstallScript,
 			},
 		},
+
+		"Channel": {
+			Config: map[string]interface{}{
+				"channel":    "current",
+				"node_name":  "nodename1",
+				"run_list":   []interface{}{"cookbook::recipe"},
+				"server_url": "https://chef.local",
+				"user_name":  "bob",
+				"user_key":   "USER-KEY",
+				"version":    "11.18.6",
+			},
+
+			Commands: map[string]bool{
+				"powershell -NoProfile -ExecutionPolicy Bypass -File ChefClient.ps1": true,
+			},
+
+			UploadScripts: map[string]string{
+				"ChefClient.ps1": channelWindowsInstallScript,
+			},
+		},
 	}
 
 	o := new(terraform.MockUIOutput)
@@ -219,7 +239,7 @@ switch ($winver)
 
 if ([System.IntPtr]::Size -eq 4) {$machine_arch = "i686"} else {$machine_arch = "x86_64"}
 
-$url = "http://www.chef.io/chef/download?p=windows&pv=$machine_os&m=$machine_arch&v="
+$url = "http://omnitruck.chef.io/stable/chef/download?p=windows&pv=$machine_os&m=$machine_arch&v="
 $dest = [System.IO.Path]::GetTempFileName()
 $dest = [System.IO.Path]::ChangeExtension($dest, ".msi")
 $downloader = New-Object System.Net.WebClient
@@ -256,7 +276,7 @@ switch ($winver)
 
 if ([System.IntPtr]::Size -eq 4) {$machine_arch = "i686"} else {$machine_arch = "x86_64"}
 
-$url = "http://www.chef.io/chef/download?p=windows&pv=$machine_os&m=$machine_arch&v="
+$url = "http://omnitruck.chef.io/stable/chef/download?p=windows&pv=$machine_os&m=$machine_arch&v="
 $dest = [System.IO.Path]::GetTempFileName()
 $dest = [System.IO.Path]::ChangeExtension($dest, ".msi")
 $downloader = New-Object System.Net.WebClient
@@ -293,7 +313,43 @@ switch ($winver)
 
 if ([System.IntPtr]::Size -eq 4) {$machine_arch = "i686"} else {$machine_arch = "x86_64"}
 
-$url = "http://www.chef.io/chef/download?p=windows&pv=$machine_os&m=$machine_arch&v=11.18.6"
+$url = "http://omnitruck.chef.io/stable/chef/download?p=windows&pv=$machine_os&m=$machine_arch&v=11.18.6"
+$dest = [System.IO.Path]::GetTempFileName()
+$dest = [System.IO.Path]::ChangeExtension($dest, ".msi")
+$downloader = New-Object System.Net.WebClient
+
+$http_proxy = ''
+if ($http_proxy -ne '') {
+	$no_proxy = ''
+  if ($no_proxy -eq ''){
+    $no_proxy = "127.0.0.1"
+  }
+
+  $proxy = New-Object System.Net.WebProxy($http_proxy, $true, ,$no_proxy.Split(','))
+  $downloader.proxy = $proxy
+}
+
+Write-Host 'Downloading Chef Client...'
+$downloader.DownloadFile($url, $dest)
+
+Write-Host 'Installing Chef Client...'
+Start-Process -FilePath msiexec -ArgumentList /qn, /i, $dest -Wait
+`
+const channelWindowsInstallScript = `
+$winver = [System.Environment]::OSVersion.Version | % {"{0}.{1}" -f $_.Major,$_.Minor}
+
+switch ($winver)
+{
+  "6.0" {$machine_os = "2008"}
+  "6.1" {$machine_os = "2008r2"}
+  "6.2" {$machine_os = "2012"}
+  "6.3" {$machine_os = "2012"}
+  default {$machine_os = "2008r2"}
+}
+
+if ([System.IntPtr]::Size -eq 4) {$machine_arch = "i686"} else {$machine_arch = "x86_64"}
+
+$url = "http://omnitruck.chef.io/current/chef/download?p=windows&pv=$machine_os&m=$machine_arch&v=11.18.6"
 $dest = [System.IO.Path]::GetTempFileName()
 $dest = [System.IO.Path]::ChangeExtension($dest, ".msi")
 $downloader = New-Object System.Net.WebClient

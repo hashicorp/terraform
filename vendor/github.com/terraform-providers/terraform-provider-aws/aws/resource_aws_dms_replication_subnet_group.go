@@ -5,7 +5,9 @@ import (
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	dms "github.com/aws/aws-sdk-go/service/databasemigrationservice"
+
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -95,8 +97,14 @@ func resourceAwsDmsReplicationSubnetGroupRead(d *schema.ResourceData, meta inter
 
 	// The AWS API for DMS subnet groups does not return the ARN which is required to
 	// retrieve tags. This ARN can be built.
-	d.Set("replication_subnet_group_arn", fmt.Sprintf("arn:aws:dms:%s:%s:subgrp:%s",
-		meta.(*AWSClient).region, meta.(*AWSClient).accountid, d.Id()))
+	arn := arn.ARN{
+		Partition: meta.(*AWSClient).partition,
+		Service:   "dms",
+		Region:    meta.(*AWSClient).region,
+		AccountID: meta.(*AWSClient).accountid,
+		Resource:  fmt.Sprintf("subgrp:%s", d.Id()),
+	}.String()
+	d.Set("replication_subnet_group_arn", arn)
 
 	err = resourceAwsDmsReplicationSubnetGroupSetState(d, response.ReplicationSubnetGroups[0])
 	if err != nil {

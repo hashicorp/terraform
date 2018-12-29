@@ -1,11 +1,15 @@
 package ssh
 
 import (
+	"bytes"
 	"encoding/pem"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/communicator/shared"
@@ -14,6 +18,7 @@ import (
 	"github.com/xanzy/ssh-agent"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
+	"golang.org/x/crypto/ssh/knownhosts"
 )
 
 const (
@@ -39,6 +44,7 @@ type connectionInfo struct {
 	Password   string
 	PrivateKey string `mapstructure:"private_key"`
 	Host       string
+	HostKey    string `mapstructure:"host_key"`
 	Port       int
 	Agent      bool
 	Timeout    string
@@ -49,7 +55,10 @@ type connectionInfo struct {
 	BastionPassword   string `mapstructure:"bastion_password"`
 	BastionPrivateKey string `mapstructure:"bastion_private_key"`
 	BastionHost       string `mapstructure:"bastion_host"`
+	BastionHostKey    string `mapstructure:"bastion_host_key"`
 	BastionPort       int    `mapstructure:"bastion_port"`
+
+	AgentIdentity string `mapstructure:"agent_identity"`
 }
 
 // parseConnectionInfo is used to convert the ConnInfo of the InstanceState into
@@ -138,34 +147,38 @@ func prepareSSHConfig(connInfo *connectionInfo) (*sshConfig, error) {
 		return nil, err
 	}
 
+	host := fmt.Sprintf("%s:%d", connInfo.Host, connInfo.Port)
+
 	sshConf, err := buildSSHClientConfig(sshClientConfigOpts{
 		user:       connInfo.User,
+		host:       host,
 		privateKey: connInfo.PrivateKey,
 		password:   connInfo.Password,
+		hostKey:    connInfo.HostKey,
 		sshAgent:   sshAgent,
 	})
 	if err != nil {
 		return nil, err
 	}
 
+	connectFunc := ConnectFunc("tcp", host)
+
 	var bastionConf *ssh.ClientConfig
 	if connInfo.BastionHost != "" {
+		bastionHost := fmt.Sprintf("%s:%d", connInfo.BastionHost, connInfo.BastionPort)
+
 		bastionConf, err = buildSSHClientConfig(sshClientConfigOpts{
 			user:       connInfo.BastionUser,
+			host:       bastionHost,
 			privateKey: connInfo.BastionPrivateKey,
 			password:   connInfo.BastionPassword,
+			hostKey:    connInfo.HostKey,
 			sshAgent:   sshAgent,
 		})
 		if err != nil {
 			return nil, err
 		}
-	}
 
-	host := fmt.Sprintf("%s:%d", connInfo.Host, connInfo.Port)
-	connectFunc := ConnectFunc("tcp", host)
-
-	if bastionConf != nil {
-		bastionHost := fmt.Sprintf("%s:%d", connInfo.BastionHost, connInfo.BastionPort)
 		connectFunc = BastionConnectFunc("tcp", bastionHost, bastionConf, "tcp", host)
 	}
 
@@ -182,11 +195,42 @@ type sshClientConfigOpts struct {
 	password   string
 	sshAgent   *sshAgent
 	user       string
+	host       string
+	hostKey    string
 }
 
 func buildSSHClientConfig(opts sshClientConfigOpts) (*ssh.ClientConfig, error) {
+	hkCallback := ssh.InsecureIgnoreHostKey()
+
+	if opts.hostKey != "" {
+		// The knownhosts package only takes paths to files, but terraform
+		// generally wants to handle config data in-memory. Rather than making
+		// the known_hosts file an exception, write out the data to a temporary
+		// file to create the HostKeyCallback.
+		tf, err := ioutil.TempFile("", "tf-known_hosts")
+		if err != nil {
+			return nil, fmt.Errorf("failed to create temp known_hosts file: %s", err)
+		}
+		defer tf.Close()
+		defer os.RemoveAll(tf.Name())
+
+		// we mark this as a CA as well, but the host key fallback will still
+		// use it as a direct match if the remote host doesn't return a
+		// certificate.
+		if _, err := tf.WriteString(fmt.Sprintf("@cert-authority %s %s\n", opts.host, opts.hostKey)); err != nil {
+			return nil, fmt.Errorf("failed to write temp known_hosts file: %s", err)
+		}
+		tf.Sync()
+
+		hkCallback, err = knownhosts.New(tf.Name())
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	conf := &ssh.ClientConfig{
-		User: opts.user,
+		HostKeyCallback: hkCallback,
+		User:            opts.user,
 	}
 
 	if opts.privateKey != "" {
@@ -246,6 +290,7 @@ func connectToAgent(connInfo *connectionInfo) (*sshAgent, error) {
 	return &sshAgent{
 		agent: agent,
 		conn:  conn,
+		id:    connInfo.AgentIdentity,
 	}, nil
 
 }
@@ -255,6 +300,7 @@ func connectToAgent(connInfo *connectionInfo) (*sshAgent, error) {
 type sshAgent struct {
 	agent agent.Agent
 	conn  net.Conn
+	id    string
 }
 
 func (a *sshAgent) Close() error {
@@ -265,8 +311,127 @@ func (a *sshAgent) Close() error {
 	return a.conn.Close()
 }
 
+// make an attempt to either read the identity file or find a corresponding
+// public key file using the typical openssh naming convention.
+// This returns the public key in wire format, or nil when a key is not found.
+func findIDPublicKey(id string) []byte {
+	for _, d := range idKeyData(id) {
+		signer, err := ssh.ParsePrivateKey(d)
+		if err == nil {
+			log.Println("[DEBUG] parsed id private key")
+			pk := signer.PublicKey()
+			return pk.Marshal()
+		}
+
+		// try it as a publicKey
+		pk, err := ssh.ParsePublicKey(d)
+		if err == nil {
+			log.Println("[DEBUG] parsed id public key")
+			return pk.Marshal()
+		}
+
+		// finally try it as an authorized key
+		pk, _, _, _, err = ssh.ParseAuthorizedKey(d)
+		if err == nil {
+			log.Println("[DEBUG] parsed id authorized key")
+			return pk.Marshal()
+		}
+	}
+
+	return nil
+}
+
+// Try to read an id file using the id as the file path. Also read the .pub
+// file if it exists, as the id file may be encrypted. Return only the file
+// data read. We don't need to know what data came from which path, as we will
+// try parsing each as a private key, a public key and an authorized key
+// regardless.
+func idKeyData(id string) [][]byte {
+	idPath, err := filepath.Abs(id)
+	if err != nil {
+		return nil
+	}
+
+	var fileData [][]byte
+
+	paths := []string{idPath}
+
+	if !strings.HasSuffix(idPath, ".pub") {
+		paths = append(paths, idPath+".pub")
+	}
+
+	for _, p := range paths {
+		d, err := ioutil.ReadFile(p)
+		if err != nil {
+			log.Printf("[DEBUG] error reading %q: %s", p, err)
+			continue
+		}
+		log.Printf("[DEBUG] found identity data at %q", p)
+		fileData = append(fileData, d)
+	}
+
+	return fileData
+}
+
+// sortSigners moves a signer with an agent comment field matching the
+// agent_identity to the head of the list when attempting authentication. This
+// helps when there are more keys loaded in an agent than the host will allow
+// attempts.
+func (s *sshAgent) sortSigners(signers []ssh.Signer) {
+	if s.id == "" || len(signers) < 2 {
+		return
+	}
+
+	// if we can locate the public key, either by extracting it from the id or
+	// locating the .pub file, then we can more easily determine an exact match
+	idPk := findIDPublicKey(s.id)
+
+	// if we have a signer with a connect field that matches the id, send that
+	// first, otherwise put close matches at the front of the list.
+	head := 0
+	for i := range signers {
+		pk := signers[i].PublicKey()
+		k, ok := pk.(*agent.Key)
+		if !ok {
+			continue
+		}
+
+		// check for an exact match first
+		if bytes.Equal(pk.Marshal(), idPk) || s.id == k.Comment {
+			signers[0], signers[i] = signers[i], signers[0]
+			break
+		}
+
+		// no exact match yet, move it to the front if it's close. The agent
+		// may have loaded as a full filepath, while the config refers to it by
+		// filename only.
+		if strings.HasSuffix(k.Comment, s.id) {
+			signers[head], signers[i] = signers[i], signers[head]
+			head++
+			continue
+		}
+	}
+
+	ss := []string{}
+	for _, signer := range signers {
+		pk := signer.PublicKey()
+		k := pk.(*agent.Key)
+		ss = append(ss, k.Comment)
+	}
+}
+
+func (s *sshAgent) Signers() ([]ssh.Signer, error) {
+	signers, err := s.agent.Signers()
+	if err != nil {
+		return nil, err
+	}
+
+	s.sortSigners(signers)
+	return signers, nil
+}
+
 func (a *sshAgent) Auth() ssh.AuthMethod {
-	return ssh.PublicKeysCallback(a.agent.Signers)
+	return ssh.PublicKeysCallback(a.Signers)
 }
 
 func (a *sshAgent) ForwardToAgent(client *ssh.Client) error {

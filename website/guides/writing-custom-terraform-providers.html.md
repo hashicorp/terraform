@@ -479,7 +479,7 @@ func resourceServerUpdate(d *schema.ResourceData, m interface{}) error {
 	// then only the "address" field would be saved.
 
 	// We succeeded, disable partial mode. This causes Terraform to save
-	// save all fields again.
+	// all fields again.
 	d.Partial(false)
 
 	return nil
@@ -567,7 +567,7 @@ func resourceServerRead(d *schema.ResourceData, m interface{}) error {
 
 This guide covers the schema and structure for implementing a Terraform provider
 using the provider framework. As next steps, reference the internal providers
-for examples. Terraform also includes a full framework for testing frameworks.
+for examples. Terraform also includes a full framework for testing providers.
 
 ## General Rules
 

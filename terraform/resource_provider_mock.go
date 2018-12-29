@@ -203,6 +203,7 @@ func (p *MockResourceProvider) Diff(
 	p.DiffInfo = info
 	p.DiffState = state
 	p.DiffDesired = desired
+
 	if p.DiffFn != nil {
 		return p.DiffFn(info, state, desired)
 	}

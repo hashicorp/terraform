@@ -26,11 +26,11 @@ func resourceAwsRDSClusterParameterGroup() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
@@ -38,39 +38,40 @@ func resourceAwsRDSClusterParameterGroup() *schema.Resource {
 				ConflictsWith: []string{"name_prefix"},
 				ValidateFunc:  validateDbParamGroupName,
 			},
-			"name_prefix": &schema.Schema{
-				Type:         schema.TypeString,
-				Optional:     true,
-				Computed:     true,
-				ForceNew:     true,
-				ValidateFunc: validateDbParamGroupNamePrefix,
+			"name_prefix": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name"},
+				ValidateFunc:  validateDbParamGroupNamePrefix,
 			},
-			"family": &schema.Schema{
+			"family": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 				Default:  "Managed by Terraform",
 			},
-			"parameter": &schema.Schema{
+			"parameter": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				ForceNew: false,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"value": &schema.Schema{
+						"value": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"apply_method": &schema.Schema{
+						"apply_method": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  "immediate",
@@ -114,13 +115,16 @@ func resourceAwsRDSClusterParameterGroupCreate(d *schema.ResourceData, meta inte
 	}
 
 	log.Printf("[DEBUG] Create DB Cluster Parameter Group: %#v", createOpts)
-	_, err := rdsconn.CreateDBClusterParameterGroup(&createOpts)
+	output, err := rdsconn.CreateDBClusterParameterGroup(&createOpts)
 	if err != nil {
 		return fmt.Errorf("Error creating DB Cluster Parameter Group: %s", err)
 	}
 
 	d.SetId(*createOpts.DBClusterParameterGroupName)
 	log.Printf("[INFO] DB Cluster Parameter Group ID: %s", d.Id())
+
+	// Set for update
+	d.Set("arn", output.DBClusterParameterGroup.DBClusterParameterGroupArn)
 
 	return resourceAwsRDSClusterParameterGroupUpdate(d, meta)
 }
@@ -148,14 +152,16 @@ func resourceAwsRDSClusterParameterGroupRead(d *schema.ResourceData, meta interf
 		return fmt.Errorf("Unable to find Cluster Parameter Group: %#v", describeResp.DBClusterParameterGroups)
 	}
 
-	d.Set("name", describeResp.DBClusterParameterGroups[0].DBClusterParameterGroupName)
-	d.Set("family", describeResp.DBClusterParameterGroups[0].DBParameterGroupFamily)
+	arn := aws.StringValue(describeResp.DBClusterParameterGroups[0].DBClusterParameterGroupArn)
+	d.Set("arn", arn)
 	d.Set("description", describeResp.DBClusterParameterGroups[0].Description)
+	d.Set("family", describeResp.DBClusterParameterGroups[0].DBParameterGroupFamily)
+	d.Set("name", describeResp.DBClusterParameterGroups[0].DBClusterParameterGroupName)
 
 	// Only include user customized parameters as there's hundreds of system/default ones
 	describeParametersOpts := rds.DescribeDBClusterParametersInput{
 		DBClusterParameterGroupName: aws.String(d.Id()),
-		Source: aws.String("user"),
+		Source:                      aws.String("user"),
 	}
 
 	describeParametersResp, err := rdsconn.DescribeDBClusterParameters(&describeParametersOpts)
@@ -165,30 +171,18 @@ func resourceAwsRDSClusterParameterGroupRead(d *schema.ResourceData, meta interf
 
 	d.Set("parameter", flattenParameters(describeParametersResp.Parameters))
 
-	paramGroup := describeResp.DBClusterParameterGroups[0]
-	arn, err := buildRDSCPGARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region)
+	resp, err := rdsconn.ListTagsForResource(&rds.ListTagsForResourceInput{
+		ResourceName: aws.String(arn),
+	})
 	if err != nil {
-		name := "<empty>"
-		if paramGroup.DBClusterParameterGroupName != nil && *paramGroup.DBClusterParameterGroupName != "" {
-			name = *paramGroup.DBClusterParameterGroupName
-		}
-		log.Printf("[DEBUG] Error building ARN for DB Cluster Parameter Group, not setting Tags for Cluster Param Group %s", name)
-	} else {
-		d.Set("arn", arn)
-		resp, err := rdsconn.ListTagsForResource(&rds.ListTagsForResourceInput{
-			ResourceName: aws.String(arn),
-		})
-
-		if err != nil {
-			log.Printf("[DEBUG] Error retrieving tags for ARN: %s", arn)
-		}
-
-		var dt []*rds.Tag
-		if len(resp.TagList) > 0 {
-			dt = resp.TagList
-		}
-		d.Set("tags", tagsToMapRDS(dt))
+		log.Printf("[DEBUG] Error retrieving tags for ARN: %s", arn)
 	}
+
+	var dt []*rds.Tag
+	if len(resp.TagList) > 0 {
+		dt = resp.TagList
+	}
+	d.Set("tags", tagsToMapRDS(dt))
 
 	return nil
 }
@@ -220,7 +214,7 @@ func resourceAwsRDSClusterParameterGroupUpdate(d *schema.ResourceData, meta inte
 			// We can only modify 20 parameters at a time, so walk them until
 			// we've got them all.
 			for parameters != nil {
-				paramsToModify := make([]*rds.Parameter, 0)
+				var paramsToModify []*rds.Parameter
 				if len(parameters) <= rdsClusterParameterGroupMaxParamsBulkEdit {
 					paramsToModify, parameters = parameters[:], nil
 				} else {
@@ -242,12 +236,10 @@ func resourceAwsRDSClusterParameterGroupUpdate(d *schema.ResourceData, meta inte
 		}
 	}
 
-	if arn, err := buildRDSCPGARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region); err == nil {
-		if err := setTagsRDS(rdsconn, d, arn); err != nil {
-			return err
-		} else {
-			d.SetPartial("tags")
-		}
+	if err := setTagsRDS(rdsconn, d, d.Get("arn").(string)); err != nil {
+		return err
+	} else {
+		d.SetPartial("tags")
 	}
 
 	d.Partial(false)
@@ -291,16 +283,4 @@ func resourceAwsRDSClusterParameterGroupDeleteRefreshFunc(
 
 		return d, "destroyed", nil
 	}
-}
-
-func buildRDSCPGARN(identifier, partition, accountid, region string) (string, error) {
-	if partition == "" {
-		return "", fmt.Errorf("Unable to construct RDS Cluster ARN because of missing AWS partition")
-	}
-	if accountid == "" {
-		return "", fmt.Errorf("Unable to construct RDS Cluster ARN because of missing AWS Account ID")
-	}
-	arn := fmt.Sprintf("arn:%s:rds:%s:%s:cluster-pg:%s", partition, region, accountid, identifier)
-	return arn, nil
-
 }

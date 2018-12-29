@@ -10,7 +10,7 @@ description: |-
 
 **Kind: Standard (with locking)**
 
-Stores the state in the [etcd](https://coreos.com/etcd/) KV store wit a given prefix.
+Stores the state in the [etcd](https://coreos.com/etcd/) KV store with a given prefix.
 
 This backend supports [state locking](/docs/state/locking.html).
 
@@ -34,7 +34,7 @@ Note that for the access credentials we recommend using a
 ```hcl
 data "terraform_remote_state" "foo" {
   backend = "etcdv3"
-  config {
+  config = {
     endpoints = ["etcd-1:2379", "etcd-2:2379", "etcd-3:2379"]
     lock      = true
     prefix    = "terraform-state/"

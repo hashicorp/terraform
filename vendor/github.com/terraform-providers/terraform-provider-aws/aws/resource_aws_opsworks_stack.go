@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
@@ -36,11 +35,6 @@ func resourceAwsOpsworksStack() *schema.Resource {
 			},
 
 			"arn": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
-			"id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -390,7 +384,7 @@ func opsworksConnForRegion(region string, meta interface{}) (*opsworks.OpsWorks,
 	// Set up base session
 	sess, err := session.NewSession(&originalConn.Config)
 	if err != nil {
-		return nil, errwrap.Wrapf("Error creating AWS session: {{err}}", err)
+		return nil, fmt.Errorf("Error creating AWS session: %s", err)
 	}
 
 	sess.Handlers.Build.PushBackNamed(addTerraformVersionToUserAgent)
@@ -476,7 +470,6 @@ func resourceAwsOpsworksStackCreate(d *schema.ResourceData, meta interface{}) er
 
 	stackId := *resp.StackId
 	d.SetId(stackId)
-	d.Set("id", stackId)
 
 	if inVpc && *req.UseOpsworksSecurityGroups {
 		// For VPC-based stacks, OpsWorks asynchronously creates some default

@@ -59,7 +59,7 @@ func TestFriendlyHost(t *testing.T) {
 			source:      "xn--s-fka0wmm0zea7g8b.xn--o-8ta85a3b1dwcda1k.io",
 			wantHost:    "xn--s-fka0wmm0zea7g8b.xn--o-8ta85a3b1dwcda1k.io",
 			wantDisplay: "ʎɹʇsıƃǝɹ.ɯɹoɟɐɹɹǝʇ.io",
-			wantNorm:    "xn--s-fka0wmm0zea7g8b.xn--o-8ta85a3b1dwcda1k.io",
+			wantNorm:    InvalidHostString,
 			wantValid:   false,
 		},
 		{
@@ -95,38 +95,47 @@ func TestFriendlyHost(t *testing.T) {
 				if v := gotHost.String(); v != tt.wantHost {
 					t.Fatalf("String() = %v, want %v", v, tt.wantHost)
 				}
-				if v := gotHost.Valid(); v != tt.wantValid {
-					t.Fatalf("Valid() = %v, want %v", v, tt.wantValid)
-				}
-
-				// FIXME: should we allow punycode as input
-				if !tt.wantValid {
-					return
-				}
-
 				if v := gotHost.Display(); v != tt.wantDisplay {
 					t.Fatalf("Display() = %v, want %v", v, tt.wantDisplay)
 				}
 				if v := gotHost.Normalized(); v != tt.wantNorm {
 					t.Fatalf("Normalized() = %v, want %v", v, tt.wantNorm)
 				}
+				if v := gotHost.Valid(); v != tt.wantValid {
+					t.Fatalf("Valid() = %v, want %v", v, tt.wantValid)
+				}
 				if gotRest != strings.TrimLeft(sfx, "/") {
 					t.Fatalf("ParseFriendlyHost() rest = %v, want %v", gotRest, strings.TrimLeft(sfx, "/"))
 				}
 
 				// Also verify that host compares equal with all the variants.
-				if !gotHost.Equal(&FriendlyHost{Raw: tt.wantDisplay}) {
-					t.Fatalf("Equal() should be true for %s and %t", tt.wantHost, tt.wantValid)
+				if gotHost.Valid() && !gotHost.Equal(&FriendlyHost{Raw: tt.wantDisplay}) {
+					t.Fatalf("Equal() should be true for %s and %s", tt.wantHost, tt.wantDisplay)
 				}
-
-				// FIXME: Do we need to accept normalized input?
-				//if !gotHost.Equal(&FriendlyHost{Raw: tt.wantNorm}) {
-				//    fmt.Println(gotHost.Normalized(), tt.wantNorm)
-				//    fmt.Println("     ", (&FriendlyHost{Raw: tt.wantNorm}).Normalized())
-				//    t.Fatalf("Equal() should be true for %s and %s", tt.wantHost, tt.wantNorm)
-				//}
-
 			})
 		}
+	}
+}
+
+func TestInvalidHostEquals(t *testing.T) {
+	invalid := NewFriendlyHost("NOT_A_HOST_NAME")
+	valid := PublicRegistryHost
+
+	// invalid hosts are not comparable
+	if invalid.Equal(invalid) {
+		t.Fatal("invalid host names are not comparable")
+	}
+
+	if valid.Equal(invalid) {
+		t.Fatalf("%q is not equal to %q", valid, invalid)
+	}
+
+	puny := NewFriendlyHost("xn--s-fka0wmm0zea7g8b.xn--o-8ta85a3b1dwcda1k.io")
+	display := NewFriendlyHost("ʎɹʇsıƃǝɹ.ɯɹoɟɐɹɹǝʇ.io")
+
+	// The pre-normalized host is not a valid source, and therefore not
+	// comparable to the display version.
+	if display.Equal(puny) {
+		t.Fatalf("invalid host %q should not be comparable", puny)
 	}
 }

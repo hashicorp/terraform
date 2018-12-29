@@ -3,10 +3,10 @@ variable "foo" {}
 variable "bar" {}
 
 resource "aws_instance" "foo" {
-  ami           = "${var.foo}"
-  instance_type = "${var.bar}"
+  ami      = "${var.foo}"
+  instance = "${var.bar}"
 
   lifecycle {
-    ignore_changes = ["*"]
+    ignore_changes = all
   }
 }

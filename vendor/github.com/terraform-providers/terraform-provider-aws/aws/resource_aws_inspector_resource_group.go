@@ -16,12 +16,12 @@ func resourceAWSInspectorResourceGroup() *schema.Resource {
 		Delete: resourceAwsInspectorResourceGroupDelete,
 
 		Schema: map[string]*schema.Schema{
-			"tags": &schema.Schema{
+			"tags": {
 				ForceNew: true,
 				Type:     schema.TypeMap,
 				Required: true,
 			},
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -69,8 +69,5 @@ func resourceAwsInspectorResourceGroupRead(d *schema.ResourceData, meta interfac
 }
 
 func resourceAwsInspectorResourceGroupDelete(d *schema.ResourceData, meta interface{}) error {
-	d.Set("arn", "")
-	d.SetId("")
-
 	return nil
 }

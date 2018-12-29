@@ -135,6 +135,10 @@ type ResourceDiff struct {
 	// diff does not get re-run on keys that were not touched, or diffs that were
 	// just removed (re-running on the latter would just roll back the removal).
 	updatedKeys map[string]bool
+
+	// Tracks which keys were flagged as forceNew. These keys are not saved in
+	// newWriter, but we need to track them so that they can be re-diffed later.
+	forcedNewKeys map[string]bool
 }
 
 // newResourceDiff creates a new ResourceDiff instance.
@@ -193,15 +197,28 @@ func newResourceDiff(schema map[string]*Schema, config *terraform.ResourceConfig
 	}
 
 	d.updatedKeys = make(map[string]bool)
+	d.forcedNewKeys = make(map[string]bool)
 
 	return d
 }
 
 // UpdatedKeys returns the keys that were updated by this ResourceDiff run.
 // These are the only keys that a diff should be re-calculated for.
+//
+// This is the combined result of both keys for which diff values were updated
+// for or cleared, and also keys that were flagged to be re-diffed as a result
+// of ForceNew.
 func (d *ResourceDiff) UpdatedKeys() []string {
 	var s []string
 	for k := range d.updatedKeys {
+		s = append(s, k)
+	}
+	for k := range d.forcedNewKeys {
+		for _, l := range s {
+			if k == l {
+				break
+			}
+		}
 		s = append(s, k)
 	}
 	return s
@@ -214,7 +231,7 @@ func (d *ResourceDiff) UpdatedKeys() []string {
 // Note that this does not wipe an override. This function is only allowed on
 // computed keys.
 func (d *ResourceDiff) Clear(key string) error {
-	if err := d.checkKey(key, "Clear"); err != nil {
+	if err := d.checkKey(key, "Clear", true); err != nil {
 		return err
 	}
 
@@ -223,9 +240,11 @@ func (d *ResourceDiff) Clear(key string) error {
 
 func (d *ResourceDiff) clear(key string) error {
 	// Check the schema to make sure that this key exists first.
-	if _, ok := d.schema[key]; !ok {
+	schemaL := addrToSchema(strings.Split(key, "."), d.schema)
+	if len(schemaL) == 0 {
 		return fmt.Errorf("%s is not a valid key", key)
 	}
+
 	for k := range d.diff.Attributes {
 		if strings.HasPrefix(k, key) {
 			delete(d.diff.Attributes, k)
@@ -234,19 +253,32 @@ func (d *ResourceDiff) clear(key string) error {
 	return nil
 }
 
+// GetChangedKeysPrefix helps to implement Resource.CustomizeDiff
+// where we need to act on all nested fields
+// without calling out each one separately
+func (d *ResourceDiff) GetChangedKeysPrefix(prefix string) []string {
+	keys := make([]string, 0)
+	for k := range d.diff.Attributes {
+		if strings.HasPrefix(k, prefix) {
+			keys = append(keys, k)
+		}
+	}
+	return keys
+}
+
 // diffChange helps to implement resourceDiffer and derives its change values
 // from ResourceDiff's own change data, in addition to existing diff, config, and state.
-func (d *ResourceDiff) diffChange(key string) (interface{}, interface{}, bool, bool) {
-	old, new := d.getChange(key)
+func (d *ResourceDiff) diffChange(key string) (interface{}, interface{}, bool, bool, bool) {
+	old, new, customized := d.getChange(key)
 
 	if !old.Exists {
 		old.Value = nil
 	}
-	if !new.Exists {
+	if !new.Exists || d.removed(key) {
 		new.Value = nil
 	}
 
-	return old.Value, new.Value, !reflect.DeepEqual(old.Value, new.Value), new.Computed
+	return old.Value, new.Value, !reflect.DeepEqual(old.Value, new.Value), new.Computed, customized
 }
 
 // SetNew is used to set a new diff value for the mentioned key. The value must
@@ -255,7 +287,7 @@ func (d *ResourceDiff) diffChange(key string) (interface{}, interface{}, bool, b
 //
 // This function is only allowed on computed attributes.
 func (d *ResourceDiff) SetNew(key string, value interface{}) error {
-	if err := d.checkKey(key, "SetNew"); err != nil {
+	if err := d.checkKey(key, "SetNew", false); err != nil {
 		return err
 	}
 
@@ -267,7 +299,7 @@ func (d *ResourceDiff) SetNew(key string, value interface{}) error {
 //
 // This function is only allowed on computed attributes.
 func (d *ResourceDiff) SetNewComputed(key string) error {
-	if err := d.checkKey(key, "SetNewComputed"); err != nil {
+	if err := d.checkKey(key, "SetNewComputed", false); err != nil {
 		return err
 	}
 
@@ -309,9 +341,23 @@ func (d *ResourceDiff) ForceNew(key string) error {
 		return fmt.Errorf("ForceNew: No changes for %s", key)
 	}
 
-	_, new := d.GetChange(key)
-	d.schema[key].ForceNew = true
-	return d.setDiff(key, new, false)
+	keyParts := strings.Split(key, ".")
+	var schema *Schema
+	schemaL := addrToSchema(keyParts, d.schema)
+	if len(schemaL) > 0 {
+		schema = schemaL[len(schemaL)-1]
+	} else {
+		return fmt.Errorf("ForceNew: %s is not a valid key", key)
+	}
+
+	schema.ForceNew = true
+
+	// Flag this for a re-diff. Don't save any values to guarantee that existing
+	// diffs aren't messed with, as this gets messy when dealing with complex
+	// structures, zero values, etc.
+	d.forcedNewKeys[keyParts[0]] = true
+
+	return nil
 }
 
 // Get hands off to ResourceData.Get.
@@ -327,7 +373,7 @@ func (d *ResourceDiff) Get(key string) interface{} {
 // results from the exact levels for the new diff, then from state and diff as
 // per normal.
 func (d *ResourceDiff) GetChange(key string) (interface{}, interface{}) {
-	old, new := d.getChange(key)
+	old, new, _ := d.getChange(key)
 	return old.Value, new.Value
 }
 
@@ -350,6 +396,29 @@ func (d *ResourceDiff) GetOk(key string) (interface{}, bool) {
 	}
 
 	return r.Value, exists
+}
+
+// GetOkExists functions the same way as GetOkExists within ResourceData, but
+// it also checks the new diff levels to provide data consistent with the
+// current state of the customized diff.
+//
+// This is nearly the same function as GetOk, yet it does not check
+// for the zero value of the attribute's type. This allows for attributes
+// without a default, to fully check for a literal assignment, regardless
+// of the zero-value for that type.
+func (d *ResourceDiff) GetOkExists(key string) (interface{}, bool) {
+	r := d.get(strings.Split(key, "."), "newDiff")
+	exists := r.Exists && !r.Computed
+	return r.Value, exists
+}
+
+// NewValueKnown returns true if the new value for the given key is available
+// as its final value at diff time. If the return value is false, this means
+// either the value is based of interpolation that was unavailable at diff
+// time, or that the value was explicitly marked as computed by SetNewComputed.
+func (d *ResourceDiff) NewValueKnown(key string) bool {
+	r := d.get(strings.Split(key, "."), "newDiff")
+	return !r.Computed
 }
 
 // HasChange checks to see if there is a change between state and the diff, or
@@ -387,18 +456,27 @@ func (d *ResourceDiff) Id() string {
 // This implementation differs from ResourceData's in the way that we first get
 // results from the exact levels for the new diff, then from state and diff as
 // per normal.
-func (d *ResourceDiff) getChange(key string) (getResult, getResult) {
+func (d *ResourceDiff) getChange(key string) (getResult, getResult, bool) {
 	old := d.get(strings.Split(key, "."), "state")
 	var new getResult
 	for p := range d.updatedKeys {
 		if childAddrOf(key, p) {
 			new = d.getExact(strings.Split(key, "."), "newDiff")
-			goto done
+			return old, new, true
 		}
 	}
 	new = d.get(strings.Split(key, "."), "newDiff")
-done:
-	return old, new
+	return old, new, false
+}
+
+// removed checks to see if the key is present in the existing, pre-customized
+// diff and if it was marked as NewRemoved.
+func (d *ResourceDiff) removed(k string) bool {
+	diff, ok := d.diff.Attributes[k]
+	if !ok {
+		return false
+	}
+	return diff.NewRemoved
 }
 
 // get performs the appropriate multi-level reader logic for ResourceDiff,
@@ -457,12 +535,24 @@ func childAddrOf(child, parent string) bool {
 }
 
 // checkKey checks the key to make sure it exists and is computed.
-func (d *ResourceDiff) checkKey(key, caller string) error {
-	s, ok := d.schema[key]
-	if !ok {
+func (d *ResourceDiff) checkKey(key, caller string, nested bool) error {
+	var schema *Schema
+	if nested {
+		keyParts := strings.Split(key, ".")
+		schemaL := addrToSchema(keyParts, d.schema)
+		if len(schemaL) > 0 {
+			schema = schemaL[len(schemaL)-1]
+		}
+	} else {
+		s, ok := d.schema[key]
+		if ok {
+			schema = s
+		}
+	}
+	if schema == nil {
 		return fmt.Errorf("%s: invalid key: %s", caller, key)
 	}
-	if !s.Computed {
+	if !schema.Computed {
 		return fmt.Errorf("%s only operates on computed keys - %s is not one", caller, key)
 	}
 	return nil

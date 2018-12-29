@@ -22,7 +22,7 @@ import (
 type CLI interface {
 	Backend
 
-	// CLIIinit is called once with options. The options passed to this
+	// CLIInit is called once with options. The options passed to this
 	// function may not be modified after calling this since they can be
 	// read/written at any time by the Backend implementation.
 	//
@@ -47,6 +47,10 @@ type CLIOpts struct {
 	// output will be done. If CLIColor is nil then no coloring will be done.
 	CLI      cli.Ui
 	CLIColor *colorstring.Colorize
+
+	// ShowDiagnostics is a function that will format and print diagnostic
+	// messages to the UI.
+	ShowDiagnostics func(vals ...interface{})
 
 	// StatePath is the local path where state is read from.
 	//

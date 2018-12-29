@@ -8,11 +8,13 @@ description: |-
 
 # Command: push
 
+~> **Important:** The `terraform push` command is deprecated, and only works with [the legacy version of Terraform Enterprise](/docs/enterprise-legacy/index.html). In the current version of Terraform Enterprise, you can upload configurations using the API. See [the docs about API-driven runs](/docs/enterprise/run/api.html) for more details.
+
 The `terraform push` command uploads your Terraform configuration to
 be managed by HashiCorp's [Terraform Enterprise](https://www.hashicorp.com/products/terraform/).
-By uploading your configuration to Terraform Enterprise, you can automatically run
-Terraform for you, will save all state transitions, will save plans,
-and will keep a history of all Terraform runs.
+Terraform Enterprise can automatically run
+Terraform for you, save all state transitions, save plans,
+and keep a history of all Terraform runs.
 
 This makes it significantly easier to use Terraform as a team: team
 members modify the Terraform configurations locally and continue to
@@ -24,6 +26,11 @@ Terraform Enterprise can also be used to set ACLs on who can run Terraform, and 
 future update of Terraform Enterprise will allow parallel Terraform runs and automatically
 perform infrastructure locking so only one run is modifying the same
 infrastructure at a time.
+
+~> When using this command, it is important to match your local Terraform version with
+   the version selected for the target workspace in Terraform Enterprise, since
+   otherwise the uploaded configuration archive may not be compatible with the remote
+   Terraform process.
 
 ## Usage
 
@@ -90,6 +97,13 @@ all the files to be safe. To exclude certain files, specify the `-exclude`
 flag when pushing, or specify the `exclude` parameter in the
 [Terraform Enterprise configuration section](/docs/configuration/terraform-enterprise.html).
 
+Terraform also includes in the package all of the modules that were installed
+during the most recent `terraform init` or `terraform get` command. Since the
+details of how modules are cached in the filesystem vary between Terraform versions,
+it is important to use the same version of Terraform both locally (when running
+`terraform init` and then `terraform push`) and in your remote Terraform Enterprise
+workspace.
+
 ## Terraform Variables
 
 When you `push`, Terraform will automatically set the local values of
@@ -114,6 +128,8 @@ sets the value locally (the exact same process as commands such as apply
 or plan), and the `-overwrite` flag tells the push command to update Terraform Enterprise.
 
 ## Remote State Requirement
+
+~> **Important:** This section only refers to the legacy version of Terraform Enterprise. The current version of Terraform Enterprise always manages its own state, and does not support arbitrary remote state backends.
 
 `terraform push` requires that
 [remote state](/docs/state/remote.html)

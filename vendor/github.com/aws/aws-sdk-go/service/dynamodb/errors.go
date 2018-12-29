@@ -4,17 +4,61 @@ package dynamodb
 
 const (
 
+	// ErrCodeBackupInUseException for service response error code
+	// "BackupInUseException".
+	//
+	// There is another ongoing conflicting backup control plane operation on the
+	// table. The backups is either being created, deleted or restored to a table.
+	ErrCodeBackupInUseException = "BackupInUseException"
+
+	// ErrCodeBackupNotFoundException for service response error code
+	// "BackupNotFoundException".
+	//
+	// Backup not found for the given BackupARN.
+	ErrCodeBackupNotFoundException = "BackupNotFoundException"
+
 	// ErrCodeConditionalCheckFailedException for service response error code
 	// "ConditionalCheckFailedException".
 	//
 	// A condition specified in the operation could not be evaluated.
 	ErrCodeConditionalCheckFailedException = "ConditionalCheckFailedException"
 
+	// ErrCodeContinuousBackupsUnavailableException for service response error code
+	// "ContinuousBackupsUnavailableException".
+	//
+	// Backups have not yet been enabled for this table.
+	ErrCodeContinuousBackupsUnavailableException = "ContinuousBackupsUnavailableException"
+
+	// ErrCodeGlobalTableAlreadyExistsException for service response error code
+	// "GlobalTableAlreadyExistsException".
+	//
+	// The specified global table already exists.
+	ErrCodeGlobalTableAlreadyExistsException = "GlobalTableAlreadyExistsException"
+
+	// ErrCodeGlobalTableNotFoundException for service response error code
+	// "GlobalTableNotFoundException".
+	//
+	// The specified global table does not exist.
+	ErrCodeGlobalTableNotFoundException = "GlobalTableNotFoundException"
+
+	// ErrCodeIndexNotFoundException for service response error code
+	// "IndexNotFoundException".
+	//
+	// The operation tried to access a nonexistent index.
+	ErrCodeIndexNotFoundException = "IndexNotFoundException"
+
 	// ErrCodeInternalServerError for service response error code
 	// "InternalServerError".
 	//
 	// An error occurred on the server side.
 	ErrCodeInternalServerError = "InternalServerError"
+
+	// ErrCodeInvalidRestoreTimeException for service response error code
+	// "InvalidRestoreTimeException".
+	//
+	// An invalid restore time was specified. RestoreDateTime must be between EarliestRestorableDateTime
+	// and LatestRestorableDateTime.
+	ErrCodeInvalidRestoreTimeException = "InvalidRestoreTimeException"
 
 	// ErrCodeItemCollectionSizeLimitExceededException for service response error code
 	// "ItemCollectionSizeLimitExceededException".
@@ -26,15 +70,24 @@ const (
 	// ErrCodeLimitExceededException for service response error code
 	// "LimitExceededException".
 	//
-	// The number of concurrent table requests (cumulative number of tables in the
-	// CREATING, DELETING or UPDATING state) exceeds the maximum allowed of 10.
+	// There is no limit to the number of daily on-demand backups that can be taken.
 	//
-	// Also, for tables with secondary indexes, only one of those tables can be
-	// in the CREATING state at any point in time. Do not attempt to create more
-	// than one such table simultaneously.
+	// Up to 10 simultaneous table operations are allowed per account. These operations
+	// include CreateTable, UpdateTable, DeleteTable,UpdateTimeToLive, RestoreTableFromBackup,
+	// and RestoreTableToPointInTime.
+	//
+	// For tables with secondary indexes, only one of those tables can be in the
+	// CREATING state at any point in time. Do not attempt to create more than one
+	// such table simultaneously.
 	//
 	// The total limit of tables in the ACTIVE state is 250.
 	ErrCodeLimitExceededException = "LimitExceededException"
+
+	// ErrCodePointInTimeRecoveryUnavailableException for service response error code
+	// "PointInTimeRecoveryUnavailableException".
+	//
+	// Point in time recovery has not yet been enabled for this source table.
+	ErrCodePointInTimeRecoveryUnavailableException = "PointInTimeRecoveryUnavailableException"
 
 	// ErrCodeProvisionedThroughputExceededException for service response error code
 	// "ProvisionedThroughputExceededException".
@@ -46,6 +99,18 @@ const (
 	// Exponential Backoff (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html#Programming.Errors.RetryAndBackoff)
 	// in the Amazon DynamoDB Developer Guide.
 	ErrCodeProvisionedThroughputExceededException = "ProvisionedThroughputExceededException"
+
+	// ErrCodeReplicaAlreadyExistsException for service response error code
+	// "ReplicaAlreadyExistsException".
+	//
+	// The specified replica is already part of the global table.
+	ErrCodeReplicaAlreadyExistsException = "ReplicaAlreadyExistsException"
+
+	// ErrCodeReplicaNotFoundException for service response error code
+	// "ReplicaNotFoundException".
+	//
+	// The specified replica is no longer part of the global table.
+	ErrCodeReplicaNotFoundException = "ReplicaNotFoundException"
 
 	// ErrCodeResourceInUseException for service response error code
 	// "ResourceInUseException".
@@ -61,4 +126,23 @@ const (
 	// The operation tried to access a nonexistent table or index. The resource
 	// might not be specified correctly, or its status might not be ACTIVE.
 	ErrCodeResourceNotFoundException = "ResourceNotFoundException"
+
+	// ErrCodeTableAlreadyExistsException for service response error code
+	// "TableAlreadyExistsException".
+	//
+	// A target table with the specified name already exists.
+	ErrCodeTableAlreadyExistsException = "TableAlreadyExistsException"
+
+	// ErrCodeTableInUseException for service response error code
+	// "TableInUseException".
+	//
+	// A target table with the specified name is either being created or deleted.
+	ErrCodeTableInUseException = "TableInUseException"
+
+	// ErrCodeTableNotFoundException for service response error code
+	// "TableNotFoundException".
+	//
+	// A source table with the name TableName does not currently exist within the
+	// subscriber's account.
+	ErrCodeTableNotFoundException = "TableNotFoundException"
 )

@@ -3,6 +3,8 @@ package complete
 import (
 	"os"
 	"path/filepath"
+	"strings"
+	"unicode"
 )
 
 // Args describes command line arguments
@@ -37,14 +39,39 @@ func (a Args) Directory() string {
 	return fixPathForm(a.Last, dir)
 }
 
-func newArgs(line []string) Args {
-	completed := removeLast(line[1:])
+func newArgs(line string) Args {
+	var (
+		all       []string
+		completed []string
+	)
+	parts := splitFields(line)
+	if len(parts) > 0 {
+		all = parts[1:]
+		completed = removeLast(parts[1:])
+	}
 	return Args{
-		All:           line[1:],
+		All:           all,
 		Completed:     completed,
-		Last:          last(line),
+		Last:          last(parts),
 		LastCompleted: last(completed),
 	}
+}
+
+func splitFields(line string) []string {
+	parts := strings.Fields(line)
+	if len(line) > 0 && unicode.IsSpace(rune(line[len(line)-1])) {
+		parts = append(parts, "")
+	}
+	parts = splitLastEqual(parts)
+	return parts
+}
+
+func splitLastEqual(line []string) []string {
+	if len(line) == 0 {
+		return line
+	}
+	parts := strings.Split(line[len(line)-1], "=")
+	return append(line[:len(line)-1], parts...)
 }
 
 func (a Args) from(i int) Args {
@@ -67,9 +94,9 @@ func removeLast(a []string) []string {
 	return a
 }
 
-func last(args []string) (last string) {
-	if len(args) > 0 {
-		last = args[len(args)-1]
+func last(args []string) string {
+	if len(args) == 0 {
+		return ""
 	}
-	return
+	return args[len(args)-1]
 }

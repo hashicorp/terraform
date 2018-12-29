@@ -7,10 +7,12 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/hashicorp/terraform/plans/planfile"
+
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // NOTE: Temporary file until this branch is cleaned up.
@@ -30,11 +32,19 @@ func (m *Meta) Input() bool {
 	return true
 }
 
-// Module loads the module tree for the given root path.
+// Module loads the module tree for the given root path using the legacy
+// configuration loader.
 //
 // It expects the modules to already be downloaded. This will never
 // download any modules.
-func (m *Meta) Module(path string) (*module.Tree, error) {
+//
+// The configuration is validated before returning, so the returned diagnostics
+// may contain warnings and/or errors. If the diagnostics contains only
+// warnings, the caller may treat the returned module.Tree as valid after
+// presenting the warnings to the user.
+func (m *Meta) Module(path string) (*module.Tree, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
 	mod, err := module.NewTreeModule("", path)
 	if err != nil {
 		// Check for the error where we have no config files
@@ -42,19 +52,26 @@ func (m *Meta) Module(path string) (*module.Tree, error) {
 			return nil, nil
 		}
 
-		return nil, err
+		diags = diags.Append(err)
+		return nil, diags
 	}
 
 	err = mod.Load(m.moduleStorage(m.DataDir(), module.GetModeNone))
 	if err != nil {
-		return nil, errwrap.Wrapf("Error loading modules: {{err}}", err)
+		diags = diags.Append(errwrap.Wrapf("Error loading modules: {{err}}", err))
+		return nil, diags
 	}
 
-	return mod, nil
+	diags = diags.Append(mod.Validate())
+
+	return mod, diags
 }
 
-// Config loads the root config for the path specified. Path may be a directory
-// or file. The absence of configuration is not an error and returns a nil Config.
+// Config loads the root config for the path specified, using the legacy
+// configuration loader.
+//
+// Path may be a directory or file. The absence of configuration is not an
+// error and returns a nil Config.
 func (m *Meta) Config(path string) (*config.Config, error) {
 	// If no explicit path was given then it is okay for there to be
 	// no backend configuration found.
@@ -113,51 +130,23 @@ func (m *Meta) Config(path string) (*config.Config, error) {
 	return c, nil
 }
 
-// Plan returns the plan for the given path.
+// PlanFile returns a reader for the plan file at the given path.
 //
-// This only has an effect if the path itself looks like a plan.
-// If error is nil and the plan is nil, then the path didn't look like
-// a plan.
+// If the return value and error are both nil, the given path exists but seems
+// to be a configuration directory instead.
 //
-// Error will be non-nil if path looks like a plan and loading the plan
-// failed.
-func (m *Meta) Plan(path string) (*terraform.Plan, error) {
-	// Open the path no matter if its a directory or file
-	f, err := os.Open(path)
-	defer f.Close()
-	if err != nil {
-		return nil, fmt.Errorf(
-			"Failed to load Terraform configuration or plan: %s", err)
-	}
-
-	// Stat it so we can check if its a directory
-	fi, err := f.Stat()
-	if err != nil {
-		return nil, fmt.Errorf(
-			"Failed to load Terraform configuration or plan: %s", err)
-	}
-
-	// If this path is a directory, then it can't be a plan. Not an error.
-	if fi.IsDir() {
-		return nil, nil
-	}
-
-	// Read the plan
-	p, err := terraform.ReadPlan(f)
+// Error will be non-nil if path refers to something which looks like a plan
+// file and loading the file fails.
+func (m *Meta) PlanFile(path string) (*planfile.Reader, error) {
+	fi, err := os.Stat(path)
 	if err != nil {
 		return nil, err
 	}
 
-	// We do a validation here that seems odd but if any plan is given,
-	// we must not have set any extra variables. The plan itself contains
-	// the variables and those aren't overwritten.
-	if len(m.variables) > 0 {
-		return nil, fmt.Errorf(
-			"You can't set variables with the '-var' or '-var-file' flag\n" +
-				"when you're applying a plan file. The variables used when\n" +
-				"the plan was created will be used. If you wish to use different\n" +
-				"variable values, create a new plan file.")
+	if fi.IsDir() {
+		// Looks like a configuration directory.
+		return nil, nil
 	}
 
-	return p, nil
+	return planfile.Open(path)
 }
