@@ -1,12 +1,8 @@
 package command
 
 import (
-	"fmt"
-	"io"
-	"os"
 	"strings"
 
-	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
 
@@ -35,80 +31,86 @@ func (c *StatePushCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Determine our reader for the input state. This is the filepath
-	// or stdin if "-" is given.
-	var r io.Reader = os.Stdin
-	if args[0] != "-" {
-		f, err := os.Open(args[0])
+	c.Ui.Error("state push not yet updated for new state types")
+	return 1
+
+	/*
+		// Determine our reader for the input state. This is the filepath
+		// or stdin if "-" is given.
+		var r io.Reader = os.Stdin
+		if args[0] != "-" {
+			f, err := os.Open(args[0])
+			if err != nil {
+				c.Ui.Error(err.Error())
+				return 1
+			}
+
+			// Note: we don't need to defer a Close here because we do a close
+			// automatically below directly after the read.
+
+			r = f
+		}
+
+		// Read the state
+		sourceState, err := terraform.ReadState(r)
+		if c, ok := r.(io.Closer); ok {
+			// Close the reader if possible right now since we're done with it.
+			c.Close()
+		}
 		if err != nil {
-			c.Ui.Error(err.Error())
+			c.Ui.Error(fmt.Sprintf("Error reading source state %q: %s", args[0], err))
 			return 1
 		}
 
-		// Note: we don't need to defer a Close here because we do a close
-		// automatically below directly after the read.
-
-		r = f
-	}
-
-	// Read the state
-	sourceState, err := terraform.ReadState(r)
-	if c, ok := r.(io.Closer); ok {
-		// Close the reader if possible right now since we're done with it.
-		c.Close()
-	}
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error reading source state %q: %s", args[0], err))
-		return 1
-	}
-
-	// Load the backend
-	b, err := c.Backend(nil)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
-		return 1
-	}
-
-	// Get the state
-	env := c.Workspace()
-	state, err := b.State(env)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load destination state: %s", err))
-		return 1
-	}
-	if err := state.RefreshState(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load destination state: %s", err))
-		return 1
-	}
-	dstState := state.State()
-
-	// If we're not forcing, then perform safety checks
-	if !flagForce && !dstState.Empty() {
-		if !dstState.SameLineage(sourceState) {
-			c.Ui.Error(strings.TrimSpace(errStatePushLineage))
+		// Load the backend
+		b, backendDiags := c.Backend(nil)
+		if backendDiags.HasErrors() {
+			c.showDiagnostics(backendDiags)
 			return 1
 		}
 
-		age, err := dstState.CompareAges(sourceState)
+		// Get the state
+		env := c.Workspace()
+		state, err := b.StateMgr(env)
 		if err != nil {
-			c.Ui.Error(err.Error())
+			c.Ui.Error(fmt.Sprintf("Failed to load destination state: %s", err))
 			return 1
 		}
-		if age == terraform.StateAgeReceiverNewer {
-			c.Ui.Error(strings.TrimSpace(errStatePushSerialNewer))
+		if err := state.RefreshState(); err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed to load destination state: %s", err))
 			return 1
 		}
-	}
 
-	// Overwrite it
-	if err := state.WriteState(sourceState); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to write state: %s", err))
-		return 1
-	}
-	if err := state.PersistState(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to write state: %s", err))
-		return 1
-	}
+		dstState := state.State()
+
+		// If we're not forcing, then perform safety checks
+			if !flagForce && !dstState.Empty() {
+				if !dstState.SameLineage(sourceState) {
+					c.Ui.Error(strings.TrimSpace(errStatePushLineage))
+					return 1
+				}
+
+				age, err := dstState.CompareAges(sourceState)
+				if err != nil {
+					c.Ui.Error(err.Error())
+					return 1
+				}
+				if age == terraform.StateAgeReceiverNewer {
+					c.Ui.Error(strings.TrimSpace(errStatePushSerialNewer))
+					return 1
+				}
+			}
+
+			// Overwrite it
+			if err := state.WriteState(sourceState); err != nil {
+				c.Ui.Error(fmt.Sprintf("Failed to write state: %s", err))
+				return 1
+			}
+			if err := state.PersistState(); err != nil {
+				c.Ui.Error(fmt.Sprintf("Failed to write state: %s", err))
+				return 1
+			}
+	*/
 
 	return 0
 }

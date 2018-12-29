@@ -21,7 +21,7 @@ func resourceAwsSimpleDBDomain() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -79,6 +79,5 @@ func resourceAwsSimpleDBDomainDelete(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("Delete SimpleDB Domain failed: %s", err)
 	}
 
-	d.SetId("")
 	return nil
 }

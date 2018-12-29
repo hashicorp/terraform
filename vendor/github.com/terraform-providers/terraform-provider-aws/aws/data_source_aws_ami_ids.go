@@ -5,9 +5,11 @@ import (
 	"log"
 	"regexp"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func dataSourceAwsAmiIds() *schema.Resource {
@@ -26,7 +28,7 @@ func dataSourceAwsAmiIds() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
-				ValidateFunc: validateNameRegex,
+				ValidateFunc: validation.ValidateRegexp,
 			},
 			"owners": {
 				Type:     schema.TypeList,
@@ -34,11 +36,15 @@ func dataSourceAwsAmiIds() *schema.Resource {
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
-			"tags": dataSourceTagsSchema(),
-			"ids": &schema.Schema{
+			"ids": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"sort_ascending": {
+				Type:     schema.TypeBool,
+				Default:  false,
+				Optional: true,
 			},
 		},
 	}
@@ -51,6 +57,7 @@ func dataSourceAwsAmiIdsRead(d *schema.ResourceData, meta interface{}) error {
 	filters, filtersOk := d.GetOk("filter")
 	nameRegex, nameRegexOk := d.GetOk("name_regex")
 	owners, ownersOk := d.GetOk("owners")
+	sortAscending := d.Get("sort_ascending").(bool)
 
 	if executableUsersOk == false && filtersOk == false && nameRegexOk == false && ownersOk == false {
 		return fmt.Errorf("One of executable_users, filters, name_regex, or owners must be assigned")
@@ -72,6 +79,28 @@ func dataSourceAwsAmiIdsRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	// Deprecated: pre-2.0.0 warning logging
+	if !ownersOk {
+		log.Print("[WARN] The \"owners\" argument will become required in the next major version.")
+		log.Print("[WARN] Documentation can be found at: https://www.terraform.io/docs/providers/aws/d/ami.html#owners")
+
+		missingOwnerFilter := true
+
+		if filtersOk {
+			for _, filter := range params.Filters {
+				if aws.StringValue(filter.Name) == "owner-alias" || aws.StringValue(filter.Name) == "owner-id" {
+					missingOwnerFilter = false
+					break
+				}
+			}
+		}
+
+		if missingOwnerFilter {
+			log.Print("[WARN] Potential security issue: missing \"owners\" filtering for AMI. Check AMI to ensure it came from trusted source.")
+		}
+	}
+
+	log.Printf("[DEBUG] Reading AMI IDs: %s", params)
 	resp, err := conn.DescribeImages(params)
 	if err != nil {
 		return err
@@ -100,7 +129,7 @@ func dataSourceAwsAmiIdsRead(d *schema.ResourceData, meta interface{}) error {
 		filteredImages = resp.Images[:]
 	}
 
-	for _, image := range sortImages(filteredImages) {
+	for _, image := range sortImages(filteredImages, sortAscending) {
 		imageIds = append(imageIds, *image.ImageId)
 	}
 

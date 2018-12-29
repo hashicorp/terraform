@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"bufio"
+	"context"
 	"crypto/subtle"
 	"crypto/tls"
 	"errors"
@@ -9,7 +10,6 @@ import (
 	"hash"
 	"io"
 	"io/ioutil"
-	"log"
 	"net"
 	"os"
 	"os/exec"
@@ -70,15 +70,23 @@ var (
 //
 // See NewClient and ClientConfig for using a Client.
 type Client struct {
-	config      *ClientConfig
-	exited      bool
-	doneLogging chan struct{}
-	l           sync.Mutex
-	address     net.Addr
-	process     *os.Process
-	client      ClientProtocol
-	protocol    Protocol
-	logger      hclog.Logger
+	config            *ClientConfig
+	exited            bool
+	doneLogging       chan struct{}
+	l                 sync.Mutex
+	address           net.Addr
+	process           *os.Process
+	client            ClientProtocol
+	protocol          Protocol
+	logger            hclog.Logger
+	doneCtx           context.Context
+	negotiatedVersion int
+}
+
+// NegotiatedVersion returns the protocol version negotiated with the server.
+// This is only valid after Start() is called.
+func (c *Client) NegotiatedVersion() int {
+	return c.negotiatedVersion
 }
 
 // ClientConfig is the configuration used to initialize a new
@@ -89,7 +97,13 @@ type ClientConfig struct {
 	HandshakeConfig
 
 	// Plugins are the plugins that can be consumed.
-	Plugins map[string]Plugin
+	// The implied version of this PluginSet is the Handshake.ProtocolVersion.
+	Plugins PluginSet
+
+	// VersionedPlugins is a map of PluginSets for specific protocol versions.
+	// These can be used to negotiate a compatible version between client and
+	// server. If this is set, Handshake.ProtocolVersion is not required.
+	VersionedPlugins map[int]PluginSet
 
 	// One of the following must be set, but not both.
 	//
@@ -232,7 +246,6 @@ func CleanupClients() {
 	}
 	managedClientsLock.Unlock()
 
-	log.Println("[DEBUG] plugin: waiting for all plugin processes to complete...")
 	wg.Wait()
 }
 
@@ -310,7 +323,7 @@ func (c *Client) Client() (ClientProtocol, error) {
 		c.client, err = newRPCClient(c)
 
 	case ProtocolGRPC:
-		c.client, err = newGRPCClient(c)
+		c.client, err = newGRPCClient(c.doneCtx, c)
 
 	default:
 		return nil, fmt.Errorf("unknown server protocol: %s", c.protocol)
@@ -345,10 +358,18 @@ func (c *Client) Kill() {
 	doneCh := c.doneLogging
 	c.l.Unlock()
 
-	// If there is no process, we never started anything. Nothing to kill.
+	// If there is no process, there is nothing to kill.
 	if process == nil {
 		return
 	}
+
+	defer func() {
+		// Make sure there is no reference to the old process after it has been
+		// killed.
+		c.l.Lock()
+		defer c.l.Unlock()
+		c.process = nil
+	}()
 
 	// We need to check for address here. It is possible that the plugin
 	// started (process != nil) but has no address (addr == nil) if the
@@ -379,8 +400,12 @@ func (c *Client) Kill() {
 	if graceful {
 		select {
 		case <-doneCh:
+			// FIXME: this is never reached under normal circumstances, because
+			// the plugin process is never signaled to exit. We can reach this
+			// if the child process exited abnormally before the Kill call.
 			return
 		case <-time.After(250 * time.Millisecond):
+			c.logger.Warn("plugin failed to exit gracefully")
 		}
 	}
 
@@ -423,6 +448,9 @@ func (c *Client) Start() (addr net.Addr, err error) {
 
 	// Create the logging channel for when we kill
 	c.doneLogging = make(chan struct{})
+	// Create a context for when we kill
+	var ctxCancel context.CancelFunc
+	c.doneCtx, ctxCancel = context.WithCancel(context.Background())
 
 	if c.config.Reattach != nil {
 		// Verify the process still exists. If not, then it is an error
@@ -444,6 +472,8 @@ func (c *Client) Start() (addr net.Addr, err error) {
 
 		// Goroutine to mark exit status
 		go func(pid int) {
+			// ensure the context is cancelled when we're done
+			defer ctxCancel()
 			// Wait for the process to die
 			pidWait(pid)
 
@@ -471,10 +501,30 @@ func (c *Client) Start() (addr net.Addr, err error) {
 		return c.address, nil
 	}
 
+	if c.config.VersionedPlugins == nil {
+		c.config.VersionedPlugins = make(map[int]PluginSet)
+	}
+
+	// handle all plugins as versioned, using the handshake config as the default.
+	version := int(c.config.ProtocolVersion)
+
+	// Make sure we're not overwriting a real version 0. If ProtocolVersion was
+	// non-zero, then we have to just assume the user made sure that
+	// VersionedPlugins doesn't conflict.
+	if _, ok := c.config.VersionedPlugins[version]; !ok && c.config.Plugins != nil {
+		c.config.VersionedPlugins[version] = c.config.Plugins
+	}
+
+	var versionStrings []string
+	for v := range c.config.VersionedPlugins {
+		versionStrings = append(versionStrings, strconv.Itoa(v))
+	}
+
 	env := []string{
 		fmt.Sprintf("%s=%s", c.config.MagicCookieKey, c.config.MagicCookieValue),
 		fmt.Sprintf("PLUGIN_MIN_PORT=%d", c.config.MinPort),
 		fmt.Sprintf("PLUGIN_MAX_PORT=%d", c.config.MaxPort),
+		fmt.Sprintf("PLUGIN_PROTOCOL_VERSIONS=%s", strings.Join(versionStrings, ",")),
 	}
 
 	stdout_r, stdout_w := io.Pipe()
@@ -503,6 +553,7 @@ func (c *Client) Start() (addr net.Addr, err error) {
 
 	// Set the process
 	c.process = cmd.Process
+	c.logger.Debug("plugin started", "path", cmd.Path, "pid", c.process.Pid)
 
 	// Make sure the command is properly cleaned up if there is an error
 	defer func() {
@@ -525,11 +576,23 @@ func (c *Client) Start() (addr net.Addr, err error) {
 		defer stderr_w.Close()
 		defer stdout_w.Close()
 
+		// ensure the context is cancelled when we're done
+		defer ctxCancel()
+
 		// Wait for the command to end.
-		cmd.Wait()
+		err := cmd.Wait()
+
+		debugMsgArgs := []interface{}{
+			"path", cmd.Path,
+			"pid", c.process.Pid,
+		}
+		if err != nil {
+			debugMsgArgs = append(debugMsgArgs,
+				[]interface{}{"error", err.Error()}...)
+		}
 
 		// Log and make sure to flush the logs write away
-		c.logger.Debug("plugin process exited", "path", cmd.Path)
+		c.logger.Debug("plugin process exited", debugMsgArgs...)
 		os.Stderr.Sync()
 
 		// Mark that we exited
@@ -606,27 +669,25 @@ func (c *Client) Start() (addr net.Addr, err error) {
 
 			if int(coreProtocol) != CoreProtocolVersion {
 				err = fmt.Errorf("Incompatible core API version with plugin. "+
-					"Plugin version: %s, Ours: %d\n\n"+
+					"Plugin version: %s, Core version: %d\n\n"+
 					"To fix this, the plugin usually only needs to be recompiled.\n"+
 					"Please report this to the plugin author.", parts[0], CoreProtocolVersion)
 				return
 			}
 		}
 
-		// Parse the protocol version
-		var protocol int64
-		protocol, err = strconv.ParseInt(parts[1], 10, 0)
+		// Test the API version
+		version, pluginSet, err := c.checkProtoVersion(parts[1])
 		if err != nil {
-			err = fmt.Errorf("Error parsing protocol version: %s", err)
-			return
+			return addr, err
 		}
 
-		// Test the API version
-		if uint(protocol) != c.config.ProtocolVersion {
-			err = fmt.Errorf("Incompatible API version with plugin. "+
-				"Plugin version: %s, Ours: %d", parts[1], c.config.ProtocolVersion)
-			return
-		}
+		// set the Plugins value to the compatible set, so the version
+		// doesn't need to be passed through to the ClientProtocol
+		// implementation.
+		c.config.Plugins = pluginSet
+		c.negotiatedVersion = version
+		c.logger.Debug("using plugin", "version", version)
 
 		switch parts[2] {
 		case "tcp":
@@ -654,13 +715,40 @@ func (c *Client) Start() (addr net.Addr, err error) {
 		if !found {
 			err = fmt.Errorf("Unsupported plugin protocol %q. Supported: %v",
 				c.protocol, c.config.AllowedProtocols)
-			return
+			return addr, err
 		}
 
 	}
 
 	c.address = addr
 	return
+}
+
+// checkProtoVersion returns the negotiated version and PluginSet.
+// This returns an error if the server returned an incompatible protocol
+// version, or an invalid handshake response.
+func (c *Client) checkProtoVersion(protoVersion string) (int, PluginSet, error) {
+	serverVersion, err := strconv.Atoi(protoVersion)
+	if err != nil {
+		return 0, nil, fmt.Errorf("Error parsing protocol version %q: %s", protoVersion, err)
+	}
+
+	// record these for the error message
+	var clientVersions []int
+
+	// all versions, including the legacy ProtocolVersion have been added to
+	// the versions set
+	for version, plugins := range c.config.VersionedPlugins {
+		clientVersions = append(clientVersions, version)
+
+		if serverVersion != version {
+			continue
+		}
+		return version, plugins, nil
+	}
+
+	return 0, nil, fmt.Errorf("Incompatible API version with plugin. "+
+		"Plugin version: %d, Client versions: %d", serverVersion, clientVersions)
 }
 
 // ReattachConfig returns the information that must be provided to NewClient
@@ -707,17 +795,28 @@ func (c *Client) Protocol() Protocol {
 	return c.protocol
 }
 
+func netAddrDialer(addr net.Addr) func(string, time.Duration) (net.Conn, error) {
+	return func(_ string, _ time.Duration) (net.Conn, error) {
+		// Connect to the client
+		conn, err := net.Dial(addr.Network(), addr.String())
+		if err != nil {
+			return nil, err
+		}
+		if tcpConn, ok := conn.(*net.TCPConn); ok {
+			// Make sure to set keep alive so that the connection doesn't die
+			tcpConn.SetKeepAlive(true)
+		}
+
+		return conn, nil
+	}
+}
+
 // dialer is compatible with grpc.WithDialer and creates the connection
 // to the plugin.
 func (c *Client) dialer(_ string, timeout time.Duration) (net.Conn, error) {
-	// Connect to the client
-	conn, err := net.Dial(c.address.Network(), c.address.String())
+	conn, err := netAddrDialer(c.address)("", timeout)
 	if err != nil {
 		return nil, err
-	}
-	if tcpConn, ok := conn.(*net.TCPConn); ok {
-		// Make sure to set keep alive so that the connection doesn't die
-		tcpConn.SetKeepAlive(true)
 	}
 
 	// If we have a TLS config we wrap our connection. We only do this
@@ -731,13 +830,13 @@ func (c *Client) dialer(_ string, timeout time.Duration) (net.Conn, error) {
 
 func (c *Client) logStderr(r io.Reader) {
 	bufR := bufio.NewReader(r)
+	l := c.logger.Named(filepath.Base(c.config.Cmd.Path))
+
 	for {
 		line, err := bufR.ReadString('\n')
 		if line != "" {
 			c.config.Stderr.Write([]byte(line))
 			line = strings.TrimRightFunc(line, unicode.IsSpace)
-
-			l := c.logger.Named(filepath.Base(c.config.Cmd.Path))
 
 			entry, err := parseJSON(line)
 			// If output is not JSON format, print directly to Debug
@@ -746,7 +845,7 @@ func (c *Client) logStderr(r io.Reader) {
 			} else {
 				out := flattenKVPairs(entry.KVPairs)
 
-				l = l.With("timestamp", entry.Timestamp.Format(hclog.TimeFormat))
+				out = append(out, "timestamp", entry.Timestamp.Format(hclog.TimeFormat))
 				switch hclog.LevelFromString(entry.Level) {
 				case hclog.Trace:
 					l.Trace(entry.Message, out...)

@@ -3,47 +3,48 @@ layout: "docs"
 page_title: "Command: console"
 sidebar_current: "docs-commands-console"
 description: |-
-  The `terraform console` command creates an interactive console for using [interpolations](/docs/configuration/interpolation.html).
+  The `terraform console` command provides an interactive console for
+  evaluting expressions.
 ---
 
 # Command: console
 
-The `terraform console` command creates an interactive console for
-using [interpolations](/docs/configuration/interpolation.html).
+The `terraform console` command provides an interactive console for
+evaluating [expressions](/docs/configuration/expressions.html).
 
 ## Usage
 
 Usage: `terraform console [options] [dir]`
 
-This opens an interactive console for experimenting with interpolations.
-This is useful for testing interpolations before using them in configurations
-as well as interacting with an existing [state](/docs/state/index.html).
+This command provides an interative command-line console for evaluating and
+experimenting with [expressions](/docs/configuration/expressions.html).
+This is useful for testing interpolations before using them in configurations,
+and for interacting with any values currently saved in
+[state](/docs/state/index.html).
 
-If a state file doesn't exist, the console still works and can be used
-to experiment with supported interpolation functions. Try entering some basic
-math such as `1 + 5` to see.
+If the current state is empty or has not yet been created, the console can be
+used to experiment with the expression syntax and
+[built-in functions](/docs/configuration/functions.html).
 
-The `dir` argument can be used to open a console for a specific Terraform
-configuration directory. This will load any state from that directory as
-well as the configuration. This defaults to the current working directory.
-The `console` command does not require Terraform state or configuration
-to function.
+The `dir` argument specifies the directory of the root module to use.
+If a path is not specified, the current working directory is used.
 
-The command-line flags are all optional. The list of available flags are:
+The supported options are:
 
-* `-state=path` - Path to the state file. Defaults to `terraform.tfstate`.
-  A state file doesn't need to exist.
+* `-state=path` - Path to a local state file. Expressions will be evaluated
+  using values from this state file. If not specified, the state associated
+  with the current [workspace](/docs/state/workspaces.html) is used.
 
-You can close the console with the `exit` command or by using Control-C
+You can close the console with the `exit` command or by pressing Control-C
 or Control-D.
 
 ## Scripting
 
 The `terraform console` command can be used in non-interactive scripts
 by piping newline-separated commands to it. Only the output from the
-final command is outputted unless an error occurs earlier.
+final command is printed unless an error occurs earlier.
 
-An example is shown below:
+For example:
 
 ```shell
 $ echo "1 + 5" | terraform console
@@ -52,14 +53,6 @@ $ echo "1 + 5" | terraform console
 
 ## Remote State
 
-The `terraform console` command will read configured state even if it
-is [remote](/docs/state/remote.html). This is great for scripting
-state reading in CI environments or other remote scenarios.
-
-After configuring remote state, run a `terraform remote pull` command
-to sync state locally. The `terraform console` command will use this
-state for operations.
-
-Because the console currently isn't able to modify state in any way,
-this is a one way operation and you don't need to worry about remote
-state conflicts in any way.
+If [remote state](/docs/state/remote.html) is used by the current backend,
+Terraform will read the state for the current workspace from the backend
+before evaluating any expressions.

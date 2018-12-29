@@ -49,6 +49,7 @@ There are 2 configuration levels, `supervisor` and `service`.  Configuration pla
 * `version (string)` - (Optional) The Habitat version to install on the remote machine.  If not specified, the latest available version is used.
 * `use_sudo (bool)` - (Optional) Use `sudo` when executing remote commands.  Required when the user specified in the `connection` block is not `root`.  (Defaults to `true`)
 * `service_type (string)` - (Optional) Method used to run the Habitat supervisor.  Valid options are `unmanaged` and `systemd`.  (Defaults to `systemd`)
+* `service_name (string)` - (Optional) The name of the Habitat supervisor service, if using an init system such as `systemd`. (Defaults to `hab-supervisor`)
 * `peer (string)` - (Optional) IP or FQDN of a supervisor instance to peer with. (Defaults to none)
 * `permanent_peer (bool)` - (Optional) Marks this supervisor as a permanent peer.  (Defaults to false)
 * `listen_gossip (string)` - (Optional) The listen address for the gossip system (Defaults to 0.0.0.0:9638)
@@ -60,6 +61,7 @@ There are 2 configuration levels, `supervisor` and `service`.  Configuration pla
 * `events (string)` - (Optional) Name of the service group running a Habitat EventSrv to forward Supervisor and service event data to. (Defaults to none)
 * `override_name (string)` - (Optional) The name of the Supervisor (Defaults to `default`)
 * `organization (string)` - (Optional) The organization that the Supervisor and it's subsequent services are part of. (Defaults to `default`)
+* `builder_auth_token (string)` - (Optional) The builder authorization token when using a private origin. (Defaults to none)
 
 ### Service Arguments
 * `name (string)` - (Required) The Habitat package identifier of the service to run. (ie `core/haproxy` or `core/redis/3.2.4/20171002182640`)
@@ -68,9 +70,9 @@ There are 2 configuration levels, `supervisor` and `service`.  Configuration pla
 
 ```hcl
 bind {
-  Alias = "backend"
-  Service = "nginx"
-  Group = "default"
+  alias = "backend"
+  service = "nginx"
+  group = "default"
 }
 ```
 * `topology (string)` - (Optional) Topology to start service in. Possible values `standalone` or `leader`.  (Defaults to `standalone`)

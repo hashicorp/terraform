@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -13,13 +14,30 @@ import (
 // The value must currently be a string, list, map, and any nested values
 // with those same types.
 func FormatResult(value interface{}) (string, error) {
-	return formatResult(value)
+	return formatResult(value, false)
 }
 
-func formatResult(value interface{}) (string, error) {
+func formatResult(value interface{}, nested bool) (string, error) {
+	if value == nil {
+		return "null", nil
+	}
 	switch output := value.(type) {
 	case string:
+		if nested {
+			return fmt.Sprintf("%q", output), nil
+		}
 		return output, nil
+	case int:
+		return strconv.Itoa(output), nil
+	case float64:
+		return fmt.Sprintf("%g", output), nil
+	case bool:
+		switch {
+		case output == true:
+			return "true", nil
+		default:
+			return "false", nil
+		}
 	case []interface{}:
 		return formatListResult(output)
 	case map[string]interface{}:
@@ -36,18 +54,14 @@ func formatListResult(value []interface{}) (string, error) {
 		outputBuf.WriteString("\n")
 	}
 
-	lastIdx := len(value) - 1
-	for i, v := range value {
-		raw, err := formatResult(v)
+	for _, v := range value {
+		raw, err := formatResult(v, true)
 		if err != nil {
 			return "", err
 		}
 
 		outputBuf.WriteString(indent(raw))
-		if lastIdx != i {
-			outputBuf.WriteString(",")
-		}
-		outputBuf.WriteString("\n")
+		outputBuf.WriteString(",\n")
 	}
 
 	outputBuf.WriteString("]")
@@ -69,12 +83,17 @@ func formatMapResult(value map[string]interface{}) (string, error) {
 
 	for _, k := range ks {
 		v := value[k]
-		raw, err := formatResult(v)
+		rawK, err := formatResult(k, true)
+		if err != nil {
+			return "", err
+		}
+		rawV, err := formatResult(v, true)
 		if err != nil {
 			return "", err
 		}
 
-		outputBuf.WriteString(indent(fmt.Sprintf("%s = %v\n", k, raw)))
+		outputBuf.WriteString(indent(fmt.Sprintf("%s = %s", rawK, rawV)))
+		outputBuf.WriteString("\n")
 	}
 
 	outputBuf.WriteString("}")
@@ -84,8 +103,13 @@ func formatMapResult(value map[string]interface{}) (string, error) {
 func indent(value string) string {
 	var outputBuf bytes.Buffer
 	s := bufio.NewScanner(strings.NewReader(value))
+	newline := false
 	for s.Scan() {
+		if newline {
+			outputBuf.WriteByte('\n')
+		}
 		outputBuf.WriteString("  " + s.Text())
+		newline = true
 	}
 
 	return outputBuf.String()

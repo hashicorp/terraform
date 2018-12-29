@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
@@ -25,32 +26,35 @@ func resourceAwsElasticacheParameterGroup() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Required: true,
+				StateFunc: func(val interface{}) string {
+					return strings.ToLower(val.(string))
+				},
 			},
-			"family": &schema.Schema{
+			"family": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 				Default:  "Managed by Terraform",
 			},
-			"parameter": &schema.Schema{
+			"parameter": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"value": &schema.Schema{
+						"value": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
@@ -72,7 +76,7 @@ func resourceAwsElasticacheParameterGroupCreate(d *schema.ResourceData, meta int
 	}
 
 	log.Printf("[DEBUG] Create Cache Parameter Group: %#v", createOpts)
-	_, err := conn.CreateCacheParameterGroup(&createOpts)
+	resp, err := conn.CreateCacheParameterGroup(&createOpts)
 	if err != nil {
 		return fmt.Errorf("Error creating Cache Parameter Group: %s", err)
 	}
@@ -83,7 +87,7 @@ func resourceAwsElasticacheParameterGroupCreate(d *schema.ResourceData, meta int
 	d.SetPartial("description")
 	d.Partial(false)
 
-	d.SetId(*createOpts.CacheParameterGroupName)
+	d.SetId(*resp.CacheParameterGroup.CacheParameterGroupName)
 	log.Printf("[INFO] Cache Parameter Group ID: %s", d.Id())
 
 	return resourceAwsElasticacheParameterGroupUpdate(d, meta)
@@ -162,7 +166,7 @@ func resourceAwsElasticacheParameterGroupUpdate(d *schema.ResourceData, meta int
 		maxParams := 20
 
 		for len(toRemove) > 0 {
-			paramsToModify := make([]*elasticache.ParameterNameValue, 0)
+			var paramsToModify []*elasticache.ParameterNameValue
 			if len(toRemove) <= maxParams {
 				paramsToModify, toRemove = toRemove[:], nil
 			} else {
@@ -174,14 +178,23 @@ func resourceAwsElasticacheParameterGroupUpdate(d *schema.ResourceData, meta int
 			}
 
 			log.Printf("[DEBUG] Reset Cache Parameter Group: %s", resetOpts)
-			_, err = conn.ResetCacheParameterGroup(&resetOpts)
+			err := resource.Retry(30*time.Second, func() *resource.RetryError {
+				_, err = conn.ResetCacheParameterGroup(&resetOpts)
+				if err != nil {
+					if isAWSErr(err, "InvalidCacheParameterGroupState", " has pending changes") {
+						return resource.RetryableError(err)
+					}
+					return resource.NonRetryableError(err)
+				}
+				return nil
+			})
 			if err != nil {
 				return fmt.Errorf("Error resetting Cache Parameter Group: %s", err)
 			}
 		}
 
 		for len(toAdd) > 0 {
-			paramsToModify := make([]*elasticache.ParameterNameValue, 0)
+			var paramsToModify []*elasticache.ParameterNameValue
 			if len(toAdd) <= maxParams {
 				paramsToModify, toAdd = toAdd[:], nil
 			} else {
@@ -218,7 +231,6 @@ func resourceAwsElasticacheParameterGroupDelete(d *schema.ResourceData, meta int
 		if err != nil {
 			awsErr, ok := err.(awserr.Error)
 			if ok && awsErr.Code() == "CacheParameterGroupNotFoundFault" {
-				d.SetId("")
 				return nil
 			}
 			if ok && awsErr.Code() == "InvalidCacheParameterGroupState" {

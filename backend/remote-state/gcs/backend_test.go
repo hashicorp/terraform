@@ -13,7 +13,13 @@ import (
 	"github.com/hashicorp/terraform/state/remote"
 )
 
-const noPrefix = ""
+const (
+	noPrefix        = ""
+	noEncryptionKey = ""
+)
+
+// See https://cloud.google.com/storage/docs/using-encryption-keys#generating_your_own_encryption_key
+var encryptionKey = "yRyCOikXi1ZDNE0xN3yiFsJjg7LGimoLrGFcLZgQoVk="
 
 func TestStateFile(t *testing.T) {
 	t.Parallel()
@@ -33,7 +39,7 @@ func TestStateFile(t *testing.T) {
 		{"state", "legacy.state", "test", "state/test.tfstate", "state/test.tflock"},
 	}
 	for _, c := range cases {
-		b := &gcsBackend{
+		b := &Backend{
 			prefix:           c.prefix,
 			defaultStateFile: c.defaultStateFile,
 		}
@@ -52,17 +58,36 @@ func TestRemoteClient(t *testing.T) {
 	t.Parallel()
 
 	bucket := bucketName(t)
-	be := setupBackend(t, bucket, noPrefix)
+	be := setupBackend(t, bucket, noPrefix, noEncryptionKey)
 	defer teardownBackend(t, be, noPrefix)
 
-	ss, err := be.State(backend.DefaultStateName)
+	ss, err := be.StateMgr(backend.DefaultStateName)
 	if err != nil {
-		t.Fatalf("be.State(%q) = %v", backend.DefaultStateName, err)
+		t.Fatalf("be.StateMgr(%q) = %v", backend.DefaultStateName, err)
 	}
 
 	rs, ok := ss.(*remote.State)
 	if !ok {
-		t.Fatalf("be.State(): got a %T, want a *remote.State", ss)
+		t.Fatalf("be.StateMgr(): got a %T, want a *remote.State", ss)
+	}
+
+	remote.TestClient(t, rs.Client)
+}
+func TestRemoteClientWithEncryption(t *testing.T) {
+	t.Parallel()
+
+	bucket := bucketName(t)
+	be := setupBackend(t, bucket, noPrefix, encryptionKey)
+	defer teardownBackend(t, be, noPrefix)
+
+	ss, err := be.StateMgr(backend.DefaultStateName)
+	if err != nil {
+		t.Fatalf("be.StateMgr(%q) = %v", backend.DefaultStateName, err)
+	}
+
+	rs, ok := ss.(*remote.State)
+	if !ok {
+		t.Fatalf("be.StateMgr(): got a %T, want a *remote.State", ss)
 	}
 
 	remote.TestClient(t, rs.Client)
@@ -72,18 +97,18 @@ func TestRemoteLocks(t *testing.T) {
 	t.Parallel()
 
 	bucket := bucketName(t)
-	be := setupBackend(t, bucket, noPrefix)
+	be := setupBackend(t, bucket, noPrefix, noEncryptionKey)
 	defer teardownBackend(t, be, noPrefix)
 
 	remoteClient := func() (remote.Client, error) {
-		ss, err := be.State(backend.DefaultStateName)
+		ss, err := be.StateMgr(backend.DefaultStateName)
 		if err != nil {
 			return nil, err
 		}
 
 		rs, ok := ss.(*remote.State)
 		if !ok {
-			return nil, fmt.Errorf("be.State(): got a %T, want a *remote.State", ss)
+			return nil, fmt.Errorf("be.StateMgr(): got a %T, want a *remote.State", ss)
 		}
 
 		return rs.Client, nil
@@ -106,29 +131,46 @@ func TestBackend(t *testing.T) {
 
 	bucket := bucketName(t)
 
-	be0 := setupBackend(t, bucket, noPrefix)
+	be0 := setupBackend(t, bucket, noPrefix, noEncryptionKey)
 	defer teardownBackend(t, be0, noPrefix)
 
-	be1 := setupBackend(t, bucket, noPrefix)
+	be1 := setupBackend(t, bucket, noPrefix, noEncryptionKey)
 
-	backend.TestBackend(t, be0, be1)
+	backend.TestBackendStates(t, be0)
+	backend.TestBackendStateLocks(t, be0, be1)
+	backend.TestBackendStateForceUnlock(t, be0, be1)
 }
+
 func TestBackendWithPrefix(t *testing.T) {
 	t.Parallel()
 
 	prefix := "test/prefix"
 	bucket := bucketName(t)
 
-	be0 := setupBackend(t, bucket, prefix)
+	be0 := setupBackend(t, bucket, prefix, noEncryptionKey)
 	defer teardownBackend(t, be0, prefix)
 
-	be1 := setupBackend(t, bucket, prefix+"/")
+	be1 := setupBackend(t, bucket, prefix+"/", noEncryptionKey)
 
-	backend.TestBackend(t, be0, be1)
+	backend.TestBackendStates(t, be0)
+	backend.TestBackendStateLocks(t, be0, be1)
+}
+func TestBackendWithEncryption(t *testing.T) {
+	t.Parallel()
+
+	bucket := bucketName(t)
+
+	be0 := setupBackend(t, bucket, noPrefix, encryptionKey)
+	defer teardownBackend(t, be0, noPrefix)
+
+	be1 := setupBackend(t, bucket, noPrefix, encryptionKey)
+
+	backend.TestBackendStates(t, be0)
+	backend.TestBackendStateLocks(t, be0, be1)
 }
 
 // setupBackend returns a new GCS backend.
-func setupBackend(t *testing.T, bucket, prefix string) backend.Backend {
+func setupBackend(t *testing.T, bucket, prefix, key string) backend.Backend {
 	t.Helper()
 
 	projectID := os.Getenv("GOOGLE_PROJECT")
@@ -139,13 +181,14 @@ func setupBackend(t *testing.T, bucket, prefix string) backend.Backend {
 	}
 
 	config := map[string]interface{}{
-		"project": projectID,
-		"bucket":  bucket,
-		"prefix":  prefix,
+		"project":        projectID,
+		"bucket":         bucket,
+		"prefix":         prefix,
+		"encryption_key": key,
 	}
 
-	b := backend.TestBackendConfig(t, New(), config)
-	be := b.(*gcsBackend)
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config))
+	be := b.(*Backend)
 
 	// create the bucket if it doesn't exist
 	bkt := be.storageClient.Bucket(bucket)
@@ -170,7 +213,7 @@ func setupBackend(t *testing.T, bucket, prefix string) backend.Backend {
 // teardownBackend deletes all states from be except the default state.
 func teardownBackend(t *testing.T, be backend.Backend, prefix string) {
 	t.Helper()
-	gcsBE, ok := be.(*gcsBackend)
+	gcsBE, ok := be.(*Backend)
 	if !ok {
 		t.Fatalf("be is a %T, want a *gcsBackend", be)
 	}

@@ -54,14 +54,16 @@ func resourceAwsNetworkAclRule() *schema.Resource {
 				ForceNew: true,
 			},
 			"cidr_block": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"ipv6_cidr_block"},
 			},
 			"ipv6_cidr_block": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"cidr_block"},
 			},
 			"from_port": {
 				Type:     schema.TypeInt,
@@ -131,7 +133,7 @@ func resourceAwsNetworkAclRuleCreate(d *schema.ResourceData, meta interface{}) e
 	}
 
 	// Specify additional required fields for ICMP. For the list
-	// of ICMP codes and types, see: http://www.nthelp.com/icmp.html
+	// of ICMP codes and types, see: https://www.iana.org/assignments/icmp-parameters/icmp-parameters.xhtml
 	if p == 1 {
 		params.IcmpTypeCode = &ec2.IcmpTypeCode{}
 		if v, ok := d.GetOk("icmp_type"); ok {

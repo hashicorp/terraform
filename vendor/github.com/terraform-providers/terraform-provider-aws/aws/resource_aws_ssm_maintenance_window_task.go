@@ -191,7 +191,7 @@ func resourceAwsSsmMaintenanceWindowTaskCreate(d *schema.ResourceData, meta inte
 		TaskType:       aws.String(d.Get("task_type").(string)),
 		ServiceRoleArn: aws.String(d.Get("service_role_arn").(string)),
 		TaskArn:        aws.String(d.Get("task_arn").(string)),
-		Targets:        expandAwsSsmTargets(d),
+		Targets:        expandAwsSsmTargets(d.Get("targets").([]interface{})),
 	}
 
 	if v, ok := d.GetOk("priority"); ok {
@@ -243,18 +243,18 @@ func resourceAwsSsmMaintenanceWindowTaskRead(d *schema.ResourceData, meta interf
 
 			if t.LoggingInfo != nil {
 				if err := d.Set("logging_info", flattenAwsSsmMaintenanceWindowLoggingInfo(t.LoggingInfo)); err != nil {
-					return fmt.Errorf("[DEBUG] Error setting logging_info error: %#v", err)
+					return fmt.Errorf("Error setting logging_info error: %#v", err)
 				}
 			}
 
 			if t.TaskParameters != nil {
 				if err := d.Set("task_parameters", flattenAwsSsmTaskParameters(t.TaskParameters)); err != nil {
-					return fmt.Errorf("[DEBUG] Error setting task_parameters error: %#v", err)
+					return fmt.Errorf("Error setting task_parameters error: %#v", err)
 				}
 			}
 
 			if err := d.Set("targets", flattenAwsSsmTargets(t.Targets)); err != nil {
-				return fmt.Errorf("[DEBUG] Error setting targets error: %#v", err)
+				return fmt.Errorf("Error setting targets error: %#v", err)
 			}
 		}
 	}

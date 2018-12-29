@@ -1,0 +1,11 @@
+_obj
+_test
+*.6
+*.out
+_testmain.go
+\#*
+.\#*
+*.log
+_cgo*
+*.o
+*.a

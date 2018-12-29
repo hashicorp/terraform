@@ -26,14 +26,43 @@ const (
 type Diagnostic struct {
 	Severity DiagnosticSeverity
 
-	// Summary and detail contain the English-language description of the
+	// Summary and Detail contain the English-language description of the
 	// problem. Summary is a terse description of the general problem and
 	// detail is a more elaborate, often-multi-sentence description of
 	// the probem and what might be done to solve it.
 	Summary string
 	Detail  string
+
+	// Subject and Context are both source ranges relating to the diagnostic.
+	//
+	// Subject is a tight range referring to exactly the construct that
+	// is problematic, while Context is an optional broader range (which should
+	// fully contain Subject) that ought to be shown around Subject when
+	// generating isolated source-code snippets in diagnostic messages.
+	// If Context is nil, the Subject is also the Context.
+	//
+	// Some diagnostics have no source ranges at all. If Context is set then
+	// Subject should always also be set.
 	Subject *Range
 	Context *Range
+
+	// For diagnostics that occur when evaluating an expression, Expression
+	// may refer to that expression and EvalContext may point to the
+	// EvalContext that was active when evaluating it. This may allow for the
+	// inclusion of additional useful information when rendering a diagnostic
+	// message to the user.
+	//
+	// It is not always possible to select a single EvalContext for a
+	// diagnostic, and so in some cases this field may be nil even when an
+	// expression causes a problem.
+	//
+	// EvalContexts form a tree, so the given EvalContext may refer to a parent
+	// which in turn refers to another parent, etc. For a full picture of all
+	// of the active variables and functions the caller must walk up this
+	// chain, preferring definitions that are "closer" to the expression in
+	// case of colliding names.
+	Expression  Expression
+	EvalContext *EvalContext
 }
 
 // Diagnostics is a list of Diagnostic instances.
@@ -94,6 +123,17 @@ func (d Diagnostics) HasErrors() bool {
 		}
 	}
 	return false
+}
+
+func (d Diagnostics) Errs() []error {
+	var errs []error
+	for _, diag := range d {
+		if diag.Severity == DiagError {
+			errs = append(errs, diag)
+		}
+	}
+
+	return errs
 }
 
 // A DiagnosticWriter emits diagnostics somehow.

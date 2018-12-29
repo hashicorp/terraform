@@ -13,11 +13,7 @@ import (
 )
 
 func TestFmt_errorReporting(t *testing.T) {
-	tempDir, err := fmtFixtureWriteDir()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.RemoveAll(tempDir)
+	tempDir := fmtFixtureWriteDir(t)
 
 	ui := new(cli.MockUi)
 	c := &FmtCommand{
@@ -33,7 +29,7 @@ func TestFmt_errorReporting(t *testing.T) {
 		t.Fatalf("wrong exit code. errors: \n%s", ui.ErrorWriter.String())
 	}
 
-	expected := fmt.Sprintf("Error running fmt: stat %s: no such file or directory", dummy_file)
+	expected := "There is no configuration directory at"
 	if actual := ui.ErrorWriter.String(); !strings.Contains(actual, expected) {
 		t.Fatalf("expected:\n%s\n\nto include: %q", actual, expected)
 	}
@@ -63,11 +59,7 @@ func TestFmt_tooManyArgs(t *testing.T) {
 }
 
 func TestFmt_workingDirectory(t *testing.T) {
-	tempDir, err := fmtFixtureWriteDir()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.RemoveAll(tempDir)
+	tempDir := fmtFixtureWriteDir(t)
 
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -99,11 +91,7 @@ func TestFmt_workingDirectory(t *testing.T) {
 }
 
 func TestFmt_directoryArg(t *testing.T) {
-	tempDir, err := fmtFixtureWriteDir()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.RemoveAll(tempDir)
+	tempDir := fmtFixtureWriteDir(t)
 
 	ui := new(cli.MockUi)
 	c := &FmtCommand{
@@ -118,9 +106,14 @@ func TestFmt_directoryArg(t *testing.T) {
 		t.Fatalf("wrong exit code. errors: \n%s", ui.ErrorWriter.String())
 	}
 
-	expected := fmt.Sprintf("%s\n", filepath.Join(tempDir, fmtFixture.filename))
-	if actual := ui.OutputWriter.String(); actual != expected {
-		t.Fatalf("got: %q\nexpected: %q", actual, expected)
+	got, err := filepath.Abs(strings.TrimSpace(ui.OutputWriter.String()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := filepath.Join(tempDir, fmtFixture.filename)
+
+	if got != want {
+		t.Fatalf("wrong output\ngot:  %s\nwant: %s", got, want)
 	}
 }
 
@@ -149,11 +142,7 @@ func TestFmt_stdinArg(t *testing.T) {
 }
 
 func TestFmt_nonDefaultOptions(t *testing.T) {
-	tempDir, err := fmtFixtureWriteDir()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.RemoveAll(tempDir)
+	tempDir := fmtFixtureWriteDir(t)
 
 	ui := new(cli.MockUi)
 	c := &FmtCommand{
@@ -180,11 +169,7 @@ func TestFmt_nonDefaultOptions(t *testing.T) {
 }
 
 func TestFmt_check(t *testing.T) {
-	tempDir, err := fmtFixtureWriteDir()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.RemoveAll(tempDir)
+	tempDir := fmtFixtureWriteDir(t)
 
 	ui := new(cli.MockUi)
 	c := &FmtCommand{
@@ -244,17 +229,13 @@ var fmtFixture = struct {
 `),
 }
 
-func fmtFixtureWriteDir() (string, error) {
-	dir, err := ioutil.TempDir("", "tf")
+func fmtFixtureWriteDir(t *testing.T) string {
+	dir := testTempDir(t)
+
+	err := ioutil.WriteFile(filepath.Join(dir, fmtFixture.filename), fmtFixture.input, 0644)
 	if err != nil {
-		return "", err
+		t.Fatal(err)
 	}
 
-	err = ioutil.WriteFile(filepath.Join(dir, fmtFixture.filename), fmtFixture.input, 0644)
-	if err != nil {
-		os.RemoveAll(dir)
-		return "", err
-	}
-
-	return dir, nil
+	return dir
 }

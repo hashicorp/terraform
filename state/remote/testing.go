@@ -5,14 +5,16 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/states/statefile"
 )
 
 // TestClient is a generic function to test any client.
 func TestClient(t *testing.T, c Client) {
 	var buf bytes.Buffer
 	s := state.TestStateInitial()
-	if err := terraform.WriteState(s, &buf); err != nil {
+	sf := statefile.New(s, "stub-lineage", 2)
+	err := statefile.Write(sf, &buf)
+	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	data := buf.Bytes()
@@ -26,7 +28,7 @@ func TestClient(t *testing.T, c Client) {
 		t.Fatalf("get: %s", err)
 	}
 	if !bytes.Equal(p.Data, data) {
-		t.Fatalf("bad: %#v", p)
+		t.Fatalf("expected full state %q\n\ngot: %q", string(p.Data), string(data))
 	}
 
 	if err := c.Delete(); err != nil {
@@ -38,7 +40,7 @@ func TestClient(t *testing.T, c Client) {
 		t.Fatalf("get: %s", err)
 	}
 	if p != nil {
-		t.Fatalf("bad: %#v", p)
+		t.Fatalf("expected empty state, got: %q", string(p.Data))
 	}
 }
 

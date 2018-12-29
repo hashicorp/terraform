@@ -18,3 +18,8 @@ func (tc HostCredentialsToken) PrepareRequest(req *http.Request) {
 	}
 	req.Header.Set("Authorization", "Bearer "+string(tc))
 }
+
+// Token returns the authentication token.
+func (tc HostCredentialsToken) Token() string {
+	return string(tc)
+}

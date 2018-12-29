@@ -55,18 +55,20 @@ func TestBackend(t *testing.T) {
 	prefix := fmt.Sprintf("%s/%s/", keyPrefix, time.Now().Format(time.RFC3339))
 
 	// Get the backend. We need two to test locking.
-	b1 := backend.TestBackendConfig(t, New(), map[string]interface{}{
+	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"endpoints": etcdv3Endpoints,
 		"prefix":    prefix,
-	})
+	}))
 
-	b2 := backend.TestBackendConfig(t, New(), map[string]interface{}{
+	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"endpoints": etcdv3Endpoints,
 		"prefix":    prefix,
-	})
+	}))
 
 	// Test
-	backend.TestBackend(t, b1, b2)
+	backend.TestBackendStates(t, b1)
+	backend.TestBackendStateLocks(t, b1, b2)
+	backend.TestBackendStateForceUnlock(t, b1, b2)
 }
 
 func TestBackend_lockDisabled(t *testing.T) {
@@ -76,18 +78,18 @@ func TestBackend_lockDisabled(t *testing.T) {
 	prefix := fmt.Sprintf("%s/%s/", keyPrefix, time.Now().Format(time.RFC3339))
 
 	// Get the backend. We need two to test locking.
-	b1 := backend.TestBackendConfig(t, New(), map[string]interface{}{
+	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"endpoints": etcdv3Endpoints,
 		"prefix":    prefix,
 		"lock":      false,
-	})
+	}))
 
-	b2 := backend.TestBackendConfig(t, New(), map[string]interface{}{
+	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"endpoints": etcdv3Endpoints,
 		"prefix":    prefix + "/" + "different", // Diff so locking test would fail if it was locking
 		"lock":      false,
-	})
+	}))
 
 	// Test
-	backend.TestBackend(t, b1, b2)
+	backend.TestBackendStateLocks(t, b1, b2)
 }

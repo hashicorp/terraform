@@ -1,14 +1,13 @@
 package aws
 
 import (
-	"fmt"
-
 	"encoding/json"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
-	"strconv"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 var dataSourceAwsIamPolicyDocumentVarReplacer = strings.NewReplacer("&{", "${")
@@ -26,13 +25,21 @@ func dataSourceAwsIamPolicyDocument() *schema.Resource {
 		Read: dataSourceAwsIamPolicyDocumentRead,
 
 		Schema: map[string]*schema.Schema{
+			"override_json": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"policy_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"source_json": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 			"statement": {
 				Type:     schema.TypeList,
-				Required: true,
+				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"sid": {
@@ -40,18 +47,10 @@ func dataSourceAwsIamPolicyDocument() *schema.Resource {
 							Optional: true,
 						},
 						"effect": {
-							Type:     schema.TypeString,
-							Optional: true,
-							Default:  "Allow",
-							ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
-								switch v.(string) {
-								case "Allow", "Deny":
-									return
-								default:
-									es = append(es, fmt.Errorf("%q must be either \"Allow\" or \"Deny\"", k))
-									return
-								}
-							},
+							Type:         schema.TypeString,
+							Optional:     true,
+							Default:      "Allow",
+							ValidateFunc: validation.StringInSlice([]string{"Allow", "Deny"}, false),
 						},
 						"actions":        setOfString,
 						"not_actions":    setOfString,
@@ -94,61 +93,88 @@ func dataSourceAwsIamPolicyDocument() *schema.Resource {
 }
 
 func dataSourceAwsIamPolicyDocumentRead(d *schema.ResourceData, meta interface{}) error {
-	doc := &IAMPolicyDoc{
-		Version: "2012-10-17",
+	mergedDoc := &IAMPolicyDoc{}
+
+	// populate mergedDoc directly with any source_json
+	if sourceJSON, hasSourceJSON := d.GetOk("source_json"); hasSourceJSON {
+		if err := json.Unmarshal([]byte(sourceJSON.(string)), mergedDoc); err != nil {
+			return err
+		}
 	}
 
-	if policyId, hasPolicyId := d.GetOk("policy_id"); hasPolicyId {
-		doc.Id = policyId.(string)
+	// process the current document
+	doc := &IAMPolicyDoc{}
+
+	doc.Version = "2012-10-17"
+
+	if policyID, hasPolicyID := d.GetOk("policy_id"); hasPolicyID {
+		doc.Id = policyID.(string)
 	}
 
-	var cfgStmts = d.Get("statement").([]interface{})
-	stmts := make([]*IAMPolicyStatement, len(cfgStmts))
-	doc.Statements = stmts
-	for i, stmtI := range cfgStmts {
-		cfgStmt := stmtI.(map[string]interface{})
-		stmt := &IAMPolicyStatement{
-			Effect: cfgStmt["effect"].(string),
+	if cfgStmts, hasCfgStmts := d.GetOk("statement"); hasCfgStmts {
+		var cfgStmtIntf = cfgStmts.([]interface{})
+		stmts := make([]*IAMPolicyStatement, len(cfgStmtIntf))
+		for i, stmtI := range cfgStmtIntf {
+			cfgStmt := stmtI.(map[string]interface{})
+			stmt := &IAMPolicyStatement{
+				Effect: cfgStmt["effect"].(string),
+			}
+
+			if sid, ok := cfgStmt["sid"]; ok {
+				stmt.Sid = sid.(string)
+			}
+
+			if actions := cfgStmt["actions"].(*schema.Set).List(); len(actions) > 0 {
+				stmt.Actions = iamPolicyDecodeConfigStringList(actions)
+			}
+			if actions := cfgStmt["not_actions"].(*schema.Set).List(); len(actions) > 0 {
+				stmt.NotActions = iamPolicyDecodeConfigStringList(actions)
+			}
+
+			if resources := cfgStmt["resources"].(*schema.Set).List(); len(resources) > 0 {
+				stmt.Resources = dataSourceAwsIamPolicyDocumentReplaceVarsInList(
+					iamPolicyDecodeConfigStringList(resources),
+				)
+			}
+			if resources := cfgStmt["not_resources"].(*schema.Set).List(); len(resources) > 0 {
+				stmt.NotResources = dataSourceAwsIamPolicyDocumentReplaceVarsInList(
+					iamPolicyDecodeConfigStringList(resources),
+				)
+			}
+
+			if principals := cfgStmt["principals"].(*schema.Set).List(); len(principals) > 0 {
+				stmt.Principals = dataSourceAwsIamPolicyDocumentMakePrincipals(principals)
+			}
+
+			if principals := cfgStmt["not_principals"].(*schema.Set).List(); len(principals) > 0 {
+				stmt.NotPrincipals = dataSourceAwsIamPolicyDocumentMakePrincipals(principals)
+			}
+
+			if conditions := cfgStmt["condition"].(*schema.Set).List(); len(conditions) > 0 {
+				stmt.Conditions = dataSourceAwsIamPolicyDocumentMakeConditions(conditions)
+			}
+
+			stmts[i] = stmt
 		}
 
-		if sid, ok := cfgStmt["sid"]; ok {
-			stmt.Sid = sid.(string)
-		}
+		doc.Statements = stmts
 
-		if actions := cfgStmt["actions"].(*schema.Set).List(); len(actions) > 0 {
-			stmt.Actions = iamPolicyDecodeConfigStringList(actions)
-		}
-		if actions := cfgStmt["not_actions"].(*schema.Set).List(); len(actions) > 0 {
-			stmt.NotActions = iamPolicyDecodeConfigStringList(actions)
-		}
-
-		if resources := cfgStmt["resources"].(*schema.Set).List(); len(resources) > 0 {
-			stmt.Resources = dataSourceAwsIamPolicyDocumentReplaceVarsInList(
-				iamPolicyDecodeConfigStringList(resources),
-			)
-		}
-		if resources := cfgStmt["not_resources"].(*schema.Set).List(); len(resources) > 0 {
-			stmt.NotResources = dataSourceAwsIamPolicyDocumentReplaceVarsInList(
-				iamPolicyDecodeConfigStringList(resources),
-			)
-		}
-
-		if principals := cfgStmt["principals"].(*schema.Set).List(); len(principals) > 0 {
-			stmt.Principals = dataSourceAwsIamPolicyDocumentMakePrincipals(principals)
-		}
-
-		if principals := cfgStmt["not_principals"].(*schema.Set).List(); len(principals) > 0 {
-			stmt.NotPrincipals = dataSourceAwsIamPolicyDocumentMakePrincipals(principals)
-		}
-
-		if conditions := cfgStmt["condition"].(*schema.Set).List(); len(conditions) > 0 {
-			stmt.Conditions = dataSourceAwsIamPolicyDocumentMakeConditions(conditions)
-		}
-
-		stmts[i] = stmt
 	}
 
-	jsonDoc, err := json.MarshalIndent(doc, "", "  ")
+	// merge our current document into mergedDoc
+	mergedDoc.Merge(doc)
+
+	// merge in override_json
+	if overrideJSON, hasOverrideJSON := d.GetOk("override_json"); hasOverrideJSON {
+		overrideDoc := &IAMPolicyDoc{}
+		if err := json.Unmarshal([]byte(overrideJSON.(string)), overrideDoc); err != nil {
+			return err
+		}
+
+		mergedDoc.Merge(overrideDoc)
+	}
+
+	jsonDoc, err := json.MarshalIndent(mergedDoc, "", "  ")
 	if err != nil {
 		// should never happen if the above code is correct
 		return err
@@ -215,11 +241,11 @@ func dataSourceAwsIamPolicyPrincipalSchema() *schema.Schema {
 		Optional: true,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
-				"type": &schema.Schema{
+				"type": {
 					Type:     schema.TypeString,
 					Required: true,
 				},
-				"identifiers": &schema.Schema{
+				"identifiers": {
 					Type:     schema.TypeSet,
 					Required: true,
 					Elem: &schema.Schema{

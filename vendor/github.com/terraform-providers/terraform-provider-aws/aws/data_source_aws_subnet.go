@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -74,6 +75,11 @@ func dataSourceAwsSubnet() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -83,7 +89,7 @@ func dataSourceAwsSubnetRead(d *schema.ResourceData, meta interface{}) error {
 
 	req := &ec2.DescribeSubnetsInput{}
 
-	if id := d.Get("id"); id != "" {
+	if id, ok := d.GetOk("id"); ok {
 		req.SubnetIds = []*string{aws.String(id.(string))}
 	}
 
@@ -124,7 +130,7 @@ func dataSourceAwsSubnetRead(d *schema.ResourceData, meta interface{}) error {
 		req.Filters = nil
 	}
 
-	log.Printf("[DEBUG] DescribeSubnets %s\n", req)
+	log.Printf("[DEBUG] Reading Subnet: %s", req)
 	resp, err := conn.DescribeSubnets(req)
 	if err != nil {
 		return err
@@ -139,7 +145,6 @@ func dataSourceAwsSubnetRead(d *schema.ResourceData, meta interface{}) error {
 	subnet := resp.Subnets[0]
 
 	d.SetId(*subnet.SubnetId)
-	d.Set("id", subnet.SubnetId)
 	d.Set("vpc_id", subnet.VpcId)
 	d.Set("availability_zone", subnet.AvailabilityZone)
 	d.Set("cidr_block", subnet.CidrBlock)
@@ -155,6 +160,15 @@ func dataSourceAwsSubnetRead(d *schema.ResourceData, meta interface{}) error {
 			d.Set("ipv6_cidr_block", a.Ipv6CidrBlock)
 		}
 	}
+
+	arn := arn.ARN{
+		Partition: meta.(*AWSClient).partition,
+		Region:    meta.(*AWSClient).region,
+		Service:   "ec2",
+		AccountID: meta.(*AWSClient).accountid,
+		Resource:  fmt.Sprintf("subnet/%s", d.Id()),
+	}
+	d.Set("arn", arn.String())
 
 	return nil
 }

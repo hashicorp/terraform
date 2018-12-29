@@ -37,7 +37,7 @@ func migrateSGRuleStateV0toV1(is *terraform.InstanceState) (*terraform.InstanceS
 	perm, err := migrateExpandIPPerm(is.Attributes)
 
 	if err != nil {
-		return nil, fmt.Errorf("[WARN] Error making new IP Permission in Security Group migration")
+		return nil, fmt.Errorf("Error making new IP Permission in Security Group migration")
 	}
 
 	log.Printf("[DEBUG] Attributes before migration: %#v", is.Attributes)
@@ -77,7 +77,7 @@ func migrateExpandIPPerm(attrs map[string]string) (*ec2.IpPermission, error) {
 		perm.UserIdGroupPairs = make([]*ec2.UserIdGroupPair, len(groups))
 		// build string list of group name/ids
 		var gl []string
-		for k, _ := range groups {
+		for k := range groups {
 			gl = append(gl, k)
 		}
 

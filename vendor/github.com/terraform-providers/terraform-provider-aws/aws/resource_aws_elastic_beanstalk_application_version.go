@@ -19,31 +19,31 @@ func resourceAwsElasticBeanstalkApplicationVersion() *schema.Resource {
 		Delete: resourceAwsElasticBeanstalkApplicationVersionDelete,
 
 		Schema: map[string]*schema.Schema{
-			"application": &schema.Schema{
+			"application": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"bucket": &schema.Schema{
+			"bucket": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"key": &schema.Schema{
+			"key": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"force_delete": &schema.Schema{
+			"force_delete": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
@@ -153,14 +153,12 @@ func resourceAwsElasticBeanstalkApplicationVersionDelete(d *schema.ResourceData,
 		if awserr, ok := err.(awserr.Error); ok {
 			// application version is pending delete, or no longer exists.
 			if awserr.Code() == "InvalidParameterValue" {
-				d.SetId("")
 				return nil
 			}
 		}
 		return err
 	}
 
-	d.SetId("")
 	return nil
 }
 

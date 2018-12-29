@@ -42,7 +42,6 @@ func (p StringPtrSlice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 // Used by the aws_cloudfront_distribution Create and Update functions.
 func expandDistributionConfig(d *schema.ResourceData) *cloudfront.DistributionConfig {
 	distributionConfig := &cloudfront.DistributionConfig{
-		CacheBehaviors:       expandCacheBehaviors(d.Get("cache_behavior").(*schema.Set)),
 		CustomErrorResponses: expandCustomErrorResponses(d.Get("custom_error_response").(*schema.Set)),
 		DefaultCacheBehavior: expandDefaultCacheBehavior(d.Get("default_cache_behavior").(*schema.Set).List()[0].(map[string]interface{})),
 		Enabled:              aws.Bool(d.Get("enabled").(bool)),
@@ -50,6 +49,11 @@ func expandDistributionConfig(d *schema.ResourceData) *cloudfront.DistributionCo
 		HttpVersion:          aws.String(d.Get("http_version").(string)),
 		Origins:              expandOrigins(d.Get("origin").(*schema.Set)),
 		PriceClass:           aws.String(d.Get("price_class").(string)),
+	}
+	if v, ok := d.GetOk("ordered_cache_behavior"); ok {
+		distributionConfig.CacheBehaviors = expandCacheBehaviors(v.([]interface{}))
+	} else {
+		distributionConfig.CacheBehaviors = expandCacheBehaviorsDeprecated(d.Get("cache_behavior").(*schema.Set))
 	}
 	// This sets CallerReference if it's still pending computation (ie: new resource)
 	if v, ok := d.GetOk("caller_reference"); ok == false {
@@ -140,7 +144,12 @@ func flattenDistributionConfig(d *schema.ResourceData, distributionConfig *cloud
 		}
 	}
 	if distributionConfig.CacheBehaviors != nil {
-		err = d.Set("cache_behavior", flattenCacheBehaviors(distributionConfig.CacheBehaviors))
+		if _, ok := d.GetOk("cache_behavior"); ok {
+			err = d.Set("cache_behavior", flattenCacheBehaviorsDeprecated(distributionConfig.CacheBehaviors))
+		} else {
+			err = d.Set("ordered_cache_behavior", flattenCacheBehaviors(distributionConfig.CacheBehaviors))
+		}
+
 		if err != nil {
 			return err
 		}
@@ -178,7 +187,7 @@ func flattenDistributionConfig(d *schema.ResourceData, distributionConfig *cloud
 }
 
 func expandDefaultCacheBehavior(m map[string]interface{}) *cloudfront.DefaultCacheBehavior {
-	cb := expandCacheBehavior(m)
+	cb := expandCacheBehaviorDeprecated(m)
 	var dcb cloudfront.DefaultCacheBehavior
 
 	simpleCopyStruct(cb, &dcb)
@@ -186,11 +195,10 @@ func expandDefaultCacheBehavior(m map[string]interface{}) *cloudfront.DefaultCac
 }
 
 func flattenDefaultCacheBehavior(dcb *cloudfront.DefaultCacheBehavior) *schema.Set {
-	m := make(map[string]interface{})
 	var cb cloudfront.CacheBehavior
 
 	simpleCopyStruct(dcb, &cb)
-	m = flattenCacheBehavior(&cb)
+	m := flattenCacheBehaviorDeprecated(&cb)
 	return schema.NewSet(defaultCacheBehaviorHash, []interface{}{m})
 }
 
@@ -204,6 +212,9 @@ func defaultCacheBehaviorHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["target_origin_id"].(string)))
 	buf.WriteString(fmt.Sprintf("%d-", forwardedValuesHash(m["forwarded_values"].(*schema.Set).List()[0].(map[string]interface{}))))
 	buf.WriteString(fmt.Sprintf("%d-", m["min_ttl"].(int)))
+	if d, ok := m["field_level_encryption_id"]; ok && d.(string) != "" {
+		buf.WriteString(fmt.Sprintf("%s-", d.(string)))
+	}
 	if d, ok := m["trusted_signers"]; ok {
 		for _, e := range sortInterfaceSlice(d.([]interface{})) {
 			buf.WriteString(fmt.Sprintf("%s-", e.(string)))
@@ -243,10 +254,31 @@ func defaultCacheBehaviorHash(v interface{}) int {
 	return hashcode.String(buf.String())
 }
 
-func expandCacheBehaviors(s *schema.Set) *cloudfront.CacheBehaviors {
+func expandCacheBehaviorsDeprecated(s *schema.Set) *cloudfront.CacheBehaviors {
 	var qty int64
 	var items []*cloudfront.CacheBehavior
 	for _, v := range s.List() {
+		items = append(items, expandCacheBehaviorDeprecated(v.(map[string]interface{})))
+		qty++
+	}
+	return &cloudfront.CacheBehaviors{
+		Quantity: aws.Int64(qty),
+		Items:    items,
+	}
+}
+
+func flattenCacheBehaviorsDeprecated(cbs *cloudfront.CacheBehaviors) *schema.Set {
+	s := []interface{}{}
+	for _, v := range cbs.Items {
+		s = append(s, flattenCacheBehaviorDeprecated(v))
+	}
+	return schema.NewSet(cacheBehaviorHash, s)
+}
+
+func expandCacheBehaviors(lst []interface{}) *cloudfront.CacheBehaviors {
+	var qty int64
+	var items []*cloudfront.CacheBehavior
+	for _, v := range lst {
 		items = append(items, expandCacheBehavior(v.(map[string]interface{})))
 		qty++
 	}
@@ -256,24 +288,27 @@ func expandCacheBehaviors(s *schema.Set) *cloudfront.CacheBehaviors {
 	}
 }
 
-func flattenCacheBehaviors(cbs *cloudfront.CacheBehaviors) *schema.Set {
-	s := []interface{}{}
+func flattenCacheBehaviors(cbs *cloudfront.CacheBehaviors) []interface{} {
+	lst := []interface{}{}
 	for _, v := range cbs.Items {
-		s = append(s, flattenCacheBehavior(v))
+		lst = append(lst, flattenCacheBehavior(v))
 	}
-	return schema.NewSet(cacheBehaviorHash, s)
+	return lst
 }
 
-func expandCacheBehavior(m map[string]interface{}) *cloudfront.CacheBehavior {
+// Deprecated.
+func expandCacheBehaviorDeprecated(m map[string]interface{}) *cloudfront.CacheBehavior {
 	cb := &cloudfront.CacheBehavior{
-		Compress:             aws.Bool(m["compress"].(bool)),
-		ViewerProtocolPolicy: aws.String(m["viewer_protocol_policy"].(string)),
-		TargetOriginId:       aws.String(m["target_origin_id"].(string)),
-		ForwardedValues:      expandForwardedValues(m["forwarded_values"].(*schema.Set).List()[0].(map[string]interface{})),
-		MinTTL:               aws.Int64(int64(m["min_ttl"].(int))),
-		MaxTTL:               aws.Int64(int64(m["max_ttl"].(int))),
-		DefaultTTL:           aws.Int64(int64(m["default_ttl"].(int))),
+		Compress:               aws.Bool(m["compress"].(bool)),
+		FieldLevelEncryptionId: aws.String(m["field_level_encryption_id"].(string)),
+		ViewerProtocolPolicy:   aws.String(m["viewer_protocol_policy"].(string)),
+		TargetOriginId:         aws.String(m["target_origin_id"].(string)),
+		ForwardedValues:        expandForwardedValues(m["forwarded_values"].(*schema.Set).List()[0].(map[string]interface{})),
+		DefaultTTL:             aws.Int64(int64(m["default_ttl"].(int))),
+		MaxTTL:                 aws.Int64(int64(m["max_ttl"].(int))),
+		MinTTL:                 aws.Int64(int64(m["min_ttl"].(int))),
 	}
+
 	if v, ok := m["trusted_signers"]; ok {
 		cb.TrustedSigners = expandTrustedSigners(v.([]interface{}))
 	} else {
@@ -288,10 +323,10 @@ func expandCacheBehavior(m map[string]interface{}) *cloudfront.CacheBehavior {
 		cb.SmoothStreaming = aws.Bool(v.(bool))
 	}
 	if v, ok := m["allowed_methods"]; ok {
-		cb.AllowedMethods = expandAllowedMethods(v.([]interface{}))
+		cb.AllowedMethods = expandAllowedMethodsDeprecated(v.([]interface{}))
 	}
 	if v, ok := m["cached_methods"]; ok {
-		cb.AllowedMethods.CachedMethods = expandCachedMethods(v.([]interface{}))
+		cb.AllowedMethods.CachedMethods = expandCachedMethodsDeprecated(v.([]interface{}))
 	}
 	if v, ok := m["path_pattern"]; ok {
 		cb.PathPattern = aws.String(v.(string))
@@ -299,10 +334,85 @@ func expandCacheBehavior(m map[string]interface{}) *cloudfront.CacheBehavior {
 	return cb
 }
 
+func expandCacheBehavior(m map[string]interface{}) *cloudfront.CacheBehavior {
+	cb := &cloudfront.CacheBehavior{
+		Compress:               aws.Bool(m["compress"].(bool)),
+		FieldLevelEncryptionId: aws.String(m["field_level_encryption_id"].(string)),
+		ViewerProtocolPolicy:   aws.String(m["viewer_protocol_policy"].(string)),
+		TargetOriginId:         aws.String(m["target_origin_id"].(string)),
+		ForwardedValues:        expandForwardedValues(m["forwarded_values"].(*schema.Set).List()[0].(map[string]interface{})),
+		DefaultTTL:             aws.Int64(int64(m["default_ttl"].(int))),
+		MaxTTL:                 aws.Int64(int64(m["max_ttl"].(int))),
+		MinTTL:                 aws.Int64(int64(m["min_ttl"].(int))),
+	}
+
+	if v, ok := m["trusted_signers"]; ok {
+		cb.TrustedSigners = expandTrustedSigners(v.([]interface{}))
+	} else {
+		cb.TrustedSigners = expandTrustedSigners([]interface{}{})
+	}
+
+	if v, ok := m["lambda_function_association"]; ok {
+		cb.LambdaFunctionAssociations = expandLambdaFunctionAssociations(v.(*schema.Set).List())
+	}
+
+	if v, ok := m["smooth_streaming"]; ok {
+		cb.SmoothStreaming = aws.Bool(v.(bool))
+	}
+	if v, ok := m["allowed_methods"]; ok {
+		cb.AllowedMethods = expandAllowedMethods(v.(*schema.Set))
+	}
+	if v, ok := m["cached_methods"]; ok {
+		cb.AllowedMethods.CachedMethods = expandCachedMethods(v.(*schema.Set))
+	}
+	if v, ok := m["path_pattern"]; ok {
+		cb.PathPattern = aws.String(v.(string))
+	}
+	return cb
+}
+
+func flattenCacheBehaviorDeprecated(cb *cloudfront.CacheBehavior) map[string]interface{} {
+	m := make(map[string]interface{})
+
+	m["compress"] = *cb.Compress
+	m["field_level_encryption_id"] = aws.StringValue(cb.FieldLevelEncryptionId)
+	m["viewer_protocol_policy"] = *cb.ViewerProtocolPolicy
+	m["target_origin_id"] = *cb.TargetOriginId
+	m["forwarded_values"] = schema.NewSet(forwardedValuesHash, []interface{}{flattenForwardedValues(cb.ForwardedValues)})
+	m["min_ttl"] = int(*cb.MinTTL)
+
+	if len(cb.TrustedSigners.Items) > 0 {
+		m["trusted_signers"] = flattenTrustedSigners(cb.TrustedSigners)
+	}
+	if len(cb.LambdaFunctionAssociations.Items) > 0 {
+		m["lambda_function_association"] = flattenLambdaFunctionAssociations(cb.LambdaFunctionAssociations)
+	}
+	if cb.MaxTTL != nil {
+		m["max_ttl"] = int(*cb.MaxTTL)
+	}
+	if cb.SmoothStreaming != nil {
+		m["smooth_streaming"] = *cb.SmoothStreaming
+	}
+	if cb.DefaultTTL != nil {
+		m["default_ttl"] = int(*cb.DefaultTTL)
+	}
+	if cb.AllowedMethods != nil {
+		m["allowed_methods"] = flattenAllowedMethodsDeprecated(cb.AllowedMethods)
+	}
+	if cb.AllowedMethods.CachedMethods != nil {
+		m["cached_methods"] = flattenCachedMethodsDeprecated(cb.AllowedMethods.CachedMethods)
+	}
+	if cb.PathPattern != nil {
+		m["path_pattern"] = *cb.PathPattern
+	}
+	return m
+}
+
 func flattenCacheBehavior(cb *cloudfront.CacheBehavior) map[string]interface{} {
 	m := make(map[string]interface{})
 
 	m["compress"] = *cb.Compress
+	m["field_level_encryption_id"] = aws.StringValue(cb.FieldLevelEncryptionId)
 	m["viewer_protocol_policy"] = *cb.ViewerProtocolPolicy
 	m["target_origin_id"] = *cb.TargetOriginId
 	m["forwarded_values"] = schema.NewSet(forwardedValuesHash, []interface{}{flattenForwardedValues(cb.ForwardedValues)})
@@ -345,6 +455,9 @@ func cacheBehaviorHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["target_origin_id"].(string)))
 	buf.WriteString(fmt.Sprintf("%d-", forwardedValuesHash(m["forwarded_values"].(*schema.Set).List()[0].(map[string]interface{}))))
 	buf.WriteString(fmt.Sprintf("%d-", m["min_ttl"].(int)))
+	if d, ok := m["field_level_encryption_id"]; ok && d.(string) != "" {
+		buf.WriteString(fmt.Sprintf("%s-", d.(string)))
+	}
 	if d, ok := m["trusted_signers"]; ok {
 		for _, e := range sortInterfaceSlice(d.([]interface{})) {
 			buf.WriteString(fmt.Sprintf("%s-", e.(string)))
@@ -412,6 +525,7 @@ func lambdaFunctionAssociationHash(v interface{}) int {
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", m["event_type"].(string)))
 	buf.WriteString(fmt.Sprintf("%s", m["lambda_arn"].(string)))
+	buf.WriteString(fmt.Sprintf("%t", m["include_body"].(bool)))
 	return hashcode.String(buf.String())
 }
 
@@ -440,6 +554,9 @@ func expandLambdaFunctionAssociation(lf map[string]interface{}) *cloudfront.Lamb
 	if v, ok := lf["lambda_arn"]; ok {
 		lfa.LambdaFunctionARN = aws.String(v.(string))
 	}
+	if v, ok := lf["include_body"]; ok {
+		lfa.IncludeBody = aws.Bool(v.(bool))
+	}
 	return &lfa
 }
 
@@ -456,6 +573,7 @@ func flattenLambdaFunctionAssociation(lfa *cloudfront.LambdaFunctionAssociation)
 	if lfa != nil {
 		m["event_type"] = *lfa.EventType
 		m["lambda_arn"] = *lfa.LambdaFunctionARN
+		m["include_body"] = *lfa.IncludeBody
 	}
 	return m
 }
@@ -588,28 +706,56 @@ func flattenCookieNames(cn *cloudfront.CookieNames) []interface{} {
 	return []interface{}{}
 }
 
-func expandAllowedMethods(s []interface{}) *cloudfront.AllowedMethods {
+func expandAllowedMethods(s *schema.Set) *cloudfront.AllowedMethods {
+	return &cloudfront.AllowedMethods{
+		Quantity: aws.Int64(int64(s.Len())),
+		Items:    expandStringList(s.List()),
+	}
+}
+
+func flattenAllowedMethods(am *cloudfront.AllowedMethods) *schema.Set {
+	if am.Items != nil {
+		return schema.NewSet(schema.HashString, flattenStringList(am.Items))
+	}
+	return nil
+}
+
+func expandAllowedMethodsDeprecated(s []interface{}) *cloudfront.AllowedMethods {
 	return &cloudfront.AllowedMethods{
 		Quantity: aws.Int64(int64(len(s))),
 		Items:    expandStringList(s),
 	}
 }
 
-func flattenAllowedMethods(am *cloudfront.AllowedMethods) []interface{} {
+func flattenAllowedMethodsDeprecated(am *cloudfront.AllowedMethods) []interface{} {
 	if am.Items != nil {
 		return flattenStringList(am.Items)
 	}
 	return []interface{}{}
 }
 
-func expandCachedMethods(s []interface{}) *cloudfront.CachedMethods {
+func expandCachedMethods(s *schema.Set) *cloudfront.CachedMethods {
+	return &cloudfront.CachedMethods{
+		Quantity: aws.Int64(int64(s.Len())),
+		Items:    expandStringList(s.List()),
+	}
+}
+
+func flattenCachedMethods(cm *cloudfront.CachedMethods) *schema.Set {
+	if cm.Items != nil {
+		return schema.NewSet(schema.HashString, flattenStringList(cm.Items))
+	}
+	return nil
+}
+
+func expandCachedMethodsDeprecated(s []interface{}) *cloudfront.CachedMethods {
 	return &cloudfront.CachedMethods{
 		Quantity: aws.Int64(int64(len(s))),
 		Items:    expandStringList(s),
 	}
 }
 
-func flattenCachedMethods(cm *cloudfront.CachedMethods) []interface{} {
+func flattenCachedMethodsDeprecated(cm *cloudfront.CachedMethods) []interface{} {
 	if cm.Items != nil {
 		return flattenStringList(cm.Items)
 	}
@@ -1096,8 +1242,12 @@ func viewerCertificateHash(v interface{}) int {
 	} else {
 		buf.WriteString(fmt.Sprintf("%t-", m["cloudfront_default_certificate"].(bool)))
 	}
-	if v, ok := m["minimum_protocol_version"]; ok && v.(string) != "" {
-		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	// if minimum_protocol_version is not specified and we use cloudfront_default_certificate,
+	// ignore current value of minimum_protocol_version
+	if c, ok := m["cloudfront_default_certificate"]; !(ok && c.(bool)) {
+		if v, ok := m["minimum_protocol_version"]; ok && v.(string) != "" {
+			buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+		}
 	}
 	return hashcode.String(buf.String())
 }

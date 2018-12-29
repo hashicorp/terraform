@@ -10,14 +10,12 @@
 // For example, es.us-east-1.amazonaws.com. For a current list of supported
 // regions and endpoints, see Regions and Endpoints (http://docs.aws.amazon.com/general/latest/gr/rande.html#elasticsearch-service-regions).
 //
-// See https://docs.aws.amazon.com/goto/WebAPI/es-2015-01-01 for more information on this service.
-//
 // See elasticsearchservice package documentation for more information.
 // https://docs.aws.amazon.com/sdk-for-go/api/service/elasticsearchservice/
 //
 // Using the Client
 //
-// To Amazon Elasticsearch Service with the SDK use the New function to create
+// To contact Amazon Elasticsearch Service with the SDK use the New function to create
 // a new service client. With that client you can make API requests to the service.
 // These clients are safe to use concurrently.
 //

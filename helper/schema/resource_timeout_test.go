@@ -23,28 +23,28 @@ func TestResourceTimeout_ConfigDecode_badkey(t *testing.T) {
 		ShouldErr bool
 	}{
 		{
-			Name: "Source does not define 'delete' key",
+			Name:                   "Source does not define 'delete' key",
 			ResourceDefaultTimeout: timeoutForValues(10, 0, 5, 0, 0),
 			Config:                 expectedConfigForValues(2, 0, 0, 1, 0),
 			Expected:               timeoutForValues(10, 0, 5, 0, 0),
 			ShouldErr:              true,
 		},
 		{
-			Name: "Config overrides create",
+			Name:                   "Config overrides create",
 			ResourceDefaultTimeout: timeoutForValues(10, 0, 5, 0, 0),
 			Config:                 expectedConfigForValues(2, 0, 7, 0, 0),
 			Expected:               timeoutForValues(2, 0, 7, 0, 0),
 			ShouldErr:              false,
 		},
 		{
-			Name: "Config overrides create, default provided. Should still have zero values",
+			Name:                   "Config overrides create, default provided. Should still have zero values",
 			ResourceDefaultTimeout: timeoutForValues(10, 0, 5, 0, 3),
 			Config:                 expectedConfigForValues(2, 0, 7, 0, 0),
 			Expected:               timeoutForValues(2, 0, 7, 0, 3),
 			ShouldErr:              false,
 		},
 		{
-			Name: "Use something besides 'minutes'",
+			Name:                   "Use something besides 'minutes'",
 			ResourceDefaultTimeout: timeoutForValues(10, 0, 5, 0, 3),
 			Config: []map[string]interface{}{
 				map[string]interface{}{

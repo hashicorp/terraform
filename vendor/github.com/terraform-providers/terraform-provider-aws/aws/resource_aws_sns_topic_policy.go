@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"log"
 	"regexp"
-	"time"
 
-	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -50,15 +48,10 @@ func resourceAwsSnsTopicPolicyUpsert(d *schema.ResourceData, meta interface{}) e
 	// Retry the update in the event of an eventually consistent style of
 	// error, where say an IAM resource is successfully created but not
 	// actually available. See https://github.com/hashicorp/terraform/issues/3660
-	log.Printf("[DEBUG] Updating SNS Topic Policy: %s", req)
-	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"retrying"},
-		Target:     []string{"success"},
-		Refresh:    resourceAwsSNSUpdateRefreshFunc(meta, req),
-		Timeout:    3 * time.Minute,
-		MinTimeout: 3 * time.Second,
-	}
-	_, err := stateConf.WaitForState()
+	conn := meta.(*AWSClient).snsconn
+	_, err := retryOnAwsCode("InvalidParameter", func() (interface{}, error) {
+		return conn.SetTopicAttributes(&req)
+	})
 	if err != nil {
 		return err
 	}
@@ -120,18 +113,11 @@ func resourceAwsSnsTopicPolicyDelete(d *schema.ResourceData, meta interface{}) e
 	// error, where say an IAM resource is successfully created but not
 	// actually available. See https://github.com/hashicorp/terraform/issues/3660
 	log.Printf("[DEBUG] Resetting SNS Topic Policy to default: %s", req)
-	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"retrying"},
-		Target:     []string{"success"},
-		Refresh:    resourceAwsSNSUpdateRefreshFunc(meta, req),
-		Timeout:    3 * time.Minute,
-		MinTimeout: 3 * time.Second,
-	}
-	_, err = stateConf.WaitForState()
-	if err != nil {
-		return err
-	}
-	return nil
+	conn := meta.(*AWSClient).snsconn
+	_, err = retryOnAwsCode("InvalidParameter", func() (interface{}, error) {
+		return conn.SetTopicAttributes(&req)
+	})
+	return err
 }
 
 func getAccountIdFromSnsTopicArn(arn, partition string) (string, error) {

@@ -3,7 +3,7 @@ package schema
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform/config/configschema"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -40,7 +40,7 @@ func (m schemaMap) CoreConfigSchema() *configschema.Block {
 			continue
 		}
 		switch schema.Elem.(type) {
-		case *Schema:
+		case *Schema, ValueType:
 			ret.Attributes[name] = schema.coreConfigSchemaAttribute()
 		case *Resource:
 			ret.BlockTypes[name] = schema.coreConfigSchemaBlock()
@@ -59,11 +59,12 @@ func (m schemaMap) CoreConfigSchema() *configschema.Block {
 // whose elem is a whole resource.
 func (s *Schema) coreConfigSchemaAttribute() *configschema.Attribute {
 	return &configschema.Attribute{
-		Type:      s.coreConfigSchemaType(),
-		Optional:  s.Optional,
-		Required:  s.Required,
-		Computed:  s.Computed,
-		Sensitive: s.Sensitive,
+		Type:        s.coreConfigSchemaType(),
+		Optional:    s.Optional,
+		Required:    s.Required,
+		Computed:    s.Computed,
+		Sensitive:   s.Sensitive,
+		Description: s.Description,
 	}
 }
 
@@ -72,7 +73,7 @@ func (s *Schema) coreConfigSchemaAttribute() *configschema.Attribute {
 // of Resource, and will panic otherwise.
 func (s *Schema) coreConfigSchemaBlock() *configschema.NestedBlock {
 	ret := &configschema.NestedBlock{}
-	if nested := s.Elem.(*Resource).CoreConfigSchema(); nested != nil {
+	if nested := s.Elem.(*Resource).coreConfigSchema(); nested != nil {
 		ret.Block = *nested
 	}
 	switch s.Type {
@@ -117,11 +118,15 @@ func (s *Schema) coreConfigSchemaType() cty.Type {
 		switch set := s.Elem.(type) {
 		case *Schema:
 			elemType = set.coreConfigSchemaType()
+		case ValueType:
+			// This represents a mistake in the provider code, but it's a
+			// common one so we'll just shim it.
+			elemType = (&Schema{Type: set}).coreConfigSchemaType()
 		case *Resource:
 			// In practice we don't actually use this for normal schema
 			// construction because we construct a NestedBlock in that
 			// case instead. See schemaMap.CoreConfigSchema.
-			elemType = set.CoreConfigSchema().ImpliedType()
+			elemType = set.coreConfigSchema().ImpliedType()
 		default:
 			if set != nil {
 				// Should never happen for a valid schema
@@ -148,8 +153,34 @@ func (s *Schema) coreConfigSchemaType() cty.Type {
 	}
 }
 
-// CoreConfigSchema is a convenient shortcut for calling CoreConfigSchema
-// on the resource's schema.
+// CoreConfigSchema is a convenient shortcut for calling CoreConfigSchema on
+// the resource's schema. CoreConfigSchema adds the implicitly required "id"
+// attribute for top level resources if it doesn't exist.
 func (r *Resource) CoreConfigSchema() *configschema.Block {
+	block := r.coreConfigSchema()
+
+	if block.Attributes == nil {
+		block.Attributes = map[string]*configschema.Attribute{}
+	}
+
+	// Add the implicitly required "id" field if it doesn't exist
+	if block.Attributes["id"] == nil {
+		block.Attributes["id"] = &configschema.Attribute{
+			Type:     cty.String,
+			Optional: true,
+			Computed: true,
+		}
+	}
+
+	return block
+}
+
+func (r *Resource) coreConfigSchema() *configschema.Block {
+	return schemaMap(r.Schema).CoreConfigSchema()
+}
+
+// CoreConfigSchema is a convenient shortcut for calling CoreConfigSchema
+// on the backends's schema.
+func (r *Backend) CoreConfigSchema() *configschema.Block {
 	return schemaMap(r.Schema).CoreConfigSchema()
 }

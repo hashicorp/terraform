@@ -1,0 +1,24 @@
+---
+layout: "functions"
+page_title: "abs function"
+sidebar_current: "docs-funcs-numeric-abs"
+description: |-
+  The abs function returns the absolute value of the given number.
+---
+
+# `abs` Function
+
+`abs` returns the absolute value of the given number. In other words, if the
+number is zero or positive then it is returned as-is, but if it is negative
+then it is multiplied by -1 to make it positive before returning it.
+
+## Examples
+
+```
+> abs(23)
+23
+> abs(0)
+0
+> abs(-12.4)
+12.4
+```

@@ -47,7 +47,7 @@ easily be converted to an image by making use of `dot` provided
 by GraphViz:
 
 ```shell
-$ terraform graph | dot -Tpng > graph.png
+$ terraform graph | dot -Tsvg > graph.svg
 ```
 
 Here is an example graph output:

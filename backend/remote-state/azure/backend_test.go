@@ -40,7 +40,7 @@ func TestBackendConfig(t *testing.T) {
 		"access_key": "QUNDRVNTX0tFWQ0K",
 	}
 
-	b := backend.TestBackendConfig(t, New(), config).(*Backend)
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
 
 	if b.containerName != "tfcontainer" {
 		t.Fatalf("Incorrect bucketName was populated")
@@ -57,14 +57,14 @@ func TestBackend(t *testing.T) {
 	res := setupResources(t, keyName)
 	defer destroyResources(t, res.resourceGroupName)
 
-	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"storage_account_name": res.storageAccountName,
 		"container_name":       res.containerName,
 		"key":                  keyName,
 		"access_key":           res.accessKey,
-	}).(*Backend)
+	})).(*Backend)
 
-	backend.TestBackend(t, b, nil)
+	backend.TestBackendStates(t, b)
 }
 
 func TestBackendLocked(t *testing.T) {
@@ -74,21 +74,22 @@ func TestBackendLocked(t *testing.T) {
 	res := setupResources(t, keyName)
 	defer destroyResources(t, res.resourceGroupName)
 
-	b1 := backend.TestBackendConfig(t, New(), map[string]interface{}{
+	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"storage_account_name": res.storageAccountName,
 		"container_name":       res.containerName,
 		"key":                  keyName,
 		"access_key":           res.accessKey,
-	}).(*Backend)
+	})).(*Backend)
 
-	b2 := backend.TestBackendConfig(t, New(), map[string]interface{}{
+	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"storage_account_name": res.storageAccountName,
 		"container_name":       res.containerName,
 		"key":                  keyName,
 		"access_key":           res.accessKey,
-	}).(*Backend)
+	})).(*Backend)
 
-	backend.TestBackend(t, b1, b2)
+	backend.TestBackendStateLocks(t, b1, b2)
+	backend.TestBackendStateForceUnlock(t, b1, b2)
 }
 
 type testResources struct {

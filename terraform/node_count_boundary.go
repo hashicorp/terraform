@@ -1,14 +1,22 @@
 package terraform
 
-// NodeCountBoundary fixes any "count boundarie" in the state: resources
-// that are named "foo.0" when they should be named "foo"
-type NodeCountBoundary struct{}
+import (
+	"github.com/hashicorp/terraform/configs"
+)
+
+// NodeCountBoundary fixes up any transitions between "each modes" in objects
+// saved in state, such as switching from NoEach to EachInt.
+type NodeCountBoundary struct {
+	Config *configs.Config
+}
 
 func (n *NodeCountBoundary) Name() string {
-	return "meta.count-boundary (count boundary fixup)"
+	return "meta.count-boundary (EachMode fixup)"
 }
 
 // GraphNodeEvalable
 func (n *NodeCountBoundary) EvalTree() EvalNode {
-	return &EvalCountFixZeroOneBoundaryGlobal{}
+	return &EvalCountFixZeroOneBoundaryGlobal{
+		Config: n.Config,
+	}
 }

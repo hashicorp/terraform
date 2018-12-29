@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/state"
+	"github.com/hashicorp/terraform/states/statemgr"
+
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/mitchellh/cli"
 )
 
@@ -46,37 +48,33 @@ func (c *UnlockCommand) Run(args []string) int {
 		return 1
 	}
 
-	conf, err := c.Config(configPath)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load root config module: %s", err))
+	var diags tfdiags.Diagnostics
+
+	backendConfig, backendDiags := c.loadBackendConfig(configPath)
+	diags = diags.Append(backendDiags)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
 	// Load the backend
-	b, err := c.Backend(&BackendOpts{
-		Config: conf,
+	b, backendDiags := c.Backend(&BackendOpts{
+		Config: backendConfig,
 	})
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
+	diags = diags.Append(backendDiags)
+	if backendDiags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
 	env := c.Workspace()
-	st, err := b.State(env)
+	st, err := b.StateMgr(env)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 		return 1
 	}
 
-	isLocal := false
-	switch s := st.(type) {
-	case *state.BackupState:
-		if _, ok := s.Real.(*state.LocalState); ok {
-			isLocal = true
-		}
-	case *state.LocalState:
-		isLocal = true
-	}
+	_, isLocal := st.(*statemgr.Filesystem)
 
 	if !force {
 		// Forcing this doesn't do anything, but doesn't break anything either,

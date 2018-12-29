@@ -48,7 +48,7 @@ The following options apply to all of (or several of) the initialization steps:
 * `-no-color` Disable color codes in the command output.
 
 * `-upgrade` Opt to upgrade modules and plugins as part of their respective
-  installation steps. See the seconds below for more details.
+  installation steps. See the sections below for more details.
 
 ## Copy a Source Module
 
@@ -69,9 +69,9 @@ This special mode of operation supports two use-cases:
 * If the source refers to an _example_ configuration, it can be copied into
   a local directory to be used as a basis for a new configuration.
 
-For routine use it's recommended to check out configuration from version
+For routine use it is recommended to check out configuration from version
 control separately, using the version control system's own commands. This way
-it's possible to pass extra flags to the version control system when necessary,
+it is possible to pass extra flags to the version control system when necessary,
 and to perform other preparation steps (such as configuration generation, or
 activating credentials) before running `terraform init`.
 
@@ -89,7 +89,7 @@ migration questions. The `-reconfigure` option disregards any existing
 configuration, preventing migration of any existing state.
 
 To skip backend configuration, use `-backend=false`. Note that some other init
-steps require an initialized backend, so it's recommended to use this flag only
+steps require an initialized backend, so it is recommended to use this flag only
 when the working directory was already previously initialized for a particular
 backend.
 
@@ -116,36 +116,42 @@ initialized with its child modules.
 
 ## Plugin Installation
 
-During init, the configuration is searched for both direct and indirect
-references to [providers](/docs/configuration/providers.html), and the plugins
-for the providers are retrieved from the plugin repository. The downloaded
-plugins are installed to a subdirectory of the working directory, and are thus
-local to that working directory.
+During init, Terraform searches the configuration for both direct and indirect
+references to providers and attempts to load the required plugins.
 
-Re-running init with plugins already installed will install plugins only for
-any providers that were added to the configuration since the last init. Use
-`-upgrade` to additionally update already-installed plugins to the latest
-versions that comply with the version constraints given in configuration.
+For [providers distributed by HashiCorp](/docs/providers/index.html),
+init will automatically download and install plugins if necessary. Plugins
+can also be manually installed in the user plugins directory, located at
+`~/.terraform.d/plugins` on most operating systems and
+`<APPLICATION DATA>\plugins` on Windows.
 
-To skip plugin installation, use `-get-plugins=false`.
+For more information about configuring and installing providers, see
+[Configuration: Providers](/docs/configuration/providers.html).
 
-The automatic plugin installation behavior can be overridden by extracting
-the desired providers into a local directory and using the additional option
-`-plugin-dir=PATH`. When this option is specified, _only_ the given directory
-is consulted, which prevents Terraform from making requests to the plugin
-repository or looking for plugins in other local directories.
+On subsequent runs, init only installs providers without acceptable versions
+installed. (This includes newly added providers, and providers whose installed
+versions can't meet the current version constraints.) Use `-upgrade` if you want
+to update _all_ providers to the newest acceptable version.
 
-Custom plugins can be used along with automatically installed plugins by
-placing them in `terraform.d/plugins/OS_ARCH/` inside the directory being
-initialized. Plugins found here will take precedence if they meet the required
-constraints in the configuration. The `init` command will continue to
-automatically download other plugins as needed.
+You can modify `terraform init`'s plugin behavior with the following options:
 
-When plugins are automatically downloaded and installed, by default the
-contents are verified against an official HashiCorp release signature to
-ensure that they were not corrupted or tampered with during download. It is
-recommended to allow Terraform to make these checks, but if desired they may
-be disabled using the option `-verify-plugins=false`.
+- `-upgrade` — Update all previously installed plugins to the newest version
+  that complies with the configuration's version constraints. This option does
+  not apply to manually installed plugins.
+- `-get-plugins=false` — Skips plugin installation. Terraform will use plugins
+  installed in the user plugins directory, and any plugins already installed
+  for the current working directory. If the installed plugins aren't sufficient
+  for the configuration, init fails.
+- `-plugin-dir=PATH` — Skips plugin installation and loads plugins _only_ from
+  the specified directory. This ignores the user plugins directory and any
+  plugins already installed in the current working directory. To restore the
+  default behavior after using this option, run init again and pass an empty
+  string to `-plugin-dir`.
+- `-verify-plugins=false` — Skips release signature validation when
+  installing downloaded plugins (not recommended). Official plugin releases are
+  digitally signed by HashiCorp, and Terraform verifies these signatures when
+  automatically downloading plugins. This option disables that verification.
+  (Terraform does not check signatures for manually installed plugins.)
 
 ## Running `terraform init` in automation
 

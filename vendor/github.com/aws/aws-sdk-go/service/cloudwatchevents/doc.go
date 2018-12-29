@@ -13,8 +13,9 @@
 //    * Automatically invoke an AWS Lambda function to update DNS entries when
 //    an event notifies you that Amazon EC2 instance enters the running state.
 //
-//    * Direct specific API records from CloudTrail to an Amazon Kinesis stream
-//    for detailed analysis of potential security or availability risks.
+//    * Direct specific API records from AWS CloudTrail to an Amazon Kinesis
+//    data stream for detailed analysis of potential security or availability
+//    risks.
 //
 //    * Periodically invoke a built-in target to create a snapshot of an Amazon
 //    EBS volume.
@@ -29,7 +30,7 @@
 //
 // Using the Client
 //
-// To Amazon CloudWatch Events with the SDK use the New function to create
+// To contact Amazon CloudWatch Events with the SDK use the New function to create
 // a new service client. With that client you can make API requests to the service.
 // These clients are safe to use concurrently.
 //

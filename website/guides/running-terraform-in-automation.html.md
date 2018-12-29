@@ -13,7 +13,7 @@ description: |-
 ~> **This is an advanced guide!** When getting started with Terraform, it's
 recommended to use it locally from the command line. Automation can become
 valuable once Terraform is being used regularly in production, or by a larger
-team, but this guide assumes familiarity with the the normal, local CLI
+team, but this guide assumes familiarity with the normal, local CLI
 workflow.
 
 For teams that use Terraform as a key part of a change management and
@@ -45,7 +45,7 @@ such a tool.
 ## Automated Workflow Overview
 
 When running Terraform in automation, the focus is usually on the core
-plan/apply cycle. The main path, then, is the broadly same as for CLI
+plan/apply cycle. The main path, then, is broadly the same as for CLI
 usage:
 
 1. Initialize the Terraform working directory.
@@ -156,7 +156,7 @@ applied, as opposed to some later plan that also exists.
 Different orchestration tools address this in different ways, but generally
 this is implemented via a _build pipeline_ feature, where different steps
 can be applied in sequence, with later steps having access to data produced
-by earlier steps. 
+by earlier steps.
 
 The recommended approach is to allow only one plan to be outstanding at a
 time. When a plan is applied, any other existing plans that were produced
@@ -285,14 +285,14 @@ $ ls -lah /usr/lib/custom-terraform-plugins
 ```
 
 The version information at the end of the filenames is important so that
-Terraform can infer the version number of each plugin. It is allowed to
-concurrently install multiple versions of the same provider plugin,
-which will then be used to satisfy
+Terraform can infer the version number of each plugin. Multiple versions of the
+same provider plugin can be installed, and Terraform will use the newest one
+that matches the
 [provider version constraints](/docs/configuration/providers.html#provider-versions)
-from Terraform configurations.
+in the Terraform configuration.
 
 With this directory populated, the usual auto-download and
-[plugin discovery](/docs/plugins/basics.html#installing-a-plugin)
+[plugin discovery](/docs/extend/how-terraform-works.html#discovery)
 behavior can be bypassed using the `-plugin-dir` option to `terraform init`:
 
 * `terraform init -input=false -plugin-dir=/usr/lib/custom-terraform-plugins`
@@ -307,7 +307,7 @@ unique constraints within each organization.
 Plugins can also be provided along with the configuration by creating a
 `terraform.d/plugins/OS_ARCH` directory, which will be searched before
 automatically downloading additional plugins. The `-get-plugins=false` flag can
-be used to prevent Terraform from automatically downloading additional plugins. 
+be used to prevent Terraform from automatically downloading additional plugins.
 
 ## Terraform Enterprise
 

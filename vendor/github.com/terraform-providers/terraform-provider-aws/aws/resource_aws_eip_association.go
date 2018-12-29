@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"time"
+
+	"github.com/hashicorp/terraform/helper/resource"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -16,43 +18,46 @@ func resourceAwsEipAssociation() *schema.Resource {
 		Create: resourceAwsEipAssociationCreate,
 		Read:   resourceAwsEipAssociationRead,
 		Delete: resourceAwsEipAssociationDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
-			"allocation_id": &schema.Schema{
+			"allocation_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
 
-			"allow_reassociation": &schema.Schema{
+			"allow_reassociation": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"instance_id": &schema.Schema{
+			"instance_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
 
-			"network_interface_id": &schema.Schema{
+			"network_interface_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
 
-			"private_ip_address": &schema.Schema{
+			"private_ip_address": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
 
-			"public_ip": &schema.Schema{
+			"public_ip": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -88,13 +93,20 @@ func resourceAwsEipAssociationCreate(d *schema.ResourceData, meta interface{}) e
 
 	log.Printf("[DEBUG] EIP association configuration: %#v", request)
 
-	resp, err := conn.AssociateAddress(request)
-	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok {
-			return fmt.Errorf("[WARN] Error attaching EIP, message: \"%s\", code: \"%s\"",
-				awsErr.Message(), awsErr.Code())
+	var resp *ec2.AssociateAddressOutput
+	err := resource.Retry(2*time.Minute, func() *resource.RetryError {
+		var err error
+		resp, err = conn.AssociateAddress(request)
+		if err != nil {
+			if isAWSErr(err, "InvalidInstanceID", "pending instance") {
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
 		}
-		return err
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("Error associating EIP: %s", err)
 	}
 
 	log.Printf("[DEBUG] EIP Assoc Response: %s", resp)
@@ -163,6 +175,9 @@ func resourceAwsEipAssociationDelete(d *schema.ResourceData, meta interface{}) e
 
 	_, err := conn.DisassociateAddress(opts)
 	if err != nil {
+		if isAWSErr(err, "InvalidAssociationID.NotFound", "") {
+			return nil
+		}
 		return fmt.Errorf("Error deleting Elastic IP association: %s", err)
 	}
 
@@ -200,11 +215,11 @@ func describeAddressesById(id string, supportedPlatforms []string) (*ec2.Describ
 
 		return &ec2.DescribeAddressesInput{
 			Filters: []*ec2.Filter{
-				&ec2.Filter{
+				{
 					Name:   aws.String("public-ip"),
 					Values: []*string{aws.String(id)},
 				},
-				&ec2.Filter{
+				{
 					Name:   aws.String("domain"),
 					Values: []*string{aws.String("standard")},
 				},
@@ -214,7 +229,7 @@ func describeAddressesById(id string, supportedPlatforms []string) (*ec2.Describ
 
 	return &ec2.DescribeAddressesInput{
 		Filters: []*ec2.Filter{
-			&ec2.Filter{
+			{
 				Name:   aws.String("association-id"),
 				Values: []*string{aws.String(id)},
 			},

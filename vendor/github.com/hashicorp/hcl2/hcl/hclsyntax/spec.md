@@ -4,12 +4,12 @@ This is the specification of the syntax and semantics of the native syntax
 for HCL. HCL is a system for defining configuration languages for applications.
 The HCL information model is designed to support multiple concrete syntaxes
 for configuration, but this native syntax is considered the primary format
-and is optimized for human authoring and maintenence, as opposed to machine
+and is optimized for human authoring and maintenance, as opposed to machine
 generation of configuration.
 
 The language consists of three integrated sub-languages:
 
-* The _structural_ language defines the overall heirarchical configuration
+* The _structural_ language defines the overall hierarchical configuration
   structure, and is a serialization of HCL bodies, blocks and attributes.
 
 * The _expression_ language is used to express attribute values, either as
@@ -161,7 +161,7 @@ language-agnostic HCL information model.
 ConfigFile = Body;
 Body       = (Attribute | Block)*;
 Attribute  = Identifier "=" Expression Newline;
-Block      = Identifier (StringLit)* "{" Newline Body "}" Newline;
+Block      = Identifier (StringLit|Identifier)* "{" Newline Body "}" Newline;
 ```
 
 ### Configuration Files
@@ -186,8 +186,10 @@ for later evaluation by the calling application.
 ### Blocks
 
 A _block_ creates a child body that is annotated with a block _type_ and
-zero or more optional block _labels_. Blocks create a structural heirachy
-which can be interpreted by the calling application.
+zero or more block _labels_. Blocks create a structural hierachy which can be
+interpreted by the calling application.
+
+Block labels can either be quoted literal strings or naked identifiers.
 
 ## Expressions
 
@@ -294,7 +296,7 @@ There is a syntax ambiguity between _for expressions_ and collection values
 whose first element is a reference to a variable named `for`. The
 _for expression_ interpretation has priority, so to produce a tuple whose
 first element is the value of a variable named `for`, or an object with a
-key named `for`, use paretheses to disambiguate:
+key named `for`, use parentheses to disambiguate:
 
 * `[for, foo, baz]` is a syntax error.
 * `[(for), foo, baz]` is a tuple whose first element is the value of variable
@@ -480,7 +482,7 @@ object.
 In the case of object `for`, it is an error if two input elements produce
 the same result from the attribute name expression, since duplicate
 attributes are not possible. If the ellipsis symbol (`...`) appears
-immediately after the value experssion, this activates the grouping mode in
+immediately after the value expression, this activates the grouping mode in
 which each value in the resulting object is a _tuple_ of all of the values
 that were produced against each distinct key.
 
@@ -767,7 +769,7 @@ sequence is escaped as `%%{`.
 
 When the template sub-language is embedded in the expression language via
 _template expressions_, additional constraints and transforms are applied to
-template literalsas described in the definition of template expressions.
+template literals as described in the definition of template expressions.
 
 The value of a template literal can be modified by _strip markers_ in any
 interpolations or directives that are adjacent to it. A strip marker is
@@ -877,3 +879,45 @@ application, by converting the final template result to string. This is
 necessary, for example, if a standalone template is being used to produce
 the direct contents of a file, since the result in that case must always be a
 string.
+
+## Static Analysis
+
+The HCL static analysis operations are implemented for some expression types
+in the native syntax, as described in the following sections.
+
+A goal for static analysis of the native syntax is for the interpretation to
+be as consistent as possible with the dynamic evaluation interpretation of
+the given expression, though some deviations are intentionally made in order
+to maximize the potential for analysis.
+
+### Static List
+
+The tuple construction syntax can be interpreted as a static list. All of
+the expression elements given are returned as the static list elements,
+with no further interpretation.
+
+### Static Map
+
+The object construction syntax can be interpreted as a static map. All of the
+key/value pairs given are returned as the static pairs, with no further
+interpretation.
+
+The usual requirement that an attribute name be interpretable as a string
+does not apply to this static analysis, allowing callers to provide map-like
+constructs with different key types by building on the map syntax.
+
+### Static Call
+
+The function call syntax can be interpreted as a static call. The called
+function name is returned verbatim and the given argument expressions are
+returned as the static arguments, with no further interpretation.
+
+### Static Traversal
+
+A variable expression and any attached attribute access operations and
+constant index operations can be interpreted as a static traversal.
+
+The keywords `true`, `false` and `null` can also be interpreted as
+static traversals, behaving as if they were references to variables of those
+names, to allow callers to redefine the meaning of those keywords in certain
+contexts.

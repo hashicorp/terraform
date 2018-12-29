@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/backend/remote-state/inmem"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestDeprecateBackend(t *testing.T) {
@@ -12,21 +12,19 @@ func TestDeprecateBackend(t *testing.T) {
 	deprecatedBackend := deprecateBackend(
 		inmem.New(),
 		deprecateMessage,
-	)()
+	)
 
-	warns, errs := deprecatedBackend.Validate(&terraform.ResourceConfig{})
-	if errs != nil {
-		for _, err := range errs {
-			t.Error(err)
+	diags := deprecatedBackend.ValidateConfig(cty.EmptyObjectVal)
+	if len(diags) != 1 {
+		t.Errorf("got %d diagnostics; want 1", len(diags))
+		for _, diag := range diags {
+			t.Errorf("- %s", diag)
 		}
-		t.Fatal("validation errors")
+		return
 	}
 
-	if len(warns) != 1 {
-		t.Fatalf("expected 1 warning, got %q", warns)
-	}
-
-	if warns[0] != deprecateMessage {
-		t.Fatalf("expected %q, got %q", deprecateMessage, warns[0])
+	desc := diags[0].Description()
+	if desc.Summary != deprecateMessage {
+		t.Fatalf("wrong message %q; want %q", desc.Summary, deprecateMessage)
 	}
 }

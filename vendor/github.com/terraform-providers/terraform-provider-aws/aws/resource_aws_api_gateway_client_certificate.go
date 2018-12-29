@@ -77,8 +77,8 @@ func resourceAwsApiGatewayClientCertificateRead(d *schema.ResourceData, meta int
 	log.Printf("[DEBUG] Received API Gateway Client Certificate: %s", out)
 
 	d.Set("description", out.Description)
-	d.Set("created_date", out.CreatedDate)
-	d.Set("expiration_date", out.ExpirationDate)
+	d.Set("created_date", out.CreatedDate.String())
+	d.Set("expiration_date", out.ExpirationDate.String())
 	d.Set("pem_encoded_certificate", out.PemEncodedCertificate)
 
 	return nil

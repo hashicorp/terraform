@@ -1,3 +1,5 @@
 variable "foo" {}
 
-resource "test_instance" "foo" {}
+output "result" {
+  value = var.foo
+}

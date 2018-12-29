@@ -6,8 +6,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/efs"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func dataSourceAwsEfsFileSystem() *schema.Resource {
@@ -20,7 +20,7 @@ func dataSourceAwsEfsFileSystem() *schema.Resource {
 				Optional:     true,
 				Computed:     true,
 				ForceNew:     true,
-				ValidateFunc: validateMaxLength(64),
+				ValidateFunc: validation.StringLenBetween(0, 64),
 			},
 			"encrypted": {
 				Type:     schema.TypeBool,
@@ -37,6 +37,10 @@ func dataSourceAwsEfsFileSystem() *schema.Resource {
 				Computed: true,
 			},
 			"performance_mode": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"dns_name": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -58,9 +62,10 @@ func dataSourceAwsEfsFileSystemRead(d *schema.ResourceData, meta interface{}) er
 		describeEfsOpts.FileSystemId = aws.String(v.(string))
 	}
 
+	log.Printf("[DEBUG] Reading EFS File System: %s", describeEfsOpts)
 	describeResp, err := efsconn.DescribeFileSystems(describeEfsOpts)
 	if err != nil {
-		return errwrap.Wrapf("Error retrieving EFS: {{err}}", err)
+		return fmt.Errorf("Error retrieving EFS: %s", err)
 	}
 	if len(describeResp.FileSystems) != 1 {
 		return fmt.Errorf("Search returned %d results, please revise so only one is returned", len(describeResp.FileSystems))
@@ -118,6 +123,12 @@ func dataSourceAwsEfsFileSystemRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("file_system_id", fs.FileSystemId)
 	d.Set("encrypted", fs.Encrypted)
 	d.Set("kms_key_id", fs.KmsKeyId)
+
+	region := meta.(*AWSClient).region
+	err = d.Set("dns_name", resourceAwsEfsDnsName(*fs.FileSystemId, region))
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

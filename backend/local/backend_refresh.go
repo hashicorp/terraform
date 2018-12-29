@@ -8,18 +8,20 @@ import (
 	"strings"
 
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/command/clistate"
-	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/statemgr"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 func (b *Local) opRefresh(
-	ctx context.Context,
+	stopCtx context.Context,
+	cancelCtx context.Context,
 	op *backend.Operation,
 	runningOp *backend.RunningOperation) {
+
+	var diags tfdiags.Diagnostics
+
 	// Check if our state exists if we're performing a refresh operation. We
 	// only do this if we're managing state with this backend.
 	if b.Backend == nil {
@@ -29,95 +31,64 @@ func (b *Local) opRefresh(
 			}
 
 			if err != nil {
-				runningOp.Err = fmt.Errorf(
-					"There was an error reading the Terraform state that is needed\n"+
-						"for refreshing. The path and error are shown below.\n\n"+
-						"Path: %s\n\nError: %s",
-					b.StatePath, err)
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Cannot read state file",
+					fmt.Sprintf("Failed to read %s: %s", b.StatePath, err),
+				))
+				b.ReportResult(runningOp, diags)
 				return
 			}
 		}
 	}
 
-	// If we have no config module given to use, create an empty tree to
-	// avoid crashes when Terraform.Context is initialized.
-	if op.Module == nil {
-		op.Module = module.NewEmptyTree()
-	}
-
 	// Get our context
-	tfCtx, opState, err := b.context(op)
-	if err != nil {
-		runningOp.Err = err
+	tfCtx, _, opState, contextDiags := b.context(op)
+	diags = diags.Append(contextDiags)
+	if contextDiags.HasErrors() {
+		b.ReportResult(runningOp, diags)
 		return
-	}
-
-	if op.LockState {
-		lockCtx, cancel := context.WithTimeout(ctx, op.StateLockTimeout)
-		defer cancel()
-
-		lockInfo := state.NewLockInfo()
-		lockInfo.Operation = op.Type.String()
-		lockID, err := clistate.Lock(lockCtx, opState, lockInfo, b.CLI, b.Colorize())
-		if err != nil {
-			runningOp.Err = errwrap.Wrapf("Error locking state: {{err}}", err)
-			return
-		}
-
-		defer func() {
-			if err := clistate.Unlock(opState, lockID, b.CLI, b.Colorize()); err != nil {
-				runningOp.Err = multierror.Append(runningOp.Err, err)
-			}
-		}()
 	}
 
 	// Set our state
 	runningOp.State = opState.State()
-	if runningOp.State.Empty() || !runningOp.State.HasResources() {
+	if !runningOp.State.HasResources() {
 		if b.CLI != nil {
-			b.CLI.Output(b.Colorize().Color(
-				strings.TrimSpace(refreshNoState) + "\n"))
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				"Empty or non-existent state",
+				"There are currently no resources tracked in the state, so there is nothing to refresh.",
+			))
+			b.CLI.Output(b.Colorize().Color(strings.TrimSpace(refreshNoState) + "\n"))
 		}
 	}
 
 	// Perform the refresh in a goroutine so we can be interrupted
-	var newState *terraform.State
-	var refreshErr error
+	var newState *states.State
+	var refreshDiags tfdiags.Diagnostics
 	doneCh := make(chan struct{})
 	go func() {
 		defer close(doneCh)
-		newState, err = tfCtx.Refresh()
-		log.Printf("[INFO] backend/local: plan calling Plan")
+		newState, refreshDiags = tfCtx.Refresh()
+		log.Printf("[INFO] backend/local: refresh calling Refresh")
 	}()
 
-	select {
-	case <-ctx.Done():
-		if b.CLI != nil {
-			b.CLI.Output("stopping refresh operation...")
-		}
-
-		// Stop execution
-		go tfCtx.Stop()
-
-		// Wait for completion still
-		<-doneCh
-	case <-doneCh:
+	if b.opWait(doneCh, stopCtx, cancelCtx, tfCtx, opState) {
+		return
 	}
 
 	// write the resulting state to the running op
 	runningOp.State = newState
-	if refreshErr != nil {
-		runningOp.Err = errwrap.Wrapf("Error refreshing state: {{err}}", refreshErr)
+	diags = diags.Append(refreshDiags)
+	if refreshDiags.HasErrors() {
+		b.ReportResult(runningOp, diags)
 		return
 	}
 
-	// Write and persist the state
-	if err := opState.WriteState(newState); err != nil {
-		runningOp.Err = errwrap.Wrapf("Error writing state: {{err}}", err)
-		return
-	}
-	if err := opState.PersistState(); err != nil {
-		runningOp.Err = errwrap.Wrapf("Error saving state: {{err}}", err)
+	err := statemgr.WriteAndPersist(opState, newState)
+	if err != nil {
+		diags = diags.Append(errwrap.Wrapf("Failed to write state: {{err}}", err))
+		b.ReportResult(runningOp, diags)
 		return
 	}
 }

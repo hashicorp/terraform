@@ -6,9 +6,11 @@ import (
 	"log"
 	"regexp"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func dataSourceAwsAmi() *schema.Resource {
@@ -27,7 +29,7 @@ func dataSourceAwsAmi() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
-				ValidateFunc: validateNameRegex,
+				ValidateFunc: validation.ValidateRegexp,
 			},
 			"most_recent": {
 				Type:     schema.TypeBool,
@@ -106,6 +108,10 @@ func dataSourceAwsAmi() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"root_snapshot_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"sriov_net_support": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -165,7 +171,7 @@ func dataSourceAwsAmi() *schema.Resource {
 				Type:     schema.TypeMap,
 				Computed: true,
 			},
-			"tags": dataSourceTagsSchema(),
+			"tags": tagsSchemaComputed(),
 		},
 	}
 }
@@ -198,6 +204,28 @@ func dataSourceAwsAmiRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	// Deprecated: pre-2.0.0 warning logging
+	if !ownersOk {
+		log.Print("[WARN] The \"owners\" argument will become required in the next major version.")
+		log.Print("[WARN] Documentation can be found at: https://www.terraform.io/docs/providers/aws/d/ami.html#owners")
+
+		missingOwnerFilter := true
+
+		if filtersOk {
+			for _, filter := range params.Filters {
+				if aws.StringValue(filter.Name) == "owner-alias" || aws.StringValue(filter.Name) == "owner-id" {
+					missingOwnerFilter = false
+					break
+				}
+			}
+		}
+
+		if missingOwnerFilter {
+			log.Print("[WARN] Potential security issue: missing \"owners\" filtering for AMI. Check AMI to ensure it came from trusted source.")
+		}
+	}
+
+	log.Printf("[DEBUG] Reading AMI: %s", params)
 	resp, err := conn.DescribeImages(params)
 	if err != nil {
 		return err
@@ -249,7 +277,7 @@ func dataSourceAwsAmiRead(d *schema.ResourceData, meta interface{}) error {
 
 // Returns the most recent AMI out of a slice of images.
 func mostRecentAmi(images []*ec2.Image) *ec2.Image {
-	return sortImages(images)[0]
+	return sortImages(images, false)[0]
 }
 
 // populate the numerous fields that the image description returns.
@@ -284,6 +312,7 @@ func amiDescriptionAttributes(d *schema.ResourceData, image *ec2.Image) error {
 		d.Set("root_device_name", image.RootDeviceName)
 	}
 	d.Set("root_device_type", image.RootDeviceType)
+	d.Set("root_snapshot_id", amiRootSnapshotId(image))
 	if image.SriovNetSupport != nil {
 		d.Set("sriov_net_support", image.SriovNetSupport)
 	}
@@ -299,7 +328,7 @@ func amiDescriptionAttributes(d *schema.ResourceData, image *ec2.Image) error {
 	if err := d.Set("state_reason", amiStateReason(image.StateReason)); err != nil {
 		return err
 	}
-	if err := d.Set("tags", dataSourceTags(image.Tags)); err != nil {
+	if err := d.Set("tags", tagsToMap(image.Tags)); err != nil {
 		return err
 	}
 	return nil
@@ -312,31 +341,23 @@ func amiBlockDeviceMappings(m []*ec2.BlockDeviceMapping) *schema.Set {
 	}
 	for _, v := range m {
 		mapping := map[string]interface{}{
-			"device_name": *v.DeviceName,
+			"device_name":  aws.StringValue(v.DeviceName),
+			"virtual_name": aws.StringValue(v.VirtualName),
 		}
+
 		if v.Ebs != nil {
 			ebs := map[string]interface{}{
-				"delete_on_termination": fmt.Sprintf("%t", *v.Ebs.DeleteOnTermination),
-				"encrypted":             fmt.Sprintf("%t", *v.Ebs.Encrypted),
-				"volume_size":           fmt.Sprintf("%d", *v.Ebs.VolumeSize),
-				"volume_type":           *v.Ebs.VolumeType,
-			}
-			// Iops is not always set
-			if v.Ebs.Iops != nil {
-				ebs["iops"] = fmt.Sprintf("%d", *v.Ebs.Iops)
-			} else {
-				ebs["iops"] = "0"
-			}
-			// snapshot id may not be set
-			if v.Ebs.SnapshotId != nil {
-				ebs["snapshot_id"] = *v.Ebs.SnapshotId
+				"delete_on_termination": fmt.Sprintf("%t", aws.BoolValue(v.Ebs.DeleteOnTermination)),
+				"encrypted":             fmt.Sprintf("%t", aws.BoolValue(v.Ebs.Encrypted)),
+				"iops":                  fmt.Sprintf("%d", aws.Int64Value(v.Ebs.Iops)),
+				"volume_size":           fmt.Sprintf("%d", aws.Int64Value(v.Ebs.VolumeSize)),
+				"snapshot_id":           aws.StringValue(v.Ebs.SnapshotId),
+				"volume_type":           aws.StringValue(v.Ebs.VolumeType),
 			}
 
 			mapping["ebs"] = ebs
 		}
-		if v.VirtualName != nil {
-			mapping["virtual_name"] = *v.VirtualName
-		}
+
 		log.Printf("[DEBUG] aws_ami - adding block device mapping: %v", mapping)
 		s.Add(mapping)
 	}
@@ -350,20 +371,36 @@ func amiProductCodes(m []*ec2.ProductCode) *schema.Set {
 	}
 	for _, v := range m {
 		code := map[string]interface{}{
-			"product_code_id":   *v.ProductCodeId,
-			"product_code_type": *v.ProductCodeType,
+			"product_code_id":   aws.StringValue(v.ProductCodeId),
+			"product_code_type": aws.StringValue(v.ProductCodeType),
 		}
 		s.Add(code)
 	}
 	return s
 }
 
+// Returns the root snapshot ID for an image, if it has one
+func amiRootSnapshotId(image *ec2.Image) string {
+	if image.RootDeviceName == nil {
+		return ""
+	}
+	for _, bdm := range image.BlockDeviceMappings {
+		if bdm.DeviceName == nil || *bdm.DeviceName != *image.RootDeviceName {
+			continue
+		}
+		if bdm.Ebs != nil && bdm.Ebs.SnapshotId != nil {
+			return *bdm.Ebs.SnapshotId
+		}
+	}
+	return ""
+}
+
 // Returns the state reason.
 func amiStateReason(m *ec2.StateReason) map[string]interface{} {
 	s := make(map[string]interface{})
 	if m != nil {
-		s["code"] = *m.Code
-		s["message"] = *m.Message
+		s["code"] = aws.StringValue(m.Code)
+		s["message"] = aws.StringValue(m.Message)
 	} else {
 		s["code"] = "UNSET"
 		s["message"] = "UNSET"
@@ -409,15 +446,4 @@ func amiProductCodesHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["product_code_id"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["product_code_type"].(string)))
 	return hashcode.String(buf.String())
-}
-
-func validateNameRegex(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-
-	if _, err := regexp.Compile(value); err != nil {
-		errors = append(errors, fmt.Errorf(
-			"%q contains an invalid regular expression: %s",
-			k, err))
-	}
-	return
 }

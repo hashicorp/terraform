@@ -6,6 +6,8 @@ import (
 
 	"github.com/hashicorp/hil/ast"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/configs/configschema"
 )
 
 // UnknownVariableValue is a sentinel value that can be used
@@ -13,6 +15,108 @@ import (
 // RawConfig uses this information to build up data about
 // unknown keys.
 const UnknownVariableValue = "74D93920-ED26-11E3-AC10-0800200C9A66"
+
+// ConfigValueFromHCL2Block is like ConfigValueFromHCL2 but it works only for
+// known object values and uses the provided block schema to perform some
+// additional normalization to better mimic the shape of value that the old
+// HCL1/HIL-based codepaths would've produced.
+//
+// In particular, it discards the collections that we use to represent nested
+// blocks (other than NestingSingle) if they are empty, which better mimics
+// the HCL1 behavior because HCL1 had no knowledge of the schema and so didn't
+// know that an unspecified block _could_ exist.
+//
+// The given object value must conform to the schema's implied type or this
+// function will panic or produce incorrect results.
+//
+// This is primarily useful for the final transition from new-style values to
+// terraform.ResourceConfig before calling to a legacy provider, since
+// helper/schema (the old provider SDK) is particularly sensitive to these
+// subtle differences within its validation code.
+func ConfigValueFromHCL2Block(v cty.Value, schema *configschema.Block) map[string]interface{} {
+	if v.IsNull() {
+		return nil
+	}
+	if !v.IsKnown() {
+		panic("ConfigValueFromHCL2Block used with unknown value")
+	}
+	if !v.Type().IsObjectType() {
+		panic(fmt.Sprintf("ConfigValueFromHCL2Block used with non-object value %#v", v))
+	}
+
+	atys := v.Type().AttributeTypes()
+	ret := make(map[string]interface{})
+
+	for name := range schema.Attributes {
+		if _, exists := atys[name]; !exists {
+			continue
+		}
+
+		av := v.GetAttr(name)
+		if av.IsNull() {
+			// Skip nulls altogether, to better mimic how HCL1 would behave
+			continue
+		}
+		ret[name] = ConfigValueFromHCL2(av)
+	}
+
+	for name, blockS := range schema.BlockTypes {
+		if _, exists := atys[name]; !exists {
+			continue
+		}
+		bv := v.GetAttr(name)
+		if !bv.IsKnown() {
+			ret[name] = UnknownVariableValue
+			continue
+		}
+		if bv.IsNull() {
+			continue
+		}
+
+		switch blockS.Nesting {
+
+		case configschema.NestingSingle:
+			ret[name] = ConfigValueFromHCL2Block(bv, &blockS.Block)
+
+		case configschema.NestingList, configschema.NestingSet:
+			l := bv.LengthInt()
+			if l == 0 {
+				// skip empty collections to better mimic how HCL1 would behave
+				continue
+			}
+
+			elems := make([]interface{}, 0, l)
+			for it := bv.ElementIterator(); it.Next(); {
+				_, ev := it.Element()
+				if !ev.IsKnown() {
+					elems = append(elems, UnknownVariableValue)
+					continue
+				}
+				elems = append(elems, ConfigValueFromHCL2Block(ev, &blockS.Block))
+			}
+			ret[name] = elems
+
+		case configschema.NestingMap:
+			if bv.LengthInt() == 0 {
+				// skip empty collections to better mimic how HCL1 would behave
+				continue
+			}
+
+			elems := make(map[string]interface{})
+			for it := bv.ElementIterator(); it.Next(); {
+				ek, ev := it.Element()
+				if !ev.IsKnown() {
+					elems[ek.AsString()] = UnknownVariableValue
+					continue
+				}
+				elems[ek.AsString()] = ConfigValueFromHCL2Block(ev, &blockS.Block)
+			}
+			ret[name] = elems
+		}
+	}
+
+	return ret
+}
 
 // ConfigValueFromHCL2 converts a value from HCL2 (really, from the cty dynamic
 // types library that HCL2 uses) to a value type that matches what would've
@@ -73,7 +177,10 @@ func ConfigValueFromHCL2(v cty.Value) interface{} {
 		it := v.ElementIterator()
 		for it.Next() {
 			ek, ev := it.Element()
-			l[ek.AsString()] = ConfigValueFromHCL2(ev)
+			cv := ConfigValueFromHCL2(ev)
+			if cv != nil {
+				l[ek.AsString()] = cv
+			}
 		}
 		return l
 	}

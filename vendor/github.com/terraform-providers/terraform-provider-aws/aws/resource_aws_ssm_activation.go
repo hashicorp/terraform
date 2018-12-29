@@ -7,7 +7,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ssm"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -29,27 +28,32 @@ func resourceAwsSsmActivation() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
-			"expired": &schema.Schema{
+			"expired": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"expiration_date": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+			"expiration_date": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				ValidateFunc: validateRFC3339TimeString,
 			},
-			"iam_role": &schema.Schema{
+			"iam_role": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"registration_limit": &schema.Schema{
+			"registration_limit": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
 			},
-			"registration_count": &schema.Schema{
+			"registration_count": {
 				Type:     schema.TypeInt,
+				Computed: true,
+			},
+			"activation_code": {
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 		},
@@ -73,8 +77,9 @@ func resourceAwsSsmActivationCreate(d *schema.ResourceData, meta interface{}) er
 		activationInput.Description = aws.String(d.Get("description").(string))
 	}
 
-	if _, ok := d.GetOk("expiration_date"); ok {
-		activationInput.ExpirationDate = aws.Time(d.Get("expiration_date").(time.Time))
+	if v, ok := d.GetOk("expiration_date"); ok {
+		t, _ := time.Parse(time.RFC3339, v.(string))
+		activationInput.ExpirationDate = aws.Time(t)
 	}
 
 	if _, ok := d.GetOk("iam_role"); ok {
@@ -100,13 +105,14 @@ func resourceAwsSsmActivationCreate(d *schema.ResourceData, meta interface{}) er
 	})
 
 	if err != nil {
-		return errwrap.Wrapf("[ERROR] Error creating SSM activation: {{err}}", err)
+		return fmt.Errorf("Error creating SSM activation: %s", err)
 	}
 
 	if resp.ActivationId == nil {
-		return fmt.Errorf("[ERROR] ActivationId was nil")
+		return fmt.Errorf("ActivationId was nil")
 	}
 	d.SetId(*resp.ActivationId)
+	d.Set("activation_code", resp.ActivationCode)
 
 	return resourceAwsSsmActivationRead(d, meta)
 }
@@ -131,10 +137,10 @@ func resourceAwsSsmActivationRead(d *schema.ResourceData, meta interface{}) erro
 	resp, err := ssmconn.DescribeActivations(params)
 
 	if err != nil {
-		return errwrap.Wrapf("[ERROR] Error reading SSM activation: {{err}}", err)
+		return fmt.Errorf("Error reading SSM activation: %s", err)
 	}
 	if resp.ActivationList == nil || len(resp.ActivationList) == 0 {
-		return fmt.Errorf("[ERROR] ActivationList was nil or empty")
+		return fmt.Errorf("ActivationList was nil or empty")
 	}
 
 	activation := resp.ActivationList[0] // Only 1 result as MaxResults is 1 above
@@ -161,7 +167,7 @@ func resourceAwsSsmActivationDelete(d *schema.ResourceData, meta interface{}) er
 	_, err := ssmconn.DeleteActivation(params)
 
 	if err != nil {
-		return errwrap.Wrapf("[ERROR] Error deleting SSM activation: {{err}}", err)
+		return fmt.Errorf("Error deleting SSM activation: %s", err)
 	}
 
 	return nil

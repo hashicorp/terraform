@@ -58,6 +58,19 @@ const (
 	// The error code describes the entity.
 	ErrCodeNoSuchEntityException = "NoSuchEntityException"
 
+	// ErrCodePreviewGenerationInProgressException for service response error code
+	// "PreviewGenerationInProgressException".
+	//
+	// The request is rejected. The specified assessment template is currently generating
+	// an exclusions preview.
+	ErrCodePreviewGenerationInProgressException = "PreviewGenerationInProgressException"
+
+	// ErrCodeServiceTemporarilyUnavailableException for service response error code
+	// "ServiceTemporarilyUnavailableException".
+	//
+	// The serice is temporary unavailable.
+	ErrCodeServiceTemporarilyUnavailableException = "ServiceTemporarilyUnavailableException"
+
 	// ErrCodeUnsupportedFeatureException for service response error code
 	// "UnsupportedFeatureException".
 	//

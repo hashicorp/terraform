@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/codedeploy"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsCodeDeployDeploymentConfig() *schema.Resource {
@@ -15,6 +16,9 @@ func resourceAwsCodeDeployDeploymentConfig() *schema.Resource {
 		Create: resourceAwsCodeDeployDeploymentConfigCreate,
 		Read:   resourceAwsCodeDeployDeploymentConfigRead,
 		Delete: resourceAwsCodeDeployDeploymentConfigDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"deployment_config_name": {
@@ -31,14 +35,18 @@ func resourceAwsCodeDeployDeploymentConfig() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"type": {
-							Type:         schema.TypeString,
-							Required:     true,
-							ValidateFunc: validateMinimumHealtyHostsType,
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: true,
+							ValidateFunc: validation.StringInSlice([]string{
+								codedeploy.MinimumHealthyHostsTypeHostCount,
+								codedeploy.MinimumHealthyHostsTypeFleetPercent,
+							}, false),
 						},
-
 						"value": {
 							Type:     schema.TypeInt,
 							Optional: true,
+							ForceNew: true,
 						},
 					},
 				},
@@ -90,7 +98,7 @@ func resourceAwsCodeDeployDeploymentConfigRead(d *schema.ResourceData, meta inte
 	}
 
 	if resp.DeploymentConfigInfo == nil {
-		return fmt.Errorf("[ERROR] Cannot find DeploymentConfig %q", d.Id())
+		return fmt.Errorf("Cannot find DeploymentConfig %q", d.Id())
 	}
 
 	if err := d.Set("minimum_healthy_hosts", flattenAwsCodeDeployConfigMinimumHealthHosts(resp.DeploymentConfigInfo.MinimumHealthyHosts)); err != nil {
@@ -140,13 +148,4 @@ func flattenAwsCodeDeployConfigMinimumHealthHosts(hosts *codedeploy.MinimumHealt
 	result = append(result, item)
 
 	return result
-}
-
-func validateMinimumHealtyHostsType(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if value != "FLEET_PERCENT" && value != "HOST_COUNT" {
-		errors = append(errors, fmt.Errorf(
-			"%q must be one of \"FLEET_PERCENT\" or \"HOST_COUNT\"", k))
-	}
-	return
 }

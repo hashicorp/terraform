@@ -10,6 +10,25 @@ import (
 	"github.com/hashicorp/terraform/helper/validation"
 )
 
+var ssmPatchComplianceLevels = []string{
+	ssm.PatchComplianceLevelCritical,
+	ssm.PatchComplianceLevelHigh,
+	ssm.PatchComplianceLevelMedium,
+	ssm.PatchComplianceLevelLow,
+	ssm.PatchComplianceLevelInformational,
+	ssm.PatchComplianceLevelUnspecified,
+}
+
+var ssmPatchOSs = []string{
+	ssm.OperatingSystemWindows,
+	ssm.OperatingSystemAmazonLinux,
+	ssm.OperatingSystemUbuntu,
+	ssm.OperatingSystemRedhatEnterpriseLinux,
+	ssm.OperatingSystemCentos,
+	ssm.OperatingSystemAmazonLinux2,
+	ssm.OperatingSystemSuse,
+}
+
 func resourceAwsSsmPatchBaseline() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsSsmPatchBaselineCreate,
@@ -57,6 +76,19 @@ func resourceAwsSsmPatchBaseline() *schema.Resource {
 							Required: true,
 						},
 
+						"compliance_level": {
+							Type:         schema.TypeString,
+							Optional:     true,
+							Default:      ssm.PatchComplianceLevelUnspecified,
+							ValidateFunc: validation.StringInSlice(ssmPatchComplianceLevels, false),
+						},
+
+						"enable_non_security": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  false,
+						},
+
 						"patch_filter": {
 							Type:     schema.TypeList,
 							Required: true,
@@ -97,15 +129,15 @@ func resourceAwsSsmPatchBaseline() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
-				Default:      "WINDOWS",
-				ValidateFunc: validation.StringInSlice([]string{"WINDOWS", "AMAZON_LINUX", "UBUNTU", "REDHAT_ENTERPRISE_LINUX"}, false),
+				Default:      ssm.OperatingSystemWindows,
+				ValidateFunc: validation.StringInSlice(ssmPatchOSs, false),
 			},
 
 			"approved_patches_compliance_level": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				Default:      "UNSPECIFIED",
-				ValidateFunc: validation.StringInSlice([]string{"CRITICAL", "HIGH", "MEDIUM", "LOW", "INFORMATIONAL", "UNSPECIFIED"}, false),
+				Default:      ssm.PatchComplianceLevelUnspecified,
+				ValidateFunc: validation.StringInSlice(ssmPatchComplianceLevels, false),
 			},
 		},
 	}
@@ -115,7 +147,7 @@ func resourceAwsSsmPatchBaselineCreate(d *schema.ResourceData, meta interface{})
 	ssmconn := meta.(*AWSClient).ssmconn
 
 	params := &ssm.CreatePatchBaselineInput{
-		Name: aws.String(d.Get("name").(string)),
+		Name:                           aws.String(d.Get("name").(string)),
 		ApprovedPatchesComplianceLevel: aws.String(d.Get("approved_patches_compliance_level").(string)),
 		OperatingSystem:                aws.String(d.Get("operating_system").(string)),
 	}
@@ -186,6 +218,11 @@ func resourceAwsSsmPatchBaselineUpdate(d *schema.ResourceData, meta interface{})
 
 	_, err := ssmconn.UpdatePatchBaseline(params)
 	if err != nil {
+		if isAWSErr(err, ssm.ErrCodeDoesNotExistException, "") {
+			log.Printf("[WARN] Patch Baseline %s not found, removing from state", d.Id())
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 
@@ -200,6 +237,11 @@ func resourceAwsSsmPatchBaselineRead(d *schema.ResourceData, meta interface{}) e
 
 	resp, err := ssmconn.GetPatchBaseline(params)
 	if err != nil {
+		if isAWSErr(err, ssm.ErrCodeDoesNotExistException, "") {
+			log.Printf("[WARN] Patch Baseline %s not found, removing from state", d.Id())
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 
@@ -211,11 +253,11 @@ func resourceAwsSsmPatchBaselineRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("rejected_patches", flattenStringList(resp.RejectedPatches))
 
 	if err := d.Set("global_filter", flattenAwsSsmPatchFilterGroup(resp.GlobalFilters)); err != nil {
-		return fmt.Errorf("[DEBUG] Error setting global filters error: %#v", err)
+		return fmt.Errorf("Error setting global filters error: %#v", err)
 	}
 
 	if err := d.Set("approval_rule", flattenAwsSsmPatchRuleGroup(resp.ApprovalRules)); err != nil {
-		return fmt.Errorf("[DEBUG] Error setting approval rules error: %#v", err)
+		return fmt.Errorf("Error setting approval rules error: %#v", err)
 	}
 
 	return nil
@@ -304,8 +346,10 @@ func expandAwsSsmPatchRuleGroup(d *schema.ResourceData) *ssm.PatchRuleGroup {
 		}
 
 		rule := &ssm.PatchRule{
-			ApproveAfterDays: aws.Int64(int64(rCfg["approve_after_days"].(int))),
-			PatchFilterGroup: filterGroup,
+			ApproveAfterDays:  aws.Int64(int64(rCfg["approve_after_days"].(int))),
+			PatchFilterGroup:  filterGroup,
+			ComplianceLevel:   aws.String(rCfg["compliance_level"].(string)),
+			EnableNonSecurity: aws.Bool(rCfg["enable_non_security"].(bool)),
 		}
 
 		rules = append(rules, rule)
@@ -326,6 +370,8 @@ func flattenAwsSsmPatchRuleGroup(group *ssm.PatchRuleGroup) []map[string]interfa
 	for _, rule := range group.PatchRules {
 		r := make(map[string]interface{})
 		r["approve_after_days"] = *rule.ApproveAfterDays
+		r["compliance_level"] = *rule.ComplianceLevel
+		r["enable_non_security"] = *rule.EnableNonSecurity
 		r["patch_filter"] = flattenAwsSsmPatchFilterGroup(rule.PatchFilterGroup)
 		result = append(result, r)
 	}

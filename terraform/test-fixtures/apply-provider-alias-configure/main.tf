@@ -1,11 +1,14 @@
 provider "another" {
-    foo = "bar"
+  foo = "bar"
 }
 
 provider "another" {
-    alias = "two"
-    foo = "bar"
+  alias = "two"
+  foo   = "bar"
 }
 
 resource "another_instance" "foo" {}
-resource "another_instance" "bar" { provider = "another.two" }
+
+resource "another_instance" "bar" {
+  provider = "another.two"
+}

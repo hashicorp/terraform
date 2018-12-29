@@ -20,6 +20,7 @@ This backend supports [state locking](/docs/state/locking.html).
 terraform {
   backend "consul" {
     address = "demo.consul.io"
+    scheme  = "https"
     path    = "full/path"
   }
 }

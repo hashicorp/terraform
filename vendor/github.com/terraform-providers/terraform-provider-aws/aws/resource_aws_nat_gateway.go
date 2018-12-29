@@ -17,41 +17,44 @@ func resourceAwsNatGateway() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsNatGatewayCreate,
 		Read:   resourceAwsNatGatewayRead,
+		Update: resourceAwsNatGatewayUpdate,
 		Delete: resourceAwsNatGatewayDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
 
 		Schema: map[string]*schema.Schema{
-			"allocation_id": &schema.Schema{
+			"allocation_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"subnet_id": &schema.Schema{
+			"subnet_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"network_interface_id": &schema.Schema{
+			"network_interface_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"private_ip": &schema.Schema{
+			"private_ip": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"public_ip": &schema.Schema{
+			"public_ip": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
+
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -90,7 +93,7 @@ func resourceAwsNatGatewayCreate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	// Update our attributes and return
-	return resourceAwsNatGatewayRead(d, meta)
+	return resourceAwsNatGatewayUpdate(d, meta)
 }
 
 func resourceAwsNatGatewayRead(d *schema.ResourceData, meta interface{}) error {
@@ -125,7 +128,25 @@ func resourceAwsNatGatewayRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("private_ip", address.PrivateIp)
 	d.Set("public_ip", address.PublicIp)
 
+	// Tags
+	d.Set("tags", tagsToMap(ng.Tags))
+
 	return nil
+}
+
+func resourceAwsNatGatewayUpdate(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).ec2conn
+
+	// Turn on partial mode
+	d.Partial(true)
+
+	if err := setTags(conn, d); err != nil {
+		return err
+	}
+	d.SetPartial("tags")
+
+	d.Partial(false)
+	return resourceAwsNatGatewayRead(d, meta)
 }
 
 func resourceAwsNatGatewayDelete(d *schema.ResourceData, meta interface{}) error {

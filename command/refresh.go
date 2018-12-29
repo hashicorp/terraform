@@ -1,13 +1,11 @@
 package command
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -43,62 +41,68 @@ func (c *RefreshCommand) Run(args []string) int {
 
 	var diags tfdiags.Diagnostics
 
-	// Load the module
-	mod, diags := c.Module(configPath)
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
-		return 1
-	}
-
 	// Check for user-supplied plugin path
 	if c.pluginPath, err = c.loadPluginPath(); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
 		return 1
 	}
 
-	var conf *config.Config
-	if mod != nil {
-		conf = mod.Config()
+	backendConfig, configDiags := c.loadBackendConfig(configPath)
+	diags = diags.Append(configDiags)
+	if configDiags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
 	}
 
 	// Load the backend
-	b, err := c.Backend(&BackendOpts{
-		Config: conf,
+	b, backendDiags := c.Backend(&BackendOpts{
+		Config: backendConfig,
 	})
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
+	diags = diags.Append(backendDiags)
+	if backendDiags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
+
+	// Before we delegate to the backend, we'll print any warning diagnostics
+	// we've accumulated here, since the backend will start fresh with its own
+	// diagnostics.
+	c.showDiagnostics(diags)
+	diags = nil
 
 	// Build the operation
-	opReq := c.Operation()
+	opReq := c.Operation(b)
 	opReq.Type = backend.OperationTypeRefresh
-	opReq.Module = mod
-
-	// Perform the operation
-	op, err := b.Operation(context.Background(), opReq)
+	opReq.ConfigDir = configPath
+	opReq.ConfigLoader, err = c.initConfigLoader()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error starting operation: %s", err))
+		c.showDiagnostics(err)
 		return 1
 	}
-
-	// Wait for the operation to complete
-	<-op.Done()
-	if err := op.Err; err != nil {
-		diags = diags.Append(err)
+	{
+		var moreDiags tfdiags.Diagnostics
+		opReq.Variables, moreDiags = c.collectVariableValues()
+		diags = diags.Append(moreDiags)
+		if moreDiags.HasErrors() {
+			c.showDiagnostics(diags)
+			return 1
+		}
 	}
 
-	c.showDiagnostics(diags)
-	if diags.HasErrors() {
+	op, err := c.RunOperation(b, opReq)
+	if err != nil {
+		c.showDiagnostics(err)
 		return 1
 	}
+	if op.Result != backend.OperationSuccess {
+		return op.Result.ExitStatus()
+	}
 
-	// Output the outputs
-	if outputs := outputsAsString(op.State, terraform.RootModulePath, nil, true); outputs != "" {
+	if outputs := outputsAsString(op.State, addrs.RootModuleInstance, true); outputs != "" {
 		c.Ui.Output(c.Colorize().Color(outputs))
 	}
 
-	return 0
+	return op.Result.ExitStatus()
 }
 
 func (c *RefreshCommand) Help() string {

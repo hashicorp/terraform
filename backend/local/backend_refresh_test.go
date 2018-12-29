@@ -5,24 +5,29 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/providers"
+
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/configs/configload"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestLocal_refresh(t *testing.T) {
-	b := TestLocal(t)
-	p := TestLocalProvider(t, b, "test")
+	b, cleanup := TestLocal(t)
+	defer cleanup()
+
+	p := TestLocalProvider(t, b, "test", refreshFixtureSchema())
 	terraform.TestStateFile(t, b.StatePath, testRefreshState())
 
-	p.RefreshFn = nil
-	p.RefreshReturn = &terraform.InstanceState{ID: "yes"}
+	p.ReadResourceFn = nil
+	p.ReadResourceResponse = providers.ReadResourceResponse{NewState: cty.ObjectVal(map[string]cty.Value{
+		"id": cty.StringVal("yes"),
+	})}
 
-	mod, modCleanup := module.TestTree(t, "./test-fixtures/refresh")
-	defer modCleanup()
-
-	op := testOperationRefresh()
-	op.Module = mod
+	op, configCleanup := testOperationRefresh(t, "./test-fixtures/refresh")
+	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -30,8 +35,8 @@ func TestLocal_refresh(t *testing.T) {
 	}
 	<-run.Done()
 
-	if !p.RefreshCalled {
-		t.Fatal("refresh should be called")
+	if !p.ReadResourceCalled {
+		t.Fatal("ReadResource should be called")
 	}
 
 	checkState(t, b.StateOutPath, `
@@ -41,16 +46,18 @@ test_instance.foo:
 	`)
 }
 
-func TestLocal_refreshNilModule(t *testing.T) {
-	b := TestLocal(t)
-	p := TestLocalProvider(t, b, "test")
+func TestLocal_refreshNoConfig(t *testing.T) {
+	b, cleanup := TestLocal(t)
+	defer cleanup()
+	p := TestLocalProvider(t, b, "test", refreshFixtureSchema())
 	terraform.TestStateFile(t, b.StatePath, testRefreshState())
+	p.ReadResourceFn = nil
+	p.ReadResourceResponse = providers.ReadResourceResponse{NewState: cty.ObjectVal(map[string]cty.Value{
+		"id": cty.StringVal("yes"),
+	})}
 
-	p.RefreshFn = nil
-	p.RefreshReturn = &terraform.InstanceState{ID: "yes"}
-
-	op := testOperationRefresh()
-	op.Module = nil
+	op, configCleanup := testOperationRefresh(t, "./test-fixtures/empty")
+	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -58,8 +65,8 @@ func TestLocal_refreshNilModule(t *testing.T) {
 	}
 	<-run.Done()
 
-	if !p.RefreshCalled {
-		t.Fatal("refresh should be called")
+	if !p.ReadResourceCalled {
+		t.Fatal("ReadResource should be called")
 	}
 
 	checkState(t, b.StateOutPath, `
@@ -71,17 +78,19 @@ test_instance.foo:
 
 // GH-12174
 func TestLocal_refreshNilModuleWithInput(t *testing.T) {
-	b := TestLocal(t)
-	p := TestLocalProvider(t, b, "test")
+	b, cleanup := TestLocal(t)
+	defer cleanup()
+	p := TestLocalProvider(t, b, "test", refreshFixtureSchema())
 	terraform.TestStateFile(t, b.StatePath, testRefreshState())
-
-	p.RefreshFn = nil
-	p.RefreshReturn = &terraform.InstanceState{ID: "yes"}
+	p.ReadResourceFn = nil
+	p.ReadResourceResponse = providers.ReadResourceResponse{NewState: cty.ObjectVal(map[string]cty.Value{
+		"id": cty.StringVal("yes"),
+	})}
 
 	b.OpInput = true
 
-	op := testOperationRefresh()
-	op.Module = nil
+	op, configCleanup := testOperationRefresh(t, "./test-fixtures/empty")
+	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -89,8 +98,8 @@ func TestLocal_refreshNilModuleWithInput(t *testing.T) {
 	}
 	<-run.Done()
 
-	if !p.RefreshCalled {
-		t.Fatal("refresh should be called")
+	if !p.ReadResourceCalled {
+		t.Fatal("ReadResource should be called")
 	}
 
 	checkState(t, b.StateOutPath, `
@@ -101,10 +110,30 @@ test_instance.foo:
 }
 
 func TestLocal_refreshInput(t *testing.T) {
-	b := TestLocal(t)
-	p := TestLocalProvider(t, b, "test")
+	b, cleanup := TestLocal(t)
+	defer cleanup()
+	p := TestLocalProvider(t, b, "test", refreshFixtureSchema())
 	terraform.TestStateFile(t, b.StatePath, testRefreshState())
 
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"value": {Type: cty.String, Optional: true},
+			},
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true},
+					"id":  {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
+	p.ReadResourceFn = nil
+	p.ReadResourceResponse = providers.ReadResourceResponse{NewState: cty.ObjectVal(map[string]cty.Value{
+		"id": cty.StringVal("yes"),
+	})}
 	p.ConfigureFn = func(c *terraform.ResourceConfig) error {
 		if v, ok := c.Get("value"); !ok || v != "bar" {
 			return fmt.Errorf("no value set")
@@ -113,18 +142,12 @@ func TestLocal_refreshInput(t *testing.T) {
 		return nil
 	}
 
-	p.RefreshFn = nil
-	p.RefreshReturn = &terraform.InstanceState{ID: "yes"}
-
-	mod, modCleanup := module.TestTree(t, "./test-fixtures/refresh-var-unset")
-	defer modCleanup()
-
 	// Enable input asking since it is normally disabled by default
 	b.OpInput = true
 	b.ContextOpts.UIInput = &terraform.MockUIInput{InputReturnString: "bar"}
 
-	op := testOperationRefresh()
-	op.Module = mod
+	op, configCleanup := testOperationRefresh(t, "./test-fixtures/refresh-var-unset")
+	defer configCleanup()
 	op.UIIn = b.ContextOpts.UIInput
 
 	run, err := b.Operation(context.Background(), op)
@@ -133,8 +156,8 @@ func TestLocal_refreshInput(t *testing.T) {
 	}
 	<-run.Done()
 
-	if !p.RefreshCalled {
-		t.Fatal("refresh should be called")
+	if !p.ReadResourceCalled {
+		t.Fatal("ReadResource should be called")
 	}
 
 	checkState(t, b.StateOutPath, `
@@ -145,21 +168,20 @@ test_instance.foo:
 }
 
 func TestLocal_refreshValidate(t *testing.T) {
-	b := TestLocal(t)
-	p := TestLocalProvider(t, b, "test")
+	b, cleanup := TestLocal(t)
+	defer cleanup()
+	p := TestLocalProvider(t, b, "test", refreshFixtureSchema())
 	terraform.TestStateFile(t, b.StatePath, testRefreshState())
-
-	p.RefreshFn = nil
-	p.RefreshReturn = &terraform.InstanceState{ID: "yes"}
-
-	mod, modCleanup := module.TestTree(t, "./test-fixtures/refresh")
-	defer modCleanup()
+	p.ReadResourceFn = nil
+	p.ReadResourceResponse = providers.ReadResourceResponse{NewState: cty.ObjectVal(map[string]cty.Value{
+		"id": cty.StringVal("yes"),
+	})}
 
 	// Enable validation
 	b.OpValidation = true
 
-	op := testOperationRefresh()
-	op.Module = mod
+	op, configCleanup := testOperationRefresh(t, "./test-fixtures/refresh")
+	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -167,7 +189,8 @@ func TestLocal_refreshValidate(t *testing.T) {
 	}
 	<-run.Done()
 
-	if !p.ValidateCalled {
+	// what are we validating?
+	if !p.ValidateProviderConfigCalled {
 		t.Fatal("validate should be called")
 	}
 
@@ -178,10 +201,16 @@ test_instance.foo:
 	`)
 }
 
-func testOperationRefresh() *backend.Operation {
+func testOperationRefresh(t *testing.T, configDir string) (*backend.Operation, func()) {
+	t.Helper()
+
+	_, configLoader, configCleanup := configload.MustLoadConfigForTests(t, configDir)
+
 	return &backend.Operation{
-		Type: backend.OperationTypeRefresh,
-	}
+		Type:         backend.OperationTypeRefresh,
+		ConfigDir:    configDir,
+		ConfigLoader: configLoader,
+	}, configCleanup
 }
 
 // testRefreshState is just a common state that we use for testing refresh.
@@ -200,6 +229,22 @@ func testRefreshState() *terraform.State {
 					},
 				},
 				Outputs: map[string]*terraform.OutputState{},
+			},
+		},
+	}
+}
+
+// refreshFixtureSchema returns a schema suitable for processing the
+// configuration in test-fixtures/refresh . This schema should be
+// assigned to a mock provider named "test".
+func refreshFixtureSchema() *terraform.ProviderSchema {
+	return &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"ami": {Type: cty.String, Optional: true},
+					"id":  {Type: cty.String, Computed: true},
+				},
 			},
 		},
 	}

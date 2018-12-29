@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -19,6 +20,24 @@ func resourceAwsApiGatewayIntegrationResponse() *schema.Resource {
 		Read:   resourceAwsApiGatewayIntegrationResponseRead,
 		Update: resourceAwsApiGatewayIntegrationResponseCreate,
 		Delete: resourceAwsApiGatewayIntegrationResponseDelete,
+		Importer: &schema.ResourceImporter{
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				idParts := strings.Split(d.Id(), "/")
+				if len(idParts) != 4 || idParts[0] == "" || idParts[1] == "" || idParts[2] == "" || idParts[3] == "" {
+					return nil, fmt.Errorf("Unexpected format of ID (%q), expected REST-API-ID/RESOURCE-ID/HTTP-METHOD/STATUS-CODE", d.Id())
+				}
+				restApiID := idParts[0]
+				resourceID := idParts[1]
+				httpMethod := idParts[2]
+				statusCode := idParts[3]
+				d.Set("http_method", httpMethod)
+				d.Set("status_code", statusCode)
+				d.Set("resource_id", resourceID)
+				d.Set("rest_api_id", restApiID)
+				d.SetId(fmt.Sprintf("agir-%s-%s-%s-%s", restApiID, resourceID, httpMethod, statusCode))
+				return []*schema.ResourceData{d}, nil
+			},
+		},
 
 		Schema: map[string]*schema.Schema{
 			"rest_api_id": {
@@ -37,7 +56,7 @@ func resourceAwsApiGatewayIntegrationResponse() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				ValidateFunc: validateHTTPMethod,
+				ValidateFunc: validateHTTPMethod(),
 			},
 
 			"status_code": {
@@ -53,12 +72,12 @@ func resourceAwsApiGatewayIntegrationResponse() *schema.Resource {
 			"response_templates": {
 				Type:     schema.TypeMap,
 				Optional: true,
-				Elem:     schema.TypeString,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
 			"response_parameters": {
 				Type:          schema.TypeMap,
-				Elem:          schema.TypeString,
+				Elem:          &schema.Schema{Type: schema.TypeString},
 				Optional:      true,
 				ConflictsWith: []string{"response_parameters_in_json"},
 			},
@@ -73,7 +92,7 @@ func resourceAwsApiGatewayIntegrationResponse() *schema.Resource {
 			"content_handling": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: validateApiGatewayIntegrationContentHandling,
+				ValidateFunc: validateApiGatewayIntegrationContentHandling(),
 			},
 		},
 	}
@@ -139,6 +158,7 @@ func resourceAwsApiGatewayIntegrationResponseRead(d *schema.ResourceData, meta i
 	})
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NotFoundException" {
+			log.Printf("[WARN] API Gateway Integration Response (%s) not found, removing from state", d.Id())
 			d.SetId("")
 			return nil
 		}
@@ -147,11 +167,31 @@ func resourceAwsApiGatewayIntegrationResponseRead(d *schema.ResourceData, meta i
 
 	log.Printf("[DEBUG] Received API Gateway Integration Response: %s", integrationResponse)
 
-	d.SetId(fmt.Sprintf("agir-%s-%s-%s-%s", d.Get("rest_api_id").(string), d.Get("resource_id").(string), d.Get("http_method").(string), d.Get("status_code").(string)))
-	d.Set("response_templates", integrationResponse.ResponseTemplates)
+	d.Set("content_handling", integrationResponse.ContentHandling)
+
+	if err := d.Set("response_parameters", aws.StringValueMap(integrationResponse.ResponseParameters)); err != nil {
+		return fmt.Errorf("error setting response_parameters: %s", err)
+	}
+
+	// KNOWN ISSUE: This next d.Set() is broken as it should be a JSON string of the map,
+	//              however leaving as-is since this attribute has been deprecated
+	//              for a very long time and will be removed soon in the next major release.
+	//              Not worth the effort of fixing, acceptance testing, and potential JSON equivalence bugs.
+	if _, ok := d.GetOk("response_parameters_in_json"); ok {
+		d.Set("response_parameters_in_json", aws.StringValueMap(integrationResponse.ResponseParameters))
+	}
+
+	// We need to explicitly convert key = nil values into key = "", which aws.StringValueMap() removes
+	responseTemplateMap := make(map[string]string)
+	for key, valuePointer := range integrationResponse.ResponseTemplates {
+		responseTemplateMap[key] = aws.StringValue(valuePointer)
+	}
+	if err := d.Set("response_templates", responseTemplateMap); err != nil {
+		return fmt.Errorf("error setting response_templates: %s", err)
+	}
+
 	d.Set("selection_pattern", integrationResponse.SelectionPattern)
-	d.Set("response_parameters", aws.StringValueMap(integrationResponse.ResponseParameters))
-	d.Set("response_parameters_in_json", aws.StringValueMap(integrationResponse.ResponseParameters))
+
 	return nil
 }
 

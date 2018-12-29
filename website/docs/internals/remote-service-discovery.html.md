@@ -1,7 +1,7 @@
 ---
 layout: "docs"
 page_title: "Internals: Remote Service Discovery"
-sidebar_current: "docs-remote-service-discovery"
+sidebar_current: "docs-internals-remote-service-discovery"
 description: |-
   Remote service discovery is a protocol used to locate Terraform-native
   services provided at a user-friendly hostname.

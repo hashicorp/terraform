@@ -14,7 +14,7 @@ func TestStateList(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	c := &StateListCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -37,6 +37,65 @@ func TestStateList(t *testing.T) {
 	}
 }
 
+func TestStateListWithID(t *testing.T) {
+	state := testState()
+	statePath := testStateFile(t, state)
+
+	p := testProvider()
+	ui := cli.NewMockUi()
+	c := &StateListCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"-id", "bar",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// Test that outputs were displayed
+	expected := strings.TrimSpace(testStateListOutput) + "\n"
+	actual := ui.OutputWriter.String()
+	if actual != expected {
+		t.Fatalf("Expected:\n%q\n\nTo equal: %q", actual, expected)
+	}
+}
+
+func TestStateListWithNonExistentID(t *testing.T) {
+	state := testState()
+	statePath := testStateFile(t, state)
+
+	p := testProvider()
+	ui := cli.NewMockUi()
+	c := &StateListCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"-id", "baz",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// Test that output is empty
+	if ui.OutputWriter != nil {
+		actual := ui.OutputWriter.String()
+		if actual != "" {
+			t.Fatalf("Expected an empty output but got: %q", actual)
+		}
+	}
+}
+
 func TestStateList_backendState(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
@@ -45,7 +104,7 @@ func TestStateList_backendState(t *testing.T) {
 	defer testChdir(t, td)()
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	c := &StateListCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -71,7 +130,7 @@ func TestStateList_noState(t *testing.T) {
 	defer testFixCwd(t, tmp, cwd)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	c := &StateListCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),

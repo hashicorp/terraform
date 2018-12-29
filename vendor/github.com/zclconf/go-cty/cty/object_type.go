@@ -14,9 +14,14 @@ type typeObject struct {
 // After a map is passed to this function the caller must no longer access it,
 // since ownership is transferred to this library.
 func Object(attrTypes map[string]Type) Type {
+	attrTypesNorm := make(map[string]Type, len(attrTypes))
+	for k, v := range attrTypes {
+		attrTypesNorm[NormalizeString(k)] = v
+	}
+
 	return Type{
 		typeObject{
-			AttrTypes: attrTypes,
+			AttrTypes: attrTypesNorm,
 		},
 	}
 }
@@ -46,7 +51,7 @@ func (t typeObject) Equals(other Type) bool {
 	return false
 }
 
-func (t typeObject) FriendlyName() string {
+func (t typeObject) FriendlyName(mode friendlyTypeNameMode) string {
 	// There isn't really a friendly way to write an object type due to its
 	// complexity, so we'll just do something English-ish. Callers will
 	// probably want to make some extra effort to avoid ever printing out
@@ -91,6 +96,7 @@ func (t Type) IsObjectType() bool {
 // name, regardless of its type. Will panic if the reciever isn't an object
 // type; use IsObjectType to determine whether this operation will succeed.
 func (t Type) HasAttribute(name string) bool {
+	name = NormalizeString(name)
 	if ot, ok := t.typeImpl.(typeObject); ok {
 		_, hasAttr := ot.AttrTypes[name]
 		return hasAttr
@@ -102,6 +108,7 @@ func (t Type) HasAttribute(name string) bool {
 // panic if the receiver is not an object type (use IsObjectType to confirm)
 // or if the object type has no such attribute (use HasAttribute to confirm).
 func (t Type) AttributeType(name string) Type {
+	name = NormalizeString(name)
 	if ot, ok := t.typeImpl.(typeObject); ok {
 		aty, hasAttr := ot.AttrTypes[name]
 		if !hasAttr {

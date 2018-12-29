@@ -31,8 +31,14 @@ func (t typeSet) Equals(other Type) bool {
 	return t.ElementTypeT.Equals(ot.ElementTypeT)
 }
 
-func (t typeSet) FriendlyName() string {
-	return "set of " + t.ElementTypeT.FriendlyName()
+func (t typeSet) FriendlyName(mode friendlyTypeNameMode) string {
+	elemName := t.ElementTypeT.friendlyNameMode(mode)
+	if mode == friendlyTypeConstraintName {
+		if t.ElementTypeT == DynamicPseudoType {
+			elemName = "any single type"
+		}
+	}
+	return "set of " + elemName
 }
 
 func (t typeSet) ElementType() Type {

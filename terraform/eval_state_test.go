@@ -1,15 +1,22 @@
 package terraform
 
 import (
-	"sync"
 	"testing"
+
+	"github.com/davecgh/go-spew/spew"
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/states"
 )
 
 func TestEvalRequireState(t *testing.T) {
 	ctx := new(MockEvalContext)
 
 	cases := []struct {
-		State *InstanceState
+		State *states.ResourceInstanceObject
 		Exit  bool
 	}{
 		{
@@ -17,11 +24,21 @@ func TestEvalRequireState(t *testing.T) {
 			true,
 		},
 		{
-			&InstanceState{},
+			&states.ResourceInstanceObject{
+				Value: cty.NullVal(cty.Object(map[string]cty.Type{
+					"id": cty.String,
+				})),
+				Status: states.ObjectReady,
+			},
 			true,
 		},
 		{
-			&InstanceState{ID: "foo"},
+			&states.ResourceInstanceObject{
+				Value: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("foo"),
+				}),
+				Status: states.ObjectReady,
+			},
 			false,
 		},
 	}
@@ -49,10 +66,12 @@ func TestEvalRequireState(t *testing.T) {
 func TestEvalUpdateStateHook(t *testing.T) {
 	mockHook := new(MockHook)
 
+	state := states.NewState()
+	state.Module(addrs.RootModuleInstance).SetLocalValue("foo", cty.StringVal("hello"))
+
 	ctx := new(MockEvalContext)
 	ctx.HookHook = mockHook
-	ctx.StateState = &State{Serial: 42}
-	ctx.StateLock = new(sync.RWMutex)
+	ctx.StateState = state.SyncWrapper()
 
 	node := &EvalUpdateStateHook{}
 	if _, err := node.Eval(ctx); err != nil {
@@ -62,13 +81,24 @@ func TestEvalUpdateStateHook(t *testing.T) {
 	if !mockHook.PostStateUpdateCalled {
 		t.Fatal("should call PostStateUpdate")
 	}
-	if mockHook.PostStateUpdateState.Serial != 42 {
-		t.Fatalf("bad: %#v", mockHook.PostStateUpdateState)
+	if mockHook.PostStateUpdateState.LocalValue(addrs.LocalValue{Name: "foo"}.Absolute(addrs.RootModuleInstance)) != cty.StringVal("hello") {
+		t.Fatalf("wrong state passed to hook: %s", spew.Sdump(mockHook.PostStateUpdateState))
 	}
 }
 
 func TestEvalReadState(t *testing.T) {
-	var output *InstanceState
+	var output *states.ResourceInstanceObject
+	mockProvider := mockProviderWithResourceTypeSchema("aws_instance", &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"id": {
+				Type:     cty.String,
+				Optional: true,
+			},
+		},
+	})
+	providerSchema := mockProvider.GetSchemaReturn
+	provider := providers.Interface(mockProvider)
+
 	cases := map[string]struct {
 		Resources          map[string]*ResourceState
 		Node               EvalNode
@@ -83,7 +113,14 @@ func TestEvalReadState(t *testing.T) {
 				},
 			},
 			Node: &EvalReadState{
-				Name:   "aws_instance.bar",
+				Addr: addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "aws_instance",
+					Name: "bar",
+				}.Instance(addrs.NoKey),
+				Provider:       &provider,
+				ProviderSchema: &providerSchema,
+
 				Output: &output,
 			},
 			ExpectedInstanceId: "i-abc123",
@@ -97,57 +134,87 @@ func TestEvalReadState(t *testing.T) {
 				},
 			},
 			Node: &EvalReadStateDeposed{
-				Name:   "aws_instance.bar",
+				Addr: addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "aws_instance",
+					Name: "bar",
+				}.Instance(addrs.NoKey),
+				Key:            states.DeposedKey("00000001"), // shim from legacy state assigns 0th deposed index this key
+				Provider:       &provider,
+				ProviderSchema: &providerSchema,
+
 				Output: &output,
-				Index:  0,
 			},
 			ExpectedInstanceId: "i-abc123",
 		},
 	}
 
 	for k, c := range cases {
-		ctx := new(MockEvalContext)
-		ctx.StateState = &State{
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path:      rootModulePath,
-					Resources: c.Resources,
+		t.Run(k, func(t *testing.T) {
+			ctx := new(MockEvalContext)
+			state := MustShimLegacyState(&State{
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path:      rootModulePath,
+						Resources: c.Resources,
+					},
 				},
-			},
-		}
-		ctx.StateLock = new(sync.RWMutex)
-		ctx.PathPath = rootModulePath
+			})
+			ctx.StateState = state.SyncWrapper()
+			ctx.PathPath = addrs.RootModuleInstance
 
-		result, err := c.Node.Eval(ctx)
-		if err != nil {
-			t.Fatalf("[%s] Got err: %#v", k, err)
-		}
+			result, err := c.Node.Eval(ctx)
+			if err != nil {
+				t.Fatalf("[%s] Got err: %#v", k, err)
+			}
 
-		expected := c.ExpectedInstanceId
-		if !(result != nil && result.(*InstanceState).ID == expected) {
-			t.Fatalf("[%s] Expected return with ID %#v, got: %#v", k, expected, result)
-		}
+			expected := c.ExpectedInstanceId
+			if !(result != nil && instanceObjectIdForTests(result.(*states.ResourceInstanceObject)) == expected) {
+				t.Fatalf("[%s] Expected return with ID %#v, got: %#v", k, expected, result)
+			}
 
-		if !(output != nil && output.ID == expected) {
-			t.Fatalf("[%s] Expected output with ID %#v, got: %#v", k, expected, output)
-		}
+			if !(output != nil && output.Value.GetAttr("id") == cty.StringVal(expected)) {
+				t.Fatalf("[%s] Expected output with ID %#v, got: %#v", k, expected, output)
+			}
 
-		output = nil
+			output = nil
+		})
 	}
 }
 
 func TestEvalWriteState(t *testing.T) {
-	state := &State{}
+	state := states.NewState()
 	ctx := new(MockEvalContext)
-	ctx.StateState = state
-	ctx.StateLock = new(sync.RWMutex)
-	ctx.PathPath = rootModulePath
+	ctx.StateState = state.SyncWrapper()
+	ctx.PathPath = addrs.RootModuleInstance
 
-	is := &InstanceState{ID: "i-abc123"}
+	mockProvider := mockProviderWithResourceTypeSchema("aws_instance", &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"id": {
+				Type:     cty.String,
+				Optional: true,
+			},
+		},
+	})
+	providerSchema := mockProvider.GetSchemaReturn
+
+	obj := &states.ResourceInstanceObject{
+		Value: cty.ObjectVal(map[string]cty.Value{
+			"id": cty.StringVal("i-abc123"),
+		}),
+		Status: states.ObjectReady,
+	}
 	node := &EvalWriteState{
-		Name:         "restype.resname",
-		ResourceType: "restype",
-		State:        &is,
+		Addr: addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "aws_instance",
+			Name: "foo",
+		}.Instance(addrs.NoKey),
+
+		State: &obj,
+
+		ProviderSchema: &providerSchema,
+		ProviderAddr:   addrs.RootModuleInstance.ProviderConfigDefault("aws"),
 	}
 	_, err := node.Eval(ctx)
 	if err != nil {
@@ -155,24 +222,46 @@ func TestEvalWriteState(t *testing.T) {
 	}
 
 	checkStateString(t, state, `
-restype.resname:
+aws_instance.foo:
   ID = i-abc123
+  provider = provider.aws
 	`)
 }
 
 func TestEvalWriteStateDeposed(t *testing.T) {
-	state := &State{}
+	state := states.NewState()
 	ctx := new(MockEvalContext)
-	ctx.StateState = state
-	ctx.StateLock = new(sync.RWMutex)
-	ctx.PathPath = rootModulePath
+	ctx.StateState = state.SyncWrapper()
+	ctx.PathPath = addrs.RootModuleInstance
 
-	is := &InstanceState{ID: "i-abc123"}
+	mockProvider := mockProviderWithResourceTypeSchema("aws_instance", &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"id": {
+				Type:     cty.String,
+				Optional: true,
+			},
+		},
+	})
+	providerSchema := mockProvider.GetSchemaReturn
+
+	obj := &states.ResourceInstanceObject{
+		Value: cty.ObjectVal(map[string]cty.Value{
+			"id": cty.StringVal("i-abc123"),
+		}),
+		Status: states.ObjectReady,
+	}
 	node := &EvalWriteStateDeposed{
-		Name:         "restype.resname",
-		ResourceType: "restype",
-		State:        &is,
-		Index:        -1,
+		Addr: addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "aws_instance",
+			Name: "foo",
+		}.Instance(addrs.NoKey),
+		Key: states.DeposedKey("deadbeef"),
+
+		State: &obj,
+
+		ProviderSchema: &providerSchema,
+		ProviderAddr:   addrs.RootModuleInstance.ProviderConfigDefault("aws"),
 	}
 	_, err := node.Eval(ctx)
 	if err != nil {
@@ -180,8 +269,9 @@ func TestEvalWriteStateDeposed(t *testing.T) {
 	}
 
 	checkStateString(t, state, `
-restype.resname: (1 deposed)
+aws_instance.foo: (1 deposed)
   ID = <not created>
+  provider = provider.aws
   Deposed ID 1 = i-abc123
 	`)
 }

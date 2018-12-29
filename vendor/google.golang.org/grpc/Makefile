@@ -1,4 +1,4 @@
-all: test testrace
+all: vet test testrace
 
 deps:
 	go get -d -v google.golang.org/grpc/...
@@ -8,6 +8,9 @@ updatedeps:
 
 testdeps:
 	go get -d -v -t google.golang.org/grpc/...
+
+testgaedeps:
+	goapp get -d -v -t -tags 'appengine appenginevm' google.golang.org/grpc/...
 
 updatetestdeps:
 	go get -d -v -t -u -f google.golang.org/grpc/...
@@ -20,33 +23,33 @@ proto:
 		echo "error: protoc not installed" >&2; \
 		exit 1; \
 	fi
-	go get -u -v github.com/golang/protobuf/protoc-gen-go
-	# use $$dir as the root for all proto files in the same directory
-	for dir in $$(git ls-files '*.proto' | xargs -n1 dirname | uniq); do \
-		protoc -I $$dir --go_out=plugins=grpc:$$dir $$dir/*.proto; \
-	done
+	go generate google.golang.org/grpc/...
+
+vet:
+	./vet.sh
 
 test: testdeps
-	go test -v -cpu 1,4 google.golang.org/grpc/...
+	go test -cpu 1,4 -timeout 5m google.golang.org/grpc/...
 
 testrace: testdeps
-	go test -v -race -cpu 1,4 google.golang.org/grpc/...
+	go test -race -cpu 1,4 -timeout 7m google.golang.org/grpc/...
+
+testappengine: testgaedeps
+	goapp test -cpu 1,4 -timeout 5m google.golang.org/grpc/...
 
 clean:
 	go clean -i google.golang.org/grpc/...
-
-coverage: testdeps
-	./coverage.sh --coveralls
 
 .PHONY: \
 	all \
 	deps \
 	updatedeps \
 	testdeps \
+	testgaedeps \
 	updatetestdeps \
 	build \
 	proto \
+	vet \
 	test \
 	testrace \
-	clean \
-	coverage
+	clean

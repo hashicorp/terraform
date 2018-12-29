@@ -1,9 +1,12 @@
 package terraform
 
 import (
-	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/providers"
 )
 
 func TestPlanGraphBuilder_impl(t *testing.T) {
@@ -11,19 +14,50 @@ func TestPlanGraphBuilder_impl(t *testing.T) {
 }
 
 func TestPlanGraphBuilder(t *testing.T) {
+	awsProvider := &MockProvider{
+		GetSchemaReturn: &ProviderSchema{
+			Provider: simpleTestSchema(),
+			ResourceTypes: map[string]*configschema.Block{
+				"aws_security_group": simpleTestSchema(),
+				"aws_instance":       simpleTestSchema(),
+				"aws_load_balancer":  simpleTestSchema(),
+			},
+		},
+	}
+	openstackProvider := &MockProvider{
+		GetSchemaReturn: &ProviderSchema{
+			Provider: simpleTestSchema(),
+			ResourceTypes: map[string]*configschema.Block{
+				"openstack_floating_ip": simpleTestSchema(),
+			},
+		},
+	}
+	components := &basicComponentFactory{
+		providers: map[string]providers.Factory{
+			"aws":       providers.FactoryFixed(awsProvider),
+			"openstack": providers.FactoryFixed(openstackProvider),
+		},
+	}
+
 	b := &PlanGraphBuilder{
-		Module:        testModule(t, "graph-builder-plan-basic"),
-		Providers:     []string{"aws", "openstack"},
+		Config:     testModule(t, "graph-builder-plan-basic"),
+		Components: components,
+		Schemas: &Schemas{
+			Providers: map[string]*ProviderSchema{
+				"aws":       awsProvider.GetSchemaReturn,
+				"openstack": openstackProvider.GetSchemaReturn,
+			},
+		},
 		DisableReduce: true,
 	}
 
-	g, err := b.Build(RootModulePath)
+	g, err := b.Build(addrs.RootModuleInstance)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	if !reflect.DeepEqual(g.Path, RootModulePath) {
-		t.Fatalf("bad: %#v", g.Path)
+	if g.Path.String() != addrs.RootModuleInstance.String() {
+		t.Fatalf("wrong module path %q", g.Path)
 	}
 
 	actual := strings.TrimSpace(g.String())
@@ -35,20 +69,23 @@ func TestPlanGraphBuilder(t *testing.T) {
 
 func TestPlanGraphBuilder_targetModule(t *testing.T) {
 	b := &PlanGraphBuilder{
-		Module:    testModule(t, "graph-builder-plan-target-module-provider"),
-		Providers: []string{"null"},
-		Targets:   []string{"module.child2"},
+		Config:     testModule(t, "graph-builder-plan-target-module-provider"),
+		Components: simpleMockComponentFactory(),
+		Schemas:    simpleTestSchemas(),
+		Targets: []addrs.Targetable{
+			addrs.RootModuleInstance.Child("child2", addrs.NoKey),
+		},
 	}
 
-	g, err := b.Build(RootModulePath)
+	g, err := b.Build(addrs.RootModuleInstance)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	t.Logf("Graph: %s", g.String())
 
-	testGraphNotContains(t, g, "module.child1.provider.null")
-	testGraphNotContains(t, g, "module.child1.null_resource.foo")
+	testGraphNotContains(t, g, "module.child1.provider.test")
+	testGraphNotContains(t, g, "module.child1.test_object.foo")
 }
 
 const testPlanGraphBuilderStr = `
@@ -63,7 +100,7 @@ aws_security_group.firewall
   provider.aws
 local.instance_id
   aws_instance.web
-meta.count-boundary (count boundary fixup)
+meta.count-boundary (EachMode fixup)
   aws_instance.web
   aws_load_balancer.weblb
   aws_security_group.firewall
@@ -89,7 +126,7 @@ provider.openstack (close)
   openstack_floating_ip.random
   provider.openstack
 root
-  meta.count-boundary (count boundary fixup)
+  meta.count-boundary (EachMode fixup)
   provider.aws (close)
   provider.openstack (close)
 var.foo

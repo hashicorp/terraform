@@ -10,7 +10,7 @@ description: |-
 
 ~> **Advanced topic!** Plugin development is a highly advanced
 topic in Terraform, and is not required knowledge for day-to-day usage.
-If you don't plan on writing any plugins, this section of the documentation is 
+If you don't plan on writing any plugins, this section of the documentation is
 not necessary to read. For general use of Terraform, please see our
 [Intro to Terraform](/intro/index.html) and [Getting
 Started](/intro/getting-started/install.html) guides.
@@ -34,15 +34,22 @@ The network communication and RPC is handled automatically by higher-level
 Terraform libraries. The exact interface to implement is documented
 in its respective documentation section.
 
-## Installing a Plugin
+## Installing Plugins
 
-To install a plugin distributed by a third party developer, place the binary
-(extracted from any containing zip file) in
-[the third-party plugins directory](/docs/configuration/providers.html#third-party-plugins).
+The [provider plugins distributed by HashiCorp](/docs/providers/index.html) are
+automatically installed by `terraform init`. Third-party plugins (both
+providers and provisioners) can be manually installed into the user plugins
+directory, located at `<APPLICATION DATA>\terraform.d\plugins` on Windows and
+`~/.terraform.d/plugins` on other systems.
 
-Provider plugin binaries are named with the prefix `terraform-provider-`,
-while provisioner plugins have the prefix `terraform-provisioner-`. Both
-are placed in the same directory.
+For more information, see:
+
+- [Configuring Providers](/docs/configuration/providers.html)
+- [Configuring Providers: Third-party Plugins](/docs/configuration/providers.html#third-party-plugins)
+
+For developer-centric documentation, see:
+
+- [How Terraform Works: Plugin Discovery](/docs/extend/how-terraform-works.html#discovery)
 
 ## Developing a Plugin
 

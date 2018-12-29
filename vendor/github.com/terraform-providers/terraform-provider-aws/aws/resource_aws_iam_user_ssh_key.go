@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsIamUserSshKey() *schema.Resource {
@@ -19,31 +20,34 @@ func resourceAwsIamUserSshKey() *schema.Resource {
 		Delete: resourceAwsIamUserSshKeyDelete,
 
 		Schema: map[string]*schema.Schema{
-			"ssh_public_key_id": &schema.Schema{
+			"ssh_public_key_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"fingerprint": &schema.Schema{
+			"fingerprint": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"username": &schema.Schema{
+			"username": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"public_key": &schema.Schema{
+			"public_key": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"encoding": &schema.Schema{
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validateIamUserSSHKeyEncoding,
+			"encoding": {
+				Type:     schema.TypeString,
+				Required: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					iam.EncodingTypeSsh,
+					iam.EncodingTypePem,
+				}, false),
 			},
 
-			"status": &schema.Schema{
+			"status": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -68,10 +72,9 @@ func resourceAwsIamUserSshKeyCreate(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("Error creating IAM User SSH Key %s: %s", username, err)
 	}
 
-	d.Set("ssh_public_key_id", createResp.SSHPublicKey.SSHPublicKeyId)
 	d.SetId(*createResp.SSHPublicKey.SSHPublicKeyId)
 
-	return resourceAwsIamUserSshKeyRead(d, meta)
+	return resourceAwsIamUserSshKeyUpdate(d, meta)
 }
 
 func resourceAwsIamUserSshKeyRead(d *schema.ResourceData, meta interface{}) error {
@@ -95,7 +98,7 @@ func resourceAwsIamUserSshKeyRead(d *schema.ResourceData, meta interface{}) erro
 
 	d.Set("fingerprint", getResp.SSHPublicKey.Fingerprint)
 	d.Set("status", getResp.SSHPublicKey.Status)
-
+	d.Set("ssh_public_key_id", getResp.SSHPublicKey.SSHPublicKeyId)
 	return nil
 }
 
@@ -119,9 +122,8 @@ func resourceAwsIamUserSshKeyUpdate(d *schema.ResourceData, meta interface{}) er
 			}
 			return fmt.Errorf("Error updating IAM User SSH Key %s: %s", d.Id(), err)
 		}
-		return resourceAwsIamUserRead(d, meta)
 	}
-	return nil
+	return resourceAwsIamUserSshKeyRead(d, meta)
 }
 
 func resourceAwsIamUserSshKeyDelete(d *schema.ResourceData, meta interface{}) error {
@@ -137,17 +139,4 @@ func resourceAwsIamUserSshKeyDelete(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("Error deleting IAM User SSH Key %s: %s", d.Id(), err)
 	}
 	return nil
-}
-
-func validateIamUserSSHKeyEncoding(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	encodingTypes := map[string]bool{
-		"PEM": true,
-		"SSH": true,
-	}
-
-	if !encodingTypes[value] {
-		errors = append(errors, fmt.Errorf("IAM User SSH Key Encoding can only be PEM or SSH"))
-	}
-	return
 }

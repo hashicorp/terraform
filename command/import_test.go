@@ -4,14 +4,20 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/mitchellh/cli"
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/plugin/discovery"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 func TestImport(t *testing.T) {
@@ -28,12 +34,23 @@ func TestImport(t *testing.T) {
 		},
 	}
 
-	p.ImportStateFn = nil
-	p.ImportStateReturn = []*terraform.InstanceState{
-		&terraform.InstanceState{
-			ID: "yay",
-			Ephemeral: terraform.EphemeralState{
-				Type: "test_instance",
+	p.ImportResourceStateFn = nil
+	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_instance",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("yay"),
+				}),
+			},
+		},
+	}
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Optional: true, Computed: true},
+				},
 			},
 		},
 	}
@@ -47,8 +64,8 @@ func TestImport(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
-	if !p.ImportStateCalled {
-		t.Fatal("ImportState should be called")
+	if !p.ImportResourceStateCalled {
+		t.Fatal("ImportResourceState should be called")
 	}
 
 	testStateOutput(t, statePath, testImportStr)
@@ -68,25 +85,49 @@ func TestImport_providerConfig(t *testing.T) {
 		},
 	}
 
-	p.ImportStateFn = nil
-	p.ImportStateReturn = []*terraform.InstanceState{
-		&terraform.InstanceState{
-			ID: "yay",
-			Ephemeral: terraform.EphemeralState{
-				Type: "test_instance",
+	p.ImportResourceStateFn = nil
+	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_instance",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("yay"),
+				}),
+			},
+		},
+	}
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"foo": {Type: cty.String, Optional: true},
+			},
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Optional: true, Computed: true},
+				},
 			},
 		},
 	}
 
 	configured := false
-	p.ConfigureFn = func(c *terraform.ResourceConfig) error {
+	p.ConfigureNewFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
 		configured = true
 
-		if v, ok := c.Get("foo"); !ok || v.(string) != "bar" {
-			return fmt.Errorf("bad value: %#v", v)
+		cfg := req.Config
+		if !cfg.Type().HasAttribute("foo") {
+			return providers.ConfigureResponse{
+				Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("configuration has no foo argument")),
+			}
+		}
+		if got, want := cfg.GetAttr("foo"), cty.StringVal("bar"); !want.RawEquals(got) {
+			return providers.ConfigureResponse{
+				Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("foo argument is %#v, but want %#v", got, want)),
+			}
 		}
 
-		return nil
+		return providers.ConfigureResponse{}
 	}
 
 	args := []string{
@@ -103,8 +144,8 @@ func TestImport_providerConfig(t *testing.T) {
 		t.Fatal("Configure should be called")
 	}
 
-	if !p.ImportStateCalled {
-		t.Fatal("ImportState should be called")
+	if !p.ImportResourceStateCalled {
+		t.Fatal("ImportResourceState should be called")
 	}
 
 	testStateOutput(t, statePath, testImportStr)
@@ -150,34 +191,57 @@ func TestImport_remoteState(t *testing.T) {
 		},
 	}
 
-	p.ImportStateFn = nil
-	p.ImportStateReturn = []*terraform.InstanceState{
-		&terraform.InstanceState{
-			ID: "yay",
-			Ephemeral: terraform.EphemeralState{
-				Type: "test_instance",
+	p.ImportResourceStateFn = nil
+	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_instance",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("yay"),
+				}),
+			},
+		},
+	}
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"foo": {Type: cty.String, Optional: true},
+			},
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Optional: true, Computed: true},
+				},
 			},
 		},
 	}
 
 	configured := false
-	p.ConfigureFn = func(c *terraform.ResourceConfig) error {
+	p.ConfigureNewFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
+		var diags tfdiags.Diagnostics
 		configured = true
-
-		if v, ok := c.Get("foo"); !ok || v.(string) != "bar" {
-			return fmt.Errorf("bad value: %#v", v)
+		if got, want := req.Config.GetAttr("foo"), cty.StringVal("bar"); !want.RawEquals(got) {
+			diags = diags.Append(fmt.Errorf("wrong \"foo\" value %#v; want %#v", got, want))
 		}
-
-		return nil
+		return providers.ConfigureResponse{
+			Diagnostics: diags,
+		}
 	}
 
 	args := []string{
 		"test_instance.foo",
 		"bar",
 	}
+
 	if code := c.Run(args); code != 0 {
 		fmt.Println(ui.OutputWriter)
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// verify that the local state was unlocked after import
+	if _, err := os.Stat(filepath.Join(td, fmt.Sprintf(".%s.lock.info", statePath))); !os.IsNotExist(err) {
+		t.Fatal("state left locked after import")
 	}
 
 	// Verify that we were called
@@ -185,8 +249,8 @@ func TestImport_remoteState(t *testing.T) {
 		t.Fatal("Configure should be called")
 	}
 
-	if !p.ImportStateCalled {
-		t.Fatal("ImportState should be called")
+	if !p.ImportResourceStateCalled {
+		t.Fatal("ImportResourceState should be called")
 	}
 
 	testStateOutput(t, statePath, testImportStr)
@@ -206,25 +270,42 @@ func TestImport_providerConfigWithVar(t *testing.T) {
 		},
 	}
 
-	p.ImportStateFn = nil
-	p.ImportStateReturn = []*terraform.InstanceState{
-		&terraform.InstanceState{
-			ID: "yay",
-			Ephemeral: terraform.EphemeralState{
-				Type: "test_instance",
+	p.ImportResourceStateFn = nil
+	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_instance",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("yay"),
+				}),
+			},
+		},
+	}
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"foo": {Type: cty.String, Optional: true},
+			},
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Optional: true, Computed: true},
+				},
 			},
 		},
 	}
 
 	configured := false
-	p.ConfigureFn = func(c *terraform.ResourceConfig) error {
+	p.ConfigureNewFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
+		var diags tfdiags.Diagnostics
 		configured = true
-
-		if v, ok := c.Get("foo"); !ok || v.(string) != "bar" {
-			return fmt.Errorf("bad value: %#v", v)
+		if got, want := req.Config.GetAttr("foo"), cty.StringVal("bar"); !want.RawEquals(got) {
+			diags = diags.Append(fmt.Errorf("wrong \"foo\" value %#v; want %#v", got, want))
 		}
-
-		return nil
+		return providers.ConfigureResponse{
+			Diagnostics: diags,
+		}
 	}
 
 	args := []string{
@@ -242,8 +323,8 @@ func TestImport_providerConfigWithVar(t *testing.T) {
 		t.Fatal("Configure should be called")
 	}
 
-	if !p.ImportStateCalled {
-		t.Fatal("ImportState should be called")
+	if !p.ImportResourceStateCalled {
+		t.Fatal("ImportResourceState should be called")
 	}
 
 	testStateOutput(t, statePath, testImportStr)
@@ -263,25 +344,42 @@ func TestImport_providerConfigWithVarDefault(t *testing.T) {
 		},
 	}
 
-	p.ImportStateFn = nil
-	p.ImportStateReturn = []*terraform.InstanceState{
-		&terraform.InstanceState{
-			ID: "yay",
-			Ephemeral: terraform.EphemeralState{
-				Type: "test_instance",
+	p.ImportResourceStateFn = nil
+	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_instance",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("yay"),
+				}),
+			},
+		},
+	}
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"foo": {Type: cty.String, Optional: true},
+			},
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Optional: true, Computed: true},
+				},
 			},
 		},
 	}
 
 	configured := false
-	p.ConfigureFn = func(c *terraform.ResourceConfig) error {
+	p.ConfigureNewFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
+		var diags tfdiags.Diagnostics
 		configured = true
-
-		if v, ok := c.Get("foo"); !ok || v.(string) != "bar" {
-			return fmt.Errorf("bad value: %#v", v)
+		if got, want := req.Config.GetAttr("foo"), cty.StringVal("bar"); !want.RawEquals(got) {
+			diags = diags.Append(fmt.Errorf("wrong \"foo\" value %#v; want %#v", got, want))
 		}
-
-		return nil
+		return providers.ConfigureResponse{
+			Diagnostics: diags,
+		}
 	}
 
 	args := []string{
@@ -298,8 +396,8 @@ func TestImport_providerConfigWithVarDefault(t *testing.T) {
 		t.Fatal("Configure should be called")
 	}
 
-	if !p.ImportStateCalled {
-		t.Fatal("ImportState should be called")
+	if !p.ImportResourceStateCalled {
+		t.Fatal("ImportResourceState should be called")
 	}
 
 	testStateOutput(t, statePath, testImportStr)
@@ -319,25 +417,42 @@ func TestImport_providerConfigWithVarFile(t *testing.T) {
 		},
 	}
 
-	p.ImportStateFn = nil
-	p.ImportStateReturn = []*terraform.InstanceState{
-		&terraform.InstanceState{
-			ID: "yay",
-			Ephemeral: terraform.EphemeralState{
-				Type: "test_instance",
+	p.ImportResourceStateFn = nil
+	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_instance",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("yay"),
+				}),
+			},
+		},
+	}
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"foo": {Type: cty.String, Optional: true},
+			},
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Optional: true, Computed: true},
+				},
 			},
 		},
 	}
 
 	configured := false
-	p.ConfigureFn = func(c *terraform.ResourceConfig) error {
+	p.ConfigureNewFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
+		var diags tfdiags.Diagnostics
 		configured = true
-
-		if v, ok := c.Get("foo"); !ok || v.(string) != "bar" {
-			return fmt.Errorf("bad value: %#v", v)
+		if got, want := req.Config.GetAttr("foo"), cty.StringVal("bar"); !want.RawEquals(got) {
+			diags = diags.Append(fmt.Errorf("wrong \"foo\" value %#v; want %#v", got, want))
 		}
-
-		return nil
+		return providers.ConfigureResponse{
+			Diagnostics: diags,
+		}
 	}
 
 	args := []string{
@@ -355,8 +470,8 @@ func TestImport_providerConfigWithVarFile(t *testing.T) {
 		t.Fatal("Configure should be called")
 	}
 
-	if !p.ImportStateCalled {
-		t.Fatal("ImportState should be called")
+	if !p.ImportResourceStateCalled {
+		t.Fatal("ImportResourceState should be called")
 	}
 
 	testStateOutput(t, statePath, testImportStr)
@@ -376,12 +491,28 @@ func TestImport_customProvider(t *testing.T) {
 		},
 	}
 
-	p.ImportStateFn = nil
-	p.ImportStateReturn = []*terraform.InstanceState{
-		&terraform.InstanceState{
-			ID: "yay",
-			Ephemeral: terraform.EphemeralState{
-				Type: "test_instance",
+	p.ImportResourceStateFn = nil
+	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_instance",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("yay"),
+				}),
+			},
+		},
+	}
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"foo": {Type: cty.String, Optional: true},
+			},
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Optional: true, Computed: true},
+				},
 			},
 		},
 	}
@@ -396,8 +527,8 @@ func TestImport_customProvider(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
-	if !p.ImportStateCalled {
-		t.Fatal("ImportState should be called")
+	if !p.ImportResourceStateCalled {
+		t.Fatal("ImportResourceState should be called")
 	}
 
 	testStateOutput(t, statePath, testImportCustomProviderStr)
@@ -417,12 +548,23 @@ func TestImport_allowMissingResourceConfig(t *testing.T) {
 		},
 	}
 
-	p.ImportStateFn = nil
-	p.ImportStateReturn = []*terraform.InstanceState{
-		{
-			ID: "yay",
-			Ephemeral: terraform.EphemeralState{
-				Type: "test_instance",
+	p.ImportResourceStateFn = nil
+	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_instance",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("yay"),
+				}),
+			},
+		},
+	}
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Optional: true, Computed: true},
+				},
 			},
 		},
 	}
@@ -437,11 +579,41 @@ func TestImport_allowMissingResourceConfig(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
-	if !p.ImportStateCalled {
-		t.Fatal("ImportState should be called")
+	if !p.ImportResourceStateCalled {
+		t.Fatal("ImportResourceState should be called")
 	}
 
 	testStateOutput(t, statePath, testImportStr)
+}
+
+func TestImport_emptyConfig(t *testing.T) {
+	defer testChdir(t, testFixturePath("empty"))()
+
+	statePath := testTempFile(t)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ImportCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"test_instance.foo",
+		"bar",
+	}
+	code := c.Run(args)
+	if code != 1 {
+		t.Fatalf("import succeeded; expected failure")
+	}
+
+	msg := ui.ErrorWriter.String()
+	if want := `No Terraform configuration files`; !strings.Contains(msg, want) {
+		t.Errorf("incorrect message\nwant substring: %s\ngot:\n%s", want, msg)
+	}
 }
 
 func TestImport_missingResourceConfig(t *testing.T) {
@@ -499,7 +671,7 @@ func TestImport_missingModuleConfig(t *testing.T) {
 	}
 
 	msg := ui.ErrorWriter.String()
-	if want := `module.baz does not exist in the configuration`; !strings.Contains(msg, want) {
+	if want := `module.baz is not defined in the configuration`; !strings.Contains(msg, want) {
 		t.Errorf("incorrect message\nwant substring: %s\ngot:\n%s", want, msg)
 	}
 }
@@ -529,7 +701,7 @@ func TestImport_dataResource(t *testing.T) {
 	}
 
 	msg := ui.ErrorWriter.String()
-	if want := `resource address must refer to a managed resource`; !strings.Contains(msg, want) {
+	if want := `A managed resource address is required`; !strings.Contains(msg, want) {
 		t.Errorf("incorrect message\nwant substring: %s\ngot:\n%s", want, msg)
 	}
 }
@@ -559,7 +731,7 @@ func TestImport_invalidResourceAddr(t *testing.T) {
 	}
 
 	msg := ui.ErrorWriter.String()
-	if want := `invalid resource address "bananas"`; !strings.Contains(msg, want) {
+	if want := `Error: Invalid address`; !strings.Contains(msg, want) {
 		t.Errorf("incorrect message\nwant substring: %s\ngot:\n%s", want, msg)
 	}
 }
@@ -589,7 +761,7 @@ func TestImport_targetIsModule(t *testing.T) {
 	}
 
 	msg := ui.ErrorWriter.String()
-	if want := `resource address must include a full resource spec`; !strings.Contains(msg, want) {
+	if want := `Error: Invalid address`; !strings.Contains(msg, want) {
 		t.Errorf("incorrect message\nwant substring: %s\ngot:\n%s", want, msg)
 	}
 }

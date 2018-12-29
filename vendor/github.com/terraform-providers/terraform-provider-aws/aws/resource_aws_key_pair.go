@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -26,27 +27,22 @@ func resourceAwsKeyPair() *schema.Resource {
 		MigrateState:  resourceAwsKeyPairMigrateState,
 
 		Schema: map[string]*schema.Schema{
-			"key_name": &schema.Schema{
+			"key_name": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"key_name_prefix"},
+				ValidateFunc:  validation.StringLenBetween(0, 255),
 			},
-			"key_name_prefix": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(string)
-					if len(value) > 100 {
-						errors = append(errors, fmt.Errorf(
-							"%q cannot be longer than 100 characters, name is limited to 255", k))
-					}
-					return
-				},
+			"key_name_prefix": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"key_name"},
+				ValidateFunc:  validation.StringLenBetween(0, 255-resource.UniqueIDSuffixLength),
 			},
-			"public_key": &schema.Schema{
+			"public_key": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -59,7 +55,7 @@ func resourceAwsKeyPair() *schema.Resource {
 					}
 				},
 			},
-			"fingerprint": &schema.Schema{
+			"fingerprint": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -92,7 +88,7 @@ func resourceAwsKeyPairCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.SetId(*resp.KeyName)
-	return nil
+	return resourceAwsKeyPairRead(d, meta)
 }
 
 func resourceAwsKeyPairRead(d *schema.ResourceData, meta interface{}) error {

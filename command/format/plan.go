@@ -3,12 +3,16 @@ package format
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"sort"
 	"strings"
 
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/colorstring"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 // Plan is a representation of a plan optimized for display to
@@ -59,100 +63,69 @@ type PlanStats struct {
 }
 
 // NewPlan produces a display-oriented Plan from a terraform.Plan.
-func NewPlan(plan *terraform.Plan) *Plan {
+func NewPlan(changes *plans.Changes) *Plan {
+	log.Printf("[TRACE] NewPlan for %#v", changes)
 	ret := &Plan{}
-	if plan == nil || plan.Diff == nil || plan.Diff.Empty() {
+	if changes == nil {
 		// Nothing to do!
 		return ret
 	}
 
-	for _, m := range plan.Diff.Modules {
-		var modulePath []string
-		if !m.IsRoot() {
-			// trim off the leading "root" path segment, since it's implied
-			// when we use a path in a resource address.
-			modulePath = m.Path[1:]
+	for _, rc := range changes.Resources {
+		addr := rc.Addr
+		log.Printf("[TRACE] NewPlan found %s", addr)
+		dataSource := addr.Resource.Resource.Mode == addrs.DataResourceMode
+
+		// We create "delete" actions for data resources so we can clean
+		// up their entries in state, but this is an implementation detail
+		// that users shouldn't see.
+		if dataSource && rc.Action == plans.Delete {
+			continue
 		}
 
-		for k, r := range m.Resources {
-			if r.Empty() {
-				continue
-			}
+		// For now we'll shim this to work with our old types.
+		// TODO: Update for the new plan types, ideally also switching over to
+		// a structural diff renderer instead of a flat renderer.
+		did := &InstanceDiff{
+			Addr: terraform.NewLegacyResourceInstanceAddress(addr),
+		}
 
-			addr, err := terraform.ParseResourceAddressForInstanceDiff(modulePath, k)
-			if err != nil {
-				// should never happen; indicates invalid diff
-				panic("invalid resource address in diff")
-			}
-
-			dataSource := addr.Mode == config.DataResourceMode
-
-			// We create "destroy" actions for data resources so we can clean
-			// up their entries in state, but this is an implementation detail
-			// that users shouldn't see.
-			if dataSource && r.ChangeType() == terraform.DiffDestroy {
-				continue
-			}
-
-			did := &InstanceDiff{
-				Addr:    addr,
-				Action:  r.ChangeType(),
-				Tainted: r.DestroyTainted,
-				Deposed: r.DestroyDeposed,
-			}
-
-			if dataSource && did.Action == terraform.DiffCreate {
-				// Use "refresh" as the action for display, since core
-				// currently uses Create for this.
+		switch rc.Action {
+		case plans.NoOp:
+			continue
+		case plans.Create:
+			if dataSource {
+				// Use "refresh" as the action for display, but core
+				// currently uses Create for this internally.
+				// FIXME: Update core to generate plans.Read for this case
+				// instead.
 				did.Action = terraform.DiffRefresh
+			} else {
+				did.Action = terraform.DiffCreate
 			}
-
-			ret.Resources = append(ret.Resources, did)
-
-			if did.Action == terraform.DiffDestroy {
-				// Don't show any outputs for destroy actions
-				continue
-			}
-
-			for k, a := range r.Attributes {
-				var action terraform.DiffChangeType
-				switch {
-				case a.NewRemoved:
-					action = terraform.DiffDestroy
-				case did.Action == terraform.DiffCreate:
-					action = terraform.DiffCreate
-				default:
-					action = terraform.DiffUpdate
-				}
-
-				did.Attributes = append(did.Attributes, &AttributeDiff{
-					Path:   k,
-					Action: action,
-
-					OldValue: a.Old,
-					NewValue: a.New,
-
-					Sensitive:   a.Sensitive,
-					ForcesNew:   a.RequiresNew,
-					NewComputed: a.NewComputed,
-				})
-			}
-
-			// Sort the attributes by their paths for display
-			sort.Slice(did.Attributes, func(i, j int) bool {
-				iPath := did.Attributes[i].Path
-				jPath := did.Attributes[j].Path
-
-				// as a special case, "id" is always first
-				switch {
-				case iPath != jPath && (iPath == "id" || jPath == "id"):
-					return iPath == "id"
-				default:
-					return iPath < jPath
-				}
-			})
-
+		case plans.Read:
+			did.Action = terraform.DiffRefresh
+		case plans.Delete:
+			did.Action = terraform.DiffDestroy
+		case plans.DeleteThenCreate, plans.CreateThenDelete:
+			did.Action = terraform.DiffDestroyCreate
+		case plans.Update:
+			did.Action = terraform.DiffUpdate
+		default:
+			panic(fmt.Sprintf("unexpected change action %s", rc.Action))
 		}
+
+		if rc.DeposedKey != states.NotDeposed {
+			did.Deposed = true
+		}
+
+		// Since this is just a temporary stub implementation on the way
+		// to us replacing this with the structural diff renderer, we currently
+		// don't include any attributes here.
+		// FIXME: Implement the structural diff renderer to replace this
+		// codepath altogether.
+
+		ret.Resources = append(ret.Resources, did)
 	}
 
 	// Sort the instance diffs by their addresses for display.

@@ -2,11 +2,16 @@ package terraform
 
 import (
 	"reflect"
-	"sync"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/terraform/states"
 )
 
 func TestEvalLocal_impl(t *testing.T) {
@@ -33,27 +38,22 @@ func TestEvalLocal(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Value, func(t *testing.T) {
-			rawConfig, err := config.NewRawConfig(map[string]interface{}{
-				"value": test.Value,
-			})
-			if err != nil {
-				t.Fatal(err)
+			expr, diags := hclsyntax.ParseTemplate([]byte(test.Value), "", hcl.Pos{Line: 1, Column: 1})
+			if diags.HasErrors() {
+				t.Fatal(diags.Error())
 			}
 
 			n := &EvalLocal{
-				Name:  "foo",
-				Value: rawConfig,
+				Addr: addrs.LocalValue{Name: "foo"},
+				Expr: expr,
 			}
 			ctx := &MockEvalContext{
-				StateState: &State{},
-				StateLock:  &sync.RWMutex{},
+				StateState: states.NewState().SyncWrapper(),
 
-				InterpolateConfigResult: testResourceConfig(t, map[string]interface{}{
-					"value": test.Want,
-				}),
+				EvaluateExprResult: hcl2shim.HCL2ValueFromConfigValue(test.Want),
 			}
 
-			_, err = n.Eval(ctx)
+			_, err := n.Eval(ctx)
 			if (err != nil) != test.Err {
 				if err != nil {
 					t.Errorf("unexpected error: %s", err)
@@ -62,10 +62,10 @@ func TestEvalLocal(t *testing.T) {
 				}
 			}
 
-			ms := ctx.StateState.ModuleByPath([]string{})
-			gotLocals := ms.Locals
-			wantLocals := map[string]interface{}{
-				"foo": test.Want,
+			ms := ctx.StateState.Module(addrs.RootModuleInstance)
+			gotLocals := ms.LocalValues
+			wantLocals := map[string]cty.Value{
+				"foo": hcl2shim.HCL2ValueFromConfigValue(test.Want),
 			}
 
 			if !reflect.DeepEqual(gotLocals, wantLocals) {

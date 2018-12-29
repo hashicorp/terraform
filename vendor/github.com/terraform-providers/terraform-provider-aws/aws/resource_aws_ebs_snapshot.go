@@ -99,8 +99,16 @@ func resourceAwsEbsSnapshotRead(d *schema.ResourceData, meta interface{}) error 
 		SnapshotIds: []*string{aws.String(d.Id())},
 	}
 	res, err := conn.DescribeSnapshots(req)
-	if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidSnapshotID.NotFound" {
-		log.Printf("Snapshot %q Not found - removing from state", d.Id())
+	if err != nil {
+		if isAWSErr(err, "InvalidSnapshot.NotFound", "") {
+			log.Printf("[WARN] Snapshot %q Not found - removing from state", d.Id())
+			d.SetId("")
+			return nil
+		}
+		return err
+	}
+
+	if len(res.Snapshots) == 0 {
 		d.SetId("")
 		return nil
 	}
@@ -113,7 +121,7 @@ func resourceAwsEbsSnapshotRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("owner_alias", snapshot.OwnerAlias)
 	d.Set("volume_id", snapshot.VolumeId)
 	d.Set("data_encryption_key_id", snapshot.DataEncryptionKeyId)
-	d.Set("kms_keey_id", snapshot.KmsKeyId)
+	d.Set("kms_key_id", snapshot.KmsKeyId)
 	d.Set("volume_size", snapshot.VolumeSize)
 
 	if err := d.Set("tags", tagsToMap(snapshot.Tags)); err != nil {

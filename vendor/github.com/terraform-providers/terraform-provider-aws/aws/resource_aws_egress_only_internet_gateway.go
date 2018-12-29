@@ -8,7 +8,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -54,7 +53,7 @@ func resourceAwsEgressOnlyInternetGatewayCreate(d *schema.ResourceData, meta int
 	})
 
 	if err != nil {
-		return errwrap.Wrapf("{{err}}", err)
+		return fmt.Errorf("%s", err)
 	}
 
 	return resourceAwsEgressOnlyInternetGatewayRead(d, meta)

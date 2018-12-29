@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -20,64 +21,87 @@ func resourceAwsApiGatewayMethod() *schema.Resource {
 		Read:   resourceAwsApiGatewayMethodRead,
 		Update: resourceAwsApiGatewayMethodUpdate,
 		Delete: resourceAwsApiGatewayMethodDelete,
+		Importer: &schema.ResourceImporter{
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				idParts := strings.Split(d.Id(), "/")
+				if len(idParts) != 3 || idParts[0] == "" || idParts[1] == "" || idParts[2] == "" {
+					return nil, fmt.Errorf("Unexpected format of ID (%q), expected REST-API-ID/RESOURCE-ID/HTTP-METHOD", d.Id())
+				}
+				restApiID := idParts[0]
+				resourceID := idParts[1]
+				httpMethod := idParts[2]
+				d.Set("http_method", httpMethod)
+				d.Set("resource_id", resourceID)
+				d.Set("rest_api_id", restApiID)
+				d.SetId(fmt.Sprintf("agm-%s-%s-%s", restApiID, resourceID, httpMethod))
+				return []*schema.ResourceData{d}, nil
+			},
+		},
 
 		Schema: map[string]*schema.Schema{
-			"rest_api_id": &schema.Schema{
+			"rest_api_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"resource_id": &schema.Schema{
+			"resource_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"http_method": &schema.Schema{
+			"http_method": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				ValidateFunc: validateHTTPMethod,
+				ValidateFunc: validateHTTPMethod(),
 			},
 
-			"authorization": &schema.Schema{
+			"authorization": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"authorizer_id": &schema.Schema{
+			"authorizer_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"api_key_required": &schema.Schema{
+			"authorization_scopes": {
+				Type:     schema.TypeSet,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+				Optional: true,
+			},
+
+			"api_key_required": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
 
-			"request_models": &schema.Schema{
+			"request_models": {
 				Type:     schema.TypeMap,
 				Optional: true,
-				Elem:     schema.TypeString,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
-			"request_parameters": &schema.Schema{
+			"request_parameters": {
 				Type:          schema.TypeMap,
-				Elem:          schema.TypeBool,
+				Elem:          &schema.Schema{Type: schema.TypeBool},
 				Optional:      true,
 				ConflictsWith: []string{"request_parameters_in_json"},
 			},
 
-			"request_parameters_in_json": &schema.Schema{
+			"request_parameters_in_json": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ConflictsWith: []string{"request_parameters"},
 				Deprecated:    "Use field request_parameters instead",
 			},
 
-			"request_validator_id": &schema.Schema{
+			"request_validator_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
@@ -126,6 +150,10 @@ func resourceAwsApiGatewayMethodCreate(d *schema.ResourceData, meta interface{})
 		input.AuthorizerId = aws.String(v.(string))
 	}
 
+	if v, ok := d.GetOk("authorization_scopes"); ok {
+		input.AuthorizationScopes = expandStringList(v.(*schema.Set).List())
+	}
+
 	if v, ok := d.GetOk("request_validator_id"); ok {
 		input.RequestValidatorId = aws.String(v.(string))
 	}
@@ -152,19 +180,39 @@ func resourceAwsApiGatewayMethodRead(d *schema.ResourceData, meta interface{}) e
 	})
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NotFoundException" {
+			log.Printf("[WARN] API Gateway Method (%s) not found, removing from state", d.Id())
 			d.SetId("")
 			return nil
 		}
 		return err
 	}
 	log.Printf("[DEBUG] Received API Gateway Method: %s", out)
-	d.SetId(fmt.Sprintf("agm-%s-%s-%s", d.Get("rest_api_id").(string), d.Get("resource_id").(string), d.Get("http_method").(string)))
-	d.Set("request_parameters", aws.BoolValueMap(out.RequestParameters))
-	d.Set("request_parameters_in_json", aws.BoolValueMap(out.RequestParameters))
+
 	d.Set("api_key_required", out.ApiKeyRequired)
-	d.Set("authorization_type", out.AuthorizationType)
+
+	if err := d.Set("authorization_scopes", flattenStringList(out.AuthorizationScopes)); err != nil {
+		return fmt.Errorf("error setting authorization_scopes: %s", err)
+	}
+
+	d.Set("authorization", out.AuthorizationType)
 	d.Set("authorizer_id", out.AuthorizerId)
-	d.Set("request_models", aws.StringValueMap(out.RequestModels))
+
+	if err := d.Set("request_models", aws.StringValueMap(out.RequestModels)); err != nil {
+		return fmt.Errorf("error setting request_models: %s", err)
+	}
+
+	// KNOWN ISSUE: This next d.Set() is broken as it should be a JSON string of the map,
+	//              however leaving as-is since this attribute has been deprecated
+	//              for a very long time and will be removed soon in the next major release.
+	//              Not worth the effort of fixing, acceptance testing, and potential JSON equivalence bugs.
+	if _, ok := d.GetOk("request_parameters_in_json"); ok {
+		d.Set("request_parameters_in_json", aws.BoolValueMap(out.RequestParameters))
+	}
+
+	if err := d.Set("request_parameters", aws.BoolValueMap(out.RequestParameters)); err != nil {
+		return fmt.Errorf("error setting request_models: %s", err)
+	}
+
 	d.Set("request_validator_id", out.RequestValidatorId)
 
 	return nil
@@ -226,6 +274,32 @@ func resourceAwsApiGatewayMethodUpdate(d *schema.ResourceData, meta interface{})
 			Path:  aws.String("/authorizerId"),
 			Value: aws.String(d.Get("authorizer_id").(string)),
 		})
+	}
+
+	if d.HasChange("authorization_scopes") {
+		old, new := d.GetChange("authorization_scopes")
+		path := "/authorizationScopes"
+
+		os := old.(*schema.Set)
+		ns := new.(*schema.Set)
+
+		additionList := ns.Difference(os)
+		for _, v := range additionList.List() {
+			operations = append(operations, &apigateway.PatchOperation{
+				Op:    aws.String("add"),
+				Path:  aws.String(path),
+				Value: aws.String(v.(string)),
+			})
+		}
+
+		removalList := os.Difference(ns)
+		for _, v := range removalList.List() {
+			operations = append(operations, &apigateway.PatchOperation{
+				Op:    aws.String("remove"),
+				Path:  aws.String(path),
+				Value: aws.String(v.(string)),
+			})
+		}
 	}
 
 	if d.HasChange("api_key_required") {

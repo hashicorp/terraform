@@ -67,7 +67,7 @@ func (t *Tree) validateProviderAlias() error {
 
 			// We didn't find the alias, error!
 			err = multierror.Append(err, fmt.Errorf(
-				"module %s: provider alias must be defined by the module or a parent: %s",
+				"module %s: provider alias must be defined by the module: %s",
 				strings.Join(pv.Path, "."), k))
 		}
 	}

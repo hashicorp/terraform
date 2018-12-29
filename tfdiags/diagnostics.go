@@ -3,6 +3,9 @@ package tfdiags
 import (
 	"bytes"
 	"fmt"
+	"path/filepath"
+	"sort"
+	"strings"
 
 	"github.com/hashicorp/errwrap"
 	multierror "github.com/hashicorp/go-multierror"
@@ -53,6 +56,8 @@ func (diags Diagnostics) Append(new ...interface{}) Diagnostics {
 		case Diagnostics:
 			diags = append(diags, ti...) // flatten
 		case diagnosticsAsError:
+			diags = diags.Append(ti.Diagnostics) // unwrap
+		case NonFatalError:
 			diags = diags.Append(ti.Diagnostics) // unwrap
 		case hcl.Diagnostics:
 			for _, hclDiag := range ti {
@@ -136,6 +141,54 @@ func (diags Diagnostics) Err() error {
 	return diagnosticsAsError{diags}
 }
 
+// ErrWithWarnings is similar to Err except that it will also return a non-nil
+// error if the receiver contains only warnings.
+//
+// In the warnings-only situation, the result is guaranteed to be of dynamic
+// type NonFatalError, allowing diagnostics-aware callers to type-assert
+// and unwrap it, treating it as non-fatal.
+//
+// This should be used only in contexts where the caller is able to recognize
+// and handle NonFatalError. For normal callers that expect a lack of errors
+// to be signaled by nil, use just Diagnostics.Err.
+func (diags Diagnostics) ErrWithWarnings() error {
+	if len(diags) == 0 {
+		return nil
+	}
+	if diags.HasErrors() {
+		return diags.Err()
+	}
+	return NonFatalError{diags}
+}
+
+// NonFatalErr is similar to Err except that it always returns either nil
+// (if there are no diagnostics at all) or NonFatalError.
+//
+// This allows diagnostics to be returned over an error return channel while
+// being explicit that the diagnostics should not halt processing.
+//
+// This should be used only in contexts where the caller is able to recognize
+// and handle NonFatalError. For normal callers that expect a lack of errors
+// to be signaled by nil, use just Diagnostics.Err.
+func (diags Diagnostics) NonFatalErr() error {
+	if len(diags) == 0 {
+		return nil
+	}
+	return NonFatalError{diags}
+}
+
+// Sort applies an ordering to the diagnostics in the receiver in-place.
+//
+// The ordering is: warnings before errors, sourceless before sourced,
+// short source paths before long source paths, and then ordering by
+// position within each file.
+//
+// Diagnostics that do not differ by any of these sortable characteristics
+// will remain in the same relative order after this method returns.
+func (diags Diagnostics) Sort() {
+	sort.Stable(sortDiagnostics(diags))
+}
+
 type diagnosticsAsError struct {
 	Diagnostics
 }
@@ -178,4 +231,100 @@ func (dae diagnosticsAsError) WrappedErrors() []error {
 		}
 	}
 	return errs
+}
+
+// NonFatalError is a special error type, returned by
+// Diagnostics.ErrWithWarnings and Diagnostics.NonFatalErr,
+// that indicates that the wrapped diagnostics should be treated as non-fatal.
+// Callers can conditionally type-assert an error to this type in order to
+// detect the non-fatal scenario and handle it in a different way.
+type NonFatalError struct {
+	Diagnostics
+}
+
+func (woe NonFatalError) Error() string {
+	diags := woe.Diagnostics
+	switch {
+	case len(diags) == 0:
+		// should never happen, since we don't create this wrapper if
+		// there are no diagnostics in the list.
+		return "no errors or warnings"
+	case len(diags) == 1:
+		desc := diags[0].Description()
+		if desc.Detail == "" {
+			return desc.Summary
+		}
+		return fmt.Sprintf("%s: %s", desc.Summary, desc.Detail)
+	default:
+		var ret bytes.Buffer
+		if diags.HasErrors() {
+			fmt.Fprintf(&ret, "%d problems:\n", len(diags))
+		} else {
+			fmt.Fprintf(&ret, "%d warnings:\n", len(diags))
+		}
+		for _, diag := range woe.Diagnostics {
+			desc := diag.Description()
+			if desc.Detail == "" {
+				fmt.Fprintf(&ret, "\n- %s", desc.Summary)
+			} else {
+				fmt.Fprintf(&ret, "\n- %s: %s", desc.Summary, desc.Detail)
+			}
+		}
+		return ret.String()
+	}
+}
+
+// sortDiagnostics is an implementation of sort.Interface
+type sortDiagnostics []Diagnostic
+
+var _ sort.Interface = sortDiagnostics(nil)
+
+func (sd sortDiagnostics) Len() int {
+	return len(sd)
+}
+
+func (sd sortDiagnostics) Less(i, j int) bool {
+	iD, jD := sd[i], sd[j]
+	iSev, jSev := iD.Severity(), jD.Severity()
+	iSrc, jSrc := iD.Source(), jD.Source()
+
+	switch {
+
+	case iSev != jSev:
+		return iSev == Warning
+
+	case (iSrc.Subject == nil) != (jSrc.Subject == nil):
+		return iSrc.Subject == nil
+
+	case iSrc.Subject != nil && *iSrc.Subject != *jSrc.Subject:
+		iSubj := iSrc.Subject
+		jSubj := jSrc.Subject
+		switch {
+		case iSubj.Filename != jSubj.Filename:
+			// Path with fewer segments goes first if they are different lengths
+			sep := string(filepath.Separator)
+			iCount := strings.Count(iSubj.Filename, sep)
+			jCount := strings.Count(jSubj.Filename, sep)
+			if iCount != jCount {
+				return iCount < jCount
+			}
+			return iSubj.Filename < jSubj.Filename
+		case iSubj.Start.Byte != jSubj.Start.Byte:
+			return iSubj.Start.Byte < jSubj.Start.Byte
+		case iSubj.End.Byte != jSubj.End.Byte:
+			return iSubj.End.Byte < jSubj.End.Byte
+		}
+		fallthrough
+
+	default:
+		// The remaining properties do not have a defined ordering, so
+		// we'll leave it unspecified. Since we use sort.Stable in
+		// the caller of this, the ordering of remaining items will
+		// be preserved.
+		return false
+	}
+}
+
+func (sd sortDiagnostics) Swap(i, j int) {
+	sd[i], sd[j] = sd[j], sd[i]
 }

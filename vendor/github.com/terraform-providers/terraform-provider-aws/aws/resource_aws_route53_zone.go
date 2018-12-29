@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
@@ -27,45 +26,46 @@ func resourceAwsRoute53Zone() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+			"name": {
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				DiffSuppressFunc: suppressRoute53ZoneNameWithTrailingDot,
 			},
 
-			"comment": &schema.Schema{
+			"comment": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "Managed by Terraform",
 			},
 
-			"vpc_id": &schema.Schema{
+			"vpc_id": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"delegation_set_id"},
 			},
 
-			"vpc_region": &schema.Schema{
+			"vpc_region": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
 			},
 
-			"zone_id": &schema.Schema{
+			"zone_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"delegation_set_id": &schema.Schema{
+			"delegation_set_id": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"vpc_id"},
 			},
 
-			"name_servers": &schema.Schema{
+			"name_servers": {
 				Type:     schema.TypeList,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Computed: true,
@@ -73,7 +73,7 @@ func resourceAwsRoute53Zone() *schema.Resource {
 
 			"tags": tagsSchema(),
 
-			"force_destroy": &schema.Schema{
+			"force_destroy": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
@@ -88,7 +88,7 @@ func resourceAwsRoute53ZoneCreate(d *schema.ResourceData, meta interface{}) erro
 	req := &route53.CreateHostedZoneInput{
 		Name:             aws.String(d.Get("name").(string)),
 		HostedZoneConfig: &route53.HostedZoneConfig{Comment: aws.String(d.Get("comment").(string))},
-		CallerReference:  aws.String(time.Now().Format(time.RFC3339Nano)),
+		CallerReference:  aws.String(resource.UniqueId()),
 	}
 	if v := d.Get("vpc_id"); v != "" {
 		req.VPC = &route53.VPC{
@@ -122,7 +122,7 @@ func resourceAwsRoute53ZoneCreate(d *schema.ResourceData, meta interface{}) erro
 		Delay:      30 * time.Second,
 		Pending:    []string{"PENDING"},
 		Target:     []string{"INSYNC"},
-		Timeout:    10 * time.Minute,
+		Timeout:    15 * time.Minute,
 		MinTimeout: 2 * time.Second,
 		Refresh: func() (result interface{}, state string, err error) {
 			changeRequest := &route53.GetChangeInput{
@@ -165,7 +165,7 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 		}
 		sort.Strings(ns)
 		if err := d.Set("name_servers", ns); err != nil {
-			return fmt.Errorf("[DEBUG] Error setting name servers for: %s, error: %#v", d.Id(), err)
+			return fmt.Errorf("Error setting name servers for: %s, error: %#v", d.Id(), err)
 		}
 	} else {
 		ns, err := getNameServers(d.Id(), d.Get("name").(string), r53)
@@ -173,7 +173,7 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 			return err
 		}
 		if err := d.Set("name_servers", ns); err != nil {
-			return fmt.Errorf("[DEBUG] Error setting name servers for: %s, error: %#v", d.Id(), err)
+			return fmt.Errorf("Error setting name servers for: %s, error: %#v", d.Id(), err)
 		}
 
 		// In the import case we just associate it with the first VPC
@@ -197,7 +197,7 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 			}
 		}
 		if associatedVPC == nil {
-			return fmt.Errorf("[DEBUG] VPC: %v is not associated with Zone: %v", d.Get("vpc_id"), d.Id())
+			return fmt.Errorf("VPC: %v is not associated with Zone: %v", d.Get("vpc_id"), d.Id())
 		}
 	}
 
@@ -267,7 +267,7 @@ func resourceAwsRoute53ZoneDelete(d *schema.ResourceData, meta interface{}) erro
 
 	if d.Get("force_destroy").(bool) {
 		if err := deleteAllRecordsInHostedZoneId(d.Id(), d.Get("name").(string), r53); err != nil {
-			return errwrap.Wrapf("{{err}}", err)
+			return fmt.Errorf("%s", err)
 		}
 	}
 
@@ -276,8 +276,6 @@ func resourceAwsRoute53ZoneDelete(d *schema.ResourceData, meta interface{}) erro
 	_, err := r53.DeleteHostedZone(&route53.DeleteHostedZoneInput{Id: aws.String(d.Id())})
 	if err != nil {
 		if r53err, ok := err.(awserr.Error); ok && r53err.Code() == "NoSuchHostedZone" {
-			log.Printf("[DEBUG] No matching Route 53 Zone found for: %s, removing from state file", d.Id())
-			d.SetId("")
 			return nil
 		}
 		return err
