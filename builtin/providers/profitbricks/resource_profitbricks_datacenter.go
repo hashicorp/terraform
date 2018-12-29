@@ -69,6 +69,10 @@ func resourceProfitBricksDatacenterCreate(d *schema.ResourceData, meta interface
 func resourceProfitBricksDatacenterRead(d *schema.ResourceData, meta interface{}) error {
 	datacenter := profitbricks.GetDatacenter(d.Id())
 	if datacenter.StatusCode > 299 {
+		if datacenter.StatusCode == 404 {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error while fetching a data center ID %s %s", d.Id(), datacenter.Response)
 	}
 

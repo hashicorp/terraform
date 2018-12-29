@@ -240,7 +240,7 @@ func resourceLBPoolV1Update(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if d.HasChange("monitor_ids") {
-		oldMIDsRaw, newMIDsRaw := d.GetChange("security_groups")
+		oldMIDsRaw, newMIDsRaw := d.GetChange("monitor_ids")
 		oldMIDsSet, newMIDsSet := oldMIDsRaw.(*schema.Set), newMIDsRaw.(*schema.Set)
 		monitorsToAdd := newMIDsSet.Difference(oldMIDsSet)
 		monitorsToRemove := oldMIDsSet.Difference(newMIDsSet)

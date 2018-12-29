@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/denverdino/aliyungo/common"
+	"github.com/denverdino/aliyungo/ecs"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"log"
@@ -71,7 +72,7 @@ func resourceAliyunNatGateway() *schema.Resource {
 func resourceAliyunNatGatewayCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AliyunClient).vpcconn
 
-	args := &CreateNatGatewayArgs{
+	args := &ecs.CreateNatGatewayArgs{
 		RegionId: getRegion(d, meta),
 		VpcId:    d.Get("vpc_id").(string),
 		Spec:     d.Get("spec").(string),
@@ -79,11 +80,11 @@ func resourceAliyunNatGatewayCreate(d *schema.ResourceData, meta interface{}) er
 
 	bandwidthPackages := d.Get("bandwidth_packages").([]interface{})
 
-	bandwidthPackageTypes := []BandwidthPackageType{}
+	bandwidthPackageTypes := []ecs.BandwidthPackageType{}
 
 	for _, e := range bandwidthPackages {
 		pack := e.(map[string]interface{})
-		bandwidthPackage := BandwidthPackageType{
+		bandwidthPackage := ecs.BandwidthPackageType{
 			IpCount:   pack["ip_count"].(int),
 			Bandwidth: pack["bandwidth"].(int),
 		}
@@ -106,8 +107,7 @@ func resourceAliyunNatGatewayCreate(d *schema.ResourceData, meta interface{}) er
 	if v, ok := d.GetOk("description"); ok {
 		args.Description = v.(string)
 	}
-
-	resp, err := CreateNatGateway(conn, args)
+	resp, err := conn.CreateNatGateway(args)
 	if err != nil {
 		return fmt.Errorf("CreateNatGateway got error: %#v", err)
 	}
@@ -142,6 +142,7 @@ func resourceAliyunNatGatewayRead(d *schema.ResourceData, meta interface{}) erro
 func resourceAliyunNatGatewayUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*AliyunClient)
+	conn := client.vpcconn
 
 	natGateway, err := client.DescribeNatGateway(d.Id())
 	if err != nil {
@@ -150,7 +151,7 @@ func resourceAliyunNatGatewayUpdate(d *schema.ResourceData, meta interface{}) er
 
 	d.Partial(true)
 	attributeUpdate := false
-	args := &ModifyNatGatewayAttributeArgs{
+	args := &ecs.ModifyNatGatewayAttributeArgs{
 		RegionId:     natGateway.RegionId,
 		NatGatewayId: natGateway.NatGatewayId,
 	}
@@ -183,28 +184,28 @@ func resourceAliyunNatGatewayUpdate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	if attributeUpdate {
-		if err := ModifyNatGatewayAttribute(client.vpcconn, args); err != nil {
+		if err := conn.ModifyNatGatewayAttribute(args); err != nil {
 			return err
 		}
 	}
 
 	if d.HasChange("spec") {
 		d.SetPartial("spec")
-		var spec NatGatewaySpec
+		var spec ecs.NatGatewaySpec
 		if v, ok := d.GetOk("spec"); ok {
-			spec = NatGatewaySpec(v.(string))
+			spec = ecs.NatGatewaySpec(v.(string))
 		} else {
 			// set default to small spec
-			spec = NatGatewaySmallSpec
+			spec = ecs.NatGatewaySmallSpec
 		}
 
-		args := &ModifyNatGatewaySpecArgs{
+		args := &ecs.ModifyNatGatewaySpecArgs{
 			RegionId:     natGateway.RegionId,
 			NatGatewayId: natGateway.NatGatewayId,
 			Spec:         spec,
 		}
 
-		err := ModifyNatGatewaySpec(client.vpcconn, args)
+		err := conn.ModifyNatGatewaySpec(args)
 		if err != nil {
 			return fmt.Errorf("%#v %#v", err, *args)
 		}
@@ -218,10 +219,11 @@ func resourceAliyunNatGatewayUpdate(d *schema.ResourceData, meta interface{}) er
 func resourceAliyunNatGatewayDelete(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*AliyunClient)
+	conn := client.vpcconn
 
 	return resource.Retry(5*time.Minute, func() *resource.RetryError {
 
-		packages, err := DescribeBandwidthPackages(client.vpcconn, &DescribeBandwidthPackagesArgs{
+		packages, err := conn.DescribeBandwidthPackages(&ecs.DescribeBandwidthPackagesArgs{
 			RegionId:     getRegion(d, meta),
 			NatGatewayId: d.Id(),
 		})
@@ -232,7 +234,7 @@ func resourceAliyunNatGatewayDelete(d *schema.ResourceData, meta interface{}) er
 
 		retry := false
 		for _, pack := range packages {
-			err = DeleteBandwidthPackage(client.vpcconn, &DeleteBandwidthPackageArgs{
+			err = conn.DeleteBandwidthPackage(&ecs.DeleteBandwidthPackageArgs{
 				RegionId:           getRegion(d, meta),
 				BandwidthPackageId: pack.BandwidthPackageId,
 			})
@@ -251,12 +253,12 @@ func resourceAliyunNatGatewayDelete(d *schema.ResourceData, meta interface{}) er
 			return resource.RetryableError(fmt.Errorf("Bandwidth package in use - trying again while it is deleted."))
 		}
 
-		args := &DeleteNatGatewayArgs{
+		args := &ecs.DeleteNatGatewayArgs{
 			RegionId:     client.Region,
 			NatGatewayId: d.Id(),
 		}
 
-		err = DeleteNatGateway(client.vpcconn, args)
+		err = conn.DeleteNatGateway(args)
 		if err != nil {
 			er, _ := err.(*common.Error)
 			if er.ErrorResponse.Code == DependencyViolationBandwidthPackages {
@@ -264,11 +266,11 @@ func resourceAliyunNatGatewayDelete(d *schema.ResourceData, meta interface{}) er
 			}
 		}
 
-		describeArgs := &DescribeNatGatewaysArgs{
+		describeArgs := &ecs.DescribeNatGatewaysArgs{
 			RegionId:     client.Region,
 			NatGatewayId: d.Id(),
 		}
-		gw, _, gwErr := DescribeNatGateways(client.vpcconn, describeArgs)
+		gw, _, gwErr := conn.DescribeNatGateways(describeArgs)
 
 		if gwErr != nil {
 			log.Printf("[ERROR] Describe NatGateways failed.")

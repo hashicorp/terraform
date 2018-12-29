@@ -1,9 +1,11 @@
 package kubernetes
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	pkgApi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	api "k8s.io/kubernetes/pkg/api/v1"
 	kubernetes "k8s.io/kubernetes/pkg/client/clientset_generated/release_1_5"
@@ -73,19 +75,22 @@ func resourceKubernetesConfigMapRead(d *schema.ResourceData, meta interface{}) e
 func resourceKubernetesConfigMapUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*kubernetes.Clientset)
 
-	metadata := expandMetadata(d.Get("metadata").([]interface{}))
 	namespace, name := idParts(d.Id())
-	// This is necessary in case the name is generated
-	metadata.Name = name
 
-	cfgMap := api.ConfigMap{
-		ObjectMeta: metadata,
-		Data:       expandStringMap(d.Get("data").(map[string]interface{})),
+	ops := patchMetadata("metadata.0.", "/metadata/", d)
+	if d.HasChange("data") {
+		oldV, newV := d.GetChange("data")
+		diffOps := diffStringMap("/data/", oldV.(map[string]interface{}), newV.(map[string]interface{}))
+		ops = append(ops, diffOps...)
 	}
-	log.Printf("[INFO] Updating config map: %#v", cfgMap)
-	out, err := conn.CoreV1().ConfigMaps(namespace).Update(&cfgMap)
+	data, err := ops.MarshalJSON()
 	if err != nil {
-		return err
+		return fmt.Errorf("Failed to marshal update operations: %s", err)
+	}
+	log.Printf("[INFO] Updating config map %q: %v", name, string(data))
+	out, err := conn.CoreV1().ConfigMaps(namespace).Patch(name, pkgApi.JSONPatchType, data)
+	if err != nil {
+		return fmt.Errorf("Failed to update Config Map: %s", err)
 	}
 	log.Printf("[INFO] Submitted updated config map: %#v", out)
 	d.SetId(buildId(out.ObjectMeta))

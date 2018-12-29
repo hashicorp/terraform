@@ -25,6 +25,10 @@ func testStepImportState(
 
 		importId = resource.Primary.ID
 	}
+	importPrefix := step.ImportStateIdPrefix
+	if importPrefix != "" {
+		importId = fmt.Sprintf("%s%s", importPrefix, importId)
+	}
 
 	// Setup the context. We initialize with an empty state. We use the
 	// full config for provider configurations.

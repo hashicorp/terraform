@@ -32,10 +32,19 @@ func resourceAwsDbParameterGroup() *schema.Resource {
 				Computed: true,
 			},
 			"name": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name_prefix"},
+				ValidateFunc:  validateDbParamGroupName,
+			},
+			"name_prefix": &schema.Schema{
 				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
 				ForceNew:     true,
-				Required:     true,
-				ValidateFunc: validateDbParamGroupName,
+				ValidateFunc: validateDbParamGroupNamePrefix,
 			},
 			"family": &schema.Schema{
 				Type:     schema.TypeString,
@@ -81,8 +90,17 @@ func resourceAwsDbParameterGroupCreate(d *schema.ResourceData, meta interface{})
 	rdsconn := meta.(*AWSClient).rdsconn
 	tags := tagsFromMapRDS(d.Get("tags").(map[string]interface{}))
 
+	var groupName string
+	if v, ok := d.GetOk("name"); ok {
+		groupName = v.(string)
+	} else if v, ok := d.GetOk("name_prefix"); ok {
+		groupName = resource.PrefixedUniqueId(v.(string))
+	} else {
+		groupName = resource.UniqueId()
+	}
+
 	createOpts := rds.CreateDBParameterGroupInput{
-		DBParameterGroupName:   aws.String(d.Get("name").(string)),
+		DBParameterGroupName:   aws.String(groupName),
 		DBParameterGroupFamily: aws.String(d.Get("family").(string)),
 		Description:            aws.String(d.Get("description").(string)),
 		Tags:                   tags,

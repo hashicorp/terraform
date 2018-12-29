@@ -1,6 +1,9 @@
 package command
 
-import "strings"
+import (
+	"net/url"
+	"strings"
+)
 
 // EnvCommand is a Command Implementation that manipulates local state
 // environments.
@@ -37,6 +40,13 @@ Subcommands:
 
 func (c *EnvCommand) Synopsis() string {
 	return "Environment management"
+}
+
+// validEnvName returns true is this name is valid to use as an environment name.
+// Since most named states are accessed via a filesystem path or URL, check if
+// escaping the name would be required.
+func validEnvName(name string) bool {
+	return name == url.PathEscape(name)
 }
 
 const (
@@ -81,5 +91,10 @@ Environment %[1]q is your active environment!
 
 You cannot delete the currently active environment. Please switch
 to another environment and try again.
+`
+
+	envInvalidName = `
+The environment name %q is not allowed. The name must contain only URL safe
+characters, and no path separators.
 `
 )

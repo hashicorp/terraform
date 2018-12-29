@@ -97,7 +97,9 @@ func (lrt *LogRoundTripper) logResponseBody(original io.ReadCloser, headers http
 			return nil, err
 		}
 		debugInfo := lrt.formatJSON(bs.Bytes())
-		log.Printf("[DEBUG] OpenStack Response Body: %s", debugInfo)
+		if debugInfo != "" {
+			log.Printf("[DEBUG] OpenStack Response Body: %s", debugInfo)
+		}
 		return ioutil.NopCloser(strings.NewReader(bs.String())), nil
 	}
 
@@ -124,6 +126,13 @@ func (lrt *LogRoundTripper) formatJSON(raw []byte) string {
 					v["password"] = "***"
 				}
 			}
+		}
+	}
+
+	// Ignore the catalog
+	if v, ok := data["token"].(map[string]interface{}); ok {
+		if _, ok := v["catalog"]; ok {
+			return ""
 		}
 	}
 

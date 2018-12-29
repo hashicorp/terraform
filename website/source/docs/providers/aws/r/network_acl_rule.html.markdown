@@ -29,6 +29,8 @@ resource "aws_network_acl_rule" "bar" {
 }
 ```
 
+~> **Note:** One of either `cidr_block` or `ipv6_cidr_block` is required.
+
 ## Argument Reference
 
 The following arguments are supported:

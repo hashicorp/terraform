@@ -18,6 +18,8 @@ func resourceComputeInstanceGroup() *schema.Resource {
 		Update: resourceComputeInstanceGroupUpdate,
 		Delete: resourceComputeInstanceGroupDelete,
 
+		SchemaVersion: 1,
+
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -38,9 +40,10 @@ func resourceComputeInstanceGroup() *schema.Resource {
 			},
 
 			"instances": &schema.Schema{
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
 			},
 
 			"named_port": &schema.Schema{
@@ -142,7 +145,7 @@ func resourceComputeInstanceGroupCreate(d *schema.ResourceData, meta interface{}
 	}
 
 	if v, ok := d.GetOk("instances"); ok {
-		instanceUrls := convertStringArr(v.([]interface{}))
+		instanceUrls := convertStringArr(v.(*schema.Set).List())
 		if !validInstanceURLs(instanceUrls) {
 			return fmt.Errorf("Error invalid instance URLs: %v", instanceUrls)
 		}
@@ -239,8 +242,8 @@ func resourceComputeInstanceGroupUpdate(d *schema.ResourceData, meta interface{}
 		// to-do check for no instances
 		from_, to_ := d.GetChange("instances")
 
-		from := convertStringArr(from_.([]interface{}))
-		to := convertStringArr(to_.([]interface{}))
+		from := convertStringArr(from_.(*schema.Set).List())
+		to := convertStringArr(to_.(*schema.Set).List())
 
 		if !validInstanceURLs(from) {
 			return fmt.Errorf("Error invalid instance URLs: %v", from)

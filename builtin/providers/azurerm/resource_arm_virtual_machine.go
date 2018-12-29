@@ -434,6 +434,11 @@ func resourceArmVirtualMachine() *schema.Resource {
 				Set: schema.HashString,
 			},
 
+			"primary_network_interface_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -647,6 +652,15 @@ func resourceArmVirtualMachineRead(d *schema.ResourceData, meta interface{}) err
 	if resp.VirtualMachineProperties.NetworkProfile != nil {
 		if err := d.Set("network_interface_ids", flattenAzureRmVirtualMachineNetworkInterfaces(resp.VirtualMachineProperties.NetworkProfile)); err != nil {
 			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage Network Interfaces: %#v", err)
+		}
+
+		if resp.VirtualMachineProperties.NetworkProfile.NetworkInterfaces != nil {
+			for _, nic := range *resp.VirtualMachineProperties.NetworkProfile.NetworkInterfaces {
+				if nic.NetworkInterfaceReferenceProperties != nil && *nic.NetworkInterfaceReferenceProperties.Primary {
+					d.Set("primary_network_interface_id", nic.ID)
+					break
+				}
+			}
 		}
 	}
 
@@ -1263,14 +1277,20 @@ func expandAzureRmVirtualMachineImageReference(d *schema.ResourceData) (*compute
 
 func expandAzureRmVirtualMachineNetworkProfile(d *schema.ResourceData) compute.NetworkProfile {
 	nicIds := d.Get("network_interface_ids").(*schema.Set).List()
+	primaryNicId := d.Get("primary_network_interface_id").(string)
 	network_interfaces := make([]compute.NetworkInterfaceReference, 0, len(nicIds))
 
 	network_profile := compute.NetworkProfile{}
 
 	for _, nic := range nicIds {
 		id := nic.(string)
+		primary := id == primaryNicId
+
 		network_interface := compute.NetworkInterfaceReference{
 			ID: &id,
+			NetworkInterfaceReferenceProperties: &compute.NetworkInterfaceReferenceProperties{
+				Primary: &primary,
+			},
 		}
 		network_interfaces = append(network_interfaces, network_interface)
 	}

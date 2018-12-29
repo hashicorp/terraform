@@ -6,7 +6,7 @@ description: |-
   Creates a subscription in Google's pubsub  queueing system
 ---
 
-# google\_pubsub\_subscripion
+# google\_pubsub\_subscription
 
 Creates a subscription in Google's pubsub queueing system. For more information see
 [the official documentation](https://cloud.google.com/pubsub/docs) and

@@ -58,6 +58,10 @@ func dataSourceAwsCloudFormationStack() *schema.Resource {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
+			"iam_role_arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"tags": {
 				Type:     schema.TypeMap,
 				Computed: true,
@@ -86,6 +90,7 @@ func dataSourceAwsCloudFormationStackRead(d *schema.ResourceData, meta interface
 	d.Set("description", stack.Description)
 	d.Set("disable_rollback", stack.DisableRollback)
 	d.Set("timeout_in_minutes", stack.TimeoutInMinutes)
+	d.Set("iam_role_arn", stack.RoleARN)
 
 	if len(stack.NotificationARNs) > 0 {
 		d.Set("notification_arns", schema.NewSet(schema.HashString, flattenStringList(stack.NotificationARNs)))

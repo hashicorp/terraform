@@ -59,7 +59,7 @@ provider "aws" {
 }
 
 resource "aws_instance" "example" {
-  ami           = "ami-0d729a60"
+  ami           = "ami-2757f631"
   instance_type = "t2.micro"
 }
 ```
@@ -125,7 +125,7 @@ $ terraform plan
 ...
 
 + aws_instance.example
-    ami:                      "ami-0d729a60"
+    ami:                      "ami-2757f631"
     availability_zone:        "<computed>"
     ebs_block_device.#:       "<computed>"
     ephemeral_block_device.#: "<computed>"
@@ -170,7 +170,7 @@ since Terraform waits for the EC2 instance to become available.
 ```
 $ terraform apply
 aws_instance.example: Creating...
-  ami:                      "" => "ami-0d729a60"
+  ami:                      "" => "ami-2757f631"
   instance_type:            "" => "t2.micro"
   [...]
 
@@ -201,7 +201,7 @@ You can inspect the state using `terraform show`:
 $ terraform show
 aws_instance.example:
   id = i-32cf65a8
-  ami = ami-0d729a60
+  ami = ami-2757f631
   availability_zone = us-east-1a
   instance_state = running
   instance_type = t2.micro

@@ -43,6 +43,7 @@ func TestAccAWSPolicyAttachment_basic(t *testing.T) {
 
 func TestAccAWSPolicyAttachment_paginatedEntities(t *testing.T) {
 	var out iam.ListEntitiesForPolicyOutput
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -50,7 +51,7 @@ func TestAccAWSPolicyAttachment_paginatedEntities(t *testing.T) {
 		CheckDestroy: testAccCheckAWSPolicyAttachmentDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSPolicyPaginatedAttachConfig,
+				Config: testAccAWSPolicyPaginatedAttachConfig(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSPolicyAttachmentExists("aws_iam_policy_attachment.test-paginated-attach", 101, &out),
 				),
@@ -302,34 +303,33 @@ resource "aws_iam_policy_attachment" "test-attach" {
 }`, u1, u2, u3)
 }
 
-const testAccAWSPolicyPaginatedAttachConfig = `
+func testAccAWSPolicyPaginatedAttachConfig(rInt int) string {
+	return fmt.Sprintf(`
 resource "aws_iam_user" "user" {
-    count = 101
-    name = "${format("paged-test-user-%d", count.index + 1)}"
+	count = 101
+	name = "${format("paged-test-user-%d-%%d", count.index + 1)}"
 }
-
 resource "aws_iam_policy" "policy" {
-    name = "test-policy"
-    description = "A test policy"
-    policy = <<EOF
+	name = "tf-acc-test-policy-%d"
+	description = "A test policy"
+	policy = <<EOF
 {
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": [
-        "iam:ChangePassword"
-      ],
-      "Resource": "*",
-      "Effect": "Allow"
-    }
-  ]
+"Version": "2012-10-17",
+"Statement": [
+	{
+		"Action": [
+			"iam:ChangePassword"
+		],
+		"Resource": "*",
+		"Effect": "Allow"
+	}
+]
 }
 EOF
 }
-
 resource "aws_iam_policy_attachment" "test-paginated-attach" {
-    name = "test-attachment"
-    users = ["${aws_iam_user.user.*.name}"]
-    policy_arn = "${aws_iam_policy.policy.arn}"
+	name = "test-attachment"
+	users = ["${aws_iam_user.user.*.name}"]
+	policy_arn = "${aws_iam_policy.policy.arn}"
+}`, rInt, rInt)
 }
-`

@@ -131,6 +131,10 @@ func resourceProfitBricksFirewallRead(d *schema.ResourceData, meta interface{}) 
 	fw := profitbricks.GetFirewallRule(d.Get("datacenter_id").(string), d.Get("server_id").(string), d.Get("nic_id").(string), d.Id())
 
 	if fw.StatusCode > 299 {
+		if fw.StatusCode == 404 {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("An error occured while fetching a firewall rule  dcId: %s server_id: %s  nic_id: %s ID: %s %s", d.Get("datacenter_id").(string), d.Get("server_id").(string), d.Get("nic_id").(string), d.Id(), fw.Response)
 	}
 

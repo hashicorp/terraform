@@ -27,7 +27,7 @@ resource "aws_lambda_permission" "allow_cloudwatch" {
 resource "aws_lambda_alias" "test_alias" {
   name             = "testalias"
   description      = "a sample description"
-  function_name    = "${aws_lambda_function.test_lambda.arn}"
+  function_name    = "${aws_lambda_function.test_lambda.function_name}"
   function_version = "$LATEST"
 }
 
@@ -36,6 +36,7 @@ resource "aws_lambda_function" "test_lambda" {
   function_name = "lambda_function_name"
   role          = "${aws_iam_role.iam_for_lambda.arn}"
   handler       = "exports.handler"
+  runtime       = "nodejs6.10"
 }
 
 resource "aws_iam_role" "iam_for_lambda" {
@@ -65,7 +66,7 @@ EOF
 resource "aws_lambda_permission" "with_sns" {
   statement_id  = "AllowExecutionFromSNS"
   action        = "lambda:InvokeFunction"
-  function_name = "${aws_lambda_function.my-func.arn}"
+  function_name = "${aws_lambda_function.my-func.function_name}"
   principal     = "sns.amazonaws.com"
   source_arn    = "${aws_sns_topic.default.arn}"
 }
@@ -85,6 +86,7 @@ resource "aws_lambda_function" "func" {
   function_name = "lambda_called_from_sns"
   role          = "${aws_iam_role.default.arn}"
   handler       = "exports.handler"
+  runtime       = "python2.7"
 }
 
 resource "aws_iam_role" "default" {

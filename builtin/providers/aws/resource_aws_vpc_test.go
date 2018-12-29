@@ -46,7 +46,7 @@ func TestAccAWSVpc_enableIpv6(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVpcConfigIpv6Enabled,
-				Check: resource.ComposeTestCheckFunc(
+				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckVpcExists("aws_vpc.foo", &vpc),
 					testAccCheckVpcCidr(&vpc, "10.1.0.0/16"),
 					resource.TestCheckResourceAttr(
@@ -55,6 +55,34 @@ func TestAccAWSVpc_enableIpv6(t *testing.T) {
 						"aws_vpc.foo", "ipv6_association_id"),
 					resource.TestCheckResourceAttrSet(
 						"aws_vpc.foo", "ipv6_cidr_block"),
+					resource.TestCheckResourceAttr(
+						"aws_vpc.foo", "assign_generated_ipv6_cidr_block", "true"),
+				),
+			},
+			{
+				Config: testAccVpcConfigIpv6Disabled,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckVpcExists("aws_vpc.foo", &vpc),
+					testAccCheckVpcCidr(&vpc, "10.1.0.0/16"),
+					resource.TestCheckResourceAttr(
+						"aws_vpc.foo", "cidr_block", "10.1.0.0/16"),
+					resource.TestCheckResourceAttr(
+						"aws_vpc.foo", "assign_generated_ipv6_cidr_block", "false"),
+				),
+			},
+			{
+				Config: testAccVpcConfigIpv6Enabled,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckVpcExists("aws_vpc.foo", &vpc),
+					testAccCheckVpcCidr(&vpc, "10.1.0.0/16"),
+					resource.TestCheckResourceAttr(
+						"aws_vpc.foo", "cidr_block", "10.1.0.0/16"),
+					resource.TestCheckResourceAttrSet(
+						"aws_vpc.foo", "ipv6_association_id"),
+					resource.TestCheckResourceAttrSet(
+						"aws_vpc.foo", "ipv6_cidr_block"),
+					resource.TestCheckResourceAttr(
+						"aws_vpc.foo", "assign_generated_ipv6_cidr_block", "true"),
 				),
 			},
 		},
@@ -280,6 +308,12 @@ const testAccVpcConfigIpv6Enabled = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
 	assign_generated_ipv6_cidr_block = true
+}
+`
+
+const testAccVpcConfigIpv6Disabled = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
 }
 `
 

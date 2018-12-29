@@ -174,6 +174,10 @@ func testAccCheckContainerCluster(n string) resource.TestCheckFunc {
 			gcp_attr interface{}
 		}
 
+		var igUrls []string
+		if igUrls, err = getInstanceGroupUrlsFromManagerUrls(config, cluster.InstanceGroupUrls); err != nil {
+			return err
+		}
 		clusterTests := []clusterTestField{
 			{"initial_node_count", strconv.FormatInt(cluster.InitialNodeCount, 10)},
 			{"master_auth.0.client_certificate", cluster.MasterAuth.ClientCertificate},
@@ -185,12 +189,13 @@ func testAccCheckContainerCluster(n string) resource.TestCheckFunc {
 			{"cluster_ipv4_cidr", cluster.ClusterIpv4Cidr},
 			{"description", cluster.Description},
 			{"endpoint", cluster.Endpoint},
-			{"instance_group_urls", cluster.InstanceGroupUrls},
+			{"instance_group_urls", igUrls},
 			{"logging_service", cluster.LoggingService},
 			{"monitoring_service", cluster.MonitoringService},
 			{"subnetwork", cluster.Subnetwork},
 			{"node_config.0.machine_type", cluster.NodeConfig.MachineType},
 			{"node_config.0.disk_size_gb", strconv.FormatInt(cluster.NodeConfig.DiskSizeGb, 10)},
+			{"node_config.0.local_ssd_count", strconv.FormatInt(cluster.NodeConfig.LocalSsdCount, 10)},
 			{"node_config.0.oauth_scopes", cluster.NodeConfig.OauthScopes},
 			{"node_config.0.service_account", cluster.NodeConfig.ServiceAccount},
 			{"node_config.0.metadata", cluster.NodeConfig.Metadata},
@@ -361,8 +366,9 @@ resource "google_container_cluster" "with_node_config" {
 	}
 
 	node_config {
-		machine_type = "g1-small"
+		machine_type = "n1-standard-1"
 		disk_size_gb = 15
+		local_ssd_count = 1
 		oauth_scopes = [
 			"https://www.googleapis.com/auth/compute",
 			"https://www.googleapis.com/auth/devstorage.read_only",

@@ -1,6 +1,10 @@
 package state
 
 import (
+	"errors"
+	"sync"
+	"time"
+
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -24,5 +28,61 @@ func (s *InmemState) WriteState(state *terraform.State) error {
 }
 
 func (s *InmemState) PersistState() error {
+	return nil
+}
+
+func (s *InmemState) Lock(*LockInfo) (string, error) {
+	return "", nil
+}
+
+func (s *InmemState) Unlock(string) error {
+	return nil
+}
+
+// inmemLocker is an in-memory State implementation for testing locks.
+type inmemLocker struct {
+	*InmemState
+
+	mu       sync.Mutex
+	lockInfo *LockInfo
+	// count the calls to Lock
+	lockCounter int
+}
+
+func (s *inmemLocker) Lock(info *LockInfo) (string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.lockCounter++
+
+	lockErr := &LockError{
+		Info: &LockInfo{},
+	}
+
+	if s.lockInfo != nil {
+		lockErr.Err = errors.New("state locked")
+		*lockErr.Info = *s.lockInfo
+		return "", lockErr
+	}
+
+	info.Created = time.Now().UTC()
+	s.lockInfo = info
+	return s.lockInfo.ID, nil
+}
+
+func (s *inmemLocker) Unlock(id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	lockErr := &LockError{
+		Info: &LockInfo{},
+	}
+
+	if id != s.lockInfo.ID {
+		lockErr.Err = errors.New("invalid lock id")
+		*lockErr.Info = *s.lockInfo
+		return lockErr
+	}
+
+	s.lockInfo = nil
 	return nil
 }

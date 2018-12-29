@@ -108,6 +108,9 @@ func resourceScalewayServer() *schema.Resource {
 func resourceScalewayServerCreate(d *schema.ResourceData, m interface{}) error {
 	scaleway := m.(*Client).scaleway
 
+	mu.Lock()
+	defer mu.Unlock()
+
 	image := d.Get("image").(string)
 	var server = api.ScalewayServerDefinition{
 		Name:          d.Get("name").(string),
@@ -217,8 +220,10 @@ func resourceScalewayServerRead(d *schema.ResourceData, m interface{}) error {
 func resourceScalewayServerUpdate(d *schema.ResourceData, m interface{}) error {
 	scaleway := m.(*Client).scaleway
 
-	var req api.ScalewayServerPatchDefinition
+	mu.Lock()
+	defer mu.Unlock()
 
+	var req api.ScalewayServerPatchDefinition
 	if d.HasChange("name") {
 		name := d.Get("name").(string)
 		req.Name = &name
@@ -257,6 +262,9 @@ func resourceScalewayServerUpdate(d *schema.ResourceData, m interface{}) error {
 
 func resourceScalewayServerDelete(d *schema.ResourceData, m interface{}) error {
 	scaleway := m.(*Client).scaleway
+
+	mu.Lock()
+	defer mu.Unlock()
 
 	s, err := scaleway.GetServer(d.Id())
 	if err != nil {

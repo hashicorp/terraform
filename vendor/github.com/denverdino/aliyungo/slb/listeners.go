@@ -138,22 +138,22 @@ const (
 )
 
 type TCPListenerType struct {
-	LoadBalancerId         string
-	ListenerPort           int
-	BackendServerPort      int
-	Bandwidth              int
-	Scheduler              SchedulerType
-	PersistenceTimeout     int
-	HealthCheckType        HealthCheckType
-	HealthCheckDomain      string
-	HealthCheckURI         string
-	HealthCheckConnectPort int
-	HealthyThreshold       int
-	UnhealthyThreshold     int
-	HealthCheckTimeout     int
-	HealthCheckInterval    int
-	HealthCheckHttpCode    HealthCheckHttpCodeType
-	VServerGroupId         string
+	LoadBalancerId            string
+	ListenerPort              int
+	BackendServerPort         int
+	Bandwidth                 int
+	Scheduler                 SchedulerType
+	PersistenceTimeout        int
+	HealthCheckType           HealthCheckType
+	HealthCheckDomain         string
+	HealthCheckURI            string
+	HealthCheckConnectPort    int
+	HealthyThreshold          int
+	UnhealthyThreshold        int
+	HealthCheckConnectTimeout int
+	HealthCheckInterval       int
+	HealthCheckHttpCode       HealthCheckHttpCodeType
+	VServerGroupId            string
 }
 
 type CreateLoadBalancerTCPListenerArgs TCPListenerType
@@ -168,18 +168,18 @@ func (client *Client) CreateLoadBalancerTCPListener(args *CreateLoadBalancerTCPL
 }
 
 type UDPListenerType struct {
-	LoadBalancerId         string
-	ListenerPort           int
-	BackendServerPort      int
-	Bandwidth              int
-	Scheduler              SchedulerType
-	PersistenceTimeout     int
-	HealthCheckConnectPort int
-	HealthyThreshold       int
-	UnhealthyThreshold     int
-	HealthCheckTimeout     int
-	HealthCheckInterval    int
-	VServerGroupId         string
+	LoadBalancerId            string
+	ListenerPort              int
+	BackendServerPort         int
+	Bandwidth                 int
+	Scheduler                 SchedulerType
+	PersistenceTimeout        int
+	HealthCheckConnectPort    int
+	HealthyThreshold          int
+	UnhealthyThreshold        int
+	HealthCheckConnectTimeout int
+	HealthCheckInterval       int
+	VServerGroupId            string
 }
 type CreateLoadBalancerUDPListenerArgs UDPListenerType
 

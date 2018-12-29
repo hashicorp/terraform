@@ -1490,6 +1490,22 @@ func sortInterfaceSlice(in []interface{}) []interface{} {
 	return b
 }
 
+// This function sorts List A to look like a list found in the tf file.
+func sortListBasedonTFFile(in []string, d *schema.ResourceData, listName string) ([]string, error) {
+	if attributeCount, ok := d.Get(listName + ".#").(int); ok {
+		for i := 0; i < attributeCount; i++ {
+			currAttributeId := d.Get(listName + "." + strconv.Itoa(i))
+			for j := 0; j < len(in); j++ {
+				if currAttributeId == in[j] {
+					in[i], in[j] = in[j], in[i]
+				}
+			}
+		}
+		return in, nil
+	}
+	return in, fmt.Errorf("Could not find list: %s", listName)
+}
+
 func flattenApiGatewayThrottleSettings(settings *apigateway.ThrottleSettings) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, 1)
 

@@ -91,7 +91,7 @@ The following arguments are supported:
    even if it's in the process of scaling a resource. Normally, Terraform
    drains all the instances before deleting the group.  This bypasses that
    behavior and potentially leaves resources dangling.
-* `load_balancers` (Optional) A list of load balancer names to add to the autoscaling
+* `load_balancers` (Optional) A list of elastic load balancer names to add to the autoscaling
    group names.
 * `vpc_zone_identifier` (Optional) A list of subnet IDs to launch resources in.
 * `target_group_arns` (Optional) A list of `aws_alb_target_group` ARNs, for use with

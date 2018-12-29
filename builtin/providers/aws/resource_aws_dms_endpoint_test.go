@@ -8,7 +8,6 @@ import (
 	dms "github.com/aws/aws-sdk-go/service/databasemigrationservice"
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -67,11 +66,6 @@ func dmsEndpointDestroy(s *terraform.State) error {
 }
 
 func checkDmsEndpointExists(n string) resource.TestCheckFunc {
-	providers := []*schema.Provider{testAccProvider}
-	return checkDmsEndpointExistsWithProviders(n, &providers)
-}
-
-func checkDmsEndpointExistsWithProviders(n string, providers *[]*schema.Provider) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -81,29 +75,26 @@ func checkDmsEndpointExistsWithProviders(n string, providers *[]*schema.Provider
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("No ID is set")
 		}
-		for _, provider := range *providers {
-			// Ignore if Meta is empty, this can happen for validation providers
-			if provider.Meta() == nil {
-				continue
-			}
 
-			conn := provider.Meta().(*AWSClient).dmsconn
-			_, err := conn.DescribeEndpoints(&dms.DescribeEndpointsInput{
-				Filters: []*dms.Filter{
-					{
-						Name:   aws.String("endpoint-id"),
-						Values: []*string{aws.String(rs.Primary.ID)},
-					},
+		conn := testAccProvider.Meta().(*AWSClient).dmsconn
+		resp, err := conn.DescribeEndpoints(&dms.DescribeEndpointsInput{
+			Filters: []*dms.Filter{
+				{
+					Name:   aws.String("endpoint-id"),
+					Values: []*string{aws.String(rs.Primary.ID)},
 				},
-			})
+			},
+		})
 
-			if err != nil {
-				return fmt.Errorf("DMS endpoint error: %v", err)
-			}
-			return nil
+		if err != nil {
+			return fmt.Errorf("DMS endpoint error: %v", err)
 		}
 
-		return fmt.Errorf("DMS endpoint not found")
+		if resp.Endpoints == nil {
+			return fmt.Errorf("DMS endpoint not found")
+		}
+
+		return nil
 	}
 }
 

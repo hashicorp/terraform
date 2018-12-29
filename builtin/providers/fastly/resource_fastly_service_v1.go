@@ -1922,7 +1922,7 @@ func flattenBackends(backendList []*gofastly.Backend) []map[string]interface{} {
 		nb := map[string]interface{}{
 			"name":                  b.Name,
 			"address":               b.Address,
-			"auto_loadbalance":      gofastly.CBool(b.AutoLoadbalance),
+			"auto_loadbalance":      b.AutoLoadbalance,
 			"between_bytes_timeout": int(b.BetweenBytesTimeout),
 			"connect_timeout":       int(b.ConnectTimeout),
 			"error_threshold":       int(b.ErrorThreshold),
@@ -1930,7 +1930,7 @@ func flattenBackends(backendList []*gofastly.Backend) []map[string]interface{} {
 			"max_conn":              int(b.MaxConn),
 			"port":                  int(b.Port),
 			"shield":                b.Shield,
-			"ssl_check_cert":        gofastly.CBool(b.SSLCheckCert),
+			"ssl_check_cert":        b.SSLCheckCert,
 			"ssl_hostname":          b.SSLHostname,
 			"ssl_cert_hostname":     b.SSLCertHostname,
 			"ssl_sni_hostname":      b.SSLSNIHostname,

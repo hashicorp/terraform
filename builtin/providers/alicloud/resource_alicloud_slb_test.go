@@ -85,7 +85,7 @@ func TestAccAlicloudSlb_listener(t *testing.T) {
 	testListener := func() resource.TestCheckFunc {
 		return func(*terraform.State) error {
 			listenerPorts := slb.ListenerPorts.ListenerPort[0]
-			if listenerPorts != 161 {
+			if listenerPorts != 2001 {
 				return fmt.Errorf("bad loadbalancer listener: %#v", listenerPorts)
 			}
 
@@ -260,21 +260,49 @@ resource "alicloud_slb" "listener" {
       "lb_port" = "21"
       "lb_protocol" = "tcp"
       "bandwidth" = 1
+      "persistence_timeout" = 500
+      "health_check_type" = "http"
     },{
       "instance_port" = "8000"
       "lb_port" = "80"
       "lb_protocol" = "http"
+      "sticky_session" = "on"
+      "sticky_session_type" = "insert"
+      "cookie_timeout" = 800
       "bandwidth" = 1
     },{
-      "instance_port" = "1611"
-      "lb_port" = "161"
+      "instance_port" = "8001"
+      "lb_port" = "81"
+      "lb_protocol" = "http"
+      "sticky_session" = "on"
+      "sticky_session_type" = "server"
+      "cookie" = "testslblistenercookie"
+      "cookie_timeout" = 1800
+      "health_check" = "on"
+      "health_check_domain" = "$_ip"
+      "health_check_uri" = "/console"
+      "health_check_connect_port" = 20
+      "healthy_threshold" = 8
+      "unhealthy_threshold" = 8
+      "health_check_timeout" = 8
+      "health_check_interval" = 4
+      "health_check_http_code" = "http_2xx"
+      "bandwidth" = 1
+    },{
+      "instance_port" = "2001"
+      "lb_port" = "2001"
       "lb_protocol" = "udp"
       "bandwidth" = 1
+      "persistence_timeout" = 700
     }]
 }
 `
 
 const testAccSlb4Vpc = `
+data "alicloud_zones" "default" {
+	"available_resource_creation"= "VSwitch"
+}
+
 resource "alicloud_vpc" "foo" {
   name = "tf_test_foo"
   cidr_block = "172.16.0.0/12"
@@ -283,7 +311,7 @@ resource "alicloud_vpc" "foo" {
 resource "alicloud_vswitch" "foo" {
   vpc_id = "${alicloud_vpc.foo.id}"
   cidr_block = "172.16.0.0/21"
-  availability_zone = "cn-beijing-b"
+  availability_zone = "${data.alicloud_zones.default.zones.0.id}"
 }
 
 resource "alicloud_slb" "vpc" {

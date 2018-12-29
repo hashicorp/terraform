@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"math"
 	"net"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
@@ -52,6 +53,7 @@ func listVariableValueToStringSlice(values []ast.Variable) ([]string, error) {
 // Funcs is the mapping of built-in functions for configuration.
 func Funcs() map[string]ast.Function {
 	return map[string]ast.Function{
+		"basename":     interpolationFuncBasename(),
 		"base64decode": interpolationFuncBase64Decode(),
 		"base64encode": interpolationFuncBase64Encode(),
 		"base64sha256": interpolationFuncBase64Sha256(),
@@ -62,6 +64,7 @@ func Funcs() map[string]ast.Function {
 		"coalesce":     interpolationFuncCoalesce(),
 		"compact":      interpolationFuncCompact(),
 		"concat":       interpolationFuncConcat(),
+		"dirname":      interpolationFuncDirname(),
 		"distinct":     interpolationFuncDistinct(),
 		"element":      interpolationFuncElement(),
 		"file":         interpolationFuncFile(),
@@ -600,6 +603,17 @@ func interpolationFuncIndex() ast.Function {
 	}
 }
 
+// interpolationFuncBasename implements the "dirname" function.
+func interpolationFuncDirname() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			return filepath.Dir(args[0].(string)), nil
+		},
+	}
+}
+
 // interpolationFuncDistinct implements the "distinct" function that
 // removes duplicate elements from a list.
 func interpolationFuncDistinct() ast.Function {
@@ -1002,6 +1016,17 @@ func interpolationFuncValues(vs map[string]ast.Variable) ast.Function {
 			}
 
 			return variable.Value, nil
+		},
+	}
+}
+
+// interpolationFuncBasename implements the "basename" function.
+func interpolationFuncBasename() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			return filepath.Base(args[0].(string)), nil
 		},
 	}
 }

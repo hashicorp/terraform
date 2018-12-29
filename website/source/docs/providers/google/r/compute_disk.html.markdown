@@ -10,6 +10,9 @@ description: |-
 
 Creates a new persistent disk within GCE, based on another disk.
 
+~> **Note:** All arguments including the disk encryption key will be stored in the raw state as plain-text.
+[Read more about sensitive data in state](/docs/state/sensitive-data.html).
+
 ## Example Usage
 
 ```js

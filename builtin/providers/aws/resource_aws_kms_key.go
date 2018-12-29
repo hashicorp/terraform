@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -18,6 +19,7 @@ func resourceAwsKmsKey() *schema.Resource {
 		Read:   resourceAwsKmsKeyRead,
 		Update: resourceAwsKmsKeyUpdate,
 		Delete: resourceAwsKmsKeyDelete,
+		Exists: resourceAwsKmsKeyExists,
 
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
@@ -366,6 +368,30 @@ func updateKmsKeyRotationStatus(conn *kms.KMS, d *schema.ResourceData) error {
 	}
 
 	return nil
+}
+
+func resourceAwsKmsKeyExists(d *schema.ResourceData, meta interface{}) (bool, error) {
+	conn := meta.(*AWSClient).kmsconn
+
+	req := &kms.DescribeKeyInput{
+		KeyId: aws.String(d.Id()),
+	}
+	resp, err := conn.DescribeKey(req)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() == "NotFoundException" {
+				return false, nil
+			}
+		}
+		return false, err
+	}
+	metadata := resp.KeyMetadata
+
+	if *metadata.KeyState == "PendingDeletion" {
+		return false, nil
+	}
+
+	return true, nil
 }
 
 func resourceAwsKmsKeyDelete(d *schema.ResourceData, meta interface{}) error {

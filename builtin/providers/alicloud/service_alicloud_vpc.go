@@ -24,14 +24,14 @@ func (client *AliyunClient) DescribeEipAddress(allocationId string) (*ecs.EipAdd
 	return &eips[0], nil
 }
 
-func (client *AliyunClient) DescribeNatGateway(natGatewayId string) (*NatGatewaySetType, error) {
+func (client *AliyunClient) DescribeNatGateway(natGatewayId string) (*ecs.NatGatewaySetType, error) {
 
-	args := &DescribeNatGatewaysArgs{
+	args := &ecs.DescribeNatGatewaysArgs{
 		RegionId:     client.Region,
 		NatGatewayId: natGatewayId,
 	}
 
-	natGateways, _, err := DescribeNatGateways(client.ecsconn, args)
+	natGateways, _, err := client.vpcconn.DescribeNatGateways(args)
 	if err != nil {
 		return nil, err
 	}
@@ -131,4 +131,24 @@ func (client *AliyunClient) QueryRouteEntry(routeTableId, cidrBlock, nextHopType
 		}
 	}
 	return nil, nil
+}
+
+func (client *AliyunClient) GetVpcIdByVSwitchId(vswitchId string) (vpcId string, err error) {
+
+	vs, _, err := client.ecsconn.DescribeVpcs(&ecs.DescribeVpcsArgs{
+		RegionId: client.Region,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	for _, v := range vs {
+		for _, sw := range v.VSwitchIds.VSwitchId {
+			if sw == vswitchId {
+				return v.VpcId, nil
+			}
+		}
+	}
+
+	return "", &common.Error{ErrorResponse: common.ErrorResponse{Message: Notfound}}
 }

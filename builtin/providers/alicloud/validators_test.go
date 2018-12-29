@@ -427,3 +427,76 @@ func TestValidateSlbListenerBandwidth(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateAllowedStringValue(t *testing.T) {
+	exceptValues := []string{"aliyun", "alicloud", "alibaba"}
+	validValues := []string{"aliyun"}
+	for _, v := range validValues {
+		_, errors := validateAllowedStringValue(exceptValues)(v, "allowvalue")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid value in %#v: %q", v, exceptValues, errors)
+		}
+	}
+
+	invalidValues := []string{"ali", "alidata", "terraform"}
+	for _, v := range invalidValues {
+		_, errors := validateAllowedStringValue(exceptValues)(v, "allowvalue")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid value", v)
+		}
+	}
+}
+
+func TestValidateAllowedStringSplitValue(t *testing.T) {
+	exceptValues := []string{"aliyun", "alicloud", "alibaba"}
+	validValues := "aliyun,alicloud"
+	_, errors := validateAllowedSplitStringValue(exceptValues, ",")(validValues, "allowvalue")
+	if len(errors) != 0 {
+		t.Fatalf("%q should be a valid value in %#v: %q", validValues, exceptValues, errors)
+	}
+
+	invalidValues := "ali,alidata"
+	_, invalidErr := validateAllowedSplitStringValue(exceptValues, ",")(invalidValues, "allowvalue")
+	if len(invalidErr) == 0 {
+		t.Fatalf("%q should be an invalid value", invalidValues)
+	}
+}
+
+func TestValidateAllowedIntValue(t *testing.T) {
+	exceptValues := []int{1, 3, 5, 6}
+	validValues := []int{1, 3, 5, 6}
+	for _, v := range validValues {
+		_, errors := validateAllowedIntValue(exceptValues)(v, "allowvalue")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid value in %#v: %q", v, exceptValues, errors)
+		}
+	}
+
+	invalidValues := []int{0, 7, 10}
+	for _, v := range invalidValues {
+		_, errors := validateAllowedIntValue(exceptValues)(v, "allowvalue")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid value", v)
+		}
+	}
+}
+
+func TestValidateIntegerInRange(t *testing.T) {
+	validIntegers := []int{-259, 0, 1, 5, 999}
+	min := -259
+	max := 999
+	for _, v := range validIntegers {
+		_, errors := validateIntegerInRange(min, max)(v, "name")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be an integer in range (%d, %d): %q", v, min, max, errors)
+		}
+	}
+
+	invalidIntegers := []int{-260, -99999, 1000, 25678}
+	for _, v := range invalidIntegers {
+		_, errors := validateIntegerInRange(min, max)(v, "name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an integer outside range (%d, %d)", v, min, max)
+		}
+	}
+}

@@ -3,6 +3,7 @@ package aws
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"testing"
 	"time"
 
@@ -84,6 +85,44 @@ func TestAccAWSDBClusterParameterGroup_basic(t *testing.T) {
 						"aws_rds_cluster_parameter_group.bar", "parameter.2478663599.value", "utf8"),
 					resource.TestCheckResourceAttr(
 						"aws_rds_cluster_parameter_group.bar", "tags.%", "2"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDBClusterParameterGroup_namePrefix(t *testing.T) {
+	var v rds.DBClusterParameterGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBClusterParameterGroupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSDBClusterParameterGroupConfig_namePrefix,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBClusterParameterGroupExists("aws_rds_cluster_parameter_group.test", &v),
+					resource.TestMatchResourceAttr(
+						"aws_rds_cluster_parameter_group.test", "name", regexp.MustCompile("^tf-test-")),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDBClusterParameterGroup_generatedName(t *testing.T) {
+	var v rds.DBClusterParameterGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBClusterParameterGroupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSDBClusterParameterGroupConfig_generatedName,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBClusterParameterGroupExists("aws_rds_cluster_parameter_group.test", &v),
 				),
 			},
 		},
@@ -365,3 +404,15 @@ func testAccAWSDBClusterParameterGroupOnlyConfig(name string) string {
   family      = "aurora5.6"
 }`, name)
 }
+
+const testAccAWSDBClusterParameterGroupConfig_namePrefix = `
+resource "aws_rds_cluster_parameter_group" "test" {
+  name_prefix = "tf-test-"
+  family = "aurora5.6"
+}
+`
+const testAccAWSDBClusterParameterGroupConfig_generatedName = `
+resource "aws_rds_cluster_parameter_group" "test" {
+  family = "aurora5.6"
+}
+`

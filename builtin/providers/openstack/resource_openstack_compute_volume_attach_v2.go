@@ -121,7 +121,7 @@ func resourceComputeVolumeAttachV2Read(d *schema.ResourceData, meta interface{})
 
 	attachment, err := volumeattach.Get(computeClient, instanceId, attachmentId).Extract()
 	if err != nil {
-		return err
+		return CheckDeleted(d, err, "compute_volume_attach")
 	}
 
 	log.Printf("[DEBUG] Retrieved volume attachment: %#v", attachment)

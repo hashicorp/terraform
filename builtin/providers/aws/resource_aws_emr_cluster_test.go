@@ -241,7 +241,7 @@ resource "aws_emr_cluster" "tf-test-cluster" {
 }
 
 resource "aws_security_group" "allow_all" {
-  name        = "allow_all"
+  name        = "allow_all_%d"
   description = "Allow all inbound traffic"
   vpc_id      = "${aws_vpc.main.id}"
 
@@ -275,7 +275,7 @@ resource "aws_vpc" "main" {
   enable_dns_hostnames = true
 
   tags {
-    name = "emr_test"
+    name = "emr_test_%d"
   }
 }
 
@@ -284,7 +284,7 @@ resource "aws_subnet" "main" {
   cidr_block = "168.31.0.0/20"
 
   tags {
-    name = "emr_test"
+    name = "emr_test_%d"
   }
 }
 
@@ -478,7 +478,7 @@ EOT
 
 # IAM Role for autoscaling
 resource "aws_iam_role" "emr-autoscaling-role" {
-  name               = "EMR_AutoScaling_DefaultRole"
+  name               = "EMR_AutoScaling_DefaultRole_%d"
   assume_role_policy = "${data.aws_iam_policy_document.emr-autoscaling-role-policy.json}"
 }
 
@@ -486,7 +486,6 @@ data "aws_iam_policy_document" "emr-autoscaling-role-policy" {
   statement {
     effect  = "Allow"
     actions = ["sts:AssumeRole"]
- 
     principals = {
       type        = "Service"
       identifiers = ["elasticmapreduce.amazonaws.com","application-autoscaling.amazonaws.com"]
@@ -498,7 +497,7 @@ resource "aws_iam_role_policy_attachment" "emr-autoscaling-role" {
   role       = "${aws_iam_role.emr-autoscaling-role.name}"
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceforAutoScalingRole"
 }
-`, r, r, r, r, r, r)
+`, r, r, r, r, r, r, r, r, r, r)
 }
 
 func testAccAWSEmrClusterConfigTerminationPolicyUpdated(r int) string {
@@ -548,7 +547,7 @@ resource "aws_emr_cluster" "tf-test-cluster" {
 }
 
 resource "aws_security_group" "allow_all" {
-  name        = "allow_all"
+  name        = "allow_all_%d"
   description = "Allow all inbound traffic"
   vpc_id      = "${aws_vpc.main.id}"
 
@@ -582,7 +581,7 @@ resource "aws_vpc" "main" {
   enable_dns_hostnames = true
 
   tags {
-    name = "emr_test"
+    name = "emr_test_%d"
   }
 }
 
@@ -591,7 +590,7 @@ resource "aws_subnet" "main" {
   cidr_block = "168.31.0.0/20"
 
   tags {
-    name = "emr_test"
+    name = "emr_test_%d"
   }
 }
 
@@ -785,7 +784,7 @@ EOT
 
 # IAM Role for autoscaling
 resource "aws_iam_role" "emr-autoscaling-role" {
-  name               = "EMR_AutoScaling_DefaultRole"
+  name               = "EMR_AutoScaling_DefaultRole_%d"
   assume_role_policy = "${data.aws_iam_policy_document.emr-autoscaling-role-policy.json}"
 }
 
@@ -793,7 +792,7 @@ data "aws_iam_policy_document" "emr-autoscaling-role-policy" {
   statement {
     effect  = "Allow"
     actions = ["sts:AssumeRole"]
- 
+
     principals = {
       type        = "Service"
       identifiers = ["elasticmapreduce.amazonaws.com","application-autoscaling.amazonaws.com"]
@@ -805,7 +804,7 @@ resource "aws_iam_role_policy_attachment" "emr-autoscaling-role" {
   role       = "${aws_iam_role.emr-autoscaling-role.name}"
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceforAutoScalingRole"
 }
-`, r, r, r, r, r, r)
+`, r, r, r, r, r, r, r, r, r, r)
 }
 
 func testAccAWSEmrClusterConfigVisibleToAllUsersUpdated(r int) string {
@@ -855,7 +854,7 @@ resource "aws_emr_cluster" "tf-test-cluster" {
 }
 
 resource "aws_security_group" "allow_all" {
-  name        = "allow_all"
+  name        = "allow_all_%d"
   description = "Allow all inbound traffic"
   vpc_id      = "${aws_vpc.main.id}"
 
@@ -889,7 +888,7 @@ resource "aws_vpc" "main" {
   enable_dns_hostnames = true
 
   tags {
-    name = "emr_test"
+    name = "emr_test_%d"
   }
 }
 
@@ -898,7 +897,7 @@ resource "aws_subnet" "main" {
   cidr_block = "168.31.0.0/20"
 
   tags {
-    name = "emr_test"
+    name = "emr_test_%d"
   }
 }
 
@@ -1092,7 +1091,7 @@ EOT
 
 # IAM Role for autoscaling
 resource "aws_iam_role" "emr-autoscaling-role" {
-  name               = "EMR_AutoScaling_DefaultRole"
+  name               = "EMR_AutoScaling_DefaultRole_%d"
   assume_role_policy = "${data.aws_iam_policy_document.emr-autoscaling-role-policy.json}"
 }
 
@@ -1100,7 +1099,7 @@ data "aws_iam_policy_document" "emr-autoscaling-role-policy" {
   statement {
     effect  = "Allow"
     actions = ["sts:AssumeRole"]
- 
+
     principals = {
       type        = "Service"
       identifiers = ["elasticmapreduce.amazonaws.com","application-autoscaling.amazonaws.com"]
@@ -1112,7 +1111,7 @@ resource "aws_iam_role_policy_attachment" "emr-autoscaling-role" {
   role       = "${aws_iam_role.emr-autoscaling-role.name}"
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceforAutoScalingRole"
 }
-`, r, r, r, r, r, r)
+`, r, r, r, r, r, r, r, r, r, r)
 }
 
 func testAccAWSEmrClusterConfigUpdatedTags(r int) string {
@@ -1161,7 +1160,7 @@ resource "aws_emr_cluster" "tf-test-cluster" {
 }
 
 resource "aws_security_group" "allow_all" {
-  name        = "allow_all"
+  name        = "allow_all_%d"
   description = "Allow all inbound traffic"
   vpc_id      = "${aws_vpc.main.id}"
 
@@ -1195,7 +1194,7 @@ resource "aws_vpc" "main" {
   enable_dns_hostnames = true
 
   tags {
-    name = "emr_test"
+    name = "emr_test_%d"
   }
 }
 
@@ -1204,7 +1203,7 @@ resource "aws_subnet" "main" {
   cidr_block = "168.31.0.0/20"
 
   tags {
-    name = "emr_test"
+    name = "emr_test_%d"
   }
 }
 
@@ -1398,7 +1397,7 @@ EOT
 
 # IAM Role for autoscaling
 resource "aws_iam_role" "emr-autoscaling-role" {
-  name               = "EMR_AutoScaling_DefaultRole"
+  name               = "EMR_AutoScaling_DefaultRole_%d"
   assume_role_policy = "${data.aws_iam_policy_document.emr-autoscaling-role-policy.json}"
 }
 
@@ -1406,7 +1405,7 @@ data "aws_iam_policy_document" "emr-autoscaling-role-policy" {
   statement {
     effect  = "Allow"
     actions = ["sts:AssumeRole"]
- 
+
     principals = {
       type        = "Service"
       identifiers = ["elasticmapreduce.amazonaws.com","application-autoscaling.amazonaws.com"]
@@ -1418,5 +1417,5 @@ resource "aws_iam_role_policy_attachment" "emr-autoscaling-role" {
   role       = "${aws_iam_role.emr-autoscaling-role.name}"
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceforAutoScalingRole"
 }
-`, r, r, r, r, r, r)
+`, r, r, r, r, r, r, r, r, r, r)
 }

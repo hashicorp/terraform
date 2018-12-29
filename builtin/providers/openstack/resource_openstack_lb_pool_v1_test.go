@@ -104,6 +104,42 @@ func TestAccLBV1Pool_timeout(t *testing.T) {
 	})
 }
 
+func TestAccLBV1Pool_updateMonitor(t *testing.T) {
+	var monitor_1 monitors.Monitor
+	var monitor_2 monitors.Monitor
+	var network networks.Network
+	var pool pools.Pool
+	var subnet subnets.Subnet
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckLBV1PoolDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccLBV1Pool_updateMonitor_1,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckNetworkingV2NetworkExists("openstack_networking_network_v2.network_1", &network),
+					testAccCheckNetworkingV2SubnetExists("openstack_networking_subnet_v2.subnet_1", &subnet),
+					testAccCheckLBV1PoolExists("openstack_lb_pool_v1.pool_1", &pool),
+					testAccCheckLBV1MonitorExists("openstack_lb_monitor_v1.monitor_1", &monitor_1),
+					testAccCheckLBV1MonitorExists("openstack_lb_monitor_v1.monitor_2", &monitor_2),
+				),
+			},
+			resource.TestStep{
+				Config: testAccLBV1Pool_updateMonitor_2,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckNetworkingV2NetworkExists("openstack_networking_network_v2.network_1", &network),
+					testAccCheckNetworkingV2SubnetExists("openstack_networking_subnet_v2.subnet_1", &subnet),
+					testAccCheckLBV1PoolExists("openstack_lb_pool_v1.pool_1", &pool),
+					testAccCheckLBV1MonitorExists("openstack_lb_monitor_v1.monitor_1", &monitor_1),
+					testAccCheckLBV1MonitorExists("openstack_lb_monitor_v1.monitor_2", &monitor_2),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckLBV1PoolDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 	networkingClient, err := config.networkingV2Client(OS_REGION_NAME)
@@ -400,5 +436,79 @@ resource "openstack_lb_pool_v1" "pool_1" {
     create = "5m"
     delete = "5m"
   }
+}
+`
+
+const testAccLBV1Pool_updateMonitor_1 = `
+resource "openstack_networking_network_v2" "network_1" {
+  name = "network_1"
+  admin_state_up = "true"
+}
+
+resource "openstack_networking_subnet_v2" "subnet_1" {
+  cidr = "192.168.199.0/24"
+  ip_version = 4
+  network_id = "${openstack_networking_network_v2.network_1.id}"
+}
+
+resource "openstack_lb_monitor_v1" "monitor_1" {
+  type = "TCP"
+  delay = 30
+  timeout = 5
+  max_retries = 3
+  admin_state_up = "true"
+}
+
+resource "openstack_lb_monitor_v1" "monitor_2" {
+  type = "TCP"
+  delay = 30
+  timeout = 5
+  max_retries = 3
+  admin_state_up = "true"
+}
+
+resource "openstack_lb_pool_v1" "pool_1" {
+  name = "pool_1"
+  protocol = "TCP"
+  lb_method = "ROUND_ROBIN"
+  monitor_ids = ["${openstack_lb_monitor_v1.monitor_1.id}"]
+  subnet_id = "${openstack_networking_subnet_v2.subnet_1.id}"
+}
+`
+
+const testAccLBV1Pool_updateMonitor_2 = `
+resource "openstack_networking_network_v2" "network_1" {
+  name = "network_1"
+  admin_state_up = "true"
+}
+
+resource "openstack_networking_subnet_v2" "subnet_1" {
+  cidr = "192.168.199.0/24"
+  ip_version = 4
+  network_id = "${openstack_networking_network_v2.network_1.id}"
+}
+
+resource "openstack_lb_monitor_v1" "monitor_1" {
+  type = "TCP"
+  delay = 30
+  timeout = 5
+  max_retries = 3
+  admin_state_up = "true"
+}
+
+resource "openstack_lb_monitor_v1" "monitor_2" {
+  type = "TCP"
+  delay = 30
+  timeout = 5
+  max_retries = 3
+  admin_state_up = "true"
+}
+
+resource "openstack_lb_pool_v1" "pool_1" {
+  name = "pool_1"
+  protocol = "TCP"
+  lb_method = "ROUND_ROBIN"
+  monitor_ids = ["${openstack_lb_monitor_v1.monitor_2.id}"]
+  subnet_id = "${openstack_networking_subnet_v2.subnet_1.id}"
 }
 `

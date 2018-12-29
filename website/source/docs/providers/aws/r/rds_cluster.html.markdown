@@ -26,6 +26,9 @@ phase because a modification has not yet taken place. You can use the
 brief downtime as the server reboots. See the AWS Docs on [RDS Maintenance][4]
 for more information.
 
+~> **Note:** All arguments including the username and password will be stored in the raw state as plain-text.
+[Read more about sensitive data in state](/docs/state/sensitive-data.html).
+
 ## Example Usage
 
 ```
@@ -50,8 +53,8 @@ the [AWS official documentation](https://docs.aws.amazon.com/AmazonRDS/latest/Co
 
 The following arguments are supported:
 
-* `cluster_identifier` - (Required) The Cluster Identifier. Must be a lower case
-string.
+* `cluster_identifier` - (Optional, Forces new resources) The cluster identifier. If omitted, Terraform will assign a random, unique identifier.
+* `cluster_identifier_prefix` - (Optional, Forces new resource) Creates a unique cluster identifier beginning with the specified prefix. Conflicts with `cluster_identifer`.
 * `database_name` - (Optional) The name for your database of up to 8 alpha-numeric
   characters. If you do not provide a name, Amazon RDS will not create a
   database in the DB cluster you are creating

@@ -12,6 +12,9 @@ description: |-
 `node_version` are non-updateable. Changing any will cause recreation of the
 whole cluster!
 
+~> **Note:** All arguments including the username and password will be stored in the raw state as plain-text.
+[Read more about sensitive data in state](/docs/state/sensitive-data.html).
+
 ## Example usage
 
 ```js
@@ -108,6 +111,9 @@ which the cluster's instances are launched
 
 * `disk_size_gb` - (Optional) Size of the disk attached to each node, specified
     in GB. The smallest allowed disk size is 10GB. Defaults to 100GB.
+
+* `local_ssd_count` - (Optional) The amount of local SSD disks that will be
+    attached to each cluster node. Defaults to 0.
 
 * `oauth_scopes` - (Optional) The set of Google API scopes to be made available
     on all of the node VMs under the "default" service account. These can be

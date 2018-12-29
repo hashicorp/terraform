@@ -4,8 +4,10 @@ language: go
 go:
 - 1.8
 
+# add TF_CONSUL_TEST=1 to run consul tests
+# they were causing timouts in travis
 env:
-  - CONSUL_VERSION=0.7.5 TF_CONSUL_TEST=1 GOMAXPROCS=4
+  - CONSUL_VERSION=0.7.5 GOMAXPROCS=4
 
 # Fetch consul for the backend and provider tests
 before_install:

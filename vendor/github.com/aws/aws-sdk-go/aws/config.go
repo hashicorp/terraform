@@ -187,6 +187,10 @@ type Config struct {
 	// request delays. This value should only be used for testing. To adjust
 	// the delay of a request see the aws/client.DefaultRetryer and
 	// aws/request.Retryer.
+	//
+	// SleepDelay will prevent any Context from being used for canceling retry
+	// delay of an API operation. It is recommended to not use SleepDelay at all
+	// and specify a Retryer instead.
 	SleepDelay func(time.Duration)
 
 	// DisableRestProtocolURICleaning will not clean the URL path when making rest protocol requests.

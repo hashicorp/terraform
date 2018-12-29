@@ -11,6 +11,9 @@ description: |-
 The ``mysql_user`` resource creates and manages a user on a MySQL
 server.
 
+~> **Note:** All arguments including username and password will be stored in the raw state as plain-text.
+[Read more about sensitive data in state](/docs/state/sensitive-data.html).
+
 ## Example Usage
 
 ```

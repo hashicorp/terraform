@@ -8,6 +8,9 @@ sidebar_current: "docs-aws-resource-redshift-cluster"
 
 Provides a Redshift Cluster Resource.
 
+~> **Note:** All arguments including the username and password will be stored in the raw state as plain-text.
+[Read more about sensitive data in state](/docs/state/sensitive-data.html).
+
 ## Example Usage
 
 ```

@@ -54,8 +54,8 @@ Common commands:
     apply              Builds or changes infrastructure
     console            Interactive console for Terraform interpolations
     destroy            Destroy Terraform-managed infrastructure
+    env                Environment management
     fmt                Rewrites config files to canonical format
-    force-unlock       Manually unlock the terraform state
     get                Download and install modules for the configuration
     graph              Create a visual graph of Terraform resources
     import             Import existing infrastructure into Terraform
@@ -72,6 +72,7 @@ Common commands:
 
 All other commands:
     debug              Debug output management (experimental)
+    force-unlock       Manually unlock the terraform state
     state              Advanced state management
 ```
 

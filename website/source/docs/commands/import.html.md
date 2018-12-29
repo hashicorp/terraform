@@ -42,17 +42,23 @@ The command-line flags are all optional. The list of available flags are:
 
 * `-input=true` - Whether to ask for input for provider configuration.
 
+* `-lock=true` - Lock the state file when locking is supported.
+
+* `-lock-timeout=0s` - Duration to retry a state lock.
+
+* `-no-color` - If specified, output won't contain any color.
+
+* `-provider=provider` - Specified provider to use for import. This is used for
+  specifying provider aliases, such as "aws.eu". This defaults to the normal
+  provider based on the prefix of the resource being imported. You usually
+  don't need to specify this.
+
 * `-state=path` - The path to read and save state files (unless state-out is
   specified). Ignored when [remote state](/docs/state/remote.html) is used.
 
 * `-state-out=path` - Path to write the final state file. By default, this is
   the state path. Ignored when [remote state](/docs/state/remote.html) is
   used.
-
-* `-provider=provider` - Specified provider to use for import. This is used for
-  specifying provider aliases, such as "aws.eu". This defaults to the normal
-  provider based on the prefix of the resource being imported. You usually
-  don't need to specify this.
 
 * `-var 'foo=bar'` - Set a variable in the Terraform configuration. This flag
   can be set multiple times. Variable values are interpreted as

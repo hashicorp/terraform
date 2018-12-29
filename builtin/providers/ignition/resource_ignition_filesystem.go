@@ -34,6 +34,11 @@ func resourceFilesystem() *schema.Resource {
 							Required: true,
 							ForceNew: true,
 						},
+						"create": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							ForceNew: true,
+						},
 						"force": &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
@@ -84,13 +89,18 @@ func buildFilesystem(d *schema.ResourceData, c *cache) (string, error) {
 			Format: types.FilesystemFormat(d.Get("mount.0.format").(string)),
 		}
 
+		create, hasCreate := d.GetOk("mount.0.create")
 		force, hasForce := d.GetOk("mount.0.force")
 		options, hasOptions := d.GetOk("mount.0.options")
-		if hasOptions || hasForce {
+		if hasCreate || hasOptions || hasForce {
 			mount.Create = &types.FilesystemCreate{
 				Force:   force.(bool),
 				Options: castSliceInterface(options.([]interface{})),
 			}
+		}
+
+		if !create.(bool) && (hasForce || hasOptions) {
+			return "", fmt.Errorf("create should be true when force or options is used")
 		}
 	}
 

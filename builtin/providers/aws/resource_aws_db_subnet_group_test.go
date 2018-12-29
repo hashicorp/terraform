@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/acctest"
@@ -37,6 +38,46 @@ func TestAccAWSDBSubnetGroup_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_db_subnet_group.foo", "description", "Managed by Terraform"),
 					testCheck,
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDBSubnetGroup_namePrefix(t *testing.T) {
+	var v rds.DBSubnetGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDBSubnetGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccDBSubnetGroupConfig_namePrefix,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDBSubnetGroupExists(
+						"aws_db_subnet_group.test", &v),
+					resource.TestMatchResourceAttr(
+						"aws_db_subnet_group.test", "name", regexp.MustCompile("^tf_test-")),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDBSubnetGroup_generatedName(t *testing.T) {
+	var v rds.DBSubnetGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDBSubnetGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccDBSubnetGroupConfig_generatedName,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDBSubnetGroupExists(
+						"aws_db_subnet_group.test", &v),
 				),
 			},
 		},
@@ -103,38 +144,6 @@ func TestAccAWSDBSubnetGroup_updateDescription(t *testing.T) {
 			},
 		},
 	})
-}
-
-func TestResourceAWSDBSubnetGroupNameValidation(t *testing.T) {
-	cases := []struct {
-		Value    string
-		ErrCount int
-	}{
-		{
-			Value:    "tEsting",
-			ErrCount: 1,
-		},
-		{
-			Value:    "testing?",
-			ErrCount: 1,
-		},
-		{
-			Value:    "default",
-			ErrCount: 1,
-		},
-		{
-			Value:    randomString(300),
-			ErrCount: 1,
-		},
-	}
-
-	for _, tc := range cases {
-		_, errors := validateSubnetGroupName(tc.Value, "aws_db_subnet_group")
-
-		if len(errors) != tc.ErrCount {
-			t.Fatalf("Expected the DB Subnet Group name to trigger a validation error")
-		}
-	}
 }
 
 func testAccCheckDBSubnetGroupDestroy(s *terraform.State) error {
@@ -262,6 +271,49 @@ resource "aws_db_subnet_group" "foo" {
 	}
 }`, rName)
 }
+
+const testAccDBSubnetGroupConfig_namePrefix = `
+resource "aws_vpc" "test" {
+	cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_subnet" "a" {
+	vpc_id = "${aws_vpc.test.id}"
+	cidr_block = "10.1.1.0/24"
+	availability_zone = "us-west-2a"
+}
+
+resource "aws_subnet" "b" {
+	vpc_id = "${aws_vpc.test.id}"
+	cidr_block = "10.1.2.0/24"
+	availability_zone = "us-west-2b"
+}
+
+resource "aws_db_subnet_group" "test" {
+	name_prefix = "tf_test-"
+	subnet_ids = ["${aws_subnet.a.id}", "${aws_subnet.b.id}"]
+}`
+
+const testAccDBSubnetGroupConfig_generatedName = `
+resource "aws_vpc" "test" {
+	cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_subnet" "a" {
+	vpc_id = "${aws_vpc.test.id}"
+	cidr_block = "10.1.1.0/24"
+	availability_zone = "us-west-2a"
+}
+
+resource "aws_subnet" "b" {
+	vpc_id = "${aws_vpc.test.id}"
+	cidr_block = "10.1.2.0/24"
+	availability_zone = "us-west-2b"
+}
+
+resource "aws_db_subnet_group" "test" {
+	subnet_ids = ["${aws_subnet.a.id}", "${aws_subnet.b.id}"]
+}`
 
 const testAccDBSubnetGroupConfig_withUnderscoresAndPeriodsAndSpaces = `
 resource "aws_vpc" "main" {

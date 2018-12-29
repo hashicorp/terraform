@@ -703,6 +703,7 @@ func testAccAWSRedshiftClusterConfig_loggingDisabled(rInt int) string {
 		automated_snapshot_retention_period = 0
 		allow_version_upgrade = false
 		enable_logging = false
+		skip_final_snapshot = true
 	}`, rInt)
 }
 

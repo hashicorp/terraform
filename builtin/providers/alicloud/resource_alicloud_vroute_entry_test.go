@@ -124,6 +124,10 @@ func testAccCheckRouteEntryDestroy(s *terraform.State) error {
 }
 
 const testAccRouteEntryConfig = `
+data "alicloud_zones" "default" {
+	"available_resource_creation"= "VSwitch"
+}
+
 resource "alicloud_vpc" "foo" {
 	name = "tf_test_foo"
 	cidr_block = "10.1.0.0/21"
@@ -132,7 +136,7 @@ resource "alicloud_vpc" "foo" {
 resource "alicloud_vswitch" "foo" {
 	vpc_id = "${alicloud_vpc.foo.id}"
 	cidr_block = "10.1.1.0/24"
-	availability_zone = "cn-beijing-c"
+	availability_zone = "${data.alicloud_zones.default.zones.0.id}"
 }
 
 resource "alicloud_route_entry" "foo" {
@@ -162,7 +166,6 @@ resource "alicloud_security_group_rule" "ingress" {
 
 resource "alicloud_instance" "foo" {
 	# cn-beijing
-	availability_zone = "cn-beijing-c"
 	security_groups = ["${alicloud_security_group.tf_test_foo.id}"]
 
 	vswitch_id = "${alicloud_vswitch.foo.id}"

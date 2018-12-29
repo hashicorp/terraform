@@ -58,57 +58,57 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 				},
 			},
 
-			"launch_configuration": &schema.Schema{
+			"launch_configuration": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"desired_capacity": &schema.Schema{
+			"desired_capacity": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Computed: true,
 			},
 
-			"min_elb_capacity": &schema.Schema{
+			"min_elb_capacity": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
 
-			"min_size": &schema.Schema{
+			"min_size": {
 				Type:     schema.TypeInt,
 				Required: true,
 			},
 
-			"max_size": &schema.Schema{
+			"max_size": {
 				Type:     schema.TypeInt,
 				Required: true,
 			},
 
-			"default_cooldown": &schema.Schema{
+			"default_cooldown": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Computed: true,
 			},
 
-			"force_delete": &schema.Schema{
+			"force_delete": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
 
-			"health_check_grace_period": &schema.Schema{
+			"health_check_grace_period": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  300,
 			},
 
-			"health_check_type": &schema.Schema{
+			"health_check_type": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"availability_zones": &schema.Schema{
+			"availability_zones": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
@@ -116,12 +116,12 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 				Set:      schema.HashString,
 			},
 
-			"placement_group": &schema.Schema{
+			"placement_group": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"load_balancers": &schema.Schema{
+			"load_balancers": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
@@ -129,7 +129,7 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 				Set:      schema.HashString,
 			},
 
-			"vpc_zone_identifier": &schema.Schema{
+			"vpc_zone_identifier": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
@@ -137,13 +137,13 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 				Set:      schema.HashString,
 			},
 
-			"termination_policies": &schema.Schema{
+			"termination_policies": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
-			"wait_for_capacity_timeout": &schema.Schema{
+			"wait_for_capacity_timeout": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "10m",
@@ -162,12 +162,12 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 				},
 			},
 
-			"wait_for_elb_capacity": &schema.Schema{
+			"wait_for_elb_capacity": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
 
-			"enabled_metrics": &schema.Schema{
+			"enabled_metrics": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
@@ -181,31 +181,32 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 				Set:      schema.HashString,
 			},
 
-			"metrics_granularity": &schema.Schema{
+			"metrics_granularity": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "1Minute",
 			},
 
-			"protect_from_scale_in": &schema.Schema{
+			"protect_from_scale_in": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
 
-			"target_group_arns": &schema.Schema{
+			"target_group_arns": {
 				Type:     schema.TypeSet,
 				Optional: true,
+				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
 
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"initial_lifecycle_hook": &schema.Schema{
+			"initial_lifecycle_hook": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
@@ -445,6 +446,8 @@ func resourceAwsAutoscalingGroupRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("health_check_type", g.HealthCheckType)
 	d.Set("launch_configuration", g.LaunchConfigurationName)
 	d.Set("load_balancers", flattenStringList(g.LoadBalancerNames))
+	d.Set("target_group_arns", flattenStringList(g.TargetGroupARNs))
+
 	if err := d.Set("suspended_processes", flattenAsgSuspendedProcesses(g.SuspendedProcesses)); err != nil {
 		log.Printf("[WARN] Error setting suspended_processes for %q: %s", d.Id(), err)
 	}

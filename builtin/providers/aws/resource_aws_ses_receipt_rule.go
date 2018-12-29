@@ -443,7 +443,7 @@ func resourceAwsSesReceiptRuleRead(d *schema.ResourceData, meta interface{}) err
 			addHeaderAction := map[string]interface{}{
 				"header_name":  *element.AddHeaderAction.HeaderName,
 				"header_value": *element.AddHeaderAction.HeaderValue,
-				"position":     i,
+				"position":     i + 1,
 			}
 			addHeaderActionList = append(addHeaderActionList, addHeaderAction)
 		}
@@ -453,7 +453,7 @@ func resourceAwsSesReceiptRuleRead(d *schema.ResourceData, meta interface{}) err
 				"message":         *element.BounceAction.Message,
 				"sender":          *element.BounceAction.Sender,
 				"smtp_reply_code": *element.BounceAction.SmtpReplyCode,
-				"position":        i,
+				"position":        i + 1,
 			}
 
 			if element.BounceAction.StatusCode != nil {
@@ -470,7 +470,7 @@ func resourceAwsSesReceiptRuleRead(d *schema.ResourceData, meta interface{}) err
 		if element.LambdaAction != nil {
 			lambdaAction := map[string]interface{}{
 				"function_arn": *element.LambdaAction.FunctionArn,
-				"position":     i,
+				"position":     i + 1,
 			}
 
 			if element.LambdaAction.InvocationType != nil {
@@ -487,7 +487,7 @@ func resourceAwsSesReceiptRuleRead(d *schema.ResourceData, meta interface{}) err
 		if element.S3Action != nil {
 			s3Action := map[string]interface{}{
 				"bucket_name": *element.S3Action.BucketName,
-				"position":    i,
+				"position":    i + 1,
 			}
 
 			if element.S3Action.KmsKeyArn != nil {
@@ -508,7 +508,7 @@ func resourceAwsSesReceiptRuleRead(d *schema.ResourceData, meta interface{}) err
 		if element.SNSAction != nil {
 			snsAction := map[string]interface{}{
 				"topic_arn": *element.SNSAction.TopicArn,
-				"position":  i,
+				"position":  i + 1,
 			}
 
 			snsActionList = append(snsActionList, snsAction)
@@ -517,7 +517,7 @@ func resourceAwsSesReceiptRuleRead(d *schema.ResourceData, meta interface{}) err
 		if element.StopAction != nil {
 			stopAction := map[string]interface{}{
 				"scope":    *element.StopAction.Scope,
-				"position": i,
+				"position": i + 1,
 			}
 
 			if element.StopAction.TopicArn != nil {
@@ -530,7 +530,7 @@ func resourceAwsSesReceiptRuleRead(d *schema.ResourceData, meta interface{}) err
 		if element.WorkmailAction != nil {
 			workmailAction := map[string]interface{}{
 				"organization_arn": *element.WorkmailAction.OrganizationArn,
-				"position":         i,
+				"position":         i + 1,
 			}
 
 			if element.WorkmailAction.TopicArn != nil {

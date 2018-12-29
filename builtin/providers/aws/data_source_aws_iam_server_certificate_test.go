@@ -9,6 +9,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
@@ -18,15 +19,15 @@ func timePtr(t time.Time) *time.Time {
 
 func TestResourceSortByExpirationDate(t *testing.T) {
 	certs := []*iam.ServerCertificateMetadata{
-		&iam.ServerCertificateMetadata{
+		{
 			ServerCertificateName: aws.String("oldest"),
 			Expiration:            timePtr(time.Now()),
 		},
-		&iam.ServerCertificateMetadata{
+		{
 			ServerCertificateName: aws.String("latest"),
 			Expiration:            timePtr(time.Now().Add(3 * time.Hour)),
 		},
-		&iam.ServerCertificateMetadata{
+		{
 			ServerCertificateName: aws.String("in between"),
 			Expiration:            timePtr(time.Now().Add(2 * time.Hour)),
 		},
@@ -38,13 +39,18 @@ func TestResourceSortByExpirationDate(t *testing.T) {
 }
 
 func TestAccAWSDataSourceIAMServerCertificate_basic(t *testing.T) {
+	rInt := acctest.RandInt()
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckIAMServerCertificateDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAwsDataIAMServerCertConfig,
+				Config: testAccIAMServerCertConfig(rInt),
+			},
+			{
+				Config: testAccAwsDataIAMServerCertConfig(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("aws_iam_server_certificate.test_cert", "arn"),
 					resource.TestCheckResourceAttrSet("data.aws_iam_server_certificate.test", "arn"),
@@ -71,12 +77,16 @@ func TestAccAWSDataSourceIAMServerCertificate_matchNamePrefix(t *testing.T) {
 	})
 }
 
-var testAccAwsDataIAMServerCertConfig = fmt.Sprintf(`%s
+func testAccAwsDataIAMServerCertConfig(rInt int) string {
+	return fmt.Sprintf(`
+%s
+
 data "aws_iam_server_certificate" "test" {
   name = "${aws_iam_server_certificate.test_cert.name}"
   latest = true
 }
-`, testAccIAMServerCertConfig)
+`, testAccIAMServerCertConfig(rInt))
+}
 
 var testAccAwsDataIAMServerCertConfigMatchNamePrefix = `
 data "aws_iam_server_certificate" "test" {

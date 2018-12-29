@@ -18,6 +18,7 @@ variable "short_name" {
 variable "ecs_type" {
 }
 variable "ecs_password" {
+  default = "Test12345"
 }
 variable "availability_zones" {
 }

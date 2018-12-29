@@ -25,6 +25,8 @@ When upgrading the major version of an engine, `allow_major_version_upgrade` mus
 brief downtime as the server reboots. See the AWS Docs on [RDS Maintenance][2]
 for more information.
 
+~> **Note:** All arguments including the username and password will be stored in the raw state as plain-text.
+[Read more about sensitive data in state](/docs/state/sensitive-data.html).
 
 ## Example Usage
 
@@ -53,7 +55,8 @@ The following arguments are supported:
 * `allocated_storage` - (Required unless a `snapshot_identifier` or `replicate_source_db` is provided) The allocated storage in gigabytes.
 * `engine` - (Required unless a `snapshot_identifier` or `replicate_source_db` is provided) The database engine to use.
 * `engine_version` - (Optional) The engine version to use.
-* `identifier` - (Optional) The name of the RDS instance, if omitted, Terraform will assign a random, unique name
+* `identifier` - (Optional, Forces new resource) The name of the RDS instance, if omitted, Terraform will assign a random, unique identifier.
+* `identifier_prefix` - (Optional, Forces new resource) Creates a unique identifier beginning with the specified prefix. Conflicts with `identifer`.
 * `instance_class` - (Required) The instance type of the RDS instance.
 * `storage_type` - (Optional) One of "standard" (magnetic), "gp2" (general
     purpose SSD), or "io1" (provisioned IOPS SSD). The default is "io1" if
@@ -154,7 +157,7 @@ On Oracle instances the following is exported additionally:
 
 - `create` - (Default `40 minutes`) Used for Creating Instances, Replicas, and
 restoring from Snapshots
-- `update` - (Default `80 minutes`) Used for Database modifications 
+- `update` - (Default `80 minutes`) Used for Database modifications
 - `delete` - (Default `40 minutes`) Used for destroying databases. This includes
 the time required to take snapshots
 

@@ -52,7 +52,7 @@ func (c *Config) Client() (*consulapi.Client, error) {
 		} else {
 			username = c.HttpAuth
 		}
-		config.HttpAuth = &consulapi.HttpBasicAuth{username, password}
+		config.HttpAuth = &consulapi.HttpBasicAuth{Username: username, Password: password}
 	}
 
 	if c.Token != "" {

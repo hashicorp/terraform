@@ -671,10 +671,10 @@ func resourceAwsCloudFrontDistributionDelete(d *schema.ResourceData, meta interf
 // but that might change in the future.
 func resourceAwsCloudFrontDistributionWaitUntilDeployed(id string, meta interface{}) error {
 	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"InProgress", "Deployed"},
+		Pending:    []string{"InProgress"},
 		Target:     []string{"Deployed"},
 		Refresh:    resourceAwsCloudFrontWebDistributionStateRefreshFunc(id, meta),
-		Timeout:    40 * time.Minute,
+		Timeout:    70 * time.Minute,
 		MinTimeout: 15 * time.Second,
 		Delay:      10 * time.Minute,
 	}

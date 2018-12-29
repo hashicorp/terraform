@@ -2,22 +2,20 @@ package triton
 
 import (
 	"fmt"
-	"reflect"
 	"regexp"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/joyent/gosdc/cloudapi"
+	"github.com/joyent/triton-go"
 )
 
 var (
 	machineStateRunning = "running"
-	machineStateStopped = "stopped"
 	machineStateDeleted = "deleted"
 
-	machineStateChangeTimeout       = 10 * time.Minute
-	machineStateChangeCheckInterval = 10 * time.Second
+	machineStateChangeTimeout = 10 * time.Minute
 
 	resourceMachineMetadataKeys = map[string]string{
 		// semantics: "schema_name": "metadata_name"
@@ -30,50 +28,46 @@ var (
 
 func resourceMachine() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceMachineCreate,
-		Exists: resourceMachineExists,
-		Read:   resourceMachineRead,
-		Update: resourceMachineUpdate,
-		Delete: resourceMachineDelete,
+		Create:   resourceMachineCreate,
+		Exists:   resourceMachineExists,
+		Read:     resourceMachineRead,
+		Update:   resourceMachineUpdate,
+		Delete:   resourceMachineDelete,
+		Timeouts: slowResourceTimeout,
 		Importer: &schema.ResourceImporter{
-			State: resourceMachineImporter,
+			State: schema.ImportStatePassthrough,
 		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Description:  "friendly name",
+				Description:  "Friendly name for machine",
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
 				ValidateFunc: resourceMachineValidateName,
 			},
 			"type": {
-				Description: "machine type (smartmachine or virtualmachine)",
-				Type:        schema.TypeString,
-				Computed:    true,
-			},
-			"state": {
-				Description: "current state of the machine",
+				Description: "Machine type (smartmachine or virtualmachine)",
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
 			"dataset": {
-				Description: "dataset URN the machine was provisioned with",
+				Description: "Dataset URN with which the machine was provisioned",
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
 			"memory": {
-				Description: "amount of memory the machine has (in Mb)",
+				Description: "Amount of memory allocated to the machine (in Mb)",
 				Type:        schema.TypeInt,
 				Computed:    true,
 			},
 			"disk": {
-				Description: "amount of disk the machine has (in Gb)",
+				Description: "Amount of disk allocated to the machine (in Gb)",
 				Type:        schema.TypeInt,
 				Computed:    true,
 			},
 			"ips": {
-				Description: "IP addresses the machine has",
+				Description: "IP addresses assigned to the machine",
 				Type:        schema.TypeList,
 				Computed:    true,
 				Elem: &schema.Schema{
@@ -81,39 +75,38 @@ func resourceMachine() *schema.Resource {
 				},
 			},
 			"tags": {
-				Description: "machine tags",
+				Description: "Machine tags",
 				Type:        schema.TypeMap,
 				Optional:    true,
 			},
 			"created": {
-				Description: "when the machine was created",
+				Description: "When the machine was created",
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
 			"updated": {
-				Description: "when the machine was update",
+				Description: "When the machine was updated",
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
 			"package": {
-				Description: "name of the package to use on provisioning",
+				Description: "The package for use for provisioning",
 				Type:        schema.TypeString,
 				Required:    true,
 			},
 			"image": {
-				Description: "image UUID",
+				Description: "UUID of the image",
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				// TODO: validate that the UUID is valid
 			},
 			"primaryip": {
-				Description: "the primary (public) IP address for the machine",
+				Description: "Primary (public) IP address for the machine",
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
 			"nic": {
-				Description: "network interface",
+				Description: "Network interface",
 				Type:        schema.TypeSet,
 				Computed:    true,
 				Optional:    true,
@@ -148,27 +141,27 @@ func resourceMachine() *schema.Resource {
 							Computed:    true,
 							Type:        schema.TypeString,
 						},
-						"state": {
-							Description: "describes the state of the NIC (e.g. provisioning, running, or stopped)",
-							Computed:    true,
+						"network": {
+							Description: "ID of the network to which the NIC is attached",
+							Required:    true,
 							Type:        schema.TypeString,
 						},
-						"network": {
-							Description: "Network ID this NIC is attached to",
-							Required:    true,
+						"state": {
+							Description: "Provisioning state of the NIC",
+							Computed:    true,
 							Type:        schema.TypeString,
 						},
 					},
 				},
 			},
 			"firewall_enabled": {
-				Description: "enable firewall for this machine",
+				Description: "Whether to enable the firewall for this machine",
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
 			},
 			"domain_names": {
-				Description: "list of domain names from Triton's CNS",
+				Description: "List of domain names from Triton CNS",
 				Type:        schema.TypeList,
 				Computed:    true,
 				Elem: &schema.Schema{
@@ -178,25 +171,25 @@ func resourceMachine() *schema.Resource {
 
 			// computed resources from metadata
 			"root_authorized_keys": {
-				Description: "authorized keys for the root user on this machine",
+				Description: "Authorized keys for the root user on this machine",
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
 			},
 			"user_script": {
-				Description: "user script to run on boot (every boot on SmartMachines)",
+				Description: "User script to run on boot (every boot on SmartMachines)",
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
 			},
 			"user_data": {
-				Description: "copied to machine on boot",
+				Description: "Data copied to machine on boot",
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
 			},
 			"administrator_pw": {
-				Description: "administrator's initial password (Windows only)",
+				Description: "Administrator's initial password (Windows only)",
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
@@ -204,7 +197,7 @@ func resourceMachine() *schema.Resource {
 
 			// deprecated fields
 			"networks": {
-				Description: "desired network IDs",
+				Description: "Desired network IDs",
 				Type:        schema.TypeList,
 				Optional:    true,
 				Computed:    true,
@@ -218,7 +211,7 @@ func resourceMachine() *schema.Resource {
 }
 
 func resourceMachineCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*cloudapi.Client)
+	client := meta.(*triton.Client)
 
 	var networks []string
 	for _, network := range d.Get("networks").([]interface{}) {
@@ -242,7 +235,7 @@ func resourceMachineCreate(d *schema.ResourceData, meta interface{}) error {
 		tags[k] = v.(string)
 	}
 
-	machine, err := client.CreateMachine(cloudapi.CreateMachineOpts{
+	machine, err := client.Machines().CreateMachine(&triton.CreateMachineInput{
 		Name:            d.Get("name").(string),
 		Package:         d.Get("package").(string),
 		Image:           d.Get("image").(string),
@@ -255,47 +248,64 @@ func resourceMachineCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	err = waitForMachineState(client, machine.Id, machineStateRunning, machineStateChangeTimeout)
+	d.SetId(machine.ID)
+	stateConf := &resource.StateChangeConf{
+		Target: []string{fmt.Sprintf(machineStateRunning)},
+		Refresh: func() (interface{}, string, error) {
+			getResp, err := client.Machines().GetMachine(&triton.GetMachineInput{
+				ID: d.Id(),
+			})
+			if err != nil {
+				return nil, "", err
+			}
+
+			return getResp, getResp.State, nil
+		},
+		Timeout:    machineStateChangeTimeout,
+		MinTimeout: 3 * time.Second,
+	}
+	_, err = stateConf.WaitForState()
+	if err != nil {
+		return err
+	}
 	if err != nil {
 		return err
 	}
 
 	// refresh state after it provisions
-	d.SetId(machine.Id)
-	err = resourceMachineRead(d, meta)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return resourceMachineRead(d, meta)
 }
 
 func resourceMachineExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	client := meta.(*cloudapi.Client)
+	client := meta.(*triton.Client)
 
-	machine, err := client.GetMachine(d.Id())
-
-	return machine != nil && err == nil, err
+	return resourceExists(client.Machines().GetMachine(&triton.GetMachineInput{
+		ID: d.Id(),
+	}))
 }
 
 func resourceMachineRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*cloudapi.Client)
+	client := meta.(*triton.Client)
 
-	machine, err := client.GetMachine(d.Id())
+	machine, err := client.Machines().GetMachine(&triton.GetMachineInput{
+		ID: d.Id(),
+	})
 	if err != nil {
 		return err
 	}
 
-	nics, err := client.ListNICs(d.Id())
+	nics, err := client.Machines().ListNICs(&triton.ListNICsInput{
+		MachineID: d.Id(),
+	})
 	if err != nil {
 		return err
 	}
 
-	d.SetId(machine.Id)
 	d.Set("name", machine.Name)
 	d.Set("type", machine.Type)
 	d.Set("state", machine.State)
-	d.Set("dataset", machine.Dataset)
+	d.Set("dataset", machine.Image)
+	d.Set("image", machine.Image)
 	d.Set("memory", machine.Memory)
 	d.Set("disk", machine.Disk)
 	d.Set("ips", machine.IPs)
@@ -340,23 +350,40 @@ func resourceMachineRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceMachineUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*cloudapi.Client)
+	client := meta.(*triton.Client)
 
 	d.Partial(true)
 
 	if d.HasChange("name") {
-		if err := client.RenameMachine(d.Id(), d.Get("name").(string)); err != nil {
+		oldNameInterface, newNameInterface := d.GetChange("name")
+		oldName := oldNameInterface.(string)
+		newName := newNameInterface.(string)
+
+		err := client.Machines().RenameMachine(&triton.RenameMachineInput{
+			ID:   d.Id(),
+			Name: newName,
+		})
+		if err != nil {
 			return err
 		}
 
-		err := waitFor(
-			func() (bool, error) {
-				machine, err := client.GetMachine(d.Id())
-				return machine.Name == d.Get("name").(string), err
+		stateConf := &resource.StateChangeConf{
+			Pending: []string{oldName},
+			Target:  []string{newName},
+			Refresh: func() (interface{}, string, error) {
+				getResp, err := client.Machines().GetMachine(&triton.GetMachineInput{
+					ID: d.Id(),
+				})
+				if err != nil {
+					return nil, "", err
+				}
+
+				return getResp, getResp.Name, nil
 			},
-			machineStateChangeCheckInterval,
-			1*time.Minute,
-		)
+			Timeout:    machineStateChangeTimeout,
+			MinTimeout: 3 * time.Second,
+		}
+		_, err = stateConf.WaitForState()
 		if err != nil {
 			return err
 		}
@@ -372,22 +399,36 @@ func resourceMachineUpdate(d *schema.ResourceData, meta interface{}) error {
 
 		var err error
 		if len(tags) == 0 {
-			err = client.DeleteMachineTags(d.Id())
+			err = client.Machines().DeleteMachineTags(&triton.DeleteMachineTagsInput{
+				ID: d.Id(),
+			})
 		} else {
-			_, err = client.ReplaceMachineTags(d.Id(), tags)
+			err = client.Machines().ReplaceMachineTags(&triton.ReplaceMachineTagsInput{
+				ID:   d.Id(),
+				Tags: tags,
+			})
 		}
 		if err != nil {
 			return err
 		}
 
-		err = waitFor(
-			func() (bool, error) {
-				machine, err := client.GetMachine(d.Id())
-				return reflect.DeepEqual(machine.Tags, tags), err
+		expectedTagsMD5 := stableMapHash(tags)
+		stateConf := &resource.StateChangeConf{
+			Target: []string{expectedTagsMD5},
+			Refresh: func() (interface{}, string, error) {
+				getResp, err := client.Machines().GetMachine(&triton.GetMachineInput{
+					ID: d.Id(),
+				})
+				if err != nil {
+					return nil, "", err
+				}
+
+				return getResp, stableMapHash(getResp.Tags), nil
 			},
-			machineStateChangeCheckInterval,
-			1*time.Minute,
-		)
+			Timeout:    machineStateChangeTimeout,
+			MinTimeout: 3 * time.Second,
+		}
+		_, err = stateConf.WaitForState()
 		if err != nil {
 			return err
 		}
@@ -396,18 +437,32 @@ func resourceMachineUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if d.HasChange("package") {
-		if err := client.ResizeMachine(d.Id(), d.Get("package").(string)); err != nil {
+		newPackage := d.Get("package").(string)
+
+		err := client.Machines().ResizeMachine(&triton.ResizeMachineInput{
+			ID:      d.Id(),
+			Package: newPackage,
+		})
+		if err != nil {
 			return err
 		}
 
-		err := waitFor(
-			func() (bool, error) {
-				machine, err := client.GetMachine(d.Id())
-				return machine.Package == d.Get("package").(string) && machine.State == machineStateRunning, err
+		stateConf := &resource.StateChangeConf{
+			Target: []string{fmt.Sprintf("%s@%s", newPackage, "running")},
+			Refresh: func() (interface{}, string, error) {
+				getResp, err := client.Machines().GetMachine(&triton.GetMachineInput{
+					ID: d.Id(),
+				})
+				if err != nil {
+					return nil, "", err
+				}
+
+				return getResp, fmt.Sprintf("%s@%s", getResp.Package, getResp.State), nil
 			},
-			machineStateChangeCheckInterval,
-			machineStateChangeTimeout,
-		)
+			Timeout:    machineStateChangeTimeout,
+			MinTimeout: 3 * time.Second,
+		}
+		_, err = stateConf.WaitForState()
 		if err != nil {
 			return err
 		}
@@ -416,25 +471,38 @@ func resourceMachineUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if d.HasChange("firewall_enabled") {
+		enable := d.Get("firewall_enabled").(bool)
+
 		var err error
-		if d.Get("firewall_enabled").(bool) {
-			err = client.EnableFirewallMachine(d.Id())
+		if enable {
+			err = client.Machines().EnableMachineFirewall(&triton.EnableMachineFirewallInput{
+				ID: d.Id(),
+			})
 		} else {
-			err = client.DisableFirewallMachine(d.Id())
+			err = client.Machines().DisableMachineFirewall(&triton.DisableMachineFirewallInput{
+				ID: d.Id(),
+			})
 		}
 		if err != nil {
 			return err
 		}
 
-		err = waitFor(
-			func() (bool, error) {
-				machine, err := client.GetMachine(d.Id())
-				return machine.FirewallEnabled == d.Get("firewall_enabled").(bool), err
-			},
-			machineStateChangeCheckInterval,
-			machineStateChangeTimeout,
-		)
+		stateConf := &resource.StateChangeConf{
+			Target: []string{fmt.Sprintf("%t", enable)},
+			Refresh: func() (interface{}, string, error) {
+				getResp, err := client.Machines().GetMachine(&triton.GetMachineInput{
+					ID: d.Id(),
+				})
+				if err != nil {
+					return nil, "", err
+				}
 
+				return getResp, fmt.Sprintf("%t", getResp.FirewallEnabled), nil
+			},
+			Timeout:    machineStateChangeTimeout,
+			MinTimeout: 3 * time.Second,
+		}
+		_, err = stateConf.WaitForState()
 		if err != nil {
 			return err
 		}
@@ -452,24 +520,24 @@ func resourceMachineUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		oldNICs := o.(*schema.Set)
-		newNICs := o.(*schema.Set)
+		newNICs := n.(*schema.Set)
 
-		// add new NICs that are not in old NICs
 		for _, nicI := range newNICs.Difference(oldNICs).List() {
 			nic := nicI.(map[string]interface{})
-			fmt.Printf("adding %+v\n", nic)
-			_, err := client.AddNIC(d.Id(), nic["network"].(string))
-			if err != nil {
+			if _, err := client.Machines().AddNIC(&triton.AddNICInput{
+				MachineID: d.Id(),
+				Network:   nic["network"].(string),
+			}); err != nil {
 				return err
 			}
 		}
 
-		// remove old NICs that are not in new NICs
 		for _, nicI := range oldNICs.Difference(newNICs).List() {
 			nic := nicI.(map[string]interface{})
-			fmt.Printf("removing %+v\n", nic)
-			err := client.RemoveNIC(d.Id(), nic["mac"].(string))
-			if err != nil {
+			if err := client.Machines().RemoveNIC(&triton.RemoveNICInput{
+				MachineID: d.Id(),
+				MAC:       nic["mac"].(string),
+			}); err != nil {
 				return err
 			}
 		}
@@ -477,7 +545,6 @@ func resourceMachineUpdate(d *schema.ResourceData, meta interface{}) error {
 		d.SetPartial("nic")
 	}
 
-	// metadata stuff
 	metadata := map[string]string{}
 	for schemaName, metadataKey := range resourceMachineMetadataKeys {
 		if d.HasChange(schemaName) {
@@ -485,24 +552,35 @@ func resourceMachineUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 	if len(metadata) > 0 {
-		_, err := client.UpdateMachineMetadata(d.Id(), metadata)
-		if err != nil {
+		if _, err := client.Machines().UpdateMachineMetadata(&triton.UpdateMachineMetadataInput{
+			ID:       d.Id(),
+			Metadata: metadata,
+		}); err != nil {
 			return err
 		}
 
-		err = waitFor(
-			func() (bool, error) {
-				machine, err := client.GetMachine(d.Id())
+		stateConf := &resource.StateChangeConf{
+			Target: []string{"converged"},
+			Refresh: func() (interface{}, string, error) {
+				getResp, err := client.Machines().GetMachine(&triton.GetMachineInput{
+					ID: d.Id(),
+				})
+				if err != nil {
+					return nil, "", err
+				}
+
 				for k, v := range metadata {
-					if provider_v, ok := machine.Metadata[k]; !ok || v != provider_v {
-						return false, err
+					if upstream, ok := getResp.Metadata[k]; !ok || v != upstream {
+						return getResp, "converging", nil
 					}
 				}
-				return true, err
+
+				return getResp, "converged", nil
 			},
-			machineStateChangeCheckInterval,
-			1*time.Minute,
-		)
+			Timeout:    machineStateChangeTimeout,
+			MinTimeout: 3 * time.Second,
+		}
+		_, err := stateConf.WaitForState()
 		if err != nil {
 			return err
 		}
@@ -516,57 +594,43 @@ func resourceMachineUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	d.Partial(false)
 
-	err := resourceMachineRead(d, meta)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return resourceMachineRead(d, meta)
 }
 
 func resourceMachineDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*cloudapi.Client)
+	client := meta.(*triton.Client)
 
-	state, err := readMachineState(client, d.Id())
-	if state != machineStateStopped {
-		err = client.StopMachine(d.Id())
-		if err != nil {
-			return err
-		}
-
-		waitForMachineState(client, d.Id(), machineStateStopped, machineStateChangeTimeout)
-	}
-
-	err = client.DeleteMachine(d.Id())
+	err := client.Machines().DeleteMachine(&triton.DeleteMachineInput{
+		ID: d.Id(),
+	})
 	if err != nil {
 		return err
 	}
 
-	waitForMachineState(client, d.Id(), machineStateDeleted, machineStateChangeTimeout)
-	return nil
-}
+	stateConf := &resource.StateChangeConf{
+		Target: []string{machineStateDeleted},
+		Refresh: func() (interface{}, string, error) {
+			getResp, err := client.Machines().GetMachine(&triton.GetMachineInput{
+				ID: d.Id(),
+			})
+			if err != nil {
+				if triton.IsResourceNotFound(err) {
+					return nil, "deleted", nil
+				}
+				return nil, "", err
+			}
 
-func readMachineState(api *cloudapi.Client, id string) (string, error) {
-	machine, err := api.GetMachine(id)
+			return getResp, getResp.State, nil
+		},
+		Timeout:    machineStateChangeTimeout,
+		MinTimeout: 3 * time.Second,
+	}
+	_, err = stateConf.WaitForState()
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	return machine.State, nil
-}
-
-// waitForMachineState waits for a machine to be in the desired state (waiting
-// some seconds between each poll). If it doesn't reach the state within the
-// duration specified in `timeout`, it returns ErrMachineStateTimeout.
-func waitForMachineState(api *cloudapi.Client, id, state string, timeout time.Duration) error {
-	return waitFor(
-		func() (bool, error) {
-			currentState, err := readMachineState(api, id)
-			return currentState == state, err
-		},
-		machineStateChangeCheckInterval,
-		machineStateChangeTimeout,
-	)
+	return nil
 }
 
 func resourceMachineValidateName(value interface{}, name string) (warnings []string, errors []error) {
@@ -579,8 +643,4 @@ func resourceMachineValidateName(value interface{}, name string) (warnings []str
 	}
 
 	return warnings, errors
-}
-
-func resourceMachineImporter(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	return []*schema.ResourceData{d}, nil
 }

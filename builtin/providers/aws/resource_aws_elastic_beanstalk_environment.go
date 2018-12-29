@@ -125,7 +125,7 @@ func resourceAwsElasticBeanstalkEnvironment() *schema.Resource {
 			"wait_for_ready_timeout": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  "10m",
+				Default:  "20m",
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := v.(string)
 					duration, err := time.ParseDuration(value)
@@ -223,7 +223,7 @@ func resourceAwsElasticBeanstalkEnvironmentCreate(d *schema.ResourceData, meta i
 
 	if cnamePrefix != "" {
 		if tier != "WebServer" {
-			return fmt.Errorf("Cannont set cname_prefix for tier: %s.", tier)
+			return fmt.Errorf("Cannot set cname_prefix for tier: %s.", tier)
 		}
 		createOpts.CNAMEPrefix = aws.String(cnamePrefix)
 	}

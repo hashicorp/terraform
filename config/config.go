@@ -285,8 +285,15 @@ func (c *Config) Validate() error {
 		}
 
 		interp := false
-		fn := func(ast.Node) (interface{}, error) {
-			interp = true
+		fn := func(n ast.Node) (interface{}, error) {
+			// LiteralNode is a literal string (outside of a ${ ... } sequence).
+			// interpolationWalker skips most of these. but in particular it
+			// visits those that have escaped sequences (like $${foo}) as a
+			// signal that *some* processing is required on this string. For
+			// our purposes here though, this is fine and not an interpolation.
+			if _, ok := n.(*ast.LiteralNode); !ok {
+				interp = true
+			}
 			return "", nil
 		}
 

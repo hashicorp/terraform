@@ -95,7 +95,9 @@ func resourceScalewayVolumeAttachmentCreate(d *schema.ResourceData, m interface{
 		var req = api.ScalewayServerPatchDefinition{
 			Volumes: &volumes,
 		}
+		mu.Lock()
 		err := scaleway.PatchServer(serverID, req)
+		mu.Unlock()
 
 		if err == nil {
 			return nil
@@ -172,6 +174,9 @@ func resourceScalewayVolumeAttachmentDelete(d *schema.ResourceData, m interface{
 	scaleway := m.(*Client).scaleway
 	scaleway.ClearCache()
 
+	mu.Lock()
+	defer mu.Unlock()
+
 	var startServerAgain = false
 
 	// guard against server shutdown/ startup race conditiond
@@ -221,7 +226,9 @@ func resourceScalewayVolumeAttachmentDelete(d *schema.ResourceData, m interface{
 		var req = api.ScalewayServerPatchDefinition{
 			Volumes: &volumes,
 		}
+		mu.Lock()
 		err := scaleway.PatchServer(serverID, req)
+		mu.Unlock()
 
 		if err == nil {
 			return nil

@@ -66,6 +66,7 @@ func resourceArmNetworkSecurityGroup() *schema.Resource {
 							Type:         schema.TypeString,
 							Required:     true,
 							ValidateFunc: validateNetworkSecurityRuleProtocol,
+							StateFunc:    ignoreCaseStateFunc,
 						},
 
 						"source_port_range": {

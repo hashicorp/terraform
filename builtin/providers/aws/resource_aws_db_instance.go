@@ -101,11 +101,19 @@ func resourceAwsDbInstance() *schema.Resource {
 			},
 
 			"identifier": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"identifier_prefix"},
+				ValidateFunc:  validateRdsIdentifier,
+			},
+			"identifier_prefix": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
 				ForceNew:     true,
-				ValidateFunc: validateRdsId,
+				ValidateFunc: validateRdsIdentifierPrefix,
 			},
 
 			"instance_class": {
@@ -336,10 +344,16 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 	conn := meta.(*AWSClient).rdsconn
 	tags := tagsFromMapRDS(d.Get("tags").(map[string]interface{}))
 
-	identifier := d.Get("identifier").(string)
-	// Generate a unique ID for the user
-	if identifier == "" {
-		identifier = resource.PrefixedUniqueId("tf-")
+	var identifier string
+	if v, ok := d.GetOk("identifier"); ok {
+		identifier = v.(string)
+	} else {
+		if v, ok := d.GetOk("identifier_prefix"); ok {
+			identifier = resource.PrefixedUniqueId(v.(string))
+		} else {
+			identifier = resource.UniqueId()
+		}
+
 		// SQL Server identifier size is max 15 chars, so truncate
 		if engine := d.Get("engine").(string); engine != "" {
 			if strings.Contains(strings.ToLower(engine), "sqlserver") {
@@ -407,7 +421,14 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 		}
 
 		if attr, ok := d.GetOk("name"); ok {
-			opts.DBName = aws.String(attr.(string))
+			// "Note: This parameter [DBName] doesn't apply to the MySQL, PostgreSQL, or MariaDB engines."
+			// https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_RestoreDBInstanceFromDBSnapshot.html
+			switch strings.ToLower(d.Get("engine").(string)) {
+			case "mysql", "postgres", "mariadb":
+				// skip
+			default:
+				opts.DBName = aws.String(attr.(string))
+			}
 		}
 
 		if attr, ok := d.GetOk("availability_zone"); ok {

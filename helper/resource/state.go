@@ -141,7 +141,7 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 					}
 				}
 
-				if !found {
+				if !found && len(conf.Pending) > 0 {
 					result.Error = &UnexpectedStateError{
 						LastError:     err,
 						State:         result.State,

@@ -103,7 +103,7 @@ func testAccAWSCloudwatchLogSubscriptionFilterConfig(rstring string) string {
 	return fmt.Sprintf(`
 resource "aws_cloudwatch_log_subscription_filter" "test_lambdafunction_logfilter" {
   name            = "test_lambdafunction_logfilter_%s"
-  log_group_name  = "example_lambda_name"
+  log_group_name  = "${aws_cloudwatch_log_group.logs.name}"
   filter_pattern  = "logtype test"
   destination_arn = "${aws_lambda_function.test_lambdafunction.arn}"
 }

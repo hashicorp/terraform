@@ -18,7 +18,7 @@ data "ignition_filesystem" "foo" {
 	mount {
 		device = "/dev/disk/by-label/ROOT"
 		format = "xfs"
-		force = true
+		create = true
 		options = ["-L", "ROOT"]
 	}
 }
@@ -36,14 +36,16 @@ The following arguments are supported:
 
 
 The `mount` block supports:
- 
+
 * `device` - (Required) The absolute path to the device. Devices are typically referenced by the _/dev/disk/by-*_ symlinks.
 
 * `format` - (Required) The filesystem format (ext4, btrfs, or xfs).
 
-* `force` - (Optional) Whether or not the create operation shall overwrite an existing filesystem.
+* `create` - (Optional) Indicates if the filesystem shall be created.
 
-* `options` - (Optional) Any additional options to be passed to the format-specific mkfs utility.
+* `force` - (Optional) Whether or not the create operation shall overwrite an existing filesystem. Only allowed if the filesystem is being created.
+
+* `options` - (Optional) Any additional options to be passed to the format-specific mkfs utility. Only allowed if the filesystem is being created
 
 ## Attributes Reference
 

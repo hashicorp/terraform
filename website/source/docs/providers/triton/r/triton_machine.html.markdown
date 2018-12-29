@@ -1,7 +1,7 @@
 ---
 layout: "triton"
 page_title: "Triton: triton_machine"
-sidebar_current: "docs-triton-firewall"
+sidebar_current: "docs-triton-resource-machine"
 description: |-
     The `triton_machine` resource represents a virtual machine or infrastructure container running in Triton.
 ---
@@ -12,12 +12,12 @@ The `triton_machine` resource represents a virtual machine or infrastructure con
 
 ## Example Usages
 
-Run a SmartOS base-64 machine.
+### Run a SmartOS base-64 machine.
 
 
 ```
-resource "triton_machine" "test" {
-  name    = "example-machine"
+resource "triton_machine" "test-smartos" {
+  name    = "test-smartos"
   package = "g3-standard-0.25-smartos"
   image   = "842e6fa6-6e9b-11e5-8402-1b490459e334"
 
@@ -26,6 +26,25 @@ resource "triton_machine" "test" {
   }
 }
 ```
+
+### Run an Ubuntu 14.04 LTS machine.
+
+```
+resource "triton_machine" "test-ubuntu" {
+  name                 = "test-ubuntu"
+  package              = "g4-general-4G"
+  image                = "1996a1d6-c0d9-11e6-8b80-4772e39dc920"
+  firewall_enabled     = true
+  root_authorized_keys = "Example Key"
+  user_script          = "#!/bin/bash\necho 'testing user-script' >> /tmp/test.out\nhostname $IMAGENAME"
+
+  tags = {
+    purpose = "testing ubuntu"
+  } ## tags
+} ## resource
+```
+
+
 
 ## Argument Reference
 

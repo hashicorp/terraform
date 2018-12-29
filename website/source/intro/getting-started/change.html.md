@@ -23,20 +23,20 @@ can see how the infrastructure evolved over time.
 
 ## Configuration
 
-Let's modify the `ami` of our instance. Edit the "aws\_instance.example"
+Let's modify the `ami` of our instance. Edit the `aws_instance.example`
 resource in your configuration and change it to the following:
 
 ```
 resource "aws_instance" "example" {
-  ami           = "ami-13be557e"
+  ami           = "ami-b374d5a5"
   instance_type = "t2.micro"
 }
 ```
 
 ~> **Note:** EC2 Classic users please use AMI `ami-656be372` and type `t1.micro`
 
-We've changed the AMI from being an Ubuntu 14.04 LTS AMI to being
-an Ubuntu 16.04 LTS AMI. Terraform configurations are meant to be
+We've changed the AMI from being an Ubuntu 16.04 LTS AMI to being
+an Ubuntu 16.10 AMI. Terraform configurations are meant to be
 changed like this. You can also completely remove resources
 and Terraform will know to destroy the old one.
 
@@ -49,7 +49,7 @@ $ terraform plan
 ...
 
 -/+ aws_instance.example
-    ami:                      "ami-0d729a60" => "ami-13be557e" (forces new resource)
+    ami:                      "ami-2757f631" => "ami-b374d5a5" (forces new resource)
     availability_zone:        "us-east-1a" => "<computed>"
     ebs_block_device.#:       "0" => "<computed>"
     ephemeral_block_device.#: "0" => "<computed>"
@@ -86,7 +86,7 @@ aws_instance.example: Refreshing state... (ID: i-64c268fe)
 aws_instance.example: Destroying...
 aws_instance.example: Destruction complete
 aws_instance.example: Creating...
-  ami:                      "" => "ami-13be557e"
+  ami:                      "" => "ami-b374d5a5"
   availability_zone:        "" => "<computed>"
   ebs_block_device.#:       "" => "<computed>"
   ephemeral_block_device.#: "" => "<computed>"

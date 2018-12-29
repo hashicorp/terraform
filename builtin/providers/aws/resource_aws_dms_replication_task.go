@@ -8,8 +8,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/private/waiter"
 	dms "github.com/aws/aws-sdk-go/service/databasemigrationservice"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
 )
@@ -121,13 +121,23 @@ func resourceAwsDmsReplicationTaskCreate(d *schema.ResourceData, meta interface{
 	}
 
 	taskId := d.Get("replication_task_id").(string)
+	d.SetId(taskId)
 
-	err = waitForTaskCreated(conn, taskId, 30, 10)
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"creating"},
+		Target:     []string{"ready"},
+		Refresh:    resourceAwsDmsReplicationTaskStateRefreshFunc(d, meta),
+		Timeout:    d.Timeout(schema.TimeoutCreate),
+		MinTimeout: 10 * time.Second,
+		Delay:      30 * time.Second, // Wait 30 secs before starting
+	}
+
+	// Wait, catching any errors
+	_, err = stateConf.WaitForState()
 	if err != nil {
 		return err
 	}
 
-	d.SetId(taskId)
 	return resourceAwsDmsReplicationTaskRead(d, meta)
 }
 
@@ -144,6 +154,7 @@ func resourceAwsDmsReplicationTaskRead(d *schema.ResourceData, meta interface{})
 	})
 	if err != nil {
 		if dmserr, ok := err.(awserr.Error); ok && dmserr.Code() == "ResourceNotFoundFault" {
+			log.Printf("[DEBUG] DMS Replication Task %q Not Found", d.Id())
 			d.SetId("")
 			return nil
 		}
@@ -213,7 +224,17 @@ func resourceAwsDmsReplicationTaskUpdate(d *schema.ResourceData, meta interface{
 			return err
 		}
 
-		err = waitForTaskUpdated(conn, d.Get("replication_task_id").(string), 30, 10)
+		stateConf := &resource.StateChangeConf{
+			Pending:    []string{"modifying"},
+			Target:     []string{"ready"},
+			Refresh:    resourceAwsDmsReplicationTaskStateRefreshFunc(d, meta),
+			Timeout:    d.Timeout(schema.TimeoutCreate),
+			MinTimeout: 10 * time.Second,
+			Delay:      30 * time.Second, // Wait 30 secs before starting
+		}
+
+		// Wait, catching any errors
+		_, err = stateConf.WaitForState()
 		if err != nil {
 			return err
 		}
@@ -235,12 +256,27 @@ func resourceAwsDmsReplicationTaskDelete(d *schema.ResourceData, meta interface{
 
 	_, err := conn.DeleteReplicationTask(request)
 	if err != nil {
+		if dmserr, ok := err.(awserr.Error); ok && dmserr.Code() == "ResourceNotFoundFault" {
+			log.Printf("[DEBUG] DMS Replication Task %q Not Found", d.Id())
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 
-	waitErr := waitForTaskDeleted(conn, d.Get("replication_task_id").(string), 30, 10)
-	if waitErr != nil {
-		return waitErr
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"deleting"},
+		Target:     []string{},
+		Refresh:    resourceAwsDmsReplicationTaskStateRefreshFunc(d, meta),
+		Timeout:    d.Timeout(schema.TimeoutCreate),
+		MinTimeout: 10 * time.Second,
+		Delay:      30 * time.Second, // Wait 30 secs before starting
+	}
+
+	// Wait, catching any errors
+	_, err = stateConf.WaitForState()
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -261,119 +297,35 @@ func resourceAwsDmsReplicationTaskSetState(d *schema.ResourceData, task *dms.Rep
 	return nil
 }
 
-func waitForTaskCreated(client *dms.DatabaseMigrationService, id string, delay int, maxAttempts int) error {
-	input := &dms.DescribeReplicationTasksInput{
-		Filters: []*dms.Filter{
-			{
-				Name:   aws.String("replication-task-id"),
-				Values: []*string{aws.String(id)},
+func resourceAwsDmsReplicationTaskStateRefreshFunc(
+	d *schema.ResourceData, meta interface{}) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		conn := meta.(*AWSClient).dmsconn
+
+		v, err := conn.DescribeReplicationTasks(&dms.DescribeReplicationTasksInput{
+			Filters: []*dms.Filter{
+				{
+					Name:   aws.String("replication-task-id"),
+					Values: []*string{aws.String(d.Id())}, // Must use d.Id() to work with import.
+				},
 			},
-		},
+		})
+		if err != nil {
+			if dmserr, ok := err.(awserr.Error); ok && dmserr.Code() == "ResourceNotFoundFault" {
+				return nil, "", nil
+			}
+			log.Printf("Error on retrieving DMS Replication Task when waiting: %s", err)
+			return nil, "", err
+		}
+
+		if v == nil {
+			return nil, "", nil
+		}
+
+		if v.ReplicationTasks != nil {
+			log.Printf("[DEBUG] DMS Replication Task status for instance %s: %s", d.Id(), *v.ReplicationTasks[0].Status)
+		}
+
+		return v, *v.ReplicationTasks[0].Status, nil
 	}
-
-	config := waiter.Config{
-		Operation:   "DescribeReplicationTasks",
-		Delay:       delay,
-		MaxAttempts: maxAttempts,
-		Acceptors: []waiter.WaitAcceptor{
-			{
-				State:    "retry",
-				Matcher:  "pathAll",
-				Argument: "ReplicationTasks[].Status",
-				Expected: "creating",
-			},
-			{
-				State:    "success",
-				Matcher:  "pathAll",
-				Argument: "ReplicationTasks[].Status",
-				Expected: "ready",
-			},
-		},
-	}
-
-	w := waiter.Waiter{
-		Client: client,
-		Input:  input,
-		Config: config,
-	}
-
-	return w.Wait()
-}
-
-func waitForTaskUpdated(client *dms.DatabaseMigrationService, id string, delay int, maxAttempts int) error {
-	input := &dms.DescribeReplicationTasksInput{
-		Filters: []*dms.Filter{
-			{
-				Name:   aws.String("replication-task-id"),
-				Values: []*string{aws.String(id)},
-			},
-		},
-	}
-
-	config := waiter.Config{
-		Operation:   "DescribeReplicationTasks",
-		Delay:       delay,
-		MaxAttempts: maxAttempts,
-		Acceptors: []waiter.WaitAcceptor{
-			{
-				State:    "retry",
-				Matcher:  "pathAll",
-				Argument: "ReplicationTasks[].Status",
-				Expected: "modifying",
-			},
-			{
-				State:    "success",
-				Matcher:  "pathAll",
-				Argument: "ReplicationTasks[].Status",
-				Expected: "ready",
-			},
-		},
-	}
-
-	w := waiter.Waiter{
-		Client: client,
-		Input:  input,
-		Config: config,
-	}
-
-	return w.Wait()
-}
-
-func waitForTaskDeleted(client *dms.DatabaseMigrationService, id string, delay int, maxAttempts int) error {
-	input := &dms.DescribeReplicationTasksInput{
-		Filters: []*dms.Filter{
-			{
-				Name:   aws.String("replication-task-id"),
-				Values: []*string{aws.String(id)},
-			},
-		},
-	}
-
-	config := waiter.Config{
-		Operation:   "DescribeReplicationTasks",
-		Delay:       delay,
-		MaxAttempts: maxAttempts,
-		Acceptors: []waiter.WaitAcceptor{
-			{
-				State:    "retry",
-				Matcher:  "pathAll",
-				Argument: "ReplicationTasks[].Status",
-				Expected: "deleting",
-			},
-			{
-				State:    "success",
-				Matcher:  "path",
-				Argument: "length(ReplicationTasks[]) > `0`",
-				Expected: false,
-			},
-		},
-	}
-
-	w := waiter.Waiter{
-		Client: client,
-		Input:  input,
-		Config: config,
-	}
-
-	return w.Wait()
 }

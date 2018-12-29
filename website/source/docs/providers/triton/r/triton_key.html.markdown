@@ -1,7 +1,7 @@
 ---
 layout: "triton"
 page_title: "Triton: triton_key"
-sidebar_current: "docs-triton-firewall"
+sidebar_current: "docs-triton-resource-key"
 description: |-
     The `triton_key` resource represents an SSH key for a Triton account.
 ---
