@@ -15,12 +15,12 @@ func dataSourceAwsSubnetIDs() *schema.Resource {
 
 			"tags": tagsSchemaComputed(),
 
-			"vpc_id": &schema.Schema{
+			"vpc_id": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"ids": &schema.Schema{
+			"ids": {
 				Type:     schema.TypeSet,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},

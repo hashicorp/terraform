@@ -2,7 +2,7 @@
 
 package json
 
-import "fmt"
+import "strconv"
 
 const _tokenType_name = "tokenInvalidtokenCommatokenColontokenEqualstokenKeywordtokenNumbertokenStringtokenBrackOtokenBrackCtokenBraceOtokenBraceCtokenEOF"
 
@@ -25,5 +25,5 @@ func (i tokenType) String() string {
 	if str, ok := _tokenType_map[i]; ok {
 		return str
 	}
-	return fmt.Sprintf("tokenType(%d)", i)
+	return "tokenType(" + strconv.FormatInt(int64(i), 10) + ")"
 }

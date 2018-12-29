@@ -40,7 +40,7 @@ func TestBackendConfig(t *testing.T) {
 func TestBackend(t *testing.T) {
 	defer Reset()
 	b := backend.TestBackendConfig(t, New(), nil).(*Backend)
-	backend.TestBackend(t, b, nil)
+	backend.TestBackendStates(t, b)
 }
 
 func TestBackendLocked(t *testing.T) {
@@ -48,7 +48,7 @@ func TestBackendLocked(t *testing.T) {
 	b1 := backend.TestBackendConfig(t, New(), nil).(*Backend)
 	b2 := backend.TestBackendConfig(t, New(), nil).(*Backend)
 
-	backend.TestBackend(t, b1, b2)
+	backend.TestBackendStateLocks(t, b1, b2)
 }
 
 // use the this backen to test the remote.State implementation

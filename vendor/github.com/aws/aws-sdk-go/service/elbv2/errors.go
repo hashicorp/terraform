@@ -4,6 +4,18 @@ package elbv2
 
 const (
 
+	// ErrCodeAllocationIdNotFoundException for service response error code
+	// "AllocationIdNotFound".
+	//
+	// The specified allocation ID does not exist.
+	ErrCodeAllocationIdNotFoundException = "AllocationIdNotFound"
+
+	// ErrCodeAvailabilityZoneNotSupportedException for service response error code
+	// "AvailabilityZoneNotSupported".
+	//
+	// The specified Availability Zone is not supported.
+	ErrCodeAvailabilityZoneNotSupportedException = "AvailabilityZoneNotSupported"
+
 	// ErrCodeCertificateNotFoundException for service response error code
 	// "CertificateNotFound".
 	//
@@ -141,7 +153,7 @@ const (
 	// ErrCodeTooManyCertificatesException for service response error code
 	// "TooManyCertificates".
 	//
-	// You've reached the limit on the number of certificates per listener.
+	// You've reached the limit on the number of certificates per load balancer.
 	ErrCodeTooManyCertificatesException = "TooManyCertificates"
 
 	// ErrCodeTooManyListenersException for service response error code

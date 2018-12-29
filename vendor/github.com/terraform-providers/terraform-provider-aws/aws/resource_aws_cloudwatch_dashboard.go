@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/structure"
 )
 
 func resourceAwsCloudWatchDashboard() *schema.Resource {
@@ -34,7 +35,7 @@ func resourceAwsCloudWatchDashboard() *schema.Resource {
 				Required:     true,
 				ValidateFunc: validateJsonString,
 				StateFunc: func(v interface{}) string {
-					json, _ := normalizeJsonString(v)
+					json, _ := structure.NormalizeJsonString(v)
 					return json
 				},
 				DiffSuppressFunc: suppressEquivalentJsonDiffs,

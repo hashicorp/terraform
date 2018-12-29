@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/hcl2/hcl"
 )
 
-// ParseConfig interprets the given source bytes into a *zclwrite.File. The
+// ParseConfig interprets the given source bytes into a *hclwrite.File. The
 // resulting AST can be used to perform surgical edits on the source code
 // before turning it back into bytes again.
 func ParseConfig(src []byte, filename string, start hcl.Pos) (*File, hcl.Diagnostics) {

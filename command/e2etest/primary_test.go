@@ -111,7 +111,7 @@ func TestPrimarySeparatePlan(t *testing.T) {
 	}
 
 	//// DESTROY
-	stdout, stderr, err = tf.Run("destroy", "-force")
+	stdout, stderr, err = tf.Run("destroy", "-auto-approve")
 	if err != nil {
 		t.Fatalf("unexpected destroy error: %s\nstderr:\n%s", err, stderr)
 	}

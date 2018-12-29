@@ -66,7 +66,7 @@ func resourceAwsSnapshotCreateVolumePermissionCreate(d *schema.ResourceData, met
 		Pending:    []string{"denied"},
 		Target:     []string{"granted"},
 		Refresh:    resourceAwsSnapshotCreateVolumePermissionStateRefreshFunc(conn, snapshot_id, account_id),
-		Timeout:    5 * time.Minute,
+		Timeout:    20 * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 10 * time.Second,
 	}

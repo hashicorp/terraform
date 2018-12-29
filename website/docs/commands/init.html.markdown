@@ -48,7 +48,7 @@ The following options apply to all of (or several of) the initialization steps:
 * `-no-color` Disable color codes in the command output.
 
 * `-upgrade` Opt to upgrade modules and plugins as part of their respective
-  installation steps. See the seconds below for more details.
+  installation steps. See the sections below for more details.
 
 ## Copy a Source Module
 
@@ -69,9 +69,9 @@ This special mode of operation supports two use-cases:
 * If the source refers to an _example_ configuration, it can be copied into
   a local directory to be used as a basis for a new configuration.
 
-For routine use it's recommended to check out configuration from version
+For routine use it is recommended to check out configuration from version
 control separately, using the version control system's own commands. This way
-it's possible to pass extra flags to the version control system when necessary,
+it is possible to pass extra flags to the version control system when necessary,
 and to perform other preparation steps (such as configuration generation, or
 activating credentials) before running `terraform init`.
 
@@ -89,7 +89,7 @@ migration questions. The `-reconfigure` option disregards any existing
 configuration, preventing migration of any existing state.
 
 To skip backend configuration, use `-backend=false`. Note that some other init
-steps require an initialized backend, so it's recommended to use this flag only
+steps require an initialized backend, so it is recommended to use this flag only
 when the working directory was already previously initialized for a particular
 backend.
 
@@ -133,7 +133,8 @@ The automatic plugin installation behavior can be overridden by extracting
 the desired providers into a local directory and using the additional option
 `-plugin-dir=PATH`. When this option is specified, _only_ the given directory
 is consulted, which prevents Terraform from making requests to the plugin
-repository or looking for plugins in other local directories.
+repository or looking for plugins in other local directories. Passing an empty
+string to `-plugin-dir` removes any previously recorded paths.
 
 Custom plugins can be used along with automatically installed plugins by
 placing them in `terraform.d/plugins/OS_ARCH/` inside the directory being

@@ -85,7 +85,7 @@ func resourceAwsAutoscalingAttachmentRead(d *schema.ResourceData, meta interface
 		return err
 	}
 	if asg == nil {
-		log.Printf("[INFO] Autoscaling Group %q not found", asgName)
+		log.Printf("[WARN] Autoscaling Group (%s) not found, removing from state", d.Id())
 		d.SetId("")
 		return nil
 	}

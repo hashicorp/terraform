@@ -79,6 +79,7 @@ func (b *gcsBackend) client(name string) (*remoteClient, error) {
 		bucketName:     b.bucketName,
 		stateFilePath:  b.stateFile(name),
 		lockFilePath:   b.lockFile(name),
+		encryptionKey:  b.encryptionKey,
 	}, nil
 }
 

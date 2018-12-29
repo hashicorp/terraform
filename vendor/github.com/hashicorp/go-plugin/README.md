@@ -76,7 +76,7 @@ must be properly secured to protect this configuration.
 ## Architecture
 
 The HashiCorp plugin system works by launching subprocesses and communicating
-over RPC (using standard `net/rpc` or [gRPC](http://www.grpc.io). A single
+over RPC (using standard `net/rpc` or [gRPC](http://www.grpc.io)). A single
 connection is made between any plugin and the host process. For net/rpc-based
 plugins, we use a [connection multiplexing](https://github.com/hashicorp/yamux)
 library to multiplex any other connections on top. For gRPC-based plugins,

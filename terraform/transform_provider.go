@@ -138,13 +138,13 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 		p := v.(GraphNodeProvider)
 
 		// get the close provider of this type if we alread created it
-		closer := cpm[p.ProviderName()]
+		closer := cpm[p.Name()]
 
 		if closer == nil {
 			// create a closer for this provider type
-			closer = &graphNodeCloseProvider{ProviderNameValue: p.ProviderName()}
+			closer = &graphNodeCloseProvider{ProviderNameValue: p.Name()}
 			g.Add(closer)
-			cpm[p.ProviderName()] = closer
+			cpm[p.Name()] = closer
 		}
 
 		// Close node depends on the provider itself
@@ -336,7 +336,7 @@ type graphNodeCloseProvider struct {
 }
 
 func (n *graphNodeCloseProvider) Name() string {
-	return fmt.Sprintf("provider.%s (close)", n.ProviderNameValue)
+	return n.ProviderNameValue + " (close)"
 }
 
 // GraphNodeEvalable impl.

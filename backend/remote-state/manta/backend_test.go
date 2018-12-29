@@ -38,7 +38,7 @@ func TestBackend(t *testing.T) {
 	createMantaFolder(t, b.storageClient, directory)
 	defer deleteMantaFolder(t, b.storageClient, directory)
 
-	backend.TestBackend(t, b, nil)
+	backend.TestBackendStates(t, b)
 }
 
 func TestBackendLocked(t *testing.T) {
@@ -60,11 +60,11 @@ func TestBackendLocked(t *testing.T) {
 	createMantaFolder(t, b1.storageClient, directory)
 	defer deleteMantaFolder(t, b1.storageClient, directory)
 
-	backend.TestBackend(t, b1, b2)
+	backend.TestBackendStateLocks(t, b1, b2)
+	backend.TestBackendStateForceUnlock(t, b1, b2)
 }
 
 func createMantaFolder(t *testing.T, mantaClient *storage.StorageClient, directoryName string) {
-
 	// Be clear about what we're doing in case the user needs to clean
 	// this up later.
 	//t.Logf("creating Manta directory %s", directoryName)

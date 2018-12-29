@@ -1096,8 +1096,12 @@ func viewerCertificateHash(v interface{}) int {
 	} else {
 		buf.WriteString(fmt.Sprintf("%t-", m["cloudfront_default_certificate"].(bool)))
 	}
-	if v, ok := m["minimum_protocol_version"]; ok && v.(string) != "" {
-		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	// if minimum_protocol_version is not specified and we use cloudfront_default_certificate,
+	// ignore current value of minimum_protocol_version
+	if c, ok := m["cloudfront_default_certificate"]; !(ok && c.(bool)) {
+		if v, ok := m["minimum_protocol_version"]; ok && v.(string) != "" {
+			buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+		}
 	}
 	return hashcode.String(buf.String())
 }

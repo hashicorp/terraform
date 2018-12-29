@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"errors"
 	"log"
 
 	"fmt"
@@ -43,6 +42,10 @@ func resourceAwsVpcPeeringConnectionAccepter() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"peer_region": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"accepter":  vpcPeeringConnectionOptionsSchema(),
 			"requester": vpcPeeringConnectionOptionsSchema(),
 			"tags":      tagsSchema(),
@@ -59,11 +62,6 @@ func resourceAwsVPCPeeringAccepterCreate(d *schema.ResourceData, meta interface{
 	}
 	if d.Id() == "" {
 		return fmt.Errorf("VPC Peering Connection %q not found", id)
-	}
-
-	// Ensure that this IS as cross-account VPC peering connection.
-	if d.Get("peer_owner_id").(string) == meta.(*AWSClient).accountid {
-		return errors.New("aws_vpc_peering_connection_accepter can only adopt into management cross-account VPC peering connections")
 	}
 
 	return resourceAwsVPCPeeringUpdate(d, meta)

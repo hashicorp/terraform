@@ -113,7 +113,7 @@ func resourceAwsEbsSnapshotRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("owner_alias", snapshot.OwnerAlias)
 	d.Set("volume_id", snapshot.VolumeId)
 	d.Set("data_encryption_key_id", snapshot.DataEncryptionKeyId)
-	d.Set("kms_keey_id", snapshot.KmsKeyId)
+	d.Set("kms_key_id", snapshot.KmsKeyId)
 	d.Set("volume_size", snapshot.VolumeSize)
 
 	if err := d.Set("tags", tagsToMap(snapshot.Tags)); err != nil {

@@ -346,7 +346,7 @@ func (c *ResourceConfig) get(
 				if err != nil {
 					return nil, false
 				}
-				if i >= int64(cv.Len()) {
+				if int(i) < 0 || int(i) >= cv.Len() {
 					return nil, false
 				}
 				current = cv.Index(int(i)).Interface()

@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/structure"
 )
 
 func resourceAwsCloudWatchEventRule() *schema.Resource {
@@ -25,42 +26,42 @@ func resourceAwsCloudWatchEventRule() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
 				ValidateFunc: validateCloudWatchEventRuleName,
 			},
-			"schedule_expression": &schema.Schema{
+			"schedule_expression": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validateMaxLength(256),
 			},
-			"event_pattern": &schema.Schema{
+			"event_pattern": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validateEventPatternValue(2048),
 				StateFunc: func(v interface{}) string {
-					json, _ := normalizeJsonString(v)
+					json, _ := structure.NormalizeJsonString(v.(string))
 					return json
 				},
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validateMaxLength(512),
 			},
-			"role_arn": &schema.Schema{
+			"role_arn": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validateMaxLength(1600),
 			},
-			"is_enabled": &schema.Schema{
+			"is_enabled": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 			},
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -129,7 +130,7 @@ func resourceAwsCloudWatchEventRuleRead(d *schema.ResourceData, meta interface{}
 	d.Set("arn", out.Arn)
 	d.Set("description", out.Description)
 	if out.EventPattern != nil {
-		pattern, err := normalizeJsonString(*out.EventPattern)
+		pattern, err := structure.NormalizeJsonString(*out.EventPattern)
 		if err != nil {
 			return errwrap.Wrapf("event pattern contains an invalid JSON: {{err}}", err)
 		}
@@ -227,7 +228,7 @@ func buildPutRuleInputStruct(d *schema.ResourceData) (*events.PutRuleInput, erro
 		input.Description = aws.String(v.(string))
 	}
 	if v, ok := d.GetOk("event_pattern"); ok {
-		pattern, err := normalizeJsonString(v)
+		pattern, err := structure.NormalizeJsonString(v)
 		if err != nil {
 			return nil, errwrap.Wrapf("event pattern contains an invalid JSON: {{err}}", err)
 		}
@@ -267,7 +268,7 @@ func getStringStateFromBoolean(isEnabled bool) string {
 
 func validateEventPatternValue(length int) schema.SchemaValidateFunc {
 	return func(v interface{}, k string) (ws []string, errors []error) {
-		json, err := normalizeJsonString(v)
+		json, err := structure.NormalizeJsonString(v)
 		if err != nil {
 			errors = append(errors, fmt.Errorf("%q contains an invalid JSON: %s", k, err))
 

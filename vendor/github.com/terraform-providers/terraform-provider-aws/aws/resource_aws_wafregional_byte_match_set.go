@@ -102,7 +102,7 @@ func resourceAwsWafRegionalByteMatchSetRead(d *schema.ResourceData, meta interfa
 	resp, err := conn.GetByteMatchSet(params)
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "WAFNonexistentItemException" {
-			log.Printf("[WARN] WAF IPSet (%s) not found, error code (404)", d.Id())
+			log.Printf("[WARN] WAF IPSet (%s) not found, removing from state", d.Id())
 			d.SetId("")
 			return nil
 		}

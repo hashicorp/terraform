@@ -11,8 +11,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/backend/local"
 	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/plugin/discovery"
+	"github.com/hashicorp/terraform/state"
+	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
 
@@ -530,7 +533,45 @@ func TestInit_inputFalse(t *testing.T) {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter)
 	}
 
+	// write different states for foo and bar
+	s := terraform.NewState()
+	s.Lineage = "foo"
+	if err := (&state.LocalState{Path: "foo"}).WriteState(s); err != nil {
+		t.Fatal(err)
+	}
+	s.Lineage = "bar"
+	if err := (&state.LocalState{Path: "bar"}).WriteState(s); err != nil {
+		t.Fatal(err)
+	}
+
+	ui = new(cli.MockUi)
+	c = &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
 	args = []string{"-input=false", "-backend-config=path=bar"}
+	if code := c.Run(args); code == 0 {
+		t.Fatal("init should have failed", ui.OutputWriter)
+	}
+
+	errMsg := ui.ErrorWriter.String()
+	if !strings.Contains(errMsg, "input disabled") {
+		t.Fatal("expected input disabled error, got", errMsg)
+	}
+
+	ui = new(cli.MockUi)
+	c = &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	// A missing input=false should abort rather than loop infinitely
+	args = []string{"-backend-config=path=bar"}
 	if code := c.Run(args); code == 0 {
 		t.Fatal("init should have failed", ui.OutputWriter)
 	}
@@ -543,12 +584,12 @@ func TestInit_getProvider(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
+	overrides := metaOverridesForProvider(testProvider())
 	ui := new(cli.MockUi)
 	m := Meta{
-		testingOverrides: metaOverridesForProvider(testProvider()),
+		testingOverrides: overrides,
 		Ui:               ui,
 	}
-
 	installer := &mockProviderInstaller{
 		Providers: map[string][]string{
 			// looking for an exact version
@@ -591,6 +632,36 @@ func TestInit_getProvider(t *testing.T) {
 	if _, err := os.Stat(betweenPath); os.IsNotExist(err) {
 		t.Fatal("provider 'between' not downloaded")
 	}
+
+	t.Run("future-state", func(t *testing.T) {
+		// getting providers should fail if a state from a newer version of
+		// terraform exists, since InitCommand.getProviders needs to inspect that
+		// state.
+		s := terraform.NewState()
+		s.TFVersion = "100.1.0"
+		local := &state.LocalState{
+			Path: local.DefaultStateFilename,
+		}
+		if err := local.WriteState(s); err != nil {
+			t.Fatal(err)
+		}
+
+		ui := new(cli.MockUi)
+		m.Ui = ui
+		c := &InitCommand{
+			Meta:              m,
+			providerInstaller: installer,
+		}
+
+		if code := c.Run(nil); code == 0 {
+			t.Fatal("expected error, got:", ui.OutputWriter)
+		}
+
+		errMsg := ui.ErrorWriter.String()
+		if !strings.Contains(errMsg, "future Terraform version") {
+			t.Fatal("unexpected error:", errMsg)
+		}
+	})
 }
 
 // make sure we can locate providers in various paths
@@ -926,6 +997,67 @@ func TestInit_providerLockFile(t *testing.T) {
 	}
 }
 
+func TestInit_pluginDirReset(t *testing.T) {
+	td := testTempDir(t)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+		providerInstaller: &mockProviderInstaller{},
+	}
+
+	// make our vendor paths
+	pluginPath := []string{"a", "b", "c"}
+	for _, p := range pluginPath {
+		if err := os.MkdirAll(p, 0755); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// run once and save the -plugin-dir
+	args := []string{"-plugin-dir", "a"}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter)
+	}
+
+	pluginDirs, err := c.loadPluginPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(pluginDirs) != 1 || pluginDirs[0] != "a" {
+		t.Fatalf(`expected plugin dir ["a"], got %q`, pluginDirs)
+	}
+
+	ui = new(cli.MockUi)
+	c = &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+		providerInstaller: &mockProviderInstaller{},
+	}
+
+	// make sure we remove the plugin-dir record
+	args = []string{"-plugin-dir="}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter)
+	}
+
+	pluginDirs, err = c.loadPluginPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(pluginDirs) != 0 {
+		t.Fatalf("expected no plugin dirs got %q", pluginDirs)
+	}
+}
+
 // Test user-supplied -plugin-dir
 func TestInit_pluginDirProviders(t *testing.T) {
 	td := tempDir(t)
@@ -1021,5 +1153,29 @@ func TestInit_pluginDirProvidersDoesNotGet(t *testing.T) {
 	if code := c.Run(args); code == 0 {
 		// should have been an error
 		t.Fatalf("bad: \n%s", ui.OutputWriter)
+	}
+}
+
+// Verify that plugin-dir doesn't prevent discovery of internal providers
+func TestInit_pluginWithInternal(t *testing.T) {
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-internal"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	m := Meta{
+		testingOverrides: metaOverridesForProvider(testProvider()),
+		Ui:               ui,
+	}
+
+	c := &InitCommand{
+		Meta: m,
+	}
+
+	args := []string{"-plugin-dir", "./"}
+	//args := []string{}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("error: %s", ui.ErrorWriter)
 	}
 }

@@ -30,7 +30,7 @@ var primitiveConversionsSafe = map[cty.Type]map[cty.Type]conversion{
 var primitiveConversionsUnsafe = map[cty.Type]map[cty.Type]conversion{
 	cty.String: {
 		cty.Number: func(val cty.Value, path cty.Path) (cty.Value, error) {
-			f, _, err := (&big.Float{}).Parse(val.AsString(), 10)
+			f, _, err := big.ParseFloat(val.AsString(), 10, 512, big.ToNearestEven)
 			if err != nil {
 				return cty.NilVal, path.NewErrorf("a number is required")
 			}

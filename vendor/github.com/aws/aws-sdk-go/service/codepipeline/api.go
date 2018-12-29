@@ -38,7 +38,7 @@ const opAcknowledgeJob = "AcknowledgeJob"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/AcknowledgeJob
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/AcknowledgeJob
 func (c *CodePipeline) AcknowledgeJobRequest(input *AcknowledgeJobInput) (req *request.Request, output *AcknowledgeJobOutput) {
 	op := &request.Operation{
 		Name:       opAcknowledgeJob,
@@ -77,7 +77,7 @@ func (c *CodePipeline) AcknowledgeJobRequest(input *AcknowledgeJobInput) (req *r
 //   * ErrCodeJobNotFoundException "JobNotFoundException"
 //   The specified job was specified in an invalid format or cannot be found.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/AcknowledgeJob
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/AcknowledgeJob
 func (c *CodePipeline) AcknowledgeJob(input *AcknowledgeJobInput) (*AcknowledgeJobOutput, error) {
 	req, out := c.AcknowledgeJobRequest(input)
 	return out, req.Send()
@@ -124,7 +124,7 @@ const opAcknowledgeThirdPartyJob = "AcknowledgeThirdPartyJob"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/AcknowledgeThirdPartyJob
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/AcknowledgeThirdPartyJob
 func (c *CodePipeline) AcknowledgeThirdPartyJobRequest(input *AcknowledgeThirdPartyJobInput) (req *request.Request, output *AcknowledgeThirdPartyJobOutput) {
 	op := &request.Operation{
 		Name:       opAcknowledgeThirdPartyJob,
@@ -166,7 +166,7 @@ func (c *CodePipeline) AcknowledgeThirdPartyJobRequest(input *AcknowledgeThirdPa
 //   * ErrCodeInvalidClientTokenException "InvalidClientTokenException"
 //   The client token was specified in an invalid format
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/AcknowledgeThirdPartyJob
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/AcknowledgeThirdPartyJob
 func (c *CodePipeline) AcknowledgeThirdPartyJob(input *AcknowledgeThirdPartyJobInput) (*AcknowledgeThirdPartyJobOutput, error) {
 	req, out := c.AcknowledgeThirdPartyJobRequest(input)
 	return out, req.Send()
@@ -213,7 +213,7 @@ const opCreateCustomActionType = "CreateCustomActionType"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/CreateCustomActionType
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/CreateCustomActionType
 func (c *CodePipeline) CreateCustomActionTypeRequest(input *CreateCustomActionTypeInput) (req *request.Request, output *CreateCustomActionTypeOutput) {
 	op := &request.Operation{
 		Name:       opCreateCustomActionType,
@@ -250,7 +250,7 @@ func (c *CodePipeline) CreateCustomActionTypeRequest(input *CreateCustomActionTy
 //   The number of pipelines associated with the AWS account has exceeded the
 //   limit allowed for the account.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/CreateCustomActionType
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/CreateCustomActionType
 func (c *CodePipeline) CreateCustomActionType(input *CreateCustomActionTypeInput) (*CreateCustomActionTypeOutput, error) {
 	req, out := c.CreateCustomActionTypeRequest(input)
 	return out, req.Send()
@@ -297,7 +297,7 @@ const opCreatePipeline = "CreatePipeline"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/CreatePipeline
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/CreatePipeline
 func (c *CodePipeline) CreatePipelineRequest(input *CreatePipelineInput) (req *request.Request, output *CreatePipelineOutput) {
 	op := &request.Operation{
 		Name:       opCreatePipeline,
@@ -348,7 +348,7 @@ func (c *CodePipeline) CreatePipelineRequest(input *CreatePipelineInput) (req *r
 //   The number of pipelines associated with the AWS account has exceeded the
 //   limit allowed for the account.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/CreatePipeline
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/CreatePipeline
 func (c *CodePipeline) CreatePipeline(input *CreatePipelineInput) (*CreatePipelineOutput, error) {
 	req, out := c.CreatePipelineRequest(input)
 	return out, req.Send()
@@ -395,7 +395,7 @@ const opDeleteCustomActionType = "DeleteCustomActionType"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/DeleteCustomActionType
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/DeleteCustomActionType
 func (c *CodePipeline) DeleteCustomActionTypeRequest(input *DeleteCustomActionTypeInput) (req *request.Request, output *DeleteCustomActionTypeOutput) {
 	op := &request.Operation{
 		Name:       opDeleteCustomActionType,
@@ -433,7 +433,7 @@ func (c *CodePipeline) DeleteCustomActionTypeRequest(input *DeleteCustomActionTy
 //   * ErrCodeValidationException "ValidationException"
 //   The validation was specified in an invalid format.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/DeleteCustomActionType
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/DeleteCustomActionType
 func (c *CodePipeline) DeleteCustomActionType(input *DeleteCustomActionTypeInput) (*DeleteCustomActionTypeOutput, error) {
 	req, out := c.DeleteCustomActionTypeRequest(input)
 	return out, req.Send()
@@ -480,7 +480,7 @@ const opDeletePipeline = "DeletePipeline"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/DeletePipeline
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/DeletePipeline
 func (c *CodePipeline) DeletePipelineRequest(input *DeletePipelineInput) (req *request.Request, output *DeletePipelineOutput) {
 	op := &request.Operation{
 		Name:       opDeletePipeline,
@@ -514,7 +514,7 @@ func (c *CodePipeline) DeletePipelineRequest(input *DeletePipelineInput) (req *r
 //   * ErrCodeValidationException "ValidationException"
 //   The validation was specified in an invalid format.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/DeletePipeline
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/DeletePipeline
 func (c *CodePipeline) DeletePipeline(input *DeletePipelineInput) (*DeletePipelineOutput, error) {
 	req, out := c.DeletePipelineRequest(input)
 	return out, req.Send()
@@ -561,7 +561,7 @@ const opDisableStageTransition = "DisableStageTransition"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/DisableStageTransition
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/DisableStageTransition
 func (c *CodePipeline) DisableStageTransitionRequest(input *DisableStageTransitionInput) (req *request.Request, output *DisableStageTransitionOutput) {
 	op := &request.Operation{
 		Name:       opDisableStageTransition,
@@ -602,7 +602,7 @@ func (c *CodePipeline) DisableStageTransitionRequest(input *DisableStageTransiti
 //   * ErrCodeStageNotFoundException "StageNotFoundException"
 //   The specified stage was specified in an invalid format or cannot be found.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/DisableStageTransition
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/DisableStageTransition
 func (c *CodePipeline) DisableStageTransition(input *DisableStageTransitionInput) (*DisableStageTransitionOutput, error) {
 	req, out := c.DisableStageTransitionRequest(input)
 	return out, req.Send()
@@ -649,7 +649,7 @@ const opEnableStageTransition = "EnableStageTransition"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/EnableStageTransition
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/EnableStageTransition
 func (c *CodePipeline) EnableStageTransitionRequest(input *EnableStageTransitionInput) (req *request.Request, output *EnableStageTransitionOutput) {
 	op := &request.Operation{
 		Name:       opEnableStageTransition,
@@ -689,7 +689,7 @@ func (c *CodePipeline) EnableStageTransitionRequest(input *EnableStageTransition
 //   * ErrCodeStageNotFoundException "StageNotFoundException"
 //   The specified stage was specified in an invalid format or cannot be found.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/EnableStageTransition
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/EnableStageTransition
 func (c *CodePipeline) EnableStageTransition(input *EnableStageTransitionInput) (*EnableStageTransitionOutput, error) {
 	req, out := c.EnableStageTransitionRequest(input)
 	return out, req.Send()
@@ -736,7 +736,7 @@ const opGetJobDetails = "GetJobDetails"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/GetJobDetails
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/GetJobDetails
 func (c *CodePipeline) GetJobDetailsRequest(input *GetJobDetailsInput) (req *request.Request, output *GetJobDetailsOutput) {
 	op := &request.Operation{
 		Name:       opGetJobDetails,
@@ -776,7 +776,7 @@ func (c *CodePipeline) GetJobDetailsRequest(input *GetJobDetailsInput) (req *req
 //   * ErrCodeJobNotFoundException "JobNotFoundException"
 //   The specified job was specified in an invalid format or cannot be found.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/GetJobDetails
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/GetJobDetails
 func (c *CodePipeline) GetJobDetails(input *GetJobDetailsInput) (*GetJobDetailsOutput, error) {
 	req, out := c.GetJobDetailsRequest(input)
 	return out, req.Send()
@@ -823,7 +823,7 @@ const opGetPipeline = "GetPipeline"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/GetPipeline
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/GetPipeline
 func (c *CodePipeline) GetPipelineRequest(input *GetPipelineInput) (req *request.Request, output *GetPipelineOutput) {
 	op := &request.Operation{
 		Name:       opGetPipeline,
@@ -864,7 +864,7 @@ func (c *CodePipeline) GetPipelineRequest(input *GetPipelineInput) (req *request
 //   The specified pipeline version was specified in an invalid format or cannot
 //   be found.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/GetPipeline
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/GetPipeline
 func (c *CodePipeline) GetPipeline(input *GetPipelineInput) (*GetPipelineOutput, error) {
 	req, out := c.GetPipelineRequest(input)
 	return out, req.Send()
@@ -911,7 +911,7 @@ const opGetPipelineExecution = "GetPipelineExecution"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/GetPipelineExecution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/GetPipelineExecution
 func (c *CodePipeline) GetPipelineExecutionRequest(input *GetPipelineExecutionInput) (req *request.Request, output *GetPipelineExecutionOutput) {
 	op := &request.Operation{
 		Name:       opGetPipelineExecution,
@@ -952,7 +952,7 @@ func (c *CodePipeline) GetPipelineExecutionRequest(input *GetPipelineExecutionIn
 //   The pipeline execution was specified in an invalid format or cannot be found,
 //   or an execution ID does not belong to the specified pipeline.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/GetPipelineExecution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/GetPipelineExecution
 func (c *CodePipeline) GetPipelineExecution(input *GetPipelineExecutionInput) (*GetPipelineExecutionOutput, error) {
 	req, out := c.GetPipelineExecutionRequest(input)
 	return out, req.Send()
@@ -999,7 +999,7 @@ const opGetPipelineState = "GetPipelineState"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/GetPipelineState
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/GetPipelineState
 func (c *CodePipeline) GetPipelineStateRequest(input *GetPipelineStateInput) (req *request.Request, output *GetPipelineStateOutput) {
 	op := &request.Operation{
 		Name:       opGetPipelineState,
@@ -1035,7 +1035,7 @@ func (c *CodePipeline) GetPipelineStateRequest(input *GetPipelineStateInput) (re
 //   * ErrCodePipelineNotFoundException "PipelineNotFoundException"
 //   The specified pipeline was specified in an invalid format or cannot be found.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/GetPipelineState
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/GetPipelineState
 func (c *CodePipeline) GetPipelineState(input *GetPipelineStateInput) (*GetPipelineStateOutput, error) {
 	req, out := c.GetPipelineStateRequest(input)
 	return out, req.Send()
@@ -1082,7 +1082,7 @@ const opGetThirdPartyJobDetails = "GetThirdPartyJobDetails"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/GetThirdPartyJobDetails
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/GetThirdPartyJobDetails
 func (c *CodePipeline) GetThirdPartyJobDetailsRequest(input *GetThirdPartyJobDetailsInput) (req *request.Request, output *GetThirdPartyJobDetailsOutput) {
 	op := &request.Operation{
 		Name:       opGetThirdPartyJobDetails,
@@ -1129,7 +1129,7 @@ func (c *CodePipeline) GetThirdPartyJobDetailsRequest(input *GetThirdPartyJobDet
 //   * ErrCodeInvalidJobException "InvalidJobException"
 //   The specified job was specified in an invalid format or cannot be found.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/GetThirdPartyJobDetails
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/GetThirdPartyJobDetails
 func (c *CodePipeline) GetThirdPartyJobDetails(input *GetThirdPartyJobDetailsInput) (*GetThirdPartyJobDetailsOutput, error) {
 	req, out := c.GetThirdPartyJobDetailsRequest(input)
 	return out, req.Send()
@@ -1176,7 +1176,7 @@ const opListActionTypes = "ListActionTypes"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ListActionTypes
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ListActionTypes
 func (c *CodePipeline) ListActionTypesRequest(input *ListActionTypesInput) (req *request.Request, output *ListActionTypesOutput) {
 	op := &request.Operation{
 		Name:       opListActionTypes,
@@ -1213,7 +1213,7 @@ func (c *CodePipeline) ListActionTypesRequest(input *ListActionTypesInput) (req 
 //   The next token was specified in an invalid format. Make sure that the next
 //   token you provided is the token returned by a previous call.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ListActionTypes
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ListActionTypes
 func (c *CodePipeline) ListActionTypes(input *ListActionTypesInput) (*ListActionTypesOutput, error) {
 	req, out := c.ListActionTypesRequest(input)
 	return out, req.Send()
@@ -1260,7 +1260,7 @@ const opListPipelineExecutions = "ListPipelineExecutions"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ListPipelineExecutions
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ListPipelineExecutions
 func (c *CodePipeline) ListPipelineExecutionsRequest(input *ListPipelineExecutionsInput) (req *request.Request, output *ListPipelineExecutionsOutput) {
 	op := &request.Operation{
 		Name:       opListPipelineExecutions,
@@ -1299,7 +1299,7 @@ func (c *CodePipeline) ListPipelineExecutionsRequest(input *ListPipelineExecutio
 //   The next token was specified in an invalid format. Make sure that the next
 //   token you provided is the token returned by a previous call.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ListPipelineExecutions
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ListPipelineExecutions
 func (c *CodePipeline) ListPipelineExecutions(input *ListPipelineExecutionsInput) (*ListPipelineExecutionsOutput, error) {
 	req, out := c.ListPipelineExecutionsRequest(input)
 	return out, req.Send()
@@ -1346,7 +1346,7 @@ const opListPipelines = "ListPipelines"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ListPipelines
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ListPipelines
 func (c *CodePipeline) ListPipelinesRequest(input *ListPipelinesInput) (req *request.Request, output *ListPipelinesOutput) {
 	op := &request.Operation{
 		Name:       opListPipelines,
@@ -1379,7 +1379,7 @@ func (c *CodePipeline) ListPipelinesRequest(input *ListPipelinesInput) (req *req
 //   The next token was specified in an invalid format. Make sure that the next
 //   token you provided is the token returned by a previous call.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ListPipelines
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ListPipelines
 func (c *CodePipeline) ListPipelines(input *ListPipelinesInput) (*ListPipelinesOutput, error) {
 	req, out := c.ListPipelinesRequest(input)
 	return out, req.Send()
@@ -1426,7 +1426,7 @@ const opPollForJobs = "PollForJobs"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PollForJobs
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PollForJobs
 func (c *CodePipeline) PollForJobsRequest(input *PollForJobsInput) (req *request.Request, output *PollForJobsOutput) {
 	op := &request.Operation{
 		Name:       opPollForJobs,
@@ -1466,7 +1466,7 @@ func (c *CodePipeline) PollForJobsRequest(input *PollForJobsInput) (req *request
 //   * ErrCodeActionTypeNotFoundException "ActionTypeNotFoundException"
 //   The specified action type cannot be found.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PollForJobs
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PollForJobs
 func (c *CodePipeline) PollForJobs(input *PollForJobsInput) (*PollForJobsOutput, error) {
 	req, out := c.PollForJobsRequest(input)
 	return out, req.Send()
@@ -1513,7 +1513,7 @@ const opPollForThirdPartyJobs = "PollForThirdPartyJobs"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PollForThirdPartyJobs
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PollForThirdPartyJobs
 func (c *CodePipeline) PollForThirdPartyJobsRequest(input *PollForThirdPartyJobsInput) (req *request.Request, output *PollForThirdPartyJobsOutput) {
 	op := &request.Operation{
 		Name:       opPollForThirdPartyJobs,
@@ -1553,7 +1553,7 @@ func (c *CodePipeline) PollForThirdPartyJobsRequest(input *PollForThirdPartyJobs
 //   * ErrCodeValidationException "ValidationException"
 //   The validation was specified in an invalid format.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PollForThirdPartyJobs
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PollForThirdPartyJobs
 func (c *CodePipeline) PollForThirdPartyJobs(input *PollForThirdPartyJobsInput) (*PollForThirdPartyJobsOutput, error) {
 	req, out := c.PollForThirdPartyJobsRequest(input)
 	return out, req.Send()
@@ -1600,7 +1600,7 @@ const opPutActionRevision = "PutActionRevision"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PutActionRevision
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PutActionRevision
 func (c *CodePipeline) PutActionRevisionRequest(input *PutActionRevisionInput) (req *request.Request, output *PutActionRevisionOutput) {
 	op := &request.Operation{
 		Name:       opPutActionRevision,
@@ -1641,7 +1641,7 @@ func (c *CodePipeline) PutActionRevisionRequest(input *PutActionRevisionInput) (
 //   * ErrCodeValidationException "ValidationException"
 //   The validation was specified in an invalid format.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PutActionRevision
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PutActionRevision
 func (c *CodePipeline) PutActionRevision(input *PutActionRevisionInput) (*PutActionRevisionOutput, error) {
 	req, out := c.PutActionRevisionRequest(input)
 	return out, req.Send()
@@ -1688,7 +1688,7 @@ const opPutApprovalResult = "PutApprovalResult"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PutApprovalResult
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PutApprovalResult
 func (c *CodePipeline) PutApprovalResultRequest(input *PutApprovalResultInput) (req *request.Request, output *PutApprovalResultOutput) {
 	op := &request.Operation{
 		Name:       opPutApprovalResult,
@@ -1736,7 +1736,7 @@ func (c *CodePipeline) PutApprovalResultRequest(input *PutApprovalResultInput) (
 //   * ErrCodeValidationException "ValidationException"
 //   The validation was specified in an invalid format.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PutApprovalResult
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PutApprovalResult
 func (c *CodePipeline) PutApprovalResult(input *PutApprovalResultInput) (*PutApprovalResultOutput, error) {
 	req, out := c.PutApprovalResultRequest(input)
 	return out, req.Send()
@@ -1783,7 +1783,7 @@ const opPutJobFailureResult = "PutJobFailureResult"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PutJobFailureResult
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PutJobFailureResult
 func (c *CodePipeline) PutJobFailureResultRequest(input *PutJobFailureResultInput) (req *request.Request, output *PutJobFailureResultOutput) {
 	op := &request.Operation{
 		Name:       opPutJobFailureResult,
@@ -1824,7 +1824,7 @@ func (c *CodePipeline) PutJobFailureResultRequest(input *PutJobFailureResultInpu
 //   * ErrCodeInvalidJobStateException "InvalidJobStateException"
 //   The specified job state was specified in an invalid format.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PutJobFailureResult
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PutJobFailureResult
 func (c *CodePipeline) PutJobFailureResult(input *PutJobFailureResultInput) (*PutJobFailureResultOutput, error) {
 	req, out := c.PutJobFailureResultRequest(input)
 	return out, req.Send()
@@ -1871,7 +1871,7 @@ const opPutJobSuccessResult = "PutJobSuccessResult"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PutJobSuccessResult
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PutJobSuccessResult
 func (c *CodePipeline) PutJobSuccessResultRequest(input *PutJobSuccessResultInput) (req *request.Request, output *PutJobSuccessResultOutput) {
 	op := &request.Operation{
 		Name:       opPutJobSuccessResult,
@@ -1912,7 +1912,7 @@ func (c *CodePipeline) PutJobSuccessResultRequest(input *PutJobSuccessResultInpu
 //   * ErrCodeInvalidJobStateException "InvalidJobStateException"
 //   The specified job state was specified in an invalid format.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PutJobSuccessResult
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PutJobSuccessResult
 func (c *CodePipeline) PutJobSuccessResult(input *PutJobSuccessResultInput) (*PutJobSuccessResultOutput, error) {
 	req, out := c.PutJobSuccessResultRequest(input)
 	return out, req.Send()
@@ -1959,7 +1959,7 @@ const opPutThirdPartyJobFailureResult = "PutThirdPartyJobFailureResult"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PutThirdPartyJobFailureResult
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PutThirdPartyJobFailureResult
 func (c *CodePipeline) PutThirdPartyJobFailureResultRequest(input *PutThirdPartyJobFailureResultInput) (req *request.Request, output *PutThirdPartyJobFailureResultOutput) {
 	op := &request.Operation{
 		Name:       opPutThirdPartyJobFailureResult,
@@ -2003,7 +2003,7 @@ func (c *CodePipeline) PutThirdPartyJobFailureResultRequest(input *PutThirdParty
 //   * ErrCodeInvalidClientTokenException "InvalidClientTokenException"
 //   The client token was specified in an invalid format
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PutThirdPartyJobFailureResult
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PutThirdPartyJobFailureResult
 func (c *CodePipeline) PutThirdPartyJobFailureResult(input *PutThirdPartyJobFailureResultInput) (*PutThirdPartyJobFailureResultOutput, error) {
 	req, out := c.PutThirdPartyJobFailureResultRequest(input)
 	return out, req.Send()
@@ -2050,7 +2050,7 @@ const opPutThirdPartyJobSuccessResult = "PutThirdPartyJobSuccessResult"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PutThirdPartyJobSuccessResult
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PutThirdPartyJobSuccessResult
 func (c *CodePipeline) PutThirdPartyJobSuccessResultRequest(input *PutThirdPartyJobSuccessResultInput) (req *request.Request, output *PutThirdPartyJobSuccessResultOutput) {
 	op := &request.Operation{
 		Name:       opPutThirdPartyJobSuccessResult,
@@ -2094,7 +2094,7 @@ func (c *CodePipeline) PutThirdPartyJobSuccessResultRequest(input *PutThirdParty
 //   * ErrCodeInvalidClientTokenException "InvalidClientTokenException"
 //   The client token was specified in an invalid format
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PutThirdPartyJobSuccessResult
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PutThirdPartyJobSuccessResult
 func (c *CodePipeline) PutThirdPartyJobSuccessResult(input *PutThirdPartyJobSuccessResultInput) (*PutThirdPartyJobSuccessResultOutput, error) {
 	req, out := c.PutThirdPartyJobSuccessResultRequest(input)
 	return out, req.Send()
@@ -2141,7 +2141,7 @@ const opRetryStageExecution = "RetryStageExecution"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/RetryStageExecution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/RetryStageExecution
 func (c *CodePipeline) RetryStageExecutionRequest(input *RetryStageExecutionInput) (req *request.Request, output *RetryStageExecutionOutput) {
 	op := &request.Operation{
 		Name:       opRetryStageExecution,
@@ -2189,7 +2189,7 @@ func (c *CodePipeline) RetryStageExecutionRequest(input *RetryStageExecutionInpu
 //   The stage has failed in a later run of the pipeline and the pipelineExecutionId
 //   associated with the request is out of date.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/RetryStageExecution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/RetryStageExecution
 func (c *CodePipeline) RetryStageExecution(input *RetryStageExecutionInput) (*RetryStageExecutionOutput, error) {
 	req, out := c.RetryStageExecutionRequest(input)
 	return out, req.Send()
@@ -2236,7 +2236,7 @@ const opStartPipelineExecution = "StartPipelineExecution"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/StartPipelineExecution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/StartPipelineExecution
 func (c *CodePipeline) StartPipelineExecutionRequest(input *StartPipelineExecutionInput) (req *request.Request, output *StartPipelineExecutionOutput) {
 	op := &request.Operation{
 		Name:       opStartPipelineExecution,
@@ -2272,7 +2272,7 @@ func (c *CodePipeline) StartPipelineExecutionRequest(input *StartPipelineExecuti
 //   * ErrCodePipelineNotFoundException "PipelineNotFoundException"
 //   The specified pipeline was specified in an invalid format or cannot be found.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/StartPipelineExecution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/StartPipelineExecution
 func (c *CodePipeline) StartPipelineExecution(input *StartPipelineExecutionInput) (*StartPipelineExecutionOutput, error) {
 	req, out := c.StartPipelineExecutionRequest(input)
 	return out, req.Send()
@@ -2319,7 +2319,7 @@ const opUpdatePipeline = "UpdatePipeline"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/UpdatePipeline
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/UpdatePipeline
 func (c *CodePipeline) UpdatePipelineRequest(input *UpdatePipelineInput) (req *request.Request, output *UpdatePipelineOutput) {
 	op := &request.Operation{
 		Name:       opUpdatePipeline,
@@ -2366,7 +2366,7 @@ func (c *CodePipeline) UpdatePipelineRequest(input *UpdatePipelineInput) (req *r
 //   * ErrCodeInvalidStructureException "InvalidStructureException"
 //   The specified structure was specified in an invalid format.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/UpdatePipeline
+// See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/UpdatePipeline
 func (c *CodePipeline) UpdatePipeline(input *UpdatePipelineInput) (*UpdatePipelineOutput, error) {
 	req, out := c.UpdatePipelineRequest(input)
 	return out, req.Send()
@@ -2392,7 +2392,6 @@ func (c *CodePipeline) UpdatePipelineWithContext(ctx aws.Context, input *UpdateP
 // credentials that are issued by AWS Secure Token Service (STS). They can be
 // used to access input and output artifacts in the Amazon S3 bucket used to
 // store artifact for the pipeline in AWS CodePipeline.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/AWSSessionCredentials
 type AWSSessionCredentials struct {
 	_ struct{} `type:"structure"`
 
@@ -2440,8 +2439,7 @@ func (s *AWSSessionCredentials) SetSessionToken(v string) *AWSSessionCredentials
 	return s
 }
 
-// Represents the input of an acknowledge job action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/AcknowledgeJobInput
+// Represents the input of an AcknowledgeJob action.
 type AcknowledgeJobInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2496,8 +2494,7 @@ func (s *AcknowledgeJobInput) SetNonce(v string) *AcknowledgeJobInput {
 	return s
 }
 
-// Represents the output of an acknowledge job action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/AcknowledgeJobOutput
+// Represents the output of an AcknowledgeJob action.
 type AcknowledgeJobOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2521,8 +2518,7 @@ func (s *AcknowledgeJobOutput) SetStatus(v string) *AcknowledgeJobOutput {
 	return s
 }
 
-// Represents the input of an acknowledge third party job action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/AcknowledgeThirdPartyJobInput
+// Represents the input of an AcknowledgeThirdPartyJob action.
 type AcknowledgeThirdPartyJobInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2530,7 +2526,7 @@ type AcknowledgeThirdPartyJobInput struct {
 	// that the calling entity is allowed access to the job and its details.
 	//
 	// ClientToken is a required field
-	ClientToken *string `locationName:"clientToken" type:"string" required:"true"`
+	ClientToken *string `locationName:"clientToken" min:"1" type:"string" required:"true"`
 
 	// The unique system-generated ID of the job.
 	//
@@ -2560,6 +2556,9 @@ func (s *AcknowledgeThirdPartyJobInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "AcknowledgeThirdPartyJobInput"}
 	if s.ClientToken == nil {
 		invalidParams.Add(request.NewErrParamRequired("ClientToken"))
+	}
+	if s.ClientToken != nil && len(*s.ClientToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ClientToken", 1))
 	}
 	if s.JobId == nil {
 		invalidParams.Add(request.NewErrParamRequired("JobId"))
@@ -2595,8 +2594,7 @@ func (s *AcknowledgeThirdPartyJobInput) SetNonce(v string) *AcknowledgeThirdPart
 	return s
 }
 
-// Represents the output of an acknowledge third party job action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/AcknowledgeThirdPartyJobOutput
+// Represents the output of an AcknowledgeThirdPartyJob action.
 type AcknowledgeThirdPartyJobOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2621,7 +2619,6 @@ func (s *AcknowledgeThirdPartyJobOutput) SetStatus(v string) *AcknowledgeThirdPa
 }
 
 // Represents information about an action configuration.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ActionConfiguration
 type ActionConfiguration struct {
 	_ struct{} `type:"structure"`
 
@@ -2646,7 +2643,6 @@ func (s *ActionConfiguration) SetConfiguration(v map[string]*string) *ActionConf
 }
 
 // Represents information about an action configuration property.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ActionConfigurationProperty
 type ActionConfigurationProperty struct {
 	_ struct{} `type:"structure"`
 
@@ -2664,7 +2660,7 @@ type ActionConfigurationProperty struct {
 	// Name is a required field
 	Name *string `locationName:"name" min:"1" type:"string" required:"true"`
 
-	// Indicates that the proprety will be used in conjunction with PollForJobs.
+	// Indicates that the property will be used in conjunction with PollForJobs.
 	// When creating a custom action, an action can have up to one queryable property.
 	// If it has one, that property must be both required and not secret.
 	//
@@ -2776,7 +2772,6 @@ func (s *ActionConfigurationProperty) SetType(v string) *ActionConfigurationProp
 
 // Represents the context of an action within the stage of a pipeline to a job
 // worker.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ActionContext
 type ActionContext struct {
 	_ struct{} `type:"structure"`
 
@@ -2801,7 +2796,6 @@ func (s *ActionContext) SetName(v string) *ActionContext {
 }
 
 // Represents information about an action declaration.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ActionDeclaration
 type ActionDeclaration struct {
 	_ struct{} `type:"structure"`
 
@@ -2934,7 +2928,6 @@ func (s *ActionDeclaration) SetRunOrder(v int64) *ActionDeclaration {
 }
 
 // Represents information about the run of an action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ActionExecution
 type ActionExecution struct {
 	_ struct{} `type:"structure"`
 
@@ -3036,7 +3029,6 @@ func (s *ActionExecution) SetToken(v string) *ActionExecution {
 }
 
 // Represents information about the version (or revision) of an action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ActionRevision
 type ActionRevision struct {
 	_ struct{} `type:"structure"`
 
@@ -3113,7 +3105,6 @@ func (s *ActionRevision) SetRevisionId(v string) *ActionRevision {
 }
 
 // Represents information about the state of an action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ActionState
 type ActionState struct {
 	_ struct{} `type:"structure"`
 
@@ -3176,7 +3167,6 @@ func (s *ActionState) SetRevisionUrl(v string) *ActionState {
 }
 
 // Returns information about the details of an action type.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ActionType
 type ActionType struct {
 	_ struct{} `type:"structure"`
 
@@ -3243,7 +3233,6 @@ func (s *ActionType) SetSettings(v *ActionTypeSettings) *ActionType {
 }
 
 // Represents information about an action type.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ActionTypeId
 type ActionTypeId struct {
 	_ struct{} `type:"structure"`
 
@@ -3336,7 +3325,6 @@ func (s *ActionTypeId) SetVersion(v string) *ActionTypeId {
 }
 
 // Returns information about the settings for an action type.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ActionTypeSettings
 type ActionTypeSettings struct {
 	_ struct{} `type:"structure"`
 
@@ -3420,7 +3408,6 @@ func (s *ActionTypeSettings) SetThirdPartyConfigurationUrl(v string) *ActionType
 }
 
 // Represents information about the result of an approval request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ApprovalResult
 type ApprovalResult struct {
 	_ struct{} `type:"structure"`
 
@@ -3475,7 +3462,6 @@ func (s *ApprovalResult) SetSummary(v string) *ApprovalResult {
 
 // Represents information about an artifact that will be worked upon by actions
 // in the pipeline.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/Artifact
 type Artifact struct {
 	_ struct{} `type:"structure"`
 
@@ -3519,7 +3505,6 @@ func (s *Artifact) SetRevision(v string) *Artifact {
 }
 
 // Returns information about the details of an artifact.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ArtifactDetails
 type ArtifactDetails struct {
 	_ struct{} `type:"structure"`
 
@@ -3573,7 +3558,6 @@ func (s *ArtifactDetails) SetMinimumCount(v int64) *ArtifactDetails {
 }
 
 // Represents information about the location of an artifact.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ArtifactLocation
 type ArtifactLocation struct {
 	_ struct{} `type:"structure"`
 
@@ -3607,7 +3591,6 @@ func (s *ArtifactLocation) SetType(v string) *ArtifactLocation {
 }
 
 // Represents revision details of an artifact.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ArtifactRevision
 type ArtifactRevision struct {
 	_ struct{} `type:"structure"`
 
@@ -3685,7 +3668,6 @@ func (s *ArtifactRevision) SetRevisionUrl(v string) *ArtifactRevision {
 }
 
 // The Amazon S3 bucket where artifacts are stored for the pipeline.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ArtifactStore
 type ArtifactStore struct {
 	_ struct{} `type:"structure"`
 
@@ -3762,7 +3744,6 @@ func (s *ArtifactStore) SetType(v string) *ArtifactStore {
 }
 
 // Reserved for future use.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/BlockerDeclaration
 type BlockerDeclaration struct {
 	_ struct{} `type:"structure"`
 
@@ -3818,8 +3799,7 @@ func (s *BlockerDeclaration) SetType(v string) *BlockerDeclaration {
 	return s
 }
 
-// Represents the input of a create custom action operation.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/CreateCustomActionTypeInput
+// Represents the input of a CreateCustomActionType operation.
 type CreateCustomActionTypeInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3971,8 +3951,7 @@ func (s *CreateCustomActionTypeInput) SetVersion(v string) *CreateCustomActionTy
 	return s
 }
 
-// Represents the output of a create custom action operation.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/CreateCustomActionTypeOutput
+// Represents the output of a CreateCustomActionType operation.
 type CreateCustomActionTypeOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3998,8 +3977,7 @@ func (s *CreateCustomActionTypeOutput) SetActionType(v *ActionType) *CreateCusto
 	return s
 }
 
-// Represents the input of a create pipeline action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/CreatePipelineInput
+// Represents the input of a CreatePipeline action.
 type CreatePipelineInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4043,8 +4021,7 @@ func (s *CreatePipelineInput) SetPipeline(v *PipelineDeclaration) *CreatePipelin
 	return s
 }
 
-// Represents the output of a create pipeline action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/CreatePipelineOutput
+// Represents the output of a CreatePipeline action.
 type CreatePipelineOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4069,7 +4046,6 @@ func (s *CreatePipelineOutput) SetPipeline(v *PipelineDeclaration) *CreatePipeli
 }
 
 // Represents information about a current revision.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/CurrentRevision
 type CurrentRevision struct {
 	_ struct{} `type:"structure"`
 
@@ -4150,9 +4126,8 @@ func (s *CurrentRevision) SetRevisionSummary(v string) *CurrentRevision {
 	return s
 }
 
-// Represents the input of a delete custom action operation. The custom action
+// Represents the input of a DeleteCustomActionType operation. The custom action
 // will be marked as deleted.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/DeleteCustomActionTypeInput
 type DeleteCustomActionTypeInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4226,7 +4201,6 @@ func (s *DeleteCustomActionTypeInput) SetVersion(v string) *DeleteCustomActionTy
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/DeleteCustomActionTypeOutput
 type DeleteCustomActionTypeOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -4241,8 +4215,7 @@ func (s DeleteCustomActionTypeOutput) GoString() string {
 	return s.String()
 }
 
-// Represents the input of a delete pipeline action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/DeletePipelineInput
+// Represents the input of a DeletePipeline action.
 type DeletePipelineInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4284,7 +4257,6 @@ func (s *DeletePipelineInput) SetName(v string) *DeletePipelineInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/DeletePipelineOutput
 type DeletePipelineOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -4299,8 +4271,7 @@ func (s DeletePipelineOutput) GoString() string {
 	return s.String()
 }
 
-// Represents the input of a disable stage transition input action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/DisableStageTransitionInput
+// Represents the input of a DisableStageTransition action.
 type DisableStageTransitionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4397,7 +4368,6 @@ func (s *DisableStageTransitionInput) SetTransitionType(v string) *DisableStageT
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/DisableStageTransitionOutput
 type DisableStageTransitionOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -4412,8 +4382,7 @@ func (s DisableStageTransitionOutput) GoString() string {
 	return s.String()
 }
 
-// Represents the input of an enable stage transition action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/EnableStageTransitionInput
+// Represents the input of an EnableStageTransition action.
 type EnableStageTransitionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4490,7 +4459,6 @@ func (s *EnableStageTransitionInput) SetTransitionType(v string) *EnableStageTra
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/EnableStageTransitionOutput
 type EnableStageTransitionOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -4507,7 +4475,6 @@ func (s EnableStageTransitionOutput) GoString() string {
 
 // Represents information about the key used to encrypt data in the artifact
 // store, such as an AWS Key Management Service (AWS KMS) key.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/EncryptionKey
 type EncryptionKey struct {
 	_ struct{} `type:"structure"`
 
@@ -4566,7 +4533,6 @@ func (s *EncryptionKey) SetType(v string) *EncryptionKey {
 }
 
 // Represents information about an error in AWS CodePipeline.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ErrorDetails
 type ErrorDetails struct {
 	_ struct{} `type:"structure"`
 
@@ -4601,7 +4567,6 @@ func (s *ErrorDetails) SetMessage(v string) *ErrorDetails {
 
 // The details of the actions taken and results produced on an artifact as it
 // passes through stages in the pipeline.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ExecutionDetails
 type ExecutionDetails struct {
 	_ struct{} `type:"structure"`
 
@@ -4659,7 +4624,6 @@ func (s *ExecutionDetails) SetSummary(v string) *ExecutionDetails {
 }
 
 // Represents information about failure details.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/FailureDetails
 type FailureDetails struct {
 	_ struct{} `type:"structure"`
 
@@ -4724,8 +4688,7 @@ func (s *FailureDetails) SetType(v string) *FailureDetails {
 	return s
 }
 
-// Represents the input of a get job details action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/GetJobDetailsInput
+// Represents the input of a GetJobDetails action.
 type GetJobDetailsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4764,8 +4727,7 @@ func (s *GetJobDetailsInput) SetJobId(v string) *GetJobDetailsInput {
 	return s
 }
 
-// Represents the output of a get job details action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/GetJobDetailsOutput
+// Represents the output of a GetJobDetails action.
 type GetJobDetailsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4792,8 +4754,7 @@ func (s *GetJobDetailsOutput) SetJobDetails(v *JobDetails) *GetJobDetailsOutput 
 	return s
 }
 
-// Represents the input of a get pipeline execution action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/GetPipelineExecutionInput
+// Represents the input of a GetPipelineExecution action.
 type GetPipelineExecutionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4849,8 +4810,7 @@ func (s *GetPipelineExecutionInput) SetPipelineName(v string) *GetPipelineExecut
 	return s
 }
 
-// Represents the output of a get pipeline execution action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/GetPipelineExecutionOutput
+// Represents the output of a GetPipelineExecution action.
 type GetPipelineExecutionOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4874,8 +4834,7 @@ func (s *GetPipelineExecutionOutput) SetPipelineExecution(v *PipelineExecution) 
 	return s
 }
 
-// Represents the input of a get pipeline action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/GetPipelineInput
+// Represents the input of a GetPipeline action.
 type GetPipelineInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4931,10 +4890,13 @@ func (s *GetPipelineInput) SetVersion(v int64) *GetPipelineInput {
 	return s
 }
 
-// Represents the output of a get pipeline action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/GetPipelineOutput
+// Represents the output of a GetPipeline action.
 type GetPipelineOutput struct {
 	_ struct{} `type:"structure"`
+
+	// Represents the pipeline metadata information returned as part of the output
+	// of a GetPipeline action.
+	Metadata *PipelineMetadata `locationName:"metadata" type:"structure"`
 
 	// Represents the structure of actions and stages to be performed in the pipeline.
 	Pipeline *PipelineDeclaration `locationName:"pipeline" type:"structure"`
@@ -4950,14 +4912,19 @@ func (s GetPipelineOutput) GoString() string {
 	return s.String()
 }
 
+// SetMetadata sets the Metadata field's value.
+func (s *GetPipelineOutput) SetMetadata(v *PipelineMetadata) *GetPipelineOutput {
+	s.Metadata = v
+	return s
+}
+
 // SetPipeline sets the Pipeline field's value.
 func (s *GetPipelineOutput) SetPipeline(v *PipelineDeclaration) *GetPipelineOutput {
 	s.Pipeline = v
 	return s
 }
 
-// Represents the input of a get pipeline state action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/GetPipelineStateInput
+// Represents the input of a GetPipelineState action.
 type GetPipelineStateInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4999,8 +4966,7 @@ func (s *GetPipelineStateInput) SetName(v string) *GetPipelineStateInput {
 	return s
 }
 
-// Represents the output of a get pipeline state action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/GetPipelineStateOutput
+// Represents the output of a GetPipelineState action.
 type GetPipelineStateOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5063,8 +5029,7 @@ func (s *GetPipelineStateOutput) SetUpdated(v time.Time) *GetPipelineStateOutput
 	return s
 }
 
-// Represents the input of a get third party job details action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/GetThirdPartyJobDetailsInput
+// Represents the input of a GetThirdPartyJobDetails action.
 type GetThirdPartyJobDetailsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5072,7 +5037,7 @@ type GetThirdPartyJobDetailsInput struct {
 	// that the calling entity is allowed access to the job and its details.
 	//
 	// ClientToken is a required field
-	ClientToken *string `locationName:"clientToken" type:"string" required:"true"`
+	ClientToken *string `locationName:"clientToken" min:"1" type:"string" required:"true"`
 
 	// The unique system-generated ID used for identifying the job.
 	//
@@ -5095,6 +5060,9 @@ func (s *GetThirdPartyJobDetailsInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "GetThirdPartyJobDetailsInput"}
 	if s.ClientToken == nil {
 		invalidParams.Add(request.NewErrParamRequired("ClientToken"))
+	}
+	if s.ClientToken != nil && len(*s.ClientToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ClientToken", 1))
 	}
 	if s.JobId == nil {
 		invalidParams.Add(request.NewErrParamRequired("JobId"))
@@ -5121,8 +5089,7 @@ func (s *GetThirdPartyJobDetailsInput) SetJobId(v string) *GetThirdPartyJobDetai
 	return s
 }
 
-// Represents the output of a get third party job details action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/GetThirdPartyJobDetailsOutput
+// Represents the output of a GetThirdPartyJobDetails action.
 type GetThirdPartyJobDetailsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5148,7 +5115,6 @@ func (s *GetThirdPartyJobDetailsOutput) SetJobDetails(v *ThirdPartyJobDetails) *
 
 // Represents information about an artifact to be worked on, such as a test
 // or build artifact.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/InputArtifact
 type InputArtifact struct {
 	_ struct{} `type:"structure"`
 
@@ -5197,7 +5163,6 @@ func (s *InputArtifact) SetName(v string) *InputArtifact {
 }
 
 // Represents information about a job.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/Job
 type Job struct {
 	_ struct{} `type:"structure"`
 
@@ -5252,7 +5217,6 @@ func (s *Job) SetNonce(v string) *Job {
 
 // Represents additional information about a job required for a job worker to
 // complete the job.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/JobData
 type JobData struct {
 	_ struct{} `type:"structure"`
 
@@ -5345,7 +5309,6 @@ func (s *JobData) SetPipelineContext(v *PipelineContext) *JobData {
 }
 
 // Represents information about the details of a job.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/JobDetails
 type JobDetails struct {
 	_ struct{} `type:"structure"`
 
@@ -5388,8 +5351,7 @@ func (s *JobDetails) SetId(v string) *JobDetails {
 	return s
 }
 
-// Represents the input of a list action types action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ListActionTypesInput
+// Represents the input of a ListActionTypes action.
 type ListActionTypesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5398,7 +5360,7 @@ type ListActionTypesInput struct {
 
 	// An identifier that was returned from the previous list action types call,
 	// which can be used to return the next set of action types in the list.
-	NextToken *string `locationName:"nextToken" type:"string"`
+	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
 }
 
 // String returns the string representation
@@ -5409,6 +5371,19 @@ func (s ListActionTypesInput) String() string {
 // GoString returns the string representation
 func (s ListActionTypesInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListActionTypesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListActionTypesInput"}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // SetActionOwnerFilter sets the ActionOwnerFilter field's value.
@@ -5423,8 +5398,7 @@ func (s *ListActionTypesInput) SetNextToken(v string) *ListActionTypesInput {
 	return s
 }
 
-// Represents the output of a list action types action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ListActionTypesOutput
+// Represents the output of a ListActionTypes action.
 type ListActionTypesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5436,7 +5410,7 @@ type ListActionTypesOutput struct {
 	// If the amount of returned information is significantly large, an identifier
 	// is also returned which can be used in a subsequent list action types call
 	// to return the next set of action types in the list.
-	NextToken *string `locationName:"nextToken" type:"string"`
+	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
 }
 
 // String returns the string representation
@@ -5461,8 +5435,7 @@ func (s *ListActionTypesOutput) SetNextToken(v string) *ListActionTypesOutput {
 	return s
 }
 
-// Represents the input of a list pipeline executions action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ListPipelineExecutionsInput
+// Represents the input of a ListPipelineExecutions action.
 type ListPipelineExecutionsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5472,9 +5445,9 @@ type ListPipelineExecutionsInput struct {
 	// based on pipeline execution start times. Default value is 100.
 	MaxResults *int64 `locationName:"maxResults" min:"1" type:"integer"`
 
-	// The token that was returned from the previous list pipeline executions call,
+	// The token that was returned from the previous ListPipelineExecutions call,
 	// which can be used to return the next set of pipeline executions in the list.
-	NextToken *string `locationName:"nextToken" type:"string"`
+	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
 
 	// The name of the pipeline for which you want to get execution summary information.
 	//
@@ -5497,6 +5470,9 @@ func (s *ListPipelineExecutionsInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "ListPipelineExecutionsInput"}
 	if s.MaxResults != nil && *s.MaxResults < 1 {
 		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
 	}
 	if s.PipelineName == nil {
 		invalidParams.Add(request.NewErrParamRequired("PipelineName"))
@@ -5529,16 +5505,14 @@ func (s *ListPipelineExecutionsInput) SetPipelineName(v string) *ListPipelineExe
 	return s
 }
 
-// Represents the output of a list pipeline executions action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ListPipelineExecutionsOutput
+// Represents the output of a ListPipelineExecutions action.
 type ListPipelineExecutionsOutput struct {
 	_ struct{} `type:"structure"`
 
-	// A token that can be used in the next list pipeline executions call to return
-	// the next set of pipeline executions. To view all items in the list, continue
-	// to call this operation with each subsequent token until no more nextToken
-	// values are returned.
-	NextToken *string `locationName:"nextToken" type:"string"`
+	// A token that can be used in the next ListPipelineExecutions call. To view
+	// all items in the list, continue to call this operation with each subsequent
+	// token until no more nextToken values are returned.
+	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
 
 	// A list of executions in the history of a pipeline.
 	PipelineExecutionSummaries []*PipelineExecutionSummary `locationName:"pipelineExecutionSummaries" type:"list"`
@@ -5566,14 +5540,13 @@ func (s *ListPipelineExecutionsOutput) SetPipelineExecutionSummaries(v []*Pipeli
 	return s
 }
 
-// Represents the input of a list pipelines action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ListPipelinesInput
+// Represents the input of a ListPipelines action.
 type ListPipelinesInput struct {
 	_ struct{} `type:"structure"`
 
 	// An identifier that was returned from the previous list pipelines call, which
 	// can be used to return the next set of pipelines in the list.
-	NextToken *string `locationName:"nextToken" type:"string"`
+	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
 }
 
 // String returns the string representation
@@ -5586,21 +5559,33 @@ func (s ListPipelinesInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListPipelinesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListPipelinesInput"}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // SetNextToken sets the NextToken field's value.
 func (s *ListPipelinesInput) SetNextToken(v string) *ListPipelinesInput {
 	s.NextToken = &v
 	return s
 }
 
-// Represents the output of a list pipelines action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ListPipelinesOutput
+// Represents the output of a ListPipelines action.
 type ListPipelinesOutput struct {
 	_ struct{} `type:"structure"`
 
 	// If the amount of returned information is significantly large, an identifier
 	// is also returned which can be used in a subsequent list pipelines call to
 	// return the next set of pipelines in the list.
-	NextToken *string `locationName:"nextToken" type:"string"`
+	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
 
 	// The list of pipelines.
 	Pipelines []*PipelineSummary `locationName:"pipelines" type:"list"`
@@ -5629,7 +5614,6 @@ func (s *ListPipelinesOutput) SetPipelines(v []*PipelineSummary) *ListPipelinesO
 }
 
 // Represents information about the output of an action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/OutputArtifact
 type OutputArtifact struct {
 	_ struct{} `type:"structure"`
 
@@ -5680,12 +5664,10 @@ func (s *OutputArtifact) SetName(v string) *OutputArtifact {
 }
 
 // Represents information about a pipeline to a job worker.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PipelineContext
 type PipelineContext struct {
 	_ struct{} `type:"structure"`
 
-	// Represents the context of an action within the stage of a pipeline to a job
-	// worker.
+	// The context of an action to a job worker within the stage of a pipeline.
 	Action *ActionContext `locationName:"action" type:"structure"`
 
 	// The name of the pipeline. This is a user-specified value. Pipeline names
@@ -5725,12 +5707,11 @@ func (s *PipelineContext) SetStage(v *StageContext) *PipelineContext {
 }
 
 // Represents the structure of actions and stages to be performed in the pipeline.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PipelineDeclaration
 type PipelineDeclaration struct {
 	_ struct{} `type:"structure"`
 
-	// Represents the context of an action within the stage of a pipeline to a job
-	// worker.
+	// Represents information about the Amazon S3 bucket where artifacts are stored
+	// for the pipeline.
 	//
 	// ArtifactStore is a required field
 	ArtifactStore *ArtifactStore `locationName:"artifactStore" type:"structure" required:"true"`
@@ -5841,7 +5822,6 @@ func (s *PipelineDeclaration) SetVersion(v int64) *PipelineDeclaration {
 }
 
 // Represents information about an execution of a pipeline.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PipelineExecution
 type PipelineExecution struct {
 	_ struct{} `type:"structure"`
 
@@ -5861,13 +5841,13 @@ type PipelineExecution struct {
 	//
 	//    * InProgress: The pipeline execution is currently running.
 	//
-	//    * Succeeded: The pipeline execution completed successfully.
+	//    * Succeeded: The pipeline execution was completed successfully.
 	//
 	//    * Superseded: While this pipeline execution was waiting for the next stage
-	//    to be completed, a newer pipeline execution caught up and continued through
+	//    to be completed, a newer pipeline execution advanced and continued through
 	//    the pipeline instead.
 	//
-	//    * Failed: The pipeline execution did not complete successfully.
+	//    * Failed: The pipeline execution was not completed successfully.
 	Status *string `locationName:"status" type:"string" enum:"PipelineExecutionStatus"`
 }
 
@@ -5912,7 +5892,6 @@ func (s *PipelineExecution) SetStatus(v string) *PipelineExecution {
 }
 
 // Summary information about a pipeline execution.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PipelineExecutionSummary
 type PipelineExecutionSummary struct {
 	_ struct{} `type:"structure"`
 
@@ -5930,13 +5909,13 @@ type PipelineExecutionSummary struct {
 	//
 	//    * InProgress: The pipeline execution is currently running.
 	//
-	//    * Succeeded: The pipeline execution completed successfully.
+	//    * Succeeded: The pipeline execution was completed successfully.
 	//
 	//    * Superseded: While this pipeline execution was waiting for the next stage
-	//    to be completed, a newer pipeline execution caught up and continued through
+	//    to be completed, a newer pipeline execution advanced and continued through
 	//    the pipeline instead.
 	//
-	//    * Failed: The pipeline execution did not complete successfully.
+	//    * Failed: The pipeline execution was not completed successfully.
 	Status *string `locationName:"status" type:"string" enum:"PipelineExecutionStatus"`
 }
 
@@ -5974,8 +5953,49 @@ func (s *PipelineExecutionSummary) SetStatus(v string) *PipelineExecutionSummary
 	return s
 }
 
+// Information about a pipeline.
+type PipelineMetadata struct {
+	_ struct{} `type:"structure"`
+
+	// The date and time the pipeline was created, in timestamp format.
+	Created *time.Time `locationName:"created" type:"timestamp" timestampFormat:"unix"`
+
+	// The Amazon Resource Name (ARN) of the pipeline.
+	PipelineArn *string `locationName:"pipelineArn" type:"string"`
+
+	// The date and time the pipeline was last updated, in timestamp format.
+	Updated *time.Time `locationName:"updated" type:"timestamp" timestampFormat:"unix"`
+}
+
+// String returns the string representation
+func (s PipelineMetadata) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PipelineMetadata) GoString() string {
+	return s.String()
+}
+
+// SetCreated sets the Created field's value.
+func (s *PipelineMetadata) SetCreated(v time.Time) *PipelineMetadata {
+	s.Created = &v
+	return s
+}
+
+// SetPipelineArn sets the PipelineArn field's value.
+func (s *PipelineMetadata) SetPipelineArn(v string) *PipelineMetadata {
+	s.PipelineArn = &v
+	return s
+}
+
+// SetUpdated sets the Updated field's value.
+func (s *PipelineMetadata) SetUpdated(v time.Time) *PipelineMetadata {
+	s.Updated = &v
+	return s
+}
+
 // Returns a summary of a pipeline.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PipelineSummary
 type PipelineSummary struct {
 	_ struct{} `type:"structure"`
 
@@ -6026,8 +6046,7 @@ func (s *PipelineSummary) SetVersion(v int64) *PipelineSummary {
 	return s
 }
 
-// Represents the input of a poll for jobs action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PollForJobsInput
+// Represents the input of a PollForJobs action.
 type PollForJobsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6095,8 +6114,7 @@ func (s *PollForJobsInput) SetQueryParam(v map[string]*string) *PollForJobsInput
 	return s
 }
 
-// Represents the output of a poll for jobs action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PollForJobsOutput
+// Represents the output of a PollForJobs action.
 type PollForJobsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6120,8 +6138,7 @@ func (s *PollForJobsOutput) SetJobs(v []*Job) *PollForJobsOutput {
 	return s
 }
 
-// Represents the input of a poll for third party jobs action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PollForThirdPartyJobsInput
+// Represents the input of a PollForThirdPartyJobs action.
 type PollForThirdPartyJobsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6177,8 +6194,7 @@ func (s *PollForThirdPartyJobsInput) SetMaxBatchSize(v int64) *PollForThirdParty
 	return s
 }
 
-// Represents the output of a poll for third party jobs action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PollForThirdPartyJobsOutput
+// Represents the output of a PollForThirdPartyJobs action.
 type PollForThirdPartyJobsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6202,8 +6218,7 @@ func (s *PollForThirdPartyJobsOutput) SetJobs(v []*ThirdPartyJob) *PollForThirdP
 	return s
 }
 
-// Represents the input of a put action revision action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PutActionRevisionInput
+// Represents the input of a PutActionRevision action.
 type PutActionRevisionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6298,8 +6313,7 @@ func (s *PutActionRevisionInput) SetStageName(v string) *PutActionRevisionInput 
 	return s
 }
 
-// Represents the output of a put action revision action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PutActionRevisionOutput
+// Represents the output of a PutActionRevision action.
 type PutActionRevisionOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6333,8 +6347,7 @@ func (s *PutActionRevisionOutput) SetPipelineExecutionId(v string) *PutActionRev
 	return s
 }
 
-// Represents the input of a put approval result action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PutApprovalResultInput
+// Represents the input of a PutApprovalResult action.
 type PutApprovalResultInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6446,8 +6459,7 @@ func (s *PutApprovalResultInput) SetToken(v string) *PutApprovalResultInput {
 	return s
 }
 
-// Represents the output of a put approval result action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PutApprovalResultOutput
+// Represents the output of a PutApprovalResult action.
 type PutApprovalResultOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6471,8 +6483,7 @@ func (s *PutApprovalResultOutput) SetApprovedAt(v time.Time) *PutApprovalResultO
 	return s
 }
 
-// Represents the input of a put job failure result action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PutJobFailureResultInput
+// Represents the input of a PutJobFailureResult action.
 type PutJobFailureResultInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6531,7 +6542,6 @@ func (s *PutJobFailureResultInput) SetJobId(v string) *PutJobFailureResultInput 
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PutJobFailureResultOutput
 type PutJobFailureResultOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -6546,8 +6556,7 @@ func (s PutJobFailureResultOutput) GoString() string {
 	return s.String()
 }
 
-// Represents the input of a put job success result action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PutJobSuccessResultInput
+// Represents the input of a PutJobSuccessResult action.
 type PutJobSuccessResultInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6631,7 +6640,6 @@ func (s *PutJobSuccessResultInput) SetJobId(v string) *PutJobSuccessResultInput 
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PutJobSuccessResultOutput
 type PutJobSuccessResultOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -6646,8 +6654,7 @@ func (s PutJobSuccessResultOutput) GoString() string {
 	return s.String()
 }
 
-// Represents the input of a third party job failure result action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PutThirdPartyJobFailureResultInput
+// Represents the input of a PutThirdPartyJobFailureResult action.
 type PutThirdPartyJobFailureResultInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6655,7 +6662,7 @@ type PutThirdPartyJobFailureResultInput struct {
 	// that the calling entity is allowed access to the job and its details.
 	//
 	// ClientToken is a required field
-	ClientToken *string `locationName:"clientToken" type:"string" required:"true"`
+	ClientToken *string `locationName:"clientToken" min:"1" type:"string" required:"true"`
 
 	// Represents information about failure details.
 	//
@@ -6683,6 +6690,9 @@ func (s *PutThirdPartyJobFailureResultInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "PutThirdPartyJobFailureResultInput"}
 	if s.ClientToken == nil {
 		invalidParams.Add(request.NewErrParamRequired("ClientToken"))
+	}
+	if s.ClientToken != nil && len(*s.ClientToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ClientToken", 1))
 	}
 	if s.FailureDetails == nil {
 		invalidParams.Add(request.NewErrParamRequired("FailureDetails"))
@@ -6723,7 +6733,6 @@ func (s *PutThirdPartyJobFailureResultInput) SetJobId(v string) *PutThirdPartyJo
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PutThirdPartyJobFailureResultOutput
 type PutThirdPartyJobFailureResultOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -6738,8 +6747,7 @@ func (s PutThirdPartyJobFailureResultOutput) GoString() string {
 	return s.String()
 }
 
-// Represents the input of a put third party job success result action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PutThirdPartyJobSuccessResultInput
+// Represents the input of a PutThirdPartyJobSuccessResult action.
 type PutThirdPartyJobSuccessResultInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6747,7 +6755,7 @@ type PutThirdPartyJobSuccessResultInput struct {
 	// that the calling entity is allowed access to the job and its details.
 	//
 	// ClientToken is a required field
-	ClientToken *string `locationName:"clientToken" type:"string" required:"true"`
+	ClientToken *string `locationName:"clientToken" min:"1" type:"string" required:"true"`
 
 	// A token generated by a job worker, such as an AWS CodeDeploy deployment ID,
 	// that a successful job provides to identify a partner action in progress.
@@ -6786,6 +6794,9 @@ func (s *PutThirdPartyJobSuccessResultInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "PutThirdPartyJobSuccessResultInput"}
 	if s.ClientToken == nil {
 		invalidParams.Add(request.NewErrParamRequired("ClientToken"))
+	}
+	if s.ClientToken != nil && len(*s.ClientToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ClientToken", 1))
 	}
 	if s.JobId == nil {
 		invalidParams.Add(request.NewErrParamRequired("JobId"))
@@ -6840,7 +6851,6 @@ func (s *PutThirdPartyJobSuccessResultInput) SetJobId(v string) *PutThirdPartyJo
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PutThirdPartyJobSuccessResultOutput
 type PutThirdPartyJobSuccessResultOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -6855,8 +6865,7 @@ func (s PutThirdPartyJobSuccessResultOutput) GoString() string {
 	return s.String()
 }
 
-// Represents the input of a retry stage execution action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/RetryStageExecutionInput
+// Represents the input of a RetryStageExecution action.
 type RetryStageExecutionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6945,8 +6954,7 @@ func (s *RetryStageExecutionInput) SetStageName(v string) *RetryStageExecutionIn
 	return s
 }
 
-// Represents the output of a retry stage execution action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/RetryStageExecutionOutput
+// Represents the output of a RetryStageExecution action.
 type RetryStageExecutionOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6971,7 +6979,6 @@ func (s *RetryStageExecutionOutput) SetPipelineExecutionId(v string) *RetryStage
 }
 
 // The location of the Amazon S3 bucket that contains a revision.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/S3ArtifactLocation
 type S3ArtifactLocation struct {
 	_ struct{} `type:"structure"`
 
@@ -7010,7 +7017,6 @@ func (s *S3ArtifactLocation) SetObjectKey(v string) *S3ArtifactLocation {
 }
 
 // Represents information about a stage to a job worker.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/StageContext
 type StageContext struct {
 	_ struct{} `type:"structure"`
 
@@ -7035,7 +7041,6 @@ func (s *StageContext) SetName(v string) *StageContext {
 }
 
 // Represents information about a stage and its definition.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/StageDeclaration
 type StageDeclaration struct {
 	_ struct{} `type:"structure"`
 
@@ -7121,7 +7126,6 @@ func (s *StageDeclaration) SetName(v string) *StageDeclaration {
 }
 
 // Represents information about the run of a stage.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/StageExecution
 type StageExecution struct {
 	_ struct{} `type:"structure"`
 
@@ -7160,7 +7164,6 @@ func (s *StageExecution) SetStatus(v string) *StageExecution {
 }
 
 // Represents information about the state of the stage.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/StageState
 type StageState struct {
 	_ struct{} `type:"structure"`
 
@@ -7212,8 +7215,7 @@ func (s *StageState) SetStageName(v string) *StageState {
 	return s
 }
 
-// Represents the input of a start pipeline execution action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/StartPipelineExecutionInput
+// Represents the input of a StartPipelineExecution action.
 type StartPipelineExecutionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7255,8 +7257,7 @@ func (s *StartPipelineExecutionInput) SetName(v string) *StartPipelineExecutionI
 	return s
 }
 
-// Represents the output of a start pipeline execution action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/StartPipelineExecutionOutput
+// Represents the output of a StartPipelineExecution action.
 type StartPipelineExecutionOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -7282,7 +7283,6 @@ func (s *StartPipelineExecutionOutput) SetPipelineExecutionId(v string) *StartPi
 
 // A response to a PollForThirdPartyJobs request returned by AWS CodePipeline
 // when there is a job to be worked upon by a partner action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ThirdPartyJob
 type ThirdPartyJob struct {
 	_ struct{} `type:"structure"`
 
@@ -7317,7 +7317,6 @@ func (s *ThirdPartyJob) SetJobId(v string) *ThirdPartyJob {
 }
 
 // Represents information about the job data for a partner action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ThirdPartyJobData
 type ThirdPartyJobData struct {
 	_ struct{} `type:"structure"`
 
@@ -7417,7 +7416,6 @@ func (s *ThirdPartyJobData) SetPipelineContext(v *PipelineContext) *ThirdPartyJo
 }
 
 // The details of a job sent in response to a GetThirdPartyJobDetails request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ThirdPartyJobDetails
 type ThirdPartyJobDetails struct {
 	_ struct{} `type:"structure"`
 
@@ -7463,7 +7461,6 @@ func (s *ThirdPartyJobDetails) SetNonce(v string) *ThirdPartyJobDetails {
 
 // Represents information about the state of transitions between one stage and
 // another stage.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/TransitionState
 type TransitionState struct {
 	_ struct{} `type:"structure"`
 
@@ -7515,8 +7512,7 @@ func (s *TransitionState) SetLastChangedBy(v string) *TransitionState {
 	return s
 }
 
-// Represents the input of an update pipeline action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/UpdatePipelineInput
+// Represents the input of an UpdatePipeline action.
 type UpdatePipelineInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7560,8 +7556,7 @@ func (s *UpdatePipelineInput) SetPipeline(v *PipelineDeclaration) *UpdatePipelin
 	return s
 }
 
-// Represents the output of an update pipeline action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/UpdatePipelineOutput
+// Represents the output of an UpdatePipeline action.
 type UpdatePipelineOutput struct {
 	_ struct{} `type:"structure"`
 

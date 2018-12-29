@@ -3,8 +3,10 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -14,6 +16,10 @@ func dataSourceAwsSsmParameter() *schema.Resource {
 	return &schema.Resource{
 		Read: dataAwsSsmParameterRead,
 		Schema: map[string]*schema.Schema{
+			"arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -27,6 +33,11 @@ func dataSourceAwsSsmParameter() *schema.Resource {
 				Computed:  true,
 				Sensitive: true,
 			},
+			"with_decryption": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
+			},
 		},
 	}
 }
@@ -34,15 +45,16 @@ func dataSourceAwsSsmParameter() *schema.Resource {
 func dataAwsSsmParameterRead(d *schema.ResourceData, meta interface{}) error {
 	ssmconn := meta.(*AWSClient).ssmconn
 
-	log.Printf("[DEBUG] Reading SSM Parameter: %s", d.Id())
+	name := d.Get("name").(string)
 
 	paramInput := &ssm.GetParametersInput{
 		Names: []*string{
-			aws.String(d.Get("name").(string)),
+			aws.String(name),
 		},
-		WithDecryption: aws.Bool(true),
+		WithDecryption: aws.Bool(d.Get("with_decryption").(bool)),
 	}
 
+	log.Printf("[DEBUG] Reading SSM Parameter: %s", paramInput)
 	resp, err := ssmconn.GetParameters(paramInput)
 
 	if err != nil {
@@ -50,11 +62,21 @@ func dataAwsSsmParameterRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if len(resp.InvalidParameters) > 0 {
-		return fmt.Errorf("[ERROR] SSM Parameter %s is invalid", d.Get("name").(string))
+		return fmt.Errorf("[ERROR] SSM Parameter %s is invalid", name)
 	}
 
 	param := resp.Parameters[0]
 	d.SetId(*param.Name)
+
+	arn := arn.ARN{
+		Partition: meta.(*AWSClient).partition,
+		Region:    meta.(*AWSClient).region,
+		Service:   "ssm",
+		AccountID: meta.(*AWSClient).accountid,
+		Resource:  fmt.Sprintf("parameter/%s", strings.TrimPrefix(d.Id(), "/")),
+	}
+	d.Set("arn", arn.String())
+
 	d.Set("name", param.Name)
 	d.Set("type", param.Type)
 	d.Set("value", param.Value)

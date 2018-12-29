@@ -156,6 +156,10 @@ func (s IndexStep) Apply(val Value) (Value, error) {
 	return val.Index(s.Key), nil
 }
 
+func (s IndexStep) GoString() string {
+	return fmt.Sprintf("cty.IndexStep{Key:%#v}", s.Key)
+}
+
 // GetAttrStep is a Step implementation representing retrieving an attribute
 // from a value, which must be of an object type.
 type GetAttrStep struct {
@@ -175,4 +179,8 @@ func (s GetAttrStep) Apply(val Value) (Value, error) {
 	}
 
 	return val.GetAttr(s.Name), nil
+}
+
+func (s GetAttrStep) GoString() string {
+	return fmt.Sprintf("cty.GetAttrStep{Name:%q}", s.Name)
 }

@@ -40,6 +40,11 @@ func resourceAwsNetworkInterface() *schema.Resource {
 				Computed: true,
 			},
 
+			"private_dns_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"private_ips": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -162,6 +167,7 @@ func resourceAwsNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) e
 	eni := describeResp.NetworkInterfaces[0]
 	d.Set("subnet_id", eni.SubnetId)
 	d.Set("private_ip", eni.PrivateIpAddress)
+	d.Set("private_dns_name", eni.PrivateDnsName)
 	d.Set("private_ips", flattenNetworkInterfacesPrivateIPAddresses(eni.PrivateIpAddresses))
 	d.Set("security_groups", flattenGroupIdentifiers(eni.Groups))
 	d.Set("source_dest_check", eni.SourceDestCheck)

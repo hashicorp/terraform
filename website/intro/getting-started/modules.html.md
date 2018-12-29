@@ -38,7 +38,7 @@ larger building-blocks for your infrastructure.
 In this example, we're going to use
 [the Consul Terraform module for AWS](https://registry.terraform.io/modules/hashicorp/consul/aws),
 which will set up a complete [Consul](https://www.consul.io) cluster.
-This and other modules can found via the search feature on the Terraform
+This and other modules can be found via the search feature on the Terraform
 Registry site.
 
 Create a configuration file with the following contents:
@@ -143,7 +143,7 @@ The `module.consul.module.consul_clients` prefix shown above indicates
 not only that the resource is from the `module "consul"` block we wrote,
 but in fact that this module has its own `module "consul_clients"` block
 within it. Modules can be nested to decompose complex systems into
-managable components.
+manageable components.
 
 The full set of resources created by this module includes an autoscaling group,
 security groups, IAM roles and other individual resources that all support

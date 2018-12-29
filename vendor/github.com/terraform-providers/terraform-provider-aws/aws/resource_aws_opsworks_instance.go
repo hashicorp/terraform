@@ -32,11 +32,6 @@ func resourceAwsOpsworksInstance() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"id": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
 			"agent_version": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -564,7 +559,6 @@ func resourceAwsOpsworksInstanceRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("hostname", instance.Hostname)
 	d.Set("infrastructure_class", instance.InfrastructureClass)
 	d.Set("install_updates_on_boot", instance.InstallUpdatesOnBoot)
-	d.Set("id", instanceId)
 	d.Set("instance_profile_arn", instance.InstanceProfileArn)
 	d.Set("instance_type", instance.InstanceType)
 	d.Set("last_service_error_id", instance.LastServiceErrorId)
@@ -785,7 +779,6 @@ func resourceAwsOpsworksInstanceCreate(d *schema.ResourceData, meta interface{})
 
 	instanceId := *resp.InstanceId
 	d.SetId(instanceId)
-	d.Set("id", instanceId)
 
 	if v, ok := d.GetOk("state"); ok && v.(string) == "running" {
 		err := startOpsworksInstance(d, meta, true, d.Timeout(schema.TimeoutCreate))
@@ -806,9 +799,9 @@ func resourceAwsOpsworksInstanceUpdate(d *schema.ResourceData, meta interface{})
 	}
 
 	req := &opsworks.UpdateInstanceInput{
+		InstanceId:           aws.String(d.Id()),
 		AgentVersion:         aws.String(d.Get("agent_version").(string)),
 		Architecture:         aws.String(d.Get("architecture").(string)),
-		InstanceId:           aws.String(d.Get("id").(string)),
 		InstallUpdatesOnBoot: aws.Bool(d.Get("install_updates_on_boot").(bool)),
 	}
 
@@ -918,7 +911,7 @@ func resourceAwsOpsworksInstanceImport(
 func startOpsworksInstance(d *schema.ResourceData, meta interface{}, wait bool, timeout time.Duration) error {
 	client := meta.(*AWSClient).opsworksconn
 
-	instanceId := d.Get("id").(string)
+	instanceId := d.Id()
 
 	req := &opsworks.StartInstanceInput{
 		InstanceId: aws.String(instanceId),
@@ -956,7 +949,7 @@ func startOpsworksInstance(d *schema.ResourceData, meta interface{}, wait bool, 
 func stopOpsworksInstance(d *schema.ResourceData, meta interface{}, wait bool, timeout time.Duration) error {
 	client := meta.(*AWSClient).opsworksconn
 
-	instanceId := d.Get("id").(string)
+	instanceId := d.Id()
 
 	req := &opsworks.StopInstanceInput{
 		InstanceId: aws.String(instanceId),

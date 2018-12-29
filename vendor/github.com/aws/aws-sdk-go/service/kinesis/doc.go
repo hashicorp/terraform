@@ -3,8 +3,8 @@
 // Package kinesis provides the client and types for making API
 // requests to Amazon Kinesis.
 //
-// Amazon Kinesis Streams is a managed service that scales elastically for real
-// time processing of streaming big data.
+// Amazon Kinesis Data Streams is a managed service that scales elastically
+// for real-time processing of streaming big data.
 //
 // See https://docs.aws.amazon.com/goto/WebAPI/kinesis-2013-12-02 for more information on this service.
 //
@@ -13,7 +13,7 @@
 //
 // Using the Client
 //
-// To Amazon Kinesis with the SDK use the New function to create
+// To contact Amazon Kinesis with the SDK use the New function to create
 // a new service client. With that client you can make API requests to the service.
 // These clients are safe to use concurrently.
 //

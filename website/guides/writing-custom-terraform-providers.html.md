@@ -479,7 +479,7 @@ func resourceServerUpdate(d *schema.ResourceData, m interface{}) error {
 	// then only the "address" field would be saved.
 
 	// We succeeded, disable partial mode. This causes Terraform to save
-	// save all fields again.
+	// all fields again.
 	d.Partial(false)
 
 	return nil

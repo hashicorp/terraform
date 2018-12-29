@@ -16,6 +16,7 @@ func TestProvisioner_connInfo(t *testing.T) {
 				"host":     "127.0.0.1",
 				"port":     "5985",
 				"https":    "true",
+				"use_ntlm": "true",
 				"timeout":  "30s",
 			},
 		},
@@ -39,6 +40,9 @@ func TestProvisioner_connInfo(t *testing.T) {
 		t.Fatalf("expected: %v: got: %v", 5985, conf)
 	}
 	if conf.HTTPS != true {
+		t.Fatalf("expected: %v: got: %v", true, conf)
+	}
+	if conf.NTLM != true {
 		t.Fatalf("expected: %v: got: %v", true, conf)
 	}
 	if conf.Timeout != "30s" {

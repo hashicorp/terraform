@@ -57,7 +57,7 @@ Please list the full steps required to reproduce the issue, for example:
 2. `terraform apply`
 -->
 
-### Important Factoids
+### Additional Context
 <!--
 Are there anything atypical about your situation that we should know? For example: is Terraform running in a wrapper script or in a CI system? Are you passing any unusual command line options or environment variables to opt-in to non-default behavior?
 -->

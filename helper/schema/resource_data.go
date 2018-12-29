@@ -366,6 +366,13 @@ func (d *ResourceData) State() *terraform.InstanceState {
 func (d *ResourceData) Timeout(key string) time.Duration {
 	key = strings.ToLower(key)
 
+	// System default of 20 minutes
+	defaultTimeout := 20 * time.Minute
+
+	if d.timeouts == nil {
+		return defaultTimeout
+	}
+
 	var timeout *time.Duration
 	switch key {
 	case TimeoutCreate:
@@ -386,8 +393,7 @@ func (d *ResourceData) Timeout(key string) time.Duration {
 		return *d.timeouts.Default
 	}
 
-	// Return system default of 20 minutes
-	return 20 * time.Minute
+	return defaultTimeout
 }
 
 func (d *ResourceData) init() {
@@ -445,7 +451,7 @@ func (d *ResourceData) init() {
 }
 
 func (d *ResourceData) diffChange(
-	k string) (interface{}, interface{}, bool, bool) {
+	k string) (interface{}, interface{}, bool, bool, bool) {
 	// Get the change between the state and the config.
 	o, n := d.getChange(k, getSourceState, getSourceConfig|getSourceExact)
 	if !o.Exists {
@@ -456,7 +462,7 @@ func (d *ResourceData) diffChange(
 	}
 
 	// Return the old, new, and whether there is a change
-	return o.Value, n.Value, !reflect.DeepEqual(o.Value, n.Value), n.Computed
+	return o.Value, n.Value, !reflect.DeepEqual(o.Value, n.Value), n.Computed, false
 }
 
 func (d *ResourceData) getChange(

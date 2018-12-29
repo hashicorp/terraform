@@ -205,13 +205,13 @@ func dataSourceAwsDbInstance() *schema.Resource {
 func dataSourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).rdsconn
 
-	opts := rds.DescribeDBInstancesInput{
+	opts := &rds.DescribeDBInstancesInput{
 		DBInstanceIdentifier: aws.String(d.Get("db_instance_identifier").(string)),
 	}
 
-	log.Printf("[DEBUG] DB Instance describe configuration: %#v", opts)
+	log.Printf("[DEBUG] Reading DB Instance: %s", opts)
 
-	resp, err := conn.DescribeDBInstances(&opts)
+	resp, err := conn.DescribeDBInstances(opts)
 	if err != nil {
 		return err
 	}
@@ -232,7 +232,7 @@ func dataSourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error
 	d.Set("availability_zone", dbInstance.AvailabilityZone)
 	d.Set("backup_retention_period", dbInstance.BackupRetentionPeriod)
 	d.Set("db_cluster_identifier", dbInstance.DBClusterIdentifier)
-	d.Set("db_instance_arn", dbInstance.DBClusterIdentifier)
+	d.Set("db_instance_arn", dbInstance.DBInstanceArn)
 	d.Set("db_instance_class", dbInstance.DBInstanceClass)
 	d.Set("db_name", dbInstance.DBName)
 

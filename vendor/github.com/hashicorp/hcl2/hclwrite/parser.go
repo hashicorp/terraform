@@ -3,18 +3,18 @@ package hclwrite
 import (
 	"sort"
 
-	"github.com/hashicorp/hcl2/hcl/hclsyntax"
 	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl2/hcl/hclsyntax"
 )
 
 // Our "parser" here is actually not doing any parsing of its own. Instead,
-// it leans on the native parser in zclsyntax, and then uses the source ranges
+// it leans on the native parser in hclsyntax, and then uses the source ranges
 // from the AST to partition the raw token sequence to match the raw tokens
 // up to AST nodes.
 //
 // This strategy feels somewhat counter-intuitive, since most of the work the
 // parser does is thrown away here, but this strategy is chosen because the
-// normal parsing work done by zclsyntax is considered to be the "main case",
+// normal parsing work done by hclsyntax is considered to be the "main case",
 // while modifying and re-printing source is more of an edge case, used only
 // in ancillary tools, and so it's good to keep all the main parsing logic
 // with the main case but keep all of the extra complexity of token wrangling
@@ -30,7 +30,7 @@ func parse(src []byte, filename string, start hcl.Pos) (*File, hcl.Diagnostics) 
 		return nil, diags
 	}
 
-	// To do our work here, we use the "native" tokens (those from zclsyntax)
+	// To do our work here, we use the "native" tokens (those from hclsyntax)
 	// to match against source ranges in the AST, but ultimately produce
 	// slices from our sequence of "writer" tokens, which contain only
 	// *relative* position information that is more appropriate for
@@ -333,7 +333,7 @@ func parseExpression(nativeExpr hclsyntax.Expression, from inputTokens) *Express
 	}
 }
 
-// writerTokens takes a sequence of tokens as produced by the main zclsyntax
+// writerTokens takes a sequence of tokens as produced by the main hclsyntax
 // package and transforms it into an equivalent sequence of tokens using
 // this package's own token model.
 //
@@ -389,7 +389,7 @@ func writerTokens(nativeTokens hclsyntax.Tokens) Tokens {
 // true then it will make a best effort that may produce strange results at
 // the boundaries.
 //
-// Native zclsyntax tokens are used here, because they contain the necessary
+// Native hclsyntax tokens are used here, because they contain the necessary
 // absolute position information. However, since writerTokens produces a
 // correlatable sequence of writer tokens, the resulting indices can be
 // used also to index into its result, allowing the partitioning of writer
@@ -488,7 +488,7 @@ func partitionLineEndTokens(toks hclsyntax.Tokens) (afterComment, afterNewline i
 	return len(toks), len(toks)
 }
 
-// lexConfig uses the zclsyntax scanner to get a token stream and then
+// lexConfig uses the hclsyntax scanner to get a token stream and then
 // rewrites it into this package's token model.
 //
 // Any errors produced during scanning are ignored, so the results of this

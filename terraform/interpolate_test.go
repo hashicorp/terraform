@@ -129,6 +129,40 @@ func TestInterpolater_localVal(t *testing.T) {
 	})
 }
 
+func TestInterpolater_missingID(t *testing.T) {
+	lock := new(sync.RWMutex)
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.web": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	i := &Interpolater{
+		Module:    testModule(t, "interpolate-resource-variable"),
+		State:     state,
+		StateLock: lock,
+	}
+
+	scope := &InterpolationScope{
+		Path: rootModulePath,
+	}
+
+	testInterpolate(t, i, scope, "aws_instance.web.id", ast.Variable{
+		Value: "bar",
+		Type:  ast.TypeString,
+	})
+}
+
 func TestInterpolater_pathCwd(t *testing.T) {
 	i := &Interpolater{}
 	scope := &InterpolationScope{}
@@ -314,8 +348,8 @@ func TestInterpolater_resourceVariableMissingDuringInput(t *testing.T) {
 			&ModuleState{
 				Path:      rootModulePath,
 				Resources: map[string]*ResourceState{
-				// No resources at all yet, because we're still dealing
-				// with input and so the resources haven't been created.
+					// No resources at all yet, because we're still dealing
+					// with input and so the resources haven't been created.
 				},
 			},
 		},

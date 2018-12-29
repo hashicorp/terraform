@@ -4,12 +4,9 @@ import (
 	"fmt"
 	"log"
 	"regexp"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/redshift"
-	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -86,7 +83,7 @@ func resourceAwsRedshiftSubnetGroupRead(d *schema.ResourceData, meta interface{}
 
 	describeResp, err := conn.DescribeClusterSubnetGroups(&describeOpts)
 	if err != nil {
-		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "ClusterSubnetGroupNotFoundFault" {
+		if isAWSErr(err, "ClusterSubnetGroupNotFoundFault", "") {
 			log.Printf("[INFO] Redshift Subnet Group: %s was not found", d.Id())
 			d.SetId("")
 			return nil
@@ -147,39 +144,16 @@ func resourceAwsRedshiftSubnetGroupUpdate(d *schema.ResourceData, meta interface
 }
 
 func resourceAwsRedshiftSubnetGroupDelete(d *schema.ResourceData, meta interface{}) error {
-	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"pending"},
-		Target:     []string{"destroyed"},
-		Refresh:    resourceAwsRedshiftSubnetGroupDeleteRefreshFunc(d, meta),
-		Timeout:    3 * time.Minute,
-		MinTimeout: 1 * time.Second,
-	}
-	_, err := stateConf.WaitForState()
-	return err
-}
-
-func resourceAwsRedshiftSubnetGroupDeleteRefreshFunc(d *schema.ResourceData, meta interface{}) resource.StateRefreshFunc {
 	conn := meta.(*AWSClient).redshiftconn
 
-	return func() (interface{}, string, error) {
-
-		deleteOpts := redshift.DeleteClusterSubnetGroupInput{
-			ClusterSubnetGroupName: aws.String(d.Id()),
-		}
-
-		if _, err := conn.DeleteClusterSubnetGroup(&deleteOpts); err != nil {
-			redshiftErr, ok := err.(awserr.Error)
-			if !ok {
-				return d, "error", err
-			}
-
-			if redshiftErr.Code() != "ClusterSubnetGroupNotFoundFault" {
-				return d, "error", err
-			}
-		}
-
-		return d, "destroyed", nil
+	_, err := conn.DeleteClusterSubnetGroup(&redshift.DeleteClusterSubnetGroupInput{
+		ClusterSubnetGroupName: aws.String(d.Id()),
+	})
+	if err != nil && isAWSErr(err, "ClusterSubnetGroupNotFoundFault", "") {
+		return nil
 	}
+
+	return err
 }
 
 func subnetIdsToSlice(subnetIds []*redshift.Subnet) []string {

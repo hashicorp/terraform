@@ -1318,3 +1318,39 @@ func TestResourceData_blank(t *testing.T) {
 		t.Fatalf("bad: %#v", v)
 	}
 }
+
+func TestResourceData_timeouts(t *testing.T) {
+	one := 1 * time.Second
+	two := 2 * time.Second
+	three := 3 * time.Second
+	four := 4 * time.Second
+	five := 5 * time.Second
+
+	timeouts := &ResourceTimeout{
+		Create:  &one,
+		Read:    &two,
+		Update:  &three,
+		Delete:  &four,
+		Default: &five,
+	}
+
+	r := &Resource{
+		SchemaVersion: 2,
+		Schema: map[string]*Schema{
+			"foo": &Schema{
+				Type:     TypeInt,
+				Optional: true,
+			},
+		},
+		Timeouts: timeouts,
+	}
+
+	data := r.Data(nil)
+	if data.Id() != "" {
+		t.Fatalf("err: %s", data.Id())
+	}
+
+	if !reflect.DeepEqual(timeouts, data.timeouts) {
+		t.Fatalf("incorrect ResourceData timeouts: %#v\n", *data.timeouts)
+	}
+}

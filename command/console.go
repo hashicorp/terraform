@@ -81,6 +81,13 @@ func (c *ConsoleCommand) Run(args []string) int {
 		return 1
 	}
 
+	defer func() {
+		err := opReq.StateLocker.Unlock(nil)
+		if err != nil {
+			c.Ui.Error(err.Error())
+		}
+	}()
+
 	// Setup the UI so we can output directly to stdout
 	ui := &cli.BasicUi{
 		Writer:      wrappedstreams.Stdout(),

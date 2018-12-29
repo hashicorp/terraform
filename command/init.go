@@ -180,7 +180,6 @@ func (c *InitCommand) Run(args []string) int {
 					"Error downloading modules: %s", err))
 				return 1
 			}
-
 		}
 
 		// If we're requesting backend configuration or looking for required
@@ -280,6 +279,12 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 		return diags.Err()
 	}
 
+	if err := terraform.CheckStateVersion(state); err != nil {
+		diags = diags.Append(err)
+		c.showDiagnostics(diags)
+		return err
+	}
+
 	if err := terraform.CheckRequiredVersion(mod); err != nil {
 		diags = diags.Append(err)
 		c.showDiagnostics(diags)
@@ -306,7 +311,6 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 	))
 
 	missing := c.missingPlugins(available, requirements)
-	internal := c.internalProviders()
 
 	var errs error
 	if c.getPlugins {
@@ -316,12 +320,6 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 		}
 
 		for provider, reqd := range missing {
-			if _, isInternal := internal[provider]; isInternal {
-				// Ignore internal providers; they are not eligible for
-				// installation.
-				continue
-			}
-
 			_, err := c.providerInstaller.Get(provider, reqd.Versions)
 
 			if err != nil {
@@ -379,7 +377,10 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 	// again. If anything changes, other commands that use providers will
 	// fail with an error instructing the user to re-run this command.
 	available = c.providerPluginSet() // re-discover to see newly-installed plugins
-	chosen := choosePlugins(available, internal, requirements)
+
+	// internal providers were already filtered out, since we don't need to get them.
+	chosen := choosePlugins(available, nil, requirements)
+
 	digests := map[string][]byte{}
 	for name, meta := range chosen {
 		digest, err := meta.SHA256()

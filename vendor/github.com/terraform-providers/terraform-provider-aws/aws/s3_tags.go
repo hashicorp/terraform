@@ -22,7 +22,7 @@ func setTagsS3(conn *s3.S3, d *schema.ResourceData) error {
 		// Set tags
 		if len(remove) > 0 {
 			log.Printf("[DEBUG] Removing tags: %#v", remove)
-			_, err := retryOnAwsCode("NoSuchBucket", func() (interface{}, error) {
+			_, err := retryOnAwsCodes([]string{"NoSuchBucket", "OperationAborted"}, func() (interface{}, error) {
 				return conn.DeleteBucketTagging(&s3.DeleteBucketTaggingInput{
 					Bucket: aws.String(d.Get("bucket").(string)),
 				})
@@ -40,7 +40,7 @@ func setTagsS3(conn *s3.S3, d *schema.ResourceData) error {
 				},
 			}
 
-			_, err := retryOnAwsCode("NoSuchBucket", func() (interface{}, error) {
+			_, err := retryOnAwsCodes([]string{"NoSuchBucket", "OperationAborted"}, func() (interface{}, error) {
 				return conn.PutBucketTagging(req)
 			})
 			if err != nil {

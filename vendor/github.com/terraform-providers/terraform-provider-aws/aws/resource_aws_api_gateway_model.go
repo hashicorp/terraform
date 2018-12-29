@@ -93,6 +93,7 @@ func resourceAwsApiGatewayModelRead(d *schema.ResourceData, meta interface{}) er
 	})
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NotFoundException" {
+			log.Printf("[WARN] API Gateway Model (%s) not found, removing from state", d.Id())
 			d.SetId("")
 			return nil
 		}

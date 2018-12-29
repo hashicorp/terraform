@@ -95,10 +95,24 @@ func resourceAwsRDSCluster() *schema.Resource {
 				Computed: true,
 			},
 
+			"hosted_zone_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"engine": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "aurora",
+				ForceNew:     true,
+				ValidateFunc: validateRdsEngine,
+			},
+
+			"engine_version": {
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  "aurora",
+				ForceNew: true,
+				Computed: true,
 			},
 
 			"storage_encrypted": {
@@ -240,6 +254,12 @@ func resourceAwsRDSCluster() *schema.Resource {
 				Computed: true,
 			},
 
+			"source_region": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -331,7 +351,7 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 			log.Println("[INFO] Waiting for RDS Cluster to be available")
 
 			stateConf := &resource.StateChangeConf{
-				Pending:    []string{"creating", "backing-up", "modifying", "preparing-data-migration", "migrating"},
+				Pending:    resourceAwsRdsClusterCreatePendingStates,
 				Target:     []string{"available"},
 				Refresh:    resourceAwsRDSClusterStateRefreshFunc(d, meta),
 				Timeout:    d.Timeout(schema.TimeoutCreate),
@@ -371,6 +391,10 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 			createOpts.DBClusterParameterGroupName = aws.String(attr.(string))
 		}
 
+		if attr, ok := d.GetOk("engine_version"); ok {
+			createOpts.EngineVersion = aws.String(attr.(string))
+		}
+
 		if attr := d.Get("vpc_security_group_ids").(*schema.Set); attr.Len() > 0 {
 			createOpts.VpcSecurityGroupIds = expandStringList(attr.List())
 		}
@@ -393,6 +417,10 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 
 		if attr, ok := d.GetOk("kms_key_id"); ok {
 			createOpts.KmsKeyId = aws.String(attr.(string))
+		}
+
+		if attr, ok := d.GetOk("source_region"); ok {
+			createOpts.SourceRegion = aws.String(attr.(string))
 		}
 
 		log.Printf("[DEBUG] Create RDS Cluster as read replica: %s", createOpts)
@@ -484,7 +512,7 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 		"[INFO] Waiting for RDS Cluster to be available")
 
 	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"creating", "backing-up", "modifying"},
+		Pending:    resourceAwsRdsClusterCreatePendingStates,
 		Target:     []string{"available"},
 		Refresh:    resourceAwsRDSClusterStateRefreshFunc(d, meta),
 		Timeout:    d.Timeout(schema.TimeoutCreate),
@@ -542,6 +570,12 @@ func resourceAwsRDSClusterRead(d *schema.ResourceData, meta interface{}) error {
 		return nil
 	}
 
+	return flattenAwsRdsClusterResource(d, meta, dbc)
+}
+
+func flattenAwsRdsClusterResource(d *schema.ResourceData, meta interface{}, dbc *rds.DBCluster) error {
+	conn := meta.(*AWSClient).rdsconn
+
 	if err := d.Set("availability_zones", aws.StringValueSlice(dbc.AvailabilityZones)); err != nil {
 		return fmt.Errorf("[DEBUG] Error saving AvailabilityZones to state for RDS Cluster (%s): %s", d.Id(), err)
 	}
@@ -560,6 +594,7 @@ func resourceAwsRDSClusterRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("db_cluster_parameter_group_name", dbc.DBClusterParameterGroup)
 	d.Set("endpoint", dbc.Endpoint)
 	d.Set("engine", dbc.Engine)
+	d.Set("engine_version", dbc.EngineVersion)
 	d.Set("master_username", dbc.MasterUsername)
 	d.Set("port", dbc.Port)
 	d.Set("storage_encrypted", dbc.StorageEncrypted)
@@ -570,6 +605,7 @@ func resourceAwsRDSClusterRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("reader_endpoint", dbc.ReaderEndpoint)
 	d.Set("replication_source_identifier", dbc.ReplicationSourceIdentifier)
 	d.Set("iam_database_authentication_enabled", dbc.IAMDatabaseAuthenticationEnabled)
+	d.Set("hosted_zone_id", dbc.HostedZoneId)
 
 	var vpcg []string
 	for _, g := range dbc.VpcSecurityGroups {
@@ -735,17 +771,26 @@ func resourceAwsRDSClusterDelete(d *schema.ResourceData, meta interface{}) error
 	}
 
 	log.Printf("[DEBUG] RDS Cluster delete options: %s", deleteOpts)
-	_, err := conn.DeleteDBCluster(&deleteOpts)
-	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok {
-			if "InvalidDBClusterStateFault" == awsErr.Code() {
-				return fmt.Errorf("RDS Cluster cannot be deleted: %s", awsErr.Message())
+
+	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+		_, err := conn.DeleteDBCluster(&deleteOpts)
+		if err != nil {
+			if isAWSErr(err, rds.ErrCodeInvalidDBClusterStateFault, "is not currently in the available state") {
+				return resource.RetryableError(err)
 			}
+			if isAWSErr(err, rds.ErrCodeDBClusterNotFoundFault, "") {
+				return nil
+			}
+			return resource.NonRetryableError(err)
 		}
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("RDS Cluster cannot be deleted: %s", err)
 	}
 
 	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"available", "deleting", "backing-up", "modifying"},
+		Pending:    resourceAwsRdsClusterDeletePendingStates,
 		Target:     []string{"destroyed"},
 		Refresh:    resourceAwsRDSClusterStateRefreshFunc(d, meta),
 		Timeout:    d.Timeout(schema.TimeoutDelete),
@@ -838,4 +883,20 @@ func removeIamRoleFromRdsCluster(clusterIdentifier string, roleArn string, conn 
 	}
 
 	return nil
+}
+
+var resourceAwsRdsClusterCreatePendingStates = []string{
+	"creating",
+	"backing-up",
+	"modifying",
+	"preparing-data-migration",
+	"migrating",
+	"resetting-master-credentials",
+}
+
+var resourceAwsRdsClusterDeletePendingStates = []string{
+	"available",
+	"deleting",
+	"backing-up",
+	"modifying",
 }

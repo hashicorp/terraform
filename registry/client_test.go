@@ -55,6 +55,23 @@ func TestLookupModuleVersions(t *testing.T) {
 	}
 }
 
+func TestInvalidRegistry(t *testing.T) {
+	server := test.Registry()
+	defer server.Close()
+
+	client := NewClient(test.Disco(server), nil, nil)
+
+	src := "non-existent.localhost.localdomain/test-versions/name/provider"
+	modsrc, err := regsrc.ParseModuleSource(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := client.Versions(modsrc); err == nil {
+		t.Fatal("expected error")
+	}
+}
+
 func TestRegistryAuth(t *testing.T) {
 	server := test.Registry()
 	defer server.Close()

@@ -2401,6 +2401,32 @@ func TestContext2Plan_hook(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_closeProvider(t *testing.T) {
+	// this fixture only has an aliased provider located in the module, to make
+	// sure that the provier name contains a path more complex than
+	// "provider.aws".
+	m := testModule(t, "plan-close-module-provider")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	_, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !p.CloseCalled {
+		t.Fatal("provider not closed")
+	}
+}
+
 func TestContext2Plan_orphan(t *testing.T) {
 	m := testModule(t, "plan-orphan")
 	p := testProvider("aws")
@@ -2707,6 +2733,26 @@ STATE:
 	}
 }
 
+func TestContext2Plan_targetEmpty(t *testing.T) {
+	m := testModule(t, "plan-targeted")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		Targets: []string{""},
+	})
+
+	_, err := ctx.Plan()
+	if err == nil {
+		t.Fatal("should error")
+	}
+}
+
 // Test that targeting a module properly plans any inputs that depend
 // on another module.
 func TestContext2Plan_targetedCrossModule(t *testing.T) {
@@ -2940,6 +2986,28 @@ STATE:
 `)
 	if actual != expected {
 		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	}
+}
+
+// ensure that outputs missing references due to targetting are removed from
+// the graph.
+func TestContext2Plan_outputContainsTargetedResource(t *testing.T) {
+	m := testModule(t, "plan-untargeted-resource-output")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		Targets: []string{"module.mod.aws_instance.a"},
+	})
+
+	_, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
 	}
 }
 

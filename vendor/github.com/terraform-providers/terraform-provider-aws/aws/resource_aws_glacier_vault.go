@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/glacier"
+	"github.com/hashicorp/terraform/helper/structure"
 )
 
 func resourceAwsGlacierVault() *schema.Resource {
@@ -26,7 +27,7 @@ func resourceAwsGlacierVault() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -44,38 +45,38 @@ func resourceAwsGlacierVault() *schema.Resource {
 				},
 			},
 
-			"location": &schema.Schema{
+			"location": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"access_policy": &schema.Schema{
+			"access_policy": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validateJsonString,
 				StateFunc: func(v interface{}) string {
-					json, _ := normalizeJsonString(v)
+					json, _ := structure.NormalizeJsonString(v)
 					return json
 				},
 			},
 
-			"notification": &schema.Schema{
+			"notification": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"events": &schema.Schema{
+						"events": {
 							Type:     schema.TypeSet,
 							Required: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 							Set:      schema.HashString,
 						},
-						"sns_topic": &schema.Schema{
+						"sns_topic": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
@@ -164,7 +165,7 @@ func resourceAwsGlacierVaultRead(d *schema.ResourceData, meta interface{}) error
 	if awserr, ok := err.(awserr.Error); ok && awserr.Code() == "ResourceNotFoundException" {
 		d.Set("access_policy", "")
 	} else if pol != nil {
-		policy, err := normalizeJsonString(*pol.Policy.Policy)
+		policy, err := structure.NormalizeJsonString(*pol.Policy.Policy)
 		if err != nil {
 			return errwrap.Wrapf("access policy contains an invalid JSON: {{err}}", err)
 		}

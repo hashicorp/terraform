@@ -1,36 +1,10 @@
 package aws
 
 import (
-	"bytes"
-	"fmt"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
-
-func dataSourceTagsHash(v interface{}) int {
-	var buf bytes.Buffer
-	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%s-", m["key"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["value"].(string)))
-	return hashcode.String(buf.String())
-}
-
-func dataSourceTags(m []*ec2.Tag) *schema.Set {
-	s := &schema.Set{
-		F: dataSourceTagsHash,
-	}
-	for _, v := range m {
-		tag := map[string]interface{}{
-			"key":   *v.Key,
-			"value": *v.Value,
-		}
-		s.Add(tag)
-	}
-	return s
-}
 
 func buildAwsDataSourceFilters(set *schema.Set) []*ec2.Filter {
 	var filters []*ec2.Filter
@@ -64,26 +38,6 @@ func dataSourceFiltersSchema() *schema.Schema {
 					Type:     schema.TypeList,
 					Required: true,
 					Elem:     &schema.Schema{Type: schema.TypeString},
-				},
-			},
-		},
-	}
-}
-
-func dataSourceTagsSchema() *schema.Schema {
-	return &schema.Schema{
-		Type:     schema.TypeSet,
-		Computed: true,
-		Set:      dataSourceTagsHash,
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"key": {
-					Type:     schema.TypeString,
-					Computed: true,
-				},
-				"value": {
-					Type:     schema.TypeString,
-					Computed: true,
 				},
 			},
 		},

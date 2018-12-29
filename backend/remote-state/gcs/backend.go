@@ -3,6 +3,7 @@ package gcs
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -12,7 +13,7 @@ import (
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/pathorcontents"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/httpclient"
 	"golang.org/x/oauth2/jwt"
 	"google.golang.org/api/option"
 )
@@ -29,6 +30,8 @@ type gcsBackend struct {
 	bucketName       string
 	prefix           string
 	defaultStateFile string
+
+	encryptionKey []byte
 
 	projectID string
 	region    string
@@ -62,6 +65,13 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Google Cloud JSON Account Key",
+				Default:     "",
+			},
+
+			"encryption_key": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A 32 byte base64 encoded 'customer supplied encryption key' used to encrypt all state.",
 				Default:     "",
 			},
 
@@ -146,13 +156,37 @@ func (b *gcsBackend) configure(ctx context.Context) error {
 		opts = append(opts, option.WithScopes(storage.ScopeReadWrite))
 	}
 
-	opts = append(opts, option.WithUserAgent(terraform.UserAgentString()))
+	opts = append(opts, option.WithUserAgent(httpclient.UserAgentString()))
 	client, err := storage.NewClient(b.storageContext, opts...)
 	if err != nil {
 		return fmt.Errorf("storage.NewClient() failed: %v", err)
 	}
 
 	b.storageClient = client
+
+	key := data.Get("encryption_key").(string)
+	if key == "" {
+		key = os.Getenv("GOOGLE_ENCRYPTION_KEY")
+	}
+
+	if key != "" {
+		kc, _, err := pathorcontents.Read(key)
+		if err != nil {
+			return fmt.Errorf("Error loading encryption key: %s", err)
+		}
+
+		// The GCS client expects a customer supplied encryption key to be
+		// passed in as a 32 byte long byte slice. The byte slice is base64
+		// encoded before being passed to the API. We take a base64 encoded key
+		// to remain consistent with the GCS docs.
+		// https://cloud.google.com/storage/docs/encryption#customer-supplied
+		// https://github.com/GoogleCloudPlatform/google-cloud-go/blob/def681/storage/storage.go#L1181
+		k, err := base64.StdEncoding.DecodeString(kc)
+		if err != nil {
+			return fmt.Errorf("Error decoding encryption key: %s", err)
+		}
+		b.encryptionKey = k
+	}
 
 	return nil
 }

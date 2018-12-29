@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/terraform"
+	tritonErrors "github.com/joyent/triton-go/errors"
 	"github.com/joyent/triton-go/storage"
 )
 
@@ -22,7 +23,7 @@ func (b *Backend) States() ([]string, error) {
 		DirectoryName: path.Join(mantaDefaultRootStore, b.path),
 	})
 	if err != nil {
-		if strings.Contains(err.Error(), "ResourceNotFound") {
+		if tritonErrors.IsResourceNotFound(err) {
 			return result, nil
 		}
 		return nil, err
@@ -78,7 +79,6 @@ func (b *Backend) State(name string) (state.State, error) {
 	//if this isn't the default state name, we need to create the object so
 	//it's listed by States.
 	if name != backend.DefaultStateName {
-
 		// take a lock on this state while we write it
 		lockInfo := state.NewLockInfo()
 		lockInfo.Operation = "init"

@@ -60,8 +60,8 @@ func dataSourceAwsInternetGatewayRead(d *schema.ResourceData, meta interface{}) 
 	req.Filters = append(req.Filters, buildEC2CustomFilterList(
 		filter.(*schema.Set),
 	)...)
-	log.Printf("[DEBUG] Describe Internet Gateways %v\n", req)
 
+	log.Printf("[DEBUG] Reading Internet Gateway: %s", req)
 	resp, err := conn.DescribeInternetGateways(req)
 
 	if err != nil {

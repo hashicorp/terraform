@@ -23,6 +23,7 @@ func (c *StateListCommand) Run(args []string) int {
 
 	cmdFlags := c.Meta.flagSet("state list")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
+	lookupId := cmdFlags.String("id", "", "Restrict output to paths with a resource having the specified ID.")
 	if err := cmdFlags.Parse(args); err != nil {
 		return cli.RunResultHelp
 	}
@@ -62,8 +63,10 @@ func (c *StateListCommand) Run(args []string) int {
 	}
 
 	for _, result := range results {
-		if _, ok := result.Value.(*terraform.InstanceState); ok {
-			c.Ui.Output(result.Address)
+		if i, ok := result.Value.(*terraform.InstanceState); ok {
+			if *lookupId == "" || i.ID == *lookupId {
+				c.Ui.Output(result.Address)
+			}
 		}
 	}
 
@@ -93,6 +96,8 @@ Options:
   -state=statefile    Path to a Terraform state file to use to look
                       up Terraform-managed resources. By default it will
                       use the state "terraform.tfstate" if it exists.
+
+  -id=ID              Restricts the output to objects whose id is ID.
 
 `
 	return strings.TrimSpace(helpText)

@@ -42,7 +42,9 @@ func ImpliedBodySchema(val interface{}) (schema *hcl.BodySchema, partial bool) {
 	sort.Strings(attrNames)
 	for _, n := range attrNames {
 		idx := tags.Attributes[n]
+		optional := tags.Optional[n]
 		field := ty.Field(idx)
+
 		var required bool
 
 		switch {
@@ -51,7 +53,7 @@ func ImpliedBodySchema(val interface{}) (schema *hcl.BodySchema, partial bool) {
 			// indicated via a null value, so we don't specify that
 			// the field is required during decoding.
 			required = false
-		case field.Type.Kind() != reflect.Ptr:
+		case field.Type.Kind() != reflect.Ptr && !optional:
 			required = true
 		default:
 			required = false
@@ -111,6 +113,7 @@ type fieldTags struct {
 	Blocks     map[string]int
 	Labels     []labelField
 	Remain     *int
+	Optional   map[string]bool
 }
 
 type labelField struct {
@@ -122,6 +125,7 @@ func getFieldTags(ty reflect.Type) *fieldTags {
 	ret := &fieldTags{
 		Attributes: map[string]int{},
 		Blocks:     map[string]int{},
+		Optional:   map[string]bool{},
 	}
 
 	ct := ty.NumField()
@@ -158,6 +162,9 @@ func getFieldTags(ty reflect.Type) *fieldTags {
 			}
 			idx := i // copy, because this loop will continue assigning to i
 			ret.Remain = &idx
+		case "optional":
+			ret.Attributes[name] = i
+			ret.Optional[name] = true
 		default:
 			panic(fmt.Sprintf("invalid hcl field tag kind %q on %s %q", kind, field.Type.String(), field.Name))
 		}

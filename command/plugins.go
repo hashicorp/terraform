@@ -117,6 +117,17 @@ func (m *Meta) storePluginPath(pluginPath []string) error {
 		return nil
 	}
 
+	path := filepath.Join(m.DataDir(), PluginPathFile)
+
+	// remove the plugin dir record if the path was set to an empty string
+	if len(pluginPath) == 1 && (pluginPath[0] == "") {
+		err := os.Remove(path)
+		if !os.IsNotExist(err) {
+			return err
+		}
+		return nil
+	}
+
 	js, err := json.MarshalIndent(pluginPath, "", "  ")
 	if err != nil {
 		return err
@@ -125,7 +136,7 @@ func (m *Meta) storePluginPath(pluginPath []string) error {
 	// if this fails, so will WriteFile
 	os.MkdirAll(m.DataDir(), 0755)
 
-	return ioutil.WriteFile(filepath.Join(m.DataDir(), PluginPathFile), js, 0644)
+	return ioutil.WriteFile(path, js, 0644)
 }
 
 // Load the user-defined plugin search path into Meta.pluginPath if the file
@@ -209,13 +220,16 @@ func (m *Meta) providerPluginSet() discovery.PluginMetaSet {
 
 	// Add providers defined in the legacy .terraformrc,
 	if m.PluginOverrides != nil {
+		for k, v := range m.PluginOverrides.Providers {
+			log.Printf("[DEBUG] found plugin override in .terraformrc: %q, %q", k, v)
+		}
 		plugins = plugins.OverridePaths(m.PluginOverrides.Providers)
 	}
 
 	plugins, _ = plugins.ValidateVersions()
 
 	for p := range plugins {
-		log.Printf("[DEBUG] found valid plugin: %q", p.Name)
+		log.Printf("[DEBUG] found valid plugin: %q, %q, %q", p.Name, p.Version, p.Path)
 	}
 
 	return plugins
@@ -241,13 +255,17 @@ func (m *Meta) providerPluginManuallyInstalledSet() discovery.PluginMetaSet {
 
 	// Add providers defined in the legacy .terraformrc,
 	if m.PluginOverrides != nil {
+		for k, v := range m.PluginOverrides.Providers {
+			log.Printf("[DEBUG] found plugin override in .terraformrc: %q, %q", k, v)
+		}
+
 		plugins = plugins.OverridePaths(m.PluginOverrides.Providers)
 	}
 
 	plugins, _ = plugins.ValidateVersions()
 
 	for p := range plugins {
-		log.Printf("[DEBUG] found valid plugin: %q", p.Name)
+		log.Printf("[DEBUG] found valid plugin: %q, %q, %q", p.Name, p.Version, p.Path)
 	}
 
 	return plugins
@@ -272,13 +290,16 @@ func (m *Meta) internalProviders() map[string]terraform.ResourceProviderFactory 
 func (m *Meta) missingPlugins(avail discovery.PluginMetaSet, reqd discovery.PluginRequirements) discovery.PluginRequirements {
 	missing := make(discovery.PluginRequirements)
 
-	for n, r := range reqd {
-		log.Printf("[DEBUG] plugin requirements: %q=%q", n, r.Versions)
-	}
-
 	candidates := avail.ConstrainVersions(reqd)
+	internal := m.internalProviders()
 
 	for name, versionSet := range reqd {
+		// internal providers can't be missing
+		if _, ok := internal[name]; ok {
+			continue
+		}
+
+		log.Printf("[DEBUG] plugin requirements: %q=%q", name, versionSet.Versions)
 		if metas := candidates[name]; metas.Count() == 0 {
 			missing[name] = versionSet
 		}

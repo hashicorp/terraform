@@ -17,7 +17,14 @@ func resourceAwsSsmAssociation() *schema.Resource {
 		Update: resourceAwsSsmAssocationUpdate,
 		Delete: resourceAwsSsmAssociationDelete,
 
+		MigrateState:  resourceAwsSsmAssociationMigrateState,
+		SchemaVersion: 1,
+
 		Schema: map[string]*schema.Schema{
+			"association_name": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"association_id": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -66,9 +73,8 @@ func resourceAwsSsmAssociation() *schema.Resource {
 			"targets": {
 				Type:     schema.TypeList,
 				Optional: true,
-				ForceNew: true,
 				Computed: true,
-				MaxItems: 1,
+				MaxItems: 5,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"key": {
@@ -94,6 +100,10 @@ func resourceAwsSsmAssociationCreate(d *schema.ResourceData, meta interface{}) e
 
 	assosciationInput := &ssm.CreateAssociationInput{
 		Name: aws.String(d.Get("name").(string)),
+	}
+
+	if v, ok := d.GetOk("association_name"); ok {
+		assosciationInput.AssociationName = aws.String(v.(string))
 	}
 
 	if v, ok := d.GetOk("instance_id"); ok {
@@ -129,7 +139,7 @@ func resourceAwsSsmAssociationCreate(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("[ERROR] AssociationDescription was nil")
 	}
 
-	d.SetId(*resp.AssociationDescription.Name)
+	d.SetId(*resp.AssociationDescription.AssociationId)
 	d.Set("association_id", resp.AssociationDescription.AssociationId)
 
 	return resourceAwsSsmAssociationRead(d, meta)
@@ -141,7 +151,7 @@ func resourceAwsSsmAssociationRead(d *schema.ResourceData, meta interface{}) err
 	log.Printf("[DEBUG] Reading SSM Association: %s", d.Id())
 
 	params := &ssm.DescribeAssociationInput{
-		AssociationId: aws.String(d.Get("association_id").(string)),
+		AssociationId: aws.String(d.Id()),
 	}
 
 	resp, err := ssmconn.DescribeAssociation(params)
@@ -154,6 +164,7 @@ func resourceAwsSsmAssociationRead(d *schema.ResourceData, meta interface{}) err
 	}
 
 	association := resp.AssociationDescription
+	d.Set("association_name", association.AssociationName)
 	d.Set("instance_id", association.InstanceId)
 	d.Set("name", association.Name)
 	d.Set("parameters", association.Parameters)
@@ -181,6 +192,10 @@ func resourceAwsSsmAssocationUpdate(d *schema.ResourceData, meta interface{}) er
 		AssociationId: aws.String(d.Get("association_id").(string)),
 	}
 
+	if d.HasChange("association_name") {
+		associationInput.AssociationName = aws.String(d.Get("association_name").(string))
+	}
+
 	if d.HasChange("schedule_expression") {
 		associationInput.ScheduleExpression = aws.String(d.Get("schedule_expression").(string))
 	}
@@ -195,6 +210,10 @@ func resourceAwsSsmAssocationUpdate(d *schema.ResourceData, meta interface{}) er
 
 	if d.HasChange("output_location") {
 		associationInput.OutputLocation = expandSSMAssociationOutputLocation(d.Get("output_location").([]interface{}))
+	}
+
+	if d.HasChange("targets") {
+		associationInput.Targets = expandAwsSsmTargets(d)
 	}
 
 	_, err := ssmconn.UpdateAssociation(associationInput)

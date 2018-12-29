@@ -14,22 +14,28 @@
 // with health check settings to be used when checking the health status of
 // the targets.
 //
-// Elastic Load Balancing supports two types of load balancers: Classic Load
-// Balancers and Application Load Balancers. A Classic Load Balancer makes routing
-// and load balancing decisions either at the transport layer (TCP/SSL) or the
-// application layer (HTTP/HTTPS), and supports either EC2-Classic or a VPC.
+// Elastic Load Balancing supports the following types of load balancers: Application
+// Load Balancers, Network Load Balancers, and Classic Load Balancers.
+//
 // An Application Load Balancer makes routing and load balancing decisions at
-// the application layer (HTTP/HTTPS), supports path-based routing, and can
-// route requests to one or more ports on each EC2 instance or container instance
-// in your virtual private cloud (VPC). For more information, see the Elastic
+// the application layer (HTTP/HTTPS). A Network Load Balancer makes routing
+// and load balancing decisions at the transport layer (TCP). Both Application
+// Load Balancers and Network Load Balancers can route requests to one or more
+// ports on each EC2 instance or container instance in your virtual private
+// cloud (VPC).
+//
+// A Classic Load Balancer makes routing and load balancing decisions either
+// at the transport layer (TCP/SSL) or the application layer (HTTP/HTTPS), and
+// supports either EC2-Classic or a VPC. For more information, see the Elastic
 // Load Balancing User Guide (http://docs.aws.amazon.com/elasticloadbalancing/latest/userguide/).
 //
 // This reference covers the 2015-12-01 API, which supports Application Load
-// Balancers. The 2012-06-01 API supports Classic Load Balancers.
+// Balancers and Network Load Balancers. The 2012-06-01 API supports Classic
+// Load Balancers.
 //
 // To get started, complete the following tasks:
 //
-// Create an Application Load Balancer using CreateLoadBalancer.
+// Create a load balancer using CreateLoadBalancer.
 //
 // Create a target group using CreateTargetGroup.
 //
@@ -37,11 +43,8 @@
 //
 // Create one or more listeners for your load balancer using CreateListener.
 //
-// (Optional) Create one or more rules for content routing based on URL using
-// CreateRule.
-//
-// To delete an Application Load Balancer and its related resources, complete
-// the following tasks:
+// To delete a load balancer and its related resources, complete the following
+// tasks:
 //
 // Delete the load balancer using DeleteLoadBalancer.
 //
@@ -57,7 +60,7 @@
 //
 // Using the Client
 //
-// To Elastic Load Balancing with the SDK use the New function to create
+// To contact Elastic Load Balancing with the SDK use the New function to create
 // a new service client. With that client you can make API requests to the service.
 // These clients are safe to use concurrently.
 //

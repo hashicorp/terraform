@@ -282,7 +282,6 @@ func (r *Resource) ReadDataApply(
 	d *terraform.InstanceDiff,
 	meta interface{},
 ) (*terraform.InstanceState, error) {
-
 	// Data sources are always built completely from scratch
 	// on each read, so the source state is always nil.
 	data, err := schemaMap(r.Schema).Data(nil, d)
@@ -491,6 +490,12 @@ func (r *Resource) Data(s *terraform.InstanceState) *ResourceData {
 		// non-nil errors). We panic to find this in the future if we have to.
 		// I don't see a reason for Data to ever return an error.
 		panic(err)
+	}
+
+	// load the Resource timeouts
+	result.timeouts = r.Timeouts
+	if result.timeouts == nil {
+		result.timeouts = &ResourceTimeout{}
 	}
 
 	// Set the schema version to latest by default

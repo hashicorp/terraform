@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -175,9 +176,15 @@ func TestImport_remoteState(t *testing.T) {
 		"test_instance.foo",
 		"bar",
 	}
+
 	if code := c.Run(args); code != 0 {
 		fmt.Println(ui.OutputWriter)
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// verify that the local state was unlocked after import
+	if _, err := os.Stat(filepath.Join(td, fmt.Sprintf(".%s.lock.info", statePath))); !os.IsNotExist(err) {
+		t.Fatal("state left locked after import")
 	}
 
 	// Verify that we were called
@@ -444,6 +451,36 @@ func TestImport_allowMissingResourceConfig(t *testing.T) {
 	testStateOutput(t, statePath, testImportStr)
 }
 
+func TestImport_emptyConfig(t *testing.T) {
+	defer testChdir(t, testFixturePath("empty"))()
+
+	statePath := testTempFile(t)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ImportCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"test_instance.foo",
+		"bar",
+	}
+	code := c.Run(args)
+	if code != 1 {
+		t.Fatalf("import succeeded; expected failure")
+	}
+
+	msg := ui.ErrorWriter.String()
+	if want := `No Terraform configuration files`; !strings.Contains(msg, want) {
+		t.Errorf("incorrect message\nwant substring: %s\ngot:\n%s", want, msg)
+	}
+}
+
 func TestImport_missingResourceConfig(t *testing.T) {
 	defer testChdir(t, testFixturePath("import-missing-resource-config"))()
 
@@ -499,7 +536,7 @@ func TestImport_missingModuleConfig(t *testing.T) {
 	}
 
 	msg := ui.ErrorWriter.String()
-	if want := `module.baz does not exist in the configuration`; !strings.Contains(msg, want) {
+	if want := `module.baz is not defined in the configuration`; !strings.Contains(msg, want) {
 		t.Errorf("incorrect message\nwant substring: %s\ngot:\n%s", want, msg)
 	}
 }

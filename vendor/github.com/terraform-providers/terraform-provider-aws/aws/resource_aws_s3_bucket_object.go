@@ -132,7 +132,7 @@ func resourceAwsS3BucketObject() *schema.Resource {
 func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) error {
 	s3conn := meta.(*AWSClient).s3conn
 
-	restricted := meta.(*AWSClient).IsGovCloud() || meta.(*AWSClient).IsChinaCloud()
+	restricted := meta.(*AWSClient).IsChinaCloud()
 
 	var body io.ReadSeeker
 
@@ -231,7 +231,7 @@ func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) erro
 func resourceAwsS3BucketObjectRead(d *schema.ResourceData, meta interface{}) error {
 	s3conn := meta.(*AWSClient).s3conn
 
-	restricted := meta.(*AWSClient).IsGovCloud() || meta.(*AWSClient).IsChinaCloud()
+	restricted := meta.(*AWSClient).IsChinaCloud()
 
 	bucket := d.Get("bucket").(string)
 	key := d.Get("key").(string)

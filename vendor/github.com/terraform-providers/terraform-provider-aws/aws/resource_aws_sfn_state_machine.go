@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -16,6 +17,7 @@ func resourceAwsSfnStateMachine() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsSfnStateMachineCreate,
 		Read:   resourceAwsSfnStateMachineRead,
+		Update: resourceAwsSfnStateMachineUpdate,
 		Delete: resourceAwsSfnStateMachineDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
@@ -25,7 +27,6 @@ func resourceAwsSfnStateMachine() *schema.Resource {
 			"definition": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ForceNew:     true,
 				ValidateFunc: validateSfnStateMachineDefinition,
 			},
 
@@ -39,7 +40,6 @@ func resourceAwsSfnStateMachine() *schema.Resource {
 			"role_arn": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ForceNew:     true,
 				ValidateFunc: validateArn,
 			},
 
@@ -123,6 +123,29 @@ func resourceAwsSfnStateMachineRead(d *schema.ResourceData, meta interface{}) er
 	}
 
 	return nil
+}
+
+func resourceAwsSfnStateMachineUpdate(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).sfnconn
+
+	params := &sfn.UpdateStateMachineInput{
+		StateMachineArn: aws.String(d.Id()),
+		Definition:      aws.String(d.Get("definition").(string)),
+		RoleArn:         aws.String(d.Get("role_arn").(string)),
+	}
+
+	_, err := conn.UpdateStateMachine(params)
+
+	log.Printf("[DEBUG] Updating Step Function State Machine: %#v", params)
+
+	if err != nil {
+		if isAWSErr(err, "StateMachineDoesNotExist", "State Machine Does Not Exist") {
+			return fmt.Errorf("Error updating Step Function State Machine: %s", err)
+		}
+		return err
+	}
+
+	return resourceAwsSfnStateMachineRead(d, meta)
 }
 
 func resourceAwsSfnStateMachineDelete(d *schema.ResourceData, meta interface{}) error {

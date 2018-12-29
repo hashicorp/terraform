@@ -157,6 +157,7 @@ func dataSourceAwsElastiCacheClusterRead(d *schema.ResourceData, meta interface{
 		ShowCacheNodeInfo: aws.Bool(true),
 	}
 
+	log.Printf("[DEBUG] Reading ElastiCache Cluster: %s", req)
 	resp, err := conn.DescribeCacheClusters(req)
 	if err != nil {
 		return err

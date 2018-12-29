@@ -152,10 +152,20 @@ func (c *Client) RunWithString(command string, stdin string) (string, string, in
 	}
 
 	var outWriter, errWriter bytes.Buffer
-	go io.Copy(&outWriter, cmd.Stdout)
-	go io.Copy(&errWriter, cmd.Stderr)
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		io.Copy(&outWriter, cmd.Stdout)
+	}()
+
+	go func() {
+		defer wg.Done()
+		io.Copy(&errWriter, cmd.Stderr)
+	}()
 
 	cmd.Wait()
+	wg.Wait()
 
 	return outWriter.String(), errWriter.String(), cmd.ExitCode(), cmd.err
 }
@@ -176,11 +186,24 @@ func (c Client) RunWithInput(command string, stdout, stderr io.Writer, stdin io.
 		return 1, err
 	}
 
-	go io.Copy(cmd.Stdin, stdin)
-	go io.Copy(stdout, cmd.Stdout)
-	go io.Copy(stderr, cmd.Stderr)
+	var wg sync.WaitGroup
+	wg.Add(3)
+
+	go func() {
+		defer wg.Done()
+		io.Copy(cmd.Stdin, stdin)
+	}()
+	go func() {
+		defer wg.Done()
+		io.Copy(stdout, cmd.Stdout)
+	}()
+	go func() {
+		defer wg.Done()
+		io.Copy(stderr, cmd.Stderr)
+	}()
 
 	cmd.Wait()
+	wg.Wait()
 
 	return cmd.ExitCode(), cmd.err
 

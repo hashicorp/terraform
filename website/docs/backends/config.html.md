@@ -51,7 +51,7 @@ a configuration in the future: create the new configuration and run
 You do not need to specify every required argument in the backend configuration.
 Omitting certain arguments may be desirable to avoid storing secrets, such as
 access keys, within the main configuration. When some or all of the arguments
-are ommitted, we call this a _partial configuration_.
+are omitted, we call this a _partial configuration_.
 
 With a partial configuration, the remaining configuration arguments must be
 provided as part of

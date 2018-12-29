@@ -8,7 +8,6 @@ package disco
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -20,17 +19,15 @@ import (
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/terraform/svchost"
 	"github.com/hashicorp/terraform/svchost/auth"
-	"github.com/hashicorp/terraform/version"
 )
 
 const (
 	discoPath        = "/.well-known/terraform.json"
-	maxRedirects     = 3               // arbitrary-but-small number to prevent runaway redirect loops
-	discoTimeout     = 4 * time.Second // arbitrary-but-small time limit to prevent UI "hangs" during discovery
-	maxDiscoDocBytes = 1 * 1024 * 1024 // 1MB - to prevent abusive services from using loads of our memory
+	maxRedirects     = 3                // arbitrary-but-small number to prevent runaway redirect loops
+	discoTimeout     = 11 * time.Second // arbitrary-but-small time limit to prevent UI "hangs" during discovery
+	maxDiscoDocBytes = 1 * 1024 * 1024  // 1MB - to prevent abusive services from using loads of our memory
 )
 
-var userAgent = fmt.Sprintf("Terraform/%s (service discovery)", version.String())
 var httpTransport = cleanhttp.DefaultPooledTransport() // overridden during tests, to skip TLS verification
 
 // Disco is the main type in this package, which allows discovery on given
@@ -40,9 +37,9 @@ type Disco struct {
 	hostCache map[svchost.Hostname]Host
 	credsSrc  auth.CredentialsSource
 
-	// Transport is a custom http.Transport to use.
+	// Transport is a custom http.RoundTripper to use.
 	// A package default is used if this is nil.
-	Transport *http.Transport
+	Transport http.RoundTripper
 }
 
 func NewDisco() *Disco {
@@ -142,13 +139,9 @@ func (d *Disco) discover(host svchost.Hostname) Host {
 		},
 	}
 
-	var header = http.Header{}
-	header.Set("User-Agent", userAgent)
-
 	req := &http.Request{
 		Method: "GET",
 		URL:    discoURL,
-		Header: header,
 	}
 
 	if d.credsSrc != nil {
@@ -158,7 +151,7 @@ func (d *Disco) discover(host svchost.Hostname) Host {
 				creds.PrepareRequest(req) // alters req to include credentials
 			}
 		} else {
-			log.Printf("[WARNING] Failed to get credentials for %s: %s (ignoring)", host, err)
+			log.Printf("[WARN] Failed to get credentials for %s: %s (ignoring)", host, err)
 		}
 	}
 
@@ -170,11 +163,11 @@ func (d *Disco) discover(host svchost.Hostname) Host {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Printf("[WARNING] Failed to request discovery document: %s", err)
+		log.Printf("[WARN] Failed to request discovery document: %s", err)
 		return ret // empty
 	}
 	if resp.StatusCode != 200 {
-		log.Printf("[WARNING] Failed to request discovery document: %s", resp.Status)
+		log.Printf("[WARN] Failed to request discovery document: %s", resp.Status)
 		return ret // empty
 	}
 
@@ -185,7 +178,7 @@ func (d *Disco) discover(host svchost.Hostname) Host {
 	contentType := resp.Header.Get("Content-Type")
 	mediaType, _, err := mime.ParseMediaType(contentType)
 	if err != nil {
-		log.Printf("[WARNING] Discovery URL has malformed Content-Type %q", contentType)
+		log.Printf("[WARN] Discovery URL has malformed Content-Type %q", contentType)
 		return ret // empty
 	}
 	if mediaType != "application/json" {
@@ -197,7 +190,7 @@ func (d *Disco) discover(host svchost.Hostname) Host {
 	if resp.ContentLength > maxDiscoDocBytes {
 		// Size limit here is not a contractual requirement and so we may
 		// adjust it over time if we find a different limit is warranted.
-		log.Printf("[WARNING] Discovery doc response is too large (got %d bytes; limit %d)", resp.ContentLength, maxDiscoDocBytes)
+		log.Printf("[WARN] Discovery doc response is too large (got %d bytes; limit %d)", resp.ContentLength, maxDiscoDocBytes)
 		return ret // empty
 	}
 
@@ -208,14 +201,14 @@ func (d *Disco) discover(host svchost.Hostname) Host {
 
 	servicesBytes, err := ioutil.ReadAll(lr)
 	if err != nil {
-		log.Printf("[WARNING] Error reading discovery document body: %s", err)
+		log.Printf("[WARN] Error reading discovery document body: %s", err)
 		return ret // empty
 	}
 
 	var services map[string]interface{}
 	err = json.Unmarshal(servicesBytes, &services)
 	if err != nil {
-		log.Printf("[WARNING] Failed to decode discovery document as a JSON object: %s", err)
+		log.Printf("[WARN] Failed to decode discovery document as a JSON object: %s", err)
 		return ret // empty
 	}
 

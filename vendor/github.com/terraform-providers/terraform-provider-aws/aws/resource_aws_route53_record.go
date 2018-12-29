@@ -101,6 +101,9 @@ func resourceAwsRoute53Record() *schema.Resource {
 							Type:      schema.TypeString,
 							Required:  true,
 							StateFunc: normalizeAwsAliasName,
+							DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+								return strings.ToLower(old) == strings.ToLower(new)
+							},
 						},
 
 						"evaluate_target_health": {
@@ -125,6 +128,7 @@ func resourceAwsRoute53Record() *schema.Resource {
 					"geolocation_routing_policy",
 					"latency_routing_policy",
 					"weighted_routing_policy",
+					"multivalue_answer_routing_policy",
 				},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -150,6 +154,7 @@ func resourceAwsRoute53Record() *schema.Resource {
 					"failover_routing_policy",
 					"geolocation_routing_policy",
 					"weighted_routing_policy",
+					"multivalue_answer_routing_policy",
 				},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -168,6 +173,7 @@ func resourceAwsRoute53Record() *schema.Resource {
 					"failover_routing_policy",
 					"latency_routing_policy",
 					"weighted_routing_policy",
+					"multivalue_answer_routing_policy",
 				},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -194,6 +200,7 @@ func resourceAwsRoute53Record() *schema.Resource {
 					"failover_routing_policy",
 					"geolocation_routing_policy",
 					"latency_routing_policy",
+					"multivalue_answer_routing_policy",
 				},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -202,6 +209,17 @@ func resourceAwsRoute53Record() *schema.Resource {
 							Required: true,
 						},
 					},
+				},
+			},
+
+			"multivalue_answer_routing_policy": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				ConflictsWith: []string{
+					"failover_routing_policy",
+					"geolocation_routing_policy",
+					"latency_routing_policy",
+					"weighted_routing_policy",
 				},
 			},
 
@@ -216,6 +234,12 @@ func resourceAwsRoute53Record() *schema.Resource {
 				Elem:          &schema.Schema{Type: schema.TypeString},
 				Optional:      true,
 				Set:           schema.HashString,
+			},
+
+			"allow_overwrite": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
 			},
 		},
 	}
@@ -364,6 +388,16 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
+	// Protect existing DNS records which might be managed in another way
+	// Use UPSERT only if the overwrite flag is true or if the current action is an update
+	// Else CREATE is used and fail if the same record exists
+	var action string
+	if d.Get("allow_overwrite").(bool) || !d.IsNewResource() {
+		action = "UPSERT"
+	} else {
+		action = "CREATE"
+	}
+
 	// Create the new records. We abuse StateChangeConf for this to
 	// retry for us since Route53 sometimes returns errors about another
 	// operation happening at the same time.
@@ -371,7 +405,7 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 		Comment: aws.String("Managed by Terraform"),
 		Changes: []*route53.Change{
 			{
-				Action:            aws.String("UPSERT"),
+				Action:            aws.String(action),
 				ResourceRecordSet: rec,
 			},
 		},
@@ -540,6 +574,12 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 		}}
 		if err := d.Set("weighted_routing_policy", v); err != nil {
 			return fmt.Errorf("[DEBUG] Error setting weighted records for: %s, error: %#v", d.Id(), err)
+		}
+	}
+
+	if record.MultiValueAnswer != nil {
+		if err := d.Set("multivalue_answer_routing_policy", *record.MultiValueAnswer); err != nil {
+			return fmt.Errorf("[DEBUG] Error setting multivalue answer records for: %s, error: %#v", d.Id(), err)
 		}
 	}
 
@@ -762,11 +802,11 @@ func resourceAwsRoute53RecordBuildSet(d *schema.ResourceData, zoneName string) (
 
 	if v, ok := d.GetOk("weighted_routing_policy"); ok {
 		if _, ok := d.GetOk("set_identifier"); !ok {
-			return nil, fmt.Errorf(`provider.aws: aws_route53_record: %s: "set_identifier": required field is not set when "weight_routing_policy" is set`, d.Get("name").(string))
+			return nil, fmt.Errorf(`provider.aws: aws_route53_record: %s: "set_identifier": required field is not set when "weighted_routing_policy" is set`, d.Get("name").(string))
 		}
 		records := v.([]interface{})
 		if len(records) > 1 {
-			return nil, fmt.Errorf("You can only define a single weighed_routing_policy per record")
+			return nil, fmt.Errorf("You can only define a single weighted_routing_policy per record")
 		}
 		weight := records[0].(map[string]interface{})
 
@@ -806,6 +846,13 @@ func resourceAwsRoute53RecordBuildSet(d *schema.ResourceData, zoneName string) (
 			SubdivisionCode: nilString(geolocation["subdivision"].(string)),
 		}
 		log.Printf("[DEBUG] Creating geolocation: %#v", geolocation)
+	}
+
+	if v, ok := d.GetOk("multivalue_answer_routing_policy"); ok {
+		if _, ok := d.GetOk("set_identifier"); !ok {
+			return nil, fmt.Errorf(`provider.aws: aws_route53_record: %s: "set_identifier": required field is not set when "multivalue_answer_routing_policy" is set`, d.Get("name").(string))
+		}
+		rec.MultiValueAnswer = aws.Bool(v.(bool))
 	}
 
 	return rec, nil
@@ -869,12 +916,9 @@ func nilString(s string) *string {
 }
 
 func normalizeAwsAliasName(alias interface{}) string {
-	input := alias.(string)
-	if strings.HasPrefix(input, "dualstack.") {
-		return strings.Replace(input, "dualstack.", "", -1)
-	}
-
-	return strings.TrimRight(input, ".")
+	input := strings.ToLower(alias.(string))
+	output := strings.TrimPrefix(input, "dualstack.")
+	return strings.TrimSuffix(output, ".")
 }
 
 func parseRecordId(id string) [4]string {
@@ -894,5 +938,6 @@ func parseRecordId(id string) [4]string {
 			}
 		}
 	}
+	recName = strings.TrimSuffix(recName, ".")
 	return [4]string{recZone, recName, recType, recSet}
 }

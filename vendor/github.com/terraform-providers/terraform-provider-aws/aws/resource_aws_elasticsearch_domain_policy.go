@@ -40,7 +40,7 @@ func resourceAwsElasticSearchDomainPolicyRead(d *schema.ResourceData, meta inter
 		DomainName: aws.String(name),
 	})
 	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "ResourceNotFound" {
+		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "ResourceNotFoundException" {
 			log.Printf("[WARN] ElasticSearch Domain %q not found, removing", name)
 			d.SetId("")
 			return nil

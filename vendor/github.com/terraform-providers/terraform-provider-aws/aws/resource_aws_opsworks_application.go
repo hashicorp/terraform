@@ -21,10 +21,6 @@ func resourceAwsOpsworksApplication() *schema.Resource {
 		Update: resourceAwsOpsworksApplicationUpdate,
 		Delete: resourceAwsOpsworksApplicationDelete,
 		Schema: map[string]*schema.Schema{
-			"id": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -345,7 +341,6 @@ func resourceAwsOpsworksApplicationCreate(d *schema.ResourceData, meta interface
 
 	appID := *resp.AppId
 	d.SetId(appID)
-	d.Set("id", appID)
 
 	return resourceAwsOpsworksApplicationRead(d, meta)
 }

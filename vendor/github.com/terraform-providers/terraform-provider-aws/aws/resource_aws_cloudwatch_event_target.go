@@ -101,6 +101,25 @@ func resourceAwsCloudWatchEventTarget() *schema.Resource {
 					},
 				},
 			},
+
+			"input_transformer": {
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"input_paths": {
+							Type:     schema.TypeMap,
+							Optional: true,
+						},
+						"input_template": {
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validation.StringLenBetween(1, 8192),
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -190,11 +209,16 @@ func resourceAwsCloudWatchEventTargetRead(d *schema.ResourceData, meta interface
 		}
 	}
 
+	if t.InputTransformer != nil {
+		if err := d.Set("input_transformer", flattenAwsCloudWatchInputTransformer(t.InputTransformer)); err != nil {
+			return fmt.Errorf("[DEBUG] Error setting input_transformer error: %#v", err)
+		}
+	}
+
 	return nil
 }
 
-func findEventTargetById(id, rule string, nextToken *string, conn *events.CloudWatchEvents) (
-	*events.Target, error) {
+func findEventTargetById(id, rule string, nextToken *string, conn *events.CloudWatchEvents) (*events.Target, error) {
 	input := events.ListTargetsByRuleInput{
 		Rule:      aws.String(rule),
 		NextToken: nextToken,
@@ -276,6 +300,10 @@ func buildPutTargetInputStruct(d *schema.ResourceData) *events.PutTargetsInput {
 		e.EcsParameters = expandAwsCloudWatchEventTargetEcsParameters(v.([]interface{}))
 	}
 
+	if v, ok := d.GetOk("input_transformer"); ok {
+		e.InputTransformer = expandAwsCloudWatchEventTransformerParameters(v.([]interface{}))
+	}
+
 	input := events.PutTargetsInput{
 		Rule:    aws.String(d.Get("rule").(string)),
 		Targets: []*events.Target{e},
@@ -316,6 +344,25 @@ func expandAwsCloudWatchEventTargetEcsParameters(config []interface{}) *events.E
 	return ecsParameters
 }
 
+func expandAwsCloudWatchEventTransformerParameters(config []interface{}) *events.InputTransformer {
+	transformerParameters := &events.InputTransformer{}
+
+	inputPathsMaps := map[string]*string{}
+
+	for _, c := range config {
+		param := c.(map[string]interface{})
+		inputPaths := param["input_paths"].(map[string]interface{})
+
+		for k, v := range inputPaths {
+			inputPathsMaps[k] = aws.String(v.(string))
+		}
+		transformerParameters.InputTemplate = aws.String(param["input_template"].(string))
+	}
+	transformerParameters.InputPathsMap = inputPathsMaps
+
+	return transformerParameters
+}
+
 func flattenAwsCloudWatchEventTargetRunParameters(runCommand *events.RunCommandParameters) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0)
 
@@ -334,6 +381,19 @@ func flattenAwsCloudWatchEventTargetEcsParameters(ecsParameters *events.EcsParam
 	config := make(map[string]interface{})
 	config["task_count"] = *ecsParameters.TaskCount
 	config["task_definition_arn"] = *ecsParameters.TaskDefinitionArn
+	result := []map[string]interface{}{config}
+	return result
+}
+
+func flattenAwsCloudWatchInputTransformer(inputTransformer *events.InputTransformer) []map[string]interface{} {
+	config := make(map[string]interface{})
+	inputPathsMap := make(map[string]string)
+	for k, v := range inputTransformer.InputPathsMap {
+		inputPathsMap[k] = *v
+	}
+	config["input_template"] = *inputTransformer.InputTemplate
+	config["input_paths"] = inputPathsMap
+
 	result := []map[string]interface{}{config}
 	return result
 }

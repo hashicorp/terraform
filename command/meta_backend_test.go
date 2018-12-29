@@ -1898,7 +1898,7 @@ func TestMetaBackend_configuredChangedLegacyCopyBackend(t *testing.T) {
 	defer testChdir(t, td)()
 
 	// Ask input
-	defer testInteractiveInput(t, []string{"yes", "yes", "no"})()
+	defer testInteractiveInput(t, []string{"yes", "no"})()
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
@@ -2297,7 +2297,7 @@ func TestMetaBackend_configuredUnsetWithLegacyCopyBackend(t *testing.T) {
 	defer testChdir(t, td)()
 
 	// Ask input
-	defer testInteractiveInput(t, []string{"yes", "yes", "no"})()
+	defer testInteractiveInput(t, []string{"yes", "no"})()
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)

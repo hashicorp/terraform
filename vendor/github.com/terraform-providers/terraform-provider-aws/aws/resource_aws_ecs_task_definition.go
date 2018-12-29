@@ -2,8 +2,6 @@ package aws
 
 import (
 	"bytes"
-	"crypto/sha1"
-	"encoding/hex"
 	"fmt"
 	"log"
 	"strings"
@@ -12,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/structure"
 )
 
 func resourceAwsEcsTaskDefinition() *schema.Resource {
@@ -20,10 +19,19 @@ func resourceAwsEcsTaskDefinition() *schema.Resource {
 		Read:   resourceAwsEcsTaskDefinitionRead,
 		Delete: resourceAwsEcsTaskDefinitionDelete,
 
+		SchemaVersion: 1,
+		MigrateState:  resourceAwsEcsTaskDefinitionMigrateState,
+
 		Schema: map[string]*schema.Schema{
 			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
+			},
+
+			"cpu": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
 			},
 
 			"family": {
@@ -42,13 +50,29 @@ func resourceAwsEcsTaskDefinition() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 				StateFunc: func(v interface{}) string {
-					hash := sha1.Sum([]byte(v.(string)))
-					return hex.EncodeToString(hash[:])
+					json, _ := structure.NormalizeJsonString(v)
+					return json
+				},
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					equal, _ := ecsContainerDefinitionsAreEquivalent(old, new)
+					return equal
 				},
 				ValidateFunc: validateAwsEcsTaskDefinitionContainerDefinitions,
 			},
 
 			"task_role_arn": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"execution_role_arn": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"memory": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -104,6 +128,13 @@ func resourceAwsEcsTaskDefinition() *schema.Resource {
 					},
 				},
 			},
+
+			"requires_compatibilities": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
 		},
 	}
 }
@@ -113,11 +144,12 @@ func validateAwsEcsTaskDefinitionNetworkMode(v interface{}, k string) (ws []stri
 	validTypes := map[string]struct{}{
 		"bridge": {},
 		"host":   {},
+		"awsvpc": {},
 		"none":   {},
 	}
 
 	if _, ok := validTypes[value]; !ok {
-		errors = append(errors, fmt.Errorf("ECS Task Definition network_mode %q is invalid, must be `bridge`, `host` or `none`", value))
+		errors = append(errors, fmt.Errorf("ECS Task Definition network_mode %q is invalid, must be `bridge`, `host`, `awsvpc` or `none`", value))
 	}
 	return
 }
@@ -149,6 +181,18 @@ func resourceAwsEcsTaskDefinitionCreate(d *schema.ResourceData, meta interface{}
 		input.TaskRoleArn = aws.String(v.(string))
 	}
 
+	if v, ok := d.GetOk("execution_role_arn"); ok {
+		input.ExecutionRoleArn = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("cpu"); ok {
+		input.Cpu = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("memory"); ok {
+		input.Memory = aws.String(v.(string))
+	}
+
 	if v, ok := d.GetOk("network_mode"); ok {
 		input.NetworkMode = aws.String(v.(string))
 	}
@@ -177,6 +221,10 @@ func resourceAwsEcsTaskDefinitionCreate(d *schema.ResourceData, meta interface{}
 			})
 		}
 		input.PlacementConstraints = pc
+	}
+
+	if v, ok := d.GetOk("requires_compatibilities"); ok && v.(*schema.Set).Len() > 0 {
+		input.RequiresCompatibilities = expandStringList(v.(*schema.Set).List())
 	}
 
 	log.Printf("[DEBUG] Registering ECS task definition: %s", input)
@@ -214,12 +262,28 @@ func resourceAwsEcsTaskDefinitionRead(d *schema.ResourceData, meta interface{}) 
 	d.Set("arn", taskDefinition.TaskDefinitionArn)
 	d.Set("family", taskDefinition.Family)
 	d.Set("revision", taskDefinition.Revision)
-	d.Set("container_definitions", taskDefinition.ContainerDefinitions)
+
+	defs, err := flattenEcsContainerDefinitions(taskDefinition.ContainerDefinitions)
+	if err != nil {
+		return err
+	}
+	err = d.Set("container_definitions", defs)
+	if err != nil {
+		return err
+	}
+
 	d.Set("task_role_arn", taskDefinition.TaskRoleArn)
+	d.Set("execution_role_arn", taskDefinition.ExecutionRoleArn)
+	d.Set("cpu", taskDefinition.Cpu)
+	d.Set("memory", taskDefinition.Memory)
 	d.Set("network_mode", taskDefinition.NetworkMode)
 	d.Set("volumes", flattenEcsVolumes(taskDefinition.Volumes))
 	if err := d.Set("placement_constraints", flattenPlacementConstraints(taskDefinition.PlacementConstraints)); err != nil {
 		log.Printf("[ERR] Error setting placement_constraints for (%s): %s", d.Id(), err)
+	}
+
+	if err := d.Set("requires_compatibilities", flattenStringList(taskDefinition.RequiresCompatibilities)); err != nil {
+		return err
 	}
 
 	return nil

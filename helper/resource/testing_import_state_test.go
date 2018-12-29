@@ -470,10 +470,7 @@ func TestTest_importStateIdFuncFail(t *testing.T) {
 		return s, nil
 	}
 
-	checked := false
 	checkFn := func(s []*terraform.InstanceState) error {
-		checked = true
-
 		if s[0].ID != "foo" {
 			return fmt.Errorf("bad: %#v", s)
 		}

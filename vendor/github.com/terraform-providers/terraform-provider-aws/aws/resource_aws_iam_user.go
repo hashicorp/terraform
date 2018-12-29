@@ -48,7 +48,6 @@ func resourceAwsIamUser() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "/",
-				ForceNew: true,
 			},
 			"force_destroy": &schema.Schema{
 				Type:        schema.TypeBool,
@@ -136,6 +135,8 @@ func resourceAwsIamUserUpdate(d *schema.ResourceData, meta interface{}) error {
 			}
 			return fmt.Errorf("Error updating IAM User %s: %s", d.Id(), err)
 		}
+
+		d.SetId(nn.(string))
 		return resourceAwsIamUserRead(d, meta)
 	}
 	return nil

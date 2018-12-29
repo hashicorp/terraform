@@ -6,13 +6,10 @@ import (
 	"log"
 	"regexp"
 	"strings"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/redshift"
 	"github.com/hashicorp/terraform/helper/hashcode"
-	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -169,41 +166,15 @@ func resourceAwsRedshiftParameterGroupUpdate(d *schema.ResourceData, meta interf
 }
 
 func resourceAwsRedshiftParameterGroupDelete(d *schema.ResourceData, meta interface{}) error {
-	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"pending"},
-		Target:     []string{"destroyed"},
-		Refresh:    resourceAwsRedshiftParameterGroupDeleteRefreshFunc(d, meta),
-		Timeout:    3 * time.Minute,
-		MinTimeout: 1 * time.Second,
-	}
-	_, err := stateConf.WaitForState()
-	return err
-}
-
-func resourceAwsRedshiftParameterGroupDeleteRefreshFunc(
-	d *schema.ResourceData,
-	meta interface{}) resource.StateRefreshFunc {
 	conn := meta.(*AWSClient).redshiftconn
 
-	return func() (interface{}, string, error) {
-
-		deleteOpts := redshift.DeleteClusterParameterGroupInput{
-			ParameterGroupName: aws.String(d.Id()),
-		}
-
-		if _, err := conn.DeleteClusterParameterGroup(&deleteOpts); err != nil {
-			redshiftErr, ok := err.(awserr.Error)
-			if !ok {
-				return d, "error", err
-			}
-
-			if redshiftErr.Code() != "RedshiftParameterGroupNotFoundFault" {
-				return d, "error", err
-			}
-		}
-
-		return d, "destroyed", nil
+	_, err := conn.DeleteClusterParameterGroup(&redshift.DeleteClusterParameterGroupInput{
+		ParameterGroupName: aws.String(d.Id()),
+	})
+	if err != nil && isAWSErr(err, "RedshiftParameterGroupNotFoundFault", "") {
+		return nil
 	}
+	return err
 }
 
 func resourceAwsRedshiftParameterHash(v interface{}) int {

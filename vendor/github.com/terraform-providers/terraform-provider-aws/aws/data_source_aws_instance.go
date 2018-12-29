@@ -15,7 +15,7 @@ func dataSourceAwsInstance() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"filter":        dataSourceFiltersSchema(),
-			"tags":          dataSourceTagsSchema(),
+			"tags":          tagsSchemaComputed(),
 			"instance_tags": tagsSchemaComputed(),
 			"instance_id": {
 				Type:     schema.TypeString,
@@ -35,6 +35,10 @@ func dataSourceAwsInstance() *schema.Resource {
 				Computed: true,
 			},
 			"availability_zone": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"placement_group": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -169,6 +173,11 @@ func dataSourceAwsInstance() *schema.Resource {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
+
+						"volume_id": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 					},
 				},
 			},
@@ -193,6 +202,11 @@ func dataSourceAwsInstance() *schema.Resource {
 						},
 
 						"volume_type": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+
+						"volume_id": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
@@ -229,7 +243,7 @@ func dataSourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		)...)
 	}
 
-	// Perform the lookup
+	log.Printf("[DEBUG] Reading IAM Instance: %s", params)
 	resp, err := conn.DescribeInstances(params)
 	if err != nil {
 		return err
@@ -277,6 +291,9 @@ func instanceDescriptionAttributes(d *schema.ResourceData, instance *ec2.Instanc
 	if instance.Placement != nil {
 		d.Set("availability_zone", instance.Placement.AvailabilityZone)
 	}
+	if instance.Placement.GroupName != nil {
+		d.Set("placement_group", instance.Placement.GroupName)
+	}
 	if instance.Placement.Tenancy != nil {
 		d.Set("tenancy", instance.Placement.Tenancy)
 	}
@@ -313,7 +330,7 @@ func instanceDescriptionAttributes(d *schema.ResourceData, instance *ec2.Instanc
 		d.Set("monitoring", monitoringState == "enabled" || monitoringState == "pending")
 	}
 
-	d.Set("tags", dataSourceTags(instance.Tags))
+	d.Set("tags", tagsToMap(instance.Tags))
 
 	// Security Groups
 	if err := readSecurityGroups(d, instance, conn); err != nil {

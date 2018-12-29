@@ -68,7 +68,7 @@ func resourceAwsSsmMaintenanceWindowCreate(d *schema.ResourceData, meta interfac
 	}
 
 	d.SetId(*resp.WindowId)
-	return resourceAwsSsmMaintenanceWindowRead(d, meta)
+	return resourceAwsSsmMaintenanceWindowUpdate(d, meta)
 }
 
 func resourceAwsSsmMaintenanceWindowUpdate(d *schema.ResourceData, meta interface{}) error {
@@ -98,9 +98,7 @@ func resourceAwsSsmMaintenanceWindowUpdate(d *schema.ResourceData, meta interfac
 		params.AllowUnassociatedTargets = aws.Bool(d.Get("allow_unassociated_targets").(bool))
 	}
 
-	if d.HasChange("enabled") {
-		params.Enabled = aws.Bool(d.Get("enabled").(bool))
-	}
+	params.Enabled = aws.Bool(d.Get("enabled").(bool))
 
 	_, err := ssmconn.UpdateMaintenanceWindow(params)
 	if err != nil {

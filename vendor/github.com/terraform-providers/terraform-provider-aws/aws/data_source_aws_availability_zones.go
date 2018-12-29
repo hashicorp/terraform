@@ -47,8 +47,7 @@ func dataSourceAwsAvailabilityZonesRead(d *schema.ResourceData, meta interface{}
 		}
 	}
 
-	log.Printf("[DEBUG] Availability Zones request options: %#v", *request)
-
+	log.Printf("[DEBUG] Reading Availability Zones: %s", request)
 	resp, err := conn.DescribeAvailabilityZones(request)
 	if err != nil {
 		return fmt.Errorf("Error fetching Availability Zones: %s", err)

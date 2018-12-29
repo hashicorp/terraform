@@ -23,7 +23,8 @@ func TestLocal_impl(t *testing.T) {
 func TestLocal_backend(t *testing.T) {
 	defer testTmpDir(t)()
 	b := &Local{}
-	backend.TestBackend(t, b, b)
+	backend.TestBackendStates(t, b)
+	backend.TestBackendStateLocks(t, b, b)
 }
 
 func checkState(t *testing.T, path, expected string) {

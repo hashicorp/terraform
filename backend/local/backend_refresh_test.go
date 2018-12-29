@@ -11,7 +11,9 @@ import (
 )
 
 func TestLocal_refresh(t *testing.T) {
-	b := TestLocal(t)
+	b, cleanup := TestLocal(t)
+	defer cleanup()
+
 	p := TestLocalProvider(t, b, "test")
 	terraform.TestStateFile(t, b.StatePath, testRefreshState())
 
@@ -42,7 +44,8 @@ test_instance.foo:
 }
 
 func TestLocal_refreshNilModule(t *testing.T) {
-	b := TestLocal(t)
+	b, cleanup := TestLocal(t)
+	defer cleanup()
 	p := TestLocalProvider(t, b, "test")
 	terraform.TestStateFile(t, b.StatePath, testRefreshState())
 
@@ -71,7 +74,8 @@ test_instance.foo:
 
 // GH-12174
 func TestLocal_refreshNilModuleWithInput(t *testing.T) {
-	b := TestLocal(t)
+	b, cleanup := TestLocal(t)
+	defer cleanup()
 	p := TestLocalProvider(t, b, "test")
 	terraform.TestStateFile(t, b.StatePath, testRefreshState())
 
@@ -101,7 +105,8 @@ test_instance.foo:
 }
 
 func TestLocal_refreshInput(t *testing.T) {
-	b := TestLocal(t)
+	b, cleanup := TestLocal(t)
+	defer cleanup()
 	p := TestLocalProvider(t, b, "test")
 	terraform.TestStateFile(t, b.StatePath, testRefreshState())
 
@@ -145,7 +150,8 @@ test_instance.foo:
 }
 
 func TestLocal_refreshValidate(t *testing.T) {
-	b := TestLocal(t)
+	b, cleanup := TestLocal(t)
+	defer cleanup()
 	p := TestLocalProvider(t, b, "test")
 	terraform.TestStateFile(t, b.StatePath, testRefreshState())
 

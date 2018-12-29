@@ -158,6 +158,14 @@ func TestResourceConfigGet(t *testing.T) {
 			Value: nil,
 		},
 
+		{
+			Config: map[string]interface{}{
+				"foo": []interface{}{1, 2, 5},
+			},
+			Key:   "foo.-1",
+			Value: nil,
+		},
+
 		// get from map
 		{
 			Config: map[string]interface{}{

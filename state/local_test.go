@@ -166,3 +166,42 @@ func testLocalState(t *testing.T) *LocalState {
 
 	return ls
 }
+
+// Make sure we can refresh while the state is locked
+func TestLocalState_refreshWhileLocked(t *testing.T) {
+	f, err := ioutil.TempFile("", "tf")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	err = terraform.WriteState(TestStateInitial(), f)
+	f.Close()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	s := &LocalState{Path: f.Name()}
+	defer os.Remove(s.Path)
+
+	// lock first
+	info := NewLockInfo()
+	info.Operation = "test"
+	lockID, err := s.Lock(info)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := s.Unlock(lockID); err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	if err := s.RefreshState(); err != nil {
+		t.Fatal(err)
+	}
+
+	readState := s.State()
+	if readState == nil || readState.Lineage == "" {
+		t.Fatal("missing state")
+	}
+}

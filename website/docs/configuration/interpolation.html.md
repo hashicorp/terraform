@@ -141,6 +141,13 @@ Terraform ships with built-in functions. Functions are called with the
 syntax `name(arg, arg2, ...)`. For example, to read a file:
 `${file("path.txt")}`.
 
+~> **NOTE**: Proper escaping is required for JSON field values containing quotes
+(`"`) such as `environment` values. If directly setting the JSON, they should be
+escaped as `\"` in the JSON,  e.g. `"value": "I \"love\" escaped quotes"`. If
+using a Terraform variable value, they should be escaped as `\\\"` in the
+variable, e.g. `value = "I \\\"love\\\" escaped quotes"` in the variable and
+`"value": "${var.myvariable}"` in the JSON.
+
 ### Supported built-in functions
 
 The supported built-in functions are:
@@ -179,6 +186,11 @@ The supported built-in functions are:
       to the argument.
 
   * `chomp(string)` - Removes trailing newlines from the given string.
+
+  * `chunklist(list, size)` - Returns the `list` items chunked by `size`.
+    Examples:
+    * `chunklist(aws_subnet.foo.*.id, 1)`: will outputs `[["id1"], ["id2"], ["id3"]]`
+    * `chunklist(var.list_of_strings, 2)`: will outputs `[["id1", "id2"], ["id3", "id4"], ["id5"]]`
 
   * `cidrhost(iprange, hostnum)` - Takes an IP address range in CIDR notation
     and creates an IP address with the given host number. If given host
@@ -230,15 +242,10 @@ The supported built-in functions are:
       * `element(aws_subnet.foo.*.id, count.index)`
       * `element(var.list_of_strings, 2)`
 
-  * `chunklist(list, size)` - Returns the `list` items chunked by `size`.
-      Examples:
-      * `chunklist(aws_subnet.foo.*.id, 1)`: will outputs `[["id1"], ["id2"], ["id3"]]`
-      * `chunklist(var.list_of_strings, 2)`: will outputs `[["id1", "id2"], ["id3", "id4"], ["id5"]]`
-
   * `file(path)` - Reads the contents of a file into the string. Variables
       in this file are _not_ interpolated. The contents of the file are
       read as-is. The `path` is interpreted relative to the working directory.
-      [Path variables](#path-variables) can be used to reference paths relative
+      [Path variables](#path-information) can be used to reference paths relative
       to other base locations. For example, when using `file()` from inside a
       module, you generally want to make the path relative to the module base,
       like this: `file("${path.module}/file")`.

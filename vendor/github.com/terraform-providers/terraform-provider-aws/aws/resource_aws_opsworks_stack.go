@@ -40,11 +40,6 @@ func resourceAwsOpsworksStack() *schema.Resource {
 				Computed: true,
 			},
 
-			"id": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -476,7 +471,6 @@ func resourceAwsOpsworksStackCreate(d *schema.ResourceData, meta interface{}) er
 
 	stackId := *resp.StackId
 	d.SetId(stackId)
-	d.Set("id", stackId)
 
 	if inVpc && *req.UseOpsworksSecurityGroups {
 		// For VPC-based stacks, OpsWorks asynchronously creates some default

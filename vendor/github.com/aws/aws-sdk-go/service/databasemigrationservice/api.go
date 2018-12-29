@@ -36,7 +36,7 @@ const opAddTagsToResource = "AddTagsToResource"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/AddTagsToResource
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/AddTagsToResource
 func (c *DatabaseMigrationService) AddTagsToResourceRequest(input *AddTagsToResourceInput) (req *request.Request, output *AddTagsToResourceOutput) {
 	op := &request.Operation{
 		Name:       opAddTagsToResource,
@@ -71,7 +71,7 @@ func (c *DatabaseMigrationService) AddTagsToResourceRequest(input *AddTagsToReso
 //   * ErrCodeResourceNotFoundFault "ResourceNotFoundFault"
 //   The resource could not be found.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/AddTagsToResource
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/AddTagsToResource
 func (c *DatabaseMigrationService) AddTagsToResource(input *AddTagsToResourceInput) (*AddTagsToResourceOutput, error) {
 	req, out := c.AddTagsToResourceRequest(input)
 	return out, req.Send()
@@ -118,7 +118,7 @@ const opCreateEndpoint = "CreateEndpoint"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/CreateEndpoint
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/CreateEndpoint
 func (c *DatabaseMigrationService) CreateEndpointRequest(input *CreateEndpointInput) (req *request.Request, output *CreateEndpointOutput) {
 	op := &request.Operation{
 		Name:       opCreateEndpoint,
@@ -166,7 +166,7 @@ func (c *DatabaseMigrationService) CreateEndpointRequest(input *CreateEndpointIn
 //   * ErrCodeAccessDeniedFault "AccessDeniedFault"
 //   AWS DMS was denied access to the endpoint.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/CreateEndpoint
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/CreateEndpoint
 func (c *DatabaseMigrationService) CreateEndpoint(input *CreateEndpointInput) (*CreateEndpointOutput, error) {
 	req, out := c.CreateEndpointRequest(input)
 	return out, req.Send()
@@ -213,7 +213,7 @@ const opCreateEventSubscription = "CreateEventSubscription"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/CreateEventSubscription
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/CreateEventSubscription
 func (c *DatabaseMigrationService) CreateEventSubscriptionRequest(input *CreateEventSubscriptionInput) (req *request.Request, output *CreateEventSubscriptionOutput) {
 	op := &request.Operation{
 		Name:       opCreateEventSubscription,
@@ -273,7 +273,7 @@ func (c *DatabaseMigrationService) CreateEventSubscriptionRequest(input *CreateE
 //   * ErrCodeResourceNotFoundFault "ResourceNotFoundFault"
 //   The resource could not be found.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/CreateEventSubscription
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/CreateEventSubscription
 func (c *DatabaseMigrationService) CreateEventSubscription(input *CreateEventSubscriptionInput) (*CreateEventSubscriptionOutput, error) {
 	req, out := c.CreateEventSubscriptionRequest(input)
 	return out, req.Send()
@@ -320,7 +320,7 @@ const opCreateReplicationInstance = "CreateReplicationInstance"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/CreateReplicationInstance
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/CreateReplicationInstance
 func (c *DatabaseMigrationService) CreateReplicationInstanceRequest(input *CreateReplicationInstanceInput) (req *request.Request, output *CreateReplicationInstanceOutput) {
 	op := &request.Operation{
 		Name:       opCreateReplicationInstance,
@@ -381,7 +381,7 @@ func (c *DatabaseMigrationService) CreateReplicationInstanceRequest(input *Creat
 //   * ErrCodeKMSKeyNotAccessibleFault "KMSKeyNotAccessibleFault"
 //   AWS DMS cannot access the KMS key.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/CreateReplicationInstance
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/CreateReplicationInstance
 func (c *DatabaseMigrationService) CreateReplicationInstance(input *CreateReplicationInstanceInput) (*CreateReplicationInstanceOutput, error) {
 	req, out := c.CreateReplicationInstanceRequest(input)
 	return out, req.Send()
@@ -428,7 +428,7 @@ const opCreateReplicationSubnetGroup = "CreateReplicationSubnetGroup"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/CreateReplicationSubnetGroup
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/CreateReplicationSubnetGroup
 func (c *DatabaseMigrationService) CreateReplicationSubnetGroupRequest(input *CreateReplicationSubnetGroupInput) (req *request.Request, output *CreateReplicationSubnetGroupOutput) {
 	op := &request.Operation{
 		Name:       opCreateReplicationSubnetGroup,
@@ -476,7 +476,7 @@ func (c *DatabaseMigrationService) CreateReplicationSubnetGroupRequest(input *Cr
 //   * ErrCodeInvalidSubnet "InvalidSubnet"
 //   The subnet provided is invalid.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/CreateReplicationSubnetGroup
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/CreateReplicationSubnetGroup
 func (c *DatabaseMigrationService) CreateReplicationSubnetGroup(input *CreateReplicationSubnetGroupInput) (*CreateReplicationSubnetGroupOutput, error) {
 	req, out := c.CreateReplicationSubnetGroupRequest(input)
 	return out, req.Send()
@@ -523,7 +523,7 @@ const opCreateReplicationTask = "CreateReplicationTask"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/CreateReplicationTask
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/CreateReplicationTask
 func (c *DatabaseMigrationService) CreateReplicationTaskRequest(input *CreateReplicationTaskInput) (req *request.Request, output *CreateReplicationTaskOutput) {
 	op := &request.Operation{
 		Name:       opCreateReplicationTask,
@@ -571,7 +571,7 @@ func (c *DatabaseMigrationService) CreateReplicationTaskRequest(input *CreateRep
 //   * ErrCodeResourceQuotaExceededFault "ResourceQuotaExceededFault"
 //   The quota for this resource quota has been exceeded.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/CreateReplicationTask
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/CreateReplicationTask
 func (c *DatabaseMigrationService) CreateReplicationTask(input *CreateReplicationTaskInput) (*CreateReplicationTaskOutput, error) {
 	req, out := c.CreateReplicationTaskRequest(input)
 	return out, req.Send()
@@ -618,7 +618,7 @@ const opDeleteCertificate = "DeleteCertificate"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DeleteCertificate
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DeleteCertificate
 func (c *DatabaseMigrationService) DeleteCertificateRequest(input *DeleteCertificateInput) (req *request.Request, output *DeleteCertificateOutput) {
 	op := &request.Operation{
 		Name:       opDeleteCertificate,
@@ -654,7 +654,7 @@ func (c *DatabaseMigrationService) DeleteCertificateRequest(input *DeleteCertifi
 //   The resource is in a state that prevents it from being used for database
 //   migration.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DeleteCertificate
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DeleteCertificate
 func (c *DatabaseMigrationService) DeleteCertificate(input *DeleteCertificateInput) (*DeleteCertificateOutput, error) {
 	req, out := c.DeleteCertificateRequest(input)
 	return out, req.Send()
@@ -701,7 +701,7 @@ const opDeleteEndpoint = "DeleteEndpoint"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DeleteEndpoint
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DeleteEndpoint
 func (c *DatabaseMigrationService) DeleteEndpointRequest(input *DeleteEndpointInput) (req *request.Request, output *DeleteEndpointOutput) {
 	op := &request.Operation{
 		Name:       opDeleteEndpoint,
@@ -740,7 +740,7 @@ func (c *DatabaseMigrationService) DeleteEndpointRequest(input *DeleteEndpointIn
 //   The resource is in a state that prevents it from being used for database
 //   migration.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DeleteEndpoint
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DeleteEndpoint
 func (c *DatabaseMigrationService) DeleteEndpoint(input *DeleteEndpointInput) (*DeleteEndpointOutput, error) {
 	req, out := c.DeleteEndpointRequest(input)
 	return out, req.Send()
@@ -787,7 +787,7 @@ const opDeleteEventSubscription = "DeleteEventSubscription"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DeleteEventSubscription
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DeleteEventSubscription
 func (c *DatabaseMigrationService) DeleteEventSubscriptionRequest(input *DeleteEventSubscriptionInput) (req *request.Request, output *DeleteEventSubscriptionOutput) {
 	op := &request.Operation{
 		Name:       opDeleteEventSubscription,
@@ -823,7 +823,7 @@ func (c *DatabaseMigrationService) DeleteEventSubscriptionRequest(input *DeleteE
 //   The resource is in a state that prevents it from being used for database
 //   migration.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DeleteEventSubscription
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DeleteEventSubscription
 func (c *DatabaseMigrationService) DeleteEventSubscription(input *DeleteEventSubscriptionInput) (*DeleteEventSubscriptionOutput, error) {
 	req, out := c.DeleteEventSubscriptionRequest(input)
 	return out, req.Send()
@@ -870,7 +870,7 @@ const opDeleteReplicationInstance = "DeleteReplicationInstance"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DeleteReplicationInstance
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DeleteReplicationInstance
 func (c *DatabaseMigrationService) DeleteReplicationInstanceRequest(input *DeleteReplicationInstanceInput) (req *request.Request, output *DeleteReplicationInstanceOutput) {
 	op := &request.Operation{
 		Name:       opDeleteReplicationInstance,
@@ -909,7 +909,7 @@ func (c *DatabaseMigrationService) DeleteReplicationInstanceRequest(input *Delet
 //   * ErrCodeResourceNotFoundFault "ResourceNotFoundFault"
 //   The resource could not be found.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DeleteReplicationInstance
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DeleteReplicationInstance
 func (c *DatabaseMigrationService) DeleteReplicationInstance(input *DeleteReplicationInstanceInput) (*DeleteReplicationInstanceOutput, error) {
 	req, out := c.DeleteReplicationInstanceRequest(input)
 	return out, req.Send()
@@ -956,7 +956,7 @@ const opDeleteReplicationSubnetGroup = "DeleteReplicationSubnetGroup"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DeleteReplicationSubnetGroup
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DeleteReplicationSubnetGroup
 func (c *DatabaseMigrationService) DeleteReplicationSubnetGroupRequest(input *DeleteReplicationSubnetGroupInput) (req *request.Request, output *DeleteReplicationSubnetGroupOutput) {
 	op := &request.Operation{
 		Name:       opDeleteReplicationSubnetGroup,
@@ -992,7 +992,7 @@ func (c *DatabaseMigrationService) DeleteReplicationSubnetGroupRequest(input *De
 //   * ErrCodeResourceNotFoundFault "ResourceNotFoundFault"
 //   The resource could not be found.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DeleteReplicationSubnetGroup
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DeleteReplicationSubnetGroup
 func (c *DatabaseMigrationService) DeleteReplicationSubnetGroup(input *DeleteReplicationSubnetGroupInput) (*DeleteReplicationSubnetGroupOutput, error) {
 	req, out := c.DeleteReplicationSubnetGroupRequest(input)
 	return out, req.Send()
@@ -1039,7 +1039,7 @@ const opDeleteReplicationTask = "DeleteReplicationTask"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DeleteReplicationTask
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DeleteReplicationTask
 func (c *DatabaseMigrationService) DeleteReplicationTaskRequest(input *DeleteReplicationTaskInput) (req *request.Request, output *DeleteReplicationTaskOutput) {
 	op := &request.Operation{
 		Name:       opDeleteReplicationTask,
@@ -1075,7 +1075,7 @@ func (c *DatabaseMigrationService) DeleteReplicationTaskRequest(input *DeleteRep
 //   The resource is in a state that prevents it from being used for database
 //   migration.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DeleteReplicationTask
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DeleteReplicationTask
 func (c *DatabaseMigrationService) DeleteReplicationTask(input *DeleteReplicationTaskInput) (*DeleteReplicationTaskOutput, error) {
 	req, out := c.DeleteReplicationTaskRequest(input)
 	return out, req.Send()
@@ -1122,7 +1122,7 @@ const opDescribeAccountAttributes = "DescribeAccountAttributes"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeAccountAttributes
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeAccountAttributes
 func (c *DatabaseMigrationService) DescribeAccountAttributesRequest(input *DescribeAccountAttributesInput) (req *request.Request, output *DescribeAccountAttributesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeAccountAttributes,
@@ -1154,7 +1154,7 @@ func (c *DatabaseMigrationService) DescribeAccountAttributesRequest(input *Descr
 //
 // See the AWS API reference guide for AWS Database Migration Service's
 // API operation DescribeAccountAttributes for usage and error information.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeAccountAttributes
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeAccountAttributes
 func (c *DatabaseMigrationService) DescribeAccountAttributes(input *DescribeAccountAttributesInput) (*DescribeAccountAttributesOutput, error) {
 	req, out := c.DescribeAccountAttributesRequest(input)
 	return out, req.Send()
@@ -1201,7 +1201,7 @@ const opDescribeCertificates = "DescribeCertificates"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeCertificates
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeCertificates
 func (c *DatabaseMigrationService) DescribeCertificatesRequest(input *DescribeCertificatesInput) (req *request.Request, output *DescribeCertificatesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeCertificates,
@@ -1239,7 +1239,7 @@ func (c *DatabaseMigrationService) DescribeCertificatesRequest(input *DescribeCe
 //   * ErrCodeResourceNotFoundFault "ResourceNotFoundFault"
 //   The resource could not be found.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeCertificates
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeCertificates
 func (c *DatabaseMigrationService) DescribeCertificates(input *DescribeCertificatesInput) (*DescribeCertificatesOutput, error) {
 	req, out := c.DescribeCertificatesRequest(input)
 	return out, req.Send()
@@ -1336,7 +1336,7 @@ const opDescribeConnections = "DescribeConnections"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeConnections
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeConnections
 func (c *DatabaseMigrationService) DescribeConnectionsRequest(input *DescribeConnectionsInput) (req *request.Request, output *DescribeConnectionsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeConnections,
@@ -1375,7 +1375,7 @@ func (c *DatabaseMigrationService) DescribeConnectionsRequest(input *DescribeCon
 //   * ErrCodeResourceNotFoundFault "ResourceNotFoundFault"
 //   The resource could not be found.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeConnections
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeConnections
 func (c *DatabaseMigrationService) DescribeConnections(input *DescribeConnectionsInput) (*DescribeConnectionsOutput, error) {
 	req, out := c.DescribeConnectionsRequest(input)
 	return out, req.Send()
@@ -1472,7 +1472,7 @@ const opDescribeEndpointTypes = "DescribeEndpointTypes"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeEndpointTypes
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeEndpointTypes
 func (c *DatabaseMigrationService) DescribeEndpointTypesRequest(input *DescribeEndpointTypesInput) (req *request.Request, output *DescribeEndpointTypesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeEndpointTypes,
@@ -1505,7 +1505,7 @@ func (c *DatabaseMigrationService) DescribeEndpointTypesRequest(input *DescribeE
 //
 // See the AWS API reference guide for AWS Database Migration Service's
 // API operation DescribeEndpointTypes for usage and error information.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeEndpointTypes
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeEndpointTypes
 func (c *DatabaseMigrationService) DescribeEndpointTypes(input *DescribeEndpointTypesInput) (*DescribeEndpointTypesOutput, error) {
 	req, out := c.DescribeEndpointTypesRequest(input)
 	return out, req.Send()
@@ -1602,7 +1602,7 @@ const opDescribeEndpoints = "DescribeEndpoints"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeEndpoints
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeEndpoints
 func (c *DatabaseMigrationService) DescribeEndpointsRequest(input *DescribeEndpointsInput) (req *request.Request, output *DescribeEndpointsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeEndpoints,
@@ -1640,7 +1640,7 @@ func (c *DatabaseMigrationService) DescribeEndpointsRequest(input *DescribeEndpo
 //   * ErrCodeResourceNotFoundFault "ResourceNotFoundFault"
 //   The resource could not be found.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeEndpoints
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeEndpoints
 func (c *DatabaseMigrationService) DescribeEndpoints(input *DescribeEndpointsInput) (*DescribeEndpointsOutput, error) {
 	req, out := c.DescribeEndpointsRequest(input)
 	return out, req.Send()
@@ -1737,7 +1737,7 @@ const opDescribeEventCategories = "DescribeEventCategories"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeEventCategories
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeEventCategories
 func (c *DatabaseMigrationService) DescribeEventCategoriesRequest(input *DescribeEventCategoriesInput) (req *request.Request, output *DescribeEventCategoriesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeEventCategories,
@@ -1767,7 +1767,7 @@ func (c *DatabaseMigrationService) DescribeEventCategoriesRequest(input *Describ
 //
 // See the AWS API reference guide for AWS Database Migration Service's
 // API operation DescribeEventCategories for usage and error information.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeEventCategories
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeEventCategories
 func (c *DatabaseMigrationService) DescribeEventCategories(input *DescribeEventCategoriesInput) (*DescribeEventCategoriesOutput, error) {
 	req, out := c.DescribeEventCategoriesRequest(input)
 	return out, req.Send()
@@ -1814,7 +1814,7 @@ const opDescribeEventSubscriptions = "DescribeEventSubscriptions"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeEventSubscriptions
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeEventSubscriptions
 func (c *DatabaseMigrationService) DescribeEventSubscriptionsRequest(input *DescribeEventSubscriptionsInput) (req *request.Request, output *DescribeEventSubscriptionsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeEventSubscriptions,
@@ -1857,7 +1857,7 @@ func (c *DatabaseMigrationService) DescribeEventSubscriptionsRequest(input *Desc
 //   * ErrCodeResourceNotFoundFault "ResourceNotFoundFault"
 //   The resource could not be found.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeEventSubscriptions
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeEventSubscriptions
 func (c *DatabaseMigrationService) DescribeEventSubscriptions(input *DescribeEventSubscriptionsInput) (*DescribeEventSubscriptionsOutput, error) {
 	req, out := c.DescribeEventSubscriptionsRequest(input)
 	return out, req.Send()
@@ -1954,7 +1954,7 @@ const opDescribeEvents = "DescribeEvents"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeEvents
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeEvents
 func (c *DatabaseMigrationService) DescribeEventsRequest(input *DescribeEventsInput) (req *request.Request, output *DescribeEventsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeEvents,
@@ -1989,7 +1989,7 @@ func (c *DatabaseMigrationService) DescribeEventsRequest(input *DescribeEventsIn
 //
 // See the AWS API reference guide for AWS Database Migration Service's
 // API operation DescribeEvents for usage and error information.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeEvents
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeEvents
 func (c *DatabaseMigrationService) DescribeEvents(input *DescribeEventsInput) (*DescribeEventsOutput, error) {
 	req, out := c.DescribeEventsRequest(input)
 	return out, req.Send()
@@ -2086,7 +2086,7 @@ const opDescribeOrderableReplicationInstances = "DescribeOrderableReplicationIns
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeOrderableReplicationInstances
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeOrderableReplicationInstances
 func (c *DatabaseMigrationService) DescribeOrderableReplicationInstancesRequest(input *DescribeOrderableReplicationInstancesInput) (req *request.Request, output *DescribeOrderableReplicationInstancesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeOrderableReplicationInstances,
@@ -2120,7 +2120,7 @@ func (c *DatabaseMigrationService) DescribeOrderableReplicationInstancesRequest(
 //
 // See the AWS API reference guide for AWS Database Migration Service's
 // API operation DescribeOrderableReplicationInstances for usage and error information.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeOrderableReplicationInstances
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeOrderableReplicationInstances
 func (c *DatabaseMigrationService) DescribeOrderableReplicationInstances(input *DescribeOrderableReplicationInstancesInput) (*DescribeOrderableReplicationInstancesOutput, error) {
 	req, out := c.DescribeOrderableReplicationInstancesRequest(input)
 	return out, req.Send()
@@ -2217,7 +2217,7 @@ const opDescribeRefreshSchemasStatus = "DescribeRefreshSchemasStatus"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeRefreshSchemasStatus
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeRefreshSchemasStatus
 func (c *DatabaseMigrationService) DescribeRefreshSchemasStatusRequest(input *DescribeRefreshSchemasStatusInput) (req *request.Request, output *DescribeRefreshSchemasStatusOutput) {
 	op := &request.Operation{
 		Name:       opDescribeRefreshSchemasStatus,
@@ -2253,7 +2253,7 @@ func (c *DatabaseMigrationService) DescribeRefreshSchemasStatusRequest(input *De
 //   * ErrCodeResourceNotFoundFault "ResourceNotFoundFault"
 //   The resource could not be found.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeRefreshSchemasStatus
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeRefreshSchemasStatus
 func (c *DatabaseMigrationService) DescribeRefreshSchemasStatus(input *DescribeRefreshSchemasStatusInput) (*DescribeRefreshSchemasStatusOutput, error) {
 	req, out := c.DescribeRefreshSchemasStatusRequest(input)
 	return out, req.Send()
@@ -2273,6 +2273,145 @@ func (c *DatabaseMigrationService) DescribeRefreshSchemasStatusWithContext(ctx a
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
+}
+
+const opDescribeReplicationInstanceTaskLogs = "DescribeReplicationInstanceTaskLogs"
+
+// DescribeReplicationInstanceTaskLogsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeReplicationInstanceTaskLogs operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeReplicationInstanceTaskLogs for more information on using the DescribeReplicationInstanceTaskLogs
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeReplicationInstanceTaskLogsRequest method.
+//    req, resp := client.DescribeReplicationInstanceTaskLogsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeReplicationInstanceTaskLogs
+func (c *DatabaseMigrationService) DescribeReplicationInstanceTaskLogsRequest(input *DescribeReplicationInstanceTaskLogsInput) (req *request.Request, output *DescribeReplicationInstanceTaskLogsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeReplicationInstanceTaskLogs,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"Marker"},
+			OutputTokens:    []string{"Marker"},
+			LimitToken:      "MaxRecords",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &DescribeReplicationInstanceTaskLogsInput{}
+	}
+
+	output = &DescribeReplicationInstanceTaskLogsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeReplicationInstanceTaskLogs API operation for AWS Database Migration Service.
+//
+// Returns information about the task logs for the specified task.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Database Migration Service's
+// API operation DescribeReplicationInstanceTaskLogs for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeResourceNotFoundFault "ResourceNotFoundFault"
+//   The resource could not be found.
+//
+//   * ErrCodeInvalidResourceStateFault "InvalidResourceStateFault"
+//   The resource is in a state that prevents it from being used for database
+//   migration.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeReplicationInstanceTaskLogs
+func (c *DatabaseMigrationService) DescribeReplicationInstanceTaskLogs(input *DescribeReplicationInstanceTaskLogsInput) (*DescribeReplicationInstanceTaskLogsOutput, error) {
+	req, out := c.DescribeReplicationInstanceTaskLogsRequest(input)
+	return out, req.Send()
+}
+
+// DescribeReplicationInstanceTaskLogsWithContext is the same as DescribeReplicationInstanceTaskLogs with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeReplicationInstanceTaskLogs for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DatabaseMigrationService) DescribeReplicationInstanceTaskLogsWithContext(ctx aws.Context, input *DescribeReplicationInstanceTaskLogsInput, opts ...request.Option) (*DescribeReplicationInstanceTaskLogsOutput, error) {
+	req, out := c.DescribeReplicationInstanceTaskLogsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// DescribeReplicationInstanceTaskLogsPages iterates over the pages of a DescribeReplicationInstanceTaskLogs operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeReplicationInstanceTaskLogs method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeReplicationInstanceTaskLogs operation.
+//    pageNum := 0
+//    err := client.DescribeReplicationInstanceTaskLogsPages(params,
+//        func(page *DescribeReplicationInstanceTaskLogsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *DatabaseMigrationService) DescribeReplicationInstanceTaskLogsPages(input *DescribeReplicationInstanceTaskLogsInput, fn func(*DescribeReplicationInstanceTaskLogsOutput, bool) bool) error {
+	return c.DescribeReplicationInstanceTaskLogsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// DescribeReplicationInstanceTaskLogsPagesWithContext same as DescribeReplicationInstanceTaskLogsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DatabaseMigrationService) DescribeReplicationInstanceTaskLogsPagesWithContext(ctx aws.Context, input *DescribeReplicationInstanceTaskLogsInput, fn func(*DescribeReplicationInstanceTaskLogsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *DescribeReplicationInstanceTaskLogsInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.DescribeReplicationInstanceTaskLogsRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	cont := true
+	for p.Next() && cont {
+		cont = fn(p.Page().(*DescribeReplicationInstanceTaskLogsOutput), !p.HasNextPage())
+	}
+	return p.Err()
 }
 
 const opDescribeReplicationInstances = "DescribeReplicationInstances"
@@ -2300,7 +2439,7 @@ const opDescribeReplicationInstances = "DescribeReplicationInstances"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeReplicationInstances
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeReplicationInstances
 func (c *DatabaseMigrationService) DescribeReplicationInstancesRequest(input *DescribeReplicationInstancesInput) (req *request.Request, output *DescribeReplicationInstancesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeReplicationInstances,
@@ -2339,7 +2478,7 @@ func (c *DatabaseMigrationService) DescribeReplicationInstancesRequest(input *De
 //   * ErrCodeResourceNotFoundFault "ResourceNotFoundFault"
 //   The resource could not be found.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeReplicationInstances
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeReplicationInstances
 func (c *DatabaseMigrationService) DescribeReplicationInstances(input *DescribeReplicationInstancesInput) (*DescribeReplicationInstancesOutput, error) {
 	req, out := c.DescribeReplicationInstancesRequest(input)
 	return out, req.Send()
@@ -2436,7 +2575,7 @@ const opDescribeReplicationSubnetGroups = "DescribeReplicationSubnetGroups"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeReplicationSubnetGroups
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeReplicationSubnetGroups
 func (c *DatabaseMigrationService) DescribeReplicationSubnetGroupsRequest(input *DescribeReplicationSubnetGroupsInput) (req *request.Request, output *DescribeReplicationSubnetGroupsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeReplicationSubnetGroups,
@@ -2474,7 +2613,7 @@ func (c *DatabaseMigrationService) DescribeReplicationSubnetGroupsRequest(input 
 //   * ErrCodeResourceNotFoundFault "ResourceNotFoundFault"
 //   The resource could not be found.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeReplicationSubnetGroups
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeReplicationSubnetGroups
 func (c *DatabaseMigrationService) DescribeReplicationSubnetGroups(input *DescribeReplicationSubnetGroupsInput) (*DescribeReplicationSubnetGroupsOutput, error) {
 	req, out := c.DescribeReplicationSubnetGroupsRequest(input)
 	return out, req.Send()
@@ -2546,6 +2685,142 @@ func (c *DatabaseMigrationService) DescribeReplicationSubnetGroupsPagesWithConte
 	return p.Err()
 }
 
+const opDescribeReplicationTaskAssessmentResults = "DescribeReplicationTaskAssessmentResults"
+
+// DescribeReplicationTaskAssessmentResultsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeReplicationTaskAssessmentResults operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeReplicationTaskAssessmentResults for more information on using the DescribeReplicationTaskAssessmentResults
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeReplicationTaskAssessmentResultsRequest method.
+//    req, resp := client.DescribeReplicationTaskAssessmentResultsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeReplicationTaskAssessmentResults
+func (c *DatabaseMigrationService) DescribeReplicationTaskAssessmentResultsRequest(input *DescribeReplicationTaskAssessmentResultsInput) (req *request.Request, output *DescribeReplicationTaskAssessmentResultsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeReplicationTaskAssessmentResults,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"Marker"},
+			OutputTokens:    []string{"Marker"},
+			LimitToken:      "MaxRecords",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &DescribeReplicationTaskAssessmentResultsInput{}
+	}
+
+	output = &DescribeReplicationTaskAssessmentResultsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeReplicationTaskAssessmentResults API operation for AWS Database Migration Service.
+//
+// Returns the task assessment results from Amazon S3. This action always returns
+// the latest results.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Database Migration Service's
+// API operation DescribeReplicationTaskAssessmentResults for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeResourceNotFoundFault "ResourceNotFoundFault"
+//   The resource could not be found.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeReplicationTaskAssessmentResults
+func (c *DatabaseMigrationService) DescribeReplicationTaskAssessmentResults(input *DescribeReplicationTaskAssessmentResultsInput) (*DescribeReplicationTaskAssessmentResultsOutput, error) {
+	req, out := c.DescribeReplicationTaskAssessmentResultsRequest(input)
+	return out, req.Send()
+}
+
+// DescribeReplicationTaskAssessmentResultsWithContext is the same as DescribeReplicationTaskAssessmentResults with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeReplicationTaskAssessmentResults for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DatabaseMigrationService) DescribeReplicationTaskAssessmentResultsWithContext(ctx aws.Context, input *DescribeReplicationTaskAssessmentResultsInput, opts ...request.Option) (*DescribeReplicationTaskAssessmentResultsOutput, error) {
+	req, out := c.DescribeReplicationTaskAssessmentResultsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// DescribeReplicationTaskAssessmentResultsPages iterates over the pages of a DescribeReplicationTaskAssessmentResults operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeReplicationTaskAssessmentResults method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeReplicationTaskAssessmentResults operation.
+//    pageNum := 0
+//    err := client.DescribeReplicationTaskAssessmentResultsPages(params,
+//        func(page *DescribeReplicationTaskAssessmentResultsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *DatabaseMigrationService) DescribeReplicationTaskAssessmentResultsPages(input *DescribeReplicationTaskAssessmentResultsInput, fn func(*DescribeReplicationTaskAssessmentResultsOutput, bool) bool) error {
+	return c.DescribeReplicationTaskAssessmentResultsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// DescribeReplicationTaskAssessmentResultsPagesWithContext same as DescribeReplicationTaskAssessmentResultsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DatabaseMigrationService) DescribeReplicationTaskAssessmentResultsPagesWithContext(ctx aws.Context, input *DescribeReplicationTaskAssessmentResultsInput, fn func(*DescribeReplicationTaskAssessmentResultsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *DescribeReplicationTaskAssessmentResultsInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.DescribeReplicationTaskAssessmentResultsRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	cont := true
+	for p.Next() && cont {
+		cont = fn(p.Page().(*DescribeReplicationTaskAssessmentResultsOutput), !p.HasNextPage())
+	}
+	return p.Err()
+}
+
 const opDescribeReplicationTasks = "DescribeReplicationTasks"
 
 // DescribeReplicationTasksRequest generates a "aws/request.Request" representing the
@@ -2571,7 +2846,7 @@ const opDescribeReplicationTasks = "DescribeReplicationTasks"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeReplicationTasks
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeReplicationTasks
 func (c *DatabaseMigrationService) DescribeReplicationTasksRequest(input *DescribeReplicationTasksInput) (req *request.Request, output *DescribeReplicationTasksOutput) {
 	op := &request.Operation{
 		Name:       opDescribeReplicationTasks,
@@ -2610,7 +2885,7 @@ func (c *DatabaseMigrationService) DescribeReplicationTasksRequest(input *Descri
 //   * ErrCodeResourceNotFoundFault "ResourceNotFoundFault"
 //   The resource could not be found.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeReplicationTasks
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeReplicationTasks
 func (c *DatabaseMigrationService) DescribeReplicationTasks(input *DescribeReplicationTasksInput) (*DescribeReplicationTasksOutput, error) {
 	req, out := c.DescribeReplicationTasksRequest(input)
 	return out, req.Send()
@@ -2707,7 +2982,7 @@ const opDescribeSchemas = "DescribeSchemas"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeSchemas
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeSchemas
 func (c *DatabaseMigrationService) DescribeSchemasRequest(input *DescribeSchemasInput) (req *request.Request, output *DescribeSchemasOutput) {
 	op := &request.Operation{
 		Name:       opDescribeSchemas,
@@ -2749,7 +3024,7 @@ func (c *DatabaseMigrationService) DescribeSchemasRequest(input *DescribeSchemas
 //   * ErrCodeResourceNotFoundFault "ResourceNotFoundFault"
 //   The resource could not be found.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeSchemas
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeSchemas
 func (c *DatabaseMigrationService) DescribeSchemas(input *DescribeSchemasInput) (*DescribeSchemasOutput, error) {
 	req, out := c.DescribeSchemasRequest(input)
 	return out, req.Send()
@@ -2846,7 +3121,7 @@ const opDescribeTableStatistics = "DescribeTableStatistics"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeTableStatistics
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeTableStatistics
 func (c *DatabaseMigrationService) DescribeTableStatisticsRequest(input *DescribeTableStatisticsInput) (req *request.Request, output *DescribeTableStatisticsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeTableStatistics,
@@ -2874,6 +3149,10 @@ func (c *DatabaseMigrationService) DescribeTableStatisticsRequest(input *Describ
 // Returns table statistics on the database migration task, including table
 // name, rows inserted, rows updated, and rows deleted.
 //
+// Note that the "last updated" column the DMS console only indicates the time
+// that AWS DMS last updated the table statistics record for a table. It does
+// not indicate the time of the last update to the table.
+//
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
 // the error.
@@ -2889,7 +3168,7 @@ func (c *DatabaseMigrationService) DescribeTableStatisticsRequest(input *Describ
 //   The resource is in a state that prevents it from being used for database
 //   migration.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeTableStatistics
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeTableStatistics
 func (c *DatabaseMigrationService) DescribeTableStatistics(input *DescribeTableStatisticsInput) (*DescribeTableStatisticsOutput, error) {
 	req, out := c.DescribeTableStatisticsRequest(input)
 	return out, req.Send()
@@ -2986,7 +3265,7 @@ const opImportCertificate = "ImportCertificate"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ImportCertificate
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ImportCertificate
 func (c *DatabaseMigrationService) ImportCertificateRequest(input *ImportCertificateInput) (req *request.Request, output *ImportCertificateOutput) {
 	op := &request.Operation{
 		Name:       opImportCertificate,
@@ -3021,7 +3300,10 @@ func (c *DatabaseMigrationService) ImportCertificateRequest(input *ImportCertifi
 //   * ErrCodeInvalidCertificateFault "InvalidCertificateFault"
 //   The certificate was not valid.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ImportCertificate
+//   * ErrCodeResourceQuotaExceededFault "ResourceQuotaExceededFault"
+//   The quota for this resource quota has been exceeded.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ImportCertificate
 func (c *DatabaseMigrationService) ImportCertificate(input *ImportCertificateInput) (*ImportCertificateOutput, error) {
 	req, out := c.ImportCertificateRequest(input)
 	return out, req.Send()
@@ -3068,7 +3350,7 @@ const opListTagsForResource = "ListTagsForResource"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ListTagsForResource
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ListTagsForResource
 func (c *DatabaseMigrationService) ListTagsForResourceRequest(input *ListTagsForResourceInput) (req *request.Request, output *ListTagsForResourceOutput) {
 	op := &request.Operation{
 		Name:       opListTagsForResource,
@@ -3100,7 +3382,7 @@ func (c *DatabaseMigrationService) ListTagsForResourceRequest(input *ListTagsFor
 //   * ErrCodeResourceNotFoundFault "ResourceNotFoundFault"
 //   The resource could not be found.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ListTagsForResource
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ListTagsForResource
 func (c *DatabaseMigrationService) ListTagsForResource(input *ListTagsForResourceInput) (*ListTagsForResourceOutput, error) {
 	req, out := c.ListTagsForResourceRequest(input)
 	return out, req.Send()
@@ -3147,7 +3429,7 @@ const opModifyEndpoint = "ModifyEndpoint"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ModifyEndpoint
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ModifyEndpoint
 func (c *DatabaseMigrationService) ModifyEndpointRequest(input *ModifyEndpointInput) (req *request.Request, output *ModifyEndpointOutput) {
 	op := &request.Operation{
 		Name:       opModifyEndpoint,
@@ -3192,7 +3474,7 @@ func (c *DatabaseMigrationService) ModifyEndpointRequest(input *ModifyEndpointIn
 //   * ErrCodeAccessDeniedFault "AccessDeniedFault"
 //   AWS DMS was denied access to the endpoint.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ModifyEndpoint
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ModifyEndpoint
 func (c *DatabaseMigrationService) ModifyEndpoint(input *ModifyEndpointInput) (*ModifyEndpointOutput, error) {
 	req, out := c.ModifyEndpointRequest(input)
 	return out, req.Send()
@@ -3239,7 +3521,7 @@ const opModifyEventSubscription = "ModifyEventSubscription"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ModifyEventSubscription
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ModifyEventSubscription
 func (c *DatabaseMigrationService) ModifyEventSubscriptionRequest(input *ModifyEventSubscriptionInput) (req *request.Request, output *ModifyEventSubscriptionOutput) {
 	op := &request.Operation{
 		Name:       opModifyEventSubscription,
@@ -3280,7 +3562,7 @@ func (c *DatabaseMigrationService) ModifyEventSubscriptionRequest(input *ModifyE
 //   * ErrCodeSNSNoAuthorizationFault "SNSNoAuthorizationFault"
 //   You are not authorized for the SNS subscription.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ModifyEventSubscription
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ModifyEventSubscription
 func (c *DatabaseMigrationService) ModifyEventSubscription(input *ModifyEventSubscriptionInput) (*ModifyEventSubscriptionOutput, error) {
 	req, out := c.ModifyEventSubscriptionRequest(input)
 	return out, req.Send()
@@ -3327,7 +3609,7 @@ const opModifyReplicationInstance = "ModifyReplicationInstance"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ModifyReplicationInstance
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ModifyReplicationInstance
 func (c *DatabaseMigrationService) ModifyReplicationInstanceRequest(input *ModifyReplicationInstanceInput) (req *request.Request, output *ModifyReplicationInstanceOutput) {
 	op := &request.Operation{
 		Name:       opModifyReplicationInstance,
@@ -3379,7 +3661,7 @@ func (c *DatabaseMigrationService) ModifyReplicationInstanceRequest(input *Modif
 //   * ErrCodeUpgradeDependencyFailureFault "UpgradeDependencyFailureFault"
 //   An upgrade dependency is preventing the database migration.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ModifyReplicationInstance
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ModifyReplicationInstance
 func (c *DatabaseMigrationService) ModifyReplicationInstance(input *ModifyReplicationInstanceInput) (*ModifyReplicationInstanceOutput, error) {
 	req, out := c.ModifyReplicationInstanceRequest(input)
 	return out, req.Send()
@@ -3426,7 +3708,7 @@ const opModifyReplicationSubnetGroup = "ModifyReplicationSubnetGroup"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ModifyReplicationSubnetGroup
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ModifyReplicationSubnetGroup
 func (c *DatabaseMigrationService) ModifyReplicationSubnetGroupRequest(input *ModifyReplicationSubnetGroupInput) (req *request.Request, output *ModifyReplicationSubnetGroupOutput) {
 	op := &request.Operation{
 		Name:       opModifyReplicationSubnetGroup,
@@ -3474,7 +3756,7 @@ func (c *DatabaseMigrationService) ModifyReplicationSubnetGroupRequest(input *Mo
 //   * ErrCodeInvalidSubnet "InvalidSubnet"
 //   The subnet provided is invalid.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ModifyReplicationSubnetGroup
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ModifyReplicationSubnetGroup
 func (c *DatabaseMigrationService) ModifyReplicationSubnetGroup(input *ModifyReplicationSubnetGroupInput) (*ModifyReplicationSubnetGroupOutput, error) {
 	req, out := c.ModifyReplicationSubnetGroupRequest(input)
 	return out, req.Send()
@@ -3521,7 +3803,7 @@ const opModifyReplicationTask = "ModifyReplicationTask"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ModifyReplicationTask
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ModifyReplicationTask
 func (c *DatabaseMigrationService) ModifyReplicationTaskRequest(input *ModifyReplicationTaskInput) (req *request.Request, output *ModifyReplicationTaskOutput) {
 	op := &request.Operation{
 		Name:       opModifyReplicationTask,
@@ -3569,7 +3851,7 @@ func (c *DatabaseMigrationService) ModifyReplicationTaskRequest(input *ModifyRep
 //   * ErrCodeKMSKeyNotAccessibleFault "KMSKeyNotAccessibleFault"
 //   AWS DMS cannot access the KMS key.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ModifyReplicationTask
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ModifyReplicationTask
 func (c *DatabaseMigrationService) ModifyReplicationTask(input *ModifyReplicationTaskInput) (*ModifyReplicationTaskOutput, error) {
 	req, out := c.ModifyReplicationTaskRequest(input)
 	return out, req.Send()
@@ -3586,6 +3868,90 @@ func (c *DatabaseMigrationService) ModifyReplicationTask(input *ModifyReplicatio
 // for more information on using Contexts.
 func (c *DatabaseMigrationService) ModifyReplicationTaskWithContext(ctx aws.Context, input *ModifyReplicationTaskInput, opts ...request.Option) (*ModifyReplicationTaskOutput, error) {
 	req, out := c.ModifyReplicationTaskRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opRebootReplicationInstance = "RebootReplicationInstance"
+
+// RebootReplicationInstanceRequest generates a "aws/request.Request" representing the
+// client's request for the RebootReplicationInstance operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See RebootReplicationInstance for more information on using the RebootReplicationInstance
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the RebootReplicationInstanceRequest method.
+//    req, resp := client.RebootReplicationInstanceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/RebootReplicationInstance
+func (c *DatabaseMigrationService) RebootReplicationInstanceRequest(input *RebootReplicationInstanceInput) (req *request.Request, output *RebootReplicationInstanceOutput) {
+	op := &request.Operation{
+		Name:       opRebootReplicationInstance,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &RebootReplicationInstanceInput{}
+	}
+
+	output = &RebootReplicationInstanceOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// RebootReplicationInstance API operation for AWS Database Migration Service.
+//
+// Reboots a replication instance. Rebooting results in a momentary outage,
+// until the replication instance becomes available again.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Database Migration Service's
+// API operation RebootReplicationInstance for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeResourceNotFoundFault "ResourceNotFoundFault"
+//   The resource could not be found.
+//
+//   * ErrCodeInvalidResourceStateFault "InvalidResourceStateFault"
+//   The resource is in a state that prevents it from being used for database
+//   migration.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/RebootReplicationInstance
+func (c *DatabaseMigrationService) RebootReplicationInstance(input *RebootReplicationInstanceInput) (*RebootReplicationInstanceOutput, error) {
+	req, out := c.RebootReplicationInstanceRequest(input)
+	return out, req.Send()
+}
+
+// RebootReplicationInstanceWithContext is the same as RebootReplicationInstance with the addition of
+// the ability to pass a context and additional request options.
+//
+// See RebootReplicationInstance for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DatabaseMigrationService) RebootReplicationInstanceWithContext(ctx aws.Context, input *RebootReplicationInstanceInput, opts ...request.Option) (*RebootReplicationInstanceOutput, error) {
+	req, out := c.RebootReplicationInstanceRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -3616,7 +3982,7 @@ const opRefreshSchemas = "RefreshSchemas"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/RefreshSchemas
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/RefreshSchemas
 func (c *DatabaseMigrationService) RefreshSchemasRequest(input *RefreshSchemasInput) (req *request.Request, output *RefreshSchemasOutput) {
 	op := &request.Operation{
 		Name:       opRefreshSchemas,
@@ -3660,7 +4026,7 @@ func (c *DatabaseMigrationService) RefreshSchemasRequest(input *RefreshSchemasIn
 //   * ErrCodeResourceQuotaExceededFault "ResourceQuotaExceededFault"
 //   The quota for this resource quota has been exceeded.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/RefreshSchemas
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/RefreshSchemas
 func (c *DatabaseMigrationService) RefreshSchemas(input *RefreshSchemasInput) (*RefreshSchemasOutput, error) {
 	req, out := c.RefreshSchemasRequest(input)
 	return out, req.Send()
@@ -3707,7 +4073,7 @@ const opReloadTables = "ReloadTables"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ReloadTables
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ReloadTables
 func (c *DatabaseMigrationService) ReloadTablesRequest(input *ReloadTablesInput) (req *request.Request, output *ReloadTablesOutput) {
 	op := &request.Operation{
 		Name:       opReloadTables,
@@ -3743,7 +4109,7 @@ func (c *DatabaseMigrationService) ReloadTablesRequest(input *ReloadTablesInput)
 //   The resource is in a state that prevents it from being used for database
 //   migration.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ReloadTables
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ReloadTables
 func (c *DatabaseMigrationService) ReloadTables(input *ReloadTablesInput) (*ReloadTablesOutput, error) {
 	req, out := c.ReloadTablesRequest(input)
 	return out, req.Send()
@@ -3790,7 +4156,7 @@ const opRemoveTagsFromResource = "RemoveTagsFromResource"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/RemoveTagsFromResource
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/RemoveTagsFromResource
 func (c *DatabaseMigrationService) RemoveTagsFromResourceRequest(input *RemoveTagsFromResourceInput) (req *request.Request, output *RemoveTagsFromResourceOutput) {
 	op := &request.Operation{
 		Name:       opRemoveTagsFromResource,
@@ -3822,7 +4188,7 @@ func (c *DatabaseMigrationService) RemoveTagsFromResourceRequest(input *RemoveTa
 //   * ErrCodeResourceNotFoundFault "ResourceNotFoundFault"
 //   The resource could not be found.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/RemoveTagsFromResource
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/RemoveTagsFromResource
 func (c *DatabaseMigrationService) RemoveTagsFromResource(input *RemoveTagsFromResourceInput) (*RemoveTagsFromResourceOutput, error) {
 	req, out := c.RemoveTagsFromResourceRequest(input)
 	return out, req.Send()
@@ -3869,7 +4235,7 @@ const opStartReplicationTask = "StartReplicationTask"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/StartReplicationTask
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/StartReplicationTask
 func (c *DatabaseMigrationService) StartReplicationTaskRequest(input *StartReplicationTaskInput) (req *request.Request, output *StartReplicationTaskOutput) {
 	op := &request.Operation{
 		Name:       opStartReplicationTask,
@@ -3908,7 +4274,7 @@ func (c *DatabaseMigrationService) StartReplicationTaskRequest(input *StartRepli
 //   The resource is in a state that prevents it from being used for database
 //   migration.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/StartReplicationTask
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/StartReplicationTask
 func (c *DatabaseMigrationService) StartReplicationTask(input *StartReplicationTaskInput) (*StartReplicationTaskOutput, error) {
 	req, out := c.StartReplicationTaskRequest(input)
 	return out, req.Send()
@@ -3925,6 +4291,90 @@ func (c *DatabaseMigrationService) StartReplicationTask(input *StartReplicationT
 // for more information on using Contexts.
 func (c *DatabaseMigrationService) StartReplicationTaskWithContext(ctx aws.Context, input *StartReplicationTaskInput, opts ...request.Option) (*StartReplicationTaskOutput, error) {
 	req, out := c.StartReplicationTaskRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opStartReplicationTaskAssessment = "StartReplicationTaskAssessment"
+
+// StartReplicationTaskAssessmentRequest generates a "aws/request.Request" representing the
+// client's request for the StartReplicationTaskAssessment operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See StartReplicationTaskAssessment for more information on using the StartReplicationTaskAssessment
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the StartReplicationTaskAssessmentRequest method.
+//    req, resp := client.StartReplicationTaskAssessmentRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/StartReplicationTaskAssessment
+func (c *DatabaseMigrationService) StartReplicationTaskAssessmentRequest(input *StartReplicationTaskAssessmentInput) (req *request.Request, output *StartReplicationTaskAssessmentOutput) {
+	op := &request.Operation{
+		Name:       opStartReplicationTaskAssessment,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &StartReplicationTaskAssessmentInput{}
+	}
+
+	output = &StartReplicationTaskAssessmentOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// StartReplicationTaskAssessment API operation for AWS Database Migration Service.
+//
+// Starts the replication task assessment for unsupported data types in the
+// source database.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Database Migration Service's
+// API operation StartReplicationTaskAssessment for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidResourceStateFault "InvalidResourceStateFault"
+//   The resource is in a state that prevents it from being used for database
+//   migration.
+//
+//   * ErrCodeResourceNotFoundFault "ResourceNotFoundFault"
+//   The resource could not be found.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/StartReplicationTaskAssessment
+func (c *DatabaseMigrationService) StartReplicationTaskAssessment(input *StartReplicationTaskAssessmentInput) (*StartReplicationTaskAssessmentOutput, error) {
+	req, out := c.StartReplicationTaskAssessmentRequest(input)
+	return out, req.Send()
+}
+
+// StartReplicationTaskAssessmentWithContext is the same as StartReplicationTaskAssessment with the addition of
+// the ability to pass a context and additional request options.
+//
+// See StartReplicationTaskAssessment for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DatabaseMigrationService) StartReplicationTaskAssessmentWithContext(ctx aws.Context, input *StartReplicationTaskAssessmentInput, opts ...request.Option) (*StartReplicationTaskAssessmentOutput, error) {
+	req, out := c.StartReplicationTaskAssessmentRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -3955,7 +4405,7 @@ const opStopReplicationTask = "StopReplicationTask"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/StopReplicationTask
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/StopReplicationTask
 func (c *DatabaseMigrationService) StopReplicationTaskRequest(input *StopReplicationTaskInput) (req *request.Request, output *StopReplicationTaskOutput) {
 	op := &request.Operation{
 		Name:       opStopReplicationTask,
@@ -3991,7 +4441,7 @@ func (c *DatabaseMigrationService) StopReplicationTaskRequest(input *StopReplica
 //   The resource is in a state that prevents it from being used for database
 //   migration.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/StopReplicationTask
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/StopReplicationTask
 func (c *DatabaseMigrationService) StopReplicationTask(input *StopReplicationTaskInput) (*StopReplicationTaskOutput, error) {
 	req, out := c.StopReplicationTaskRequest(input)
 	return out, req.Send()
@@ -4038,7 +4488,7 @@ const opTestConnection = "TestConnection"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/TestConnection
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/TestConnection
 func (c *DatabaseMigrationService) TestConnectionRequest(input *TestConnectionInput) (req *request.Request, output *TestConnectionOutput) {
 	op := &request.Operation{
 		Name:       opTestConnection,
@@ -4080,7 +4530,7 @@ func (c *DatabaseMigrationService) TestConnectionRequest(input *TestConnectionIn
 //   * ErrCodeResourceQuotaExceededFault "ResourceQuotaExceededFault"
 //   The quota for this resource quota has been exceeded.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/TestConnection
+// See also, https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/TestConnection
 func (c *DatabaseMigrationService) TestConnection(input *TestConnectionInput) (*TestConnectionOutput, error) {
 	req, out := c.TestConnectionRequest(input)
 	return out, req.Send()
@@ -4104,7 +4554,6 @@ func (c *DatabaseMigrationService) TestConnectionWithContext(ctx aws.Context, in
 
 // Describes a quota for an AWS account, for example, the number of replication
 // instances allowed.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/AccountQuota
 type AccountQuota struct {
 	_ struct{} `type:"structure"`
 
@@ -4146,7 +4595,6 @@ func (s *AccountQuota) SetUsed(v int64) *AccountQuota {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/AddTagsToResourceMessage
 type AddTagsToResourceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4160,7 +4608,7 @@ type AddTagsToResourceInput struct {
 	// The tag to be assigned to the DMS resource.
 	//
 	// Tags is a required field
-	Tags []*Tag `locationNameList:"Tag" type:"list" required:"true"`
+	Tags []*Tag `type:"list" required:"true"`
 }
 
 // String returns the string representation
@@ -4201,7 +4649,6 @@ func (s *AddTagsToResourceInput) SetTags(v []*Tag) *AddTagsToResourceInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/AddTagsToResourceResponse
 type AddTagsToResourceOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -4216,7 +4663,6 @@ func (s AddTagsToResourceOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/AvailabilityZone
 type AvailabilityZone struct {
 	_ struct{} `type:"structure"`
 
@@ -4242,7 +4688,6 @@ func (s *AvailabilityZone) SetName(v string) *AvailabilityZone {
 
 // The SSL certificate that can be used to encrypt connections between the endpoints
 // and the replication instance.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/Certificate
 type Certificate struct {
 	_ struct{} `type:"structure"`
 
@@ -4350,7 +4795,6 @@ func (s *Certificate) SetValidToDate(v time.Time) *Certificate {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/Connection
 type Connection struct {
 	_ struct{} `type:"structure"`
 
@@ -4422,11 +4866,10 @@ func (s *Connection) SetStatus(v string) *Connection {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/CreateEndpointMessage
 type CreateEndpointInput struct {
 	_ struct{} `type:"structure"`
 
-	// The Amazon Resource Number (ARN) for the certificate.
+	// The Amazon Resource Name (ARN) for the certificate.
 	CertificateArn *string `type:"string"`
 
 	// The name of the endpoint database.
@@ -4451,8 +4894,8 @@ type CreateEndpointInput struct {
 	EndpointType *string `type:"string" required:"true" enum:"ReplicationEndpointTypeValue"`
 
 	// The type of engine for the endpoint. Valid values, depending on the EndPointType,
-	// include MYSQL, ORACLE, POSTGRES, MARIADB, AURORA, REDSHIFT, S3, SYBASE, DYNAMODB,
-	// MONGODB, and SQLSERVER.
+	// include mysql, oracle, postgres, mariadb, aurora, redshift, S3, sybase, dynamodb,
+	// mongodb, and sqlserver.
 	//
 	// EngineName is a required field
 	EngineName *string `type:"string" required:"true"`
@@ -4495,7 +4938,7 @@ type CreateEndpointInput struct {
 	SslMode *string `type:"string" enum:"DmsSslModeValue"`
 
 	// Tags to be added to the endpoint.
-	Tags []*Tag `locationNameList:"Tag" type:"list"`
+	Tags []*Tag `type:"list"`
 
 	// The user name to be used to login to the endpoint database.
 	Username *string `type:"string"`
@@ -4631,7 +5074,6 @@ func (s *CreateEndpointInput) SetUsername(v string) *CreateEndpointInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/CreateEndpointResponse
 type CreateEndpointOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4655,7 +5097,6 @@ func (s *CreateEndpointOutput) SetEndpoint(v *Endpoint) *CreateEndpointOutput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/CreateEventSubscriptionMessage
 type CreateEventSubscriptionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4668,7 +5109,7 @@ type CreateEventSubscriptionInput struct {
 	// DescribeEventCategories action or in the topic  Working with Events and Notifications
 	// (http://docs.aws.amazon.com/dms/latest/userguide/CHAP_Events.html) in the
 	// AWS Database Migration Service User Guide.
-	EventCategories []*string `locationNameList:"EventCategory" type:"list"`
+	EventCategories []*string `type:"list"`
 
 	// The Amazon Resource Name (ARN) of the Amazon SNS topic created for event
 	// notification. The ARN is created by Amazon SNS when you create a topic and
@@ -4681,7 +5122,7 @@ type CreateEventSubscriptionInput struct {
 	// If not specified, then all sources are included in the response. An identifier
 	// must begin with a letter and must contain only ASCII letters, digits, and
 	// hyphens; it cannot end with a hyphen or contain two consecutive hyphens.
-	SourceIds []*string `locationNameList:"SourceId" type:"list"`
+	SourceIds []*string `type:"list"`
 
 	// The type of AWS DMS resource that generates the events. For example, if you
 	// want to be notified of events generated by a replication instance, you set
@@ -4699,7 +5140,7 @@ type CreateEventSubscriptionInput struct {
 	SubscriptionName *string `type:"string" required:"true"`
 
 	// A tag to be attached to the event subscription.
-	Tags []*Tag `locationNameList:"Tag" type:"list"`
+	Tags []*Tag `type:"list"`
 }
 
 // String returns the string representation
@@ -4770,7 +5211,6 @@ func (s *CreateEventSubscriptionInput) SetTags(v []*Tag) *CreateEventSubscriptio
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/CreateEventSubscriptionResponse
 type CreateEventSubscriptionOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4794,7 +5234,6 @@ func (s *CreateEventSubscriptionOutput) SetEventSubscription(v *EventSubscriptio
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/CreateReplicationInstanceMessage
 type CreateReplicationInstanceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4876,12 +5315,12 @@ type CreateReplicationInstanceInput struct {
 	ReplicationSubnetGroupIdentifier *string `type:"string"`
 
 	// Tags to be associated with the replication instance.
-	Tags []*Tag `locationNameList:"Tag" type:"list"`
+	Tags []*Tag `type:"list"`
 
 	// Specifies the VPC security group to be used with the replication instance.
 	// The VPC security group must work with the VPC containing the replication
 	// instance.
-	VpcSecurityGroupIds []*string `locationNameList:"VpcSecurityGroupId" type:"list"`
+	VpcSecurityGroupIds []*string `type:"list"`
 }
 
 // String returns the string representation
@@ -4988,7 +5427,6 @@ func (s *CreateReplicationInstanceInput) SetVpcSecurityGroupIds(v []*string) *Cr
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/CreateReplicationInstanceResponse
 type CreateReplicationInstanceOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5012,7 +5450,6 @@ func (s *CreateReplicationInstanceOutput) SetReplicationInstance(v *ReplicationI
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/CreateReplicationSubnetGroupMessage
 type CreateReplicationSubnetGroupInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5035,10 +5472,10 @@ type CreateReplicationSubnetGroupInput struct {
 	// The EC2 subnet IDs for the subnet group.
 	//
 	// SubnetIds is a required field
-	SubnetIds []*string `locationNameList:"SubnetIdentifier" type:"list" required:"true"`
+	SubnetIds []*string `type:"list" required:"true"`
 
 	// The tag to be assigned to the subnet group.
-	Tags []*Tag `locationNameList:"Tag" type:"list"`
+	Tags []*Tag `type:"list"`
 }
 
 // String returns the string representation
@@ -5094,7 +5531,6 @@ func (s *CreateReplicationSubnetGroupInput) SetTags(v []*Tag) *CreateReplication
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/CreateReplicationSubnetGroupResponse
 type CreateReplicationSubnetGroupOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5118,7 +5554,6 @@ func (s *CreateReplicationSubnetGroupOutput) SetReplicationSubnetGroup(v *Replic
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/CreateReplicationTaskMessage
 type CreateReplicationTaskInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5168,7 +5603,7 @@ type CreateReplicationTaskInput struct {
 	TableMappings *string `type:"string" required:"true"`
 
 	// Tags to be added to the replication instance.
-	Tags []*Tag `locationNameList:"Tag" type:"list"`
+	Tags []*Tag `type:"list"`
 
 	// The Amazon Resource Name (ARN) string that uniquely identifies the endpoint.
 	//
@@ -5268,7 +5703,6 @@ func (s *CreateReplicationTaskInput) SetTargetEndpointArn(v string) *CreateRepli
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/CreateReplicationTaskResponse
 type CreateReplicationTaskOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5292,7 +5726,6 @@ func (s *CreateReplicationTaskOutput) SetReplicationTask(v *ReplicationTask) *Cr
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DeleteCertificateMessage
 type DeleteCertificateInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5331,7 +5764,6 @@ func (s *DeleteCertificateInput) SetCertificateArn(v string) *DeleteCertificateI
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DeleteCertificateResponse
 type DeleteCertificateOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5355,7 +5787,6 @@ func (s *DeleteCertificateOutput) SetCertificate(v *Certificate) *DeleteCertific
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DeleteEndpointMessage
 type DeleteEndpointInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5394,7 +5825,6 @@ func (s *DeleteEndpointInput) SetEndpointArn(v string) *DeleteEndpointInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DeleteEndpointResponse
 type DeleteEndpointOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5418,7 +5848,6 @@ func (s *DeleteEndpointOutput) SetEndpoint(v *Endpoint) *DeleteEndpointOutput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DeleteEventSubscriptionMessage
 type DeleteEventSubscriptionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5457,7 +5886,6 @@ func (s *DeleteEventSubscriptionInput) SetSubscriptionName(v string) *DeleteEven
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DeleteEventSubscriptionResponse
 type DeleteEventSubscriptionOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5481,7 +5909,6 @@ func (s *DeleteEventSubscriptionOutput) SetEventSubscription(v *EventSubscriptio
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DeleteReplicationInstanceMessage
 type DeleteReplicationInstanceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5520,7 +5947,6 @@ func (s *DeleteReplicationInstanceInput) SetReplicationInstanceArn(v string) *De
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DeleteReplicationInstanceResponse
 type DeleteReplicationInstanceOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5544,7 +5970,6 @@ func (s *DeleteReplicationInstanceOutput) SetReplicationInstance(v *ReplicationI
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DeleteReplicationSubnetGroupMessage
 type DeleteReplicationSubnetGroupInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5583,7 +6008,6 @@ func (s *DeleteReplicationSubnetGroupInput) SetReplicationSubnetGroupIdentifier(
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DeleteReplicationSubnetGroupResponse
 type DeleteReplicationSubnetGroupOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -5598,7 +6022,6 @@ func (s DeleteReplicationSubnetGroupOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DeleteReplicationTaskMessage
 type DeleteReplicationTaskInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5637,7 +6060,6 @@ func (s *DeleteReplicationTaskInput) SetReplicationTaskArn(v string) *DeleteRepl
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DeleteReplicationTaskResponse
 type DeleteReplicationTaskOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5661,7 +6083,6 @@ func (s *DeleteReplicationTaskOutput) SetReplicationTask(v *ReplicationTask) *De
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeAccountAttributesMessage
 type DescribeAccountAttributesInput struct {
 	_ struct{} `type:"structure"`
 }
@@ -5676,12 +6097,11 @@ func (s DescribeAccountAttributesInput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeAccountAttributesResponse
 type DescribeAccountAttributesOutput struct {
 	_ struct{} `type:"structure"`
 
 	// Account quota information.
-	AccountQuotas []*AccountQuota `locationNameList:"AccountQuota" type:"list"`
+	AccountQuotas []*AccountQuota `type:"list"`
 }
 
 // String returns the string representation
@@ -5700,12 +6120,11 @@ func (s *DescribeAccountAttributesOutput) SetAccountQuotas(v []*AccountQuota) *D
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeCertificatesMessage
 type DescribeCertificatesInput struct {
 	_ struct{} `type:"structure"`
 
 	// Filters applied to the certificate described in the form of key-value pairs.
-	Filters []*Filter `locationNameList:"Filter" type:"list"`
+	Filters []*Filter `type:"list"`
 
 	// An optional pagination token provided by a previous request. If this parameter
 	// is specified, the response includes only records beyond the marker, up to
@@ -5768,13 +6187,12 @@ func (s *DescribeCertificatesInput) SetMaxRecords(v int64) *DescribeCertificates
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeCertificatesResponse
 type DescribeCertificatesOutput struct {
 	_ struct{} `type:"structure"`
 
 	// The Secure Sockets Layer (SSL) certificates associated with the replication
 	// instance.
-	Certificates []*Certificate `locationNameList:"Certificate" type:"list"`
+	Certificates []*Certificate `type:"list"`
 
 	// The pagination token.
 	Marker *string `type:"string"`
@@ -5802,14 +6220,13 @@ func (s *DescribeCertificatesOutput) SetMarker(v string) *DescribeCertificatesOu
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeConnectionsMessage
 type DescribeConnectionsInput struct {
 	_ struct{} `type:"structure"`
 
 	// The filters applied to the connection.
 	//
 	// Valid filter names: endpoint-arn | replication-instance-arn
-	Filters []*Filter `locationNameList:"Filter" type:"list"`
+	Filters []*Filter `type:"list"`
 
 	// An optional pagination token provided by a previous request. If this parameter
 	// is specified, the response includes only records beyond the marker, up to
@@ -5874,12 +6291,11 @@ func (s *DescribeConnectionsInput) SetMaxRecords(v int64) *DescribeConnectionsIn
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeConnectionsResponse
 type DescribeConnectionsOutput struct {
 	_ struct{} `type:"structure"`
 
 	// A description of the connections.
-	Connections []*Connection `locationNameList:"Connection" type:"list"`
+	Connections []*Connection `type:"list"`
 
 	// An optional pagination token provided by a previous request. If this parameter
 	// is specified, the response includes only records beyond the marker, up to
@@ -5909,14 +6325,13 @@ func (s *DescribeConnectionsOutput) SetMarker(v string) *DescribeConnectionsOutp
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeEndpointTypesMessage
 type DescribeEndpointTypesInput struct {
 	_ struct{} `type:"structure"`
 
 	// Filters applied to the describe action.
 	//
 	// Valid filter names: engine-name | endpoint-type
-	Filters []*Filter `locationNameList:"Filter" type:"list"`
+	Filters []*Filter `type:"list"`
 
 	// An optional pagination token provided by a previous request. If this parameter
 	// is specified, the response includes only records beyond the marker, up to
@@ -5981,7 +6396,6 @@ func (s *DescribeEndpointTypesInput) SetMaxRecords(v int64) *DescribeEndpointTyp
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeEndpointTypesResponse
 type DescribeEndpointTypesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5991,7 +6405,7 @@ type DescribeEndpointTypesOutput struct {
 	Marker *string `type:"string"`
 
 	// The type of endpoints that are supported.
-	SupportedEndpointTypes []*SupportedEndpointType `locationNameList:"SupportedEndpointType" type:"list"`
+	SupportedEndpointTypes []*SupportedEndpointType `type:"list"`
 }
 
 // String returns the string representation
@@ -6016,14 +6430,13 @@ func (s *DescribeEndpointTypesOutput) SetSupportedEndpointTypes(v []*SupportedEn
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeEndpointsMessage
 type DescribeEndpointsInput struct {
 	_ struct{} `type:"structure"`
 
 	// Filters applied to the describe action.
 	//
 	// Valid filter names: endpoint-arn | endpoint-type | endpoint-id | engine-name
-	Filters []*Filter `locationNameList:"Filter" type:"list"`
+	Filters []*Filter `type:"list"`
 
 	// An optional pagination token provided by a previous request. If this parameter
 	// is specified, the response includes only records beyond the marker, up to
@@ -6088,12 +6501,11 @@ func (s *DescribeEndpointsInput) SetMaxRecords(v int64) *DescribeEndpointsInput 
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeEndpointsResponse
 type DescribeEndpointsOutput struct {
 	_ struct{} `type:"structure"`
 
 	// Endpoint description.
-	Endpoints []*Endpoint `locationNameList:"Endpoint" type:"list"`
+	Endpoints []*Endpoint `type:"list"`
 
 	// An optional pagination token provided by a previous request. If this parameter
 	// is specified, the response includes only records beyond the marker, up to
@@ -6123,12 +6535,11 @@ func (s *DescribeEndpointsOutput) SetMarker(v string) *DescribeEndpointsOutput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeEventCategoriesMessage
 type DescribeEventCategoriesInput struct {
 	_ struct{} `type:"structure"`
 
 	// Filters applied to the action.
-	Filters []*Filter `locationNameList:"Filter" type:"list"`
+	Filters []*Filter `type:"list"`
 
 	// The type of AWS DMS resource that generates events.
 	//
@@ -6178,12 +6589,11 @@ func (s *DescribeEventCategoriesInput) SetSourceType(v string) *DescribeEventCat
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeEventCategoriesResponse
 type DescribeEventCategoriesOutput struct {
 	_ struct{} `type:"structure"`
 
 	// A list of event categories.
-	EventCategoryGroupList []*EventCategoryGroup `locationNameList:"EventCategoryGroup" type:"list"`
+	EventCategoryGroupList []*EventCategoryGroup `type:"list"`
 }
 
 // String returns the string representation
@@ -6202,12 +6612,11 @@ func (s *DescribeEventCategoriesOutput) SetEventCategoryGroupList(v []*EventCate
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeEventSubscriptionsMessage
 type DescribeEventSubscriptionsInput struct {
 	_ struct{} `type:"structure"`
 
 	// Filters applied to the action.
-	Filters []*Filter `locationNameList:"Filter" type:"list"`
+	Filters []*Filter `type:"list"`
 
 	// An optional pagination token provided by a previous request. If this parameter
 	// is specified, the response includes only records beyond the marker, up to
@@ -6281,12 +6690,11 @@ func (s *DescribeEventSubscriptionsInput) SetSubscriptionName(v string) *Describ
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeEventSubscriptionsResponse
 type DescribeEventSubscriptionsOutput struct {
 	_ struct{} `type:"structure"`
 
 	// A list of event subscriptions.
-	EventSubscriptionsList []*EventSubscription `locationNameList:"EventSubscription" type:"list"`
+	EventSubscriptionsList []*EventSubscription `type:"list"`
 
 	// An optional pagination token provided by a previous request. If this parameter
 	// is specified, the response includes only records beyond the marker, up to
@@ -6316,7 +6724,6 @@ func (s *DescribeEventSubscriptionsOutput) SetMarker(v string) *DescribeEventSub
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeEventsMessage
 type DescribeEventsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6327,10 +6734,10 @@ type DescribeEventsInput struct {
 	EndTime *time.Time `type:"timestamp" timestampFormat:"unix"`
 
 	// A list of event categories for a source type that you want to subscribe to.
-	EventCategories []*string `locationNameList:"EventCategory" type:"list"`
+	EventCategories []*string `type:"list"`
 
 	// Filters applied to the action.
-	Filters []*Filter `locationNameList:"Filter" type:"list"`
+	Filters []*Filter `type:"list"`
 
 	// An optional pagination token provided by a previous request. If this parameter
 	// is specified, the response includes only records beyond the marker, up to
@@ -6444,12 +6851,11 @@ func (s *DescribeEventsInput) SetStartTime(v time.Time) *DescribeEventsInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeEventsResponse
 type DescribeEventsOutput struct {
 	_ struct{} `type:"structure"`
 
 	// The events described.
-	Events []*Event `locationNameList:"Event" type:"list"`
+	Events []*Event `type:"list"`
 
 	// An optional pagination token provided by a previous request. If this parameter
 	// is specified, the response includes only records beyond the marker, up to
@@ -6479,7 +6885,6 @@ func (s *DescribeEventsOutput) SetMarker(v string) *DescribeEventsOutput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeOrderableReplicationInstancesMessage
 type DescribeOrderableReplicationInstancesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6520,7 +6925,6 @@ func (s *DescribeOrderableReplicationInstancesInput) SetMaxRecords(v int64) *Des
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeOrderableReplicationInstancesResponse
 type DescribeOrderableReplicationInstancesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6530,7 +6934,7 @@ type DescribeOrderableReplicationInstancesOutput struct {
 	Marker *string `type:"string"`
 
 	// The order-able replication instances available.
-	OrderableReplicationInstances []*OrderableReplicationInstance `locationNameList:"OrderableReplicationInstance" type:"list"`
+	OrderableReplicationInstances []*OrderableReplicationInstance `type:"list"`
 }
 
 // String returns the string representation
@@ -6555,7 +6959,6 @@ func (s *DescribeOrderableReplicationInstancesOutput) SetOrderableReplicationIns
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeRefreshSchemasStatusMessage
 type DescribeRefreshSchemasStatusInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6594,7 +6997,6 @@ func (s *DescribeRefreshSchemasStatusInput) SetEndpointArn(v string) *DescribeRe
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeRefreshSchemasStatusResponse
 type DescribeRefreshSchemasStatusOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6618,7 +7020,114 @@ func (s *DescribeRefreshSchemasStatusOutput) SetRefreshSchemasStatus(v *RefreshS
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeReplicationInstancesMessage
+type DescribeReplicationInstanceTaskLogsInput struct {
+	_ struct{} `type:"structure"`
+
+	// An optional pagination token provided by a previous request. If this parameter
+	// is specified, the response includes only records beyond the marker, up to
+	// the value specified by MaxRecords.
+	Marker *string `type:"string"`
+
+	// The maximum number of records to include in the response. If more records
+	// exist than the specified MaxRecords value, a pagination token called a marker
+	// is included in the response so that the remaining results can be retrieved.
+	//
+	// Default: 100
+	//
+	// Constraints: Minimum 20, maximum 100.
+	MaxRecords *int64 `type:"integer"`
+
+	// The Amazon Resource Name (ARN) of the replication instance.
+	//
+	// ReplicationInstanceArn is a required field
+	ReplicationInstanceArn *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DescribeReplicationInstanceTaskLogsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeReplicationInstanceTaskLogsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeReplicationInstanceTaskLogsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeReplicationInstanceTaskLogsInput"}
+	if s.ReplicationInstanceArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ReplicationInstanceArn"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeReplicationInstanceTaskLogsInput) SetMarker(v string) *DescribeReplicationInstanceTaskLogsInput {
+	s.Marker = &v
+	return s
+}
+
+// SetMaxRecords sets the MaxRecords field's value.
+func (s *DescribeReplicationInstanceTaskLogsInput) SetMaxRecords(v int64) *DescribeReplicationInstanceTaskLogsInput {
+	s.MaxRecords = &v
+	return s
+}
+
+// SetReplicationInstanceArn sets the ReplicationInstanceArn field's value.
+func (s *DescribeReplicationInstanceTaskLogsInput) SetReplicationInstanceArn(v string) *DescribeReplicationInstanceTaskLogsInput {
+	s.ReplicationInstanceArn = &v
+	return s
+}
+
+type DescribeReplicationInstanceTaskLogsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An optional pagination token provided by a previous request. If this parameter
+	// is specified, the response includes only records beyond the marker, up to
+	// the value specified by MaxRecords.
+	Marker *string `type:"string"`
+
+	// The Amazon Resource Name (ARN) of the replication instance.
+	ReplicationInstanceArn *string `type:"string"`
+
+	// An array of replication task log metadata. Each member of the array contains
+	// the replication task name, ARN, and task log size (in bytes).
+	ReplicationInstanceTaskLogs []*ReplicationInstanceTaskLog `type:"list"`
+}
+
+// String returns the string representation
+func (s DescribeReplicationInstanceTaskLogsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeReplicationInstanceTaskLogsOutput) GoString() string {
+	return s.String()
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeReplicationInstanceTaskLogsOutput) SetMarker(v string) *DescribeReplicationInstanceTaskLogsOutput {
+	s.Marker = &v
+	return s
+}
+
+// SetReplicationInstanceArn sets the ReplicationInstanceArn field's value.
+func (s *DescribeReplicationInstanceTaskLogsOutput) SetReplicationInstanceArn(v string) *DescribeReplicationInstanceTaskLogsOutput {
+	s.ReplicationInstanceArn = &v
+	return s
+}
+
+// SetReplicationInstanceTaskLogs sets the ReplicationInstanceTaskLogs field's value.
+func (s *DescribeReplicationInstanceTaskLogsOutput) SetReplicationInstanceTaskLogs(v []*ReplicationInstanceTaskLog) *DescribeReplicationInstanceTaskLogsOutput {
+	s.ReplicationInstanceTaskLogs = v
+	return s
+}
+
 type DescribeReplicationInstancesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6626,7 +7135,7 @@ type DescribeReplicationInstancesInput struct {
 	//
 	// Valid filter names: replication-instance-arn | replication-instance-id |
 	// replication-instance-class | engine-version
-	Filters []*Filter `locationNameList:"Filter" type:"list"`
+	Filters []*Filter `type:"list"`
 
 	// An optional pagination token provided by a previous request. If this parameter
 	// is specified, the response includes only records beyond the marker, up to
@@ -6691,7 +7200,6 @@ func (s *DescribeReplicationInstancesInput) SetMaxRecords(v int64) *DescribeRepl
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeReplicationInstancesResponse
 type DescribeReplicationInstancesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6701,7 +7209,7 @@ type DescribeReplicationInstancesOutput struct {
 	Marker *string `type:"string"`
 
 	// The replication instances described.
-	ReplicationInstances []*ReplicationInstance `locationNameList:"ReplicationInstance" type:"list"`
+	ReplicationInstances []*ReplicationInstance `type:"list"`
 }
 
 // String returns the string representation
@@ -6726,12 +7234,11 @@ func (s *DescribeReplicationInstancesOutput) SetReplicationInstances(v []*Replic
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeReplicationSubnetGroupsMessage
 type DescribeReplicationSubnetGroupsInput struct {
 	_ struct{} `type:"structure"`
 
 	// Filters applied to the describe action.
-	Filters []*Filter `locationNameList:"Filter" type:"list"`
+	Filters []*Filter `type:"list"`
 
 	// An optional pagination token provided by a previous request. If this parameter
 	// is specified, the response includes only records beyond the marker, up to
@@ -6796,7 +7303,6 @@ func (s *DescribeReplicationSubnetGroupsInput) SetMaxRecords(v int64) *DescribeR
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeReplicationSubnetGroupsResponse
 type DescribeReplicationSubnetGroupsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6806,7 +7312,7 @@ type DescribeReplicationSubnetGroupsOutput struct {
 	Marker *string `type:"string"`
 
 	// A description of the replication subnet groups.
-	ReplicationSubnetGroups []*ReplicationSubnetGroup `locationNameList:"ReplicationSubnetGroup" type:"list"`
+	ReplicationSubnetGroups []*ReplicationSubnetGroup `type:"list"`
 }
 
 // String returns the string representation
@@ -6831,7 +7337,100 @@ func (s *DescribeReplicationSubnetGroupsOutput) SetReplicationSubnetGroups(v []*
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeReplicationTasksMessage
+type DescribeReplicationTaskAssessmentResultsInput struct {
+	_ struct{} `type:"structure"`
+
+	// An optional pagination token provided by a previous request. If this parameter
+	// is specified, the response includes only records beyond the marker, up to
+	// the value specified by MaxRecords.
+	Marker *string `type:"string"`
+
+	// The maximum number of records to include in the response. If more records
+	// exist than the specified MaxRecords value, a pagination token called a marker
+	// is included in the response so that the remaining results can be retrieved.
+	//
+	// Default: 100
+	//
+	// Constraints: Minimum 20, maximum 100.
+	MaxRecords *int64 `type:"integer"`
+
+	// - The Amazon Resource Name (ARN) string that uniquely identifies the task.
+	// When this input parameter is specified the API will return only one result
+	// and ignore the values of the max-records and marker parameters.
+	ReplicationTaskArn *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeReplicationTaskAssessmentResultsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeReplicationTaskAssessmentResultsInput) GoString() string {
+	return s.String()
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeReplicationTaskAssessmentResultsInput) SetMarker(v string) *DescribeReplicationTaskAssessmentResultsInput {
+	s.Marker = &v
+	return s
+}
+
+// SetMaxRecords sets the MaxRecords field's value.
+func (s *DescribeReplicationTaskAssessmentResultsInput) SetMaxRecords(v int64) *DescribeReplicationTaskAssessmentResultsInput {
+	s.MaxRecords = &v
+	return s
+}
+
+// SetReplicationTaskArn sets the ReplicationTaskArn field's value.
+func (s *DescribeReplicationTaskAssessmentResultsInput) SetReplicationTaskArn(v string) *DescribeReplicationTaskAssessmentResultsInput {
+	s.ReplicationTaskArn = &v
+	return s
+}
+
+type DescribeReplicationTaskAssessmentResultsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// - The Amazon S3 bucket where the task assessment report is located.
+	BucketName *string `type:"string"`
+
+	// An optional pagination token provided by a previous request. If this parameter
+	// is specified, the response includes only records beyond the marker, up to
+	// the value specified by MaxRecords.
+	Marker *string `type:"string"`
+
+	// The task assessment report.
+	ReplicationTaskAssessmentResults []*ReplicationTaskAssessmentResult `type:"list"`
+}
+
+// String returns the string representation
+func (s DescribeReplicationTaskAssessmentResultsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeReplicationTaskAssessmentResultsOutput) GoString() string {
+	return s.String()
+}
+
+// SetBucketName sets the BucketName field's value.
+func (s *DescribeReplicationTaskAssessmentResultsOutput) SetBucketName(v string) *DescribeReplicationTaskAssessmentResultsOutput {
+	s.BucketName = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeReplicationTaskAssessmentResultsOutput) SetMarker(v string) *DescribeReplicationTaskAssessmentResultsOutput {
+	s.Marker = &v
+	return s
+}
+
+// SetReplicationTaskAssessmentResults sets the ReplicationTaskAssessmentResults field's value.
+func (s *DescribeReplicationTaskAssessmentResultsOutput) SetReplicationTaskAssessmentResults(v []*ReplicationTaskAssessmentResult) *DescribeReplicationTaskAssessmentResultsOutput {
+	s.ReplicationTaskAssessmentResults = v
+	return s
+}
+
 type DescribeReplicationTasksInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6839,7 +7438,7 @@ type DescribeReplicationTasksInput struct {
 	//
 	// Valid filter names: replication-task-arn | replication-task-id | migration-type
 	// | endpoint-arn | replication-instance-arn
-	Filters []*Filter `locationNameList:"Filter" type:"list"`
+	Filters []*Filter `type:"list"`
 
 	// An optional pagination token provided by a previous request. If this parameter
 	// is specified, the response includes only records beyond the marker, up to
@@ -6904,7 +7503,6 @@ func (s *DescribeReplicationTasksInput) SetMaxRecords(v int64) *DescribeReplicat
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeReplicationTasksResponse
 type DescribeReplicationTasksOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6914,7 +7512,7 @@ type DescribeReplicationTasksOutput struct {
 	Marker *string `type:"string"`
 
 	// A description of the replication tasks.
-	ReplicationTasks []*ReplicationTask `locationNameList:"ReplicationTask" type:"list"`
+	ReplicationTasks []*ReplicationTask `type:"list"`
 }
 
 // String returns the string representation
@@ -6939,7 +7537,6 @@ func (s *DescribeReplicationTasksOutput) SetReplicationTasks(v []*ReplicationTas
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeSchemasMessage
 type DescribeSchemasInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7004,7 +7601,6 @@ func (s *DescribeSchemasInput) SetMaxRecords(v int64) *DescribeSchemasInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeSchemasResponse
 type DescribeSchemasOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -7039,9 +7635,16 @@ func (s *DescribeSchemasOutput) SetSchemas(v []*string) *DescribeSchemasOutput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeTableStatisticsMessage
 type DescribeTableStatisticsInput struct {
 	_ struct{} `type:"structure"`
+
+	// Filters applied to the describe table statistics action.
+	//
+	// Valid filter names: schema-name | table-name | table-state
+	//
+	// A combination of filters creates an AND condition where each record matches
+	// all specified filters.
+	Filters []*Filter `type:"list"`
 
 	// An optional pagination token provided by a previous request. If this parameter
 	// is specified, the response includes only records beyond the marker, up to
@@ -7054,7 +7657,7 @@ type DescribeTableStatisticsInput struct {
 	//
 	// Default: 100
 	//
-	// Constraints: Minimum 20, maximum 100.
+	// Constraints: Minimum 20, maximum 500.
 	MaxRecords *int64 `type:"integer"`
 
 	// The Amazon Resource Name (ARN) of the replication task.
@@ -7079,11 +7682,27 @@ func (s *DescribeTableStatisticsInput) Validate() error {
 	if s.ReplicationTaskArn == nil {
 		invalidParams.Add(request.NewErrParamRequired("ReplicationTaskArn"))
 	}
+	if s.Filters != nil {
+		for i, v := range s.Filters {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Filters", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetFilters sets the Filters field's value.
+func (s *DescribeTableStatisticsInput) SetFilters(v []*Filter) *DescribeTableStatisticsInput {
+	s.Filters = v
+	return s
 }
 
 // SetMarker sets the Marker field's value.
@@ -7104,7 +7723,6 @@ func (s *DescribeTableStatisticsInput) SetReplicationTaskArn(v string) *Describe
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DescribeTableStatisticsResponse
 type DescribeTableStatisticsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -7148,7 +7766,6 @@ func (s *DescribeTableStatisticsOutput) SetTableStatistics(v []*TableStatistics)
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/DynamoDbSettings
 type DynamoDbSettings struct {
 	_ struct{} `type:"structure"`
 
@@ -7187,7 +7804,6 @@ func (s *DynamoDbSettings) SetServiceAccessRoleArn(v string) *DynamoDbSettings {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/Endpoint
 type Endpoint struct {
 	_ struct{} `type:"structure"`
 
@@ -7213,8 +7829,8 @@ type Endpoint struct {
 	EndpointType *string `type:"string" enum:"ReplicationEndpointTypeValue"`
 
 	// The database engine name. Valid values, depending on the EndPointType, include
-	// MYSQL, ORACLE, POSTGRES, MARIADB, AURORA, REDSHIFT, S3, SYBASE, DYNAMODB,
-	// MONGODB, and SQLSERVER.
+	// mysql, oracle, postgres, mariadb, aurora, redshift, S3, sybase, dynamodb,
+	// mongodb, and sqlserver.
 	EngineName *string `type:"string"`
 
 	// Value returned by a call to CreateEndpoint that can be used for cross-account
@@ -7372,7 +7988,6 @@ func (s *Endpoint) SetUsername(v string) *Endpoint {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/Event
 type Event struct {
 	_ struct{} `type:"structure"`
 
@@ -7380,7 +7995,7 @@ type Event struct {
 	Date *time.Time `type:"timestamp" timestampFormat:"unix"`
 
 	// The event categories available for the specified source type.
-	EventCategories []*string `locationNameList:"EventCategory" type:"list"`
+	EventCategories []*string `type:"list"`
 
 	// The event message.
 	Message *string `type:"string"`
@@ -7438,12 +8053,11 @@ func (s *Event) SetSourceType(v string) *Event {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/EventCategoryGroup
 type EventCategoryGroup struct {
 	_ struct{} `type:"structure"`
 
 	// A list of event categories for a SourceType that you want to subscribe to.
-	EventCategories []*string `locationNameList:"EventCategory" type:"list"`
+	EventCategories []*string `type:"list"`
 
 	// The type of AWS DMS resource that generates events.
 	//
@@ -7474,7 +8088,6 @@ func (s *EventCategoryGroup) SetSourceType(v string) *EventCategoryGroup {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/EventSubscription
 type EventSubscription struct {
 	_ struct{} `type:"structure"`
 
@@ -7488,13 +8101,13 @@ type EventSubscription struct {
 	Enabled *bool `type:"boolean"`
 
 	// A lists of event categories.
-	EventCategoriesList []*string `locationNameList:"EventCategory" type:"list"`
+	EventCategoriesList []*string `type:"list"`
 
 	// The topic ARN of the AWS DMS event notification subscription.
 	SnsTopicArn *string `type:"string"`
 
 	// A list of source Ids for the event subscription.
-	SourceIdsList []*string `locationNameList:"SourceId" type:"list"`
+	SourceIdsList []*string `type:"list"`
 
 	// The type of AWS DMS resource that generates events.
 	//
@@ -7582,7 +8195,6 @@ func (s *EventSubscription) SetSubscriptionCreationTime(v string) *EventSubscrip
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/Filter
 type Filter struct {
 	_ struct{} `type:"structure"`
 
@@ -7594,7 +8206,7 @@ type Filter struct {
 	// The filter value.
 	//
 	// Values is a required field
-	Values []*string `locationNameList:"Value" type:"list" required:"true"`
+	Values []*string `type:"list" required:"true"`
 }
 
 // String returns the string representation
@@ -7635,7 +8247,6 @@ func (s *Filter) SetValues(v []*string) *Filter {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ImportCertificateMessage
 type ImportCertificateInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7654,7 +8265,7 @@ type ImportCertificateInput struct {
 	CertificateWallet []byte `type:"blob"`
 
 	// The tags associated with the certificate.
-	Tags []*Tag `locationNameList:"Tag" type:"list"`
+	Tags []*Tag `type:"list"`
 }
 
 // String returns the string representation
@@ -7704,7 +8315,6 @@ func (s *ImportCertificateInput) SetTags(v []*Tag) *ImportCertificateInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ImportCertificateResponse
 type ImportCertificateOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -7728,7 +8338,6 @@ func (s *ImportCertificateOutput) SetCertificate(v *Certificate) *ImportCertific
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ListTagsForResourceMessage
 type ListTagsForResourceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7768,12 +8377,11 @@ func (s *ListTagsForResourceInput) SetResourceArn(v string) *ListTagsForResource
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ListTagsForResourceResponse
 type ListTagsForResourceOutput struct {
 	_ struct{} `type:"structure"`
 
 	// A list of tags for the resource.
-	TagList []*Tag `locationNameList:"Tag" type:"list"`
+	TagList []*Tag `type:"list"`
 }
 
 // String returns the string representation
@@ -7792,7 +8400,6 @@ func (s *ListTagsForResourceOutput) SetTagList(v []*Tag) *ListTagsForResourceOut
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ModifyEndpointMessage
 type ModifyEndpointInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7822,11 +8429,12 @@ type ModifyEndpointInput struct {
 	EndpointType *string `type:"string" enum:"ReplicationEndpointTypeValue"`
 
 	// The type of engine for the endpoint. Valid values, depending on the EndPointType,
-	// include MYSQL, ORACLE, POSTGRES, MARIADB, AURORA, REDSHIFT, S3, DYNAMODB,
-	// MONGODB, SYBASE, and SQLSERVER.
+	// include mysql, oracle, postgres, mariadb, aurora, redshift, S3, sybase, dynamodb,
+	// mongodb, and sqlserver.
 	EngineName *string `type:"string"`
 
-	// Additional attributes associated with the connection.
+	// Additional attributes associated with the connection. To reset this parameter,
+	// pass the empty string ("") as an argument.
 	ExtraConnectionAttributes *string `type:"string"`
 
 	// Settings in JSON format for the source MongoDB endpoint. For more information
@@ -7978,7 +8586,6 @@ func (s *ModifyEndpointInput) SetUsername(v string) *ModifyEndpointInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ModifyEndpointResponse
 type ModifyEndpointOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -8002,7 +8609,6 @@ func (s *ModifyEndpointOutput) SetEndpoint(v *Endpoint) *ModifyEndpointOutput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ModifyEventSubscriptionMessage
 type ModifyEventSubscriptionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -8011,7 +8617,7 @@ type ModifyEventSubscriptionInput struct {
 
 	// A list of event categories for a source type that you want to subscribe to.
 	// Use the DescribeEventCategories action to see a list of event categories.
-	EventCategories []*string `locationNameList:"EventCategory" type:"list"`
+	EventCategories []*string `type:"list"`
 
 	// The Amazon Resource Name (ARN) of the Amazon SNS topic created for event
 	// notification. The ARN is created by Amazon SNS when you create a topic and
@@ -8083,7 +8689,6 @@ func (s *ModifyEventSubscriptionInput) SetSubscriptionName(v string) *ModifyEven
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ModifyEventSubscriptionResponse
 type ModifyEventSubscriptionOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -8107,7 +8712,6 @@ func (s *ModifyEventSubscriptionOutput) SetEventSubscription(v *EventSubscriptio
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ModifyReplicationInstanceMessage
 type ModifyReplicationInstanceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -8178,7 +8782,7 @@ type ModifyReplicationInstanceInput struct {
 	// Specifies the VPC security group to be used with the replication instance.
 	// The VPC security group must work with the VPC containing the replication
 	// instance.
-	VpcSecurityGroupIds []*string `locationNameList:"VpcSecurityGroupId" type:"list"`
+	VpcSecurityGroupIds []*string `type:"list"`
 }
 
 // String returns the string representation
@@ -8270,7 +8874,6 @@ func (s *ModifyReplicationInstanceInput) SetVpcSecurityGroupIds(v []*string) *Mo
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ModifyReplicationInstanceResponse
 type ModifyReplicationInstanceOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -8294,7 +8897,6 @@ func (s *ModifyReplicationInstanceOutput) SetReplicationInstance(v *ReplicationI
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ModifyReplicationSubnetGroupMessage
 type ModifyReplicationSubnetGroupInput struct {
 	_ struct{} `type:"structure"`
 
@@ -8309,7 +8911,7 @@ type ModifyReplicationSubnetGroupInput struct {
 	// A list of subnet IDs.
 	//
 	// SubnetIds is a required field
-	SubnetIds []*string `locationNameList:"SubnetIdentifier" type:"list" required:"true"`
+	SubnetIds []*string `type:"list" required:"true"`
 }
 
 // String returns the string representation
@@ -8356,7 +8958,6 @@ func (s *ModifyReplicationSubnetGroupInput) SetSubnetIds(v []*string) *ModifyRep
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ModifyReplicationSubnetGroupResponse
 type ModifyReplicationSubnetGroupOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -8380,7 +8981,6 @@ func (s *ModifyReplicationSubnetGroupOutput) SetReplicationSubnetGroup(v *Replic
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ModifyReplicationTaskMessage
 type ModifyReplicationTaskInput struct {
 	_ struct{} `type:"structure"`
 
@@ -8478,7 +9078,6 @@ func (s *ModifyReplicationTaskInput) SetTableMappings(v string) *ModifyReplicati
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ModifyReplicationTaskResponse
 type ModifyReplicationTaskOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -8502,7 +9101,6 @@ func (s *ModifyReplicationTaskOutput) SetReplicationTask(v *ReplicationTask) *Mo
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/MongoDbSettings
 type MongoDbSettings struct {
 	_ struct{} `type:"structure"`
 
@@ -8639,7 +9237,6 @@ func (s *MongoDbSettings) SetUsername(v string) *MongoDbSettings {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/OrderableReplicationInstance
 type OrderableReplicationInstance struct {
 	_ struct{} `type:"structure"`
 
@@ -8724,7 +9321,77 @@ func (s *OrderableReplicationInstance) SetStorageType(v string) *OrderableReplic
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/RefreshSchemasMessage
+type RebootReplicationInstanceInput struct {
+	_ struct{} `type:"structure"`
+
+	// If this parameter is true, the reboot is conducted through a Multi-AZ failover.
+	// (If the instance isn't configured for Multi-AZ, then you can't specify true.)
+	ForceFailover *bool `type:"boolean"`
+
+	// The Amazon Resource Name (ARN) of the replication instance.
+	//
+	// ReplicationInstanceArn is a required field
+	ReplicationInstanceArn *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s RebootReplicationInstanceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RebootReplicationInstanceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RebootReplicationInstanceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RebootReplicationInstanceInput"}
+	if s.ReplicationInstanceArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ReplicationInstanceArn"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetForceFailover sets the ForceFailover field's value.
+func (s *RebootReplicationInstanceInput) SetForceFailover(v bool) *RebootReplicationInstanceInput {
+	s.ForceFailover = &v
+	return s
+}
+
+// SetReplicationInstanceArn sets the ReplicationInstanceArn field's value.
+func (s *RebootReplicationInstanceInput) SetReplicationInstanceArn(v string) *RebootReplicationInstanceInput {
+	s.ReplicationInstanceArn = &v
+	return s
+}
+
+type RebootReplicationInstanceOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The replication instance that is being rebooted.
+	ReplicationInstance *ReplicationInstance `type:"structure"`
+}
+
+// String returns the string representation
+func (s RebootReplicationInstanceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RebootReplicationInstanceOutput) GoString() string {
+	return s.String()
+}
+
+// SetReplicationInstance sets the ReplicationInstance field's value.
+func (s *RebootReplicationInstanceOutput) SetReplicationInstance(v *ReplicationInstance) *RebootReplicationInstanceOutput {
+	s.ReplicationInstance = v
+	return s
+}
+
 type RefreshSchemasInput struct {
 	_ struct{} `type:"structure"`
 
@@ -8777,7 +9444,6 @@ func (s *RefreshSchemasInput) SetReplicationInstanceArn(v string) *RefreshSchema
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/RefreshSchemasResponse
 type RefreshSchemasOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -8801,7 +9467,6 @@ func (s *RefreshSchemasOutput) SetRefreshSchemasStatus(v *RefreshSchemasStatus) 
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/RefreshSchemasStatus
 type RefreshSchemasStatus struct {
 	_ struct{} `type:"structure"`
 
@@ -8861,7 +9526,6 @@ func (s *RefreshSchemasStatus) SetStatus(v string) *RefreshSchemasStatus {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ReloadTablesMessage
 type ReloadTablesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -8914,7 +9578,6 @@ func (s *ReloadTablesInput) SetTablesToReload(v []*TableToReload) *ReloadTablesI
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ReloadTablesResponse
 type ReloadTablesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -8938,7 +9601,6 @@ func (s *ReloadTablesOutput) SetReplicationTaskArn(v string) *ReloadTablesOutput
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/RemoveTagsFromResourceMessage
 type RemoveTagsFromResourceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -8992,7 +9654,6 @@ func (s *RemoveTagsFromResourceInput) SetTagKeys(v []*string) *RemoveTagsFromRes
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/RemoveTagsFromResourceResponse
 type RemoveTagsFromResourceOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -9007,7 +9668,6 @@ func (s RemoveTagsFromResourceOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ReplicationInstance
 type ReplicationInstance struct {
 	_ struct{} `type:"structure"`
 
@@ -9095,7 +9755,7 @@ type ReplicationInstance struct {
 	SecondaryAvailabilityZone *string `type:"string"`
 
 	// The VPC security group for the instance.
-	VpcSecurityGroups []*VpcSecurityGroupMembership `locationNameList:"VpcSecurityGroupMembership" type:"list"`
+	VpcSecurityGroups []*VpcSecurityGroupMembership `type:"list"`
 }
 
 // String returns the string representation
@@ -9234,7 +9894,48 @@ func (s *ReplicationInstance) SetVpcSecurityGroups(v []*VpcSecurityGroupMembersh
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ReplicationPendingModifiedValues
+// Contains metadata for a replication instance task log.
+type ReplicationInstanceTaskLog struct {
+	_ struct{} `type:"structure"`
+
+	// The size, in bytes, of the replication task log.
+	ReplicationInstanceTaskLogSize *int64 `type:"long"`
+
+	// The Amazon Resource Name (ARN) of the replication task.
+	ReplicationTaskArn *string `type:"string"`
+
+	// The name of the replication task.
+	ReplicationTaskName *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ReplicationInstanceTaskLog) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ReplicationInstanceTaskLog) GoString() string {
+	return s.String()
+}
+
+// SetReplicationInstanceTaskLogSize sets the ReplicationInstanceTaskLogSize field's value.
+func (s *ReplicationInstanceTaskLog) SetReplicationInstanceTaskLogSize(v int64) *ReplicationInstanceTaskLog {
+	s.ReplicationInstanceTaskLogSize = &v
+	return s
+}
+
+// SetReplicationTaskArn sets the ReplicationTaskArn field's value.
+func (s *ReplicationInstanceTaskLog) SetReplicationTaskArn(v string) *ReplicationInstanceTaskLog {
+	s.ReplicationTaskArn = &v
+	return s
+}
+
+// SetReplicationTaskName sets the ReplicationTaskName field's value.
+func (s *ReplicationInstanceTaskLog) SetReplicationTaskName(v string) *ReplicationInstanceTaskLog {
+	s.ReplicationTaskName = &v
+	return s
+}
+
 type ReplicationPendingModifiedValues struct {
 	_ struct{} `type:"structure"`
 
@@ -9290,7 +9991,6 @@ func (s *ReplicationPendingModifiedValues) SetReplicationInstanceClass(v string)
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ReplicationSubnetGroup
 type ReplicationSubnetGroup struct {
 	_ struct{} `type:"structure"`
 
@@ -9304,7 +10004,7 @@ type ReplicationSubnetGroup struct {
 	SubnetGroupStatus *string `type:"string"`
 
 	// The subnets that are in the subnet group.
-	Subnets []*Subnet `locationNameList:"Subnet" type:"list"`
+	Subnets []*Subnet `type:"list"`
 
 	// The ID of the VPC.
 	VpcId *string `type:"string"`
@@ -9350,7 +10050,6 @@ func (s *ReplicationSubnetGroup) SetVpcId(v string) *ReplicationSubnetGroup {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ReplicationTask
 type ReplicationTask struct {
 	_ struct{} `type:"structure"`
 
@@ -9500,7 +10199,85 @@ func (s *ReplicationTask) SetTargetEndpointArn(v string) *ReplicationTask {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/ReplicationTaskStats
+// The task assessment report in JSON format.
+type ReplicationTaskAssessmentResult struct {
+	_ struct{} `type:"structure"`
+
+	// The task assessment results in JSON format.
+	AssessmentResults *string `type:"string"`
+
+	// The file containing the results of the task assessment.
+	AssessmentResultsFile *string `type:"string"`
+
+	// The status of the task assessment.
+	AssessmentStatus *string `type:"string"`
+
+	// The Amazon Resource Name (ARN) of the replication task.
+	ReplicationTaskArn *string `type:"string"`
+
+	// The replication task identifier of the task on which the task assessment
+	// was run.
+	ReplicationTaskIdentifier *string `type:"string"`
+
+	// The date the task assessment was completed.
+	ReplicationTaskLastAssessmentDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+
+	// The URL of the S3 object containing the task assessment results.
+	S3ObjectUrl *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ReplicationTaskAssessmentResult) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ReplicationTaskAssessmentResult) GoString() string {
+	return s.String()
+}
+
+// SetAssessmentResults sets the AssessmentResults field's value.
+func (s *ReplicationTaskAssessmentResult) SetAssessmentResults(v string) *ReplicationTaskAssessmentResult {
+	s.AssessmentResults = &v
+	return s
+}
+
+// SetAssessmentResultsFile sets the AssessmentResultsFile field's value.
+func (s *ReplicationTaskAssessmentResult) SetAssessmentResultsFile(v string) *ReplicationTaskAssessmentResult {
+	s.AssessmentResultsFile = &v
+	return s
+}
+
+// SetAssessmentStatus sets the AssessmentStatus field's value.
+func (s *ReplicationTaskAssessmentResult) SetAssessmentStatus(v string) *ReplicationTaskAssessmentResult {
+	s.AssessmentStatus = &v
+	return s
+}
+
+// SetReplicationTaskArn sets the ReplicationTaskArn field's value.
+func (s *ReplicationTaskAssessmentResult) SetReplicationTaskArn(v string) *ReplicationTaskAssessmentResult {
+	s.ReplicationTaskArn = &v
+	return s
+}
+
+// SetReplicationTaskIdentifier sets the ReplicationTaskIdentifier field's value.
+func (s *ReplicationTaskAssessmentResult) SetReplicationTaskIdentifier(v string) *ReplicationTaskAssessmentResult {
+	s.ReplicationTaskIdentifier = &v
+	return s
+}
+
+// SetReplicationTaskLastAssessmentDate sets the ReplicationTaskLastAssessmentDate field's value.
+func (s *ReplicationTaskAssessmentResult) SetReplicationTaskLastAssessmentDate(v time.Time) *ReplicationTaskAssessmentResult {
+	s.ReplicationTaskLastAssessmentDate = &v
+	return s
+}
+
+// SetS3ObjectUrl sets the S3ObjectUrl field's value.
+func (s *ReplicationTaskAssessmentResult) SetS3ObjectUrl(v string) *ReplicationTaskAssessmentResult {
+	s.S3ObjectUrl = &v
+	return s
+}
+
 type ReplicationTaskStats struct {
 	_ struct{} `type:"structure"`
 
@@ -9569,7 +10346,6 @@ func (s *ReplicationTaskStats) SetTablesQueued(v int64) *ReplicationTaskStats {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/S3Settings
 type S3Settings struct {
 	_ struct{} `type:"structure"`
 
@@ -9652,14 +10428,74 @@ func (s *S3Settings) SetServiceAccessRoleArn(v string) *S3Settings {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/StartReplicationTaskMessage
+type StartReplicationTaskAssessmentInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the replication task.
+	//
+	// ReplicationTaskArn is a required field
+	ReplicationTaskArn *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s StartReplicationTaskAssessmentInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartReplicationTaskAssessmentInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StartReplicationTaskAssessmentInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StartReplicationTaskAssessmentInput"}
+	if s.ReplicationTaskArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ReplicationTaskArn"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetReplicationTaskArn sets the ReplicationTaskArn field's value.
+func (s *StartReplicationTaskAssessmentInput) SetReplicationTaskArn(v string) *StartReplicationTaskAssessmentInput {
+	s.ReplicationTaskArn = &v
+	return s
+}
+
+type StartReplicationTaskAssessmentOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The assessed replication task.
+	ReplicationTask *ReplicationTask `type:"structure"`
+}
+
+// String returns the string representation
+func (s StartReplicationTaskAssessmentOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartReplicationTaskAssessmentOutput) GoString() string {
+	return s.String()
+}
+
+// SetReplicationTask sets the ReplicationTask field's value.
+func (s *StartReplicationTaskAssessmentOutput) SetReplicationTask(v *ReplicationTask) *StartReplicationTaskAssessmentOutput {
+	s.ReplicationTask = v
+	return s
+}
+
 type StartReplicationTaskInput struct {
 	_ struct{} `type:"structure"`
 
 	// The start time for the Change Data Capture (CDC) operation.
 	CdcStartTime *time.Time `type:"timestamp" timestampFormat:"unix"`
 
-	// The Amazon Resource Number (ARN) of the replication task to be started.
+	// The Amazon Resource Name (ARN) of the replication task to be started.
 	//
 	// ReplicationTaskArn is a required field
 	ReplicationTaskArn *string `type:"string" required:"true"`
@@ -9714,7 +10550,6 @@ func (s *StartReplicationTaskInput) SetStartReplicationTaskType(v string) *Start
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/StartReplicationTaskResponse
 type StartReplicationTaskOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -9738,11 +10573,10 @@ func (s *StartReplicationTaskOutput) SetReplicationTask(v *ReplicationTask) *Sta
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/StopReplicationTaskMessage
 type StopReplicationTaskInput struct {
 	_ struct{} `type:"structure"`
 
-	// The Amazon Resource Number(ARN) of the replication task to be stopped.
+	// The Amazon Resource Name(ARN) of the replication task to be stopped.
 	//
 	// ReplicationTaskArn is a required field
 	ReplicationTaskArn *string `type:"string" required:"true"`
@@ -9777,7 +10611,6 @@ func (s *StopReplicationTaskInput) SetReplicationTaskArn(v string) *StopReplicat
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/StopReplicationTaskResponse
 type StopReplicationTaskOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -9801,7 +10634,6 @@ func (s *StopReplicationTaskOutput) SetReplicationTask(v *ReplicationTask) *Stop
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/Subnet
 type Subnet struct {
 	_ struct{} `type:"structure"`
 
@@ -9843,7 +10675,6 @@ func (s *Subnet) SetSubnetStatus(v string) *Subnet {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/SupportedEndpointType
 type SupportedEndpointType struct {
 	_ struct{} `type:"structure"`
 
@@ -9851,8 +10682,8 @@ type SupportedEndpointType struct {
 	EndpointType *string `type:"string" enum:"ReplicationEndpointTypeValue"`
 
 	// The database engine name. Valid values, depending on the EndPointType, include
-	// MYSQL, ORACLE, POSTGRES, MARIADB, AURORA, REDSHIFT, S3, SYBASE, DYNAMODB,
-	// MONGODB, and SQLSERVER.
+	// mysql, oracle, postgres, mariadb, aurora, redshift, S3, sybase, dynamodb,
+	// mongodb, and sqlserver.
 	EngineName *string `type:"string"`
 
 	// Indicates if Change Data Capture (CDC) is supported.
@@ -9887,7 +10718,6 @@ func (s *SupportedEndpointType) SetSupportsCDC(v bool) *SupportedEndpointType {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/TableStatistics
 type TableStatistics struct {
 	_ struct{} `type:"structure"`
 
@@ -9921,11 +10751,50 @@ type TableStatistics struct {
 	// The name of the table.
 	TableName *string `type:"string"`
 
-	// The state of the table.
+	// The state of the tables described.
+	//
+	// Valid states: Table does not exist | Before load | Full load | Table completed
+	// | Table cancelled | Table error | Table all | Table updates | Table is being
+	// reloaded
 	TableState *string `type:"string"`
 
 	// The number of update actions performed on a table.
 	Updates *int64 `type:"long"`
+
+	// The number of records that failed validation.
+	ValidationFailedRecords *int64 `type:"long"`
+
+	// The number of records that have yet to be validated.
+	ValidationPendingRecords *int64 `type:"long"`
+
+	// The validation state of the table.
+	//
+	// The parameter can have the following values
+	//
+	//    * Not enabled—Validation is not enabled for the table in the migration
+	//    task.
+	//
+	//    * Pending records—Some records in the table are waiting for validation.
+	//
+	//    * Mismatched records—Some records in the table do not match between the
+	//    source and target.
+	//
+	//    * Suspended records—Some records in the table could not be validated.
+	//
+	//    * No primary key—The table could not be validated because it had no primary
+	//    key.
+	//
+	//    * Table error—The table was not validated because it was in an error state
+	//    and some data was not migrated.
+	//
+	//    * Validated—All rows in the table were validated. If the table is updated,
+	//    the status can change from Validated.
+	//
+	//    * Error—The table could not be validated because of an unexpected error.
+	ValidationState *string `type:"string"`
+
+	// The number of records that could not be validated.
+	ValidationSuspendedRecords *int64 `type:"long"`
 }
 
 // String returns the string representation
@@ -10004,7 +10873,30 @@ func (s *TableStatistics) SetUpdates(v int64) *TableStatistics {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/TableToReload
+// SetValidationFailedRecords sets the ValidationFailedRecords field's value.
+func (s *TableStatistics) SetValidationFailedRecords(v int64) *TableStatistics {
+	s.ValidationFailedRecords = &v
+	return s
+}
+
+// SetValidationPendingRecords sets the ValidationPendingRecords field's value.
+func (s *TableStatistics) SetValidationPendingRecords(v int64) *TableStatistics {
+	s.ValidationPendingRecords = &v
+	return s
+}
+
+// SetValidationState sets the ValidationState field's value.
+func (s *TableStatistics) SetValidationState(v string) *TableStatistics {
+	s.ValidationState = &v
+	return s
+}
+
+// SetValidationSuspendedRecords sets the ValidationSuspendedRecords field's value.
+func (s *TableStatistics) SetValidationSuspendedRecords(v int64) *TableStatistics {
+	s.ValidationSuspendedRecords = &v
+	return s
+}
+
 type TableToReload struct {
 	_ struct{} `type:"structure"`
 
@@ -10037,7 +10929,6 @@ func (s *TableToReload) SetTableName(v string) *TableToReload {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/Tag
 type Tag struct {
 	_ struct{} `type:"structure"`
 
@@ -10076,7 +10967,6 @@ func (s *Tag) SetValue(v string) *Tag {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/TestConnectionMessage
 type TestConnectionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -10129,7 +11019,6 @@ func (s *TestConnectionInput) SetReplicationInstanceArn(v string) *TestConnectio
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/TestConnectionResponse
 type TestConnectionOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -10153,7 +11042,6 @@ func (s *TestConnectionOutput) SetConnection(v *Connection) *TestConnectionOutpu
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/dms-2016-01-01/VpcSecurityGroupMembership
 type VpcSecurityGroupMembership struct {
 	_ struct{} `type:"structure"`
 

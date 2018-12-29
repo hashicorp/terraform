@@ -12,7 +12,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/apigateway"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"sync"
 )
+
+var resourceAwsApiGatewayMethodResponseMutex = &sync.Mutex{}
 
 func resourceAwsApiGatewayMethodResponse() *schema.Resource {
 	return &schema.Resource{
@@ -93,14 +96,20 @@ func resourceAwsApiGatewayMethodResponseCreate(d *schema.ResourceData, meta inte
 		}
 	}
 
-	_, err := conn.PutMethodResponse(&apigateway.PutMethodResponseInput{
-		HttpMethod:         aws.String(d.Get("http_method").(string)),
-		ResourceId:         aws.String(d.Get("resource_id").(string)),
-		RestApiId:          aws.String(d.Get("rest_api_id").(string)),
-		StatusCode:         aws.String(d.Get("status_code").(string)),
-		ResponseModels:     aws.StringMap(models),
-		ResponseParameters: aws.BoolMap(parameters),
+	resourceAwsApiGatewayMethodResponseMutex.Lock()
+	defer resourceAwsApiGatewayMethodResponseMutex.Unlock()
+
+	_, err := retryOnAwsCode(apigateway.ErrCodeConflictException, func() (interface{}, error) {
+		return conn.PutMethodResponse(&apigateway.PutMethodResponseInput{
+			HttpMethod:         aws.String(d.Get("http_method").(string)),
+			ResourceId:         aws.String(d.Get("resource_id").(string)),
+			RestApiId:          aws.String(d.Get("rest_api_id").(string)),
+			StatusCode:         aws.String(d.Get("status_code").(string)),
+			ResponseModels:     aws.StringMap(models),
+			ResponseParameters: aws.BoolMap(parameters),
+		})
 	})
+
 	if err != nil {
 		return fmt.Errorf("Error creating API Gateway Method Response: %s", err)
 	}
@@ -114,7 +123,7 @@ func resourceAwsApiGatewayMethodResponseCreate(d *schema.ResourceData, meta inte
 func resourceAwsApiGatewayMethodResponseRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).apigateway
 
-	log.Printf("[DEBUG] Reading API Gateway Method %s", d.Id())
+	log.Printf("[DEBUG] Reading API Gateway Method Response %s", d.Id())
 	methodResponse, err := conn.GetMethodResponse(&apigateway.GetMethodResponseInput{
 		HttpMethod: aws.String(d.Get("http_method").(string)),
 		ResourceId: aws.String(d.Get("resource_id").(string)),
@@ -123,13 +132,14 @@ func resourceAwsApiGatewayMethodResponseRead(d *schema.ResourceData, meta interf
 	})
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NotFoundException" {
+			log.Printf("[WARN] API Gateway Response (%s) not found, removing from state", d.Id())
 			d.SetId("")
 			return nil
 		}
 		return err
 	}
 
-	log.Printf("[DEBUG] Received API Gateway Method: %s", methodResponse)
+	log.Printf("[DEBUG] Received API Gateway Method Response: %s", methodResponse)
 	d.Set("response_models", aws.StringValueMap(methodResponse.ResponseModels))
 	d.Set("response_parameters", aws.BoolValueMap(methodResponse.ResponseParameters))
 	d.Set("response_parameters_in_json", aws.BoolValueMap(methodResponse.ResponseParameters))

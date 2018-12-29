@@ -1,9 +1,11 @@
 package local
 
 import (
+	"context"
 	"errors"
 	"log"
 
+	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/command/format"
 
 	"github.com/hashicorp/terraform/tfdiags"
@@ -20,6 +22,12 @@ func (b *Local) Context(op *backend.Operation) (*terraform.Context, state.State,
 	// to ask for input/validate.
 	op.Type = backend.OperationTypeInvalid
 
+	if op.LockState {
+		op.StateLocker = clistate.NewLocker(context.Background(), op.StateLockTimeout, b.CLI, b.Colorize())
+	} else {
+		op.StateLocker = clistate.NewNoopLocker()
+	}
+
 	return b.context(op)
 }
 
@@ -28,6 +36,10 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, state.State,
 	s, err := b.State(op.Workspace)
 	if err != nil {
 		return nil, nil, errwrap.Wrapf("Error loading state: {{err}}", err)
+	}
+
+	if err := op.StateLocker.Lock(s, op.Type.String()); err != nil {
+		return nil, nil, errwrap.Wrapf("Error locking state: {{err}}", err)
 	}
 
 	if err := s.RefreshState(); err != nil {

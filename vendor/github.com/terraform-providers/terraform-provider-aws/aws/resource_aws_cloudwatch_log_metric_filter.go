@@ -21,17 +21,17 @@ func resourceAwsCloudWatchLogMetricFilter() *schema.Resource {
 		Delete: resourceAwsCloudWatchLogMetricFilterDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
 				ValidateFunc: validateLogMetricFilterName,
 			},
 
-			"pattern": &schema.Schema{
+			"pattern": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: validateMaxLength(512),
+				ValidateFunc: validateMaxLength(1024),
 				StateFunc: func(v interface{}) string {
 					s, ok := v.(string)
 					if !ok {
@@ -41,33 +41,37 @@ func resourceAwsCloudWatchLogMetricFilter() *schema.Resource {
 				},
 			},
 
-			"log_group_name": &schema.Schema{
+			"log_group_name": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
 				ValidateFunc: validateLogGroupName,
 			},
 
-			"metric_transformation": &schema.Schema{
+			"metric_transformation": {
 				Type:     schema.TypeList,
 				Required: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:         schema.TypeString,
 							Required:     true,
 							ValidateFunc: validateLogMetricFilterTransformationName,
 						},
-						"namespace": &schema.Schema{
+						"namespace": {
 							Type:         schema.TypeString,
 							Required:     true,
 							ValidateFunc: validateLogMetricFilterTransformationName,
 						},
-						"value": &schema.Schema{
+						"value": {
 							Type:         schema.TypeString,
 							Required:     true,
 							ValidateFunc: validateMaxLength(100),
+						},
+						"default_value": {
+							Type:     schema.TypeFloat,
+							Optional: true,
 						},
 					},
 				},
@@ -87,10 +91,14 @@ func resourceAwsCloudWatchLogMetricFilterUpdate(d *schema.ResourceData, meta int
 
 	transformations := d.Get("metric_transformation").([]interface{})
 	o := transformations[0].(map[string]interface{})
-	input.MetricTransformations = expandCloudWachLogMetricTransformations(o)
+	metricsTransformations, err := expandCloudWachLogMetricTransformations(o)
+	if err != nil {
+		return err
+	}
+	input.MetricTransformations = metricsTransformations
 
 	log.Printf("[DEBUG] Creating/Updating CloudWatch Log Metric Filter: %s", input)
-	_, err := conn.PutMetricFilter(&input)
+	_, err = conn.PutMetricFilter(&input)
 	if err != nil {
 		return fmt.Errorf("Creating/Updating CloudWatch Log Metric Filter failed: %s", err)
 	}

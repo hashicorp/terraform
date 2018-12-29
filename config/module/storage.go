@@ -295,17 +295,17 @@ func (s Storage) findRegistryModule(mSource, constraint string) (moduleRecord, e
 	}
 	rec.registry = true
 
-	log.Printf("[TRACE] %q is a registry module", mod.Module())
+	log.Printf("[TRACE] %q is a registry module", mod.Display())
 
 	versions, err := s.moduleVersions(mod.String())
 	if err != nil {
-		log.Printf("[ERROR] error looking up versions for %q: %s", mod.Module(), err)
+		log.Printf("[ERROR] error looking up versions for %q: %s", mod.Display(), err)
 		return rec, err
 	}
 
 	match, err := newestRecord(versions, constraint)
 	if err != nil {
-		log.Printf("[INFO] no matching version for %q<%s>, %s", mod.Module(), constraint, err)
+		log.Printf("[INFO] no matching version for %q<%s>, %s", mod.Display(), constraint, err)
 	}
 	log.Printf("[DEBUG] matched %q version %s for %s", mod, match.Version, constraint)
 
@@ -322,7 +322,7 @@ func (s Storage) findRegistryModule(mSource, constraint string) (moduleRecord, e
 		}
 
 		if len(resp.Modules) == 0 {
-			return rec, fmt.Errorf("module %q not found in registry", mod.Module())
+			return rec, fmt.Errorf("module %q not found in registry", mod.Display())
 		}
 
 		match, err := newestVersion(resp.Modules[0].Versions, constraint)
@@ -331,7 +331,7 @@ func (s Storage) findRegistryModule(mSource, constraint string) (moduleRecord, e
 		}
 
 		if match == nil {
-			return rec, fmt.Errorf("no versions for %q found matching %q", mod.Module(), constraint)
+			return rec, fmt.Errorf("no versions for %q found matching %q", mod.Display(), constraint)
 		}
 
 		rec.Version = match.Version

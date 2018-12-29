@@ -26,6 +26,12 @@ func New() backend.Backend {
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"TRITON_ACCOUNT", "SDC_ACCOUNT"}, ""),
 			},
 
+			"user": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"TRITON_USER", "SDC_USER"}, ""),
+			},
+
 			"url": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -80,6 +86,7 @@ type Backend struct {
 
 type BackendConfig struct {
 	AccountId   string
+	Username    string
 	KeyId       string
 	AccountUrl  string
 	KeyMaterial string
@@ -98,6 +105,10 @@ func (b *Backend) configure(ctx context.Context) error {
 		AccountUrl: data.Get("url").(string),
 		KeyId:      data.Get("key_id").(string),
 		SkipTls:    data.Get("insecure_skip_tls_verify").(bool),
+	}
+
+	if v, ok := data.GetOk("user"); ok {
+		config.Username = v.(string)
 	}
 
 	if v, ok := data.GetOk("key_material"); ok {
@@ -127,7 +138,12 @@ func (b *Backend) configure(ctx context.Context) error {
 	var err error
 
 	if config.KeyMaterial == "" {
-		signer, err = authentication.NewSSHAgentSigner(config.KeyId, config.AccountId)
+		input := authentication.SSHAgentSignerInput{
+			KeyID:       config.KeyId,
+			AccountName: config.AccountId,
+			Username:    config.Username,
+		}
+		signer, err = authentication.NewSSHAgentSigner(input)
 		if err != nil {
 			return errwrap.Wrapf("Error Creating SSH Agent Signer: {{err}}", err)
 		}
@@ -155,7 +171,14 @@ func (b *Backend) configure(ctx context.Context) error {
 			keyBytes = []byte(config.KeyMaterial)
 		}
 
-		signer, err = authentication.NewPrivateKeySigner(config.KeyId, keyBytes, config.AccountId)
+		input := authentication.PrivateKeySignerInput{
+			KeyID:              config.KeyId,
+			PrivateKeyMaterial: keyBytes,
+			AccountName:        config.AccountId,
+			Username:           config.Username,
+		}
+
+		signer, err = authentication.NewPrivateKeySigner(input)
 		if err != nil {
 			return errwrap.Wrapf("Error Creating SSH Private Key Signer: {{err}}", err)
 		}
@@ -164,6 +187,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	clientConfig := &triton.ClientConfig{
 		MantaURL:    config.AccountUrl,
 		AccountName: config.AccountId,
+		Username:    config.Username,
 		Signers:     []authentication.Signer{signer},
 	}
 	triton, err := storage.NewClient(clientConfig)

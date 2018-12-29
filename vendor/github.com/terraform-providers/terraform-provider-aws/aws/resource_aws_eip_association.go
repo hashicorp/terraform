@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"time"
+
+	"github.com/hashicorp/terraform/helper/resource"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -88,13 +90,20 @@ func resourceAwsEipAssociationCreate(d *schema.ResourceData, meta interface{}) e
 
 	log.Printf("[DEBUG] EIP association configuration: %#v", request)
 
-	resp, err := conn.AssociateAddress(request)
-	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok {
-			return fmt.Errorf("[WARN] Error attaching EIP, message: \"%s\", code: \"%s\"",
-				awsErr.Message(), awsErr.Code())
+	var resp *ec2.AssociateAddressOutput
+	err := resource.Retry(2*time.Minute, func() *resource.RetryError {
+		var err error
+		resp, err = conn.AssociateAddress(request)
+		if err != nil {
+			if isAWSErr(err, "InvalidInstanceID", "pending instance") {
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
 		}
-		return err
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("Error associating EIP: %s", err)
 	}
 
 	log.Printf("[DEBUG] EIP Assoc Response: %s", resp)

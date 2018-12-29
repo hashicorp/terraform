@@ -43,6 +43,7 @@ func dataSourceAwsElasticBeanstalkSolutionStackRead(d *schema.ResourceData, meta
 
 	var params *elasticbeanstalk.ListAvailableSolutionStacksInput
 
+	log.Printf("[DEBUG] Reading Elastic Beanstalk Solution Stack: %s", params)
 	resp, err := conn.ListAvailableSolutionStacks(params)
 	if err != nil {
 		return err

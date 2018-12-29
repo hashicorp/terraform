@@ -40,6 +40,10 @@ func dataSourceAwsEfsFileSystem() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"dns_name": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"tags": tagsSchemaComputed(),
 		},
 	}
@@ -58,6 +62,7 @@ func dataSourceAwsEfsFileSystemRead(d *schema.ResourceData, meta interface{}) er
 		describeEfsOpts.FileSystemId = aws.String(v.(string))
 	}
 
+	log.Printf("[DEBUG] Reading EFS File System: %s", describeEfsOpts)
 	describeResp, err := efsconn.DescribeFileSystems(describeEfsOpts)
 	if err != nil {
 		return errwrap.Wrapf("Error retrieving EFS: {{err}}", err)
@@ -118,6 +123,12 @@ func dataSourceAwsEfsFileSystemRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("file_system_id", fs.FileSystemId)
 	d.Set("encrypted", fs.Encrypted)
 	d.Set("kms_key_id", fs.KmsKeyId)
+
+	region := meta.(*AWSClient).region
+	err = d.Set("dns_name", resourceAwsEfsDnsName(*fs.FileSystemId, region))
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

@@ -3,13 +3,15 @@ package hcltest
 import (
 	"fmt"
 
+	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/zclconf/go-cty/cty"
 )
 
 // MockBody returns a hcl.Body implementation that works in terms of a
 // caller-constructed hcl.BodyContent, thus avoiding the need to parse
-// a "real" zcl config file to use as input to a test.
+// a "real" HCL config file to use as input to a test.
 func MockBody(content *hcl.BodyContent) hcl.Body {
 	return mockBody{content}
 }
@@ -149,6 +151,21 @@ func (e mockExprLiteral) StartRange() hcl.Range {
 	return e.Range()
 }
 
+// Implementation for hcl.ExprList
+func (e mockExprLiteral) ExprList() []hcl.Expression {
+	v := e.V
+	ty := v.Type()
+	if v.IsKnown() && !v.IsNull() && (ty.IsListType() || ty.IsTupleType()) {
+		ret := make([]hcl.Expression, 0, v.LengthInt())
+		for it := v.ElementIterator(); it.Next(); {
+			_, v := it.Element()
+			ret = append(ret, MockExprLiteral(v))
+		}
+		return ret
+	}
+	return nil
+}
+
 // MockExprVariable returns a hcl.Expression that evaluates to the value of
 // the variable with the given name.
 func MockExprVariable(name string) hcl.Expression {
@@ -195,6 +212,111 @@ func (e mockExprVariable) Range() hcl.Range {
 
 func (e mockExprVariable) StartRange() hcl.Range {
 	return e.Range()
+}
+
+// Implementation for hcl.AbsTraversalForExpr and hcl.RelTraversalForExpr.
+func (e mockExprVariable) AsTraversal() hcl.Traversal {
+	return hcl.Traversal{
+		hcl.TraverseRoot{
+			Name:     string(e),
+			SrcRange: e.Range(),
+		},
+	}
+}
+
+// MockExprTraversal returns a hcl.Expression that evaluates the given
+// absolute traversal.
+func MockExprTraversal(traversal hcl.Traversal) hcl.Expression {
+	return mockExprTraversal{
+		Traversal: traversal,
+	}
+}
+
+// MockExprTraversalSrc is like MockExprTraversal except it takes a
+// traversal string as defined by the native syntax and parses it first.
+//
+// This method is primarily for testing with hard-coded traversal strings, so
+// it will panic if the given string is not syntactically correct.
+func MockExprTraversalSrc(src string) hcl.Expression {
+	traversal, diags := hclsyntax.ParseTraversalAbs([]byte(src), "MockExprTraversal", hcl.Pos{})
+	if diags.HasErrors() {
+		panic("invalid traversal string")
+	}
+	return MockExprTraversal(traversal)
+}
+
+type mockExprTraversal struct {
+	Traversal hcl.Traversal
+}
+
+func (e mockExprTraversal) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
+	return e.Traversal.TraverseAbs(ctx)
+}
+
+func (e mockExprTraversal) Variables() []hcl.Traversal {
+	return []hcl.Traversal{e.Traversal}
+}
+
+func (e mockExprTraversal) Range() hcl.Range {
+	return e.Traversal.SourceRange()
+}
+
+func (e mockExprTraversal) StartRange() hcl.Range {
+	return e.Range()
+}
+
+// Implementation for hcl.AbsTraversalForExpr and hcl.RelTraversalForExpr.
+func (e mockExprTraversal) AsTraversal() hcl.Traversal {
+	return e.Traversal
+}
+
+func MockExprList(exprs []hcl.Expression) hcl.Expression {
+	return mockExprList{
+		Exprs: exprs,
+	}
+}
+
+type mockExprList struct {
+	Exprs []hcl.Expression
+}
+
+func (e mockExprList) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
+	if len(e.Exprs) == 0 {
+		return cty.ListValEmpty(cty.DynamicPseudoType), nil
+	}
+	vals := make([]cty.Value, 0, len(e.Exprs))
+	var diags hcl.Diagnostics
+
+	for _, expr := range e.Exprs {
+		val, valDiags := expr.Value(ctx)
+		diags = append(diags, valDiags...)
+		vals = append(vals, val)
+	}
+
+	return cty.ListVal(vals), diags
+}
+
+func (e mockExprList) Variables() []hcl.Traversal {
+	var traversals []hcl.Traversal
+	for _, expr := range e.Exprs {
+		traversals = append(traversals, expr.Variables()...)
+	}
+	return traversals
+}
+
+func (e mockExprList) Range() hcl.Range {
+	return hcl.Range{
+		Filename: "MockExprList",
+	}
+}
+
+func (e mockExprList) StartRange() hcl.Range {
+	return e.Range()
+}
+
+// Implementation for hcl.ExprList
+func (e mockExprList) ExprList() []hcl.Expression {
+	return e.Exprs
 }
 
 // MockAttrs constructs and returns a hcl.Attributes map with attributes

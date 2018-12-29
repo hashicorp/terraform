@@ -14,21 +14,16 @@ func dataSourceAwsPrefixList() *schema.Resource {
 		Read: dataSourceAwsPrefixListRead,
 
 		Schema: map[string]*schema.Schema{
-			"prefix_list_id": &schema.Schema{
+			"prefix_list_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			// Computed values.
-			"id": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"cidr_blocks": &schema.Schema{
+			"cidr_blocks": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
@@ -51,7 +46,7 @@ func dataSourceAwsPrefixListRead(d *schema.ResourceData, meta interface{}) error
 		},
 	)
 
-	log.Printf("[DEBUG] DescribePrefixLists %s\n", req)
+	log.Printf("[DEBUG] Reading Prefix List: %s", req)
 	resp, err := conn.DescribePrefixLists(req)
 	if err != nil {
 		return err
@@ -63,7 +58,6 @@ func dataSourceAwsPrefixListRead(d *schema.ResourceData, meta interface{}) error
 	pl := resp.PrefixLists[0]
 
 	d.SetId(*pl.PrefixListId)
-	d.Set("id", pl.PrefixListId)
 	d.Set("name", pl.PrefixListName)
 
 	cidrs := make([]string, len(pl.Cidrs))

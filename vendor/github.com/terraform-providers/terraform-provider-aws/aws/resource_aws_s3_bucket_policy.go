@@ -42,8 +42,6 @@ func resourceAwsS3BucketPolicyPut(d *schema.ResourceData, meta interface{}) erro
 	bucket := d.Get("bucket").(string)
 	policy := d.Get("policy").(string)
 
-	d.SetId(bucket)
-
 	log.Printf("[DEBUG] S3 bucket: %s, put policy: %s", bucket, policy)
 
 	params := &s3.PutBucketPolicyInput{
@@ -66,6 +64,8 @@ func resourceAwsS3BucketPolicyPut(d *schema.ResourceData, meta interface{}) erro
 	if err != nil {
 		return fmt.Errorf("Error putting S3 policy: %s", err)
 	}
+
+	d.SetId(bucket)
 
 	return nil
 }

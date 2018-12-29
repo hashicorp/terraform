@@ -408,7 +408,7 @@ func TestPlanStats(t *testing.T) {
 				},
 			},
 			PlanStats{
-			// data resource refreshes are not counted in our stats
+				// data resource refreshes are not counted in our stats
 			},
 		},
 		"replace": {

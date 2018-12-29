@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -23,13 +24,21 @@ func resourceAwsVpnGateway() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"availability_zone": &schema.Schema{
+			"availability_zone": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"vpc_id": &schema.Schema{
+			"amazon_side_asn": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				Computed:     true,
+				ValidateFunc: validateAmazonSideAsn,
+			},
+
+			"vpc_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -46,6 +55,13 @@ func resourceAwsVpnGatewayCreate(d *schema.ResourceData, meta interface{}) error
 	createOpts := &ec2.CreateVpnGatewayInput{
 		AvailabilityZone: aws.String(d.Get("availability_zone").(string)),
 		Type:             aws.String("ipsec.1"),
+	}
+	if asn, ok := d.GetOk("amazon_side_asn"); ok {
+		i, err := strconv.ParseInt(asn.(string), 10, 64)
+		if err != nil {
+			return err
+		}
+		createOpts.AmazonSideAsn = aws.Int64(i)
 	}
 
 	// Create the VPN gateway
@@ -98,6 +114,7 @@ func resourceAwsVpnGatewayRead(d *schema.ResourceData, meta interface{}) error {
 	if vpnGateway.AvailabilityZone != nil && *vpnGateway.AvailabilityZone != "" {
 		d.Set("availability_zone", vpnGateway.AvailabilityZone)
 	}
+	d.Set("amazon_side_asn", strconv.FormatInt(aws.Int64Value(vpnGateway.AmazonSideAsn), 10))
 	d.Set("tags", tagsToMap(vpnGateway.Tags))
 
 	return nil
@@ -181,14 +198,11 @@ func resourceAwsVpnGatewayAttach(d *schema.ResourceData, meta interface{}) error
 		VpcId:        aws.String(d.Get("vpc_id").(string)),
 	}
 
-	err := resource.Retry(30*time.Second, func() *resource.RetryError {
+	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
 		_, err := conn.AttachVpnGateway(req)
 		if err != nil {
-			if ec2err, ok := err.(awserr.Error); ok {
-				if "InvalidVpnGatewayID.NotFound" == ec2err.Code() {
-					return resource.RetryableError(
-						fmt.Errorf("Gateway not found, retry for eventual consistancy"))
-				}
+			if isAWSErr(err, "InvalidVpnGatewayID.NotFound", "") {
+				return resource.RetryableError(err)
 			}
 			return resource.NonRetryableError(err)
 		}

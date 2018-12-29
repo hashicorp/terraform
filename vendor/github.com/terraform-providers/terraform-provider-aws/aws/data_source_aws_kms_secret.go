@@ -16,26 +16,26 @@ func dataSourceAwsKmsSecret() *schema.Resource {
 		Read: dataSourceAwsKmsSecretRead,
 
 		Schema: map[string]*schema.Schema{
-			"secret": &schema.Schema{
+			"secret": {
 				Type:     schema.TypeSet,
 				Required: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"payload": &schema.Schema{
+						"payload": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"context": &schema.Schema{
+						"context": {
 							Type:     schema.TypeMap,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
-						"grant_tokens": &schema.Schema{
+						"grant_tokens": {
 							Type:     schema.TypeList,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},

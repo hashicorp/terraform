@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/structure"
 )
 
 func resourceAwsS3Bucket() *schema.Resource {
@@ -130,7 +131,7 @@ func resourceAwsS3Bucket() *schema.Resource {
 							Optional:     true,
 							ValidateFunc: validateJsonString,
 							StateFunc: func(v interface{}) string {
-								json, _ := normalizeJsonString(v)
+								json, _ := structure.NormalizeJsonString(v)
 								return json
 							},
 						},
@@ -372,6 +373,36 @@ func resourceAwsS3Bucket() *schema.Resource {
 													Optional:     true,
 													ValidateFunc: validateS3BucketReplicationDestinationStorageClass,
 												},
+												"replica_kms_key_id": {
+													Type:     schema.TypeString,
+													Optional: true,
+												},
+											},
+										},
+									},
+									"source_selection_criteria": {
+										Type:     schema.TypeSet,
+										Optional: true,
+										MinItems: 1,
+										MaxItems: 1,
+										Set:      sourceSelectionCriteriaHash,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"sse_kms_encrypted_objects": {
+													Type:     schema.TypeSet,
+													Optional: true,
+													MinItems: 1,
+													MaxItems: 1,
+													Set:      sourceSseKmsObjectsHash,
+													Elem: &schema.Resource{
+														Schema: map[string]*schema.Schema{
+															"enabled": {
+																Type:     schema.TypeBool,
+																Required: true,
+															},
+														},
+													},
+												},
 											},
 										},
 									},
@@ -384,6 +415,43 @@ func resourceAwsS3Bucket() *schema.Resource {
 										Type:         schema.TypeString,
 										Required:     true,
 										ValidateFunc: validateS3BucketReplicationRuleStatus,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+
+			"server_side_encryption_configuration": {
+				Type:     schema.TypeList,
+				MaxItems: 1,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"rule": {
+							Type:     schema.TypeList,
+							MaxItems: 1,
+							Required: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"apply_server_side_encryption_by_default": {
+										Type:     schema.TypeList,
+										MaxItems: 1,
+										Required: true,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"kms_master_key_id": {
+													Type:     schema.TypeString,
+													Optional: true,
+												},
+												"sse_algorithm": {
+													Type:         schema.TypeString,
+													Required:     true,
+													ValidateFunc: validateS3BucketServerSideEncryptionAlgorithm,
+												},
+											},
+										},
 									},
 								},
 							},
@@ -531,6 +599,12 @@ func resourceAwsS3BucketUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	if d.HasChange("server_side_encryption_configuration") {
+		if err := resourceAwsS3BucketServerSideEncryptionConfigurationUpdate(s3conn, d); err != nil {
+			return err
+		}
+	}
+
 	return resourceAwsS3BucketRead(d, meta)
 }
 
@@ -582,7 +656,7 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 					return err
 				}
 			} else {
-				policy, err := normalizeJsonString(*v)
+				policy, err := structure.NormalizeJsonString(*v)
 				if err != nil {
 					return errwrap.Wrapf("policy contains an invalid JSON: {{err}}", err)
 				}
@@ -652,19 +726,22 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 			} else {
 				var host string
 				var path string
+				var query string
 				parsedHostName, err := url.Parse(*v.HostName)
 				if err == nil {
 					host = parsedHostName.Host
 					path = parsedHostName.Path
+					query = parsedHostName.RawQuery
 				} else {
 					host = *v.HostName
 					path = ""
 				}
 
 				w["redirect_all_requests_to"] = (&url.URL{
-					Host:   host,
-					Path:   path,
-					Scheme: *v.Protocol,
+					Host:     host,
+					Path:     path,
+					Scheme:   *v.Protocol,
+					RawQuery: query,
 				}).String()
 			}
 		}
@@ -923,18 +1000,41 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 			Bucket: aws.String(d.Id()),
 		})
 	})
-	replication := replicationResponse.(*s3.GetBucketReplicationOutput)
 	if err != nil {
 		if awsError, ok := err.(awserr.RequestFailure); ok && awsError.StatusCode() != 404 {
 			return err
 		}
 	}
+	replication := replicationResponse.(*s3.GetBucketReplicationOutput)
 
 	log.Printf("[DEBUG] S3 Bucket: %s, read replication configuration: %v", d.Id(), replication)
-	if r := replication.ReplicationConfiguration; r != nil {
-		if err := d.Set("replication_configuration", flattenAwsS3BucketReplicationConfiguration(replication.ReplicationConfiguration)); err != nil {
-			log.Printf("[DEBUG] Error setting replication configuration: %s", err)
+	if err := d.Set("replication_configuration", flattenAwsS3BucketReplicationConfiguration(replication.ReplicationConfiguration)); err != nil {
+		log.Printf("[DEBUG] Error setting replication configuration: %s", err)
+		return err
+	}
+
+	// Read the bucket server side encryption configuration
+
+	encryptionResponse, err := retryOnAwsCode("NoSuchBucket", func() (interface{}, error) {
+		return s3conn.GetBucketEncryption(&s3.GetBucketEncryptionInput{
+			Bucket: aws.String(d.Id()),
+		})
+	})
+	if err != nil {
+		if isAWSErr(err, "ServerSideEncryptionConfigurationNotFoundError", "encryption configuration was not found") {
+			log.Printf("[DEBUG] Default encryption is not enabled for %s", d.Id())
+			d.Set("server_side_encryption_configuration", []map[string]interface{}{})
+		} else {
 			return err
+		}
+	} else {
+		encryption := encryptionResponse.(*s3.GetBucketEncryptionOutput)
+		log.Printf("[DEBUG] S3 Bucket: %s, read encryption configuration: %v", d.Id(), encryption)
+		if c := encryption.ServerSideEncryptionConfiguration; c != nil {
+			if err := d.Set("server_side_encryption_configuration", flattenAwsS3ServerSideEncryptionConfiguration(c)); err != nil {
+				log.Printf("[DEBUG] Error setting server side encryption configuration: %s", err)
+				return err
+			}
 		}
 	}
 
@@ -947,10 +1047,10 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 			},
 		)
 	})
-	location := locationResponse.(*s3.GetBucketLocationOutput)
 	if err != nil {
 		return err
 	}
+	location := locationResponse.(*s3.GetBucketLocationOutput)
 	var region string
 	if location.LocationConstraint != nil {
 		region = *location.LocationConstraint
@@ -961,9 +1061,11 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// Add the hosted zone ID for this bucket's region as an attribute
-	hostedZoneID := HostedZoneIDForRegion(region)
-	if err := d.Set("hosted_zone_id", hostedZoneID); err != nil {
-		return err
+	hostedZoneID, err := HostedZoneIDForRegion(region)
+	if err != nil {
+		log.Printf("[WARN] %s", err)
+	} else {
+		d.Set("hosted_zone_id", hostedZoneID)
 	}
 
 	// Add website_endpoint as an attribute
@@ -1227,6 +1329,10 @@ func resourceAwsS3BucketWebsitePut(s3conn *s3.S3, d *schema.ResourceData, websit
 			if redirect.Path != "" {
 				redirectHostBuf.WriteString(redirect.Path)
 			}
+			if redirect.RawQuery != "" {
+				redirectHostBuf.WriteString("?")
+				redirectHostBuf.WriteString(redirect.RawQuery)
+			}
 			websiteConfiguration.RedirectAllRequestsTo = &s3.RedirectAllRequestsTo{HostName: aws.String(redirectHostBuf.String()), Protocol: aws.String(redirect.Scheme)}
 		} else {
 			websiteConfiguration.RedirectAllRequestsTo = &s3.RedirectAllRequestsTo{HostName: aws.String(redirectAllRequestsTo)}
@@ -1295,10 +1401,10 @@ func websiteEndpoint(s3conn *s3.S3, d *schema.ResourceData) (*S3Website, error) 
 			},
 		)
 	})
-	location := locationResponse.(*s3.GetBucketLocationOutput)
 	if err != nil {
 		return nil, err
 	}
+	location := locationResponse.(*s3.GetBucketLocationOutput)
 	var region string
 	if location.LocationConstraint != nil {
 		region = *location.LocationConstraint
@@ -1486,6 +1592,68 @@ func resourceAwsS3BucketRequestPayerUpdate(s3conn *s3.S3, d *schema.ResourceData
 	return nil
 }
 
+func resourceAwsS3BucketServerSideEncryptionConfigurationUpdate(s3conn *s3.S3, d *schema.ResourceData) error {
+	bucket := d.Get("bucket").(string)
+	serverSideEncryptionConfiguration := d.Get("server_side_encryption_configuration").([]interface{})
+	if len(serverSideEncryptionConfiguration) == 0 {
+		log.Printf("[DEBUG] Delete server side encryption configuration: %#v", serverSideEncryptionConfiguration)
+		i := &s3.DeleteBucketEncryptionInput{
+			Bucket: aws.String(bucket),
+		}
+
+		err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+			if _, err := s3conn.DeleteBucketEncryption(i); err != nil {
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		if err != nil {
+			return fmt.Errorf("error removing S3 bucket server side encryption: %s", err)
+		}
+		return nil
+	}
+
+	c := serverSideEncryptionConfiguration[0].(map[string]interface{})
+
+	rc := &s3.ServerSideEncryptionConfiguration{}
+
+	rcRules := c["rule"].([]interface{})
+	var rules []*s3.ServerSideEncryptionRule
+	for _, v := range rcRules {
+		rr := v.(map[string]interface{})
+		rrDefault := rr["apply_server_side_encryption_by_default"].([]interface{})
+		sseAlgorithm := rrDefault[0].(map[string]interface{})["sse_algorithm"].(string)
+		kmsMasterKeyId := rrDefault[0].(map[string]interface{})["kms_master_key_id"].(string)
+		rcDefaultRule := &s3.ServerSideEncryptionByDefault{
+			SSEAlgorithm: aws.String(sseAlgorithm),
+		}
+		if kmsMasterKeyId != "" {
+			rcDefaultRule.KMSMasterKeyID = aws.String(kmsMasterKeyId)
+		}
+		rcRule := &s3.ServerSideEncryptionRule{
+			ApplyServerSideEncryptionByDefault: rcDefaultRule,
+		}
+
+		rules = append(rules, rcRule)
+	}
+
+	rc.Rules = rules
+	i := &s3.PutBucketEncryptionInput{
+		Bucket: aws.String(bucket),
+		ServerSideEncryptionConfiguration: rc,
+	}
+	log.Printf("[DEBUG] S3 put bucket replication configuration: %#v", i)
+
+	_, err := retryOnAwsCode("NoSuchBucket", func() (interface{}, error) {
+		return s3conn.PutBucketEncryption(i)
+	})
+	if err != nil {
+		return fmt.Errorf("error putting S3 server side encryption configuration: %s", err)
+	}
+
+	return nil
+}
+
 func resourceAwsS3BucketReplicationConfigurationUpdate(s3conn *s3.S3, d *schema.ResourceData) error {
 	bucket := d.Get("bucket").(string)
 	replicationConfiguration := d.Get("replication_configuration").([]interface{})
@@ -1542,17 +1710,37 @@ func resourceAwsS3BucketReplicationConfigurationUpdate(s3conn *s3.S3, d *schema.
 		}
 
 		ruleDestination := &s3.Destination{}
-		if destination, ok := rr["destination"]; ok {
-			dest := destination.(*schema.Set).List()
-
-			bd := dest[0].(map[string]interface{})
+		if dest, ok := rr["destination"].(*schema.Set); ok && dest.Len() > 0 {
+			bd := dest.List()[0].(map[string]interface{})
 			ruleDestination.Bucket = aws.String(bd["bucket"].(string))
 
 			if storageClass, ok := bd["storage_class"]; ok && storageClass != "" {
 				ruleDestination.StorageClass = aws.String(storageClass.(string))
 			}
+
+			if replicaKmsKeyId, ok := bd["replica_kms_key_id"]; ok && replicaKmsKeyId != "" {
+				ruleDestination.EncryptionConfiguration = &s3.EncryptionConfiguration{
+					ReplicaKmsKeyID: aws.String(replicaKmsKeyId.(string)),
+				}
+			}
 		}
 		rcRule.Destination = ruleDestination
+
+		if ssc, ok := rr["source_selection_criteria"].(*schema.Set); ok && ssc.Len() > 0 {
+			sscValues := ssc.List()[0].(map[string]interface{})
+			ruleSsc := &s3.SourceSelectionCriteria{}
+			if sseKms, ok := sscValues["sse_kms_encrypted_objects"].(*schema.Set); ok && sseKms.Len() > 0 {
+				sseKmsValues := sseKms.List()[0].(map[string]interface{})
+				sseKmsEncryptedObjects := &s3.SseKmsEncryptedObjects{}
+				if sseKmsValues["enabled"].(bool) {
+					sseKmsEncryptedObjects.Status = aws.String(s3.SseKmsEncryptedObjectsStatusEnabled)
+				} else {
+					sseKmsEncryptedObjects.Status = aws.String(s3.SseKmsEncryptedObjectsStatusDisabled)
+				}
+				ruleSsc.SseKmsEncryptedObjects = sseKmsEncryptedObjects
+			}
+			rcRule.SourceSelectionCriteria = ruleSsc
+		}
 		rules = append(rules, rcRule)
 	}
 
@@ -1732,8 +1920,32 @@ func resourceAwsS3BucketLifecycleUpdate(s3conn *s3.S3, d *schema.ResourceData) e
 	return nil
 }
 
+func flattenAwsS3ServerSideEncryptionConfiguration(c *s3.ServerSideEncryptionConfiguration) []map[string]interface{} {
+	var encryptionConfiguration []map[string]interface{}
+	rules := make([]interface{}, 0, len(c.Rules))
+	for _, v := range c.Rules {
+		if v.ApplyServerSideEncryptionByDefault != nil {
+			r := make(map[string]interface{})
+			d := make(map[string]interface{})
+			d["kms_master_key_id"] = aws.StringValue(v.ApplyServerSideEncryptionByDefault.KMSMasterKeyID)
+			d["sse_algorithm"] = aws.StringValue(v.ApplyServerSideEncryptionByDefault.SSEAlgorithm)
+			r["apply_server_side_encryption_by_default"] = []map[string]interface{}{d}
+			rules = append(rules, r)
+		}
+	}
+	encryptionConfiguration = append(encryptionConfiguration, map[string]interface{}{
+		"rule": rules,
+	})
+	return encryptionConfiguration
+}
+
 func flattenAwsS3BucketReplicationConfiguration(r *s3.ReplicationConfiguration) []map[string]interface{} {
 	replication_configuration := make([]map[string]interface{}, 0, 1)
+
+	if r == nil {
+		return replication_configuration
+	}
+
 	m := make(map[string]interface{})
 
 	if r.Role != nil && *r.Role != "" {
@@ -1751,6 +1963,11 @@ func flattenAwsS3BucketReplicationConfiguration(r *s3.ReplicationConfiguration) 
 			if v.Destination.StorageClass != nil {
 				rd["storage_class"] = *v.Destination.StorageClass
 			}
+			if v.Destination.EncryptionConfiguration != nil {
+				if v.Destination.EncryptionConfiguration.ReplicaKmsKeyID != nil {
+					rd["replica_kms_key_id"] = *v.Destination.EncryptionConfiguration.ReplicaKmsKeyID
+				}
+			}
 			t["destination"] = schema.NewSet(destinationHash, []interface{}{rd})
 		}
 
@@ -1762,6 +1979,19 @@ func flattenAwsS3BucketReplicationConfiguration(r *s3.ReplicationConfiguration) 
 		}
 		if v.Status != nil {
 			t["status"] = *v.Status
+		}
+		if vssc := v.SourceSelectionCriteria; vssc != nil {
+			tssc := make(map[string]interface{})
+			if vssc.SseKmsEncryptedObjects != nil {
+				tSseKms := make(map[string]interface{})
+				if *vssc.SseKmsEncryptedObjects.Status == s3.SseKmsEncryptedObjectsStatusEnabled {
+					tSseKms["enabled"] = true
+				} else if *vssc.SseKmsEncryptedObjects.Status == s3.SseKmsEncryptedObjectsStatusDisabled {
+					tSseKms["enabled"] = false
+				}
+				tssc["sse_kms_encrypted_objects"] = schema.NewSet(sourceSseKmsObjectsHash, []interface{}{tSseKms})
+			}
+			t["source_selection_criteria"] = schema.NewSet(sourceSelectionCriteriaHash, []interface{}{tssc})
 		}
 		rules = append(rules, t)
 	}
@@ -1813,20 +2043,6 @@ func removeNil(data map[string]interface{}) map[string]interface{} {
 	}
 
 	return withoutNil
-}
-
-// DEPRECATED. Please consider using `normalizeJsonString` function instead.
-func normalizeJson(jsonString interface{}) string {
-	if jsonString == nil || jsonString == "" {
-		return ""
-	}
-	var j interface{}
-	err := json.Unmarshal([]byte(jsonString.(string)), &j)
-	if err != nil {
-		return fmt.Sprintf("Error parsing JSON: %s", err)
-	}
-	b, _ := json.Marshal(j)
-	return string(b[:])
 }
 
 func normalizeRegion(region string) string {
@@ -1938,6 +2154,12 @@ func rulesHash(v interface{}) int {
 	if v, ok := m["status"]; ok {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
+	if v, ok := m["destination"].(*schema.Set); ok && v.Len() > 0 {
+		buf.WriteString(fmt.Sprintf("%d-", destinationHash(v.List()[0])))
+	}
+	if v, ok := m["source_selection_criteria"].(*schema.Set); ok && v.Len() > 0 && v.List()[0] != nil {
+		buf.WriteString(fmt.Sprintf("%d-", sourceSelectionCriteriaHash(v.List()[0])))
+	}
 	return hashcode.String(buf.String())
 }
 
@@ -1950,6 +2172,33 @@ func destinationHash(v interface{}) int {
 	}
 	if v, ok := m["storage_class"]; ok {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+	if v, ok := m["replica_kms_key_id"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+	return hashcode.String(buf.String())
+}
+
+func sourceSelectionCriteriaHash(v interface{}) int {
+	// v is nil if empty source_selection_criteria is given.
+	if v == nil {
+		return 0
+	}
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+
+	if v, ok := m["sse_kms_encrypted_objects"].(*schema.Set); ok && v.Len() > 0 {
+		buf.WriteString(fmt.Sprintf("%d-", sourceSseKmsObjectsHash(v.List()[0])))
+	}
+	return hashcode.String(buf.String())
+}
+
+func sourceSseKmsObjectsHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+
+	if v, ok := m["enabled"]; ok {
+		buf.WriteString(fmt.Sprintf("%t-", v.(bool)))
 	}
 	return hashcode.String(buf.String())
 }
