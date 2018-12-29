@@ -9,9 +9,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/structure"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsCloudFormationStack() *schema.Resource {
@@ -20,6 +21,16 @@ func resourceAwsCloudFormationStack() *schema.Resource {
 		Read:   resourceAwsCloudFormationStackRead,
 		Update: resourceAwsCloudFormationStackUpdate,
 		Delete: resourceAwsCloudFormationStackDelete,
+
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(30 * time.Minute),
+			Update: schema.DefaultTimeout(30 * time.Minute),
+			Delete: schema.DefaultTimeout(30 * time.Minute),
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -76,9 +87,9 @@ func resourceAwsCloudFormationStack() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
-				ValidateFunc: validateJsonString,
+				ValidateFunc: validation.ValidateJsonString,
 				StateFunc: func(v interface{}) string {
-					json, _ := normalizeJsonString(v)
+					json, _ := structure.NormalizeJsonString(v)
 					return json
 				},
 			},
@@ -94,7 +105,6 @@ func resourceAwsCloudFormationStack() *schema.Resource {
 			"tags": {
 				Type:     schema.TypeMap,
 				Optional: true,
-				ForceNew: true,
 			},
 			"iam_role_arn": {
 				Type:     schema.TypeString,
@@ -105,7 +115,6 @@ func resourceAwsCloudFormationStack() *schema.Resource {
 }
 
 func resourceAwsCloudFormationStackCreate(d *schema.ResourceData, meta interface{}) error {
-	retryTimeout := int64(30)
 	conn := meta.(*AWSClient).cfconn
 
 	input := cloudformation.CreateStackInput{
@@ -114,7 +123,7 @@ func resourceAwsCloudFormationStackCreate(d *schema.ResourceData, meta interface
 	if v, ok := d.GetOk("template_body"); ok {
 		template, err := normalizeCloudFormationTemplate(v)
 		if err != nil {
-			return errwrap.Wrapf("template body contains an invalid JSON or YAML: {{err}}", err)
+			return fmt.Errorf("template body contains an invalid JSON or YAML: %s", err)
 		}
 		input.TemplateBody = aws.String(template)
 	}
@@ -137,9 +146,9 @@ func resourceAwsCloudFormationStackCreate(d *schema.ResourceData, meta interface
 		input.Parameters = expandCloudFormationParameters(v.(map[string]interface{}))
 	}
 	if v, ok := d.GetOk("policy_body"); ok {
-		policy, err := normalizeJsonString(v)
+		policy, err := structure.NormalizeJsonString(v)
 		if err != nil {
-			return errwrap.Wrapf("policy body contains an invalid JSON: {{err}}", err)
+			return fmt.Errorf("policy body contains an invalid JSON: %s", err)
 		}
 		input.StackPolicyBody = aws.String(policy)
 	}
@@ -152,10 +161,6 @@ func resourceAwsCloudFormationStackCreate(d *schema.ResourceData, meta interface
 	if v, ok := d.GetOk("timeout_in_minutes"); ok {
 		m := int64(v.(int))
 		input.TimeoutInMinutes = aws.Int64(m)
-		if m > retryTimeout {
-			retryTimeout = m + 5
-			log.Printf("[DEBUG] CloudFormation timeout: %d", retryTimeout)
-		}
 	}
 	if v, ok := d.GetOk("iam_role_arn"); ok {
 		input.RoleARN = aws.String(v.(string))
@@ -184,7 +189,7 @@ func resourceAwsCloudFormationStackCreate(d *schema.ResourceData, meta interface
 			"ROLLBACK_COMPLETE",
 			"ROLLBACK_FAILED",
 		},
-		Timeout:    time.Duration(retryTimeout) * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutCreate),
 		MinTimeout: 1 * time.Second,
 		Refresh: func() (interface{}, string, error) {
 			resp, err := conn.DescribeStacks(&cloudformation.DescribeStacksInput{
@@ -295,7 +300,7 @@ func resourceAwsCloudFormationStackRead(d *schema.ResourceData, meta interface{}
 
 	template, err := normalizeCloudFormationTemplate(*out.TemplateBody)
 	if err != nil {
-		return errwrap.Wrapf("template body contains an invalid JSON or YAML: {{err}}", err)
+		return fmt.Errorf("template body contains an invalid JSON or YAML: %s", err)
 	}
 	d.Set("template_body", template)
 
@@ -303,7 +308,6 @@ func resourceAwsCloudFormationStackRead(d *schema.ResourceData, meta interface{}
 	log.Printf("[DEBUG] Received CloudFormation stack: %s", stack)
 
 	d.Set("name", stack.StackName)
-	d.Set("arn", stack.StackId)
 	d.Set("iam_role_arn", stack.RoleARN)
 
 	if stack.TimeoutInMinutes != nil {
@@ -349,7 +353,6 @@ func resourceAwsCloudFormationStackRead(d *schema.ResourceData, meta interface{}
 }
 
 func resourceAwsCloudFormationStackUpdate(d *schema.ResourceData, meta interface{}) error {
-	retryTimeout := int64(30)
 	conn := meta.(*AWSClient).cfconn
 
 	input := &cloudformation.UpdateStackInput{
@@ -363,7 +366,7 @@ func resourceAwsCloudFormationStackUpdate(d *schema.ResourceData, meta interface
 	if v, ok := d.GetOk("template_body"); ok && input.TemplateURL == nil {
 		template, err := normalizeCloudFormationTemplate(v)
 		if err != nil {
-			return errwrap.Wrapf("template body contains an invalid JSON or YAML: {{err}}", err)
+			return fmt.Errorf("template body contains an invalid JSON or YAML: %s", err)
 		}
 		input.TemplateBody = aws.String(template)
 	}
@@ -382,10 +385,14 @@ func resourceAwsCloudFormationStackUpdate(d *schema.ResourceData, meta interface
 		input.Parameters = expandCloudFormationParameters(v.(map[string]interface{}))
 	}
 
+	if v, ok := d.GetOk("tags"); ok {
+		input.Tags = expandCloudFormationTags(v.(map[string]interface{}))
+	}
+
 	if d.HasChange("policy_body") {
-		policy, err := normalizeJsonString(d.Get("policy_body"))
+		policy, err := structure.NormalizeJsonString(d.Get("policy_body"))
 		if err != nil {
-			return errwrap.Wrapf("policy body contains an invalid JSON: {{err}}", err)
+			return fmt.Errorf("policy body contains an invalid JSON: %s", err)
 		}
 		input.StackPolicyBody = aws.String(policy)
 	}
@@ -416,13 +423,6 @@ func resourceAwsCloudFormationStackUpdate(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	if v, ok := d.GetOk("timeout_in_minutes"); ok {
-		m := int64(v.(int))
-		if m > retryTimeout {
-			retryTimeout = m + 5
-			log.Printf("[DEBUG] CloudFormation timeout: %d", retryTimeout)
-		}
-	}
 	var lastStatus string
 	var stackId string
 	wait := resource.StateChangeConf{
@@ -438,7 +438,7 @@ func resourceAwsCloudFormationStackUpdate(d *schema.ResourceData, meta interface
 			"UPDATE_ROLLBACK_COMPLETE",
 			"UPDATE_ROLLBACK_FAILED",
 		},
-		Timeout:    time.Duration(retryTimeout) * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutUpdate),
 		MinTimeout: 5 * time.Second,
 		Refresh: func() (interface{}, string, error) {
 			resp, err := conn.DescribeStacks(&cloudformation.DescribeStacksInput{
@@ -508,7 +508,7 @@ func resourceAwsCloudFormationStackDelete(d *schema.ResourceData, meta interface
 			"DELETE_COMPLETE",
 			"DELETE_FAILED",
 		},
-		Timeout:    30 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutDelete),
 		MinTimeout: 5 * time.Second,
 		Refresh: func() (interface{}, string, error) {
 			resp, err := conn.DescribeStacks(&cloudformation.DescribeStacksInput{
@@ -558,8 +558,6 @@ func resourceAwsCloudFormationStackDelete(d *schema.ResourceData, meta interface
 	}
 
 	log.Printf("[DEBUG] CloudFormation stack %q has been deleted", d.Id())
-
-	d.SetId("")
 
 	return nil
 }

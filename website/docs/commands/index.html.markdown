@@ -73,6 +73,31 @@ Usage: terraform graph [options] PATH
   to read this format.
 ```
 
+## Shell Tab-completion
+
+If you use either `bash` or `zsh` as your command shell, Terraform can provide
+tab-completion support for all command names and (at this time) _some_ command
+arguments.
+
+To add the necessary commands to your shell profile, run the following command:
+
+```bash
+terraform -install-autocomplete
+```
+
+After installation, it is necessary to restart your shell or to re-read its
+profile script before completion will be activated.
+
+To uninstall the completion hook, assuming that it has not been modified
+manually in the shell profile, run the following command:
+
+```bash
+terraform -uninstall-autocomplete
+```
+
+Currently not all of Terraform's subcommands have full tab-completion support
+for all arguments. We plan to improve tab-completion coverage over time.
+
 ## Upgrade and Security Bulletin Checks
 
 The Terraform CLI commands interact with the HashiCorp service
@@ -91,13 +116,10 @@ optional and can be disabled.
 Checkpoint itself can be entirely disabled for all HashiCorp products by
 setting the environment variable `CHECKPOINT_DISABLE` to any non-empty value.
 
-Alternatively, settings in Terraform's global configuration file can be used
-to disable checkpoint features. On Unix systems this file is named
-`.terraformrc` and is placed within the home directory of the user running
-Terraform. On Windows, this file is named `terraform.rc` and is and is placed
-in the current user's _Application Data_ folder.
-
-The following checkpoint-related settings are supported in this file:
+Alternatively, settings in
+[the CLI configuration file](/docs/commands/cli-config.html) can be used to
+disable checkpoint features. The following checkpoint-related settings are
+supported in this file:
 
 * `disable_checkpoint` - set to `true` to disable checkpoint calls
   entirely. This is similar to the `CHECKPOINT_DISABLE` environment variable

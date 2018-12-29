@@ -1,10 +1,9 @@
 package terraform
 
 import (
-	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/states"
 )
 
 // StateTransformer is a GraphTransformer that adds the elements of
@@ -13,52 +12,62 @@ import (
 // This transform is used for example by the DestroyPlanGraphBuilder to ensure
 // that only resources that are in the state are represented in the graph.
 type StateTransformer struct {
-	Concrete ConcreteResourceNodeFunc
+	// ConcreteCurrent and ConcreteDeposed are used to specialize the abstract
+	// resource instance nodes that this transformer will create.
+	//
+	// If either of these is nil, the objects of that type will be skipped and
+	// not added to the graph at all. It doesn't make sense to use this
+	// transformer without setting at least one of these, since that would
+	// skip everything and thus be a no-op.
+	ConcreteCurrent ConcreteResourceInstanceNodeFunc
+	ConcreteDeposed ConcreteResourceInstanceDeposedNodeFunc
 
-	State *State
+	State *states.State
 }
 
 func (t *StateTransformer) Transform(g *Graph) error {
-	// If the state is nil or empty (nil is empty) then do nothing
-	if t.State.Empty() {
+	if !t.State.HasResources() {
+		log.Printf("[TRACE] StateTransformer: state is empty, so nothing to do")
 		return nil
 	}
 
-	// Go through all the modules in the diff.
-	log.Printf("[TRACE] StateTransformer: starting")
-	var nodes []dag.Vertex
-	for _, ms := range t.State.Modules {
-		log.Printf("[TRACE] StateTransformer: Module: %v", ms.Path)
-
-		// Go through all the resources in this module.
-		for name, rs := range ms.Resources {
-			log.Printf("[TRACE] StateTransformer: Resource %q: %#v", name, rs)
-
-			// Add the resource to the graph
-			addr, err := parseResourceAddressInternal(name)
-			if err != nil {
-				panic(fmt.Sprintf(
-					"Error parsing internal name, this is a bug: %q", name))
-			}
-
-			// Very important: add the module path for this resource to
-			// the address. Remove "root" from it.
-			addr.Path = ms.Path[1:]
-
-			// Add the resource to the graph
-			abstract := &NodeAbstractResource{Addr: addr}
-			var node dag.Vertex = abstract
-			if f := t.Concrete; f != nil {
-				node = f(abstract)
-			}
-
-			nodes = append(nodes, node)
-		}
+	switch {
+	case t.ConcreteCurrent != nil && t.ConcreteDeposed != nil:
+		log.Printf("[TRACE] StateTransformer: creating nodes for both current and deposed instance objects")
+	case t.ConcreteCurrent != nil:
+		log.Printf("[TRACE] StateTransformer: creating nodes for current instance objects only")
+	case t.ConcreteDeposed != nil:
+		log.Printf("[TRACE] StateTransformer: creating nodes for deposed instance objects only")
+	default:
+		log.Printf("[TRACE] StateTransformer: pointless no-op call, creating no nodes at all")
 	}
 
-	// Add all the nodes to the graph
-	for _, n := range nodes {
-		g.Add(n)
+	for _, ms := range t.State.Modules {
+		moduleAddr := ms.Addr
+
+		for _, rs := range ms.Resources {
+			resourceAddr := rs.Addr.Absolute(moduleAddr)
+
+			for key, is := range rs.Instances {
+				addr := resourceAddr.Instance(key)
+
+				if obj := is.Current; obj != nil && t.ConcreteCurrent != nil {
+					abstract := NewNodeAbstractResourceInstance(addr)
+					node := t.ConcreteCurrent(abstract)
+					g.Add(node)
+					log.Printf("[TRACE] StateTransformer: added %T for %s current object", node, addr)
+				}
+
+				if t.ConcreteDeposed != nil {
+					for dk := range is.Deposed {
+						abstract := NewNodeAbstractResourceInstance(addr)
+						node := t.ConcreteDeposed(abstract, dk)
+						g.Add(node)
+						log.Printf("[TRACE] StateTransformer: added %T for %s deposed object %s", node, addr, dk)
+					}
+				}
+			}
+		}
 	}
 
 	return nil

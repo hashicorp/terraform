@@ -31,6 +31,20 @@ const (
 	// The authorization quota for the cluster security group has been reached.
 	ErrCodeAuthorizationQuotaExceededFault = "AuthorizationQuotaExceeded"
 
+	// ErrCodeBatchDeleteRequestSizeExceededFault for service response error code
+	// "BatchDeleteRequestSizeExceeded".
+	//
+	// The maximum number for a batch delete of snapshots has been reached. The
+	// limit is 100.
+	ErrCodeBatchDeleteRequestSizeExceededFault = "BatchDeleteRequestSizeExceeded"
+
+	// ErrCodeBatchModifyClusterSnapshotsLimitExceededFault for service response error code
+	// "BatchModifyClusterSnapshotsLimitExceededFault".
+	//
+	// The maximum number for snapshot identifiers has been reached. The limit is
+	// 100.
+	ErrCodeBatchModifyClusterSnapshotsLimitExceededFault = "BatchModifyClusterSnapshotsLimitExceededFault"
+
 	// ErrCodeBucketNotFoundFault for service response error code
 	// "BucketNotFoundFault".
 	//
@@ -48,6 +62,12 @@ const (
 	//
 	// The ClusterIdentifier parameter does not refer to an existing cluster.
 	ErrCodeClusterNotFoundFault = "ClusterNotFound"
+
+	// ErrCodeClusterOnLatestRevisionFault for service response error code
+	// "ClusterOnLatestRevision".
+	//
+	// Cluster is already on the latest database revision.
+	ErrCodeClusterOnLatestRevisionFault = "ClusterOnLatestRevision"
 
 	// ErrCodeClusterParameterGroupAlreadyExistsFault for service response error code
 	// "ClusterParameterGroupAlreadyExists".
@@ -263,6 +283,12 @@ const (
 	// The state of the cluster security group is not available.
 	ErrCodeInvalidClusterSecurityGroupStateFault = "InvalidClusterSecurityGroupState"
 
+	// ErrCodeInvalidClusterSnapshotScheduleStateFault for service response error code
+	// "InvalidClusterSnapshotScheduleState".
+	//
+	// The cluster snapshot schedule state is not valid.
+	ErrCodeInvalidClusterSnapshotScheduleStateFault = "InvalidClusterSnapshotScheduleState"
+
 	// ErrCodeInvalidClusterSnapshotStateFault for service response error code
 	// "InvalidClusterSnapshotState".
 	//
@@ -288,6 +314,12 @@ const (
 	// The state of the subnet is invalid.
 	ErrCodeInvalidClusterSubnetStateFault = "InvalidClusterSubnetStateFault"
 
+	// ErrCodeInvalidClusterTrackFault for service response error code
+	// "InvalidClusterTrack".
+	//
+	// The provided cluster track name is not valid.
+	ErrCodeInvalidClusterTrackFault = "InvalidClusterTrack"
+
 	// ErrCodeInvalidElasticIpFault for service response error code
 	// "InvalidElasticIpFault".
 	//
@@ -308,11 +340,25 @@ const (
 	// in use by one or more Amazon Redshift clusters.
 	ErrCodeInvalidHsmConfigurationStateFault = "InvalidHsmConfigurationStateFault"
 
+	// ErrCodeInvalidReservedNodeStateFault for service response error code
+	// "InvalidReservedNodeState".
+	//
+	// Indicates that the Reserved Node being exchanged is not in an active state.
+	ErrCodeInvalidReservedNodeStateFault = "InvalidReservedNodeState"
+
 	// ErrCodeInvalidRestoreFault for service response error code
 	// "InvalidRestore".
 	//
 	// The restore is invalid.
 	ErrCodeInvalidRestoreFault = "InvalidRestore"
+
+	// ErrCodeInvalidRetentionPeriodFault for service response error code
+	// "InvalidRetentionPeriodFault".
+	//
+	// The retention period specified is either in the past or is not a valid value.
+	//
+	// The value must be either -1 or an integer between 1 and 3,653.
+	ErrCodeInvalidRetentionPeriodFault = "InvalidRetentionPeriodFault"
 
 	// ErrCodeInvalidS3BucketNameFault for service response error code
 	// "InvalidS3BucketNameFault".
@@ -328,6 +374,12 @@ const (
 	// The string specified for the logging S3 key prefix does not comply with the
 	// documented constraints.
 	ErrCodeInvalidS3KeyPrefixFault = "InvalidS3KeyPrefixFault"
+
+	// ErrCodeInvalidScheduleFault for service response error code
+	// "InvalidSchedule".
+	//
+	// The schedule you submitted isn't valid.
+	ErrCodeInvalidScheduleFault = "InvalidSchedule"
 
 	// ErrCodeInvalidSnapshotCopyGrantStateFault for service response error code
 	// "InvalidSnapshotCopyGrantStateFault".
@@ -396,6 +448,12 @@ const (
 	// User already has a reservation with the given identifier.
 	ErrCodeReservedNodeAlreadyExistsFault = "ReservedNodeAlreadyExists"
 
+	// ErrCodeReservedNodeAlreadyMigratedFault for service response error code
+	// "ReservedNodeAlreadyMigrated".
+	//
+	// Indicates that the reserved node has already been exchanged.
+	ErrCodeReservedNodeAlreadyMigratedFault = "ReservedNodeAlreadyMigrated"
+
 	// ErrCodeReservedNodeNotFoundFault for service response error code
 	// "ReservedNodeNotFound".
 	//
@@ -448,6 +506,12 @@ const (
 	// exist.
 	ErrCodeSNSTopicArnNotFoundFault = "SNSTopicArnNotFound"
 
+	// ErrCodeScheduleDefinitionTypeUnsupportedFault for service response error code
+	// "ScheduleDefinitionTypeUnsupported".
+	//
+	// The definition you submitted is not supported.
+	ErrCodeScheduleDefinitionTypeUnsupportedFault = "ScheduleDefinitionTypeUnsupported"
+
 	// ErrCodeSnapshotCopyAlreadyDisabledFault for service response error code
 	// "SnapshotCopyAlreadyDisabledFault".
 	//
@@ -486,6 +550,30 @@ const (
 	// The AWS account has exceeded the maximum number of snapshot copy grants in
 	// this region.
 	ErrCodeSnapshotCopyGrantQuotaExceededFault = "SnapshotCopyGrantQuotaExceededFault"
+
+	// ErrCodeSnapshotScheduleAlreadyExistsFault for service response error code
+	// "SnapshotScheduleAlreadyExists".
+	//
+	// The specified snapshot schedule already exists.
+	ErrCodeSnapshotScheduleAlreadyExistsFault = "SnapshotScheduleAlreadyExists"
+
+	// ErrCodeSnapshotScheduleNotFoundFault for service response error code
+	// "SnapshotScheduleNotFound".
+	//
+	// We could not find the specified snapshot schedule.
+	ErrCodeSnapshotScheduleNotFoundFault = "SnapshotScheduleNotFound"
+
+	// ErrCodeSnapshotScheduleQuotaExceededFault for service response error code
+	// "SnapshotScheduleQuotaExceeded".
+	//
+	// You have exceeded the quota of snapshot schedules.
+	ErrCodeSnapshotScheduleQuotaExceededFault = "SnapshotScheduleQuotaExceeded"
+
+	// ErrCodeSnapshotScheduleUpdateInProgressFault for service response error code
+	// "SnapshotScheduleUpdateInProgress".
+	//
+	// The specified snapshot schedule is already being updated.
+	ErrCodeSnapshotScheduleUpdateInProgressFault = "SnapshotScheduleUpdateInProgress"
 
 	// ErrCodeSourceNotFoundFault for service response error code
 	// "SourceNotFound".
@@ -535,6 +623,13 @@ const (
 	// The allowed values are ERROR and INFO.
 	ErrCodeSubscriptionSeverityNotFoundFault = "SubscriptionSeverityNotFound"
 
+	// ErrCodeTableLimitExceededFault for service response error code
+	// "TableLimitExceeded".
+	//
+	// The number of tables in the cluster exceeds the limit for the requested new
+	// cluster node type.
+	ErrCodeTableLimitExceededFault = "TableLimitExceeded"
+
 	// ErrCodeTableRestoreNotFoundFault for service response error code
 	// "TableRestoreNotFoundFault".
 	//
@@ -544,7 +639,7 @@ const (
 	// ErrCodeTagLimitExceededFault for service response error code
 	// "TagLimitExceededFault".
 	//
-	// The request exceeds the limit of 10 tags for the resource.
+	// You have exceeded the number of tags allowed.
 	ErrCodeTagLimitExceededFault = "TagLimitExceededFault"
 
 	// ErrCodeUnauthorizedOperation for service response error code

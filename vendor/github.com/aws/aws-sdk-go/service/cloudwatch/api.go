@@ -17,19 +17,18 @@ const opDeleteAlarms = "DeleteAlarms"
 
 // DeleteAlarmsRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteAlarms operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See DeleteAlarms for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteAlarms method directly
-// instead.
+// See DeleteAlarms for more information on using the DeleteAlarms
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteAlarmsRequest method.
 //    req, resp := client.DeleteAlarmsRequest(params)
@@ -39,7 +38,7 @@ const opDeleteAlarms = "DeleteAlarms"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/DeleteAlarms
+// See also, https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/DeleteAlarms
 func (c *CloudWatch) DeleteAlarmsRequest(input *DeleteAlarmsInput) (req *request.Request, output *DeleteAlarmsOutput) {
 	op := &request.Operation{
 		Name:       opDeleteAlarms,
@@ -53,8 +52,7 @@ func (c *CloudWatch) DeleteAlarmsRequest(input *DeleteAlarmsInput) (req *request
 
 	output = &DeleteAlarmsOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -73,7 +71,7 @@ func (c *CloudWatch) DeleteAlarmsRequest(input *DeleteAlarmsInput) (req *request
 //   * ErrCodeResourceNotFound "ResourceNotFound"
 //   The named resource does not exist.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/DeleteAlarms
+// See also, https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/DeleteAlarms
 func (c *CloudWatch) DeleteAlarms(input *DeleteAlarmsInput) (*DeleteAlarmsOutput, error) {
 	req, out := c.DeleteAlarmsRequest(input)
 	return out, req.Send()
@@ -95,23 +93,109 @@ func (c *CloudWatch) DeleteAlarmsWithContext(ctx aws.Context, input *DeleteAlarm
 	return out, req.Send()
 }
 
+const opDeleteDashboards = "DeleteDashboards"
+
+// DeleteDashboardsRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteDashboards operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteDashboards for more information on using the DeleteDashboards
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteDashboardsRequest method.
+//    req, resp := client.DeleteDashboardsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/DeleteDashboards
+func (c *CloudWatch) DeleteDashboardsRequest(input *DeleteDashboardsInput) (req *request.Request, output *DeleteDashboardsOutput) {
+	op := &request.Operation{
+		Name:       opDeleteDashboards,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteDashboardsInput{}
+	}
+
+	output = &DeleteDashboardsOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// DeleteDashboards API operation for Amazon CloudWatch.
+//
+// Deletes all dashboards that you specify. You may specify up to 100 dashboards
+// to delete. If there is an error during this call, no dashboards are deleted.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch's
+// API operation DeleteDashboards for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValue"
+//   The value of an input parameter is bad or out-of-range.
+//
+//   * ErrCodeDashboardNotFoundError "ResourceNotFound"
+//   The specified dashboard does not exist.
+//
+//   * ErrCodeInternalServiceFault "InternalServiceError"
+//   Request processing has failed due to some unknown error, exception, or failure.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/DeleteDashboards
+func (c *CloudWatch) DeleteDashboards(input *DeleteDashboardsInput) (*DeleteDashboardsOutput, error) {
+	req, out := c.DeleteDashboardsRequest(input)
+	return out, req.Send()
+}
+
+// DeleteDashboardsWithContext is the same as DeleteDashboards with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteDashboards for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatch) DeleteDashboardsWithContext(ctx aws.Context, input *DeleteDashboardsInput, opts ...request.Option) (*DeleteDashboardsOutput, error) {
+	req, out := c.DeleteDashboardsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDescribeAlarmHistory = "DescribeAlarmHistory"
 
 // DescribeAlarmHistoryRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeAlarmHistory operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See DescribeAlarmHistory for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeAlarmHistory method directly
-// instead.
+// See DescribeAlarmHistory for more information on using the DescribeAlarmHistory
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeAlarmHistoryRequest method.
 //    req, resp := client.DescribeAlarmHistoryRequest(params)
@@ -121,7 +205,7 @@ const opDescribeAlarmHistory = "DescribeAlarmHistory"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/DescribeAlarmHistory
+// See also, https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/DescribeAlarmHistory
 func (c *CloudWatch) DescribeAlarmHistoryRequest(input *DescribeAlarmHistoryInput) (req *request.Request, output *DescribeAlarmHistoryOutput) {
 	op := &request.Operation{
 		Name:       opDescribeAlarmHistory,
@@ -150,8 +234,7 @@ func (c *CloudWatch) DescribeAlarmHistoryRequest(input *DescribeAlarmHistoryInpu
 // by date range or item type. If an alarm name is not specified, the histories
 // for all alarms are returned.
 //
-// Note that Amazon CloudWatch retains the history of an alarm even if you delete
-// the alarm.
+// CloudWatch retains the history of an alarm even if you delete the alarm.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -164,7 +247,7 @@ func (c *CloudWatch) DescribeAlarmHistoryRequest(input *DescribeAlarmHistoryInpu
 //   * ErrCodeInvalidNextToken "InvalidNextToken"
 //   The next token specified is invalid.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/DescribeAlarmHistory
+// See also, https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/DescribeAlarmHistory
 func (c *CloudWatch) DescribeAlarmHistory(input *DescribeAlarmHistoryInput) (*DescribeAlarmHistoryOutput, error) {
 	req, out := c.DescribeAlarmHistoryRequest(input)
 	return out, req.Send()
@@ -240,19 +323,18 @@ const opDescribeAlarms = "DescribeAlarms"
 
 // DescribeAlarmsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeAlarms operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See DescribeAlarms for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeAlarms method directly
-// instead.
+// See DescribeAlarms for more information on using the DescribeAlarms
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeAlarmsRequest method.
 //    req, resp := client.DescribeAlarmsRequest(params)
@@ -262,7 +344,7 @@ const opDescribeAlarms = "DescribeAlarms"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/DescribeAlarms
+// See also, https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/DescribeAlarms
 func (c *CloudWatch) DescribeAlarmsRequest(input *DescribeAlarmsInput) (req *request.Request, output *DescribeAlarmsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeAlarms,
@@ -302,7 +384,7 @@ func (c *CloudWatch) DescribeAlarmsRequest(input *DescribeAlarmsInput) (req *req
 //   * ErrCodeInvalidNextToken "InvalidNextToken"
 //   The next token specified is invalid.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/DescribeAlarms
+// See also, https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/DescribeAlarms
 func (c *CloudWatch) DescribeAlarms(input *DescribeAlarmsInput) (*DescribeAlarmsOutput, error) {
 	req, out := c.DescribeAlarmsRequest(input)
 	return out, req.Send()
@@ -378,19 +460,18 @@ const opDescribeAlarmsForMetric = "DescribeAlarmsForMetric"
 
 // DescribeAlarmsForMetricRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeAlarmsForMetric operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See DescribeAlarmsForMetric for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeAlarmsForMetric method directly
-// instead.
+// See DescribeAlarmsForMetric for more information on using the DescribeAlarmsForMetric
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeAlarmsForMetricRequest method.
 //    req, resp := client.DescribeAlarmsForMetricRequest(params)
@@ -400,7 +481,7 @@ const opDescribeAlarmsForMetric = "DescribeAlarmsForMetric"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/DescribeAlarmsForMetric
+// See also, https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/DescribeAlarmsForMetric
 func (c *CloudWatch) DescribeAlarmsForMetricRequest(input *DescribeAlarmsForMetricInput) (req *request.Request, output *DescribeAlarmsForMetricOutput) {
 	op := &request.Operation{
 		Name:       opDescribeAlarmsForMetric,
@@ -419,8 +500,8 @@ func (c *CloudWatch) DescribeAlarmsForMetricRequest(input *DescribeAlarmsForMetr
 
 // DescribeAlarmsForMetric API operation for Amazon CloudWatch.
 //
-// Retrieves the alarms for the specified metric. Specify a statistic, period,
-// or unit to filter the results.
+// Retrieves the alarms for the specified metric. To filter the results, specify
+// a statistic, period, or unit.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -428,7 +509,7 @@ func (c *CloudWatch) DescribeAlarmsForMetricRequest(input *DescribeAlarmsForMetr
 //
 // See the AWS API reference guide for Amazon CloudWatch's
 // API operation DescribeAlarmsForMetric for usage and error information.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/DescribeAlarmsForMetric
+// See also, https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/DescribeAlarmsForMetric
 func (c *CloudWatch) DescribeAlarmsForMetric(input *DescribeAlarmsForMetricInput) (*DescribeAlarmsForMetricOutput, error) {
 	req, out := c.DescribeAlarmsForMetricRequest(input)
 	return out, req.Send()
@@ -454,19 +535,18 @@ const opDisableAlarmActions = "DisableAlarmActions"
 
 // DisableAlarmActionsRequest generates a "aws/request.Request" representing the
 // client's request for the DisableAlarmActions operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See DisableAlarmActions for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DisableAlarmActions method directly
-// instead.
+// See DisableAlarmActions for more information on using the DisableAlarmActions
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DisableAlarmActionsRequest method.
 //    req, resp := client.DisableAlarmActionsRequest(params)
@@ -476,7 +556,7 @@ const opDisableAlarmActions = "DisableAlarmActions"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/DisableAlarmActions
+// See also, https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/DisableAlarmActions
 func (c *CloudWatch) DisableAlarmActionsRequest(input *DisableAlarmActionsInput) (req *request.Request, output *DisableAlarmActionsOutput) {
 	op := &request.Operation{
 		Name:       opDisableAlarmActions,
@@ -490,8 +570,7 @@ func (c *CloudWatch) DisableAlarmActionsRequest(input *DisableAlarmActionsInput)
 
 	output = &DisableAlarmActionsOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -506,7 +585,7 @@ func (c *CloudWatch) DisableAlarmActionsRequest(input *DisableAlarmActionsInput)
 //
 // See the AWS API reference guide for Amazon CloudWatch's
 // API operation DisableAlarmActions for usage and error information.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/DisableAlarmActions
+// See also, https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/DisableAlarmActions
 func (c *CloudWatch) DisableAlarmActions(input *DisableAlarmActionsInput) (*DisableAlarmActionsOutput, error) {
 	req, out := c.DisableAlarmActionsRequest(input)
 	return out, req.Send()
@@ -532,19 +611,18 @@ const opEnableAlarmActions = "EnableAlarmActions"
 
 // EnableAlarmActionsRequest generates a "aws/request.Request" representing the
 // client's request for the EnableAlarmActions operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See EnableAlarmActions for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the EnableAlarmActions method directly
-// instead.
+// See EnableAlarmActions for more information on using the EnableAlarmActions
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the EnableAlarmActionsRequest method.
 //    req, resp := client.EnableAlarmActionsRequest(params)
@@ -554,7 +632,7 @@ const opEnableAlarmActions = "EnableAlarmActions"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/EnableAlarmActions
+// See also, https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/EnableAlarmActions
 func (c *CloudWatch) EnableAlarmActionsRequest(input *EnableAlarmActionsInput) (req *request.Request, output *EnableAlarmActionsOutput) {
 	op := &request.Operation{
 		Name:       opEnableAlarmActions,
@@ -568,8 +646,7 @@ func (c *CloudWatch) EnableAlarmActionsRequest(input *EnableAlarmActionsInput) (
 
 	output = &EnableAlarmActionsOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -583,7 +660,7 @@ func (c *CloudWatch) EnableAlarmActionsRequest(input *EnableAlarmActionsInput) (
 //
 // See the AWS API reference guide for Amazon CloudWatch's
 // API operation EnableAlarmActions for usage and error information.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/EnableAlarmActions
+// See also, https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/EnableAlarmActions
 func (c *CloudWatch) EnableAlarmActions(input *EnableAlarmActionsInput) (*EnableAlarmActionsOutput, error) {
 	req, out := c.EnableAlarmActionsRequest(input)
 	return out, req.Send()
@@ -605,23 +682,224 @@ func (c *CloudWatch) EnableAlarmActionsWithContext(ctx aws.Context, input *Enabl
 	return out, req.Send()
 }
 
+const opGetDashboard = "GetDashboard"
+
+// GetDashboardRequest generates a "aws/request.Request" representing the
+// client's request for the GetDashboard operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetDashboard for more information on using the GetDashboard
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetDashboardRequest method.
+//    req, resp := client.GetDashboardRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/GetDashboard
+func (c *CloudWatch) GetDashboardRequest(input *GetDashboardInput) (req *request.Request, output *GetDashboardOutput) {
+	op := &request.Operation{
+		Name:       opGetDashboard,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetDashboardInput{}
+	}
+
+	output = &GetDashboardOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetDashboard API operation for Amazon CloudWatch.
+//
+// Displays the details of the dashboard that you specify.
+//
+// To copy an existing dashboard, use GetDashboard, and then use the data returned
+// within DashboardBody as the template for the new dashboard when you call
+// PutDashboard to create the copy.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch's
+// API operation GetDashboard for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValue"
+//   The value of an input parameter is bad or out-of-range.
+//
+//   * ErrCodeDashboardNotFoundError "ResourceNotFound"
+//   The specified dashboard does not exist.
+//
+//   * ErrCodeInternalServiceFault "InternalServiceError"
+//   Request processing has failed due to some unknown error, exception, or failure.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/GetDashboard
+func (c *CloudWatch) GetDashboard(input *GetDashboardInput) (*GetDashboardOutput, error) {
+	req, out := c.GetDashboardRequest(input)
+	return out, req.Send()
+}
+
+// GetDashboardWithContext is the same as GetDashboard with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetDashboard for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatch) GetDashboardWithContext(ctx aws.Context, input *GetDashboardInput, opts ...request.Option) (*GetDashboardOutput, error) {
+	req, out := c.GetDashboardRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opGetMetricData = "GetMetricData"
+
+// GetMetricDataRequest generates a "aws/request.Request" representing the
+// client's request for the GetMetricData operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetMetricData for more information on using the GetMetricData
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetMetricDataRequest method.
+//    req, resp := client.GetMetricDataRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/GetMetricData
+func (c *CloudWatch) GetMetricDataRequest(input *GetMetricDataInput) (req *request.Request, output *GetMetricDataOutput) {
+	op := &request.Operation{
+		Name:       opGetMetricData,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetMetricDataInput{}
+	}
+
+	output = &GetMetricDataOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetMetricData API operation for Amazon CloudWatch.
+//
+// You can use the GetMetricData API to retrieve as many as 100 different metrics
+// in a single request, with a total of as many as 100,800 datapoints. You can
+// also optionally perform math expressions on the values of the returned statistics,
+// to create new time series that represent new insights into your data. For
+// example, using Lambda metrics, you could divide the Errors metric by the
+// Invocations metric to get an error rate time series. For more information
+// about metric math expressions, see Metric Math Syntax and Functions (http://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/using-metric-math.html#metric-math-syntax)
+// in the Amazon CloudWatch User Guide.
+//
+// Calls to the GetMetricData API have a different pricing structure than calls
+// to GetMetricStatistics. For more information about pricing, see Amazon CloudWatch
+// Pricing (https://aws.amazon.com/cloudwatch/pricing/).
+//
+// Amazon CloudWatch retains metric data as follows:
+//
+//    * Data points with a period of less than 60 seconds are available for
+//    3 hours. These data points are high-resolution metrics and are available
+//    only for custom metrics that have been defined with a StorageResolution
+//    of 1.
+//
+//    * Data points with a period of 60 seconds (1-minute) are available for
+//    15 days.
+//
+//    * Data points with a period of 300 seconds (5-minute) are available for
+//    63 days.
+//
+//    * Data points with a period of 3600 seconds (1 hour) are available for
+//    455 days (15 months).
+//
+// Data points that are initially published with a shorter period are aggregated
+// together for long-term storage. For example, if you collect data using a
+// period of 1 minute, the data remains available for 15 days with 1-minute
+// resolution. After 15 days, this data is still available, but is aggregated
+// and retrievable only with a resolution of 5 minutes. After 63 days, the data
+// is further aggregated and is available with a resolution of 1 hour.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch's
+// API operation GetMetricData for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidNextToken "InvalidNextToken"
+//   The next token specified is invalid.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/GetMetricData
+func (c *CloudWatch) GetMetricData(input *GetMetricDataInput) (*GetMetricDataOutput, error) {
+	req, out := c.GetMetricDataRequest(input)
+	return out, req.Send()
+}
+
+// GetMetricDataWithContext is the same as GetMetricData with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetMetricData for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatch) GetMetricDataWithContext(ctx aws.Context, input *GetMetricDataInput, opts ...request.Option) (*GetMetricDataOutput, error) {
+	req, out := c.GetMetricDataRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opGetMetricStatistics = "GetMetricStatistics"
 
 // GetMetricStatisticsRequest generates a "aws/request.Request" representing the
 // client's request for the GetMetricStatistics operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See GetMetricStatistics for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetMetricStatistics method directly
-// instead.
+// See GetMetricStatistics for more information on using the GetMetricStatistics
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetMetricStatisticsRequest method.
 //    req, resp := client.GetMetricStatisticsRequest(params)
@@ -631,7 +909,7 @@ const opGetMetricStatistics = "GetMetricStatistics"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/GetMetricStatistics
+// See also, https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/GetMetricStatistics
 func (c *CloudWatch) GetMetricStatisticsRequest(input *GetMetricStatisticsInput) (req *request.Request, output *GetMetricStatisticsOutput) {
 	op := &request.Operation{
 		Name:       opGetMetricStatistics,
@@ -652,43 +930,57 @@ func (c *CloudWatch) GetMetricStatisticsRequest(input *GetMetricStatisticsInput)
 //
 // Gets statistics for the specified metric.
 //
-// Amazon CloudWatch retains metric data as follows:
-//
-//    * Data points with a period of 60 seconds (1 minute) are available for
-//    15 days
-//
-//    * Data points with a period of 300 seconds (5 minute) are available for
-//    63 days
-//
-//    * Data points with a period of 3600 seconds (1 hour) are available for
-//    455 days (15 months)
-//
-// Note that CloudWatch started retaining 5-minute and 1-hour metric data as
-// of 9 July 2016.
-//
 // The maximum number of data points returned from a single call is 1,440. If
-// you request more than 1,440 data points, Amazon CloudWatch returns an error.
-// To reduce the number of data points, you can narrow the specified time range
+// you request more than 1,440 data points, CloudWatch returns an error. To
+// reduce the number of data points, you can narrow the specified time range
 // and make multiple requests across adjacent time ranges, or you can increase
-// the specified period. A period can be as short as one minute (60 seconds).
-// Note that data points are not returned in chronological order.
+// the specified period. Data points are not returned in chronological order.
 //
-// Amazon CloudWatch aggregates data points based on the length of the period
-// that you specify. For example, if you request statistics with a one-hour
-// period, Amazon CloudWatch aggregates all data points with time stamps that
-// fall within each one-hour period. Therefore, the number of values aggregated
-// by CloudWatch is larger than the number of data points returned.
+// CloudWatch aggregates data points based on the length of the period that
+// you specify. For example, if you request statistics with a one-hour period,
+// CloudWatch aggregates all data points with time stamps that fall within each
+// one-hour period. Therefore, the number of values aggregated by CloudWatch
+// is larger than the number of data points returned.
 //
 // CloudWatch needs raw data points to calculate percentile statistics. If you
-// publish data using a statistic set instead, you cannot retrieve percentile
-// statistics for this data unless one of the following conditions is true:
+// publish data using a statistic set instead, you can only retrieve percentile
+// statistics for this data if one of the following conditions is true:
 //
-//    * The SampleCount of the statistic set is 1
+//    * The SampleCount value of the statistic set is 1.
 //
-//    * The Min and the Max of the statistic set are equal
+//    * The Min and the Max values of the statistic set are equal.
 //
-// For a list of metrics and dimensions supported by AWS services, see the Amazon
-// CloudWatch Metrics and Dimensions Reference (http://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/CW_Support_For_AWS.html)
+// Percentile statistics are not available for metrics when any of the metric
+// values are negative numbers.
+//
+// Amazon CloudWatch retains metric data as follows:
+//
+//    * Data points with a period of less than 60 seconds are available for
+//    3 hours. These data points are high-resolution metrics and are available
+//    only for custom metrics that have been defined with a StorageResolution
+//    of 1.
+//
+//    * Data points with a period of 60 seconds (1-minute) are available for
+//    15 days.
+//
+//    * Data points with a period of 300 seconds (5-minute) are available for
+//    63 days.
+//
+//    * Data points with a period of 3600 seconds (1 hour) are available for
+//    455 days (15 months).
+//
+// Data points that are initially published with a shorter period are aggregated
+// together for long-term storage. For example, if you collect data using a
+// period of 1 minute, the data remains available for 15 days with 1-minute
+// resolution. After 15 days, this data is still available, but is aggregated
+// and retrievable only with a resolution of 5 minutes. After 63 days, the data
+// is further aggregated and is available with a resolution of 1 hour.
+//
+// CloudWatch started retaining 5-minute and 1-hour metric data as of July 9,
+// 2016.
+//
+// For information about metrics and dimensions supported by AWS services, see
+// the Amazon CloudWatch Metrics and Dimensions Reference (http://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/CW_Support_For_AWS.html)
 // in the Amazon CloudWatch User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -706,12 +998,12 @@ func (c *CloudWatch) GetMetricStatisticsRequest(input *GetMetricStatisticsInput)
 //   An input parameter that is required is missing.
 //
 //   * ErrCodeInvalidParameterCombinationException "InvalidParameterCombination"
-//   Parameters that cannot be used together were used together.
+//   Parameters were used together that cannot be used together.
 //
 //   * ErrCodeInternalServiceFault "InternalServiceError"
 //   Request processing has failed due to some unknown error, exception, or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/GetMetricStatistics
+// See also, https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/GetMetricStatistics
 func (c *CloudWatch) GetMetricStatistics(input *GetMetricStatisticsInput) (*GetMetricStatisticsOutput, error) {
 	req, out := c.GetMetricStatisticsRequest(input)
 	return out, req.Send()
@@ -733,23 +1025,198 @@ func (c *CloudWatch) GetMetricStatisticsWithContext(ctx aws.Context, input *GetM
 	return out, req.Send()
 }
 
+const opGetMetricWidgetImage = "GetMetricWidgetImage"
+
+// GetMetricWidgetImageRequest generates a "aws/request.Request" representing the
+// client's request for the GetMetricWidgetImage operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetMetricWidgetImage for more information on using the GetMetricWidgetImage
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetMetricWidgetImageRequest method.
+//    req, resp := client.GetMetricWidgetImageRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/GetMetricWidgetImage
+func (c *CloudWatch) GetMetricWidgetImageRequest(input *GetMetricWidgetImageInput) (req *request.Request, output *GetMetricWidgetImageOutput) {
+	op := &request.Operation{
+		Name:       opGetMetricWidgetImage,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetMetricWidgetImageInput{}
+	}
+
+	output = &GetMetricWidgetImageOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetMetricWidgetImage API operation for Amazon CloudWatch.
+//
+// You can use the GetMetricWidgetImage API to retrieve a snapshot graph of
+// one or more Amazon CloudWatch metrics as a bitmap image. You can then embed
+// this image into your services and products, such as wiki pages, reports,
+// and documents. You could also retrieve images regularly, such as every minute,
+// and create your own custom live dashboard.
+//
+// The graph you retrieve can include all CloudWatch metric graph features,
+// including metric math and horizontal and vertical annotations.
+//
+// There is a limit of 20 transactions per second for this API. Each GetMetricWidgetImage
+// action has the following limits:
+//
+//    * As many as 100 metrics in the graph.
+//
+//    * Up to 100 KB uncompressed payload.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch's
+// API operation GetMetricWidgetImage for usage and error information.
+// See also, https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/GetMetricWidgetImage
+func (c *CloudWatch) GetMetricWidgetImage(input *GetMetricWidgetImageInput) (*GetMetricWidgetImageOutput, error) {
+	req, out := c.GetMetricWidgetImageRequest(input)
+	return out, req.Send()
+}
+
+// GetMetricWidgetImageWithContext is the same as GetMetricWidgetImage with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetMetricWidgetImage for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatch) GetMetricWidgetImageWithContext(ctx aws.Context, input *GetMetricWidgetImageInput, opts ...request.Option) (*GetMetricWidgetImageOutput, error) {
+	req, out := c.GetMetricWidgetImageRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opListDashboards = "ListDashboards"
+
+// ListDashboardsRequest generates a "aws/request.Request" representing the
+// client's request for the ListDashboards operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListDashboards for more information on using the ListDashboards
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListDashboardsRequest method.
+//    req, resp := client.ListDashboardsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/ListDashboards
+func (c *CloudWatch) ListDashboardsRequest(input *ListDashboardsInput) (req *request.Request, output *ListDashboardsOutput) {
+	op := &request.Operation{
+		Name:       opListDashboards,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ListDashboardsInput{}
+	}
+
+	output = &ListDashboardsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListDashboards API operation for Amazon CloudWatch.
+//
+// Returns a list of the dashboards for your account. If you include DashboardNamePrefix,
+// only those dashboards with names starting with the prefix are listed. Otherwise,
+// all dashboards in your account are listed.
+//
+// ListDashboards returns up to 1000 results on one page. If there are more
+// than 1000 dashboards, you can call ListDashboards again and include the value
+// you received for NextToken in the first call, to receive the next 1000 results.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch's
+// API operation ListDashboards for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValue"
+//   The value of an input parameter is bad or out-of-range.
+//
+//   * ErrCodeInternalServiceFault "InternalServiceError"
+//   Request processing has failed due to some unknown error, exception, or failure.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/ListDashboards
+func (c *CloudWatch) ListDashboards(input *ListDashboardsInput) (*ListDashboardsOutput, error) {
+	req, out := c.ListDashboardsRequest(input)
+	return out, req.Send()
+}
+
+// ListDashboardsWithContext is the same as ListDashboards with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListDashboards for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatch) ListDashboardsWithContext(ctx aws.Context, input *ListDashboardsInput, opts ...request.Option) (*ListDashboardsOutput, error) {
+	req, out := c.ListDashboardsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opListMetrics = "ListMetrics"
 
 // ListMetricsRequest generates a "aws/request.Request" representing the
 // client's request for the ListMetrics operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See ListMetrics for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListMetrics method directly
-// instead.
+// See ListMetrics for more information on using the ListMetrics
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListMetricsRequest method.
 //    req, resp := client.ListMetricsRequest(params)
@@ -759,7 +1226,7 @@ const opListMetrics = "ListMetrics"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/ListMetrics
+// See also, https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/ListMetrics
 func (c *CloudWatch) ListMetricsRequest(input *ListMetricsInput) (req *request.Request, output *ListMetricsOutput) {
 	op := &request.Operation{
 		Name:       opListMetrics,
@@ -784,15 +1251,15 @@ func (c *CloudWatch) ListMetricsRequest(input *ListMetricsInput) (req *request.R
 
 // ListMetrics API operation for Amazon CloudWatch.
 //
-// List the specified metrics. You can use the returned metrics with GetMetricStatistics
-// to obtain statistical data.
+// List the specified metrics. You can use the returned metrics with GetMetricData
+// or GetMetricStatistics to obtain statistical data.
 //
 // Up to 500 results are returned for any one call. To retrieve additional results,
 // use the returned token with subsequent calls.
 //
 // After you create a metric, allow up to fifteen minutes before the metric
 // appears. Statistics about the metric, however, are available sooner using
-// GetMetricStatistics.
+// GetMetricData or GetMetricStatistics.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -808,7 +1275,7 @@ func (c *CloudWatch) ListMetricsRequest(input *ListMetricsInput) (req *request.R
 //   * ErrCodeInvalidParameterValueException "InvalidParameterValue"
 //   The value of an input parameter is bad or out-of-range.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/ListMetrics
+// See also, https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/ListMetrics
 func (c *CloudWatch) ListMetrics(input *ListMetricsInput) (*ListMetricsOutput, error) {
 	req, out := c.ListMetricsRequest(input)
 	return out, req.Send()
@@ -880,23 +1347,122 @@ func (c *CloudWatch) ListMetricsPagesWithContext(ctx aws.Context, input *ListMet
 	return p.Err()
 }
 
+const opPutDashboard = "PutDashboard"
+
+// PutDashboardRequest generates a "aws/request.Request" representing the
+// client's request for the PutDashboard operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See PutDashboard for more information on using the PutDashboard
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the PutDashboardRequest method.
+//    req, resp := client.PutDashboardRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/PutDashboard
+func (c *CloudWatch) PutDashboardRequest(input *PutDashboardInput) (req *request.Request, output *PutDashboardOutput) {
+	op := &request.Operation{
+		Name:       opPutDashboard,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &PutDashboardInput{}
+	}
+
+	output = &PutDashboardOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// PutDashboard API operation for Amazon CloudWatch.
+//
+// Creates a dashboard if it does not already exist, or updates an existing
+// dashboard. If you update a dashboard, the entire contents are replaced with
+// what you specify here.
+//
+// There is no limit to the number of dashboards in your account. All dashboards
+// in your account are global, not region-specific.
+//
+// A simple way to create a dashboard using PutDashboard is to copy an existing
+// dashboard. To copy an existing dashboard using the console, you can load
+// the dashboard and then use the View/edit source command in the Actions menu
+// to display the JSON block for that dashboard. Another way to copy a dashboard
+// is to use GetDashboard, and then use the data returned within DashboardBody
+// as the template for the new dashboard when you call PutDashboard.
+//
+// When you create a dashboard with PutDashboard, a good practice is to add
+// a text widget at the top of the dashboard with a message that the dashboard
+// was created by script and should not be changed in the console. This message
+// could also point console users to the location of the DashboardBody script
+// or the CloudFormation template used to create the dashboard.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch's
+// API operation PutDashboard for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeDashboardInvalidInputError "InvalidParameterInput"
+//   Some part of the dashboard data is invalid.
+//
+//   * ErrCodeInternalServiceFault "InternalServiceError"
+//   Request processing has failed due to some unknown error, exception, or failure.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/PutDashboard
+func (c *CloudWatch) PutDashboard(input *PutDashboardInput) (*PutDashboardOutput, error) {
+	req, out := c.PutDashboardRequest(input)
+	return out, req.Send()
+}
+
+// PutDashboardWithContext is the same as PutDashboard with the addition of
+// the ability to pass a context and additional request options.
+//
+// See PutDashboard for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudWatch) PutDashboardWithContext(ctx aws.Context, input *PutDashboardInput, opts ...request.Option) (*PutDashboardOutput, error) {
+	req, out := c.PutDashboardRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opPutMetricAlarm = "PutMetricAlarm"
 
 // PutMetricAlarmRequest generates a "aws/request.Request" representing the
 // client's request for the PutMetricAlarm operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See PutMetricAlarm for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the PutMetricAlarm method directly
-// instead.
+// See PutMetricAlarm for more information on using the PutMetricAlarm
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the PutMetricAlarmRequest method.
 //    req, resp := client.PutMetricAlarmRequest(params)
@@ -906,7 +1472,7 @@ const opPutMetricAlarm = "PutMetricAlarm"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/PutMetricAlarm
+// See also, https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/PutMetricAlarm
 func (c *CloudWatch) PutMetricAlarmRequest(input *PutMetricAlarmInput) (req *request.Request, output *PutMetricAlarmOutput) {
 	op := &request.Operation{
 		Name:       opPutMetricAlarm,
@@ -920,26 +1486,26 @@ func (c *CloudWatch) PutMetricAlarmRequest(input *PutMetricAlarmInput) (req *req
 
 	output = &PutMetricAlarmOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
 // PutMetricAlarm API operation for Amazon CloudWatch.
 //
-// Creates or updates an alarm and associates it with the specified metric.
-// Optionally, this operation can associate one or more Amazon SNS resources
-// with the alarm.
+// Creates or updates an alarm and associates it with the specified metric or
+// metric math expression.
 //
 // When this operation creates an alarm, the alarm state is immediately set
-// to INSUFFICIENT_DATA. The alarm is evaluated and its state is set appropriately.
-// Any actions associated with the state are then executed.
+// to INSUFFICIENT_DATA. The alarm is then evaluated and its state is set appropriately.
+// Any actions associated with the new state are then executed.
 //
 // When you update an existing alarm, its state is left unchanged, but the update
 // completely overwrites the previous configuration of the alarm.
 //
-// If you are an AWS Identity and Access Management (IAM) user, you must have
-// Amazon EC2 permissions for some operations:
+// If you are an IAM user, you must have Amazon EC2 permissions for some alarm
+// operations:
+//
+//    * iam:CreateServiceLinkedRole for all alarms with EC2 actions
 //
 //    * ec2:DescribeInstanceStatus and ec2:DescribeInstances for all alarms
 //    on EC2 instance status metrics
@@ -952,23 +1518,22 @@ func (c *CloudWatch) PutMetricAlarmRequest(input *PutMetricAlarmInput) (req *req
 //    with recover actions
 //
 // If you have read/write permissions for Amazon CloudWatch but not for Amazon
-// EC2, you can still create an alarm, but the stop or terminate actions won't
-// be performed. However, if you are later granted the required permissions,
-// the alarm actions that you created earlier will be performed.
+// EC2, you can still create an alarm, but the stop or terminate actions are
+// not performed. However, if you are later granted the required permissions,
+// the alarm actions that you created earlier are performed.
 //
-// If you are using an IAM role (for example, an Amazon EC2 instance profile),
-// you cannot stop or terminate the instance using alarm actions. However, you
-// can still see the alarm state and perform any other actions such as Amazon
-// SNS notifications or Auto Scaling policies.
+// If you are using an IAM role (for example, an EC2 instance profile), you
+// cannot stop or terminate the instance using alarm actions. However, you can
+// still see the alarm state and perform any other actions such as Amazon SNS
+// notifications or Auto Scaling policies.
 //
-// If you are using temporary security credentials granted using the AWS Security
-// Token Service (AWS STS), you cannot stop or terminate an Amazon EC2 instance
-// using alarm actions.
+// If you are using temporary security credentials granted using AWS STS, you
+// cannot stop or terminate an EC2 instance using alarm actions.
 //
-// Note that you must create at least one stop, terminate, or reboot alarm using
-// the Amazon EC2 or CloudWatch console to create the EC2ActionsAccess IAM role.
-// After this IAM role is created, you can create stop, terminate, or reboot
-// alarms using a command-line interface or an API.
+// The first time you create an alarm in the AWS Management Console, the CLI,
+// or by using the PutMetricAlarm API, CloudWatch creates the necessary service-linked
+// role for you. The service-linked role is called AWSServiceRoleForCloudWatchEvents.
+// For more information, see AWS service-linked role (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_terms-and-concepts.html#iam-term-service-linked-role).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -981,7 +1546,7 @@ func (c *CloudWatch) PutMetricAlarmRequest(input *PutMetricAlarmInput) (req *req
 //   * ErrCodeLimitExceededFault "LimitExceeded"
 //   The quota for alarms for this customer has already been reached.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/PutMetricAlarm
+// See also, https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/PutMetricAlarm
 func (c *CloudWatch) PutMetricAlarm(input *PutMetricAlarmInput) (*PutMetricAlarmOutput, error) {
 	req, out := c.PutMetricAlarmRequest(input)
 	return out, req.Send()
@@ -1007,19 +1572,18 @@ const opPutMetricData = "PutMetricData"
 
 // PutMetricDataRequest generates a "aws/request.Request" representing the
 // client's request for the PutMetricData operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See PutMetricData for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the PutMetricData method directly
-// instead.
+// See PutMetricData for more information on using the PutMetricData
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the PutMetricDataRequest method.
 //    req, resp := client.PutMetricDataRequest(params)
@@ -1029,7 +1593,7 @@ const opPutMetricData = "PutMetricData"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/PutMetricData
+// See also, https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/PutMetricData
 func (c *CloudWatch) PutMetricDataRequest(input *PutMetricDataInput) (req *request.Request, output *PutMetricDataOutput) {
 	op := &request.Operation{
 		Name:       opPutMetricData,
@@ -1043,43 +1607,51 @@ func (c *CloudWatch) PutMetricDataRequest(input *PutMetricDataInput) (req *reque
 
 	output = &PutMetricDataOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
 // PutMetricData API operation for Amazon CloudWatch.
 //
-// Publishes metric data points to Amazon CloudWatch. Amazon CloudWatch associates
+// Publishes metric data points to Amazon CloudWatch. CloudWatch associates
 // the data points with the specified metric. If the specified metric does not
-// exist, Amazon CloudWatch creates the metric. When Amazon CloudWatch creates
-// a metric, it can take up to fifteen minutes for the metric to appear in calls
-// to ListMetrics.
+// exist, CloudWatch creates the metric. When CloudWatch creates a metric, it
+// can take up to fifteen minutes for the metric to appear in calls to ListMetrics.
+//
+// You can publish either individual data points in the Value field, or arrays
+// of values and the number of times each value occurred during the period by
+// using the Values and Counts fields in the MetricDatum structure. Using the
+// Values and Counts method enables you to publish up to 150 values per metric
+// with one PutMetricData request, and supports retrieving percentile statistics
+// on this data.
 //
 // Each PutMetricData request is limited to 40 KB in size for HTTP POST requests.
+// You can send a payload compressed by gzip. Each request is also limited to
+// no more than 20 different metrics.
 //
-// Although the Value parameter accepts numbers of type Double, Amazon CloudWatch
-// rejects values that are either too small or too large. Values must be in
-// the range of 8.515920e-109 to 1.174271e+108 (Base 10) or 2e-360 to 2e360
-// (Base 2). In addition, special values (e.g., NaN, +Infinity, -Infinity) are
+// Although the Value parameter accepts numbers of type Double, CloudWatch rejects
+// values that are either too small or too large. Values must be in the range
+// of 8.515920e-109 to 1.174271e+108 (Base 10) or 2e-360 to 2e360 (Base 2).
+// In addition, special values (for example, NaN, +Infinity, -Infinity) are
 // not supported.
 //
 // You can use up to 10 dimensions per metric to further clarify what data the
-// metric collects. For more information on specifying dimensions, see Publishing
+// metric collects. For more information about specifying dimensions, see Publishing
 // Metrics (http://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/publishingMetrics.html)
 // in the Amazon CloudWatch User Guide.
 //
 // Data points with time stamps from 24 hours ago or longer can take at least
-// 48 hours to become available for GetMetricStatistics from the time they are
-// submitted.
+// 48 hours to become available for GetMetricData or GetMetricStatistics from
+// the time they are submitted.
 //
 // CloudWatch needs raw data points to calculate percentile statistics. If you
-// publish data using a statistic set instead, you cannot retrieve percentile
-// statistics for this data unless one of the following conditions is true:
+// publish data using a statistic set instead, you can only retrieve percentile
+// statistics for this data if one of the following conditions is true:
 //
-//    * The SampleCount of the statistic set is 1
+//    * The SampleCount value of the statistic set is 1 and Min, Max, and Sum
+//    are all equal.
 //
-//    * The Min and the Max of the statistic set are equal
+//    * The Min and Max are equal, and Sum is equal to Min multiplied by SampleCount.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1096,12 +1668,12 @@ func (c *CloudWatch) PutMetricDataRequest(input *PutMetricDataInput) (req *reque
 //   An input parameter that is required is missing.
 //
 //   * ErrCodeInvalidParameterCombinationException "InvalidParameterCombination"
-//   Parameters that cannot be used together were used together.
+//   Parameters were used together that cannot be used together.
 //
 //   * ErrCodeInternalServiceFault "InternalServiceError"
 //   Request processing has failed due to some unknown error, exception, or failure.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/PutMetricData
+// See also, https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/PutMetricData
 func (c *CloudWatch) PutMetricData(input *PutMetricDataInput) (*PutMetricDataOutput, error) {
 	req, out := c.PutMetricDataRequest(input)
 	return out, req.Send()
@@ -1127,19 +1699,18 @@ const opSetAlarmState = "SetAlarmState"
 
 // SetAlarmStateRequest generates a "aws/request.Request" representing the
 // client's request for the SetAlarmState operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See SetAlarmState for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the SetAlarmState method directly
-// instead.
+// See SetAlarmState for more information on using the SetAlarmState
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the SetAlarmStateRequest method.
 //    req, resp := client.SetAlarmStateRequest(params)
@@ -1149,7 +1720,7 @@ const opSetAlarmState = "SetAlarmState"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/SetAlarmState
+// See also, https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/SetAlarmState
 func (c *CloudWatch) SetAlarmStateRequest(input *SetAlarmStateInput) (req *request.Request, output *SetAlarmStateOutput) {
 	op := &request.Operation{
 		Name:       opSetAlarmState,
@@ -1163,8 +1734,7 @@ func (c *CloudWatch) SetAlarmStateRequest(input *SetAlarmStateInput) (req *reque
 
 	output = &SetAlarmStateOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1174,10 +1744,10 @@ func (c *CloudWatch) SetAlarmStateRequest(input *SetAlarmStateInput) (req *reque
 // state differs from the previous value, the action configured for the appropriate
 // state is invoked. For example, if your alarm is configured to send an Amazon
 // SNS message when an alarm is triggered, temporarily changing the alarm state
-// to ALARM sends an Amazon SNS message. The alarm returns to its actual state
-// (often within seconds). Because the alarm state change happens very quickly,
-// it is typically only visible in the alarm's History tab in the Amazon CloudWatch
-// console or through DescribeAlarmHistory.
+// to ALARM sends an SNS message. The alarm returns to its actual state (often
+// within seconds). Because the alarm state change happens quickly, it is typically
+// only visible in the alarm's History tab in the Amazon CloudWatch console
+// or through DescribeAlarmHistory.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1193,7 +1763,7 @@ func (c *CloudWatch) SetAlarmStateRequest(input *SetAlarmStateInput) (req *reque
 //   * ErrCodeInvalidFormatFault "InvalidFormat"
 //   Data was not syntactically valid JSON.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/SetAlarmState
+// See also, https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/SetAlarmState
 func (c *CloudWatch) SetAlarmState(input *SetAlarmStateInput) (*SetAlarmStateOutput, error) {
 	req, out := c.SetAlarmStateRequest(input)
 	return out, req.Send()
@@ -1216,7 +1786,6 @@ func (c *CloudWatch) SetAlarmStateWithContext(ctx aws.Context, input *SetAlarmSt
 }
 
 // Represents the history of a specific alarm.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/AlarmHistoryItem
 type AlarmHistoryItem struct {
 	_ struct{} `type:"structure"`
 
@@ -1233,7 +1802,7 @@ type AlarmHistoryItem struct {
 	HistorySummary *string `min:"1" type:"string"`
 
 	// The time stamp for the alarm history item.
-	Timestamp *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	Timestamp *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation
@@ -1276,9 +1845,93 @@ func (s *AlarmHistoryItem) SetTimestamp(v time.Time) *AlarmHistoryItem {
 	return s
 }
 
-// Encapsulates the statistical data that Amazon CloudWatch computes from metric
-// data.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/Datapoint
+// Represents a specific dashboard.
+type DashboardEntry struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the dashboard.
+	DashboardArn *string `type:"string"`
+
+	// The name of the dashboard.
+	DashboardName *string `type:"string"`
+
+	// The time stamp of when the dashboard was last modified, either by an API
+	// call or through the console. This number is expressed as the number of milliseconds
+	// since Jan 1, 1970 00:00:00 UTC.
+	LastModified *time.Time `type:"timestamp"`
+
+	// The size of the dashboard, in bytes.
+	Size *int64 `type:"long"`
+}
+
+// String returns the string representation
+func (s DashboardEntry) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DashboardEntry) GoString() string {
+	return s.String()
+}
+
+// SetDashboardArn sets the DashboardArn field's value.
+func (s *DashboardEntry) SetDashboardArn(v string) *DashboardEntry {
+	s.DashboardArn = &v
+	return s
+}
+
+// SetDashboardName sets the DashboardName field's value.
+func (s *DashboardEntry) SetDashboardName(v string) *DashboardEntry {
+	s.DashboardName = &v
+	return s
+}
+
+// SetLastModified sets the LastModified field's value.
+func (s *DashboardEntry) SetLastModified(v time.Time) *DashboardEntry {
+	s.LastModified = &v
+	return s
+}
+
+// SetSize sets the Size field's value.
+func (s *DashboardEntry) SetSize(v int64) *DashboardEntry {
+	s.Size = &v
+	return s
+}
+
+// An error or warning for the operation.
+type DashboardValidationMessage struct {
+	_ struct{} `type:"structure"`
+
+	// The data path related to the message.
+	DataPath *string `type:"string"`
+
+	// A message describing the error or warning.
+	Message *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DashboardValidationMessage) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DashboardValidationMessage) GoString() string {
+	return s.String()
+}
+
+// SetDataPath sets the DataPath field's value.
+func (s *DashboardValidationMessage) SetDataPath(v string) *DashboardValidationMessage {
+	s.DataPath = &v
+	return s
+}
+
+// SetMessage sets the Message field's value.
+func (s *DashboardValidationMessage) SetMessage(v string) *DashboardValidationMessage {
+	s.Message = &v
+	return s
+}
+
+// Encapsulates the statistical data that CloudWatch computes from metric data.
 type Datapoint struct {
 	_ struct{} `type:"structure"`
 
@@ -1302,7 +1955,7 @@ type Datapoint struct {
 	Sum *float64 `type:"double"`
 
 	// The time stamp used for the data point.
-	Timestamp *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	Timestamp *time.Time `type:"timestamp"`
 
 	// The standard unit for the data point.
 	Unit *string `type:"string" enum:"StandardUnit"`
@@ -1366,7 +2019,6 @@ func (s *Datapoint) SetUnit(v string) *Datapoint {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/DeleteAlarmsInput
 type DeleteAlarmsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1405,7 +2057,6 @@ func (s *DeleteAlarmsInput) SetAlarmNames(v []*string) *DeleteAlarmsInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/DeleteAlarmsOutput
 type DeleteAlarmsOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1420,7 +2071,58 @@ func (s DeleteAlarmsOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/DescribeAlarmHistoryInput
+type DeleteDashboardsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The dashboards to be deleted. This parameter is required.
+	//
+	// DashboardNames is a required field
+	DashboardNames []*string `type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteDashboardsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteDashboardsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteDashboardsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteDashboardsInput"}
+	if s.DashboardNames == nil {
+		invalidParams.Add(request.NewErrParamRequired("DashboardNames"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDashboardNames sets the DashboardNames field's value.
+func (s *DeleteDashboardsInput) SetDashboardNames(v []*string) *DeleteDashboardsInput {
+	s.DashboardNames = v
+	return s
+}
+
+type DeleteDashboardsOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DeleteDashboardsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteDashboardsOutput) GoString() string {
+	return s.String()
+}
+
 type DescribeAlarmHistoryInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1428,7 +2130,7 @@ type DescribeAlarmHistoryInput struct {
 	AlarmName *string `min:"1" type:"string"`
 
 	// The ending date to retrieve alarm history.
-	EndDate *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	EndDate *time.Time `type:"timestamp"`
 
 	// The type of alarm histories to retrieve.
 	HistoryItemType *string `type:"string" enum:"HistoryItemType"`
@@ -1441,7 +2143,7 @@ type DescribeAlarmHistoryInput struct {
 	NextToken *string `type:"string"`
 
 	// The starting date to retrieve alarm history.
-	StartDate *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	StartDate *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation
@@ -1506,7 +2208,6 @@ func (s *DescribeAlarmHistoryInput) SetStartDate(v time.Time) *DescribeAlarmHist
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/DescribeAlarmHistoryOutput
 type DescribeAlarmHistoryOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1539,7 +2240,6 @@ func (s *DescribeAlarmHistoryOutput) SetNextToken(v string) *DescribeAlarmHistor
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/DescribeAlarmsForMetricInput
 type DescribeAlarmsForMetricInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1562,7 +2262,7 @@ type DescribeAlarmsForMetricInput struct {
 	Namespace *string `min:"1" type:"string" required:"true"`
 
 	// The period, in seconds, over which the statistic is applied.
-	Period *int64 `min:"60" type:"integer"`
+	Period *int64 `min:"1" type:"integer"`
 
 	// The statistic for the metric, other than percentiles. For percentile statistics,
 	// use ExtendedStatistics.
@@ -1597,8 +2297,8 @@ func (s *DescribeAlarmsForMetricInput) Validate() error {
 	if s.Namespace != nil && len(*s.Namespace) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("Namespace", 1))
 	}
-	if s.Period != nil && *s.Period < 60 {
-		invalidParams.Add(request.NewErrParamMinValue("Period", 60))
+	if s.Period != nil && *s.Period < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Period", 1))
 	}
 	if s.Dimensions != nil {
 		for i, v := range s.Dimensions {
@@ -1659,7 +2359,6 @@ func (s *DescribeAlarmsForMetricInput) SetUnit(v string) *DescribeAlarmsForMetri
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/DescribeAlarmsForMetricOutput
 type DescribeAlarmsForMetricOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1683,15 +2382,14 @@ func (s *DescribeAlarmsForMetricOutput) SetMetricAlarms(v []*MetricAlarm) *Descr
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/DescribeAlarmsInput
 type DescribeAlarmsInput struct {
 	_ struct{} `type:"structure"`
 
 	// The action name prefix.
 	ActionPrefix *string `min:"1" type:"string"`
 
-	// The alarm name prefix. You cannot specify AlarmNames if this parameter is
-	// specified.
+	// The alarm name prefix. If this parameter is specified, you cannot specify
+	// AlarmNames.
 	AlarmNamePrefix *string `min:"1" type:"string"`
 
 	// The names of the alarms.
@@ -1773,7 +2471,6 @@ func (s *DescribeAlarmsInput) SetStateValue(v string) *DescribeAlarmsInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/DescribeAlarmsOutput
 type DescribeAlarmsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1807,7 +2504,6 @@ func (s *DescribeAlarmsOutput) SetNextToken(v string) *DescribeAlarmsOutput {
 }
 
 // Expands the identity of a metric.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/Dimension
 type Dimension struct {
 	_ struct{} `type:"structure"`
 
@@ -1867,7 +2563,6 @@ func (s *Dimension) SetValue(v string) *Dimension {
 }
 
 // Represents filters for a dimension.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/DimensionFilter
 type DimensionFilter struct {
 	_ struct{} `type:"structure"`
 
@@ -1921,7 +2616,6 @@ func (s *DimensionFilter) SetValue(v string) *DimensionFilter {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/DisableAlarmActionsInput
 type DisableAlarmActionsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1960,7 +2654,6 @@ func (s *DisableAlarmActionsInput) SetAlarmNames(v []*string) *DisableAlarmActio
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/DisableAlarmActionsOutput
 type DisableAlarmActionsOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1975,7 +2668,6 @@ func (s DisableAlarmActionsOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/EnableAlarmActionsInput
 type EnableAlarmActionsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2014,7 +2706,6 @@ func (s *EnableAlarmActionsInput) SetAlarmNames(v []*string) *EnableAlarmActions
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/EnableAlarmActionsOutput
 type EnableAlarmActionsOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2029,31 +2720,269 @@ func (s EnableAlarmActionsOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/GetMetricStatisticsInput
+type GetDashboardInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the dashboard to be described.
+	//
+	// DashboardName is a required field
+	DashboardName *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetDashboardInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetDashboardInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetDashboardInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetDashboardInput"}
+	if s.DashboardName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DashboardName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDashboardName sets the DashboardName field's value.
+func (s *GetDashboardInput) SetDashboardName(v string) *GetDashboardInput {
+	s.DashboardName = &v
+	return s
+}
+
+type GetDashboardOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the dashboard.
+	DashboardArn *string `type:"string"`
+
+	// The detailed information about the dashboard, including what widgets are
+	// included and their location on the dashboard. For more information about
+	// the DashboardBody syntax, see CloudWatch-Dashboard-Body-Structure.
+	DashboardBody *string `type:"string"`
+
+	// The name of the dashboard.
+	DashboardName *string `type:"string"`
+}
+
+// String returns the string representation
+func (s GetDashboardOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetDashboardOutput) GoString() string {
+	return s.String()
+}
+
+// SetDashboardArn sets the DashboardArn field's value.
+func (s *GetDashboardOutput) SetDashboardArn(v string) *GetDashboardOutput {
+	s.DashboardArn = &v
+	return s
+}
+
+// SetDashboardBody sets the DashboardBody field's value.
+func (s *GetDashboardOutput) SetDashboardBody(v string) *GetDashboardOutput {
+	s.DashboardBody = &v
+	return s
+}
+
+// SetDashboardName sets the DashboardName field's value.
+func (s *GetDashboardOutput) SetDashboardName(v string) *GetDashboardOutput {
+	s.DashboardName = &v
+	return s
+}
+
+type GetMetricDataInput struct {
+	_ struct{} `type:"structure"`
+
+	// The time stamp indicating the latest data to be returned.
+	//
+	// For better performance, specify StartTime and EndTime values that align with
+	// the value of the metric's Period and sync up with the beginning and end of
+	// an hour. For example, if the Period of a metric is 5 minutes, specifying
+	// 12:05 or 12:30 as EndTime can get a faster response from CloudWatch then
+	// setting 12:07 or 12:29 as the EndTime.
+	//
+	// EndTime is a required field
+	EndTime *time.Time `type:"timestamp" required:"true"`
+
+	// The maximum number of data points the request should return before paginating.
+	// If you omit this, the default of 100,800 is used.
+	MaxDatapoints *int64 `type:"integer"`
+
+	// The metric queries to be returned. A single GetMetricData call can include
+	// as many as 100 MetricDataQuery structures. Each of these structures can specify
+	// either a metric to retrieve, or a math expression to perform on retrieved
+	// data.
+	//
+	// MetricDataQueries is a required field
+	MetricDataQueries []*MetricDataQuery `type:"list" required:"true"`
+
+	// Include this value, if it was returned by the previous call, to get the next
+	// set of data points.
+	NextToken *string `type:"string"`
+
+	// The order in which data points should be returned. TimestampDescending returns
+	// the newest data first and paginates when the MaxDatapoints limit is reached.
+	// TimestampAscending returns the oldest data first and paginates when the MaxDatapoints
+	// limit is reached.
+	ScanBy *string `type:"string" enum:"ScanBy"`
+
+	// The time stamp indicating the earliest data to be returned.
+	//
+	// For better performance, specify StartTime and EndTime values that align with
+	// the value of the metric's Period and sync up with the beginning and end of
+	// an hour. For example, if the Period of a metric is 5 minutes, specifying
+	// 12:05 or 12:30 as StartTime can get a faster response from CloudWatch then
+	// setting 12:07 or 12:29 as the StartTime.
+	//
+	// StartTime is a required field
+	StartTime *time.Time `type:"timestamp" required:"true"`
+}
+
+// String returns the string representation
+func (s GetMetricDataInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetMetricDataInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetMetricDataInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetMetricDataInput"}
+	if s.EndTime == nil {
+		invalidParams.Add(request.NewErrParamRequired("EndTime"))
+	}
+	if s.MetricDataQueries == nil {
+		invalidParams.Add(request.NewErrParamRequired("MetricDataQueries"))
+	}
+	if s.StartTime == nil {
+		invalidParams.Add(request.NewErrParamRequired("StartTime"))
+	}
+	if s.MetricDataQueries != nil {
+		for i, v := range s.MetricDataQueries {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "MetricDataQueries", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetEndTime sets the EndTime field's value.
+func (s *GetMetricDataInput) SetEndTime(v time.Time) *GetMetricDataInput {
+	s.EndTime = &v
+	return s
+}
+
+// SetMaxDatapoints sets the MaxDatapoints field's value.
+func (s *GetMetricDataInput) SetMaxDatapoints(v int64) *GetMetricDataInput {
+	s.MaxDatapoints = &v
+	return s
+}
+
+// SetMetricDataQueries sets the MetricDataQueries field's value.
+func (s *GetMetricDataInput) SetMetricDataQueries(v []*MetricDataQuery) *GetMetricDataInput {
+	s.MetricDataQueries = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *GetMetricDataInput) SetNextToken(v string) *GetMetricDataInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetScanBy sets the ScanBy field's value.
+func (s *GetMetricDataInput) SetScanBy(v string) *GetMetricDataInput {
+	s.ScanBy = &v
+	return s
+}
+
+// SetStartTime sets the StartTime field's value.
+func (s *GetMetricDataInput) SetStartTime(v time.Time) *GetMetricDataInput {
+	s.StartTime = &v
+	return s
+}
+
+type GetMetricDataOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The metrics that are returned, including the metric name, namespace, and
+	// dimensions.
+	MetricDataResults []*MetricDataResult `type:"list"`
+
+	// A token that marks the next batch of returned results.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s GetMetricDataOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetMetricDataOutput) GoString() string {
+	return s.String()
+}
+
+// SetMetricDataResults sets the MetricDataResults field's value.
+func (s *GetMetricDataOutput) SetMetricDataResults(v []*MetricDataResult) *GetMetricDataOutput {
+	s.MetricDataResults = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *GetMetricDataOutput) SetNextToken(v string) *GetMetricDataOutput {
+	s.NextToken = &v
+	return s
+}
+
 type GetMetricStatisticsInput struct {
 	_ struct{} `type:"structure"`
 
 	// The dimensions. If the metric contains multiple dimensions, you must include
 	// a value for each dimension. CloudWatch treats each unique combination of
-	// dimensions as a separate metric. You can't retrieve statistics using combinations
-	// of dimensions that were not specially published. You must specify the same
-	// dimensions that were used when the metrics were created. For an example,
-	// see Dimension Combinations (http://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/cloudwatch_concepts.html#dimension-combinations)
-	// in the Amazon CloudWatch User Guide. For more information on specifying dimensions,
-	// see Publishing Metrics (http://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/publishingMetrics.html)
+	// dimensions as a separate metric. If a specific combination of dimensions
+	// was not published, you can't retrieve statistics for it. You must specify
+	// the same dimensions that were used when the metrics were created. For an
+	// example, see Dimension Combinations (http://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/cloudwatch_concepts.html#dimension-combinations)
+	// in the Amazon CloudWatch User Guide. For more information about specifying
+	// dimensions, see Publishing Metrics (http://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/publishingMetrics.html)
 	// in the Amazon CloudWatch User Guide.
 	Dimensions []*Dimension `type:"list"`
 
 	// The time stamp that determines the last data point to return.
 	//
-	// The value specified is exclusive; results will include data points up to
-	// the specified time stamp. The time stamp must be in ISO 8601 UTC format (for
-	// example, 2016-10-10T23:00:00Z).
+	// The value specified is exclusive; results include data points up to the specified
+	// time stamp. The time stamp must be in ISO 8601 UTC format (for example, 2016-10-10T23:00:00Z).
 	//
 	// EndTime is a required field
-	EndTime *time.Time `type:"timestamp" timestampFormat:"iso8601" required:"true"`
+	EndTime *time.Time `type:"timestamp" required:"true"`
 
-	// The percentile statistics. Specify values between p0.0 and p100.
+	// The percentile statistics. Specify values between p0.0 and p100. When calling
+	// GetMetricStatistics, you must specify either Statistics or ExtendedStatistics,
+	// but not both. Percentile statistics are not available for metrics when any
+	// of the metric values are negative numbers.
 	ExtendedStatistics []*string `min:"1" type:"list"`
 
 	// The name of the metric, with or without spaces.
@@ -2066,13 +2995,19 @@ type GetMetricStatisticsInput struct {
 	// Namespace is a required field
 	Namespace *string `min:"1" type:"string" required:"true"`
 
-	// The granularity, in seconds, of the returned data points. A period can be
-	// as short as one minute (60 seconds) and must be a multiple of 60. The default
-	// value is 60.
+	// The granularity, in seconds, of the returned data points. For metrics with
+	// regular resolution, a period can be as short as one minute (60 seconds) and
+	// must be a multiple of 60. For high-resolution metrics that are collected
+	// at intervals of less than one minute, the period can be 1, 5, 10, 30, 60,
+	// or any multiple of 60. High-resolution metrics are those metrics stored by
+	// a PutMetricData call that includes a StorageResolution of 1 second.
 	//
-	// If the StartTime parameter specifies a time stamp that is greater than 15
-	// days ago, you must specify the period as follows or no data points in that
+	// If the StartTime parameter specifies a time stamp that is greater than 3
+	// hours ago, you must specify the period as follows or no data points in that
 	// time range is returned:
+	//
+	//    * Start time between 3 hours and 15 days ago - Use a multiple of 60 seconds
+	//    (1 minute).
 	//
 	//    * Start time between 15 and 63 days ago - Use a multiple of 300 seconds
 	//    (5 minutes).
@@ -2081,11 +3016,10 @@ type GetMetricStatisticsInput struct {
 	//    (1 hour).
 	//
 	// Period is a required field
-	Period *int64 `min:"60" type:"integer" required:"true"`
+	Period *int64 `min:"1" type:"integer" required:"true"`
 
-	// The time stamp that determines the first data point to return. Note that
-	// start times are evaluated relative to the time that CloudWatch receives the
-	// request.
+	// The time stamp that determines the first data point to return. Start times
+	// are evaluated relative to the time that CloudWatch receives the request.
 	//
 	// The value specified is inclusive; results include data points with the specified
 	// time stamp. The time stamp must be in ISO 8601 UTC format (for example, 2016-10-03T23:00:00Z).
@@ -2101,16 +3035,25 @@ type GetMetricStatisticsInput struct {
 	//    * Start time greater than 63 days ago - Round down to the nearest 1-hour
 	//    clock interval. For example, 12:32:34 is rounded down to 12:00:00.
 	//
+	// If you set Period to 5, 10, or 30, the start time of your request is rounded
+	// down to the nearest time that corresponds to even 5-, 10-, or 30-second divisions
+	// of a minute. For example, if you make a query at (HH:mm:ss) 01:05:23 for
+	// the previous 10-second period, the start time of your request is rounded
+	// down and you receive data from 01:05:10 to 01:05:20. If you make a query
+	// at 15:07:17 for the previous 5 minutes of data, using a period of 5 seconds,
+	// you receive data timestamped between 15:02:15 and 15:07:15.
+	//
 	// StartTime is a required field
-	StartTime *time.Time `type:"timestamp" timestampFormat:"iso8601" required:"true"`
+	StartTime *time.Time `type:"timestamp" required:"true"`
 
 	// The metric statistics, other than percentile. For percentile statistics,
-	// use ExtendedStatistic.
+	// use ExtendedStatistics. When calling GetMetricStatistics, you must specify
+	// either Statistics or ExtendedStatistics, but not both.
 	Statistics []*string `min:"1" type:"list"`
 
 	// The unit for a given metric. Metrics may be reported in multiple units. Not
-	// supplying a unit results in all units being returned. If the metric only
-	// ever reports one unit, specifying a unit has no effect.
+	// supplying a unit results in all units being returned. If you specify only
+	// a unit that the metric does not report, the results of the call are null.
 	Unit *string `type:"string" enum:"StandardUnit"`
 }
 
@@ -2148,8 +3091,8 @@ func (s *GetMetricStatisticsInput) Validate() error {
 	if s.Period == nil {
 		invalidParams.Add(request.NewErrParamRequired("Period"))
 	}
-	if s.Period != nil && *s.Period < 60 {
-		invalidParams.Add(request.NewErrParamMinValue("Period", 60))
+	if s.Period != nil && *s.Period < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Period", 1))
 	}
 	if s.StartTime == nil {
 		invalidParams.Add(request.NewErrParamRequired("StartTime"))
@@ -2228,7 +3171,6 @@ func (s *GetMetricStatisticsInput) SetUnit(v string) *GetMetricStatisticsInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/GetMetricStatisticsOutput
 type GetMetricStatisticsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2261,7 +3203,182 @@ func (s *GetMetricStatisticsOutput) SetLabel(v string) *GetMetricStatisticsOutpu
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/ListMetricsInput
+type GetMetricWidgetImageInput struct {
+	_ struct{} `type:"structure"`
+
+	// A JSON string that defines the bitmap graph to be retrieved. The string includes
+	// the metrics to include in the graph, statistics, annotations, title, axis
+	// limits, and so on. You can include only one MetricWidget parameter in each
+	// GetMetricWidgetImage call.
+	//
+	// For more information about the syntax of MetricWidget see CloudWatch-Metric-Widget-Structure.
+	//
+	// If any metric on the graph could not load all the requested data points,
+	// an orange triangle with an exclamation point appears next to the graph legend.
+	//
+	// MetricWidget is a required field
+	MetricWidget *string `type:"string" required:"true"`
+
+	// The format of the resulting image. Only PNG images are supported.
+	//
+	// The default is png. If you specify png, the API returns an HTTP response
+	// with the content-type set to text/xml. The image data is in a MetricWidgetImage
+	// field. For example:
+	//
+	// <GetMetricWidgetImageResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
+	//
+	// <GetMetricWidgetImageResult>
+	//
+	// <MetricWidgetImage>
+	//
+	// iVBORw0KGgoAAAANSUhEUgAAAlgAAAGQEAYAAAAip...
+	//
+	// </MetricWidgetImage>
+	//
+	// </GetMetricWidgetImageResult>
+	//
+	// <ResponseMetadata>
+	//
+	// <RequestId>6f0d4192-4d42-11e8-82c1-f539a07e0e3b</RequestId>
+	//
+	// </ResponseMetadata>
+	//
+	// </GetMetricWidgetImageResponse>
+	//
+	// The image/png setting is intended only for custom HTTP requests. For most
+	// use cases, and all actions using an AWS SDK, you should use png. If you specify
+	// image/png, the HTTP response has a content-type set to image/png, and the
+	// body of the response is a PNG image.
+	OutputFormat *string `type:"string"`
+}
+
+// String returns the string representation
+func (s GetMetricWidgetImageInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetMetricWidgetImageInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetMetricWidgetImageInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetMetricWidgetImageInput"}
+	if s.MetricWidget == nil {
+		invalidParams.Add(request.NewErrParamRequired("MetricWidget"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetMetricWidget sets the MetricWidget field's value.
+func (s *GetMetricWidgetImageInput) SetMetricWidget(v string) *GetMetricWidgetImageInput {
+	s.MetricWidget = &v
+	return s
+}
+
+// SetOutputFormat sets the OutputFormat field's value.
+func (s *GetMetricWidgetImageInput) SetOutputFormat(v string) *GetMetricWidgetImageInput {
+	s.OutputFormat = &v
+	return s
+}
+
+type GetMetricWidgetImageOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The image of the graph, in the output format specified.
+	//
+	// MetricWidgetImage is automatically base64 encoded/decoded by the SDK.
+	MetricWidgetImage []byte `type:"blob"`
+}
+
+// String returns the string representation
+func (s GetMetricWidgetImageOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetMetricWidgetImageOutput) GoString() string {
+	return s.String()
+}
+
+// SetMetricWidgetImage sets the MetricWidgetImage field's value.
+func (s *GetMetricWidgetImageOutput) SetMetricWidgetImage(v []byte) *GetMetricWidgetImageOutput {
+	s.MetricWidgetImage = v
+	return s
+}
+
+type ListDashboardsInput struct {
+	_ struct{} `type:"structure"`
+
+	// If you specify this parameter, only the dashboards with names starting with
+	// the specified string are listed. The maximum length is 255, and valid characters
+	// are A-Z, a-z, 0-9, ".", "-", and "_".
+	DashboardNamePrefix *string `type:"string"`
+
+	// The token returned by a previous call to indicate that there is more data
+	// available.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ListDashboardsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListDashboardsInput) GoString() string {
+	return s.String()
+}
+
+// SetDashboardNamePrefix sets the DashboardNamePrefix field's value.
+func (s *ListDashboardsInput) SetDashboardNamePrefix(v string) *ListDashboardsInput {
+	s.DashboardNamePrefix = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListDashboardsInput) SetNextToken(v string) *ListDashboardsInput {
+	s.NextToken = &v
+	return s
+}
+
+type ListDashboardsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The list of matching dashboards.
+	DashboardEntries []*DashboardEntry `type:"list"`
+
+	// The token that marks the start of the next batch of returned results.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ListDashboardsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListDashboardsOutput) GoString() string {
+	return s.String()
+}
+
+// SetDashboardEntries sets the DashboardEntries field's value.
+func (s *ListDashboardsOutput) SetDashboardEntries(v []*DashboardEntry) *ListDashboardsOutput {
+	s.DashboardEntries = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListDashboardsOutput) SetNextToken(v string) *ListDashboardsOutput {
+	s.NextToken = &v
+	return s
+}
+
 type ListMetricsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2339,7 +3456,6 @@ func (s *ListMetricsInput) SetNextToken(v string) *ListMetricsInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/ListMetricsOutput
 type ListMetricsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2372,15 +3488,47 @@ func (s *ListMetricsOutput) SetNextToken(v string) *ListMetricsOutput {
 	return s
 }
 
+// A message returned by the GetMetricDataAPI, including a code and a description.
+type MessageData struct {
+	_ struct{} `type:"structure"`
+
+	// The error code or status code associated with the message.
+	Code *string `type:"string"`
+
+	// The message text.
+	Value *string `type:"string"`
+}
+
+// String returns the string representation
+func (s MessageData) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s MessageData) GoString() string {
+	return s.String()
+}
+
+// SetCode sets the Code field's value.
+func (s *MessageData) SetCode(v string) *MessageData {
+	s.Code = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *MessageData) SetValue(v string) *MessageData {
+	s.Value = &v
+	return s
+}
+
 // Represents a specific metric.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/Metric
 type Metric struct {
 	_ struct{} `type:"structure"`
 
 	// The dimensions for the metric.
 	Dimensions []*Dimension `type:"list"`
 
-	// The name of the metric.
+	// The name of the metric. This is a required field.
 	MetricName *string `min:"1" type:"string"`
 
 	// The namespace of the metric.
@@ -2395,6 +3543,32 @@ func (s Metric) String() string {
 // GoString returns the string representation
 func (s Metric) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Metric) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Metric"}
+	if s.MetricName != nil && len(*s.MetricName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("MetricName", 1))
+	}
+	if s.Namespace != nil && len(*s.Namespace) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Namespace", 1))
+	}
+	if s.Dimensions != nil {
+		for i, v := range s.Dimensions {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Dimensions", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // SetDimensions sets the Dimensions field's value.
@@ -2416,7 +3590,6 @@ func (s *Metric) SetNamespace(v string) *Metric {
 }
 
 // Represents an alarm.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/MetricAlarm
 type MetricAlarm struct {
 	_ struct{} `type:"structure"`
 
@@ -2432,7 +3605,7 @@ type MetricAlarm struct {
 	AlarmArn *string `min:"1" type:"string"`
 
 	// The time stamp of the last update to the alarm configuration.
-	AlarmConfigurationUpdatedTimestamp *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	AlarmConfigurationUpdatedTimestamp *time.Time `type:"timestamp"`
 
 	// The description of the alarm.
 	AlarmDescription *string `type:"string"`
@@ -2444,9 +3617,16 @@ type MetricAlarm struct {
 	// threshold. The specified statistic value is used as the first operand.
 	ComparisonOperator *string `type:"string" enum:"ComparisonOperator"`
 
+	// The number of datapoints that must be breaching to trigger the alarm.
+	DatapointsToAlarm *int64 `min:"1" type:"integer"`
+
 	// The dimensions for the metric associated with the alarm.
 	Dimensions []*Dimension `type:"list"`
 
+	// Used only for alarms based on percentiles. If ignore, the alarm state does
+	// not change during periods with too few data points to be statistically significant.
+	// If evaluate or this parameter is not used, the alarm is always evaluated
+	// and possibly changes state no matter how many data points are available.
 	EvaluateLowSampleCountPercentile *string `min:"1" type:"string"`
 
 	// The number of periods over which data is compared to the specified threshold.
@@ -2464,6 +3644,8 @@ type MetricAlarm struct {
 	// The name of the metric associated with the alarm.
 	MetricName *string `min:"1" type:"string"`
 
+	Metrics []*MetricDataQuery `type:"list"`
+
 	// The namespace of the metric associated with the alarm.
 	Namespace *string `min:"1" type:"string"`
 
@@ -2472,7 +3654,7 @@ type MetricAlarm struct {
 	OKActions []*string `type:"list"`
 
 	// The period, in seconds, over which the statistic is applied.
-	Period *int64 `min:"60" type:"integer"`
+	Period *int64 `min:"1" type:"integer"`
 
 	// An explanation for the alarm state, in text format.
 	StateReason *string `type:"string"`
@@ -2481,7 +3663,7 @@ type MetricAlarm struct {
 	StateReasonData *string `type:"string"`
 
 	// The time stamp of the last update to the alarm state.
-	StateUpdatedTimestamp *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	StateUpdatedTimestamp *time.Time `type:"timestamp"`
 
 	// The state value for the alarm.
 	StateValue *string `type:"string" enum:"StateValue"`
@@ -2493,6 +3675,8 @@ type MetricAlarm struct {
 	// The value to compare with the specified statistic.
 	Threshold *float64 `type:"double"`
 
+	// Sets how this alarm is to handle missing data points. If this parameter is
+	// omitted, the default behavior of missing is used.
 	TreatMissingData *string `min:"1" type:"string"`
 
 	// The unit of the metric associated with the alarm.
@@ -2551,6 +3735,12 @@ func (s *MetricAlarm) SetComparisonOperator(v string) *MetricAlarm {
 	return s
 }
 
+// SetDatapointsToAlarm sets the DatapointsToAlarm field's value.
+func (s *MetricAlarm) SetDatapointsToAlarm(v int64) *MetricAlarm {
+	s.DatapointsToAlarm = &v
+	return s
+}
+
 // SetDimensions sets the Dimensions field's value.
 func (s *MetricAlarm) SetDimensions(v []*Dimension) *MetricAlarm {
 	s.Dimensions = v
@@ -2584,6 +3774,12 @@ func (s *MetricAlarm) SetInsufficientDataActions(v []*string) *MetricAlarm {
 // SetMetricName sets the MetricName field's value.
 func (s *MetricAlarm) SetMetricName(v string) *MetricAlarm {
 	s.MetricName = &v
+	return s
+}
+
+// SetMetrics sets the Metrics field's value.
+func (s *MetricAlarm) SetMetrics(v []*MetricDataQuery) *MetricAlarm {
+	s.Metrics = v
 	return s
 }
 
@@ -2653,11 +3849,234 @@ func (s *MetricAlarm) SetUnit(v string) *MetricAlarm {
 	return s
 }
 
+// This structure is used in both GetMetricData and PutMetricAlarm. The supported
+// use of this structure is different for those two operations.
+//
+// When used in GetMetricData, it indicates the metric data to return, and whether
+// this call is just retrieving a batch set of data for one metric, or is performing
+// a math expression on metric data. A single GetMetricData call can include
+// up to 100 MetricDataQuery structures.
+//
+// When used in PutMetricAlarm, it enables you to create an alarm based on a
+// metric math expression. Each MetricDataQuery in the array specifies either
+// a metric to retrieve, or a math expression to be performed on retrieved metrics.
+// A single PutMetricAlarm call can include up to 20 MetricDataQuery structures
+// in the array. The 20 structures can include as many as 10 structures that
+// contain a MetricStat parameter to retrieve a metric, and as many as 10 structures
+// that contain the Expression parameter to perform a math expression. Any expression
+// used in a PutMetricAlarm operation must return a single time series. For
+// more information, see Metric Math Syntax and Functions (http://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/using-metric-math.html#metric-math-syntax)
+// in the Amazon CloudWatch User Guide.
+//
+// Some of the parameters of this structure also have different uses whether
+// you are using this structure in a GetMetricData operation or a PutMetricAlarm
+// operation. These differences are explained in the following parameter list.
+type MetricDataQuery struct {
+	_ struct{} `type:"structure"`
+
+	// The math expression to be performed on the returned data, if this object
+	// is performing a math expression. This expression can use the Id of the other
+	// metrics to refer to those metrics, and can also use the Id of other expressions
+	// to use the result of those expressions. For more information about metric
+	// math expressions, see Metric Math Syntax and Functions (http://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/using-metric-math.html#metric-math-syntax)
+	// in the Amazon CloudWatch User Guide.
+	//
+	// Within each MetricDataQuery object, you must specify either Expression or
+	// MetricStat but not both.
+	Expression *string `min:"1" type:"string"`
+
+	// A short name used to tie this object to the results in the response. This
+	// name must be unique within a single call to GetMetricData. If you are performing
+	// math expressions on this set of data, this name represents that data and
+	// can serve as a variable in the mathematical expression. The valid characters
+	// are letters, numbers, and underscore. The first character must be a lowercase
+	// letter.
+	//
+	// Id is a required field
+	Id *string `min:"1" type:"string" required:"true"`
+
+	// A human-readable label for this metric or expression. This is especially
+	// useful if this is an expression, so that you know what the value represents.
+	// If the metric or expression is shown in a CloudWatch dashboard widget, the
+	// label is shown. If Label is omitted, CloudWatch generates a default.
+	Label *string `type:"string"`
+
+	// The metric to be returned, along with statistics, period, and units. Use
+	// this parameter only if this object is retrieving a metric and not performing
+	// a math expression on returned data.
+	//
+	// Within one MetricDataQuery object, you must specify either Expression or
+	// MetricStat but not both.
+	MetricStat *MetricStat `type:"structure"`
+
+	// When used in GetMetricData, this option indicates whether to return the timestamps
+	// and raw data values of this metric. If you are performing this call just
+	// to do math expressions and do not also need the raw data returned, you can
+	// specify False. If you omit this, the default of True is used.
+	//
+	// When used in PutMetricAlarm, specify True for the one expression result to
+	// use as the alarm. For all other metrics and expressions in the same PutMetricAlarm
+	// operation, specify ReturnData as False.
+	ReturnData *bool `type:"boolean"`
+}
+
+// String returns the string representation
+func (s MetricDataQuery) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s MetricDataQuery) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *MetricDataQuery) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "MetricDataQuery"}
+	if s.Expression != nil && len(*s.Expression) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Expression", 1))
+	}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
+	}
+	if s.MetricStat != nil {
+		if err := s.MetricStat.Validate(); err != nil {
+			invalidParams.AddNested("MetricStat", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetExpression sets the Expression field's value.
+func (s *MetricDataQuery) SetExpression(v string) *MetricDataQuery {
+	s.Expression = &v
+	return s
+}
+
+// SetId sets the Id field's value.
+func (s *MetricDataQuery) SetId(v string) *MetricDataQuery {
+	s.Id = &v
+	return s
+}
+
+// SetLabel sets the Label field's value.
+func (s *MetricDataQuery) SetLabel(v string) *MetricDataQuery {
+	s.Label = &v
+	return s
+}
+
+// SetMetricStat sets the MetricStat field's value.
+func (s *MetricDataQuery) SetMetricStat(v *MetricStat) *MetricDataQuery {
+	s.MetricStat = v
+	return s
+}
+
+// SetReturnData sets the ReturnData field's value.
+func (s *MetricDataQuery) SetReturnData(v bool) *MetricDataQuery {
+	s.ReturnData = &v
+	return s
+}
+
+// A GetMetricData call returns an array of MetricDataResult structures. Each
+// of these structures includes the data points for that metric, along with
+// the timestamps of those data points and other identifying information.
+type MetricDataResult struct {
+	_ struct{} `type:"structure"`
+
+	// The short name you specified to represent this metric.
+	Id *string `min:"1" type:"string"`
+
+	// The human-readable label associated with the data.
+	Label *string `type:"string"`
+
+	// A list of messages with additional information about the data returned.
+	Messages []*MessageData `type:"list"`
+
+	// The status of the returned data. Complete indicates that all data points
+	// in the requested time range were returned. PartialData means that an incomplete
+	// set of data points were returned. You can use the NextToken value that was
+	// returned and repeat your request to get more data points. NextToken is not
+	// returned if you are performing a math expression. InternalError indicates
+	// that an error occurred. Retry your request using NextToken, if present.
+	StatusCode *string `type:"string" enum:"StatusCode"`
+
+	// The timestamps for the data points, formatted in Unix timestamp format. The
+	// number of timestamps always matches the number of values and the value for
+	// Timestamps[x] is Values[x].
+	Timestamps []*time.Time `type:"list"`
+
+	// The data points for the metric corresponding to Timestamps. The number of
+	// values always matches the number of timestamps and the timestamp for Values[x]
+	// is Timestamps[x].
+	Values []*float64 `type:"list"`
+}
+
+// String returns the string representation
+func (s MetricDataResult) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s MetricDataResult) GoString() string {
+	return s.String()
+}
+
+// SetId sets the Id field's value.
+func (s *MetricDataResult) SetId(v string) *MetricDataResult {
+	s.Id = &v
+	return s
+}
+
+// SetLabel sets the Label field's value.
+func (s *MetricDataResult) SetLabel(v string) *MetricDataResult {
+	s.Label = &v
+	return s
+}
+
+// SetMessages sets the Messages field's value.
+func (s *MetricDataResult) SetMessages(v []*MessageData) *MetricDataResult {
+	s.Messages = v
+	return s
+}
+
+// SetStatusCode sets the StatusCode field's value.
+func (s *MetricDataResult) SetStatusCode(v string) *MetricDataResult {
+	s.StatusCode = &v
+	return s
+}
+
+// SetTimestamps sets the Timestamps field's value.
+func (s *MetricDataResult) SetTimestamps(v []*time.Time) *MetricDataResult {
+	s.Timestamps = v
+	return s
+}
+
+// SetValues sets the Values field's value.
+func (s *MetricDataResult) SetValues(v []*float64) *MetricDataResult {
+	s.Values = v
+	return s
+}
+
 // Encapsulates the information sent to either create a metric or add new values
 // to be aggregated into an existing metric.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/MetricDatum
 type MetricDatum struct {
 	_ struct{} `type:"structure"`
+
+	// Array of numbers that is used along with the Values array. Each number in
+	// the Count array is the number of times the corresponding value in the Values
+	// array occurred during the period.
+	//
+	// If you omit the Counts array, the default of 1 is used as the value for each
+	// count. If you include a Counts array, it must include the same amount of
+	// values as the Values array.
+	Counts []*float64 `type:"list"`
 
 	// The dimensions associated with the metric.
 	Dimensions []*Dimension `type:"list"`
@@ -2670,21 +4089,45 @@ type MetricDatum struct {
 	// The statistical values for the metric.
 	StatisticValues *StatisticSet `type:"structure"`
 
+	// Valid values are 1 and 60. Setting this to 1 specifies this metric as a high-resolution
+	// metric, so that CloudWatch stores the metric with sub-minute resolution down
+	// to one second. Setting this to 60 specifies this metric as a regular-resolution
+	// metric, which CloudWatch stores at 1-minute resolution. Currently, high resolution
+	// is available only for custom metrics. For more information about high-resolution
+	// metrics, see High-Resolution Metrics (http://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/publishingMetrics.html#high-resolution-metrics)
+	// in the Amazon CloudWatch User Guide.
+	//
+	// This field is optional, if you do not specify it the default of 60 is used.
+	StorageResolution *int64 `min:"1" type:"integer"`
+
 	// The time the metric data was received, expressed as the number of milliseconds
 	// since Jan 1, 1970 00:00:00 UTC.
-	Timestamp *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+	Timestamp *time.Time `type:"timestamp"`
 
 	// The unit of the metric.
 	Unit *string `type:"string" enum:"StandardUnit"`
 
 	// The value for the metric.
 	//
-	// Although the parameter accepts numbers of type Double, Amazon CloudWatch
-	// rejects values that are either too small or too large. Values must be in
-	// the range of 8.515920e-109 to 1.174271e+108 (Base 10) or 2e-360 to 2e360
-	// (Base 2). In addition, special values (for example, NaN, +Infinity, -Infinity)
-	// are not supported.
+	// Although the parameter accepts numbers of type Double, CloudWatch rejects
+	// values that are either too small or too large. Values must be in the range
+	// of 8.515920e-109 to 1.174271e+108 (Base 10) or 2e-360 to 2e360 (Base 2).
+	// In addition, special values (for example, NaN, +Infinity, -Infinity) are
+	// not supported.
 	Value *float64 `type:"double"`
+
+	// Array of numbers representing the values for the metric during the period.
+	// Each unique value is listed just once in this array, and the corresponding
+	// number in the Counts array specifies the number of times that value occurred
+	// during the period. You can include up to 150 unique values in each PutMetricData
+	// action that specifies a Values array.
+	//
+	// Although the Values array accepts numbers of type Double, CloudWatch rejects
+	// values that are either too small or too large. Values must be in the range
+	// of 8.515920e-109 to 1.174271e+108 (Base 10) or 2e-360 to 2e360 (Base 2).
+	// In addition, special values (for example, NaN, +Infinity, -Infinity) are
+	// not supported.
+	Values []*float64 `type:"list"`
 }
 
 // String returns the string representation
@@ -2705,6 +4148,9 @@ func (s *MetricDatum) Validate() error {
 	}
 	if s.MetricName != nil && len(*s.MetricName) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("MetricName", 1))
+	}
+	if s.StorageResolution != nil && *s.StorageResolution < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("StorageResolution", 1))
 	}
 	if s.Dimensions != nil {
 		for i, v := range s.Dimensions {
@@ -2728,6 +4174,12 @@ func (s *MetricDatum) Validate() error {
 	return nil
 }
 
+// SetCounts sets the Counts field's value.
+func (s *MetricDatum) SetCounts(v []*float64) *MetricDatum {
+	s.Counts = v
+	return s
+}
+
 // SetDimensions sets the Dimensions field's value.
 func (s *MetricDatum) SetDimensions(v []*Dimension) *MetricDatum {
 	s.Dimensions = v
@@ -2743,6 +4195,12 @@ func (s *MetricDatum) SetMetricName(v string) *MetricDatum {
 // SetStatisticValues sets the StatisticValues field's value.
 func (s *MetricDatum) SetStatisticValues(v *StatisticSet) *MetricDatum {
 	s.StatisticValues = v
+	return s
+}
+
+// SetStorageResolution sets the StorageResolution field's value.
+func (s *MetricDatum) SetStorageResolution(v int64) *MetricDatum {
+	s.StorageResolution = &v
 	return s
 }
 
@@ -2764,29 +4222,211 @@ func (s *MetricDatum) SetValue(v float64) *MetricDatum {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/PutMetricAlarmInput
+// SetValues sets the Values field's value.
+func (s *MetricDatum) SetValues(v []*float64) *MetricDatum {
+	s.Values = v
+	return s
+}
+
+// This structure defines the metric to be returned, along with the statistics,
+// period, and units.
+type MetricStat struct {
+	_ struct{} `type:"structure"`
+
+	// The metric to return, including the metric name, namespace, and dimensions.
+	//
+	// Metric is a required field
+	Metric *Metric `type:"structure" required:"true"`
+
+	// The period, in seconds, to use when retrieving the metric.
+	//
+	// Period is a required field
+	Period *int64 `min:"1" type:"integer" required:"true"`
+
+	// The statistic to return. It can include any CloudWatch statistic or extended
+	// statistic.
+	//
+	// Stat is a required field
+	Stat *string `type:"string" required:"true"`
+
+	// The unit to use for the returned data points.
+	Unit *string `type:"string" enum:"StandardUnit"`
+}
+
+// String returns the string representation
+func (s MetricStat) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s MetricStat) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *MetricStat) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "MetricStat"}
+	if s.Metric == nil {
+		invalidParams.Add(request.NewErrParamRequired("Metric"))
+	}
+	if s.Period == nil {
+		invalidParams.Add(request.NewErrParamRequired("Period"))
+	}
+	if s.Period != nil && *s.Period < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Period", 1))
+	}
+	if s.Stat == nil {
+		invalidParams.Add(request.NewErrParamRequired("Stat"))
+	}
+	if s.Metric != nil {
+		if err := s.Metric.Validate(); err != nil {
+			invalidParams.AddNested("Metric", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetMetric sets the Metric field's value.
+func (s *MetricStat) SetMetric(v *Metric) *MetricStat {
+	s.Metric = v
+	return s
+}
+
+// SetPeriod sets the Period field's value.
+func (s *MetricStat) SetPeriod(v int64) *MetricStat {
+	s.Period = &v
+	return s
+}
+
+// SetStat sets the Stat field's value.
+func (s *MetricStat) SetStat(v string) *MetricStat {
+	s.Stat = &v
+	return s
+}
+
+// SetUnit sets the Unit field's value.
+func (s *MetricStat) SetUnit(v string) *MetricStat {
+	s.Unit = &v
+	return s
+}
+
+type PutDashboardInput struct {
+	_ struct{} `type:"structure"`
+
+	// The detailed information about the dashboard in JSON format, including the
+	// widgets to include and their location on the dashboard. This parameter is
+	// required.
+	//
+	// For more information about the syntax, see CloudWatch-Dashboard-Body-Structure.
+	//
+	// DashboardBody is a required field
+	DashboardBody *string `type:"string" required:"true"`
+
+	// The name of the dashboard. If a dashboard with this name already exists,
+	// this call modifies that dashboard, replacing its current contents. Otherwise,
+	// a new dashboard is created. The maximum length is 255, and valid characters
+	// are A-Z, a-z, 0-9, "-", and "_". This parameter is required.
+	//
+	// DashboardName is a required field
+	DashboardName *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s PutDashboardInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutDashboardInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutDashboardInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutDashboardInput"}
+	if s.DashboardBody == nil {
+		invalidParams.Add(request.NewErrParamRequired("DashboardBody"))
+	}
+	if s.DashboardName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DashboardName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDashboardBody sets the DashboardBody field's value.
+func (s *PutDashboardInput) SetDashboardBody(v string) *PutDashboardInput {
+	s.DashboardBody = &v
+	return s
+}
+
+// SetDashboardName sets the DashboardName field's value.
+func (s *PutDashboardInput) SetDashboardName(v string) *PutDashboardInput {
+	s.DashboardName = &v
+	return s
+}
+
+type PutDashboardOutput struct {
+	_ struct{} `type:"structure"`
+
+	// If the input for PutDashboard was correct and the dashboard was successfully
+	// created or modified, this result is empty.
+	//
+	// If this result includes only warning messages, then the input was valid enough
+	// for the dashboard to be created or modified, but some elements of the dashboard
+	// may not render.
+	//
+	// If this result includes error messages, the input was not valid and the operation
+	// failed.
+	DashboardValidationMessages []*DashboardValidationMessage `type:"list"`
+}
+
+// String returns the string representation
+func (s PutDashboardOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutDashboardOutput) GoString() string {
+	return s.String()
+}
+
+// SetDashboardValidationMessages sets the DashboardValidationMessages field's value.
+func (s *PutDashboardOutput) SetDashboardValidationMessages(v []*DashboardValidationMessage) *PutDashboardOutput {
+	s.DashboardValidationMessages = v
+	return s
+}
+
 type PutMetricAlarmInput struct {
 	_ struct{} `type:"structure"`
 
 	// Indicates whether actions should be executed during any changes to the alarm
-	// state.
+	// state. The default is TRUE.
 	ActionsEnabled *bool `type:"boolean"`
 
 	// The actions to execute when this alarm transitions to the ALARM state from
 	// any other state. Each action is specified as an Amazon Resource Name (ARN).
 	//
 	// Valid Values: arn:aws:automate:region:ec2:stop | arn:aws:automate:region:ec2:terminate
-	// | arn:aws:automate:region:ec2:recover
+	// | arn:aws:automate:region:ec2:recover | arn:aws:sns:region:account-id:sns-topic-name
+	// | arn:aws:autoscaling:region:account-id:scalingPolicy:policy-idautoScalingGroupName/group-friendly-name:policyName/policy-friendly-name
 	//
-	// Valid Values (for use with IAM roles): arn:aws:swf:us-east-1:{customer-account}:action/actions/AWS_EC2.InstanceId.Stop/1.0
-	// | arn:aws:swf:us-east-1:{customer-account}:action/actions/AWS_EC2.InstanceId.Terminate/1.0
-	// | arn:aws:swf:us-east-1:{customer-account}:action/actions/AWS_EC2.InstanceId.Reboot/1.0
+	// Valid Values (for use with IAM roles): arn:aws:swf:region:account-id:action/actions/AWS_EC2.InstanceId.Stop/1.0
+	// | arn:aws:swf:region:account-id:action/actions/AWS_EC2.InstanceId.Terminate/1.0
+	// | arn:aws:swf:region:account-id:action/actions/AWS_EC2.InstanceId.Reboot/1.0
 	AlarmActions []*string `type:"list"`
 
 	// The description for the alarm.
 	AlarmDescription *string `type:"string"`
 
-	// The name for the alarm. This name must be unique within the AWS account.
+	// The name for the alarm. This name must be unique within your AWS account.
 	//
 	// AlarmName is a required field
 	AlarmName *string `min:"1" type:"string" required:"true"`
@@ -2797,13 +4437,19 @@ type PutMetricAlarmInput struct {
 	// ComparisonOperator is a required field
 	ComparisonOperator *string `type:"string" required:"true" enum:"ComparisonOperator"`
 
-	// The dimensions for the metric associated with the alarm.
+	// The number of datapoints that must be breaching to trigger the alarm. This
+	// is used only if you are setting an "M out of N" alarm. In that case, this
+	// value is the M. For more information, see Evaluating an Alarm (http://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html#alarm-evaluation)
+	// in the Amazon CloudWatch User Guide.
+	DatapointsToAlarm *int64 `min:"1" type:"integer"`
+
+	// The dimensions for the metric specified in MetricName.
 	Dimensions []*Dimension `type:"list"`
 
 	// Used only for alarms based on percentiles. If you specify ignore, the alarm
-	// state will not change during periods with too few data points to be statistically
-	// significant. If you specify evaluate or omit this parameter, the alarm will
-	// always be evaluated and possibly change state no matter how many data points
+	// state does not change during periods with too few data points to be statistically
+	// significant. If you specify evaluate or omit this parameter, the alarm is
+	// always evaluated and possibly changes state no matter how many data points
 	// are available. For more information, see Percentile-Based CloudWatch Alarms
 	// and Low Data Samples (http://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html#percentiles-with-low-samples).
 	//
@@ -2811,12 +4457,20 @@ type PutMetricAlarmInput struct {
 	EvaluateLowSampleCountPercentile *string `min:"1" type:"string"`
 
 	// The number of periods over which data is compared to the specified threshold.
+	// If you are setting an alarm that requires that a number of consecutive data
+	// points be breaching to trigger the alarm, this value specifies that number.
+	// If you are setting an "M out of N" alarm, this value is the N.
+	//
+	// An alarm's total current evaluation period can be no longer than one day,
+	// so this number multiplied by Period cannot be more than 86,400 seconds.
 	//
 	// EvaluationPeriods is a required field
 	EvaluationPeriods *int64 `min:"1" type:"integer" required:"true"`
 
-	// The percentile statistic for the metric associated with the alarm. Specify
-	// a value between p0.0 and p100.
+	// The percentile statistic for the metric specified in MetricName. Specify
+	// a value between p0.0 and p100. When you call PutMetricAlarm and specify a
+	// MetricName, you must specify either Statistic or ExtendedStatistic, but not
+	// both.
 	ExtendedStatistic *string `type:"string"`
 
 	// The actions to execute when this alarm transitions to the INSUFFICIENT_DATA
@@ -2824,41 +4478,68 @@ type PutMetricAlarmInput struct {
 	// Name (ARN).
 	//
 	// Valid Values: arn:aws:automate:region:ec2:stop | arn:aws:automate:region:ec2:terminate
-	// | arn:aws:automate:region:ec2:recover
+	// | arn:aws:automate:region:ec2:recover | arn:aws:sns:region:account-id:sns-topic-name
+	// | arn:aws:autoscaling:region:account-id:scalingPolicy:policy-idautoScalingGroupName/group-friendly-name:policyName/policy-friendly-name
 	//
-	// Valid Values (for use with IAM roles): arn:aws:swf:us-east-1:{customer-account}:action/actions/AWS_EC2.InstanceId.Stop/1.0
-	// | arn:aws:swf:us-east-1:{customer-account}:action/actions/AWS_EC2.InstanceId.Terminate/1.0
-	// | arn:aws:swf:us-east-1:{customer-account}:action/actions/AWS_EC2.InstanceId.Reboot/1.0
+	// Valid Values (for use with IAM roles): >arn:aws:swf:region:account-id:action/actions/AWS_EC2.InstanceId.Stop/1.0
+	// | arn:aws:swf:region:account-id:action/actions/AWS_EC2.InstanceId.Terminate/1.0
+	// | arn:aws:swf:region:account-id:action/actions/AWS_EC2.InstanceId.Reboot/1.0
 	InsufficientDataActions []*string `type:"list"`
 
 	// The name for the metric associated with the alarm.
 	//
-	// MetricName is a required field
-	MetricName *string `min:"1" type:"string" required:"true"`
+	// If you are creating an alarm based on a math expression, you cannot specify
+	// this parameter, or any of the Dimensions, Period, Namespace, Statistic, or
+	// ExtendedStatistic parameters. Instead, you specify all this information in
+	// the Metrics array.
+	MetricName *string `min:"1" type:"string"`
 
-	// The namespace for the metric associated with the alarm.
+	// An array of MetricDataQuery structures that enable you to create an alarm
+	// based on the result of a metric math expression. Each item in the Metrics
+	// array either retrieves a metric or performs a math expression.
 	//
-	// Namespace is a required field
-	Namespace *string `min:"1" type:"string" required:"true"`
+	// If you use the Metrics parameter, you cannot include the MetricName, Dimensions,
+	// Period, Namespace, Statistic, or ExtendedStatistic parameters of PutMetricAlarm
+	// in the same operation. Instead, you retrieve the metrics you are using in
+	// your math expression as part of the Metrics array.
+	Metrics []*MetricDataQuery `type:"list"`
+
+	// The namespace for the metric associated specified in MetricName.
+	Namespace *string `min:"1" type:"string"`
 
 	// The actions to execute when this alarm transitions to an OK state from any
 	// other state. Each action is specified as an Amazon Resource Name (ARN).
 	//
 	// Valid Values: arn:aws:automate:region:ec2:stop | arn:aws:automate:region:ec2:terminate
-	// | arn:aws:automate:region:ec2:recover
+	// | arn:aws:automate:region:ec2:recover | arn:aws:automate:region:ec2:reboot
+	// | arn:aws:sns:region:account-id:sns-topic-name | arn:aws:autoscaling:region:account-id:scalingPolicy:policy-idautoScalingGroupName/group-friendly-name:policyName/policy-friendly-name
 	//
-	// Valid Values (for use with IAM roles): arn:aws:swf:us-east-1:{customer-account}:action/actions/AWS_EC2.InstanceId.Stop/1.0
-	// | arn:aws:swf:us-east-1:{customer-account}:action/actions/AWS_EC2.InstanceId.Terminate/1.0
-	// | arn:aws:swf:us-east-1:{customer-account}:action/actions/AWS_EC2.InstanceId.Reboot/1.0
+	// Valid Values (for use with IAM roles): arn:aws:swf:region:account-id:action/actions/AWS_EC2.InstanceId.Stop/1.0
+	// | arn:aws:swf:region:account-id:action/actions/AWS_EC2.InstanceId.Terminate/1.0
+	// | arn:aws:swf:region:account-id:action/actions/AWS_EC2.InstanceId.Reboot/1.0
 	OKActions []*string `type:"list"`
 
-	// The period, in seconds, over which the specified statistic is applied.
+	// The length, in seconds, used each time the metric specified in MetricName
+	// is evaluated. Valid values are 10, 30, and any multiple of 60.
 	//
-	// Period is a required field
-	Period *int64 `min:"60" type:"integer" required:"true"`
+	// Be sure to specify 10 or 30 only for metrics that are stored by a PutMetricData
+	// call with a StorageResolution of 1. If you specify a period of 10 or 30 for
+	// a metric that does not have sub-minute resolution, the alarm still attempts
+	// to gather data at the period rate that you specify. In this case, it does
+	// not receive data for the attempts that do not correspond to a one-minute
+	// data resolution, and the alarm may often lapse into INSUFFICENT_DATA status.
+	// Specifying 10 or 30 also sets this alarm as a high-resolution alarm, which
+	// has a higher charge than other alarms. For more information about pricing,
+	// see Amazon CloudWatch Pricing (https://aws.amazon.com/cloudwatch/pricing/).
+	//
+	// An alarm's total current evaluation period can be no longer than one day,
+	// so Period multiplied by EvaluationPeriods cannot be more than 86,400 seconds.
+	Period *int64 `min:"1" type:"integer"`
 
-	// The statistic for the metric associated with the alarm, other than percentile.
-	// For percentile statistics, use ExtendedStatistic.
+	// The statistic for the metric specified in MetricName, other than percentile.
+	// For percentile statistics, use ExtendedStatistic. When you call PutMetricAlarm
+	// and specify a MetricName, you must specify either Statistic or ExtendedStatistic,
+	// but not both.
 	Statistic *string `type:"string" enum:"Statistic"`
 
 	// The value against which the specified statistic is compared.
@@ -2881,8 +4562,7 @@ type PutMetricAlarmInput struct {
 	// Percent, are aggregated separately.
 	//
 	// If you specify a unit, you must use a unit that is appropriate for the metric.
-	// Otherwise, the Amazon CloudWatch alarm can get stuck in the INSUFFICIENT
-	// DATA state.
+	// Otherwise, the CloudWatch alarm can get stuck in the INSUFFICIENT DATA state.
 	Unit *string `type:"string" enum:"StandardUnit"`
 }
 
@@ -2908,6 +4588,9 @@ func (s *PutMetricAlarmInput) Validate() error {
 	if s.ComparisonOperator == nil {
 		invalidParams.Add(request.NewErrParamRequired("ComparisonOperator"))
 	}
+	if s.DatapointsToAlarm != nil && *s.DatapointsToAlarm < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("DatapointsToAlarm", 1))
+	}
 	if s.EvaluateLowSampleCountPercentile != nil && len(*s.EvaluateLowSampleCountPercentile) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("EvaluateLowSampleCountPercentile", 1))
 	}
@@ -2917,23 +4600,14 @@ func (s *PutMetricAlarmInput) Validate() error {
 	if s.EvaluationPeriods != nil && *s.EvaluationPeriods < 1 {
 		invalidParams.Add(request.NewErrParamMinValue("EvaluationPeriods", 1))
 	}
-	if s.MetricName == nil {
-		invalidParams.Add(request.NewErrParamRequired("MetricName"))
-	}
 	if s.MetricName != nil && len(*s.MetricName) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("MetricName", 1))
-	}
-	if s.Namespace == nil {
-		invalidParams.Add(request.NewErrParamRequired("Namespace"))
 	}
 	if s.Namespace != nil && len(*s.Namespace) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("Namespace", 1))
 	}
-	if s.Period == nil {
-		invalidParams.Add(request.NewErrParamRequired("Period"))
-	}
-	if s.Period != nil && *s.Period < 60 {
-		invalidParams.Add(request.NewErrParamMinValue("Period", 60))
+	if s.Period != nil && *s.Period < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Period", 1))
 	}
 	if s.Threshold == nil {
 		invalidParams.Add(request.NewErrParamRequired("Threshold"))
@@ -2948,6 +4622,16 @@ func (s *PutMetricAlarmInput) Validate() error {
 			}
 			if err := v.Validate(); err != nil {
 				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Dimensions", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.Metrics != nil {
+		for i, v := range s.Metrics {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Metrics", i), err.(request.ErrInvalidParams))
 			}
 		}
 	}
@@ -2988,6 +4672,12 @@ func (s *PutMetricAlarmInput) SetComparisonOperator(v string) *PutMetricAlarmInp
 	return s
 }
 
+// SetDatapointsToAlarm sets the DatapointsToAlarm field's value.
+func (s *PutMetricAlarmInput) SetDatapointsToAlarm(v int64) *PutMetricAlarmInput {
+	s.DatapointsToAlarm = &v
+	return s
+}
+
 // SetDimensions sets the Dimensions field's value.
 func (s *PutMetricAlarmInput) SetDimensions(v []*Dimension) *PutMetricAlarmInput {
 	s.Dimensions = v
@@ -3021,6 +4711,12 @@ func (s *PutMetricAlarmInput) SetInsufficientDataActions(v []*string) *PutMetric
 // SetMetricName sets the MetricName field's value.
 func (s *PutMetricAlarmInput) SetMetricName(v string) *PutMetricAlarmInput {
 	s.MetricName = &v
+	return s
+}
+
+// SetMetrics sets the Metrics field's value.
+func (s *PutMetricAlarmInput) SetMetrics(v []*MetricDataQuery) *PutMetricAlarmInput {
+	s.Metrics = v
 	return s
 }
 
@@ -3066,7 +4762,6 @@ func (s *PutMetricAlarmInput) SetUnit(v string) *PutMetricAlarmInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/PutMetricAlarmOutput
 type PutMetricAlarmOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3081,11 +4776,11 @@ func (s PutMetricAlarmOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/PutMetricDataInput
 type PutMetricDataInput struct {
 	_ struct{} `type:"structure"`
 
-	// The data for the metric.
+	// The data for the metric. The array can include no more than 20 metrics per
+	// call.
 	//
 	// MetricData is a required field
 	MetricData []*MetricDatum `type:"list" required:"true"`
@@ -3150,7 +4845,6 @@ func (s *PutMetricDataInput) SetNamespace(v string) *PutMetricDataInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/PutMetricDataOutput
 type PutMetricDataOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3165,7 +4859,6 @@ func (s PutMetricDataOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/SetAlarmStateInput
 type SetAlarmStateInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3245,7 +4938,6 @@ func (s *SetAlarmStateInput) SetStateValue(v string) *SetAlarmStateInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/SetAlarmStateOutput
 type SetAlarmStateOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3261,7 +4953,6 @@ func (s SetAlarmStateOutput) GoString() string {
 }
 
 // Represents a set of statistics that describes a specific metric.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/StatisticSet
 type StatisticSet struct {
 	_ struct{} `type:"structure"`
 
@@ -3365,6 +5056,14 @@ const (
 
 	// HistoryItemTypeAction is a HistoryItemType enum value
 	HistoryItemTypeAction = "Action"
+)
+
+const (
+	// ScanByTimestampDescending is a ScanBy enum value
+	ScanByTimestampDescending = "TimestampDescending"
+
+	// ScanByTimestampAscending is a ScanBy enum value
+	ScanByTimestampAscending = "TimestampAscending"
 )
 
 const (
@@ -3476,4 +5175,15 @@ const (
 
 	// StatisticMaximum is a Statistic enum value
 	StatisticMaximum = "Maximum"
+)
+
+const (
+	// StatusCodeComplete is a StatusCode enum value
+	StatusCodeComplete = "Complete"
+
+	// StatusCodeInternalError is a StatusCode enum value
+	StatusCodeInternalError = "InternalError"
+
+	// StatusCodePartialData is a StatusCode enum value
+	StatusCodePartialData = "PartialData"
 )

@@ -1,7 +1,10 @@
 package terraform
 
 import (
-	"github.com/hashicorp/terraform/config/module"
+	"log"
+
+	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/dag"
 )
 
 // OutputTransformer is a GraphTransformer that adds all the outputs
@@ -11,49 +14,82 @@ import (
 // aren't changing since there is no downside: the state will be available
 // even if the dependent items aren't changing.
 type OutputTransformer struct {
-	Module *module.Tree
+	Config *configs.Config
 }
 
 func (t *OutputTransformer) Transform(g *Graph) error {
-	return t.transform(g, t.Module)
+	return t.transform(g, t.Config)
 }
 
-func (t *OutputTransformer) transform(g *Graph, m *module.Tree) error {
-	// If no config, no outputs
-	if m == nil {
+func (t *OutputTransformer) transform(g *Graph, c *configs.Config) error {
+	// If we have no config then there can be no outputs.
+	if c == nil {
 		return nil
 	}
 
 	// Transform all the children. We must do this first because
 	// we can reference module outputs and they must show up in the
 	// reference map.
-	for _, c := range m.Children() {
-		if err := t.transform(g, c); err != nil {
+	for _, cc := range c.Children {
+		if err := t.transform(g, cc); err != nil {
 			return err
 		}
 	}
 
-	// If we have no outputs, we're done!
-	os := m.Config().Outputs
-	if len(os) == 0 {
-		return nil
-	}
+	// Our addressing system distinguishes between modules and module instances,
+	// but we're not yet ready to make that distinction here (since we don't
+	// support "count"/"for_each" on modules) and so we just do a naive
+	// transform of the module path into a module instance path, assuming that
+	// no keys are in use. This should be removed when "count" and "for_each"
+	// are implemented for modules.
+	path := c.Path.UnkeyedInstanceShim()
 
-	// Add all outputs here
-	for _, o := range os {
-		// Build the node.
-		//
-		// NOTE: For now this is just an "applyable" output. As we build
-		// new graph builders for the other operations I suspect we'll
-		// find a way to parameterize this, require new transforms, etc.
+	for _, o := range c.Module.Outputs {
+		addr := path.OutputValue(o.Name)
 		node := &NodeApplyableOutput{
-			PathValue: normalizeModulePath(m.Path()),
-			Config:    o,
+			Addr:   addr,
+			Config: o,
 		}
-
-		// Add it!
 		g.Add(node)
 	}
 
+	return nil
+}
+
+// DestroyOutputTransformer is a GraphTransformer that adds nodes to delete
+// outputs during destroy. We need to do this to ensure that no stale outputs
+// are ever left in the state.
+type DestroyOutputTransformer struct {
+}
+
+func (t *DestroyOutputTransformer) Transform(g *Graph) error {
+	for _, v := range g.Vertices() {
+		output, ok := v.(*NodeApplyableOutput)
+		if !ok {
+			continue
+		}
+
+		// create the destroy node for this output
+		node := &NodeDestroyableOutput{
+			Addr:   output.Addr,
+			Config: output.Config,
+		}
+
+		log.Printf("[TRACE] creating %s", node.Name())
+		g.Add(node)
+
+		deps, err := g.Descendents(v)
+		if err != nil {
+			return err
+		}
+
+		// the destroy node must depend on the eval node
+		deps.Add(v)
+
+		for _, d := range deps.List() {
+			log.Printf("[TRACE] %s depends on %s", node.Name(), dag.VertexName(d))
+			g.Connect(dag.BasicEdge(node, d))
+		}
+	}
 	return nil
 }

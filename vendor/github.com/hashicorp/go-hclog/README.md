@@ -10,8 +10,7 @@ interface for use in development and production environments.
 It provides logging levels that provide decreased output based upon the
 desired amount of output, unlike the standard library `log` package.
 
-It does not provide `Printf` style logging, only key/value logging that is
-exposed as arguments to the logging functions for simplicity.
+It provides `Printf` style logging of values via `hclog.Fmt()`.
 
 It provides a human readable output mode for use in development as well as
 JSON output mode for production.
@@ -99,6 +98,17 @@ requestLogger.Info("we are transporting a request")
 
 This allows sub Loggers to be context specific without having to thread that
 into all the callers.
+
+### Using `hclog.Fmt()`
+
+```go
+var int totalBandwidth = 200
+appLogger.Info("total bandwidth exceeded", "bandwidth", hclog.Fmt("%d GB/s", totalBandwidth))
+```
+
+```text
+... [INFO ] my-app: total bandwidth exceeded: bandwidth="200 GB/s"
+```
 
 ### Use this with code that uses the standard library logger
 

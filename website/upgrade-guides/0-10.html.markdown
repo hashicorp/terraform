@@ -97,7 +97,7 @@ For example, if `module.example` contains a module itself, called
 This also applies to other Terraform features that use
 [resource addressing](/docs/internals/resource-addressing.html) syntax.
 This includes some of the subcommands of
-[`terraform state`](http://127.0.0.1:4567/docs/commands/state/index.html).
+[`terraform state`](/docs/commands/state/index.html).
 
 **Action:** If running Terraform with `-target` in automation, review usage
 to ensure that selecting additional resources in child modules will not have

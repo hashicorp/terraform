@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/codedeploy"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsCodeDeployApp() *schema.Resource {
@@ -18,16 +19,60 @@ func resourceAwsCodeDeployApp() *schema.Resource {
 		Read:   resourceAwsCodeDeployAppRead,
 		Update: resourceAwsCodeDeployUpdate,
 		Delete: resourceAwsCodeDeployAppDelete,
+		Importer: &schema.ResourceImporter{
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				idParts := strings.Split(d.Id(), ":")
+
+				if len(idParts) == 2 {
+					return []*schema.ResourceData{d}, nil
+				}
+
+				applicationName := d.Id()
+				conn := meta.(*AWSClient).codedeployconn
+
+				input := &codedeploy.GetApplicationInput{
+					ApplicationName: aws.String(applicationName),
+				}
+
+				log.Printf("[DEBUG] Reading CodeDeploy Application: %s", input)
+				output, err := conn.GetApplication(input)
+
+				if err != nil {
+					return []*schema.ResourceData{}, err
+				}
+
+				if output == nil || output.Application == nil {
+					return []*schema.ResourceData{}, fmt.Errorf("error reading CodeDeploy Application (%s): empty response", applicationName)
+				}
+
+				d.SetId(fmt.Sprintf("%s:%s", aws.StringValue(output.Application.ApplicationId), applicationName))
+				d.Set("name", applicationName)
+
+				return []*schema.ResourceData{d}, nil
+			},
+		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
+			"compute_platform": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					codedeploy.ComputePlatformEcs,
+					codedeploy.ComputePlatformLambda,
+					codedeploy.ComputePlatformServer,
+				}, false),
+				Default: codedeploy.ComputePlatformServer,
+			},
+
 			// The unique ID is set by AWS on create.
-			"unique_id": &schema.Schema{
+			"unique_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -40,10 +85,12 @@ func resourceAwsCodeDeployAppCreate(d *schema.ResourceData, meta interface{}) er
 	conn := meta.(*AWSClient).codedeployconn
 
 	application := d.Get("name").(string)
+	computePlatform := d.Get("compute_platform").(string)
 	log.Printf("[DEBUG] Creating CodeDeploy application %s", application)
 
 	resp, err := conn.CreateApplication(&codedeploy.CreateApplicationInput{
 		ApplicationName: aws.String(application),
+		ComputePlatform: aws.String(computePlatform),
 	})
 	if err != nil {
 		return err
@@ -63,7 +110,7 @@ func resourceAwsCodeDeployAppCreate(d *schema.ResourceData, meta interface{}) er
 func resourceAwsCodeDeployAppRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).codedeployconn
 
-	_, application := resourceAwsCodeDeployAppParseId(d.Id())
+	application := resourceAwsCodeDeployAppParseId(d.Id())
 	log.Printf("[DEBUG] Reading CodeDeploy application %s", application)
 	resp, err := conn.GetApplication(&codedeploy.GetApplicationInput{
 		ApplicationName: aws.String(application),
@@ -78,6 +125,7 @@ func resourceAwsCodeDeployAppRead(d *schema.ResourceData, meta interface{}) erro
 		}
 	}
 
+	d.Set("compute_platform", resp.Application.ComputePlatform)
 	d.Set("name", resp.Application.ApplicationName)
 
 	return nil
@@ -110,7 +158,6 @@ func resourceAwsCodeDeployAppDelete(d *schema.ResourceData, meta interface{}) er
 	})
 	if err != nil {
 		if cderr, ok := err.(awserr.Error); ok && cderr.Code() == "InvalidApplicationNameException" {
-			d.SetId("")
 			return nil
 		} else {
 			log.Printf("[ERROR] Error deleting CodeDeploy application: %s", err)
@@ -121,7 +168,8 @@ func resourceAwsCodeDeployAppDelete(d *schema.ResourceData, meta interface{}) er
 	return nil
 }
 
-func resourceAwsCodeDeployAppParseId(id string) (string, string) {
+func resourceAwsCodeDeployAppParseId(id string) string {
 	parts := strings.SplitN(id, ":", 2)
-	return parts[0], parts[1]
+	// We currently omit the application ID as it is not currently used anywhere
+	return parts[1]
 }

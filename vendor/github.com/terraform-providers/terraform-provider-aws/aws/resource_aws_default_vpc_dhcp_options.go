@@ -46,19 +46,19 @@ func resourceAwsDefaultVpcDhcpOptionsCreate(d *schema.ResourceData, meta interfa
 	}
 	req := &ec2.DescribeDhcpOptionsInput{
 		Filters: []*ec2.Filter{
-			&ec2.Filter{
+			{
 				Name:   aws.String("key"),
 				Values: aws.StringSlice([]string{"domain-name"}),
 			},
-			&ec2.Filter{
+			{
 				Name:   aws.String("value"),
 				Values: aws.StringSlice([]string{domainName}),
 			},
-			&ec2.Filter{
+			{
 				Name:   aws.String("key"),
 				Values: aws.StringSlice([]string{"domain-name-servers"}),
 			},
-			&ec2.Filter{
+			{
 				Name:   aws.String("value"),
 				Values: aws.StringSlice([]string{"AmazonProvidedDNS"}),
 			},
@@ -76,15 +76,10 @@ func resourceAwsDefaultVpcDhcpOptionsCreate(d *schema.ResourceData, meta interfa
 
 	d.SetId(aws.StringValue(resp.DhcpOptions[0].DhcpOptionsId))
 
-	if err := resourceAwsVpcDhcpOptionsUpdate(d, meta); err != nil {
-		return err
-	}
-
-	return resourceAwsVpcDhcpOptionsRead(d, meta)
+	return resourceAwsVpcDhcpOptionsUpdate(d, meta)
 }
 
 func resourceAwsDefaultVpcDhcpOptionsDelete(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[WARN] Cannot destroy Default DHCP Options Set. Terraform will remove this resource from the state file, however resources may remain.")
-	d.SetId("")
 	return nil
 }

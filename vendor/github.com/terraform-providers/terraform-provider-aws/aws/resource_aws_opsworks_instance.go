@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -25,12 +26,13 @@ func resourceAwsOpsworksInstance() *schema.Resource {
 			State: resourceAwsOpsworksInstanceImport,
 		},
 
-		Schema: map[string]*schema.Schema{
-			"id": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(10 * time.Minute),
+			Delete: schema.DefaultTimeout(10 * time.Minute),
+			Update: schema.DefaultTimeout(10 * time.Minute),
+		},
 
+		Schema: map[string]*schema.Schema{
 			"agent_version": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -45,16 +47,22 @@ func resourceAwsOpsworksInstance() *schema.Resource {
 			},
 
 			"architecture": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Default:      "x86_64",
-				ValidateFunc: validateArchitecture,
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "x86_64",
+				ValidateFunc: validation.StringInSlice([]string{
+					opsworks.ArchitectureX8664,
+					opsworks.ArchitectureI386,
+				}, false),
 			},
 
 			"auto_scaling_type": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: validateAutoScalingType,
+				Type:     schema.TypeString,
+				Optional: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					opsworks.AutoScalingTypeLoad,
+					opsworks.AutoScalingTypeTimer,
+				}, false),
 			},
 
 			"availability_zone": {
@@ -91,7 +99,6 @@ func resourceAwsOpsworksInstance() *schema.Resource {
 
 			"ec2_instance_id": {
 				Type:     schema.TypeString,
-				Optional: true,
 				Computed: true,
 			},
 
@@ -217,11 +224,14 @@ func resourceAwsOpsworksInstance() *schema.Resource {
 			},
 
 			"root_device_type": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ForceNew:     true,
-				Computed:     true,
-				ValidateFunc: validateRootDeviceType,
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Computed: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					opsworks.RootDeviceTypeEbs,
+					opsworks.RootDeviceTypeInstanceStore,
+				}, false),
 			},
 
 			"root_device_volume_id": {
@@ -262,9 +272,12 @@ func resourceAwsOpsworksInstance() *schema.Resource {
 			},
 
 			"state": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: validateState,
+				Type:     schema.TypeString,
+				Optional: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					"running",
+					"stopped",
+				}, false),
 			},
 
 			"status": {
@@ -281,19 +294,26 @@ func resourceAwsOpsworksInstance() *schema.Resource {
 			},
 
 			"tenancy": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Computed:     true,
-				ForceNew:     true,
-				ValidateFunc: validateTenancy,
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					"dedicated",
+					"default",
+					"host",
+				}, false),
 			},
 
 			"virtualization_type": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Computed:     true,
-				ForceNew:     true,
-				ValidateFunc: validateVirtualizationType,
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					opsworks.VirtualizationTypeParavirtual,
+					opsworks.VirtualizationTypeHvm,
+				}, false),
 			},
 
 			"ebs_block_device": {
@@ -432,60 +452,6 @@ func resourceAwsOpsworksInstance() *schema.Resource {
 	}
 }
 
-func validateArchitecture(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if value != "x86_64" && value != "i386" {
-		errors = append(errors, fmt.Errorf(
-			"%q must be one of \"x86_64\" or \"i386\"", k))
-	}
-	return
-}
-
-func validateTenancy(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if value != "dedicated" && value != "default" && value != "host" {
-		errors = append(errors, fmt.Errorf(
-			"%q must be one of \"dedicated\", \"default\" or \"host\"", k))
-	}
-	return
-}
-
-func validateAutoScalingType(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if value != "load" && value != "timer" {
-		errors = append(errors, fmt.Errorf(
-			"%q must be one of \"load\" or \"timer\"", k))
-	}
-	return
-}
-
-func validateRootDeviceType(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if value != "ebs" && value != "instance-store" {
-		errors = append(errors, fmt.Errorf(
-			"%q must be one of \"ebs\" or \"instance-store\"", k))
-	}
-	return
-}
-
-func validateState(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if value != "running" && value != "stopped" {
-		errors = append(errors, fmt.Errorf(
-			"%q must be one of \"running\" or \"stopped\"", k))
-	}
-	return
-}
-
-func validateVirtualizationType(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if value != "paravirtual" && value != "hvm" {
-		errors = append(errors, fmt.Errorf(
-			"%q must be one of \"paravirtual\" or \"hvm\"", k))
-	}
-	return
-}
-
 func resourceAwsOpsworksInstanceValidate(d *schema.ResourceData) error {
 	if d.HasChange("ami_id") {
 		if v, ok := d.GetOk("os"); ok {
@@ -558,7 +524,6 @@ func resourceAwsOpsworksInstanceRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("hostname", instance.Hostname)
 	d.Set("infrastructure_class", instance.InfrastructureClass)
 	d.Set("install_updates_on_boot", instance.InstallUpdatesOnBoot)
-	d.Set("id", instanceId)
 	d.Set("instance_profile_arn", instance.InstanceProfileArn)
 	d.Set("instance_type", instance.InstanceType)
 	d.Set("last_service_error_id", instance.LastServiceErrorId)
@@ -566,12 +531,12 @@ func resourceAwsOpsworksInstanceRead(d *schema.ResourceData, meta interface{}) e
 	for _, v := range instance.LayerIds {
 		layerIds = append(layerIds, *v)
 	}
-	layerIds, err = sortListBasedonTFFile(layerIds, d, "layer_ids")
+	layerIds, err = sortListBasedonTFFile(layerIds, d)
 	if err != nil {
-		return fmt.Errorf("[DEBUG] Error sorting layer_ids attribute: %#v", err)
+		return fmt.Errorf("Error sorting layer_ids attribute: %#v", err)
 	}
 	if err := d.Set("layer_ids", layerIds); err != nil {
-		return fmt.Errorf("[DEBUG] Error setting layer_ids attribute: %#v, error: %#v", layerIds, err)
+		return fmt.Errorf("Error setting layer_ids attribute: %#v, error: %#v", layerIds, err)
 	}
 	d.Set("os", instance.Os)
 	d.Set("platform", instance.Platform)
@@ -596,7 +561,7 @@ func resourceAwsOpsworksInstanceRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("virtualization_type", instance.VirtualizationType)
 
 	// Read BlockDeviceMapping
-	ibds, err := readOpsworksBlockDevices(d, instance, meta)
+	ibds, err := readOpsworksBlockDevices(instance)
 	if err != nil {
 		return err
 	}
@@ -779,10 +744,9 @@ func resourceAwsOpsworksInstanceCreate(d *schema.ResourceData, meta interface{})
 
 	instanceId := *resp.InstanceId
 	d.SetId(instanceId)
-	d.Set("id", instanceId)
 
 	if v, ok := d.GetOk("state"); ok && v.(string) == "running" {
-		err := startOpsworksInstance(d, meta, true)
+		err := startOpsworksInstance(d, meta, true, d.Timeout(schema.TimeoutCreate))
 		if err != nil {
 			return err
 		}
@@ -800,9 +764,9 @@ func resourceAwsOpsworksInstanceUpdate(d *schema.ResourceData, meta interface{})
 	}
 
 	req := &opsworks.UpdateInstanceInput{
+		InstanceId:           aws.String(d.Id()),
 		AgentVersion:         aws.String(d.Get("agent_version").(string)),
 		Architecture:         aws.String(d.Get("architecture").(string)),
-		InstanceId:           aws.String(d.Get("id").(string)),
 		InstallUpdatesOnBoot: aws.Bool(d.Get("install_updates_on_boot").(bool)),
 	}
 
@@ -854,14 +818,14 @@ func resourceAwsOpsworksInstanceUpdate(d *schema.ResourceData, meta interface{})
 		state := v.(string)
 		if state == "running" {
 			if status == "stopped" || status == "stopping" || status == "shutting_down" {
-				err := startOpsworksInstance(d, meta, false)
+				err := startOpsworksInstance(d, meta, false, d.Timeout(schema.TimeoutUpdate))
 				if err != nil {
 					return err
 				}
 			}
 		} else {
 			if status != "stopped" && status != "stopping" && status != "shutting_down" {
-				err := stopOpsworksInstance(d, meta, true)
+				err := stopOpsworksInstance(d, meta, d.Timeout(schema.TimeoutUpdate))
 				if err != nil {
 					return err
 				}
@@ -876,7 +840,7 @@ func resourceAwsOpsworksInstanceDelete(d *schema.ResourceData, meta interface{})
 	client := meta.(*AWSClient).opsworksconn
 
 	if v, ok := d.GetOk("status"); ok && v.(string) != "stopped" {
-		err := stopOpsworksInstance(d, meta, true)
+		err := stopOpsworksInstance(d, meta, d.Timeout(schema.TimeoutDelete))
 		if err != nil {
 			return err
 		}
@@ -895,7 +859,6 @@ func resourceAwsOpsworksInstanceDelete(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
-	d.SetId("")
 	return nil
 }
 
@@ -909,10 +872,10 @@ func resourceAwsOpsworksInstanceImport(
 	return []*schema.ResourceData{d}, nil
 }
 
-func startOpsworksInstance(d *schema.ResourceData, meta interface{}, wait bool) error {
+func startOpsworksInstance(d *schema.ResourceData, meta interface{}, wait bool, timeout time.Duration) error {
 	client := meta.(*AWSClient).opsworksconn
 
-	instanceId := d.Get("id").(string)
+	instanceId := d.Id()
 
 	req := &opsworks.StartInstanceInput{
 		InstanceId: aws.String(instanceId),
@@ -933,7 +896,7 @@ func startOpsworksInstance(d *schema.ResourceData, meta interface{}, wait bool) 
 			Pending:    []string{"requested", "pending", "booting", "running_setup"},
 			Target:     []string{"online"},
 			Refresh:    OpsworksInstanceStateRefreshFunc(client, instanceId),
-			Timeout:    10 * time.Minute,
+			Timeout:    timeout,
 			Delay:      10 * time.Second,
 			MinTimeout: 3 * time.Second,
 		}
@@ -947,10 +910,10 @@ func startOpsworksInstance(d *schema.ResourceData, meta interface{}, wait bool) 
 	return nil
 }
 
-func stopOpsworksInstance(d *schema.ResourceData, meta interface{}, wait bool) error {
+func stopOpsworksInstance(d *schema.ResourceData, meta interface{}, timeout time.Duration) error {
 	client := meta.(*AWSClient).opsworksconn
 
-	instanceId := d.Get("id").(string)
+	instanceId := d.Id()
 
 	req := &opsworks.StopInstanceInput{
 		InstanceId: aws.String(instanceId),
@@ -964,29 +927,26 @@ func stopOpsworksInstance(d *schema.ResourceData, meta interface{}, wait bool) e
 		return err
 	}
 
-	if wait {
-		log.Printf("[DEBUG] Waiting for instance (%s) to become stopped", instanceId)
+	log.Printf("[DEBUG] Waiting for instance (%s) to become stopped", instanceId)
 
-		stateConf := &resource.StateChangeConf{
-			Pending:    []string{"stopping", "terminating", "shutting_down", "terminated"},
-			Target:     []string{"stopped"},
-			Refresh:    OpsworksInstanceStateRefreshFunc(client, instanceId),
-			Timeout:    10 * time.Minute,
-			Delay:      10 * time.Second,
-			MinTimeout: 3 * time.Second,
-		}
-		_, err = stateConf.WaitForState()
-		if err != nil {
-			return fmt.Errorf("Error waiting for instance (%s) to become stopped: %s",
-				instanceId, err)
-		}
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"stopping", "terminating", "shutting_down", "terminated"},
+		Target:     []string{"stopped"},
+		Refresh:    OpsworksInstanceStateRefreshFunc(client, instanceId),
+		Timeout:    timeout,
+		Delay:      10 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
+	_, err = stateConf.WaitForState()
+	if err != nil {
+		return fmt.Errorf("Error waiting for instance (%s) to become stopped: %s",
+			instanceId, err)
 	}
 
 	return nil
 }
 
-func readOpsworksBlockDevices(d *schema.ResourceData, instance *opsworks.Instance, meta interface{}) (
-	map[string]interface{}, error) {
+func readOpsworksBlockDevices(instance *opsworks.Instance) (map[string]interface{}, error) {
 
 	blockDevices := make(map[string]interface{})
 	blockDevices["ebs"] = make([]map[string]interface{}, 0)

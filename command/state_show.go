@@ -2,12 +2,14 @@ package command
 
 import (
 	"fmt"
-	"sort"
+	"os"
 	"strings"
 
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/command/format"
+	"github.com/hashicorp/terraform/states"
 	"github.com/mitchellh/cli"
-	"github.com/ryanuber/columnize"
 )
 
 // StateShowCommand is a Command implementation that shows a single resource.
@@ -22,81 +24,103 @@ func (c *StateShowCommand) Run(args []string) int {
 		return 1
 	}
 
-	cmdFlags := c.Meta.flagSet("state show")
-	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
+	cmdFlags := c.Meta.defaultFlagSet("state show")
+	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
 	if err := cmdFlags.Parse(args); err != nil {
 		return cli.RunResultHelp
 	}
 	args = cmdFlags.Args()
+	if len(args) != 1 {
+		c.Ui.Error("Exactly one argument expected.\n")
+		return cli.RunResultHelp
+	}
 
 	// Load the backend
-	b, err := c.Backend(nil)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
+	b, backendDiags := c.Backend(nil)
+	if backendDiags.HasErrors() {
+		c.showDiagnostics(backendDiags)
 		return 1
 	}
+
+	// We require a local backend
+	local, ok := b.(backend.Local)
+	if !ok {
+		c.Ui.Error(ErrUnsupportedLocalOp)
+		return 1
+	}
+
+	// Check if the address can be parsed
+	addr, addrDiags := addrs.ParseAbsResourceInstanceStr(args[0])
+	if addrDiags.HasErrors() {
+		c.Ui.Error(fmt.Sprintf(errParsingAddress, args[0]))
+		return 1
+	}
+
+	// We expect the config dir to always be the cwd
+	cwd, err := os.Getwd()
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Error getting cwd: %s", err))
+		return 1
+	}
+
+	// Build the operation (required to get the schemas)
+	opReq := c.Operation(b)
+	opReq.ConfigDir = cwd
+
+	opReq.ConfigLoader, err = c.initConfigLoader()
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Error initializing config loader: %s", err))
+		return 1
+	}
+
+	// Get the context (required to get the schemas)
+	ctx, _, ctxDiags := local.Context(opReq)
+	if ctxDiags.HasErrors() {
+		c.showDiagnostics(ctxDiags)
+		return 1
+	}
+
+	// Get the schemas from the context
+	schemas := ctx.Schemas()
 
 	// Get the state
 	env := c.Workspace()
-	state, err := b.State(env)
+	stateMgr, err := b.StateMgr(env)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
+		c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
 		return 1
 	}
-	if err := state.RefreshState(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
+	if err := stateMgr.RefreshState(); err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to refresh state: %s", err))
 		return 1
 	}
 
-	stateReal := state.State()
-	if stateReal == nil {
+	state := stateMgr.State()
+	if state == nil {
 		c.Ui.Error(fmt.Sprintf(errStateNotFound))
 		return 1
 	}
 
-	filter := &terraform.StateFilter{State: stateReal}
-	results, err := filter.Filter(args...)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateFilter, err))
+	is := state.ResourceInstance(addr)
+	if !is.HasCurrent() {
+		c.Ui.Error(errNoInstanceFound)
 		return 1
 	}
 
-	if len(results) == 0 {
-		return 0
-	}
+	singleInstance := states.NewState()
+	singleInstance.EnsureModule(addr.Module).SetResourceInstanceCurrent(
+		addr.Resource,
+		is.Current,
+		addr.Resource.Resource.DefaultProviderConfig().Absolute(addr.Module),
+	)
 
-	instance, err := c.filterInstance(results)
-	if err != nil {
-		c.Ui.Error(err.Error())
-		return 1
-	}
+	output := format.State(&format.StateOpts{
+		State:   singleInstance,
+		Color:   c.Colorize(),
+		Schemas: schemas,
+	})
+	c.Ui.Output(output[strings.Index(output, "#"):])
 
-	if instance == nil {
-		return 0
-	}
-
-	is := instance.Value.(*terraform.InstanceState)
-
-	// Sort the keys
-	var keys []string
-	for k, _ := range is.Attributes {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	// Build the output
-	var output []string
-	output = append(output, fmt.Sprintf("id | %s", is.ID))
-	for _, k := range keys {
-		if k != "id" {
-			output = append(output, fmt.Sprintf("%s | %s", k, is.Attributes[k]))
-		}
-	}
-
-	// Output
-	config := columnize.DefaultConfig()
-	config.Glue = " = "
-	c.Ui.Output(columnize.Format(output, config))
 	return 0
 }
 
@@ -123,3 +147,15 @@ Options:
 func (c *StateShowCommand) Synopsis() string {
 	return "Show a resource in the state"
 }
+
+const errNoInstanceFound = `No instance found for the given address!
+
+This command requires that the address references one specific instance.
+To view the available instances, use "terraform state list". Please modify 
+the address to reference a specific instance.`
+
+const errParsingAddress = `Error parsing instance address: %s
+
+This command requires that the address references one specific instance.
+To view the available instances, use "terraform state list". Please modify 
+the address to reference a specific instance.`

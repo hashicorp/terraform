@@ -17,20 +17,20 @@ func resourceAwsIamGroupMembership() *schema.Resource {
 		Delete: resourceAwsIamGroupMembershipDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"users": &schema.Schema{
+			"users": {
 				Type:     schema.TypeSet,
 				Required: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
 
-			"group": &schema.Schema{
+			"group": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -88,7 +88,7 @@ func resourceAwsIamGroupMembershipRead(d *schema.ResourceData, meta interface{})
 	}
 
 	if err := d.Set("users", ul); err != nil {
-		return fmt.Errorf("[WARN] Error setting user list from IAM Group Membership (%s), error: %s", group, err)
+		return fmt.Errorf("Error setting user list from IAM Group Membership (%s), error: %s", group, err)
 	}
 
 	return nil

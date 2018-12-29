@@ -36,6 +36,9 @@ Options:
 * `-draw-cycles`    - Highlight any cycles in the graph with colored edges.
                       This helps when diagnosing cycle errors.
 
+* `-module-depth=n` - Specifies the depth of modules to show in the output.
+                      By default this is -1, which will expand all.
+
 * `-no-color`       - If specified, output won't contain any color.
 
 * `-type=plan`      - Type of graph to output. Can be: plan, plan-destroy, apply, legacy.
@@ -47,7 +50,7 @@ easily be converted to an image by making use of `dot` provided
 by GraphViz:
 
 ```shell
-$ terraform graph | dot -Tpng > graph.png
+$ terraform graph | dot -Tsvg > graph.svg
 ```
 
 Here is an example graph output:

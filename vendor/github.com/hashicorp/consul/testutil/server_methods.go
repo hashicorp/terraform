@@ -25,13 +25,13 @@ const (
 
 // JoinLAN is used to join local datacenters together.
 func (s *TestServer) JoinLAN(t *testing.T, addr string) {
-	resp := s.get(t, "/v1/agent/join/"+addr)
+	resp := s.put(t, "/v1/agent/join/"+addr, nil)
 	defer resp.Body.Close()
 }
 
 // JoinWAN is used to join remote datacenters together.
 func (s *TestServer) JoinWAN(t *testing.T, addr string) {
-	resp := s.get(t, "/v1/agent/join/"+addr+"?wan=1")
+	resp := s.put(t, "/v1/agent/join/"+addr+"?wan=1", nil)
 	resp.Body.Close()
 }
 

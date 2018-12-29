@@ -217,20 +217,27 @@ func TestConfigValidate_table(t *testing.T) {
 			"provider with invalid version constraint",
 			"provider-version-invalid",
 			true,
-			"invalid version constraint",
+			"not a valid version constraint",
+		},
+		{
+			"invalid provider name in module block",
+			"validate-missing-provider",
+			true,
+			"cannot pass non-existent provider",
 		},
 	}
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
 			c := testConfig(t, tc.Fixture)
-			err := c.Validate()
-			if (err != nil) != tc.Err {
-				t.Fatalf("err: %s", err)
+			diags := c.Validate()
+			if diags.HasErrors() != tc.Err {
+				t.Fatalf("err: %s", diags.Err().Error())
 			}
-			if err != nil {
-				if tc.ErrString != "" && !strings.Contains(err.Error(), tc.ErrString) {
-					t.Fatalf("expected err to contain: %s\n\ngot: %s", tc.ErrString, err)
+			if diags.HasErrors() {
+				gotErr := diags.Err().Error()
+				if tc.ErrString != "" && !strings.Contains(gotErr, tc.ErrString) {
+					t.Fatalf("expected err to contain: %s\n\ngot: %s", tc.ErrString, gotErr)
 				}
 
 				return
@@ -275,18 +282,26 @@ func TestConfigValidate_countInt(t *testing.T) {
 	}
 }
 
+func TestConfigValidate_countInt_HCL2(t *testing.T) {
+	c := testConfigHCL2(t, "validate-count-int")
+	if err := c.Validate(); err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+}
+
 func TestConfigValidate_countBadContext(t *testing.T) {
 	c := testConfig(t, "validate-count-bad-context")
 
-	err := c.Validate()
+	diags := c.Validate()
 
 	expected := []string{
-		"no_count_in_output: count variables are only valid within resources",
-		"no_count_in_module: count variables are only valid within resources",
+		"output \"no_count_in_output\": count variables are only valid within resources",
+		"module \"no_count_in_module\": count variables are only valid within resources",
 	}
 	for _, exp := range expected {
-		if !strings.Contains(err.Error(), exp) {
-			t.Fatalf("expected: %q,\nto contain: %q", err, exp)
+		errStr := diags.Err().Error()
+		if !strings.Contains(errStr, exp) {
+			t.Errorf("expected: %q,\nto contain: %q", errStr, exp)
 		}
 	}
 }
@@ -305,8 +320,34 @@ func TestConfigValidate_countNotInt(t *testing.T) {
 	}
 }
 
+func TestConfigValidate_countNotInt_HCL2(t *testing.T) {
+	c := testConfigHCL2(t, "validate-count-not-int-const")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
+	}
+}
+
+func TestConfigValidate_countNotIntUnknown_HCL2(t *testing.T) {
+	c := testConfigHCL2(t, "validate-count-not-int")
+	// In HCL2 this is not an error because the unknown variable interpolates
+	// to produce an unknown string, which we assume (incorrectly, it turns out)
+	// will become a string containing only digits. This is okay because
+	// the config validation is only a "best effort" and we'll get a definitive
+	// result during the validation graph walk.
+	if err := c.Validate(); err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+}
+
 func TestConfigValidate_countUserVar(t *testing.T) {
 	c := testConfig(t, "validate-count-user-var")
+	if err := c.Validate(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
+func TestConfigValidate_countUserVar_HCL2(t *testing.T) {
+	c := testConfigHCL2(t, "validate-count-user-var")
 	if err := c.Validate(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -699,6 +740,23 @@ func testConfig(t *testing.T, name string) *Config {
 	return c
 }
 
+// testConfigHCL loads a config, forcing it to be processed with the HCL2
+// loader even if it doesn't explicitly opt in to the HCL2 experiment.
+func testConfigHCL2(t *testing.T, name string) *Config {
+	t.Helper()
+	cer, _, err := globalHCL2Loader.loadFile(filepath.Join(fixtureDir, name, "main.tf"))
+	if err != nil {
+		t.Fatalf("failed to load %s: %s", name, err)
+	}
+
+	cfg, err := cer.Config()
+	if err != nil {
+		t.Fatalf("failed to decode %s: %s", name, err)
+	}
+
+	return cfg
+}
+
 func TestConfigDataCount(t *testing.T) {
 	c := testConfig(t, "data-count")
 	actual, err := c.Resources[0].Count()
@@ -784,5 +842,42 @@ func TestResourceProviderFullName(t *testing.T) {
 				test.Expected,
 			)
 		}
+	}
+}
+
+func TestConfigModuleProviders(t *testing.T) {
+	c := testConfig(t, "module-providers")
+
+	if len(c.Modules) != 1 {
+		t.Fatalf("expected 1 module, got %d", len(c.Modules))
+	}
+
+	expected := map[string]string{
+		"aws": "aws.foo",
+	}
+
+	got := c.Modules[0].Providers
+
+	if !reflect.DeepEqual(expected, got) {
+		t.Fatalf("exptected providers %#v, got providers %#v", expected, got)
+	}
+}
+
+func TestValidateOutputErrorWarnings(t *testing.T) {
+	// TODO: remove this in 0.12
+	c := testConfig(t, "output-warnings")
+
+	diags := c.Validate()
+	if diags.HasErrors() {
+		t.Fatal("config should not have errors:", diags)
+	}
+	if len(diags) != 2 {
+		t.Fatalf("should have 2 warnings, got %d:\n%s", len(diags), diags)
+	}
+
+	// this fixture has no explicit count, and should have no warning
+	c = testConfig(t, "output-no-warnings")
+	if err := c.Validate(); err != nil {
+		t.Fatal("config should have no warnings or errors")
 	}
 }

@@ -2,7 +2,8 @@ package terraform
 
 import (
 	"log"
-	"strings"
+
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // EvalNode is the interface that must be implemented by graph nodes to
@@ -46,15 +47,21 @@ func Eval(n EvalNode, ctx EvalContext) (interface{}, error) {
 func EvalRaw(n EvalNode, ctx EvalContext) (interface{}, error) {
 	path := "unknown"
 	if ctx != nil {
-		path = strings.Join(ctx.Path(), ".")
+		path = ctx.Path().String()
+	}
+	if path == "" {
+		path = "<root>"
 	}
 
 	log.Printf("[TRACE] %s: eval: %T", path, n)
 	output, err := n.Eval(ctx)
 	if err != nil {
-		if _, ok := err.(EvalEarlyExitError); ok {
-			log.Printf("[TRACE] %s: eval: %T, err: %s", path, n, err)
-		} else {
+		switch err.(type) {
+		case EvalEarlyExitError:
+			log.Printf("[TRACE] %s: eval: %T, early exit err: %s", path, n, err)
+		case tfdiags.NonFatalError:
+			log.Printf("[WARN] %s: eval: %T, non-fatal err: %s", path, n, err)
+		default:
 			log.Printf("[ERROR] %s: eval: %T, err: %s", path, n, err)
 		}
 	}

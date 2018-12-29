@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -15,7 +16,7 @@ func dataSourceAwsInstance() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"filter":        dataSourceFiltersSchema(),
-			"tags":          dataSourceTagsSchema(),
+			"tags":          tagsSchemaComputed(),
 			"instance_tags": tagsSchemaComputed(),
 			"instance_id": {
 				Type:     schema.TypeString,
@@ -23,6 +24,10 @@ func dataSourceAwsInstance() *schema.Resource {
 				ForceNew: true,
 			},
 			"ami": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -38,11 +43,28 @@ func dataSourceAwsInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"placement_group": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"tenancy": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"host_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"key_name": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"get_password_data": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+			"password_data": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -169,6 +191,11 @@ func dataSourceAwsInstance() *schema.Resource {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
+
+						"volume_id": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 					},
 				},
 			},
@@ -196,8 +223,29 @@ func dataSourceAwsInstance() *schema.Resource {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
+
+						"volume_id": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 					},
 				},
+			},
+			"credit_specification": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"cpu_credits": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
+				},
+			},
+			"disable_api_termination": {
+				Type:     schema.TypeBool,
+				Computed: true,
 			},
 		},
 	}
@@ -229,7 +277,7 @@ func dataSourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		)...)
 	}
 
-	// Perform the lookup
+	log.Printf("[DEBUG] Reading IAM Instance: %s", params)
 	resp, err := conn.DescribeInstances(params)
 	if err != nil {
 		return err
@@ -266,7 +314,29 @@ func dataSourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	log.Printf("[DEBUG] aws_instance - Single Instance ID found: %s", *instance.InstanceId)
-	return instanceDescriptionAttributes(d, instance, conn)
+	if err := instanceDescriptionAttributes(d, instance, conn); err != nil {
+		return err
+	}
+
+	if d.Get("get_password_data").(bool) {
+		passwordData, err := getAwsEc2InstancePasswordData(*instance.InstanceId, conn)
+		if err != nil {
+			return err
+		}
+		d.Set("password_data", passwordData)
+	}
+
+	// ARN
+	arn := arn.ARN{
+		Partition: meta.(*AWSClient).partition,
+		Region:    meta.(*AWSClient).region,
+		Service:   "ec2",
+		AccountID: meta.(*AWSClient).accountid,
+		Resource:  fmt.Sprintf("instance/%s", d.Id()),
+	}
+	d.Set("arn", arn.String())
+
+	return nil
 }
 
 // Populate instance attribute fields with the returned instance
@@ -277,8 +347,14 @@ func instanceDescriptionAttributes(d *schema.ResourceData, instance *ec2.Instanc
 	if instance.Placement != nil {
 		d.Set("availability_zone", instance.Placement.AvailabilityZone)
 	}
+	if instance.Placement.GroupName != nil {
+		d.Set("placement_group", instance.Placement.GroupName)
+	}
 	if instance.Placement.Tenancy != nil {
 		d.Set("tenancy", instance.Placement.Tenancy)
+	}
+	if instance.Placement.HostId != nil {
+		d.Set("host_id", instance.Placement.HostId)
 	}
 	d.Set("ami", instance.ImageId)
 	d.Set("instance_type", instance.InstanceType)
@@ -313,10 +389,10 @@ func instanceDescriptionAttributes(d *schema.ResourceData, instance *ec2.Instanc
 		d.Set("monitoring", monitoringState == "enabled" || monitoringState == "pending")
 	}
 
-	d.Set("tags", dataSourceTags(instance.Tags))
+	d.Set("tags", tagsToMap(instance.Tags))
 
 	// Security Groups
-	if err := readSecurityGroups(d, instance); err != nil {
+	if err := readSecurityGroups(d, instance, conn); err != nil {
 		return err
 	}
 
@@ -349,6 +425,15 @@ func instanceDescriptionAttributes(d *schema.ResourceData, instance *ec2.Instanc
 		}
 		if attr.UserData.Value != nil {
 			d.Set("user_data", userDataHashSum(*attr.UserData.Value))
+		}
+	}
+	{
+		creditSpecifications, err := getCreditSpecifications(conn, d.Id())
+		if err != nil && !isAWSErr(err, "UnsupportedOperation", "") {
+			return err
+		}
+		if err := d.Set("credit_specification", creditSpecifications); err != nil {
+			return fmt.Errorf("error setting credit_specification: %s", err)
 		}
 	}
 

@@ -9,11 +9,14 @@ import (
 
 // ResourceProviderPlugin is the plugin.Plugin implementation.
 type ResourceProviderPlugin struct {
-	F func() terraform.ResourceProvider
+	ResourceProvider func() terraform.ResourceProvider
 }
 
 func (p *ResourceProviderPlugin) Server(b *plugin.MuxBroker) (interface{}, error) {
-	return &ResourceProviderServer{Broker: b, Provider: p.F()}, nil
+	return &ResourceProviderServer{
+		Broker:   b,
+		Provider: p.ResourceProvider(),
+	}, nil
 }
 
 func (p *ResourceProviderPlugin) Client(
@@ -39,6 +42,24 @@ func (p *ResourceProvider) Stop() error {
 	}
 
 	return err
+}
+
+func (p *ResourceProvider) GetSchema(req *terraform.ProviderSchemaRequest) (*terraform.ProviderSchema, error) {
+	var result ResourceProviderGetSchemaResponse
+	args := &ResourceProviderGetSchemaArgs{
+		Req: req,
+	}
+
+	err := p.Client.Call("Plugin.GetSchema", args, &result)
+	if err != nil {
+		return nil, err
+	}
+
+	if result.Error != nil {
+		err = result.Error
+	}
+
+	return result.Schema, err
 }
 
 func (p *ResourceProvider) Input(
@@ -312,6 +333,15 @@ type ResourceProviderStopResponse struct {
 	Error *plugin.BasicError
 }
 
+type ResourceProviderGetSchemaArgs struct {
+	Req *terraform.ProviderSchemaRequest
+}
+
+type ResourceProviderGetSchemaResponse struct {
+	Schema *terraform.ProviderSchema
+	Error  *plugin.BasicError
+}
+
 type ResourceProviderConfigureResponse struct {
 	Error *plugin.BasicError
 }
@@ -415,6 +445,18 @@ func (s *ResourceProviderServer) Stop(
 		Error: plugin.NewBasicError(err),
 	}
 
+	return nil
+}
+
+func (s *ResourceProviderServer) GetSchema(
+	args *ResourceProviderGetSchemaArgs,
+	result *ResourceProviderGetSchemaResponse,
+) error {
+	schema, err := s.Provider.GetSchema(args.Req)
+	result.Schema = schema
+	if err != nil {
+		result.Error = plugin.NewBasicError(err)
+	}
 	return nil
 }
 

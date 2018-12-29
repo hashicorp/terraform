@@ -14,23 +14,29 @@ func dataSourceAwsAvailabilityZone() *schema.Resource {
 		Read: dataSourceAwsAvailabilityZoneRead,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"region": &schema.Schema{
+			"region": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"name_suffix": &schema.Schema{
+			"name_suffix": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"state": &schema.Schema{
+			"state": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+
+			"zone_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -44,10 +50,12 @@ func dataSourceAwsAvailabilityZoneRead(d *schema.ResourceData, meta interface{})
 
 	req := &ec2.DescribeAvailabilityZonesInput{}
 
-	if name := d.Get("name"); name != "" {
-		req.ZoneNames = []*string{aws.String(name.(string))}
+	if v := d.Get("name").(string); v != "" {
+		req.ZoneNames = []*string{aws.String(v)}
 	}
-
+	if v := d.Get("zone_id").(string); v != "" {
+		req.ZoneIds = []*string{aws.String(v)}
+	}
 	req.Filters = buildEC2AttributeFilterList(
 		map[string]string{
 			"state": d.Get("state").(string),
@@ -58,7 +66,7 @@ func dataSourceAwsAvailabilityZoneRead(d *schema.ResourceData, meta interface{})
 		req.Filters = nil
 	}
 
-	log.Printf("[DEBUG] DescribeAvailabilityZones %s\n", req)
+	log.Printf("[DEBUG] Reading Availability Zone: %s", req)
 	resp, err := conn.DescribeAvailabilityZones(req)
 	if err != nil {
 		return err
@@ -78,12 +86,12 @@ func dataSourceAwsAvailabilityZoneRead(d *schema.ResourceData, meta interface{})
 	// work regardless of region.
 	nameSuffix := (*az.ZoneName)[len(*az.RegionName):]
 
-	d.SetId(*az.ZoneName)
-	d.Set("id", az.ZoneName)
+	d.SetId(aws.StringValue(az.ZoneName))
 	d.Set("name", az.ZoneName)
 	d.Set("name_suffix", nameSuffix)
 	d.Set("region", az.RegionName)
 	d.Set("state", az.State)
+	d.Set("zone_id", az.ZoneId)
 
 	return nil
 }

@@ -21,8 +21,7 @@ URLs. For example: "github.com/hashicorp/go-getter" would turn into a
 Git URL. Or "./foo" would turn into a file URL. These are extensible.
 
 This library is used by [Terraform](https://terraform.io) for
-downloading modules, [Otto](https://ottoproject.io) for dependencies and
-Appfile imports, and [Nomad](https://nomadproject.io) for downloading
+downloading modules and [Nomad](https://nomadproject.io) for downloading
 binaries.
 
 ## Installation and Usage
@@ -119,6 +118,37 @@ The protocol-specific options are documented below the URL format
 section. But because they are part of the URL, we point it out here so
 you know they exist.
 
+### Subdirectories
+
+If you want to download only a specific subdirectory from a downloaded
+directory, you can specify a subdirectory after a double-slash `//`.
+go-getter will first download the URL specified _before_ the double-slash
+(as if you didn't specify a double-slash), but will then copy the
+path after the double slash into the target directory.
+
+For example, if you're downloading this GitHub repository, but you only
+want to download the `test-fixtures` directory, you can do the following:
+
+```
+https://github.com/hashicorp/go-getter.git//test-fixtures
+```
+
+If you downloaded this to the `/tmp` directory, then the file
+`/tmp/archive.gz` would exist. Notice that this file is in the `test-fixtures`
+directory in this repository, but because we specified a subdirectory,
+go-getter automatically copied only that directory contents.
+
+Subdirectory paths may contain may also use filesystem glob patterns.
+The path must match _exactly one_ entry or go-getter will return an error.
+This is useful if you're not sure the exact directory name but it follows
+a predictable naming structure.
+
+For example, the following URL would also work:
+
+```
+https://github.com/hashicorp/go-getter.git//test-*
+```
+
 ### Checksumming
 
 For file downloads of any protocol, go-getter can automatically verify
@@ -202,6 +232,9 @@ The options below are available to all protocols:
   * `checksum` - Checksum to verify the downloaded file or archive. See
     the entire section on checksumming above for format and more details.
 
+  * `filename` - When in file download mode, allows specifying the name of the
+    downloaded file on disk. Has no effect in directory mode.
+
 ### Local Files (`file`)
 
 None
@@ -252,7 +285,7 @@ be used automatically.
   * `aws_access_key_id` (required) - Minio access key.
   * `aws_access_key_secret` (required) - Minio access key secret.
   * `region` (optional - defaults to us-east-1) - Region identifier to use.
-  * `version` (optional - fefaults to Minio default) - Configuration file format.
+  * `version` (optional - defaults to Minio default) - Configuration file format.
 
 #### S3 Bucket Examples
 

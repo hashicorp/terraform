@@ -3,7 +3,8 @@ package state
 import (
 	"sync"
 
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/statemgr"
 )
 
 // BackupState wraps a State that backs up the state on the first time that
@@ -18,7 +19,7 @@ type BackupState struct {
 	done bool
 }
 
-func (s *BackupState) State() *terraform.State {
+func (s *BackupState) State() *states.State {
 	return s.Real.State()
 }
 
@@ -26,7 +27,7 @@ func (s *BackupState) RefreshState() error {
 	return s.Real.RefreshState()
 }
 
-func (s *BackupState) WriteState(state *terraform.State) error {
+func (s *BackupState) WriteState(state *states.State) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -74,7 +75,7 @@ func (s *BackupState) backup() error {
 	// purposes, but we don't need a backup or lock if the state is empty, so
 	// skip this with a nil state.
 	if state != nil {
-		ls := &LocalState{Path: s.Path}
+		ls := statemgr.NewFilesystem(s.Path)
 		if err := ls.WriteState(state); err != nil {
 			return err
 		}

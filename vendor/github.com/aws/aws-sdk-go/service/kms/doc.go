@@ -9,7 +9,7 @@
 // Management Service Developer Guide (http://docs.aws.amazon.com/kms/latest/developerguide/).
 //
 // AWS provides SDKs that consist of libraries and sample code for various programming
-// languages and platforms (Java, Ruby, .Net, iOS, Android, etc.). The SDKs
+// languages and platforms (Java, Ruby, .Net, macOS, Android, etc.). The SDKs
 // provide a convenient way to create programmatic access to AWS KMS and other
 // AWS services. For example, the SDKs take care of tasks such as signing requests
 // (see below), managing errors, and retrying requests automatically. For more
@@ -50,8 +50,8 @@
 // For more information about credentials and request signing, see the following:
 //
 //    * AWS Security Credentials (http://docs.aws.amazon.com/general/latest/gr/aws-security-credentials.html)
-//    - This topic provides general information about the types of credentials
-//    used for accessing AWS.
+//    - This topic provides general information about the of credentials used
+//    for accessing AWS.
 //
 //    * Temporary Security Credentials (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp.html)
 //    - This section of the IAM User Guide describes how to create and use temporary
@@ -82,69 +82,17 @@
 //
 // Using the Client
 //
-// To use the client for AWS Key Management Service you will first need
-// to create a new instance of it.
+// To contact AWS Key Management Service with the SDK use the New function to create
+// a new service client. With that client you can make API requests to the service.
+// These clients are safe to use concurrently.
 //
-// When creating a client for an AWS service you'll first need to have a Session
-// already created. The Session provides configuration that can be shared
-// between multiple service clients. Additional configuration can be applied to
-// the Session and service's client when they are constructed. The aws package's
-// Config type contains several fields such as Region for the AWS Region the
-// client should make API requests too. The optional Config value can be provided
-// as the variadic argument for Sessions and client creation.
-//
-// Once the service's client is created you can use it to make API requests the
-// AWS service. These clients are safe to use concurrently.
-//
-//   // Create a session to share configuration, and load external configuration.
-//   sess := session.Must(session.NewSession())
-//
-//   // Create the service's client with the session.
-//   svc := kms.New(sess)
-//
-// See the SDK's documentation for more information on how to use service clients.
+// See the SDK's documentation for more information on how to use the SDK.
 // https://docs.aws.amazon.com/sdk-for-go/api/
 //
-// See aws package's Config type for more information on configuration options.
+// See aws.Config documentation for more information on configuring SDK clients.
 // https://docs.aws.amazon.com/sdk-for-go/api/aws/#Config
 //
 // See the AWS Key Management Service client KMS for more
-// information on creating the service's client.
+// information on creating client for this service.
 // https://docs.aws.amazon.com/sdk-for-go/api/service/kms/#New
-//
-// Once the client is created you can make an API request to the service.
-// Each API method takes a input parameter, and returns the service response
-// and an error.
-//
-// The API method will document which error codes the service can be returned
-// by the operation if the service models the API operation's errors. These
-// errors will also be available as const strings prefixed with "ErrCode".
-//
-//   result, err := svc.CancelKeyDeletion(params)
-//   if err != nil {
-//       // Cast err to awserr.Error to handle specific error codes.
-//       aerr, ok := err.(awserr.Error)
-//       if ok && aerr.Code() == <error code to check for> {
-//           // Specific error code handling
-//       }
-//       return err
-//   }
-//
-//   fmt.Println("CancelKeyDeletion result:")
-//   fmt.Println(result)
-//
-// Using the Client with Context
-//
-// The service's client also provides methods to make API requests with a Context
-// value. This allows you to control the timeout, and cancellation of pending
-// requests. These methods also take request Option as variadic parameter to apply
-// additional configuration to the API request.
-//
-//   ctx := context.Background()
-//
-//   result, err := svc.CancelKeyDeletionWithContext(ctx, params)
-//
-// See the request package documentation for more information on using Context pattern
-// with the SDK.
-// https://docs.aws.amazon.com/sdk-for-go/api/aws/request/
 package kms

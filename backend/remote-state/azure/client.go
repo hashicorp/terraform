@@ -2,18 +2,18 @@ package azure
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 
-	"encoding/base64"
 	"github.com/Azure/azure-sdk-for-go/storage"
-	multierror "github.com/hashicorp/go-multierror"
-	uuid "github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/states"
 )
 
 const (
@@ -33,6 +33,11 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 	containerReference := c.blobClient.GetContainerReference(c.containerName)
 	blobReference := containerReference.GetBlobReference(c.keyName)
 	options := &storage.GetBlobOptions{}
+
+	if c.leaseID != "" {
+		options.LeaseID = c.leaseID
+	}
+
 	blob, err := blobReference.Get(options)
 	if err != nil {
 		if storErr, ok := err.(storage.AzureStorageServiceError); ok {
@@ -63,6 +68,7 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 }
 
 func (c *RemoteClient) Put(data []byte) error {
+	getOptions := &storage.GetBlobMetadataOptions{}
 	setOptions := &storage.SetBlobPropertiesOptions{}
 	putOptions := &storage.PutBlobOptions{}
 
@@ -73,13 +79,26 @@ func (c *RemoteClient) Put(data []byte) error {
 	blobReference.Properties.ContentLength = int64(len(data))
 
 	if c.leaseID != "" {
+		getOptions.LeaseID = c.leaseID
 		setOptions.LeaseID = c.leaseID
 		putOptions.LeaseID = c.leaseID
 	}
 
+	exists, err := blobReference.Exists()
+	if err != nil {
+		return err
+	}
+
+	if exists {
+		err = blobReference.GetMetadata(getOptions)
+		if err != nil {
+			return err
+		}
+	}
+
 	reader := bytes.NewReader(data)
 
-	err := blobReference.CreateBlockBlobFromReader(reader, putOptions)
+	err = blobReference.CreateBlockBlobFromReader(reader, putOptions)
 	if err != nil {
 		return err
 	}
@@ -143,7 +162,7 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 		log.Print("[DEBUG] Could not lock as state blob did not exist, creating with empty state")
 
 		if v := stateMgr.State(); v == nil {
-			if err := stateMgr.WriteState(terraform.NewState()); err != nil {
+			if err := stateMgr.WriteState(states.NewState()); err != nil {
 				return "", fmt.Errorf("Failed to write empty state for locking: %s", err)
 			}
 			if err := stateMgr.PersistState(); err != nil {
@@ -177,7 +196,7 @@ func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
 
 	raw := blobReference.Metadata[lockInfoMetaKey]
 	if raw == "" {
-		return nil, fmt.Errorf("blob metadata %s was empty", lockInfoMetaKey)
+		return nil, fmt.Errorf("blob metadata %q was empty", lockInfoMetaKey)
 	}
 
 	data, err := base64.StdEncoding.DecodeString(raw)
@@ -198,7 +217,9 @@ func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
 func (c *RemoteClient) writeLockInfo(info *state.LockInfo) error {
 	containerReference := c.blobClient.GetContainerReference(c.containerName)
 	blobReference := containerReference.GetBlobReference(c.keyName)
-	err := blobReference.GetMetadata(&storage.GetBlobMetadataOptions{})
+	err := blobReference.GetMetadata(&storage.GetBlobMetadataOptions{
+		LeaseID: c.leaseID,
+	})
 	if err != nil {
 		return err
 	}
@@ -214,7 +235,6 @@ func (c *RemoteClient) writeLockInfo(info *state.LockInfo) error {
 		LeaseID: c.leaseID,
 	}
 	return blobReference.SetMetadata(opts)
-
 }
 
 func (c *RemoteClient) Unlock(id string) error {
@@ -232,6 +252,7 @@ func (c *RemoteClient) Unlock(id string) error {
 		return lockErr
 	}
 
+	c.leaseID = lockInfo.ID
 	if err := c.writeLockInfo(nil); err != nil {
 		lockErr.Err = fmt.Errorf("failed to delete lock info from metadata: %s", err)
 		return lockErr

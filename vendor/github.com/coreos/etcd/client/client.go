@@ -1,4 +1,4 @@
-// Copyright 2015 CoreOS, Inc.
+// Copyright 2015 The etcd Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,6 +15,8 @@
 package client
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -22,13 +24,12 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"reflect"
 	"sort"
 	"strconv"
 	"sync"
 	"time"
 
-	"github.com/coreos/etcd/Godeps/_workspace/src/golang.org/x/net/context"
+	"github.com/coreos/etcd/version"
 )
 
 var (
@@ -37,6 +38,10 @@ var (
 	ErrClusterUnavailable    = errors.New("client: etcd cluster is unavailable or misconfigured")
 	ErrNoLeaderEndpoint      = errors.New("client: no leader endpoint available")
 	errTooManyRedirectChecks = errors.New("client: too many redirect checks")
+
+	// oneShotCtxValue is set on a context using WithValue(&oneShotValue) so
+	// that Do() will not retry a request
+	oneShotCtxValue interface{}
 )
 
 var DefaultRequestTimeout = 5 * time.Second
@@ -98,7 +103,7 @@ type Config struct {
 	// CheckRedirect specifies the policy for handling HTTP redirects.
 	// If CheckRedirect is not nil, the Client calls it before
 	// following an HTTP redirect. The sole argument is the number of
-	// requests that have alrady been made. If CheckRedirect returns
+	// requests that have already been made. If CheckRedirect returns
 	// an error, Client.Do will not make any further requests and return
 	// the error back it to the caller.
 	//
@@ -198,6 +203,9 @@ type Client interface {
 	// returned
 	SetEndpoints(eps []string) error
 
+	// GetVersion retrieves the current etcd server and cluster version
+	GetVersion(ctx context.Context) (*version.Versions, error)
+
 	httpClient
 }
 
@@ -257,52 +265,66 @@ type httpClusterClient struct {
 	selectionMode EndpointSelectionMode
 }
 
-func (c *httpClusterClient) getLeaderEndpoint() (string, error) {
-	mAPI := NewMembersAPI(c)
-	leader, err := mAPI.Leader(context.Background())
+func (c *httpClusterClient) getLeaderEndpoint(ctx context.Context, eps []url.URL) (string, error) {
+	ceps := make([]url.URL, len(eps))
+	copy(ceps, eps)
+
+	// To perform a lookup on the new endpoint list without using the current
+	// client, we'll copy it
+	clientCopy := &httpClusterClient{
+		clientFactory: c.clientFactory,
+		credentials:   c.credentials,
+		rand:          c.rand,
+
+		pinned:    0,
+		endpoints: ceps,
+	}
+
+	mAPI := NewMembersAPI(clientCopy)
+	leader, err := mAPI.Leader(ctx)
 	if err != nil {
 		return "", err
+	}
+	if len(leader.ClientURLs) == 0 {
+		return "", ErrNoLeaderEndpoint
 	}
 
 	return leader.ClientURLs[0], nil // TODO: how to handle multiple client URLs?
 }
 
-func (c *httpClusterClient) SetEndpoints(eps []string) error {
+func (c *httpClusterClient) parseEndpoints(eps []string) ([]url.URL, error) {
 	if len(eps) == 0 {
-		return ErrNoEndpoints
+		return []url.URL{}, ErrNoEndpoints
 	}
 
 	neps := make([]url.URL, len(eps))
 	for i, ep := range eps {
 		u, err := url.Parse(ep)
 		if err != nil {
-			return err
+			return []url.URL{}, err
 		}
 		neps[i] = *u
 	}
+	return neps, nil
+}
 
-	switch c.selectionMode {
-	case EndpointSelectionRandom:
-		c.endpoints = shuffleEndpoints(c.rand, neps)
-		c.pinned = 0
-	case EndpointSelectionPrioritizeLeader:
-		c.endpoints = neps
-		lep, err := c.getLeaderEndpoint()
-		if err != nil {
-			return ErrNoLeaderEndpoint
-		}
-
-		for i := range c.endpoints {
-			if c.endpoints[i].String() == lep {
-				c.pinned = i
-				break
-			}
-		}
-		// If endpoints doesn't have the lu, just keep c.pinned = 0.
-		// Forwarding between follower and leader would be required but it works.
-	default:
-		return errors.New(fmt.Sprintf("invalid endpoint selection mode: %d", c.selectionMode))
+func (c *httpClusterClient) SetEndpoints(eps []string) error {
+	neps, err := c.parseEndpoints(eps)
+	if err != nil {
+		return err
 	}
+
+	c.Lock()
+	defer c.Unlock()
+
+	c.endpoints = shuffleEndpoints(c.rand, neps)
+	// We're not doing anything for PrioritizeLeader here. This is
+	// due to not having a context meaning we can't call getLeaderEndpoint
+	// However, if you're using PrioritizeLeader, you've already been told
+	// to regularly call sync, where we do have a ctx, and can figure the
+	// leader. PrioritizeLeader is also quite a loose guarantee, so deal
+	// with it
+	c.pinned = 0
 
 	return nil
 }
@@ -335,6 +357,7 @@ func (c *httpClusterClient) Do(ctx context.Context, act httpAction) (*http.Respo
 	var body []byte
 	var err error
 	cerr := &ClusterError{}
+	isOneShot := ctx.Value(&oneShotCtxValue) != nil
 
 	for i := pinned; i < leps+pinned; i++ {
 		k := i % leps
@@ -342,13 +365,13 @@ func (c *httpClusterClient) Do(ctx context.Context, act httpAction) (*http.Respo
 		resp, body, err = hc.Do(ctx, action)
 		if err != nil {
 			cerr.Errors = append(cerr.Errors, err)
-			// mask previous errors with context error, which is controlled by user
+			if err == ctx.Err() {
+				return nil, nil, ctx.Err()
+			}
 			if err == context.Canceled || err == context.DeadlineExceeded {
 				return nil, nil, err
 			}
-			continue
-		}
-		if resp.StatusCode/100 == 5 {
+		} else if resp.StatusCode/100 == 5 {
 			switch resp.StatusCode {
 			case http.StatusInternalServerError, http.StatusServiceUnavailable:
 				// TODO: make sure this is a no leader response
@@ -356,7 +379,16 @@ func (c *httpClusterClient) Do(ctx context.Context, act httpAction) (*http.Respo
 			default:
 				cerr.Errors = append(cerr.Errors, fmt.Errorf("client: etcd member %s returns server error [%s]", eps[k].String(), http.StatusText(resp.StatusCode)))
 			}
-			continue
+			err = cerr.Errors[0]
+		}
+		if err != nil {
+			if !isOneShot {
+				continue
+			}
+			c.Lock()
+			c.pinned = (k + 1) % leps
+			c.Unlock()
+			return nil, nil, err
 		}
 		if k != pinned {
 			c.Lock()
@@ -388,27 +420,51 @@ func (c *httpClusterClient) Sync(ctx context.Context) error {
 		return err
 	}
 
-	c.Lock()
-	defer c.Unlock()
-
-	eps := make([]string, 0)
+	var eps []string
 	for _, m := range ms {
 		eps = append(eps, m.ClientURLs...)
 	}
-	sort.Sort(sort.StringSlice(eps))
 
-	ceps := make([]string, len(c.endpoints))
-	for i, cep := range c.endpoints {
-		ceps[i] = cep.String()
-	}
-	sort.Sort(sort.StringSlice(ceps))
-	// fast path if no change happens
-	// this helps client to pin the endpoint when no cluster change
-	if reflect.DeepEqual(eps, ceps) {
-		return nil
+	neps, err := c.parseEndpoints(eps)
+	if err != nil {
+		return err
 	}
 
-	return c.SetEndpoints(eps)
+	npin := 0
+
+	switch c.selectionMode {
+	case EndpointSelectionRandom:
+		c.RLock()
+		eq := endpointsEqual(c.endpoints, neps)
+		c.RUnlock()
+
+		if eq {
+			return nil
+		}
+		// When items in the endpoint list changes, we choose a new pin
+		neps = shuffleEndpoints(c.rand, neps)
+	case EndpointSelectionPrioritizeLeader:
+		nle, err := c.getLeaderEndpoint(ctx, neps)
+		if err != nil {
+			return ErrNoLeaderEndpoint
+		}
+
+		for i, n := range neps {
+			if n.String() == nle {
+				npin = i
+				break
+			}
+		}
+	default:
+		return fmt.Errorf("invalid endpoint selection mode: %d", c.selectionMode)
+	}
+
+	c.Lock()
+	defer c.Unlock()
+	c.endpoints = neps
+	c.pinned = npin
+
+	return nil
 }
 
 func (c *httpClusterClient) AutoSync(ctx context.Context, interval time.Duration) error {
@@ -424,6 +480,33 @@ func (c *httpClusterClient) AutoSync(ctx context.Context, interval time.Duration
 			return ctx.Err()
 		case <-ticker.C:
 		}
+	}
+}
+
+func (c *httpClusterClient) GetVersion(ctx context.Context) (*version.Versions, error) {
+	act := &getAction{Prefix: "/version"}
+
+	resp, body, err := c.Do(ctx, act)
+	if err != nil {
+		return nil, err
+	}
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		if len(body) == 0 {
+			return nil, ErrEmptyBody
+		}
+		var vresp version.Versions
+		if err := json.Unmarshal(body, &vresp); err != nil {
+			return nil, ErrInvalidJSON
+		}
+		return &vresp, nil
+	default:
+		var etcdErr Error
+		if err := json.Unmarshal(body, &etcdErr); err != nil {
+			return nil, ErrInvalidJSON
+		}
+		return nil, etcdErr
 	}
 }
 
@@ -587,10 +670,41 @@ func (r *redirectedHTTPAction) HTTPRequest(ep url.URL) *http.Request {
 }
 
 func shuffleEndpoints(r *rand.Rand, eps []url.URL) []url.URL {
-	p := r.Perm(len(eps))
-	neps := make([]url.URL, len(eps))
+	// copied from Go 1.9<= rand.Rand.Perm
+	n := len(eps)
+	p := make([]int, n)
+	for i := 0; i < n; i++ {
+		j := r.Intn(i + 1)
+		p[i] = p[j]
+		p[j] = i
+	}
+	neps := make([]url.URL, n)
 	for i, k := range p {
 		neps[i] = eps[k]
 	}
 	return neps
+}
+
+func endpointsEqual(left, right []url.URL) bool {
+	if len(left) != len(right) {
+		return false
+	}
+
+	sLeft := make([]string, len(left))
+	sRight := make([]string, len(right))
+	for i, l := range left {
+		sLeft[i] = l.String()
+	}
+	for i, r := range right {
+		sRight[i] = r.String()
+	}
+
+	sort.Strings(sLeft)
+	sort.Strings(sRight)
+	for i := range sLeft {
+		if sLeft[i] != sRight[i] {
+			return false
+		}
+	}
+	return true
 }

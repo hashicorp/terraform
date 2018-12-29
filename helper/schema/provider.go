@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -58,7 +59,7 @@ type Provider struct {
 
 	meta interface{}
 
-	// a mutex is required because TestReset can directly repalce the stopCtx
+	// a mutex is required because TestReset can directly replace the stopCtx
 	stopMu        sync.Mutex
 	stopCtx       context.Context
 	stopCtxCancel context.CancelFunc
@@ -185,6 +186,29 @@ func (p *Provider) TestReset() error {
 	return nil
 }
 
+// GetSchema implementation of terraform.ResourceProvider interface
+func (p *Provider) GetSchema(req *terraform.ProviderSchemaRequest) (*terraform.ProviderSchema, error) {
+	resourceTypes := map[string]*configschema.Block{}
+	dataSources := map[string]*configschema.Block{}
+
+	for _, name := range req.ResourceTypes {
+		if r, exists := p.ResourcesMap[name]; exists {
+			resourceTypes[name] = r.CoreConfigSchema()
+		}
+	}
+	for _, name := range req.DataSources {
+		if r, exists := p.DataSourcesMap[name]; exists {
+			dataSources[name] = r.CoreConfigSchema()
+		}
+	}
+
+	return &terraform.ProviderSchema{
+		Provider:      schemaMap(p.Schema).CoreConfigSchema(),
+		ResourceTypes: resourceTypes,
+		DataSources:   dataSources,
+	}, nil
+}
+
 // Input implementation of terraform.ResourceProvider interface.
 func (p *Provider) Input(
 	input terraform.UIInput,
@@ -227,7 +251,7 @@ func (p *Provider) Configure(c *terraform.ResourceConfig) error {
 
 	// Get a ResourceData for this configuration. To do this, we actually
 	// generate an intermediary "diff" although that is never exposed.
-	diff, err := sm.Diff(nil, c)
+	diff, err := sm.Diff(nil, c, nil, p.meta, true)
 	if err != nil {
 		return err
 	}
@@ -269,7 +293,21 @@ func (p *Provider) Diff(
 		return nil, fmt.Errorf("unknown resource type: %s", info.Type)
 	}
 
-	return r.Diff(s, c)
+	return r.Diff(s, c, p.meta)
+}
+
+// SimpleDiff is used by the new protocol wrappers to get a diff that doesn't
+// attempt to calculate ignore_changes.
+func (p *Provider) SimpleDiff(
+	info *terraform.InstanceInfo,
+	s *terraform.InstanceState,
+	c *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
+	r, ok := p.ResourcesMap[info.Type]
+	if !ok {
+		return nil, fmt.Errorf("unknown resource type: %s", info.Type)
+	}
+
+	return r.simpleDiff(s, c, p.meta)
 }
 
 // Refresh implementation of terraform.ResourceProvider interface.
@@ -287,7 +325,7 @@ func (p *Provider) Refresh(
 // Resources implementation of terraform.ResourceProvider interface.
 func (p *Provider) Resources() []terraform.ResourceType {
 	keys := make([]string, 0, len(p.ResourcesMap))
-	for k, _ := range p.ResourcesMap {
+	for k := range p.ResourcesMap {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
@@ -305,6 +343,10 @@ func (p *Provider) Resources() []terraform.ResourceType {
 		result = append(result, terraform.ResourceType{
 			Name:       k,
 			Importable: resource.Importer != nil,
+
+			// Indicates that a provider is compiled against a new enough
+			// version of core to support the GetSchema method.
+			SchemaAvailable: true,
 		})
 	}
 
@@ -382,7 +424,7 @@ func (p *Provider) ReadDataDiff(
 		return nil, fmt.Errorf("unknown data source: %s", info.Type)
 	}
 
-	return r.Diff(nil, c)
+	return r.Diff(nil, c, p.meta)
 }
 
 // RefreshData implementation of terraform.ResourceProvider interface.
@@ -410,6 +452,10 @@ func (p *Provider) DataSources() []terraform.DataSource {
 	for _, k := range keys {
 		result = append(result, terraform.DataSource{
 			Name: k,
+
+			// Indicates that a provider is compiled against a new enough
+			// version of core to support the GetSchema method.
+			SchemaAvailable: true,
 		})
 	}
 

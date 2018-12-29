@@ -2,6 +2,7 @@ package atlas
 
 import (
 	"bytes"
+	"context"
 	"crypto/md5"
 	"crypto/tls"
 	"crypto/x509"
@@ -13,15 +14,24 @@ import (
 	"testing"
 	"time"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func testStateClient(t *testing.T, c map[string]interface{}) remote.Client {
-	b := backend.TestBackendConfig(t, &Backend{}, c)
-	raw, err := b.State(backend.DefaultStateName)
+func testStateClient(t *testing.T, c map[string]string) remote.Client {
+	vals := make(map[string]cty.Value)
+	for k, s := range c {
+		vals[k] = cty.StringVal(s)
+	}
+	synthBody := configs.SynthBody("<test>", vals)
+
+	b := backend.TestBackendConfig(t, New(), synthBody)
+	raw, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -42,7 +52,7 @@ func TestStateClient(t *testing.T) {
 		t.Skipf("skipping, ATLAS_TOKEN must be set")
 	}
 
-	client := testStateClient(t, map[string]interface{}{
+	client := testStateClient(t, map[string]string{
 		"access_token": token,
 		"name":         "hashicorp/test-remote-state",
 	})
@@ -53,7 +63,7 @@ func TestStateClient(t *testing.T) {
 func TestStateClient_noRetryOnBadCerts(t *testing.T) {
 	acctest.RemoteTestPrecheck(t)
 
-	client := testStateClient(t, map[string]interface{}{
+	client := testStateClient(t, map[string]string{
 		"access_token": "NOT_REQUIRED",
 		"name":         "hashicorp/test-remote-state",
 	})
@@ -74,12 +84,12 @@ func TestStateClient_noRetryOnBadCerts(t *testing.T) {
 	// Instrument CheckRetry to make sure we didn't retry
 	retries := 0
 	oldCheck := httpClient.CheckRetry
-	httpClient.CheckRetry = func(resp *http.Response, err error) (bool, error) {
+	httpClient.CheckRetry = func(ctx context.Context, resp *http.Response, err error) (bool, error) {
 		if retries > 0 {
 			t.Fatal("retried after certificate error")
 		}
 		retries++
-		return oldCheck(resp, err)
+		return oldCheck(ctx, resp, err)
 	}
 
 	_, err = client.Get()
@@ -99,7 +109,7 @@ func TestStateClient_ReportedConflictEqualStates(t *testing.T) {
 	srv := fakeAtlas.Server()
 	defer srv.Close()
 
-	client := testStateClient(t, map[string]interface{}{
+	client := testStateClient(t, map[string]string{
 		"access_token": "sometoken",
 		"name":         "someuser/some-test-remote-state",
 		"address":      srv.URL,
@@ -124,7 +134,7 @@ func TestStateClient_NoConflict(t *testing.T) {
 	srv := fakeAtlas.Server()
 	defer srv.Close()
 
-	client := testStateClient(t, map[string]interface{}{
+	client := testStateClient(t, map[string]string{
 		"access_token": "sometoken",
 		"name":         "someuser/some-test-remote-state",
 		"address":      srv.URL,
@@ -152,7 +162,7 @@ func TestStateClient_LegitimateConflict(t *testing.T) {
 	srv := fakeAtlas.Server()
 	defer srv.Close()
 
-	client := testStateClient(t, map[string]interface{}{
+	client := testStateClient(t, map[string]string{
 		"access_token": "sometoken",
 		"name":         "someuser/some-test-remote-state",
 		"address":      srv.URL,
@@ -191,7 +201,7 @@ func TestStateClient_UnresolvableConflict(t *testing.T) {
 	srv := fakeAtlas.Server()
 	defer srv.Close()
 
-	client := testStateClient(t, map[string]interface{}{
+	client := testStateClient(t, map[string]string{
 		"access_token": "sometoken",
 		"name":         "someuser/some-test-remote-state",
 		"address":      srv.URL,

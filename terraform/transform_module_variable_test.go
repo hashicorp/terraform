@@ -3,21 +3,23 @@ package terraform
 import (
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform/addrs"
 )
 
 func TestModuleVariableTransformer(t *testing.T) {
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	module := testModule(t, "transform-module-var-basic")
 
 	{
-		tf := &RootVariableTransformer{Module: module}
+		tf := &RootVariableTransformer{Config: module}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
 
 	{
-		tf := &ModuleVariableTransformer{Module: module, DisablePrune: true}
+		tf := &ModuleVariableTransformer{Config: module}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -31,18 +33,18 @@ func TestModuleVariableTransformer(t *testing.T) {
 }
 
 func TestModuleVariableTransformer_nested(t *testing.T) {
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	module := testModule(t, "transform-module-var-nested")
 
 	{
-		tf := &RootVariableTransformer{Module: module}
+		tf := &RootVariableTransformer{Config: module}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
 
 	{
-		tf := &ModuleVariableTransformer{Module: module, DisablePrune: true}
+		tf := &ModuleVariableTransformer{Config: module}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}

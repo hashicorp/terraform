@@ -49,7 +49,7 @@ func TestMapValidate(t *testing.T) {
 	var es []error
 
 	// Valid
-	c = testConfig(t, map[string]interface{}{"foo": "bar"})
+	c = testConfigForMap(t, map[string]interface{}{"foo": "bar"})
 	ws, es = m.Validate("aws_elb", c)
 	if len(ws) > 0 {
 		t.Fatalf("bad: %#v", ws)
@@ -59,7 +59,7 @@ func TestMapValidate(t *testing.T) {
 	}
 
 	// Invalid
-	c = testConfig(t, map[string]interface{}{})
+	c = testConfigForMap(t, map[string]interface{}{})
 	ws, es = m.Validate("aws_elb", c)
 	if len(ws) > 0 {
 		t.Fatalf("bad: %#v", ws)
@@ -69,9 +69,7 @@ func TestMapValidate(t *testing.T) {
 	}
 }
 
-func testConfig(
-	t *testing.T,
-	c map[string]interface{}) *terraform.ResourceConfig {
+func testConfigForMap(t *testing.T, c map[string]interface{}) *terraform.ResourceConfig {
 	r, err := tfconfig.NewRawConfig(c)
 	if err != nil {
 		t.Fatalf("bad: %s", err)

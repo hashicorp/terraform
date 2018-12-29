@@ -12,6 +12,8 @@ const (
 
 	// ErrCodeEC2AccessDeniedException for service response error code
 	// "EC2AccessDeniedException".
+	//
+	// Need additional permissions to configure VPC settings.
 	ErrCodeEC2AccessDeniedException = "EC2AccessDeniedException"
 
 	// ErrCodeEC2ThrottledException for service response error code
@@ -50,6 +52,12 @@ const (
 	// The request body could not be parsed as JSON.
 	ErrCodeInvalidRequestContentException = "InvalidRequestContentException"
 
+	// ErrCodeInvalidRuntimeException for service response error code
+	// "InvalidRuntimeException".
+	//
+	// The runtime or runtime version specified is not supported.
+	ErrCodeInvalidRuntimeException = "InvalidRuntimeException"
+
 	// ErrCodeInvalidSecurityGroupIDException for service response error code
 	// "InvalidSecurityGroupIDException".
 	//
@@ -66,7 +74,7 @@ const (
 	// ErrCodeInvalidZipFileException for service response error code
 	// "InvalidZipFileException".
 	//
-	// AWS Lambda could not unzip the function zip file.
+	// AWS Lambda could not unzip the deployment package.
 	ErrCodeInvalidZipFileException = "InvalidZipFileException"
 
 	// ErrCodeKMSAccessDeniedException for service response error code
@@ -103,6 +111,14 @@ const (
 	// Lambda function access policy is limited to 20 KB.
 	ErrCodePolicyLengthExceededException = "PolicyLengthExceededException"
 
+	// ErrCodePreconditionFailedException for service response error code
+	// "PreconditionFailedException".
+	//
+	// The RevisionId provided does not match the latest RevisionId for the Lambda
+	// function or alias. Call the GetFunction or the GetAlias API to retrieve the
+	// latest RevisionId for your resource.
+	ErrCodePreconditionFailedException = "PreconditionFailedException"
+
 	// ErrCodeRequestTooLargeException for service response error code
 	// "RequestTooLargeException".
 	//
@@ -115,6 +131,14 @@ const (
 	//
 	// The resource already exists.
 	ErrCodeResourceConflictException = "ResourceConflictException"
+
+	// ErrCodeResourceInUseException for service response error code
+	// "ResourceInUseException".
+	//
+	// The operation conflicts with the resource's availability. For example, you
+	// attempted to update an EventSoure Mapping in CREATING, or tried to delete
+	// a EventSoure mapping currently in the UPDATING state.
+	ErrCodeResourceInUseException = "ResourceInUseException"
 
 	// ErrCodeResourceNotFoundException for service response error code
 	// "ResourceNotFoundException".
@@ -138,6 +162,8 @@ const (
 
 	// ErrCodeTooManyRequestsException for service response error code
 	// "TooManyRequestsException".
+	//
+	// Request throughput limit exceeded
 	ErrCodeTooManyRequestsException = "TooManyRequestsException"
 
 	// ErrCodeUnsupportedMediaTypeException for service response error code

@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -16,14 +17,17 @@ func resourceAwsIamRolePolicyAttachment() *schema.Resource {
 		Create: resourceAwsIamRolePolicyAttachmentCreate,
 		Read:   resourceAwsIamRolePolicyAttachmentRead,
 		Delete: resourceAwsIamRolePolicyAttachmentDelete,
+		Importer: &schema.ResourceImporter{
+			State: resourceAwsIamRolePolicyAttachmentImport,
+		},
 
 		Schema: map[string]*schema.Schema{
-			"role": &schema.Schema{
+			"role": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"policy_arn": &schema.Schema{
+			"policy_arn": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -40,7 +44,7 @@ func resourceAwsIamRolePolicyAttachmentCreate(d *schema.ResourceData, meta inter
 
 	err := attachPolicyToRole(conn, role, arn)
 	if err != nil {
-		return fmt.Errorf("[WARN] Error attaching policy %s to IAM Role %s: %v", arn, role, err)
+		return fmt.Errorf("Error attaching policy %s to IAM Role %s: %v", arn, role, err)
 	}
 
 	d.SetId(resource.PrefixedUniqueId(fmt.Sprintf("%s-", role)))
@@ -98,9 +102,25 @@ func resourceAwsIamRolePolicyAttachmentDelete(d *schema.ResourceData, meta inter
 
 	err := detachPolicyFromRole(conn, role, arn)
 	if err != nil {
-		return fmt.Errorf("[WARN] Error removing policy %s from IAM Role %s: %v", arn, role, err)
+		return fmt.Errorf("Error removing policy %s from IAM Role %s: %v", arn, role, err)
 	}
 	return nil
+}
+
+func resourceAwsIamRolePolicyAttachmentImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	idParts := strings.SplitN(d.Id(), "/", 2)
+	if len(idParts) != 2 || idParts[0] == "" || idParts[1] == "" {
+		return nil, fmt.Errorf("unexpected format of ID (%q), expected <role-name>/<policy_arn>", d.Id())
+	}
+
+	roleName := idParts[0]
+	policyARN := idParts[1]
+
+	d.Set("role", roleName)
+	d.Set("policy_arn", policyARN)
+	d.SetId(fmt.Sprintf("%s-%s", roleName, policyARN))
+
+	return []*schema.ResourceData{d}, nil
 }
 
 func attachPolicyToRole(conn *iam.IAM, role string, arn string) error {

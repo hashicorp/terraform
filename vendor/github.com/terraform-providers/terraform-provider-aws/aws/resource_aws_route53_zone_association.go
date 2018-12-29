@@ -22,17 +22,17 @@ func resourceAwsRoute53ZoneAssociation() *schema.Resource {
 		Delete: resourceAwsRoute53ZoneAssociationDelete,
 
 		Schema: map[string]*schema.Schema{
-			"zone_id": &schema.Schema{
+			"zone_id": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"vpc_id": &schema.Schema{
+			"vpc_id": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"vpc_region": &schema.Schema{
+			"vpc_region": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,

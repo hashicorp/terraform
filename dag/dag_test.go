@@ -7,9 +7,12 @@ import (
 	"log"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/hashicorp/terraform/tfdiags"
 
 	"github.com/hashicorp/terraform/helper/logging"
 )
@@ -103,6 +106,61 @@ func TestAyclicGraphTransReduction_more(t *testing.T) {
 	expected := strings.TrimSpace(testGraphTransReductionMoreStr)
 	if actual != expected {
 		t.Fatalf("bad: %s", actual)
+	}
+}
+
+// use this to simulate slow sort operations
+type counter struct {
+	Name  string
+	Calls int64
+}
+
+func (s *counter) String() string {
+	s.Calls++
+	return s.Name
+}
+
+// Make sure we can reduce a sizable, fully-connected graph.
+func TestAyclicGraphTransReduction_fullyConnected(t *testing.T) {
+	var g AcyclicGraph
+
+	const nodeCount = 200
+	nodes := make([]*counter, nodeCount)
+	for i := 0; i < nodeCount; i++ {
+		nodes[i] = &counter{Name: strconv.Itoa(i)}
+	}
+
+	// Add them all to the graph
+	for _, n := range nodes {
+		g.Add(n)
+	}
+
+	// connect them all
+	for i := range nodes {
+		for j := range nodes {
+			if i == j {
+				continue
+			}
+			g.Connect(BasicEdge(nodes[i], nodes[j]))
+		}
+	}
+
+	g.TransitiveReduction()
+
+	vertexNameCalls := int64(0)
+	for _, n := range nodes {
+		vertexNameCalls += n.Calls
+	}
+
+	switch {
+	case vertexNameCalls > 2*nodeCount:
+		// Make calling it more the 2x per node fatal.
+		// If we were sorting this would give us roughly ln(n)(n^3) calls, or
+		// >59000000 calls for 200 vertices.
+		t.Fatalf("VertexName called %d times", vertexNameCalls)
+	case vertexNameCalls > 0:
+		// we don't expect any calls, but a change here isn't necessarily fatal
+		t.Logf("WARNING: VertexName called %d times", vertexNameCalls)
 	}
 }
 
@@ -217,7 +275,7 @@ func TestAcyclicGraphWalk(t *testing.T) {
 
 	var visits []Vertex
 	var lock sync.Mutex
-	err := g.Walk(func(v Vertex) error {
+	err := g.Walk(func(v Vertex) tfdiags.Diagnostics {
 		lock.Lock()
 		defer lock.Unlock()
 		visits = append(visits, v)
@@ -252,31 +310,29 @@ func TestAcyclicGraphWalk_error(t *testing.T) {
 
 	var visits []Vertex
 	var lock sync.Mutex
-	err := g.Walk(func(v Vertex) error {
+	err := g.Walk(func(v Vertex) tfdiags.Diagnostics {
 		lock.Lock()
 		defer lock.Unlock()
 
+		var diags tfdiags.Diagnostics
+
 		if v == 2 {
-			return fmt.Errorf("error")
+			diags = diags.Append(fmt.Errorf("error"))
+			return diags
 		}
 
 		visits = append(visits, v)
-		return nil
+		return diags
 	})
 	if err == nil {
 		t.Fatal("should error")
 	}
 
-	expected := [][]Vertex{
-		{1},
-	}
-	for _, e := range expected {
-		if reflect.DeepEqual(visits, e) {
-			return
-		}
+	expected := []Vertex{1}
+	if !reflect.DeepEqual(visits, expected) {
+		t.Errorf("wrong visits\ngot:  %#v\nwant: %#v", visits, expected)
 	}
 
-	t.Fatalf("bad: %#v", visits)
 }
 
 func TestAcyclicGraph_ReverseDepthFirstWalk_WithRemoval(t *testing.T) {

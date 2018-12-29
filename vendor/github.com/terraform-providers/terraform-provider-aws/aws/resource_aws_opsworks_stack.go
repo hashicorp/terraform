@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/opsworks"
@@ -34,7 +34,7 @@ func resourceAwsOpsworksStack() *schema.Resource {
 				Computed: true,
 			},
 
-			"id": {
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -169,6 +169,8 @@ func resourceAwsOpsworksStack() *schema.Resource {
 				Optional: true,
 				Default:  "Layer_Dependent",
 			},
+
+			"tags": tagsSchema(),
 
 			"use_custom_cookbooks": {
 				Type:     schema.TypeBool,
@@ -330,6 +332,7 @@ func resourceAwsOpsworksStackRead(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	stack := resp.Stacks[0]
+	d.Set("arn", stack.Arn)
 	d.Set("agent_version", stack.AgentVersion)
 	d.Set("name", stack.Name)
 	d.Set("region", stack.Region)
@@ -381,7 +384,7 @@ func opsworksConnForRegion(region string, meta interface{}) (*opsworks.OpsWorks,
 	// Set up base session
 	sess, err := session.NewSession(&originalConn.Config)
 	if err != nil {
-		return nil, errwrap.Wrapf("Error creating AWS session: {{err}}", err)
+		return nil, fmt.Errorf("Error creating AWS session: %s", err)
 	}
 
 	sess.Handlers.Build.PushBackNamed(addTerraformVersionToUserAgent)
@@ -467,7 +470,6 @@ func resourceAwsOpsworksStackCreate(d *schema.ResourceData, meta interface{}) er
 
 	stackId := *resp.StackId
 	d.SetId(stackId)
-	d.Set("id", stackId)
 
 	if inVpc && *req.UseOpsworksSecurityGroups {
 		// For VPC-based stacks, OpsWorks asynchronously creates some default
@@ -527,6 +529,18 @@ func resourceAwsOpsworksStackUpdate(d *schema.ResourceData, meta interface{}) er
 	}
 	if v, ok := d.GetOk("color"); ok {
 		req.Attributes["Color"] = aws.String(v.(string))
+	}
+
+	arn := arn.ARN{
+		Partition: meta.(*AWSClient).partition,
+		Region:    meta.(*AWSClient).region,
+		Service:   "opsworks",
+		AccountID: meta.(*AWSClient).accountid,
+		Resource:  fmt.Sprintf("stack/%s/", d.Id()),
+	}
+
+	if tagErr := setTagsOpsworks(client, d, arn.String()); tagErr != nil {
+		return tagErr
 	}
 
 	req.ChefConfiguration = &opsworks.ChefConfiguration{

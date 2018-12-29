@@ -21,21 +21,21 @@ func resourceAwsIamAccessKey() *schema.Resource {
 		Delete: resourceAwsIamAccessKeyDelete,
 
 		Schema: map[string]*schema.Schema{
-			"user": &schema.Schema{
+			"user": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"status": &schema.Schema{
+			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"secret": &schema.Schema{
+			"secret": {
 				Type:       schema.TypeString,
 				Computed:   true,
 				Deprecated: "Please use a PGP key to encrypt",
 			},
-			"ses_smtp_password": &schema.Schema{
+			"ses_smtp_password": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -75,7 +75,7 @@ func resourceAwsIamAccessKeyCreate(d *schema.ResourceData, meta interface{}) err
 	d.SetId(*createResp.AccessKey.AccessKeyId)
 
 	if createResp.AccessKey == nil || createResp.AccessKey.SecretAccessKey == nil {
-		return fmt.Errorf("[ERR] CreateAccessKey response did not contain a Secret Access Key as expected")
+		return fmt.Errorf("CreateAccessKey response did not contain a Secret Access Key as expected")
 	}
 
 	if v, ok := d.GetOk("pgp_key"); ok {
@@ -122,7 +122,7 @@ func resourceAwsIamAccessKeyRead(d *schema.ResourceData, meta interface{}) error
 			d.SetId("")
 			return nil
 		}
-		return fmt.Errorf("Error reading IAM acces key: %s", err)
+		return fmt.Errorf("Error reading IAM access key: %s", err)
 	}
 
 	for _, key := range getResp.AccessKeyMetadata {

@@ -18,11 +18,6 @@ func resourceAwsOpsworksUserProfile() *schema.Resource {
 		Delete: resourceAwsOpsworksUserProfileDelete,
 
 		Schema: map[string]*schema.Schema{
-			"id": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
 			"user_arn": {
 				Type:     schema.TypeString,
 				Required: true,

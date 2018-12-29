@@ -63,6 +63,14 @@ type sshConfig struct {
 	sshAgent *sshAgent
 }
 
+type fatalError struct {
+	error
+}
+
+func (e fatalError) FatalError() error {
+	return e.error
+}
+
 // New creates a new communicator implementation over SSH.
 func New(s *terraform.InstanceState) (*Communicator, error) {
 	connInfo, err := parseConnectionInfo(s)
@@ -117,11 +125,13 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 				"  User: %s\n"+
 				"  Password: %t\n"+
 				"  Private key: %t\n"+
-				"  SSH Agent: %t",
+				"  SSH Agent: %t\n"+
+				"  Checking Host Key: %t",
 			c.connInfo.Host, c.connInfo.User,
 			c.connInfo.Password != "",
 			c.connInfo.PrivateKey != "",
 			c.connInfo.Agent,
+			c.connInfo.HostKey != "",
 		))
 
 		if c.connInfo.BastionHost != "" {
@@ -131,16 +141,18 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 					"  User: %s\n"+
 					"  Password: %t\n"+
 					"  Private key: %t\n"+
-					"  SSH Agent: %t",
+					"  SSH Agent: %t\n"+
+					"  Checking Host Key: %t",
 				c.connInfo.BastionHost, c.connInfo.BastionUser,
 				c.connInfo.BastionPassword != "",
 				c.connInfo.BastionPrivateKey != "",
 				c.connInfo.Agent,
+				c.connInfo.BastionHostKey != "",
 			))
 		}
 	}
 
-	log.Printf("connecting to TCP connection for SSH")
+	log.Printf("[DEBUG] connecting to TCP connection for SSH")
 	c.conn, err = c.config.connection()
 	if err != nil {
 		// Explicitly set this to the REAL nil. Connection() can return
@@ -151,15 +163,19 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 		// http://golang.org/doc/faq#nil_error
 		c.conn = nil
 
-		log.Printf("connection error: %s", err)
+		log.Printf("[ERROR] connection error: %s", err)
 		return err
 	}
 
-	log.Printf("handshaking with SSH")
+	log.Printf("[DEBUG] handshaking with SSH")
 	host := fmt.Sprintf("%s:%d", c.connInfo.Host, c.connInfo.Port)
 	sshConn, sshChan, req, err := ssh.NewClientConn(c.conn, host, c.config.config)
 	if err != nil {
-		log.Printf("handshake error: %s", err)
+		// While in theory this should be a fatal error, some hosts may start
+		// the ssh service before it is properly configured, or before user
+		// authentication data is available.
+		// Log the error, and allow the provisioner to retry.
+		log.Printf("[WARN] %s", err)
 		return err
 	}
 
@@ -168,7 +184,7 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 	if c.config.sshAgent != nil {
 		log.Printf("[DEBUG] Telling SSH config to forward to agent")
 		if err := c.config.sshAgent.ForwardToAgent(c.client); err != nil {
-			return err
+			return fatalError{err}
 		}
 
 		log.Printf("[DEBUG] Setting up a session to request agent forwarding")
@@ -231,6 +247,8 @@ func (c *Communicator) ScriptPath() string {
 
 // Start implementation of communicator.Communicator interface
 func (c *Communicator) Start(cmd *remote.Cmd) error {
+	cmd.Init()
+
 	session, err := c.newSession()
 	if err != nil {
 		return err
@@ -254,8 +272,8 @@ func (c *Communicator) Start(cmd *remote.Cmd) error {
 		}
 	}
 
-	log.Printf("starting remote command: %s", cmd.Command)
-	err = session.Start(cmd.Command + "\n")
+	log.Printf("[DEBUG] starting remote command: %s", cmd.Command)
+	err = session.Start(strings.TrimSpace(cmd.Command) + "\n")
 	if err != nil {
 		return err
 	}
@@ -274,8 +292,8 @@ func (c *Communicator) Start(cmd *remote.Cmd) error {
 			}
 		}
 
-		log.Printf("remote command exited with '%d': %s", exitStatus, cmd.Command)
-		cmd.SetExited(exitStatus)
+		cmd.SetExitStatus(exitStatus, err)
+		log.Printf("[DEBUG] remote command exited with '%d': %s", exitStatus, cmd.Command)
 	}()
 
 	return nil
@@ -345,11 +363,11 @@ func (c *Communicator) UploadScript(path string, input io.Reader) error {
 			"Error chmodding script file to 0777 in remote "+
 				"machine: %s", err)
 	}
-	cmd.Wait()
-	if cmd.ExitStatus != 0 {
+
+	if err := cmd.Wait(); err != nil {
 		return fmt.Errorf(
 			"Error chmodding script file to 0777 in remote "+
-				"machine %d: %s %s", cmd.ExitStatus, stdout.String(), stderr.String())
+				"machine %v: %s %s", err, stdout.String(), stderr.String())
 	}
 
 	return nil
@@ -357,7 +375,7 @@ func (c *Communicator) UploadScript(path string, input io.Reader) error {
 
 // UploadDir implementation of communicator.Communicator interface
 func (c *Communicator) UploadDir(dst string, src string) error {
-	log.Printf("Uploading dir '%s' to '%s'", src, dst)
+	log.Printf("[DEBUG] Uploading dir '%s' to '%s'", src, dst)
 	scpFunc := func(w io.Writer, r *bufio.Reader) error {
 		uploadEntries := func() error {
 			f, err := os.Open(src)
@@ -375,7 +393,7 @@ func (c *Communicator) UploadDir(dst string, src string) error {
 		}
 
 		if src[len(src)-1] != '/' {
-			log.Printf("No trailing slash, creating the source directory name")
+			log.Printf("[DEBUG] No trailing slash, creating the source directory name")
 			return scpUploadDirProtocol(filepath.Base(src), w, r, uploadEntries)
 		}
 		// Trailing slash, so only upload the contents
@@ -386,15 +404,15 @@ func (c *Communicator) UploadDir(dst string, src string) error {
 }
 
 func (c *Communicator) newSession() (session *ssh.Session, err error) {
-	log.Println("opening new ssh session")
+	log.Println("[DEBUG] opening new ssh session")
 	if c.client == nil {
-		err = errors.New("client not available")
+		err = errors.New("ssh client is not connected")
 	} else {
 		session, err = c.client.NewSession()
 	}
 
 	if err != nil {
-		log.Printf("ssh session open error: '%s', attempting reconnect", err)
+		log.Printf("[WARN] ssh session open error: '%s', attempting reconnect", err)
 		if err := c.Connect(nil); err != nil {
 			return nil, err
 		}
@@ -439,7 +457,7 @@ func (c *Communicator) scpSession(scpCommand string, f func(io.Writer, *bufio.Re
 
 	// Start the sink mode on the other side
 	// TODO(mitchellh): There are probably issues with shell escaping the path
-	log.Println("Starting remote scp process: ", scpCommand)
+	log.Println("[DEBUG] Starting remote scp process: ", scpCommand)
 	if err := session.Start(scpCommand); err != nil {
 		return err
 	}
@@ -447,7 +465,7 @@ func (c *Communicator) scpSession(scpCommand string, f func(io.Writer, *bufio.Re
 	// Call our callback that executes in the context of SCP. We ignore
 	// EOF errors if they occur because it usually means that SCP prematurely
 	// ended on the other side.
-	log.Println("Started SCP session, beginning transfers...")
+	log.Println("[DEBUG] Started SCP session, beginning transfers...")
 	if err := f(stdinW, stdoutR); err != nil && err != io.EOF {
 		return err
 	}
@@ -455,19 +473,19 @@ func (c *Communicator) scpSession(scpCommand string, f func(io.Writer, *bufio.Re
 	// Close the stdin, which sends an EOF, and then set w to nil so that
 	// our defer func doesn't close it again since that is unsafe with
 	// the Go SSH package.
-	log.Println("SCP session complete, closing stdin pipe.")
+	log.Println("[DEBUG] SCP session complete, closing stdin pipe.")
 	stdinW.Close()
 	stdinW = nil
 
 	// Wait for the SCP connection to close, meaning it has consumed all
 	// our data and has completed. Or has errored.
-	log.Println("Waiting for SSH session to complete.")
+	log.Println("[DEBUG] Waiting for SSH session to complete.")
 	err = session.Wait()
 	if err != nil {
 		if exitErr, ok := err.(*ssh.ExitError); ok {
 			// Otherwise, we have an ExitErorr, meaning we can just read
 			// the exit status
-			log.Printf("non-zero exit status: %d", exitErr.ExitStatus())
+			log.Printf("[ERROR] %s", exitErr)
 
 			// If we exited with status 127, it means SCP isn't available.
 			// Return a more descriptive error for that.
@@ -481,7 +499,11 @@ func (c *Communicator) scpSession(scpCommand string, f func(io.Writer, *bufio.Re
 		return err
 	}
 
-	log.Printf("scp stderr (length %d): %s", stderr.Len(), stderr.String())
+	scpErr := stderr.String()
+	if len(scpErr) > 0 {
+		log.Printf("[ERROR] scp stderr: %q", stderr)
+	}
+
 	return nil
 }
 
@@ -518,7 +540,7 @@ func scpUploadFile(dst string, src io.Reader, w io.Writer, r *bufio.Reader, size
 		defer os.Remove(tf.Name())
 		defer tf.Close()
 
-		log.Println("Copying input data into temporary file so we can read the length")
+		log.Println("[DEBUG] Copying input data into temporary file so we can read the length")
 		if _, err := io.Copy(tf, src); err != nil {
 			return err
 		}
@@ -544,7 +566,7 @@ func scpUploadFile(dst string, src io.Reader, w io.Writer, r *bufio.Reader, size
 	}
 
 	// Start the protocol
-	log.Println("Beginning file upload...")
+	log.Println("[DEBUG] Beginning file upload...")
 	fmt.Fprintln(w, "C0644", size, dst)
 	if err := checkSCPStatus(r); err != nil {
 		return err
@@ -563,7 +585,7 @@ func scpUploadFile(dst string, src io.Reader, w io.Writer, r *bufio.Reader, size
 }
 
 func scpUploadDirProtocol(name string, w io.Writer, r *bufio.Reader, f func() error) error {
-	log.Printf("SCP: starting directory upload: %s", name)
+	log.Printf("[DEBUG] SCP: starting directory upload: %s", name)
 	fmt.Fprintln(w, "D0755 0", name)
 	err := checkSCPStatus(r)
 	if err != nil {

@@ -44,8 +44,12 @@ LD_FLAGS="-X main.GitCommit=${GIT_COMMIT}${GIT_DIRTY} $LD_FLAGS"
 
 # In release mode we don't want debug information in the binary
 if [[ -n "${TF_RELEASE}" ]]; then
-    LD_FLAGS="-X main.GitCommit=${GIT_COMMIT}${GIT_DIRTY} -X github.com/hashicorp/terraform/terraform.VersionPrerelease= -s -w"
+    LD_FLAGS="-X main.GitCommit=${GIT_COMMIT}${GIT_DIRTY} -X github.com/hashicorp/terraform/version.Prerelease= -s -w"
 fi
+
+# Ensure all remote modules are downloaded and cached before build so that
+# the concurrent builds launched by gox won't race to redundantly download them.
+go mod download
 
 # Build!
 echo "==> Building..."
@@ -54,7 +58,7 @@ gox \
     -arch="${XC_ARCH}" \
     -osarch="${XC_EXCLUDE_OSARCH}" \
     -ldflags "${LD_FLAGS}" \
-    -output "pkg/{{.OS}}_{{.Arch}}/terraform" \
+    -output "pkg/{{.OS}}_{{.Arch}}/${PWD##*/}" \
     .
 
 # Move all the compiled things to the $GOPATH/bin

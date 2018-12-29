@@ -34,6 +34,16 @@ const (
 	// You have reached the maximum number of resources that can be created.
 	ErrCodeLimitExceededException = "LimitExceededException"
 
+	// ErrCodeMalformedQueryException for service response error code
+	// "MalformedQueryException".
+	//
+	// The query string is not valid. Details about this error are displayed in
+	// a QueryCompileError object. For more information, see .
+	//
+	// For more information about valid query syntax, see CloudWatch Logs Insights
+	// Query Syntax (http://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CWL_QuerySyntax.html).
+	ErrCodeMalformedQueryException = "MalformedQueryException"
+
 	// ErrCodeOperationAbortedException for service response error code
 	// "OperationAbortedException".
 	//
@@ -57,4 +67,10 @@ const (
 	//
 	// The service cannot complete the request.
 	ErrCodeServiceUnavailableException = "ServiceUnavailableException"
+
+	// ErrCodeUnrecognizedClientException for service response error code
+	// "UnrecognizedClientException".
+	//
+	// The most likely cause is an invalid AWS access key ID or secret key.
+	ErrCodeUnrecognizedClientException = "UnrecognizedClientException"
 )

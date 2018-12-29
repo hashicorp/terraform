@@ -17,19 +17,18 @@ const opAddTagsToCertificate = "AddTagsToCertificate"
 
 // AddTagsToCertificateRequest generates a "aws/request.Request" representing the
 // client's request for the AddTagsToCertificate operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See AddTagsToCertificate for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the AddTagsToCertificate method directly
-// instead.
+// See AddTagsToCertificate for more information on using the AddTagsToCertificate
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the AddTagsToCertificateRequest method.
 //    req, resp := client.AddTagsToCertificateRequest(params)
@@ -39,7 +38,7 @@ const opAddTagsToCertificate = "AddTagsToCertificate"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/AddTagsToCertificate
+// See also, https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/AddTagsToCertificate
 func (c *ACM) AddTagsToCertificateRequest(input *AddTagsToCertificateInput) (req *request.Request, output *AddTagsToCertificateOutput) {
 	op := &request.Operation{
 		Name:       opAddTagsToCertificate,
@@ -53,14 +52,13 @@ func (c *ACM) AddTagsToCertificateRequest(input *AddTagsToCertificateInput) (req
 
 	output = &AddTagsToCertificateOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
 // AddTagsToCertificate API operation for AWS Certificate Manager.
 //
-// Adds one or more tags to an ACM Certificate. Tags are labels that you can
+// Adds one or more tags to an ACM certificate. Tags are labels that you can
 // use to identify and organize your AWS resources. Each tag consists of a key
 // and an optional value. You specify the certificate on input by its Amazon
 // Resource Name (ARN). You specify the tag by using a key-value pair.
@@ -70,9 +68,9 @@ func (c *ACM) AddTagsToCertificateRequest(input *AddTagsToCertificateInput) (req
 // certificates if you want to filter for a common relationship among those
 // certificates. Similarly, you can apply the same tag to multiple resources
 // if you want to specify a relationship among those resources. For example,
-// you can add the same tag to an ACM Certificate and an Elastic Load Balancing
+// you can add the same tag to an ACM certificate and an Elastic Load Balancing
 // load balancer to indicate that they are both used by the same website. For
-// more information, see Tagging ACM Certificates (http://docs.aws.amazon.com/acm/latest/userguide/tags.html).
+// more information, see Tagging ACM certificates (http://docs.aws.amazon.com/acm/latest/userguide/tags.html).
 //
 // To remove one or more tags, use the RemoveTagsFromCertificate action. To
 // view all of the tags that have been applied to the certificate, use the ListTagsForCertificate
@@ -87,7 +85,7 @@ func (c *ACM) AddTagsToCertificateRequest(input *AddTagsToCertificateInput) (req
 //
 // Returned Error Codes:
 //   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The specified certificate cannot be found in the caller's account, or the
+//   The specified certificate cannot be found in the caller's account or the
 //   caller's account cannot be found.
 //
 //   * ErrCodeInvalidArnException "InvalidArnException"
@@ -100,7 +98,7 @@ func (c *ACM) AddTagsToCertificateRequest(input *AddTagsToCertificateInput) (req
 //   * ErrCodeTooManyTagsException "TooManyTagsException"
 //   The request contains too many tags. Try the request again with fewer tags.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/AddTagsToCertificate
+// See also, https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/AddTagsToCertificate
 func (c *ACM) AddTagsToCertificate(input *AddTagsToCertificateInput) (*AddTagsToCertificateOutput, error) {
 	req, out := c.AddTagsToCertificateRequest(input)
 	return out, req.Send()
@@ -126,19 +124,18 @@ const opDeleteCertificate = "DeleteCertificate"
 
 // DeleteCertificateRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteCertificate operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See DeleteCertificate for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteCertificate method directly
-// instead.
+// See DeleteCertificate for more information on using the DeleteCertificate
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteCertificateRequest method.
 //    req, resp := client.DeleteCertificateRequest(params)
@@ -148,7 +145,7 @@ const opDeleteCertificate = "DeleteCertificate"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/DeleteCertificate
+// See also, https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/DeleteCertificate
 func (c *ACM) DeleteCertificateRequest(input *DeleteCertificateInput) (req *request.Request, output *DeleteCertificateOutput) {
 	op := &request.Operation{
 		Name:       opDeleteCertificate,
@@ -162,20 +159,19 @@ func (c *ACM) DeleteCertificateRequest(input *DeleteCertificateInput) (req *requ
 
 	output = &DeleteCertificateOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
 // DeleteCertificate API operation for AWS Certificate Manager.
 //
-// Deletes an ACM Certificate and its associated private key. If this action
-// succeeds, the certificate no longer appears in the list of ACM Certificates
-// that can be displayed by calling the ListCertificates action or be retrieved
-// by calling the GetCertificate action. The certificate will not be available
-// for use by other AWS services.
+// Deletes a certificate and its associated private key. If this action succeeds,
+// the certificate no longer appears in the list that can be displayed by calling
+// the ListCertificates action or be retrieved by calling the GetCertificate
+// action. The certificate will not be available for use by AWS services integrated
+// with ACM.
 //
-// You cannot delete an ACM Certificate that is being used by another AWS service.
+// You cannot delete an ACM certificate that is being used by another AWS service.
 // To delete a certificate that is in use, the certificate association must
 // first be removed.
 //
@@ -188,7 +184,7 @@ func (c *ACM) DeleteCertificateRequest(input *DeleteCertificateInput) (req *requ
 //
 // Returned Error Codes:
 //   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The specified certificate cannot be found in the caller's account, or the
+//   The specified certificate cannot be found in the caller's account or the
 //   caller's account cannot be found.
 //
 //   * ErrCodeResourceInUseException "ResourceInUseException"
@@ -198,7 +194,7 @@ func (c *ACM) DeleteCertificateRequest(input *DeleteCertificateInput) (req *requ
 //   * ErrCodeInvalidArnException "InvalidArnException"
 //   The requested Amazon Resource Name (ARN) does not refer to an existing resource.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/DeleteCertificate
+// See also, https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/DeleteCertificate
 func (c *ACM) DeleteCertificate(input *DeleteCertificateInput) (*DeleteCertificateOutput, error) {
 	req, out := c.DeleteCertificateRequest(input)
 	return out, req.Send()
@@ -224,19 +220,18 @@ const opDescribeCertificate = "DescribeCertificate"
 
 // DescribeCertificateRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeCertificate operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See DescribeCertificate for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeCertificate method directly
-// instead.
+// See DescribeCertificate for more information on using the DescribeCertificate
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeCertificateRequest method.
 //    req, resp := client.DescribeCertificateRequest(params)
@@ -246,7 +241,7 @@ const opDescribeCertificate = "DescribeCertificate"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/DescribeCertificate
+// See also, https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/DescribeCertificate
 func (c *ACM) DescribeCertificateRequest(input *DescribeCertificateInput) (req *request.Request, output *DescribeCertificateOutput) {
 	op := &request.Operation{
 		Name:       opDescribeCertificate,
@@ -265,7 +260,7 @@ func (c *ACM) DescribeCertificateRequest(input *DescribeCertificateInput) (req *
 
 // DescribeCertificate API operation for AWS Certificate Manager.
 //
-// Returns detailed metadata about the specified ACM Certificate.
+// Returns detailed metadata about the specified ACM certificate.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -276,13 +271,13 @@ func (c *ACM) DescribeCertificateRequest(input *DescribeCertificateInput) (req *
 //
 // Returned Error Codes:
 //   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The specified certificate cannot be found in the caller's account, or the
+//   The specified certificate cannot be found in the caller's account or the
 //   caller's account cannot be found.
 //
 //   * ErrCodeInvalidArnException "InvalidArnException"
 //   The requested Amazon Resource Name (ARN) does not refer to an existing resource.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/DescribeCertificate
+// See also, https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/DescribeCertificate
 func (c *ACM) DescribeCertificate(input *DescribeCertificateInput) (*DescribeCertificateOutput, error) {
 	req, out := c.DescribeCertificateRequest(input)
 	return out, req.Send()
@@ -304,23 +299,117 @@ func (c *ACM) DescribeCertificateWithContext(ctx aws.Context, input *DescribeCer
 	return out, req.Send()
 }
 
+const opExportCertificate = "ExportCertificate"
+
+// ExportCertificateRequest generates a "aws/request.Request" representing the
+// client's request for the ExportCertificate operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ExportCertificate for more information on using the ExportCertificate
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ExportCertificateRequest method.
+//    req, resp := client.ExportCertificateRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/ExportCertificate
+func (c *ACM) ExportCertificateRequest(input *ExportCertificateInput) (req *request.Request, output *ExportCertificateOutput) {
+	op := &request.Operation{
+		Name:       opExportCertificate,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ExportCertificateInput{}
+	}
+
+	output = &ExportCertificateOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ExportCertificate API operation for AWS Certificate Manager.
+//
+// Exports a private certificate issued by a private certificate authority (CA)
+// for use anywhere. You can export the certificate, the certificate chain,
+// and the encrypted private key associated with the public key embedded in
+// the certificate. You must store the private key securely. The private key
+// is a 2048 bit RSA key. You must provide a passphrase for the private key
+// when exporting it. You can use the following OpenSSL command to decrypt it
+// later. Provide the passphrase when prompted.
+//
+// openssl rsa -in encrypted_key.pem -out decrypted_key.pem
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Certificate Manager's
+// API operation ExportCertificate for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   The specified certificate cannot be found in the caller's account or the
+//   caller's account cannot be found.
+//
+//   * ErrCodeRequestInProgressException "RequestInProgressException"
+//   The certificate request is in process and the certificate in your account
+//   has not yet been issued.
+//
+//   * ErrCodeInvalidArnException "InvalidArnException"
+//   The requested Amazon Resource Name (ARN) does not refer to an existing resource.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/ExportCertificate
+func (c *ACM) ExportCertificate(input *ExportCertificateInput) (*ExportCertificateOutput, error) {
+	req, out := c.ExportCertificateRequest(input)
+	return out, req.Send()
+}
+
+// ExportCertificateWithContext is the same as ExportCertificate with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ExportCertificate for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ACM) ExportCertificateWithContext(ctx aws.Context, input *ExportCertificateInput, opts ...request.Option) (*ExportCertificateOutput, error) {
+	req, out := c.ExportCertificateRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opGetCertificate = "GetCertificate"
 
 // GetCertificateRequest generates a "aws/request.Request" representing the
 // client's request for the GetCertificate operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See GetCertificate for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetCertificate method directly
-// instead.
+// See GetCertificate for more information on using the GetCertificate
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetCertificateRequest method.
 //    req, resp := client.GetCertificateRequest(params)
@@ -330,7 +419,7 @@ const opGetCertificate = "GetCertificate"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/GetCertificate
+// See also, https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/GetCertificate
 func (c *ACM) GetCertificateRequest(input *GetCertificateInput) (req *request.Request, output *GetCertificateOutput) {
 	op := &request.Operation{
 		Name:       opGetCertificate,
@@ -349,15 +438,12 @@ func (c *ACM) GetCertificateRequest(input *GetCertificateInput) (req *request.Re
 
 // GetCertificate API operation for AWS Certificate Manager.
 //
-// Retrieves an ACM Certificate and certificate chain for the certificate specified
-// by an ARN. The chain is an ordered list of certificates that contains the
-// root certificate, intermediate certificates of subordinate CAs, and the ACM
-// Certificate. The certificate and certificate chain are base64 encoded. If
-// you want to decode the certificate chain to see the individual certificate
-// fields, you can use OpenSSL.
-//
-// Currently, ACM Certificates can be used only with Elastic Load Balancing
-// and Amazon CloudFront.
+// Retrieves a certificate specified by an ARN and its certificate chain . The
+// chain is an ordered list of certificates that contains the end entity certificate,
+// intermediate certificates of subordinate CAs, and the root certificate in
+// that order. The certificate and certificate chain are base64 encoded. If
+// you want to decode the certificate to see the individual fields, you can
+// use OpenSSL.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -368,7 +454,7 @@ func (c *ACM) GetCertificateRequest(input *GetCertificateInput) (req *request.Re
 //
 // Returned Error Codes:
 //   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The specified certificate cannot be found in the caller's account, or the
+//   The specified certificate cannot be found in the caller's account or the
 //   caller's account cannot be found.
 //
 //   * ErrCodeRequestInProgressException "RequestInProgressException"
@@ -378,7 +464,7 @@ func (c *ACM) GetCertificateRequest(input *GetCertificateInput) (req *request.Re
 //   * ErrCodeInvalidArnException "InvalidArnException"
 //   The requested Amazon Resource Name (ARN) does not refer to an existing resource.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/GetCertificate
+// See also, https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/GetCertificate
 func (c *ACM) GetCertificate(input *GetCertificateInput) (*GetCertificateOutput, error) {
 	req, out := c.GetCertificateRequest(input)
 	return out, req.Send()
@@ -404,19 +490,18 @@ const opImportCertificate = "ImportCertificate"
 
 // ImportCertificateRequest generates a "aws/request.Request" representing the
 // client's request for the ImportCertificate operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See ImportCertificate for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ImportCertificate method directly
-// instead.
+// See ImportCertificate for more information on using the ImportCertificate
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ImportCertificateRequest method.
 //    req, resp := client.ImportCertificateRequest(params)
@@ -426,7 +511,7 @@ const opImportCertificate = "ImportCertificate"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/ImportCertificate
+// See also, https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/ImportCertificate
 func (c *ACM) ImportCertificateRequest(input *ImportCertificateInput) (req *request.Request, output *ImportCertificateOutput) {
 	op := &request.Operation{
 		Name:       opImportCertificate,
@@ -445,29 +530,54 @@ func (c *ACM) ImportCertificateRequest(input *ImportCertificateInput) (req *requ
 
 // ImportCertificate API operation for AWS Certificate Manager.
 //
-// Imports an SSL/TLS certificate into AWS Certificate Manager (ACM) to use
-// with ACM's integrated AWS services (http://docs.aws.amazon.com/acm/latest/userguide/acm-services.html).
+// Imports a certificate into AWS Certificate Manager (ACM) to use with services
+// that are integrated with ACM. Note that integrated services (http://docs.aws.amazon.com/acm/latest/userguide/acm-services.html)
+// allow only certificate types and keys they support to be associated with
+// their resources. Further, their support differs depending on whether the
+// certificate is imported into IAM or into ACM. For more information, see the
+// documentation for each service. For more information about importing certificates
+// into ACM, see Importing Certificates (http://docs.aws.amazon.com/acm/latest/userguide/import-certificate.html)
+// in the AWS Certificate Manager User Guide.
 //
 // ACM does not provide managed renewal (http://docs.aws.amazon.com/acm/latest/userguide/acm-renewal.html)
 // for certificates that you import.
 //
-// For more information about importing certificates into ACM, including the
-// differences between certificates that you import and those that ACM provides,
-// see Importing Certificates (http://docs.aws.amazon.com/acm/latest/userguide/import-certificate.html)
-// in the AWS Certificate Manager User Guide.
+// Note the following guidelines when importing third party certificates:
 //
-// To import a certificate, you must provide the certificate and the matching
-// private key. When the certificate is not self-signed, you must also provide
-// a certificate chain. You can omit the certificate chain when importing a
-// self-signed certificate.
+//    * You must enter the private key that matches the certificate you are
+//    importing.
 //
-// The certificate, private key, and certificate chain must be PEM-encoded.
-// For more information about converting these items to PEM format, see Importing
-// Certificates Troubleshooting (http://docs.aws.amazon.com/acm/latest/userguide/import-certificate.html#import-certificate-troubleshooting)
-// in the AWS Certificate Manager User Guide.
+//    * The private key must be unencrypted. You cannot import a private key
+//    that is protected by a password or a passphrase.
 //
-// To import a new certificate, omit the CertificateArn field. Include this
-// field only when you want to replace a previously imported certificate.
+//    * If the certificate you are importing is not self-signed, you must enter
+//    its certificate chain.
+//
+//    * If a certificate chain is included, the issuer must be the subject of
+//    one of the certificates in the chain.
+//
+//    * The certificate, private key, and certificate chain must be PEM-encoded.
+//
+//    * The current time must be between the Not Before and Not After certificate
+//    fields.
+//
+//    * The Issuer field must not be empty.
+//
+//    * The OCSP authority URL, if present, must not exceed 1000 characters.
+//
+//    * To import a new certificate, omit the CertificateArn argument. Include
+//    this argument only when you want to replace a previously imported certificate.
+//
+//    * When you import a certificate by using the CLI, you must specify the
+//    certificate, the certificate chain, and the private key by their file
+//    names preceded by file://. For example, you can specify a certificate
+//    saved in the C:\temp folder as file://C:\temp\certificate_to_import.pem.
+//    If you are making an HTTP or HTTPS Query request, include these arguments
+//    as BLOBs.
+//
+//    * When you import a certificate by using an SDK, you must specify the
+//    certificate, the certificate chain, and the private key files in the manner
+//    required by the programming language you're using.
 //
 // This operation returns the Amazon Resource Name (ARN) (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 // of the imported certificate.
@@ -481,17 +591,13 @@ func (c *ACM) ImportCertificateRequest(input *ImportCertificateInput) (req *requ
 //
 // Returned Error Codes:
 //   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The specified certificate cannot be found in the caller's account, or the
+//   The specified certificate cannot be found in the caller's account or the
 //   caller's account cannot be found.
 //
 //   * ErrCodeLimitExceededException "LimitExceededException"
-//   An ACM limit has been exceeded. For example, you may have input more domains
-//   than are allowed or you've requested too many certificates for your account.
-//   See the exception message returned by ACM to determine which limit you have
-//   violated. For more information about ACM limits, see the Limits (http://docs.aws.amazon.com/acm/latest/userguide/acm-limits.html)
-//   topic.
+//   An ACM limit has been exceeded.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/ImportCertificate
+// See also, https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/ImportCertificate
 func (c *ACM) ImportCertificate(input *ImportCertificateInput) (*ImportCertificateOutput, error) {
 	req, out := c.ImportCertificateRequest(input)
 	return out, req.Send()
@@ -517,19 +623,18 @@ const opListCertificates = "ListCertificates"
 
 // ListCertificatesRequest generates a "aws/request.Request" representing the
 // client's request for the ListCertificates operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See ListCertificates for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListCertificates method directly
-// instead.
+// See ListCertificates for more information on using the ListCertificates
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListCertificatesRequest method.
 //    req, resp := client.ListCertificatesRequest(params)
@@ -539,7 +644,7 @@ const opListCertificates = "ListCertificates"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/ListCertificates
+// See also, https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/ListCertificates
 func (c *ACM) ListCertificatesRequest(input *ListCertificatesInput) (req *request.Request, output *ListCertificatesOutput) {
 	op := &request.Operation{
 		Name:       opListCertificates,
@@ -564,9 +669,9 @@ func (c *ACM) ListCertificatesRequest(input *ListCertificatesInput) (req *reques
 
 // ListCertificates API operation for AWS Certificate Manager.
 //
-// Retrieves a list of ACM Certificates and the domain name for each. You can
-// optionally filter the list to return only the certificates that match the
-// specified status.
+// Retrieves a list of certificate ARNs and domain names. You can request that
+// only certificates that match a specific status be listed. You can also filter
+// by specific attributes of the certificate.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -574,7 +679,7 @@ func (c *ACM) ListCertificatesRequest(input *ListCertificatesInput) (req *reques
 //
 // See the AWS API reference guide for AWS Certificate Manager's
 // API operation ListCertificates for usage and error information.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/ListCertificates
+// See also, https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/ListCertificates
 func (c *ACM) ListCertificates(input *ListCertificatesInput) (*ListCertificatesOutput, error) {
 	req, out := c.ListCertificatesRequest(input)
 	return out, req.Send()
@@ -650,19 +755,18 @@ const opListTagsForCertificate = "ListTagsForCertificate"
 
 // ListTagsForCertificateRequest generates a "aws/request.Request" representing the
 // client's request for the ListTagsForCertificate operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See ListTagsForCertificate for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListTagsForCertificate method directly
-// instead.
+// See ListTagsForCertificate for more information on using the ListTagsForCertificate
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListTagsForCertificateRequest method.
 //    req, resp := client.ListTagsForCertificateRequest(params)
@@ -672,7 +776,7 @@ const opListTagsForCertificate = "ListTagsForCertificate"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/ListTagsForCertificate
+// See also, https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/ListTagsForCertificate
 func (c *ACM) ListTagsForCertificateRequest(input *ListTagsForCertificateInput) (req *request.Request, output *ListTagsForCertificateOutput) {
 	op := &request.Operation{
 		Name:       opListTagsForCertificate,
@@ -691,9 +795,9 @@ func (c *ACM) ListTagsForCertificateRequest(input *ListTagsForCertificateInput) 
 
 // ListTagsForCertificate API operation for AWS Certificate Manager.
 //
-// Lists the tags that have been applied to the ACM Certificate. Use the certificate's
+// Lists the tags that have been applied to the ACM certificate. Use the certificate's
 // Amazon Resource Name (ARN) to specify the certificate. To add a tag to an
-// ACM Certificate, use the AddTagsToCertificate action. To delete a tag, use
+// ACM certificate, use the AddTagsToCertificate action. To delete a tag, use
 // the RemoveTagsFromCertificate action.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -705,13 +809,13 @@ func (c *ACM) ListTagsForCertificateRequest(input *ListTagsForCertificateInput) 
 //
 // Returned Error Codes:
 //   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The specified certificate cannot be found in the caller's account, or the
+//   The specified certificate cannot be found in the caller's account or the
 //   caller's account cannot be found.
 //
 //   * ErrCodeInvalidArnException "InvalidArnException"
 //   The requested Amazon Resource Name (ARN) does not refer to an existing resource.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/ListTagsForCertificate
+// See also, https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/ListTagsForCertificate
 func (c *ACM) ListTagsForCertificate(input *ListTagsForCertificateInput) (*ListTagsForCertificateOutput, error) {
 	req, out := c.ListTagsForCertificateRequest(input)
 	return out, req.Send()
@@ -737,19 +841,18 @@ const opRemoveTagsFromCertificate = "RemoveTagsFromCertificate"
 
 // RemoveTagsFromCertificateRequest generates a "aws/request.Request" representing the
 // client's request for the RemoveTagsFromCertificate operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See RemoveTagsFromCertificate for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the RemoveTagsFromCertificate method directly
-// instead.
+// See RemoveTagsFromCertificate for more information on using the RemoveTagsFromCertificate
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the RemoveTagsFromCertificateRequest method.
 //    req, resp := client.RemoveTagsFromCertificateRequest(params)
@@ -759,7 +862,7 @@ const opRemoveTagsFromCertificate = "RemoveTagsFromCertificate"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/RemoveTagsFromCertificate
+// See also, https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/RemoveTagsFromCertificate
 func (c *ACM) RemoveTagsFromCertificateRequest(input *RemoveTagsFromCertificateInput) (req *request.Request, output *RemoveTagsFromCertificateOutput) {
 	op := &request.Operation{
 		Name:       opRemoveTagsFromCertificate,
@@ -773,20 +876,19 @@ func (c *ACM) RemoveTagsFromCertificateRequest(input *RemoveTagsFromCertificateI
 
 	output = &RemoveTagsFromCertificateOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
 // RemoveTagsFromCertificate API operation for AWS Certificate Manager.
 //
-// Remove one or more tags from an ACM Certificate. A tag consists of a key-value
+// Remove one or more tags from an ACM certificate. A tag consists of a key-value
 // pair. If you do not specify the value portion of the tag when calling this
 // function, the tag will be removed regardless of value. If you specify a value,
 // the tag is removed only if it is associated with the specified value.
 //
 // To add tags to a certificate, use the AddTagsToCertificate action. To view
-// all of the tags that have been applied to a specific ACM Certificate, use
+// all of the tags that have been applied to a specific ACM certificate, use
 // the ListTagsForCertificate action.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -798,7 +900,7 @@ func (c *ACM) RemoveTagsFromCertificateRequest(input *RemoveTagsFromCertificateI
 //
 // Returned Error Codes:
 //   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The specified certificate cannot be found in the caller's account, or the
+//   The specified certificate cannot be found in the caller's account or the
 //   caller's account cannot be found.
 //
 //   * ErrCodeInvalidArnException "InvalidArnException"
@@ -808,7 +910,7 @@ func (c *ACM) RemoveTagsFromCertificateRequest(input *RemoveTagsFromCertificateI
 //   One or both of the values that make up the key-value pair is not valid. For
 //   example, you cannot specify a tag value that begins with aws:.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/RemoveTagsFromCertificate
+// See also, https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/RemoveTagsFromCertificate
 func (c *ACM) RemoveTagsFromCertificate(input *RemoveTagsFromCertificateInput) (*RemoveTagsFromCertificateOutput, error) {
 	req, out := c.RemoveTagsFromCertificateRequest(input)
 	return out, req.Send()
@@ -834,19 +936,18 @@ const opRequestCertificate = "RequestCertificate"
 
 // RequestCertificateRequest generates a "aws/request.Request" representing the
 // client's request for the RequestCertificate operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See RequestCertificate for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the RequestCertificate method directly
-// instead.
+// See RequestCertificate for more information on using the RequestCertificate
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the RequestCertificateRequest method.
 //    req, resp := client.RequestCertificateRequest(params)
@@ -856,7 +957,7 @@ const opRequestCertificate = "RequestCertificate"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/RequestCertificate
+// See also, https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/RequestCertificate
 func (c *ACM) RequestCertificateRequest(input *RequestCertificateInput) (req *request.Request, output *RequestCertificateOutput) {
 	op := &request.Operation{
 		Name:       opRequestCertificate,
@@ -875,13 +976,18 @@ func (c *ACM) RequestCertificateRequest(input *RequestCertificateInput) (req *re
 
 // RequestCertificate API operation for AWS Certificate Manager.
 //
-// Requests an ACM Certificate for use with other AWS services. To request an
-// ACM Certificate, you must specify the fully qualified domain name (FQDN)
-// for your site. You can also specify additional FQDNs if users can reach your
-// site by using other names. For each domain name you specify, email is sent
-// to the domain owner to request approval to issue the certificate. After receiving
-// approval from the domain owner, the ACM Certificate is issued. For more information,
-// see the AWS Certificate Manager User Guide (http://docs.aws.amazon.com/acm/latest/userguide/).
+// Requests an ACM certificate for use with other AWS services. To request an
+// ACM certificate, you must specify a fully qualified domain name (FQDN) in
+// the DomainName parameter. You can also specify additional FQDNs in the SubjectAlternativeNames
+// parameter.
+//
+// If you are requesting a private certificate, domain validation is not required.
+// If you are requesting a public certificate, each domain name that you specify
+// must be validated to verify that you own or control the domain. You can use
+// DNS validation (http://docs.aws.amazon.com/acm/latest/userguide/gs-acm-validate-dns.html)
+// or email validation (http://docs.aws.amazon.com/acm/latest/userguide/gs-acm-validate-email.html).
+// We recommend that you use DNS validation. ACM issues public certificates
+// after receiving approval from the domain owner.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -892,16 +998,15 @@ func (c *ACM) RequestCertificateRequest(input *RequestCertificateInput) (req *re
 //
 // Returned Error Codes:
 //   * ErrCodeLimitExceededException "LimitExceededException"
-//   An ACM limit has been exceeded. For example, you may have input more domains
-//   than are allowed or you've requested too many certificates for your account.
-//   See the exception message returned by ACM to determine which limit you have
-//   violated. For more information about ACM limits, see the Limits (http://docs.aws.amazon.com/acm/latest/userguide/acm-limits.html)
-//   topic.
+//   An ACM limit has been exceeded.
 //
 //   * ErrCodeInvalidDomainValidationOptionsException "InvalidDomainValidationOptionsException"
 //   One or more values in the DomainValidationOption structure is incorrect.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/RequestCertificate
+//   * ErrCodeInvalidArnException "InvalidArnException"
+//   The requested Amazon Resource Name (ARN) does not refer to an existing resource.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/RequestCertificate
 func (c *ACM) RequestCertificate(input *RequestCertificateInput) (*RequestCertificateOutput, error) {
 	req, out := c.RequestCertificateRequest(input)
 	return out, req.Send()
@@ -927,19 +1032,18 @@ const opResendValidationEmail = "ResendValidationEmail"
 
 // ResendValidationEmailRequest generates a "aws/request.Request" representing the
 // client's request for the ResendValidationEmail operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See ResendValidationEmail for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ResendValidationEmail method directly
-// instead.
+// See ResendValidationEmail for more information on using the ResendValidationEmail
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ResendValidationEmailRequest method.
 //    req, resp := client.ResendValidationEmailRequest(params)
@@ -949,7 +1053,7 @@ const opResendValidationEmail = "ResendValidationEmail"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/ResendValidationEmail
+// See also, https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/ResendValidationEmail
 func (c *ACM) ResendValidationEmailRequest(input *ResendValidationEmailInput) (req *request.Request, output *ResendValidationEmailOutput) {
 	op := &request.Operation{
 		Name:       opResendValidationEmail,
@@ -963,22 +1067,23 @@ func (c *ACM) ResendValidationEmailRequest(input *ResendValidationEmailInput) (r
 
 	output = &ResendValidationEmailOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
 // ResendValidationEmail API operation for AWS Certificate Manager.
 //
 // Resends the email that requests domain ownership validation. The domain owner
-// or an authorized representative must approve the ACM Certificate before it
+// or an authorized representative must approve the ACM certificate before it
 // can be issued. The certificate can be approved by clicking a link in the
 // mail to navigate to the Amazon certificate approval website and then clicking
 // I Approve. However, the validation email can be blocked by spam filters.
 // Therefore, if you do not receive the original mail, you can request that
-// the mail be resent within 72 hours of requesting the ACM Certificate. If
+// the mail be resent within 72 hours of requesting the ACM certificate. If
 // more than 72 hours have elapsed since your original request or since your
 // last attempt to resend validation mail, you must request a new certificate.
+// For more information about setting up your contact email addresses, see Configure
+// Email for your Domain (http://docs.aws.amazon.com/acm/latest/userguide/setup-email.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -989,14 +1094,11 @@ func (c *ACM) ResendValidationEmailRequest(input *ResendValidationEmailInput) (r
 //
 // Returned Error Codes:
 //   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   The specified certificate cannot be found in the caller's account, or the
+//   The specified certificate cannot be found in the caller's account or the
 //   caller's account cannot be found.
 //
 //   * ErrCodeInvalidStateException "InvalidStateException"
-//   Processing has reached an invalid state. For example, this exception can
-//   occur if the specified domain is not using email validation, or the current
-//   certificate status does not permit the requested operation. See the exception
-//   message returned by ACM to determine which state is not valid.
+//   Processing has reached an invalid state.
 //
 //   * ErrCodeInvalidArnException "InvalidArnException"
 //   The requested Amazon Resource Name (ARN) does not refer to an existing resource.
@@ -1004,7 +1106,7 @@ func (c *ACM) ResendValidationEmailRequest(input *ResendValidationEmailInput) (r
 //   * ErrCodeInvalidDomainValidationOptionsException "InvalidDomainValidationOptionsException"
 //   One or more values in the DomainValidationOption structure is incorrect.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/ResendValidationEmail
+// See also, https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/ResendValidationEmail
 func (c *ACM) ResendValidationEmail(input *ResendValidationEmailInput) (*ResendValidationEmailOutput, error) {
 	req, out := c.ResendValidationEmailRequest(input)
 	return out, req.Send()
@@ -1026,11 +1128,103 @@ func (c *ACM) ResendValidationEmailWithContext(ctx aws.Context, input *ResendVal
 	return out, req.Send()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/AddTagsToCertificateRequest
+const opUpdateCertificateOptions = "UpdateCertificateOptions"
+
+// UpdateCertificateOptionsRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateCertificateOptions operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UpdateCertificateOptions for more information on using the UpdateCertificateOptions
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the UpdateCertificateOptionsRequest method.
+//    req, resp := client.UpdateCertificateOptionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/UpdateCertificateOptions
+func (c *ACM) UpdateCertificateOptionsRequest(input *UpdateCertificateOptionsInput) (req *request.Request, output *UpdateCertificateOptionsOutput) {
+	op := &request.Operation{
+		Name:       opUpdateCertificateOptions,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &UpdateCertificateOptionsInput{}
+	}
+
+	output = &UpdateCertificateOptionsOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// UpdateCertificateOptions API operation for AWS Certificate Manager.
+//
+// Updates a certificate. Currently, you can use this function to specify whether
+// to opt in to or out of recording your certificate in a certificate transparency
+// log. For more information, see  Opting Out of Certificate Transparency Logging
+// (http://docs.aws.amazon.com/acm/latest/userguide/acm-bestpractices.html#best-practices-transparency).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Certificate Manager's
+// API operation UpdateCertificateOptions for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   The specified certificate cannot be found in the caller's account or the
+//   caller's account cannot be found.
+//
+//   * ErrCodeLimitExceededException "LimitExceededException"
+//   An ACM limit has been exceeded.
+//
+//   * ErrCodeInvalidStateException "InvalidStateException"
+//   Processing has reached an invalid state.
+//
+//   * ErrCodeInvalidArnException "InvalidArnException"
+//   The requested Amazon Resource Name (ARN) does not refer to an existing resource.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/UpdateCertificateOptions
+func (c *ACM) UpdateCertificateOptions(input *UpdateCertificateOptionsInput) (*UpdateCertificateOptionsOutput, error) {
+	req, out := c.UpdateCertificateOptionsRequest(input)
+	return out, req.Send()
+}
+
+// UpdateCertificateOptionsWithContext is the same as UpdateCertificateOptions with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UpdateCertificateOptions for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ACM) UpdateCertificateOptionsWithContext(ctx aws.Context, input *UpdateCertificateOptionsInput, opts ...request.Option) (*UpdateCertificateOptionsOutput, error) {
+	req, out := c.UpdateCertificateOptionsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 type AddTagsToCertificateInput struct {
 	_ struct{} `type:"structure"`
 
-	// String that contains the ARN of the ACM Certificate to which the tag is to
+	// String that contains the ARN of the ACM certificate to which the tag is to
 	// be applied. This must be of the form:
 	//
 	// arn:aws:acm:region:123456789012:certificate/12345678-1234-1234-1234-123456789012
@@ -1101,7 +1295,6 @@ func (s *AddTagsToCertificateInput) SetTags(v []*Tag) *AddTagsToCertificateInput
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/AddTagsToCertificateOutput
 type AddTagsToCertificateOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1118,7 +1311,6 @@ func (s AddTagsToCertificateOutput) GoString() string {
 
 // Contains metadata about an ACM certificate. This structure is returned in
 // the response to a DescribeCertificate request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/CertificateDetail
 type CertificateDetail struct {
 	_ struct{} `type:"structure"`
 
@@ -1127,9 +1319,15 @@ type CertificateDetail struct {
 	// in the AWS General Reference.
 	CertificateArn *string `min:"20" type:"string"`
 
+	// The Amazon Resource Name (ARN) of the ACM PCA private certificate authority
+	// (CA) that issued the certificate. This has the following format:
+	//
+	// arn:aws:acm-pca:region:account:certificate-authority/12345678-1234-1234-1234-123456789012
+	CertificateAuthorityArn *string `min:"20" type:"string"`
+
 	// The time at which the certificate was requested. This value exists only when
 	// the certificate type is AMAZON_ISSUED.
-	CreatedAt *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreatedAt *time.Time `type:"timestamp"`
 
 	// The fully qualified domain name for the certificate, such as www.example.com
 	// or example.com.
@@ -1140,6 +1338,11 @@ type CertificateDetail struct {
 	// when the certificate type is AMAZON_ISSUED.
 	DomainValidationOptions []*DomainValidation `min:"1" type:"list"`
 
+	// Contains a list of Extended Key Usage X.509 v3 extension objects. Each object
+	// specifies a purpose for which the certificate public key can be used and
+	// consists of a name and an object identifier (OID).
+	ExtendedKeyUsages []*ExtendedKeyUsage `type:"list"`
+
 	// The reason the certificate request failed. This value exists only when the
 	// certificate status is FAILED. For more information, see Certificate Request
 	// Failed (http://docs.aws.amazon.com/acm/latest/userguide/troubleshooting.html#troubleshooting-failed)
@@ -1148,7 +1351,7 @@ type CertificateDetail struct {
 
 	// The date and time at which the certificate was imported. This value exists
 	// only when the certificate type is IMPORTED.
-	ImportedAt *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ImportedAt *time.Time `type:"timestamp"`
 
 	// A list of ARNs for the AWS resources that are using the certificate. A certificate
 	// can be used by multiple AWS resources.
@@ -1156,20 +1359,35 @@ type CertificateDetail struct {
 
 	// The time at which the certificate was issued. This value exists only when
 	// the certificate type is AMAZON_ISSUED.
-	IssuedAt *time.Time `type:"timestamp" timestampFormat:"unix"`
+	IssuedAt *time.Time `type:"timestamp"`
 
 	// The name of the certificate authority that issued and signed the certificate.
 	Issuer *string `type:"string"`
 
-	// The algorithm that was used to generate the key pair (the public and private
-	// key).
+	// The algorithm that was used to generate the public-private key pair.
 	KeyAlgorithm *string `type:"string" enum:"KeyAlgorithm"`
 
+	// A list of Key Usage X.509 v3 extension objects. Each object is a string value
+	// that identifies the purpose of the public key contained in the certificate.
+	// Possible extension values include DIGITAL_SIGNATURE, KEY_ENCHIPHERMENT, NON_REPUDIATION,
+	// and more.
+	KeyUsages []*KeyUsage `type:"list"`
+
 	// The time after which the certificate is not valid.
-	NotAfter *time.Time `type:"timestamp" timestampFormat:"unix"`
+	NotAfter *time.Time `type:"timestamp"`
 
 	// The time before which the certificate is not valid.
-	NotBefore *time.Time `type:"timestamp" timestampFormat:"unix"`
+	NotBefore *time.Time `type:"timestamp"`
+
+	// Value that specifies whether to add the certificate to a transparency log.
+	// Certificate transparency makes it possible to detect SSL certificates that
+	// have been mistakenly or maliciously issued. A browser might respond to certificate
+	// that has not been logged by showing an error message. The logs are cryptographically
+	// secure.
+	Options *CertificateOptions `type:"structure"`
+
+	// Specifies whether the certificate is eligible for renewal.
+	RenewalEligibility *string `type:"string" enum:"RenewalEligibility"`
 
 	// Contains information about the status of ACM's managed renewal (http://docs.aws.amazon.com/acm/latest/userguide/acm-renewal.html)
 	// for the certificate. This field exists only when the certificate type is
@@ -1182,7 +1400,7 @@ type CertificateDetail struct {
 
 	// The time at which the certificate was revoked. This value exists only when
 	// the certificate status is REVOKED.
-	RevokedAt *time.Time `type:"timestamp" timestampFormat:"unix"`
+	RevokedAt *time.Time `type:"timestamp"`
 
 	// The serial number of the certificate.
 	Serial *string `type:"string"`
@@ -1230,6 +1448,12 @@ func (s *CertificateDetail) SetCertificateArn(v string) *CertificateDetail {
 	return s
 }
 
+// SetCertificateAuthorityArn sets the CertificateAuthorityArn field's value.
+func (s *CertificateDetail) SetCertificateAuthorityArn(v string) *CertificateDetail {
+	s.CertificateAuthorityArn = &v
+	return s
+}
+
 // SetCreatedAt sets the CreatedAt field's value.
 func (s *CertificateDetail) SetCreatedAt(v time.Time) *CertificateDetail {
 	s.CreatedAt = &v
@@ -1245,6 +1469,12 @@ func (s *CertificateDetail) SetDomainName(v string) *CertificateDetail {
 // SetDomainValidationOptions sets the DomainValidationOptions field's value.
 func (s *CertificateDetail) SetDomainValidationOptions(v []*DomainValidation) *CertificateDetail {
 	s.DomainValidationOptions = v
+	return s
+}
+
+// SetExtendedKeyUsages sets the ExtendedKeyUsages field's value.
+func (s *CertificateDetail) SetExtendedKeyUsages(v []*ExtendedKeyUsage) *CertificateDetail {
+	s.ExtendedKeyUsages = v
 	return s
 }
 
@@ -1284,6 +1514,12 @@ func (s *CertificateDetail) SetKeyAlgorithm(v string) *CertificateDetail {
 	return s
 }
 
+// SetKeyUsages sets the KeyUsages field's value.
+func (s *CertificateDetail) SetKeyUsages(v []*KeyUsage) *CertificateDetail {
+	s.KeyUsages = v
+	return s
+}
+
 // SetNotAfter sets the NotAfter field's value.
 func (s *CertificateDetail) SetNotAfter(v time.Time) *CertificateDetail {
 	s.NotAfter = &v
@@ -1293,6 +1529,18 @@ func (s *CertificateDetail) SetNotAfter(v time.Time) *CertificateDetail {
 // SetNotBefore sets the NotBefore field's value.
 func (s *CertificateDetail) SetNotBefore(v time.Time) *CertificateDetail {
 	s.NotBefore = &v
+	return s
+}
+
+// SetOptions sets the Options field's value.
+func (s *CertificateDetail) SetOptions(v *CertificateOptions) *CertificateDetail {
+	s.Options = v
+	return s
+}
+
+// SetRenewalEligibility sets the RenewalEligibility field's value.
+func (s *CertificateDetail) SetRenewalEligibility(v string) *CertificateDetail {
+	s.RenewalEligibility = &v
 	return s
 }
 
@@ -1350,8 +1598,38 @@ func (s *CertificateDetail) SetType(v string) *CertificateDetail {
 	return s
 }
 
+// Structure that contains options for your certificate. Currently, you can
+// use this only to specify whether to opt in to or out of certificate transparency
+// logging. Some browsers require that public certificates issued for your domain
+// be recorded in a log. Certificates that are not logged typically generate
+// a browser error. Transparency makes it possible for you to detect SSL/TLS
+// certificates that have been mistakenly or maliciously issued for your domain.
+// For general information, see Certificate Transparency Logging (http://docs.aws.amazon.com/acm/latest/userguide/acm-concepts.html#concept-transparency).
+type CertificateOptions struct {
+	_ struct{} `type:"structure"`
+
+	// You can opt out of certificate transparency logging by specifying the DISABLED
+	// option. Opt in by specifying ENABLED.
+	CertificateTransparencyLoggingPreference *string `type:"string" enum:"CertificateTransparencyLoggingPreference"`
+}
+
+// String returns the string representation
+func (s CertificateOptions) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CertificateOptions) GoString() string {
+	return s.String()
+}
+
+// SetCertificateTransparencyLoggingPreference sets the CertificateTransparencyLoggingPreference field's value.
+func (s *CertificateOptions) SetCertificateTransparencyLoggingPreference(v string) *CertificateOptions {
+	s.CertificateTransparencyLoggingPreference = &v
+	return s
+}
+
 // This structure is returned in the response object of ListCertificates action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/CertificateSummary
 type CertificateSummary struct {
 	_ struct{} `type:"structure"`
 
@@ -1390,11 +1668,10 @@ func (s *CertificateSummary) SetDomainName(v string) *CertificateSummary {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/DeleteCertificateRequest
 type DeleteCertificateInput struct {
 	_ struct{} `type:"structure"`
 
-	// String that contains the ARN of the ACM Certificate to be deleted. This must
+	// String that contains the ARN of the ACM certificate to be deleted. This must
 	// be of the form:
 	//
 	// arn:aws:acm:region:123456789012:certificate/12345678-1234-1234-1234-123456789012
@@ -1438,7 +1715,6 @@ func (s *DeleteCertificateInput) SetCertificateArn(v string) *DeleteCertificateI
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/DeleteCertificateOutput
 type DeleteCertificateOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1453,11 +1729,10 @@ func (s DeleteCertificateOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/DescribeCertificateRequest
 type DescribeCertificateInput struct {
 	_ struct{} `type:"structure"`
 
-	// The Amazon Resource Name (ARN) of the ACM Certificate. The ARN must have
+	// The Amazon Resource Name (ARN) of the ACM certificate. The ARN must have
 	// the following form:
 	//
 	// arn:aws:acm:region:123456789012:certificate/12345678-1234-1234-1234-123456789012
@@ -1501,7 +1776,6 @@ func (s *DescribeCertificateInput) SetCertificateArn(v string) *DescribeCertific
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/DescribeCertificateResponse
 type DescribeCertificateOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1526,7 +1800,6 @@ func (s *DescribeCertificateOutput) SetCertificate(v *CertificateDetail) *Descri
 }
 
 // Contains information about the validation of each domain name in the certificate.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/DomainValidation
 type DomainValidation struct {
 	_ struct{} `type:"structure"`
 
@@ -1536,13 +1809,27 @@ type DomainValidation struct {
 	// DomainName is a required field
 	DomainName *string `min:"1" type:"string" required:"true"`
 
+	// Contains the CNAME record that you add to your DNS database for domain validation.
+	// For more information, see Use DNS to Validate Domain Ownership (http://docs.aws.amazon.com/acm/latest/userguide/gs-acm-validate-dns.html).
+	ResourceRecord *ResourceRecord `type:"structure"`
+
 	// The domain name that ACM used to send domain validation emails.
 	ValidationDomain *string `min:"1" type:"string"`
 
 	// A list of email addresses that ACM used to send domain validation emails.
 	ValidationEmails []*string `type:"list"`
 
-	// The validation status of the domain name.
+	// Specifies the domain validation method.
+	ValidationMethod *string `type:"string" enum:"ValidationMethod"`
+
+	// The validation status of the domain name. This can be one of the following
+	// values:
+	//
+	//    * PENDING_VALIDATION
+	//
+	//    * SUCCESS
+	//
+	//    * FAILED
 	ValidationStatus *string `type:"string" enum:"DomainStatus"`
 }
 
@@ -1562,6 +1849,12 @@ func (s *DomainValidation) SetDomainName(v string) *DomainValidation {
 	return s
 }
 
+// SetResourceRecord sets the ResourceRecord field's value.
+func (s *DomainValidation) SetResourceRecord(v *ResourceRecord) *DomainValidation {
+	s.ResourceRecord = v
+	return s
+}
+
 // SetValidationDomain sets the ValidationDomain field's value.
 func (s *DomainValidation) SetValidationDomain(v string) *DomainValidation {
 	s.ValidationDomain = &v
@@ -1574,6 +1867,12 @@ func (s *DomainValidation) SetValidationEmails(v []*string) *DomainValidation {
 	return s
 }
 
+// SetValidationMethod sets the ValidationMethod field's value.
+func (s *DomainValidation) SetValidationMethod(v string) *DomainValidation {
+	s.ValidationMethod = &v
+	return s
+}
+
 // SetValidationStatus sets the ValidationStatus field's value.
 func (s *DomainValidation) SetValidationStatus(v string) *DomainValidation {
 	s.ValidationStatus = &v
@@ -1581,8 +1880,7 @@ func (s *DomainValidation) SetValidationStatus(v string) *DomainValidation {
 }
 
 // Contains information about the domain names that you want ACM to use to send
-// you emails to validate your ownership of the domain.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/DomainValidationOption
+// you emails that enable you to validate domain ownership.
 type DomainValidationOption struct {
 	_ struct{} `type:"structure"`
 
@@ -1656,7 +1954,213 @@ func (s *DomainValidationOption) SetValidationDomain(v string) *DomainValidation
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/GetCertificateRequest
+type ExportCertificateInput struct {
+	_ struct{} `type:"structure"`
+
+	// An Amazon Resource Name (ARN) of the issued certificate. This must be of
+	// the form:
+	//
+	// arn:aws:acm:region:account:certificate/12345678-1234-1234-1234-123456789012
+	//
+	// CertificateArn is a required field
+	CertificateArn *string `min:"20" type:"string" required:"true"`
+
+	// Passphrase to associate with the encrypted exported private key. If you want
+	// to later decrypt the private key, you must have the passphrase. You can use
+	// the following OpenSSL command to decrypt a private key:
+	//
+	// openssl rsa -in encrypted_key.pem -out decrypted_key.pem
+	//
+	// Passphrase is automatically base64 encoded/decoded by the SDK.
+	//
+	// Passphrase is a required field
+	Passphrase []byte `min:"4" type:"blob" required:"true" sensitive:"true"`
+}
+
+// String returns the string representation
+func (s ExportCertificateInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ExportCertificateInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ExportCertificateInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ExportCertificateInput"}
+	if s.CertificateArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("CertificateArn"))
+	}
+	if s.CertificateArn != nil && len(*s.CertificateArn) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("CertificateArn", 20))
+	}
+	if s.Passphrase == nil {
+		invalidParams.Add(request.NewErrParamRequired("Passphrase"))
+	}
+	if s.Passphrase != nil && len(s.Passphrase) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("Passphrase", 4))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetCertificateArn sets the CertificateArn field's value.
+func (s *ExportCertificateInput) SetCertificateArn(v string) *ExportCertificateInput {
+	s.CertificateArn = &v
+	return s
+}
+
+// SetPassphrase sets the Passphrase field's value.
+func (s *ExportCertificateInput) SetPassphrase(v []byte) *ExportCertificateInput {
+	s.Passphrase = v
+	return s
+}
+
+type ExportCertificateOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The base64 PEM-encoded certificate.
+	Certificate *string `min:"1" type:"string"`
+
+	// The base64 PEM-encoded certificate chain. This does not include the certificate
+	// that you are exporting.
+	CertificateChain *string `min:"1" type:"string"`
+
+	// The PEM-encoded private key associated with the public key in the certificate.
+	PrivateKey *string `min:"1" type:"string" sensitive:"true"`
+}
+
+// String returns the string representation
+func (s ExportCertificateOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ExportCertificateOutput) GoString() string {
+	return s.String()
+}
+
+// SetCertificate sets the Certificate field's value.
+func (s *ExportCertificateOutput) SetCertificate(v string) *ExportCertificateOutput {
+	s.Certificate = &v
+	return s
+}
+
+// SetCertificateChain sets the CertificateChain field's value.
+func (s *ExportCertificateOutput) SetCertificateChain(v string) *ExportCertificateOutput {
+	s.CertificateChain = &v
+	return s
+}
+
+// SetPrivateKey sets the PrivateKey field's value.
+func (s *ExportCertificateOutput) SetPrivateKey(v string) *ExportCertificateOutput {
+	s.PrivateKey = &v
+	return s
+}
+
+// The Extended Key Usage X.509 v3 extension defines one or more purposes for
+// which the public key can be used. This is in addition to or in place of the
+// basic purposes specified by the Key Usage extension.
+type ExtendedKeyUsage struct {
+	_ struct{} `type:"structure"`
+
+	// The name of an Extended Key Usage value.
+	Name *string `type:"string" enum:"ExtendedKeyUsageName"`
+
+	// An object identifier (OID) for the extension value. OIDs are strings of numbers
+	// separated by periods. The following OIDs are defined in RFC 3280 and RFC
+	// 5280.
+	//
+	//    * 1.3.6.1.5.5.7.3.1 (TLS_WEB_SERVER_AUTHENTICATION)
+	//
+	//    * 1.3.6.1.5.5.7.3.2 (TLS_WEB_CLIENT_AUTHENTICATION)
+	//
+	//    * 1.3.6.1.5.5.7.3.3 (CODE_SIGNING)
+	//
+	//    * 1.3.6.1.5.5.7.3.4 (EMAIL_PROTECTION)
+	//
+	//    * 1.3.6.1.5.5.7.3.8 (TIME_STAMPING)
+	//
+	//    * 1.3.6.1.5.5.7.3.9 (OCSP_SIGNING)
+	//
+	//    * 1.3.6.1.5.5.7.3.5 (IPSEC_END_SYSTEM)
+	//
+	//    * 1.3.6.1.5.5.7.3.6 (IPSEC_TUNNEL)
+	//
+	//    * 1.3.6.1.5.5.7.3.7 (IPSEC_USER)
+	OID *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ExtendedKeyUsage) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ExtendedKeyUsage) GoString() string {
+	return s.String()
+}
+
+// SetName sets the Name field's value.
+func (s *ExtendedKeyUsage) SetName(v string) *ExtendedKeyUsage {
+	s.Name = &v
+	return s
+}
+
+// SetOID sets the OID field's value.
+func (s *ExtendedKeyUsage) SetOID(v string) *ExtendedKeyUsage {
+	s.OID = &v
+	return s
+}
+
+// This structure can be used in the ListCertificates action to filter the output
+// of the certificate list.
+type Filters struct {
+	_ struct{} `type:"structure"`
+
+	// Specify one or more ExtendedKeyUsage extension values.
+	ExtendedKeyUsage []*string `locationName:"extendedKeyUsage" type:"list"`
+
+	// Specify one or more algorithms that can be used to generate key pairs.
+	KeyTypes []*string `locationName:"keyTypes" type:"list"`
+
+	// Specify one or more KeyUsage extension values.
+	KeyUsage []*string `locationName:"keyUsage" type:"list"`
+}
+
+// String returns the string representation
+func (s Filters) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Filters) GoString() string {
+	return s.String()
+}
+
+// SetExtendedKeyUsage sets the ExtendedKeyUsage field's value.
+func (s *Filters) SetExtendedKeyUsage(v []*string) *Filters {
+	s.ExtendedKeyUsage = v
+	return s
+}
+
+// SetKeyTypes sets the KeyTypes field's value.
+func (s *Filters) SetKeyTypes(v []*string) *Filters {
+	s.KeyTypes = v
+	return s
+}
+
+// SetKeyUsage sets the KeyUsage field's value.
+func (s *Filters) SetKeyUsage(v []*string) *Filters {
+	s.KeyUsage = v
+	return s
+}
+
 type GetCertificateInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1703,11 +2207,10 @@ func (s *GetCertificateInput) SetCertificateArn(v string) *GetCertificateInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/GetCertificateResponse
 type GetCertificateOutput struct {
 	_ struct{} `type:"structure"`
 
-	// String that contains the ACM Certificate represented by the ARN specified
+	// String that contains the ACM certificate represented by the ARN specified
 	// at input.
 	Certificate *string `min:"1" type:"string"`
 
@@ -1738,19 +2241,10 @@ func (s *GetCertificateOutput) SetCertificateChain(v string) *GetCertificateOutp
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/ImportCertificateRequest
 type ImportCertificateInput struct {
 	_ struct{} `type:"structure"`
 
-	// The certificate to import. It must meet the following requirements:
-	//
-	//    * Must be PEM-encoded.
-	//
-	//    * Must contain a 1024-bit or 2048-bit RSA public key.
-	//
-	//    * Must be valid at the time of import. You cannot import a certificate
-	//    before its validity period begins (the certificate's NotBefore date) or
-	//    after it expires (the certificate's NotAfter date).
+	// The certificate to import.
 	//
 	// Certificate is automatically base64 encoded/decoded by the SDK.
 	//
@@ -1762,23 +2256,17 @@ type ImportCertificateInput struct {
 	// this field.
 	CertificateArn *string `min:"20" type:"string"`
 
-	// The certificate chain. It must be PEM-encoded.
+	// The PEM encoded certificate chain.
 	//
 	// CertificateChain is automatically base64 encoded/decoded by the SDK.
 	CertificateChain []byte `min:"1" type:"blob"`
 
-	// The private key that matches the public key in the certificate. It must meet
-	// the following requirements:
-	//
-	//    * Must be PEM-encoded.
-	//
-	//    * Must be unencrypted. You cannot import a private key that is protected
-	//    by a password or passphrase.
+	// The private key that matches the public key in the certificate.
 	//
 	// PrivateKey is automatically base64 encoded/decoded by the SDK.
 	//
 	// PrivateKey is a required field
-	PrivateKey []byte `min:"1" type:"blob" required:"true"`
+	PrivateKey []byte `min:"1" type:"blob" required:"true" sensitive:"true"`
 }
 
 // String returns the string representation
@@ -1843,7 +2331,6 @@ func (s *ImportCertificateInput) SetPrivateKey(v []byte) *ImportCertificateInput
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/ImportCertificateResponse
 type ImportCertificateOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1868,12 +2355,39 @@ func (s *ImportCertificateOutput) SetCertificateArn(v string) *ImportCertificate
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/ListCertificatesRequest
+// The Key Usage X.509 v3 extension defines the purpose of the public key contained
+// in the certificate.
+type KeyUsage struct {
+	_ struct{} `type:"structure"`
+
+	// A string value that contains a Key Usage extension name.
+	Name *string `type:"string" enum:"KeyUsageName"`
+}
+
+// String returns the string representation
+func (s KeyUsage) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s KeyUsage) GoString() string {
+	return s.String()
+}
+
+// SetName sets the Name field's value.
+func (s *KeyUsage) SetName(v string) *KeyUsage {
+	s.Name = &v
+	return s
+}
+
 type ListCertificatesInput struct {
 	_ struct{} `type:"structure"`
 
-	// The status or statuses on which to filter the list of ACM Certificates.
+	// Filter the certificate list by status value.
 	CertificateStatuses []*string `type:"list"`
+
+	// Filter the certificate list. For more information, see the Filters structure.
+	Includes *Filters `type:"structure"`
 
 	// Use this parameter when paginating results to specify the maximum number
 	// of items to return in the response. If additional items exist beyond the
@@ -1919,6 +2433,12 @@ func (s *ListCertificatesInput) SetCertificateStatuses(v []*string) *ListCertifi
 	return s
 }
 
+// SetIncludes sets the Includes field's value.
+func (s *ListCertificatesInput) SetIncludes(v *Filters) *ListCertificatesInput {
+	s.Includes = v
+	return s
+}
+
 // SetMaxItems sets the MaxItems field's value.
 func (s *ListCertificatesInput) SetMaxItems(v int64) *ListCertificatesInput {
 	s.MaxItems = &v
@@ -1931,11 +2451,10 @@ func (s *ListCertificatesInput) SetNextToken(v string) *ListCertificatesInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/ListCertificatesResponse
 type ListCertificatesOutput struct {
 	_ struct{} `type:"structure"`
 
-	// A list of ACM Certificates.
+	// A list of ACM certificates.
 	CertificateSummaryList []*CertificateSummary `type:"list"`
 
 	// When the list is truncated, this value is present and contains the value
@@ -1965,12 +2484,11 @@ func (s *ListCertificatesOutput) SetNextToken(v string) *ListCertificatesOutput 
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/ListTagsForCertificateRequest
 type ListTagsForCertificateInput struct {
 	_ struct{} `type:"structure"`
 
-	// String that contains the ARN of the ACM Certificate for which you want to
-	// list the tags. This has the following form:
+	// String that contains the ARN of the ACM certificate for which you want to
+	// list the tags. This must have the following form:
 	//
 	// arn:aws:acm:region:123456789012:certificate/12345678-1234-1234-1234-123456789012
 	//
@@ -2013,7 +2531,6 @@ func (s *ListTagsForCertificateInput) SetCertificateArn(v string) *ListTagsForCe
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/ListTagsForCertificateResponse
 type ListTagsForCertificateOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2037,7 +2554,6 @@ func (s *ListTagsForCertificateOutput) SetTags(v []*Tag) *ListTagsForCertificate
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/RemoveTagsFromCertificateRequest
 type RemoveTagsFromCertificateInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2112,7 +2628,6 @@ func (s *RemoveTagsFromCertificateInput) SetTags(v []*Tag) *RemoveTagsFromCertif
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/RemoveTagsFromCertificateOutput
 type RemoveTagsFromCertificateOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2130,7 +2645,6 @@ func (s RemoveTagsFromCertificateOutput) GoString() string {
 // Contains information about the status of ACM's managed renewal (http://docs.aws.amazon.com/acm/latest/userguide/acm-renewal.html)
 // for the certificate. This structure exists only when the certificate type
 // is AMAZON_ISSUED.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/RenewalSummary
 type RenewalSummary struct {
 	_ struct{} `type:"structure"`
 
@@ -2172,20 +2686,33 @@ func (s *RenewalSummary) SetRenewalStatus(v string) *RenewalSummary {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/RequestCertificateRequest
 type RequestCertificateInput struct {
 	_ struct{} `type:"structure"`
 
-	// Fully qualified domain name (FQDN), such as www.example.com, of the site
-	// that you want to secure with an ACM Certificate. Use an asterisk (*) to create
-	// a wildcard certificate that protects several sites in the same domain. For
-	// example, *.example.com protects www.example.com, site.example.com, and images.example.com.
+	// The Amazon Resource Name (ARN) of the private certificate authority (CA)
+	// that will be used to issue the certificate. If you do not provide an ARN
+	// and you are trying to request a private certificate, ACM will attempt to
+	// issue a public certificate. For more information about private CAs, see the
+	// AWS Certificate Manager Private Certificate Authority (PCA) (http://docs.aws.amazon.com/acm-pca/latest/userguide/PcaWelcome.html)
+	// user guide. The ARN must have the following form:
+	//
+	// arn:aws:acm-pca:region:account:certificate-authority/12345678-1234-1234-1234-123456789012
+	CertificateAuthorityArn *string `min:"20" type:"string"`
+
+	// Fully qualified domain name (FQDN), such as www.example.com, that you want
+	// to secure with an ACM certificate. Use an asterisk (*) to create a wildcard
+	// certificate that protects several sites in the same domain. For example,
+	// *.example.com protects www.example.com, site.example.com, and images.example.com.
+	//
+	// The first domain name you enter cannot exceed 63 octets, including periods.
+	// Each subsequent Subject Alternative Name (SAN), however, can be up to 253
+	// octets in length.
 	//
 	// DomainName is a required field
 	DomainName *string `min:"1" type:"string" required:"true"`
 
-	// The domain name that you want ACM to use to send you emails to validate your
-	// ownership of the domain.
+	// The domain name that you want ACM to use to send you emails so that you can
+	// validate domain ownership.
 	DomainValidationOptions []*DomainValidationOption `min:"1" type:"list"`
 
 	// Customer chosen string that can be used to distinguish between calls to RequestCertificate.
@@ -2196,11 +2723,43 @@ type RequestCertificateInput struct {
 	// requesting multiple certificates.
 	IdempotencyToken *string `min:"1" type:"string"`
 
+	// Currently, you can use this parameter to specify whether to add the certificate
+	// to a certificate transparency log. Certificate transparency makes it possible
+	// to detect SSL/TLS certificates that have been mistakenly or maliciously issued.
+	// Certificates that have not been logged typically produce an error message
+	// in a browser. For more information, see Opting Out of Certificate Transparency
+	// Logging (http://docs.aws.amazon.com/acm/latest/userguide/acm-bestpractices.html#best-practices-transparency).
+	Options *CertificateOptions `type:"structure"`
+
 	// Additional FQDNs to be included in the Subject Alternative Name extension
-	// of the ACM Certificate. For example, add the name www.example.net to a certificate
+	// of the ACM certificate. For example, add the name www.example.net to a certificate
 	// for which the DomainName field is www.example.com if users can reach your
-	// site by using either name.
+	// site by using either name. The maximum number of domain names that you can
+	// add to an ACM certificate is 100. However, the initial limit is 10 domain
+	// names. If you need more than 10 names, you must request a limit increase.
+	// For more information, see Limits (http://docs.aws.amazon.com/acm/latest/userguide/acm-limits.html).
+	//
+	// The maximum length of a SAN DNS name is 253 octets. The name is made up of
+	// multiple labels separated by periods. No label can be longer than 63 octets.
+	// Consider the following examples:
+	//
+	//    * (63 octets).(63 octets).(63 octets).(61 octets) is legal because the
+	//    total length is 253 octets (63+1+63+1+63+1+61) and no label exceeds 63
+	//    octets.
+	//
+	//    * (64 octets).(63 octets).(63 octets).(61 octets) is not legal because
+	//    the total length exceeds 253 octets (64+1+63+1+63+1+61) and the first
+	//    label exceeds 63 octets.
+	//
+	//    * (63 octets).(63 octets).(63 octets).(62 octets) is not legal because
+	//    the total length of the DNS name (63+1+63+1+63+1+62) exceeds 253 octets.
 	SubjectAlternativeNames []*string `min:"1" type:"list"`
+
+	// The method you want to use if you are requesting a public certificate to
+	// validate that you own or control domain. You can validate with DNS (http://docs.aws.amazon.com/acm/latest/userguide/gs-acm-validate-dns.html)
+	// or validate with email (http://docs.aws.amazon.com/acm/latest/userguide/gs-acm-validate-email.html).
+	// We recommend that you use DNS validation.
+	ValidationMethod *string `type:"string" enum:"ValidationMethod"`
 }
 
 // String returns the string representation
@@ -2216,6 +2775,9 @@ func (s RequestCertificateInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *RequestCertificateInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "RequestCertificateInput"}
+	if s.CertificateAuthorityArn != nil && len(*s.CertificateAuthorityArn) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("CertificateAuthorityArn", 20))
+	}
 	if s.DomainName == nil {
 		invalidParams.Add(request.NewErrParamRequired("DomainName"))
 	}
@@ -2248,6 +2810,12 @@ func (s *RequestCertificateInput) Validate() error {
 	return nil
 }
 
+// SetCertificateAuthorityArn sets the CertificateAuthorityArn field's value.
+func (s *RequestCertificateInput) SetCertificateAuthorityArn(v string) *RequestCertificateInput {
+	s.CertificateAuthorityArn = &v
+	return s
+}
+
 // SetDomainName sets the DomainName field's value.
 func (s *RequestCertificateInput) SetDomainName(v string) *RequestCertificateInput {
 	s.DomainName = &v
@@ -2266,13 +2834,24 @@ func (s *RequestCertificateInput) SetIdempotencyToken(v string) *RequestCertific
 	return s
 }
 
+// SetOptions sets the Options field's value.
+func (s *RequestCertificateInput) SetOptions(v *CertificateOptions) *RequestCertificateInput {
+	s.Options = v
+	return s
+}
+
 // SetSubjectAlternativeNames sets the SubjectAlternativeNames field's value.
 func (s *RequestCertificateInput) SetSubjectAlternativeNames(v []*string) *RequestCertificateInput {
 	s.SubjectAlternativeNames = v
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/RequestCertificateResponse
+// SetValidationMethod sets the ValidationMethod field's value.
+func (s *RequestCertificateInput) SetValidationMethod(v string) *RequestCertificateInput {
+	s.ValidationMethod = &v
+	return s
+}
+
 type RequestCertificateOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2299,16 +2878,14 @@ func (s *RequestCertificateOutput) SetCertificateArn(v string) *RequestCertifica
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/ResendValidationEmailRequest
 type ResendValidationEmailInput struct {
 	_ struct{} `type:"structure"`
 
 	// String that contains the ARN of the requested certificate. The certificate
 	// ARN is generated and returned by the RequestCertificate action as soon as
 	// the request is made. By default, using this parameter causes email to be
-	// sent to all top-level domains you specified in the certificate request.
-	//
-	// The ARN must be of the form:
+	// sent to all top-level domains you specified in the certificate request. The
+	// ARN must be of the form:
 	//
 	// arn:aws:acm:us-east-1:123456789012:certificate/12345678-1234-1234-1234-123456789012
 	//
@@ -2398,7 +2975,6 @@ func (s *ResendValidationEmailInput) SetValidationDomain(v string) *ResendValida
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/ResendValidationEmailOutput
 type ResendValidationEmailOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2413,8 +2989,58 @@ func (s ResendValidationEmailOutput) GoString() string {
 	return s.String()
 }
 
+// Contains a DNS record value that you can use to can use to validate ownership
+// or control of a domain. This is used by the DescribeCertificate action.
+type ResourceRecord struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the DNS record to create in your domain. This is supplied by
+	// ACM.
+	//
+	// Name is a required field
+	Name *string `type:"string" required:"true"`
+
+	// The type of DNS record. Currently this can be CNAME.
+	//
+	// Type is a required field
+	Type *string `type:"string" required:"true" enum:"RecordType"`
+
+	// The value of the CNAME record to add to your DNS database. This is supplied
+	// by ACM.
+	//
+	// Value is a required field
+	Value *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s ResourceRecord) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ResourceRecord) GoString() string {
+	return s.String()
+}
+
+// SetName sets the Name field's value.
+func (s *ResourceRecord) SetName(v string) *ResourceRecord {
+	s.Name = &v
+	return s
+}
+
+// SetType sets the Type field's value.
+func (s *ResourceRecord) SetType(v string) *ResourceRecord {
+	s.Type = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *ResourceRecord) SetValue(v string) *ResourceRecord {
+	s.Value = &v
+	return s
+}
+
 // A key-value pair that identifies or specifies metadata about an ACM resource.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/Tag
 type Tag struct {
 	_ struct{} `type:"structure"`
 
@@ -2465,6 +3091,81 @@ func (s *Tag) SetValue(v string) *Tag {
 	return s
 }
 
+type UpdateCertificateOptionsInput struct {
+	_ struct{} `type:"structure"`
+
+	// ARN of the requested certificate to update. This must be of the form:
+	//
+	// arn:aws:acm:us-east-1:account:certificate/12345678-1234-1234-1234-123456789012
+	//
+	// CertificateArn is a required field
+	CertificateArn *string `min:"20" type:"string" required:"true"`
+
+	// Use to update the options for your certificate. Currently, you can specify
+	// whether to add your certificate to a transparency log. Certificate transparency
+	// makes it possible to detect SSL/TLS certificates that have been mistakenly
+	// or maliciously issued. Certificates that have not been logged typically produce
+	// an error message in a browser.
+	//
+	// Options is a required field
+	Options *CertificateOptions `type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s UpdateCertificateOptionsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateCertificateOptionsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateCertificateOptionsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateCertificateOptionsInput"}
+	if s.CertificateArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("CertificateArn"))
+	}
+	if s.CertificateArn != nil && len(*s.CertificateArn) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("CertificateArn", 20))
+	}
+	if s.Options == nil {
+		invalidParams.Add(request.NewErrParamRequired("Options"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetCertificateArn sets the CertificateArn field's value.
+func (s *UpdateCertificateOptionsInput) SetCertificateArn(v string) *UpdateCertificateOptionsInput {
+	s.CertificateArn = &v
+	return s
+}
+
+// SetOptions sets the Options field's value.
+func (s *UpdateCertificateOptionsInput) SetOptions(v *CertificateOptions) *UpdateCertificateOptionsInput {
+	s.Options = v
+	return s
+}
+
+type UpdateCertificateOptionsOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s UpdateCertificateOptionsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateCertificateOptionsOutput) GoString() string {
+	return s.String()
+}
+
 const (
 	// CertificateStatusPendingValidation is a CertificateStatus enum value
 	CertificateStatusPendingValidation = "PENDING_VALIDATION"
@@ -2489,11 +3190,22 @@ const (
 )
 
 const (
+	// CertificateTransparencyLoggingPreferenceEnabled is a CertificateTransparencyLoggingPreference enum value
+	CertificateTransparencyLoggingPreferenceEnabled = "ENABLED"
+
+	// CertificateTransparencyLoggingPreferenceDisabled is a CertificateTransparencyLoggingPreference enum value
+	CertificateTransparencyLoggingPreferenceDisabled = "DISABLED"
+)
+
+const (
 	// CertificateTypeImported is a CertificateType enum value
 	CertificateTypeImported = "IMPORTED"
 
 	// CertificateTypeAmazonIssued is a CertificateType enum value
 	CertificateTypeAmazonIssued = "AMAZON_ISSUED"
+
+	// CertificateTypePrivate is a CertificateType enum value
+	CertificateTypePrivate = "PRIVATE"
 )
 
 const (
@@ -2505,6 +3217,44 @@ const (
 
 	// DomainStatusFailed is a DomainStatus enum value
 	DomainStatusFailed = "FAILED"
+)
+
+const (
+	// ExtendedKeyUsageNameTlsWebServerAuthentication is a ExtendedKeyUsageName enum value
+	ExtendedKeyUsageNameTlsWebServerAuthentication = "TLS_WEB_SERVER_AUTHENTICATION"
+
+	// ExtendedKeyUsageNameTlsWebClientAuthentication is a ExtendedKeyUsageName enum value
+	ExtendedKeyUsageNameTlsWebClientAuthentication = "TLS_WEB_CLIENT_AUTHENTICATION"
+
+	// ExtendedKeyUsageNameCodeSigning is a ExtendedKeyUsageName enum value
+	ExtendedKeyUsageNameCodeSigning = "CODE_SIGNING"
+
+	// ExtendedKeyUsageNameEmailProtection is a ExtendedKeyUsageName enum value
+	ExtendedKeyUsageNameEmailProtection = "EMAIL_PROTECTION"
+
+	// ExtendedKeyUsageNameTimeStamping is a ExtendedKeyUsageName enum value
+	ExtendedKeyUsageNameTimeStamping = "TIME_STAMPING"
+
+	// ExtendedKeyUsageNameOcspSigning is a ExtendedKeyUsageName enum value
+	ExtendedKeyUsageNameOcspSigning = "OCSP_SIGNING"
+
+	// ExtendedKeyUsageNameIpsecEndSystem is a ExtendedKeyUsageName enum value
+	ExtendedKeyUsageNameIpsecEndSystem = "IPSEC_END_SYSTEM"
+
+	// ExtendedKeyUsageNameIpsecTunnel is a ExtendedKeyUsageName enum value
+	ExtendedKeyUsageNameIpsecTunnel = "IPSEC_TUNNEL"
+
+	// ExtendedKeyUsageNameIpsecUser is a ExtendedKeyUsageName enum value
+	ExtendedKeyUsageNameIpsecUser = "IPSEC_USER"
+
+	// ExtendedKeyUsageNameAny is a ExtendedKeyUsageName enum value
+	ExtendedKeyUsageNameAny = "ANY"
+
+	// ExtendedKeyUsageNameNone is a ExtendedKeyUsageName enum value
+	ExtendedKeyUsageNameNone = "NONE"
+
+	// ExtendedKeyUsageNameCustom is a ExtendedKeyUsageName enum value
+	ExtendedKeyUsageNameCustom = "CUSTOM"
 )
 
 const (
@@ -2520,6 +3270,27 @@ const (
 	// FailureReasonInvalidPublicDomain is a FailureReason enum value
 	FailureReasonInvalidPublicDomain = "INVALID_PUBLIC_DOMAIN"
 
+	// FailureReasonCaaError is a FailureReason enum value
+	FailureReasonCaaError = "CAA_ERROR"
+
+	// FailureReasonPcaLimitExceeded is a FailureReason enum value
+	FailureReasonPcaLimitExceeded = "PCA_LIMIT_EXCEEDED"
+
+	// FailureReasonPcaInvalidArn is a FailureReason enum value
+	FailureReasonPcaInvalidArn = "PCA_INVALID_ARN"
+
+	// FailureReasonPcaInvalidState is a FailureReason enum value
+	FailureReasonPcaInvalidState = "PCA_INVALID_STATE"
+
+	// FailureReasonPcaRequestFailed is a FailureReason enum value
+	FailureReasonPcaRequestFailed = "PCA_REQUEST_FAILED"
+
+	// FailureReasonPcaResourceNotFound is a FailureReason enum value
+	FailureReasonPcaResourceNotFound = "PCA_RESOURCE_NOT_FOUND"
+
+	// FailureReasonPcaInvalidArgs is a FailureReason enum value
+	FailureReasonPcaInvalidArgs = "PCA_INVALID_ARGS"
+
 	// FailureReasonOther is a FailureReason enum value
 	FailureReasonOther = "OTHER"
 )
@@ -2531,8 +3302,65 @@ const (
 	// KeyAlgorithmRsa1024 is a KeyAlgorithm enum value
 	KeyAlgorithmRsa1024 = "RSA_1024"
 
+	// KeyAlgorithmRsa4096 is a KeyAlgorithm enum value
+	KeyAlgorithmRsa4096 = "RSA_4096"
+
 	// KeyAlgorithmEcPrime256v1 is a KeyAlgorithm enum value
 	KeyAlgorithmEcPrime256v1 = "EC_prime256v1"
+
+	// KeyAlgorithmEcSecp384r1 is a KeyAlgorithm enum value
+	KeyAlgorithmEcSecp384r1 = "EC_secp384r1"
+
+	// KeyAlgorithmEcSecp521r1 is a KeyAlgorithm enum value
+	KeyAlgorithmEcSecp521r1 = "EC_secp521r1"
+)
+
+const (
+	// KeyUsageNameDigitalSignature is a KeyUsageName enum value
+	KeyUsageNameDigitalSignature = "DIGITAL_SIGNATURE"
+
+	// KeyUsageNameNonRepudiation is a KeyUsageName enum value
+	KeyUsageNameNonRepudiation = "NON_REPUDIATION"
+
+	// KeyUsageNameKeyEncipherment is a KeyUsageName enum value
+	KeyUsageNameKeyEncipherment = "KEY_ENCIPHERMENT"
+
+	// KeyUsageNameDataEncipherment is a KeyUsageName enum value
+	KeyUsageNameDataEncipherment = "DATA_ENCIPHERMENT"
+
+	// KeyUsageNameKeyAgreement is a KeyUsageName enum value
+	KeyUsageNameKeyAgreement = "KEY_AGREEMENT"
+
+	// KeyUsageNameCertificateSigning is a KeyUsageName enum value
+	KeyUsageNameCertificateSigning = "CERTIFICATE_SIGNING"
+
+	// KeyUsageNameCrlSigning is a KeyUsageName enum value
+	KeyUsageNameCrlSigning = "CRL_SIGNING"
+
+	// KeyUsageNameEncipherOnly is a KeyUsageName enum value
+	KeyUsageNameEncipherOnly = "ENCIPHER_ONLY"
+
+	// KeyUsageNameDecipherOnly is a KeyUsageName enum value
+	KeyUsageNameDecipherOnly = "DECIPHER_ONLY"
+
+	// KeyUsageNameAny is a KeyUsageName enum value
+	KeyUsageNameAny = "ANY"
+
+	// KeyUsageNameCustom is a KeyUsageName enum value
+	KeyUsageNameCustom = "CUSTOM"
+)
+
+const (
+	// RecordTypeCname is a RecordType enum value
+	RecordTypeCname = "CNAME"
+)
+
+const (
+	// RenewalEligibilityEligible is a RenewalEligibility enum value
+	RenewalEligibilityEligible = "ELIGIBLE"
+
+	// RenewalEligibilityIneligible is a RenewalEligibility enum value
+	RenewalEligibilityIneligible = "INELIGIBLE"
 )
 
 const (
@@ -2579,4 +3407,12 @@ const (
 
 	// RevocationReasonAACompromise is a RevocationReason enum value
 	RevocationReasonAACompromise = "A_A_COMPROMISE"
+)
+
+const (
+	// ValidationMethodEmail is a ValidationMethod enum value
+	ValidationMethodEmail = "EMAIL"
+
+	// ValidationMethodDns is a ValidationMethod enum value
+	ValidationMethodDns = "DNS"
 )

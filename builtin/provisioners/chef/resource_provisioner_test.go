@@ -299,6 +299,36 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 			},
 		},
 
+		"Linux Vault []string (recreate-client for vault)": {
+			Config: map[string]interface{}{
+				"fetch_chef_certificates": true,
+				"node_name":               "nodename1",
+				"prevent_sudo":            true,
+				"run_list":                []interface{}{"cookbook::recipe"},
+				"server_url":              "https://chef.local",
+				"user_name":               "bob",
+				"user_key":                "USER-KEY",
+				"vault_json":              `{"vault1": ["item1", "item2"]}`,
+				"recreate_client":         true,
+			},
+
+			GemCmd:   linuxGemCmd,
+			KnifeCmd: linuxKnifeCmd,
+			ConfDir:  linuxConfDir,
+
+			Commands: map[string]bool{
+				fmt.Sprintf("%s install chef-vault", linuxGemCmd): true,
+				fmt.Sprintf("%s vault remove vault1 item1 -C \"nodename1\" -M client -c %s/client.rb "+
+					"-u bob --key %s/bob.pem", linuxKnifeCmd, linuxConfDir, linuxConfDir): true,
+				fmt.Sprintf("%s vault remove vault1 item2 -C \"nodename1\" -M client -c %s/client.rb "+
+					"-u bob --key %s/bob.pem", linuxKnifeCmd, linuxConfDir, linuxConfDir): true,
+				fmt.Sprintf("%s vault update vault1 item1 -C nodename1 -M client -c %s/client.rb "+
+					"-u bob --key %s/bob.pem", linuxKnifeCmd, linuxConfDir, linuxConfDir): true,
+				fmt.Sprintf("%s vault update vault1 item2 -C nodename1 -M client -c %s/client.rb "+
+					"-u bob --key %s/bob.pem", linuxKnifeCmd, linuxConfDir, linuxConfDir): true,
+			},
+		},
+
 		"Windows Vault string": {
 			Config: map[string]interface{}{
 				"node_name":    "nodename1",
@@ -339,6 +369,36 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 
 			Commands: map[string]bool{
 				fmt.Sprintf("%s install chef-vault", windowsGemCmd): true,
+				fmt.Sprintf("%s vault update vault1 item1 -C nodename1 -M client -c %s/client.rb "+
+					"-u bob --key %s/bob.pem", windowsKnifeCmd, windowsConfDir, windowsConfDir): true,
+				fmt.Sprintf("%s vault update vault1 item2 -C nodename1 -M client -c %s/client.rb "+
+					"-u bob --key %s/bob.pem", windowsKnifeCmd, windowsConfDir, windowsConfDir): true,
+			},
+		},
+
+		"Windows Vault [] string (recreate-client for vault)": {
+			Config: map[string]interface{}{
+				"fetch_chef_certificates": true,
+				"node_name":               "nodename1",
+				"prevent_sudo":            true,
+				"run_list":                []interface{}{"cookbook::recipe"},
+				"server_url":              "https://chef.local",
+				"user_name":               "bob",
+				"user_key":                "USER-KEY",
+				"vault_json":              `{"vault1": ["item1", "item2"]}`,
+				"recreate_client":         true,
+			},
+
+			GemCmd:   windowsGemCmd,
+			KnifeCmd: windowsKnifeCmd,
+			ConfDir:  windowsConfDir,
+
+			Commands: map[string]bool{
+				fmt.Sprintf("%s install chef-vault", windowsGemCmd): true,
+				fmt.Sprintf("%s vault remove vault1 item1 -C \"nodename1\" -M client -c %s/client.rb "+
+					"-u bob --key %s/bob.pem", windowsKnifeCmd, windowsConfDir, windowsConfDir): true,
+				fmt.Sprintf("%s vault remove vault1 item2 -C \"nodename1\" -M client -c %s/client.rb "+
+					"-u bob --key %s/bob.pem", windowsKnifeCmd, windowsConfDir, windowsConfDir): true,
 				fmt.Sprintf("%s vault update vault1 item1 -C nodename1 -M client -c %s/client.rb "+
 					"-u bob --key %s/bob.pem", windowsKnifeCmd, windowsConfDir, windowsConfDir): true,
 				fmt.Sprintf("%s vault update vault1 item2 -C nodename1 -M client -c %s/client.rb "+

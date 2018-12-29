@@ -1,6 +1,8 @@
 package terraform
 
 import (
+	"log"
+
 	"github.com/hashicorp/terraform/dag"
 )
 
@@ -36,9 +38,17 @@ type graphTransformerMulti struct {
 }
 
 func (t *graphTransformerMulti) Transform(g *Graph) error {
+	var lastStepStr string
 	for _, t := range t.Transforms {
+		log.Printf("[TRACE] (graphTransformerMulti) Executing graph transform %T", t)
 		if err := t.Transform(g); err != nil {
 			return err
+		}
+		if thisStepStr := g.StringWithNodeTypes(); thisStepStr != lastStepStr {
+			log.Printf("[TRACE] (graphTransformerMulti) Completed graph transform %T with new graph:\n%s------", t, thisStepStr)
+			lastStepStr = thisStepStr
+		} else {
+			log.Printf("[TRACE] (graphTransformerMulti) Completed graph transform %T (no changes)", t)
 		}
 	}
 

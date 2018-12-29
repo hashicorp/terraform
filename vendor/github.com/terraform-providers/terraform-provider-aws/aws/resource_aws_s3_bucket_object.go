@@ -2,15 +2,16 @@ package aws
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"log"
 	"net/url"
 	"os"
-	"sort"
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 	"github.com/mitchellh/go-homedir"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -26,6 +27,8 @@ func resourceAwsS3BucketObject() *schema.Resource {
 		Update: resourceAwsS3BucketObjectPut,
 		Delete: resourceAwsS3BucketObjectDelete,
 
+		CustomizeDiff: updateComputedAttributes,
+
 		Schema: map[string]*schema.Schema{
 			"bucket": {
 				Type:     schema.TypeString,
@@ -34,10 +37,18 @@ func resourceAwsS3BucketObject() *schema.Resource {
 			},
 
 			"acl": {
-				Type:         schema.TypeString,
-				Default:      "private",
-				Optional:     true,
-				ValidateFunc: validateS3BucketObjectAclType,
+				Type:     schema.TypeString,
+				Default:  "private",
+				Optional: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					s3.ObjectCannedACLPrivate,
+					s3.ObjectCannedACLPublicRead,
+					s3.ObjectCannedACLPublicReadWrite,
+					s3.ObjectCannedACLAuthenticatedRead,
+					s3.ObjectCannedACLAwsExecRead,
+					s3.ObjectCannedACLBucketOwnerRead,
+					s3.ObjectCannedACLBucketOwnerFullControl,
+				}, false),
 			},
 
 			"cache_control": {
@@ -75,27 +86,43 @@ func resourceAwsS3BucketObject() *schema.Resource {
 			"source": {
 				Type:          schema.TypeString,
 				Optional:      true,
-				ConflictsWith: []string{"content"},
+				ConflictsWith: []string{"content", "content_base64"},
 			},
 
 			"content": {
 				Type:          schema.TypeString,
 				Optional:      true,
-				ConflictsWith: []string{"source"},
+				ConflictsWith: []string{"source", "content_base64"},
+			},
+
+			"content_base64": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"source", "content"},
 			},
 
 			"storage_class": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Computed:     true,
-				ValidateFunc: validateS3BucketObjectStorageClassType,
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					s3.ObjectStorageClassStandard,
+					s3.ObjectStorageClassReducedRedundancy,
+					s3.ObjectStorageClassGlacier,
+					s3.ObjectStorageClassStandardIa,
+					s3.ObjectStorageClassOnezoneIa,
+					s3.ObjectStorageClassIntelligentTiering,
+				}, false),
 			},
 
 			"server_side_encryption": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: validateS3BucketObjectServerSideEncryption,
-				Computed:     true,
+				Type:     schema.TypeString,
+				Optional: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					s3.ServerSideEncryptionAes256,
+					s3.ServerSideEncryptionAwsKms,
+				}, false),
+				Computed: true,
 			},
 
 			"kms_key_id": {
@@ -120,14 +147,26 @@ func resourceAwsS3BucketObject() *schema.Resource {
 			},
 
 			"tags": tagsSchema(),
+
+			"website_redirect": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 		},
 	}
+}
+
+func updateComputedAttributes(d *schema.ResourceDiff, meta interface{}) error {
+	if d.HasChange("etag") {
+		d.SetNewComputed("version_id")
+	}
+	return nil
 }
 
 func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) error {
 	s3conn := meta.(*AWSClient).s3conn
 
-	restricted := meta.(*AWSClient).IsGovCloud() || meta.(*AWSClient).IsChinaCloud()
+	restricted := meta.(*AWSClient).IsChinaCloud()
 
 	var body io.ReadSeeker
 
@@ -146,8 +185,17 @@ func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) erro
 	} else if v, ok := d.GetOk("content"); ok {
 		content := v.(string)
 		body = bytes.NewReader([]byte(content))
+	} else if v, ok := d.GetOk("content_base64"); ok {
+		content := v.(string)
+		// We can't do streaming decoding here (with base64.NewDecoder) because
+		// the AWS SDK requires an io.ReadSeeker but a base64 decoder can't seek.
+		contentRaw, err := base64.StdEncoding.DecodeString(content)
+		if err != nil {
+			return fmt.Errorf("error decoding content_base64: %s", err)
+		}
+		body = bytes.NewReader(contentRaw)
 	} else {
-		return fmt.Errorf("Must specify \"source\" or \"content\" field")
+		return fmt.Errorf("Must specify \"source\", \"content\", or \"content_base64\" field")
 	}
 
 	bucket := d.Get("bucket").(string)
@@ -206,6 +254,10 @@ func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) erro
 		putInput.Tagging = aws.String(values.Encode())
 	}
 
+	if v, ok := d.GetOk("website_redirect"); ok {
+		putInput.WebsiteRedirectLocation = aws.String(v.(string))
+	}
+
 	resp, err := s3conn.PutObject(putInput)
 	if err != nil {
 		return fmt.Errorf("Error putting object in S3 bucket (%s): %s", bucket, err)
@@ -222,7 +274,7 @@ func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) erro
 func resourceAwsS3BucketObjectRead(d *schema.ResourceData, meta interface{}) error {
 	s3conn := meta.(*AWSClient).s3conn
 
-	restricted := meta.(*AWSClient).IsGovCloud() || meta.(*AWSClient).IsChinaCloud()
+	restricted := meta.(*AWSClient).IsChinaCloud()
 
 	bucket := d.Get("bucket").(string)
 	key := d.Get("key").(string)
@@ -251,6 +303,7 @@ func resourceAwsS3BucketObjectRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("content_type", resp.ContentType)
 	d.Set("version_id", resp.VersionId)
 	d.Set("server_side_encryption", resp.ServerSideEncryption)
+	d.Set("website_redirect", resp.WebsiteRedirectLocation)
 
 	// Only set non-default KMS key ID (one that doesn't match default)
 	if resp.SSEKMSKeyId != nil {
@@ -334,74 +387,4 @@ func resourceAwsS3BucketObjectDelete(d *schema.ResourceData, meta interface{}) e
 	}
 
 	return nil
-}
-
-func validateS3BucketObjectAclType(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-
-	cannedAcls := map[string]bool{
-		s3.ObjectCannedACLPrivate:                true,
-		s3.ObjectCannedACLPublicRead:             true,
-		s3.ObjectCannedACLPublicReadWrite:        true,
-		s3.ObjectCannedACLAuthenticatedRead:      true,
-		s3.ObjectCannedACLAwsExecRead:            true,
-		s3.ObjectCannedACLBucketOwnerRead:        true,
-		s3.ObjectCannedACLBucketOwnerFullControl: true,
-	}
-
-	sentenceJoin := func(m map[string]bool) string {
-		keys := make([]string, 0, len(m))
-		for k := range m {
-			keys = append(keys, fmt.Sprintf("%q", k))
-		}
-		sort.Strings(keys)
-
-		length := len(keys)
-		words := make([]string, length)
-		copy(words, keys)
-
-		words[length-1] = fmt.Sprintf("or %s", words[length-1])
-		return strings.Join(words, ", ")
-	}
-
-	if _, ok := cannedAcls[value]; !ok {
-		errors = append(errors, fmt.Errorf(
-			"%q contains an invalid canned ACL type %q. Valid types are either %s",
-			k, value, sentenceJoin(cannedAcls)))
-	}
-	return
-}
-
-func validateS3BucketObjectStorageClassType(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-
-	storageClass := map[string]bool{
-		s3.StorageClassStandard:          true,
-		s3.StorageClassReducedRedundancy: true,
-		s3.StorageClassStandardIa:        true,
-	}
-
-	if _, ok := storageClass[value]; !ok {
-		errors = append(errors, fmt.Errorf(
-			"%q contains an invalid Storage Class type %q. Valid types are either %q, %q, or %q",
-			k, value, s3.StorageClassStandard, s3.StorageClassReducedRedundancy,
-			s3.StorageClassStandardIa))
-	}
-	return
-}
-
-func validateS3BucketObjectServerSideEncryption(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-
-	serverSideEncryption := map[string]bool{
-		s3.ServerSideEncryptionAes256: true,
-		s3.ServerSideEncryptionAwsKms: true,
-	}
-
-	if _, ok := serverSideEncryption[value]; !ok {
-		errors = append(errors, fmt.Errorf(
-			"%q contains an invalid Server Side Encryption value %q. Valid values are %q and %q",
-			k, value, s3.ServerSideEncryptionAes256, s3.ServerSideEncryptionAwsKms))
-	}
-	return
 }

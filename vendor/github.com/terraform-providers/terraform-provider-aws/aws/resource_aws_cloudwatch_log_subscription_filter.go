@@ -23,30 +23,34 @@ func resourceAwsCloudwatchLogSubscriptionFilter() *schema.Resource {
 		Delete: resourceAwsCloudwatchLogSubscriptionFilterDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"destination_arn": &schema.Schema{
+			"destination_arn": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"filter_pattern": &schema.Schema{
+			"filter_pattern": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: false,
 			},
-			"log_group_name": &schema.Schema{
+			"log_group_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"role_arn": &schema.Schema{
+			"role_arn": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
+			},
+			"distribution": {
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 		},
 	}
@@ -94,7 +98,7 @@ func resourceAwsCloudwatchLogSubscriptionFilterUpdate(d *schema.ResourceData, me
 	_, err := conn.PutSubscriptionFilter(&params)
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
-			return fmt.Errorf("[WARN] Error updating SubscriptionFilter (%s) for LogGroup (%s), message: \"%s\", code: \"%s\"",
+			return fmt.Errorf("Error updating SubscriptionFilter (%s) for LogGroup (%s), message: \"%s\", code: \"%s\"",
 				d.Get("name").(string), d.Get("log_group_name").(string), awsErr.Message(), awsErr.Code())
 		}
 		return err
@@ -121,6 +125,10 @@ func getAwsCloudWatchLogsSubscriptionFilterInput(d *schema.ResourceData) cloudwa
 		params.RoleArn = aws.String(d.Get("role_arn").(string))
 	}
 
+	if _, ok := d.GetOk("distribution"); ok {
+		params.Distribution = aws.String(d.Get("distribution").(string))
+	}
+
 	return params
 }
 
@@ -137,6 +145,11 @@ func resourceAwsCloudwatchLogSubscriptionFilterRead(d *schema.ResourceData, meta
 
 	resp, err := conn.DescribeSubscriptionFilters(req)
 	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "ResourceNotFoundException" {
+			log.Printf("[WARN] SubscriptionFilters (%q) Not Found", d.Id())
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error reading SubscriptionFilters for log group %s with name prefix %s: %#v", log_group_name, d.Get("name").(string), err)
 	}
 
@@ -164,10 +177,13 @@ func resourceAwsCloudwatchLogSubscriptionFilterDelete(d *schema.ResourceData, me
 	}
 	_, err := conn.DeleteSubscriptionFilter(params)
 	if err != nil {
+		if isAWSErr(err, cloudwatchlogs.ErrCodeResourceNotFoundException, "The specified log group does not exist") {
+			return nil
+		}
 		return fmt.Errorf(
-			"Error deleting Subscription Filter from log group: %s with name filter name %s", log_group_name, name)
+			"Error deleting Subscription Filter from log group: %s with name filter name %s: %+v", log_group_name, name, err)
 	}
-	d.SetId("")
+
 	return nil
 }
 

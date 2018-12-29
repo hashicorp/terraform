@@ -7,16 +7,21 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/hashicorp/go-getter"
+	"github.com/hashicorp/hcl2/hcl"
+	"github.com/posener/complete"
+	"github.com/zclconf/go-cty/cty"
 
-	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/helper/variables"
+	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/plugin/discovery"
+	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/tfdiags"
+
+	backendInit "github.com/hashicorp/terraform/backend/init"
 )
 
 // InitCommand is a Command implementation that takes a Terraform
@@ -37,17 +42,18 @@ type InitCommand struct {
 func (c *InitCommand) Run(args []string) int {
 	var flagFromModule string
 	var flagBackend, flagGet, flagUpgrade bool
-	var flagConfigExtra map[string]interface{}
 	var flagPluginPath FlagStringSlice
 	var flagVerifyPlugins bool
+	flagConfigExtra := newRawFlags("-backend-config")
 
 	args, err := c.Meta.process(args, false)
 	if err != nil {
 		return 1
 	}
-	cmdFlags := c.flagSet("init")
+
+	cmdFlags := c.Meta.extendedFlagSet("init")
 	cmdFlags.BoolVar(&flagBackend, "backend", true, "")
-	cmdFlags.Var((*variables.FlagAny)(&flagConfigExtra), "backend-config", "")
+	cmdFlags.Var(flagConfigExtra, "backend-config", "")
 	cmdFlags.StringVar(&flagFromModule, "from-module", "", "copy the source of the given module into the directory before init")
 	cmdFlags.BoolVar(&flagGet, "get", true, "")
 	cmdFlags.BoolVar(&c.getPlugins, "get-plugins", true, "")
@@ -58,24 +64,27 @@ func (c *InitCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&flagUpgrade, "upgrade", false, "")
 	cmdFlags.Var(&flagPluginPath, "plugin-dir", "plugin directory")
 	cmdFlags.BoolVar(&flagVerifyPlugins, "verify-plugins", true, "verify plugins")
-
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
 	}
+
+	var diags tfdiags.Diagnostics
 
 	if len(flagPluginPath) > 0 {
 		c.pluginPath = flagPluginPath
 		c.getPlugins = false
 	}
 
-	// set getProvider if we don't have a test version already
+	// set providerInstaller if we don't have a test version already
 	if c.providerInstaller == nil {
 		c.providerInstaller = &discovery.ProviderInstaller{
-			Dir: c.pluginDir(),
+			Dir:                   c.pluginDir(),
+			Cache:                 c.pluginCache(),
 			PluginProtocolVersion: plugin.Handshake.ProtocolVersion,
 			SkipVerify:            !flagVerifyPlugins,
 			Ui:                    c.Ui,
+			Services:              c.Services,
 		}
 	}
 
@@ -128,19 +137,29 @@ func (c *InitCommand) Run(args []string) int {
 		)))
 		header = true
 
-		if err := c.copyConfigFromModule(path, src, pwd); err != nil {
-			c.Ui.Error(fmt.Sprintf("Error copying source module: %s", err))
+		hooks := uiModuleInstallHooks{
+			Ui:             c.Ui,
+			ShowLocalPaths: false, // since they are in a weird location for init
+		}
+
+		initDiags := c.initDirFromModule(path, src, hooks)
+		diags = diags.Append(initDiags)
+		if initDiags.HasErrors() {
+			c.showDiagnostics(diags)
 			return 1
 		}
+
+		c.Ui.Output("")
 	}
 
 	// If our directory is empty, then we're done. We can't get or setup
 	// the backend with an empty directory.
-	if empty, err := config.IsEmptyDir(path); err != nil {
-		c.Ui.Error(fmt.Sprintf(
-			"Error checking configuration: %s", err))
+	empty, err := config.IsEmptyDir(path)
+	if err != nil {
+		diags = diags.Append(fmt.Errorf("Error checking configuration: %s", err))
 		return 1
-	} else if empty {
+	}
+	if empty {
 		c.Ui.Output(c.Colorize().Color(strings.TrimSpace(outputInitEmpty)))
 		return 0
 	}
@@ -150,33 +169,36 @@ func (c *InitCommand) Run(args []string) int {
 	// If we're performing a get or loading the backend, then we perform
 	// some extra tasks.
 	if flagGet || flagBackend {
-		conf, err := c.Config(path)
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf(
-				"Error loading configuration: %s", err))
+		config, confDiags := c.loadSingleModule(path)
+		diags = diags.Append(confDiags)
+		if confDiags.HasErrors() {
+			// Since this may be the user's first ever interaction with Terraform,
+			// we'll provide some additional context in this case.
+			c.Ui.Error(strings.TrimSpace(errInitConfigError))
+			c.showDiagnostics(diags)
 			return 1
 		}
 
 		// If we requested downloading modules and have modules in the config
-		if flagGet && len(conf.Modules) > 0 {
+		if flagGet && len(config.ModuleCalls) > 0 {
 			header = true
 
-			getMode := module.GetModeGet
 			if flagUpgrade {
-				getMode = module.GetModeUpdate
-				c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
-					"[reset][bold]Upgrading modules...")))
+				c.Ui.Output(c.Colorize().Color(fmt.Sprintf("[reset][bold]Upgrading modules...")))
 			} else {
-				c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
-					"[reset][bold]Downloading modules...")))
+				c.Ui.Output(c.Colorize().Color(fmt.Sprintf("[reset][bold]Initializing modules...")))
 			}
 
-			if err := getModules(&c.Meta, path, getMode); err != nil {
-				c.Ui.Error(fmt.Sprintf(
-					"Error downloading modules: %s", err))
+			hooks := uiModuleInstallHooks{
+				Ui:             c.Ui,
+				ShowLocalPaths: true,
+			}
+			instDiags := c.installModules(path, flagUpgrade, hooks)
+			diags = diags.Append(instDiags)
+			if instDiags.HasErrors() {
+				c.showDiagnostics(diags)
 				return 1
 			}
-
 		}
 
 		// If we're requesting backend configuration or looking for required
@@ -184,24 +206,73 @@ func (c *InitCommand) Run(args []string) int {
 		if flagBackend {
 			header = true
 
+			var backendSchema *configschema.Block
+
 			// Only output that we're initializing a backend if we have
 			// something in the config. We can be UNSETTING a backend as well
 			// in which case we choose not to show this.
-			if conf.Terraform != nil && conf.Terraform.Backend != nil {
-				c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
-					"\n[reset][bold]Initializing the backend...")))
+			if config.Backend != nil {
+				c.Ui.Output(c.Colorize().Color(fmt.Sprintf("\n[reset][bold]Initializing the backend...")))
+
+				backendType := config.Backend.Type
+				bf := backendInit.Backend(backendType)
+				if bf == nil {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Unsupported backend type",
+						Detail:   fmt.Sprintf("There is no backend type named %q.", backendType),
+						Subject:  &config.Backend.TypeRange,
+					})
+					c.showDiagnostics()
+					return 1
+				}
+
+				b := bf()
+				backendSchema = b.ConfigSchema()
+			}
+
+			var backendConfigOverride hcl.Body
+			if backendSchema != nil {
+				var overrideDiags tfdiags.Diagnostics
+				backendConfigOverride, overrideDiags = c.backendConfigOverrideBody(flagConfigExtra, backendSchema)
+				diags = diags.Append(overrideDiags)
+				if overrideDiags.HasErrors() {
+					c.showDiagnostics()
+					return 1
+				}
 			}
 
 			opts := &BackendOpts{
-				Config:      conf,
-				ConfigExtra: flagConfigExtra,
-				Init:        true,
+				Config:         config.Backend,
+				ConfigOverride: backendConfigOverride,
+				Init:           true,
 			}
-			if back, err = c.Backend(opts); err != nil {
-				c.Ui.Error(err.Error())
+			var backDiags tfdiags.Diagnostics
+			back, backDiags = c.Backend(opts)
+			diags = diags.Append(backDiags)
+			if backDiags.HasErrors() {
+				c.showDiagnostics(diags)
 				return 1
 			}
 		}
+	}
+
+	// With modules now installed, we should be able to load the whole
+	// configuration and check the core version constraints.
+	config, confDiags := c.loadConfig(path)
+	diags = diags.Append(confDiags)
+	if confDiags.HasErrors() {
+		// Since this may be the user's first ever interaction with Terraform,
+		// we'll provide some additional context in this case.
+		c.Ui.Error(strings.TrimSpace(errInitConfigError))
+		c.showDiagnostics(diags)
+		return 1
+	}
+	confDiags = terraform.CheckCoreVersionRequirements(config)
+	diags = diags.Append(confDiags)
+	if confDiags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
 	}
 
 	if back == nil {
@@ -209,29 +280,28 @@ func (c *InitCommand) Run(args []string) int {
 		// instantiate one. This might fail if it wasn't already initalized
 		// by a previous run, so we must still expect that "back" may be nil
 		// in code that follows.
-		back, err = c.Backend(nil)
-		if err != nil {
+		var backDiags tfdiags.Diagnostics
+		back, backDiags = c.Backend(nil)
+		if backDiags.HasErrors() {
 			// This is fine. We'll proceed with no backend, then.
 			back = nil
 		}
 	}
 
-	var state *terraform.State
+	var state *states.State
 
 	// If we have a functional backend (either just initialized or initialized
 	// on a previous run) we'll use the current state as a potential source
 	// of provider dependencies.
 	if back != nil {
-		sMgr, err := back.State(c.Workspace())
+		sMgr, err := back.StateMgr(c.Workspace())
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf(
-				"Error loading state: %s", err))
+			c.Ui.Error(fmt.Sprintf("Error loading state: %s", err))
 			return 1
 		}
 
 		if err := sMgr.RefreshState(); err != nil {
-			c.Ui.Error(fmt.Sprintf(
-				"Error refreshing state: %s", err))
+			c.Ui.Error(fmt.Sprintf("Error refreshing state: %s", err))
 			return 1
 		}
 
@@ -243,10 +313,10 @@ func (c *InitCommand) Run(args []string) int {
 	}
 
 	// Now that we have loaded all modules, check the module tree for missing providers.
-	err = c.getProviders(path, state, flagUpgrade)
-	if err != nil {
-		// this function provides its own output
-		log.Printf("[ERROR] %s", err)
+	providerDiags := c.getProviders(path, state, flagUpgrade)
+	diags = diags.Append(providerDiags)
+	if providerDiags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
@@ -256,41 +326,97 @@ func (c *InitCommand) Run(args []string) int {
 		c.Ui.Output("")
 	}
 
+	// If we accumulated any warnings along the way that weren't accompanied
+	// by errors then we'll output them here so that the success message is
+	// still the final thing shown.
+	c.showDiagnostics(diags)
+
 	c.Ui.Output(c.Colorize().Color(strings.TrimSpace(outputInitSuccess)))
+	if !c.RunningInAutomation {
+		// If we're not running in an automation wrapper, give the user
+		// some more detailed next steps that are appropriate for interactive
+		// shell usage.
+		c.Ui.Output(c.Colorize().Color(strings.TrimSpace(outputInitSuccessCLI)))
+	}
 
 	return 0
 }
 
-func (c *InitCommand) copyConfigFromModule(dst, src, pwd string) error {
-	// errors from this function will be prefixed with "Error copying source module: "
-	// when returned to the user.
-	var err error
-
-	src, err = getter.Detect(src, pwd, getter.Detectors)
-	if err != nil {
-		return fmt.Errorf("invalid module source: %s", err)
+// backendConfigOverrideBody interprets the raw values of -backend-config
+// arguments into a hcl Body that should override the backend settings given
+// in the configuration.
+//
+// If the result is nil then no override needs to be provided.
+//
+// If the returned diagnostics contains errors then the returned body may be
+// incomplete or invalid.
+func (c *InitCommand) backendConfigOverrideBody(flags rawFlags, schema *configschema.Block) (hcl.Body, tfdiags.Diagnostics) {
+	items := flags.AllItems()
+	if len(items) == 0 {
+		return nil, nil
 	}
 
-	return module.GetCopy(dst, src)
+	var ret hcl.Body
+	var diags tfdiags.Diagnostics
+	synthVals := make(map[string]cty.Value)
+
+	mergeBody := func(newBody hcl.Body) {
+		if ret == nil {
+			ret = newBody
+		} else {
+			ret = configs.MergeBodies(ret, newBody)
+		}
+	}
+	flushVals := func() {
+		if len(synthVals) == 0 {
+			return
+		}
+		newBody := configs.SynthBody("-backend-config=...", synthVals)
+		mergeBody(newBody)
+		synthVals = make(map[string]cty.Value)
+	}
+
+	for _, item := range items {
+		eq := strings.Index(item.Value, "=")
+
+		if eq == -1 {
+			// The value is interpreted as a filename.
+			newBody, fileDiags := c.loadHCLFile(item.Value)
+			diags = diags.Append(fileDiags)
+			flushVals() // deal with any accumulated individual values first
+			mergeBody(newBody)
+		} else {
+			name := item.Value[:eq]
+			rawValue := item.Value[eq+1:]
+			attrS := schema.Attributes[name]
+			if attrS == nil {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Invalid backend configuration argument",
+					fmt.Sprintf("The backend configuration argument %q given on the command line is not expected for the selected backend type.", name),
+				))
+				continue
+			}
+			value, valueDiags := configValueFromCLI(item.String(), rawValue, attrS.Type)
+			diags = diags.Append(valueDiags)
+			if valueDiags.HasErrors() {
+				continue
+			}
+			synthVals[name] = value
+		}
+	}
+
+	flushVals()
+
+	return ret, diags
 }
 
 // Load the complete module tree, and fetch any missing providers.
 // This method outputs its own Ui.
-func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade bool) error {
-	mod, err := c.Module(path)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error getting plugins: %s", err))
-		return err
-	}
-
-	if err := mod.Validate(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error getting plugins: %s", err))
-		return err
-	}
-
-	if err := terraform.CheckRequiredVersion(mod); err != nil {
-		c.Ui.Error(err.Error())
-		return err
+func (c *InitCommand) getProviders(path string, state *states.State, upgrade bool) tfdiags.Diagnostics {
+	config, diags := c.loadConfig(path)
+	if diags.HasErrors() {
+		return diags
 	}
 
 	var available discovery.PluginMetaSet
@@ -302,7 +428,7 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 		available = c.providerPluginSet()
 	}
 
-	requirements := terraform.ModuleTreeDependencies(mod, state).AllPluginRequirements()
+	requirements := terraform.ConfigTreeDependencies(config, state).AllPluginRequirements()
 	if len(requirements) == 0 {
 		// nothing to initialize
 		return nil
@@ -314,11 +440,9 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 
 	missing := c.missingPlugins(available, requirements)
 
-	var errs error
 	if c.getPlugins {
 		if len(missing) > 0 {
-			c.Ui.Output(fmt.Sprintf("- Checking for available provider plugins on %s...",
-				discovery.GetReleaseHost()))
+			c.Ui.Output("- Checking for available provider plugins...")
 		}
 
 		for provider, reqd := range missing {
@@ -351,12 +475,12 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 					c.Ui.Error(fmt.Sprintf(errProviderInstallError, provider, err.Error(), DefaultPluginVendorDir))
 				}
 
-				errs = multierror.Append(errs, err)
+				diags = diags.Append(err)
 			}
 		}
 
-		if errs != nil {
-			return errs
+		if diags.HasErrors() {
+			return diags
 		}
 	} else if len(missing) > 0 {
 		// we have missing providers, but aren't going to try and download them
@@ -367,11 +491,11 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 			} else {
 				lines = append(lines, fmt.Sprintf("* %s (%s)\n", provider, reqd.Versions))
 			}
-			errs = multierror.Append(errs, fmt.Errorf("missing provider %q", provider))
+			diags = diags.Append(fmt.Errorf("missing provider %q", provider))
 		}
 		sort.Strings(lines)
 		c.Ui.Error(fmt.Sprintf(errMissingProvidersNoInstall, strings.Join(lines, ""), DefaultPluginVendorDir))
-		return errs
+		return diags
 	}
 
 	// With all the providers downloaded, we'll generate our lock file
@@ -379,23 +503,26 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 	// again. If anything changes, other commands that use providers will
 	// fail with an error instructing the user to re-run this command.
 	available = c.providerPluginSet() // re-discover to see newly-installed plugins
-	chosen := choosePlugins(available, requirements)
+
+	// internal providers were already filtered out, since we don't need to get them.
+	chosen := choosePlugins(available, nil, requirements)
+
 	digests := map[string][]byte{}
 	for name, meta := range chosen {
 		digest, err := meta.SHA256()
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("failed to read provider plugin %s: %s", meta.Path, err))
-			return err
+			diags = diags.Append(fmt.Errorf("Failed to read provider plugin %s: %s", meta.Path, err))
+			return diags
 		}
 		digests[name] = digest
 		if c.ignorePluginChecksum {
 			digests[name] = nil
 		}
 	}
-	err = c.providerPluginsLock().Write(digests)
+	err := c.providerPluginsLock().Write(digests)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("failed to save provider manifest: %s", err))
-		return err
+		diags = diags.Append(fmt.Errorf("failed to save provider manifest: %s", err))
+		return diags
 	}
 
 	{
@@ -443,7 +570,30 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 		}
 	}
 
-	return nil
+	return diags
+}
+
+func (c *InitCommand) AutocompleteArgs() complete.Predictor {
+	return complete.PredictDirs("")
+}
+
+func (c *InitCommand) AutocompleteFlags() complete.Flags {
+	return complete.Flags{
+		"-backend":        completePredictBoolean,
+		"-backend-config": complete.PredictFiles("*.tfvars"), // can also be key=value, but we can't "predict" that
+		"-force-copy":     complete.PredictNothing,
+		"-from-module":    completePredictModuleSource,
+		"-get":            completePredictBoolean,
+		"-get-plugins":    completePredictBoolean,
+		"-input":          completePredictBoolean,
+		"-lock":           completePredictBoolean,
+		"-lock-timeout":   complete.PredictAnything,
+		"-no-color":       complete.PredictNothing,
+		"-plugin-dir":     complete.PredictDirs(""),
+		"-reconfigure":    complete.PredictNothing,
+		"-upgrade":        completePredictBoolean,
+		"-verify-plugins": completePredictBoolean,
+	}
 }
 
 func (c *InitCommand) Help() string {
@@ -519,6 +669,13 @@ func (c *InitCommand) Synopsis() string {
 	return "Initialize a Terraform working directory"
 }
 
+const errInitConfigError = `
+There are some problems with the configuration, described below.
+
+The Terraform configuration must be valid before initialization so that
+Terraform can determine which modules and providers need to be installed.
+`
+
 const errInitCopyNotEmpty = `
 The working directory already contains files. The -from-module option requires
 an empty directory into which a copy of the referenced module will be placed.
@@ -536,7 +693,9 @@ with Terraform immediately by creating Terraform configuration files.
 
 const outputInitSuccess = `
 [reset][bold][green]Terraform has been successfully initialized![reset][green]
+`
 
+const outputInitSuccessCLI = `[reset][green]
 You may now begin working with Terraform. Try running "terraform plan" to see
 any changes that are required for your infrastructure. All Terraform commands
 should now work.
@@ -559,7 +718,7 @@ suggested below.
 const errProviderNotFound = `
 [reset][bold][red]Provider %[1]q not available for installation.[reset][red]
 
-A provider named %[1]q could not be found in the official repository.
+A provider named %[1]q could not be found in the Terraform Registry.
 
 This may result from mistyping the provider name, or the given provider may
 be a third-party provider that cannot be installed automatically.

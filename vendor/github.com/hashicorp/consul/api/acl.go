@@ -42,6 +42,24 @@ func (c *Client) ACL() *ACL {
 	return &ACL{c}
 }
 
+// Bootstrap is used to perform a one-time ACL bootstrap operation on a cluster
+// to get the first management token.
+func (a *ACL) Bootstrap() (string, *WriteMeta, error) {
+	r := a.c.newRequest("PUT", "/v1/acl/bootstrap")
+	rtt, resp, err := requireOK(a.c.doRequest(r))
+	if err != nil {
+		return "", nil, err
+	}
+	defer resp.Body.Close()
+
+	wm := &WriteMeta{RequestTime: rtt}
+	var out struct{ ID string }
+	if err := decodeBody(resp, &out); err != nil {
+		return "", nil, err
+	}
+	return out.ID, wm, nil
+}
+
 // Create is used to generate a new token with the given parameters
 func (a *ACL) Create(acl *ACLEntry, q *WriteOptions) (string, *WriteMeta, error) {
 	r := a.c.newRequest("PUT", "/v1/acl/create")

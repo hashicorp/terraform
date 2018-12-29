@@ -27,23 +27,23 @@ func resourceAwsCloudWatchLogDestination() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"role_arn": &schema.Schema{
+			"role_arn": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"target_arn": &schema.Schema{
+			"target_arn": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -121,7 +121,7 @@ func resourceAwsCloudWatchLogDestinationDelete(d *schema.ResourceData, meta inte
 	if err != nil {
 		return fmt.Errorf("Error deleting Destination with name %s", name)
 	}
-	d.SetId("")
+
 	return nil
 }
 

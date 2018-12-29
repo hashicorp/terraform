@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -24,101 +25,110 @@ func resourceAwsRoute53HealthCheck() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"type": &schema.Schema{
+			"type": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 				StateFunc: func(val interface{}) string {
 					return strings.ToUpper(val.(string))
 				},
+				ValidateFunc: validation.StringInSlice([]string{
+					route53.HealthCheckTypeCalculated,
+					route53.HealthCheckTypeCloudwatchMetric,
+					route53.HealthCheckTypeHttp,
+					route53.HealthCheckTypeHttpStrMatch,
+					route53.HealthCheckTypeHttps,
+					route53.HealthCheckTypeHttpsStrMatch,
+					route53.HealthCheckTypeTcp,
+				}, true),
 			},
-			"failure_threshold": &schema.Schema{
+			"failure_threshold": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"request_interval": &schema.Schema{
+			"request_interval": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true, // todo this should be updateable but the awslabs route53 service doesnt have the ability
 			},
-			"ip_address": &schema.Schema{
+			"ip_address": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			"fqdn": &schema.Schema{
+			"fqdn": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"port": &schema.Schema{
+			"port": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
 
-			"invert_healthcheck": &schema.Schema{
+			"invert_healthcheck": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
 
-			"resource_path": &schema.Schema{
+			"resource_path": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"search_string": &schema.Schema{
+			"search_string": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"measure_latency": &schema.Schema{
+			"measure_latency": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 				ForceNew: true,
 			},
 
-			"child_healthchecks": &schema.Schema{
+			"child_healthchecks": {
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
 				Set:      schema.HashString,
 			},
-			"child_health_threshold": &schema.Schema{
-				Type:     schema.TypeInt,
-				Optional: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
-					value := v.(int)
-					if value > 256 {
-						es = append(es, fmt.Errorf(
-							"Child HealthThreshold cannot be more than 256"))
-					}
-					return
-				},
+			"child_health_threshold": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: validation.IntAtMost(256),
 			},
 
-			"cloudwatch_alarm_name": &schema.Schema{
+			"cloudwatch_alarm_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"cloudwatch_alarm_region": &schema.Schema{
+			"cloudwatch_alarm_region": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"insufficient_data_health_status": &schema.Schema{
+			"insufficient_data_health_status": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"reference_name": &schema.Schema{
+			"reference_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			"enable_sni": &schema.Schema{
+			"enable_sni": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
+			},
+
+			"regions": {
+				Type:     schema.TypeSet,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Optional: true,
+				Set:      schema.HashString,
 			},
 
 			"tags": tagsSchema(),
@@ -180,6 +190,10 @@ func resourceAwsRoute53HealthCheckUpdate(d *schema.ResourceData, meta interface{
 
 	if d.HasChange("enable_sni") {
 		updateHealthCheck.EnableSNI = aws.Bool(d.Get("enable_sni").(bool))
+	}
+
+	if d.HasChange("regions") {
+		updateHealthCheck.Regions = expandStringList(d.Get("regions").(*schema.Set).List())
 	}
 
 	_, err := conn.UpdateHealthCheck(updateHealthCheck)
@@ -271,6 +285,10 @@ func resourceAwsRoute53HealthCheckCreate(d *schema.ResourceData, meta interface{
 		}
 	}
 
+	if v, ok := d.GetOk("regions"); ok {
+		healthConfig.Regions = expandStringList(v.(*schema.Set).List())
+	}
+
 	callerRef := resource.UniqueId()
 	if v, ok := d.GetOk("reference_name"); ok {
 		callerRef = fmt.Sprintf("%s-%s", v.(string), callerRef)
@@ -324,10 +342,16 @@ func resourceAwsRoute53HealthCheckRead(d *schema.ResourceData, meta interface{})
 	d.Set("resource_path", updated.ResourcePath)
 	d.Set("measure_latency", updated.MeasureLatency)
 	d.Set("invert_healthcheck", updated.Inverted)
-	d.Set("child_healthchecks", updated.ChildHealthChecks)
+
+	if err := d.Set("child_healthchecks", flattenStringList(updated.ChildHealthChecks)); err != nil {
+		return fmt.Errorf("error setting child_healthchecks: %s", err)
+	}
+
 	d.Set("child_health_threshold", updated.HealthThreshold)
 	d.Set("insufficient_data_health_status", updated.InsufficientDataHealthStatus)
 	d.Set("enable_sni", updated.EnableSNI)
+
+	d.Set("regions", flattenStringList(updated.Regions))
 
 	if updated.AlarmIdentifier != nil {
 		d.Set("cloudwatch_alarm_name", updated.AlarmIdentifier.Name)
@@ -367,13 +391,4 @@ func resourceAwsRoute53HealthCheckDelete(d *schema.ResourceData, meta interface{
 	}
 
 	return nil
-}
-
-func createChildHealthCheckList(s *schema.Set) (nl []*string) {
-	l := s.List()
-	for _, n := range l {
-		nl = append(nl, aws.String(n.(string)))
-	}
-
-	return nl
 }

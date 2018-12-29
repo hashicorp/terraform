@@ -13,7 +13,7 @@ description: |-
 ~> **This is an advanced guide!** When getting started with Terraform, it's
 recommended to use it locally from the command line. Automation can become
 valuable once Terraform is being used regularly in production, or by a larger
-team, but this guide assumes familiarity with the the normal, local CLI
+team, but this guide assumes familiarity with the normal, local CLI
 workflow.
 
 For teams that use Terraform as a key part of a change management and
@@ -45,7 +45,7 @@ such a tool.
 ## Automated Workflow Overview
 
 When running Terraform in automation, the focus is usually on the core
-plan/apply cycle. The main path, then, is the broadly same as for CLI
+plan/apply cycle. The main path, then, is broadly the same as for CLI
 usage:
 
 1. Initialize the Terraform working directory.
@@ -73,6 +73,28 @@ automatically save the state in a persistent location where it can be found
 and updated by subsequent runs. Selecting a backend that supports
 [state locking](/docs/state/locking.html) will additionally provide safety
 against race conditions that can be caused by concurrent Terraform runs.
+
+## Controlling Terraform Output in Automation
+
+By default, some Terraform commands conclude by presenting a description
+of a possible next step to the user, often including a specific command
+to run next.
+
+An automation tool will often abstract away the details of exactly which
+commands are being run, causing these messages to be confusing and
+un-actionable, and possibly harmful if they inadvertently encourage a user to
+bypass the automation tool entirely.
+
+When the environment variable `TF_IN_AUTOMATION` is set to any non-empty
+value, Terraform makes some minor adjustments to its output to de-emphasize
+specific commands to run. The specific changes made will vary over time,
+but generally-speaking Terraform will consider this variable to indicate that
+there is some wrapping application that will help the user with the next
+step.
+
+To reduce complexity, this feature is implemented primarily for the main
+workflow commands described above. Other ancillary commands may still produce
+command line suggestions, regardless of this setting.
 
 ## Plan and Apply on different machines
 
@@ -134,7 +156,7 @@ applied, as opposed to some later plan that also exists.
 Different orchestration tools address this in different ways, but generally
 this is implemented via a _build pipeline_ feature, where different steps
 can be applied in sequence, with later steps having access to data produced
-by earlier steps. 
+by earlier steps.
 
 The recommended approach is to allow only one plan to be outstanding at a
 time. When a plan is applied, any other existing plans that were produced
@@ -152,15 +174,15 @@ Where manual approval is not required, a simpler sequence of commands
 can be used:
 
 * `terraform init -input=false`
-* `terraform apply -input=false -auto-approve=true`
+* `terraform apply -input=false -auto-approve`
 
 This variant of the `apply` command implicitly creates a new plan and then
-immediately applies it. The `-auto-approve=true` option tells Terraform not
+immediately applies it. The `-auto-approve` option tells Terraform not
 to require interactive approval of the plan before applying it.
 
 ~> When Terraform is empowered to make destructive changes to infrastructure,
 manual review of plans is always recommended unless downtime is tolerated
-in the event of unintended changes. Use automatic apply **only** with
+in the event of unintended changes. Use automatic approval **only** with
 non-critical infrastructure.
 
 ## Testing Pull Requests with `terraform plan`
@@ -263,14 +285,14 @@ $ ls -lah /usr/lib/custom-terraform-plugins
 ```
 
 The version information at the end of the filenames is important so that
-Terraform can infer the version number of each plugin. It is allowed to
-concurrently install multiple versions of the same provider plugin,
-which will then be used to satisfy
+Terraform can infer the version number of each plugin. Multiple versions of the
+same provider plugin can be installed, and Terraform will use the newest one
+that matches the
 [provider version constraints](/docs/configuration/providers.html#provider-versions)
-from Terraform configurations.
+in the Terraform configuration.
 
 With this directory populated, the usual auto-download and
-[plugin discovery](/docs/plugins/basics.html#installing-a-plugin)
+[plugin discovery](/docs/extend/how-terraform-works.html#discovery)
 behavior can be bypassed using the `-plugin-dir` option to `terraform init`:
 
 * `terraform init -input=false -plugin-dir=/usr/lib/custom-terraform-plugins`
@@ -285,7 +307,7 @@ unique constraints within each organization.
 Plugins can also be provided along with the configuration by creating a
 `terraform.d/plugins/OS_ARCH` directory, which will be searched before
 automatically downloading additional plugins. The `-get-plugins=false` flag can
-be used to prevent Terraform from automatically downloading additional plugins. 
+be used to prevent Terraform from automatically downloading additional plugins.
 
 ## Terraform Enterprise
 

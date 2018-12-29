@@ -2,6 +2,8 @@ package command
 
 import (
 	"strings"
+
+	"github.com/posener/complete"
 )
 
 type WorkspaceShowCommand struct {
@@ -14,7 +16,7 @@ func (c *WorkspaceShowCommand) Run(args []string) int {
 		return 1
 	}
 
-	cmdFlags := c.Meta.flagSet("workspace show")
+	cmdFlags := c.Meta.extendedFlagSet("workspace show")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -24,6 +26,14 @@ func (c *WorkspaceShowCommand) Run(args []string) int {
 	c.Ui.Output(workspace)
 
 	return 0
+}
+
+func (c *WorkspaceShowCommand) AutocompleteArgs() complete.Predictor {
+	return complete.PredictNothing
+}
+
+func (c *WorkspaceShowCommand) AutocompleteFlags() complete.Flags {
+	return nil
 }
 
 func (c *WorkspaceShowCommand) Help() string {

@@ -1,7 +1,6 @@
 package command
 
 import (
-	"flag"
 	"fmt"
 	"strings"
 
@@ -22,7 +21,7 @@ func (c *GetCommand) Run(args []string) int {
 		return 1
 	}
 
-	cmdFlags := flag.NewFlagSet("get", flag.ContinueOnError)
+	cmdFlags := c.Meta.defaultFlagSet("get")
 	cmdFlags.BoolVar(&update, "update", false, "update")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
@@ -81,7 +80,7 @@ func getModules(m *Meta, path string, mode module.GetMode) error {
 		return fmt.Errorf("Error loading configuration: %s", err)
 	}
 
-	err = mod.Load(m.moduleStorage(m.DataDir()), mode)
+	err = mod.Load(m.moduleStorage(m.DataDir(), mode))
 	if err != nil {
 		return fmt.Errorf("Error loading modules: %s", err)
 	}

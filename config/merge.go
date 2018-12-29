@@ -144,12 +144,8 @@ func Merge(c1, c2 *Config) (*Config, error) {
 		// Explicit length check above because we want c.Locals to remain
 		// nil if the result would be empty.
 		c.Locals = make([]*Local, 0, len(c1.Locals)+len(c2.Locals))
-		for _, v := range c1.Locals {
-			c.Locals = append(c.Locals, v)
-		}
-		for _, v := range c2.Locals {
-			c.Locals = append(c.Locals, v)
-		}
+		c.Locals = append(c.Locals, c1.Locals...)
+		c.Locals = append(c.Locals, c2.Locals...)
 	}
 
 	return c, nil

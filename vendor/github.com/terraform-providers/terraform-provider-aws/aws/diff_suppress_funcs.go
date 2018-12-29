@@ -20,6 +20,19 @@ func suppressEquivalentAwsPolicyDiffs(k, old, new string, d *schema.ResourceData
 	return equivalent
 }
 
+// suppressEquivalentTypeStringBoolean provides custom difference suppression for TypeString booleans
+// Some arguments require three values: true, false, and "" (unspecified), but
+// confusing behavior exists when converting bare true/false values with state.
+func suppressEquivalentTypeStringBoolean(k, old, new string, d *schema.ResourceData) bool {
+	if old == "false" && new == "0" {
+		return true
+	}
+	if old == "true" && new == "1" {
+		return true
+	}
+	return false
+}
+
 // Suppresses minor version changes to the db_instance engine_version attribute
 func suppressAwsDbEngineVersionDiffs(k, old, new string, d *schema.ResourceData) bool {
 	// First check if the old/new values are nil.
@@ -74,4 +87,18 @@ func suppressOpenIdURL(k, old, new string, d *schema.ResourceData) bool {
 	oldUrl.Scheme = "https"
 
 	return oldUrl.String() == newUrl.String()
+}
+
+func suppressAutoscalingGroupAvailabilityZoneDiffs(k, old, new string, d *schema.ResourceData) bool {
+	// If VPC zone identifiers are provided then there is no need to explicitly
+	// specify availability zones.
+	if _, ok := d.GetOk("vpc_zone_identifier"); ok {
+		return true
+	}
+
+	return false
+}
+
+func suppressRoute53ZoneNameWithTrailingDot(k, old, new string, d *schema.ResourceData) bool {
+	return strings.TrimSuffix(old, ".") == strings.TrimSuffix(new, ".")
 }

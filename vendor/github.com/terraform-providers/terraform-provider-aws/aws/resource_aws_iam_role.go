@@ -2,16 +2,17 @@ package aws
 
 import (
 	"fmt"
+	"log"
 	"net/url"
 	"regexp"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsIamRole() *schema.Resource {
@@ -21,7 +22,7 @@ func resourceAwsIamRole() *schema.Resource {
 		Update: resourceAwsIamRoleUpdate,
 		Delete: resourceAwsIamRoleDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: resourceAwsIamRoleImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -57,9 +58,10 @@ func resourceAwsIamRole() *schema.Resource {
 			},
 
 			"name_prefix": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name"},
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					// https://github.com/boto/botocore/blob/2485f5c/botocore/data/iam/2010-05-08/service-2.json#L8329-L8334
 					value := v.(string)
@@ -82,6 +84,12 @@ func resourceAwsIamRole() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"permissions_boundary": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.StringLenBetween(0, 2048),
+			},
+
 			"description": {
 				Type:         schema.TypeString,
 				Optional:     true,
@@ -92,15 +100,36 @@ func resourceAwsIamRole() *schema.Resource {
 				Type:             schema.TypeString,
 				Required:         true,
 				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
-				ValidateFunc:     validateJsonString,
+				ValidateFunc:     validation.ValidateJsonString,
+			},
+
+			"force_detach_policies": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
 			},
 
 			"create_date": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"max_session_duration": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Default:      3600,
+				ValidateFunc: validation.IntBetween(3600, 43200),
+			},
+
+			"tags": tagsSchema(),
 		},
 	}
+}
+
+func resourceAwsIamRoleImport(
+	d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	d.Set("force_detach_policies", false)
+	return []*schema.ResourceData{d}, nil
 }
 
 func resourceAwsIamRoleCreate(d *schema.ResourceData, meta interface{}) error {
@@ -123,6 +152,18 @@ func resourceAwsIamRoleCreate(d *schema.ResourceData, meta interface{}) error {
 
 	if v, ok := d.GetOk("description"); ok {
 		request.Description = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("max_session_duration"); ok {
+		request.MaxSessionDuration = aws.Int64(int64(v.(int)))
+	}
+
+	if v, ok := d.GetOk("permissions_boundary"); ok {
+		request.PermissionsBoundary = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("tags"); ok {
+		request.Tags = tagsFromMapIAM(v.(map[string]interface{}))
 	}
 
 	var createResp *iam.CreateRoleOutput
@@ -152,36 +193,36 @@ func resourceAwsIamRoleRead(d *schema.ResourceData, meta interface{}) error {
 
 	getResp, err := iamconn.GetRole(request)
 	if err != nil {
-		if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" { // XXX test me
+		if isAWSErr(err, iam.ErrCodeNoSuchEntityException, "") {
+			log.Printf("[WARN] IAM Role %q not found, removing from state", d.Id())
 			d.SetId("")
 			return nil
 		}
 		return fmt.Errorf("Error reading IAM Role %s: %s", d.Id(), err)
 	}
 
+	if getResp == nil || getResp.Role == nil {
+		log.Printf("[WARN] IAM Role %q not found, removing from state", d.Id())
+		d.SetId("")
+		return nil
+	}
+
 	role := getResp.Role
 
-	if err := d.Set("name", role.RoleName); err != nil {
-		return err
-	}
-	if err := d.Set("arn", role.Arn); err != nil {
-		return err
-	}
-	if err := d.Set("path", role.Path); err != nil {
-		return err
-	}
-	if err := d.Set("unique_id", role.RoleId); err != nil {
-		return err
-	}
+	d.Set("arn", role.Arn)
 	if err := d.Set("create_date", role.CreateDate.Format(time.RFC3339)); err != nil {
 		return err
 	}
-
-	if role.Description != nil {
-		// the description isn't present in the response to CreateRole.
-		if err := d.Set("description", role.Description); err != nil {
-			return err
-		}
+	d.Set("description", role.Description)
+	d.Set("max_session_duration", role.MaxSessionDuration)
+	d.Set("name", role.RoleName)
+	d.Set("path", role.Path)
+	if role.PermissionsBoundary != nil {
+		d.Set("permissions_boundary", role.PermissionsBoundary.PermissionsBoundaryArn)
+	}
+	d.Set("unique_id", role.RoleId)
+	if err := d.Set("tags", tagsToMapIAM(role.Tags)); err != nil {
+		return fmt.Errorf("error setting tags: %s", err)
 	}
 
 	assumRolePolicy, err := url.QueryUnescape(*role.AssumeRolePolicyDocument)
@@ -204,7 +245,7 @@ func resourceAwsIamRoleUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 		_, err := iamconn.UpdateAssumeRolePolicy(assumeRolePolicyInput)
 		if err != nil {
-			if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" {
+			if isAWSErr(err, iam.ErrCodeNoSuchEntityException, "") {
 				d.SetId("")
 				return nil
 			}
@@ -219,7 +260,7 @@ func resourceAwsIamRoleUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 		_, err := iamconn.UpdateRoleDescription(roleDescriptionInput)
 		if err != nil {
-			if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" {
+			if isAWSErr(err, iam.ErrCodeNoSuchEntityException, "") {
 				d.SetId("")
 				return nil
 			}
@@ -227,7 +268,73 @@ func resourceAwsIamRoleUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	return nil
+	if d.HasChange("max_session_duration") {
+		roleMaxDurationInput := &iam.UpdateRoleInput{
+			RoleName:           aws.String(d.Id()),
+			MaxSessionDuration: aws.Int64(int64(d.Get("max_session_duration").(int))),
+		}
+		_, err := iamconn.UpdateRole(roleMaxDurationInput)
+		if err != nil {
+			if isAWSErr(err, iam.ErrCodeNoSuchEntityException, "") {
+				d.SetId("")
+				return nil
+			}
+			return fmt.Errorf("Error Updating IAM Role (%s) Max Session Duration: %s", d.Id(), err)
+		}
+	}
+
+	if d.HasChange("permissions_boundary") {
+		permissionsBoundary := d.Get("permissions_boundary").(string)
+		if permissionsBoundary != "" {
+			input := &iam.PutRolePermissionsBoundaryInput{
+				PermissionsBoundary: aws.String(permissionsBoundary),
+				RoleName:            aws.String(d.Id()),
+			}
+			_, err := iamconn.PutRolePermissionsBoundary(input)
+			if err != nil {
+				return fmt.Errorf("error updating IAM Role permissions boundary: %s", err)
+			}
+		} else {
+			input := &iam.DeleteRolePermissionsBoundaryInput{
+				RoleName: aws.String(d.Id()),
+			}
+			_, err := iamconn.DeleteRolePermissionsBoundary(input)
+			if err != nil {
+				return fmt.Errorf("error deleting IAM Role permissions boundary: %s", err)
+			}
+		}
+	}
+
+	if d.HasChange("tags") {
+		// Reset all tags to empty set
+		oraw, nraw := d.GetChange("tags")
+		o := oraw.(map[string]interface{})
+		n := nraw.(map[string]interface{})
+		c, r := diffTagsIAM(tagsFromMapIAM(o), tagsFromMapIAM(n))
+
+		if len(r) > 0 {
+			_, err := iamconn.UntagRole(&iam.UntagRoleInput{
+				RoleName: aws.String(d.Id()),
+				TagKeys:  tagKeysIam(r),
+			})
+			if err != nil {
+				return fmt.Errorf("error deleting IAM role tags: %s", err)
+			}
+		}
+
+		if len(c) > 0 {
+			input := &iam.TagRoleInput{
+				RoleName: aws.String(d.Id()),
+				Tags:     c,
+			}
+			_, err := iamconn.TagRole(input)
+			if err != nil {
+				return fmt.Errorf("error update IAM role tags: %s", err)
+			}
+		}
+	}
+
+	return resourceAwsIamRoleRead(d, meta)
 }
 
 func resourceAwsIamRoleDelete(d *schema.ResourceData, meta interface{}) error {
@@ -254,16 +361,75 @@ func resourceAwsIamRoleDelete(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	request := &iam.DeleteRoleInput{
+	if d.Get("force_detach_policies").(bool) {
+		// For managed policies
+		managedPolicies := make([]*string, 0)
+		err = iamconn.ListAttachedRolePoliciesPages(&iam.ListAttachedRolePoliciesInput{
+			RoleName: aws.String(d.Id()),
+		}, func(page *iam.ListAttachedRolePoliciesOutput, lastPage bool) bool {
+			for _, v := range page.AttachedPolicies {
+				managedPolicies = append(managedPolicies, v.PolicyArn)
+			}
+			return len(page.AttachedPolicies) > 0
+		})
+		if err != nil {
+			return fmt.Errorf("Error listing Policies for IAM Role (%s) when trying to delete: %s", d.Id(), err)
+		}
+		if len(managedPolicies) > 0 {
+			for _, parn := range managedPolicies {
+				_, err = iamconn.DetachRolePolicy(&iam.DetachRolePolicyInput{
+					PolicyArn: parn,
+					RoleName:  aws.String(d.Id()),
+				})
+				if err != nil {
+					if isAWSErr(err, iam.ErrCodeNoSuchEntityException, "") {
+						log.Printf("[WARN] Role policy attachment (%s) was already removed from role (%s)", aws.StringValue(parn), d.Id())
+					} else {
+						return fmt.Errorf("Error deleting IAM Role %s: %s", d.Id(), err)
+					}
+				}
+			}
+		}
+
+		// For inline policies
+		inlinePolicies := make([]*string, 0)
+		err = iamconn.ListRolePoliciesPages(&iam.ListRolePoliciesInput{
+			RoleName: aws.String(d.Id()),
+		}, func(page *iam.ListRolePoliciesOutput, lastPage bool) bool {
+			for _, v := range page.PolicyNames {
+				inlinePolicies = append(inlinePolicies, v)
+			}
+			return len(page.PolicyNames) > 0
+		})
+		if err != nil {
+			return fmt.Errorf("Error listing inline Policies for IAM Role (%s) when trying to delete: %s", d.Id(), err)
+		}
+		if len(inlinePolicies) > 0 {
+			for _, pname := range inlinePolicies {
+				_, err := iamconn.DeleteRolePolicy(&iam.DeleteRolePolicyInput{
+					PolicyName: pname,
+					RoleName:   aws.String(d.Id()),
+				})
+				if err != nil {
+					if isAWSErr(err, iam.ErrCodeNoSuchEntityException, "") {
+						log.Printf("[WARN] Inline role policy (%s) was already removed from role (%s)", aws.StringValue(pname), d.Id())
+					} else {
+						return fmt.Errorf("Error deleting inline policy of IAM Role %s: %s", d.Id(), err)
+					}
+				}
+			}
+		}
+	}
+
+	deleteRoleInput := &iam.DeleteRoleInput{
 		RoleName: aws.String(d.Id()),
 	}
 
 	// IAM is eventually consistent and deletion of attached policies may take time
 	return resource.Retry(30*time.Second, func() *resource.RetryError {
-		_, err := iamconn.DeleteRole(request)
+		_, err := iamconn.DeleteRole(deleteRoleInput)
 		if err != nil {
-			awsErr, ok := err.(awserr.Error)
-			if ok && awsErr.Code() == "DeleteConflict" {
+			if isAWSErr(err, iam.ErrCodeDeleteConflictException, "") {
 				return resource.RetryableError(err)
 			}
 

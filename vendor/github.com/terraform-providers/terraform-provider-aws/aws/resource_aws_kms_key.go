@@ -8,9 +8,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/kms"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/structure"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsKmsKey() *schema.Resource {
@@ -26,61 +27,50 @@ func resourceAwsKmsKey() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"key_id": &schema.Schema{
+			"key_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"key_usage": &schema.Schema{
+			"key_usage": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
-					value := v.(string)
-					if !(value == "ENCRYPT_DECRYPT" || value == "") {
-						es = append(es, fmt.Errorf(
-							"%q must be ENCRYPT_DECRYPT or not specified", k))
-					}
-					return
-				},
+				ValidateFunc: validation.StringInSlice([]string{
+					"",
+					kms.KeyUsageTypeEncryptDecrypt,
+				}, false),
 			},
-			"policy": &schema.Schema{
+			"policy": {
 				Type:             schema.TypeString,
 				Optional:         true,
 				Computed:         true,
-				ValidateFunc:     validateJsonString,
+				ValidateFunc:     validation.ValidateJsonString,
 				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 			},
-			"is_enabled": &schema.Schema{
+			"is_enabled": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 			},
-			"enable_key_rotation": &schema.Schema{
+			"enable_key_rotation": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
-			"deletion_window_in_days": &schema.Schema{
-				Type:     schema.TypeInt,
-				Optional: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
-					value := v.(int)
-					if value > 30 || value < 7 {
-						es = append(es, fmt.Errorf(
-							"%q must be between 7 and 30 days inclusive", k))
-					}
-					return
-				},
+			"deletion_window_in_days": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: validation.IntBetween(7, 30),
 			},
 			"tags": tagsSchema(),
 		},
@@ -125,7 +115,7 @@ func resourceAwsKmsKeyCreate(d *schema.ResourceData, meta interface{}) error {
 	d.SetId(*resp.KeyMetadata.KeyId)
 	d.Set("key_id", resp.KeyMetadata.KeyId)
 
-	return _resourceAwsKmsKeyUpdate(d, meta, true)
+	return resourceAwsKmsKeyUpdate(d, meta)
 }
 
 func resourceAwsKmsKeyRead(d *schema.ResourceData, meta interface{}) error {
@@ -134,7 +124,18 @@ func resourceAwsKmsKeyRead(d *schema.ResourceData, meta interface{}) error {
 	req := &kms.DescribeKeyInput{
 		KeyId: aws.String(d.Id()),
 	}
-	resp, err := conn.DescribeKey(req)
+
+	var resp *kms.DescribeKeyOutput
+	var err error
+	if d.IsNewResource() {
+		var out interface{}
+		out, err = retryOnAwsCode("NotFoundException", func() (interface{}, error) {
+			return conn.DescribeKey(req)
+		})
+		resp, _ = out.(*kms.DescribeKeyOutput)
+	} else {
+		resp, err = conn.DescribeKey(req)
+	}
 	if err != nil {
 		return err
 	}
@@ -154,50 +155,53 @@ func resourceAwsKmsKeyRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("key_usage", metadata.KeyUsage)
 	d.Set("is_enabled", metadata.Enabled)
 
-	p, err := conn.GetKeyPolicy(&kms.GetKeyPolicyInput{
-		KeyId:      metadata.KeyId,
-		PolicyName: aws.String("default"),
+	pOut, err := retryOnAwsCode("NotFoundException", func() (interface{}, error) {
+		return conn.GetKeyPolicy(&kms.GetKeyPolicyInput{
+			KeyId:      metadata.KeyId,
+			PolicyName: aws.String("default"),
+		})
 	})
 	if err != nil {
 		return err
 	}
 
-	policy, err := normalizeJsonString(*p.Policy)
+	p := pOut.(*kms.GetKeyPolicyOutput)
+	policy, err := structure.NormalizeJsonString(*p.Policy)
 	if err != nil {
-		return errwrap.Wrapf("policy contains an invalid JSON: {{err}}", err)
+		return fmt.Errorf("policy contains an invalid JSON: %s", err)
 	}
 	d.Set("policy", policy)
 
-	krs, err := conn.GetKeyRotationStatus(&kms.GetKeyRotationStatusInput{
-		KeyId: metadata.KeyId,
+	out, err := retryOnAwsCode("NotFoundException", func() (interface{}, error) {
+		return conn.GetKeyRotationStatus(&kms.GetKeyRotationStatusInput{
+			KeyId: metadata.KeyId,
+		})
 	})
 	if err != nil {
 		return err
 	}
+	krs, _ := out.(*kms.GetKeyRotationStatusOutput)
 	d.Set("enable_key_rotation", krs.KeyRotationEnabled)
 
-	tagList, err := conn.ListResourceTags(&kms.ListResourceTagsInput{
-		KeyId: metadata.KeyId,
+	tOut, err := retryOnAwsCode("NotFoundException", func() (interface{}, error) {
+		return conn.ListResourceTags(&kms.ListResourceTagsInput{
+			KeyId: metadata.KeyId,
+		})
 	})
 	if err != nil {
 		return fmt.Errorf("Failed to get KMS key tags (key: %s): %s", d.Get("key_id").(string), err)
 	}
+	tagList := tOut.(*kms.ListResourceTagsOutput)
 	d.Set("tags", tagsToMapKMS(tagList.Tags))
 
 	return nil
 }
 
 func resourceAwsKmsKeyUpdate(d *schema.ResourceData, meta interface{}) error {
-	return _resourceAwsKmsKeyUpdate(d, meta, false)
-}
-
-// We expect new keys to be enabled already
-// but there is no easy way to differentiate between Update()
-// called from Create() and regular update, so we have this wrapper
-func _resourceAwsKmsKeyUpdate(d *schema.ResourceData, meta interface{}, isFresh bool) error {
 	conn := meta.(*AWSClient).kmsconn
 
-	if d.HasChange("is_enabled") && d.Get("is_enabled").(bool) && !isFresh {
+	// We expect new keys to be enabled already
+	if d.HasChange("is_enabled") && d.Get("is_enabled").(bool) && !d.IsNewResource() {
 		// Enable before any attributes will be modified
 		if err := updateKmsKeyStatus(conn, d.Id(), d.Get("is_enabled").(bool)); err != nil {
 			return err
@@ -246,14 +250,16 @@ func resourceAwsKmsKeyDescriptionUpdate(conn *kms.KMS, d *schema.ResourceData) e
 		Description: aws.String(description),
 		KeyId:       aws.String(keyId),
 	}
-	_, err := conn.UpdateKeyDescription(req)
+	_, err := retryOnAwsCode("NotFoundException", func() (interface{}, error) {
+		return conn.UpdateKeyDescription(req)
+	})
 	return err
 }
 
 func resourceAwsKmsKeyPolicyUpdate(conn *kms.KMS, d *schema.ResourceData) error {
-	policy, err := normalizeJsonString(d.Get("policy").(string))
+	policy, err := structure.NormalizeJsonString(d.Get("policy").(string))
 	if err != nil {
-		return errwrap.Wrapf("policy contains an invalid JSON: {{err}}", err)
+		return fmt.Errorf("policy contains an invalid JSON: %s", err)
 	}
 	keyId := d.Get("key_id").(string)
 
@@ -264,7 +270,9 @@ func resourceAwsKmsKeyPolicyUpdate(conn *kms.KMS, d *schema.ResourceData) error 
 		Policy:     aws.String(policy),
 		PolicyName: aws.String("default"),
 	}
-	_, err = conn.PutKeyPolicy(req)
+	_, err = retryOnAwsCode("NotFoundException", func() (interface{}, error) {
+		return conn.PutKeyPolicy(req)
+	})
 	return err
 }
 
@@ -294,7 +302,7 @@ func updateKmsKeyStatus(conn *kms.KMS, id string, shouldBeEnabled bool) error {
 		Target:                    []string{fmt.Sprintf("%t", shouldBeEnabled)},
 		Timeout:                   20 * time.Minute,
 		MinTimeout:                2 * time.Second,
-		ContinuousTargetOccurence: 10,
+		ContinuousTargetOccurence: 15,
 		Refresh: func() (interface{}, string, error) {
 			log.Printf("[DEBUG] Checking if KMS key %s enabled status is %t",
 				id, shouldBeEnabled)
@@ -302,6 +310,10 @@ func updateKmsKeyStatus(conn *kms.KMS, id string, shouldBeEnabled bool) error {
 				KeyId: aws.String(id),
 			})
 			if err != nil {
+				awsErr, ok := err.(awserr.Error)
+				if ok && awsErr.Code() == "NotFoundException" {
+					return nil, fmt.Sprintf("%t", !shouldBeEnabled), nil
+				}
 				return resp, "FAILED", err
 			}
 			status := fmt.Sprintf("%t", *resp.KeyMetadata.Enabled)
@@ -322,7 +334,7 @@ func updateKmsKeyStatus(conn *kms.KMS, id string, shouldBeEnabled bool) error {
 func updateKmsKeyRotationStatus(conn *kms.KMS, d *schema.ResourceData) error {
 	shouldEnableRotation := d.Get("enable_key_rotation").(bool)
 
-	err := resource.Retry(5*time.Minute, func() *resource.RetryError {
+	err := resource.Retry(10*time.Minute, func() *resource.RetryError {
 		var err error
 		if shouldEnableRotation {
 			log.Printf("[DEBUG] Enabling key rotation for KMS key %q", d.Id())
@@ -339,6 +351,9 @@ func updateKmsKeyRotationStatus(conn *kms.KMS, d *schema.ResourceData) error {
 		if err != nil {
 			awsErr, ok := err.(awserr.Error)
 			if ok && awsErr.Code() == "DisabledException" {
+				return resource.RetryableError(err)
+			}
+			if ok && awsErr.Code() == "NotFoundException" {
 				return resource.RetryableError(err)
 			}
 
@@ -363,12 +378,17 @@ func updateKmsKeyRotationStatus(conn *kms.KMS, d *schema.ResourceData) error {
 		Refresh: func() (interface{}, string, error) {
 			log.Printf("[DEBUG] Checking if KMS key %s rotation status is %t",
 				d.Id(), shouldEnableRotation)
-			resp, err := conn.GetKeyRotationStatus(&kms.GetKeyRotationStatusInput{
-				KeyId: aws.String(d.Id()),
+
+			out, err := retryOnAwsCode("NotFoundException", func() (interface{}, error) {
+				return conn.GetKeyRotationStatus(&kms.GetKeyRotationStatusInput{
+					KeyId: aws.String(d.Id()),
+				})
 			})
 			if err != nil {
-				return resp, "FAILED", err
+				return 42, "", err
 			}
+			resp, _ := out.(*kms.GetKeyRotationStatusOutput)
+
 			status := fmt.Sprintf("%t", *resp.KeyRotationEnabled)
 			log.Printf("[DEBUG] KMS key %s rotation status received: %s, retrying", d.Id(), status)
 
@@ -452,6 +472,6 @@ func resourceAwsKmsKeyDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	log.Printf("[DEBUG] KMS Key %s deactivated.", keyId)
-	d.SetId("")
+
 	return nil
 }

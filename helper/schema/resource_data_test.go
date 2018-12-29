@@ -3,6 +3,7 @@ package schema
 import (
 	"fmt"
 	"math"
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -1365,6 +1366,11 @@ func TestResourceDataTimeout(t *testing.T) {
 			Rd:       &ResourceData{timeouts: timeoutForValues(10, 3, 0, 0, 13)},
 			Expected: expectedTimeoutForValues(10, 3, 13, 13, 13),
 		},
+		{
+			Name:     "Resource has no config",
+			Rd:       &ResourceData{},
+			Expected: expectedTimeoutForValues(0, 0, 0, 0, 0),
+		},
 	}
 
 	keys := timeoutKeys()
@@ -1397,7 +1403,7 @@ func TestResourceDataTimeout(t *testing.T) {
 				// confirm values
 				if ex != nil {
 					if got != *ex {
-						t.Fatalf("Timeout %s case (%d) expected (%#v), got (%#v)", k, i, *ex, got)
+						t.Fatalf("Timeout %s case (%d) expected (%s), got (%s)", k, i, *ex, got)
 					}
 				}
 			}
@@ -2053,7 +2059,74 @@ func TestResourceDataSet(t *testing.T) {
 			GetKey:   "availability_zone",
 			GetValue: "",
 		},
+
+		// #16: Set in a list
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type: TypeList,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"set": &Schema{
+								Type: TypeSet,
+								Elem: &Schema{Type: TypeInt},
+								Set: func(a interface{}) int {
+									return a.(int)
+								},
+							},
+						},
+					},
+				},
+			},
+
+			State: nil,
+
+			Key: "ports",
+			Value: []interface{}{
+				map[string]interface{}{
+					"set": []interface{}{
+						1,
+					},
+				},
+			},
+
+			GetKey: "ports",
+			GetValue: []interface{}{
+				map[string]interface{}{
+					"set": []interface{}{
+						1,
+					},
+				},
+			},
+			GetPreProcess: func(v interface{}) interface{} {
+				if v == nil {
+					return v
+				}
+				s, ok := v.([]interface{})
+				if !ok {
+					return v
+				}
+				for _, v := range s {
+					m, ok := v.(map[string]interface{})
+					if !ok {
+						continue
+					}
+					if m["set"] == nil {
+						continue
+					}
+					if s, ok := m["set"].(*Set); ok {
+						m["set"] = s.List()
+					}
+				}
+
+				return v
+			},
+		},
 	}
+
+	oldEnv := os.Getenv(PanicOnErr)
+	os.Setenv(PanicOnErr, "")
+	defer os.Setenv(PanicOnErr, oldEnv)
 
 	for i, tc := range cases {
 		d, err := schemaMap(tc.Schema).Data(tc.State, tc.Diff)
@@ -3430,7 +3503,10 @@ func TestResourceDataSetId(t *testing.T) {
 	d.SetId("foo")
 
 	actual := d.State()
-	if actual.ID != "foo" {
+
+	// SetId should set both the ID field as well as the attribute, to aid in
+	// transitioning to the new type system.
+	if actual.ID != "foo" && actual.Attributes["id"] != "foo" {
 		t.Fatalf("bad: %#v", actual)
 	}
 }

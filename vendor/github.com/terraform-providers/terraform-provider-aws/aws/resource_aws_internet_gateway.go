@@ -8,7 +8,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -24,11 +23,15 @@ func resourceAwsInternetGateway() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"vpc_id": &schema.Schema{
+			"vpc_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 			"tags": tagsSchema(),
+			"owner_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -62,7 +65,7 @@ func resourceAwsInternetGatewayCreate(d *schema.ResourceData, meta interface{}) 
 	})
 
 	if err != nil {
-		return errwrap.Wrapf("{{err}}", err)
+		return fmt.Errorf("%s", err)
 	}
 
 	err = setTags(conn, d)
@@ -71,7 +74,12 @@ func resourceAwsInternetGatewayCreate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	// Attach the new gateway to the correct vpc
-	return resourceAwsInternetGatewayAttach(d, meta)
+	err = resourceAwsInternetGatewayAttach(d, meta)
+	if err != nil {
+		return fmt.Errorf("error attaching EC2 Internet Gateway (%s): %s", d.Id(), err)
+	}
+
+	return resourceAwsInternetGatewayRead(d, meta)
 }
 
 func resourceAwsInternetGatewayRead(d *schema.ResourceData, meta interface{}) error {
@@ -96,6 +104,7 @@ func resourceAwsInternetGatewayRead(d *schema.ResourceData, meta interface{}) er
 	}
 
 	d.Set("tags", tagsToMap(ig.Tags))
+	d.Set("owner_id", ig.OwnerId)
 
 	return nil
 }
@@ -121,7 +130,7 @@ func resourceAwsInternetGatewayUpdate(d *schema.ResourceData, meta interface{}) 
 
 	d.SetPartial("tags")
 
-	return nil
+	return resourceAwsInternetGatewayRead(d, meta)
 }
 
 func resourceAwsInternetGatewayDelete(d *schema.ResourceData, meta interface{}) error {
@@ -265,21 +274,48 @@ func detachIGStateRefreshFunc(conn *ec2.EC2, gatewayID, vpcID string) resource.S
 				switch ec2err.Code() {
 				case "InvalidInternetGatewayID.NotFound":
 					log.Printf("[TRACE] Error detaching Internet Gateway '%s' from VPC '%s': %s", gatewayID, vpcID, err)
-					return nil, "Not Found", nil
+					return nil, "", nil
 
 				case "Gateway.NotAttached":
-					return "detached", "detached", nil
+					return 42, "detached", nil
 
 				case "DependencyViolation":
-					return nil, "detaching", nil
+					// This can be caused by associated public IPs left (e.g. by ELBs)
+					// and here we find and log which ones are to blame
+					out, err := findPublicNetworkInterfacesForVpcID(conn, vpcID)
+					if err != nil {
+						return 42, "detaching", err
+					}
+					if len(out.NetworkInterfaces) > 0 {
+						log.Printf("[DEBUG] Waiting for the following %d ENIs to be gone: %s",
+							len(out.NetworkInterfaces), out.NetworkInterfaces)
+					}
+
+					return 42, "detaching", nil
 				}
 			}
+			return 42, "", err
 		}
 
 		// DetachInternetGateway only returns an error, so if it's nil, assume we're
 		// detached
-		return "detached", "detached", nil
+		return 42, "detached", nil
 	}
+}
+
+func findPublicNetworkInterfacesForVpcID(conn *ec2.EC2, vpcID string) (*ec2.DescribeNetworkInterfacesOutput, error) {
+	return conn.DescribeNetworkInterfaces(&ec2.DescribeNetworkInterfacesInput{
+		Filters: []*ec2.Filter{
+			{
+				Name:   aws.String("vpc-id"),
+				Values: []*string{aws.String(vpcID)},
+			},
+			{
+				Name:   aws.String("association.public-ip"),
+				Values: []*string{aws.String("*")},
+			},
+		},
+	})
 }
 
 // IGStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch

@@ -4,8 +4,6 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
-
-	"github.com/hashicorp/go-getter"
 )
 
 // TestTree loads a module at the given path and returns the tree as well
@@ -26,8 +24,8 @@ func TestTree(t *testing.T, path string) (*Tree, func()) {
 	}
 
 	// Get the child modules
-	s := &getter.FolderStorage{StorageDir: dir}
-	if err := mod.Load(s, GetModeGet); err != nil {
+	s := &Storage{StorageDir: dir, Mode: GetModeGet}
+	if err := mod.Load(s); err != nil {
 		t.Fatalf("err: %s", err)
 		return nil, nil
 	}

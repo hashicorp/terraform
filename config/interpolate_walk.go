@@ -271,9 +271,7 @@ func (w *interpolationWalker) splitSlice() {
 				result = append(result, val.Value)
 			}
 		case []interface{}:
-			for _, element := range val {
-				result = append(result, element)
-			}
+			result = append(result, val...)
 		default:
 			result = append(result, v)
 		}

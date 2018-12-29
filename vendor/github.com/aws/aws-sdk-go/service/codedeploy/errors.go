@@ -141,11 +141,51 @@ const (
 	// The specified deployment has not started.
 	ErrCodeDeploymentNotStartedException = "DeploymentNotStartedException"
 
+	// ErrCodeDeploymentTargetDoesNotExistException for service response error code
+	// "DeploymentTargetDoesNotExistException".
+	//
+	// The provided target ID does not belong to the attempted deployment.
+	ErrCodeDeploymentTargetDoesNotExistException = "DeploymentTargetDoesNotExistException"
+
+	// ErrCodeDeploymentTargetIdRequiredException for service response error code
+	// "DeploymentTargetIdRequiredException".
+	//
+	// A deployment target ID was not provided.
+	ErrCodeDeploymentTargetIdRequiredException = "DeploymentTargetIdRequiredException"
+
+	// ErrCodeDeploymentTargetListSizeExceededException for service response error code
+	// "DeploymentTargetListSizeExceededException".
+	//
+	// The maximum number of targets that can be associated with an Amazon ECS or
+	// AWS Lambda deployment was exceeded. The target list of both types of deployments
+	// must have exactly one item. This exception does not apply to EC2/On-premises
+	// deployments.
+	ErrCodeDeploymentTargetListSizeExceededException = "DeploymentTargetListSizeExceededException"
+
 	// ErrCodeDescriptionTooLongException for service response error code
 	// "DescriptionTooLongException".
 	//
 	// The description is too long.
 	ErrCodeDescriptionTooLongException = "DescriptionTooLongException"
+
+	// ErrCodeECSServiceMappingLimitExceededException for service response error code
+	// "ECSServiceMappingLimitExceededException".
+	//
+	// The Amazon ECS service is associated with more than one deployment groups.
+	// An ECS service can only be associated with one deployment group.
+	ErrCodeECSServiceMappingLimitExceededException = "ECSServiceMappingLimitExceededException"
+
+	// ErrCodeGitHubAccountTokenDoesNotExistException for service response error code
+	// "GitHubAccountTokenDoesNotExistException".
+	//
+	// No GitHub account connection exists with the named specified in the call.
+	ErrCodeGitHubAccountTokenDoesNotExistException = "GitHubAccountTokenDoesNotExistException"
+
+	// ErrCodeGitHubAccountTokenNameRequiredException for service response error code
+	// "GitHubAccountTokenNameRequiredException".
+	//
+	// The call is missing a required GitHub account connection name.
+	ErrCodeGitHubAccountTokenNameRequiredException = "GitHubAccountTokenNameRequiredException"
 
 	// ErrCodeIamArnRequiredException for service response error code
 	// "IamArnRequiredException".
@@ -260,6 +300,12 @@ const (
 	// The bucket name either doesn't exist or was specified in an invalid format.
 	ErrCodeInvalidBucketNameFilterException = "InvalidBucketNameFilterException"
 
+	// ErrCodeInvalidComputePlatformException for service response error code
+	// "InvalidComputePlatformException".
+	//
+	// The computePlatform is invalid. The computePlatform should be Lambda or Server.
+	ErrCodeInvalidComputePlatformException = "InvalidComputePlatformException"
+
 	// ErrCodeInvalidDeployedStateFilterException for service response error code
 	// "InvalidDeployedStateFilterException".
 	//
@@ -305,11 +351,36 @@ const (
 	// and "WITHOUT_TRAFFIC_CONTROL".
 	ErrCodeInvalidDeploymentStyleException = "InvalidDeploymentStyleException"
 
+	// ErrCodeInvalidDeploymentTargetIdException for service response error code
+	// "InvalidDeploymentTargetIdException".
+	//
+	// The target ID provide was not valid.
+	ErrCodeInvalidDeploymentTargetIdException = "InvalidDeploymentTargetIdException"
+
+	// ErrCodeInvalidDeploymentWaitTypeException for service response error code
+	// "InvalidDeploymentWaitTypeException".
+	//
+	// The wait type is invalid.
+	ErrCodeInvalidDeploymentWaitTypeException = "InvalidDeploymentWaitTypeException"
+
+	// ErrCodeInvalidEC2TagCombinationException for service response error code
+	// "InvalidEC2TagCombinationException".
+	//
+	// A call was submitted that specified both Ec2TagFilters and Ec2TagSet, but
+	// only one of these data types can be used in a single call.
+	ErrCodeInvalidEC2TagCombinationException = "InvalidEC2TagCombinationException"
+
 	// ErrCodeInvalidEC2TagException for service response error code
 	// "InvalidEC2TagException".
 	//
 	// The tag was specified in an invalid format.
 	ErrCodeInvalidEC2TagException = "InvalidEC2TagException"
+
+	// ErrCodeInvalidECSServiceException for service response error code
+	// "InvalidECSServiceException".
+	//
+	// The Amazon ECS service identifier is not valid.
+	ErrCodeInvalidECSServiceException = "InvalidECSServiceException"
 
 	// ErrCodeInvalidFileExistsBehaviorException for service response error code
 	// "InvalidFileExistsBehaviorException".
@@ -319,6 +390,18 @@ const (
 	// but weren't part of the previous successful deployment. Valid values include
 	// "DISALLOW", "OVERWRITE", and "RETAIN".
 	ErrCodeInvalidFileExistsBehaviorException = "InvalidFileExistsBehaviorException"
+
+	// ErrCodeInvalidGitHubAccountTokenException for service response error code
+	// "InvalidGitHubAccountTokenException".
+	//
+	// The GitHub token is not valid.
+	ErrCodeInvalidGitHubAccountTokenException = "InvalidGitHubAccountTokenException"
+
+	// ErrCodeInvalidGitHubAccountTokenNameException for service response error code
+	// "InvalidGitHubAccountTokenNameException".
+	//
+	// The format of the specified GitHub account connection name is invalid.
+	ErrCodeInvalidGitHubAccountTokenNameException = "InvalidGitHubAccountTokenNameException"
 
 	// ErrCodeInvalidIamSessionArnException for service response error code
 	// "InvalidIamSessionArnException".
@@ -331,6 +414,19 @@ const (
 	//
 	// The IAM user ARN was specified in an invalid format.
 	ErrCodeInvalidIamUserArnException = "InvalidIamUserArnException"
+
+	// ErrCodeInvalidIgnoreApplicationStopFailuresValueException for service response error code
+	// "InvalidIgnoreApplicationStopFailuresValueException".
+	//
+	// The IgnoreApplicationStopFailures value is invalid. For AWS Lambda deployments,
+	// false is expected. For EC2/On-premises deployments, true or false is expected.
+	ErrCodeInvalidIgnoreApplicationStopFailuresValueException = "InvalidIgnoreApplicationStopFailuresValueException"
+
+	// ErrCodeInvalidInputException for service response error code
+	// "InvalidInputException".
+	//
+	// The specified input was specified in an invalid format.
+	ErrCodeInvalidInputException = "InvalidInputException"
 
 	// ErrCodeInvalidInstanceNameException for service response error code
 	// "InvalidInstanceNameException".
@@ -358,6 +454,20 @@ const (
 	// The specified key prefix filter was specified in an invalid format.
 	ErrCodeInvalidKeyPrefixFilterException = "InvalidKeyPrefixFilterException"
 
+	// ErrCodeInvalidLifecycleEventHookExecutionIdException for service response error code
+	// "InvalidLifecycleEventHookExecutionIdException".
+	//
+	// A lifecycle event hook is invalid. Review the hooks section in your AppSpec
+	// file to ensure the lifecycle events and hooks functions are valid.
+	ErrCodeInvalidLifecycleEventHookExecutionIdException = "InvalidLifecycleEventHookExecutionIdException"
+
+	// ErrCodeInvalidLifecycleEventHookExecutionStatusException for service response error code
+	// "InvalidLifecycleEventHookExecutionStatusException".
+	//
+	// The result of a Lambda validation function that verifies a lifecycle event
+	// is invalid. It should return Succeeded or Failed.
+	ErrCodeInvalidLifecycleEventHookExecutionStatusException = "InvalidLifecycleEventHookExecutionStatusException"
+
 	// ErrCodeInvalidLoadBalancerInfoException for service response error code
 	// "InvalidLoadBalancerInfoException".
 	//
@@ -375,6 +485,13 @@ const (
 	//
 	// The next token was specified in an invalid format.
 	ErrCodeInvalidNextTokenException = "InvalidNextTokenException"
+
+	// ErrCodeInvalidOnPremisesTagCombinationException for service response error code
+	// "InvalidOnPremisesTagCombinationException".
+	//
+	// A call was submitted that specified both OnPremisesTagFilters and OnPremisesTagSet,
+	// but only one of these data types can be used in a single call.
+	ErrCodeInvalidOnPremisesTagCombinationException = "InvalidOnPremisesTagCombinationException"
 
 	// ErrCodeInvalidOperationException for service response error code
 	// "InvalidOperationException".
@@ -427,6 +544,18 @@ const (
 	// The specified tag filter was specified in an invalid format.
 	ErrCodeInvalidTagFilterException = "InvalidTagFilterException"
 
+	// ErrCodeInvalidTargetFilterNameException for service response error code
+	// "InvalidTargetFilterNameException".
+	//
+	// The target filter name is invalid.
+	ErrCodeInvalidTargetFilterNameException = "InvalidTargetFilterNameException"
+
+	// ErrCodeInvalidTargetGroupPairException for service response error code
+	// "InvalidTargetGroupPairException".
+	//
+	// A target group pair associated with this deployment is not valid.
+	ErrCodeInvalidTargetGroupPairException = "InvalidTargetGroupPairException"
+
 	// ErrCodeInvalidTargetInstancesException for service response error code
 	// "InvalidTargetInstancesException".
 	//
@@ -448,11 +577,31 @@ const (
 	// The specified time range was specified in an invalid format.
 	ErrCodeInvalidTimeRangeException = "InvalidTimeRangeException"
 
+	// ErrCodeInvalidTrafficRoutingConfigurationException for service response error code
+	// "InvalidTrafficRoutingConfigurationException".
+	//
+	// The configuration that specifies how traffic is routed during a deployment
+	// is invalid.
+	ErrCodeInvalidTrafficRoutingConfigurationException = "InvalidTrafficRoutingConfigurationException"
+
 	// ErrCodeInvalidTriggerConfigException for service response error code
 	// "InvalidTriggerConfigException".
 	//
 	// The trigger was specified in an invalid format.
 	ErrCodeInvalidTriggerConfigException = "InvalidTriggerConfigException"
+
+	// ErrCodeInvalidUpdateOutdatedInstancesOnlyValueException for service response error code
+	// "InvalidUpdateOutdatedInstancesOnlyValueException".
+	//
+	// The UpdateOutdatedInstancesOnly value is invalid. For AWS Lambda deployments,
+	// false is expected. For EC2/On-premises deployments, true or false is expected.
+	ErrCodeInvalidUpdateOutdatedInstancesOnlyValueException = "InvalidUpdateOutdatedInstancesOnlyValueException"
+
+	// ErrCodeLifecycleEventAlreadyCompletedException for service response error code
+	// "LifecycleEventAlreadyCompletedException".
+	//
+	// An attempt to return the status of an already completed lifecycle event occurred.
+	ErrCodeLifecycleEventAlreadyCompletedException = "LifecycleEventAlreadyCompletedException"
 
 	// ErrCodeLifecycleHookLimitExceededException for service response error code
 	// "LifecycleHookLimitExceededException".
@@ -466,6 +615,12 @@ const (
 	// Both an IAM user ARN and an IAM session ARN were included in the request.
 	// Use only one ARN type.
 	ErrCodeMultipleIamArnsProvidedException = "MultipleIamArnsProvidedException"
+
+	// ErrCodeOperationNotSupportedException for service response error code
+	// "OperationNotSupportedException".
+	//
+	// The API used does not support the deployment.
+	ErrCodeOperationNotSupportedException = "OperationNotSupportedException"
 
 	// ErrCodeResourceValidationException for service response error code
 	// "ResourceValidationException".
@@ -502,6 +657,19 @@ const (
 	//
 	// A tag was not specified.
 	ErrCodeTagRequiredException = "TagRequiredException"
+
+	// ErrCodeTagSetListLimitExceededException for service response error code
+	// "TagSetListLimitExceededException".
+	//
+	// The number of tag groups included in the tag set list exceeded the maximum
+	// allowed limit of 3.
+	ErrCodeTagSetListLimitExceededException = "TagSetListLimitExceededException"
+
+	// ErrCodeThrottlingException for service response error code
+	// "ThrottlingException".
+	//
+	// An API function was called too frequently.
+	ErrCodeThrottlingException = "ThrottlingException"
 
 	// ErrCodeTriggerTargetsLimitExceededException for service response error code
 	// "TriggerTargetsLimitExceededException".

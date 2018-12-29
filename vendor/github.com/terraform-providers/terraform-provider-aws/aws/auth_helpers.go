@@ -5,97 +5,157 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	awsCredentials "github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
+	"github.com/aws/aws-sdk-go/aws/defaults"
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/sts"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-multierror"
 )
 
-func GetAccountInfo(iamconn *iam.IAM, stsconn *sts.STS, authProviderName string) (string, string, error) {
-	// If we have creds from instance profile, we can use metadata API
+func GetAccountIDAndPartition(iamconn *iam.IAM, stsconn *sts.STS, authProviderName string) (string, string, error) {
+	var accountID, partition string
+	var err, errors error
+
 	if authProviderName == ec2rolecreds.ProviderName {
-		log.Println("[DEBUG] Trying to get account ID via AWS Metadata API")
+		accountID, partition, err = GetAccountIDAndPartitionFromEC2Metadata()
+	} else {
+		accountID, partition, err = GetAccountIDAndPartitionFromIAMGetUser(iamconn)
+	}
+	if accountID != "" {
+		return accountID, partition, nil
+	}
+	errors = multierror.Append(errors, err)
 
-		cfg := &aws.Config{}
-		setOptionalEndpoint(cfg)
-		sess, err := session.NewSession(cfg)
-		if err != nil {
-			return "", "", errwrap.Wrapf("Error creating AWS session: {{err}}", err)
+	accountID, partition, err = GetAccountIDAndPartitionFromSTSGetCallerIdentity(stsconn)
+	if accountID != "" {
+		return accountID, partition, nil
+	}
+	errors = multierror.Append(errors, err)
+
+	accountID, partition, err = GetAccountIDAndPartitionFromIAMListRoles(iamconn)
+	if accountID != "" {
+		return accountID, partition, nil
+	}
+	errors = multierror.Append(errors, err)
+
+	return accountID, partition, errors
+}
+
+func GetAccountIDAndPartitionFromEC2Metadata() (string, string, error) {
+	log.Println("[DEBUG] Trying to get account information via EC2 Metadata")
+
+	cfg := &aws.Config{}
+	setOptionalEndpoint(cfg)
+	sess, err := session.NewSession(cfg)
+	if err != nil {
+		return "", "", fmt.Errorf("error creating EC2 Metadata session: %s", err)
+	}
+
+	metadataClient := ec2metadata.New(sess)
+	info, err := metadataClient.IAMInfo()
+	if err != nil {
+		// We can end up here if there's an issue with the instance metadata service
+		// or if we're getting credentials from AdRoll's Hologram (in which case IAMInfo will
+		// error out).
+		err = fmt.Errorf("failed getting account information via EC2 Metadata IAM information: %s", err)
+		log.Printf("[DEBUG] %s", err)
+		return "", "", err
+	}
+
+	return parseAccountIDAndPartitionFromARN(info.InstanceProfileArn)
+}
+
+func GetAccountIDAndPartitionFromIAMGetUser(iamconn *iam.IAM) (string, string, error) {
+	log.Println("[DEBUG] Trying to get account information via iam:GetUser")
+
+	output, err := iamconn.GetUser(&iam.GetUserInput{})
+	if err != nil {
+		// AccessDenied and ValidationError can be raised
+		// if credentials belong to federated profile, so we ignore these
+		if isAWSErr(err, "AccessDenied", "") {
+			return "", "", nil
 		}
-
-		metadataClient := ec2metadata.New(sess)
-		info, err := metadataClient.IAMInfo()
-		if err != nil {
-			// This can be triggered when no IAM Role is assigned
-			// or AWS just happens to return invalid response
-			return "", "", fmt.Errorf("Failed getting EC2 IAM info: %s", err)
+		if isAWSErr(err, "InvalidClientTokenId", "") {
+			return "", "", nil
 		}
-
-		return parseAccountInfoFromArn(info.InstanceProfileArn)
+		if isAWSErr(err, "ValidationError", "") {
+			return "", "", nil
+		}
+		err = fmt.Errorf("failed getting account information via iam:GetUser: %s", err)
+		log.Printf("[DEBUG] %s", err)
+		return "", "", err
 	}
 
-	// Then try IAM GetUser
-	log.Println("[DEBUG] Trying to get account ID via iam:GetUser")
-	outUser, err := iamconn.GetUser(nil)
-	if err == nil {
-		return parseAccountInfoFromArn(*outUser.User.Arn)
+	if output == nil || output.User == nil {
+		err = errors.New("empty iam:GetUser response")
+		log.Printf("[DEBUG] %s", err)
+		return "", "", err
 	}
 
-	awsErr, ok := err.(awserr.Error)
-	// AccessDenied and ValidationError can be raised
-	// if credentials belong to federated profile, so we ignore these
-	if !ok || (awsErr.Code() != "AccessDenied" && awsErr.Code() != "ValidationError" && awsErr.Code() != "InvalidClientTokenId") {
-		return "", "", fmt.Errorf("Failed getting account ID via 'iam:GetUser': %s", err)
-	}
-	log.Printf("[DEBUG] Getting account ID via iam:GetUser failed: %s", err)
+	return parseAccountIDAndPartitionFromARN(aws.StringValue(output.User.Arn))
+}
 
-	// Then try STS GetCallerIdentity
-	log.Println("[DEBUG] Trying to get account ID via sts:GetCallerIdentity")
-	outCallerIdentity, err := stsconn.GetCallerIdentity(&sts.GetCallerIdentityInput{})
-	if err == nil {
-		return parseAccountInfoFromArn(*outCallerIdentity.Arn)
-	}
-	log.Printf("[DEBUG] Getting account ID via sts:GetCallerIdentity failed: %s", err)
+func GetAccountIDAndPartitionFromIAMListRoles(iamconn *iam.IAM) (string, string, error) {
+	log.Println("[DEBUG] Trying to get account information via iam:ListRoles")
 
-	// Then try IAM ListRoles
-	log.Println("[DEBUG] Trying to get account ID via iam:ListRoles")
-	outRoles, err := iamconn.ListRoles(&iam.ListRolesInput{
+	output, err := iamconn.ListRoles(&iam.ListRolesInput{
 		MaxItems: aws.Int64(int64(1)),
 	})
 	if err != nil {
-		return "", "", fmt.Errorf("Failed getting account ID via 'iam:ListRoles': %s", err)
+		err = fmt.Errorf("failed getting account information via iam:ListRoles: %s", err)
+		log.Printf("[DEBUG] %s", err)
+		return "", "", err
 	}
 
-	if len(outRoles.Roles) < 1 {
-		return "", "", errors.New("Failed getting account ID via 'iam:ListRoles': No roles available")
+	if output == nil || len(output.Roles) < 1 {
+		err = fmt.Errorf("empty iam:ListRoles response")
+		log.Printf("[DEBUG] %s", err)
+		return "", "", err
 	}
 
-	return parseAccountInfoFromArn(*outRoles.Roles[0].Arn)
+	return parseAccountIDAndPartitionFromARN(aws.StringValue(output.Roles[0].Arn))
 }
 
-func parseAccountInfoFromArn(arn string) (string, string, error) {
-	parts := strings.Split(arn, ":")
-	if len(parts) < 5 {
-		return "", "", fmt.Errorf("Unable to parse ID from invalid ARN: %q", arn)
+func GetAccountIDAndPartitionFromSTSGetCallerIdentity(stsconn *sts.STS) (string, string, error) {
+	log.Println("[DEBUG] Trying to get account information via sts:GetCallerIdentity")
+
+	output, err := stsconn.GetCallerIdentity(&sts.GetCallerIdentityInput{})
+	if err != nil {
+		return "", "", fmt.Errorf("error calling sts:GetCallerIdentity: %s", err)
 	}
-	return parts[1], parts[4], nil
+
+	if output == nil || output.Arn == nil {
+		err = errors.New("empty sts:GetCallerIdentity response")
+		log.Printf("[DEBUG] %s", err)
+		return "", "", err
+	}
+
+	return parseAccountIDAndPartitionFromARN(aws.StringValue(output.Arn))
+}
+
+func parseAccountIDAndPartitionFromARN(inputARN string) (string, string, error) {
+	arn, err := arn.Parse(inputARN)
+	if err != nil {
+		return "", "", fmt.Errorf("error parsing ARN (%s): %s", inputARN, err)
+	}
+	return arn.AccountID, arn.Partition, nil
 }
 
 // This function is responsible for reading credentials from the
 // environment in the case that they're not explicitly specified
 // in the Terraform configuration.
 func GetCredentials(c *Config) (*awsCredentials.Credentials, error) {
-	// build a chain provider, lazy-evaulated by aws-sdk
+	// build a chain provider, lazy-evaluated by aws-sdk
 	providers := []awsCredentials.Provider{
 		&awsCredentials.StaticProvider{Value: awsCredentials.Value{
 			AccessKeyID:     c.AccessKey,
@@ -112,12 +172,35 @@ func GetCredentials(c *Config) (*awsCredentials.Credentials, error) {
 	// Build isolated HTTP client to avoid issues with globally-shared settings
 	client := cleanhttp.DefaultClient()
 
-	// Keep the timeout low as we don't want to wait in non-EC2 environments
+	// Keep the default timeout (100ms) low as we don't want to wait in non-EC2 environments
 	client.Timeout = 100 * time.Millisecond
+
+	const userTimeoutEnvVar = "AWS_METADATA_TIMEOUT"
+	userTimeout := os.Getenv(userTimeoutEnvVar)
+	if userTimeout != "" {
+		newTimeout, err := time.ParseDuration(userTimeout)
+		if err == nil {
+			if newTimeout.Nanoseconds() > 0 {
+				client.Timeout = newTimeout
+			} else {
+				log.Printf("[WARN] Non-positive value of %s (%s) is meaningless, ignoring", userTimeoutEnvVar, newTimeout.String())
+			}
+		} else {
+			log.Printf("[WARN] Error converting %s to time.Duration: %s", userTimeoutEnvVar, err)
+		}
+	}
+
+	log.Printf("[INFO] Setting AWS metadata API timeout to %s", client.Timeout.String())
 	cfg := &aws.Config{
 		HTTPClient: client,
 	}
 	usedEndpoint := setOptionalEndpoint(cfg)
+
+	// Add the default AWS provider for ECS Task Roles if the relevant env variable is set
+	if uri := os.Getenv("AWS_CONTAINER_CREDENTIALS_RELATIVE_URI"); len(uri) > 0 {
+		providers = append(providers, defaults.RemoteCredProvider(*cfg, defaults.Handlers()))
+		log.Print("[INFO] ECS container credentials detected, RemoteCredProvider added to auth chain")
+	}
 
 	if !c.SkipMetadataApiCheck {
 		// Real AWS should reply to a simple metadata request.

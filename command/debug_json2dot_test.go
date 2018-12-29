@@ -12,7 +12,7 @@ import (
 
 func TestDebugJSON2Dot(t *testing.T) {
 	// create the graph JSON output
-	logFile, err := ioutil.TempFile("", "tf")
+	logFile, err := ioutil.TempFile(testingDir, "tf")
 	if err != nil {
 		t.Fatal(err)
 	}

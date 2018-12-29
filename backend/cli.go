@@ -22,7 +22,7 @@ import (
 type CLI interface {
 	Backend
 
-	// CLIIinit is called once with options. The options passed to this
+	// CLIInit is called once with options. The options passed to this
 	// function may not be modified after calling this since they can be
 	// read/written at any time by the Backend implementation.
 	//
@@ -48,6 +48,10 @@ type CLIOpts struct {
 	CLI      cli.Ui
 	CLIColor *colorstring.Colorize
 
+	// ShowDiagnostics is a function that will format and print diagnostic
+	// messages to the UI.
+	ShowDiagnostics func(vals ...interface{})
+
 	// StatePath is the local path where state is read from.
 	//
 	// StateOutPath is the local path where the state will be written.
@@ -71,4 +75,13 @@ type CLIOpts struct {
 	// Validate.
 	Input      bool
 	Validation bool
+
+	// RunningInAutomation indicates that commands are being run by an
+	// automated system rather than directly at a command prompt.
+	//
+	// This is a hint not to produce messages that expect that a user can
+	// run a follow-up command, perhaps because Terraform is running in
+	// some sort of workflow automation tool that abstracts away the
+	// exact commands that are being run.
+	RunningInAutomation bool
 }

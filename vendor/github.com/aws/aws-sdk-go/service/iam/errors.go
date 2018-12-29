@@ -4,6 +4,14 @@ package iam
 
 const (
 
+	// ErrCodeConcurrentModificationException for service response error code
+	// "ConcurrentModification".
+	//
+	// The request was rejected because multiple requests to change this object
+	// were submitted simultaneously. Wait a few minutes and submit your request
+	// again.
+	ErrCodeConcurrentModificationException = "ConcurrentModification"
+
 	// ErrCodeCredentialReportExpiredException for service response error code
 	// "ReportExpired".
 	//
@@ -129,8 +137,8 @@ const (
 	// ErrCodeNoSuchEntityException for service response error code
 	// "NoSuchEntity".
 	//
-	// The request was rejected because it referenced an entity that does not exist.
-	// The error message describes the entity.
+	// The request was rejected because it referenced a resource entity that does
+	// not exist. The error message describes the resource.
 	ErrCodeNoSuchEntityException = "NoSuchEntity"
 
 	// ErrCodePasswordPolicyViolationException for service response error code
@@ -144,8 +152,15 @@ const (
 	// "PolicyEvaluation".
 	//
 	// The request failed because a provided policy could not be successfully evaluated.
-	// An additional detail message indicates the source of the failure.
+	// An additional detailed message indicates the source of the failure.
 	ErrCodePolicyEvaluationException = "PolicyEvaluation"
+
+	// ErrCodePolicyNotAttachableException for service response error code
+	// "PolicyNotAttachable".
+	//
+	// The request failed because AWS service role policies can only be attached
+	// to the service-linked role for that service.
+	ErrCodePolicyNotAttachableException = "PolicyNotAttachable"
 
 	// ErrCodeServiceFailureException for service response error code
 	// "ServiceFailure".

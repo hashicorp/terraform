@@ -73,13 +73,18 @@ provisioner "file" {
 **Additional arguments only supported by the `ssh` connection type:**
 
 * `private_key` - The contents of an SSH key to use for the connection. These can
-  be loaded from a file on disk using the [`file()` interpolation
-  function](/docs/configuration/interpolation.html#file_path_). This takes
+  be loaded from a file on disk using
+  [the `file` function](/docs/configuration/functions/file.html). This takes
   preference over the password if provided.
 
 * `agent` - Set to `false` to disable using `ssh-agent` to authenticate. On Windows the
   only supported SSH authentication agent is
   [Pageant](http://the.earth.li/~sgtatham/putty/0.66/htmldoc/Chapter9.html#pageant).
+
+* `agent_identity` - The preferred identity from the ssh agent for authentication.
+
+* `host_key` - The public key from the remote host or the signing CA, used to
+  verify the connection.
 
 **Additional arguments only supported by the `winrm` connection type:**
 
@@ -87,9 +92,12 @@ provisioner "file" {
 
 * `insecure` - Set to `true` to not validate the HTTPS certificate chain.
 
+* `use_ntlm` - Set to `true` to use NTLM authentication, rather than default (basic authentication), removing the requirement for basic authentication to be enabled within the target guest. Further reading for remote connection authentication can be found [here](https://msdn.microsoft.com/en-us/library/aa384295(v=vs.85).aspx).
+
 * `cacert` - The CA certificate to validate against.
 
 <a id="bastion"></a>
+
 ## Connecting through a Bastion Host with SSH
 
 The `ssh` connection also supports the following fields to facilitate connnections via a
@@ -97,6 +105,9 @@ The `ssh` connection also supports the following fields to facilitate connnectio
 
 * `bastion_host` - Setting this enables the bastion Host connection. This host
   will be connected to first, and then the `host` connection will be made from there.
+
+* `bastion_host_key` - The public key from the remote host or the signing CA,
+  used to verify the host connection.
 
 * `bastion_port` - The port to use connect to the bastion host. Defaults to the
   value of the `port` field.
@@ -108,6 +119,6 @@ The `ssh` connection also supports the following fields to facilitate connnectio
   Defaults to the value of the `password` field.
 
 * `bastion_private_key` - The contents of an SSH key file to use for the bastion
-  host. These can be loaded from a file on disk using the [`file()`
-  interpolation function](/docs/configuration/interpolation.html#file_path_).
+  host. These can be loaded from a file on disk using
+  [the `file` function](/docs/configuration/functions/file.html).
   Defaults to the value of the `private_key` field.

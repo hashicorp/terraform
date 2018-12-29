@@ -122,7 +122,8 @@ func (r *DiffFieldReader) readMap(
 		result[k] = v.New
 	}
 
-	err = mapValuesToPrimitive(result, schema)
+	key := address[len(address)-1]
+	err = mapValuesToPrimitive(key, result, schema)
 	if err != nil {
 		return FieldReadResult{}, nil
 	}
@@ -173,6 +174,9 @@ func (r *DiffFieldReader) readPrimitive(
 
 func (r *DiffFieldReader) readSet(
 	address []string, schema *Schema) (FieldReadResult, error) {
+	// copy address to ensure we don't modify the argument
+	address = append([]string(nil), address...)
+
 	prefix := strings.Join(address, ".") + "."
 
 	// Create the set that will be our result

@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsIamPolicyAttachment() *schema.Resource {
@@ -21,37 +22,31 @@ func resourceAwsIamPolicyAttachment() *schema.Resource {
 		Delete: resourceAwsIamPolicyAttachmentDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					if v.(string) == "" {
-						errors = append(errors, fmt.Errorf(
-							"%q cannot be an empty string", k))
-					}
-					return
-				},
+			"name": {
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validation.NoZeroValues,
 			},
-			"users": &schema.Schema{
+			"users": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
-			"roles": &schema.Schema{
+			"roles": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
-			"groups": &schema.Schema{
+			"groups": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
-			"policy_arn": &schema.Schema{
+			"policy_arn": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -70,7 +65,7 @@ func resourceAwsIamPolicyAttachmentCreate(d *schema.ResourceData, meta interface
 	groups := expandStringList(d.Get("groups").(*schema.Set).List())
 
 	if len(users) == 0 && len(roles) == 0 && len(groups) == 0 {
-		return fmt.Errorf("[WARN] No Users, Roles, or Groups specified for IAM Policy Attachment %s", name)
+		return fmt.Errorf("No Users, Roles, or Groups specified for IAM Policy Attachment %s", name)
 	} else {
 		var userErr, roleErr, groupErr error
 		if users != nil {
@@ -151,13 +146,13 @@ func resourceAwsIamPolicyAttachmentUpdate(d *schema.ResourceData, meta interface
 	var userErr, roleErr, groupErr error
 
 	if d.HasChange("users") {
-		userErr = updateUsers(conn, d, meta)
+		userErr = updateUsers(conn, d)
 	}
 	if d.HasChange("roles") {
-		roleErr = updateRoles(conn, d, meta)
+		roleErr = updateRoles(conn, d)
 	}
 	if d.HasChange("groups") {
-		groupErr = updateGroups(conn, d, meta)
+		groupErr = updateGroups(conn, d)
 	}
 	if userErr != nil || roleErr != nil || groupErr != nil {
 		return composeErrors(fmt.Sprint("[WARN] Error updating user, role, or group list from IAM Policy Attachment ", name, ":"), userErr, roleErr, groupErr)
@@ -269,7 +264,7 @@ func attachPolicyToGroups(conn *iam.IAM, groups []*string, arn string) error {
 	}
 	return nil
 }
-func updateUsers(conn *iam.IAM, d *schema.ResourceData, meta interface{}) error {
+func updateUsers(conn *iam.IAM, d *schema.ResourceData) error {
 	arn := d.Get("policy_arn").(string)
 	o, n := d.GetChange("users")
 	if o == nil {
@@ -291,7 +286,7 @@ func updateUsers(conn *iam.IAM, d *schema.ResourceData, meta interface{}) error 
 	}
 	return nil
 }
-func updateRoles(conn *iam.IAM, d *schema.ResourceData, meta interface{}) error {
+func updateRoles(conn *iam.IAM, d *schema.ResourceData) error {
 	arn := d.Get("policy_arn").(string)
 	o, n := d.GetChange("roles")
 	if o == nil {
@@ -313,7 +308,7 @@ func updateRoles(conn *iam.IAM, d *schema.ResourceData, meta interface{}) error 
 	}
 	return nil
 }
-func updateGroups(conn *iam.IAM, d *schema.ResourceData, meta interface{}) error {
+func updateGroups(conn *iam.IAM, d *schema.ResourceData) error {
 	arn := d.Get("policy_arn").(string)
 	o, n := d.GetChange("groups")
 	if o == nil {

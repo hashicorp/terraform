@@ -20,33 +20,33 @@ func resourceAwsElasticBeanstalkConfigurationTemplate() *schema.Resource {
 		Delete: resourceAwsElasticBeanstalkConfigurationTemplateDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"application": &schema.Schema{
+			"application": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"environment_id": &schema.Schema{
+			"environment_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			"setting": &schema.Schema{
+			"setting": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
 				Elem:     resourceAwsElasticBeanstalkOptionSetting(),
 				Set:      optionSettingValueHash,
 			},
-			"solution_stack_name": &schema.Schema{
+			"solution_stack_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -106,6 +106,10 @@ func resourceAwsElasticBeanstalkConfigurationTemplateRead(d *schema.ResourceData
 		if awsErr, ok := err.(awserr.Error); ok {
 			if awsErr.Code() == "InvalidParameterValue" && strings.Contains(awsErr.Message(), "No Configuration Template named") {
 				log.Printf("[WARN] No Configuration Template named (%s) found", d.Id())
+				d.SetId("")
+				return nil
+			} else if awsErr.Code() == "InvalidParameterValue" && strings.Contains(awsErr.Message(), "No Platform named") {
+				log.Printf("[WARN] No Platform named (%s) found", d.Get("solution_stack_name").(string))
 				d.SetId("")
 				return nil
 			}

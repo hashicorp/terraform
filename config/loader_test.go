@@ -851,7 +851,6 @@ func TestLoadFile_ignoreChanges(t *testing.T) {
 	}
 
 	actual := resourcesStr(c.Resources)
-	print(actual)
 	if actual != strings.TrimSpace(ignoreChangesResourcesStr) {
 		t.Fatalf("bad:\n%s", actual)
 	}
@@ -943,7 +942,6 @@ func TestLoad_hclAttributes(t *testing.T) {
 	}
 
 	actual := resourcesStr(c.Resources)
-	print(actual)
 	if actual != strings.TrimSpace(jsonAttributeStr) {
 		t.Fatalf("bad:\n%s", actual)
 	}
@@ -988,7 +986,6 @@ func TestLoad_jsonAttributes(t *testing.T) {
 	}
 
 	actual := resourcesStr(c.Resources)
-	print(actual)
 	if actual != strings.TrimSpace(jsonAttributeStr) {
 		t.Fatalf("bad:\n%s", actual)
 	}
@@ -1019,6 +1016,22 @@ func TestLoad_jsonAttributes(t *testing.T) {
 	}
 	if ports[1] != "1000-2000" {
 		t.Fatalf("Bad ports: %s", ports[1])
+	}
+}
+
+func TestLoad_onlyOverride(t *testing.T) {
+	c, err := LoadDir(filepath.Join(fixtureDir, "dir-only-override"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	actual := variablesStr(c.Variables)
+	if actual != strings.TrimSpace(dirOnlyOverrideVariablesStr) {
+		t.Fatalf("bad:\n%s", actual)
 	}
 }
 
@@ -1226,6 +1239,12 @@ foo
 const dirOverrideVarsVariablesStr = `
 foo
   baz
+  bar
+`
+
+const dirOnlyOverrideVariablesStr = `
+foo
+  bar
   bar
 `
 

@@ -13,23 +13,285 @@ import (
 	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
 )
 
+const opBatchGetAggregateResourceConfig = "BatchGetAggregateResourceConfig"
+
+// BatchGetAggregateResourceConfigRequest generates a "aws/request.Request" representing the
+// client's request for the BatchGetAggregateResourceConfig operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See BatchGetAggregateResourceConfig for more information on using the BatchGetAggregateResourceConfig
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the BatchGetAggregateResourceConfigRequest method.
+//    req, resp := client.BatchGetAggregateResourceConfigRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/BatchGetAggregateResourceConfig
+func (c *ConfigService) BatchGetAggregateResourceConfigRequest(input *BatchGetAggregateResourceConfigInput) (req *request.Request, output *BatchGetAggregateResourceConfigOutput) {
+	op := &request.Operation{
+		Name:       opBatchGetAggregateResourceConfig,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &BatchGetAggregateResourceConfigInput{}
+	}
+
+	output = &BatchGetAggregateResourceConfigOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// BatchGetAggregateResourceConfig API operation for AWS Config.
+//
+// Returns the current configuration items for resources that are present in
+// your AWS Config aggregator. The operation also returns a list of resources
+// that are not processed in the current request. If there are no unprocessed
+// resources, the operation returns an empty unprocessedResourceIdentifiers
+// list.
+//
+// The API does not return results for deleted resources.
+//
+//  The API does not return tags and relationships.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Config's
+// API operation BatchGetAggregateResourceConfig for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeValidationException "ValidationException"
+//   The requested action is not valid.
+//
+//   * ErrCodeNoSuchConfigurationAggregatorException "NoSuchConfigurationAggregatorException"
+//   You have specified a configuration aggregator that does not exist.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/BatchGetAggregateResourceConfig
+func (c *ConfigService) BatchGetAggregateResourceConfig(input *BatchGetAggregateResourceConfigInput) (*BatchGetAggregateResourceConfigOutput, error) {
+	req, out := c.BatchGetAggregateResourceConfigRequest(input)
+	return out, req.Send()
+}
+
+// BatchGetAggregateResourceConfigWithContext is the same as BatchGetAggregateResourceConfig with the addition of
+// the ability to pass a context and additional request options.
+//
+// See BatchGetAggregateResourceConfig for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ConfigService) BatchGetAggregateResourceConfigWithContext(ctx aws.Context, input *BatchGetAggregateResourceConfigInput, opts ...request.Option) (*BatchGetAggregateResourceConfigOutput, error) {
+	req, out := c.BatchGetAggregateResourceConfigRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opBatchGetResourceConfig = "BatchGetResourceConfig"
+
+// BatchGetResourceConfigRequest generates a "aws/request.Request" representing the
+// client's request for the BatchGetResourceConfig operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See BatchGetResourceConfig for more information on using the BatchGetResourceConfig
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the BatchGetResourceConfigRequest method.
+//    req, resp := client.BatchGetResourceConfigRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/BatchGetResourceConfig
+func (c *ConfigService) BatchGetResourceConfigRequest(input *BatchGetResourceConfigInput) (req *request.Request, output *BatchGetResourceConfigOutput) {
+	op := &request.Operation{
+		Name:       opBatchGetResourceConfig,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &BatchGetResourceConfigInput{}
+	}
+
+	output = &BatchGetResourceConfigOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// BatchGetResourceConfig API operation for AWS Config.
+//
+// Returns the current configuration for one or more requested resources. The
+// operation also returns a list of resources that are not processed in the
+// current request. If there are no unprocessed resources, the operation returns
+// an empty unprocessedResourceKeys list.
+//
+// The API does not return results for deleted resources.
+//
+//  The API does not return any tags for the requested resources. This information
+// is filtered out of the supplementaryConfiguration section of the API response.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Config's
+// API operation BatchGetResourceConfig for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeValidationException "ValidationException"
+//   The requested action is not valid.
+//
+//   * ErrCodeNoAvailableConfigurationRecorderException "NoAvailableConfigurationRecorderException"
+//   There are no configuration recorders available to provide the role needed
+//   to describe your resources. Create a configuration recorder.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/BatchGetResourceConfig
+func (c *ConfigService) BatchGetResourceConfig(input *BatchGetResourceConfigInput) (*BatchGetResourceConfigOutput, error) {
+	req, out := c.BatchGetResourceConfigRequest(input)
+	return out, req.Send()
+}
+
+// BatchGetResourceConfigWithContext is the same as BatchGetResourceConfig with the addition of
+// the ability to pass a context and additional request options.
+//
+// See BatchGetResourceConfig for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ConfigService) BatchGetResourceConfigWithContext(ctx aws.Context, input *BatchGetResourceConfigInput, opts ...request.Option) (*BatchGetResourceConfigOutput, error) {
+	req, out := c.BatchGetResourceConfigRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDeleteAggregationAuthorization = "DeleteAggregationAuthorization"
+
+// DeleteAggregationAuthorizationRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteAggregationAuthorization operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteAggregationAuthorization for more information on using the DeleteAggregationAuthorization
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteAggregationAuthorizationRequest method.
+//    req, resp := client.DeleteAggregationAuthorizationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteAggregationAuthorization
+func (c *ConfigService) DeleteAggregationAuthorizationRequest(input *DeleteAggregationAuthorizationInput) (req *request.Request, output *DeleteAggregationAuthorizationOutput) {
+	op := &request.Operation{
+		Name:       opDeleteAggregationAuthorization,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteAggregationAuthorizationInput{}
+	}
+
+	output = &DeleteAggregationAuthorizationOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// DeleteAggregationAuthorization API operation for AWS Config.
+//
+// Deletes the authorization granted to the specified configuration aggregator
+// account in a specified region.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Config's
+// API operation DeleteAggregationAuthorization for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+//   One or more of the specified parameters are invalid. Verify that your parameters
+//   are valid and try again.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteAggregationAuthorization
+func (c *ConfigService) DeleteAggregationAuthorization(input *DeleteAggregationAuthorizationInput) (*DeleteAggregationAuthorizationOutput, error) {
+	req, out := c.DeleteAggregationAuthorizationRequest(input)
+	return out, req.Send()
+}
+
+// DeleteAggregationAuthorizationWithContext is the same as DeleteAggregationAuthorization with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteAggregationAuthorization for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ConfigService) DeleteAggregationAuthorizationWithContext(ctx aws.Context, input *DeleteAggregationAuthorizationInput, opts ...request.Option) (*DeleteAggregationAuthorizationOutput, error) {
+	req, out := c.DeleteAggregationAuthorizationRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDeleteConfigRule = "DeleteConfigRule"
 
 // DeleteConfigRuleRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteConfigRule operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See DeleteConfigRule for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteConfigRule method directly
-// instead.
+// See DeleteConfigRule for more information on using the DeleteConfigRule
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteConfigRuleRequest method.
 //    req, resp := client.DeleteConfigRuleRequest(params)
@@ -39,7 +301,7 @@ const opDeleteConfigRule = "DeleteConfigRule"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteConfigRule
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteConfigRule
 func (c *ConfigService) DeleteConfigRuleRequest(input *DeleteConfigRuleInput) (req *request.Request, output *DeleteConfigRuleOutput) {
 	op := &request.Operation{
 		Name:       opDeleteConfigRule,
@@ -53,8 +315,7 @@ func (c *ConfigService) DeleteConfigRuleRequest(input *DeleteConfigRuleInput) (r
 
 	output = &DeleteConfigRuleOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -84,7 +345,7 @@ func (c *ConfigService) DeleteConfigRuleRequest(input *DeleteConfigRuleInput) (r
 //   The rule is currently being deleted or the rule is deleting your evaluation
 //   results. Try your request again later.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteConfigRule
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteConfigRule
 func (c *ConfigService) DeleteConfigRule(input *DeleteConfigRuleInput) (*DeleteConfigRuleOutput, error) {
 	req, out := c.DeleteConfigRuleRequest(input)
 	return out, req.Send()
@@ -106,23 +367,103 @@ func (c *ConfigService) DeleteConfigRuleWithContext(ctx aws.Context, input *Dele
 	return out, req.Send()
 }
 
+const opDeleteConfigurationAggregator = "DeleteConfigurationAggregator"
+
+// DeleteConfigurationAggregatorRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteConfigurationAggregator operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteConfigurationAggregator for more information on using the DeleteConfigurationAggregator
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteConfigurationAggregatorRequest method.
+//    req, resp := client.DeleteConfigurationAggregatorRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteConfigurationAggregator
+func (c *ConfigService) DeleteConfigurationAggregatorRequest(input *DeleteConfigurationAggregatorInput) (req *request.Request, output *DeleteConfigurationAggregatorOutput) {
+	op := &request.Operation{
+		Name:       opDeleteConfigurationAggregator,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteConfigurationAggregatorInput{}
+	}
+
+	output = &DeleteConfigurationAggregatorOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// DeleteConfigurationAggregator API operation for AWS Config.
+//
+// Deletes the specified configuration aggregator and the aggregated data associated
+// with the aggregator.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Config's
+// API operation DeleteConfigurationAggregator for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeNoSuchConfigurationAggregatorException "NoSuchConfigurationAggregatorException"
+//   You have specified a configuration aggregator that does not exist.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteConfigurationAggregator
+func (c *ConfigService) DeleteConfigurationAggregator(input *DeleteConfigurationAggregatorInput) (*DeleteConfigurationAggregatorOutput, error) {
+	req, out := c.DeleteConfigurationAggregatorRequest(input)
+	return out, req.Send()
+}
+
+// DeleteConfigurationAggregatorWithContext is the same as DeleteConfigurationAggregator with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteConfigurationAggregator for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ConfigService) DeleteConfigurationAggregatorWithContext(ctx aws.Context, input *DeleteConfigurationAggregatorInput, opts ...request.Option) (*DeleteConfigurationAggregatorOutput, error) {
+	req, out := c.DeleteConfigurationAggregatorRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDeleteConfigurationRecorder = "DeleteConfigurationRecorder"
 
 // DeleteConfigurationRecorderRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteConfigurationRecorder operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See DeleteConfigurationRecorder for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteConfigurationRecorder method directly
-// instead.
+// See DeleteConfigurationRecorder for more information on using the DeleteConfigurationRecorder
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteConfigurationRecorderRequest method.
 //    req, resp := client.DeleteConfigurationRecorderRequest(params)
@@ -132,7 +473,7 @@ const opDeleteConfigurationRecorder = "DeleteConfigurationRecorder"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteConfigurationRecorder
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteConfigurationRecorder
 func (c *ConfigService) DeleteConfigurationRecorderRequest(input *DeleteConfigurationRecorderInput) (req *request.Request, output *DeleteConfigurationRecorderOutput) {
 	op := &request.Operation{
 		Name:       opDeleteConfigurationRecorder,
@@ -146,8 +487,7 @@ func (c *ConfigService) DeleteConfigurationRecorderRequest(input *DeleteConfigur
 
 	output = &DeleteConfigurationRecorderOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -175,7 +515,7 @@ func (c *ConfigService) DeleteConfigurationRecorderRequest(input *DeleteConfigur
 //   * ErrCodeNoSuchConfigurationRecorderException "NoSuchConfigurationRecorderException"
 //   You have specified a configuration recorder that does not exist.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteConfigurationRecorder
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteConfigurationRecorder
 func (c *ConfigService) DeleteConfigurationRecorder(input *DeleteConfigurationRecorderInput) (*DeleteConfigurationRecorderOutput, error) {
 	req, out := c.DeleteConfigurationRecorderRequest(input)
 	return out, req.Send()
@@ -201,19 +541,18 @@ const opDeleteDeliveryChannel = "DeleteDeliveryChannel"
 
 // DeleteDeliveryChannelRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteDeliveryChannel operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See DeleteDeliveryChannel for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteDeliveryChannel method directly
-// instead.
+// See DeleteDeliveryChannel for more information on using the DeleteDeliveryChannel
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteDeliveryChannelRequest method.
 //    req, resp := client.DeleteDeliveryChannelRequest(params)
@@ -223,7 +562,7 @@ const opDeleteDeliveryChannel = "DeleteDeliveryChannel"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteDeliveryChannel
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteDeliveryChannel
 func (c *ConfigService) DeleteDeliveryChannelRequest(input *DeleteDeliveryChannelInput) (req *request.Request, output *DeleteDeliveryChannelOutput) {
 	op := &request.Operation{
 		Name:       opDeleteDeliveryChannel,
@@ -237,8 +576,7 @@ func (c *ConfigService) DeleteDeliveryChannelRequest(input *DeleteDeliveryChanne
 
 	output = &DeleteDeliveryChannelOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -264,7 +602,7 @@ func (c *ConfigService) DeleteDeliveryChannelRequest(input *DeleteDeliveryChanne
 //   You cannot delete the delivery channel you specified because the configuration
 //   recorder is running.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteDeliveryChannel
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteDeliveryChannel
 func (c *ConfigService) DeleteDeliveryChannel(input *DeleteDeliveryChannelInput) (*DeleteDeliveryChannelOutput, error) {
 	req, out := c.DeleteDeliveryChannelRequest(input)
 	return out, req.Send()
@@ -290,19 +628,18 @@ const opDeleteEvaluationResults = "DeleteEvaluationResults"
 
 // DeleteEvaluationResultsRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteEvaluationResults operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See DeleteEvaluationResults for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteEvaluationResults method directly
-// instead.
+// See DeleteEvaluationResults for more information on using the DeleteEvaluationResults
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteEvaluationResultsRequest method.
 //    req, resp := client.DeleteEvaluationResultsRequest(params)
@@ -312,7 +649,7 @@ const opDeleteEvaluationResults = "DeleteEvaluationResults"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteEvaluationResults
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteEvaluationResults
 func (c *ConfigService) DeleteEvaluationResultsRequest(input *DeleteEvaluationResultsInput) (req *request.Request, output *DeleteEvaluationResultsOutput) {
 	op := &request.Operation{
 		Name:       opDeleteEvaluationResults,
@@ -326,15 +663,16 @@ func (c *ConfigService) DeleteEvaluationResultsRequest(input *DeleteEvaluationRe
 
 	output = &DeleteEvaluationResultsOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
 // DeleteEvaluationResults API operation for AWS Config.
 //
-// Deletes the evaluation results for the specified Config rule. You can specify
-// one Config rule per request. After you delete the evaluation results, you
-// can call the StartConfigRulesEvaluation API to start evaluating your AWS
-// resources against the rule.
+// Deletes the evaluation results for the specified AWS Config rule. You can
+// specify one AWS Config rule per request. After you delete the evaluation
+// results, you can call the StartConfigRulesEvaluation API to start evaluating
+// your AWS resources against the rule.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -352,7 +690,7 @@ func (c *ConfigService) DeleteEvaluationResultsRequest(input *DeleteEvaluationRe
 //   The rule is currently being deleted or the rule is deleting your evaluation
 //   results. Try your request again later.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteEvaluationResults
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteEvaluationResults
 func (c *ConfigService) DeleteEvaluationResults(input *DeleteEvaluationResultsInput) (*DeleteEvaluationResultsOutput, error) {
 	req, out := c.DeleteEvaluationResultsRequest(input)
 	return out, req.Send()
@@ -374,23 +712,188 @@ func (c *ConfigService) DeleteEvaluationResultsWithContext(ctx aws.Context, inpu
 	return out, req.Send()
 }
 
+const opDeletePendingAggregationRequest = "DeletePendingAggregationRequest"
+
+// DeletePendingAggregationRequestRequest generates a "aws/request.Request" representing the
+// client's request for the DeletePendingAggregationRequest operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeletePendingAggregationRequest for more information on using the DeletePendingAggregationRequest
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeletePendingAggregationRequestRequest method.
+//    req, resp := client.DeletePendingAggregationRequestRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeletePendingAggregationRequest
+func (c *ConfigService) DeletePendingAggregationRequestRequest(input *DeletePendingAggregationRequestInput) (req *request.Request, output *DeletePendingAggregationRequestOutput) {
+	op := &request.Operation{
+		Name:       opDeletePendingAggregationRequest,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeletePendingAggregationRequestInput{}
+	}
+
+	output = &DeletePendingAggregationRequestOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// DeletePendingAggregationRequest API operation for AWS Config.
+//
+// Deletes pending authorization requests for a specified aggregator account
+// in a specified region.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Config's
+// API operation DeletePendingAggregationRequest for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+//   One or more of the specified parameters are invalid. Verify that your parameters
+//   are valid and try again.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeletePendingAggregationRequest
+func (c *ConfigService) DeletePendingAggregationRequest(input *DeletePendingAggregationRequestInput) (*DeletePendingAggregationRequestOutput, error) {
+	req, out := c.DeletePendingAggregationRequestRequest(input)
+	return out, req.Send()
+}
+
+// DeletePendingAggregationRequestWithContext is the same as DeletePendingAggregationRequest with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeletePendingAggregationRequest for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ConfigService) DeletePendingAggregationRequestWithContext(ctx aws.Context, input *DeletePendingAggregationRequestInput, opts ...request.Option) (*DeletePendingAggregationRequestOutput, error) {
+	req, out := c.DeletePendingAggregationRequestRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDeleteRetentionConfiguration = "DeleteRetentionConfiguration"
+
+// DeleteRetentionConfigurationRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteRetentionConfiguration operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteRetentionConfiguration for more information on using the DeleteRetentionConfiguration
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteRetentionConfigurationRequest method.
+//    req, resp := client.DeleteRetentionConfigurationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteRetentionConfiguration
+func (c *ConfigService) DeleteRetentionConfigurationRequest(input *DeleteRetentionConfigurationInput) (req *request.Request, output *DeleteRetentionConfigurationOutput) {
+	op := &request.Operation{
+		Name:       opDeleteRetentionConfiguration,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteRetentionConfigurationInput{}
+	}
+
+	output = &DeleteRetentionConfigurationOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// DeleteRetentionConfiguration API operation for AWS Config.
+//
+// Deletes the retention configuration.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Config's
+// API operation DeleteRetentionConfiguration for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+//   One or more of the specified parameters are invalid. Verify that your parameters
+//   are valid and try again.
+//
+//   * ErrCodeNoSuchRetentionConfigurationException "NoSuchRetentionConfigurationException"
+//   You have specified a retention configuration that does not exist.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteRetentionConfiguration
+func (c *ConfigService) DeleteRetentionConfiguration(input *DeleteRetentionConfigurationInput) (*DeleteRetentionConfigurationOutput, error) {
+	req, out := c.DeleteRetentionConfigurationRequest(input)
+	return out, req.Send()
+}
+
+// DeleteRetentionConfigurationWithContext is the same as DeleteRetentionConfiguration with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteRetentionConfiguration for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ConfigService) DeleteRetentionConfigurationWithContext(ctx aws.Context, input *DeleteRetentionConfigurationInput, opts ...request.Option) (*DeleteRetentionConfigurationOutput, error) {
+	req, out := c.DeleteRetentionConfigurationRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDeliverConfigSnapshot = "DeliverConfigSnapshot"
 
 // DeliverConfigSnapshotRequest generates a "aws/request.Request" representing the
 // client's request for the DeliverConfigSnapshot operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See DeliverConfigSnapshot for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeliverConfigSnapshot method directly
-// instead.
+// See DeliverConfigSnapshot for more information on using the DeliverConfigSnapshot
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeliverConfigSnapshotRequest method.
 //    req, resp := client.DeliverConfigSnapshotRequest(params)
@@ -400,7 +903,7 @@ const opDeliverConfigSnapshot = "DeliverConfigSnapshot"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeliverConfigSnapshot
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeliverConfigSnapshot
 func (c *ConfigService) DeliverConfigSnapshotRequest(input *DeliverConfigSnapshotInput) (req *request.Request, output *DeliverConfigSnapshotOutput) {
 	op := &request.Operation{
 		Name:       opDeliverConfigSnapshot,
@@ -421,14 +924,15 @@ func (c *ConfigService) DeliverConfigSnapshotRequest(input *DeliverConfigSnapsho
 //
 // Schedules delivery of a configuration snapshot to the Amazon S3 bucket in
 // the specified delivery channel. After the delivery has started, AWS Config
-// sends following notifications using an Amazon SNS topic that you have specified.
+// sends the following notifications using an Amazon SNS topic that you have
+// specified.
 //
-//    * Notification of starting the delivery.
+//    * Notification of the start of the delivery.
 //
-//    * Notification of delivery completed, if the delivery was successfully
-//    completed.
+//    * Notification of the completion of the delivery, if the delivery was
+//    successfully completed.
 //
-//    * Notification of delivery failure, if the delivery failed to complete.
+//    * Notification of delivery failure, if the delivery failed.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -448,7 +952,7 @@ func (c *ConfigService) DeliverConfigSnapshotRequest(input *DeliverConfigSnapsho
 //   * ErrCodeNoRunningConfigurationRecorderException "NoRunningConfigurationRecorderException"
 //   There is no configuration recorder running.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeliverConfigSnapshot
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeliverConfigSnapshot
 func (c *ConfigService) DeliverConfigSnapshot(input *DeliverConfigSnapshotInput) (*DeliverConfigSnapshotOutput, error) {
 	req, out := c.DeliverConfigSnapshotRequest(input)
 	return out, req.Send()
@@ -470,23 +974,203 @@ func (c *ConfigService) DeliverConfigSnapshotWithContext(ctx aws.Context, input 
 	return out, req.Send()
 }
 
+const opDescribeAggregateComplianceByConfigRules = "DescribeAggregateComplianceByConfigRules"
+
+// DescribeAggregateComplianceByConfigRulesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeAggregateComplianceByConfigRules operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeAggregateComplianceByConfigRules for more information on using the DescribeAggregateComplianceByConfigRules
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeAggregateComplianceByConfigRulesRequest method.
+//    req, resp := client.DescribeAggregateComplianceByConfigRulesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeAggregateComplianceByConfigRules
+func (c *ConfigService) DescribeAggregateComplianceByConfigRulesRequest(input *DescribeAggregateComplianceByConfigRulesInput) (req *request.Request, output *DescribeAggregateComplianceByConfigRulesOutput) {
+	op := &request.Operation{
+		Name:       opDescribeAggregateComplianceByConfigRules,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeAggregateComplianceByConfigRulesInput{}
+	}
+
+	output = &DescribeAggregateComplianceByConfigRulesOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeAggregateComplianceByConfigRules API operation for AWS Config.
+//
+// Returns a list of compliant and noncompliant rules with the number of resources
+// for compliant and noncompliant rules.
+//
+// The results can return an empty result page, but if you have a nextToken,
+// the results are displayed on the next page.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Config's
+// API operation DescribeAggregateComplianceByConfigRules for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeValidationException "ValidationException"
+//   The requested action is not valid.
+//
+//   * ErrCodeInvalidLimitException "InvalidLimitException"
+//   The specified limit is outside the allowable range.
+//
+//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   The specified next token is invalid. Specify the nextToken string that was
+//   returned in the previous response to get the next page of results.
+//
+//   * ErrCodeNoSuchConfigurationAggregatorException "NoSuchConfigurationAggregatorException"
+//   You have specified a configuration aggregator that does not exist.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeAggregateComplianceByConfigRules
+func (c *ConfigService) DescribeAggregateComplianceByConfigRules(input *DescribeAggregateComplianceByConfigRulesInput) (*DescribeAggregateComplianceByConfigRulesOutput, error) {
+	req, out := c.DescribeAggregateComplianceByConfigRulesRequest(input)
+	return out, req.Send()
+}
+
+// DescribeAggregateComplianceByConfigRulesWithContext is the same as DescribeAggregateComplianceByConfigRules with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeAggregateComplianceByConfigRules for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ConfigService) DescribeAggregateComplianceByConfigRulesWithContext(ctx aws.Context, input *DescribeAggregateComplianceByConfigRulesInput, opts ...request.Option) (*DescribeAggregateComplianceByConfigRulesOutput, error) {
+	req, out := c.DescribeAggregateComplianceByConfigRulesRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDescribeAggregationAuthorizations = "DescribeAggregationAuthorizations"
+
+// DescribeAggregationAuthorizationsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeAggregationAuthorizations operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeAggregationAuthorizations for more information on using the DescribeAggregationAuthorizations
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeAggregationAuthorizationsRequest method.
+//    req, resp := client.DescribeAggregationAuthorizationsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeAggregationAuthorizations
+func (c *ConfigService) DescribeAggregationAuthorizationsRequest(input *DescribeAggregationAuthorizationsInput) (req *request.Request, output *DescribeAggregationAuthorizationsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeAggregationAuthorizations,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeAggregationAuthorizationsInput{}
+	}
+
+	output = &DescribeAggregationAuthorizationsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeAggregationAuthorizations API operation for AWS Config.
+//
+// Returns a list of authorizations granted to various aggregator accounts and
+// regions.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Config's
+// API operation DescribeAggregationAuthorizations for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+//   One or more of the specified parameters are invalid. Verify that your parameters
+//   are valid and try again.
+//
+//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   The specified next token is invalid. Specify the nextToken string that was
+//   returned in the previous response to get the next page of results.
+//
+//   * ErrCodeInvalidLimitException "InvalidLimitException"
+//   The specified limit is outside the allowable range.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeAggregationAuthorizations
+func (c *ConfigService) DescribeAggregationAuthorizations(input *DescribeAggregationAuthorizationsInput) (*DescribeAggregationAuthorizationsOutput, error) {
+	req, out := c.DescribeAggregationAuthorizationsRequest(input)
+	return out, req.Send()
+}
+
+// DescribeAggregationAuthorizationsWithContext is the same as DescribeAggregationAuthorizations with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeAggregationAuthorizations for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ConfigService) DescribeAggregationAuthorizationsWithContext(ctx aws.Context, input *DescribeAggregationAuthorizationsInput, opts ...request.Option) (*DescribeAggregationAuthorizationsOutput, error) {
+	req, out := c.DescribeAggregationAuthorizationsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDescribeComplianceByConfigRule = "DescribeComplianceByConfigRule"
 
 // DescribeComplianceByConfigRuleRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeComplianceByConfigRule operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See DescribeComplianceByConfigRule for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeComplianceByConfigRule method directly
-// instead.
+// See DescribeComplianceByConfigRule for more information on using the DescribeComplianceByConfigRule
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeComplianceByConfigRuleRequest method.
 //    req, resp := client.DescribeComplianceByConfigRuleRequest(params)
@@ -496,7 +1180,7 @@ const opDescribeComplianceByConfigRule = "DescribeComplianceByConfigRule"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeComplianceByConfigRule
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeComplianceByConfigRule
 func (c *ConfigService) DescribeComplianceByConfigRuleRequest(input *DescribeComplianceByConfigRuleInput) (req *request.Request, output *DescribeComplianceByConfigRuleOutput) {
 	op := &request.Operation{
 		Name:       opDescribeComplianceByConfigRule,
@@ -519,8 +1203,8 @@ func (c *ConfigService) DescribeComplianceByConfigRuleRequest(input *DescribeCom
 // is noncompliant, this action returns the number of AWS resources that do
 // not comply with the rule.
 //
-// A rule is compliant if all of the evaluated resources comply with it, and
-// it is noncompliant if any of these resources do not comply.
+// A rule is compliant if all of the evaluated resources comply with it. It
+// is noncompliant if any of these resources do not comply.
 //
 // If AWS Config has no current evaluation results for the rule, it returns
 // INSUFFICIENT_DATA. This result might indicate one of the following conditions:
@@ -530,7 +1214,7 @@ func (c *ConfigService) DescribeComplianceByConfigRuleRequest(input *DescribeCom
 //    and LastFailedInvocationTime.
 //
 //    * The rule's AWS Lambda function is failing to send evaluation results
-//    to AWS Config. Verify that the role that you assigned to your configuration
+//    to AWS Config. Verify that the role you assigned to your configuration
 //    recorder includes the config:PutEvaluations permission. If the rule is
 //    a custom rule, verify that the AWS Lambda execution role includes the
 //    config:PutEvaluations permission.
@@ -556,10 +1240,10 @@ func (c *ConfigService) DescribeComplianceByConfigRuleRequest(input *DescribeCom
 //   rule names are correct and try again.
 //
 //   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
-//   The specified next token is invalid. Specify the NextToken string that was
+//   The specified next token is invalid. Specify the nextToken string that was
 //   returned in the previous response to get the next page of results.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeComplianceByConfigRule
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeComplianceByConfigRule
 func (c *ConfigService) DescribeComplianceByConfigRule(input *DescribeComplianceByConfigRuleInput) (*DescribeComplianceByConfigRuleOutput, error) {
 	req, out := c.DescribeComplianceByConfigRuleRequest(input)
 	return out, req.Send()
@@ -585,19 +1269,18 @@ const opDescribeComplianceByResource = "DescribeComplianceByResource"
 
 // DescribeComplianceByResourceRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeComplianceByResource operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See DescribeComplianceByResource for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeComplianceByResource method directly
-// instead.
+// See DescribeComplianceByResource for more information on using the DescribeComplianceByResource
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeComplianceByResourceRequest method.
 //    req, resp := client.DescribeComplianceByResourceRequest(params)
@@ -607,7 +1290,7 @@ const opDescribeComplianceByResource = "DescribeComplianceByResource"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeComplianceByResource
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeComplianceByResource
 func (c *ConfigService) DescribeComplianceByResourceRequest(input *DescribeComplianceByResourceInput) (req *request.Request, output *DescribeComplianceByResourceOutput) {
 	op := &request.Operation{
 		Name:       opDescribeComplianceByResource,
@@ -665,10 +1348,10 @@ func (c *ConfigService) DescribeComplianceByResourceRequest(input *DescribeCompl
 //   are valid and try again.
 //
 //   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
-//   The specified next token is invalid. Specify the NextToken string that was
+//   The specified next token is invalid. Specify the nextToken string that was
 //   returned in the previous response to get the next page of results.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeComplianceByResource
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeComplianceByResource
 func (c *ConfigService) DescribeComplianceByResource(input *DescribeComplianceByResourceInput) (*DescribeComplianceByResourceOutput, error) {
 	req, out := c.DescribeComplianceByResourceRequest(input)
 	return out, req.Send()
@@ -694,19 +1377,18 @@ const opDescribeConfigRuleEvaluationStatus = "DescribeConfigRuleEvaluationStatus
 
 // DescribeConfigRuleEvaluationStatusRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeConfigRuleEvaluationStatus operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See DescribeConfigRuleEvaluationStatus for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeConfigRuleEvaluationStatus method directly
-// instead.
+// See DescribeConfigRuleEvaluationStatus for more information on using the DescribeConfigRuleEvaluationStatus
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeConfigRuleEvaluationStatusRequest method.
 //    req, resp := client.DescribeConfigRuleEvaluationStatusRequest(params)
@@ -716,7 +1398,7 @@ const opDescribeConfigRuleEvaluationStatus = "DescribeConfigRuleEvaluationStatus
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigRuleEvaluationStatus
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigRuleEvaluationStatus
 func (c *ConfigService) DescribeConfigRuleEvaluationStatusRequest(input *DescribeConfigRuleEvaluationStatusInput) (req *request.Request, output *DescribeConfigRuleEvaluationStatusOutput) {
 	op := &request.Operation{
 		Name:       opDescribeConfigRuleEvaluationStatus,
@@ -757,10 +1439,10 @@ func (c *ConfigService) DescribeConfigRuleEvaluationStatusRequest(input *Describ
 //   are valid and try again.
 //
 //   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
-//   The specified next token is invalid. Specify the NextToken string that was
+//   The specified next token is invalid. Specify the nextToken string that was
 //   returned in the previous response to get the next page of results.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigRuleEvaluationStatus
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigRuleEvaluationStatus
 func (c *ConfigService) DescribeConfigRuleEvaluationStatus(input *DescribeConfigRuleEvaluationStatusInput) (*DescribeConfigRuleEvaluationStatusOutput, error) {
 	req, out := c.DescribeConfigRuleEvaluationStatusRequest(input)
 	return out, req.Send()
@@ -786,19 +1468,18 @@ const opDescribeConfigRules = "DescribeConfigRules"
 
 // DescribeConfigRulesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeConfigRules operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See DescribeConfigRules for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeConfigRules method directly
-// instead.
+// See DescribeConfigRules for more information on using the DescribeConfigRules
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeConfigRulesRequest method.
 //    req, resp := client.DescribeConfigRulesRequest(params)
@@ -808,7 +1489,7 @@ const opDescribeConfigRules = "DescribeConfigRules"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigRules
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigRules
 func (c *ConfigService) DescribeConfigRulesRequest(input *DescribeConfigRulesInput) (req *request.Request, output *DescribeConfigRulesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeConfigRules,
@@ -842,10 +1523,10 @@ func (c *ConfigService) DescribeConfigRulesRequest(input *DescribeConfigRulesInp
 //   rule names are correct and try again.
 //
 //   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
-//   The specified next token is invalid. Specify the NextToken string that was
+//   The specified next token is invalid. Specify the nextToken string that was
 //   returned in the previous response to get the next page of results.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigRules
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigRules
 func (c *ConfigService) DescribeConfigRules(input *DescribeConfigRulesInput) (*DescribeConfigRulesOutput, error) {
 	req, out := c.DescribeConfigRulesRequest(input)
 	return out, req.Send()
@@ -867,23 +1548,207 @@ func (c *ConfigService) DescribeConfigRulesWithContext(ctx aws.Context, input *D
 	return out, req.Send()
 }
 
+const opDescribeConfigurationAggregatorSourcesStatus = "DescribeConfigurationAggregatorSourcesStatus"
+
+// DescribeConfigurationAggregatorSourcesStatusRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeConfigurationAggregatorSourcesStatus operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeConfigurationAggregatorSourcesStatus for more information on using the DescribeConfigurationAggregatorSourcesStatus
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeConfigurationAggregatorSourcesStatusRequest method.
+//    req, resp := client.DescribeConfigurationAggregatorSourcesStatusRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigurationAggregatorSourcesStatus
+func (c *ConfigService) DescribeConfigurationAggregatorSourcesStatusRequest(input *DescribeConfigurationAggregatorSourcesStatusInput) (req *request.Request, output *DescribeConfigurationAggregatorSourcesStatusOutput) {
+	op := &request.Operation{
+		Name:       opDescribeConfigurationAggregatorSourcesStatus,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeConfigurationAggregatorSourcesStatusInput{}
+	}
+
+	output = &DescribeConfigurationAggregatorSourcesStatusOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeConfigurationAggregatorSourcesStatus API operation for AWS Config.
+//
+// Returns status information for sources within an aggregator. The status includes
+// information about the last time AWS Config aggregated data from source accounts
+// or AWS Config failed to aggregate data from source accounts with the related
+// error code or message.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Config's
+// API operation DescribeConfigurationAggregatorSourcesStatus for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+//   One or more of the specified parameters are invalid. Verify that your parameters
+//   are valid and try again.
+//
+//   * ErrCodeNoSuchConfigurationAggregatorException "NoSuchConfigurationAggregatorException"
+//   You have specified a configuration aggregator that does not exist.
+//
+//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   The specified next token is invalid. Specify the nextToken string that was
+//   returned in the previous response to get the next page of results.
+//
+//   * ErrCodeInvalidLimitException "InvalidLimitException"
+//   The specified limit is outside the allowable range.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigurationAggregatorSourcesStatus
+func (c *ConfigService) DescribeConfigurationAggregatorSourcesStatus(input *DescribeConfigurationAggregatorSourcesStatusInput) (*DescribeConfigurationAggregatorSourcesStatusOutput, error) {
+	req, out := c.DescribeConfigurationAggregatorSourcesStatusRequest(input)
+	return out, req.Send()
+}
+
+// DescribeConfigurationAggregatorSourcesStatusWithContext is the same as DescribeConfigurationAggregatorSourcesStatus with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeConfigurationAggregatorSourcesStatus for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ConfigService) DescribeConfigurationAggregatorSourcesStatusWithContext(ctx aws.Context, input *DescribeConfigurationAggregatorSourcesStatusInput, opts ...request.Option) (*DescribeConfigurationAggregatorSourcesStatusOutput, error) {
+	req, out := c.DescribeConfigurationAggregatorSourcesStatusRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDescribeConfigurationAggregators = "DescribeConfigurationAggregators"
+
+// DescribeConfigurationAggregatorsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeConfigurationAggregators operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeConfigurationAggregators for more information on using the DescribeConfigurationAggregators
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeConfigurationAggregatorsRequest method.
+//    req, resp := client.DescribeConfigurationAggregatorsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigurationAggregators
+func (c *ConfigService) DescribeConfigurationAggregatorsRequest(input *DescribeConfigurationAggregatorsInput) (req *request.Request, output *DescribeConfigurationAggregatorsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeConfigurationAggregators,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeConfigurationAggregatorsInput{}
+	}
+
+	output = &DescribeConfigurationAggregatorsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeConfigurationAggregators API operation for AWS Config.
+//
+// Returns the details of one or more configuration aggregators. If the configuration
+// aggregator is not specified, this action returns the details for all the
+// configuration aggregators associated with the account.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Config's
+// API operation DescribeConfigurationAggregators for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+//   One or more of the specified parameters are invalid. Verify that your parameters
+//   are valid and try again.
+//
+//   * ErrCodeNoSuchConfigurationAggregatorException "NoSuchConfigurationAggregatorException"
+//   You have specified a configuration aggregator that does not exist.
+//
+//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   The specified next token is invalid. Specify the nextToken string that was
+//   returned in the previous response to get the next page of results.
+//
+//   * ErrCodeInvalidLimitException "InvalidLimitException"
+//   The specified limit is outside the allowable range.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigurationAggregators
+func (c *ConfigService) DescribeConfigurationAggregators(input *DescribeConfigurationAggregatorsInput) (*DescribeConfigurationAggregatorsOutput, error) {
+	req, out := c.DescribeConfigurationAggregatorsRequest(input)
+	return out, req.Send()
+}
+
+// DescribeConfigurationAggregatorsWithContext is the same as DescribeConfigurationAggregators with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeConfigurationAggregators for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ConfigService) DescribeConfigurationAggregatorsWithContext(ctx aws.Context, input *DescribeConfigurationAggregatorsInput, opts ...request.Option) (*DescribeConfigurationAggregatorsOutput, error) {
+	req, out := c.DescribeConfigurationAggregatorsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDescribeConfigurationRecorderStatus = "DescribeConfigurationRecorderStatus"
 
 // DescribeConfigurationRecorderStatusRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeConfigurationRecorderStatus operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See DescribeConfigurationRecorderStatus for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeConfigurationRecorderStatus method directly
-// instead.
+// See DescribeConfigurationRecorderStatus for more information on using the DescribeConfigurationRecorderStatus
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeConfigurationRecorderStatusRequest method.
 //    req, resp := client.DescribeConfigurationRecorderStatusRequest(params)
@@ -893,7 +1758,7 @@ const opDescribeConfigurationRecorderStatus = "DescribeConfigurationRecorderStat
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigurationRecorderStatus
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigurationRecorderStatus
 func (c *ConfigService) DescribeConfigurationRecorderStatusRequest(input *DescribeConfigurationRecorderStatusInput) (req *request.Request, output *DescribeConfigurationRecorderStatusOutput) {
 	op := &request.Operation{
 		Name:       opDescribeConfigurationRecorderStatus,
@@ -914,7 +1779,7 @@ func (c *ConfigService) DescribeConfigurationRecorderStatusRequest(input *Descri
 //
 // Returns the current status of the specified configuration recorder. If a
 // configuration recorder is not specified, this action returns the status of
-// all configuration recorder associated with the account.
+// all configuration recorders associated with the account.
 //
 // Currently, you can specify only one configuration recorder per region in
 // your account.
@@ -930,7 +1795,7 @@ func (c *ConfigService) DescribeConfigurationRecorderStatusRequest(input *Descri
 //   * ErrCodeNoSuchConfigurationRecorderException "NoSuchConfigurationRecorderException"
 //   You have specified a configuration recorder that does not exist.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigurationRecorderStatus
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigurationRecorderStatus
 func (c *ConfigService) DescribeConfigurationRecorderStatus(input *DescribeConfigurationRecorderStatusInput) (*DescribeConfigurationRecorderStatusOutput, error) {
 	req, out := c.DescribeConfigurationRecorderStatusRequest(input)
 	return out, req.Send()
@@ -956,19 +1821,18 @@ const opDescribeConfigurationRecorders = "DescribeConfigurationRecorders"
 
 // DescribeConfigurationRecordersRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeConfigurationRecorders operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See DescribeConfigurationRecorders for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeConfigurationRecorders method directly
-// instead.
+// See DescribeConfigurationRecorders for more information on using the DescribeConfigurationRecorders
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeConfigurationRecordersRequest method.
 //    req, resp := client.DescribeConfigurationRecordersRequest(params)
@@ -978,7 +1842,7 @@ const opDescribeConfigurationRecorders = "DescribeConfigurationRecorders"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigurationRecorders
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigurationRecorders
 func (c *ConfigService) DescribeConfigurationRecordersRequest(input *DescribeConfigurationRecordersInput) (req *request.Request, output *DescribeConfigurationRecordersOutput) {
 	op := &request.Operation{
 		Name:       opDescribeConfigurationRecorders,
@@ -1015,7 +1879,7 @@ func (c *ConfigService) DescribeConfigurationRecordersRequest(input *DescribeCon
 //   * ErrCodeNoSuchConfigurationRecorderException "NoSuchConfigurationRecorderException"
 //   You have specified a configuration recorder that does not exist.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigurationRecorders
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigurationRecorders
 func (c *ConfigService) DescribeConfigurationRecorders(input *DescribeConfigurationRecordersInput) (*DescribeConfigurationRecordersOutput, error) {
 	req, out := c.DescribeConfigurationRecordersRequest(input)
 	return out, req.Send()
@@ -1041,19 +1905,18 @@ const opDescribeDeliveryChannelStatus = "DescribeDeliveryChannelStatus"
 
 // DescribeDeliveryChannelStatusRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeDeliveryChannelStatus operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See DescribeDeliveryChannelStatus for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeDeliveryChannelStatus method directly
-// instead.
+// See DescribeDeliveryChannelStatus for more information on using the DescribeDeliveryChannelStatus
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeDeliveryChannelStatusRequest method.
 //    req, resp := client.DescribeDeliveryChannelStatusRequest(params)
@@ -1063,7 +1926,7 @@ const opDescribeDeliveryChannelStatus = "DescribeDeliveryChannelStatus"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeDeliveryChannelStatus
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeDeliveryChannelStatus
 func (c *ConfigService) DescribeDeliveryChannelStatusRequest(input *DescribeDeliveryChannelStatusInput) (req *request.Request, output *DescribeDeliveryChannelStatusOutput) {
 	op := &request.Operation{
 		Name:       opDescribeDeliveryChannelStatus,
@@ -1099,7 +1962,7 @@ func (c *ConfigService) DescribeDeliveryChannelStatusRequest(input *DescribeDeli
 //   * ErrCodeNoSuchDeliveryChannelException "NoSuchDeliveryChannelException"
 //   You have specified a delivery channel that does not exist.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeDeliveryChannelStatus
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeDeliveryChannelStatus
 func (c *ConfigService) DescribeDeliveryChannelStatus(input *DescribeDeliveryChannelStatusInput) (*DescribeDeliveryChannelStatusOutput, error) {
 	req, out := c.DescribeDeliveryChannelStatusRequest(input)
 	return out, req.Send()
@@ -1125,19 +1988,18 @@ const opDescribeDeliveryChannels = "DescribeDeliveryChannels"
 
 // DescribeDeliveryChannelsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeDeliveryChannels operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See DescribeDeliveryChannels for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeDeliveryChannels method directly
-// instead.
+// See DescribeDeliveryChannels for more information on using the DescribeDeliveryChannels
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeDeliveryChannelsRequest method.
 //    req, resp := client.DescribeDeliveryChannelsRequest(params)
@@ -1147,7 +2009,7 @@ const opDescribeDeliveryChannels = "DescribeDeliveryChannels"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeDeliveryChannels
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeDeliveryChannels
 func (c *ConfigService) DescribeDeliveryChannelsRequest(input *DescribeDeliveryChannelsInput) (req *request.Request, output *DescribeDeliveryChannelsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeDeliveryChannels,
@@ -1183,7 +2045,7 @@ func (c *ConfigService) DescribeDeliveryChannelsRequest(input *DescribeDeliveryC
 //   * ErrCodeNoSuchDeliveryChannelException "NoSuchDeliveryChannelException"
 //   You have specified a delivery channel that does not exist.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeDeliveryChannels
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeDeliveryChannels
 func (c *ConfigService) DescribeDeliveryChannels(input *DescribeDeliveryChannelsInput) (*DescribeDeliveryChannelsOutput, error) {
 	req, out := c.DescribeDeliveryChannelsRequest(input)
 	return out, req.Send()
@@ -1205,23 +2067,575 @@ func (c *ConfigService) DescribeDeliveryChannelsWithContext(ctx aws.Context, inp
 	return out, req.Send()
 }
 
+const opDescribePendingAggregationRequests = "DescribePendingAggregationRequests"
+
+// DescribePendingAggregationRequestsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribePendingAggregationRequests operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribePendingAggregationRequests for more information on using the DescribePendingAggregationRequests
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribePendingAggregationRequestsRequest method.
+//    req, resp := client.DescribePendingAggregationRequestsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribePendingAggregationRequests
+func (c *ConfigService) DescribePendingAggregationRequestsRequest(input *DescribePendingAggregationRequestsInput) (req *request.Request, output *DescribePendingAggregationRequestsOutput) {
+	op := &request.Operation{
+		Name:       opDescribePendingAggregationRequests,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribePendingAggregationRequestsInput{}
+	}
+
+	output = &DescribePendingAggregationRequestsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribePendingAggregationRequests API operation for AWS Config.
+//
+// Returns a list of all pending aggregation requests.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Config's
+// API operation DescribePendingAggregationRequests for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+//   One or more of the specified parameters are invalid. Verify that your parameters
+//   are valid and try again.
+//
+//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   The specified next token is invalid. Specify the nextToken string that was
+//   returned in the previous response to get the next page of results.
+//
+//   * ErrCodeInvalidLimitException "InvalidLimitException"
+//   The specified limit is outside the allowable range.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribePendingAggregationRequests
+func (c *ConfigService) DescribePendingAggregationRequests(input *DescribePendingAggregationRequestsInput) (*DescribePendingAggregationRequestsOutput, error) {
+	req, out := c.DescribePendingAggregationRequestsRequest(input)
+	return out, req.Send()
+}
+
+// DescribePendingAggregationRequestsWithContext is the same as DescribePendingAggregationRequests with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribePendingAggregationRequests for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ConfigService) DescribePendingAggregationRequestsWithContext(ctx aws.Context, input *DescribePendingAggregationRequestsInput, opts ...request.Option) (*DescribePendingAggregationRequestsOutput, error) {
+	req, out := c.DescribePendingAggregationRequestsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDescribeRetentionConfigurations = "DescribeRetentionConfigurations"
+
+// DescribeRetentionConfigurationsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeRetentionConfigurations operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeRetentionConfigurations for more information on using the DescribeRetentionConfigurations
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeRetentionConfigurationsRequest method.
+//    req, resp := client.DescribeRetentionConfigurationsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeRetentionConfigurations
+func (c *ConfigService) DescribeRetentionConfigurationsRequest(input *DescribeRetentionConfigurationsInput) (req *request.Request, output *DescribeRetentionConfigurationsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeRetentionConfigurations,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeRetentionConfigurationsInput{}
+	}
+
+	output = &DescribeRetentionConfigurationsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeRetentionConfigurations API operation for AWS Config.
+//
+// Returns the details of one or more retention configurations. If the retention
+// configuration name is not specified, this action returns the details for
+// all the retention configurations for that account.
+//
+// Currently, AWS Config supports only one retention configuration per region
+// in your account.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Config's
+// API operation DescribeRetentionConfigurations for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+//   One or more of the specified parameters are invalid. Verify that your parameters
+//   are valid and try again.
+//
+//   * ErrCodeNoSuchRetentionConfigurationException "NoSuchRetentionConfigurationException"
+//   You have specified a retention configuration that does not exist.
+//
+//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   The specified next token is invalid. Specify the nextToken string that was
+//   returned in the previous response to get the next page of results.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeRetentionConfigurations
+func (c *ConfigService) DescribeRetentionConfigurations(input *DescribeRetentionConfigurationsInput) (*DescribeRetentionConfigurationsOutput, error) {
+	req, out := c.DescribeRetentionConfigurationsRequest(input)
+	return out, req.Send()
+}
+
+// DescribeRetentionConfigurationsWithContext is the same as DescribeRetentionConfigurations with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeRetentionConfigurations for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ConfigService) DescribeRetentionConfigurationsWithContext(ctx aws.Context, input *DescribeRetentionConfigurationsInput, opts ...request.Option) (*DescribeRetentionConfigurationsOutput, error) {
+	req, out := c.DescribeRetentionConfigurationsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opGetAggregateComplianceDetailsByConfigRule = "GetAggregateComplianceDetailsByConfigRule"
+
+// GetAggregateComplianceDetailsByConfigRuleRequest generates a "aws/request.Request" representing the
+// client's request for the GetAggregateComplianceDetailsByConfigRule operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetAggregateComplianceDetailsByConfigRule for more information on using the GetAggregateComplianceDetailsByConfigRule
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetAggregateComplianceDetailsByConfigRuleRequest method.
+//    req, resp := client.GetAggregateComplianceDetailsByConfigRuleRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetAggregateComplianceDetailsByConfigRule
+func (c *ConfigService) GetAggregateComplianceDetailsByConfigRuleRequest(input *GetAggregateComplianceDetailsByConfigRuleInput) (req *request.Request, output *GetAggregateComplianceDetailsByConfigRuleOutput) {
+	op := &request.Operation{
+		Name:       opGetAggregateComplianceDetailsByConfigRule,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetAggregateComplianceDetailsByConfigRuleInput{}
+	}
+
+	output = &GetAggregateComplianceDetailsByConfigRuleOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetAggregateComplianceDetailsByConfigRule API operation for AWS Config.
+//
+// Returns the evaluation results for the specified AWS Config rule for a specific
+// resource in a rule. The results indicate which AWS resources were evaluated
+// by the rule, when each resource was last evaluated, and whether each resource
+// complies with the rule.
+//
+// The results can return an empty result page. But if you have a nextToken,
+// the results are displayed on the next page.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Config's
+// API operation GetAggregateComplianceDetailsByConfigRule for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeValidationException "ValidationException"
+//   The requested action is not valid.
+//
+//   * ErrCodeInvalidLimitException "InvalidLimitException"
+//   The specified limit is outside the allowable range.
+//
+//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   The specified next token is invalid. Specify the nextToken string that was
+//   returned in the previous response to get the next page of results.
+//
+//   * ErrCodeNoSuchConfigurationAggregatorException "NoSuchConfigurationAggregatorException"
+//   You have specified a configuration aggregator that does not exist.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetAggregateComplianceDetailsByConfigRule
+func (c *ConfigService) GetAggregateComplianceDetailsByConfigRule(input *GetAggregateComplianceDetailsByConfigRuleInput) (*GetAggregateComplianceDetailsByConfigRuleOutput, error) {
+	req, out := c.GetAggregateComplianceDetailsByConfigRuleRequest(input)
+	return out, req.Send()
+}
+
+// GetAggregateComplianceDetailsByConfigRuleWithContext is the same as GetAggregateComplianceDetailsByConfigRule with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetAggregateComplianceDetailsByConfigRule for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ConfigService) GetAggregateComplianceDetailsByConfigRuleWithContext(ctx aws.Context, input *GetAggregateComplianceDetailsByConfigRuleInput, opts ...request.Option) (*GetAggregateComplianceDetailsByConfigRuleOutput, error) {
+	req, out := c.GetAggregateComplianceDetailsByConfigRuleRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opGetAggregateConfigRuleComplianceSummary = "GetAggregateConfigRuleComplianceSummary"
+
+// GetAggregateConfigRuleComplianceSummaryRequest generates a "aws/request.Request" representing the
+// client's request for the GetAggregateConfigRuleComplianceSummary operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetAggregateConfigRuleComplianceSummary for more information on using the GetAggregateConfigRuleComplianceSummary
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetAggregateConfigRuleComplianceSummaryRequest method.
+//    req, resp := client.GetAggregateConfigRuleComplianceSummaryRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetAggregateConfigRuleComplianceSummary
+func (c *ConfigService) GetAggregateConfigRuleComplianceSummaryRequest(input *GetAggregateConfigRuleComplianceSummaryInput) (req *request.Request, output *GetAggregateConfigRuleComplianceSummaryOutput) {
+	op := &request.Operation{
+		Name:       opGetAggregateConfigRuleComplianceSummary,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetAggregateConfigRuleComplianceSummaryInput{}
+	}
+
+	output = &GetAggregateConfigRuleComplianceSummaryOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetAggregateConfigRuleComplianceSummary API operation for AWS Config.
+//
+// Returns the number of compliant and noncompliant rules for one or more accounts
+// and regions in an aggregator.
+//
+// The results can return an empty result page, but if you have a nextToken,
+// the results are displayed on the next page.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Config's
+// API operation GetAggregateConfigRuleComplianceSummary for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeValidationException "ValidationException"
+//   The requested action is not valid.
+//
+//   * ErrCodeInvalidLimitException "InvalidLimitException"
+//   The specified limit is outside the allowable range.
+//
+//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   The specified next token is invalid. Specify the nextToken string that was
+//   returned in the previous response to get the next page of results.
+//
+//   * ErrCodeNoSuchConfigurationAggregatorException "NoSuchConfigurationAggregatorException"
+//   You have specified a configuration aggregator that does not exist.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetAggregateConfigRuleComplianceSummary
+func (c *ConfigService) GetAggregateConfigRuleComplianceSummary(input *GetAggregateConfigRuleComplianceSummaryInput) (*GetAggregateConfigRuleComplianceSummaryOutput, error) {
+	req, out := c.GetAggregateConfigRuleComplianceSummaryRequest(input)
+	return out, req.Send()
+}
+
+// GetAggregateConfigRuleComplianceSummaryWithContext is the same as GetAggregateConfigRuleComplianceSummary with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetAggregateConfigRuleComplianceSummary for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ConfigService) GetAggregateConfigRuleComplianceSummaryWithContext(ctx aws.Context, input *GetAggregateConfigRuleComplianceSummaryInput, opts ...request.Option) (*GetAggregateConfigRuleComplianceSummaryOutput, error) {
+	req, out := c.GetAggregateConfigRuleComplianceSummaryRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opGetAggregateDiscoveredResourceCounts = "GetAggregateDiscoveredResourceCounts"
+
+// GetAggregateDiscoveredResourceCountsRequest generates a "aws/request.Request" representing the
+// client's request for the GetAggregateDiscoveredResourceCounts operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetAggregateDiscoveredResourceCounts for more information on using the GetAggregateDiscoveredResourceCounts
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetAggregateDiscoveredResourceCountsRequest method.
+//    req, resp := client.GetAggregateDiscoveredResourceCountsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetAggregateDiscoveredResourceCounts
+func (c *ConfigService) GetAggregateDiscoveredResourceCountsRequest(input *GetAggregateDiscoveredResourceCountsInput) (req *request.Request, output *GetAggregateDiscoveredResourceCountsOutput) {
+	op := &request.Operation{
+		Name:       opGetAggregateDiscoveredResourceCounts,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetAggregateDiscoveredResourceCountsInput{}
+	}
+
+	output = &GetAggregateDiscoveredResourceCountsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetAggregateDiscoveredResourceCounts API operation for AWS Config.
+//
+// Returns the resource counts across accounts and regions that are present
+// in your AWS Config aggregator. You can request the resource counts by providing
+// filters and GroupByKey.
+//
+// For example, if the input contains accountID 12345678910 and region us-east-1
+// in filters, the API returns the count of resources in account ID 12345678910
+// and region us-east-1. If the input contains ACCOUNT_ID as a GroupByKey, the
+// API returns resource counts for all source accounts that are present in your
+// aggregator.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Config's
+// API operation GetAggregateDiscoveredResourceCounts for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeValidationException "ValidationException"
+//   The requested action is not valid.
+//
+//   * ErrCodeInvalidLimitException "InvalidLimitException"
+//   The specified limit is outside the allowable range.
+//
+//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   The specified next token is invalid. Specify the nextToken string that was
+//   returned in the previous response to get the next page of results.
+//
+//   * ErrCodeNoSuchConfigurationAggregatorException "NoSuchConfigurationAggregatorException"
+//   You have specified a configuration aggregator that does not exist.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetAggregateDiscoveredResourceCounts
+func (c *ConfigService) GetAggregateDiscoveredResourceCounts(input *GetAggregateDiscoveredResourceCountsInput) (*GetAggregateDiscoveredResourceCountsOutput, error) {
+	req, out := c.GetAggregateDiscoveredResourceCountsRequest(input)
+	return out, req.Send()
+}
+
+// GetAggregateDiscoveredResourceCountsWithContext is the same as GetAggregateDiscoveredResourceCounts with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetAggregateDiscoveredResourceCounts for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ConfigService) GetAggregateDiscoveredResourceCountsWithContext(ctx aws.Context, input *GetAggregateDiscoveredResourceCountsInput, opts ...request.Option) (*GetAggregateDiscoveredResourceCountsOutput, error) {
+	req, out := c.GetAggregateDiscoveredResourceCountsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opGetAggregateResourceConfig = "GetAggregateResourceConfig"
+
+// GetAggregateResourceConfigRequest generates a "aws/request.Request" representing the
+// client's request for the GetAggregateResourceConfig operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetAggregateResourceConfig for more information on using the GetAggregateResourceConfig
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetAggregateResourceConfigRequest method.
+//    req, resp := client.GetAggregateResourceConfigRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetAggregateResourceConfig
+func (c *ConfigService) GetAggregateResourceConfigRequest(input *GetAggregateResourceConfigInput) (req *request.Request, output *GetAggregateResourceConfigOutput) {
+	op := &request.Operation{
+		Name:       opGetAggregateResourceConfig,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetAggregateResourceConfigInput{}
+	}
+
+	output = &GetAggregateResourceConfigOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetAggregateResourceConfig API operation for AWS Config.
+//
+// Returns configuration item that is aggregated for your specific resource
+// in a specific source account and region.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Config's
+// API operation GetAggregateResourceConfig for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeValidationException "ValidationException"
+//   The requested action is not valid.
+//
+//   * ErrCodeNoSuchConfigurationAggregatorException "NoSuchConfigurationAggregatorException"
+//   You have specified a configuration aggregator that does not exist.
+//
+//   * ErrCodeOversizedConfigurationItemException "OversizedConfigurationItemException"
+//   The configuration item size is outside the allowable range.
+//
+//   * ErrCodeResourceNotDiscoveredException "ResourceNotDiscoveredException"
+//   You have specified a resource that is either unknown or has not been discovered.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetAggregateResourceConfig
+func (c *ConfigService) GetAggregateResourceConfig(input *GetAggregateResourceConfigInput) (*GetAggregateResourceConfigOutput, error) {
+	req, out := c.GetAggregateResourceConfigRequest(input)
+	return out, req.Send()
+}
+
+// GetAggregateResourceConfigWithContext is the same as GetAggregateResourceConfig with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetAggregateResourceConfig for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ConfigService) GetAggregateResourceConfigWithContext(ctx aws.Context, input *GetAggregateResourceConfigInput, opts ...request.Option) (*GetAggregateResourceConfigOutput, error) {
+	req, out := c.GetAggregateResourceConfigRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opGetComplianceDetailsByConfigRule = "GetComplianceDetailsByConfigRule"
 
 // GetComplianceDetailsByConfigRuleRequest generates a "aws/request.Request" representing the
 // client's request for the GetComplianceDetailsByConfigRule operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See GetComplianceDetailsByConfigRule for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetComplianceDetailsByConfigRule method directly
-// instead.
+// See GetComplianceDetailsByConfigRule for more information on using the GetComplianceDetailsByConfigRule
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetComplianceDetailsByConfigRuleRequest method.
 //    req, resp := client.GetComplianceDetailsByConfigRuleRequest(params)
@@ -1231,7 +2645,7 @@ const opGetComplianceDetailsByConfigRule = "GetComplianceDetailsByConfigRule"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetComplianceDetailsByConfigRule
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetComplianceDetailsByConfigRule
 func (c *ConfigService) GetComplianceDetailsByConfigRuleRequest(input *GetComplianceDetailsByConfigRuleInput) (req *request.Request, output *GetComplianceDetailsByConfigRuleOutput) {
 	op := &request.Operation{
 		Name:       opGetComplianceDetailsByConfigRule,
@@ -1267,14 +2681,14 @@ func (c *ConfigService) GetComplianceDetailsByConfigRuleRequest(input *GetCompli
 //   are valid and try again.
 //
 //   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
-//   The specified next token is invalid. Specify the NextToken string that was
+//   The specified next token is invalid. Specify the nextToken string that was
 //   returned in the previous response to get the next page of results.
 //
 //   * ErrCodeNoSuchConfigRuleException "NoSuchConfigRuleException"
 //   One or more AWS Config rules in the request are invalid. Verify that the
 //   rule names are correct and try again.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetComplianceDetailsByConfigRule
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetComplianceDetailsByConfigRule
 func (c *ConfigService) GetComplianceDetailsByConfigRule(input *GetComplianceDetailsByConfigRuleInput) (*GetComplianceDetailsByConfigRuleOutput, error) {
 	req, out := c.GetComplianceDetailsByConfigRuleRequest(input)
 	return out, req.Send()
@@ -1300,19 +2714,18 @@ const opGetComplianceDetailsByResource = "GetComplianceDetailsByResource"
 
 // GetComplianceDetailsByResourceRequest generates a "aws/request.Request" representing the
 // client's request for the GetComplianceDetailsByResource operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See GetComplianceDetailsByResource for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetComplianceDetailsByResource method directly
-// instead.
+// See GetComplianceDetailsByResource for more information on using the GetComplianceDetailsByResource
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetComplianceDetailsByResourceRequest method.
 //    req, resp := client.GetComplianceDetailsByResourceRequest(params)
@@ -1322,7 +2735,7 @@ const opGetComplianceDetailsByResource = "GetComplianceDetailsByResource"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetComplianceDetailsByResource
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetComplianceDetailsByResource
 func (c *ConfigService) GetComplianceDetailsByResourceRequest(input *GetComplianceDetailsByResourceInput) (req *request.Request, output *GetComplianceDetailsByResourceOutput) {
 	op := &request.Operation{
 		Name:       opGetComplianceDetailsByResource,
@@ -1357,7 +2770,7 @@ func (c *ConfigService) GetComplianceDetailsByResourceRequest(input *GetComplian
 //   One or more of the specified parameters are invalid. Verify that your parameters
 //   are valid and try again.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetComplianceDetailsByResource
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetComplianceDetailsByResource
 func (c *ConfigService) GetComplianceDetailsByResource(input *GetComplianceDetailsByResourceInput) (*GetComplianceDetailsByResourceOutput, error) {
 	req, out := c.GetComplianceDetailsByResourceRequest(input)
 	return out, req.Send()
@@ -1383,19 +2796,18 @@ const opGetComplianceSummaryByConfigRule = "GetComplianceSummaryByConfigRule"
 
 // GetComplianceSummaryByConfigRuleRequest generates a "aws/request.Request" representing the
 // client's request for the GetComplianceSummaryByConfigRule operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See GetComplianceSummaryByConfigRule for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetComplianceSummaryByConfigRule method directly
-// instead.
+// See GetComplianceSummaryByConfigRule for more information on using the GetComplianceSummaryByConfigRule
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetComplianceSummaryByConfigRuleRequest method.
 //    req, resp := client.GetComplianceSummaryByConfigRuleRequest(params)
@@ -1405,7 +2817,7 @@ const opGetComplianceSummaryByConfigRule = "GetComplianceSummaryByConfigRule"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetComplianceSummaryByConfigRule
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetComplianceSummaryByConfigRule
 func (c *ConfigService) GetComplianceSummaryByConfigRuleRequest(input *GetComplianceSummaryByConfigRuleInput) (req *request.Request, output *GetComplianceSummaryByConfigRuleOutput) {
 	op := &request.Operation{
 		Name:       opGetComplianceSummaryByConfigRule,
@@ -1433,7 +2845,7 @@ func (c *ConfigService) GetComplianceSummaryByConfigRuleRequest(input *GetCompli
 //
 // See the AWS API reference guide for AWS Config's
 // API operation GetComplianceSummaryByConfigRule for usage and error information.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetComplianceSummaryByConfigRule
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetComplianceSummaryByConfigRule
 func (c *ConfigService) GetComplianceSummaryByConfigRule(input *GetComplianceSummaryByConfigRuleInput) (*GetComplianceSummaryByConfigRuleOutput, error) {
 	req, out := c.GetComplianceSummaryByConfigRuleRequest(input)
 	return out, req.Send()
@@ -1459,19 +2871,18 @@ const opGetComplianceSummaryByResourceType = "GetComplianceSummaryByResourceType
 
 // GetComplianceSummaryByResourceTypeRequest generates a "aws/request.Request" representing the
 // client's request for the GetComplianceSummaryByResourceType operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See GetComplianceSummaryByResourceType for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetComplianceSummaryByResourceType method directly
-// instead.
+// See GetComplianceSummaryByResourceType for more information on using the GetComplianceSummaryByResourceType
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetComplianceSummaryByResourceTypeRequest method.
 //    req, resp := client.GetComplianceSummaryByResourceTypeRequest(params)
@@ -1481,7 +2892,7 @@ const opGetComplianceSummaryByResourceType = "GetComplianceSummaryByResourceType
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetComplianceSummaryByResourceType
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetComplianceSummaryByResourceType
 func (c *ConfigService) GetComplianceSummaryByResourceTypeRequest(input *GetComplianceSummaryByResourceTypeInput) (req *request.Request, output *GetComplianceSummaryByResourceTypeOutput) {
 	op := &request.Operation{
 		Name:       opGetComplianceSummaryByResourceType,
@@ -1516,7 +2927,7 @@ func (c *ConfigService) GetComplianceSummaryByResourceTypeRequest(input *GetComp
 //   One or more of the specified parameters are invalid. Verify that your parameters
 //   are valid and try again.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetComplianceSummaryByResourceType
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetComplianceSummaryByResourceType
 func (c *ConfigService) GetComplianceSummaryByResourceType(input *GetComplianceSummaryByResourceTypeInput) (*GetComplianceSummaryByResourceTypeOutput, error) {
 	req, out := c.GetComplianceSummaryByResourceTypeRequest(input)
 	return out, req.Send()
@@ -1538,23 +2949,141 @@ func (c *ConfigService) GetComplianceSummaryByResourceTypeWithContext(ctx aws.Co
 	return out, req.Send()
 }
 
+const opGetDiscoveredResourceCounts = "GetDiscoveredResourceCounts"
+
+// GetDiscoveredResourceCountsRequest generates a "aws/request.Request" representing the
+// client's request for the GetDiscoveredResourceCounts operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetDiscoveredResourceCounts for more information on using the GetDiscoveredResourceCounts
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetDiscoveredResourceCountsRequest method.
+//    req, resp := client.GetDiscoveredResourceCountsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetDiscoveredResourceCounts
+func (c *ConfigService) GetDiscoveredResourceCountsRequest(input *GetDiscoveredResourceCountsInput) (req *request.Request, output *GetDiscoveredResourceCountsOutput) {
+	op := &request.Operation{
+		Name:       opGetDiscoveredResourceCounts,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetDiscoveredResourceCountsInput{}
+	}
+
+	output = &GetDiscoveredResourceCountsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetDiscoveredResourceCounts API operation for AWS Config.
+//
+// Returns the resource types, the number of each resource type, and the total
+// number of resources that AWS Config is recording in this region for your
+// AWS account.
+//
+// Example
+//
+// AWS Config is recording three resource types in the US East (Ohio) Region
+// for your account: 25 EC2 instances, 20 IAM users, and 15 S3 buckets.
+//
+// You make a call to the GetDiscoveredResourceCounts action and specify that
+// you want all resource types.
+//
+// AWS Config returns the following:
+//
+// The resource types (EC2 instances, IAM users, and S3 buckets).
+//
+// The number of each resource type (25, 20, and 15).
+//
+// The total number of all resources (60).
+//
+// The response is paginated. By default, AWS Config lists 100 ResourceCount
+// objects on each page. You can customize this number with the limit parameter.
+// The response includes a nextToken string. To get the next page of results,
+// run the request again and specify the string for the nextToken parameter.
+//
+// If you make a call to the GetDiscoveredResourceCounts action, you might not
+// immediately receive resource counts in the following situations:
+//
+// You are a new AWS Config customer.
+//
+// You just enabled resource recording.
+//
+// It might take a few minutes for AWS Config to record and count your resources.
+// Wait a few minutes and then retry the GetDiscoveredResourceCounts action.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Config's
+// API operation GetDiscoveredResourceCounts for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeValidationException "ValidationException"
+//   The requested action is not valid.
+//
+//   * ErrCodeInvalidLimitException "InvalidLimitException"
+//   The specified limit is outside the allowable range.
+//
+//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   The specified next token is invalid. Specify the nextToken string that was
+//   returned in the previous response to get the next page of results.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetDiscoveredResourceCounts
+func (c *ConfigService) GetDiscoveredResourceCounts(input *GetDiscoveredResourceCountsInput) (*GetDiscoveredResourceCountsOutput, error) {
+	req, out := c.GetDiscoveredResourceCountsRequest(input)
+	return out, req.Send()
+}
+
+// GetDiscoveredResourceCountsWithContext is the same as GetDiscoveredResourceCounts with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetDiscoveredResourceCounts for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ConfigService) GetDiscoveredResourceCountsWithContext(ctx aws.Context, input *GetDiscoveredResourceCountsInput, opts ...request.Option) (*GetDiscoveredResourceCountsOutput, error) {
+	req, out := c.GetDiscoveredResourceCountsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opGetResourceConfigHistory = "GetResourceConfigHistory"
 
 // GetResourceConfigHistoryRequest generates a "aws/request.Request" representing the
 // client's request for the GetResourceConfigHistory operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See GetResourceConfigHistory for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetResourceConfigHistory method directly
-// instead.
+// See GetResourceConfigHistory for more information on using the GetResourceConfigHistory
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetResourceConfigHistoryRequest method.
 //    req, resp := client.GetResourceConfigHistoryRequest(params)
@@ -1564,7 +3093,7 @@ const opGetResourceConfigHistory = "GetResourceConfigHistory"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetResourceConfigHistory
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetResourceConfigHistory
 func (c *ConfigService) GetResourceConfigHistoryRequest(input *GetResourceConfigHistoryInput) (req *request.Request, output *GetResourceConfigHistoryOutput) {
 	op := &request.Operation{
 		Name:       opGetResourceConfigHistory,
@@ -1591,13 +3120,14 @@ func (c *ConfigService) GetResourceConfigHistoryRequest(input *GetResourceConfig
 //
 // Returns a list of configuration items for the specified resource. The list
 // contains details about each state of the resource during the specified time
-// interval.
+// interval. If you specified a retention period to retain your ConfigurationItems
+// between a minimum of 30 days and a maximum of 7 years (2557 days), AWS Config
+// returns the ConfigurationItems for the specified retention period.
 //
-// The response is paginated, and by default, AWS Config returns a limit of
-// 10 configuration items per page. You can customize this number with the limit
-// parameter. The response includes a nextToken string, and to get the next
-// page of results, run the request again and enter this string for the nextToken
-// parameter.
+// The response is paginated. By default, AWS Config returns a limit of 10 configuration
+// items per page. You can customize this number with the limit parameter. The
+// response includes a nextToken string. To get the next page of results, run
+// the request again and specify the string for the nextToken parameter.
 //
 // Each call to the API is limited to span a duration of seven days. It is likely
 // that the number of records returned is smaller than the specified limit.
@@ -1622,7 +3152,7 @@ func (c *ConfigService) GetResourceConfigHistoryRequest(input *GetResourceConfig
 //   The specified limit is outside the allowable range.
 //
 //   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
-//   The specified next token is invalid. Specify the NextToken string that was
+//   The specified next token is invalid. Specify the nextToken string that was
 //   returned in the previous response to get the next page of results.
 //
 //   * ErrCodeNoAvailableConfigurationRecorderException "NoAvailableConfigurationRecorderException"
@@ -1632,7 +3162,7 @@ func (c *ConfigService) GetResourceConfigHistoryRequest(input *GetResourceConfig
 //   * ErrCodeResourceNotDiscoveredException "ResourceNotDiscoveredException"
 //   You have specified a resource that is either unknown or has not been discovered.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetResourceConfigHistory
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetResourceConfigHistory
 func (c *ConfigService) GetResourceConfigHistory(input *GetResourceConfigHistoryInput) (*GetResourceConfigHistoryOutput, error) {
 	req, out := c.GetResourceConfigHistoryRequest(input)
 	return out, req.Send()
@@ -1704,23 +3234,120 @@ func (c *ConfigService) GetResourceConfigHistoryPagesWithContext(ctx aws.Context
 	return p.Err()
 }
 
+const opListAggregateDiscoveredResources = "ListAggregateDiscoveredResources"
+
+// ListAggregateDiscoveredResourcesRequest generates a "aws/request.Request" representing the
+// client's request for the ListAggregateDiscoveredResources operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListAggregateDiscoveredResources for more information on using the ListAggregateDiscoveredResources
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListAggregateDiscoveredResourcesRequest method.
+//    req, resp := client.ListAggregateDiscoveredResourcesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/ListAggregateDiscoveredResources
+func (c *ConfigService) ListAggregateDiscoveredResourcesRequest(input *ListAggregateDiscoveredResourcesInput) (req *request.Request, output *ListAggregateDiscoveredResourcesOutput) {
+	op := &request.Operation{
+		Name:       opListAggregateDiscoveredResources,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ListAggregateDiscoveredResourcesInput{}
+	}
+
+	output = &ListAggregateDiscoveredResourcesOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListAggregateDiscoveredResources API operation for AWS Config.
+//
+// Accepts a resource type and returns a list of resource identifiers that are
+// aggregated for a specific resource type across accounts and regions. A resource
+// identifier includes the resource type, ID, (if available) the custom resource
+// name, source account, and source region. You can narrow the results to include
+// only resources that have specific resource IDs, or a resource name, or source
+// account ID, or source region.
+//
+// For example, if the input consists of accountID 12345678910 and the region
+// is us-east-1 for resource type AWS::EC2::Instance then the API returns all
+// the EC2 instance identifiers of accountID 12345678910 and region us-east-1.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Config's
+// API operation ListAggregateDiscoveredResources for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeValidationException "ValidationException"
+//   The requested action is not valid.
+//
+//   * ErrCodeInvalidLimitException "InvalidLimitException"
+//   The specified limit is outside the allowable range.
+//
+//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   The specified next token is invalid. Specify the nextToken string that was
+//   returned in the previous response to get the next page of results.
+//
+//   * ErrCodeNoSuchConfigurationAggregatorException "NoSuchConfigurationAggregatorException"
+//   You have specified a configuration aggregator that does not exist.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/ListAggregateDiscoveredResources
+func (c *ConfigService) ListAggregateDiscoveredResources(input *ListAggregateDiscoveredResourcesInput) (*ListAggregateDiscoveredResourcesOutput, error) {
+	req, out := c.ListAggregateDiscoveredResourcesRequest(input)
+	return out, req.Send()
+}
+
+// ListAggregateDiscoveredResourcesWithContext is the same as ListAggregateDiscoveredResources with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListAggregateDiscoveredResources for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ConfigService) ListAggregateDiscoveredResourcesWithContext(ctx aws.Context, input *ListAggregateDiscoveredResourcesInput, opts ...request.Option) (*ListAggregateDiscoveredResourcesOutput, error) {
+	req, out := c.ListAggregateDiscoveredResourcesRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opListDiscoveredResources = "ListDiscoveredResources"
 
 // ListDiscoveredResourcesRequest generates a "aws/request.Request" representing the
 // client's request for the ListDiscoveredResources operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See ListDiscoveredResources for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListDiscoveredResources method directly
-// instead.
+// See ListDiscoveredResources for more information on using the ListDiscoveredResources
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListDiscoveredResourcesRequest method.
 //    req, resp := client.ListDiscoveredResourcesRequest(params)
@@ -1730,7 +3357,7 @@ const opListDiscoveredResources = "ListDiscoveredResources"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/ListDiscoveredResources
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/ListDiscoveredResources
 func (c *ConfigService) ListDiscoveredResourcesRequest(input *ListDiscoveredResourcesInput) (req *request.Request, output *ListDiscoveredResourcesOutput) {
 	op := &request.Operation{
 		Name:       opListDiscoveredResources,
@@ -1756,13 +3383,13 @@ func (c *ConfigService) ListDiscoveredResourcesRequest(input *ListDiscoveredReso
 // recording. You can narrow the results to include only resources that have
 // specific resource IDs or a resource name.
 //
-// You can specify either resource IDs or a resource name but not both in the
-// same request.
+// You can specify either resource IDs or a resource name, but not both, in
+// the same request.
 //
-// The response is paginated, and by default AWS Config lists 100 resource identifiers
+// The response is paginated. By default, AWS Config lists 100 resource identifiers
 // on each page. You can customize this number with the limit parameter. The
-// response includes a nextToken string, and to get the next page of results,
-// run the request again and enter this string for the nextToken parameter.
+// response includes a nextToken string. To get the next page of results, run
+// the request again and specify the string for the nextToken parameter.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1779,14 +3406,14 @@ func (c *ConfigService) ListDiscoveredResourcesRequest(input *ListDiscoveredReso
 //   The specified limit is outside the allowable range.
 //
 //   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
-//   The specified next token is invalid. Specify the NextToken string that was
+//   The specified next token is invalid. Specify the nextToken string that was
 //   returned in the previous response to get the next page of results.
 //
 //   * ErrCodeNoAvailableConfigurationRecorderException "NoAvailableConfigurationRecorderException"
 //   There are no configuration recorders available to provide the role needed
 //   to describe your resources. Create a configuration recorder.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/ListDiscoveredResources
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/ListDiscoveredResources
 func (c *ConfigService) ListDiscoveredResources(input *ListDiscoveredResourcesInput) (*ListDiscoveredResourcesOutput, error) {
 	req, out := c.ListDiscoveredResourcesRequest(input)
 	return out, req.Send()
@@ -1808,23 +3435,103 @@ func (c *ConfigService) ListDiscoveredResourcesWithContext(ctx aws.Context, inpu
 	return out, req.Send()
 }
 
+const opPutAggregationAuthorization = "PutAggregationAuthorization"
+
+// PutAggregationAuthorizationRequest generates a "aws/request.Request" representing the
+// client's request for the PutAggregationAuthorization operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See PutAggregationAuthorization for more information on using the PutAggregationAuthorization
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the PutAggregationAuthorizationRequest method.
+//    req, resp := client.PutAggregationAuthorizationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutAggregationAuthorization
+func (c *ConfigService) PutAggregationAuthorizationRequest(input *PutAggregationAuthorizationInput) (req *request.Request, output *PutAggregationAuthorizationOutput) {
+	op := &request.Operation{
+		Name:       opPutAggregationAuthorization,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &PutAggregationAuthorizationInput{}
+	}
+
+	output = &PutAggregationAuthorizationOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// PutAggregationAuthorization API operation for AWS Config.
+//
+// Authorizes the aggregator account and region to collect data from the source
+// account and region.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Config's
+// API operation PutAggregationAuthorization for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+//   One or more of the specified parameters are invalid. Verify that your parameters
+//   are valid and try again.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutAggregationAuthorization
+func (c *ConfigService) PutAggregationAuthorization(input *PutAggregationAuthorizationInput) (*PutAggregationAuthorizationOutput, error) {
+	req, out := c.PutAggregationAuthorizationRequest(input)
+	return out, req.Send()
+}
+
+// PutAggregationAuthorizationWithContext is the same as PutAggregationAuthorization with the addition of
+// the ability to pass a context and additional request options.
+//
+// See PutAggregationAuthorization for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ConfigService) PutAggregationAuthorizationWithContext(ctx aws.Context, input *PutAggregationAuthorizationInput, opts ...request.Option) (*PutAggregationAuthorizationOutput, error) {
+	req, out := c.PutAggregationAuthorizationRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opPutConfigRule = "PutConfigRule"
 
 // PutConfigRuleRequest generates a "aws/request.Request" representing the
 // client's request for the PutConfigRule operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See PutConfigRule for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the PutConfigRule method directly
-// instead.
+// See PutConfigRule for more information on using the PutConfigRule
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the PutConfigRuleRequest method.
 //    req, resp := client.PutConfigRuleRequest(params)
@@ -1834,7 +3541,7 @@ const opPutConfigRule = "PutConfigRule"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutConfigRule
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutConfigRule
 func (c *ConfigService) PutConfigRuleRequest(input *PutConfigRuleInput) (req *request.Request, output *PutConfigRuleOutput) {
 	op := &request.Operation{
 		Name:       opPutConfigRule,
@@ -1848,8 +3555,7 @@ func (c *ConfigService) PutConfigRuleRequest(input *PutConfigRuleInput) (req *re
 
 	output = &PutConfigRuleOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1858,16 +3564,17 @@ func (c *ConfigService) PutConfigRuleRequest(input *PutConfigRuleInput) (req *re
 // Adds or updates an AWS Config rule for evaluating whether your AWS resources
 // comply with your desired configurations.
 //
-// You can use this action for custom Config rules and AWS managed Config rules.
-// A custom Config rule is a rule that you develop and maintain. An AWS managed
-// Config rule is a customizable, predefined rule that AWS Config provides.
+// You can use this action for custom AWS Config rules and AWS managed Config
+// rules. A custom AWS Config rule is a rule that you develop and maintain.
+// An AWS managed Config rule is a customizable, predefined rule that AWS Config
+// provides.
 //
-// If you are adding a new custom Config rule, you must first create the AWS
-// Lambda function that the rule invokes to evaluate your resources. When you
-// use the PutConfigRule action to add the rule to AWS Config, you must specify
-// the Amazon Resource Name (ARN) that AWS Lambda assigns to the function. Specify
-// the ARN for the SourceIdentifier key. This key is part of the Source object,
-// which is part of the ConfigRule object.
+// If you are adding a new custom AWS Config rule, you must first create the
+// AWS Lambda function that the rule invokes to evaluate your resources. When
+// you use the PutConfigRule action to add the rule to AWS Config, you must
+// specify the Amazon Resource Name (ARN) that AWS Lambda assigns to the function.
+// Specify the ARN for the SourceIdentifier key. This key is part of the Source
+// object, which is part of the ConfigRule object.
 //
 // If you are adding an AWS managed Config rule, specify the rule's identifier
 // for the SourceIdentifier key. To reference AWS managed Config rule identifiers,
@@ -1883,8 +3590,8 @@ func (c *ConfigService) PutConfigRuleRequest(input *PutConfigRuleInput) (req *re
 //
 // The maximum number of rules that AWS Config supports is 50.
 //
-// For more information about requesting a rule limit increase, see AWS Config
-// Limits (http://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html#limits_config)
+// For information about requesting a rule limit increase, see AWS Config Limits
+// (http://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html#limits_config)
 // in the AWS General Reference Guide.
 //
 // For more information about developing and using AWS Config rules, see Evaluating
@@ -1906,7 +3613,7 @@ func (c *ConfigService) PutConfigRuleRequest(input *PutConfigRuleInput) (req *re
 //   * ErrCodeMaxNumberOfConfigRulesExceededException "MaxNumberOfConfigRulesExceededException"
 //   Failed to add the AWS Config rule because the account already contains the
 //   maximum number of 50 rules. Consider deleting any deactivated rules before
-//   adding new rules.
+//   you add new rules.
 //
 //   * ErrCodeResourceInUseException "ResourceInUseException"
 //   The rule is currently being deleted or the rule is deleting your evaluation
@@ -1925,7 +3632,7 @@ func (c *ConfigService) PutConfigRuleRequest(input *PutConfigRuleInput) (req *re
 //   There are no configuration recorders available to provide the role needed
 //   to describe your resources. Create a configuration recorder.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutConfigRule
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutConfigRule
 func (c *ConfigService) PutConfigRule(input *PutConfigRuleInput) (*PutConfigRuleOutput, error) {
 	req, out := c.PutConfigRuleRequest(input)
 	return out, req.Send()
@@ -1947,23 +3654,132 @@ func (c *ConfigService) PutConfigRuleWithContext(ctx aws.Context, input *PutConf
 	return out, req.Send()
 }
 
+const opPutConfigurationAggregator = "PutConfigurationAggregator"
+
+// PutConfigurationAggregatorRequest generates a "aws/request.Request" representing the
+// client's request for the PutConfigurationAggregator operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See PutConfigurationAggregator for more information on using the PutConfigurationAggregator
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the PutConfigurationAggregatorRequest method.
+//    req, resp := client.PutConfigurationAggregatorRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutConfigurationAggregator
+func (c *ConfigService) PutConfigurationAggregatorRequest(input *PutConfigurationAggregatorInput) (req *request.Request, output *PutConfigurationAggregatorOutput) {
+	op := &request.Operation{
+		Name:       opPutConfigurationAggregator,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &PutConfigurationAggregatorInput{}
+	}
+
+	output = &PutConfigurationAggregatorOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// PutConfigurationAggregator API operation for AWS Config.
+//
+// Creates and updates the configuration aggregator with the selected source
+// accounts and regions. The source account can be individual account(s) or
+// an organization.
+//
+// AWS Config should be enabled in source accounts and regions you want to aggregate.
+//
+// If your source type is an organization, you must be signed in to the master
+// account and all features must be enabled in your organization. AWS Config
+// calls EnableAwsServiceAccess API to enable integration between AWS Config
+// and AWS Organizations.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Config's
+// API operation PutConfigurationAggregator for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+//   One or more of the specified parameters are invalid. Verify that your parameters
+//   are valid and try again.
+//
+//   * ErrCodeLimitExceededException "LimitExceededException"
+//   For StartConfigRulesEvaluation API, this exception is thrown if an evaluation
+//   is in progress or if you call the StartConfigRulesEvaluation API more than
+//   once per minute.
+//
+//   For PutConfigurationAggregator API, this exception is thrown if the number
+//   of accounts and aggregators exceeds the limit.
+//
+//   * ErrCodeInvalidRoleException "InvalidRoleException"
+//   You have provided a null or empty role ARN.
+//
+//   * ErrCodeOrganizationAccessDeniedException "OrganizationAccessDeniedException"
+//   No permission to call the EnableAWSServiceAccess API.
+//
+//   * ErrCodeNoAvailableOrganizationException "NoAvailableOrganizationException"
+//   Organization does is no longer available.
+//
+//   * ErrCodeOrganizationAllFeaturesNotEnabledException "OrganizationAllFeaturesNotEnabledException"
+//   The configuration aggregator cannot be created because organization does
+//   not have all features enabled.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutConfigurationAggregator
+func (c *ConfigService) PutConfigurationAggregator(input *PutConfigurationAggregatorInput) (*PutConfigurationAggregatorOutput, error) {
+	req, out := c.PutConfigurationAggregatorRequest(input)
+	return out, req.Send()
+}
+
+// PutConfigurationAggregatorWithContext is the same as PutConfigurationAggregator with the addition of
+// the ability to pass a context and additional request options.
+//
+// See PutConfigurationAggregator for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ConfigService) PutConfigurationAggregatorWithContext(ctx aws.Context, input *PutConfigurationAggregatorInput, opts ...request.Option) (*PutConfigurationAggregatorOutput, error) {
+	req, out := c.PutConfigurationAggregatorRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opPutConfigurationRecorder = "PutConfigurationRecorder"
 
 // PutConfigurationRecorderRequest generates a "aws/request.Request" representing the
 // client's request for the PutConfigurationRecorder operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See PutConfigurationRecorder for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the PutConfigurationRecorder method directly
-// instead.
+// See PutConfigurationRecorder for more information on using the PutConfigurationRecorder
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the PutConfigurationRecorderRequest method.
 //    req, resp := client.PutConfigurationRecorderRequest(params)
@@ -1973,7 +3789,7 @@ const opPutConfigurationRecorder = "PutConfigurationRecorder"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutConfigurationRecorder
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutConfigurationRecorder
 func (c *ConfigService) PutConfigurationRecorderRequest(input *PutConfigurationRecorderInput) (req *request.Request, output *PutConfigurationRecorderOutput) {
 	op := &request.Operation{
 		Name:       opPutConfigurationRecorder,
@@ -1987,8 +3803,7 @@ func (c *ConfigService) PutConfigurationRecorderRequest(input *PutConfigurationR
 
 	output = &PutConfigurationRecorderOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1996,7 +3811,7 @@ func (c *ConfigService) PutConfigurationRecorderRequest(input *PutConfigurationR
 //
 // Creates a new configuration recorder to record the selected resource configurations.
 //
-// You can use this action to change the role roleARN and/or the recordingGroup
+// You can use this action to change the role roleARN or the recordingGroup
 // of an existing recorder. To change the role, call the action on the existing
 // configuration recorder and specify a role.
 //
@@ -2015,7 +3830,7 @@ func (c *ConfigService) PutConfigurationRecorderRequest(input *PutConfigurationR
 //
 // Returned Error Codes:
 //   * ErrCodeMaxNumberOfConfigurationRecordersExceededException "MaxNumberOfConfigurationRecordersExceededException"
-//   You have reached the limit on the number of recorders you can create.
+//   You have reached the limit of the number of recorders you can create.
 //
 //   * ErrCodeInvalidConfigurationRecorderNameException "InvalidConfigurationRecorderNameException"
 //   You have provided a configuration recorder name that is not valid.
@@ -2025,9 +3840,9 @@ func (c *ConfigService) PutConfigurationRecorderRequest(input *PutConfigurationR
 //
 //   * ErrCodeInvalidRecordingGroupException "InvalidRecordingGroupException"
 //   AWS Config throws an exception if the recording group does not contain a
-//   valid list of resource types. Invalid values could also be incorrectly formatted.
+//   valid list of resource types. Invalid values might also be incorrectly formatted.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutConfigurationRecorder
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutConfigurationRecorder
 func (c *ConfigService) PutConfigurationRecorder(input *PutConfigurationRecorderInput) (*PutConfigurationRecorderOutput, error) {
 	req, out := c.PutConfigurationRecorderRequest(input)
 	return out, req.Send()
@@ -2053,19 +3868,18 @@ const opPutDeliveryChannel = "PutDeliveryChannel"
 
 // PutDeliveryChannelRequest generates a "aws/request.Request" representing the
 // client's request for the PutDeliveryChannel operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See PutDeliveryChannel for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the PutDeliveryChannel method directly
-// instead.
+// See PutDeliveryChannel for more information on using the PutDeliveryChannel
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the PutDeliveryChannelRequest method.
 //    req, resp := client.PutDeliveryChannelRequest(params)
@@ -2075,7 +3889,7 @@ const opPutDeliveryChannel = "PutDeliveryChannel"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutDeliveryChannel
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutDeliveryChannel
 func (c *ConfigService) PutDeliveryChannelRequest(input *PutDeliveryChannelInput) (req *request.Request, output *PutDeliveryChannelOutput) {
 	op := &request.Operation{
 		Name:       opPutDeliveryChannel,
@@ -2089,8 +3903,7 @@ func (c *ConfigService) PutDeliveryChannelRequest(input *PutDeliveryChannelInput
 
 	output = &PutDeliveryChannelOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2120,7 +3933,7 @@ func (c *ConfigService) PutDeliveryChannelRequest(input *PutDeliveryChannelInput
 //
 // Returned Error Codes:
 //   * ErrCodeMaxNumberOfDeliveryChannelsExceededException "MaxNumberOfDeliveryChannelsExceededException"
-//   You have reached the limit on the number of delivery channels you can create.
+//   You have reached the limit of the number of delivery channels you can create.
 //
 //   * ErrCodeNoAvailableConfigurationRecorderException "NoAvailableConfigurationRecorderException"
 //   There are no configuration recorders available to provide the role needed
@@ -2141,7 +3954,7 @@ func (c *ConfigService) PutDeliveryChannelRequest(input *PutDeliveryChannelInput
 //   * ErrCodeInsufficientDeliveryPolicyException "InsufficientDeliveryPolicyException"
 //   Your Amazon S3 bucket policy does not permit AWS Config to write to it.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutDeliveryChannel
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutDeliveryChannel
 func (c *ConfigService) PutDeliveryChannel(input *PutDeliveryChannelInput) (*PutDeliveryChannelOutput, error) {
 	req, out := c.PutDeliveryChannelRequest(input)
 	return out, req.Send()
@@ -2167,19 +3980,18 @@ const opPutEvaluations = "PutEvaluations"
 
 // PutEvaluationsRequest generates a "aws/request.Request" representing the
 // client's request for the PutEvaluations operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See PutEvaluations for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the PutEvaluations method directly
-// instead.
+// See PutEvaluations for more information on using the PutEvaluations
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the PutEvaluationsRequest method.
 //    req, resp := client.PutEvaluationsRequest(params)
@@ -2189,7 +4001,7 @@ const opPutEvaluations = "PutEvaluations"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutEvaluations
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutEvaluations
 func (c *ConfigService) PutEvaluationsRequest(input *PutEvaluationsInput) (req *request.Request, output *PutEvaluationsOutput) {
 	op := &request.Operation{
 		Name:       opPutEvaluations,
@@ -2231,7 +4043,7 @@ func (c *ConfigService) PutEvaluationsRequest(input *PutEvaluationsInput) (req *
 //   One or more AWS Config rules in the request are invalid. Verify that the
 //   rule names are correct and try again.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutEvaluations
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutEvaluations
 func (c *ConfigService) PutEvaluations(input *PutEvaluationsInput) (*PutEvaluationsOutput, error) {
 	req, out := c.PutEvaluationsRequest(input)
 	return out, req.Send()
@@ -2253,23 +4065,113 @@ func (c *ConfigService) PutEvaluationsWithContext(ctx aws.Context, input *PutEva
 	return out, req.Send()
 }
 
+const opPutRetentionConfiguration = "PutRetentionConfiguration"
+
+// PutRetentionConfigurationRequest generates a "aws/request.Request" representing the
+// client's request for the PutRetentionConfiguration operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See PutRetentionConfiguration for more information on using the PutRetentionConfiguration
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the PutRetentionConfigurationRequest method.
+//    req, resp := client.PutRetentionConfigurationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutRetentionConfiguration
+func (c *ConfigService) PutRetentionConfigurationRequest(input *PutRetentionConfigurationInput) (req *request.Request, output *PutRetentionConfigurationOutput) {
+	op := &request.Operation{
+		Name:       opPutRetentionConfiguration,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &PutRetentionConfigurationInput{}
+	}
+
+	output = &PutRetentionConfigurationOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// PutRetentionConfiguration API operation for AWS Config.
+//
+// Creates and updates the retention configuration with details about retention
+// period (number of days) that AWS Config stores your historical information.
+// The API creates the RetentionConfiguration object and names the object as
+// default. When you have a RetentionConfiguration object named default, calling
+// the API modifies the default object.
+//
+// Currently, AWS Config supports only one retention configuration per region
+// in your account.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Config's
+// API operation PutRetentionConfiguration for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+//   One or more of the specified parameters are invalid. Verify that your parameters
+//   are valid and try again.
+//
+//   * ErrCodeMaxNumberOfRetentionConfigurationsExceededException "MaxNumberOfRetentionConfigurationsExceededException"
+//   Failed to add the retention configuration because a retention configuration
+//   with that name already exists.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutRetentionConfiguration
+func (c *ConfigService) PutRetentionConfiguration(input *PutRetentionConfigurationInput) (*PutRetentionConfigurationOutput, error) {
+	req, out := c.PutRetentionConfigurationRequest(input)
+	return out, req.Send()
+}
+
+// PutRetentionConfigurationWithContext is the same as PutRetentionConfiguration with the addition of
+// the ability to pass a context and additional request options.
+//
+// See PutRetentionConfiguration for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ConfigService) PutRetentionConfigurationWithContext(ctx aws.Context, input *PutRetentionConfigurationInput, opts ...request.Option) (*PutRetentionConfigurationOutput, error) {
+	req, out := c.PutRetentionConfigurationRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opStartConfigRulesEvaluation = "StartConfigRulesEvaluation"
 
 // StartConfigRulesEvaluationRequest generates a "aws/request.Request" representing the
 // client's request for the StartConfigRulesEvaluation operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See StartConfigRulesEvaluation for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the StartConfigRulesEvaluation method directly
-// instead.
+// See StartConfigRulesEvaluation for more information on using the StartConfigRulesEvaluation
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the StartConfigRulesEvaluationRequest method.
 //    req, resp := client.StartConfigRulesEvaluationRequest(params)
@@ -2279,7 +4181,7 @@ const opStartConfigRulesEvaluation = "StartConfigRulesEvaluation"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/StartConfigRulesEvaluation
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/StartConfigRulesEvaluation
 func (c *ConfigService) StartConfigRulesEvaluationRequest(input *StartConfigRulesEvaluationInput) (req *request.Request, output *StartConfigRulesEvaluationOutput) {
 	op := &request.Operation{
 		Name:       opStartConfigRulesEvaluation,
@@ -2293,27 +4195,28 @@ func (c *ConfigService) StartConfigRulesEvaluationRequest(input *StartConfigRule
 
 	output = &StartConfigRulesEvaluationOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
 // StartConfigRulesEvaluation API operation for AWS Config.
 //
-// Runs an on-demand evaluation for the specified Config rules against the last
-// known configuration state of the resources. Use StartConfigRulesEvaluation
-// when you want to test a rule that you updated is working as expected. StartConfigRulesEvaluation
-// does not re-record the latest configuration state for your resources; it
+// Runs an on-demand evaluation for the specified AWS Config rules against the
+// last known configuration state of the resources. Use StartConfigRulesEvaluation
+// when you want to test that a rule you updated is working as expected. StartConfigRulesEvaluation
+// does not re-record the latest configuration state for your resources. It
 // re-runs an evaluation against the last known state of your resources.
 //
-// You can specify up to 25 Config rules per request.
+// You can specify up to 25 AWS Config rules per request.
 //
-// An existing StartConfigRulesEvaluation call must complete for the specified
-// rules before you can call the API again. If you chose to have AWS Config
+// An existing StartConfigRulesEvaluation call for the specified rules must
+// complete before you can call the API again. If you chose to have AWS Config
 // stream to an Amazon SNS topic, you will receive a ConfigRuleEvaluationStarted
 // notification when the evaluation starts.
 //
 // You don't need to call the StartConfigRulesEvaluation API to run an evaluation
-// for a new rule. When you create a new rule, AWS Config automatically evaluates
-// your resources against the rule.
+// for a new rule. When you create a rule, AWS Config evaluates your resources
+// against the rule automatically.
 //
 // The StartConfigRulesEvaluation API is useful if you want to run on-demand
 // evaluations, such as the following example:
@@ -2342,8 +4245,12 @@ func (c *ConfigService) StartConfigRulesEvaluationRequest(input *StartConfigRule
 //   rule names are correct and try again.
 //
 //   * ErrCodeLimitExceededException "LimitExceededException"
-//   This exception is thrown if an evaluation is in progress or if you call the
-//   StartConfigRulesEvaluation API more than once per minute.
+//   For StartConfigRulesEvaluation API, this exception is thrown if an evaluation
+//   is in progress or if you call the StartConfigRulesEvaluation API more than
+//   once per minute.
+//
+//   For PutConfigurationAggregator API, this exception is thrown if the number
+//   of accounts and aggregators exceeds the limit.
 //
 //   * ErrCodeResourceInUseException "ResourceInUseException"
 //   The rule is currently being deleted or the rule is deleting your evaluation
@@ -2353,7 +4260,7 @@ func (c *ConfigService) StartConfigRulesEvaluationRequest(input *StartConfigRule
 //   One or more of the specified parameters are invalid. Verify that your parameters
 //   are valid and try again.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/StartConfigRulesEvaluation
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/StartConfigRulesEvaluation
 func (c *ConfigService) StartConfigRulesEvaluation(input *StartConfigRulesEvaluationInput) (*StartConfigRulesEvaluationOutput, error) {
 	req, out := c.StartConfigRulesEvaluationRequest(input)
 	return out, req.Send()
@@ -2379,19 +4286,18 @@ const opStartConfigurationRecorder = "StartConfigurationRecorder"
 
 // StartConfigurationRecorderRequest generates a "aws/request.Request" representing the
 // client's request for the StartConfigurationRecorder operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See StartConfigurationRecorder for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the StartConfigurationRecorder method directly
-// instead.
+// See StartConfigurationRecorder for more information on using the StartConfigurationRecorder
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the StartConfigurationRecorderRequest method.
 //    req, resp := client.StartConfigurationRecorderRequest(params)
@@ -2401,7 +4307,7 @@ const opStartConfigurationRecorder = "StartConfigurationRecorder"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/StartConfigurationRecorder
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/StartConfigurationRecorder
 func (c *ConfigService) StartConfigurationRecorderRequest(input *StartConfigurationRecorderInput) (req *request.Request, output *StartConfigurationRecorderOutput) {
 	op := &request.Operation{
 		Name:       opStartConfigurationRecorder,
@@ -2415,8 +4321,7 @@ func (c *ConfigService) StartConfigurationRecorderRequest(input *StartConfigurat
 
 	output = &StartConfigurationRecorderOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2442,7 +4347,7 @@ func (c *ConfigService) StartConfigurationRecorderRequest(input *StartConfigurat
 //   * ErrCodeNoAvailableDeliveryChannelException "NoAvailableDeliveryChannelException"
 //   There is no delivery channel available to record configurations.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/StartConfigurationRecorder
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/StartConfigurationRecorder
 func (c *ConfigService) StartConfigurationRecorder(input *StartConfigurationRecorderInput) (*StartConfigurationRecorderOutput, error) {
 	req, out := c.StartConfigurationRecorderRequest(input)
 	return out, req.Send()
@@ -2468,19 +4373,18 @@ const opStopConfigurationRecorder = "StopConfigurationRecorder"
 
 // StopConfigurationRecorderRequest generates a "aws/request.Request" representing the
 // client's request for the StopConfigurationRecorder operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
-// See StopConfigurationRecorder for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the StopConfigurationRecorder method directly
-// instead.
+// See StopConfigurationRecorder for more information on using the StopConfigurationRecorder
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the StopConfigurationRecorderRequest method.
 //    req, resp := client.StopConfigurationRecorderRequest(params)
@@ -2490,7 +4394,7 @@ const opStopConfigurationRecorder = "StopConfigurationRecorder"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/StopConfigurationRecorder
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/StopConfigurationRecorder
 func (c *ConfigService) StopConfigurationRecorderRequest(input *StopConfigurationRecorderInput) (req *request.Request, output *StopConfigurationRecorderOutput) {
 	op := &request.Operation{
 		Name:       opStopConfigurationRecorder,
@@ -2504,8 +4408,7 @@ func (c *ConfigService) StopConfigurationRecorderRequest(input *StopConfiguratio
 
 	output = &StopConfigurationRecorderOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2525,7 +4428,7 @@ func (c *ConfigService) StopConfigurationRecorderRequest(input *StopConfiguratio
 //   * ErrCodeNoSuchConfigurationRecorderException "NoSuchConfigurationRecorderException"
 //   You have specified a configuration recorder that does not exist.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/StopConfigurationRecorder
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/StopConfigurationRecorder
 func (c *ConfigService) StopConfigurationRecorder(input *StopConfigurationRecorderInput) (*StopConfigurationRecorderOutput, error) {
 	req, out := c.StopConfigurationRecorderRequest(input)
 	return out, req.Send()
@@ -2547,9 +4450,814 @@ func (c *ConfigService) StopConfigurationRecorderWithContext(ctx aws.Context, in
 	return out, req.Send()
 }
 
+// A collection of accounts and regions.
+type AccountAggregationSource struct {
+	_ struct{} `type:"structure"`
+
+	// The 12-digit account ID of the account being aggregated.
+	//
+	// AccountIds is a required field
+	AccountIds []*string `min:"1" type:"list" required:"true"`
+
+	// If true, aggregate existing AWS Config regions and future regions.
+	AllAwsRegions *bool `type:"boolean"`
+
+	// The source regions being aggregated.
+	AwsRegions []*string `min:"1" type:"list"`
+}
+
+// String returns the string representation
+func (s AccountAggregationSource) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AccountAggregationSource) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AccountAggregationSource) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AccountAggregationSource"}
+	if s.AccountIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountIds"))
+	}
+	if s.AccountIds != nil && len(s.AccountIds) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AccountIds", 1))
+	}
+	if s.AwsRegions != nil && len(s.AwsRegions) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AwsRegions", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAccountIds sets the AccountIds field's value.
+func (s *AccountAggregationSource) SetAccountIds(v []*string) *AccountAggregationSource {
+	s.AccountIds = v
+	return s
+}
+
+// SetAllAwsRegions sets the AllAwsRegions field's value.
+func (s *AccountAggregationSource) SetAllAwsRegions(v bool) *AccountAggregationSource {
+	s.AllAwsRegions = &v
+	return s
+}
+
+// SetAwsRegions sets the AwsRegions field's value.
+func (s *AccountAggregationSource) SetAwsRegions(v []*string) *AccountAggregationSource {
+	s.AwsRegions = v
+	return s
+}
+
+// Indicates whether an AWS Config rule is compliant based on account ID, region,
+// compliance, and rule name.
+//
+// A rule is compliant if all of the resources that the rule evaluated comply
+// with it. It is noncompliant if any of these resources do not comply.
+type AggregateComplianceByConfigRule struct {
+	_ struct{} `type:"structure"`
+
+	// The 12-digit account ID of the source account.
+	AccountId *string `type:"string"`
+
+	// The source region from where the data is aggregated.
+	AwsRegion *string `min:"1" type:"string"`
+
+	// Indicates whether an AWS resource or AWS Config rule is compliant and provides
+	// the number of contributors that affect the compliance.
+	Compliance *Compliance `type:"structure"`
+
+	// The name of the AWS Config rule.
+	ConfigRuleName *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s AggregateComplianceByConfigRule) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AggregateComplianceByConfigRule) GoString() string {
+	return s.String()
+}
+
+// SetAccountId sets the AccountId field's value.
+func (s *AggregateComplianceByConfigRule) SetAccountId(v string) *AggregateComplianceByConfigRule {
+	s.AccountId = &v
+	return s
+}
+
+// SetAwsRegion sets the AwsRegion field's value.
+func (s *AggregateComplianceByConfigRule) SetAwsRegion(v string) *AggregateComplianceByConfigRule {
+	s.AwsRegion = &v
+	return s
+}
+
+// SetCompliance sets the Compliance field's value.
+func (s *AggregateComplianceByConfigRule) SetCompliance(v *Compliance) *AggregateComplianceByConfigRule {
+	s.Compliance = v
+	return s
+}
+
+// SetConfigRuleName sets the ConfigRuleName field's value.
+func (s *AggregateComplianceByConfigRule) SetConfigRuleName(v string) *AggregateComplianceByConfigRule {
+	s.ConfigRuleName = &v
+	return s
+}
+
+// Returns the number of compliant and noncompliant rules for one or more accounts
+// and regions in an aggregator.
+type AggregateComplianceCount struct {
+	_ struct{} `type:"structure"`
+
+	// The number of compliant and noncompliant AWS Config rules.
+	ComplianceSummary *ComplianceSummary `type:"structure"`
+
+	// The 12-digit account ID or region based on the GroupByKey value.
+	GroupName *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s AggregateComplianceCount) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AggregateComplianceCount) GoString() string {
+	return s.String()
+}
+
+// SetComplianceSummary sets the ComplianceSummary field's value.
+func (s *AggregateComplianceCount) SetComplianceSummary(v *ComplianceSummary) *AggregateComplianceCount {
+	s.ComplianceSummary = v
+	return s
+}
+
+// SetGroupName sets the GroupName field's value.
+func (s *AggregateComplianceCount) SetGroupName(v string) *AggregateComplianceCount {
+	s.GroupName = &v
+	return s
+}
+
+// The details of an AWS Config evaluation for an account ID and region in an
+// aggregator. Provides the AWS resource that was evaluated, the compliance
+// of the resource, related time stamps, and supplementary information.
+type AggregateEvaluationResult struct {
+	_ struct{} `type:"structure"`
+
+	// The 12-digit account ID of the source account.
+	AccountId *string `type:"string"`
+
+	// Supplementary information about how the agrregate evaluation determined the
+	// compliance.
+	Annotation *string `min:"1" type:"string"`
+
+	// The source region from where the data is aggregated.
+	AwsRegion *string `min:"1" type:"string"`
+
+	// The resource compliance status.
+	//
+	// For the AggregationEvaluationResult data type, AWS Config supports only the
+	// COMPLIANT and NON_COMPLIANT. AWS Config does not support the NOT_APPLICABLE
+	// and INSUFFICIENT_DATA value.
+	ComplianceType *string `type:"string" enum:"ComplianceType"`
+
+	// The time when the AWS Config rule evaluated the AWS resource.
+	ConfigRuleInvokedTime *time.Time `type:"timestamp"`
+
+	// Uniquely identifies the evaluation result.
+	EvaluationResultIdentifier *EvaluationResultIdentifier `type:"structure"`
+
+	// The time when AWS Config recorded the aggregate evaluation result.
+	ResultRecordedTime *time.Time `type:"timestamp"`
+}
+
+// String returns the string representation
+func (s AggregateEvaluationResult) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AggregateEvaluationResult) GoString() string {
+	return s.String()
+}
+
+// SetAccountId sets the AccountId field's value.
+func (s *AggregateEvaluationResult) SetAccountId(v string) *AggregateEvaluationResult {
+	s.AccountId = &v
+	return s
+}
+
+// SetAnnotation sets the Annotation field's value.
+func (s *AggregateEvaluationResult) SetAnnotation(v string) *AggregateEvaluationResult {
+	s.Annotation = &v
+	return s
+}
+
+// SetAwsRegion sets the AwsRegion field's value.
+func (s *AggregateEvaluationResult) SetAwsRegion(v string) *AggregateEvaluationResult {
+	s.AwsRegion = &v
+	return s
+}
+
+// SetComplianceType sets the ComplianceType field's value.
+func (s *AggregateEvaluationResult) SetComplianceType(v string) *AggregateEvaluationResult {
+	s.ComplianceType = &v
+	return s
+}
+
+// SetConfigRuleInvokedTime sets the ConfigRuleInvokedTime field's value.
+func (s *AggregateEvaluationResult) SetConfigRuleInvokedTime(v time.Time) *AggregateEvaluationResult {
+	s.ConfigRuleInvokedTime = &v
+	return s
+}
+
+// SetEvaluationResultIdentifier sets the EvaluationResultIdentifier field's value.
+func (s *AggregateEvaluationResult) SetEvaluationResultIdentifier(v *EvaluationResultIdentifier) *AggregateEvaluationResult {
+	s.EvaluationResultIdentifier = v
+	return s
+}
+
+// SetResultRecordedTime sets the ResultRecordedTime field's value.
+func (s *AggregateEvaluationResult) SetResultRecordedTime(v time.Time) *AggregateEvaluationResult {
+	s.ResultRecordedTime = &v
+	return s
+}
+
+// The details that identify a resource that is collected by AWS Config aggregator,
+// including the resource type, ID, (if available) the custom resource name,
+// the source account, and source region.
+type AggregateResourceIdentifier struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the AWS resource.
+	//
+	// ResourceId is a required field
+	ResourceId *string `min:"1" type:"string" required:"true"`
+
+	// The name of the AWS resource.
+	ResourceName *string `type:"string"`
+
+	// The type of the AWS resource.
+	//
+	// ResourceType is a required field
+	ResourceType *string `type:"string" required:"true" enum:"ResourceType"`
+
+	// The 12-digit account ID of the source account.
+	//
+	// SourceAccountId is a required field
+	SourceAccountId *string `type:"string" required:"true"`
+
+	// The source region where data is aggregated.
+	//
+	// SourceRegion is a required field
+	SourceRegion *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s AggregateResourceIdentifier) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AggregateResourceIdentifier) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AggregateResourceIdentifier) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AggregateResourceIdentifier"}
+	if s.ResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.ResourceId != nil && len(*s.ResourceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceId", 1))
+	}
+	if s.ResourceType == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceType"))
+	}
+	if s.SourceAccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("SourceAccountId"))
+	}
+	if s.SourceRegion == nil {
+		invalidParams.Add(request.NewErrParamRequired("SourceRegion"))
+	}
+	if s.SourceRegion != nil && len(*s.SourceRegion) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("SourceRegion", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetResourceId sets the ResourceId field's value.
+func (s *AggregateResourceIdentifier) SetResourceId(v string) *AggregateResourceIdentifier {
+	s.ResourceId = &v
+	return s
+}
+
+// SetResourceName sets the ResourceName field's value.
+func (s *AggregateResourceIdentifier) SetResourceName(v string) *AggregateResourceIdentifier {
+	s.ResourceName = &v
+	return s
+}
+
+// SetResourceType sets the ResourceType field's value.
+func (s *AggregateResourceIdentifier) SetResourceType(v string) *AggregateResourceIdentifier {
+	s.ResourceType = &v
+	return s
+}
+
+// SetSourceAccountId sets the SourceAccountId field's value.
+func (s *AggregateResourceIdentifier) SetSourceAccountId(v string) *AggregateResourceIdentifier {
+	s.SourceAccountId = &v
+	return s
+}
+
+// SetSourceRegion sets the SourceRegion field's value.
+func (s *AggregateResourceIdentifier) SetSourceRegion(v string) *AggregateResourceIdentifier {
+	s.SourceRegion = &v
+	return s
+}
+
+// The current sync status between the source and the aggregator account.
+type AggregatedSourceStatus struct {
+	_ struct{} `type:"structure"`
+
+	// The region authorized to collect aggregated data.
+	AwsRegion *string `min:"1" type:"string"`
+
+	// The error code that AWS Config returned when the source account aggregation
+	// last failed.
+	LastErrorCode *string `type:"string"`
+
+	// The message indicating that the source account aggregation failed due to
+	// an error.
+	LastErrorMessage *string `type:"string"`
+
+	// Filters the last updated status type.
+	//
+	//    * Valid value FAILED indicates errors while moving data.
+	//
+	//    * Valid value SUCCEEDED indicates the data was successfully moved.
+	//
+	//    * Valid value OUTDATED indicates the data is not the most recent.
+	LastUpdateStatus *string `type:"string" enum:"AggregatedSourceStatusType"`
+
+	// The time of the last update.
+	LastUpdateTime *time.Time `type:"timestamp"`
+
+	// The source account ID or an organization.
+	SourceId *string `type:"string"`
+
+	// The source account or an organization.
+	SourceType *string `type:"string" enum:"AggregatedSourceType"`
+}
+
+// String returns the string representation
+func (s AggregatedSourceStatus) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AggregatedSourceStatus) GoString() string {
+	return s.String()
+}
+
+// SetAwsRegion sets the AwsRegion field's value.
+func (s *AggregatedSourceStatus) SetAwsRegion(v string) *AggregatedSourceStatus {
+	s.AwsRegion = &v
+	return s
+}
+
+// SetLastErrorCode sets the LastErrorCode field's value.
+func (s *AggregatedSourceStatus) SetLastErrorCode(v string) *AggregatedSourceStatus {
+	s.LastErrorCode = &v
+	return s
+}
+
+// SetLastErrorMessage sets the LastErrorMessage field's value.
+func (s *AggregatedSourceStatus) SetLastErrorMessage(v string) *AggregatedSourceStatus {
+	s.LastErrorMessage = &v
+	return s
+}
+
+// SetLastUpdateStatus sets the LastUpdateStatus field's value.
+func (s *AggregatedSourceStatus) SetLastUpdateStatus(v string) *AggregatedSourceStatus {
+	s.LastUpdateStatus = &v
+	return s
+}
+
+// SetLastUpdateTime sets the LastUpdateTime field's value.
+func (s *AggregatedSourceStatus) SetLastUpdateTime(v time.Time) *AggregatedSourceStatus {
+	s.LastUpdateTime = &v
+	return s
+}
+
+// SetSourceId sets the SourceId field's value.
+func (s *AggregatedSourceStatus) SetSourceId(v string) *AggregatedSourceStatus {
+	s.SourceId = &v
+	return s
+}
+
+// SetSourceType sets the SourceType field's value.
+func (s *AggregatedSourceStatus) SetSourceType(v string) *AggregatedSourceStatus {
+	s.SourceType = &v
+	return s
+}
+
+// An object that represents the authorizations granted to aggregator accounts
+// and regions.
+type AggregationAuthorization struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the aggregation object.
+	AggregationAuthorizationArn *string `type:"string"`
+
+	// The 12-digit account ID of the account authorized to aggregate data.
+	AuthorizedAccountId *string `type:"string"`
+
+	// The region authorized to collect aggregated data.
+	AuthorizedAwsRegion *string `min:"1" type:"string"`
+
+	// The time stamp when the aggregation authorization was created.
+	CreationTime *time.Time `type:"timestamp"`
+}
+
+// String returns the string representation
+func (s AggregationAuthorization) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AggregationAuthorization) GoString() string {
+	return s.String()
+}
+
+// SetAggregationAuthorizationArn sets the AggregationAuthorizationArn field's value.
+func (s *AggregationAuthorization) SetAggregationAuthorizationArn(v string) *AggregationAuthorization {
+	s.AggregationAuthorizationArn = &v
+	return s
+}
+
+// SetAuthorizedAccountId sets the AuthorizedAccountId field's value.
+func (s *AggregationAuthorization) SetAuthorizedAccountId(v string) *AggregationAuthorization {
+	s.AuthorizedAccountId = &v
+	return s
+}
+
+// SetAuthorizedAwsRegion sets the AuthorizedAwsRegion field's value.
+func (s *AggregationAuthorization) SetAuthorizedAwsRegion(v string) *AggregationAuthorization {
+	s.AuthorizedAwsRegion = &v
+	return s
+}
+
+// SetCreationTime sets the CreationTime field's value.
+func (s *AggregationAuthorization) SetCreationTime(v time.Time) *AggregationAuthorization {
+	s.CreationTime = &v
+	return s
+}
+
+// The detailed configuration of a specified resource.
+type BaseConfigurationItem struct {
+	_ struct{} `type:"structure"`
+
+	// The 12-digit AWS account ID associated with the resource.
+	AccountId *string `locationName:"accountId" type:"string"`
+
+	// The Amazon Resource Name (ARN) of the resource.
+	Arn *string `locationName:"arn" type:"string"`
+
+	// The Availability Zone associated with the resource.
+	AvailabilityZone *string `locationName:"availabilityZone" type:"string"`
+
+	// The region where the resource resides.
+	AwsRegion *string `locationName:"awsRegion" min:"1" type:"string"`
+
+	// The description of the resource configuration.
+	Configuration *string `locationName:"configuration" type:"string"`
+
+	// The time when the configuration recording was initiated.
+	ConfigurationItemCaptureTime *time.Time `locationName:"configurationItemCaptureTime" type:"timestamp"`
+
+	// The configuration item status.
+	ConfigurationItemStatus *string `locationName:"configurationItemStatus" type:"string" enum:"ConfigurationItemStatus"`
+
+	// An identifier that indicates the ordering of the configuration items of a
+	// resource.
+	ConfigurationStateId *string `locationName:"configurationStateId" type:"string"`
+
+	// The time stamp when the resource was created.
+	ResourceCreationTime *time.Time `locationName:"resourceCreationTime" type:"timestamp"`
+
+	// The ID of the resource (for example., sg-xxxxxx).
+	ResourceId *string `locationName:"resourceId" min:"1" type:"string"`
+
+	// The custom name of the resource, if available.
+	ResourceName *string `locationName:"resourceName" type:"string"`
+
+	// The type of AWS resource.
+	ResourceType *string `locationName:"resourceType" type:"string" enum:"ResourceType"`
+
+	// Configuration attributes that AWS Config returns for certain resource types
+	// to supplement the information returned for the configuration parameter.
+	SupplementaryConfiguration map[string]*string `locationName:"supplementaryConfiguration" type:"map"`
+
+	// The version number of the resource configuration.
+	Version *string `locationName:"version" type:"string"`
+}
+
+// String returns the string representation
+func (s BaseConfigurationItem) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s BaseConfigurationItem) GoString() string {
+	return s.String()
+}
+
+// SetAccountId sets the AccountId field's value.
+func (s *BaseConfigurationItem) SetAccountId(v string) *BaseConfigurationItem {
+	s.AccountId = &v
+	return s
+}
+
+// SetArn sets the Arn field's value.
+func (s *BaseConfigurationItem) SetArn(v string) *BaseConfigurationItem {
+	s.Arn = &v
+	return s
+}
+
+// SetAvailabilityZone sets the AvailabilityZone field's value.
+func (s *BaseConfigurationItem) SetAvailabilityZone(v string) *BaseConfigurationItem {
+	s.AvailabilityZone = &v
+	return s
+}
+
+// SetAwsRegion sets the AwsRegion field's value.
+func (s *BaseConfigurationItem) SetAwsRegion(v string) *BaseConfigurationItem {
+	s.AwsRegion = &v
+	return s
+}
+
+// SetConfiguration sets the Configuration field's value.
+func (s *BaseConfigurationItem) SetConfiguration(v string) *BaseConfigurationItem {
+	s.Configuration = &v
+	return s
+}
+
+// SetConfigurationItemCaptureTime sets the ConfigurationItemCaptureTime field's value.
+func (s *BaseConfigurationItem) SetConfigurationItemCaptureTime(v time.Time) *BaseConfigurationItem {
+	s.ConfigurationItemCaptureTime = &v
+	return s
+}
+
+// SetConfigurationItemStatus sets the ConfigurationItemStatus field's value.
+func (s *BaseConfigurationItem) SetConfigurationItemStatus(v string) *BaseConfigurationItem {
+	s.ConfigurationItemStatus = &v
+	return s
+}
+
+// SetConfigurationStateId sets the ConfigurationStateId field's value.
+func (s *BaseConfigurationItem) SetConfigurationStateId(v string) *BaseConfigurationItem {
+	s.ConfigurationStateId = &v
+	return s
+}
+
+// SetResourceCreationTime sets the ResourceCreationTime field's value.
+func (s *BaseConfigurationItem) SetResourceCreationTime(v time.Time) *BaseConfigurationItem {
+	s.ResourceCreationTime = &v
+	return s
+}
+
+// SetResourceId sets the ResourceId field's value.
+func (s *BaseConfigurationItem) SetResourceId(v string) *BaseConfigurationItem {
+	s.ResourceId = &v
+	return s
+}
+
+// SetResourceName sets the ResourceName field's value.
+func (s *BaseConfigurationItem) SetResourceName(v string) *BaseConfigurationItem {
+	s.ResourceName = &v
+	return s
+}
+
+// SetResourceType sets the ResourceType field's value.
+func (s *BaseConfigurationItem) SetResourceType(v string) *BaseConfigurationItem {
+	s.ResourceType = &v
+	return s
+}
+
+// SetSupplementaryConfiguration sets the SupplementaryConfiguration field's value.
+func (s *BaseConfigurationItem) SetSupplementaryConfiguration(v map[string]*string) *BaseConfigurationItem {
+	s.SupplementaryConfiguration = v
+	return s
+}
+
+// SetVersion sets the Version field's value.
+func (s *BaseConfigurationItem) SetVersion(v string) *BaseConfigurationItem {
+	s.Version = &v
+	return s
+}
+
+type BatchGetAggregateResourceConfigInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the configuration aggregator.
+	//
+	// ConfigurationAggregatorName is a required field
+	ConfigurationAggregatorName *string `min:"1" type:"string" required:"true"`
+
+	// A list of aggregate ResourceIdentifiers objects.
+	//
+	// ResourceIdentifiers is a required field
+	ResourceIdentifiers []*AggregateResourceIdentifier `min:"1" type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s BatchGetAggregateResourceConfigInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s BatchGetAggregateResourceConfigInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *BatchGetAggregateResourceConfigInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "BatchGetAggregateResourceConfigInput"}
+	if s.ConfigurationAggregatorName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ConfigurationAggregatorName"))
+	}
+	if s.ConfigurationAggregatorName != nil && len(*s.ConfigurationAggregatorName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ConfigurationAggregatorName", 1))
+	}
+	if s.ResourceIdentifiers == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceIdentifiers"))
+	}
+	if s.ResourceIdentifiers != nil && len(s.ResourceIdentifiers) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceIdentifiers", 1))
+	}
+	if s.ResourceIdentifiers != nil {
+		for i, v := range s.ResourceIdentifiers {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "ResourceIdentifiers", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetConfigurationAggregatorName sets the ConfigurationAggregatorName field's value.
+func (s *BatchGetAggregateResourceConfigInput) SetConfigurationAggregatorName(v string) *BatchGetAggregateResourceConfigInput {
+	s.ConfigurationAggregatorName = &v
+	return s
+}
+
+// SetResourceIdentifiers sets the ResourceIdentifiers field's value.
+func (s *BatchGetAggregateResourceConfigInput) SetResourceIdentifiers(v []*AggregateResourceIdentifier) *BatchGetAggregateResourceConfigInput {
+	s.ResourceIdentifiers = v
+	return s
+}
+
+type BatchGetAggregateResourceConfigOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A list that contains the current configuration of one or more resources.
+	BaseConfigurationItems []*BaseConfigurationItem `type:"list"`
+
+	// A list of resource identifiers that were not processed with current scope.
+	// The list is empty if all the resources are processed.
+	UnprocessedResourceIdentifiers []*AggregateResourceIdentifier `type:"list"`
+}
+
+// String returns the string representation
+func (s BatchGetAggregateResourceConfigOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s BatchGetAggregateResourceConfigOutput) GoString() string {
+	return s.String()
+}
+
+// SetBaseConfigurationItems sets the BaseConfigurationItems field's value.
+func (s *BatchGetAggregateResourceConfigOutput) SetBaseConfigurationItems(v []*BaseConfigurationItem) *BatchGetAggregateResourceConfigOutput {
+	s.BaseConfigurationItems = v
+	return s
+}
+
+// SetUnprocessedResourceIdentifiers sets the UnprocessedResourceIdentifiers field's value.
+func (s *BatchGetAggregateResourceConfigOutput) SetUnprocessedResourceIdentifiers(v []*AggregateResourceIdentifier) *BatchGetAggregateResourceConfigOutput {
+	s.UnprocessedResourceIdentifiers = v
+	return s
+}
+
+type BatchGetResourceConfigInput struct {
+	_ struct{} `type:"structure"`
+
+	// A list of resource keys to be processed with the current request. Each element
+	// in the list consists of the resource type and resource ID.
+	//
+	// ResourceKeys is a required field
+	ResourceKeys []*ResourceKey `locationName:"resourceKeys" min:"1" type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s BatchGetResourceConfigInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s BatchGetResourceConfigInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *BatchGetResourceConfigInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "BatchGetResourceConfigInput"}
+	if s.ResourceKeys == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceKeys"))
+	}
+	if s.ResourceKeys != nil && len(s.ResourceKeys) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceKeys", 1))
+	}
+	if s.ResourceKeys != nil {
+		for i, v := range s.ResourceKeys {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "ResourceKeys", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetResourceKeys sets the ResourceKeys field's value.
+func (s *BatchGetResourceConfigInput) SetResourceKeys(v []*ResourceKey) *BatchGetResourceConfigInput {
+	s.ResourceKeys = v
+	return s
+}
+
+type BatchGetResourceConfigOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A list that contains the current configuration of one or more resources.
+	BaseConfigurationItems []*BaseConfigurationItem `locationName:"baseConfigurationItems" type:"list"`
+
+	// A list of resource keys that were not processed with the current response.
+	// The unprocessesResourceKeys value is in the same form as ResourceKeys, so
+	// the value can be directly provided to a subsequent BatchGetResourceConfig
+	// operation. If there are no unprocessed resource keys, the response contains
+	// an empty unprocessedResourceKeys list.
+	UnprocessedResourceKeys []*ResourceKey `locationName:"unprocessedResourceKeys" min:"1" type:"list"`
+}
+
+// String returns the string representation
+func (s BatchGetResourceConfigOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s BatchGetResourceConfigOutput) GoString() string {
+	return s.String()
+}
+
+// SetBaseConfigurationItems sets the BaseConfigurationItems field's value.
+func (s *BatchGetResourceConfigOutput) SetBaseConfigurationItems(v []*BaseConfigurationItem) *BatchGetResourceConfigOutput {
+	s.BaseConfigurationItems = v
+	return s
+}
+
+// SetUnprocessedResourceKeys sets the UnprocessedResourceKeys field's value.
+func (s *BatchGetResourceConfigOutput) SetUnprocessedResourceKeys(v []*ResourceKey) *BatchGetResourceConfigOutput {
+	s.UnprocessedResourceKeys = v
+	return s
+}
+
 // Indicates whether an AWS resource or AWS Config rule is compliant and provides
 // the number of contributors that affect the compliance.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/Compliance
 type Compliance struct {
 	_ struct{} `type:"structure"`
 
@@ -2560,14 +5268,14 @@ type Compliance struct {
 	// Indicates whether an AWS resource or AWS Config rule is compliant.
 	//
 	// A resource is compliant if it complies with all of the AWS Config rules that
-	// evaluate it, and it is noncompliant if it does not comply with one or more
-	// of these rules.
+	// evaluate it. A resource is noncompliant if it does not comply with one or
+	// more of these rules.
 	//
 	// A rule is compliant if all of the resources that the rule evaluates comply
-	// with it, and it is noncompliant if any of these resources do not comply.
+	// with it. A rule is noncompliant if any of these resources do not comply.
 	//
 	// AWS Config returns the INSUFFICIENT_DATA value when no evaluation results
-	// are available for the AWS resource or Config rule.
+	// are available for the AWS resource or AWS Config rule.
 	//
 	// For the Compliance data type, AWS Config supports only COMPLIANT, NON_COMPLIANT,
 	// and INSUFFICIENT_DATA values. AWS Config does not support the NOT_APPLICABLE
@@ -2598,9 +5306,8 @@ func (s *Compliance) SetComplianceType(v string) *Compliance {
 }
 
 // Indicates whether an AWS Config rule is compliant. A rule is compliant if
-// all of the resources that the rule evaluated comply with it, and it is noncompliant
+// all of the resources that the rule evaluated comply with it. A rule is noncompliant
 // if any of these resources do not comply.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/ComplianceByConfigRule
 type ComplianceByConfigRule struct {
 	_ struct{} `type:"structure"`
 
@@ -2635,9 +5342,8 @@ func (s *ComplianceByConfigRule) SetConfigRuleName(v string) *ComplianceByConfig
 
 // Indicates whether an AWS resource that is evaluated according to one or more
 // AWS Config rules is compliant. A resource is compliant if it complies with
-// all of the rules that evaluate it, and it is noncompliant if it does not
-// comply with one or more of these rules.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/ComplianceByResource
+// all of the rules that evaluate it. A resource is noncompliant if it does
+// not comply with one or more of these rules.
 type ComplianceByResource struct {
 	_ struct{} `type:"structure"`
 
@@ -2682,7 +5388,6 @@ func (s *ComplianceByResource) SetResourceType(v string) *ComplianceByResource {
 
 // The number of AWS resources or AWS Config rules responsible for the current
 // compliance of the item, up to a maximum number.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/ComplianceContributorCount
 type ComplianceContributorCount struct {
 	_ struct{} `type:"structure"`
 
@@ -2717,12 +5422,11 @@ func (s *ComplianceContributorCount) SetCappedCount(v int64) *ComplianceContribu
 }
 
 // The number of AWS Config rules or AWS resources that are compliant and noncompliant.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/ComplianceSummary
 type ComplianceSummary struct {
 	_ struct{} `type:"structure"`
 
 	// The time that AWS Config created the compliance summary.
-	ComplianceSummaryTimestamp *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ComplianceSummaryTimestamp *time.Time `type:"timestamp"`
 
 	// The number of AWS Config rules or AWS resources that are compliant, up to
 	// a maximum of 25 for rules and 100 for resources.
@@ -2762,13 +5466,12 @@ func (s *ComplianceSummary) SetNonCompliantResourceCount(v *ComplianceContributo
 }
 
 // The number of AWS resources of a specific type that are compliant or noncompliant,
-// up to a maximum of 100 for each compliance.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/ComplianceSummaryByResourceType
+// up to a maximum of 100 for each.
 type ComplianceSummaryByResourceType struct {
 	_ struct{} `type:"structure"`
 
 	// The number of AWS resources that are compliant or noncompliant, up to a maximum
-	// of 100 for each compliance.
+	// of 100 for each.
 	ComplianceSummary *ComplianceSummary `type:"structure"`
 
 	// The type of AWS resource.
@@ -2797,14 +5500,14 @@ func (s *ComplianceSummaryByResourceType) SetResourceType(v string) *ComplianceS
 	return s
 }
 
-// A list that contains the status of the delivery of either the snapshot or
-// the configuration history to the specified Amazon S3 bucket.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/ConfigExportDeliveryInfo
+// Provides status of the delivery of the snapshot or the configuration history
+// to the specified Amazon S3 bucket. Also provides the status of notifications
+// about the Amazon S3 delivery to the specified Amazon SNS topic.
 type ConfigExportDeliveryInfo struct {
 	_ struct{} `type:"structure"`
 
 	// The time of the last attempted delivery.
-	LastAttemptTime *time.Time `locationName:"lastAttemptTime" type:"timestamp" timestampFormat:"unix"`
+	LastAttemptTime *time.Time `locationName:"lastAttemptTime" type:"timestamp"`
 
 	// The error code from the last attempted delivery.
 	LastErrorCode *string `locationName:"lastErrorCode" type:"string"`
@@ -2816,10 +5519,10 @@ type ConfigExportDeliveryInfo struct {
 	LastStatus *string `locationName:"lastStatus" type:"string" enum:"DeliveryStatus"`
 
 	// The time of the last successful delivery.
-	LastSuccessfulTime *time.Time `locationName:"lastSuccessfulTime" type:"timestamp" timestampFormat:"unix"`
+	LastSuccessfulTime *time.Time `locationName:"lastSuccessfulTime" type:"timestamp"`
 
 	// The time that the next delivery occurs.
-	NextDeliveryTime *time.Time `locationName:"nextDeliveryTime" type:"timestamp" timestampFormat:"unix"`
+	NextDeliveryTime *time.Time `locationName:"nextDeliveryTime" type:"timestamp"`
 }
 
 // String returns the string representation
@@ -2882,7 +5585,6 @@ func (s *ConfigExportDeliveryInfo) SetNextDeliveryTime(v time.Time) *ConfigExpor
 // For more information about developing and using AWS Config rules, see Evaluating
 // AWS Resource Configurations with AWS Config (http://docs.aws.amazon.com/config/latest/developerguide/evaluate-config.html)
 // in the AWS Config Developer Guide.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/ConfigRule
 type ConfigRule struct {
 	_ struct{} `type:"structure"`
 
@@ -2897,27 +5599,33 @@ type ConfigRule struct {
 	ConfigRuleName *string `min:"1" type:"string"`
 
 	// Indicates whether the AWS Config rule is active or is currently being deleted
-	// by AWS Config. It can also indicate the evaluation status for the Config
+	// by AWS Config. It can also indicate the evaluation status for the AWS Config
 	// rule.
 	//
 	// AWS Config sets the state of the rule to EVALUATING temporarily after you
 	// use the StartConfigRulesEvaluation request to evaluate your resources against
-	// the Config rule.
+	// the AWS Config rule.
 	//
 	// AWS Config sets the state of the rule to DELETING_RESULTS temporarily after
 	// you use the DeleteEvaluationResults request to delete the current evaluation
-	// results for the Config rule.
+	// results for the AWS Config rule.
 	//
-	// AWS Config sets the state of a rule to DELETING temporarily after you use
+	// AWS Config temporarily sets the state of a rule to DELETING after you use
 	// the DeleteConfigRule request to delete the rule. After AWS Config deletes
 	// the rule, the rule and all of its evaluations are erased and are no longer
 	// available.
 	ConfigRuleState *string `type:"string" enum:"ConfigRuleState"`
 
+	// Service principal name of the service that created the rule.
+	//
+	// The field is populated only if the service linked rule is created by a service.
+	// The field is empty if you create your own rule.
+	CreatedBy *string `min:"1" type:"string"`
+
 	// The description that you provide for the AWS Config rule.
 	Description *string `type:"string"`
 
-	// A string in JSON format that is passed to the AWS Config rule Lambda function.
+	// A string, in JSON format, that is passed to the AWS Config rule Lambda function.
 	InputParameters *string `min:"1" type:"string"`
 
 	// The maximum frequency with which AWS Config runs evaluations for a rule.
@@ -2963,6 +5671,9 @@ func (s *ConfigRule) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "ConfigRule"}
 	if s.ConfigRuleName != nil && len(*s.ConfigRuleName) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("ConfigRuleName", 1))
+	}
+	if s.CreatedBy != nil && len(*s.CreatedBy) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CreatedBy", 1))
 	}
 	if s.InputParameters != nil && len(*s.InputParameters) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("InputParameters", 1))
@@ -3011,6 +5722,12 @@ func (s *ConfigRule) SetConfigRuleState(v string) *ConfigRule {
 	return s
 }
 
+// SetCreatedBy sets the CreatedBy field's value.
+func (s *ConfigRule) SetCreatedBy(v string) *ConfigRule {
+	s.CreatedBy = &v
+	return s
+}
+
 // SetDescription sets the Description field's value.
 func (s *ConfigRule) SetDescription(v string) *ConfigRule {
 	s.Description = &v
@@ -3041,12 +5758,129 @@ func (s *ConfigRule) SetSource(v *Source) *ConfigRule {
 	return s
 }
 
+// Filters the compliance results based on account ID, region, compliance type,
+// and rule name.
+type ConfigRuleComplianceFilters struct {
+	_ struct{} `type:"structure"`
+
+	// The 12-digit account ID of the source account.
+	AccountId *string `type:"string"`
+
+	// The source region where the data is aggregated.
+	AwsRegion *string `min:"1" type:"string"`
+
+	// The rule compliance status.
+	//
+	// For the ConfigRuleComplianceFilters data type, AWS Config supports only COMPLIANT
+	// and NON_COMPLIANT. AWS Config does not support the NOT_APPLICABLE and the
+	// INSUFFICIENT_DATA values.
+	ComplianceType *string `type:"string" enum:"ComplianceType"`
+
+	// The name of the AWS Config rule.
+	ConfigRuleName *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s ConfigRuleComplianceFilters) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ConfigRuleComplianceFilters) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ConfigRuleComplianceFilters) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ConfigRuleComplianceFilters"}
+	if s.AwsRegion != nil && len(*s.AwsRegion) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AwsRegion", 1))
+	}
+	if s.ConfigRuleName != nil && len(*s.ConfigRuleName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ConfigRuleName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAccountId sets the AccountId field's value.
+func (s *ConfigRuleComplianceFilters) SetAccountId(v string) *ConfigRuleComplianceFilters {
+	s.AccountId = &v
+	return s
+}
+
+// SetAwsRegion sets the AwsRegion field's value.
+func (s *ConfigRuleComplianceFilters) SetAwsRegion(v string) *ConfigRuleComplianceFilters {
+	s.AwsRegion = &v
+	return s
+}
+
+// SetComplianceType sets the ComplianceType field's value.
+func (s *ConfigRuleComplianceFilters) SetComplianceType(v string) *ConfigRuleComplianceFilters {
+	s.ComplianceType = &v
+	return s
+}
+
+// SetConfigRuleName sets the ConfigRuleName field's value.
+func (s *ConfigRuleComplianceFilters) SetConfigRuleName(v string) *ConfigRuleComplianceFilters {
+	s.ConfigRuleName = &v
+	return s
+}
+
+// Filters the results based on the account IDs and regions.
+type ConfigRuleComplianceSummaryFilters struct {
+	_ struct{} `type:"structure"`
+
+	// The 12-digit account ID of the source account.
+	AccountId *string `type:"string"`
+
+	// The source region where the data is aggregated.
+	AwsRegion *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s ConfigRuleComplianceSummaryFilters) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ConfigRuleComplianceSummaryFilters) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ConfigRuleComplianceSummaryFilters) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ConfigRuleComplianceSummaryFilters"}
+	if s.AwsRegion != nil && len(*s.AwsRegion) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AwsRegion", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAccountId sets the AccountId field's value.
+func (s *ConfigRuleComplianceSummaryFilters) SetAccountId(v string) *ConfigRuleComplianceSummaryFilters {
+	s.AccountId = &v
+	return s
+}
+
+// SetAwsRegion sets the AwsRegion field's value.
+func (s *ConfigRuleComplianceSummaryFilters) SetAwsRegion(v string) *ConfigRuleComplianceSummaryFilters {
+	s.AwsRegion = &v
+	return s
+}
+
 // Status information for your AWS managed Config rules. The status includes
 // information such as the last time the rule ran, the last time it failed,
 // and the related error for the last failure.
 //
-// This action does not return status information about custom Config rules.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/ConfigRuleEvaluationStatus
+// This action does not return status information about custom AWS Config rules.
 type ConfigRuleEvaluationStatus struct {
 	_ struct{} `type:"structure"`
 
@@ -3060,7 +5894,7 @@ type ConfigRuleEvaluationStatus struct {
 	ConfigRuleName *string `min:"1" type:"string"`
 
 	// The time that you first activated the AWS Config rule.
-	FirstActivatedTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	FirstActivatedTime *time.Time `type:"timestamp"`
 
 	// Indicates whether AWS Config has evaluated your resources against the rule
 	// at least once.
@@ -3080,19 +5914,19 @@ type ConfigRuleEvaluationStatus struct {
 
 	// The time that AWS Config last failed to evaluate your AWS resources against
 	// the rule.
-	LastFailedEvaluationTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LastFailedEvaluationTime *time.Time `type:"timestamp"`
 
 	// The time that AWS Config last failed to invoke the AWS Config rule to evaluate
 	// your AWS resources.
-	LastFailedInvocationTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LastFailedInvocationTime *time.Time `type:"timestamp"`
 
 	// The time that AWS Config last successfully evaluated your AWS resources against
 	// the rule.
-	LastSuccessfulEvaluationTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LastSuccessfulEvaluationTime *time.Time `type:"timestamp"`
 
 	// The time that AWS Config last successfully invoked the AWS Config rule to
 	// evaluate your AWS resources.
-	LastSuccessfulInvocationTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LastSuccessfulInvocationTime *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation
@@ -3184,7 +6018,7 @@ func (s *ConfigRuleEvaluationStatus) SetLastSuccessfulInvocationTime(v time.Time
 //    * The value for the deliveryFrequency parameter within the delivery channel
 //    configuration, which sets how often AWS Config delivers configuration
 //    snapshots. This value also sets how often AWS Config invokes evaluations
-//    for Config rules.
+//    for AWS Config rules.
 //
 //    * The value for the MaximumExecutionFrequency parameter, which sets the
 //    maximum frequency with which AWS Config invokes evaluations for the rule.
@@ -3210,7 +6044,6 @@ func (s *ConfigRuleEvaluationStatus) SetLastSuccessfulInvocationTime(v time.Time
 //
 // To update the deliveryFrequency with which AWS Config delivers your configuration
 // snapshots, use the PutDeliveryChannel action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/ConfigSnapshotDeliveryProperties
 type ConfigSnapshotDeliveryProperties struct {
 	_ struct{} `type:"structure"`
 
@@ -3236,7 +6069,6 @@ func (s *ConfigSnapshotDeliveryProperties) SetDeliveryFrequency(v string) *Confi
 
 // A list that contains the status of the delivery of the configuration stream
 // notification to the Amazon SNS topic.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/ConfigStreamDeliveryInfo
 type ConfigStreamDeliveryInfo struct {
 	_ struct{} `type:"structure"`
 
@@ -3254,7 +6086,7 @@ type ConfigStreamDeliveryInfo struct {
 	LastStatus *string `locationName:"lastStatus" type:"string" enum:"DeliveryStatus"`
 
 	// The time from the last status change.
-	LastStatusChangeTime *time.Time `locationName:"lastStatusChangeTime" type:"timestamp" timestampFormat:"unix"`
+	LastStatusChangeTime *time.Time `locationName:"lastStatusChangeTime" type:"timestamp"`
 }
 
 // String returns the string representation
@@ -3291,12 +6123,81 @@ func (s *ConfigStreamDeliveryInfo) SetLastStatusChangeTime(v time.Time) *ConfigS
 	return s
 }
 
+// The details about the configuration aggregator, including information about
+// source accounts, regions, and metadata of the aggregator.
+type ConfigurationAggregator struct {
+	_ struct{} `type:"structure"`
+
+	// Provides a list of source accounts and regions to be aggregated.
+	AccountAggregationSources []*AccountAggregationSource `type:"list"`
+
+	// The Amazon Resource Name (ARN) of the aggregator.
+	ConfigurationAggregatorArn *string `type:"string"`
+
+	// The name of the aggregator.
+	ConfigurationAggregatorName *string `min:"1" type:"string"`
+
+	// The time stamp when the configuration aggregator was created.
+	CreationTime *time.Time `type:"timestamp"`
+
+	// The time of the last update.
+	LastUpdatedTime *time.Time `type:"timestamp"`
+
+	// Provides an organization and list of regions to be aggregated.
+	OrganizationAggregationSource *OrganizationAggregationSource `type:"structure"`
+}
+
+// String returns the string representation
+func (s ConfigurationAggregator) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ConfigurationAggregator) GoString() string {
+	return s.String()
+}
+
+// SetAccountAggregationSources sets the AccountAggregationSources field's value.
+func (s *ConfigurationAggregator) SetAccountAggregationSources(v []*AccountAggregationSource) *ConfigurationAggregator {
+	s.AccountAggregationSources = v
+	return s
+}
+
+// SetConfigurationAggregatorArn sets the ConfigurationAggregatorArn field's value.
+func (s *ConfigurationAggregator) SetConfigurationAggregatorArn(v string) *ConfigurationAggregator {
+	s.ConfigurationAggregatorArn = &v
+	return s
+}
+
+// SetConfigurationAggregatorName sets the ConfigurationAggregatorName field's value.
+func (s *ConfigurationAggregator) SetConfigurationAggregatorName(v string) *ConfigurationAggregator {
+	s.ConfigurationAggregatorName = &v
+	return s
+}
+
+// SetCreationTime sets the CreationTime field's value.
+func (s *ConfigurationAggregator) SetCreationTime(v time.Time) *ConfigurationAggregator {
+	s.CreationTime = &v
+	return s
+}
+
+// SetLastUpdatedTime sets the LastUpdatedTime field's value.
+func (s *ConfigurationAggregator) SetLastUpdatedTime(v time.Time) *ConfigurationAggregator {
+	s.LastUpdatedTime = &v
+	return s
+}
+
+// SetOrganizationAggregationSource sets the OrganizationAggregationSource field's value.
+func (s *ConfigurationAggregator) SetOrganizationAggregationSource(v *OrganizationAggregationSource) *ConfigurationAggregator {
+	s.OrganizationAggregationSource = v
+	return s
+}
+
 // A list that contains detailed configurations of a specified resource.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/ConfigurationItem
 type ConfigurationItem struct {
 	_ struct{} `type:"structure"`
 
-	// The 12 digit AWS account ID associated with the resource.
+	// The 12-digit AWS account ID associated with the resource.
 	AccountId *string `locationName:"accountId" type:"string"`
 
 	// The Amazon Resource Name (ARN) of the resource.
@@ -3306,13 +6207,13 @@ type ConfigurationItem struct {
 	AvailabilityZone *string `locationName:"availabilityZone" type:"string"`
 
 	// The region where the resource resides.
-	AwsRegion *string `locationName:"awsRegion" type:"string"`
+	AwsRegion *string `locationName:"awsRegion" min:"1" type:"string"`
 
 	// The description of the resource configuration.
 	Configuration *string `locationName:"configuration" type:"string"`
 
 	// The time when the configuration recording was initiated.
-	ConfigurationItemCaptureTime *time.Time `locationName:"configurationItemCaptureTime" type:"timestamp" timestampFormat:"unix"`
+	ConfigurationItemCaptureTime *time.Time `locationName:"configurationItemCaptureTime" type:"timestamp"`
 
 	// Unique MD5 hash that represents the configuration item's state.
 	//
@@ -3331,7 +6232,7 @@ type ConfigurationItem struct {
 	//
 	// A populated field indicates that the current configuration was initiated
 	// by the events recorded in the CloudTrail log. For more information about
-	// CloudTrail, see What is AWS CloudTrail? (http://docs.aws.amazon.com/awscloudtrail/latest/userguide/what_is_cloud_trail_top_level.html).
+	// CloudTrail, see What Is AWS CloudTrail (http://docs.aws.amazon.com/awscloudtrail/latest/userguide/what_is_cloud_trail_top_level.html).
 	//
 	// An empty field indicates that the current configuration was not initiated
 	// by any event.
@@ -3341,10 +6242,10 @@ type ConfigurationItem struct {
 	Relationships []*Relationship `locationName:"relationships" type:"list"`
 
 	// The time stamp when the resource was created.
-	ResourceCreationTime *time.Time `locationName:"resourceCreationTime" type:"timestamp" timestampFormat:"unix"`
+	ResourceCreationTime *time.Time `locationName:"resourceCreationTime" type:"timestamp"`
 
-	// The ID of the resource (for example., sg-xxxxxx).
-	ResourceId *string `locationName:"resourceId" type:"string"`
+	// The ID of the resource (for example, sg-xxxxxx).
+	ResourceId *string `locationName:"resourceId" min:"1" type:"string"`
 
 	// The custom name of the resource, if available.
 	ResourceName *string `locationName:"resourceName" type:"string"`
@@ -3483,7 +6384,6 @@ func (s *ConfigurationItem) SetVersion(v string) *ConfigurationItem {
 
 // An object that represents the recording of configuration changes of an AWS
 // resource.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/ConfigurationRecorder
 type ConfigurationRecorder struct {
 	_ struct{} `type:"structure"`
 
@@ -3492,7 +6392,7 @@ type ConfigurationRecorder struct {
 	// the assigned name.
 	Name *string `locationName:"name" min:"1" type:"string"`
 
-	// Specifies the types of AWS resource for which AWS Config records configuration
+	// Specifies the types of AWS resources for which AWS Config records configuration
 	// changes.
 	RecordingGroup *RecordingGroup `locationName:"recordingGroup" type:"structure"`
 
@@ -3543,7 +6443,6 @@ func (s *ConfigurationRecorder) SetRoleARN(v string) *ConfigurationRecorder {
 }
 
 // The current status of the configuration recorder.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/ConfigurationRecorderStatus
 type ConfigurationRecorderStatus struct {
 	_ struct{} `type:"structure"`
 
@@ -3554,21 +6453,21 @@ type ConfigurationRecorderStatus struct {
 	LastErrorMessage *string `locationName:"lastErrorMessage" type:"string"`
 
 	// The time the recorder was last started.
-	LastStartTime *time.Time `locationName:"lastStartTime" type:"timestamp" timestampFormat:"unix"`
+	LastStartTime *time.Time `locationName:"lastStartTime" type:"timestamp"`
 
 	// The last (previous) status of the recorder.
 	LastStatus *string `locationName:"lastStatus" type:"string" enum:"RecorderStatus"`
 
 	// The time when the status was last changed.
-	LastStatusChangeTime *time.Time `locationName:"lastStatusChangeTime" type:"timestamp" timestampFormat:"unix"`
+	LastStatusChangeTime *time.Time `locationName:"lastStatusChangeTime" type:"timestamp"`
 
 	// The time the recorder was last stopped.
-	LastStopTime *time.Time `locationName:"lastStopTime" type:"timestamp" timestampFormat:"unix"`
+	LastStopTime *time.Time `locationName:"lastStopTime" type:"timestamp"`
 
 	// The name of the configuration recorder.
 	Name *string `locationName:"name" type:"string"`
 
-	// Specifies whether the recorder is currently recording or not.
+	// Specifies whether or not the recorder is currently recording.
 	Recording *bool `locationName:"recording" type:"boolean"`
 }
 
@@ -3630,7 +6529,75 @@ func (s *ConfigurationRecorderStatus) SetRecording(v bool) *ConfigurationRecorde
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteConfigRuleRequest
+type DeleteAggregationAuthorizationInput struct {
+	_ struct{} `type:"structure"`
+
+	// The 12-digit account ID of the account authorized to aggregate data.
+	//
+	// AuthorizedAccountId is a required field
+	AuthorizedAccountId *string `type:"string" required:"true"`
+
+	// The region authorized to collect aggregated data.
+	//
+	// AuthorizedAwsRegion is a required field
+	AuthorizedAwsRegion *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteAggregationAuthorizationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteAggregationAuthorizationInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteAggregationAuthorizationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteAggregationAuthorizationInput"}
+	if s.AuthorizedAccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AuthorizedAccountId"))
+	}
+	if s.AuthorizedAwsRegion == nil {
+		invalidParams.Add(request.NewErrParamRequired("AuthorizedAwsRegion"))
+	}
+	if s.AuthorizedAwsRegion != nil && len(*s.AuthorizedAwsRegion) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AuthorizedAwsRegion", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAuthorizedAccountId sets the AuthorizedAccountId field's value.
+func (s *DeleteAggregationAuthorizationInput) SetAuthorizedAccountId(v string) *DeleteAggregationAuthorizationInput {
+	s.AuthorizedAccountId = &v
+	return s
+}
+
+// SetAuthorizedAwsRegion sets the AuthorizedAwsRegion field's value.
+func (s *DeleteAggregationAuthorizationInput) SetAuthorizedAwsRegion(v string) *DeleteAggregationAuthorizationInput {
+	s.AuthorizedAwsRegion = &v
+	return s
+}
+
+type DeleteAggregationAuthorizationOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DeleteAggregationAuthorizationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteAggregationAuthorizationOutput) GoString() string {
+	return s.String()
+}
+
 type DeleteConfigRuleInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3672,7 +6639,6 @@ func (s *DeleteConfigRuleInput) SetConfigRuleName(v string) *DeleteConfigRuleInp
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteConfigRuleOutput
 type DeleteConfigRuleOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3687,8 +6653,62 @@ func (s DeleteConfigRuleOutput) GoString() string {
 	return s.String()
 }
 
+type DeleteConfigurationAggregatorInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the configuration aggregator.
+	//
+	// ConfigurationAggregatorName is a required field
+	ConfigurationAggregatorName *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteConfigurationAggregatorInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteConfigurationAggregatorInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteConfigurationAggregatorInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteConfigurationAggregatorInput"}
+	if s.ConfigurationAggregatorName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ConfigurationAggregatorName"))
+	}
+	if s.ConfigurationAggregatorName != nil && len(*s.ConfigurationAggregatorName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ConfigurationAggregatorName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetConfigurationAggregatorName sets the ConfigurationAggregatorName field's value.
+func (s *DeleteConfigurationAggregatorInput) SetConfigurationAggregatorName(v string) *DeleteConfigurationAggregatorInput {
+	s.ConfigurationAggregatorName = &v
+	return s
+}
+
+type DeleteConfigurationAggregatorOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DeleteConfigurationAggregatorOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteConfigurationAggregatorOutput) GoString() string {
+	return s.String()
+}
+
 // The request object for the DeleteConfigurationRecorder action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteConfigurationRecorderRequest
 type DeleteConfigurationRecorderInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3732,7 +6752,6 @@ func (s *DeleteConfigurationRecorderInput) SetConfigurationRecorderName(v string
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteConfigurationRecorderOutput
 type DeleteConfigurationRecorderOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3748,8 +6767,7 @@ func (s DeleteConfigurationRecorderOutput) GoString() string {
 }
 
 // The input for the DeleteDeliveryChannel action. The action accepts the following
-// data in JSON format.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteDeliveryChannelRequest
+// data, in JSON format.
 type DeleteDeliveryChannelInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3791,7 +6809,6 @@ func (s *DeleteDeliveryChannelInput) SetDeliveryChannelName(v string) *DeleteDel
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteDeliveryChannelOutput
 type DeleteDeliveryChannelOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3806,11 +6823,11 @@ func (s DeleteDeliveryChannelOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteEvaluationResultsRequest
 type DeleteEvaluationResultsInput struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the Config rule for which you want to delete the evaluation results.
+	// The name of the AWS Config rule for which you want to delete the evaluation
+	// results.
 	//
 	// ConfigRuleName is a required field
 	ConfigRuleName *string `min:"1" type:"string" required:"true"`
@@ -3848,9 +6865,8 @@ func (s *DeleteEvaluationResultsInput) SetConfigRuleName(v string) *DeleteEvalua
 	return s
 }
 
-// The output when you delete the evaluation results for the specified Config
+// The output when you delete the evaluation results for the specified AWS Config
 // rule.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteEvaluationResultsResponse
 type DeleteEvaluationResultsOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3865,8 +6881,131 @@ func (s DeleteEvaluationResultsOutput) GoString() string {
 	return s.String()
 }
 
+type DeletePendingAggregationRequestInput struct {
+	_ struct{} `type:"structure"`
+
+	// The 12-digit account ID of the account requesting to aggregate data.
+	//
+	// RequesterAccountId is a required field
+	RequesterAccountId *string `type:"string" required:"true"`
+
+	// The region requesting to aggregate data.
+	//
+	// RequesterAwsRegion is a required field
+	RequesterAwsRegion *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeletePendingAggregationRequestInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeletePendingAggregationRequestInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeletePendingAggregationRequestInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeletePendingAggregationRequestInput"}
+	if s.RequesterAccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RequesterAccountId"))
+	}
+	if s.RequesterAwsRegion == nil {
+		invalidParams.Add(request.NewErrParamRequired("RequesterAwsRegion"))
+	}
+	if s.RequesterAwsRegion != nil && len(*s.RequesterAwsRegion) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RequesterAwsRegion", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetRequesterAccountId sets the RequesterAccountId field's value.
+func (s *DeletePendingAggregationRequestInput) SetRequesterAccountId(v string) *DeletePendingAggregationRequestInput {
+	s.RequesterAccountId = &v
+	return s
+}
+
+// SetRequesterAwsRegion sets the RequesterAwsRegion field's value.
+func (s *DeletePendingAggregationRequestInput) SetRequesterAwsRegion(v string) *DeletePendingAggregationRequestInput {
+	s.RequesterAwsRegion = &v
+	return s
+}
+
+type DeletePendingAggregationRequestOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DeletePendingAggregationRequestOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeletePendingAggregationRequestOutput) GoString() string {
+	return s.String()
+}
+
+type DeleteRetentionConfigurationInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the retention configuration to delete.
+	//
+	// RetentionConfigurationName is a required field
+	RetentionConfigurationName *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteRetentionConfigurationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteRetentionConfigurationInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteRetentionConfigurationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteRetentionConfigurationInput"}
+	if s.RetentionConfigurationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RetentionConfigurationName"))
+	}
+	if s.RetentionConfigurationName != nil && len(*s.RetentionConfigurationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RetentionConfigurationName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetRetentionConfigurationName sets the RetentionConfigurationName field's value.
+func (s *DeleteRetentionConfigurationInput) SetRetentionConfigurationName(v string) *DeleteRetentionConfigurationInput {
+	s.RetentionConfigurationName = &v
+	return s
+}
+
+type DeleteRetentionConfigurationOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DeleteRetentionConfigurationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteRetentionConfigurationOutput) GoString() string {
+	return s.String()
+}
+
 // The input for the DeliverConfigSnapshot action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeliverConfigSnapshotRequest
 type DeliverConfigSnapshotInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3908,8 +7047,7 @@ func (s *DeliverConfigSnapshotInput) SetDeliveryChannelName(v string) *DeliverCo
 	return s
 }
 
-// The output for the DeliverConfigSnapshot action in JSON format.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeliverConfigSnapshotResponse
+// The output for the DeliverConfigSnapshot action, in JSON format.
 type DeliverConfigSnapshotOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3935,7 +7073,6 @@ func (s *DeliverConfigSnapshotOutput) SetConfigSnapshotId(v string) *DeliverConf
 
 // The channel through which AWS Config delivers notifications and updated configuration
 // states.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeliveryChannel
 type DeliveryChannel struct {
 	_ struct{} `type:"structure"`
 
@@ -4028,7 +7165,6 @@ func (s *DeliveryChannel) SetSnsTopicARN(v string) *DeliveryChannel {
 // The status of a specified delivery channel.
 //
 // Valid values: Success | Failure
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeliveryChannelStatus
 type DeliveryChannelStatus struct {
 	_ struct{} `type:"structure"`
 
@@ -4082,7 +7218,182 @@ func (s *DeliveryChannelStatus) SetName(v string) *DeliveryChannelStatus {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeComplianceByConfigRuleRequest
+type DescribeAggregateComplianceByConfigRulesInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the configuration aggregator.
+	//
+	// ConfigurationAggregatorName is a required field
+	ConfigurationAggregatorName *string `min:"1" type:"string" required:"true"`
+
+	// Filters the results by ConfigRuleComplianceFilters object.
+	Filters *ConfigRuleComplianceFilters `type:"structure"`
+
+	// The maximum number of evaluation results returned on each page. The default
+	// is maximum. If you specify 0, AWS Config uses the default.
+	Limit *int64 `type:"integer"`
+
+	// The nextToken string returned on a previous page that you use to get the
+	// next page of results in a paginated response.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeAggregateComplianceByConfigRulesInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeAggregateComplianceByConfigRulesInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeAggregateComplianceByConfigRulesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeAggregateComplianceByConfigRulesInput"}
+	if s.ConfigurationAggregatorName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ConfigurationAggregatorName"))
+	}
+	if s.ConfigurationAggregatorName != nil && len(*s.ConfigurationAggregatorName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ConfigurationAggregatorName", 1))
+	}
+	if s.Filters != nil {
+		if err := s.Filters.Validate(); err != nil {
+			invalidParams.AddNested("Filters", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetConfigurationAggregatorName sets the ConfigurationAggregatorName field's value.
+func (s *DescribeAggregateComplianceByConfigRulesInput) SetConfigurationAggregatorName(v string) *DescribeAggregateComplianceByConfigRulesInput {
+	s.ConfigurationAggregatorName = &v
+	return s
+}
+
+// SetFilters sets the Filters field's value.
+func (s *DescribeAggregateComplianceByConfigRulesInput) SetFilters(v *ConfigRuleComplianceFilters) *DescribeAggregateComplianceByConfigRulesInput {
+	s.Filters = v
+	return s
+}
+
+// SetLimit sets the Limit field's value.
+func (s *DescribeAggregateComplianceByConfigRulesInput) SetLimit(v int64) *DescribeAggregateComplianceByConfigRulesInput {
+	s.Limit = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeAggregateComplianceByConfigRulesInput) SetNextToken(v string) *DescribeAggregateComplianceByConfigRulesInput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribeAggregateComplianceByConfigRulesOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Returns a list of AggregateComplianceByConfigRule object.
+	AggregateComplianceByConfigRules []*AggregateComplianceByConfigRule `type:"list"`
+
+	// The nextToken string returned on a previous page that you use to get the
+	// next page of results in a paginated response.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeAggregateComplianceByConfigRulesOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeAggregateComplianceByConfigRulesOutput) GoString() string {
+	return s.String()
+}
+
+// SetAggregateComplianceByConfigRules sets the AggregateComplianceByConfigRules field's value.
+func (s *DescribeAggregateComplianceByConfigRulesOutput) SetAggregateComplianceByConfigRules(v []*AggregateComplianceByConfigRule) *DescribeAggregateComplianceByConfigRulesOutput {
+	s.AggregateComplianceByConfigRules = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeAggregateComplianceByConfigRulesOutput) SetNextToken(v string) *DescribeAggregateComplianceByConfigRulesOutput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribeAggregationAuthorizationsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The maximum number of AggregationAuthorizations returned on each page. The
+	// default is maximum. If you specify 0, AWS Config uses the default.
+	Limit *int64 `type:"integer"`
+
+	// The nextToken string returned on a previous page that you use to get the
+	// next page of results in a paginated response.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeAggregationAuthorizationsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeAggregationAuthorizationsInput) GoString() string {
+	return s.String()
+}
+
+// SetLimit sets the Limit field's value.
+func (s *DescribeAggregationAuthorizationsInput) SetLimit(v int64) *DescribeAggregationAuthorizationsInput {
+	s.Limit = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeAggregationAuthorizationsInput) SetNextToken(v string) *DescribeAggregationAuthorizationsInput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribeAggregationAuthorizationsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Returns a list of authorizations granted to various aggregator accounts and
+	// regions.
+	AggregationAuthorizations []*AggregationAuthorization `type:"list"`
+
+	// The nextToken string returned on a previous page that you use to get the
+	// next page of results in a paginated response.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeAggregationAuthorizationsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeAggregationAuthorizationsOutput) GoString() string {
+	return s.String()
+}
+
+// SetAggregationAuthorizations sets the AggregationAuthorizations field's value.
+func (s *DescribeAggregationAuthorizationsOutput) SetAggregationAuthorizations(v []*AggregationAuthorization) *DescribeAggregationAuthorizationsOutput {
+	s.AggregationAuthorizations = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeAggregationAuthorizationsOutput) SetNextToken(v string) *DescribeAggregationAuthorizationsOutput {
+	s.NextToken = &v
+	return s
+}
+
 type DescribeComplianceByConfigRuleInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4094,7 +7405,7 @@ type DescribeComplianceByConfigRuleInput struct {
 	// Specify one or more AWS Config rule names to filter the results by rule.
 	ConfigRuleNames []*string `type:"list"`
 
-	// The NextToken string returned on a previous page that you use to get the
+	// The nextToken string returned on a previous page that you use to get the
 	// next page of results in a paginated response.
 	NextToken *string `type:"string"`
 }
@@ -4127,7 +7438,6 @@ func (s *DescribeComplianceByConfigRuleInput) SetNextToken(v string) *DescribeCo
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeComplianceByConfigRuleResponse
 type DescribeComplianceByConfigRuleOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4161,21 +7471,20 @@ func (s *DescribeComplianceByConfigRuleOutput) SetNextToken(v string) *DescribeC
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeComplianceByResourceRequest
 type DescribeComplianceByResourceInput struct {
 	_ struct{} `type:"structure"`
 
 	// Filters the results by compliance.
 	//
-	// The allowed values are COMPLIANT, NON_COMPLIANT, and INSUFFICIENT_DATA.
+	// The allowed values are COMPLIANT and NON_COMPLIANT.
 	ComplianceTypes []*string `type:"list"`
 
 	// The maximum number of evaluation results returned on each page. The default
-	// is 10. You cannot specify a limit greater than 100. If you specify 0, AWS
+	// is 10. You cannot specify a number greater than 100. If you specify 0, AWS
 	// Config uses the default.
 	Limit *int64 `type:"integer"`
 
-	// The NextToken string returned on a previous page that you use to get the
+	// The nextToken string returned on a previous page that you use to get the
 	// next page of results in a paginated response.
 	NextToken *string `type:"string"`
 
@@ -4184,8 +7493,8 @@ type DescribeComplianceByResourceInput struct {
 	// also specify a type for ResourceType.
 	ResourceId *string `min:"1" type:"string"`
 
-	// The types of AWS resources for which you want compliance information; for
-	// example, AWS::EC2::Instance. For this action, you can specify that the resource
+	// The types of AWS resources for which you want compliance information (for
+	// example, AWS::EC2::Instance). For this action, you can specify that the resource
 	// type is an AWS account by specifying AWS::::Account.
 	ResourceType *string `min:"1" type:"string"`
 }
@@ -4246,7 +7555,6 @@ func (s *DescribeComplianceByResourceInput) SetResourceType(v string) *DescribeC
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeComplianceByResourceResponse
 type DescribeComplianceByResourceOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4281,7 +7589,6 @@ func (s *DescribeComplianceByResourceOutput) SetNextToken(v string) *DescribeCom
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigRuleEvaluationStatusRequest
 type DescribeConfigRuleEvaluationStatusInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4295,12 +7602,12 @@ type DescribeConfigRuleEvaluationStatusInput struct {
 	// This parameter is required if the rule limit for your account is more than
 	// the default of 50 rules.
 	//
-	// For more information about requesting a rule limit increase, see AWS Config
-	// Limits (http://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html#limits_config)
+	// For information about requesting a rule limit increase, see AWS Config Limits
+	// (http://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html#limits_config)
 	// in the AWS General Reference Guide.
 	Limit *int64 `type:"integer"`
 
-	// The NextToken string returned on a previous page that you use to get the
+	// The nextToken string returned on a previous page that you use to get the
 	// next page of results in a paginated response.
 	NextToken *string `type:"string"`
 }
@@ -4333,7 +7640,6 @@ func (s *DescribeConfigRuleEvaluationStatusInput) SetNextToken(v string) *Descri
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigRuleEvaluationStatusResponse
 type DescribeConfigRuleEvaluationStatusOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4367,7 +7673,6 @@ func (s *DescribeConfigRuleEvaluationStatusOutput) SetNextToken(v string) *Descr
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigRulesRequest
 type DescribeConfigRulesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4375,7 +7680,7 @@ type DescribeConfigRulesInput struct {
 	// specify any names, AWS Config returns details for all your rules.
 	ConfigRuleNames []*string `type:"list"`
 
-	// The NextToken string returned on a previous page that you use to get the
+	// The nextToken string returned on a previous page that you use to get the
 	// next page of results in a paginated response.
 	NextToken *string `type:"string"`
 }
@@ -4402,7 +7707,6 @@ func (s *DescribeConfigRulesInput) SetNextToken(v string) *DescribeConfigRulesIn
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigRulesResponse
 type DescribeConfigRulesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4436,8 +7740,195 @@ func (s *DescribeConfigRulesOutput) SetNextToken(v string) *DescribeConfigRulesO
 	return s
 }
 
+type DescribeConfigurationAggregatorSourcesStatusInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the configuration aggregator.
+	//
+	// ConfigurationAggregatorName is a required field
+	ConfigurationAggregatorName *string `min:"1" type:"string" required:"true"`
+
+	// The maximum number of AggregatorSourceStatus returned on each page. The default
+	// is maximum. If you specify 0, AWS Config uses the default.
+	Limit *int64 `type:"integer"`
+
+	// The nextToken string returned on a previous page that you use to get the
+	// next page of results in a paginated response.
+	NextToken *string `type:"string"`
+
+	// Filters the status type.
+	//
+	//    * Valid value FAILED indicates errors while moving data.
+	//
+	//    * Valid value SUCCEEDED indicates the data was successfully moved.
+	//
+	//    * Valid value OUTDATED indicates the data is not the most recent.
+	UpdateStatus []*string `min:"1" type:"list"`
+}
+
+// String returns the string representation
+func (s DescribeConfigurationAggregatorSourcesStatusInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeConfigurationAggregatorSourcesStatusInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeConfigurationAggregatorSourcesStatusInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeConfigurationAggregatorSourcesStatusInput"}
+	if s.ConfigurationAggregatorName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ConfigurationAggregatorName"))
+	}
+	if s.ConfigurationAggregatorName != nil && len(*s.ConfigurationAggregatorName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ConfigurationAggregatorName", 1))
+	}
+	if s.UpdateStatus != nil && len(s.UpdateStatus) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("UpdateStatus", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetConfigurationAggregatorName sets the ConfigurationAggregatorName field's value.
+func (s *DescribeConfigurationAggregatorSourcesStatusInput) SetConfigurationAggregatorName(v string) *DescribeConfigurationAggregatorSourcesStatusInput {
+	s.ConfigurationAggregatorName = &v
+	return s
+}
+
+// SetLimit sets the Limit field's value.
+func (s *DescribeConfigurationAggregatorSourcesStatusInput) SetLimit(v int64) *DescribeConfigurationAggregatorSourcesStatusInput {
+	s.Limit = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeConfigurationAggregatorSourcesStatusInput) SetNextToken(v string) *DescribeConfigurationAggregatorSourcesStatusInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetUpdateStatus sets the UpdateStatus field's value.
+func (s *DescribeConfigurationAggregatorSourcesStatusInput) SetUpdateStatus(v []*string) *DescribeConfigurationAggregatorSourcesStatusInput {
+	s.UpdateStatus = v
+	return s
+}
+
+type DescribeConfigurationAggregatorSourcesStatusOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Returns an AggregatedSourceStatus object.
+	AggregatedSourceStatusList []*AggregatedSourceStatus `type:"list"`
+
+	// The nextToken string returned on a previous page that you use to get the
+	// next page of results in a paginated response.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeConfigurationAggregatorSourcesStatusOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeConfigurationAggregatorSourcesStatusOutput) GoString() string {
+	return s.String()
+}
+
+// SetAggregatedSourceStatusList sets the AggregatedSourceStatusList field's value.
+func (s *DescribeConfigurationAggregatorSourcesStatusOutput) SetAggregatedSourceStatusList(v []*AggregatedSourceStatus) *DescribeConfigurationAggregatorSourcesStatusOutput {
+	s.AggregatedSourceStatusList = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeConfigurationAggregatorSourcesStatusOutput) SetNextToken(v string) *DescribeConfigurationAggregatorSourcesStatusOutput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribeConfigurationAggregatorsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the configuration aggregators.
+	ConfigurationAggregatorNames []*string `type:"list"`
+
+	// The maximum number of configuration aggregators returned on each page. The
+	// default is maximum. If you specify 0, AWS Config uses the default.
+	Limit *int64 `type:"integer"`
+
+	// The nextToken string returned on a previous page that you use to get the
+	// next page of results in a paginated response.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeConfigurationAggregatorsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeConfigurationAggregatorsInput) GoString() string {
+	return s.String()
+}
+
+// SetConfigurationAggregatorNames sets the ConfigurationAggregatorNames field's value.
+func (s *DescribeConfigurationAggregatorsInput) SetConfigurationAggregatorNames(v []*string) *DescribeConfigurationAggregatorsInput {
+	s.ConfigurationAggregatorNames = v
+	return s
+}
+
+// SetLimit sets the Limit field's value.
+func (s *DescribeConfigurationAggregatorsInput) SetLimit(v int64) *DescribeConfigurationAggregatorsInput {
+	s.Limit = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeConfigurationAggregatorsInput) SetNextToken(v string) *DescribeConfigurationAggregatorsInput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribeConfigurationAggregatorsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Returns a ConfigurationAggregators object.
+	ConfigurationAggregators []*ConfigurationAggregator `type:"list"`
+
+	// The nextToken string returned on a previous page that you use to get the
+	// next page of results in a paginated response.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeConfigurationAggregatorsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeConfigurationAggregatorsOutput) GoString() string {
+	return s.String()
+}
+
+// SetConfigurationAggregators sets the ConfigurationAggregators field's value.
+func (s *DescribeConfigurationAggregatorsOutput) SetConfigurationAggregators(v []*ConfigurationAggregator) *DescribeConfigurationAggregatorsOutput {
+	s.ConfigurationAggregators = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeConfigurationAggregatorsOutput) SetNextToken(v string) *DescribeConfigurationAggregatorsOutput {
+	s.NextToken = &v
+	return s
+}
+
 // The input for the DescribeConfigurationRecorderStatus action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigurationRecorderStatusRequest
 type DescribeConfigurationRecorderStatusInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4463,8 +7954,7 @@ func (s *DescribeConfigurationRecorderStatusInput) SetConfigurationRecorderNames
 	return s
 }
 
-// The output for the DescribeConfigurationRecorderStatus action in JSON format.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigurationRecorderStatusResponse
+// The output for the DescribeConfigurationRecorderStatus action, in JSON format.
 type DescribeConfigurationRecorderStatusOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4489,7 +7979,6 @@ func (s *DescribeConfigurationRecorderStatusOutput) SetConfigurationRecordersSta
 }
 
 // The input for the DescribeConfigurationRecorders action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigurationRecordersRequest
 type DescribeConfigurationRecordersInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4514,7 +8003,6 @@ func (s *DescribeConfigurationRecordersInput) SetConfigurationRecorderNames(v []
 }
 
 // The output for the DescribeConfigurationRecorders action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigurationRecordersResponse
 type DescribeConfigurationRecordersOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4539,7 +8027,6 @@ func (s *DescribeConfigurationRecordersOutput) SetConfigurationRecorders(v []*Co
 }
 
 // The input for the DeliveryChannelStatus action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeDeliveryChannelStatusRequest
 type DescribeDeliveryChannelStatusInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4564,7 +8051,6 @@ func (s *DescribeDeliveryChannelStatusInput) SetDeliveryChannelNames(v []*string
 }
 
 // The output for the DescribeDeliveryChannelStatus action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeDeliveryChannelStatusResponse
 type DescribeDeliveryChannelStatusOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4589,7 +8075,6 @@ func (s *DescribeDeliveryChannelStatusOutput) SetDeliveryChannelsStatus(v []*Del
 }
 
 // The input for the DescribeDeliveryChannels action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeDeliveryChannelsRequest
 type DescribeDeliveryChannelsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4614,7 +8099,6 @@ func (s *DescribeDeliveryChannelsInput) SetDeliveryChannelNames(v []*string) *De
 }
 
 // The output for the DescribeDeliveryChannels action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeDeliveryChannelsResponse
 type DescribeDeliveryChannelsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4638,9 +8122,146 @@ func (s *DescribeDeliveryChannelsOutput) SetDeliveryChannels(v []*DeliveryChanne
 	return s
 }
 
+type DescribePendingAggregationRequestsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The maximum number of evaluation results returned on each page. The default
+	// is maximum. If you specify 0, AWS Config uses the default.
+	Limit *int64 `type:"integer"`
+
+	// The nextToken string returned on a previous page that you use to get the
+	// next page of results in a paginated response.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribePendingAggregationRequestsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribePendingAggregationRequestsInput) GoString() string {
+	return s.String()
+}
+
+// SetLimit sets the Limit field's value.
+func (s *DescribePendingAggregationRequestsInput) SetLimit(v int64) *DescribePendingAggregationRequestsInput {
+	s.Limit = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribePendingAggregationRequestsInput) SetNextToken(v string) *DescribePendingAggregationRequestsInput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribePendingAggregationRequestsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The nextToken string returned on a previous page that you use to get the
+	// next page of results in a paginated response.
+	NextToken *string `type:"string"`
+
+	// Returns a PendingAggregationRequests object.
+	PendingAggregationRequests []*PendingAggregationRequest `type:"list"`
+}
+
+// String returns the string representation
+func (s DescribePendingAggregationRequestsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribePendingAggregationRequestsOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribePendingAggregationRequestsOutput) SetNextToken(v string) *DescribePendingAggregationRequestsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetPendingAggregationRequests sets the PendingAggregationRequests field's value.
+func (s *DescribePendingAggregationRequestsOutput) SetPendingAggregationRequests(v []*PendingAggregationRequest) *DescribePendingAggregationRequestsOutput {
+	s.PendingAggregationRequests = v
+	return s
+}
+
+type DescribeRetentionConfigurationsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The nextToken string returned on a previous page that you use to get the
+	// next page of results in a paginated response.
+	NextToken *string `type:"string"`
+
+	// A list of names of retention configurations for which you want details. If
+	// you do not specify a name, AWS Config returns details for all the retention
+	// configurations for that account.
+	//
+	// Currently, AWS Config supports only one retention configuration per region
+	// in your account.
+	RetentionConfigurationNames []*string `type:"list"`
+}
+
+// String returns the string representation
+func (s DescribeRetentionConfigurationsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeRetentionConfigurationsInput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeRetentionConfigurationsInput) SetNextToken(v string) *DescribeRetentionConfigurationsInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetRetentionConfigurationNames sets the RetentionConfigurationNames field's value.
+func (s *DescribeRetentionConfigurationsInput) SetRetentionConfigurationNames(v []*string) *DescribeRetentionConfigurationsInput {
+	s.RetentionConfigurationNames = v
+	return s
+}
+
+type DescribeRetentionConfigurationsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The nextToken string returned on a previous page that you use to get the
+	// next page of results in a paginated response.
+	NextToken *string `type:"string"`
+
+	// Returns a retention configuration object.
+	RetentionConfigurations []*RetentionConfiguration `type:"list"`
+}
+
+// String returns the string representation
+func (s DescribeRetentionConfigurationsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeRetentionConfigurationsOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeRetentionConfigurationsOutput) SetNextToken(v string) *DescribeRetentionConfigurationsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetRetentionConfigurations sets the RetentionConfigurations field's value.
+func (s *DescribeRetentionConfigurationsOutput) SetRetentionConfigurations(v []*RetentionConfiguration) *DescribeRetentionConfigurationsOutput {
+	s.RetentionConfigurations = v
+	return s
+}
+
 // Identifies an AWS resource and indicates whether it complies with the AWS
 // Config rule that it was evaluated against.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/Evaluation
 type Evaluation struct {
 	_ struct{} `type:"structure"`
 
@@ -4666,7 +8287,7 @@ type Evaluation struct {
 	//
 	// Similarly, AWS Config does not accept INSUFFICIENT_DATA as the value for
 	// ComplianceType from a PutEvaluations request. For example, an AWS Lambda
-	// function for a custom Config rule cannot pass an INSUFFICIENT_DATA value
+	// function for a custom AWS Config rule cannot pass an INSUFFICIENT_DATA value
 	// to AWS Config.
 	//
 	// ComplianceType is a required field
@@ -4679,7 +8300,7 @@ type Evaluation struct {
 	// (for example, every 24 hours).
 	//
 	// OrderingTimestamp is a required field
-	OrderingTimestamp *time.Time `type:"timestamp" timestampFormat:"unix" required:"true"`
+	OrderingTimestamp *time.Time `type:"timestamp" required:"true"`
 }
 
 // String returns the string representation
@@ -4754,9 +8375,8 @@ func (s *Evaluation) SetOrderingTimestamp(v time.Time) *Evaluation {
 }
 
 // The details of an AWS Config evaluation. Provides the AWS resource that was
-// evaluated, the compliance of the resource, related timestamps, and supplementary
+// evaluated, the compliance of the resource, related time stamps, and supplementary
 // information.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/EvaluationResult
 type EvaluationResult struct {
 	_ struct{} `type:"structure"`
 
@@ -4772,13 +8392,13 @@ type EvaluationResult struct {
 	ComplianceType *string `type:"string" enum:"ComplianceType"`
 
 	// The time when the AWS Config rule evaluated the AWS resource.
-	ConfigRuleInvokedTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ConfigRuleInvokedTime *time.Time `type:"timestamp"`
 
 	// Uniquely identifies the evaluation result.
 	EvaluationResultIdentifier *EvaluationResultIdentifier `type:"structure"`
 
 	// The time when AWS Config recorded the evaluation result.
-	ResultRecordedTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ResultRecordedTime *time.Time `type:"timestamp"`
 
 	// An encrypted token that associates an evaluation with an AWS Config rule.
 	// The token identifies the rule, the AWS resource being evaluated, and the
@@ -4833,7 +8453,6 @@ func (s *EvaluationResult) SetResultToken(v string) *EvaluationResult {
 }
 
 // Uniquely identifies an evaluation result.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/EvaluationResultIdentifier
 type EvaluationResultIdentifier struct {
 	_ struct{} `type:"structure"`
 
@@ -4845,7 +8464,7 @@ type EvaluationResultIdentifier struct {
 	// The time can indicate when AWS Config delivered a configuration item change
 	// notification, or it can indicate when AWS Config delivered the configuration
 	// snapshot, depending on which event triggered the evaluation.
-	OrderingTimestamp *time.Time `type:"timestamp" timestampFormat:"unix"`
+	OrderingTimestamp *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation
@@ -4872,7 +8491,6 @@ func (s *EvaluationResultIdentifier) SetOrderingTimestamp(v time.Time) *Evaluati
 
 // Identifies an AWS Config rule that evaluated an AWS resource, and provides
 // the type and ID of the resource that the rule evaluated.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/EvaluationResultQualifier
 type EvaluationResultQualifier struct {
 	_ struct{} `type:"structure"`
 
@@ -4914,7 +8532,512 @@ func (s *EvaluationResultQualifier) SetResourceType(v string) *EvaluationResultQ
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetComplianceDetailsByConfigRuleRequest
+type GetAggregateComplianceDetailsByConfigRuleInput struct {
+	_ struct{} `type:"structure"`
+
+	// The 12-digit account ID of the source account.
+	//
+	// AccountId is a required field
+	AccountId *string `type:"string" required:"true"`
+
+	// The source region from where the data is aggregated.
+	//
+	// AwsRegion is a required field
+	AwsRegion *string `min:"1" type:"string" required:"true"`
+
+	// The resource compliance status.
+	//
+	// For the GetAggregateComplianceDetailsByConfigRuleRequest data type, AWS Config
+	// supports only the COMPLIANT and NON_COMPLIANT. AWS Config does not support
+	// the NOT_APPLICABLE and INSUFFICIENT_DATA values.
+	ComplianceType *string `type:"string" enum:"ComplianceType"`
+
+	// The name of the AWS Config rule for which you want compliance information.
+	//
+	// ConfigRuleName is a required field
+	ConfigRuleName *string `min:"1" type:"string" required:"true"`
+
+	// The name of the configuration aggregator.
+	//
+	// ConfigurationAggregatorName is a required field
+	ConfigurationAggregatorName *string `min:"1" type:"string" required:"true"`
+
+	// The maximum number of evaluation results returned on each page. The default
+	// is 50. You cannot specify a number greater than 100. If you specify 0, AWS
+	// Config uses the default.
+	Limit *int64 `type:"integer"`
+
+	// The nextToken string returned on a previous page that you use to get the
+	// next page of results in a paginated response.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s GetAggregateComplianceDetailsByConfigRuleInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetAggregateComplianceDetailsByConfigRuleInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetAggregateComplianceDetailsByConfigRuleInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetAggregateComplianceDetailsByConfigRuleInput"}
+	if s.AccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountId"))
+	}
+	if s.AwsRegion == nil {
+		invalidParams.Add(request.NewErrParamRequired("AwsRegion"))
+	}
+	if s.AwsRegion != nil && len(*s.AwsRegion) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AwsRegion", 1))
+	}
+	if s.ConfigRuleName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ConfigRuleName"))
+	}
+	if s.ConfigRuleName != nil && len(*s.ConfigRuleName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ConfigRuleName", 1))
+	}
+	if s.ConfigurationAggregatorName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ConfigurationAggregatorName"))
+	}
+	if s.ConfigurationAggregatorName != nil && len(*s.ConfigurationAggregatorName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ConfigurationAggregatorName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAccountId sets the AccountId field's value.
+func (s *GetAggregateComplianceDetailsByConfigRuleInput) SetAccountId(v string) *GetAggregateComplianceDetailsByConfigRuleInput {
+	s.AccountId = &v
+	return s
+}
+
+// SetAwsRegion sets the AwsRegion field's value.
+func (s *GetAggregateComplianceDetailsByConfigRuleInput) SetAwsRegion(v string) *GetAggregateComplianceDetailsByConfigRuleInput {
+	s.AwsRegion = &v
+	return s
+}
+
+// SetComplianceType sets the ComplianceType field's value.
+func (s *GetAggregateComplianceDetailsByConfigRuleInput) SetComplianceType(v string) *GetAggregateComplianceDetailsByConfigRuleInput {
+	s.ComplianceType = &v
+	return s
+}
+
+// SetConfigRuleName sets the ConfigRuleName field's value.
+func (s *GetAggregateComplianceDetailsByConfigRuleInput) SetConfigRuleName(v string) *GetAggregateComplianceDetailsByConfigRuleInput {
+	s.ConfigRuleName = &v
+	return s
+}
+
+// SetConfigurationAggregatorName sets the ConfigurationAggregatorName field's value.
+func (s *GetAggregateComplianceDetailsByConfigRuleInput) SetConfigurationAggregatorName(v string) *GetAggregateComplianceDetailsByConfigRuleInput {
+	s.ConfigurationAggregatorName = &v
+	return s
+}
+
+// SetLimit sets the Limit field's value.
+func (s *GetAggregateComplianceDetailsByConfigRuleInput) SetLimit(v int64) *GetAggregateComplianceDetailsByConfigRuleInput {
+	s.Limit = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *GetAggregateComplianceDetailsByConfigRuleInput) SetNextToken(v string) *GetAggregateComplianceDetailsByConfigRuleInput {
+	s.NextToken = &v
+	return s
+}
+
+type GetAggregateComplianceDetailsByConfigRuleOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Returns an AggregateEvaluationResults object.
+	AggregateEvaluationResults []*AggregateEvaluationResult `type:"list"`
+
+	// The nextToken string returned on a previous page that you use to get the
+	// next page of results in a paginated response.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s GetAggregateComplianceDetailsByConfigRuleOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetAggregateComplianceDetailsByConfigRuleOutput) GoString() string {
+	return s.String()
+}
+
+// SetAggregateEvaluationResults sets the AggregateEvaluationResults field's value.
+func (s *GetAggregateComplianceDetailsByConfigRuleOutput) SetAggregateEvaluationResults(v []*AggregateEvaluationResult) *GetAggregateComplianceDetailsByConfigRuleOutput {
+	s.AggregateEvaluationResults = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *GetAggregateComplianceDetailsByConfigRuleOutput) SetNextToken(v string) *GetAggregateComplianceDetailsByConfigRuleOutput {
+	s.NextToken = &v
+	return s
+}
+
+type GetAggregateConfigRuleComplianceSummaryInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the configuration aggregator.
+	//
+	// ConfigurationAggregatorName is a required field
+	ConfigurationAggregatorName *string `min:"1" type:"string" required:"true"`
+
+	// Filters the results based on the ConfigRuleComplianceSummaryFilters object.
+	Filters *ConfigRuleComplianceSummaryFilters `type:"structure"`
+
+	// Groups the result based on ACCOUNT_ID or AWS_REGION.
+	GroupByKey *string `type:"string" enum:"ConfigRuleComplianceSummaryGroupKey"`
+
+	// The maximum number of evaluation results returned on each page. The default
+	// is 1000. You cannot specify a number greater than 1000. If you specify 0,
+	// AWS Config uses the default.
+	Limit *int64 `type:"integer"`
+
+	// The nextToken string returned on a previous page that you use to get the
+	// next page of results in a paginated response.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s GetAggregateConfigRuleComplianceSummaryInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetAggregateConfigRuleComplianceSummaryInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetAggregateConfigRuleComplianceSummaryInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetAggregateConfigRuleComplianceSummaryInput"}
+	if s.ConfigurationAggregatorName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ConfigurationAggregatorName"))
+	}
+	if s.ConfigurationAggregatorName != nil && len(*s.ConfigurationAggregatorName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ConfigurationAggregatorName", 1))
+	}
+	if s.Filters != nil {
+		if err := s.Filters.Validate(); err != nil {
+			invalidParams.AddNested("Filters", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetConfigurationAggregatorName sets the ConfigurationAggregatorName field's value.
+func (s *GetAggregateConfigRuleComplianceSummaryInput) SetConfigurationAggregatorName(v string) *GetAggregateConfigRuleComplianceSummaryInput {
+	s.ConfigurationAggregatorName = &v
+	return s
+}
+
+// SetFilters sets the Filters field's value.
+func (s *GetAggregateConfigRuleComplianceSummaryInput) SetFilters(v *ConfigRuleComplianceSummaryFilters) *GetAggregateConfigRuleComplianceSummaryInput {
+	s.Filters = v
+	return s
+}
+
+// SetGroupByKey sets the GroupByKey field's value.
+func (s *GetAggregateConfigRuleComplianceSummaryInput) SetGroupByKey(v string) *GetAggregateConfigRuleComplianceSummaryInput {
+	s.GroupByKey = &v
+	return s
+}
+
+// SetLimit sets the Limit field's value.
+func (s *GetAggregateConfigRuleComplianceSummaryInput) SetLimit(v int64) *GetAggregateConfigRuleComplianceSummaryInput {
+	s.Limit = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *GetAggregateConfigRuleComplianceSummaryInput) SetNextToken(v string) *GetAggregateConfigRuleComplianceSummaryInput {
+	s.NextToken = &v
+	return s
+}
+
+type GetAggregateConfigRuleComplianceSummaryOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Returns a list of AggregateComplianceCounts object.
+	AggregateComplianceCounts []*AggregateComplianceCount `type:"list"`
+
+	// Groups the result based on ACCOUNT_ID or AWS_REGION.
+	GroupByKey *string `min:"1" type:"string"`
+
+	// The nextToken string returned on a previous page that you use to get the
+	// next page of results in a paginated response.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s GetAggregateConfigRuleComplianceSummaryOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetAggregateConfigRuleComplianceSummaryOutput) GoString() string {
+	return s.String()
+}
+
+// SetAggregateComplianceCounts sets the AggregateComplianceCounts field's value.
+func (s *GetAggregateConfigRuleComplianceSummaryOutput) SetAggregateComplianceCounts(v []*AggregateComplianceCount) *GetAggregateConfigRuleComplianceSummaryOutput {
+	s.AggregateComplianceCounts = v
+	return s
+}
+
+// SetGroupByKey sets the GroupByKey field's value.
+func (s *GetAggregateConfigRuleComplianceSummaryOutput) SetGroupByKey(v string) *GetAggregateConfigRuleComplianceSummaryOutput {
+	s.GroupByKey = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *GetAggregateConfigRuleComplianceSummaryOutput) SetNextToken(v string) *GetAggregateConfigRuleComplianceSummaryOutput {
+	s.NextToken = &v
+	return s
+}
+
+type GetAggregateDiscoveredResourceCountsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the configuration aggregator.
+	//
+	// ConfigurationAggregatorName is a required field
+	ConfigurationAggregatorName *string `min:"1" type:"string" required:"true"`
+
+	// Filters the results based on the ResourceCountFilters object.
+	Filters *ResourceCountFilters `type:"structure"`
+
+	// The key to group the resource counts.
+	GroupByKey *string `type:"string" enum:"ResourceCountGroupKey"`
+
+	// The maximum number of GroupedResourceCount objects returned on each page.
+	// The default is 1000. You cannot specify a number greater than 1000. If you
+	// specify 0, AWS Config uses the default.
+	Limit *int64 `type:"integer"`
+
+	// The nextToken string returned on a previous page that you use to get the
+	// next page of results in a paginated response.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s GetAggregateDiscoveredResourceCountsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetAggregateDiscoveredResourceCountsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetAggregateDiscoveredResourceCountsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetAggregateDiscoveredResourceCountsInput"}
+	if s.ConfigurationAggregatorName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ConfigurationAggregatorName"))
+	}
+	if s.ConfigurationAggregatorName != nil && len(*s.ConfigurationAggregatorName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ConfigurationAggregatorName", 1))
+	}
+	if s.Filters != nil {
+		if err := s.Filters.Validate(); err != nil {
+			invalidParams.AddNested("Filters", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetConfigurationAggregatorName sets the ConfigurationAggregatorName field's value.
+func (s *GetAggregateDiscoveredResourceCountsInput) SetConfigurationAggregatorName(v string) *GetAggregateDiscoveredResourceCountsInput {
+	s.ConfigurationAggregatorName = &v
+	return s
+}
+
+// SetFilters sets the Filters field's value.
+func (s *GetAggregateDiscoveredResourceCountsInput) SetFilters(v *ResourceCountFilters) *GetAggregateDiscoveredResourceCountsInput {
+	s.Filters = v
+	return s
+}
+
+// SetGroupByKey sets the GroupByKey field's value.
+func (s *GetAggregateDiscoveredResourceCountsInput) SetGroupByKey(v string) *GetAggregateDiscoveredResourceCountsInput {
+	s.GroupByKey = &v
+	return s
+}
+
+// SetLimit sets the Limit field's value.
+func (s *GetAggregateDiscoveredResourceCountsInput) SetLimit(v int64) *GetAggregateDiscoveredResourceCountsInput {
+	s.Limit = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *GetAggregateDiscoveredResourceCountsInput) SetNextToken(v string) *GetAggregateDiscoveredResourceCountsInput {
+	s.NextToken = &v
+	return s
+}
+
+type GetAggregateDiscoveredResourceCountsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The key passed into the request object. If GroupByKey is not provided, the
+	// result will be empty.
+	GroupByKey *string `min:"1" type:"string"`
+
+	// Returns a list of GroupedResourceCount objects.
+	GroupedResourceCounts []*GroupedResourceCount `type:"list"`
+
+	// The nextToken string returned on a previous page that you use to get the
+	// next page of results in a paginated response.
+	NextToken *string `type:"string"`
+
+	// The total number of resources that are present in an aggregator with the
+	// filters that you provide.
+	//
+	// TotalDiscoveredResources is a required field
+	TotalDiscoveredResources *int64 `type:"long" required:"true"`
+}
+
+// String returns the string representation
+func (s GetAggregateDiscoveredResourceCountsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetAggregateDiscoveredResourceCountsOutput) GoString() string {
+	return s.String()
+}
+
+// SetGroupByKey sets the GroupByKey field's value.
+func (s *GetAggregateDiscoveredResourceCountsOutput) SetGroupByKey(v string) *GetAggregateDiscoveredResourceCountsOutput {
+	s.GroupByKey = &v
+	return s
+}
+
+// SetGroupedResourceCounts sets the GroupedResourceCounts field's value.
+func (s *GetAggregateDiscoveredResourceCountsOutput) SetGroupedResourceCounts(v []*GroupedResourceCount) *GetAggregateDiscoveredResourceCountsOutput {
+	s.GroupedResourceCounts = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *GetAggregateDiscoveredResourceCountsOutput) SetNextToken(v string) *GetAggregateDiscoveredResourceCountsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetTotalDiscoveredResources sets the TotalDiscoveredResources field's value.
+func (s *GetAggregateDiscoveredResourceCountsOutput) SetTotalDiscoveredResources(v int64) *GetAggregateDiscoveredResourceCountsOutput {
+	s.TotalDiscoveredResources = &v
+	return s
+}
+
+type GetAggregateResourceConfigInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the configuration aggregator.
+	//
+	// ConfigurationAggregatorName is a required field
+	ConfigurationAggregatorName *string `min:"1" type:"string" required:"true"`
+
+	// An object that identifies aggregate resource.
+	//
+	// ResourceIdentifier is a required field
+	ResourceIdentifier *AggregateResourceIdentifier `type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s GetAggregateResourceConfigInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetAggregateResourceConfigInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetAggregateResourceConfigInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetAggregateResourceConfigInput"}
+	if s.ConfigurationAggregatorName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ConfigurationAggregatorName"))
+	}
+	if s.ConfigurationAggregatorName != nil && len(*s.ConfigurationAggregatorName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ConfigurationAggregatorName", 1))
+	}
+	if s.ResourceIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceIdentifier"))
+	}
+	if s.ResourceIdentifier != nil {
+		if err := s.ResourceIdentifier.Validate(); err != nil {
+			invalidParams.AddNested("ResourceIdentifier", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetConfigurationAggregatorName sets the ConfigurationAggregatorName field's value.
+func (s *GetAggregateResourceConfigInput) SetConfigurationAggregatorName(v string) *GetAggregateResourceConfigInput {
+	s.ConfigurationAggregatorName = &v
+	return s
+}
+
+// SetResourceIdentifier sets the ResourceIdentifier field's value.
+func (s *GetAggregateResourceConfigInput) SetResourceIdentifier(v *AggregateResourceIdentifier) *GetAggregateResourceConfigInput {
+	s.ResourceIdentifier = v
+	return s
+}
+
+type GetAggregateResourceConfigOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Returns a ConfigurationItem object.
+	ConfigurationItem *ConfigurationItem `type:"structure"`
+}
+
+// String returns the string representation
+func (s GetAggregateResourceConfigOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetAggregateResourceConfigOutput) GoString() string {
+	return s.String()
+}
+
+// SetConfigurationItem sets the ConfigurationItem field's value.
+func (s *GetAggregateResourceConfigOutput) SetConfigurationItem(v *ConfigurationItem) *GetAggregateResourceConfigOutput {
+	s.ConfigurationItem = v
+	return s
+}
+
 type GetComplianceDetailsByConfigRuleInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4929,11 +9052,11 @@ type GetComplianceDetailsByConfigRuleInput struct {
 	ConfigRuleName *string `min:"1" type:"string" required:"true"`
 
 	// The maximum number of evaluation results returned on each page. The default
-	// is 10. You cannot specify a limit greater than 100. If you specify 0, AWS
+	// is 10. You cannot specify a number greater than 100. If you specify 0, AWS
 	// Config uses the default.
 	Limit *int64 `type:"integer"`
 
-	// The NextToken string returned on a previous page that you use to get the
+	// The nextToken string returned on a previous page that you use to get the
 	// next page of results in a paginated response.
 	NextToken *string `type:"string"`
 }
@@ -4988,7 +9111,6 @@ func (s *GetComplianceDetailsByConfigRuleInput) SetNextToken(v string) *GetCompl
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetComplianceDetailsByConfigRuleResponse
 type GetComplianceDetailsByConfigRuleOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5023,7 +9145,6 @@ func (s *GetComplianceDetailsByConfigRuleOutput) SetNextToken(v string) *GetComp
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetComplianceDetailsByResourceRequest
 type GetComplianceDetailsByResourceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5032,7 +9153,7 @@ type GetComplianceDetailsByResourceInput struct {
 	// The allowed values are COMPLIANT, NON_COMPLIANT, and NOT_APPLICABLE.
 	ComplianceTypes []*string `type:"list"`
 
-	// The NextToken string returned on a previous page that you use to get the
+	// The nextToken string returned on a previous page that you use to get the
 	// next page of results in a paginated response.
 	NextToken *string `type:"string"`
 
@@ -5103,7 +9224,6 @@ func (s *GetComplianceDetailsByResourceInput) SetResourceType(v string) *GetComp
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetComplianceDetailsByResourceResponse
 type GetComplianceDetailsByResourceOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5137,7 +9257,6 @@ func (s *GetComplianceDetailsByResourceOutput) SetNextToken(v string) *GetCompli
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetComplianceSummaryByConfigRuleInput
 type GetComplianceSummaryByConfigRuleInput struct {
 	_ struct{} `type:"structure"`
 }
@@ -5152,7 +9271,6 @@ func (s GetComplianceSummaryByConfigRuleInput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetComplianceSummaryByConfigRuleResponse
 type GetComplianceSummaryByConfigRuleOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5177,16 +9295,14 @@ func (s *GetComplianceSummaryByConfigRuleOutput) SetComplianceSummary(v *Complia
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetComplianceSummaryByResourceTypeRequest
 type GetComplianceSummaryByResourceTypeInput struct {
 	_ struct{} `type:"structure"`
 
 	// Specify one or more resource types to get the number of resources that are
 	// compliant and the number that are noncompliant for each resource type.
 	//
-	// For this request, you can specify an AWS resource type such as AWS::EC2::Instance,
-	// and you can specify that the resource type is an AWS account by specifying
-	// AWS::::Account.
+	// For this request, you can specify an AWS resource type such as AWS::EC2::Instance.
+	// You can specify that the resource type is an AWS account by specifying AWS::::Account.
 	ResourceTypes []*string `type:"list"`
 }
 
@@ -5206,7 +9322,6 @@ func (s *GetComplianceSummaryByResourceTypeInput) SetResourceTypes(v []*string) 
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetComplianceSummaryByResourceTypeResponse
 type GetComplianceSummaryByResourceTypeOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5232,26 +9347,134 @@ func (s *GetComplianceSummaryByResourceTypeOutput) SetComplianceSummariesByResou
 	return s
 }
 
+type GetDiscoveredResourceCountsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The maximum number of ResourceCount objects returned on each page. The default
+	// is 100. You cannot specify a number greater than 100. If you specify 0, AWS
+	// Config uses the default.
+	Limit *int64 `locationName:"limit" type:"integer"`
+
+	// The nextToken string returned on a previous page that you use to get the
+	// next page of results in a paginated response.
+	NextToken *string `locationName:"nextToken" type:"string"`
+
+	// The comma-separated list that specifies the resource types that you want
+	// AWS Config to return (for example, "AWS::EC2::Instance", "AWS::IAM::User").
+	//
+	// If a value for resourceTypes is not specified, AWS Config returns all resource
+	// types that AWS Config is recording in the region for your account.
+	//
+	// If the configuration recorder is turned off, AWS Config returns an empty
+	// list of ResourceCount objects. If the configuration recorder is not recording
+	// a specific resource type (for example, S3 buckets), that resource type is
+	// not returned in the list of ResourceCount objects.
+	ResourceTypes []*string `locationName:"resourceTypes" type:"list"`
+}
+
+// String returns the string representation
+func (s GetDiscoveredResourceCountsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetDiscoveredResourceCountsInput) GoString() string {
+	return s.String()
+}
+
+// SetLimit sets the Limit field's value.
+func (s *GetDiscoveredResourceCountsInput) SetLimit(v int64) *GetDiscoveredResourceCountsInput {
+	s.Limit = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *GetDiscoveredResourceCountsInput) SetNextToken(v string) *GetDiscoveredResourceCountsInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetResourceTypes sets the ResourceTypes field's value.
+func (s *GetDiscoveredResourceCountsInput) SetResourceTypes(v []*string) *GetDiscoveredResourceCountsInput {
+	s.ResourceTypes = v
+	return s
+}
+
+type GetDiscoveredResourceCountsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The string that you use in a subsequent request to get the next page of results
+	// in a paginated response.
+	NextToken *string `locationName:"nextToken" type:"string"`
+
+	// The list of ResourceCount objects. Each object is listed in descending order
+	// by the number of resources.
+	ResourceCounts []*ResourceCount `locationName:"resourceCounts" type:"list"`
+
+	// The total number of resources that AWS Config is recording in the region
+	// for your account. If you specify resource types in the request, AWS Config
+	// returns only the total number of resources for those resource types.
+	//
+	// Example
+	//
+	// AWS Config is recording three resource types in the US East (Ohio) Region
+	// for your account: 25 EC2 instances, 20 IAM users, and 15 S3 buckets, for
+	// a total of 60 resources.
+	//
+	// You make a call to the GetDiscoveredResourceCounts action and specify the
+	// resource type, "AWS::EC2::Instances", in the request.
+	//
+	// AWS Config returns 25 for totalDiscoveredResources.
+	TotalDiscoveredResources *int64 `locationName:"totalDiscoveredResources" type:"long"`
+}
+
+// String returns the string representation
+func (s GetDiscoveredResourceCountsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetDiscoveredResourceCountsOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *GetDiscoveredResourceCountsOutput) SetNextToken(v string) *GetDiscoveredResourceCountsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetResourceCounts sets the ResourceCounts field's value.
+func (s *GetDiscoveredResourceCountsOutput) SetResourceCounts(v []*ResourceCount) *GetDiscoveredResourceCountsOutput {
+	s.ResourceCounts = v
+	return s
+}
+
+// SetTotalDiscoveredResources sets the TotalDiscoveredResources field's value.
+func (s *GetDiscoveredResourceCountsOutput) SetTotalDiscoveredResources(v int64) *GetDiscoveredResourceCountsOutput {
+	s.TotalDiscoveredResources = &v
+	return s
+}
+
 // The input for the GetResourceConfigHistory action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetResourceConfigHistoryRequest
 type GetResourceConfigHistoryInput struct {
 	_ struct{} `type:"structure"`
 
-	// The chronological order for configuration items listed. By default the results
+	// The chronological order for configuration items listed. By default, the results
 	// are listed in reverse chronological order.
 	ChronologicalOrder *string `locationName:"chronologicalOrder" type:"string" enum:"ChronologicalOrder"`
 
 	// The time stamp that indicates an earlier time. If not specified, the action
-	// returns paginated results that contain configuration items that start from
-	// when the first configuration item was recorded.
-	EarlierTime *time.Time `locationName:"earlierTime" type:"timestamp" timestampFormat:"unix"`
+	// returns paginated results that contain configuration items that start when
+	// the first configuration item was recorded.
+	EarlierTime *time.Time `locationName:"earlierTime" type:"timestamp"`
 
 	// The time stamp that indicates a later time. If not specified, current time
 	// is taken.
-	LaterTime *time.Time `locationName:"laterTime" type:"timestamp" timestampFormat:"unix"`
+	LaterTime *time.Time `locationName:"laterTime" type:"timestamp"`
 
 	// The maximum number of configuration items returned on each page. The default
-	// is 10. You cannot specify a limit greater than 100. If you specify 0, AWS
+	// is 10. You cannot specify a number greater than 100. If you specify 0, AWS
 	// Config uses the default.
 	Limit *int64 `locationName:"limit" type:"integer"`
 
@@ -5262,7 +9485,7 @@ type GetResourceConfigHistoryInput struct {
 	// The ID of the resource (for example., sg-xxxxxx).
 	//
 	// ResourceId is a required field
-	ResourceId *string `locationName:"resourceId" type:"string" required:"true"`
+	ResourceId *string `locationName:"resourceId" min:"1" type:"string" required:"true"`
 
 	// The resource type.
 	//
@@ -5285,6 +9508,9 @@ func (s *GetResourceConfigHistoryInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "GetResourceConfigHistoryInput"}
 	if s.ResourceId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.ResourceId != nil && len(*s.ResourceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceId", 1))
 	}
 	if s.ResourceType == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResourceType"))
@@ -5339,7 +9565,6 @@ func (s *GetResourceConfigHistoryInput) SetResourceType(v string) *GetResourceCo
 }
 
 // The output for the GetResourceConfigHistory action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetResourceConfigHistoryResponse
 type GetResourceConfigHistoryOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5373,7 +9598,167 @@ func (s *GetResourceConfigHistoryOutput) SetNextToken(v string) *GetResourceConf
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/ListDiscoveredResourcesRequest
+// The count of resources that are grouped by the group name.
+type GroupedResourceCount struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the group that can be region, account ID, or resource type. For
+	// example, region1, region2 if the region was chosen as GroupByKey.
+	//
+	// GroupName is a required field
+	GroupName *string `min:"1" type:"string" required:"true"`
+
+	// The number of resources in the group.
+	//
+	// ResourceCount is a required field
+	ResourceCount *int64 `type:"long" required:"true"`
+}
+
+// String returns the string representation
+func (s GroupedResourceCount) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GroupedResourceCount) GoString() string {
+	return s.String()
+}
+
+// SetGroupName sets the GroupName field's value.
+func (s *GroupedResourceCount) SetGroupName(v string) *GroupedResourceCount {
+	s.GroupName = &v
+	return s
+}
+
+// SetResourceCount sets the ResourceCount field's value.
+func (s *GroupedResourceCount) SetResourceCount(v int64) *GroupedResourceCount {
+	s.ResourceCount = &v
+	return s
+}
+
+type ListAggregateDiscoveredResourcesInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the configuration aggregator.
+	//
+	// ConfigurationAggregatorName is a required field
+	ConfigurationAggregatorName *string `min:"1" type:"string" required:"true"`
+
+	// Filters the results based on the ResourceFilters object.
+	Filters *ResourceFilters `type:"structure"`
+
+	// The maximum number of resource identifiers returned on each page. The default
+	// is 100. You cannot specify a number greater than 100. If you specify 0, AWS
+	// Config uses the default.
+	Limit *int64 `type:"integer"`
+
+	// The nextToken string returned on a previous page that you use to get the
+	// next page of results in a paginated response.
+	NextToken *string `type:"string"`
+
+	// The type of resources that you want AWS Config to list in the response.
+	//
+	// ResourceType is a required field
+	ResourceType *string `type:"string" required:"true" enum:"ResourceType"`
+}
+
+// String returns the string representation
+func (s ListAggregateDiscoveredResourcesInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListAggregateDiscoveredResourcesInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListAggregateDiscoveredResourcesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListAggregateDiscoveredResourcesInput"}
+	if s.ConfigurationAggregatorName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ConfigurationAggregatorName"))
+	}
+	if s.ConfigurationAggregatorName != nil && len(*s.ConfigurationAggregatorName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ConfigurationAggregatorName", 1))
+	}
+	if s.ResourceType == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceType"))
+	}
+	if s.Filters != nil {
+		if err := s.Filters.Validate(); err != nil {
+			invalidParams.AddNested("Filters", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetConfigurationAggregatorName sets the ConfigurationAggregatorName field's value.
+func (s *ListAggregateDiscoveredResourcesInput) SetConfigurationAggregatorName(v string) *ListAggregateDiscoveredResourcesInput {
+	s.ConfigurationAggregatorName = &v
+	return s
+}
+
+// SetFilters sets the Filters field's value.
+func (s *ListAggregateDiscoveredResourcesInput) SetFilters(v *ResourceFilters) *ListAggregateDiscoveredResourcesInput {
+	s.Filters = v
+	return s
+}
+
+// SetLimit sets the Limit field's value.
+func (s *ListAggregateDiscoveredResourcesInput) SetLimit(v int64) *ListAggregateDiscoveredResourcesInput {
+	s.Limit = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListAggregateDiscoveredResourcesInput) SetNextToken(v string) *ListAggregateDiscoveredResourcesInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetResourceType sets the ResourceType field's value.
+func (s *ListAggregateDiscoveredResourcesInput) SetResourceType(v string) *ListAggregateDiscoveredResourcesInput {
+	s.ResourceType = &v
+	return s
+}
+
+type ListAggregateDiscoveredResourcesOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The nextToken string returned on a previous page that you use to get the
+	// next page of results in a paginated response.
+	NextToken *string `type:"string"`
+
+	// Returns a list of ResourceIdentifiers objects.
+	ResourceIdentifiers []*AggregateResourceIdentifier `type:"list"`
+}
+
+// String returns the string representation
+func (s ListAggregateDiscoveredResourcesOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListAggregateDiscoveredResourcesOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListAggregateDiscoveredResourcesOutput) SetNextToken(v string) *ListAggregateDiscoveredResourcesOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetResourceIdentifiers sets the ResourceIdentifiers field's value.
+func (s *ListAggregateDiscoveredResourcesOutput) SetResourceIdentifiers(v []*AggregateResourceIdentifier) *ListAggregateDiscoveredResourcesOutput {
+	s.ResourceIdentifiers = v
+	return s
+}
+
 type ListDiscoveredResourcesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5382,7 +9767,7 @@ type ListDiscoveredResourcesInput struct {
 	IncludeDeletedResources *bool `locationName:"includeDeletedResources" type:"boolean"`
 
 	// The maximum number of resource identifiers returned on each page. The default
-	// is 100. You cannot specify a limit greater than 100. If you specify 0, AWS
+	// is 100. You cannot specify a number greater than 100. If you specify 0, AWS
 	// Config uses the default.
 	Limit *int64 `locationName:"limit" type:"integer"`
 
@@ -5465,7 +9850,6 @@ func (s *ListDiscoveredResourcesInput) SetResourceType(v string) *ListDiscovered
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/ListDiscoveredResourcesResponse
 type ListDiscoveredResourcesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5500,7 +9884,180 @@ func (s *ListDiscoveredResourcesOutput) SetResourceIdentifiers(v []*ResourceIden
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutConfigRuleRequest
+// This object contains regions to setup the aggregator and an IAM role to retrieve
+// organization details.
+type OrganizationAggregationSource struct {
+	_ struct{} `type:"structure"`
+
+	// If true, aggregate existing AWS Config regions and future regions.
+	AllAwsRegions *bool `type:"boolean"`
+
+	// The source regions being aggregated.
+	AwsRegions []*string `min:"1" type:"list"`
+
+	// ARN of the IAM role used to retreive AWS Organization details associated
+	// with the aggregator account.
+	//
+	// RoleArn is a required field
+	RoleArn *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s OrganizationAggregationSource) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s OrganizationAggregationSource) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *OrganizationAggregationSource) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "OrganizationAggregationSource"}
+	if s.AwsRegions != nil && len(s.AwsRegions) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AwsRegions", 1))
+	}
+	if s.RoleArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("RoleArn"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAllAwsRegions sets the AllAwsRegions field's value.
+func (s *OrganizationAggregationSource) SetAllAwsRegions(v bool) *OrganizationAggregationSource {
+	s.AllAwsRegions = &v
+	return s
+}
+
+// SetAwsRegions sets the AwsRegions field's value.
+func (s *OrganizationAggregationSource) SetAwsRegions(v []*string) *OrganizationAggregationSource {
+	s.AwsRegions = v
+	return s
+}
+
+// SetRoleArn sets the RoleArn field's value.
+func (s *OrganizationAggregationSource) SetRoleArn(v string) *OrganizationAggregationSource {
+	s.RoleArn = &v
+	return s
+}
+
+// An object that represents the account ID and region of an aggregator account
+// that is requesting authorization but is not yet authorized.
+type PendingAggregationRequest struct {
+	_ struct{} `type:"structure"`
+
+	// The 12-digit account ID of the account requesting to aggregate data.
+	RequesterAccountId *string `type:"string"`
+
+	// The region requesting to aggregate data.
+	RequesterAwsRegion *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s PendingAggregationRequest) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PendingAggregationRequest) GoString() string {
+	return s.String()
+}
+
+// SetRequesterAccountId sets the RequesterAccountId field's value.
+func (s *PendingAggregationRequest) SetRequesterAccountId(v string) *PendingAggregationRequest {
+	s.RequesterAccountId = &v
+	return s
+}
+
+// SetRequesterAwsRegion sets the RequesterAwsRegion field's value.
+func (s *PendingAggregationRequest) SetRequesterAwsRegion(v string) *PendingAggregationRequest {
+	s.RequesterAwsRegion = &v
+	return s
+}
+
+type PutAggregationAuthorizationInput struct {
+	_ struct{} `type:"structure"`
+
+	// The 12-digit account ID of the account authorized to aggregate data.
+	//
+	// AuthorizedAccountId is a required field
+	AuthorizedAccountId *string `type:"string" required:"true"`
+
+	// The region authorized to collect aggregated data.
+	//
+	// AuthorizedAwsRegion is a required field
+	AuthorizedAwsRegion *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s PutAggregationAuthorizationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutAggregationAuthorizationInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutAggregationAuthorizationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutAggregationAuthorizationInput"}
+	if s.AuthorizedAccountId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AuthorizedAccountId"))
+	}
+	if s.AuthorizedAwsRegion == nil {
+		invalidParams.Add(request.NewErrParamRequired("AuthorizedAwsRegion"))
+	}
+	if s.AuthorizedAwsRegion != nil && len(*s.AuthorizedAwsRegion) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AuthorizedAwsRegion", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAuthorizedAccountId sets the AuthorizedAccountId field's value.
+func (s *PutAggregationAuthorizationInput) SetAuthorizedAccountId(v string) *PutAggregationAuthorizationInput {
+	s.AuthorizedAccountId = &v
+	return s
+}
+
+// SetAuthorizedAwsRegion sets the AuthorizedAwsRegion field's value.
+func (s *PutAggregationAuthorizationInput) SetAuthorizedAwsRegion(v string) *PutAggregationAuthorizationInput {
+	s.AuthorizedAwsRegion = &v
+	return s
+}
+
+type PutAggregationAuthorizationOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Returns an AggregationAuthorization object.
+	AggregationAuthorization *AggregationAuthorization `type:"structure"`
+}
+
+// String returns the string representation
+func (s PutAggregationAuthorizationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutAggregationAuthorizationOutput) GoString() string {
+	return s.String()
+}
+
+// SetAggregationAuthorization sets the AggregationAuthorization field's value.
+func (s *PutAggregationAuthorizationOutput) SetAggregationAuthorization(v *AggregationAuthorization) *PutAggregationAuthorizationOutput {
+	s.AggregationAuthorization = v
+	return s
+}
+
 type PutConfigRuleInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5544,7 +10101,6 @@ func (s *PutConfigRuleInput) SetConfigRule(v *ConfigRule) *PutConfigRuleInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutConfigRuleOutput
 type PutConfigRuleOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -5559,8 +10115,104 @@ func (s PutConfigRuleOutput) GoString() string {
 	return s.String()
 }
 
+type PutConfigurationAggregatorInput struct {
+	_ struct{} `type:"structure"`
+
+	// A list of AccountAggregationSource object.
+	AccountAggregationSources []*AccountAggregationSource `type:"list"`
+
+	// The name of the configuration aggregator.
+	//
+	// ConfigurationAggregatorName is a required field
+	ConfigurationAggregatorName *string `min:"1" type:"string" required:"true"`
+
+	// An OrganizationAggregationSource object.
+	OrganizationAggregationSource *OrganizationAggregationSource `type:"structure"`
+}
+
+// String returns the string representation
+func (s PutConfigurationAggregatorInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutConfigurationAggregatorInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutConfigurationAggregatorInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutConfigurationAggregatorInput"}
+	if s.ConfigurationAggregatorName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ConfigurationAggregatorName"))
+	}
+	if s.ConfigurationAggregatorName != nil && len(*s.ConfigurationAggregatorName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ConfigurationAggregatorName", 1))
+	}
+	if s.AccountAggregationSources != nil {
+		for i, v := range s.AccountAggregationSources {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "AccountAggregationSources", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.OrganizationAggregationSource != nil {
+		if err := s.OrganizationAggregationSource.Validate(); err != nil {
+			invalidParams.AddNested("OrganizationAggregationSource", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAccountAggregationSources sets the AccountAggregationSources field's value.
+func (s *PutConfigurationAggregatorInput) SetAccountAggregationSources(v []*AccountAggregationSource) *PutConfigurationAggregatorInput {
+	s.AccountAggregationSources = v
+	return s
+}
+
+// SetConfigurationAggregatorName sets the ConfigurationAggregatorName field's value.
+func (s *PutConfigurationAggregatorInput) SetConfigurationAggregatorName(v string) *PutConfigurationAggregatorInput {
+	s.ConfigurationAggregatorName = &v
+	return s
+}
+
+// SetOrganizationAggregationSource sets the OrganizationAggregationSource field's value.
+func (s *PutConfigurationAggregatorInput) SetOrganizationAggregationSource(v *OrganizationAggregationSource) *PutConfigurationAggregatorInput {
+	s.OrganizationAggregationSource = v
+	return s
+}
+
+type PutConfigurationAggregatorOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Returns a ConfigurationAggregator object.
+	ConfigurationAggregator *ConfigurationAggregator `type:"structure"`
+}
+
+// String returns the string representation
+func (s PutConfigurationAggregatorOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutConfigurationAggregatorOutput) GoString() string {
+	return s.String()
+}
+
+// SetConfigurationAggregator sets the ConfigurationAggregator field's value.
+func (s *PutConfigurationAggregatorOutput) SetConfigurationAggregator(v *ConfigurationAggregator) *PutConfigurationAggregatorOutput {
+	s.ConfigurationAggregator = v
+	return s
+}
+
 // The input for the PutConfigurationRecorder action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutConfigurationRecorderRequest
 type PutConfigurationRecorderInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5605,7 +10257,6 @@ func (s *PutConfigurationRecorderInput) SetConfigurationRecorder(v *Configuratio
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutConfigurationRecorderOutput
 type PutConfigurationRecorderOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -5621,12 +10272,11 @@ func (s PutConfigurationRecorderOutput) GoString() string {
 }
 
 // The input for the PutDeliveryChannel action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutDeliveryChannelRequest
 type PutDeliveryChannelInput struct {
 	_ struct{} `type:"structure"`
 
 	// The configuration delivery channel object that delivers the configuration
-	// information to an Amazon S3 bucket, and to an Amazon SNS topic.
+	// information to an Amazon S3 bucket and to an Amazon SNS topic.
 	//
 	// DeliveryChannel is a required field
 	DeliveryChannel *DeliveryChannel `type:"structure" required:"true"`
@@ -5666,7 +10316,6 @@ func (s *PutDeliveryChannelInput) SetDeliveryChannel(v *DeliveryChannel) *PutDel
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutDeliveryChannelOutput
 type PutDeliveryChannelOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -5681,7 +10330,6 @@ func (s PutDeliveryChannelOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutEvaluationsRequest
 type PutEvaluationsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5691,7 +10339,7 @@ type PutEvaluationsInput struct {
 	Evaluations []*Evaluation `type:"list"`
 
 	// An encrypted token that associates an evaluation with an AWS Config rule.
-	// Identifies the rule and the event that triggered the evaluation
+	// Identifies the rule and the event that triggered the evaluation.
 	//
 	// ResultToken is a required field
 	ResultToken *string `type:"string" required:"true"`
@@ -5757,7 +10405,6 @@ func (s *PutEvaluationsInput) SetTestMode(v bool) *PutEvaluationsInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutEvaluationsResponse
 type PutEvaluationsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5778,6 +10425,72 @@ func (s PutEvaluationsOutput) GoString() string {
 // SetFailedEvaluations sets the FailedEvaluations field's value.
 func (s *PutEvaluationsOutput) SetFailedEvaluations(v []*Evaluation) *PutEvaluationsOutput {
 	s.FailedEvaluations = v
+	return s
+}
+
+type PutRetentionConfigurationInput struct {
+	_ struct{} `type:"structure"`
+
+	// Number of days AWS Config stores your historical information.
+	//
+	// Currently, only applicable to the configuration item history.
+	//
+	// RetentionPeriodInDays is a required field
+	RetentionPeriodInDays *int64 `min:"30" type:"integer" required:"true"`
+}
+
+// String returns the string representation
+func (s PutRetentionConfigurationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutRetentionConfigurationInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutRetentionConfigurationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutRetentionConfigurationInput"}
+	if s.RetentionPeriodInDays == nil {
+		invalidParams.Add(request.NewErrParamRequired("RetentionPeriodInDays"))
+	}
+	if s.RetentionPeriodInDays != nil && *s.RetentionPeriodInDays < 30 {
+		invalidParams.Add(request.NewErrParamMinValue("RetentionPeriodInDays", 30))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetRetentionPeriodInDays sets the RetentionPeriodInDays field's value.
+func (s *PutRetentionConfigurationInput) SetRetentionPeriodInDays(v int64) *PutRetentionConfigurationInput {
+	s.RetentionPeriodInDays = &v
+	return s
+}
+
+type PutRetentionConfigurationOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Returns a retention configuration object.
+	RetentionConfiguration *RetentionConfiguration `type:"structure"`
+}
+
+// String returns the string representation
+func (s PutRetentionConfigurationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutRetentionConfigurationOutput) GoString() string {
+	return s.String()
+}
+
+// SetRetentionConfiguration sets the RetentionConfiguration field's value.
+func (s *PutRetentionConfigurationOutput) SetRetentionConfiguration(v *RetentionConfiguration) *PutRetentionConfigurationOutput {
+	s.RetentionConfiguration = v
 	return s
 }
 
@@ -5808,10 +10521,9 @@ func (s *PutEvaluationsOutput) SetFailedEvaluations(v []*Evaluation) *PutEvaluat
 // If you don't want AWS Config to record all resources, you can specify which
 // types of resources it will record with the resourceTypes parameter.
 //
-// For a list of supported resource types, see Supported resource types (http://docs.aws.amazon.com/config/latest/developerguide/resource-config-reference.html#supported-resources).
+// For a list of supported resource types, see Supported Resource Types (http://docs.aws.amazon.com/config/latest/developerguide/resource-config-reference.html#supported-resources).
 //
 // For more information, see Selecting Which Resources AWS Config Records (http://docs.aws.amazon.com/config/latest/developerguide/select-resources.html).
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/RecordingGroup
 type RecordingGroup struct {
 	_ struct{} `type:"structure"`
 
@@ -5819,8 +10531,7 @@ type RecordingGroup struct {
 	// type of regional resource.
 	//
 	// If you set this option to true, when AWS Config adds support for a new type
-	// of regional resource, it automatically starts recording resources of that
-	// type.
+	// of regional resource, it starts recording resources of that type automatically.
 	//
 	// If you set this option to true, you cannot enumerate a list of resourceTypes.
 	AllSupported *bool `locationName:"allSupported" type:"boolean"`
@@ -5832,7 +10543,7 @@ type RecordingGroup struct {
 	// to true.
 	//
 	// If you set this option to true, when AWS Config adds support for a new type
-	// of global resource, it automatically starts recording resources of that type.
+	// of global resource, it starts recording resources of that type automatically.
 	//
 	// The configuration details for any global resource are the same in all regions.
 	// To prevent duplicate configuration items, you should consider customizing
@@ -5884,7 +10595,6 @@ func (s *RecordingGroup) SetResourceTypes(v []*string) *RecordingGroup {
 }
 
 // The relationship of the related resource to the main resource.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/Relationship
 type Relationship struct {
 	_ struct{} `type:"structure"`
 
@@ -5892,7 +10602,7 @@ type Relationship struct {
 	RelationshipName *string `locationName:"relationshipName" type:"string"`
 
 	// The ID of the related resource (for example, sg-xxxxxx).
-	ResourceId *string `locationName:"resourceId" type:"string"`
+	ResourceId *string `locationName:"resourceId" min:"1" type:"string"`
 
 	// The custom name of the related resource, if available.
 	ResourceName *string `locationName:"resourceName" type:"string"`
@@ -5935,17 +10645,172 @@ func (s *Relationship) SetResourceType(v string) *Relationship {
 	return s
 }
 
+// An object that contains the resource type and the number of resources.
+type ResourceCount struct {
+	_ struct{} `type:"structure"`
+
+	// The number of resources.
+	Count *int64 `locationName:"count" type:"long"`
+
+	// The resource type (for example, "AWS::EC2::Instance").
+	ResourceType *string `locationName:"resourceType" type:"string" enum:"ResourceType"`
+}
+
+// String returns the string representation
+func (s ResourceCount) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ResourceCount) GoString() string {
+	return s.String()
+}
+
+// SetCount sets the Count field's value.
+func (s *ResourceCount) SetCount(v int64) *ResourceCount {
+	s.Count = &v
+	return s
+}
+
+// SetResourceType sets the ResourceType field's value.
+func (s *ResourceCount) SetResourceType(v string) *ResourceCount {
+	s.ResourceType = &v
+	return s
+}
+
+// Filters the resource count based on account ID, region, and resource type.
+type ResourceCountFilters struct {
+	_ struct{} `type:"structure"`
+
+	// The 12-digit ID of the account.
+	AccountId *string `type:"string"`
+
+	// The region where the account is located.
+	Region *string `min:"1" type:"string"`
+
+	// The type of the AWS resource.
+	ResourceType *string `type:"string" enum:"ResourceType"`
+}
+
+// String returns the string representation
+func (s ResourceCountFilters) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ResourceCountFilters) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ResourceCountFilters) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ResourceCountFilters"}
+	if s.Region != nil && len(*s.Region) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Region", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAccountId sets the AccountId field's value.
+func (s *ResourceCountFilters) SetAccountId(v string) *ResourceCountFilters {
+	s.AccountId = &v
+	return s
+}
+
+// SetRegion sets the Region field's value.
+func (s *ResourceCountFilters) SetRegion(v string) *ResourceCountFilters {
+	s.Region = &v
+	return s
+}
+
+// SetResourceType sets the ResourceType field's value.
+func (s *ResourceCountFilters) SetResourceType(v string) *ResourceCountFilters {
+	s.ResourceType = &v
+	return s
+}
+
+// Filters the results by resource account ID, region, resource ID, and resource
+// name.
+type ResourceFilters struct {
+	_ struct{} `type:"structure"`
+
+	// The 12-digit source account ID.
+	AccountId *string `type:"string"`
+
+	// The source region.
+	Region *string `min:"1" type:"string"`
+
+	// The ID of the resource.
+	ResourceId *string `min:"1" type:"string"`
+
+	// The name of the resource.
+	ResourceName *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ResourceFilters) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ResourceFilters) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ResourceFilters) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ResourceFilters"}
+	if s.Region != nil && len(*s.Region) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Region", 1))
+	}
+	if s.ResourceId != nil && len(*s.ResourceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAccountId sets the AccountId field's value.
+func (s *ResourceFilters) SetAccountId(v string) *ResourceFilters {
+	s.AccountId = &v
+	return s
+}
+
+// SetRegion sets the Region field's value.
+func (s *ResourceFilters) SetRegion(v string) *ResourceFilters {
+	s.Region = &v
+	return s
+}
+
+// SetResourceId sets the ResourceId field's value.
+func (s *ResourceFilters) SetResourceId(v string) *ResourceFilters {
+	s.ResourceId = &v
+	return s
+}
+
+// SetResourceName sets the ResourceName field's value.
+func (s *ResourceFilters) SetResourceName(v string) *ResourceFilters {
+	s.ResourceName = &v
+	return s
+}
+
 // The details that identify a resource that is discovered by AWS Config, including
 // the resource type, ID, and (if available) the custom resource name.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/ResourceIdentifier
 type ResourceIdentifier struct {
 	_ struct{} `type:"structure"`
 
 	// The time that the resource was deleted.
-	ResourceDeletionTime *time.Time `locationName:"resourceDeletionTime" type:"timestamp" timestampFormat:"unix"`
+	ResourceDeletionTime *time.Time `locationName:"resourceDeletionTime" type:"timestamp"`
 
-	// The ID of the resource (for example., sg-xxxxxx).
-	ResourceId *string `locationName:"resourceId" type:"string"`
+	// The ID of the resource (for example, sg-xxxxxx).
+	ResourceId *string `locationName:"resourceId" min:"1" type:"string"`
 
 	// The custom name of the resource (if available).
 	ResourceName *string `locationName:"resourceName" type:"string"`
@@ -5988,17 +10853,114 @@ func (s *ResourceIdentifier) SetResourceType(v string) *ResourceIdentifier {
 	return s
 }
 
+// The details that identify a resource within AWS Config, including the resource
+// type and resource ID.
+type ResourceKey struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the resource (for example., sg-xxxxxx).
+	//
+	// ResourceId is a required field
+	ResourceId *string `locationName:"resourceId" min:"1" type:"string" required:"true"`
+
+	// The resource type.
+	//
+	// ResourceType is a required field
+	ResourceType *string `locationName:"resourceType" type:"string" required:"true" enum:"ResourceType"`
+}
+
+// String returns the string representation
+func (s ResourceKey) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ResourceKey) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ResourceKey) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ResourceKey"}
+	if s.ResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.ResourceId != nil && len(*s.ResourceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceId", 1))
+	}
+	if s.ResourceType == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceType"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetResourceId sets the ResourceId field's value.
+func (s *ResourceKey) SetResourceId(v string) *ResourceKey {
+	s.ResourceId = &v
+	return s
+}
+
+// SetResourceType sets the ResourceType field's value.
+func (s *ResourceKey) SetResourceType(v string) *ResourceKey {
+	s.ResourceType = &v
+	return s
+}
+
+// An object with the name of the retention configuration and the retention
+// period in days. The object stores the configuration for data retention in
+// AWS Config.
+type RetentionConfiguration struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the retention configuration object.
+	//
+	// Name is a required field
+	Name *string `min:"1" type:"string" required:"true"`
+
+	// Number of days AWS Config stores your historical information.
+	//
+	// Currently, only applicable to the configuration item history.
+	//
+	// RetentionPeriodInDays is a required field
+	RetentionPeriodInDays *int64 `min:"30" type:"integer" required:"true"`
+}
+
+// String returns the string representation
+func (s RetentionConfiguration) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RetentionConfiguration) GoString() string {
+	return s.String()
+}
+
+// SetName sets the Name field's value.
+func (s *RetentionConfiguration) SetName(v string) *RetentionConfiguration {
+	s.Name = &v
+	return s
+}
+
+// SetRetentionPeriodInDays sets the RetentionPeriodInDays field's value.
+func (s *RetentionConfiguration) SetRetentionPeriodInDays(v int64) *RetentionConfiguration {
+	s.RetentionPeriodInDays = &v
+	return s
+}
+
 // Defines which resources trigger an evaluation for an AWS Config rule. The
 // scope can include one or more resource types, a combination of a tag key
 // and value, or a combination of one resource type and one resource ID. Specify
 // a scope to constrain which resources trigger an evaluation for a rule. Otherwise,
 // evaluations for the rule are triggered when any resource in your recording
 // group changes in configuration.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/Scope
 type Scope struct {
 	_ struct{} `type:"structure"`
 
-	// The IDs of the only AWS resource that you want to trigger an evaluation for
+	// The ID of the only AWS resource that you want to trigger an evaluation for
 	// the rule. If you specify a resource ID, you must specify one resource type
 	// for ComplianceResourceTypes.
 	ComplianceResourceId *string `min:"1" type:"string"`
@@ -6008,8 +10970,8 @@ type Scope struct {
 	// a resource ID for ComplianceResourceId.
 	ComplianceResourceTypes []*string `type:"list"`
 
-	// The tag key that is applied to only those AWS resources that you want you
-	// want to trigger an evaluation for the rule.
+	// The tag key that is applied to only those AWS resources that you want to
+	// trigger an evaluation for the rule.
 	TagKey *string `min:"1" type:"string"`
 
 	// The tag value applied to only those AWS resources that you want to trigger
@@ -6073,7 +11035,6 @@ func (s *Scope) SetTagValue(v string) *Scope {
 
 // Provides the AWS Config rule owner (AWS or customer), the rule identifier,
 // and the events that trigger the evaluation of your AWS resources.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/Source
 type Source struct {
 	_ struct{} `type:"structure"`
 
@@ -6091,7 +11052,7 @@ type Source struct {
 	// AWS Managed Config Rules (http://docs.aws.amazon.com/config/latest/developerguide/evaluate-config_use-managed-rules.html).
 	//
 	// For custom rules, the identifier is the Amazon Resource Name (ARN) of the
-	// rule's AWS Lambda function, such as arn:aws:lambda:us-east-1:123456789012:function:custom_rule_name.
+	// rule's AWS Lambda function, such as arn:aws:lambda:us-east-2:123456789012:function:custom_rule_name.
 	//
 	// SourceIdentifier is a required field
 	SourceIdentifier *string `min:"1" type:"string" required:"true"`
@@ -6149,7 +11110,6 @@ func (s *Source) SetSourceIdentifier(v string) *Source {
 // you want AWS Config to run evaluations for the rule if the trigger type is
 // periodic. You can specify the parameter values for SourceDetail only for
 // custom rules.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/SourceDetail
 type SourceDetail struct {
 	_ struct{} `type:"structure"`
 
@@ -6157,13 +11117,18 @@ type SourceDetail struct {
 	// to evaluate your AWS resources.
 	EventSource *string `type:"string" enum:"EventSource"`
 
-	// The frequency that you want AWS Config to run evaluations for a custom rule
-	// with a periodic trigger. If you specify a value for MaximumExecutionFrequency,
+	// The frequency at which you want AWS Config to run evaluations for a custom
+	// rule with a periodic trigger. If you specify a value for MaximumExecutionFrequency,
 	// then MessageType must use the ScheduledNotification value.
 	//
 	// By default, rules with a periodic trigger are evaluated every 24 hours. To
 	// change the frequency, specify a valid value for the MaximumExecutionFrequency
 	// parameter.
+	//
+	// Based on the valid value you choose, AWS Config runs evaluations once for
+	// each valid value. For example, if you choose Three_Hours, AWS Config runs
+	// evaluations once every three hours. In this case, Three_Hours is the frequency
+	// of this rule.
 	MaximumExecutionFrequency *string `type:"string" enum:"MaximumExecutionFrequency"`
 
 	// The type of notification that triggers AWS Config to run an evaluation for
@@ -6184,7 +11149,8 @@ type SourceDetail struct {
 	//    when AWS Config delivers a configuration snapshot.
 	//
 	// If you want your custom rule to be triggered by configuration changes, specify
-	// both ConfigurationItemChangeNotification and OversizedConfigurationItemChangeNotification.
+	// two SourceDetail objects, one for ConfigurationItemChangeNotification and
+	// one for OversizedConfigurationItemChangeNotification.
 	MessageType *string `type:"string" enum:"MessageType"`
 }
 
@@ -6216,11 +11182,10 @@ func (s *SourceDetail) SetMessageType(v string) *SourceDetail {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/StartConfigRulesEvaluationRequest
 type StartConfigRulesEvaluationInput struct {
 	_ struct{} `type:"structure"`
 
-	// The list of names of Config rules that you want to run evaluations for.
+	// The list of names of AWS Config rules that you want to run evaluations for.
 	ConfigRuleNames []*string `min:"1" type:"list"`
 }
 
@@ -6253,8 +11218,7 @@ func (s *StartConfigRulesEvaluationInput) SetConfigRuleNames(v []*string) *Start
 	return s
 }
 
-// The output when you start the evaluation for the specified Config rule.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/StartConfigRulesEvaluationResponse
+// The output when you start the evaluation for the specified AWS Config rule.
 type StartConfigRulesEvaluationOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -6270,7 +11234,6 @@ func (s StartConfigRulesEvaluationOutput) GoString() string {
 }
 
 // The input for the StartConfigurationRecorder action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/StartConfigurationRecorderRequest
 type StartConfigurationRecorderInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6313,7 +11276,6 @@ func (s *StartConfigurationRecorderInput) SetConfigurationRecorderName(v string)
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/StartConfigurationRecorderOutput
 type StartConfigurationRecorderOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -6329,7 +11291,6 @@ func (s StartConfigurationRecorderOutput) GoString() string {
 }
 
 // The input for the StopConfigurationRecorder action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/StopConfigurationRecorderRequest
 type StopConfigurationRecorderInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6372,7 +11333,6 @@ func (s *StopConfigurationRecorderInput) SetConfigurationRecorderName(v string) 
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/StopConfigurationRecorderOutput
 type StopConfigurationRecorderOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -6386,6 +11346,25 @@ func (s StopConfigurationRecorderOutput) String() string {
 func (s StopConfigurationRecorderOutput) GoString() string {
 	return s.String()
 }
+
+const (
+	// AggregatedSourceStatusTypeFailed is a AggregatedSourceStatusType enum value
+	AggregatedSourceStatusTypeFailed = "FAILED"
+
+	// AggregatedSourceStatusTypeSucceeded is a AggregatedSourceStatusType enum value
+	AggregatedSourceStatusTypeSucceeded = "SUCCEEDED"
+
+	// AggregatedSourceStatusTypeOutdated is a AggregatedSourceStatusType enum value
+	AggregatedSourceStatusTypeOutdated = "OUTDATED"
+)
+
+const (
+	// AggregatedSourceTypeAccount is a AggregatedSourceType enum value
+	AggregatedSourceTypeAccount = "ACCOUNT"
+
+	// AggregatedSourceTypeOrganization is a AggregatedSourceType enum value
+	AggregatedSourceTypeOrganization = "ORGANIZATION"
+)
 
 const (
 	// ChronologicalOrderReverse is a ChronologicalOrder enum value
@@ -6410,6 +11389,14 @@ const (
 )
 
 const (
+	// ConfigRuleComplianceSummaryGroupKeyAccountId is a ConfigRuleComplianceSummaryGroupKey enum value
+	ConfigRuleComplianceSummaryGroupKeyAccountId = "ACCOUNT_ID"
+
+	// ConfigRuleComplianceSummaryGroupKeyAwsRegion is a ConfigRuleComplianceSummaryGroupKey enum value
+	ConfigRuleComplianceSummaryGroupKeyAwsRegion = "AWS_REGION"
+)
+
+const (
 	// ConfigRuleStateActive is a ConfigRuleState enum value
 	ConfigRuleStateActive = "ACTIVE"
 
@@ -6425,16 +11412,19 @@ const (
 
 const (
 	// ConfigurationItemStatusOk is a ConfigurationItemStatus enum value
-	ConfigurationItemStatusOk = "Ok"
+	ConfigurationItemStatusOk = "OK"
 
-	// ConfigurationItemStatusFailed is a ConfigurationItemStatus enum value
-	ConfigurationItemStatusFailed = "Failed"
+	// ConfigurationItemStatusResourceDiscovered is a ConfigurationItemStatus enum value
+	ConfigurationItemStatusResourceDiscovered = "ResourceDiscovered"
 
-	// ConfigurationItemStatusDiscovered is a ConfigurationItemStatus enum value
-	ConfigurationItemStatusDiscovered = "Discovered"
+	// ConfigurationItemStatusResourceNotRecorded is a ConfigurationItemStatus enum value
+	ConfigurationItemStatusResourceNotRecorded = "ResourceNotRecorded"
 
-	// ConfigurationItemStatusDeleted is a ConfigurationItemStatus enum value
-	ConfigurationItemStatusDeleted = "Deleted"
+	// ConfigurationItemStatusResourceDeleted is a ConfigurationItemStatus enum value
+	ConfigurationItemStatusResourceDeleted = "ResourceDeleted"
+
+	// ConfigurationItemStatusResourceDeletedNotRecorded is a ConfigurationItemStatus enum value
+	ConfigurationItemStatusResourceDeletedNotRecorded = "ResourceDeletedNotRecorded"
 )
 
 const (
@@ -6501,6 +11491,17 @@ const (
 
 	// RecorderStatusFailure is a RecorderStatus enum value
 	RecorderStatusFailure = "Failure"
+)
+
+const (
+	// ResourceCountGroupKeyResourceType is a ResourceCountGroupKey enum value
+	ResourceCountGroupKeyResourceType = "RESOURCE_TYPE"
+
+	// ResourceCountGroupKeyAccountId is a ResourceCountGroupKey enum value
+	ResourceCountGroupKeyAccountId = "ACCOUNT_ID"
+
+	// ResourceCountGroupKeyAwsRegion is a ResourceCountGroupKey enum value
+	ResourceCountGroupKeyAwsRegion = "AWS_REGION"
 )
 
 const (
@@ -6605,4 +11606,94 @@ const (
 
 	// ResourceTypeAwsRedshiftEventSubscription is a ResourceType enum value
 	ResourceTypeAwsRedshiftEventSubscription = "AWS::Redshift::EventSubscription"
+
+	// ResourceTypeAwsCloudWatchAlarm is a ResourceType enum value
+	ResourceTypeAwsCloudWatchAlarm = "AWS::CloudWatch::Alarm"
+
+	// ResourceTypeAwsCloudFormationStack is a ResourceType enum value
+	ResourceTypeAwsCloudFormationStack = "AWS::CloudFormation::Stack"
+
+	// ResourceTypeAwsDynamoDbTable is a ResourceType enum value
+	ResourceTypeAwsDynamoDbTable = "AWS::DynamoDB::Table"
+
+	// ResourceTypeAwsAutoScalingAutoScalingGroup is a ResourceType enum value
+	ResourceTypeAwsAutoScalingAutoScalingGroup = "AWS::AutoScaling::AutoScalingGroup"
+
+	// ResourceTypeAwsAutoScalingLaunchConfiguration is a ResourceType enum value
+	ResourceTypeAwsAutoScalingLaunchConfiguration = "AWS::AutoScaling::LaunchConfiguration"
+
+	// ResourceTypeAwsAutoScalingScalingPolicy is a ResourceType enum value
+	ResourceTypeAwsAutoScalingScalingPolicy = "AWS::AutoScaling::ScalingPolicy"
+
+	// ResourceTypeAwsAutoScalingScheduledAction is a ResourceType enum value
+	ResourceTypeAwsAutoScalingScheduledAction = "AWS::AutoScaling::ScheduledAction"
+
+	// ResourceTypeAwsCodeBuildProject is a ResourceType enum value
+	ResourceTypeAwsCodeBuildProject = "AWS::CodeBuild::Project"
+
+	// ResourceTypeAwsWafRateBasedRule is a ResourceType enum value
+	ResourceTypeAwsWafRateBasedRule = "AWS::WAF::RateBasedRule"
+
+	// ResourceTypeAwsWafRule is a ResourceType enum value
+	ResourceTypeAwsWafRule = "AWS::WAF::Rule"
+
+	// ResourceTypeAwsWafWebAcl is a ResourceType enum value
+	ResourceTypeAwsWafWebAcl = "AWS::WAF::WebACL"
+
+	// ResourceTypeAwsWafregionalRateBasedRule is a ResourceType enum value
+	ResourceTypeAwsWafregionalRateBasedRule = "AWS::WAFRegional::RateBasedRule"
+
+	// ResourceTypeAwsWafregionalRule is a ResourceType enum value
+	ResourceTypeAwsWafregionalRule = "AWS::WAFRegional::Rule"
+
+	// ResourceTypeAwsWafregionalWebAcl is a ResourceType enum value
+	ResourceTypeAwsWafregionalWebAcl = "AWS::WAFRegional::WebACL"
+
+	// ResourceTypeAwsCloudFrontDistribution is a ResourceType enum value
+	ResourceTypeAwsCloudFrontDistribution = "AWS::CloudFront::Distribution"
+
+	// ResourceTypeAwsCloudFrontStreamingDistribution is a ResourceType enum value
+	ResourceTypeAwsCloudFrontStreamingDistribution = "AWS::CloudFront::StreamingDistribution"
+
+	// ResourceTypeAwsWafRuleGroup is a ResourceType enum value
+	ResourceTypeAwsWafRuleGroup = "AWS::WAF::RuleGroup"
+
+	// ResourceTypeAwsWafregionalRuleGroup is a ResourceType enum value
+	ResourceTypeAwsWafregionalRuleGroup = "AWS::WAFRegional::RuleGroup"
+
+	// ResourceTypeAwsLambdaFunction is a ResourceType enum value
+	ResourceTypeAwsLambdaFunction = "AWS::Lambda::Function"
+
+	// ResourceTypeAwsElasticBeanstalkApplication is a ResourceType enum value
+	ResourceTypeAwsElasticBeanstalkApplication = "AWS::ElasticBeanstalk::Application"
+
+	// ResourceTypeAwsElasticBeanstalkApplicationVersion is a ResourceType enum value
+	ResourceTypeAwsElasticBeanstalkApplicationVersion = "AWS::ElasticBeanstalk::ApplicationVersion"
+
+	// ResourceTypeAwsElasticBeanstalkEnvironment is a ResourceType enum value
+	ResourceTypeAwsElasticBeanstalkEnvironment = "AWS::ElasticBeanstalk::Environment"
+
+	// ResourceTypeAwsElasticLoadBalancingLoadBalancer is a ResourceType enum value
+	ResourceTypeAwsElasticLoadBalancingLoadBalancer = "AWS::ElasticLoadBalancing::LoadBalancer"
+
+	// ResourceTypeAwsXrayEncryptionConfig is a ResourceType enum value
+	ResourceTypeAwsXrayEncryptionConfig = "AWS::XRay::EncryptionConfig"
+
+	// ResourceTypeAwsSsmAssociationCompliance is a ResourceType enum value
+	ResourceTypeAwsSsmAssociationCompliance = "AWS::SSM::AssociationCompliance"
+
+	// ResourceTypeAwsSsmPatchCompliance is a ResourceType enum value
+	ResourceTypeAwsSsmPatchCompliance = "AWS::SSM::PatchCompliance"
+
+	// ResourceTypeAwsShieldProtection is a ResourceType enum value
+	ResourceTypeAwsShieldProtection = "AWS::Shield::Protection"
+
+	// ResourceTypeAwsShieldRegionalProtection is a ResourceType enum value
+	ResourceTypeAwsShieldRegionalProtection = "AWS::ShieldRegional::Protection"
+
+	// ResourceTypeAwsConfigResourceCompliance is a ResourceType enum value
+	ResourceTypeAwsConfigResourceCompliance = "AWS::Config::ResourceCompliance"
+
+	// ResourceTypeAwsCodePipelinePipeline is a ResourceType enum value
+	ResourceTypeAwsCodePipelinePipeline = "AWS::CodePipeline::Pipeline"
 )

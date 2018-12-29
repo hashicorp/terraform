@@ -3,8 +3,11 @@ package terraform
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform/addrs"
 )
 
 func TestDiffEmpty(t *testing.T) {
@@ -18,7 +21,7 @@ func TestDiffEmpty(t *testing.T) {
 		t.Fatal("should be empty")
 	}
 
-	mod := diff.AddModule(rootModulePath)
+	mod := diff.AddModule(addrs.RootModuleInstance)
 	mod.Resources["nodeA"] = &InstanceDiff{
 		Attributes: map[string]*ResourceAttrDiff{
 			"foo": &ResourceAttrDiff{
@@ -36,7 +39,7 @@ func TestDiffEmpty(t *testing.T) {
 func TestDiffEmpty_taintedIsNotEmpty(t *testing.T) {
 	diff := new(Diff)
 
-	mod := diff.AddModule(rootModulePath)
+	mod := diff.AddModule(addrs.RootModuleInstance)
 	mod.Resources["nodeA"] = &InstanceDiff{
 		DestroyTainted: true,
 	}
@@ -1131,6 +1134,62 @@ func TestInstanceDiffSame(t *testing.T) {
 			true,
 			"",
 		},
+
+		// Make sure that DestroyTainted diffs pass as well, especially when diff
+		// two works off of no state.
+		{
+			&InstanceDiff{
+				DestroyTainted: true,
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo": &ResourceAttrDiff{
+						Old: "foo",
+						New: "foo",
+					},
+				},
+			},
+			&InstanceDiff{
+				DestroyTainted: true,
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo": &ResourceAttrDiff{
+						Old: "",
+						New: "foo",
+					},
+				},
+			},
+			true,
+			"",
+		},
+		// RequiresNew in different attribute
+		{
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo": &ResourceAttrDiff{
+						Old: "foo",
+						New: "foo",
+					},
+					"bar": &ResourceAttrDiff{
+						Old:         "bar",
+						New:         "baz",
+						RequiresNew: true,
+					},
+				},
+			},
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo": &ResourceAttrDiff{
+						Old: "",
+						New: "foo",
+					},
+					"bar": &ResourceAttrDiff{
+						Old:         "",
+						New:         "baz",
+						RequiresNew: true,
+					},
+				},
+			},
+			true,
+			"",
+		},
 	}
 
 	for i, tc := range cases {
@@ -1155,3 +1214,39 @@ CREATE: nodeA
   longfoo:   "foo" => "bar" (forces new resource)
   secretfoo: "<sensitive>" => "<sensitive>" (attribute changed)
 `
+
+func TestCountFlatmapContainerValues(t *testing.T) {
+	for i, tc := range []struct {
+		attrs map[string]string
+		key   string
+		count string
+	}{
+		{
+			attrs: map[string]string{"set.2.list.#": "9999", "set.2.list.0": "x", "set.2.list.0.z": "y", "set.2.attr": "bar", "set.#": "9999"},
+			key:   "set.2.list.#",
+			count: "1",
+		},
+		{
+			attrs: map[string]string{"set.2.list.#": "9999", "set.2.list.0": "x", "set.2.list.0.z": "y", "set.2.attr": "bar", "set.#": "9999"},
+			key:   "set.#",
+			count: "1",
+		},
+		{
+			attrs: map[string]string{"set.2.list.0": "x", "set.2.list.0.z": "y", "set.2.attr": "bar", "set.#": "9999"},
+			key:   "set.#",
+			count: "1",
+		},
+		{
+			attrs: map[string]string{"map.#": "3", "map.a": "b", "map.a.#": "0", "map.b": "4"},
+			key:   "map.#",
+			count: "2",
+		},
+	} {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			count := countFlatmapContainerValues(tc.key, tc.attrs)
+			if count != tc.count {
+				t.Fatalf("expected %q, got %q", tc.count, count)
+			}
+		})
+	}
+}

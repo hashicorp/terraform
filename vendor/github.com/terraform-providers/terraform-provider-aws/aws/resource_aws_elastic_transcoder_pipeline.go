@@ -18,6 +18,9 @@ func resourceAwsElasticTranscoderPipeline() *schema.Resource {
 		Read:   resourceAwsElasticTranscoderPipelineRead,
 		Update: resourceAwsElasticTranscoderPipelineUpdate,
 		Delete: resourceAwsElasticTranscoderPipelineDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"arn": {
@@ -210,7 +213,7 @@ func resourceAwsElasticTranscoderPipelineCreate(d *schema.ResourceData, meta int
 
 	if (req.OutputBucket == nil && (req.ContentConfig == nil || req.ContentConfig.Bucket == nil)) ||
 		(req.OutputBucket != nil && req.ContentConfig != nil && req.ContentConfig.Bucket != nil) {
-		return fmt.Errorf("[ERROR] you must specify only one of output_bucket or content_config.bucket")
+		return fmt.Errorf("you must specify only one of output_bucket or content_config.bucket")
 	}
 
 	log.Printf("[DEBUG] Elastic Transcoder Pipeline create opts: %s", req)
@@ -323,11 +326,18 @@ func expandETPermList(permissions *schema.Set) []*elastictranscoder.Permission {
 	var perms []*elastictranscoder.Permission
 
 	for _, p := range permissions.List() {
+		if p == nil {
+			continue
+		}
+
+		m := p.(map[string]interface{})
+
 		perm := &elastictranscoder.Permission{
-			Access:      getStringPtrList(p.(map[string]interface{}), "access"),
+			Access:      expandStringList(m["access"].([]interface{})),
 			Grantee:     getStringPtr(p, "grantee"),
 			GranteeType: getStringPtr(p, "grantee_type"),
 		}
+
 		perms = append(perms, perm)
 	}
 	return perms

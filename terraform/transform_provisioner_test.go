@@ -4,22 +4,24 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/states"
 )
 
 func TestMissingProvisionerTransformer(t *testing.T) {
 	mod := testModule(t, "transform-provisioner-basic")
 
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	{
-		tf := &ConfigTransformer{Module: mod}
+		tf := &ConfigTransformer{Config: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
 
 	{
-		transform := &AttachResourceConfigTransformer{Module: mod}
+		transform := &AttachResourceConfigTransformer{Config: mod}
 		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -49,45 +51,59 @@ func TestMissingProvisionerTransformer(t *testing.T) {
 func TestMissingProvisionerTransformer_module(t *testing.T) {
 	mod := testModule(t, "transform-provisioner-module")
 
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	{
-		concreteResource := func(a *NodeAbstractResource) dag.Vertex {
+		concreteResource := func(a *NodeAbstractResourceInstance) dag.Vertex {
 			return a
 		}
 
-		var state State
-		state.init()
-		state.Modules = []*ModuleState{
-			&ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Primary: &InstanceState{ID: "foo"},
+		state := states.BuildState(func(s *states.SyncState) {
+			s.SetResourceInstanceCurrent(
+				addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "aws_instance",
+					Name: "foo",
+				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+				&states.ResourceInstanceObjectSrc{
+					AttrsFlat: map[string]string{
+						"id": "foo",
 					},
+					Status: states.ObjectReady,
 				},
-			},
-
-			&ModuleState{
-				Path: []string{"root", "child"},
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Primary: &InstanceState{ID: "foo"},
+				addrs.ProviderConfig{
+					Type: "aws",
+				}.Absolute(addrs.RootModuleInstance),
+			)
+			s.SetResourceInstanceCurrent(
+				addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "aws_instance",
+					Name: "foo",
+				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance.Child("child", addrs.NoKey)),
+				&states.ResourceInstanceObjectSrc{
+					AttrsFlat: map[string]string{
+						"id": "foo",
 					},
+					Status: states.ObjectReady,
 				},
-			},
-		}
+				addrs.ProviderConfig{
+					Type: "aws",
+				}.Absolute(addrs.RootModuleInstance),
+			)
+		})
 
 		tf := &StateTransformer{
-			Concrete: concreteResource,
-			State:    &state,
+			ConcreteCurrent: concreteResource,
+			State:           state,
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
+		t.Logf("graph after StateTransformer:\n%s", g.StringWithNodeTypes())
 	}
 
 	{
-		transform := &AttachResourceConfigTransformer{Module: mod}
+		transform := &AttachResourceConfigTransformer{Config: mod}
 		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -98,6 +114,7 @@ func TestMissingProvisionerTransformer_module(t *testing.T) {
 		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
+		t.Logf("graph after MissingProvisionerTransformer:\n%s", g.StringWithNodeTypes())
 	}
 
 	{
@@ -105,28 +122,29 @@ func TestMissingProvisionerTransformer_module(t *testing.T) {
 		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
+		t.Logf("graph after ProvisionerTransformer:\n%s", g.StringWithNodeTypes())
 	}
 
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testTransformMissingProvisionerModuleStr)
 	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
 func TestCloseProvisionerTransformer(t *testing.T) {
 	mod := testModule(t, "transform-provisioner-basic")
 
-	g := Graph{Path: RootModulePath}
+	g := Graph{Path: addrs.RootModuleInstance}
 	{
-		tf := &ConfigTransformer{Module: mod}
+		tf := &ConfigTransformer{Config: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
 
 	{
-		transform := &AttachResourceConfigTransformer{Module: mod}
+		transform := &AttachResourceConfigTransformer{Config: mod}
 		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}

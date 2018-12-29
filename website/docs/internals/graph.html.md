@@ -21,6 +21,12 @@ effectively use Terraform. The details are documented here for
 those who wish to learn about them without having to go
 spelunking through the source code.
 
+For some background on graph theory, and a summary of how
+Terraform applies it, see the HashiCorp 2016 presentation
+[_Applying Graph Theory to Infrastructure as Code_](https://www.youtube.com/watch?v=Ce3RNfRbdZ0).
+This presentation also covers some similar ideas to the following
+guide.
+
 ## Graph Nodes
 
 There are only a handful of node types that can exist within the

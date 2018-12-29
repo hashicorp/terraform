@@ -44,11 +44,32 @@ func New() backend.Backend {
 				DefaultFunc: schema.EnvDefaultFunc("AWS_DEFAULT_REGION", nil),
 			},
 
+			"dynamodb_endpoint": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A custom endpoint for the DynamoDB API",
+				DefaultFunc: schema.EnvDefaultFunc("AWS_DYNAMODB_ENDPOINT", ""),
+			},
+
 			"endpoint": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "A custom endpoint for the S3 API",
 				DefaultFunc: schema.EnvDefaultFunc("AWS_S3_ENDPOINT", ""),
+			},
+
+			"iam_endpoint": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A custom endpoint for the IAM API",
+				DefaultFunc: schema.EnvDefaultFunc("AWS_IAM_ENDPOINT", ""),
+			},
+
+			"sts_endpoint": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A custom endpoint for the STS API",
+				DefaultFunc: schema.EnvDefaultFunc("AWS_STS_ENDPOINT", ""),
 			},
 
 			"encrypt": {
@@ -122,6 +143,41 @@ func New() backend.Backend {
 				Default:     "",
 			},
 
+			"skip_credentials_validation": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Skip the credentials validation via STS API.",
+				Default:     false,
+			},
+
+			"skip_get_ec2_platforms": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Skip getting the supported EC2 platforms.",
+				Default:     false,
+			},
+
+			"skip_region_validation": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Skip static validation of region name.",
+				Default:     false,
+			},
+
+			"skip_requesting_account_id": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Skip requesting the account ID.",
+				Default:     false,
+			},
+
+			"skip_metadata_api_check": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Skip the AWS Metadata API check.",
+				Default:     false,
+			},
+
 			"role_arn": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -155,6 +211,13 @@ func New() backend.Backend {
 				Optional:    true,
 				Description: "The prefix applied to the non-default state path inside the bucket",
 				Default:     "env:",
+			},
+
+			"force_path_style": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Force s3 to use path style api.",
+				Default:     false,
 			},
 		},
 	}
@@ -197,22 +260,31 @@ func (b *Backend) configure(ctx context.Context) error {
 
 	b.ddbTable = data.Get("dynamodb_table").(string)
 	if b.ddbTable == "" {
-		// try the depracted field
+		// try the deprecated field
 		b.ddbTable = data.Get("lock_table").(string)
 	}
 
 	cfg := &terraformAWS.Config{
-		AccessKey:             data.Get("access_key").(string),
-		AssumeRoleARN:         data.Get("role_arn").(string),
-		AssumeRoleExternalID:  data.Get("external_id").(string),
-		AssumeRolePolicy:      data.Get("assume_role_policy").(string),
-		AssumeRoleSessionName: data.Get("session_name").(string),
-		CredsFilename:         data.Get("shared_credentials_file").(string),
-		Profile:               data.Get("profile").(string),
-		Region:                data.Get("region").(string),
-		S3Endpoint:            data.Get("endpoint").(string),
-		SecretKey:             data.Get("secret_key").(string),
-		Token:                 data.Get("token").(string),
+		AccessKey:               data.Get("access_key").(string),
+		AssumeRoleARN:           data.Get("role_arn").(string),
+		AssumeRoleExternalID:    data.Get("external_id").(string),
+		AssumeRolePolicy:        data.Get("assume_role_policy").(string),
+		AssumeRoleSessionName:   data.Get("session_name").(string),
+		CredsFilename:           data.Get("shared_credentials_file").(string),
+		Profile:                 data.Get("profile").(string),
+		Region:                  data.Get("region").(string),
+		DynamoDBEndpoint:        data.Get("dynamodb_endpoint").(string),
+		IamEndpoint:             data.Get("iam_endpoint").(string),
+		S3Endpoint:              data.Get("endpoint").(string),
+		StsEndpoint:             data.Get("sts_endpoint").(string),
+		SecretKey:               data.Get("secret_key").(string),
+		Token:                   data.Get("token").(string),
+		SkipCredsValidation:     data.Get("skip_credentials_validation").(bool),
+		SkipGetEC2Platforms:     data.Get("skip_get_ec2_platforms").(bool),
+		SkipRegionValidation:    data.Get("skip_region_validation").(bool),
+		SkipRequestingAccountId: data.Get("skip_requesting_account_id").(bool),
+		SkipMetadataApiCheck:    data.Get("skip_metadata_api_check").(bool),
+		S3ForcePathStyle:        data.Get("force_path_style").(bool),
 	}
 
 	client, err := cfg.Client()

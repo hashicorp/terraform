@@ -14,13 +14,16 @@ makes `retryablehttp` very easy to drop into existing programs.
 
 `retryablehttp` performs automatic retries under certain conditions. Mainly, if
 an error is returned by the client (connection errors, etc.), or if a 500-range
-response code is received, then a retry is invoked after a wait period.
-Otherwise, the response is returned and left to the caller to interpret.
+response code is received (except 501), then a retry is invoked after a wait
+period.  Otherwise, the response is returned and left to the caller to
+interpret.
 
 The main difference from `net/http` is that requests which take a request body
-(POST/PUT et. al) require an `io.ReadSeeker` to be provided. This enables the
-request body to be "rewound" if the initial request fails so that the full
-request can be attempted again.
+(POST/PUT et. al) can have the body provided in a number of ways (some more or
+less efficient) that allow "rewinding" the request body if the initial request
+fails so that the full request can be attempted again. See the
+[godoc](http://godoc.org/github.com/hashicorp/go-retryablehttp) for more
+details.
 
 Example Use
 ===========

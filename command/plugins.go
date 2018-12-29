@@ -13,10 +13,14 @@ import (
 	"strings"
 
 	plugin "github.com/hashicorp/go-plugin"
+	"github.com/kardianos/osext"
+
+	terraformProvider "github.com/hashicorp/terraform/builtin/providers/terraform"
 	tfplugin "github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/plugin/discovery"
+	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/kardianos/osext"
 )
 
 // multiVersionProviderResolver is an implementation of
@@ -25,12 +29,25 @@ import (
 // each that satisfies the given constraints.
 type multiVersionProviderResolver struct {
 	Available discovery.PluginMetaSet
+
+	// Internal is a map that overrides the usual plugin selection process
+	// for internal plugins. These plugins do not support version constraints
+	// (will produce an error if one is set). This should be used only in
+	// exceptional circumstances since it forces the provider's release
+	// schedule to be tied to that of Terraform Core.
+	Internal map[string]providers.Factory
 }
 
-func choosePlugins(avail discovery.PluginMetaSet, reqd discovery.PluginRequirements) map[string]discovery.PluginMeta {
+func choosePlugins(avail discovery.PluginMetaSet, internal map[string]providers.Factory, reqd discovery.PluginRequirements) map[string]discovery.PluginMeta {
 	candidates := avail.ConstrainVersions(reqd)
 	ret := map[string]discovery.PluginMeta{}
 	for name, metas := range candidates {
+		// If the provider is in our internal map then we ignore any
+		// discovered plugins for it since these are dealt with separately.
+		if _, isInternal := internal[name]; isInternal {
+			continue
+		}
+
 		if len(metas) == 0 {
 			continue
 		}
@@ -41,12 +58,21 @@ func choosePlugins(avail discovery.PluginMetaSet, reqd discovery.PluginRequireme
 
 func (r *multiVersionProviderResolver) ResolveProviders(
 	reqd discovery.PluginRequirements,
-) (map[string]terraform.ResourceProviderFactory, []error) {
-	factories := make(map[string]terraform.ResourceProviderFactory, len(reqd))
+) (map[string]providers.Factory, []error) {
+	factories := make(map[string]providers.Factory, len(reqd))
 	var errs []error
 
-	chosen := choosePlugins(r.Available, reqd)
+	chosen := choosePlugins(r.Available, r.Internal, reqd)
 	for name, req := range reqd {
+		if factory, isInternal := r.Internal[name]; isInternal {
+			if !req.Versions.Unconstrained() {
+				errs = append(errs, fmt.Errorf("provider.%s: this provider is built in to Terraform and so it does not support version constraints", name))
+				continue
+			}
+			factories[name] = factory
+			continue
+		}
+
 		if newest, available := chosen[name]; available {
 			digest, err := newest.SHA256()
 			if err != nil {
@@ -58,8 +84,7 @@ func (r *multiVersionProviderResolver) ResolveProviders(
 				continue
 			}
 
-			client := tfplugin.Client(newest)
-			factories[name] = providerFactory(client)
+			factories[name] = providerFactory(newest)
 		} else {
 			msg := fmt.Sprintf("provider.%s: no suitable version installed", name)
 
@@ -94,6 +119,17 @@ func (m *Meta) storePluginPath(pluginPath []string) error {
 		return nil
 	}
 
+	path := filepath.Join(m.DataDir(), PluginPathFile)
+
+	// remove the plugin dir record if the path was set to an empty string
+	if len(pluginPath) == 1 && (pluginPath[0] == "") {
+		err := os.Remove(path)
+		if !os.IsNotExist(err) {
+			return err
+		}
+		return nil
+	}
+
 	js, err := json.MarshalIndent(pluginPath, "", "  ")
 	if err != nil {
 		return err
@@ -102,7 +138,7 @@ func (m *Meta) storePluginPath(pluginPath []string) error {
 	// if this fails, so will WriteFile
 	os.MkdirAll(m.DataDir(), 0755)
 
-	return ioutil.WriteFile(filepath.Join(m.DataDir(), PluginPathFile), js, 0644)
+	return ioutil.WriteFile(path, js, 0644)
 }
 
 // Load the user-defined plugin search path into Meta.pluginPath if the file
@@ -168,6 +204,17 @@ func (m *Meta) pluginDirs(includeAutoInstalled bool) []string {
 	return dirs
 }
 
+func (m *Meta) pluginCache() discovery.PluginCache {
+	dir := m.PluginCacheDir
+	if dir == "" {
+		return nil // cache disabled
+	}
+
+	dir = filepath.Join(dir, pluginMachineName)
+
+	return discovery.NewLocalPluginCache(dir)
+}
+
 // providerPluginSet returns the set of valid providers that were discovered in
 // the defined search paths.
 func (m *Meta) providerPluginSet() discovery.PluginMetaSet {
@@ -175,13 +222,16 @@ func (m *Meta) providerPluginSet() discovery.PluginMetaSet {
 
 	// Add providers defined in the legacy .terraformrc,
 	if m.PluginOverrides != nil {
+		for k, v := range m.PluginOverrides.Providers {
+			log.Printf("[DEBUG] found plugin override in .terraformrc: %q, %q", k, v)
+		}
 		plugins = plugins.OverridePaths(m.PluginOverrides.Providers)
 	}
 
 	plugins, _ = plugins.ValidateVersions()
 
 	for p := range plugins {
-		log.Printf("[DEBUG] found valid plugin: %q", p.Name)
+		log.Printf("[DEBUG] found valid plugin: %q, %q, %q", p.Name, p.Version, p.Path)
 	}
 
 	return plugins
@@ -207,21 +257,34 @@ func (m *Meta) providerPluginManuallyInstalledSet() discovery.PluginMetaSet {
 
 	// Add providers defined in the legacy .terraformrc,
 	if m.PluginOverrides != nil {
+		for k, v := range m.PluginOverrides.Providers {
+			log.Printf("[DEBUG] found plugin override in .terraformrc: %q, %q", k, v)
+		}
+
 		plugins = plugins.OverridePaths(m.PluginOverrides.Providers)
 	}
 
 	plugins, _ = plugins.ValidateVersions()
 
 	for p := range plugins {
-		log.Printf("[DEBUG] found valid plugin: %q", p.Name)
+		log.Printf("[DEBUG] found valid plugin: %q, %q, %q", p.Name, p.Version, p.Path)
 	}
 
 	return plugins
 }
 
-func (m *Meta) providerResolver() terraform.ResourceProviderResolver {
+func (m *Meta) providerResolver() providers.Resolver {
 	return &multiVersionProviderResolver{
 		Available: m.providerPluginSet(),
+		Internal:  m.internalProviders(),
+	}
+}
+
+func (m *Meta) internalProviders() map[string]providers.Factory {
+	return map[string]providers.Factory{
+		"terraform": func() (providers.Interface, error) {
+			return terraformProvider.NewProvider(), nil
+		},
 	}
 }
 
@@ -229,13 +292,16 @@ func (m *Meta) providerResolver() terraform.ResourceProviderResolver {
 func (m *Meta) missingPlugins(avail discovery.PluginMetaSet, reqd discovery.PluginRequirements) discovery.PluginRequirements {
 	missing := make(discovery.PluginRequirements)
 
-	for n, r := range reqd {
-		log.Printf("[DEBUG] plugin requirements: %q=%q", n, r.Versions)
-	}
-
 	candidates := avail.ConstrainVersions(reqd)
+	internal := m.internalProviders()
 
 	for name, versionSet := range reqd {
+		// internal providers can't be missing
+		if _, ok := internal[name]; ok {
+			continue
+		}
+
+		log.Printf("[DEBUG] plugin requirements: %q=%q", name, versionSet.Versions)
 		if metas := candidates[name]; metas.Count() == 0 {
 			missing[name] = versionSet
 		}
@@ -244,7 +310,7 @@ func (m *Meta) missingPlugins(avail discovery.PluginMetaSet, reqd discovery.Plug
 	return missing
 }
 
-func (m *Meta) provisionerFactories() map[string]terraform.ResourceProvisionerFactory {
+func (m *Meta) provisionerFactories() map[string]terraform.ProvisionerFactory {
 	dirs := m.pluginDirs(true)
 	plugins := discovery.FindPlugins("provisioner", dirs)
 	plugins, _ = plugins.ValidateVersions()
@@ -255,17 +321,12 @@ func (m *Meta) provisionerFactories() map[string]terraform.ResourceProvisionerFa
 	// name here, even though the discovery interface forces us to pretend
 	// that might not be true.
 
-	factories := make(map[string]terraform.ResourceProvisionerFactory)
+	factories := make(map[string]terraform.ProvisionerFactory)
 
 	// Wire up the internal provisioners first. These might be overridden
 	// by discovered provisioners below.
 	for name := range InternalProvisioners {
-		client, err := internalPluginClient("provisioner", name)
-		if err != nil {
-			log.Printf("[WARN] failed to build command line for internal plugin %q: %s", name, err)
-			continue
-		}
-		factories[name] = provisionerFactory(client)
+		factories[name] = internalProvisionerFactory(discovery.PluginMeta{Name: name})
 	}
 
 	byName := plugins.ByName()
@@ -274,8 +335,8 @@ func (m *Meta) provisionerFactories() map[string]terraform.ResourceProvisionerFa
 		// by name, we're guaranteed that the metas in our set all have
 		// valid versions and that there's at least one meta.
 		newest := metas.Newest()
-		client := tfplugin.Client(newest)
-		factories[name] = provisionerFactory(client)
+
+		factories[name] = provisionerFactory(newest)
 	}
 
 	return factories
@@ -292,17 +353,19 @@ func internalPluginClient(kind, name string) (*plugin.Client, error) {
 	cmdArgv := strings.Split(cmdLine, TFSPACE)
 
 	cfg := &plugin.ClientConfig{
-		Cmd:             exec.Command(cmdArgv[0], cmdArgv[1:]...),
-		HandshakeConfig: tfplugin.Handshake,
-		Managed:         true,
-		Plugins:         tfplugin.PluginMap,
+		Cmd:              exec.Command(cmdArgv[0], cmdArgv[1:]...),
+		HandshakeConfig:  tfplugin.Handshake,
+		Managed:          true,
+		VersionedPlugins: tfplugin.VersionedPlugins,
+		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
 	}
 
 	return plugin.NewClient(cfg), nil
 }
 
-func providerFactory(client *plugin.Client) terraform.ResourceProviderFactory {
-	return func() (terraform.ResourceProvider, error) {
+func providerFactory(meta discovery.PluginMeta) providers.Factory {
+	return func() (providers.Interface, error) {
+		client := tfplugin.Client(meta)
 		// Request the RPC client so we can get the provider
 		// so we can build the actual RPC-implemented provider.
 		rpcClient, err := client.Client()
@@ -315,24 +378,45 @@ func providerFactory(client *plugin.Client) terraform.ResourceProviderFactory {
 			return nil, err
 		}
 
-		return raw.(terraform.ResourceProvider), nil
+		// store the client so that the plugin can kill the child process
+		p := raw.(*tfplugin.GRPCProvider)
+		p.PluginClient = client
+		return p, nil
 	}
 }
 
-func provisionerFactory(client *plugin.Client) terraform.ResourceProvisionerFactory {
-	return func() (terraform.ResourceProvisioner, error) {
-		// Request the RPC client so we can get the provisioner
-		// so we can build the actual RPC-implemented provisioner.
-		rpcClient, err := client.Client()
-		if err != nil {
-			return nil, err
-		}
-
-		raw, err := rpcClient.Dispense(tfplugin.ProvisionerPluginName)
-		if err != nil {
-			return nil, err
-		}
-
-		return raw.(terraform.ResourceProvisioner), nil
+func provisionerFactory(meta discovery.PluginMeta) terraform.ProvisionerFactory {
+	return func() (provisioners.Interface, error) {
+		client := tfplugin.Client(meta)
+		return newProvisionerClient(client)
 	}
+}
+
+func internalProvisionerFactory(meta discovery.PluginMeta) terraform.ProvisionerFactory {
+	return func() (provisioners.Interface, error) {
+		client, err := internalPluginClient("provisioner", meta.Name)
+		if err != nil {
+			return nil, fmt.Errorf("[WARN] failed to build command line for internal plugin %q: %s", meta.Name, err)
+		}
+		return newProvisionerClient(client)
+	}
+}
+
+func newProvisionerClient(client *plugin.Client) (provisioners.Interface, error) {
+	// Request the RPC client so we can get the provisioner
+	// so we can build the actual RPC-implemented provisioner.
+	rpcClient, err := client.Client()
+	if err != nil {
+		return nil, err
+	}
+
+	raw, err := rpcClient.Dispense(tfplugin.ProvisionerPluginName)
+	if err != nil {
+		return nil, err
+	}
+
+	// store the client so that the plugin can kill the child process
+	p := raw.(*tfplugin.GRPCProvisioner)
+	p.PluginClient = client
+	return p, nil
 }

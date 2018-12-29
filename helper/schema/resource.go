@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // Resource represents a thing in Terraform that has a set of configurable
@@ -44,6 +45,12 @@ type Resource struct {
 	// their Versioning at any integer >= 1
 	SchemaVersion int
 
+	// MigrateState is deprecated and any new changes to a resource's schema
+	// should be handled by StateUpgraders. Existing MigrateState implementations
+	// should remain for compatibility with existing state. MigrateState will
+	// still be called if the stored SchemaVersion is less than the
+	// first version of the StateUpgraders.
+	//
 	// MigrateState is responsible for updating an InstanceState with an old
 	// version to the format expected by the current version of the Schema.
 	//
@@ -55,6 +62,18 @@ type Resource struct {
 	// provider's configured meta interface{}, in case the migration process
 	// needs to make any remote API calls.
 	MigrateState StateMigrateFunc
+
+	// StateUpgraders contains the functions responsible for upgrading an
+	// existing state with an old schema version to a newer schema. It is
+	// called specifically by Terraform when the stored schema version is less
+	// than the current SchemaVersion of the Resource.
+	//
+	// StateUpgraders map specific schema versions to a StateUpgrader
+	// function. The registered versions are expected to be ordered,
+	// consecutive values. The initial value may be greater than 0 to account
+	// for legacy schemas that weren't recorded and can be handled by
+	// MigrateState.
+	StateUpgraders []StateUpgrader
 
 	// The functions below are the CRUD operations for this resource.
 	//
@@ -85,6 +104,37 @@ type Resource struct {
 	Delete DeleteFunc
 	Exists ExistsFunc
 
+	// CustomizeDiff is a custom function for working with the diff that
+	// Terraform has created for this resource - it can be used to customize the
+	// diff that has been created, diff values not controlled by configuration,
+	// or even veto the diff altogether and abort the plan. It is passed a
+	// *ResourceDiff, a structure similar to ResourceData but lacking most write
+	// functions like Set, while introducing new functions that work with the
+	// diff such as SetNew, SetNewComputed, and ForceNew.
+	//
+	// The phases Terraform runs this in, and the state available via functions
+	// like Get and GetChange, are as follows:
+	//
+	//  * New resource: One run with no state
+	//  * Existing resource: One run with state
+	//   * Existing resource, forced new: One run with state (before ForceNew),
+	//     then one run without state (as if new resource)
+	//  * Tainted resource: No runs (custom diff logic is skipped)
+	//  * Destroy: No runs (standard diff logic is skipped on destroy diffs)
+	//
+	// This function needs to be resilient to support all scenarios.
+	//
+	// If this function needs to access external API resources, remember to flag
+	// the RequiresRefresh attribute mentioned below to ensure that
+	// -refresh=false is blocked when running plan or apply, as this means that
+	// this resource requires refresh-like behaviour to work effectively.
+	//
+	// For the most part, only computed fields can be customized by this
+	// function.
+	//
+	// This function is only allowed on regular resources (not data sources).
+	CustomizeDiff CustomizeDiffFunc
+
 	// Importer is the ResourceImporter implementation for this resource.
 	// If this is nil, then this resource does not support importing. If
 	// this is non-nil, then it supports importing and ResourceImporter
@@ -93,9 +143,7 @@ type Resource struct {
 	Importer *ResourceImporter
 
 	// If non-empty, this string is emitted as a warning during Validate.
-	// This is a private interface for now, for use by DataSourceResourceShim,
-	// and not for general use. (But maybe later...)
-	deprecationMessage string
+	DeprecationMessage string
 
 	// Timeouts allow users to specify specific time durations in which an
 	// operation should time out, to allow them to extend an action to suit their
@@ -105,6 +153,27 @@ type Resource struct {
 	// actions (Create, Read, Update, Delete, Default) to the Resource struct, and
 	// accessing them in the matching methods.
 	Timeouts *ResourceTimeout
+}
+
+// ShimInstanceStateFromValue converts a cty.Value to a
+// terraform.InstanceState.
+func (r *Resource) ShimInstanceStateFromValue(state cty.Value) (*terraform.InstanceState, error) {
+	// Get the raw shimmed value. While this is correct, the set hashes don't
+	// match those from the Schema.
+	s := terraform.NewInstanceStateShimmedFromValue(state, r.SchemaVersion)
+
+	// We now rebuild the state through the ResourceData, so that the set indexes
+	// match what helper/schema expects.
+	data, err := schemaMap(r.Schema).Data(s, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	s = data.State()
+	if s == nil {
+		s = &terraform.InstanceState{}
+	}
+	return s, nil
 }
 
 // See Resource documentation.
@@ -125,6 +194,30 @@ type ExistsFunc func(*ResourceData, interface{}) (bool, error)
 // See Resource documentation.
 type StateMigrateFunc func(
 	int, *terraform.InstanceState, interface{}) (*terraform.InstanceState, error)
+
+type StateUpgrader struct {
+	// Version is the version schema that this Upgrader will handle, converting
+	// it to Version+1.
+	Version int
+
+	// Type describes the schema that this function can upgrade. Type is
+	// required to decode the schema if the state was stored in a legacy
+	// flatmap format.
+	Type cty.Type
+
+	// Upgrade takes the JSON encoded state and the provider meta value, and
+	// upgrades the state one single schema version. The provided state is
+	// deocded into the default json types using a map[string]interface{}. It
+	// is up to the StateUpgradeFunc to ensure that the returned value can be
+	// encoded using the new schema.
+	Upgrade StateUpgradeFunc
+}
+
+// See StateUpgrader
+type StateUpgradeFunc func(rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error)
+
+// See Resource documentation.
+type CustomizeDiffFunc func(*ResourceDiff, interface{}) error
 
 // Apply creates, updates, and/or deletes a resource.
 func (r *Resource) Apply(
@@ -202,11 +295,11 @@ func (r *Resource) Apply(
 	return r.recordCurrentSchemaVersion(data.State()), err
 }
 
-// Diff returns a diff of this resource and is API compatible with the
-// ResourceProvider interface.
+// Diff returns a diff of this resource.
 func (r *Resource) Diff(
 	s *terraform.InstanceState,
-	c *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
+	c *terraform.ResourceConfig,
+	meta interface{}) (*terraform.InstanceDiff, error) {
 
 	t := &ResourceTimeout{}
 	err := t.ConfigDecode(r, c)
@@ -215,7 +308,7 @@ func (r *Resource) Diff(
 		return nil, fmt.Errorf("[ERR] Error decoding timeout: %s", err)
 	}
 
-	instanceDiff, err := schemaMap(r.Schema).Diff(s, c)
+	instanceDiff, err := schemaMap(r.Schema).Diff(s, c, r.CustomizeDiff, meta, true)
 	if err != nil {
 		return instanceDiff, err
 	}
@@ -231,12 +324,51 @@ func (r *Resource) Diff(
 	return instanceDiff, err
 }
 
+func (r *Resource) simpleDiff(
+	s *terraform.InstanceState,
+	c *terraform.ResourceConfig,
+	meta interface{}) (*terraform.InstanceDiff, error) {
+
+	t := &ResourceTimeout{}
+	err := t.ConfigDecode(r, c)
+
+	if err != nil {
+		return nil, fmt.Errorf("[ERR] Error decoding timeout: %s", err)
+	}
+
+	instanceDiff, err := schemaMap(r.Schema).Diff(s, c, r.CustomizeDiff, meta, false)
+	if err != nil {
+		return instanceDiff, err
+	}
+
+	if instanceDiff == nil {
+		log.Printf("[DEBUG] Instance Diff is nil in SimpleDiff()")
+		return nil, err
+	}
+
+	// Make sure the old value is set in each of the instance diffs.
+	// This was done by the RequiresNew logic in the full legacy Diff.
+	for k, attr := range instanceDiff.Attributes {
+		if attr == nil {
+			continue
+		}
+		if s != nil {
+			attr.Old = s.Attributes[k]
+		}
+	}
+
+	if err := t.DiffEncode(instanceDiff); err != nil {
+		log.Printf("[ERR] Error encoding timeout to instance diff: %s", err)
+	}
+	return instanceDiff, err
+}
+
 // Validate validates the resource configuration against the schema.
 func (r *Resource) Validate(c *terraform.ResourceConfig) ([]string, []error) {
 	warns, errs := schemaMap(r.Schema).Validate(c)
 
-	if r.deprecationMessage != "" {
-		warns = append(warns, r.deprecationMessage)
+	if r.DeprecationMessage != "" {
+		warns = append(warns, r.DeprecationMessage)
 	}
 
 	return warns, errs
@@ -248,7 +380,6 @@ func (r *Resource) ReadDataApply(
 	d *terraform.InstanceDiff,
 	meta interface{},
 ) (*terraform.InstanceState, error) {
-
 	// Data sources are always built completely from scratch
 	// on each read, so the source state is always nil.
 	data, err := schemaMap(r.Schema).Data(nil, d)
@@ -264,6 +395,59 @@ func (r *Resource) ReadDataApply(
 		// to preserve the invariant that all resources have non-empty
 		// ids.
 		state.ID = "-"
+	}
+
+	return r.recordCurrentSchemaVersion(state), err
+}
+
+// RefreshWithoutUpgrade reads the instance state, but does not call
+// MigrateState or the StateUpgraders, since those are now invoked in a
+// separate API call.
+// RefreshWithoutUpgrade is part of the new plugin shims.
+func (r *Resource) RefreshWithoutUpgrade(
+	s *terraform.InstanceState,
+	meta interface{}) (*terraform.InstanceState, error) {
+	// If the ID is already somehow blank, it doesn't exist
+	if s.ID == "" {
+		return nil, nil
+	}
+
+	rt := ResourceTimeout{}
+	if _, ok := s.Meta[TimeoutKey]; ok {
+		if err := rt.StateDecode(s); err != nil {
+			log.Printf("[ERR] Error decoding ResourceTimeout: %s", err)
+		}
+	}
+
+	if r.Exists != nil {
+		// Make a copy of data so that if it is modified it doesn't
+		// affect our Read later.
+		data, err := schemaMap(r.Schema).Data(s, nil)
+		data.timeouts = &rt
+
+		if err != nil {
+			return s, err
+		}
+
+		exists, err := r.Exists(data, meta)
+		if err != nil {
+			return s, err
+		}
+		if !exists {
+			return nil, nil
+		}
+	}
+
+	data, err := schemaMap(r.Schema).Data(s, nil)
+	data.timeouts = &rt
+	if err != nil {
+		return s, err
+	}
+
+	err = r.Read(data, meta)
+	state := data.State()
+	if state != nil && state.ID == "" {
+		state = nil
 	}
 
 	return r.recordCurrentSchemaVersion(state), err
@@ -304,12 +488,10 @@ func (r *Resource) Refresh(
 		}
 	}
 
-	needsMigration, stateSchemaVersion := r.checkSchemaVersion(s)
-	if needsMigration && r.MigrateState != nil {
-		s, err := r.MigrateState(stateSchemaVersion, s, meta)
-		if err != nil {
-			return s, err
-		}
+	// there may be new StateUpgraders that need to be run
+	s, err := r.upgradeState(s, meta)
+	if err != nil {
+		return s, err
 	}
 
 	data, err := schemaMap(r.Schema).Data(s, nil)
@@ -325,6 +507,71 @@ func (r *Resource) Refresh(
 	}
 
 	return r.recordCurrentSchemaVersion(state), err
+}
+
+func (r *Resource) upgradeState(s *terraform.InstanceState, meta interface{}) (*terraform.InstanceState, error) {
+	var err error
+
+	needsMigration, stateSchemaVersion := r.checkSchemaVersion(s)
+	migrate := needsMigration && r.MigrateState != nil
+
+	if migrate {
+		s, err = r.MigrateState(stateSchemaVersion, s, meta)
+		if err != nil {
+			return s, err
+		}
+	}
+
+	if len(r.StateUpgraders) == 0 {
+		return s, nil
+	}
+
+	// If we ran MigrateState, then the stateSchemaVersion value is no longer
+	// correct. We can expect the first upgrade function to be the correct
+	// schema type version.
+	if migrate {
+		stateSchemaVersion = r.StateUpgraders[0].Version
+	}
+
+	schemaType := r.CoreConfigSchema().ImpliedType()
+	// find the expected type to convert the state
+	for _, upgrader := range r.StateUpgraders {
+		if stateSchemaVersion == upgrader.Version {
+			schemaType = upgrader.Type
+		}
+	}
+
+	// StateUpgraders only operate on the new JSON format state, so the state
+	// need to be converted.
+	stateVal, err := StateValueFromInstanceState(s, schemaType)
+	if err != nil {
+		return nil, err
+	}
+
+	jsonState, err := StateValueToJSONMap(stateVal, schemaType)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, upgrader := range r.StateUpgraders {
+		if stateSchemaVersion != upgrader.Version {
+			continue
+		}
+
+		jsonState, err = upgrader.Upgrade(jsonState, meta)
+		if err != nil {
+			return nil, err
+		}
+		stateSchemaVersion++
+	}
+
+	// now we need to re-flatmap the new state
+	stateVal, err = JSONMapToStateValue(jsonState, r.CoreConfigSchema())
+	if err != nil {
+		return nil, err
+	}
+
+	return r.ShimInstanceStateFromValue(stateVal)
 }
 
 // InternalValidate should be called to validate the structure
@@ -345,6 +592,11 @@ func (r *Resource) InternalValidate(topSchemaMap schemaMap, writable bool) error
 	if !writable {
 		if r.Create != nil || r.Update != nil || r.Delete != nil {
 			return fmt.Errorf("must not implement Create, Update or Delete")
+		}
+
+		// CustomizeDiff cannot be defined for read-only resources
+		if r.CustomizeDiff != nil {
+			return fmt.Errorf("cannot implement CustomizeDiff")
 		}
 	}
 
@@ -393,19 +645,68 @@ func (r *Resource) InternalValidate(topSchemaMap schemaMap, writable bool) error
 				return err
 			}
 		}
+
+		for k, f := range tsm {
+			if isReservedResourceFieldName(k, f) {
+				return fmt.Errorf("%s is a reserved field name", k)
+			}
+		}
 	}
 
-	// Resource-specific checks
-	for k, _ := range tsm {
-		if isReservedResourceFieldName(k) {
-			return fmt.Errorf("%s is a reserved field name for a resource", k)
+	lastVersion := -1
+	for _, u := range r.StateUpgraders {
+		if lastVersion >= 0 && u.Version-lastVersion > 1 {
+			return fmt.Errorf("missing schema version between %d and %d", lastVersion, u.Version)
+		}
+
+		if u.Version >= r.SchemaVersion {
+			return fmt.Errorf("StateUpgrader version %d is >= current version %d", u.Version, r.SchemaVersion)
+		}
+
+		if !u.Type.IsObjectType() {
+			return fmt.Errorf("StateUpgrader %d type is not cty.Object", u.Version)
+		}
+
+		if u.Upgrade == nil {
+			return fmt.Errorf("StateUpgrader %d missing StateUpgradeFunc", u.Version)
+		}
+
+		lastVersion = u.Version
+	}
+
+	if lastVersion >= 0 && lastVersion != r.SchemaVersion-1 {
+		return fmt.Errorf("missing StateUpgrader between %d and %d", lastVersion, r.SchemaVersion)
+	}
+
+	// Data source
+	if r.isTopLevel() && !writable {
+		tsm = schemaMap(r.Schema)
+		for k, _ := range tsm {
+			if isReservedDataSourceFieldName(k) {
+				return fmt.Errorf("%s is a reserved field name", k)
+			}
 		}
 	}
 
 	return schemaMap(r.Schema).InternalValidate(tsm)
 }
 
-func isReservedResourceFieldName(name string) bool {
+func isReservedDataSourceFieldName(name string) bool {
+	for _, reservedName := range config.ReservedDataSourceFields {
+		if name == reservedName {
+			return true
+		}
+	}
+	return false
+}
+
+func isReservedResourceFieldName(name string, s *Schema) bool {
+	// Allow phasing out "id"
+	// See https://github.com/terraform-providers/terraform-provider-aws/pull/1626#issuecomment-328881415
+	if name == "id" && (s.Deprecated != "" || s.Removed != "") {
+		return false
+	}
+
 	for _, reservedName := range config.ReservedResourceFields {
 		if name == reservedName {
 			return true
@@ -430,6 +731,12 @@ func (r *Resource) Data(s *terraform.InstanceState) *ResourceData {
 		panic(err)
 	}
 
+	// load the Resource timeouts
+	result.timeouts = r.Timeouts
+	if result.timeouts == nil {
+		result.timeouts = &ResourceTimeout{}
+	}
+
 	// Set the schema version to latest by default
 	result.meta = map[string]interface{}{
 		"schema_version": strconv.Itoa(r.SchemaVersion),
@@ -450,7 +757,7 @@ func (r *Resource) TestResourceData() *ResourceData {
 // Returns true if the resource is "top level" i.e. not a sub-resource.
 func (r *Resource) isTopLevel() bool {
 	// TODO: This is a heuristic; replace with a definitive attribute?
-	return r.Create != nil
+	return (r.Create != nil || r.Read != nil)
 }
 
 // Determines if a given InstanceState needs to be migrated by checking the
@@ -472,7 +779,15 @@ func (r *Resource) checkSchemaVersion(is *terraform.InstanceState) (bool, int) {
 	}
 
 	stateSchemaVersion, _ := strconv.Atoi(rawString)
-	return stateSchemaVersion < r.SchemaVersion, stateSchemaVersion
+
+	// Don't run MigrateState if the version is handled by a StateUpgrader,
+	// since StateMigrateFuncs are not required to handle unknown versions
+	maxVersion := r.SchemaVersion
+	if len(r.StateUpgraders) > 0 {
+		maxVersion = r.StateUpgraders[0].Version
+	}
+
+	return stateSchemaVersion < maxVersion, stateSchemaVersion
 }
 
 func (r *Resource) recordCurrentSchemaVersion(

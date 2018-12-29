@@ -19,6 +19,9 @@ const (
 	// DefaultPort is used if there is no port given
 	DefaultPort = 5985
 
+	// DefaultHTTPSPort is used if there is no port given and HTTPS is true
+	DefaultHTTPSPort = 5986
+
 	// DefaultScriptPath is used as the path to copy the file to
 	// for remote execution if not provided otherwise.
 	DefaultScriptPath = "C:/Temp/terraform_%RAND%.cmd"
@@ -37,7 +40,8 @@ type connectionInfo struct {
 	Port       int
 	HTTPS      bool
 	Insecure   bool
-	CACert     *[]byte `mapstructure:"ca_cert"`
+	NTLM       bool   `mapstructure:"use_ntlm"`
+	CACert     string `mapstructure:"cacert"`
 	Timeout    string
 	ScriptPath string        `mapstructure:"script_path"`
 	TimeoutVal time.Duration `mapstructure:"-"`
@@ -79,7 +83,11 @@ func parseConnectionInfo(s *terraform.InstanceState) (*connectionInfo, error) {
 	connInfo.Host = shared.IpFormat(connInfo.Host)
 
 	if connInfo.Port == 0 {
-		connInfo.Port = DefaultPort
+		if connInfo.HTTPS {
+			connInfo.Port = DefaultHTTPSPort
+		} else {
+			connInfo.Port = DefaultPort
+		}
 	}
 	if connInfo.ScriptPath == "" {
 		connInfo.ScriptPath = DefaultScriptPath
