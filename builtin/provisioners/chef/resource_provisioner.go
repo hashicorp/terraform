@@ -15,7 +15,6 @@ import (
 	"strings"
 	"sync"
 	"text/template"
-	"time"
 
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/communicator/remote"
@@ -87,6 +86,7 @@ type provisionFn func(terraform.UIOutput, communicator.Communicator) error
 
 type provisioner struct {
 	Attributes            map[string]interface{}
+	Channel               string
 	ClientOptions         []string
 	DisableReporting      bool
 	Environment           string
@@ -149,6 +149,11 @@ func Provisioner() terraform.ResourceProvisioner {
 			"attributes_json": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+			},
+			"channel": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "stable",
 			},
 			"client_options": &schema.Schema{
 				Type:     schema.TypeList,
@@ -307,8 +312,11 @@ func applyFn(ctx context.Context) error {
 		return err
 	}
 
+	retryCtx, cancel := context.WithTimeout(ctx, comm.Timeout())
+	defer cancel()
+
 	// Wait and retry until we establish the connection
-	err = retryFunc(comm.Timeout(), func() error {
+	err = communicator.Retry(retryCtx, func() error {
 		return comm.Connect(o)
 	})
 	if err != nil {
@@ -678,10 +686,10 @@ func (p *provisioner) runCommand(o terraform.UIOutput, comm communicator.Communi
 
 	outR, outW := io.Pipe()
 	errR, errW := io.Pipe()
-	outDoneCh := make(chan struct{})
-	errDoneCh := make(chan struct{})
-	go p.copyOutput(o, outR, outDoneCh)
-	go p.copyOutput(o, errR, errDoneCh)
+	go p.copyOutput(o, outR)
+	go p.copyOutput(o, errR)
+	defer outW.Close()
+	defer errW.Close()
 
 	cmd := &remote.Cmd{
 		Command: command,
@@ -694,49 +702,23 @@ func (p *provisioner) runCommand(o terraform.UIOutput, comm communicator.Communi
 		return fmt.Errorf("Error executing command %q: %v", cmd.Command, err)
 	}
 
-	cmd.Wait()
-	if cmd.ExitStatus != 0 {
-		err = fmt.Errorf(
-			"Command %q exited with non-zero exit status: %d", cmd.Command, cmd.ExitStatus)
+	if err := cmd.Wait(); err != nil {
+		return err
 	}
 
-	// Wait for output to clean up
-	outW.Close()
-	errW.Close()
-	<-outDoneCh
-	<-errDoneCh
-
-	return err
+	return nil
 }
 
-func (p *provisioner) copyOutput(o terraform.UIOutput, r io.Reader, doneCh chan<- struct{}) {
-	defer close(doneCh)
+func (p *provisioner) copyOutput(o terraform.UIOutput, r io.Reader) {
 	lr := linereader.New(r)
 	for line := range lr.Ch {
 		o.Output(line)
 	}
 }
 
-// retryFunc is used to retry a function for a given duration
-func retryFunc(timeout time.Duration, f func() error) error {
-	finish := time.After(timeout)
-	for {
-		err := f()
-		if err == nil {
-			return nil
-		}
-		log.Printf("Retryable error: %v", err)
-
-		select {
-		case <-finish:
-			return err
-		case <-time.After(3 * time.Second):
-		}
-	}
-}
-
 func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 	p := &provisioner{
+		Channel:               d.Get("channel").(string),
 		ClientOptions:         getStringList(d.Get("client_options")),
 		DisableReporting:      d.Get("disable_reporting").(bool),
 		Environment:           d.Get("environment").(string),

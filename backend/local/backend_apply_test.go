@@ -10,32 +10,34 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/configs/configload"
+	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/statemgr"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestLocal_applyBasic(t *testing.T) {
-	b := TestLocal(t)
-	p := TestLocalProvider(t, b, "test")
+	b, cleanup := TestLocal(t)
+	defer cleanup()
+	p := TestLocalProvider(t, b, "test", applyFixtureSchema())
 
 	p.ApplyReturn = &terraform.InstanceState{ID: "yes"}
 
-	mod, modCleanup := module.TestTree(t, "./test-fixtures/apply")
-	defer modCleanup()
-
-	op := testOperationApply()
-	op.Module = mod
+	op, configCleanup := testOperationApply(t, "./test-fixtures/apply")
+	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Err != nil {
-		t.Fatalf("err: %s", err)
+	if run.Result != backend.OperationSuccess {
+		t.Fatal("operation failed")
 	}
 
 	if p.RefreshCalled {
@@ -58,21 +60,23 @@ test_instance.foo:
 }
 
 func TestLocal_applyEmptyDir(t *testing.T) {
-	b := TestLocal(t)
-	p := TestLocalProvider(t, b, "test")
+	b, cleanup := TestLocal(t)
+	defer cleanup()
+
+	p := TestLocalProvider(t, b, "test", &terraform.ProviderSchema{})
 
 	p.ApplyReturn = &terraform.InstanceState{ID: "yes"}
 
-	op := testOperationApply()
-	op.Module = nil
+	op, configCleanup := testOperationApply(t, "./test-fixtures/empty")
+	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Err == nil {
-		t.Fatal("should error")
+	if run.Result == backend.OperationSuccess {
+		t.Fatal("operation succeeded; want error")
 	}
 
 	if p.ApplyCalled {
@@ -85,13 +89,14 @@ func TestLocal_applyEmptyDir(t *testing.T) {
 }
 
 func TestLocal_applyEmptyDirDestroy(t *testing.T) {
-	b := TestLocal(t)
-	p := TestLocalProvider(t, b, "test")
+	b, cleanup := TestLocal(t)
+	defer cleanup()
+	p := TestLocalProvider(t, b, "test", &terraform.ProviderSchema{})
 
 	p.ApplyReturn = nil
 
-	op := testOperationApply()
-	op.Module = nil
+	op, configCleanup := testOperationApply(t, "./test-fixtures/empty")
+	defer configCleanup()
 	op.Destroy = true
 
 	run, err := b.Operation(context.Background(), op)
@@ -99,8 +104,8 @@ func TestLocal_applyEmptyDirDestroy(t *testing.T) {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Err != nil {
-		t.Fatalf("err: %s", err)
+	if run.Result != backend.OperationSuccess {
+		t.Fatalf("apply operation failed")
 	}
 
 	if p.ApplyCalled {
@@ -111,11 +116,22 @@ func TestLocal_applyEmptyDirDestroy(t *testing.T) {
 }
 
 func TestLocal_applyError(t *testing.T) {
-	b := TestLocal(t)
-	p := TestLocalProvider(t, b, "test")
+	b, cleanup := TestLocal(t)
+	defer cleanup()
+	p := TestLocalProvider(t, b, "test", nil)
 
 	var lock sync.Mutex
 	errored := false
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"ami":   {Type: cty.String, Optional: true},
+					"error": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
 	p.ApplyFn = func(
 		info *terraform.InstanceInfo,
 		s *terraform.InstanceState,
@@ -143,19 +159,16 @@ func TestLocal_applyError(t *testing.T) {
 		}, nil
 	}
 
-	mod, modCleanup := module.TestTree(t, "./test-fixtures/apply-error")
-	defer modCleanup()
-
-	op := testOperationApply()
-	op.Module = mod
+	op, configCleanup := testOperationApply(t, "./test-fixtures/apply-error")
+	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Err == nil {
-		t.Fatal("should error")
+	if run.Result == backend.OperationSuccess {
+		t.Fatal("operation succeeded; want failure")
 	}
 
 	checkState(t, b.StateOutPath, `
@@ -166,10 +179,12 @@ test_instance.foo:
 }
 
 func TestLocal_applyBackendFail(t *testing.T) {
-	mod, modCleanup := module.TestTree(t, "./test-fixtures/apply")
-	defer modCleanup()
+	op, configCleanup := testOperationApply(t, "./test-fixtures/apply")
+	defer configCleanup()
 
-	b := TestLocal(t)
+	b, cleanup := TestLocal(t)
+	defer cleanup()
+
 	wd, err := os.Getwd()
 	if err != nil {
 		t.Fatalf("failed to get current working directory")
@@ -182,30 +197,22 @@ func TestLocal_applyBackendFail(t *testing.T) {
 
 	b.Backend = &backendWithFailingState{}
 	b.CLI = new(cli.MockUi)
-	p := TestLocalProvider(t, b, "test")
+	p := TestLocalProvider(t, b, "test", applyFixtureSchema())
 
 	p.ApplyReturn = &terraform.InstanceState{ID: "yes"}
-
-	op := testOperationApply()
-	op.Module = mod
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Err == nil {
+	if run.Result == backend.OperationSuccess {
 		t.Fatalf("apply succeeded; want error")
-	}
-
-	errStr := run.Err.Error()
-	if !strings.Contains(errStr, "terraform state push errored.tfstate") {
-		t.Fatalf("wrong error message:\n%s", errStr)
 	}
 
 	msgStr := b.CLI.(*cli.MockUi).ErrorWriter.String()
 	if !strings.Contains(msgStr, "Failed to save state: fake failure") {
-		t.Fatalf("missing original error message in output:\n%s", msgStr)
+		t.Fatalf("missing \"fake failure\" message in output:\n%s", msgStr)
 	}
 
 	// The fallback behavior should've created a file errored.tfstate in the
@@ -221,26 +228,30 @@ type backendWithFailingState struct {
 	Local
 }
 
-func (b *backendWithFailingState) State(name string) (state.State, error) {
+func (b *backendWithFailingState) StateMgr(name string) (statemgr.Full, error) {
 	return &failingState{
-		&state.LocalState{
-			Path: "failing-state.tfstate",
-		},
+		statemgr.NewFilesystem("failing-state.tfstate"),
 	}, nil
 }
 
 type failingState struct {
-	*state.LocalState
+	*statemgr.Filesystem
 }
 
-func (s failingState) WriteState(state *terraform.State) error {
+func (s failingState) WriteState(state *states.State) error {
 	return errors.New("fake failure")
 }
 
-func testOperationApply() *backend.Operation {
+func testOperationApply(t *testing.T, configDir string) (*backend.Operation, func()) {
+	t.Helper()
+
+	_, configLoader, configCleanup := configload.MustLoadConfigForTests(t, configDir)
+
 	return &backend.Operation{
-		Type: backend.OperationTypeApply,
-	}
+		Type:         backend.OperationTypeApply,
+		ConfigDir:    configDir,
+		ConfigLoader: configLoader,
+	}, configCleanup
 }
 
 // testApplyState is just a common state that we use for testing refresh.
@@ -257,6 +268,21 @@ func testApplyState() *terraform.State {
 							ID: "bar",
 						},
 					},
+				},
+			},
+		},
+	}
+}
+
+// applyFixtureSchema returns a schema suitable for processing the
+// configuration in test-fixtures/apply . This schema should be
+// assigned to a mock provider named "test".
+func applyFixtureSchema() *terraform.ProviderSchema {
+	return &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"ami": {Type: cty.String, Optional: true},
 				},
 			},
 		},

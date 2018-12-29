@@ -176,6 +176,8 @@ func resourceAwsRDSClusterInstance() *schema.Resource {
 
 			"availability_zone": {
 				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
 				Computed: true,
 			},
 
@@ -209,6 +211,10 @@ func resourceAwsRDSClusterInstanceCreate(d *schema.ResourceData, meta interface{
 		PromotionTier:           aws.Int64(int64(d.Get("promotion_tier").(int))),
 		AutoMinorVersionUpgrade: aws.Bool(d.Get("auto_minor_version_upgrade").(bool)),
 		Tags: tags,
+	}
+
+	if attr, ok := d.GetOk("availability_zone"); ok {
+		createOpts.AvailabilityZone = aws.String(attr.(string))
 	}
 
 	if attr, ok := d.GetOk("db_parameter_group_name"); ok {

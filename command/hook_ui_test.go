@@ -6,9 +6,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestUiHookPreApply_periodicTimer(t *testing.T) {
@@ -30,28 +35,27 @@ func TestUiHookPreApply_periodicTimer(t *testing.T) {
 		},
 	}
 
-	n := &terraform.InstanceInfo{
-		Id:         "data.aws_availability_zones.available",
-		ModulePath: []string{"root"},
-		Type:       "aws_availability_zones",
-	}
+	addr := addrs.Resource{
+		Mode: addrs.DataResourceMode,
+		Type: "aws_availability_zones",
+		Name: "available",
+	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 
-	s := &terraform.InstanceState{
-		ID: "2017-03-05 10:56:59.298784526 +0000 UTC",
-		Attributes: map[string]string{
-			"id":      "2017-03-05 10:56:59.298784526 +0000 UTC",
-			"names.#": "4",
-			"names.0": "us-east-1a",
-			"names.1": "us-east-1b",
-			"names.2": "us-east-1c",
-			"names.3": "us-east-1d",
-		},
-	}
-	d := &terraform.InstanceDiff{
-		Destroy: true,
-	}
+	priorState := cty.NullVal(cty.Object(map[string]cty.Type{
+		"id":    cty.String,
+		"names": cty.List(cty.String),
+	}))
+	plannedNewState := cty.ObjectVal(map[string]cty.Value{
+		"id": cty.StringVal("2017-03-05 10:56:59.298784526 +0000 UTC"),
+		"names": cty.ListVal([]cty.Value{
+			cty.StringVal("us-east-1a"),
+			cty.StringVal("us-east-1b"),
+			cty.StringVal("us-east-1c"),
+			cty.StringVal("us-east-1d"),
+		}),
+	})
 
-	action, err := h.PreApply(n, s, d)
+	action, err := h.PreApply(addr, states.CurrentGen, plans.Delete, priorState, plannedNewState)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +66,7 @@ func TestUiHookPreApply_periodicTimer(t *testing.T) {
 	time.Sleep(3100 * time.Millisecond)
 
 	// stop the background writer
-	uiState := h.resources[n.HumanId()]
+	uiState := h.resources[addr.String()]
 	close(uiState.DoneCh)
 	<-uiState.done
 
@@ -101,34 +105,38 @@ func TestUiHookPreApply_destroy(t *testing.T) {
 		},
 	}
 
-	n := &terraform.InstanceInfo{
-		Id:         "data.aws_availability_zones.available",
-		ModulePath: []string{"root"},
-		Type:       "aws_availability_zones",
-	}
+	addr := addrs.Resource{
+		Mode: addrs.DataResourceMode,
+		Type: "aws_availability_zones",
+		Name: "available",
+	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 
-	s := &terraform.InstanceState{
-		ID: "2017-03-05 10:56:59.298784526 +0000 UTC",
-		Attributes: map[string]string{
-			"id":      "2017-03-05 10:56:59.298784526 +0000 UTC",
-			"names.#": "4",
-			"names.0": "us-east-1a",
-			"names.1": "us-east-1b",
-			"names.2": "us-east-1c",
-			"names.3": "us-east-1d",
-		},
-	}
-	d := &terraform.InstanceDiff{
-		Destroy: true,
-	}
+	priorState := cty.NullVal(cty.Object(map[string]cty.Type{
+		"id":    cty.String,
+		"names": cty.List(cty.String),
+	}))
+	plannedNewState := cty.ObjectVal(map[string]cty.Value{
+		"id": cty.StringVal("2017-03-05 10:56:59.298784526 +0000 UTC"),
+		"names": cty.ListVal([]cty.Value{
+			cty.StringVal("us-east-1a"),
+			cty.StringVal("us-east-1b"),
+			cty.StringVal("us-east-1c"),
+			cty.StringVal("us-east-1d"),
+		}),
+	})
 
-	action, err := h.PreApply(n, s, d)
+	action, err := h.PreApply(addr, states.CurrentGen, plans.Delete, priorState, plannedNewState)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if action != terraform.HookActionContinue {
 		t.Fatalf("Expected hook to continue, given: %#v", action)
 	}
+
+	// stop the background writer
+	uiState := h.resources[addr.String()]
+	close(uiState.DoneCh)
+	<-uiState.done
 
 	expectedOutput := "data.aws_availability_zones.available: Destroying... (ID: 2017-03-05 10:56:59.298784526 +0000 UTC)\n"
 	output := ui.OutputWriter.String()
@@ -161,12 +169,18 @@ func TestUiHookPostApply_emptyState(t *testing.T) {
 		},
 	}
 
-	n := &terraform.InstanceInfo{
-		Id:         "data.google_compute_zones.available",
-		ModulePath: []string{"root"},
-		Type:       "google_compute_zones",
-	}
-	action, err := h.PostApply(n, nil, nil)
+	addr := addrs.Resource{
+		Mode: addrs.DataResourceMode,
+		Type: "google_compute_zones",
+		Name: "available",
+	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+
+	newState := cty.NullVal(cty.Object(map[string]cty.Type{
+		"id":    cty.String,
+		"names": cty.List(cty.String),
+	}))
+
+	action, err := h.PostApply(addr, states.CurrentGen, newState, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

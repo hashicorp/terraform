@@ -1106,9 +1106,11 @@ func validateTriggerEvent(v interface{}, k string) (ws []string, errors []error)
 		"DeploymentSuccess":  true,
 		"DeploymentFailure":  true,
 		"DeploymentRollback": true,
+		"DeploymentReady":    true,
 		"InstanceStart":      true,
 		"InstanceSuccess":    true,
 		"InstanceFailure":    true,
+		"InstanceReady":      true,
 	}
 
 	if !triggerEvents[value] {

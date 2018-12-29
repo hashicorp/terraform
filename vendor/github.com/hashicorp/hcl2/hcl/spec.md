@@ -7,7 +7,7 @@ concrete syntaxes for configuration, each with a mapping to the model defined
 in this specification.
 
 The two primary syntaxes intended for use in conjunction with this model are
-[the HCL native syntax](./zclsyntax/spec.md) and [the JSON syntax](./json/spec.md).
+[the HCL native syntax](./hclsyntax/spec.md) and [the JSON syntax](./json/spec.md).
 In principle other syntaxes are possible as long as either their language model
 is sufficiently rich to express the concepts described in this specification
 or the language targets a well-defined subset of the specification.
@@ -29,7 +29,7 @@ which are discussed in detail in a later section.
 A _block_ is a nested structure that has a _type name_, zero or more string
 _labels_ (e.g. identifiers), and a nested body.
 
-Together the structural elements create a heirarchical data structure, with
+Together the structural elements create a hierarchical data structure, with
 attributes intended to represent the direct properties of a particular object
 in the calling application, and blocks intended to represent child objects
 of a particular object.
@@ -159,7 +159,7 @@ a computation in terms of literal values, variables, and functions.
 Each syntax defines its own representation of expressions. For syntaxes based
 in languages that do not have any non-literal expression syntax, it is
 recommended to embed the template language from
-[the native syntax](./zclsyntax/spec.md) e.g. as a post-processing step on
+[the native syntax](./hclsyntax/spec.md) e.g. as a post-processing step on
 string literals.
 
 ### Expression Evaluation
@@ -269,7 +269,7 @@ are two structural type _kinds_:
   has a type. Attribute names are always strings. (_Object_ attributes are a
   distinct idea from _body_ attributes, though calling applications
   may choose to blur the distinction by use of common naming schemes.)
-* _Tuple tupes_ are constructed of a sequence of elements, each of which
+* _Tuple types_ are constructed of a sequence of elements, each of which
   has a type.
 
 Values of structural types are compared for equality in terms of their
@@ -301,10 +301,10 @@ the same element type.
 
 ### Null values
 
-Each type has a null value. The null value of a type represents the absense
+Each type has a null value. The null value of a type represents the absence
 of a value, but with type information retained to allow for type checking.
 
-Null values are used primarily to represent the conditional absense of a
+Null values are used primarily to represent the conditional absence of a
 body attribute. In a syntax with a conditional operator, one of the result
 values of that conditional may be null to indicate that the attribute should be
 considered not present in that case.
@@ -458,7 +458,7 @@ If semantic checking succeeds without error, the call is _executed_:
   definition is used to determine the call's _result value_.
 
 The result of a function call expression is either an error, if one of the
-erroenous conditions above applies, or the _result value_.
+erroneous conditions above applies, or the _result value_.
 
 ## Type Conversions and Unification
 
@@ -505,7 +505,7 @@ Bidirectional conversions are available between the string and number types,
 and between the string and boolean types.
 
 The bool value true corresponds to the string containing the characters "true",
-while the bool value false corresponds to teh string containing the characters
+while the bool value false corresponds to the string containing the characters
 "false". Conversion from bool to string is safe, while the converse is
 unsafe. The strings "1" and "0" are alternative string representations
 of true and false respectively. It is an error to convert a string other than
@@ -616,6 +616,48 @@ Two tuple types of the same length unify constructing a new type of the
 same length whose elements are the unification of the corresponding elements
 in the two input types.
 
+## Static Analysis
+
+In most applications, full expression evaluation is sufficient for understanding
+the provided configuration. However, some specialized applications require more
+direct access to the physical structures in the expressions, which can for
+example allow the construction of new language constructs in terms of the
+existing syntax elements.
+
+Since static analysis analyses the physical structure of configuration, the
+details will vary depending on syntax. Each syntax must decide which of its
+physical structures corresponds to the following analyses, producing error
+diagnostics if they are applied to inappropriate expressions.
+
+The following are the required static analysis functions:
+
+* **Static List**: Require list/tuple construction syntax to be used and
+  return a list of expressions for each of the elements given.
+
+* **Static Map**: Require map/object construction syntax to be used and
+  return a list of key/value pairs -- both expressions -- for each of
+  the elements given. The usual constraint that a map key must be a string
+  must not apply to this analysis, thus allowing applications to interpret
+  arbitrary keys as they see fit.
+
+* **Static Call**: Require function call syntax to be used and return an
+  object describing the called function name and a list of expressions
+  representing each of the call arguments.
+
+* **Static Traversal**: Require a reference to a symbol in the variable
+  scope and return a description of the path from the root scope to the
+  accessed attribute or index.
+
+The intent of a calling application using these features is to require a more
+rigid interpretation of the configuration than in expression evaluation.
+Syntax implementations should make use of the extra contextual information
+provided in order to make an intuitive mapping onto the constructs of the
+underlying syntax, possibly interpreting the expression slightly differently
+than it would be interpreted in normal evaluation.
+
+Each syntax must define which of its expression elements each of the analyses
+above applies to, and how those analyses behave given those expression elements.
+
 ## Implementation Considerations
 
 Implementations of this specification are free to adopt any strategy that
@@ -629,7 +671,7 @@ The language-agnosticism of this specification assumes that certain behaviors
 are implemented separately for each syntax:
 
 * Matching of a body schema with the physical elements of a body in the
-  source language, to determine correspondance between physical constructs
+  source language, to determine correspondence between physical constructs
   and schema elements.
 
 * Implementing the _dynamic attributes_ body processing mode by either
@@ -638,6 +680,9 @@ are implemented separately for each syntax:
 
 * Providing an evaluation function for all possible expressions that produces
   a value given an evaluation context.
+
+* Providing the static analysis functionality described above in a manner that
+  makes sense within the convention of the syntax.
 
 The suggested implementation strategy is to use an implementation language's
 closest concept to an _abstract type_, _virtual type_ or _interface type_

@@ -15,6 +15,10 @@ func resourceAwsSsmResourceDataSync() *schema.Resource {
 		Read:   resourceAwsSsmResourceDataSyncRead,
 		Delete: resourceAwsSsmResourceDataSyncDelete,
 
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -85,7 +89,7 @@ func resourceAwsSsmResourceDataSyncCreate(d *schema.ResourceData, meta interface
 func resourceAwsSsmResourceDataSyncRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ssmconn
 
-	syncItem, err := findResourceDataSyncItem(conn, d.Get("name").(string))
+	syncItem, err := findResourceDataSyncItem(conn, d.Id())
 	if err != nil {
 		return err
 	}
@@ -93,6 +97,7 @@ func resourceAwsSsmResourceDataSyncRead(d *schema.ResourceData, meta interface{}
 		d.SetId("")
 		return nil
 	}
+	d.Set("name", syncItem.SyncName)
 	d.Set("s3_destination", flattenSsmResourceDataSyncS3Destination(syncItem.S3Destination))
 	return nil
 }

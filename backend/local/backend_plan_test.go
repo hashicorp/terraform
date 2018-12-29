@@ -9,20 +9,20 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestLocal_planBasic(t *testing.T) {
-	b := TestLocal(t)
-	p := TestLocalProvider(t, b, "test")
+	b, cleanup := TestLocal(t)
+	defer cleanup()
+	p := TestLocalProvider(t, b, "test", planFixtureSchema())
 
-	mod, modCleanup := module.TestTree(t, "./test-fixtures/plan")
-	defer modCleanup()
-
-	op := testOperationPlan()
-	op.Module = mod
+	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
+	defer configCleanup()
 	op.PlanRefresh = true
 
 	run, err := b.Operation(context.Background(), op)
@@ -30,8 +30,8 @@ func TestLocal_planBasic(t *testing.T) {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Err != nil {
-		t.Fatalf("err: %s", err)
+	if run.Result != backend.OperationSuccess {
+		t.Fatalf("plan operation failed")
 	}
 
 	if !p.DiffCalled {
@@ -40,11 +40,9 @@ func TestLocal_planBasic(t *testing.T) {
 }
 
 func TestLocal_planInAutomation(t *testing.T) {
-	b := TestLocal(t)
-	TestLocalProvider(t, b, "test")
-
-	mod, modCleanup := module.TestTree(t, "./test-fixtures/plan")
-	defer modCleanup()
+	b, cleanup := TestLocal(t)
+	defer cleanup()
+	TestLocalProvider(t, b, "test", planFixtureSchema())
 
 	const msg = `You didn't specify an "-out" parameter`
 
@@ -57,8 +55,8 @@ func TestLocal_planInAutomation(t *testing.T) {
 	b.RunningInAutomation = false
 	b.CLI = cli.NewMockUi()
 	{
-		op := testOperationPlan()
-		op.Module = mod
+		op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
+		defer configCleanup()
 		op.PlanRefresh = true
 
 		run, err := b.Operation(context.Background(), op)
@@ -66,8 +64,8 @@ func TestLocal_planInAutomation(t *testing.T) {
 			t.Fatalf("unexpected error: %s", err)
 		}
 		<-run.Done()
-		if run.Err != nil {
-			t.Fatalf("unexpected error: %s", err)
+		if run.Result != backend.OperationSuccess {
+			t.Fatalf("plan operation failed")
 		}
 
 		output := b.CLI.(*cli.MockUi).OutputWriter.String()
@@ -81,8 +79,8 @@ func TestLocal_planInAutomation(t *testing.T) {
 	b.RunningInAutomation = true
 	b.CLI = cli.NewMockUi()
 	{
-		op := testOperationPlan()
-		op.Module = mod
+		op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
+		defer configCleanup()
 		op.PlanRefresh = true
 
 		run, err := b.Operation(context.Background(), op)
@@ -90,8 +88,8 @@ func TestLocal_planInAutomation(t *testing.T) {
 			t.Fatalf("unexpected error: %s", err)
 		}
 		<-run.Done()
-		if run.Err != nil {
-			t.Fatalf("unexpected error: %s", err)
+		if run.Result != backend.OperationSuccess {
+			t.Fatalf("plan operation failed")
 		}
 
 		output := b.CLI.(*cli.MockUi).OutputWriter.String()
@@ -103,11 +101,14 @@ func TestLocal_planInAutomation(t *testing.T) {
 }
 
 func TestLocal_planNoConfig(t *testing.T) {
-	b := TestLocal(t)
-	TestLocalProvider(t, b, "test")
+	b, cleanup := TestLocal(t)
+	defer cleanup()
+	TestLocalProvider(t, b, "test", &terraform.ProviderSchema{})
 
-	op := testOperationPlan()
-	op.Module = nil
+	b.CLI = cli.NewMockUi()
+
+	op, configCleanup := testOperationPlan(t, "./test-fixtures/empty")
+	defer configCleanup()
 	op.PlanRefresh = true
 
 	run, err := b.Operation(context.Background(), op)
@@ -116,33 +117,31 @@ func TestLocal_planNoConfig(t *testing.T) {
 	}
 	<-run.Done()
 
-	err = run.Err
-	if err == nil {
-		t.Fatal("should error")
+	if run.Result == backend.OperationSuccess {
+		t.Fatal("plan operation succeeded; want failure")
 	}
-	if !strings.Contains(err.Error(), "configuration") {
+	output := b.CLI.(*cli.MockUi).ErrorWriter.String()
+	if !strings.Contains(output, "configuration") {
 		t.Fatalf("bad: %s", err)
 	}
 }
 
 func TestLocal_planRefreshFalse(t *testing.T) {
-	b := TestLocal(t)
-	p := TestLocalProvider(t, b, "test")
+	b, cleanup := TestLocal(t)
+	defer cleanup()
+	p := TestLocalProvider(t, b, "test", &terraform.ProviderSchema{})
 	terraform.TestStateFile(t, b.StatePath, testPlanState())
 
-	mod, modCleanup := module.TestTree(t, "./test-fixtures/plan")
-	defer modCleanup()
-
-	op := testOperationPlan()
-	op.Module = mod
+	op, configCleanup := testOperationPlan(t, "./test-fixtures/empty")
+	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Err != nil {
-		t.Fatalf("err: %s", err)
+	if run.Result != backend.OperationSuccess {
+		t.Fatalf("plan operation failed")
 	}
 
 	if p.RefreshCalled {
@@ -155,21 +154,19 @@ func TestLocal_planRefreshFalse(t *testing.T) {
 }
 
 func TestLocal_planDestroy(t *testing.T) {
-	b := TestLocal(t)
-	p := TestLocalProvider(t, b, "test")
+	b, cleanup := TestLocal(t)
+	defer cleanup()
+	p := TestLocalProvider(t, b, "test", planFixtureSchema())
 	terraform.TestStateFile(t, b.StatePath, testPlanState())
-
-	mod, modCleanup := module.TestTree(t, "./test-fixtures/plan")
-	defer modCleanup()
 
 	outDir := testTempDir(t)
 	defer os.RemoveAll(outDir)
 	planPath := filepath.Join(outDir, "plan.tfplan")
 
-	op := testOperationPlan()
+	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
+	defer configCleanup()
 	op.Destroy = true
 	op.PlanRefresh = true
-	op.Module = mod
 	op.PlanOutPath = planPath
 
 	run, err := b.Operation(context.Background(), op)
@@ -177,8 +174,8 @@ func TestLocal_planDestroy(t *testing.T) {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Err != nil {
-		t.Fatalf("err: %s", err)
+	if run.Result != backend.OperationSuccess {
+		t.Fatalf("plan operation failed")
 	}
 
 	if !p.RefreshCalled {
@@ -200,19 +197,17 @@ func TestLocal_planDestroy(t *testing.T) {
 }
 
 func TestLocal_planOutPathNoChange(t *testing.T) {
-	b := TestLocal(t)
-	TestLocalProvider(t, b, "test")
+	b, cleanup := TestLocal(t)
+	defer cleanup()
+	TestLocalProvider(t, b, "test", planFixtureSchema())
 	terraform.TestStateFile(t, b.StatePath, testPlanState())
-
-	mod, modCleanup := module.TestTree(t, "./test-fixtures/plan")
-	defer modCleanup()
 
 	outDir := testTempDir(t)
 	defer os.RemoveAll(outDir)
 	planPath := filepath.Join(outDir, "plan.tfplan")
 
-	op := testOperationPlan()
-	op.Module = mod
+	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
+	defer configCleanup()
 	op.PlanOutPath = planPath
 
 	run, err := b.Operation(context.Background(), op)
@@ -220,8 +215,8 @@ func TestLocal_planOutPathNoChange(t *testing.T) {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Err != nil {
-		t.Fatalf("err: %s", err)
+	if run.Result != backend.OperationSuccess {
+		t.Fatalf("plan operation failed")
 	}
 
 	plan := testReadPlan(t, planPath)
@@ -237,8 +232,9 @@ func TestLocal_planOutPathNoChange(t *testing.T) {
 // checks to make sure the correct resource count is ultimately given to the
 // UI.
 func TestLocal_planScaleOutNoDupeCount(t *testing.T) {
-	b := TestLocal(t)
-	TestLocalProvider(t, b, "test")
+	b, cleanup := TestLocal(t)
+	defer cleanup()
+	TestLocalProvider(t, b, "test", planFixtureSchema())
 	state := &terraform.State{
 		Version: 2,
 		Modules: []*terraform.ModuleState{
@@ -266,14 +262,11 @@ func TestLocal_planScaleOutNoDupeCount(t *testing.T) {
 	actual := new(CountHook)
 	b.ContextOpts.Hooks = append(b.ContextOpts.Hooks, actual)
 
-	mod, modCleanup := module.TestTree(t, "./test-fixtures/plan-scaleout")
-	defer modCleanup()
-
 	outDir := testTempDir(t)
 	defer os.RemoveAll(outDir)
 
-	op := testOperationPlan()
-	op.Module = mod
+	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan-scaleout")
+	defer configCleanup()
 	op.PlanRefresh = true
 
 	run, err := b.Operation(context.Background(), op)
@@ -281,8 +274,8 @@ func TestLocal_planScaleOutNoDupeCount(t *testing.T) {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Err != nil {
-		t.Fatalf("err: %s", err)
+	if run.Result != backend.OperationSuccess {
+		t.Fatalf("plan operation failed")
 	}
 
 	expected := new(CountHook)
@@ -297,10 +290,16 @@ func TestLocal_planScaleOutNoDupeCount(t *testing.T) {
 	}
 }
 
-func testOperationPlan() *backend.Operation {
+func testOperationPlan(t *testing.T, configDir string) (*backend.Operation, func()) {
+	t.Helper()
+
+	_, configLoader, configCleanup := configload.MustLoadConfigForTests(t, configDir)
+
 	return &backend.Operation{
-		Type: backend.OperationTypePlan,
-	}
+		Type:         backend.OperationTypePlan,
+		ConfigDir:    configDir,
+		ConfigLoader: configLoader,
+	}, configCleanup
 }
 
 // testPlanState is just a common state that we use for testing refresh.
@@ -336,4 +335,30 @@ func testReadPlan(t *testing.T, path string) *terraform.Plan {
 	}
 
 	return p
+}
+
+// planFixtureSchema returns a schema suitable for processing the
+// configuration in test-fixtures/plan . This schema should be
+// assigned to a mock provider named "test".
+func planFixtureSchema() *terraform.ProviderSchema {
+	return &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"ami": {Type: cty.String, Optional: true},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"network_interface": {
+						Nesting: configschema.NestingList,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"device_index": {Type: cty.Number, Optional: true},
+								"description":  {Type: cty.String, Optional: true},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
 }

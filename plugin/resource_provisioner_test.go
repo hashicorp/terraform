@@ -19,7 +19,7 @@ func TestResourceProvisioner_stop(t *testing.T) {
 	p := new(terraform.MockResourceProvisioner)
 	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
 		ProvisionerFunc: testProvisionerFixed(p),
-	}))
+	}), nil)
 	defer client.Close()
 
 	// Request the provider
@@ -46,7 +46,7 @@ func TestResourceProvisioner_stopErrors(t *testing.T) {
 	// Create a mock provider
 	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
 		ProvisionerFunc: testProvisionerFixed(p),
-	}))
+	}), nil)
 	defer client.Close()
 
 	// Request the provider
@@ -74,7 +74,7 @@ func TestResourceProvisioner_apply(t *testing.T) {
 	p := new(terraform.MockResourceProvisioner)
 	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
 		ProvisionerFunc: testProvisionerFixed(p),
-	}))
+	}), nil)
 	defer client.Close()
 
 	// Request the provider
@@ -105,7 +105,7 @@ func TestResourceProvisioner_validate(t *testing.T) {
 	p := new(terraform.MockResourceProvisioner)
 	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
 		ProvisionerFunc: testProvisionerFixed(p),
-	}))
+	}), nil)
 	defer client.Close()
 
 	// Request the provider
@@ -139,7 +139,7 @@ func TestResourceProvisioner_validate_errors(t *testing.T) {
 	p := new(terraform.MockResourceProvisioner)
 	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
 		ProvisionerFunc: testProvisionerFixed(p),
-	}))
+	}), nil)
 	defer client.Close()
 
 	// Request the provider
@@ -179,7 +179,7 @@ func TestResourceProvisioner_validate_warns(t *testing.T) {
 	p := new(terraform.MockResourceProvisioner)
 	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
 		ProvisionerFunc: testProvisionerFixed(p),
-	}))
+	}), nil)
 	defer client.Close()
 
 	// Request the provider
@@ -217,7 +217,7 @@ func TestResourceProvisioner_close(t *testing.T) {
 	p := new(terraform.MockResourceProvisioner)
 	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
 		ProvisionerFunc: testProvisionerFixed(p),
-	}))
+	}), nil)
 	defer client.Close()
 
 	// Request the provider

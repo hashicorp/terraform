@@ -1,53 +1,50 @@
 package terraform
 
-import "fmt"
+import (
+	"fmt"
 
-// DeposedTransformer is a GraphTransformer that adds deposed resources
-// to the graph.
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/states"
+)
+
+// DeposedTransformer is a GraphTransformer that adds nodes to the graph for
+// the deposed objects associated with a given resource instance.
 type DeposedTransformer struct {
-	// State is the global state. We'll automatically find the correct
-	// ModuleState based on the Graph.Path that is being transformed.
-	State *State
+	// State is the global state, from which we'll retrieve the state for
+	// the instance given in InstanceAddr.
+	State *states.State
 
-	// View, if non-empty, is the ModuleState.View used around the state
-	// to find deposed resources.
-	View string
+	// InstanceAddr is the address of the instance whose deposed objects will
+	// have graph nodes created.
+	InstanceAddr addrs.AbsResourceInstance
 
 	// The provider used by the resourced which were deposed
-	ResolvedProvider string
+	ResolvedProvider addrs.AbsProviderConfig
 }
 
 func (t *DeposedTransformer) Transform(g *Graph) error {
-	state := t.State.ModuleByPath(g.Path)
-	if state == nil {
-		// If there is no state for our module there can't be any deposed
-		// resources, since they live in the state.
+	rs := t.State.Resource(t.InstanceAddr.ContainingResource())
+	if rs == nil {
+		// If the resource has no state then there can't be deposed objects.
+		return nil
+	}
+	is := rs.Instances[t.InstanceAddr.Resource.Key]
+	if is == nil {
+		// If the instance has no state then there can't be deposed objects.
 		return nil
 	}
 
-	// If we have a view, apply it now
-	if t.View != "" {
-		state = state.View(t.View)
-	}
+	providerAddr := rs.ProviderConfig
 
-	// Go through all the resources in our state to look for deposed resources
-	for k, rs := range state.Resources {
-		// If we have no deposed resources, then move on
-		if len(rs.Deposed) == 0 {
-			continue
-		}
-
-		deposed := rs.Deposed
-
-		for i, _ := range deposed {
-			g.Add(&graphNodeDeposedResource{
-				Index:            i,
-				ResourceName:     k,
-				ResourceType:     rs.Type,
-				ProviderName:     rs.Provider,
-				ResolvedProvider: t.ResolvedProvider,
-			})
-		}
+	for k := range is.Deposed {
+		g.Add(&graphNodeDeposedResource{
+			Addr:             t.InstanceAddr,
+			DeposedKey:       k,
+			RecordedProvider: providerAddr,
+			ResolvedProvider: t.ResolvedProvider,
+		})
 	}
 
 	return nil
@@ -55,35 +52,40 @@ func (t *DeposedTransformer) Transform(g *Graph) error {
 
 // graphNodeDeposedResource is the graph vertex representing a deposed resource.
 type graphNodeDeposedResource struct {
-	Index            int
-	ResourceName     string
-	ResourceType     string
-	ProviderName     string
-	ResolvedProvider string
+	Addr             addrs.AbsResourceInstance
+	DeposedKey       states.DeposedKey
+	RecordedProvider addrs.AbsProviderConfig
+	ResolvedProvider addrs.AbsProviderConfig
 }
+
+var (
+	_ GraphNodeProviderConsumer = (*graphNodeDeposedResource)(nil)
+	_ GraphNodeEvalable         = (*graphNodeDeposedResource)(nil)
+)
 
 func (n *graphNodeDeposedResource) Name() string {
-	return fmt.Sprintf("%s (deposed #%d)", n.ResourceName, n.Index)
+	return fmt.Sprintf("%s (deposed %s)", n.Addr.String(), n.DeposedKey)
 }
 
-func (n *graphNodeDeposedResource) ProvidedBy() string {
-	return resourceProvider(n.ResourceName, n.ProviderName)
+func (n *graphNodeDeposedResource) ProvidedBy() (addrs.AbsProviderConfig, bool) {
+	return n.RecordedProvider, true
 }
 
-func (n *graphNodeDeposedResource) SetProvider(p string) {
-	n.ResolvedProvider = p
+func (n *graphNodeDeposedResource) SetProvider(addr addrs.AbsProviderConfig) {
+	// Because our ProvidedBy returns exact=true, this is actually rather
+	// pointless and should always just be the address we asked for.
+	n.RecordedProvider = addr
 }
 
 // GraphNodeEvalable impl.
 func (n *graphNodeDeposedResource) EvalTree() EvalNode {
-	var provider ResourceProvider
-	var state *InstanceState
+	addr := n.Addr
+
+	var provider providers.Interface
+	var providerSchema *ProviderSchema
+	var state *states.ResourceInstanceObject
 
 	seq := &EvalSequence{Nodes: make([]EvalNode, 0, 5)}
-
-	// Build instance info
-	info := &InstanceInfo{Id: n.Name(), Type: n.ResourceType}
-	seq.Nodes = append(seq.Nodes, &EvalInstanceInfo{Info: info})
 
 	// Refresh the resource
 	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
@@ -91,78 +93,86 @@ func (n *graphNodeDeposedResource) EvalTree() EvalNode {
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
 				&EvalGetProvider{
-					Name:   n.ResolvedProvider,
+					Addr:   n.ResolvedProvider,
 					Output: &provider,
+					Schema: &providerSchema,
 				},
 				&EvalReadStateDeposed{
-					Name:   n.ResourceName,
+					Addr:   addr.Resource,
+					Key:    n.DeposedKey,
 					Output: &state,
-					Index:  n.Index,
 				},
 				&EvalRefresh{
-					Info:     info,
-					Provider: &provider,
-					State:    &state,
-					Output:   &state,
+					Addr:           addr.Resource,
+					ProviderAddr:   n.ResolvedProvider,
+					Provider:       &provider,
+					ProviderSchema: &providerSchema,
+					State:          &state,
+					Output:         &state,
 				},
 				&EvalWriteStateDeposed{
-					Name:         n.ResourceName,
-					ResourceType: n.ResourceType,
-					Provider:     n.ResolvedProvider,
-					State:        &state,
-					Index:        n.Index,
+					Addr:           addr.Resource,
+					Key:            n.DeposedKey,
+					ProviderAddr:   n.ResolvedProvider,
+					ProviderSchema: &providerSchema,
+					State:          &state,
 				},
 			},
 		},
 	})
 
 	// Apply
-	var diff *InstanceDiff
+	var change *plans.ResourceInstanceChange
 	var err error
 	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
 		Ops: []walkOperation{walkApply, walkDestroy},
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
 				&EvalGetProvider{
-					Name:   n.ResolvedProvider,
+					Addr:   n.ResolvedProvider,
 					Output: &provider,
 				},
 				&EvalReadStateDeposed{
-					Name:   n.ResourceName,
-					Output: &state,
-					Index:  n.Index,
+					Addr:           addr.Resource,
+					Output:         &state,
+					Key:            n.DeposedKey,
+					Provider:       &provider,
+					ProviderSchema: &providerSchema,
 				},
 				&EvalDiffDestroy{
-					Info:   info,
+					Addr:   addr.Resource,
 					State:  &state,
-					Output: &diff,
+					Output: &change,
 				},
 				// Call pre-apply hook
 				&EvalApplyPre{
-					Info:  info,
-					State: &state,
-					Diff:  &diff,
+					Addr:   addr.Resource,
+					State:  &state,
+					Change: &change,
 				},
 				&EvalApply{
-					Info:     info,
-					State:    &state,
-					Diff:     &diff,
-					Provider: &provider,
-					Output:   &state,
-					Error:    &err,
+					Addr:           addr.Resource,
+					Config:         nil, // No configuration because we are destroying
+					State:          &state,
+					Change:         &change,
+					Provider:       &provider,
+					ProviderAddr:   n.ResolvedProvider,
+					ProviderSchema: &providerSchema,
+					Output:         &state,
+					Error:          &err,
 				},
 				// Always write the resource back to the state deposed... if it
 				// was successfully destroyed it will be pruned. If it was not, it will
 				// be caught on the next run.
 				&EvalWriteStateDeposed{
-					Name:         n.ResourceName,
-					ResourceType: n.ResourceType,
-					Provider:     n.ResolvedProvider,
-					State:        &state,
-					Index:        n.Index,
+					Addr:           addr.Resource,
+					Key:            n.DeposedKey,
+					ProviderAddr:   n.ResolvedProvider,
+					ProviderSchema: &providerSchema,
+					State:          &state,
 				},
 				&EvalApplyPost{
-					Info:  info,
+					Addr:  addr.Resource,
 					State: &state,
 					Error: &err,
 				},

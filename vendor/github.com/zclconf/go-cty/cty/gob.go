@@ -103,11 +103,11 @@ func (t *Type) GobDecode(buf []byte) error {
 // Capsule types cannot currently be gob-encoded, because they rely on pointer
 // equality and we have no way to recover the original pointer on decode.
 func (t *capsuleType) GobEncode() ([]byte, error) {
-	return nil, fmt.Errorf("cannot gob-encode capsule type %q", t.FriendlyName())
+	return nil, fmt.Errorf("cannot gob-encode capsule type %q", t.FriendlyName(friendlyTypeName))
 }
 
 func (t *capsuleType) GobDecode() ([]byte, error) {
-	return nil, fmt.Errorf("cannot gob-decode capsule type %q", t.FriendlyName())
+	return nil, fmt.Errorf("cannot gob-decode capsule type %q", t.FriendlyName(friendlyTypeName))
 }
 
 type gobValue struct {

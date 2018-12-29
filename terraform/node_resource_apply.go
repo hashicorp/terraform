@@ -3,189 +3,184 @@ package terraform
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/states"
+
+	"github.com/hashicorp/terraform/plans"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs"
+	"github.com/zclconf/go-cty/cty"
 )
 
-// NodeApplyableResource represents a resource that is "applyable":
+// NodeApplyableResourceInstance represents a resource that is "applyable":
 // it is ready to be applied and is represented by a diff.
-type NodeApplyableResource struct {
-	*NodeAbstractResource
+type NodeApplyableResourceInstance struct {
+	*NodeAbstractResourceInstance
+
+	destroyNode GraphNodeDestroyerCBD
+}
+
+var (
+	_ GraphNodeResource         = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeResourceInstance = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeCreator          = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeReferencer       = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeEvalable         = (*NodeApplyableResourceInstance)(nil)
+)
+
+// GraphNodeAttachDestroyer
+func (n *NodeApplyableResourceInstance) AttachDestroyNode(d GraphNodeDestroyerCBD) {
+	n.destroyNode = d
+}
+
+// createBeforeDestroy checks this nodes config status and the status af any
+// companion destroy node for CreateBeforeDestroy.
+func (n *NodeApplyableResourceInstance) createBeforeDestroy() bool {
+	cbd := false
+
+	if n.Config != nil && n.Config.Managed != nil {
+		cbd = n.Config.Managed.CreateBeforeDestroy
+	}
+
+	if n.destroyNode != nil {
+		cbd = cbd || n.destroyNode.CreateBeforeDestroy()
+	}
+
+	return cbd
 }
 
 // GraphNodeCreator
-func (n *NodeApplyableResource) CreateAddr() *ResourceAddress {
-	return n.NodeAbstractResource.Addr
+func (n *NodeApplyableResourceInstance) CreateAddr() *addrs.AbsResourceInstance {
+	addr := n.ResourceInstanceAddr()
+	return &addr
 }
 
-// GraphNodeReferencer, overriding NodeAbstractResource
-func (n *NodeApplyableResource) References() []string {
-	result := n.NodeAbstractResource.References()
+// GraphNodeReferencer, overriding NodeAbstractResourceInstance
+func (n *NodeApplyableResourceInstance) References() []*addrs.Reference {
+	// Start with the usual resource instance implementation
+	ret := n.NodeAbstractResourceInstance.References()
 
-	// The "apply" side of a resource generally also depends on the
-	// destruction of its dependencies as well. For example, if a LB
-	// references a set of VMs with ${vm.foo.*.id}, then we must wait for
-	// the destruction so we get the newly updated list of VMs.
+	// Applying a resource must also depend on the destruction of any of its
+	// dependencies, since this may for example affect the outcome of
+	// evaluating an entire list of resources with "count" set (by reducing
+	// the count).
 	//
-	// The exception here is CBD. When CBD is set, we don't do this since
-	// it would create a cycle. By not creating a cycle, we require two
-	// applies since the first apply the creation step will use the OLD
-	// values (pre-destroy) and the second step will update.
-	//
-	// This is how Terraform behaved with "legacy" graphs (TF <= 0.7.x).
-	// We mimic that behavior here now and can improve upon it in the future.
-	//
-	// This behavior is tested in graph_build_apply_test.go to test ordering.
-	cbd := n.Config != nil && n.Config.Lifecycle.CreateBeforeDestroy
-	if !cbd {
-		// The "apply" side of a resource always depends on the destruction
-		// of all its dependencies in addition to the creation.
-		for _, v := range result {
-			result = append(result, v+".destroy")
+	// However, we can't do this in create_before_destroy mode because that
+	// would create a dependency cycle. We make a compromise here of requiring
+	// changes to be updated across two applies in this case, since the first
+	// plan will use the old values.
+	if !n.createBeforeDestroy() {
+		for _, ref := range ret {
+			switch tr := ref.Subject.(type) {
+			case addrs.ResourceInstance:
+				newRef := *ref // shallow copy so we can mutate
+				newRef.Subject = tr.Phase(addrs.ResourceInstancePhaseDestroy)
+				newRef.Remaining = nil // can't access attributes of something being destroyed
+				ret = append(ret, &newRef)
+			case addrs.Resource:
+				newRef := *ref // shallow copy so we can mutate
+				newRef.Subject = tr.Phase(addrs.ResourceInstancePhaseDestroy)
+				newRef.Remaining = nil // can't access attributes of something being destroyed
+				ret = append(ret, &newRef)
+			}
 		}
 	}
 
-	return result
+	return ret
 }
 
 // GraphNodeEvalable
-func (n *NodeApplyableResource) EvalTree() EvalNode {
-	addr := n.NodeAbstractResource.Addr
+func (n *NodeApplyableResourceInstance) EvalTree() EvalNode {
+	addr := n.ResourceInstanceAddr()
 
-	// stateId is the ID to put into the state
-	stateId := addr.stateId()
-
-	// Build the instance info. More of this will be populated during eval
-	info := &InstanceInfo{
-		Id:   stateId,
-		Type: addr.Type,
-	}
-
-	// Build the resource for eval
-	resource := &Resource{
-		Name:       addr.Name,
-		Type:       addr.Type,
-		CountIndex: addr.Index,
-	}
-	if resource.CountIndex < 0 {
-		resource.CountIndex = 0
-	}
+	// State still uses legacy-style internal ids, so we need to shim to get
+	// a suitable key to use.
+	stateId := NewLegacyResourceInstanceAddress(addr).stateId()
 
 	// Determine the dependencies for the state.
 	stateDeps := n.StateReferences()
 
 	// Eval info is different depending on what kind of resource this is
 	switch n.Config.Mode {
-	case config.ManagedResourceMode:
-		return n.evalTreeManagedResource(
-			stateId, info, resource, stateDeps,
-		)
-	case config.DataResourceMode:
-		return n.evalTreeDataResource(
-			stateId, info, resource, stateDeps)
+	case addrs.ManagedResourceMode:
+		return n.evalTreeManagedResource(addr, stateId, stateDeps)
+	case addrs.DataResourceMode:
+		return n.evalTreeDataResource(addr, stateId, stateDeps)
 	default:
 		panic(fmt.Errorf("unsupported resource mode %s", n.Config.Mode))
 	}
 }
 
-func (n *NodeApplyableResource) evalTreeDataResource(
-	stateId string, info *InstanceInfo,
-	resource *Resource, stateDeps []string) EvalNode {
-	var provider ResourceProvider
-	var config *ResourceConfig
-	var diff *InstanceDiff
-	var state *InstanceState
+func (n *NodeApplyableResourceInstance) evalTreeDataResource(addr addrs.AbsResourceInstance, stateId string, stateDeps []addrs.Referenceable) EvalNode {
+	var provider providers.Interface
+	var providerSchema *ProviderSchema
+	var change *plans.ResourceInstanceChange
+	var state *states.ResourceInstanceObject
+	var configVal cty.Value
 
 	return &EvalSequence{
 		Nodes: []EvalNode{
-			// Build the instance info
-			&EvalInstanceInfo{
-				Info: info,
+			&EvalGetProvider{
+				Addr:   n.ResolvedProvider,
+				Output: &provider,
+				Schema: &providerSchema,
 			},
 
 			// Get the saved diff for apply
 			&EvalReadDiff{
-				Name: stateId,
-				Diff: &diff,
+				Addr:           addr.Resource,
+				ProviderSchema: &providerSchema,
+				Change:         &change,
 			},
 
-			// Stop here if we don't actually have a diff
+			// Stop early if we don't actually have a diff
 			&EvalIf{
 				If: func(ctx EvalContext) (bool, error) {
-					if diff == nil {
+					if change == nil {
 						return true, EvalEarlyExitError{}
 					}
-
-					if diff.GetAttributesLen() == 0 {
-						return true, EvalEarlyExitError{}
-					}
-
 					return true, nil
 				},
 				Then: EvalNoop{},
 			},
 
-			// Normally we interpolate count as a preparation step before
-			// a DynamicExpand, but an apply graph has pre-expanded nodes
-			// and so the count would otherwise never be interpolated.
-			//
-			// This is redundant when there are multiple instances created
-			// from the same config (count > 1) but harmless since the
-			// underlying structures have mutexes to make this concurrency-safe.
-			//
-			// In most cases this isn't actually needed because we dealt with
-			// all of the counts during the plan walk, but we do it here
-			// for completeness because other code assumes that the
-			// final count is always available during interpolation.
-			//
-			// Here we are just populating the interpolated value in-place
-			// inside this RawConfig object, like we would in
-			// NodeAbstractCountResource.
-			&EvalInterpolate{Config: n.Config.RawCount},
-
-			// We need to re-interpolate the config here, rather than
-			// just using the diff's values directly, because we've
-			// potentially learned more variable values during the
-			// apply pass that weren't known when the diff was produced.
-			&EvalInterpolate{
-				Config:   n.Config.RawConfig.Copy(),
-				Resource: resource,
-				Output:   &config,
-			},
-
-			&EvalGetProvider{
-				Name:   n.ResolvedProvider,
-				Output: &provider,
-			},
-
-			// Make a new diff with our newly-interpolated config.
+			// Make a new diff, in case we've learned new values in the state
+			// during apply which we can now incorporate.
 			&EvalReadDataDiff{
-				Info:     info,
-				Config:   &config,
-				Previous: &diff,
-				Provider: &provider,
-				Output:   &diff,
+				Addr:           addr.Resource,
+				Config:         n.Config,
+				ProviderAddr:   n.ResolvedProvider,
+				ProviderSchema: &providerSchema,
+				Output:         &change,
+				OutputValue:    &configVal,
+				OutputState:    &state,
 			},
 
 			&EvalReadDataApply{
-				Info:     info,
-				Diff:     &diff,
-				Provider: &provider,
-				Output:   &state,
+				Addr:            addr.Resource,
+				Config:          n.Config,
+				Change:          &change,
+				Provider:        &provider,
+				ProviderAddr:    n.ResolvedProvider,
+				ProviderSchema:  &providerSchema,
+				Output:          &state,
+				StateReferences: n.StateReferences(),
 			},
 
 			&EvalWriteState{
-				Name:         stateId,
-				ResourceType: n.Config.Type,
-				Provider:     n.ResolvedProvider,
-				Dependencies: stateDeps,
-				State:        &state,
+				Addr:           addr.Resource,
+				ProviderAddr:   n.ResolvedProvider,
+				ProviderSchema: &providerSchema,
+				State:          &state,
 			},
 
 			// Clear the diff now that we've applied it, so
 			// later nodes won't see a diff that's now a no-op.
 			&EvalWriteDiff{
-				Name: stateId,
-				Diff: nil,
+				Addr:           addr.Resource,
+				ProviderSchema: &providerSchema,
+				Change:         nil,
 			},
 
 			&EvalUpdateStateHook{},
@@ -193,44 +188,44 @@ func (n *NodeApplyableResource) evalTreeDataResource(
 	}
 }
 
-func (n *NodeApplyableResource) evalTreeManagedResource(
-	stateId string, info *InstanceInfo,
-	resource *Resource, stateDeps []string) EvalNode {
+func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsResourceInstance, stateId string, stateDeps []addrs.Referenceable) EvalNode {
 	// Declare a bunch of variables that are used for state during
 	// evaluation. Most of this are written to by-address below.
-	var provider ResourceProvider
-	var diff, diffApply *InstanceDiff
-	var state *InstanceState
-	var resourceConfig *ResourceConfig
+	var provider providers.Interface
+	var providerSchema *ProviderSchema
+	var diff, diffApply *plans.ResourceInstanceChange
+	var state *states.ResourceInstanceObject
 	var err error
 	var createNew bool
 	var createBeforeDestroyEnabled bool
+	var configVal cty.Value
+	var deposedKey states.DeposedKey
 
 	return &EvalSequence{
 		Nodes: []EvalNode{
-			// Build the instance info
-			&EvalInstanceInfo{
-				Info: info,
+			&EvalGetProvider{
+				Addr:   n.ResolvedProvider,
+				Output: &provider,
+				Schema: &providerSchema,
 			},
 
 			// Get the saved diff for apply
 			&EvalReadDiff{
-				Name: stateId,
-				Diff: &diffApply,
+				Addr:           addr.Resource,
+				ProviderSchema: &providerSchema,
+				Change:         &diffApply,
 			},
 
 			// We don't want to do any destroys
+			// (these are handled by NodeDestroyResourceInstance instead)
 			&EvalIf{
 				If: func(ctx EvalContext) (bool, error) {
 					if diffApply == nil {
 						return true, EvalEarlyExitError{}
 					}
-
-					if diffApply.GetDestroy() && diffApply.GetAttributesLen() == 0 {
+					if diffApply.Action == plans.Delete {
 						return true, EvalEarlyExitError{}
 					}
-
-					diffApply.SetDestroy(false)
 					return true, nil
 				},
 				Then: EvalNoop{},
@@ -240,138 +235,135 @@ func (n *NodeApplyableResource) evalTreeManagedResource(
 				If: func(ctx EvalContext) (bool, error) {
 					destroy := false
 					if diffApply != nil {
-						destroy = diffApply.GetDestroy() || diffApply.RequiresNew()
+						destroy = (diffApply.Action == plans.Delete || diffApply.Action == plans.Replace)
 					}
-
-					createBeforeDestroyEnabled =
-						n.Config.Lifecycle.CreateBeforeDestroy &&
-							destroy
-
+					if destroy && n.createBeforeDestroy() {
+						createBeforeDestroyEnabled = true
+					}
 					return createBeforeDestroyEnabled, nil
 				},
 				Then: &EvalDeposeState{
-					Name: stateId,
+					Addr:      addr.Resource,
+					OutputKey: &deposedKey,
 				},
 			},
 
-			// Normally we interpolate count as a preparation step before
-			// a DynamicExpand, but an apply graph has pre-expanded nodes
-			// and so the count would otherwise never be interpolated.
-			//
-			// This is redundant when there are multiple instances created
-			// from the same config (count > 1) but harmless since the
-			// underlying structures have mutexes to make this concurrency-safe.
-			//
-			// In most cases this isn't actually needed because we dealt with
-			// all of the counts during the plan walk, but we need to do this
-			// in order to support interpolation of resource counts from
-			// apply-time-interpolated expressions, such as those in
-			// "provisioner" blocks.
-			//
-			// Here we are just populating the interpolated value in-place
-			// inside this RawConfig object, like we would in
-			// NodeAbstractCountResource.
-			&EvalInterpolate{Config: n.Config.RawCount},
-
-			&EvalInterpolate{
-				Config:   n.Config.RawConfig.Copy(),
-				Resource: resource,
-				Output:   &resourceConfig,
-			},
-			&EvalGetProvider{
-				Name:   n.ResolvedProvider,
-				Output: &provider,
-			},
 			&EvalReadState{
-				Name:   stateId,
+				Addr:           addr.Resource,
+				Provider:       &provider,
+				ProviderSchema: &providerSchema,
+
 				Output: &state,
 			},
-			// Re-run validation to catch any errors we missed, e.g. type
-			// mismatches on computed values.
-			&EvalValidateResource{
-				Provider:       &provider,
-				Config:         &resourceConfig,
-				ResourceName:   n.Config.Name,
-				ResourceType:   n.Config.Type,
-				ResourceMode:   n.Config.Mode,
-				IgnoreWarnings: true,
-			},
+
+			// Make a new diff, in case we've learned new values in the state
+			// during apply which we can now incorporate.
 			&EvalDiff{
-				Info:       info,
-				Config:     &resourceConfig,
-				Resource:   n.Config,
-				Provider:   &provider,
-				Diff:       &diffApply,
-				State:      &state,
-				OutputDiff: &diffApply,
+				Addr:           addr.Resource,
+				Config:         n.Config,
+				Provider:       &provider,
+				ProviderAddr:   n.ResolvedProvider,
+				ProviderSchema: &providerSchema,
+				State:          &state,
+				OutputChange:   &diffApply,
+				OutputValue:    &configVal,
+				OutputState:    &state,
 			},
 
 			// Get the saved diff
 			&EvalReadDiff{
-				Name: stateId,
-				Diff: &diff,
+				Addr:           addr.Resource,
+				ProviderSchema: &providerSchema,
+				Change:         &diff,
 			},
 
 			// Compare the diffs
-			&EvalCompareDiff{
-				Info: info,
-				One:  &diff,
-				Two:  &diffApply,
+			&EvalCheckPlannedChange{
+				Addr:           addr.Resource,
+				ProviderAddr:   n.ResolvedProvider,
+				ProviderSchema: &providerSchema,
+				Planned:        &diff,
+				Actual:         &diffApply,
 			},
 
 			&EvalGetProvider{
-				Name:   n.ResolvedProvider,
+				Addr:   n.ResolvedProvider,
 				Output: &provider,
+				Schema: &providerSchema,
 			},
 			&EvalReadState{
-				Name:   stateId,
+				Addr:           addr.Resource,
+				Provider:       &provider,
+				ProviderSchema: &providerSchema,
+
 				Output: &state,
 			},
+
+			&EvalReduceDiff{
+				Addr:      addr.Resource,
+				InChange:  &diffApply,
+				Destroy:   false,
+				OutChange: &diffApply,
+			},
+
+			// EvalReduceDiff may have simplified our planned change
+			// into a NoOp if it only requires destroying, since destroying
+			// is handled by NodeDestroyResourceInstance.
+			&EvalIf{
+				If: func(ctx EvalContext) (bool, error) {
+					if diffApply == nil || diffApply.Action == plans.NoOp {
+						return true, EvalEarlyExitError{}
+					}
+					return true, nil
+				},
+				Then: EvalNoop{},
+			},
+
 			// Call pre-apply hook
 			&EvalApplyPre{
-				Info:  info,
-				State: &state,
-				Diff:  &diffApply,
+				Addr:   addr.Resource,
+				State:  &state,
+				Change: &diffApply,
 			},
 			&EvalApply{
-				Info:      info,
-				State:     &state,
-				Diff:      &diffApply,
-				Provider:  &provider,
-				Output:    &state,
-				Error:     &err,
-				CreateNew: &createNew,
+				Addr:           addr.Resource,
+				Config:         n.Config,
+				State:          &state,
+				Change:         &diffApply,
+				Provider:       &provider,
+				ProviderAddr:   n.ResolvedProvider,
+				ProviderSchema: &providerSchema,
+				Output:         &state,
+				Error:          &err,
+				CreateNew:      &createNew,
 			},
 			&EvalWriteState{
-				Name:         stateId,
-				ResourceType: n.Config.Type,
-				Provider:     n.ResolvedProvider,
-				Dependencies: stateDeps,
-				State:        &state,
+				Addr:           addr.Resource,
+				ProviderAddr:   n.ResolvedProvider,
+				ProviderSchema: &providerSchema,
+				State:          &state,
 			},
 			&EvalApplyProvisioners{
-				Info:           info,
+				Addr:           addr.Resource,
 				State:          &state,
-				Resource:       n.Config,
-				InterpResource: resource,
+				ResourceConfig: n.Config,
 				CreateNew:      &createNew,
 				Error:          &err,
-				When:           config.ProvisionerWhenCreate,
+				When:           configs.ProvisionerWhenCreate,
+			},
+			&EvalWriteState{
+				Addr:           addr.Resource,
+				ProviderAddr:   n.ResolvedProvider,
+				ProviderSchema: &providerSchema,
+				State:          &state,
 			},
 			&EvalIf{
 				If: func(ctx EvalContext) (bool, error) {
 					return createBeforeDestroyEnabled && err != nil, nil
 				},
 				Then: &EvalUndeposeState{
-					Name:  stateId,
-					State: &state,
-				},
-				Else: &EvalWriteState{
-					Name:         stateId,
-					ResourceType: n.Config.Type,
-					Provider:     n.ResolvedProvider,
-					Dependencies: stateDeps,
-					State:        &state,
+					Addr: addr.Resource,
+					Key:  &deposedKey,
 				},
 			},
 
@@ -379,12 +371,13 @@ func (n *NodeApplyableResource) evalTreeManagedResource(
 			// don't see a diff that is already complete. There
 			// is no longer a diff!
 			&EvalWriteDiff{
-				Name: stateId,
-				Diff: nil,
+				Addr:           addr.Resource,
+				ProviderSchema: &providerSchema,
+				Change:         nil,
 			},
 
 			&EvalApplyPost{
-				Info:  info,
+				Addr:  addr.Resource,
 				State: &state,
 				Error: &err,
 			},

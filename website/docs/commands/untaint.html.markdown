@@ -44,7 +44,7 @@ certain cases, see above note). The list of available flags are:
 * `-index=n` - Selects a single tainted instance when there are more than one
   tainted instances present in the state for a given resource. This flag is
   required when multiple tainted instances are present. The vast majority of the
-  time, there is a maxiumum of one tainted instance per resource, so this flag
+  time, there is a maximum of one tainted instance per resource, so this flag
   can be safely omitted.
 
 * `-lock=true` - Lock the state file when locking is supported.

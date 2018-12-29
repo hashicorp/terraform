@@ -109,7 +109,7 @@ func resourceAwsVPCPeeringRead(d *schema.ResourceData, meta interface{}) error {
 	pcRaw, status, err := resourceAwsVPCPeeringConnectionStateRefreshFunc(conn, d.Id())()
 	// Allow a failed VPC Peering Connection to fallthrough,
 	// to allow rest of the logic below to do its work.
-	if err != nil && status != "failed" {
+	if err != nil && status != ec2.VpcPeeringConnectionStateReasonCodeFailed {
 		return err
 	}
 
@@ -125,11 +125,11 @@ func resourceAwsVPCPeeringRead(d *schema.ResourceData, meta interface{}) error {
 	// just "falls off" the console. See GH-2322
 	if pc.Status != nil {
 		status := map[string]bool{
-			"deleted":  true,
-			"deleting": true,
-			"expired":  true,
-			"failed":   true,
-			"rejected": true,
+			ec2.VpcPeeringConnectionStateReasonCodeDeleted:  true,
+			ec2.VpcPeeringConnectionStateReasonCodeDeleting: true,
+			ec2.VpcPeeringConnectionStateReasonCodeExpired:  true,
+			ec2.VpcPeeringConnectionStateReasonCodeFailed:   true,
+			ec2.VpcPeeringConnectionStateReasonCodeRejected: true,
 		}
 		if _, ok := status[*pc.Status.Code]; ok {
 			log.Printf("[DEBUG] VPC Peering Connection (%s) in state (%s), removing.",
@@ -249,7 +249,7 @@ func resourceAwsVPCPeeringUpdate(d *schema.ResourceData, meta interface{}) error
 	pc := pcRaw.(*ec2.VpcPeeringConnection)
 
 	if _, ok := d.GetOk("auto_accept"); ok {
-		if pc.Status != nil && *pc.Status.Code == "pending-acceptance" {
+		if pc.Status != nil && *pc.Status.Code == ec2.VpcPeeringConnectionStateReasonCodePendingAcceptance {
 			status, err := resourceVPCPeeringConnectionAccept(conn, d.Id())
 			if err != nil {
 				return errwrap.Wrapf("Unable to accept VPC Peering Connection: {{err}}", err)
@@ -290,8 +290,14 @@ func resourceAwsVPCPeeringDelete(d *schema.ResourceData, meta interface{}) error
 	// Wait for the vpc peering connection to become available
 	log.Printf("[DEBUG] Waiting for VPC Peering Connection (%s) to delete.", d.Id())
 	stateConf := &resource.StateChangeConf{
-		Pending: []string{"deleting"},
-		Target:  []string{"rejecting", "deleted"},
+		Pending: []string{
+			ec2.VpcPeeringConnectionStateReasonCodePendingAcceptance,
+			ec2.VpcPeeringConnectionStateReasonCodeDeleting,
+		},
+		Target: []string{
+			ec2.VpcPeeringConnectionStateReasonCodeRejected,
+			ec2.VpcPeeringConnectionStateReasonCodeDeleted,
+		},
 		Refresh: resourceAwsVPCPeeringConnectionStateRefreshFunc(conn, d.Id()),
 		Timeout: 1 * time.Minute,
 	}
@@ -408,8 +414,14 @@ func checkVpcPeeringConnectionAvailable(conn *ec2.EC2, id string) error {
 	// Wait for the vpc peering connection to become available
 	log.Printf("[DEBUG] Waiting for VPC Peering Connection (%s) to become available.", id)
 	stateConf := &resource.StateChangeConf{
-		Pending: []string{"initiating-request", "provisioning", "pending"},
-		Target:  []string{"pending-acceptance", "active"},
+		Pending: []string{
+			ec2.VpcPeeringConnectionStateReasonCodeInitiatingRequest,
+			ec2.VpcPeeringConnectionStateReasonCodeProvisioning,
+		},
+		Target: []string{
+			ec2.VpcPeeringConnectionStateReasonCodePendingAcceptance,
+			ec2.VpcPeeringConnectionStateReasonCodeActive,
+		},
 		Refresh: resourceAwsVPCPeeringConnectionStateRefreshFunc(conn, id),
 		Timeout: 1 * time.Minute,
 	}

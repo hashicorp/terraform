@@ -49,16 +49,14 @@ func resourceAwsAppautoscalingPolicy() *schema.Resource {
 				Required: true,
 			},
 			"scalable_dimension": &schema.Schema{
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				ValidateFunc: validateAppautoscalingScalableDimension,
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
 			},
 			"service_namespace": &schema.Schema{
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				ValidateFunc: validateAppautoscalingServiceNamespace,
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
 			},
 			"step_scaling_policy_configuration": {
 				Type:     schema.TypeList,
@@ -212,9 +210,8 @@ func resourceAwsAppautoscalingPolicy() *schema.Resource {
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"predefined_metric_type": &schema.Schema{
-										Type:         schema.TypeString,
-										Required:     true,
-										ValidateFunc: validateAppautoscalingPredefinedMetricSpecification,
+										Type:     schema.TypeString,
+										Required: true,
 									},
 									"resource_label": &schema.Schema{
 										Type:         schema.TypeString,

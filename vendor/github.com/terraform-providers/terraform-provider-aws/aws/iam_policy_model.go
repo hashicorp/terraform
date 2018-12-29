@@ -2,6 +2,7 @@ package aws
 
 import (
 	"encoding/json"
+	"fmt"
 	"sort"
 )
 
@@ -36,6 +37,38 @@ type IAMPolicyStatementCondition struct {
 
 type IAMPolicyStatementPrincipalSet []IAMPolicyStatementPrincipal
 type IAMPolicyStatementConditionSet []IAMPolicyStatementCondition
+
+func (self *IAMPolicyDoc) Merge(newDoc *IAMPolicyDoc) {
+	// adopt newDoc's Id
+	if len(newDoc.Id) > 0 {
+		self.Id = newDoc.Id
+	}
+
+	// let newDoc upgrade our Version
+	if newDoc.Version > self.Version {
+		self.Version = newDoc.Version
+	}
+
+	// merge in newDoc's statements, overwriting any existing Sids
+	var seen bool
+	for _, newStatement := range newDoc.Statements {
+		if len(newStatement.Sid) == 0 {
+			self.Statements = append(self.Statements, newStatement)
+			continue
+		}
+		seen = false
+		for i, existingStatement := range self.Statements {
+			if existingStatement.Sid == newStatement.Sid {
+				self.Statements[i] = newStatement
+				seen = true
+				break
+			}
+		}
+		if !seen {
+			self.Statements = append(self.Statements, newStatement)
+		}
+	}
+}
 
 func (ps IAMPolicyStatementPrincipalSet) MarshalJSON() ([]byte, error) {
 	raw := map[string]interface{}{}
@@ -75,6 +108,29 @@ func (ps IAMPolicyStatementPrincipalSet) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&raw)
 }
 
+func (ps *IAMPolicyStatementPrincipalSet) UnmarshalJSON(b []byte) error {
+	var out IAMPolicyStatementPrincipalSet
+
+	var data interface{}
+	if err := json.Unmarshal(b, &data); err != nil {
+		return err
+	}
+
+	switch t := data.(type) {
+	case string:
+		out = append(out, IAMPolicyStatementPrincipal{Type: "*", Identifiers: []string{"*"}})
+	case map[string]interface{}:
+		for key, value := range data.(map[string]interface{}) {
+			out = append(out, IAMPolicyStatementPrincipal{Type: key, Identifiers: value})
+		}
+	default:
+		return fmt.Errorf("Unsupported data type %s for IAMPolicyStatementPrincipalSet", t)
+	}
+
+	*ps = out
+	return nil
+}
+
 func (cs IAMPolicyStatementConditionSet) MarshalJSON() ([]byte, error) {
 	raw := map[string]map[string]interface{}{}
 
@@ -97,6 +153,33 @@ func (cs IAMPolicyStatementConditionSet) MarshalJSON() ([]byte, error) {
 	}
 
 	return json.Marshal(&raw)
+}
+
+func (cs *IAMPolicyStatementConditionSet) UnmarshalJSON(b []byte) error {
+	var out IAMPolicyStatementConditionSet
+
+	var data map[string]map[string]interface{}
+	if err := json.Unmarshal(b, &data); err != nil {
+		return err
+	}
+
+	for test_key, test_value := range data {
+		for var_key, var_values := range test_value {
+			switch var_values.(type) {
+			case string:
+				out = append(out, IAMPolicyStatementCondition{Test: test_key, Variable: var_key, Values: []string{var_values.(string)}})
+			case []interface{}:
+				values := []string{}
+				for _, v := range var_values.([]interface{}) {
+					values = append(values, v.(string))
+				}
+				out = append(out, IAMPolicyStatementCondition{Test: test_key, Variable: var_key, Values: values})
+			}
+		}
+	}
+
+	*cs = out
+	return nil
 }
 
 func iamPolicyDecodeConfigStringList(lI []interface{}) interface{} {

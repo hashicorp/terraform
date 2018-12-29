@@ -2,46 +2,65 @@ package terraform
 
 import (
 	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
-// NodeRefreshableDataResource represents a resource that is "plannable":
-// it is ready to be planned in order to create a diff.
+// NodeRefreshableDataResource represents a resource that is "refreshable".
 type NodeRefreshableDataResource struct {
-	*NodeAbstractCountResource
+	*NodeAbstractResource
 }
+
+var (
+	_ GraphNodeSubPath              = (*NodeRefreshableDataResource)(nil)
+	_ GraphNodeDynamicExpandable    = (*NodeRefreshableDataResource)(nil)
+	_ GraphNodeReferenceable        = (*NodeRefreshableDataResource)(nil)
+	_ GraphNodeReferencer           = (*NodeRefreshableDataResource)(nil)
+	_ GraphNodeResource             = (*NodeRefreshableDataResource)(nil)
+	_ GraphNodeAttachResourceConfig = (*NodeRefreshableDataResource)(nil)
+)
 
 // GraphNodeDynamicExpandable
 func (n *NodeRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
-	// Grab the state which we read
-	state, lock := ctx.State()
-	lock.RLock()
-	defer lock.RUnlock()
+	var diags tfdiags.Diagnostics
 
-	// Expand the resource count which must be available by now from EvalTree
-	count, err := n.Config.Count()
-	if err != nil {
-		return nil, err
+	count, countDiags := evaluateResourceCountExpression(n.Config.Count, ctx)
+	diags = diags.Append(countDiags)
+	if countDiags.HasErrors() {
+		return nil, diags.Err()
 	}
 
+	// Next we need to potentially rename an instance address in the state
+	// if we're transitioning whether "count" is set at all.
+	fixResourceCountSetTransition(ctx, n.ResourceAddr(), count != -1)
+
+	// Our graph transformers require access to the full state, so we'll
+	// temporarily lock it while we work on this.
+	state := ctx.State().Lock()
+	defer ctx.State().Unlock()
+
 	// The concrete resource factory we'll use
-	concreteResource := func(a *NodeAbstractResource) dag.Vertex {
+	concreteResource := func(a *NodeAbstractResourceInstance) dag.Vertex {
 		// Add the config and state since we don't do that via transforms
 		a.Config = n.Config
 		a.ResolvedProvider = n.ResolvedProvider
 
 		return &NodeRefreshableDataResourceInstance{
-			NodeAbstractResource: a,
+			NodeAbstractResourceInstance: a,
 		}
 	}
 
 	// We also need a destroyable resource for orphans that are a result of a
 	// scaled-in count.
-	concreteResourceDestroyable := func(a *NodeAbstractResource) dag.Vertex {
+	concreteResourceDestroyable := func(a *NodeAbstractResourceInstance) dag.Vertex {
 		// Add the config since we don't do that via transforms
 		a.Config = n.Config
 
 		return &NodeDestroyableDataResource{
-			NodeAbstractResource: a,
+			NodeAbstractResourceInstance: a,
 		}
 	}
 
@@ -50,6 +69,7 @@ func (n *NodeRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, er
 		// Expand the count.
 		&ResourceCountTransformer{
 			Concrete: concreteResource,
+			Schema:   n.Schema,
 			Count:    count,
 			Addr:     n.ResourceAddr(),
 		},
@@ -67,7 +87,7 @@ func (n *NodeRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, er
 		&AttachStateTransformer{State: state},
 
 		// Targeting
-		&TargetsTransformer{ParsedTargets: n.Targets},
+		&TargetsTransformer{Targets: n.Targets},
 
 		// Connect references so ordering is correct
 		&ReferenceTransformer{},
@@ -83,80 +103,55 @@ func (n *NodeRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, er
 		Name:     "NodeRefreshableDataResource",
 	}
 
-	return b.Build(ctx.Path())
+	graph, diags := b.Build(ctx.Path())
+	return graph, diags.ErrWithWarnings()
 }
 
-// NodeRefreshableDataResourceInstance represents a _single_ resource instance
+// NodeRefreshableDataResourceInstance represents a single resource instance
 // that is refreshable.
 type NodeRefreshableDataResourceInstance struct {
-	*NodeAbstractResource
+	*NodeAbstractResourceInstance
 }
 
 // GraphNodeEvalable
 func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
-	addr := n.NodeAbstractResource.Addr
+	addr := n.ResourceInstanceAddr()
 
-	// stateId is the ID to put into the state
-	stateId := addr.stateId()
-
-	// Build the instance info. More of this will be populated during eval
-	info := &InstanceInfo{
-		Id:   stateId,
-		Type: addr.Type,
-	}
-
-	// Get the state if we have it, if not we build it
-	rs := n.ResourceState
-	if rs == nil {
-		rs = &ResourceState{
-			Provider: n.ResolvedProvider,
-		}
-	}
-
-	// If the config isn't empty we update the state
-	if n.Config != nil {
-		rs = &ResourceState{
-			Type:         n.Config.Type,
-			Provider:     n.Config.Provider,
-			Dependencies: n.StateReferences(),
-		}
-	}
-
-	// Build the resource for eval
-	resource := &Resource{
-		Name:       addr.Name,
-		Type:       addr.Type,
-		CountIndex: addr.Index,
-	}
-	if resource.CountIndex < 0 {
-		resource.CountIndex = 0
-	}
-
-	// Declare a bunch of variables that are used for state during
-	// evaluation. Most of this are written to by-address below.
-	var config *ResourceConfig
-	var diff *InstanceDiff
-	var provider ResourceProvider
-	var state *InstanceState
+	// These variables are the state for the eval sequence below, and are
+	// updated through pointers.
+	var provider providers.Interface
+	var providerSchema *ProviderSchema
+	var change *plans.ResourceInstanceChange
+	var state *states.ResourceInstanceObject
+	var configVal cty.Value
 
 	return &EvalSequence{
 		Nodes: []EvalNode{
+			&EvalGetProvider{
+				Addr:   n.ResolvedProvider,
+				Output: &provider,
+				Schema: &providerSchema,
+			},
+
 			// Always destroy the existing state first, since we must
 			// make sure that values from a previous read will not
 			// get interpolated if we end up needing to defer our
 			// loading until apply time.
 			&EvalWriteState{
-				Name:         stateId,
-				ResourceType: rs.Type,
-				Provider:     n.ResolvedProvider,
-				Dependencies: rs.Dependencies,
-				State:        &state, // state is nil here
+				Addr:           addr.Resource,
+				ProviderAddr:   n.ResolvedProvider,
+				State:          &state, // a pointer to nil, here
+				ProviderSchema: &providerSchema,
 			},
 
-			&EvalInterpolate{
-				Config:   n.Config.RawConfig.Copy(),
-				Resource: resource,
-				Output:   &config,
+			&EvalReadDataDiff{
+				Addr:              addr.Resource,
+				Config:            n.Config,
+				ProviderAddr:      n.ResolvedProvider,
+				ProviderSchema:    &providerSchema,
+				Output:            &change,
+				OutputConfigValue: &configVal,
+				OutputState:       &state,
 			},
 
 			// The rest of this pass can proceed only if there are no
@@ -165,7 +160,7 @@ func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
 			// apply phases.)
 			&EvalIf{
 				If: func(ctx EvalContext) (bool, error) {
-					if config.ComputedKeys != nil && len(config.ComputedKeys) > 0 {
+					if !configVal.IsWhollyKnown() {
 						return true, EvalEarlyExitError{}
 					}
 
@@ -178,41 +173,25 @@ func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
 
 					return true, nil
 				},
-
 				Then: EvalNoop{},
 			},
 
-			// The remainder of this pass is the same as running
-			// a "plan" pass immediately followed by an "apply" pass,
-			// populating the state early so it'll be available to
-			// provider configurations that need this data during
-			// refresh/plan.
-			&EvalGetProvider{
-				Name:   n.ResolvedProvider,
-				Output: &provider,
-			},
-
-			&EvalReadDataDiff{
-				Info:        info,
-				Config:      &config,
-				Provider:    &provider,
-				Output:      &diff,
-				OutputState: &state,
-			},
-
 			&EvalReadDataApply{
-				Info:     info,
-				Diff:     &diff,
-				Provider: &provider,
-				Output:   &state,
+				Addr:            addr.Resource,
+				Config:          n.Config,
+				Change:          &change,
+				Provider:        &provider,
+				ProviderAddr:    n.ResolvedProvider,
+				ProviderSchema:  &providerSchema,
+				Output:          &state,
+				StateReferences: n.StateReferences(),
 			},
 
 			&EvalWriteState{
-				Name:         stateId,
-				ResourceType: rs.Type,
-				Provider:     n.ResolvedProvider,
-				Dependencies: rs.Dependencies,
-				State:        &state,
+				Addr:           addr.Resource,
+				ProviderAddr:   n.ResolvedProvider,
+				State:          &state,
+				ProviderSchema: &providerSchema,
 			},
 
 			&EvalUpdateStateHook{},

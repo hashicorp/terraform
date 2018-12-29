@@ -18,6 +18,7 @@ func resourceAwsVolumeAttachment() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsVolumeAttachmentCreate,
 		Read:   resourceAwsVolumeAttachmentRead,
+		Update: resourceAwsVolumeAttachmentUpdate,
 		Delete: resourceAwsVolumeAttachmentDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -42,12 +43,10 @@ func resourceAwsVolumeAttachment() *schema.Resource {
 			"force_detach": {
 				Type:     schema.TypeBool,
 				Optional: true,
-				Computed: true,
 			},
 			"skip_destroy": {
 				Type:     schema.TypeBool,
 				Optional: true,
-				Computed: true,
 			},
 		},
 	}
@@ -83,7 +82,7 @@ func resourceAwsVolumeAttachmentCreate(d *schema.ResourceData, meta interface{})
 		stateConf := &resource.StateChangeConf{
 			Pending:    []string{"pending", "stopping"},
 			Target:     []string{"running", "stopped"},
-			Refresh:    InstanceStateRefreshFunc(conn, iID, "terminated"),
+			Refresh:    InstanceStateRefreshFunc(conn, iID, []string{"terminated"}),
 			Timeout:    10 * time.Minute,
 			Delay:      10 * time.Second,
 			MinTimeout: 3 * time.Second,
@@ -202,6 +201,11 @@ func resourceAwsVolumeAttachmentRead(d *schema.ResourceData, meta interface{}) e
 		d.SetId("")
 	}
 
+	return nil
+}
+
+func resourceAwsVolumeAttachmentUpdate(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[DEBUG] Attaching Volume (%s) is updating which does nothing but updates a few params in state", d.Id())
 	return nil
 }
 

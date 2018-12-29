@@ -91,9 +91,11 @@ func bucketLocation(d *schema.ResourceData, bucket string, conn *s3.S3) error {
 		return err
 	}
 
-	hostedZoneID := HostedZoneIDForRegion(region)
-	if err := d.Set("hosted_zone_id", hostedZoneID); err != nil {
-		return err
+	hostedZoneID, err := HostedZoneIDForRegion(region)
+	if err != nil {
+		log.Printf("[WARN] %s", err)
+	} else {
+		d.Set("hosted_zone_id", hostedZoneID)
 	}
 
 	_, websiteErr := conn.GetBucketWebsite(

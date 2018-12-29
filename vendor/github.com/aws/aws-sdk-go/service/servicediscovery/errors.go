@@ -7,13 +7,14 @@ const (
 	// ErrCodeDuplicateRequest for service response error code
 	// "DuplicateRequest".
 	//
-	// This request tried to create an object that already exists.
+	// The operation is already in progress.
 	ErrCodeDuplicateRequest = "DuplicateRequest"
 
 	// ErrCodeInstanceNotFound for service response error code
 	// "InstanceNotFound".
 	//
-	// No instance exists with the specified ID.
+	// No instance exists with the specified ID, or the instance was recently registered,
+	// and information about the instance hasn't propagated yet.
 	ErrCodeInstanceNotFound = "InstanceNotFound"
 
 	// ErrCodeInvalidInput for service response error code

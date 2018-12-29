@@ -6,16 +6,22 @@ import (
 	"path/filepath"
 	"reflect"
 	"sort"
-	"strings"
 	"testing"
+
+	"github.com/mitchellh/cli"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/backend"
 	backendinit "github.com/hashicorp/terraform/backend/init"
 	backendlocal "github.com/hashicorp/terraform/backend/local"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/helper/copy"
+	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/state"
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/statefile"
+	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/mitchellh/cli"
 )
 
 // Test empty directory with no config/state creates a local state.
@@ -28,19 +34,19 @@ func TestMetaBackend_emptyDir(t *testing.T) {
 
 	// Get the backend
 	m := testMetaBackend(t, nil)
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Write some state
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	s.WriteState(testState())
 	if err := s.PersistState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 
 	// Verify it exists where we expect it to
@@ -89,7 +95,7 @@ func TestMetaBackend_emptyWithDefaultState(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		err = terraform.WriteState(testState(), f)
+		err = writeStateForTesting(testState(), f)
 		f.Close()
 		if err != nil {
 			t.Fatalf("err: %s", err)
@@ -98,15 +104,15 @@ func TestMetaBackend_emptyWithDefaultState(t *testing.T) {
 
 	// Get the backend
 	m := testMetaBackend(t, nil)
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	if err := s.RefreshState(); err != nil {
 		t.Fatalf("err: %s", err)
@@ -127,10 +133,10 @@ func TestMetaBackend_emptyWithDefaultState(t *testing.T) {
 
 	// Write some state
 	next := testState()
-	next.Modules[0].Outputs["foo"] = &terraform.OutputState{Value: "bar"}
-	s.WriteState(testState())
+	next.RootModule().SetOutputValue("foo", cty.StringVal("bar"), false)
+	s.WriteState(next)
 	if err := s.PersistState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 
 	// Verify a backup was made since we're modifying a pre-existing state
@@ -159,7 +165,7 @@ func TestMetaBackend_emptyWithExplicitState(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		err = terraform.WriteState(testState(), f)
+		err = writeStateForTesting(testState(), f)
 		f.Close()
 		if err != nil {
 			t.Fatalf("err: %s", err)
@@ -171,15 +177,15 @@ func TestMetaBackend_emptyWithExplicitState(t *testing.T) {
 	m.statePath = statePath
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	if err := s.RefreshState(); err != nil {
 		t.Fatalf("err: %s", err)
@@ -200,70 +206,15 @@ func TestMetaBackend_emptyWithExplicitState(t *testing.T) {
 
 	// Write some state
 	next := testState()
-	next.Modules[0].Outputs["foo"] = &terraform.OutputState{Value: "bar"}
+	markStateForMatching(next, "bar") // just any change so it shows as different than before
 	s.WriteState(testState())
 	if err := s.PersistState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 
 	// Verify a backup was made since we're modifying a pre-existing state
 	if isEmptyState(statePath + DefaultBackupExtension) {
 		t.Fatal("backup state should not be empty")
-	}
-}
-
-// Empty directory with legacy remote state
-func TestMetaBackend_emptyLegacyRemote(t *testing.T) {
-	// Create a temporary working directory that is empty
-	td := tempDir(t)
-	os.MkdirAll(td, 0755)
-	defer os.RemoveAll(td)
-	defer testChdir(t, td)()
-
-	// Create some legacy remote state
-	legacyState := testState()
-	_, srv := testRemoteState(t, legacyState, 200)
-	defer srv.Close()
-	statePath := testStateFileRemote(t, legacyState)
-
-	// Setup the meta
-	m := testMetaBackend(t, nil)
-
-	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-
-	// Check the state
-	s, err := b.State(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-	if err := s.RefreshState(); err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-	state := s.State()
-	if actual := state.String(); actual != legacyState.String() {
-		t.Fatalf("bad: %s", actual)
-	}
-
-	// Verify we didn't setup the backend state
-	if !state.Backend.Empty() {
-		t.Fatal("shouldn't configure backend")
-	}
-
-	// Verify the default paths don't exist
-	if _, err := os.Stat(DefaultStateFilename); err == nil {
-		t.Fatal("file should not exist")
-	}
-
-	// Verify a backup doesn't exist
-	if _, err := os.Stat(DefaultStateFilename + DefaultBackupExtension); err == nil {
-		t.Fatal("file should not exist")
-	}
-	if _, err := os.Stat(statePath + DefaultBackupExtension); err == nil {
-		t.Fatal("file should not exist")
 	}
 }
 
@@ -297,18 +248,18 @@ func TestMetaBackend_configureNew(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	if err := s.RefreshState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	state := s.State()
 	if state != nil {
@@ -316,11 +267,12 @@ func TestMetaBackend_configureNew(t *testing.T) {
 	}
 
 	// Write some state
-	state = terraform.NewState()
-	state.Lineage = "changing"
+	state = states.NewState()
+	mark := markStateForMatching(state, "changing")
+
 	s.WriteState(state)
 	if err := s.PersistState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 
 	// Verify the state is where we expect
@@ -329,15 +281,13 @@ func TestMetaBackend_configureNew(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		actual, err := terraform.ReadState(f)
+		actual, err := statefile.Read(f)
 		f.Close()
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
 
-		if actual.Lineage != state.Lineage {
-			t.Fatalf("bad: %#v", actual)
-		}
+		assertStateHasMarker(t, actual.State, mark)
 	}
 
 	// Verify the default paths don't exist
@@ -366,34 +316,35 @@ func TestMetaBackend_configureNewWithState(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	if err := s.RefreshState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	state := s.State()
 	if state == nil {
 		t.Fatal("state is nil")
 	}
 
-	if state.Lineage != "backend-new-migrate" {
+	if testStateMgrCurrentLineage(s) != "backend-new-migrate" {
 		t.Fatalf("bad: %#v", state)
 	}
 
 	// Write some state
-	state = terraform.NewState()
-	state.Lineage = "changing"
+	state = states.NewState()
+	mark := markStateForMatching(state, "changing")
+
 	s.WriteState(state)
 	if err := s.PersistState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 
 	// Verify the state is where we expect
@@ -402,15 +353,13 @@ func TestMetaBackend_configureNewWithState(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		actual, err := terraform.ReadState(f)
+		actual, err := statefile.Read(f)
 		f.Close()
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
 
-		if actual.Lineage != state.Lineage {
-			t.Fatalf("bad: %#v", actual)
-		}
+		assertStateHasMarker(t, actual.State, mark)
 	}
 
 	// Verify the default paths don't exist
@@ -444,9 +393,9 @@ func TestMetaBackend_configureNewWithoutCopy(t *testing.T) {
 	m.input = false
 
 	// init the backend
-	_, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	_, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Verify the state is where we expect
@@ -454,7 +403,7 @@ func TestMetaBackend_configureNewWithoutCopy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	actual, err := terraform.ReadState(f)
+	actual, err := statefile.Read(f)
 	f.Close()
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -493,18 +442,18 @@ func TestMetaBackend_configureNewWithStateNoMigrate(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	if err := s.RefreshState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	if state := s.State(); state != nil {
 		t.Fatal("state is not nil")
@@ -537,33 +486,34 @@ func TestMetaBackend_configureNewWithStateExisting(t *testing.T) {
 	m.forceInitCopy = true
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	if err := s.RefreshState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	state := s.State()
 	if state == nil {
 		t.Fatal("state is nil")
 	}
-	if state.Lineage != "local" {
+	if testStateMgrCurrentLineage(s) != "local" {
 		t.Fatalf("bad: %#v", state)
 	}
 
 	// Write some state
-	state = terraform.NewState()
-	state.Lineage = "changing"
+	state = states.NewState()
+	mark := markStateForMatching(state, "changing")
+
 	s.WriteState(state)
 	if err := s.PersistState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 
 	// Verify the state is where we expect
@@ -572,15 +522,13 @@ func TestMetaBackend_configureNewWithStateExisting(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		actual, err := terraform.ReadState(f)
+		actual, err := statefile.Read(f)
 		f.Close()
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
 
-		if actual.Lineage != state.Lineage {
-			t.Fatalf("bad: %#v", actual)
-		}
+		assertStateHasMarker(t, actual.State, mark)
 	}
 
 	// Verify the default paths don't exist
@@ -611,33 +559,33 @@ func TestMetaBackend_configureNewWithStateExistingNoMigrate(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	if err := s.RefreshState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	state := s.State()
 	if state == nil {
 		t.Fatal("state is nil")
 	}
-	if state.Lineage != "remote" {
+	if testStateMgrCurrentLineage(s) != "remote" {
 		t.Fatalf("bad: %#v", state)
 	}
 
 	// Write some state
-	state = terraform.NewState()
-	state.Lineage = "changing"
+	state = states.NewState()
+	mark := markStateForMatching(state, "changing")
 	s.WriteState(state)
 	if err := s.PersistState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 
 	// Verify the state is where we expect
@@ -646,15 +594,13 @@ func TestMetaBackend_configureNewWithStateExistingNoMigrate(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		actual, err := terraform.ReadState(f)
+		actual, err := statefile.Read(f)
 		f.Close()
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
 
-		if actual.Lineage != state.Lineage {
-			t.Fatalf("bad: %#v", actual)
-		}
+		assertStateHasMarker(t, actual.State, mark)
 	}
 
 	// Verify the default paths don't exist
@@ -670,200 +616,6 @@ func TestMetaBackend_configureNewWithStateExistingNoMigrate(t *testing.T) {
 	}
 }
 
-// Newly configured backend with lgacy
-func TestMetaBackend_configureNewLegacy(t *testing.T) {
-	// Create a temporary working directory that is empty
-	td := tempDir(t)
-	copy.CopyDir(testFixturePath("backend-new-legacy"), td)
-	defer os.RemoveAll(td)
-	defer testChdir(t, td)()
-
-	// Ask input
-	defer testInteractiveInput(t, []string{"no"})()
-
-	// Setup the meta
-	m := testMetaBackend(t, nil)
-
-	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-
-	// Check the state
-	s, err := b.State(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-	if err := s.RefreshState(); err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-	state := s.State()
-	if state != nil {
-		t.Fatal("state should be nil")
-	}
-
-	// Verify we have no configured legacy
-	{
-		path := filepath.Join(m.DataDir(), DefaultStateFilename)
-		f, err := os.Open(path)
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		actual, err := terraform.ReadState(f)
-		f.Close()
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-
-		if !actual.Remote.Empty() {
-			t.Fatalf("bad: %#v", actual)
-		}
-		if actual.Backend.Empty() {
-			t.Fatalf("bad: %#v", actual)
-		}
-	}
-
-	// Write some state
-	state = terraform.NewState()
-	state.Lineage = "changing"
-	s.WriteState(state)
-	if err := s.PersistState(); err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-
-	// Verify the state is where we expect
-	{
-		f, err := os.Open("local-state.tfstate")
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		actual, err := terraform.ReadState(f)
-		f.Close()
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-
-		if actual.Lineage != state.Lineage {
-			t.Fatalf("bad: %#v", actual)
-		}
-	}
-
-	// Verify the default paths don't exist
-	if !isEmptyState(DefaultStateFilename) {
-		data, _ := ioutil.ReadFile(DefaultStateFilename)
-
-		t.Fatal("state should not exist, but contains:\n", string(data))
-	}
-
-	// Verify a backup doesn't exist
-	if !isEmptyState(DefaultStateFilename + DefaultBackupExtension) {
-		data, _ := ioutil.ReadFile(DefaultStateFilename)
-
-		t.Fatal("backup should be empty, but contains:\n", string(data))
-	}
-}
-
-// Newly configured backend with legacy
-func TestMetaBackend_configureNewLegacyCopy(t *testing.T) {
-	// Create a temporary working directory that is empty
-	td := tempDir(t)
-	copy.CopyDir(testFixturePath("backend-new-legacy"), td)
-	defer os.RemoveAll(td)
-	defer testChdir(t, td)()
-
-	// Setup the meta
-	m := testMetaBackend(t, nil)
-
-	// suppress input
-	m.forceInitCopy = true
-
-	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-
-	// Check the state
-	s, err := b.State(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-	if err := s.RefreshState(); err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-	state := s.State()
-	if state == nil {
-		t.Fatal("nil state")
-	}
-	if state.Lineage != "backend-new-legacy" {
-		t.Fatalf("bad: %#v", state)
-	}
-
-	// Verify we have no configured legacy
-	{
-		path := filepath.Join(m.DataDir(), DefaultStateFilename)
-		f, err := os.Open(path)
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		actual, err := terraform.ReadState(f)
-		f.Close()
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-
-		if !actual.Remote.Empty() {
-			t.Fatalf("bad: %#v", actual)
-		}
-		if actual.Backend.Empty() {
-			t.Fatalf("bad: %#v", actual)
-		}
-	}
-
-	// Verify we have no configured legacy in the state itself
-	{
-		if !state.Remote.Empty() {
-			t.Fatalf("legacy has remote state: %#v", state.Remote)
-		}
-	}
-
-	// Write some state
-	state = terraform.NewState()
-	state.Lineage = "changing"
-	s.WriteState(state)
-	if err := s.PersistState(); err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-
-	// Verify the state is where we expect
-	{
-		f, err := os.Open("local-state.tfstate")
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		actual, err := terraform.ReadState(f)
-		f.Close()
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-
-		if actual.Lineage != state.Lineage {
-			t.Fatalf("bad: %#v", actual)
-		}
-	}
-
-	// Verify the default paths don't exist
-	if _, err := os.Stat(DefaultStateFilename); err == nil {
-		t.Fatal("file should not exist")
-	}
-
-	// Verify a backup doesn't exist
-	if _, err := os.Stat(DefaultStateFilename + DefaultBackupExtension); err == nil {
-		t.Fatal("file should not exist")
-	}
-}
-
 // Saved backend state matching config
 func TestMetaBackend_configuredUnchanged(t *testing.T) {
 	defer testChdir(t, testFixturePath("backend-unchanged"))()
@@ -872,24 +624,24 @@ func TestMetaBackend_configuredUnchanged(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	if err := s.RefreshState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	state := s.State()
 	if state == nil {
 		t.Fatal("nil state")
 	}
-	if state.Lineage != "configuredUnchanged" {
+	if testStateMgrCurrentLineage(s) != "configuredUnchanged" {
 		t.Fatalf("bad: %#v", state)
 	}
 
@@ -919,18 +671,18 @@ func TestMetaBackend_configuredChange(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	if err := s.RefreshState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	state := s.State()
 	if state != nil {
@@ -948,11 +700,12 @@ func TestMetaBackend_configuredChange(t *testing.T) {
 	}
 
 	// Write some state
-	state = terraform.NewState()
-	state.Lineage = "changing"
+	state = states.NewState()
+	mark := markStateForMatching(state, "changing")
+
 	s.WriteState(state)
 	if err := s.PersistState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 
 	// Verify the state is where we expect
@@ -961,15 +714,13 @@ func TestMetaBackend_configuredChange(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		actual, err := terraform.ReadState(f)
+		actual, err := statefile.Read(f)
 		f.Close()
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
 
-		if actual.Lineage != state.Lineage {
-			t.Fatalf("bad: %#v", actual)
-		}
+		assertStateHasMarker(t, actual.State, mark)
 	}
 
 	// Verify no local state
@@ -1007,18 +758,18 @@ func TestMetaBackend_reconfigureChange(t *testing.T) {
 	m.reconfigure = true
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	if err := s.RefreshState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	newState := s.State()
 	if newState != nil || !newState.Empty() {
@@ -1026,7 +777,7 @@ func TestMetaBackend_reconfigureChange(t *testing.T) {
 	}
 
 	// verify that the old state is still there
-	s = (&state.LocalState{Path: "local-state.tfstate"})
+	s = statemgr.NewFilesystem("local-state.tfstate")
 	if err := s.RefreshState(); err != nil {
 		t.Fatal(err)
 	}
@@ -1051,24 +802,24 @@ func TestMetaBackend_configuredChangeCopy(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	if err := s.RefreshState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	state := s.State()
 	if state == nil {
 		t.Fatal("state should not be nil")
 	}
-	if state.Lineage != "backend-change" {
+	if testStateMgrCurrentLineage(s) != "backend-change" {
 		t.Fatalf("bad: %#v", state)
 	}
 
@@ -1106,24 +857,24 @@ func TestMetaBackend_configuredChangeCopy_singleState(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	if err := s.RefreshState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	state := s.State()
 	if state == nil {
 		t.Fatal("state should not be nil")
 	}
-	if state.Lineage != "backend-change" {
+	if testStateMgrCurrentLineage(s) != "backend-change" {
 		t.Fatalf("bad: %#v", state)
 	}
 
@@ -1162,24 +913,24 @@ func TestMetaBackend_configuredChangeCopy_multiToSingleDefault(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	if err := s.RefreshState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	state := s.State()
 	if state == nil {
 		t.Fatal("state should not be nil")
 	}
-	if state.Lineage != "backend-change" {
+	if testStateMgrCurrentLineage(s) != "backend-change" {
 		t.Fatalf("bad: %#v", state)
 	}
 
@@ -1218,24 +969,24 @@ func TestMetaBackend_configuredChangeCopy_multiToSingle(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	if err := s.RefreshState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	state := s.State()
 	if state == nil {
 		t.Fatal("state should not be nil")
 	}
-	if state.Lineage != "backend-change" {
+	if testStateMgrCurrentLineage(s) != "backend-change" {
 		t.Fatalf("bad: %#v", state)
 	}
 
@@ -1286,28 +1037,28 @@ func TestMetaBackend_configuredChangeCopy_multiToSingleCurrentEnv(t *testing.T) 
 
 	// Change env
 	if err := m.SetWorkspace("env2"); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	if err := s.RefreshState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	state := s.State()
 	if state == nil {
 		t.Fatal("state should not be nil")
 	}
-	if state.Lineage != "backend-change-env2" {
+	if testStateMgrCurrentLineage(s) != "backend-change-env2" {
 		t.Fatalf("bad: %#v", state)
 	}
 
@@ -1347,15 +1098,15 @@ func TestMetaBackend_configuredChangeCopy_multiToMulti(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check resulting states
-	states, err := b.States()
+	states, err := b.Workspaces()
 	if err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 
 	sort.Strings(states)
@@ -1366,36 +1117,36 @@ func TestMetaBackend_configuredChangeCopy_multiToMulti(t *testing.T) {
 
 	{
 		// Check the default state
-		s, err := b.State(backend.DefaultStateName)
+		s, err := b.StateMgr(backend.DefaultStateName)
 		if err != nil {
-			t.Fatalf("bad: %s", err)
+			t.Fatalf("unexpected error: %s", err)
 		}
 		if err := s.RefreshState(); err != nil {
-			t.Fatalf("bad: %s", err)
+			t.Fatalf("unexpected error: %s", err)
 		}
 		state := s.State()
 		if state == nil {
 			t.Fatal("state should not be nil")
 		}
-		if state.Lineage != "backend-change" {
+		if testStateMgrCurrentLineage(s) != "backend-change" {
 			t.Fatalf("bad: %#v", state)
 		}
 	}
 
 	{
 		// Check the other state
-		s, err := b.State("env2")
+		s, err := b.StateMgr("env2")
 		if err != nil {
-			t.Fatalf("bad: %s", err)
+			t.Fatalf("unexpected error: %s", err)
 		}
 		if err := s.RefreshState(); err != nil {
-			t.Fatalf("bad: %s", err)
+			t.Fatalf("unexpected error: %s", err)
 		}
 		state := s.State()
 		if state == nil {
 			t.Fatal("state should not be nil")
 		}
-		if state.Lineage != "backend-change-env2" {
+		if testStateMgrCurrentLineage(s) != "backend-change-env2" {
 			t.Fatalf("bad: %#v", state)
 		}
 	}
@@ -1437,18 +1188,18 @@ func TestMetaBackend_configuredUnset(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	if err := s.RefreshState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	state := s.State()
 	if state != nil {
@@ -1467,31 +1218,10 @@ func TestMetaBackend_configuredUnset(t *testing.T) {
 		t.Fatal("backup should not exist, but contains:\n", string(data))
 	}
 
-	// Verify we have no configured backend/legacy
-	path := filepath.Join(m.DataDir(), DefaultStateFilename)
-	if _, err := os.Stat(path); err == nil {
-		f, err := os.Open(path)
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		actual, err := terraform.ReadState(f)
-		f.Close()
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-
-		if !actual.Remote.Empty() {
-			t.Fatalf("bad: %#v", actual)
-		}
-		if !actual.Backend.Empty() {
-			t.Fatalf("bad: %#v", actual)
-		}
-	}
-
 	// Write some state
 	s.WriteState(testState())
 	if err := s.PersistState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 
 	// Verify it exists where we expect it to
@@ -1521,24 +1251,24 @@ func TestMetaBackend_configuredUnsetCopy(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	if err := s.RefreshState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	state := s.State()
 	if state == nil {
 		t.Fatal("state is nil")
 	}
-	if state.Lineage != "configuredUnset" {
+	if testStateMgrCurrentLineage(s) != "configuredUnset" {
 		t.Fatalf("bad: %#v", state)
 	}
 
@@ -1547,31 +1277,10 @@ func TestMetaBackend_configuredUnsetCopy(t *testing.T) {
 		t.Fatalf("backup state should be empty")
 	}
 
-	// Verify we have no configured backend/legacy
-	path := filepath.Join(m.DataDir(), DefaultStateFilename)
-	if _, err := os.Stat(path); err == nil {
-		f, err := os.Open(path)
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		actual, err := terraform.ReadState(f)
-		f.Close()
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-
-		if !actual.Remote.Empty() {
-			t.Fatalf("bad: %#v", actual)
-		}
-		if !actual.Backend.Empty() {
-			t.Fatalf("bad: %#v", actual)
-		}
-	}
-
 	// Write some state
 	s.WriteState(testState())
 	if err := s.PersistState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 
 	// Verify it exists where we expect it to
@@ -1600,24 +1309,24 @@ func TestMetaBackend_configuredUnchangedLegacy(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	if err := s.RefreshState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	state := s.State()
 	if state == nil {
 		t.Fatal("state is nil")
 	}
-	if state.Lineage != "configured" {
+	if testStateMgrCurrentLineage(s) != "configured" {
 		t.Fatalf("bad: %#v", state)
 	}
 
@@ -1631,33 +1340,13 @@ func TestMetaBackend_configuredUnchangedLegacy(t *testing.T) {
 		t.Fatal("file should not exist")
 	}
 
-	// Verify we have no configured legacy
-	{
-		path := filepath.Join(m.DataDir(), DefaultStateFilename)
-		f, err := os.Open(path)
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		actual, err := terraform.ReadState(f)
-		f.Close()
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-
-		if !actual.Remote.Empty() {
-			t.Fatalf("bad: %#v", actual)
-		}
-		if actual.Backend.Empty() {
-			t.Fatalf("bad: %#v", actual)
-		}
-	}
-
 	// Write some state
-	state = terraform.NewState()
-	state.Lineage = "changing"
+	state = states.NewState()
+	mark := markStateForMatching(state, "changing")
+
 	s.WriteState(state)
 	if err := s.PersistState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 
 	// Verify the state is where we expect
@@ -1666,15 +1355,13 @@ func TestMetaBackend_configuredUnchangedLegacy(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		actual, err := terraform.ReadState(f)
+		actual, err := statefile.Read(f)
 		f.Close()
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
 
-		if actual.Lineage != state.Lineage {
-			t.Fatalf("bad: %#v", actual)
-		}
+		assertStateHasMarker(t, actual.State, mark)
 	}
 
 	// Verify no local state
@@ -1701,24 +1388,24 @@ func TestMetaBackend_configuredUnchangedLegacyCopy(t *testing.T) {
 	m.forceInitCopy = true
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	if err := s.RefreshState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	state := s.State()
 	if state == nil {
 		t.Fatal("state is nil")
 	}
-	if state.Lineage != "backend-unchanged-with-legacy" {
+	if testStateMgrCurrentLineage(s) != "backend-unchanged-with-legacy" {
 		t.Fatalf("bad: %#v", state)
 	}
 
@@ -1732,33 +1419,13 @@ func TestMetaBackend_configuredUnchangedLegacyCopy(t *testing.T) {
 		t.Fatal("file should not exist")
 	}
 
-	// Verify we have no configured legacy
-	{
-		path := filepath.Join(m.DataDir(), DefaultStateFilename)
-		f, err := os.Open(path)
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		actual, err := terraform.ReadState(f)
-		f.Close()
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-
-		if !actual.Remote.Empty() {
-			t.Fatalf("bad: %#v", actual)
-		}
-		if actual.Backend.Empty() {
-			t.Fatalf("bad: %#v", actual)
-		}
-	}
-
 	// Write some state
-	state = terraform.NewState()
-	state.Lineage = "changing"
+	state = states.NewState()
+	mark := markStateForMatching(state, "changing")
+
 	s.WriteState(state)
 	if err := s.PersistState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 
 	// Verify the state is where we expect
@@ -1767,15 +1434,13 @@ func TestMetaBackend_configuredUnchangedLegacyCopy(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		actual, err := terraform.ReadState(f)
+		actual, err := statefile.Read(f)
 		f.Close()
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
 
-		if actual.Lineage != state.Lineage {
-			t.Fatalf("bad: %#v", actual)
-		}
+		assertStateHasMarker(t, actual.State, mark)
 	}
 
 	// Verify no local state
@@ -1804,18 +1469,18 @@ func TestMetaBackend_configuredChangedLegacy(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	if err := s.RefreshState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	state := s.State()
 	if state != nil {
@@ -1832,33 +1497,13 @@ func TestMetaBackend_configuredChangedLegacy(t *testing.T) {
 		t.Fatal("file should not exist")
 	}
 
-	// Verify we have no configured legacy
-	{
-		path := filepath.Join(m.DataDir(), DefaultStateFilename)
-		f, err := os.Open(path)
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		actual, err := terraform.ReadState(f)
-		f.Close()
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-
-		if !actual.Remote.Empty() {
-			t.Fatalf("bad: %#v", actual)
-		}
-		if actual.Backend.Empty() {
-			t.Fatalf("bad: %#v", actual)
-		}
-	}
-
 	// Write some state
-	state = terraform.NewState()
-	state.Lineage = "changing"
+	state = states.NewState()
+	mark := markStateForMatching(state, "changing")
+
 	s.WriteState(state)
 	if err := s.PersistState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 
 	// Verify the state is where we expect
@@ -1867,15 +1512,13 @@ func TestMetaBackend_configuredChangedLegacy(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		actual, err := terraform.ReadState(f)
+		actual, err := statefile.Read(f)
 		f.Close()
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
 
-		if actual.Lineage != state.Lineage {
-			t.Fatalf("bad: %#v", actual)
-		}
+		assertStateHasMarker(t, actual.State, mark)
 	}
 
 	// Verify no local state
@@ -1904,24 +1547,24 @@ func TestMetaBackend_configuredChangedLegacyCopyBackend(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	if err := s.RefreshState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	state := s.State()
 	if state == nil {
 		t.Fatal("state is nil")
 	}
-	if state.Lineage != "configured" {
+	if testStateMgrCurrentLineage(s) != "configured" {
 		t.Fatalf("bad: %#v", state)
 	}
 
@@ -1935,33 +1578,13 @@ func TestMetaBackend_configuredChangedLegacyCopyBackend(t *testing.T) {
 		t.Fatal("file should not exist")
 	}
 
-	// Verify we have no configured legacy
-	{
-		path := filepath.Join(m.DataDir(), DefaultStateFilename)
-		f, err := os.Open(path)
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		actual, err := terraform.ReadState(f)
-		f.Close()
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-
-		if !actual.Remote.Empty() {
-			t.Fatalf("bad: %#v", actual)
-		}
-		if actual.Backend.Empty() {
-			t.Fatalf("bad: %#v", actual)
-		}
-	}
-
 	// Write some state
-	state = terraform.NewState()
-	state.Lineage = "changing"
+	state = states.NewState()
+	mark := markStateForMatching(state, "changing")
+
 	s.WriteState(state)
 	if err := s.PersistState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 
 	// Verify the state is where we expect
@@ -1970,15 +1593,13 @@ func TestMetaBackend_configuredChangedLegacyCopyBackend(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		actual, err := terraform.ReadState(f)
+		actual, err := statefile.Read(f)
 		f.Close()
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
 
-		if actual.Lineage != state.Lineage {
-			t.Fatalf("bad: %#v", actual)
-		}
+		assertStateHasMarker(t, actual.State, mark)
 	}
 
 	// Verify no local state
@@ -2007,24 +1628,24 @@ func TestMetaBackend_configuredChangedLegacyCopyLegacy(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	if err := s.RefreshState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	state := s.State()
 	if state == nil {
 		t.Fatal("state is nil")
 	}
-	if state.Lineage != "legacy" {
+	if testStateMgrCurrentLineage(s) != "legacy" {
 		t.Fatalf("bad: %#v", state)
 	}
 
@@ -2038,33 +1659,13 @@ func TestMetaBackend_configuredChangedLegacyCopyLegacy(t *testing.T) {
 		t.Fatal("file should not exist")
 	}
 
-	// Verify we have no configured legacy
-	{
-		path := filepath.Join(m.DataDir(), DefaultStateFilename)
-		f, err := os.Open(path)
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		actual, err := terraform.ReadState(f)
-		f.Close()
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-
-		if !actual.Remote.Empty() {
-			t.Fatalf("bad: %#v", actual)
-		}
-		if actual.Backend.Empty() {
-			t.Fatalf("bad: %#v", actual)
-		}
-	}
-
 	// Write some state
-	state = terraform.NewState()
-	state.Lineage = "changing"
+	state = states.NewState()
+	mark := markStateForMatching(state, "changing")
+
 	s.WriteState(state)
 	if err := s.PersistState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 
 	// Verify the state is where we expect
@@ -2073,15 +1674,13 @@ func TestMetaBackend_configuredChangedLegacyCopyLegacy(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		actual, err := terraform.ReadState(f)
+		actual, err := statefile.Read(f)
 		f.Close()
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
 
-		if actual.Lineage != state.Lineage {
-			t.Fatalf("bad: %#v", actual)
-		}
+		assertStateHasMarker(t, actual.State, mark)
 	}
 
 	// Verify no local state
@@ -2110,24 +1709,24 @@ func TestMetaBackend_configuredChangedLegacyCopyBoth(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	if err := s.RefreshState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	state := s.State()
 	if state == nil {
 		t.Fatal("state is nil")
 	}
-	if state.Lineage != "legacy" {
+	if testStateMgrCurrentLineage(s) != "legacy" {
 		t.Fatalf("bad: %#v", state)
 	}
 
@@ -2141,33 +1740,13 @@ func TestMetaBackend_configuredChangedLegacyCopyBoth(t *testing.T) {
 		t.Fatal("file should not exist")
 	}
 
-	// Verify we have no configured legacy
-	{
-		path := filepath.Join(m.DataDir(), DefaultStateFilename)
-		f, err := os.Open(path)
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		actual, err := terraform.ReadState(f)
-		f.Close()
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-
-		if !actual.Remote.Empty() {
-			t.Fatalf("bad: %#v", actual)
-		}
-		if actual.Backend.Empty() {
-			t.Fatalf("bad: %#v", actual)
-		}
-	}
-
 	// Write some state
-	state = terraform.NewState()
-	state.Lineage = "changing"
+	state = states.NewState()
+	mark := markStateForMatching(state, "changing")
+
 	s.WriteState(state)
 	if err := s.PersistState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 
 	// Verify the state is where we expect
@@ -2176,15 +1755,13 @@ func TestMetaBackend_configuredChangedLegacyCopyBoth(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		actual, err := terraform.ReadState(f)
+		actual, err := statefile.Read(f)
 		f.Close()
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
 
-		if actual.Lineage != state.Lineage {
-			t.Fatalf("bad: %#v", actual)
-		}
+		assertStateHasMarker(t, actual.State, mark)
 	}
 
 	// Verify no local state
@@ -2213,18 +1790,18 @@ func TestMetaBackend_configuredUnsetWithLegacyNoCopy(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	if err := s.RefreshState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	state := s.State()
 	if state != nil {
@@ -2241,33 +1818,13 @@ func TestMetaBackend_configuredUnsetWithLegacyNoCopy(t *testing.T) {
 		t.Fatal("backup should be empty")
 	}
 
-	// Verify we have no configured backend/legacy
-	path := filepath.Join(m.DataDir(), DefaultStateFilename)
-	if _, err := os.Stat(path); err == nil {
-		f, err := os.Open(path)
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		actual, err := terraform.ReadState(f)
-		f.Close()
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-
-		if !actual.Remote.Empty() {
-			t.Fatalf("bad: %#v", actual)
-		}
-		if !actual.Backend.Empty() {
-			t.Fatalf("bad: %#v", actual)
-		}
-	}
-
 	// Write some state
-	state = terraform.NewState()
-	state.Lineage = "changing"
+	state = states.NewState()
+	mark := markStateForMatching(state, "changing")
+
 	s.WriteState(state)
 	if err := s.PersistState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 
 	// Verify the state is where we expect
@@ -2276,15 +1833,13 @@ func TestMetaBackend_configuredUnsetWithLegacyNoCopy(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		actual, err := terraform.ReadState(f)
+		actual, err := statefile.Read(f)
 		f.Close()
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
 
-		if actual.Lineage != state.Lineage {
-			t.Fatalf("bad: %#v", actual)
-		}
+		assertStateHasMarker(t, actual.State, mark)
 	}
 }
 
@@ -2303,24 +1858,24 @@ func TestMetaBackend_configuredUnsetWithLegacyCopyBackend(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	if err := s.RefreshState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	state := s.State()
 	if state == nil {
 		t.Fatal("state is nil")
 	}
-	if state.Lineage != "backend" {
+	if testStateMgrCurrentLineage(s) != "backend" {
 		t.Fatalf("bad: %#v", state)
 	}
 
@@ -2334,33 +1889,13 @@ func TestMetaBackend_configuredUnsetWithLegacyCopyBackend(t *testing.T) {
 		t.Fatal("backupstate should be empty")
 	}
 
-	// Verify we have no configured backend/legacy
-	path := filepath.Join(m.DataDir(), DefaultStateFilename)
-	if _, err := os.Stat(path); err == nil {
-		f, err := os.Open(path)
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		actual, err := terraform.ReadState(f)
-		f.Close()
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-
-		if !actual.Remote.Empty() {
-			t.Fatalf("bad: %#v", actual)
-		}
-		if !actual.Backend.Empty() {
-			t.Fatalf("bad: %#v", actual)
-		}
-	}
-
 	// Write some state
-	state = terraform.NewState()
-	state.Lineage = "changing"
+	state = states.NewState()
+	mark := markStateForMatching(state, "changing")
+
 	s.WriteState(state)
 	if err := s.PersistState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 
 	// Verify the state is where we expect
@@ -2369,15 +1904,13 @@ func TestMetaBackend_configuredUnsetWithLegacyCopyBackend(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		actual, err := terraform.ReadState(f)
+		actual, err := statefile.Read(f)
 		f.Close()
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
 
-		if actual.Lineage != state.Lineage {
-			t.Fatalf("bad: %#v", actual)
-		}
+		assertStateHasMarker(t, actual.State, mark)
 	}
 
 	// Verify a local backup
@@ -2401,24 +1934,24 @@ func TestMetaBackend_configuredUnsetWithLegacyCopyLegacy(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	if err := s.RefreshState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	state := s.State()
 	if state == nil {
 		t.Fatal("state is nil")
 	}
-	if state.Lineage != "legacy" {
+	if testStateMgrCurrentLineage(s) != "legacy" {
 		t.Fatalf("bad: %#v", state)
 	}
 
@@ -2432,33 +1965,13 @@ func TestMetaBackend_configuredUnsetWithLegacyCopyLegacy(t *testing.T) {
 		t.Fatal("backupstate should be empty")
 	}
 
-	// Verify we have no configured backend/legacy
-	path := filepath.Join(m.DataDir(), DefaultStateFilename)
-	if _, err := os.Stat(path); err == nil {
-		f, err := os.Open(path)
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		actual, err := terraform.ReadState(f)
-		f.Close()
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-
-		if !actual.Remote.Empty() {
-			t.Fatalf("bad: %#v", actual)
-		}
-		if !actual.Backend.Empty() {
-			t.Fatalf("bad: %#v", actual)
-		}
-	}
-
 	// Write some state
-	state = terraform.NewState()
-	state.Lineage = "changing"
+	state = states.NewState()
+	mark := markStateForMatching(state, "changing")
+
 	s.WriteState(state)
 	if err := s.PersistState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 
 	// Verify the state is where we expect
@@ -2467,15 +1980,13 @@ func TestMetaBackend_configuredUnsetWithLegacyCopyLegacy(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		actual, err := terraform.ReadState(f)
+		actual, err := statefile.Read(f)
 		f.Close()
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
 
-		if actual.Lineage != state.Lineage {
-			t.Fatalf("bad: %#v", actual)
-		}
+		assertStateHasMarker(t, actual.State, mark)
 	}
 
 	// Verify a local backup
@@ -2499,24 +2010,24 @@ func TestMetaBackend_configuredUnsetWithLegacyCopyBoth(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	if err := s.RefreshState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	state := s.State()
 	if state == nil {
 		t.Fatal("state is nil")
 	}
-	if state.Lineage != "legacy" {
+	if testStateMgrCurrentLineage(s) != "legacy" {
 		t.Fatalf("bad: %#v", state)
 	}
 
@@ -2530,33 +2041,13 @@ func TestMetaBackend_configuredUnsetWithLegacyCopyBoth(t *testing.T) {
 		t.Fatal("backup is empty")
 	}
 
-	// Verify we have no configured backend/legacy
-	path := filepath.Join(m.DataDir(), DefaultStateFilename)
-	if _, err := os.Stat(path); err == nil {
-		f, err := os.Open(path)
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		actual, err := terraform.ReadState(f)
-		f.Close()
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-
-		if !actual.Remote.Empty() {
-			t.Fatalf("bad: %#v", actual)
-		}
-		if !actual.Backend.Empty() {
-			t.Fatalf("bad: %#v", actual)
-		}
-	}
-
 	// Write some state
-	state = terraform.NewState()
-	state.Lineage = "changing"
+	state = states.NewState()
+	mark := markStateForMatching(state, "changing")
+
 	s.WriteState(state)
 	if err := s.PersistState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 
 	// Verify the state is where we expect
@@ -2565,15 +2056,13 @@ func TestMetaBackend_configuredUnsetWithLegacyCopyBoth(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		actual, err := terraform.ReadState(f)
+		actual, err := statefile.Read(f)
 		f.Close()
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
 
-		if actual.Lineage != state.Lineage {
-			t.Fatalf("bad: %#v", actual)
-		}
+		assertStateHasMarker(t, actual.State, mark)
 	}
 
 	// Verify a local backup
@@ -2582,7 +2071,7 @@ func TestMetaBackend_configuredUnsetWithLegacyCopyBoth(t *testing.T) {
 	}
 }
 
-// A plan that has no backend config
+// A plan that has uses the local backend
 func TestMetaBackend_planLocal(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
@@ -2590,56 +2079,57 @@ func TestMetaBackend_planLocal(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	// Create the plan
-	plan := &terraform.Plan{
-		Module: testModule(t, "backend-plan-local"),
-		State:  nil,
+	backendConfig := plans.Backend{
+		Type:      "local",
+		Config:    plans.DynamicValue("{}"),
+		Workspace: "default",
 	}
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Plan: plan})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.BackendForPlan(backendConfig)
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	if err := s.RefreshState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	state := s.State()
 	if state != nil {
 		t.Fatalf("state should be nil: %#v", state)
 	}
 
-	// Verify the default path doens't exist
+	// The default state file should not exist yet
 	if !isEmptyState(DefaultStateFilename) {
 		t.Fatal("expected empty state")
 	}
 
-	// Verify a backup doesn't exists
+	// A backup file shouldn't exist yet either.
 	if !isEmptyState(DefaultStateFilename + DefaultBackupExtension) {
 		t.Fatal("expected empty backup")
 	}
 
-	// Verify we have no configured backend/legacy
+	// Verify we have no configured backend
 	path := filepath.Join(m.DataDir(), DefaultStateFilename)
 	if _, err := os.Stat(path); err == nil {
 		t.Fatalf("should not have backend configured")
 	}
 
 	// Write some state
-	state = terraform.NewState()
-	state.Lineage = "changing"
+	state = states.NewState()
+	mark := markStateForMatching(state, "changing")
+
 	s.WriteState(state)
 	if err := s.PersistState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 
 	// Verify the state is where we expect
@@ -2648,15 +2138,13 @@ func TestMetaBackend_planLocal(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		actual, err := terraform.ReadState(f)
+		actual, err := statefile.Read(f)
 		f.Close()
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
 
-		if actual.Lineage != state.Lineage {
-			t.Fatalf("bad: %#v", actual)
-		}
+		assertStateHasMarker(t, actual.State, mark)
 	}
 
 	// Verify no local backup
@@ -2673,21 +2161,20 @@ func TestMetaBackend_planLocalStatePath(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	// Create our state
 	original := testState()
-	original.Lineage = "hello"
+	mark := markStateForMatching(original, "hello")
 
-	// Create the plan
-	plan := &terraform.Plan{
-		Module: testModule(t, "backend-plan-local"),
-		State:  original,
+	backendConfig := plans.Backend{
+		Type:      "local",
+		Config:    plans.DynamicValue("{}"),
+		Workspace: "default",
 	}
 
 	// Create an alternate output path
 	statePath := "foo.tfstate"
 
 	// put a initial state there that needs to be backed up
-	err := (&state.LocalState{Path: statePath}).WriteState(original)
+	err := (statemgr.NewFilesystem(statePath)).WriteState(original)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2697,26 +2184,24 @@ func TestMetaBackend_planLocalStatePath(t *testing.T) {
 	m.stateOutPath = statePath
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Plan: plan})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.BackendForPlan(backendConfig)
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	if err := s.RefreshState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	state := s.State()
 	if state == nil {
 		t.Fatal("state is nil")
 	}
-	if state.Lineage != "hello" {
-		t.Fatalf("bad: %#v", state)
-	}
+	assertStateHasMarker(t, state, mark)
 
 	// Verify the default path doesn't exist
 	if _, err := os.Stat(DefaultStateFilename); err == nil {
@@ -2735,11 +2220,12 @@ func TestMetaBackend_planLocalStatePath(t *testing.T) {
 	}
 
 	// Write some state
-	state = terraform.NewState()
-	state.Lineage = "changing"
+	state = states.NewState()
+	mark = markStateForMatching(state, "changing")
+
 	s.WriteState(state)
 	if err := s.PersistState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 
 	// Verify the state is where we expect
@@ -2748,15 +2234,13 @@ func TestMetaBackend_planLocalStatePath(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		actual, err := terraform.ReadState(f)
+		actual, err := statefile.Read(f)
 		f.Close()
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
 
-		if actual.Lineage != state.Lineage {
-			t.Fatalf("bad: %#v", actual)
-		}
+		assertStateHasMarker(t, actual.State, mark)
 	}
 
 	// Verify we have a backup
@@ -2773,34 +2257,34 @@ func TestMetaBackend_planLocalMatch(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	// Create the plan
-	plan := &terraform.Plan{
-		Module: testModule(t, "backend-plan-local-match"),
-		State:  testStateRead(t, DefaultStateFilename),
+	backendConfig := plans.Backend{
+		Type:      "local",
+		Config:    plans.DynamicValue("{}"),
+		Workspace: "default",
 	}
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Plan: plan})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.BackendForPlan(backendConfig)
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
-	s, err := b.State(backend.DefaultStateName)
+	s, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	if err := s.RefreshState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 	state := s.State()
 	if state == nil {
 		t.Fatal("should is nil")
 	}
-	if state.Lineage != "hello" {
+	if testStateMgrCurrentLineage(s) != "hello" {
 		t.Fatalf("bad: %#v", state)
 	}
 
@@ -2821,11 +2305,12 @@ func TestMetaBackend_planLocalMatch(t *testing.T) {
 	}
 
 	// Write some state
-	state = terraform.NewState()
-	state.Lineage = "changing"
+	state = states.NewState()
+	mark := markStateForMatching(state, "changing")
+
 	s.WriteState(state)
 	if err := s.PersistState(); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 
 	// Verify the state is where we expect
@@ -2834,490 +2319,18 @@ func TestMetaBackend_planLocalMatch(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		actual, err := terraform.ReadState(f)
+		actual, err := statefile.Read(f)
 		f.Close()
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
 
-		if actual.Lineage != state.Lineage {
-			t.Fatalf("bad: %#v", actual)
-		}
+		assertStateHasMarker(t, actual.State, mark)
 	}
 
 	// Verify local backup
 	if isEmptyState(DefaultStateFilename + DefaultBackupExtension) {
 		t.Fatal("backup is empty")
-	}
-}
-
-// A plan that has no backend config, mismatched lineage
-func TestMetaBackend_planLocalMismatchLineage(t *testing.T) {
-	// Create a temporary working directory that is empty
-	td := tempDir(t)
-	copy.CopyDir(testFixturePath("backend-plan-local-mismatch-lineage"), td)
-	defer os.RemoveAll(td)
-	defer testChdir(t, td)()
-
-	// Save the original
-	original := testStateRead(t, DefaultStateFilename)
-
-	// Change the lineage
-	planState := testStateRead(t, DefaultStateFilename)
-	planState.Lineage = "bad"
-
-	// Create the plan
-	plan := &terraform.Plan{
-		Module: testModule(t, "backend-plan-local-mismatch-lineage"),
-		State:  planState,
-	}
-
-	// Setup the meta
-	m := testMetaBackend(t, nil)
-
-	// Get the backend
-	_, err := m.Backend(&BackendOpts{Plan: plan})
-	if err == nil {
-		t.Fatal("should have error")
-	}
-	if !strings.Contains(err.Error(), "lineage") {
-		t.Fatalf("bad: %s", err)
-	}
-
-	// Verify our local state didn't change
-	actual := testStateRead(t, DefaultStateFilename)
-	if !actual.Equal(original) {
-		t.Fatalf("bad: %#v", actual)
-	}
-
-	// Verify a backup doesn't exists
-	if _, err := os.Stat(DefaultStateFilename + DefaultBackupExtension); err == nil {
-		t.Fatal("file should not exist")
-	}
-
-	// Verify we have no configured backend/legacy
-	path := filepath.Join(m.DataDir(), DefaultStateFilename)
-	if _, err := os.Stat(path); err == nil {
-		t.Fatalf("should not have backend configured")
-	}
-}
-
-// A plan that has no backend config, newer local
-func TestMetaBackend_planLocalNewer(t *testing.T) {
-	// Create a temporary working directory that is empty
-	td := tempDir(t)
-	copy.CopyDir(testFixturePath("backend-plan-local-newer"), td)
-	defer os.RemoveAll(td)
-	defer testChdir(t, td)()
-
-	// Save the original
-	original := testStateRead(t, DefaultStateFilename)
-
-	// Change the serial
-	planState := testStateRead(t, DefaultStateFilename)
-	planState.Serial = 7
-	planState.RootModule().Dependencies = []string{"foo"}
-
-	// Create the plan
-	plan := &terraform.Plan{
-		Module: testModule(t, "backend-plan-local-newer"),
-		State:  planState,
-	}
-
-	// Setup the meta
-	m := testMetaBackend(t, nil)
-
-	// Get the backend
-	_, err := m.Backend(&BackendOpts{Plan: plan})
-	if err == nil {
-		t.Fatal("should have error")
-	}
-	if !strings.Contains(err.Error(), "older") {
-		t.Fatalf("bad: %s", err)
-	}
-
-	// Verify our local state didn't change
-	actual := testStateRead(t, DefaultStateFilename)
-	if !actual.Equal(original) {
-		t.Fatalf("bad: %#v", actual)
-	}
-
-	// Verify a backup doesn't exists
-	if _, err := os.Stat(DefaultStateFilename + DefaultBackupExtension); err == nil {
-		t.Fatal("file should not exist")
-	}
-
-	// Verify we have no configured backend/legacy
-	path := filepath.Join(m.DataDir(), DefaultStateFilename)
-	if _, err := os.Stat(path); err == nil {
-		t.Fatalf("should not have backend configured")
-	}
-}
-
-// A plan that has a backend in an empty dir
-func TestMetaBackend_planBackendEmptyDir(t *testing.T) {
-	// Create a temporary working directory that is empty
-	td := tempDir(t)
-	copy.CopyDir(testFixturePath("backend-plan-backend-empty"), td)
-	defer os.RemoveAll(td)
-	defer testChdir(t, td)()
-
-	// Get the state for the plan by getting the real state and
-	// adding the backend config to it.
-	original := testStateRead(t, filepath.Join(
-		testFixturePath("backend-plan-backend-empty-config"),
-		"local-state.tfstate"))
-	backendState := testStateRead(t, filepath.Join(
-		testFixturePath("backend-plan-backend-empty-config"),
-		DefaultDataDir, DefaultStateFilename))
-	planState := original.DeepCopy()
-
-	// Create the plan
-	plan := &terraform.Plan{
-		Module:  testModule(t, "backend-plan-backend-empty-config"),
-		State:   planState,
-		Backend: backendState.Backend,
-	}
-
-	// Setup the meta
-	m := testMetaBackend(t, nil)
-
-	// Get the backend
-	b, err := m.Backend(&BackendOpts{Plan: plan})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-
-	// Check the state
-	s, err := b.State(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-	if err := s.RefreshState(); err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-	state := s.State()
-	if state == nil {
-		t.Fatal("should is nil")
-	}
-	if state.Lineage != "hello" {
-		t.Fatalf("bad: %#v", state)
-	}
-
-	// Verify the default path doesn't exist
-	if !isEmptyState(DefaultStateFilename) {
-		t.Fatal("state is not empty")
-	}
-
-	// Verify a backup doesn't exist
-	if !isEmptyState(DefaultStateFilename + DefaultBackupExtension) {
-		t.Fatal("backup is not empty")
-	}
-
-	// Verify we have no configured backend/legacy
-	path := filepath.Join(m.DataDir(), DefaultStateFilename)
-	if _, err := os.Stat(path); err == nil {
-		t.Fatalf("should not have backend configured")
-	}
-
-	// Write some state
-	state = terraform.NewState()
-	state.Lineage = "changing"
-	s.WriteState(state)
-	if err := s.PersistState(); err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-
-	// Verify the state is where we expect
-	{
-		f, err := os.Open("local-state.tfstate")
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		actual, err := terraform.ReadState(f)
-		f.Close()
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-
-		if actual.Lineage != state.Lineage {
-			t.Fatalf("bad: %#v", actual)
-		}
-	}
-
-	// Verify no default path
-	if _, err := os.Stat(DefaultStateFilename); err == nil {
-		t.Fatal("file should not exist")
-	}
-
-	// Verify no local backup
-	if _, err := os.Stat(DefaultStateFilename + DefaultBackupExtension); err == nil {
-		t.Fatal("file should not exist")
-	}
-}
-
-// A plan that has a backend with matching state
-func TestMetaBackend_planBackendMatch(t *testing.T) {
-	// Create a temporary working directory that is empty
-	td := tempDir(t)
-	copy.CopyDir(testFixturePath("backend-plan-backend-match"), td)
-	defer os.RemoveAll(td)
-	defer testChdir(t, td)()
-
-	// Get the state for the plan by getting the real state and
-	// adding the backend config to it.
-	original := testStateRead(t, filepath.Join(
-		testFixturePath("backend-plan-backend-empty-config"),
-		"local-state.tfstate"))
-	backendState := testStateRead(t, filepath.Join(
-		testFixturePath("backend-plan-backend-empty-config"),
-		DefaultDataDir, DefaultStateFilename))
-	planState := original.DeepCopy()
-
-	// Create the plan
-	plan := &terraform.Plan{
-		Module:  testModule(t, "backend-plan-backend-empty-config"),
-		State:   planState,
-		Backend: backendState.Backend,
-	}
-
-	// Setup the meta
-	m := testMetaBackend(t, nil)
-
-	// Get the backend
-	b, err := m.Backend(&BackendOpts{Plan: plan})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-
-	// Check the state
-	s, err := b.State(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-	if err := s.RefreshState(); err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-	state := s.State()
-	if state == nil {
-		t.Fatal("should is nil")
-	}
-	if state.Lineage != "hello" {
-		t.Fatalf("bad: %#v", state)
-	}
-
-	// Verify the default path exists
-	if _, err := os.Stat(DefaultStateFilename); err == nil {
-		t.Fatal("file should not exist")
-	}
-
-	// Verify a backup doesn't exist
-	if _, err := os.Stat(DefaultStateFilename + DefaultBackupExtension); err == nil {
-		t.Fatal("file should not exist")
-	}
-
-	// Verify we have no configured backend/legacy
-	path := filepath.Join(m.DataDir(), DefaultStateFilename)
-	if _, err := os.Stat(path); err == nil {
-		t.Fatalf("should not have backend configured")
-	}
-
-	// Write some state
-	state = terraform.NewState()
-	state.Lineage = "changing"
-	s.WriteState(state)
-	if err := s.PersistState(); err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-
-	// Verify the state is where we expect
-	{
-		f, err := os.Open("local-state.tfstate")
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		actual, err := terraform.ReadState(f)
-		f.Close()
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-
-		if actual.Lineage != state.Lineage {
-			t.Fatalf("bad: %#v", actual)
-		}
-	}
-
-	// Verify no default path
-	if _, err := os.Stat(DefaultStateFilename); err == nil {
-		t.Fatal("file should not exist")
-	}
-
-	// Verify no local backup
-	if _, err := os.Stat(DefaultStateFilename + DefaultBackupExtension); err == nil {
-		t.Fatal("file should not exist")
-	}
-}
-
-// A plan that has a backend with mismatching lineage
-func TestMetaBackend_planBackendMismatchLineage(t *testing.T) {
-	// Create a temporary working directory that is empty
-	td := tempDir(t)
-	copy.CopyDir(testFixturePath("backend-plan-backend-mismatch"), td)
-	defer os.RemoveAll(td)
-	defer testChdir(t, td)()
-
-	// Get the state for the plan by getting the real state and
-	// adding the backend config to it.
-	original := testStateRead(t, filepath.Join(
-		testFixturePath("backend-plan-backend-empty-config"),
-		"local-state.tfstate"))
-	backendState := testStateRead(t, filepath.Join(
-		testFixturePath("backend-plan-backend-empty-config"),
-		DefaultDataDir, DefaultStateFilename))
-	planState := original.DeepCopy()
-
-	// Get the real original
-	original = testStateRead(t, "local-state.tfstate")
-
-	// Create the plan
-	plan := &terraform.Plan{
-		Module:  testModule(t, "backend-plan-backend-empty-config"),
-		State:   planState,
-		Backend: backendState.Backend,
-	}
-
-	// Setup the meta
-	m := testMetaBackend(t, nil)
-
-	// Get the backend
-	_, err := m.Backend(&BackendOpts{Plan: plan})
-	if err == nil {
-		t.Fatal("should have error")
-	}
-	if !strings.Contains(err.Error(), "lineage") {
-		t.Fatalf("bad: %s", err)
-	}
-
-	// Verify our local state didn't change
-	actual := testStateRead(t, "local-state.tfstate")
-	if !actual.Equal(original) {
-		t.Fatalf("bad: %#v", actual)
-	}
-
-	// Verify a backup doesn't exist
-	if _, err := os.Stat(DefaultStateFilename + DefaultBackupExtension); err == nil {
-		t.Fatal("file should not exist")
-	}
-
-	// Verify we have no configured backend/legacy
-	path := filepath.Join(m.DataDir(), DefaultStateFilename)
-	if _, err := os.Stat(path); err == nil {
-		t.Fatalf("should not have backend configured")
-	}
-
-	// Verify we have no default state
-	if _, err := os.Stat(DefaultStateFilename); err == nil {
-		t.Fatal("file should not exist")
-	}
-}
-
-// A plan that has a legacy remote state
-func TestMetaBackend_planLegacy(t *testing.T) {
-	// Create a temporary working directory that is empty
-	td := tempDir(t)
-	copy.CopyDir(testFixturePath("backend-plan-legacy"), td)
-	defer os.RemoveAll(td)
-	defer testChdir(t, td)()
-
-	// Get the state for the plan by getting the real state and
-	// adding the backend config to it.
-	original := testStateRead(t, filepath.Join(
-		testFixturePath("backend-plan-legacy-data"), "local-state.tfstate"))
-	dataState := testStateRead(t, filepath.Join(
-		testFixturePath("backend-plan-legacy-data"), "state.tfstate"))
-	planState := original.DeepCopy()
-	planState.Remote = dataState.Remote
-
-	// Create the plan
-	plan := &terraform.Plan{
-		Module: testModule(t, "backend-plan-legacy-data"),
-		State:  planState,
-	}
-
-	// Setup the meta
-	m := testMetaBackend(t, nil)
-
-	// Get the backend
-	b, err := m.Backend(&BackendOpts{Plan: plan})
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Check the state
-	s, err := b.State(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-	if err := s.RefreshState(); err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-	state := s.State()
-	if state == nil {
-		t.Fatal("should is nil")
-	}
-	if state.Lineage != "hello" {
-		t.Fatalf("bad: %#v", state)
-	}
-
-	// Verify the default path
-	if _, err := os.Stat(DefaultStateFilename); err == nil {
-		t.Fatal("file should not exist")
-	}
-
-	// Verify a backup doesn't exist
-	if _, err := os.Stat(DefaultStateFilename + DefaultBackupExtension); err == nil {
-		t.Fatal("file should not exist")
-	}
-
-	// Verify we have no configured backend/legacy
-	path := filepath.Join(m.DataDir(), DefaultStateFilename)
-	if _, err := os.Stat(path); err == nil {
-		t.Fatalf("should not have backend configured")
-	}
-
-	// Write some state
-	state = terraform.NewState()
-	state.Lineage = "changing"
-	s.WriteState(state)
-	if err := s.PersistState(); err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-
-	// Verify the state is where we expect
-	{
-		f, err := os.Open("local-state.tfstate")
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		actual, err := terraform.ReadState(f)
-		f.Close()
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-
-		if actual.Lineage != state.Lineage {
-			t.Fatalf("bad: %#v", actual)
-		}
-	}
-
-	// Verify no default path
-	if _, err := os.Stat(DefaultStateFilename); err == nil {
-		t.Fatal("file should not exist")
-	}
-
-	// Verify no local backup
-	if _, err := os.Stat(DefaultStateFilename + DefaultBackupExtension); err == nil {
-		t.Fatal("file should not exist")
 	}
 }
 
@@ -3329,52 +2342,46 @@ func TestMetaBackend_configureWithExtra(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	extras := map[string]interface{}{"path": "hello"}
+	extras := map[string]cty.Value{"path": cty.StringVal("hello")}
 	m := testMetaBackend(t, nil)
 	opts := &BackendOpts{
-		ConfigExtra: extras,
-		Init:        true,
+		ConfigOverride: configs.SynthBody("synth", extras),
+		Init:           true,
 	}
 
-	backendCfg, err := m.backendConfig(opts)
+	_, cHash, err := m.backendConfig(opts)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// init the backend
-	_, err = m.Backend(&BackendOpts{
-		ConfigExtra: extras,
-		Init:        true,
+	_, diags := m.Backend(&BackendOpts{
+		ConfigOverride: configs.SynthBody("synth", extras),
+		Init:           true,
 	})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
-	s := testStateRead(t, filepath.Join(DefaultDataDir, backendlocal.DefaultStateFilename))
-	if s.Backend.Hash != backendCfg.Hash {
+	s := testDataStateRead(t, filepath.Join(DefaultDataDir, backendlocal.DefaultStateFilename))
+	if s.Backend.Hash != cHash {
 		t.Fatal("mismatched state and config backend hashes")
-	}
-	if s.Backend.Rehash() == s.Backend.Hash {
-		t.Fatal("saved hash should not match actual hash")
-	}
-	if s.Backend.Rehash() != backendCfg.Rehash() {
-		t.Fatal("mismatched state and config re-hashes")
 	}
 
 	// init the backend again with the same options
 	m = testMetaBackend(t, nil)
 	_, err = m.Backend(&BackendOpts{
-		ConfigExtra: extras,
-		Init:        true,
+		ConfigOverride: configs.SynthBody("synth", extras),
+		Init:           true,
 	})
 	if err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 
 	// Check the state
-	s = testStateRead(t, filepath.Join(DefaultDataDir, backendlocal.DefaultStateFilename))
-	if s.Backend.Hash != backendCfg.Hash {
+	s = testDataStateRead(t, filepath.Join(DefaultDataDir, backendlocal.DefaultStateFilename))
+	if s.Backend.Hash != cHash {
 		t.Fatal("mismatched state and config backend hashes")
 	}
 }
@@ -3410,11 +2417,9 @@ func TestMetaBackend_localDoesNotDeleteLocal(t *testing.T) {
 	m := testMetaBackend(t, nil)
 	m.forceInitCopy = true
 	// init the backend
-	_, err = m.Backend(&BackendOpts{
-		Init: true,
-	})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	_, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// check that we can read the state
@@ -3438,11 +2443,11 @@ func TestMetaBackend_configToExtra(t *testing.T) {
 		Init: true,
 	})
 	if err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 
 	// Check the state
-	s := testStateRead(t, filepath.Join(DefaultDataDir, backendlocal.DefaultStateFilename))
+	s := testDataStateRead(t, filepath.Join(DefaultDataDir, backendlocal.DefaultStateFilename))
 	backendHash := s.Backend.Hash
 
 	// init again but remove the path option from the config
@@ -3452,18 +2457,18 @@ func TestMetaBackend_configToExtra(t *testing.T) {
 	}
 
 	// init the backend again with the  options
-	extras := map[string]interface{}{"path": "hello"}
+	extras := map[string]cty.Value{"path": cty.StringVal("hello")}
 	m = testMetaBackend(t, nil)
 	m.forceInitCopy = true
-	_, err = m.Backend(&BackendOpts{
-		ConfigExtra: extras,
-		Init:        true,
+	_, diags := m.Backend(&BackendOpts{
+		ConfigOverride: configs.SynthBody("synth", extras),
+		Init:           true,
 	})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
-	s = testStateRead(t, filepath.Join(DefaultDataDir, backendlocal.DefaultStateFilename))
+	s = testDataStateRead(t, filepath.Join(DefaultDataDir, backendlocal.DefaultStateFilename))
 
 	if s.Backend.Hash == backendHash {
 		t.Fatal("state.Backend.Hash was not updated")
@@ -3476,7 +2481,7 @@ func testMetaBackend(t *testing.T, args []string) *Meta {
 	m.process(args, true)
 	f := m.flagSet("test")
 	if err := f.Parse(args); err != nil {
-		t.Fatalf("bad: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 
 	return &m

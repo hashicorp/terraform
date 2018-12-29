@@ -4,83 +4,84 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/states"
 )
 
-// DiffTransformer is a GraphTransformer that adds the elements of
-// the diff to the graph.
-//
-// This transform is used for example by the ApplyGraphBuilder to ensure
-// that only resources that are being modified are represented in the graph.
-//
-// Module and State is still required for the DiffTransformer for annotations
-// since the Diff doesn't contain all the information required to build the
-// complete graph (such as create-before-destroy information). The graph
-// is built based on the diff first, though, ensuring that only resources
-// that are being modified are present in the graph.
+// DiffTransformer is a GraphTransformer that adds graph nodes representing
+// each of the resource changes described in the given Changes object.
 type DiffTransformer struct {
-	Concrete ConcreteResourceNodeFunc
-
-	Diff   *Diff
-	Module *module.Tree
-	State  *State
+	Concrete ConcreteResourceInstanceNodeFunc
+	Changes  *plans.Changes
 }
 
 func (t *DiffTransformer) Transform(g *Graph) error {
-	// If the diff is nil or empty (nil is empty) then do nothing
-	if t.Diff.Empty() {
+	if t.Changes == nil || len(t.Changes.Resources) == 0 {
+		// Nothing to do!
 		return nil
 	}
 
 	// Go through all the modules in the diff.
-	log.Printf("[TRACE] DiffTransformer: starting")
-	var nodes []dag.Vertex
-	for _, m := range t.Diff.Modules {
-		log.Printf("[TRACE] DiffTransformer: Module: %s", m)
-		// TODO: If this is a destroy diff then add a module destroy node
+	log.Printf("[TRACE] DiffTransformer starting")
 
-		// Go through all the resources in this module.
-		for name, inst := range m.Resources {
-			log.Printf("[TRACE] DiffTransformer: Resource %q: %#v", name, inst)
+	for _, rc := range t.Changes.Resources {
+		addr := rc.Addr
+		dk := rc.DeposedKey
 
-			// We have changes! This is a create or update operation.
-			// First grab the address so we have a unique way to
-			// reference this resource.
-			addr, err := parseResourceAddressInternal(name)
-			if err != nil {
-				panic(fmt.Sprintf(
-					"Error parsing internal name, this is a bug: %q", name))
-			}
-
-			// Very important: add the module path for this resource to
-			// the address. Remove "root" from it.
-			addr.Path = m.Path[1:]
-
-			// If we're destroying, add the destroy node
-			if inst.Destroy || inst.GetDestroyDeposed() {
-				abstract := &NodeAbstractResource{Addr: addr}
-				g.Add(&NodeDestroyResource{NodeAbstractResource: abstract})
-			}
-
-			// If we have changes, then add the applyable version
-			if len(inst.Attributes) > 0 {
-				// Add the resource to the graph
-				abstract := &NodeAbstractResource{Addr: addr}
-				var node dag.Vertex = abstract
-				if f := t.Concrete; f != nil {
-					node = f(abstract)
-				}
-
-				nodes = append(nodes, node)
-			}
+		// Depending on the action we'll need some different combinations of
+		// nodes, because destroying uses a special node type separate from
+		// other actions.
+		var update, delete bool
+		switch rc.Action {
+		case plans.NoOp:
+			continue
+		case plans.Delete:
+			delete = true
+		case plans.Replace:
+			update = true
+			delete = true
+		default:
+			update = true
 		}
+
+		if update {
+			// All actions except destroying the node type chosen by t.Concrete
+			abstract := NewNodeAbstractResourceInstance(addr)
+			var node dag.Vertex = abstract
+			if f := t.Concrete; f != nil {
+				node = f(abstract)
+			}
+
+			if dk != states.NotDeposed {
+				// The only valid action for deposed objects is to destroy them.
+				// Entering this branch suggests a bug in the plan phase that
+				// proposed this change.
+				return fmt.Errorf("invalid %s action for deposed object on %s: only Delete is allowed", rc.Action, addr)
+			}
+
+			log.Printf("[TRACE] DiffTransformer: %s will be represented by %s", addr, dag.VertexName(node))
+			g.Add(node)
+		}
+
+		if delete {
+			// Destroying always uses this destroy-specific node type.
+			abstract := NewNodeAbstractResourceInstance(addr)
+			node := &NodeDestroyResourceInstance{
+				NodeAbstractResourceInstance: abstract,
+				DeposedKey:                   dk,
+			}
+			if dk == states.NotDeposed {
+				log.Printf("[TRACE] DiffTransformer: %s will be represented for destruction by %s", addr, dag.VertexName(node))
+			} else {
+				log.Printf("[TRACE] DiffTransformer: %s deposed object %s will be represented for destruction by %s", addr, dk, dag.VertexName(node))
+			}
+			g.Add(node)
+		}
+
 	}
 
-	// Add all the nodes to the graph
-	for _, n := range nodes {
-		g.Add(n)
-	}
+	log.Printf("[TRACE] DiffTransformer complete")
 
 	return nil
 }

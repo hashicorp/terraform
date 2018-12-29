@@ -1,13 +1,11 @@
 package command
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -55,99 +53,74 @@ func (c *PlanCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Check if the path is a plan
-	plan, err := c.Plan(configPath)
+	// Check if the path is a plan, which is not permitted
+	planFileReader, err := c.PlanFile(configPath)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
 	}
-	if plan != nil {
-		// Disable refreshing no matter what since we only want to show the plan
-		refresh = false
-
-		// Set the config path to empty for backend loading
-		configPath = ""
+	if planFileReader != nil {
+		c.showDiagnostics(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid configuration directory",
+			fmt.Sprintf("Cannot pass a saved plan file to the 'terraform plan' command. To apply a saved plan, use: terraform apply %s", configPath),
+		))
+		return 1
 	}
 
 	var diags tfdiags.Diagnostics
 
-	// Load the module if we don't have one yet (not running from plan)
-	var mod *module.Tree
-	if plan == nil {
-		var modDiags tfdiags.Diagnostics
-		mod, modDiags = c.Module(configPath)
-		diags = diags.Append(modDiags)
-		if modDiags.HasErrors() {
-			c.showDiagnostics(diags)
-			return 1
-		}
-	}
-
-	var conf *config.Config
-	if mod != nil {
-		conf = mod.Config()
-	}
-	// Load the backend
-	b, err := c.Backend(&BackendOpts{
-		Config: conf,
-		Plan:   plan,
-	})
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
+	var backendConfig *configs.Backend
+	var configDiags tfdiags.Diagnostics
+	backendConfig, configDiags = c.loadBackendConfig(configPath)
+	diags = diags.Append(configDiags)
+	if configDiags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
+	// Load the backend
+	b, backendDiags := c.Backend(&BackendOpts{
+		Config: backendConfig,
+	})
+	diags = diags.Append(backendDiags)
+	if backendDiags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	// Emit any diagnostics we've accumulated before we delegate to the
+	// backend, since the backend will handle its own diagnostics internally.
+	c.showDiagnostics(diags)
+	diags = nil
+
 	// Build the operation
-	opReq := c.Operation()
+	opReq := c.Operation(b)
 	opReq.Destroy = destroy
-	opReq.Module = mod
-	opReq.Plan = plan
+	opReq.ConfigDir = configPath
 	opReq.PlanRefresh = refresh
 	opReq.PlanOutPath = outPath
 	opReq.Type = backend.OperationTypePlan
+	opReq.ConfigLoader, err = c.initConfigLoader()
+	if err != nil {
+		c.showDiagnostics(err)
+		return 1
+	}
 
 	// Perform the operation
-	ctx, ctxCancel := context.WithCancel(context.Background())
-	defer ctxCancel()
-
-	op, err := b.Operation(ctx, opReq)
+	op, err := c.RunOperation(b, opReq)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error starting operation: %s", err))
+		c.showDiagnostics(err)
 		return 1
 	}
 
-	select {
-	case <-c.ShutdownCh:
-		// Cancel our context so we can start gracefully exiting
-		ctxCancel()
-
-		// Notify the user
-		c.Ui.Output(outputInterrupt)
-
-		// Still get the result, since there is still one
-		select {
-		case <-c.ShutdownCh:
-			c.Ui.Error(
-				"Two interrupts received. Exiting immediately")
-			return 1
-		case <-op.Done():
-		}
-	case <-op.Done():
-		if err := op.Err; err != nil {
-			diags = diags.Append(err)
-		}
+	if op.Result != backend.OperationSuccess {
+		return op.Result.ExitStatus()
 	}
-
-	c.showDiagnostics(diags)
-	if diags.HasErrors() {
-		return 1
-	}
-
 	if detailed && !op.PlanEmpty {
 		return 2
 	}
-
-	return 0
+	return op.Result.ExitStatus()
 }
 
 func (c *PlanCommand) Help() string {

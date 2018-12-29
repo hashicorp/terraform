@@ -3,7 +3,7 @@ layout: "docs"
 page_title: "Misc Providers"
 sidebar_current: "docs-providers-misc"
 description: |-
-  Category for database vendors.
+  Category for miscellaneous vendors.
 ---
 
 # Miscellaneous Providers

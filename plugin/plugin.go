@@ -6,8 +6,9 @@ import (
 
 // See serve.go for serving plugins
 
-// PluginMap should be used by clients for the map of plugins.
-var PluginMap = map[string]plugin.Plugin{
-	"provider":    &ResourceProviderPlugin{},
-	"provisioner": &ResourceProvisionerPlugin{},
+var VersionedPlugins = map[int]plugin.PluginSet{
+	5: {
+		"provider":    &GRPCProviderPlugin{},
+		"provisioner": &GRPCProvisionerPlugin{},
+	},
 }

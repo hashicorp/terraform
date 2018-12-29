@@ -176,13 +176,35 @@ func cleanupContent(client *winrm.Client, filePath string) error {
 	}
 
 	defer shell.Close()
-	cmd, err := shell.Execute("powershell", "Remove-Item", filePath, "-ErrorAction SilentlyContinue")
+	script := fmt.Sprintf(`
+		$tmp_file_path = [System.IO.Path]::GetFullPath("%s")
+		if (Test-Path $tmp_file_path) {
+			Remove-Item $tmp_file_path -ErrorAction SilentlyContinue
+		}
+	`, filePath)
+
+	cmd, err := shell.Execute(winrm.Powershell(script))
 	if err != nil {
 		return err
 	}
+	defer cmd.Close()
+
+	var wg sync.WaitGroup
+	copyFunc := func(w io.Writer, r io.Reader) {
+		defer wg.Done()
+		io.Copy(w, r)
+	}
+
+	wg.Add(2)
+	go copyFunc(os.Stdout, cmd.Stdout)
+	go copyFunc(os.Stderr, cmd.Stderr)
 
 	cmd.Wait()
-	cmd.Close()
+	wg.Wait()
+
+	if cmd.ExitCode() != 0 {
+		return fmt.Errorf("cleanup operation returned code=%d", cmd.ExitCode())
+	}
 	return nil
 }
 

@@ -433,6 +433,19 @@ func TestDiffFieldReader(t *testing.T) {
 						New: "2",
 					},
 
+					"mapIntNestedSchema.%": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "2",
+					},
+					"mapIntNestedSchema.one": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "1",
+					},
+					"mapIntNestedSchema.two": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "2",
+					},
+
 					"mapFloat.%": &terraform.ResourceAttrDiff{
 						Old: "",
 						New: "1",

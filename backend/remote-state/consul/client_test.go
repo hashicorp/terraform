@@ -20,10 +20,10 @@ func TestRemoteClient_impl(t *testing.T) {
 
 func TestRemoteClient(t *testing.T) {
 	// Get the backend
-	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"address": srv.HTTPAddr,
 		"path":    fmt.Sprintf("tf-unit/%s", time.Now().String()),
-	})
+	}))
 
 	// Grab the client
 	state, err := b.State(backend.DefaultStateName)
@@ -40,10 +40,10 @@ func TestRemoteClient_gzipUpgrade(t *testing.T) {
 	statePath := fmt.Sprintf("tf-unit/%s", time.Now().String())
 
 	// Get the backend
-	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"address": srv.HTTPAddr,
 		"path":    statePath,
-	})
+	}))
 
 	// Grab the client
 	state, err := b.State(backend.DefaultStateName)
@@ -55,11 +55,11 @@ func TestRemoteClient_gzipUpgrade(t *testing.T) {
 	remote.TestClient(t, state.(*remote.State).Client)
 
 	// create a new backend with gzip
-	b = backend.TestBackendConfig(t, New(), map[string]interface{}{
+	b = backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"address": srv.HTTPAddr,
 		"path":    statePath,
 		"gzip":    true,
-	})
+	}))
 
 	// Grab the client
 	state, err = b.State(backend.DefaultStateName)
@@ -75,18 +75,18 @@ func TestConsul_stateLock(t *testing.T) {
 	path := fmt.Sprintf("tf-unit/%s", time.Now().String())
 
 	// create 2 instances to get 2 remote.Clients
-	sA, err := backend.TestBackendConfig(t, New(), map[string]interface{}{
+	sA, err := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"address": srv.HTTPAddr,
 		"path":    path,
-	}).State(backend.DefaultStateName)
+	})).State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	sB, err := backend.TestBackendConfig(t, New(), map[string]interface{}{
+	sB, err := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"address": srv.HTTPAddr,
 		"path":    path,
-	}).State(backend.DefaultStateName)
+	})).State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,10 +96,10 @@ func TestConsul_stateLock(t *testing.T) {
 
 func TestConsul_destroyLock(t *testing.T) {
 	// Get the backend
-	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"address": srv.HTTPAddr,
 		"path":    fmt.Sprintf("tf-unit/%s", time.Now().String()),
-	})
+	}))
 
 	// Grab the client
 	s, err := b.State(backend.DefaultStateName)
@@ -135,18 +135,18 @@ func TestConsul_lostLock(t *testing.T) {
 	path := fmt.Sprintf("tf-unit/%s", time.Now().String())
 
 	// create 2 instances to get 2 remote.Clients
-	sA, err := backend.TestBackendConfig(t, New(), map[string]interface{}{
+	sA, err := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"address": srv.HTTPAddr,
 		"path":    path,
-	}).State(backend.DefaultStateName)
+	})).State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	sB, err := backend.TestBackendConfig(t, New(), map[string]interface{}{
+	sB, err := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"address": srv.HTTPAddr,
 		"path":    path + "-not-used",
-	}).State(backend.DefaultStateName)
+	})).State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -190,10 +190,10 @@ func TestConsul_lostLockConnection(t *testing.T) {
 
 	path := fmt.Sprintf("tf-unit/%s", time.Now().String())
 
-	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"address": srv.HTTPAddr,
 		"path":    path,
-	})
+	}))
 
 	s, err := b.State(backend.DefaultStateName)
 	if err != nil {

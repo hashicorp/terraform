@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws/arn"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -64,20 +64,27 @@ func dataSourceAwsKmsAliasRead(d *schema.ResourceData, meta interface{}) error {
 	d.SetId(time.Now().UTC().String())
 	d.Set("arn", alias.AliasArn)
 
-	aliasARN, err := arn.Parse(*alias.AliasArn)
-	if err != nil {
-		return err
-	}
-	targetKeyARN := arn.ARN{
-		Partition: aliasARN.Partition,
-		Service:   aliasARN.Service,
-		Region:    aliasARN.Region,
-		AccountID: aliasARN.AccountID,
-		Resource:  fmt.Sprintf("key/%s", *alias.TargetKeyId),
-	}
-	d.Set("target_key_arn", targetKeyARN.String())
+	// ListAliases can return an alias for an AWS service key (e.g.
+	// alias/aws/rds) without a TargetKeyId if the alias has not yet been
+	// used for the first time. In that situation, calling DescribeKey will
+	// associate an actual key with the alias, and the next call to
+	// ListAliases will have a TargetKeyId for the alias.
+	//
+	// For a simpler codepath, we always call DescribeKey with the alias
+	// name to get the target key's ARN and Id direct from AWS.
+	//
+	// https://docs.aws.amazon.com/kms/latest/APIReference/API_ListAliases.html
 
-	d.Set("target_key_id", alias.TargetKeyId)
+	req := &kms.DescribeKeyInput{
+		KeyId: aws.String(target.(string)),
+	}
+	resp, err := conn.DescribeKey(req)
+	if err != nil {
+		return errwrap.Wrapf("Error calling KMS DescribeKey: {{err}}", err)
+	}
+
+	d.Set("target_key_arn", resp.KeyMetadata.Arn)
+	d.Set("target_key_id", resp.KeyMetadata.KeyId)
 
 	return nil
 }

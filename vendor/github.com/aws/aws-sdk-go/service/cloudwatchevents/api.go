@@ -1425,7 +1425,6 @@ func (c *CloudWatchEvents) TestEventPatternWithContext(ctx aws.Context, input *T
 	return out, req.Send()
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/DeleteRuleRequest
 type DeleteRuleInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1467,7 +1466,6 @@ func (s *DeleteRuleInput) SetName(v string) *DeleteRuleInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/DeleteRuleOutput
 type DeleteRuleOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1482,7 +1480,6 @@ func (s DeleteRuleOutput) GoString() string {
 	return s.String()
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/DescribeEventBusRequest
 type DescribeEventBusInput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1497,7 +1494,6 @@ func (s DescribeEventBusInput) GoString() string {
 	return s.String()
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/DescribeEventBusResponse
 type DescribeEventBusOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1540,7 +1536,6 @@ func (s *DescribeEventBusOutput) SetPolicy(v string) *DescribeEventBusOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/DescribeRuleRequest
 type DescribeRuleInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1582,7 +1577,6 @@ func (s *DescribeRuleInput) SetName(v string) *DescribeRuleInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/DescribeRuleResponse
 type DescribeRuleOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1661,7 +1655,6 @@ func (s *DescribeRuleOutput) SetState(v string) *DescribeRuleOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/DisableRuleRequest
 type DisableRuleInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1703,7 +1696,6 @@ func (s *DisableRuleInput) SetName(v string) *DisableRuleInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/DisableRuleOutput
 type DisableRuleOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1719,7 +1711,6 @@ func (s DisableRuleOutput) GoString() string {
 }
 
 // The custom parameters to be used when the target is an Amazon ECS cluster.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/EcsParameters
 type EcsParameters struct {
 	_ struct{} `type:"structure"`
 
@@ -1775,7 +1766,6 @@ func (s *EcsParameters) SetTaskDefinitionArn(v string) *EcsParameters {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/EnableRuleRequest
 type EnableRuleInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1817,7 +1807,6 @@ func (s *EnableRuleInput) SetName(v string) *EnableRuleInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/EnableRuleOutput
 type EnableRuleOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1834,7 +1823,6 @@ func (s EnableRuleOutput) GoString() string {
 
 // Contains the parameters needed for you to provide custom input to a target
 // based on one or more pieces of data extracted from the event.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/InputTransformer
 type InputTransformer struct {
 	_ struct{} `type:"structure"`
 
@@ -1892,7 +1880,6 @@ func (s *InputTransformer) SetInputTemplate(v string) *InputTransformer {
 // and use as the partition key for the Amazon Kinesis stream, so that you can
 // control the shard to which the event goes. If you do not include this parameter,
 // the default is to use the eventId as the partition key.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/KinesisParameters
 type KinesisParameters struct {
 	_ struct{} `type:"structure"`
 
@@ -1933,7 +1920,6 @@ func (s *KinesisParameters) SetPartitionKeyPath(v string) *KinesisParameters {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/ListRuleNamesByTargetRequest
 type ListRuleNamesByTargetInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1999,7 +1985,6 @@ func (s *ListRuleNamesByTargetInput) SetTargetArn(v string) *ListRuleNamesByTarg
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/ListRuleNamesByTargetResponse
 type ListRuleNamesByTargetOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2033,7 +2018,6 @@ func (s *ListRuleNamesByTargetOutput) SetRuleNames(v []*string) *ListRuleNamesBy
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/ListRulesRequest
 type ListRulesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2094,7 +2078,6 @@ func (s *ListRulesInput) SetNextToken(v string) *ListRulesInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/ListRulesResponse
 type ListRulesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2128,7 +2111,6 @@ func (s *ListRulesOutput) SetRules(v []*Rule) *ListRulesOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/ListTargetsByRuleRequest
 type ListTargetsByRuleInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2194,7 +2176,6 @@ func (s *ListTargetsByRuleInput) SetRule(v string) *ListTargetsByRuleInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/ListTargetsByRuleResponse
 type ListTargetsByRuleOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2228,7 +2209,6 @@ func (s *ListTargetsByRuleOutput) SetTargets(v []*Target) *ListTargetsByRuleOutp
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutEventsRequest
 type PutEventsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2272,7 +2252,6 @@ func (s *PutEventsInput) SetEntries(v []*PutEventsRequestEntry) *PutEventsInput 
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutEventsResponse
 type PutEventsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2308,7 +2287,6 @@ func (s *PutEventsOutput) SetFailedEntryCount(v int64) *PutEventsOutput {
 }
 
 // Represents an event to be submitted.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutEventsRequestEntry
 type PutEventsRequestEntry struct {
 	_ struct{} `type:"structure"`
 
@@ -2372,7 +2350,6 @@ func (s *PutEventsRequestEntry) SetTime(v time.Time) *PutEventsRequestEntry {
 }
 
 // Represents an event that failed to be submitted.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutEventsResultEntry
 type PutEventsResultEntry struct {
 	_ struct{} `type:"structure"`
 
@@ -2414,7 +2391,6 @@ func (s *PutEventsResultEntry) SetEventId(v string) *PutEventsResultEntry {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutPermissionRequest
 type PutPermissionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2501,7 +2477,6 @@ func (s *PutPermissionInput) SetStatementId(v string) *PutPermissionInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutPermissionOutput
 type PutPermissionOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2516,7 +2491,6 @@ func (s PutPermissionOutput) GoString() string {
 	return s.String()
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutRuleRequest
 type PutRuleInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2607,7 +2581,6 @@ func (s *PutRuleInput) SetState(v string) *PutRuleInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutRuleResponse
 type PutRuleOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2631,7 +2604,6 @@ func (s *PutRuleOutput) SetRuleArn(v string) *PutRuleOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutTargetsRequest
 type PutTargetsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2700,7 +2672,6 @@ func (s *PutTargetsInput) SetTargets(v []*Target) *PutTargetsInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutTargetsResponse
 type PutTargetsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2734,7 +2705,6 @@ func (s *PutTargetsOutput) SetFailedEntryCount(v int64) *PutTargetsOutput {
 }
 
 // Represents a target that failed to be added to a rule.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutTargetsResultEntry
 type PutTargetsResultEntry struct {
 	_ struct{} `type:"structure"`
 
@@ -2778,7 +2748,6 @@ func (s *PutTargetsResultEntry) SetTargetId(v string) *PutTargetsResultEntry {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/RemovePermissionRequest
 type RemovePermissionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2821,7 +2790,6 @@ func (s *RemovePermissionInput) SetStatementId(v string) *RemovePermissionInput 
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/RemovePermissionOutput
 type RemovePermissionOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2836,7 +2804,6 @@ func (s RemovePermissionOutput) GoString() string {
 	return s.String()
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/RemoveTargetsRequest
 type RemoveTargetsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2895,7 +2862,6 @@ func (s *RemoveTargetsInput) SetRule(v string) *RemoveTargetsInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/RemoveTargetsResponse
 type RemoveTargetsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2929,7 +2895,6 @@ func (s *RemoveTargetsOutput) SetFailedEntryCount(v int64) *RemoveTargetsOutput 
 }
 
 // Represents a target that failed to be removed from a rule.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/RemoveTargetsResultEntry
 type RemoveTargetsResultEntry struct {
 	_ struct{} `type:"structure"`
 
@@ -2974,7 +2939,6 @@ func (s *RemoveTargetsResultEntry) SetTargetId(v string) *RemoveTargetsResultEnt
 }
 
 // Contains information about a rule in Amazon CloudWatch Events.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/Rule
 type Rule struct {
 	_ struct{} `type:"structure"`
 
@@ -3056,7 +3020,6 @@ func (s *Rule) SetState(v string) *Rule {
 
 // This parameter contains the criteria (either InstanceIds or a tag) used to
 // specify which EC2 instances are to be sent the command.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/RunCommandParameters
 type RunCommandParameters struct {
 	_ struct{} `type:"structure"`
 
@@ -3112,7 +3075,6 @@ func (s *RunCommandParameters) SetRunCommandTargets(v []*RunCommandTarget) *RunC
 // Information about the EC2 instances that are to be sent the command, specified
 // as key-value pairs. Each RunCommandTarget block can include only one key,
 // but this key may specify multiple values.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/RunCommandTarget
 type RunCommandTarget struct {
 	_ struct{} `type:"structure"`
 
@@ -3176,7 +3138,6 @@ func (s *RunCommandTarget) SetValues(v []*string) *RunCommandTarget {
 // types include EC2 instances, AWS Lambda functions, Amazon Kinesis streams,
 // Amazon ECS tasks, AWS Step Functions state machines, Run Command, and built-in
 // targets.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/Target
 type Target struct {
 	_ struct{} `type:"structure"`
 
@@ -3335,7 +3296,6 @@ func (s *Target) SetRunCommandParameters(v *RunCommandParameters) *Target {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/TestEventPatternRequest
 type TestEventPatternInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3389,7 +3349,6 @@ func (s *TestEventPatternInput) SetEventPattern(v string) *TestEventPatternInput
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/TestEventPatternResponse
 type TestEventPatternOutput struct {
 	_ struct{} `type:"structure"`
 

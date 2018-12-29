@@ -5,18 +5,24 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
 
+	"github.com/hashicorp/terraform/tfdiags"
+
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/command/clistate"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/state"
+	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
+	"github.com/zclconf/go-cty/cty"
 )
 
 const (
@@ -34,6 +40,9 @@ type Local struct {
 	// output will be done. If CLIColor is nil then no coloring will be done.
 	CLI      cli.Ui
 	CLIColor *colorstring.Colorize
+
+	// ShowDiagnostics prints diagnostic messages to the UI.
+	ShowDiagnostics func(vals ...interface{})
 
 	// The State* paths are set from the backend config, and may be left blank
 	// to use the defaults. If the actual paths for the local backend state are
@@ -56,7 +65,7 @@ type Local struct {
 
 	// We only want to create a single instance of a local state, so store them
 	// here as they're loaded.
-	states map[string]state.State
+	states map[string]statemgr.Full
 
 	// Terraform context. Many of these will be overridden or merged by
 	// Operation. See Operation for more details.
@@ -87,49 +96,101 @@ type Local struct {
 	// exact commands that are being run.
 	RunningInAutomation bool
 
-	schema *schema.Backend
 	opLock sync.Mutex
 	once   sync.Once
 }
 
-func (b *Local) Input(
-	ui terraform.UIInput, c *terraform.ResourceConfig) (*terraform.ResourceConfig, error) {
-	b.once.Do(b.init)
+var _ backend.Backend = (*Local)(nil)
 
-	f := b.schema.Input
+func (b *Local) ConfigSchema() *configschema.Block {
 	if b.Backend != nil {
-		f = b.Backend.Input
+		return b.Backend.ConfigSchema()
 	}
-
-	return f(ui, c)
+	return &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"path": {
+				Type:     cty.String,
+				Optional: true,
+			},
+			"workspace_dir": {
+				Type:     cty.String,
+				Optional: true,
+			},
+			// environment_dir was previously a deprecated alias for
+			// workspace_dir, but now removed.
+		},
+	}
 }
 
-func (b *Local) Validate(c *terraform.ResourceConfig) ([]string, []error) {
-	b.once.Do(b.init)
-
-	f := b.schema.Validate
+func (b *Local) ValidateConfig(obj cty.Value) tfdiags.Diagnostics {
 	if b.Backend != nil {
-		f = b.Backend.Validate
+		return b.Backend.ValidateConfig(obj)
 	}
 
-	return f(c)
-}
+	var diags tfdiags.Diagnostics
 
-func (b *Local) Configure(c *terraform.ResourceConfig) error {
-	b.once.Do(b.init)
-
-	f := b.schema.Configure
-	if b.Backend != nil {
-		f = b.Backend.Configure
+	if val := obj.GetAttr("path"); !val.IsNull() {
+		p := val.AsString()
+		if p == "" {
+			diags = diags.Append(tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Invalid local state file path",
+				`The "path" attribute value must not be empty.`,
+				cty.Path{cty.GetAttrStep{Name: "path"}},
+			))
+		}
 	}
 
-	return f(c)
+	if val := obj.GetAttr("workspace_dir"); !val.IsNull() {
+		p := val.AsString()
+		if p == "" {
+			diags = diags.Append(tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Invalid local workspace directory path",
+				`The "workspace_dir" attribute value must not be empty.`,
+				cty.Path{cty.GetAttrStep{Name: "workspace_dir"}},
+			))
+		}
+	}
+
+	return diags
 }
 
-func (b *Local) States() ([]string, error) {
+func (b *Local) Configure(obj cty.Value) tfdiags.Diagnostics {
+	if b.Backend != nil {
+		return b.Backend.Configure(obj)
+	}
+
+	var diags tfdiags.Diagnostics
+
+	type Config struct {
+		Path         string `hcl:"path,optional"`
+		WorkspaceDir string `hcl:"workspace_dir,optional"`
+	}
+
+	if val := obj.GetAttr("path"); !val.IsNull() {
+		p := val.AsString()
+		b.StatePath = p
+		b.StateOutPath = p
+	} else {
+		b.StatePath = DefaultStateFilename
+		b.StateOutPath = DefaultStateFilename
+	}
+
+	if val := obj.GetAttr("workspace_dir"); !val.IsNull() {
+		p := val.AsString()
+		b.StateWorkspaceDir = p
+	} else {
+		b.StateWorkspaceDir = DefaultWorkspaceDir
+	}
+
+	return diags
+}
+
+func (b *Local) Workspaces() ([]string, error) {
 	// If we have a backend handling state, defer to that.
 	if b.Backend != nil {
-		return b.Backend.States()
+		return b.Backend.Workspaces()
 	}
 
 	// the listing always start with "default"
@@ -157,12 +218,13 @@ func (b *Local) States() ([]string, error) {
 	return envs, nil
 }
 
-// DeleteState removes a named state.
-// The "default" state cannot be removed.
-func (b *Local) DeleteState(name string) error {
+// DeleteWorkspace removes a workspace.
+//
+// The "default" workspace cannot be removed.
+func (b *Local) DeleteWorkspace(name string) error {
 	// If we have a backend handling state, defer to that.
 	if b.Backend != nil {
-		return b.Backend.DeleteState(name)
+		return b.Backend.DeleteWorkspace(name)
 	}
 
 	if name == "" {
@@ -177,12 +239,12 @@ func (b *Local) DeleteState(name string) error {
 	return os.RemoveAll(filepath.Join(b.stateWorkspaceDir(), name))
 }
 
-func (b *Local) State(name string) (state.State, error) {
+func (b *Local) StateMgr(name string) (statemgr.Full, error) {
 	statePath, stateOutPath, backupPath := b.StatePaths(name)
 
 	// If we have a backend handling state, delegate to that.
 	if b.Backend != nil {
-		return b.Backend.State(name)
+		return b.Backend.StateMgr(name)
 	}
 
 	if s, ok := b.states[name]; ok {
@@ -193,22 +255,13 @@ func (b *Local) State(name string) (state.State, error) {
 		return nil, err
 	}
 
-	// Otherwise, we need to load the state.
-	var s state.State = &state.LocalState{
-		Path:    statePath,
-		PathOut: stateOutPath,
-	}
-
-	// If we are backing up the state, wrap it
+	s := statemgr.NewFilesystemBetweenPaths(statePath, stateOutPath)
 	if backupPath != "" {
-		s = &state.BackupState{
-			Real: s,
-			Path: backupPath,
-		}
+		s.SetBackupPath(backupPath)
 	}
 
 	if b.states == nil {
-		b.states = map[string]state.State{}
+		b.states = map[string]statemgr.Full{}
 	}
 	b.states[name] = s
 	return s, nil
@@ -224,7 +277,7 @@ func (b *Local) State(name string) (state.State, error) {
 // name conflicts, assume that the field is overwritten if set.
 func (b *Local) Operation(ctx context.Context, op *backend.Operation) (*backend.RunningOperation, error) {
 	// Determine the function to call for our operation
-	var f func(context.Context, *backend.Operation, *backend.RunningOperation)
+	var f func(context.Context, context.Context, *backend.Operation, *backend.RunningOperation)
 	switch op.Type {
 	case backend.OperationTypeRefresh:
 		f = b.opRefresh
@@ -244,18 +297,118 @@ func (b *Local) Operation(ctx context.Context, op *backend.Operation) (*backend.
 	b.opLock.Lock()
 
 	// Build our running operation
-	runningCtx, runningCtxCancel := context.WithCancel(context.Background())
-	runningOp := &backend.RunningOperation{Context: runningCtx}
+	// the runninCtx is only used to block until the operation returns.
+	runningCtx, done := context.WithCancel(context.Background())
+	runningOp := &backend.RunningOperation{
+		Context: runningCtx,
+	}
+
+	// stopCtx wraps the context passed in, and is used to signal a graceful Stop.
+	stopCtx, stop := context.WithCancel(ctx)
+	runningOp.Stop = stop
+
+	// cancelCtx is used to cancel the operation immediately, usually
+	// indicating that the process is exiting.
+	cancelCtx, cancel := context.WithCancel(context.Background())
+	runningOp.Cancel = cancel
+
+	if op.LockState {
+		op.StateLocker = clistate.NewLocker(stopCtx, op.StateLockTimeout, b.CLI, b.Colorize())
+	} else {
+		op.StateLocker = clistate.NewNoopLocker()
+	}
 
 	// Do it
 	go func() {
+		defer done()
+		defer stop()
+		defer cancel()
+
+		// the state was locked during context creation, unlock the state when
+		// the operation completes
+		defer func() {
+			err := op.StateLocker.Unlock(nil)
+			if err != nil {
+				b.ShowDiagnostics(err)
+			}
+			runningOp.Result = backend.OperationFailure
+		}()
+
 		defer b.opLock.Unlock()
-		defer runningCtxCancel()
-		f(ctx, op, runningOp)
+		f(stopCtx, cancelCtx, op, runningOp)
 	}()
 
 	// Return
 	return runningOp, nil
+}
+
+// opWait wats for the operation to complete, and a stop signal or a
+// cancelation signal.
+func (b *Local) opWait(
+	doneCh <-chan struct{},
+	stopCtx context.Context,
+	cancelCtx context.Context,
+	tfCtx *terraform.Context,
+	opStateMgr statemgr.Persister) (canceled bool) {
+	// Wait for the operation to finish or for us to be interrupted so
+	// we can handle it properly.
+	select {
+	case <-stopCtx.Done():
+		if b.CLI != nil {
+			b.CLI.Output("stopping operation...")
+		}
+
+		// try to force a PersistState just in case the process is terminated
+		// before we can complete.
+		if err := opStateMgr.PersistState(); err != nil {
+			// We can't error out from here, but warn the user if there was an error.
+			// If this isn't transient, we will catch it again below, and
+			// attempt to save the state another way.
+			if b.CLI != nil {
+				b.CLI.Error(fmt.Sprintf(earlyStateWriteErrorFmt, err))
+			}
+		}
+
+		// Stop execution
+		go tfCtx.Stop()
+
+		select {
+		case <-cancelCtx.Done():
+			log.Println("[WARN] running operation canceled")
+			// if the operation was canceled, we need to return immediately
+			canceled = true
+		case <-doneCh:
+		}
+	case <-cancelCtx.Done():
+		// this should not be called without first attempting to stop the
+		// operation
+		log.Println("[ERROR] running operation canceled without Stop")
+		canceled = true
+	case <-doneCh:
+	}
+	return
+}
+
+// ReportResult is a helper for the common chore of setting the status of
+// a running operation and showing any diagnostics produced during that
+// operation.
+//
+// If the given diagnostics contains errors then the operation's result
+// will be set to backend.OperationFailure. It will be set to
+// backend.OperationSuccess otherwise. It will then use b.ShowDiagnostics
+// to show the given diagnostics before returning.
+//
+// Callers should feel free to do each of these operations separately in
+// more complex cases where e.g. diagnostics are interleaved with other
+// output, but terminating immediately after reporting error diagnostics is
+// common and can be expressed concisely via this method.
+func (b *Local) ReportResult(op *backend.RunningOperation, diags tfdiags.Diagnostics) {
+	if diags.HasErrors() {
+		op.Result = backend.OperationFailure
+	} else {
+		op.Result = backend.OperationSuccess
+	}
+	b.ShowDiagnostics(diags)
 }
 
 // Colorize returns the Colorize structure that can be used for colorizing
@@ -269,35 +422,6 @@ func (b *Local) Colorize() *colorstring.Colorize {
 	return &colorstring.Colorize{
 		Colors:  colorstring.DefaultColors,
 		Disable: true,
-	}
-}
-
-func (b *Local) init() {
-	b.schema = &schema.Backend{
-		Schema: map[string]*schema.Schema{
-			"path": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "",
-			},
-
-			"workspace_dir": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "",
-			},
-
-			"environment_dir": &schema.Schema{
-				Type:          schema.TypeString,
-				Optional:      true,
-				Default:       "",
-				ConflictsWith: []string{"workspace_dir"},
-
-				Deprecated: "workspace_dir should be used instead, with the same meaning",
-			},
-		},
-
-		ConfigureFunc: b.schemaConfigure,
 	}
 }
 
@@ -336,7 +460,7 @@ func (b *Local) schemaConfigure(ctx context.Context) error {
 
 // StatePaths returns the StatePath, StateOutPath, and StateBackupPath as
 // configured from the CLI.
-func (b *Local) StatePaths(name string) (string, string, string) {
+func (b *Local) StatePaths(name string) (stateIn, stateOut, backupOut string) {
 	statePath := b.StatePath
 	stateOutPath := b.StateOutPath
 	backupPath := b.StateBackupPath

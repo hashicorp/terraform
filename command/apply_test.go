@@ -16,15 +16,24 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/state"
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/statemgr"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestApply(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
+	p.GetSchemaReturn = applyFixtureSchema()
+
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
@@ -252,10 +261,7 @@ func TestApply_configInvalid(t *testing.T) {
 }
 
 func TestApply_defaultState(t *testing.T) {
-	td, err := ioutil.TempDir("", "tf")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	td := testTempDir(t)
 	statePath := filepath.Join(td, DefaultStateFilename)
 
 	// Change to the temporary directory
@@ -283,8 +289,6 @@ func TestApply_defaultState(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	serial := localState.State().Serial
-
 	args := []string{
 		"-auto-approve",
 		testFixturePath("apply"),
@@ -300,10 +304,6 @@ func TestApply_defaultState(t *testing.T) {
 	state := testStateRead(t, statePath)
 	if state == nil {
 		t.Fatal("state should not be nil")
-	}
-
-	if state.Serial <= serial {
-		t.Fatalf("serial was not incremented. previous:%d, current%d", serial, state.Serial)
 	}
 }
 
@@ -497,9 +497,7 @@ func TestApply_plan(t *testing.T) {
 	defaultInputReader = new(bytes.Buffer)
 	defaultInputWriter = new(bytes.Buffer)
 
-	planPath := testPlanFile(t, &terraform.Plan{
-		Module: testModule(t, "apply"),
-	})
+	planPath := testPlanFileNoop(t)
 	statePath := testTempFile(t)
 
 	p := testProvider()
@@ -534,8 +532,7 @@ func TestApply_plan(t *testing.T) {
 }
 
 func TestApply_plan_backup(t *testing.T) {
-	plan := testPlan(t)
-	planPath := testPlanFile(t, plan)
+	planPath := testPlanFileNoop(t)
 	statePath := testTempFile(t)
 	backupPath := testTempFile(t)
 
@@ -549,7 +546,7 @@ func TestApply_plan_backup(t *testing.T) {
 	}
 
 	// create a state file that needs to be backed up
-	err := (&state.LocalState{Path: statePath}).WriteState(plan.State)
+	err := statemgr.NewFilesystem(statePath).WriteState(states.NewState())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -567,7 +564,7 @@ func TestApply_plan_backup(t *testing.T) {
 }
 
 func TestApply_plan_noBackup(t *testing.T) {
-	planPath := testPlanFile(t, testPlan(t))
+	planPath := testPlanFileNoop(t)
 	statePath := testTempFile(t)
 
 	p := testProvider()
@@ -618,14 +615,12 @@ func TestApply_plan_remoteState(t *testing.T) {
 
 	// Create a remote state
 	state := testState()
-	conf, srv := testRemoteState(t, state, 200)
+	backendState, srv := testRemoteState(t, state, 200)
 	defer srv.Close()
-	state.Remote = conf
+	testStateFileRemote(t, backendState)
 
-	planPath := testPlanFile(t, &terraform.Plan{
-		Module: testModule(t, "apply"),
-		State:  state,
-	})
+	_, snap := testModuleWithSnapshot(t, "apply")
+	planPath := testPlanFile(t, snap, state, &plans.Plan{})
 
 	p := testProvider()
 	ui := new(cli.MockUi)
@@ -666,9 +661,7 @@ func TestApply_planWithVarFile(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	planPath := testPlanFile(t, &terraform.Plan{
-		Module: testModule(t, "apply"),
-	})
+	planPath := testPlanFileNoop(t)
 	statePath := testTempFile(t)
 
 	cwd, err := os.Getwd()
@@ -708,9 +701,7 @@ func TestApply_planWithVarFile(t *testing.T) {
 }
 
 func TestApply_planVars(t *testing.T) {
-	planPath := testPlanFile(t, &terraform.Plan{
-		Module: testModule(t, "apply"),
-	})
+	planPath := testPlanFileNoop(t)
 	statePath := testTempFile(t)
 
 	p := testProvider()
@@ -735,18 +726,13 @@ func TestApply_planVars(t *testing.T) {
 // we should be able to apply a plan file with no other file dependencies
 func TestApply_planNoModuleFiles(t *testing.T) {
 	// temporary data directory which we can remove between commands
-	td, err := ioutil.TempDir("", "tf")
-	if err != nil {
-		t.Fatal(err)
-	}
+	td := testTempDir(t)
 	defer os.RemoveAll(td)
 
 	defer testChdir(t, td)()
 
 	p := testProvider()
-	planFile := testPlanFile(t, &terraform.Plan{
-		Module: testModule(t, "apply-plan-no-module"),
-	})
+	planFile := testPlanFileNoop(t)
 
 	apply := &ApplyCommand{
 		Meta: Meta{
@@ -764,22 +750,20 @@ func TestApply_planNoModuleFiles(t *testing.T) {
 }
 
 func TestApply_refresh(t *testing.T) {
-	originalState := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID: "bar",
-						},
-					},
-				},
+	originalState := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar"}`),
+				Status:    states.ObjectReady,
 			},
-		},
-	}
-
+			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+		)
+	})
 	statePath := testStateFile(t, originalState)
 
 	p := testProvider()
@@ -824,12 +808,11 @@ func TestApply_refresh(t *testing.T) {
 }
 
 func TestApply_shutdown(t *testing.T) {
-	cancelled := false
-	stopped := make(chan struct{})
+	cancelled := make(chan struct{})
+	shutdownCh := make(chan struct{})
 
 	statePath := testTempFile(t)
 	p := testProvider()
-	shutdownCh := make(chan struct{})
 
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
@@ -841,8 +824,7 @@ func TestApply_shutdown(t *testing.T) {
 	}
 
 	p.StopFn = func() error {
-		close(stopped)
-		cancelled = true
+		close(cancelled)
 		return nil
 	}
 
@@ -858,15 +840,26 @@ func TestApply_shutdown(t *testing.T) {
 			},
 		}, nil
 	}
+
+	var once sync.Once
 	p.ApplyFn = func(
 		*terraform.InstanceInfo,
 		*terraform.InstanceState,
 		*terraform.InstanceDiff) (*terraform.InstanceState, error) {
+
 		// only cancel once
-		if !cancelled {
+		once.Do(func() {
 			shutdownCh <- struct{}{}
-			<-stopped
-		}
+		})
+
+		// Because of the internal lock in the MockProvider, we can't
+		// coordiante directly with the calling of Stop, and making the
+		// MockProvider concurrent is disruptive to a lot of existing tests.
+		// Wait here a moment to help make sure the main goroutine gets to the
+		// Stop call before we exit, or the plan may finish before it can be
+		// canceled.
+		time.Sleep(200 * time.Millisecond)
+
 		return &terraform.InstanceState{
 			ID: "foo",
 			Attributes: map[string]string{
@@ -888,7 +881,9 @@ func TestApply_shutdown(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if !cancelled {
+	select {
+	case <-cancelled:
+	default:
 		t.Fatal("command not cancelled")
 	}
 
@@ -899,22 +894,20 @@ func TestApply_shutdown(t *testing.T) {
 }
 
 func TestApply_state(t *testing.T) {
-	originalState := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID: "bar",
-						},
-					},
-				},
+	originalState := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar"}`),
+				Status:    states.ObjectReady,
 			},
-		},
-	}
-
+			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+		)
+	})
 	statePath := testStateFile(t, originalState)
 
 	p := testProvider()
@@ -968,9 +961,6 @@ func TestApply_state(t *testing.T) {
 	}
 
 	backupState := testStateRead(t, statePath+DefaultBackupExtension)
-
-	// nil out the ConnInfo since that should not be restored
-	originalState.RootModule().Resources["test_instance.foo"].Primary.Ephemeral.ConnInfo = nil
 
 	actualStr := strings.TrimSpace(backupState.String())
 	expectedStr := strings.TrimSpace(originalState.String())
@@ -1026,62 +1016,6 @@ func TestApply_sensitiveOutput(t *testing.T) {
 	}
 	if !strings.Contains(output, "sensitive = <sensitive>") {
 		t.Fatalf("bad: output should contain 'sensitive' output\n%s", output)
-	}
-}
-
-func TestApply_stateFuture(t *testing.T) {
-	originalState := testState()
-	originalState.TFVersion = "99.99.99"
-	statePath := testStateFile(t, originalState)
-
-	p := testProvider()
-	ui := new(cli.MockUi)
-	c := &ApplyCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
-		},
-	}
-
-	args := []string{
-		"-state", statePath,
-		"-auto-approve",
-		testFixturePath("apply"),
-	}
-	if code := c.Run(args); code == 0 {
-		t.Fatal("should fail")
-	}
-
-	newState := testStateRead(t, statePath)
-	if !newState.Equal(originalState) {
-		t.Fatalf("bad: %#v", newState)
-	}
-	if newState.TFVersion != originalState.TFVersion {
-		t.Fatalf("bad: %#v", newState)
-	}
-}
-
-func TestApply_statePast(t *testing.T) {
-	originalState := testState()
-	originalState.TFVersion = "0.1.0"
-	statePath := testStateFile(t, originalState)
-
-	p := testProvider()
-	ui := new(cli.MockUi)
-	c := &ApplyCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
-		},
-	}
-
-	args := []string{
-		"-state", statePath,
-		"-auto-approve",
-		testFixturePath("apply"),
-	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 }
 
@@ -1275,23 +1209,20 @@ func TestApply_varFileDefaultJSON(t *testing.T) {
 }
 
 func TestApply_backup(t *testing.T) {
-	originalState := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID: "bar",
-						},
-					},
-				},
+	originalState := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar"}`),
+				Status:    states.ObjectReady,
 			},
-		},
-	}
-	originalState.Init()
-
+			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+		)
+	})
 	statePath := testStateFile(t, originalState)
 	backupPath := testTempFile(t)
 
@@ -1520,6 +1451,21 @@ func testHttpHandlerHeader(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Add("X-Terraform-Get", url.String())
 	w.WriteHeader(200)
+}
+
+// applyFixtureSchema returns a schema suitable for processing the
+// configuration in test-fixtures/apply . This schema should be
+// assigned to a mock provider named "test".
+func applyFixtureSchema() *terraform.ProviderSchema {
+	return &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"ami": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
 }
 
 const applyVarFile = `

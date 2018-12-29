@@ -23,7 +23,11 @@ const (
 )
 
 func ctxHeaders(ctx netcontext.Context) http.Header {
-	return fromContext(ctx).Request().Header
+	c := fromContext(ctx)
+	if c == nil {
+		return nil
+	}
+	return c.Request().Header
 }
 
 func DefaultVersionHostname(ctx netcontext.Context) string {
@@ -59,7 +63,7 @@ func VersionID(_ netcontext.Context) string {
 	if s1, s2 := os.Getenv("GAE_MODULE_VERSION"), os.Getenv("GAE_MINOR_VERSION"); s1 != "" && s2 != "" {
 		return s1 + "." + s2
 	}
-	return string(mustGetMetadata("instance/attributes/gae_backend_version")) + "." + string(mustGetMetadata("instance/attributes/gae_minor_version"))
+	return string(mustGetMetadata("instance/attributes/gae_backend_version")) + "." + string(mustGetMetadata("instance/attributes/gae_backend_minor_version"))
 }
 
 func InstanceID() string {

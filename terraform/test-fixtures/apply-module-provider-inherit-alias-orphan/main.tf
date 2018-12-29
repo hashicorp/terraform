@@ -1,5 +1,5 @@
 provider "aws" {
-    root = "1"
+    root = 1
 }
 
 provider "aws" {

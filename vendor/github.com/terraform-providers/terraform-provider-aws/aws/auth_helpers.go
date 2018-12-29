@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	awsCredentials "github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds"
@@ -23,7 +23,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 )
 
-func GetAccountInfo(iamconn *iam.IAM, stsconn *sts.STS, authProviderName string) (string, string, error) {
+func GetAccountID(iamconn *iam.IAM, stsconn *sts.STS, authProviderName string) (string, error) {
 	var errors error
 	// If we have creds from instance profile, we can use metadata API
 	if authProviderName == ec2rolecreds.ProviderName {
@@ -33,13 +33,13 @@ func GetAccountInfo(iamconn *iam.IAM, stsconn *sts.STS, authProviderName string)
 		setOptionalEndpoint(cfg)
 		sess, err := session.NewSession(cfg)
 		if err != nil {
-			return "", "", errwrap.Wrapf("Error creating AWS session: {{err}}", err)
+			return "", errwrap.Wrapf("Error creating AWS session: {{err}}", err)
 		}
 
 		metadataClient := ec2metadata.New(sess)
 		info, err := metadataClient.IAMInfo()
 		if err == nil {
-			return parseAccountInfoFromArn(info.InstanceProfileArn)
+			return parseAccountIDFromArn(info.InstanceProfileArn)
 		}
 		log.Printf("[DEBUG] Failed to get account info from metadata service: %s", err)
 		errors = multierror.Append(errors, err)
@@ -55,14 +55,14 @@ func GetAccountInfo(iamconn *iam.IAM, stsconn *sts.STS, authProviderName string)
 		log.Println("[DEBUG] Trying to get account ID via iam:GetUser")
 		outUser, err := iamconn.GetUser(nil)
 		if err == nil {
-			return parseAccountInfoFromArn(*outUser.User.Arn)
+			return parseAccountIDFromArn(*outUser.User.Arn)
 		}
 		errors = multierror.Append(errors, err)
 		awsErr, ok := err.(awserr.Error)
 		// AccessDenied and ValidationError can be raised
 		// if credentials belong to federated profile, so we ignore these
 		if !ok || (awsErr.Code() != "AccessDenied" && awsErr.Code() != "ValidationError" && awsErr.Code() != "InvalidClientTokenId") {
-			return "", "", fmt.Errorf("Failed getting account ID via 'iam:GetUser': %s", err)
+			return "", fmt.Errorf("Failed getting account ID via 'iam:GetUser': %s", err)
 		}
 		log.Printf("[DEBUG] Getting account ID via iam:GetUser failed: %s", err)
 	}
@@ -71,7 +71,7 @@ func GetAccountInfo(iamconn *iam.IAM, stsconn *sts.STS, authProviderName string)
 	log.Println("[DEBUG] Trying to get account ID via sts:GetCallerIdentity")
 	outCallerIdentity, err := stsconn.GetCallerIdentity(&sts.GetCallerIdentityInput{})
 	if err == nil {
-		return parseAccountInfoFromArn(*outCallerIdentity.Arn)
+		return parseAccountIDFromArn(*outCallerIdentity.Arn)
 	}
 	log.Printf("[DEBUG] Getting account ID via sts:GetCallerIdentity failed: %s", err)
 	errors = multierror.Append(errors, err)
@@ -84,25 +84,25 @@ func GetAccountInfo(iamconn *iam.IAM, stsconn *sts.STS, authProviderName string)
 	if err != nil {
 		log.Printf("[DEBUG] Failed to get account ID via iam:ListRoles: %s", err)
 		errors = multierror.Append(errors, err)
-		return "", "", fmt.Errorf("Failed getting account ID via all available methods. Errors: %s", errors)
+		return "", fmt.Errorf("Failed getting account ID via all available methods. Errors: %s", errors)
 	}
 
 	if len(outRoles.Roles) < 1 {
 		err = fmt.Errorf("Failed to get account ID via iam:ListRoles: No roles available")
 		log.Printf("[DEBUG] %s", err)
 		errors = multierror.Append(errors, err)
-		return "", "", fmt.Errorf("Failed getting account ID via all available methods. Errors: %s", errors)
+		return "", fmt.Errorf("Failed getting account ID via all available methods. Errors: %s", errors)
 	}
 
-	return parseAccountInfoFromArn(*outRoles.Roles[0].Arn)
+	return parseAccountIDFromArn(*outRoles.Roles[0].Arn)
 }
 
-func parseAccountInfoFromArn(arn string) (string, string, error) {
-	parts := strings.Split(arn, ":")
-	if len(parts) < 5 {
-		return "", "", fmt.Errorf("Unable to parse ID from invalid ARN: %q", arn)
+func parseAccountIDFromArn(inputARN string) (string, error) {
+	arn, err := arn.Parse(inputARN)
+	if err != nil {
+		return "", fmt.Errorf("Unable to parse ID from invalid ARN: %q", arn)
 	}
-	return parts[1], parts[4], nil
+	return arn.AccountID, nil
 }
 
 // This function is responsible for reading credentials from the

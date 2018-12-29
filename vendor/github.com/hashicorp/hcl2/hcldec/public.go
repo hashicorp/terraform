@@ -51,3 +51,31 @@ func ImpliedType(spec Spec) cty.Type {
 func SourceRange(body hcl.Body, spec Spec) hcl.Range {
 	return sourceRange(body, nil, spec)
 }
+
+// ChildBlockTypes returns a map of all of the child block types declared
+// by the given spec, with block type names as keys and the associated
+// nested body specs as values.
+func ChildBlockTypes(spec Spec) map[string]Spec {
+	ret := map[string]Spec{}
+
+	// visitSameBodyChildren walks through the spec structure, calling
+	// the given callback for each descendent spec encountered. We are
+	// interested in the specs that reference attributes and blocks.
+	var visit visitFunc
+	visit = func(s Spec) {
+		if bs, ok := s.(blockSpec); ok {
+			for _, blockS := range bs.blockHeaderSchemata() {
+				nested := bs.nestedSpec()
+				if nested != nil { // nil can be returned to dynamically opt out of this interface
+					ret[blockS.Type] = nested
+				}
+			}
+		}
+
+		s.visitSameBodyChildren(visit)
+	}
+
+	visit(spec)
+
+	return ret
+}

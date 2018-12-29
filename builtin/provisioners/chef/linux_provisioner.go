@@ -11,7 +11,7 @@ import (
 
 const (
 	chmod      = "find %s -maxdepth 1 -type f -exec /bin/chmod %d {} +"
-	installURL = "https://www.chef.io/chef/install.sh"
+	installURL = "https://omnitruck.chef.io/install.sh"
 )
 
 func (p *provisioner) linuxInstallChefClient(o terraform.UIOutput, comm communicator.Communicator) error {
@@ -34,7 +34,7 @@ func (p *provisioner) linuxInstallChefClient(o terraform.UIOutput, comm communic
 	}
 
 	// Then execute the install.sh scrip to download and install Chef Client
-	err = p.runCommand(o, comm, fmt.Sprintf("%sbash ./install.sh -v %q", prefix, p.Version))
+	err = p.runCommand(o, comm, fmt.Sprintf("%sbash ./install.sh -v %q -c %s", prefix, p.Version, p.Channel))
 	if err != nil {
 		return err
 	}

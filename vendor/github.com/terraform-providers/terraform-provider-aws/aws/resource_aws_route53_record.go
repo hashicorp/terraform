@@ -101,6 +101,9 @@ func resourceAwsRoute53Record() *schema.Resource {
 							Type:      schema.TypeString,
 							Required:  true,
 							StateFunc: normalizeAwsAliasName,
+							DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+								return strings.ToLower(old) == strings.ToLower(new)
+							},
 						},
 
 						"evaluate_target_health": {
@@ -231,6 +234,12 @@ func resourceAwsRoute53Record() *schema.Resource {
 				Elem:          &schema.Schema{Type: schema.TypeString},
 				Optional:      true,
 				Set:           schema.HashString,
+			},
+
+			"allow_overwrite": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
 			},
 		},
 	}
@@ -379,6 +388,16 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
+	// Protect existing DNS records which might be managed in another way
+	// Use UPSERT only if the overwrite flag is true or if the current action is an update
+	// Else CREATE is used and fail if the same record exists
+	var action string
+	if d.Get("allow_overwrite").(bool) || !d.IsNewResource() {
+		action = "UPSERT"
+	} else {
+		action = "CREATE"
+	}
+
 	// Create the new records. We abuse StateChangeConf for this to
 	// retry for us since Route53 sometimes returns errors about another
 	// operation happening at the same time.
@@ -386,7 +405,7 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 		Comment: aws.String("Managed by Terraform"),
 		Changes: []*route53.Change{
 			{
-				Action:            aws.String("UPSERT"),
+				Action:            aws.String(action),
 				ResourceRecordSet: rec,
 			},
 		},
@@ -897,12 +916,9 @@ func nilString(s string) *string {
 }
 
 func normalizeAwsAliasName(alias interface{}) string {
-	input := alias.(string)
-	if strings.HasPrefix(input, "dualstack.") {
-		return strings.Replace(input, "dualstack.", "", -1)
-	}
-
-	return strings.TrimRight(input, ".")
+	input := strings.ToLower(alias.(string))
+	output := strings.TrimPrefix(input, "dualstack.")
+	return strings.TrimSuffix(output, ".")
 }
 
 func parseRecordId(id string) [4]string {
@@ -922,5 +938,6 @@ func parseRecordId(id string) [4]string {
 			}
 		}
 	}
+	recName = strings.TrimSuffix(recName, ".")
 	return [4]string{recZone, recName, recType, recSet}
 }

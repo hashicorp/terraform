@@ -45,7 +45,7 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 // error message is needed, put the localized message in the error details or
 // localize it in the client. The optional error details may contain arbitrary
 // information about the error. There is a predefined set of error detail types
-// in the package `google.rpc` which can be used for common error conditions.
+// in the package `google.rpc` that can be used for common error conditions.
 //
 // # Language mapping
 //
@@ -68,7 +68,7 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 //     errors.
 //
 // - Workflow errors. A typical workflow has multiple steps. Each step may
-//     have a `Status` message for error reporting purpose.
+//     have a `Status` message for error reporting.
 //
 // - Batch operations. If a client uses batch request and batch response, the
 //     `Status` message should be used directly inside batch response, one for
@@ -87,8 +87,8 @@ type Status struct {
 	// user-facing error message should be localized and sent in the
 	// [google.rpc.Status.details][google.rpc.Status.details] field, or localized by the client.
 	Message string `protobuf:"bytes,2,opt,name=message" json:"message,omitempty"`
-	// A list of messages that carry the error details.  There will be a
-	// common set of message types for APIs to use.
+	// A list of messages that carry the error details.  There is a common set of
+	// message types for APIs to use.
 	Details []*google_protobuf.Any `protobuf:"bytes,3,rep,name=details" json:"details,omitempty"`
 }
 

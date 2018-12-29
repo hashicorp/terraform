@@ -1,14 +1,13 @@
 package aws
 
 import (
-	"fmt"
-
 	"encoding/json"
+	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
-	"strconv"
 )
 
 var dataSourceAwsIamPolicyDocumentVarReplacer = strings.NewReplacer("&{", "${")
@@ -26,7 +25,15 @@ func dataSourceAwsIamPolicyDocument() *schema.Resource {
 		Read: dataSourceAwsIamPolicyDocumentRead,
 
 		Schema: map[string]*schema.Schema{
+			"override_json": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"policy_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"source_json": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
@@ -94,9 +101,19 @@ func dataSourceAwsIamPolicyDocument() *schema.Resource {
 }
 
 func dataSourceAwsIamPolicyDocumentRead(d *schema.ResourceData, meta interface{}) error {
-	doc := &IAMPolicyDoc{
-		Version: "2012-10-17",
+	mergedDoc := &IAMPolicyDoc{}
+
+	// populate mergedDoc directly with any source_json
+	if sourceJson, hasSourceJson := d.GetOk("source_json"); hasSourceJson {
+		if err := json.Unmarshal([]byte(sourceJson.(string)), mergedDoc); err != nil {
+			return err
+		}
 	}
+
+	// process the current document
+	doc := &IAMPolicyDoc{}
+
+	doc.Version = "2012-10-17"
 
 	if policyId, hasPolicyId := d.GetOk("policy_id"); hasPolicyId {
 		doc.Id = policyId.(string)
@@ -104,7 +121,6 @@ func dataSourceAwsIamPolicyDocumentRead(d *schema.ResourceData, meta interface{}
 
 	var cfgStmts = d.Get("statement").([]interface{})
 	stmts := make([]*IAMPolicyStatement, len(cfgStmts))
-	doc.Statements = stmts
 	for i, stmtI := range cfgStmts {
 		cfgStmt := stmtI.(map[string]interface{})
 		stmt := &IAMPolicyStatement{
@@ -148,7 +164,22 @@ func dataSourceAwsIamPolicyDocumentRead(d *schema.ResourceData, meta interface{}
 		stmts[i] = stmt
 	}
 
-	jsonDoc, err := json.MarshalIndent(doc, "", "  ")
+	doc.Statements = stmts
+
+	// merge our current document into mergedDoc
+	mergedDoc.Merge(doc)
+
+	// merge in override_json
+	if overrideJson, hasOverrideJson := d.GetOk("override_json"); hasOverrideJson {
+		overrideDoc := &IAMPolicyDoc{}
+		if err := json.Unmarshal([]byte(overrideJson.(string)), overrideDoc); err != nil {
+			return err
+		}
+
+		mergedDoc.Merge(overrideDoc)
+	}
+
+	jsonDoc, err := json.MarshalIndent(mergedDoc, "", "  ")
 	if err != nil {
 		// should never happen if the above code is correct
 		return err

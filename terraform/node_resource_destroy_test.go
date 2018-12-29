@@ -2,13 +2,13 @@ package terraform
 
 import (
 	"strings"
-	"sync"
 	"testing"
+
+	"github.com/hashicorp/terraform/addrs"
 )
 
 func TestNodeDestroyResourceDynamicExpand_deposedCount(t *testing.T) {
-	var stateLock sync.RWMutex
-	state := &State{
+	state := mustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -20,6 +20,7 @@ func TestNodeDestroyResourceDynamicExpand_deposedCount(t *testing.T) {
 								ID: "foo",
 							},
 						},
+						Provider: "provider.aws",
 					},
 					"aws_instance.bar.1": &ResourceState{
 						Type: "aws_instance",
@@ -28,40 +29,40 @@ func TestNodeDestroyResourceDynamicExpand_deposedCount(t *testing.T) {
 								ID: "bar",
 							},
 						},
+						Provider: "provider.aws",
 					},
 				},
 			},
 		},
-	}
-
-	addr, err := parseResourceAddressInternal("aws_instance.bar.0")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	})
 
 	m := testModule(t, "apply-cbd-count")
-	n := &NodeDestroyResource{
-		NodeAbstractResource: &NodeAbstractResource{
-			Addr:          addr,
-			ResourceState: state.Modules[0].Resources["aws_instance.bar.0"],
-			Config:        m.Config().Resources[0],
+	n := &NodeDestroyResourceInstance{
+		NodeAbstractResourceInstance: &NodeAbstractResourceInstance{
+			NodeAbstractResource: NodeAbstractResource{
+				Addr: addrs.RootModuleInstance.Resource(
+					addrs.ManagedResourceMode, "aws_instance", "bar",
+				),
+				Config: m.Module.ManagedResources["aws_instance.bar"],
+			},
+			InstanceKey:   addrs.IntKey(0),
+			ResourceState: state.Modules[""].Resources["aws_instance.bar[0]"],
 		},
 	}
 
 	g, err := n.DynamicExpand(&MockEvalContext{
-		PathPath:   []string{"root"},
-		StateState: state,
-		StateLock:  &stateLock,
+		PathPath:   addrs.RootModuleInstance,
+		StateState: state.SyncWrapper(),
 	})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(`
-aws_instance.bar.0 (deposed #0)
+	got := strings.TrimSpace(g.String())
+	want := strings.TrimSpace(`
+aws_instance.bar[0] (deposed 00000001)
 `)
-	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
+	if got != want {
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", got, want)
 	}
 }

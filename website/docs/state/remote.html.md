@@ -8,19 +8,21 @@ description: |-
 
 # Remote State
 
-By default, Terraform stores state locally in a file named "terraform.tfstate".
-Because this file must exist, it makes working with Terraform in a team
-complicated since it is a frequent source of merge conflicts. Remote state
-helps alleviate these issues.
+By default, Terraform stores state locally in a file named `terraform.tfstate`.
+When working with Terraform in a team, use of a local file makes Terraform
+usage complicated because each user must make sure they always have the latest
+state data before running Terraform and make sure that nobody else runs
+Terraform at the same time.
 
-With remote state, Terraform stores the state in a remote store. Terraform
-supports storing state in [Terraform Enterprise](https://www.hashicorp.com/products/terraform/),
-[Consul](https://www.consul.io), S3, and more.
+With _remote_ state, Terraform writes the state data to a remote data store,
+which can then be shared between all members of a team. Terraform supports
+storing state in [Terraform Enterprise](https://www.hashicorp.com/products/terraform/),
+[HashiCorp Consul](https://www.consul.io/), Amazon S3, and more.
 
 Remote state is a feature of [backends](/docs/backends). Configuring and
-using backends is easy and you can get started with remote state quickly.
-If you want to migrate back to using local state, backends make that
-easy as well.
+using remote backends is easy and you can get started with remote state
+quickly. If you then want to migrate back to using local state, backends make
+that easy as well.
 
 ## Delegation and Teamwork
 
@@ -31,7 +33,8 @@ your infrastructure to be more easily broken down into components that
 multiple teams can access.
 
 Put another way, remote state also allows teams to share infrastructure
-resources in a read-only way.
+resources in a read-only way without relying on any additional configuration
+store.
 
 For example, a core infrastructure team can handle building the core
 machines, networking, etc. and can expose some information to other
@@ -39,16 +42,27 @@ teams to run their own infrastructure. As a more specific example with AWS:
 you can expose things such as VPC IDs, subnets, NAT instance IDs, etc. through
 remote state and have other Terraform states consume that.
 
-For example usage see the
-[terraform_remote_state](/docs/providers/terraform/d/remote_state.html) data source.
+For example usage, see
+[the `terraform_remote_state` data source](/docs/providers/terraform/d/remote_state.html).
+
+While remote state is a convenient, built-in mechanism for sharing data
+between configurations, it is also possible to use more general stores to
+pass settings both to other configurations and to other consumers. For example,
+if your environment has [HashiCorp Consul](https://www.consul.io/) then you
+can have one Terraform configuration that writes to Consul using
+[`consul_key_prefix`](/docs/providers/consul/r/key_prefix.html) and then
+another that consumes those values using
+[the `consul_keys` data source](/docs/providers/consul/d/keys.html).
 
 ## Locking and Teamwork
 
-Terraform will automatically lock state depending on the
-[backend](/docs/backends) used. Please see the full page dedicated
-to [state locking](/docs/state/locking.html).
+For fully-featured remote backends, Terraform can also use
+[state locking](/docs/state/locking.html) to prevent concurrent runs of
+Terraform against the same state.
 
-[Terraform Enterprise by HashiCorp](https://www.hashicorp.com/products/terraform/) is a commercial offering
-that in addition to locking supports remote operations that allow you to
-safely queue Terraform operations in a central location. This enables
-teams to safely modify infrastructure concurrently.
+[Terraform Enterprise by HashiCorp](https://www.hashicorp.com/products/terraform/)
+is a commercial offering that supports an even stronger locking concept that
+can also detect attempts to create a new plan when an existing plan is already
+awaiting approval, by queuing Terraform operations in a central location.
+This allows teams to more easily coordinate and communicate about changes to
+infrastructure.

@@ -6,14 +6,16 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/colorstring"
+
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 // StateOpts are the options for formatting a state.
 type StateOpts struct {
 	// State is the state to format. This is required.
-	State *terraform.State
+	State *states.State
 
 	// Color is the colorizer. This is optional.
 	Color *colorstring.Colorize
@@ -34,7 +36,10 @@ func State(opts *StateOpts) string {
 		return "The state file is empty. No resources are represented."
 	}
 
-	var buf bytes.Buffer
+	// FIXME: State formatter not yet updated for new state types
+	return "FIXME: State formatter not yet updated for new state types"
+
+	/*var buf bytes.Buffer
 	buf.WriteString("[reset]")
 
 	// Format all the modules
@@ -76,6 +81,7 @@ func State(opts *StateOpts) string {
 	}
 
 	return opts.Color.Color(strings.TrimSpace(buf.String()))
+	*/
 }
 
 func formatStateModuleExpand(

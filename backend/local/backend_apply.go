@@ -6,35 +6,37 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"strings"
 
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/go-multierror"
+
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/command/clistate"
-	"github.com/hashicorp/terraform/command/format"
-	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/state"
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/statefile"
+	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 func (b *Local) opApply(
-	ctx context.Context,
+	stopCtx context.Context,
+	cancelCtx context.Context,
 	op *backend.Operation,
 	runningOp *backend.RunningOperation) {
 	log.Printf("[INFO] backend/local: starting Apply operation")
 
-	// If we have a nil module at this point, then set it to an empty tree
-	// to avoid any potential crashes.
-	if op.Plan == nil && op.Module == nil && !op.Destroy {
-		runningOp.Err = fmt.Errorf(strings.TrimSpace(applyErrNoConfig))
-		return
-	}
+	var diags tfdiags.Diagnostics
+	var err error
 
 	// If we have a nil module at this point, then set it to an empty tree
 	// to avoid any potential crashes.
-	if op.Module == nil {
-		op.Module = module.NewEmptyTree()
+	if op.PlanFile == nil && !op.Destroy && !op.HasConfig() {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"No configuration files",
+			"Apply requires configuration to be present. Applying without a configuration would mark everything for destruction, which is normally not what is desired. If you would like to destroy everything, run 'terraform destroy' instead.",
+		))
+		b.ReportResult(runningOp, diags)
+		return
 	}
 
 	// Setup our count hook that keeps track of resource changes
@@ -48,42 +50,26 @@ func (b *Local) opApply(
 	b.ContextOpts.Hooks = append(b.ContextOpts.Hooks, countHook, stateHook)
 
 	// Get our context
-	tfCtx, opState, err := b.context(op)
-	if err != nil {
-		runningOp.Err = err
+	tfCtx, _, opState, contextDiags := b.context(op)
+	diags = diags.Append(contextDiags)
+	if contextDiags.HasErrors() {
+		b.ReportResult(runningOp, diags)
 		return
-	}
-
-	if op.LockState {
-		lockCtx, cancel := context.WithTimeout(ctx, op.StateLockTimeout)
-		defer cancel()
-
-		lockInfo := state.NewLockInfo()
-		lockInfo.Operation = op.Type.String()
-		lockID, err := clistate.Lock(lockCtx, opState, lockInfo, b.CLI, b.Colorize())
-		if err != nil {
-			runningOp.Err = errwrap.Wrapf("Error locking state: {{err}}", err)
-			return
-		}
-
-		defer func() {
-			if err := clistate.Unlock(opState, lockID, b.CLI, b.Colorize()); err != nil {
-				runningOp.Err = multierror.Append(runningOp.Err, err)
-			}
-		}()
 	}
 
 	// Setup the state
 	runningOp.State = tfCtx.State()
 
 	// If we weren't given a plan, then we refresh/plan
-	if op.Plan == nil {
+	if op.PlanFile == nil {
 		// If we're refreshing before apply, perform that
 		if op.PlanRefresh {
 			log.Printf("[INFO] backend/local: apply calling Refresh")
 			_, err := tfCtx.Refresh()
 			if err != nil {
-				runningOp.Err = errwrap.Wrapf("Error refreshing state: {{err}}", err)
+				diags = diags.Append(err)
+				runningOp.Result = backend.OperationFailure
+				b.ShowDiagnostics(diags)
 				return
 			}
 		}
@@ -92,30 +78,37 @@ func (b *Local) opApply(
 		log.Printf("[INFO] backend/local: apply calling Plan")
 		plan, err := tfCtx.Plan()
 		if err != nil {
-			runningOp.Err = errwrap.Wrapf("Error running plan: {{err}}", err)
+			diags = diags.Append(err)
+			b.ReportResult(runningOp, diags)
 			return
 		}
 
-		dispPlan := format.NewPlan(plan)
-		trivialPlan := dispPlan.Empty()
+		trivialPlan := plan.Changes.Empty()
 		hasUI := op.UIOut != nil && op.UIIn != nil
-		mustConfirm := hasUI && ((op.Destroy && !op.DestroyForce) || (!op.Destroy && !op.AutoApprove && !trivialPlan))
+		mustConfirm := hasUI && ((op.Destroy && (!op.DestroyForce && !op.AutoApprove)) || (!op.Destroy && !op.AutoApprove && !trivialPlan))
 		if mustConfirm {
 			var desc, query string
 			if op.Destroy {
-				// Default destroy message
+				if op.Workspace != "default" {
+					query = "Do you really want to destroy all resources in workspace \"" + op.Workspace + "\"?"
+				} else {
+					query = "Do you really want to destroy all resources?"
+				}
 				desc = "Terraform will destroy all your managed infrastructure, as shown above.\n" +
 					"There is no undo. Only 'yes' will be accepted to confirm."
-				query = "Do you really want to destroy?"
 			} else {
+				if op.Workspace != "default" {
+					query = "Do you want to perform these actions in workspace \"" + op.Workspace + "\"?"
+				} else {
+					query = "Do you want to perform these actions?"
+				}
 				desc = "Terraform will perform the actions described above.\n" +
 					"Only 'yes' will be accepted to approve."
-				query = "Do you want to perform these actions?"
 			}
 
 			if !trivialPlan {
 				// Display the plan of what we are going to apply/destroy.
-				b.renderPlan(dispPlan)
+				b.renderPlan(plan, tfCtx.Schemas())
 				b.CLI.Output("")
 			}
 
@@ -125,86 +118,59 @@ func (b *Local) opApply(
 				Description: desc,
 			})
 			if err != nil {
-				runningOp.Err = errwrap.Wrapf("Error asking for approval: {{err}}", err)
+				diags = diags.Append(errwrap.Wrapf("Error asking for approval: {{err}}", err))
+				b.ReportResult(runningOp, diags)
 				return
 			}
 			if v != "yes" {
 				if op.Destroy {
-					runningOp.Err = errors.New("Destroy cancelled.")
+					b.CLI.Info("Destroy cancelled.")
 				} else {
-					runningOp.Err = errors.New("Apply cancelled.")
+					b.CLI.Info("Apply cancelled.")
 				}
+				runningOp.Result = backend.OperationFailure
 				return
 			}
 		}
 	}
 
 	// Setup our hook for continuous state updates
-	stateHook.State = opState
+	stateHook.StateMgr = opState
 
 	// Start the apply in a goroutine so that we can be interrupted.
-	var applyState *terraform.State
-	var applyErr error
+	var applyState *states.State
+	var applyDiags tfdiags.Diagnostics
 	doneCh := make(chan struct{})
 	go func() {
 		defer close(doneCh)
-		_, applyErr = tfCtx.Apply()
+		_, applyDiags = tfCtx.Apply()
 		// we always want the state, even if apply failed
 		applyState = tfCtx.State()
 	}()
 
-	// Wait for the apply to finish or for us to be interrupted so
-	// we can handle it properly.
-	err = nil
-	select {
-	case <-ctx.Done():
-		if b.CLI != nil {
-			b.CLI.Output("stopping apply operation...")
-		}
-
-		// try to force a PersistState just in case the process is terminated
-		// before we can complete.
-		if err := opState.PersistState(); err != nil {
-			// We can't error out from here, but warn the user if there was an error.
-			// If this isn't transient, we will catch it again below, and
-			// attempt to save the state another way.
-			if b.CLI != nil {
-				b.CLI.Error(fmt.Sprintf(earlyStateWriteErrorFmt, err))
-			}
-		}
-
-		// Stop execution
-		go tfCtx.Stop()
-
-		// Wait for completion still
-		<-doneCh
-	case <-doneCh:
+	if b.opWait(doneCh, stopCtx, cancelCtx, tfCtx, opState) {
+		return
 	}
 
 	// Store the final state
 	runningOp.State = applyState
-
-	// Persist the state
-	if err := opState.WriteState(applyState); err != nil {
-		runningOp.Err = b.backupStateForError(applyState, err)
-		return
-	}
-	if err := opState.PersistState(); err != nil {
-		runningOp.Err = b.backupStateForError(applyState, err)
+	err = statemgr.WriteAndPersist(opState, applyState)
+	if err != nil {
+		diags = diags.Append(b.backupStateForError(applyState, err))
+		b.ReportResult(runningOp, diags)
 		return
 	}
 
-	if applyErr != nil {
-		runningOp.Err = fmt.Errorf(
-			"Error applying plan:\n\n"+
-				"%s\n\n"+
-				"Terraform does not automatically rollback in the face of errors.\n"+
-				"Instead, your Terraform state file has been partially updated with\n"+
-				"any resources that successfully completed. Please address the error\n"+
-				"above and apply again to incrementally change your infrastructure.",
-			multierror.Flatten(applyErr))
+	diags = diags.Append(applyDiags)
+	if applyDiags.HasErrors() {
+		b.ReportResult(runningOp, diags)
 		return
 	}
+
+	// If we've accumulated any warnings along the way then we'll show them
+	// here just before we show the summary and next steps. If we encountered
+	// errors then we would've returned early at some other point above.
+	b.ShowDiagnostics(diags)
 
 	// If we have a UI, output the results
 	if b.CLI != nil {
@@ -241,10 +207,10 @@ func (b *Local) opApply(
 // to local disk to help the user recover. This is a "last ditch effort" sort
 // of thing, so we really don't want to end up in this codepath; we should do
 // everything we possibly can to get the state saved _somewhere_.
-func (b *Local) backupStateForError(applyState *terraform.State, err error) error {
+func (b *Local) backupStateForError(applyState *states.State, err error) error {
 	b.CLI.Error(fmt.Sprintf("Failed to save state: %s\n", err))
 
-	local := &state.LocalState{Path: "errored.tfstate"}
+	local := statemgr.NewFilesystem("errored.tfstate")
 	writeErr := local.WriteState(applyState)
 	if writeErr != nil {
 		b.CLI.Error(fmt.Sprintf(
@@ -256,7 +222,10 @@ func (b *Local) backupStateForError(applyState *terraform.State, err error) erro
 		// but at least the user has _some_ path to recover if we end up
 		// here for some reason.
 		stateBuf := new(bytes.Buffer)
-		jsonErr := terraform.WriteState(applyState, stateBuf)
+		stateFile := &statefile.File{
+			State: applyState,
+		}
+		jsonErr := statefile.Write(stateFile, stateBuf)
 		if jsonErr != nil {
 			b.CLI.Error(fmt.Sprintf(
 				"Also failed to JSON-serialize the state to print it: %s\n\n", jsonErr,
@@ -271,15 +240,6 @@ func (b *Local) backupStateForError(applyState *terraform.State, err error) erro
 
 	return errors.New(stateWriteBackedUpError)
 }
-
-const applyErrNoConfig = `
-No configuration files found!
-
-Apply requires configuration to be present. Applying without a configuration
-would mark everything for destruction, which is normally not what is desired.
-If you would like to destroy everything, please run 'terraform destroy' instead
-which does not require any configuration files.
-`
 
 const stateWriteBackedUpError = `Failed to persist state to backend.
 

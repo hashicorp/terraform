@@ -7,11 +7,12 @@ import (
 	"strings"
 
 	"cloud.google.com/go/storage"
+	"google.golang.org/api/iterator"
+
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
-	"github.com/hashicorp/terraform/terraform"
-	"google.golang.org/api/iterator"
+	"github.com/hashicorp/terraform/states"
 )
 
 const (
@@ -19,9 +20,9 @@ const (
 	lockFileSuffix  = ".tflock"
 )
 
-// States returns a list of names for the states found on GCS. The default
+// Workspaces returns a list of names for the workspaces found on GCS. The default
 // state is always returned as the first element in the slice.
-func (b *gcsBackend) States() ([]string, error) {
+func (b *gcsBackend) Workspaces() ([]string, error) {
 	states := []string{backend.DefaultStateName}
 
 	bucket := b.storageClient.Bucket(b.bucketName)
@@ -53,8 +54,8 @@ func (b *gcsBackend) States() ([]string, error) {
 	return states, nil
 }
 
-// DeleteState deletes the named state. The "default" state cannot be deleted.
-func (b *gcsBackend) DeleteState(name string) error {
+// DeleteWorkspace deletes the named workspaces. The "default" state cannot be deleted.
+func (b *gcsBackend) DeleteWorkspace(name string) error {
 	if name == backend.DefaultStateName {
 		return fmt.Errorf("cowardly refusing to delete the %q state", name)
 	}
@@ -85,7 +86,7 @@ func (b *gcsBackend) client(name string) (*remoteClient, error) {
 
 // State reads and returns the named state from GCS. If the named state does
 // not yet exist, a new state file is created.
-func (b *gcsBackend) State(name string) (state.State, error) {
+func (b *gcsBackend) StateMgr(name string) (state.State, error) {
 	c, err := b.client(name)
 	if err != nil {
 		return nil, err
@@ -127,7 +128,7 @@ func (b *gcsBackend) State(name string) (state.State, error) {
 			return baseErr
 		}
 
-		if err := st.WriteState(terraform.NewState()); err != nil {
+		if err := st.WriteState(states.NewState()); err != nil {
 			return nil, unlock(err)
 		}
 		if err := st.PersistState(); err != nil {

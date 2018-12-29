@@ -33,8 +33,14 @@ func (t typeMap) Equals(other Type) bool {
 	return t.ElementTypeT.Equals(ot.ElementTypeT)
 }
 
-func (t typeMap) FriendlyName() string {
-	return "map of " + t.ElementTypeT.FriendlyName()
+func (t typeMap) FriendlyName(mode friendlyTypeNameMode) string {
+	elemName := t.ElementTypeT.friendlyNameMode(mode)
+	if mode == friendlyTypeConstraintName {
+		if t.ElementTypeT == DynamicPseudoType {
+			elemName = "any single type"
+		}
+	}
+	return "map of " + elemName
 }
 
 func (t typeMap) ElementType() Type {

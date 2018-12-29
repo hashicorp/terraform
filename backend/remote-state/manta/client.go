@@ -106,7 +106,7 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 	lockErr := &state.LockError{}
 	lockInfo, err := c.getLockInfo()
 	if err != nil {
-		if tritonErrors.IsResourceNotFound(err) {
+		if !tritonErrors.IsResourceNotFound(err) {
 			lockErr.Err = fmt.Errorf("failed to retrieve lock info: %s", err)
 			return "", lockErr
 		}
@@ -141,6 +141,7 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 		ContentLength: uint64(contentLength),
 		ObjectPath:    path.Join(mantaDefaultRootStore, c.directoryName, lockFileName),
 		ObjectReader:  bytes.NewReader(data),
+		ForceInsert:   true,
 	}
 
 	log.Printf("[DEBUG] Creating manta state lock: %#v", params)

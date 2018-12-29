@@ -80,6 +80,10 @@ func (c *remoteClient) Delete() error {
 // Lock writes to a lock file, ensuring file creation. Returns the generation
 // number, which must be passed to Unlock().
 func (c *remoteClient) Lock(info *state.LockInfo) (string, error) {
+	// update the path we're using
+	// we can't set the ID until the info is written
+	info.Path = c.lockFileURL()
+
 	infoJson, err := json.Marshal(info)
 	if err != nil {
 		return "", err
@@ -93,12 +97,12 @@ func (c *remoteClient) Lock(info *state.LockInfo) (string, error) {
 		}
 		return w.Close()
 	}()
+
 	if err != nil {
 		return "", c.lockError(fmt.Errorf("writing %q failed: %v", c.lockFileURL(), err))
 	}
 
 	info.ID = strconv.FormatInt(w.Attrs().Generation, 10)
-	info.Path = c.lockFileURL()
 
 	return info.ID, nil
 }
@@ -148,6 +152,15 @@ func (c *remoteClient) lockInfo() (*state.LockInfo, error) {
 	if err := json.Unmarshal(rawData, info); err != nil {
 		return nil, err
 	}
+
+	// We use the Generation as the ID, so overwrite the ID in the json.
+	// This can't be written into the Info, since the generation isn't known
+	// until it's written.
+	attrs, err := c.lockFile().Attrs(c.storageContext)
+	if err != nil {
+		return nil, err
+	}
+	info.ID = strconv.FormatInt(attrs.Generation, 10)
 
 	return info, nil
 }

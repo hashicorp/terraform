@@ -31,9 +31,10 @@ func resourceAwsSpotFleetRequest() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"iam_fleet_role": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validateArn,
 			},
 			"replace_unhealthy_instances": {
 				Type:     schema.TypeBool,

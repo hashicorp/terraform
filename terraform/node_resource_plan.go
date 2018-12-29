@@ -2,46 +2,66 @@ package terraform
 
 import (
 	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // NodePlannableResource represents a resource that is "plannable":
 // it is ready to be planned in order to create a diff.
 type NodePlannableResource struct {
-	*NodeAbstractCountResource
+	*NodeAbstractResource
 }
+
+var (
+	_ GraphNodeSubPath              = (*NodePlannableResource)(nil)
+	_ GraphNodeDynamicExpandable    = (*NodePlannableResource)(nil)
+	_ GraphNodeReferenceable        = (*NodePlannableResource)(nil)
+	_ GraphNodeReferencer           = (*NodePlannableResource)(nil)
+	_ GraphNodeResource             = (*NodePlannableResource)(nil)
+	_ GraphNodeAttachResourceConfig = (*NodePlannableResource)(nil)
+)
 
 // GraphNodeDynamicExpandable
 func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
-	// Grab the state which we read
-	state, lock := ctx.State()
-	lock.RLock()
-	defer lock.RUnlock()
+	var diags tfdiags.Diagnostics
 
-	// Expand the resource count which must be available by now from EvalTree
-	count, err := n.Config.Count()
-	if err != nil {
-		return nil, err
+	count, countDiags := evaluateResourceCountExpression(n.Config.Count, ctx)
+	diags = diags.Append(countDiags)
+	if countDiags.HasErrors() {
+		return nil, diags.Err()
 	}
 
+	// Next we need to potentially rename an instance address in the state
+	// if we're transitioning whether "count" is set at all.
+	fixResourceCountSetTransition(ctx, n.ResourceAddr(), count != -1)
+
+	// Our graph transformers require access to the full state, so we'll
+	// temporarily lock it while we work on this.
+	state := ctx.State().Lock()
+	defer ctx.State().Unlock()
+
 	// The concrete resource factory we'll use
-	concreteResource := func(a *NodeAbstractResource) dag.Vertex {
+	concreteResource := func(a *NodeAbstractResourceInstance) dag.Vertex {
 		// Add the config and state since we don't do that via transforms
 		a.Config = n.Config
 		a.ResolvedProvider = n.ResolvedProvider
+		a.Schema = n.Schema
+		a.ProvisionerSchemas = n.ProvisionerSchemas
 
 		return &NodePlannableResourceInstance{
-			NodeAbstractResource: a,
+			NodeAbstractResourceInstance: a,
 		}
 	}
 
-	// The concrete resource factory we'll use for oprhans
-	concreteResourceOrphan := func(a *NodeAbstractResource) dag.Vertex {
+	// The concrete resource factory we'll use for orphans
+	concreteResourceOrphan := func(a *NodeAbstractResourceInstance) dag.Vertex {
 		// Add the config and state since we don't do that via transforms
 		a.Config = n.Config
 		a.ResolvedProvider = n.ResolvedProvider
+		a.Schema = n.Schema
+		a.ProvisionerSchemas = n.ProvisionerSchemas
 
-		return &NodePlannableResourceOrphan{
-			NodeAbstractResource: a,
+		return &NodePlannableResourceInstanceOrphan{
+			NodeAbstractResourceInstance: a,
 		}
 	}
 
@@ -50,6 +70,7 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 		// Expand the count.
 		&ResourceCountTransformer{
 			Concrete: concreteResource,
+			Schema:   n.Schema,
 			Count:    count,
 			Addr:     n.ResourceAddr(),
 		},
@@ -66,7 +87,7 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 		&AttachStateTransformer{State: state},
 
 		// Targeting
-		&TargetsTransformer{ParsedTargets: n.Targets},
+		&TargetsTransformer{Targets: n.Targets},
 
 		// Connect references so ordering is correct
 		&ReferenceTransformer{},
@@ -81,5 +102,6 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 		Validate: true,
 		Name:     "NodePlannableResource",
 	}
-	return b.Build(ctx.Path())
+	graph, diags := b.Build(ctx.Path())
+	return graph, diags.ErrWithWarnings()
 }

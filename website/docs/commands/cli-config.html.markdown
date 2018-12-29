@@ -7,17 +7,13 @@ description: |-
   configuration file.
 ---
 
-# CLI Configuration File
+# CLI Configuration File (`.terraformrc`/`terraform.rc`)
 
-The CLI configuration file allows customization of some behaviors of the
-Terraform CLI in general. This is separate from
-[your infrastructure configuration](/docs/configuration/index.html), and
-provides per-user customization that applies regardless of which working
-directory Terraform is being applied to.
+The CLI configuration file configures per-user settings for CLI behaviors,
+which apply across all Terraform working directories. This is separate from
+[your infrastructure configuration](/docs/configuration/index.html).
 
-For example, the CLI configuration file can be used to activate a shared
-plugin cache directory that allows provider plugins to be shared between
-different working directories, as described in more detail below.
+## Location
 
 The configuration is placed in a single file whose location depends on the
 host operating system:
@@ -52,17 +48,39 @@ disable_checkpoint = true
 
 The following settings can be set in the CLI configuration file:
 
-* `disable_checkpoint` - when set to `true`, disables
+- `disable_checkpoint` — when set to `true`, disables
   [upgrade and security bulletin checks](/docs/commands/index.html#upgrade-and-security-bulletin-checks)
   that require reaching out to HashiCorp-provided network services.
 
-* `disable_checkpoint_signature` - when set to `true`, allows the upgrade and
+- `disable_checkpoint_signature` — when set to `true`, allows the upgrade and
   security bulletin checks described above but disables the use of an anonymous
   id used to de-duplicate warning messages.
 
-* `plugin_cache_dir` - enables
+- `plugin_cache_dir` — enables
   [plugin caching](/docs/configuration/providers.html#provider-plugin-cache)
   and specifies, as a string, the location of the plugin cache directory.
+
+- `credentials` — provides credentials for use with Terraform Enterprise's
+    [private module registry.](/docs/enterprise/registry/index.html) This is
+    only necessary when running Terraform on the command line; runs managed by
+    Terraform Enterprise can access private modules automatically.
+
+    This setting is a repeatable block, where the block label is a hostname
+    (either `app.terraform.io` or the hostname of your private install) and
+    the block body contains a `token` attribute. Whenever Terraform requests
+    module data from that hostname, it will authenticate with that token.
+
+    ``` hcl
+    credentials "app.terraform.io" {
+      token = "xxxxxx.atlasv1.zzzzzzzzzzzzz"
+    }
+    ```
+
+    ~> **Note:** The credentials hostname must match the hostname in your module
+    sources. If your Terraform Enterprise instance is available at multiple
+    hostnames, use one of them consistently. (The SaaS version of Terraform
+    Enterprise responds to API calls at both its newer hostname,
+    app.terraform.io, and its historical hostname, atlas.hashicorp.com.)
 
 ## Deprecated Settings
 

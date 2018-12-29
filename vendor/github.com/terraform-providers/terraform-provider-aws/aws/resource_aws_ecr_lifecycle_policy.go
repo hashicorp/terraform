@@ -2,7 +2,6 @@ package aws
 
 import (
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -13,6 +12,10 @@ func resourceAwsEcrLifecyclePolicy() *schema.Resource {
 		Read:   resourceAwsEcrLifecyclePolicyRead,
 		Delete: resourceAwsEcrLifecyclePolicyDelete,
 
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+
 		Schema: map[string]*schema.Schema{
 			"repository": &schema.Schema{
 				Type:     schema.TypeString,
@@ -20,10 +23,11 @@ func resourceAwsEcrLifecyclePolicy() *schema.Resource {
 				ForceNew: true,
 			},
 			"policy": &schema.Schema{
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				ValidateFunc: validateJsonString,
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				ValidateFunc:     validateJsonString,
+				DiffSuppressFunc: suppressEquivalentJsonDiffs,
 			},
 			"registry_id": &schema.Schema{
 				Type:     schema.TypeString,
@@ -54,23 +58,25 @@ func resourceAwsEcrLifecyclePolicyRead(d *schema.ResourceData, meta interface{})
 	conn := meta.(*AWSClient).ecrconn
 
 	input := &ecr.GetLifecyclePolicyInput{
-		RegistryId:     aws.String(d.Get("registry_id").(string)),
-		RepositoryName: aws.String(d.Get("repository").(string)),
+		RepositoryName: aws.String(d.Id()),
 	}
 
-	_, err := conn.GetLifecyclePolicy(input)
+	resp, err := conn.GetLifecyclePolicy(input)
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case ecr.ErrCodeRepositoryNotFoundException, ecr.ErrCodeLifecyclePolicyNotFoundException:
-				d.SetId("")
-				return nil
-			default:
-				return err
-			}
+		if isAWSErr(err, ecr.ErrCodeRepositoryNotFoundException, "") {
+			d.SetId("")
+			return nil
+		}
+		if isAWSErr(err, ecr.ErrCodeLifecyclePolicyNotFoundException, "") {
+			d.SetId("")
+			return nil
 		}
 		return err
 	}
+
+	d.Set("repository", resp.RepositoryName)
+	d.Set("registry_id", resp.RegistryId)
+	d.Set("policy", resp.LifecyclePolicyText)
 
 	return nil
 }
@@ -79,20 +85,18 @@ func resourceAwsEcrLifecyclePolicyDelete(d *schema.ResourceData, meta interface{
 	conn := meta.(*AWSClient).ecrconn
 
 	input := &ecr.DeleteLifecyclePolicyInput{
-		RegistryId:     aws.String(d.Get("registry_id").(string)),
-		RepositoryName: aws.String(d.Get("repository").(string)),
+		RepositoryName: aws.String(d.Id()),
 	}
 
 	_, err := conn.DeleteLifecyclePolicy(input)
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case ecr.ErrCodeRepositoryNotFoundException, ecr.ErrCodeLifecyclePolicyNotFoundException:
-				d.SetId("")
-				return nil
-			default:
-				return err
-			}
+		if isAWSErr(err, ecr.ErrCodeRepositoryNotFoundException, "") {
+			d.SetId("")
+			return nil
+		}
+		if isAWSErr(err, ecr.ErrCodeLifecyclePolicyNotFoundException, "") {
+			d.SetId("")
+			return nil
 		}
 		return err
 	}

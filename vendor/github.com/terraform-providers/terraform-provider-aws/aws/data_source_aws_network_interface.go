@@ -15,8 +15,10 @@ func dataSourceAwsNetworkInterface() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"id": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Computed: true,
 			},
+			"filter": dataSourceFiltersSchema(),
 			"association": {
 				Type:     schema.TypeList,
 				Computed: true,
@@ -132,8 +134,13 @@ func dataSourceAwsNetworkInterface() *schema.Resource {
 func dataSourceAwsNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
-	input := &ec2.DescribeNetworkInterfacesInput{
-		NetworkInterfaceIds: []*string{aws.String(d.Get("id").(string))},
+	input := &ec2.DescribeNetworkInterfacesInput{}
+	if v, ok := d.GetOk("id"); ok {
+		input.NetworkInterfaceIds = []*string{aws.String(v.(string))}
+	}
+
+	if v, ok := d.GetOk("filter"); ok {
+		input.Filters = buildAwsDataSourceFilters(v.(*schema.Set))
 	}
 
 	log.Printf("[DEBUG] Reading Network Interface: %s", input)
@@ -141,11 +148,13 @@ func dataSourceAwsNetworkInterfaceRead(d *schema.ResourceData, meta interface{})
 	if err != nil {
 		return err
 	}
+
 	if resp == nil || len(resp.NetworkInterfaces) == 0 {
 		return fmt.Errorf("no matching network interface found")
 	}
+
 	if len(resp.NetworkInterfaces) > 1 {
-		return fmt.Errorf("multiple network interfaces matched %s", d.Id())
+		return fmt.Errorf("Your query returned more than one result. Please try a more specific search criteria")
 	}
 
 	eni := resp.NetworkInterfaces[0]

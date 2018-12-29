@@ -2,19 +2,18 @@ package command
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"os"
 	"sort"
 	"strings"
 
-	"github.com/hashicorp/terraform/tfdiags"
-
 	"github.com/hashicorp/go-getter"
+
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // ApplyCommand is a Command implementation that applies a Terraform
@@ -40,15 +39,12 @@ func (c *ApplyCommand) Run(args []string) int {
 	}
 
 	cmdFlags := c.Meta.flagSet(cmdName)
+	cmdFlags.BoolVar(&autoApprove, "auto-approve", false, "skip interactive approval of plan before applying")
 	if c.Destroy {
-		cmdFlags.BoolVar(&destroyForce, "force", false, "force")
+		cmdFlags.BoolVar(&destroyForce, "force", false, "deprecated: same as auto-approve")
 	}
 	cmdFlags.BoolVar(&refresh, "refresh", true, "refresh")
-	if !c.Destroy {
-		cmdFlags.BoolVar(&autoApprove, "auto-approve", false, "skip interactive approval of plan before applying")
-	}
-	cmdFlags.IntVar(
-		&c.Meta.parallelism, "parallelism", DefaultParallelism, "parallelism")
+	cmdFlags.IntVar(&c.Meta.parallelism, "parallelism", DefaultParallelism, "parallelism")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
 	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
@@ -86,8 +82,7 @@ func (c *ApplyCommand) Run(args []string) int {
 
 		// Do a detect to determine if we need to do an init + apply.
 		if detected, err := getter.Detect(configPath, pwd, getter.Detectors); err != nil {
-			c.Ui.Error(fmt.Sprintf(
-				"Invalid path: %s", err))
+			c.Ui.Error(fmt.Sprintf("Invalid path: %s", err))
 			return 1
 		} else if !strings.HasPrefix(detected, "file") {
 			// If this isn't a file URL then we're doing an init +
@@ -104,112 +99,99 @@ func (c *ApplyCommand) Run(args []string) int {
 	}
 
 	// Check if the path is a plan
-	plan, err := c.Plan(configPath)
+	planFile, err := c.PlanFile(configPath)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
 	}
-	if c.Destroy && plan != nil {
-		c.Ui.Error(fmt.Sprintf(
-			"Destroy can't be called with a plan file."))
+	if c.Destroy && planFile != nil {
+		c.Ui.Error(fmt.Sprintf("Destroy can't be called with a plan file."))
 		return 1
 	}
-	if plan != nil {
+	if planFile != nil {
 		// Reset the config path for backend loading
 		configPath = ""
 	}
 
 	var diags tfdiags.Diagnostics
 
-	// Load the module if we don't have one yet (not running from plan)
-	var mod *module.Tree
-	if plan == nil {
-		var modDiags tfdiags.Diagnostics
-		mod, modDiags = c.Module(configPath)
-		diags = diags.Append(modDiags)
-		if modDiags.HasErrors() {
+	// Load the backend
+	var be backend.Enhanced
+	var beDiags tfdiags.Diagnostics
+	if planFile == nil {
+		backendConfig, configDiags := c.loadBackendConfig(configPath)
+		diags = diags.Append(configDiags)
+		if configDiags.HasErrors() {
 			c.showDiagnostics(diags)
 			return 1
 		}
-	}
 
-	var conf *config.Config
-	if mod != nil {
-		conf = mod.Config()
+		be, beDiags = c.Backend(&BackendOpts{
+			Config: backendConfig,
+		})
+	} else {
+		plan, err := planFile.ReadPlan()
+		if err != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to read plan from plan file",
+				fmt.Sprintf("Cannot read the plan from the given plan file: %s.", err),
+			))
+		}
+		be, beDiags = c.BackendForPlan(plan.Backend)
 	}
-
-	// Load the backend
-	b, err := c.Backend(&BackendOpts{
-		Config: conf,
-		Plan:   plan,
-	})
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
+	diags = diags.Append(beDiags)
+	if beDiags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
+	// Before we delegate to the backend, we'll print any warning diagnostics
+	// we've accumulated here, since the backend will start fresh with its own
+	// diagnostics.
+	c.showDiagnostics(diags)
+	diags = nil
+
 	// Build the operation
-	opReq := c.Operation()
+	opReq := c.Operation(be)
 	opReq.Destroy = c.Destroy
-	opReq.Module = mod
-	opReq.Plan = plan
+	opReq.ConfigDir = configPath
+	opReq.PlanFile = planFile
 	opReq.PlanRefresh = refresh
 	opReq.Type = backend.OperationTypeApply
 	opReq.AutoApprove = autoApprove
 	opReq.DestroyForce = destroyForce
-
-	// Perform the operation
-	ctx, ctxCancel := context.WithCancel(context.Background())
-	defer ctxCancel()
-
-	op, err := b.Operation(ctx, opReq)
+	opReq.ConfigLoader, err = c.initConfigLoader()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error starting operation: %s", err))
+		c.showDiagnostics(err)
 		return 1
 	}
 
-	// Wait for the operation to complete or an interrupt to occur
-	select {
-	case <-c.ShutdownCh:
-		// Cancel our context so we can start gracefully exiting
-		ctxCancel()
-
-		// Notify the user
-		c.Ui.Output(outputInterrupt)
-
-		// Still get the result, since there is still one
-		select {
-		case <-c.ShutdownCh:
-			c.Ui.Error(
-				"Two interrupts received. Exiting immediately. Note that data\n" +
-					"loss may have occurred.")
-			return 1
-		case <-op.Done():
-		}
-	case <-op.Done():
-		if err := op.Err; err != nil {
-			diags = diags.Append(err)
-		}
-	}
-
-	c.showDiagnostics(diags)
-	if diags.HasErrors() {
+	op, err := c.RunOperation(be, opReq)
+	if err != nil {
+		c.showDiagnostics(err)
 		return 1
+	}
+	if op.Result != backend.OperationSuccess {
+		return op.Result.ExitStatus()
 	}
 
 	if !c.Destroy {
-		// Get the right module that we used. If we ran a plan, then use
-		// that module.
-		if plan != nil {
-			mod = plan.Module
-		}
+		// TODO: Print outputs, once this is updated to use new config types.
+		/*
+			// Get the right module that we used. If we ran a plan, then use
+			// that module.
+			if plan != nil {
+				mod = plan.Module
+			}
 
-		if outputs := outputsAsString(op.State, terraform.RootModulePath, mod.Config().Outputs, true); outputs != "" {
-			c.Ui.Output(c.Colorize().Color(outputs))
-		}
+			if outputs := outputsAsString(op.State, terraform.RootModulePath, mod.Config().Outputs, true); outputs != "" {
+				c.Ui.Output(c.Colorize().Color(outputs))
+			}
+		*/
 	}
 
-	return 0
+	return op.Result.ExitStatus()
 }
 
 func (c *ApplyCommand) Help() string {
@@ -246,11 +228,11 @@ Options:
                          modifying. Defaults to the "-state-out" path with
                          ".backup" extension. Set to "-" to disable backup.
 
+  -auto-approve          Skip interactive approval of plan before applying.
+
   -lock=true             Lock the state file when locking is supported.
 
   -lock-timeout=0s       Duration to retry a state lock.
-
-  -auto-approve          Skip interactive approval of plan before applying.
 
   -input=true            Ask for input for variables if not directly set.
 
@@ -297,7 +279,9 @@ Options:
                          modifying. Defaults to the "-state-out" path with
                          ".backup" extension. Set to "-" to disable backup.
 
-  -force                 Don't ask for input for destroy confirmation.
+  -auto-approve          Skip interactive approval before destroying.
+
+  -force                 Deprecated: same as auto-approve.
 
   -lock=true             Lock the state file when locking is supported.
 
@@ -334,26 +318,19 @@ Options:
 	return strings.TrimSpace(helpText)
 }
 
-func outputsAsString(state *terraform.State, modPath []string, schema []*config.Output, includeHeader bool) string {
+func outputsAsString(state *states.State, modPath addrs.ModuleInstance, schema map[string]*configs.Output, includeHeader bool) string {
 	if state == nil {
 		return ""
 	}
 
-	ms := state.ModuleByPath(modPath)
+	ms := state.Module(modPath)
 	if ms == nil {
 		return ""
 	}
 
-	outputs := ms.Outputs
+	outputs := ms.OutputValues
 	outputBuf := new(bytes.Buffer)
 	if len(outputs) > 0 {
-		schemaMap := make(map[string]*config.Output)
-		if schema != nil {
-			for _, s := range schema {
-				schemaMap[s.Name] = s
-			}
-		}
-
 		if includeHeader {
 			outputBuf.WriteString("[reset][bold][green]\nOutputs:\n\n")
 		}
@@ -370,23 +347,14 @@ func outputsAsString(state *terraform.State, modPath []string, schema []*config.
 		sort.Strings(ks)
 
 		for _, k := range ks {
-			schema, ok := schemaMap[k]
+			schema, ok := schema[k]
 			if ok && schema.Sensitive {
 				outputBuf.WriteString(fmt.Sprintf("%s = <sensitive>\n", k))
 				continue
 			}
 
-			v := outputs[k]
-			switch typedV := v.Value.(type) {
-			case string:
-				outputBuf.WriteString(fmt.Sprintf("%s = %s\n", k, typedV))
-			case []interface{}:
-				outputBuf.WriteString(formatListOutput("", k, typedV))
-				outputBuf.WriteString("\n")
-			case map[string]interface{}:
-				outputBuf.WriteString(formatMapOutput("", k, typedV))
-				outputBuf.WriteString("\n")
-			}
+			//v := outputs[k]
+			outputBuf.WriteString("output printer not yet updated to use the same value formatter as 'terraform console'")
 		}
 	}
 

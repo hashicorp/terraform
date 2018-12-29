@@ -31,6 +31,7 @@ The command-line flags are all optional. The list of available flags are:
 
 * `-state=path` - Path to the state file. Defaults to "terraform.tfstate".
   Ignored when [remote state](/docs/state/remote.html) is used.
+* `-id=id` - ID of resources to show. Ignored when unset.
 
 ## Example: All Resources
 
@@ -61,4 +62,15 @@ This example will only list resources in the given module:
 ```
 $ terraform state list module.elb
 module.elb.aws_elb.main
+```
+
+## Example: Filtering by ID
+
+This example will only list the resource whose ID is specified on the
+command line. This is useful to find where in your configuration a
+specific resource is located.
+
+```
+$ terraform state list -id=sg-1234abcd
+module.elb.aws_security_group.sg
 ```

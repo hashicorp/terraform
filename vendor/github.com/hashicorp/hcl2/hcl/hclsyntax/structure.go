@@ -9,6 +9,10 @@ import (
 
 // AsHCLBlock returns the block data expressed as a *hcl.Block.
 func (b *Block) AsHCLBlock() *hcl.Block {
+	if b == nil {
+		return nil
+	}
+
 	lastHeaderRange := b.TypeRange
 	if len(b.LabelRanges) > 0 {
 		lastHeaderRange = b.LabelRanges[len(b.LabelRanges)-1]
@@ -25,7 +29,7 @@ func (b *Block) AsHCLBlock() *hcl.Block {
 	}
 }
 
-// Body is the implementation of hcl.Body for the zcl native syntax.
+// Body is the implementation of hcl.Body for the HCL native syntax.
 type Body struct {
 	Attributes Attributes
 	Blocks     Blocks
@@ -326,6 +330,9 @@ func (a *Attribute) Range() hcl.Range {
 
 // AsHCLAttribute returns the block data expressed as a *hcl.Attribute.
 func (a *Attribute) AsHCLAttribute() *hcl.Attribute {
+	if a == nil {
+		return nil
+	}
 	return &hcl.Attribute{
 		Name: a.Name,
 		Expr: a.Expr,

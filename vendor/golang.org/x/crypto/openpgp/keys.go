@@ -325,9 +325,8 @@ func ReadEntity(packets *packet.Reader) (*Entity, error) {
 		if e.PrivateKey, ok = p.(*packet.PrivateKey); !ok {
 			packets.Unread(p)
 			return nil, errors.StructuralError("first packet was not a public/private key")
-		} else {
-			e.PrimaryKey = &e.PrivateKey.PublicKey
 		}
+		e.PrimaryKey = &e.PrivateKey.PublicKey
 	}
 
 	if !e.PrimaryKey.PubKeyAlgo.CanSign() {
@@ -347,22 +346,25 @@ EachPacket:
 
 		switch pkt := p.(type) {
 		case *packet.UserId:
+			// Make a new Identity object, that we might wind up throwing away.
+			// We'll only add it if we get a valid self-signature over this
+			// userID.
 			current = new(Identity)
 			current.Name = pkt.Id
 			current.UserId = pkt
-			e.Identities[pkt.Id] = current
 
 			for {
 				p, err = packets.Next()
 				if err == io.EOF {
-					return nil, io.ErrUnexpectedEOF
+					break EachPacket
 				} else if err != nil {
 					return nil, err
 				}
 
 				sig, ok := p.(*packet.Signature)
 				if !ok {
-					return nil, errors.StructuralError("user ID packet not followed by self-signature")
+					packets.Unread(p)
+					continue EachPacket
 				}
 
 				if (sig.SigType == packet.SigTypePositiveCert || sig.SigType == packet.SigTypeGenericCert) && sig.IssuerKeyId != nil && *sig.IssuerKeyId == e.PrimaryKey.KeyId {
@@ -370,9 +372,10 @@ EachPacket:
 						return nil, errors.StructuralError("user ID self-signature invalid: " + err.Error())
 					}
 					current.SelfSignature = sig
-					break
+					e.Identities[pkt.Id] = current
+				} else {
+					current.Signatures = append(current.Signatures, sig)
 				}
-				current.Signatures = append(current.Signatures, sig)
 			}
 		case *packet.Signature:
 			if pkt.SigType == packet.SigTypeKeyRevocation {
@@ -487,7 +490,7 @@ func NewEntity(name, comment, email string, config *packet.Config) (*Entity, err
 	}
 	isPrimaryId := true
 	e.Identities[uid.Id] = &Identity{
-		Name:   uid.Name,
+		Name:   uid.Id,
 		UserId: uid,
 		SelfSignature: &packet.Signature{
 			CreationTime: currentTime,
@@ -501,11 +504,20 @@ func NewEntity(name, comment, email string, config *packet.Config) (*Entity, err
 			IssuerKeyId:  &e.PrimaryKey.KeyId,
 		},
 	}
+	err = e.Identities[uid.Id].SelfSignature.SignUserId(uid.Id, e.PrimaryKey, e.PrivateKey, config)
+	if err != nil {
+		return nil, err
+	}
 
 	// If the user passes in a DefaultHash via packet.Config,
 	// set the PreferredHash for the SelfSignature.
 	if config != nil && config.DefaultHash != 0 {
 		e.Identities[uid.Id].SelfSignature.PreferredHash = []uint8{hashToHashId(config.DefaultHash)}
+	}
+
+	// Likewise for DefaultCipher.
+	if config != nil && config.DefaultCipher != 0 {
+		e.Identities[uid.Id].SelfSignature.PreferredSymmetric = []uint8{uint8(config.DefaultCipher)}
 	}
 
 	e.Subkeys = make([]Subkey, 1)
@@ -525,13 +537,16 @@ func NewEntity(name, comment, email string, config *packet.Config) (*Entity, err
 	}
 	e.Subkeys[0].PublicKey.IsSubkey = true
 	e.Subkeys[0].PrivateKey.IsSubkey = true
-
+	err = e.Subkeys[0].Sig.SignKey(e.Subkeys[0].PublicKey, e.PrivateKey, config)
+	if err != nil {
+		return nil, err
+	}
 	return e, nil
 }
 
-// SerializePrivate serializes an Entity, including private key material, to
-// the given Writer. For now, it must only be used on an Entity returned from
-// NewEntity.
+// SerializePrivate serializes an Entity, including private key material, but
+// excluding signatures from other entities, to the given Writer.
+// Identities and subkeys are re-signed in case they changed since NewEntry.
 // If config is nil, sensible defaults will be used.
 func (e *Entity) SerializePrivate(w io.Writer, config *packet.Config) (err error) {
 	err = e.PrivateKey.Serialize(w)
@@ -569,8 +584,8 @@ func (e *Entity) SerializePrivate(w io.Writer, config *packet.Config) (err error
 	return nil
 }
 
-// Serialize writes the public part of the given Entity to w. (No private
-// key material will be output).
+// Serialize writes the public part of the given Entity to w, including
+// signatures from other entities. No private key material will be output.
 func (e *Entity) Serialize(w io.Writer) error {
 	err := e.PrimaryKey.Serialize(w)
 	if err != nil {

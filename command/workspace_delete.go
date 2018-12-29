@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/command/clistate"
-	"github.com/hashicorp/terraform/state"
+	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/mitchellh/cli"
 	"github.com/posener/complete"
 )
@@ -50,23 +50,26 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 		return 1
 	}
 
-	cfg, err := c.Config(configPath)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load root config module: %s", err))
+	var diags tfdiags.Diagnostics
+
+	backendConfig, backendDiags := c.loadBackendConfig(configPath)
+	diags = diags.Append(backendDiags)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
 	// Load the backend
-	b, err := c.Backend(&BackendOpts{
-		Config: cfg,
+	b, backendDiags := c.Backend(&BackendOpts{
+		Config: backendConfig,
 	})
-
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
+	diags = diags.Append(backendDiags)
+	if backendDiags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
-	states, err := b.States()
+	states, err := b.Workspaces()
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
@@ -91,10 +94,21 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 	}
 
 	// we need the actual state to see if it's empty
-	sMgr, err := b.State(delEnv)
+	sMgr, err := b.StateMgr(delEnv)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
+	}
+
+	var stateLocker clistate.Locker
+	if c.stateLock {
+		stateLocker = clistate.NewLocker(context.Background(), c.stateLockTimeout, c.Ui, c.Colorize())
+		if err := stateLocker.Lock(sMgr, "workspace_delete"); err != nil {
+			c.Ui.Error(fmt.Sprintf("Error locking state: %s", err))
+			return 1
+		}
+	} else {
+		stateLocker = clistate.NewNoopLocker()
 	}
 
 	if err := sMgr.RefreshState(); err != nil {
@@ -109,33 +123,18 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Honor the lock request, for consistency and one final safety check.
-	if c.stateLock {
-		lockCtx, cancel := context.WithTimeout(context.Background(), c.stateLockTimeout)
-		defer cancel()
+	// We need to release the lock just before deleting the state, in case
+	// the backend can't remove the resource while holding the lock. This
+	// is currently true for Windows local files.
+	//
+	// TODO: While there is little safety in locking while deleting the
+	// state, it might be nice to be able to coordinate processes around
+	// state deletion, i.e. in a CI environment. Adding Delete() as a
+	// required method of States would allow the removal of the resource to
+	// be delegated from the Backend to the State itself.
+	stateLocker.Unlock(nil)
 
-		// Lock the state if we can
-		lockInfo := state.NewLockInfo()
-		lockInfo.Operation = "workspace delete"
-		lockID, err := clistate.Lock(lockCtx, sMgr, lockInfo, c.Ui, c.Colorize())
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error locking state: %s", err))
-			return 1
-		}
-
-		// We need to release the lock just before deleting the state, in case
-		// the backend can't remove the resource while holding the lock. This
-		// is currently true for Windows local files.
-		//
-		// TODO: While there is little safety in locking while deleting the
-		// state, it might be nice to be able to coordinate processes around
-		// state deletion, i.e. in a CI environment. Adding Delete() as a
-		// required method of States would allow the removal of the resource to
-		// be delegated from the Backend to the State itself.
-		clistate.Unlock(sMgr, lockID, c.Ui, c.Colorize())
-	}
-
-	err = b.DeleteState(delEnv)
+	err = b.DeleteWorkspace(delEnv)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1

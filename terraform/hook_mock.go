@@ -1,245 +1,274 @@
 package terraform
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/states"
+)
 
 // MockHook is an implementation of Hook that can be used for tests.
 // It records all of its function calls.
 type MockHook struct {
 	sync.Mutex
 
-	PreApplyCalled bool
-	PreApplyInfo   *InstanceInfo
-	PreApplyDiff   *InstanceDiff
-	PreApplyState  *InstanceState
-	PreApplyReturn HookAction
-	PreApplyError  error
+	PreApplyCalled       bool
+	PreApplyAddr         addrs.AbsResourceInstance
+	PreApplyGen          states.Generation
+	PreApplyAction       plans.Action
+	PreApplyPriorState   cty.Value
+	PreApplyPlannedState cty.Value
+	PreApplyReturn       HookAction
+	PreApplyError        error
 
 	PostApplyCalled      bool
-	PostApplyInfo        *InstanceInfo
-	PostApplyState       *InstanceState
+	PostApplyAddr        addrs.AbsResourceInstance
+	PostApplyGen         states.Generation
+	PostApplyNewState    cty.Value
 	PostApplyError       error
 	PostApplyReturn      HookAction
 	PostApplyReturnError error
-	PostApplyFn          func(*InstanceInfo, *InstanceState, error) (HookAction, error)
+	PostApplyFn          func(addrs.AbsResourceInstance, states.Generation, cty.Value, error) (HookAction, error)
 
-	PreDiffCalled bool
-	PreDiffInfo   *InstanceInfo
-	PreDiffState  *InstanceState
-	PreDiffReturn HookAction
-	PreDiffError  error
+	PreDiffCalled        bool
+	PreDiffAddr          addrs.AbsResourceInstance
+	PreDiffGen           states.Generation
+	PreDiffPriorState    cty.Value
+	PreDiffProposedState cty.Value
+	PreDiffReturn        HookAction
+	PreDiffError         error
 
-	PostDiffCalled bool
-	PostDiffInfo   *InstanceInfo
-	PostDiffDiff   *InstanceDiff
-	PostDiffReturn HookAction
-	PostDiffError  error
+	PostDiffCalled       bool
+	PostDiffAddr         addrs.AbsResourceInstance
+	PostDiffGen          states.Generation
+	PostDiffAction       plans.Action
+	PostDiffPriorState   cty.Value
+	PostDiffPlannedState cty.Value
+	PostDiffReturn       HookAction
+	PostDiffError        error
 
-	PreProvisionResourceCalled bool
-	PreProvisionResourceInfo   *InstanceInfo
-	PreProvisionInstanceState  *InstanceState
-	PreProvisionResourceReturn HookAction
-	PreProvisionResourceError  error
+	PreProvisionInstanceCalled bool
+	PreProvisionInstanceAddr   addrs.AbsResourceInstance
+	PreProvisionInstanceState  cty.Value
+	PreProvisionInstanceReturn HookAction
+	PreProvisionInstanceError  error
 
-	PostProvisionResourceCalled bool
-	PostProvisionResourceInfo   *InstanceInfo
-	PostProvisionInstanceState  *InstanceState
-	PostProvisionResourceReturn HookAction
-	PostProvisionResourceError  error
+	PostProvisionInstanceCalled bool
+	PostProvisionInstanceAddr   addrs.AbsResourceInstance
+	PostProvisionInstanceState  cty.Value
+	PostProvisionInstanceReturn HookAction
+	PostProvisionInstanceError  error
 
-	PreProvisionCalled        bool
-	PreProvisionInfo          *InstanceInfo
-	PreProvisionProvisionerId string
-	PreProvisionReturn        HookAction
-	PreProvisionError         error
+	PreProvisionInstanceStepCalled          bool
+	PreProvisionInstanceStepAddr            addrs.AbsResourceInstance
+	PreProvisionInstanceStepProvisionerType string
+	PreProvisionInstanceStepReturn          HookAction
+	PreProvisionInstanceStepError           error
 
-	PostProvisionCalled        bool
-	PostProvisionInfo          *InstanceInfo
-	PostProvisionProvisionerId string
-	PostProvisionErrorArg      error
-	PostProvisionReturn        HookAction
-	PostProvisionError         error
+	PostProvisionInstanceStepCalled          bool
+	PostProvisionInstanceStepAddr            addrs.AbsResourceInstance
+	PostProvisionInstanceStepProvisionerType string
+	PostProvisionInstanceStepErrorArg        error
+	PostProvisionInstanceStepReturn          HookAction
+	PostProvisionInstanceStepError           error
 
-	ProvisionOutputCalled        bool
-	ProvisionOutputInfo          *InstanceInfo
-	ProvisionOutputProvisionerId string
-	ProvisionOutputMessage       string
+	ProvisionOutputCalled          bool
+	ProvisionOutputAddr            addrs.AbsResourceInstance
+	ProvisionOutputProvisionerType string
+	ProvisionOutputMessage         string
 
-	PostRefreshCalled bool
-	PostRefreshInfo   *InstanceInfo
-	PostRefreshState  *InstanceState
-	PostRefreshReturn HookAction
-	PostRefreshError  error
+	PreRefreshCalled     bool
+	PreRefreshAddr       addrs.AbsResourceInstance
+	PreRefreshGen        states.Generation
+	PreRefreshPriorState cty.Value
+	PreRefreshReturn     HookAction
+	PreRefreshError      error
 
-	PreRefreshCalled bool
-	PreRefreshInfo   *InstanceInfo
-	PreRefreshState  *InstanceState
-	PreRefreshReturn HookAction
-	PreRefreshError  error
+	PostRefreshCalled     bool
+	PostRefreshAddr       addrs.AbsResourceInstance
+	PostRefreshGen        states.Generation
+	PostRefreshPriorState cty.Value
+	PostRefreshNewState   cty.Value
+	PostRefreshReturn     HookAction
+	PostRefreshError      error
 
 	PreImportStateCalled bool
-	PreImportStateInfo   *InstanceInfo
-	PreImportStateId     string
+	PreImportStateAddr   addrs.AbsResourceInstance
+	PreImportStateID     string
 	PreImportStateReturn HookAction
 	PreImportStateError  error
 
-	PostImportStateCalled bool
-	PostImportStateInfo   *InstanceInfo
-	PostImportStateState  []*InstanceState
-	PostImportStateReturn HookAction
-	PostImportStateError  error
+	PostImportStateCalled    bool
+	PostImportStateAddr      addrs.AbsResourceInstance
+	PostImportStateNewStates []providers.ImportedResource
+	PostImportStateReturn    HookAction
+	PostImportStateError     error
 
 	PostStateUpdateCalled bool
-	PostStateUpdateState  *State
+	PostStateUpdateState  *states.State
 	PostStateUpdateReturn HookAction
 	PostStateUpdateError  error
 }
 
-func (h *MockHook) PreApply(n *InstanceInfo, s *InstanceState, d *InstanceDiff) (HookAction, error) {
+var _ Hook = (*MockHook)(nil)
+
+func (h *MockHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
 	h.PreApplyCalled = true
-	h.PreApplyInfo = n
-	h.PreApplyDiff = d
-	h.PreApplyState = s
+	h.PreApplyAddr = addr
+	h.PreApplyGen = gen
+	h.PreApplyAction = action
+	h.PreApplyPriorState = priorState
+	h.PreApplyPlannedState = plannedNewState
 	return h.PreApplyReturn, h.PreApplyError
 }
 
-func (h *MockHook) PostApply(n *InstanceInfo, s *InstanceState, e error) (HookAction, error) {
+func (h *MockHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generation, newState cty.Value, err error) (HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
 	h.PostApplyCalled = true
-	h.PostApplyInfo = n
-	h.PostApplyState = s
-	h.PostApplyError = e
+	h.PostApplyAddr = addr
+	h.PostApplyGen = gen
+	h.PostApplyNewState = newState
+	h.PostApplyError = err
 
 	if h.PostApplyFn != nil {
-		return h.PostApplyFn(n, s, e)
+		return h.PostApplyFn(addr, gen, newState, err)
 	}
 
 	return h.PostApplyReturn, h.PostApplyReturnError
 }
 
-func (h *MockHook) PreDiff(n *InstanceInfo, s *InstanceState) (HookAction, error) {
+func (h *MockHook) PreDiff(addr addrs.AbsResourceInstance, gen states.Generation, priorState, proposedNewState cty.Value) (HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
 	h.PreDiffCalled = true
-	h.PreDiffInfo = n
-	h.PreDiffState = s
+	h.PreDiffAddr = addr
+	h.PreDiffGen = gen
+	h.PreDiffPriorState = priorState
+	h.PreDiffProposedState = proposedNewState
 	return h.PreDiffReturn, h.PreDiffError
 }
 
-func (h *MockHook) PostDiff(n *InstanceInfo, d *InstanceDiff) (HookAction, error) {
+func (h *MockHook) PostDiff(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
 	h.PostDiffCalled = true
-	h.PostDiffInfo = n
-	h.PostDiffDiff = d
+	h.PostDiffAddr = addr
+	h.PostDiffGen = gen
+	h.PostDiffAction = action
+	h.PostDiffPriorState = priorState
+	h.PostDiffPlannedState = plannedNewState
 	return h.PostDiffReturn, h.PostDiffError
 }
 
-func (h *MockHook) PreProvisionResource(n *InstanceInfo, s *InstanceState) (HookAction, error) {
+func (h *MockHook) PreProvisionInstance(addr addrs.AbsResourceInstance, state cty.Value) (HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
-	h.PreProvisionResourceCalled = true
-	h.PreProvisionResourceInfo = n
-	h.PreProvisionInstanceState = s
-	return h.PreProvisionResourceReturn, h.PreProvisionResourceError
+	h.PreProvisionInstanceCalled = true
+	h.PreProvisionInstanceAddr = addr
+	h.PreProvisionInstanceState = state
+	return h.PreProvisionInstanceReturn, h.PreProvisionInstanceError
 }
 
-func (h *MockHook) PostProvisionResource(n *InstanceInfo, s *InstanceState) (HookAction, error) {
+func (h *MockHook) PostProvisionInstance(addr addrs.AbsResourceInstance, state cty.Value) (HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
-	h.PostProvisionResourceCalled = true
-	h.PostProvisionResourceInfo = n
-	h.PostProvisionInstanceState = s
-	return h.PostProvisionResourceReturn, h.PostProvisionResourceError
+	h.PostProvisionInstanceCalled = true
+	h.PostProvisionInstanceAddr = addr
+	h.PostProvisionInstanceState = state
+	return h.PostProvisionInstanceReturn, h.PostProvisionInstanceError
 }
 
-func (h *MockHook) PreProvision(n *InstanceInfo, provId string) (HookAction, error) {
+func (h *MockHook) PreProvisionInstanceStep(addr addrs.AbsResourceInstance, typeName string) (HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
-	h.PreProvisionCalled = true
-	h.PreProvisionInfo = n
-	h.PreProvisionProvisionerId = provId
-	return h.PreProvisionReturn, h.PreProvisionError
+	h.PreProvisionInstanceStepCalled = true
+	h.PreProvisionInstanceStepAddr = addr
+	h.PreProvisionInstanceStepProvisionerType = typeName
+	return h.PreProvisionInstanceStepReturn, h.PreProvisionInstanceStepError
 }
 
-func (h *MockHook) PostProvision(n *InstanceInfo, provId string, err error) (HookAction, error) {
+func (h *MockHook) PostProvisionInstanceStep(addr addrs.AbsResourceInstance, typeName string, err error) (HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
-	h.PostProvisionCalled = true
-	h.PostProvisionInfo = n
-	h.PostProvisionProvisionerId = provId
-	h.PostProvisionErrorArg = err
-	return h.PostProvisionReturn, h.PostProvisionError
+	h.PostProvisionInstanceStepCalled = true
+	h.PostProvisionInstanceStepAddr = addr
+	h.PostProvisionInstanceStepProvisionerType = typeName
+	h.PostProvisionInstanceStepErrorArg = err
+	return h.PostProvisionInstanceStepReturn, h.PostProvisionInstanceStepError
 }
 
-func (h *MockHook) ProvisionOutput(
-	n *InstanceInfo,
-	provId string,
-	msg string) {
+func (h *MockHook) ProvisionOutput(addr addrs.AbsResourceInstance, typeName string, line string) {
 	h.Lock()
 	defer h.Unlock()
 
 	h.ProvisionOutputCalled = true
-	h.ProvisionOutputInfo = n
-	h.ProvisionOutputProvisionerId = provId
-	h.ProvisionOutputMessage = msg
+	h.ProvisionOutputAddr = addr
+	h.ProvisionOutputProvisionerType = typeName
+	h.ProvisionOutputMessage = line
 }
 
-func (h *MockHook) PreRefresh(n *InstanceInfo, s *InstanceState) (HookAction, error) {
+func (h *MockHook) PreRefresh(addr addrs.AbsResourceInstance, gen states.Generation, priorState cty.Value) (HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
 	h.PreRefreshCalled = true
-	h.PreRefreshInfo = n
-	h.PreRefreshState = s
+	h.PreRefreshAddr = addr
+	h.PreRefreshGen = gen
+	h.PreRefreshPriorState = priorState
 	return h.PreRefreshReturn, h.PreRefreshError
 }
 
-func (h *MockHook) PostRefresh(n *InstanceInfo, s *InstanceState) (HookAction, error) {
+func (h *MockHook) PostRefresh(addr addrs.AbsResourceInstance, gen states.Generation, priorState cty.Value, newState cty.Value) (HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
 	h.PostRefreshCalled = true
-	h.PostRefreshInfo = n
-	h.PostRefreshState = s
+	h.PostRefreshAddr = addr
+	h.PostRefreshPriorState = priorState
+	h.PostRefreshNewState = newState
 	return h.PostRefreshReturn, h.PostRefreshError
 }
 
-func (h *MockHook) PreImportState(info *InstanceInfo, id string) (HookAction, error) {
+func (h *MockHook) PreImportState(addr addrs.AbsResourceInstance, importID string) (HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
 	h.PreImportStateCalled = true
-	h.PreImportStateInfo = info
-	h.PreImportStateId = id
+	h.PreImportStateAddr = addr
+	h.PreImportStateID = importID
 	return h.PreImportStateReturn, h.PreImportStateError
 }
 
-func (h *MockHook) PostImportState(info *InstanceInfo, s []*InstanceState) (HookAction, error) {
+func (h *MockHook) PostImportState(addr addrs.AbsResourceInstance, imported []providers.ImportedResource) (HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
 	h.PostImportStateCalled = true
-	h.PostImportStateInfo = info
-	h.PostImportStateState = s
+	h.PostImportStateAddr = addr
+	h.PostImportStateNewStates = imported
 	return h.PostImportStateReturn, h.PostImportStateError
 }
 
-func (h *MockHook) PostStateUpdate(s *State) (HookAction, error) {
+func (h *MockHook) PostStateUpdate(new *states.State) (HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
 	h.PostStateUpdateCalled = true
-	h.PostStateUpdateState = s
+	h.PostStateUpdateState = new
 	return h.PostStateUpdateReturn, h.PostStateUpdateError
 }

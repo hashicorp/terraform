@@ -3,7 +3,7 @@ layout: "docs"
 page_title: "Infrastructure Software Providers"
 sidebar_current: "docs-providers-infra"
 description: |-
-  Category for standard cloud vendors.
+  Category for infrastructure management vendors.
 ---
 
 # Infrastructure Software Providers
