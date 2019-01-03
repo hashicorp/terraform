@@ -21,26 +21,26 @@ const FormatVersion = "0.1"
 // state is the top-level representation of the json format of a terraform
 // state.
 type state struct {
-	FormatVersion string      `json:"format_version"`
-	Values        stateValues `json:"values"`
+	FormatVersion string      `json:"format_version,omitempty"`
+	Values        stateValues `json:"values,omitempty"`
 }
 
 // stateValues is the common representation of resolved values for both the prior
 // state (which is always complete) and the planned new state.
 type stateValues struct {
-	Outputs    map[string]output
-	RootModule module
+	Outputs    map[string]output `json:"outputs,omitempty"`
+	RootModule module            `json:"root_module,omitempty"`
 }
 
 type output struct {
-	Sensitive bool
-	Value     json.RawMessage
+	Sensitive bool            `json:"sensitive,omitempty"`
+	Value     json.RawMessage `json:"value,omitempty"`
 }
 
 // module is the representation of a module in state. This can be the root module
 // or a child module
 type module struct {
-	Resources []resource
+	Resources []resource `json:"resource,omitempty"`
 
 	// Address is the absolute module address, omitted for the root module
 	Address string `json:"address,omitempty"`
@@ -53,13 +53,13 @@ type module struct {
 // Resource is the representation of a resource in the state.
 type resource struct {
 	// Address is the absolute resource address
-	Address string `json:"address"`
+	Address string `json:"address,omitempty"`
 
 	// Mode can be "managed" or "data"
-	Mode string `json:"mode"`
+	Mode string `json:"mode,omitempty"`
 
-	Type string `json:"type"`
-	Name string `json:"name"`
+	Type string `json:"type,omitempty"`
+	Name string `json:"name,omitempty"`
 
 	// Index is omitted for a resource not using `count` or `for_each`.
 	Index addrs.InstanceKey `json:"index,omitempty"`
@@ -72,7 +72,7 @@ type resource struct {
 
 	// SchemaVersion indicates which version of the resource type schema the
 	// "values" property conforms to.
-	SchemaVersion uint64 `json:"schema_version"`
+	SchemaVersion uint64 `json:"schema_version,omitempty"`
 
 	// AttributeValues is the JSON representation of the attribute values of the
 	// resource, whose structure depends on the resource type schema. Any
