@@ -2,8 +2,15 @@ package jsonstate
 
 import (
 	"encoding/json"
+	"fmt"
 
+	"github.com/zclconf/go-cty/cty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 // FormatVersion represents the version of the json format and will be
@@ -43,14 +50,6 @@ type module struct {
 	ChildModules []module `json:"child_modules,omitempty"`
 }
 
-type moduleCall struct {
-	ResolvedSource    string                 `json:"resolved_source"`
-	Expressions       map[string]interface{} `json:"expressions,omitempty"`
-	CountExpression   expression             `json:"count_expression"`
-	ForEachExpression expression             `json:"for_each_expression"`
-	Module            module                 `json:"module"`
-}
-
 // Resource is the representation of a resource in the state.
 type resource struct {
 	// Address is the absolute resource address
@@ -63,7 +62,7 @@ type resource struct {
 	Name string `json:"name"`
 
 	// Index is omitted for a resource not using `count` or `for_each`.
-	Index int `json:"index,omitempty"`
+	Index addrs.InstanceKey `json:"index,omitempty"`
 
 	// ProviderName allows the property "type" to be interpreted unambiguously
 	// in the unusual situation where a provider offers a resource type whose
@@ -73,19 +72,28 @@ type resource struct {
 
 	// SchemaVersion indicates which version of the resource type schema the
 	// "values" property conforms to.
-	SchemaVersion int `json:"schema_version"`
+	SchemaVersion uint64 `json:"schema_version"`
 
-	// Values is the JSON representation of the attribute values of the
+	// AttributeValues is the JSON representation of the attribute values of the
 	// resource, whose structure depends on the resource type schema. Any
 	// unknown values are omitted or set to null, making them indistinguishable
 	// from absent values.
-	Values json.RawMessage `json:"values"`
+	AttributeValues attributeValues `json:"values,omitempty"`
 }
 
-type source struct {
-	FileName string `json:"filename"`
-	Start    string `json:"start"`
-	End      string `json:"end"`
+// attributeValues is the JSON representation of the attribute values of the
+// resource, whose structure depends on the resource type schema.
+type attributeValues map[string]interface{}
+
+func marshalAttributeValues(value cty.Value, schema *configschema.Block) attributeValues {
+	ret := make(attributeValues)
+
+	it := value.ElementIterator()
+	for it.Next() {
+		k, v := it.Element()
+		ret[k.AsString()] = v
+	}
+	return ret
 }
 
 // newState() returns a minimally-initialized state
@@ -96,13 +104,171 @@ func newState() *state {
 }
 
 // Marshal returns the json encoding of a terraform plan.
-func Marshal(s *states.State) ([]byte, error) {
+func Marshal(s *states.State, schemas *terraform.Schemas) ([]byte, error) {
 	if s.Empty() {
 		return nil, nil
 	}
 
 	output := newState()
 
+	// output.StateValues
+	err := output.marshalStateValues(s, schemas)
+	if err != nil {
+		return nil, err
+	}
+
 	ret, err := json.Marshal(output)
 	return ret, err
+}
+
+func (jsonstate *state) marshalStateValues(s *states.State, schemas *terraform.Schemas) error {
+	var sv stateValues
+	var err error
+
+	// only marshal the root module outputs
+	sv.Outputs, err = marshalOutputs(s.RootModule().OutputValues)
+	if err != nil {
+		return err
+	}
+
+	// use the state and module map to build up the module structure
+	sv.RootModule, err = marshalRootModule(s, schemas)
+	if err != nil {
+		return err
+	}
+
+	jsonstate.Values = sv
+	return nil
+}
+
+func marshalOutputs(outputs map[string]*states.OutputValue) (map[string]output, error) {
+	if outputs == nil {
+		return nil, nil
+	}
+
+	ret := make(map[string]output)
+	for k, v := range outputs {
+		ov, err := ctyjson.Marshal(v.Value, v.Value.Type())
+		if err != nil {
+			return ret, err
+		}
+		ret[k] = output{
+			Value:     ov,
+			Sensitive: v.Sensitive,
+		}
+	}
+
+	return ret, nil
+}
+
+func marshalRootModule(s *states.State, schemas *terraform.Schemas) (module, error) {
+	var ret module
+	var err error
+
+	ret.Address = ""
+	ret.Resources, err = marshalResources(s.RootModule().Resources, schemas)
+	if err != nil {
+		return ret, err
+	}
+
+	// build a map of module -> [child module addresses]
+	moduleMap := make(map[string][]addrs.ModuleInstance)
+	for _, mod := range s.Modules {
+		if mod.Addr.IsRoot() {
+			continue
+		} else {
+			parent := mod.Addr.Parent().String()
+			moduleMap[parent] = append(moduleMap[parent], mod.Addr)
+		}
+	}
+
+	// use the state and module map to build up the module structure
+	ret.ChildModules, err = marshalModules(s, schemas, moduleMap[""], moduleMap)
+	return ret, err
+}
+
+// marshalModules is an ungainly recursive function to build a module
+// structure out of a teraform state.
+func marshalModules(
+	s *states.State,
+	schemas *terraform.Schemas,
+	modules []addrs.ModuleInstance,
+	moduleMap map[string][]addrs.ModuleInstance,
+) ([]module, error) {
+	var ret []module
+	for _, child := range modules {
+		stateMod := s.Module(child)
+		// cm for child module, naming things is hard.
+		cm := module{Address: stateMod.Addr.String()}
+		rs, err := marshalResources(stateMod.Resources, schemas)
+		if err != nil {
+			return nil, err
+		}
+		cm.Resources = rs
+		if moduleMap[child.String()] != nil {
+			moreChildModules, err := marshalModules(s, schemas, moduleMap[child.String()], moduleMap)
+			if err != nil {
+				return nil, err
+			}
+			cm.ChildModules = moreChildModules
+		}
+
+		ret = append(ret, cm)
+	}
+
+	return ret, nil
+}
+
+func marshalResources(resources map[string]*states.Resource, schemas *terraform.Schemas) ([]resource, error) {
+	var ret []resource
+
+	for _, r := range resources {
+		for k, ri := range r.Instances {
+
+			resource := resource{
+				Address:      r.Addr.String(),
+				Type:         r.Addr.Type,
+				Name:         r.Addr.Name,
+				ProviderName: r.ProviderConfig.ProviderConfig.String(),
+			}
+
+			switch r.Addr.Mode {
+			case addrs.ManagedResourceMode:
+				resource.Mode = "managed"
+			case addrs.DataResourceMode:
+				resource.Mode = "data"
+			default:
+				return ret, fmt.Errorf("resource %s has an unsupported mode %s",
+					r.Addr.String(),
+					r.Addr.Mode.String(),
+				)
+			}
+
+			if r.EachMode != states.NoEach {
+				resource.Index = k
+			}
+
+			schema, _ := schemas.ResourceTypeConfig(
+				r.ProviderConfig.ProviderConfig.StringCompact(),
+				r.Addr.Mode,
+				r.Addr.Type,
+			)
+			resource.SchemaVersion = ri.Current.SchemaVersion
+
+			if schema == nil {
+				return nil, fmt.Errorf("no schema found for %s", r.Addr.String())
+			}
+			riObj, err := ri.Current.Decode(schema.ImpliedType())
+			if err != nil {
+				return nil, err
+			}
+
+			resource.AttributeValues = marshalAttributeValues(riObj.Value, schema)
+
+			ret = append(ret, resource)
+		}
+
+	}
+
+	return ret, nil
 }
