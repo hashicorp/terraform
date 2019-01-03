@@ -40,7 +40,7 @@ type output struct {
 // module is the representation of a module in state. This can be the root module
 // or a child module
 type module struct {
-	Resources []resource `json:"resource,omitempty"`
+	Resources []resource `json:"resources,omitempty"`
 
 	// Address is the absolute module address, omitted for the root module
 	Address string `json:"address,omitempty"`
