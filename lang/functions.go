@@ -58,6 +58,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"flatten":      funcs.FlattenFunc,
 			"floor":        funcs.FloorFunc,
 			"format":       stdlib.FormatFunc,
+			"formatdate":   stdlib.FormatDateFunc,
 			"formatlist":   stdlib.FormatListFunc,
 			"indent":       funcs.IndentFunc,
 			"index":        funcs.IndexFunc,
