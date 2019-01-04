@@ -33,3 +33,8 @@ taken only once the plan is being applied.
 > timestamp()
 2018-05-13T07:44:12Z
 ```
+
+## Related Functions
+
+* [`formatdate`](./formatdate.html) can convert the resulting timestamp to
+  other date and time formats.
