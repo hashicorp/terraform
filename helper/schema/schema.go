@@ -1266,6 +1266,13 @@ func (m schemaMap) validate(
 			"%q: this field cannot be set", k)}
 	}
 
+	if raw == config.UnknownVariableValue {
+		// If the value is unknown then we can't validate it yet.
+		// In particular, this avoids spurious type errors where downstream
+		// validation code sees UnknownVariableValue as being just a string.
+		return nil, nil
+	}
+
 	err := m.validateConflictingAttributes(k, schema, c)
 	if err != nil {
 		return nil, []error{err}
@@ -1283,10 +1290,15 @@ func (m schemaMap) validateConflictingAttributes(
 		return nil
 	}
 
-	for _, conflicting_key := range schema.ConflictsWith {
-		if _, ok := c.Get(conflicting_key); ok {
+	for _, conflictingKey := range schema.ConflictsWith {
+		if raw, ok := c.Get(conflictingKey); ok {
+			if raw == config.UnknownVariableValue {
+				// An unknown value might become unset (null) once known, so
+				// we must defer validation until it's known.
+				continue
+			}
 			return fmt.Errorf(
-				"%q: conflicts with %s", k, conflicting_key)
+				"%q: conflicts with %s", k, conflictingKey)
 		}
 	}
 
