@@ -3,9 +3,8 @@ package resource
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform/configs/configschema"
-
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/zclconf/go-cty/cty"
@@ -29,8 +28,9 @@ func TestStateShim(t *testing.T) {
 			Name: "foo",
 		}.Instance(addrs.NoKey),
 		&states.ResourceInstanceObjectSrc{
-			Status:    states.ObjectReady,
-			AttrsFlat: map[string]string{"id": "foo", "bazzle": "dazzle"},
+			Status:        states.ObjectReady,
+			AttrsFlat:     map[string]string{"id": "foo", "bazzle": "dazzle"},
+			SchemaVersion: 7,
 			Dependencies: []addrs.Referenceable{
 				addrs.ResourceInstance{
 					Resource: addrs.Resource{
@@ -208,6 +208,9 @@ func TestStateShim(t *testing.T) {
 							Attributes: map[string]string{
 								"id":     "foo",
 								"bazzle": "dazzle",
+							},
+							Meta: map[string]interface{}{
+								"schema_version": 7,
 							},
 						},
 						Dependencies: []string{"test_thing.baz"},
