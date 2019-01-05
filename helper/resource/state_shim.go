@@ -88,6 +88,11 @@ func shimNewState(newState *states.State, schemas *terraform.Schemas) (*terrafor
 						Tainted:    i.Current.Status == states.ObjectTainted,
 					},
 				}
+				if i.Current.SchemaVersion != 0 {
+					resState.Primary.Meta = map[string]interface{}{
+						"schema_version": i.Current.SchemaVersion,
+					}
+				}
 
 				for _, dep := range i.Current.Dependencies {
 					resState.Dependencies = append(resState.Dependencies, dep.String())
@@ -118,6 +123,11 @@ func shimNewState(newState *states.State, schemas *terraform.Schemas) (*terrafor
 						ID:         flatmap["id"],
 						Attributes: flatmap,
 						Tainted:    dep.Status == states.ObjectTainted,
+					}
+					if dep.SchemaVersion != 0 {
+						deposed.Meta = map[string]interface{}{
+							"schema_version": dep.SchemaVersion,
+						}
 					}
 
 					resState.Deposed = append(resState.Deposed, deposed)
