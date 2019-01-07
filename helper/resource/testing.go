@@ -635,9 +635,9 @@ func testProviderConfig(c TestCase) string {
 // Any errors are stored so that they can be returned by the factory in
 // terraform to match non-test behavior.
 func testProviderResolver(c TestCase) (providers.Resolver, error) {
-	ctxProviders := c.ProviderFactories
-	if ctxProviders == nil {
-		ctxProviders = make(map[string]terraform.ResourceProviderFactory)
+	ctxProviders := make(map[string]terraform.ResourceProviderFactory)
+	for k, pf := range c.ProviderFactories {
+		ctxProviders[k] = pf
 	}
 
 	// add any fixed providers
@@ -650,8 +650,9 @@ func testProviderResolver(c TestCase) (providers.Resolver, error) {
 	newProviders := make(map[string]providers.Factory)
 
 	for k, pf := range ctxProviders {
+		factory := pf // must copy to ensure each closure sees its own value
 		newProviders[k] = func() (providers.Interface, error) {
-			p, err := pf()
+			p, err := factory()
 			if err != nil {
 				return nil, err
 			}
