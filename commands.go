@@ -70,9 +70,10 @@ func initCommands(config *Config, services *disco.Disco) {
 	// that to match.
 
 	PlumbingCommands = map[string]struct{}{
-		"state":        struct{}{}, // includes all subcommands
-		"debug":        struct{}{}, // includes all subcommands
-		"force-unlock": struct{}{},
+		"state":         struct{}{}, // includes all subcommands
+		"debug":         struct{}{}, // includes all subcommands
+		"force-unlock":  struct{}{},
+		"0.12checklist": struct{}{},
 	}
 
 	Commands = map[string]cli.CommandFactory{
@@ -262,6 +263,12 @@ func initCommands(config *Config, services *disco.Disco) {
 
 		"workspace delete": func() (cli.Command, error) {
 			return &command.WorkspaceDeleteCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"0.12checklist": func() (cli.Command, error) {
+			return &command.ZeroTwelveChecklistCommand{
 				Meta: meta,
 			}, nil
 		},
