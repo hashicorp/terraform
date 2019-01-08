@@ -1,9 +1,11 @@
 package command
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/mitchellh/cli"
 )
 
@@ -20,6 +22,8 @@ func (c *StateRmCommand) Run(args []string) int {
 
 	cmdFlags := c.Meta.flagSet("state show")
 	cmdFlags.StringVar(&c.backupPath, "backup", "-", "backup")
+	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
+	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
 	cmdFlags.StringVar(&c.statePath, "state", "", "path")
 	if err := cmdFlags.Parse(args); err != nil {
 		return cli.RunResultHelp
@@ -36,6 +40,16 @@ func (c *StateRmCommand) Run(args []string) int {
 		c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
 		return 1
 	}
+
+	if c.stateLock {
+		stateLocker := clistate.NewLocker(context.Background(), c.stateLockTimeout, c.Ui, c.Colorize())
+		if err := stateLocker.Lock(state, "state-rm"); err != nil {
+			c.Ui.Error(fmt.Sprintf("Error locking state: %s", err))
+			return 1
+		}
+		defer stateLocker.Unlock(nil)
+	}
+
 	if err := state.RefreshState(); err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 		return 1
@@ -88,6 +102,10 @@ Options:
                       state. This can't be disabled. If not set, Terraform
                       will write it to the same path as the statefile with
                       a backup extension.
+
+  -lock=true          Lock the state file when locking is supported.
+
+  -lock-timeout=0s    Duration to retry a state lock.
 
   -state=PATH         Path to the source state file. Defaults to the configured
                       backend, or "terraform.tfstate"

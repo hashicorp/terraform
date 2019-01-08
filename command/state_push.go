@@ -1,11 +1,13 @@
 package command
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
 	"strings"
 
+	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
@@ -25,6 +27,8 @@ func (c *StatePushCommand) Run(args []string) int {
 	var flagForce bool
 	cmdFlags := c.Meta.flagSet("state push")
 	cmdFlags.BoolVar(&flagForce, "force", false, "")
+	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
+	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
 	if err := cmdFlags.Parse(args); err != nil {
 		return cli.RunResultHelp
 	}
@@ -76,6 +80,16 @@ func (c *StatePushCommand) Run(args []string) int {
 		c.Ui.Error(fmt.Sprintf("Failed to load destination state: %s", err))
 		return 1
 	}
+
+	if c.stateLock {
+		stateLocker := clistate.NewLocker(context.Background(), c.stateLockTimeout, c.Ui, c.Colorize())
+		if err := stateLocker.Lock(state, "state-push"); err != nil {
+			c.Ui.Error(fmt.Sprintf("Error locking state: %s", err))
+			return 1
+		}
+		defer stateLocker.Unlock(nil)
+	}
+
 	if err := state.RefreshState(); err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load destination state: %s", err))
 		return 1
@@ -135,6 +149,10 @@ Options:
 
   -force              Write the state even if lineages don't match or the
                       remote serial is higher.
+
+  -lock=true          Lock the state file when locking is supported.
+
+  -lock-timeout=0s    Duration to retry a state lock.
 
 `
 	return strings.TrimSpace(helpText)
