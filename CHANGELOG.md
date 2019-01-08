@@ -1,5 +1,9 @@
 ## 0.11.12 (Unreleased)
 
+IMPROVEMENTS:
+
+* command/state: Use locking when updating states [GH-19939]
+
 BUG FIXES:
 
 * backend/remote: Fix an error that prevents checking version constraints [GH-19668]
