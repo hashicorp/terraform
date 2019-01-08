@@ -15,7 +15,8 @@ IMPROVEMENTS:
 * core: Enhance service discovery error handling and messaging [GH-19589]
 * core: Add support to retrieve version constraints to service discovery [GH-19647]
 * core: Validate provisioner connection blocks, and mark host field as required [GH-19707]
-* command/show: Add support for machine readable output via a `-json` argument to `terraform show` [GH-19687] 
+* command/show: Add support for machine readable output via a `-json` argument to `terraform show` [GH-19687]
+* command/state: Use locking when updating states [GH-19939]
 
 BUG FIXES:
 
