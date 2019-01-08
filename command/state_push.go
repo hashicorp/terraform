@@ -84,7 +84,7 @@ func (c *StatePushCommand) Run(args []string) int {
 
 	if c.stateLock {
 		stateLocker := clistate.NewLocker(context.Background(), c.stateLockTimeout, c.Ui, c.Colorize())
-		if err := stateLocker.Lock(stateMgr, "taint"); err != nil {
+		if err := stateLocker.Lock(stateMgr, "state-push"); err != nil {
 			c.Ui.Error(fmt.Sprintf("Error locking state: %s", err))
 			return 1
 		}
