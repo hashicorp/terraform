@@ -28,6 +28,19 @@ func testResourceNestedSet() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+			"type_list": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"value": {
+							Type:     schema.TypeString,
+							ForceNew: true,
+							Optional: true,
+						},
+					},
+				},
+			},
 			"single": {
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -98,12 +111,23 @@ func testResourceNestedSet() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-
 						"list": {
 							Type:     schema.TypeList,
 							Optional: true,
 							Elem: &schema.Schema{
 								Type: schema.TypeString,
+							},
+						},
+						"list_block": {
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"unused": {
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+								},
 							},
 						},
 					},

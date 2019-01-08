@@ -521,3 +521,23 @@ resource "test_resource" "two" {
 		},
 	})
 }
+
+func TestResource_emptyMapValue(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+	required     = "ok"
+	required_map = {
+		a = "a"
+		b = ""
+	}
+}
+				`),
+			},
+		},
+	})
+}
