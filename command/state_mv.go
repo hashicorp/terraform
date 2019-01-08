@@ -1,10 +1,12 @@
 package command
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/states"
 	"github.com/mitchellh/cli"
 )
@@ -47,8 +49,18 @@ func (c *StateMvCommand) Run(args []string) int {
 		c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
 		return 1
 	}
+
+	if c.stateLock {
+		stateLocker := clistate.NewLocker(context.Background(), c.stateLockTimeout, c.Ui, c.Colorize())
+		if err := stateLocker.Lock(stateFromMgr, "state-mv"); err != nil {
+			c.Ui.Error(fmt.Sprintf("Error locking source state: %s", err))
+			return 1
+		}
+		defer stateLocker.Unlock(nil)
+	}
+
 	if err := stateFromMgr.RefreshState(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to refresh state: %s", err))
+		c.Ui.Error(fmt.Sprintf("Failed to refresh source state: %s", err))
 		return 1
 	}
 
@@ -71,8 +83,18 @@ func (c *StateMvCommand) Run(args []string) int {
 			c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
 			return 1
 		}
+
+		if c.stateLock {
+			stateLocker := clistate.NewLocker(context.Background(), c.stateLockTimeout, c.Ui, c.Colorize())
+			if err := stateLocker.Lock(stateToMgr, "state-mv"); err != nil {
+				c.Ui.Error(fmt.Sprintf("Error locking destination state: %s", err))
+				return 1
+			}
+			defer stateLocker.Unlock(nil)
+		}
+
 		if err := stateToMgr.RefreshState(); err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to refresh state: %s", err))
+			c.Ui.Error(fmt.Sprintf("Failed to refresh destination state: %s", err))
 			return 1
 		}
 
