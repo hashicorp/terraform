@@ -80,11 +80,6 @@ func ConfigValueFromHCL2Block(v cty.Value, schema *configschema.Block) map[strin
 
 		case configschema.NestingList, configschema.NestingSet:
 			l := bv.LengthInt()
-			if l == 0 {
-				// skip empty collections to better mimic how HCL1 would behave
-				continue
-			}
-
 			elems := make([]interface{}, 0, l)
 			for it := bv.ElementIterator(); it.Next(); {
 				_, ev := it.Element()
@@ -97,11 +92,6 @@ func ConfigValueFromHCL2Block(v cty.Value, schema *configschema.Block) map[strin
 			ret[name] = elems
 
 		case configschema.NestingMap:
-			if bv.LengthInt() == 0 {
-				// skip empty collections to better mimic how HCL1 would behave
-				continue
-			}
-
 			elems := make(map[string]interface{})
 			for it := bv.ElementIterator(); it.Next(); {
 				ek, ev := it.Element()
