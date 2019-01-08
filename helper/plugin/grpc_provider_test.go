@@ -673,7 +673,7 @@ func TestNormalizeFlatmapContainers(t *testing.T) {
 	}{
 		{
 			attrs:  map[string]string{"id": "1", "multi.2.set.#": "1", "multi.1.set.#": "0", "single.#": "0"},
-			expect: map[string]string{"id": "1"},
+			expect: map[string]string{"id": "1", "multi.2.set.#": "1"},
 		},
 		{
 			attrs:  map[string]string{"id": "1", "multi.2.set.#": "2", "multi.2.set.1.foo": "bar", "multi.1.set.#": "0", "single.#": "0"},
@@ -681,11 +681,15 @@ func TestNormalizeFlatmapContainers(t *testing.T) {
 		},
 		{
 			attrs:  map[string]string{"id": "78629a0f5f3f164f", "multi.#": "1"},
+			expect: map[string]string{"id": "78629a0f5f3f164f", "multi.#": "1"},
+		},
+		{
+			attrs:  map[string]string{"id": "78629a0f5f3f164f", "multi.#": "0"},
 			expect: map[string]string{"id": "78629a0f5f3f164f"},
 		},
 		{
-			attrs:  map[string]string{"multi.529860700.set.#": "1", "multi.#": "1", "id": "78629a0f5f3f164f"},
-			expect: map[string]string{"id": "78629a0f5f3f164f"},
+			attrs:  map[string]string{"multi.529860700.set.#": "0", "multi.#": "1", "id": "78629a0f5f3f164f"},
+			expect: map[string]string{"id": "78629a0f5f3f164f", "multi.#": "1"},
 		},
 		{
 			attrs:  map[string]string{"set.2.required": "bar", "set.2.list.#": "1", "set.2.list.0": "x", "set.1.list.#": "0", "set.#": "2"},

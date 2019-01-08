@@ -438,8 +438,6 @@ func (s *GRPCProviderServer) ReadResource(_ context.Context, req *proto.ReadReso
 	// helper/schema should always copy the ID over, but do it again just to be safe
 	newInstanceState.Attributes["id"] = newInstanceState.ID
 
-	newInstanceState.Attributes = normalizeFlatmapContainers(instanceState.Attributes, newInstanceState.Attributes)
-
 	newStateVal, err := hcl2shim.HCL2ValueFromFlatmap(newInstanceState.Attributes, block.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
@@ -488,7 +486,6 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
-
 	priorPrivate := make(map[string]interface{})
 	if len(req.PriorPrivate) > 0 {
 		if err := json.Unmarshal(req.PriorPrivate, &priorPrivate); err != nil {
@@ -536,7 +533,7 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 	// now we need to apply the diff to the prior state, so get the planned state
 	plannedAttrs, err := diff.Apply(priorState.Attributes, block)
 
-	plannedAttrs = normalizeFlatmapContainers(priorState.Attributes, plannedAttrs)
+	plannedAttrs = normalizeFlatmapContainers(priorState.Attributes, plannedAttrs, false)
 
 	plannedStateVal, err := hcl2shim.HCL2ValueFromFlatmap(plannedAttrs, block.ImpliedType())
 	if err != nil {
@@ -683,6 +680,13 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 		}
 	}
 
+	// strip out non-diffs
+	for k, v := range diff.Attributes {
+		if v.New == v.Old && !v.NewComputed && !v.NewRemoved {
+			delete(diff.Attributes, k)
+		}
+	}
+
 	// add NewExtra Fields that may have been stored in the private data
 	if newExtra := private[newExtraKey]; newExtra != nil {
 		for k, v := range newExtra.(map[string]interface{}) {
@@ -718,7 +722,7 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 		// here we use the planned state to check for unknown/zero containers values
 		// when normalizing the flatmap.
 		plannedState := hcl2shim.FlatmapValueFromHCL2(plannedStateVal)
-		newInstanceState.Attributes = normalizeFlatmapContainers(plannedState, newInstanceState.Attributes)
+		newInstanceState.Attributes = normalizeFlatmapContainers(plannedState, newInstanceState.Attributes, true)
 	}
 
 	newStateVal := cty.NullVal(block.ImpliedType())
@@ -898,24 +902,62 @@ func pathToAttributePath(path cty.Path) *proto.AttributePath {
 // set of flatmapped attributes. The prior value is used to determine if there
 // could be zero-length flatmap containers which we need to preserve. This
 // allows a provider to set an empty computed container in the state without
-// creating perpetual diff.
-func normalizeFlatmapContainers(prior map[string]string, attrs map[string]string) map[string]string {
-	keyRx := regexp.MustCompile(`.\.[%#]$`)
+// creating perpetual diff. This can differ slightly between plan and apply, so
+// the apply flag is passed when called from ApplyResourceChange.
+func normalizeFlatmapContainers(prior map[string]string, attrs map[string]string, apply bool) map[string]string {
+	isCount := regexp.MustCompile(`.\.[%#]$`).MatchString
 
-	// while we can't determine if the value was actually computed here, we will
+	// While we can't determine if the value was actually computed here, we will
 	// trust that our shims stored and retrieved a zero-value container
 	// correctly.
 	zeros := map[string]bool{}
+	// Empty blocks have a count of 1 with no other attributes. Just record all
+	// "1"s here to override 0-length blocks when setting the count below.
+	ones := map[string]bool{}
 	for k, v := range prior {
-		if keyRx.MatchString(k) && (v == "0" || v == hcl2shim.UnknownVariableValue) {
+		if isCount(k) && (v == "0" || v == hcl2shim.UnknownVariableValue) {
 			zeros[k] = true
+		}
+
+		// fixup any 1->0 conversions that happened during Apply
+		if apply && isCount(k) && v == "1" && attrs[k] == "0" {
+			attrs[k] = "1"
+		}
+	}
+
+	for k, v := range attrs {
+		// store any "1" values, since if the length was 1 and there are no
+		// items, it was probably an empty set block. Hopefully checking for a 1
+		// value with no items is sufficient, without cross-referencing the
+		// schema.
+		if isCount(k) && v == "1" {
+			ones[k] = true
+		}
+	}
+
+	// The "ones" were stored to look for sets with an empty value, so we need
+	// to verify that we only store ones with no attrs.
+	expectedEmptySets := map[string]bool{}
+	for one := range ones {
+		prefix := one[:len(one)-1]
+
+		found := 0
+		for k := range attrs {
+			// since this can be recursive, we check that the attrs isn't also a #.
+			if strings.HasPrefix(k, prefix) && !isCount(k) {
+				found++
+			}
+		}
+
+		if found == 0 {
+			expectedEmptySets[one] = true
 		}
 	}
 
 	// find container keys
 	var keys []string
 	for k, v := range attrs {
-		if !keyRx.MatchString(k) {
+		if !isCount(k) {
 			continue
 		}
 
@@ -967,10 +1009,19 @@ func normalizeFlatmapContainers(prior map[string]string, attrs map[string]string
 			// must have set the computed value to an empty container, and we
 			// need to leave it in the flatmap.
 			attrs[k] = "0"
+		case len(indexes) == 0 && ones[k]:
+			// We need to retain any empty blocks that had a 1 count with no attributes.
+			attrs[k] = "1"
 		case len(indexes) > 0:
 			attrs[k] = strconv.Itoa(len(indexes))
 		default:
 			delete(attrs, k)
+		}
+	}
+
+	for k := range expectedEmptySets {
+		if _, ok := attrs[k]; !ok {
+			attrs[k] = "1"
 		}
 	}
 
