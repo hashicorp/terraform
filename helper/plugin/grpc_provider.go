@@ -541,6 +541,8 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 		return resp, nil
 	}
 
+	plannedStateVal = copyMissingValues(plannedStateVal, proposedNewStateVal)
+
 	plannedStateVal, err = block.CoerceValue(plannedStateVal)
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
@@ -736,6 +738,8 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 			return resp, nil
 		}
 	}
+
+	newStateVal = copyMissingValues(newStateVal, plannedStateVal)
 
 	newStateVal = copyTimeoutValues(newStateVal, plannedStateVal)
 
@@ -1093,4 +1097,87 @@ func stripSchema(s *schema.Schema) *schema.Schema {
 	}
 
 	return newSchema
+}
+
+// Zero values and empty containers may be lost during apply. Copy zero values
+// and empty containers from src to dst when they are missing in dst.
+// This takes a little more liberty with set types, since we can't correlate
+// modified set values. In the case of sets, if the src set was wholly known we
+// assume the value was correctly applied and copy that entirely to the new
+// value.
+func copyMissingValues(dst, src cty.Value) cty.Value {
+	ty := dst.Type()
+
+	// In this case the provider set an empty string which was lost in
+	// conversion. Since src is unknown, there must have been a corresponding
+	// value set.
+	if ty == cty.String && dst.IsNull() && !src.IsKnown() {
+		return cty.StringVal("")
+	}
+
+	if src.IsNull() || !src.IsKnown() || !dst.IsKnown() {
+		return dst
+	}
+
+	switch {
+	case ty.IsMapType(), ty.IsObjectType():
+		var dstMap map[string]cty.Value
+		if dst.IsNull() {
+			dstMap = map[string]cty.Value{}
+		} else {
+			dstMap = dst.AsValueMap()
+		}
+
+		ei := src.ElementIterator()
+		for ei.Next() {
+			k, v := ei.Element()
+			key := k.AsString()
+
+			dstVal := dstMap[key]
+			if dstVal == cty.NilVal {
+				dstVal = cty.NullVal(ty.ElementType())
+			}
+			dstMap[key] = copyMissingValues(dstVal, v)
+		}
+
+		// you can't call MapVal/ObjectVal with empty maps, but nothing was
+		// copied in anyway. If the dst is nil, and the src is known, assume the
+		// src is correct.
+		if len(dstMap) == 0 {
+			if dst.IsNull() && src.IsWhollyKnown() {
+				return src
+			}
+			return dst
+		}
+
+		if ty.IsMapType() {
+			return cty.MapVal(dstMap)
+		}
+
+		return cty.ObjectVal(dstMap)
+
+	case ty.IsSetType():
+		// If the original was wholly known, then we expect that is what the
+		// provider applied. The apply process loses too much information to
+		// reliably re-create the set.
+		if src.IsWhollyKnown() {
+			return src
+		}
+
+	case ty.IsListType(), ty.IsTupleType():
+		// If the dst is nil, and the src is known, then we lost an empty value
+		// so take the original. This doesn't attempt to descend into the list
+		// values, since missing empty values may prevent us from correlating
+		// the correct src and dst indexes.
+		if dst.IsNull() && src.IsWhollyKnown() {
+			return src
+		}
+
+	case ty.IsPrimitiveType():
+		if dst.IsNull() && src.IsWhollyKnown() {
+			return src
+		}
+	}
+
+	return dst
 }
