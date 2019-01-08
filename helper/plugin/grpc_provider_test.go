@@ -711,9 +711,142 @@ func TestNormalizeFlatmapContainers(t *testing.T) {
 		},
 	} {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			got := normalizeFlatmapContainers(tc.prior, tc.attrs)
+			got := normalizeFlatmapContainers(tc.prior, tc.attrs, false)
 			if !reflect.DeepEqual(tc.expect, got) {
 				t.Fatalf("expected:\n%#v\ngot:\n%#v\n", tc.expect, got)
+			}
+		})
+	}
+}
+
+func TestCopyMissingValues(t *testing.T) {
+	for i, tc := range []struct {
+		Src, Dst, Expect cty.Value
+	}{
+		{
+			// The known set value is copied over the null set value
+			Src: cty.ObjectVal(map[string]cty.Value{
+				"set": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+			Dst: cty.ObjectVal(map[string]cty.Value{
+				"set": cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{
+					"foo": cty.String,
+				}))),
+			}),
+			Expect: cty.ObjectVal(map[string]cty.Value{
+				"set": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+		},
+		{
+			// The empty map is copied over the null map
+			Src: cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapValEmpty(cty.String),
+			}),
+			Dst: cty.ObjectVal(map[string]cty.Value{
+				"map": cty.NullVal(cty.Map(cty.String)),
+			}),
+			Expect: cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapValEmpty(cty.String),
+			}),
+		},
+		{
+			// A zerp value primitive is copied over a null primitive
+			Src: cty.ObjectVal(map[string]cty.Value{
+				"string": cty.StringVal(""),
+			}),
+			Dst: cty.ObjectVal(map[string]cty.Value{
+				"string": cty.NullVal(cty.String),
+			}),
+			Expect: cty.ObjectVal(map[string]cty.Value{
+				"string": cty.StringVal(""),
+			}),
+		},
+		{
+			// The null map is retained, because the src was unknown
+			Src: cty.ObjectVal(map[string]cty.Value{
+				"map": cty.UnknownVal(cty.Map(cty.String)),
+			}),
+			Dst: cty.ObjectVal(map[string]cty.Value{
+				"map": cty.NullVal(cty.Map(cty.String)),
+			}),
+			Expect: cty.ObjectVal(map[string]cty.Value{
+				"map": cty.NullVal(cty.Map(cty.String)),
+			}),
+		},
+		{
+			// the nul set is retained, because the src set contains an unknown value
+			Src: cty.ObjectVal(map[string]cty.Value{
+				"set": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.UnknownVal(cty.String),
+					}),
+				}),
+			}),
+			Dst: cty.ObjectVal(map[string]cty.Value{
+				"set": cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{
+					"foo": cty.String,
+				}))),
+			}),
+			Expect: cty.ObjectVal(map[string]cty.Value{
+				"set": cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{
+					"foo": cty.String,
+				}))),
+			}),
+		},
+		{
+			// Retain the zero value within the map
+			Src: cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("a"),
+					"b": cty.StringVal(""),
+				}),
+			}),
+			Dst: cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("a"),
+				}),
+			}),
+			Expect: cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("a"),
+					"b": cty.StringVal(""),
+				}),
+			}),
+		},
+		{
+			// Recover the lost unknown key, assuming it was set to an empty
+			// string and lost.
+			Src: cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("a"),
+					"b": cty.UnknownVal(cty.String),
+				}),
+			}),
+			Dst: cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("a"),
+				}),
+			}),
+			Expect: cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("a"),
+					"b": cty.StringVal(""),
+				}),
+			}),
+		},
+	} {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			got := copyMissingValues(tc.Dst, tc.Src)
+			if !got.RawEquals(tc.Expect) {
+				t.Fatalf("\nexpected: %#v\ngot:      %#v\n", tc.Expect, got)
 			}
 		})
 	}
