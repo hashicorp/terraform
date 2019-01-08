@@ -420,11 +420,17 @@ func (p *GRPCProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
 	}
+	configMP, err := msgpack.Marshal(r.Config, resSchema.Block.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
 
 	protoReq := &proto.ApplyResourceChange_Request{
 		TypeName:       r.TypeName,
 		PriorState:     &proto.DynamicValue{Msgpack: priorMP},
 		PlannedState:   &proto.DynamicValue{Msgpack: plannedMP},
+		Config:         &proto.DynamicValue{Msgpack: configMP},
 		PlannedPrivate: r.PlannedPrivate,
 	}
 
