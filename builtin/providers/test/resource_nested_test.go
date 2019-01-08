@@ -142,6 +142,7 @@ resource "test_resource_nested" "foo" {
 						"nested.0.nested_again.0.string": "a",
 						"nested.1.string":                "",
 						"nested.1.optional":              "false",
+						"nested.1.nested_again.#":        "0",
 					}
 					delete(got, "id") // it's random, so not useful for testing
 
