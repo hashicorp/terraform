@@ -679,10 +679,52 @@ func TestHCL2ValueFromFlatmap(t *testing.T) {
 				}),
 			}),
 		},
+		{
+			Flatmap: map[string]string{
+				"foo.#": "1",
+			},
+			Type: cty.Object(map[string]cty.Type{
+				"foo": cty.Set(cty.Object(map[string]cty.Type{
+					"bar": cty.String,
+				})),
+			}),
+			Want: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+		},
+		{
+			Flatmap: map[string]string{
+				"multi.#":                "1",
+				"multi.2.set.#":          "1",
+				"multi.2.set.3.required": "val",
+			},
+			Type: cty.Object(map[string]cty.Type{
+				"multi": cty.Set(cty.Object(map[string]cty.Type{
+					"set": cty.Set(cty.Object(map[string]cty.Type{
+						"required": cty.String,
+					})),
+				})),
+			}),
+			Want: cty.ObjectVal(map[string]cty.Value{
+				"multi": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"set": cty.SetVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"required": cty.StringVal("val"),
+							}),
+						}),
+					}),
+				}),
+			}),
+		},
 	}
 
-	for _, test := range tests {
-		t.Run(fmt.Sprintf("%#v as %#v", test.Flatmap, test.Type), func(t *testing.T) {
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("%d %#v as %#v", i, test.Flatmap, test.Type), func(t *testing.T) {
 			got, err := HCL2ValueFromFlatmap(test.Flatmap, test.Type)
 
 			if test.WantErr != "" {
