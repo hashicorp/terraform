@@ -203,6 +203,18 @@ func TestCheckProtocolVersions(t *testing.T) {
 			},
 			false,
 		},
+		{
+			&response.TerraformProviderVersion{
+				Protocols: []string{"4.0", "5.2"},
+			},
+			false,
+		},
+		{
+			&response.TerraformProviderVersion{
+				Protocols: []string{"5.0", "6.1"},
+			},
+			true,
+		},
 	}
 
 	server := testReleaseServer()
@@ -216,7 +228,6 @@ func TestCheckProtocolVersions(t *testing.T) {
 			if err == nil {
 				t.Fatal("succeeded; want error")
 			}
-			return
 		} else if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
@@ -456,9 +467,10 @@ func TestProviderChecksum(t *testing.T) {
 // newProviderInstaller returns a minimally-initialized ProviderInstaller
 func newProviderInstaller(s *httptest.Server) ProviderInstaller {
 	return ProviderInstaller{
-		registry: registry.NewClient(Disco(s), nil),
-		OS:       runtime.GOOS,
-		Arch:     runtime.GOARCH,
+		registry:              registry.NewClient(Disco(s), nil),
+		OS:                    runtime.GOOS,
+		Arch:                  runtime.GOARCH,
+		PluginProtocolVersion: 4,
 	}
 }
 
