@@ -1,4 +1,4 @@
-package init
+package initwd
 
 import (
 	"fmt"
@@ -23,6 +23,7 @@ var goGetterDetectors = []getter.Detector{
 	new(getter.GitHubDetector),
 	new(getter.BitBucketDetector),
 	new(getter.S3Detector),
+	new(getter.FileDetector),
 }
 
 var goGetterNoDetectors = []getter.Detector{}
@@ -44,6 +45,7 @@ var goGetterDecompressors = map[string]getter.Decompressor{
 }
 
 var goGetterGetters = map[string]getter.Getter{
+	"file":  new(getter.FileGetter),
 	"git":   new(getter.GitGetter),
 	"hg":    new(getter.HgGetter),
 	"s3":    new(getter.S3Getter),

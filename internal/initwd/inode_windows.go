@@ -1,6 +1,6 @@
 // +build windows
 
-package init
+package initwd
 
 // no syscall.Stat_t on windows, return 0 for inodes
 func inode(path string) (uint64, error) {

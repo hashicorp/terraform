@@ -1,6 +1,6 @@
 // +build linux darwin openbsd netbsd solaris dragonfly
 
-package init
+package initwd
 
 import (
 	"fmt"
