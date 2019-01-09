@@ -71,12 +71,13 @@ require (
 	github.com/hashicorp/go-uuid v1.0.0
 	github.com/hashicorp/go-version v1.0.0
 	github.com/hashicorp/golang-lru v0.5.0 // indirect
-	github.com/hashicorp/hcl v0.0.0-20170504190234-a4b07c25de5f
+	github.com/hashicorp/hcl v1.0.0
 	github.com/hashicorp/hcl2 v0.0.0-20181220012050-6631d7cd0a68
 	github.com/hashicorp/hil v0.0.0-20170627220502-fa9f258a9250
 	github.com/hashicorp/logutils v0.0.0-20150609070431-0dc08b1671f3
 	github.com/hashicorp/memberlist v0.1.0 // indirect
 	github.com/hashicorp/serf v0.0.0-20160124182025-e4ec8cc423bb // indirect
+	github.com/hashicorp/terraform-config-inspect v0.0.0-20181213005350-314d8affa1db
 	github.com/hashicorp/vault v0.0.0-20161029210149-9a60bf2a50e4
 	github.com/jen20/awspolicyequivalence v0.0.0-20170831201602-3d48364a137a // indirect
 	github.com/jonboulle/clockwork v0.1.0 // indirect
