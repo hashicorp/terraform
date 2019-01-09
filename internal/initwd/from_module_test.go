@@ -1,4 +1,4 @@
-package configload
+package initwd
 
 import (
 	"os"
@@ -8,20 +8,25 @@ import (
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/configs/configload"
+	"github.com/hashicorp/terraform/registry"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
-func TestLoaderInitDirFromModule_registry(t *testing.T) {
+func TestDirFromModule_registry(t *testing.T) {
 	if os.Getenv("TF_ACC") == "" {
 		t.Skip("this test accesses registry.terraform.io and github.com; set TF_ACC=1 to run it")
 	}
 
 	fixtureDir := filepath.Clean("test-fixtures/empty")
-	loader, done := tempChdirLoader(t, fixtureDir)
+	dir, done := tempChdir(t, fixtureDir)
+	modsDir := filepath.Join(dir, ".terraform/modules")
 	defer done()
 
 	hooks := &testInstallHooks{}
 
-	diags := loader.InitDirFromModule(".", "hashicorp/module-installer-acctest/aws//examples/main", hooks)
+	reg := registry.NewClient(nil, nil)
+	diags := DirFromModule(dir, modsDir, "hashicorp/module-installer-acctest/aws//examples/main", reg, hooks)
 	assertNoDiagnostics(t, diags)
 
 	v := version.Must(version.NewVersion("0.0.1"))
@@ -65,10 +70,17 @@ func TestLoaderInitDirFromModule_registry(t *testing.T) {
 		return
 	}
 
+	loader, err := configload.NewLoader(&configload.Config{
+		ModulesDir: modsDir,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
 	config, loadDiags := loader.LoadConfig(".")
-	if assertNoDiagnostics(t, loadDiags) {
+	if assertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags)) {
 		return
 	}
 

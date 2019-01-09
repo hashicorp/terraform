@@ -1,4 +1,4 @@
-package init
+package initwd
 
 import (
 	"io"

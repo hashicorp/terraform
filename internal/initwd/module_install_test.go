@@ -1,23 +1,47 @@
-package configload
+package initwd
 
 import (
+	"flag"
+	"fmt"
+	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/go-test/deep"
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/configs/configload"
+	"github.com/hashicorp/terraform/helper/logging"
+	"github.com/hashicorp/terraform/registry"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
-func TestLoaderInstallModules_local(t *testing.T) {
+func TestMain(m *testing.M) {
+	flag.Parse()
+	if testing.Verbose() {
+		// if we're verbose, use the logging requested by TF_LOG
+		logging.SetOutput()
+	} else {
+		// otherwise silence all logs
+		log.SetOutput(ioutil.Discard)
+	}
+
+	os.Exit(m.Run())
+}
+
+func TestModuleInstaller(t *testing.T) {
 	fixtureDir := filepath.Clean("test-fixtures/local-modules")
-	loader, done := tempChdirLoader(t, fixtureDir)
+	dir, done := tempChdir(t, fixtureDir)
 	defer done()
 
 	hooks := &testInstallHooks{}
 
-	diags := loader.InstallModules(".", false, hooks)
+	modulesDir := filepath.Join(dir, ".terraform/modules")
+	inst := NewModuleInstaller(modulesDir, nil)
+	diags := inst.InstallModules(".", false, hooks)
 	assertNoDiagnostics(t, diags)
 
 	wantCalls := []testInstallHookCall{
@@ -39,10 +63,17 @@ func TestLoaderInstallModules_local(t *testing.T) {
 		return
 	}
 
+	loader, err := configload.NewLoader(&configload.Config{
+		ModulesDir: modulesDir,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
 	config, loadDiags := loader.LoadConfig(".")
-	assertNoDiagnostics(t, loadDiags)
+	assertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
 
 	wantTraces := map[string]string{
 		"":                "in root module",
@@ -67,13 +98,14 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 		t.Skip("this test accesses registry.terraform.io and github.com; set TF_ACC=1 to run it")
 	}
 
-	fixtureDir := filepath.Clean("test-fixtures/registry-modules")
-	loader, done := tempChdirLoader(t, fixtureDir)
+	fixtureDir := filepath.Clean("test-fixtures/local-modules")
+	dir, done := tempChdir(t, fixtureDir)
 	defer done()
 
 	hooks := &testInstallHooks{}
-
-	diags := loader.InstallModules(".", false, hooks)
+	modulesDir := filepath.Join(dir, ".terraform/modules")
+	inst := NewModuleInstaller(modulesDir, registry.NewClient(nil, nil))
+	diags := inst.InstallModules(dir, false, hooks)
 	assertNoDiagnostics(t, diags)
 
 	v := version.Must(version.NewVersion("0.0.1"))
@@ -153,10 +185,17 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 		return
 	}
 
+	loader, err := configload.NewLoader(&configload.Config{
+		ModulesDir: modulesDir,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
 	config, loadDiags := loader.LoadConfig(".")
-	assertNoDiagnostics(t, loadDiags)
+	assertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
 
 	wantTraces := map[string]string{
 		"":                             "in local caller for registry-modules",
@@ -187,12 +226,13 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 	}
 
 	fixtureDir := filepath.Clean("test-fixtures/go-getter-modules")
-	loader, done := tempChdirLoader(t, fixtureDir)
+	dir, done := tempChdir(t, fixtureDir)
 	defer done()
 
 	hooks := &testInstallHooks{}
-
-	diags := loader.InstallModules(".", false, hooks)
+	modulesDir := filepath.Join(dir, ".terraform/modules")
+	inst := NewModuleInstaller(modulesDir, registry.NewClient(nil, nil))
+	diags := inst.InstallModules(dir, false, hooks)
 	assertNoDiagnostics(t, diags)
 
 	wantCalls := []testInstallHookCall{
@@ -264,10 +304,17 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 		return
 	}
 
+	loader, err := configload.NewLoader(&configload.Config{
+		ModulesDir: modulesDir,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
 	config, loadDiags := loader.LoadConfig(".")
-	assertNoDiagnostics(t, loadDiags)
+	assertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
 
 	wantTraces := map[string]string{
 		"":                             "in local caller for go-getter-modules",
@@ -320,4 +367,98 @@ func (h *testInstallHooks) Install(moduleAddr string, version *version.Version, 
 		Version:    version,
 		LocalPath:  localPath,
 	})
+}
+
+// tempChdir copies the contents of the given directory to a temporary
+// directory and changes the test process's current working directory to
+// point to that directory. Also returned is a function that should be
+// called at the end of the test (e.g. via "defer") to restore the previous
+// working directory.
+//
+// Tests using this helper cannot safely be run in parallel with other tests.
+func tempChdir(t *testing.T, sourceDir string) (string, func()) {
+	t.Helper()
+
+	tmpDir, err := ioutil.TempDir("", "terraform-configload")
+	if err != nil {
+		t.Fatalf("failed to create temporary directory: %s", err)
+		return "", nil
+	}
+
+	if err := copyDir(tmpDir, sourceDir); err != nil {
+		t.Fatalf("failed to copy fixture to temporary directory: %s", err)
+		return "", nil
+	}
+
+	oldDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to determine current working directory: %s", err)
+		return "", nil
+	}
+
+	err = os.Chdir(tmpDir)
+	if err != nil {
+		t.Fatalf("failed to switch to temp dir %s: %s", tmpDir, err)
+		return "", nil
+	}
+
+	// Most of the tests need this, so we'll make it just in case.
+	os.MkdirAll(filepath.Join(tmpDir, ".terraform/modules"), os.ModePerm)
+
+	t.Logf("tempChdir switched to %s after copying from %s", tmpDir, sourceDir)
+
+	return tmpDir, func() {
+		err := os.Chdir(oldDir)
+		if err != nil {
+			panic(fmt.Errorf("failed to restore previous working directory %s: %s", oldDir, err))
+		}
+
+		if os.Getenv("TF_CONFIGLOAD_TEST_KEEP_TMP") == "" {
+			os.RemoveAll(tmpDir)
+		}
+	}
+}
+
+func assertNoDiagnostics(t *testing.T, diags tfdiags.Diagnostics) bool {
+	t.Helper()
+	return assertDiagnosticCount(t, diags, 0)
+}
+
+func assertDiagnosticCount(t *testing.T, diags tfdiags.Diagnostics, want int) bool {
+	t.Helper()
+	if len(diags) != 0 {
+		t.Errorf("wrong number of diagnostics %d; want %d", len(diags), want)
+		for _, diag := range diags {
+			t.Logf("- %s", diag)
+		}
+		return true
+	}
+	return false
+}
+
+func assertDiagnosticSummary(t *testing.T, diags tfdiags.Diagnostics, want string) bool {
+	t.Helper()
+
+	for _, diag := range diags {
+		if diag.Description().Summary == want {
+			return false
+		}
+	}
+
+	t.Errorf("missing diagnostic summary %q", want)
+	for _, diag := range diags {
+		t.Logf("- %s", diag)
+	}
+	return true
+}
+
+func assertResultDeepEqual(t *testing.T, got, want interface{}) bool {
+	t.Helper()
+	if diff := deep.Equal(got, want); diff != nil {
+		for _, problem := range diff {
+			t.Errorf("%s", problem)
+		}
+		return true
+	}
+	return false
 }

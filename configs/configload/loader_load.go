@@ -24,6 +24,18 @@ func (l *Loader) LoadConfig(rootDir string) (*configs.Config, hcl.Diagnostics) {
 		return nil, diags
 	}
 
+	// Refresh the manifest snapshot in case anything new has been installed
+	// since we last refreshed it.
+	err := l.modules.readModuleManifestSnapshot()
+	if err != nil {
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Failed to read module manifest",
+			Detail:   fmt.Sprintf("Terraform failed to read its manifest of locally-cached modules: %s.", err),
+		})
+		return nil, diags
+	}
+
 	cfg, cDiags := configs.BuildConfig(rootMod, configs.ModuleWalkerFunc(l.moduleWalkerLoad))
 	diags = append(diags, cDiags...)
 
@@ -39,7 +51,7 @@ func (l *Loader) moduleWalkerLoad(req *configs.ModuleRequest) (*configs.Module, 
 	// do verify that the manifest and the configuration are in agreement
 	// so that we can prompt the user to run "terraform init" if not.
 
-	key := manifestKey(req.Path)
+	key := l.modules.manifest.ModuleKey(req.Path)
 	record, exists := l.modules.manifest[key]
 
 	if !exists {

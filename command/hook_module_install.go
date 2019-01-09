@@ -4,17 +4,17 @@ import (
 	"fmt"
 
 	version "github.com/hashicorp/go-version"
-	"github.com/hashicorp/terraform/configs/configload"
+	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/mitchellh/cli"
 )
 
 type uiModuleInstallHooks struct {
-	configload.InstallHooksImpl
+	initwd.ModuleInstallHooksImpl
 	Ui             cli.Ui
 	ShowLocalPaths bool
 }
 
-var _ configload.InstallHooks = uiModuleInstallHooks{}
+var _ initwd.ModuleInstallHooks = uiModuleInstallHooks{}
 
 func (h uiModuleInstallHooks) Download(modulePath, packageAddr string, v *version.Version) {
 	if v != nil {

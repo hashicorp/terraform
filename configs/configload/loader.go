@@ -71,6 +71,12 @@ func NewLoader(config *Config) (*Loader, error) {
 	return ret, nil
 }
 
+// ModulesDir returns the path to the directory where the loader will look for
+// the local cache of remote module packages.
+func (l *Loader) ModulesDir() string {
+	return l.modules.Dir
+}
+
 // Parser returns the underlying parser for this loader.
 //
 // This is useful for loading other sorts of files than the module directories

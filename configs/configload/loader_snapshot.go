@@ -10,10 +10,9 @@ import (
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl2/hcl"
-	"github.com/spf13/afero"
-
-	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/internal/modsdir"
+	"github.com/spf13/afero"
 )
 
 // LoadConfigWithSnapshot is a variant of LoadConfig that also simultaneously
@@ -83,7 +82,7 @@ type Snapshot struct {
 func NewEmptySnapshot() *Snapshot {
 	return &Snapshot{
 		Modules: map[string]*SnapshotModule{
-			manifestKey(addrs.RootModule): &SnapshotModule{
+			"": &SnapshotModule{
 				Files: map[string][]byte{},
 			},
 		},
@@ -111,11 +110,11 @@ type SnapshotModule struct {
 
 // moduleManifest constructs a module manifest based on the contents of
 // the receiving snapshot.
-func (s *Snapshot) moduleManifest() moduleManifest {
-	ret := make(moduleManifest)
+func (s *Snapshot) moduleManifest() modsdir.Manifest {
+	ret := make(modsdir.Manifest)
 
 	for k, modSnap := range s.Modules {
-		ret[k] = moduleRecord{
+		ret[k] = modsdir.Record{
 			Key:        k,
 			Dir:        modSnap.Dir,
 			SourceAddr: modSnap.SourceAddr,
@@ -137,7 +136,7 @@ func (l *Loader) makeModuleWalkerSnapshot(snap *Snapshot) configs.ModuleWalker {
 				return mod, v, diags
 			}
 
-			key := manifestKey(req.Path)
+			key := l.modules.manifest.ModuleKey(req.Path)
 			record, exists := l.modules.manifest[key]
 
 			if !exists {

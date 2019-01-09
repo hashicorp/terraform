@@ -3,6 +3,7 @@ package earlyconfig
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-config-inspect/tfconfig"
@@ -41,14 +42,18 @@ func buildChildModules(parent *Config, walker ModuleWalker) (map[string]*Config,
 		copy(path, parent.Path)
 		path[len(path)-1] = call.Name
 
-		vc, err := version.NewConstraint(call.Version)
-		if err != nil {
-			diags = diags.Append(wrapDiagnostic(tfconfig.Diagnostic{
-				Severity: tfconfig.DiagError,
-				Summary:  "Invalid version constraint",
-				Detail:   fmt.Sprintf("Module %q (declared at %s line %d) has invalid version constraint: %s.", callName, call.Pos.Filename, call.Pos.Line, err),
-			}))
-			continue
+		var vc version.Constraints
+		if strings.TrimSpace(call.Version) != "" {
+			var err error
+			vc, err = version.NewConstraint(call.Version)
+			if err != nil {
+				diags = diags.Append(wrapDiagnostic(tfconfig.Diagnostic{
+					Severity: tfconfig.DiagError,
+					Summary:  "Invalid version constraint",
+					Detail:   fmt.Sprintf("Module %q (declared at %s line %d) has invalid version constraint %q: %s.", callName, call.Pos.Filename, call.Pos.Line, call.Version, err),
+				}))
+				continue
+			}
 		}
 
 		req := ModuleRequest{

@@ -1,4 +1,4 @@
-package init
+package initwd
 
 import (
 	"fmt"
@@ -58,7 +58,9 @@ func NewModuleInstaller(modsDir string, reg *registry.Client) *ModuleInstaller {
 // Use CanInstallModules to determine if a loader can install modules, or
 // refer to the documentation for that method for situations where module
 // installation capability is guaranteed.
-func (i *ModuleInstaller) InstallModules(rootDir string, upgrade bool, hooks InstallHooks) tfdiags.Diagnostics {
+func (i *ModuleInstaller) InstallModules(rootDir string, upgrade bool, hooks ModuleInstallHooks) tfdiags.Diagnostics {
+	log.Printf("[TRACE] ModuleInstaller: installing child modules for %s into %s", rootDir, i.modsDir)
+
 	rootMod, diags := earlyconfig.LoadModule(rootDir)
 	if rootMod == nil {
 		return diags
@@ -81,12 +83,12 @@ func (i *ModuleInstaller) InstallModules(rootDir string, upgrade bool, hooks Ins
 	return diags
 }
 
-func (i *ModuleInstaller) installDescendentModules(rootMod *tfconfig.Module, rootDir string, manifest modsdir.Manifest, upgrade bool, hooks InstallHooks, getter reusingGetter) tfdiags.Diagnostics {
+func (i *ModuleInstaller) installDescendentModules(rootMod *tfconfig.Module, rootDir string, manifest modsdir.Manifest, upgrade bool, hooks ModuleInstallHooks, getter reusingGetter) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	if hooks == nil {
 		// Use our no-op implementation as a placeholder
-		hooks = InstallHooksImpl{}
+		hooks = ModuleInstallHooksImpl{}
 	}
 
 	// Create a manifest record for the root module. This will be used if
@@ -111,13 +113,13 @@ func (i *ModuleInstaller) installDescendentModules(rootMod *tfconfig.Module, roo
 				record, recorded := manifest[key]
 				switch {
 				case !recorded:
-					log.Printf("[TRACE] %s is not yet installed", key)
+					log.Printf("[TRACE] ModuleInstaller: %s is not yet installed", key)
 					replace = true
 				case record.SourceAddr != req.SourceAddr:
-					log.Printf("[TRACE] %s source address has changed from %q to %q", key, record.SourceAddr, req.SourceAddr)
+					log.Printf("[TRACE] ModuleInstaller: %s source address has changed from %q to %q", key, record.SourceAddr, req.SourceAddr)
 					replace = true
 				case record.Version != nil && !req.VersionConstraints.Check(record.Version):
-					log.Printf("[TRACE] %s version %s no longer compatible with constraints %s", key, record.Version, req.VersionConstraints)
+					log.Printf("[TRACE] ModuleInstaller: %s version %s no longer compatible with constraints %s", key, record.Version, req.VersionConstraints)
 					replace = true
 				}
 			}
@@ -127,7 +129,7 @@ func (i *ModuleInstaller) installDescendentModules(rootMod *tfconfig.Module, roo
 			// existing remnants.
 			if replace {
 				if _, recorded := manifest[key]; recorded {
-					log.Printf("[TRACE] discarding previous record of %s prior to reinstall", key)
+					log.Printf("[TRACE] ModuleInstaller: discarding previous record of %s prior to reinstall", key)
 				}
 				delete(manifest, key)
 				// Deleting a module invalidates all of its descendent modules too.
@@ -135,7 +137,7 @@ func (i *ModuleInstaller) installDescendentModules(rootMod *tfconfig.Module, roo
 				for subKey := range manifest {
 					if strings.HasPrefix(subKey, keyPrefix) {
 						if _, recorded := manifest[subKey]; recorded {
-							log.Printf("[TRACE] also discarding downstream %s", subKey)
+							log.Printf("[TRACE] ModuleInstaller: also discarding downstream %s", subKey)
 						}
 						delete(manifest, subKey)
 					}
@@ -147,10 +149,10 @@ func (i *ModuleInstaller) installDescendentModules(rootMod *tfconfig.Module, roo
 				// Clean up any stale cache directory that might be present.
 				// If this is a local (relative) source then the dir will
 				// not exist, but we'll ignore that.
-				log.Printf("[TRACE] cleaning directory %s prior to install of %s", instPath, key)
+				log.Printf("[TRACE] ModuleInstaller: cleaning directory %s prior to install of %s", instPath, key)
 				err := os.RemoveAll(instPath)
 				if err != nil && !os.IsNotExist(err) {
-					log.Printf("[TRACE] failed to remove %s: %s", key, err)
+					log.Printf("[TRACE] ModuleInstaller: failed to remove %s: %s", key, err)
 					diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Error,
 						"Failed to remove local module cache",
@@ -170,7 +172,7 @@ func (i *ModuleInstaller) installDescendentModules(rootMod *tfconfig.Module, roo
 					mod, mDiags := earlyconfig.LoadModule(record.Dir)
 					diags = diags.Append(mDiags)
 
-					log.Printf("[TRACE] Module installer: %s %s already installed in %s", key, record.Version, record.Dir)
+					log.Printf("[TRACE] ModuleInstaller: Module installer: %s %s already installed in %s", key, record.Version, record.Dir)
 					return mod, record.Version, diags
 				}
 			}
@@ -181,7 +183,7 @@ func (i *ModuleInstaller) installDescendentModules(rootMod *tfconfig.Module, roo
 			switch {
 
 			case isLocalSourceAddr(req.SourceAddr):
-				log.Printf("[TRACE] %s has local path %q", key, req.SourceAddr)
+				log.Printf("[TRACE] ModuleInstaller: %s has local path %q", key, req.SourceAddr)
 				mod, mDiags := i.installLocalModule(req, key, manifest, hooks)
 				diags = append(diags, mDiags...)
 				return mod, nil, diags
@@ -192,14 +194,14 @@ func (i *ModuleInstaller) installDescendentModules(rootMod *tfconfig.Module, roo
 					// Should never happen because isRegistrySourceAddr already validated
 					panic(err)
 				}
-				log.Printf("[TRACE] %s is a registry module at %s", key, addr)
+				log.Printf("[TRACE] ModuleInstaller: %s is a registry module at %s", key, addr)
 
 				mod, v, mDiags := i.installRegistryModule(req, key, instPath, addr, manifest, hooks, getter)
 				diags = append(diags, mDiags...)
 				return mod, v, diags
 
 			default:
-				log.Printf("[TRACE] %s address %q will be handled by go-getter", key, req.SourceAddr)
+				log.Printf("[TRACE] ModuleInstaller: %s address %q will be handled by go-getter", key, req.SourceAddr)
 
 				mod, mDiags := i.installGoGetterModule(req, key, instPath, manifest, hooks, getter)
 				diags = append(diags, mDiags...)
@@ -222,7 +224,7 @@ func (i *ModuleInstaller) installDescendentModules(rootMod *tfconfig.Module, roo
 	return diags
 }
 
-func (i *ModuleInstaller) installLocalModule(req *earlyconfig.ModuleRequest, key string, manifest modsdir.Manifest, hooks InstallHooks) (*tfconfig.Module, tfdiags.Diagnostics) {
+func (i *ModuleInstaller) installLocalModule(req *earlyconfig.ModuleRequest, key string, manifest modsdir.Manifest, hooks ModuleInstallHooks) (*tfconfig.Module, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	parentKey := manifest.ModuleKey(req.Parent.Path)
@@ -244,7 +246,7 @@ func (i *ModuleInstaller) installLocalModule(req *earlyconfig.ModuleRequest, key
 	// filesystem at all because the parent already wrote
 	// the files we need, and so we just load up what's already here.
 	newDir := filepath.Join(parentRecord.Dir, req.SourceAddr)
-	log.Printf("[TRACE] %s uses directory from parent: %s", key, newDir)
+	log.Printf("[TRACE] ModuleInstaller: %s uses directory from parent: %s", key, newDir)
 	mod, mDiags := earlyconfig.LoadModule(newDir)
 	if mod == nil {
 		// nil indicates missing or unreadable directory, so we'll
@@ -271,7 +273,7 @@ func (i *ModuleInstaller) installLocalModule(req *earlyconfig.ModuleRequest, key
 	return mod, diags
 }
 
-func (i *ModuleInstaller) installRegistryModule(req *earlyconfig.ModuleRequest, key string, instPath string, addr *regsrc.Module, manifest modsdir.Manifest, hooks InstallHooks, getter reusingGetter) (*tfconfig.Module, *version.Version, tfdiags.Diagnostics) {
+func (i *ModuleInstaller) installRegistryModule(req *earlyconfig.ModuleRequest, key string, instPath string, addr *regsrc.Module, manifest modsdir.Manifest, hooks ModuleInstallHooks, getter reusingGetter) (*tfconfig.Module, *version.Version, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	hostname, err := addr.SvcHost()
@@ -353,7 +355,7 @@ func (i *ModuleInstaller) installRegistryModule(req *earlyconfig.ModuleRequest, 
 		// If we've found a pre-release version then we'll ignore it unless
 		// it was exactly requested.
 		if v.Prerelease() != "" && req.VersionConstraints.String() != v.String() {
-			log.Printf("[TRACE] %s ignoring %s because it is a pre-release and was not requested exactly", key, v)
+			log.Printf("[TRACE] ModuleInstaller: %s ignoring %s because it is a pre-release and was not requested exactly", key, v)
 			continue
 		}
 
@@ -404,7 +406,7 @@ func (i *ModuleInstaller) installRegistryModule(req *earlyconfig.ModuleRequest, 
 		return nil, nil, diags
 	}
 
-	log.Printf("[TRACE] %s %s %s is available at %q", key, addr, latestMatch, dlAddr)
+	log.Printf("[TRACE] ModuleInstaller: %s %s %s is available at %q", key, addr, latestMatch, dlAddr)
 
 	modDir, err := getter.getWithGoGetter(instPath, dlAddr)
 	if err != nil {
@@ -421,7 +423,7 @@ func (i *ModuleInstaller) installRegistryModule(req *earlyconfig.ModuleRequest, 
 		return nil, nil, diags
 	}
 
-	log.Printf("[TRACE] %s %q was downloaded to %s", key, dlAddr, modDir)
+	log.Printf("[TRACE] ModuleInstaller: %s %q was downloaded to %s", key, dlAddr, modDir)
 
 	if addr.RawSubmodule != "" {
 		// Append the user's requested subdirectory to any subdirectory that
@@ -429,7 +431,7 @@ func (i *ModuleInstaller) installRegistryModule(req *earlyconfig.ModuleRequest, 
 		modDir = filepath.Join(modDir, addr.RawSubmodule)
 	}
 
-	log.Printf("[TRACE] %s should now be at %s", key, modDir)
+	log.Printf("[TRACE] ModuleInstaller: %s should now be at %s", key, modDir)
 
 	// Finally we are ready to try actually loading the module.
 	mod, mDiags := earlyconfig.LoadModule(modDir)
@@ -461,7 +463,7 @@ func (i *ModuleInstaller) installRegistryModule(req *earlyconfig.ModuleRequest, 
 	return mod, latestMatch, diags
 }
 
-func (i *ModuleInstaller) installGoGetterModule(req *earlyconfig.ModuleRequest, key string, instPath string, manifest modsdir.Manifest, hooks InstallHooks, getter reusingGetter) (*tfconfig.Module, tfdiags.Diagnostics) {
+func (i *ModuleInstaller) installGoGetterModule(req *earlyconfig.ModuleRequest, key string, instPath string, manifest modsdir.Manifest, hooks ModuleInstallHooks, getter reusingGetter) (*tfconfig.Module, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// Report up to the caller that we're about to start downloading.
@@ -483,7 +485,7 @@ func (i *ModuleInstaller) installGoGetterModule(req *earlyconfig.ModuleRequest, 
 		return nil, diags
 	}
 
-	log.Printf("[TRACE] %s %q was downloaded to %s", key, req.SourceAddr, modDir)
+	log.Printf("[TRACE] ModuleInstaller: %s %q was downloaded to %s", key, req.SourceAddr, modDir)
 
 	mod, mDiags := earlyconfig.LoadModule(modDir)
 	if mod == nil {
