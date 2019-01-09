@@ -117,6 +117,14 @@ func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operatio
 }
 
 func (b *Remote) plan(stopCtx, cancelCtx context.Context, op *backend.Operation, w *tfe.Workspace) (*tfe.Run, error) {
+	if b.CLI != nil {
+		header := planDefaultHeader
+		if op.Type == backend.OperationTypeApply {
+			header = applyDefaultHeader
+		}
+		b.CLI.Output(b.Colorize().Color(strings.TrimSpace(header) + "\n"))
+	}
+
 	configOptions := tfe.ConfigurationVersionCreateOptions{
 		AutoQueueRuns: tfe.Bool(false),
 		Speculative:   tfe.Bool(op.Type == backend.OperationTypePlan),
@@ -232,12 +240,8 @@ func (b *Remote) plan(stopCtx, cancelCtx context.Context, op *backend.Operation,
 	}
 
 	if b.CLI != nil {
-		header := planDefaultHeader
-		if op.Type == backend.OperationTypeApply {
-			header = applyDefaultHeader
-		}
 		b.CLI.Output(b.Colorize().Color(strings.TrimSpace(fmt.Sprintf(
-			header, b.hostname, b.organization, op.Workspace, r.ID)) + "\n"))
+			runHeader, b.hostname, b.organization, op.Workspace, r.ID)) + "\n"))
 	}
 
 	r, err = b.waitForRun(stopCtx, cancelCtx, op, "plan", r, w)
@@ -286,8 +290,13 @@ func (b *Remote) plan(stopCtx, cancelCtx context.Context, op *backend.Operation,
 
 const planDefaultHeader = `
 [reset][yellow]Running plan in the remote backend. Output will stream here. Pressing Ctrl-C
-will stop streaming the logs, but will not stop the plan running remotely.
-To view this run in a browser, visit:
+will stop streaming the logs, but will not stop the plan running remotely.[reset]
+
+Preparing the remote plan...
+`
+
+const runHeader = `
+[reset][yellow]To view this run in a browser, visit:
 https://%s/app/%s/%s/runs/%s[reset]
 `
 
