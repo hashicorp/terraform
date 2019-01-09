@@ -25,6 +25,9 @@ type stateValues struct {
 type attributeValues map[string]interface{}
 
 func marshalAttributeValues(value cty.Value, schema *configschema.Block) attributeValues {
+	if value == cty.NilVal {
+		return nil
+	}
 	ret := make(attributeValues)
 
 	it := value.ElementIterator()
@@ -118,9 +121,7 @@ func marshalPlannedValues(changes *plans.Changes, schemas *terraform.Schemas) (m
 	return ret, nil
 }
 
-// marshalPlannedValues returns two resource slices:
-// The former has attribute values populated and the latter has true/false in
-// place of values indicating whether the values are known at plan time.
+// marshalPlanResources
 func marshalPlanResources(changes *plans.Changes, ris []addrs.AbsResourceInstance, schemas *terraform.Schemas) ([]resource, error) {
 	var ret []resource
 
