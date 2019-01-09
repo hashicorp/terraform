@@ -6,12 +6,13 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/hashicorp/hcl2/hcl/hclsyntax"
-
 	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl2/hcl/hclsyntax"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/internal/initwd"
+	"github.com/hashicorp/terraform/registry"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -165,7 +166,7 @@ func (m *Meta) loadHCLFile(filename string) (hcl.Body, tfdiags.Diagnostics) {
 // can then be relayed to the end-user. The moduleUiInstallHooks type in
 // this package has a reasonable implementation for displaying notifications
 // via a provided cli.Ui.
-func (m *Meta) installModules(rootDir string, upgrade bool, hooks configload.InstallHooks) tfdiags.Diagnostics {
+func (m *Meta) installModules(rootDir string, upgrade bool, hooks initwd.ModuleInstallHooks) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	rootDir = m.normalizePath(rootDir)
 
@@ -175,14 +176,9 @@ func (m *Meta) installModules(rootDir string, upgrade bool, hooks configload.Ins
 		return diags
 	}
 
-	loader, err := m.initConfigLoader()
-	if err != nil {
-		diags = diags.Append(err)
-		return diags
-	}
-
-	hclDiags := loader.InstallModules(rootDir, upgrade, hooks)
-	diags = diags.Append(hclDiags)
+	inst := m.moduleInstaller()
+	moreDiags := inst.InstallModules(rootDir, upgrade, hooks)
+	diags = diags.Append(moreDiags)
 	return diags
 }
 
@@ -195,18 +191,11 @@ func (m *Meta) installModules(rootDir string, upgrade bool, hooks configload.Ins
 // can then be relayed to the end-user. The moduleUiInstallHooks type in
 // this package has a reasonable implementation for displaying notifications
 // via a provided cli.Ui.
-func (m *Meta) initDirFromModule(targetDir string, addr string, hooks configload.InstallHooks) tfdiags.Diagnostics {
+func (m *Meta) initDirFromModule(targetDir string, addr string, hooks initwd.ModuleInstallHooks) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	targetDir = m.normalizePath(targetDir)
-
-	loader, err := m.initConfigLoader()
-	if err != nil {
-		diags = diags.Append(err)
-		return diags
-	}
-
-	hclDiags := loader.InitDirFromModule(targetDir, addr, hooks)
-	diags = diags.Append(hclDiags)
+	moreDiags := initwd.DirFromModule(targetDir, m.modulesDir(), addr, m.registryClient(), hooks)
+	diags = diags.Append(moreDiags)
 	return diags
 }
 
@@ -325,6 +314,18 @@ func (m *Meta) initConfigLoader() (*configload.Loader, error) {
 		m.configLoader = loader
 	}
 	return m.configLoader, nil
+}
+
+// moduleInstaller instantiates and returns a module installer for use by
+// "terraform init" (directly or indirectly).
+func (m *Meta) moduleInstaller() *initwd.ModuleInstaller {
+	reg := m.registryClient()
+	return initwd.NewModuleInstaller(m.modulesDir(), reg)
+}
+
+// registryClient instantiates and returns a new Terraform Registry client.
+func (m *Meta) registryClient() *registry.Client {
+	return registry.NewClient(m.Services, nil)
 }
 
 // configValueFromCLI parses a configuration value that was provided in a

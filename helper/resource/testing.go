@@ -26,6 +26,7 @@ import (
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/helper/logging"
+	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
@@ -832,16 +833,17 @@ func testConfig(opts terraform.ContextOpts, step TestStep) (*configs.Config, err
 		return nil, fmt.Errorf("Error creating child modules directory: %s", err)
 	}
 
+	inst := initwd.NewModuleInstaller(modulesDir, nil)
+	installDiags := inst.InstallModules(cfgPath, true, initwd.ModuleInstallHooksImpl{})
+	if installDiags.HasErrors() {
+		return nil, installDiags.Err()
+	}
+
 	loader, err := configload.NewLoader(&configload.Config{
 		ModulesDir: modulesDir,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create config loader: %s", err)
-	}
-
-	installDiags := loader.InstallModules(cfgPath, true, configload.InstallHooksImpl{})
-	if installDiags.HasErrors() {
-		return nil, installDiags
 	}
 
 	config, configDiags := loader.LoadConfig(cfgPath)

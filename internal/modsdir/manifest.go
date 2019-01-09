@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 
@@ -95,6 +96,9 @@ func ReadManifestSnapshotForDir(dir string) (Manifest, error) {
 	fn := filepath.Join(dir, ManifestSnapshotFilename)
 	r, err := os.Open(fn)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return make(Manifest), nil // missing file is okay and treated as empty
+		}
 		return nil, err
 	}
 	return ReadManifestSnapshot(r)
@@ -125,6 +129,7 @@ func (m Manifest) WriteSnapshot(w io.Writer) error {
 
 func (m Manifest) WriteSnapshotToDir(dir string) error {
 	fn := filepath.Join(dir, ManifestSnapshotFilename)
+	log.Printf("[TRACE] modsdir: writing modules manifest to %s", fn)
 	w, err := os.Create(fn)
 	if err != nil {
 		return err

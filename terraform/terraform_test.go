@@ -2,6 +2,8 @@ package terraform
 
 import (
 	"flag"
+	"github.com/hashicorp/terraform/internal/initwd"
+	"github.com/hashicorp/terraform/registry"
 	"io"
 	"io/ioutil"
 	"log"
@@ -102,7 +104,6 @@ func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *config
 	t.Helper()
 
 	dir := filepath.Join(fixtureDir, name)
-
 	// FIXME: We're not dealing with the cleanup function here because
 	// this testModule function is used all over and so we don't want to
 	// change its interface at this late stage.
@@ -111,9 +112,10 @@ func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *config
 	// Test modules usually do not refer to remote sources, and for local
 	// sources only this ultimately just records all of the module paths
 	// in a JSON file so that we can load them below.
-	diags := loader.InstallModules(dir, true, configload.InstallHooksImpl{})
-	if diags.HasErrors() {
-		t.Fatal(diags.Error())
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), registry.NewClient(nil, nil))
+	instDiags := inst.InstallModules(dir, true, initwd.ModuleInstallHooksImpl{})
+	if instDiags.HasErrors() {
+		t.Fatal(instDiags.Err())
 	}
 
 	config, snap, diags := loader.LoadConfigWithSnapshot(dir)
@@ -162,9 +164,10 @@ func testModuleInline(t *testing.T, sources map[string]string) *configs.Config {
 	// Test modules usually do not refer to remote sources, and for local
 	// sources only this ultimately just records all of the module paths
 	// in a JSON file so that we can load them below.
-	diags := loader.InstallModules(cfgPath, true, configload.InstallHooksImpl{})
-	if diags.HasErrors() {
-		t.Fatal(diags.Error())
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), registry.NewClient(nil, nil))
+	instDiags := inst.InstallModules(cfgPath, true, initwd.ModuleInstallHooksImpl{})
+	if instDiags.HasErrors() {
+		t.Fatal(instDiags.Err())
 	}
 
 	config, diags := loader.LoadConfig(cfgPath)

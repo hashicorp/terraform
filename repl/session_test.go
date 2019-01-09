@@ -2,6 +2,7 @@ package repl
 
 import (
 	"flag"
+	"github.com/hashicorp/terraform/internal/initwd"
 	"io/ioutil"
 	"log"
 	"os"
@@ -11,7 +12,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/providers"
@@ -202,17 +202,10 @@ func testSession(t *testing.T, test testSessionTest) {
 		},
 	}
 
-	loader, cleanup := configload.NewLoaderForTests(t)
+	config, _, cleanup, configDiags := initwd.LoadConfigForTests(t, "testdata/config-fixture")
 	defer cleanup()
-
-	configDiags := loader.InstallModules("testdata/config-fixture", false, nil)
 	if configDiags.HasErrors() {
-		t.Fatalf("unexpected problems initializing test config: %s", configDiags.Error())
-	}
-
-	config, configDiags := loader.LoadConfig("testdata/config-fixture")
-	if configDiags.HasErrors() {
-		t.Fatalf("unexpected problems loading config: %s", configDiags.Error())
+		t.Fatalf("unexpected problems loading config: %s", configDiags.Err())
 	}
 
 	// Build the TF context

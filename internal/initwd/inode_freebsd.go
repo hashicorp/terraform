@@ -1,6 +1,6 @@
 // +build freebsd
 
-package init
+package initwd
 
 import (
 	"fmt"

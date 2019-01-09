@@ -1,14 +1,16 @@
-package configload
+package initwd
 
-import version "github.com/hashicorp/go-version"
+import (
+	version "github.com/hashicorp/go-version"
+)
 
-// InstallHooks is an interface used to provide notifications about the
+// ModuleInstallHooks is an interface used to provide notifications about the
 // installation process being orchestrated by InstallModules.
 //
 // This interface may have new methods added in future, so implementers should
 // embed InstallHooksImpl to get no-op implementations of any unimplemented
 // methods.
-type InstallHooks interface {
+type ModuleInstallHooks interface {
 	// Download is called for modules that are retrieved from a remote source
 	// before that download begins, to allow a caller to give feedback
 	// on progress through a possibly-long sequence of downloads.
@@ -19,16 +21,16 @@ type InstallHooks interface {
 	Install(moduleAddr string, version *version.Version, localPath string)
 }
 
-// InstallHooksImpl is a do-nothing implementation of InstallHooks that
+// ModuleInstallHooksImpl is a do-nothing implementation of InstallHooks that
 // can be embedded in another implementation struct to allow only partial
 // implementation of the interface.
-type InstallHooksImpl struct {
+type ModuleInstallHooksImpl struct {
 }
 
-func (h InstallHooksImpl) Download(moduleAddr, packageAddr string, version *version.Version) {
+func (h ModuleInstallHooksImpl) Download(moduleAddr, packageAddr string, version *version.Version) {
 }
 
-func (h InstallHooksImpl) Install(moduleAddr string, version *version.Version, localPath string) {
+func (h ModuleInstallHooksImpl) Install(moduleAddr string, version *version.Version, localPath string) {
 }
 
-var _ InstallHooks = InstallHooksImpl{}
+var _ ModuleInstallHooks = ModuleInstallHooksImpl{}
