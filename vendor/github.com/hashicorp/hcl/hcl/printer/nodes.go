@@ -252,6 +252,14 @@ func (p *printer) objectItem(o *ast.ObjectItem) []byte {
 		}
 	}
 
+	// If key and val are on different lines, treat line comments like lead comments.
+	if o.LineComment != nil && o.Val.Pos().Line != o.Keys[0].Pos().Line {
+		for _, comment := range o.LineComment.List {
+			buf.WriteString(comment.Text)
+			buf.WriteByte(newline)
+		}
+	}
+
 	for i, k := range o.Keys {
 		buf.WriteString(k.Token.Text)
 		buf.WriteByte(blank)
@@ -265,7 +273,7 @@ func (p *printer) objectItem(o *ast.ObjectItem) []byte {
 
 	buf.Write(p.output(o.Val))
 
-	if o.Val.Pos().Line == o.Keys[0].Pos().Line && o.LineComment != nil {
+	if o.LineComment != nil && o.Val.Pos().Line == o.Keys[0].Pos().Line {
 		buf.WriteByte(blank)
 		for _, comment := range o.LineComment.List {
 			buf.WriteString(comment.Text)
@@ -509,8 +517,13 @@ func (p *printer) alignedItems(items []*ast.ObjectItem) []byte {
 
 // list returns the printable HCL form of an list type.
 func (p *printer) list(l *ast.ListType) []byte {
+	if p.isSingleLineList(l) {
+		return p.singleLineList(l)
+	}
+
 	var buf bytes.Buffer
 	buf.WriteString("[")
+	buf.WriteByte(newline)
 
 	var longestLine int
 	for _, item := range l.List {
@@ -523,115 +536,112 @@ func (p *printer) list(l *ast.ListType) []byte {
 		}
 	}
 
-	insertSpaceBeforeItem := false
-	lastHadLeadComment := false
+	haveEmptyLine := false
 	for i, item := range l.List {
-		// Keep track of whether this item is a heredoc since that has
-		// unique behavior.
-		heredoc := false
+		// If we have a lead comment, then we want to write that first
+		leadComment := false
+		if lit, ok := item.(*ast.LiteralType); ok && lit.LeadComment != nil {
+			leadComment = true
+
+			// Ensure an empty line before every element with a
+			// lead comment (except the first item in a list).
+			if !haveEmptyLine && i != 0 {
+				buf.WriteByte(newline)
+			}
+
+			for _, comment := range lit.LeadComment.List {
+				buf.Write(p.indent([]byte(comment.Text)))
+				buf.WriteByte(newline)
+			}
+		}
+
+		// also indent each line
+		val := p.output(item)
+		curLen := len(val)
+		buf.Write(p.indent(val))
+
+		// if this item is a heredoc, then we output the comma on
+		// the next line. This is the only case this happens.
+		comma := []byte{','}
 		if lit, ok := item.(*ast.LiteralType); ok && lit.Token.Type == token.HEREDOC {
-			heredoc = true
-		}
-
-		if item.Pos().Line != l.Lbrack.Line {
-			// multiline list, add newline before we add each item
 			buf.WriteByte(newline)
-			insertSpaceBeforeItem = false
+			comma = p.indent(comma)
+		}
 
-			// If we have a lead comment, then we want to write that first
-			leadComment := false
-			if lit, ok := item.(*ast.LiteralType); ok && lit.LeadComment != nil {
-				leadComment = true
+		buf.Write(comma)
 
-				// If this isn't the first item and the previous element
-				// didn't have a lead comment, then we need to add an extra
-				// newline to properly space things out. If it did have a
-				// lead comment previously then this would be done
-				// automatically.
-				if i > 0 && !lastHadLeadComment {
-					buf.WriteByte(newline)
-				}
-
-				for _, comment := range lit.LeadComment.List {
-					buf.Write(p.indent([]byte(comment.Text)))
-					buf.WriteByte(newline)
-				}
-			}
-
-			// also indent each line
-			val := p.output(item)
-			curLen := len(val)
-			buf.Write(p.indent(val))
-
-			// if this item is a heredoc, then we output the comma on
-			// the next line. This is the only case this happens.
-			comma := []byte{','}
-			if heredoc {
-				buf.WriteByte(newline)
-				comma = p.indent(comma)
-			}
-
-			buf.Write(comma)
-
-			if lit, ok := item.(*ast.LiteralType); ok && lit.LineComment != nil {
-				// if the next item doesn't have any comments, do not align
-				buf.WriteByte(blank) // align one space
-				for i := 0; i < longestLine-curLen; i++ {
-					buf.WriteByte(blank)
-				}
-
-				for _, comment := range lit.LineComment.List {
-					buf.WriteString(comment.Text)
-				}
-			}
-
-			lastItem := i == len(l.List)-1
-			if lastItem {
-				buf.WriteByte(newline)
-			}
-
-			if leadComment && !lastItem {
-				buf.WriteByte(newline)
-			}
-
-			lastHadLeadComment = leadComment
-		} else {
-			if insertSpaceBeforeItem {
+		if lit, ok := item.(*ast.LiteralType); ok && lit.LineComment != nil {
+			// if the next item doesn't have any comments, do not align
+			buf.WriteByte(blank) // align one space
+			for i := 0; i < longestLine-curLen; i++ {
 				buf.WriteByte(blank)
-				insertSpaceBeforeItem = false
 			}
 
-			// Output the item itself
-			// also indent each line
-			val := p.output(item)
-			curLen := len(val)
-			buf.Write(val)
-
-			// If this is a heredoc item we always have to output a newline
-			// so that it parses properly.
-			if heredoc {
-				buf.WriteByte(newline)
-			}
-
-			// If this isn't the last element, write a comma.
-			if i != len(l.List)-1 {
-				buf.WriteString(",")
-				insertSpaceBeforeItem = true
-			}
-
-			if lit, ok := item.(*ast.LiteralType); ok && lit.LineComment != nil {
-				// if the next item doesn't have any comments, do not align
-				buf.WriteByte(blank) // align one space
-				for i := 0; i < longestLine-curLen; i++ {
-					buf.WriteByte(blank)
-				}
-
-				for _, comment := range lit.LineComment.List {
-					buf.WriteString(comment.Text)
-				}
+			for _, comment := range lit.LineComment.List {
+				buf.WriteString(comment.Text)
 			}
 		}
 
+		buf.WriteByte(newline)
+
+		// Ensure an empty line after every element with a
+		// lead comment (except the first item in a list).
+		haveEmptyLine = leadComment && i != len(l.List)-1
+		if haveEmptyLine {
+			buf.WriteByte(newline)
+		}
+	}
+
+	buf.WriteString("]")
+	return buf.Bytes()
+}
+
+// isSingleLineList returns true if:
+// * they were previously formatted entirely on one line
+// * they consist entirely of literals
+// * there are either no heredoc strings or the list has exactly one element
+// * there are no line comments
+func (printer) isSingleLineList(l *ast.ListType) bool {
+	for _, item := range l.List {
+		if item.Pos().Line != l.Lbrack.Line {
+			return false
+		}
+
+		lit, ok := item.(*ast.LiteralType)
+		if !ok {
+			return false
+		}
+
+		if lit.Token.Type == token.HEREDOC && len(l.List) != 1 {
+			return false
+		}
+
+		if lit.LineComment != nil {
+			return false
+		}
+	}
+
+	return true
+}
+
+// singleLineList prints a simple single line list.
+// For a definition of "simple", see isSingleLineList above.
+func (p *printer) singleLineList(l *ast.ListType) []byte {
+	buf := &bytes.Buffer{}
+
+	buf.WriteString("[")
+	for i, item := range l.List {
+		if i != 0 {
+			buf.WriteString(", ")
+		}
+
+		// Output the item itself
+		buf.Write(p.output(item))
+
+		// The heredoc marker needs to be at the end of line.
+		if lit, ok := item.(*ast.LiteralType); ok && lit.Token.Type == token.HEREDOC {
+			buf.WriteByte(newline)
+		}
 	}
 
 	buf.WriteString("]")
