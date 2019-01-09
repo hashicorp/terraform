@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
 
 	"github.com/hashicorp/terraform/backend"
@@ -29,6 +30,9 @@ func (b *Backend) Workspaces() ([]string, error) {
 
 	resp, err := b.s3Client.ListObjects(params)
 	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == s3.ErrCodeNoSuchBucket {
+			return nil, fmt.Errorf(errS3NoSuchBucket, err)
+		}
 		return nil, err
 	}
 
