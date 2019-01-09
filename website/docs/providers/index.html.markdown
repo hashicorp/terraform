@@ -21,6 +21,7 @@ Use the navigation to the left to find available providers by type or scroll
 down to see all providers.
 
 <table class="table">
+
   <tr>
     <td><a href="/docs/providers/acme/index.html">ACME</a></td>
     <td><a href="/docs/providers/alicloud/index.html">Alicloud</a></td>
@@ -179,8 +180,8 @@ down to see all providers.
   <tr>
     <td><a href="/docs/providers/nsxt/index.html">VMware NSX-T</a></td>
     <td><a href="/docs/providers/vsphere/index.html">VMware vSphere</a></td>
-    <td>&nbsp;</td>
-  </tr>
+    <td><a></a></td>
+    </tr>
 </table>
 
 
