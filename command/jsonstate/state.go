@@ -33,7 +33,7 @@ type stateValues struct {
 }
 
 type output struct {
-	Sensitive bool            `json:"sensitive,omitempty"`
+	Sensitive bool            `json:"sensitive"`
 	Value     json.RawMessage `json:"value,omitempty"`
 }
 
@@ -86,6 +86,9 @@ type resource struct {
 type attributeValues map[string]interface{}
 
 func marshalAttributeValues(value cty.Value, schema *configschema.Block) attributeValues {
+	if value == cty.NilVal {
+		return nil
+	}
 	ret := make(attributeValues)
 
 	it := value.ElementIterator()
@@ -229,7 +232,7 @@ func marshalResources(resources map[string]*states.Resource, schemas *terraform.
 				Address:      r.Addr.String(),
 				Type:         r.Addr.Type,
 				Name:         r.Addr.Name,
-				ProviderName: r.ProviderConfig.ProviderConfig.String(),
+				ProviderName: r.ProviderConfig.ProviderConfig.StringCompact(),
 			}
 
 			switch r.Addr.Mode {
