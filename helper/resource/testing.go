@@ -1026,7 +1026,20 @@ func TestCheckModuleNoResourceAttr(mp []string, name string, key string) TestChe
 }
 
 func testCheckNoResourceAttr(is *terraform.InstanceState, name string, key string) error {
-	if _, ok := is.Attributes[key]; ok {
+	// Empty containers may sometimes be included in the state.
+	// If the intent here is to check for an empty container, allow the value to
+	// also be "0".
+	emptyCheck := false
+	if strings.HasSuffix(key, ".#") || strings.HasSuffix(key, ".%") {
+		emptyCheck = true
+	}
+
+	val, exists := is.Attributes[key]
+	if emptyCheck && val == "0" {
+		return nil
+	}
+
+	if exists {
 		return fmt.Errorf("%s: Attribute '%s' found when not expected", name, key)
 	}
 
