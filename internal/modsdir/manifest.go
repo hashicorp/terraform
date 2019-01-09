@@ -1,8 +1,10 @@
-package configload
+package modsdir
 
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -11,9 +13,9 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 )
 
-// moduleRecord represents some metadata about an installed module, as part
-// of a moduleManifest.
-type moduleRecord struct {
+// Record represents some metadata about an installed module, as part
+// of a ModuleManifest.
+type Record struct {
 	// Key is a unique identifier for this particular module, based on its
 	// position within the static module tree.
 	Key string `json:"Key"`
@@ -37,83 +39,71 @@ type moduleRecord struct {
 	Dir string `json:"Dir"`
 }
 
-// moduleManifest is a map used to keep track of the filesystem locations
+// Manifest is a map used to keep track of the filesystem locations
 // and other metadata about installed modules.
 //
 // The configuration loader refers to this, while the module installer updates
 // it to reflect any changes to the installed modules.
-type moduleManifest map[string]moduleRecord
+type Manifest map[string]Record
 
-func manifestKey(path addrs.Module) string {
+func (m Manifest) ModuleKey(path addrs.Module) string {
 	return path.String()
 }
 
 // manifestSnapshotFile is an internal struct used only to assist in our JSON
-// serializtion of manifest snapshots. It should not be used for any other
-// purposes.
+// serialization of manifest snapshots. It should not be used for any other
+// purpose.
 type manifestSnapshotFile struct {
-	Records []moduleRecord `json:"Modules"`
+	Records []Record `json:"Modules"`
 }
 
-const manifestFilename = "modules.json"
-
-func (m *moduleMgr) manifestSnapshotPath() string {
-	return filepath.Join(m.Dir, manifestFilename)
-}
-
-// readModuleManifestSnapshot loads a manifest snapshot from the filesystem.
-func (m *moduleMgr) readModuleManifestSnapshot() error {
-	src, err := m.FS.ReadFile(m.manifestSnapshotPath())
+func ReadManifestSnapshot(r io.Reader) (Manifest, error) {
+	src, err := ioutil.ReadAll(r)
 	if err != nil {
-		if os.IsNotExist(err) {
-			// We'll treat a missing file as an empty manifest
-			m.manifest = make(moduleManifest)
-			return nil
-		}
-		return err
+		return nil, err
 	}
 
 	if len(src) == 0 {
 		// This should never happen, but we'll tolerate it as if it were
 		// a valid empty JSON object.
-		m.manifest = make(moduleManifest)
-		return nil
+		return make(Manifest), nil
 	}
 
 	var read manifestSnapshotFile
 	err = json.Unmarshal(src, &read)
 
-	new := make(moduleManifest)
+	new := make(Manifest)
 	for _, record := range read.Records {
 		if record.VersionStr != "" {
 			record.Version, err = version.NewVersion(record.VersionStr)
 			if err != nil {
-				return fmt.Errorf("invalid version %q for %s: %s", record.VersionStr, record.Key, err)
+				return nil, fmt.Errorf("invalid version %q for %s: %s", record.VersionStr, record.Key, err)
 			}
 		}
 		if _, exists := new[record.Key]; exists {
 			// This should never happen in any valid file, so we'll catch it
 			// and report it to avoid confusing/undefined behavior if the
 			// snapshot file was edited incorrectly outside of Terraform.
-			return fmt.Errorf("snapshot file contains two records for path %s", record.Key)
+			return nil, fmt.Errorf("snapshot file contains two records for path %s", record.Key)
 		}
 		new[record.Key] = record
 	}
-
-	m.manifest = new
-
-	return nil
+	return new, nil
 }
 
-// writeModuleManifestSnapshot writes a snapshot of the current manifest
-// to the filesystem.
-//
-// The caller must guarantee no concurrent modifications of the manifest for
-// the duration of a call to this function, or the behavior is undefined.
-func (m *moduleMgr) writeModuleManifestSnapshot() error {
+func ReadManifestSnapshotForDir(dir string) (Manifest, error) {
+	fn := filepath.Join(dir, ManifestSnapshotFilename)
+	r, err := os.Open(fn)
+	if err != nil {
+		return nil, err
+	}
+	return ReadManifestSnapshot(r)
+}
+
+func (m Manifest) WriteSnapshot(w io.Writer) error {
 	var write manifestSnapshotFile
 
-	for _, record := range m.manifest {
+	for _, record := range m {
 		// Make sure VersionStr is in sync with Version, since we encourage
 		// callers to manipulate Version and ignore VersionStr.
 		if record.Version != nil {
@@ -129,5 +119,15 @@ func (m *moduleMgr) writeModuleManifestSnapshot() error {
 		return err
 	}
 
-	return m.FS.WriteFile(m.manifestSnapshotPath(), src, os.ModePerm)
+	_, err = w.Write(src)
+	return err
+}
+
+func (m Manifest) WriteSnapshotToDir(dir string) error {
+	fn := filepath.Join(dir, ManifestSnapshotFilename)
+	w, err := os.Create(fn)
+	if err != nil {
+		return err
+	}
+	return m.WriteSnapshot(w)
 }
