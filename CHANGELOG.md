@@ -10,6 +10,7 @@ IMPROVEMENTS:
 * plugins: Plugin RPC connection is now authenticated [GH-19629]
 * backend/azurerm: Support for authenticating using the Azure CLI [GH-19465]
 * backend/remote: Return detailed version (in)compatibility information [GH-19659]
+* backend/remote: Log early to indicate remote execution started [GH-19941]
 * backend/s3: Support DynamoDB, IAM, and STS endpoint configurations [GH-19571]
 * backend/s3: Support for the new AWS region `eu-north-1` [GH-19651]
 * core: Enhance service discovery error handling and messaging [GH-19589]
