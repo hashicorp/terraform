@@ -233,7 +233,7 @@ func TestPlan_json_output(t *testing.T) {
 
 			eq := reflect.DeepEqual(got, want)
 			if !eq {
-				t.Fatalf("wrong result:\nGot: %#v\nWant: %#v\n", got, want)
+				t.Fatalf("wrong result: output did not match")
 			}
 
 		})
