@@ -382,6 +382,10 @@ type TestStep struct {
 	// be refreshed and don't matter.
 	ImportStateVerify       bool
 	ImportStateVerifyIgnore []string
+
+	// provider s is used internally to maintain a reference to the
+	// underlying providers during the tests
+	providers map[string]terraform.ResourceProvider
 }
 
 // Set to a file mask in sprintf format where %s is test name
@@ -476,6 +480,17 @@ func Test(t TestT, c TestCase) {
 		c.PreCheck()
 	}
 
+	// get instances of all providers, so we can use the individual
+	// resources to shim the state during the tests.
+	providers := make(map[string]terraform.ResourceProvider)
+	for name, pf := range testProviderFactories(c) {
+		p, err := pf()
+		if err != nil {
+			t.Fatal(err)
+		}
+		providers[name] = p
+	}
+
 	providerResolver, err := testProviderResolver(c)
 	if err != nil {
 		t.Fatal(err)
@@ -491,6 +506,10 @@ func Test(t TestT, c TestCase) {
 	idRefresh := c.IDRefreshName != ""
 	errored := false
 	for i, step := range c.Steps {
+		// insert the providers into the step so we can get the resources for
+		// shimming the state
+		step.providers = providers
+
 		var err error
 		log.Printf("[DEBUG] Test: Executing step %d", i)
 
@@ -600,6 +619,7 @@ func Test(t TestT, c TestCase) {
 			Destroy:                   true,
 			PreventDiskCleanup:        lastStep.PreventDiskCleanup,
 			PreventPostDestroyRefresh: c.PreventPostDestroyRefresh,
+			providers:                 providers,
 		}
 
 		log.Printf("[WARN] Test: Executing destroy step")
@@ -629,12 +649,10 @@ func testProviderConfig(c TestCase) string {
 	return strings.Join(lines, "")
 }
 
-// testProviderResolver is a helper to build a ResourceProviderResolver
-// with pre instantiated ResourceProviders, so that we can reset them for the
-// test, while only calling the factory function once.
-// Any errors are stored so that they can be returned by the factory in
-// terraform to match non-test behavior.
-func testProviderResolver(c TestCase) (providers.Resolver, error) {
+// testProviderFactories combines the fixed Providers and
+// ResourceProviderFactory functions into a single map of
+// ResourceProviderFactory functions.
+func testProviderFactories(c TestCase) map[string]terraform.ResourceProviderFactory {
 	ctxProviders := make(map[string]terraform.ResourceProviderFactory)
 	for k, pf := range c.ProviderFactories {
 		ctxProviders[k] = pf
@@ -644,6 +662,16 @@ func testProviderResolver(c TestCase) (providers.Resolver, error) {
 	for k, p := range c.Providers {
 		ctxProviders[k] = terraform.ResourceProviderFactoryFixed(p)
 	}
+	return ctxProviders
+}
+
+// testProviderResolver is a helper to build a ResourceProviderResolver
+// with pre instantiated ResourceProviders, so that we can reset them for the
+// test, while only calling the factory function once.
+// Any errors are stored so that they can be returned by the factory in
+// terraform to match non-test behavior.
+func testProviderResolver(c TestCase) (providers.Resolver, error) {
+	ctxProviders := testProviderFactories(c)
 
 	// wrap the old provider factories in the test grpc server so they can be
 	// called from terraform.
@@ -665,32 +693,6 @@ func testProviderResolver(c TestCase) (providers.Resolver, error) {
 	}
 
 	return providers.ResolverFixed(newProviders), nil
-}
-
-// testProviderFactores returns a fixed and reset factories for creating a resolver
-func testProviderFactories(c TestCase) (map[string]providers.Factory, error) {
-	factories := c.ProviderFactories
-	if factories == nil {
-		factories = make(map[string]terraform.ResourceProviderFactory)
-	}
-
-	// add any fixed providers
-	for k, p := range c.Providers {
-		factories[k] = terraform.ResourceProviderFactoryFixed(p)
-	}
-
-	// wrap the providers to be GRPC mocks rather than legacy terraform.ResourceProvider
-	newFactories := make(map[string]providers.Factory)
-	for k, pf := range factories {
-		newFactories[k] = func() (providers.Interface, error) {
-			p, err := pf()
-			if err != nil {
-				return nil, err
-			}
-			return GRPCTestProvider(p), nil
-		}
-	}
-	return newFactories, nil
 }
 
 // UnitTest is a helper to force the acceptance testing harness to run in the

@@ -62,14 +62,11 @@ func testStep(opts terraform.ContextOpts, state *terraform.State, step TestStep)
 		log.Printf("[WARN] Config warnings:\n%s", stepDiags)
 	}
 
-	// We will need access to the schemas in order to shim to the old-style
-	// testing API.
-	schemas := ctx.Schemas()
-
 	// Refresh!
 	newState, stepDiags := ctx.Refresh()
 	// shim the state first so the test can check the state on errors
-	state, err = shimNewState(newState, schemas)
+
+	state, err = shimNewState(newState, step.providers)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +92,7 @@ func testStep(opts terraform.ContextOpts, state *terraform.State, step TestStep)
 		// Apply the diff, creating real resources.
 		newState, stepDiags = ctx.Apply()
 		// shim the state first so the test can check the state on errors
-		state, err = shimNewState(newState, schemas)
+		state, err = shimNewState(newState, step.providers)
 		if err != nil {
 			return nil, err
 		}
@@ -139,7 +136,7 @@ func testStep(opts terraform.ContextOpts, state *terraform.State, step TestStep)
 			return state, newOperationError("follow-up refresh", stepDiags)
 		}
 
-		state, err = shimNewState(newState, schemas)
+		state, err = shimNewState(newState, step.providers)
 		if err != nil {
 			return nil, err
 		}
@@ -190,7 +187,7 @@ func testStep(opts terraform.ContextOpts, state *terraform.State, step TestStep)
 //
 // This is here only for compatibility with existing tests that predate our
 // new plan and state types, and should not be used in new tests. Instead, use
-// a library like "cmp" to do a deep equality check and diff on the two
+// a library like "cmp" to do a deep equality  and diff on the two
 // data structures.
 func legacyPlanComparisonString(state *states.State, changes *plans.Changes) string {
 	return fmt.Sprintf(
