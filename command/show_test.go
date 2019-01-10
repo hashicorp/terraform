@@ -1,7 +1,11 @@
 package command
 
 import (
+	"encoding/json"
+	"io/ioutil"
+	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -147,6 +151,93 @@ func TestShow_state(t *testing.T) {
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+}
+
+func TestPlan_json_output(t *testing.T) {
+	fixtureDir := "test-fixtures/show-json"
+	testDirs, err := ioutil.ReadDir(fixtureDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, entry := range testDirs {
+		if !entry.IsDir() {
+			continue
+		}
+
+		t.Run(entry.Name(), func(t *testing.T) {
+			inputDir := filepath.Join(fixtureDir, entry.Name())
+
+			cwd, err := os.Getwd()
+			if err != nil {
+				t.Fatalf("err: %s", err)
+			}
+			if err := os.Chdir(inputDir); err != nil {
+				t.Fatalf("err: %s", err)
+			}
+			defer os.Chdir(cwd)
+
+			p := showFixtureProvider()
+			ui := new(cli.MockUi)
+			pc := &PlanCommand{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(p),
+					Ui:               ui,
+				},
+			}
+
+			args := []string{
+				"-out=terraform.plan",
+			}
+
+			if code := pc.Run(args); code != 0 {
+				t.Fatalf("wrong exit status %d; want 0\nstderr: %s", code, ui.ErrorWriter.String())
+			}
+
+			// flush the plan output from the mock ui
+			ui.OutputWriter.Reset()
+			sc := &ShowCommand{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(p),
+					Ui:               ui,
+				},
+			}
+
+			args = []string{
+				"-json",
+				"terraform.plan",
+			}
+			defer os.Remove("terraform.plan")
+
+			if code := sc.Run(args); code != 0 {
+				t.Fatalf("wrong exit status %d; want 0\nstderr: %s", code, ui.ErrorWriter.String())
+			}
+
+			// compare ui output to wanted output
+			gotString := ui.OutputWriter.String()
+			var got map[string]interface{}
+			json.Unmarshal([]byte(gotString), &got)
+
+			wantFile, err := os.Open("output.json")
+			if err != nil {
+				t.Fatalf("err: %s", err)
+			}
+			defer wantFile.Close()
+			byteValue, err := ioutil.ReadAll(wantFile)
+			if err != nil {
+				t.Fatalf("err: %s", err)
+			}
+			var want map[string]interface{}
+			json.Unmarshal([]byte(byteValue), &want)
+
+			eq := reflect.DeepEqual(got, want)
+			if !eq {
+				t.Fatalf("wrong result:\nGot: %#v\nWant: %#v\n", got, want)
+			}
+
+		})
+
 	}
 }
 
