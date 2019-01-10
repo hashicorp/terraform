@@ -24,6 +24,14 @@ resource "test_resource_nested" "foo" {
 	}
 }
 				`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"test_resource_nested.foo", "nested.#", "1",
+					),
+					resource.TestCheckResourceAttr(
+						"test_resource_nested.foo", "nested.1877647874.string", "val",
+					),
+				),
 			},
 		},
 	})
@@ -31,7 +39,7 @@ resource "test_resource_nested" "foo" {
 
 func TestResourceNested_addRemove(t *testing.T) {
 	var id string
-	checkFunc := func(s *terraform.State) error {
+	idCheck := func(s *terraform.State) error {
 		root := s.ModuleByPath(addrs.RootModuleInstance)
 		res := root.Resources["test_resource_nested.foo"]
 		if res.Primary.ID == id {
@@ -49,7 +57,17 @@ func TestResourceNested_addRemove(t *testing.T) {
 resource "test_resource_nested" "foo" {
 }
 				`),
-				Check: checkFunc,
+				Check: resource.ComposeTestCheckFunc(
+					idCheck,
+					resource.TestCheckResourceAttr(
+						"test_resource_nested.foo", "nested.#", "0",
+					),
+					// Checking for a count of 0 and a nonexistent count should
+					// now be the same operation.
+					resource.TestCheckNoResourceAttr(
+						"test_resource_nested.foo", "nested.#",
+					),
+				),
 			},
 			resource.TestStep{
 				Config: strings.TrimSpace(`
@@ -59,7 +77,12 @@ resource "test_resource_nested" "foo" {
 	}
 }
 				`),
-				Check: checkFunc,
+				Check: resource.ComposeTestCheckFunc(
+					idCheck,
+					resource.TestCheckResourceAttr(
+						"test_resource_nested.foo", "nested.1877647874.string", "val",
+					),
+				),
 			},
 			resource.TestStep{
 				Config: strings.TrimSpace(`
@@ -70,7 +93,15 @@ resource "test_resource_nested" "foo" {
 	}
 }
 				`),
-				Check: checkFunc,
+				Check: resource.ComposeTestCheckFunc(
+					idCheck,
+					resource.TestCheckResourceAttr(
+						"test_resource_nested.foo", "nested.1877647874.string", "val",
+					),
+					resource.TestCheckResourceAttr(
+						"test_resource_nested.foo", "optional", "true",
+					),
+				),
 			},
 			resource.TestStep{
 				Config: strings.TrimSpace(`
@@ -80,7 +111,15 @@ resource "test_resource_nested" "foo" {
 	}
 }
 				`),
-				Check: checkFunc,
+				Check: resource.ComposeTestCheckFunc(
+					idCheck,
+					resource.TestCheckResourceAttr(
+						"test_resource_nested.foo", "nested.1877647874.string", "val",
+					),
+					resource.TestCheckNoResourceAttr(
+						"test_resource_nested.foo", "optional",
+					),
+				),
 			},
 			resource.TestStep{
 				Config: strings.TrimSpace(`
@@ -91,14 +130,27 @@ resource "test_resource_nested" "foo" {
 	}
 }
 				`),
-				Check: checkFunc,
+				Check: resource.ComposeTestCheckFunc(
+					idCheck,
+					resource.TestCheckResourceAttr(
+						"test_resource_nested.foo", "nested.2994502535.string", "val",
+					),
+					resource.TestCheckResourceAttr(
+						"test_resource_nested.foo", "nested.2994502535.optional", "true",
+					),
+				),
 			},
 			resource.TestStep{
 				Config: strings.TrimSpace(`
 resource "test_resource_nested" "foo" {
 }
 				`),
-				Check: checkFunc,
+				Check: resource.ComposeTestCheckFunc(
+					idCheck,
+					resource.TestCheckNoResourceAttr(
+						"test_resource_nested.foo", "nested.#",
+					),
+				),
 			},
 		},
 	})
