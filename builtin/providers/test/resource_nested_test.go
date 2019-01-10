@@ -187,14 +187,14 @@ resource "test_resource_nested" "foo" {
 
 					got := rs.Primary.Attributes
 					want := map[string]string{
-						"nested.#":                       "2",
-						"nested.0.string":                "a",
-						"nested.0.optional":              "false",
-						"nested.0.nested_again.#":        "1",
-						"nested.0.nested_again.0.string": "a",
-						"nested.1.string":                "",
-						"nested.1.optional":              "false",
-						"nested.1.nested_again.#":        "0",
+						"nested.#":                                      "2",
+						"nested.33842314.string":                        "a",
+						"nested.33842314.optional":                      "false",
+						"nested.33842314.nested_again.#":                "1",
+						"nested.33842314.nested_again.936590934.string": "a",
+						"nested.140280279.string":                       "",
+						"nested.140280279.optional":                     "false",
+						"nested.140280279.nested_again.#":               "0",
 					}
 					delete(got, "id") // it's random, so not useful for testing
 
