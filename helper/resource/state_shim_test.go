@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/zclconf/go-cty/cty"
@@ -286,46 +286,29 @@ func TestStateShim(t *testing.T) {
 		},
 	}
 
-	schemas := &terraform.Schemas{
-		Providers: map[string]*terraform.ProviderSchema{
-			"test": {
-				ResourceTypes: map[string]*configschema.Block{
-					"test_thing": &configschema.Block{
-						Attributes: map[string]*configschema.Attribute{
-							"id": {
-								Type:     cty.String,
-								Computed: true,
-							},
-							"fizzle": {
-								Type:     cty.String,
-								Optional: true,
-							},
-							"bazzle": {
-								Type:     cty.String,
-								Optional: true,
-							},
-						},
+	providers := map[string]terraform.ResourceProvider{
+		"test": &schema.Provider{
+			ResourcesMap: map[string]*schema.Resource{
+				"test_thing": &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"id":     {Type: schema.TypeString, Computed: true},
+						"fizzle": {Type: schema.TypeString, Optional: true},
+						"bazzle": {Type: schema.TypeString, Optional: true},
 					},
 				},
-				DataSources: map[string]*configschema.Block{
-					"test_data_thing": &configschema.Block{
-						Attributes: map[string]*configschema.Attribute{
-							"id": {
-								Type:     cty.String,
-								Computed: true,
-							},
-							"fuzzle": {
-								Type:     cty.String,
-								Optional: true,
-							},
-						},
+			},
+			DataSourcesMap: map[string]*schema.Resource{
+				"test_data_thing": &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"id":     {Type: schema.TypeString, Computed: true},
+						"fuzzle": {Type: schema.TypeString, Optional: true},
 					},
 				},
 			},
 		},
 	}
 
-	shimmed, err := shimNewState(state, schemas)
+	shimmed, err := shimNewState(state, providers)
 	if err != nil {
 		t.Fatal(err)
 	}
