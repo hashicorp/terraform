@@ -62,10 +62,6 @@ func testStepImportState(
 		return state, stepDiags.Err()
 	}
 
-	// We will need access to the schemas in order to shim to the old-style
-	// testing API.
-	schemas := ctx.Schemas()
-
 	// The test step provides the resource address as a string, so we need
 	// to parse it to get an addrs.AbsResourceAddress to pass in to the
 	// import method.
@@ -95,7 +91,7 @@ func testStepImportState(
 		return state, stepDiags.Err()
 	}
 
-	newState, err := shimNewState(importedState, schemas)
+	newState, err := shimNewState(importedState, step.providers)
 	if err != nil {
 		return nil, err
 	}
