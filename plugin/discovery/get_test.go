@@ -314,6 +314,63 @@ func TestFindClosestProtocolCompatibleVersion(t *testing.T) {
 			},
 			"2.5.0",
 			false,
+		}, {
+			"compatible prereleses are filtered",
+			5,
+			[]*response.TerraformProviderVersion{
+				&response.TerraformProviderVersion{
+					Version:   "2.0.0-alpha",
+					Protocols: []string{"4.0", "5.0"},
+				},
+			},
+			"",
+			true,
+		}, {
+			"suggests latest non-prerelease",
+			4,
+			[]*response.TerraformProviderVersion{
+				&response.TerraformProviderVersion{
+					Version:   "2.0.0-alpha",
+					Protocols: []string{"4.0", "5.0"},
+				},
+				&response.TerraformProviderVersion{
+					Version:   "2.0.0",
+					Protocols: []string{"4.0", "5.0"},
+				},
+				&response.TerraformProviderVersion{
+					Version:   "2.5.0-pre",
+					Protocols: []string{"4.0", "5.0"},
+				},
+				&response.TerraformProviderVersion{
+					Version:   "2.5.0",
+					Protocols: []string{"4.0", "5.0"},
+				},
+			},
+			"2.5.0",
+			false,
+		}, {
+			"suggests earliest non-prerelease",
+			5,
+			[]*response.TerraformProviderVersion{
+				&response.TerraformProviderVersion{
+					Version:   "2.0.0-alpha",
+					Protocols: []string{"4.0", "5.0"},
+				},
+				&response.TerraformProviderVersion{
+					Version:   "2.0.0",
+					Protocols: []string{"4.0", "5.0"},
+				},
+				&response.TerraformProviderVersion{
+					Version:   "2.6.0",
+					Protocols: []string{"4.0", "5.0"},
+				},
+				&response.TerraformProviderVersion{
+					Version:   "3.0.0",
+					Protocols: []string{"5.0"},
+				},
+			},
+			"2.0.0",
+			false,
 		},
 	}
 
