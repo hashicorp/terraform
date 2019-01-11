@@ -98,30 +98,21 @@ func (c *RemoteClient) get() (*remote.Payload, error) {
 	var output *s3.GetObjectOutput
 	var err error
 
-	// we immediately retry on an internal error, as those are usually transient
-	maxRetries := 2
-	for retryCount := 0; ; retryCount++ {
-		output, err = c.s3Client.GetObject(&s3.GetObjectInput{
-			Bucket: &c.bucketName,
-			Key:    &c.path,
-		})
+	output, err = c.s3Client.GetObject(&s3.GetObjectInput{
+		Bucket: &c.bucketName,
+		Key:    &c.path,
+	})
 
-		if err != nil {
-			if awserr, ok := err.(awserr.Error); ok {
-				switch awserr.Code() {
-				case s3.ErrCodeNoSuchKey:
-					return nil, nil
-				case s3ErrCodeInternalError:
-					if retryCount > maxRetries {
-						return nil, err
-					}
-					log.Println("[WARN] s3 internal error, retrying...")
-					continue
-				}
+	if err != nil {
+		if awserr, ok := err.(awserr.Error); ok {
+			switch awserr.Code() {
+			case s3.ErrCodeNoSuchBucket:
+				return nil, fmt.Errorf(errS3NoSuchBucket, err)
+			case s3.ErrCodeNoSuchKey:
+				return nil, nil
 			}
-			return nil, err
 		}
-		break
+		return nil, err
 	}
 
 	defer output.Body.Close()
@@ -149,46 +140,32 @@ func (c *RemoteClient) Put(data []byte) error {
 	contentType := "application/json"
 	contentLength := int64(len(data))
 
-	// we immediately retry on an internal error, as those are usually transient
-	maxRetries := 2
-	for retryCount := 0; ; retryCount++ {
-		i := &s3.PutObjectInput{
-			ContentType:   &contentType,
-			ContentLength: &contentLength,
-			Body:          bytes.NewReader(data),
-			Bucket:        &c.bucketName,
-			Key:           &c.path,
-		}
+	i := &s3.PutObjectInput{
+		ContentType:   &contentType,
+		ContentLength: &contentLength,
+		Body:          bytes.NewReader(data),
+		Bucket:        &c.bucketName,
+		Key:           &c.path,
+	}
 
-		if c.serverSideEncryption {
-			if c.kmsKeyID != "" {
-				i.SSEKMSKeyId = &c.kmsKeyID
-				i.ServerSideEncryption = aws.String("aws:kms")
-			} else {
-				i.ServerSideEncryption = aws.String("AES256")
-			}
+	if c.serverSideEncryption {
+		if c.kmsKeyID != "" {
+			i.SSEKMSKeyId = &c.kmsKeyID
+			i.ServerSideEncryption = aws.String("aws:kms")
+		} else {
+			i.ServerSideEncryption = aws.String("AES256")
 		}
+	}
 
-		if c.acl != "" {
-			i.ACL = aws.String(c.acl)
-		}
+	if c.acl != "" {
+		i.ACL = aws.String(c.acl)
+	}
 
-		log.Printf("[DEBUG] Uploading remote state to S3: %#v", i)
+	log.Printf("[DEBUG] Uploading remote state to S3: %#v", i)
 
-		_, err := c.s3Client.PutObject(i)
-		if err != nil {
-			if awserr, ok := err.(awserr.Error); ok {
-				if awserr.Code() == s3ErrCodeInternalError {
-					if retryCount > maxRetries {
-						return fmt.Errorf("failed to upload state: %s", err)
-					}
-					log.Println("[WARN] s3 internal error, retrying...")
-					continue
-				}
-			}
-			return fmt.Errorf("failed to upload state: %s", err)
-		}
-		break
+	_, err := c.s3Client.PutObject(i)
+	if err != nil {
+		return fmt.Errorf("failed to upload state: %s", err)
 	}
 
 	sum := md5.Sum(data)
@@ -413,4 +390,13 @@ update.  Please wait for a minute or two and try again. If this problem
 persists, and neither S3 nor DynamoDB are experiencing an outage, you may need
 to manually verify the remote state and update the Digest value stored in the
 DynamoDB table to the following value: %x
+`
+
+const errS3NoSuchBucket = `S3 bucket does not exist.
+
+The referenced S3 bucket must have been previously created. If the S3 bucket
+was created within the last minute, please wait for a minute or two and try
+again.
+
+Error: %s
 `

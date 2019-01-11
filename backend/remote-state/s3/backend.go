@@ -219,6 +219,13 @@ func New() backend.Backend {
 				Description: "Force s3 to use path style api.",
 				Default:     false,
 			},
+
+			"max_retries": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "The maximum number of times an AWS API request is retried on retryable failure.",
+				Default:     5,
+			},
 		},
 	}
 
@@ -285,6 +292,7 @@ func (b *Backend) configure(ctx context.Context) error {
 		SkipRequestingAccountId: data.Get("skip_requesting_account_id").(bool),
 		SkipMetadataApiCheck:    data.Get("skip_metadata_api_check").(bool),
 		S3ForcePathStyle:        data.Get("force_path_style").(bool),
+		MaxRetries:              data.Get("max_retries").(int),
 	}
 
 	client, err := cfg.Client()
