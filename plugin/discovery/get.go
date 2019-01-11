@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform/registry/regsrc"
 	"github.com/hashicorp/terraform/registry/response"
 	"github.com/hashicorp/terraform/svchost/disco"
+	tfversion "github.com/hashicorp/terraform/version"
 	"github.com/mitchellh/cli"
 )
 
@@ -160,20 +161,23 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 
 	// check protocol compatibility
 	if err := i.checkPluginProtocol(versionMeta); err != nil {
-		closestMatch, err := i.findProtocolCompatibleVersion(versions)
-		if err == nil {
-			if err := i.checkPlatformCompatibility(closestMatch); err != nil {
-				// At this point, we have protocol compatibility but not platform,
-				// and we give up trying to find a compatible version.
-				// This error message should be improved.
-				return PluginMeta{}, ErrorNoSuitableVersion
-			}
-			// TODO: This is a placeholder UI message. We must choose to send
-			// providerProtocolTooOld or providerProtocolTooNew message to the UI
-			i.Ui.Error(fmt.Sprintf("the most recent version of %s to match your platform is %s", provider, closestMatch))
-			return PluginMeta{}, ErrorNoVersionCompatible
+		closestMatch, err := i.findClosestProtocolCompatibleVersion(allVersions.Versions)
+		if err != nil {
+			// No operation here if we can't find a version with compatible protocol
+			return PluginMeta{}, err
 		}
-		return PluginMeta{}, ErrorNoVersionCompatibleWithPlatform
+
+		// Prompt version suggestion to UI based on closest protocol match
+		closestVersion := VersionStr(closestMatch.Version).MustParse()
+		var errMsg string
+		if v.NewerThan(closestVersion) {
+			errMsg = providerProtocolTooNew
+		} else {
+			errMsg = providerProtocolTooOld
+		}
+		i.Ui.Error(fmt.Sprintf(errMsg, provider, v.String(), tfversion.String(),
+			closestVersion.String(), closestVersion.MinorUpgradeConstraintStr()))
+		return PluginMeta{}, ErrorNoVersionCompatible
 	}
 
 	downloadURLs, err := i.listProviderDownloadURLs(providerSource, versionMeta.Version)
@@ -411,16 +415,48 @@ func (i *ProviderInstaller) listProviderDownloadURLs(name, version string) (*res
 	return urls, err
 }
 
-// REVIEWER QUESTION: this ends up swallowing a bunch of errors from
-// checkPluginProtocol. Do they need to be percolated up better, or would
-// debug messages would suffice in these situations?
-func (i *ProviderInstaller) findProtocolCompatibleVersion(versions []*response.TerraformProviderVersion) (*response.TerraformProviderVersion, error) {
+// findClosestProtocolCompatibleVersion searches for the provider version with the closest protocol match.
+//
+func (i *ProviderInstaller) findClosestProtocolCompatibleVersion(versions []*response.TerraformProviderVersion) (*response.TerraformProviderVersion, error) {
+	// Loop through all the provider versions to find the earliest and latest
+	// versions that match the installer protocol to then select the closest of the two
+	var latest, earliest *response.TerraformProviderVersion
 	for _, version := range versions {
 		if err := i.checkPluginProtocol(version); err == nil {
-			return version, nil
+			if earliest == nil {
+				// Found the first provider version with compatible protocol
+				earliest = version
+			}
+			// Update the latest protocol compatible version
+			latest = version
 		}
 	}
-	return nil, ErrorNoVersionCompatible
+	if earliest == nil {
+		// No compatible protocol was found for any version
+		return nil, ErrorNoVersionCompatible
+	}
+
+	// Convert protocols to comparable types
+	protoString := strconv.Itoa(int(i.PluginProtocolVersion))
+	protocolVersion, err := VersionStr(protoString).Parse()
+	if err != nil {
+		return nil, fmt.Errorf("invalid plugin protocol version: %q", i.PluginProtocolVersion)
+	}
+
+	earliestVersionProtocol, err := VersionStr(earliest.Protocols[0]).Parse()
+	if err != nil {
+		return nil, err
+	}
+
+	// Compare installer protocol version with the first protocol listed of the earliest match
+	// [A, B] where A is assumed the earliest compatible major version of the protocol pair
+	if protocolVersion.NewerThan(earliestVersionProtocol) {
+		// Provider protocols are too old, the closest version is the earliest compatible version
+		return earliest, nil
+	}
+
+	// Provider protocols are too new, the closest version is the latest compatible version
+	return latest, nil
 }
 
 func (i *ProviderInstaller) checkPluginProtocol(versionMeta *response.TerraformProviderVersion) error {
