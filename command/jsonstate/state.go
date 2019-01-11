@@ -3,6 +3,7 @@ package jsonstate
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
@@ -272,6 +273,10 @@ func marshalResources(resources map[string]*states.Resource, schemas *terraform.
 		}
 
 	}
+
+	sort.Slice(ret, func(i, j int) bool {
+		return ret[i].Address < ret[j].Address
+	})
 
 	return ret, nil
 }

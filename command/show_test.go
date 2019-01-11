@@ -1,9 +1,13 @@
 package command
 
 import (
+	"encoding/json"
+	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/plans"
@@ -150,6 +154,92 @@ func TestShow_state(t *testing.T) {
 	}
 }
 
+func TestPlan_json_output(t *testing.T) {
+	fixtureDir := "test-fixtures/show-json"
+	testDirs, err := ioutil.ReadDir(fixtureDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, entry := range testDirs {
+		if !entry.IsDir() {
+			continue
+		}
+
+		t.Run(entry.Name(), func(t *testing.T) {
+			inputDir := filepath.Join(fixtureDir, entry.Name())
+
+			cwd, err := os.Getwd()
+			if err != nil {
+				t.Fatalf("err: %s", err)
+			}
+			if err := os.Chdir(inputDir); err != nil {
+				t.Fatalf("err: %s", err)
+			}
+			defer os.Chdir(cwd)
+
+			p := showFixtureProvider()
+			ui := new(cli.MockUi)
+			pc := &PlanCommand{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(p),
+					Ui:               ui,
+				},
+			}
+
+			args := []string{
+				"-out=terraform.plan",
+			}
+
+			if code := pc.Run(args); code != 0 {
+				t.Fatalf("wrong exit status %d; want 0\nstderr: %s", code, ui.ErrorWriter.String())
+			}
+
+			// flush the plan output from the mock ui
+			ui.OutputWriter.Reset()
+			sc := &ShowCommand{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(p),
+					Ui:               ui,
+				},
+			}
+
+			args = []string{
+				"-json",
+				"terraform.plan",
+			}
+			defer os.Remove("terraform.plan")
+
+			if code := sc.Run(args); code != 0 {
+				t.Fatalf("wrong exit status %d; want 0\nstderr: %s", code, ui.ErrorWriter.String())
+			}
+
+			// compare ui output to wanted output
+			var got, want plan
+
+			gotString := ui.OutputWriter.String()
+			json.Unmarshal([]byte(gotString), &got)
+
+			wantFile, err := os.Open("output.json")
+			if err != nil {
+				t.Fatalf("err: %s", err)
+			}
+			defer wantFile.Close()
+			byteValue, err := ioutil.ReadAll(wantFile)
+			if err != nil {
+				t.Fatalf("err: %s", err)
+			}
+			json.Unmarshal([]byte(byteValue), &want)
+
+			if !cmp.Equal(got, want) {
+				t.Fatalf("wrong result:\n %v\n", cmp.Diff(got, want))
+			}
+
+		})
+
+	}
+}
+
 // showFixtureSchema returns a schema suitable for processing the configuration
 // in test-fixtures/show. This schema should be assigned to a mock provider
 // named "test".
@@ -224,4 +314,15 @@ func showFixturePlanFile(t *testing.T) string {
 		states.NewState(),
 		plan,
 	)
+}
+
+// this simplified plan struct allows us to preserve field order when marshaling
+// the command output.
+type plan struct {
+	FormatVersion   string                 `json:"format_version,omitempty"`
+	PlannedValues   map[string]interface{} `json:"planned_values,omitempty"`
+	ResourceChanges []interface{}          `json:"resource_changes,omitempty"`
+	OutputChanges   map[string]interface{} `json:"output_changes,omitempty"`
+	PriorState      string                 `json:"prior_state,omitempty"`
+	Config          string                 `json:"configuration,omitempty"`
 }
