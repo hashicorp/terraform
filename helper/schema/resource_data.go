@@ -255,7 +255,15 @@ func (d *ResourceData) SetId(v string) {
 
 	// once we transition away from the legacy state types, "id" will no longer
 	// be a special field, and will become a normal attribute.
+	// set the attribute normally
 	d.setWriter.unsafeWriteField("id", v)
+
+	// Make sure the newState is also set, otherwise the old value
+	// may get precedence.
+	if d.newState.Attributes == nil {
+		d.newState.Attributes = map[string]string{}
+	}
+	d.newState.Attributes["id"] = v
 }
 
 // SetConnInfo sets the connection info for a resource.
