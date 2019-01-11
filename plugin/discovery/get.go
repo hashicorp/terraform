@@ -416,12 +416,18 @@ func (i *ProviderInstaller) listProviderDownloadURLs(name, version string) (*res
 }
 
 // findClosestProtocolCompatibleVersion searches for the provider version with the closest protocol match.
-//
+// Prerelease versions are filtered.
 func (i *ProviderInstaller) findClosestProtocolCompatibleVersion(versions []*response.TerraformProviderVersion) (*response.TerraformProviderVersion, error) {
 	// Loop through all the provider versions to find the earliest and latest
 	// versions that match the installer protocol to then select the closest of the two
 	var latest, earliest *response.TerraformProviderVersion
 	for _, version := range versions {
+		// Prereleases are filtered and will not be suggested
+		v, err := VersionStr(version.Version).Parse()
+		if err != nil || v.IsPrerelease() {
+			continue
+		}
+
 		if err := i.checkPluginProtocol(version); err == nil {
 			if earliest == nil {
 				// Found the first provider version with compatible protocol
