@@ -13,6 +13,8 @@ IMPROVEMENTS:
 * backend/remote: Log early to indicate remote execution started [GH-19941]
 * backend/s3: Support DynamoDB, IAM, and STS endpoint configurations [GH-19571]
 * backend/s3: Support for the new AWS region `eu-north-1` [GH-19651]
+* backend/s3: Enhance retry logic and provide `max_retries` configuration to retry attempts [GH-19951]
+* backend/s3: Enhance S3 `NoSuchBucket` error to include additional information [GH-19951]
 * core: Enhance service discovery error handling and messaging [GH-19589]
 * core: Add support to retrieve version constraints to service discovery [GH-19647]
 * core: Validate provisioner connection blocks, and mark host field as required [GH-19707]
