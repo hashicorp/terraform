@@ -3,6 +3,7 @@ package jsonconfig
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
@@ -244,5 +245,8 @@ func marshalResources(resources map[string]*configs.Resource, schemas *terraform
 
 		rs = append(rs, r)
 	}
+	sort.Slice(rs, func(i, j int) bool {
+		return rs[i].Address < rs[j].Address
+	})
 	return rs, nil
 }

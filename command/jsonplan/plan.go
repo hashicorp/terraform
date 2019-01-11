@@ -3,6 +3,7 @@ package jsonplan
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 
 	"github.com/zclconf/go-cty/cty"
 
@@ -209,6 +210,10 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 		p.ResourceChanges = append(p.ResourceChanges, r)
 
 	}
+
+	sort.Slice(p.ResourceChanges, func(i, j int) bool {
+		return p.ResourceChanges[i].Address < p.ResourceChanges[j].Address
+	})
 
 	return nil
 }

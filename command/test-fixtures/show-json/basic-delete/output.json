@@ -26,24 +26,6 @@
     },
     "resource_changes": [
         {
-            "address": "test_instance.test-delete",
-            "mode": "managed",
-            "type": "test_instance",
-            "name": "test-delete",
-            "deposed": true,
-            "change": {
-                "actions": [
-                    "Delete"
-                ],
-                "before": {
-                    "ami": "foo",
-                    "id": null
-                },
-                "after": null,
-                "after_unknown": false
-            }
-        },
-        {
             "address": "test_instance.test",
             "mode": "managed",
             "type": "test_instance",
@@ -65,6 +47,24 @@
                     "ami": false,
                     "id": false
                 }
+            }
+        },
+        {
+            "address": "test_instance.test-delete",
+            "mode": "managed",
+            "type": "test_instance",
+            "name": "test-delete",
+            "deposed": true,
+            "change": {
+                "actions": [
+                    "Delete"
+                ],
+                "before": {
+                    "ami": "foo",
+                    "id": null
+                },
+                "after": null,
+                "after_unknown": false
             }
         }
     ],

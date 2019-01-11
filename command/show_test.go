@@ -5,9 +5,9 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/plans"
@@ -215,8 +215,9 @@ func TestPlan_json_output(t *testing.T) {
 			}
 
 			// compare ui output to wanted output
+			var got, want plan
+
 			gotString := ui.OutputWriter.String()
-			var got map[string]interface{}
 			json.Unmarshal([]byte(gotString), &got)
 
 			wantFile, err := os.Open("output.json")
@@ -228,12 +229,10 @@ func TestPlan_json_output(t *testing.T) {
 			if err != nil {
 				t.Fatalf("err: %s", err)
 			}
-			var want map[string]interface{}
 			json.Unmarshal([]byte(byteValue), &want)
 
-			eq := reflect.DeepEqual(got, want)
-			if !eq {
-				t.Fatalf("wrong result: output did not match")
+			if !cmp.Equal(got, want) {
+				t.Fatalf("wrong result:\n %v\n", cmp.Diff(got, want))
 			}
 
 		})
@@ -315,4 +314,15 @@ func showFixturePlanFile(t *testing.T) string {
 		states.NewState(),
 		plan,
 	)
+}
+
+// this simplified plan struct allows us to preserve field order when marshaling
+// the command output.
+type plan struct {
+	FormatVersion   string                 `json:"format_version,omitempty"`
+	PlannedValues   map[string]interface{} `json:"planned_values,omitempty"`
+	ResourceChanges []interface{}          `json:"resource_changes,omitempty"`
+	OutputChanges   map[string]interface{} `json:"output_changes,omitempty"`
+	PriorState      string                 `json:"prior_state,omitempty"`
+	Config          string                 `json:"configuration,omitempty"`
 }
