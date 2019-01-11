@@ -38,9 +38,8 @@ func marshalAttributeValues(value cty.Value, schema *configschema.Block) attribu
 	return ret
 }
 
-// marshalPlannedOutputs takes a list of changes and returns two output maps,
-// the former with output values and the latter with true/false in place of
-// values indicating whether the values are known at plan time.
+// marshalPlannedOutputs takes a list of changes and returns a map of output
+// values
 func marshalPlannedOutputs(changes *plans.Changes) (map[string]output, error) {
 	if changes.Outputs == nil {
 		// No changes - we're done here!
