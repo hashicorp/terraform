@@ -151,7 +151,7 @@ func TestConfigValueFromHCL2Block(t *testing.T) {
 		},
 		{
 			cty.ObjectVal(map[string]cty.Value{
-				"address": cty.ListValEmpty(cty.EmptyObject),
+				"address": cty.ListValEmpty(cty.EmptyObject), // should be omitted altogether in result
 			}),
 			&configschema.Block{
 				BlockTypes: map[string]*configschema.NestedBlock{
@@ -161,9 +161,7 @@ func TestConfigValueFromHCL2Block(t *testing.T) {
 					},
 				},
 			},
-			map[string]interface{}{
-				"address": []interface{}{},
-			},
+			map[string]interface{}{},
 		},
 		{
 			cty.ObjectVal(map[string]cty.Value{
@@ -195,9 +193,7 @@ func TestConfigValueFromHCL2Block(t *testing.T) {
 					},
 				},
 			},
-			map[string]interface{}{
-				"address": []interface{}{},
-			},
+			map[string]interface{}{},
 		},
 		{
 			cty.ObjectVal(map[string]cty.Value{
@@ -229,9 +225,7 @@ func TestConfigValueFromHCL2Block(t *testing.T) {
 					},
 				},
 			},
-			map[string]interface{}{
-				"address": map[string]interface{}{},
-			},
+			map[string]interface{}{},
 		},
 		{
 			cty.NullVal(cty.EmptyObject),
@@ -240,8 +234,8 @@ func TestConfigValueFromHCL2Block(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
-		t.Run(fmt.Sprintf("%d-%#v", i, test.Input), func(t *testing.T) {
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%#v", test.Input), func(t *testing.T) {
 			got := ConfigValueFromHCL2Block(test.Input, test.Schema)
 			if !reflect.DeepEqual(got, test.Want) {
 				t.Errorf("wrong result\ninput: %#v\ngot:   %#v\nwant:  %#v", test.Input, got, test.Want)
