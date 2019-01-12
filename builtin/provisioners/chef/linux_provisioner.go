@@ -92,7 +92,7 @@ func (p *provisioner) linuxCreateConfigFiles(o terraform.UIOutput, comm communic
 			if err := p.runCommand(o, comm, fmt.Sprintf(chmod, hintsDir, 600)); err != nil {
 				return err
 			}
-			if err := p.runCommand(o, comm, "chown -R root.root "+hintsDir); err != nil {
+			if err := p.runCommand(o, comm, "chown -R root:root "+hintsDir); err != nil {
 				return err
 			}
 		}
@@ -106,7 +106,7 @@ func (p *provisioner) linuxCreateConfigFiles(o terraform.UIOutput, comm communic
 		if err := p.runCommand(o, comm, fmt.Sprintf(chmod, linuxConfDir, 600)); err != nil {
 			return err
 		}
-		if err := p.runCommand(o, comm, "chown -R root.root "+linuxConfDir); err != nil {
+		if err := p.runCommand(o, comm, "chown -R root:root "+linuxConfDir); err != nil {
 			return err
 		}
 	}

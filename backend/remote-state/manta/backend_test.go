@@ -30,10 +30,10 @@ func TestBackend(t *testing.T) {
 	directory := fmt.Sprintf("terraform-remote-manta-test-%x", time.Now().Unix())
 	keyName := "testState"
 
-	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
-		"path":       directory,
-		"objectName": keyName,
-	}).(*Backend)
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"path":        directory,
+		"object_name": keyName,
+	})).(*Backend)
 
 	createMantaFolder(t, b.storageClient, directory)
 	defer deleteMantaFolder(t, b.storageClient, directory)
@@ -47,15 +47,15 @@ func TestBackendLocked(t *testing.T) {
 	directory := fmt.Sprintf("terraform-remote-manta-test-%x", time.Now().Unix())
 	keyName := "testState"
 
-	b1 := backend.TestBackendConfig(t, New(), map[string]interface{}{
-		"path":       directory,
-		"objectName": keyName,
-	}).(*Backend)
+	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"path":        directory,
+		"object_name": keyName,
+	})).(*Backend)
 
-	b2 := backend.TestBackendConfig(t, New(), map[string]interface{}{
-		"path":       directory,
-		"objectName": keyName,
-	}).(*Backend)
+	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"path":        directory,
+		"object_name": keyName,
+	})).(*Backend)
 
 	createMantaFolder(t, b1.storageClient, directory)
 	defer deleteMantaFolder(t, b1.storageClient, directory)
@@ -88,7 +88,6 @@ func deleteMantaFolder(t *testing.T, mantaClient *storage.StorageClient, directo
 	}
 
 	for _, obj := range objs.Entries {
-
 		if obj.Type == "directory" {
 			ojs, err := mantaClient.Dir().List(context.Background(), &storage.ListDirectoryInput{
 				DirectoryName: path.Join(mantaDefaultRootStore, directoryName, obj.Name),

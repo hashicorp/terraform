@@ -14,8 +14,8 @@ const (
 	GraphTypePlan
 	GraphTypePlanDestroy
 	GraphTypeApply
-	GraphTypeInput
 	GraphTypeValidate
+	GraphTypeEval // only visits in-memory elements such as variables, locals, and outputs.
 )
 
 // GraphTypeMap is a mapping of human-readable string to GraphType. This
@@ -23,10 +23,10 @@ const (
 // graph types.
 var GraphTypeMap = map[string]GraphType{
 	"apply":        GraphTypeApply,
-	"input":        GraphTypeInput,
 	"plan":         GraphTypePlan,
 	"plan-destroy": GraphTypePlanDestroy,
 	"refresh":      GraphTypeRefresh,
 	"legacy":       GraphTypeLegacy,
 	"validate":     GraphTypeValidate,
+	"eval":         GraphTypeEval,
 }

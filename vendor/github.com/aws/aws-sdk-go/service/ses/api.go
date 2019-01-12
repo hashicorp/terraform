@@ -18,7 +18,7 @@ const opCloneReceiptRuleSet = "CloneReceiptRuleSet"
 // CloneReceiptRuleSetRequest generates a "aws/request.Request" representing the
 // client's request for the CloneReceiptRuleSet operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -52,6 +52,7 @@ func (c *SES) CloneReceiptRuleSetRequest(input *CloneReceiptRuleSetInput) (req *
 
 	output = &CloneReceiptRuleSetOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -111,7 +112,7 @@ const opCreateConfigurationSet = "CreateConfigurationSet"
 // CreateConfigurationSetRequest generates a "aws/request.Request" representing the
 // client's request for the CreateConfigurationSet operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -145,6 +146,7 @@ func (c *SES) CreateConfigurationSetRequest(input *CreateConfigurationSetInput) 
 
 	output = &CreateConfigurationSetOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -204,7 +206,7 @@ const opCreateConfigurationSetEventDestination = "CreateConfigurationSetEventDes
 // CreateConfigurationSetEventDestinationRequest generates a "aws/request.Request" representing the
 // client's request for the CreateConfigurationSetEventDestination operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -238,6 +240,7 @@ func (c *SES) CreateConfigurationSetEventDestinationRequest(input *CreateConfigu
 
 	output = &CreateConfigurationSetEventDestinationOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -313,7 +316,7 @@ const opCreateConfigurationSetTrackingOptions = "CreateConfigurationSetTrackingO
 // CreateConfigurationSetTrackingOptionsRequest generates a "aws/request.Request" representing the
 // client's request for the CreateConfigurationSetTrackingOptions operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -347,6 +350,7 @@ func (c *SES) CreateConfigurationSetTrackingOptionsRequest(input *CreateConfigur
 
 	output = &CreateConfigurationSetTrackingOptionsOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -410,7 +414,7 @@ const opCreateCustomVerificationEmailTemplate = "CreateCustomVerificationEmailTe
 // CreateCustomVerificationEmailTemplateRequest generates a "aws/request.Request" representing the
 // client's request for the CreateCustomVerificationEmailTemplate operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -444,8 +448,7 @@ func (c *SES) CreateCustomVerificationEmailTemplateRequest(input *CreateCustomVe
 
 	output = &CreateCustomVerificationEmailTemplateOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -510,7 +513,7 @@ const opCreateReceiptFilter = "CreateReceiptFilter"
 // CreateReceiptFilterRequest generates a "aws/request.Request" representing the
 // client's request for the CreateReceiptFilter operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -544,6 +547,7 @@ func (c *SES) CreateReceiptFilterRequest(input *CreateReceiptFilterInput) (req *
 
 	output = &CreateReceiptFilterOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -598,7 +602,7 @@ const opCreateReceiptRule = "CreateReceiptRule"
 // CreateReceiptRuleRequest generates a "aws/request.Request" representing the
 // client's request for the CreateReceiptRule operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -632,6 +636,7 @@ func (c *SES) CreateReceiptRuleRequest(input *CreateReceiptRuleInput) (req *requ
 
 	output = &CreateReceiptRuleOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -709,7 +714,7 @@ const opCreateReceiptRuleSet = "CreateReceiptRuleSet"
 // CreateReceiptRuleSetRequest generates a "aws/request.Request" representing the
 // client's request for the CreateReceiptRuleSet operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -743,6 +748,7 @@ func (c *SES) CreateReceiptRuleSetRequest(input *CreateReceiptRuleSetInput) (req
 
 	output = &CreateReceiptRuleSetOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -797,7 +803,7 @@ const opCreateTemplate = "CreateTemplate"
 // CreateTemplateRequest generates a "aws/request.Request" representing the
 // client's request for the CreateTemplate operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -831,6 +837,7 @@ func (c *SES) CreateTemplateRequest(input *CreateTemplateInput) (req *request.Re
 
 	output = &CreateTemplateOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -888,7 +895,7 @@ const opDeleteConfigurationSet = "DeleteConfigurationSet"
 // DeleteConfigurationSetRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteConfigurationSet operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -922,6 +929,7 @@ func (c *SES) DeleteConfigurationSetRequest(input *DeleteConfigurationSetInput) 
 
 	output = &DeleteConfigurationSetOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -971,7 +979,7 @@ const opDeleteConfigurationSetEventDestination = "DeleteConfigurationSetEventDes
 // DeleteConfigurationSetEventDestinationRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteConfigurationSetEventDestination operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1005,6 +1013,7 @@ func (c *SES) DeleteConfigurationSetEventDestinationRequest(input *DeleteConfigu
 
 	output = &DeleteConfigurationSetEventDestinationOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1058,7 +1067,7 @@ const opDeleteConfigurationSetTrackingOptions = "DeleteConfigurationSetTrackingO
 // DeleteConfigurationSetTrackingOptionsRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteConfigurationSetTrackingOptions operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1092,6 +1101,7 @@ func (c *SES) DeleteConfigurationSetTrackingOptionsRequest(input *DeleteConfigur
 
 	output = &DeleteConfigurationSetTrackingOptionsOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1150,7 +1160,7 @@ const opDeleteCustomVerificationEmailTemplate = "DeleteCustomVerificationEmailTe
 // DeleteCustomVerificationEmailTemplateRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteCustomVerificationEmailTemplate operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1184,8 +1194,7 @@ func (c *SES) DeleteCustomVerificationEmailTemplateRequest(input *DeleteCustomVe
 
 	output = &DeleteCustomVerificationEmailTemplateOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1232,7 +1241,7 @@ const opDeleteIdentity = "DeleteIdentity"
 // DeleteIdentityRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteIdentity operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1266,6 +1275,7 @@ func (c *SES) DeleteIdentityRequest(input *DeleteIdentityInput) (req *request.Re
 
 	output = &DeleteIdentityOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1309,7 +1319,7 @@ const opDeleteIdentityPolicy = "DeleteIdentityPolicy"
 // DeleteIdentityPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteIdentityPolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1343,6 +1353,7 @@ func (c *SES) DeleteIdentityPolicyRequest(input *DeleteIdentityPolicyInput) (req
 
 	output = &DeleteIdentityPolicyOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1394,7 +1405,7 @@ const opDeleteReceiptFilter = "DeleteReceiptFilter"
 // DeleteReceiptFilterRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteReceiptFilter operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1428,6 +1439,7 @@ func (c *SES) DeleteReceiptFilterRequest(input *DeleteReceiptFilterInput) (req *
 
 	output = &DeleteReceiptFilterOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1473,7 +1485,7 @@ const opDeleteReceiptRule = "DeleteReceiptRule"
 // DeleteReceiptRuleRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteReceiptRule operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1507,6 +1519,7 @@ func (c *SES) DeleteReceiptRuleRequest(input *DeleteReceiptRuleInput) (req *requ
 
 	output = &DeleteReceiptRuleOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1557,7 +1570,7 @@ const opDeleteReceiptRuleSet = "DeleteReceiptRuleSet"
 // DeleteReceiptRuleSetRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteReceiptRuleSet operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1591,6 +1604,7 @@ func (c *SES) DeleteReceiptRuleSetRequest(input *DeleteReceiptRuleSetInput) (req
 
 	output = &DeleteReceiptRuleSetOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1643,7 +1657,7 @@ const opDeleteTemplate = "DeleteTemplate"
 // DeleteTemplateRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteTemplate operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1677,6 +1691,7 @@ func (c *SES) DeleteTemplateRequest(input *DeleteTemplateInput) (req *request.Re
 
 	output = &DeleteTemplateOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1719,7 +1734,7 @@ const opDeleteVerifiedEmailAddress = "DeleteVerifiedEmailAddress"
 // DeleteVerifiedEmailAddressRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteVerifiedEmailAddress operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1753,8 +1768,7 @@ func (c *SES) DeleteVerifiedEmailAddressRequest(input *DeleteVerifiedEmailAddres
 
 	output = &DeleteVerifiedEmailAddressOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1796,7 +1810,7 @@ const opDescribeActiveReceiptRuleSet = "DescribeActiveReceiptRuleSet"
 // DescribeActiveReceiptRuleSetRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeActiveReceiptRuleSet operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1876,7 +1890,7 @@ const opDescribeConfigurationSet = "DescribeConfigurationSet"
 // DescribeConfigurationSetRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeConfigurationSet operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1958,7 +1972,7 @@ const opDescribeReceiptRule = "DescribeReceiptRule"
 // DescribeReceiptRuleRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeReceiptRule operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2045,7 +2059,7 @@ const opDescribeReceiptRuleSet = "DescribeReceiptRuleSet"
 // DescribeReceiptRuleSetRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeReceiptRuleSet operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2129,7 +2143,7 @@ const opGetAccountSendingEnabled = "GetAccountSendingEnabled"
 // GetAccountSendingEnabledRequest generates a "aws/request.Request" representing the
 // client's request for the GetAccountSendingEnabled operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2206,7 +2220,7 @@ const opGetCustomVerificationEmailTemplate = "GetCustomVerificationEmailTemplate
 // GetCustomVerificationEmailTemplateRequest generates a "aws/request.Request" representing the
 // client's request for the GetCustomVerificationEmailTemplate operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2293,7 +2307,7 @@ const opGetIdentityDkimAttributes = "GetIdentityDkimAttributes"
 // GetIdentityDkimAttributesRequest generates a "aws/request.Request" representing the
 // client's request for the GetIdentityDkimAttributes operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2388,7 +2402,7 @@ const opGetIdentityMailFromDomainAttributes = "GetIdentityMailFromDomainAttribut
 // GetIdentityMailFromDomainAttributesRequest generates a "aws/request.Request" representing the
 // client's request for the GetIdentityMailFromDomainAttributes operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2466,7 +2480,7 @@ const opGetIdentityNotificationAttributes = "GetIdentityNotificationAttributes"
 // GetIdentityNotificationAttributesRequest generates a "aws/request.Request" representing the
 // client's request for the GetIdentityNotificationAttributes operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2547,7 +2561,7 @@ const opGetIdentityPolicies = "GetIdentityPolicies"
 // GetIdentityPoliciesRequest generates a "aws/request.Request" representing the
 // client's request for the GetIdentityPolicies operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2633,7 +2647,7 @@ const opGetIdentityVerificationAttributes = "GetIdentityVerificationAttributes"
 // GetIdentityVerificationAttributesRequest generates a "aws/request.Request" representing the
 // client's request for the GetIdentityVerificationAttributes operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2728,7 +2742,7 @@ const opGetSendQuota = "GetSendQuota"
 // GetSendQuotaRequest generates a "aws/request.Request" representing the
 // client's request for the GetSendQuota operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2804,7 +2818,7 @@ const opGetSendStatistics = "GetSendStatistics"
 // GetSendStatisticsRequest generates a "aws/request.Request" representing the
 // client's request for the GetSendStatistics operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2882,7 +2896,7 @@ const opGetTemplate = "GetTemplate"
 // GetTemplateRequest generates a "aws/request.Request" representing the
 // client's request for the GetTemplate operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2965,7 +2979,7 @@ const opListConfigurationSets = "ListConfigurationSets"
 // ListConfigurationSetsRequest generates a "aws/request.Request" representing the
 // client's request for the ListConfigurationSets operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3049,7 +3063,7 @@ const opListCustomVerificationEmailTemplates = "ListCustomVerificationEmailTempl
 // ListCustomVerificationEmailTemplatesRequest generates a "aws/request.Request" representing the
 // client's request for the ListCustomVerificationEmailTemplates operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3186,7 +3200,7 @@ const opListIdentities = "ListIdentities"
 // ListIdentitiesRequest generates a "aws/request.Request" representing the
 // client's request for the ListIdentities operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3320,7 +3334,7 @@ const opListIdentityPolicies = "ListIdentityPolicies"
 // ListIdentityPoliciesRequest generates a "aws/request.Request" representing the
 // client's request for the ListIdentityPolicies operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3405,7 +3419,7 @@ const opListReceiptFilters = "ListReceiptFilters"
 // ListReceiptFiltersRequest generates a "aws/request.Request" representing the
 // client's request for the ListReceiptFilters operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3485,7 +3499,7 @@ const opListReceiptRuleSets = "ListReceiptRuleSets"
 // ListReceiptRuleSetsRequest generates a "aws/request.Request" representing the
 // client's request for the ListReceiptRuleSets operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3567,7 +3581,7 @@ const opListTemplates = "ListTemplates"
 // ListTemplatesRequest generates a "aws/request.Request" representing the
 // client's request for the ListTemplates operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3644,7 +3658,7 @@ const opListVerifiedEmailAddresses = "ListVerifiedEmailAddresses"
 // ListVerifiedEmailAddressesRequest generates a "aws/request.Request" representing the
 // client's request for the ListVerifiedEmailAddresses operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3719,7 +3733,7 @@ const opPutIdentityPolicy = "PutIdentityPolicy"
 // PutIdentityPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the PutIdentityPolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3753,6 +3767,7 @@ func (c *SES) PutIdentityPolicyRequest(input *PutIdentityPolicyInput) (req *requ
 
 	output = &PutIdentityPolicyOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3809,7 +3824,7 @@ const opReorderReceiptRuleSet = "ReorderReceiptRuleSet"
 // ReorderReceiptRuleSetRequest generates a "aws/request.Request" representing the
 // client's request for the ReorderReceiptRuleSet operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3843,6 +3858,7 @@ func (c *SES) ReorderReceiptRuleSetRequest(input *ReorderReceiptRuleSetInput) (r
 
 	output = &ReorderReceiptRuleSetOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3900,7 +3916,7 @@ const opSendBounce = "SendBounce"
 // SendBounceRequest generates a "aws/request.Request" representing the
 // client's request for the SendBounce operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3990,7 +4006,7 @@ const opSendBulkTemplatedEmail = "SendBulkTemplatedEmail"
 // SendBulkTemplatedEmailRequest generates a "aws/request.Request" representing the
 // client's request for the SendBulkTemplatedEmail operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4046,8 +4062,7 @@ func (c *SES) SendBulkTemplatedEmailRequest(input *SendBulkTemplatedEmailInput) 
 //    Email Addresses and Domains (http://docs.aws.amazon.com/ses/latest/DeveloperGuide/verify-addresses-and-domains.html)
 //    in the Amazon SES Developer Guide.
 //
-//    * The total size of the message, including attachments, must be less than
-//    10 MB.
+//    * The maximum message size is 10 MB.
 //
 //    * Each Destination parameter must include at least one recipient email
 //    address. The recipient address can be a To: address, a CC: address, or
@@ -4055,6 +4070,15 @@ func (c *SES) SendBulkTemplatedEmailRequest(input *SendBulkTemplatedEmailInput) 
 //    not in the format UserName@[SubDomain.]Domain.TopLevelDomain), the entire
 //    message will be rejected, even if the message contains other recipients
 //    that are valid.
+//
+//    * The message may not include more than 50 recipients, across the To:,
+//    CC: and BCC: fields. If you need to send an email message to a larger
+//    audience, you can divide your recipient list into groups of 50 or fewer,
+//    and then call the SendBulkTemplatedEmail operation several times to send
+//    the message to each group.
+//
+//    * The number of destinations you can contact in a single call to the API
+//    may be limited by your account's maximum sending rate.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -4119,7 +4143,7 @@ const opSendCustomVerificationEmail = "SendCustomVerificationEmail"
 // SendCustomVerificationEmailRequest generates a "aws/request.Request" representing the
 // client's request for the SendCustomVerificationEmail operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4224,7 +4248,7 @@ const opSendEmail = "SendEmail"
 // SendEmailRequest generates a "aws/request.Request" representing the
 // client's request for the SendEmail operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4277,8 +4301,7 @@ func (c *SES) SendEmailRequest(input *SendEmailInput) (req *request.Request, out
 //    Email Addresses and Domains (http://docs.aws.amazon.com/ses/latest/DeveloperGuide/verify-addresses-and-domains.html)
 //    in the Amazon SES Developer Guide.
 //
-//    * The total size of the message, including attachments, must be smaller
-//    than 10 MB.
+//    * The maximum message size is 10 MB.
 //
 //    * The message must include at least one recipient email address. The recipient
 //    address can be a To: address, a CC: address, or a BCC: address. If a recipient
@@ -4358,7 +4381,7 @@ const opSendRawEmail = "SendRawEmail"
 // SendRawEmailRequest generates a "aws/request.Request" representing the
 // client's request for the SendRawEmail operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4397,45 +4420,49 @@ func (c *SES) SendRawEmailRequest(input *SendRawEmailInput) (req *request.Reques
 
 // SendRawEmail API operation for Amazon Simple Email Service.
 //
-// Composes an email message and immediately queues it for sending. When calling
-// this operation, you may specify the message headers as well as the content.
-// The SendRawEmail operation is particularly useful for sending multipart MIME
-// emails (such as those that contain both a plain-text and an HTML version).
+// Composes an email message and immediately queues it for sending.
 //
-// In order to send email using the SendRawEmail operation, your message must
-// meet the following requirements:
+// This operation is more flexible than the SendEmail API operation. When you
+// use the SendRawEmail operation, you can specify the headers of the message
+// as well as its content. This flexibility is useful, for example, when you
+// want to send a multipart MIME email (such a message that contains both a
+// text and an HTML version). You can also use this operation to send messages
+// that include attachments.
 //
-//    * The message must be sent from a verified email address or domain. If
-//    you attempt to send email using a non-verified address or domain, the
-//    operation will result in an "Email address not verified" error.
+// The SendRawEmail operation has the following requirements:
 //
-//    * If your account is still in the Amazon SES sandbox, you may only send
-//    to verified addresses or domains, or to email addresses associated with
-//    the Amazon SES Mailbox Simulator. For more information, see Verifying
-//    Email Addresses and Domains (http://docs.aws.amazon.com/ses/latest/DeveloperGuide/verify-addresses-and-domains.html)
+//    * You can only send email from verified email addresses or domains (http://docs.aws.amazon.com/ses/latest/DeveloperGuide/verify-addresses-and-domains.html).
+//    If you try to send email from an address that isn't verified, the operation
+//    results in an "Email address not verified" error.
+//
+//    * If your account is still in the Amazon SES sandbox (http://docs.aws.amazon.com/ses/latest/DeveloperGuide/request-production-access.html),
+//    you can only send email to other verified addresses in your account, or
+//    to addresses that are associated with the Amazon SES mailbox simulator
+//    (http://docs.aws.amazon.com/ses/latest/DeveloperGuide/mailbox-simulator.html).
+//
+//    * The maximum message size, including attachments, is 10 MB.
+//
+//    * Each message has to include at least one recipient address. A recipient
+//    address includes any address on the To:, CC:, or BCC: lines.
+//
+//    * If you send a single message to more than one recipient address, and
+//    one of the recipient addresses isn't in a valid format (that is, it's
+//    not in the format UserName@[SubDomain.]Domain.TopLevelDomain), Amazon
+//    SES rejects the entire message, even if the other addresses are valid.
+//
+//    * Each message can include up to 50 recipient addresses across the To:,
+//    CC:, or BCC: lines. If you need to send a single message to more than
+//    50 recipients, you have to split the list of recipient addresses into
+//    groups of less than 50 recipients, and send separate messages to each
+//    group.
+//
+//    * Amazon SES allows you to specify 8-bit Content-Transfer-Encoding for
+//    MIME message parts. However, if Amazon SES has to modify the contents
+//    of your message (for example, if you use open and click tracking), 8-bit
+//    content isn't preserved. For this reason, we highly recommend that you
+//    encode all content that isn't 7-bit ASCII. For more information, see MIME
+//    Encoding (http://docs.aws.amazon.com/ses/latest/DeveloperGuide/send-email-raw.html#send-email-mime-encoding)
 //    in the Amazon SES Developer Guide.
-//
-//    * The total size of the message, including attachments, must be smaller
-//    than 10 MB.
-//
-//    * The message must include at least one recipient email address. The recipient
-//    address can be a To: address, a CC: address, or a BCC: address. If a recipient
-//    email address is invalid (that is, it is not in the format UserName@[SubDomain.]Domain.TopLevelDomain),
-//    the entire message will be rejected, even if the message contains other
-//    recipients that are valid.
-//
-//    * The message may not include more than 50 recipients, across the To:,
-//    CC: and BCC: fields. If you need to send an email message to a larger
-//    audience, you can divide your recipient list into groups of 50 or fewer,
-//    and then call the SendRawEmail operation several times to send the message
-//    to each group.
-//
-// For every message that you send, the total number of recipients (including
-// each recipient in the To:, CC: and BCC: fields) is counted against the maximum
-// number of emails you can send in a 24-hour period (your sending quota). For
-// more information about sending quotas in Amazon SES, see Managing Your Amazon
-// SES Sending Limits (http://docs.aws.amazon.com/ses/latest/DeveloperGuide/manage-sending-limits.html)
-// in the Amazon SES Developer Guide.
 //
 // Additionally, keep the following considerations in mind when using the SendRawEmail
 // operation:
@@ -4467,6 +4494,13 @@ func (c *SES) SendRawEmailRequest(input *SendRawEmailInput) (req *request.Reques
 //    SES will set the From and Return Path addresses to the identity specified
 //    in SourceIdentityArn. For more information about sending authorization,
 //    see the Using Sending Authorization with Amazon SES (http://docs.aws.amazon.com/ses/latest/DeveloperGuide/sending-authorization.html)
+//    in the Amazon SES Developer Guide.
+//
+//    * For every message that you send, the total number of recipients (including
+//    each recipient in the To:, CC: and BCC: fields) is counted against the
+//    maximum number of emails you can send in a 24-hour period (your sending
+//    quota). For more information about sending quotas in Amazon SES, see Managing
+//    Your Amazon SES Sending Limits (http://docs.aws.amazon.com/ses/latest/DeveloperGuide/manage-sending-limits.html)
 //    in the Amazon SES Developer Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -4528,7 +4562,7 @@ const opSendTemplatedEmail = "SendTemplatedEmail"
 // SendTemplatedEmailRequest generates a "aws/request.Request" representing the
 // client's request for the SendTemplatedEmail operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4584,8 +4618,7 @@ func (c *SES) SendTemplatedEmailRequest(input *SendTemplatedEmailInput) (req *re
 //    Email Addresses and Domains (http://docs.aws.amazon.com/ses/latest/DeveloperGuide/verify-addresses-and-domains.html)
 //    in the Amazon SES Developer Guide.
 //
-//    * The total size of the message, including attachments, must be less than
-//    10 MB.
+//    * The maximum message size is 10 MB.
 //
 //    * Calls to the SendTemplatedEmail operation may only include one Destination
 //    parameter. A destination is a set of recipients who will receive the same
@@ -4673,7 +4706,7 @@ const opSetActiveReceiptRuleSet = "SetActiveReceiptRuleSet"
 // SetActiveReceiptRuleSetRequest generates a "aws/request.Request" representing the
 // client's request for the SetActiveReceiptRuleSet operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4707,6 +4740,7 @@ func (c *SES) SetActiveReceiptRuleSetRequest(input *SetActiveReceiptRuleSetInput
 
 	output = &SetActiveReceiptRuleSetOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -4760,7 +4794,7 @@ const opSetIdentityDkimEnabled = "SetIdentityDkimEnabled"
 // SetIdentityDkimEnabledRequest generates a "aws/request.Request" representing the
 // client's request for the SetIdentityDkimEnabled operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4794,6 +4828,7 @@ func (c *SES) SetIdentityDkimEnabledRequest(input *SetIdentityDkimEnabledInput) 
 
 	output = &SetIdentityDkimEnabledOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -4851,7 +4886,7 @@ const opSetIdentityFeedbackForwardingEnabled = "SetIdentityFeedbackForwardingEna
 // SetIdentityFeedbackForwardingEnabledRequest generates a "aws/request.Request" representing the
 // client's request for the SetIdentityFeedbackForwardingEnabled operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4885,6 +4920,7 @@ func (c *SES) SetIdentityFeedbackForwardingEnabledRequest(input *SetIdentityFeed
 
 	output = &SetIdentityFeedbackForwardingEnabledOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -4936,7 +4972,7 @@ const opSetIdentityHeadersInNotificationsEnabled = "SetIdentityHeadersInNotifica
 // SetIdentityHeadersInNotificationsEnabledRequest generates a "aws/request.Request" representing the
 // client's request for the SetIdentityHeadersInNotificationsEnabled operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4970,6 +5006,7 @@ func (c *SES) SetIdentityHeadersInNotificationsEnabledRequest(input *SetIdentity
 
 	output = &SetIdentityHeadersInNotificationsEnabledOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -5017,7 +5054,7 @@ const opSetIdentityMailFromDomain = "SetIdentityMailFromDomain"
 // SetIdentityMailFromDomainRequest generates a "aws/request.Request" representing the
 // client's request for the SetIdentityMailFromDomain operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5051,6 +5088,7 @@ func (c *SES) SetIdentityMailFromDomainRequest(input *SetIdentityMailFromDomainI
 
 	output = &SetIdentityMailFromDomainOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -5099,7 +5137,7 @@ const opSetIdentityNotificationTopic = "SetIdentityNotificationTopic"
 // SetIdentityNotificationTopicRequest generates a "aws/request.Request" representing the
 // client's request for the SetIdentityNotificationTopic operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5133,18 +5171,18 @@ func (c *SES) SetIdentityNotificationTopicRequest(input *SetIdentityNotification
 
 	output = &SetIdentityNotificationTopicOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
 // SetIdentityNotificationTopic API operation for Amazon Simple Email Service.
 //
-// Given an identity (an email address or a domain), sets the Amazon Simple
-// Notification Service (Amazon SNS) topic to which Amazon SES will publish
-// bounce, complaint, and/or delivery notifications for emails sent with that
-// identity as the Source.
-//
-// Unless feedback forwarding is enabled, you must specify Amazon SNS topics
-// for bounce and complaint notifications. For more information, see SetIdentityFeedbackForwardingEnabled.
+// Sets an Amazon Simple Notification Service (Amazon SNS) topic to use when
+// delivering notifications. When you use this operation, you specify a verified
+// identity, such as an email address or domain. When you send an email that
+// uses the chosen identity in the Source field, Amazon SES sends notifications
+// to the topic you specified. You can send bounce, complaint, or delivery notifications
+// (or any combination of the three) to the Amazon SNS topic that you specify.
 //
 // You can execute this operation no more than once per second.
 //
@@ -5184,7 +5222,7 @@ const opSetReceiptRulePosition = "SetReceiptRulePosition"
 // SetReceiptRulePositionRequest generates a "aws/request.Request" representing the
 // client's request for the SetReceiptRulePosition operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5218,6 +5256,7 @@ func (c *SES) SetReceiptRulePositionRequest(input *SetReceiptRulePositionInput) 
 
 	output = &SetReceiptRulePositionOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -5271,7 +5310,7 @@ const opTestRenderTemplate = "TestRenderTemplate"
 // TestRenderTemplateRequest generates a "aws/request.Request" representing the
 // client's request for the TestRenderTemplate operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5363,7 +5402,7 @@ const opUpdateAccountSendingEnabled = "UpdateAccountSendingEnabled"
 // UpdateAccountSendingEnabledRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateAccountSendingEnabled operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5397,8 +5436,7 @@ func (c *SES) UpdateAccountSendingEnabledRequest(input *UpdateAccountSendingEnab
 
 	output = &UpdateAccountSendingEnabledOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -5445,7 +5483,7 @@ const opUpdateConfigurationSetEventDestination = "UpdateConfigurationSetEventDes
 // UpdateConfigurationSetEventDestinationRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateConfigurationSetEventDestination operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5479,6 +5517,7 @@ func (c *SES) UpdateConfigurationSetEventDestinationRequest(input *UpdateConfigu
 
 	output = &UpdateConfigurationSetEventDestinationOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -5550,7 +5589,7 @@ const opUpdateConfigurationSetReputationMetricsEnabled = "UpdateConfigurationSet
 // UpdateConfigurationSetReputationMetricsEnabledRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateConfigurationSetReputationMetricsEnabled operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5584,8 +5623,7 @@ func (c *SES) UpdateConfigurationSetReputationMetricsEnabledRequest(input *Updat
 
 	output = &UpdateConfigurationSetReputationMetricsEnabledOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -5637,7 +5675,7 @@ const opUpdateConfigurationSetSendingEnabled = "UpdateConfigurationSetSendingEna
 // UpdateConfigurationSetSendingEnabledRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateConfigurationSetSendingEnabled operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5671,8 +5709,7 @@ func (c *SES) UpdateConfigurationSetSendingEnabledRequest(input *UpdateConfigura
 
 	output = &UpdateConfigurationSetSendingEnabledOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -5724,7 +5761,7 @@ const opUpdateConfigurationSetTrackingOptions = "UpdateConfigurationSetTrackingO
 // UpdateConfigurationSetTrackingOptionsRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateConfigurationSetTrackingOptions operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5758,6 +5795,7 @@ func (c *SES) UpdateConfigurationSetTrackingOptionsRequest(input *UpdateConfigur
 
 	output = &UpdateConfigurationSetTrackingOptionsOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -5820,7 +5858,7 @@ const opUpdateCustomVerificationEmailTemplate = "UpdateCustomVerificationEmailTe
 // UpdateCustomVerificationEmailTemplateRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateCustomVerificationEmailTemplate operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5854,8 +5892,7 @@ func (c *SES) UpdateCustomVerificationEmailTemplateRequest(input *UpdateCustomVe
 
 	output = &UpdateCustomVerificationEmailTemplateOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -5916,7 +5953,7 @@ const opUpdateReceiptRule = "UpdateReceiptRule"
 // UpdateReceiptRuleRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateReceiptRule operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5950,6 +5987,7 @@ func (c *SES) UpdateReceiptRuleRequest(input *UpdateReceiptRuleInput) (req *requ
 
 	output = &UpdateReceiptRuleOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -6024,7 +6062,7 @@ const opUpdateTemplate = "UpdateTemplate"
 // UpdateTemplateRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateTemplate operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -6058,6 +6096,7 @@ func (c *SES) UpdateTemplateRequest(input *UpdateTemplateInput) (req *request.Re
 
 	output = &UpdateTemplateOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -6112,7 +6151,7 @@ const opVerifyDomainDkim = "VerifyDomainDkim"
 // VerifyDomainDkimRequest generates a "aws/request.Request" representing the
 // client's request for the VerifyDomainDkim operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -6200,7 +6239,7 @@ const opVerifyDomainIdentity = "VerifyDomainIdentity"
 // VerifyDomainIdentityRequest generates a "aws/request.Request" representing the
 // client's request for the VerifyDomainIdentity operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -6279,7 +6318,7 @@ const opVerifyEmailAddress = "VerifyEmailAddress"
 // VerifyEmailAddressRequest generates a "aws/request.Request" representing the
 // client's request for the VerifyEmailAddress operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -6313,8 +6352,7 @@ func (c *SES) VerifyEmailAddressRequest(input *VerifyEmailAddressInput) (req *re
 
 	output = &VerifyEmailAddressOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -6355,7 +6393,7 @@ const opVerifyEmailIdentity = "VerifyEmailIdentity"
 // VerifyEmailIdentityRequest generates a "aws/request.Request" representing the
 // client's request for the VerifyEmailIdentity operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -6389,6 +6427,7 @@ func (c *SES) VerifyEmailIdentityRequest(input *VerifyEmailIdentityInput) (req *
 
 	output = &VerifyEmailIdentityOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -12751,18 +12790,26 @@ type SendRawEmailInput struct {
 	// SendRawEmail in this guide, or see the Amazon SES Developer Guide (http://docs.aws.amazon.com/ses/latest/DeveloperGuide/sending-authorization-delegate-sender-tasks-email.html).
 	FromArn *string `type:"string"`
 
-	// The raw text of the message. The client is responsible for ensuring the following:
+	// The raw email message itself. The message has to meet the following criteria:
 	//
-	//    * Message must contain a header and a body, separated by a blank line.
+	//    * The message has to contain a header and a body, separated by a blank
+	//    line.
 	//
-	//    * All required header fields must be present.
+	//    * All of the required header fields must be present in the message.
 	//
 	//    * Each part of a multipart MIME message must be formatted properly.
 	//
-	//    * MIME content types must be among those supported by Amazon SES. For
-	//    more information, go to the Amazon SES Developer Guide (http://docs.aws.amazon.com/ses/latest/DeveloperGuide/mime-types.html).
+	//    * Attachments must be of a content type that Amazon SES supports. For
+	//    a list on unsupported content types, see Unsupported Attachment Types
+	//    (http://docs.aws.amazon.com/ses/latest/DeveloperGuide/mime-types.html)
+	//    in the Amazon SES Developer Guide.
 	//
-	//    * Must be base64-encoded.
+	//    * The entire message must be base64-encoded.
+	//
+	//    * If any of the MIME parts in your message contain content that is outside
+	//    of the 7-bit ASCII character range, we highly recommend that you encode
+	//    that content. For more information, see Sending Raw Email (http://docs.aws.amazon.com/ses/latest/DeveloperGuide/send-email-raw.html)
+	//    in the Amazon SES Developer Guide.
 	//
 	//    * Per RFC 5321 (https://tools.ietf.org/html/rfc5321#section-4.5.3.1.6),
 	//    the maximum length of each line of text, including the <CRLF>, must not
@@ -13552,9 +13599,14 @@ func (s SetIdentityMailFromDomainOutput) GoString() string {
 type SetIdentityNotificationTopicInput struct {
 	_ struct{} `type:"structure"`
 
-	// The identity for which the Amazon SNS topic will be set. You can specify
-	// an identity by using its name or by using its Amazon Resource Name (ARN).
-	// Examples: user@example.com, example.com, arn:aws:ses:us-east-1:123456789012:identity/example.com.
+	// The identity (email address or domain) that you want to set the Amazon SNS
+	// topic for.
+	//
+	// You can only specify a verified identity for this parameter.
+	//
+	// You can specify an identity by using its name or by using its Amazon Resource
+	// Name (ARN). The following examples are all valid identities: sender@example.com,
+	// example.com, arn:aws:ses:us-east-1:123456789012:identity/example.com.
 	//
 	// Identity is a required field
 	Identity *string `type:"string" required:"true"`

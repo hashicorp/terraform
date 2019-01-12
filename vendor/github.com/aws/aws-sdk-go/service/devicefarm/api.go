@@ -8,6 +8,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
+	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
 )
 
 const opCreateDevicePool = "CreateDevicePool"
@@ -15,7 +17,7 @@ const opCreateDevicePool = "CreateDevicePool"
 // CreateDevicePoolRequest generates a "aws/request.Request" representing the
 // client's request for the CreateDevicePool operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -103,7 +105,7 @@ const opCreateInstanceProfile = "CreateInstanceProfile"
 // CreateInstanceProfileRequest generates a "aws/request.Request" representing the
 // client's request for the CreateInstanceProfile operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -192,7 +194,7 @@ const opCreateNetworkProfile = "CreateNetworkProfile"
 // CreateNetworkProfileRequest generates a "aws/request.Request" representing the
 // client's request for the CreateNetworkProfile operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -280,7 +282,7 @@ const opCreateProject = "CreateProject"
 // CreateProjectRequest generates a "aws/request.Request" representing the
 // client's request for the CreateProject operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -368,7 +370,7 @@ const opCreateRemoteAccessSession = "CreateRemoteAccessSession"
 // CreateRemoteAccessSessionRequest generates a "aws/request.Request" representing the
 // client's request for the CreateRemoteAccessSession operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -456,7 +458,7 @@ const opCreateUpload = "CreateUpload"
 // CreateUploadRequest generates a "aws/request.Request" representing the
 // client's request for the CreateUpload operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -544,7 +546,7 @@ const opCreateVPCEConfiguration = "CreateVPCEConfiguration"
 // CreateVPCEConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the CreateVPCEConfiguration operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -630,7 +632,7 @@ const opDeleteDevicePool = "DeleteDevicePool"
 // DeleteDevicePoolRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteDevicePool operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -664,6 +666,7 @@ func (c *DeviceFarm) DeleteDevicePoolRequest(input *DeleteDevicePoolInput) (req 
 
 	output = &DeleteDevicePoolOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -719,7 +722,7 @@ const opDeleteInstanceProfile = "DeleteInstanceProfile"
 // DeleteInstanceProfileRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteInstanceProfile operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -753,6 +756,7 @@ func (c *DeviceFarm) DeleteInstanceProfileRequest(input *DeleteInstanceProfileIn
 
 	output = &DeleteInstanceProfileOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -807,7 +811,7 @@ const opDeleteNetworkProfile = "DeleteNetworkProfile"
 // DeleteNetworkProfileRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteNetworkProfile operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -841,6 +845,7 @@ func (c *DeviceFarm) DeleteNetworkProfileRequest(input *DeleteNetworkProfileInpu
 
 	output = &DeleteNetworkProfileOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -895,7 +900,7 @@ const opDeleteProject = "DeleteProject"
 // DeleteProjectRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteProject operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -929,6 +934,7 @@ func (c *DeviceFarm) DeleteProjectRequest(input *DeleteProjectInput) (req *reque
 
 	output = &DeleteProjectOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -985,7 +991,7 @@ const opDeleteRemoteAccessSession = "DeleteRemoteAccessSession"
 // DeleteRemoteAccessSessionRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteRemoteAccessSession operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1019,6 +1025,7 @@ func (c *DeviceFarm) DeleteRemoteAccessSessionRequest(input *DeleteRemoteAccessS
 
 	output = &DeleteRemoteAccessSessionOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1073,7 +1080,7 @@ const opDeleteRun = "DeleteRun"
 // DeleteRunRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteRun operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1107,6 +1114,7 @@ func (c *DeviceFarm) DeleteRunRequest(input *DeleteRunInput) (req *request.Reque
 
 	output = &DeleteRunOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1163,7 +1171,7 @@ const opDeleteUpload = "DeleteUpload"
 // DeleteUploadRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteUpload operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1197,6 +1205,7 @@ func (c *DeviceFarm) DeleteUploadRequest(input *DeleteUploadInput) (req *request
 
 	output = &DeleteUploadOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1251,7 +1260,7 @@ const opDeleteVPCEConfiguration = "DeleteVPCEConfiguration"
 // DeleteVPCEConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteVPCEConfiguration operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1285,6 +1294,7 @@ func (c *DeviceFarm) DeleteVPCEConfigurationRequest(input *DeleteVPCEConfigurati
 
 	output = &DeleteVPCEConfigurationOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1340,7 +1350,7 @@ const opGetAccountSettings = "GetAccountSettings"
 // GetAccountSettingsRequest generates a "aws/request.Request" representing the
 // client's request for the GetAccountSettings operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1429,7 +1439,7 @@ const opGetDevice = "GetDevice"
 // GetDeviceRequest generates a "aws/request.Request" representing the
 // client's request for the GetDevice operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1517,7 +1527,7 @@ const opGetDeviceInstance = "GetDeviceInstance"
 // GetDeviceInstanceRequest generates a "aws/request.Request" representing the
 // client's request for the GetDeviceInstance operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1606,7 +1616,7 @@ const opGetDevicePool = "GetDevicePool"
 // GetDevicePoolRequest generates a "aws/request.Request" representing the
 // client's request for the GetDevicePool operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1694,7 +1704,7 @@ const opGetDevicePoolCompatibility = "GetDevicePoolCompatibility"
 // GetDevicePoolCompatibilityRequest generates a "aws/request.Request" representing the
 // client's request for the GetDevicePoolCompatibility operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1782,7 +1792,7 @@ const opGetInstanceProfile = "GetInstanceProfile"
 // GetInstanceProfileRequest generates a "aws/request.Request" representing the
 // client's request for the GetInstanceProfile operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1870,7 +1880,7 @@ const opGetJob = "GetJob"
 // GetJobRequest generates a "aws/request.Request" representing the
 // client's request for the GetJob operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1958,7 +1968,7 @@ const opGetNetworkProfile = "GetNetworkProfile"
 // GetNetworkProfileRequest generates a "aws/request.Request" representing the
 // client's request for the GetNetworkProfile operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2046,7 +2056,7 @@ const opGetOfferingStatus = "GetOfferingStatus"
 // GetOfferingStatusRequest generates a "aws/request.Request" representing the
 // client's request for the GetOfferingStatus operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2199,7 +2209,7 @@ const opGetProject = "GetProject"
 // GetProjectRequest generates a "aws/request.Request" representing the
 // client's request for the GetProject operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2287,7 +2297,7 @@ const opGetRemoteAccessSession = "GetRemoteAccessSession"
 // GetRemoteAccessSessionRequest generates a "aws/request.Request" representing the
 // client's request for the GetRemoteAccessSession operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2375,7 +2385,7 @@ const opGetRun = "GetRun"
 // GetRunRequest generates a "aws/request.Request" representing the
 // client's request for the GetRun operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2463,7 +2473,7 @@ const opGetSuite = "GetSuite"
 // GetSuiteRequest generates a "aws/request.Request" representing the
 // client's request for the GetSuite operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2551,7 +2561,7 @@ const opGetTest = "GetTest"
 // GetTestRequest generates a "aws/request.Request" representing the
 // client's request for the GetTest operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2639,7 +2649,7 @@ const opGetUpload = "GetUpload"
 // GetUploadRequest generates a "aws/request.Request" representing the
 // client's request for the GetUpload operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2727,7 +2737,7 @@ const opGetVPCEConfiguration = "GetVPCEConfiguration"
 // GetVPCEConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the GetVPCEConfiguration operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2813,7 +2823,7 @@ const opInstallToRemoteAccessSession = "InstallToRemoteAccessSession"
 // InstallToRemoteAccessSessionRequest generates a "aws/request.Request" representing the
 // client's request for the InstallToRemoteAccessSession operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2903,7 +2913,7 @@ const opListArtifacts = "ListArtifacts"
 // ListArtifactsRequest generates a "aws/request.Request" representing the
 // client's request for the ListArtifacts operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3047,7 +3057,7 @@ const opListDeviceInstances = "ListDeviceInstances"
 // ListDeviceInstancesRequest generates a "aws/request.Request" representing the
 // client's request for the ListDeviceInstances operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3136,7 +3146,7 @@ const opListDevicePools = "ListDevicePools"
 // ListDevicePoolsRequest generates a "aws/request.Request" representing the
 // client's request for the ListDevicePools operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3280,7 +3290,7 @@ const opListDevices = "ListDevices"
 // ListDevicesRequest generates a "aws/request.Request" representing the
 // client's request for the ListDevices operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3424,7 +3434,7 @@ const opListInstanceProfiles = "ListInstanceProfiles"
 // ListInstanceProfilesRequest generates a "aws/request.Request" representing the
 // client's request for the ListInstanceProfiles operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3512,7 +3522,7 @@ const opListJobs = "ListJobs"
 // ListJobsRequest generates a "aws/request.Request" representing the
 // client's request for the ListJobs operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3656,7 +3666,7 @@ const opListNetworkProfiles = "ListNetworkProfiles"
 // ListNetworkProfilesRequest generates a "aws/request.Request" representing the
 // client's request for the ListNetworkProfiles operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3744,7 +3754,7 @@ const opListOfferingPromotions = "ListOfferingPromotions"
 // ListOfferingPromotionsRequest generates a "aws/request.Request" representing the
 // client's request for the ListOfferingPromotions operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3840,7 +3850,7 @@ const opListOfferingTransactions = "ListOfferingTransactions"
 // ListOfferingTransactionsRequest generates a "aws/request.Request" representing the
 // client's request for the ListOfferingTransactions operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3993,7 +4003,7 @@ const opListOfferings = "ListOfferings"
 // ListOfferingsRequest generates a "aws/request.Request" representing the
 // client's request for the ListOfferings operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4146,7 +4156,7 @@ const opListProjects = "ListProjects"
 // ListProjectsRequest generates a "aws/request.Request" representing the
 // client's request for the ListProjects operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4290,7 +4300,7 @@ const opListRemoteAccessSessions = "ListRemoteAccessSessions"
 // ListRemoteAccessSessionsRequest generates a "aws/request.Request" representing the
 // client's request for the ListRemoteAccessSessions operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4378,7 +4388,7 @@ const opListRuns = "ListRuns"
 // ListRunsRequest generates a "aws/request.Request" representing the
 // client's request for the ListRuns operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4522,7 +4532,7 @@ const opListSamples = "ListSamples"
 // ListSamplesRequest generates a "aws/request.Request" representing the
 // client's request for the ListSamples operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4567,7 +4577,7 @@ func (c *DeviceFarm) ListSamplesRequest(input *ListSamplesInput) (req *request.R
 
 // ListSamples API operation for AWS Device Farm.
 //
-// Gets information about samples, given an AWS Device Farm project ARN
+// Gets information about samples, given an AWS Device Farm job ARN.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -4666,7 +4676,7 @@ const opListSuites = "ListSuites"
 // ListSuitesRequest generates a "aws/request.Request" representing the
 // client's request for the ListSuites operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4810,7 +4820,7 @@ const opListTests = "ListTests"
 // ListTestsRequest generates a "aws/request.Request" representing the
 // client's request for the ListTests operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4954,7 +4964,7 @@ const opListUniqueProblems = "ListUniqueProblems"
 // ListUniqueProblemsRequest generates a "aws/request.Request" representing the
 // client's request for the ListUniqueProblems operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5098,7 +5108,7 @@ const opListUploads = "ListUploads"
 // ListUploadsRequest generates a "aws/request.Request" representing the
 // client's request for the ListUploads operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5242,7 +5252,7 @@ const opListVPCEConfigurations = "ListVPCEConfigurations"
 // ListVPCEConfigurationsRequest generates a "aws/request.Request" representing the
 // client's request for the ListVPCEConfigurations operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5325,7 +5335,7 @@ const opPurchaseOffering = "PurchaseOffering"
 // PurchaseOfferingRequest generates a "aws/request.Request" representing the
 // client's request for the PurchaseOffering operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5422,7 +5432,7 @@ const opRenewOffering = "RenewOffering"
 // RenewOfferingRequest generates a "aws/request.Request" representing the
 // client's request for the RenewOffering operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5518,7 +5528,7 @@ const opScheduleRun = "ScheduleRun"
 // ScheduleRunRequest generates a "aws/request.Request" representing the
 // client's request for the ScheduleRun operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5604,12 +5614,105 @@ func (c *DeviceFarm) ScheduleRunWithContext(ctx aws.Context, input *ScheduleRunI
 	return out, req.Send()
 }
 
+const opStopJob = "StopJob"
+
+// StopJobRequest generates a "aws/request.Request" representing the
+// client's request for the StopJob operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See StopJob for more information on using the StopJob
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the StopJobRequest method.
+//    req, resp := client.StopJobRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/devicefarm-2015-06-23/StopJob
+func (c *DeviceFarm) StopJobRequest(input *StopJobInput) (req *request.Request, output *StopJobOutput) {
+	op := &request.Operation{
+		Name:       opStopJob,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &StopJobInput{}
+	}
+
+	output = &StopJobOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// StopJob API operation for AWS Device Farm.
+//
+// Initiates a stop request for the current job. AWS Device Farm will immediately
+// stop the job on the device where tests have not started executing, and you
+// will not be billed for this device. On the device where tests have started
+// executing, Setup Suite and Teardown Suite tests will run to completion before
+// stopping execution on the device. You will be billed for Setup, Teardown,
+// and any tests that were in progress or already completed.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Device Farm's
+// API operation StopJob for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeArgumentException "ArgumentException"
+//   An invalid argument was specified.
+//
+//   * ErrCodeNotFoundException "NotFoundException"
+//   The specified entity was not found.
+//
+//   * ErrCodeLimitExceededException "LimitExceededException"
+//   A limit was exceeded.
+//
+//   * ErrCodeServiceAccountException "ServiceAccountException"
+//   There was a problem with the service account.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/devicefarm-2015-06-23/StopJob
+func (c *DeviceFarm) StopJob(input *StopJobInput) (*StopJobOutput, error) {
+	req, out := c.StopJobRequest(input)
+	return out, req.Send()
+}
+
+// StopJobWithContext is the same as StopJob with the addition of
+// the ability to pass a context and additional request options.
+//
+// See StopJob for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DeviceFarm) StopJobWithContext(ctx aws.Context, input *StopJobInput, opts ...request.Option) (*StopJobOutput, error) {
+	req, out := c.StopJobRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opStopRemoteAccessSession = "StopRemoteAccessSession"
 
 // StopRemoteAccessSessionRequest generates a "aws/request.Request" representing the
 // client's request for the StopRemoteAccessSession operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5697,7 +5800,7 @@ const opStopRun = "StopRun"
 // StopRunRequest generates a "aws/request.Request" representing the
 // client's request for the StopRun operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5790,7 +5893,7 @@ const opUpdateDeviceInstance = "UpdateDeviceInstance"
 // UpdateDeviceInstanceRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateDeviceInstance operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5878,7 +5981,7 @@ const opUpdateDevicePool = "UpdateDevicePool"
 // UpdateDevicePoolRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateDevicePool operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5968,7 +6071,7 @@ const opUpdateInstanceProfile = "UpdateInstanceProfile"
 // UpdateInstanceProfileRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateInstanceProfile operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -6056,7 +6159,7 @@ const opUpdateNetworkProfile = "UpdateNetworkProfile"
 // UpdateNetworkProfileRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateNetworkProfile operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -6144,7 +6247,7 @@ const opUpdateProject = "UpdateProject"
 // UpdateProjectRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateProject operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -6227,12 +6330,100 @@ func (c *DeviceFarm) UpdateProjectWithContext(ctx aws.Context, input *UpdateProj
 	return out, req.Send()
 }
 
+const opUpdateUpload = "UpdateUpload"
+
+// UpdateUploadRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateUpload operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UpdateUpload for more information on using the UpdateUpload
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the UpdateUploadRequest method.
+//    req, resp := client.UpdateUploadRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/devicefarm-2015-06-23/UpdateUpload
+func (c *DeviceFarm) UpdateUploadRequest(input *UpdateUploadInput) (req *request.Request, output *UpdateUploadOutput) {
+	op := &request.Operation{
+		Name:       opUpdateUpload,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &UpdateUploadInput{}
+	}
+
+	output = &UpdateUploadOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// UpdateUpload API operation for AWS Device Farm.
+//
+// Update an uploaded test specification (test spec).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Device Farm's
+// API operation UpdateUpload for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeArgumentException "ArgumentException"
+//   An invalid argument was specified.
+//
+//   * ErrCodeNotFoundException "NotFoundException"
+//   The specified entity was not found.
+//
+//   * ErrCodeLimitExceededException "LimitExceededException"
+//   A limit was exceeded.
+//
+//   * ErrCodeServiceAccountException "ServiceAccountException"
+//   There was a problem with the service account.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/devicefarm-2015-06-23/UpdateUpload
+func (c *DeviceFarm) UpdateUpload(input *UpdateUploadInput) (*UpdateUploadOutput, error) {
+	req, out := c.UpdateUploadRequest(input)
+	return out, req.Send()
+}
+
+// UpdateUploadWithContext is the same as UpdateUpload with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UpdateUpload for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DeviceFarm) UpdateUploadWithContext(ctx aws.Context, input *UpdateUploadInput, opts ...request.Option) (*UpdateUploadOutput, error) {
+	req, out := c.UpdateUploadRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opUpdateVPCEConfiguration = "UpdateVPCEConfiguration"
 
 // UpdateVPCEConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateVPCEConfiguration operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -7367,7 +7558,7 @@ type CreateUploadInput struct {
 	//
 	//    * IOS_APP: An iOS upload.
 	//
-	//    * WEB_APP: A web appliction upload.
+	//    * WEB_APP: A web application upload.
 	//
 	//    * EXTERNAL_DATA: An external data upload.
 	//
@@ -7397,6 +7588,22 @@ type CreateUploadInput struct {
 	//    * XCTEST_TEST_PACKAGE: An XCode test package upload.
 	//
 	//    * XCTEST_UI_TEST_PACKAGE: An XCode UI test package upload.
+	//
+	//    * APPIUM_JAVA_JUNIT_TEST_SPEC: An Appium Java JUnit test spec upload.
+	//
+	//    * APPIUM_JAVA_TESTNG_TEST_SPEC: An Appium Java TestNG test spec upload.
+	//
+	//    * APPIUM_PYTHON_TEST_SPEC: An Appium Python test spec upload.
+	//
+	//    * APPIUM_WEB_JAVA_JUNIT_TEST_SPEC: An Appium Java JUnit test spec upload.
+	//
+	//    * APPIUM_WEB_JAVA_TESTNG_TEST_SPEC: An Appium Java TestNG test spec upload.
+	//
+	//    * APPIUM_WEB_PYTHON_TEST_SPEC: An Appium Python test spec upload.
+	//
+	//    * INSTRUMENTATION_TEST_SPEC: An instrumentation test spec upload.
+	//
+	//    * XCTEST_UI_TEST_SPEC: An XCode UI test spec upload.
 	//
 	// Note If you call CreateUpload with WEB_APP specified, AWS Device Farm throws
 	// an ArgumentException error.
@@ -8100,6 +8307,9 @@ type Device struct {
 	// The device's ARN.
 	Arn *string `locationName:"arn" min:"32" type:"string"`
 
+	// Reflects how likely a device will be available for a test run.
+	Availability *string `locationName:"availability" type:"string" enum:"DeviceAvailability"`
+
 	// The device's carrier.
 	Carrier *string `locationName:"carrier" type:"string"`
 
@@ -8184,6 +8394,12 @@ func (s Device) GoString() string {
 // SetArn sets the Arn field's value.
 func (s *Device) SetArn(v string) *Device {
 	s.Arn = &v
+	return s
+}
+
+// SetAvailability sets the Availability field's value.
+func (s *Device) SetAvailability(v string) *Device {
+	s.Availability = &v
 	return s
 }
 
@@ -8298,6 +8514,111 @@ func (s *Device) SetRemoteDebugEnabled(v bool) *Device {
 // SetResolution sets the Resolution field's value.
 func (s *Device) SetResolution(v *Resolution) *Device {
 	s.Resolution = v
+	return s
+}
+
+// Represents a device filter used to select a set of devices to be included
+// in a test run. This data structure is passed in as the "deviceSelectionConfiguration"
+// parameter to ScheduleRun. For an example of the JSON request syntax, see
+// ScheduleRun.
+//
+// It is also passed in as the "filters" parameter to ListDevices. For an example
+// of the JSON request syntax, see ListDevices.
+type DeviceFilter struct {
+	_ struct{} `type:"structure"`
+
+	// The aspect of a device such as platform or model used as the selection criteria
+	// in a device filter.
+	//
+	// Allowed values include:
+	//
+	//    * ARN: The Amazon Resource Name (ARN) of the device. For example, "arn:aws:devicefarm:us-west-2::device:12345Example".
+	//
+	//    * PLATFORM: The device platform. Valid values are "ANDROID" or "IOS".
+	//
+	//    * OS_VERSION: The operating system version. For example, "10.3.2".
+	//
+	//    * MODEL: The device model. For example, "iPad 5th Gen".
+	//
+	//    * AVAILABILITY: The current availability of the device. Valid values are
+	//    "AVAILABLE", "HIGHLY_AVAILABLE", "BUSY", or "TEMPORARY_NOT_AVAILABLE".
+	//
+	//    * FORM_FACTOR: The device form factor. Valid values are "PHONE" or "TABLET".
+	//
+	//    * MANUFACTURER: The device manufacturer. For example, "Apple".
+	//
+	//    * REMOTE_ACCESS_ENABLED: Whether the device is enabled for remote access.
+	//
+	//    * REMOTE_DEBUG_ENABLED: Whether the device is enabled for remote debugging.
+	//
+	//    * INSTANCE_ARN: The Amazon Resource Name (ARN) of the device instance.
+	//
+	//    * INSTANCE_LABELS: The label of the device instance.
+	//
+	//    * FLEET_TYPE: The fleet type. Valid values are "PUBLIC" or "PRIVATE".
+	Attribute *string `locationName:"attribute" type:"string" enum:"DeviceFilterAttribute"`
+
+	// The filter operator.
+	//
+	//    * The EQUALS operator is available for every attribute except INSTANCE_LABELS.
+	//
+	//    * The CONTAINS operator is available for the INSTANCE_LABELS and MODEL
+	//    attributes.
+	//
+	//    * The IN and NOT_IN operators are available for the ARN, OS_VERSION, MODEL,
+	//    MANUFACTURER, and INSTANCE_ARN attributes.
+	//
+	//    * The LESS_THAN, GREATER_THAN, LESS_THAN_OR_EQUALS, and GREATER_THAN_OR_EQUALS
+	//    operators are also available for the OS_VERSION attribute.
+	Operator *string `locationName:"operator" type:"string" enum:"DeviceFilterOperator"`
+
+	// An array of one or more filter values used in a device filter.
+	//
+	// Operator Values
+	//
+	//    * The IN and NOT operators can take a values array that has more than
+	//    one element.
+	//
+	//    * The other operators require an array with a single element.
+	//
+	// Attribute Values
+	//
+	//    * The PLATFORM attribute can be set to "ANDROID" or "IOS".
+	//
+	//    * The AVAILABILITY attribute can be set to "AVAILABLE", "HIGHLY_AVAILABLE",
+	//    "BUSY", or "TEMPORARY_NOT_AVAILABLE".
+	//
+	//    * The FORM_FACTOR attribute can be set to "PHONE" or "TABLET".
+	//
+	//    * The FLEET_TYPE attribute can be set to "PUBLIC" or "PRIVATE".
+	Values []*string `locationName:"values" type:"list"`
+}
+
+// String returns the string representation
+func (s DeviceFilter) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeviceFilter) GoString() string {
+	return s.String()
+}
+
+// SetAttribute sets the Attribute field's value.
+func (s *DeviceFilter) SetAttribute(v string) *DeviceFilter {
+	s.Attribute = &v
+	return s
+}
+
+// SetOperator sets the Operator field's value.
+func (s *DeviceFilter) SetOperator(v string) *DeviceFilter {
+	s.Operator = &v
+	return s
+}
+
+// SetValues sets the Values field's value.
+func (s *DeviceFilter) SetValues(v []*string) *DeviceFilter {
+	s.Values = v
 	return s
 }
 
@@ -8525,6 +8846,158 @@ func (s *DevicePoolCompatibilityResult) SetIncompatibilityMessages(v []*Incompat
 	return s
 }
 
+// Represents the device filters used in a test run as well as the maximum number
+// of devices to be included in the run. It is passed in as the deviceSelectionConfiguration
+// request parameter in ScheduleRun.
+type DeviceSelectionConfiguration struct {
+	_ struct{} `type:"structure"`
+
+	// Used to dynamically select a set of devices for a test run. A filter is made
+	// up of an attribute, an operator, and one or more values.
+	//
+	//    * Attribute: The aspect of a device such as platform or model used as
+	//    the selection criteria in a device filter.
+	//
+	// Allowed values include:
+	//
+	// ARN: The Amazon Resource Name (ARN) of the device. For example, "arn:aws:devicefarm:us-west-2::device:12345Example".
+	//
+	// PLATFORM: The device platform. Valid values are "ANDROID" or "IOS".
+	//
+	// OS_VERSION: The operating system version. For example, "10.3.2".
+	//
+	// MODEL: The device model. For example, "iPad 5th Gen".
+	//
+	// AVAILABILITY: The current availability of the device. Valid values are "AVAILABLE",
+	//    "HIGHLY_AVAILABLE", "BUSY", or "TEMPORARY_NOT_AVAILABLE".
+	//
+	// FORM_FACTOR: The device form factor. Valid values are "PHONE" or "TABLET".
+	//
+	// MANUFACTURER: The device manufacturer. For example, "Apple".
+	//
+	// REMOTE_ACCESS_ENABLED: Whether the device is enabled for remote access.
+	//
+	// REMOTE_DEBUG_ENABLED: Whether the device is enabled for remote debugging.
+	//
+	// INSTANCE_ARN: The Amazon Resource Name (ARN) of the device instance.
+	//
+	// INSTANCE_LABELS: The label of the device instance.
+	//
+	// FLEET_TYPE: The fleet type. Valid values are "PUBLIC" or "PRIVATE".
+	//
+	//    * Operator: The filter operator.
+	//
+	// The EQUALS operator is available for every attribute except INSTANCE_LABELS.
+	//
+	// The CONTAINS operator is available for the INSTANCE_LABELS and MODEL attributes.
+	//
+	// The IN and NOT_IN operators are available for the ARN, OS_VERSION, MODEL,
+	//    MANUFACTURER, and INSTANCE_ARN attributes.
+	//
+	// The LESS_THAN, GREATER_THAN, LESS_THAN_OR_EQUALS, and GREATER_THAN_OR_EQUALS
+	//    operators are also available for the OS_VERSION attribute.
+	//
+	//    * Values: An array of one or more filter values.
+	//
+	// The IN and NOT operators can take a values array that has more than one element.
+	//
+	// The other operators require an array with a single element.
+	//
+	// In a request, the AVAILABILITY attribute takes "AVAILABLE", "HIGHLY_AVAILABLE",
+	//    "BUSY", or "TEMPORARY_NOT_AVAILABLE" as values.
+	//
+	// Filters is a required field
+	Filters []*DeviceFilter `locationName:"filters" type:"list" required:"true"`
+
+	// The maximum number of devices to be included in a test run.
+	//
+	// MaxDevices is a required field
+	MaxDevices *int64 `locationName:"maxDevices" type:"integer" required:"true"`
+}
+
+// String returns the string representation
+func (s DeviceSelectionConfiguration) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeviceSelectionConfiguration) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeviceSelectionConfiguration) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeviceSelectionConfiguration"}
+	if s.Filters == nil {
+		invalidParams.Add(request.NewErrParamRequired("Filters"))
+	}
+	if s.MaxDevices == nil {
+		invalidParams.Add(request.NewErrParamRequired("MaxDevices"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetFilters sets the Filters field's value.
+func (s *DeviceSelectionConfiguration) SetFilters(v []*DeviceFilter) *DeviceSelectionConfiguration {
+	s.Filters = v
+	return s
+}
+
+// SetMaxDevices sets the MaxDevices field's value.
+func (s *DeviceSelectionConfiguration) SetMaxDevices(v int64) *DeviceSelectionConfiguration {
+	s.MaxDevices = &v
+	return s
+}
+
+// Contains the run results requested by the device selection configuration
+// as well as how many devices were returned. For an example of the JSON response
+// syntax, see ScheduleRun.
+type DeviceSelectionResult struct {
+	_ struct{} `type:"structure"`
+
+	// The filters in a device selection result.
+	Filters []*DeviceFilter `locationName:"filters" type:"list"`
+
+	// The number of devices that matched the device filter selection criteria.
+	MatchedDevicesCount *int64 `locationName:"matchedDevicesCount" type:"integer"`
+
+	// The maximum number of devices to be selected by a device filter and included
+	// in a test run.
+	MaxDevices *int64 `locationName:"maxDevices" type:"integer"`
+}
+
+// String returns the string representation
+func (s DeviceSelectionResult) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeviceSelectionResult) GoString() string {
+	return s.String()
+}
+
+// SetFilters sets the Filters field's value.
+func (s *DeviceSelectionResult) SetFilters(v []*DeviceFilter) *DeviceSelectionResult {
+	s.Filters = v
+	return s
+}
+
+// SetMatchedDevicesCount sets the MatchedDevicesCount field's value.
+func (s *DeviceSelectionResult) SetMatchedDevicesCount(v int64) *DeviceSelectionResult {
+	s.MatchedDevicesCount = &v
+	return s
+}
+
+// SetMaxDevices sets the MaxDevices field's value.
+func (s *DeviceSelectionResult) SetMaxDevices(v int64) *DeviceSelectionResult {
+	s.MaxDevices = &v
+	return s
+}
+
 // Represents configuration information about a test run, such as the execution
 // timeout (in minutes).
 type ExecutionConfiguration struct {
@@ -8549,6 +9022,10 @@ type ExecutionConfiguration struct {
 	// modify my app? (https://aws.amazon.com/device-farm/faq/) in the AWS Device
 	// Farm FAQs.
 	SkipAppResign *bool `locationName:"skipAppResign" type:"boolean"`
+
+	// Set to true to enable video capture; otherwise, set to false. The default
+	// is true.
+	VideoCapture *bool `locationName:"videoCapture" type:"boolean"`
 }
 
 // String returns the string representation
@@ -8582,6 +9059,12 @@ func (s *ExecutionConfiguration) SetJobTimeoutMinutes(v int64) *ExecutionConfigu
 // SetSkipAppResign sets the SkipAppResign field's value.
 func (s *ExecutionConfiguration) SetSkipAppResign(v bool) *ExecutionConfiguration {
 	s.SkipAppResign = &v
+	return s
+}
+
+// SetVideoCapture sets the VideoCapture field's value.
+func (s *ExecutionConfiguration) SetVideoCapture(v bool) *ExecutionConfiguration {
+	s.VideoCapture = &v
 	return s
 }
 
@@ -10037,6 +10520,13 @@ type Job struct {
 	//
 	//    * XCTEST_UI: The XCode UI test type.
 	Type *string `locationName:"type" type:"string" enum:"TestType"`
+
+	// This value is set to true if video capture is enabled; otherwise, it is set
+	// to false.
+	VideoCapture *bool `locationName:"videoCapture" type:"boolean"`
+
+	// The endpoint for streaming device video.
+	VideoEndpoint *string `locationName:"videoEndpoint" type:"string"`
 }
 
 // String returns the string representation
@@ -10124,6 +10614,18 @@ func (s *Job) SetStopped(v time.Time) *Job {
 // SetType sets the Type field's value.
 func (s *Job) SetType(v string) *Job {
 	s.Type = &v
+	return s
+}
+
+// SetVideoCapture sets the VideoCapture field's value.
+func (s *Job) SetVideoCapture(v bool) *Job {
+	s.VideoCapture = &v
+	return s
+}
+
+// SetVideoEndpoint sets the VideoEndpoint field's value.
+func (s *Job) SetVideoEndpoint(v string) *Job {
+	s.VideoEndpoint = &v
 	return s
 }
 
@@ -10432,6 +10934,61 @@ type ListDevicesInput struct {
 	// The Amazon Resource Name (ARN) of the project.
 	Arn *string `locationName:"arn" min:"32" type:"string"`
 
+	// Used to select a set of devices. A filter is made up of an attribute, an
+	// operator, and one or more values.
+	//
+	//    * Attribute: The aspect of a device such as platform or model used as
+	//    the selction criteria in a device filter.
+	//
+	// Allowed values include:
+	//
+	// ARN: The Amazon Resource Name (ARN) of the device. For example, "arn:aws:devicefarm:us-west-2::device:12345Example".
+	//
+	// PLATFORM: The device platform. Valid values are "ANDROID" or "IOS".
+	//
+	// OS_VERSION: The operating system version. For example, "10.3.2".
+	//
+	// MODEL: The device model. For example, "iPad 5th Gen".
+	//
+	// AVAILABILITY: The current availability of the device. Valid values are "AVAILABLE",
+	//    "HIGHLY_AVAILABLE", "BUSY", or "TEMPORARY_NOT_AVAILABLE".
+	//
+	// FORM_FACTOR: The device form factor. Valid values are "PHONE" or "TABLET".
+	//
+	// MANUFACTURER: The device manufacturer. For example, "Apple".
+	//
+	// REMOTE_ACCESS_ENABLED: Whether the device is enabled for remote access.
+	//
+	// REMOTE_DEBUG_ENABLED: Whether the device is enabled for remote debugging.
+	//
+	// INSTANCE_ARN: The Amazon Resource Name (ARN) of the device instance.
+	//
+	// INSTANCE_LABELS: The label of the device instance.
+	//
+	// FLEET_TYPE: The fleet type. Valid values are "PUBLIC" or "PRIVATE".
+	//
+	//    * Operator: The filter operator.
+	//
+	// The EQUALS operator is available for every attribute except INSTANCE_LABELS.
+	//
+	// The CONTAINS operator is available for the INSTANCE_LABELS and MODEL attributes.
+	//
+	// The IN and NOT_IN operators are available for the ARN, OS_VERSION, MODEL,
+	//    MANUFACTURER, and INSTANCE_ARN attributes.
+	//
+	// The LESS_THAN, GREATER_THAN, LESS_THAN_OR_EQUALS, and GREATER_THAN_OR_EQUALS
+	//    operators are also available for the OS_VERSION attribute.
+	//
+	//    * Values: An array of one or more filter values.
+	//
+	// The IN and NOT operators can take a values array that has more than one element.
+	//
+	// The other operators require an array with a single element.
+	//
+	// In a request, the AVAILABILITY attribute takes "AVAILABLE", "HIGHLY_AVAILABLE",
+	//    "BUSY", or "TEMPORARY_NOT_AVAILABLE" as values.
+	Filters []*DeviceFilter `locationName:"filters" type:"list"`
+
 	// An identifier that was returned from the previous call to this operation,
 	// which can be used to return the next set of items in the list.
 	NextToken *string `locationName:"nextToken" min:"4" type:"string"`
@@ -10466,6 +11023,12 @@ func (s *ListDevicesInput) Validate() error {
 // SetArn sets the Arn field's value.
 func (s *ListDevicesInput) SetArn(v string) *ListDevicesInput {
 	s.Arn = &v
+	return s
+}
+
+// SetFilters sets the Filters field's value.
+func (s *ListDevicesInput) SetFilters(v []*DeviceFilter) *ListDevicesInput {
+	s.Filters = v
 	return s
 }
 
@@ -11267,8 +11830,7 @@ func (s *ListRunsOutput) SetRuns(v []*Run) *ListRunsOutput {
 type ListSamplesInput struct {
 	_ struct{} `type:"structure"`
 
-	// The Amazon Resource Name (ARN) of the project for which you want to list
-	// samples.
+	// The Amazon Resource Name (ARN) of the job used to list samples.
 	//
 	// Arn is a required field
 	Arn *string `locationName:"arn" min:"32" type:"string" required:"true"`
@@ -11653,6 +12215,62 @@ type ListUploadsInput struct {
 	// An identifier that was returned from the previous call to this operation,
 	// which can be used to return the next set of items in the list.
 	NextToken *string `locationName:"nextToken" min:"4" type:"string"`
+
+	// The type of upload.
+	//
+	// Must be one of the following values:
+	//
+	//    * ANDROID_APP: An Android upload.
+	//
+	//    * IOS_APP: An iOS upload.
+	//
+	//    * WEB_APP: A web appliction upload.
+	//
+	//    * EXTERNAL_DATA: An external data upload.
+	//
+	//    * APPIUM_JAVA_JUNIT_TEST_PACKAGE: An Appium Java JUnit test package upload.
+	//
+	//    * APPIUM_JAVA_TESTNG_TEST_PACKAGE: An Appium Java TestNG test package
+	//    upload.
+	//
+	//    * APPIUM_PYTHON_TEST_PACKAGE: An Appium Python test package upload.
+	//
+	//    * APPIUM_WEB_JAVA_JUNIT_TEST_PACKAGE: An Appium Java JUnit test package
+	//    upload.
+	//
+	//    * APPIUM_WEB_JAVA_TESTNG_TEST_PACKAGE: An Appium Java TestNG test package
+	//    upload.
+	//
+	//    * APPIUM_WEB_PYTHON_TEST_PACKAGE: An Appium Python test package upload.
+	//
+	//    * CALABASH_TEST_PACKAGE: A Calabash test package upload.
+	//
+	//    * INSTRUMENTATION_TEST_PACKAGE: An instrumentation upload.
+	//
+	//    * UIAUTOMATION_TEST_PACKAGE: A uiautomation test package upload.
+	//
+	//    * UIAUTOMATOR_TEST_PACKAGE: A uiautomator test package upload.
+	//
+	//    * XCTEST_TEST_PACKAGE: An XCode test package upload.
+	//
+	//    * XCTEST_UI_TEST_PACKAGE: An XCode UI test package upload.
+	//
+	//    * APPIUM_JAVA_JUNIT_TEST_SPEC: An Appium Java JUnit test spec upload.
+	//
+	//    * APPIUM_JAVA_TESTNG_TEST_SPEC: An Appium Java TestNG test spec upload.
+	//
+	//    * APPIUM_PYTHON_TEST_SPEC: An Appium Python test spec upload.
+	//
+	//    * APPIUM_WEB_JAVA_JUNIT_TEST_SPEC: An Appium Java JUnit test spec upload.
+	//
+	//    * APPIUM_WEB_JAVA_TESTNG_TEST_SPEC: An Appium Java TestNG test spec upload.
+	//
+	//    * APPIUM_WEB_PYTHON_TEST_SPEC: An Appium Python test spec upload.
+	//
+	//    * INSTRUMENTATION_TEST_SPEC: An instrumentation test spec upload.
+	//
+	//    * XCTEST_UI_TEST_SPEC: An XCode UI test spec upload.
+	Type *string `locationName:"type" type:"string" enum:"UploadType"`
 }
 
 // String returns the string representation
@@ -11693,6 +12311,12 @@ func (s *ListUploadsInput) SetArn(v string) *ListUploadsInput {
 // SetNextToken sets the NextToken field's value.
 func (s *ListUploadsInput) SetNextToken(v string) *ListUploadsInput {
 	s.NextToken = &v
+	return s
+}
+
+// SetType sets the Type field's value.
+func (s *ListUploadsInput) SetType(v string) *ListUploadsInput {
+	s.Type = &v
 	return s
 }
 
@@ -12945,29 +13569,35 @@ func (s *Resolution) SetWidth(v int64) *Resolution {
 	return s
 }
 
-// Represents a condition for a device pool.
+// Represents a condition for a device pool. It is passed in as the rules parameter
+// to CreateDevicePool and UpdateDevicePool.
 type Rule struct {
 	_ struct{} `type:"structure"`
 
-	// The rule's stringified attribute. For example, specify the value as "\"abc\"".
+	// The rule's attribute. It is the aspect of a device such as platform or model
+	// used as selection criteria to create or update a device pool.
 	//
 	// Allowed values include:
 	//
-	//    * ARN: The ARN.
+	//    * ARN: The Amazon Resource Name (ARN) of a device. For example, "arn:aws:devicefarm:us-west-2::device:12345Example".
 	//
-	//    * FORM_FACTOR: The form factor (for example, phone or tablet).
+	//    * PLATFORM: The device platform. Valid values are "ANDROID" or "IOS".
 	//
-	//    * MANUFACTURER: The manufacturer.
+	//    * FORM_FACTOR: The device form factor. Valid values are "PHONE" or "TABLET".
 	//
-	//    * PLATFORM: The platform (for example, Android or iOS).
+	//    * MANUFACTURER: The device manufacturer. For example, "Apple".
 	//
 	//    * REMOTE_ACCESS_ENABLED: Whether the device is enabled for remote access.
+	//
+	//    * REMOTE_DEBUG_ENABLED: Whether the device is enabled for remote debugging.
 	//
 	//    * APPIUM_VERSION: The Appium version for the test.
 	//
 	//    * INSTANCE_ARN: The Amazon Resource Name (ARN) of the device instance.
 	//
 	//    * INSTANCE_LABELS: The label of the device instance.
+	//
+	//    * FLEET_TYPE: The fleet type. Valid values are "PUBLIC" or "PRIVATE".
 	Attribute *string `locationName:"attribute" type:"string" enum:"DeviceAttribute"`
 
 	// The rule's operator.
@@ -12986,6 +13616,12 @@ type Rule struct {
 	Operator *string `locationName:"operator" type:"string" enum:"RuleOperator"`
 
 	// The rule's value.
+	//
+	// The value must be passed in as a string using escaped quotes.
+	//
+	// For example:
+	//
+	// "value": "\"ANDROID\""
 	Value *string `locationName:"value" type:"string"`
 }
 
@@ -13049,6 +13685,9 @@ type Run struct {
 
 	// The ARN of the device pool for the run.
 	DevicePoolArn *string `locationName:"devicePoolArn" min:"32" type:"string"`
+
+	// The results of a device filter used to select the devices for a test run.
+	DeviceSelectionResult *DeviceSelectionResult `locationName:"deviceSelectionResult" type:"structure"`
 
 	// For fuzz tests, this is the number of events, between 1 and 10000, that the
 	// UI fuzz test should perform.
@@ -13153,6 +13792,9 @@ type Run struct {
 
 	// The run's stop time.
 	Stopped *time.Time `locationName:"stopped" type:"timestamp"`
+
+	// The ARN of the YAML-formatted test specification for the run.
+	TestSpecArn *string `locationName:"testSpecArn" min:"32" type:"string"`
 
 	// The total number of jobs for the run.
 	TotalJobs *int64 `locationName:"totalJobs" type:"integer"`
@@ -13260,6 +13902,12 @@ func (s *Run) SetDevicePoolArn(v string) *Run {
 	return s
 }
 
+// SetDeviceSelectionResult sets the DeviceSelectionResult field's value.
+func (s *Run) SetDeviceSelectionResult(v *DeviceSelectionResult) *Run {
+	s.DeviceSelectionResult = v
+	return s
+}
+
 // SetEventCount sets the EventCount field's value.
 func (s *Run) SetEventCount(v int64) *Run {
 	s.EventCount = &v
@@ -13359,6 +14007,12 @@ func (s *Run) SetStatus(v string) *Run {
 // SetStopped sets the Stopped field's value.
 func (s *Run) SetStopped(v time.Time) *Run {
 	s.Stopped = &v
+	return s
+}
+
+// SetTestSpecArn sets the TestSpecArn field's value.
+func (s *Run) SetTestSpecArn(v string) *Run {
+	s.TestSpecArn = &v
 	return s
 }
 
@@ -13597,8 +14251,14 @@ type ScheduleRunInput struct {
 
 	// The ARN of the device pool for the run to be scheduled.
 	//
-	// DevicePoolArn is a required field
-	DevicePoolArn *string `locationName:"devicePoolArn" min:"32" type:"string" required:"true"`
+	// Either devicePoolArn or deviceSelectionConfiguration are required in a request.
+	DevicePoolArn *string `locationName:"devicePoolArn" min:"32" type:"string"`
+
+	// The filter criteria used to dynamically select a set of devices for a test
+	// run, as well as the maximum number of devices to be included in the run.
+	//
+	// Either devicePoolArn or deviceSelectionConfiguration are required in a request.
+	DeviceSelectionConfiguration *DeviceSelectionConfiguration `locationName:"deviceSelectionConfiguration" type:"structure"`
 
 	// Specifies configuration information about a test run, such as the execution
 	// timeout (in minutes).
@@ -13634,9 +14294,6 @@ func (s *ScheduleRunInput) Validate() error {
 	if s.AppArn != nil && len(*s.AppArn) < 32 {
 		invalidParams.Add(request.NewErrParamMinLen("AppArn", 32))
 	}
-	if s.DevicePoolArn == nil {
-		invalidParams.Add(request.NewErrParamRequired("DevicePoolArn"))
-	}
 	if s.DevicePoolArn != nil && len(*s.DevicePoolArn) < 32 {
 		invalidParams.Add(request.NewErrParamMinLen("DevicePoolArn", 32))
 	}
@@ -13652,6 +14309,11 @@ func (s *ScheduleRunInput) Validate() error {
 	if s.Configuration != nil {
 		if err := s.Configuration.Validate(); err != nil {
 			invalidParams.AddNested("Configuration", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.DeviceSelectionConfiguration != nil {
+		if err := s.DeviceSelectionConfiguration.Validate(); err != nil {
+			invalidParams.AddNested("DeviceSelectionConfiguration", err.(request.ErrInvalidParams))
 		}
 	}
 	if s.Test != nil {
@@ -13681,6 +14343,12 @@ func (s *ScheduleRunInput) SetConfiguration(v *ScheduleRunConfiguration) *Schedu
 // SetDevicePoolArn sets the DevicePoolArn field's value.
 func (s *ScheduleRunInput) SetDevicePoolArn(v string) *ScheduleRunInput {
 	s.DevicePoolArn = &v
+	return s
+}
+
+// SetDeviceSelectionConfiguration sets the DeviceSelectionConfiguration field's value.
+func (s *ScheduleRunInput) SetDeviceSelectionConfiguration(v *DeviceSelectionConfiguration) *ScheduleRunInput {
+	s.DeviceSelectionConfiguration = v
 	return s
 }
 
@@ -13732,15 +14400,22 @@ func (s *ScheduleRunOutput) SetRun(v *Run) *ScheduleRunOutput {
 	return s
 }
 
-// Represents additional test settings.
+// Represents test settings. This data structure is passed in as the "test"
+// parameter to ScheduleRun. For an example of the JSON request syntax, see
+// ScheduleRun.
 type ScheduleRunTest struct {
 	_ struct{} `type:"structure"`
 
 	// The test's filter.
 	Filter *string `locationName:"filter" type:"string"`
 
-	// The test's parameters, such as the following test framework parameters and
-	// fixture settings:
+	// The test's parameters, such as test framework parameters and fixture settings.
+	// Parameters are represented by name-value pairs of strings.
+	//
+	// For all tests:
+	//
+	//    * app_performance_monitoring: Performance monitoring is enabled by default.
+	//    Set this parameter to "false" to disable it.
 	//
 	// For Calabash tests:
 	//
@@ -13751,14 +14426,14 @@ type ScheduleRunTest struct {
 	//
 	// For Appium tests (all types):
 	//
-	//    * appium_version: The Appium version. Currently supported values are "1.4.16",
-	//    "1.6.3", "latest", and "default".
+	//    * appium_version: The Appium version. Currently supported values are "1.7.2",
+	//    "1.7.1", "1.6.5", "latest", and "default".
 	//
-	// “latest” will run the latest Appium version supported by Device Farm (1.6.3).
+	// “latest” will run the latest Appium version supported by Device Farm (1.7.2).
 	//
 	// For “default”, Device Farm will choose a compatible version of Appium for
-	//    the device. The current behavior is to run 1.4.16 on Android devices and
-	//    iOS 9 and earlier, 1.6.3 for iOS 10 and later.
+	//    the device. The current behavior is to run 1.7.2 on Android devices and
+	//    iOS 9 and earlier, 1.7.2 for iOS 10 and later.
 	//
 	// This behavior is subject to change.
 	//
@@ -13817,6 +14492,9 @@ type ScheduleRunTest struct {
 	// The ARN of the uploaded test that will be run.
 	TestPackageArn *string `locationName:"testPackageArn" min:"32" type:"string"`
 
+	// The ARN of the YAML-formatted test specification.
+	TestSpecArn *string `locationName:"testSpecArn" min:"32" type:"string"`
+
 	// The test's type.
 	//
 	// Must be one of the following values:
@@ -13871,6 +14549,9 @@ func (s *ScheduleRunTest) Validate() error {
 	if s.TestPackageArn != nil && len(*s.TestPackageArn) < 32 {
 		invalidParams.Add(request.NewErrParamMinLen("TestPackageArn", 32))
 	}
+	if s.TestSpecArn != nil && len(*s.TestSpecArn) < 32 {
+		invalidParams.Add(request.NewErrParamMinLen("TestSpecArn", 32))
+	}
 	if s.Type == nil {
 		invalidParams.Add(request.NewErrParamRequired("Type"))
 	}
@@ -13899,9 +14580,80 @@ func (s *ScheduleRunTest) SetTestPackageArn(v string) *ScheduleRunTest {
 	return s
 }
 
+// SetTestSpecArn sets the TestSpecArn field's value.
+func (s *ScheduleRunTest) SetTestSpecArn(v string) *ScheduleRunTest {
+	s.TestSpecArn = &v
+	return s
+}
+
 // SetType sets the Type field's value.
 func (s *ScheduleRunTest) SetType(v string) *ScheduleRunTest {
 	s.Type = &v
+	return s
+}
+
+type StopJobInput struct {
+	_ struct{} `type:"structure"`
+
+	// Represents the Amazon Resource Name (ARN) of the Device Farm job you wish
+	// to stop.
+	//
+	// Arn is a required field
+	Arn *string `locationName:"arn" min:"32" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s StopJobInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StopJobInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StopJobInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StopJobInput"}
+	if s.Arn == nil {
+		invalidParams.Add(request.NewErrParamRequired("Arn"))
+	}
+	if s.Arn != nil && len(*s.Arn) < 32 {
+		invalidParams.Add(request.NewErrParamMinLen("Arn", 32))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetArn sets the Arn field's value.
+func (s *StopJobInput) SetArn(v string) *StopJobInput {
+	s.Arn = &v
+	return s
+}
+
+type StopJobOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The job that was stopped.
+	Job *Job `locationName:"job" type:"structure"`
+}
+
+// String returns the string representation
+func (s StopJobOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StopJobOutput) GoString() string {
+	return s.String()
+}
+
+// SetJob sets the Job field's value.
+func (s *StopJobOutput) SetJob(v *Job) *StopJobOutput {
+	s.Job = v
 	return s
 }
 
@@ -15020,6 +15772,99 @@ func (s *UpdateProjectOutput) SetProject(v *Project) *UpdateProjectOutput {
 	return s
 }
 
+type UpdateUploadInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the uploaded test spec.
+	//
+	// Arn is a required field
+	Arn *string `locationName:"arn" min:"32" type:"string" required:"true"`
+
+	// The upload's content type (for example, "application/x-yaml").
+	ContentType *string `locationName:"contentType" type:"string"`
+
+	// Set to true if the YAML file has changed and needs to be updated; otherwise,
+	// set to false.
+	EditContent *bool `locationName:"editContent" type:"boolean"`
+
+	// The upload's test spec file name. The name should not contain the '/' character.
+	// The test spec file name must end with the .yaml or .yml file extension.
+	Name *string `locationName:"name" type:"string"`
+}
+
+// String returns the string representation
+func (s UpdateUploadInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateUploadInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateUploadInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateUploadInput"}
+	if s.Arn == nil {
+		invalidParams.Add(request.NewErrParamRequired("Arn"))
+	}
+	if s.Arn != nil && len(*s.Arn) < 32 {
+		invalidParams.Add(request.NewErrParamMinLen("Arn", 32))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetArn sets the Arn field's value.
+func (s *UpdateUploadInput) SetArn(v string) *UpdateUploadInput {
+	s.Arn = &v
+	return s
+}
+
+// SetContentType sets the ContentType field's value.
+func (s *UpdateUploadInput) SetContentType(v string) *UpdateUploadInput {
+	s.ContentType = &v
+	return s
+}
+
+// SetEditContent sets the EditContent field's value.
+func (s *UpdateUploadInput) SetEditContent(v bool) *UpdateUploadInput {
+	s.EditContent = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *UpdateUploadInput) SetName(v string) *UpdateUploadInput {
+	s.Name = &v
+	return s
+}
+
+type UpdateUploadOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A test spec uploaded to Device Farm.
+	Upload *Upload `locationName:"upload" type:"structure"`
+}
+
+// String returns the string representation
+func (s UpdateUploadOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateUploadOutput) GoString() string {
+	return s.String()
+}
+
+// SetUpload sets the Upload field's value.
+func (s *UpdateUploadOutput) SetUpload(v *Upload) *UpdateUploadOutput {
+	s.Upload = v
+	return s
+}
+
 type UpdateVPCEConfigurationInput struct {
 	_ struct{} `type:"structure"`
 
@@ -15131,6 +15976,13 @@ type Upload struct {
 	// The upload's ARN.
 	Arn *string `locationName:"arn" min:"32" type:"string"`
 
+	// The upload's category. Allowed values include:
+	//
+	//    * CURATED: An upload managed by AWS Device Farm.
+	//
+	//    * PRIVATE: An upload managed by the AWS Device Farm customer.
+	Category *string `locationName:"category" type:"string" enum:"UploadCategory"`
+
 	// The upload's content type (for example, "application/octet-stream").
 	ContentType *string `locationName:"contentType" type:"string"`
 
@@ -15199,6 +16051,22 @@ type Upload struct {
 	//    * XCTEST_TEST_PACKAGE: An XCode test package upload.
 	//
 	//    * XCTEST_UI_TEST_PACKAGE: An XCode UI test package upload.
+	//
+	//    * APPIUM_JAVA_JUNIT_TEST_SPEC: An Appium Java JUnit test spec upload.
+	//
+	//    * APPIUM_JAVA_TESTNG_TEST_SPEC: An Appium Java TestNG test spec upload.
+	//
+	//    * APPIUM_PYTHON_TEST_SPEC: An Appium Python test spec upload.
+	//
+	//    * APPIUM_WEB_JAVA_JUNIT_TEST_SPEC: An Appium Java JUnit test spec upload.
+	//
+	//    * APPIUM_WEB_JAVA_TESTNG_TEST_SPEC: An Appium Java TestNG test spec upload.
+	//
+	//    * APPIUM_WEB_PYTHON_TEST_SPEC: An Appium Python test spec upload.
+	//
+	//    * INSTRUMENTATION_TEST_SPEC: An instrumentation test spec upload.
+	//
+	//    * XCTEST_UI_TEST_SPEC: An XCode UI test spec upload.
 	Type *string `locationName:"type" type:"string" enum:"UploadType"`
 
 	// The pre-signed Amazon S3 URL that was used to store a file through a corresponding
@@ -15219,6 +16087,12 @@ func (s Upload) GoString() string {
 // SetArn sets the Arn field's value.
 func (s *Upload) SetArn(v string) *Upload {
 	s.Arn = &v
+	return s
+}
+
+// SetCategory sets the Category field's value.
+func (s *Upload) SetCategory(v string) *Upload {
+	s.Category = &v
 	return s
 }
 
@@ -15425,6 +16299,9 @@ const (
 
 	// ArtifactTypeCustomerArtifactLog is a ArtifactType enum value
 	ArtifactTypeCustomerArtifactLog = "CUSTOMER_ARTIFACT_LOG"
+
+	// ArtifactTypeTestspecOutput is a ArtifactType enum value
+	ArtifactTypeTestspecOutput = "TESTSPEC_OUTPUT"
 )
 
 const (
@@ -15470,6 +16347,84 @@ const (
 
 	// DeviceAttributeFleetType is a DeviceAttribute enum value
 	DeviceAttributeFleetType = "FLEET_TYPE"
+)
+
+const (
+	// DeviceAvailabilityTemporaryNotAvailable is a DeviceAvailability enum value
+	DeviceAvailabilityTemporaryNotAvailable = "TEMPORARY_NOT_AVAILABLE"
+
+	// DeviceAvailabilityBusy is a DeviceAvailability enum value
+	DeviceAvailabilityBusy = "BUSY"
+
+	// DeviceAvailabilityAvailable is a DeviceAvailability enum value
+	DeviceAvailabilityAvailable = "AVAILABLE"
+
+	// DeviceAvailabilityHighlyAvailable is a DeviceAvailability enum value
+	DeviceAvailabilityHighlyAvailable = "HIGHLY_AVAILABLE"
+)
+
+const (
+	// DeviceFilterAttributeArn is a DeviceFilterAttribute enum value
+	DeviceFilterAttributeArn = "ARN"
+
+	// DeviceFilterAttributePlatform is a DeviceFilterAttribute enum value
+	DeviceFilterAttributePlatform = "PLATFORM"
+
+	// DeviceFilterAttributeOsVersion is a DeviceFilterAttribute enum value
+	DeviceFilterAttributeOsVersion = "OS_VERSION"
+
+	// DeviceFilterAttributeModel is a DeviceFilterAttribute enum value
+	DeviceFilterAttributeModel = "MODEL"
+
+	// DeviceFilterAttributeAvailability is a DeviceFilterAttribute enum value
+	DeviceFilterAttributeAvailability = "AVAILABILITY"
+
+	// DeviceFilterAttributeFormFactor is a DeviceFilterAttribute enum value
+	DeviceFilterAttributeFormFactor = "FORM_FACTOR"
+
+	// DeviceFilterAttributeManufacturer is a DeviceFilterAttribute enum value
+	DeviceFilterAttributeManufacturer = "MANUFACTURER"
+
+	// DeviceFilterAttributeRemoteAccessEnabled is a DeviceFilterAttribute enum value
+	DeviceFilterAttributeRemoteAccessEnabled = "REMOTE_ACCESS_ENABLED"
+
+	// DeviceFilterAttributeRemoteDebugEnabled is a DeviceFilterAttribute enum value
+	DeviceFilterAttributeRemoteDebugEnabled = "REMOTE_DEBUG_ENABLED"
+
+	// DeviceFilterAttributeInstanceArn is a DeviceFilterAttribute enum value
+	DeviceFilterAttributeInstanceArn = "INSTANCE_ARN"
+
+	// DeviceFilterAttributeInstanceLabels is a DeviceFilterAttribute enum value
+	DeviceFilterAttributeInstanceLabels = "INSTANCE_LABELS"
+
+	// DeviceFilterAttributeFleetType is a DeviceFilterAttribute enum value
+	DeviceFilterAttributeFleetType = "FLEET_TYPE"
+)
+
+const (
+	// DeviceFilterOperatorEquals is a DeviceFilterOperator enum value
+	DeviceFilterOperatorEquals = "EQUALS"
+
+	// DeviceFilterOperatorLessThan is a DeviceFilterOperator enum value
+	DeviceFilterOperatorLessThan = "LESS_THAN"
+
+	// DeviceFilterOperatorLessThanOrEquals is a DeviceFilterOperator enum value
+	DeviceFilterOperatorLessThanOrEquals = "LESS_THAN_OR_EQUALS"
+
+	// DeviceFilterOperatorGreaterThan is a DeviceFilterOperator enum value
+	DeviceFilterOperatorGreaterThan = "GREATER_THAN"
+
+	// DeviceFilterOperatorGreaterThanOrEquals is a DeviceFilterOperator enum value
+	DeviceFilterOperatorGreaterThanOrEquals = "GREATER_THAN_OR_EQUALS"
+
+	// DeviceFilterOperatorIn is a DeviceFilterOperator enum value
+	DeviceFilterOperatorIn = "IN"
+
+	// DeviceFilterOperatorNotIn is a DeviceFilterOperator enum value
+	DeviceFilterOperatorNotIn = "NOT_IN"
+
+	// DeviceFilterOperatorContains is a DeviceFilterOperator enum value
+	DeviceFilterOperatorContains = "CONTAINS"
 )
 
 const (
@@ -15737,6 +16692,14 @@ const (
 )
 
 const (
+	// UploadCategoryCurated is a UploadCategory enum value
+	UploadCategoryCurated = "CURATED"
+
+	// UploadCategoryPrivate is a UploadCategory enum value
+	UploadCategoryPrivate = "PRIVATE"
+)
+
+const (
 	// UploadStatusInitialized is a UploadStatus enum value
 	UploadStatusInitialized = "INITIALIZED"
 
@@ -15798,4 +16761,28 @@ const (
 
 	// UploadTypeXctestUiTestPackage is a UploadType enum value
 	UploadTypeXctestUiTestPackage = "XCTEST_UI_TEST_PACKAGE"
+
+	// UploadTypeAppiumJavaJunitTestSpec is a UploadType enum value
+	UploadTypeAppiumJavaJunitTestSpec = "APPIUM_JAVA_JUNIT_TEST_SPEC"
+
+	// UploadTypeAppiumJavaTestngTestSpec is a UploadType enum value
+	UploadTypeAppiumJavaTestngTestSpec = "APPIUM_JAVA_TESTNG_TEST_SPEC"
+
+	// UploadTypeAppiumPythonTestSpec is a UploadType enum value
+	UploadTypeAppiumPythonTestSpec = "APPIUM_PYTHON_TEST_SPEC"
+
+	// UploadTypeAppiumWebJavaJunitTestSpec is a UploadType enum value
+	UploadTypeAppiumWebJavaJunitTestSpec = "APPIUM_WEB_JAVA_JUNIT_TEST_SPEC"
+
+	// UploadTypeAppiumWebJavaTestngTestSpec is a UploadType enum value
+	UploadTypeAppiumWebJavaTestngTestSpec = "APPIUM_WEB_JAVA_TESTNG_TEST_SPEC"
+
+	// UploadTypeAppiumWebPythonTestSpec is a UploadType enum value
+	UploadTypeAppiumWebPythonTestSpec = "APPIUM_WEB_PYTHON_TEST_SPEC"
+
+	// UploadTypeInstrumentationTestSpec is a UploadType enum value
+	UploadTypeInstrumentationTestSpec = "INSTRUMENTATION_TEST_SPEC"
+
+	// UploadTypeXctestUiTestSpec is a UploadType enum value
+	UploadTypeXctestUiTestSpec = "XCTEST_UI_TEST_SPEC"
 )

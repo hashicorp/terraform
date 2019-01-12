@@ -3,6 +3,7 @@
 package elasticache
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -17,7 +18,7 @@ const opAddTagsToResource = "AddTagsToResource"
 // AddTagsToResourceRequest generates a "aws/request.Request" representing the
 // client's request for the AddTagsToResource operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -65,7 +66,7 @@ func (c *ElastiCache) AddTagsToResourceRequest(input *AddTagsToResourceInput) (r
 // by your tags. You can apply tags that represent business categories (such
 // as cost centers, application names, or owners) to organize your costs across
 // multiple services. For more information, see Using Cost Allocation Tags in
-// Amazon ElastiCache (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/Tagging.html)
+// Amazon ElastiCache (http://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/Tagging.html)
 // in the ElastiCache User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -117,7 +118,7 @@ const opAuthorizeCacheSecurityGroupIngress = "AuthorizeCacheSecurityGroupIngress
 // AuthorizeCacheSecurityGroupIngressRequest generates a "aws/request.Request" representing the
 // client's request for the AuthorizeCacheSecurityGroupIngress operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -215,7 +216,7 @@ const opCopySnapshot = "CopySnapshot"
 // CopySnapshotRequest generates a "aws/request.Request" representing the
 // client's request for the CopySnapshot operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -262,8 +263,8 @@ func (c *ElastiCache) CopySnapshotRequest(input *CopySnapshotInput) (req *reques
 // create their own Amazon S3 buckets and copy snapshots to it. To control access
 // to your snapshots, use an IAM policy to control who has the ability to use
 // the CopySnapshot operation. For more information about using IAM to control
-// the use of ElastiCache operations, see Exporting Snapshots (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/Snapshots.Exporting.html)
-// and Authentication & Access Control (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/IAM.html).
+// the use of ElastiCache operations, see Exporting Snapshots (http://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/Snapshots.Exporting.html)
+// and Authentication & Access Control (http://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/IAM.html).
 //
 // You could receive the following error messages.
 //
@@ -272,19 +273,19 @@ func (c *ElastiCache) CopySnapshotRequest(input *CopySnapshotInput) (req *reques
 //    * Error Message: The S3 bucket %s is outside of the region.
 //
 // Solution: Create an Amazon S3 bucket in the same region as your snapshot.
-//    For more information, see Step 1: Create an Amazon S3 Bucket (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/Snapshots.Exporting.html#Snapshots.Exporting.CreateBucket)
+//    For more information, see Step 1: Create an Amazon S3 Bucket (http://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/Snapshots.Exporting.html#Snapshots.Exporting.CreateBucket)
 //    in the ElastiCache User Guide.
 //
 //    * Error Message: The S3 bucket %s does not exist.
 //
 // Solution: Create an Amazon S3 bucket in the same region as your snapshot.
-//    For more information, see Step 1: Create an Amazon S3 Bucket (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/Snapshots.Exporting.html#Snapshots.Exporting.CreateBucket)
+//    For more information, see Step 1: Create an Amazon S3 Bucket (http://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/Snapshots.Exporting.html#Snapshots.Exporting.CreateBucket)
 //    in the ElastiCache User Guide.
 //
 //    * Error Message: The S3 bucket %s is not owned by the authenticated user.
 //
 // Solution: Create an Amazon S3 bucket in the same region as your snapshot.
-//    For more information, see Step 1: Create an Amazon S3 Bucket (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/Snapshots.Exporting.html#Snapshots.Exporting.CreateBucket)
+//    For more information, see Step 1: Create an Amazon S3 Bucket (http://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/Snapshots.Exporting.html#Snapshots.Exporting.CreateBucket)
 //    in the ElastiCache User Guide.
 //
 //    * Error Message: The authenticated user does not have sufficient permissions
@@ -303,21 +304,21 @@ func (c *ElastiCache) CopySnapshotRequest(input *CopySnapshotInput) (req *reques
 //    on the S3 Bucket.
 //
 // Solution: Add List and Read permissions on the bucket. For more information,
-//    see Step 2: Grant ElastiCache Access to Your Amazon S3 Bucket (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/Snapshots.Exporting.html#Snapshots.Exporting.GrantAccess)
+//    see Step 2: Grant ElastiCache Access to Your Amazon S3 Bucket (http://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/Snapshots.Exporting.html#Snapshots.Exporting.GrantAccess)
 //    in the ElastiCache User Guide.
 //
 //    * Error Message:  ElastiCache has not been granted WRITE permissions %s
 //    on the S3 Bucket.
 //
 // Solution: Add Upload/Delete permissions on the bucket. For more information,
-//    see Step 2: Grant ElastiCache Access to Your Amazon S3 Bucket (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/Snapshots.Exporting.html#Snapshots.Exporting.GrantAccess)
+//    see Step 2: Grant ElastiCache Access to Your Amazon S3 Bucket (http://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/Snapshots.Exporting.html#Snapshots.Exporting.GrantAccess)
 //    in the ElastiCache User Guide.
 //
 //    * Error Message:  ElastiCache has not been granted READ_ACP permissions
 //    %s on the S3 Bucket.
 //
 // Solution: Add View Permissions on the bucket. For more information, see Step
-//    2: Grant ElastiCache Access to Your Amazon S3 Bucket (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/Snapshots.Exporting.html#Snapshots.Exporting.GrantAccess)
+//    2: Grant ElastiCache Access to Your Amazon S3 Bucket (http://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/Snapshots.Exporting.html#Snapshots.Exporting.GrantAccess)
 //    in the ElastiCache User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -375,7 +376,7 @@ const opCreateCacheCluster = "CreateCacheCluster"
 // CreateCacheClusterRequest generates a "aws/request.Request" representing the
 // client's request for the CreateCacheCluster operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -417,9 +418,7 @@ func (c *ElastiCache) CreateCacheClusterRequest(input *CreateCacheClusterInput) 
 // Creates a cluster. All nodes in the cluster run the same protocol-compliant
 // cache engine software, either Memcached or Redis.
 //
-// Due to current limitations on Redis (cluster mode disabled), this operation
-// or parameter is not supported on Redis (cluster mode enabled) replication
-// groups.
+// This operation is not supported for Redis (cluster mode enabled) clusters.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -507,7 +506,7 @@ const opCreateCacheParameterGroup = "CreateCacheParameterGroup"
 // CreateCacheParameterGroupRequest generates a "aws/request.Request" representing the
 // client's request for the CreateCacheParameterGroup operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -558,7 +557,7 @@ func (c *ElastiCache) CreateCacheParameterGroupRequest(input *CreateCacheParamet
 //    * ModifyCacheParameterGroup (http://docs.aws.amazon.com/AmazonElastiCache/latest/APIReference/API_ModifyCacheParameterGroup.html)
 //    in the ElastiCache API Reference.
 //
-//    * Parameters and Parameter Groups (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/ParameterGroups.html)
+//    * Parameters and Parameter Groups (http://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/ParameterGroups.html)
 //    in the ElastiCache User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -613,7 +612,7 @@ const opCreateCacheSecurityGroup = "CreateCacheSecurityGroup"
 // CreateCacheSecurityGroupRequest generates a "aws/request.Request" representing the
 // client's request for the CreateCacheSecurityGroup operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -708,7 +707,7 @@ const opCreateCacheSubnetGroup = "CreateCacheSubnetGroup"
 // CreateCacheSubnetGroupRequest generates a "aws/request.Request" representing the
 // client's request for the CreateCacheSubnetGroup operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -802,7 +801,7 @@ const opCreateReplicationGroup = "CreateReplicationGroup"
 // CreateReplicationGroupRequest generates a "aws/request.Request" representing the
 // client's request for the CreateReplicationGroup operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -860,7 +859,7 @@ func (c *ElastiCache) CreateReplicationGroupRequest(input *CreateReplicationGrou
 // group after it has been created. However, if you need to increase or decrease
 // the number of node groups (console: shards), you can avail yourself of ElastiCache
 // for Redis' enhanced backup and restore. For more information, see Restoring
-// From a Backup with Cluster Resizing (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/backups-restoring.html)
+// From a Backup with Cluster Resizing (http://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/backups-restoring.html)
 // in the ElastiCache User Guide.
 //
 // This operation is valid for Redis only.
@@ -956,7 +955,7 @@ const opCreateSnapshot = "CreateSnapshot"
 // CreateSnapshotRequest generates a "aws/request.Request" representing the
 // client's request for the CreateSnapshot operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1066,12 +1065,132 @@ func (c *ElastiCache) CreateSnapshotWithContext(ctx aws.Context, input *CreateSn
 	return out, req.Send()
 }
 
+const opDecreaseReplicaCount = "DecreaseReplicaCount"
+
+// DecreaseReplicaCountRequest generates a "aws/request.Request" representing the
+// client's request for the DecreaseReplicaCount operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DecreaseReplicaCount for more information on using the DecreaseReplicaCount
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DecreaseReplicaCountRequest method.
+//    req, resp := client.DecreaseReplicaCountRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/DecreaseReplicaCount
+func (c *ElastiCache) DecreaseReplicaCountRequest(input *DecreaseReplicaCountInput) (req *request.Request, output *DecreaseReplicaCountOutput) {
+	op := &request.Operation{
+		Name:       opDecreaseReplicaCount,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DecreaseReplicaCountInput{}
+	}
+
+	output = &DecreaseReplicaCountOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DecreaseReplicaCount API operation for Amazon ElastiCache.
+//
+// Dynamically decreases the number of replics in a Redis (cluster mode disabled)
+// replication group or the number of replica nodes in one or more node groups
+// (shards) of a Redis (cluster mode enabled) replication group. This operation
+// is performed with no cluster down time.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon ElastiCache's
+// API operation DecreaseReplicaCount for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeReplicationGroupNotFoundFault "ReplicationGroupNotFoundFault"
+//   The specified replication group does not exist.
+//
+//   * ErrCodeInvalidReplicationGroupStateFault "InvalidReplicationGroupState"
+//   The requested replication group is not in the available state.
+//
+//   * ErrCodeInvalidCacheClusterStateFault "InvalidCacheClusterState"
+//   The requested cluster is not in the available state.
+//
+//   * ErrCodeInvalidVPCNetworkStateFault "InvalidVPCNetworkStateFault"
+//   The VPC network is in an invalid state.
+//
+//   * ErrCodeInsufficientCacheClusterCapacityFault "InsufficientCacheClusterCapacity"
+//   The requested cache node type is not available in the specified Availability
+//   Zone.
+//
+//   * ErrCodeClusterQuotaForCustomerExceededFault "ClusterQuotaForCustomerExceeded"
+//   The request cannot be processed because it would exceed the allowed number
+//   of clusters per customer.
+//
+//   * ErrCodeNodeGroupsPerReplicationGroupQuotaExceededFault "NodeGroupsPerReplicationGroupQuotaExceeded"
+//   The request cannot be processed because it would exceed the maximum allowed
+//   number of node groups (shards) in a single replication group. The default
+//   maximum is 15
+//
+//   * ErrCodeNodeQuotaForCustomerExceededFault "NodeQuotaForCustomerExceeded"
+//   The request cannot be processed because it would exceed the allowed number
+//   of cache nodes per customer.
+//
+//   * ErrCodeServiceLinkedRoleNotFoundFault "ServiceLinkedRoleNotFoundFault"
+//   The specified service linked role (SLR) was not found.
+//
+//   * ErrCodeNoOperationFault "NoOperationFault"
+//   The operation was not performed because no changes were required.
+//
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValue"
+//   The value for a parameter is invalid.
+//
+//   * ErrCodeInvalidParameterCombinationException "InvalidParameterCombination"
+//   Two or more incompatible parameters were specified.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/DecreaseReplicaCount
+func (c *ElastiCache) DecreaseReplicaCount(input *DecreaseReplicaCountInput) (*DecreaseReplicaCountOutput, error) {
+	req, out := c.DecreaseReplicaCountRequest(input)
+	return out, req.Send()
+}
+
+// DecreaseReplicaCountWithContext is the same as DecreaseReplicaCount with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DecreaseReplicaCount for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) DecreaseReplicaCountWithContext(ctx aws.Context, input *DecreaseReplicaCountInput, opts ...request.Option) (*DecreaseReplicaCountOutput, error) {
+	req, out := c.DecreaseReplicaCountRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDeleteCacheCluster = "DeleteCacheCluster"
 
 // DeleteCacheClusterRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteCacheCluster operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1119,9 +1238,7 @@ func (c *ElastiCache) DeleteCacheClusterRequest(input *DeleteCacheClusterInput) 
 // of a replication group or node group (shard) that has Multi-AZ mode enabled
 // or a cluster from a Redis (cluster mode enabled) replication group.
 //
-// Due to current limitations on Redis (cluster mode disabled), this operation
-// or parameter is not supported on Redis (cluster mode enabled) replication
-// groups.
+// This operation is not valid for Redis (cluster mode enabled) clusters.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1188,7 +1305,7 @@ const opDeleteCacheParameterGroup = "DeleteCacheParameterGroup"
 // DeleteCacheParameterGroupRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteCacheParameterGroup operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1222,8 +1339,7 @@ func (c *ElastiCache) DeleteCacheParameterGroupRequest(input *DeleteCacheParamet
 
 	output = &DeleteCacheParameterGroupOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1281,7 +1397,7 @@ const opDeleteCacheSecurityGroup = "DeleteCacheSecurityGroup"
 // DeleteCacheSecurityGroupRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteCacheSecurityGroup operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1315,8 +1431,7 @@ func (c *ElastiCache) DeleteCacheSecurityGroupRequest(input *DeleteCacheSecurity
 
 	output = &DeleteCacheSecurityGroupOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1374,7 +1489,7 @@ const opDeleteCacheSubnetGroup = "DeleteCacheSubnetGroup"
 // DeleteCacheSubnetGroupRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteCacheSubnetGroup operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1408,8 +1523,7 @@ func (c *ElastiCache) DeleteCacheSubnetGroupRequest(input *DeleteCacheSubnetGrou
 
 	output = &DeleteCacheSubnetGroupOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1461,7 +1575,7 @@ const opDeleteReplicationGroup = "DeleteReplicationGroup"
 // DeleteReplicationGroupRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteReplicationGroup operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1577,7 +1691,7 @@ const opDeleteSnapshot = "DeleteSnapshot"
 // DeleteSnapshotRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteSnapshot operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1670,7 +1784,7 @@ const opDescribeCacheClusters = "DescribeCacheClusters"
 // DescribeCacheClustersRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeCacheClusters operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1832,7 +1946,7 @@ const opDescribeCacheEngineVersions = "DescribeCacheEngineVersions"
 // DescribeCacheEngineVersionsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeCacheEngineVersions operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1962,7 +2076,7 @@ const opDescribeCacheParameterGroups = "DescribeCacheParameterGroups"
 // DescribeCacheParameterGroupsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeCacheParameterGroups operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2106,7 +2220,7 @@ const opDescribeCacheParameters = "DescribeCacheParameters"
 // DescribeCacheParametersRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeCacheParameters operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2248,7 +2362,7 @@ const opDescribeCacheSecurityGroups = "DescribeCacheSecurityGroups"
 // DescribeCacheSecurityGroupsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeCacheSecurityGroups operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2391,7 +2505,7 @@ const opDescribeCacheSubnetGroups = "DescribeCacheSubnetGroups"
 // DescribeCacheSubnetGroupsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeCacheSubnetGroups operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2528,7 +2642,7 @@ const opDescribeEngineDefaultParameters = "DescribeEngineDefaultParameters"
 // DescribeEngineDefaultParametersRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeEngineDefaultParameters operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2667,7 +2781,7 @@ const opDescribeEvents = "DescribeEvents"
 // DescribeEventsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeEvents operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2810,7 +2924,7 @@ const opDescribeReplicationGroups = "DescribeReplicationGroups"
 // DescribeReplicationGroupsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeReplicationGroups operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2955,7 +3069,7 @@ const opDescribeReservedCacheNodes = "DescribeReservedCacheNodes"
 // DescribeReservedCacheNodesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeReservedCacheNodes operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3097,7 +3211,7 @@ const opDescribeReservedCacheNodesOfferings = "DescribeReservedCacheNodesOfferin
 // DescribeReservedCacheNodesOfferingsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeReservedCacheNodesOfferings operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3238,7 +3352,7 @@ const opDescribeSnapshots = "DescribeSnapshots"
 // DescribeSnapshotsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeSnapshots operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3382,12 +3496,129 @@ func (c *ElastiCache) DescribeSnapshotsPagesWithContext(ctx aws.Context, input *
 	return p.Err()
 }
 
+const opIncreaseReplicaCount = "IncreaseReplicaCount"
+
+// IncreaseReplicaCountRequest generates a "aws/request.Request" representing the
+// client's request for the IncreaseReplicaCount operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See IncreaseReplicaCount for more information on using the IncreaseReplicaCount
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the IncreaseReplicaCountRequest method.
+//    req, resp := client.IncreaseReplicaCountRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/IncreaseReplicaCount
+func (c *ElastiCache) IncreaseReplicaCountRequest(input *IncreaseReplicaCountInput) (req *request.Request, output *IncreaseReplicaCountOutput) {
+	op := &request.Operation{
+		Name:       opIncreaseReplicaCount,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &IncreaseReplicaCountInput{}
+	}
+
+	output = &IncreaseReplicaCountOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// IncreaseReplicaCount API operation for Amazon ElastiCache.
+//
+// Dynamically increases the number of replics in a Redis (cluster mode disabled)
+// replication group or the number of replica nodes in one or more node groups
+// (shards) of a Redis (cluster mode enabled) replication group. This operation
+// is performed with no cluster down time.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon ElastiCache's
+// API operation IncreaseReplicaCount for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeReplicationGroupNotFoundFault "ReplicationGroupNotFoundFault"
+//   The specified replication group does not exist.
+//
+//   * ErrCodeInvalidReplicationGroupStateFault "InvalidReplicationGroupState"
+//   The requested replication group is not in the available state.
+//
+//   * ErrCodeInvalidCacheClusterStateFault "InvalidCacheClusterState"
+//   The requested cluster is not in the available state.
+//
+//   * ErrCodeInvalidVPCNetworkStateFault "InvalidVPCNetworkStateFault"
+//   The VPC network is in an invalid state.
+//
+//   * ErrCodeInsufficientCacheClusterCapacityFault "InsufficientCacheClusterCapacity"
+//   The requested cache node type is not available in the specified Availability
+//   Zone.
+//
+//   * ErrCodeClusterQuotaForCustomerExceededFault "ClusterQuotaForCustomerExceeded"
+//   The request cannot be processed because it would exceed the allowed number
+//   of clusters per customer.
+//
+//   * ErrCodeNodeGroupsPerReplicationGroupQuotaExceededFault "NodeGroupsPerReplicationGroupQuotaExceeded"
+//   The request cannot be processed because it would exceed the maximum allowed
+//   number of node groups (shards) in a single replication group. The default
+//   maximum is 15
+//
+//   * ErrCodeNodeQuotaForCustomerExceededFault "NodeQuotaForCustomerExceeded"
+//   The request cannot be processed because it would exceed the allowed number
+//   of cache nodes per customer.
+//
+//   * ErrCodeNoOperationFault "NoOperationFault"
+//   The operation was not performed because no changes were required.
+//
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValue"
+//   The value for a parameter is invalid.
+//
+//   * ErrCodeInvalidParameterCombinationException "InvalidParameterCombination"
+//   Two or more incompatible parameters were specified.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/IncreaseReplicaCount
+func (c *ElastiCache) IncreaseReplicaCount(input *IncreaseReplicaCountInput) (*IncreaseReplicaCountOutput, error) {
+	req, out := c.IncreaseReplicaCountRequest(input)
+	return out, req.Send()
+}
+
+// IncreaseReplicaCountWithContext is the same as IncreaseReplicaCount with the addition of
+// the ability to pass a context and additional request options.
+//
+// See IncreaseReplicaCount for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) IncreaseReplicaCountWithContext(ctx aws.Context, input *IncreaseReplicaCountInput, opts ...request.Option) (*IncreaseReplicaCountOutput, error) {
+	req, out := c.IncreaseReplicaCountRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opListAllowedNodeTypeModifications = "ListAllowedNodeTypeModifications"
 
 // ListAllowedNodeTypeModificationsRequest generates a "aws/request.Request" representing the
 // client's request for the ListAllowedNodeTypeModifications operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3480,7 +3711,7 @@ const opListTagsForResource = "ListTagsForResource"
 // ListTagsForResourceRequest generates a "aws/request.Request" representing the
 // client's request for the ListTagsForResource operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3524,9 +3755,11 @@ func (c *ElastiCache) ListTagsForResourceRequest(input *ListTagsForResourceInput
 // optional. You can use cost allocation tags to categorize and track your AWS
 // costs.
 //
+// If the cluster is not in the available state, ListTagsForResource returns
+// an error.
+//
 // You can have a maximum of 50 cost allocation tags on an ElastiCache resource.
-// For more information, see Using Cost Allocation Tags in Amazon ElastiCache
-// (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/BestPractices.html).
+// For more information, see Monitoring Costs with Tags (http://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/Tagging.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3572,7 +3805,7 @@ const opModifyCacheCluster = "ModifyCacheCluster"
 // ModifyCacheClusterRequest generates a "aws/request.Request" representing the
 // client's request for the ModifyCacheCluster operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3688,7 +3921,7 @@ const opModifyCacheParameterGroup = "ModifyCacheParameterGroup"
 // ModifyCacheParameterGroupRequest generates a "aws/request.Request" representing the
 // client's request for the ModifyCacheParameterGroup operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3780,7 +4013,7 @@ const opModifyCacheSubnetGroup = "ModifyCacheSubnetGroup"
 // ModifyCacheSubnetGroupRequest generates a "aws/request.Request" representing the
 // client's request for the ModifyCacheSubnetGroup operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3870,7 +4103,7 @@ const opModifyReplicationGroup = "ModifyReplicationGroup"
 // ModifyReplicationGroupRequest generates a "aws/request.Request" representing the
 // client's request for the ModifyReplicationGroup operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3911,9 +4144,16 @@ func (c *ElastiCache) ModifyReplicationGroupRequest(input *ModifyReplicationGrou
 //
 // Modifies the settings for a replication group.
 //
-// Due to current limitations on Redis (cluster mode disabled), this operation
-// or parameter is not supported on Redis (cluster mode enabled) replication
-// groups.
+// For Redis (cluster mode enabled) clusters, this operation cannot be used
+// to change a cluster's node type or engine version. For more information,
+// see:
+//
+//    * Scaling for Amazon ElastiCache for Redis—Redis (cluster mode enabled)
+//    (http://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/scaling-redis-cluster-mode-enabled.html)
+//    in the ElastiCache User Guide
+//
+//    * ModifyReplicationGroupShardConfiguration (http://docs.aws.amazon.com/AmazonElastiCache/latest/APIReference/API_ModifyReplicationGroupShardConfiguration.html)
+//    in the ElastiCache API Reference
 //
 // This operation is valid for Redis only.
 //
@@ -3996,7 +4236,7 @@ const opModifyReplicationGroupShardConfiguration = "ModifyReplicationGroupShardC
 // ModifyReplicationGroupShardConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the ModifyReplicationGroupShardConfiguration operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4035,14 +4275,8 @@ func (c *ElastiCache) ModifyReplicationGroupShardConfigurationRequest(input *Mod
 
 // ModifyReplicationGroupShardConfiguration API operation for Amazon ElastiCache.
 //
-// Performs horizontal scaling on a Redis (cluster mode enabled) cluster with
-// no downtime. Requires Redis engine version 3.2.10 or newer. For information
-// on upgrading your engine to a newer version, see Upgrading Engine Versions
-// (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/VersionManagement.html)
-// in the Amazon ElastiCache User Guide.
-//
-// For more information on ElastiCache for Redis online horizontal scaling,
-// see ElastiCache for Redis Horizontal Scaling (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/redis-cluster-resharding-online.html)
+// Modifies a replication group's shards (node groups) by allowing you to add
+// shards, remove shards, or rebalance the keyspaces among exisiting shards.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -4110,7 +4344,7 @@ const opPurchaseReservedCacheNodesOffering = "PurchaseReservedCacheNodesOffering
 // PurchaseReservedCacheNodesOfferingRequest generates a "aws/request.Request" representing the
 // client's request for the PurchaseReservedCacheNodesOffering operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4202,7 +4436,7 @@ const opRebootCacheCluster = "RebootCacheCluster"
 // RebootCacheClusterRequest generates a "aws/request.Request" representing the
 // client's request for the RebootCacheCluster operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4256,7 +4490,7 @@ func (c *ElastiCache) RebootCacheClusterRequest(input *RebootCacheClusterInput) 
 // enabled) clusters.
 //
 // If you make changes to parameters that require a Redis (cluster mode enabled)
-// cluster reboot for the changes to be applied, see Rebooting a Cluster (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/Clusters.Rebooting.htm)
+// cluster reboot for the changes to be applied, see Rebooting a Cluster (http://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/Clusters.Rebooting.html)
 // for an alternate process.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -4300,7 +4534,7 @@ const opRemoveTagsFromResource = "RemoveTagsFromResource"
 // RemoveTagsFromResourceRequest generates a "aws/request.Request" representing the
 // client's request for the RemoveTagsFromResource operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4388,7 +4622,7 @@ const opResetCacheParameterGroup = "ResetCacheParameterGroup"
 // ResetCacheParameterGroupRequest generates a "aws/request.Request" representing the
 // client's request for the ResetCacheParameterGroup operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4481,7 +4715,7 @@ const opRevokeCacheSecurityGroupIngress = "RevokeCacheSecurityGroupIngress"
 // RevokeCacheSecurityGroupIngressRequest generates a "aws/request.Request" representing the
 // client's request for the RevokeCacheSecurityGroupIngress operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4575,7 +4809,7 @@ const opTestFailover = "TestFailover"
 // TestFailoverRequest generates a "aws/request.Request" representing the
 // client's request for the TestFailover operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4650,13 +4884,13 @@ func (c *ElastiCache) TestFailoverRequest(input *TestFailoverInput) (req *reques
 //
 // For more information see:
 //
-// Viewing ElastiCache Events (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/ECEvents.Viewing.html)
+// Viewing ElastiCache Events (http://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/ECEvents.Viewing.html)
 //    in the ElastiCache User Guide
 //
 // DescribeEvents (http://docs.aws.amazon.com/AmazonElastiCache/latest/APIReference/API_DescribeEvents.html)
 //    in the ElastiCache API Reference
 //
-// Also see, Testing Multi-AZ with Automatic Failover (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/AutoFailover.html#auto-failover-test)
+// Also see, Testing Multi-AZ with Automatic Failover (http://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/AutoFailover.html#auto-failover-test)
 // in the ElastiCache User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -4685,6 +4919,7 @@ func (c *ElastiCache) TestFailoverRequest(input *TestFailoverInput) (req *reques
 //   The specified replication group does not exist.
 //
 //   * ErrCodeTestFailoverNotAvailableFault "TestFailoverNotAvailableFault"
+//   The TestFailover action is not available.
 //
 //   * ErrCodeInvalidParameterValueException "InvalidParameterValue"
 //   The value for a parameter is invalid.
@@ -4907,6 +5142,9 @@ type CacheCluster struct {
 	// is created. To enable at-rest encryption on a cluster you must set AtRestEncryptionEnabled
 	// to true when you create a cluster.
 	//
+	// Required: Only available when creating a replication group in an Amazon VPC
+	// using redis version 3.2.6 or 4.x.
+	//
 	// Default: false
 	AtRestEncryptionEnabled *bool `type:"boolean"`
 
@@ -4966,6 +5204,9 @@ type CacheCluster struct {
 	// R3 node types:cache.r3.large, cache.r3.xlarge, cache.r3.2xlarge, cache.r3.4xlarge,
 	//    cache.r3.8xlarge
 	//
+	// R4 node types;cache.r4.large, cache.r4.xlarge, cache.r4.2xlarge, cache.r4.4xlarge,
+	//    cache.r4.8xlarge, cache.r4.16xlarge
+	//
 	// Previous generation: (not recommended)
 	//
 	// M2 node types:cache.m2.xlarge, cache.m2.2xlarge, cache.m2.4xlarge
@@ -4984,10 +5225,13 @@ type CacheCluster struct {
 	//    * Redis Append-only files (AOF) functionality is not supported for T1
 	//    or T2 instances.
 	//
-	// For a complete listing of node types and specifications, see Amazon ElastiCache
-	// Product Features and Details (http://aws.amazon.com/elasticache/details)
-	// and either Cache Node Type-Specific Parameters for Memcached (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Memcached.html#ParameterGroups.Memcached.NodeSpecific)
-	// or Cache Node Type-Specific Parameters for Redis (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Redis.html#ParameterGroups.Redis.NodeSpecific).
+	// For a complete listing of node types and specifications, see:
+	//
+	//    * Amazon ElastiCache Product Features and Details (http://aws.amazon.com/elasticache/details)
+	//
+	//    * Cache Node Type-Specific Parameters for Memcached (http://docs.aws.amazon.com/AmazonElastiCache/latest/mem-ug/ParameterGroups.Memcached.html#ParameterGroups.Memcached.NodeSpecific)
+	//
+	//    * Cache Node Type-Specific Parameters for Redis (http://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/ParameterGroups.Redis.html#ParameterGroups.Redis.NodeSpecific)
 	CacheNodeType *string `type:"string"`
 
 	// A list of cache nodes that are members of the cluster.
@@ -5087,6 +5331,9 @@ type CacheCluster struct {
 	// You cannot modify the value of TransitEncryptionEnabled after the cluster
 	// is created. To enable in-transit encryption on a cluster you must set TransitEncryptionEnabled
 	// to true when you create a cluster.
+	//
+	// Required: Only available when creating a replication group in an Amazon VPC
+	// using redis version 3.2.6 or 4.x.
 	//
 	// Default: false
 	TransitEncryptionEnabled *bool `type:"boolean"`
@@ -5264,7 +5511,7 @@ type CacheEngineVersion struct {
 
 	// The name of the cache parameter group family associated with this cache engine.
 	//
-	// Valid values are: memcached1.4 | redis2.6 | redis2.8 | redis3.2
+	// Valid values are: memcached1.4 | redis2.6 | redis2.8 | redis3.2 | redis4.0
 	CacheParameterGroupFamily *string `type:"string"`
 
 	// The name of the cache engine.
@@ -5352,6 +5599,9 @@ func (s *CacheEngineVersion) SetEngineVersion(v string) *CacheEngineVersion {
 // R3 node types:cache.r3.large, cache.r3.xlarge, cache.r3.2xlarge, cache.r3.4xlarge,
 //    cache.r3.8xlarge
 //
+// R4 node types;cache.r4.large, cache.r4.xlarge, cache.r4.2xlarge, cache.r4.4xlarge,
+//    cache.r4.8xlarge, cache.r4.16xlarge
+//
 // Previous generation: (not recommended)
 //
 // M2 node types:cache.m2.xlarge, cache.m2.2xlarge, cache.m2.4xlarge
@@ -5370,10 +5620,13 @@ func (s *CacheEngineVersion) SetEngineVersion(v string) *CacheEngineVersion {
 //    * Redis Append-only files (AOF) functionality is not supported for T1
 //    or T2 instances.
 //
-// For a complete listing of node types and specifications, see Amazon ElastiCache
-// Product Features and Details (http://aws.amazon.com/elasticache/details)
-// and either Cache Node Type-Specific Parameters for Memcached (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Memcached.html#ParameterGroups.Memcached.NodeSpecific)
-// or Cache Node Type-Specific Parameters for Redis (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Redis.html#ParameterGroups.Redis.NodeSpecific).
+// For a complete listing of node types and specifications, see:
+//
+//    * Amazon ElastiCache Product Features and Details (http://aws.amazon.com/elasticache/details)
+//
+//    * Cache Node Type-Specific Parameters for Memcached (http://docs.aws.amazon.com/AmazonElastiCache/latest/mem-ug/ParameterGroups.Memcached.html#ParameterGroups.Memcached.NodeSpecific)
+//
+//    * Cache Node Type-Specific Parameters for Redis (http://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/ParameterGroups.Redis.html#ParameterGroups.Redis.NodeSpecific)
 type CacheNode struct {
 	_ struct{} `type:"structure"`
 
@@ -5469,7 +5722,7 @@ type CacheNodeTypeSpecificParameter struct {
 	// Indicates whether a change to the parameter is applied immediately or requires
 	// a reboot for the change to be applied. You can force a reboot or wait until
 	// the next maintenance window's reboot. For more information, see Rebooting
-	// a Cluster (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/Clusters.Rebooting.html).
+	// a Cluster (http://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/Clusters.Rebooting.html).
 	ChangeType *string `type:"string" enum:"ChangeType"`
 
 	// The valid data type for the parameter.
@@ -5597,7 +5850,7 @@ type CacheParameterGroup struct {
 	// The name of the cache parameter group family that this cache parameter group
 	// is compatible with.
 	//
-	// Valid values are: memcached1.4 | redis2.6 | redis2.8 | redis3.2
+	// Valid values are: memcached1.4 | redis2.6 | redis2.8 | redis3.2 | redis4.0
 	CacheParameterGroupFamily *string `type:"string"`
 
 	// The name of the cache parameter group.
@@ -5855,6 +6108,93 @@ func (s *CacheSubnetGroup) SetVpcId(v string) *CacheSubnetGroup {
 	return s
 }
 
+// Node group (shard) configuration options when adding or removing replicas.
+// Each node group (shard) configuration has the following members: NodeGroupId,
+// NewReplicaCount, and PreferredAvailabilityZones.
+type ConfigureShard struct {
+	_ struct{} `type:"structure"`
+
+	// The number of replicas you want in this node group at the end of this operation.
+	// The maximum value for NewReplicaCount is 5. The minimum value depends upon
+	// the type of Redis replication group you are working with.
+	//
+	// The minimum number of replicas in a shard or replication group is:
+	//
+	//    * Redis (cluster mode disabled)
+	//
+	// If Multi-AZ with Automatic Failover is enabled: 1
+	//
+	// If Multi-AZ with Automatic Failover is not enable: 0
+	//
+	//    * Redis (cluster mode enabled): 0 (though you will not be able to failover
+	//    to a replica if your primary node fails)
+	//
+	// NewReplicaCount is a required field
+	NewReplicaCount *int64 `type:"integer" required:"true"`
+
+	// The 4-digit id for the node group you are configuring. For Redis (cluster
+	// mode disabled) replication groups, the node group id is always 0001. To find
+	// a Redis (cluster mode enabled)'s node group's (shard's) id, see Finding a
+	// Shard's Id (http://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/shard-find-id.html).
+	//
+	// NodeGroupId is a required field
+	NodeGroupId *string `min:"1" type:"string" required:"true"`
+
+	// A list of PreferredAvailabilityZone strings that specify which availability
+	// zones the replication group's nodes are to be in. The nummber of PreferredAvailabilityZone
+	// values must equal the value of NewReplicaCount plus 1 to account for the
+	// primary node. If this member of ReplicaConfiguration is omitted, ElastiCache
+	// for Redis selects the availability zone for each of the replicas.
+	PreferredAvailabilityZones []*string `locationNameList:"PreferredAvailabilityZone" type:"list"`
+}
+
+// String returns the string representation
+func (s ConfigureShard) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ConfigureShard) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ConfigureShard) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ConfigureShard"}
+	if s.NewReplicaCount == nil {
+		invalidParams.Add(request.NewErrParamRequired("NewReplicaCount"))
+	}
+	if s.NodeGroupId == nil {
+		invalidParams.Add(request.NewErrParamRequired("NodeGroupId"))
+	}
+	if s.NodeGroupId != nil && len(*s.NodeGroupId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NodeGroupId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetNewReplicaCount sets the NewReplicaCount field's value.
+func (s *ConfigureShard) SetNewReplicaCount(v int64) *ConfigureShard {
+	s.NewReplicaCount = &v
+	return s
+}
+
+// SetNodeGroupId sets the NodeGroupId field's value.
+func (s *ConfigureShard) SetNodeGroupId(v string) *ConfigureShard {
+	s.NodeGroupId = &v
+	return s
+}
+
+// SetPreferredAvailabilityZones sets the PreferredAvailabilityZones field's value.
+func (s *ConfigureShard) SetPreferredAvailabilityZones(v []*string) *ConfigureShard {
+	s.PreferredAvailabilityZones = v
+	return s
+}
+
 // Represents the input of a CopySnapshotMessage operation.
 type CopySnapshotInput struct {
 	_ struct{} `type:"structure"`
@@ -5869,10 +6209,10 @@ type CopySnapshotInput struct {
 	//
 	// When using this parameter to export a snapshot, be sure Amazon ElastiCache
 	// has the needed permissions to this S3 bucket. For more information, see Step
-	// 2: Grant ElastiCache Access to Your Amazon S3 Bucket (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/Snapshots.Exporting.html#Snapshots.Exporting.GrantAccess)
+	// 2: Grant ElastiCache Access to Your Amazon S3 Bucket (http://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/Snapshots.Exporting.html#Snapshots.Exporting.GrantAccess)
 	// in the Amazon ElastiCache User Guide.
 	//
-	// For more information, see Exporting a Snapshot (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/Snapshots.Exporting.html)
+	// For more information, see Exporting a Snapshot (http://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/Snapshots.Exporting.html)
 	// in the Amazon ElastiCache User Guide.
 	TargetBucket *string `type:"string"`
 
@@ -5968,13 +6308,6 @@ type CreateCacheClusterInput struct {
 
 	// Reserved parameter. The password used to access a password protected server.
 	//
-	// This parameter is valid only if:
-	//
-	//    * The parameter TransitEncryptionEnabled was set to true when the cluster
-	//    was created.
-	//
-	//    * The line requirepass was added to the database configuration file.
-	//
 	// Password constraints:
 	//
 	//    * Must be only printable ASCII characters.
@@ -6040,6 +6373,9 @@ type CreateCacheClusterInput struct {
 	// R3 node types:cache.r3.large, cache.r3.xlarge, cache.r3.2xlarge, cache.r3.4xlarge,
 	//    cache.r3.8xlarge
 	//
+	// R4 node types;cache.r4.large, cache.r4.xlarge, cache.r4.2xlarge, cache.r4.4xlarge,
+	//    cache.r4.8xlarge, cache.r4.16xlarge
+	//
 	// Previous generation: (not recommended)
 	//
 	// M2 node types:cache.m2.xlarge, cache.m2.2xlarge, cache.m2.4xlarge
@@ -6058,10 +6394,13 @@ type CreateCacheClusterInput struct {
 	//    * Redis Append-only files (AOF) functionality is not supported for T1
 	//    or T2 instances.
 	//
-	// For a complete listing of node types and specifications, see Amazon ElastiCache
-	// Product Features and Details (http://aws.amazon.com/elasticache/details)
-	// and either Cache Node Type-Specific Parameters for Memcached (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Memcached.html#ParameterGroups.Memcached.NodeSpecific)
-	// or Cache Node Type-Specific Parameters for Redis (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Redis.html#ParameterGroups.Redis.NodeSpecific).
+	// For a complete listing of node types and specifications, see:
+	//
+	//    * Amazon ElastiCache Product Features and Details (http://aws.amazon.com/elasticache/details)
+	//
+	//    * Cache Node Type-Specific Parameters for Memcached (http://docs.aws.amazon.com/AmazonElastiCache/latest/mem-ug/ParameterGroups.Memcached.html#ParameterGroups.Memcached.NodeSpecific)
+	//
+	//    * Cache Node Type-Specific Parameters for Redis (http://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/ParameterGroups.Redis.html#ParameterGroups.Redis.NodeSpecific)
 	CacheNodeType *string `type:"string"`
 
 	// The name of the parameter group to associate with this cluster. If this argument
@@ -6083,7 +6422,7 @@ type CreateCacheClusterInput struct {
 	//
 	// If you're going to launch your cluster in an Amazon VPC, you need to create
 	// a subnet group before you start creating a cluster. For more information,
-	// see Subnets and Subnet Groups (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/SubnetGroups.html).
+	// see Subnets and Subnet Groups (http://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/SubnetGroups.html).
 	CacheSubnetGroupName *string `type:"string"`
 
 	// The name of the cache engine to be used for this cluster.
@@ -6096,7 +6435,7 @@ type CreateCacheClusterInput struct {
 	// operation.
 	//
 	// Important: You can upgrade to a newer engine version (see Selecting a Cache
-	// Engine and Version (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/SelectEngine.html#VersionManagement)),
+	// Engine and Version (http://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/SelectEngine.html#VersionManagement)),
 	// but you cannot downgrade to an earlier engine version. If you want to use
 	// an earlier engine version, you must delete the existing cluster or replication
 	// group and create it anew with the earlier engine version.
@@ -6175,10 +6514,6 @@ type CreateCacheClusterInput struct {
 	// Example: sun:23:00-mon:01:30
 	PreferredMaintenanceWindow *string `type:"string"`
 
-	// Due to current limitations on Redis (cluster mode disabled), this operation
-	// or parameter is not supported on Redis (cluster mode enabled) replication
-	// groups.
-	//
 	// The ID of the replication group to which this cluster should belong. If this
 	// parameter is specified, the cluster is added to the specified replication
 	// group as a read replica; otherwise, the cluster is a standalone primary that
@@ -6220,7 +6555,7 @@ type CreateCacheClusterInput struct {
 	//
 	// This parameter is only valid if the Engine parameter is redis.
 	//
-	// Default: 0 (i.e., automatic backups are disabled for this cluster).
+	// Default: 0 (i.e., automatic backups are disabled for this cache cluster).
 	SnapshotRetentionLimit *int64 `type:"integer"`
 
 	// The daily time range (in UTC) during which ElastiCache begins taking a daily
@@ -6429,7 +6764,7 @@ type CreateCacheParameterGroupInput struct {
 	// The name of the cache parameter group family that the cache parameter group
 	// can be used with.
 	//
-	// Valid values are: memcached1.4 | redis2.6 | redis2.8 | redis3.2
+	// Valid values are: memcached1.4 | redis2.6 | redis2.8 | redis3.2 | redis4.0
 	//
 	// CacheParameterGroupFamily is a required field
 	CacheParameterGroupFamily *string `type:"string" required:"true"`
@@ -6712,20 +7047,19 @@ type CreateReplicationGroupInput struct {
 	// must set AtRestEncryptionEnabled to true when you create the replication
 	// group.
 	//
-	// This parameter is valid only if the Engine parameter is redis and the cluster
-	// is being created in an Amazon VPC.
+	// Required: Only available when creating a replication group in an Amazon VPC
+	// using redis version 3.2.6 or 4.x.
 	//
 	// Default: false
 	AtRestEncryptionEnabled *bool `type:"boolean"`
 
 	// Reserved parameter. The password used to access a password protected server.
 	//
-	// This parameter is valid only if:
+	// AuthToken can be specified only on replication groups where TransitEncryptionEnabled
+	// is true.
 	//
-	//    * The parameter TransitEncryptionEnabled was set to true when the cluster
-	//    was created.
-	//
-	//    * The line requirepass was added to the database configuration file.
+	// For HIPAA compliance, you must specify TransitEncryptionEnabled as true,
+	// an AuthToken, and a CacheSubnetGroup.
 	//
 	// Password constraints:
 	//
@@ -6799,6 +7133,9 @@ type CreateReplicationGroupInput struct {
 	// R3 node types:cache.r3.large, cache.r3.xlarge, cache.r3.2xlarge, cache.r3.4xlarge,
 	//    cache.r3.8xlarge
 	//
+	// R4 node types;cache.r4.large, cache.r4.xlarge, cache.r4.2xlarge, cache.r4.4xlarge,
+	//    cache.r4.8xlarge, cache.r4.16xlarge
+	//
 	// Previous generation: (not recommended)
 	//
 	// M2 node types:cache.m2.xlarge, cache.m2.2xlarge, cache.m2.4xlarge
@@ -6817,10 +7154,13 @@ type CreateReplicationGroupInput struct {
 	//    * Redis Append-only files (AOF) functionality is not supported for T1
 	//    or T2 instances.
 	//
-	// For a complete listing of node types and specifications, see Amazon ElastiCache
-	// Product Features and Details (http://aws.amazon.com/elasticache/details)
-	// and either Cache Node Type-Specific Parameters for Memcached (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Memcached.html#ParameterGroups.Memcached.NodeSpecific)
-	// or Cache Node Type-Specific Parameters for Redis (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Redis.html#ParameterGroups.Redis.NodeSpecific).
+	// For a complete listing of node types and specifications, see:
+	//
+	//    * Amazon ElastiCache Product Features and Details (http://aws.amazon.com/elasticache/details)
+	//
+	//    * Cache Node Type-Specific Parameters for Memcached (http://docs.aws.amazon.com/AmazonElastiCache/latest/mem-ug/ParameterGroups.Memcached.html#ParameterGroups.Memcached.NodeSpecific)
+	//
+	//    * Cache Node Type-Specific Parameters for Redis (http://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/ParameterGroups.Redis.html#ParameterGroups.Redis.NodeSpecific)
 	CacheNodeType *string `type:"string"`
 
 	// The name of the parameter group to associate with this replication group.
@@ -6843,7 +7183,7 @@ type CreateReplicationGroupInput struct {
 	//
 	// If you're going to launch your cluster in an Amazon VPC, you need to create
 	// a subnet group before you start creating a cluster. For more information,
-	// see Subnets and Subnet Groups (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/SubnetGroups.html).
+	// see Subnets and Subnet Groups (http://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/SubnetGroups.html).
 	CacheSubnetGroupName *string `type:"string"`
 
 	// The name of the cache engine to be used for the clusters in this replication
@@ -6855,7 +7195,7 @@ type CreateReplicationGroupInput struct {
 	// operation.
 	//
 	// Important: You can upgrade to a newer engine version (see Selecting a Cache
-	// Engine and Version (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/SelectEngine.html#VersionManagement))
+	// Engine and Version (http://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/SelectEngine.html#VersionManagement))
 	// in the ElastiCache User Guide, but you cannot downgrade to an earlier engine
 	// version. If you want to use an earlier engine version, you must delete the
 	// existing cluster or replication group and create it anew with the earlier
@@ -6863,12 +7203,15 @@ type CreateReplicationGroupInput struct {
 	EngineVersion *string `type:"string"`
 
 	// A list of node group (shard) configuration options. Each node group (shard)
-	// configuration has the following: Slots, PrimaryAvailabilityZone, ReplicaAvailabilityZones,
-	// ReplicaCount.
+	// configuration has the following members: PrimaryAvailabilityZone, ReplicaAvailabilityZones,
+	// ReplicaCount, and Slots.
 	//
 	// If you're creating a Redis (cluster mode disabled) or a Redis (cluster mode
 	// enabled) replication group, you can use this parameter to individually configure
-	// each node group (shard), or you can omit this parameter.
+	// each node group (shard), or you can omit this parameter. However, when seeding
+	// a Redis (cluster mode enabled) cluster from a S3 rdb file, you must configure
+	// each node group (shard) using this parameter because you must specify the
+	// slots for each node group.
 	NodeGroupConfiguration []*NodeGroupConfiguration `locationNameList:"NodeGroupConfiguration" type:"list"`
 
 	// The Amazon Resource Name (ARN) of the Amazon Simple Notification Service
@@ -6887,7 +7230,7 @@ type CreateReplicationGroupInput struct {
 	// (it will default to 1), or you can explicitly set it to a value between 2
 	// and 6.
 	//
-	// The maximum permitted value for NumCacheClusters is 6 (primary plus 5 replicas).
+	// The maximum permitted value for NumCacheClusters is 6 (1 primary plus 5 replicas).
 	NumCacheClusters *int64 `type:"integer"`
 
 	// An optional parameter that specifies the number of node groups (shards) for
@@ -7014,7 +7357,7 @@ type CreateReplicationGroupInput struct {
 	SnapshotWindow *string `type:"string"`
 
 	// A list of cost allocation tags to be added to this resource. A tag is a key-value
-	// pair. A tag key does not have to be accompanied by a tag value.
+	// pair.
 	Tags []*Tag `locationNameList:"Tag" type:"list"`
 
 	// A flag that enables in-transit encryption when set to true.
@@ -7024,12 +7367,18 @@ type CreateReplicationGroupInput struct {
 	// to true when you create a cluster.
 	//
 	// This parameter is valid only if the Engine parameter is redis, the EngineVersion
-	// parameter is 3.2.4 or later, and the cluster is being created in an Amazon
+	// parameter is 3.2.6 or 4.x, and the cluster is being created in an Amazon
 	// VPC.
 	//
 	// If you enable in-transit encryption, you must also specify a value for CacheSubnetGroup.
 	//
+	// Required: Only available when creating a replication group in an Amazon VPC
+	// using redis version 3.2.6 or 4.x.
+	//
 	// Default: false
+	//
+	// For HIPAA compliance, you must specify TransitEncryptionEnabled as true,
+	// an AuthToken, and a CacheSubnetGroup.
 	TransitEncryptionEnabled *bool `type:"boolean"`
 }
 
@@ -7051,6 +7400,16 @@ func (s *CreateReplicationGroupInput) Validate() error {
 	}
 	if s.ReplicationGroupId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ReplicationGroupId"))
+	}
+	if s.NodeGroupConfiguration != nil {
+		for i, v := range s.NodeGroupConfiguration {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "NodeGroupConfiguration", i), err.(request.ErrInvalidParams))
+			}
+		}
 	}
 
 	if invalidParams.Len() > 0 {
@@ -7330,6 +7689,137 @@ func (s CreateSnapshotOutput) GoString() string {
 // SetSnapshot sets the Snapshot field's value.
 func (s *CreateSnapshotOutput) SetSnapshot(v *Snapshot) *CreateSnapshotOutput {
 	s.Snapshot = v
+	return s
+}
+
+type DecreaseReplicaCountInput struct {
+	_ struct{} `type:"structure"`
+
+	// If True, the number of replica nodes is decreased immediately. If False,
+	// the number of replica nodes is decreased during the next maintenance window.
+	//
+	// ApplyImmediately is a required field
+	ApplyImmediately *bool `type:"boolean" required:"true"`
+
+	// The number of read replica nodes you want at the completion of this operation.
+	// For Redis (cluster mode disabled) replication groups, this is the number
+	// of replica nodes in the replication group. For Redis (cluster mode enabled)
+	// replication groups, this is the number of replica nodes in each of the replication
+	// group's node groups.
+	//
+	// The minimum number of replicas in a shard or replication group is:
+	//
+	//    * Redis (cluster mode disabled)
+	//
+	// If Multi-AZ with Automatic Failover is enabled: 1
+	//
+	// If Multi-AZ with Automatic Failover is not enabled: 0
+	//
+	//    * Redis (cluster mode enabled): 0 (though you will not be able to failover
+	//    to a replica if your primary node fails)
+	NewReplicaCount *int64 `type:"integer"`
+
+	// A list of ConfigureShard objects that can be used to configure each shard
+	// in a Redis (cluster mode enabled) replication group. The ConfigureShard has
+	// three members: NewReplicaCount, NodeGroupId, and PreferredAvailabilityZones.
+	ReplicaConfiguration []*ConfigureShard `locationNameList:"ConfigureShard" type:"list"`
+
+	// A list of the node ids to remove from the replication group or node group
+	// (shard).
+	ReplicasToRemove []*string `type:"list"`
+
+	// The id of the replication group from which you want to remove replica nodes.
+	//
+	// ReplicationGroupId is a required field
+	ReplicationGroupId *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DecreaseReplicaCountInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DecreaseReplicaCountInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DecreaseReplicaCountInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DecreaseReplicaCountInput"}
+	if s.ApplyImmediately == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplyImmediately"))
+	}
+	if s.ReplicationGroupId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ReplicationGroupId"))
+	}
+	if s.ReplicaConfiguration != nil {
+		for i, v := range s.ReplicaConfiguration {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "ReplicaConfiguration", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetApplyImmediately sets the ApplyImmediately field's value.
+func (s *DecreaseReplicaCountInput) SetApplyImmediately(v bool) *DecreaseReplicaCountInput {
+	s.ApplyImmediately = &v
+	return s
+}
+
+// SetNewReplicaCount sets the NewReplicaCount field's value.
+func (s *DecreaseReplicaCountInput) SetNewReplicaCount(v int64) *DecreaseReplicaCountInput {
+	s.NewReplicaCount = &v
+	return s
+}
+
+// SetReplicaConfiguration sets the ReplicaConfiguration field's value.
+func (s *DecreaseReplicaCountInput) SetReplicaConfiguration(v []*ConfigureShard) *DecreaseReplicaCountInput {
+	s.ReplicaConfiguration = v
+	return s
+}
+
+// SetReplicasToRemove sets the ReplicasToRemove field's value.
+func (s *DecreaseReplicaCountInput) SetReplicasToRemove(v []*string) *DecreaseReplicaCountInput {
+	s.ReplicasToRemove = v
+	return s
+}
+
+// SetReplicationGroupId sets the ReplicationGroupId field's value.
+func (s *DecreaseReplicaCountInput) SetReplicationGroupId(v string) *DecreaseReplicaCountInput {
+	s.ReplicationGroupId = &v
+	return s
+}
+
+type DecreaseReplicaCountOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Contains all of the attributes of a specific Redis replication group.
+	ReplicationGroup *ReplicationGroup `type:"structure"`
+}
+
+// String returns the string representation
+func (s DecreaseReplicaCountOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DecreaseReplicaCountOutput) GoString() string {
+	return s.String()
+}
+
+// SetReplicationGroup sets the ReplicationGroup field's value.
+func (s *DecreaseReplicaCountOutput) SetReplicationGroup(v *ReplicationGroup) *DecreaseReplicaCountOutput {
+	s.ReplicationGroup = v
 	return s
 }
 
@@ -7833,7 +8323,7 @@ type DescribeCacheEngineVersionsInput struct {
 
 	// The name of a specific cache parameter group family to return details for.
 	//
-	// Valid values are: memcached1.4 | redis2.6 | redis2.8 | redis3.2
+	// Valid values are: memcached1.4 | redis2.6 | redis2.8 | redis3.2 | redis4.0
 	//
 	// Constraints:
 	//
@@ -8328,7 +8818,7 @@ type DescribeEngineDefaultParametersInput struct {
 
 	// The name of the cache parameter group family.
 	//
-	// Valid values are: memcached1.4 | redis2.6 | redis2.8 | redis3.2
+	// Valid values are: memcached1.4 | redis2.6 | redis2.8 | redis3.2 | redis4.0
 	//
 	// CacheParameterGroupFamily is a required field
 	CacheParameterGroupFamily *string `type:"string" required:"true"`
@@ -8669,6 +9159,9 @@ type DescribeReservedCacheNodesInput struct {
 	// R3 node types:cache.r3.large, cache.r3.xlarge, cache.r3.2xlarge, cache.r3.4xlarge,
 	//    cache.r3.8xlarge
 	//
+	// R4 node types;cache.r4.large, cache.r4.xlarge, cache.r4.2xlarge, cache.r4.4xlarge,
+	//    cache.r4.8xlarge, cache.r4.16xlarge
+	//
 	// Previous generation: (not recommended)
 	//
 	// M2 node types:cache.m2.xlarge, cache.m2.2xlarge, cache.m2.4xlarge
@@ -8687,10 +9180,13 @@ type DescribeReservedCacheNodesInput struct {
 	//    * Redis Append-only files (AOF) functionality is not supported for T1
 	//    or T2 instances.
 	//
-	// For a complete listing of node types and specifications, see Amazon ElastiCache
-	// Product Features and Details (http://aws.amazon.com/elasticache/details)
-	// and either Cache Node Type-Specific Parameters for Memcached (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Memcached.html#ParameterGroups.Memcached.NodeSpecific)
-	// or Cache Node Type-Specific Parameters for Redis (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Redis.html#ParameterGroups.Redis.NodeSpecific).
+	// For a complete listing of node types and specifications, see:
+	//
+	//    * Amazon ElastiCache Product Features and Details (http://aws.amazon.com/elasticache/details)
+	//
+	//    * Cache Node Type-Specific Parameters for Memcached (http://docs.aws.amazon.com/AmazonElastiCache/latest/mem-ug/ParameterGroups.Memcached.html#ParameterGroups.Memcached.NodeSpecific)
+	//
+	//    * Cache Node Type-Specific Parameters for Redis (http://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/ParameterGroups.Redis.html#ParameterGroups.Redis.NodeSpecific)
 	CacheNodeType *string `type:"string"`
 
 	// The duration filter value, specified in years or seconds. Use this parameter
@@ -8831,6 +9327,9 @@ type DescribeReservedCacheNodesOfferingsInput struct {
 	// R3 node types:cache.r3.large, cache.r3.xlarge, cache.r3.2xlarge, cache.r3.4xlarge,
 	//    cache.r3.8xlarge
 	//
+	// R4 node types;cache.r4.large, cache.r4.xlarge, cache.r4.2xlarge, cache.r4.4xlarge,
+	//    cache.r4.8xlarge, cache.r4.16xlarge
+	//
 	// Previous generation: (not recommended)
 	//
 	// M2 node types:cache.m2.xlarge, cache.m2.2xlarge, cache.m2.4xlarge
@@ -8849,10 +9348,13 @@ type DescribeReservedCacheNodesOfferingsInput struct {
 	//    * Redis Append-only files (AOF) functionality is not supported for T1
 	//    or T2 instances.
 	//
-	// For a complete listing of node types and specifications, see Amazon ElastiCache
-	// Product Features and Details (http://aws.amazon.com/elasticache/details)
-	// and either Cache Node Type-Specific Parameters for Memcached (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Memcached.html#ParameterGroups.Memcached.NodeSpecific)
-	// or Cache Node Type-Specific Parameters for Redis (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Redis.html#ParameterGroups.Redis.NodeSpecific).
+	// For a complete listing of node types and specifications, see:
+	//
+	//    * Amazon ElastiCache Product Features and Details (http://aws.amazon.com/elasticache/details)
+	//
+	//    * Cache Node Type-Specific Parameters for Memcached (http://docs.aws.amazon.com/AmazonElastiCache/latest/mem-ug/ParameterGroups.Memcached.html#ParameterGroups.Memcached.NodeSpecific)
+	//
+	//    * Cache Node Type-Specific Parameters for Redis (http://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/ParameterGroups.Redis.html#ParameterGroups.Redis.NodeSpecific)
 	CacheNodeType *string `type:"string"`
 
 	// Duration filter value, specified in years or seconds. Use this parameter
@@ -9228,7 +9730,7 @@ type EngineDefaults struct {
 	// Specifies the name of the cache parameter group family to which the engine
 	// default parameters apply.
 	//
-	// Valid values are: memcached1.4 | redis2.6 | redis2.8 | redis3.2
+	// Valid values are: memcached1.4 | redis2.6 | redis2.8 | redis3.2 | redis4.0
 	CacheParameterGroupFamily *string `type:"string"`
 
 	// Provides an identifier to allow retrieval of paginated results.
@@ -9324,6 +9826,116 @@ func (s *Event) SetSourceIdentifier(v string) *Event {
 // SetSourceType sets the SourceType field's value.
 func (s *Event) SetSourceType(v string) *Event {
 	s.SourceType = &v
+	return s
+}
+
+type IncreaseReplicaCountInput struct {
+	_ struct{} `type:"structure"`
+
+	// If True, the number of replica nodes is increased immediately. If False,
+	// the number of replica nodes is increased during the next maintenance window.
+	//
+	// ApplyImmediately is a required field
+	ApplyImmediately *bool `type:"boolean" required:"true"`
+
+	// The number of read replica nodes you want at the completion of this operation.
+	// For Redis (cluster mode disabled) replication groups, this is the number
+	// of replica nodes in the replication group. For Redis (cluster mode enabled)
+	// replication groups, this is the number of replica nodes in each of the replication
+	// group's node groups.
+	NewReplicaCount *int64 `type:"integer"`
+
+	// A list of ConfigureShard objects that can be used to configure each shard
+	// in a Redis (cluster mode enabled) replication group. The ConfigureShard has
+	// three members: NewReplicaCount, NodeGroupId, and PreferredAvailabilityZones.
+	ReplicaConfiguration []*ConfigureShard `locationNameList:"ConfigureShard" type:"list"`
+
+	// The id of the replication group to which you want to add replica nodes.
+	//
+	// ReplicationGroupId is a required field
+	ReplicationGroupId *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s IncreaseReplicaCountInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s IncreaseReplicaCountInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *IncreaseReplicaCountInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "IncreaseReplicaCountInput"}
+	if s.ApplyImmediately == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplyImmediately"))
+	}
+	if s.ReplicationGroupId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ReplicationGroupId"))
+	}
+	if s.ReplicaConfiguration != nil {
+		for i, v := range s.ReplicaConfiguration {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "ReplicaConfiguration", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetApplyImmediately sets the ApplyImmediately field's value.
+func (s *IncreaseReplicaCountInput) SetApplyImmediately(v bool) *IncreaseReplicaCountInput {
+	s.ApplyImmediately = &v
+	return s
+}
+
+// SetNewReplicaCount sets the NewReplicaCount field's value.
+func (s *IncreaseReplicaCountInput) SetNewReplicaCount(v int64) *IncreaseReplicaCountInput {
+	s.NewReplicaCount = &v
+	return s
+}
+
+// SetReplicaConfiguration sets the ReplicaConfiguration field's value.
+func (s *IncreaseReplicaCountInput) SetReplicaConfiguration(v []*ConfigureShard) *IncreaseReplicaCountInput {
+	s.ReplicaConfiguration = v
+	return s
+}
+
+// SetReplicationGroupId sets the ReplicationGroupId field's value.
+func (s *IncreaseReplicaCountInput) SetReplicationGroupId(v string) *IncreaseReplicaCountInput {
+	s.ReplicationGroupId = &v
+	return s
+}
+
+type IncreaseReplicaCountOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Contains all of the attributes of a specific Redis replication group.
+	ReplicationGroup *ReplicationGroup `type:"structure"`
+}
+
+// String returns the string representation
+func (s IncreaseReplicaCountOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s IncreaseReplicaCountOutput) GoString() string {
+	return s.String()
+}
+
+// SetReplicationGroup sets the ReplicationGroup field's value.
+func (s *IncreaseReplicaCountOutput) SetReplicationGroup(v *ReplicationGroup) *IncreaseReplicaCountOutput {
+	s.ReplicationGroup = v
 	return s
 }
 
@@ -9461,7 +10073,7 @@ type ModifyCacheClusterInput struct {
 	// Only newly created nodes are located in different Availability Zones. For
 	// instructions on how to move existing Memcached nodes to different Availability
 	// Zones, see the Availability Zone Considerations section of Cache Node Considerations
-	// for Memcached (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheNode.Memcached.html).
+	// for Memcached (http://docs.aws.amazon.com/AmazonElastiCache/latest/mem-ug/CacheNode.Memcached.html).
 	AZMode *string `type:"string" enum:"AZMode"`
 
 	// If true, this parameter causes the modifications in this request and any
@@ -9520,7 +10132,7 @@ type ModifyCacheClusterInput struct {
 	// The upgraded version of the cache engine to be run on the cache nodes.
 	//
 	// Important: You can upgrade to a newer engine version (see Selecting a Cache
-	// Engine and Version (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/SelectEngine.html#VersionManagement)),
+	// Engine and Version (http://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/SelectEngine.html#VersionManagement)),
 	// but you cannot downgrade to an earlier engine version. If you want to use
 	// an earlier engine version, you must delete the existing cluster and create
 	// it anew with the earlier engine version.
@@ -9557,7 +10169,7 @@ type ModifyCacheClusterInput struct {
 	// Availability Zone. Only newly created nodes can be located in different Availability
 	// Zones. For guidance on how to move existing Memcached nodes to different
 	// Availability Zones, see the Availability Zone Considerations section of Cache
-	// Node Considerations for Memcached (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheNode.Memcached.html).
+	// Node Considerations for Memcached (http://docs.aws.amazon.com/AmazonElastiCache/latest/mem-ug/CacheNode.Memcached.html).
 	//
 	// Impact of new add/remove requests upon pending requests
 	//
@@ -10035,14 +10647,16 @@ type ModifyReplicationGroupInput struct {
 	// replication group.
 	//
 	// Important: You can upgrade to a newer engine version (see Selecting a Cache
-	// Engine and Version (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/SelectEngine.html#VersionManagement)),
+	// Engine and Version (http://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/SelectEngine.html#VersionManagement)),
 	// but you cannot downgrade to an earlier engine version. If you want to use
 	// an earlier engine version, you must delete the existing replication group
 	// and create it anew with the earlier engine version.
 	EngineVersion *string `type:"string"`
 
-	// The name of the Node Group (called shard in the console).
-	NodeGroupId *string `type:"string"`
+	// Deprecated. This parameter is not used.
+	//
+	// Deprecated: NodeGroupId has been deprecated
+	NodeGroupId *string `deprecated:"true" type:"string"`
 
 	// The Amazon Resource Name (ARN) of the Amazon SNS topic to which notifications
 	// are sent.
@@ -10297,9 +10911,20 @@ type ModifyReplicationGroupShardConfigurationInput struct {
 	NodeGroupCount *int64 `type:"integer" required:"true"`
 
 	// If the value of NodeGroupCount is less than the current number of node groups
-	// (shards), NodeGroupsToRemove is a required list of node group ids to remove
+	// (shards), the NodeGroupsToRemove or NodeGroupsToRetain is a required list
+	// of node group ids to remove from or retain in the cluster.
+	//
+	// ElastiCache for Redis will attempt to remove all node groups listed by NodeGroupsToRemove
 	// from the cluster.
 	NodeGroupsToRemove []*string `locationNameList:"NodeGroupToRemove" type:"list"`
+
+	// If the value of NodeGroupCount is less than the current number of node groups
+	// (shards), the NodeGroupsToRemove or NodeGroupsToRetain is a required list
+	// of node group ids to remove from or retain in the cluster.
+	//
+	// ElastiCache for Redis will attempt to remove all node groups except those
+	// listed by NodeGroupsToRetain from the cluster.
+	NodeGroupsToRetain []*string `locationNameList:"NodeGroupToRetain" type:"list"`
 
 	// The name of the Redis (cluster mode enabled) cluster (replication group)
 	// on which the shards are to be configured.
@@ -10340,6 +10965,16 @@ func (s *ModifyReplicationGroupShardConfigurationInput) Validate() error {
 	if s.ReplicationGroupId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ReplicationGroupId"))
 	}
+	if s.ReshardingConfiguration != nil {
+		for i, v := range s.ReshardingConfiguration {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "ReshardingConfiguration", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -10362,6 +10997,12 @@ func (s *ModifyReplicationGroupShardConfigurationInput) SetNodeGroupCount(v int6
 // SetNodeGroupsToRemove sets the NodeGroupsToRemove field's value.
 func (s *ModifyReplicationGroupShardConfigurationInput) SetNodeGroupsToRemove(v []*string) *ModifyReplicationGroupShardConfigurationInput {
 	s.NodeGroupsToRemove = v
+	return s
+}
+
+// SetNodeGroupsToRetain sets the NodeGroupsToRetain field's value.
+func (s *ModifyReplicationGroupShardConfigurationInput) SetNodeGroupsToRetain(v []*string) *ModifyReplicationGroupShardConfigurationInput {
+	s.NodeGroupsToRetain = v
 	return s
 }
 
@@ -10472,6 +11113,9 @@ func (s *NodeGroup) SetStatus(v string) *NodeGroup {
 type NodeGroupConfiguration struct {
 	_ struct{} `type:"structure"`
 
+	// The 4-digit id for the node group these configuration values apply to.
+	NodeGroupId *string `min:"1" type:"string"`
+
 	// The Availability Zone where the primary node of this node group (shard) is
 	// launched.
 	PrimaryAvailabilityZone *string `type:"string"`
@@ -10499,6 +11143,25 @@ func (s NodeGroupConfiguration) String() string {
 // GoString returns the string representation
 func (s NodeGroupConfiguration) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *NodeGroupConfiguration) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "NodeGroupConfiguration"}
+	if s.NodeGroupId != nil && len(*s.NodeGroupId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NodeGroupId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetNodeGroupId sets the NodeGroupId field's value.
+func (s *NodeGroupConfiguration) SetNodeGroupId(v string) *NodeGroupConfiguration {
+	s.NodeGroupId = &v
+	return s
 }
 
 // SetPrimaryAvailabilityZone sets the PrimaryAvailabilityZone field's value.
@@ -10536,14 +11199,16 @@ type NodeGroupMember struct {
 	// (0001, 0002, etc.).
 	CacheNodeId *string `type:"string"`
 
-	// The role that is currently assigned to the node - primary or replica.
+	// The role that is currently assigned to the node - primary or replica. This
+	// member is only applicable for Redis (cluster mode disabled) replication groups.
 	CurrentRole *string `type:"string"`
 
 	// The name of the Availability Zone in which the node is located.
 	PreferredAvailabilityZone *string `type:"string"`
 
-	// Represents the information required for client programs to connect to a cache
-	// node.
+	// The information required for client programs to connect to a node for read
+	// operations. The read endpoint is only applicable on Redis (cluster mode disabled)
+	// clusters.
 	ReadEndpoint *Endpoint `type:"structure"`
 }
 
@@ -10712,7 +11377,7 @@ type Parameter struct {
 	// Indicates whether a change to the parameter is applied immediately or requires
 	// a reboot for the change to be applied. You can force a reboot or wait until
 	// the next maintenance window's reboot. For more information, see Rebooting
-	// a Cluster (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/Clusters.Rebooting.html).
+	// a Cluster (http://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/Clusters.Rebooting.html).
 	ChangeType *string `type:"string" enum:"ChangeType"`
 
 	// The valid data type for the parameter.
@@ -10842,7 +11507,7 @@ type PendingModifiedValues struct {
 	_ struct{} `type:"structure"`
 
 	// A list of cache node IDs that are being removed (or will be removed) from
-	// the cluster. A node ID is a numeric identifier (0001, 0002, etc.).
+	// the cluster. A node ID is a 4-digit numeric identifier (0001, 0002, etc.).
 	CacheNodeIdsToRemove []*string `locationNameList:"CacheNodeId" type:"list"`
 
 	// The cache node type that this cluster or replication group is scaled to.
@@ -11161,6 +11826,9 @@ type ReplicationGroup struct {
 	// is created. To enable encryption at-rest on a cluster you must set AtRestEncryptionEnabled
 	// to true when you create a cluster.
 	//
+	// Required: Only available when creating a replication group in an Amazon VPC
+	// using redis version 3.2.6 or 4.x.
+	//
 	// Default: false
 	AtRestEncryptionEnabled *bool `type:"boolean"`
 
@@ -11200,7 +11868,7 @@ type ReplicationGroup struct {
 	// The user supplied description of the replication group.
 	Description *string `type:"string"`
 
-	// The identifiers of all the nodes that are part of this replication group.
+	// The names of all the cache clusters that are part of this replication group.
 	MemberClusters []*string `locationNameList:"ClusterId" type:"list"`
 
 	// A list of node groups in this replication group. For Redis (cluster mode
@@ -11248,6 +11916,9 @@ type ReplicationGroup struct {
 	// You cannot modify the value of TransitEncryptionEnabled after the cluster
 	// is created. To enable in-transit encryption on a cluster you must set TransitEncryptionEnabled
 	// to true when you create a cluster.
+	//
+	// Required: Only available when creating a replication group in an Amazon VPC
+	// using redis version 3.2.6 or 4.x.
 	//
 	// Default: false
 	TransitEncryptionEnabled *bool `type:"boolean"`
@@ -11456,6 +12127,9 @@ type ReservedCacheNode struct {
 	// R3 node types:cache.r3.large, cache.r3.xlarge, cache.r3.2xlarge, cache.r3.4xlarge,
 	//    cache.r3.8xlarge
 	//
+	// R4 node types;cache.r4.large, cache.r4.xlarge, cache.r4.2xlarge, cache.r4.4xlarge,
+	//    cache.r4.8xlarge, cache.r4.16xlarge
+	//
 	// Previous generation: (not recommended)
 	//
 	// M2 node types:cache.m2.xlarge, cache.m2.2xlarge, cache.m2.4xlarge
@@ -11474,10 +12148,13 @@ type ReservedCacheNode struct {
 	//    * Redis Append-only files (AOF) functionality is not supported for T1
 	//    or T2 instances.
 	//
-	// For a complete listing of node types and specifications, see Amazon ElastiCache
-	// Product Features and Details (http://aws.amazon.com/elasticache/details)
-	// and either Cache Node Type-Specific Parameters for Memcached (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Memcached.html#ParameterGroups.Memcached.NodeSpecific)
-	// or Cache Node Type-Specific Parameters for Redis (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Redis.html#ParameterGroups.Redis.NodeSpecific).
+	// For a complete listing of node types and specifications, see:
+	//
+	//    * Amazon ElastiCache Product Features and Details (http://aws.amazon.com/elasticache/details)
+	//
+	//    * Cache Node Type-Specific Parameters for Memcached (http://docs.aws.amazon.com/AmazonElastiCache/latest/mem-ug/ParameterGroups.Memcached.html#ParameterGroups.Memcached.NodeSpecific)
+	//
+	//    * Cache Node Type-Specific Parameters for Redis (http://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/ParameterGroups.Redis.html#ParameterGroups.Redis.NodeSpecific)
 	CacheNodeType *string `type:"string"`
 
 	// The duration of the reservation in seconds.
@@ -11494,6 +12171,11 @@ type ReservedCacheNode struct {
 
 	// The recurring price charged to run this reserved cache node.
 	RecurringCharges []*RecurringCharge `locationNameList:"RecurringCharge" type:"list"`
+
+	// The Amazon Resource Name (ARN) of the reserved cache node.
+	//
+	// Example: arn:aws:elasticache:us-east-1:123456789012:reserved-instance:ri-2017-03-27-08-33-25-582
+	ReservationARN *string `type:"string"`
 
 	// The unique identifier for the reservation.
 	ReservedCacheNodeId *string `type:"string"`
@@ -11560,6 +12242,12 @@ func (s *ReservedCacheNode) SetProductDescription(v string) *ReservedCacheNode {
 // SetRecurringCharges sets the RecurringCharges field's value.
 func (s *ReservedCacheNode) SetRecurringCharges(v []*RecurringCharge) *ReservedCacheNode {
 	s.RecurringCharges = v
+	return s
+}
+
+// SetReservationARN sets the ReservationARN field's value.
+func (s *ReservedCacheNode) SetReservationARN(v string) *ReservedCacheNode {
+	s.ReservationARN = &v
 	return s
 }
 
@@ -11633,6 +12321,9 @@ type ReservedCacheNodesOffering struct {
 	// R3 node types:cache.r3.large, cache.r3.xlarge, cache.r3.2xlarge, cache.r3.4xlarge,
 	//    cache.r3.8xlarge
 	//
+	// R4 node types;cache.r4.large, cache.r4.xlarge, cache.r4.2xlarge, cache.r4.4xlarge,
+	//    cache.r4.8xlarge, cache.r4.16xlarge
+	//
 	// Previous generation: (not recommended)
 	//
 	// M2 node types:cache.m2.xlarge, cache.m2.2xlarge, cache.m2.4xlarge
@@ -11651,10 +12342,13 @@ type ReservedCacheNodesOffering struct {
 	//    * Redis Append-only files (AOF) functionality is not supported for T1
 	//    or T2 instances.
 	//
-	// For a complete listing of node types and specifications, see Amazon ElastiCache
-	// Product Features and Details (http://aws.amazon.com/elasticache/details)
-	// and either Cache Node Type-Specific Parameters for Memcached (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Memcached.html#ParameterGroups.Memcached.NodeSpecific)
-	// or Cache Node Type-Specific Parameters for Redis (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Redis.html#ParameterGroups.Redis.NodeSpecific).
+	// For a complete listing of node types and specifications, see:
+	//
+	//    * Amazon ElastiCache Product Features and Details (http://aws.amazon.com/elasticache/details)
+	//
+	//    * Cache Node Type-Specific Parameters for Memcached (http://docs.aws.amazon.com/AmazonElastiCache/latest/mem-ug/ParameterGroups.Memcached.html#ParameterGroups.Memcached.NodeSpecific)
+	//
+	//    * Cache Node Type-Specific Parameters for Redis (http://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/ParameterGroups.Redis.html#ParameterGroups.Redis.NodeSpecific)
 	CacheNodeType *string `type:"string"`
 
 	// The duration of the offering. in seconds.
@@ -11805,6 +12499,9 @@ func (s *ResetCacheParameterGroupInput) SetResetAllParameters(v bool) *ResetCach
 type ReshardingConfiguration struct {
 	_ struct{} `type:"structure"`
 
+	// The 4-digit id for the node group these configuration values apply to.
+	NodeGroupId *string `min:"1" type:"string"`
+
 	// A list of preferred availability zones for the nodes in this cluster.
 	PreferredAvailabilityZones []*string `locationNameList:"AvailabilityZone" type:"list"`
 }
@@ -11817,6 +12514,25 @@ func (s ReshardingConfiguration) String() string {
 // GoString returns the string representation
 func (s ReshardingConfiguration) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ReshardingConfiguration) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ReshardingConfiguration"}
+	if s.NodeGroupId != nil && len(*s.NodeGroupId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NodeGroupId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetNodeGroupId sets the NodeGroupId field's value.
+func (s *ReshardingConfiguration) SetNodeGroupId(v string) *ReshardingConfiguration {
+	s.NodeGroupId = &v
+	return s
 }
 
 // SetPreferredAvailabilityZones sets the PreferredAvailabilityZones field's value.
@@ -12069,6 +12785,9 @@ type Snapshot struct {
 	// R3 node types:cache.r3.large, cache.r3.xlarge, cache.r3.2xlarge, cache.r3.4xlarge,
 	//    cache.r3.8xlarge
 	//
+	// R4 node types;cache.r4.large, cache.r4.xlarge, cache.r4.2xlarge, cache.r4.4xlarge,
+	//    cache.r4.8xlarge, cache.r4.16xlarge
+	//
 	// Previous generation: (not recommended)
 	//
 	// M2 node types:cache.m2.xlarge, cache.m2.2xlarge, cache.m2.4xlarge
@@ -12087,10 +12806,13 @@ type Snapshot struct {
 	//    * Redis Append-only files (AOF) functionality is not supported for T1
 	//    or T2 instances.
 	//
-	// For a complete listing of node types and specifications, see Amazon ElastiCache
-	// Product Features and Details (http://aws.amazon.com/elasticache/details)
-	// and either Cache Node Type-Specific Parameters for Memcached (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Memcached.html#ParameterGroups.Memcached.NodeSpecific)
-	// or Cache Node Type-Specific Parameters for Redis (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Redis.html#ParameterGroups.Redis.NodeSpecific).
+	// For a complete listing of node types and specifications, see:
+	//
+	//    * Amazon ElastiCache Product Features and Details (http://aws.amazon.com/elasticache/details)
+	//
+	//    * Cache Node Type-Specific Parameters for Memcached (http://docs.aws.amazon.com/AmazonElastiCache/latest/mem-ug/ParameterGroups.Memcached.html#ParameterGroups.Memcached.NodeSpecific)
+	//
+	//    * Cache Node Type-Specific Parameters for Redis (http://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/ParameterGroups.Redis.html#ParameterGroups.Redis.NodeSpecific)
 	CacheNodeType *string `type:"string"`
 
 	// The cache parameter group that is associated with the source cluster.
@@ -12448,7 +13170,7 @@ type TestFailoverInput struct {
 	// failover on up to 5 node groups in any rolling 24-hour period.
 	//
 	// NodeGroupId is a required field
-	NodeGroupId *string `type:"string" required:"true"`
+	NodeGroupId *string `min:"1" type:"string" required:"true"`
 
 	// The name of the replication group (console: cluster) whose automatic failover
 	// is being tested by this operation.
@@ -12472,6 +13194,9 @@ func (s *TestFailoverInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "TestFailoverInput"}
 	if s.NodeGroupId == nil {
 		invalidParams.Add(request.NewErrParamRequired("NodeGroupId"))
+	}
+	if s.NodeGroupId != nil && len(*s.NodeGroupId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NodeGroupId", 1))
 	}
 	if s.ReplicationGroupId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ReplicationGroupId"))

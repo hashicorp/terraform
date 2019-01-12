@@ -1,8 +1,8 @@
 package terraform
 
 import (
-	"fmt"
-
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/dag"
 )
 
@@ -11,41 +11,44 @@ import (
 //
 // This assumes that the count is already interpolated.
 type ResourceCountTransformer struct {
-	Concrete ConcreteResourceNodeFunc
+	Concrete ConcreteResourceInstanceNodeFunc
+	Schema   *configschema.Block
 
+	// Count is either the number of indexed instances to create, or -1 to
+	// indicate that count is not set at all and thus a no-key instance should
+	// be created.
 	Count int
-	Addr  *ResourceAddress
+	Addr  addrs.AbsResource
 }
 
 func (t *ResourceCountTransformer) Transform(g *Graph) error {
-	// Don't allow the count to be negative
 	if t.Count < 0 {
-		return fmt.Errorf("negative count: %d", t.Count)
-	}
+		// Negative count indicates that count is not set at all.
+		addr := t.Addr.Instance(addrs.NoKey)
 
-	// For each count, build and add the node
-	for i := 0; i < t.Count; i++ {
-		// Set the index. If our count is 1 we special case it so that
-		// we handle the "resource.0" and "resource" boundary properly.
-		index := i
-		if t.Count == 1 {
-			index = -1
-		}
-
-		// Build the resource address
-		addr := t.Addr.Copy()
-		addr.Index = index
-
-		// Build the abstract node and the concrete one
-		abstract := &NodeAbstractResource{
-			Addr: addr,
-		}
+		abstract := NewNodeAbstractResourceInstance(addr)
+		abstract.Schema = t.Schema
 		var node dag.Vertex = abstract
 		if f := t.Concrete; f != nil {
 			node = f(abstract)
 		}
 
-		// Add it to the graph
+		g.Add(node)
+		return nil
+	}
+
+	// For each count, build and add the node
+	for i := 0; i < t.Count; i++ {
+		key := addrs.IntKey(i)
+		addr := t.Addr.Instance(key)
+
+		abstract := NewNodeAbstractResourceInstance(addr)
+		abstract.Schema = t.Schema
+		var node dag.Vertex = abstract
+		if f := t.Concrete; f != nil {
+			node = f(abstract)
+		}
+
 		g.Add(node)
 	}
 

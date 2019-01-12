@@ -17,7 +17,7 @@ const opAddPermission = "AddPermission"
 // AddPermissionRequest generates a "aws/request.Request" representing the
 // client's request for the AddPermission operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -51,8 +51,7 @@ func (c *SNS) AddPermissionRequest(input *AddPermissionInput) (req *request.Requ
 
 	output = &AddPermissionOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -108,7 +107,7 @@ const opCheckIfPhoneNumberIsOptedOut = "CheckIfPhoneNumberIsOptedOut"
 // CheckIfPhoneNumberIsOptedOutRequest generates a "aws/request.Request" representing the
 // client's request for the CheckIfPhoneNumberIsOptedOut operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -202,7 +201,7 @@ const opConfirmSubscription = "ConfirmSubscription"
 // ConfirmSubscriptionRequest generates a "aws/request.Request" representing the
 // client's request for the ConfirmSubscription operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -297,7 +296,7 @@ const opCreatePlatformApplication = "CreatePlatformApplication"
 // CreatePlatformApplicationRequest generates a "aws/request.Request" representing the
 // client's request for the CreatePlatformApplication operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -407,7 +406,7 @@ const opCreatePlatformEndpoint = "CreatePlatformEndpoint"
 // CreatePlatformEndpointRequest generates a "aws/request.Request" representing the
 // client's request for the CreatePlatformEndpoint operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -508,7 +507,7 @@ const opCreateTopic = "CreateTopic"
 // CreateTopicRequest generates a "aws/request.Request" representing the
 // client's request for the CreateTopic operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -573,6 +572,10 @@ func (c *SNS) CreateTopicRequest(input *CreateTopicInput) (req *request.Request,
 //   * ErrCodeAuthorizationErrorException "AuthorizationError"
 //   Indicates that the user has been denied access to the requested resource.
 //
+//   * ErrCodeInvalidSecurityException "InvalidSecurity"
+//   The credential signature isn't valid. You must use an HTTPS endpoint and
+//   sign your request using Signature Version 4.
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/sns-2010-03-31/CreateTopic
 func (c *SNS) CreateTopic(input *CreateTopicInput) (*CreateTopicOutput, error) {
 	req, out := c.CreateTopicRequest(input)
@@ -600,7 +603,7 @@ const opDeleteEndpoint = "DeleteEndpoint"
 // DeleteEndpointRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteEndpoint operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -634,8 +637,7 @@ func (c *SNS) DeleteEndpointRequest(input *DeleteEndpointInput) (req *request.Re
 
 	output = &DeleteEndpointOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -692,7 +694,7 @@ const opDeletePlatformApplication = "DeletePlatformApplication"
 // DeletePlatformApplicationRequest generates a "aws/request.Request" representing the
 // client's request for the DeletePlatformApplication operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -726,8 +728,7 @@ func (c *SNS) DeletePlatformApplicationRequest(input *DeletePlatformApplicationI
 
 	output = &DeletePlatformApplicationOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -781,7 +782,7 @@ const opDeleteTopic = "DeleteTopic"
 // DeleteTopicRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteTopic operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -815,8 +816,7 @@ func (c *SNS) DeleteTopicRequest(input *DeleteTopicInput) (req *request.Request,
 
 	output = &DeleteTopicOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -874,7 +874,7 @@ const opGetEndpointAttributes = "GetEndpointAttributes"
 // GetEndpointAttributesRequest generates a "aws/request.Request" representing the
 // client's request for the GetEndpointAttributes operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -964,7 +964,7 @@ const opGetPlatformApplicationAttributes = "GetPlatformApplicationAttributes"
 // GetPlatformApplicationAttributesRequest generates a "aws/request.Request" representing the
 // client's request for the GetPlatformApplicationAttributes operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1054,7 +1054,7 @@ const opGetSMSAttributes = "GetSMSAttributes"
 // GetSMSAttributesRequest generates a "aws/request.Request" representing the
 // client's request for the GetSMSAttributes operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1145,7 +1145,7 @@ const opGetSubscriptionAttributes = "GetSubscriptionAttributes"
 // GetSubscriptionAttributesRequest generates a "aws/request.Request" representing the
 // client's request for the GetSubscriptionAttributes operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1233,7 +1233,7 @@ const opGetTopicAttributes = "GetTopicAttributes"
 // GetTopicAttributesRequest generates a "aws/request.Request" representing the
 // client's request for the GetTopicAttributes operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1295,6 +1295,10 @@ func (c *SNS) GetTopicAttributesRequest(input *GetTopicAttributesInput) (req *re
 //   * ErrCodeAuthorizationErrorException "AuthorizationError"
 //   Indicates that the user has been denied access to the requested resource.
 //
+//   * ErrCodeInvalidSecurityException "InvalidSecurity"
+//   The credential signature isn't valid. You must use an HTTPS endpoint and
+//   sign your request using Signature Version 4.
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/sns-2010-03-31/GetTopicAttributes
 func (c *SNS) GetTopicAttributes(input *GetTopicAttributesInput) (*GetTopicAttributesOutput, error) {
 	req, out := c.GetTopicAttributesRequest(input)
@@ -1322,7 +1326,7 @@ const opListEndpointsByPlatformApplication = "ListEndpointsByPlatformApplication
 // ListEndpointsByPlatformApplicationRequest generates a "aws/request.Request" representing the
 // client's request for the ListEndpointsByPlatformApplication operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1475,7 +1479,7 @@ const opListPhoneNumbersOptedOut = "ListPhoneNumbersOptedOut"
 // ListPhoneNumbersOptedOutRequest generates a "aws/request.Request" representing the
 // client's request for the ListPhoneNumbersOptedOut operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1572,7 +1576,7 @@ const opListPlatformApplications = "ListPlatformApplications"
 // ListPlatformApplicationsRequest generates a "aws/request.Request" representing the
 // client's request for the ListPlatformApplications operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1722,7 +1726,7 @@ const opListSubscriptions = "ListSubscriptions"
 // ListSubscriptionsRequest generates a "aws/request.Request" representing the
 // client's request for the ListSubscriptions operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1868,7 +1872,7 @@ const opListSubscriptionsByTopic = "ListSubscriptionsByTopic"
 // ListSubscriptionsByTopicRequest generates a "aws/request.Request" representing the
 // client's request for the ListSubscriptionsByTopic operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2017,7 +2021,7 @@ const opListTopics = "ListTopics"
 // ListTopicsRequest generates a "aws/request.Request" representing the
 // client's request for the ListTopics operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2162,7 +2166,7 @@ const opOptInPhoneNumber = "OptInPhoneNumber"
 // OptInPhoneNumberRequest generates a "aws/request.Request" representing the
 // client's request for the OptInPhoneNumber operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2196,6 +2200,7 @@ func (c *SNS) OptInPhoneNumberRequest(input *OptInPhoneNumberInput) (req *reques
 
 	output = &OptInPhoneNumberOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2254,7 +2259,7 @@ const opPublish = "Publish"
 // PublishRequest generates a "aws/request.Request" representing the
 // client's request for the Publish operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2340,6 +2345,36 @@ func (c *SNS) PublishRequest(input *PublishInput) (req *request.Request, output 
 //   * ErrCodeAuthorizationErrorException "AuthorizationError"
 //   Indicates that the user has been denied access to the requested resource.
 //
+//   * ErrCodeKMSDisabledException "KMSDisabled"
+//   The request was rejected because the specified customer master key (CMK)
+//   isn't enabled.
+//
+//   * ErrCodeKMSInvalidStateException "KMSInvalidState"
+//   The request was rejected because the state of the specified resource isn't
+//   valid for this request. For more information, see How Key State Affects Use
+//   of a Customer Master Key (http://docs.aws.amazon.com/kms/latest/developerguide/key-state.html)
+//   in the AWS Key Management Service Developer Guide.
+//
+//   * ErrCodeKMSNotFoundException "KMSNotFound"
+//   The request was rejected because the specified entity or resource can't be
+//   found.
+//
+//   * ErrCodeKMSOptInRequired "KMSOptInRequired"
+//   The AWS access key ID needs a subscription for the service.
+//
+//   * ErrCodeKMSThrottlingException "KMSThrottling"
+//   The request was denied due to request throttling. For more information about
+//   throttling, see Limits (http://docs.aws.amazon.com/kms/latest/developerguide/limits.html#requests-per-second)
+//   in the AWS Key Management Service Developer Guide.
+//
+//   * ErrCodeKMSAccessDeniedException "KMSAccessDenied"
+//   The ciphertext references a key that doesn't exist or that you don't have
+//   access to.
+//
+//   * ErrCodeInvalidSecurityException "InvalidSecurity"
+//   The credential signature isn't valid. You must use an HTTPS endpoint and
+//   sign your request using Signature Version 4.
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/sns-2010-03-31/Publish
 func (c *SNS) Publish(input *PublishInput) (*PublishOutput, error) {
 	req, out := c.PublishRequest(input)
@@ -2367,7 +2402,7 @@ const opRemovePermission = "RemovePermission"
 // RemovePermissionRequest generates a "aws/request.Request" representing the
 // client's request for the RemovePermission operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2401,8 +2436,7 @@ func (c *SNS) RemovePermissionRequest(input *RemovePermissionInput) (req *reques
 
 	output = &RemovePermissionOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2457,7 +2491,7 @@ const opSetEndpointAttributes = "SetEndpointAttributes"
 // SetEndpointAttributesRequest generates a "aws/request.Request" representing the
 // client's request for the SetEndpointAttributes operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2491,8 +2525,7 @@ func (c *SNS) SetEndpointAttributesRequest(input *SetEndpointAttributesInput) (r
 
 	output = &SetEndpointAttributesOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2549,7 +2582,7 @@ const opSetPlatformApplicationAttributes = "SetPlatformApplicationAttributes"
 // SetPlatformApplicationAttributesRequest generates a "aws/request.Request" representing the
 // client's request for the SetPlatformApplicationAttributes operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2583,8 +2616,7 @@ func (c *SNS) SetPlatformApplicationAttributesRequest(input *SetPlatformApplicat
 
 	output = &SetPlatformApplicationAttributesOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2643,7 +2675,7 @@ const opSetSMSAttributes = "SetSMSAttributes"
 // SetSMSAttributesRequest generates a "aws/request.Request" representing the
 // client's request for the SetSMSAttributes operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2677,6 +2709,7 @@ func (c *SNS) SetSMSAttributesRequest(input *SetSMSAttributesInput) (req *reques
 
 	output = &SetSMSAttributesOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2738,7 +2771,7 @@ const opSetSubscriptionAttributes = "SetSubscriptionAttributes"
 // SetSubscriptionAttributesRequest generates a "aws/request.Request" representing the
 // client's request for the SetSubscriptionAttributes operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2772,8 +2805,7 @@ func (c *SNS) SetSubscriptionAttributesRequest(input *SetSubscriptionAttributesI
 
 	output = &SetSubscriptionAttributesOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2834,7 +2866,7 @@ const opSetTopicAttributes = "SetTopicAttributes"
 // SetTopicAttributesRequest generates a "aws/request.Request" representing the
 // client's request for the SetTopicAttributes operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2868,8 +2900,7 @@ func (c *SNS) SetTopicAttributesRequest(input *SetTopicAttributesInput) (req *re
 
 	output = &SetTopicAttributesOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2896,6 +2927,10 @@ func (c *SNS) SetTopicAttributesRequest(input *SetTopicAttributesInput) (req *re
 //
 //   * ErrCodeAuthorizationErrorException "AuthorizationError"
 //   Indicates that the user has been denied access to the requested resource.
+//
+//   * ErrCodeInvalidSecurityException "InvalidSecurity"
+//   The credential signature isn't valid. You must use an HTTPS endpoint and
+//   sign your request using Signature Version 4.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/sns-2010-03-31/SetTopicAttributes
 func (c *SNS) SetTopicAttributes(input *SetTopicAttributesInput) (*SetTopicAttributesOutput, error) {
@@ -2924,7 +2959,7 @@ const opSubscribe = "Subscribe"
 // SubscribeRequest generates a "aws/request.Request" representing the
 // client's request for the Subscribe operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2998,6 +3033,10 @@ func (c *SNS) SubscribeRequest(input *SubscribeInput) (req *request.Request, out
 //   * ErrCodeAuthorizationErrorException "AuthorizationError"
 //   Indicates that the user has been denied access to the requested resource.
 //
+//   * ErrCodeInvalidSecurityException "InvalidSecurity"
+//   The credential signature isn't valid. You must use an HTTPS endpoint and
+//   sign your request using Signature Version 4.
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/sns-2010-03-31/Subscribe
 func (c *SNS) Subscribe(input *SubscribeInput) (*SubscribeOutput, error) {
 	req, out := c.SubscribeRequest(input)
@@ -3025,7 +3064,7 @@ const opUnsubscribe = "Unsubscribe"
 // UnsubscribeRequest generates a "aws/request.Request" representing the
 // client's request for the Unsubscribe operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3059,8 +3098,7 @@ func (c *SNS) UnsubscribeRequest(input *UnsubscribeInput) (req *request.Request,
 
 	output = &UnsubscribeOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3094,6 +3132,10 @@ func (c *SNS) UnsubscribeRequest(input *UnsubscribeInput) (req *request.Request,
 //
 //   * ErrCodeNotFoundException "NotFound"
 //   Indicates that the requested resource does not exist.
+//
+//   * ErrCodeInvalidSecurityException "InvalidSecurity"
+//   The credential signature isn't valid. You must use an HTTPS endpoint and
+//   sign your request using Signature Version 4.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/sns-2010-03-31/Unsubscribe
 func (c *SNS) Unsubscribe(input *UnsubscribeInput) (*UnsubscribeOutput, error) {
@@ -3572,6 +3614,20 @@ func (s *CreatePlatformEndpointOutput) SetEndpointArn(v string) *CreatePlatformE
 type CreateTopicInput struct {
 	_ struct{} `type:"structure"`
 
+	// A map of attributes with their corresponding values.
+	//
+	// The following lists the names, descriptions, and values of the special request
+	// parameters that the CreateTopic action uses:
+	//
+	//    * DeliveryPolicy – The policy that defines how Amazon SNS retries failed
+	//    deliveries to HTTP/S endpoints.
+	//
+	//    * DisplayName – The display name to use for a topic with SMS subscriptions.
+	//
+	//    * Policy – The policy that defines who can access your topic. By default,
+	//    only the topic owner can publish or subscribe to the topic.
+	Attributes map[string]*string `type:"map"`
+
 	// The name of the topic you want to create.
 	//
 	// Constraints: Topic names must be made up of only uppercase and lowercase
@@ -3603,6 +3659,12 @@ func (s *CreateTopicInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetAttributes sets the Attributes field's value.
+func (s *CreateTopicInput) SetAttributes(v map[string]*string) *CreateTopicInput {
+	s.Attributes = v
+	return s
 }
 
 // SetName sets the Name field's value.
@@ -3871,16 +3933,16 @@ type GetEndpointAttributesOutput struct {
 
 	// Attributes include the following:
 	//
-	//    * CustomUserData -- arbitrary user data to associate with the endpoint.
+	//    * CustomUserData – arbitrary user data to associate with the endpoint.
 	//    Amazon SNS does not use this data. The data must be in UTF-8 format and
 	//    less than 2KB.
 	//
-	//    * Enabled -- flag that enables/disables delivery to the endpoint. Amazon
+	//    * Enabled – flag that enables/disables delivery to the endpoint. Amazon
 	//    SNS will set this to false when a notification service indicates to Amazon
 	//    SNS that the endpoint is invalid. Users can set it back to true, typically
 	//    after updating Token.
 	//
-	//    * Token -- device token, also referred to as a registration id, for an
+	//    * Token – device token, also referred to as a registration id, for an
 	//    app and mobile device. This is returned from the notification service
 	//    when an app and mobile device are registered with the notification service.
 	Attributes map[string]*string `type:"map"`
@@ -3947,16 +4009,16 @@ type GetPlatformApplicationAttributesOutput struct {
 
 	// Attributes include the following:
 	//
-	//    * EventEndpointCreated -- Topic ARN to which EndpointCreated event notifications
+	//    * EventEndpointCreated – Topic ARN to which EndpointCreated event notifications
 	//    should be sent.
 	//
-	//    * EventEndpointDeleted -- Topic ARN to which EndpointDeleted event notifications
+	//    * EventEndpointDeleted – Topic ARN to which EndpointDeleted event notifications
 	//    should be sent.
 	//
-	//    * EventEndpointUpdated -- Topic ARN to which EndpointUpdate event notifications
+	//    * EventEndpointUpdated – Topic ARN to which EndpointUpdate event notifications
 	//    should be sent.
 	//
-	//    * EventDeliveryFailure -- Topic ARN to which DeliveryFailure event notifications
+	//    * EventDeliveryFailure – Topic ARN to which DeliveryFailure event notifications
 	//    should be sent upon Direct Publish delivery failure (permanent) to one
 	//    of the application's endpoints.
 	Attributes map[string]*string `type:"map"`
@@ -4077,31 +4139,31 @@ type GetSubscriptionAttributesOutput struct {
 	// A map of the subscription's attributes. Attributes in this map include the
 	// following:
 	//
-	//    * ConfirmationWasAuthenticated -- true if the subscription confirmation
+	//    * ConfirmationWasAuthenticated – true if the subscription confirmation
 	//    request was authenticated.
 	//
-	//    * DeliveryPolicy -- The JSON serialization of the subscription's delivery
+	//    * DeliveryPolicy – The JSON serialization of the subscription's delivery
 	//    policy.
 	//
-	//    * EffectiveDeliveryPolicy -- The JSON serialization of the effective delivery
+	//    * EffectiveDeliveryPolicy – The JSON serialization of the effective delivery
 	//    policy that takes into account the topic delivery policy and account system
 	//    defaults.
 	//
-	//    * FilterPolicy -- The filter policy JSON that is assigned to the subscription.
+	//    * FilterPolicy – The filter policy JSON that is assigned to the subscription.
 	//
-	//    * Owner -- The AWS account ID of the subscription's owner.
+	//    * Owner – The AWS account ID of the subscription's owner.
 	//
-	//    * PendingConfirmation -- true if the subscription hasn't been confirmed.
+	//    * PendingConfirmation – true if the subscription hasn't been confirmed.
 	//    To confirm a pending subscription, call the ConfirmSubscription action
 	//    with a confirmation token.
 	//
-	//    * RawMessageDelivery -- true if raw message delivery is enabled for the
+	//    * RawMessageDelivery – true if raw message delivery is enabled for the
 	//    subscription. Raw messages are free of JSON formatting and can be sent
 	//    to HTTP/S and Amazon SQS endpoints.
 	//
-	//    * SubscriptionArn -- The subscription's ARN.
+	//    * SubscriptionArn – The subscription's ARN.
 	//
-	//    * TopicArn -- The topic ARN that the subscription is associated with.
+	//    * TopicArn – The topic ARN that the subscription is associated with.
 	Attributes map[string]*string `type:"map"`
 }
 
@@ -4166,27 +4228,26 @@ type GetTopicAttributesOutput struct {
 
 	// A map of the topic's attributes. Attributes in this map include the following:
 	//
-	//    * TopicArn -- the topic's ARN
+	//    * TopicArn – the topic's ARN
 	//
-	//    * Owner -- the AWS account ID of the topic's owner
+	//    * Owner – the AWS account ID of the topic's owner
 	//
-	//    * Policy -- the JSON serialization of the topic's access control policy
+	//    * Policy – the JSON serialization of the topic's access control policy
 	//
-	//    * DisplayName -- the human-readable name used in the "From" field for
-	//    notifications to email and email-json endpoints
+	//    * DisplayName – the human-readable name used in the "From" field for notifications
+	//    to email and email-json endpoints
 	//
-	//    * SubscriptionsPending -- the number of subscriptions pending confirmation
+	//    * SubscriptionsPending – the number of subscriptions pending confirmation
 	//    on this topic
 	//
-	//    * SubscriptionsConfirmed -- the number of confirmed subscriptions on this
+	//    * SubscriptionsConfirmed – the number of confirmed subscriptions on this
 	//    topic
 	//
-	//    * SubscriptionsDeleted -- the number of deleted subscriptions on this
-	//    topic
+	//    * SubscriptionsDeleted – the number of deleted subscriptions on this topic
 	//
-	//    * DeliveryPolicy -- the JSON serialization of the topic's delivery policy
+	//    * DeliveryPolicy – the JSON serialization of the topic's delivery policy
 	//
-	//    * EffectiveDeliveryPolicy -- the JSON serialization of the effective delivery
+	//    * EffectiveDeliveryPolicy – the JSON serialization of the effective delivery
 	//    policy that takes into account system defaults
 	Attributes map[string]*string `type:"map"`
 }
@@ -4772,6 +4833,9 @@ type PublishInput struct {
 
 	// The message you want to send.
 	//
+	// The Message parameter is always a string. If you set MessageStructure to
+	// json, you must string-encode the Message parameter.
+	//
 	// If you are publishing to a topic and you want to send the same message to
 	// all transport protocols, include the text of the message as a String value.
 	// If you want to send different messages for each transport protocol, set the
@@ -4781,15 +4845,17 @@ type PublishInput struct {
 	// Constraints:
 	//
 	// With the exception of SMS, messages must be UTF-8 encoded strings and at
-	// most 256 KB in size (262144 bytes, not 262144 characters).
+	// most 256 KB in size (262,144 bytes, not 262,144 characters).
 	//
-	//    * For SMS, each message can contain up to 140 bytes, and the character
-	//    limit depends on the encoding scheme. For example, an SMS message can
+	//    * For SMS, each message can contain up to 140 characters. This character
+	//    limit depends on the encoding schema. For example, an SMS message can
 	//    contain 160 GSM characters, 140 ASCII characters, or 70 UCS-2 characters.
-	//    If you publish a message that exceeds the size limit, Amazon SNS sends
-	//    it as multiple messages, each fitting within the size limit. Messages
-	//    are not cut off in the middle of a word but on whole-word boundaries.
-	//    The total size limit for a single SMS publish action is 1600 bytes.
+	//
+	//    * If you publish a message that exceeds this size limit, Amazon SNS sends
+	//    the message as multiple messages, each fitting within the size limit.
+	//    Messages aren't truncated mid-word but are cut off at whole-word boundaries.
+	//
+	//    * The total size limit for a single SMS Publish action is 1,600 characters.
 	//
 	// JSON-specific constraints:
 	//
@@ -5045,16 +5111,16 @@ type SetEndpointAttributesInput struct {
 
 	// A map of the endpoint attributes. Attributes in this map include the following:
 	//
-	//    * CustomUserData -- arbitrary user data to associate with the endpoint.
+	//    * CustomUserData – arbitrary user data to associate with the endpoint.
 	//    Amazon SNS does not use this data. The data must be in UTF-8 format and
 	//    less than 2KB.
 	//
-	//    * Enabled -- flag that enables/disables delivery to the endpoint. Amazon
+	//    * Enabled – flag that enables/disables delivery to the endpoint. Amazon
 	//    SNS will set this to false when a notification service indicates to Amazon
 	//    SNS that the endpoint is invalid. Users can set it back to true, typically
 	//    after updating Token.
 	//
-	//    * Token -- device token, also referred to as a registration id, for an
+	//    * Token – device token, also referred to as a registration id, for an
 	//    app and mobile device. This is returned from the notification service
 	//    when an app and mobile device are registered with the notification service.
 	//
@@ -5126,36 +5192,35 @@ type SetPlatformApplicationAttributesInput struct {
 	// A map of the platform application attributes. Attributes in this map include
 	// the following:
 	//
-	//    * PlatformCredential -- The credential received from the notification
-	//    service. For APNS/APNS_SANDBOX, PlatformCredential is private key. For
-	//    GCM, PlatformCredential is "API key". For ADM, PlatformCredential is "client
-	//    secret".
+	//    * PlatformCredential – The credential received from the notification service.
+	//    For APNS/APNS_SANDBOX, PlatformCredential is private key. For GCM, PlatformCredential
+	//    is "API key". For ADM, PlatformCredential is "client secret".
 	//
-	//    * PlatformPrincipal -- The principal received from the notification service.
+	//    * PlatformPrincipal – The principal received from the notification service.
 	//    For APNS/APNS_SANDBOX, PlatformPrincipal is SSL certificate. For GCM,
 	//    PlatformPrincipal is not applicable. For ADM, PlatformPrincipal is "client
 	//    id".
 	//
-	//    * EventEndpointCreated -- Topic ARN to which EndpointCreated event notifications
+	//    * EventEndpointCreated – Topic ARN to which EndpointCreated event notifications
 	//    should be sent.
 	//
-	//    * EventEndpointDeleted -- Topic ARN to which EndpointDeleted event notifications
+	//    * EventEndpointDeleted – Topic ARN to which EndpointDeleted event notifications
 	//    should be sent.
 	//
-	//    * EventEndpointUpdated -- Topic ARN to which EndpointUpdate event notifications
+	//    * EventEndpointUpdated – Topic ARN to which EndpointUpdate event notifications
 	//    should be sent.
 	//
-	//    * EventDeliveryFailure -- Topic ARN to which DeliveryFailure event notifications
+	//    * EventDeliveryFailure – Topic ARN to which DeliveryFailure event notifications
 	//    should be sent upon Direct Publish delivery failure (permanent) to one
 	//    of the application's endpoints.
 	//
-	//    * SuccessFeedbackRoleArn -- IAM role ARN used to give Amazon SNS write
+	//    * SuccessFeedbackRoleArn – IAM role ARN used to give Amazon SNS write
 	//    access to use CloudWatch Logs on your behalf.
 	//
-	//    * FailureFeedbackRoleArn -- IAM role ARN used to give Amazon SNS write
+	//    * FailureFeedbackRoleArn – IAM role ARN used to give Amazon SNS write
 	//    access to use CloudWatch Logs on your behalf.
 	//
-	//    * SuccessFeedbackSampleRate -- Sample rate percentage (0-100) of successfully
+	//    * SuccessFeedbackSampleRate – Sample rate percentage (0-100) of successfully
 	//    delivered messages.
 	//
 	// Attributes is a required field
@@ -5350,10 +5415,22 @@ func (s SetSMSAttributesOutput) GoString() string {
 type SetSubscriptionAttributesInput struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the attribute you want to set. Only a subset of the subscriptions
-	// attributes are mutable.
+	// A map of attributes with their corresponding values.
 	//
-	// Valid values: DeliveryPolicy | FilterPolicy | RawMessageDelivery
+	// The following lists the names, descriptions, and values of the special request
+	// parameters that the SetTopicAttributes action uses:
+	//
+	//    * DeliveryPolicy – The policy that defines how Amazon SNS retries failed
+	//    deliveries to HTTP/S endpoints.
+	//
+	//    * FilterPolicy – The simple JSON object that lets your subscriber receive
+	//    only a subset of messages, rather than receiving every message published
+	//    to the topic.
+	//
+	//    * RawMessageDelivery – When set to true, enables raw message delivery
+	//    to Amazon SQS or HTTP/S endpoints. This eliminates the need for the endpoints
+	//    to process JSON formatting, which is otherwise created for Amazon SNS
+	//    metadata.
 	//
 	// AttributeName is a required field
 	AttributeName *string `type:"string" required:"true"`
@@ -5429,10 +5506,18 @@ func (s SetSubscriptionAttributesOutput) GoString() string {
 type SetTopicAttributesInput struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the attribute you want to set. Only a subset of the topic's attributes
-	// are mutable.
+	// A map of attributes with their corresponding values.
 	//
-	// Valid values: Policy | DisplayName | DeliveryPolicy
+	// The following lists the names, descriptions, and values of the special request
+	// parameters that the SetTopicAttributes action uses:
+	//
+	//    * DeliveryPolicy – The policy that defines how Amazon SNS retries failed
+	//    deliveries to HTTP/S endpoints.
+	//
+	//    * DisplayName – The display name to use for a topic with SMS subscriptions.
+	//
+	//    * Policy – The policy that defines who can access your topic. By default,
+	//    only the topic owner can publish or subscribe to the topic.
 	//
 	// AttributeName is a required field
 	AttributeName *string `type:"string" required:"true"`
@@ -5508,8 +5593,22 @@ func (s SetTopicAttributesOutput) GoString() string {
 type SubscribeInput struct {
 	_ struct{} `type:"structure"`
 
-	// Assigns attributes to the subscription as a map of key-value pairs. You can
-	// assign any attribute that is supported by the SetSubscriptionAttributes action.
+	// A map of attributes with their corresponding values.
+	//
+	// The following lists the names, descriptions, and values of the special request
+	// parameters that the SetTopicAttributes action uses:
+	//
+	//    * DeliveryPolicy – The policy that defines how Amazon SNS retries failed
+	//    deliveries to HTTP/S endpoints.
+	//
+	//    * FilterPolicy – The simple JSON object that lets your subscriber receive
+	//    only a subset of messages, rather than receiving every message published
+	//    to the topic.
+	//
+	//    * RawMessageDelivery – When set to true, enables raw message delivery
+	//    to Amazon SQS or HTTP/S endpoints. This eliminates the need for the endpoints
+	//    to process JSON formatting, which is otherwise created for Amazon SNS
+	//    metadata.
 	Attributes map[string]*string `type:"map"`
 
 	// The endpoint that you want to receive notifications. Endpoints vary by protocol:
@@ -5535,22 +5634,22 @@ type SubscribeInput struct {
 
 	// The protocol you want to use. Supported protocols include:
 	//
-	//    * http -- delivery of JSON-encoded message via HTTP POST
+	//    * http – delivery of JSON-encoded message via HTTP POST
 	//
-	//    * https -- delivery of JSON-encoded message via HTTPS POST
+	//    * https – delivery of JSON-encoded message via HTTPS POST
 	//
-	//    * email -- delivery of message via SMTP
+	//    * email – delivery of message via SMTP
 	//
-	//    * email-json -- delivery of JSON-encoded message via SMTP
+	//    * email-json – delivery of JSON-encoded message via SMTP
 	//
-	//    * sms -- delivery of message via SMS
+	//    * sms – delivery of message via SMS
 	//
-	//    * sqs -- delivery of JSON-encoded message to an Amazon SQS queue
+	//    * sqs – delivery of JSON-encoded message to an Amazon SQS queue
 	//
-	//    * application -- delivery of JSON-encoded message to an EndpointArn for
+	//    * application – delivery of JSON-encoded message to an EndpointArn for
 	//    a mobile app and device.
 	//
-	//    * lambda -- delivery of JSON-encoded message to an AWS Lambda function.
+	//    * lambda – delivery of JSON-encoded message to an AWS Lambda function.
 	//
 	// Protocol is a required field
 	Protocol *string `type:"string" required:"true"`

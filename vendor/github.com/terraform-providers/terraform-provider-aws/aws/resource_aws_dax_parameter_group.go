@@ -158,34 +158,3 @@ func resourceAwsDaxParameterGroupDelete(d *schema.ResourceData, meta interface{}
 
 	return nil
 }
-
-func expandDaxParameterGroupParameterNameValue(config []interface{}) []*dax.ParameterNameValue {
-	if len(config) == 0 {
-		return nil
-	}
-	results := make([]*dax.ParameterNameValue, 0, len(config))
-	for _, raw := range config {
-		m := raw.(map[string]interface{})
-		pnv := &dax.ParameterNameValue{
-			ParameterName:  aws.String(m["name"].(string)),
-			ParameterValue: aws.String(m["value"].(string)),
-		}
-		results = append(results, pnv)
-	}
-	return results
-}
-
-func flattenDaxParameterGroupParameters(params []*dax.Parameter) []map[string]interface{} {
-	if len(params) == 0 {
-		return nil
-	}
-	results := make([]map[string]interface{}, 0)
-	for _, p := range params {
-		m := map[string]interface{}{
-			"name":  aws.StringValue(p.ParameterName),
-			"value": aws.StringValue(p.ParameterValue),
-		}
-		results = append(results, m)
-	}
-	return results
-}

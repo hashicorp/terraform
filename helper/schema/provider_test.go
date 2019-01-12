@@ -3,14 +3,15 @@ package schema
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
+	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/configschema"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -61,7 +62,7 @@ func TestProviderGetSchema(t *testing.T) {
 			BlockTypes: map[string]*configschema.NestedBlock{},
 		},
 		ResourceTypes: map[string]*configschema.Block{
-			"foo": &configschema.Block{
+			"foo": testResource(&configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"bar": &configschema.Attribute{
 						Type:     cty.String,
@@ -69,10 +70,10 @@ func TestProviderGetSchema(t *testing.T) {
 					},
 				},
 				BlockTypes: map[string]*configschema.NestedBlock{},
-			},
+			}),
 		},
 		DataSources: map[string]*configschema.Block{
-			"baz": &configschema.Block{
+			"baz": testResource(&configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"bur": &configschema.Attribute{
 						Type:     cty.String,
@@ -80,7 +81,7 @@ func TestProviderGetSchema(t *testing.T) {
 					},
 				},
 				BlockTypes: map[string]*configschema.NestedBlock{},
-			},
+			}),
 		},
 	}
 	got, err := p.GetSchema(&terraform.ProviderSchemaRequest{
@@ -91,8 +92,8 @@ func TestProviderGetSchema(t *testing.T) {
 		t.Fatalf("unexpected error %s", err)
 	}
 
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("wrong result\ngot: %swant: %s", spew.Sdump(got), spew.Sdump(want))
+	if !cmp.Equal(got, want, equateEmpty, typeComparer) {
+		t.Error("wrong result:\n", cmp.Diff(got, want, equateEmpty, typeComparer))
 	}
 }
 
@@ -274,6 +275,100 @@ func TestProviderValidate(t *testing.T) {
 		if len(es) > 0 != tc.Err {
 			t.Fatalf("%d: %#v", i, es)
 		}
+	}
+}
+
+func TestProviderDiff_timeoutInvalidType(t *testing.T) {
+	p := &Provider{
+		ResourcesMap: map[string]*Resource{
+			"blah": &Resource{
+				Schema: map[string]*Schema{
+					"foo": {
+						Type:     TypeInt,
+						Optional: true,
+					},
+				},
+				Timeouts: &ResourceTimeout{
+					Create: DefaultTimeout(10 * time.Minute),
+				},
+			},
+		},
+	}
+
+	invalidCfg := map[string]interface{}{
+		"foo": 42,
+		"timeouts": []map[string]interface{}{
+			map[string]interface{}{
+				"create": "40m",
+			},
+		},
+	}
+	ic, err := config.NewRawConfig(invalidCfg)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	_, err = p.Diff(
+		&terraform.InstanceInfo{
+			Type: "blah",
+		},
+		nil,
+		terraform.NewResourceConfig(ic),
+	)
+	if err == nil {
+		t.Fatal("Expected provider.Diff to fail with invalid timeout type")
+	}
+	expectedErrMsg := "Invalid Timeout structure"
+	if !strings.Contains(err.Error(), expectedErrMsg) {
+		t.Fatalf("Unexpected error message: %q\nExpected message to contain %q",
+			err.Error(),
+			expectedErrMsg)
+	}
+}
+
+func TestProviderDiff_timeoutInvalidValue(t *testing.T) {
+	p := &Provider{
+		ResourcesMap: map[string]*Resource{
+			"blah": &Resource{
+				Schema: map[string]*Schema{
+					"foo": {
+						Type:     TypeInt,
+						Optional: true,
+					},
+				},
+				Timeouts: &ResourceTimeout{
+					Create: DefaultTimeout(10 * time.Minute),
+				},
+			},
+		},
+	}
+
+	invalidCfg := map[string]interface{}{
+		"foo": 42,
+		"timeouts": map[string]interface{}{
+			"create": "invalid",
+		},
+	}
+	ic, err := config.NewRawConfig(invalidCfg)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	_, err = p.Diff(
+		&terraform.InstanceInfo{
+			Type: "blah",
+		},
+		nil,
+		terraform.NewResourceConfig(ic),
+	)
+	if err == nil {
+		t.Fatal("Expected provider.Diff to fail with invalid timeout value")
+	}
+	expectedErrMsg := "time: invalid duration invalid"
+	if !strings.Contains(err.Error(), expectedErrMsg) {
+		t.Fatalf("Unexpected error message: %q\nExpected message to contain %q",
+			err.Error(),
+			expectedErrMsg)
 	}
 }
 

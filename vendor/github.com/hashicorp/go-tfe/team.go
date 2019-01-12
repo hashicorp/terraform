@@ -16,7 +16,7 @@ var _ Teams = (*teams)(nil)
 // TFE API docs: https://www.terraform.io/docs/enterprise/api/teams.html
 type Teams interface {
 	// List all the teams of the given organization.
-	List(ctx context.Context, organization string, options TeamListOptions) ([]*Team, error)
+	List(ctx context.Context, organization string, options TeamListOptions) (*TeamList, error)
 
 	// Create a new team with the given options.
 	Create(ctx context.Context, organization string, options TeamCreateOptions) (*Team, error)
@@ -33,6 +33,12 @@ type teams struct {
 	client *Client
 }
 
+// TeamList represents a list of teams.
+type TeamList struct {
+	*Pagination
+	Items []*Team
+}
+
 // Team represents a Terraform Enterprise team.
 type Team struct {
 	ID          string           `jsonapi:"primary,teams"`
@@ -41,7 +47,7 @@ type Team struct {
 	UserCount   int              `jsonapi:"attr,users-count"`
 
 	// Relations
-	//User []*User `jsonapi:"relation,users"`
+	Users []*User `jsonapi:"relation,users"`
 }
 
 // TeamPermissions represents the team permissions.
@@ -56,9 +62,9 @@ type TeamListOptions struct {
 }
 
 // List all the teams of the given organization.
-func (s *teams) List(ctx context.Context, organization string, options TeamListOptions) ([]*Team, error) {
+func (s *teams) List(ctx context.Context, organization string, options TeamListOptions) (*TeamList, error) {
 	if !validStringID(&organization) {
-		return nil, errors.New("Invalid value for organization")
+		return nil, errors.New("invalid value for organization")
 	}
 
 	u := fmt.Sprintf("organizations/%s/teams", url.QueryEscape(organization))
@@ -67,13 +73,13 @@ func (s *teams) List(ctx context.Context, organization string, options TeamListO
 		return nil, err
 	}
 
-	var ts []*Team
-	err = s.client.do(ctx, req, &ts)
+	tl := &TeamList{}
+	err = s.client.do(ctx, req, tl)
 	if err != nil {
 		return nil, err
 	}
 
-	return ts, nil
+	return tl, nil
 }
 
 // TeamCreateOptions represents the options for creating a team.
@@ -87,10 +93,10 @@ type TeamCreateOptions struct {
 
 func (o TeamCreateOptions) valid() error {
 	if !validString(o.Name) {
-		return errors.New("Name is required")
+		return errors.New("name is required")
 	}
 	if !validStringID(o.Name) {
-		return errors.New("Invalid value for name")
+		return errors.New("invalid value for name")
 	}
 	return nil
 }
@@ -98,7 +104,7 @@ func (o TeamCreateOptions) valid() error {
 // Create a new team with the given options.
 func (s *teams) Create(ctx context.Context, organization string, options TeamCreateOptions) (*Team, error) {
 	if !validStringID(&organization) {
-		return nil, errors.New("Invalid value for organization")
+		return nil, errors.New("invalid value for organization")
 	}
 	if err := options.valid(); err != nil {
 		return nil, err
@@ -125,7 +131,7 @@ func (s *teams) Create(ctx context.Context, organization string, options TeamCre
 // Read a single team by its ID.
 func (s *teams) Read(ctx context.Context, teamID string) (*Team, error) {
 	if !validStringID(&teamID) {
-		return nil, errors.New("Invalid value for team ID")
+		return nil, errors.New("invalid value for team ID")
 	}
 
 	u := fmt.Sprintf("teams/%s", url.QueryEscape(teamID))
@@ -146,7 +152,7 @@ func (s *teams) Read(ctx context.Context, teamID string) (*Team, error) {
 // Delete a team by its ID.
 func (s *teams) Delete(ctx context.Context, teamID string) error {
 	if !validStringID(&teamID) {
-		return errors.New("Invalid value for team ID")
+		return errors.New("invalid value for team ID")
 	}
 
 	u := fmt.Sprintf("teams/%s", url.QueryEscape(teamID))

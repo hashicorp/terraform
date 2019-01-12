@@ -6,6 +6,8 @@ import (
 	"github.com/hashicorp/hcl2/gohcl"
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+
+	"github.com/hashicorp/terraform/addrs"
 )
 
 // Provider represents a "provider" block in a module or file. A provider
@@ -54,7 +56,38 @@ func decodeProviderBlock(block *hcl.Block) (*Provider, hcl.Diagnostics) {
 		diags = append(diags, versionDiags...)
 	}
 
+	// Reserved attribute names
+	for _, name := range []string{"count", "depends_on", "for_each", "source"} {
+		if attr, exists := content.Attributes[name]; exists {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Reserved argument name in provider block",
+				Detail:   fmt.Sprintf("The provider argument name %q is reserved for use by Terraform in a future version.", name),
+				Subject:  &attr.NameRange,
+			})
+		}
+	}
+
+	// Reserved block types (all of them)
+	for _, block := range content.Blocks {
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Reserved block type name in provider block",
+			Detail:   fmt.Sprintf("The block type name %q is reserved for use by Terraform in a future version.", block.Type),
+			Subject:  &block.TypeRange,
+		})
+	}
+
 	return provider, diags
+}
+
+// Addr returns the address of the receiving provider configuration, relative
+// to its containing module.
+func (p *Provider) Addr() addrs.ProviderConfig {
+	return addrs.ProviderConfig{
+		Type:  p.Name,
+		Alias: p.Alias,
+	}
 }
 
 func (p *Provider) moduleUniqueKey() string {
@@ -96,5 +129,16 @@ var providerBlockSchema = &hcl.BodySchema{
 		{
 			Name: "version",
 		},
+
+		// Attribute names reserved for future expansion.
+		{Name: "count"},
+		{Name: "depends_on"},
+		{Name: "for_each"},
+		{Name: "source"},
+	},
+	Blocks: []hcl.BlockHeaderSchema{
+		// _All_ of these are reserved for future expansion.
+		{Type: "lifecycle"},
+		{Type: "locals"},
 	},
 }

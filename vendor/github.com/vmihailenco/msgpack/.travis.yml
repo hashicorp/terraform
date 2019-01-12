@@ -1,0 +1,17 @@
+sudo: false
+language: go
+
+go:
+  - 1.7.x
+  - 1.8.x
+  - 1.9.x
+  - 1.10.x
+  - 1.11.x
+  - tip
+
+matrix:
+  allow_failures:
+    - go: tip
+
+install:
+  - go get gopkg.in/check.v1

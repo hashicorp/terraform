@@ -8,7 +8,16 @@ description: |-
 
 # remote_state
 
-Retrieves state meta data from a remote backend
+[backends]: /docs/backends/index.html
+
+Retrieves state data from a [Terraform backend][backends]. This allows you to
+use the root-level outputs of one or more Terraform configurations as input data
+for another configuration.
+
+Although this data source uses Terraform's [backends][], it doesn't have the
+same limitations as the main backend configuration. You can use any number of
+`remote_state` data sources with differently configured backends, and you can
+use interpolations when configuring them.
 
 ## Example Usage
 
@@ -31,10 +40,15 @@ resource "aws_instance" "foo" {
 The following arguments are supported:
 
 * `backend` - (Required) The remote backend to use.
-* `workspace` - (Optional) The Terraform workspace to use.
-* `config` - (Optional) The configuration of the remote backend.
-* `defaults` - (Optional) default value for outputs in case state file is empty or it does not have the output.
- * Remote state config docs can be found [here](/docs/backends/types/terraform-enterprise.html)
+* `workspace` - (Optional) The Terraform workspace to use, if the backend
+  supports workspaces.
+* `config` - (Optional; block) The configuration of the remote backend. The
+  `config` block can use any arguments that would be valid in the equivalent
+  `terraform { backend "<TYPE>" { ... } }` block. See
+  [the documentation of your chosen backend](/docs/backends/types/index.html)
+  for details.
+* `defaults` - (Optional; block) Default values for outputs, in case the state
+  file is empty or lacks a required output.
 
 ## Attributes Reference
 
@@ -42,18 +56,17 @@ The following attributes are exported:
 
 * `backend` - See Argument Reference above.
 * `config` - See Argument Reference above.
-
-In addition, each output in the remote state appears as a top level attribute
-on the `terraform_remote_state` resource.
+* `<OUTPUT NAME>` - Each root-level [output](/docs/configuration/outputs.html)
+  in the remote state appears as a top level attribute on the data source.
 
 ## Root Outputs Only
 
-Only the root level outputs from the remote state are accessible. Outputs from
-modules within the state cannot be accessed. If you want a module output to be
-accessible via a remote state, you must thread the output through to a root
-output.
+Only the root-level outputs from the remote state are accessible. Outputs from
+modules within the state cannot be accessed. If you want a module output or a
+resource attribute to be accessible via a remote state, you must thread the
+output through to a root output.
 
-An example is shown below:
+For example:
 
 ```hcl
 module "app" {
@@ -66,5 +79,5 @@ output "app_value" {
 ```
 
 In this example, the output `value` from the "app" module is available as
-"app_value". If this root level output hadn't been created, then a remote state
+`app_value`. If this root level output hadn't been created, then a remote state
 resource wouldn't be able to access the `value` output on the module.

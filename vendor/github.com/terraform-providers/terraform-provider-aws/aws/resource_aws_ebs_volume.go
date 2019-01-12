@@ -10,7 +10,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -92,6 +91,14 @@ func resourceAwsEbsVolumeCreate(d *schema.ResourceData, meta interface{}) error 
 	if value, ok := d.GetOk("snapshot_id"); ok {
 		request.SnapshotId = aws.String(value.(string))
 	}
+	if value, ok := d.GetOk("tags"); ok {
+		request.TagSpecifications = []*ec2.TagSpecification{
+			{
+				ResourceType: aws.String(ec2.ResourceTypeVolume),
+				Tags:         tagsFromMap(value.(map[string]interface{})),
+			},
+		}
+	}
 
 	// IOPs are only valid, and required for, storage type io1. The current minimu
 	// is 100. Instead of a hard validation we we only apply the IOPs to the
@@ -139,12 +146,6 @@ func resourceAwsEbsVolumeCreate(d *schema.ResourceData, meta interface{}) error 
 
 	d.SetId(*result.VolumeId)
 
-	if _, ok := d.GetOk("tags"); ok {
-		if err := setTags(conn, d); err != nil {
-			return errwrap.Wrapf("Error setting tags for EBS Volume: {{err}}", err)
-		}
-	}
-
 	return resourceAwsEbsVolumeRead(d, meta)
 }
 
@@ -152,7 +153,7 @@ func resourceAWSEbsVolumeUpdate(d *schema.ResourceData, meta interface{}) error 
 	conn := meta.(*AWSClient).ec2conn
 	if _, ok := d.GetOk("tags"); ok {
 		if err := setTags(conn, d); err != nil {
-			return errwrap.Wrapf("Error updating tags for EBS Volume: {{err}}", err)
+			return fmt.Errorf("Error updating tags for EBS Volume: %s", err)
 		}
 	}
 

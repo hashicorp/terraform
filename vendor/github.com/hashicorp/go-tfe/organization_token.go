@@ -20,6 +20,9 @@ type OrganizationTokens interface {
 	// Generate a new organization token, replacing any existing token.
 	Generate(ctx context.Context, organization string) (*OrganizationToken, error)
 
+	// Read an organization token.
+	Read(ctx context.Context, organization string) (*OrganizationToken, error)
+
 	// Delete an organization token.
 	Delete(ctx context.Context, organization string) error
 }
@@ -41,7 +44,7 @@ type OrganizationToken struct {
 // Generate a new organization token, replacing any existing token.
 func (s *organizationTokens) Generate(ctx context.Context, organization string) (*OrganizationToken, error) {
 	if !validStringID(&organization) {
-		return nil, errors.New("Invalid value for organization")
+		return nil, errors.New("invalid value for organization")
 	}
 
 	u := fmt.Sprintf("organizations/%s/authentication-token", url.QueryEscape(organization))
@@ -59,10 +62,31 @@ func (s *organizationTokens) Generate(ctx context.Context, organization string) 
 	return ot, err
 }
 
+// Read an organization token.
+func (s *organizationTokens) Read(ctx context.Context, organization string) (*OrganizationToken, error) {
+	if !validStringID(&organization) {
+		return nil, errors.New("invalid value for organization")
+	}
+
+	u := fmt.Sprintf("organizations/%s/authentication-token", url.QueryEscape(organization))
+	req, err := s.client.newRequest("GET", u, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	ot := &OrganizationToken{}
+	err = s.client.do(ctx, req, ot)
+	if err != nil {
+		return nil, err
+	}
+
+	return ot, err
+}
+
 // Delete an organization token.
 func (s *organizationTokens) Delete(ctx context.Context, organization string) error {
 	if !validStringID(&organization) {
-		return errors.New("Invalid value for organization")
+		return errors.New("invalid value for organization")
 	}
 
 	u := fmt.Sprintf("organizations/%s/authentication-token", url.QueryEscape(organization))

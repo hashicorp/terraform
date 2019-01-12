@@ -30,6 +30,7 @@ func resourceAwsOpsworksApplication() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 				Optional: true,
+				ForceNew: true,
 			},
 			"type": {
 				Type:     schema.TypeString,
@@ -415,7 +416,7 @@ func resourceAwsOpsworksSetApplicationEnvironmentVariable(d *schema.ResourceData
 		}
 		if config.Secure != nil {
 
-			if bool(*config.Secure) {
+			if aws.BoolValue(config.Secure) {
 				data["secure"] = &opsworksTrueString
 			} else {
 				data["secure"] = &opsworksFalseString

@@ -7,14 +7,16 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
+
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/states"
 )
 
-func (b *Backend) States() ([]string, error) {
+func (b *Backend) Workspaces() ([]string, error) {
 	prefix := b.workspaceKeyPrefix + "/"
 
 	// List bucket root if there is no workspaceKeyPrefix
@@ -28,6 +30,9 @@ func (b *Backend) States() ([]string, error) {
 
 	resp, err := b.s3Client.ListObjects(params)
 	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == s3.ErrCodeNoSuchBucket {
+			return nil, fmt.Errorf(errS3NoSuchBucket, err)
+		}
 		return nil, err
 	}
 
@@ -78,7 +83,7 @@ func (b *Backend) keyEnv(key string) string {
 	return parts[1]
 }
 
-func (b *Backend) DeleteState(name string) error {
+func (b *Backend) DeleteWorkspace(name string) error {
 	if name == backend.DefaultStateName || name == "" {
 		return fmt.Errorf("can't delete default state")
 	}
@@ -111,7 +116,7 @@ func (b *Backend) remoteClient(name string) (*RemoteClient, error) {
 	return client, nil
 }
 
-func (b *Backend) State(name string) (state.State, error) {
+func (b *Backend) StateMgr(name string) (state.State, error) {
 	client, err := b.remoteClient(name)
 	if err != nil {
 		return nil, err
@@ -126,7 +131,7 @@ func (b *Backend) State(name string) (state.State, error) {
 	// If we need to force-unlock, but for some reason the state no longer
 	// exists, the user will have to use aws tools to manually fix the
 	// situation.
-	existing, err := b.States()
+	existing, err := b.Workspaces()
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +172,7 @@ func (b *Backend) State(name string) (state.State, error) {
 
 		// If we have no state, we have to create an empty state
 		if v := stateMgr.State(); v == nil {
-			if err := stateMgr.WriteState(terraform.NewState()); err != nil {
+			if err := stateMgr.WriteState(states.NewState()); err != nil {
 				err = lockUnlock(err)
 				return nil, err
 			}

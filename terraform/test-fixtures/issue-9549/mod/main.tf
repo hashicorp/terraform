@@ -1,12 +1,10 @@
-resource "template_file" "example" {
-  template = "template text"
+resource "template_instance" "example" {
+  compute_value = "template text"
+  compute = "value"
 }
 
 output "base_config" {
   value = {
-    base_template = "${template_file.example.rendered}"
-
-    # without this we fail with no entries
-    extra = "value"
+    base_template = template_instance.example.value
   }
 }

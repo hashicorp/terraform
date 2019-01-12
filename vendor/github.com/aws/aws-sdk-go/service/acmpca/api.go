@@ -18,7 +18,7 @@ const opCreateCertificateAuthority = "CreateCertificateAuthority"
 // CreateCertificateAuthorityRequest generates a "aws/request.Request" representing the
 // client's request for the CreateCertificateAuthority operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -114,7 +114,7 @@ const opCreateCertificateAuthorityAuditReport = "CreateCertificateAuthorityAudit
 // CreateCertificateAuthorityAuditReportRequest generates a "aws/request.Request" representing the
 // client's request for the CreateCertificateAuthorityAuditReport operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -212,7 +212,7 @@ const opDeleteCertificateAuthority = "DeleteCertificateAuthority"
 // DeleteCertificateAuthorityRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteCertificateAuthority operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -246,8 +246,7 @@ func (c *ACMPCA) DeleteCertificateAuthorityRequest(input *DeleteCertificateAutho
 
 	output = &DeleteCertificateAuthorityOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -321,7 +320,7 @@ const opDescribeCertificateAuthority = "DescribeCertificateAuthority"
 // DescribeCertificateAuthorityRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeCertificateAuthority operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -426,7 +425,7 @@ const opDescribeCertificateAuthorityAuditReport = "DescribeCertificateAuthorityA
 // DescribeCertificateAuthorityAuditReportRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeCertificateAuthorityAuditReport operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -515,7 +514,7 @@ const opGetCertificate = "GetCertificate"
 // GetCertificateRequest generates a "aws/request.Request" representing the
 // client's request for the GetCertificate operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -613,7 +612,7 @@ const opGetCertificateAuthorityCertificate = "GetCertificateAuthorityCertificate
 // GetCertificateAuthorityCertificateRequest generates a "aws/request.Request" representing the
 // client's request for the GetCertificateAuthorityCertificate operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -702,7 +701,7 @@ const opGetCertificateAuthorityCsr = "GetCertificateAuthorityCsr"
 // GetCertificateAuthorityCsrRequest generates a "aws/request.Request" representing the
 // client's request for the GetCertificateAuthorityCsr operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -799,7 +798,7 @@ const opImportCertificateAuthorityCertificate = "ImportCertificateAuthorityCerti
 // ImportCertificateAuthorityCertificateRequest generates a "aws/request.Request" representing the
 // client's request for the ImportCertificateAuthorityCertificate operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -833,8 +832,7 @@ func (c *ACMPCA) ImportCertificateAuthorityCertificateRequest(input *ImportCerti
 
 	output = &ImportCertificateAuthorityCertificateOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -919,7 +917,7 @@ const opIssueCertificate = "IssueCertificate"
 // IssueCertificateRequest generates a "aws/request.Request" representing the
 // client's request for the IssueCertificate operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1021,7 +1019,7 @@ const opListCertificateAuthorities = "ListCertificateAuthorities"
 // ListCertificateAuthoritiesRequest generates a "aws/request.Request" representing the
 // client's request for the ListCertificateAuthorities operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1102,7 +1100,7 @@ const opListTags = "ListTags"
 // ListTagsRequest generates a "aws/request.Request" representing the
 // client's request for the ListTags operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1189,7 +1187,7 @@ const opRestoreCertificateAuthority = "RestoreCertificateAuthority"
 // RestoreCertificateAuthorityRequest generates a "aws/request.Request" representing the
 // client's request for the RestoreCertificateAuthority operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1223,8 +1221,7 @@ func (c *ACMPCA) RestoreCertificateAuthorityRequest(input *RestoreCertificateAut
 
 	output = &RestoreCertificateAuthorityOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1290,7 +1287,7 @@ const opRevokeCertificate = "RevokeCertificate"
 // RevokeCertificateRequest generates a "aws/request.Request" representing the
 // client's request for the RevokeCertificate operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1324,8 +1321,7 @@ func (c *ACMPCA) RevokeCertificateRequest(input *RevokeCertificateInput) (req *r
 
 	output = &RevokeCertificateOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1396,7 +1392,7 @@ const opTagCertificateAuthority = "TagCertificateAuthority"
 // TagCertificateAuthorityRequest generates a "aws/request.Request" representing the
 // client's request for the TagCertificateAuthority operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1430,8 +1426,7 @@ func (c *ACMPCA) TagCertificateAuthorityRequest(input *TagCertificateAuthorityIn
 
 	output = &TagCertificateAuthorityOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1500,7 +1495,7 @@ const opUntagCertificateAuthority = "UntagCertificateAuthority"
 // UntagCertificateAuthorityRequest generates a "aws/request.Request" representing the
 // client's request for the UntagCertificateAuthority operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1534,8 +1529,7 @@ func (c *ACMPCA) UntagCertificateAuthorityRequest(input *UntagCertificateAuthori
 
 	output = &UntagCertificateAuthorityOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1597,7 +1591,7 @@ const opUpdateCertificateAuthority = "UpdateCertificateAuthority"
 // UpdateCertificateAuthorityRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateCertificateAuthority operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1631,8 +1625,7 @@ func (c *ACMPCA) UpdateCertificateAuthorityRequest(input *UpdateCertificateAutho
 
 	output = &UpdateCertificateAuthorityOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 

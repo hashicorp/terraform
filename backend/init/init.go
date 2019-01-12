@@ -3,21 +3,23 @@
 package init
 
 import (
-	"os"
 	"sync"
 
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/svchost/disco"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 
 	backendAtlas "github.com/hashicorp/terraform/backend/atlas"
-	backendLegacy "github.com/hashicorp/terraform/backend/legacy"
 	backendLocal "github.com/hashicorp/terraform/backend/local"
 	backendRemote "github.com/hashicorp/terraform/backend/remote"
+	backendArtifactory "github.com/hashicorp/terraform/backend/remote-state/artifactory"
 	backendAzure "github.com/hashicorp/terraform/backend/remote-state/azure"
 	backendConsul "github.com/hashicorp/terraform/backend/remote-state/consul"
+	backendEtcdv2 "github.com/hashicorp/terraform/backend/remote-state/etcdv2"
 	backendEtcdv3 "github.com/hashicorp/terraform/backend/remote-state/etcdv3"
 	backendGCS "github.com/hashicorp/terraform/backend/remote-state/gcs"
+	backendHTTP "github.com/hashicorp/terraform/backend/remote-state/http"
 	backendInmem "github.com/hashicorp/terraform/backend/remote-state/inmem"
 	backendManta "github.com/hashicorp/terraform/backend/remote-state/manta"
 	backendS3 "github.com/hashicorp/terraform/backend/remote-state/s3"
@@ -45,34 +47,31 @@ func Init(services *disco.Disco) {
 
 	backends = map[string]backend.InitFn{
 		// Enhanced backends.
-		"local": func() backend.Backend { return backendLocal.New() },
-		"remote": func() backend.Backend {
-			b := backendRemote.New(services)
-			if os.Getenv("TF_FORCE_LOCAL_BACKEND") != "" {
-				return backendLocal.NewWithBackend(b)
-			}
-			return b
-		},
+		"local":  func() backend.Backend { return backendLocal.New() },
+		"remote": func() backend.Backend { return backendRemote.New(services) },
 
 		// Remote State backends.
-		"atlas":   func() backend.Backend { return backendAtlas.New() },
-		"azurerm": func() backend.Backend { return backendAzure.New() },
-		"consul":  func() backend.Backend { return backendConsul.New() },
-		"etcdv3":  func() backend.Backend { return backendEtcdv3.New() },
-		"gcs":     func() backend.Backend { return backendGCS.New() },
-		"inmem":   func() backend.Backend { return backendInmem.New() },
-		"manta":   func() backend.Backend { return backendManta.New() },
-		"s3":      func() backend.Backend { return backendS3.New() },
-		"swift":   func() backend.Backend { return backendSwift.New() },
+		"artifactory": func() backend.Backend { return backendArtifactory.New() },
+		"atlas":       func() backend.Backend { return backendAtlas.New() },
+		"azurerm":     func() backend.Backend { return backendAzure.New() },
+		"consul":      func() backend.Backend { return backendConsul.New() },
+		"etcd":        func() backend.Backend { return backendEtcdv2.New() },
+		"etcdv3":      func() backend.Backend { return backendEtcdv3.New() },
+		"gcs":         func() backend.Backend { return backendGCS.New() },
+		"http":        func() backend.Backend { return backendHTTP.New() },
+		"inmem":       func() backend.Backend { return backendInmem.New() },
+		"manta":       func() backend.Backend { return backendManta.New() },
+		"s3":          func() backend.Backend { return backendS3.New() },
+		"swift":       func() backend.Backend { return backendSwift.New() },
 
 		// Deprecated backends.
-		"azure": deprecateBackend(backendAzure.New(),
-			`Warning: "azure" name is deprecated, please use "azurerm"`),
+		"azure": func() backend.Backend {
+			return deprecateBackend(
+				backendAzure.New(),
+				`Warning: "azure" name is deprecated, please use "azurerm"`,
+			)
+		},
 	}
-
-	// Add the legacy remote backends that haven't yet been converted to
-	// the new backend API.
-	backendLegacy.Init(backends)
 }
 
 // Backend returns the initialization factory for the given backend, or
@@ -109,16 +108,16 @@ type deprecatedBackendShim struct {
 	Message string
 }
 
-// Validate the Backend then add the deprecation warning.
-func (b deprecatedBackendShim) Validate(c *terraform.ResourceConfig) ([]string, []error) {
-	warns, errs := b.Backend.Validate(c)
-	warns = append(warns, b.Message)
-	return warns, errs
+// ValidateConfig delegates to the wrapped backend to validate its config
+// and then appends shim's deprecation warning.
+func (b deprecatedBackendShim) ValidateConfig(obj cty.Value) tfdiags.Diagnostics {
+	diags := b.Backend.ValidateConfig(obj)
+	return diags.Append(tfdiags.SimpleWarning(b.Message))
 }
 
 // DeprecateBackend can be used to wrap a backend to retrun a deprecation
 // warning during validation.
-func deprecateBackend(b backend.Backend, message string) backend.InitFn {
+func deprecateBackend(b backend.Backend, message string) backend.Backend {
 	// Since a Backend wrapped by deprecatedBackendShim can no longer be
 	// asserted as an Enhanced or Local backend, disallow those types here
 	// entirely.  If something other than a basic backend.Backend needs to be
@@ -132,10 +131,8 @@ func deprecateBackend(b backend.Backend, message string) backend.InitFn {
 		panic("cannot use DeprecateBackend on a Local Backend")
 	}
 
-	return func() backend.Backend {
-		return deprecatedBackendShim{
-			Backend: b,
-			Message: message,
-		}
+	return deprecatedBackendShim{
+		Backend: b,
+		Message: message,
 	}
 }

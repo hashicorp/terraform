@@ -5,9 +5,10 @@ import (
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/service/efs"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func dataSourceAwsEfsFileSystem() *schema.Resource {
@@ -15,12 +16,16 @@ func dataSourceAwsEfsFileSystem() *schema.Resource {
 		Read: dataSourceAwsEfsFileSystemRead,
 
 		Schema: map[string]*schema.Schema{
+			"arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"creation_token": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
 				ForceNew:     true,
-				ValidateFunc: validateMaxLength(64),
+				ValidateFunc: validation.StringLenBetween(0, 64),
 			},
 			"encrypted": {
 				Type:     schema.TypeBool,
@@ -65,7 +70,7 @@ func dataSourceAwsEfsFileSystemRead(d *schema.ResourceData, meta interface{}) er
 	log.Printf("[DEBUG] Reading EFS File System: %s", describeEfsOpts)
 	describeResp, err := efsconn.DescribeFileSystems(describeEfsOpts)
 	if err != nil {
-		return errwrap.Wrapf("Error retrieving EFS: {{err}}", err)
+		return fmt.Errorf("Error retrieving EFS: %s", err)
 	}
 	if len(describeResp.FileSystems) != 1 {
 		return fmt.Errorf("Search returned %d results, please revise so only one is returned", len(describeResp.FileSystems))
@@ -105,7 +110,7 @@ func dataSourceAwsEfsFileSystemRead(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	var fs *efs.UpdateFileSystemOutput
+	var fs *efs.FileSystemDescription
 	for _, f := range describeResp.FileSystems {
 		if d.Id() == *f.FileSystemId {
 			fs = f
@@ -120,6 +125,16 @@ func dataSourceAwsEfsFileSystemRead(d *schema.ResourceData, meta interface{}) er
 
 	d.Set("creation_token", fs.CreationToken)
 	d.Set("performance_mode", fs.PerformanceMode)
+
+	fsARN := arn.ARN{
+		AccountID: meta.(*AWSClient).accountid,
+		Partition: meta.(*AWSClient).partition,
+		Region:    meta.(*AWSClient).region,
+		Resource:  fmt.Sprintf("file-system/%s", aws.StringValue(fs.FileSystemId)),
+		Service:   "elasticfilesystem",
+	}.String()
+
+	d.Set("arn", fsARN)
 	d.Set("file_system_id", fs.FileSystemId)
 	d.Set("encrypted", fs.Encrypted)
 	d.Set("kms_key_id", fs.KmsKeyId)

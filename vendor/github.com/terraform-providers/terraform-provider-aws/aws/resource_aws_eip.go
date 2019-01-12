@@ -31,53 +31,60 @@ func resourceAwsEip() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"vpc": &schema.Schema{
+			"vpc": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
 			},
 
-			"instance": &schema.Schema{
+			"instance": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"network_interface": &schema.Schema{
+			"network_interface": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"allocation_id": &schema.Schema{
+			"allocation_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"association_id": &schema.Schema{
+			"association_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"domain": &schema.Schema{
+			"domain": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"public_ip": &schema.Schema{
+			"public_ip": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"private_ip": &schema.Schema{
+			"private_ip": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"associate_with_private_ip": &schema.Schema{
+			"associate_with_private_ip": {
 				Type:     schema.TypeString,
 				Optional: true,
+			},
+
+			"public_ipv4_pool": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Computed: true,
 			},
 
 			"tags": tagsSchema(),
@@ -96,6 +103,10 @@ func resourceAwsEipCreate(d *schema.ResourceData, meta interface{}) error {
 
 	allocOpts := &ec2.AllocateAddressInput{
 		Domain: aws.String(domainOpt),
+	}
+
+	if v, ok := d.GetOk("public_ipv4_pool"); ok {
+		allocOpts.PublicIpv4Pool = aws.String(v.(string))
 	}
 
 	log.Printf("[DEBUG] EIP create configuration: %#v", allocOpts)
@@ -181,16 +192,22 @@ func resourceAwsEipRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	// Verify AWS returned our EIP
-	if len(describeAddresses.Addresses) != 1 ||
-		domain == "vpc" && *describeAddresses.Addresses[0].AllocationId != id ||
-		*describeAddresses.Addresses[0].PublicIp != id {
-		if err != nil {
-			return fmt.Errorf("Unable to find EIP: %#v", describeAddresses.Addresses)
+	var address *ec2.Address
+
+	// In the case that AWS returns more EIPs than we intend it to, we loop
+	// over the returned addresses to see if it's in the list of results
+	for _, addr := range describeAddresses.Addresses {
+		if (domain == "vpc" && aws.StringValue(addr.AllocationId) == id) || aws.StringValue(addr.PublicIp) == id {
+			address = addr
+			break
 		}
 	}
 
-	address := describeAddresses.Addresses[0]
+	if address == nil {
+		log.Printf("[WARN] EIP %q not found, removing from state", d.Id())
+		d.SetId("")
+		return nil
+	}
 
 	d.Set("association_id", address.AssociationId)
 	if address.InstanceId != nil {
@@ -205,6 +222,7 @@ func resourceAwsEipRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	d.Set("private_ip", address.PrivateIpAddress)
 	d.Set("public_ip", address.PublicIp)
+	d.Set("public_ipv4_pool", address.PublicIpv4Pool)
 
 	// On import (domain never set, which it must've been if we created),
 	// set the 'vpc' attribute depending on if we're in a VPC.

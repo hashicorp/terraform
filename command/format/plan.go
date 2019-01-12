@@ -3,12 +3,16 @@ package format
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"sort"
 	"strings"
 
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/colorstring"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 // Plan is a representation of a plan optimized for display to
@@ -25,7 +29,7 @@ type Plan struct {
 // for display, in conjunction with DisplayPlan.
 type InstanceDiff struct {
 	Addr   *terraform.ResourceAddress
-	Action terraform.DiffChangeType
+	Action plans.Action
 
 	// Attributes describes changes to the attributes of the instance.
 	//
@@ -43,7 +47,7 @@ type AttributeDiff struct {
 	// intended for display purposes only.
 	Path string
 
-	Action terraform.DiffChangeType
+	Action plans.Action
 
 	OldValue string
 	NewValue string
@@ -59,100 +63,45 @@ type PlanStats struct {
 }
 
 // NewPlan produces a display-oriented Plan from a terraform.Plan.
-func NewPlan(plan *terraform.Plan) *Plan {
+func NewPlan(changes *plans.Changes) *Plan {
+	log.Printf("[TRACE] NewPlan for %#v", changes)
 	ret := &Plan{}
-	if plan == nil || plan.Diff == nil || plan.Diff.Empty() {
+	if changes == nil {
 		// Nothing to do!
 		return ret
 	}
 
-	for _, m := range plan.Diff.Modules {
-		var modulePath []string
-		if !m.IsRoot() {
-			// trim off the leading "root" path segment, since it's implied
-			// when we use a path in a resource address.
-			modulePath = m.Path[1:]
+	for _, rc := range changes.Resources {
+		addr := rc.Addr
+		log.Printf("[TRACE] NewPlan found %s (%s)", addr, rc.Action)
+		dataSource := addr.Resource.Resource.Mode == addrs.DataResourceMode
+
+		// We create "delete" actions for data resources so we can clean
+		// up their entries in state, but this is an implementation detail
+		// that users shouldn't see.
+		if dataSource && rc.Action == plans.Delete {
+			continue
 		}
 
-		for k, r := range m.Resources {
-			if r.Empty() {
-				continue
-			}
-
-			addr, err := terraform.ParseResourceAddressForInstanceDiff(modulePath, k)
-			if err != nil {
-				// should never happen; indicates invalid diff
-				panic("invalid resource address in diff")
-			}
-
-			dataSource := addr.Mode == config.DataResourceMode
-
-			// We create "destroy" actions for data resources so we can clean
-			// up their entries in state, but this is an implementation detail
-			// that users shouldn't see.
-			if dataSource && r.ChangeType() == terraform.DiffDestroy {
-				continue
-			}
-
-			did := &InstanceDiff{
-				Addr:    addr,
-				Action:  r.ChangeType(),
-				Tainted: r.DestroyTainted,
-				Deposed: r.DestroyDeposed,
-			}
-
-			if dataSource && did.Action == terraform.DiffCreate {
-				// Use "refresh" as the action for display, since core
-				// currently uses Create for this.
-				did.Action = terraform.DiffRefresh
-			}
-
-			ret.Resources = append(ret.Resources, did)
-
-			if did.Action == terraform.DiffDestroy {
-				// Don't show any outputs for destroy actions
-				continue
-			}
-
-			for k, a := range r.Attributes {
-				var action terraform.DiffChangeType
-				switch {
-				case a.NewRemoved:
-					action = terraform.DiffDestroy
-				case did.Action == terraform.DiffCreate:
-					action = terraform.DiffCreate
-				default:
-					action = terraform.DiffUpdate
-				}
-
-				did.Attributes = append(did.Attributes, &AttributeDiff{
-					Path:   k,
-					Action: action,
-
-					OldValue: a.Old,
-					NewValue: a.New,
-
-					Sensitive:   a.Sensitive,
-					ForcesNew:   a.RequiresNew,
-					NewComputed: a.NewComputed,
-				})
-			}
-
-			// Sort the attributes by their paths for display
-			sort.Slice(did.Attributes, func(i, j int) bool {
-				iPath := did.Attributes[i].Path
-				jPath := did.Attributes[j].Path
-
-				// as a special case, "id" is always first
-				switch {
-				case iPath != jPath && (iPath == "id" || jPath == "id"):
-					return iPath == "id"
-				default:
-					return iPath < jPath
-				}
-			})
-
+		// For now we'll shim this to work with our old types.
+		// TODO: Update for the new plan types, ideally also switching over to
+		// a structural diff renderer instead of a flat renderer.
+		did := &InstanceDiff{
+			Addr:   terraform.NewLegacyResourceInstanceAddress(addr),
+			Action: rc.Action,
 		}
+
+		if rc.DeposedKey != states.NotDeposed {
+			did.Deposed = true
+		}
+
+		// Since this is just a temporary stub implementation on the way
+		// to us replacing this with the structural diff renderer, we currently
+		// don't include any attributes here.
+		// FIXME: Implement the structural diff renderer to replace this
+		// codepath altogether.
+
+		ret.Resources = append(ret.Resources, did)
 	}
 
 	// Sort the instance diffs by their addresses for display.
@@ -207,14 +156,14 @@ func (p *Plan) Stats() PlanStats {
 	var ret PlanStats
 	for _, r := range p.Resources {
 		switch r.Action {
-		case terraform.DiffCreate:
+		case plans.Create:
 			ret.ToAdd++
-		case terraform.DiffUpdate:
+		case plans.Update:
 			ret.ToChange++
-		case terraform.DiffDestroyCreate:
+		case plans.DeleteThenCreate, plans.CreateThenDelete:
 			ret.ToAdd++
 			ret.ToDestroy++
-		case terraform.DiffDestroy:
+		case plans.Delete:
 			ret.ToDestroy++
 		}
 	}
@@ -222,8 +171,8 @@ func (p *Plan) Stats() PlanStats {
 }
 
 // ActionCounts returns the number of diffs for each action type
-func (p *Plan) ActionCounts() map[terraform.DiffChangeType]int {
-	ret := map[terraform.DiffChangeType]int{}
+func (p *Plan) ActionCounts() map[plans.Action]int {
+	ret := map[plans.Action]int{}
 	for _, r := range p.Resources {
 		ret[r.Action]++
 	}
@@ -239,18 +188,22 @@ func (p *Plan) Empty() bool {
 // colorstring.Colorize, will produce a result that can be written
 // to a terminal to produce a symbol made of three printable
 // characters, possibly interspersed with VT100 color codes.
-func DiffActionSymbol(action terraform.DiffChangeType) string {
+func DiffActionSymbol(action plans.Action) string {
 	switch action {
-	case terraform.DiffDestroyCreate:
+	case plans.DeleteThenCreate:
 		return "[red]-[reset]/[green]+[reset]"
-	case terraform.DiffCreate:
+	case plans.CreateThenDelete:
+		return "[green]+[reset]/[red]-[reset]"
+	case plans.Create:
 		return "  [green]+[reset]"
-	case terraform.DiffDestroy:
+	case plans.Delete:
 		return "  [red]-[reset]"
-	case terraform.DiffRefresh:
+	case plans.Read:
 		return " [cyan]<=[reset]"
-	default:
+	case plans.Update:
 		return "  [yellow]~[reset]"
+	default:
+		return "  ?"
 	}
 }
 
@@ -266,14 +219,14 @@ func formatPlanInstanceDiff(buf *bytes.Buffer, r *InstanceDiff, keyLen int, colo
 	symbol := DiffActionSymbol(r.Action)
 	oldValues := true
 	switch r.Action {
-	case terraform.DiffDestroyCreate:
+	case plans.DeleteThenCreate, plans.CreateThenDelete:
 		color = "yellow"
-	case terraform.DiffCreate:
+	case plans.Create:
 		color = "green"
 		oldValues = false
-	case terraform.DiffDestroy:
+	case plans.Delete:
 		color = "red"
-	case terraform.DiffRefresh:
+	case plans.Read:
 		color = "cyan"
 		oldValues = false
 	}
@@ -285,7 +238,7 @@ func formatPlanInstanceDiff(buf *bytes.Buffer, r *InstanceDiff, keyLen int, colo
 	if r.Deposed {
 		extraStr = extraStr + " (deposed)"
 	}
-	if r.Action == terraform.DiffDestroyCreate {
+	if r.Action.IsReplace() {
 		extraStr = extraStr + colorizer.Color(" [red][bold](new resource required)")
 	}
 
@@ -311,7 +264,7 @@ func formatPlanInstanceDiff(buf *bytes.Buffer, r *InstanceDiff, keyLen int, colo
 
 		updateMsg := ""
 		switch {
-		case attr.ForcesNew && r.Action == terraform.DiffDestroyCreate:
+		case attr.ForcesNew && r.Action.IsReplace():
 			updateMsg = colorizer.Color(" [red](forces new resource)")
 		case attr.Sensitive && oldValues:
 			updateMsg = colorizer.Color(" [yellow](attribute changed)")

@@ -109,9 +109,9 @@ func (mb mergedBodies) JustAttributes() (Attributes, Diagnostics) {
 				if existing := attrs[name]; existing != nil {
 					diags = diags.Append(&Diagnostic{
 						Severity: DiagError,
-						Summary:  "Duplicate attribute",
+						Summary:  "Duplicate argument",
 						Detail: fmt.Sprintf(
-							"Attribute %q was already assigned at %s",
+							"Argument %q was already set at %s",
 							name, existing.NameRange.String(),
 						),
 						Subject: &attr.NameRange,
@@ -171,7 +171,7 @@ func (mb mergedBodies) mergedContent(schema *BodySchema, partial bool) (*BodyCon
 		}
 
 		if thisLeftovers != nil {
-			mergedLeftovers = append(mergedLeftovers)
+			mergedLeftovers = append(mergedLeftovers, thisLeftovers)
 		}
 		if len(thisDiags) != 0 {
 			diags = append(diags, thisDiags...)
@@ -182,9 +182,9 @@ func (mb mergedBodies) mergedContent(schema *BodySchema, partial bool) (*BodyCon
 				if existing := content.Attributes[name]; existing != nil {
 					diags = diags.Append(&Diagnostic{
 						Severity: DiagError,
-						Summary:  "Duplicate attribute",
+						Summary:  "Duplicate argument",
 						Detail: fmt.Sprintf(
-							"Attribute %q was already assigned at %s",
+							"Argument %q was already set at %s",
 							name, existing.NameRange.String(),
 						),
 						Subject: &attr.NameRange,
@@ -212,9 +212,9 @@ func (mb mergedBodies) mergedContent(schema *BodySchema, partial bool) (*BodyCon
 			// use of required attributes on merged bodies.
 			diags = diags.Append(&Diagnostic{
 				Severity: DiagError,
-				Summary:  "Missing required attribute",
+				Summary:  "Missing required argument",
 				Detail: fmt.Sprintf(
-					"The attribute %q is required, but was not assigned.",
+					"The argument %q is required, but was not set.",
 					attrS.Name,
 				),
 			})

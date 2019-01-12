@@ -15,6 +15,10 @@ import (
 // but callers can also feel free to just produce a slice of PathStep manually
 // and convert to this type, which may be more appropriate in environments
 // where memory pressure is a concern.
+//
+// Although a Path is technically mutable, by convention callers should not
+// mutate a path once it has been built and passed to some other subsystem.
+// Instead, use Copy and then mutate the copy before using it.
 type Path []PathStep
 
 // PathStep represents a single step down into a data structure, as part

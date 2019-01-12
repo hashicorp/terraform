@@ -26,6 +26,8 @@ by the vendors and the Terraform community, and are tested by HashiCorp.
 
 [Local](/docs/providers/local/index.html)
 
+[Netlify](/docs/providers/netlify/index.html)
+
 [Null](/docs/providers/null/index.html)
 
 [Random](/docs/providers/random/index.html)

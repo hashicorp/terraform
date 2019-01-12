@@ -1,78 +1,100 @@
 ---
 layout: "docs"
-page_title: "Configuring Providers"
+page_title: "Providers - Configuration Language"
 sidebar_current: "docs-config-providers"
 description: |-
   Providers are responsible in Terraform for managing the lifecycle of a resource: create, read, update, delete.
 ---
 
-# Provider Configuration
+# Providers
 
-Providers are responsible in Terraform for managing the lifecycle
-of a [resource](/docs/configuration/resources.html): create,
-read, update, delete.
+While [resources](./resources.html) are the primary construct
+in the Terraform language, the _behaviors_ of resources rely on their
+associated resource types, and these types are defined by _providers_.
 
-Most providers require some sort of configuration to provide
-authentication information, endpoint URLs, etc. Where explicit configuration
-is required, a `provider` block is used within the configuration as
-illustrated in the following sections.
+Each provider offers a set of named resource types, and defines for each
+resource type which arguments it accepts, which attributes it exports,
+and how changes to resources of that type are actually applied to remote
+APIs.
 
-By default, resources are matched with provider configurations by matching
-the start of the resource name. For example, a resource of type
-`vsphere_virtual_machine` is associated with a provider called `vsphere`.
+Most of the available providers correspond to one cloud or on-premises
+infrastructure platform, and offer resource types that correspond to each
+of the features of that platform.
 
-This page assumes you're familiar with the
-[configuration syntax](/docs/configuration/syntax.html)
-already.
+Providers usually require some configuration of their own to specify endpoint
+URLs, regions, authentication settings, and so on. All resource types belonging
+to the same provider will share the same configuration, avoiding the need to
+repeat this common information across every resource declaration.
 
-## Example
+## Provider Configuration
 
-A provider configuration looks like the following:
+A provider configuration is created using a `provider` block:
 
 ```hcl
-provider "aws" {
-  access_key = "foo"
-  secret_key = "bar"
-  region     = "us-east-1"
+provider "google" {
+  project = "acme-app"
+  region  = "us-central1"
 }
 ```
 
-## Description
+The name given in the block header (`"google"` in this example) is the name
+of the provider to configure. Terraform associates each resource type with
+a provider by taking the first word of the resource type name (separated by
+underscores), and so the "google" provider is assumed to be the provider for
+the resource type name `google_compute_instance`.
 
-A `provider` block represents a configuration for the provider named in its
-header. For example, `provider "aws"` above is a configuration for the
-`aws` provider.
+The body of the block (between `{` and `}`) contains configuration arguments
+for the provider itself. Most arguments in this section are specified by
+the provider itself; in this example both `project` and `region`
+are specific to the `google` provider.
 
-Within the block body (between `{ }`) is configuration for the provider.
-The configuration is dependent on the type, and is documented
-[for each provider](/docs/providers/index.html).
+The configuration arguments defined by the provider may be assigned using
+[expressions](./expressions.html), which can for example
+allow them to be parameterized by input variables. However, since provider
+configurations must be evaluated in order to perform any resource type action,
+provider configurations may refer only to values that are known before
+the configuration is applied. In particular, avoid referring to attributes
+exported by other resources unless their values are specified directly in the
+configuration.
 
-The arguments `alias` and `version`, if present, are special arguments
-handled by Terraform Core for their respective features described above. All
-other arguments are defined by the provider itself.
+There are also two "meta-arguments" that are defined by Terraform itself
+and available for all `provider` blocks:
 
-A `provider` block may be omitted if its body would be empty. Using a resource
-in configuration implicitly creates an empty provider configuration for it
-unless a `provider` block is explicitly provided.
+- [`version`, for constraining the allowed provider versions][inpage-versions]
+- [`alias`, for using the same provider with different configurations for different resources][inpage-alias]
+
+Unlike many other objects in the Terraform language, a `provider` block may
+be omitted if its contents would otherwise be empty. Terraform assumes an
+empty default configuration for any provider that is not explicitly configured.
 
 ## Initialization
 
 Each time a new provider is added to configuration -- either explicitly via
-a `provider` block or by adding a resource from that provider -- it's necessary
-to initialize that provider before use. Initialization downloads and installs
-the provider's plugin and prepares it to be used.
+a `provider` block or by adding a resource from that provider -- Terraform
+must initialize the provider before it can be used. Initialization downloads
+and installs the provider's plugin so that it can later be executed.
 
 Provider initialization is one of the actions of `terraform init`. Running
 this command will download and initialize any providers that are not already
 initialized.
 
+Providers downloaded by `terraform init` are only installed for the current
+working directory; other working directories can have their own installed
+provider versions.
+
+Note that `terraform init` cannot automatically download providers that are not
+distributed by HashiCorp. See [Third-party Plugins](#third-party-plugins) below
+for installation instructions.
+
 For more information, see
 [the `terraform init` command](/docs/commands/init.html).
 
-## Provider Versions
+## `version`: Provider Versions
 
-Providers are released on a separate rhythm from Terraform itself, and thus
-have their own version numbers. For production use, it is recommended to
+[inpage-versions]: #version-provider-versions
+
+Providers are plugins released on a separate rhythm from Terraform itself, and
+so they have their own version numbers. For production use, you should
 constrain the acceptable provider versions via configuration, to ensure that
 new versions with breaking changes will not be automatically installed by
 `terraform init` in future.
@@ -92,27 +114,25 @@ suggested below.
 * provider.aws: version = "~> 1.0"
 ```
 
-To constrain the provider version as suggested, add a `version` argument to
-the provider configuration block:
+To constrain the provider version as suggested, add the `version` meta-argument
+to the provider configuration block:
 
 ```hcl
 provider "aws" {
   version = "~> 1.0"
 
-  access_key = "foo"
-  secret_key = "bar"
   region     = "us-east-1"
 }
 ```
 
-This special argument applies to _all_ providers.
-[`terraform providers`](/docs/commands/providers.html) can be used to
-view the specified version constraints for all providers used in the
+This meta-argument applies to all providers.
+[The `terraform providers` command](/docs/commands/providers.html) can be used
+to view the specified version constraints for all providers used in the
 current configuration.
 
-The `version` attribute value may either be a single explicit version or
-a version constraint expression. Constraint expressions use the following
-syntax to specify a _range_ of versions that are acceptable:
+The `version` argument value may either be a single explicit version or
+a version constraint string. Constraint strings use the following syntax to
+specify a _range_ of versions that are acceptable:
 
 * `>= 1.2.0`: version 1.2.0 or newer
 * `<= 1.2.0`: version 1.2.0 or older
@@ -126,21 +146,23 @@ to downloading a new version. To upgrade to the latest acceptable version
 of each provider, run `terraform init -upgrade`. This command also upgrades
 to the latest versions of all Terraform modules.
 
-## Multiple Provider Instances
+## `alias`: Multiple Provider Instances
 
-You can define multiple configurations for the same provider in order to support
-multiple regions, multiple hosts, etc. The primary use case for this is
-using multiple cloud regions. Other use-cases include targeting multiple
-Docker hosts, multiple Consul hosts, etc.
+[inpage-alias]: #alias-multiple-provider-instances
+
+You can optionally define multiple configurations for the same provider, and
+select which one to use on a per-resource or per-module basis. The primary
+reason for this is to support multiple regions for a cloud platform; other
+examples include targeting multiple Docker hosts, multiple Consul hosts, etc.
 
 To include multiple configurations for a given provider, include multiple
-`provider` blocks with the same provider name, but set the `alias` field to an
-instance name to use for each additional instance. For example:
+`provider` blocks with the same provider name, but set the `alias` meta-argument
+to an alias name to use for each additional configuration. For example:
 
 ```hcl
 # The default provider configuration
 provider "aws" {
-  # ...
+  region = "us-east-1"
 }
 
 # Additional provider configuration for west coast region
@@ -150,81 +172,123 @@ provider "aws" {
 }
 ```
 
-A `provider` block with out `alias` set is known as the _default_ provider
+The `provider` block without `alias` set is known as the _default_ provider
 configuration. When `alias` is set, it creates an _additional_ provider
 configuration. For providers that have no required configuration arguments, the
-implied _empty_ configuration is also considered to be a _default_ provider
+implied _empty_ configuration is considered to be the _default_ provider
 configuration.
 
-Resources are normally associated with the default provider configuration
-inferred from the resource type name. For example, a resource of type
-`aws_instance` uses the _default_ (un-aliased) `aws` provider configuration
-unless otherwise stated.
+### Referring to Alternate Providers
 
-The `provider` argument within any `resource` or `data` block overrides this
-default behavior and allows an additional provider configuration to be
-selected using its alias:
+When Terraform needs the name of a provider configuration, it always expects a
+reference of the form `<PROVIDER NAME>.<ALIAS>`. In the example above,
+`aws.west` would refer to the provider with the `us-west-2` region.
+
+These references are special expressions. Like references to other named
+entities (for example, `var.image_id`), they aren't strings and don't need to be
+quoted. But they are only valid in specific meta-arguments of `resource`,
+`data`, and `module` blocks, and can't be used in arbitrary expressions.
+
+### Selecting Alternate Providers
+
+By default, resources use a default provider configuration inferred from the
+first word of the resource type name. For example, a resource of type
+`aws_instance` uses the default (un-aliased) `aws` provider configuration unless
+otherwise stated.
+
+To select an aliased provider for a resource or data source, set its `provider`
+meta-argument to a `<PROVIDER NAME>.<ALIAS>` reference:
 
 ```hcl
 resource "aws_instance" "foo" {
-  provider = "aws.west"
+  provider = aws.west
 
   # ...
 }
 ```
 
-The value of the `provider` argument is always the provider name and an
-alias separated by a period, such as `"aws.west"` above.
-
-Provider configurations may also be passed from a parent module into a
-child module, as described in
-[_Providers within Modules_](/docs/modules/usage.html#providers-within-modules).
-
-## Interpolation
-
-Provider configurations may use [interpolation syntax](/docs/configuration/interpolation.html)
-to allow dynamic configuration:
+To select aliased providers for a child module, use its `providers`
+meta-argument to specify which aliased providers should be mapped to which local
+provider names inside the module:
 
 ```hcl
-provider "aws" {
-  region = "${var.aws_region}"
+module "aws_vpc" {
+  source = "./aws_vpc"
+  providers = {
+    aws = aws.west
+  }
 }
 ```
 
-Interpolation is supported only for the per-provider configuration arguments.
-It is not supported for the special `alias` and `version` arguments.
-
-Although in principle it is possible to use any interpolation expression within
-a provider configuration argument, providers must be configurable to perform
-almost all operations within Terraform, and so it is not possible to use
-expressions whose value cannot be known until after configuration is applied,
-such as the id of a resource.
-
-It is always valid to use [input variables](/docs/configuration/variables.html)
-and [data sources](/docs/configuration/data-sources.html) whose configurations
-do not in turn depend on as-yet-unknown values. [Local values](/docs/configuration/locals.html)
-may also be used, but currently may cause errors when running `terraform destroy`.
+Modules have some special requirements when passing in providers; see
+[Providers within Modules](/docs/modules/usage.html#providers-within-modules)
+for more details. In most cases, only _root modules_ should define provider
+configurations, with all child modules obtaining their provider configurations
+from their parents.
 
 ## Third-party Plugins
 
-At present Terraform can automatically install only the providers distributed
-by HashiCorp. Third-party providers can be manually installed by placing
-their plugin executables in one of the following locations depending on the
-host operating system:
+Anyone can develop and distribute their own Terraform providers. (See
+[Writing Custom Providers](/docs/extend/writing-custom-providers.html) for more
+about provider development.) These third-party providers must be manually
+installed, since `terraform init` cannot automatically download them.
 
-* On Windows, in the sub-path `terraform.d/plugins` beneath your user's
-  "Application Data" directory.
-* On all other systems, in the sub-path `.terraform.d/plugins` in your
-  user's home directory.
+Install third-party providers by placing their plugin executables in the user
+plugins directory. The user plugins directory is in one of the following
+locations, depending on the host operating system:
 
-`terraform init` will search this directory for additional plugins during
-plugin initialization.
+Operating system  | User plugins directory
+------------------|-----------------------
+Windows           | `%APPDATA%\terraform.d\plugins`
+All other systems | `~/.terraform.d/plugins`
 
-The naming scheme for provider plugins is `terraform-provider-NAME_vX.Y.Z`,
+Once a plugin is installed, `terraform init` can initialize it normally.
+
+Providers distributed by HashiCorp can also go in the user plugins directory. If
+a manually installed version meets the configuration's version constraints,
+Terraform will use it instead of downloading that provider. This is useful in
+airgapped environments and when testing pre-release provider builds.
+
+### Plugin Names and Versions
+
+The naming scheme for provider plugins is `terraform-provider-<NAME>_vX.Y.Z`,
 and Terraform uses the name to understand the name and version of a particular
-provider binary. Third-party plugins will often be distributed with an
-appropriate filename already set in the distribution archive so that it can
-be extracted directly into the plugin directory described above.
+provider binary.
+
+If multiple versions of a plugin are installed, Terraform will use the newest
+version that meets the configuration's version constraints.
+
+Third-party plugins are often distributed with an appropriate filename already
+set in the distribution archive, so that they can be extracted directly into the
+user plugins directory.
+
+### OS and Architecture Directories
+
+Terraform plugins are compiled for a specific operating system and architecture,
+and any plugins in the root of the user plugins directory must be compiled for
+the current system.
+
+If you use the same plugins directory on multiple systems, you can install
+plugins into subdirectories with a naming scheme of `<OS>_<ARCH>` (for example,
+`darwin_amd64`). Terraform uses plugins from the root of the plugins directory
+and from the subdirectory that corresponds to the current system, ignoring
+other subdirectories.
+
+Terraform's OS and architecture strings are the standard ones used by the Go
+language. The following are the most common:
+
+* `darwin_amd64`
+* `freebsd_386`
+* `freebsd_amd64`
+* `freebsd_arm`
+* `linux_386`
+* `linux_amd64`
+* `linux_arm`
+* `openbsd_386`
+* `openbsd_amd64`
+* `solaris_amd64`
+* `windows_386`
+* `windows_amd64`
 
 ## Provider Plugin Cache
 
@@ -240,7 +304,7 @@ use of a local directory as a shared plugin cache, which then allows each
 distinct plugin binary to be downloaded only once.
 
 To enable the plugin cache, use the `plugin_cache_dir` setting in
-[the CLI configuration file](https://www.terraform.io/docs/commands/cli-config.html).
+[the CLI configuration file](/docs/commands/cli-config.html).
 For example:
 
 ```hcl
@@ -280,7 +344,7 @@ When possible, Terraform will use hardlinks or symlinks to avoid storing
 a separate copy of a cached plugin in multiple directories. At present, this
 is not supported on Windows and instead a copy is always created.
 
-The plugin cache directory must *not* be the third-party plugin directory
+The plugin cache directory must _not_ be the third-party plugin directory
 or any other directory Terraform searches for pre-installed plugins, since
 the cache management logic conflicts with the normal plugin discovery logic
 when operating on the same directory.

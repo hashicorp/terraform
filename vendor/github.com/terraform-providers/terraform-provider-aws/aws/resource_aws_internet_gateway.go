@@ -8,7 +8,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -24,11 +23,15 @@ func resourceAwsInternetGateway() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"vpc_id": &schema.Schema{
+			"vpc_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 			"tags": tagsSchema(),
+			"owner_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -62,7 +65,7 @@ func resourceAwsInternetGatewayCreate(d *schema.ResourceData, meta interface{}) 
 	})
 
 	if err != nil {
-		return errwrap.Wrapf("{{err}}", err)
+		return fmt.Errorf("%s", err)
 	}
 
 	err = setTags(conn, d)
@@ -71,7 +74,12 @@ func resourceAwsInternetGatewayCreate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	// Attach the new gateway to the correct vpc
-	return resourceAwsInternetGatewayAttach(d, meta)
+	err = resourceAwsInternetGatewayAttach(d, meta)
+	if err != nil {
+		return fmt.Errorf("error attaching EC2 Internet Gateway (%s): %s", d.Id(), err)
+	}
+
+	return resourceAwsInternetGatewayRead(d, meta)
 }
 
 func resourceAwsInternetGatewayRead(d *schema.ResourceData, meta interface{}) error {
@@ -96,6 +104,7 @@ func resourceAwsInternetGatewayRead(d *schema.ResourceData, meta interface{}) er
 	}
 
 	d.Set("tags", tagsToMap(ig.Tags))
+	d.Set("owner_id", ig.OwnerId)
 
 	return nil
 }
@@ -121,7 +130,7 @@ func resourceAwsInternetGatewayUpdate(d *schema.ResourceData, meta interface{}) 
 
 	d.SetPartial("tags")
 
-	return nil
+	return resourceAwsInternetGatewayRead(d, meta)
 }
 
 func resourceAwsInternetGatewayDelete(d *schema.ResourceData, meta interface{}) error {

@@ -16,12 +16,23 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/go-version"
-	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/errwrap"
+	multierror "github.com/hashicorp/go-multierror"
+	uuid "github.com/hashicorp/go-uuid"
+	version "github.com/hashicorp/go-version"
+	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl2/hcl/hclsyntax"
 	"github.com/mitchellh/copystructure"
+	"github.com/zclconf/go-cty/cty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/tfdiags"
 	tfversion "github.com/hashicorp/terraform/version"
 )
 
@@ -33,26 +44,38 @@ const (
 // rootModulePath is the path of the root module
 var rootModulePath = []string{"root"}
 
+// normalizeModulePath transforms a legacy module path (which may or may not
+// have a redundant "root" label at the start of it) into an
+// addrs.ModuleInstance representing the same module.
+//
+// For legacy reasons, different parts of Terraform disagree about whether the
+// root module has the path []string{} or []string{"root"}, and so this
+// function accepts both and trims off the "root". An implication of this is
+// that it's not possible to actually have a module call in the root module
+// that is itself named "root", since that would be ambiguous.
+//
 // normalizeModulePath takes a raw module path and returns a path that
 // has the rootModulePath prepended to it. If I could go back in time I
 // would've never had a rootModulePath (empty path would be root). We can
 // still fix this but thats a big refactor that my branch doesn't make sense
 // for. Instead, this function normalizes paths.
-func normalizeModulePath(p []string) []string {
-	k := len(rootModulePath)
+func normalizeModulePath(p []string) addrs.ModuleInstance {
+	// FIXME: Remove this once everyone is using addrs.ModuleInstance.
 
-	// If we already have a root module prefix, we're done
-	if len(p) >= len(rootModulePath) {
-		if reflect.DeepEqual(p[:k], rootModulePath) {
-			return p
-		}
+	if len(p) > 0 && p[0] == "root" {
+		p = p[1:]
 	}
 
-	// None? Prefix it
-	result := make([]string, len(rootModulePath)+len(p))
-	copy(result, rootModulePath)
-	copy(result[k:], p)
-	return result
+	ret := make(addrs.ModuleInstance, len(p))
+	for i, name := range p {
+		// For now we don't actually support modules with multiple instances
+		// identified by keys, so we just treat every path element as a
+		// step with no key.
+		ret[i] = addrs.ModuleInstanceStep{
+			Name: name,
+		}
+	}
+	return ret
 }
 
 // State keeps track of a snapshot state-of-the-world that Terraform
@@ -138,21 +161,43 @@ func (s *State) children(path []string) []*ModuleState {
 //
 // This should be the preferred method to add module states since it
 // allows us to optimize lookups later as well as control sorting.
-func (s *State) AddModule(path []string) *ModuleState {
+func (s *State) AddModule(path addrs.ModuleInstance) *ModuleState {
 	s.Lock()
 	defer s.Unlock()
 
 	return s.addModule(path)
 }
 
-func (s *State) addModule(path []string) *ModuleState {
+func (s *State) addModule(path addrs.ModuleInstance) *ModuleState {
 	// check if the module exists first
 	m := s.moduleByPath(path)
 	if m != nil {
 		return m
 	}
 
-	m = &ModuleState{Path: path}
+	// Lower the new-style address into a legacy-style address.
+	// This requires that none of the steps have instance keys, which is
+	// true for all addresses at the time of implementing this because
+	// "count" and "for_each" are not yet implemented for modules.
+	// For the purposes of state, the legacy address format also includes
+	// a redundant extra prefix element "root". It is important to include
+	// this because the "prune" method will remove any module that has a
+	// path length less than one, and other parts of the state code will
+	// trim off the first element indiscriminately.
+	legacyPath := make([]string, len(path)+1)
+	legacyPath[0] = "root"
+	for i, step := range path {
+		if step.InstanceKey != addrs.NoKey {
+			// FIXME: Once the rest of Terraform is ready to use count and
+			// for_each, remove all of this and just write the addrs.ModuleInstance
+			// value itself into the ModuleState.
+			panic("state cannot represent modules with count or for_each keys")
+		}
+
+		legacyPath[i+1] = step.Name
+	}
+
+	m = &ModuleState{Path: legacyPath}
 	m.init()
 	s.Modules = append(s.Modules, m)
 	s.sort()
@@ -162,7 +207,7 @@ func (s *State) addModule(path []string) *ModuleState {
 // ModuleByPath is used to lookup the module state for the given path.
 // This should be the preferred lookup mechanism as it allows for future
 // lookup optimizations.
-func (s *State) ModuleByPath(path []string) *ModuleState {
+func (s *State) ModuleByPath(path addrs.ModuleInstance) *ModuleState {
 	if s == nil {
 		return nil
 	}
@@ -172,7 +217,7 @@ func (s *State) ModuleByPath(path []string) *ModuleState {
 	return s.moduleByPath(path)
 }
 
-func (s *State) moduleByPath(path []string) *ModuleState {
+func (s *State) moduleByPath(path addrs.ModuleInstance) *ModuleState {
 	for _, mod := range s.Modules {
 		if mod == nil {
 			continue
@@ -180,95 +225,12 @@ func (s *State) moduleByPath(path []string) *ModuleState {
 		if mod.Path == nil {
 			panic("missing module path")
 		}
-		if reflect.DeepEqual(mod.Path, path) {
+		modPath := normalizeModulePath(mod.Path)
+		if modPath.String() == path.String() {
 			return mod
 		}
 	}
 	return nil
-}
-
-// ModuleOrphans returns all the module orphans in this state by
-// returning their full paths. These paths can be used with ModuleByPath
-// to return the actual state.
-func (s *State) ModuleOrphans(path []string, c *config.Config) [][]string {
-	s.Lock()
-	defer s.Unlock()
-
-	return s.moduleOrphans(path, c)
-
-}
-
-func (s *State) moduleOrphans(path []string, c *config.Config) [][]string {
-	// direct keeps track of what direct children we have both in our config
-	// and in our state. childrenKeys keeps track of what isn't an orphan.
-	direct := make(map[string]struct{})
-	childrenKeys := make(map[string]struct{})
-	if c != nil {
-		for _, m := range c.Modules {
-			childrenKeys[m.Name] = struct{}{}
-			direct[m.Name] = struct{}{}
-		}
-	}
-
-	// Go over the direct children and find any that aren't in our keys.
-	var orphans [][]string
-	for _, m := range s.children(path) {
-		key := m.Path[len(m.Path)-1]
-
-		// Record that we found this key as a direct child. We use this
-		// later to find orphan nested modules.
-		direct[key] = struct{}{}
-
-		// If we have a direct child still in our config, it is not an orphan
-		if _, ok := childrenKeys[key]; ok {
-			continue
-		}
-
-		orphans = append(orphans, m.Path)
-	}
-
-	// Find the orphans that are nested...
-	for _, m := range s.Modules {
-		if m == nil {
-			continue
-		}
-
-		// We only want modules that are at least grandchildren
-		if len(m.Path) < len(path)+2 {
-			continue
-		}
-
-		// If it isn't part of our tree, continue
-		if !reflect.DeepEqual(path, m.Path[:len(path)]) {
-			continue
-		}
-
-		// If we have the direct child, then just skip it.
-		key := m.Path[len(path)]
-		if _, ok := direct[key]; ok {
-			continue
-		}
-
-		orphanPath := m.Path[:len(path)+1]
-
-		// Don't double-add if we've already added this orphan (which can happen if
-		// there are multiple nested sub-modules that get orphaned together).
-		alreadyAdded := false
-		for _, o := range orphans {
-			if reflect.DeepEqual(o, orphanPath) {
-				alreadyAdded = true
-				break
-			}
-		}
-		if alreadyAdded {
-			continue
-		}
-
-		// Add this orphan
-		orphans = append(orphans, orphanPath)
-	}
-
-	return orphans
 }
 
 // Empty returns true if the state is empty.
@@ -443,7 +405,7 @@ func (s *State) removeModule(path []string, v *ModuleState) {
 
 func (s *State) removeResource(path []string, v *ResourceState) {
 	// Get the module this resource lives in. If it doesn't exist, we're done.
-	mod := s.moduleByPath(path)
+	mod := s.moduleByPath(normalizeModulePath(path))
 	if mod == nil {
 		return
 	}
@@ -487,7 +449,7 @@ func (s *State) removeInstance(path []string, r *ResourceState, v *InstanceState
 
 // RootModule returns the ModuleState for the root module
 func (s *State) RootModule() *ModuleState {
-	root := s.ModuleByPath(rootModulePath)
+	root := s.ModuleByPath(addrs.RootModuleInstance)
 	if root == nil {
 		panic("missing root module")
 	}
@@ -522,7 +484,7 @@ func (s *State) equal(other *State) bool {
 	}
 	for _, m := range s.Modules {
 		// This isn't very optimal currently but works.
-		otherM := other.moduleByPath(m.Path)
+		otherM := other.moduleByPath(normalizeModulePath(m.Path))
 		if otherM == nil {
 			return false
 		}
@@ -681,8 +643,8 @@ func (s *State) init() {
 		s.Version = StateVersion
 	}
 
-	if s.moduleByPath(rootModulePath) == nil {
-		s.addModule(rootModulePath)
+	if s.moduleByPath(addrs.RootModuleInstance) == nil {
+		s.addModule(addrs.RootModuleInstance)
 	}
 	s.ensureHasLineage()
 
@@ -811,13 +773,9 @@ func (s *State) String() string {
 
 // BackendState stores the configuration to connect to a remote backend.
 type BackendState struct {
-	Type   string                 `json:"type"`   // Backend type
-	Config map[string]interface{} `json:"config"` // Backend raw config
-
-	// Hash is the hash code to uniquely identify the original source
-	// configuration. We use this to detect when there is a change in
-	// configuration even when "type" isn't changed.
-	Hash uint64 `json:"hash"`
+	Type      string          `json:"type"`   // Backend type
+	ConfigRaw json.RawMessage `json:"config"` // Backend raw config
+	Hash      uint64          `json:"hash"`   // Hash of portion of configuration from config files
 }
 
 // Empty returns true if BackendState has no state.
@@ -825,25 +783,50 @@ func (s *BackendState) Empty() bool {
 	return s == nil || s.Type == ""
 }
 
-// Rehash returns a unique content hash for this backend's configuration
-// as a uint64 value.
-// The Hash stored in the backend state needs to match the config itself, but
-// we need to compare the backend config after it has been combined with all
-// options.
-// This function must match the implementation used by config.Backend.
-func (s *BackendState) Rehash() uint64 {
+// Config decodes the type-specific configuration object using the provided
+// schema and returns the result as a cty.Value.
+//
+// An error is returned if the stored configuration does not conform to the
+// given schema.
+func (s *BackendState) Config(schema *configschema.Block) (cty.Value, error) {
+	ty := schema.ImpliedType()
 	if s == nil {
-		return 0
+		return cty.NullVal(ty), nil
+	}
+	return ctyjson.Unmarshal(s.ConfigRaw, ty)
+}
+
+// SetConfig replaces (in-place) the type-specific configuration object using
+// the provided value and associated schema.
+//
+// An error is returned if the given value does not conform to the implied
+// type of the schema.
+func (s *BackendState) SetConfig(val cty.Value, schema *configschema.Block) error {
+	ty := schema.ImpliedType()
+	buf, err := ctyjson.Marshal(val, ty)
+	if err != nil {
+		return err
+	}
+	s.ConfigRaw = buf
+	return nil
+}
+
+// ForPlan produces an alternative representation of the reciever that is
+// suitable for storing in a plan. The current workspace must additionally
+// be provided, to be stored alongside the backend configuration.
+//
+// The backend configuration schema is required in order to properly
+// encode the backend-specific configuration settings.
+func (s *BackendState) ForPlan(schema *configschema.Block, workspaceName string) (*plans.Backend, error) {
+	if s == nil {
+		return nil, nil
 	}
 
-	cfg := config.Backend{
-		Type: s.Type,
-		RawConfig: &config.RawConfig{
-			Raw: s.Config,
-		},
+	configVal, err := s.Config(schema)
+	if err != nil {
+		return nil, errwrap.Wrapf("failed to decode backend config: {{err}}", err)
 	}
-
-	return cfg.Rehash()
+	return plans.NewBackend(s.Type, configVal, schema, workspaceName)
 }
 
 // RemoteState is used to track the information about a remote
@@ -1089,58 +1072,64 @@ func (m *ModuleState) IsDescendent(other *ModuleState) bool {
 // Orphans returns a list of keys of resources that are in the State
 // but aren't present in the configuration itself. Hence, these keys
 // represent the state of resources that are orphans.
-func (m *ModuleState) Orphans(c *config.Config) []string {
+func (m *ModuleState) Orphans(c *configs.Module) []addrs.ResourceInstance {
 	m.Lock()
 	defer m.Unlock()
 
-	keys := make(map[string]struct{})
-	for k := range m.Resources {
-		keys[k] = struct{}{}
-	}
-
+	inConfig := make(map[string]struct{})
 	if c != nil {
-		for _, r := range c.Resources {
-			delete(keys, r.Id())
-
-			for k := range keys {
-				if strings.HasPrefix(k, r.Id()+".") {
-					delete(keys, k)
-				}
-			}
+		for _, r := range c.ManagedResources {
+			inConfig[r.Addr().String()] = struct{}{}
+		}
+		for _, r := range c.DataResources {
+			inConfig[r.Addr().String()] = struct{}{}
 		}
 	}
 
-	result := make([]string, 0, len(keys))
-	for k := range keys {
-		result = append(result, k)
-	}
+	var result []addrs.ResourceInstance
+	for k := range m.Resources {
+		// Since we've not yet updated state to use our new address format,
+		// we need to do some shimming here.
+		legacyAddr, err := parseResourceAddressInternal(k)
+		if err != nil {
+			// Suggests that the user tampered with the state, since we always
+			// generate valid internal addresses.
+			log.Printf("ModuleState has invalid resource key %q. Ignoring.", k)
+			continue
+		}
 
+		addr := legacyAddr.AbsResourceInstanceAddr().Resource
+		compareKey := addr.Resource.String() // compare by resource address, ignoring instance key
+		if _, exists := inConfig[compareKey]; !exists {
+			result = append(result, addr)
+		}
+	}
 	return result
 }
 
 // RemovedOutputs returns a list of outputs that are in the State but aren't
 // present in the configuration itself.
-func (m *ModuleState) RemovedOutputs(c *config.Config) []string {
-	m.Lock()
-	defer m.Unlock()
-
-	keys := make(map[string]struct{})
-	for k := range m.Outputs {
-		keys[k] = struct{}{}
+func (s *ModuleState) RemovedOutputs(outputs map[string]*configs.Output) []addrs.OutputValue {
+	if outputs == nil {
+		// If we got no output map at all then we'll just treat our set of
+		// configured outputs as empty, since that suggests that they've all
+		// been removed by removing their containing module.
+		outputs = make(map[string]*configs.Output)
 	}
 
-	if c != nil {
-		for _, o := range c.Outputs {
-			delete(keys, o.Name)
+	s.Lock()
+	defer s.Unlock()
+
+	var ret []addrs.OutputValue
+	for n := range s.Outputs {
+		if _, declared := outputs[n]; !declared {
+			ret = append(ret, addrs.OutputValue{
+				Name: n,
+			})
 		}
 	}
 
-	result := make([]string, 0, len(keys))
-	for k := range keys {
-		result = append(result, k)
-	}
-
-	return result
+	return ret
 }
 
 // View returns a view with the given resource prefix.
@@ -1543,6 +1532,24 @@ func (s *ResourceState) Untaint() {
 	}
 }
 
+// ProviderAddr returns the provider address for the receiver, by parsing the
+// string representation saved in state. An error can be returned if the
+// value in state is corrupt.
+func (s *ResourceState) ProviderAddr() (addrs.AbsProviderConfig, error) {
+	var diags tfdiags.Diagnostics
+
+	str := s.Provider
+	traversal, travDiags := hclsyntax.ParseTraversalAbs([]byte(str), "", hcl.Pos{Line: 1, Column: 1})
+	diags = diags.Append(travDiags)
+	if travDiags.HasErrors() {
+		return addrs.AbsProviderConfig{}, diags.Err()
+	}
+
+	addr, addrDiags := addrs.ParseAbsProviderConfig(traversal)
+	diags = diags.Append(addrDiags)
+	return addr, diags.Err()
+}
+
 func (s *ResourceState) init() {
 	s.Lock()
 	defer s.Unlock()
@@ -1649,6 +1656,51 @@ func (s *InstanceState) init() {
 		s.Meta = make(map[string]interface{})
 	}
 	s.Ephemeral.init()
+}
+
+// NewInstanceStateShimmedFromValue is a shim method to lower a new-style
+// object value representing the attributes of an instance object into the
+// legacy InstanceState representation.
+//
+// This is for shimming to old components only and should not be used in new code.
+func NewInstanceStateShimmedFromValue(state cty.Value, schemaVersion int) *InstanceState {
+	attrs := hcl2shim.FlatmapValueFromHCL2(state)
+	return &InstanceState{
+		ID:         attrs["id"],
+		Attributes: attrs,
+		Meta: map[string]interface{}{
+			"schema_version": schemaVersion,
+		},
+	}
+}
+
+// AttrsAsObjectValue shims from the legacy InstanceState representation to
+// a new-style cty object value representation of the state attributes, using
+// the given type for guidance.
+//
+// The given type must be the implied type of the schema of the resource type
+// of the object whose state is being converted, or the result is undefined.
+//
+// This is for shimming from old components only and should not be used in
+// new code.
+func (s *InstanceState) AttrsAsObjectValue(ty cty.Type) (cty.Value, error) {
+	if s == nil {
+		// if the state is nil, we need to construct a complete cty.Value with
+		// null attributes, rather than a single cty.NullVal(ty)
+		s = &InstanceState{}
+	}
+
+	if s.Attributes == nil {
+		s.Attributes = map[string]string{}
+	}
+
+	// make sure ID is included in the attributes. The InstanceState.ID value
+	// takes precedence.
+	if s.ID != "" {
+		s.Attributes["id"] = s.ID
+	}
+
+	return hcl2shim.HCL2ValueFromFlatmap(s.Attributes, ty)
 }
 
 // Copy all the Fields from another InstanceState
@@ -1787,13 +1839,19 @@ func (s *InstanceState) MergeDiff(d *InstanceDiff) *InstanceState {
 }
 
 func (s *InstanceState) String() string {
+	notCreated := "<not created>"
+
+	if s == nil {
+		return notCreated
+	}
+
 	s.Lock()
 	defer s.Unlock()
 
 	var buf bytes.Buffer
 
-	if s == nil || s.ID == "" {
-		return "<not created>"
+	if s.ID == "" {
+		return notCreated
 	}
 
 	buf.WriteString(fmt.Sprintf("ID = %s\n", s.ID))
@@ -2187,19 +2245,6 @@ func (s moduleStateSort) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 
-// StateCompatible returns an error if the state is not compatible with the
-// current version of terraform.
-func CheckStateVersion(state *State) error {
-	if state == nil {
-		return nil
-	}
-
-	if state.FromFutureTerraform() {
-		return fmt.Errorf(stateInvalidTerraformVersionErr, state.TFVersion)
-	}
-	return nil
-}
-
 const stateValidateErrMultiModule = `
 Multiple modules with the same path: %s
 
@@ -2207,12 +2252,4 @@ This means that there are multiple entries in the "modules" field
 in your state file that point to the same module. This will cause Terraform
 to behave in unexpected and error prone ways and is invalid. Please back up
 and modify your state file manually to resolve this.
-`
-
-const stateInvalidTerraformVersionErr = `
-Terraform doesn't allow running any operations against a state
-that was written by a future Terraform version. The state is
-reporting it is written by Terraform '%s'
-
-Please run at least that version of Terraform to continue.
 `

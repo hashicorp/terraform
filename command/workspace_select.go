@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/mitchellh/cli"
 	"github.com/posener/complete"
 )
@@ -21,11 +22,12 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 
 	envCommandShowWarning(c.Ui, c.LegacyName)
 
-	cmdFlags := c.Meta.flagSet("workspace select")
+	cmdFlags := c.Meta.defaultFlagSet("workspace select")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
 	}
+
 	args = cmdFlags.Args()
 	if len(args) == 0 {
 		c.Ui.Error("Expected a single argument: NAME.\n")
@@ -38,9 +40,13 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 		return 1
 	}
 
-	conf, err := c.Config(configPath)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load root config module: %s", err))
+	var diags tfdiags.Diagnostics
+
+	backendConfig, backendDiags := c.loadBackendConfig(configPath)
+	diags = diags.Append(backendDiags)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
 	}
 
 	current, isOverridden := c.WorkspaceOverridden()
@@ -50,9 +56,14 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 	}
 
 	// Load the backend
-	b, err := c.Backend(&BackendOpts{
-		Config: conf,
+	b, backendDiags := c.Backend(&BackendOpts{
+		Config: backendConfig,
 	})
+	diags = diags.Append(backendDiags)
+	if backendDiags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
 
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
@@ -65,7 +76,7 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 		return 1
 	}
 
-	states, err := b.States()
+	states, err := b.Workspaces()
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
@@ -121,6 +132,7 @@ func (c *WorkspaceSelectCommand) Help() string {
 Usage: terraform workspace select NAME [DIR]
 
   Select a different Terraform workspace.
+
 `
 	return strings.TrimSpace(helpText)
 }

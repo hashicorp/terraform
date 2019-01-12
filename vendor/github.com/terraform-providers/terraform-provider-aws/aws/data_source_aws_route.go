@@ -47,6 +47,11 @@ func dataSourceAwsRoute() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
+			"transit_gateway_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
 			"vpc_peering_connection_id": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -98,13 +103,14 @@ func dataSourceAwsRouteRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	route := results[0]
 
-	d.SetId(routeIDHash(d, route)) // using function from "resource_aws_route.go"
+	d.SetId(resourceAwsRouteID(d, route)) // using function from "resource_aws_route.go"
 	d.Set("destination_cidr_block", route.DestinationCidrBlock)
 	d.Set("destination_ipv6_cidr_block", route.DestinationIpv6CidrBlock)
 	d.Set("egress_only_gateway_id", route.EgressOnlyInternetGatewayId)
 	d.Set("gateway_id", route.GatewayId)
 	d.Set("instance_id", route.InstanceId)
 	d.Set("nat_gateway_id", route.NatGatewayId)
+	d.Set("transit_gateway_id", route.TransitGatewayId)
 	d.Set("vpc_peering_connection_id", route.VpcPeeringConnectionId)
 	d.Set("network_interface_id", route.NetworkInterfaceId)
 
@@ -159,6 +165,12 @@ func getRoutes(table *ec2.RouteTable, d *schema.ResourceData) []*ec2.Route {
 
 		if v, ok := d.GetOk("nat_gateway_id"); ok {
 			if r.NatGatewayId == nil || *r.NatGatewayId != v.(string) {
+				continue
+			}
+		}
+
+		if v, ok := d.GetOk("transit_gateway_id"); ok {
+			if r.TransitGatewayId == nil || *r.TransitGatewayId != v.(string) {
 				continue
 			}
 		}

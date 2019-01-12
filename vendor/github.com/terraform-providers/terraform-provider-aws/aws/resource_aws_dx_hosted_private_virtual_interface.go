@@ -77,10 +77,22 @@ func resourceAwsDxHostedPrivateVirtualInterface() *schema.Resource {
 				ForceNew:     true,
 				ValidateFunc: validateAwsAccountId,
 			},
+			"mtu": {
+				Type:         schema.TypeInt,
+				Default:      1500,
+				Optional:     true,
+				ForceNew:     true,
+				ValidateFunc: validateIntegerInSlice([]int{1500, 9001}),
+			},
+			"jumbo_frame_capable": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
 		},
 
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(10 * time.Minute),
+			Update: schema.DefaultTimeout(10 * time.Minute),
 			Delete: schema.DefaultTimeout(10 * time.Minute),
 		},
 	}
@@ -97,6 +109,7 @@ func resourceAwsDxHostedPrivateVirtualInterfaceCreate(d *schema.ResourceData, me
 			Vlan:                 aws.Int64(int64(d.Get("vlan").(int))),
 			Asn:                  aws.Int64(int64(d.Get("bgp_asn").(int))),
 			AddressFamily:        aws.String(d.Get("address_family").(string)),
+			Mtu:                  aws.Int64(int64(d.Get("mtu").(int))),
 		},
 	}
 	if v, ok := d.GetOk("bgp_auth_key"); ok && v.(string) != "" {
@@ -107,6 +120,9 @@ func resourceAwsDxHostedPrivateVirtualInterfaceCreate(d *schema.ResourceData, me
 	}
 	if v, ok := d.GetOk("amazon_address"); ok && v.(string) != "" {
 		req.NewPrivateVirtualInterfaceAllocation.AmazonAddress = aws.String(v.(string))
+	}
+	if v, ok := d.GetOk("mtu"); ok && v.(int) != 0 {
+		req.NewPrivateVirtualInterfaceAllocation.Mtu = aws.Int64(int64(v.(int)))
 	}
 
 	log.Printf("[DEBUG] Creating Direct Connect hosted private virtual interface: %#v", req)
@@ -125,7 +141,7 @@ func resourceAwsDxHostedPrivateVirtualInterfaceCreate(d *schema.ResourceData, me
 	}.String()
 	d.Set("arn", arn)
 
-	if err := dxHostedPrivateVirtualInterfaceWaitUntilAvailable(d, conn); err != nil {
+	if err := dxHostedPrivateVirtualInterfaceWaitUntilAvailable(conn, d.Id(), d.Timeout(schema.TimeoutCreate)); err != nil {
 		return err
 	}
 
@@ -154,6 +170,8 @@ func resourceAwsDxHostedPrivateVirtualInterfaceRead(d *schema.ResourceData, meta
 	d.Set("customer_address", vif.CustomerAddress)
 	d.Set("amazon_address", vif.AmazonAddress)
 	d.Set("owner_account_id", vif.OwnerAccount)
+	d.Set("mtu", vif.Mtu)
+	d.Set("jumbo_frame_capable", vif.JumboFrameCapable)
 
 	return nil
 }
@@ -175,10 +193,11 @@ func resourceAwsDxHostedPrivateVirtualInterfaceImport(d *schema.ResourceData, me
 	return []*schema.ResourceData{d}, nil
 }
 
-func dxHostedPrivateVirtualInterfaceWaitUntilAvailable(d *schema.ResourceData, conn *directconnect.DirectConnect) error {
+func dxHostedPrivateVirtualInterfaceWaitUntilAvailable(conn *directconnect.DirectConnect, vifId string, timeout time.Duration) error {
 	return dxVirtualInterfaceWaitUntilAvailable(
-		d,
 		conn,
+		vifId,
+		timeout,
 		[]string{
 			directconnect.VirtualInterfaceStatePending,
 		},

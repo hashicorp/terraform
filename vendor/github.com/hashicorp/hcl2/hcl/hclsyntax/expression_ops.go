@@ -129,8 +129,8 @@ type BinaryOpExpr struct {
 }
 
 func (e *BinaryOpExpr) walkChildNodes(w internalWalkFunc) {
-	e.LHS = w(e.LHS).(Expression)
-	e.RHS = w(e.RHS).(Expression)
+	w(e.LHS)
+	w(e.RHS)
 }
 
 func (e *BinaryOpExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
@@ -149,21 +149,25 @@ func (e *BinaryOpExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) 
 	lhsVal, err := convert.Convert(givenLHSVal, lhsParam.Type)
 	if err != nil {
 		diags = append(diags, &hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid operand",
-			Detail:   fmt.Sprintf("Unsuitable value for left operand: %s.", err),
-			Subject:  e.LHS.Range().Ptr(),
-			Context:  &e.SrcRange,
+			Severity:    hcl.DiagError,
+			Summary:     "Invalid operand",
+			Detail:      fmt.Sprintf("Unsuitable value for left operand: %s.", err),
+			Subject:     e.LHS.Range().Ptr(),
+			Context:     &e.SrcRange,
+			Expression:  e.LHS,
+			EvalContext: ctx,
 		})
 	}
 	rhsVal, err := convert.Convert(givenRHSVal, rhsParam.Type)
 	if err != nil {
 		diags = append(diags, &hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid operand",
-			Detail:   fmt.Sprintf("Unsuitable value for right operand: %s.", err),
-			Subject:  e.RHS.Range().Ptr(),
-			Context:  &e.SrcRange,
+			Severity:    hcl.DiagError,
+			Summary:     "Invalid operand",
+			Detail:      fmt.Sprintf("Unsuitable value for right operand: %s.", err),
+			Subject:     e.RHS.Range().Ptr(),
+			Context:     &e.SrcRange,
+			Expression:  e.RHS,
+			EvalContext: ctx,
 		})
 	}
 
@@ -178,10 +182,12 @@ func (e *BinaryOpExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) 
 	if err != nil {
 		diags = append(diags, &hcl.Diagnostic{
 			// FIXME: This diagnostic is useless.
-			Severity: hcl.DiagError,
-			Summary:  "Operation failed",
-			Detail:   fmt.Sprintf("Error during operation: %s.", err),
-			Subject:  &e.SrcRange,
+			Severity:    hcl.DiagError,
+			Summary:     "Operation failed",
+			Detail:      fmt.Sprintf("Error during operation: %s.", err),
+			Subject:     &e.SrcRange,
+			Expression:  e,
+			EvalContext: ctx,
 		})
 		return cty.UnknownVal(e.Op.Type), diags
 	}
@@ -206,7 +212,7 @@ type UnaryOpExpr struct {
 }
 
 func (e *UnaryOpExpr) walkChildNodes(w internalWalkFunc) {
-	e.Val = w(e.Val).(Expression)
+	w(e.Val)
 }
 
 func (e *UnaryOpExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
@@ -219,11 +225,13 @@ func (e *UnaryOpExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
 	val, err := convert.Convert(givenVal, param.Type)
 	if err != nil {
 		diags = append(diags, &hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid operand",
-			Detail:   fmt.Sprintf("Unsuitable value for unary operand: %s.", err),
-			Subject:  e.Val.Range().Ptr(),
-			Context:  &e.SrcRange,
+			Severity:    hcl.DiagError,
+			Summary:     "Invalid operand",
+			Detail:      fmt.Sprintf("Unsuitable value for unary operand: %s.", err),
+			Subject:     e.Val.Range().Ptr(),
+			Context:     &e.SrcRange,
+			Expression:  e.Val,
+			EvalContext: ctx,
 		})
 	}
 
@@ -238,10 +246,12 @@ func (e *UnaryOpExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
 	if err != nil {
 		diags = append(diags, &hcl.Diagnostic{
 			// FIXME: This diagnostic is useless.
-			Severity: hcl.DiagError,
-			Summary:  "Operation failed",
-			Detail:   fmt.Sprintf("Error during operation: %s.", err),
-			Subject:  &e.SrcRange,
+			Severity:    hcl.DiagError,
+			Summary:     "Operation failed",
+			Detail:      fmt.Sprintf("Error during operation: %s.", err),
+			Subject:     &e.SrcRange,
+			Expression:  e,
+			EvalContext: ctx,
 		})
 		return cty.UnknownVal(e.Op.Type), diags
 	}

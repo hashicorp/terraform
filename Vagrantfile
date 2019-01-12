@@ -5,7 +5,7 @@
 VAGRANTFILE_API_VERSION = "2"
 
 # Software version variables
-GOVERSION = "1.9"
+GOVERSION = "1.11.1"
 UBUNTUVERSION = "16.04"
 
 # CPU and RAM can be adjusted depending on your system

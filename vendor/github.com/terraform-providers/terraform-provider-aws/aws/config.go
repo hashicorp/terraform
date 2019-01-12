@@ -19,6 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/acmpca"
 	"github.com/aws/aws-sdk-go/service/apigateway"
 	"github.com/aws/aws-sdk-go/service/applicationautoscaling"
+	"github.com/aws/aws-sdk-go/service/appmesh"
 	"github.com/aws/aws-sdk-go/service/appsync"
 	"github.com/aws/aws-sdk-go/service/athena"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
@@ -27,6 +28,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloud9"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudfront"
+	"github.com/aws/aws-sdk-go/service/cloudhsmv2"
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
@@ -39,10 +41,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go/service/configservice"
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice"
+	"github.com/aws/aws-sdk-go/service/datasync"
 	"github.com/aws/aws-sdk-go/service/dax"
 	"github.com/aws/aws-sdk-go/service/devicefarm"
 	"github.com/aws/aws-sdk-go/service/directconnect"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
+	"github.com/aws/aws-sdk-go/service/dlm"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecr"
@@ -66,6 +70,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/inspector"
 	"github.com/aws/aws-sdk-go/service/iot"
 	"github.com/aws/aws-sdk-go/service/kinesis"
+	"github.com/aws/aws-sdk-go/service/kinesisanalytics"
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/aws/aws-sdk-go/service/lexmodelbuildingservice"
@@ -76,12 +81,14 @@ import (
 	"github.com/aws/aws-sdk-go/service/neptune"
 	"github.com/aws/aws-sdk-go/service/opsworks"
 	"github.com/aws/aws-sdk-go/service/organizations"
+	"github.com/aws/aws-sdk-go/service/pinpoint"
 	"github.com/aws/aws-sdk-go/service/pricing"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/redshift"
 	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
+	"github.com/aws/aws-sdk-go/service/securityhub"
 	"github.com/aws/aws-sdk-go/service/servicecatalog"
 	"github.com/aws/aws-sdk-go/service/servicediscovery"
 	"github.com/aws/aws-sdk-go/service/ses"
@@ -93,10 +100,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/storagegateway"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/aws/aws-sdk-go/service/swf"
+	"github.com/aws/aws-sdk-go/service/transfer"
 	"github.com/aws/aws-sdk-go/service/waf"
 	"github.com/aws/aws-sdk-go/service/wafregional"
+	"github.com/aws/aws-sdk-go/service/workspaces"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/terraform"
@@ -136,6 +144,7 @@ type Config struct {
 	ElbEndpoint              string
 	IamEndpoint              string
 	KinesisEndpoint          string
+	KinesisAnalyticsEndpoint string
 	KmsEndpoint              string
 	LambdaEndpoint           string
 	RdsEndpoint              string
@@ -159,6 +168,7 @@ type AWSClient struct {
 	cfconn                *cloudformation.CloudFormation
 	cloud9conn            *cloud9.Cloud9
 	cloudfrontconn        *cloudfront.CloudFront
+	cloudhsmv2conn        *cloudhsmv2.CloudHSMV2
 	cloudtrailconn        *cloudtrail.CloudTrail
 	cloudwatchconn        *cloudwatch.CloudWatch
 	cloudwatchlogsconn    *cloudwatchlogs.CloudWatchLogs
@@ -166,8 +176,10 @@ type AWSClient struct {
 	cognitoconn           *cognitoidentity.CognitoIdentity
 	cognitoidpconn        *cognitoidentityprovider.CognitoIdentityProvider
 	configconn            *configservice.ConfigService
+	datasyncconn          *datasync.DataSync
 	daxconn               *dax.DAX
 	devicefarmconn        *devicefarm.DeviceFarm
+	dlmconn               *dlm.DLM
 	dmsconn               *databasemigrationservice.DatabaseMigrationService
 	dsconn                *directoryservice.DirectoryService
 	dynamodbconn          *dynamodb.DynamoDB
@@ -187,6 +199,7 @@ type AWSClient struct {
 	autoscalingconn       *autoscaling.AutoScaling
 	s3conn                *s3.S3
 	secretsmanagerconn    *secretsmanager.SecretsManager
+	securityhubconn       *securityhub.SecurityHub
 	scconn                *servicecatalog.ServiceCatalog
 	sesConn               *ses.SES
 	simpledbconn          *simpledb.SimpleDB
@@ -202,6 +215,7 @@ type AWSClient struct {
 	rdsconn               *rds.RDS
 	iamconn               *iam.IAM
 	kinesisconn           *kinesis.Kinesis
+	kinesisanalyticsconn  *kinesisanalytics.KinesisAnalytics
 	kmsconn               *kms.KMS
 	gameliftconn          *gamelift.GameLift
 	firehoseconn          *firehose.Firehose
@@ -240,6 +254,10 @@ type AWSClient struct {
 	budgetconn            *budgets.Budgets
 	neptuneconn           *neptune.Neptune
 	pricingconn           *pricing.Pricing
+	pinpointconn          *pinpoint.Pinpoint
+	workspacesconn        *workspaces.WorkSpaces
+	appmeshconn           *appmesh.AppMesh
+	transferconn          *transfer.Transfer
 }
 
 func (c *AWSClient) S3() *s3.S3 {
@@ -347,7 +365,7 @@ func (c *Config) Client() (interface{}, error) {
   Please see https://terraform.io/docs/providers/aws/index.html for more information on
   providing credentials for the AWS Provider`)
 		}
-		return nil, errwrap.Wrapf("Error creating AWS session: {{err}}", err)
+		return nil, fmt.Errorf("Error creating AWS session: %s", err)
 	}
 
 	sess.Handlers.Build.PushBackNamed(addTerraformVersionToUserAgent)
@@ -375,7 +393,13 @@ func (c *Config) Client() (interface{}, error) {
 		}
 		// RequestError: send request failed
 		// caused by: Post https://FQDN/: dial tcp: lookup FQDN: no such host
-		if isAWSErrExtended(r.Error, "RequestError", "send request failed", "no such host") {
+		if IsAWSErrExtended(r.Error, "RequestError", "send request failed", "no such host") {
+			log.Printf("[WARN] Disabling retries after next request due to networking issue")
+			r.Retryable = aws.Bool(false)
+		}
+		// RequestError: send request failed
+		// caused by: Post https://FQDN/: dial tcp IPADDRESS:443: connect: connection refused
+		if IsAWSErrExtended(r.Error, "RequestError", "send request failed", "connection refused") {
 			log.Printf("[WARN] Disabling retries after next request due to networking issue")
 			r.Retryable = aws.Bool(false)
 		}
@@ -405,6 +429,7 @@ func (c *Config) Client() (interface{}, error) {
 	awsIamSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.IamEndpoint)})
 	awsLambdaSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.LambdaEndpoint)})
 	awsKinesisSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.KinesisEndpoint)})
+	awsKinesisAnalyticsSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.KinesisAnalyticsEndpoint)})
 	awsKmsSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.KmsEndpoint)})
 	awsRdsSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.RdsEndpoint)})
 	awsS3Sess := sess.Copy(&aws.Config{Endpoint: aws.String(c.S3Endpoint)})
@@ -417,32 +442,55 @@ func (c *Config) Client() (interface{}, error) {
 	log.Println("[INFO] Initializing DeviceFarm SDK connection")
 	client.devicefarmconn = devicefarm.New(awsDeviceFarmSess)
 
-	// These two services need to be set up early so we can check on AccountID
+	// Beyond verifying credentials (if enabled), we use the next set of logic
+	// to determine two pieces of information required for manually assembling
+	// resource ARNs when they are not available in the service API:
+	//  * client.accountid
+	//  * client.partition
 	client.iamconn = iam.New(awsIamSess)
 	client.stsconn = sts.New(awsStsSess)
 
+	if c.AssumeRoleARN != "" {
+		client.accountid, client.partition, _ = parseAccountIDAndPartitionFromARN(c.AssumeRoleARN)
+	}
+
+	// Validate credentials early and fail before we do any graph walking.
 	if !c.SkipCredsValidation {
-		err = c.ValidateCredentials(client.stsconn)
+		var err error
+		client.accountid, client.partition, err = GetAccountIDAndPartitionFromSTSGetCallerIdentity(client.stsconn)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error validating provider credentials: %s", err)
 		}
 	}
 
-	// Infer AWS partition from configured region
-	if partition, ok := endpoints.PartitionForRegion(endpoints.DefaultPartitions(), client.region); ok {
-		client.partition = partition.ID()
+	if client.accountid == "" && !c.SkipRequestingAccountId {
+		var err error
+		client.accountid, client.partition, err = GetAccountIDAndPartition(client.iamconn, client.stsconn, cp.ProviderName)
+		if err != nil {
+			// DEPRECATED: Next major version of the provider should return the error instead of logging
+			//             if skip_request_account_id is not enabled.
+			log.Printf("[WARN] %s", fmt.Sprintf(
+				"AWS account ID not previously found and failed retrieving via all available methods. "+
+					"This will return an error in the next major version of the AWS provider. "+
+					"See https://www.terraform.io/docs/providers/aws/index.html#skip_requesting_account_id for workaround and implications. "+
+					"Errors: %s", err))
+		}
 	}
 
-	if !c.SkipRequestingAccountId {
-		accountID, err := GetAccountID(client.iamconn, client.stsconn, cp.ProviderName)
-		if err == nil {
-			client.accountid = accountID
-		}
+	if client.accountid == "" {
+		log.Printf("[WARN] AWS account ID not found for provider. See https://www.terraform.io/docs/providers/aws/index.html#skip_requesting_account_id for implications.")
 	}
 
 	authErr := c.ValidateAccountId(client.accountid)
 	if authErr != nil {
 		return nil, authErr
+	}
+
+	// Infer AWS partition from configured region if we still need it
+	if client.partition == "" {
+		if partition, ok := endpoints.PartitionForRegion(endpoints.DefaultPartitions(), client.region); ok {
+			client.partition = partition.ID()
+		}
 	}
 
 	client.ec2conn = ec2.New(awsEc2Sess)
@@ -467,6 +515,7 @@ func (c *Config) Client() (interface{}, error) {
 	client.cloud9conn = cloud9.New(sess)
 	client.cfconn = cloudformation.New(awsCfSess)
 	client.cloudfrontconn = cloudfront.New(sess)
+	client.cloudhsmv2conn = cloudhsmv2.New(sess)
 	client.cloudtrailconn = cloudtrail.New(sess)
 	client.cloudwatchconn = cloudwatch.New(awsCwSess)
 	client.cloudwatcheventsconn = cloudwatchevents.New(awsCweSess)
@@ -478,7 +527,9 @@ func (c *Config) Client() (interface{}, error) {
 	client.cognitoconn = cognitoidentity.New(sess)
 	client.cognitoidpconn = cognitoidentityprovider.New(sess)
 	client.codepipelineconn = codepipeline.New(sess)
+	client.datasyncconn = datasync.New(sess)
 	client.daxconn = dax.New(awsDynamoSess)
+	client.dlmconn = dlm.New(sess)
 	client.dmsconn = databasemigrationservice.New(sess)
 	client.dsconn = directoryservice.New(sess)
 	client.dynamodbconn = dynamodb.New(awsDynamoSess)
@@ -501,6 +552,7 @@ func (c *Config) Client() (interface{}, error) {
 	client.guarddutyconn = guardduty.New(sess)
 	client.iotconn = iot.New(sess)
 	client.kinesisconn = kinesis.New(awsKinesisSess)
+	client.kinesisanalyticsconn = kinesisanalytics.New(awsKinesisAnalyticsSess)
 	client.kmsconn = kms.New(awsKmsSess)
 	client.lambdaconn = lambda.New(awsLambdaSess)
 	client.lexmodelconn = lexmodelbuildingservice.New(sess)
@@ -519,6 +571,7 @@ func (c *Config) Client() (interface{}, error) {
 	client.sdconn = servicediscovery.New(sess)
 	client.sesConn = ses.New(sess)
 	client.secretsmanagerconn = secretsmanager.New(sess)
+	client.securityhubconn = securityhub.New(sess)
 	client.sfnconn = sfn.New(sess)
 	client.snsconn = sns.New(awsSnsSess)
 	client.sqsconn = sqs.New(awsSqsSess)
@@ -535,6 +588,10 @@ func (c *Config) Client() (interface{}, error) {
 	client.appsyncconn = appsync.New(sess)
 	client.neptuneconn = neptune.New(sess)
 	client.pricingconn = pricing.New(sess)
+	client.pinpointconn = pinpoint.New(sess)
+	client.workspacesconn = workspaces.New(sess)
+	client.appmeshconn = appmesh.New(sess)
+	client.transferconn = transfer.New(sess)
 
 	// Workaround for https://github.com/aws/aws-sdk-go/issues/1376
 	client.kinesisconn.Handlers.Retry.PushBack(func(r *request.Request) {
@@ -587,6 +644,13 @@ func (c *Config) Client() (interface{}, error) {
 		}
 	})
 
+	client.storagegatewayconn.Handlers.Retry.PushBack(func(r *request.Request) {
+		// InvalidGatewayRequestException: The specified gateway proxy network connection is busy.
+		if isAWSErr(r.Error, storagegateway.ErrCodeInvalidGatewayRequestException, "The specified gateway proxy network connection is busy") {
+			r.Retryable = aws.Bool(true)
+		}
+	})
+
 	return &client, nil
 }
 
@@ -611,12 +675,6 @@ func (c *Config) ValidateRegion() error {
 	}
 
 	return fmt.Errorf("Not a valid region: %s", c.Region)
-}
-
-// Validate credentials early and fail before we do any graph walking.
-func (c *Config) ValidateCredentials(stsconn *sts.STS) error {
-	_, err := stsconn.GetCallerIdentity(&sts.GetCallerIdentityInput{})
-	return err
 }
 
 // ValidateAccountId returns a context-specific error if the configured account

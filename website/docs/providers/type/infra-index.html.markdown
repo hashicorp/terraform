@@ -23,6 +23,8 @@ and are tested by HashiCorp.
 
 [Docker](/docs/providers/docker/index.html)
 
+[Helm](/docs/providers/helm/index.html)
+
 [Kubernetes](/docs/providers/kubernetes/index.html)
 
 [Mailgun](/docs/providers/mailgun/index.html)
@@ -32,6 +34,8 @@ and are tested by HashiCorp.
 [RabbitMQ](/docs/providers/rabbitmq/index.html)
 
 [Rancher](/docs/providers/rancher/index.html)
+
+[RightScale](/docs/providers/rightscale/index.html)
 
 [Rundeck](/docs/providers/rundeck/index.html)
 

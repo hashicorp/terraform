@@ -8,6 +8,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
+	"github.com/aws/aws-sdk-go/private/protocol/restjson"
 )
 
 const opAcceptInvitation = "AcceptInvitation"
@@ -15,7 +17,7 @@ const opAcceptInvitation = "AcceptInvitation"
 // AcceptInvitationRequest generates a "aws/request.Request" representing the
 // client's request for the AcceptInvitation operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -49,6 +51,7 @@ func (c *GuardDuty) AcceptInvitationRequest(input *AcceptInvitationInput) (req *
 
 	output = &AcceptInvitationOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -97,7 +100,7 @@ const opArchiveFindings = "ArchiveFindings"
 // ArchiveFindingsRequest generates a "aws/request.Request" representing the
 // client's request for the ArchiveFindings operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -131,6 +134,7 @@ func (c *GuardDuty) ArchiveFindingsRequest(input *ArchiveFindingsInput) (req *re
 
 	output = &ArchiveFindingsOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -179,7 +183,7 @@ const opCreateDetector = "CreateDetector"
 // CreateDetectorRequest generates a "aws/request.Request" representing the
 // client's request for the CreateDetector operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -263,7 +267,7 @@ const opCreateFilter = "CreateFilter"
 // CreateFilterRequest generates a "aws/request.Request" representing the
 // client's request for the CreateFilter operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -345,7 +349,7 @@ const opCreateIPSet = "CreateIPSet"
 // CreateIPSetRequest generates a "aws/request.Request" representing the
 // client's request for the CreateIPSet operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -428,7 +432,7 @@ const opCreateMembers = "CreateMembers"
 // CreateMembersRequest generates a "aws/request.Request" representing the
 // client's request for the CreateMembers operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -512,7 +516,7 @@ const opCreateSampleFindings = "CreateSampleFindings"
 // CreateSampleFindingsRequest generates a "aws/request.Request" representing the
 // client's request for the CreateSampleFindings operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -546,6 +550,7 @@ func (c *GuardDuty) CreateSampleFindingsRequest(input *CreateSampleFindingsInput
 
 	output = &CreateSampleFindingsOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -596,7 +601,7 @@ const opCreateThreatIntelSet = "CreateThreatIntelSet"
 // CreateThreatIntelSetRequest generates a "aws/request.Request" representing the
 // client's request for the CreateThreatIntelSet operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -679,7 +684,7 @@ const opDeclineInvitations = "DeclineInvitations"
 // DeclineInvitationsRequest generates a "aws/request.Request" representing the
 // client's request for the DeclineInvitations operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -762,7 +767,7 @@ const opDeleteDetector = "DeleteDetector"
 // DeleteDetectorRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteDetector operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -796,6 +801,7 @@ func (c *GuardDuty) DeleteDetectorRequest(input *DeleteDetectorInput) (req *requ
 
 	output = &DeleteDetectorOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -844,7 +850,7 @@ const opDeleteFilter = "DeleteFilter"
 // DeleteFilterRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteFilter operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -878,6 +884,7 @@ func (c *GuardDuty) DeleteFilterRequest(input *DeleteFilterInput) (req *request.
 
 	output = &DeleteFilterOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -926,7 +933,7 @@ const opDeleteIPSet = "DeleteIPSet"
 // DeleteIPSetRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteIPSet operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -960,6 +967,7 @@ func (c *GuardDuty) DeleteIPSetRequest(input *DeleteIPSetInput) (req *request.Re
 
 	output = &DeleteIPSetOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1008,7 +1016,7 @@ const opDeleteInvitations = "DeleteInvitations"
 // DeleteInvitationsRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteInvitations operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1091,7 +1099,7 @@ const opDeleteMembers = "DeleteMembers"
 // DeleteMembersRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteMembers operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1174,7 +1182,7 @@ const opDeleteThreatIntelSet = "DeleteThreatIntelSet"
 // DeleteThreatIntelSetRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteThreatIntelSet operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1208,6 +1216,7 @@ func (c *GuardDuty) DeleteThreatIntelSetRequest(input *DeleteThreatIntelSetInput
 
 	output = &DeleteThreatIntelSetOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1256,7 +1265,7 @@ const opDisassociateFromMasterAccount = "DisassociateFromMasterAccount"
 // DisassociateFromMasterAccountRequest generates a "aws/request.Request" representing the
 // client's request for the DisassociateFromMasterAccount operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1290,6 +1299,7 @@ func (c *GuardDuty) DisassociateFromMasterAccountRequest(input *DisassociateFrom
 
 	output = &DisassociateFromMasterAccountOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1338,7 +1348,7 @@ const opDisassociateMembers = "DisassociateMembers"
 // DisassociateMembersRequest generates a "aws/request.Request" representing the
 // client's request for the DisassociateMembers operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1421,7 +1431,7 @@ const opGetDetector = "GetDetector"
 // GetDetectorRequest generates a "aws/request.Request" representing the
 // client's request for the GetDetector operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1503,7 +1513,7 @@ const opGetFilter = "GetFilter"
 // GetFilterRequest generates a "aws/request.Request" representing the
 // client's request for the GetFilter operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1585,7 +1595,7 @@ const opGetFindings = "GetFindings"
 // GetFindingsRequest generates a "aws/request.Request" representing the
 // client's request for the GetFindings operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1667,7 +1677,7 @@ const opGetFindingsStatistics = "GetFindingsStatistics"
 // GetFindingsStatisticsRequest generates a "aws/request.Request" representing the
 // client's request for the GetFindingsStatistics operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1749,7 +1759,7 @@ const opGetIPSet = "GetIPSet"
 // GetIPSetRequest generates a "aws/request.Request" representing the
 // client's request for the GetIPSet operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1831,7 +1841,7 @@ const opGetInvitationsCount = "GetInvitationsCount"
 // GetInvitationsCountRequest generates a "aws/request.Request" representing the
 // client's request for the GetInvitationsCount operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1914,7 +1924,7 @@ const opGetMasterAccount = "GetMasterAccount"
 // GetMasterAccountRequest generates a "aws/request.Request" representing the
 // client's request for the GetMasterAccount operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1997,7 +2007,7 @@ const opGetMembers = "GetMembers"
 // GetMembersRequest generates a "aws/request.Request" representing the
 // client's request for the GetMembers operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2080,7 +2090,7 @@ const opGetThreatIntelSet = "GetThreatIntelSet"
 // GetThreatIntelSetRequest generates a "aws/request.Request" representing the
 // client's request for the GetThreatIntelSet operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2162,7 +2172,7 @@ const opInviteMembers = "InviteMembers"
 // InviteMembersRequest generates a "aws/request.Request" representing the
 // client's request for the InviteMembers operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2247,7 +2257,7 @@ const opListDetectors = "ListDetectors"
 // ListDetectorsRequest generates a "aws/request.Request" representing the
 // client's request for the ListDetectors operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2385,7 +2395,7 @@ const opListFilters = "ListFilters"
 // ListFiltersRequest generates a "aws/request.Request" representing the
 // client's request for the ListFilters operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2523,7 +2533,7 @@ const opListFindings = "ListFindings"
 // ListFindingsRequest generates a "aws/request.Request" representing the
 // client's request for the ListFindings operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2661,7 +2671,7 @@ const opListIPSets = "ListIPSets"
 // ListIPSetsRequest generates a "aws/request.Request" representing the
 // client's request for the ListIPSets operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2799,7 +2809,7 @@ const opListInvitations = "ListInvitations"
 // ListInvitationsRequest generates a "aws/request.Request" representing the
 // client's request for the ListInvitations operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2938,7 +2948,7 @@ const opListMembers = "ListMembers"
 // ListMembersRequest generates a "aws/request.Request" representing the
 // client's request for the ListMembers operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3077,7 +3087,7 @@ const opListThreatIntelSets = "ListThreatIntelSets"
 // ListThreatIntelSetsRequest generates a "aws/request.Request" representing the
 // client's request for the ListThreatIntelSets operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3216,7 +3226,7 @@ const opStartMonitoringMembers = "StartMonitoringMembers"
 // StartMonitoringMembersRequest generates a "aws/request.Request" representing the
 // client's request for the StartMonitoringMembers operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3300,7 +3310,7 @@ const opStopMonitoringMembers = "StopMonitoringMembers"
 // StopMonitoringMembersRequest generates a "aws/request.Request" representing the
 // client's request for the StopMonitoringMembers operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3385,7 +3395,7 @@ const opUnarchiveFindings = "UnarchiveFindings"
 // UnarchiveFindingsRequest generates a "aws/request.Request" representing the
 // client's request for the UnarchiveFindings operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3419,6 +3429,7 @@ func (c *GuardDuty) UnarchiveFindingsRequest(input *UnarchiveFindingsInput) (req
 
 	output = &UnarchiveFindingsOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3467,7 +3478,7 @@ const opUpdateDetector = "UpdateDetector"
 // UpdateDetectorRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateDetector operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3501,6 +3512,7 @@ func (c *GuardDuty) UpdateDetectorRequest(input *UpdateDetectorInput) (req *requ
 
 	output = &UpdateDetectorOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3549,7 +3561,7 @@ const opUpdateFilter = "UpdateFilter"
 // UpdateFilterRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateFilter operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3631,7 +3643,7 @@ const opUpdateFindingsFeedback = "UpdateFindingsFeedback"
 // UpdateFindingsFeedbackRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateFindingsFeedback operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3665,6 +3677,7 @@ func (c *GuardDuty) UpdateFindingsFeedbackRequest(input *UpdateFindingsFeedbackI
 
 	output = &UpdateFindingsFeedbackOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3713,7 +3726,7 @@ const opUpdateIPSet = "UpdateIPSet"
 // UpdateIPSetRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateIPSet operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3747,6 +3760,7 @@ func (c *GuardDuty) UpdateIPSetRequest(input *UpdateIPSetInput) (req *request.Re
 
 	output = &UpdateIPSetOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3795,7 +3809,7 @@ const opUpdateThreatIntelSet = "UpdateThreatIntelSet"
 // UpdateThreatIntelSetRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateThreatIntelSet operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3829,6 +3843,7 @@ func (c *GuardDuty) UpdateThreatIntelSetRequest(input *UpdateThreatIntelSetInput
 
 	output = &UpdateThreatIntelSetOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3880,10 +3895,14 @@ type AcceptInvitationInput struct {
 	DetectorId *string `location:"uri" locationName:"detectorId" type:"string" required:"true"`
 
 	// This value is used to validate the master account to the member account.
-	InvitationId *string `locationName:"invitationId" type:"string"`
+	//
+	// InvitationId is a required field
+	InvitationId *string `locationName:"invitationId" type:"string" required:"true"`
 
 	// The account ID of the master GuardDuty account whose invitation you're accepting.
-	MasterId *string `locationName:"masterId" type:"string"`
+	//
+	// MasterId is a required field
+	MasterId *string `locationName:"masterId" type:"string" required:"true"`
 }
 
 // String returns the string representation
@@ -3901,6 +3920,15 @@ func (s *AcceptInvitationInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "AcceptInvitationInput"}
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
+	}
+	if s.DetectorId != nil && len(*s.DetectorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DetectorId", 1))
+	}
+	if s.InvitationId == nil {
+		invalidParams.Add(request.NewErrParamRequired("InvitationId"))
+	}
+	if s.MasterId == nil {
+		invalidParams.Add(request.NewErrParamRequired("MasterId"))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -4114,7 +4142,9 @@ type ArchiveFindingsInput struct {
 	DetectorId *string `location:"uri" locationName:"detectorId" type:"string" required:"true"`
 
 	// IDs of the findings that you want to archive.
-	FindingIds []*string `locationName:"findingIds" type:"list"`
+	//
+	// FindingIds is a required field
+	FindingIds []*string `locationName:"findingIds" type:"list" required:"true"`
 }
 
 // String returns the string representation
@@ -4132,6 +4162,12 @@ func (s *ArchiveFindingsInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "ArchiveFindingsInput"}
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
+	}
+	if s.DetectorId != nil && len(*s.DetectorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DetectorId", 1))
+	}
+	if s.FindingIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("FindingIds"))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -4363,8 +4399,16 @@ func (s *Country) SetCountryName(v string) *Country {
 type CreateDetectorInput struct {
 	_ struct{} `type:"structure"`
 
+	// The idempotency token for the create request.
+	ClientToken *string `locationName:"clientToken" type:"string" idempotencyToken:"true"`
+
 	// A boolean value that specifies whether the detector is to be enabled.
-	Enable *bool `locationName:"enable" type:"boolean"`
+	//
+	// Enable is a required field
+	Enable *bool `locationName:"enable" type:"boolean" required:"true"`
+
+	// A enum value that specifies how frequently customer got Finding updates published.
+	FindingPublishingFrequency *string `locationName:"findingPublishingFrequency" type:"string" enum:"FindingPublishingFrequency"`
 }
 
 // String returns the string representation
@@ -4377,9 +4421,34 @@ func (s CreateDetectorInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateDetectorInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateDetectorInput"}
+	if s.Enable == nil {
+		invalidParams.Add(request.NewErrParamRequired("Enable"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClientToken sets the ClientToken field's value.
+func (s *CreateDetectorInput) SetClientToken(v string) *CreateDetectorInput {
+	s.ClientToken = &v
+	return s
+}
+
 // SetEnable sets the Enable field's value.
 func (s *CreateDetectorInput) SetEnable(v bool) *CreateDetectorInput {
 	s.Enable = &v
+	return s
+}
+
+// SetFindingPublishingFrequency sets the FindingPublishingFrequency field's value.
+func (s *CreateDetectorInput) SetFindingPublishingFrequency(v string) *CreateDetectorInput {
+	s.FindingPublishingFrequency = &v
 	return s
 }
 
@@ -4425,10 +4494,14 @@ type CreateFilterInput struct {
 	DetectorId *string `location:"uri" locationName:"detectorId" type:"string" required:"true"`
 
 	// Represents the criteria to be used in the filter for querying findings.
-	FindingCriteria *FindingCriteria `locationName:"findingCriteria" type:"structure"`
+	//
+	// FindingCriteria is a required field
+	FindingCriteria *FindingCriteria `locationName:"findingCriteria" type:"structure" required:"true"`
 
 	// The name of the filter.
-	Name *string `locationName:"name" type:"string"`
+	//
+	// Name is a required field
+	Name *string `locationName:"name" type:"string" required:"true"`
 
 	// Specifies the position of the filter in the list of current filters. Also
 	// specifies the order in which this filter is applied to the findings.
@@ -4450,6 +4523,15 @@ func (s *CreateFilterInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "CreateFilterInput"}
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
+	}
+	if s.DetectorId != nil && len(*s.DetectorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DetectorId", 1))
+	}
+	if s.FindingCriteria == nil {
+		invalidParams.Add(request.NewErrParamRequired("FindingCriteria"))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -4530,21 +4612,32 @@ type CreateIPSetInput struct {
 
 	// A boolean value that indicates whether GuardDuty is to start using the uploaded
 	// IPSet.
-	Activate *bool `locationName:"activate" type:"boolean"`
+	//
+	// Activate is a required field
+	Activate *bool `locationName:"activate" type:"boolean" required:"true"`
+
+	// The idempotency token for the create request.
+	ClientToken *string `locationName:"clientToken" type:"string" idempotencyToken:"true"`
 
 	// DetectorId is a required field
 	DetectorId *string `location:"uri" locationName:"detectorId" type:"string" required:"true"`
 
 	// The format of the file that contains the IPSet.
-	Format *string `locationName:"format" type:"string" enum:"IpSetFormat"`
+	//
+	// Format is a required field
+	Format *string `locationName:"format" type:"string" required:"true" enum:"IpSetFormat"`
 
 	// The URI of the file that contains the IPSet. For example (https://s3.us-west-2.amazonaws.com/my-bucket/my-object-key)
-	Location *string `locationName:"location" type:"string"`
+	//
+	// Location is a required field
+	Location *string `locationName:"location" type:"string" required:"true"`
 
 	// The user friendly name to identify the IPSet. This name is displayed in all
 	// findings that are triggered by activity that involves IP addresses included
 	// in this IPSet.
-	Name *string `locationName:"name" type:"string"`
+	//
+	// Name is a required field
+	Name *string `locationName:"name" type:"string" required:"true"`
 }
 
 // String returns the string representation
@@ -4560,8 +4653,23 @@ func (s CreateIPSetInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *CreateIPSetInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "CreateIPSetInput"}
+	if s.Activate == nil {
+		invalidParams.Add(request.NewErrParamRequired("Activate"))
+	}
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
+	}
+	if s.DetectorId != nil && len(*s.DetectorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DetectorId", 1))
+	}
+	if s.Format == nil {
+		invalidParams.Add(request.NewErrParamRequired("Format"))
+	}
+	if s.Location == nil {
+		invalidParams.Add(request.NewErrParamRequired("Location"))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -4573,6 +4681,12 @@ func (s *CreateIPSetInput) Validate() error {
 // SetActivate sets the Activate field's value.
 func (s *CreateIPSetInput) SetActivate(v bool) *CreateIPSetInput {
 	s.Activate = &v
+	return s
+}
+
+// SetClientToken sets the ClientToken field's value.
+func (s *CreateIPSetInput) SetClientToken(v string) *CreateIPSetInput {
+	s.ClientToken = &v
 	return s
 }
 
@@ -4630,7 +4744,9 @@ type CreateMembersInput struct {
 
 	// A list of account ID and email address pairs of the accounts that you want
 	// to associate with the master GuardDuty account.
-	AccountDetails []*AccountDetail `locationName:"accountDetails" type:"list"`
+	//
+	// AccountDetails is a required field
+	AccountDetails []*AccountDetail `locationName:"accountDetails" type:"list" required:"true"`
 
 	// DetectorId is a required field
 	DetectorId *string `location:"uri" locationName:"detectorId" type:"string" required:"true"`
@@ -4649,8 +4765,14 @@ func (s CreateMembersInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *CreateMembersInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "CreateMembersInput"}
+	if s.AccountDetails == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountDetails"))
+	}
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
+	}
+	if s.DetectorId != nil && len(*s.DetectorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DetectorId", 1))
 	}
 	if s.AccountDetails != nil {
 		for i, v := range s.AccountDetails {
@@ -4733,6 +4855,9 @@ func (s *CreateSampleFindingsInput) Validate() error {
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
 	}
+	if s.DetectorId != nil && len(*s.DetectorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DetectorId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -4772,20 +4897,31 @@ type CreateThreatIntelSetInput struct {
 
 	// A boolean value that indicates whether GuardDuty is to start using the uploaded
 	// ThreatIntelSet.
-	Activate *bool `locationName:"activate" type:"boolean"`
+	//
+	// Activate is a required field
+	Activate *bool `locationName:"activate" type:"boolean" required:"true"`
+
+	// The idempotency token for the create request.
+	ClientToken *string `locationName:"clientToken" type:"string" idempotencyToken:"true"`
 
 	// DetectorId is a required field
 	DetectorId *string `location:"uri" locationName:"detectorId" type:"string" required:"true"`
 
 	// The format of the file that contains the ThreatIntelSet.
-	Format *string `locationName:"format" type:"string" enum:"ThreatIntelSetFormat"`
+	//
+	// Format is a required field
+	Format *string `locationName:"format" type:"string" required:"true" enum:"ThreatIntelSetFormat"`
 
 	// The URI of the file that contains the ThreatIntelSet. For example (https://s3.us-west-2.amazonaws.com/my-bucket/my-object-key).
-	Location *string `locationName:"location" type:"string"`
+	//
+	// Location is a required field
+	Location *string `locationName:"location" type:"string" required:"true"`
 
 	// A user-friendly ThreatIntelSet name that is displayed in all finding generated
 	// by activity that involves IP addresses included in this ThreatIntelSet.
-	Name *string `locationName:"name" type:"string"`
+	//
+	// Name is a required field
+	Name *string `locationName:"name" type:"string" required:"true"`
 }
 
 // String returns the string representation
@@ -4801,8 +4937,23 @@ func (s CreateThreatIntelSetInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *CreateThreatIntelSetInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "CreateThreatIntelSetInput"}
+	if s.Activate == nil {
+		invalidParams.Add(request.NewErrParamRequired("Activate"))
+	}
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
+	}
+	if s.DetectorId != nil && len(*s.DetectorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DetectorId", 1))
+	}
+	if s.Format == nil {
+		invalidParams.Add(request.NewErrParamRequired("Format"))
+	}
+	if s.Location == nil {
+		invalidParams.Add(request.NewErrParamRequired("Location"))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -4814,6 +4965,12 @@ func (s *CreateThreatIntelSetInput) Validate() error {
 // SetActivate sets the Activate field's value.
 func (s *CreateThreatIntelSetInput) SetActivate(v bool) *CreateThreatIntelSetInput {
 	s.Activate = &v
+	return s
+}
+
+// SetClientToken sets the ClientToken field's value.
+func (s *CreateThreatIntelSetInput) SetClientToken(v string) *CreateThreatIntelSetInput {
+	s.ClientToken = &v
 	return s
 }
 
@@ -4871,7 +5028,9 @@ type DeclineInvitationsInput struct {
 
 	// A list of account IDs of the AWS accounts that sent invitations to the current
 	// member account that you want to decline invitations from.
-	AccountIds []*string `locationName:"accountIds" type:"list"`
+	//
+	// AccountIds is a required field
+	AccountIds []*string `locationName:"accountIds" type:"list" required:"true"`
 }
 
 // String returns the string representation
@@ -4882,6 +5041,19 @@ func (s DeclineInvitationsInput) String() string {
 // GoString returns the string representation
 func (s DeclineInvitationsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeclineInvitationsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeclineInvitationsInput"}
+	if s.AccountIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountIds"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // SetAccountIds sets the AccountIds field's value.
@@ -4938,6 +5110,9 @@ func (s *DeleteDetectorInput) Validate() error {
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
 	}
+	if s.DetectorId != nil && len(*s.DetectorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DetectorId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -4991,8 +5166,14 @@ func (s *DeleteFilterInput) Validate() error {
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
 	}
+	if s.DetectorId != nil && len(*s.DetectorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DetectorId", 1))
+	}
 	if s.FilterName == nil {
 		invalidParams.Add(request.NewErrParamRequired("FilterName"))
+	}
+	if s.FilterName != nil && len(*s.FilterName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("FilterName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -5053,8 +5234,14 @@ func (s *DeleteIPSetInput) Validate() error {
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
 	}
+	if s.DetectorId != nil && len(*s.DetectorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DetectorId", 1))
+	}
 	if s.IpSetId == nil {
 		invalidParams.Add(request.NewErrParamRequired("IpSetId"))
+	}
+	if s.IpSetId != nil && len(*s.IpSetId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("IpSetId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -5095,7 +5282,9 @@ type DeleteInvitationsInput struct {
 
 	// A list of account IDs of the AWS accounts that sent invitations to the current
 	// member account that you want to delete invitations from.
-	AccountIds []*string `locationName:"accountIds" type:"list"`
+	//
+	// AccountIds is a required field
+	AccountIds []*string `locationName:"accountIds" type:"list" required:"true"`
 }
 
 // String returns the string representation
@@ -5106,6 +5295,19 @@ func (s DeleteInvitationsInput) String() string {
 // GoString returns the string representation
 func (s DeleteInvitationsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteInvitationsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteInvitationsInput"}
+	if s.AccountIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountIds"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // SetAccountIds sets the AccountIds field's value.
@@ -5144,7 +5346,9 @@ type DeleteMembersInput struct {
 	_ struct{} `type:"structure"`
 
 	// A list of account IDs of the GuardDuty member accounts that you want to delete.
-	AccountIds []*string `locationName:"accountIds" type:"list"`
+	//
+	// AccountIds is a required field
+	AccountIds []*string `locationName:"accountIds" type:"list" required:"true"`
 
 	// DetectorId is a required field
 	DetectorId *string `location:"uri" locationName:"detectorId" type:"string" required:"true"`
@@ -5163,8 +5367,14 @@ func (s DeleteMembersInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *DeleteMembersInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "DeleteMembersInput"}
+	if s.AccountIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountIds"))
+	}
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
+	}
+	if s.DetectorId != nil && len(*s.DetectorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DetectorId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -5236,8 +5446,14 @@ func (s *DeleteThreatIntelSetInput) Validate() error {
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
 	}
+	if s.DetectorId != nil && len(*s.DetectorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DetectorId", 1))
+	}
 	if s.ThreatIntelSetId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ThreatIntelSetId"))
+	}
+	if s.ThreatIntelSetId != nil && len(*s.ThreatIntelSetId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ThreatIntelSetId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -5295,6 +5511,9 @@ func (s *DisassociateFromMasterAccountInput) Validate() error {
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
 	}
+	if s.DetectorId != nil && len(*s.DetectorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DetectorId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -5328,7 +5547,9 @@ type DisassociateMembersInput struct {
 
 	// A list of account IDs of the GuardDuty member accounts that you want to disassociate
 	// from master.
-	AccountIds []*string `locationName:"accountIds" type:"list"`
+	//
+	// AccountIds is a required field
+	AccountIds []*string `locationName:"accountIds" type:"list" required:"true"`
 
 	// DetectorId is a required field
 	DetectorId *string `location:"uri" locationName:"detectorId" type:"string" required:"true"`
@@ -5347,8 +5568,14 @@ func (s DisassociateMembersInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *DisassociateMembersInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "DisassociateMembersInput"}
+	if s.AccountIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountIds"))
+	}
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
+	}
+	if s.DetectorId != nil && len(*s.DetectorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DetectorId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -5711,6 +5938,9 @@ func (s *GetDetectorInput) Validate() error {
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
 	}
+	if s.DetectorId != nil && len(*s.DetectorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DetectorId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -5730,6 +5960,9 @@ type GetDetectorOutput struct {
 
 	// The first time a resource was created. The format will be ISO-8601.
 	CreatedAt *string `locationName:"createdAt" type:"string"`
+
+	// A enum value that specifies how frequently customer got Finding updates published.
+	FindingPublishingFrequency *string `locationName:"findingPublishingFrequency" type:"string" enum:"FindingPublishingFrequency"`
 
 	// Customer serviceRole name or ARN for accessing customer resources
 	ServiceRole *string `locationName:"serviceRole" type:"string"`
@@ -5754,6 +5987,12 @@ func (s GetDetectorOutput) GoString() string {
 // SetCreatedAt sets the CreatedAt field's value.
 func (s *GetDetectorOutput) SetCreatedAt(v string) *GetDetectorOutput {
 	s.CreatedAt = &v
+	return s
+}
+
+// SetFindingPublishingFrequency sets the FindingPublishingFrequency field's value.
+func (s *GetDetectorOutput) SetFindingPublishingFrequency(v string) *GetDetectorOutput {
+	s.FindingPublishingFrequency = &v
 	return s
 }
 
@@ -5801,8 +6040,14 @@ func (s *GetFilterInput) Validate() error {
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
 	}
+	if s.DetectorId != nil && len(*s.DetectorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DetectorId", 1))
+	}
 	if s.FilterName == nil {
 		invalidParams.Add(request.NewErrParamRequired("FilterName"))
+	}
+	if s.FilterName != nil && len(*s.FilterName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("FilterName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -5893,7 +6138,9 @@ type GetFindingsInput struct {
 	DetectorId *string `location:"uri" locationName:"detectorId" type:"string" required:"true"`
 
 	// IDs of the findings that you want to retrieve.
-	FindingIds []*string `locationName:"findingIds" type:"list"`
+	//
+	// FindingIds is a required field
+	FindingIds []*string `locationName:"findingIds" type:"list" required:"true"`
 
 	// Represents the criteria used for sorting findings.
 	SortCriteria *SortCriteria `locationName:"sortCriteria" type:"structure"`
@@ -5914,6 +6161,12 @@ func (s *GetFindingsInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "GetFindingsInput"}
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
+	}
+	if s.DetectorId != nil && len(*s.DetectorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DetectorId", 1))
+	}
+	if s.FindingIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("FindingIds"))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -5975,7 +6228,9 @@ type GetFindingsStatisticsInput struct {
 	FindingCriteria *FindingCriteria `locationName:"findingCriteria" type:"structure"`
 
 	// Types of finding statistics to retrieve.
-	FindingStatisticTypes []*string `locationName:"findingStatisticTypes" type:"list"`
+	//
+	// FindingStatisticTypes is a required field
+	FindingStatisticTypes []*string `locationName:"findingStatisticTypes" type:"list" required:"true"`
 }
 
 // String returns the string representation
@@ -5993,6 +6248,12 @@ func (s *GetFindingsStatisticsInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "GetFindingsStatisticsInput"}
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
+	}
+	if s.DetectorId != nil && len(*s.DetectorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DetectorId", 1))
+	}
+	if s.FindingStatisticTypes == nil {
+		invalidParams.Add(request.NewErrParamRequired("FindingStatisticTypes"))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -6069,8 +6330,14 @@ func (s *GetIPSetInput) Validate() error {
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
 	}
+	if s.DetectorId != nil && len(*s.DetectorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DetectorId", 1))
+	}
 	if s.IpSetId == nil {
 		invalidParams.Add(request.NewErrParamRequired("IpSetId"))
+	}
+	if s.IpSetId != nil && len(*s.IpSetId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("IpSetId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -6205,6 +6472,9 @@ func (s *GetMasterAccountInput) Validate() error {
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
 	}
+	if s.DetectorId != nil && len(*s.DetectorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DetectorId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -6247,7 +6517,9 @@ type GetMembersInput struct {
 	_ struct{} `type:"structure"`
 
 	// A list of account IDs of the GuardDuty member accounts that you want to describe.
-	AccountIds []*string `locationName:"accountIds" type:"list"`
+	//
+	// AccountIds is a required field
+	AccountIds []*string `locationName:"accountIds" type:"list" required:"true"`
 
 	// DetectorId is a required field
 	DetectorId *string `location:"uri" locationName:"detectorId" type:"string" required:"true"`
@@ -6266,8 +6538,14 @@ func (s GetMembersInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *GetMembersInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "GetMembersInput"}
+	if s.AccountIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountIds"))
+	}
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
+	}
+	if s.DetectorId != nil && len(*s.DetectorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DetectorId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -6348,8 +6626,14 @@ func (s *GetThreatIntelSetInput) Validate() error {
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
 	}
+	if s.DetectorId != nil && len(*s.DetectorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DetectorId", 1))
+	}
 	if s.ThreatIntelSetId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ThreatIntelSetId"))
+	}
+	if s.ThreatIntelSetId != nil && len(*s.ThreatIntelSetId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ThreatIntelSetId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -6636,7 +6920,9 @@ type InviteMembersInput struct {
 
 	// A list of account IDs of the accounts that you want to invite to GuardDuty
 	// as members.
-	AccountIds []*string `locationName:"accountIds" type:"list"`
+	//
+	// AccountIds is a required field
+	AccountIds []*string `locationName:"accountIds" type:"list" required:"true"`
 
 	// DetectorId is a required field
 	DetectorId *string `location:"uri" locationName:"detectorId" type:"string" required:"true"`
@@ -6663,8 +6949,14 @@ func (s InviteMembersInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *InviteMembersInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "InviteMembersInput"}
+	if s.AccountIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountIds"))
+	}
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
+	}
+	if s.DetectorId != nil && len(*s.DetectorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DetectorId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -6832,6 +7124,9 @@ func (s *ListFiltersInput) Validate() error {
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
 	}
+	if s.DetectorId != nil && len(*s.DetectorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DetectorId", 1))
+	}
 	if s.MaxResults != nil && *s.MaxResults < 1 {
 		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
 	}
@@ -6935,6 +7230,9 @@ func (s *ListFindingsInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "ListFindingsInput"}
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
+	}
+	if s.DetectorId != nil && len(*s.DetectorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DetectorId", 1))
 	}
 	if s.MaxResults != nil && *s.MaxResults < 1 {
 		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
@@ -7040,6 +7338,9 @@ func (s *ListIPSetsInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "ListIPSetsInput"}
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
+	}
+	if s.DetectorId != nil && len(*s.DetectorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DetectorId", 1))
 	}
 	if s.MaxResults != nil && *s.MaxResults < 1 {
 		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
@@ -7217,6 +7518,9 @@ func (s *ListMembersInput) Validate() error {
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
 	}
+	if s.DetectorId != nil && len(*s.DetectorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DetectorId", 1))
+	}
 	if s.MaxResults != nil && *s.MaxResults < 1 {
 		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
 	}
@@ -7315,6 +7619,9 @@ func (s *ListThreatIntelSetsInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "ListThreatIntelSetsInput"}
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
+	}
+	if s.DetectorId != nil && len(*s.DetectorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DetectorId", 1))
 	}
 	if s.MaxResults != nil && *s.MaxResults < 1 {
 		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
@@ -8218,7 +8525,9 @@ type StartMonitoringMembersInput struct {
 
 	// A list of account IDs of the GuardDuty member accounts whose findings you
 	// want the master account to monitor.
-	AccountIds []*string `locationName:"accountIds" type:"list"`
+	//
+	// AccountIds is a required field
+	AccountIds []*string `locationName:"accountIds" type:"list" required:"true"`
 
 	// DetectorId is a required field
 	DetectorId *string `location:"uri" locationName:"detectorId" type:"string" required:"true"`
@@ -8237,8 +8546,14 @@ func (s StartMonitoringMembersInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *StartMonitoringMembersInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "StartMonitoringMembersInput"}
+	if s.AccountIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountIds"))
+	}
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
+	}
+	if s.DetectorId != nil && len(*s.DetectorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DetectorId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -8290,7 +8605,9 @@ type StopMonitoringMembersInput struct {
 
 	// A list of account IDs of the GuardDuty member accounts whose findings you
 	// want the master account to stop monitoring.
-	AccountIds []*string `locationName:"accountIds" type:"list"`
+	//
+	// AccountIds is a required field
+	AccountIds []*string `locationName:"accountIds" type:"list" required:"true"`
 
 	// DetectorId is a required field
 	DetectorId *string `location:"uri" locationName:"detectorId" type:"string" required:"true"`
@@ -8309,8 +8626,14 @@ func (s StopMonitoringMembersInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *StopMonitoringMembersInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "StopMonitoringMembersInput"}
+	if s.AccountIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountIds"))
+	}
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
+	}
+	if s.DetectorId != nil && len(*s.DetectorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DetectorId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -8397,7 +8720,9 @@ type UnarchiveFindingsInput struct {
 	DetectorId *string `location:"uri" locationName:"detectorId" type:"string" required:"true"`
 
 	// IDs of the findings that you want to unarchive.
-	FindingIds []*string `locationName:"findingIds" type:"list"`
+	//
+	// FindingIds is a required field
+	FindingIds []*string `locationName:"findingIds" type:"list" required:"true"`
 }
 
 // String returns the string representation
@@ -8415,6 +8740,12 @@ func (s *UnarchiveFindingsInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "UnarchiveFindingsInput"}
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
+	}
+	if s.DetectorId != nil && len(*s.DetectorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DetectorId", 1))
+	}
+	if s.FindingIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("FindingIds"))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -8497,6 +8828,9 @@ type UpdateDetectorInput struct {
 	// Updated boolean value for the detector that specifies whether the detector
 	// is enabled.
 	Enable *bool `locationName:"enable" type:"boolean"`
+
+	// A enum value that specifies how frequently customer got Finding updates published.
+	FindingPublishingFrequency *string `locationName:"findingPublishingFrequency" type:"string" enum:"FindingPublishingFrequency"`
 }
 
 // String returns the string representation
@@ -8515,6 +8849,9 @@ func (s *UpdateDetectorInput) Validate() error {
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
 	}
+	if s.DetectorId != nil && len(*s.DetectorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DetectorId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -8531,6 +8868,12 @@ func (s *UpdateDetectorInput) SetDetectorId(v string) *UpdateDetectorInput {
 // SetEnable sets the Enable field's value.
 func (s *UpdateDetectorInput) SetEnable(v bool) *UpdateDetectorInput {
 	s.Enable = &v
+	return s
+}
+
+// SetFindingPublishingFrequency sets the FindingPublishingFrequency field's value.
+func (s *UpdateDetectorInput) SetFindingPublishingFrequency(v string) *UpdateDetectorInput {
+	s.FindingPublishingFrequency = &v
 	return s
 }
 
@@ -8589,8 +8932,14 @@ func (s *UpdateFilterInput) Validate() error {
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
 	}
+	if s.DetectorId != nil && len(*s.DetectorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DetectorId", 1))
+	}
 	if s.FilterName == nil {
 		invalidParams.Add(request.NewErrParamRequired("FilterName"))
+	}
+	if s.FilterName != nil && len(*s.FilterName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("FilterName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -8670,10 +9019,14 @@ type UpdateFindingsFeedbackInput struct {
 	DetectorId *string `location:"uri" locationName:"detectorId" type:"string" required:"true"`
 
 	// Valid values: USEFUL | NOT_USEFUL
-	Feedback *string `locationName:"feedback" type:"string" enum:"Feedback"`
+	//
+	// Feedback is a required field
+	Feedback *string `locationName:"feedback" type:"string" required:"true" enum:"Feedback"`
 
 	// IDs of the findings that you want to mark as useful or not useful.
-	FindingIds []*string `locationName:"findingIds" type:"list"`
+	//
+	// FindingIds is a required field
+	FindingIds []*string `locationName:"findingIds" type:"list" required:"true"`
 }
 
 // String returns the string representation
@@ -8691,6 +9044,15 @@ func (s *UpdateFindingsFeedbackInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "UpdateFindingsFeedbackInput"}
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
+	}
+	if s.DetectorId != nil && len(*s.DetectorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DetectorId", 1))
+	}
+	if s.Feedback == nil {
+		invalidParams.Add(request.NewErrParamRequired("Feedback"))
+	}
+	if s.FindingIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("FindingIds"))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -8773,8 +9135,14 @@ func (s *UpdateIPSetInput) Validate() error {
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
 	}
+	if s.DetectorId != nil && len(*s.DetectorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DetectorId", 1))
+	}
 	if s.IpSetId == nil {
 		invalidParams.Add(request.NewErrParamRequired("IpSetId"))
+	}
+	if s.IpSetId != nil && len(*s.IpSetId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("IpSetId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -8865,8 +9233,14 @@ func (s *UpdateThreatIntelSetInput) Validate() error {
 	if s.DetectorId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DetectorId"))
 	}
+	if s.DetectorId != nil && len(*s.DetectorId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DetectorId", 1))
+	}
 	if s.ThreatIntelSetId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ThreatIntelSetId"))
+	}
+	if s.ThreatIntelSetId != nil && len(*s.ThreatIntelSetId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ThreatIntelSetId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -8944,6 +9318,18 @@ const (
 
 	// FilterActionArchive is a FilterAction enum value
 	FilterActionArchive = "ARCHIVE"
+)
+
+// A enum value that specifies how frequently customer got Finding updates published.
+const (
+	// FindingPublishingFrequencyFifteenMinutes is a FindingPublishingFrequency enum value
+	FindingPublishingFrequencyFifteenMinutes = "FIFTEEN_MINUTES"
+
+	// FindingPublishingFrequencyOneHour is a FindingPublishingFrequency enum value
+	FindingPublishingFrequencyOneHour = "ONE_HOUR"
+
+	// FindingPublishingFrequencySixHours is a FindingPublishingFrequency enum value
+	FindingPublishingFrequencySixHours = "SIX_HOURS"
 )
 
 // The types of finding statistics.

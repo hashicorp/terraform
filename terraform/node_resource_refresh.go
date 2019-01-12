@@ -2,38 +2,60 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 
-	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/providers"
+
+	"github.com/hashicorp/terraform/states"
+
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // NodeRefreshableManagedResource represents a resource that is expanabled into
 // NodeRefreshableManagedResourceInstance. Resource count orphans are also added.
 type NodeRefreshableManagedResource struct {
-	*NodeAbstractCountResource
+	*NodeAbstractResource
 }
+
+var (
+	_ GraphNodeSubPath              = (*NodeRefreshableManagedResource)(nil)
+	_ GraphNodeDynamicExpandable    = (*NodeRefreshableManagedResource)(nil)
+	_ GraphNodeReferenceable        = (*NodeRefreshableManagedResource)(nil)
+	_ GraphNodeReferencer           = (*NodeRefreshableManagedResource)(nil)
+	_ GraphNodeResource             = (*NodeRefreshableManagedResource)(nil)
+	_ GraphNodeAttachResourceConfig = (*NodeRefreshableManagedResource)(nil)
+)
 
 // GraphNodeDynamicExpandable
 func (n *NodeRefreshableManagedResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
-	// Grab the state which we read
-	state, lock := ctx.State()
-	lock.RLock()
-	defer lock.RUnlock()
+	var diags tfdiags.Diagnostics
 
-	// Expand the resource count which must be available by now from EvalTree
-	count, err := n.Config.Count()
-	if err != nil {
-		return nil, err
+	count, countDiags := evaluateResourceCountExpression(n.Config.Count, ctx)
+	diags = diags.Append(countDiags)
+	if countDiags.HasErrors() {
+		return nil, diags.Err()
 	}
 
+	// Next we need to potentially rename an instance address in the state
+	// if we're transitioning whether "count" is set at all.
+	fixResourceCountSetTransition(ctx, n.ResourceAddr(), count != -1)
+
+	// Our graph transformers require access to the full state, so we'll
+	// temporarily lock it while we work on this.
+	state := ctx.State().Lock()
+	defer ctx.State().Unlock()
+
 	// The concrete resource factory we'll use
-	concreteResource := func(a *NodeAbstractResource) dag.Vertex {
+	concreteResource := func(a *NodeAbstractResourceInstance) dag.Vertex {
 		// Add the config and state since we don't do that via transforms
 		a.Config = n.Config
 		a.ResolvedProvider = n.ResolvedProvider
 
 		return &NodeRefreshableManagedResourceInstance{
-			NodeAbstractResource: a,
+			NodeAbstractResourceInstance: a,
 		}
 	}
 
@@ -42,6 +64,7 @@ func (n *NodeRefreshableManagedResource) DynamicExpand(ctx EvalContext) (*Graph,
 		// Expand the count.
 		&ResourceCountTransformer{
 			Concrete: concreteResource,
+			Schema:   n.Schema,
 			Count:    count,
 			Addr:     n.ResourceAddr(),
 		},
@@ -59,7 +82,7 @@ func (n *NodeRefreshableManagedResource) DynamicExpand(ctx EvalContext) (*Graph,
 		&AttachStateTransformer{State: state},
 
 		// Targeting
-		&TargetsTransformer{ParsedTargets: n.Targets},
+		&TargetsTransformer{Targets: n.Targets},
 
 		// Connect references so ordering is correct
 		&ReferenceTransformer{},
@@ -75,66 +98,76 @@ func (n *NodeRefreshableManagedResource) DynamicExpand(ctx EvalContext) (*Graph,
 		Name:     "NodeRefreshableManagedResource",
 	}
 
-	return b.Build(ctx.Path())
+	graph, diags := b.Build(ctx.Path())
+	return graph, diags.ErrWithWarnings()
 }
 
 // NodeRefreshableManagedResourceInstance represents a resource that is "applyable":
 // it is ready to be applied and is represented by a diff.
 type NodeRefreshableManagedResourceInstance struct {
-	*NodeAbstractResource
+	*NodeAbstractResourceInstance
 }
 
+var (
+	_ GraphNodeSubPath              = (*NodeRefreshableManagedResourceInstance)(nil)
+	_ GraphNodeReferenceable        = (*NodeRefreshableManagedResourceInstance)(nil)
+	_ GraphNodeReferencer           = (*NodeRefreshableManagedResourceInstance)(nil)
+	_ GraphNodeDestroyer            = (*NodeRefreshableManagedResourceInstance)(nil)
+	_ GraphNodeResource             = (*NodeRefreshableManagedResourceInstance)(nil)
+	_ GraphNodeResourceInstance     = (*NodeRefreshableManagedResourceInstance)(nil)
+	_ GraphNodeAttachResourceConfig = (*NodeRefreshableManagedResourceInstance)(nil)
+	_ GraphNodeAttachResourceState  = (*NodeRefreshableManagedResourceInstance)(nil)
+	_ GraphNodeEvalable             = (*NodeRefreshableManagedResourceInstance)(nil)
+)
+
 // GraphNodeDestroyer
-func (n *NodeRefreshableManagedResourceInstance) DestroyAddr() *ResourceAddress {
-	return n.Addr
+func (n *NodeRefreshableManagedResourceInstance) DestroyAddr() *addrs.AbsResourceInstance {
+	addr := n.ResourceInstanceAddr()
+	return &addr
 }
 
 // GraphNodeEvalable
 func (n *NodeRefreshableManagedResourceInstance) EvalTree() EvalNode {
+	addr := n.ResourceInstanceAddr()
+
 	// Eval info is different depending on what kind of resource this is
-	switch mode := n.Addr.Mode; mode {
-	case config.ManagedResourceMode:
+	switch addr.Resource.Resource.Mode {
+	case addrs.ManagedResourceMode:
 		if n.ResourceState == nil {
+			log.Printf("[TRACE] NodeRefreshableManagedResourceInstance: %s has no existing state to refresh", addr)
 			return n.evalTreeManagedResourceNoState()
 		}
+		log.Printf("[TRACE] NodeRefreshableManagedResourceInstance: %s will be refreshed", addr)
 		return n.evalTreeManagedResource()
 
-	case config.DataResourceMode:
+	case addrs.DataResourceMode:
 		// Get the data source node. If we don't have a configuration
 		// then it is an orphan so we destroy it (remove it from the state).
 		var dn GraphNodeEvalable
 		if n.Config != nil {
 			dn = &NodeRefreshableDataResourceInstance{
-				NodeAbstractResource: n.NodeAbstractResource,
+				NodeAbstractResourceInstance: n.NodeAbstractResourceInstance,
 			}
 		} else {
-			dn = &NodeDestroyableDataResource{
-				NodeAbstractResource: n.NodeAbstractResource,
+			dn = &NodeDestroyableDataResourceInstance{
+				NodeAbstractResourceInstance: n.NodeAbstractResourceInstance,
 			}
 		}
 
 		return dn.EvalTree()
 	default:
-		panic(fmt.Errorf("unsupported resource mode %s", mode))
+		panic(fmt.Errorf("unsupported resource mode %s", addr.Resource.Resource.Mode))
 	}
 }
 
 func (n *NodeRefreshableManagedResourceInstance) evalTreeManagedResource() EvalNode {
-	addr := n.NodeAbstractResource.Addr
-
-	// stateId is the ID to put into the state
-	stateId := addr.stateId()
-
-	// Build the instance info. More of this will be populated during eval
-	info := &InstanceInfo{
-		Id:   stateId,
-		Type: addr.Type,
-	}
+	addr := n.ResourceInstanceAddr()
 
 	// Declare a bunch of variables that are used for state during
 	// evaluation. Most of this are written to by-address below.
-	var provider ResourceProvider
-	var state *InstanceState
+	var provider providers.Interface
+	var providerSchema *ProviderSchema
+	var state *states.ResourceInstanceObject
 
 	// This happened during initial development. All known cases were
 	// fixed and tested but as a sanity check let's assert here.
@@ -150,25 +183,33 @@ func (n *NodeRefreshableManagedResourceInstance) evalTreeManagedResource() EvalN
 	return &EvalSequence{
 		Nodes: []EvalNode{
 			&EvalGetProvider{
-				Name:   n.ResolvedProvider,
+				Addr:   n.ResolvedProvider,
 				Output: &provider,
+				Schema: &providerSchema,
 			},
+
 			&EvalReadState{
-				Name:   stateId,
+				Addr:           addr.Resource,
+				Provider:       &provider,
+				ProviderSchema: &providerSchema,
+
 				Output: &state,
 			},
+
 			&EvalRefresh{
-				Info:     info,
-				Provider: &provider,
-				State:    &state,
-				Output:   &state,
+				Addr:           addr.Resource,
+				ProviderAddr:   n.ResolvedProvider,
+				Provider:       &provider,
+				ProviderSchema: &providerSchema,
+				State:          &state,
+				Output:         &state,
 			},
+
 			&EvalWriteState{
-				Name:         stateId,
-				ResourceType: n.ResourceState.Type,
-				Provider:     n.ResolvedProvider,
-				Dependencies: n.ResourceState.Dependencies,
-				State:        &state,
+				Addr:           addr.Resource,
+				ProviderAddr:   n.ResolvedProvider,
+				ProviderSchema: &providerSchema,
+				State:          &state,
 			},
 		},
 	}
@@ -186,80 +227,62 @@ func (n *NodeRefreshableManagedResourceInstance) evalTreeManagedResource() EvalN
 // plan, but nothing is done with the diff after it is created - it is dropped,
 // and its changes are not counted in the UI.
 func (n *NodeRefreshableManagedResourceInstance) evalTreeManagedResourceNoState() EvalNode {
+	addr := n.ResourceInstanceAddr()
+
 	// Declare a bunch of variables that are used for state during
 	// evaluation. Most of this are written to by-address below.
-	var provider ResourceProvider
-	var state *InstanceState
-	var resourceConfig *ResourceConfig
-
-	addr := n.NodeAbstractResource.Addr
-	stateID := addr.stateId()
-	info := &InstanceInfo{
-		Id:         stateID,
-		Type:       addr.Type,
-		ModulePath: normalizeModulePath(addr.Path),
-	}
-
-	// Build the resource for eval
-	resource := &Resource{
-		Name:       addr.Name,
-		Type:       addr.Type,
-		CountIndex: addr.Index,
-	}
-	if resource.CountIndex < 0 {
-		resource.CountIndex = 0
-	}
-
-	// Determine the dependencies for the state.
-	stateDeps := n.StateReferences()
-
-	// n.Config can be nil if the config and state don't match
-	var raw *config.RawConfig
-	if n.Config != nil {
-		raw = n.Config.RawConfig.Copy()
-	}
+	var provider providers.Interface
+	var providerSchema *ProviderSchema
+	var change *plans.ResourceInstanceChange
+	var state *states.ResourceInstanceObject
 
 	return &EvalSequence{
 		Nodes: []EvalNode{
-			&EvalInterpolate{
-				Config:   raw,
-				Resource: resource,
-				Output:   &resourceConfig,
-			},
 			&EvalGetProvider{
-				Name:   n.ResolvedProvider,
+				Addr:   n.ResolvedProvider,
 				Output: &provider,
+				Schema: &providerSchema,
 			},
-			// Re-run validation to catch any errors we missed, e.g. type
-			// mismatches on computed values.
-			&EvalValidateResource{
-				Provider:       &provider,
-				Config:         &resourceConfig,
-				ResourceName:   n.Config.Name,
-				ResourceType:   n.Config.Type,
-				ResourceMode:   n.Config.Mode,
-				IgnoreWarnings: true,
-			},
+
 			&EvalReadState{
-				Name:   stateID,
+				Addr:           addr.Resource,
+				Provider:       &provider,
+				ProviderSchema: &providerSchema,
+
 				Output: &state,
 			},
+
 			&EvalDiff{
-				Name:        stateID,
-				Info:        info,
-				Config:      &resourceConfig,
-				Resource:    n.Config,
-				Provider:    &provider,
-				State:       &state,
-				OutputState: &state,
-				Stub:        true,
+				Addr:           addr.Resource,
+				Config:         n.Config,
+				Provider:       &provider,
+				ProviderAddr:   n.ResolvedProvider,
+				ProviderSchema: &providerSchema,
+				State:          &state,
+				OutputChange:   &change,
+				OutputState:    &state,
+				Stub:           true,
 			},
+
 			&EvalWriteState{
-				Name:         stateID,
-				ResourceType: n.Config.Type,
-				Provider:     n.ResolvedProvider,
-				Dependencies: stateDeps,
-				State:        &state,
+				Addr:           addr.Resource,
+				ProviderAddr:   n.ResolvedProvider,
+				ProviderSchema: &providerSchema,
+				State:          &state,
+			},
+
+			// We must also save the planned change, so that expressions in
+			// other nodes, such as provider configurations and data resources,
+			// can work with the planned new value.
+			//
+			// This depends on the fact that Context.Refresh creates a
+			// temporary new empty changeset for the duration of its graph
+			// walk, and so this recorded change will be discarded immediately
+			// after the refresh walk completes.
+			&EvalWriteDiff{
+				Addr:           addr.Resource,
+				Change:         &change,
+				ProviderSchema: &providerSchema,
 			},
 		},
 	}

@@ -12,17 +12,17 @@ import (
 	"sync"
 
 	"github.com/hashicorp/go-plugin"
-	backendInit "github.com/hashicorp/terraform/backend/init"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/svchost/disco"
-	"github.com/hashicorp/terraform/terraform"
 	"github.com/mattn/go-colorable"
 	"github.com/mattn/go-shellwords"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
 	"github.com/mitchellh/panicwrap"
 	"github.com/mitchellh/prefixedio"
+
+	backendInit "github.com/hashicorp/terraform/backend/init"
 )
 
 const (
@@ -113,9 +113,6 @@ func init() {
 func wrappedMain() int {
 	var err error
 
-	// We always need to close the DebugInfo before we exit.
-	defer terraform.CloseDebugInfo()
-
 	log.SetOutput(os.Stderr)
 	log.Printf(
 		"[INFO] Terraform version: %s %s %s",
@@ -135,7 +132,10 @@ func wrappedMain() int {
 				Disable: true, // Disable color to be conservative until we know better
 				Reset:   true,
 			}
-			Ui.Error(format.Diagnostic(diag, earlyColor, 78))
+			// We don't currently have access to the source code cache for
+			// the parser used to load the CLI config, so we can't show
+			// source code snippets in early diagnostics.
+			Ui.Error(format.Diagnostic(diag, nil, earlyColor, 78))
 		}
 		if diags.HasErrors() {
 			Ui.Error("As a result of the above problems, Terraform may not behave as intended.\n\n")

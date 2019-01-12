@@ -32,6 +32,11 @@ func dataSourceAwsAvailabilityZones() *schema.Resource {
 					ec2.AvailabilityZoneStateUnavailable,
 				}, false),
 			},
+			"zone_ids": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
 		},
 	}
 }
@@ -59,15 +64,22 @@ func dataSourceAwsAvailabilityZonesRead(d *schema.ResourceData, meta interface{}
 		return fmt.Errorf("Error fetching Availability Zones: %s", err)
 	}
 
-	raw := make([]string, len(resp.AvailabilityZones))
-	for i, v := range resp.AvailabilityZones {
-		raw[i] = *v.ZoneName
+	sort.Slice(resp.AvailabilityZones, func(i, j int) bool {
+		return aws.StringValue(resp.AvailabilityZones[i].ZoneName) < aws.StringValue(resp.AvailabilityZones[j].ZoneName)
+	})
+
+	names := []string{}
+	zoneIds := []string{}
+	for _, v := range resp.AvailabilityZones {
+		names = append(names, aws.StringValue(v.ZoneName))
+		zoneIds = append(zoneIds, aws.StringValue(v.ZoneId))
 	}
 
-	sort.Strings(raw)
-
-	if err := d.Set("names", raw); err != nil {
-		return fmt.Errorf("[WARN] Error setting Availability Zones: %s", err)
+	if err := d.Set("names", names); err != nil {
+		return fmt.Errorf("Error setting Availability Zone names: %s", err)
+	}
+	if err := d.Set("zone_ids", zoneIds); err != nil {
+		return fmt.Errorf("Error setting Availability Zone IDs: %s", err)
 	}
 
 	return nil

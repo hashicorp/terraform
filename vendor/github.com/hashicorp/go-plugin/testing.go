@@ -3,12 +3,27 @@ package plugin
 import (
 	"bytes"
 	"context"
+	"io"
 	"net"
 	"net/rpc"
 
+	hclog "github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-plugin/internal/proto"
 	"github.com/mitchellh/go-testing-interface"
 	"google.golang.org/grpc"
 )
+
+// TestOptions allows specifying options that can affect the behavior of the
+// test functions
+type TestOptions struct {
+	//ServerStdout causes the given value to be used in place of a blank buffer
+	//for RPCServer's Stdout
+	ServerStdout io.ReadCloser
+
+	//ServerStderr causes the given value to be used in place of a blank buffer
+	//for RPCServer's Stderr
+	ServerStderr io.ReadCloser
+}
 
 // The testing file contains test helpers that you can use outside of
 // this package for making it easier to test plugins themselves.
@@ -61,12 +76,20 @@ func TestRPCConn(t testing.T) (*rpc.Client, *rpc.Server) {
 
 // TestPluginRPCConn returns a plugin RPC client and server that are connected
 // together and configured.
-func TestPluginRPCConn(t testing.T, ps map[string]Plugin) (*RPCClient, *RPCServer) {
+func TestPluginRPCConn(t testing.T, ps map[string]Plugin, opts *TestOptions) (*RPCClient, *RPCServer) {
 	// Create two net.Conns we can use to shuttle our control connection
 	clientConn, serverConn := TestConn(t)
 
 	// Start up the server
 	server := &RPCServer{Plugins: ps, Stdout: new(bytes.Buffer), Stderr: new(bytes.Buffer)}
+	if opts != nil {
+		if opts.ServerStdout != nil {
+			server.Stdout = opts.ServerStdout
+		}
+		if opts.ServerStderr != nil {
+			server.Stderr = opts.ServerStderr
+		}
+	}
 	go server.ServeConn(serverConn)
 
 	// Connect the client to the server
@@ -119,9 +142,11 @@ func TestPluginGRPCConn(t testing.T, ps map[string]Plugin) (*GRPCClient, *GRPCSe
 	// Start up the server
 	server := &GRPCServer{
 		Plugins: ps,
+		DoneCh:  make(chan struct{}),
 		Server:  DefaultGRPCServer,
 		Stdout:  new(bytes.Buffer),
 		Stderr:  new(bytes.Buffer),
+		logger:  hclog.Default(),
 	}
 	if err := server.Init(); err != nil {
 		t.Fatalf("err: %s", err)
@@ -144,10 +169,11 @@ func TestPluginGRPCConn(t testing.T, ps map[string]Plugin) (*GRPCClient, *GRPCSe
 
 	// Create the client
 	client := &GRPCClient{
-		Conn:    conn,
-		Plugins: ps,
-		broker:  broker,
-		doneCtx: context.Background(),
+		Conn:       conn,
+		Plugins:    ps,
+		broker:     broker,
+		doneCtx:    context.Background(),
+		controller: proto.NewGRPCControllerClient(conn),
 	}
 
 	return client, server

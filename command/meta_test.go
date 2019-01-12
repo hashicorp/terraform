@@ -1,12 +1,14 @@
 package command
 
 import (
-	"flag"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/terraform"
@@ -71,7 +73,7 @@ func TestMetaInputMode(t *testing.T) {
 	m := new(Meta)
 	args := []string{}
 
-	fs := m.flagSet("foo")
+	fs := m.extendedFlagSet("foo")
 	if err := fs.Parse(args); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -90,7 +92,7 @@ func TestMetaInputMode_envVar(t *testing.T) {
 	m := new(Meta)
 	args := []string{}
 
-	fs := m.flagSet("foo")
+	fs := m.extendedFlagSet("foo")
 	if err := fs.Parse(args); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -122,7 +124,7 @@ func TestMetaInputMode_disable(t *testing.T) {
 	m := new(Meta)
 	args := []string{"-input=false"}
 
-	fs := m.flagSet("foo")
+	fs := m.extendedFlagSet("foo")
 	if err := fs.Parse(args); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -158,7 +160,7 @@ func TestMetaInputMode_defaultVars(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	fs := m.flagSet("foo")
+	fs := m.extendedFlagSet("foo")
 	if err := fs.Parse(args); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -175,7 +177,7 @@ func TestMetaInputMode_vars(t *testing.T) {
 	m := new(Meta)
 	args := []string{"-var", "foo=bar"}
 
-	fs := m.flagSet("foo")
+	fs := m.extendedFlagSet("foo")
 	if err := fs.Parse(args); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -226,58 +228,6 @@ func TestMeta_initStatePaths(t *testing.T) {
 	}
 }
 
-func TestMeta_addModuleDepthFlag(t *testing.T) {
-	old := os.Getenv(ModuleDepthEnvVar)
-	defer os.Setenv(ModuleDepthEnvVar, old)
-
-	cases := map[string]struct {
-		EnvVar   string
-		Args     []string
-		Expected int
-	}{
-		"env var sets value when no flag present": {
-			EnvVar:   "4",
-			Args:     []string{},
-			Expected: 4,
-		},
-		"flag overrides envvar": {
-			EnvVar:   "4",
-			Args:     []string{"-module-depth=-1"},
-			Expected: -1,
-		},
-		"negative envvar works": {
-			EnvVar:   "-1",
-			Args:     []string{},
-			Expected: -1,
-		},
-		"invalid envvar is ignored": {
-			EnvVar:   "-#",
-			Args:     []string{},
-			Expected: ModuleDepthDefault,
-		},
-		"empty envvar is okay too": {
-			EnvVar:   "",
-			Args:     []string{},
-			Expected: ModuleDepthDefault,
-		},
-	}
-
-	for tn, tc := range cases {
-		m := new(Meta)
-		var moduleDepth int
-		flags := flag.NewFlagSet("test", flag.ContinueOnError)
-		os.Setenv(ModuleDepthEnvVar, tc.EnvVar)
-		m.addModuleDepthFlag(flags, &moduleDepth)
-		err := flags.Parse(tc.Args)
-		if err != nil {
-			t.Fatalf("%s: err: %#v", tn, err)
-		}
-		if moduleDepth != tc.Expected {
-			t.Fatalf("%s: expected: %#v, got: %#v", tn, tc.Expected, moduleDepth)
-		}
-	}
-}
-
 func TestMeta_Env(t *testing.T) {
 	td := tempDir(t)
 	os.MkdirAll(td, 0755)
@@ -322,7 +272,13 @@ func TestMeta_process(t *testing.T) {
 	defer os.RemoveAll(d)
 	defer testChdir(t, d)()
 
-	// Create two vars files
+	// At one point it was the responsibility of this process function to
+	// insert fake additional -var-file options into the command line
+	// if the automatic tfvars files were present. This is no longer the
+	// responsibility of process (it happens in collectVariableValues instead)
+	// but we're still testing with these files in place to verify that
+	// they _aren't_ being interpreted by process, since that could otherwise
+	// cause them to be added more than once and mess up the precedence order.
 	defaultVarsfile := "terraform.tfvars"
 	err := ioutil.WriteFile(
 		filepath.Join(d, defaultVarsfile),
@@ -357,33 +313,54 @@ func TestMeta_process(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	m := new(Meta)
-	args := []string{}
-	args, err = m.process(args, true)
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	tests := []struct {
+		GivenArgs    []string
+		FilteredArgs []string
+		ExtraCheck   func(*testing.T, *Meta)
+	}{
+		{
+			[]string{},
+			[]string{},
+			func(t *testing.T, m *Meta) {
+				if got, want := m.color, true; got != want {
+					t.Errorf("wrong m.color value %#v; want %#v", got, want)
+				}
+				if got, want := m.Color, true; got != want {
+					t.Errorf("wrong m.Color value %#v; want %#v", got, want)
+				}
+			},
+		},
+		{
+			[]string{"-no-color"},
+			[]string{},
+			func(t *testing.T, m *Meta) {
+				if got, want := m.color, false; got != want {
+					t.Errorf("wrong m.color value %#v; want %#v", got, want)
+				}
+				if got, want := m.Color, false; got != want {
+					t.Errorf("wrong m.Color value %#v; want %#v", got, want)
+				}
+			},
+		},
 	}
 
-	if len(args) != 6 {
-		t.Fatalf("expected 6 args, got %v", args)
-	}
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%s", test.GivenArgs), func(t *testing.T) {
+			m := new(Meta)
+			m.Color = true // this is the default also for normal use, overridden by -no-color
+			args := test.GivenArgs
+			args, err = m.process(args, true)
+			if err != nil {
+				t.Fatalf("err: %s", err)
+			}
 
-	if args[0] != "-var-file-default" {
-		t.Fatalf("expected %q, got %q", "-var-file-default", args[0])
-	}
-	if args[1] != defaultVarsfile {
-		t.Fatalf("expected %q, got %q", defaultVarsfile, args[1])
-	}
-	if args[2] != "-var-file-default" {
-		t.Fatalf("expected %q, got %q", "-var-file-default", args[2])
-	}
-	if args[3] != fileFirstAlphabetical {
-		t.Fatalf("expected %q, got %q", fileFirstAlphabetical, args[3])
-	}
-	if args[4] != "-var-file-default" {
-		t.Fatalf("expected %q, got %q", "-var-file-default", args[4])
-	}
-	if args[5] != fileLastAlphabetical {
-		t.Fatalf("expected %q, got %q", fileLastAlphabetical, args[5])
+			if !cmp.Equal(test.FilteredArgs, args) {
+				t.Errorf("wrong filtered arguments\n%s", cmp.Diff(test.FilteredArgs, args))
+			}
+
+			if test.ExtraCheck != nil {
+				test.ExtraCheck(t, m)
+			}
+		})
 	}
 }

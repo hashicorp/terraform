@@ -1,12 +1,12 @@
 package aws
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/waf"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -26,7 +26,7 @@ func resourceAwsWafSizeConstraintSetCreate(d *schema.ResourceData, meta interfac
 
 	log.Printf("[INFO] Creating SizeConstraintSet: %s", d.Get("name").(string))
 
-	wr := newWafRetryer(conn, "global")
+	wr := newWafRetryer(conn)
 	out, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
 		params := &waf.CreateSizeConstraintSetInput{
 			ChangeToken: token,
@@ -36,7 +36,7 @@ func resourceAwsWafSizeConstraintSetCreate(d *schema.ResourceData, meta interfac
 		return conn.CreateSizeConstraintSet(params)
 	})
 	if err != nil {
-		return errwrap.Wrapf("[ERROR] Error creating SizeConstraintSet: {{err}}", err)
+		return fmt.Errorf("Error creating SizeConstraintSet: %s", err)
 	}
 	resp := out.(*waf.CreateSizeConstraintSetOutput)
 
@@ -78,7 +78,7 @@ func resourceAwsWafSizeConstraintSetUpdate(d *schema.ResourceData, meta interfac
 
 		err := updateSizeConstraintSetResource(d.Id(), oldConstraints, newConstraints, conn)
 		if err != nil {
-			return errwrap.Wrapf("[ERROR] Error updating SizeConstraintSet: {{err}}", err)
+			return fmt.Errorf("Error updating SizeConstraintSet: %s", err)
 		}
 	}
 
@@ -94,11 +94,11 @@ func resourceAwsWafSizeConstraintSetDelete(d *schema.ResourceData, meta interfac
 		noConstraints := []interface{}{}
 		err := updateSizeConstraintSetResource(d.Id(), oldConstraints, noConstraints, conn)
 		if err != nil {
-			return errwrap.Wrapf("[ERROR] Error deleting SizeConstraintSet: {{err}}", err)
+			return fmt.Errorf("Error deleting SizeConstraintSet: %s", err)
 		}
 	}
 
-	wr := newWafRetryer(conn, "global")
+	wr := newWafRetryer(conn)
 	_, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
 		req := &waf.DeleteSizeConstraintSetInput{
 			ChangeToken:         token,
@@ -107,14 +107,14 @@ func resourceAwsWafSizeConstraintSetDelete(d *schema.ResourceData, meta interfac
 		return conn.DeleteSizeConstraintSet(req)
 	})
 	if err != nil {
-		return errwrap.Wrapf("[ERROR] Error deleting SizeConstraintSet: {{err}}", err)
+		return fmt.Errorf("Error deleting SizeConstraintSet: %s", err)
 	}
 
 	return nil
 }
 
 func updateSizeConstraintSetResource(id string, oldS, newS []interface{}, conn *waf.WAF) error {
-	wr := newWafRetryer(conn, "global")
+	wr := newWafRetryer(conn)
 	_, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
 		req := &waf.UpdateSizeConstraintSetInput{
 			ChangeToken:         token,
@@ -126,7 +126,7 @@ func updateSizeConstraintSetResource(id string, oldS, newS []interface{}, conn *
 		return conn.UpdateSizeConstraintSet(req)
 	})
 	if err != nil {
-		return errwrap.Wrapf("[ERROR] Error updating SizeConstraintSet: {{err}}", err)
+		return fmt.Errorf("Error updating SizeConstraintSet: %s", err)
 	}
 
 	return nil

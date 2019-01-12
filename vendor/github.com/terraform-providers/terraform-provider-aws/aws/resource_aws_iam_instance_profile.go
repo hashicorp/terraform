@@ -160,7 +160,24 @@ func instanceProfileAddRole(iamconn *iam.IAM, profileName, roleName string) erro
 		RoleName:            aws.String(roleName),
 	}
 
-	_, err := iamconn.AddRoleToInstanceProfile(request)
+	err := resource.Retry(30*time.Second, func() *resource.RetryError {
+		var err error
+		_, err = iamconn.AddRoleToInstanceProfile(request)
+		// IAM unfortunately does not provide a better error code or message for eventual consistency
+		// InvalidParameterValue: Value (XXX) for parameter iamInstanceProfile.name is invalid. Invalid IAM Instance Profile name
+		// NoSuchEntity: The request was rejected because it referenced an entity that does not exist. The error message describes the entity. HTTP Status Code: 404
+		if isAWSErr(err, "InvalidParameterValue", "Invalid IAM Instance Profile name") || isAWSErr(err, "NoSuchEntity", "The role with name") {
+			return resource.RetryableError(err)
+		}
+		if err != nil {
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("Error adding IAM Role %s to Instance Profile %s: %s", roleName, profileName, err)
+	}
+
 	return err
 }
 

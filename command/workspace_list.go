@@ -2,9 +2,9 @@ package command
 
 import (
 	"bytes"
-	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/posener/complete"
 )
 
@@ -21,7 +21,7 @@ func (c *WorkspaceListCommand) Run(args []string) int {
 
 	envCommandShowWarning(c.Ui, c.LegacyName)
 
-	cmdFlags := c.Meta.flagSet("workspace list")
+	cmdFlags := c.Meta.defaultFlagSet("workspace list")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -34,23 +34,26 @@ func (c *WorkspaceListCommand) Run(args []string) int {
 		return 1
 	}
 
-	cfg, err := c.Config(configPath)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load root config module: %s", err))
+	var diags tfdiags.Diagnostics
+
+	backendConfig, backendDiags := c.loadBackendConfig(configPath)
+	diags = diags.Append(backendDiags)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
 	// Load the backend
-	b, err := c.Backend(&BackendOpts{
-		Config: cfg,
+	b, backendDiags := c.Backend(&BackendOpts{
+		Config: backendConfig,
 	})
-
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
+	diags = diags.Append(backendDiags)
+	if backendDiags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
-	states, err := b.States()
+	states, err := b.Workspaces()
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
@@ -90,6 +93,7 @@ func (c *WorkspaceListCommand) Help() string {
 Usage: terraform workspace list [DIR]
 
   List Terraform workspaces.
+
 `
 	return strings.TrimSpace(helpText)
 }

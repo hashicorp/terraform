@@ -9,6 +9,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
+	"github.com/aws/aws-sdk-go/private/protocol/restxml"
 )
 
 const opAssociateVPCWithHostedZone = "AssociateVPCWithHostedZone"
@@ -16,7 +18,7 @@ const opAssociateVPCWithHostedZone = "AssociateVPCWithHostedZone"
 // AssociateVPCWithHostedZoneRequest generates a "aws/request.Request" representing the
 // client's request for the AssociateVPCWithHostedZone operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -147,7 +149,7 @@ const opChangeResourceRecordSets = "ChangeResourceRecordSets"
 // ChangeResourceRecordSetsRequest generates a "aws/request.Request" representing the
 // client's request for the ChangeResourceRecordSets operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -197,28 +199,28 @@ func (c *Route53) ChangeResourceRecordSetsRequest(input *ChangeResourceRecordSet
 // The request body must include a document with a ChangeResourceRecordSetsRequest
 // element. The request body contains a list of change items, known as a change
 // batch. Change batches are considered transactional changes. When using the
-// Amazon Route 53 API to change resource record sets, Amazon Route 53 either
-// makes all or none of the changes in a change batch request. This ensures
-// that Amazon Route 53 never partially implements the intended changes to the
-// resource record sets in a hosted zone.
+// Amazon Route 53 API to change resource record sets, Route 53 either makes
+// all or none of the changes in a change batch request. This ensures that Route
+// 53 never partially implements the intended changes to the resource record
+// sets in a hosted zone.
 //
 // For example, a change batch request that deletes the CNAME record for www.example.com
-// and creates an alias resource record set for www.example.com. Amazon Route
-// 53 deletes the first resource record set and creates the second resource
-// record set in a single operation. If either the DELETE or the CREATE action
-// fails, then both changes (plus any other changes in the batch) fail, and
-// the original CNAME record continues to exist.
+// and creates an alias resource record set for www.example.com. Route 53 deletes
+// the first resource record set and creates the second resource record set
+// in a single operation. If either the DELETE or the CREATE action fails, then
+// both changes (plus any other changes in the batch) fail, and the original
+// CNAME record continues to exist.
 //
 // Due to the nature of transactional changes, you can't delete the same resource
 // record set more than once in a single change batch. If you attempt to delete
-// the same change batch more than once, Amazon Route 53 returns an InvalidChangeBatch
+// the same change batch more than once, Route 53 returns an InvalidChangeBatch
 // error.
 //
 // Traffic Flow
 //
 // To create resource record sets for complex routing configurations, use either
-// the traffic flow visual editor in the Amazon Route 53 console or the API
-// actions for traffic policies and traffic policy instances. Save the configuration
+// the traffic flow visual editor in the Route 53 console or the API actions
+// for traffic policies and traffic policy instances. Save the configuration
 // as a traffic policy, then associate the traffic policy with one or more domain
 // names (such as example.com) or subdomain names (such as www.example.com),
 // in the same hosted zone or in multiple hosted zones. You can roll back the
@@ -236,8 +238,8 @@ func (c *Route53) ChangeResourceRecordSetsRequest(input *ChangeResourceRecordSet
 //    values.
 //
 //    * UPSERT: If a resource record set does not already exist, AWS creates
-//    it. If a resource set does exist, Amazon Route 53 updates it with the
-//    values in the request.
+//    it. If a resource set does exist, Route 53 updates it with the values
+//    in the request.
 //
 // Syntaxes for Creating, Updating, and Deleting Resource Record Sets
 //
@@ -251,14 +253,14 @@ func (c *Route53) ChangeResourceRecordSetsRequest(input *ChangeResourceRecordSet
 // all of the elements for every kind of resource record set that you can create,
 // delete, or update by using ChangeResourceRecordSets.
 //
-// Change Propagation to Amazon Route 53 DNS Servers
+// Change Propagation to Route 53 DNS Servers
 //
-// When you submit a ChangeResourceRecordSets request, Amazon Route 53 propagates
-// your changes to all of the Amazon Route 53 authoritative DNS servers. While
-// your changes are propagating, GetChange returns a status of PENDING. When
-// propagation is complete, GetChange returns a status of INSYNC. Changes generally
-// propagate to all Amazon Route 53 name servers within 60 seconds. For more
-// information, see GetChange.
+// When you submit a ChangeResourceRecordSets request, Route 53 propagates your
+// changes to all of the Route 53 authoritative DNS servers. While your changes
+// are propagating, GetChange returns a status of PENDING. When propagation
+// is complete, GetChange returns a status of INSYNC. Changes generally propagate
+// to all Route 53 name servers within 60 seconds. For more information, see
+// GetChange.
 //
 // Limits on ChangeResourceRecordSets Requests
 //
@@ -278,8 +280,7 @@ func (c *Route53) ChangeResourceRecordSetsRequest(input *ChangeResourceRecordSet
 //   No hosted zone exists with the ID that you specified.
 //
 //   * ErrCodeNoSuchHealthCheck "NoSuchHealthCheck"
-//   No health check exists with the ID that you specified in the DeleteHealthCheck
-//   request.
+//   No health check exists with the specified ID.
 //
 //   * ErrCodeInvalidChangeBatch "InvalidChangeBatch"
 //   This exception contains a list of messages that might contain one or more
@@ -291,8 +292,8 @@ func (c *Route53) ChangeResourceRecordSetsRequest(input *ChangeResourceRecordSet
 //   * ErrCodePriorRequestNotComplete "PriorRequestNotComplete"
 //   If Amazon Route 53 can't process a request before the next request arrives,
 //   it will reject subsequent requests for the same hosted zone and return an
-//   HTTP 400 error (Bad request). If Amazon Route 53 returns this error repeatedly
-//   for the same request, we recommend that you wait, in intervals of increasing
+//   HTTP 400 error (Bad request). If Route 53 returns this error repeatedly for
+//   the same request, we recommend that you wait, in intervals of increasing
 //   duration, before you try the request again.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/route53-2013-04-01/ChangeResourceRecordSets
@@ -322,7 +323,7 @@ const opChangeTagsForResource = "ChangeTagsForResource"
 // ChangeTagsForResourceRequest generates a "aws/request.Request" representing the
 // client's request for the ChangeTagsForResource operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -356,6 +357,7 @@ func (c *Route53) ChangeTagsForResourceRequest(input *ChangeTagsForResourceInput
 
 	output = &ChangeTagsForResourceOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restxml.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -379,8 +381,7 @@ func (c *Route53) ChangeTagsForResourceRequest(input *ChangeTagsForResourceInput
 //   The input is not valid.
 //
 //   * ErrCodeNoSuchHealthCheck "NoSuchHealthCheck"
-//   No health check exists with the ID that you specified in the DeleteHealthCheck
-//   request.
+//   No health check exists with the specified ID.
 //
 //   * ErrCodeNoSuchHostedZone "NoSuchHostedZone"
 //   No hosted zone exists with the ID that you specified.
@@ -388,8 +389,8 @@ func (c *Route53) ChangeTagsForResourceRequest(input *ChangeTagsForResourceInput
 //   * ErrCodePriorRequestNotComplete "PriorRequestNotComplete"
 //   If Amazon Route 53 can't process a request before the next request arrives,
 //   it will reject subsequent requests for the same hosted zone and return an
-//   HTTP 400 error (Bad request). If Amazon Route 53 returns this error repeatedly
-//   for the same request, we recommend that you wait, in intervals of increasing
+//   HTTP 400 error (Bad request). If Route 53 returns this error repeatedly for
+//   the same request, we recommend that you wait, in intervals of increasing
 //   duration, before you try the request again.
 //
 //   * ErrCodeThrottlingException "ThrottlingException"
@@ -422,7 +423,7 @@ const opCreateHealthCheck = "CreateHealthCheck"
 // CreateHealthCheckRequest generates a "aws/request.Request" representing the
 // client's request for the CreateHealthCheck operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -471,17 +472,17 @@ func (c *Route53) CreateHealthCheckRequest(input *CreateHealthCheckInput) (req *
 // If you're registering EC2 instances with an Elastic Load Balancing (ELB)
 // load balancer, do not create Amazon Route 53 health checks for the EC2 instances.
 // When you register an EC2 instance with a load balancer, you configure settings
-// for an ELB health check, which performs a similar function to an Amazon Route
-// 53 health check.
+// for an ELB health check, which performs a similar function to a Route 53
+// health check.
 //
 // Private Hosted Zones
 //
 // You can associate health checks with failover resource record sets in a private
 // hosted zone. Note the following:
 //
-//    * Amazon Route 53 health checkers are outside the VPC. To check the health
-//    of an endpoint within a VPC by IP address, you must assign a public IP
-//    address to the instance in the VPC.
+//    * Route 53 health checkers are outside the VPC. To check the health of
+//    an endpoint within a VPC by IP address, you must assign a public IP address
+//    to the instance in the VPC.
 //
 //    * You can configure a health checker to check the health of an external
 //    resource that the instance relies on, such as a database server.
@@ -558,7 +559,7 @@ const opCreateHostedZone = "CreateHostedZone"
 // CreateHostedZoneRequest generates a "aws/request.Request" representing the
 // client's request for the CreateHostedZone operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -597,41 +598,45 @@ func (c *Route53) CreateHostedZoneRequest(input *CreateHostedZoneInput) (req *re
 
 // CreateHostedZone API operation for Amazon Route 53.
 //
-// Creates a new public hosted zone, which you use to specify how the Domain
-// Name System (DNS) routes traffic on the Internet for a domain, such as example.com,
-// and its subdomains.
+// Creates a new public or private hosted zone. You create records in a public
+// hosted zone to define how you want to route traffic on the internet for a
+// domain, such as example.com, and its subdomains (apex.example.com, acme.example.com).
+// You create records in a private hosted zone to define how you want to route
+// traffic for a domain and its subdomains within one or more Amazon Virtual
+// Private Clouds (Amazon VPCs).
 //
-// You can't convert a public hosted zones to a private hosted zone or vice
-// versa. Instead, you must create a new hosted zone with the same name and
-// create new resource record sets.
+// You can't convert a public hosted zone to a private hosted zone or vice versa.
+// Instead, you must create a new hosted zone with the same name and create
+// new resource record sets.
 //
 // For more information about charges for hosted zones, see Amazon Route 53
 // Pricing (http://aws.amazon.com/route53/pricing/).
 //
 // Note the following:
 //
-//    * You can't create a hosted zone for a top-level domain (TLD).
+//    * You can't create a hosted zone for a top-level domain (TLD) such as
+//    .com.
 //
-//    * Amazon Route 53 automatically creates a default SOA record and four
-//    NS records for the zone. For more information about SOA and NS records,
-//    see NS and SOA Records that Amazon Route 53 Creates for a Hosted Zone
-//    (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/SOA-NSrecords.html)
+//    * For public hosted zones, Amazon Route 53 automatically creates a default
+//    SOA record and four NS records for the zone. For more information about
+//    SOA and NS records, see NS and SOA Records that Route 53 Creates for a
+//    Hosted Zone (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/SOA-NSrecords.html)
 //    in the Amazon Route 53 Developer Guide.
 //
-// If you want to use the same name servers for multiple hosted zones, you can
-//    optionally associate a reusable delegation set with the hosted zone. See
-//    the DelegationSetId element.
+// If you want to use the same name servers for multiple public hosted zones,
+//    you can optionally associate a reusable delegation set with the hosted
+//    zone. See the DelegationSetId element.
 //
-//    * If your domain is registered with a registrar other than Amazon Route
-//    53, you must update the name servers with your registrar to make Amazon
-//    Route 53 your DNS service. For more information, see Configuring Amazon
-//    Route 53 as your DNS Service (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/creating-migrating.html)
+//    * If your domain is registered with a registrar other than Route 53, you
+//    must update the name servers with your registrar to make Route 53 the
+//    DNS service for the domain. For more information, see Migrating DNS Service
+//    for an Existing Domain to Amazon Route 53 (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/MigratingDNS.html)
 //    in the Amazon Route 53 Developer Guide.
 //
 // When you submit a CreateHostedZone request, the initial status of the hosted
-// zone is PENDING. This means that the NS and SOA records are not yet available
-// on all Amazon Route 53 DNS servers. When the NS and SOA records are available,
-// the status of the zone changes to INSYNC.
+// zone is PENDING. For public hosted zones, this means that the NS and SOA
+// records are not yet available on all Route 53 DNS servers. When the NS and
+// SOA records are available, the status of the zone changes to INSYNC.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -678,8 +683,8 @@ func (c *Route53) CreateHostedZoneRequest(input *CreateHostedZoneInput) (req *re
 //   You can create a hosted zone that has the same name as an existing hosted
 //   zone (example.com is common), but there is a limit to the number of hosted
 //   zones that have the same name. If you get this error, Amazon Route 53 has
-//   reached that limit. If you own the domain name and Amazon Route 53 generates
-//   this error, contact Customer Support.
+//   reached that limit. If you own the domain name and Route 53 generates this
+//   error, contact Customer Support.
 //
 //   * ErrCodeConflictingDomainExists "ConflictingDomainExists"
 //   The cause of this error depends on whether you're trying to create a public
@@ -732,7 +737,7 @@ const opCreateQueryLoggingConfig = "CreateQueryLoggingConfig"
 // CreateQueryLoggingConfigRequest generates a "aws/request.Request" representing the
 // client's request for the CreateQueryLoggingConfig operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -775,10 +780,10 @@ func (c *Route53) CreateQueryLoggingConfigRequest(input *CreateQueryLoggingConfi
 // configuration, Amazon Route 53 begins to publish log data to an Amazon CloudWatch
 // Logs log group.
 //
-// DNS query logs contain information about the queries that Amazon Route 53
-// receives for a specified public hosted zone, such as the following:
+// DNS query logs contain information about the queries that Route 53 receives
+// for a specified public hosted zone, such as the following:
 //
-//    * Amazon Route 53 edge location that responded to the DNS query
+//    * Route 53 edge location that responded to the DNS query
 //
 //    * Domain or subdomain that was requested
 //
@@ -789,8 +794,8 @@ func (c *Route53) CreateQueryLoggingConfigRequest(input *CreateQueryLoggingConfi
 // Log Group and Resource PolicyBefore you create a query logging configuration,
 // perform the following operations.
 //
-// If you create a query logging configuration using the Amazon Route 53 console,
-// Amazon Route 53 performs these operations automatically.
+// If you create a query logging configuration using the Route 53 console, Route
+// 53 performs these operations automatically.
 //
 // Create a CloudWatch Logs log group, and make note of the ARN, which you specify
 // when you create a query logging configuration. Note the following:
@@ -806,30 +811,30 @@ func (c *Route53) CreateQueryLoggingConfigRequest(input *CreateQueryLoggingConfi
 // /aws/route53/hosted zone name
 //
 // In the next step, you'll create a resource policy, which controls access
-// to one or more log groups and the associated AWS resources, such as Amazon
-// Route 53 hosted zones. There's a limit on the number of resource policies
-// that you can create, so we recommend that you use a consistent prefix so
-// you can use the same resource policy for all the log groups that you create
-// for query logging.
+// to one or more log groups and the associated AWS resources, such as Route
+// 53 hosted zones. There's a limit on the number of resource policies that
+// you can create, so we recommend that you use a consistent prefix so you can
+// use the same resource policy for all the log groups that you create for query
+// logging.
 //
 // Create a CloudWatch Logs resource policy, and give it the permissions that
-// Amazon Route 53 needs to create log streams and to send query logs to log
-// streams. For the value of Resource, specify the ARN for the log group that
-// you created in the previous step. To use the same resource policy for all
-// the CloudWatch Logs log groups that you created for query logging configurations,
-// replace the hosted zone name with *, for example:
+// Route 53 needs to create log streams and to send query logs to log streams.
+// For the value of Resource, specify the ARN for the log group that you created
+// in the previous step. To use the same resource policy for all the CloudWatch
+// Logs log groups that you created for query logging configurations, replace
+// the hosted zone name with *, for example:
 //
 // arn:aws:logs:us-east-1:123412341234:log-group:/aws/route53/*
 //
 // You can't use the CloudWatch console to create or edit a resource policy.
 // You must use the CloudWatch API, one of the AWS SDKs, or the AWS CLI.
 //
-// Log Streams and Edge LocationsWhen Amazon Route 53 finishes creating the
-// configuration for DNS query logging, it does the following:
+// Log Streams and Edge LocationsWhen Route 53 finishes creating the configuration
+// for DNS query logging, it does the following:
 //
 // Creates a log stream for an edge location the first time that the edge location
 // responds to DNS queries for the specified hosted zone. That log stream is
-// used to log all queries that Amazon Route 53 responds to for that edge location.
+// used to log all queries that Route 53 responds to for that edge location.
 //
 // Begins to send query logs to the applicable log stream.
 //
@@ -841,18 +846,17 @@ func (c *Route53) CreateQueryLoggingConfigRequest(input *CreateQueryLoggingConfi
 // number, for example, DFW3. The three-letter code typically corresponds with
 // the International Air Transport Association airport code for an airport near
 // the edge location. (These abbreviations might change in the future.) For
-// a list of edge locations, see "The Amazon Route 53 Global Network" on the
-// Amazon Route 53 Product Details (http://aws.amazon.com/route53/details/)
-// page.
+// a list of edge locations, see "The Route 53 Global Network" on the Route
+// 53 Product Details (http://aws.amazon.com/route53/details/) page.
 //
 // Queries That Are LoggedQuery logs contain only the queries that DNS resolvers
-// forward to Amazon Route 53. If a DNS resolver has already cached the response
-// to a query (such as the IP address for a load balancer for example.com),
-// the resolver will continue to return the cached response. It doesn't forward
-// another query to Amazon Route 53 until the TTL for the corresponding resource
-// record set expires. Depending on how many DNS queries are submitted for a
-// resource record set, and depending on the TTL for that resource record set,
-// query logs might contain information about only one query out of every several
+// forward to Route 53. If a DNS resolver has already cached the response to
+// a query (such as the IP address for a load balancer for example.com), the
+// resolver will continue to return the cached response. It doesn't forward
+// another query to Route 53 until the TTL for the corresponding resource record
+// set expires. Depending on how many DNS queries are submitted for a resource
+// record set, and depending on the TTL for that resource record set, query
+// logs might contain information about only one query out of every several
 // thousand queries that are submitted to DNS. For more information about how
 // DNS works, see Routing Internet Traffic to Your Website or Web Application
 // (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/welcome-dns-service.html)
@@ -865,9 +869,8 @@ func (c *Route53) CreateQueryLoggingConfigRequest(input *CreateQueryLoggingConfi
 // PricingFor information about charges for query logs, see Amazon CloudWatch
 // Pricing (http://aws.amazon.com/cloudwatch/pricing/).
 //
-// How to Stop LoggingIf you want Amazon Route 53 to stop sending query logs
-// to CloudWatch Logs, delete the query logging configuration. For more information,
-// see DeleteQueryLoggingConfig.
+// How to Stop LoggingIf you want Route 53 to stop sending query logs to CloudWatch
+// Logs, delete the query logging configuration. For more information, see DeleteQueryLoggingConfig.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -933,7 +936,7 @@ const opCreateReusableDelegationSet = "CreateReusableDelegationSet"
 // CreateReusableDelegationSetRequest generates a "aws/request.Request" representing the
 // client's request for the CreateReusableDelegationSet operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1052,8 +1055,8 @@ func (c *Route53) CreateReusableDelegationSetRequest(input *CreateReusableDelega
 //   You can create a hosted zone that has the same name as an existing hosted
 //   zone (example.com is common), but there is a limit to the number of hosted
 //   zones that have the same name. If you get this error, Amazon Route 53 has
-//   reached that limit. If you own the domain name and Amazon Route 53 generates
-//   this error, contact Customer Support.
+//   reached that limit. If you own the domain name and Route 53 generates this
+//   error, contact Customer Support.
 //
 //   * ErrCodeDelegationSetAlreadyReusable "DelegationSetAlreadyReusable"
 //   The specified delegation set has already been marked as reusable.
@@ -1085,7 +1088,7 @@ const opCreateTrafficPolicy = "CreateTrafficPolicy"
 // CreateTrafficPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the CreateTrafficPolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1185,7 +1188,7 @@ const opCreateTrafficPolicyInstance = "CreateTrafficPolicyInstance"
 // CreateTrafficPolicyInstanceRequest generates a "aws/request.Request" representing the
 // client's request for the CreateTrafficPolicyInstance operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1290,7 +1293,7 @@ const opCreateTrafficPolicyVersion = "CreateTrafficPolicyVersion"
 // CreateTrafficPolicyVersionRequest generates a "aws/request.Request" representing the
 // client's request for the CreateTrafficPolicyVersion operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1397,7 +1400,7 @@ const opCreateVPCAssociationAuthorization = "CreateVPCAssociationAuthorization"
 // CreateVPCAssociationAuthorizationRequest generates a "aws/request.Request" representing the
 // client's request for the CreateVPCAssociationAuthorization operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1503,7 +1506,7 @@ const opDeleteHealthCheck = "DeleteHealthCheck"
 // DeleteHealthCheckRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteHealthCheck operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1537,6 +1540,7 @@ func (c *Route53) DeleteHealthCheckRequest(input *DeleteHealthCheckInput) (req *
 
 	output = &DeleteHealthCheckOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restxml.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1561,8 +1565,7 @@ func (c *Route53) DeleteHealthCheckRequest(input *DeleteHealthCheckInput) (req *
 //
 // Returned Error Codes:
 //   * ErrCodeNoSuchHealthCheck "NoSuchHealthCheck"
-//   No health check exists with the ID that you specified in the DeleteHealthCheck
-//   request.
+//   No health check exists with the specified ID.
 //
 //   * ErrCodeHealthCheckInUse "HealthCheckInUse"
 //   This error code is not in use.
@@ -1597,7 +1600,7 @@ const opDeleteHostedZone = "DeleteHostedZone"
 // DeleteHostedZoneRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteHostedZone operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1656,8 +1659,8 @@ func (c *Route53) DeleteHostedZoneRequest(input *DeleteHostedZoneInput) (req *re
 // and NS resource record sets. If the hosted zone contains other resource record
 // sets, you must delete them before you can delete the hosted zone. If you
 // try to delete a hosted zone that contains other resource record sets, the
-// request fails, and Amazon Route 53 returns a HostedZoneNotEmpty error. For
-// information about deleting records from your hosted zone, see ChangeResourceRecordSets.
+// request fails, and Route 53 returns a HostedZoneNotEmpty error. For information
+// about deleting records from your hosted zone, see ChangeResourceRecordSets.
 //
 // To verify that the hosted zone has been deleted, do one of the following:
 //
@@ -1684,8 +1687,8 @@ func (c *Route53) DeleteHostedZoneRequest(input *DeleteHostedZoneInput) (req *re
 //   * ErrCodePriorRequestNotComplete "PriorRequestNotComplete"
 //   If Amazon Route 53 can't process a request before the next request arrives,
 //   it will reject subsequent requests for the same hosted zone and return an
-//   HTTP 400 error (Bad request). If Amazon Route 53 returns this error repeatedly
-//   for the same request, we recommend that you wait, in intervals of increasing
+//   HTTP 400 error (Bad request). If Route 53 returns this error repeatedly for
+//   the same request, we recommend that you wait, in intervals of increasing
 //   duration, before you try the request again.
 //
 //   * ErrCodeInvalidInput "InvalidInput"
@@ -1721,7 +1724,7 @@ const opDeleteQueryLoggingConfig = "DeleteQueryLoggingConfig"
 // DeleteQueryLoggingConfigRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteQueryLoggingConfig operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1755,14 +1758,15 @@ func (c *Route53) DeleteQueryLoggingConfigRequest(input *DeleteQueryLoggingConfi
 
 	output = &DeleteQueryLoggingConfigOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restxml.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
 // DeleteQueryLoggingConfig API operation for Amazon Route 53.
 //
 // Deletes a configuration for DNS query logging. If you delete a configuration,
-// Amazon Route 53 stops sending query logs to CloudWatch Logs. Amazon Route
-// 53 doesn't delete any logs that are already in CloudWatch Logs.
+// Amazon Route 53 stops sending query logs to CloudWatch Logs. Route 53 doesn't
+// delete any logs that are already in CloudWatch Logs.
 //
 // For more information about DNS query logs, see CreateQueryLoggingConfig.
 //
@@ -1811,7 +1815,7 @@ const opDeleteReusableDelegationSet = "DeleteReusableDelegationSet"
 // DeleteReusableDelegationSetRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteReusableDelegationSet operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1845,6 +1849,7 @@ func (c *Route53) DeleteReusableDelegationSetRequest(input *DeleteReusableDelega
 
 	output = &DeleteReusableDelegationSetOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restxml.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1907,7 +1912,7 @@ const opDeleteTrafficPolicy = "DeleteTrafficPolicy"
 // DeleteTrafficPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteTrafficPolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1941,6 +1946,7 @@ func (c *Route53) DeleteTrafficPolicyRequest(input *DeleteTrafficPolicyInput) (r
 
 	output = &DeleteTrafficPolicyOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restxml.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1997,7 +2003,7 @@ const opDeleteTrafficPolicyInstance = "DeleteTrafficPolicyInstance"
 // DeleteTrafficPolicyInstanceRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteTrafficPolicyInstance operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2031,6 +2037,7 @@ func (c *Route53) DeleteTrafficPolicyInstanceRequest(input *DeleteTrafficPolicyI
 
 	output = &DeleteTrafficPolicyInstanceOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restxml.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2039,8 +2046,7 @@ func (c *Route53) DeleteTrafficPolicyInstanceRequest(input *DeleteTrafficPolicyI
 // Deletes a traffic policy instance and all of the resource record sets that
 // Amazon Route 53 created when you created the instance.
 //
-// In the Amazon Route 53 console, traffic policy instances are known as policy
-// records.
+// In the Route 53 console, traffic policy instances are known as policy records.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2059,8 +2065,8 @@ func (c *Route53) DeleteTrafficPolicyInstanceRequest(input *DeleteTrafficPolicyI
 //   * ErrCodePriorRequestNotComplete "PriorRequestNotComplete"
 //   If Amazon Route 53 can't process a request before the next request arrives,
 //   it will reject subsequent requests for the same hosted zone and return an
-//   HTTP 400 error (Bad request). If Amazon Route 53 returns this error repeatedly
-//   for the same request, we recommend that you wait, in intervals of increasing
+//   HTTP 400 error (Bad request). If Route 53 returns this error repeatedly for
+//   the same request, we recommend that you wait, in intervals of increasing
 //   duration, before you try the request again.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/route53-2013-04-01/DeleteTrafficPolicyInstance
@@ -2090,7 +2096,7 @@ const opDeleteVPCAssociationAuthorization = "DeleteVPCAssociationAuthorization"
 // DeleteVPCAssociationAuthorizationRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteVPCAssociationAuthorization operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2124,6 +2130,7 @@ func (c *Route53) DeleteVPCAssociationAuthorizationRequest(input *DeleteVPCAssoc
 
 	output = &DeleteVPCAssociationAuthorizationOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restxml.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2193,7 +2200,7 @@ const opDisassociateVPCFromHostedZone = "DisassociateVPCFromHostedZone"
 // DisassociateVPCFromHostedZoneRequest generates a "aws/request.Request" representing the
 // client's request for the DisassociateVPCFromHostedZone operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2232,13 +2239,16 @@ func (c *Route53) DisassociateVPCFromHostedZoneRequest(input *DisassociateVPCFro
 
 // DisassociateVPCFromHostedZone API operation for Amazon Route 53.
 //
-// Disassociates a VPC from a Amazon Route 53 private hosted zone.
+// Disassociates a VPC from a Amazon Route 53 private hosted zone. Note the
+// following:
 //
-// You can't disassociate the last VPC from a private hosted zone.
+//    * You can't disassociate the last VPC from a private hosted zone.
 //
-// You can't disassociate a VPC from a private hosted zone when only one VPC
-// is associated with the hosted zone. You also can't convert a private hosted
-// zone into a public hosted zone.
+//    * You can't convert a private hosted zone into a public hosted zone.
+//
+//    * You can submit a DisassociateVPCFromHostedZone request using either
+//    the account that created the hosted zone or the account that created the
+//    VPC.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2293,7 +2303,7 @@ const opGetAccountLimit = "GetAccountLimit"
 // GetAccountLimitRequest generates a "aws/request.Request" representing the
 // client's request for the GetAccountLimit operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2377,7 +2387,7 @@ const opGetChange = "GetChange"
 // GetChangeRequest generates a "aws/request.Request" representing the
 // client's request for the GetChange operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2423,8 +2433,8 @@ func (c *Route53) GetChangeRequest(input *GetChangeInput) (req *request.Request,
 //    to all Amazon Route 53 DNS servers. This is the initial status of all
 //    change batch requests.
 //
-//    * INSYNC indicates that the changes have propagated to all Amazon Route
-//    53 DNS servers.
+//    * INSYNC indicates that the changes have propagated to all Route 53 DNS
+//    servers.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2467,7 +2477,7 @@ const opGetCheckerIpRanges = "GetCheckerIpRanges"
 // GetCheckerIpRangesRequest generates a "aws/request.Request" representing the
 // client's request for the GetCheckerIpRanges operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2544,7 +2554,7 @@ const opGetGeoLocation = "GetGeoLocation"
 // GetGeoLocationRequest generates a "aws/request.Request" representing the
 // client's request for the GetGeoLocation operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2589,17 +2599,17 @@ func (c *Route53) GetGeoLocationRequest(input *GetGeoLocationInput) (req *reques
 // Use the following syntax to determine whether a continent is supported for
 // geolocation:
 //
-// GET /2013-04-01/geolocation?ContinentCode=two-letter abbreviation for a continent
+// GET /2013-04-01/geolocation?continentcode=two-letter abbreviation for a continent
 //
 // Use the following syntax to determine whether a country is supported for
 // geolocation:
 //
-// GET /2013-04-01/geolocation?CountryCode=two-character country code
+// GET /2013-04-01/geolocation?countrycode=two-character country code
 //
 // Use the following syntax to determine whether a subdivision of a country
 // is supported for geolocation:
 //
-// GET /2013-04-01/geolocation?CountryCode=two-character country code&SubdivisionCode=subdivision
+// GET /2013-04-01/geolocation?countrycode=two-character country code&subdivisioncode=subdivision
 // code
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -2611,7 +2621,7 @@ func (c *Route53) GetGeoLocationRequest(input *GetGeoLocationInput) (req *reques
 //
 // Returned Error Codes:
 //   * ErrCodeNoSuchGeoLocation "NoSuchGeoLocation"
-//   Amazon Route 53 doesn't support the specified geolocation.
+//   Amazon Route 53 doesn't support the specified geographic location.
 //
 //   * ErrCodeInvalidInput "InvalidInput"
 //   The input is not valid.
@@ -2643,7 +2653,7 @@ const opGetHealthCheck = "GetHealthCheck"
 // GetHealthCheckRequest generates a "aws/request.Request" representing the
 // client's request for the GetHealthCheck operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2693,8 +2703,7 @@ func (c *Route53) GetHealthCheckRequest(input *GetHealthCheckInput) (req *reques
 //
 // Returned Error Codes:
 //   * ErrCodeNoSuchHealthCheck "NoSuchHealthCheck"
-//   No health check exists with the ID that you specified in the DeleteHealthCheck
-//   request.
+//   No health check exists with the specified ID.
 //
 //   * ErrCodeInvalidInput "InvalidInput"
 //   The input is not valid.
@@ -2730,7 +2739,7 @@ const opGetHealthCheckCount = "GetHealthCheckCount"
 // GetHealthCheckCountRequest generates a "aws/request.Request" representing the
 // client's request for the GetHealthCheckCount operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2805,7 +2814,7 @@ const opGetHealthCheckLastFailureReason = "GetHealthCheckLastFailureReason"
 // GetHealthCheckLastFailureReasonRequest generates a "aws/request.Request" representing the
 // client's request for the GetHealthCheckLastFailureReason operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2855,8 +2864,7 @@ func (c *Route53) GetHealthCheckLastFailureReasonRequest(input *GetHealthCheckLa
 //
 // Returned Error Codes:
 //   * ErrCodeNoSuchHealthCheck "NoSuchHealthCheck"
-//   No health check exists with the ID that you specified in the DeleteHealthCheck
-//   request.
+//   No health check exists with the specified ID.
 //
 //   * ErrCodeInvalidInput "InvalidInput"
 //   The input is not valid.
@@ -2888,7 +2896,7 @@ const opGetHealthCheckStatus = "GetHealthCheckStatus"
 // GetHealthCheckStatusRequest generates a "aws/request.Request" representing the
 // client's request for the GetHealthCheckStatus operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2938,8 +2946,7 @@ func (c *Route53) GetHealthCheckStatusRequest(input *GetHealthCheckStatusInput) 
 //
 // Returned Error Codes:
 //   * ErrCodeNoSuchHealthCheck "NoSuchHealthCheck"
-//   No health check exists with the ID that you specified in the DeleteHealthCheck
-//   request.
+//   No health check exists with the specified ID.
 //
 //   * ErrCodeInvalidInput "InvalidInput"
 //   The input is not valid.
@@ -2971,7 +2978,7 @@ const opGetHostedZone = "GetHostedZone"
 // GetHostedZoneRequest generates a "aws/request.Request" representing the
 // client's request for the GetHostedZone operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3054,7 +3061,7 @@ const opGetHostedZoneCount = "GetHostedZoneCount"
 // GetHostedZoneCountRequest generates a "aws/request.Request" representing the
 // client's request for the GetHostedZoneCount operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3134,7 +3141,7 @@ const opGetHostedZoneLimit = "GetHostedZoneLimit"
 // GetHostedZoneLimitRequest generates a "aws/request.Request" representing the
 // client's request for the GetHostedZoneLimit operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3224,7 +3231,7 @@ const opGetQueryLoggingConfig = "GetQueryLoggingConfig"
 // GetQueryLoggingConfigRequest generates a "aws/request.Request" representing the
 // client's request for the GetQueryLoggingConfig operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3309,7 +3316,7 @@ const opGetReusableDelegationSet = "GetReusableDelegationSet"
 // GetReusableDelegationSetRequest generates a "aws/request.Request" representing the
 // client's request for the GetReusableDelegationSet operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3395,7 +3402,7 @@ const opGetReusableDelegationSetLimit = "GetReusableDelegationSetLimit"
 // GetReusableDelegationSetLimitRequest generates a "aws/request.Request" representing the
 // client's request for the GetReusableDelegationSetLimit operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3482,7 +3489,7 @@ const opGetTrafficPolicy = "GetTrafficPolicy"
 // GetTrafficPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the GetTrafficPolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3564,7 +3571,7 @@ const opGetTrafficPolicyInstance = "GetTrafficPolicyInstance"
 // GetTrafficPolicyInstanceRequest generates a "aws/request.Request" representing the
 // client's request for the GetTrafficPolicyInstance operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3610,8 +3617,7 @@ func (c *Route53) GetTrafficPolicyInstanceRequest(input *GetTrafficPolicyInstanc
 // record sets that are specified in the traffic policy definition. For more
 // information, see the State response element.
 //
-// In the Amazon Route 53 console, traffic policy instances are known as policy
-// records.
+// In the Route 53 console, traffic policy instances are known as policy records.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3654,7 +3660,7 @@ const opGetTrafficPolicyInstanceCount = "GetTrafficPolicyInstanceCount"
 // GetTrafficPolicyInstanceCountRequest generates a "aws/request.Request" representing the
 // client's request for the GetTrafficPolicyInstanceCount operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3729,7 +3735,7 @@ const opListGeoLocations = "ListGeoLocations"
 // ListGeoLocationsRequest generates a "aws/request.Request" representing the
 // client's request for the ListGeoLocations operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3768,7 +3774,7 @@ func (c *Route53) ListGeoLocationsRequest(input *ListGeoLocationsInput) (req *re
 
 // ListGeoLocations API operation for Amazon Route 53.
 //
-// Retrieves a list of supported geo locations.
+// Retrieves a list of supported geographic locations.
 //
 // Countries are listed first, and continents are listed last. If Amazon Route
 // 53 supports subdivisions for a country (for example, states or provinces),
@@ -3813,7 +3819,7 @@ const opListHealthChecks = "ListHealthChecks"
 // ListHealthChecksRequest generates a "aws/request.Request" representing the
 // client's request for the ListHealthChecks operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3953,7 +3959,7 @@ const opListHostedZones = "ListHostedZones"
 // ListHostedZonesRequest generates a "aws/request.Request" representing the
 // client's request for the ListHostedZones operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4100,7 +4106,7 @@ const opListHostedZonesByName = "ListHostedZonesByName"
 // ListHostedZonesByNameRequest generates a "aws/request.Request" representing the
 // client's request for the ListHostedZonesByName operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4163,10 +4169,10 @@ func (c *Route53) ListHostedZonesByNameRequest(input *ListHostedZonesByNameInput
 // domain names, see DNS Domain Name Format (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/DomainNameFormat.html)
 // in the Amazon Route 53 Developer Guide.
 //
-// Amazon Route 53 returns up to 100 items in each response. If you have a lot
-// of hosted zones, use the MaxItems parameter to list them in groups of up
-// to 100. The response includes values that help navigate from one group of
-// MaxItems hosted zones to the next:
+// Route 53 returns up to 100 items in each response. If you have a lot of hosted
+// zones, use the MaxItems parameter to list them in groups of up to 100. The
+// response includes values that help navigate from one group of MaxItems hosted
+// zones to the next:
 //
 //    * The DNSName and HostedZoneId elements in the response contain the values,
 //    if any, specified for the dnsname and hostedzoneid parameters in the request
@@ -4231,7 +4237,7 @@ const opListQueryLoggingConfigs = "ListQueryLoggingConfigs"
 // ListQueryLoggingConfigsRequest generates a "aws/request.Request" representing the
 // client's request for the ListQueryLoggingConfigs operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4324,7 +4330,7 @@ const opListResourceRecordSets = "ListResourceRecordSets"
 // ListResourceRecordSetsRequest generates a "aws/request.Request" representing the
 // client's request for the ListResourceRecordSets operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4373,18 +4379,25 @@ func (c *Route53) ListResourceRecordSetsRequest(input *ListResourceRecordSetsInp
 //
 // ListResourceRecordSets returns up to 100 resource record sets at a time in
 // ASCII order, beginning at a position specified by the name and type elements.
-// The action sorts results first by DNS name with the labels reversed, for
-// example:
+//
+// Sort order
+//
+// ListResourceRecordSets sorts results first by DNS name with the labels reversed,
+// for example:
 //
 // com.example.www.
 //
-// Note the trailing dot, which can change the sort order in some circumstances.
+// Note the trailing dot, which can change the sort order when the record name
+// contains characters that appear before . (decimal 46) in the ASCII table.
+// These characters include the following: ! " # $ % & ' ( ) * + , -
 //
-// When multiple records have the same DNS name, the action sorts results by
-// the record type.
+// When multiple records have the same DNS name, ListResourceRecordSets sorts
+// results by the record type.
 //
-// You can use the name and type elements to adjust the beginning position of
-// the list of resource record sets returned:
+// Specifying where to start listing records
+//
+// You can use the name and type elements to specify the resource record set
+// that the list begins with:
 //
 // If you do not specify Name or TypeThe results begin with the first resource
 // record set that the hosted zone contains.
@@ -4399,15 +4412,27 @@ func (c *Route53) ListResourceRecordSetsRequest(input *ListResourceRecordSetsInp
 // record set in the list whose name is greater than or equal to Name, and whose
 // type is greater than or equal to Type.
 //
+// Resource record sets that are PENDING
+//
 // This action returns the most current version of the records. This includes
-// records that are PENDING, and that are not yet available on all Amazon Route
-// 53 DNS servers.
+// records that are PENDING, and that are not yet available on all Route 53
+// DNS servers.
+//
+// Changing resource record sets
 //
 // To ensure that you get an accurate listing of the resource record sets for
 // a hosted zone at a point in time, do not submit a ChangeResourceRecordSets
 // request while you're paging through the results of a ListResourceRecordSets
 // request. If you do, some pages may display results without the latest changes
 // while other pages display results with the latest changes.
+//
+// Displaying the next page of results
+//
+// If a ListResourceRecordSets command returns more than one page of results,
+// the value of IsTruncated is true. To display the next page of results, get
+// the values of NextRecordName, NextRecordType, and NextRecordIdentifier (if
+// any) from the response. Then submit another ListResourceRecordSets request,
+// and specify those values for StartRecordName, StartRecordType, and StartRecordIdentifier.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -4500,7 +4525,7 @@ const opListReusableDelegationSets = "ListReusableDelegationSets"
 // ListReusableDelegationSetsRequest generates a "aws/request.Request" representing the
 // client's request for the ListReusableDelegationSets operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4580,7 +4605,7 @@ const opListTagsForResource = "ListTagsForResource"
 // ListTagsForResourceRequest generates a "aws/request.Request" representing the
 // client's request for the ListTagsForResource operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4637,8 +4662,7 @@ func (c *Route53) ListTagsForResourceRequest(input *ListTagsForResourceInput) (r
 //   The input is not valid.
 //
 //   * ErrCodeNoSuchHealthCheck "NoSuchHealthCheck"
-//   No health check exists with the ID that you specified in the DeleteHealthCheck
-//   request.
+//   No health check exists with the specified ID.
 //
 //   * ErrCodeNoSuchHostedZone "NoSuchHostedZone"
 //   No hosted zone exists with the ID that you specified.
@@ -4646,8 +4670,8 @@ func (c *Route53) ListTagsForResourceRequest(input *ListTagsForResourceInput) (r
 //   * ErrCodePriorRequestNotComplete "PriorRequestNotComplete"
 //   If Amazon Route 53 can't process a request before the next request arrives,
 //   it will reject subsequent requests for the same hosted zone and return an
-//   HTTP 400 error (Bad request). If Amazon Route 53 returns this error repeatedly
-//   for the same request, we recommend that you wait, in intervals of increasing
+//   HTTP 400 error (Bad request). If Route 53 returns this error repeatedly for
+//   the same request, we recommend that you wait, in intervals of increasing
 //   duration, before you try the request again.
 //
 //   * ErrCodeThrottlingException "ThrottlingException"
@@ -4680,7 +4704,7 @@ const opListTagsForResources = "ListTagsForResources"
 // ListTagsForResourcesRequest generates a "aws/request.Request" representing the
 // client's request for the ListTagsForResources operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4737,8 +4761,7 @@ func (c *Route53) ListTagsForResourcesRequest(input *ListTagsForResourcesInput) 
 //   The input is not valid.
 //
 //   * ErrCodeNoSuchHealthCheck "NoSuchHealthCheck"
-//   No health check exists with the ID that you specified in the DeleteHealthCheck
-//   request.
+//   No health check exists with the specified ID.
 //
 //   * ErrCodeNoSuchHostedZone "NoSuchHostedZone"
 //   No hosted zone exists with the ID that you specified.
@@ -4746,8 +4769,8 @@ func (c *Route53) ListTagsForResourcesRequest(input *ListTagsForResourcesInput) 
 //   * ErrCodePriorRequestNotComplete "PriorRequestNotComplete"
 //   If Amazon Route 53 can't process a request before the next request arrives,
 //   it will reject subsequent requests for the same hosted zone and return an
-//   HTTP 400 error (Bad request). If Amazon Route 53 returns this error repeatedly
-//   for the same request, we recommend that you wait, in intervals of increasing
+//   HTTP 400 error (Bad request). If Route 53 returns this error repeatedly for
+//   the same request, we recommend that you wait, in intervals of increasing
 //   duration, before you try the request again.
 //
 //   * ErrCodeThrottlingException "ThrottlingException"
@@ -4780,7 +4803,7 @@ const opListTrafficPolicies = "ListTrafficPolicies"
 // ListTrafficPoliciesRequest generates a "aws/request.Request" representing the
 // client's request for the ListTrafficPolicies operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4821,7 +4844,7 @@ func (c *Route53) ListTrafficPoliciesRequest(input *ListTrafficPoliciesInput) (r
 //
 // Gets information about the latest version for every traffic policy that is
 // associated with the current AWS account. Policies are listed in the order
-// in which they were created.
+// that they were created in.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -4861,7 +4884,7 @@ const opListTrafficPolicyInstances = "ListTrafficPolicyInstances"
 // ListTrafficPolicyInstancesRequest generates a "aws/request.Request" representing the
 // client's request for the ListTrafficPolicyInstances operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4908,9 +4931,9 @@ func (c *Route53) ListTrafficPolicyInstancesRequest(input *ListTrafficPolicyInst
 // in the traffic policy definition. For more information, see the State response
 // element.
 //
-// Amazon Route 53 returns a maximum of 100 items in each response. If you have
-// a lot of traffic policy instances, you can use the MaxItems parameter to
-// list them in groups of up to 100.
+// Route 53 returns a maximum of 100 items in each response. If you have a lot
+// of traffic policy instances, you can use the MaxItems parameter to list them
+// in groups of up to 100.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -4953,7 +4976,7 @@ const opListTrafficPolicyInstancesByHostedZone = "ListTrafficPolicyInstancesByHo
 // ListTrafficPolicyInstancesByHostedZoneRequest generates a "aws/request.Request" representing the
 // client's request for the ListTrafficPolicyInstancesByHostedZone operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5000,9 +5023,9 @@ func (c *Route53) ListTrafficPolicyInstancesByHostedZoneRequest(input *ListTraff
 // record sets that are specified in the traffic policy definition. For more
 // information, see the State response element.
 //
-// Amazon Route 53 returns a maximum of 100 items in each response. If you have
-// a lot of traffic policy instances, you can use the MaxItems parameter to
-// list them in groups of up to 100.
+// Route 53 returns a maximum of 100 items in each response. If you have a lot
+// of traffic policy instances, you can use the MaxItems parameter to list them
+// in groups of up to 100.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -5048,7 +5071,7 @@ const opListTrafficPolicyInstancesByPolicy = "ListTrafficPolicyInstancesByPolicy
 // ListTrafficPolicyInstancesByPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the ListTrafficPolicyInstancesByPolicy operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5095,9 +5118,9 @@ func (c *Route53) ListTrafficPolicyInstancesByPolicyRequest(input *ListTrafficPo
 // record sets that are specified in the traffic policy definition. For more
 // information, see the State response element.
 //
-// Amazon Route 53 returns a maximum of 100 items in each response. If you have
-// a lot of traffic policy instances, you can use the MaxItems parameter to
-// list them in groups of up to 100.
+// Route 53 returns a maximum of 100 items in each response. If you have a lot
+// of traffic policy instances, you can use the MaxItems parameter to list them
+// in groups of up to 100.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -5143,7 +5166,7 @@ const opListTrafficPolicyVersions = "ListTrafficPolicyVersions"
 // ListTrafficPolicyVersionsRequest generates a "aws/request.Request" representing the
 // client's request for the ListTrafficPolicyVersions operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5227,7 +5250,7 @@ const opListVPCAssociationAuthorizations = "ListVPCAssociationAuthorizations"
 // ListVPCAssociationAuthorizationsRequest generates a "aws/request.Request" representing the
 // client's request for the ListVPCAssociationAuthorizations operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5318,7 +5341,7 @@ const opTestDNSAnswer = "TestDNSAnswer"
 // TestDNSAnswerRequest generates a "aws/request.Request" representing the
 // client's request for the TestDNSAnswer operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5402,7 +5425,7 @@ const opUpdateHealthCheck = "UpdateHealthCheck"
 // UpdateHealthCheckRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateHealthCheck operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5456,8 +5479,7 @@ func (c *Route53) UpdateHealthCheckRequest(input *UpdateHealthCheckInput) (req *
 //
 // Returned Error Codes:
 //   * ErrCodeNoSuchHealthCheck "NoSuchHealthCheck"
-//   No health check exists with the ID that you specified in the DeleteHealthCheck
-//   request.
+//   No health check exists with the specified ID.
 //
 //   * ErrCodeInvalidInput "InvalidInput"
 //   The input is not valid.
@@ -5493,7 +5515,7 @@ const opUpdateHostedZoneComment = "UpdateHostedZoneComment"
 // UpdateHostedZoneCommentRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateHostedZoneComment operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5575,7 +5597,7 @@ const opUpdateTrafficPolicyComment = "UpdateTrafficPolicyComment"
 // UpdateTrafficPolicyCommentRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateTrafficPolicyComment operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5661,7 +5683,7 @@ const opUpdateTrafficPolicyInstance = "UpdateTrafficPolicyInstance"
 // UpdateTrafficPolicyInstanceRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateTrafficPolicyInstance operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -5705,19 +5727,19 @@ func (c *Route53) UpdateTrafficPolicyInstanceRequest(input *UpdateTrafficPolicyI
 //
 // When you update a traffic policy instance, Amazon Route 53 continues to respond
 // to DNS queries for the root resource record set name (such as example.com)
-// while it replaces one group of resource record sets with another. Amazon
-// Route 53 performs the following operations:
+// while it replaces one group of resource record sets with another. Route 53
+// performs the following operations:
 //
-// Amazon Route 53 creates a new group of resource record sets based on the
-// specified traffic policy. This is true regardless of how significant the
-// differences are between the existing resource record sets and the new resource
-// record sets.
+// Route 53 creates a new group of resource record sets based on the specified
+// traffic policy. This is true regardless of how significant the differences
+// are between the existing resource record sets and the new resource record
+// sets.
 //
-// When all of the new resource record sets have been created, Amazon Route
-// 53 starts to respond to DNS queries for the root resource record set name
-// (such as example.com) by using the new resource record sets.
+// When all of the new resource record sets have been created, Route 53 starts
+// to respond to DNS queries for the root resource record set name (such as
+// example.com) by using the new resource record sets.
 //
-// Amazon Route 53 deletes the old group of resource record sets that are associated
+// Route 53 deletes the old group of resource record sets that are associated
 // with the root resource record set name.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -5740,8 +5762,8 @@ func (c *Route53) UpdateTrafficPolicyInstanceRequest(input *UpdateTrafficPolicyI
 //   * ErrCodePriorRequestNotComplete "PriorRequestNotComplete"
 //   If Amazon Route 53 can't process a request before the next request arrives,
 //   it will reject subsequent requests for the same hosted zone and return an
-//   HTTP 400 error (Bad request). If Amazon Route 53 returns this error repeatedly
-//   for the same request, we recommend that you wait, in intervals of increasing
+//   HTTP 400 error (Bad request). If Route 53 returns this error repeatedly for
+//   the same request, we recommend that you wait, in intervals of increasing
 //   duration, before you try the request again.
 //
 //   * ErrCodeConflictingTypes "ConflictingTypes"
@@ -5827,20 +5849,29 @@ func (s *AccountLimit) SetValue(v int64) *AccountLimit {
 }
 
 // A complex type that identifies the CloudWatch alarm that you want Amazon
-// Route 53 health checkers to use to determine whether this health check is
-// healthy.
+// Route 53 health checkers to use to determine whether the specified health
+// check is healthy.
 type AlarmIdentifier struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the CloudWatch alarm that you want Amazon Route 53 health checkers
 	// to use to determine whether this health check is healthy.
 	//
+	// Route 53 supports CloudWatch alarms with the following features:
+	//
+	// Standard-resolution metrics. High-resolution metrics aren't supported. For
+	// more information, see High-Resolution Metrics (http://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide/publishingMetrics.html#high-resolution-metrics)
+	// in the Amazon CloudWatch User Guide.
+	//
+	// Statistics: Average, Minimum, Maximum, Sum, and SampleCount. Extended statistics
+	// aren't supported.
+	//
 	// Name is a required field
 	Name *string `min:"1" type:"string" required:"true"`
 
-	// A complex type that identifies the CloudWatch alarm that you want Amazon
-	// Route 53 health checkers to use to determine whether this health check is
-	// healthy.
+	// For the CloudWatch alarm that you want Route 53 health checkers to use to
+	// determine whether this health check is healthy, the region that the alarm
+	// was created in.
 	//
 	// For the current list of CloudWatch regions, see Amazon CloudWatch (http://docs.aws.amazon.com/general/latest/gr/rande.html#cw_region)
 	// in the AWS Regions and Endpoints chapter of the Amazon Web Services General
@@ -5925,9 +5956,29 @@ type AliasTarget struct {
 	// see Using Alternate Domain Names (CNAMEs) (http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/CNAMEs.html)
 	// in the Amazon CloudFront Developer Guide.
 	//
-	// Elastic Beanstalk environmentSpecify the CNAME attribute for the environment.
-	// (The environment must have a regionalized domain name.) You can use the following
-	// methods to get the value of the CNAME attribute:
+	// For failover alias records, you can't specify a CloudFront distribution for
+	// both the primary and secondary records. A distribution must include an alternate
+	// domain name that matches the name of the record. However, the primary and
+	// secondary records have the same name, and you can't include the same alternate
+	// domain name in more than one distribution.
+	//
+	// Elastic Beanstalk environmentIf the domain name for your Elastic Beanstalk
+	// environment includes the region that you deployed the environment in, you
+	// can create an alias record that routes traffic to the environment. For example,
+	// the domain name my-environment.us-west-2.elasticbeanstalk.com is a regionalized
+	// domain name.
+	//
+	// For environments that were created before early 2016, the domain name doesn't
+	// include the region. To route traffic to these environments, you must create
+	// a CNAME record instead of an alias record. Note that you can't create a CNAME
+	// record for the root domain name. For example, if your domain name is example.com,
+	// you can create a record that routes traffic for acme.example.com to your
+	// Elastic Beanstalk environment, but you can't create a record that routes
+	// traffic for example.com to your Elastic Beanstalk environment.
+	//
+	// For Elastic Beanstalk environments that have regionalized subdomains, specify
+	// the CNAME attribute for the environment. You can use the following methods
+	// to get the value of the CNAME attribute:
 	//
 	// AWS Management Console: For information about how to get the value by using
 	// the console, see Using Custom Domains with AWS Elastic Beanstalk (http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/customdomains.html)
@@ -5947,8 +5998,11 @@ type AliasTarget struct {
 	//
 	// AWS Management Console: Go to the EC2 page, choose Load Balancers in the
 	// navigation pane, choose the load balancer, choose the Description tab, and
-	// get the value of the DNS name field. (If you're routing traffic to a Classic
-	// Load Balancer, get the value that begins with dualstack.)
+	// get the value of the DNS name field.
+	//
+	// If you're routing traffic to a Classic Load Balancer, get the value that
+	// begins with dualstack. If you're routing traffic to another type of load
+	// balancer, get the value that applies to the record type, A or AAAA.
 	//
 	// Elastic Load Balancing API: Use DescribeLoadBalancers to get the value of
 	// DNSName. For more information, see the applicable guide:
@@ -5965,16 +6019,22 @@ type AliasTarget struct {
 	// Application and Network Load Balancers: describe-load-balancers (http://docs.aws.amazon.com/cli/latest/reference/elbv2/describe-load-balancers.html)
 	//
 	// Amazon S3 bucket that is configured as a static websiteSpecify the domain
-	// name of the Amazon S3 website endpoint in which you created the bucket, for
-	// example, s3-website-us-east-2.amazonaws.com. For more information about valid
+	// name of the Amazon S3 website endpoint that you created the bucket in, for
+	// example, s3-website.us-east-2.amazonaws.com. For more information about valid
 	// values, see the table Amazon Simple Storage Service (S3) Website Endpoints
 	// (http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region) in the
 	// Amazon Web Services General Reference. For more information about using S3
 	// buckets for websites, see Getting Started with Amazon Route 53 (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/getting-started.html)
 	// in the Amazon Route 53 Developer Guide.
 	//
-	// Another Amazon Route 53 resource record setSpecify the value of the Name
-	// element for a resource record set in the current hosted zone.
+	// Another Route 53 resource record setSpecify the value of the Name element
+	// for a resource record set in the current hosted zone.
+	//
+	// If you're creating an alias record that has the same name as the hosted zone
+	// (known as the zone apex), you can't specify the domain name for a record
+	// for which the value of Type is CNAME. This is because the alias record must
+	// have the same type as the record that you're routing traffic to, and creating
+	// a CNAME record for the zone apex isn't supported even for an alias record.
 	//
 	// DNSName is a required field
 	DNSName *string `type:"string" required:"true"`
@@ -5982,48 +6042,61 @@ type AliasTarget struct {
 	// Applies only to alias, failover alias, geolocation alias, latency alias,
 	// and weighted alias resource record sets: When EvaluateTargetHealth is true,
 	// an alias resource record set inherits the health of the referenced AWS resource,
-	// such as an ELB load balancer, or the referenced resource record set.
+	// such as an ELB load balancer or another resource record set in the hosted
+	// zone.
 	//
 	// Note the following:
 	//
-	//    * You can't set EvaluateTargetHealth to true when the alias target is
-	//    a CloudFront distribution.
+	// CloudFront distributionsYou can't set EvaluateTargetHealth to true when the
+	// alias target is a CloudFront distribution.
 	//
-	//    * If the AWS resource that you specify in AliasTarget is a resource record
-	//    set or a group of resource record sets (for example, a group of weighted
-	//    resource record sets), but it is not another alias resource record set,
-	//    we recommend that you associate a health check with all of the resource
-	//    record sets in the alias target. For more information, see What Happens
-	//    When You Omit Health Checks? (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/dns-failover-complex-configs.html#dns-failover-complex-configs-hc-omitting)
-	//    in the Amazon Route 53 Developer Guide.
+	// Elastic Beanstalk environments that have regionalized subdomainsIf you specify
+	// an Elastic Beanstalk environment in DNSName and the environment contains
+	// an ELB load balancer, Elastic Load Balancing routes queries only to the healthy
+	// Amazon EC2 instances that are registered with the load balancer. (An environment
+	// automatically contains an ELB load balancer if it includes more than one
+	// Amazon EC2 instance.) If you set EvaluateTargetHealth to true and either
+	// no Amazon EC2 instances are healthy or the load balancer itself is unhealthy,
+	// Route 53 routes queries to other available resources that are healthy, if
+	// any.
 	//
-	//    * If you specify an Elastic Beanstalk environment in HostedZoneId and
-	//    DNSName, and if the environment contains an ELB load balancer, Elastic
-	//    Load Balancing routes queries only to the healthy Amazon EC2 instances
-	//    that are registered with the load balancer. (An environment automatically
-	//    contains an ELB load balancer if it includes more than one EC2 instance.)
-	//    If you set EvaluateTargetHealth to true and either no EC2 instances are
-	//    healthy or the load balancer itself is unhealthy, Amazon Route 53 routes
-	//    queries to other available resources that are healthy, if any.
+	// If the environment contains a single Amazon EC2 instance, there are no special
+	// requirements.
 	//
-	// If the environment contains a single EC2 instance, there are no special requirements.
+	// ELB load balancersHealth checking behavior depends on the type of load balancer:
 	//
-	//    * If you specify an ELB load balancer in AliasTarget, ELB routes queries
-	//    only to the healthy EC2 instances that are registered with the load balancer.
-	//    If no EC2 instances are healthy or if the load balancer itself is unhealthy,
-	//    and if EvaluateTargetHealth is true for the corresponding alias resource
-	//    record set, Amazon Route 53 routes queries to other resources. When you
-	//    create a load balancer, you configure settings for ELB health checks;
-	//    they're not Amazon Route 53 health checks, but they perform a similar
-	//    function. Do not create Amazon Route 53 health checks for the EC2 instances
-	//    that you register with an ELB load balancer.
+	// Classic Load Balancers: If you specify an ELB Classic Load Balancer in DNSName,
+	// Elastic Load Balancing routes queries only to the healthy Amazon EC2 instances
+	// that are registered with the load balancer. If you set EvaluateTargetHealth
+	// to true and either no EC2 instances are healthy or the load balancer itself
+	// is unhealthy, Route 53 routes queries to other resources.
 	//
-	// For more information, see How Health Checks Work in More Complex Amazon Route
-	//    53 Configurations (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/dns-failover-complex-configs.html)
-	//    in the Amazon Route 53 Developer Guide.
+	// Application and Network Load Balancers: If you specify an ELB Application
+	// or Network Load Balancer and you set EvaluateTargetHealth to true, Route
+	// 53 routes queries to the load balancer based on the health of the target
+	// groups that are associated with the load balancer:
 	//
-	//    * We recommend that you set EvaluateTargetHealth to true only when you
-	//    have enough idle capacity to handle the failure of one or more endpoints.
+	// For an Application or Network Load Balancer to be considered healthy, every
+	// target group that contains targets must contain at least one healthy target.
+	// If any target group contains only unhealthy targets, the load balancer is
+	// considered unhealthy, and Route 53 routes queries to other resources.
+	//
+	// A target group that has no registered targets is considered healthy.
+	//
+	// When you create a load balancer, you configure settings for Elastic Load
+	// Balancing health checks; they're not Route 53 health checks, but they perform
+	// a similar function. Do not create Route 53 health checks for the EC2 instances
+	// that you register with an ELB load balancer.
+	//
+	// S3 bucketsThere are no special requirements for setting EvaluateTargetHealth
+	// to true when the alias target is an S3 bucket.
+	//
+	// Other records in the same hosted zoneIf the AWS resource that you specify
+	// in DNSName is a record or a group of records (for example, a group of weighted
+	// records) but is not another alias record, we recommend that you associate
+	// a health check with all of the records in the alias target. For more information,
+	// see What Happens When You Omit Health Checks? (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/dns-failover-complex-configs.html#dns-failover-complex-configs-hc-omitting)
+	// in the Amazon Route 53 Developer Guide.
 	//
 	// For more information and examples, see Amazon Route 53 Health Checks and
 	// DNS Failover (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/dns-failover.html)
@@ -6039,8 +6112,8 @@ type AliasTarget struct {
 	//
 	// Alias resource record sets for CloudFront can't be created in a private zone.
 	//
-	// Elastic Beanstalk environmentSpecify the hosted zone ID for the region in
-	// which you created the environment. The environment must have a regionalized
+	// Elastic Beanstalk environmentSpecify the hosted zone ID for the region that
+	// you created the environment in. The environment must have a regionalized
 	// subdomain. For a list of regions and the corresponding hosted zone IDs, see
 	// AWS Elastic Beanstalk (http://docs.aws.amazon.com/general/latest/gr/rande.html#elasticbeanstalk_region)
 	// in the "AWS Regions and Endpoints" chapter of the Amazon Web Services General
@@ -6083,8 +6156,8 @@ type AliasTarget struct {
 	// table in the "AWS Regions and Endpoints" chapter of the Amazon Web Services
 	// General Reference.
 	//
-	// Another Amazon Route 53 resource record set in your hosted zoneSpecify the
-	// hosted zone ID of your hosted zone. (An alias resource record set can't reference
+	// Another Route 53 resource record set in your hosted zoneSpecify the hosted
+	// zone ID of your hosted zone. (An alias resource record set can't reference
 	// a resource record set in a different hosted zone.)
 	//
 	// HostedZoneId is a required field
@@ -6178,6 +6251,9 @@ func (s *AssociateVPCWithHostedZoneInput) Validate() error {
 	if s.HostedZoneId == nil {
 		invalidParams.Add(request.NewErrParamRequired("HostedZoneId"))
 	}
+	if s.HostedZoneId != nil && len(*s.HostedZoneId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("HostedZoneId", 1))
+	}
 	if s.VPC == nil {
 		invalidParams.Add(request.NewErrParamRequired("VPC"))
 	}
@@ -6251,13 +6327,13 @@ type Change struct {
 	// To delete the resource record set that is associated with a traffic policy
 	//    instance, use DeleteTrafficPolicyInstance. Amazon Route 53 will delete
 	//    the resource record set automatically. If you delete the resource record
-	//    set by using ChangeResourceRecordSets, Amazon Route 53 doesn't automatically
+	//    set by using ChangeResourceRecordSets, Route 53 doesn't automatically
 	//    delete the traffic policy instance, and you'll continue to be charged
 	//    for it even though it's no longer in use.
 	//
-	//    * UPSERT: If a resource record set doesn't already exist, Amazon Route
-	//    53 creates it. If a resource record set does exist, Amazon Route 53 updates
-	//    it with the values in the request.
+	//    * UPSERT: If a resource record set doesn't already exist, Route 53 creates
+	//    it. If a resource record set does exist, Route 53 updates it with the
+	//    values in the request.
 	//
 	// Action is a required field
 	Action *string `type:"string" required:"true" enum:"ChangeAction"`
@@ -6473,6 +6549,9 @@ func (s *ChangeResourceRecordSetsInput) Validate() error {
 	if s.HostedZoneId == nil {
 		invalidParams.Add(request.NewErrParamRequired("HostedZoneId"))
 	}
+	if s.HostedZoneId != nil && len(*s.HostedZoneId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("HostedZoneId", 1))
+	}
 	if s.ChangeBatch != nil {
 		if err := s.ChangeBatch.Validate(); err != nil {
 			invalidParams.AddNested("ChangeBatch", err.(request.ErrInvalidParams))
@@ -6580,8 +6659,14 @@ func (s *ChangeTagsForResourceInput) Validate() error {
 	if s.ResourceId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
 	}
+	if s.ResourceId != nil && len(*s.ResourceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceId", 1))
+	}
 	if s.ResourceType == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResourceType"))
+	}
+	if s.ResourceType != nil && len(*s.ResourceType) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceType", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -6752,24 +6837,24 @@ type CreateHealthCheckInput struct {
 	//    * If you send a CreateHealthCheck request with the same CallerReference
 	//    and settings as a previous request, and if the health check doesn't exist,
 	//    Amazon Route 53 creates the health check. If the health check does exist,
-	//    Amazon Route 53 returns the settings for the existing health check.
+	//    Route 53 returns the settings for the existing health check.
 	//
 	//    * If you send a CreateHealthCheck request with the same CallerReference
-	//    as a deleted health check, regardless of the settings, Amazon Route 53
-	//    returns a HealthCheckAlreadyExists error.
+	//    as a deleted health check, regardless of the settings, Route 53 returns
+	//    a HealthCheckAlreadyExists error.
 	//
 	//    * If you send a CreateHealthCheck request with the same CallerReference
-	//    as an existing health check but with different settings, Amazon Route
-	//    53 returns a HealthCheckAlreadyExists error.
+	//    as an existing health check but with different settings, Route 53 returns
+	//    a HealthCheckAlreadyExists error.
 	//
 	//    * If you send a CreateHealthCheck request with a unique CallerReference
-	//    but settings identical to an existing health check, Amazon Route 53 creates
-	//    the health check.
+	//    but settings identical to an existing health check, Route 53 creates the
+	//    health check.
 	//
 	// CallerReference is a required field
 	CallerReference *string `min:"1" type:"string" required:"true"`
 
-	// A complex type that contains the response to a CreateHealthCheck request.
+	// A complex type that contains settings for a new health check.
 	//
 	// HealthCheckConfig is a required field
 	HealthCheckConfig *HealthCheckConfig `type:"structure" required:"true"`
@@ -6858,8 +6943,8 @@ func (s *CreateHealthCheckOutput) SetLocation(v string) *CreateHealthCheckOutput
 	return s
 }
 
-// A complex type that contains information about the request to create a hosted
-// zone.
+// A complex type that contains information about the request to create a public
+// or private hosted zone.
 type CreateHostedZoneInput struct {
 	_ struct{} `locationName:"CreateHostedZoneRequest" type:"structure" xmlURI:"https://route53.amazonaws.com/doc/2013-04-01/"`
 
@@ -6888,16 +6973,15 @@ type CreateHostedZoneInput struct {
 	// and the other elements.
 	HostedZoneConfig *HostedZoneConfig `type:"structure"`
 
-	// The name of the domain. For resource record types that include a domain name,
-	// specify a fully qualified domain name, for example, www.example.com. The
-	// trailing dot is optional; Amazon Route 53 assumes that the domain name is
-	// fully qualified. This means that Amazon Route 53 treats www.example.com (without
-	// a trailing dot) and www.example.com. (with a trailing dot) as identical.
+	// The name of the domain. Specify a fully qualified domain name, for example,
+	// www.example.com. The trailing dot is optional; Amazon Route 53 assumes that
+	// the domain name is fully qualified. This means that Route 53 treats www.example.com
+	// (without a trailing dot) and www.example.com. (with a trailing dot) as identical.
 	//
 	// If you're creating a public hosted zone, this is the name you have registered
 	// with your DNS registrar. If your domain name is registered with a registrar
-	// other than Amazon Route 53, change the name servers for your domain to the
-	// set of NameServers that CreateHostedZone returns in DelegationSet.
+	// other than Route 53, change the name servers for your domain to the set of
+	// NameServers that CreateHostedZone returns in DelegationSet.
 	//
 	// Name is a required field
 	Name *string `type:"string" required:"true"`
@@ -7303,15 +7387,15 @@ func (s *CreateTrafficPolicyInput) SetName(v string) *CreateTrafficPolicyInput {
 type CreateTrafficPolicyInstanceInput struct {
 	_ struct{} `locationName:"CreateTrafficPolicyInstanceRequest" type:"structure" xmlURI:"https://route53.amazonaws.com/doc/2013-04-01/"`
 
-	// The ID of the hosted zone in which you want Amazon Route 53 to create resource
-	// record sets by using the configuration in a traffic policy.
+	// The ID of the hosted zone that you want Amazon Route 53 to create resource
+	// record sets in by using the configuration in a traffic policy.
 	//
 	// HostedZoneId is a required field
 	HostedZoneId *string `type:"string" required:"true"`
 
 	// The domain name (such as example.com) or subdomain name (such as www.example.com)
 	// for which Amazon Route 53 responds to DNS queries by using the resource record
-	// sets that Amazon Route 53 creates for this traffic policy instance.
+	// sets that Route 53 creates for this traffic policy instance.
 	//
 	// Name is a required field
 	Name *string `type:"string" required:"true"`
@@ -7625,6 +7709,9 @@ func (s *CreateVPCAssociationAuthorizationInput) Validate() error {
 	if s.HostedZoneId == nil {
 		invalidParams.Add(request.NewErrParamRequired("HostedZoneId"))
 	}
+	if s.HostedZoneId != nil && len(*s.HostedZoneId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("HostedZoneId", 1))
+	}
 	if s.VPC == nil {
 		invalidParams.Add(request.NewErrParamRequired("VPC"))
 	}
@@ -7763,6 +7850,9 @@ func (s *DeleteHealthCheckInput) Validate() error {
 	if s.HealthCheckId == nil {
 		invalidParams.Add(request.NewErrParamRequired("HealthCheckId"))
 	}
+	if s.HealthCheckId != nil && len(*s.HealthCheckId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("HealthCheckId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -7816,6 +7906,9 @@ func (s *DeleteHostedZoneInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "DeleteHostedZoneInput"}
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -7937,6 +8030,9 @@ func (s *DeleteReusableDelegationSetInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "DeleteReusableDelegationSetInput"}
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -8138,6 +8234,9 @@ func (s *DeleteVPCAssociationAuthorizationInput) Validate() error {
 	if s.HostedZoneId == nil {
 		invalidParams.Add(request.NewErrParamRequired("HostedZoneId"))
 	}
+	if s.HostedZoneId != nil && len(*s.HostedZoneId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("HostedZoneId", 1))
+	}
 	if s.VPC == nil {
 		invalidParams.Add(request.NewErrParamRequired("VPC"))
 	}
@@ -8256,6 +8355,9 @@ func (s *DisassociateVPCFromHostedZoneInput) Validate() error {
 	if s.HostedZoneId == nil {
 		invalidParams.Add(request.NewErrParamRequired("HostedZoneId"))
 	}
+	if s.HostedZoneId != nil && len(*s.HostedZoneId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("HostedZoneId", 1))
+	}
 	if s.VPC == nil {
 		invalidParams.Add(request.NewErrParamRequired("VPC"))
 	}
@@ -8317,7 +8419,7 @@ func (s *DisassociateVPCFromHostedZoneOutput) SetChangeInfo(v *ChangeInfo) *Disa
 	return s
 }
 
-// A complex type that contains information about a geo location.
+// A complex type that contains information about a geographic location.
 type GeoLocation struct {
 	_ struct{} `type:"structure"`
 
@@ -8332,8 +8434,8 @@ type GeoLocation struct {
 	// The two-letter code for the country.
 	CountryCode *string `min:"1" type:"string"`
 
-	// The code for the subdivision, for example, a state in the United States or
-	// a province in Canada.
+	// The code for the subdivision. Route 53 currently supports only states in
+	// the United States.
 	SubdivisionCode *string `min:"1" type:"string"`
 }
 
@@ -8401,12 +8503,12 @@ type GeoLocationDetails struct {
 	// The name of the country.
 	CountryName *string `min:"1" type:"string"`
 
-	// The code for the subdivision, for example, a state in the United States or
-	// a province in Canada.
+	// The code for the subdivision. Route 53 currently supports only states in
+	// the United States.
 	SubdivisionCode *string `min:"1" type:"string"`
 
-	// The full name of the subdivision, for example, a state in the United States
-	// or a province in Canada.
+	// The full name of the subdivision. Route 53 currently supports only states
+	// in the United States.
 	SubdivisionName *string `min:"1" type:"string"`
 }
 
@@ -8500,6 +8602,9 @@ func (s *GetAccountLimitInput) Validate() error {
 	if s.Type == nil {
 		invalidParams.Add(request.NewErrParamRequired("Type"))
 	}
+	if s.Type != nil && len(*s.Type) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Type", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -8583,6 +8688,9 @@ func (s *GetChangeInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "GetChangeInput"}
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -8688,8 +8796,8 @@ type GetGeoLocationInput struct {
 
 	// Amazon Route 53 uses the one- to three-letter subdivision codes that are
 	// specified in ISO standard 3166-1 alpha-2 (https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2).
-	// Amazon Route 53 doesn't support subdivision codes for all countries. If you
-	// specify SubdivisionCode, you must also specify CountryCode.
+	// Route 53 doesn't support subdivision codes for all countries. If you specify
+	// subdivisioncode, you must also specify countrycode.
 	SubdivisionCode *string `location:"querystring" locationName:"subdivisioncode" min:"1" type:"string"`
 }
 
@@ -8839,6 +8947,9 @@ func (s *GetHealthCheckInput) Validate() error {
 	if s.HealthCheckId == nil {
 		invalidParams.Add(request.NewErrParamRequired("HealthCheckId"))
 	}
+	if s.HealthCheckId != nil && len(*s.HealthCheckId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("HealthCheckId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -8883,6 +8994,9 @@ func (s *GetHealthCheckLastFailureReasonInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "GetHealthCheckLastFailureReasonInput"}
 	if s.HealthCheckId == nil {
 		invalidParams.Add(request.NewErrParamRequired("HealthCheckId"))
+	}
+	if s.HealthCheckId != nil && len(*s.HealthCheckId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("HealthCheckId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -8983,6 +9097,9 @@ func (s *GetHealthCheckStatusInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "GetHealthCheckStatusInput"}
 	if s.HealthCheckId == nil {
 		invalidParams.Add(request.NewErrParamRequired("HealthCheckId"))
+	}
+	if s.HealthCheckId != nil && len(*s.HealthCheckId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("HealthCheckId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -9093,6 +9210,9 @@ func (s *GetHostedZoneInput) Validate() error {
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
 	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -9144,8 +9264,14 @@ func (s *GetHostedZoneLimitInput) Validate() error {
 	if s.HostedZoneId == nil {
 		invalidParams.Add(request.NewErrParamRequired("HostedZoneId"))
 	}
+	if s.HostedZoneId != nil && len(*s.HostedZoneId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("HostedZoneId", 1))
+	}
 	if s.Type == nil {
 		invalidParams.Add(request.NewErrParamRequired("Type"))
+	}
+	if s.Type != nil && len(*s.Type) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Type", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -9351,6 +9477,9 @@ func (s *GetReusableDelegationSetInput) Validate() error {
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
 	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -9398,8 +9527,14 @@ func (s *GetReusableDelegationSetLimitInput) Validate() error {
 	if s.DelegationSetId == nil {
 		invalidParams.Add(request.NewErrParamRequired("DelegationSetId"))
 	}
+	if s.DelegationSetId != nil && len(*s.DelegationSetId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DelegationSetId", 1))
+	}
 	if s.Type == nil {
 		invalidParams.Add(request.NewErrParamRequired("Type"))
+	}
+	if s.Type != nil && len(*s.Type) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Type", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -9776,14 +9911,35 @@ type HealthCheckConfig struct {
 	_ struct{} `type:"structure"`
 
 	// A complex type that identifies the CloudWatch alarm that you want Amazon
-	// Route 53 health checkers to use to determine whether this health check is
-	// healthy.
+	// Route 53 health checkers to use to determine whether the specified health
+	// check is healthy.
 	AlarmIdentifier *AlarmIdentifier `type:"structure"`
 
 	// (CALCULATED Health Checks Only) A complex type that contains one ChildHealthCheck
 	// element for each health check that you want to associate with a CALCULATED
 	// health check.
 	ChildHealthChecks []*string `locationNameList:"ChildHealthCheck" type:"list"`
+
+	// Stops Route 53 from performing health checks. When you disable a health check,
+	// here's what happens:
+	//
+	//    * Health checks that check the health of endpoints: Route 53 stops submitting
+	//    requests to your application, server, or other resource.
+	//
+	//    * Calculated health checks: Route 53 stops aggregating the status of the
+	//    referenced health checks.
+	//
+	//    * Health checks that monitor CloudWatch alarms: Route 53 stops monitoring
+	//    the corresponding CloudWatch metrics.
+	//
+	// After you disable a health check, Route 53 considers the status of the health
+	// check to always be healthy. If you configured DNS failover, Route 53 continues
+	// to route traffic to the corresponding resources. If you want to stop routing
+	// traffic to a resource, change the value of UpdateHealthCheckRequest$Inverted.
+	//
+	// Charges for a health check still apply when the health check is disabled.
+	// For more information, see Amazon Route 53 Pricing (http://aws.amazon.com/route53/pricing/).
+	Disabled *bool `type:"boolean"`
 
 	// Specify whether you want Amazon Route 53 to send the value of FullyQualifiedDomainName
 	// to the endpoint in the client_hello message during TLS negotiation. This
@@ -9824,38 +9980,37 @@ type HealthCheckConfig struct {
 	// Amazon Route 53 sends health check requests to the specified IPv4 or IPv6
 	// address and passes the value of FullyQualifiedDomainName in the Host header
 	// for all health checks except TCP health checks. This is typically the fully
-	// qualified DNS name of the endpoint on which you want Amazon Route 53 to perform
+	// qualified DNS name of the endpoint on which you want Route 53 to perform
 	// health checks.
 	//
-	// When Amazon Route 53 checks the health of an endpoint, here is how it constructs
+	// When Route 53 checks the health of an endpoint, here is how it constructs
 	// the Host header:
 	//
 	//    * If you specify a value of 80 for Port and HTTP or HTTP_STR_MATCH for
-	//    Type, Amazon Route 53 passes the value of FullyQualifiedDomainName to
-	//    the endpoint in the Host header.
+	//    Type, Route 53 passes the value of FullyQualifiedDomainName to the endpoint
+	//    in the Host header.
 	//
 	//    * If you specify a value of 443 for Port and HTTPS or HTTPS_STR_MATCH
-	//    for Type, Amazon Route 53 passes the value of FullyQualifiedDomainName
-	//    to the endpoint in the Host header.
+	//    for Type, Route 53 passes the value of FullyQualifiedDomainName to the
+	//    endpoint in the Host header.
 	//
 	//    * If you specify another value for Port and any value except TCP for Type,
-	//    Amazon Route 53 passes FullyQualifiedDomainName:Port to the endpoint in
-	//    the Host header.
+	//    Route 53 passes FullyQualifiedDomainName:Port to the endpoint in the Host
+	//    header.
 	//
-	// If you don't specify a value for FullyQualifiedDomainName, Amazon Route 53
-	// substitutes the value of IPAddress in the Host header in each of the preceding
-	// cases.
+	// If you don't specify a value for FullyQualifiedDomainName, Route 53 substitutes
+	// the value of IPAddress in the Host header in each of the preceding cases.
 	//
 	// If you don't specify a value for IPAddress:
 	//
-	// Amazon Route 53 sends a DNS request to the domain that you specify for FullyQualifiedDomainName
+	// Route 53 sends a DNS request to the domain that you specify for FullyQualifiedDomainName
 	// at the interval that you specify for RequestInterval. Using an IPv4 address
-	// that DNS returns, Amazon Route 53 then checks the health of the endpoint.
+	// that DNS returns, Route 53 then checks the health of the endpoint.
 	//
-	// If you don't specify a value for IPAddress, Amazon Route 53 uses only IPv4
-	// to send health checks to the endpoint. If there's no resource record set
-	// with a type of A for the name that you specify for FullyQualifiedDomainName,
-	// the health check fails with a "DNS resolution failed" error.
+	// If you don't specify a value for IPAddress, Route 53 uses only IPv4 to send
+	// health checks to the endpoint. If there's no resource record set with a type
+	// of A for the name that you specify for FullyQualifiedDomainName, the health
+	// check fails with a "DNS resolution failed" error.
 	//
 	// If you want to check the health of weighted, latency, or failover resource
 	// record sets and you choose to specify the endpoint only by FullyQualifiedDomainName,
@@ -9871,9 +10026,9 @@ type HealthCheckConfig struct {
 	// check results will be unpredictable.
 	//
 	// In addition, if the value that you specify for Type is HTTP, HTTPS, HTTP_STR_MATCH,
-	// or HTTPS_STR_MATCH, Amazon Route 53 passes the value of FullyQualifiedDomainName
+	// or HTTPS_STR_MATCH, Route 53 passes the value of FullyQualifiedDomainName
 	// in the Host header, as it does when you specify a value for IPAddress. If
-	// the value of Type is TCP, Amazon Route 53 doesn't pass a Host header.
+	// the value of Type is TCP, Route 53 doesn't pass a Host header.
 	FullyQualifiedDomainName *string `type:"string"`
 
 	// The number of child health checks that are associated with a CALCULATED health
@@ -9885,18 +10040,18 @@ type HealthCheckConfig struct {
 	// Note the following:
 	//
 	//    * If you specify a number greater than the number of child health checks,
-	//    Amazon Route 53 always considers this health check to be unhealthy.
+	//    Route 53 always considers this health check to be unhealthy.
 	//
-	//    * If you specify 0, Amazon Route 53 always considers this health check
-	//    to be healthy.
+	//    * If you specify 0, Route 53 always considers this health check to be
+	//    healthy.
 	HealthThreshold *int64 `type:"integer"`
 
 	// The IPv4 or IPv6 IP address of the endpoint that you want Amazon Route 53
 	// to perform health checks on. If you don't specify a value for IPAddress,
-	// Amazon Route 53 sends a DNS request to resolve the domain name that you specify
+	// Route 53 sends a DNS request to resolve the domain name that you specify
 	// in FullyQualifiedDomainName at the interval that you specify in RequestInterval.
-	// Using an IP address returned by DNS, Amazon Route 53 then checks the health
-	// of the endpoint.
+	// Using an IP address returned by DNS, Route 53 then checks the health of the
+	// endpoint.
 	//
 	// Use one of the following formats for the value of IPAddress:
 	//
@@ -9915,9 +10070,9 @@ type HealthCheckConfig struct {
 	//
 	// For more information, see HealthCheckConfig$FullyQualifiedDomainName.
 	//
-	// Constraints: Amazon Route 53 can't check the health of endpoints for which
-	// the IP address is in local, private, non-routable, or multicast ranges. For
-	// more information about IP addresses for which you can't create health checks,
+	// Constraints: Route 53 can't check the health of endpoints for which the IP
+	// address is in local, private, non-routable, or multicast ranges. For more
+	// information about IP addresses for which you can't create health checks,
 	// see the following documents:
 	//
 	//    * RFC 5735, Special Use IPv4 Addresses (https://tools.ietf.org/html/rfc5735)
@@ -9932,14 +10087,14 @@ type HealthCheckConfig struct {
 	// When CloudWatch has insufficient data about the metric to determine the alarm
 	// state, the status that you want Amazon Route 53 to assign to the health check:
 	//
-	//    * Healthy: Amazon Route 53 considers the health check to be healthy.
+	//    * Healthy: Route 53 considers the health check to be healthy.
 	//
-	//    * Unhealthy: Amazon Route 53 considers the health check to be unhealthy.
+	//    * Unhealthy: Route 53 considers the health check to be unhealthy.
 	//
-	//    * LastKnownStatus: Amazon Route 53 uses the status of the health check
-	//    from the last time that CloudWatch had sufficient data to determine the
-	//    alarm state. For new health checks that have no last known status, the
-	//    default status for the health check is healthy.
+	//    * LastKnownStatus: Route 53 uses the status of the health check from the
+	//    last time that CloudWatch had sufficient data to determine the alarm state.
+	//    For new health checks that have no last known status, the default status
+	//    for the health check is healthy.
 	InsufficientDataHealthStatus *string `type:"string" enum:"InsufficientDataHealthStatus"`
 
 	// Specify whether you want Amazon Route 53 to invert the status of a health
@@ -9949,7 +10104,7 @@ type HealthCheckConfig struct {
 
 	// Specify whether you want Amazon Route 53 to measure the latency between health
 	// checkers in multiple AWS regions and your endpoint, and to display CloudWatch
-	// latency graphs on the Health Checks page in the Amazon Route 53 console.
+	// latency graphs on the Health Checks page in the Route 53 console.
 	//
 	// You can't change the value of MeasureLatency after you create a health check.
 	MeasureLatency *bool `type:"boolean"`
@@ -9961,18 +10116,18 @@ type HealthCheckConfig struct {
 	// A complex type that contains one Region element for each region from which
 	// you want Amazon Route 53 health checkers to check the specified endpoint.
 	//
-	// If you don't specify any regions, Amazon Route 53 health checkers automatically
+	// If you don't specify any regions, Route 53 health checkers automatically
 	// performs checks from all of the regions that are listed under Valid Values.
 	//
 	// If you update a health check to remove a region that has been performing
-	// health checks, Amazon Route 53 will briefly continue to perform checks from
-	// that region to ensure that some health checkers are always checking the endpoint
+	// health checks, Route 53 will briefly continue to perform checks from that
+	// region to ensure that some health checkers are always checking the endpoint
 	// (for example, if you replace three regions with four different regions).
 	Regions []*string `locationNameList:"Region" min:"3" type:"list"`
 
 	// The number of seconds between the time that Amazon Route 53 gets a response
 	// from your endpoint and the time that it sends the next health check request.
-	// Each Amazon Route 53 health checker makes requests at this interval.
+	// Each Route 53 health checker makes requests at this interval.
 	//
 	// You can't change the value of RequestInterval after you create a health check.
 	//
@@ -9983,16 +10138,16 @@ type HealthCheckConfig struct {
 	// The path, if any, that you want Amazon Route 53 to request when performing
 	// health checks. The path can be any value for which your endpoint will return
 	// an HTTP status code of 2xx or 3xx when the endpoint is healthy, for example,
-	// the file /docs/route53-health-check.html.
+	// the file /docs/route53-health-check.html. You can also include query string
+	// parameters, for example, /welcome.html?language=jp&login=y.
 	ResourcePath *string `type:"string"`
 
 	// If the value of Type is HTTP_STR_MATCH or HTTP_STR_MATCH, the string that
 	// you want Amazon Route 53 to search for in the response body from the specified
-	// resource. If the string appears in the response body, Amazon Route 53 considers
+	// resource. If the string appears in the response body, Route 53 considers
 	// the resource healthy.
 	//
-	// Amazon Route 53 considers case when searching for SearchString in the response
-	// body.
+	// Route 53 considers case when searching for SearchString in the response body.
 	SearchString *string `type:"string"`
 
 	// The type of health check that you want to create, which indicates how Amazon
@@ -10002,28 +10157,26 @@ type HealthCheckConfig struct {
 	//
 	// You can create the following types of health checks:
 	//
-	//    * HTTP: Amazon Route 53 tries to establish a TCP connection. If successful,
-	//    Amazon Route 53 submits an HTTP request and waits for an HTTP status code
-	//    of 200 or greater and less than 400.
+	//    * HTTP: Route 53 tries to establish a TCP connection. If successful, Route
+	//    53 submits an HTTP request and waits for an HTTP status code of 200 or
+	//    greater and less than 400.
 	//
-	//    * HTTPS: Amazon Route 53 tries to establish a TCP connection. If successful,
-	//    Amazon Route 53 submits an HTTPS request and waits for an HTTP status
-	//    code of 200 or greater and less than 400.
+	//    * HTTPS: Route 53 tries to establish a TCP connection. If successful,
+	//    Route 53 submits an HTTPS request and waits for an HTTP status code of
+	//    200 or greater and less than 400.
 	//
 	// If you specify HTTPS for the value of Type, the endpoint must support TLS
 	//    v1.0 or later.
 	//
-	//    * HTTP_STR_MATCH: Amazon Route 53 tries to establish a TCP connection.
-	//    If successful, Amazon Route 53 submits an HTTP request and searches the
-	//    first 5,120 bytes of the response body for the string that you specify
-	//    in SearchString.
+	//    * HTTP_STR_MATCH: Route 53 tries to establish a TCP connection. If successful,
+	//    Route 53 submits an HTTP request and searches the first 5,120 bytes of
+	//    the response body for the string that you specify in SearchString.
 	//
-	//    * HTTPS_STR_MATCH: Amazon Route 53 tries to establish a TCP connection.
-	//    If successful, Amazon Route 53 submits an HTTPS request and searches the
-	//    first 5,120 bytes of the response body for the string that you specify
-	//    in SearchString.
+	//    * HTTPS_STR_MATCH: Route 53 tries to establish a TCP connection. If successful,
+	//    Route 53 submits an HTTPS request and searches the first 5,120 bytes of
+	//    the response body for the string that you specify in SearchString.
 	//
-	//    * TCP: Amazon Route 53 tries to establish a TCP connection.
+	//    * TCP: Route 53 tries to establish a TCP connection.
 	//
 	//    * CLOUDWATCH_METRIC: The health check is associated with a CloudWatch
 	//    alarm. If the state of the alarm is OK, the health check is considered
@@ -10033,12 +10186,12 @@ type HealthCheckConfig struct {
 	//    Healthy, Unhealthy, or LastKnownStatus.
 	//
 	//    * CALCULATED: For health checks that monitor the status of other health
-	//    checks, Amazon Route 53 adds up the number of health checks that Amazon
-	//    Route 53 health checkers consider to be healthy and compares that number
-	//    with the value of HealthThreshold.
+	//    checks, Route 53 adds up the number of health checks that Route 53 health
+	//    checkers consider to be healthy and compares that number with the value
+	//    of HealthThreshold.
 	//
-	// For more information, see How Amazon Route 53 Determines Whether an Endpoint
-	// Is Healthy (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/dns-failover-determining-health-of-endpoints.html)
+	// For more information, see How Route 53 Determines Whether an Endpoint Is
+	// Healthy (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/dns-failover-determining-health-of-endpoints.html)
 	// in the Amazon Route 53 Developer Guide.
 	//
 	// Type is a required field
@@ -10094,6 +10247,12 @@ func (s *HealthCheckConfig) SetAlarmIdentifier(v *AlarmIdentifier) *HealthCheckC
 // SetChildHealthChecks sets the ChildHealthChecks field's value.
 func (s *HealthCheckConfig) SetChildHealthChecks(v []*string) *HealthCheckConfig {
 	s.ChildHealthChecks = v
+	return s
+}
+
+// SetDisabled sets the Disabled field's value.
+func (s *HealthCheckConfig) SetDisabled(v bool) *HealthCheckConfig {
+	s.Disabled = &v
 	return s
 }
 
@@ -10250,7 +10409,7 @@ type HostedZone struct {
 
 	// If the hosted zone was created by another service, the service that created
 	// the hosted zone. When a hosted zone is created by another service, you can't
-	// edit or delete it using Amazon Route 53.
+	// edit or delete it using Route 53.
 	LinkedService *LinkedService `type:"structure"`
 
 	// The name of the domain. For public hosted zones, this is the name that you
@@ -10438,39 +10597,39 @@ type ListGeoLocationsInput struct {
 	_ struct{} `type:"structure"`
 
 	// (Optional) The maximum number of geolocations to be included in the response
-	// body for this request. If more than MaxItems geolocations remain to be listed,
+	// body for this request. If more than maxitems geolocations remain to be listed,
 	// then the value of the IsTruncated element in the response is true.
 	MaxItems *string `location:"querystring" locationName:"maxitems" type:"string"`
 
 	// The code for the continent with which you want to start listing locations
-	// that Amazon Route 53 supports for geolocation. If Amazon Route 53 has already
-	// returned a page or more of results, if IsTruncated is true, and if NextContinentCode
-	// from the previous response has a value, enter that value in StartContinentCode
+	// that Amazon Route 53 supports for geolocation. If Route 53 has already returned
+	// a page or more of results, if IsTruncated is true, and if NextContinentCode
+	// from the previous response has a value, enter that value in startcontinentcode
 	// to return the next page of results.
 	//
-	// Include StartContinentCode only if you want to list continents. Don't include
-	// StartContinentCode when you're listing countries or countries with their
+	// Include startcontinentcode only if you want to list continents. Don't include
+	// startcontinentcode when you're listing countries or countries with their
 	// subdivisions.
 	StartContinentCode *string `location:"querystring" locationName:"startcontinentcode" min:"2" type:"string"`
 
 	// The code for the country with which you want to start listing locations that
-	// Amazon Route 53 supports for geolocation. If Amazon Route 53 has already
-	// returned a page or more of results, if IsTruncated is true, and if NextCountryCode
-	// from the previous response has a value, enter that value in StartCountryCode
+	// Amazon Route 53 supports for geolocation. If Route 53 has already returned
+	// a page or more of results, if IsTruncated is true, and if NextCountryCode
+	// from the previous response has a value, enter that value in startcountrycode
 	// to return the next page of results.
 	//
-	// Amazon Route 53 uses the two-letter country codes that are specified in ISO
-	// standard 3166-1 alpha-2 (https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2).
+	// Route 53 uses the two-letter country codes that are specified in ISO standard
+	// 3166-1 alpha-2 (https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2).
 	StartCountryCode *string `location:"querystring" locationName:"startcountrycode" min:"1" type:"string"`
 
 	// The code for the subdivision (for example, state or province) with which
 	// you want to start listing locations that Amazon Route 53 supports for geolocation.
-	// If Amazon Route 53 has already returned a page or more of results, if IsTruncated
+	// If Route 53 has already returned a page or more of results, if IsTruncated
 	// is true, and if NextSubdivisionCode from the previous response has a value,
-	// enter that value in StartSubdivisionCode to return the next page of results.
+	// enter that value in startsubdivisioncode to return the next page of results.
 	//
-	// To list subdivisions of a country, you must include both StartCountryCode
-	// and StartSubdivisionCode.
+	// To list subdivisions of a country, you must include both startcountrycode
+	// and startsubdivisioncode.
 	StartSubdivisionCode *string `location:"querystring" locationName:"startsubdivisioncode" min:"1" type:"string"`
 }
 
@@ -10540,8 +10699,8 @@ type ListGeoLocationsOutput struct {
 	// A value that indicates whether more locations remain to be listed after the
 	// last location in this response. If so, the value of IsTruncated is true.
 	// To get more values, submit another request and include the values of NextContinentCode,
-	// NextCountryCode, and NextSubdivisionCode in the StartContinentCode, StartCountryCode,
-	// and StartSubdivisionCode, as applicable.
+	// NextCountryCode, and NextSubdivisionCode in the startcontinentcode, startcountrycode,
+	// and startsubdivisioncode, as applicable.
 	//
 	// IsTruncated is a required field
 	IsTruncated *bool `type:"boolean" required:"true"`
@@ -10552,17 +10711,17 @@ type ListGeoLocationsOutput struct {
 	MaxItems *string `type:"string" required:"true"`
 
 	// If IsTruncated is true, you can make a follow-up request to display more
-	// locations. Enter the value of NextContinentCode in the StartContinentCode
+	// locations. Enter the value of NextContinentCode in the startcontinentcode
 	// parameter in another ListGeoLocations request.
 	NextContinentCode *string `min:"2" type:"string"`
 
 	// If IsTruncated is true, you can make a follow-up request to display more
-	// locations. Enter the value of NextCountryCode in the StartCountryCode parameter
+	// locations. Enter the value of NextCountryCode in the startcountrycode parameter
 	// in another ListGeoLocations request.
 	NextCountryCode *string `min:"1" type:"string"`
 
 	// If IsTruncated is true, you can make a follow-up request to display more
-	// locations. Enter the value of NextSubdivisionCode in the StartSubdivisionCode
+	// locations. Enter the value of NextSubdivisionCode in the startsubdivisioncode
 	// parameter in another ListGeoLocations request.
 	NextSubdivisionCode *string `min:"1" type:"string"`
 }
@@ -10631,8 +10790,8 @@ type ListHealthChecksInput struct {
 
 	// The maximum number of health checks that you want ListHealthChecks to return
 	// in response to the current request. Amazon Route 53 returns a maximum of
-	// 100 items. If you set MaxItems to a value greater than 100, Amazon Route
-	// 53 returns only the first 100 health checks.
+	// 100 items. If you set MaxItems to a value greater than 100, Route 53 returns
+	// only the first 100 health checks.
 	MaxItems *string `location:"querystring" locationName:"maxitems" type:"string"`
 }
 
@@ -10920,7 +11079,7 @@ type ListHostedZonesInput struct {
 	// (Optional) The maximum number of hosted zones that you want Amazon Route
 	// 53 to return. If you have more than maxitems hosted zones, the value of IsTruncated
 	// in the response is true, and the value of NextMarker is the hosted zone ID
-	// of the first hosted zone that Amazon Route 53 will return if you submit another
+	// of the first hosted zone that Route 53 will return if you submit another
 	// request.
 	MaxItems *string `location:"querystring" locationName:"maxitems" type:"string"`
 }
@@ -11045,8 +11204,7 @@ type ListQueryLoggingConfigsInput struct {
 	// AWS account has more than MaxResults configurations, use the value of ListQueryLoggingConfigsResponse$NextToken
 	// in the response to get the next page of results.
 	//
-	// If you don't specify a value for MaxResults, Amazon Route 53 returns up to
-	// 100 configurations.
+	// If you don't specify a value for MaxResults, Route 53 returns up to 100 configurations.
 	MaxResults *string `location:"querystring" locationName:"maxresults" type:"string"`
 
 	// (Optional) If the current AWS account has more than MaxResults query logging
@@ -11163,8 +11321,8 @@ type ListResourceRecordSetsInput struct {
 	// Valid values for basic resource record sets: A | AAAA | CAA | CNAME | MX
 	// | NAPTR | NS | PTR | SOA | SPF | SRV | TXT
 	//
-	// Values for weighted, latency, geo, and failover resource record sets: A |
-	// AAAA | CAA | CNAME | MX | NAPTR | PTR | SPF | SRV | TXT
+	// Values for weighted, latency, geolocation, and failover resource record sets:
+	// A | AAAA | CAA | CNAME | MX | NAPTR | PTR | SPF | SRV | TXT
 	//
 	// Values for alias resource record sets:
 	//
@@ -11199,6 +11357,9 @@ func (s *ListResourceRecordSetsInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "ListResourceRecordSetsInput"}
 	if s.HostedZoneId == nil {
 		invalidParams.Add(request.NewErrParamRequired("HostedZoneId"))
+	}
+	if s.HostedZoneId != nil && len(*s.HostedZoneId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("HostedZoneId", 1))
 	}
 	if s.StartRecordIdentifier != nil && len(*s.StartRecordIdentifier) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("StartRecordIdentifier", 1))
@@ -11256,9 +11417,12 @@ type ListResourceRecordSetsOutput struct {
 	// MaxItems is a required field
 	MaxItems *string `type:"string" required:"true"`
 
-	// Weighted, latency, geolocation, and failover resource record sets only: If
-	// results were truncated for a given DNS name and type, the value of SetIdentifier
+	// Resource record sets that have a routing policy other than simple: If results
+	// were truncated for a given DNS name and type, the value of SetIdentifier
 	// for the next resource record set that has the current DNS name and type.
+	//
+	// For information about routing policies, see Choosing a Routing Policy (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/routing-policy.html)
+	// in the Amazon Route 53 Developer Guide.
 	NextRecordIdentifier *string `min:"1" type:"string"`
 
 	// If the results were truncated, the name of the next record in the list.
@@ -11342,7 +11506,7 @@ type ListReusableDelegationSetsInput struct {
 
 	// The number of reusable delegation sets that you want Amazon Route 53 to return
 	// in the response to this request. If you specify a value greater than 100,
-	// Amazon Route 53 returns only the first 100 reusable delegation sets.
+	// Route 53 returns only the first 100 reusable delegation sets.
 	MaxItems *string `location:"querystring" locationName:"maxitems" type:"string"`
 }
 
@@ -11480,8 +11644,14 @@ func (s *ListTagsForResourceInput) Validate() error {
 	if s.ResourceId == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
 	}
+	if s.ResourceId != nil && len(*s.ResourceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceId", 1))
+	}
 	if s.ResourceType == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResourceType"))
+	}
+	if s.ResourceType != nil && len(*s.ResourceType) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceType", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -11572,6 +11742,9 @@ func (s *ListTagsForResourcesInput) Validate() error {
 	if s.ResourceType == nil {
 		invalidParams.Add(request.NewErrParamRequired("ResourceType"))
 	}
+	if s.ResourceType != nil && len(*s.ResourceType) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceType", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -11626,7 +11799,7 @@ type ListTrafficPoliciesInput struct {
 	// 53 to return in response to this request. If you have more than MaxItems
 	// traffic policies, the value of IsTruncated in the response is true, and the
 	// value of TrafficPolicyIdMarker is the ID of the first traffic policy that
-	// Amazon Route 53 will return if you submit another request.
+	// Route 53 will return if you submit another request.
 	MaxItems *string `location:"querystring" locationName:"maxitems" type:"string"`
 
 	// (Conditional) For your first request to ListTrafficPolicies, don't include
@@ -12207,8 +12380,8 @@ type ListTrafficPolicyInstancesOutput struct {
 	_ struct{} `type:"structure"`
 
 	// If IsTruncated is true, HostedZoneIdMarker is the ID of the hosted zone of
-	// the first traffic policy instance that Amazon Route 53 will return if you
-	// submit another ListTrafficPolicyInstances request.
+	// the first traffic policy instance that Route 53 will return if you submit
+	// another ListTrafficPolicyInstances request.
 	HostedZoneIdMarker *string `type:"string"`
 
 	// A flag that indicates whether there are more traffic policy instances to
@@ -12227,8 +12400,8 @@ type ListTrafficPolicyInstancesOutput struct {
 	MaxItems *string `type:"string" required:"true"`
 
 	// If IsTruncated is true, TrafficPolicyInstanceNameMarker is the name of the
-	// first traffic policy instance that Amazon Route 53 will return if you submit
-	// another ListTrafficPolicyInstances request.
+	// first traffic policy instance that Route 53 will return if you submit another
+	// ListTrafficPolicyInstances request.
 	TrafficPolicyInstanceNameMarker *string `type:"string"`
 
 	// If IsTruncated is true, TrafficPolicyInstanceTypeMarker is the DNS type of
@@ -12305,8 +12478,7 @@ type ListTrafficPolicyVersionsInput struct {
 	// 53 to include in the response body for this request. If the specified traffic
 	// policy has more than MaxItems versions, the value of IsTruncated in the response
 	// is true, and the value of the TrafficPolicyVersionMarker element is the ID
-	// of the first version that Amazon Route 53 will return if you submit another
-	// request.
+	// of the first version that Route 53 will return if you submit another request.
 	MaxItems *string `location:"querystring" locationName:"maxitems" type:"string"`
 
 	// For your first request to ListTrafficPolicyVersions, don't include the TrafficPolicyVersionMarker
@@ -12445,8 +12617,8 @@ type ListVPCAssociationAuthorizationsInput struct {
 	HostedZoneId *string `location:"uri" locationName:"Id" type:"string" required:"true"`
 
 	// Optional: An integer that specifies the maximum number of VPCs that you want
-	// Amazon Route 53 to return. If you don't specify a value for MaxResults, Amazon
-	// Route 53 returns up to 50 VPCs per page.
+	// Amazon Route 53 to return. If you don't specify a value for MaxResults, Route
+	// 53 returns up to 50 VPCs per page.
 	MaxResults *string `location:"querystring" locationName:"maxresults" type:"string"`
 
 	// Optional: If a response includes a NextToken element, there are more VPCs
@@ -12472,6 +12644,9 @@ func (s *ListVPCAssociationAuthorizationsInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "ListVPCAssociationAuthorizationsInput"}
 	if s.HostedZoneId == nil {
 		invalidParams.Add(request.NewErrParamRequired("HostedZoneId"))
+	}
+	if s.HostedZoneId != nil && len(*s.HostedZoneId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("HostedZoneId", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -12682,23 +12857,22 @@ type ResourceRecordSet struct {
 	// Except where noted, the following failover behaviors assume that you have
 	// included the HealthCheckId element in both resource record sets:
 	//
-	//    * When the primary resource record set is healthy, Amazon Route 53 responds
-	//    to DNS queries with the applicable value from the primary resource record
+	//    * When the primary resource record set is healthy, Route 53 responds to
+	//    DNS queries with the applicable value from the primary resource record
 	//    set regardless of the health of the secondary resource record set.
 	//
 	//    * When the primary resource record set is unhealthy and the secondary
-	//    resource record set is healthy, Amazon Route 53 responds to DNS queries
-	//    with the applicable value from the secondary resource record set.
+	//    resource record set is healthy, Route 53 responds to DNS queries with
+	//    the applicable value from the secondary resource record set.
 	//
-	//    * When the secondary resource record set is unhealthy, Amazon Route 53
-	//    responds to DNS queries with the applicable value from the primary resource
-	//    record set regardless of the health of the primary resource record set.
+	//    * When the secondary resource record set is unhealthy, Route 53 responds
+	//    to DNS queries with the applicable value from the primary resource record
+	//    set regardless of the health of the primary resource record set.
 	//
 	//    * If you omit the HealthCheckId element for the secondary resource record
-	//    set, and if the primary resource record set is unhealthy, Amazon Route
-	//    53 always responds to DNS queries with the applicable value from the secondary
-	//    resource record set. This is true regardless of the health of the associated
-	//    endpoint.
+	//    set, and if the primary resource record set is unhealthy, Route 53 always
+	//    responds to DNS queries with the applicable value from the secondary resource
+	//    record set. This is true regardless of the health of the associated endpoint.
 	//
 	// You can't create non-failover resource record sets that have the same values
 	// for the Name and Type elements as failover resource record sets.
@@ -12706,15 +12880,15 @@ type ResourceRecordSet struct {
 	// For failover alias resource record sets, you must also include the EvaluateTargetHealth
 	// element and set the value to true.
 	//
-	// For more information about configuring failover for Amazon Route 53, see
-	// the following topics in the Amazon Route 53 Developer Guide:
+	// For more information about configuring failover for Route 53, see the following
+	// topics in the Amazon Route 53 Developer Guide:
 	//
-	//    * Amazon Route 53 Health Checks and DNS Failover (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/dns-failover.html)
+	//    * Route 53 Health Checks and DNS Failover (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/dns-failover.html)
 	//
 	//    * Configuring Failover in a Private Hosted Zone (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/dns-failover-private-hosted-zones.html)
 	Failover *string `type:"string" enum:"ResourceRecordSetFailover"`
 
-	// Geo location resource record sets only: A complex type that lets you control
+	// Geolocation resource record sets only: A complex type that lets you control
 	// how Amazon Route 53 responds to DNS queries based on the geographic origin
 	// of the query. For example, if you want all queries from Africa to be routed
 	// to a web server with an IP address of 192.0.2.111, create a resource record
@@ -12738,24 +12912,24 @@ type ResourceRecordSet struct {
 	//
 	// Geolocation works by mapping IP addresses to locations. However, some IP
 	// addresses aren't mapped to geographic locations, so even if you create geolocation
-	// resource record sets that cover all seven continents, Amazon Route 53 will
-	// receive some DNS queries from locations that it can't identify. We recommend
-	// that you create a resource record set for which the value of CountryCode
-	// is *, which handles both queries that come from locations for which you haven't
+	// resource record sets that cover all seven continents, Route 53 will receive
+	// some DNS queries from locations that it can't identify. We recommend that
+	// you create a resource record set for which the value of CountryCode is *,
+	// which handles both queries that come from locations for which you haven't
 	// created geolocation resource record sets and queries from IP addresses that
 	// aren't mapped to a location. If you don't create a * resource record set,
-	// Amazon Route 53 returns a "no answer" response for queries from those locations.
+	// Route 53 returns a "no answer" response for queries from those locations.
 	//
 	// You can't create non-geolocation resource record sets that have the same
 	// values for the Name and Type elements as geolocation resource record sets.
 	GeoLocation *GeoLocation `type:"structure"`
 
 	// If you want Amazon Route 53 to return this resource record set in response
-	// to a DNS query only when a health check is passing, include the HealthCheckId
-	// element and specify the ID of the applicable health check.
+	// to a DNS query only when the status of a health check is healthy, include
+	// the HealthCheckId element and specify the ID of the applicable health check.
 	//
-	// Amazon Route 53 determines whether a resource record set is healthy based
-	// on one of the following:
+	// Route 53 determines whether a resource record set is healthy based on one
+	// of the following:
 	//
 	//    * By periodically sending a request to the endpoint that is specified
 	//    in the health check
@@ -12766,61 +12940,102 @@ type ResourceRecordSet struct {
 	//    * By determining the current state of a CloudWatch alarm (CloudWatch metric
 	//    health checks)
 	//
-	// For more information, see How Amazon Route 53 Determines Whether an Endpoint
-	// Is Healthy (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/dns-failover-determining-health-of-endpoints.html).
-	//
-	// The HealthCheckId element is only useful when Amazon Route 53 is choosing
-	// between two or more resource record sets to respond to a DNS query, and you
-	// want Amazon Route 53 to base the choice in part on the status of a health
-	// check. Configuring health checks only makes sense in the following configurations:
-	//
-	//    * You're checking the health of the resource record sets in a group of
-	//    weighted, latency, geolocation, or failover resource record sets, and
-	//    you specify health check IDs for all of the resource record sets. If the
-	//    health check for one resource record set specifies an endpoint that is
-	//    not healthy, Amazon Route 53 stops responding to queries using the value
-	//    for that resource record set.
-	//
-	//    * You set EvaluateTargetHealth to true for the resource record sets in
-	//    a group of alias, weighted alias, latency alias, geolocation alias, or
-	//    failover alias resource record sets, and you specify health check IDs
-	//    for all of the resource record sets that are referenced by the alias resource
-	//    record sets.
-	//
-	// Amazon Route 53 doesn't check the health of the endpoint specified in the
+	// Route 53 doesn't check the health of the endpoint that is specified in the
 	// resource record set, for example, the endpoint specified by the IP address
 	// in the Value element. When you add a HealthCheckId element to a resource
-	// record set, Amazon Route 53 checks the health of the endpoint that you specified
+	// record set, Route 53 checks the health of the endpoint that you specified
 	// in the health check.
 	//
-	// For geolocation resource record sets, if an endpoint is unhealthy, Amazon
-	// Route 53 looks for a resource record set for the larger, associated geographic
+	// For more information, see the following topics in the Amazon Route 53 Developer
+	// Guide:
+	//
+	//    * How Amazon Route 53 Determines Whether an Endpoint Is Healthy (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/dns-failover-determining-health-of-endpoints.html)
+	//
+	//    * Route 53 Health Checks and DNS Failover (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/dns-failover.html)
+	//
+	//    * Configuring Failover in a Private Hosted Zone (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/dns-failover-private-hosted-zones.html)
+	//
+	// When to Specify HealthCheckId
+	//
+	// Specifying a value for HealthCheckId is useful only when Route 53 is choosing
+	// between two or more resource record sets to respond to a DNS query, and you
+	// want Route 53 to base the choice in part on the status of a health check.
+	// Configuring health checks makes sense only in the following configurations:
+	//
+	//    * Non-alias resource record sets: You're checking the health of a group
+	//    of non-alias resource record sets that have the same routing policy, name,
+	//    and type (such as multiple weighted records named www.example.com with
+	//    a type of A) and you specify health check IDs for all the resource record
+	//    sets.
+	//
+	// If the health check status for a resource record set is healthy, Route 53
+	//    includes the record among the records that it responds to DNS queries
+	//    with.
+	//
+	// If the health check status for a resource record set is unhealthy, Route
+	//    53 stops responding to DNS queries using the value for that resource record
+	//    set.
+	//
+	// If the health check status for all resource record sets in the group is unhealthy,
+	//    Route 53 considers all resource record sets in the group healthy and responds
+	//    to DNS queries accordingly.
+	//
+	//    * Alias resource record sets: You specify the following settings:
+	//
+	// You set EvaluateTargetHealth to true for an alias resource record set in
+	//    a group of resource record sets that have the same routing policy, name,
+	//    and type (such as multiple weighted records named www.example.com with
+	//    a type of A).
+	//
+	// You configure the alias resource record set to route traffic to a non-alias
+	//    resource record set in the same hosted zone.
+	//
+	// You specify a health check ID for the non-alias resource record set.
+	//
+	// If the health check status is healthy, Route 53 considers the alias resource
+	//    record set to be healthy and includes the alias record among the records
+	//    that it responds to DNS queries with.
+	//
+	// If the health check status is unhealthy, Route 53 stops responding to DNS
+	//    queries using the alias resource record set.
+	//
+	// The alias resource record set can also route traffic to a group of non-alias
+	//    resource record sets that have the same routing policy, name, and type.
+	//    In that configuration, associate health checks with all of the resource
+	//    record sets in the group of non-alias resource record sets.
+	//
+	// Geolocation Routing
+	//
+	// For geolocation resource record sets, if an endpoint is unhealthy, Route
+	// 53 looks for a resource record set for the larger, associated geographic
 	// region. For example, suppose you have resource record sets for a state in
-	// the United States, for the United States, for North America, and for all
+	// the United States, for the entire United States, for North America, and a
+	// resource record set that has * for CountryCode is *, which applies to all
 	// locations. If the endpoint for the state resource record set is unhealthy,
-	// Amazon Route 53 checks the resource record sets for the United States, for
-	// North America, and for all locations (a resource record set for which the
-	// value of CountryCode is *), in that order, until it finds a resource record
-	// set for which the endpoint is healthy.
+	// Route 53 checks for healthy resource record sets in the following order until
+	// it finds a resource record set for which the endpoint is healthy:
+	//
+	//    * The United States
+	//
+	//    * North America
+	//
+	//    * The default resource record set
+	//
+	// Specifying the Health Check Endpoint by Domain Name
 	//
 	// If your health checks specify the endpoint only by domain name, we recommend
 	// that you create a separate health check for each endpoint. For example, create
 	// a health check for each HTTP server that is serving content for www.example.com.
 	// For the value of FullyQualifiedDomainName, specify the domain name of the
 	// server (such as us-east-2-www.example.com), not the name of the resource
-	// record sets (example.com).
+	// record sets (www.example.com).
 	//
-	// n this configuration, if you create a health check for which the value of
-	// FullyQualifiedDomainName matches the name of the resource record sets and
-	// then associate the health check with those resource record sets, health check
-	// results will be unpredictable.
+	// Health check results will be unpredictable if you do the following:
 	//
-	// For more information, see the following topics in the Amazon Route 53 Developer
-	// Guide:
+	// Create a health check that has the same value for FullyQualifiedDomainName
+	// as the name of a resource record set.
 	//
-	//    * Amazon Route 53 Health Checks and DNS Failover (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/dns-failover.html)
-	//
-	//    * Configuring Failover in a Private Hosted Zone (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/dns-failover-private-hosted-zones.html)
+	// Associate that health check with the resource record set.
 	HealthCheckId *string `type:"string"`
 
 	// Multivalue answer resource record sets only: To route traffic approximately
@@ -12833,17 +13048,17 @@ type ResourceRecordSet struct {
 	//    address only when the health check is healthy.
 	//
 	//    * If you don't associate a health check with a multivalue answer record,
-	//    Amazon Route 53 always considers the record to be healthy.
+	//    Route 53 always considers the record to be healthy.
 	//
-	//    * Amazon Route 53 responds to DNS queries with up to eight healthy records;
-	//    if you have eight or fewer healthy records, Amazon Route 53 responds to
-	//    all DNS queries with all the healthy records.
+	//    * Route 53 responds to DNS queries with up to eight healthy records; if
+	//    you have eight or fewer healthy records, Route 53 responds to all DNS
+	//    queries with all the healthy records.
 	//
-	//    * If you have more than eight healthy records, Amazon Route 53 responds
-	//    to different DNS resolvers with different combinations of healthy records.
+	//    * If you have more than eight healthy records, Route 53 responds to different
+	//    DNS resolvers with different combinations of healthy records.
 	//
-	//    * When all records are unhealthy, Amazon Route 53 responds to DNS queries
-	//    with up to eight unhealthy records.
+	//    * When all records are unhealthy, Route 53 responds to DNS queries with
+	//    up to eight unhealthy records.
 	//
 	//    * If a resource becomes unavailable after a resolver caches a response,
 	//    client software typically tries another of the IP addresses in the response.
@@ -12851,13 +13066,17 @@ type ResourceRecordSet struct {
 	// You can't create multivalue answer alias records.
 	MultiValueAnswer *bool `type:"boolean"`
 
-	// The name of the domain you want to perform the action on.
+	// For ChangeResourceRecordSets requests, the name of the record that you want
+	// to create, update, or delete. For ListResourceRecordSets responses, the name
+	// of a record in the specified hosted zone.
+	//
+	// ChangeResourceRecordSets Only
 	//
 	// Enter a fully qualified domain name, for example, www.example.com. You can
 	// optionally include a trailing dot. If you omit the trailing dot, Amazon Route
-	// 53 still assumes that the domain name that you specify is fully qualified.
-	// This means that Amazon Route 53 treats www.example.com (without a trailing
-	// dot) and www.example.com. (with a trailing dot) as identical.
+	// 53 assumes that the domain name that you specify is fully qualified. This
+	// means that Route 53 treats www.example.com (without a trailing dot) and www.example.com.
+	// (with a trailing dot) as identical.
 	//
 	// For information about how to specify characters other than a-z, 0-9, and
 	// - (hyphen) and how to specify internationalized domain names, see DNS Domain
@@ -12896,10 +13115,10 @@ type ResourceRecordSet struct {
 	// zones is not supported.
 	//
 	// When Amazon Route 53 receives a DNS query for a domain name and type for
-	// which you have created latency resource record sets, Amazon Route 53 selects
-	// the latency resource record set that has the lowest latency between the end
-	// user and the associated Amazon EC2 Region. Amazon Route 53 then returns the
-	// value that is associated with the selected resource record set.
+	// which you have created latency resource record sets, Route 53 selects the
+	// latency resource record set that has the lowest latency between the end user
+	// and the associated Amazon EC2 Region. Route 53 then returns the value that
+	// is associated with the selected resource record set.
 	//
 	// Note the following:
 	//
@@ -12910,8 +13129,8 @@ type ResourceRecordSet struct {
 	//    EC2 Region.
 	//
 	//    * You aren't required to create latency resource record sets for all Amazon
-	//    EC2 Regions. Amazon Route 53 will choose the region with the best latency
-	//    from among the regions that you create latency resource record sets for.
+	//    EC2 Regions. Route 53 will choose the region with the best latency from
+	//    among the regions that you create latency resource record sets for.
 	//
 	//    * You can't create non-latency resource record sets that have the same
 	//    values for the Name and Type elements as latency resource record sets.
@@ -12922,11 +13141,15 @@ type ResourceRecordSet struct {
 	// If you're creating an alias resource record set, omit ResourceRecords.
 	ResourceRecords []*ResourceRecord `locationNameList:"ResourceRecord" min:"1" type:"list"`
 
-	// Weighted, Latency, Geo, and Failover resource record sets only: An identifier
+	// Resource record sets that have a routing policy other than simple: An identifier
 	// that differentiates among multiple resource record sets that have the same
-	// combination of DNS name and type. The value of SetIdentifier must be unique
-	// for each resource record set that has the same combination of DNS name and
-	// type. Omit SetIdentifier for any other types of record sets.
+	// combination of name and type, such as multiple weighted resource record sets
+	// named acme.example.com that have a type of A. In a group of resource record
+	// sets that have the same name and type, the value of SetIdentifier must be
+	// unique for each resource record set.
+	//
+	// For information about routing policies, see Choosing a Routing Policy (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/routing-policy.html)
+	// in the Amazon Route 53 Developer Guide.
 	SetIdentifier *string `min:"1" type:"string"`
 
 	// The resource record cache time to live (TTL), in seconds. Note the following:
@@ -12952,14 +13175,14 @@ type ResourceRecordSet struct {
 
 	// When you create a traffic policy instance, Amazon Route 53 automatically
 	// creates a resource record set. TrafficPolicyInstanceId is the ID of the traffic
-	// policy instance that Amazon Route 53 created this resource record set for.
+	// policy instance that Route 53 created this resource record set for.
 	//
 	// To delete the resource record set that is associated with a traffic policy
-	// instance, use DeleteTrafficPolicyInstance. Amazon Route 53 will delete the
-	// resource record set automatically. If you delete the resource record set
-	// by using ChangeResourceRecordSets, Amazon Route 53 doesn't automatically
-	// delete the traffic policy instance, and you'll continue to be charged for
-	// it even though it's no longer in use.
+	// instance, use DeleteTrafficPolicyInstance. Route 53 will delete the resource
+	// record set automatically. If you delete the resource record set by using
+	// ChangeResourceRecordSets, Route 53 doesn't automatically delete the traffic
+	// policy instance, and you'll continue to be charged for it even though it's
+	// no longer in use.
 	TrafficPolicyInstanceId *string `min:"1" type:"string"`
 
 	// The DNS record type. For information about different record types and how
@@ -13005,16 +13228,22 @@ type ResourceRecordSet struct {
 	//    the resource record set that you're creating the alias for. All values
 	//    are supported except NS and SOA.
 	//
+	// If you're creating an alias record that has the same name as the hosted zone
+	//    (known as the zone apex), you can't route traffic to a record for which
+	//    the value of Type is CNAME. This is because the alias record must have
+	//    the same type as the record you're routing traffic to, and creating a
+	//    CNAME record for the zone apex isn't supported even for an alias record.
+	//
 	// Type is a required field
 	Type *string `type:"string" required:"true" enum:"RRType"`
 
 	// Weighted resource record sets only: Among resource record sets that have
 	// the same combination of DNS name and type, a value that determines the proportion
 	// of DNS queries that Amazon Route 53 responds to using the current resource
-	// record set. Amazon Route 53 calculates the sum of the weights for the resource
-	// record sets that have the same combination of DNS name and type. Amazon Route
-	// 53 then responds to queries based on the ratio of a resource's weight to
-	// the total. Note the following:
+	// record set. Route 53 calculates the sum of the weights for the resource record
+	// sets that have the same combination of DNS name and type. Route 53 then responds
+	// to queries based on the ratio of a resource's weight to the total. Note the
+	// following:
 	//
 	//    * You must specify a value for the Weight element for every weighted resource
 	//    record set.
@@ -13030,16 +13259,14 @@ type ResourceRecordSet struct {
 	//    the same values for the Name and Type elements.
 	//
 	//    * For weighted (but not weighted alias) resource record sets, if you set
-	//    Weight to 0 for a resource record set, Amazon Route 53 never responds
-	//    to queries with the applicable value for that resource record set. However,
-	//    if you set Weight to 0 for all resource record sets that have the same
-	//    combination of DNS name and type, traffic is routed to all resources with
-	//    equal probability.
+	//    Weight to 0 for a resource record set, Route 53 never responds to queries
+	//    with the applicable value for that resource record set. However, if you
+	//    set Weight to 0 for all resource record sets that have the same combination
+	//    of DNS name and type, traffic is routed to all resources with equal probability.
 	//
 	// The effect of setting Weight to 0 is different when you associate health
 	//    checks with weighted resource record sets. For more information, see Options
-	//    for Configuring Amazon Route 53 Active-Active and Active-Passive Failover
-	//    (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/dns-failover-configuring-options.html)
+	//    for Configuring Route 53 Active-Active and Active-Passive Failover (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/dns-failover-configuring-options.html)
 	//    in the Amazon Route 53 Developer Guide.
 	Weight *int64 `type:"long"`
 }
@@ -13372,6 +13599,13 @@ type TestDNSAnswerInput struct {
 	// and 24 for edns0clientsubnetmask, the checking tool will simulate a request
 	// from 192.0.2.0/24. The default value is 24 bits for IPv4 addresses and 64
 	// bits for IPv6 addresses.
+	//
+	// The range of valid values depends on whether edns0clientsubnetip is an IPv4
+	// or an IPv6 address:
+	//
+	//    * IPv4: Specify a value between 0 and 32
+	//
+	//    * IPv6: Specify a value between 0 and 128
 	EDNS0ClientSubnetMask *string `location:"querystring" locationName:"edns0clientsubnetmask" type:"string"`
 
 	// The ID of the hosted zone that you want Amazon Route 53 to simulate a query
@@ -13665,14 +13899,14 @@ type TrafficPolicyInstance struct {
 	// The value of State is one of the following values:
 	//
 	// AppliedAmazon Route 53 has finished creating resource record sets, and changes
-	// have propagated to all Amazon Route 53 edge locations.
+	// have propagated to all Route 53 edge locations.
 	//
-	// CreatingAmazon Route 53 is creating the resource record sets. Use GetTrafficPolicyInstance
+	// CreatingRoute 53 is creating the resource record sets. Use GetTrafficPolicyInstance
 	// to confirm that the CreateTrafficPolicyInstance request completed successfully.
 	//
-	// FailedAmazon Route 53 wasn't able to create or update the resource record
-	// sets. When the value of State is Failed, see Message for an explanation of
-	// what caused the request to fail.
+	// FailedRoute 53 wasn't able to create or update the resource record sets.
+	// When the value of State is Failed, see Message for an explanation of what
+	// caused the request to fail.
 	//
 	// State is a required field
 	State *string `type:"string" required:"true"`
@@ -13845,13 +14079,34 @@ type UpdateHealthCheckInput struct {
 	_ struct{} `locationName:"UpdateHealthCheckRequest" type:"structure" xmlURI:"https://route53.amazonaws.com/doc/2013-04-01/"`
 
 	// A complex type that identifies the CloudWatch alarm that you want Amazon
-	// Route 53 health checkers to use to determine whether this health check is
-	// healthy.
+	// Route 53 health checkers to use to determine whether the specified health
+	// check is healthy.
 	AlarmIdentifier *AlarmIdentifier `type:"structure"`
 
 	// A complex type that contains one ChildHealthCheck element for each health
 	// check that you want to associate with a CALCULATED health check.
 	ChildHealthChecks []*string `locationNameList:"ChildHealthCheck" type:"list"`
+
+	// Stops Route 53 from performing health checks. When you disable a health check,
+	// here's what happens:
+	//
+	//    * Health checks that check the health of endpoints: Route 53 stops submitting
+	//    requests to your application, server, or other resource.
+	//
+	//    * Calculated health checks: Route 53 stops aggregating the status of the
+	//    referenced health checks.
+	//
+	//    * Health checks that monitor CloudWatch alarms: Route 53 stops monitoring
+	//    the corresponding CloudWatch metrics.
+	//
+	// After you disable a health check, Route 53 considers the status of the health
+	// check to always be healthy. If you configured DNS failover, Route 53 continues
+	// to route traffic to the corresponding resources. If you want to stop routing
+	// traffic to a resource, change the value of UpdateHealthCheckRequest$Inverted.
+	//
+	// Charges for a health check still apply when the health check is disabled.
+	// For more information, see Amazon Route 53 Pricing (http://aws.amazon.com/route53/pricing/).
+	Disabled *bool `type:"boolean"`
 
 	// Specify whether you want Amazon Route 53 to send the value of FullyQualifiedDomainName
 	// to the endpoint in the client_hello message during TLS negotiation. This
@@ -13893,42 +14148,40 @@ type UpdateHealthCheckInput struct {
 	//
 	// If you specify a value forIPAddress:
 	//
-	// Amazon Route 53 sends health check requests to the specified IPv4 or IPv6
-	// address and passes the value of FullyQualifiedDomainName in the Host header
-	// for all health checks except TCP health checks. This is typically the fully
-	// qualified DNS name of the endpoint on which you want Amazon Route 53 to perform
-	// health checks.
+	// Route 53 sends health check requests to the specified IPv4 or IPv6 address
+	// and passes the value of FullyQualifiedDomainName in the Host header for all
+	// health checks except TCP health checks. This is typically the fully qualified
+	// DNS name of the endpoint on which you want Route 53 to perform health checks.
 	//
-	// When Amazon Route 53 checks the health of an endpoint, here is how it constructs
+	// When Route 53 checks the health of an endpoint, here is how it constructs
 	// the Host header:
 	//
 	//    * If you specify a value of 80 for Port and HTTP or HTTP_STR_MATCH for
-	//    Type, Amazon Route 53 passes the value of FullyQualifiedDomainName to
-	//    the endpoint in the Host header.
+	//    Type, Route 53 passes the value of FullyQualifiedDomainName to the endpoint
+	//    in the Host header.
 	//
 	//    * If you specify a value of 443 for Port and HTTPS or HTTPS_STR_MATCH
-	//    for Type, Amazon Route 53 passes the value of FullyQualifiedDomainName
-	//    to the endpoint in the Host header.
+	//    for Type, Route 53 passes the value of FullyQualifiedDomainName to the
+	//    endpoint in the Host header.
 	//
 	//    * If you specify another value for Port and any value except TCP for Type,
-	//    Amazon Route 53 passes FullyQualifiedDomainName:Port to the endpoint in
-	//    the Host header.
+	//    Route 53 passes FullyQualifiedDomainName:Port to the endpoint in the Host
+	//    header.
 	//
-	// If you don't specify a value for FullyQualifiedDomainName, Amazon Route 53
-	// substitutes the value of IPAddress in the Host header in each of the above
-	// cases.
+	// If you don't specify a value for FullyQualifiedDomainName, Route 53 substitutes
+	// the value of IPAddress in the Host header in each of the above cases.
 	//
 	// If you don't specify a value forIPAddress:
 	//
-	// If you don't specify a value for IPAddress, Amazon Route 53 sends a DNS request
+	// If you don't specify a value for IPAddress, Route 53 sends a DNS request
 	// to the domain that you specify in FullyQualifiedDomainName at the interval
 	// you specify in RequestInterval. Using an IPv4 address that is returned by
-	// DNS, Amazon Route 53 then checks the health of the endpoint.
+	// DNS, Route 53 then checks the health of the endpoint.
 	//
-	// If you don't specify a value for IPAddress, Amazon Route 53 uses only IPv4
-	// to send health checks to the endpoint. If there's no resource record set
-	// with a type of A for the name that you specify for FullyQualifiedDomainName,
-	// the health check fails with a "DNS resolution failed" error.
+	// If you don't specify a value for IPAddress, Route 53 uses only IPv4 to send
+	// health checks to the endpoint. If there's no resource record set with a type
+	// of A for the name that you specify for FullyQualifiedDomainName, the health
+	// check fails with a "DNS resolution failed" error.
 	//
 	// If you want to check the health of weighted, latency, or failover resource
 	// record sets and you choose to specify the endpoint only by FullyQualifiedDomainName,
@@ -13943,9 +14196,9 @@ type UpdateHealthCheckInput struct {
 	// with those resource record sets, health check results will be unpredictable.
 	//
 	// In addition, if the value of Type is HTTP, HTTPS, HTTP_STR_MATCH, or HTTPS_STR_MATCH,
-	// Amazon Route 53 passes the value of FullyQualifiedDomainName in the Host
-	// header, as it does when you specify a value for IPAddress. If the value of
-	// Type is TCP, Amazon Route 53 doesn't pass a Host header.
+	// Route 53 passes the value of FullyQualifiedDomainName in the Host header,
+	// as it does when you specify a value for IPAddress. If the value of Type is
+	// TCP, Route 53 doesn't pass a Host header.
 	FullyQualifiedDomainName *string `type:"string"`
 
 	// The ID for the health check for which you want detailed information. When
@@ -13961,15 +14214,14 @@ type UpdateHealthCheckInput struct {
 	// We recommend that you use GetHealthCheck or ListHealthChecks to get the current
 	// value of HealthCheckVersion for the health check that you want to update,
 	// and that you include that value in your UpdateHealthCheck request. This prevents
-	// Amazon Route 53 from overwriting an intervening update:
+	// Route 53 from overwriting an intervening update:
 	//
 	//    * If the value in the UpdateHealthCheck request matches the value of HealthCheckVersion
-	//    in the health check, Amazon Route 53 updates the health check with the
-	//    new settings.
+	//    in the health check, Route 53 updates the health check with the new settings.
 	//
 	//    * If the value of HealthCheckVersion in the health check is greater, the
-	//    health check was changed after you got the version number. Amazon Route
-	//    53 does not update the health check, and it returns a HealthCheckVersionMismatch
+	//    health check was changed after you got the version number. Route 53 does
+	//    not update the health check, and it returns a HealthCheckVersionMismatch
 	//    error.
 	HealthCheckVersion *int64 `min:"1" type:"long"`
 
@@ -13982,18 +14234,18 @@ type UpdateHealthCheckInput struct {
 	// Note the following:
 	//
 	//    * If you specify a number greater than the number of child health checks,
-	//    Amazon Route 53 always considers this health check to be unhealthy.
+	//    Route 53 always considers this health check to be unhealthy.
 	//
-	//    * If you specify 0, Amazon Route 53 always considers this health check
-	//    to be healthy.
+	//    * If you specify 0, Route 53 always considers this health check to be
+	//    healthy.
 	HealthThreshold *int64 `type:"integer"`
 
 	// The IPv4 or IPv6 IP address for the endpoint that you want Amazon Route 53
 	// to perform health checks on. If you don't specify a value for IPAddress,
-	// Amazon Route 53 sends a DNS request to resolve the domain name that you specify
+	// Route 53 sends a DNS request to resolve the domain name that you specify
 	// in FullyQualifiedDomainName at the interval that you specify in RequestInterval.
-	// Using an IP address that is returned by DNS, Amazon Route 53 then checks
-	// the health of the endpoint.
+	// Using an IP address that is returned by DNS, Route 53 then checks the health
+	// of the endpoint.
 	//
 	// Use one of the following formats for the value of IPAddress:
 	//
@@ -14022,9 +14274,9 @@ type UpdateHealthCheckInput struct {
 	//
 	// For more information, see UpdateHealthCheckRequest$FullyQualifiedDomainName.
 	//
-	// Constraints: Amazon Route 53 can't check the health of endpoints for which
-	// the IP address is in local, private, non-routable, or multicast ranges. For
-	// more information about IP addresses for which you can't create health checks,
+	// Constraints: Route 53 can't check the health of endpoints for which the IP
+	// address is in local, private, non-routable, or multicast ranges. For more
+	// information about IP addresses for which you can't create health checks,
 	// see the following documents:
 	//
 	//    * RFC 5735, Special Use IPv4 Addresses (https://tools.ietf.org/html/rfc5735)
@@ -14037,14 +14289,14 @@ type UpdateHealthCheckInput struct {
 	// When CloudWatch has insufficient data about the metric to determine the alarm
 	// state, the status that you want Amazon Route 53 to assign to the health check:
 	//
-	//    * Healthy: Amazon Route 53 considers the health check to be healthy.
+	//    * Healthy: Route 53 considers the health check to be healthy.
 	//
-	//    * Unhealthy: Amazon Route 53 considers the health check to be unhealthy.
+	//    * Unhealthy: Route 53 considers the health check to be unhealthy.
 	//
-	//    * LastKnownStatus: Amazon Route 53 uses the status of the health check
-	//    from the last time CloudWatch had sufficient data to determine the alarm
-	//    state. For new health checks that have no last known status, the default
-	//    status for the health check is healthy.
+	//    * LastKnownStatus: Route 53 uses the status of the health check from the
+	//    last time CloudWatch had sufficient data to determine the alarm state.
+	//    For new health checks that have no last known status, the default status
+	//    for the health check is healthy.
 	InsufficientDataHealthStatus *string `type:"string" enum:"InsufficientDataHealthStatus"`
 
 	// Specify whether you want Amazon Route 53 to invert the status of a health
@@ -14067,27 +14319,27 @@ type UpdateHealthCheckInput struct {
 	//    * ChildHealthChecks: Amazon Route 53 resets HealthCheckConfig$ChildHealthChecks
 	//    to null.
 	//
-	//    * FullyQualifiedDomainName: Amazon Route 53 resets HealthCheckConfig$FullyQualifiedDomainName
+	//    * FullyQualifiedDomainName: Route 53 resets HealthCheckConfig$FullyQualifiedDomainName
 	//    to null.
 	//
-	//    * Regions: Amazon Route 53 resets the HealthCheckConfig$Regions list to
-	//    the default set of regions.
+	//    * Regions: Route 53 resets the HealthCheckConfig$Regions list to the default
+	//    set of regions.
 	//
-	//    * ResourcePath: Amazon Route 53 resets HealthCheckConfig$ResourcePath
-	//    to null.
+	//    * ResourcePath: Route 53 resets HealthCheckConfig$ResourcePath to null.
 	ResetElements []*string `locationNameList:"ResettableElementName" type:"list"`
 
 	// The path that you want Amazon Route 53 to request when performing health
 	// checks. The path can be any value for which your endpoint will return an
 	// HTTP status code of 2xx or 3xx when the endpoint is healthy, for example
-	// the file /docs/route53-health-check.html.
+	// the file /docs/route53-health-check.html. You can also include query string
+	// parameters, for example, /welcome.html?language=jp&login=y.
 	//
 	// Specify this value only if you want to change it.
 	ResourcePath *string `type:"string"`
 
 	// If the value of Type is HTTP_STR_MATCH or HTTP_STR_MATCH, the string that
 	// you want Amazon Route 53 to search for in the response body from the specified
-	// resource. If the string appears in the response body, Amazon Route 53 considers
+	// resource. If the string appears in the response body, Route 53 considers
 	// the resource healthy. (You can't change the value of Type when you update
 	// a health check.)
 	SearchString *string `type:"string"`
@@ -14111,6 +14363,9 @@ func (s *UpdateHealthCheckInput) Validate() error {
 	}
 	if s.HealthCheckId == nil {
 		invalidParams.Add(request.NewErrParamRequired("HealthCheckId"))
+	}
+	if s.HealthCheckId != nil && len(*s.HealthCheckId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("HealthCheckId", 1))
 	}
 	if s.HealthCheckVersion != nil && *s.HealthCheckVersion < 1 {
 		invalidParams.Add(request.NewErrParamMinValue("HealthCheckVersion", 1))
@@ -14142,6 +14397,12 @@ func (s *UpdateHealthCheckInput) SetAlarmIdentifier(v *AlarmIdentifier) *UpdateH
 // SetChildHealthChecks sets the ChildHealthChecks field's value.
 func (s *UpdateHealthCheckInput) SetChildHealthChecks(v []*string) *UpdateHealthCheckInput {
 	s.ChildHealthChecks = v
+	return s
+}
+
+// SetDisabled sets the Disabled field's value.
+func (s *UpdateHealthCheckInput) SetDisabled(v bool) *UpdateHealthCheckInput {
+	s.Disabled = &v
 	return s
 }
 
@@ -14232,8 +14493,7 @@ func (s *UpdateHealthCheckInput) SetSearchString(v string) *UpdateHealthCheckInp
 type UpdateHealthCheckOutput struct {
 	_ struct{} `type:"structure"`
 
-	// A complex type that contains information about one health check that is associated
-	// with the current AWS account.
+	// A complex type that contains the response to an UpdateHealthCheck request.
 	//
 	// HealthCheck is a required field
 	HealthCheck *HealthCheck `type:"structure" required:"true"`
@@ -14285,6 +14545,9 @@ func (s *UpdateHostedZoneCommentInput) Validate() error {
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
 	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -14309,7 +14572,8 @@ func (s *UpdateHostedZoneCommentInput) SetId(v string) *UpdateHostedZoneCommentI
 type UpdateHostedZoneCommentOutput struct {
 	_ struct{} `type:"structure"`
 
-	// A complex type that contains general information about the hosted zone.
+	// A complex type that contains the response to the UpdateHostedZoneComment
+	// request.
 	//
 	// HostedZone is a required field
 	HostedZone *HostedZone `type:"structure" required:"true"`
@@ -14562,7 +14826,7 @@ type VPC struct {
 	// (Private hosted zones only) The ID of an Amazon VPC.
 	VPCId *string `type:"string"`
 
-	// (Private hosted zones only) The region in which you created an Amazon VPC.
+	// (Private hosted zones only) The region that an Amazon VPC was created in.
 	VPCRegion *string `min:"1" type:"string" enum:"VPCRegion"`
 }
 
@@ -14682,6 +14946,9 @@ const (
 
 	// CloudWatchRegionApNortheast3 is a CloudWatchRegion enum value
 	CloudWatchRegionApNortheast3 = "ap-northeast-3"
+
+	// CloudWatchRegionEuNorth1 is a CloudWatchRegion enum value
+	CloudWatchRegionEuNorth1 = "eu-north-1"
 
 	// CloudWatchRegionSaEast1 is a CloudWatchRegion enum value
 	CloudWatchRegionSaEast1 = "sa-east-1"
@@ -14872,6 +15139,9 @@ const (
 	// ResourceRecordSetRegionApNortheast3 is a ResourceRecordSetRegion enum value
 	ResourceRecordSetRegionApNortheast3 = "ap-northeast-3"
 
+	// ResourceRecordSetRegionEuNorth1 is a ResourceRecordSetRegion enum value
+	ResourceRecordSetRegionEuNorth1 = "eu-north-1"
+
 	// ResourceRecordSetRegionSaEast1 is a ResourceRecordSetRegion enum value
 	ResourceRecordSetRegionSaEast1 = "sa-east-1"
 
@@ -14957,6 +15227,9 @@ const (
 
 	// VPCRegionApNortheast3 is a VPCRegion enum value
 	VPCRegionApNortheast3 = "ap-northeast-3"
+
+	// VPCRegionEuNorth1 is a VPCRegion enum value
+	VPCRegionEuNorth1 = "eu-north-1"
 
 	// VPCRegionSaEast1 is a VPCRegion enum value
 	VPCRegionSaEast1 = "sa-east-1"

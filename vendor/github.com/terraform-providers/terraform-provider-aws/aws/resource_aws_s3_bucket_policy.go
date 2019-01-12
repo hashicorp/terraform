@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsS3BucketPolicy() *schema.Resource {
@@ -18,6 +19,9 @@ func resourceAwsS3BucketPolicy() *schema.Resource {
 		Read:   resourceAwsS3BucketPolicyRead,
 		Update: resourceAwsS3BucketPolicyPut,
 		Delete: resourceAwsS3BucketPolicyDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"bucket": {
@@ -29,7 +33,7 @@ func resourceAwsS3BucketPolicy() *schema.Resource {
 			"policy": {
 				Type:             schema.TypeString,
 				Required:         true,
-				ValidateFunc:     validateJsonString,
+				ValidateFunc:     validation.ValidateJsonString,
 				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 			},
 		},
@@ -83,6 +87,9 @@ func resourceAwsS3BucketPolicyRead(d *schema.ResourceData, meta interface{}) err
 		v = *pol.Policy
 	}
 	if err := d.Set("policy", v); err != nil {
+		return err
+	}
+	if err := d.Set("bucket", d.Id()); err != nil {
 		return err
 	}
 

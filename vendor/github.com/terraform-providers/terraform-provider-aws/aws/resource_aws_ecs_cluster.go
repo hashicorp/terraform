@@ -17,6 +17,7 @@ func resourceAwsEcsCluster() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsEcsClusterCreate,
 		Read:   resourceAwsEcsClusterRead,
+		Update: resourceAwsEcsClusterUpdate,
 		Delete: resourceAwsEcsClusterDelete,
 		Importer: &schema.ResourceImporter{
 			State: resourceAwsEcsClusterImport,
@@ -28,7 +29,7 @@ func resourceAwsEcsCluster() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-
+			"tags": tagsSchema(),
 			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -57,6 +58,7 @@ func resourceAwsEcsClusterCreate(d *schema.ResourceData, meta interface{}) error
 
 	out, err := conn.CreateCluster(&ecs.CreateClusterInput{
 		ClusterName: aws.String(clusterName),
+		Tags:        tagsFromMapECS(d.Get("tags").(map[string]interface{})),
 	})
 	if err != nil {
 		return err
@@ -64,42 +66,118 @@ func resourceAwsEcsClusterCreate(d *schema.ResourceData, meta interface{}) error
 	log.Printf("[DEBUG] ECS cluster %s created", *out.Cluster.ClusterArn)
 
 	d.SetId(*out.Cluster.ClusterArn)
-	d.Set("arn", out.Cluster.ClusterArn)
-	d.Set("name", out.Cluster.ClusterName)
-	return nil
+
+	return resourceAwsEcsClusterRead(d, meta)
 }
 
 func resourceAwsEcsClusterRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ecsconn
 
-	clusterName := d.Get("name").(string)
-	log.Printf("[DEBUG] Reading ECS cluster %s", clusterName)
-	out, err := conn.DescribeClusters(&ecs.DescribeClustersInput{
-		Clusters: []*string{aws.String(clusterName)},
-	})
-	if err != nil {
-		return err
+	input := &ecs.DescribeClustersInput{
+		Clusters: []*string{aws.String(d.Id())},
+		Include:  []*string{aws.String(ecs.ClusterFieldTags)},
 	}
-	log.Printf("[DEBUG] Received ECS clusters: %s", out.Clusters)
 
-	for _, c := range out.Clusters {
-		if *c.ClusterName == clusterName {
-			// Status==INACTIVE means deleted cluster
-			if *c.Status == "INACTIVE" {
-				log.Printf("[DEBUG] Removing ECS cluster %q because it's INACTIVE", *c.ClusterArn)
-				d.SetId("")
-				return nil
+	log.Printf("[DEBUG] Reading ECS Cluster: %s", input)
+	var out *ecs.DescribeClustersOutput
+	err := resource.Retry(2*time.Minute, func() *resource.RetryError {
+		var err error
+		out, err = conn.DescribeClusters(input)
+
+		if err != nil {
+			return resource.NonRetryableError(err)
+		}
+
+		if out == nil || len(out.Failures) > 0 {
+			if d.IsNewResource() {
+				return resource.RetryableError(&resource.NotFoundError{})
 			}
+			return resource.NonRetryableError(&resource.NotFoundError{})
+		}
 
-			d.SetId(*c.ClusterArn)
-			d.Set("arn", c.ClusterArn)
-			d.Set("name", c.ClusterName)
-			return nil
+		return nil
+	})
+
+	if isResourceNotFoundError(err) {
+		log.Printf("[WARN] ECS Cluster (%s) not found, removing from state", d.Id())
+		d.SetId("")
+		return nil
+	}
+
+	if err != nil {
+		return fmt.Errorf("error reading ECS Cluster (%s): %s", d.Id(), err)
+	}
+
+	var cluster *ecs.Cluster
+	for _, c := range out.Clusters {
+		if aws.StringValue(c.ClusterArn) == d.Id() {
+			cluster = c
+			break
 		}
 	}
 
-	log.Printf("[ERR] No matching ECS Cluster found for (%s)", d.Id())
-	d.SetId("")
+	if cluster == nil {
+		log.Printf("[WARN] ECS Cluster (%s) not found, removing from state", d.Id())
+		d.SetId("")
+		return nil
+	}
+
+	// Status==INACTIVE means deleted cluster
+	if aws.StringValue(cluster.Status) == "INACTIVE" {
+		log.Printf("[WARN] ECS Cluster (%s) deleted, removing from state", d.Id())
+		d.SetId("")
+		return nil
+	}
+
+	d.Set("arn", cluster.ClusterArn)
+	d.Set("name", cluster.ClusterName)
+
+	if err := d.Set("tags", tagsToMapECS(cluster.Tags)); err != nil {
+		return fmt.Errorf("error setting tags: %s", err)
+	}
+
+	return nil
+}
+
+func resourceAwsEcsClusterUpdate(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).ecsconn
+
+	if d.HasChange("tags") {
+		oldTagsRaw, newTagsRaw := d.GetChange("tags")
+		oldTagsMap := oldTagsRaw.(map[string]interface{})
+		newTagsMap := newTagsRaw.(map[string]interface{})
+		createTags, removeTags := diffTagsECS(tagsFromMapECS(oldTagsMap), tagsFromMapECS(newTagsMap))
+
+		if len(removeTags) > 0 {
+			removeTagKeys := make([]*string, len(removeTags))
+			for i, removeTag := range removeTags {
+				removeTagKeys[i] = removeTag.Key
+			}
+
+			input := &ecs.UntagResourceInput{
+				ResourceArn: aws.String(d.Id()),
+				TagKeys:     removeTagKeys,
+			}
+
+			log.Printf("[DEBUG] Untagging ECS Cluster: %s", input)
+			if _, err := conn.UntagResource(input); err != nil {
+				return fmt.Errorf("error untagging ECS Cluster (%s): %s", d.Id(), err)
+			}
+		}
+
+		if len(createTags) > 0 {
+			input := &ecs.TagResourceInput{
+				ResourceArn: aws.String(d.Id()),
+				Tags:        createTags,
+			}
+
+			log.Printf("[DEBUG] Tagging ECS Cluster: %s", input)
+			if _, err := conn.TagResource(input); err != nil {
+				return fmt.Errorf("error tagging ECS Cluster (%s): %s", d.Id(), err)
+			}
+		}
+	}
+
 	return nil
 }
 

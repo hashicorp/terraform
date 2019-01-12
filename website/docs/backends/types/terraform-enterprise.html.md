@@ -49,7 +49,7 @@ omitting the access token, which can be provided as an environment variable.
 ```hcl
 data "terraform_remote_state" "foo" {
   backend = "atlas"
-  config {
+  config = {
     name = "example_corp/networking-prod"
   }
 }

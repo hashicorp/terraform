@@ -13,13 +13,13 @@ import (
 
 func wafSizeConstraintSetSchema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
-		"name": &schema.Schema{
+		"name": {
 			Type:     schema.TypeString,
 			Required: true,
 			ForceNew: true,
 		},
 
-		"size_constraints": &schema.Schema{
+		"size_constraints": {
 			Type:     schema.TypeSet,
 			Optional: true,
 			Elem: &schema.Resource{
@@ -41,15 +41,15 @@ func wafSizeConstraintSetSchema() map[string]*schema.Schema {
 							},
 						},
 					},
-					"comparison_operator": &schema.Schema{
+					"comparison_operator": {
 						Type:     schema.TypeString,
 						Required: true,
 					},
-					"size": &schema.Schema{
+					"size": {
 						Type:     schema.TypeInt,
 						Required: true,
 					},
-					"text_transformation": &schema.Schema{
+					"text_transformation": {
 						Type:     schema.TypeString,
 						Required: true,
 					},
@@ -98,7 +98,7 @@ func diffWafSizeConstraints(oldS, newS []interface{}) []*waf.SizeConstraintSetUp
 }
 
 func flattenWafSizeConstraints(sc []*waf.SizeConstraint) []interface{} {
-	out := make([]interface{}, len(sc), len(sc))
+	out := make([]interface{}, len(sc))
 	for i, c := range sc {
 		m := make(map[string]interface{})
 		m["comparison_operator"] = *c.ComparisonOperator
@@ -113,7 +113,7 @@ func flattenWafSizeConstraints(sc []*waf.SizeConstraint) []interface{} {
 }
 
 func flattenWafGeoMatchConstraint(ts []*waf.GeoMatchConstraint) []interface{} {
-	out := make([]interface{}, len(ts), len(ts))
+	out := make([]interface{}, len(ts))
 	for i, t := range ts {
 		m := make(map[string]interface{})
 		m["type"] = *t.Type
@@ -256,7 +256,7 @@ func diffWafRuleGroupActivatedRules(oldRules, newRules []interface{}) []*waf.Rul
 }
 
 func flattenWafActivatedRules(activatedRules []*waf.ActivatedRule) []interface{} {
-	out := make([]interface{}, len(activatedRules), len(activatedRules))
+	out := make([]interface{}, len(activatedRules))
 	for i, ar := range activatedRules {
 		rule := map[string]interface{}{
 			"priority": int(*ar.Priority),
@@ -292,7 +292,7 @@ func expandWafActivatedRule(rule map[string]interface{}) *waf.ActivatedRule {
 }
 
 func flattenWafRegexMatchTuples(tuples []*waf.RegexMatchTuple) []interface{} {
-	out := make([]interface{}, len(tuples), len(tuples))
+	out := make([]interface{}, len(tuples))
 	for i, t := range tuples {
 		m := make(map[string]interface{})
 

@@ -6,7 +6,20 @@ import (
 	"log"
 	"sync"
 
-	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/provisioners"
+	"github.com/hashicorp/terraform/version"
+
+	"github.com/hashicorp/terraform/states"
+
+	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/lang"
+	"github.com/hashicorp/terraform/tfdiags"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // BuiltinEvalContext is an EvalContext implementation that is used by
@@ -16,34 +29,46 @@ type BuiltinEvalContext struct {
 	StopContext context.Context
 
 	// PathValue is the Path that this context is operating within.
-	PathValue []string
+	PathValue addrs.ModuleInstance
 
-	// Interpolater setting below affect the interpolation of variables.
+	// Evaluator is used for evaluating expressions within the scope of this
+	// eval context.
+	Evaluator *Evaluator
+
+	// Schemas is a repository of all of the schemas we should need to
+	// decode configuration blocks and expressions. This must be constructed by
+	// the caller to include schemas for all of the providers, resource types,
+	// data sources and provisioners used by the given configuration and
+	// state.
 	//
-	// The InterpolaterVars are the exact value for ${var.foo} values.
-	// The map is shared between all contexts and is a mapping of
-	// PATH to KEY to VALUE. Because it is shared by all contexts as well
-	// as the Interpolater itself, it is protected by InterpolaterVarLock
-	// which must be locked during any access to the map.
-	Interpolater        *Interpolater
-	InterpolaterVars    map[string]map[string]interface{}
-	InterpolaterVarLock *sync.Mutex
+	// This must not be mutated during evaluation.
+	Schemas *Schemas
+
+	// VariableValues contains the variable values across all modules. This
+	// structure is shared across the entire containing context, and so it
+	// may be accessed only when holding VariableValuesLock.
+	// The keys of the first level of VariableValues are the string
+	// representations of addrs.ModuleInstance values. The second-level keys
+	// are variable names within each module instance.
+	VariableValues     map[string]map[string]cty.Value
+	VariableValuesLock *sync.Mutex
 
 	Components          contextComponentFactory
 	Hooks               []Hook
 	InputValue          UIInput
-	ProviderCache       map[string]ResourceProvider
-	ProviderInputConfig map[string]map[string]interface{}
+	ProviderCache       map[string]providers.Interface
+	ProviderInputConfig map[string]map[string]cty.Value
 	ProviderLock        *sync.Mutex
-	ProvisionerCache    map[string]ResourceProvisioner
+	ProvisionerCache    map[string]provisioners.Interface
 	ProvisionerLock     *sync.Mutex
-	DiffValue           *Diff
-	DiffLock            *sync.RWMutex
-	StateValue          *State
-	StateLock           *sync.RWMutex
+	ChangesValue        *plans.ChangesSync
+	StateValue          *states.SyncState
 
 	once sync.Once
 }
+
+// BuiltinEvalContext implements EvalContext
+var _ EvalContext = (*BuiltinEvalContext)(nil)
 
 func (ctx *BuiltinEvalContext) Stopped() <-chan struct{} {
 	// This can happen during tests. During tests, we just block forever.
@@ -78,12 +103,13 @@ func (ctx *BuiltinEvalContext) Input() UIInput {
 	return ctx.InputValue
 }
 
-func (ctx *BuiltinEvalContext) InitProvider(typeName, name string) (ResourceProvider, error) {
+func (ctx *BuiltinEvalContext) InitProvider(typeName string, addr addrs.ProviderConfig) (providers.Interface, error) {
 	ctx.once.Do(ctx.init)
+	absAddr := addr.Absolute(ctx.Path())
 
 	// If we already initialized, it is an error
-	if p := ctx.Provider(name); p != nil {
-		return nil, fmt.Errorf("Provider '%s' already initialized", name)
+	if p := ctx.Provider(absAddr); p != nil {
+		return nil, fmt.Errorf("%s is already initialized", addr)
 	}
 
 	// Warning: make sure to acquire these locks AFTER the call to Provider
@@ -91,85 +117,102 @@ func (ctx *BuiltinEvalContext) InitProvider(typeName, name string) (ResourceProv
 	ctx.ProviderLock.Lock()
 	defer ctx.ProviderLock.Unlock()
 
-	p, err := ctx.Components.ResourceProvider(typeName, name)
+	key := absAddr.String()
+
+	p, err := ctx.Components.ResourceProvider(typeName, key)
 	if err != nil {
 		return nil, err
 	}
 
-	ctx.ProviderCache[name] = p
+	log.Printf("[TRACE] BuiltinEvalContext: Initialized %q provider for %s", typeName, absAddr)
+	ctx.ProviderCache[key] = p
+
 	return p, nil
 }
 
-func (ctx *BuiltinEvalContext) Provider(n string) ResourceProvider {
+func (ctx *BuiltinEvalContext) Provider(addr addrs.AbsProviderConfig) providers.Interface {
 	ctx.once.Do(ctx.init)
 
 	ctx.ProviderLock.Lock()
 	defer ctx.ProviderLock.Unlock()
 
-	return ctx.ProviderCache[n]
+	return ctx.ProviderCache[addr.String()]
 }
 
-func (ctx *BuiltinEvalContext) CloseProvider(n string) error {
+func (ctx *BuiltinEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) *ProviderSchema {
+	ctx.once.Do(ctx.init)
+
+	return ctx.Schemas.ProviderSchema(addr.ProviderConfig.Type)
+}
+
+func (ctx *BuiltinEvalContext) CloseProvider(addr addrs.ProviderConfig) error {
 	ctx.once.Do(ctx.init)
 
 	ctx.ProviderLock.Lock()
 	defer ctx.ProviderLock.Unlock()
 
-	var provider interface{}
-	provider = ctx.ProviderCache[n]
+	key := addr.Absolute(ctx.Path()).String()
+	provider := ctx.ProviderCache[key]
 	if provider != nil {
-		if p, ok := provider.(ResourceProviderCloser); ok {
-			delete(ctx.ProviderCache, n)
-			return p.Close()
-		}
+		delete(ctx.ProviderCache, key)
+		return provider.Close()
 	}
 
 	return nil
 }
 
-func (ctx *BuiltinEvalContext) ConfigureProvider(
-	n string, cfg *ResourceConfig) error {
-	p := ctx.Provider(n)
+func (ctx *BuiltinEvalContext) ConfigureProvider(addr addrs.ProviderConfig, cfg cty.Value) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	absAddr := addr.Absolute(ctx.Path())
+	p := ctx.Provider(absAddr)
 	if p == nil {
-		return fmt.Errorf("Provider '%s' not initialized", n)
+		diags = diags.Append(fmt.Errorf("%s not initialized", addr))
+		return diags
 	}
-	return p.Configure(cfg)
+
+	providerSchema := ctx.ProviderSchema(absAddr)
+	if providerSchema == nil {
+		diags = diags.Append(fmt.Errorf("schema for %s is not available", absAddr))
+		return diags
+	}
+
+	req := providers.ConfigureRequest{
+		TerraformVersion: version.String(),
+		Config:           cfg,
+	}
+
+	resp := p.Configure(req)
+	return resp.Diagnostics
 }
 
-func (ctx *BuiltinEvalContext) ProviderInput(n string) map[string]interface{} {
+func (ctx *BuiltinEvalContext) ProviderInput(pc addrs.ProviderConfig) map[string]cty.Value {
 	ctx.ProviderLock.Lock()
 	defer ctx.ProviderLock.Unlock()
 
-	// Make a copy of the path so we can safely edit it
-	path := ctx.Path()
-	pathCopy := make([]string, len(path)+1)
-	copy(pathCopy, path)
-
-	// Go up the tree.
-	for i := len(path) - 1; i >= 0; i-- {
-		pathCopy[i+1] = n
-		k := PathCacheKey(pathCopy[:i+2])
-		if v, ok := ctx.ProviderInputConfig[k]; ok {
-			return v
-		}
+	if !ctx.Path().IsRoot() {
+		// Only root module provider configurations can have input.
+		return nil
 	}
 
-	return nil
+	return ctx.ProviderInputConfig[pc.String()]
 }
 
-func (ctx *BuiltinEvalContext) SetProviderInput(n string, c map[string]interface{}) {
-	providerPath := make([]string, len(ctx.Path())+1)
-	copy(providerPath, ctx.Path())
-	providerPath[len(providerPath)-1] = n
+func (ctx *BuiltinEvalContext) SetProviderInput(pc addrs.ProviderConfig, c map[string]cty.Value) {
+	absProvider := pc.Absolute(ctx.Path())
+
+	if !ctx.Path().IsRoot() {
+		// Only root module provider configurations can have input.
+		log.Printf("[WARN] BuiltinEvalContext: attempt to SetProviderInput for non-root module")
+		return
+	}
 
 	// Save the configuration
 	ctx.ProviderLock.Lock()
-	ctx.ProviderInputConfig[PathCacheKey(providerPath)] = c
+	ctx.ProviderInputConfig[absProvider.String()] = c
 	ctx.ProviderLock.Unlock()
 }
 
-func (ctx *BuiltinEvalContext) InitProvisioner(
-	n string) (ResourceProvisioner, error) {
+func (ctx *BuiltinEvalContext) InitProvisioner(n string) (provisioners.Interface, error) {
 	ctx.once.Do(ctx.init)
 
 	// If we already initialized, it is an error
@@ -182,10 +225,7 @@ func (ctx *BuiltinEvalContext) InitProvisioner(
 	ctx.ProvisionerLock.Lock()
 	defer ctx.ProvisionerLock.Unlock()
 
-	provPath := make([]string, len(ctx.Path())+1)
-	copy(provPath, ctx.Path())
-	provPath[len(provPath)-1] = n
-	key := PathCacheKey(provPath)
+	key := PathObjectCacheKey(ctx.Path(), n)
 
 	p, err := ctx.Components.ResourceProvisioner(n, key)
 	if err != nil {
@@ -193,20 +233,24 @@ func (ctx *BuiltinEvalContext) InitProvisioner(
 	}
 
 	ctx.ProvisionerCache[key] = p
+
 	return p, nil
 }
 
-func (ctx *BuiltinEvalContext) Provisioner(n string) ResourceProvisioner {
+func (ctx *BuiltinEvalContext) Provisioner(n string) provisioners.Interface {
 	ctx.once.Do(ctx.init)
 
 	ctx.ProvisionerLock.Lock()
 	defer ctx.ProvisionerLock.Unlock()
 
-	provPath := make([]string, len(ctx.Path())+1)
-	copy(provPath, ctx.Path())
-	provPath[len(provPath)-1] = n
+	key := PathObjectCacheKey(ctx.Path(), n)
+	return ctx.ProvisionerCache[key]
+}
 
-	return ctx.ProvisionerCache[PathCacheKey(provPath)]
+func (ctx *BuiltinEvalContext) ProvisionerSchema(n string) *configschema.Block {
+	ctx.once.Do(ctx.init)
+
+	return ctx.Schemas.ProvisionerConfig(n)
 }
 
 func (ctx *BuiltinEvalContext) CloseProvisioner(n string) error {
@@ -215,106 +259,70 @@ func (ctx *BuiltinEvalContext) CloseProvisioner(n string) error {
 	ctx.ProvisionerLock.Lock()
 	defer ctx.ProvisionerLock.Unlock()
 
-	provPath := make([]string, len(ctx.Path())+1)
-	copy(provPath, ctx.Path())
-	provPath[len(provPath)-1] = n
+	key := PathObjectCacheKey(ctx.Path(), n)
 
-	var prov interface{}
-	prov = ctx.ProvisionerCache[PathCacheKey(provPath)]
+	prov := ctx.ProvisionerCache[key]
 	if prov != nil {
-		if p, ok := prov.(ResourceProvisionerCloser); ok {
-			delete(ctx.ProvisionerCache, PathCacheKey(provPath))
-			return p.Close()
-		}
+		return prov.Close()
 	}
 
 	return nil
 }
 
-func (ctx *BuiltinEvalContext) Interpolate(
-	cfg *config.RawConfig, r *Resource) (*ResourceConfig, error) {
-
-	if cfg != nil {
-		scope := &InterpolationScope{
-			Path:     ctx.Path(),
-			Resource: r,
-		}
-
-		vs, err := ctx.Interpolater.Values(scope, cfg.Variables)
-		if err != nil {
-			return nil, err
-		}
-
-		// Do the interpolation
-		if err := cfg.Interpolate(vs); err != nil {
-			return nil, err
-		}
-	}
-
-	result := NewResourceConfig(cfg)
-	result.interpolateForce()
-	return result, nil
+func (ctx *BuiltinEvalContext) EvaluateBlock(body hcl.Body, schema *configschema.Block, self addrs.Referenceable, keyData InstanceKeyEvalData) (cty.Value, hcl.Body, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	scope := ctx.EvaluationScope(self, keyData)
+	body, evalDiags := scope.ExpandBlock(body, schema)
+	diags = diags.Append(evalDiags)
+	val, evalDiags := scope.EvalBlock(body, schema)
+	diags = diags.Append(evalDiags)
+	return val, body, diags
 }
 
-func (ctx *BuiltinEvalContext) InterpolateProvider(
-	pc *config.ProviderConfig, r *Resource) (*ResourceConfig, error) {
-
-	var cfg *config.RawConfig
-
-	if pc != nil && pc.RawConfig != nil {
-		scope := &InterpolationScope{
-			Path:     ctx.Path(),
-			Resource: r,
-		}
-
-		cfg = pc.RawConfig
-
-		vs, err := ctx.Interpolater.Values(scope, cfg.Variables)
-		if err != nil {
-			return nil, err
-		}
-
-		// Do the interpolation
-		if err := cfg.Interpolate(vs); err != nil {
-			return nil, err
-		}
-	}
-
-	result := NewResourceConfig(cfg)
-	result.interpolateForce()
-	return result, nil
+func (ctx *BuiltinEvalContext) EvaluateExpr(expr hcl.Expression, wantType cty.Type, self addrs.Referenceable) (cty.Value, tfdiags.Diagnostics) {
+	scope := ctx.EvaluationScope(self, EvalDataForNoInstanceKey)
+	return scope.EvalExpr(expr, wantType)
 }
 
-func (ctx *BuiltinEvalContext) Path() []string {
+func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, keyData InstanceKeyEvalData) *lang.Scope {
+	data := &evaluationStateData{
+		Evaluator:       ctx.Evaluator,
+		ModulePath:      ctx.PathValue,
+		InstanceKeyData: keyData,
+		Operation:       ctx.Evaluator.Operation,
+	}
+	return ctx.Evaluator.Scope(data, self)
+}
+
+func (ctx *BuiltinEvalContext) Path() addrs.ModuleInstance {
 	return ctx.PathValue
 }
 
-func (ctx *BuiltinEvalContext) SetVariables(n string, vs map[string]interface{}) {
-	ctx.InterpolaterVarLock.Lock()
-	defer ctx.InterpolaterVarLock.Unlock()
+func (ctx *BuiltinEvalContext) SetModuleCallArguments(n addrs.ModuleCallInstance, vals map[string]cty.Value) {
+	ctx.VariableValuesLock.Lock()
+	defer ctx.VariableValuesLock.Unlock()
 
-	path := make([]string, len(ctx.Path())+1)
-	copy(path, ctx.Path())
-	path[len(path)-1] = n
-	key := PathCacheKey(path)
+	childPath := n.ModuleInstance(ctx.PathValue)
+	key := childPath.String()
 
-	vars := ctx.InterpolaterVars[key]
-	if vars == nil {
-		vars = make(map[string]interface{})
-		ctx.InterpolaterVars[key] = vars
+	args := ctx.VariableValues[key]
+	if args == nil {
+		args = make(map[string]cty.Value)
+		ctx.VariableValues[key] = vals
+		return
 	}
 
-	for k, v := range vs {
-		vars[k] = v
+	for k, v := range vals {
+		args[k] = v
 	}
 }
 
-func (ctx *BuiltinEvalContext) Diff() (*Diff, *sync.RWMutex) {
-	return ctx.DiffValue, ctx.DiffLock
+func (ctx *BuiltinEvalContext) Changes() *plans.ChangesSync {
+	return ctx.ChangesValue
 }
 
-func (ctx *BuiltinEvalContext) State() (*State, *sync.RWMutex) {
-	return ctx.StateValue, ctx.StateLock
+func (ctx *BuiltinEvalContext) State() *states.SyncState {
+	return ctx.StateValue
 }
 
 func (ctx *BuiltinEvalContext) init() {

@@ -138,7 +138,7 @@ func resourceAwsSnsPlatformApplicationUpdate(d *schema.ResourceData, meta interf
 
 	attributes := make(map[string]*string)
 
-	for k, _ := range resourceAwsSnsPlatformApplication().Schema {
+	for k := range resourceAwsSnsPlatformApplication().Schema {
 		if attrKey, ok := snsPlatformApplicationAttributeMap[k]; ok {
 			if d.HasChange(k) {
 				log.Printf("[DEBUG] Updating %s", attrKey)
@@ -203,6 +203,11 @@ func resourceAwsSnsPlatformApplicationRead(d *schema.ResourceData, meta interfac
 	})
 
 	if err != nil {
+		if isAWSErr(err, sns.ErrCodeNotFoundException, "") {
+			log.Printf("[WARN] SNS Platform Application (%s) not found, removing from state", d.Id())
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 

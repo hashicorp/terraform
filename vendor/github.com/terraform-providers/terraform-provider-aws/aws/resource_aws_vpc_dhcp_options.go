@@ -24,42 +24,44 @@ func resourceAwsVpcDhcpOptions() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"domain_name": &schema.Schema{
+			"domain_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"domain_name_servers": &schema.Schema{
+			"domain_name_servers": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
-			"ntp_servers": &schema.Schema{
+			"ntp_servers": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
-			"netbios_node_type": &schema.Schema{
+			"netbios_node_type": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"netbios_name_servers": &schema.Schema{
+			"netbios_name_servers": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
-			"tags": &schema.Schema{
-				Type:     schema.TypeMap,
-				Optional: true,
+			"tags": tagsSchema(),
+
+			"owner_id": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 	}
@@ -117,7 +119,7 @@ func resourceAwsVpcDhcpOptionsCreate(d *schema.ResourceData, meta interface{}) e
 	}
 
 	dos := resp.DhcpOptions
-	d.SetId(*dos.DhcpOptionsId)
+	d.SetId(aws.StringValue(dos.DhcpOptionsId))
 	log.Printf("[INFO] DHCP Options Set ID: %s", d.Id())
 
 	// Wait for the DHCP Options to become available
@@ -161,6 +163,7 @@ func resourceAwsVpcDhcpOptionsRead(d *schema.ResourceData, meta interface{}) err
 
 	opts := resp.DhcpOptions[0]
 	d.Set("tags", tagsToMap(opts.Tags))
+	d.Set("owner_id", opts.OwnerId)
 
 	for _, cfg := range opts.DhcpConfigurations {
 		tfKey := strings.Replace(*cfg.Key, "-", "_", -1)
@@ -182,7 +185,12 @@ func resourceAwsVpcDhcpOptionsRead(d *schema.ResourceData, meta interface{}) err
 
 func resourceAwsVpcDhcpOptionsUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
-	return setTags(conn, d)
+
+	if err := setTags(conn, d); err != nil {
+		return err
+	}
+
+	return resourceAwsVpcDhcpOptionsRead(d, meta)
 }
 
 func resourceAwsVpcDhcpOptionsDelete(d *schema.ResourceData, meta interface{}) error {
@@ -236,7 +244,7 @@ func resourceAwsVpcDhcpOptionsDelete(d *schema.ResourceData, meta interface{}) e
 func findVPCsByDHCPOptionsID(conn *ec2.EC2, id string) ([]*ec2.Vpc, error) {
 	req := &ec2.DescribeVpcsInput{
 		Filters: []*ec2.Filter{
-			&ec2.Filter{
+			{
 				Name: aws.String("dhcp-options-id"),
 				Values: []*string{
 					aws.String(id),

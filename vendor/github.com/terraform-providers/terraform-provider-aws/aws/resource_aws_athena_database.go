@@ -38,18 +38,69 @@ func resourceAwsAthenaDatabase() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
+			"encryption_configuration": {
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"kms_key": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"encryption_option": {
+							Type:     schema.TypeString,
+							Required: true,
+							ValidateFunc: validation.StringInSlice([]string{
+								athena.EncryptionOptionCseKms,
+								athena.EncryptionOptionSseKms,
+								athena.EncryptionOptionSseS3,
+							}, false),
+						},
+					},
+				},
+			},
 		},
 	}
+}
+
+func expandAthenaResultConfiguration(bucket string, encryptionConfigurationList []interface{}) (*athena.ResultConfiguration, error) {
+	resultConfig := athena.ResultConfiguration{
+		OutputLocation: aws.String("s3://" + bucket),
+	}
+
+	if len(encryptionConfigurationList) <= 0 {
+		return &resultConfig, nil
+	}
+
+	data := encryptionConfigurationList[0].(map[string]interface{})
+	keyType := data["encryption_option"].(string)
+	keyID := data["kms_key"].(string)
+
+	encryptionConfig := athena.EncryptionConfiguration{
+		EncryptionOption: aws.String(keyType),
+	}
+
+	if len(keyID) > 0 {
+		encryptionConfig.KmsKey = aws.String(keyID)
+	}
+
+	resultConfig.EncryptionConfiguration = &encryptionConfig
+
+	return &resultConfig, nil
 }
 
 func resourceAwsAthenaDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).athenaconn
 
+	resultConfig, err := expandAthenaResultConfiguration(d.Get("bucket").(string), d.Get("encryption_configuration").([]interface{}))
+	if err != nil {
+		return err
+	}
+
 	input := &athena.StartQueryExecutionInput{
-		QueryString: aws.String(fmt.Sprintf("create database `%s`;", d.Get("name").(string))),
-		ResultConfiguration: &athena.ResultConfiguration{
-			OutputLocation: aws.String("s3://" + d.Get("bucket").(string)),
-		},
+		QueryString:         aws.String(fmt.Sprintf("create database `%s`;", d.Get("name").(string))),
+		ResultConfiguration: resultConfig,
 	}
 
 	resp, err := conn.StartQueryExecution(input)
@@ -57,7 +108,7 @@ func resourceAwsAthenaDatabaseCreate(d *schema.ResourceData, meta interface{}) e
 		return err
 	}
 
-	if err := executeAndExpectNoRowsWhenCreate(*resp.QueryExecutionId, d, conn); err != nil {
+	if err := executeAndExpectNoRowsWhenCreate(*resp.QueryExecutionId, conn); err != nil {
 		return err
 	}
 	d.SetId(d.Get("name").(string))
@@ -67,12 +118,14 @@ func resourceAwsAthenaDatabaseCreate(d *schema.ResourceData, meta interface{}) e
 func resourceAwsAthenaDatabaseRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).athenaconn
 
-	bucket := d.Get("bucket").(string)
+	resultConfig, err := expandAthenaResultConfiguration(d.Get("bucket").(string), d.Get("encryption_configuration").([]interface{}))
+	if err != nil {
+		return err
+	}
+
 	input := &athena.StartQueryExecutionInput{
-		QueryString: aws.String(fmt.Sprint("show databases;")),
-		ResultConfiguration: &athena.ResultConfiguration{
-			OutputLocation: aws.String("s3://" + bucket),
-		},
+		QueryString:         aws.String(fmt.Sprint("show databases;")),
+		ResultConfiguration: resultConfig,
 	}
 
 	resp, err := conn.StartQueryExecution(input)
@@ -93,8 +146,12 @@ func resourceAwsAthenaDatabaseUpdate(d *schema.ResourceData, meta interface{}) e
 func resourceAwsAthenaDatabaseDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).athenaconn
 
+	resultConfig, err := expandAthenaResultConfiguration(d.Get("bucket").(string), d.Get("encryption_configuration").([]interface{}))
+	if err != nil {
+		return err
+	}
+
 	name := d.Get("name").(string)
-	bucket := d.Get("bucket").(string)
 
 	queryString := fmt.Sprintf("drop database `%s`", name)
 	if d.Get("force_destroy").(bool) {
@@ -103,10 +160,8 @@ func resourceAwsAthenaDatabaseDelete(d *schema.ResourceData, meta interface{}) e
 	queryString += ";"
 
 	input := &athena.StartQueryExecutionInput{
-		QueryString: aws.String(queryString),
-		ResultConfiguration: &athena.ResultConfiguration{
-			OutputLocation: aws.String("s3://" + bucket),
-		},
+		QueryString:         aws.String(queryString),
+		ResultConfiguration: resultConfig,
 	}
 
 	resp, err := conn.StartQueryExecution(input)
@@ -114,19 +169,19 @@ func resourceAwsAthenaDatabaseDelete(d *schema.ResourceData, meta interface{}) e
 		return err
 	}
 
-	if err := executeAndExpectNoRowsWhenDrop(*resp.QueryExecutionId, d, conn); err != nil {
+	if err := executeAndExpectNoRowsWhenDrop(*resp.QueryExecutionId, conn); err != nil {
 		return err
 	}
 	return nil
 }
 
-func executeAndExpectNoRowsWhenCreate(qeid string, d *schema.ResourceData, conn *athena.Athena) error {
+func executeAndExpectNoRowsWhenCreate(qeid string, conn *athena.Athena) error {
 	rs, err := queryExecutionResult(qeid, conn)
 	if err != nil {
 		return err
 	}
 	if len(rs.Rows) != 0 {
-		return fmt.Errorf("[ERROR] Athena create database, unexpected query result: %s", flattenAthenaResultSet(rs))
+		return fmt.Errorf("Athena create database, unexpected query result: %s", flattenAthenaResultSet(rs))
 	}
 	return nil
 }
@@ -143,16 +198,16 @@ func executeAndExpectMatchingRow(qeid string, dbName string, conn *athena.Athena
 			}
 		}
 	}
-	return fmt.Errorf("[ERROR] Athena not found database: %s, query result: %s", dbName, flattenAthenaResultSet(rs))
+	return fmt.Errorf("Athena not found database: %s, query result: %s", dbName, flattenAthenaResultSet(rs))
 }
 
-func executeAndExpectNoRowsWhenDrop(qeid string, d *schema.ResourceData, conn *athena.Athena) error {
+func executeAndExpectNoRowsWhenDrop(qeid string, conn *athena.Athena) error {
 	rs, err := queryExecutionResult(qeid, conn)
 	if err != nil {
 		return err
 	}
 	if len(rs.Rows) != 0 {
-		return fmt.Errorf("[ERROR] Athena drop database, unexpected query result: %s", flattenAthenaResultSet(rs))
+		return fmt.Errorf("Athena drop database, unexpected query result: %s", flattenAthenaResultSet(rs))
 	}
 	return nil
 }

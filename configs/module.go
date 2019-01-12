@@ -4,11 +4,25 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl2/hcl"
+
+	"github.com/hashicorp/terraform/addrs"
 )
 
 // Module is a container for a set of configuration constructs that are
 // evaluated within a common namespace.
 type Module struct {
+	// SourceDir is the filesystem directory that the module was loaded from.
+	//
+	// This is populated automatically only for configurations loaded with
+	// LoadConfigDir. If the parser is using a virtual filesystem then the
+	// path here will be in terms of that virtual filesystem.
+
+	// Any other caller that constructs a module directly with NewModule may
+	// assign a suitable value to this attribute before using it for other
+	// purposes. It should be treated as immutable by all consumers of Module
+	// values.
+	SourceDir string
+
 	CoreVersionConstraints []VersionConstraint
 
 	Backend              *Backend
@@ -21,8 +35,8 @@ type Module struct {
 
 	ModuleCalls map[string]*ModuleCall
 
-	ManagedResources map[string]*ManagedResource
-	DataResources    map[string]*DataResource
+	ManagedResources map[string]*Resource
+	DataResources    map[string]*Resource
 }
 
 // File describes the contents of a single configuration file.
@@ -49,8 +63,8 @@ type File struct {
 
 	ModuleCalls []*ModuleCall
 
-	ManagedResources []*ManagedResource
-	DataResources    []*DataResource
+	ManagedResources []*Resource
+	DataResources    []*Resource
 }
 
 // NewModule takes a list of primary files and a list of override files and
@@ -70,8 +84,8 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 		Locals:               map[string]*Local{},
 		Outputs:              map[string]*Output{},
 		ModuleCalls:          map[string]*ModuleCall{},
-		ManagedResources:     map[string]*ManagedResource{},
-		DataResources:        map[string]*DataResource{},
+		ManagedResources:     map[string]*Resource{},
+		DataResources:        map[string]*Resource{},
 	}
 
 	for _, file := range primaryFiles {
@@ -85,6 +99,20 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 	}
 
 	return mod, diags
+}
+
+// ResourceByAddr returns the configuration for the resource with the given
+// address, or nil if there is no such resource.
+func (m *Module) ResourceByAddr(addr addrs.Resource) *Resource {
+	key := addr.String()
+	switch addr.Mode {
+	case addrs.ManagedResourceMode:
+		return m.ManagedResources[key]
+	case addrs.DataResourceMode:
+		return m.DataResources[key]
+	default:
+		return nil
+	}
 }
 
 func (m *Module) appendFile(file *File) hcl.Diagnostics {

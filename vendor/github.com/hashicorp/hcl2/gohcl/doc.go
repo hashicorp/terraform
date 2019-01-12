@@ -40,6 +40,10 @@
 // present then any attributes or blocks not matched by another valid tag
 // will cause an error diagnostic.
 //
+// Only a subset of this tagging/typing vocabulary is supported for the
+// "Encode" family of functions. See the EncodeIntoBody docs for full details
+// on the constraints there.
+//
 // Broadly-speaking this package deals with two types of error. The first is
 // errors in the configuration itself, which are returned as diagnostics
 // written with the configuration author as the target audience. The second

@@ -28,6 +28,12 @@ const (
 	// Too many jobs are being run concurrently.
 	ErrCodeConcurrentRunsExceededException = "ConcurrentRunsExceededException"
 
+	// ErrCodeConditionCheckFailureException for service response error code
+	// "ConditionCheckFailureException".
+	//
+	// A specified condition was not satisfied.
+	ErrCodeConditionCheckFailureException = "ConditionCheckFailureException"
+
 	// ErrCodeCrawlerNotRunningException for service response error code
 	// "CrawlerNotRunningException".
 	//
@@ -45,6 +51,12 @@ const (
 	//
 	// The specified crawler is stopping.
 	ErrCodeCrawlerStoppingException = "CrawlerStoppingException"
+
+	// ErrCodeEncryptionException for service response error code
+	// "GlueEncryptionException".
+	//
+	// An encryption operation failed.
+	ErrCodeEncryptionException = "GlueEncryptionException"
 
 	// ErrCodeEntityNotFoundException for service response error code
 	// "EntityNotFoundException".

@@ -18,7 +18,7 @@ const opAbortEnvironmentUpdate = "AbortEnvironmentUpdate"
 // AbortEnvironmentUpdateRequest generates a "aws/request.Request" representing the
 // client's request for the AbortEnvironmentUpdate operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -52,8 +52,7 @@ func (c *ElasticBeanstalk) AbortEnvironmentUpdateRequest(input *AbortEnvironment
 
 	output = &AbortEnvironmentUpdateOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -101,7 +100,7 @@ const opApplyEnvironmentManagedAction = "ApplyEnvironmentManagedAction"
 // ApplyEnvironmentManagedActionRequest generates a "aws/request.Request" representing the
 // client's request for the ApplyEnvironmentManagedAction operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -185,7 +184,7 @@ const opCheckDNSAvailability = "CheckDNSAvailability"
 // CheckDNSAvailabilityRequest generates a "aws/request.Request" representing the
 // client's request for the CheckDNSAvailability operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -259,7 +258,7 @@ const opComposeEnvironments = "ComposeEnvironments"
 // ComposeEnvironmentsRequest generates a "aws/request.Request" representing the
 // client's request for the ComposeEnvironments operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -348,7 +347,7 @@ const opCreateApplication = "CreateApplication"
 // CreateApplicationRequest generates a "aws/request.Request" representing the
 // client's request for the CreateApplication operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -428,7 +427,7 @@ const opCreateApplicationVersion = "CreateApplicationVersion"
 // CreateApplicationVersionRequest generates a "aws/request.Request" representing the
 // client's request for the CreateApplicationVersion operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -543,7 +542,7 @@ const opCreateConfigurationTemplate = "CreateConfigurationTemplate"
 // CreateConfigurationTemplateRequest generates a "aws/request.Request" representing the
 // client's request for the CreateConfigurationTemplate operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -585,6 +584,9 @@ func (c *ElasticBeanstalk) CreateConfigurationTemplateRequest(input *CreateConfi
 // Creates a configuration template. Templates are associated with a specific
 // application and are used to deploy different versions of the application
 // with the same configuration settings.
+//
+// Templates aren't associated with any environment. The EnvironmentName response
+// element is always null.
 //
 // Related Topics
 //
@@ -639,7 +641,7 @@ const opCreateEnvironment = "CreateEnvironment"
 // CreateEnvironmentRequest generates a "aws/request.Request" representing the
 // client's request for the CreateEnvironment operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -723,7 +725,7 @@ const opCreatePlatformVersion = "CreatePlatformVersion"
 // CreatePlatformVersionRequest generates a "aws/request.Request" representing the
 // client's request for the CreatePlatformVersion operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -810,7 +812,7 @@ const opCreateStorageLocation = "CreateStorageLocation"
 // CreateStorageLocationRequest generates a "aws/request.Request" representing the
 // client's request for the CreateStorageLocation operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -900,7 +902,7 @@ const opDeleteApplication = "DeleteApplication"
 // DeleteApplicationRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteApplication operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -934,8 +936,7 @@ func (c *ElasticBeanstalk) DeleteApplicationRequest(input *DeleteApplicationInpu
 
 	output = &DeleteApplicationOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -986,7 +987,7 @@ const opDeleteApplicationVersion = "DeleteApplicationVersion"
 // DeleteApplicationVersionRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteApplicationVersion operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1020,8 +1021,7 @@ func (c *ElasticBeanstalk) DeleteApplicationVersionRequest(input *DeleteApplicat
 
 	output = &DeleteApplicationVersionOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1089,7 +1089,7 @@ const opDeleteConfigurationTemplate = "DeleteConfigurationTemplate"
 // DeleteConfigurationTemplateRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteConfigurationTemplate operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1123,8 +1123,7 @@ func (c *ElasticBeanstalk) DeleteConfigurationTemplateRequest(input *DeleteConfi
 
 	output = &DeleteConfigurationTemplateOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1175,7 +1174,7 @@ const opDeleteEnvironmentConfiguration = "DeleteEnvironmentConfiguration"
 // DeleteEnvironmentConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteEnvironmentConfiguration operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1209,8 +1208,7 @@ func (c *ElasticBeanstalk) DeleteEnvironmentConfigurationRequest(input *DeleteEn
 
 	output = &DeleteEnvironmentConfigurationOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1258,7 +1256,7 @@ const opDeletePlatformVersion = "DeletePlatformVersion"
 // DeletePlatformVersionRequest generates a "aws/request.Request" representing the
 // client's request for the DeletePlatformVersion operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1349,7 +1347,7 @@ const opDescribeAccountAttributes = "DescribeAccountAttributes"
 // DescribeAccountAttributesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeAccountAttributes operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1432,7 +1430,7 @@ const opDescribeApplicationVersions = "DescribeApplicationVersions"
 // DescribeApplicationVersionsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeApplicationVersions operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1506,7 +1504,7 @@ const opDescribeApplications = "DescribeApplications"
 // DescribeApplicationsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeApplications operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1580,7 +1578,7 @@ const opDescribeConfigurationOptions = "DescribeConfigurationOptions"
 // DescribeConfigurationOptionsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeConfigurationOptions operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1663,7 +1661,7 @@ const opDescribeConfigurationSettings = "DescribeConfigurationSettings"
 // DescribeConfigurationSettingsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeConfigurationSettings operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1754,7 +1752,7 @@ const opDescribeEnvironmentHealth = "DescribeEnvironmentHealth"
 // DescribeEnvironmentHealthRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeEnvironmentHealth operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1839,7 +1837,7 @@ const opDescribeEnvironmentManagedActionHistory = "DescribeEnvironmentManagedAct
 // DescribeEnvironmentManagedActionHistoryRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeEnvironmentManagedActionHistory operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1918,7 +1916,7 @@ const opDescribeEnvironmentManagedActions = "DescribeEnvironmentManagedActions"
 // DescribeEnvironmentManagedActionsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeEnvironmentManagedActions operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1997,7 +1995,7 @@ const opDescribeEnvironmentResources = "DescribeEnvironmentResources"
 // DescribeEnvironmentResourcesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeEnvironmentResources operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2077,7 +2075,7 @@ const opDescribeEnvironments = "DescribeEnvironments"
 // DescribeEnvironmentsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeEnvironments operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2151,7 +2149,7 @@ const opDescribeEvents = "DescribeEvents"
 // DescribeEventsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeEvents operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2283,7 +2281,7 @@ const opDescribeInstancesHealth = "DescribeInstancesHealth"
 // DescribeInstancesHealthRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeInstancesHealth operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2367,7 +2365,7 @@ const opDescribePlatformVersion = "DescribePlatformVersion"
 // DescribePlatformVersionRequest generates a "aws/request.Request" representing the
 // client's request for the DescribePlatformVersion operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2450,7 +2448,7 @@ const opListAvailableSolutionStacks = "ListAvailableSolutionStacks"
 // ListAvailableSolutionStacksRequest generates a "aws/request.Request" representing the
 // client's request for the ListAvailableSolutionStacks operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2525,7 +2523,7 @@ const opListPlatformVersions = "ListPlatformVersions"
 // ListPlatformVersionsRequest generates a "aws/request.Request" representing the
 // client's request for the ListPlatformVersions operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2608,7 +2606,7 @@ const opListTagsForResource = "ListTagsForResource"
 // ListTagsForResourceRequest generates a "aws/request.Request" representing the
 // client's request for the ListTagsForResource operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2700,7 +2698,7 @@ const opRebuildEnvironment = "RebuildEnvironment"
 // RebuildEnvironmentRequest generates a "aws/request.Request" representing the
 // client's request for the RebuildEnvironment operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2734,8 +2732,7 @@ func (c *ElasticBeanstalk) RebuildEnvironmentRequest(input *RebuildEnvironmentIn
 
 	output = &RebuildEnvironmentOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2783,7 +2780,7 @@ const opRequestEnvironmentInfo = "RequestEnvironmentInfo"
 // RequestEnvironmentInfoRequest generates a "aws/request.Request" representing the
 // client's request for the RequestEnvironmentInfo operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2817,8 +2814,7 @@ func (c *ElasticBeanstalk) RequestEnvironmentInfoRequest(input *RequestEnvironme
 
 	output = &RequestEnvironmentInfoOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2873,7 +2869,7 @@ const opRestartAppServer = "RestartAppServer"
 // RestartAppServerRequest generates a "aws/request.Request" representing the
 // client's request for the RestartAppServer operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2907,8 +2903,7 @@ func (c *ElasticBeanstalk) RestartAppServerRequest(input *RestartAppServerInput)
 
 	output = &RestartAppServerOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2950,7 +2945,7 @@ const opRetrieveEnvironmentInfo = "RetrieveEnvironmentInfo"
 // RetrieveEnvironmentInfoRequest generates a "aws/request.Request" representing the
 // client's request for the RetrieveEnvironmentInfo operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3028,7 +3023,7 @@ const opSwapEnvironmentCNAMEs = "SwapEnvironmentCNAMEs"
 // SwapEnvironmentCNAMEsRequest generates a "aws/request.Request" representing the
 // client's request for the SwapEnvironmentCNAMEs operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3062,8 +3057,7 @@ func (c *ElasticBeanstalk) SwapEnvironmentCNAMEsRequest(input *SwapEnvironmentCN
 
 	output = &SwapEnvironmentCNAMEsOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3104,7 +3098,7 @@ const opTerminateEnvironment = "TerminateEnvironment"
 // TerminateEnvironmentRequest generates a "aws/request.Request" representing the
 // client's request for the TerminateEnvironment operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3184,7 +3178,7 @@ const opUpdateApplication = "UpdateApplication"
 // UpdateApplicationRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateApplication operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3261,7 +3255,7 @@ const opUpdateApplicationResourceLifecycle = "UpdateApplicationResourceLifecycle
 // UpdateApplicationResourceLifecycleRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateApplicationResourceLifecycle operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3341,7 +3335,7 @@ const opUpdateApplicationVersion = "UpdateApplicationVersion"
 // UpdateApplicationVersionRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateApplicationVersion operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3418,7 +3412,7 @@ const opUpdateConfigurationTemplate = "UpdateConfigurationTemplate"
 // UpdateConfigurationTemplateRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateConfigurationTemplate operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3509,7 +3503,7 @@ const opUpdateEnvironment = "UpdateEnvironment"
 // UpdateEnvironmentRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateEnvironment operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3602,7 +3596,7 @@ const opUpdateTagsForResource = "UpdateTagsForResource"
 // UpdateTagsForResourceRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateTagsForResource operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3636,8 +3630,7 @@ func (c *ElasticBeanstalk) UpdateTagsForResourceRequest(input *UpdateTagsForReso
 
 	output = &UpdateTagsForResourceOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3720,7 +3713,7 @@ const opValidateConfigurationSettings = "ValidateConfigurationSettings"
 // ValidateConfigurationSettingsRequest generates a "aws/request.Request" representing the
 // client's request for the ValidateConfigurationSettings operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4553,10 +4546,14 @@ func (s *Builder) SetARN(v string) *Builder {
 type CPUUtilization struct {
 	_ struct{} `type:"structure"`
 
+	// Available on Linux environments only.
+	//
 	// Percentage of time that the CPU has spent in the I/O Wait state over the
 	// last 10 seconds.
 	IOWait *float64 `type:"double"`
 
+	// Available on Linux environments only.
+	//
 	// Percentage of time that the CPU has spent in the IRQ state over the last
 	// 10 seconds.
 	IRQ *float64 `type:"double"`
@@ -4565,14 +4562,26 @@ type CPUUtilization struct {
 	// 10 seconds.
 	Idle *float64 `type:"double"`
 
+	// Available on Linux environments only.
+	//
 	// Percentage of time that the CPU has spent in the Nice state over the last
 	// 10 seconds.
 	Nice *float64 `type:"double"`
 
+	// Available on Windows environments only.
+	//
+	// Percentage of time that the CPU has spent in the Privileged state over the
+	// last 10 seconds.
+	Privileged *float64 `type:"double"`
+
+	// Available on Linux environments only.
+	//
 	// Percentage of time that the CPU has spent in the SoftIRQ state over the last
 	// 10 seconds.
 	SoftIRQ *float64 `type:"double"`
 
+	// Available on Linux environments only.
+	//
 	// Percentage of time that the CPU has spent in the System state over the last
 	// 10 seconds.
 	System *float64 `type:"double"`
@@ -4613,6 +4622,12 @@ func (s *CPUUtilization) SetIdle(v float64) *CPUUtilization {
 // SetNice sets the Nice field's value.
 func (s *CPUUtilization) SetNice(v float64) *CPUUtilization {
 	s.Nice = &v
+	return s
+}
+
+// SetPrivileged sets the Privileged field's value.
+func (s *CPUUtilization) SetPrivileged(v float64) *CPUUtilization {
+	s.Privileged = &v
 	return s
 }
 
@@ -7548,6 +7563,10 @@ type DescribeInstancesHealthOutput struct {
 	_ struct{} `type:"structure"`
 
 	// Detailed health information about each instance.
+	//
+	// The output differs slightly between Linux and Windows environments. There
+	// is a difference in the members that are supported under the <CPUUtilization>
+	// type.
 	InstanceHealthList []*SingleInstanceHealth `type:"list"`
 
 	// Pagination token for the next page of results, if available.

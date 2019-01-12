@@ -4,131 +4,132 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/hcl2/hcl"
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/states"
 )
 
 // EvalDeleteOutput is an EvalNode implementation that deletes an output
 // from the state.
 type EvalDeleteOutput struct {
-	Name string
+	Addr addrs.OutputValue
 }
 
 // TODO: test
 func (n *EvalDeleteOutput) Eval(ctx EvalContext) (interface{}, error) {
-	state, lock := ctx.State()
+	state := ctx.State()
 	if state == nil {
 		return nil, nil
 	}
 
-	// Get a write lock so we can access this instance
-	lock.Lock()
-	defer lock.Unlock()
-
-	// Look for the module state. If we don't have one, create it.
-	mod := state.ModuleByPath(ctx.Path())
-	if mod == nil {
-		return nil, nil
-	}
-
-	delete(mod.Outputs, n.Name)
-
+	state.RemoveOutputValue(n.Addr.Absolute(ctx.Path()))
 	return nil, nil
 }
 
 // EvalWriteOutput is an EvalNode implementation that writes the output
 // for the given name to the current state.
 type EvalWriteOutput struct {
-	Name      string
+	Addr      addrs.OutputValue
 	Sensitive bool
-	Value     *config.RawConfig
+	Expr      hcl.Expression
 	// ContinueOnErr allows interpolation to fail during Input
 	ContinueOnErr bool
 }
 
 // TODO: test
 func (n *EvalWriteOutput) Eval(ctx EvalContext) (interface{}, error) {
-	// This has to run before we have a state lock, since interpolation also
+	addr := n.Addr.Absolute(ctx.Path())
+
+	// This has to run before we have a state lock, since evaluation also
 	// reads the state
-	cfg, err := ctx.Interpolate(n.Value, nil)
-	// handle the error after we have the module from the state
+	val, diags := ctx.EvaluateExpr(n.Expr, cty.DynamicPseudoType, nil)
+	// We'll handle errors below, after we have loaded the module.
 
-	state, lock := ctx.State()
+	state := ctx.State()
 	if state == nil {
-		return nil, fmt.Errorf("cannot write state to nil state")
+		return nil, nil
 	}
 
-	// Get a write lock so we can access this instance
-	lock.Lock()
-	defer lock.Unlock()
-	// Look for the module state. If we don't have one, create it.
-	mod := state.ModuleByPath(ctx.Path())
-	if mod == nil {
-		mod = state.AddModule(ctx.Path())
-	}
+	changes := ctx.Changes() // may be nil, if we're not working on a changeset
 
 	// handling the interpolation error
-	if err != nil {
+	if diags.HasErrors() {
 		if n.ContinueOnErr || flagWarnOutputErrors {
-			log.Printf("[ERROR] Output interpolation %q failed: %s", n.Name, err)
+			log.Printf("[ERROR] Output interpolation %q failed: %s", n.Addr.Name, diags.Err())
 			// if we're continuing, make sure the output is included, and
-			// marked as unknown
-			mod.Outputs[n.Name] = &OutputState{
-				Type:  "string",
-				Value: config.UnknownVariableValue,
-			}
+			// marked as unknown. If the evaluator was able to find a type
+			// for the value in spite of the error then we'll use it.
+			n.setValue(addr, state, changes, cty.UnknownVal(val.Type()))
 			return nil, EvalEarlyExitError{}
 		}
-		return nil, err
+		return nil, diags.Err()
 	}
 
-	// Get the value from the config
-	var valueRaw interface{} = config.UnknownVariableValue
-	if cfg != nil {
-		var ok bool
-		valueRaw, ok = cfg.Get("value")
-		if !ok {
-			valueRaw = ""
-		}
-		if cfg.IsComputed("value") {
-			valueRaw = config.UnknownVariableValue
-		}
-	}
-
-	switch valueTyped := valueRaw.(type) {
-	case string:
-		mod.Outputs[n.Name] = &OutputState{
-			Type:      "string",
-			Sensitive: n.Sensitive,
-			Value:     valueTyped,
-		}
-	case []interface{}:
-		mod.Outputs[n.Name] = &OutputState{
-			Type:      "list",
-			Sensitive: n.Sensitive,
-			Value:     valueTyped,
-		}
-	case map[string]interface{}:
-		mod.Outputs[n.Name] = &OutputState{
-			Type:      "map",
-			Sensitive: n.Sensitive,
-			Value:     valueTyped,
-		}
-	case []map[string]interface{}:
-		// an HCL map is multi-valued, so if this was read out of a config the
-		// map may still be in a slice.
-		if len(valueTyped) == 1 {
-			mod.Outputs[n.Name] = &OutputState{
-				Type:      "map",
-				Sensitive: n.Sensitive,
-				Value:     valueTyped[0],
-			}
-			break
-		}
-		return nil, fmt.Errorf("output %s type (%T) with %d values not valid for type map",
-			n.Name, valueTyped, len(valueTyped))
-	default:
-		return nil, fmt.Errorf("output %s is not a valid type (%T)\n", n.Name, valueTyped)
-	}
+	n.setValue(addr, state, changes, val)
 
 	return nil, nil
+}
+
+func (n *EvalWriteOutput) setValue(addr addrs.AbsOutputValue, state *states.SyncState, changes *plans.ChangesSync, val cty.Value) {
+	if val.IsKnown() && !val.IsNull() {
+		// The state itself doesn't represent unknown values, so we null them
+		// out here and then we'll save the real unknown value in the planned
+		// changeset below, if we have one on this graph walk.
+		log.Printf("[TRACE] EvalWriteOutput: Saving value for %s in state", addr)
+		stateVal := cty.UnknownAsNull(val)
+		state.SetOutputValue(addr, stateVal, n.Sensitive)
+	} else {
+		log.Printf("[TRACE] EvalWriteOutput: Removing %s from state (it is now null)", addr)
+		state.RemoveOutputValue(addr)
+	}
+
+	// If we also have an active changeset then we'll replicate the value in
+	// there. This is used in preference to the state where present, since it
+	// *is* able to represent unknowns, while the state cannot.
+	if changes != nil {
+		// For the moment we are not properly tracking changes to output
+		// values, and just marking them always as "Create" or "Destroy"
+		// actions. A future release will rework the output lifecycle so we
+		// can track their changes properly, in a similar way to how we work
+		// with resource instances.
+
+		var change *plans.OutputChange
+		if !val.IsNull() {
+			change = &plans.OutputChange{
+				Addr:      addr,
+				Sensitive: n.Sensitive,
+				Change: plans.Change{
+					Action: plans.Create,
+					Before: cty.NullVal(cty.DynamicPseudoType),
+					After:  val,
+				},
+			}
+		} else {
+			change = &plans.OutputChange{
+				Addr:      addr,
+				Sensitive: n.Sensitive,
+				Change: plans.Change{
+					// This is just a weird placeholder delete action since
+					// we don't have an actual prior value to indicate.
+					// FIXME: Generate real planned changes for output values
+					// that include the old values.
+					Action: plans.Delete,
+					Before: cty.NullVal(cty.DynamicPseudoType),
+					After:  cty.NullVal(cty.DynamicPseudoType),
+				},
+			}
+		}
+
+		cs, err := change.Encode()
+		if err != nil {
+			// Should never happen, since we just constructed this right above
+			panic(fmt.Sprintf("planned change for %s could not be encoded: %s", addr, err))
+		}
+		log.Printf("[TRACE] EvalWriteOutput: Saving %s change for %s in changeset", change.Action, addr)
+		changes.RemoveOutputChange(addr) // remove any existing planned change, if present
+		changes.AppendOutputChange(cs)   // add the new planned change
+	}
 }

@@ -175,7 +175,7 @@ aren't any more complex than that. Terraform wraps this simple notion with
 a set of protections and support for remote state.
 
 For local state, Terraform stores the workspace states in a directory called
-`terraform.tfstate.d`. This directory should be be treated similarly to
+`terraform.tfstate.d`. This directory should be treated similarly to
 local-only `terraform.tfstate`; some teams commit these files to version
 control, although using a remote backend instead is recommended when there are
 multiple collaborators.

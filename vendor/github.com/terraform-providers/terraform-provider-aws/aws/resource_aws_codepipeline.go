@@ -165,15 +165,6 @@ func resourceAwsCodePipeline() *schema.Resource {
 	}
 }
 
-func validateAwsCodePipelineStageActionConfiguration(v interface{}, k string) (ws []string, errors []error) {
-	for k := range v.(map[string]interface{}) {
-		if k == "OAuthToken" {
-			errors = append(errors, fmt.Errorf("CodePipeline: OAuthToken should be set as environment variable 'GITHUB_TOKEN'"))
-		}
-	}
-	return
-}
-
 func resourceAwsCodePipelineCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).codepipelineconn
 	params := &codepipeline.CreatePipelineInput{
@@ -193,10 +184,10 @@ func resourceAwsCodePipelineCreate(d *schema.ResourceData, meta interface{}) err
 		return resource.NonRetryableError(err)
 	})
 	if err != nil {
-		return fmt.Errorf("[ERROR] Error creating CodePipeline: %s", err)
+		return fmt.Errorf("Error creating CodePipeline: %s", err)
 	}
 	if resp.Pipeline == nil {
-		return fmt.Errorf("[ERROR] Error creating CodePipeline: invalid response from AWS")
+		return fmt.Errorf("Error creating CodePipeline: invalid response from AWS")
 	}
 
 	d.SetId(*resp.Pipeline.Name)
@@ -440,7 +431,7 @@ func resourceAwsCodePipelineRead(d *schema.ResourceData, meta interface{}) error
 			d.SetId("")
 			return nil
 		}
-		return fmt.Errorf("[ERROR] Error retreiving Pipeline: %q", err)
+		return fmt.Errorf("Error retreiving Pipeline: %q", err)
 	}
 	metadata := resp.Metadata
 	pipeline := resp.Pipeline

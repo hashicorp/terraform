@@ -18,7 +18,7 @@ const opCountClosedWorkflowExecutions = "CountClosedWorkflowExecutions"
 // CountClosedWorkflowExecutionsRequest generates a "aws/request.Request" representing the
 // client's request for the CountClosedWorkflowExecutions operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -130,7 +130,7 @@ const opCountOpenWorkflowExecutions = "CountOpenWorkflowExecutions"
 // CountOpenWorkflowExecutionsRequest generates a "aws/request.Request" representing the
 // client's request for the CountOpenWorkflowExecutions operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -242,7 +242,7 @@ const opCountPendingActivityTasks = "CountPendingActivityTasks"
 // CountPendingActivityTasksRequest generates a "aws/request.Request" representing the
 // client's request for the CountPendingActivityTasks operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -348,7 +348,7 @@ const opCountPendingDecisionTasks = "CountPendingDecisionTasks"
 // CountPendingDecisionTasksRequest generates a "aws/request.Request" representing the
 // client's request for the CountPendingDecisionTasks operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -454,7 +454,7 @@ const opDeprecateActivityType = "DeprecateActivityType"
 // DeprecateActivityTypeRequest generates a "aws/request.Request" representing the
 // client's request for the DeprecateActivityType operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -486,8 +486,7 @@ func (c *SWF) DeprecateActivityTypeRequest(input *DeprecateActivityTypeInput) (r
 
 	output = &DeprecateActivityTypeOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -570,7 +569,7 @@ const opDeprecateDomain = "DeprecateDomain"
 // DeprecateDomainRequest generates a "aws/request.Request" representing the
 // client's request for the DeprecateDomain operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -602,8 +601,7 @@ func (c *SWF) DeprecateDomainRequest(input *DeprecateDomainInput) (req *request.
 
 	output = &DeprecateDomainOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -684,7 +682,7 @@ const opDeprecateWorkflowType = "DeprecateWorkflowType"
 // DeprecateWorkflowTypeRequest generates a "aws/request.Request" representing the
 // client's request for the DeprecateWorkflowType operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -716,8 +714,7 @@ func (c *SWF) DeprecateWorkflowTypeRequest(input *DeprecateWorkflowTypeInput) (r
 
 	output = &DeprecateWorkflowTypeOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -801,7 +798,7 @@ const opDescribeActivityType = "DescribeActivityType"
 // DescribeActivityTypeRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeActivityType operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -909,7 +906,7 @@ const opDescribeDomain = "DescribeDomain"
 // DescribeDomainRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeDomain operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1011,7 +1008,7 @@ const opDescribeWorkflowExecution = "DescribeWorkflowExecution"
 // DescribeWorkflowExecutionRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeWorkflowExecution operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1116,7 +1113,7 @@ const opDescribeWorkflowType = "DescribeWorkflowType"
 // DescribeWorkflowTypeRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeWorkflowType operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1224,7 +1221,7 @@ const opGetWorkflowExecutionHistory = "GetWorkflowExecutionHistory"
 // GetWorkflowExecutionHistoryRequest generates a "aws/request.Request" representing the
 // client's request for the GetWorkflowExecutionHistory operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1386,7 +1383,7 @@ const opListActivityTypes = "ListActivityTypes"
 // ListActivityTypesRequest generates a "aws/request.Request" representing the
 // client's request for the ListActivityTypes operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1547,7 +1544,7 @@ const opListClosedWorkflowExecutions = "ListClosedWorkflowExecutions"
 // ListClosedWorkflowExecutionsRequest generates a "aws/request.Request" representing the
 // client's request for the ListClosedWorkflowExecutions operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1717,7 +1714,7 @@ const opListDomains = "ListDomains"
 // ListDomainsRequest generates a "aws/request.Request" representing the
 // client's request for the ListDomains operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1875,7 +1872,7 @@ const opListOpenWorkflowExecutions = "ListOpenWorkflowExecutions"
 // ListOpenWorkflowExecutionsRequest generates a "aws/request.Request" representing the
 // client's request for the ListOpenWorkflowExecutions operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2045,7 +2042,7 @@ const opListWorkflowTypes = "ListWorkflowTypes"
 // ListWorkflowTypesRequest generates a "aws/request.Request" representing the
 // client's request for the ListWorkflowTypes operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2204,7 +2201,7 @@ const opPollForActivityTask = "PollForActivityTask"
 // PollForActivityTaskRequest generates a "aws/request.Request" representing the
 // client's request for the PollForActivityTask operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2322,7 +2319,7 @@ const opPollForDecisionTask = "PollForDecisionTask"
 // PollForDecisionTaskRequest generates a "aws/request.Request" representing the
 // client's request for the PollForDecisionTask operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2506,7 +2503,7 @@ const opRecordActivityTaskHeartbeat = "RecordActivityTaskHeartbeat"
 // RecordActivityTaskHeartbeatRequest generates a "aws/request.Request" representing the
 // client's request for the RecordActivityTaskHeartbeat operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2632,7 +2629,7 @@ const opRegisterActivityType = "RegisterActivityType"
 // RegisterActivityTypeRequest generates a "aws/request.Request" representing the
 // client's request for the RegisterActivityType operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2664,8 +2661,7 @@ func (c *SWF) RegisterActivityTypeRequest(input *RegisterActivityTypeInput) (req
 
 	output = &RegisterActivityTypeOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2758,7 +2754,7 @@ const opRegisterDomain = "RegisterDomain"
 // RegisterDomainRequest generates a "aws/request.Request" representing the
 // client's request for the RegisterDomain operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2790,8 +2786,7 @@ func (c *SWF) RegisterDomainRequest(input *RegisterDomainInput) (req *request.Re
 
 	output = &RegisterDomainOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2866,7 +2861,7 @@ const opRegisterWorkflowType = "RegisterWorkflowType"
 // RegisterWorkflowTypeRequest generates a "aws/request.Request" representing the
 // client's request for the RegisterWorkflowType operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2898,8 +2893,7 @@ func (c *SWF) RegisterWorkflowTypeRequest(input *RegisterWorkflowTypeInput) (req
 
 	output = &RegisterWorkflowTypeOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -2995,7 +2989,7 @@ const opRequestCancelWorkflowExecution = "RequestCancelWorkflowExecution"
 // RequestCancelWorkflowExecutionRequest generates a "aws/request.Request" representing the
 // client's request for the RequestCancelWorkflowExecution operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3027,8 +3021,7 @@ func (c *SWF) RequestCancelWorkflowExecutionRequest(input *RequestCancelWorkflow
 
 	output = &RequestCancelWorkflowExecutionOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3109,7 +3102,7 @@ const opRespondActivityTaskCanceled = "RespondActivityTaskCanceled"
 // RespondActivityTaskCanceledRequest generates a "aws/request.Request" representing the
 // client's request for the RespondActivityTaskCanceled operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3141,8 +3134,7 @@ func (c *SWF) RespondActivityTaskCanceledRequest(input *RespondActivityTaskCance
 
 	output = &RespondActivityTaskCanceledOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3226,7 +3218,7 @@ const opRespondActivityTaskCompleted = "RespondActivityTaskCompleted"
 // RespondActivityTaskCompletedRequest generates a "aws/request.Request" representing the
 // client's request for the RespondActivityTaskCompleted operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3258,8 +3250,7 @@ func (c *SWF) RespondActivityTaskCompletedRequest(input *RespondActivityTaskComp
 
 	output = &RespondActivityTaskCompletedOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3342,7 +3333,7 @@ const opRespondActivityTaskFailed = "RespondActivityTaskFailed"
 // RespondActivityTaskFailedRequest generates a "aws/request.Request" representing the
 // client's request for the RespondActivityTaskFailed operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3374,8 +3365,7 @@ func (c *SWF) RespondActivityTaskFailedRequest(input *RespondActivityTaskFailedI
 
 	output = &RespondActivityTaskFailedOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3453,7 +3443,7 @@ const opRespondDecisionTaskCompleted = "RespondDecisionTaskCompleted"
 // RespondDecisionTaskCompletedRequest generates a "aws/request.Request" representing the
 // client's request for the RespondDecisionTaskCompleted operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3485,8 +3475,7 @@ func (c *SWF) RespondDecisionTaskCompletedRequest(input *RespondDecisionTaskComp
 
 	output = &RespondDecisionTaskCompletedOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3553,7 +3542,7 @@ const opSignalWorkflowExecution = "SignalWorkflowExecution"
 // SignalWorkflowExecutionRequest generates a "aws/request.Request" representing the
 // client's request for the SignalWorkflowExecution operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3585,8 +3574,7 @@ func (c *SWF) SignalWorkflowExecutionRequest(input *SignalWorkflowExecutionInput
 
 	output = &SignalWorkflowExecutionOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3665,7 +3653,7 @@ const opStartWorkflowExecution = "StartWorkflowExecution"
 // StartWorkflowExecutionRequest generates a "aws/request.Request" representing the
 // client's request for the StartWorkflowExecution operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3811,7 +3799,7 @@ const opTerminateWorkflowExecution = "TerminateWorkflowExecution"
 // TerminateWorkflowExecutionRequest generates a "aws/request.Request" representing the
 // client's request for the TerminateWorkflowExecution operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3843,8 +3831,7 @@ func (c *SWF) TerminateWorkflowExecutionRequest(input *TerminateWorkflowExecutio
 
 	output = &TerminateWorkflowExecutionOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 

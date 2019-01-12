@@ -140,12 +140,12 @@ func TestResourceResourceDep_alignedCountScaleIn(t *testing.T) {
 
 func testResourceDataDepConfig(count int) string {
 	return fmt.Sprintf(`
-variable count {
+variable num {
   default = "%d"
 }
 
 resource "test_resource" "foo" {
-  count    = "${var.count}"
+  count    = "${var.num}"
   required = "yes"
 
   required_map = {
@@ -154,7 +154,7 @@ resource "test_resource" "foo" {
 }
 
 data "test_data_source" "bar" {
-  count = "${var.count}"
+  count = "${var.num}"
   input = "${test_resource.foo.*.computed_read_only[count.index]}"
 }
 
@@ -166,17 +166,17 @@ output "out" {
 
 func testDataResourceDepConfig(count int) string {
 	return fmt.Sprintf(`
-variable count {
+variable num {
   default = "%d"
 }
 
 data "test_data_source" "foo" {
-  count = "${var.count}"
+  count = "${var.num}"
   input = "test"
 }
 
 resource "test_resource" "bar" {
-  count    = "${var.count}"
+  count    = "${var.num}"
   required = "yes"
   optional = "${data.test_data_source.foo.*.output[count.index]}"
 
@@ -193,12 +193,12 @@ output "out" {
 
 func testResourceResourceDepConfig(count int) string {
 	return fmt.Sprintf(`
-variable count {
+variable num {
   default = "%d"
 }
 
 resource "test_resource" "foo" {
-  count    = "${var.count}"
+  count    = "${var.num}"
   required = "yes"
   optional = "test"
 
@@ -208,7 +208,7 @@ resource "test_resource" "foo" {
 }
 
 resource "test_resource" "bar" {
-  count    = "${var.count}"
+  count    = "${var.num}"
   required = "yes"
   optional = "${test_resource.foo.*.optional[count.index]}"
 

@@ -22,51 +22,51 @@ func resourceAwsIamAccountPasswordPolicy() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"allow_users_to_change_password": &schema.Schema{
+			"allow_users_to_change_password": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 			},
-			"expire_passwords": &schema.Schema{
+			"expire_passwords": {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
-			"hard_expiry": &schema.Schema{
+			"hard_expiry": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
 			},
-			"max_password_age": &schema.Schema{
+			"max_password_age": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Computed: true,
 			},
-			"minimum_password_length": &schema.Schema{
+			"minimum_password_length": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  6,
 			},
-			"password_reuse_prevention": &schema.Schema{
+			"password_reuse_prevention": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Computed: true,
 			},
-			"require_lowercase_characters": &schema.Schema{
+			"require_lowercase_characters": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
 			},
-			"require_numbers": &schema.Schema{
+			"require_numbers": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
 			},
-			"require_symbols": &schema.Schema{
+			"require_symbols": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
 			},
-			"require_uppercase_characters": &schema.Schema{
+			"require_uppercase_characters": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,

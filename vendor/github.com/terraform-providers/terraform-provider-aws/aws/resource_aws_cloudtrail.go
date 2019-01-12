@@ -59,6 +59,11 @@ func resourceAwsCloudTrail() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
+			"is_organization_trail": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 			"sns_topic_name": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -151,6 +156,9 @@ func resourceAwsCloudTrailCreate(d *schema.ResourceData, meta interface{}) error
 	if v, ok := d.GetOk("is_multi_region_trail"); ok {
 		input.IsMultiRegionTrail = aws.Bool(v.(bool))
 	}
+	if v, ok := d.GetOk("is_organization_trail"); ok {
+		input.IsOrganizationTrail = aws.Bool(v.(bool))
+	}
 	if v, ok := d.GetOk("enable_log_file_validation"); ok {
 		input.EnableLogFileValidation = aws.Bool(v.(bool))
 	}
@@ -165,7 +173,7 @@ func resourceAwsCloudTrailCreate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	var t *cloudtrail.CreateTrailOutput
-	err := resource.Retry(15*time.Second, func() *resource.RetryError {
+	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
 		var err error
 		t, err = conn.CreateTrail(&input)
 		if err != nil {
@@ -243,6 +251,7 @@ func resourceAwsCloudTrailRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("cloud_watch_logs_group_arn", trail.CloudWatchLogsLogGroupArn)
 	d.Set("include_global_service_events", trail.IncludeGlobalServiceEvents)
 	d.Set("is_multi_region_trail", trail.IsMultiRegionTrail)
+	d.Set("is_organization_trail", trail.IsOrganizationTrail)
 	d.Set("sns_topic_name", trail.SnsTopicName)
 	d.Set("enable_log_file_validation", trail.LogFileValidationEnabled)
 
@@ -320,6 +329,9 @@ func resourceAwsCloudTrailUpdate(d *schema.ResourceData, meta interface{}) error
 	if d.HasChange("is_multi_region_trail") {
 		input.IsMultiRegionTrail = aws.Bool(d.Get("is_multi_region_trail").(bool))
 	}
+	if d.HasChange("is_organization_trail") {
+		input.IsOrganizationTrail = aws.Bool(d.Get("is_organization_trail").(bool))
+	}
 	if d.HasChange("enable_log_file_validation") {
 		input.EnableLogFileValidation = aws.Bool(d.Get("enable_log_file_validation").(bool))
 	}
@@ -332,7 +344,7 @@ func resourceAwsCloudTrailUpdate(d *schema.ResourceData, meta interface{}) error
 
 	log.Printf("[DEBUG] Updating CloudTrail: %s", input)
 	var t *cloudtrail.UpdateTrailOutput
-	err := resource.Retry(30*time.Second, func() *resource.RetryError {
+	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
 		var err error
 		t, err = conn.UpdateTrail(&input)
 		if err != nil {

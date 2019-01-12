@@ -2059,6 +2059,69 @@ func TestResourceDataSet(t *testing.T) {
 			GetKey:   "availability_zone",
 			GetValue: "",
 		},
+
+		// #16: Set in a list
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type: TypeList,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"set": &Schema{
+								Type: TypeSet,
+								Elem: &Schema{Type: TypeInt},
+								Set: func(a interface{}) int {
+									return a.(int)
+								},
+							},
+						},
+					},
+				},
+			},
+
+			State: nil,
+
+			Key: "ports",
+			Value: []interface{}{
+				map[string]interface{}{
+					"set": []interface{}{
+						1,
+					},
+				},
+			},
+
+			GetKey: "ports",
+			GetValue: []interface{}{
+				map[string]interface{}{
+					"set": []interface{}{
+						1,
+					},
+				},
+			},
+			GetPreProcess: func(v interface{}) interface{} {
+				if v == nil {
+					return v
+				}
+				s, ok := v.([]interface{})
+				if !ok {
+					return v
+				}
+				for _, v := range s {
+					m, ok := v.(map[string]interface{})
+					if !ok {
+						continue
+					}
+					if m["set"] == nil {
+						continue
+					}
+					if s, ok := m["set"].(*Set); ok {
+						m["set"] = s.List()
+					}
+				}
+
+				return v
+			},
+		},
 	}
 
 	oldEnv := os.Getenv(PanicOnErr)
@@ -3436,11 +3499,27 @@ func TestResourceDataSetMeta_Timeouts(t *testing.T) {
 }
 
 func TestResourceDataSetId(t *testing.T) {
-	d := &ResourceData{}
+	d := &ResourceData{
+		state: &terraform.InstanceState{
+			ID: "test",
+			Attributes: map[string]string{
+				"id": "test",
+			},
+		},
+	}
 	d.SetId("foo")
 
 	actual := d.State()
-	if actual.ID != "foo" {
+
+	// SetId should set both the ID field as well as the attribute, to aid in
+	// transitioning to the new type system.
+	if actual.ID != "foo" || actual.Attributes["id"] != "foo" {
+		t.Fatalf("bad: %#v", actual)
+	}
+
+	d.SetId("")
+	actual = d.State()
+	if actual != nil {
 		t.Fatalf("bad: %#v", actual)
 	}
 }

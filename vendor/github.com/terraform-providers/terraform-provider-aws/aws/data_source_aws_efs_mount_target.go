@@ -5,8 +5,8 @@ import (
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/service/efs"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -20,7 +20,10 @@ func dataSourceAwsEfsMountTarget() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-
+			"file_system_arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"file_system_id": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -61,7 +64,7 @@ func dataSourceAwsEfsMountTargetRead(d *schema.ResourceData, meta interface{}) e
 	log.Printf("[DEBUG] Reading EFS Mount Target: %s", describeEfsOpts)
 	resp, err := efsconn.DescribeMountTargets(describeEfsOpts)
 	if err != nil {
-		return errwrap.Wrapf("Error retrieving EFS Mount Target: {{err}}", err)
+		return fmt.Errorf("Error retrieving EFS Mount Target: %s", err)
 	}
 	if len(resp.MountTargets) != 1 {
 		return fmt.Errorf("Search returned %d results, please revise so only one is returned", len(resp.MountTargets))
@@ -72,6 +75,16 @@ func dataSourceAwsEfsMountTargetRead(d *schema.ResourceData, meta interface{}) e
 	log.Printf("[DEBUG] Found EFS mount target: %#v", mt)
 
 	d.SetId(*mt.MountTargetId)
+
+	fsARN := arn.ARN{
+		AccountID: meta.(*AWSClient).accountid,
+		Partition: meta.(*AWSClient).partition,
+		Region:    meta.(*AWSClient).region,
+		Resource:  fmt.Sprintf("file-system/%s", aws.StringValue(mt.FileSystemId)),
+		Service:   "elasticfilesystem",
+	}.String()
+
+	d.Set("file_system_arn", fsARN)
 	d.Set("file_system_id", mt.FileSystemId)
 	d.Set("ip_address", mt.IpAddress)
 	d.Set("subnet_id", mt.SubnetId)
@@ -89,7 +102,7 @@ func dataSourceAwsEfsMountTargetRead(d *schema.ResourceData, meta interface{}) e
 	}
 
 	if err := d.Set("dns_name", resourceAwsEfsMountTargetDnsName(*mt.FileSystemId, meta.(*AWSClient).region)); err != nil {
-		return fmt.Errorf("[DEBUG] Error setting dns_name error: %#v", err)
+		return fmt.Errorf("Error setting dns_name error: %#v", err)
 	}
 
 	return nil

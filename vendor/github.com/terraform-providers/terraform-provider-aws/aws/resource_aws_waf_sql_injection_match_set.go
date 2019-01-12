@@ -1,12 +1,12 @@
 package aws
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/waf"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -18,12 +18,12 @@ func resourceAwsWafSqlInjectionMatchSet() *schema.Resource {
 		Delete: resourceAwsWafSqlInjectionMatchSetDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"sql_injection_match_tuples": &schema.Schema{
+			"sql_injection_match_tuples": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
@@ -45,7 +45,7 @@ func resourceAwsWafSqlInjectionMatchSet() *schema.Resource {
 								},
 							},
 						},
-						"text_transformation": &schema.Schema{
+						"text_transformation": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
@@ -61,7 +61,7 @@ func resourceAwsWafSqlInjectionMatchSetCreate(d *schema.ResourceData, meta inter
 
 	log.Printf("[INFO] Creating SqlInjectionMatchSet: %s", d.Get("name").(string))
 
-	wr := newWafRetryer(conn, "global")
+	wr := newWafRetryer(conn)
 	out, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
 		params := &waf.CreateSqlInjectionMatchSetInput{
 			ChangeToken: token,
@@ -71,7 +71,7 @@ func resourceAwsWafSqlInjectionMatchSetCreate(d *schema.ResourceData, meta inter
 		return conn.CreateSqlInjectionMatchSet(params)
 	})
 	if err != nil {
-		return errwrap.Wrapf("[ERROR] Error creating SqlInjectionMatchSet: {{err}}", err)
+		return fmt.Errorf("Error creating SqlInjectionMatchSet: %s", err)
 	}
 	resp := out.(*waf.CreateSqlInjectionMatchSetOutput)
 	d.SetId(*resp.SqlInjectionMatchSet.SqlInjectionMatchSetId)
@@ -112,7 +112,7 @@ func resourceAwsWafSqlInjectionMatchSetUpdate(d *schema.ResourceData, meta inter
 
 		err := updateSqlInjectionMatchSetResource(d.Id(), oldT, newT, conn)
 		if err != nil {
-			return errwrap.Wrapf("[ERROR] Error updating SqlInjectionMatchSet: {{err}}", err)
+			return fmt.Errorf("Error updating SqlInjectionMatchSet: %s", err)
 		}
 	}
 
@@ -128,11 +128,11 @@ func resourceAwsWafSqlInjectionMatchSetDelete(d *schema.ResourceData, meta inter
 		noTuples := []interface{}{}
 		err := updateSqlInjectionMatchSetResource(d.Id(), oldTuples, noTuples, conn)
 		if err != nil {
-			return errwrap.Wrapf("[ERROR] Error deleting SqlInjectionMatchSet: {{err}}", err)
+			return fmt.Errorf("Error deleting SqlInjectionMatchSet: %s", err)
 		}
 	}
 
-	wr := newWafRetryer(conn, "global")
+	wr := newWafRetryer(conn)
 	_, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
 		req := &waf.DeleteSqlInjectionMatchSetInput{
 			ChangeToken:            token,
@@ -142,14 +142,14 @@ func resourceAwsWafSqlInjectionMatchSetDelete(d *schema.ResourceData, meta inter
 		return conn.DeleteSqlInjectionMatchSet(req)
 	})
 	if err != nil {
-		return errwrap.Wrapf("[ERROR] Error deleting SqlInjectionMatchSet: {{err}}", err)
+		return fmt.Errorf("Error deleting SqlInjectionMatchSet: %s", err)
 	}
 
 	return nil
 }
 
 func updateSqlInjectionMatchSetResource(id string, oldT, newT []interface{}, conn *waf.WAF) error {
-	wr := newWafRetryer(conn, "global")
+	wr := newWafRetryer(conn)
 	_, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
 		req := &waf.UpdateSqlInjectionMatchSetInput{
 			ChangeToken:            token,
@@ -161,14 +161,14 @@ func updateSqlInjectionMatchSetResource(id string, oldT, newT []interface{}, con
 		return conn.UpdateSqlInjectionMatchSet(req)
 	})
 	if err != nil {
-		return errwrap.Wrapf("[ERROR] Error updating SqlInjectionMatchSet: {{err}}", err)
+		return fmt.Errorf("Error updating SqlInjectionMatchSet: %s", err)
 	}
 
 	return nil
 }
 
 func flattenWafSqlInjectionMatchTuples(ts []*waf.SqlInjectionMatchTuple) []interface{} {
-	out := make([]interface{}, len(ts), len(ts))
+	out := make([]interface{}, len(ts))
 	for i, t := range ts {
 		m := make(map[string]interface{})
 		m["text_transformation"] = *t.TextTransformation

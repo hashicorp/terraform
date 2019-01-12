@@ -11,113 +11,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/elasticache"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsElasticacheReplicationGroup() *schema.Resource {
-
-	resourceSchema := resourceAwsElastiCacheCommonSchema()
-
-	resourceSchema["replication_group_id"] = &schema.Schema{
-		Type:         schema.TypeString,
-		Required:     true,
-		ForceNew:     true,
-		ValidateFunc: validateAwsElastiCacheReplicationGroupId,
-		StateFunc: func(val interface{}) string {
-			return strings.ToLower(val.(string))
-		},
-	}
-
-	resourceSchema["automatic_failover_enabled"] = &schema.Schema{
-		Type:     schema.TypeBool,
-		Optional: true,
-		Default:  false,
-	}
-
-	resourceSchema["auto_minor_version_upgrade"] = &schema.Schema{
-		Type:     schema.TypeBool,
-		Optional: true,
-		Default:  true,
-	}
-
-	resourceSchema["replication_group_description"] = &schema.Schema{
-		Type:     schema.TypeString,
-		Required: true,
-	}
-
-	resourceSchema["number_cache_clusters"] = &schema.Schema{
-		Type:     schema.TypeInt,
-		Computed: true,
-		Optional: true,
-	}
-
-	resourceSchema["member_clusters"] = &schema.Schema{
-		Type:     schema.TypeSet,
-		Computed: true,
-		Elem:     &schema.Schema{Type: schema.TypeString},
-		Set:      schema.HashString,
-	}
-
-	resourceSchema["primary_endpoint_address"] = &schema.Schema{
-		Type:     schema.TypeString,
-		Computed: true,
-	}
-
-	resourceSchema["configuration_endpoint_address"] = &schema.Schema{
-		Type:     schema.TypeString,
-		Computed: true,
-	}
-
-	resourceSchema["cluster_mode"] = &schema.Schema{
-		Type:     schema.TypeList,
-		Optional: true,
-		// We allow Computed: true here since using number_cache_clusters
-		// and a cluster mode enabled parameter_group_name will create
-		// a single shard replication group with number_cache_clusters - 1
-		// read replicas. Otherwise, the resource is marked ForceNew.
-		Computed: true,
-		MaxItems: 1,
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"replicas_per_node_group": {
-					Type:     schema.TypeInt,
-					Required: true,
-					ForceNew: true,
-				},
-				"num_node_groups": {
-					Type:     schema.TypeInt,
-					Required: true,
-				},
-			},
-		},
-	}
-
-	resourceSchema["engine"].Required = false
-	resourceSchema["engine"].Optional = true
-	resourceSchema["engine"].Default = "redis"
-	resourceSchema["engine"].ValidateFunc = validateAwsElastiCacheReplicationGroupEngine
-
-	resourceSchema["at_rest_encryption_enabled"] = &schema.Schema{
-		Type:     schema.TypeBool,
-		Optional: true,
-		Default:  false,
-		ForceNew: true,
-	}
-
-	resourceSchema["transit_encryption_enabled"] = &schema.Schema{
-		Type:     schema.TypeBool,
-		Optional: true,
-		Default:  false,
-		ForceNew: true,
-	}
-
-	resourceSchema["auth_token"] = &schema.Schema{
-		Type:         schema.TypeString,
-		Optional:     true,
-		Sensitive:    true,
-		ForceNew:     true,
-		ValidateFunc: validateAwsElastiCacheReplicationGroupAuthToken,
-	}
-
 	return &schema.Resource{
 		Create: resourceAwsElasticacheReplicationGroupCreate,
 		Read:   resourceAwsElasticacheReplicationGroupRead,
@@ -127,7 +24,204 @@ func resourceAwsElasticacheReplicationGroup() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
-		Schema:        resourceSchema,
+		Schema: map[string]*schema.Schema{
+			"apply_immediately": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Computed: true,
+			},
+			"at_rest_encryption_enabled": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+				ForceNew: true,
+			},
+			"auth_token": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Sensitive:    true,
+				ForceNew:     true,
+				ValidateFunc: validateAwsElastiCacheReplicationGroupAuthToken,
+			},
+			"auto_minor_version_upgrade": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
+			},
+			"automatic_failover_enabled": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+			"availability_zones": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
+			"cluster_mode": {
+				Type:     schema.TypeList,
+				Optional: true,
+				// We allow Computed: true here since using number_cache_clusters
+				// and a cluster mode enabled parameter_group_name will create
+				// a single shard replication group with number_cache_clusters - 1
+				// read replicas. Otherwise, the resource is marked ForceNew.
+				Computed: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"replicas_per_node_group": {
+							Type:     schema.TypeInt,
+							Required: true,
+							ForceNew: true,
+						},
+						"num_node_groups": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+					},
+				},
+			},
+			"configuration_endpoint_address": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"engine": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				Default:      "redis",
+				ValidateFunc: validateAwsElastiCacheReplicationGroupEngine,
+			},
+			"engine_version": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+			"maintenance_window": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				StateFunc: func(val interface{}) string {
+					// Elasticache always changes the maintenance
+					// to lowercase
+					return strings.ToLower(val.(string))
+				},
+				ValidateFunc: validateOnceAWeekWindowFormat,
+			},
+			"member_clusters": {
+				Type:     schema.TypeSet,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
+			"node_type": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+			"notification_topic_arn": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"number_cache_clusters": {
+				Type:     schema.TypeInt,
+				Computed: true,
+				Optional: true,
+			},
+			"parameter_group_name": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+			"port": {
+				Type:     schema.TypeInt,
+				Optional: true,
+				ForceNew: true,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					// Suppress default memcached/redis ports when not defined
+					if !d.IsNewResource() && new == "0" && (old == "6379" || old == "11211") {
+						return true
+					}
+					return false
+				},
+			},
+			"primary_endpoint_address": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"replication_group_description": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"replication_group_id": {
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validateAwsElastiCacheReplicationGroupId,
+				StateFunc: func(val interface{}) string {
+					return strings.ToLower(val.(string))
+				},
+			},
+			"security_group_names": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
+			"security_group_ids": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
+			// A single-element string list containing an Amazon Resource Name (ARN) that
+			// uniquely identifies a Redis RDB snapshot file stored in Amazon S3. The snapshot
+			// file will be used to populate the node group.
+			//
+			// See also:
+			// https://github.com/aws/aws-sdk-go/blob/4862a174f7fc92fb523fc39e68f00b87d91d2c3d/service/elasticache/api.go#L2079
+			"snapshot_arns": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
+			"snapshot_retention_limit": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: validation.IntAtMost(35),
+			},
+			"snapshot_window": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validateOnceADayWindowFormat,
+			},
+			"snapshot_name": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+			"subnet_group_name": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+			"tags": tagsSchema(),
+			"transit_encryption_enabled": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+				ForceNew: true,
+			},
+		},
 		SchemaVersion: 1,
 
 		Timeouts: &schema.ResourceTimeout{
@@ -256,7 +350,7 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 	stateConf := &resource.StateChangeConf{
 		Pending:    pending,
 		Target:     []string{"available"},
-		Refresh:    cacheReplicationGroupStateRefreshFunc(conn, d.Id(), "available", pending),
+		Refresh:    cacheReplicationGroupStateRefreshFunc(conn, d.Id(), pending),
 		Timeout:    d.Timeout(schema.TimeoutCreate),
 		MinTimeout: 10 * time.Second,
 		Delay:      30 * time.Second,
@@ -673,7 +767,7 @@ func resourceAwsElasticacheReplicationGroupUpdate(d *schema.ResourceData, meta i
 func resourceAwsElasticacheReplicationGroupDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).elasticacheconn
 
-	err := deleteElasticacheReplicationGroup(d.Id(), 40*time.Minute, conn)
+	err := deleteElasticacheReplicationGroup(d.Id(), conn)
 	if err != nil {
 		return fmt.Errorf("error deleting Elasticache Replication Group (%s): %s", d.Id(), err)
 	}
@@ -681,7 +775,7 @@ func resourceAwsElasticacheReplicationGroupDelete(d *schema.ResourceData, meta i
 	return nil
 }
 
-func cacheReplicationGroupStateRefreshFunc(conn *elasticache.ElastiCache, replicationGroupId, givenState string, pending []string) resource.StateRefreshFunc {
+func cacheReplicationGroupStateRefreshFunc(conn *elasticache.ElastiCache, replicationGroupId string, pending []string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		resp, err := conn.DescribeReplicationGroups(&elasticache.DescribeReplicationGroupsInput{
 			ReplicationGroupId: aws.String(replicationGroupId),
@@ -697,7 +791,7 @@ func cacheReplicationGroupStateRefreshFunc(conn *elasticache.ElastiCache, replic
 		}
 
 		if len(resp.ReplicationGroups) == 0 {
-			return nil, "", fmt.Errorf("[WARN] Error: no Cache Replication Groups found for id (%s)", replicationGroupId)
+			return nil, "", fmt.Errorf("Error: no Cache Replication Groups found for id (%s)", replicationGroupId)
 		}
 
 		var rg *elasticache.ReplicationGroup
@@ -709,7 +803,7 @@ func cacheReplicationGroupStateRefreshFunc(conn *elasticache.ElastiCache, replic
 		}
 
 		if rg == nil {
-			return nil, "", fmt.Errorf("[WARN] Error: no matching ElastiCache Replication Group for id (%s)", replicationGroupId)
+			return nil, "", fmt.Errorf("Error: no matching ElastiCache Replication Group for id (%s)", replicationGroupId)
 		}
 
 		log.Printf("[DEBUG] ElastiCache Replication Group (%s) status: %v", replicationGroupId, *rg.Status)
@@ -728,7 +822,7 @@ func cacheReplicationGroupStateRefreshFunc(conn *elasticache.ElastiCache, replic
 	}
 }
 
-func deleteElasticacheReplicationGroup(replicationGroupID string, timeout time.Duration, conn *elasticache.ElastiCache) error {
+func deleteElasticacheReplicationGroup(replicationGroupID string, conn *elasticache.ElastiCache) error {
 	input := &elasticache.DeleteReplicationGroupInput{
 		ReplicationGroupId: aws.String(replicationGroupID),
 	}
@@ -757,8 +851,8 @@ func deleteElasticacheReplicationGroup(replicationGroupID string, timeout time.D
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"creating", "available", "deleting"},
 		Target:     []string{},
-		Refresh:    cacheReplicationGroupStateRefreshFunc(conn, replicationGroupID, "", []string{}),
-		Timeout:    timeout,
+		Refresh:    cacheReplicationGroupStateRefreshFunc(conn, replicationGroupID, []string{}),
+		Timeout:    40 * time.Minute,
 		MinTimeout: 10 * time.Second,
 		Delay:      30 * time.Second,
 	}
@@ -791,7 +885,7 @@ func waitForModifyElasticacheReplicationGroup(conn *elasticache.ElastiCache, rep
 	stateConf := &resource.StateChangeConf{
 		Pending:    pending,
 		Target:     []string{"available"},
-		Refresh:    cacheReplicationGroupStateRefreshFunc(conn, replicationGroupID, "available", pending),
+		Refresh:    cacheReplicationGroupStateRefreshFunc(conn, replicationGroupID, pending),
 		Timeout:    timeout,
 		MinTimeout: 10 * time.Second,
 		Delay:      30 * time.Second,

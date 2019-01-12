@@ -18,7 +18,7 @@ var _ Organizations = (*organizations)(nil)
 // https://www.terraform.io/docs/enterprise/api/organizations.html
 type Organizations interface {
 	// List all the organizations visible to the current user.
-	List(ctx context.Context, options OrganizationListOptions) ([]*Organization, error)
+	List(ctx context.Context, options OrganizationListOptions) (*OrganizationList, error)
 
 	// Create a new organization with the given options.
 	Create(ctx context.Context, options OrganizationCreateOptions) (*Organization, error)
@@ -31,6 +31,15 @@ type Organizations interface {
 
 	// Delete an organization by its name.
 	Delete(ctx context.Context, organization string) error
+
+	// Capacity shows the current run capacity of an organization.
+	Capacity(ctx context.Context, organization string) (*Capacity, error)
+
+	// Entitlements shows the entitlements of an organization.
+	Entitlements(ctx context.Context, organization string) (*Entitlements, error)
+
+	// RunQueue shows the current run queue of an organization.
+	RunQueue(ctx context.Context, organization string, options RunQueueOptions) (*RunQueue, error)
 }
 
 // organizations implements Organizations.
@@ -58,6 +67,12 @@ const (
 	EnterprisePlanTrial    EnterprisePlanType = "trial"
 )
 
+// OrganizationList represents a list of organizations.
+type OrganizationList struct {
+	*Pagination
+	Items []*Organization
+}
+
 // Organization represents a Terraform Enterprise organization.
 type Organization struct {
 	Name                   string                   `jsonapi:"primary,organizations"`
@@ -72,6 +87,30 @@ type Organization struct {
 	SessionTimeout         int                      `jsonapi:"attr,session-timeout"`
 	TrialExpiresAt         time.Time                `jsonapi:"attr,trial-expires-at,iso8601"`
 	TwoFactorConformant    bool                     `jsonapi:"attr,two-factor-conformant"`
+}
+
+// Capacity represents the current run capacity of an organization.
+type Capacity struct {
+	Organization string `jsonapi:"primary,organization-capacity"`
+	Pending      int    `jsonapi:"attr,pending"`
+	Running      int    `jsonapi:"attr,running"`
+}
+
+// Entitlements represents the entitlements of an organization.
+type Entitlements struct {
+	ID                    string `jsonapi:"primary,entitlement-sets"`
+	StateStorage          bool   `jsonapi:"attr,state-storage"`
+	Operations            bool   `jsonapi:"attr,operations"`
+	VCSIntegrations       bool   `jsonapi:"attr,vcs-integrations"`
+	Sentinel              bool   `jsonapi:"attr,sentinel"`
+	PrivateModuleRegistry bool   `jsonapi:"attr,private-module-registry"`
+	Teams                 bool   `jsonapi:"attr,teams"`
+}
+
+// RunQueue represents the current run queue of an organization.
+type RunQueue struct {
+	*Pagination
+	Items []*Run
 }
 
 // OrganizationPermissions represents the organization permissions.
@@ -93,19 +132,19 @@ type OrganizationListOptions struct {
 }
 
 // List all the organizations visible to the current user.
-func (s *organizations) List(ctx context.Context, options OrganizationListOptions) ([]*Organization, error) {
+func (s *organizations) List(ctx context.Context, options OrganizationListOptions) (*OrganizationList, error) {
 	req, err := s.client.newRequest("GET", "organizations", &options)
 	if err != nil {
 		return nil, err
 	}
 
-	var orgs []*Organization
-	err = s.client.do(ctx, req, &orgs)
+	orgl := &OrganizationList{}
+	err = s.client.do(ctx, req, orgl)
 	if err != nil {
 		return nil, err
 	}
 
-	return orgs, nil
+	return orgl, nil
 }
 
 // OrganizationCreateOptions represents the options for creating an organization.
@@ -122,13 +161,13 @@ type OrganizationCreateOptions struct {
 
 func (o OrganizationCreateOptions) valid() error {
 	if !validString(o.Name) {
-		return errors.New("Name is required")
+		return errors.New("name is required")
 	}
 	if !validStringID(o.Name) {
-		return errors.New("Invalid value for name")
+		return errors.New("invalid value for name")
 	}
 	if !validString(o.Email) {
-		return errors.New("Email is required")
+		return errors.New("email is required")
 	}
 	return nil
 }
@@ -159,7 +198,7 @@ func (s *organizations) Create(ctx context.Context, options OrganizationCreateOp
 // Read an organization by its name.
 func (s *organizations) Read(ctx context.Context, organization string) (*Organization, error) {
 	if !validStringID(&organization) {
-		return nil, errors.New("Invalid value for organization")
+		return nil, errors.New("invalid value for organization")
 	}
 
 	u := fmt.Sprintf("organizations/%s", url.QueryEscape(organization))
@@ -201,7 +240,7 @@ type OrganizationUpdateOptions struct {
 // Update attributes of an existing organization.
 func (s *organizations) Update(ctx context.Context, organization string, options OrganizationUpdateOptions) (*Organization, error) {
 	if !validStringID(&organization) {
-		return nil, errors.New("Invalid value for organization")
+		return nil, errors.New("invalid value for organization")
 	}
 
 	// Make sure we don't send a user provided ID.
@@ -225,7 +264,7 @@ func (s *organizations) Update(ctx context.Context, organization string, options
 // Delete an organization by its name.
 func (s *organizations) Delete(ctx context.Context, organization string) error {
 	if !validStringID(&organization) {
-		return errors.New("Invalid value for organization")
+		return errors.New("invalid value for organization")
 	}
 
 	u := fmt.Sprintf("organizations/%s", url.QueryEscape(organization))
@@ -235,4 +274,72 @@ func (s *organizations) Delete(ctx context.Context, organization string) error {
 	}
 
 	return s.client.do(ctx, req, nil)
+}
+
+// Capacity shows the currently used capacity of an organization.
+func (s *organizations) Capacity(ctx context.Context, organization string) (*Capacity, error) {
+	if !validStringID(&organization) {
+		return nil, errors.New("invalid value for organization")
+	}
+
+	u := fmt.Sprintf("organizations/%s/capacity", url.QueryEscape(organization))
+	req, err := s.client.newRequest("GET", u, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	c := &Capacity{}
+	err = s.client.do(ctx, req, c)
+	if err != nil {
+		return nil, err
+	}
+
+	return c, nil
+}
+
+// Entitlements shows the entitlements of an organization.
+func (s *organizations) Entitlements(ctx context.Context, organization string) (*Entitlements, error) {
+	if !validStringID(&organization) {
+		return nil, errors.New("invalid value for organization")
+	}
+
+	u := fmt.Sprintf("organizations/%s/entitlement-set", url.QueryEscape(organization))
+	req, err := s.client.newRequest("GET", u, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	e := &Entitlements{}
+	err = s.client.do(ctx, req, e)
+	if err != nil {
+		return nil, err
+	}
+
+	return e, nil
+}
+
+// RunQueueOptions represents the options for showing the queue.
+type RunQueueOptions struct {
+	ListOptions
+}
+
+// RunQueue shows the current run queue of an organization.
+func (s *organizations) RunQueue(ctx context.Context, organization string, options RunQueueOptions) (*RunQueue, error) {
+	if !validStringID(&organization) {
+		return nil, errors.New("invalid value for organization")
+	}
+
+	u := fmt.Sprintf("organizations/%s/runs/queue", url.QueryEscape(organization))
+	req, err := s.client.newRequest("GET", u, &options)
+	if err != nil {
+		return nil, err
+	}
+
+	rq := &RunQueue{}
+	err = s.client.do(ctx, req, rq)
+	if err != nil {
+		return nil, err
+	}
+
+	return rq, nil
 }

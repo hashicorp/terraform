@@ -16,10 +16,15 @@ import (
 }%%
 
 func scanTokens(data []byte, filename string, start hcl.Pos, mode scanMode) []Token {
+    stripData := stripUTF8BOM(data)
+    start.Byte += len(data) - len(stripData)
+    data = stripData
+
     f := &tokenAccum{
-        Filename: filename,
-        Bytes:    data,
-        Pos:      start,
+        Filename:  filename,
+        Bytes:     data,
+        Pos:       start,
+        StartByte: start.Byte,
     }
 
     %%{
@@ -60,7 +65,7 @@ func scanTokens(data []byte, filename string, start hcl.Pos, mode scanMode) []To
         Comment = (
             ("#" (any - EndOfLine)* EndOfLine) |
             ("//" (any - EndOfLine)* EndOfLine) |
-            ("/*" any* "*/")
+            ("/*" any* :>> "*/")
         );
 
         # Note: hclwrite assumes that only ASCII spaces appear between tokens,

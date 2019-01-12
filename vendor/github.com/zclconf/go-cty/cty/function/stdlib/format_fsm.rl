@@ -12,6 +12,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/function"
 )
 
 %%{
@@ -23,6 +24,7 @@ func formatFSM(format string, a []cty.Value) (string, error) {
 	data := format
 	nextArg := 1 // arg numbers are 1-based
 	var verb formatVerb
+	highestArgIdx := 0 // zero means "none", since arg numbers are 1-based
 
 	%%{
 
@@ -102,6 +104,10 @@ func formatFSM(format string, a []cty.Value) (string, error) {
 		verb.Raw = data[ts:te]
 		verb.Offset = ts
 
+		if verb.ArgNum > highestArgIdx {
+			highestArgIdx = verb.ArgNum
+		}
+
 		err := formatAppend(&verb, &buf, a)
 		if err != nil {
 			return buf.String(), err
@@ -175,7 +181,17 @@ func formatFSM(format string, a []cty.Value) (string, error) {
 	// be impossible (the scanner matches all bytes _somehow_) but we'll
 	// flag it anyway rather than just losing data from the end.
 	if cs < formatfsm_first_final {
-		return buf.String(), fmt.Errorf("extraneous characters beginning at offset %i", p)
+		return buf.String(), fmt.Errorf("extraneous characters beginning at offset %d", p)
+	}
+
+	if highestArgIdx < len(a) {
+		// Extraneous args are an error, to more easily detect mistakes
+		firstBad := highestArgIdx+1
+		if highestArgIdx == 0 {
+			// Custom error message for this case
+			return buf.String(), function.NewArgErrorf(firstBad, "too many arguments; no verbs in format string")
+		}
+		return buf.String(), function.NewArgErrorf(firstBad, "too many arguments; only %d used by format string", highestArgIdx)
 	}
 
 	return buf.String(), nil

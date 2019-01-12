@@ -9,6 +9,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
+	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
 )
 
 const opAddTags = "AddTags"
@@ -16,7 +18,7 @@ const opAddTags = "AddTags"
 // AddTagsRequest generates a "aws/request.Request" representing the
 // client's request for the AddTags operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -50,6 +52,7 @@ func (c *CloudTrail) AddTagsRequest(input *AddTagsInput) (req *request.Request, 
 
 	output = &AddTagsOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -77,7 +80,7 @@ func (c *CloudTrail) AddTagsRequest(input *AddTagsInput) (req *request.Request, 
 //   This exception is thrown when an operation is called with an invalid trail
 //   ARN. The format of a trail ARN is:
 //
-//   arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+//   arn:aws:cloudtrail:us-east-2:123456789012:trail/MyTrail
 //
 //   * ErrCodeResourceTypeNotSupportedException "ResourceTypeNotSupportedException"
 //   This exception is thrown when the specified resource type is not supported
@@ -113,6 +116,12 @@ func (c *CloudTrail) AddTagsRequest(input *AddTagsInput) (req *request.Request, 
 //   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
 //   This exception is thrown when the requested operation is not permitted.
 //
+//   * ErrCodeNotOrganizationMasterAccountException "NotOrganizationMasterAccountException"
+//   This exception is thrown when the AWS account making the request to create
+//   or update an organization trail is not the master account for an organization
+//   in AWS Organizations. For more information, see Prepare For Creating a Trail
+//   For Your Organization (https://docs.aws.amazon.com/awscloudtrail/latest/userguide/creating-an-organizational-trail-prepare.html).
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/AddTags
 func (c *CloudTrail) AddTags(input *AddTagsInput) (*AddTagsOutput, error) {
 	req, out := c.AddTagsRequest(input)
@@ -140,7 +149,7 @@ const opCreateTrail = "CreateTrail"
 // CreateTrailRequest generates a "aws/request.Request" representing the
 // client's request for the CreateTrail operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -271,6 +280,35 @@ func (c *CloudTrail) CreateTrailRequest(input *CreateTrailInput) (req *request.R
 //   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
 //   This exception is thrown when the requested operation is not permitted.
 //
+//   * ErrCodeAccessNotEnabledException "CloudTrailAccessNotEnabledException"
+//   This exception is thrown when trusted access has not been enabled between
+//   AWS CloudTrail and AWS Organizations. For more information, see Enabling
+//   Trusted Access with Other AWS Services (https://docs.aws.amazon.com/organizations/latest/userguide/orgs_integrate_services.html)
+//   and Prepare For Creating a Trail For Your Organization (https://docs.aws.amazon.com/awscloudtrail/latest/userguide/creating-an-organizational-trail-prepare.html).
+//
+//   * ErrCodeInsufficientDependencyServiceAccessPermissionException "InsufficientDependencyServiceAccessPermissionException"
+//   This exception is thrown when the IAM user or role that is used to create
+//   the organization trail is lacking one or more required permissions for creating
+//   an organization trail in a required service. For more information, see Prepare
+//   For Creating a Trail For Your Organization (https://docs.aws.amazon.com/awscloudtrail/latest/userguide/creating-an-organizational-trail-prepare.html).
+//
+//   * ErrCodeNotOrganizationMasterAccountException "NotOrganizationMasterAccountException"
+//   This exception is thrown when the AWS account making the request to create
+//   or update an organization trail is not the master account for an organization
+//   in AWS Organizations. For more information, see Prepare For Creating a Trail
+//   For Your Organization (https://docs.aws.amazon.com/awscloudtrail/latest/userguide/creating-an-organizational-trail-prepare.html).
+//
+//   * ErrCodeOrganizationsNotInUseException "OrganizationsNotInUseException"
+//   This exception is thrown when the request is made from an AWS account that
+//   is not a member of an organization. To make this request, sign in using the
+//   credentials of an account that belongs to an organization.
+//
+//   * ErrCodeOrganizationNotInAllFeaturesModeException "OrganizationNotInAllFeaturesModeException"
+//   This exception is thrown when AWS Organizations is not configured to support
+//   all features. All features must be enabled in AWS Organization to support
+//   creating an organization trail. For more information, see Prepare For Creating
+//   a Trail For Your Organization (https://docs.aws.amazon.com/awscloudtrail/latest/userguide/creating-an-organizational-trail-prepare.html).
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/CreateTrail
 func (c *CloudTrail) CreateTrail(input *CreateTrailInput) (*CreateTrailOutput, error) {
 	req, out := c.CreateTrailRequest(input)
@@ -298,7 +336,7 @@ const opDeleteTrail = "DeleteTrail"
 // DeleteTrailRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteTrail operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -332,6 +370,7 @@ func (c *CloudTrail) DeleteTrailRequest(input *DeleteTrailInput) (req *request.R
 
 	output = &DeleteTrailOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -372,6 +411,24 @@ func (c *CloudTrail) DeleteTrailRequest(input *DeleteTrailInput) (req *request.R
 //   This exception is thrown when an operation is called on a trail from a region
 //   other than the region in which the trail was created.
 //
+//   * ErrCodeUnsupportedOperationException "UnsupportedOperationException"
+//   This exception is thrown when the requested operation is not supported.
+//
+//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   This exception is thrown when the requested operation is not permitted.
+//
+//   * ErrCodeNotOrganizationMasterAccountException "NotOrganizationMasterAccountException"
+//   This exception is thrown when the AWS account making the request to create
+//   or update an organization trail is not the master account for an organization
+//   in AWS Organizations. For more information, see Prepare For Creating a Trail
+//   For Your Organization (https://docs.aws.amazon.com/awscloudtrail/latest/userguide/creating-an-organizational-trail-prepare.html).
+//
+//   * ErrCodeInsufficientDependencyServiceAccessPermissionException "InsufficientDependencyServiceAccessPermissionException"
+//   This exception is thrown when the IAM user or role that is used to create
+//   the organization trail is lacking one or more required permissions for creating
+//   an organization trail in a required service. For more information, see Prepare
+//   For Creating a Trail For Your Organization (https://docs.aws.amazon.com/awscloudtrail/latest/userguide/creating-an-organizational-trail-prepare.html).
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/DeleteTrail
 func (c *CloudTrail) DeleteTrail(input *DeleteTrailInput) (*DeleteTrailOutput, error) {
 	req, out := c.DeleteTrailRequest(input)
@@ -399,7 +456,7 @@ const opDescribeTrails = "DescribeTrails"
 // DescribeTrailsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeTrails operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -482,7 +539,7 @@ const opGetEventSelectors = "GetEventSelectors"
 // GetEventSelectorsRequest generates a "aws/request.Request" representing the
 // client's request for the GetEventSelectors operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -524,12 +581,13 @@ func (c *CloudTrail) GetEventSelectorsRequest(input *GetEventSelectorsInput) (re
 // Describes the settings for the event selectors that you configured for your
 // trail. The information returned for your event selectors includes the following:
 //
-//    * The S3 objects that you are logging for data events.
+//    * If your event selector includes read-only events, write-only events,
+//    or all events. This applies to both management events and data events.
 //
 //    * If your event selector includes management events.
 //
-//    * If your event selector includes read-only events, write-only events,
-//    or all.
+//    * If your event selector includes data events, the Amazon S3 objects or
+//    AWS Lambda functions that you are logging for data events.
 //
 // For more information, see Logging Data and Management Events for Trails
 // (http://docs.aws.amazon.com/awscloudtrail/latest/userguide/logging-management-and-data-events-with-cloudtrail.html)
@@ -595,7 +653,7 @@ const opGetTrailStatus = "GetTrailStatus"
 // GetTrailStatusRequest generates a "aws/request.Request" representing the
 // client's request for the GetTrailStatus operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -694,7 +752,7 @@ const opListPublicKeys = "ListPublicKeys"
 // ListPublicKeysRequest generates a "aws/request.Request" representing the
 // client's request for the ListPublicKeys operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -790,7 +848,7 @@ const opListTags = "ListTags"
 // ListTagsRequest generates a "aws/request.Request" representing the
 // client's request for the ListTags operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -846,7 +904,7 @@ func (c *CloudTrail) ListTagsRequest(input *ListTagsInput) (req *request.Request
 //   This exception is thrown when an operation is called with an invalid trail
 //   ARN. The format of a trail ARN is:
 //
-//   arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+//   arn:aws:cloudtrail:us-east-2:123456789012:trail/MyTrail
 //
 //   * ErrCodeResourceTypeNotSupportedException "ResourceTypeNotSupportedException"
 //   This exception is thrown when the specified resource type is not supported
@@ -904,7 +962,7 @@ const opLookupEvents = "LookupEvents"
 // LookupEventsRequest generates a "aws/request.Request" representing the
 // client's request for the LookupEvents operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -949,10 +1007,11 @@ func (c *CloudTrail) LookupEventsRequest(input *LookupEventsInput) (req *request
 
 // LookupEvents API operation for AWS CloudTrail.
 //
-// Looks up API activity events captured by CloudTrail that create, update,
-// or delete resources in your account. Events for a region can be looked up
-// for the times in which you had CloudTrail turned on in that region during
-// the last seven days. Lookup supports the following attributes:
+// Looks up management events (https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-concepts.html#cloudtrail-concepts-management-events)
+// captured by CloudTrail. Events for a region can be looked up in that region
+// during the last 90 days. Lookup supports the following attributes:
+//
+//    * AWS access key
 //
 //    * Event ID
 //
@@ -960,13 +1019,15 @@ func (c *CloudTrail) LookupEventsRequest(input *LookupEventsInput) (req *request
 //
 //    * Event source
 //
+//    * Read only
+//
 //    * Resource name
 //
 //    * Resource type
 //
 //    * User name
 //
-// All attributes are optional. The default number of results returned is 10,
+// All attributes are optional. The default number of results returned is 50,
 // with a maximum of 50 possible. The response includes a token that you can
 // use to get the next page of results.
 //
@@ -1075,7 +1136,7 @@ const opPutEventSelectors = "PutEventSelectors"
 // PutEventSelectorsRequest generates a "aws/request.Request" representing the
 // client's request for the PutEventSelectors operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1114,10 +1175,13 @@ func (c *CloudTrail) PutEventSelectorsRequest(input *PutEventSelectorsInput) (re
 
 // PutEventSelectors API operation for AWS CloudTrail.
 //
-// Configures an event selector for your trail. Use event selectors to specify
-// whether you want your trail to log management and/or data events. When an
-// event occurs in your account, CloudTrail evaluates the event selectors in
-// all trails. For each trail, if the event matches any event selector, the
+// Configures an event selector for your trail. Use event selectors to further
+// specify the management and data event settings for your trail. By default,
+// trails created without specific event selectors will be configured to log
+// all read and write management events, and no data events.
+//
+// When an event occurs in your account, CloudTrail evaluates the event selectors
+// in all trails. For each trail, if the event matches any event selector, the
 // trail processes and logs the event. If the event doesn't match any event
 // selector, the trail doesn't log the event.
 //
@@ -1141,6 +1205,7 @@ func (c *CloudTrail) PutEventSelectorsRequest(input *PutEventSelectorsInput) (re
 //
 // You can configure up to five event selectors for each trail. For more information,
 // see Logging Data and Management Events for Trails  (http://docs.aws.amazon.com/awscloudtrail/latest/userguide/logging-management-and-data-events-with-cloudtrail.html)
+// and Limits in AWS CloudTrail (https://docs.aws.amazon.com/awscloudtrail/latest/userguide/WhatIsCloudTrail-Limits.html)
 // in the AWS CloudTrail User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -1176,12 +1241,21 @@ func (c *CloudTrail) PutEventSelectorsRequest(input *PutEventSelectorsInput) (re
 //
 //   * ErrCodeInvalidEventSelectorsException "InvalidEventSelectorsException"
 //   This exception is thrown when the PutEventSelectors operation is called with
-//   an invalid number of event selectors, data resources, or an invalid value
-//   for a parameter:
+//   a number of event selectors or data resources that is not valid. The combination
+//   of event selectors and data resources is not valid. A trail can have up to
+//   5 event selectors. A trail is limited to 250 data resources. These data resources
+//   can be distributed across event selectors, but the overall total cannot exceed
+//   250.
+//
+//   You can:
 //
 //      * Specify a valid number of event selectors (1 to 5) for a trail.
 //
 //      * Specify a valid number of data resources (1 to 250) for an event selector.
+//      The limit of number of resources on an individual event selector is configurable
+//      up to 250. However, this upper limit is allowed only if the total number
+//      of data resources does not exceed 250 across all event selectors for a
+//      trail.
 //
 //      * Specify a valid value for a parameter. For example, specifying the ReadWriteType
 //      parameter with a value of read-only is invalid.
@@ -1191,6 +1265,18 @@ func (c *CloudTrail) PutEventSelectorsRequest(input *PutEventSelectorsInput) (re
 //
 //   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
 //   This exception is thrown when the requested operation is not permitted.
+//
+//   * ErrCodeNotOrganizationMasterAccountException "NotOrganizationMasterAccountException"
+//   This exception is thrown when the AWS account making the request to create
+//   or update an organization trail is not the master account for an organization
+//   in AWS Organizations. For more information, see Prepare For Creating a Trail
+//   For Your Organization (https://docs.aws.amazon.com/awscloudtrail/latest/userguide/creating-an-organizational-trail-prepare.html).
+//
+//   * ErrCodeInsufficientDependencyServiceAccessPermissionException "InsufficientDependencyServiceAccessPermissionException"
+//   This exception is thrown when the IAM user or role that is used to create
+//   the organization trail is lacking one or more required permissions for creating
+//   an organization trail in a required service. For more information, see Prepare
+//   For Creating a Trail For Your Organization (https://docs.aws.amazon.com/awscloudtrail/latest/userguide/creating-an-organizational-trail-prepare.html).
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/PutEventSelectors
 func (c *CloudTrail) PutEventSelectors(input *PutEventSelectorsInput) (*PutEventSelectorsOutput, error) {
@@ -1219,7 +1305,7 @@ const opRemoveTags = "RemoveTags"
 // RemoveTagsRequest generates a "aws/request.Request" representing the
 // client's request for the RemoveTags operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1253,6 +1339,7 @@ func (c *CloudTrail) RemoveTagsRequest(input *RemoveTagsInput) (req *request.Req
 
 	output = &RemoveTagsOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1275,7 +1362,7 @@ func (c *CloudTrail) RemoveTagsRequest(input *RemoveTagsInput) (req *request.Req
 //   This exception is thrown when an operation is called with an invalid trail
 //   ARN. The format of a trail ARN is:
 //
-//   arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+//   arn:aws:cloudtrail:us-east-2:123456789012:trail/MyTrail
 //
 //   * ErrCodeResourceTypeNotSupportedException "ResourceTypeNotSupportedException"
 //   This exception is thrown when the specified resource type is not supported
@@ -1307,6 +1394,12 @@ func (c *CloudTrail) RemoveTagsRequest(input *RemoveTagsInput) (req *request.Req
 //   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
 //   This exception is thrown when the requested operation is not permitted.
 //
+//   * ErrCodeNotOrganizationMasterAccountException "NotOrganizationMasterAccountException"
+//   This exception is thrown when the AWS account making the request to create
+//   or update an organization trail is not the master account for an organization
+//   in AWS Organizations. For more information, see Prepare For Creating a Trail
+//   For Your Organization (https://docs.aws.amazon.com/awscloudtrail/latest/userguide/creating-an-organizational-trail-prepare.html).
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/RemoveTags
 func (c *CloudTrail) RemoveTags(input *RemoveTagsInput) (*RemoveTagsOutput, error) {
 	req, out := c.RemoveTagsRequest(input)
@@ -1334,7 +1427,7 @@ const opStartLogging = "StartLogging"
 // StartLoggingRequest generates a "aws/request.Request" representing the
 // client's request for the StartLogging operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1368,6 +1461,7 @@ func (c *CloudTrail) StartLoggingRequest(input *StartLoggingInput) (req *request
 
 	output = &StartLoggingOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1410,6 +1504,24 @@ func (c *CloudTrail) StartLoggingRequest(input *StartLoggingInput) (req *request
 //   This exception is thrown when an operation is called on a trail from a region
 //   other than the region in which the trail was created.
 //
+//   * ErrCodeUnsupportedOperationException "UnsupportedOperationException"
+//   This exception is thrown when the requested operation is not supported.
+//
+//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   This exception is thrown when the requested operation is not permitted.
+//
+//   * ErrCodeNotOrganizationMasterAccountException "NotOrganizationMasterAccountException"
+//   This exception is thrown when the AWS account making the request to create
+//   or update an organization trail is not the master account for an organization
+//   in AWS Organizations. For more information, see Prepare For Creating a Trail
+//   For Your Organization (https://docs.aws.amazon.com/awscloudtrail/latest/userguide/creating-an-organizational-trail-prepare.html).
+//
+//   * ErrCodeInsufficientDependencyServiceAccessPermissionException "InsufficientDependencyServiceAccessPermissionException"
+//   This exception is thrown when the IAM user or role that is used to create
+//   the organization trail is lacking one or more required permissions for creating
+//   an organization trail in a required service. For more information, see Prepare
+//   For Creating a Trail For Your Organization (https://docs.aws.amazon.com/awscloudtrail/latest/userguide/creating-an-organizational-trail-prepare.html).
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/StartLogging
 func (c *CloudTrail) StartLogging(input *StartLoggingInput) (*StartLoggingOutput, error) {
 	req, out := c.StartLoggingRequest(input)
@@ -1437,7 +1549,7 @@ const opStopLogging = "StopLogging"
 // StopLoggingRequest generates a "aws/request.Request" representing the
 // client's request for the StopLogging operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1471,6 +1583,7 @@ func (c *CloudTrail) StopLoggingRequest(input *StopLoggingInput) (req *request.R
 
 	output = &StopLoggingOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1515,6 +1628,24 @@ func (c *CloudTrail) StopLoggingRequest(input *StopLoggingInput) (req *request.R
 //   This exception is thrown when an operation is called on a trail from a region
 //   other than the region in which the trail was created.
 //
+//   * ErrCodeUnsupportedOperationException "UnsupportedOperationException"
+//   This exception is thrown when the requested operation is not supported.
+//
+//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   This exception is thrown when the requested operation is not permitted.
+//
+//   * ErrCodeNotOrganizationMasterAccountException "NotOrganizationMasterAccountException"
+//   This exception is thrown when the AWS account making the request to create
+//   or update an organization trail is not the master account for an organization
+//   in AWS Organizations. For more information, see Prepare For Creating a Trail
+//   For Your Organization (https://docs.aws.amazon.com/awscloudtrail/latest/userguide/creating-an-organizational-trail-prepare.html).
+//
+//   * ErrCodeInsufficientDependencyServiceAccessPermissionException "InsufficientDependencyServiceAccessPermissionException"
+//   This exception is thrown when the IAM user or role that is used to create
+//   the organization trail is lacking one or more required permissions for creating
+//   an organization trail in a required service. For more information, see Prepare
+//   For Creating a Trail For Your Organization (https://docs.aws.amazon.com/awscloudtrail/latest/userguide/creating-an-organizational-trail-prepare.html).
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/StopLogging
 func (c *CloudTrail) StopLogging(input *StopLoggingInput) (*StopLoggingOutput, error) {
 	req, out := c.StopLoggingRequest(input)
@@ -1542,7 +1673,7 @@ const opUpdateTrail = "UpdateTrail"
 // UpdateTrailRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateTrail operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1677,6 +1808,35 @@ func (c *CloudTrail) UpdateTrailRequest(input *UpdateTrailInput) (req *request.R
 //   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
 //   This exception is thrown when the requested operation is not permitted.
 //
+//   * ErrCodeAccessNotEnabledException "CloudTrailAccessNotEnabledException"
+//   This exception is thrown when trusted access has not been enabled between
+//   AWS CloudTrail and AWS Organizations. For more information, see Enabling
+//   Trusted Access with Other AWS Services (https://docs.aws.amazon.com/organizations/latest/userguide/orgs_integrate_services.html)
+//   and Prepare For Creating a Trail For Your Organization (https://docs.aws.amazon.com/awscloudtrail/latest/userguide/creating-an-organizational-trail-prepare.html).
+//
+//   * ErrCodeInsufficientDependencyServiceAccessPermissionException "InsufficientDependencyServiceAccessPermissionException"
+//   This exception is thrown when the IAM user or role that is used to create
+//   the organization trail is lacking one or more required permissions for creating
+//   an organization trail in a required service. For more information, see Prepare
+//   For Creating a Trail For Your Organization (https://docs.aws.amazon.com/awscloudtrail/latest/userguide/creating-an-organizational-trail-prepare.html).
+//
+//   * ErrCodeOrganizationsNotInUseException "OrganizationsNotInUseException"
+//   This exception is thrown when the request is made from an AWS account that
+//   is not a member of an organization. To make this request, sign in using the
+//   credentials of an account that belongs to an organization.
+//
+//   * ErrCodeNotOrganizationMasterAccountException "NotOrganizationMasterAccountException"
+//   This exception is thrown when the AWS account making the request to create
+//   or update an organization trail is not the master account for an organization
+//   in AWS Organizations. For more information, see Prepare For Creating a Trail
+//   For Your Organization (https://docs.aws.amazon.com/awscloudtrail/latest/userguide/creating-an-organizational-trail-prepare.html).
+//
+//   * ErrCodeOrganizationNotInAllFeaturesModeException "OrganizationNotInAllFeaturesModeException"
+//   This exception is thrown when AWS Organizations is not configured to support
+//   all features. All features must be enabled in AWS Organization to support
+//   creating an organization trail. For more information, see Prepare For Creating
+//   a Trail For Your Organization (https://docs.aws.amazon.com/awscloudtrail/latest/userguide/creating-an-organizational-trail-prepare.html).
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/UpdateTrail
 func (c *CloudTrail) UpdateTrail(input *UpdateTrailInput) (*UpdateTrailOutput, error) {
 	req, out := c.UpdateTrailRequest(input)
@@ -1706,7 +1866,7 @@ type AddTagsInput struct {
 	// Specifies the ARN of the trail to which one or more tags will be added. The
 	// format of a trail ARN is:
 	//
-	// arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	// arn:aws:cloudtrail:us-east-2:123456789012:trail/MyTrail
 	//
 	// ResourceId is a required field
 	ResourceId *string `type:"string" required:"true"`
@@ -1810,6 +1970,12 @@ type CreateTrailInput struct {
 	// The default is false.
 	IsMultiRegionTrail *bool `type:"boolean"`
 
+	// Specifies whether the trail is created for all accounts in an organization
+	// in AWS Organizations, or only for the current AWS account. The default is
+	// false, and cannot be true unless the call is made on behalf of an AWS account
+	// that is the master account for an organization in AWS Organizations.
+	IsOrganizationTrail *bool `type:"boolean"`
+
 	// Specifies the KMS key ID to use to encrypt the logs delivered by CloudTrail.
 	// The value can be an alias name prefixed by "alias/", a fully specified ARN
 	// to an alias, a fully specified ARN to a key, or a globally unique identifier.
@@ -1818,9 +1984,9 @@ type CreateTrailInput struct {
 	//
 	//    * alias/MyAliasName
 	//
-	//    * arn:aws:kms:us-east-1:123456789012:alias/MyAliasName
+	//    * arn:aws:kms:us-east-2:123456789012:alias/MyAliasName
 	//
-	//    * arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
+	//    * arn:aws:kms:us-east-2:123456789012:key/12345678-1234-1234-1234-123456789012
 	//
 	//    * 12345678-1234-1234-1234-123456789012
 	KmsKeyId *string `type:"string"`
@@ -1915,6 +2081,12 @@ func (s *CreateTrailInput) SetIsMultiRegionTrail(v bool) *CreateTrailInput {
 	return s
 }
 
+// SetIsOrganizationTrail sets the IsOrganizationTrail field's value.
+func (s *CreateTrailInput) SetIsOrganizationTrail(v bool) *CreateTrailInput {
+	s.IsOrganizationTrail = &v
+	return s
+}
+
 // SetKmsKeyId sets the KmsKeyId field's value.
 func (s *CreateTrailInput) SetKmsKeyId(v string) *CreateTrailInput {
 	s.KmsKeyId = &v
@@ -1965,10 +2137,13 @@ type CreateTrailOutput struct {
 	// Specifies whether the trail exists in one region or in all regions.
 	IsMultiRegionTrail *bool `type:"boolean"`
 
+	// Specifies whether the trail is an organization trail.
+	IsOrganizationTrail *bool `type:"boolean"`
+
 	// Specifies the KMS key ID that encrypts the logs delivered by CloudTrail.
 	// The value is a fully specified ARN to a KMS key in the format:
 	//
-	// arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
+	// arn:aws:kms:us-east-2:123456789012:key/12345678-1234-1234-1234-123456789012
 	KmsKeyId *string `type:"string"`
 
 	// Specifies whether log file integrity validation is enabled.
@@ -1989,16 +2164,18 @@ type CreateTrailOutput struct {
 	// Specifies the ARN of the Amazon SNS topic that CloudTrail uses to send notifications
 	// when log files are delivered. The format of a topic ARN is:
 	//
-	// arn:aws:sns:us-east-1:123456789012:MyTopic
+	// arn:aws:sns:us-east-2:123456789012:MyTopic
 	SnsTopicARN *string `type:"string"`
 
 	// This field is deprecated. Use SnsTopicARN.
+	//
+	// Deprecated: SnsTopicName has been deprecated
 	SnsTopicName *string `deprecated:"true" type:"string"`
 
 	// Specifies the ARN of the trail that was created. The format of a trail ARN
 	// is:
 	//
-	// arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	// arn:aws:cloudtrail:us-east-2:123456789012:trail/MyTrail
 	TrailARN *string `type:"string"`
 }
 
@@ -2033,6 +2210,12 @@ func (s *CreateTrailOutput) SetIncludeGlobalServiceEvents(v bool) *CreateTrailOu
 // SetIsMultiRegionTrail sets the IsMultiRegionTrail field's value.
 func (s *CreateTrailOutput) SetIsMultiRegionTrail(v bool) *CreateTrailOutput {
 	s.IsMultiRegionTrail = &v
+	return s
+}
+
+// SetIsOrganizationTrail sets the IsOrganizationTrail field's value.
+func (s *CreateTrailOutput) SetIsOrganizationTrail(v bool) *CreateTrailOutput {
+	s.IsOrganizationTrail = &v
 	return s
 }
 
@@ -2084,41 +2267,93 @@ func (s *CreateTrailOutput) SetTrailARN(v string) *CreateTrailOutput {
 	return s
 }
 
-// The Amazon S3 objects that you specify in your event selectors for your trail
-// to log data events. Data events are object-level API operations that access
-// S3 objects, such as GetObject, DeleteObject, and PutObject. You can specify
-// up to 250 S3 buckets and object prefixes for a trail.
+// The Amazon S3 buckets or AWS Lambda functions that you specify in your event
+// selectors for your trail to log data events. Data events provide insight
+// into the resource operations performed on or within a resource itself. These
+// are also known as data plane operations. You can specify up to 250 data resources
+// for a trail.
 //
-// Example
+// The total number of allowed data resources is 250. This number can be distributed
+// between 1 and 5 event selectors, but the total cannot exceed 250 across all
+// selectors.
 //
-// You create an event selector for a trail and specify an S3 bucket and an
-// empty prefix, such as arn:aws:s3:::bucket-1/.
+// The following example demonstrates how logging works when you configure logging
+// of all data events for an S3 bucket named bucket-1. In this example, the
+// CloudTrail user spcified an empty prefix, and the option to log both Read
+// and Write data events.
 //
-// You upload an image file to bucket-1.
+// A user uploads an image file to bucket-1.
 //
-// The PutObject API operation occurs on an object in the S3 bucket that you
-// specified in the event selector. The trail processes and logs the event.
+// The PutObject API operation is an Amazon S3 object-level API. It is recorded
+// as a data event in CloudTrail. Because the CloudTrail user specified an S3
+// bucket with an empty prefix, events that occur on any object in that bucket
+// are logged. The trail processes and logs the event.
 //
-// You upload another image file to a different S3 bucket named arn:aws:s3:::bucket-2.
+// A user uploads an object to an Amazon S3 bucket named arn:aws:s3:::bucket-2.
 //
-// The event occurs on an object in an S3 bucket that you didn't specify in
-// the event selector. The trail doesn’t log the event.
+// The PutObject API operation occurred for an object in an S3 bucket that the
+// CloudTrail user didn't specify for the trail. The trail doesn’t log the event.
+//
+// The following example demonstrates how logging works when you configure logging
+// of AWS Lambda data events for a Lambda function named MyLambdaFunction, but
+// not for all AWS Lambda functions.
+//
+// A user runs a script that includes a call to the MyLambdaFunction function
+// and the MyOtherLambdaFunction function.
+//
+// The Invoke API operation on MyLambdaFunction is an AWS Lambda API. It is
+// recorded as a data event in CloudTrail. Because the CloudTrail user specified
+// logging data events for MyLambdaFunction, any invocations of that function
+// are logged. The trail processes and logs the event.
+//
+// The Invoke API operation on MyOtherLambdaFunction is an AWS Lambda API. Because
+// the CloudTrail user did not specify logging data events for all Lambda functions,
+// the Invoke operation for MyOtherLambdaFunction does not match the function
+// specified for the trail. The trail doesn’t log the event.
 type DataResource struct {
 	_ struct{} `type:"structure"`
 
-	// The resource type in which you want to log data events. You can specify only
-	// the following value: AWS::S3::Object.
+	// The resource type in which you want to log data events. You can specify AWS::S3::Object
+	// or AWS::Lambda::Function resources.
 	Type *string `type:"string"`
 
-	// A list of ARN-like strings for the specified S3 objects.
+	// An array of Amazon Resource Name (ARN) strings or partial ARN strings for
+	// the specified objects.
 	//
-	// To log data events for all objects in an S3 bucket, specify the bucket and
-	// an empty object prefix such as arn:aws:s3:::bucket-1/. The trail logs data
-	// events for all objects in this S3 bucket.
+	//    * To log data events for all objects in all S3 buckets in your AWS account,
+	//    specify the prefix as arn:aws:s3:::.
 	//
-	// To log data events for specific objects, specify the S3 bucket and object
-	// prefix such as arn:aws:s3:::bucket-1/example-images. The trail logs data
-	// events for objects in this S3 bucket that match the prefix.
+	// This will also enable logging of data event activity performed by any user
+	//    or role in your AWS account, even if that activity is performed on a bucket
+	//    that belongs to another AWS account.
+	//
+	//    * To log data events for all objects in all S3 buckets that include my-bucket
+	//    in their names, specify the prefix as aws:s3:::my-bucket. The trail logs
+	//    data events for all objects in all buckets whose name contains a match
+	//    for my-bucket.
+	//
+	//    * To log data events for all objects in an S3 bucket, specify the bucket
+	//    and an empty object prefix such as arn:aws:s3:::bucket-1/. The trail logs
+	//    data events for all objects in this S3 bucket.
+	//
+	//    * To log data events for specific objects, specify the S3 bucket and object
+	//    prefix such as arn:aws:s3:::bucket-1/example-images. The trail logs data
+	//    events for objects in this S3 bucket that match the prefix.
+	//
+	//    * To log data events for all functions in your AWS account, specify the
+	//    prefix as arn:aws:lambda.
+	//
+	// This will also enable logging of Invoke activity performed by any user or
+	//    role in your AWS account, even if that activity is performed on a function
+	//    that belongs to another AWS account.
+	//
+	//    * To log data eents for a specific Lambda function, specify the function
+	//    ARN.
+	//
+	// Lambda function ARNs are exact. Unlike S3, you cannot use matching. For example,
+	//    if you specify a function ARN arn:aws:lambda:us-west-2:111111111111:function:helloworld,
+	//    data events will only be logged for arn:aws:lambda:us-west-2:111111111111:function:helloworld.
+	//    They will not be logged for arn:aws:lambda:us-west-2:111111111111:function:helloworld2.
 	Values []*string `type:"list"`
 }
 
@@ -2149,7 +2384,7 @@ type DeleteTrailInput struct {
 	_ struct{} `type:"structure"`
 
 	// Specifies the name or the CloudTrail ARN of the trail to be deleted. The
-	// format of a trail ARN is: arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	// format of a trail ARN is: arn:aws:cloudtrail:us-east-2:123456789012:trail/MyTrail
 	//
 	// Name is a required field
 	Name *string `type:"string" required:"true"`
@@ -2206,13 +2441,16 @@ type DescribeTrailsInput struct {
 
 	// Specifies whether to include shadow trails in the response. A shadow trail
 	// is the replication in a region of a trail that was created in a different
-	// region. The default is true.
+	// region, or in the case of an organization trail, the replication of an organization
+	// trail in member accounts. If you do not include shadow trails, organization
+	// trails in a member account and region replication trails will not be returned.
+	// The default is true.
 	IncludeShadowTrails *bool `locationName:"includeShadowTrails" type:"boolean"`
 
 	// Specifies a list of trail names, trail ARNs, or both, of the trails to describe.
 	// The format of a trail ARN is:
 	//
-	// arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	// arn:aws:cloudtrail:us-east-2:123456789012:trail/MyTrail
 	//
 	// If an empty list is specified, information for the trail in the current region
 	// is returned.
@@ -2283,6 +2521,11 @@ func (s *DescribeTrailsOutput) SetTrailList(v []*Trail) *DescribeTrailsOutput {
 type Event struct {
 	_ struct{} `type:"structure"`
 
+	// The AWS access key ID that was used to sign the request. If the request was
+	// made with temporary security credentials, this is the access key ID of the
+	// temporary credentials.
+	AccessKeyId *string `type:"string"`
+
 	// A JSON string that contains a representation of the event returned.
 	CloudTrailEvent *string `type:"string"`
 
@@ -2297,6 +2540,9 @@ type Event struct {
 
 	// The date and time of the event returned.
 	EventTime *time.Time `type:"timestamp"`
+
+	// Information about whether the event is a write event or a read event.
+	ReadOnly *string `type:"string"`
 
 	// A list of resources referenced by the event returned.
 	Resources []*Resource `type:"list"`
@@ -2314,6 +2560,12 @@ func (s Event) String() string {
 // GoString returns the string representation
 func (s Event) GoString() string {
 	return s.String()
+}
+
+// SetAccessKeyId sets the AccessKeyId field's value.
+func (s *Event) SetAccessKeyId(v string) *Event {
+	s.AccessKeyId = &v
+	return s
 }
 
 // SetCloudTrailEvent sets the CloudTrailEvent field's value.
@@ -2346,6 +2598,12 @@ func (s *Event) SetEventTime(v time.Time) *Event {
 	return s
 }
 
+// SetReadOnly sets the ReadOnly field's value.
+func (s *Event) SetReadOnly(v string) *Event {
+	s.ReadOnly = &v
+	return s
+}
+
 // SetResources sets the Resources field's value.
 func (s *Event) SetResources(v []*Resource) *Event {
 	s.Resources = v
@@ -2358,20 +2616,26 @@ func (s *Event) SetUsername(v string) *Event {
 	return s
 }
 
-// Use event selectors to specify whether you want your trail to log management
-// and/or data events. When an event occurs in your account, CloudTrail evaluates
-// the event selector for all trails. For each trail, if the event matches any
-// event selector, the trail processes and logs the event. If the event doesn't
-// match any event selector, the trail doesn't log the event.
+// Use event selectors to further specify the management and data event settings
+// for your trail. By default, trails created without specific event selectors
+// will be configured to log all read and write management events, and no data
+// events. When an event occurs in your account, CloudTrail evaluates the event
+// selector for all trails. For each trail, if the event matches any event selector,
+// the trail processes and logs the event. If the event doesn't match any event
+// selector, the trail doesn't log the event.
 //
 // You can configure up to five event selectors for a trail.
 type EventSelector struct {
 	_ struct{} `type:"structure"`
 
-	// CloudTrail supports logging only data events for S3 objects. You can specify
-	// up to 250 S3 buckets and object prefixes for a trail.
+	// CloudTrail supports data event logging for Amazon S3 objects and AWS Lambda
+	// functions. You can specify up to 250 resources for an individual event selector,
+	// but the total number of data resources cannot exceed 250 across all event
+	// selectors in a trail. This limit does not apply if you configure resource
+	// logging for all data events.
 	//
 	// For more information, see Data Events (http://docs.aws.amazon.com/awscloudtrail/latest/userguide/logging-management-and-data-events-with-cloudtrail.html#logging-data-events)
+	// and Limits in AWS CloudTrail (https://docs.aws.amazon.com/awscloudtrail/latest/userguide/WhatIsCloudTrail-Limits.html)
 	// in the AWS CloudTrail User Guide.
 	DataResources []*DataResource `type:"list"`
 
@@ -2434,13 +2698,13 @@ type GetEventSelectorsInput struct {
 	//    * Be between 3 and 128 characters
 	//
 	//    * Have no adjacent periods, underscores or dashes. Names like my-_namespace
-	//    and my--namespace are invalid.
+	//    and my--namespace are not valid.
 	//
 	//    * Not be in IP address format (for example, 192.168.5.4)
 	//
 	// If you specify a trail ARN, it must be in the format:
 	//
-	// arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	// arn:aws:cloudtrail:us-east-2:123456789012:trail/MyTrail
 	//
 	// TrailName is a required field
 	TrailName *string `type:"string" required:"true"`
@@ -2515,7 +2779,7 @@ type GetTrailStatusInput struct {
 	// status. To get the status of a shadow trail (a replication of the trail in
 	// another region), you must specify its ARN. The format of a trail ARN is:
 	//
-	// arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	// arn:aws:cloudtrail:us-east-2:123456789012:trail/MyTrail
 	//
 	// Name is a required field
 	Name *string `type:"string" required:"true"`
@@ -2835,7 +3099,7 @@ type ListTagsInput struct {
 	// Specifies a list of trail ARNs whose tags will be listed. The list has a
 	// limit of 20 ARNs. The format of a trail ARN is:
 	//
-	// arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	// arn:aws:cloudtrail:us-east-2:123456789012:trail/MyTrail
 	//
 	// ResourceIdList is a required field
 	ResourceIdList []*string `type:"list" required:"true"`
@@ -2977,7 +3241,7 @@ type LookupEventsInput struct {
 	LookupAttributes []*LookupAttribute `type:"list"`
 
 	// The number of events to return. Possible values are 1 through 50. The default
-	// is 10.
+	// is 50.
 	MaxResults *int64 `min:"1" type:"integer"`
 
 	// The token to use to get the next page of results after a previous API call.
@@ -3174,7 +3438,7 @@ type PutEventSelectorsInput struct {
 	//
 	// If you specify a trail ARN, it must be in the format:
 	//
-	// arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	// arn:aws:cloudtrail:us-east-2:123456789012:trail/MyTrail
 	//
 	// TrailName is a required field
 	TrailName *string `type:"string" required:"true"`
@@ -3227,7 +3491,7 @@ type PutEventSelectorsOutput struct {
 	// Specifies the ARN of the trail that was updated with event selectors. The
 	// format of a trail ARN is:
 	//
-	// arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	// arn:aws:cloudtrail:us-east-2:123456789012:trail/MyTrail
 	TrailARN *string `type:"string"`
 }
 
@@ -3260,7 +3524,7 @@ type RemoveTagsInput struct {
 	// Specifies the ARN of the trail from which tags should be removed. The format
 	// of a trail ARN is:
 	//
-	// arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	// arn:aws:cloudtrail:us-east-2:123456789012:trail/MyTrail
 	//
 	// ResourceId is a required field
 	ResourceId *string `type:"string" required:"true"`
@@ -3410,7 +3674,7 @@ type StartLoggingInput struct {
 	// Specifies the name or the CloudTrail ARN of the trail for which CloudTrail
 	// logs AWS API calls. The format of a trail ARN is:
 	//
-	// arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	// arn:aws:cloudtrail:us-east-2:123456789012:trail/MyTrail
 	//
 	// Name is a required field
 	Name *string `type:"string" required:"true"`
@@ -3469,7 +3733,7 @@ type StopLoggingInput struct {
 	// Specifies the name or the CloudTrail ARN of the trail for which CloudTrail
 	// will stop logging AWS API calls. The format of a trail ARN is:
 	//
-	// arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	// arn:aws:cloudtrail:us-east-2:123456789012:trail/MyTrail
 	//
 	// Name is a required field
 	Name *string `type:"string" required:"true"`
@@ -3595,10 +3859,13 @@ type Trail struct {
 	// Specifies whether the trail belongs only to one region or exists in all regions.
 	IsMultiRegionTrail *bool `type:"boolean"`
 
+	// Specifies whether the trail is an organization trail.
+	IsOrganizationTrail *bool `type:"boolean"`
+
 	// Specifies the KMS key ID that encrypts the logs delivered by CloudTrail.
 	// The value is a fully specified ARN to a KMS key in the format:
 	//
-	// arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
+	// arn:aws:kms:us-east-2:123456789012:key/12345678-1234-1234-1234-123456789012
 	KmsKeyId *string `type:"string"`
 
 	// Specifies whether log file validation is enabled.
@@ -3620,15 +3887,17 @@ type Trail struct {
 	// Specifies the ARN of the Amazon SNS topic that CloudTrail uses to send notifications
 	// when log files are delivered. The format of a topic ARN is:
 	//
-	// arn:aws:sns:us-east-1:123456789012:MyTopic
+	// arn:aws:sns:us-east-2:123456789012:MyTopic
 	SnsTopicARN *string `type:"string"`
 
 	// This field is deprecated. Use SnsTopicARN.
+	//
+	// Deprecated: SnsTopicName has been deprecated
 	SnsTopicName *string `deprecated:"true" type:"string"`
 
 	// Specifies the ARN of the trail. The format of a trail ARN is:
 	//
-	// arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	// arn:aws:cloudtrail:us-east-2:123456789012:trail/MyTrail
 	TrailARN *string `type:"string"`
 }
 
@@ -3675,6 +3944,12 @@ func (s *Trail) SetIncludeGlobalServiceEvents(v bool) *Trail {
 // SetIsMultiRegionTrail sets the IsMultiRegionTrail field's value.
 func (s *Trail) SetIsMultiRegionTrail(v bool) *Trail {
 	s.IsMultiRegionTrail = &v
+	return s
+}
+
+// SetIsOrganizationTrail sets the IsOrganizationTrail field's value.
+func (s *Trail) SetIsOrganizationTrail(v bool) *Trail {
+	s.IsOrganizationTrail = &v
 	return s
 }
 
@@ -3763,6 +4038,17 @@ type UpdateTrailInput struct {
 	// it was created, and its shadow trails in other regions will be deleted.
 	IsMultiRegionTrail *bool `type:"boolean"`
 
+	// Specifies whether the trail is applied to all accounts in an organization
+	// in AWS Organizations, or only for the current AWS account. The default is
+	// false, and cannot be true unless the call is made on behalf of an AWS account
+	// that is the master account for an organization in AWS Organizations. If the
+	// trail is not an organization trail and this is set to true, the trail will
+	// be created in all AWS accounts that belong to the organization. If the trail
+	// is an organization trail and this is set to false, the trail will remain
+	// in the current AWS account but be deleted from all member accounts in the
+	// organization.
+	IsOrganizationTrail *bool `type:"boolean"`
+
 	// Specifies the KMS key ID to use to encrypt the logs delivered by CloudTrail.
 	// The value can be an alias name prefixed by "alias/", a fully specified ARN
 	// to an alias, a fully specified ARN to a key, or a globally unique identifier.
@@ -3771,9 +4057,9 @@ type UpdateTrailInput struct {
 	//
 	//    * alias/MyAliasName
 	//
-	//    * arn:aws:kms:us-east-1:123456789012:alias/MyAliasName
+	//    * arn:aws:kms:us-east-2:123456789012:alias/MyAliasName
 	//
-	//    * arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
+	//    * arn:aws:kms:us-east-2:123456789012:key/12345678-1234-1234-1234-123456789012
 	//
 	//    * 12345678-1234-1234-1234-123456789012
 	KmsKeyId *string `type:"string"`
@@ -3795,7 +4081,7 @@ type UpdateTrailInput struct {
 	//
 	// If Name is a trail ARN, it must be in the format:
 	//
-	// arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	// arn:aws:cloudtrail:us-east-2:123456789012:trail/MyTrail
 	//
 	// Name is a required field
 	Name *string `type:"string" required:"true"`
@@ -3868,6 +4154,12 @@ func (s *UpdateTrailInput) SetIsMultiRegionTrail(v bool) *UpdateTrailInput {
 	return s
 }
 
+// SetIsOrganizationTrail sets the IsOrganizationTrail field's value.
+func (s *UpdateTrailInput) SetIsOrganizationTrail(v bool) *UpdateTrailInput {
+	s.IsOrganizationTrail = &v
+	return s
+}
+
 // SetKmsKeyId sets the KmsKeyId field's value.
 func (s *UpdateTrailInput) SetKmsKeyId(v string) *UpdateTrailInput {
 	s.KmsKeyId = &v
@@ -3918,10 +4210,13 @@ type UpdateTrailOutput struct {
 	// Specifies whether the trail exists in one region or in all regions.
 	IsMultiRegionTrail *bool `type:"boolean"`
 
+	// Specifies whether the trail is an organization trail.
+	IsOrganizationTrail *bool `type:"boolean"`
+
 	// Specifies the KMS key ID that encrypts the logs delivered by CloudTrail.
 	// The value is a fully specified ARN to a KMS key in the format:
 	//
-	// arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
+	// arn:aws:kms:us-east-2:123456789012:key/12345678-1234-1234-1234-123456789012
 	KmsKeyId *string `type:"string"`
 
 	// Specifies whether log file integrity validation is enabled.
@@ -3942,16 +4237,18 @@ type UpdateTrailOutput struct {
 	// Specifies the ARN of the Amazon SNS topic that CloudTrail uses to send notifications
 	// when log files are delivered. The format of a topic ARN is:
 	//
-	// arn:aws:sns:us-east-1:123456789012:MyTopic
+	// arn:aws:sns:us-east-2:123456789012:MyTopic
 	SnsTopicARN *string `type:"string"`
 
 	// This field is deprecated. Use SnsTopicARN.
+	//
+	// Deprecated: SnsTopicName has been deprecated
 	SnsTopicName *string `deprecated:"true" type:"string"`
 
 	// Specifies the ARN of the trail that was updated. The format of a trail ARN
 	// is:
 	//
-	// arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	// arn:aws:cloudtrail:us-east-2:123456789012:trail/MyTrail
 	TrailARN *string `type:"string"`
 }
 
@@ -3986,6 +4283,12 @@ func (s *UpdateTrailOutput) SetIncludeGlobalServiceEvents(v bool) *UpdateTrailOu
 // SetIsMultiRegionTrail sets the IsMultiRegionTrail field's value.
 func (s *UpdateTrailOutput) SetIsMultiRegionTrail(v bool) *UpdateTrailOutput {
 	s.IsMultiRegionTrail = &v
+	return s
+}
+
+// SetIsOrganizationTrail sets the IsOrganizationTrail field's value.
+func (s *UpdateTrailOutput) SetIsOrganizationTrail(v bool) *UpdateTrailOutput {
+	s.IsOrganizationTrail = &v
 	return s
 }
 
@@ -4044,6 +4347,9 @@ const (
 	// LookupAttributeKeyEventName is a LookupAttributeKey enum value
 	LookupAttributeKeyEventName = "EventName"
 
+	// LookupAttributeKeyReadOnly is a LookupAttributeKey enum value
+	LookupAttributeKeyReadOnly = "ReadOnly"
+
 	// LookupAttributeKeyUsername is a LookupAttributeKey enum value
 	LookupAttributeKeyUsername = "Username"
 
@@ -4055,6 +4361,9 @@ const (
 
 	// LookupAttributeKeyEventSource is a LookupAttributeKey enum value
 	LookupAttributeKeyEventSource = "EventSource"
+
+	// LookupAttributeKeyAccessKeyId is a LookupAttributeKey enum value
+	LookupAttributeKeyAccessKeyId = "AccessKeyId"
 )
 
 const (

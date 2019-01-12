@@ -1,0 +1,16 @@
+language: go
+
+go:
+  - 1.6
+
+before_install:
+  - go get -u github.com/ChrisTrenkamp/goxpath
+  - go get -u github.com/ChrisTrenkamp/goxpath/cmd/goxpath
+  - go get -u github.com/wadey/gocovmerge
+
+script:
+  - go list -f '{{if gt (len .TestGoFiles) 0}}"go test -covermode count -coverprofile {{.Name}}.coverprofile -coverpkg ./... {{.ImportPath}}"{{end}}' ./... | xargs -I {} bash -c {}
+  - gocovmerge `ls *.coverprofile` > coverage.txt
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)

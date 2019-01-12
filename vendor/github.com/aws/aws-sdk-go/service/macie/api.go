@@ -17,7 +17,7 @@ const opAssociateMemberAccount = "AssociateMemberAccount"
 // AssociateMemberAccountRequest generates a "aws/request.Request" representing the
 // client's request for the AssociateMemberAccount operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -51,8 +51,7 @@ func (c *Macie) AssociateMemberAccountRequest(input *AssociateMemberAccountInput
 
 	output = &AssociateMemberAccountOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -106,7 +105,7 @@ const opAssociateS3Resources = "AssociateS3Resources"
 // AssociateS3ResourcesRequest generates a "aws/request.Request" representing the
 // client's request for the AssociateS3Resources operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -200,7 +199,7 @@ const opDisassociateMemberAccount = "DisassociateMemberAccount"
 // DisassociateMemberAccountRequest generates a "aws/request.Request" representing the
 // client's request for the DisassociateMemberAccount operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -234,8 +233,7 @@ func (c *Macie) DisassociateMemberAccountRequest(input *DisassociateMemberAccoun
 
 	output = &DisassociateMemberAccountOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -285,7 +283,7 @@ const opDisassociateS3Resources = "DisassociateS3Resources"
 // DisassociateS3ResourcesRequest generates a "aws/request.Request" representing the
 // client's request for the DisassociateS3Resources operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -374,7 +372,7 @@ const opListMemberAccounts = "ListMemberAccounts"
 // ListMemberAccountsRequest generates a "aws/request.Request" representing the
 // client's request for the ListMemberAccounts operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -514,7 +512,7 @@ const opListS3Resources = "ListS3Resources"
 // ListS3ResourcesRequest generates a "aws/request.Request" representing the
 // client's request for the ListS3Resources operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -660,7 +658,7 @@ const opUpdateS3Resources = "UpdateS3Resources"
 // UpdateS3ResourcesRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateS3Resources operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.

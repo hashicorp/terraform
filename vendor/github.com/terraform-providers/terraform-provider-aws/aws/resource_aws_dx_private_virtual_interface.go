@@ -84,11 +84,22 @@ func resourceAwsDxPrivateVirtualInterface() *schema.Resource {
 				Computed: true,
 				ForceNew: true,
 			},
+			"mtu": {
+				Type:         schema.TypeInt,
+				Default:      1500,
+				Optional:     true,
+				ValidateFunc: validateIntegerInSlice([]int{1500, 9001}),
+			},
+			"jumbo_frame_capable": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
 			"tags": tagsSchema(),
 		},
 
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(10 * time.Minute),
+			Update: schema.DefaultTimeout(10 * time.Minute),
 			Delete: schema.DefaultTimeout(10 * time.Minute),
 		},
 	}
@@ -111,6 +122,7 @@ func resourceAwsDxPrivateVirtualInterfaceCreate(d *schema.ResourceData, meta int
 			Vlan:                 aws.Int64(int64(d.Get("vlan").(int))),
 			Asn:                  aws.Int64(int64(d.Get("bgp_asn").(int))),
 			AddressFamily:        aws.String(d.Get("address_family").(string)),
+			Mtu:                  aws.Int64(int64(d.Get("mtu").(int))),
 		},
 	}
 	if vgwOk && vgwIdRaw.(string) != "" {
@@ -145,7 +157,7 @@ func resourceAwsDxPrivateVirtualInterfaceCreate(d *schema.ResourceData, meta int
 	}.String()
 	d.Set("arn", arn)
 
-	if err := dxPrivateVirtualInterfaceWaitUntilAvailable(d, conn); err != nil {
+	if err := dxPrivateVirtualInterfaceWaitUntilAvailable(conn, d.Id(), d.Timeout(schema.TimeoutCreate)); err != nil {
 		return err
 	}
 
@@ -175,6 +187,8 @@ func resourceAwsDxPrivateVirtualInterfaceRead(d *schema.ResourceData, meta inter
 	d.Set("amazon_address", vif.AmazonAddress)
 	d.Set("vpn_gateway_id", vif.VirtualGatewayId)
 	d.Set("dx_gateway_id", vif.DirectConnectGatewayId)
+	d.Set("mtu", vif.Mtu)
+	d.Set("jumbo_frame_capable", vif.JumboFrameCapable)
 	if err := getTagsDX(conn, d, d.Get("arn").(string)); err != nil {
 		return err
 	}
@@ -184,6 +198,10 @@ func resourceAwsDxPrivateVirtualInterfaceRead(d *schema.ResourceData, meta inter
 
 func resourceAwsDxPrivateVirtualInterfaceUpdate(d *schema.ResourceData, meta interface{}) error {
 	if err := dxVirtualInterfaceUpdate(d, meta); err != nil {
+		return err
+	}
+
+	if err := dxPrivateVirtualInterfaceWaitUntilAvailable(meta.(*AWSClient).dxconn, d.Id(), d.Timeout(schema.TimeoutUpdate)); err != nil {
 		return err
 	}
 
@@ -207,10 +225,11 @@ func resourceAwsDxPrivateVirtualInterfaceImport(d *schema.ResourceData, meta int
 	return []*schema.ResourceData{d}, nil
 }
 
-func dxPrivateVirtualInterfaceWaitUntilAvailable(d *schema.ResourceData, conn *directconnect.DirectConnect) error {
+func dxPrivateVirtualInterfaceWaitUntilAvailable(conn *directconnect.DirectConnect, vifId string, timeout time.Duration) error {
 	return dxVirtualInterfaceWaitUntilAvailable(
-		d,
 		conn,
+		vifId,
+		timeout,
 		[]string{
 			directconnect.VirtualInterfaceStatePending,
 		},

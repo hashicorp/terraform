@@ -1,7 +1,7 @@
 package tfe
 
 // Access returns a pointer to the given team access type.
-func Access(v TeamAccessType) *TeamAccessType {
+func Access(v AccessType) *AccessType {
 	return &v
 }
 
@@ -22,6 +22,11 @@ func Category(v CategoryType) *CategoryType {
 
 // EnforcementMode returns a pointer to the given enforcement level.
 func EnforcementMode(v EnforcementLevel) *EnforcementLevel {
+	return &v
+}
+
+// Int returns a pointer to the given int.
+func Int(v int) *int {
 	return &v
 }
 

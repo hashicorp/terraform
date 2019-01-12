@@ -1,8 +1,8 @@
-variable "count" {}
+variable "num" {}
 
 resource "aws_instance" "bar" {
+    count = "${var.num}"
     foo = "bar${count.index}"
-    count = "${var.count}"
 }
 
 output "output" {

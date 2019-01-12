@@ -19,6 +19,38 @@ func resourceAwsCodeDeployApp() *schema.Resource {
 		Read:   resourceAwsCodeDeployAppRead,
 		Update: resourceAwsCodeDeployUpdate,
 		Delete: resourceAwsCodeDeployAppDelete,
+		Importer: &schema.ResourceImporter{
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				idParts := strings.Split(d.Id(), ":")
+
+				if len(idParts) == 2 {
+					return []*schema.ResourceData{d}, nil
+				}
+
+				applicationName := d.Id()
+				conn := meta.(*AWSClient).codedeployconn
+
+				input := &codedeploy.GetApplicationInput{
+					ApplicationName: aws.String(applicationName),
+				}
+
+				log.Printf("[DEBUG] Reading CodeDeploy Application: %s", input)
+				output, err := conn.GetApplication(input)
+
+				if err != nil {
+					return []*schema.ResourceData{}, err
+				}
+
+				if output == nil || output.Application == nil {
+					return []*schema.ResourceData{}, fmt.Errorf("error reading CodeDeploy Application (%s): empty response", applicationName)
+				}
+
+				d.SetId(fmt.Sprintf("%s:%s", aws.StringValue(output.Application.ApplicationId), applicationName))
+				d.Set("name", applicationName)
+
+				return []*schema.ResourceData{d}, nil
+			},
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -32,8 +64,9 @@ func resourceAwsCodeDeployApp() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				ValidateFunc: validation.StringInSlice([]string{
-					codedeploy.ComputePlatformServer,
+					codedeploy.ComputePlatformEcs,
 					codedeploy.ComputePlatformLambda,
+					codedeploy.ComputePlatformServer,
 				}, false),
 				Default: codedeploy.ComputePlatformServer,
 			},
@@ -77,7 +110,7 @@ func resourceAwsCodeDeployAppCreate(d *schema.ResourceData, meta interface{}) er
 func resourceAwsCodeDeployAppRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).codedeployconn
 
-	_, application := resourceAwsCodeDeployAppParseId(d.Id())
+	application := resourceAwsCodeDeployAppParseId(d.Id())
 	log.Printf("[DEBUG] Reading CodeDeploy application %s", application)
 	resp, err := conn.GetApplication(&codedeploy.GetApplicationInput{
 		ApplicationName: aws.String(application),
@@ -135,7 +168,8 @@ func resourceAwsCodeDeployAppDelete(d *schema.ResourceData, meta interface{}) er
 	return nil
 }
 
-func resourceAwsCodeDeployAppParseId(id string) (string, string) {
+func resourceAwsCodeDeployAppParseId(id string) string {
 	parts := strings.SplitN(id, ":", 2)
-	return parts[0], parts[1]
+	// We currently omit the application ID as it is not currently used anywhere
+	return parts[1]
 }

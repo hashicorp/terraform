@@ -77,7 +77,8 @@ When constructing a new provider from scratch, it's recommended to follow
 a similar repository structure as for the existing providers, with the main
 package in the repository root and a library package in a subdirectory named
 after the provider. For more information, see
-[the custom providers guide](/guides/writing-custom-terraform-providers.html).
+[Writing Custom Providers](/docs/extend/writing-custom-providers.html) in the
+[Extending Terraform section](/docs/extend/index.html).
 
 When making changes only to files within the provider repository, it is _not_
 necessary to re-build the main Terraform executable. Note that some packages
@@ -211,6 +212,8 @@ The CRUD operations in more detail, along with their contracts:
       Terraform guarantees that an existing ID will be set. This ID should be
       used to look up the resource. Any remote data should be updated into
       the local data. **No changes to the remote resource are to be made.**
+      If the resource is no longer present, calling `SetId`
+      with an empty string will signal its removal.
 
   * `Update` - This is called to update properties of an existing resource.
       Terraform guarantees that an existing ID will be set. Additionally,
@@ -223,8 +226,10 @@ The CRUD operations in more detail, along with their contracts:
 
   * `Exists` - This is called to verify a resource still exists. It is
       called prior to `Read`, and lowers the burden of `Read` to be able
-      to assume the resource exists. If the resource is no longer present in
-      remote state,  calling `SetId` with an empty string will signal its removal.
+      to assume the resource exists. `false` should be returned if
+      the resources is no longer present, which has the same effect
+      as calling `SetId("")` from `Read` (i.e. removal of the resource data
+      from state).
 
 ## Schemas
 

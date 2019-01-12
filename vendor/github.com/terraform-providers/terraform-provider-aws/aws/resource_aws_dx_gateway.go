@@ -22,12 +22,12 @@ func resourceAwsDxGateway() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"amazon_side_asn": &schema.Schema{
+			"amazon_side_asn": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,

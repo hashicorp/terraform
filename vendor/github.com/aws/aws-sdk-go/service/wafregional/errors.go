@@ -41,9 +41,6 @@ const (
 	//    * You tried to add a Rule to a WebACL, but the Rule already exists in
 	//    the specified WebACL.
 	//
-	//    * You tried to add an IP address to an IPSet, but the IP address already
-	//    exists in the specified IPSet.
-	//
 	//    * You tried to add a ByteMatchTuple to a ByteMatchSet, but the ByteMatchTuple
 	//    already exists in the specified WebACL.
 	ErrCodeWAFInvalidOperationException = "WAFInvalidOperationException"
@@ -93,8 +90,9 @@ const (
 	//
 	//    * Effect must specify Allow.
 	//
-	//    * The Action in the policy must be waf:UpdateWebACL or waf-regional:UpdateWebACL.
-	//    Any extra or wildcard actions in the policy will be rejected.
+	//    * The Action in the policy must be waf:UpdateWebACL, waf-regional:UpdateWebACL,
+	//    waf:GetRuleGroup and waf-regional:GetRuleGroup . Any extra or wildcard
+	//    actions in the policy will be rejected.
 	//
 	//    * The policy cannot include a Resource parameter.
 	//
@@ -173,6 +171,19 @@ const (
 	//
 	//    * You tried to delete a Rule that is still referenced by a WebACL.
 	ErrCodeWAFReferencedItemException = "WAFReferencedItemException"
+
+	// ErrCodeWAFServiceLinkedRoleErrorException for service response error code
+	// "WAFServiceLinkedRoleErrorException".
+	//
+	// AWS WAF is not able to access the service linked role. This can be caused
+	// by a previous PutLoggingConfiguration request, which can lock the service
+	// linked role for about 20 seconds. Please try your request again. The service
+	// linked role can also be locked by a previous DeleteServiceLinkedRole request,
+	// which can lock the role for 15 minutes or more. If you recently made a DeleteServiceLinkedRole,
+	// wait at least 15 minutes and try the request again. If you receive this same
+	// exception again, you will have to wait additional time until the role is
+	// unlocked.
+	ErrCodeWAFServiceLinkedRoleErrorException = "WAFServiceLinkedRoleErrorException"
 
 	// ErrCodeWAFStaleDataException for service response error code
 	// "WAFStaleDataException".

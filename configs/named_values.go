@@ -9,6 +9,8 @@ import (
 	"github.com/hashicorp/hcl2/hcl/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
+
+	"github.com/hashicorp/terraform/addrs"
 )
 
 // A consistent detail message for all "not a valid identifier" diagnostics.
@@ -62,6 +64,16 @@ func decodeVariableBlock(block *hcl.Block, override bool) (*Variable, hcl.Diagno
 				Severity: hcl.DiagError,
 				Summary:  "Invalid variable name",
 				Detail:   fmt.Sprintf("The variable name %q is reserved due to its special meaning inside module blocks.", attr.Name),
+				Subject:  &block.LabelRanges[0],
+			})
+		}
+	}
+	for _, blockS := range moduleBlockSchema.Blocks {
+		if blockS.Type == v.Name {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid variable name",
+				Detail:   fmt.Sprintf("The variable name %q is reserved due to its special meaning inside module blocks.", blockS.Type),
 				Subject:  &block.LabelRanges[0],
 			})
 		}
@@ -309,6 +321,14 @@ func decodeLocalsBlock(block *hcl.Block) ([]*Local, hcl.Diagnostics) {
 		})
 	}
 	return locals, diags
+}
+
+// Addr returns the address of the local value declared by the receiver,
+// relative to its containing module.
+func (l *Local) Addr() addrs.LocalValue {
+	return addrs.LocalValue{
+		Name: l.Name,
+	}
 }
 
 var variableBlockSchema = &hcl.BodySchema{

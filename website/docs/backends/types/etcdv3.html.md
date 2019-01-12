@@ -34,7 +34,7 @@ Note that for the access credentials we recommend using a
 ```hcl
 data "terraform_remote_state" "foo" {
   backend = "etcdv3"
-  config {
+  config = {
     endpoints = ["etcd-1:2379", "etcd-2:2379", "etcd-3:2379"]
     lock      = true
     prefix    = "terraform-state/"

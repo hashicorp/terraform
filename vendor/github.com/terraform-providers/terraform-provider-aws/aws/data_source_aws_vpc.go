@@ -15,6 +15,11 @@ func dataSourceAwsVpc() *schema.Resource {
 		Read: dataSourceAwsVpcRead,
 
 		Schema: map[string]*schema.Schema{
+			"arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"cidr_block": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -42,15 +47,25 @@ func dataSourceAwsVpc() *schema.Resource {
 				},
 			},
 
+			"default": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Computed: true,
+			},
+
 			"dhcp_options_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"default": {
+			"enable_dns_hostnames": {
 				Type:     schema.TypeBool,
-				Optional: true,
+				Computed: true,
+			},
+
+			"enable_dns_support": {
+				Type:     schema.TypeBool,
 				Computed: true,
 			},
 
@@ -77,28 +92,23 @@ func dataSourceAwsVpc() *schema.Resource {
 				Computed: true,
 			},
 
+			"main_route_table_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"state": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"enable_dns_hostnames": {
-				Type:     schema.TypeBool,
-				Computed: true,
-			},
+			"tags": tagsSchemaComputed(),
 
-			"enable_dns_support": {
-				Type:     schema.TypeBool,
-				Computed: true,
-			},
-
-			"arn": {
+			"owner_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-
-			"tags": tagsSchemaComputed(),
 		},
 	}
 }
@@ -160,13 +170,14 @@ func dataSourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 
 	vpc := resp.Vpcs[0]
 
-	d.SetId(*vpc.VpcId)
+	d.SetId(aws.StringValue(vpc.VpcId))
 	d.Set("cidr_block", vpc.CidrBlock)
 	d.Set("dhcp_options_id", vpc.DhcpOptionsId)
 	d.Set("instance_tenancy", vpc.InstanceTenancy)
 	d.Set("default", vpc.IsDefault)
 	d.Set("state", vpc.State)
 	d.Set("tags", tagsToMap(vpc.Tags))
+	d.Set("owner_id", vpc.OwnerId)
 
 	arn := arn.ARN{
 		Partition: meta.(*AWSClient).partition,
@@ -195,17 +206,23 @@ func dataSourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("ipv6_cidr_block", vpc.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlock)
 	}
 
-	attResp, err := awsVpcDescribeVpcAttribute("enableDnsSupport", *vpc.VpcId, conn)
+	attResp, err := awsVpcDescribeVpcAttribute("enableDnsSupport", aws.StringValue(vpc.VpcId), conn)
 	if err != nil {
 		return err
 	}
 	d.Set("enable_dns_support", attResp.EnableDnsSupport.Value)
 
-	attResp, err = awsVpcDescribeVpcAttribute("enableDnsHostnames", *vpc.VpcId, conn)
+	attResp, err = awsVpcDescribeVpcAttribute("enableDnsHostnames", aws.StringValue(vpc.VpcId), conn)
 	if err != nil {
 		return err
 	}
 	d.Set("enable_dns_hostnames", attResp.EnableDnsHostnames.Value)
+
+	routeTableId, err := resourceAwsVpcSetMainRouteTable(conn, aws.StringValue(vpc.VpcId))
+	if err != nil {
+		log.Printf("[WARN] Unable to set Main Route Table: %s", err)
+	}
+	d.Set("main_route_table_id", routeTableId)
 
 	return nil
 }

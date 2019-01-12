@@ -7,9 +7,9 @@ const (
 	// ErrCodeClientException for service response error code
 	// "ClientException".
 	//
-	// These errors are usually caused by a client action, such as using an action
-	// or resource on behalf of a user that doesn't have permissions to use the
-	// action or resource, or specifying an identifier that is not valid.
+	// These errors are usually caused by a client action. Actions can include using
+	// an action or resource on behalf of a user that doesn't have permissions to
+	// use the action or resource or specifying an identifier that is not valid.
 	ErrCodeClientException = "ClientException"
 
 	// ErrCodeInvalidParameterException for service response error code
@@ -18,6 +18,13 @@ const (
 	// The specified parameter is invalid. Review the available parameters for the
 	// API request.
 	ErrCodeInvalidParameterException = "InvalidParameterException"
+
+	// ErrCodeInvalidRequestException for service response error code
+	// "InvalidRequestException".
+	//
+	// The request is invalid given the state of the cluster. Check the state of
+	// the cluster and the associated operations.
+	ErrCodeInvalidRequestException = "InvalidRequestException"
 
 	// ErrCodeResourceInUseException for service response error code
 	// "ResourceInUseException".
@@ -35,7 +42,7 @@ const (
 	// "ResourceNotFoundException".
 	//
 	// The specified resource could not be found. You can view your available clusters
-	// with ListClusters. Amazon EKS clusters are region-specific.
+	// with ListClusters. Amazon EKS clusters are Region-specific.
 	ErrCodeResourceNotFoundException = "ResourceNotFoundException"
 
 	// ErrCodeServerException for service response error code
@@ -47,14 +54,14 @@ const (
 	// ErrCodeServiceUnavailableException for service response error code
 	// "ServiceUnavailableException".
 	//
-	// The service is unavailable, back off and retry the operation.
+	// The service is unavailable. Back off and retry the operation.
 	ErrCodeServiceUnavailableException = "ServiceUnavailableException"
 
 	// ErrCodeUnsupportedAvailabilityZoneException for service response error code
 	// "UnsupportedAvailabilityZoneException".
 	//
 	// At least one of your specified cluster subnets is in an Availability Zone
-	// that does not support Amazon EKS. The exception output will specify the supported
+	// that does not support Amazon EKS. The exception output specifies the supported
 	// Availability Zones for your account, from which you can choose subnets for
 	// your cluster.
 	ErrCodeUnsupportedAvailabilityZoneException = "UnsupportedAvailabilityZoneException"

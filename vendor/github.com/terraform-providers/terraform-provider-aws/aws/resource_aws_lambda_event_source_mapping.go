@@ -15,6 +15,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsLambdaEventSourceMapping() *schema.Resource {
@@ -36,11 +37,29 @@ func resourceAwsLambdaEventSourceMapping() *schema.Resource {
 			"function_name": {
 				Type:     schema.TypeString,
 				Required: true,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					// Using function name or ARN should not be shown as a diff.
+					// Try to convert the old and new values from ARN to function name
+					oldFunctionName, oldFunctionNameErr := getFunctionNameFromLambdaArn(old)
+					newFunctionName, newFunctionNameErr := getFunctionNameFromLambdaArn(new)
+					return (oldFunctionName == new && oldFunctionNameErr == nil) || (newFunctionName == old && newFunctionNameErr == nil)
+				},
 			},
 			"starting_position": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					lambda.EventSourcePositionAtTimestamp,
+					lambda.EventSourcePositionLatest,
+					lambda.EventSourcePositionTrimHorizon,
+				}, false),
+			},
+			"starting_position_timestamp": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				ValidateFunc: validation.ValidateRFC3339TimeString,
 			},
 			"batch_size": {
 				Type:     schema.TypeInt,
@@ -129,6 +148,11 @@ func resourceAwsLambdaEventSourceMappingCreate(d *schema.ResourceData, meta inte
 		params.StartingPosition = aws.String(startingPosition.(string))
 	}
 
+	if startingPositionTimestamp, ok := d.GetOk("starting_position_timestamp"); ok {
+		t, _ := time.Parse(time.RFC3339, startingPositionTimestamp.(string))
+		params.StartingPositionTimestamp = aws.Time(t)
+	}
+
 	// IAM profiles and roles can take some time to propagate in AWS:
 	//  http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
 	// Error creating Lambda function: InvalidParameterValueException: The
@@ -190,6 +214,17 @@ func resourceAwsLambdaEventSourceMappingRead(d *schema.ResourceData, meta interf
 	d.Set("state_transition_reason", eventSourceMappingConfiguration.StateTransitionReason)
 	d.Set("uuid", eventSourceMappingConfiguration.UUID)
 	d.Set("function_name", eventSourceMappingConfiguration.FunctionArn)
+
+	state := aws.StringValue(eventSourceMappingConfiguration.State)
+
+	switch state {
+	case "Enabled", "Enabling":
+		d.Set("enabled", true)
+	case "Disabled", "Disabling":
+		d.Set("enabled", false)
+	default:
+		log.Printf("[DEBUG] Lambda event source mapping is neither enabled nor disabled but %s", *eventSourceMappingConfiguration.State)
+	}
 
 	return nil
 }

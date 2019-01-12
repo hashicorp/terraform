@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsSecurityGroup() *schema.Resource {
@@ -43,7 +44,7 @@ func resourceAwsSecurityGroup() *schema.Resource {
 				Computed:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"name_prefix"},
-				ValidateFunc:  validateMaxLength(255),
+				ValidateFunc:  validation.StringLenBetween(0, 255),
 			},
 
 			"name_prefix": {
@@ -51,7 +52,7 @@ func resourceAwsSecurityGroup() *schema.Resource {
 				Optional:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"name"},
-				ValidateFunc:  validateMaxLength(100),
+				ValidateFunc:  validation.StringLenBetween(0, 100),
 			},
 
 			"description": {
@@ -59,7 +60,7 @@ func resourceAwsSecurityGroup() *schema.Resource {
 				Optional:     true,
 				ForceNew:     true,
 				Default:      "Managed by Terraform",
-				ValidateFunc: validateMaxLength(255),
+				ValidateFunc: validation.StringLenBetween(0, 255),
 			},
 
 			"vpc_id": {
@@ -107,6 +108,12 @@ func resourceAwsSecurityGroup() *schema.Resource {
 								Type:         schema.TypeString,
 								ValidateFunc: validateCIDRNetworkAddress,
 							},
+						},
+
+						"prefix_list_ids": {
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 
 						"security_groups": {
@@ -439,7 +446,7 @@ func resourceAwsSecurityGroupDelete(d *schema.ResourceData, meta interface{}) er
 
 	log.Printf("[DEBUG] Security Group destroy: %v", d.Id())
 
-	if err := deleteLingeringLambdaENIs(conn, d); err != nil {
+	if err := deleteLingeringLambdaENIs(conn, d, "group-id"); err != nil {
 		return fmt.Errorf("Failed to delete Lambda ENIs: %s", err)
 	}
 
@@ -1381,24 +1388,22 @@ func protocolForValue(v string) string {
 // Similar to protocolIntegers() used by Network ACLs, but explicitly only
 // supports "tcp", "udp", "icmp", and "all"
 func sgProtocolIntegers() map[string]int {
-	var protocolIntegers = make(map[string]int)
-	protocolIntegers = map[string]int{
+	return map[string]int{
 		"udp":  17,
 		"tcp":  6,
 		"icmp": 1,
 		"all":  -1,
 	}
-	return protocolIntegers
 }
 
 // The AWS Lambda service creates ENIs behind the scenes and keeps these around for a while
 // which would prevent SGs attached to such ENIs from being destroyed
-func deleteLingeringLambdaENIs(conn *ec2.EC2, d *schema.ResourceData) error {
+func deleteLingeringLambdaENIs(conn *ec2.EC2, d *schema.ResourceData, filterName string) error {
 	// Here we carefully find the offenders
 	params := &ec2.DescribeNetworkInterfacesInput{
 		Filters: []*ec2.Filter{
 			{
-				Name:   aws.String("group-id"),
+				Name:   aws.String(filterName),
 				Values: []*string{aws.String(d.Id())},
 			},
 			{
@@ -1408,6 +1413,11 @@ func deleteLingeringLambdaENIs(conn *ec2.EC2, d *schema.ResourceData) error {
 		},
 	}
 	networkInterfaceResp, err := conn.DescribeNetworkInterfaces(params)
+
+	if isAWSErr(err, "InvalidNetworkInterfaceID.NotFound", "") {
+		return nil
+	}
+
 	if err != nil {
 		return err
 	}
@@ -1420,6 +1430,10 @@ func deleteLingeringLambdaENIs(conn *ec2.EC2, d *schema.ResourceData) error {
 				AttachmentId: eni.Attachment.AttachmentId,
 			}
 			_, detachNetworkInterfaceErr := conn.DetachNetworkInterface(detachNetworkInterfaceParams)
+
+			if isAWSErr(detachNetworkInterfaceErr, "InvalidNetworkInterfaceID.NotFound", "") {
+				return nil
+			}
 
 			if detachNetworkInterfaceErr != nil {
 				return detachNetworkInterfaceErr
@@ -1443,6 +1457,10 @@ func deleteLingeringLambdaENIs(conn *ec2.EC2, d *schema.ResourceData) error {
 		}
 		_, deleteNetworkInterfaceErr := conn.DeleteNetworkInterface(deleteNetworkInterfaceParams)
 
+		if isAWSErr(deleteNetworkInterfaceErr, "InvalidNetworkInterfaceID.NotFound", "") {
+			return nil
+		}
+
 		if deleteNetworkInterfaceErr != nil {
 			return deleteNetworkInterfaceErr
 		}
@@ -1459,8 +1477,11 @@ func networkInterfaceAttachedRefreshFunc(conn *ec2.EC2, id string) resource.Stat
 		}
 		describeResp, err := conn.DescribeNetworkInterfaces(describe_network_interfaces_request)
 
+		if isAWSErr(err, "InvalidNetworkInterfaceID.NotFound", "") {
+			return 42, "false", nil
+		}
+
 		if err != nil {
-			log.Printf("[ERROR] Could not find network interface %s. %s", id, err)
 			return nil, "", err
 		}
 

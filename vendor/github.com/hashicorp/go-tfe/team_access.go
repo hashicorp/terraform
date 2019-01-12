@@ -17,7 +17,7 @@ var _ TeamAccesses = (*teamAccesses)(nil)
 // https://www.terraform.io/docs/enterprise/api/team-access.html
 type TeamAccesses interface {
 	// List all the team accesses for a given workspace.
-	List(ctx context.Context, options TeamAccessListOptions) ([]*TeamAccess, error)
+	List(ctx context.Context, options TeamAccessListOptions) (*TeamAccessList, error)
 
 	// Add team access for a workspace.
 	Add(ctx context.Context, options TeamAccessAddOptions) (*TeamAccess, error)
@@ -34,20 +34,26 @@ type teamAccesses struct {
 	client *Client
 }
 
-// TeamAccessType represents a team access type.
-type TeamAccessType string
+// AccessType represents a team access type.
+type AccessType string
 
 // List all available team access types.
 const (
-	TeamAccessAdmin TeamAccessType = "admin"
-	TeamAccessRead  TeamAccessType = "read"
-	TeamAccessWrite TeamAccessType = "write"
+	AccessAdmin AccessType = "admin"
+	AccessRead  AccessType = "read"
+	AccessWrite AccessType = "write"
 )
+
+// TeamAccessList represents a list of team accesses.
+type TeamAccessList struct {
+	*Pagination
+	Items []*TeamAccess
+}
 
 // TeamAccess represents the workspace access for a team.
 type TeamAccess struct {
-	ID     string         `jsonapi:"primary,team-workspaces"`
-	Access TeamAccessType `jsonapi:"attr,access"`
+	ID     string     `jsonapi:"primary,team-workspaces"`
+	Access AccessType `jsonapi:"attr,access"`
 
 	// Relations
 	Team      *Team      `jsonapi:"relation,team"`
@@ -62,16 +68,16 @@ type TeamAccessListOptions struct {
 
 func (o TeamAccessListOptions) valid() error {
 	if !validString(o.WorkspaceID) {
-		return errors.New("Workspace ID is required")
+		return errors.New("workspace ID is required")
 	}
 	if !validStringID(o.WorkspaceID) {
-		return errors.New("Invalid value for workspace ID")
+		return errors.New("invalid value for workspace ID")
 	}
 	return nil
 }
 
 // List all the team accesses for a given workspace.
-func (s *teamAccesses) List(ctx context.Context, options TeamAccessListOptions) ([]*TeamAccess, error) {
+func (s *teamAccesses) List(ctx context.Context, options TeamAccessListOptions) (*TeamAccessList, error) {
 	if err := options.valid(); err != nil {
 		return nil, err
 	}
@@ -81,13 +87,13 @@ func (s *teamAccesses) List(ctx context.Context, options TeamAccessListOptions) 
 		return nil, err
 	}
 
-	var tas []*TeamAccess
-	err = s.client.do(ctx, req, &tas)
+	tal := &TeamAccessList{}
+	err = s.client.do(ctx, req, tal)
 	if err != nil {
 		return nil, err
 	}
 
-	return tas, nil
+	return tal, nil
 }
 
 // TeamAccessAddOptions represents the options for adding team access.
@@ -96,7 +102,7 @@ type TeamAccessAddOptions struct {
 	ID string `jsonapi:"primary,team-workspaces"`
 
 	// The type of access to grant.
-	Access *TeamAccessType `jsonapi:"attr,access"`
+	Access *AccessType `jsonapi:"attr,access"`
 
 	// The team to add to the workspace
 	Team *Team `jsonapi:"relation,team"`
@@ -107,13 +113,13 @@ type TeamAccessAddOptions struct {
 
 func (o TeamAccessAddOptions) valid() error {
 	if o.Access == nil {
-		return errors.New("Access is required")
+		return errors.New("access is required")
 	}
 	if o.Team == nil {
-		return errors.New("Team is required")
+		return errors.New("team is required")
 	}
 	if o.Workspace == nil {
-		return errors.New("Workspace is required")
+		return errors.New("workspace is required")
 	}
 	return nil
 }
@@ -144,7 +150,7 @@ func (s *teamAccesses) Add(ctx context.Context, options TeamAccessAddOptions) (*
 // Read a team access by its ID.
 func (s *teamAccesses) Read(ctx context.Context, teamAccessID string) (*TeamAccess, error) {
 	if !validStringID(&teamAccessID) {
-		return nil, errors.New("Invalid value for team access ID")
+		return nil, errors.New("invalid value for team access ID")
 	}
 
 	u := fmt.Sprintf("team-workspaces/%s", url.QueryEscape(teamAccessID))
@@ -165,7 +171,7 @@ func (s *teamAccesses) Read(ctx context.Context, teamAccessID string) (*TeamAcce
 // Remove team access from a workspace.
 func (s *teamAccesses) Remove(ctx context.Context, teamAccessID string) error {
 	if !validStringID(&teamAccessID) {
-		return errors.New("Invalid value for team access ID")
+		return errors.New("invalid value for team access ID")
 	}
 
 	u := fmt.Sprintf("team-workspaces/%s", url.QueryEscape(teamAccessID))

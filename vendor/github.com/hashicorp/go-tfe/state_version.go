@@ -19,7 +19,7 @@ var _ StateVersions = (*stateVersions)(nil)
 // https://www.terraform.io/docs/enterprise/api/state-versions.html
 type StateVersions interface {
 	// List all the state versions for a given workspace.
-	List(ctx context.Context, options StateVersionListOptions) ([]*StateVersion, error)
+	List(ctx context.Context, options StateVersionListOptions) (*StateVersionList, error)
 
 	// Create a new state version for the given workspace.
 	Create(ctx context.Context, workspaceID string, options StateVersionCreateOptions) (*StateVersion, error)
@@ -37,6 +37,12 @@ type StateVersions interface {
 // stateVersions implements StateVersions.
 type stateVersions struct {
 	client *Client
+}
+
+// StateVersionList represents a list of state versions.
+type StateVersionList struct {
+	*Pagination
+	Items []*StateVersion
 }
 
 // StateVersion represents a Terraform Enterprise state version.
@@ -61,16 +67,16 @@ type StateVersionListOptions struct {
 
 func (o StateVersionListOptions) valid() error {
 	if !validString(o.Organization) {
-		return errors.New("Organization is required")
+		return errors.New("organization is required")
 	}
 	if !validString(o.Workspace) {
-		return errors.New("Workspace is required")
+		return errors.New("workspace is required")
 	}
 	return nil
 }
 
 // List all the state versions for a given workspace.
-func (s *stateVersions) List(ctx context.Context, options StateVersionListOptions) ([]*StateVersion, error) {
+func (s *stateVersions) List(ctx context.Context, options StateVersionListOptions) (*StateVersionList, error) {
 	if err := options.valid(); err != nil {
 		return nil, err
 	}
@@ -80,13 +86,13 @@ func (s *stateVersions) List(ctx context.Context, options StateVersionListOption
 		return nil, err
 	}
 
-	var svs []*StateVersion
-	err = s.client.do(ctx, req, &svs)
+	svl := &StateVersionList{}
+	err = s.client.do(ctx, req, svl)
 	if err != nil {
 		return nil, err
 	}
 
-	return svs, nil
+	return svl, nil
 }
 
 // StateVersionCreateOptions represents the options for creating a state version.
@@ -105,6 +111,9 @@ type StateVersionCreateOptions struct {
 
 	// The base64 encoded state.
 	State *string `jsonapi:"attr,state"`
+
+	// Specifies the run to associate the state with.
+	Run *Run `jsonapi:"relation,run,omitempty"`
 }
 
 func (o StateVersionCreateOptions) valid() error {
@@ -112,10 +121,10 @@ func (o StateVersionCreateOptions) valid() error {
 		return errors.New("MD5 is required")
 	}
 	if o.Serial == nil {
-		return errors.New("Serial is required")
+		return errors.New("serial is required")
 	}
 	if !validString(o.State) {
-		return errors.New("State is required")
+		return errors.New("state is required")
 	}
 	return nil
 }
@@ -123,7 +132,7 @@ func (o StateVersionCreateOptions) valid() error {
 // Create a new state version for the given workspace.
 func (s *stateVersions) Create(ctx context.Context, workspaceID string, options StateVersionCreateOptions) (*StateVersion, error) {
 	if !validStringID(&workspaceID) {
-		return nil, errors.New("Invalid value for workspace ID")
+		return nil, errors.New("invalid value for workspace ID")
 	}
 	if err := options.valid(); err != nil {
 		return nil, err
@@ -150,7 +159,7 @@ func (s *stateVersions) Create(ctx context.Context, workspaceID string, options 
 // Read a state version by its ID.
 func (s *stateVersions) Read(ctx context.Context, svID string) (*StateVersion, error) {
 	if !validStringID(&svID) {
-		return nil, errors.New("Invalid value for state version ID")
+		return nil, errors.New("invalid value for state version ID")
 	}
 
 	u := fmt.Sprintf("state-versions/%s", url.QueryEscape(svID))
@@ -171,7 +180,7 @@ func (s *stateVersions) Read(ctx context.Context, svID string) (*StateVersion, e
 // Current reads the latest available state from the given workspace.
 func (s *stateVersions) Current(ctx context.Context, workspaceID string) (*StateVersion, error) {
 	if !validStringID(&workspaceID) {
-		return nil, errors.New("Invalid value for workspace ID")
+		return nil, errors.New("invalid value for workspace ID")
 	}
 
 	u := fmt.Sprintf("workspaces/%s/current-state-version", url.QueryEscape(workspaceID))

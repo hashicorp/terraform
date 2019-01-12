@@ -2056,7 +2056,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			State: &terraform.InstanceState{
 				Attributes: map[string]string{
-					"block_device.#":                                "2",
+					"block_device.#": "2",
 					"block_device.616397234.delete_on_termination":  "true",
 					"block_device.616397234.device_name":            "/dev/sda1",
 					"block_device.2801811477.delete_on_termination": "true",
@@ -3127,6 +3127,40 @@ func TestSchemaMap_Diff(t *testing.T) {
 		},
 
 		{
+			Name: "NewComputed should always propagate with CustomizeDiff",
+			Schema: map[string]*Schema{
+				"foo": &Schema{
+					Type:     TypeString,
+					Computed: true,
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"foo": "",
+				},
+				ID: "pre-existing",
+			},
+
+			Config: map[string]interface{}{},
+
+			CustomizeDiff: func(d *ResourceDiff, meta interface{}) error {
+				d.SetNewComputed("foo")
+				return nil
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"foo": &terraform.ResourceAttrDiff{
+						NewComputed: true,
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		{
 			Name: "vetoing a diff",
 			Schema: map[string]*Schema{
 				"foo": &Schema{
@@ -3246,7 +3280,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 				}
 			}
 
-			d, err := schemaMap(tc.Schema).Diff(tc.State, terraform.NewResourceConfig(c), tc.CustomizeDiff, nil)
+			d, err := schemaMap(tc.Schema).Diff(tc.State, terraform.NewResourceConfig(c), tc.CustomizeDiff, nil, true)
 			if err != nil != tc.Err {
 				t.Fatalf("err: %s", err)
 			}
@@ -4096,7 +4130,7 @@ func TestSchemaMap_DiffSuppress(t *testing.T) {
 				}
 			}
 
-			d, err := schemaMap(tc.Schema).Diff(tc.State, terraform.NewResourceConfig(c), nil, nil)
+			d, err := schemaMap(tc.Schema).Diff(tc.State, terraform.NewResourceConfig(c), nil, nil, true)
 			if err != nil != tc.Err {
 				t.Fatalf("#%q err: %s", tn, err)
 			}
@@ -4322,10 +4356,11 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: true,
 		},
 
-		"Not a list": {
+		"Not a list nested block": {
 			Schema: map[string]*Schema{
 				"ingress": &Schema{
-					Type: TypeList,
+					Type:     TypeList,
+					Optional: true,
 					Elem: &Resource{
 						Schema: map[string]*Schema{
 							"from": &Schema{
@@ -4342,6 +4377,48 @@ func TestSchemaMap_Validate(t *testing.T) {
 			},
 
 			Err: true,
+			Errors: []error{
+				fmt.Errorf(`ingress: should be a list`),
+			},
+		},
+
+		"Not a list primitive": {
+			Schema: map[string]*Schema{
+				"strings": &Schema{
+					Type:     TypeList,
+					Optional: true,
+					Elem: &Schema{
+						Type: TypeString,
+					},
+				},
+			},
+
+			Config: map[string]interface{}{
+				"strings": "foo",
+			},
+
+			Err: true,
+			Errors: []error{
+				fmt.Errorf(`strings: should be a list`),
+			},
+		},
+
+		"Unknown list": {
+			Schema: map[string]*Schema{
+				"strings": &Schema{
+					Type:     TypeList,
+					Optional: true,
+					Elem: &Schema{
+						Type: TypeString,
+					},
+				},
+			},
+
+			Config: map[string]interface{}{
+				"strings": config.UnknownVariableValue,
+			},
+
+			Err: false,
 		},
 
 		"Required sub-resource field": {
@@ -4833,6 +4910,80 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: true,
 			Errors: []error{
 				fmt.Errorf("\"blacklist\": conflicts with whitelist"),
+			},
+		},
+
+		"Conflicting attributes okay when unknown 1": {
+			Schema: map[string]*Schema{
+				"whitelist": &Schema{
+					Type:     TypeString,
+					Optional: true,
+				},
+				"blacklist": &Schema{
+					Type:          TypeString,
+					Optional:      true,
+					ConflictsWith: []string{"whitelist"},
+				},
+			},
+
+			Config: map[string]interface{}{
+				"whitelist": "white-val",
+				"blacklist": config.UnknownVariableValue,
+			},
+
+			Err: false,
+		},
+
+		"Conflicting attributes okay when unknown 2": {
+			Schema: map[string]*Schema{
+				"whitelist": &Schema{
+					Type:     TypeString,
+					Optional: true,
+				},
+				"blacklist": &Schema{
+					Type:          TypeString,
+					Optional:      true,
+					ConflictsWith: []string{"whitelist"},
+				},
+			},
+
+			Config: map[string]interface{}{
+				"whitelist": config.UnknownVariableValue,
+				"blacklist": "black-val",
+			},
+
+			Err: false,
+		},
+
+		"Conflicting attributes generate error even if one is unknown": {
+			Schema: map[string]*Schema{
+				"whitelist": &Schema{
+					Type:          TypeString,
+					Optional:      true,
+					ConflictsWith: []string{"blacklist", "greenlist"},
+				},
+				"blacklist": &Schema{
+					Type:          TypeString,
+					Optional:      true,
+					ConflictsWith: []string{"whitelist", "greenlist"},
+				},
+				"greenlist": &Schema{
+					Type:          TypeString,
+					Optional:      true,
+					ConflictsWith: []string{"whitelist", "blacklist"},
+				},
+			},
+
+			Config: map[string]interface{}{
+				"whitelist": config.UnknownVariableValue,
+				"blacklist": "black-val",
+				"greenlist": "green-val",
+			},
+
+			Err: true,
+			Errors: []error{
+				fmt.Errorf("\"blacklist\": conflicts with greenlist"),
+				fmt.Errorf("\"greenlist\": conflicts with blacklist"),
 			},
 		},
 

@@ -3,56 +3,55 @@ package terraform
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/hcl2/hcl"
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/lang"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // EvalLocal is an EvalNode implementation that evaluates the
 // expression for a local value and writes it into a transient part of
 // the state.
 type EvalLocal struct {
-	Name  string
-	Value *config.RawConfig
+	Addr addrs.LocalValue
+	Expr hcl.Expression
 }
 
 func (n *EvalLocal) Eval(ctx EvalContext) (interface{}, error) {
-	cfg, err := ctx.Interpolate(n.Value, nil)
-	if err != nil {
-		return nil, fmt.Errorf("local.%s: %s", n.Name, err)
+	var diags tfdiags.Diagnostics
+
+	// We ignore diags here because any problems we might find will be found
+	// again in EvaluateExpr below.
+	refs, _ := lang.ReferencesInExpr(n.Expr)
+	for _, ref := range refs {
+		if ref.Subject == n.Addr {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Self-referencing local value",
+				Detail:   fmt.Sprintf("Local value %s cannot use its own result as part of its expression.", n.Addr),
+				Subject:  ref.SourceRange.ToHCL().Ptr(),
+				Context:  n.Expr.Range().Ptr(),
+			})
+		}
+	}
+	if diags.HasErrors() {
+		return nil, diags.Err()
 	}
 
-	state, lock := ctx.State()
+	val, moreDiags := ctx.EvaluateExpr(n.Expr, cty.DynamicPseudoType, nil)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return nil, diags.Err()
+	}
+
+	state := ctx.State()
 	if state == nil {
 		return nil, fmt.Errorf("cannot write local value to nil state")
 	}
 
-	// Get a write lock so we can access the state
-	lock.Lock()
-	defer lock.Unlock()
-
-	// Look for the module state. If we don't have one, create it.
-	mod := state.ModuleByPath(ctx.Path())
-	if mod == nil {
-		mod = state.AddModule(ctx.Path())
-	}
-
-	// Get the value from the config
-	var valueRaw interface{} = config.UnknownVariableValue
-	if cfg != nil {
-		var ok bool
-		valueRaw, ok = cfg.Get("value")
-		if !ok {
-			valueRaw = ""
-		}
-		if cfg.IsComputed("value") {
-			valueRaw = config.UnknownVariableValue
-		}
-	}
-
-	if mod.Locals == nil {
-		// initialize
-		mod.Locals = map[string]interface{}{}
-	}
-	mod.Locals[n.Name] = valueRaw
+	state.SetLocalValue(n.Addr.Absolute(ctx.Path()), val)
 
 	return nil, nil
 }
@@ -61,26 +60,15 @@ func (n *EvalLocal) Eval(ctx EvalContext) (interface{}, error) {
 // from the state. Locals aren't persisted, but we don't need to evaluate them
 // during destroy.
 type EvalDeleteLocal struct {
-	Name string
+	Addr addrs.LocalValue
 }
 
 func (n *EvalDeleteLocal) Eval(ctx EvalContext) (interface{}, error) {
-	state, lock := ctx.State()
+	state := ctx.State()
 	if state == nil {
 		return nil, nil
 	}
 
-	// Get a write lock so we can access this instance
-	lock.Lock()
-	defer lock.Unlock()
-
-	// Look for the module state. If we don't have one, create it.
-	mod := state.ModuleByPath(ctx.Path())
-	if mod == nil {
-		return nil, nil
-	}
-
-	delete(mod.Locals, n.Name)
-
+	state.RemoveLocalValue(n.Addr.Absolute(ctx.Path()))
 	return nil, nil
 }

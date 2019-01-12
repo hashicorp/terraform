@@ -3,6 +3,7 @@ package test
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -30,7 +31,7 @@ resource "test_resource" "foo" {
     key = "value"
   }
 
-  list = ["${data.test_data_source.test.*.output}"]
+  list = "${data.test_data_source.test.*.output}"
 }
 				`),
 				Check: func(s *terraform.State) error {
@@ -155,3 +156,86 @@ data "test_data_source" "baz" {
   input = "${data.test_data_source.bar.*.output[count.index]}"
 }
 `
+
+func TestDataSource_nilComputedValues(t *testing.T) {
+	check := func(s *terraform.State) error {
+		return nil
+	}
+
+	resource.UnitTest(t, resource.TestCase{
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Check: check,
+				Config: `
+variable "index" {
+  default = "d"
+}
+
+locals {
+  name = {
+    a = "something"
+    b = "else"
+  }
+}
+
+data "test_data_source" "x" {
+  input = "${lookup(local.name, var.index, local.name["a"])}"
+}
+
+data "test_data_source" "y" {
+  input = data.test_data_source.x.nil == "something" ? "something" : "else"
+}`,
+			},
+		},
+	})
+}
+
+// referencing test_data_source.one.output_map["a"] should produce an error when
+// there's a count.
+func TestDataSource_indexedCountOfOne(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: strings.TrimSpace(`
+data "test_data_source" "one" {
+	count = 1
+  input_map = {
+		"a" = "b"
+	}
+}
+
+data "test_data_source" "two" {
+	input_map = {
+		"x" = data.test_data_source.one.output_map["a"]
+	}
+}
+				`),
+				ExpectError: regexp.MustCompile("Because data.test_data_source.one has \"count\" set, its attributes must be accessed on specific instances"),
+			},
+		},
+	})
+}
+
+// Verify that we can destroy when a data source references something with a
+// count of 1.
+func TestDataSource_countRefDestroyError(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: strings.TrimSpace(`
+data "test_data_source" "one" {
+  count = 1
+  input = "a"
+}
+
+data "test_data_source" "two" {
+  input = data.test_data_source.one[0].output
+}
+				`),
+			},
+		},
+	})
+}

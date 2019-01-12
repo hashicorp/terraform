@@ -8,6 +8,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
+	"github.com/aws/aws-sdk-go/private/protocol/restjson"
 )
 
 const opCancelJob = "CancelJob"
@@ -15,7 +17,7 @@ const opCancelJob = "CancelJob"
 // CancelJobRequest generates a "aws/request.Request" representing the
 // client's request for the CancelJob operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -47,6 +49,7 @@ func (c *ElasticTranscoder) CancelJobRequest(input *CancelJobInput) (req *reques
 
 	output = &CancelJobOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -113,7 +116,7 @@ const opCreateJob = "CreateJob"
 // CreateJobRequest generates a "aws/request.Request" representing the
 // client's request for the CreateJob operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -213,7 +216,7 @@ const opCreatePipeline = "CreatePipeline"
 // CreatePipelineRequest generates a "aws/request.Request" representing the
 // client's request for the CreatePipeline operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -307,7 +310,7 @@ const opCreatePreset = "CreatePreset"
 // CreatePresetRequest generates a "aws/request.Request" representing the
 // client's request for the CreatePreset operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -410,7 +413,7 @@ const opDeletePipeline = "DeletePipeline"
 // DeletePipelineRequest generates a "aws/request.Request" representing the
 // client's request for the DeletePipeline operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -442,6 +445,7 @@ func (c *ElasticTranscoder) DeletePipelineRequest(input *DeletePipelineInput) (r
 
 	output = &DeletePipelineOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -508,7 +512,7 @@ const opDeletePreset = "DeletePreset"
 // DeletePresetRequest generates a "aws/request.Request" representing the
 // client's request for the DeletePreset operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -540,6 +544,7 @@ func (c *ElasticTranscoder) DeletePresetRequest(input *DeletePresetInput) (req *
 
 	output = &DeletePresetOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -600,7 +605,7 @@ const opListJobsByPipeline = "ListJobsByPipeline"
 // ListJobsByPipelineRequest generates a "aws/request.Request" representing the
 // client's request for the ListJobsByPipeline operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -750,7 +755,7 @@ const opListJobsByStatus = "ListJobsByStatus"
 // ListJobsByStatusRequest generates a "aws/request.Request" representing the
 // client's request for the ListJobsByStatus operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -898,7 +903,7 @@ const opListPipelines = "ListPipelines"
 // ListPipelinesRequest generates a "aws/request.Request" representing the
 // client's request for the ListPipelines operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1040,7 +1045,7 @@ const opListPresets = "ListPresets"
 // ListPresetsRequest generates a "aws/request.Request" representing the
 // client's request for the ListPresets operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1182,7 +1187,7 @@ const opReadJob = "ReadJob"
 // ReadJobRequest generates a "aws/request.Request" representing the
 // client's request for the ReadJob operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1272,7 +1277,7 @@ const opReadPipeline = "ReadPipeline"
 // ReadPipelineRequest generates a "aws/request.Request" representing the
 // client's request for the ReadPipeline operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1362,7 +1367,7 @@ const opReadPreset = "ReadPreset"
 // ReadPresetRequest generates a "aws/request.Request" representing the
 // client's request for the ReadPreset operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1452,7 +1457,7 @@ const opTestRole = "TestRole"
 // TestRoleRequest generates a "aws/request.Request" representing the
 // client's request for the TestRole operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1471,6 +1476,8 @@ const opTestRole = "TestRole"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
+//
+// Deprecated: TestRole has been deprecated
 func (c *ElasticTranscoder) TestRoleRequest(input *TestRoleInput) (req *request.Request, output *TestRoleOutput) {
 	if c.Client.Config.Logger != nil {
 		c.Client.Config.Logger.Log("This operation, TestRole, has been deprecated")
@@ -1525,6 +1532,8 @@ func (c *ElasticTranscoder) TestRoleRequest(input *TestRoleInput) (req *request.
 //   Elastic Transcoder encountered an unexpected exception while trying to fulfill
 //   the request.
 //
+//
+// Deprecated: TestRole has been deprecated
 func (c *ElasticTranscoder) TestRole(input *TestRoleInput) (*TestRoleOutput, error) {
 	req, out := c.TestRoleRequest(input)
 	return out, req.Send()
@@ -1539,6 +1548,8 @@ func (c *ElasticTranscoder) TestRole(input *TestRoleInput) (*TestRoleOutput, err
 // the context is nil a panic will occur. In the future the SDK may create
 // sub-contexts for http.Requests. See https://golang.org/pkg/context/
 // for more information on using Contexts.
+//
+// Deprecated: TestRoleWithContext has been deprecated
 func (c *ElasticTranscoder) TestRoleWithContext(ctx aws.Context, input *TestRoleInput, opts ...request.Option) (*TestRoleOutput, error) {
 	req, out := c.TestRoleRequest(input)
 	req.SetContext(ctx)
@@ -1551,7 +1562,7 @@ const opUpdatePipeline = "UpdatePipeline"
 // UpdatePipelineRequest generates a "aws/request.Request" representing the
 // client's request for the UpdatePipeline operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1650,7 +1661,7 @@ const opUpdatePipelineNotifications = "UpdatePipelineNotifications"
 // UpdatePipelineNotificationsRequest generates a "aws/request.Request" representing the
 // client's request for the UpdatePipelineNotifications operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1748,7 +1759,7 @@ const opUpdatePipelineStatus = "UpdatePipelineStatus"
 // UpdatePipelineStatusRequest generates a "aws/request.Request" representing the
 // client's request for the UpdatePipelineStatus operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2318,6 +2329,9 @@ func (s *CancelJobInput) Validate() error {
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
 	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -2539,6 +2553,8 @@ type Captions struct {
 
 	// Source files for the input sidecar captions used during the transcoding process.
 	// To omit all sidecar captions, leave CaptionSources blank.
+	//
+	// Deprecated: CaptionSources has been deprecated
 	CaptionSources []*CaptionSource `deprecated:"true" type:"list"`
 
 	// A policy that determines how Elastic Transcoder handles the existence of
@@ -2560,6 +2576,8 @@ type Captions struct {
 	//    you specify in CaptionSources.
 	//
 	// MergePolicy cannot be null.
+	//
+	// Deprecated: MergePolicy has been deprecated
 	MergePolicy *string `deprecated:"true" type:"string"`
 }
 
@@ -2613,6 +2631,8 @@ func (s *Captions) SetMergePolicy(v string) *Captions {
 
 // Settings for one clip in a composition. All jobs in a playlist must have
 // the same clip settings.
+//
+// Deprecated: Clip has been deprecated
 type Clip struct {
 	_ struct{} `deprecated:"true" type:"structure"`
 
@@ -2858,6 +2878,8 @@ type CreateJobOutput struct {
 	// of the file. The Composition object contains settings for the clips that
 	// make up an output file. For the current release, you can only specify settings
 	// for a single clip per output file. The Composition object cannot be null.
+	//
+	// Deprecated: Composition has been deprecated
 	Composition []*Clip `deprecated:"true" type:"list"`
 
 	// You can specify encryption settings for any output files that you want to
@@ -3211,11 +3233,11 @@ type CreatePipelineInput struct {
 	// The AWS Key Management Service (AWS KMS) key that you want to use with this
 	// pipeline.
 	//
-	// If you use either S3 or S3-AWS-KMS as your Encryption:Mode, you don't need
+	// If you use either s3 or s3-aws-kms as your Encryption:Mode, you don't need
 	// to provide a key with your job because a default key, known as an AWS-KMS
 	// key, is created for you automatically. You need to provide an AWS-KMS key
 	// only if you want to use a non-default AWS-KMS key, or if you are using an
-	// Encryption:Mode of AES-PKCS7, AES-CTR, or AES-GCM.
+	// Encryption:Mode of aes-cbc-pkcs7, aes-ctr, or aes-gcm.
 	AwsKmsKeyArn *string `type:"string"`
 
 	// The optional ContentConfig object specifies information about the Amazon
@@ -3311,7 +3333,7 @@ type CreatePipelineInput struct {
 	//    SNS returned when you created the topic. For more information, see Create
 	//    a Topic in the Amazon Simple Notification Service Developer Guide.
 	//
-	//    * Completed: The topic ARN for the Amazon SNS topic that you want to notify
+	//    * Complete: The topic ARN for the Amazon SNS topic that you want to notify
 	//    when Elastic Transcoder has finished processing a job in this pipeline.
 	//    This is the ARN that Amazon SNS returned when you created the topic.
 	//
@@ -3714,6 +3736,9 @@ func (s *DeletePipelineInput) Validate() error {
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
 	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -3767,6 +3792,9 @@ func (s *DeletePresetInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "DeletePresetInput"}
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -3893,20 +3921,20 @@ type Encryption struct {
 	// to use when decrypting your input files or encrypting your output files.
 	// Elastic Transcoder supports the following options:
 	//
-	//    * S3: Amazon S3 creates and manages the keys used for encrypting your
+	//    * s3: Amazon S3 creates and manages the keys used for encrypting your
 	//    files.
 	//
-	//    * S3-AWS-KMS: Amazon S3 calls the Amazon Key Management Service, which
+	//    * s3-aws-kms: Amazon S3 calls the Amazon Key Management Service, which
 	//    creates and manages the keys that are used for encrypting your files.
-	//    If you specify S3-AWS-KMS and you don't want to use the default key, you
+	//    If you specify s3-aws-kms and you don't want to use the default key, you
 	//    must add the AWS-KMS key that you want to use to your pipeline.
 	//
-	//    * AES-CBC-PKCS7: A padded cipher-block mode of operation originally used
+	//    * aes-cbc-pkcs7: A padded cipher-block mode of operation originally used
 	//    for HLS files.
 	//
-	//    * AES-CTR: AES Counter Mode.
+	//    * aes-ctr: AES Counter Mode.
 	//
-	//    * AES-GCM: AES Galois Counter Mode, a mode of operation that is an authenticated
+	//    * aes-gcm: AES Galois Counter Mode, a mode of operation that is an authenticated
 	//    encryption format, meaning that a file, key, or initialization vector
 	//    that has been tampered with fails the decryption process.
 	//
@@ -4631,6 +4659,8 @@ type JobOutput struct {
 	// of the file. The Composition object contains settings for the clips that
 	// make up an output file. For the current release, you can only specify settings
 	// for a single clip per output file. The Composition object cannot be null.
+	//
+	// Deprecated: Composition has been deprecated
 	Composition []*Clip `deprecated:"true" type:"list"`
 
 	// Duration of the output file, in seconds.
@@ -5022,6 +5052,9 @@ func (s *ListJobsByPipelineInput) Validate() error {
 	if s.PipelineId == nil {
 		invalidParams.Add(request.NewErrParamRequired("PipelineId"))
 	}
+	if s.PipelineId != nil && len(*s.PipelineId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("PipelineId", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -5117,6 +5150,9 @@ func (s *ListJobsByStatusInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "ListJobsByStatusInput"}
 	if s.Status == nil {
 		invalidParams.Add(request.NewErrParamRequired("Status"))
+	}
+	if s.Status != nil && len(*s.Status) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Status", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -5471,11 +5507,11 @@ type Pipeline struct {
 	// The AWS Key Management Service (AWS KMS) key that you want to use with this
 	// pipeline.
 	//
-	// If you use either S3 or S3-AWS-KMS as your Encryption:Mode, you don't need
+	// If you use either s3 or s3-aws-kms as your Encryption:Mode, you don't need
 	// to provide a key with your job because a default key, known as an AWS-KMS
 	// key, is created for you automatically. You need to provide an AWS-KMS key
 	// only if you want to use a non-default AWS-KMS key, or if you are using an
-	// Encryption:Mode of AES-PKCS7, AES-CTR, or AES-GCM.
+	// Encryption:Mode of aes-cbc-pkcs7, aes-ctr, or aes-gcm.
 	AwsKmsKeyArn *string `type:"string"`
 
 	// Information about the Amazon S3 bucket in which you want Elastic Transcoder
@@ -5547,7 +5583,7 @@ type Pipeline struct {
 	//    SNS) topic that you want to notify when Elastic Transcoder has started
 	//    to process the job.
 	//
-	//    * Completed (optional): The Amazon SNS topic that you want to notify when
+	//    * Complete (optional): The Amazon SNS topic that you want to notify when
 	//    Elastic Transcoder has finished processing the job.
 	//
 	//    * Warning (optional): The Amazon SNS topic that you want to notify when
@@ -5793,7 +5829,7 @@ func (s *PipelineOutputConfig) SetStorageClass(v string) *PipelineOutputConfig {
 // The PlayReady DRM settings, if any, that you want Elastic Transcoder to apply
 // to the output files associated with this playlist.
 //
-// PlayReady DRM encrypts your media files using AES-CTR encryption.
+// PlayReady DRM encrypts your media files using aes-ctr encryption.
 //
 // If you use DRM for an HLSv3 playlist, your outputs must have a master playlist.
 type PlayReadyDrm struct {
@@ -6411,6 +6447,9 @@ func (s *ReadJobInput) Validate() error {
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
 	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -6473,6 +6512,9 @@ func (s *ReadPipelineInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "ReadPipelineInput"}
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -6551,6 +6593,9 @@ func (s *ReadPresetInput) Validate() error {
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
 	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -6589,6 +6634,8 @@ func (s *ReadPresetOutput) SetPreset(v *Preset) *ReadPresetOutput {
 }
 
 // The TestRoleRequest structure.
+//
+// Deprecated: TestRoleInput has been deprecated
 type TestRoleInput struct {
 	_ struct{} `deprecated:"true" type:"structure"`
 
@@ -6674,6 +6721,8 @@ func (s *TestRoleInput) SetTopics(v []*string) *TestRoleInput {
 }
 
 // The TestRoleResponse structure.
+//
+// Deprecated: TestRoleOutput has been deprecated
 type TestRoleOutput struct {
 	_ struct{} `deprecated:"true" type:"structure"`
 
@@ -6942,11 +6991,11 @@ type UpdatePipelineInput struct {
 	// The AWS Key Management Service (AWS KMS) key that you want to use with this
 	// pipeline.
 	//
-	// If you use either S3 or S3-AWS-KMS as your Encryption:Mode, you don't need
+	// If you use either s3 or s3-aws-kms as your Encryption:Mode, you don't need
 	// to provide a key with your job because a default key, known as an AWS-KMS
 	// key, is created for you automatically. You need to provide an AWS-KMS key
 	// only if you want to use a non-default AWS-KMS key, or if you are using an
-	// Encryption:Mode of AES-PKCS7, AES-CTR, or AES-GCM.
+	// Encryption:Mode of aes-cbc-pkcs7, aes-ctr, or aes-gcm.
 	AwsKmsKeyArn *string `type:"string"`
 
 	// The optional ContentConfig object specifies information about the Amazon
@@ -7042,7 +7091,7 @@ type UpdatePipelineInput struct {
 	//    started to process jobs that are added to this pipeline. This is the ARN
 	//    that Amazon SNS returned when you created the topic.
 	//
-	//    * Completed: The topic ARN for the Amazon SNS topic that you want to notify
+	//    * Complete: The topic ARN for the Amazon SNS topic that you want to notify
 	//    when Elastic Transcoder has finished processing a job. This is the ARN
 	//    that Amazon SNS returned when you created the topic.
 	//
@@ -7136,6 +7185,9 @@ func (s *UpdatePipelineInput) Validate() error {
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
 	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
+	}
 	if s.Name != nil && len(*s.Name) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
 	}
@@ -7225,7 +7277,7 @@ type UpdatePipelineNotificationsInput struct {
 	//    started to process jobs that are added to this pipeline. This is the ARN
 	//    that Amazon SNS returned when you created the topic.
 	//
-	//    * Completed: The topic ARN for the Amazon SNS topic that you want to notify
+	//    * Complete: The topic ARN for the Amazon SNS topic that you want to notify
 	//    when Elastic Transcoder has finished processing a job. This is the ARN
 	//    that Amazon SNS returned when you created the topic.
 	//
@@ -7256,6 +7308,9 @@ func (s *UpdatePipelineNotificationsInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "UpdatePipelineNotificationsInput"}
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
 	}
 	if s.Notifications == nil {
 		invalidParams.Add(request.NewErrParamRequired("Notifications"))
@@ -7377,6 +7432,9 @@ func (s *UpdatePipelineStatusInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "UpdatePipelineStatusInput"}
 	if s.Id == nil {
 		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
 	}
 	if s.Status == nil {
 		invalidParams.Add(request.NewErrParamRequired("Status"))

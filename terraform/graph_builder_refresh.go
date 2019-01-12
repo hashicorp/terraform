@@ -3,8 +3,11 @@ package terraform
 import (
 	"log"
 
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/tfdiags"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
 )
 
@@ -21,17 +24,22 @@ import (
 //     create-before-destroy can be completely ignored.
 //
 type RefreshGraphBuilder struct {
-	// Module is the root module for the graph to build.
-	Module *module.Tree
+	// Config is the configuration tree.
+	Config *configs.Config
 
-	// State is the current state
-	State *State
+	// State is the prior state
+	State *states.State
 
-	// Providers is the list of providers supported.
-	Providers []string
+	// Components is a factory for the plug-in components (providers and
+	// provisioners) available for use.
+	Components contextComponentFactory
+
+	// Schemas is the repository of schemas we will draw from to analyse
+	// the configuration.
+	Schemas *Schemas
 
 	// Targets are resources to target
-	Targets []string
+	Targets []addrs.Targetable
 
 	// DisableReduce, if true, will not reduce the graph. Great for testing.
 	DisableReduce bool
@@ -41,7 +49,7 @@ type RefreshGraphBuilder struct {
 }
 
 // See GraphBuilder
-func (b *RefreshGraphBuilder) Build(path []string) (*Graph, error) {
+func (b *RefreshGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Diagnostics) {
 	return (&BasicGraphBuilder{
 		Steps:    b.Steps(),
 		Validate: b.Validate,
@@ -60,23 +68,27 @@ func (b *RefreshGraphBuilder) Steps() []GraphTransformer {
 
 	concreteManagedResource := func(a *NodeAbstractResource) dag.Vertex {
 		return &NodeRefreshableManagedResource{
-			NodeAbstractCountResource: &NodeAbstractCountResource{
-				NodeAbstractResource: a,
-			},
+			NodeAbstractResource: a,
 		}
 	}
 
-	concreteManagedResourceInstance := func(a *NodeAbstractResource) dag.Vertex {
+	concreteManagedResourceInstance := func(a *NodeAbstractResourceInstance) dag.Vertex {
 		return &NodeRefreshableManagedResourceInstance{
-			NodeAbstractResource: a,
+			NodeAbstractResourceInstance: a,
+		}
+	}
+
+	concreteResourceInstanceDeposed := func(a *NodeAbstractResourceInstance, key states.DeposedKey) dag.Vertex {
+		// The "Plan" node type also handles refreshing behavior.
+		return &NodePlanDeposedResourceInstanceObject{
+			NodeAbstractResourceInstance: a,
+			DeposedKey:                   key,
 		}
 	}
 
 	concreteDataResource := func(a *NodeAbstractResource) dag.Vertex {
 		return &NodeRefreshableDataResource{
-			NodeAbstractCountResource: &NodeAbstractCountResource{
-				NodeAbstractResource: a,
-			},
+			NodeAbstractResource: a,
 		}
 	}
 
@@ -88,13 +100,13 @@ func (b *RefreshGraphBuilder) Steps() []GraphTransformer {
 			if b.State.HasResources() {
 				return &ConfigTransformer{
 					Concrete:   concreteManagedResource,
-					Module:     b.Module,
+					Config:     b.Config,
 					Unique:     true,
 					ModeFilter: true,
-					Mode:       config.ManagedResourceMode,
+					Mode:       addrs.ManagedResourceMode,
 				}
 			}
-			log.Println("[TRACE] No managed resources in state during refresh, skipping managed resource transformer")
+			log.Println("[TRACE] No managed resources in state during refresh; skipping managed resource transformer")
 			return nil
 		}(),
 
@@ -102,40 +114,53 @@ func (b *RefreshGraphBuilder) Steps() []GraphTransformer {
 		// add any orphans from scaling in as destroy nodes.
 		&ConfigTransformer{
 			Concrete:   concreteDataResource,
-			Module:     b.Module,
+			Config:     b.Config,
 			Unique:     true,
 			ModeFilter: true,
-			Mode:       config.DataResourceMode,
+			Mode:       addrs.DataResourceMode,
 		},
 
 		// Add any fully-orphaned resources from config (ones that have been
 		// removed completely, not ones that are just orphaned due to a scaled-in
 		// count.
-		&OrphanResourceTransformer{
+		&OrphanResourceInstanceTransformer{
 			Concrete: concreteManagedResourceInstance,
 			State:    b.State,
-			Module:   b.Module,
+			Config:   b.Config,
+		},
+
+		// We also need nodes for any deposed instance objects present in the
+		// state, so we can check if they still exist. (This intentionally
+		// skips creating nodes for _current_ objects, since ConfigTransformer
+		// created nodes that will do that during DynamicExpand.)
+		&StateTransformer{
+			ConcreteDeposed: concreteResourceInstanceDeposed,
+			State:           b.State,
 		},
 
 		// Attach the state
 		&AttachStateTransformer{State: b.State},
 
 		// Attach the configuration to any resources
-		&AttachResourceConfigTransformer{Module: b.Module},
+		&AttachResourceConfigTransformer{Config: b.Config},
 
 		// Add root variables
-		&RootVariableTransformer{Module: b.Module},
-
-		TransformProviders(b.Providers, concreteProvider, b.Module),
+		&RootVariableTransformer{Config: b.Config},
 
 		// Add the local values
-		&LocalTransformer{Module: b.Module},
+		&LocalTransformer{Config: b.Config},
 
 		// Add the outputs
-		&OutputTransformer{Module: b.Module},
+		&OutputTransformer{Config: b.Config},
 
 		// Add module variables
-		&ModuleVariableTransformer{Module: b.Module},
+		&ModuleVariableTransformer{Config: b.Config},
+
+		TransformProviders(b.Components.ResourceProviders(), concreteProvider, b.Config),
+
+		// Must attach schemas before ReferenceTransformer so that we can
+		// analyze the configuration to find references.
+		&AttachSchemaTransformer{Schemas: b.Schemas},
 
 		// Connect so that the references are ready for targeting. We'll
 		// have to connect again later for providers and so on.

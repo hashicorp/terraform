@@ -219,10 +219,16 @@ func (d *ResourceData) Id() string {
 
 	if d.state != nil {
 		result = d.state.ID
+		if result == "" {
+			result = d.state.Attributes["id"]
+		}
 	}
 
 	if d.newState != nil {
 		result = d.newState.ID
+		if result == "" {
+			result = d.newState.Attributes["id"]
+		}
 	}
 
 	return result
@@ -246,6 +252,18 @@ func (d *ResourceData) ConnInfo() map[string]string {
 func (d *ResourceData) SetId(v string) {
 	d.once.Do(d.init)
 	d.newState.ID = v
+
+	// once we transition away from the legacy state types, "id" will no longer
+	// be a special field, and will become a normal attribute.
+	// set the attribute normally
+	d.setWriter.unsafeWriteField("id", v)
+
+	// Make sure the newState is also set, otherwise the old value
+	// may get precedence.
+	if d.newState.Attributes == nil {
+		d.newState.Attributes = map[string]string{}
+	}
+	d.newState.Attributes["id"] = v
 }
 
 // SetConnInfo sets the connection info for a resource.
@@ -315,6 +333,7 @@ func (d *ResourceData) State() *terraform.InstanceState {
 
 	mapW := &MapFieldWriter{Schema: d.schema}
 	if err := mapW.WriteField(nil, rawMap); err != nil {
+		log.Printf("[ERR] Error writing fields: %s", err)
 		return nil
 	}
 

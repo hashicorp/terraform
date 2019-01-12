@@ -95,9 +95,9 @@ func resourceAwsCloudFrontOriginAccessIdentityRead(d *schema.ResourceData, meta 
 func resourceAwsCloudFrontOriginAccessIdentityUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).cloudfrontconn
 	params := &cloudfront.UpdateCloudFrontOriginAccessIdentityInput{
-		Id: aws.String(d.Id()),
+		Id:                                   aws.String(d.Id()),
 		CloudFrontOriginAccessIdentityConfig: expandOriginAccessIdentityConfig(d),
-		IfMatch: aws.String(d.Get("etag").(string)),
+		IfMatch:                              aws.String(d.Get("etag").(string)),
 	}
 	_, err := conn.UpdateCloudFrontOriginAccessIdentity(params)
 	if err != nil {
@@ -115,11 +115,8 @@ func resourceAwsCloudFrontOriginAccessIdentityDelete(d *schema.ResourceData, met
 	}
 
 	_, err := conn.DeleteCloudFrontOriginAccessIdentity(params)
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return err
 }
 
 func expandOriginAccessIdentityConfig(d *schema.ResourceData) *cloudfront.OriginAccessIdentityConfig {
@@ -127,7 +124,7 @@ func expandOriginAccessIdentityConfig(d *schema.ResourceData) *cloudfront.Origin
 		Comment: aws.String(d.Get("comment").(string)),
 	}
 	// This sets CallerReference if it's still pending computation (ie: new resource)
-	if v, ok := d.GetOk("caller_reference"); ok == false {
+	if v, ok := d.GetOk("caller_reference"); !ok {
 		originAccessIdentityConfig.CallerReference = aws.String(time.Now().Format(time.RFC3339Nano))
 	} else {
 		originAccessIdentityConfig.CallerReference = aws.String(v.(string))

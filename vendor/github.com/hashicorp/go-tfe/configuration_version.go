@@ -21,7 +21,7 @@ var _ ConfigurationVersions = (*configurationVersions)(nil)
 // https://www.terraform.io/docs/enterprise/api/configuration-versions.html
 type ConfigurationVersions interface {
 	// List returns all configuration versions of a workspace.
-	List(ctx context.Context, workspaceID string, options ConfigurationVersionListOptions) ([]*ConfigurationVersion, error)
+	List(ctx context.Context, workspaceID string, options ConfigurationVersionListOptions) (*ConfigurationVersionList, error)
 
 	// Create is used to create a new configuration version. The created
 	// configuration version will be usable once data is uploaded to it.
@@ -63,6 +63,12 @@ const (
 	ConfigurationSourceTerraform ConfigurationSource = "terraform"
 )
 
+// ConfigurationVersionList represents a list of configuration versions.
+type ConfigurationVersionList struct {
+	*Pagination
+	Items []*ConfigurationVersion
+}
+
 // ConfigurationVersion is a representation of an uploaded or ingressed
 // Terraform configuration in TFE. A workspace must have at least one
 // configuration version before any runs may be queued on it.
@@ -93,9 +99,9 @@ type ConfigurationVersionListOptions struct {
 }
 
 // List returns all configuration versions of a workspace.
-func (s *configurationVersions) List(ctx context.Context, workspaceID string, options ConfigurationVersionListOptions) ([]*ConfigurationVersion, error) {
+func (s *configurationVersions) List(ctx context.Context, workspaceID string, options ConfigurationVersionListOptions) (*ConfigurationVersionList, error) {
 	if !validStringID(&workspaceID) {
-		return nil, errors.New("Invalid value for workspace ID")
+		return nil, errors.New("invalid value for workspace ID")
 	}
 
 	u := fmt.Sprintf("workspaces/%s/configuration-versions", url.QueryEscape(workspaceID))
@@ -104,13 +110,13 @@ func (s *configurationVersions) List(ctx context.Context, workspaceID string, op
 		return nil, err
 	}
 
-	var cvs []*ConfigurationVersion
-	err = s.client.do(ctx, req, &cvs)
+	cvl := &ConfigurationVersionList{}
+	err = s.client.do(ctx, req, cvl)
 	if err != nil {
 		return nil, err
 	}
 
-	return cvs, nil
+	return cvl, nil
 }
 
 // ConfigurationVersionCreateOptions represents the options for creating a
@@ -131,7 +137,7 @@ type ConfigurationVersionCreateOptions struct {
 // configuration version will be usable once data is uploaded to it.
 func (s *configurationVersions) Create(ctx context.Context, workspaceID string, options ConfigurationVersionCreateOptions) (*ConfigurationVersion, error) {
 	if !validStringID(&workspaceID) {
-		return nil, errors.New("Invalid value for workspace ID")
+		return nil, errors.New("invalid value for workspace ID")
 	}
 
 	// Make sure we don't send a user provided ID.
@@ -155,7 +161,7 @@ func (s *configurationVersions) Create(ctx context.Context, workspaceID string, 
 // Read a configuration version by its ID.
 func (s *configurationVersions) Read(ctx context.Context, cvID string) (*ConfigurationVersion, error) {
 	if !validStringID(&cvID) {
-		return nil, errors.New("Invalid value for configuration version ID")
+		return nil, errors.New("invalid value for configuration version ID")
 	}
 
 	u := fmt.Sprintf("configuration-versions/%s", url.QueryEscape(cvID))
@@ -179,7 +185,7 @@ func (s *configurationVersions) Read(ctx context.Context, cvID string) (*Configu
 func (s *configurationVersions) Upload(ctx context.Context, url, path string) error {
 	body := bytes.NewBuffer(nil)
 
-	_, err := slug.Pack(path, body)
+	_, err := slug.Pack(path, body, true)
 	if err != nil {
 		return err
 	}

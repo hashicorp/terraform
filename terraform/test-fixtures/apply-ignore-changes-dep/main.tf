@@ -8,5 +8,5 @@ resource "aws_instance" "foo" {
 
 resource "aws_eip" "foo" {
   count    = 2
-  instance = "${element(aws_instance.foo.*.id, count.index)}"
+  instance = "${aws_instance.foo.*.id[count.index]}"
 }

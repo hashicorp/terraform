@@ -20,6 +20,9 @@ type TeamTokens interface {
 	// Generate a new team token, replacing any existing token.
 	Generate(ctx context.Context, teamID string) (*TeamToken, error)
 
+	// Read a team token by its ID.
+	Read(ctx context.Context, teamID string) (*TeamToken, error)
+
 	// Delete a team token by its ID.
 	Delete(ctx context.Context, teamID string) error
 }
@@ -41,7 +44,7 @@ type TeamToken struct {
 // Generate a new team token, replacing any existing token.
 func (s *teamTokens) Generate(ctx context.Context, teamID string) (*TeamToken, error) {
 	if !validStringID(&teamID) {
-		return nil, errors.New("Invalid value for team ID")
+		return nil, errors.New("invalid value for team ID")
 	}
 
 	u := fmt.Sprintf("teams/%s/authentication-token", url.QueryEscape(teamID))
@@ -59,10 +62,31 @@ func (s *teamTokens) Generate(ctx context.Context, teamID string) (*TeamToken, e
 	return tt, err
 }
 
+// Read a team token by its ID.
+func (s *teamTokens) Read(ctx context.Context, teamID string) (*TeamToken, error) {
+	if !validStringID(&teamID) {
+		return nil, errors.New("invalid value for team ID")
+	}
+
+	u := fmt.Sprintf("teams/%s/authentication-token", url.QueryEscape(teamID))
+	req, err := s.client.newRequest("GET", u, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	tt := &TeamToken{}
+	err = s.client.do(ctx, req, tt)
+	if err != nil {
+		return nil, err
+	}
+
+	return tt, err
+}
+
 // Delete a team token by its ID.
 func (s *teamTokens) Delete(ctx context.Context, teamID string) error {
 	if !validStringID(&teamID) {
-		return errors.New("Invalid value for team ID")
+		return errors.New("invalid value for team ID")
 	}
 
 	u := fmt.Sprintf("teams/%s/authentication-token", url.QueryEscape(teamID))

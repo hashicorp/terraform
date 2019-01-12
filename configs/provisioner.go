@@ -3,7 +3,6 @@ package configs
 import (
 	"fmt"
 
-	"github.com/hashicorp/hcl2/gohcl"
 	"github.com/hashicorp/hcl2/hcl"
 )
 
@@ -86,13 +85,22 @@ func decodeProvisionerBlock(block *hcl.Block) (*Provisioner, hcl.Diagnostics) {
 			}
 			seenConnection = block
 
-			conn, connDiags := decodeConnectionBlock(block)
-			diags = append(diags, connDiags...)
-			pv.Connection = conn
+			//conn, connDiags := decodeConnectionBlock(block)
+			//diags = append(diags, connDiags...)
+			pv.Connection = &Connection{
+				Config:    block.Body,
+				DeclRange: block.DefRange,
+			}
 
 		default:
-			// Should never happen because there are no other block types
-			// declared in our schema.
+			// Any other block types are ones we've reserved for future use,
+			// so they get a generic message.
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Reserved block type name in provisioner block",
+				Detail:   fmt.Sprintf("The block type name %q is reserved for use by Terraform in a future version.", block.Type),
+				Subject:  &block.TypeRange,
+			})
 		}
 	}
 
@@ -102,35 +110,9 @@ func decodeProvisionerBlock(block *hcl.Block) (*Provisioner, hcl.Diagnostics) {
 // Connection represents a "connection" block when used within either a
 // "resource" or "provisioner" block in a module or file.
 type Connection struct {
-	Type   string
 	Config hcl.Body
 
 	DeclRange hcl.Range
-	TypeRange *hcl.Range // nil if type is not set
-}
-
-func decodeConnectionBlock(block *hcl.Block) (*Connection, hcl.Diagnostics) {
-	content, config, diags := block.Body.PartialContent(&hcl.BodySchema{
-		Attributes: []hcl.AttributeSchema{
-			{
-				Name: "type",
-			},
-		},
-	})
-
-	conn := &Connection{
-		Type:      "ssh",
-		Config:    config,
-		DeclRange: block.DefRange,
-	}
-
-	if attr, exists := content.Attributes["type"]; exists {
-		valDiags := gohcl.DecodeExpression(attr.Expr, nil, &conn.Type)
-		diags = append(diags, valDiags...)
-		conn.TypeRange = attr.Expr.Range().Ptr()
-	}
-
-	return conn, diags
 }
 
 // ProvisionerWhen is an enum for valid values for when to run provisioners.
@@ -158,16 +140,11 @@ const (
 
 var provisionerBlockSchema = &hcl.BodySchema{
 	Attributes: []hcl.AttributeSchema{
-		{
-			Name: "when",
-		},
-		{
-			Name: "on_failure",
-		},
+		{Name: "when"},
+		{Name: "on_failure"},
 	},
 	Blocks: []hcl.BlockHeaderSchema{
-		{
-			Type: "connection",
-		},
+		{Type: "connection"},
+		{Type: "lifecycle"}, // reserved for future use
 	},
 }

@@ -10,14 +10,32 @@ const (
 	// This exception is thrown when an operation is called with an invalid trail
 	// ARN. The format of a trail ARN is:
 	//
-	// arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	// arn:aws:cloudtrail:us-east-2:123456789012:trail/MyTrail
 	ErrCodeARNInvalidException = "CloudTrailARNInvalidException"
+
+	// ErrCodeAccessNotEnabledException for service response error code
+	// "CloudTrailAccessNotEnabledException".
+	//
+	// This exception is thrown when trusted access has not been enabled between
+	// AWS CloudTrail and AWS Organizations. For more information, see Enabling
+	// Trusted Access with Other AWS Services (https://docs.aws.amazon.com/organizations/latest/userguide/orgs_integrate_services.html)
+	// and Prepare For Creating a Trail For Your Organization (https://docs.aws.amazon.com/awscloudtrail/latest/userguide/creating-an-organizational-trail-prepare.html).
+	ErrCodeAccessNotEnabledException = "CloudTrailAccessNotEnabledException"
 
 	// ErrCodeCloudWatchLogsDeliveryUnavailableException for service response error code
 	// "CloudWatchLogsDeliveryUnavailableException".
 	//
 	// Cannot set a CloudWatch Logs delivery for this region.
 	ErrCodeCloudWatchLogsDeliveryUnavailableException = "CloudWatchLogsDeliveryUnavailableException"
+
+	// ErrCodeInsufficientDependencyServiceAccessPermissionException for service response error code
+	// "InsufficientDependencyServiceAccessPermissionException".
+	//
+	// This exception is thrown when the IAM user or role that is used to create
+	// the organization trail is lacking one or more required permissions for creating
+	// an organization trail in a required service. For more information, see Prepare
+	// For Creating a Trail For Your Organization (https://docs.aws.amazon.com/awscloudtrail/latest/userguide/creating-an-organizational-trail-prepare.html).
+	ErrCodeInsufficientDependencyServiceAccessPermissionException = "InsufficientDependencyServiceAccessPermissionException"
 
 	// ErrCodeInsufficientEncryptionPolicyException for service response error code
 	// "InsufficientEncryptionPolicyException".
@@ -54,12 +72,21 @@ const (
 	// "InvalidEventSelectorsException".
 	//
 	// This exception is thrown when the PutEventSelectors operation is called with
-	// an invalid number of event selectors, data resources, or an invalid value
-	// for a parameter:
+	// a number of event selectors or data resources that is not valid. The combination
+	// of event selectors and data resources is not valid. A trail can have up to
+	// 5 event selectors. A trail is limited to 250 data resources. These data resources
+	// can be distributed across event selectors, but the overall total cannot exceed
+	// 250.
+	//
+	// You can:
 	//
 	//    * Specify a valid number of event selectors (1 to 5) for a trail.
 	//
 	//    * Specify a valid number of data resources (1 to 250) for an event selector.
+	//    The limit of number of resources on an individual event selector is configurable
+	//    up to 250. However, this upper limit is allowed only if the total number
+	//    of data resources does not exceed 250 across all event selectors for a
+	//    trail.
 	//
 	//    * Specify a valid value for a parameter. For example, specifying the ReadWriteType
 	//    parameter with a value of read-only is invalid.
@@ -187,11 +214,37 @@ const (
 	// This exception is thrown when the maximum number of trails is reached.
 	ErrCodeMaximumNumberOfTrailsExceededException = "MaximumNumberOfTrailsExceededException"
 
+	// ErrCodeNotOrganizationMasterAccountException for service response error code
+	// "NotOrganizationMasterAccountException".
+	//
+	// This exception is thrown when the AWS account making the request to create
+	// or update an organization trail is not the master account for an organization
+	// in AWS Organizations. For more information, see Prepare For Creating a Trail
+	// For Your Organization (https://docs.aws.amazon.com/awscloudtrail/latest/userguide/creating-an-organizational-trail-prepare.html).
+	ErrCodeNotOrganizationMasterAccountException = "NotOrganizationMasterAccountException"
+
 	// ErrCodeOperationNotPermittedException for service response error code
 	// "OperationNotPermittedException".
 	//
 	// This exception is thrown when the requested operation is not permitted.
 	ErrCodeOperationNotPermittedException = "OperationNotPermittedException"
+
+	// ErrCodeOrganizationNotInAllFeaturesModeException for service response error code
+	// "OrganizationNotInAllFeaturesModeException".
+	//
+	// This exception is thrown when AWS Organizations is not configured to support
+	// all features. All features must be enabled in AWS Organization to support
+	// creating an organization trail. For more information, see Prepare For Creating
+	// a Trail For Your Organization (https://docs.aws.amazon.com/awscloudtrail/latest/userguide/creating-an-organizational-trail-prepare.html).
+	ErrCodeOrganizationNotInAllFeaturesModeException = "OrganizationNotInAllFeaturesModeException"
+
+	// ErrCodeOrganizationsNotInUseException for service response error code
+	// "OrganizationsNotInUseException".
+	//
+	// This exception is thrown when the request is made from an AWS account that
+	// is not a member of an organization. To make this request, sign in using the
+	// credentials of an account that belongs to an organization.
+	ErrCodeOrganizationsNotInUseException = "OrganizationsNotInUseException"
 
 	// ErrCodeResourceNotFoundException for service response error code
 	// "ResourceNotFoundException".

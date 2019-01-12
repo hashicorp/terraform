@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -26,6 +27,10 @@ func dataSourceAwsInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"instance_type": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -43,6 +48,10 @@ func dataSourceAwsInstance() *schema.Resource {
 				Computed: true,
 			},
 			"tenancy": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"host_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -317,6 +326,16 @@ func dataSourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("password_data", passwordData)
 	}
 
+	// ARN
+	arn := arn.ARN{
+		Partition: meta.(*AWSClient).partition,
+		Region:    meta.(*AWSClient).region,
+		Service:   "ec2",
+		AccountID: meta.(*AWSClient).accountid,
+		Resource:  fmt.Sprintf("instance/%s", d.Id()),
+	}
+	d.Set("arn", arn.String())
+
 	return nil
 }
 
@@ -333,6 +352,9 @@ func instanceDescriptionAttributes(d *schema.ResourceData, instance *ec2.Instanc
 	}
 	if instance.Placement.Tenancy != nil {
 		d.Set("tenancy", instance.Placement.Tenancy)
+	}
+	if instance.Placement.HostId != nil {
+		d.Set("host_id", instance.Placement.HostId)
 	}
 	d.Set("ami", instance.ImageId)
 	d.Set("instance_type", instance.InstanceType)

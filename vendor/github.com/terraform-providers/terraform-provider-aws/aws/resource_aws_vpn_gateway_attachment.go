@@ -20,12 +20,12 @@ func resourceAwsVpnGatewayAttachment() *schema.Resource {
 		Delete: resourceAwsVpnGatewayAttachmentDelete,
 
 		Schema: map[string]*schema.Schema{
-			"vpc_id": &schema.Schema{
+			"vpc_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"vpn_gateway_id": &schema.Schema{
+			"vpn_gateway_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -164,7 +164,7 @@ func vpnGatewayAttachmentStateRefresh(conn *ec2.EC2, vpcId, vgwId string) resour
 	return func() (interface{}, string, error) {
 		resp, err := conn.DescribeVpnGateways(&ec2.DescribeVpnGatewaysInput{
 			Filters: []*ec2.Filter{
-				&ec2.Filter{
+				{
 					Name:   aws.String("attachment.vpc-id"),
 					Values: []*string{aws.String(vpcId)},
 				},
