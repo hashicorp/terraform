@@ -49,7 +49,7 @@ func shimNewState(newState *states.State, providers map[string]terraform.Resourc
 			resType := res.Addr.Type
 			providerType := res.ProviderConfig.ProviderConfig.Type
 
-			resource := getResource(providers, providerType, resType)
+			resource := getResource(providers, providerType, res.Addr)
 
 			for key, i := range res.Instances {
 				flatmap, err := shimmedAttributes(i.Current, resource)
@@ -116,7 +116,7 @@ func shimNewState(newState *states.State, providers map[string]terraform.Resourc
 	return state, nil
 }
 
-func getResource(providers map[string]terraform.ResourceProvider, providerName, resourceType string) *schema.Resource {
+func getResource(providers map[string]terraform.ResourceProvider, providerName string, addr addrs.Resource) *schema.Resource {
 	p := providers[providerName]
 	if p == nil {
 		panic(fmt.Sprintf("provider %q not found in test step", providerName))
@@ -125,23 +125,24 @@ func getResource(providers map[string]terraform.ResourceProvider, providerName, 
 	// this is only for tests, so should only see schema.Providers
 	provider := p.(*schema.Provider)
 
-	resource := provider.ResourcesMap[resourceType]
-	if resource != nil {
-		return resource
-
+	switch addr.Mode {
+	case addrs.ManagedResourceMode:
+		resource := provider.ResourcesMap[addr.Type]
+		if resource != nil {
+			return resource
+		}
+	case addrs.DataResourceMode:
+		resource := provider.DataSourcesMap[addr.Type]
+		if resource != nil {
+			return resource
+		}
 	}
 
-	resource = provider.DataSourcesMap[resourceType]
-	if resource != nil {
-		return resource
-	}
-
-	panic(fmt.Sprintf("resource %s not found in test step", resourceType))
+	panic(fmt.Sprintf("resource %s not found in test step", addr.Type))
 }
 
 func shimmedAttributes(instance *states.ResourceInstanceObjectSrc, res *schema.Resource) (map[string]string, error) {
 	flatmap := instance.AttrsFlat
-
 	if flatmap != nil {
 		return flatmap, nil
 	}
