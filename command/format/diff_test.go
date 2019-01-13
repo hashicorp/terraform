@@ -50,6 +50,27 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
     }
 `,
 		},
+		"deletion (empty string)": {
+			Action: plans.Delete,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":                 cty.StringVal("i-02ae66f368e8518a9"),
+				"intentionally_long": cty.StringVal(""),
+			}),
+			After: cty.NullVal(cty.EmptyObject),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":                 {Type: cty.String, Computed: true},
+					"intentionally_long": {Type: cty.String, Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be destroyed
+  - resource "test_instance" "example" {
+      - id = "i-02ae66f368e8518a9" -> null
+    }
+`,
+		},
 		"string in-place update": {
 			Action: plans.Update,
 			Mode:   addrs.ManagedResourceMode,
