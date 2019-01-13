@@ -421,6 +421,13 @@ func (s *GRPCProviderServer) ReadResource(_ context.Context, req *proto.ReadReso
 		return resp, nil
 	}
 
+	if newInstanceState != nil {
+		// here we use the prior state to check for unknown/zero containers values
+		// when normalizing the flatmap.
+		stateAttrs := hcl2shim.FlatmapValueFromHCL2(stateVal)
+		newInstanceState.Attributes = normalizeFlatmapContainers(stateAttrs, newInstanceState.Attributes, true)
+	}
+
 	if newInstanceState == nil || newInstanceState.ID == "" {
 		// The old provider API used an empty id to signal that the remote
 		// object appears to have been deleted, but our new protocol expects
@@ -445,6 +452,7 @@ func (s *GRPCProviderServer) ReadResource(_ context.Context, req *proto.ReadReso
 	}
 
 	newStateVal = copyTimeoutValues(newStateVal, stateVal)
+	newStateVal = copyMissingValues(newStateVal, stateVal)
 
 	newStateMP, err := msgpack.Marshal(newStateVal, block.ImpliedType())
 	if err != nil {
@@ -521,7 +529,7 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 
 	// strip out non-diffs
 	for k, v := range diff.Attributes {
-		if v.New == v.Old && !v.NewComputed && !v.NewRemoved {
+		if v.New == v.Old && !v.NewComputed {
 			delete(diff.Attributes, k)
 		}
 	}
@@ -705,7 +713,7 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 
 	// strip out non-diffs
 	for k, v := range diff.Attributes {
-		if v.New == v.Old && !v.NewComputed && !v.NewRemoved && v.NewExtra == "" {
+		if v.New == v.Old && !v.NewComputed && v.NewExtra == "" {
 			delete(diff.Attributes, k)
 		}
 	}
