@@ -3,6 +3,7 @@ package command
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -266,7 +267,9 @@ func TestInit_backendUnset(t *testing.T) {
 	defer testChdir(t, td)()
 
 	{
-		ui := new(cli.MockUi)
+		log.Printf("[TRACE] TestInit_backendUnset: beginning first init")
+
+		ui := cli.NewMockUi()
 		c := &InitCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
@@ -279,6 +282,9 @@ func TestInit_backendUnset(t *testing.T) {
 		if code := c.Run(args); code != 0 {
 			t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 		}
+		log.Printf("[TRACE] TestInit_backendUnset: first init complete")
+		t.Logf("First run output:\n%s", ui.OutputWriter.String())
+		t.Logf("First run errors:\n%s", ui.ErrorWriter.String())
 
 		if _, err := os.Stat(filepath.Join(DefaultDataDir, DefaultStateFilename)); err != nil {
 			t.Fatalf("err: %s", err)
@@ -286,12 +292,14 @@ func TestInit_backendUnset(t *testing.T) {
 	}
 
 	{
+		log.Printf("[TRACE] TestInit_backendUnset: beginning second init")
+
 		// Unset
 		if err := ioutil.WriteFile("main.tf", []byte(""), 0644); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 
-		ui := new(cli.MockUi)
+		ui := cli.NewMockUi()
 		c := &InitCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
@@ -303,6 +311,9 @@ func TestInit_backendUnset(t *testing.T) {
 		if code := c.Run(args); code != 0 {
 			t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 		}
+		log.Printf("[TRACE] TestInit_backendUnset: second init complete")
+		t.Logf("Second run output:\n%s", ui.OutputWriter.String())
+		t.Logf("Second run errors:\n%s", ui.ErrorWriter.String())
 
 		s := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
 		if !s.Backend.Empty() {
@@ -1218,5 +1229,82 @@ func TestInit_pluginWithInternal(t *testing.T) {
 	//args := []string{}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("error: %s", ui.ErrorWriter)
+	}
+}
+
+func TestInit_012UpgradeNeeded(t *testing.T) {
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-012upgrade"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := cli.NewMockUi()
+	m := Meta{
+		testingOverrides: metaOverridesForProvider(testProvider()),
+		Ui:               ui,
+	}
+
+	installer := &mockProviderInstaller{
+		Providers: map[string][]string{
+			"null": []string{"1.0.0"},
+		},
+		Dir: m.pluginDir(),
+	}
+
+	c := &InitCommand{
+		Meta:              m,
+		providerInstaller: installer,
+	}
+
+	args := []string{}
+	if code := c.Run(args); code != 0 {
+		t.Errorf("wrong exit status %d; want 0\nerror output:\n%s", code, ui.ErrorWriter.String())
+	}
+
+	output := ui.OutputWriter.String()
+	if !strings.Contains(output, "terraform 0.12upgrade") {
+		t.Errorf("doesn't look like we detected the need for config upgrade:\n%s", output)
+	}
+}
+
+func TestInit_012UpgradeNeededInAutomation(t *testing.T) {
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-012upgrade"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := cli.NewMockUi()
+	m := Meta{
+		testingOverrides:    metaOverridesForProvider(testProvider()),
+		Ui:                  ui,
+		RunningInAutomation: true,
+	}
+
+	installer := &mockProviderInstaller{
+		Providers: map[string][]string{
+			"null": []string{"1.0.0"},
+		},
+		Dir: m.pluginDir(),
+	}
+
+	c := &InitCommand{
+		Meta:              m,
+		providerInstaller: installer,
+	}
+
+	args := []string{}
+	if code := c.Run(args); code != 0 {
+		t.Errorf("wrong exit status %d; want 0\nerror output:\n%s", code, ui.ErrorWriter.String())
+	}
+
+	output := ui.OutputWriter.String()
+	if !strings.Contains(output, "Run terraform init for this configuration at a shell prompt") {
+		t.Errorf("doesn't look like we instructed to run Terraform locally:\n%s", output)
+	}
+	if strings.Contains(output, "terraform 0.12upgrade") {
+		// We don't prompt with an exact command in automation mode, since
+		// the upgrade process is interactive and so it cannot be run in
+		// automation.
+		t.Errorf("looks like we incorrectly gave an upgrade command to run:\n%s", output)
 	}
 }

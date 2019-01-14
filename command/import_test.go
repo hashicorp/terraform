@@ -801,14 +801,14 @@ func TestImport_pluginDir(t *testing.T) {
 	initCmd := &InitCommand{
 		Meta: Meta{
 			pluginPath: []string{"./plugins"},
-			Ui:         new(cli.MockUi),
+			Ui:         cli.NewMockUi(),
 		},
 		providerInstaller: &discovery.ProviderInstaller{
 			PluginProtocolVersion: plugin.Handshake.ProtocolVersion,
 		},
 	}
-	if err := initCmd.getProviders(".", nil, false); err != nil {
-		t.Fatal(err)
+	if code := initCmd.Run(nil); code != 0 {
+		t.Fatal(initCmd.Meta.Ui.(*cli.MockUi).ErrorWriter.String())
 	}
 
 	args := []string{

@@ -152,7 +152,7 @@ func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *config
 	// sources only this ultimately just records all of the module paths
 	// in a JSON file so that we can load them below.
 	inst := initwd.NewModuleInstaller(loader.ModulesDir(), registry.NewClient(nil, nil))
-	instDiags := inst.InstallModules(dir, true, initwd.ModuleInstallHooksImpl{})
+	_, instDiags := inst.InstallModules(dir, true, initwd.ModuleInstallHooksImpl{})
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
 	}
