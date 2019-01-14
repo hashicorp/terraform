@@ -11,6 +11,8 @@ import (
 	"github.com/hashicorp/terraform/svchost/disco"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/version"
+
+	backendLocal "github.com/hashicorp/terraform/backend/local"
 )
 
 func TestRemote(t *testing.T) {
@@ -120,22 +122,101 @@ func TestRemote_config(t *testing.T) {
 	}
 }
 
-func TestRemote_nonexistingOrganization(t *testing.T) {
-	msg := "does not exist"
-
-	b := testBackendNoDefault(t)
-	b.organization = "nonexisting"
-
-	if _, err := b.State("prod"); err == nil || !strings.Contains(err.Error(), msg) {
-		t.Fatalf("expected %q error, got: %v", msg, err)
+func TestRemote_versionConstraints(t *testing.T) {
+	cases := map[string]struct {
+		config     map[string]interface{}
+		prerelease string
+		version    string
+		err        error
+	}{
+		"compatible version": {
+			config: map[string]interface{}{
+				"organization": "hashicorp",
+				"workspaces": []interface{}{
+					map[string]interface{}{
+						"name": "prod",
+					},
+				},
+			},
+			version: "0.11.1",
+		},
+		"version too old": {
+			config: map[string]interface{}{
+				"organization": "hashicorp",
+				"workspaces": []interface{}{
+					map[string]interface{}{
+						"name": "prod",
+					},
+				},
+			},
+			version: "0.10.1",
+			err:     errors.New("upgrade Terraform to >= 0.11.8"),
+		},
+		"version too new": {
+			config: map[string]interface{}{
+				"organization": "hashicorp",
+				"workspaces": []interface{}{
+					map[string]interface{}{
+						"name": "prod",
+					},
+				},
+			},
+			version: "0.12.0",
+			err:     errors.New("downgrade Terraform to <= 0.11.11"),
+		},
 	}
 
-	if err := b.DeleteState("prod"); err == nil || !strings.Contains(err.Error(), msg) {
-		t.Fatalf("expected %q error, got: %v", msg, err)
+	// Save and restore the actual version.
+	p := version.Prerelease
+	v := version.Version
+	defer func() {
+		version.Prerelease = p
+		version.Version = v
+	}()
+
+	for name, tc := range cases {
+		s := testServer(t)
+		b := New(testDisco(s))
+
+		// Set the version for this test.
+		version.Prerelease = tc.prerelease
+		version.Version = tc.version
+
+		// Get the proper config structure
+		rc, err := config.NewRawConfig(tc.config)
+		if err != nil {
+			t.Fatalf("%s: error creating raw config: %v", name, err)
+		}
+		conf := terraform.NewResourceConfig(rc)
+
+		// Validate
+		warns, errs := b.Validate(conf)
+		if len(warns) > 0 {
+			t.Fatalf("%s: validation warnings: %v", name, warns)
+		}
+		if len(errs) > 0 {
+			t.Fatalf("%s: validation errors: %v", name, errs)
+		}
+
+		// Configure
+		err = b.Configure(conf)
+		if err != tc.err && err != nil && tc.err != nil && !strings.Contains(err.Error(), tc.err.Error()) {
+			t.Fatalf("%s: expected error %q, got: %q", name, tc.err, err)
+		}
+	}
+}
+
+func TestRemote_localBackend(t *testing.T) {
+	b := testBackendDefault(t)
+
+	local, ok := b.local.(*backendLocal.Local)
+	if !ok {
+		t.Fatalf("expected b.local to be \"*local.Local\", got: %T", b.local)
 	}
 
-	if _, err := b.States(); err == nil || !strings.Contains(err.Error(), msg) {
-		t.Fatalf("expected %q error, got: %v", msg, err)
+	remote, ok := local.Backend.(*Remote)
+	if !ok {
+		t.Fatalf("expected local.Backend to be *remote.Remote, got: %T", remote)
 	}
 }
 

@@ -23,13 +23,15 @@ import (
 	tfversion "github.com/hashicorp/terraform/version"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
+
+	backendLocal "github.com/hashicorp/terraform/backend/local"
 )
 
 const (
 	defaultHostname    = "app.terraform.io"
 	defaultModuleDepth = -1
 	defaultParallelism = 10
-	tfeServiceID       = "tfe.v2"
+	tfeServiceID       = "tfe.v2.1"
 )
 
 // Remote is an implementation of EnhancedBackend that performs all
@@ -66,6 +68,14 @@ type Remote struct {
 
 	// services is used for service discovery
 	services *disco.Disco
+
+	// local, if non-nil, will be used for all enhanced behavior. This
+	// allows local behavior with the remote backend functioning as remote
+	// state storage backend.
+	local backend.Enhanced
+
+	// forceLocal, if true, will force the use of the local backend.
+	forceLocal bool
 
 	// opLock locks operations
 	opLock sync.Mutex
@@ -205,6 +215,19 @@ func (b *Remote) configure(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
+	// Check if the organization exists by reading its entitlements.
+	entitlements, err := b.client.Organizations.Entitlements(context.Background(), b.organization)
+	if err != nil {
+		if err == tfe.ErrResourceNotFound {
+			return fmt.Errorf("organization %s does not exist", b.organization)
+		}
+		return fmt.Errorf("failed to read organization entitlements: %v", err)
+	}
+
+	// Configure a local backend for when we need to run operations locally.
+	b.local = backendLocal.NewWithBackend(b)
+	b.forceLocal = !entitlements.Operations || os.Getenv("TF_FORCE_LOCAL_BACKEND") != ""
 
 	return nil
 }
@@ -372,38 +395,30 @@ func (b *Remote) Configure(c *terraform.ResourceConfig) error {
 
 // State returns the latest state of the given remote workspace. The workspace
 // will be created if it doesn't exist.
-func (b *Remote) State(workspace string) (state.State, error) {
-	if b.workspace == "" && workspace == backend.DefaultStateName {
+func (b *Remote) State(name string) (state.State, error) {
+	if b.workspace == "" && name == backend.DefaultStateName {
 		return nil, backend.ErrDefaultStateNotSupported
 	}
-	if b.prefix == "" && workspace != backend.DefaultStateName {
+	if b.prefix == "" && name != backend.DefaultStateName {
 		return nil, backend.ErrNamedStatesNotSupported
-	}
-
-	workspaces, err := b.states()
-	if err != nil {
-		return nil, fmt.Errorf("Error retrieving workspaces: %v", err)
-	}
-
-	exists := false
-	for _, name := range workspaces {
-		if workspace == name {
-			exists = true
-			break
-		}
 	}
 
 	// Configure the remote workspace name.
 	switch {
-	case workspace == backend.DefaultStateName:
-		workspace = b.workspace
-	case b.prefix != "" && !strings.HasPrefix(workspace, b.prefix):
-		workspace = b.prefix + workspace
+	case name == backend.DefaultStateName:
+		name = b.workspace
+	case b.prefix != "" && !strings.HasPrefix(name, b.prefix):
+		name = b.prefix + name
 	}
 
-	if !exists {
+	workspace, err := b.client.Workspaces.Read(context.Background(), b.organization, name)
+	if err != nil && err != tfe.ErrResourceNotFound {
+		return nil, fmt.Errorf("Failed to retrieve workspace %s: %v", name, err)
+	}
+
+	if err == tfe.ErrResourceNotFound {
 		options := tfe.WorkspaceCreateOptions{
-			Name: tfe.String(workspace),
+			Name: tfe.String(name),
 		}
 
 		// We only set the Terraform Version for the new workspace if this is
@@ -412,9 +427,9 @@ func (b *Remote) State(workspace string) (state.State, error) {
 			options.TerraformVersion = tfe.String(tfversion.String())
 		}
 
-		_, err = b.client.Workspaces.Create(context.Background(), b.organization, options)
+		workspace, err = b.client.Workspaces.Create(context.Background(), b.organization, options)
 		if err != nil {
-			return nil, fmt.Errorf("Error creating workspace %s: %v", workspace, err)
+			return nil, fmt.Errorf("Error creating workspace %s: %v", name, err)
 		}
 	}
 
@@ -431,35 +446,28 @@ func (b *Remote) State(workspace string) (state.State, error) {
 }
 
 // DeleteState removes the remote workspace if it exists.
-func (b *Remote) DeleteState(workspace string) error {
-	if b.workspace == "" && workspace == backend.DefaultStateName {
+func (b *Remote) DeleteState(name string) error {
+	if b.workspace == "" && name == backend.DefaultStateName {
 		return backend.ErrDefaultStateNotSupported
 	}
-	if b.prefix == "" && workspace != backend.DefaultStateName {
+	if b.prefix == "" && name != backend.DefaultStateName {
 		return backend.ErrNamedStatesNotSupported
 	}
 
 	// Configure the remote workspace name.
 	switch {
-	case workspace == backend.DefaultStateName:
-		workspace = b.workspace
-	case b.prefix != "" && !strings.HasPrefix(workspace, b.prefix):
-		workspace = b.prefix + workspace
-	}
-
-	// Check if the configured organization exists.
-	_, err := b.client.Organizations.Read(context.Background(), b.organization)
-	if err != nil {
-		if err == tfe.ErrResourceNotFound {
-			return fmt.Errorf("organization %s does not exist", b.organization)
-		}
-		return err
+	case name == backend.DefaultStateName:
+		name = b.workspace
+	case b.prefix != "" && !strings.HasPrefix(name, b.prefix):
+		name = b.prefix + name
 	}
 
 	client := &remoteClient{
 		client:       b.client,
 		organization: b.organization,
-		workspace:    workspace,
+		workspace: &tfe.Workspace{
+			Name: name,
+		},
 	}
 
 	return client.Delete()
@@ -474,15 +482,6 @@ func (b *Remote) States() ([]string, error) {
 }
 
 func (b *Remote) states() ([]string, error) {
-	// Check if the configured organization exists.
-	_, err := b.client.Organizations.Read(context.Background(), b.organization)
-	if err != nil {
-		if err == tfe.ErrResourceNotFound {
-			return nil, fmt.Errorf("organization %s does not exist", b.organization)
-		}
-		return nil, err
-	}
-
 	options := tfe.WorkspaceListOptions{}
 	switch {
 	case b.workspace != "":
@@ -528,15 +527,50 @@ func (b *Remote) states() ([]string, error) {
 // Operation implements backend.Enhanced
 func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend.RunningOperation, error) {
 	// Configure the remote workspace name.
+	name := op.Workspace
 	switch {
 	case op.Workspace == backend.DefaultStateName:
-		op.Workspace = b.workspace
+		name = b.workspace
 	case b.prefix != "" && !strings.HasPrefix(op.Workspace, b.prefix):
-		op.Workspace = b.prefix + op.Workspace
+		name = b.prefix + op.Workspace
 	}
 
+	// Retrieve the workspace for this operation.
+	w, err := b.client.Workspaces.Read(ctx, b.organization, name)
+	if err != nil {
+		switch err {
+		case context.Canceled:
+			return nil, err
+		case tfe.ErrResourceNotFound:
+			return nil, fmt.Errorf(
+				"workspace %s not found\n\n"+
+					"The configured \"remote\" backend returns '404 Not Found' errors for resources\n"+
+					"that do not exist, as well as for resources that a user doesn't have access\n"+
+					"to. When the resource does exists, please check the rights for the used token.",
+				name,
+			)
+		default:
+			return nil, fmt.Errorf(
+				"%s\n\n"+
+					"The configured \"remote\" backend encountered an unexpected error. Sometimes\n"+
+					"this is caused by network connection problems, in which case you could retr\n"+
+					"the command. If the issue persists please open a support ticket to get help\n"+
+					"resolving the problem.",
+				err,
+			)
+		}
+	}
+
+	// Check if we need to use the local backend to run the operation.
+	if b.forceLocal || !w.Operations {
+		return b.local.Operation(ctx, op)
+	}
+
+	// Set the remote workspace name.
+	op.Workspace = w.Name
+
 	// Determine the function to call for our operation
-	var f func(context.Context, context.Context, *backend.Operation) (*tfe.Run, error)
+	var f func(context.Context, context.Context, *backend.Operation, *tfe.Workspace) (*tfe.Run, error)
 	switch op.Type {
 	case backend.OperationTypePlan:
 		f = b.opPlan
@@ -575,7 +609,7 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 
 		defer b.opLock.Unlock()
 
-		r, opErr := f(stopCtx, cancelCtx, op)
+		r, opErr := f(stopCtx, cancelCtx, op, w)
 		if opErr != nil && opErr != context.Canceled {
 			runningOp.Err = opErr
 			return
