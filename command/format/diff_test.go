@@ -748,6 +748,39 @@ func TestResourceChange_map(t *testing.T) {
 			Before: cty.ObjectVal(map[string]cty.Value{
 				"id":        cty.StringVal("i-02ae66f368e8518a9"),
 				"ami":       cty.StringVal("ami-STATIC"),
+				"map_field": cty.NullVal(cty.Map(cty.String)),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.UnknownVal(cty.String),
+				"ami": cty.StringVal("ami-STATIC"),
+				"map_field": cty.MapVal(map[string]cty.Value{
+					"new-key": cty.StringVal("new-element"),
+				}),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":        {Type: cty.String, Optional: true, Computed: true},
+					"ami":       {Type: cty.String, Optional: true},
+					"map_field": {Type: cty.Map(cty.String), Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+        ami       = "ami-STATIC"
+      ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
+      + map_field = {
+          + "new-key" = "new-element"
+        }
+    }
+`,
+		},
+		"in-place update - first insertion": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":        cty.StringVal("i-02ae66f368e8518a9"),
+				"ami":       cty.StringVal("ami-STATIC"),
 				"map_field": cty.MapValEmpty(cty.String),
 			}),
 			After: cty.ObjectVal(map[string]cty.Value{
@@ -893,6 +926,31 @@ func TestResourceChange_map(t *testing.T) {
             "b" = "bbbb"
           - "c" = "cccc" -> null
         }
+    }
+`,
+		},
+		"creation - empty": {
+			Action: plans.Create,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.NullVal(cty.EmptyObject),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":        cty.UnknownVal(cty.String),
+				"ami":       cty.StringVal("ami-STATIC"),
+				"map_field": cty.MapValEmpty(cty.String),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":        {Type: cty.String, Optional: true, Computed: true},
+					"ami":       {Type: cty.String, Optional: true},
+					"map_field": {Type: cty.Map(cty.String), Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be created
+  + resource "test_instance" "example" {
+      + ami       = "ami-STATIC"
+      + id        = (known after apply)
+      + map_field = {}
     }
 `,
 		},
