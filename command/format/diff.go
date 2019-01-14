@@ -100,7 +100,7 @@ func ResourceChange(
 		buf.WriteString(addr.String())
 	}
 
-	buf.WriteString(" {\n")
+	buf.WriteString(" {")
 
 	p := blockBodyDiffPrinter{
 		buf:             &buf,
@@ -122,9 +122,12 @@ func ResourceChange(
 		panic(fmt.Sprintf("failed to decode plan for %s while rendering diff: %s", addr, err))
 	}
 
-	p.writeBlockBodyDiff(schema, changeV.Before, changeV.After, 6, path)
-
-	buf.WriteString("    }\n")
+	bodyWritten := p.writeBlockBodyDiff(schema, changeV.Before, changeV.After, 6, path)
+	if bodyWritten {
+		buf.WriteString("\n")
+		buf.WriteString(strings.Repeat(" ", 4))
+	}
+	buf.WriteString("}\n")
 
 	return buf.String()
 }
@@ -143,9 +146,12 @@ type blockBodyDiffPrinter struct {
 
 const forcesNewResourceCaption = " [red]# forces replacement[reset]"
 
-func (p *blockBodyDiffPrinter) writeBlockBodyDiff(schema *configschema.Block, old, new cty.Value, indent int, path cty.Path) {
+// writeBlockBodyDiff writes attribute or block differences
+// and returns true if any differences were found and written
+func (p *blockBodyDiffPrinter) writeBlockBodyDiff(schema *configschema.Block, old, new cty.Value, indent int, path cty.Path) bool {
 	path = ctyEnsurePathCapacity(path, 1)
 
+	bodyWritten := false
 	blankBeforeBlocks := false
 	{
 		attrNames := make([]string, 0, len(schema.Attributes))
@@ -176,6 +182,7 @@ func (p *blockBodyDiffPrinter) writeBlockBodyDiff(schema *configschema.Block, ol
 			oldVal := ctyGetAttrMaybeNull(old, name)
 			newVal := ctyGetAttrMaybeNull(new, name)
 
+			bodyWritten = true
 			p.writeAttrDiff(name, attrS, oldVal, newVal, attrNameLen, indent, path)
 		}
 	}
@@ -192,16 +199,20 @@ func (p *blockBodyDiffPrinter) writeBlockBodyDiff(schema *configschema.Block, ol
 			oldVal := ctyGetAttrMaybeNull(old, name)
 			newVal := ctyGetAttrMaybeNull(new, name)
 
+			bodyWritten = true
 			p.writeNestedBlockDiffs(name, blockS, oldVal, newVal, blankBeforeBlocks, indent, path)
 
 			// Always include a blank for any subsequent block types.
 			blankBeforeBlocks = true
 		}
 	}
+
+	return bodyWritten
 }
 
 func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.Attribute, old, new cty.Value, nameLen, indent int, path cty.Path) {
 	path = append(path, cty.GetAttrStep{Name: name})
+	p.buf.WriteString("\n")
 	p.buf.WriteString(strings.Repeat(" ", indent))
 	showJustNew := false
 	var action plans.Action
@@ -239,9 +250,6 @@ func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.At
 			p.writeValueDiff(old, new, indent+2, path)
 		}
 	}
-
-	p.buf.WriteString("\n")
-
 }
 
 func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *configschema.NestedBlock, old, new cty.Value, blankBefore bool, indent int, path cty.Path) {
@@ -393,6 +401,7 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 }
 
 func (p *blockBodyDiffPrinter) writeNestedBlockDiff(name string, label *string, blockS *configschema.Block, action plans.Action, old, new cty.Value, indent int, path cty.Path) {
+	p.buf.WriteString("\n")
 	p.buf.WriteString(strings.Repeat(" ", indent))
 	p.writeActionSymbol(action)
 
@@ -406,12 +415,12 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiff(name string, label *string, 
 		p.buf.WriteString(p.color.Color(forcesNewResourceCaption))
 	}
 
-	p.buf.WriteString("\n")
-
-	p.writeBlockBodyDiff(blockS, old, new, indent+4, path)
-
-	p.buf.WriteString(strings.Repeat(" ", indent+2))
-	p.buf.WriteString("}\n")
+	bodyWritten := p.writeBlockBodyDiff(blockS, old, new, indent+4, path)
+	if bodyWritten {
+		p.buf.WriteString("\n")
+		p.buf.WriteString(strings.Repeat(" ", indent+2))
+	}
+	p.buf.WriteString("}")
 }
 
 func (p *blockBodyDiffPrinter) writeValue(val cty.Value, action plans.Action, indent int) {

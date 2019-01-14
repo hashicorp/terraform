@@ -1294,6 +1294,53 @@ func TestResourceChange_nestedList(t *testing.T) {
 				"ami": cty.StringVal("ami-AFTER"),
 				"root_block_device": cty.ListVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+			RequiredReplace: cty.NewPathSet(),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Optional: true, Computed: true},
+					"ami": {Type: cty.String, Optional: true},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"root_block_device": {
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"volume_type": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+							},
+						},
+						Nesting: configschema.NestingList,
+					},
+				},
+			},
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ ami = "ami-BEFORE" -> "ami-AFTER"
+        id  = "i-02ae66f368e8518a9"
+
+      + root_block_device {}
+    }
+`,
+		},
+		"in-place update - first insertion": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":                cty.StringVal("i-02ae66f368e8518a9"),
+				"ami":               cty.StringVal("ami-BEFORE"),
+				"root_block_device": cty.ListValEmpty(cty.EmptyObject),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-AFTER"),
+				"root_block_device": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
 						"volume_type": cty.StringVal("gp2"),
 					}),
 				}),
