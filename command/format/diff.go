@@ -477,7 +477,7 @@ func (p *blockBodyDiffPrinter) writeValue(val cty.Value, action plans.Action, in
 		p.buf.WriteString(strings.Repeat(" ", indent))
 		p.buf.WriteString("]")
 	case ty.IsMapType():
-		p.buf.WriteString("{\n")
+		p.buf.WriteString("{")
 
 		keyLen := 0
 		for it := val.ElementIterator(); it.Next(); {
@@ -489,16 +489,20 @@ func (p *blockBodyDiffPrinter) writeValue(val cty.Value, action plans.Action, in
 
 		for it := val.ElementIterator(); it.Next(); {
 			key, val := it.Element()
+
+			p.buf.WriteString("\n")
 			p.buf.WriteString(strings.Repeat(" ", indent+2))
 			p.writeActionSymbol(action)
 			p.writeValue(key, action, indent+4)
 			p.buf.WriteString(strings.Repeat(" ", keyLen-len(key.AsString())))
 			p.buf.WriteString(" = ")
 			p.writeValue(val, action, indent+4)
-			p.buf.WriteString("\n")
 		}
 
-		p.buf.WriteString(strings.Repeat(" ", indent))
+		if val.LengthInt() > 0 {
+			p.buf.WriteString("\n")
+			p.buf.WriteString(strings.Repeat(" ", indent))
+		}
 		p.buf.WriteString("}")
 	case ty.IsObjectType():
 		p.buf.WriteString("{\n")
