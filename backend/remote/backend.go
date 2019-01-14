@@ -546,14 +546,14 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 				"workspace %s not found\n\n"+
 					"The configured \"remote\" backend returns '404 Not Found' errors for resources\n"+
 					"that do not exist, as well as for resources that a user doesn't have access\n"+
-					"to. When the resource does exists, please check the rights for the used token.",
+					"to. If the resource does exists, please check the rights for the used token.",
 				name,
 			)
 		default:
 			return nil, fmt.Errorf(
 				"%s\n\n"+
 					"The configured \"remote\" backend encountered an unexpected error. Sometimes\n"+
-					"this is caused by network connection problems, in which case you could retr\n"+
+					"this is caused by network connection problems, in which case you could retry\n"+
 					"the command. If the issue persists please open a support ticket to get help\n"+
 					"resolving the problem.",
 				err,
@@ -682,16 +682,18 @@ func (b *Remote) cancel(cancelCtx context.Context, op *backend.Operation, r *tfe
 // Colorize returns the Colorize structure that can be used for colorizing
 // output. This is guaranteed to always return a non-nil value and so useful
 // as a helper to wrap any potentially colored strings.
-// func (b *Remote) Colorize() *colorstring.Colorize {
-// 	if b.CLIColor != nil {
-// 		return b.CLIColor
-// 	}
+//
+// TODO SvH: Rename this back to Colorize as soon as we can pass -no-color.
+func (b *Remote) cliColorize() *colorstring.Colorize {
+	if b.CLIColor != nil {
+		return b.CLIColor
+	}
 
-// 	return &colorstring.Colorize{
-// 		Colors:  colorstring.DefaultColors,
-// 		Disable: true,
-// 	}
-// }
+	return &colorstring.Colorize{
+		Colors:  colorstring.DefaultColors,
+		Disable: true,
+	}
+}
 
 func generalError(msg string, err error) error {
 	if urlErr, ok := err.(*url.Error); ok {
