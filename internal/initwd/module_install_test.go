@@ -41,7 +41,7 @@ func TestModuleInstaller(t *testing.T) {
 
 	modulesDir := filepath.Join(dir, ".terraform/modules")
 	inst := NewModuleInstaller(modulesDir, nil)
-	diags := inst.InstallModules(".", false, hooks)
+	_, diags := inst.InstallModules(".", false, hooks)
 	assertNoDiagnostics(t, diags)
 
 	wantCalls := []testInstallHookCall{
@@ -105,7 +105,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 	hooks := &testInstallHooks{}
 	modulesDir := filepath.Join(dir, ".terraform/modules")
 	inst := NewModuleInstaller(modulesDir, registry.NewClient(nil, nil))
-	diags := inst.InstallModules(dir, false, hooks)
+	_, diags := inst.InstallModules(dir, false, hooks)
 	assertNoDiagnostics(t, diags)
 
 	v := version.Must(version.NewVersion("0.0.1"))
@@ -232,7 +232,7 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 	hooks := &testInstallHooks{}
 	modulesDir := filepath.Join(dir, ".terraform/modules")
 	inst := NewModuleInstaller(modulesDir, registry.NewClient(nil, nil))
-	diags := inst.InstallModules(dir, false, hooks)
+	_, diags := inst.InstallModules(dir, false, hooks)
 	assertNoDiagnostics(t, diags)
 
 	wantCalls := []testInstallHookCall{

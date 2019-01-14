@@ -87,7 +87,7 @@ func (c *Config) ProviderDependencies() (*moduledeps.Module, tfdiags.Diagnostics
 		inst := moduledeps.ProviderInstance(name)
 		var constraints version.Constraints
 		for _, reqStr := range reqs {
-			if reqStr == "" {
+			if reqStr != "" {
 				constraint, err := version.NewConstraint(reqStr)
 				if err != nil {
 					diags = diags.Append(wrapDiagnostic(tfconfig.Diagnostic{
