@@ -35,12 +35,18 @@ func LoadConfigForTests(t *testing.T, rootDir string) (*configs.Config, *configl
 	loader, cleanup := configload.NewLoaderForTests(t)
 	inst := NewModuleInstaller(loader.ModulesDir(), registry.NewClient(nil, nil))
 
-	moreDiags := inst.InstallModules(rootDir, true, ModuleInstallHooksImpl{})
+	_, moreDiags := inst.InstallModules(rootDir, true, ModuleInstallHooksImpl{})
 	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {
 		cleanup()
 		t.Fatal(diags.Err())
 		return nil, nil, func() {}, diags
+	}
+
+	// Since module installer has modified the module manifest on disk, we need
+	// to refresh the cache of it in the loader.
+	if err := loader.RefreshModules(); err != nil {
+		t.Fatalf("failed to refresh modules after installation: %s", err)
 	}
 
 	config, hclDiags := loader.LoadConfig(rootDir)

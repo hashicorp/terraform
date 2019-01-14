@@ -77,6 +77,24 @@ func (l *Loader) ModulesDir() string {
 	return l.modules.Dir
 }
 
+// RefreshModules updates the in-memory cache of the module manifest from the
+// module manifest file on disk. This is not necessary in normal use because
+// module installation and configuration loading are separate steps, but it
+// can be useful in tests where module installation is done as a part of
+// configuration loading by a helper function.
+//
+// Call this function after any module installation where an existing loader
+// is already alive and may be used again later.
+//
+// An error is returned if the manifest file cannot be read.
+func (l *Loader) RefreshModules() error {
+	if l == nil {
+		// Nothing to do, then.
+		return nil
+	}
+	return l.modules.readModuleManifestSnapshot()
+}
+
 // Parser returns the underlying parser for this loader.
 //
 // This is useful for loading other sorts of files than the module directories

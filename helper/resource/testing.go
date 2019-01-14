@@ -834,7 +834,7 @@ func testConfig(opts terraform.ContextOpts, step TestStep) (*configs.Config, err
 	}
 
 	inst := initwd.NewModuleInstaller(modulesDir, nil)
-	installDiags := inst.InstallModules(cfgPath, true, initwd.ModuleInstallHooksImpl{})
+	_, installDiags := inst.InstallModules(cfgPath, true, initwd.ModuleInstallHooksImpl{})
 	if installDiags.HasErrors() {
 		return nil, installDiags.Err()
 	}

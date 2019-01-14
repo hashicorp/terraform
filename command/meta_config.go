@@ -2,12 +2,14 @@ package command
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform/internal/earlyconfig"
 	"os"
 	"path/filepath"
 	"sort"
 
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+	"github.com/hashicorp/terraform-config-inspect/tfconfig"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/configs/configschema"
@@ -65,6 +67,30 @@ func (m *Meta) loadConfig(rootDir string) (*configs.Config, tfdiags.Diagnostics)
 	return config, diags
 }
 
+// loadConfigEarly is a variant of loadConfig that uses the special
+// "early config" loader that is more forgiving of unexpected constructs and
+// legacy syntax.
+//
+// Early-loaded config is not registered in the source code cache, so
+// diagnostics produced from it may render without source code snippets. In
+// practice this is not a big concern because the early config loader also
+// cannot generate detailed source locations, so it prefers to produce
+// diagnostics without explicit source location information and instead includes
+// approximate locations in the message text.
+//
+// Most callers should use loadConfig. This method exists to support early
+// initialization use-cases where the root module must be inspected in order
+// to determine what else needs to be installed before the full configuration
+// can be used
+func (m *Meta) loadConfigEarly(rootDir string) (*earlyconfig.Config, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	rootDir = m.normalizePath(rootDir)
+
+	config, hclDiags := initwd.LoadConfig(rootDir, m.modulesDir())
+	diags = diags.Append(hclDiags)
+	return config, diags
+}
+
 // loadSingleModule reads configuration from the given directory and returns
 // a description of that module only, without attempting to assemble a module
 // tree for referenced child modules.
@@ -85,6 +111,31 @@ func (m *Meta) loadSingleModule(dir string) (*configs.Module, tfdiags.Diagnostic
 
 	module, hclDiags := loader.Parser().LoadConfigDir(dir)
 	diags = diags.Append(hclDiags)
+	return module, diags
+}
+
+// loadSingleModuleEarly is a variant of loadSingleModule that uses the special
+// "early config" loader that is more forgiving of unexpected constructs and
+// legacy syntax.
+//
+// Early-loaded config is not registered in the source code cache, so
+// diagnostics produced from it may render without source code snippets. In
+// practice this is not a big concern because the early config loader also
+// cannot generate detailed source locations, so it prefers to produce
+// diagnostics without explicit source location information and instead includes
+// approximate locations in the message text.
+//
+// Most callers should use loadConfig. This method exists to support early
+// initialization use-cases where the root module must be inspected in order
+// to determine what else needs to be installed before the full configuration
+// can be used.
+func (m *Meta) loadSingleModuleEarly(dir string) (*tfconfig.Module, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	dir = m.normalizePath(dir)
+
+	module, moreDiags := earlyconfig.LoadModule(dir)
+	diags = diags.Append(moreDiags)
+
 	return module, diags
 }
 
@@ -177,7 +228,7 @@ func (m *Meta) installModules(rootDir string, upgrade bool, hooks initwd.ModuleI
 	}
 
 	inst := m.moduleInstaller()
-	moreDiags := inst.InstallModules(rootDir, upgrade, hooks)
+	_, moreDiags := inst.InstallModules(rootDir, upgrade, hooks)
 	diags = diags.Append(moreDiags)
 	return diags
 }

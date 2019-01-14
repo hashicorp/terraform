@@ -141,7 +141,7 @@ func DirFromModule(rootDir, modulesDir, sourceAddr string, reg *registry.Client,
 		Wrapped: hooks,
 	}
 	getter := reusingGetter{}
-	instDiags := inst.installDescendentModules(fakeRootModule, rootDir, instManifest, true, wrapHooks, getter)
+	_, instDiags := inst.installDescendentModules(fakeRootModule, rootDir, instManifest, true, wrapHooks, getter)
 	diags = append(diags, instDiags...)
 	if instDiags.HasErrors() {
 		return diags

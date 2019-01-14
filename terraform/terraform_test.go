@@ -2,8 +2,6 @@ package terraform
 
 import (
 	"flag"
-	"github.com/hashicorp/terraform/internal/initwd"
-	"github.com/hashicorp/terraform/registry"
 	"io"
 	"io/ioutil"
 	"log"
@@ -22,9 +20,11 @@ import (
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/helper/experiment"
 	"github.com/hashicorp/terraform/helper/logging"
+	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/provisioners"
+	"github.com/hashicorp/terraform/registry"
 	"github.com/hashicorp/terraform/states"
 )
 
@@ -113,9 +113,15 @@ func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *config
 	// sources only this ultimately just records all of the module paths
 	// in a JSON file so that we can load them below.
 	inst := initwd.NewModuleInstaller(loader.ModulesDir(), registry.NewClient(nil, nil))
-	instDiags := inst.InstallModules(dir, true, initwd.ModuleInstallHooksImpl{})
+	_, instDiags := inst.InstallModules(dir, true, initwd.ModuleInstallHooksImpl{})
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
+	}
+
+	// Since module installer has modified the module manifest on disk, we need
+	// to refresh the cache of it in the loader.
+	if err := loader.RefreshModules(); err != nil {
+		t.Fatalf("failed to refresh modules after installation: %s", err)
 	}
 
 	config, snap, diags := loader.LoadConfigWithSnapshot(dir)
@@ -165,9 +171,15 @@ func testModuleInline(t *testing.T, sources map[string]string) *configs.Config {
 	// sources only this ultimately just records all of the module paths
 	// in a JSON file so that we can load them below.
 	inst := initwd.NewModuleInstaller(loader.ModulesDir(), registry.NewClient(nil, nil))
-	instDiags := inst.InstallModules(cfgPath, true, initwd.ModuleInstallHooksImpl{})
+	_, instDiags := inst.InstallModules(cfgPath, true, initwd.ModuleInstallHooksImpl{})
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
+	}
+
+	// Since module installer has modified the module manifest on disk, we need
+	// to refresh the cache of it in the loader.
+	if err := loader.RefreshModules(); err != nil {
+		t.Fatalf("failed to refresh modules after installation: %s", err)
 	}
 
 	config, diags := loader.LoadConfig(cfgPath)

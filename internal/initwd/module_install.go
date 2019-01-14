@@ -54,16 +54,15 @@ func NewModuleInstaller(modsDir string, reg *registry.Client) *ModuleInstaller {
 // to find their dependencies, so this function does many of the same checks
 // as LoadConfig as a side-effect.
 //
-// This function will panic if called on a loader that cannot install modules.
-// Use CanInstallModules to determine if a loader can install modules, or
-// refer to the documentation for that method for situations where module
-// installation capability is guaranteed.
-func (i *ModuleInstaller) InstallModules(rootDir string, upgrade bool, hooks ModuleInstallHooks) tfdiags.Diagnostics {
+// If successful (the returned diagnostics contains no errors) then the
+// first return value is the early configuration tree that was constructed by
+// the installation process.
+func (i *ModuleInstaller) InstallModules(rootDir string, upgrade bool, hooks ModuleInstallHooks) (*earlyconfig.Config, tfdiags.Diagnostics) {
 	log.Printf("[TRACE] ModuleInstaller: installing child modules for %s into %s", rootDir, i.modsDir)
 
 	rootMod, diags := earlyconfig.LoadModule(rootDir)
 	if rootMod == nil {
-		return diags
+		return nil, diags
 	}
 
 	manifest, err := modsdir.ReadManifestSnapshotForDir(i.modsDir)
@@ -73,17 +72,17 @@ func (i *ModuleInstaller) InstallModules(rootDir string, upgrade bool, hooks Mod
 			"Failed to read modules manifest file",
 			fmt.Sprintf("Error reading manifest for %s: %s.", i.modsDir, err),
 		))
-		return diags
+		return nil, diags
 	}
 
 	getter := reusingGetter{}
-	instDiags := i.installDescendentModules(rootMod, rootDir, manifest, upgrade, hooks, getter)
+	cfg, instDiags := i.installDescendentModules(rootMod, rootDir, manifest, upgrade, hooks, getter)
 	diags = append(diags, instDiags...)
 
-	return diags
+	return cfg, diags
 }
 
-func (i *ModuleInstaller) installDescendentModules(rootMod *tfconfig.Module, rootDir string, manifest modsdir.Manifest, upgrade bool, hooks ModuleInstallHooks, getter reusingGetter) tfdiags.Diagnostics {
+func (i *ModuleInstaller) installDescendentModules(rootMod *tfconfig.Module, rootDir string, manifest modsdir.Manifest, upgrade bool, hooks ModuleInstallHooks, getter reusingGetter) (*earlyconfig.Config, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	if hooks == nil {
@@ -98,7 +97,7 @@ func (i *ModuleInstaller) installDescendentModules(rootMod *tfconfig.Module, roo
 		Dir: rootDir,
 	}
 
-	_, cDiags := earlyconfig.BuildConfig(rootMod, earlyconfig.ModuleWalkerFunc(
+	cfg, cDiags := earlyconfig.BuildConfig(rootMod, earlyconfig.ModuleWalkerFunc(
 		func(req *earlyconfig.ModuleRequest) (*tfconfig.Module, *version.Version, tfdiags.Diagnostics) {
 
 			key := manifest.ModuleKey(req.Path)
@@ -221,7 +220,7 @@ func (i *ModuleInstaller) installDescendentModules(rootMod *tfconfig.Module, roo
 		))
 	}
 
-	return diags
+	return cfg, diags
 }
 
 func (i *ModuleInstaller) installLocalModule(req *earlyconfig.ModuleRequest, key string, manifest modsdir.Manifest, hooks ModuleInstallHooks) (*tfconfig.Module, tfdiags.Diagnostics) {
