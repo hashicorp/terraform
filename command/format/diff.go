@@ -467,18 +467,23 @@ func (p *blockBodyDiffPrinter) writeValue(val cty.Value, action plans.Action, in
 			fmt.Fprintf(p.buf, "%#v", val)
 		}
 	case ty.IsListType() || ty.IsSetType() || ty.IsTupleType():
-		p.buf.WriteString("[\n")
+		p.buf.WriteString("[")
 
 		it := val.ElementIterator()
 		for it.Next() {
 			_, val := it.Element()
+
+			p.buf.WriteString("\n")
 			p.buf.WriteString(strings.Repeat(" ", indent+2))
 			p.writeActionSymbol(action)
 			p.writeValue(val, action, indent+4)
-			p.buf.WriteString(",\n")
+			p.buf.WriteString(",")
 		}
 
-		p.buf.WriteString(strings.Repeat(" ", indent))
+		if val.LengthInt() > 0 {
+			p.buf.WriteString("\n")
+			p.buf.WriteString(strings.Repeat(" ", indent))
+		}
 		p.buf.WriteString("]")
 	case ty.IsMapType():
 		p.buf.WriteString("{")
