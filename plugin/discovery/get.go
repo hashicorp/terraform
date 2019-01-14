@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/errwrap"
 	getter "github.com/hashicorp/go-getter"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/httpclient"
@@ -168,16 +169,22 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 		}
 
 		// Prompt version suggestion to UI based on closest protocol match
-		closestVersion := VersionStr(closestMatch.Version).MustParse()
 		var errMsg string
+		closestVersion := VersionStr(closestMatch.Version).MustParse()
 		if v.NewerThan(closestVersion) {
 			errMsg = providerProtocolTooNew
 		} else {
 			errMsg = providerProtocolTooOld
 		}
-		i.Ui.Error(fmt.Sprintf(errMsg, provider, v.String(), tfversion.String(),
-			closestVersion.String(), closestVersion.MinorUpgradeConstraintStr()))
-		return PluginMeta{}, ErrorNoVersionCompatible
+
+		constraintStr := req.String()
+		if constraintStr == "" {
+			constraintStr = "(any version)"
+		}
+
+		return PluginMeta{}, errwrap.Wrap(ErrorVersionIncompatible, fmt.Errorf(fmt.Sprintf(
+			errMsg, provider, v.String(), tfversion.String(),
+			closestVersion.String(), closestVersion.MinorUpgradeConstraintStr(), constraintStr)))
 	}
 
 	downloadURLs, err := i.listProviderDownloadURLs(providerSource, versionMeta.Version)
@@ -582,27 +589,41 @@ func getFile(url string) ([]byte, error) {
 	return data, nil
 }
 
-// ProviderProtocolTooOld is a message sent to the CLI UI if the provider's
+// providerProtocolTooOld is a message sent to the CLI UI if the provider's
 // supported protocol versions are too old for the user's version of terraform,
 // but an older version of the provider is compatible.
-const providerProtocolTooOld = `Provider %q v%s is not compatible with Terraform %s.
+const providerProtocolTooOld = `
+[reset][bold][red]Provider %q v%s is not compatible with Terraform %s.[reset][red]
 
-Provider version %s is the earliest compatible version.
-Select it with the following version constraint:
+Provider version %s is the earliest compatible version. Select it with 
+the following version constraint:
 
-    version = %q
+	version = %q
+
+Terraform checked all of the plugin versions matching the given constraint:
+    %s
+
+Consult the documentation for this provider for more information on
+compatibility between provider and Terraform versions.
 `
 
-// ProviderProtocolTooNew is a message sent to the CLI UI if the provider's
+// providerProtocolTooNew is a message sent to the CLI UI if the provider's
 // supported protocol versions are too new for the user's version of terraform,
 // and the user could either upgrade terraform or choose an older version of the
 // provider
-const providerProtocolTooNew = `Provider %q v%s is not compatible with Terraform %s.
+const providerProtocolTooNew = `
+[reset][bold][red]Provider %q v%s is not compatible with Terraform %s.[reset][red]
 
-Provider version v%s is the latest compatible version. Select 
-it with the following constraint:
+Provider version %s is the latest compatible version. Select it with 
+the following constraint:
 
     version = %q
+
+Terraform checked all of the plugin versions matching the given constraint:
+    %s
+
+Consult the documentation for this provider for more information on
+compatibility between provider and Terraform versions.
 
 Alternatively, upgrade to the latest version of Terraform for compatibility with newer provider releases.
 `

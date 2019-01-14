@@ -12,6 +12,7 @@ import (
 	"github.com/posener/complete"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/backend"
 	backendInit "github.com/hashicorp/terraform/backend/init"
 	"github.com/hashicorp/terraform/config"
@@ -496,10 +497,15 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 			_, err := c.providerInstaller.Get(provider, reqd.Versions)
 
 			if err != nil {
-				switch err {
-				case discovery.ErrorNoSuchProvider:
+				constraint := reqd.Versions.String()
+				if constraint == "" {
+					constraint = "(any version)"
+				}
+
+				switch {
+				case err == discovery.ErrorNoSuchProvider:
 					c.Ui.Error(fmt.Sprintf(errProviderNotFound, provider, DefaultPluginVendorDir))
-				case discovery.ErrorNoSuitableVersion:
+				case err == discovery.ErrorNoSuitableVersion:
 					if reqd.Versions.Unconstrained() {
 						// This should never happen, but might crop up if we catch
 						// the releases server in a weird state where the provider's
@@ -509,14 +515,21 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 					} else {
 						c.Ui.Error(fmt.Sprintf(errProviderVersionsUnsuitable, provider, reqd.Versions))
 					}
-				case discovery.ErrorNoVersionCompatible:
-					// FIXME: This error message is sub-awesome because we don't
-					// have enough information here to tell the user which versions
-					// we considered and which versions might be compatible.
-					constraint := reqd.Versions.String()
-					if constraint == "" {
-						constraint = "(any version)"
+				case errwrap.Contains(err, discovery.ErrorVersionIncompatible.Error()):
+					// Attempt to fetch nested error to display to the user which versions
+					// we considered and which versions might be compatible. Otherwise,
+					// we'll just display a generic version incompatible msg
+					incompatErr := errwrap.GetType(err, fmt.Errorf(""))
+					if incompatErr != nil {
+						c.Ui.Error(incompatErr.Error())
+					} else {
+						// Generic version incompatible msg
+						c.Ui.Error(fmt.Sprintf(errProviderIncompatible, provider, constraint))
 					}
+					// Reset nested errors
+					err = discovery.ErrorVersionIncompatible
+				case err == discovery.ErrorNoVersionCompatible:
+					// Generic version incompatible msg
 					c.Ui.Error(fmt.Sprintf(errProviderIncompatible, provider, constraint))
 				default:
 					c.Ui.Error(fmt.Sprintf(errProviderInstallError, provider, err.Error(), DefaultPluginVendorDir))
