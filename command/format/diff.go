@@ -855,13 +855,33 @@ func (p *blockBodyDiffPrinter) pathForcesNewResource(path cty.Path) bool {
 	return p.requiredReplace.Has(path)
 }
 
+func ctyEmptyString(value cty.Value) bool {
+	if !value.IsNull() && value.IsKnown() {
+		valueType := value.Type()
+		if valueType == cty.String && value.AsString() == "" {
+			return true
+		}
+	}
+	return false
+}
+
 func ctyGetAttrMaybeNull(val cty.Value, name string) cty.Value {
+	attrType := val.Type().AttributeType(name)
+
 	if val.IsNull() {
-		ty := val.Type().AttributeType(name)
-		return cty.NullVal(ty)
+		return cty.NullVal(attrType)
 	}
 
-	return val.GetAttr(name)
+	// We treat "" as null here
+	// as existing SDK doesn't support null yet.
+	// This allows us to avoid spurious diffs
+	// until we introduce null to the SDK.
+	attrValue := val.GetAttr(name)
+	if ctyEmptyString(attrValue) {
+		return cty.NullVal(attrType)
+	}
+
+	return attrValue
 }
 
 func ctyCollectionValues(val cty.Value) []cty.Value {
