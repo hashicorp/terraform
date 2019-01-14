@@ -438,11 +438,15 @@ func (p *blockBodyDiffPrinter) writeValue(val cty.Value, action plans.Action, in
 					jv, err := ctyjson.Unmarshal(src, ty)
 					if err == nil {
 						p.buf.WriteString("jsonencode(")
-						p.buf.WriteByte('\n')
-						p.buf.WriteString(strings.Repeat(" ", indent+4))
-						p.writeValue(jv, action, indent+4)
-						p.buf.WriteByte('\n')
-						p.buf.WriteString(strings.Repeat(" ", indent))
+						if jv.LengthInt() == 0 {
+							p.writeValue(jv, action, 0)
+						} else {
+							p.buf.WriteByte('\n')
+							p.buf.WriteString(strings.Repeat(" ", indent+4))
+							p.writeValue(jv, action, indent+4)
+							p.buf.WriteByte('\n')
+							p.buf.WriteString(strings.Repeat(" ", indent))
+						}
 						p.buf.WriteByte(')')
 						break // don't *also* do the normal behavior below
 					}
@@ -505,7 +509,7 @@ func (p *blockBodyDiffPrinter) writeValue(val cty.Value, action plans.Action, in
 		}
 		p.buf.WriteString("}")
 	case ty.IsObjectType():
-		p.buf.WriteString("{\n")
+		p.buf.WriteString("{")
 
 		atys := ty.AttributeTypes()
 		attrNames := make([]string, 0, len(atys))
@@ -520,16 +524,20 @@ func (p *blockBodyDiffPrinter) writeValue(val cty.Value, action plans.Action, in
 
 		for _, attrName := range attrNames {
 			val := val.GetAttr(attrName)
+
+			p.buf.WriteString("\n")
 			p.buf.WriteString(strings.Repeat(" ", indent+2))
 			p.writeActionSymbol(action)
 			p.buf.WriteString(attrName)
 			p.buf.WriteString(strings.Repeat(" ", nameLen-len(attrName)))
 			p.buf.WriteString(" = ")
 			p.writeValue(val, action, indent+4)
-			p.buf.WriteString("\n")
 		}
 
-		p.buf.WriteString(strings.Repeat(" ", indent))
+		if len(attrNames) > 0 {
+			p.buf.WriteString("\n")
+			p.buf.WriteString(strings.Repeat(" ", indent))
+		}
 		p.buf.WriteString("}")
 	}
 }

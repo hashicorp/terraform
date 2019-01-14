@@ -416,6 +416,28 @@ func TestResourceChange_JSON(t *testing.T) {
     }
 `,
 		},
+		"creation (empty)": {
+			Action: plans.Create,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.NullVal(cty.EmptyObject),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":         cty.UnknownVal(cty.String),
+				"json_field": cty.StringVal(`{}`),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":         {Type: cty.String, Optional: true, Computed: true},
+					"json_field": {Type: cty.String, Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be created
+  + resource "test_instance" "example" {
+      + id         = (known after apply)
+      + json_field = jsonencode({})
+    }
+`,
+		},
 	}
 	runTestCases(t, testCases)
 }
