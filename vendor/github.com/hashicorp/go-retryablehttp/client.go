@@ -49,9 +49,6 @@ var (
 	// a new client. It is purposely private to avoid modifications.
 	defaultClient = NewClient()
 
-	// random is used to generate pseudo-random numbers.
-	random = rand.New(rand.NewSource(time.Now().UnixNano()))
-
 	// We need to consume response bodies to maintain http connections, but
 	// limit the size we consume to respReadLimit.
 	respReadLimit = int64(4096)
@@ -186,18 +183,24 @@ func NewRequest(method, url string, rawBody interface{}) (*Request, error) {
 	return &Request{body, httpReq}, nil
 }
 
+// Logger interface allows to use other loggers than
+// standard log.Logger.
+type Logger interface {
+	Printf(string, ...interface{})
+}
+
 // RequestLogHook allows a function to run before each retry. The HTTP
 // request which will be made, and the retry number (0 for the initial
 // request) are available to users. The internal logger is exposed to
 // consumers.
-type RequestLogHook func(*log.Logger, *http.Request, int)
+type RequestLogHook func(Logger, *http.Request, int)
 
 // ResponseLogHook is like RequestLogHook, but allows running a function
 // on each HTTP response. This function will be invoked at the end of
 // every HTTP request executed, regardless of whether a subsequent retry
 // needs to be performed or not. If the response body is read or closed
 // from this method, this will affect the response returned from Do().
-type ResponseLogHook func(*log.Logger, *http.Response)
+type ResponseLogHook func(Logger, *http.Response)
 
 // CheckRetry specifies a policy for handling retries. It is called
 // following each request with the response and error values returned by
@@ -224,7 +227,7 @@ type ErrorHandler func(resp *http.Response, err error, numTries int) (*http.Resp
 // like automatic retries to tolerate minor outages.
 type Client struct {
 	HTTPClient *http.Client // Internal HTTP client.
-	Logger     *log.Logger  // Customer logger instance.
+	Logger     Logger       // Customer logger instance.
 
 	RetryWaitMin time.Duration // Minimum time to wait
 	RetryWaitMax time.Duration // Maximum time to wait
@@ -322,11 +325,14 @@ func LinearJitterBackoff(min, max time.Duration, attemptNum int, resp *http.Resp
 		return min * time.Duration(attemptNum)
 	}
 
+	// Seed rand; doing this every time is fine
+	rand := rand.New(rand.NewSource(int64(time.Now().Nanosecond())))
+
 	// Pick a random number that lies somewhere between the min and max and
 	// multiply by the attemptNum. attemptNum starts at zero so we always
 	// increment here. We first get a random percentage, then apply that to the
 	// difference between min and max, and add to min.
-	jitter := random.Float64() * float64(max-min)
+	jitter := rand.Float64() * float64(max-min)
 	jitterMin := int64(jitter) + int64(min)
 	return time.Duration(jitterMin * int64(attemptNum))
 }
