@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"regexp"
 	"sort"
 	"strconv"
@@ -728,10 +729,10 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 		return resp, nil
 	}
 
+	plannedState := hcl2shim.FlatmapValueFromHCL2(plannedStateVal)
 	if newInstanceState != nil {
 		// here we use the planned state to check for unknown/zero containers values
 		// when normalizing the flatmap.
-		plannedState := hcl2shim.FlatmapValueFromHCL2(plannedStateVal)
 		newInstanceState.Attributes = normalizeFlatmapContainers(plannedState, newInstanceState.Attributes, true)
 	}
 
@@ -748,6 +749,41 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 	}
 
 	newStateVal = copyMissingValues(newStateVal, plannedStateVal)
+
+	if newInstanceState != nil {
+		prevVal := newStateVal
+		for i := 0; ; i++ {
+			// cycle through the shims, to ensure that the plan will create an
+			// identical value
+			shimmedState, err := res.ShimInstanceStateFromValue(prevVal)
+			if err != nil {
+				resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+				return resp, nil
+			}
+			shimmedState.Attributes = normalizeFlatmapContainers(shimmedState.Attributes, shimmedState.Attributes, false)
+
+			tmpVal, err := hcl2shim.HCL2ValueFromFlatmap(shimmedState.Attributes, block.ImpliedType())
+			if err != nil {
+				resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+				return resp, nil
+			}
+
+			tmpVal = copyMissingValues(tmpVal, prevVal)
+
+			if tmpVal.RawEquals(prevVal) {
+				newStateVal = tmpVal
+				break
+			}
+
+			if i < 2 {
+				prevVal = tmpVal
+				continue
+			}
+
+			log.Printf("[ERROR] hcl2shims failed to converge for value: %#v\n", newStateVal)
+			break
+		}
+	}
 
 	newStateVal = copyTimeoutValues(newStateVal, plannedStateVal)
 
