@@ -31,6 +31,9 @@ resource "test_resource_nested" "foo" {
 					resource.TestCheckResourceAttr(
 						"test_resource_nested.foo", "nested.1877647874.string", "val",
 					),
+					resource.TestCheckResourceAttr(
+						"test_resource_nested.foo", "list_block.0.sub_list_block.0.bool", "false",
+					),
 				),
 			},
 		},
@@ -195,6 +198,10 @@ resource "test_resource_nested" "foo" {
 						"nested.140280279.string":                       "",
 						"nested.140280279.optional":                     "false",
 						"nested.140280279.nested_again.#":               "0",
+						"list_block.#":                                  "1",
+						"list_block.0.sub_list_block.#":                 "1",
+						"list_block.0.sub_list_block.0.bool":            "false",
+						"list_block.0.sub_list_block.0.set.#":           "0",
 					}
 					delete(got, "id") // it's random, so not useful for testing
 
