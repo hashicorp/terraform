@@ -40,6 +40,7 @@ type AccessType string
 // List all available team access types.
 const (
 	AccessAdmin AccessType = "admin"
+	AccessPlan  AccessType = "plan"
 	AccessRead  AccessType = "read"
 	AccessWrite AccessType = "write"
 )
