@@ -1854,6 +1854,245 @@ func TestMerge(t *testing.T) {
 	}
 }
 
+func TestSetProduct(t *testing.T) {
+	tests := []struct {
+		Sets []cty.Value
+		Want cty.Value
+		Err  string
+	}{
+		{
+			nil,
+			cty.DynamicVal,
+			"at least two arguments are required",
+		},
+		{
+			[]cty.Value{
+				cty.SetValEmpty(cty.String),
+			},
+			cty.DynamicVal,
+			"at least two arguments are required",
+		},
+		{
+			[]cty.Value{
+				cty.SetValEmpty(cty.String),
+				cty.StringVal("hello"),
+			},
+			cty.DynamicVal,
+			"a set or a list is required", // this is an ArgError, so is presented against the second argument in particular
+		},
+		{
+			[]cty.Value{
+				cty.SetValEmpty(cty.String),
+				cty.SetValEmpty(cty.String),
+			},
+			cty.SetValEmpty(cty.Tuple([]cty.Type{cty.String, cty.String})),
+			"",
+		},
+		{
+			[]cty.Value{
+				cty.SetVal([]cty.Value{cty.StringVal("dev"), cty.StringVal("stg"), cty.StringVal("prd")}),
+				cty.SetVal([]cty.Value{cty.StringVal("foo"), cty.StringVal("bar")}),
+			},
+			cty.SetVal([]cty.Value{
+				cty.TupleVal([]cty.Value{cty.StringVal("dev"), cty.StringVal("foo")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("stg"), cty.StringVal("foo")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("prd"), cty.StringVal("foo")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("dev"), cty.StringVal("bar")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("stg"), cty.StringVal("bar")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("prd"), cty.StringVal("bar")}),
+			}),
+			"",
+		},
+		{
+			[]cty.Value{
+				cty.ListVal([]cty.Value{cty.StringVal("dev"), cty.StringVal("stg"), cty.StringVal("prd")}),
+				cty.SetVal([]cty.Value{cty.StringVal("foo"), cty.StringVal("bar")}),
+			},
+			cty.SetVal([]cty.Value{
+				cty.TupleVal([]cty.Value{cty.StringVal("dev"), cty.StringVal("foo")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("stg"), cty.StringVal("foo")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("prd"), cty.StringVal("foo")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("dev"), cty.StringVal("bar")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("stg"), cty.StringVal("bar")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("prd"), cty.StringVal("bar")}),
+			}),
+			"",
+		},
+		{
+			[]cty.Value{
+				cty.TupleVal([]cty.Value{cty.StringVal("dev"), cty.StringVal("stg"), cty.StringVal("prd")}),
+				cty.SetVal([]cty.Value{cty.StringVal("foo"), cty.StringVal("bar")}),
+			},
+			cty.SetVal([]cty.Value{
+				cty.TupleVal([]cty.Value{cty.StringVal("dev"), cty.StringVal("foo")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("stg"), cty.StringVal("foo")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("prd"), cty.StringVal("foo")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("dev"), cty.StringVal("bar")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("stg"), cty.StringVal("bar")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("prd"), cty.StringVal("bar")}),
+			}),
+			"",
+		},
+		{
+			[]cty.Value{
+				cty.ListVal([]cty.Value{cty.StringVal("dev"), cty.StringVal("stg"), cty.StringVal("prd")}),
+				cty.ListVal([]cty.Value{cty.StringVal("foo"), cty.StringVal("bar")}),
+			},
+			cty.ListVal([]cty.Value{
+				cty.TupleVal([]cty.Value{cty.StringVal("dev"), cty.StringVal("foo")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("dev"), cty.StringVal("bar")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("stg"), cty.StringVal("foo")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("stg"), cty.StringVal("bar")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("prd"), cty.StringVal("foo")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("prd"), cty.StringVal("bar")}),
+			}),
+			"",
+		},
+		{
+			[]cty.Value{
+				cty.ListVal([]cty.Value{cty.StringVal("dev"), cty.StringVal("stg"), cty.StringVal("prd")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("foo"), cty.StringVal("bar")}),
+			},
+			cty.ListVal([]cty.Value{
+				cty.TupleVal([]cty.Value{cty.StringVal("dev"), cty.StringVal("foo")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("dev"), cty.StringVal("bar")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("stg"), cty.StringVal("foo")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("stg"), cty.StringVal("bar")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("prd"), cty.StringVal("foo")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("prd"), cty.StringVal("bar")}),
+			}),
+			"",
+		},
+		{
+			[]cty.Value{
+				cty.ListVal([]cty.Value{cty.StringVal("dev"), cty.StringVal("stg"), cty.StringVal("prd")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("foo"), cty.True}),
+			},
+			cty.ListVal([]cty.Value{
+				cty.TupleVal([]cty.Value{cty.StringVal("dev"), cty.StringVal("foo")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("dev"), cty.StringVal("true")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("stg"), cty.StringVal("foo")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("stg"), cty.StringVal("true")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("prd"), cty.StringVal("foo")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("prd"), cty.StringVal("true")}),
+			}),
+			"",
+		},
+		{
+			[]cty.Value{
+				cty.ListVal([]cty.Value{cty.StringVal("dev"), cty.StringVal("stg"), cty.StringVal("prd")}),
+				cty.EmptyTupleVal,
+			},
+			cty.ListValEmpty(cty.Tuple([]cty.Type{cty.String, cty.DynamicPseudoType})),
+			"",
+		},
+		{
+			[]cty.Value{
+				cty.ListVal([]cty.Value{cty.StringVal("dev"), cty.StringVal("stg"), cty.StringVal("prd")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("foo"), cty.EmptyObjectVal}),
+			},
+			cty.DynamicVal,
+			"all elements must be of the same type", // this is an ArgError for the second argument
+		},
+		{
+			[]cty.Value{
+				cty.SetVal([]cty.Value{cty.StringVal("dev"), cty.StringVal("stg"), cty.StringVal("prd")}),
+				cty.SetVal([]cty.Value{cty.StringVal("foo"), cty.StringVal("bar")}),
+				cty.SetVal([]cty.Value{cty.StringVal("baz")}),
+			},
+			cty.SetVal([]cty.Value{
+				cty.TupleVal([]cty.Value{cty.StringVal("dev"), cty.StringVal("foo"), cty.StringVal("baz")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("stg"), cty.StringVal("foo"), cty.StringVal("baz")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("prd"), cty.StringVal("foo"), cty.StringVal("baz")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("dev"), cty.StringVal("bar"), cty.StringVal("baz")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("stg"), cty.StringVal("bar"), cty.StringVal("baz")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("prd"), cty.StringVal("bar"), cty.StringVal("baz")}),
+			}),
+			"",
+		},
+		{
+			[]cty.Value{
+				cty.SetVal([]cty.Value{cty.StringVal("dev"), cty.StringVal("stg"), cty.StringVal("prd")}),
+				cty.SetValEmpty(cty.String),
+			},
+			cty.SetValEmpty(cty.Tuple([]cty.Type{cty.String, cty.String})),
+			"",
+		},
+		{
+			[]cty.Value{
+				cty.SetVal([]cty.Value{cty.StringVal("foo")}),
+				cty.SetVal([]cty.Value{cty.StringVal("bar")}),
+			},
+			cty.SetVal([]cty.Value{
+				cty.TupleVal([]cty.Value{cty.StringVal("foo"), cty.StringVal("bar")}),
+			}),
+			"",
+		},
+		{
+			[]cty.Value{
+				cty.TupleVal([]cty.Value{cty.StringVal("foo")}),
+				cty.TupleVal([]cty.Value{cty.StringVal("bar")}),
+			},
+			cty.ListVal([]cty.Value{
+				cty.TupleVal([]cty.Value{cty.StringVal("foo"), cty.StringVal("bar")}),
+			}),
+			"",
+		},
+		{
+			[]cty.Value{
+				cty.SetVal([]cty.Value{cty.StringVal("foo")}),
+				cty.SetVal([]cty.Value{cty.DynamicVal}),
+			},
+			cty.SetVal([]cty.Value{
+				cty.TupleVal([]cty.Value{cty.StringVal("foo"), cty.DynamicVal}),
+			}),
+			"",
+		},
+		{
+			[]cty.Value{
+				cty.SetVal([]cty.Value{cty.StringVal("foo")}),
+				cty.SetVal([]cty.Value{cty.True, cty.DynamicVal}),
+			},
+			cty.SetVal([]cty.Value{
+				cty.TupleVal([]cty.Value{cty.StringVal("foo"), cty.True}),
+				cty.TupleVal([]cty.Value{cty.StringVal("foo"), cty.UnknownVal(cty.Bool)}),
+			}),
+			"",
+		},
+		{
+			[]cty.Value{
+				cty.UnknownVal(cty.Set(cty.String)),
+				cty.SetVal([]cty.Value{cty.True, cty.False}),
+			},
+			cty.UnknownVal(cty.Set(cty.Tuple([]cty.Type{cty.String, cty.Bool}))),
+			"",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("setproduct(%#v)", test.Sets), func(t *testing.T) {
+			got, err := SetProduct(test.Sets...)
+
+			if test.Err != "" {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				if got, want := err.Error(), test.Err; got != want {
+					t.Fatalf("wrong error\ngot:  %s\nwant: %s", got, want)
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+
+}
+
 func TestSlice(t *testing.T) {
 	listOfStrings := cty.ListVal([]cty.Value{
 		cty.StringVal("a"),

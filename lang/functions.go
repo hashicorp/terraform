@@ -81,6 +81,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"pow":          funcs.PowFunc,
 			"replace":      funcs.ReplaceFunc,
 			"rsadecrypt":   funcs.RsaDecryptFunc,
+			"setproduct":   funcs.SetProductFunc,
 			"sha1":         funcs.Sha1Func,
 			"sha256":       funcs.Sha256Func,
 			"sha512":       funcs.Sha512Func,
