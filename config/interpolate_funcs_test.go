@@ -2961,11 +2961,11 @@ H7CurtMwALQ/n/6LUKFmjRZjqbKX9SO2QSaC3grd6sY9Tu+bZjLe
 	})
 }
 
-func TestInterpolateFuncProduct(t *testing.T) {
+func TestInterpolateFuncSetProduct(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
 			{
-				`${product(list("dev", "qas", "prd"), list("applicationA", "applicationB", "applicationC"))}`,
+				`${setproduct(list("dev", "qas", "prd"), list("applicationA", "applicationB", "applicationC"))}`,
 				[]interface{}{
 					[]interface{}{"dev", "applicationA"},
 					[]interface{}{"dev", "applicationB"},
@@ -2979,7 +2979,7 @@ func TestInterpolateFuncProduct(t *testing.T) {
 				false,
 			},
 			{
-				`${product(list("A", "B"), list("C", "D"), list("E", "F"))}`,
+				`${setproduct(list("A", "B"), list("C", "D"), list("E", "F"))}`,
 				[]interface{}{
 					[]interface{}{"A", "C", "E"},
 					[]interface{}{"A", "C", "F"},
@@ -2993,19 +2993,19 @@ func TestInterpolateFuncProduct(t *testing.T) {
 				false,
 			},
 			{
-				`${product(list(), list(), list())}`,
+				`${setproduct(list(), list(), list())}`,
 				nil,
 				true,
 			},
 			{
-				`${product(list("foo"),list("bar"))}`,
+				`${setproduct(list("foo"),list("bar"))}`,
 				[]interface{}{
 					[]interface{}{"foo", "bar"},
 				},
 				false,
 			},
 			{
-				`${product(list("foo"))}`,
+				`${setproduct(list("foo"))}`,
 				nil,
 				true,
 			},
