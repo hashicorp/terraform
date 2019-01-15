@@ -118,7 +118,7 @@ func Funcs() map[string]ast.Function {
 		"min":          interpolationFuncMin(),
 		"pathexpand":   interpolationFuncPathExpand(),
 		"pow":          interpolationFuncPow(),
-		"product":      interpolationFuncProduct(),
+		"setproduct":   interpolationFuncSetProduct(),
 		"uuid":         interpolationFuncUUID(),
 		"replace":      interpolationFuncReplace(),
 		"rsadecrypt":   interpolationFuncRsaDecrypt(),
@@ -1741,9 +1741,9 @@ func interpolationFuncRsaDecrypt() ast.Function {
 	}
 }
 
-// interpolationFuncProduct implements the "product" function
-// that returns the cartesian product of two or more lists
-func interpolationFuncProduct() ast.Function {
+// interpolationFuncSetProduct implements the "setproduct" function
+// that returns the cartesian product of two or more lists or sets
+func interpolationFuncSetProduct() ast.Function {
 	return ast.Function{
 		ArgTypes:     []ast.Type{ast.TypeList},
 		ReturnType:   ast.TypeList,
