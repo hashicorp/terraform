@@ -536,7 +536,7 @@ func checkResponseCode(r *http.Response) error {
 		if e.Detail == "" {
 			errs = append(errs, e.Title)
 		} else {
-			errs = append(errs, fmt.Sprintf("%s %s", e.Title, e.Detail))
+			errs = append(errs, fmt.Sprintf("%s\n\n%s", e.Title, e.Detail))
 		}
 	}
 

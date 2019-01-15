@@ -99,12 +99,12 @@ type Capacity struct {
 // Entitlements represents the entitlements of an organization.
 type Entitlements struct {
 	ID                    string `jsonapi:"primary,entitlement-sets"`
-	StateStorage          bool   `jsonapi:"attr,state-storage"`
 	Operations            bool   `jsonapi:"attr,operations"`
-	VCSIntegrations       bool   `jsonapi:"attr,vcs-integrations"`
-	Sentinel              bool   `jsonapi:"attr,sentinel"`
 	PrivateModuleRegistry bool   `jsonapi:"attr,private-module-registry"`
+	Sentinel              bool   `jsonapi:"attr,sentinel"`
+	StateStorage          bool   `jsonapi:"attr,state-storage"`
 	Teams                 bool   `jsonapi:"attr,teams"`
+	VCSIntegrations       bool   `jsonapi:"attr,vcs-integrations"`
 }
 
 // RunQueue represents the current run queue of an organization.
