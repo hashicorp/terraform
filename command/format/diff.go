@@ -570,8 +570,6 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 	// values are known and non-null.
 	if old.IsKnown() && new.IsKnown() && !old.IsNull() && !new.IsNull() {
 		switch {
-		// TODO: object diffs that behave a bit like the map diffs, including if the two object types don't exactly match
-
 		case ty == cty.String:
 			// We have special behavior for both multi-line strings in general
 			// and for strings that can parse as JSON. For the JSON handling
@@ -747,7 +745,6 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 			p.buf.WriteString(strings.Repeat(" ", indent))
 			p.buf.WriteString("]")
 			return
-
 		case ty.IsListType() || ty.IsTupleType():
 			p.buf.WriteString("[")
 			if p.pathForcesNewResource(path) {
@@ -755,12 +752,27 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 			}
 			p.buf.WriteString("\n")
 
-			elemDiffs := ctySequenceDiff(old.AsValueSlice(), new.AsValueSlice())
-			for _, elemDiff := range elemDiffs {
-				p.buf.WriteString(strings.Repeat(" ", indent+2))
-				p.writeActionSymbol(elemDiff.Action)
-				p.writeValue(elemDiff.Value, elemDiff.Action, indent+4)
-				p.buf.WriteString(",\n")
+			if ty.IsTupleType() && ty.Length() > 0 && ty.TupleElementType(0).IsObjectType() {
+				elemDiffs := ctyObjectSequenceDiff(old.AsValueSlice(), new.AsValueSlice(), 0)
+				for _, elemDiff := range elemDiffs {
+					p.buf.WriteString(strings.Repeat(" ", indent+2))
+					p.writeActionSymbol(elemDiff.Action)
+					if elemDiff.Action == plans.NoOp {
+						p.writeValue(elemDiff.Before, elemDiff.Action, indent+4)
+					} else {
+						p.writeValueDiff(elemDiff.Before, elemDiff.After, indent+4, path)
+					}
+
+					p.buf.WriteString(",\n")
+				}
+			} else {
+				elemDiffs := ctySequenceDiff(old.AsValueSlice(), new.AsValueSlice())
+				for _, elemDiff := range elemDiffs {
+					p.buf.WriteString(strings.Repeat(" ", indent+2))
+					p.writeActionSymbol(elemDiff.Action)
+					p.writeValue(elemDiff.Value, elemDiff.Action, indent+4)
+					p.buf.WriteString(",\n")
+				}
 			}
 
 			p.buf.WriteString(strings.Repeat(" ", indent))
@@ -841,15 +853,96 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 			p.buf.WriteString(strings.Repeat(" ", indent))
 			p.buf.WriteString("}")
 			return
+		case ty.IsObjectType():
+			p.buf.WriteString("{")
+			p.buf.WriteString("\n")
+
+			forcesNewResource := p.pathForcesNewResource(path)
+
+			var allKeys []string
+			keyLen := 0
+			for it := old.ElementIterator(); it.Next(); {
+				k, _ := it.Element()
+				keyStr := k.AsString()
+				allKeys = append(allKeys, keyStr)
+				if len(keyStr) > keyLen {
+					keyLen = len(keyStr)
+				}
+			}
+			for it := new.ElementIterator(); it.Next(); {
+				k, _ := it.Element()
+				keyStr := k.AsString()
+				allKeys = append(allKeys, keyStr)
+				if len(keyStr) > keyLen {
+					keyLen = len(keyStr)
+				}
+			}
+
+			sort.Strings(allKeys)
+
+			lastK := ""
+			for i, k := range allKeys {
+				if i > 0 && lastK == k {
+					continue // skip duplicates (list is sorted)
+				}
+				lastK = k
+
+				p.buf.WriteString(strings.Repeat(" ", indent+2))
+				kV := k
+				var action plans.Action
+				if !old.Type().HasAttribute(kV) {
+					action = plans.Create
+				} else if !new.Type().HasAttribute(kV) {
+					action = plans.Delete
+				} else if eqV := old.GetAttr(kV).Equals(new.GetAttr(kV)); eqV.IsKnown() && eqV.True() {
+					action = plans.NoOp
+				} else {
+					action = plans.Update
+				}
+
+				path := append(path, cty.GetAttrStep{Name: kV})
+
+				p.writeActionSymbol(action)
+				p.buf.WriteString(k)
+				p.buf.WriteString(strings.Repeat(" ", keyLen-len(k)))
+				p.buf.WriteString(" = ")
+
+				switch action {
+				case plans.Create, plans.NoOp:
+					v := new.GetAttr(kV)
+					p.writeValue(v, action, indent+4)
+				case plans.Delete:
+					oldV := old.GetAttr(kV)
+					newV := cty.NullVal(oldV.Type())
+					p.writeValueDiff(oldV, newV, indent+4, path)
+				default:
+					oldV := old.GetAttr(kV)
+					newV := new.GetAttr(kV)
+					p.writeValueDiff(oldV, newV, indent+4, path)
+				}
+
+				p.buf.WriteString("\n")
+			}
+
+			p.buf.WriteString(strings.Repeat(" ", indent))
+			p.buf.WriteString("}")
+
+			if forcesNewResource {
+				p.buf.WriteString(p.color.Color(forcesNewResourceCaption))
+			}
+			return
 		}
 	}
 
-	// In all other cases, we just show the new and old values as-is
-	p.writeValue(old, plans.Delete, indent)
-	if new.IsNull() {
-		p.buf.WriteString(p.color.Color(" [dark_gray]->[reset] "))
-	} else {
-		p.buf.WriteString(p.color.Color(" [yellow]->[reset] "))
+	// Avoid printing null -> "known"
+	if !old.IsNull() {
+		// In all other cases, we just show the new and old values as-is
+		p.writeValue(old, plans.Delete, indent)
+		if new.IsNull() {
+			p.buf.WriteString(p.color.Color(" [dark_gray]->[reset] "))
+		} else {
+			p.buf.WriteString(p.color.Color(" [yellow]->[reset] "))
+		}
 	}
 	p.writeValue(new, plans.Create, indent)
 	if p.pathForcesNewResource(path) {
