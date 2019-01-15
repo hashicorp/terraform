@@ -126,6 +126,28 @@ func main() {
 }
 ```
 
+## Running tests
+
+Tests are run against an actual backend so they require a valid backend address
+and token. In addition it also needs a Github token for running the OAuth Client
+tests:
+
+```sh
+$ export TFE_ADDRESS=https://tfe.local
+$ export TFE_TOKEN=xxxxxxxxxxxxxxxxxxx
+$ export GITHUB_TOKEN=xxxxxxxxxxxxxxxx
+```
+
+In order for the tests relating to queuing and capacity to pass, FRQ should be
+enabled with a limit of 2 concurrent runs per organization.
+
+As running the tests takes about ~10 minutes, make sure to add a timeout to your
+command (as the default timeout is 10m):
+
+```sh
+$ go test ./... -timeout=15m
+```
+
 ## Issues and Contributing
 
 If you find an issue with this package, please report an issue. If you'd like,
