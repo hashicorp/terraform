@@ -807,6 +807,129 @@ var MergeFunc = function.New(&function.Spec{
 	},
 })
 
+// SetProductFunc calculates the cartesian product of two or more sets or
+// sequences. If the arguments are all lists then the result is a list of tuples,
+// preserving the ordering of all of the input lists. Otherwise the result is a
+// set of tuples.
+var SetProductFunc = function.New(&function.Spec{
+	Params: []function.Parameter{},
+	VarParam: &function.Parameter{
+		Name: "sets",
+		Type: cty.DynamicPseudoType,
+	},
+	Type: func(args []cty.Value) (retType cty.Type, err error) {
+		if len(args) < 2 {
+			return cty.NilType, fmt.Errorf("at least two arguments are required")
+		}
+
+		listCount := 0
+		elemTys := make([]cty.Type, len(args))
+		for i, arg := range args {
+			aty := arg.Type()
+			switch {
+			case aty.IsSetType():
+				elemTys[i] = aty.ElementType()
+			case aty.IsListType():
+				elemTys[i] = aty.ElementType()
+				listCount++
+			case aty.IsTupleType():
+				// We can accept a tuple type only if there's some common type
+				// that all of its elements can be converted to.
+				allEtys := aty.TupleElementTypes()
+				if len(allEtys) == 0 {
+					elemTys[i] = cty.DynamicPseudoType
+					listCount++
+					break
+				}
+				ety, _ := convert.UnifyUnsafe(allEtys)
+				if ety == cty.NilType {
+					return cty.NilType, function.NewArgErrorf(i, "all elements must be of the same type")
+				}
+				elemTys[i] = ety
+				listCount++
+			default:
+				return cty.NilType, function.NewArgErrorf(i, "a set or a list is required")
+			}
+		}
+
+		if listCount == len(args) {
+			return cty.List(cty.Tuple(elemTys)), nil
+		}
+		return cty.Set(cty.Tuple(elemTys)), nil
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		ety := retType.ElementType()
+
+		total := 1
+		for _, arg := range args {
+			// Because of our type checking function, we are guaranteed that
+			// all of the arguments are known, non-null values of types that
+			// support LengthInt.
+			total *= arg.LengthInt()
+		}
+
+		if total == 0 {
+			// If any of the arguments was an empty collection then our result
+			// is also an empty collection, which we'll short-circuit here.
+			if retType.IsListType() {
+				return cty.ListValEmpty(ety), nil
+			}
+			return cty.SetValEmpty(ety), nil
+		}
+
+		subEtys := ety.TupleElementTypes()
+		product := make([][]cty.Value, total)
+
+		b := make([]cty.Value, total*len(args))
+		n := make([]int, len(args))
+		s := 0
+		argVals := make([][]cty.Value, len(args))
+		for i, arg := range args {
+			argVals[i] = arg.AsValueSlice()
+		}
+
+		for i := range product {
+			e := s + len(args)
+			pi := b[s:e]
+			product[i] = pi
+			s = e
+
+			for j, n := range n {
+				val := argVals[j][n]
+				ty := subEtys[j]
+				if !val.Type().Equals(ty) {
+					var err error
+					val, err = convert.Convert(val, ty)
+					if err != nil {
+						// Should never happen since we checked this in our
+						// type-checking function.
+						return cty.NilVal, fmt.Errorf("failed to convert argVals[%d][%d] to %s; this is a bug in Terraform", j, n, ty.FriendlyName())
+					}
+				}
+				pi[j] = val
+			}
+
+			for j := len(n) - 1; j >= 0; j-- {
+				n[j]++
+				if n[j] < len(argVals[j]) {
+					break
+				}
+				n[j] = 0
+			}
+		}
+
+		productVals := make([]cty.Value, total)
+		for i, vals := range product {
+			productVals[i] = cty.TupleVal(vals)
+		}
+
+		if retType.IsListType() {
+			return cty.ListVal(productVals), nil
+		}
+		return cty.SetVal(productVals), nil
+	},
+})
+
 // SliceFunc contructs a function that extracts some consecutive elements
 // from within a list.
 var SliceFunc = function.New(&function.Spec{
@@ -1167,6 +1290,11 @@ func Matchkeys(values, keys, searchset cty.Value) (cty.Value, error) {
 // the argument sequence takes precedence.
 func Merge(maps ...cty.Value) (cty.Value, error) {
 	return MergeFunc.Call(maps)
+}
+
+// SetProduct computes the cartesian product of sets or sequences.
+func SetProduct(sets ...cty.Value) (cty.Value, error) {
+	return SetProductFunc.Call(sets)
 }
 
 // Slice extracts some consecutive elements from within a list.
