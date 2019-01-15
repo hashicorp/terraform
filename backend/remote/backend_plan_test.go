@@ -290,7 +290,7 @@ func TestRemote_planNoConfig(t *testing.T) {
 func TestRemote_planNoChanges(t *testing.T) {
 	b := testBackendDefault(t)
 
-	op, configCleanup := testOperationApply(t, "./test-fixtures/plan-no-changes")
+	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan-no-changes")
 	defer configCleanup()
 
 	op.Workspace = backend.DefaultStateName
