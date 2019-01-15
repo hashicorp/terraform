@@ -47,8 +47,26 @@ func TestMarshalExpressions(t *testing.T) {
 
 	for _, test := range tests {
 		got := marshalExpressions(test.Input, test.Schema)
-		eq := reflect.DeepEqual(got, test.Want)
-		if !eq {
+		if !reflect.DeepEqual(got, test.Want) {
+			t.Fatalf("wrong result:\nGot: %#v\nWant: %#v\n", got, test.Want)
+		}
+	}
+}
+
+func TestMarshalExpression(t *testing.T) {
+	tests := []struct {
+		Input hcl.Expression
+		Want  expression
+	}{
+		{
+			nil,
+			expression{},
+		},
+	}
+
+	for _, test := range tests {
+		got := marshalExpression(test.Input)
+		if !reflect.DeepEqual(got, test.Want) {
 			t.Fatalf("wrong result:\nGot: %#v\nWant: %#v\n", got, test.Want)
 		}
 	}
