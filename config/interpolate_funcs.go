@@ -118,7 +118,6 @@ func Funcs() map[string]ast.Function {
 		"min":          interpolationFuncMin(),
 		"pathexpand":   interpolationFuncPathExpand(),
 		"pow":          interpolationFuncPow(),
-		"setproduct":   interpolationFuncSetProduct(),
 		"uuid":         interpolationFuncUUID(),
 		"replace":      interpolationFuncReplace(),
 		"rsadecrypt":   interpolationFuncRsaDecrypt(),
@@ -1737,58 +1736,6 @@ func interpolationFuncRsaDecrypt() ast.Function {
 			}
 
 			return string(out), nil
-		},
-	}
-}
-
-// interpolationFuncSetProduct implements the "setproduct" function
-// that returns the cartesian product of two or more lists or sets
-func interpolationFuncSetProduct() ast.Function {
-	return ast.Function{
-		ArgTypes:     []ast.Type{ast.TypeList},
-		ReturnType:   ast.TypeList,
-		Variadic:     true,
-		VariadicType: ast.TypeList,
-		Callback: func(args []interface{}) (interface{}, error) {
-			if len(args) < 2 {
-				return nil, fmt.Errorf("must provide at least two arguments")
-			}
-
-			total := 1
-			for _, arg := range args {
-				total *= len(arg.([]ast.Variable))
-			}
-
-			if total == 0 {
-				return nil, fmt.Errorf("empty list provided")
-			}
-
-			product := make([][]ast.Variable, total)
-
-			b := make([]ast.Variable, total*len(args))
-			n := make([]int, len(args))
-			s := 0
-
-			for i := range product {
-				e := s + len(args)
-				pi := b[s:e]
-				product[i] = pi
-				s = e
-
-				for j, n := range n {
-					pi[j] = args[j].([]ast.Variable)[n]
-				}
-
-				for j := len(n) - 1; j >= 0; j-- {
-					n[j]++
-					if n[j] < len(args[j].([]ast.Variable)) {
-						break
-					}
-					n[j] = 0
-				}
-			}
-
-			return listVariableSliceToVariableValue(product), nil
 		},
 	}
 }
