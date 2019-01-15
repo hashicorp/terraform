@@ -100,7 +100,7 @@ func ResourceChange(
 		buf.WriteString(addr.String())
 	}
 
-	buf.WriteString(" {\n")
+	buf.WriteString(" {")
 
 	p := blockBodyDiffPrinter{
 		buf:             &buf,
@@ -122,9 +122,12 @@ func ResourceChange(
 		panic(fmt.Sprintf("failed to decode plan for %s while rendering diff: %s", addr, err))
 	}
 
-	p.writeBlockBodyDiff(schema, changeV.Before, changeV.After, 6, path)
-
-	buf.WriteString("    }\n")
+	bodyWritten := p.writeBlockBodyDiff(schema, changeV.Before, changeV.After, 6, path)
+	if bodyWritten {
+		buf.WriteString("\n")
+		buf.WriteString(strings.Repeat(" ", 4))
+	}
+	buf.WriteString("}\n")
 
 	return buf.String()
 }
@@ -143,9 +146,12 @@ type blockBodyDiffPrinter struct {
 
 const forcesNewResourceCaption = " [red]# forces replacement[reset]"
 
-func (p *blockBodyDiffPrinter) writeBlockBodyDiff(schema *configschema.Block, old, new cty.Value, indent int, path cty.Path) {
+// writeBlockBodyDiff writes attribute or block differences
+// and returns true if any differences were found and written
+func (p *blockBodyDiffPrinter) writeBlockBodyDiff(schema *configschema.Block, old, new cty.Value, indent int, path cty.Path) bool {
 	path = ctyEnsurePathCapacity(path, 1)
 
+	bodyWritten := false
 	blankBeforeBlocks := false
 	{
 		attrNames := make([]string, 0, len(schema.Attributes))
@@ -176,6 +182,7 @@ func (p *blockBodyDiffPrinter) writeBlockBodyDiff(schema *configschema.Block, ol
 			oldVal := ctyGetAttrMaybeNull(old, name)
 			newVal := ctyGetAttrMaybeNull(new, name)
 
+			bodyWritten = true
 			p.writeAttrDiff(name, attrS, oldVal, newVal, attrNameLen, indent, path)
 		}
 	}
@@ -192,16 +199,20 @@ func (p *blockBodyDiffPrinter) writeBlockBodyDiff(schema *configschema.Block, ol
 			oldVal := ctyGetAttrMaybeNull(old, name)
 			newVal := ctyGetAttrMaybeNull(new, name)
 
+			bodyWritten = true
 			p.writeNestedBlockDiffs(name, blockS, oldVal, newVal, blankBeforeBlocks, indent, path)
 
 			// Always include a blank for any subsequent block types.
 			blankBeforeBlocks = true
 		}
 	}
+
+	return bodyWritten
 }
 
 func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.Attribute, old, new cty.Value, nameLen, indent int, path cty.Path) {
 	path = append(path, cty.GetAttrStep{Name: name})
+	p.buf.WriteString("\n")
 	p.buf.WriteString(strings.Repeat(" ", indent))
 	showJustNew := false
 	var action plans.Action
@@ -239,9 +250,6 @@ func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.At
 			p.writeValueDiff(old, new, indent+2, path)
 		}
 	}
-
-	p.buf.WriteString("\n")
-
 }
 
 func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *configschema.NestedBlock, old, new cty.Value, blankBefore bool, indent int, path cty.Path) {
@@ -393,6 +401,7 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 }
 
 func (p *blockBodyDiffPrinter) writeNestedBlockDiff(name string, label *string, blockS *configschema.Block, action plans.Action, old, new cty.Value, indent int, path cty.Path) {
+	p.buf.WriteString("\n")
 	p.buf.WriteString(strings.Repeat(" ", indent))
 	p.writeActionSymbol(action)
 
@@ -406,12 +415,12 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiff(name string, label *string, 
 		p.buf.WriteString(p.color.Color(forcesNewResourceCaption))
 	}
 
-	p.buf.WriteString("\n")
-
-	p.writeBlockBodyDiff(blockS, old, new, indent+4, path)
-
-	p.buf.WriteString(strings.Repeat(" ", indent+2))
-	p.buf.WriteString("}\n")
+	bodyWritten := p.writeBlockBodyDiff(blockS, old, new, indent+4, path)
+	if bodyWritten {
+		p.buf.WriteString("\n")
+		p.buf.WriteString(strings.Repeat(" ", indent+2))
+	}
+	p.buf.WriteString("}")
 }
 
 func (p *blockBodyDiffPrinter) writeValue(val cty.Value, action plans.Action, indent int) {
@@ -438,11 +447,15 @@ func (p *blockBodyDiffPrinter) writeValue(val cty.Value, action plans.Action, in
 					jv, err := ctyjson.Unmarshal(src, ty)
 					if err == nil {
 						p.buf.WriteString("jsonencode(")
-						p.buf.WriteByte('\n')
-						p.buf.WriteString(strings.Repeat(" ", indent+4))
-						p.writeValue(jv, action, indent+4)
-						p.buf.WriteByte('\n')
-						p.buf.WriteString(strings.Repeat(" ", indent))
+						if jv.LengthInt() == 0 {
+							p.writeValue(jv, action, 0)
+						} else {
+							p.buf.WriteByte('\n')
+							p.buf.WriteString(strings.Repeat(" ", indent+4))
+							p.writeValue(jv, action, indent+4)
+							p.buf.WriteByte('\n')
+							p.buf.WriteString(strings.Repeat(" ", indent))
+						}
 						p.buf.WriteByte(')')
 						break // don't *also* do the normal behavior below
 					}
@@ -463,21 +476,26 @@ func (p *blockBodyDiffPrinter) writeValue(val cty.Value, action plans.Action, in
 			fmt.Fprintf(p.buf, "%#v", val)
 		}
 	case ty.IsListType() || ty.IsSetType() || ty.IsTupleType():
-		p.buf.WriteString("[\n")
+		p.buf.WriteString("[")
 
 		it := val.ElementIterator()
 		for it.Next() {
 			_, val := it.Element()
+
+			p.buf.WriteString("\n")
 			p.buf.WriteString(strings.Repeat(" ", indent+2))
 			p.writeActionSymbol(action)
 			p.writeValue(val, action, indent+4)
-			p.buf.WriteString(",\n")
+			p.buf.WriteString(",")
 		}
 
-		p.buf.WriteString(strings.Repeat(" ", indent))
+		if val.LengthInt() > 0 {
+			p.buf.WriteString("\n")
+			p.buf.WriteString(strings.Repeat(" ", indent))
+		}
 		p.buf.WriteString("]")
 	case ty.IsMapType():
-		p.buf.WriteString("{\n")
+		p.buf.WriteString("{")
 
 		keyLen := 0
 		for it := val.ElementIterator(); it.Next(); {
@@ -489,19 +507,23 @@ func (p *blockBodyDiffPrinter) writeValue(val cty.Value, action plans.Action, in
 
 		for it := val.ElementIterator(); it.Next(); {
 			key, val := it.Element()
+
+			p.buf.WriteString("\n")
 			p.buf.WriteString(strings.Repeat(" ", indent+2))
 			p.writeActionSymbol(action)
 			p.writeValue(key, action, indent+4)
 			p.buf.WriteString(strings.Repeat(" ", keyLen-len(key.AsString())))
 			p.buf.WriteString(" = ")
 			p.writeValue(val, action, indent+4)
-			p.buf.WriteString("\n")
 		}
 
-		p.buf.WriteString(strings.Repeat(" ", indent))
+		if val.LengthInt() > 0 {
+			p.buf.WriteString("\n")
+			p.buf.WriteString(strings.Repeat(" ", indent))
+		}
 		p.buf.WriteString("}")
 	case ty.IsObjectType():
-		p.buf.WriteString("{\n")
+		p.buf.WriteString("{")
 
 		atys := ty.AttributeTypes()
 		attrNames := make([]string, 0, len(atys))
@@ -516,16 +538,20 @@ func (p *blockBodyDiffPrinter) writeValue(val cty.Value, action plans.Action, in
 
 		for _, attrName := range attrNames {
 			val := val.GetAttr(attrName)
+
+			p.buf.WriteString("\n")
 			p.buf.WriteString(strings.Repeat(" ", indent+2))
 			p.writeActionSymbol(action)
 			p.buf.WriteString(attrName)
 			p.buf.WriteString(strings.Repeat(" ", nameLen-len(attrName)))
 			p.buf.WriteString(" = ")
 			p.writeValue(val, action, indent+4)
-			p.buf.WriteString("\n")
 		}
 
-		p.buf.WriteString(strings.Repeat(" ", indent))
+		if len(attrNames) > 0 {
+			p.buf.WriteString("\n")
+			p.buf.WriteString(strings.Repeat(" ", indent))
+		}
 		p.buf.WriteString("}")
 	}
 }
