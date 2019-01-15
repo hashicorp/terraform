@@ -113,3 +113,12 @@ elements all have a consistent type:
   ],
 ]
 ```
+
+## Related Functions
+
+* [`sethaselement`](./sethaselement.html) tests whether a given set contains
+  a given element value.
+* [`setintersection`](./setintersection.html) computes the _intersection_ of
+  multiple sets.
+* [`setunion`](./setunion.html) computes the _union_ of multiple
+  sets.
