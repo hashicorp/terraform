@@ -729,60 +729,76 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 		return resp, nil
 	}
 
-	plannedState := hcl2shim.FlatmapValueFromHCL2(plannedStateVal)
-	if newInstanceState != nil {
-		// here we use the planned state to check for unknown/zero containers values
-		// when normalizing the flatmap.
-		newInstanceState.Attributes = normalizeFlatmapContainers(plannedState, newInstanceState.Attributes, true)
-	}
-
 	newStateVal := cty.NullVal(block.ImpliedType())
 
-	// We keep the null val if we destroyed the resource, otherwise build the
-	// entire object, even if the new state was nil.
-	if !destroy {
-		newStateVal, err = schema.StateValueFromInstanceState(newInstanceState, block.ImpliedType())
+	// always return a nul value for destroy
+	if newInstanceState == nil || destroy {
+		newStateMP, err := msgpack.Marshal(newStateVal, block.ImpliedType())
 		if err != nil {
 			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 			return resp, nil
 		}
+		resp.NewState = &proto.DynamicValue{
+			Msgpack: newStateMP,
+		}
+		return resp, nil
+	}
+
+	// here we use the planned state to check for unknown/zero containers values
+	// when normalizing the flatmap.
+	plannedState := hcl2shim.FlatmapValueFromHCL2(plannedStateVal)
+	newInstanceState.Attributes = normalizeFlatmapContainers(plannedState, newInstanceState.Attributes, true)
+
+	// We keep the null val if we destroyed the resource, otherwise build the
+	// entire object, even if the new state was nil.
+	newStateVal, err = schema.StateValueFromInstanceState(newInstanceState, block.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
 	}
 
 	newStateVal = copyMissingValues(newStateVal, plannedStateVal)
 
-	if newInstanceState != nil {
-		prevVal := newStateVal
-		for i := 0; ; i++ {
-			// cycle through the shims, to ensure that the plan will create an
-			// identical value
-			shimmedState, err := res.ShimInstanceStateFromValue(prevVal)
-			if err != nil {
-				resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
-				return resp, nil
-			}
-			shimmedState.Attributes = normalizeFlatmapContainers(shimmedState.Attributes, shimmedState.Attributes, false)
+	// Cycle through the shims, to ensure that the plan will create an identical
+	// value. Errors in this block are non-fatal (and should not happen, since
+	// we've already shimmed this type), because we already have an applied value
+	// and want to return that even if a later Plan may not agree.
+	prevVal := newStateVal
+	for i := 0; ; i++ {
 
-			tmpVal, err := hcl2shim.HCL2ValueFromFlatmap(shimmedState.Attributes, block.ImpliedType())
-			if err != nil {
-				resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
-				return resp, nil
-			}
+		shimmedState, err := res.ShimInstanceStateFromValue(prevVal)
+		if err != nil {
+			log.Printf("[ERROR] failed to shim cty.Value: %s", err)
+			break
+		}
+		shimmedState.Attributes = normalizeFlatmapContainers(shimmedState.Attributes, shimmedState.Attributes, false)
 
-			tmpVal = copyMissingValues(tmpVal, prevVal)
+		tmpVal, err := hcl2shim.HCL2ValueFromFlatmap(shimmedState.Attributes, block.ImpliedType())
+		if err != nil {
+			log.Printf("[ERROR] failed to shim flatmap: %s", err)
+			break
+		}
 
-			if tmpVal.RawEquals(prevVal) {
-				newStateVal = tmpVal
-				break
-			}
+		tmpVal = copyMissingValues(tmpVal, prevVal)
 
-			if i < 2 {
-				prevVal = tmpVal
-				continue
-			}
+		// If we have the same value before and after the shimming process, we
+		// can be reasonably certain that PlanResourceChange will return the
+		// same value.
+		if tmpVal.RawEquals(prevVal) {
+			newStateVal = tmpVal
+			break
+		}
 
+		if i > 2 {
+			// This isn't fatal, since the value as actually applied.
 			log.Printf("[ERROR] hcl2shims failed to converge for value: %#v\n", newStateVal)
 			break
 		}
+
+		// The values are not the same, but we're only going to try this up to 3
+		// times before giving up. This should account for any empty nested values
+		// showing up a few levels deep.
+		prevVal = tmpVal
 	}
 
 	newStateVal = copyTimeoutValues(newStateVal, plannedStateVal)
@@ -796,15 +812,12 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 		Msgpack: newStateMP,
 	}
 
-	if newInstanceState != nil {
-		meta, err := json.Marshal(newInstanceState.Meta)
-		if err != nil {
-			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
-			return resp, nil
-		}
-		resp.Private = meta
+	meta, err := json.Marshal(newInstanceState.Meta)
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
 	}
-
+	resp.Private = meta
 	return resp, nil
 }
 
