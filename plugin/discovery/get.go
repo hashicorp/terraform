@@ -190,9 +190,6 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 	downloadURLs, err := i.listProviderDownloadURLs(providerSource, versionMeta.Version)
 	providerURL := downloadURLs.DownloadURL
 
-	i.Ui.Info(fmt.Sprintf("- Downloading plugin for provider %q (%s)...", provider, versionMeta.Version))
-	log.Printf("[DEBUG] getting provider %q version %q", provider, versionMeta.Version)
-
 	if !i.SkipVerify {
 		sha256, err := i.getProviderChecksum(downloadURLs)
 		if err != nil {
