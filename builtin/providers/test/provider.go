@@ -27,6 +27,7 @@ func Provider() terraform.ResourceProvider {
 			"test_resource_nested_set":       testResourceNestedSet(),
 			"test_resource_state_func":       testResourceStateFunc(),
 			"test_resource_deprecated":       testResourceDeprecated(),
+			"test_resource_defaults":         testResourceDefaults(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"test_data_source":    testDataSource(),
