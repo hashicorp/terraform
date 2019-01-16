@@ -38,6 +38,7 @@ BUG FIXES:
 * command/format: Fix rendering of force-new updates [GH-19609]
 * command/providers: Support `-no-color` argument to `terraform providers`, which was previously incorrectly returning an error [GH-19671]
 * helper/schema: Fix setting a set in a list [GH-19552]
+* states/statemgr: Avoid HTML escaping when printing LockInfo [GH-20005]
 * core: Correct errors when referencing a resource containing count without an index [GH-19674]
 * core: Fix occasional invalid provider errors when scaling down a counted datasource [GH-19676]
 * core: Fix crash when applying a stored plan containing destroys [GH-19726]
