@@ -21,7 +21,6 @@ import (
 	"github.com/hashicorp/terraform/configs/configupgrade"
 	"github.com/hashicorp/terraform/internal/earlyconfig"
 	"github.com/hashicorp/terraform/internal/initwd"
-	"github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/plugin/discovery"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
@@ -85,7 +84,7 @@ func (c *InitCommand) Run(args []string) int {
 		c.providerInstaller = &discovery.ProviderInstaller{
 			Dir:                   c.pluginDir(),
 			Cache:                 c.pluginCache(),
-			PluginProtocolVersion: plugin.Handshake.ProtocolVersion,
+			PluginProtocolVersion: discovery.PluginInstallProtocolVersion,
 			SkipVerify:            !flagVerifyPlugins,
 			Ui:                    c.Ui,
 			Services:              c.Services,

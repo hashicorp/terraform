@@ -14,7 +14,6 @@ import (
 
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/helper/copy"
-	"github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/plugin/discovery"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/terraform"
@@ -804,7 +803,7 @@ func TestImport_pluginDir(t *testing.T) {
 			Ui:         cli.NewMockUi(),
 		},
 		providerInstaller: &discovery.ProviderInstaller{
-			PluginProtocolVersion: plugin.Handshake.ProtocolVersion,
+			PluginProtocolVersion: discovery.PluginInstallProtocolVersion,
 		},
 	}
 	if code := initCmd.Run(nil); code != 0 {
