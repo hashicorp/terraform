@@ -14,7 +14,6 @@ import (
 	"io"
 
 	getter "github.com/hashicorp/go-getter"
-	"github.com/hashicorp/terraform/plugin"
 	discovery "github.com/hashicorp/terraform/plugin/discovery"
 	"github.com/mitchellh/cli"
 )
@@ -150,12 +149,13 @@ func (c *PackageCommand) Run(args []string) int {
 		// FIXME: This is incorrect because it uses the protocol version of
 		// this tool, rather than of the Terraform binary we just downloaded.
 		// But we can't get this information from a Terraform binary, so
-		// we'll just ignore this for now as we only have one protocol version
-		// in play anyway. If a new protocol version shows up later we will
-		// probably deal with this by just matching version ranges and
-		// hard-coding the knowledge of which Terraform version uses which
-		// protocol version.
-		PluginProtocolVersion: plugin.Handshake.ProtocolVersion,
+		// we'll just ignore this for now and use the same plugin installer
+		// protocol version for terraform-bundle as the terraform shipped
+		// with this release.
+		//
+		// NOTE: To target older versions of terraform, use the terraform-bundle
+		// from the same tag.
+		PluginProtocolVersion: discovery.PluginInstallProtocolVersion,
 
 		OS:   osName,
 		Arch: archName,
