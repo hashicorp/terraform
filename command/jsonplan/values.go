@@ -81,9 +81,6 @@ func marshalPlannedOutputs(changes *plans.Changes) (map[string]output, error) {
 
 func marshalPlannedValues(changes *plans.Changes, schemas *terraform.Schemas) (module, error) {
 	var ret module
-	if changes.Empty() {
-		return ret, nil
-	}
 
 	// build two maps:
 	// 		module name -> [resource addresses]
@@ -127,7 +124,7 @@ func marshalPlanResources(changes *plans.Changes, ris []addrs.AbsResourceInstanc
 
 	for _, ri := range ris {
 		r := changes.ResourceInstance(ri)
-		if r.Action == plans.Delete || r.Action == plans.NoOp {
+		if r.Action == plans.Delete {
 			continue
 		}
 
