@@ -95,7 +95,11 @@ func marshalAttributeValues(value cty.Value, schema *configschema.Block) attribu
 	it := value.ElementIterator()
 	for it.Next() {
 		k, v := it.Element()
-		ret[k.AsString()] = v
+		vJSON, err := ctyjson.Marshal(v, v.Type())
+		if err != nil {
+			return ret, err
+		}
+		ret[k.AsString()] = json.RawMessage(vJSON)
 	}
 	return ret
 }
