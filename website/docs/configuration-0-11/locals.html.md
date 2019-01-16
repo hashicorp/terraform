@@ -1,7 +1,7 @@
 ---
 layout: "docs"
 page_title: "Configuring Local Values"
-sidebar_current: "docs-config-locals"
+sidebar_current: "docs-conf-old-locals"
 description: |-
   Local values assign a name to an expression that can then be used multiple times
   within a module.

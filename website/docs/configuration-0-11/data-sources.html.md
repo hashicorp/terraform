@@ -1,7 +1,7 @@
 ---
 layout: "docs"
 page_title: "Configuring Data Sources"
-sidebar_current: "docs-config-data-sources"
+sidebar_current: "docs-conf-old-data-sources"
 description: |-
   Data sources allow data to be fetched or computed for use elsewhere in Terraform configuration.
 ---

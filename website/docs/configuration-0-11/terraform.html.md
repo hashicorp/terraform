@@ -1,7 +1,7 @@
 ---
 layout: "docs"
 page_title: "Configuring Terraform"
-sidebar_current: "docs-config-terraform"
+sidebar_current: "docs-conf-old-terraform"
 description: |-
   The `terraform` configuration section is used to configure Terraform itself, such as requiring a minimum Terraform version to execute a configuration.
 ---
