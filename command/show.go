@@ -160,8 +160,7 @@ func (c *ShowCommand) Run(args []string) int {
 	}
 
 	if jsonOutput == true {
-		config := ctx.Config()
-		jsonState, err := jsonstate.MarshalWithConfig(state, schemas, config)
+		jsonState, err := jsonstate.Marshal(state, schemas)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Failed to marshal state to json: %s", err))
 			return 1
