@@ -6,11 +6,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html/template"
 	"math/rand"
 	"os"
 	"os/user"
 	"strings"
+	"text/template"
 	"time"
 
 	uuid "github.com/hashicorp/go-uuid"
