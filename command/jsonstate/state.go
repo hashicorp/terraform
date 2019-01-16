@@ -9,6 +9,8 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/command/jsonconfig"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
@@ -107,7 +109,7 @@ func newState() *state {
 	}
 }
 
-// Marshal returns the json encoding of a terraform plan.
+// Marshal returns the json encoding of a terraform state.
 func Marshal(s *states.State, schemas *terraform.Schemas) ([]byte, error) {
 	if s.Empty() {
 		return nil, nil
@@ -122,6 +124,34 @@ func Marshal(s *states.State, schemas *terraform.Schemas) ([]byte, error) {
 	}
 
 	ret, err := json.Marshal(output)
+	return ret, err
+}
+
+// MarshalWithConfig returns the json encoding of terraform state along with the
+// current terraform configuration.
+func MarshalWithConfig(s *states.State, schemas *terraform.Schemas, c *configs.Config) ([]byte, error) {
+	if s.Empty() {
+		return nil, nil
+	}
+
+	jsonstate, err := Marshal(s, schemas)
+	if err != nil {
+		return nil, err
+	}
+	jsonconfig, err := jsonconfig.Marshal(c, schemas)
+	if err != nil {
+		return nil, err
+	}
+
+	output := struct {
+		State  json.RawMessage `json:"state"`
+		Config json.RawMessage `json:"config"`
+	}{
+		jsonstate,
+		jsonconfig,
+	}
+
+	ret, err := json.MarshalIndent(output, "", "  ")
 	return ret, err
 }
 
