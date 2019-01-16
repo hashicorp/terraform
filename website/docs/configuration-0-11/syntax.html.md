@@ -1,7 +1,7 @@
 ---
 layout: "docs"
 page_title: "Configuration Syntax"
-sidebar_current: "docs-config-syntax"
+sidebar_current: "docs-conf-old-syntax"
 description: |-
   The syntax of Terraform configurations is custom. It is meant to strike a
   balance between human readable and editable as well as being machine-friendly.
