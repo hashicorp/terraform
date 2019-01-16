@@ -1,7 +1,7 @@
 ---
 layout: "docs"
 page_title: "Environment Variables"
-sidebar_current: "docs-config-environment-variables"
+sidebar_current: "docs-conf-old-environment-variables"
 description: |-
   Terraform uses different environment variables that can be used to configure various aspects of how Terraform behaves. this section documents those variables, their potential values, and how to use them.
 ---
