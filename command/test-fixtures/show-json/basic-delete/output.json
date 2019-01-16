@@ -17,8 +17,8 @@
                     "provider_name": "test",
                     "schema_version": 0,
                     "values": {
-                        "ami": {},
-                        "id": {}
+                        "ami": "bar",
+                        "id": null
                     }
                 }
             ]
