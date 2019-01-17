@@ -325,6 +325,10 @@ func spaceAfterToken(subject, before, after *Token) bool {
 	case subject.Type == hclsyntax.TokenCBrace && after.Type == hclsyntax.TokenTemplateSeqEnd:
 		return true
 
+	// Don't add spaces between interpolated items
+	case subject.Type == hclsyntax.TokenTemplateSeqEnd && after.Type == hclsyntax.TokenTemplateInterp:
+		return false
+
 	case tokenBracketChange(subject) > 0:
 		// No spaces after open brackets
 		return false

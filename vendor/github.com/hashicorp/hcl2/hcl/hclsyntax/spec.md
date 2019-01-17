@@ -9,13 +9,13 @@ generation of configuration.
 
 The language consists of three integrated sub-languages:
 
-* The _structural_ language defines the overall hierarchical configuration
+- The _structural_ language defines the overall hierarchical configuration
   structure, and is a serialization of HCL bodies, blocks and attributes.
 
-* The _expression_ language is used to express attribute values, either as
+- The _expression_ language is used to express attribute values, either as
   literals or as derivations of other values.
 
-* The _template_ language is used to compose values together into strings,
+- The _template_ language is used to compose values together into strings,
   as one of several types of expression in the expression language.
 
 In normal use these three sub-languages are used together within configuration
@@ -30,19 +30,19 @@ Within this specification a semi-formal notation is used to illustrate the
 details of syntax. This notation is intended for human consumption rather
 than machine consumption, with the following conventions:
 
-* A naked name starting with an uppercase letter is a global production,
+- A naked name starting with an uppercase letter is a global production,
   common to all of the syntax specifications in this document.
-* A naked name starting with a lowercase letter is a local production,
+- A naked name starting with a lowercase letter is a local production,
   meaningful only within the specification where it is defined.
-* Double and single quotes (`"` and `'`) are used to mark literal character
+- Double and single quotes (`"` and `'`) are used to mark literal character
   sequences, which may be either punctuation markers or keywords.
-* The default operator for combining items, which has no punctuation,
+- The default operator for combining items, which has no punctuation,
   is concatenation.
-* The symbol `|` indicates that any one of its left and right operands may
+- The symbol `|` indicates that any one of its left and right operands may
   be present.
-* The `*` symbol indicates zero or more repetitions of the item to its left.
-* The `?` symbol indicates zero or one of the item to its left.
-* Parentheses (`(` and `)`) are used to group items together to apply
+- The `*` symbol indicates zero or more repetitions of the item to its left.
+- The `?` symbol indicates zero or one of the item to its left.
+- Parentheses (`(` and `)`) are used to group items together to apply
   the `|`, `*` and `?` operators to them collectively.
 
 The grammar notation does not fully describe the language. The prose may
@@ -77,11 +77,11 @@ are not valid within HCL native syntax.
 
 Comments serve as program documentation and come in two forms:
 
-* _Line comments_ start with either the `//` or `#` sequences and end with
+- _Line comments_ start with either the `//` or `#` sequences and end with
   the next newline sequence. A line comments is considered equivalent to a
   newline sequence.
 
-* _Inline comments_ start with the `/*` sequence and end with the `*/`
+- _Inline comments_ start with the `/*` sequence and end with the `*/`
   sequence, and may have any characters within except the ending sequence.
   An inline comments is considered equivalent to a whitespace sequence.
 
@@ -91,7 +91,7 @@ template literals except inside an interpolation sequence or template directive.
 ### Identifiers
 
 Identifiers name entities such as blocks, attributes and expression variables.
-Identifiers are interpreted as per [UAX #31][UAX31] Section 2. Specifically,
+Identifiers are interpreted as per [UAX #31][uax31] Section 2. Specifically,
 their syntax is defined in terms of the `ID_Start` and `ID_Continue`
 character properties as follows:
 
@@ -109,7 +109,7 @@ that is not part of the unicode `ID_Continue` definition. This is to allow
 attribute names and block type names to contain dashes, although underscores
 as word separators are considered the idiomatic usage.
 
-[UAX31]: http://unicode.org/reports/tr31/ "Unicode Identifier and Pattern Syntax"
+[uax31]: http://unicode.org/reports/tr31/ "Unicode Identifier and Pattern Syntax"
 
 ### Keywords
 
@@ -150,9 +150,9 @@ expmark    = ('e' | 'E') ("+" | "-")?;
 The structural language consists of syntax representing the following
 constructs:
 
-* _Attributes_, which assign a value to a specified name.
-* _Blocks_, which create a child body annotated by a type and optional labels.
-* _Body Content_, which consists of a collection of attributes and blocks.
+- _Attributes_, which assign a value to a specified name.
+- _Blocks_, which create a child body annotated by a type and optional labels.
+- _Body Content_, which consists of a collection of attributes and blocks.
 
 These constructs correspond to the similarly-named concepts in the
 language-agnostic HCL information model.
@@ -253,9 +253,9 @@ LiteralValue = (
 );
 ```
 
-* Numeric literals represent values of type _number_.
-* The `true` and `false` keywords represent values of type _bool_.
-* The `null` keyword represents a null value of the dynamic pseudo-type.
+- Numeric literals represent values of type _number_.
+- The `true` and `false` keywords represent values of type _bool_.
+- The `null` keyword represents a null value of the dynamic pseudo-type.
 
 String literals are not directly available in the expression sub-language, but
 are available via the template sub-language, which can in turn be incorporated
@@ -286,8 +286,8 @@ When specifying an object element, an identifier is interpreted as a literal
 attribute name as opposed to a variable reference. To populate an item key
 from a variable, use parentheses to disambiguate:
 
-* `{foo = "baz"}` is interpreted as an attribute literally named `foo`.
-* `{(foo) = "baz"}` is interpreted as an attribute whose name is taken
+- `{foo = "baz"}` is interpreted as an attribute literally named `foo`.
+- `{(foo) = "baz"}` is interpreted as an attribute whose name is taken
   from the variable named `foo`.
 
 Between the open and closing delimiters of these sequences, newline sequences
@@ -299,12 +299,12 @@ _for expression_ interpretation has priority, so to produce a tuple whose
 first element is the value of a variable named `for`, or an object with a
 key named `for`, use parentheses to disambiguate:
 
-* `[for, foo, baz]` is a syntax error.
-* `[(for), foo, baz]` is a tuple whose first element is the value of variable
+- `[for, foo, baz]` is a syntax error.
+- `[(for), foo, baz]` is a tuple whose first element is the value of variable
   `for`.
-* `{for: 1, baz: 2}` is a syntax error.
-* `{(for): 1, baz: 2}` is an object with an attribute literally named `for`.
-* `{baz: 2, for: 1}` is equivalent to the previous example, and resolves the
+- `{for: 1, baz: 2}` is a syntax error.
+- `{(for): 1, baz: 2}` is an object with an attribute literally named `for`.
+- `{baz: 2, for: 1}` is equivalent to the previous example, and resolves the
   ambiguity by reordering.
 
 ### Template Expressions
@@ -312,9 +312,9 @@ key named `for`, use parentheses to disambiguate:
 A _template expression_ embeds a program written in the template sub-language
 as an expression. Template expressions come in two forms:
 
-* A _quoted_ template expression is delimited by quote characters (`"`) and
+- A _quoted_ template expression is delimited by quote characters (`"`) and
   defines a template as a single-line expression with escape characters.
-* A _heredoc_ template expression is introduced by a `<<` sequence and
+- A _heredoc_ template expression is introduced by a `<<` sequence and
   defines a template via a multi-line sequence terminated by a user-chosen
   delimiter.
 
@@ -322,7 +322,7 @@ In both cases the template interpolation and directive syntax is available for
 use within the delimiters, and any text outside of these special sequences is
 interpreted as a literal string.
 
-In _quoted_ template expressions any literal string sequences within the 
+In _quoted_ template expressions any literal string sequences within the
 template behave in a special way: literal newline sequences are not permitted
 and instead _escape sequences_ can be included, starting with the
 backslash `\`:
@@ -458,14 +458,14 @@ are provided, the first is the key and the second is the value.
 Tuple, object, list, map, and set types are iterable. The type of collection
 used defines how the key and value variables are populated:
 
-* For tuple and list types, the _key_ is the zero-based index into the
+- For tuple and list types, the _key_ is the zero-based index into the
   sequence for each element, and the _value_ is the element value. The
   elements are visited in index order.
-* For object and map types, the _key_ is the string attribute name or element
+- For object and map types, the _key_ is the string attribute name or element
   key, and the _value_ is the attribute or element value. The elements are
   visited in the order defined by a lexicographic sort of the attribute names
   or keys.
-* For set types, the _key_ and _value_ are both the element value. The elements
+- For set types, the _key_ and _value_ are both the element value. The elements
   are visited in an undefined but consistent order.
 
 The expression after the colon and (in the case of object `for`) the expression
@@ -487,12 +487,12 @@ immediately after the value expression, this activates the grouping mode in
 which each value in the resulting object is a _tuple_ of all of the values
 that were produced against each distinct key.
 
-* `[for v in ["a", "b"]: v]` returns `["a", "b"]`.
-* `[for i, v in ["a", "b"]: i]` returns `[0, 1]`.
-* `{for i, v in ["a", "b"]: v => i}` returns `{a = 0, b = 1}`.
-* `{for i, v in ["a", "a", "b"]: k => v}` produces an error, because attribute
+- `[for v in ["a", "b"]: v]` returns `["a", "b"]`.
+- `[for i, v in ["a", "b"]: i]` returns `[0, 1]`.
+- `{for i, v in ["a", "b"]: v => i}` returns `{a = 0, b = 1}`.
+- `{for i, v in ["a", "a", "b"]: k => v}` produces an error, because attribute
   `a` is defined twice.
-* `{for i, v in ["a", "a", "b"]: v => i...}` returns `{a = [0, 1], b = [2]}`.
+- `{for i, v in ["a", "a", "b"]: v => i...}` returns `{a = [0, 1], b = [2]}`.
 
 If the `if` keyword is used after the element expression(s), it applies an
 additional predicate that can be used to conditionally filter elements from
@@ -502,7 +502,7 @@ element expression(s). It must evaluate to a boolean value; if `true`, the
 element will be evaluated as normal, while if `false` the element will be
 skipped.
 
-* `[for i, v in ["a", "b", "c"]: v if i < 2]` returns `["a", "b"]`.
+- `[for i, v in ["a", "b", "c"]: v if i < 2]` returns `["a", "b"]`.
 
 If the collection value, element expression(s) or condition expression return
 unknown values that are otherwise type-valid, the result is a value of the
@@ -567,10 +567,10 @@ elements in a tuple, list, or set value.
 
 There are two kinds of "splat" operator:
 
-* The _attribute-only_ splat operator supports only attribute lookups into
+- The _attribute-only_ splat operator supports only attribute lookups into
   the elements from a list, but supports an arbitrary number of them.
 
-* The _full_ splat operator additionally supports indexing into the elements
+- The _full_ splat operator additionally supports indexing into the elements
   from a list, and allows any combination of attribute access and index
   operations.
 
@@ -583,9 +583,9 @@ fullSplat = "[" "*" "]" (GetAttr | Index)*;
 The splat operators can be thought of as shorthands for common operations that
 could otherwise be performed using _for expressions_:
 
-* `tuple.*.foo.bar[0]` is approximately equivalent to
+- `tuple.*.foo.bar[0]` is approximately equivalent to
   `[for v in tuple: v.foo.bar][0]`.
-* `tuple[*].foo.bar[0]` is approximately equivalent to
+- `tuple[*].foo.bar[0]` is approximately equivalent to
   `[for v in tuple: v.foo.bar[0]]`
 
 Note the difference in how the trailing index operator is interpreted in
@@ -597,13 +597,15 @@ _for expressions_ shown above: if a splat operator is applied to a value that
 is _not_ of tuple, list, or set type, the value is coerced automatically into
 a single-value list of the value type:
 
-* `any_object.*.id` is equivalent to `[any_object.id]`, assuming that `any_object`
+- `any_object.*.id` is equivalent to `[any_object.id]`, assuming that `any_object`
   is a single object.
-* `any_number.*` is equivalent to `[any_number]`, assuming that `any_number`
+- `any_number.*` is equivalent to `[any_number]`, assuming that `any_number`
   is a single number.
 
-If the left operand of a splat operator is an unknown value of any type, the
-result is a value of the dynamic pseudo-type.
+If applied to a null value that is not tuple, list, or set, the result is always
+an empty tuple, which allows conveniently converting a possibly-null scalar
+value into a tuple of zero or one elements. It is illegal to apply a splat
+operator to a null value of tuple, list, or set type.
 
 ### Operations
 
@@ -684,7 +686,7 @@ Arithmetic operations are considered to be performed in an arbitrary-precision
 number space.
 
 If either operand of an arithmetic operator is an unknown number or a value
-of the dynamic pseudo-type, the result is an unknown number. 
+of the dynamic pseudo-type, the result is an unknown number.
 
 ### Logic Operators
 
@@ -709,7 +711,7 @@ the outcome of a boolean expression.
 Conditional = Expression "?" Expression ":" Expression;
 ```
 
-The first expression is the _predicate_, which is  evaluated and must produce
+The first expression is the _predicate_, which is evaluated and must produce
 a boolean result. If the predicate value is `true`, the result of the second
 expression is the result of the conditional. If the predicate value is
 `false`, the result of the third expression is the result of the conditional.
@@ -777,8 +779,8 @@ interpolations or directives that are adjacent to it. A strip marker is
 a tilde (`~`) placed immediately after the opening `{` or before the closing
 `}` of a template sequence:
 
-* `hello ${~ "world" }` produces `"helloworld"`.
-* `%{ if true ~} hello %{~ endif }` produces `"hello"`.
+- `hello ${~ "world" }` produces `"helloworld"`.
+- `%{ if true ~} hello %{~ endif }` produces `"hello"`.
 
 When a strip marker is present, any spaces adjacent to it in the corresponding
 string literal (if any) are removed before producing the final value. Space
@@ -787,7 +789,7 @@ characters are interpreted as per Unicode's definition.
 Stripping is done at syntax level rather than value level. Values returned
 by interpolations or directives are not subject to stripping:
 
-* `${"hello" ~}${" world"}` produces `"hello world"`, and not `"helloworld"`,
+- `${"hello" ~}${" world"}` produces `"hello world"`, and not `"helloworld"`,
   because the space is not in a template literal directly adjacent to the
   strip marker.
 
@@ -825,9 +827,9 @@ TemplateIf = (
 The evaluation of the `if` directive is equivalent to the conditional
 expression, with the following exceptions:
 
-* The two sub-templates always produce strings, and thus the result value is
+- The two sub-templates always produce strings, and thus the result value is
   also always a string.
-* The `else` clause may be omitted, in which case the conditional's third
+- The `else` clause may be omitted, in which case the conditional's third
   expression result is implied to be the empty string.
 
 ### Template For Directive
@@ -847,9 +849,9 @@ TemplateFor = (
 The evaluation of the `for` directive is equivalent to the _for expression_
 when producing a tuple, with the following exceptions:
 
-* The sub-template always produces a string.
-* There is no equivalent of the "if" clause on the for expression.
-* The elements of the resulting tuple are all converted to strings and
+- The sub-template always produces a string.
+- There is no equivalent of the "if" clause on the for expression.
+- The elements of the resulting tuple are all converted to strings and
   concatenated to produce a flat string result.
 
 ### Template Interpolation Unwrapping
@@ -865,13 +867,13 @@ template or expression syntax. Unwrapping allows arbitrary expressions to be
 used to populate attributes when strings in such languages are interpreted
 as templates.
 
-* `${true}` produces the boolean value `true`
-* `${"${true}"}` produces the boolean value `true`, because both the inner
+- `${true}` produces the boolean value `true`
+- `${"${true}"}` produces the boolean value `true`, because both the inner
   and outer interpolations are subject to unwrapping.
-* `hello ${true}` produces the string `"hello true"`
-* `${""}${true}` produces the string `"true"` because there are two
+- `hello ${true}` produces the string `"hello true"`
+- `${""}${true}` produces the string `"true"` because there are two
   interpolation sequences, even though one produces an empty result.
-* `%{ for v in [true] }${v}%{ endif }` produces the string `true` because
+- `%{ for v in [true] }${v}%{ endif }` produces the string `true` because
   the presence of the `for` directive circumvents the unwrapping even though
   the final result is a single value.
 
