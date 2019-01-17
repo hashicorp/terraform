@@ -9,6 +9,10 @@ description: |-
 
 # `setunion` Function
 
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
+
 The `setunion` function takes multiple sets and produces a single set
 containing the elements from all of the given sets. In other words, it
 computes the [union](https://en.wikipedia.org/wiki/Union_(set_theory)) of

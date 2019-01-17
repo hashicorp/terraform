@@ -9,6 +9,10 @@ description: |-
 
 # `setproduct` Function
 
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
+
 The `setproduct` function finds all of the possible combinations of elements
 from all of the given sets by computing the
 [cartesian product](https://en.wikipedia.org/wiki/Cartesian_product).

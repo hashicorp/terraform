@@ -9,6 +9,10 @@ description: |-
 
 # `filemd5` Function
 
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
+
 `filemd5` is a variant of [`md5`](./md5.html)
 that hashes the contents of a given file rather than a literal string.
 
