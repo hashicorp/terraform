@@ -8,6 +8,10 @@ description: |-
 
 # Providers
 
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Providers](../configuration-0-11/providers.html).
+
 While [resources](./resources.html) are the primary construct
 in the Terraform language, the _behaviors_ of resources rely on their
 associated resource types, and these types are defined by _providers_.

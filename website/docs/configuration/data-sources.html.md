@@ -8,6 +8,10 @@ description: |-
 
 # Data Sources
 
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Data Sources](../configuration-0-11/data-sources.html).
+
 _Data sources_ allow data to be fetched or computed for use elsewhere
 in Terraform configuration. Use of data sources allows a Terraform
 configuration to make use of information defined outside of Terraform,
