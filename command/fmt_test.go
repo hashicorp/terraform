@@ -29,7 +29,7 @@ func TestFmt_nonexist(t *testing.T) {
 		t.Fatalf("wrong exit code. errors: \n%s", ui.ErrorWriter.String())
 	}
 
-	expected := "There is no configuration directory at"
+	expected := "No file or directory at"
 	if actual := ui.ErrorWriter.String(); !strings.Contains(actual, expected) {
 		t.Fatalf("expected:\n%s\n\nto include: %q", actual, expected)
 	}
@@ -133,6 +133,33 @@ func TestFmt_directoryArg(t *testing.T) {
 	}
 
 	args := []string{tempDir}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("wrong exit code. errors: \n%s", ui.ErrorWriter.String())
+	}
+
+	got, err := filepath.Abs(strings.TrimSpace(ui.OutputWriter.String()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := filepath.Join(tempDir, fmtFixture.filename)
+
+	if got != want {
+		t.Fatalf("wrong output\ngot:  %s\nwant: %s", got, want)
+	}
+}
+
+func TestFmt_fileArg(t *testing.T) {
+	tempDir := fmtFixtureWriteDir(t)
+
+	ui := new(cli.MockUi)
+	c := &FmtCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{filepath.Join(tempDir, fmtFixture.filename)}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("wrong exit code. errors: \n%s", ui.ErrorWriter.String())
 	}
