@@ -10,6 +10,10 @@ description: |-
 
 # Configuration Syntax
 
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Syntax](../configuration-0-11/syntax.html).
+
 Other pages in this section have described various configuration constructs
 that can appear in the Terraform language. This page describes the lower-level
 syntax of the language in more detail, revealing the building blocks that
