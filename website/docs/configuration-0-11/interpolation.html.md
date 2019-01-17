@@ -8,6 +8,11 @@ description: |-
 
 # Interpolation Syntax
 
+-> **Note:** This page is about Terraform 0.11 and earlier. For Terraform 0.12
+and later, see
+[Configuration Language: Expressions](../configuration/expressions.html) and
+[Configuration Language: Functions](../configuration/functions.html).
+
 Embedded within strings in Terraform, whether you're using the
 Terraform syntax or JSON syntax, you can interpolate other values. These
 interpolations are wrapped in `${}`, such as `${var.foo}`.

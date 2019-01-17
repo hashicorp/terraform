@@ -8,6 +8,10 @@ description: |-
 
 # Load Order and Semantics
 
+-> **Note:** This page is about Terraform 0.11 and earlier. For Terraform 0.12
+and later, see
+[Configuration Language](../configuration/index.html).
+
 When invoking any command that loads the Terraform configuration,
 Terraform loads all configuration files within the directory
 specified in alphabetical order.

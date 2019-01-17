@@ -8,6 +8,10 @@ description: |-
 
 # Terraform Settings
 
+-> **Note:** This page is about Terraform 0.11 and earlier. For Terraform 0.12
+and later, see
+[Configuration Language: Terraform Settings](../configuration/terraform.html).
+
 The `terraform` configuration section is used to configure Terraform itself,
 such as requiring a minimum Terraform version to execute a configuration.
 

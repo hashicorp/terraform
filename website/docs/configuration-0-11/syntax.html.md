@@ -12,6 +12,10 @@ description: |-
 
 # Configuration Syntax
 
+-> **Note:** This page is about Terraform 0.11 and earlier. For Terraform 0.12
+and later, see
+[Configuration Language: Syntax](../configuration/syntax.html).
+
 The syntax of Terraform configurations is called [HashiCorp Configuration
 Language (HCL)](https://github.com/hashicorp/hcl). It is meant to strike a
 balance between human readable and editable as well as being machine-friendly.

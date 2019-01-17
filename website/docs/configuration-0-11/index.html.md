@@ -8,6 +8,10 @@ description: |-
 
 # Configuration Language
 
+-> **Note:** This page is about Terraform 0.11 and earlier. For Terraform 0.12
+and later, see
+[Configuration Language](../configuration/index.html).
+
 Terraform uses text files to describe infrastructure and to set variables.
 These text files are called Terraform _configurations_ and end in
 `.tf`. This section talks about the format of these files as well as
