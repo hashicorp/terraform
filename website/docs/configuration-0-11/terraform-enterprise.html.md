@@ -18,7 +18,7 @@ The [`terraform push` command](/docs/commands/push.html) uploads a configuration
 The `atlas` block does not configure remote state; it only configures the push command. For remote state, [use a `terraform { backend "<NAME>" {...} }` block](/docs/backends/config.html).
 
 This page assumes you're familiar with the
-[configuration syntax](/docs/configuration/syntax.html)
+[configuration syntax](./syntax.html)
 already.
 
 ## Example

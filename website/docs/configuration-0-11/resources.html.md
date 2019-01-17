@@ -20,7 +20,7 @@ component such as an email provider, DNS record, or database
 provider.
 
 This page assumes you're familiar with the
-[configuration syntax](/docs/configuration/syntax.html)
+[configuration syntax](./syntax.html)
 already.
 
 ## Example
@@ -135,7 +135,7 @@ resource is created. During a destroy operation, Terraform ensures that
 this resource is destroyed before its dependencies.
 
 A resource automatically depends on anything it references via
-[interpolations](/docs/configuration/interpolation.html). The automatically
+[interpolations](./interpolation.html). The automatically
 determined dependencies are all that is needed most of the time. You can also
 use the `depends_on` parameter to explicitly define a list of additional
 dependencies.
@@ -207,8 +207,8 @@ When declaring multiple instances of a resource using [`count`](#count), it is
 common to want each instance to have a different value for a given attribute.
 
 You can use the `${count.index}`
-[interpolation](/docs/configuration/interpolation.html) along with a map
-[variable](/docs/configuration/variables.html) to accomplish this.
+[interpolation](./interpolation.html) along with a map
+[variable](./variables.html) to accomplish this.
 
 For example, here's how you could create three [AWS
 Instances](/docs/providers/aws/r/instance.html) each with their own
@@ -283,7 +283,7 @@ resource "aws_instance" "foo" {
 
 The value of the field should be `TYPE` or `TYPE.ALIAS`. The `ALIAS` value
 comes from the `alias` field value when configuring the
-[provider](/docs/configuration/providers.html).
+[provider](./providers.html).
 
 ```hcl
 provider "aws" {

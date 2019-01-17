@@ -18,7 +18,7 @@ the dedicated
 [modules section](/docs/modules/index.html).
 
 This page assumes you're familiar with the
-[configuration syntax](/docs/configuration/syntax.html)
+[configuration syntax](./syntax.html)
 already.
 
 ## Example
@@ -41,7 +41,7 @@ module on the command line. It has no meaning outside of a particular
 Terraform configuration.
 
 Within the block body is the configuration for the module. All attributes
-within the block must correspond to [variables](/docs/configuration/variables.html)
+within the block must correspond to [variables](./variables.html)
 within the module, with the exception of the following which Terraform
 treats as special:
 

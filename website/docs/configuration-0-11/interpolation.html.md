@@ -68,7 +68,7 @@ syntax to get a list of all the attributes: `${aws_instance.web.*.id}`.
 
 #### Attributes of a data source
 
-The syntax is `data.TYPE.NAME.ATTRIBUTE`. For example. `${data.aws_ami.ubuntu.id}` will interpolate the `id` attribute from the `aws_ami` [data source](/docs/configuration/data-sources.html) named `ubuntu`. If the data source has a `count`
+The syntax is `data.TYPE.NAME.ATTRIBUTE`. For example. `${data.aws_ami.ubuntu.id}` will interpolate the `id` attribute from the `aws_ami` [data source](./data-sources.html) named `ubuntu`. If the data source has a `count`
 attribute set, you can access individual attributes with a zero-based
 index, such as `${data.aws_subnet.example.0.cidr_block}`. You can also use the splat
 syntax to get a list of all the attributes: `${data.aws_subnet.example.*.cidr_block}`.
@@ -84,7 +84,7 @@ interpolate the `bar` output from the `foo`
 The syntax is `count.FIELD`. For example, `${count.index}` will
 interpolate the current index in a multi-count resource. For more
 information on `count`, see the [resource configuration
-page](/docs/configuration/resources.html).
+page](./resources.html).
 
 #### Path information
 
@@ -409,7 +409,7 @@ The supported built-in functions are:
 
   * `timestamp()` - Returns a UTC timestamp string in RFC 3339 format. This string will change with every
    invocation of the function, so in order to prevent diffs on every plan & apply, it must be used with the
-   [`ignore_changes`](/docs/configuration/resources.html#ignore-changes) lifecycle attribute.
+   [`ignore_changes`](./resources.html#ignore-changes) lifecycle attribute.
 
   * `timeadd(time, duration)` - Returns a UTC timestamp string corresponding to adding a given `duration` to `time` in RFC 3339 format.      
     For example, `timeadd("2017-11-22T00:00:00Z", "10m")` produces a value `"2017-11-22T00:10:00Z"`. 
@@ -424,7 +424,7 @@ The supported built-in functions are:
 
   * `urlencode(string)` - Returns an URL-safe copy of the string.
 
-  * `uuid()` - Returns a random UUID string. This string will change with every invocation of the function, so in order to prevent diffs on every plan & apply, it must be used with the [`ignore_changes`](/docs/configuration/resources.html#ignore-changes) lifecycle attribute.
+  * `uuid()` - Returns a random UUID string. This string will change with every invocation of the function, so in order to prevent diffs on every plan & apply, it must be used with the [`ignore_changes`](./resources.html#ignore-changes) lifecycle attribute.
 
   * `values(map)` - Returns a list of the map values, in the order of the keys
     returned by the `keys` function. This function only works on flat maps and
@@ -441,7 +441,7 @@ The supported built-in functions are:
 
 Long strings can be managed using templates.
 [Templates](/docs/providers/template/index.html) are
-[data-sources](/docs/configuration/data-sources.html) defined by a
+[data-sources](./data-sources.html) defined by a
 filename and some variables to use during interpolation. They have a
 computed `rendered` attribute containing the result.
 
