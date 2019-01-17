@@ -38,3 +38,7 @@ built-in list construction syntax, which achieves the same result:
   "c",
 ]
 ```
+
+## Related Functions
+
+* [`tolist`](./tolist.html) converts a set value to a list.
