@@ -9,6 +9,10 @@ description: |-
 
 # Local Values
 
+-> **Note:** This page is about Terraform 0.11 and earlier. For Terraform 0.12
+and later, see
+[Configuration Language: Configuring Local Values](../configuration/locals.html).
+
 Local values assign a name to an expression, that can then be used multiple
 times within a module.
 

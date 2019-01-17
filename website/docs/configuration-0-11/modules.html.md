@@ -8,6 +8,10 @@ description: |-
 
 # Module
 
+-> **Note:** This page is about Terraform 0.11 and earlier. For Terraform 0.12
+and later, see
+[Configuration Language: Modules](../configuration/modules.html).
+
 Modules are used in Terraform to modularize and encapsulate groups of
 resources in your infrastructure. For more information on modules, see
 the dedicated
