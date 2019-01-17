@@ -1,6 +1,6 @@
 ---
 layout: "docs"
-page_title: "Load Order and Semantics"
+page_title: "Load Order and Semantics - 0.11 Configuration Language"
 sidebar_current: "docs-conf-old-load"
 description: |-
   When invoking any command that loads the Terraform configuration, Terraform loads all configuration files within the directory specified in alphabetical order.
