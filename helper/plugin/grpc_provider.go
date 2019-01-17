@@ -513,7 +513,17 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 		return resp, nil
 	}
 
-	if diff == nil {
+	if diff != nil {
+		// strip out non-diffs
+		for k, v := range diff.Attributes {
+			if v.New == v.Old && !v.NewComputed {
+				delete(diff.Attributes, k)
+			}
+		}
+
+	}
+
+	if diff == nil || len(diff.Attributes) == 0 {
 		// schema.Provider.Diff returns nil if it ends up making a diff with no
 		// changes, but our new interface wants us to return an actual change
 		// description that _shows_ there are no changes. This is usually the
@@ -525,13 +535,6 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 			resp.PlannedState = req.ProposedNewState
 		}
 		return resp, nil
-	}
-
-	// strip out non-diffs
-	for k, v := range diff.Attributes {
-		if v.New == v.Old && !v.NewComputed {
-			delete(diff.Attributes, k)
-		}
 	}
 
 	if priorState == nil {
