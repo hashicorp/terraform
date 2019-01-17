@@ -4,6 +4,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 
 * config: `path.module` and `path.root` now return paths with forward slashes on all operating systems, including Windows. This avoids the need to write constructed paths differently for Windows vs. other operating systems, but any existing constructed paths containing backslashes for Windows must now be rewritten to use forward slashes, like `"${path.module}/foo/bar"`. [GH-19708]
 * config: `path.module` and `path.root` are now relative to the current working directory, rather than absolute as before. This avoids including a host-specific absolute path prefix on constructed paths, but may show as a diff after upgrade in situations where a constructed path is included in a resource attribute value. [GH-19708]
+* tools/terraform-bundle: use the `terraform-bundle` of the same tag as the targeted terraform binary version. This avoids adding complexity to resolve protocol versions across different terraform versions. [GH-20030]
 
 IMPROVEMENTS:
 
@@ -23,6 +24,7 @@ IMPROVEMENTS:
 * command/format: Ignore removal of empty strings [GH-19990]
 * command/format: Reduce whitespaces in empty fields [GH-19995]
 * command/format: Render null in dark gray [GH-19616]
+* command/init: Add provider protocol compatibility UI err msg during registry discovery [GH-19976]
 * command/show: Add support for machine readable output via a `-json` argument to `terraform show` [GH-19687]
 * command/state: Use locking when updating states [GH-19939]
 
@@ -38,6 +40,7 @@ BUG FIXES:
 * backend/local: Render CBD replacement (+/-) correctly [GH-19642]
 * command/format: Fix rendering of nested blocks during update [GH-19611]
 * command/format: Fix rendering of force-new updates [GH-19609]
+* command/init: Fix plugin installer using wrong protocol causing incompatiable API version with plugin [GH-19221]
 * command/providers: Support `-no-color` argument to `terraform providers`, which was previously incorrectly returning an error [GH-19671]
 * helper/schema: Fix setting a set in a list [GH-19552]
 * states/statemgr: Avoid HTML escaping when printing LockInfo [GH-20005]
