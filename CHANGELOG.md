@@ -7,6 +7,8 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 
 IMPROVEMENTS:
 
+* config: New set-theory functions `sethaselement`, `setunion`, `setintersection`, and `setproduct` for working with set values.
+* config: New type conversion functions `tostring`, `tonumber`, `tobool`, `tolist`, `toset`, and `tomap`. Explicit conversions are rarely required but occasionally useful; use these functions only when necessary.
 * plugins: Plugin RPC connection is now authenticated [GH-19629]
 * backend/azurerm: Support for authenticating using the Azure CLI [GH-19465]
 * backend/remote: Return detailed version (in)compatibility information [GH-19659]
