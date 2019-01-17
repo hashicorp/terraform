@@ -1119,13 +1119,6 @@ func stripSchema(s *schema.Schema) *schema.Schema {
 func copyMissingValues(dst, src cty.Value) cty.Value {
 	ty := dst.Type()
 
-	// In this case the provider set an empty string which was lost in
-	// conversion. Since src is unknown, there must have been a corresponding
-	// value set.
-	if ty == cty.String && dst.IsNull() && !src.IsKnown() {
-		return cty.StringVal("")
-	}
-
 	if src.IsNull() || !src.IsKnown() || !dst.IsKnown() {
 		return dst
 	}
