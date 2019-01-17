@@ -8,6 +8,10 @@ description: |-
 
 # `jsonencode` Function
 
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
+
 `jsonencode` encodes a given value to a string using JSON syntax.
 
 The JSON encoding is defined in [RFC 7159](https://tools.ietf.org/html/rfc7159).

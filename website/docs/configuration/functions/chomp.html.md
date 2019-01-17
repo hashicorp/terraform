@@ -8,6 +8,10 @@ description: |-
 
 # `chomp` Function
 
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
+
 `chomp` removes newline characters at the end of a string.
 
 This can be useful if, for example, the string was read from a file that has

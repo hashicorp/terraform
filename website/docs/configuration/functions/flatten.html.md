@@ -8,6 +8,10 @@ description: |-
 
 # `flatten` Function
 
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
+
 `flatten` takes a list and replaces any elements that are lists with a
 flattened sequence of the list contents.
 
