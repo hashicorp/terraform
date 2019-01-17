@@ -67,7 +67,7 @@ export TF_VAR_alist='[1,2,3]'
 export TF_VAR_amap='{ foo = "bar", baz = "qux" }'
 ```
 
-For more on how to use `TF_VAR_name` in context, check out the section on [Variable Configuration](/docs/configuration/variables.html).
+For more on how to use `TF_VAR_name` in context, check out the section on [Variable Configuration](./variables.html).
 
 ## TF_CLI_ARGS and TF_CLI_ARGS_name
 

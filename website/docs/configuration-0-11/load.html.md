@@ -22,7 +22,7 @@ Otherwise, the files are ignored. Multiple file formats can
 be present in the same directory; it is okay to have one Terraform
 configuration file be Terraform syntax and another be JSON.
 
-[Override](/docs/configuration/override.html)
+[Override](./override.html)
 files are the exception, as they're loaded after all non-override
 files, in alphabetical order.
 
@@ -30,7 +30,7 @@ The configuration within the loaded files are appended to each
 other. This is in contrast to being merged. This means that two
 resources with the same name are not merged, and will instead
 cause a validation error. This is in contrast to
-[overrides](/docs/configuration/override.html),
+[overrides](./override.html),
 which do merge.
 
 The order of variables, resources, etc. defined within the

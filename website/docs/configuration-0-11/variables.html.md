@@ -16,14 +16,14 @@ and later, see
 Input variables serve as parameters for a Terraform module.
 
 When used in the root module of a configuration, variables can be set from CLI
-arguments and environment variables. For [_child_ modules](/docs/configuration/modules.html),
+arguments and environment variables. For [_child_ modules](./modules.html),
 they allow values to pass from parent to child.
 
 Input variable usage is introduced in the Getting Started guide section
 [_Input Variables_](/intro/getting-started/variables.html).
 
 This page assumes you're familiar with the
-[configuration syntax](/docs/configuration/syntax.html)
+[configuration syntax](./syntax.html)
 already.
 
 ## Example
@@ -77,14 +77,14 @@ which accepts the following arguments:
   the given description is shown as part of the documentation.
 
 The name of a variable can be any valid identifier. However, due to the
-interpretation of [module configuration blocks](/docs/configuration/modules.html),
+interpretation of [module configuration blocks](./modules.html),
 the names `source`, `version` and `providers` are reserved for Terraform's own
 use and are thus not recommended for any module intended to be used as a
 child module.
 
 The default value of an input variable must be a _literal_ value, containing
 no interpolation expressions. To assign a name to an expression so that it
-may be re-used within a module, use [Local Values](/docs/configuration/locals.html)
+may be re-used within a module, use [Local Values](./locals.html)
 instead.
 
 ### Strings
@@ -213,7 +213,7 @@ $ TF_VAR_image=foo terraform apply
 ```
 
 Maps and lists can be specified using environment variables as well using
-[HCL](/docs/configuration/syntax.html#HCL) syntax in the value.
+[HCL](./syntax.html#HCL) syntax in the value.
 
 For a list variable like so:
 
