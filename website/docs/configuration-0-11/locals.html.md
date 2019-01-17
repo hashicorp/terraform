@@ -1,13 +1,13 @@
 ---
 layout: "docs"
-page_title: "Configuring Local Values"
+page_title: "Local Values - 0.11 Configuration Language"
 sidebar_current: "docs-conf-old-locals"
 description: |-
   Local values assign a name to an expression that can then be used multiple times
   within a module.
 ---
 
-# Local Value Configuration
+# Local Values
 
 Local values assign a name to an expression, that can then be used multiple
 times within a module.

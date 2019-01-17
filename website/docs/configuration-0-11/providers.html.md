@@ -1,12 +1,12 @@
 ---
 layout: "docs"
-page_title: "Configuring Providers"
+page_title: "Providers - 0.11 Configuration Language"
 sidebar_current: "docs-conf-old-providers"
 description: |-
   Providers are responsible in Terraform for managing the lifecycle of a resource: create, read, update, delete.
 ---
 
-# Provider Configuration
+# Providers
 
 Providers are responsible in Terraform for managing the lifecycle
 of a [resource](/docs/configuration/resources.html): create,

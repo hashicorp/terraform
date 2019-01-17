@@ -1,12 +1,12 @@
 ---
 layout: "docs"
-page_title: "Configuring Modules"
+page_title: "Modules - 0.11 Configuration Language"
 sidebar_current: "docs-conf-old-modules"
 description: |-
   Modules are used in Terraform to modularize and encapsulate groups of resources in your infrastructure. For more information on modules, see the dedicated modules section.
 ---
 
-# Module Configuration
+# Module
 
 Modules are used in Terraform to modularize and encapsulate groups of
 resources in your infrastructure. For more information on modules, see

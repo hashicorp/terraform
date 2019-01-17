@@ -1,12 +1,12 @@
 ---
 layout: "docs"
-page_title: "Configuring Data Sources"
+page_title: "Data Sources - 0.11 Configuration Language"
 sidebar_current: "docs-conf-old-data-sources"
 description: |-
   Data sources allow data to be fetched or computed for use elsewhere in Terraform configuration.
 ---
 
-# Data Source Configuration
+# Data Sources
 
 *Data sources* allow data to be fetched or computed for use elsewhere
 in Terraform configuration. Use of data sources allows a Terraform
