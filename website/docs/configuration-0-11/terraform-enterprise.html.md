@@ -1,6 +1,6 @@
 ---
 layout: "docs"
-page_title: "Configuring Terraform Push"
+page_title: "Terraform Push - 0.11 Configuration Language"
 sidebar_current: "docs-conf-old-push"
 description: |-
   Terraform's push command was a way to interact with the legacy version of Terraform Enterprise. It is not supported in the current version of Terraform Enterprise.
