@@ -9,6 +9,10 @@ description: |-
 
 # Input Variables
 
+-> **Note:** This page is about Terraform 0.11 and earlier. For Terraform 0.12
+and later, see
+[Configuration Language: Input Variables](../configuration/variables.html).
+
 Input variables serve as parameters for a Terraform module.
 
 When used in the root module of a configuration, variables can be set from CLI

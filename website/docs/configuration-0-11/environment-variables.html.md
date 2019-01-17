@@ -8,6 +8,10 @@ description: |-
 
 # Environment Variables
 
+-> **Note:** This page is about Terraform 0.11 and earlier. For Terraform 0.12
+and later, see
+[Commands: Environment Variables](../commands/environment-variables.html).
+
 ## TF_LOG
 
 If set to any value, enables detailed logs to appear on stderr which is useful for debugging. For example:
