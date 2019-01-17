@@ -8,7 +8,7 @@ description: |-
   written in the Terraform language.
 ---
 
-# Configuration
+# Configuration Language
 
 Terraform uses its own configuration language, designed to allow concise
 descriptions of infrastructure. The Terraform language is declarative,
