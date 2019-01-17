@@ -10,6 +10,10 @@ description: |-
 
 # Resources
 
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Resources](../configuration-0-11/resources.html).
+
 _Resources_ are the most important element in the Terraform language.
 Each resource block describes one or more infrastructure objects, such
 as virtual networks, compute instances, or higher-level components such

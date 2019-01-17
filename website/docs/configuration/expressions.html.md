@@ -9,6 +9,10 @@ description: |-
 
 # Expressions
 
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../configuration-0-11/interpolation.html).
+
 _Expressions_ are used to refer to or compute values within a configuration.
 The simplest expressions are just literal values, like `"hello"` or `5`,
 but the Terraform language also allows more complex expressions such as

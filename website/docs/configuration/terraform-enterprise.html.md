@@ -8,6 +8,10 @@ description: |-
 
 # Terraform Push Configuration
 
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Configuring Terraform Push](../configuration-0-11/terraform-enterprise.html).
+
 Prior to v0.12, Terraform included mechanisms to interact with a legacy version
 of Terraform Enterprise, formerly known as "Atlas".
 

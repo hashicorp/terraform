@@ -9,6 +9,10 @@ description: |-
 
 # Terraform Settings
 
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Terraform Settings](../configuration-0-11/terraform.html).
+
 The special `terraform` configuration block type is used to configure some
 behaviors of Terraform itself, such as requiring a minimum Terraform version to
 apply your configuration.
