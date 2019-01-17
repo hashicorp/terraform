@@ -8,6 +8,10 @@ description: |-
 
 # `base64encode` Function
 
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
+
 `base64encode` applies Base64 encoding to a string.
 
 Terraform uses the "standard" Base64 alphabet as defined in

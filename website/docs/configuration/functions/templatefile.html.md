@@ -9,6 +9,10 @@ description: |-
 
 # `templatefile` Function
 
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
+
 `templatefile` reads the file at the given path and renders its content
 as a template using a supplied set of template variables.
 

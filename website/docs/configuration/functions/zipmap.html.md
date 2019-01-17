@@ -9,6 +9,10 @@ description: |-
 
 # `zipmap` Function
 
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
+
 `zipmap` constructs a map from a list of keys and a corresponding list of
 values.
 

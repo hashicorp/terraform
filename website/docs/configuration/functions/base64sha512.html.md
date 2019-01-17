@@ -9,6 +9,10 @@ description: |-
 
 # `base64sha512` Function
 
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
+
 `base64sha512` computes the SHA512 hash of a given string and encodes it with
 Base64. This is not equivalent to base64encode(sha512("test")) since sha512()
 returns hexadecimal representation. 

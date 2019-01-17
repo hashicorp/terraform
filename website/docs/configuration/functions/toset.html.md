@@ -8,6 +8,10 @@ description: |-
 
 # `toset` Function
 
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
+
 `toset` converts its argument to a set value.
 
 Explicit type conversions are rarely necessary in Terraform because it will
