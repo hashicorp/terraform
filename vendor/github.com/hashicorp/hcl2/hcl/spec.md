@@ -57,10 +57,10 @@ access to the specific attributes and blocks requested.
 A _body schema_ consists of a list of _attribute schemata_ and
 _block header schemata_:
 
-* An _attribute schema_ provides the name of an attribute and whether its
+- An _attribute schema_ provides the name of an attribute and whether its
   presence is required.
 
-* A _block header schema_ provides a block type name and the semantic names
+- A _block header schema_ provides a block type name and the semantic names
   assigned to each of the labels of that block type, if any.
 
 Within a schema, it is an error to request the same attribute name twice or
@@ -72,11 +72,11 @@ a block whose type name is identical to the attribute name.
 The result of applying a body schema to a body is _body content_, which
 consists of an _attribute map_ and a _block sequence_:
 
-* The _attribute map_ is a map data structure whose keys are attribute names
+- The _attribute map_ is a map data structure whose keys are attribute names
   and whose values are _expressions_ that represent the corresponding attribute
   values.
 
-* The _block sequence_ is an ordered sequence of blocks, with each specifying
+- The _block sequence_ is an ordered sequence of blocks, with each specifying
   a block _type name_, the sequence of _labels_ specified for the block,
   and the body object (not body _content_) representing the block's own body.
 
@@ -132,13 +132,13 @@ the schema has been processed.
 
 Specifically:
 
-* Any attribute whose name is specified in the schema is returned in body
+- Any attribute whose name is specified in the schema is returned in body
   content and elided from the new body.
 
-* Any block whose type is specified in the schema is returned in body content
+- Any block whose type is specified in the schema is returned in body content
   and elided from the new body.
 
-* Any attribute or block _not_ meeting the above conditions is placed into
+- Any attribute or block _not_ meeting the above conditions is placed into
   the new body, unmodified.
 
 The new body can then be recursively processed using any of the body
@@ -168,20 +168,20 @@ In order to obtain a concrete value, each expression must be _evaluated_.
 Evaluation is performed in terms of an evaluation context, which
 consists of the following:
 
-* An _evaluation mode_, which is defined below.
-* A _variable scope_, which provides a set of named variables for use in
+- An _evaluation mode_, which is defined below.
+- A _variable scope_, which provides a set of named variables for use in
   expressions.
-* A _function table_, which provides a set of named functions for use in
+- A _function table_, which provides a set of named functions for use in
   expressions.
 
 The _evaluation mode_ allows for two different interpretations of an
 expression:
 
-* In _literal-only mode_, variables and functions are not available and it
+- In _literal-only mode_, variables and functions are not available and it
   is assumed that the calling application's intent is to treat the attribute
   value as a literal.
 
-* In _full expression mode_, variables and functions are defined and it is
+- In _full expression mode_, variables and functions are defined and it is
   assumed that the calling application wishes to provide a full expression
   language for definition of the attribute value.
 
@@ -235,15 +235,15 @@ for interpretation into any suitable number representation. An implementation
 may in practice implement numbers with limited precision so long as the
 following constraints are met:
 
-* Integers are represented with at least 256 bits.
-* Non-integer numbers are represented as floating point values with a
+- Integers are represented with at least 256 bits.
+- Non-integer numbers are represented as floating point values with a
   mantissa of at least 256 bits and a signed binary exponent of at least
   16 bits.
-* An error is produced if an integer value given in source cannot be
+- An error is produced if an integer value given in source cannot be
   represented precisely.
-* An error is produced if a non-integer value cannot be represented due to
+- An error is produced if a non-integer value cannot be represented due to
   overflow.
-* A non-integer number is rounded to the nearest possible value when a
+- A non-integer number is rounded to the nearest possible value when a
   value is of too high a precision to be represented.
 
 The _number_ type also requires representation of both positive and negative
@@ -265,11 +265,11 @@ _Structural types_ are types that are constructed by combining other types.
 Each distinct combination of other types is itself a distinct type. There
 are two structural type _kinds_:
 
-* _Object types_ are constructed of a set of named attributes, each of which
+- _Object types_ are constructed of a set of named attributes, each of which
   has a type. Attribute names are always strings. (_Object_ attributes are a
   distinct idea from _body_ attributes, though calling applications
   may choose to blur the distinction by use of common naming schemes.)
-* _Tuple types_ are constructed of a sequence of elements, each of which
+- _Tuple types_ are constructed of a sequence of elements, each of which
   has a type.
 
 Values of structural types are compared for equality in terms of their
@@ -284,9 +284,9 @@ have attributes or elements with identical types.
 _Collection types_ are types that combine together an arbitrary number of
 values of some other single type. There are three collection type _kinds_:
 
-* _List types_ represent ordered sequences of values of their element type.
-* _Map types_ represent values of their element type accessed via string keys.
-* _Set types_ represent unordered sets of distinct values of their element type.
+- _List types_ represent ordered sequences of values of their element type.
+- _Map types_ represent values of their element type accessed via string keys.
+- _Set types_ represent unordered sets of distinct values of their element type.
 
 For each of these kinds and each distinct element type there is a distinct
 collection type. For example, "list of string" is a distinct type from
@@ -376,9 +376,9 @@ a type has a non-commutative _matches_ relationship with a _type specification_.
 A type specification is, in practice, just a different interpretation of a
 type such that:
 
-* Any type _matches_ any type that it is identical to.
+- Any type _matches_ any type that it is identical to.
 
-* Any type _matches_ the dynamic pseudo-type.
+- Any type _matches_ the dynamic pseudo-type.
 
 For example, given a type specification "list of dynamic pseudo-type", the
 concrete types "list of string" and "list of map" match, but the
@@ -397,51 +397,51 @@ applications to provide functions that are interoperable with all syntaxes.
 
 A _function_ is defined from the following elements:
 
-* Zero or more _positional parameters_, each with a name used for documentation,
+- Zero or more _positional parameters_, each with a name used for documentation,
   a type specification for expected argument values, and a flag for whether
   each of null values, unknown values, and values of the dynamic pseudo-type
   are accepted.
 
-* Zero or one _variadic parameters_, with the same structure as the _positional_
+- Zero or one _variadic parameters_, with the same structure as the _positional_
   parameters, which if present collects any additional arguments provided at
   the function call site.
 
-* A _result type definition_, which specifies the value type returned for each
+- A _result type definition_, which specifies the value type returned for each
   valid sequence of argument values.
 
-* A _result value definition_, which specifies the value returned for each
+- A _result value definition_, which specifies the value returned for each
   valid sequence of argument values.
 
 A _function call_, regardless of source syntax, consists of a sequence of
 argument values. The argument values are each mapped to a corresponding
 parameter as follows:
 
-* For each of the function's positional parameters in sequence, take the next
+- For each of the function's positional parameters in sequence, take the next
   argument. If there are no more arguments, the call is erroneous.
 
-* If the function has a variadic parameter, take all remaining arguments that
+- If the function has a variadic parameter, take all remaining arguments that
   where not yet assigned to a positional parameter and collect them into
   a sequence of variadic arguments that each correspond to the variadic
   parameter.
 
-* If the function has _no_ variadic parameter, it is an error if any arguments
+- If the function has _no_ variadic parameter, it is an error if any arguments
   remain after taking one argument for each positional parameter.
 
 After mapping each argument to a parameter, semantic checking proceeds
 for each argument:
 
-* If the argument value corresponding to a parameter does not match the
+- If the argument value corresponding to a parameter does not match the
   parameter's type specification, the call is erroneous.
 
-* If the argument value corresponding to a parameter is null and the parameter
+- If the argument value corresponding to a parameter is null and the parameter
   is not specified as accepting nulls, the call is erroneous.
 
-* If the argument value corresponding to a parameter is the dynamic value
+- If the argument value corresponding to a parameter is the dynamic value
   and the parameter is not specified as accepting values of the dynamic
   pseudo-type, the call is valid but its _result type_ is forced to be the
   dynamic pseudo type.
 
-* If neither of the above conditions holds for any argument, the call is
+- If neither of the above conditions holds for any argument, the call is
   valid and the function's value type definition is used to determine the
   call's _result type_. A function _may_ vary its result type depending on
   the argument _values_ as well as the argument _types_; for example, a
@@ -450,11 +450,11 @@ for each argument:
 
 If semantic checking succeeds without error, the call is _executed_:
 
-* For each argument, if its value is unknown and its corresponding parameter
+- For each argument, if its value is unknown and its corresponding parameter
   is not specified as accepting unknowns, the _result value_ is forced to be an
   unknown value of the result type.
 
-* If the previous condition does not apply, the function's result value
+- If the previous condition does not apply, the function's result value
   definition is used to determine the call's _result value_.
 
 The result of a function call expression is either an error, if one of the
@@ -631,20 +631,20 @@ diagnostics if they are applied to inappropriate expressions.
 
 The following are the required static analysis functions:
 
-* **Static List**: Require list/tuple construction syntax to be used and
+- **Static List**: Require list/tuple construction syntax to be used and
   return a list of expressions for each of the elements given.
 
-* **Static Map**: Require map/object construction syntax to be used and
+- **Static Map**: Require map/object construction syntax to be used and
   return a list of key/value pairs -- both expressions -- for each of
   the elements given. The usual constraint that a map key must be a string
   must not apply to this analysis, thus allowing applications to interpret
   arbitrary keys as they see fit.
 
-* **Static Call**: Require function call syntax to be used and return an
+- **Static Call**: Require function call syntax to be used and return an
   object describing the called function name and a list of expressions
   representing each of the call arguments.
 
-* **Static Traversal**: Require a reference to a symbol in the variable
+- **Static Traversal**: Require a reference to a symbol in the variable
   scope and return a description of the path from the root scope to the
   accessed attribute or index.
 
@@ -670,18 +670,18 @@ with the goals of this specification.
 The language-agnosticism of this specification assumes that certain behaviors
 are implemented separately for each syntax:
 
-* Matching of a body schema with the physical elements of a body in the
+- Matching of a body schema with the physical elements of a body in the
   source language, to determine correspondence between physical constructs
   and schema elements.
 
-* Implementing the _dynamic attributes_ body processing mode by either
+- Implementing the _dynamic attributes_ body processing mode by either
   interpreting all physical constructs as attributes or producing an error
   if non-attribute constructs are present.
 
-* Providing an evaluation function for all possible expressions that produces
+- Providing an evaluation function for all possible expressions that produces
   a value given an evaluation context.
 
-* Providing the static analysis functionality described above in a manner that
+- Providing the static analysis functionality described above in a manner that
   makes sense within the convention of the syntax.
 
 The suggested implementation strategy is to use an implementation language's

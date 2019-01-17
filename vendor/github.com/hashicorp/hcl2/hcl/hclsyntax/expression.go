@@ -1235,19 +1235,6 @@ func (e *SplatExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
 		return cty.DynamicVal, diags
 	}
 
-	if sourceVal.IsNull() {
-		diags = append(diags, &hcl.Diagnostic{
-			Severity:    hcl.DiagError,
-			Summary:     "Splat of null value",
-			Detail:      "Splat expressions (with the * symbol) cannot be applied to null values.",
-			Subject:     e.Source.Range().Ptr(),
-			Context:     hcl.RangeBetween(e.Source.Range(), e.MarkerRange).Ptr(),
-			Expression:  e.Source,
-			EvalContext: ctx,
-		})
-		return cty.DynamicVal, diags
-	}
-
 	sourceTy := sourceVal.Type()
 	if sourceTy == cty.DynamicPseudoType {
 		// If we don't even know the _type_ of our source value yet then
@@ -1258,9 +1245,27 @@ func (e *SplatExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
 
 	// A "special power" of splat expressions is that they can be applied
 	// both to tuples/lists and to other values, and in the latter case
-	// the value will be treated as an implicit single-value tuple. We'll
-	// deal with that here first.
-	if !(sourceTy.IsTupleType() || sourceTy.IsListType() || sourceTy.IsSetType()) {
+	// the value will be treated as an implicit single-item tuple, or as
+	// an empty tuple if the value is null.
+	autoUpgrade := !(sourceTy.IsTupleType() || sourceTy.IsListType() || sourceTy.IsSetType())
+
+	if sourceVal.IsNull() {
+		if autoUpgrade {
+			return cty.EmptyTupleVal, diags
+		}
+		diags = append(diags, &hcl.Diagnostic{
+			Severity:    hcl.DiagError,
+			Summary:     "Splat of null value",
+			Detail:      "Splat expressions (with the * symbol) cannot be applied to null sequences.",
+			Subject:     e.Source.Range().Ptr(),
+			Context:     hcl.RangeBetween(e.Source.Range(), e.MarkerRange).Ptr(),
+			Expression:  e.Source,
+			EvalContext: ctx,
+		})
+		return cty.DynamicVal, diags
+	}
+
+	if autoUpgrade {
 		sourceVal = cty.TupleVal([]cty.Value{sourceVal})
 		sourceTy = sourceVal.Type()
 	}
