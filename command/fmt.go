@@ -11,11 +11,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/hashicorp/terraform/configs"
-
+	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+	"github.com/hashicorp/hcl2/hclwrite"
 	"github.com/mitchellh/cli"
 
-	"github.com/hashicorp/hcl2/hclwrite"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -137,6 +138,15 @@ func (c *FmtCommand) processFile(path string, r io.Reader, w io.Writer, isStdout
 	src, err := ioutil.ReadAll(r)
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("Failed to read %s", path))
+		return diags
+	}
+
+	// File must be parseable as HCL native syntax before we'll try to format
+	// it. If not, the formatter is likely to make drastic changes that would
+	// be hard for the user to undo.
+	_, syntaxDiags := hclsyntax.ParseConfig(src, path, hcl.Pos{Line: 1, Column: 1})
+	if syntaxDiags.HasErrors() {
+		diags = diags.Append(syntaxDiags)
 		return diags
 	}
 
