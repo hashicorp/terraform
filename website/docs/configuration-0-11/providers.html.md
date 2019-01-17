@@ -13,7 +13,7 @@ and later, see
 [Configuration Language: Providers](../configuration/providers.html).
 
 Providers are responsible in Terraform for managing the lifecycle
-of a [resource](/docs/configuration/resources.html): create,
+of a [resource](./resources.html): create,
 read, update, delete.
 
 Most providers require some sort of configuration to provide
@@ -26,7 +26,7 @@ the start of the resource name. For example, a resource of type
 `vsphere_virtual_machine` is associated with a provider called `vsphere`.
 
 This page assumes you're familiar with the
-[configuration syntax](/docs/configuration/syntax.html)
+[configuration syntax](./syntax.html)
 already.
 
 ## Example
@@ -194,7 +194,7 @@ child module, as described in
 
 ## Interpolation
 
-Provider configurations may use [interpolation syntax](/docs/configuration/interpolation.html)
+Provider configurations may use [interpolation syntax](./interpolation.html)
 to allow dynamic configuration:
 
 ```hcl
@@ -212,9 +212,9 @@ almost all operations within Terraform, and so it is not possible to use
 expressions whose value cannot be known until after configuration is applied,
 such as the id of a resource.
 
-It is always valid to use [input variables](/docs/configuration/variables.html)
-and [data sources](/docs/configuration/data-sources.html) whose configurations
-do not in turn depend on as-yet-unknown values. [Local values](/docs/configuration/locals.html)
+It is always valid to use [input variables](./variables.html)
+and [data sources](./data-sources.html) whose configurations
+do not in turn depend on as-yet-unknown values. [Local values](./locals.html)
 may also be used, but currently may cause errors when running `terraform destroy`.
 
 ## Third-party Plugins

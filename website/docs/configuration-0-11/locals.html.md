@@ -22,7 +22,7 @@ if [variables](./variables.html) are analogous to function arguments and
 _local values_ are comparable to a function's local variables.
 
 This page assumes you're already familiar with
-[the configuration syntax](/docs/configuration/syntax.html).
+[the configuration syntax](./syntax.html).
 
 ## Examples
 

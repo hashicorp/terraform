@@ -24,7 +24,7 @@ Most resources have attributes associated with them, and
 outputs are a way to easily extract and query that information.
 
 This page assumes you are familiar with the
-[configuration syntax](/docs/configuration/syntax.html)
+[configuration syntax](./syntax.html)
 already.
 
 ## Example
