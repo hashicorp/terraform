@@ -64,14 +64,14 @@ func (c *FmtCommand) Run(args []string) int {
 		return 1
 	}
 
-	var dirs []string
+	var paths []string
 	if len(args) == 0 {
-		dirs = []string{"."}
+		paths = []string{"."}
 	} else if args[0] == stdinArg {
 		c.list = false
 		c.write = false
 	} else {
-		dirs = []string{args[0]}
+		paths = []string{args[0]}
 	}
 
 	var output io.Writer
@@ -86,7 +86,7 @@ func (c *FmtCommand) Run(args []string) int {
 		output = &cli.UiWriter{Ui: c.Ui}
 	}
 
-	diags := c.fmt(dirs, c.input, output)
+	diags := c.fmt(paths, c.input, output)
 	c.showDiagnostics(diags)
 	if diags.HasErrors() {
 		return 2
@@ -123,8 +123,33 @@ func (c *FmtCommand) fmt(paths []string, stdin io.Reader, stdout io.Writer) tfdi
 
 	for _, path := range paths {
 		path = c.normalizePath(path)
-		dirDiags := c.processDir(path, stdout)
-		diags = diags.Append(dirDiags)
+		info, err := os.Stat(path)
+		if err != nil {
+			diags = diags.Append(fmt.Errorf("No file or directory at %s", path))
+			return diags
+		}
+		if info.IsDir() {
+			dirDiags := c.processDir(path, stdout)
+			diags = diags.Append(dirDiags)
+		} else {
+			switch filepath.Ext(path) {
+			case ".tf", ".tfvars":
+				f, err := os.Open(path)
+				if err != nil {
+					// Open does not produce error messages that are end-user-appropriate,
+					// so we'll need to simplify here.
+					diags = diags.Append(fmt.Errorf("Failed to read file %s", path))
+					continue
+				}
+
+				fileDiags := c.processFile(c.normalizePath(path), f, stdout, false)
+				diags = diags.Append(fileDiags)
+				f.Close()
+			default:
+				diags = diags.Append(fmt.Errorf("Only .tf and .tfvars files can be processed with terraform fmt"))
+				continue
+			}
+		}
 	}
 
 	return diags
