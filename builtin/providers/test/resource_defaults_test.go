@@ -66,9 +66,6 @@ resource "test_resource_defaults" "foo" {
 }
 
 func TestResourceDefaults_import(t *testing.T) {
-	// FIXME: this test fails
-	return
-
 	resource.UnitTest(t, resource.TestCase{
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckResourceDestroy,
