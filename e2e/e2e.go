@@ -48,6 +48,12 @@ func NewBinary(binaryPath, workingDir string) *binary {
 			return nil
 		}
 
+		if filepath.Base(path) == ".exists" {
+			// We use this file just to let git know the "empty" fixture
+			// exists. It is not used by any test.
+			return nil
+		}
+
 		srcFn := path
 
 		path, err = filepath.Rel(workingDir, path)
