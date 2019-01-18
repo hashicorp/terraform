@@ -3,6 +3,7 @@
 IMPROVEMENTS:
 
 * command/state: Use locking when updating states [GH-19939]
+* backend/remote: Add support for remote state only organizations [GH-20007]
 
 BUG FIXES:
 
