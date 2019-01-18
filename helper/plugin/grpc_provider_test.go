@@ -821,27 +821,6 @@ func TestCopyMissingValues(t *testing.T) {
 				}),
 			}),
 		},
-		{
-			// Recover the lost unknown key, assuming it was set to an empty
-			// string and lost.
-			Src: cty.ObjectVal(map[string]cty.Value{
-				"map": cty.MapVal(map[string]cty.Value{
-					"a": cty.StringVal("a"),
-					"b": cty.UnknownVal(cty.String),
-				}),
-			}),
-			Dst: cty.ObjectVal(map[string]cty.Value{
-				"map": cty.MapVal(map[string]cty.Value{
-					"a": cty.StringVal("a"),
-				}),
-			}),
-			Expect: cty.ObjectVal(map[string]cty.Value{
-				"map": cty.MapVal(map[string]cty.Value{
-					"a": cty.StringVal("a"),
-					"b": cty.StringVal(""),
-				}),
-			}),
-		},
 	} {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			got := copyMissingValues(tc.Dst, tc.Src)

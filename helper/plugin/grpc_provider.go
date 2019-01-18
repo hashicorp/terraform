@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"regexp"
 	"sort"
 	"strconv"
@@ -514,7 +513,17 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 		return resp, nil
 	}
 
-	if diff == nil {
+	if diff != nil {
+		// strip out non-diffs
+		for k, v := range diff.Attributes {
+			if v.New == v.Old && !v.NewComputed {
+				delete(diff.Attributes, k)
+			}
+		}
+
+	}
+
+	if diff == nil || len(diff.Attributes) == 0 {
 		// schema.Provider.Diff returns nil if it ends up making a diff with no
 		// changes, but our new interface wants us to return an actual change
 		// description that _shows_ there are no changes. This is usually the
@@ -526,13 +535,6 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 			resp.PlannedState = req.ProposedNewState
 		}
 		return resp, nil
-	}
-
-	// strip out non-diffs
-	for k, v := range diff.Attributes {
-		if v.New == v.Old && !v.NewComputed {
-			delete(diff.Attributes, k)
-		}
 	}
 
 	if priorState == nil {
@@ -549,8 +551,6 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
-
-	plannedStateVal = copyMissingValues(plannedStateVal, proposedNewStateVal)
 
 	plannedStateVal, err = block.CoerceValue(plannedStateVal)
 	if err != nil {
@@ -758,49 +758,6 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 	}
 
 	newStateVal = copyMissingValues(newStateVal, plannedStateVal)
-
-	// Cycle through the shims, to ensure that the plan will create an identical
-	// value. Errors in this block are non-fatal (and should not happen, since
-	// we've already shimmed this type), because we already have an applied value
-	// and want to return that even if a later Plan may not agree.
-	prevVal := newStateVal
-	for i := 0; ; i++ {
-
-		shimmedState, err := res.ShimInstanceStateFromValue(prevVal)
-		if err != nil {
-			log.Printf("[ERROR] failed to shim cty.Value: %s", err)
-			break
-		}
-		shimmedState.Attributes = normalizeFlatmapContainers(shimmedState.Attributes, shimmedState.Attributes, false)
-
-		tmpVal, err := hcl2shim.HCL2ValueFromFlatmap(shimmedState.Attributes, block.ImpliedType())
-		if err != nil {
-			log.Printf("[ERROR] failed to shim flatmap: %s", err)
-			break
-		}
-
-		tmpVal = copyMissingValues(tmpVal, prevVal)
-
-		// If we have the same value before and after the shimming process, we
-		// can be reasonably certain that PlanResourceChange will return the
-		// same value.
-		if tmpVal.RawEquals(prevVal) {
-			newStateVal = tmpVal
-			break
-		}
-
-		if i > 2 {
-			// This isn't fatal, since the value as actually applied.
-			log.Printf("[ERROR] hcl2shims failed to converge for value: %#v\n", newStateVal)
-			break
-		}
-
-		// The values are not the same, but we're only going to try this up to 3
-		// times before giving up. This should account for any empty nested values
-		// showing up a few levels deep.
-		prevVal = tmpVal
-	}
-
 	newStateVal = copyTimeoutValues(newStateVal, plannedStateVal)
 
 	newStateMP, err := msgpack.Marshal(newStateVal, block.ImpliedType())
@@ -1164,13 +1121,6 @@ func stripSchema(s *schema.Schema) *schema.Schema {
 // value.
 func copyMissingValues(dst, src cty.Value) cty.Value {
 	ty := dst.Type()
-
-	// In this case the provider set an empty string which was lost in
-	// conversion. Since src is unknown, there must have been a corresponding
-	// value set.
-	if ty == cty.String && dst.IsNull() && !src.IsKnown() {
-		return cty.StringVal("")
-	}
 
 	if src.IsNull() || !src.IsKnown() || !dst.IsKnown() {
 		return dst
