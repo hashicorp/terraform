@@ -12,14 +12,8 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operation) (*tfe.Run, error) {
+func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operation, w *tfe.Workspace) (*tfe.Run, error) {
 	log.Printf("[INFO] backend/remote: starting Apply operation")
-
-	// Retrieve the workspace used to run this operation in.
-	w, err := b.client.Workspaces.Read(stopCtx, b.organization, op.Workspace)
-	if err != nil {
-		return nil, generalError("error retrieving workspace", err)
-	}
 
 	if !w.Permissions.CanUpdate {
 		return nil, fmt.Errorf(strings.TrimSpace(applyErrNoUpdateRights))
@@ -237,7 +231,7 @@ https://%s/app/%s/%s/runs[reset]
 const applyDefaultHeader = `
 [reset][yellow]Running apply in the remote backend. Output will stream here. Pressing Ctrl-C
 will cancel the remote apply if its still pending. If the apply started it
-will stop streaming the logs, but will not stop the apply running remotely.
-To view this run in a browser, visit:
-https://%s/app/%s/%s/runs/%s[reset]
+will stop streaming the logs, but will not stop the apply running remotely.[reset]
+
+Preparing the remote apply...
 `
