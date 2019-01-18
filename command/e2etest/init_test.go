@@ -24,7 +24,7 @@ func TestInitProviders(t *testing.T) {
 
 	fixturePath := filepath.Join("test-fixtures", "template-provider")
 	tf := e2e.NewBinary(terraformBin, fixturePath)
-	defer tf.Close()
+	//defer tf.Close()
 
 	stdout, stderr, err := tf.Run("init")
 	if err != nil {
@@ -39,7 +39,7 @@ func TestInitProviders(t *testing.T) {
 		t.Errorf("success message is missing from output:\n%s", stdout)
 	}
 
-	if !strings.Contains(stdout, "- Downloading plugin for provider \"template\"") {
+	if !strings.Contains(stdout, "- Downloading plugin for provider \"template (terraform-providers/template)\"") {
 		t.Errorf("provider download message is missing from output:\n%s", stdout)
 		t.Logf("(this can happen if you have a copy of the plugin in one of the global plugin search dirs)")
 	}
@@ -115,7 +115,7 @@ func TestInitProviders_pluginCache(t *testing.T) {
 		t.Errorf("unexpected stderr output:\n%s", stderr)
 	}
 
-	path := fmt.Sprintf(".terraform/plugins/%s_%s/terraform-provider-template_v0.1.0_x4", runtime.GOOS, runtime.GOARCH)
+	path := fmt.Sprintf(".terraform/plugins/%s_%s/terraform-provider-template_v2.0.0_x4", runtime.GOOS, runtime.GOARCH)
 	content, err := tf.ReadFile(path)
 	if err != nil {
 		t.Fatalf("failed to read installed plugin from %s: %s", path, err)
@@ -124,17 +124,19 @@ func TestInitProviders_pluginCache(t *testing.T) {
 		t.Errorf("template plugin was not installed from local cache")
 	}
 
-	if !tf.FileExists(fmt.Sprintf(".terraform/plugins/%s_%s/terraform-provider-null_v0.1.0_x4", runtime.GOOS, runtime.GOARCH)) {
+	if !tf.FileExists(fmt.Sprintf(".terraform/plugins/%s_%s/terraform-provider-null_v2.0.0_x4", runtime.GOOS, runtime.GOARCH)) {
 		t.Errorf("null plugin was not installed")
 	}
 
-	if !tf.FileExists(fmt.Sprintf("cache/%s_%s/terraform-provider-null_v0.1.0_x4", runtime.GOOS, runtime.GOARCH)) {
+	if !tf.FileExists(fmt.Sprintf("cache/%s_%s/terraform-provider-null_v2.0.0_x4", runtime.GOOS, runtime.GOARCH)) {
 		t.Errorf("null plugin is not in cache after install")
 	}
 }
 
 func TestInit_fromModule(t *testing.T) {
 	t.Parallel()
+
+	t.Skip("cannot run this test until we have an AWS provider release supporting plugin protocol version 5")
 
 	// This test reaches out to registry.terraform.io and github.com to lookup
 	// and fetch a module.
