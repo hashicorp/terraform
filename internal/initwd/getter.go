@@ -86,6 +86,7 @@ func (g reusingGetter) getWithGoGetter(instPath, addr string) (string, error) {
 
 	realAddr, err := getter.Detect(packageAddr, instPath, getter.Detectors)
 	if err != nil {
+		log.Printf("[ERROR] failed to detect source type for %q: %s", realAddr, err)
 		return "", err
 	}
 
@@ -128,6 +129,7 @@ func (g reusingGetter) getWithGoGetter(instPath, addr string) (string, error) {
 		}
 		err = client.Get()
 		if err != nil {
+			log.Printf("[ERROR] fetching %q failed: %s", realAddr, err)
 			return "", err
 		}
 		// Remember where we installed this so we might reuse this directory
@@ -184,6 +186,17 @@ func isLocalSourceAddr(addr string) bool {
 		}
 	}
 	return false
+}
+
+func isUnqualifiedLocalSourceAddr(addr, baseDir string) bool {
+	// "unqualified local source address" basically means anything that
+	// go-getter thinks is a file that isn't caught by isLocalSourceAddr.
+	if isLocalSourceAddr(addr) {
+		return false
+	}
+
+	realAddr, _ := getter.Detect(addr, baseDir, goGetterDetectors)
+	return strings.HasPrefix(realAddr, "file:")
 }
 
 func isRegistrySourceAddr(addr string) bool {

@@ -199,6 +199,17 @@ func (i *ModuleInstaller) installDescendentModules(rootMod *tfconfig.Module, roo
 				diags = append(diags, mDiags...)
 				return mod, v, diags
 
+			case isUnqualifiedLocalSourceAddr(req.SourceAddr, instPath):
+				log.Printf("[TRACE] ModuleInstaller: %s is legacy-style unqualified local path %q", key, req.SourceAddr)
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Warning,
+					"Unqualified local source address",
+					fmt.Sprintf("Terraform is assuming that %q (from %s:%d) is intended as a local filesystem path rather than a registry address, but this form is deprecated.\n\nUse the \"./\" prefix to specify unambiguously that a relative path is intended, and not a module registry source address.", req.SourceAddr, req.CallPos.Filename, req.CallPos.Line),
+				))
+				mod, mDiags := i.installLocalModule(req, key, manifest, hooks)
+				diags = append(diags, mDiags...)
+				return mod, nil, diags
+
 			default:
 				log.Printf("[TRACE] ModuleInstaller: %s address %q will be handled by go-getter", key, req.SourceAddr)
 
@@ -476,11 +487,13 @@ func (i *ModuleInstaller) installRegistryModule(req *earlyconfig.ModuleRequest, 
 func (i *ModuleInstaller) installGoGetterModule(req *earlyconfig.ModuleRequest, key string, instPath string, manifest modsdir.Manifest, hooks ModuleInstallHooks, getter reusingGetter) (*tfconfig.Module, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
+	sourceAddr := req.SourceAddr
+
 	// Report up to the caller that we're about to start downloading.
-	packageAddr, _ := splitAddrSubdir(req.SourceAddr)
+	packageAddr, _ := splitAddrSubdir(sourceAddr)
 	hooks.Download(key, packageAddr, nil)
 
-	modDir, err := getter.getWithGoGetter(instPath, req.SourceAddr)
+	modDir, err := getter.getWithGoGetter(instPath, sourceAddr)
 	if err != nil {
 		if err, ok := err.(*MaybeRelativePathErr); ok {
 			log.Printf(
@@ -514,7 +527,7 @@ func (i *ModuleInstaller) installGoGetterModule(req *earlyconfig.ModuleRequest, 
 
 	}
 
-	log.Printf("[TRACE] ModuleInstaller: %s %q was downloaded to %s", key, req.SourceAddr, modDir)
+	log.Printf("[TRACE] ModuleInstaller: %s %q was downloaded to %s", key, sourceAddr, modDir)
 
 	mod, mDiags := earlyconfig.LoadModule(modDir)
 	if mod == nil {
@@ -536,7 +549,7 @@ func (i *ModuleInstaller) installGoGetterModule(req *earlyconfig.ModuleRequest, 
 	manifest[key] = modsdir.Record{
 		Key:        key,
 		Dir:        modDir,
-		SourceAddr: req.SourceAddr,
+		SourceAddr: req.SourceAddr, // intentionally ignoring any rewriting we did above
 	}
 	log.Printf("[DEBUG] Module installer: %s installed at %s", key, modDir)
 	hooks.Install(key, nil, modDir)
