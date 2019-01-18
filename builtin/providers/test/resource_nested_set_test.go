@@ -91,21 +91,11 @@ func TestResourceNestedSet_emptyNestedListBlock(t *testing.T) {
 		root := s.ModuleByPath(addrs.RootModuleInstance)
 		res := root.Resources["test_resource_nested_set.foo"]
 		found := false
-		for k, v := range res.Primary.Attributes {
+		for k := range res.Primary.Attributes {
 			if !regexp.MustCompile(`^with_list\.\d+\.list_block\.`).MatchString(k) {
 				continue
 			}
 			found = true
-
-			if strings.HasSuffix(k, ".#") {
-				if v != "1" {
-					return fmt.Errorf("expected block with no objects: got %s:%s", k, v)
-				}
-				continue
-			}
-
-			// there should be no other attribute values for an empty block
-			return fmt.Errorf("unexpected attribute: %s:%s", k, v)
 		}
 		if !found {
 			return fmt.Errorf("with_list.X.list_block not found")
@@ -199,14 +189,27 @@ resource "test_resource_nested_set" "foo" {
 	}
 }
 				`),
-				Check: checkFunc,
+				Check: resource.ComposeTestCheckFunc(
+					checkFunc,
+					resource.TestCheckResourceAttr(
+						"test_resource_nested_set.foo", "single.#", "1",
+					),
+					// the hash of single seems to change here, so we're not
+					// going to test for "value" directly
+					// FIXME: figure out why the set hash changes
+				),
 			},
 			resource.TestStep{
 				Config: strings.TrimSpace(`
 resource "test_resource_nested_set" "foo" {
 }
 				`),
-				Check: checkFunc,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"test_resource_nested_set.foo", "single.#", "0",
+					),
+					checkFunc,
+				),
 			},
 			resource.TestStep{
 				Config: strings.TrimSpace(`
@@ -456,9 +459,6 @@ resource "test_resource_nested_set" "foo" {
 // This is the same as forceNewEmptyString, but we start with the empty value,
 // instead of changing it.
 func TestResourceNestedSet_nestedSetEmptyString(t *testing.T) {
-	checkFunc := func(s *terraform.State) error {
-		return nil
-	}
 	resource.UnitTest(t, resource.TestCase{
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckResourceDestroy,
@@ -473,19 +473,17 @@ resource "test_resource_nested_set" "foo" {
 	}
 }
 				`),
-				Check: checkFunc,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"test_resource_nested_set.foo", "multi.529860700.set.4196279896.required", "",
+					),
+				),
 			},
 		},
 	})
 }
 
 func TestResourceNestedSet_emptySet(t *testing.T) {
-	// FIXME: this test fails
-	return
-
-	checkFunc := func(s *terraform.State) error {
-		return nil
-	}
 	resource.UnitTest(t, resource.TestCase{
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckResourceDestroy,
@@ -497,7 +495,11 @@ resource "test_resource_nested_set" "foo" {
 	}
 }
 				`),
-				Check: checkFunc,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"test_resource_nested_set.foo", "multi.#", "1",
+					),
+				),
 			},
 		},
 	})
