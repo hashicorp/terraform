@@ -108,7 +108,7 @@ For multi-environment deployment, in order to select a workspace, instead of doi
 For example:
 
 ```shell
-export TF_WORKSPACE your_workspace
+export TF_WORKSPACE=your_workspace
 ```
 
 Using this environment variable is recommended only for non-interactive usage, since in a local shell environment it can be easy to forget the variable is set and apply changes to the wrong state.
