@@ -48,10 +48,18 @@ func ParseVariableValues(vv map[string]UnparsedVariableValue, decls map[string]*
 			case terraform.ValueFromConfig, terraform.ValueFromAutoFile, terraform.ValueFromNamedFile:
 				// These source types have source ranges, so we can produce
 				// a nice error message with good context.
+				//
+				// This one is a warning for now because there is an existing
+				// pattern of providing a file containing the superset of
+				// variables across all configurations in an organization. This
+				// is deprecated in v0.12.0 because it's more important to give
+				// feedback to users who make typos. Those using this approach
+				// should migrate to using environment variables instead before
+				// this becomes an error in a future major release.
 				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
+					Severity: hcl.DiagWarning,
 					Summary:  "Value for undeclared variable",
-					Detail:   fmt.Sprintf("The root module does not declare a variable named %q. To use this value, add a \"variable\" block to the configuration.", name),
+					Detail:   fmt.Sprintf("The root module does not declare a variable named %q. To use this value, add a \"variable\" block to the configuration.\n\nUsing a variables file to set an undeclared variable is deprecated and will become an error in a future release. If you wish to provide certain \"global\" settings to all configurations in your organization, use TF_VAR_... environment variables to set these instead.", name),
 					Subject:  val.SourceRange.ToHCL().Ptr(),
 				})
 			case terraform.ValueFromEnvVar:
