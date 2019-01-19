@@ -9941,3 +9941,91 @@ func TestContext2Apply_scaleInMultivarRef(t *testing.T) {
 	_, diags = ctx.Apply()
 	assertNoErrors(t, diags)
 }
+
+// Issue 19908 was about retaining an existing object in the state when an
+// update to it fails and the provider does not return a partially-updated
+// value for it. Previously we were incorrectly removing it from the state
+// in that case, but instead it should be retained so the update can be
+// retried.
+func TestContext2Apply_issue19908(t *testing.T) {
+	m := testModule(t, "apply-issue19908")
+	p := testProvider("test")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test": {
+				Attributes: map[string]*configschema.Attribute{
+					"baz": {Type: cty.String, Required: true},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
+	}
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+		var diags tfdiags.Diagnostics
+		diags = diags.Append(fmt.Errorf("update failed"))
+		return providers.ApplyResourceChangeResponse{
+			Diagnostics: diags,
+		}
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		State: states.BuildState(func(s *states.SyncState) {
+			s.SetResourceInstanceCurrent(
+				addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "test",
+					Name: "foo",
+				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+				&states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"baz":"old"}`),
+					Status:    states.ObjectReady,
+				},
+				addrs.ProviderConfig{
+					Type: "test",
+				}.Absolute(addrs.RootModuleInstance),
+			)
+		}),
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
+	}
+
+	state, diags := ctx.Apply()
+	if !diags.HasErrors() {
+		t.Fatalf("apply succeeded; want error")
+	}
+	if got, want := diags.Err().Error(), "update failed"; !strings.Contains(got, want) {
+		t.Fatalf("wrong error\ngot: %s\nshould contain: %s", got, want)
+	}
+
+	mod := state.RootModule()
+	rs := mod.Resources["test.foo"]
+	if rs == nil {
+		t.Fatalf("test.foo not in state after apply, but should be")
+	}
+	is := rs.Instances[addrs.NoKey]
+	if is == nil {
+		t.Fatalf("test.foo not in state after apply, but should be")
+	}
+	obj := is.Current
+	if obj == nil {
+		t.Fatalf("test.foo has no current object in state after apply, but should do")
+	}
+
+	if got, want := obj.Status, states.ObjectReady; got != want {
+		t.Errorf("test.foo has wrong status %s after apply; want %s", got, want)
+	}
+	if got, want := obj.AttrsJSON, []byte(`"old"`); !bytes.Contains(got, want) {
+		t.Errorf("test.foo attributes JSON doesn't contain %s after apply\ngot: %s", want, got)
+	}
+}

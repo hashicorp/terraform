@@ -88,11 +88,28 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	// incomplete.
 	newVal := resp.NewState
 
-	// newVal should never be cty.NilVal in a real case, but it can happen
-	// sometimes in sloppy mocks in tests where error diagnostics are returned
-	// and the mock implementation doesn't populate the value at all.
 	if newVal == cty.NilVal {
-		newVal = cty.NullVal(schema.ImpliedType())
+		// Providers are supposed to return a partial new value even when errors
+		// occur, but sometimes they don't and so in that case we'll patch that up
+		// by just using the prior state, so we'll at least keep track of the
+		// object for the user to retry.
+		newVal = change.Before
+
+		// As a special case, we'll set the new value to null if it looks like
+		// we were trying to execute a delete, because the provider in this case
+		// probably left the newVal unset intending it to be interpreted as "null".
+		if change.After.IsNull() {
+			newVal = cty.NullVal(schema.ImpliedType())
+		}
+
+		// Ideally we'd produce an error or warning here if newVal is nil and
+		// there are no errors in diags, because that indicates a buggy
+		// provider not properly reporting its result, but unfortunately many
+		// of our historical test mocks behave in this way and so producing
+		// a diagnostic here fails hundreds of tests. Instead, we must just
+		// silently retain the old value for now. Returning a nil value with
+		// no errors is still always considered a bug in the provider though,
+		// and should be fixed for any "real" providers that do it.
 	}
 
 	var conformDiags tfdiags.Diagnostics
@@ -101,7 +118,7 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 			tfdiags.Error,
 			"Provider produced invalid object",
 			fmt.Sprintf(
-				"Provider %q planned an invalid value after apply for %s. The result cannot not be saved in the Terraform state.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				"Provider %q produced an invalid value after apply for %s. The result cannot not be saved in the Terraform state.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
 				n.ProviderAddr.ProviderConfig.Type, tfdiags.FormatErrorPrefixed(err, absAddr.String()),
 			),
 		))
@@ -158,7 +175,7 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	// we still want to save that but it often causes some confusing behaviors
 	// where it seems like Terraform is failing to take any action at all,
 	// so we'll generate some errors to draw attention to it.
-	if !applyDiags.HasErrors() {
+	if !diags.HasErrors() {
 		if change.Action == plans.Delete && !newVal.IsNull() {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
