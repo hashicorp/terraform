@@ -146,6 +146,7 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 		}
 
 		var before, after []byte
+		var afterUnknown cty.Value
 		if changeV.Before != cty.NilVal {
 			before, err = ctyjson.Marshal(changeV.Before, changeV.Before.Type())
 			if err != nil {
@@ -158,28 +159,37 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 				if err != nil {
 					return err
 				}
+				afterUnknown, _ = cty.Transform(changeV.After, func(path cty.Path, val cty.Value) (cty.Value, error) {
+					if val.IsNull() {
+						return cty.False, nil
+					}
+
+					if !val.Type().IsPrimitiveType() {
+						return val, nil // just pass through non-primitives; they already contain our transform results
+					}
+
+					if val.IsKnown() {
+						// null rather than false here so that known values
+						// don't appear at all in JSON serialization of our result
+						return cty.False, nil
+					}
+
+					return cty.True, nil
+				})
+			} else {
+				filteredAfter := omitUnknowns(changeV.After)
+				after, err = ctyjson.Marshal(filteredAfter, filteredAfter.Type())
+				if err != nil {
+					return err
+				}
+				afterUnknown = unknownAsBool(changeV.After)
 			}
 		}
 
-		afterUnknown, _ := cty.Transform(changeV.After, func(path cty.Path, val cty.Value) (cty.Value, error) {
-			if val.IsNull() {
-				return cty.False, nil
-			}
-
-			if !val.Type().IsPrimitiveType() {
-				return val, nil // just pass through non-primitives; they already contain our transform results
-			}
-
-			if val.IsKnown() {
-				// null rather than false here so that known values
-				// don't appear at all in JSON serialization of our result
-				return cty.False, nil
-			}
-
-			return cty.True, nil
-		})
-
-		a, _ := ctyjson.Marshal(afterUnknown, afterUnknown.Type())
+		a, err := ctyjson.Marshal(afterUnknown, afterUnknown.Type())
+		if err != nil {
+			return err
+		}
 
 		r.Change = change{
 			Actions:      []string{rc.Action.String()},
@@ -281,4 +291,144 @@ func (p *plan) marshalPlannedValues(changes *plans.Changes, schemas *terraform.S
 	p.PlannedValues.Outputs = outputs
 
 	return nil
+}
+
+// omitUnknowns recursively walks the src cty.Value and returns a new cty.Value,
+// omitting any unknowns.
+func omitUnknowns(val cty.Value) cty.Value {
+	if val.IsWhollyKnown() {
+		return val
+	}
+
+	ty := val.Type()
+	switch {
+	case val.IsNull():
+		return val
+	case !val.IsKnown():
+		return cty.NilVal
+	case ty.IsListType() || ty.IsTupleType() || ty.IsSetType():
+		if val.LengthInt() == 0 {
+			return val
+		}
+
+		var vals []cty.Value
+		it := val.ElementIterator()
+		for it.Next() {
+			_, v := it.Element()
+			newVal := omitUnknowns(v)
+			if newVal != cty.NilVal {
+				vals = append(vals, newVal)
+			}
+		}
+		if len(vals) == 0 {
+			return cty.NilVal
+		}
+		switch {
+		case ty.IsListType():
+			return cty.ListVal(vals)
+		case ty.IsTupleType():
+			return cty.TupleVal(vals)
+		default:
+			return cty.SetVal(vals)
+		}
+	case ty.IsMapType() || ty.IsObjectType():
+		var length int
+		switch {
+		case ty.IsMapType():
+			length = val.LengthInt()
+		default:
+			length = len(val.Type().AttributeTypes())
+		}
+		if length == 0 {
+			// If there are no elements then we can't have unknowns
+			return val
+		}
+		vals := make(map[string]cty.Value)
+		it := val.ElementIterator()
+		for it.Next() {
+			k, v := it.Element()
+			newVal := omitUnknowns(v)
+			if newVal != cty.NilVal {
+				vals[k.AsString()] = newVal
+			}
+		}
+
+		if len(vals) == 0 {
+			return cty.NilVal
+		}
+
+		switch {
+		case ty.IsMapType():
+			return cty.MapVal(vals)
+		default:
+			return cty.ObjectVal(vals)
+		}
+	}
+
+	return val
+}
+
+// recursively iterate through a cty.Value, replacing known values (including
+// null) with cty.True and unknown values with cty.False.
+//
+// TODO:
+// In the future, we may choose to only return unknown values. At that point,
+// this will need to convert lists/sets into tuples and maps into objects, so
+// that the result will have a valid type.
+func unknownAsBool(val cty.Value) cty.Value {
+	ty := val.Type()
+	switch {
+	case val.IsNull():
+		return cty.False
+	case !val.IsKnown():
+		return cty.True
+	case ty.IsPrimitiveType():
+		return cty.BoolVal(!val.IsKnown())
+	case ty.IsListType() || ty.IsTupleType() || ty.IsSetType():
+		length := val.LengthInt()
+		if length == 0 {
+			// If there are no elements then we can't have unknowns
+			return cty.False
+		}
+		vals := make([]cty.Value, 0, length)
+		it := val.ElementIterator()
+		for it.Next() {
+			_, v := it.Element()
+			vals = append(vals, unknownAsBool(v))
+		}
+		switch {
+		case ty.IsListType():
+			return cty.ListVal(vals)
+		case ty.IsTupleType():
+			return cty.TupleVal(vals)
+		default:
+			return cty.SetVal(vals)
+		}
+	case ty.IsMapType() || ty.IsObjectType():
+		var length int
+		switch {
+		case ty.IsMapType():
+			length = val.LengthInt()
+		default:
+			length = len(val.Type().AttributeTypes())
+		}
+		if length == 0 {
+			// If there are no elements then we can't have unknowns
+			return cty.False
+		}
+		vals := make(map[string]cty.Value, length)
+		it := val.ElementIterator()
+		for it.Next() {
+			k, v := it.Element()
+			vals[k.AsString()] = unknownAsBool(v)
+		}
+		switch {
+		case ty.IsMapType():
+			return cty.MapVal(vals)
+		default:
+			return cty.ObjectVal(vals)
+		}
+	}
+
+	return val
 }

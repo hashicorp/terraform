@@ -35,6 +35,9 @@
                 "after_unknown": {
                     "ami": false,
                     "id": true
+                },
+                "after": {
+                    "ami": "bar"
                 }
             }
         }
