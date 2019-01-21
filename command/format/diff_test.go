@@ -1382,6 +1382,47 @@ func TestResourceChange_map(t *testing.T) {
     }
 `,
 		},
+		"update to unknown element": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-STATIC"),
+				"map_field": cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("aaaa"),
+					"b": cty.StringVal("bbbb"),
+					"c": cty.StringVal("cccc"),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.UnknownVal(cty.String),
+				"ami": cty.StringVal("ami-STATIC"),
+				"map_field": cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("aaaa"),
+					"b": cty.UnknownVal(cty.String),
+					"c": cty.StringVal("cccc"),
+				}),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":        {Type: cty.String, Optional: true, Computed: true},
+					"ami":       {Type: cty.String, Optional: true},
+					"map_field": {Type: cty.Map(cty.String), Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+        ami       = "ami-STATIC"
+      ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ map_field = {
+            "a" = "aaaa"
+          ~ "b" = "bbbb" -> (known after apply)
+            "c" = "cccc"
+        }
+    }
+`,
+		},
 	}
 	runTestCases(t, testCases)
 }
