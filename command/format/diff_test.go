@@ -722,6 +722,92 @@ func TestResourceChange_primitiveList(t *testing.T) {
     }
 `,
 		},
+		"update to unknown element": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-STATIC"),
+				"list_field": cty.ListVal([]cty.Value{
+					cty.StringVal("aaaa"),
+					cty.StringVal("bbbb"),
+					cty.StringVal("cccc"),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.UnknownVal(cty.String),
+				"ami": cty.StringVal("ami-STATIC"),
+				"list_field": cty.ListVal([]cty.Value{
+					cty.StringVal("aaaa"),
+					cty.UnknownVal(cty.String),
+					cty.StringVal("cccc"),
+				}),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":         {Type: cty.String, Optional: true, Computed: true},
+					"ami":        {Type: cty.String, Optional: true},
+					"list_field": {Type: cty.List(cty.String), Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+        ami        = "ami-STATIC"
+      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ list_field = [
+            "aaaa",
+          - "bbbb",
+          + (known after apply),
+            "cccc",
+        ]
+    }
+`,
+		},
+		"update - two new unknown elements": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-STATIC"),
+				"list_field": cty.ListVal([]cty.Value{
+					cty.StringVal("aaaa"),
+					cty.StringVal("bbbb"),
+					cty.StringVal("cccc"),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.UnknownVal(cty.String),
+				"ami": cty.StringVal("ami-STATIC"),
+				"list_field": cty.ListVal([]cty.Value{
+					cty.StringVal("aaaa"),
+					cty.UnknownVal(cty.String),
+					cty.UnknownVal(cty.String),
+					cty.StringVal("cccc"),
+				}),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":         {Type: cty.String, Optional: true, Computed: true},
+					"ami":        {Type: cty.String, Optional: true},
+					"list_field": {Type: cty.List(cty.String), Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+        ami        = "ami-STATIC"
+      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ list_field = [
+            "aaaa",
+          - "bbbb",
+          + (known after apply),
+          + (known after apply),
+            "cccc",
+        ]
+    }
+`,
+		},
 	}
 	runTestCases(t, testCases)
 }
