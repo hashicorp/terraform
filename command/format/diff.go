@@ -377,6 +377,9 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 			var action plans.Action
 			var oldValue, newValue cty.Value
 			switch {
+			case !val.IsKnown():
+				action = plans.Update
+				newValue = val
 			case !old.HasElement(val).True():
 				action = plans.Create
 				oldValue = cty.NullVal(val.Type())
@@ -697,7 +700,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 			for it := new.ElementIterator(); it.Next(); {
 				_, val := it.Element()
 				allVals = append(allVals, val)
-				if old.HasElement(val).False() {
+				if val.IsKnown() && old.HasElement(val).False() {
 					addedVals = append(addedVals, val)
 				}
 			}
@@ -726,6 +729,8 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 
 				var action plans.Action
 				switch {
+				case !val.IsKnown():
+					action = plans.Update
 				case added.HasElement(val).True():
 					action = plans.Create
 				case removed.HasElement(val).True():
@@ -1062,7 +1067,7 @@ func ctyObjectSimilarity(old, new cty.Value) float64 {
 }
 
 func ctyEqualWithUnknown(old, new cty.Value) bool {
-	if !old.IsKnown() || !new.IsKnown() {
+	if !old.IsWhollyKnown() || !new.IsWhollyKnown() {
 		return false
 	}
 	return old.Equals(new).True()
