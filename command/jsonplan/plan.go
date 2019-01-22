@@ -381,7 +381,10 @@ func unknownAsBool(val cty.Value) cty.Value {
 	case val.IsNull():
 		return cty.False
 	case !val.IsKnown():
-		return cty.True
+		if ty.IsPrimitiveType() || ty.Equals(cty.DynamicPseudoType) {
+			return cty.True
+		}
+		fallthrough
 	case ty.IsPrimitiveType():
 		return cty.BoolVal(!val.IsKnown())
 	case ty.IsListType() || ty.IsTupleType() || ty.IsSetType():
@@ -416,7 +419,7 @@ func unknownAsBool(val cty.Value) cty.Value {
 			// If there are no elements then we can't have unknowns
 			return cty.False
 		}
-		vals := make(map[string]cty.Value, length)
+		vals := make(map[string]cty.Value)
 		it := val.ElementIterator()
 		for it.Next() {
 			k, v := it.Element()
