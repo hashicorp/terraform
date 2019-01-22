@@ -38,7 +38,7 @@ func TestOmitUnknowns(t *testing.T) {
 		},
 		{
 			cty.ListVal([]cty.Value{cty.UnknownVal(cty.String)}),
-			cty.NilVal,
+			cty.ListVal([]cty.Value{cty.NullVal(cty.String)}),
 		},
 		{
 			cty.ListVal([]cty.Value{cty.StringVal("hello")}),
@@ -51,6 +51,7 @@ func TestOmitUnknowns(t *testing.T) {
 				cty.UnknownVal(cty.String)}),
 			cty.ListVal([]cty.Value{
 				cty.StringVal("hello"),
+				cty.NullVal(cty.String),
 			}),
 		},
 		{

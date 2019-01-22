@@ -169,8 +169,6 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 					}
 
 					if val.IsKnown() {
-						// null rather than false here so that known values
-						// don't appear at all in JSON serialization of our result
 						return cty.False, nil
 					}
 
@@ -318,6 +316,9 @@ func omitUnknowns(val cty.Value) cty.Value {
 			newVal := omitUnknowns(v)
 			if newVal != cty.NilVal {
 				vals = append(vals, newVal)
+			} else if newVal == cty.NilVal && ty.IsListType() {
+				// list length may be significant, so we will turn unknowns into nulls
+				vals = append(vals, cty.NullVal(v.Type()))
 			}
 		}
 		if len(vals) == 0 {
