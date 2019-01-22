@@ -564,6 +564,20 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 
 	plannedStateVal = copyTimeoutValues(plannedStateVal, proposedNewStateVal)
 
+	// The old SDK code has some inprecisions that cause it to sometimes
+	// generate differences that the SDK itself does not consider significant
+	// but Terraform Core would. To avoid producing weird do-nothing diffs
+	// in that case, we'll check if the provider as produced something we
+	// think is "equivalent" to the prior state and just return the prior state
+	// itself if so, thus ensuring that Terraform Core will treat this as
+	// a no-op. See the docs for ValuesSDKEquivalent for some caveats on its
+	// accuracy.
+	forceNoChanges := false
+	if hcl2shim.ValuesSDKEquivalent(priorStateVal, plannedStateVal) {
+		plannedStateVal = priorStateVal
+		forceNoChanges = true
+	}
+
 	plannedMP, err := msgpack.Marshal(plannedStateVal, block.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
@@ -600,9 +614,11 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 	// collect the attributes that require instance replacement, and convert
 	// them to cty.Paths.
 	var requiresNew []string
-	for attr, d := range diff.Attributes {
-		if d.RequiresNew {
-			requiresNew = append(requiresNew, attr)
+	if !forceNoChanges {
+		for attr, d := range diff.Attributes {
+			if d.RequiresNew {
+				requiresNew = append(requiresNew, attr)
+			}
 		}
 	}
 
