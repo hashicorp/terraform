@@ -29,7 +29,7 @@
             "deposed": true,
             "change": {
                 "actions": [
-                    "Create"
+                    "create"
                 ],
                 "before": null,
                 "after_unknown": {
@@ -45,7 +45,7 @@
     "output_changes": {
         "test": {
             "actions": [
-                "Create"
+                "create"
             ],
             "before": null,
             "after": "bar",

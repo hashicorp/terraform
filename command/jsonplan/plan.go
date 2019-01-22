@@ -192,7 +192,7 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 		}
 
 		r.Change = change{
-			Actions:      []string{rc.Action.String()},
+			Actions:      actionString(rc.Action.String()),
 			Before:       json.RawMessage(before),
 			After:        json.RawMessage(after),
 			AfterUnknown: a,
@@ -263,7 +263,7 @@ func (p *plan) marshalOutputChanges(changes *plans.Changes) error {
 		a, _ := ctyjson.Marshal(afterUnknown, afterUnknown.Type())
 
 		c := change{
-			Actions:      []string{oc.Action.String()},
+			Actions:      actionString(oc.Action.String()),
 			Before:       json.RawMessage(before),
 			After:        json.RawMessage(after),
 			AfterUnknown: a,
@@ -434,4 +434,25 @@ func unknownAsBool(val cty.Value) cty.Value {
 	}
 
 	return val
+}
+
+func actionString(action string) []string {
+	switch {
+	case action == "NoOp":
+		return []string{"no-op"}
+	case action == "Create":
+		return []string{"create"}
+	case action == "Delete":
+		return []string{"delete"}
+	case action == "Update":
+		return []string{"update"}
+	case action == "CreateThenDelete":
+		return []string{"create", "delete"}
+	case action == "Read":
+		return []string{"read"}
+	case action == "DeleteThenCreate":
+		return []string{"delete", "create"}
+	default:
+		return []string{action}
+	}
 }

@@ -33,7 +33,7 @@
             "deposed": true,
             "change": {
                 "actions": [
-                    "NoOp"
+                    "no-op"
                 ],
                 "before": {
                     "ami": "bar",
@@ -53,7 +53,7 @@
     "output_changes": {
         "test": {
             "actions": [
-                "Create"
+                "create"
             ],
             "before": null,
             "after": "bar",
