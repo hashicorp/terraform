@@ -2267,12 +2267,12 @@ func TestContext2Plan_computedMultiIndex(t *testing.T) {
 		case "aws_instance.foo[0]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"ip":  cty.UnknownVal(cty.List(cty.String)),
-				"foo": cty.ListValEmpty(cty.String),
+				"foo": cty.NullVal(cty.List(cty.String)),
 			}), ric.After)
 		case "aws_instance.foo[1]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"ip":  cty.UnknownVal(cty.List(cty.String)),
-				"foo": cty.ListValEmpty(cty.String),
+				"foo": cty.NullVal(cty.List(cty.String)),
 			}), ric.After)
 		case "aws_instance.bar[0]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
