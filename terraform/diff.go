@@ -497,7 +497,8 @@ func (d *InstanceDiff) blockDiff(path []string, attrs map[string]string, schema 
 
 		// we can only trust the diff for sets, since the path changes, so don't
 		// count existing values as candidate keys. If it turns out we're
-		// keeping the
+		// keeping the attributes, we will check catch it down below with
+		// "keepBlock" after we check the set count.
 		if block.Nesting != configschema.NestingSet {
 			for k := range attrs {
 				if strings.HasPrefix(k, blockKey) {
