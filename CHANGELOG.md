@@ -40,6 +40,7 @@ BUG FIXES:
 * backend/local: Render CBD replacement (+/-) correctly [GH-19642]
 * command/format: Fix rendering of nested blocks during update [GH-19611]
 * command/format: Fix rendering of force-new updates [GH-19609]
+* command/format: Fix rendering of unknown elements in set/map/list [GH-20067]
 * command/init: Fix plugin installer using wrong protocol causing incompatiable API version with plugin [GH-19221]
 * command/providers: Support `-no-color` argument to `terraform providers`, which was previously incorrectly returning an error [GH-19671]
 * helper/schema: Fix setting a set in a list [GH-19552]
