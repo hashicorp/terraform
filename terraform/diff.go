@@ -554,12 +554,10 @@ func (d *InstanceDiff) blockDiff(path []string, attrs map[string]string, schema 
 					}
 
 					// this must be a diff to keep
-
 					keep = true
 					break
 				}
 				if !keep {
-
 					delete(candidateKeys, k)
 				}
 			}
@@ -772,7 +770,7 @@ func (d *InstanceDiff) applyCollectionDiff(path []string, attrs map[string]strin
 
 	// Don't trust helper/schema to return a valid count, or even have one at
 	// all.
-	result[idx] = countFlatmapContainerValues(name+"."+idx, result)
+	result[name+"."+idx] = countFlatmapContainerValues(name+"."+idx, result)
 	return result, nil
 }
 
