@@ -2,12 +2,19 @@ package hcl2shim
 
 import (
 	"fmt"
+	"math/big"
 	"testing"
 
 	"github.com/zclconf/go-cty/cty"
 )
 
 func TestValuesSDKEquivalent(t *testing.T) {
+	piBig, _, err := big.ParseFloat("3.14159265358979323846264338327950288419716939937510582097494459", 10, 512, big.ToZero)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pi64, _ := piBig.Float64()
+
 	tests := []struct {
 		A, B cty.Value
 		Want bool
@@ -53,6 +60,21 @@ func TestValuesSDKEquivalent(t *testing.T) {
 		{
 			cty.NullVal(cty.Number),
 			cty.Zero,
+			true,
+		},
+		{
+			cty.NumberVal(piBig),
+			cty.Zero,
+			false,
+		},
+		{
+			cty.NumberFloatVal(pi64),
+			cty.Zero,
+			false,
+		},
+		{
+			cty.NumberFloatVal(pi64),
+			cty.NumberVal(piBig),
 			true,
 		},
 
