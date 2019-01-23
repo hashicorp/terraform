@@ -513,16 +513,6 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 		return resp, nil
 	}
 
-	if diff != nil {
-		// strip out non-diffs
-		for k, v := range diff.Attributes {
-			if v.New == v.Old && !v.NewComputed {
-				delete(diff.Attributes, k)
-			}
-		}
-
-	}
-
 	if diff == nil || len(diff.Attributes) == 0 {
 		// schema.Provider.Diff returns nil if it ends up making a diff with no
 		// changes, but our new interface wants us to return an actual change
@@ -966,6 +956,8 @@ func normalizeFlatmapContainers(prior map[string]string, attrs map[string]string
 		// schema.
 		if isCount(k) && v == "1" {
 			ones[k] = true
+			// make sure we don't have the same key under both categories.
+			delete(zeros, k)
 		}
 	}
 

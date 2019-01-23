@@ -66,7 +66,8 @@ resource "test_resource_defaults" "foo" {
 }
 
 func TestResourceDefaults_import(t *testing.T) {
-	// FIXME: this test fails
+	// FIXME: The ReadResource after ImportResourceState sin't returning the
+	// complete state, yet the later refresh does.
 	return
 
 	resource.UnitTest(t, resource.TestCase{

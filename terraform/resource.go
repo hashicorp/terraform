@@ -297,14 +297,14 @@ func newResourceConfigShimmedComputedKeys(obj cty.Value, schema *configschema.Bl
 			i := 0
 			for it := blockVal.ElementIterator(); it.Next(); i++ {
 				_, subVal := it.Element()
-				subPrefix := fmt.Sprintf("%s%d.", prefix, i)
+				subPrefix := fmt.Sprintf("%s.%s%d.", typeName, prefix, i)
 				keys := newResourceConfigShimmedComputedKeys(subVal, &blockS.Block, subPrefix)
 				ret = append(ret, keys...)
 			}
 		case configschema.NestingMap:
 			for it := blockVal.ElementIterator(); it.Next(); {
 				subK, subVal := it.Element()
-				subPrefix := fmt.Sprintf("%s%s.", prefix, subK.AsString())
+				subPrefix := fmt.Sprintf("%s.%s%s.", typeName, prefix, subK.AsString())
 				keys := newResourceConfigShimmedComputedKeys(subVal, &blockS.Block, subPrefix)
 				ret = append(ret, keys...)
 			}
