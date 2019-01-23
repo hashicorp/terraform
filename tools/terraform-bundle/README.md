@@ -32,6 +32,15 @@ $ go install ./tools/terraform-bundle
 This will install `terraform-bundle` in `$GOPATH/bin`, which is assumed by
 the rest of this README to be in `PATH`.
 
+`terraform-bundle` is a repackaging of the module installation functionality
+from Terraform itself, so for best results you should build from the tag
+relating to the version of Terraform you plan to use. There is some slack in
+this requirement due to the fact that the module installation behavior changes
+rarely, but please note that in particular bundles for versions of
+Terraform before v0.12 must be built from a `terraform-bundle` built against
+a Terraform v0.11 tag at the latest, since Terraform v0.12 installs plugins
+in a different way that is not compatible.
+
 ## Usage
 
 `terraform-bundle` uses a simple configuration file to define what should

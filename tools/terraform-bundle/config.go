@@ -8,6 +8,8 @@ import (
 	"github.com/hashicorp/terraform/plugin/discovery"
 )
 
+var zeroTwelve = discovery.ConstraintStr(">= 0.12.0").MustParse()
+
 type Config struct {
 	Terraform TerraformConfig                      `hcl:"terraform"`
 	Providers map[string][]discovery.ConstraintStr `hcl:"providers"`
@@ -42,8 +44,13 @@ func (c *Config) validate() error {
 		return fmt.Errorf("terraform.version is required")
 	}
 
-	if _, err := c.Terraform.Version.Parse(); err != nil {
+	var v discovery.Version
+	var err error
+	if v, err = c.Terraform.Version.Parse(); err != nil {
 		return fmt.Errorf("terraform.version: %s", err)
+	}
+	if !zeroTwelve.Allows(v) {
+		return fmt.Errorf("this version of terraform-bundle can only build bundles for Terraform v0.12 and later; build terraform-bundle from the v0.11 branch or a v0.11.* tag to construct bundles for earlier versions")
 	}
 
 	if c.Providers == nil {

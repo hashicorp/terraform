@@ -33,15 +33,13 @@
 package main
 
 import (
+	"io/ioutil"
 	"log"
 	"os"
 
-	"io/ioutil"
-
+	tfversion "github.com/hashicorp/terraform/version"
 	"github.com/mitchellh/cli"
 )
-
-const Version = "0.0.1"
 
 func main() {
 	ui := &cli.ColoredUi{
@@ -64,7 +62,7 @@ func main() {
 		log.SetOutput(ioutil.Discard)
 	}
 
-	c := cli.NewCLI("terraform-bundle", Version)
+	c := cli.NewCLI("terraform-bundle", tfversion.Version)
 	c.Args = os.Args[1:]
 	c.Commands = map[string]cli.CommandFactory{
 		"package": func() (cli.Command, error) {
