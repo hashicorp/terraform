@@ -95,7 +95,8 @@ func marshalAttributeValues(value cty.Value, schema *configschema.Block) attribu
 	it := value.ElementIterator()
 	for it.Next() {
 		k, v := it.Element()
-		ret[k.AsString()] = v
+		vJSON, _ := ctyjson.Marshal(v, v.Type())
+		ret[k.AsString()] = json.RawMessage(vJSON)
 	}
 	return ret
 }
@@ -107,7 +108,7 @@ func newState() *state {
 	}
 }
 
-// Marshal returns the json encoding of a terraform plan.
+// Marshal returns the json encoding of a terraform state.
 func Marshal(s *states.State, schemas *terraform.Schemas) ([]byte, error) {
 	if s.Empty() {
 		return nil, nil
@@ -121,7 +122,7 @@ func Marshal(s *states.State, schemas *terraform.Schemas) ([]byte, error) {
 		return nil, err
 	}
 
-	ret, err := json.Marshal(output)
+	ret, err := json.MarshalIndent(output, "", "  ")
 	return ret, err
 }
 

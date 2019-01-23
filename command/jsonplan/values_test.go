@@ -42,7 +42,7 @@ func TestMarshalAttributeValues(t *testing.T) {
 					},
 				},
 			},
-			attributeValues{"foo": cty.StringVal("bar")},
+			attributeValues{"foo": json.RawMessage(`"bar"`)},
 		},
 		{
 			cty.ObjectVal(map[string]cty.Value{
@@ -56,7 +56,7 @@ func TestMarshalAttributeValues(t *testing.T) {
 					},
 				},
 			},
-			attributeValues{"foo": cty.NullVal(cty.String)},
+			attributeValues{"foo": json.RawMessage(`null`)},
 		},
 		{
 			cty.ObjectVal(map[string]cty.Value{
@@ -81,13 +81,8 @@ func TestMarshalAttributeValues(t *testing.T) {
 				},
 			},
 			attributeValues{
-				"bar": cty.MapVal(map[string]cty.Value{
-					"hello": cty.StringVal("world"),
-				}),
-				"baz": cty.ListVal([]cty.Value{
-					cty.StringVal("goodnight"),
-					cty.StringVal("moon"),
-				}),
+				"bar": json.RawMessage(`{"hello":"world"}`),
+				"baz": json.RawMessage(`["goodnight","moon"]`),
 			},
 		},
 	}
@@ -96,7 +91,7 @@ func TestMarshalAttributeValues(t *testing.T) {
 		got := marshalAttributeValues(test.Attr, test.Schema)
 		eq := reflect.DeepEqual(got, test.Want)
 		if !eq {
-			t.Fatalf("wrong result:\nGot: %v\nWant: %#v\n", got, test.Want)
+			t.Fatalf("wrong result:\nGot: %#v\nWant: %#v\n", got, test.Want)
 		}
 	}
 }
@@ -223,8 +218,9 @@ func TestMarshalPlanResources(t *testing.T) {
 				ProviderName:  "test",
 				SchemaVersion: 1,
 				AttributeValues: attributeValues{
-					"woozles": cty.StringVal("baz"),
-					"foozles": cty.StringVal("bat"),
+
+					"woozles": json.RawMessage(`"baz"`),
+					"foozles": json.RawMessage(`"bat"`),
 				},
 			}},
 			Err: false,

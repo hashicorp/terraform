@@ -7,7 +7,22 @@
                 "value": "bar"
             }
         },
-        "root_module": {}
+        "root_module": {
+            "resources": [
+                {
+                    "address": "test_instance.test",
+                    "mode": "managed",
+                    "type": "test_instance",
+                    "name": "test",
+                    "provider_name": "test",
+                    "schema_version": 0,
+                    "values": {
+                        "ami": "bar",
+                        "id": null
+                    }
+                }
+            ]
+        }
     },
     "resource_changes": [
         {
@@ -18,7 +33,7 @@
             "deposed": true,
             "change": {
                 "actions": [
-                    "NoOp"
+                    "no-op"
                 ],
                 "before": {
                     "ami": "bar",
@@ -38,7 +53,7 @@
     "output_changes": {
         "test": {
             "actions": [
-                "Create"
+                "create"
             ],
             "before": null,
             "after": "bar",

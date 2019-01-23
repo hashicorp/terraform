@@ -114,9 +114,9 @@ func marshalProviderConfigs(
 		return
 	}
 
-	for _, pc := range c.Module.ProviderConfigs {
+	for k, pc := range c.Module.ProviderConfigs {
 		schema := schemas.ProviderConfig(pc.Name)
-		m[pc.Name] = providerConfig{
+		m[k] = providerConfig{
 			Name:          pc.Name,
 			Alias:         pc.Alias,
 			ModuleAddress: c.Path.String(),
