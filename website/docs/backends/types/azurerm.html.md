@@ -122,6 +122,7 @@ data "terraform_remote_state" "foo" {
     access_key = "abcdefghijklmnopqrstuvwxyz0123456789..."
   }
 }
+```
 
 When authenticating using a SAS Token associated with the Storage Account:
 
