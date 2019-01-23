@@ -60,6 +60,8 @@ func ValuesSDKEquivalent(a, b cty.Value) bool {
 		return valuesSDKEquivalentMappings(a, b)
 	case aTy.IsObjectType() && bTy.IsObjectType():
 		return valuesSDKEquivalentMappings(a, b)
+	case aTy == cty.Number && bTy == cty.Number:
+		return valuesSDKEquivalentNumbers(a, b)
 	default:
 		// We've now covered all the interesting cases, so anything that falls
 		// down here cannot be equivalent.
@@ -174,4 +176,39 @@ func valuesSDKEquivalentMappings(a, b cty.Value) bool {
 		}
 	}
 	return true
+}
+
+// valuesSDKEquivalentNumbers decides equivalence for two number values based
+// on the fact that the SDK uses int and float64 representations while
+// cty (and thus Terraform Core) uses big.Float, and so we expect to lose
+// precision in the round-trip.
+//
+// This does _not_ attempt to allow for an epsilon difference that may be
+// caused by accumulated innacuracy in a float calculation, under the
+// expectation that providers generally do not actually do compuations on
+// floats and instead just pass string representations of them on verbatim
+// to remote APIs. A remote API _itself_ may introduce inaccuracy, but that's
+// a problem for the provider itself to deal with, based on its knowledge of
+// the remote system, e.g. using DiffSuppressFunc.
+func valuesSDKEquivalentNumbers(a, b cty.Value) bool {
+	if a.RawEquals(b) {
+		return true // easy
+	}
+
+	af := a.AsBigFloat()
+	bf := b.AsBigFloat()
+
+	if af.IsInt() != bf.IsInt() {
+		return false
+	}
+	if af.IsInt() && bf.IsInt() {
+		return false // a.RawEquals(b) test above is good enough for integers
+	}
+
+	// The SDK supports only int and float64, so if it's not an integer
+	// we know that only a float64-level of precision can possibly be
+	// significant.
+	af64, _ := af.Float64()
+	bf64, _ := bf.Float64()
+	return af64 == bf64
 }
