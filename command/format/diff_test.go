@@ -286,7 +286,7 @@ func TestResourceChange_JSON(t *testing.T) {
     }
 `,
 		},
-		"in-place update": {
+		"in-place update of object": {
 			Action: plans.Update,
 			Mode:   addrs.ManagedResourceMode,
 			Before: cty.ObjectVal(map[string]cty.Value{
@@ -761,6 +761,45 @@ func TestResourceChange_JSON(t *testing.T) {
                     },
                 ]
             }
+        )
+    }
+`,
+		},
+		"in-place update from object to tuple": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":         cty.StringVal("i-02ae66f368e8518a9"),
+				"json_field": cty.StringVal(`{"aaa": [42, {"foo":"bar"}, "value"]}`),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":         cty.UnknownVal(cty.String),
+				"json_field": cty.StringVal(`["aaa", 42, "something"]`),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":         {Type: cty.String, Optional: true, Computed: true},
+					"json_field": {Type: cty.String, Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ json_field = jsonencode(
+          ~ {
+              - aaa = [
+                  - 42,
+                  - {
+                      - foo = "bar"
+                    },
+                  - "value",
+                ]
+            } -> [
+              + "aaa",
+              + 42,
+              + "something",
+            ]
         )
     }
 `,

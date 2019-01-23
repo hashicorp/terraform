@@ -556,6 +556,7 @@ func (p *blockBodyDiffPrinter) writeValue(val cty.Value, action plans.Action, in
 
 func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, path cty.Path) {
 	ty := old.Type()
+	typesEqual := ctyTypesEqual(ty, new.Type())
 
 	// We have some specialized diff implementations for certain complex
 	// values where it's useful to see a visualization of the diff of
@@ -563,7 +564,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 	// new values verbatim.
 	// However, these specialized implementations can apply only if both
 	// values are known and non-null.
-	if old.IsKnown() && new.IsKnown() && !old.IsNull() && !new.IsNull() {
+	if old.IsKnown() && new.IsKnown() && !old.IsNull() && !new.IsNull() && typesEqual {
 		switch {
 		case ty == cty.String:
 			// We have special behavior for both multi-line strings in general
@@ -1058,6 +1059,19 @@ func ctyEqualWithUnknown(old, new cty.Value) bool {
 		return false
 	}
 	return old.Equals(new).True()
+}
+
+// ctyTypesEqual checks equality of two types more loosely
+// by avoiding checks of object/tuple elements
+// as we render differences on element-by-element basis anyway
+func ctyTypesEqual(oldT, newT cty.Type) bool {
+	if oldT.IsObjectType() && newT.IsObjectType() {
+		return true
+	}
+	if oldT.IsTupleType() && newT.IsTupleType() {
+		return true
+	}
+	return oldT.Equals(newT)
 }
 
 func ctyEnsurePathCapacity(path cty.Path, minExtra int) cty.Path {
