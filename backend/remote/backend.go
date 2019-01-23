@@ -214,6 +214,17 @@ func (b *Remote) Configure(obj cty.Value) tfdiags.Diagnostics {
 	// Discover the service URL for this host to confirm that it provides
 	// a remote backend API and to get the version constraints.
 	service, constraints, err := b.discover()
+
+	// First check any contraints we might have received.
+	if constraints != nil {
+		diags = diags.Append(b.checkConstraints(constraints))
+		if diags.HasErrors() {
+			return diags
+		}
+	}
+
+	// When we don't have any constraints errors, also check for discovery
+	// errors before we continue.
 	if err != nil {
 		diags = diags.Append(tfdiags.AttributeValue(
 			tfdiags.Error,
@@ -221,15 +232,6 @@ func (b *Remote) Configure(obj cty.Value) tfdiags.Diagnostics {
 			"", // no description is needed here, the error is clear
 			cty.Path{cty.GetAttrStep{Name: "hostname"}},
 		))
-	}
-
-	// Check any retrieved constraints to make sure we are compatible.
-	if constraints != nil {
-		diags = diags.Append(b.checkConstraints(constraints))
-	}
-
-	// Return if we have any discovery of version constraints errors.
-	if diags.HasErrors() {
 		return diags
 	}
 
@@ -391,8 +393,19 @@ func (b *Remote) checkConstraints(c *disco.Constraints) tfdiags.Diagnostics {
 		return diags.Append(checkConstraintsWarning(err))
 	}
 
-	var action, toVersion string
 	var excludes []*version.Version
+	for _, exclude := range c.Excluding {
+		v, err := version.NewVersion(exclude)
+		if err != nil {
+			return diags.Append(checkConstraintsWarning(err))
+		}
+		excludes = append(excludes, v)
+	}
+
+	// Sort all the excludes.
+	sort.Sort(version.Collection(excludes))
+
+	var action, toVersion string
 	switch {
 	case minimum.GreaterThan(v):
 		action = "upgrade"
@@ -400,18 +413,7 @@ func (b *Remote) checkConstraints(c *disco.Constraints) tfdiags.Diagnostics {
 	case maximum.LessThan(v):
 		action = "downgrade"
 		toVersion = "<= " + maximum.String()
-	case len(c.Excluding) > 0:
-		for _, exclude := range c.Excluding {
-			v, err := version.NewVersion(exclude)
-			if err != nil {
-				return diags.Append(checkConstraintsWarning(err))
-			}
-			excludes = append(excludes, v)
-		}
-
-		// Sort all the excludes.
-		sort.Sort(version.Collection(excludes))
-
+	case len(excludes) > 0:
 		// Get the latest excluded version.
 		action = "upgrade"
 		toVersion = "> " + excludes[len(excludes)-1].String()
