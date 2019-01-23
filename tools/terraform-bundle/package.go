@@ -135,6 +135,7 @@ func (c *PackageCommand) Run(args []string) int {
 
 	if err != nil {
 		c.ui.Error(fmt.Sprintf("Failed to fetch core package from %s: %s", coreZipURL, err))
+		return 1
 	}
 
 	c.ui.Info(fmt.Sprintf("Fetching 3rd party plugins in directory: %s", pluginDir))
