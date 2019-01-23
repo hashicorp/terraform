@@ -132,11 +132,6 @@ func ResourceChange(
 	return buf.String()
 }
 
-type ctyValueDiff struct {
-	Action plans.Action
-	Value  cty.Value
-}
-
 type blockBodyDiffPrinter struct {
 	buf             *bytes.Buffer
 	color           *colorstring.Colorize
@@ -648,31 +643,21 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 
 			diffLines := ctySequenceDiff(oldLines, newLines)
 			for _, diffLine := range diffLines {
-				line := diffLine.Value.AsString()
+				p.buf.WriteString(strings.Repeat(" ", indent+2))
+				p.writeActionSymbol(diffLine.Action)
+
 				switch diffLine.Action {
+				case plans.NoOp, plans.Delete:
+					p.buf.WriteString(diffLine.Before.AsString())
 				case plans.Create:
-					p.buf.WriteString(strings.Repeat(" ", indent+2))
-					p.buf.WriteString(p.color.Color("[green]+[reset] "))
-					p.buf.WriteString(line)
-					p.buf.WriteString("\n")
-				case plans.Delete:
-					p.buf.WriteString(strings.Repeat(" ", indent+2))
-					p.buf.WriteString(p.color.Color("[red]-[reset] "))
-					p.buf.WriteString(line)
-					p.buf.WriteString("\n")
-				case plans.NoOp:
-					p.buf.WriteString(strings.Repeat(" ", indent+2))
-					p.buf.WriteString(p.color.Color("  "))
-					p.buf.WriteString(line)
-					p.buf.WriteString("\n")
+					p.buf.WriteString(diffLine.After.AsString())
 				default:
 					// Should never happen since the above covers all
-					// actions that ctySequenceDiff can return.
-					p.buf.WriteString(strings.Repeat(" ", indent+2))
-					p.buf.WriteString(p.color.Color("? "))
-					p.buf.WriteString(line)
-					p.buf.WriteString("\n")
+					// actions that ctySequenceDiff can return for strings
+					p.buf.WriteString(diffLine.After.AsString())
+
 				}
+				p.buf.WriteString("\n")
 			}
 
 			p.buf.WriteString(strings.Repeat(" ", indent)) // +4 here because there's no symbol
@@ -752,27 +737,24 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 			}
 			p.buf.WriteString("\n")
 
-			if ty.IsTupleType() && ty.Length() > 0 && ty.TupleElementType(0).IsObjectType() {
-				elemDiffs := ctyObjectSequenceDiff(old.AsValueSlice(), new.AsValueSlice(), 0)
-				for _, elemDiff := range elemDiffs {
-					p.buf.WriteString(strings.Repeat(" ", indent+2))
-					p.writeActionSymbol(elemDiff.Action)
-					if elemDiff.Action == plans.NoOp {
-						p.writeValue(elemDiff.Before, elemDiff.Action, indent+4)
-					} else {
-						p.writeValueDiff(elemDiff.Before, elemDiff.After, indent+4, path)
-					}
+			elemDiffs := ctySequenceDiff(old.AsValueSlice(), new.AsValueSlice())
+			for _, elemDiff := range elemDiffs {
+				p.buf.WriteString(strings.Repeat(" ", indent+2))
+				p.writeActionSymbol(elemDiff.Action)
+				switch elemDiff.Action {
+				case plans.NoOp, plans.Delete:
+					p.writeValue(elemDiff.Before, elemDiff.Action, indent+4)
+				case plans.Update:
+					p.writeValueDiff(elemDiff.Before, elemDiff.After, indent+4, path)
+				case plans.Create:
+					p.writeValue(elemDiff.After, elemDiff.Action, indent+4)
+				default:
+					// Should never happen since the above covers all
+					// actions that ctySequenceDiff can return.
+					p.writeValue(elemDiff.After, elemDiff.Action, indent+4)
+				}
 
-					p.buf.WriteString(",\n")
-				}
-			} else {
-				elemDiffs := ctySequenceDiff(old.AsValueSlice(), new.AsValueSlice())
-				for _, elemDiff := range elemDiffs {
-					p.buf.WriteString(strings.Repeat(" ", indent+2))
-					p.writeActionSymbol(elemDiff.Action)
-					p.writeValue(elemDiff.Value, elemDiff.Action, indent+4)
-					p.buf.WriteString(",\n")
-				}
+				p.buf.WriteString(",\n")
 			}
 
 			p.buf.WriteString(strings.Repeat(" ", indent))
@@ -934,16 +916,14 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 		}
 	}
 
-	// Avoid printing null -> "known"
-	if !old.IsNull() {
-		// In all other cases, we just show the new and old values as-is
-		p.writeValue(old, plans.Delete, indent)
-		if new.IsNull() {
-			p.buf.WriteString(p.color.Color(" [dark_gray]->[reset] "))
-		} else {
-			p.buf.WriteString(p.color.Color(" [yellow]->[reset] "))
-		}
+	// In all other cases, we just show the new and old values as-is
+	p.writeValue(old, plans.Delete, indent)
+	if new.IsNull() {
+		p.buf.WriteString(p.color.Color(" [dark_gray]->[reset] "))
+	} else {
+		p.buf.WriteString(p.color.Color(" [yellow]->[reset] "))
 	}
+
 	p.writeValue(new, plans.Create, indent)
 	if p.pathForcesNewResource(path) {
 		p.buf.WriteString(p.color.Color(forcesNewResourceCaption))
@@ -1021,68 +1001,24 @@ func ctyCollectionValues(val cty.Value) []cty.Value {
 	return ret
 }
 
-func ctySequenceDiff(old, new []cty.Value) []ctyValueDiff {
-	var ret []ctyValueDiff
-	lcs := objchange.LongestCommonSubsequence(old, new)
-	var oldI, newI, lcsI int
-	for oldI < len(old) || newI < len(new) || lcsI < len(lcs) {
-		for oldI < len(old) && (lcsI >= len(lcs) || !old[oldI].RawEquals(lcs[lcsI])) {
-			ret = append(ret, ctyValueDiff{
-				Action: plans.Delete,
-				Value:  old[oldI],
-			})
-			oldI++
-		}
-		for newI < len(new) && (lcsI >= len(lcs) || !new[newI].RawEquals(lcs[lcsI])) {
-			ret = append(ret, ctyValueDiff{
-				Action: plans.Create,
-				Value:  new[newI],
-			})
-			newI++
-		}
-		if lcsI < len(lcs) {
-			ret = append(ret, ctyValueDiff{
-				Action: plans.NoOp,
-				Value:  new[newI],
-			})
-
-			// All of our indexes advance together now, since the line
-			// is common to all three sequences.
-			lcsI++
-			oldI++
-			newI++
-		}
-	}
-	return ret
-}
-
-// ctyObjectSequenceDiff is a variant of ctySequenceDiff that only works for
-// values of object types. Whereas ctySequenceDiff can only return Create
-// and Delete actions, this function can additionally return Update actions
-// heuristically based on similarity of objects in the lists, which must
-// be greater than or equal to the caller-specified threshold.
-//
-// See ctyObjectSimilarity for details on what "similarity" means here.
-func ctyObjectSequenceDiff(old, new []cty.Value, threshold float64) []*plans.Change {
+// ctySequenceDiff returns differences between given sequences of cty.Value(s)
+// in the form of Create, Delete, or Update actions (for objects).
+func ctySequenceDiff(old, new []cty.Value) []*plans.Change {
 	var ret []*plans.Change
 	lcs := objchange.LongestCommonSubsequence(old, new)
 	var oldI, newI, lcsI int
 	for oldI < len(old) || newI < len(new) || lcsI < len(lcs) {
 		for oldI < len(old) && (lcsI >= len(lcs) || !old[oldI].RawEquals(lcs[lcsI])) {
-			if newI < len(new) {
-				// See if the next "new" is similar enough to our "old" that
-				// we'll treat this as an Update rather than a Delete/Create.
-				similarity := ctyObjectSimilarity(old[oldI], new[newI])
-				if similarity >= threshold {
-					ret = append(ret, &plans.Change{
-						Action: plans.Update,
-						Before: old[oldI],
-						After:  new[newI],
-					})
-					oldI++
-					newI++ // we also consume the next "new" in this case
-					continue
-				}
+			isObjectDiff := old[oldI].Type().IsObjectType() && new[newI].Type().IsObjectType()
+			if isObjectDiff && newI < len(new) {
+				ret = append(ret, &plans.Change{
+					Action: plans.Update,
+					Before: old[oldI],
+					After:  new[newI],
+				})
+				oldI++
+				newI++ // we also consume the next "new" in this case
+				continue
 			}
 
 			ret = append(ret, &plans.Change{
@@ -1115,48 +1051,6 @@ func ctyObjectSequenceDiff(old, new []cty.Value, threshold float64) []*plans.Cha
 		}
 	}
 	return ret
-}
-
-// ctyObjectSimilarity returns a number between 0 and 1 that describes
-// approximately how similar the two given values are, comparing in terms of
-// how many of the corresponding attributes have the same value in both
-// objects.
-//
-// This function expects the two values to have a similar set of attribute
-// names, though doesn't mind if the two slightly differ since it will
-// count missing attributes as differences.
-//
-// This function will panic if either of the given values is not an object.
-func ctyObjectSimilarity(old, new cty.Value) float64 {
-	oldType := old.Type()
-	newType := new.Type()
-	attrNames := make(map[string]struct{})
-	for name := range oldType.AttributeTypes() {
-		attrNames[name] = struct{}{}
-	}
-	for name := range newType.AttributeTypes() {
-		attrNames[name] = struct{}{}
-	}
-
-	matches := 0
-
-	for name := range attrNames {
-		if !oldType.HasAttribute(name) {
-			continue
-		}
-		if !newType.HasAttribute(name) {
-			continue
-		}
-		eq := old.GetAttr(name).Equals(new.GetAttr(name))
-		if !eq.IsKnown() {
-			continue
-		}
-		if eq.True() {
-			matches++
-		}
-	}
-
-	return float64(matches) / float64(len(attrNames))
 }
 
 func ctyEqualWithUnknown(old, new cty.Value) bool {
