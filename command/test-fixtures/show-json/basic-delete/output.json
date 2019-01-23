@@ -17,8 +17,8 @@
                     "provider_name": "test",
                     "schema_version": 0,
                     "values": {
-                        "ami": {},
-                        "id": {}
+                        "ami": "bar",
+                        "id": null
                     }
                 }
             ]
@@ -33,7 +33,7 @@
             "deposed": true,
             "change": {
                 "actions": [
-                    "Update"
+                    "update"
                 ],
                 "before": {
                     "ami": "foo",
@@ -57,7 +57,7 @@
             "deposed": true,
             "change": {
                 "actions": [
-                    "Delete"
+                    "delete"
                 ],
                 "before": {
                     "ami": "foo",
@@ -71,7 +71,7 @@
     "output_changes": {
         "test": {
             "actions": [
-                "Create"
+                "create"
             ],
             "before": null,
             "after": "bar",

@@ -154,7 +154,7 @@ func TestShow_state(t *testing.T) {
 	}
 }
 
-func TestPlan_json_output(t *testing.T) {
+func TestShow_json_output(t *testing.T) {
 	fixtureDir := "test-fixtures/show-json"
 	testDirs, err := ioutil.ReadDir(fixtureDir)
 	if err != nil {
