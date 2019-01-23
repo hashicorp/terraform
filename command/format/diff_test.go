@@ -240,6 +240,35 @@ new line
     }
 `,
 		},
+		"update with equal sensitive field": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":       cty.StringVal("blah"),
+				"str":      cty.StringVal("before"),
+				"password": cty.StringVal("top-secret"),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":       cty.UnknownVal(cty.String),
+				"str":      cty.StringVal("after"),
+				"password": cty.StringVal("top-secret"),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":       {Type: cty.String, Computed: true},
+					"str":      {Type: cty.String, Optional: true},
+					"password": {Type: cty.String, Optional: true, Sensitive: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ id       = "blah" -> (known after apply)
+        password = (sensitive value)
+      ~ str      = "before" -> "after"
+    }
+`,
+		},
 	}
 
 	runTestCases(t, testCases)
