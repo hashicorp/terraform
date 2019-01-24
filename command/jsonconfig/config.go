@@ -224,8 +224,15 @@ func marshalResources(resources map[string]*configs.Resource, schemas *terraform
 			}
 		}
 
-		schema, schemaVersion := schemas.ResourceTypeConfig(v.ProviderConfigAddr().String(), v.Mode, v.Type)
-		r.SchemaVersion = schemaVersion
+		schema, schemaVer := schemas.ResourceTypeConfig(
+			v.ProviderConfigAddr().StringCompact(),
+			v.Mode,
+			v.Type,
+		)
+		if schema == nil {
+			return nil, fmt.Errorf("no schema found for %s", v.Addr().String())
+		}
+		r.SchemaVersion = schemaVer
 
 		r.Expressions = marshalExpressions(v.Config, schema)
 
