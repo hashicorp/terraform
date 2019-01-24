@@ -72,7 +72,7 @@ func unmarshalPrimitive(tok json.Token, t cty.Type, path cty.Path) (cty.Value, e
 		}
 		switch v := tok.(type) {
 		case string:
-			val, err := convert.Convert(cty.StringVal(v), t)
+			val, err := cty.ParseNumberVal(v)
 			if err != nil {
 				return cty.NilVal, path.NewError(err)
 			}
