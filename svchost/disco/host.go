@@ -30,8 +30,8 @@ type Constraints struct {
 	Service   string   `json:"service"`
 	Product   string   `json:"product"`
 	Minimum   string   `json:"minimum"`
-	Excluding []string `json:"excluding"`
 	Maximum   string   `json:"maximum"`
+	Excluding []string `json:"excluding"`
 }
 
 // ErrServiceNotProvided is returned when the service is not provided.
