@@ -83,7 +83,7 @@ type configOutput struct {
 }
 
 type provisioner struct {
-	Name        string                 `json:"name,omitempty"`
+	Type        string                 `json:"type,omitempty"`
 	Expressions map[string]interface{} `json:"expressions,omitempty"`
 }
 
@@ -242,7 +242,7 @@ func marshalResources(resources map[string]*configs.Resource, schemas *terraform
 			for _, p := range v.Managed.Provisioners {
 				schema := schemas.ProvisionerConfig(p.Type)
 				prov := provisioner{
-					Name:        p.Type,
+					Type:        p.Type,
 					Expressions: marshalExpressions(p.Config, schema),
 				}
 				provisioners = append(provisioners, prov)

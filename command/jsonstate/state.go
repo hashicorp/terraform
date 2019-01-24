@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -22,8 +23,9 @@ const FormatVersion = "0.1"
 // state is the top-level representation of the json format of a terraform
 // state.
 type state struct {
-	FormatVersion string      `json:"format_version,omitempty"`
-	Values        stateValues `json:"values,omitempty"`
+	FormatVersion    string      `json:"format_version,omitempty"`
+	TerraformVersion string      `json:"terraform_version"`
+	Values           stateValues `json:"values,omitempty"`
 }
 
 // stateValues is the common representation of resolved values for both the prior
@@ -109,15 +111,16 @@ func newState() *state {
 }
 
 // Marshal returns the json encoding of a terraform state.
-func Marshal(s *states.State, schemas *terraform.Schemas) ([]byte, error) {
-	if s.Empty() {
+func Marshal(sf *statefile.File, schemas *terraform.Schemas) ([]byte, error) {
+	if sf == nil || sf.State.Empty() {
 		return nil, nil
 	}
 
 	output := newState()
+	output.TerraformVersion = sf.TerraformVersion.String()
 
 	// output.StateValues
-	err := output.marshalStateValues(s, schemas)
+	err := output.marshalStateValues(sf.State, schemas)
 	if err != nil {
 		return nil, err
 	}
