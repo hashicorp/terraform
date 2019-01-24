@@ -176,9 +176,13 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 				})
 			} else {
 				filteredAfter := omitUnknowns(changeV.After)
-				after, err = ctyjson.Marshal(filteredAfter, filteredAfter.Type())
-				if err != nil {
-					return err
+				if filteredAfter.IsNull() {
+					after = nil
+				} else {
+					after, err = ctyjson.Marshal(filteredAfter, filteredAfter.Type())
+					if err != nil {
+						return err
+					}
 				}
 				afterUnknown = unknownAsBool(changeV.After)
 			}
