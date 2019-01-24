@@ -4,6 +4,7 @@ IMPROVEMENTS:
 
 * command/state: Use locking when updating states [GH-19939]
 * backend/remote: Add support for remote state only organizations [GH-20007]
+* backend/remote: Make sure the correct error is shown when having version incompatibilities [GH-20086]
 
 BUG FIXES:
 
