@@ -697,13 +697,6 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 		}
 	}
 
-	// strip out non-diffs
-	for k, v := range diff.Attributes {
-		if v.New == v.Old && !v.NewComputed && !v.NewRemoved {
-			delete(diff.Attributes, k)
-		}
-	}
-
 	// add NewExtra Fields that may have been stored in the private data
 	if newExtra := private[newExtraKey]; newExtra != nil {
 		for k, v := range newExtra.(map[string]interface{}) {

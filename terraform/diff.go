@@ -454,10 +454,10 @@ func (d *InstanceDiff) Apply(attrs map[string]string, schema *configschema.Block
 		return result, nil
 	}
 
-	return d.blockDiff(nil, attrs, schema)
+	return d.applyBlockDiff(nil, attrs, schema)
 }
 
-func (d *InstanceDiff) blockDiff(path []string, attrs map[string]string, schema *configschema.Block) (map[string]string, error) {
+func (d *InstanceDiff) applyBlockDiff(path []string, attrs map[string]string, schema *configschema.Block) (map[string]string, error) {
 	result := map[string]string{}
 
 	name := ""
@@ -554,19 +554,17 @@ func (d *InstanceDiff) blockDiff(path []string, attrs map[string]string, schema 
 					}
 
 					// this must be a diff to keep
-
 					keep = true
 					break
 				}
 				if !keep {
-
 					delete(candidateKeys, k)
 				}
 			}
 		}
 
 		for k := range candidateKeys {
-			newAttrs, err := d.blockDiff(append(path, n, k), attrs, &block.Block)
+			newAttrs, err := d.applyBlockDiff(append(path, n, k), attrs, &block.Block)
 			if err != nil {
 				return result, err
 			}
@@ -737,12 +735,29 @@ func (d *InstanceDiff) applyCollectionDiff(path []string, attrs map[string]strin
 	}
 
 	// collect all the keys from the diff and the old state
+	noDiff := true
 	keys := map[string]bool{}
 	for k := range d.Attributes {
+		if !strings.HasPrefix(k, currentKey+".") {
+			continue
+		}
+		noDiff = false
 		keys[k] = true
 	}
+
+	noAttrs := true
 	for k := range attrs {
+		if !strings.HasPrefix(k, currentKey+".") {
+			continue
+		}
+		noAttrs = false
 		keys[k] = true
+	}
+
+	// If there's no diff and no attrs, then there's no value at all.
+	// This prevents an unexpected zero-count attribute in the attributes.
+	if noDiff && noAttrs {
+		return result, nil
 	}
 
 	idx := "#"
@@ -751,10 +766,6 @@ func (d *InstanceDiff) applyCollectionDiff(path []string, attrs map[string]strin
 	}
 
 	for k := range keys {
-		if !strings.HasPrefix(k, currentKey+".") {
-			continue
-		}
-
 		// generate an schema placeholder for the values
 		elSchema := &configschema.Attribute{
 			Type: attrSchema.Type.ElementType(),
@@ -772,7 +783,7 @@ func (d *InstanceDiff) applyCollectionDiff(path []string, attrs map[string]strin
 
 	// Don't trust helper/schema to return a valid count, or even have one at
 	// all.
-	result[idx] = countFlatmapContainerValues(name+"."+idx, result)
+	result[name+"."+idx] = countFlatmapContainerValues(name+"."+idx, result)
 	return result, nil
 }
 

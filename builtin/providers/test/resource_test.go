@@ -24,9 +24,95 @@ resource "test_resource" "foo" {
 	}
 }
 				`),
-				Check: func(s *terraform.State) error {
-					return nil
-				},
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckNoResourceAttr(
+						"test_resource.foo", "list.#",
+					),
+				),
+			},
+		},
+	})
+}
+
+func TestResource_changedList(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+	required = "yep"
+	required_map = {
+	    key = "value"
+	}
+}
+				`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckNoResourceAttr(
+						"test_resource.foo", "list.#",
+					),
+				),
+			},
+			{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+	required = "yep"
+	required_map = {
+	    key = "value"
+	}
+	list = ["a"]
+}
+				`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"test_resource.foo", "list.#", "1",
+					),
+					resource.TestCheckResourceAttr(
+						"test_resource.foo", "list.0", "a",
+					),
+				),
+			},
+			{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+	required = "yep"
+	required_map = {
+	    key = "value"
+	}
+	list = ["a", "b"]
+}
+				`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"test_resource.foo", "list.#", "2",
+					),
+					resource.TestCheckResourceAttr(
+						"test_resource.foo", "list.0", "a",
+					),
+					resource.TestCheckResourceAttr(
+						"test_resource.foo", "list.1", "b",
+					),
+				),
+			},
+			{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+	required = "yep"
+	required_map = {
+	    key = "value"
+	}
+	list = ["b"]
+}
+				`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"test_resource.foo", "list.#", "1",
+					),
+					resource.TestCheckResourceAttr(
+						"test_resource.foo", "list.0", "b",
+					),
+				),
 			},
 		},
 	})
@@ -165,9 +251,6 @@ resource "test_resource" "foo" {
   }
 }
 				`),
-				Check: func(s *terraform.State) error {
-					return nil
-				},
 			},
 			resource.TestStep{
 				Config: strings.TrimSpace(`
