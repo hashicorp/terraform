@@ -1,8 +1,6 @@
 package convert
 
 import (
-	"math/big"
-
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -30,11 +28,11 @@ var primitiveConversionsSafe = map[cty.Type]map[cty.Type]conversion{
 var primitiveConversionsUnsafe = map[cty.Type]map[cty.Type]conversion{
 	cty.String: {
 		cty.Number: func(val cty.Value, path cty.Path) (cty.Value, error) {
-			f, _, err := big.ParseFloat(val.AsString(), 10, 512, big.ToNearestEven)
+			v, err := cty.ParseNumberVal(val.AsString())
 			if err != nil {
 				return cty.NilVal, path.NewErrorf("a number is required")
 			}
-			return cty.NumberVal(f), nil
+			return v, nil
 		},
 		cty.Bool: func(val cty.Value, path cty.Path) (cty.Value, error) {
 			switch val.AsString() {

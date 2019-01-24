@@ -2,7 +2,6 @@ package msgpack
 
 import (
 	"bytes"
-	"math/big"
 
 	"github.com/vmihailenco/msgpack"
 	msgpackCodes "github.com/vmihailenco/msgpack/codes"
@@ -113,12 +112,11 @@ func unmarshalPrimitive(dec *msgpack.Decoder, ty cty.Type, path cty.Path) (cty.V
 			if err != nil {
 				return cty.DynamicVal, path.NewErrorf("number is required")
 			}
-			bf := &big.Float{}
-			_, _, err = bf.Parse(rv, 10)
+			v, err := cty.ParseNumberVal(rv)
 			if err != nil {
 				return cty.DynamicVal, path.NewErrorf("number is required")
 			}
-			return cty.NumberVal(bf), nil
+			return v, nil
 		}
 	case cty.String:
 		rv, err := dec.DecodeString()
