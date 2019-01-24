@@ -61,68 +61,69 @@ func listVariableValueToStringSlice(values []ast.Variable) ([]string, error) {
 // Funcs is the mapping of built-in functions for configuration.
 func Funcs() map[string]ast.Function {
 	return map[string]ast.Function{
-		"abs":          interpolationFuncAbs(),
-		"basename":     interpolationFuncBasename(),
-		"base64decode": interpolationFuncBase64Decode(),
-		"base64encode": interpolationFuncBase64Encode(),
-		"base64gzip":   interpolationFuncBase64Gzip(),
-		"base64sha256": interpolationFuncBase64Sha256(),
-		"base64sha512": interpolationFuncBase64Sha512(),
-		"bcrypt":       interpolationFuncBcrypt(),
-		"ceil":         interpolationFuncCeil(),
-		"chomp":        interpolationFuncChomp(),
-		"cidrhost":     interpolationFuncCidrHost(),
-		"cidrnetmask":  interpolationFuncCidrNetmask(),
-		"cidrsubnet":   interpolationFuncCidrSubnet(),
-		"coalesce":     interpolationFuncCoalesce(),
-		"coalescelist": interpolationFuncCoalesceList(),
-		"compact":      interpolationFuncCompact(),
-		"concat":       interpolationFuncConcat(),
-		"contains":     interpolationFuncContains(),
-		"dirname":      interpolationFuncDirname(),
-		"distinct":     interpolationFuncDistinct(),
-		"element":      interpolationFuncElement(),
-		"chunklist":    interpolationFuncChunklist(),
-		"file":         interpolationFuncFile(),
-		"matchkeys":    interpolationFuncMatchKeys(),
-		"flatten":      interpolationFuncFlatten(),
-		"floor":        interpolationFuncFloor(),
-		"format":       interpolationFuncFormat(),
-		"formatlist":   interpolationFuncFormatList(),
-		"indent":       interpolationFuncIndent(),
-		"index":        interpolationFuncIndex(),
-		"join":         interpolationFuncJoin(),
-		"jsonencode":   interpolationFuncJSONEncode(),
-		"length":       interpolationFuncLength(),
-		"list":         interpolationFuncList(),
-		"log":          interpolationFuncLog(),
-		"lower":        interpolationFuncLower(),
-		"map":          interpolationFuncMap(),
-		"max":          interpolationFuncMax(),
-		"md5":          interpolationFuncMd5(),
-		"merge":        interpolationFuncMerge(),
-		"min":          interpolationFuncMin(),
-		"pathexpand":   interpolationFuncPathExpand(),
-		"pow":          interpolationFuncPow(),
-		"uuid":         interpolationFuncUUID(),
-		"replace":      interpolationFuncReplace(),
-		"rsadecrypt":   interpolationFuncRsaDecrypt(),
-		"sha1":         interpolationFuncSha1(),
-		"sha256":       interpolationFuncSha256(),
-		"sha512":       interpolationFuncSha512(),
-		"signum":       interpolationFuncSignum(),
-		"slice":        interpolationFuncSlice(),
-		"sort":         interpolationFuncSort(),
-		"split":        interpolationFuncSplit(),
-		"substr":       interpolationFuncSubstr(),
-		"timestamp":    interpolationFuncTimestamp(),
-		"timeadd":      interpolationFuncTimeAdd(),
-		"title":        interpolationFuncTitle(),
-		"transpose":    interpolationFuncTranspose(),
-		"trimspace":    interpolationFuncTrimSpace(),
-		"upper":        interpolationFuncUpper(),
-		"urlencode":    interpolationFuncURLEncode(),
-		"zipmap":       interpolationFuncZipMap(),
+		"abs":           interpolationFuncAbs(),
+		"basename":      interpolationFuncBasename(),
+		"base64decode":  interpolationFuncBase64Decode(),
+		"base64encode":  interpolationFuncBase64Encode(),
+		"base64gzip":    interpolationFuncBase64Gzip(),
+		"base64sha256":  interpolationFuncBase64Sha256(),
+		"base64sha512":  interpolationFuncBase64Sha512(),
+		"bcrypt":        interpolationFuncBcrypt(),
+		"ceil":          interpolationFuncCeil(),
+		"chomp":         interpolationFuncChomp(),
+		"cidrhost":      interpolationFuncCidrHost(),
+		"cidrnetmask":   interpolationFuncCidrNetmask(),
+		"cidrsubnet":    interpolationFuncCidrSubnet(),
+		"coalesce":      interpolationFuncCoalesce(),
+		"coalescelist":  interpolationFuncCoalesceList(),
+		"compact":       interpolationFuncCompact(),
+		"concat":        interpolationFuncConcat(),
+		"contains":      interpolationFuncContains(),
+		"dirname":       interpolationFuncDirname(),
+		"distinct":      interpolationFuncDistinct(),
+		"element":       interpolationFuncElement(),
+		"chunklist":     interpolationFuncChunklist(),
+		"file":          interpolationFuncFile(),
+		"matchkeys":     interpolationFuncMatchKeys(),
+		"flatten":       interpolationFuncFlatten(),
+		"floor":         interpolationFuncFloor(),
+		"format":        interpolationFuncFormat(),
+		"formatlist":    interpolationFuncFormatList(),
+		"indent":        interpolationFuncIndent(),
+		"index":         interpolationFuncIndex(),
+		"join":          interpolationFuncJoin(),
+		"jsonencode":    interpolationFuncJSONEncode(),
+		"length":        interpolationFuncLength(),
+		"list":          interpolationFuncList(),
+		"listintersect": interpolationFuncListIntersect(),
+		"log":           interpolationFuncLog(),
+		"lower":         interpolationFuncLower(),
+		"map":           interpolationFuncMap(),
+		"max":           interpolationFuncMax(),
+		"md5":           interpolationFuncMd5(),
+		"merge":         interpolationFuncMerge(),
+		"min":           interpolationFuncMin(),
+		"pathexpand":    interpolationFuncPathExpand(),
+		"pow":           interpolationFuncPow(),
+		"uuid":          interpolationFuncUUID(),
+		"replace":       interpolationFuncReplace(),
+		"rsadecrypt":    interpolationFuncRsaDecrypt(),
+		"sha1":          interpolationFuncSha1(),
+		"sha256":        interpolationFuncSha256(),
+		"sha512":        interpolationFuncSha512(),
+		"signum":        interpolationFuncSignum(),
+		"slice":         interpolationFuncSlice(),
+		"sort":          interpolationFuncSort(),
+		"split":         interpolationFuncSplit(),
+		"substr":        interpolationFuncSubstr(),
+		"timestamp":     interpolationFuncTimestamp(),
+		"timeadd":       interpolationFuncTimeAdd(),
+		"title":         interpolationFuncTitle(),
+		"transpose":     interpolationFuncTranspose(),
+		"trimspace":     interpolationFuncTrimSpace(),
+		"upper":         interpolationFuncUpper(),
+		"urlencode":     interpolationFuncURLEncode(),
+		"zipmap":        interpolationFuncZipMap(),
 	}
 }
 
@@ -799,6 +800,46 @@ func interpolationFuncMatchKeys() ast.Function {
 			}
 			// if searchset is empty, then output is an empty list as well.
 			// if we haven't matched any key, then output is an empty list.
+			return output, nil
+		},
+	}
+}
+
+// intersection of two lists provided
+func interpolationFuncListIntersect() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeList, ast.TypeList},
+		ReturnType: ast.TypeList,
+		Callback: func(args []interface{}) (interface{}, error) {
+			output := make([]ast.Variable, 0)
+			temp := make(map[interface{}]bool)
+			if len(args) != 2 {
+				return nil, fmt.Errorf("accepts only two argument.")
+			}
+
+			if list1, ok := args[0].([]ast.Variable); ok {
+				for _, element := range list1 {
+					if element.Type != ast.TypeString {
+						return nil, fmt.Errorf(
+							"only works for flat lists, this list contains elements of %s",
+							element.Type.Printable())
+					}
+					temp[element.Value.(string)] = true
+				}
+			}
+
+			if list2, ok := args[1].([]ast.Variable); ok {
+				for _, element := range list2 {
+					if element.Type != ast.TypeString {
+						return nil, fmt.Errorf(
+							"only works for flat lists, this list contains elements of %s",
+							element.Type.Printable())
+					}
+					if _, found := temp[element.Value.(string)]; found {
+						output = append(output, ast.Variable{element.Value.(string), ast.TypeString})
+					}
+				}
+			}
 			return output, nil
 		},
 	}

@@ -1188,6 +1188,36 @@ func TestInterpolateFuncMatchKeys(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncListIntersect(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${listintersect(list("a", "b", "c"), list("b", "d", "e"))}`,
+				[]interface{}{"b"},
+				false,
+			},
+			// no matches
+			{
+				`${listintersect(list("a", "b", "c"), list("d", "e", "f"))}`,
+				[]interface{}{},
+				false,
+			},
+			// empty list case
+			{
+				`${listintersect(list(), list())}`,
+				[]interface{}{},
+				false,
+			},
+			// errors for different type
+			{
+				`${listintersect(list("a"), map("k", "v"))}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncFile(t *testing.T) {
 	tf, err := ioutil.TempFile("", "tf")
 	if err != nil {
