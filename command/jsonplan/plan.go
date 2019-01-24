@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/terraform"
 
 	ctyjson "github.com/zclconf/go-cty/cty/json"
@@ -76,7 +77,7 @@ type output struct {
 func Marshal(
 	config *configs.Config,
 	p *plans.Plan,
-	s *states.State,
+	sf *statefile.File,
 	schemas *terraform.Schemas,
 ) ([]byte, error) {
 
@@ -101,7 +102,7 @@ func Marshal(
 	}
 
 	// output.PriorState
-	output.PriorState, err = jsonstate.Marshal(s, schemas)
+	output.PriorState, err = jsonstate.Marshal(sf, schemas)
 	if err != nil {
 		return nil, fmt.Errorf("error marshaling prior state: %s", err)
 	}
