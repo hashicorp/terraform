@@ -6,14 +6,13 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/plans/planfile"
-	"github.com/hashicorp/terraform/states/statefile"
-	"github.com/hashicorp/terraform/tfdiags"
-
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/command/jsonplan"
 	"github.com/hashicorp/terraform/plans"
-	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/plans/planfile"
+	"github.com/hashicorp/terraform/states/statefile"
+	"github.com/hashicorp/terraform/states/statemgr"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // ShowCommand is a Command implementation that reads and outputs the
@@ -103,7 +102,7 @@ func (c *ShowCommand) Run(args []string) int {
 
 	var planErr, stateErr error
 	var plan *plans.Plan
-	var state *states.State
+	var stateFile *statefile.File
 
 	// if a path was provided, try to read it as a path to a planfile
 	// if that fails, try to read the cli argument as a path to a statefile
@@ -116,7 +115,7 @@ func (c *ShowCommand) Run(args []string) int {
 				c.Ui.Error("Error: JSON output not available for state")
 				return 1
 			}
-			state, stateErr = getStateFromPath(path)
+			stateFile, stateErr = getStateFromPath(path)
 			if stateErr != nil {
 				c.Ui.Error(fmt.Sprintf(
 					"Terraform couldn't read the given file as a state or plan file.\n"+
@@ -130,9 +129,9 @@ func (c *ShowCommand) Run(args []string) int {
 		}
 	}
 
-	if state == nil {
+	if stateFile == nil {
 		env := c.Workspace()
-		state, stateErr = getStateFromEnv(b, env)
+		stateFile, stateErr = getStateFromEnv(b, env)
 		if err != nil {
 			c.Ui.Error(err.Error())
 			return 1
@@ -142,7 +141,7 @@ func (c *ShowCommand) Run(args []string) int {
 	// This is an odd-looking check, because it's ok if we have a plan and an
 	// empty state, and we've already validated that any command-line arguments
 	// have been read successfully
-	if plan == nil && state == nil {
+	if plan == nil && stateFile == nil {
 		c.Ui.Output("No state.")
 		return 0
 	}
@@ -150,7 +149,7 @@ func (c *ShowCommand) Run(args []string) int {
 	if plan != nil {
 		if jsonOutput == true {
 			config := ctx.Config()
-			jsonPlan, err := jsonplan.Marshal(config, plan, state, schemas)
+			jsonPlan, err := jsonplan.Marshal(config, plan, stateFile, schemas)
 			if err != nil {
 				c.Ui.Error(fmt.Sprintf("Failed to marshal plan to json: %s", err))
 				return 1
@@ -164,7 +163,7 @@ func (c *ShowCommand) Run(args []string) int {
 	}
 
 	c.Ui.Output(format.State(&format.StateOpts{
-		State:   state,
+		State:   stateFile.State,
 		Color:   c.Colorize(),
 		Schemas: schemas,
 	}))
@@ -207,8 +206,8 @@ func getPlanFromPath(path string) (*plans.Plan, error) {
 	return plan, nil
 }
 
-// getStateFromPath returns a State if the user-supplied path points to a statefile.
-func getStateFromPath(path string) (*states.State, error) {
+// getStateFromPath returns a statefile if the user-supplied path points to a statefile.
+func getStateFromPath(path string) (*statefile.File, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("Error loading statefile: %s", err)
@@ -220,11 +219,11 @@ func getStateFromPath(path string) (*states.State, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Error reading %s as a statefile: %s", path, err)
 	}
-	return stateFile.State, nil
+	return stateFile, nil
 }
 
 // getStateFromEnv returns the State for the current workspace, if available.
-func getStateFromEnv(b backend.Backend, env string) (*states.State, error) {
+func getStateFromEnv(b backend.Backend, env string) (*statefile.File, error) {
 	// Get the state
 	stateStore, err := b.StateMgr(env)
 	if err != nil {
@@ -235,6 +234,7 @@ func getStateFromEnv(b backend.Backend, env string) (*states.State, error) {
 		return nil, fmt.Errorf("Failed to load state: %s", err)
 	}
 
-	state := stateStore.State()
-	return state, nil
+	sf := statemgr.Export(stateStore)
+
+	return sf, nil
 }
