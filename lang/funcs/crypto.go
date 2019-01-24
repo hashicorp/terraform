@@ -11,6 +11,7 @@ import (
 	"encoding/hex"
 	"encoding/pem"
 	"fmt"
+	"hash"
 
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/zclconf/go-cty/cty"
@@ -33,41 +34,11 @@ var UUIDFunc = function.New(&function.Spec{
 
 // Base64Sha256Func constructs a function that computes the SHA256 hash of a given string
 // and encodes it with Base64.
-var Base64Sha256Func = function.New(&function.Spec{
-	Params: []function.Parameter{
-		{
-			Name: "str",
-			Type: cty.String,
-		},
-	},
-	Type: function.StaticReturnType(cty.String),
-	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
-		s := args[0].AsString()
-		h := sha256.New()
-		h.Write([]byte(s))
-		shaSum := h.Sum(nil)
-		return cty.StringVal(base64.StdEncoding.EncodeToString(shaSum[:])), nil
-	},
-})
+var Base64Sha256Func = makeStringHashFunction(sha256.New, base64.StdEncoding.EncodeToString)
 
 // Base64Sha512Func constructs a function that computes the SHA256 hash of a given string
 // and encodes it with Base64.
-var Base64Sha512Func = function.New(&function.Spec{
-	Params: []function.Parameter{
-		{
-			Name: "str",
-			Type: cty.String,
-		},
-	},
-	Type: function.StaticReturnType(cty.String),
-	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
-		s := args[0].AsString()
-		h := sha512.New()
-		h.Write([]byte(s))
-		shaSum := h.Sum(nil)
-		return cty.StringVal(base64.StdEncoding.EncodeToString(shaSum[:])), nil
-	},
-})
+var Base64Sha512Func = makeStringHashFunction(sha512.New, base64.StdEncoding.EncodeToString)
 
 // BcryptFunc constructs a function that computes a hash of the given string using the Blowfish cipher.
 var BcryptFunc = function.New(&function.Spec{
@@ -108,22 +79,7 @@ var BcryptFunc = function.New(&function.Spec{
 })
 
 // Md5Func constructs a function that computes the MD5 hash of a given string and encodes it with hexadecimal digits.
-var Md5Func = function.New(&function.Spec{
-	Params: []function.Parameter{
-		{
-			Name: "str",
-			Type: cty.String,
-		},
-	},
-	Type: function.StaticReturnType(cty.String),
-	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
-		s := args[0].AsString()
-		h := md5.New()
-		h.Write([]byte(s))
-		hash := hex.EncodeToString(h.Sum(nil))
-		return cty.StringVal(hash), nil
-	},
-})
+var Md5Func = makeStringHashFunction(md5.New, hex.EncodeToString)
 
 // RsaDecryptFunc constructs a function that decrypts an RSA-encrypted ciphertext.
 var RsaDecryptFunc = function.New(&function.Spec{
@@ -173,60 +129,34 @@ var RsaDecryptFunc = function.New(&function.Spec{
 
 // Sha1Func contructs a function that computes the SHA1 hash of a given string
 // and encodes it with hexadecimal digits.
-var Sha1Func = function.New(&function.Spec{
-	Params: []function.Parameter{
-		{
-			Name: "str",
-			Type: cty.String,
-		},
-	},
-	Type: function.StaticReturnType(cty.String),
-	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
-		s := args[0].AsString()
-		h := sha1.New()
-		h.Write([]byte(s))
-		hash := hex.EncodeToString(h.Sum(nil))
-		return cty.StringVal(hash), nil
-	},
-})
+var Sha1Func = makeStringHashFunction(sha1.New, hex.EncodeToString)
 
 // Sha256Func contructs a function that computes the SHA256 hash of a given string
 // and encodes it with hexadecimal digits.
-var Sha256Func = function.New(&function.Spec{
-	Params: []function.Parameter{
-		{
-			Name: "str",
-			Type: cty.String,
-		},
-	},
-	Type: function.StaticReturnType(cty.String),
-	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
-		s := args[0].AsString()
-		h := sha256.New()
-		h.Write([]byte(s))
-		hash := hex.EncodeToString(h.Sum(nil))
-		return cty.StringVal(hash), nil
-	},
-})
+var Sha256Func = makeStringHashFunction(sha256.New, hex.EncodeToString)
 
-// Sha512Func contructs a function that computes the SHA256 hash of a given string
+// Sha512Func contructs a function that computes the SHA512 hash of a given string
 // and encodes it with hexadecimal digits.
-var Sha512Func = function.New(&function.Spec{
-	Params: []function.Parameter{
-		{
-			Name: "str",
-			Type: cty.String,
+var Sha512Func = makeStringHashFunction(sha512.New, hex.EncodeToString)
+
+func makeStringHashFunction(hf func() hash.Hash, enc func([]byte) string) function.Function {
+	return function.New(&function.Spec{
+		Params: []function.Parameter{
+			{
+				Name: "str",
+				Type: cty.String,
+			},
 		},
-	},
-	Type: function.StaticReturnType(cty.String),
-	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
-		s := args[0].AsString()
-		h := sha256.New()
-		h.Write([]byte(s))
-		hash := hex.EncodeToString(h.Sum(nil))
-		return cty.StringVal(hash), nil
-	},
-})
+		Type: function.StaticReturnType(cty.String),
+		Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+			s := args[0].AsString()
+			h := hf()
+			h.Write([]byte(s))
+			rv := enc(h.Sum(nil))
+			return cty.StringVal(rv), nil
+		},
+	})
+}
 
 // UUID generates and returns a Type-4 UUID in the standard hexadecimal string
 // format.
