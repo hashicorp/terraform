@@ -164,22 +164,19 @@ func (b *Remote) configure(ctx context.Context) error {
 
 	// Discover the service URL for this host to confirm that it provides
 	// a remote backend API and to get the version constraints.
-	service, constraints, discoErr := b.discover()
-	if _, ok := discoErr.(*disco.ErrVersionNotSupported); !ok && discoErr != nil {
-		return discoErr
-	}
+	service, constraints, err := b.discover()
 
-	// Check any retrieved constraints to make sure we are compatible.
+	// First check any contraints we might have received.<Paste>
 	if constraints != nil {
 		if err := b.checkConstraints(constraints); err != nil {
 			return err
 		}
 	}
 
-	// When checking version constraints silently failed, we return the
-	// more generic error we received during the service discovery.
-	if discoErr != nil {
-		return discoErr
+	// When we don't have any constraints errors, also check for discovery
+	// errors before we continue.
+	if err != nil {
+		return err
 	}
 
 	// Retrieve the token for this host as configured in the credentials
@@ -305,8 +302,19 @@ func (b *Remote) checkConstraints(c *disco.Constraints) error {
 		return checkConstraintsWarning(err)
 	}
 
-	var action, toVersion string
 	var excludes []*version.Version
+	for _, exclude := range c.Excluding {
+		v, err := version.NewVersion(exclude)
+		if err != nil {
+			return checkConstraintsWarning(err)
+		}
+		excludes = append(excludes, v)
+	}
+
+	// Sort all the excludes.
+	sort.Sort(version.Collection(excludes))
+
+	var action, toVersion string
 	switch {
 	case minimum.GreaterThan(v):
 		action = "upgrade"
@@ -314,18 +322,7 @@ func (b *Remote) checkConstraints(c *disco.Constraints) error {
 	case maximum.LessThan(v):
 		action = "downgrade"
 		toVersion = "<= " + maximum.String()
-	case len(c.Excluding) > 0:
-		for _, exclude := range c.Excluding {
-			v, err := version.NewVersion(exclude)
-			if err != nil {
-				return checkConstraintsWarning(err)
-			}
-			excludes = append(excludes, v)
-		}
-
-		// Sort all the excludes.
-		sort.Sort(version.Collection(excludes))
-
+	case len(excludes) > 0:
 		// Get the latest excluded version.
 		action = "upgrade"
 		toVersion = "> " + excludes[len(excludes)-1].String()
