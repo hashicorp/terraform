@@ -204,7 +204,18 @@ func TestSchemaMapCoreConfigSchema(t *testing.T) {
 				},
 			},
 			testResource(&configschema.Block{
-				Attributes: map[string]*configschema.Attribute{},
+				Attributes: map[string]*configschema.Attribute{
+					// This one becomes a string attribute because helper/schema
+					// doesn't actually support maps of resource. The given
+					// "Elem" is just ignored entirely here, which is important
+					// because that is also true of the helper/schema logic and
+					// existing providers rely on this being ignored for
+					// correct operation.
+					"map": {
+						Type:     cty.Map(cty.String),
+						Optional: true,
+					},
+				},
 				BlockTypes: map[string]*configschema.NestedBlock{
 					"list": {
 						Nesting:  configschema.NestingList,
@@ -216,10 +227,6 @@ func TestSchemaMapCoreConfigSchema(t *testing.T) {
 						Nesting:  configschema.NestingSet,
 						Block:    configschema.Block{},
 						MinItems: 1, // because schema is Required
-					},
-					"map": {
-						Nesting: configschema.NestingMap,
-						Block:   configschema.Block{},
 					},
 				},
 			}),
