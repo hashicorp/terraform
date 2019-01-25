@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // Config represents the complete configuration source
@@ -30,9 +31,11 @@ type providerConfig struct {
 }
 
 type module struct {
-	Outputs     map[string]configOutput `json:"outputs,omitempty"`
-	Resources   []resource              `json:"resources,omitempty"`
-	ModuleCalls []moduleCall            `json:"module_calls,omitempty"`
+	Outputs map[string]configOutput `json:"outputs,omitempty"`
+	// Resources are sorted in a user-friendly order that is undefined at this
+	// time, but consistent.
+	Resources   []resource   `json:"resources,omitempty"`
+	ModuleCalls []moduleCall `json:"module_calls,omitempty"`
 }
 
 type moduleCall struct {
