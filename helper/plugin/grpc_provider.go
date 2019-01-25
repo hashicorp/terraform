@@ -713,15 +713,25 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 		}
 	}
 
-	// strip out non-diffs
-	for k, v := range diff.Attributes {
-		if v.New == v.Old && !v.NewComputed && v.NewExtra == "" {
-			delete(diff.Attributes, k)
-		}
-	}
-
 	if private != nil {
 		diff.Meta = private
+	}
+
+	// We need to turn off any RequiresNew. There could be attributes
+	// without changes in here inserted by helper/schema, but if they have
+	// RequiresNew then the state will will be dropped from the ResourceData.
+	for k := range diff.Attributes {
+		diff.Attributes[k].RequiresNew = false
+	}
+
+	// check that any "removed" attributes actually exist in the prior state, or
+	// helper/schema will confuse itself
+	for k, d := range diff.Attributes {
+		if d.NewRemoved {
+			if _, ok := priorState.Attributes[k]; !ok {
+				delete(diff.Attributes, k)
+			}
+		}
 	}
 
 	newInstanceState, err := s.provider.Apply(info, priorState, diff)
