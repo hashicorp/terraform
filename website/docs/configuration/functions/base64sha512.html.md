@@ -27,5 +27,7 @@ MJ7MSJwS1utMxA9QyQLytNDtd+5RGnx6m808qG1M2G+YndNbxf9JlnDaNCVbRbDP2DDoH2Bdz33FVC6T
 
 ## Related Functions
 
+* [`filebase64sha512`](./filebase64sha512.html) calculates the same hash from
+  the contents of a file rather than from a string value.
 * [`sha512`](./sha512.html) calculates the same hash but returns the result
   in a more-verbose hexadecimal encoding.

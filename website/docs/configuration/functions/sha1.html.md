@@ -26,3 +26,8 @@ relevant literature to understand the security implications.
 > sha1("hello world")
 2aae6c35c94fcfb415dbe95f408b9ce91ee846ed
 ```
+
+## Related Functions
+
+* [`filesha1`](./filesha1.html) calculates the same hash from
+  the contents of a file rather than from a string value.
