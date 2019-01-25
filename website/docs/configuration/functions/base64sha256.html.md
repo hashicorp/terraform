@@ -27,5 +27,7 @@ uU0nuZNNPgilLlLX2n2r+sSE7+N6U4DukIj3rOLvzek=
 
 ## Related Functions
 
+* [`filebase64sha256`](./filebase64sha256.html) calculates the same hash from
+  the contents of a file rather than from a string value.
 * [`sha256`](./sha256.html) calculates the same hash but returns the result
   in a more-verbose hexadecimal encoding.

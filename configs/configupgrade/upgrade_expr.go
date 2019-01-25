@@ -221,6 +221,36 @@ Value:
 		name := tv.Func
 		args := tv.Args
 
+		// Some adaptations must happen prior to upgrading the arguments,
+		// because they depend on the original argument AST nodes.
+		switch name {
+		case "base64sha256", "base64sha512", "md5", "sha1", "sha256", "sha512":
+			// These functions were sometimes used in conjunction with the
+			// file() function to take the hash of the contents of a file.
+			// Prior to Terraform 0.11 there was a chance of silent corruption
+			// of strings containing non-UTF8 byte sequences, and so we have
+			// made it illegal to use file() with non-text files in 0.12 even
+			// though in this _particular_ situation (passing the function
+			// result directly to another function) there would not be any
+			// corruption; the general rule keeps things consistent.
+			// However, to still meet those use-cases we now have variants of
+			// the hashing functions that have a "file" prefix on their names
+			// and read the contents of a given file, rather than hashing
+			// directly the given string.
+			if len(args) > 0 {
+				if subCall, ok := args[0].(*hilast.Call); ok && subCall.Func == "file" {
+					// We're going to flatten this down into a single call, so
+					// we actually want the arguments of the sub-call here.
+					name = "file" + name
+					args = subCall.Args
+
+					// For this one, we'll fall through to the normal upgrade
+					// handling now that we've fixed up the name and args...
+				}
+			}
+
+		}
+
 		argExprs := make([][]byte, len(args))
 		multiline := false
 		totalLen := 0

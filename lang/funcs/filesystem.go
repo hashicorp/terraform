@@ -29,26 +29,9 @@ func MakeFileFunc(baseDir string, encBase64 bool) function.Function {
 		Type: function.StaticReturnType(cty.String),
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			path := args[0].AsString()
-			path, err := homedir.Expand(path)
+			src, err := readFileBytes(baseDir, path)
 			if err != nil {
-				return cty.UnknownVal(cty.String), fmt.Errorf("failed to expand ~: %s", err)
-			}
-
-			if !filepath.IsAbs(path) {
-				path = filepath.Join(baseDir, path)
-			}
-
-			// Ensure that the path is canonical for the host OS
-			path = filepath.Clean(path)
-
-			src, err := ioutil.ReadFile(path)
-			if err != nil {
-				// ReadFile does not return Terraform-user-friendly error
-				// messages, so we'll provide our own.
-				if os.IsNotExist(err) {
-					return cty.UnknownVal(cty.String), fmt.Errorf("no file exists at %s", path)
-				}
-				return cty.UnknownVal(cty.String), fmt.Errorf("failed to read %s", path)
+				return cty.UnknownVal(cty.String), err
 			}
 
 			switch {
@@ -269,6 +252,32 @@ var PathExpandFunc = function.New(&function.Spec{
 		return cty.StringVal(homePath), err
 	},
 })
+
+func readFileBytes(baseDir, path string) ([]byte, error) {
+	path, err := homedir.Expand(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to expand ~: %s", err)
+	}
+
+	if !filepath.IsAbs(path) {
+		path = filepath.Join(baseDir, path)
+	}
+
+	// Ensure that the path is canonical for the host OS
+	path = filepath.Clean(path)
+
+	src, err := ioutil.ReadFile(path)
+	if err != nil {
+		// ReadFile does not return Terraform-user-friendly error
+		// messages, so we'll provide our own.
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("no file exists at %s", path)
+		}
+		return nil, fmt.Errorf("failed to read %s", path)
+	}
+
+	return src, nil
+}
 
 // File reads the contents of the file at the given path.
 //
