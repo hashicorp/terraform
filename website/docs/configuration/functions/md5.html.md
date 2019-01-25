@@ -26,3 +26,8 @@ considerations applying to the MD5 algorithm.
 > md5("hello world")
 5eb63bbbe01eeed093cb22bb8f5acdc3
 ```
+
+## Related Functions
+
+* [`filemd5`](./filemd5.html) calculates the same hash from
+  the contents of a file rather than from a string value.
