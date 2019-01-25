@@ -533,7 +533,6 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 
 	// now we need to apply the diff to the prior state, so get the planned state
 	plannedAttrs, err := diff.Apply(priorState.Attributes, block)
-
 	plannedAttrs = normalizeFlatmapContainers(priorState.Attributes, plannedAttrs, false)
 
 	plannedStateVal, err := hcl2shim.HCL2ValueFromFlatmap(plannedAttrs, block.ImpliedType())
@@ -711,15 +710,16 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 		}
 	}
 
-	// strip out non-diffs
-	for k, v := range diff.Attributes {
-		if v.New == v.Old && !v.NewComputed && v.NewExtra == "" {
-			delete(diff.Attributes, k)
-		}
-	}
-
 	if private != nil {
 		diff.Meta = private
+	}
+
+	// now we can actually strip out non-diffs, since an errant Attribute with
+	// RequiresNew will cause us to lose the previous state
+	for k, v := range diff.Attributes {
+		if v.New == v.Old && v.NewExtra == nil {
+			delete(diff.Attributes, k)
+		}
 	}
 
 	newInstanceState, err := s.provider.Apply(info, priorState, diff)
