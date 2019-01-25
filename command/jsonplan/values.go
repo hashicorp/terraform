@@ -3,14 +3,15 @@ package jsonplan
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 
 	"github.com/zclconf/go-cty/cty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/terraform"
-	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
 // stateValues is the common representation of resolved values for both the
@@ -170,6 +171,10 @@ func marshalPlanResources(changes *plans.Changes, ris []addrs.AbsResourceInstanc
 
 		ret = append(ret, resource)
 	}
+
+	sort.Slice(ret, func(i, j int) bool {
+		return ret[i].Address < ret[j].Address
+	})
 
 	return ret, nil
 }
