@@ -39,6 +39,21 @@ func (m schemaMap) CoreConfigSchema() *configschema.Block {
 			ret.Attributes[name] = schema.coreConfigSchemaAttribute()
 			continue
 		}
+		if schema.Type == TypeMap {
+			// For TypeMap in particular, it isn't valid for Elem to be a
+			// *Resource (since that would be ambiguous in flatmap) and
+			// so Elem is treated as a TypeString schema if so. This matches
+			// how the field readers treat this situation, for compatibility
+			// with configurations targeting Terraform 0.11 and earlier.
+			if _, isResource := schema.Elem.(*Resource); isResource {
+				sch := *schema // shallow copy
+				sch.Elem = &Schema{
+					Type: TypeString,
+				}
+				ret.Attributes[name] = sch.coreConfigSchemaAttribute()
+				continue
+			}
+		}
 		switch schema.Elem.(type) {
 		case *Schema, ValueType:
 			ret.Attributes[name] = schema.coreConfigSchemaAttribute()
