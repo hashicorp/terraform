@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/md5"
 	"log"
-	"os"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/containers"
@@ -14,12 +13,14 @@ import (
 )
 
 const (
-	TFSTATE_NAME      = "tfstate.tf"
-	TFSTATE_LOCK_NAME = "tfstate.lock"
+	DEFAULT_NAME        = "tfstate"
+	TFSTATE_SUFFIX      = ".tf"
+	TFSTATE_LOCK_SUFFIX = ".lock"
 )
 
 // RemoteClient implements the Client interface for an Openstack Swift server.
 type RemoteClient struct {
+	name             string
 	client           *gophercloud.ServiceClient
 	container        string
 	archive          bool
@@ -28,16 +29,20 @@ type RemoteClient struct {
 }
 
 func (c *RemoteClient) Get() (*remote.Payload, error) {
-	log.Printf("[DEBUG] Getting object %s in container %s", TFSTATE_NAME, c.container)
-	result := objects.Download(c.client, c.container, TFSTATE_NAME, nil)
+	container, prefix := getContainerAndPrefix(c.container)
+
+	log.Printf("[DEBUG] Getting object %s in container %s", prefix+c.name+TFSTATE_SUFFIX, container)
+	result := objects.Download(c.client, container, prefix+c.name+TFSTATE_SUFFIX, nil)
 
 	// Extract any errors from result
 	_, err := result.Extract()
-
-	// 404 response is to be expected if the object doesn't already exist!
-	if _, ok := err.(gophercloud.ErrDefault404); ok {
-		log.Println("[DEBUG] Object doesn't exist to download.")
-		return nil, nil
+	if err != nil {
+		// 404 response is to be expected if the object doesn't already exist!
+		if _, ok := err.(gophercloud.ErrDefault404); ok {
+			log.Println("[DEBUG] Object doesn't exist to download.")
+			return nil, nil
+		}
+		return nil, err
 	}
 
 	bytes, err := result.ExtractContent()
@@ -59,7 +64,9 @@ func (c *RemoteClient) Put(data []byte) error {
 		return err
 	}
 
-	log.Printf("[DEBUG] Putting object %s in container %s", TFSTATE_NAME, c.container)
+	container, prefix := getContainerAndPrefix(c.container)
+
+	log.Printf("[DEBUG] Putting object %s in container %s", prefix+c.name+TFSTATE_SUFFIX, container)
 	reader := bytes.NewReader(data)
 	createOpts := objects.CreateOpts{
 		Content: reader,
@@ -70,14 +77,21 @@ func (c *RemoteClient) Put(data []byte) error {
 		createOpts.DeleteAfter = c.expireSecs
 	}
 
-	result := objects.Create(c.client, c.container, TFSTATE_NAME, createOpts)
+	result := objects.Create(c.client, container, prefix+c.name+TFSTATE_SUFFIX, createOpts)
 
 	return result.Err
 }
 
 func (c *RemoteClient) Delete() error {
-	log.Printf("[DEBUG] Deleting object %s in container %s", TFSTATE_NAME, c.container)
-	result := objects.Delete(c.client, c.container, TFSTATE_NAME, nil)
+	container, prefix := getContainerAndPrefix(c.container)
+
+	log.Printf("[DEBUG] Deleting object %s in container %s", prefix+c.name+TFSTATE_SUFFIX, container)
+	result := objects.Delete(c.client, container, prefix+c.name+TFSTATE_SUFFIX, nil)
+
+	if _, ok := result.Err.(gophercloud.ErrDefault404); ok {
+		return nil
+	}
+
 	return result.Err
 }
 
@@ -85,31 +99,26 @@ func (c *RemoteClient) ensureContainerExists() error {
 	containerOpts := &containers.CreateOpts{}
 
 	if c.archive {
-		log.Printf("[DEBUG] Creating archive container %s", c.archiveContainer)
-		result := containers.Create(c.client, c.archiveContainer, nil)
+		container, _ := getContainerAndPrefix(c.archiveContainer)
+
+		log.Printf("[DEBUG] Creating archive container %s", container)
+		result := containers.Create(c.client, container, nil)
 		if result.Err != nil {
-			log.Printf("[DEBUG] Error creating archive container %s: %s", c.archiveContainer, result.Err)
+			log.Printf("[DEBUG] Error creating archive container %s: %s", container, result.Err)
 			return result.Err
 		}
 
 		log.Printf("[DEBUG] Enabling Versioning on container %s", c.container)
-		containerOpts.VersionsLocation = c.archiveContainer
+		containerOpts.VersionsLocation = container
 	}
 
-	log.Printf("[DEBUG] Creating container %s", c.container)
-	result := containers.Create(c.client, c.container, containerOpts)
+	container, _ := getContainerAndPrefix(c.container)
+
+	log.Printf("[DEBUG] Creating container %s", container)
+	result := containers.Create(c.client, container, containerOpts)
 	if result.Err != nil {
 		return result.Err
 	}
 
 	return nil
-}
-
-func multiEnv(ks []string) string {
-	for _, k := range ks {
-		if v := os.Getenv(k); v != "" {
-			return v
-		}
-	}
-	return ""
 }

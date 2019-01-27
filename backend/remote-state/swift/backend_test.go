@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -59,12 +60,14 @@ func TestBackendConfig(t *testing.T) {
 func TestBackend(t *testing.T) {
 	testACC(t)
 
-	container := fmt.Sprintf("terraform-state-swift-test-%x", time.Now().Unix())
+	// test with a slash at the end
+	container := fmt.Sprintf("terraform-state-swift-test-%x/test/", time.Now().Unix())
 
 	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
 		"container": container,
 	}).(*Backend)
 
+	createSwiftContainer(t, b.client, container)
 	defer deleteSwiftContainer(t, b.client, container)
 
 	backend.TestBackendStates(t, b)
@@ -73,10 +76,11 @@ func TestBackend(t *testing.T) {
 func TestBackendPath(t *testing.T) {
 	testACC(t)
 
-	path := fmt.Sprintf("terraform-state-swift-test-%x", time.Now().Unix())
+	// test without a slash at the end
+	path := fmt.Sprintf("terraform-state-swift-test-%x/test", time.Now().Unix())
 	t.Logf("[DEBUG] Generating backend config")
 	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
-		"path": path,
+		"container": path,
 	}).(*Backend)
 	t.Logf("[DEBUG] Backend configured")
 
@@ -91,6 +95,7 @@ func TestBackendPath(t *testing.T) {
 
 	// RemoteClient to test with
 	client := &RemoteClient{
+		name:             DEFAULT_NAME,
 		client:           b.client,
 		archive:          b.archive,
 		archiveContainer: b.archiveContainer,
@@ -128,6 +133,7 @@ func TestBackendPath(t *testing.T) {
 func TestBackendArchive(t *testing.T) {
 	testACC(t)
 
+	// without a slash at all
 	container := fmt.Sprintf("terraform-state-swift-test-%x", time.Now().Unix())
 	archiveContainer := fmt.Sprintf("%s_archive", container)
 
@@ -146,6 +152,7 @@ func TestBackendArchive(t *testing.T) {
 
 	// RemoteClient to test with
 	client := &RemoteClient{
+		name:             DEFAULT_NAME,
 		client:           b.client,
 		archive:          b.archive,
 		archiveContainer: b.archiveContainer,
@@ -178,7 +185,8 @@ func TestBackendArchive(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	archiveObjects := getSwiftObjectNames(t, b.client, archiveContainer)
+	cnt, prefix := getContainerAndPrefix(archiveContainer)
+	archiveObjects := getSwiftObjectNames(t, b.client, cnt, prefix)
 	t.Logf("archiveObjects len = %d. Contents = %+v", len(archiveObjects), archiveObjects)
 	if len(archiveObjects) != 1 {
 		t.Fatalf("Invalid number of archive objects. Expected 1, got %d", len(archiveObjects))
@@ -196,13 +204,14 @@ func TestBackendArchive(t *testing.T) {
 	if !stateMgr.State().SameLineage(archiveState) {
 		t.Fatal("Got a different lineage")
 	}
-
 }
 
 // Helper function to download an object in a Swift container
 func downloadSwiftObject(t *testing.T, osClient *gophercloud.ServiceClient, container, object string) (data io.Reader) {
-	t.Logf("Attempting to download object %s from container %s", object, container)
-	res := objects.Download(osClient, container, object, nil)
+	container, prefix := getContainerAndPrefix(container)
+
+	t.Logf("Attempting to download object %s from container %s", prefix+object, container)
+	res := objects.Download(osClient, container, prefix+object, nil)
 	if res.Err != nil {
 		t.Fatalf("Error downloading object: %s", res.Err)
 	}
@@ -211,14 +220,25 @@ func downloadSwiftObject(t *testing.T, osClient *gophercloud.ServiceClient, cont
 }
 
 // Helper function to get a list of objects in a Swift container
-func getSwiftObjectNames(t *testing.T, osClient *gophercloud.ServiceClient, container string) (objectNames []string) {
-	_ = objects.List(osClient, container, nil).EachPage(func(page pagination.Page) (bool, error) {
+func getSwiftObjectNames(t *testing.T, osClient *gophercloud.ServiceClient, container, prefix string) (objectNames []string) {
+	listOpts := &objects.ListOpts{
+		Prefix:    prefix,
+		Delimiter: "/",
+		Full:      false,
+	}
+
+	_ = objects.List(osClient, container, listOpts).EachPage(func(page pagination.Page) (bool, error) {
 		// Get a slice of object names
 		names, err := objects.ExtractNames(page)
 		if err != nil {
 			t.Fatalf("Error extracting object names from page: %s", err)
 		}
 		for _, object := range names {
+			if strings.HasSuffix(object, "/") {
+				recursiveObjects := getSwiftObjectNames(t, osClient, container, prefix+object)
+				objectNames = append(objectNames, recursiveObjects...)
+				continue
+			}
 			objectNames = append(objectNames, object)
 		}
 
@@ -227,12 +247,25 @@ func getSwiftObjectNames(t *testing.T, osClient *gophercloud.ServiceClient, cont
 	return
 }
 
+// Helper function to create Swift container
+func createSwiftContainer(t *testing.T, osClient *gophercloud.ServiceClient, container string) {
+	container, _ = getContainerAndPrefix(container)
+
+	// Create the container
+	createResult := containers.Create(osClient, container, &containers.CreateOpts{})
+	if createResult.Err != nil {
+		t.Fatalf("Error creating %s container: %s", container, createResult.Err)
+	}
+}
+
 // Helper function to delete Swift container
 func deleteSwiftContainer(t *testing.T, osClient *gophercloud.ServiceClient, container string) {
+	container, prefix := getContainerAndPrefix(container)
+
 	warning := "WARNING: Failed to delete the test Swift container. It may have been left in your Openstack account and may incur storage charges. (error was %s)"
 
 	// Remove any objects
-	deleteSwiftObjects(t, osClient, container)
+	deleteSwiftObjects(t, osClient, container, prefix)
 
 	// Delete the container
 	deleteResult := containers.Delete(osClient, container)
@@ -244,15 +277,16 @@ func deleteSwiftContainer(t *testing.T, osClient *gophercloud.ServiceClient, con
 }
 
 // Helper function to delete Swift objects within a container
-func deleteSwiftObjects(t *testing.T, osClient *gophercloud.ServiceClient, container string) {
-	// Get a slice of object names
-	objectNames := getSwiftObjectNames(t, osClient, container)
+func deleteSwiftObjects(t *testing.T, osClient *gophercloud.ServiceClient, container, prefix string) {
+	objectNames := getSwiftObjectNames(t, osClient, container, prefix)
 
+	// Get a slice of object names
 	for _, object := range objectNames {
 		result := objects.Delete(osClient, container, object, nil)
 		if result.Err != nil {
-			t.Fatalf("Error deleting object %s from container %s: %s", object, container, result.Err)
+			if _, ok := result.Err.(gophercloud.ErrDefault404); !ok {
+				t.Fatalf("Error deleting object %s from container %s: %s", object, container, result.Err)
+			}
 		}
 	}
-
 }
