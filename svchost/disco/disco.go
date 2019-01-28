@@ -199,6 +199,7 @@ func (d *Disco) discover(hostname svchost.Hostname) (*Host, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Failed to request discovery document: %v", err)
 	}
+	log.Printf("[DEBUG] DONE: Service discovery for %s at %s", hostname, discoURL)
 	defer resp.Body.Close()
 
 	host := &Host{
