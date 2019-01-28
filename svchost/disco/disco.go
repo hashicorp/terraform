@@ -63,6 +63,7 @@ func NewWithCredentialsSource(credsSrc auth.CredentialsSource) *Disco {
 	return &Disco{
 		hostCache: make(map[svchost.Hostname]*Host),
 		credsSrc:  credsSrc,
+		Transport: httpTransport,
 	}
 }
 
