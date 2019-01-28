@@ -119,8 +119,9 @@ func Marshal(sf *statefile.File, schemas *terraform.Schemas) ([]byte, error) {
 	}
 
 	output := newState()
-	output.TerraformVersion = sf.TerraformVersion.String()
-
+	if sf.TerraformVersion != nil {
+		output.TerraformVersion = sf.TerraformVersion.String()
+	}
 	// output.StateValues
 	err := output.marshalStateValues(sf.State, schemas)
 	if err != nil {

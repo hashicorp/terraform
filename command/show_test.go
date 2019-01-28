@@ -36,27 +36,6 @@ func TestShow(t *testing.T) {
 	}
 }
 
-func TestShow_JSONStateNotImplemented(t *testing.T) {
-	// Create the default state
-	statePath := testStateFile(t, testState())
-	defer testChdir(t, filepath.Dir(statePath))()
-	ui := new(cli.MockUi)
-	c := &ShowCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
-		},
-	}
-
-	args := []string{
-		"-json",
-		statePath,
-	}
-	if code := c.Run(args); code != 1 {
-		t.Fatalf("bad: \n%s", ui.OutputWriter.String())
-	}
-}
-
 func TestShow_noArgs(t *testing.T) {
 	// Create the default state
 	statePath := testStateFile(t, testState())
