@@ -64,6 +64,8 @@ type Provider struct {
 	stopCtx       context.Context
 	stopCtxCancel context.CancelFunc
 	stopOnce      sync.Once
+
+	TerraformVersion string
 }
 
 // ConfigureFunc is the function used to configure a Provider.
