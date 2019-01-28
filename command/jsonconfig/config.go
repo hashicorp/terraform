@@ -41,8 +41,8 @@ type module struct {
 type moduleCall struct {
 	ResolvedSource    string                 `json:"resolved_source,omitempty"`
 	Expressions       map[string]interface{} `json:"expressions,omitempty"`
-	CountExpression   expression             `json:"count_expression,omitempty"`
-	ForEachExpression expression             `json:"for_each_expression,omitempty"`
+	CountExpression   *expression            `json:"count_expression,omitempty"`
+	ForEachExpression *expression            `json:"for_each_expression,omitempty"`
 	Module            module                 `json:"module,omitempty"`
 }
 
@@ -76,8 +76,8 @@ type resource struct {
 	// CountExpression and ForEachExpression describe the expressions given for
 	// the corresponding meta-arguments in the resource configuration block.
 	// These are omitted if the corresponding argument isn't set.
-	CountExpression   expression `json:"count_expression,omitempty"`
-	ForEachExpression expression `json:"for_each_expression,omitempty"`
+	CountExpression   *expression `json:"count_expression,omitempty"`
+	ForEachExpression *expression `json:"for_each_expression,omitempty"`
 }
 
 type configOutput struct {
@@ -169,11 +169,11 @@ func marshalModuleCalls(c *configs.Config, schemas *terraform.Schemas) []moduleC
 		}
 		cExp := marshalExpression(v.Count)
 		if !cExp.Empty() {
-			mc.CountExpression = cExp
+			mc.CountExpression = &cExp
 		} else {
 			fExp := marshalExpression(v.ForEach)
 			if !fExp.Empty() {
-				mc.ForEachExpression = fExp
+				mc.ForEachExpression = &fExp
 			}
 		}
 
@@ -219,11 +219,11 @@ func marshalResources(resources map[string]*configs.Resource, schemas *terraform
 
 		cExp := marshalExpression(v.Count)
 		if !cExp.Empty() {
-			r.CountExpression = cExp
+			r.CountExpression = &cExp
 		} else {
 			fExp := marshalExpression(v.ForEach)
 			if !fExp.Empty() {
-				r.ForEachExpression = fExp
+				r.ForEachExpression = &fExp
 			}
 		}
 

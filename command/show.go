@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/command/jsonplan"
+	"github.com/hashicorp/terraform/command/jsonstate"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/planfile"
 	"github.com/hashicorp/terraform/states/statefile"
@@ -29,7 +30,7 @@ func (c *ShowCommand) Run(args []string) int {
 
 	cmdFlags := c.Meta.defaultFlagSet("show")
 	var jsonOutput bool
-	cmdFlags.BoolVar(&jsonOutput, "json", false, "produce JSON output (only available when showing a planfile)")
+	cmdFlags.BoolVar(&jsonOutput, "json", false, "produce JSON output")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -110,11 +111,6 @@ func (c *ShowCommand) Run(args []string) int {
 		path := args[0]
 		plan, planErr = getPlanFromPath(path)
 		if planErr != nil {
-			// json output is only supported for plans
-			if jsonOutput == true {
-				c.Ui.Error("Error: JSON output not available for state")
-				return 1
-			}
 			stateFile, stateErr = getStateFromPath(path)
 			if stateErr != nil {
 				c.Ui.Error(fmt.Sprintf(
@@ -162,11 +158,21 @@ func (c *ShowCommand) Run(args []string) int {
 		return 0
 	}
 
-	c.Ui.Output(format.State(&format.StateOpts{
-		State:   stateFile.State,
-		Color:   c.Colorize(),
-		Schemas: schemas,
-	}))
+	if jsonOutput == true {
+		jsonState, err := jsonstate.Marshal(stateFile, schemas)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed to marshal state to json: %s", err))
+			return 1
+		}
+		c.Ui.Output(string(jsonState))
+	} else {
+		c.Ui.Output(format.State(&format.StateOpts{
+			State:   stateFile.State,
+			Color:   c.Colorize(),
+			Schemas: schemas,
+		}))
+	}
+
 	return 0
 }
 
