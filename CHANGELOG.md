@@ -1,15 +1,15 @@
-## 0.11.12 (Unreleased)
+## 0.11.12-beta1 (January 28, 2019)
 
 IMPROVEMENTS:
 
-* command/state: Use locking when updating states [GH-19939]
-* backend/remote: Add support for remote state only organizations [GH-20007]
-* backend/remote: Make sure the correct error is shown when having version incompatibilities [GH-20086]
+* command/state: Use locking when updating states ([#19939](https://github.com/hashicorp/terraform/issues/19939))
+* backend/remote: Add support for remote state only organizations ([#20007](https://github.com/hashicorp/terraform/issues/20007))
+* backend/remote: Make sure the correct error is shown when having version incompatibilities ([#20086](https://github.com/hashicorp/terraform/issues/20086))
 
 BUG FIXES:
 
-* backend/remote: Fix an error that prevents checking version constraints [GH-19668]
-* backend/remote: Compare versions without the prerelease [GH-19705]
+* backend/remote: Fix an error that prevents checking version constraints ([#19668](https://github.com/hashicorp/terraform/issues/19668))
+* backend/remote: Compare versions without the prerelease ([#19705](https://github.com/hashicorp/terraform/issues/19705))
 
 ## 0.11.11 (December 14, 2018)
 
