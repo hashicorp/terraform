@@ -111,7 +111,7 @@ func (c *ShowCommand) Run(args []string) int {
 		path := args[0]
 		plan, planErr = getPlanFromPath(path)
 		if planErr != nil {
-			state, stateErr = getStateFromPath(path)
+			stateFile, stateErr = getStateFromPath(path)
 			if stateErr != nil {
 				c.Ui.Error(fmt.Sprintf(
 					"Terraform couldn't read the given file as a state or plan file.\n"+
@@ -159,7 +159,7 @@ func (c *ShowCommand) Run(args []string) int {
 	}
 
 	if jsonOutput == true {
-		jsonState, err := jsonstate.Marshal(state, schemas)
+		jsonState, err := jsonstate.Marshal(stateFile, schemas)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Failed to marshal state to json: %s", err))
 			return 1
@@ -167,7 +167,7 @@ func (c *ShowCommand) Run(args []string) int {
 		c.Ui.Output(string(jsonState))
 	} else {
 		c.Ui.Output(format.State(&format.StateOpts{
-			State:   state,
+			State:   stateFile.State,
 			Color:   c.Colorize(),
 			Schemas: schemas,
 		}))
