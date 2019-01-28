@@ -390,6 +390,8 @@ func (s *GRPCProviderServer) Configure(_ context.Context, req *proto.Configure_R
 		return resp, nil
 	}
 
+	s.provider.TerraformVersion = req.TerraformVersion
+
 	config := terraform.NewResourceConfigShimmed(configVal, block)
 	err = s.provider.Configure(config)
 	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
