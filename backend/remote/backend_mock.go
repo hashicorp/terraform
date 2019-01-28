@@ -323,7 +323,14 @@ func (m *mockOrganizations) Capacity(ctx context.Context, name string) (*tfe.Cap
 }
 
 func (m *mockOrganizations) Entitlements(ctx context.Context, name string) (*tfe.Entitlements, error) {
-	panic("not implemented")
+	return &tfe.Entitlements{
+		Operations:            true,
+		PrivateModuleRegistry: true,
+		Sentinel:              true,
+		StateStorage:          true,
+		Teams:                 true,
+		VCSIntegrations:       true,
+	}, nil
 }
 
 func (m *mockOrganizations) RunQueue(ctx context.Context, name string, options tfe.RunQueueOptions) (*tfe.RunQueue, error) {
@@ -909,8 +916,9 @@ func (m *mockWorkspaces) List(ctx context.Context, organization string, options 
 
 func (m *mockWorkspaces) Create(ctx context.Context, organization string, options tfe.WorkspaceCreateOptions) (*tfe.Workspace, error) {
 	w := &tfe.Workspace{
-		ID:   generateID("ws-"),
-		Name: *options.Name,
+		ID:         generateID("ws-"),
+		Name:       *options.Name,
+		Operations: !strings.HasSuffix(*options.Name, "no-operations"),
 		Permissions: &tfe.WorkspacePermissions{
 			CanQueueRun: true,
 			CanUpdate:   true,
@@ -970,6 +978,9 @@ func (m *mockWorkspaces) Lock(ctx context.Context, workspaceID string, options t
 	if !ok {
 		return nil, tfe.ErrResourceNotFound
 	}
+	if w.Locked {
+		return nil, tfe.ErrWorkspaceLocked
+	}
 	w.Locked = true
 	return w, nil
 }
@@ -979,12 +990,23 @@ func (m *mockWorkspaces) Unlock(ctx context.Context, workspaceID string) (*tfe.W
 	if !ok {
 		return nil, tfe.ErrResourceNotFound
 	}
+	if !w.Locked {
+		return nil, tfe.ErrWorkspaceNotLocked
+	}
 	w.Locked = false
 	return w, nil
 }
 
 func (m *mockWorkspaces) ForceUnlock(ctx context.Context, workspaceID string) (*tfe.Workspace, error) {
-	panic("not implemented")
+	w, ok := m.workspaceIDs[workspaceID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+	if !w.Locked {
+		return nil, tfe.ErrWorkspaceNotLocked
+	}
+	w.Locked = false
+	return w, nil
 }
 
 func (m *mockWorkspaces) AssignSSHKey(ctx context.Context, workspaceID string, options tfe.WorkspaceAssignSSHKeyOptions) (*tfe.Workspace, error) {

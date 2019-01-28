@@ -253,7 +253,7 @@ func TestRemote_planWithTarget(t *testing.T) {
 func TestRemote_planWithVariables(t *testing.T) {
 	b := testBackendDefault(t)
 
-	mod, modCleanup := module.TestTree(t, "./test-fixtures/plan")
+	mod, modCleanup := module.TestTree(t, "./test-fixtures/plan-variables")
 	defer modCleanup()
 
 	op := testOperationPlan()
@@ -296,6 +296,154 @@ func TestRemote_planNoConfig(t *testing.T) {
 	}
 	if !strings.Contains(run.Err.Error(), "configuration files found") {
 		t.Fatalf("expected configuration files error, got: %v", run.Err)
+	}
+}
+
+func TestRemote_planNoChanges(t *testing.T) {
+	b := testBackendDefault(t)
+
+	mod, modCleanup := module.TestTree(t, "./test-fixtures/plan-no-changes")
+	defer modCleanup()
+
+	op := testOperationPlan()
+	op.Module = mod
+	op.Workspace = backend.DefaultStateName
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Err != nil {
+		t.Fatalf("error running operation: %v", run.Err)
+	}
+	if !run.PlanEmpty {
+		t.Fatalf("expected plan to be empty")
+	}
+
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if !strings.Contains(output, "No changes. Infrastructure is up-to-date.") {
+		t.Fatalf("expected no changes in plan summery: %s", output)
+	}
+	if !strings.Contains(output, "Sentinel Result: true") {
+		t.Fatalf("expected policy check result in output: %s", output)
+	}
+}
+
+func TestRemote_planForceLocal(t *testing.T) {
+	// Set TF_FORCE_LOCAL_BACKEND so the remote backend will use
+	// the local backend with itself as embedded backend.
+	if err := os.Setenv("TF_FORCE_LOCAL_BACKEND", "1"); err != nil {
+		t.Fatalf("error setting environment variable TF_FORCE_LOCAL_BACKEND: %v", err)
+	}
+	defer os.Unsetenv("TF_FORCE_LOCAL_BACKEND")
+
+	b := testBackendDefault(t)
+
+	mod, modCleanup := module.TestTree(t, "./test-fixtures/plan")
+	defer modCleanup()
+
+	op := testOperationPlan()
+	op.Module = mod
+	op.Workspace = backend.DefaultStateName
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Err != nil {
+		t.Fatalf("error running operation: %v", run.Err)
+	}
+	if run.PlanEmpty {
+		t.Fatalf("expected a non-empty plan")
+	}
+
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if strings.Contains(output, "Running plan in the remote backend") {
+		t.Fatalf("unexpected remote backend header in output: %s", output)
+	}
+	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+		t.Fatalf("expected plan summery in output: %s", output)
+	}
+}
+
+func TestRemote_planWithoutOperationsEntitlement(t *testing.T) {
+	b := testBackendNoOperations(t)
+
+	mod, modCleanup := module.TestTree(t, "./test-fixtures/plan")
+	defer modCleanup()
+
+	op := testOperationPlan()
+	op.Module = mod
+	op.Workspace = backend.DefaultStateName
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Err != nil {
+		t.Fatalf("error running operation: %v", run.Err)
+	}
+	if run.PlanEmpty {
+		t.Fatalf("expected a non-empty plan")
+	}
+
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if strings.Contains(output, "Running plan in the remote backend") {
+		t.Fatalf("unexpected remote backend header in output: %s", output)
+	}
+	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+		t.Fatalf("expected plan summery in output: %s", output)
+	}
+}
+
+func TestRemote_planWorkspaceWithoutOperations(t *testing.T) {
+	b := testBackendNoDefault(t)
+	ctx := context.Background()
+
+	// Create a named workspace that doesn't allow operations.
+	_, err := b.client.Workspaces.Create(
+		ctx,
+		b.organization,
+		tfe.WorkspaceCreateOptions{
+			Name: tfe.String(b.prefix + "no-operations"),
+		},
+	)
+	if err != nil {
+		t.Fatalf("error creating named workspace: %v", err)
+	}
+
+	mod, modCleanup := module.TestTree(t, "./test-fixtures/plan")
+	defer modCleanup()
+
+	op := testOperationPlan()
+	op.Module = mod
+	op.Workspace = "no-operations"
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Err != nil {
+		t.Fatalf("error running operation: %v", run.Err)
+	}
+	if run.PlanEmpty {
+		t.Fatalf("expected a non-empty plan")
+	}
+
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if strings.Contains(output, "Running plan in the remote backend") {
+		t.Fatalf("unexpected remote backend header in output: %s", output)
+	}
+	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+		t.Fatalf("expected plan summery in output: %s", output)
 	}
 }
 

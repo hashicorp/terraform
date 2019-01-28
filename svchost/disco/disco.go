@@ -48,7 +48,6 @@ type Disco struct {
 	credsSrc  auth.CredentialsSource
 
 	// Transport is a custom http.RoundTripper to use.
-	// A package default is used if this is nil.
 	Transport http.RoundTripper
 }
 
@@ -63,6 +62,7 @@ func NewWithCredentialsSource(credsSrc auth.CredentialsSource) *Disco {
 	return &Disco{
 		hostCache: make(map[svchost.Hostname]*Host),
 		credsSrc:  credsSrc,
+		Transport: httpTransport,
 	}
 }
 
@@ -98,10 +98,7 @@ func (d *Disco) ForceHostServices(hostname svchost.Hostname, services map[string
 	if services == nil {
 		services = map[string]interface{}{}
 	}
-	transport := d.Transport
-	if transport == nil {
-		transport = httpTransport
-	}
+
 	d.hostCache[hostname] = &Host{
 		discoURL: &url.URL{
 			Scheme: "https",
@@ -110,7 +107,7 @@ func (d *Disco) ForceHostServices(hostname svchost.Hostname, services map[string
 		},
 		hostname:  hostname.ForDisplay(),
 		services:  services,
-		transport: transport,
+		transport: d.Transport,
 	}
 }
 
@@ -157,13 +154,8 @@ func (d *Disco) discover(hostname svchost.Hostname) (*Host, error) {
 		Path:   discoPath,
 	}
 
-	transport := d.Transport
-	if transport == nil {
-		transport = httpTransport
-	}
-
 	client := &http.Client{
-		Transport: transport,
+		Transport: d.Transport,
 		Timeout:   discoTimeout,
 
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -205,7 +197,7 @@ func (d *Disco) discover(hostname svchost.Hostname) (*Host, error) {
 		// case the client followed any redirects.
 		discoURL:  resp.Request.URL,
 		hostname:  hostname.ForDisplay(),
-		transport: transport,
+		transport: d.Transport,
 	}
 
 	// Return the host without any services.

@@ -252,7 +252,7 @@ func TestRemote_applyWithTarget(t *testing.T) {
 func TestRemote_applyWithVariables(t *testing.T) {
 	b := testBackendDefault(t)
 
-	mod, modCleanup := module.TestTree(t, "./test-fixtures/apply")
+	mod, modCleanup := module.TestTree(t, "./test-fixtures/apply-variables")
 	defer modCleanup()
 
 	op := testOperationApply()
@@ -458,6 +458,116 @@ func TestRemote_applyWithAutoApply(t *testing.T) {
 	}
 	if !strings.Contains(output, "1 added, 0 changed, 0 destroyed") {
 		t.Fatalf("missing apply summery in output: %s", output)
+	}
+}
+
+func TestRemote_applyForceLocal(t *testing.T) {
+	// Set TF_FORCE_LOCAL_BACKEND so the remote backend will use
+	// the local backend with itself as embedded backend.
+	if err := os.Setenv("TF_FORCE_LOCAL_BACKEND", "1"); err != nil {
+		t.Fatalf("error setting environment variable TF_FORCE_LOCAL_BACKEND: %v", err)
+	}
+	defer os.Unsetenv("TF_FORCE_LOCAL_BACKEND")
+
+	b := testBackendDefault(t)
+
+	mod, modCleanup := module.TestTree(t, "./test-fixtures/apply")
+	defer modCleanup()
+
+	input := testInput(t, map[string]string{
+		"approve": "yes",
+	})
+
+	op := testOperationApply()
+	op.Module = mod
+	op.UIIn = input
+	op.UIOut = b.CLI
+	op.Workspace = backend.DefaultStateName
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Err != nil {
+		t.Fatalf("error running operation: %v", run.Err)
+	}
+	if run.PlanEmpty {
+		t.Fatalf("expected a non-empty plan")
+	}
+
+	if len(input.answers) > 0 {
+		t.Fatalf("expected no unused answers, got: %v", input.answers)
+	}
+
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if strings.Contains(output, "Running apply in the remote backend") {
+		t.Fatalf("unexpected remote backend header in output: %s", output)
+	}
+	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+		t.Fatalf("expected plan summery in output: %s", output)
+	}
+	if !strings.Contains(output, "1 added, 0 changed, 0 destroyed") {
+		t.Fatalf("expected apply summery in output: %s", output)
+	}
+}
+
+func TestRemote_applyWorkspaceWithoutOperations(t *testing.T) {
+	b := testBackendNoDefault(t)
+	ctx := context.Background()
+
+	// Create a named workspace that doesn't allow operations.
+	_, err := b.client.Workspaces.Create(
+		ctx,
+		b.organization,
+		tfe.WorkspaceCreateOptions{
+			Name: tfe.String(b.prefix + "no-operations"),
+		},
+	)
+	if err != nil {
+		t.Fatalf("error creating named workspace: %v", err)
+	}
+
+	mod, modCleanup := module.TestTree(t, "./test-fixtures/apply")
+	defer modCleanup()
+
+	input := testInput(t, map[string]string{
+		"approve": "yes",
+	})
+
+	op := testOperationApply()
+	op.Module = mod
+	op.UIIn = input
+	op.UIOut = b.CLI
+	op.Workspace = "no-operations"
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Err != nil {
+		t.Fatalf("error running operation: %v", run.Err)
+	}
+	if run.PlanEmpty {
+		t.Fatalf("expected a non-empty plan")
+	}
+
+	if len(input.answers) > 0 {
+		t.Fatalf("expected no unused answers, got: %v", input.answers)
+	}
+
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if strings.Contains(output, "Running apply in the remote backend") {
+		t.Fatalf("unexpected remote backend header in output: %s", output)
+	}
+	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+		t.Fatalf("expected plan summery in output: %s", output)
+	}
+	if !strings.Contains(output, "1 added, 0 changed, 0 destroyed") {
+		t.Fatalf("expected apply summery in output: %s", output)
 	}
 }
 

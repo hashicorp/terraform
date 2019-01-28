@@ -1,10 +1,23 @@
+## 0.11.12-beta1 (January 28, 2019)
+
+IMPROVEMENTS:
+
+* command/state: Use locking when updating states ([#19939](https://github.com/hashicorp/terraform/issues/19939))
+* backend/remote: Add support for remote state only organizations ([#20007](https://github.com/hashicorp/terraform/issues/20007))
+* backend/remote: Make sure the correct error is shown when having version incompatibilities ([#20086](https://github.com/hashicorp/terraform/issues/20086))
+
+BUG FIXES:
+
+* backend/remote: Fix an error that prevents checking version constraints ([#19668](https://github.com/hashicorp/terraform/issues/19668))
+* backend/remote: Compare versions without the prerelease ([#19705](https://github.com/hashicorp/terraform/issues/19705))
+
 ## 0.11.11 (December 14, 2018)
 
 IMPROVEMENTS:
 
-* backend/remote: Return detailed version (in)compatibility information ([#19659](https://github.com/hashicorp/terraform/issues/19659))
-* core: Enhance service discovery error handling and messaging ([#19589](https://github.com/hashicorp/terraform/issues/19589))
-* core: Add support to retrieve version constraints to service discovery ([#19647](https://github.com/hashicorp/terraform/issues/19647))
+* backend/remote: Return detailed version (in)compatibility information ([#19660](https://github.com/hashicorp/terraform/issues/19660))
+* core: Enhance service discovery error handling and messaging ([#19660](https://github.com/hashicorp/terraform/issues/19660))
+* core: Add support to retrieve version constraints to service discovery ([#19660](https://github.com/hashicorp/terraform/issues/19660))
 
 BUG FIXES:
 
