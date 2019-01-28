@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/objects"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/state"
@@ -32,8 +33,13 @@ func (b *Backend) Workspaces() ([]string, error) {
 		Full:      false,
 	}
 
+	wss := []string{backend.DefaultStateName}
+
 	allPages, err := objects.List(b.client, container, listOpts).AllPages()
 	if err != nil {
+		if _, ok := err.(gophercloud.ErrDefault404); ok {
+			return wss, nil
+		}
 		return nil, err
 	}
 
@@ -42,7 +48,6 @@ func (b *Backend) Workspaces() ([]string, error) {
 		return nil, fmt.Errorf("Unable to extract objects: %v", err)
 	}
 
-	wss := []string{backend.DefaultStateName}
 	for _, obj := range objectList {
 		ws := b.validateWorkSpace(obj, prefix)
 		if ws != "" {
