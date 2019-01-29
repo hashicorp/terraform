@@ -174,6 +174,8 @@ github.com/hashicorp/serf v0.0.0-20160124182025-e4ec8cc423bb h1:ZbgmOQt8DOg796fi
 github.com/hashicorp/serf v0.0.0-20160124182025-e4ec8cc423bb/go.mod h1:h/Ru6tmZazX7WO/GDmwdpS975F019L4t5ng5IgwbNrE=
 github.com/hashicorp/terraform-config-inspect v0.0.0-20181213005350-314d8affa1db h1:AcZb6ClKGJoY9vDFvxw+t5s8EmtWP8fMerxP6j+veKc=
 github.com/hashicorp/terraform-config-inspect v0.0.0-20181213005350-314d8affa1db/go.mod h1:2zR/i7/tO81bLaVoMEJlSLRJ36/TvPLapEmy682Zizo=
+github.com/hashicorp/terraform-config-inspect v0.0.0-20190129165904-67302cb0361b h1:A+sv28TB1pIfYHFBnEDUYIKA12RTVLsYjvu9JS+dxz8=
+github.com/hashicorp/terraform-config-inspect v0.0.0-20190129165904-67302cb0361b/go.mod h1:nKgb1xGwu9K9mk77DQJoM/XD19kEyrKFNstmjxB6/48=
 github.com/hashicorp/vault v0.0.0-20161029210149-9a60bf2a50e4 h1:SGDekHLK2IRoVS7Fb4olLyWvc2VmwKgyFC05j6X3NII=
 github.com/hashicorp/vault v0.0.0-20161029210149-9a60bf2a50e4/go.mod h1:KfSyffbKxoVyspOdlaGVjIuwLobi07qD1bAbosPMpP0=
 github.com/hashicorp/yamux v0.0.0-20180604194846-3520598351bb h1:b5rjCoWHc7eqmAS4/qyk21ZsHyb6Mxv/jykxvNTkU4M=
@@ -292,6 +294,7 @@ github.com/soheilhy/cmux v0.1.4 h1:0HKaf1o97UwFjHH9o5XsHUOF+tqmdA7KEzXLpiyaw0E=
 github.com/soheilhy/cmux v0.1.4/go.mod h1:IM3LyeVVIOuxMH7sFAkER9+bJ4dT7Ms6E4xg4kGIyLM=
 github.com/spf13/afero v1.0.2 h1:5bRmqmInNmNFkI9NG9O0Xc/Lgl9wOWWUUA/O8XZqTCo=
 github.com/spf13/afero v1.0.2/go.mod h1:j4pytiNVoe2o6bmDsKpLACNPDBIoEAkihy7loJ1B0CQ=
+github.com/spf13/pflag v1.0.2 h1:Fy0orTDgHdbnzHcsOgfCN4LtHf0ec3wwtiwJqwvf3Gc=
 github.com/spf13/pflag v1.0.2/go.mod h1:DYY7MBk1bdzusC3SYhjObp+wFpr4gzcvqqNjLnInEg4=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
