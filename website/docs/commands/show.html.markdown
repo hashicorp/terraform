@@ -22,6 +22,14 @@ When using the `-json` command-line flag, any sensitive values in
 terraform state will be displayed in plain text. For more information, see
 [_Sensitive Data in State_](/docs/state/sensitive-data.html).
 
+## json output
+
+When `terraform show -json` is run with a path to a Terraform state file or no
+path, a json representation of the current state will be shown.
+
+When `terraform show -json` is run with a path to a Terraform plan file, a json
+representation of the plan, configuration, and current state will be shown.
+
 ## Usage
 
 Usage: `terraform show [options] [path]`
@@ -33,4 +41,4 @@ The command-line flags are all optional. The list of available flags are:
 
 * `-no-color` - Disables output with coloring
 
-* `-json` - Displays machine-readable output from a plan file
+* `-json` - Displays machine-readable output from a state or plan file
