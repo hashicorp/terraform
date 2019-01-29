@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestResourceProvisioner_nixUploadFile(t *testing.T) {
+func TestResourceProvisioner_linuxUploadFile(t *testing.T) {
 	cases := map[string]struct {
 		Config        map[string]interface{}
 		Commands      map[string]bool
@@ -79,7 +79,7 @@ func TestResourceProvisioner_nixUploadFile(t *testing.T) {
 		p.comm = c
 		p.output = new(terraform.MockUIOutput)
 
-		err = p.nixUploadFile(tc.File, tc.Dir, tc.Filename)
+		err = p.linuxUploadFile(tc.File, tc.Dir, tc.Filename)
 		if tc.ExpectedError {
 			if err == nil {
 				t.Fatalf("Expected error, but no error returned")
@@ -92,7 +92,7 @@ func TestResourceProvisioner_nixUploadFile(t *testing.T) {
 	}
 }
 
-func TestResourceProvisioner_nixDefaultCertname(t *testing.T) {
+func TestResourceProvisioner_linuxDefaultCertname(t *testing.T) {
 	cases := map[string]struct {
 		Config        map[string]interface{}
 		Commands      map[string]bool
@@ -157,7 +157,7 @@ func TestResourceProvisioner_nixDefaultCertname(t *testing.T) {
 		p.comm = c
 		p.output = new(terraform.MockUIOutput)
 
-		_, err = p.nixDefaultCertname()
+		_, err = p.linuxDefaultCertname()
 		if tc.ExpectedError {
 			if err == nil {
 				t.Fatalf("Expected error, but no error returned")
@@ -170,7 +170,7 @@ func TestResourceProvisioner_nixDefaultCertname(t *testing.T) {
 	}
 }
 
-func TestResourceProvisioner_nixInstallPuppetAgent(t *testing.T) {
+func TestResourceProvisioner_linuxInstallPuppetAgent(t *testing.T) {
 	cases := map[string]struct {
 		Config        map[string]interface{}
 		Commands      map[string]bool
@@ -289,7 +289,7 @@ func TestResourceProvisioner_nixInstallPuppetAgent(t *testing.T) {
 		p.comm = c
 		p.output = new(terraform.MockUIOutput)
 
-		err = p.nixInstallPuppetAgent()
+		err = p.linuxInstallPuppetAgent()
 		if tc.ExpectedError {
 			if err == nil {
 				t.Fatalf("Expected error, but no error returned")
@@ -302,7 +302,7 @@ func TestResourceProvisioner_nixInstallPuppetAgent(t *testing.T) {
 	}
 }
 
-func TestResourceProvisioner_nixRunPuppetAgent(t *testing.T) {
+func TestResourceProvisioner_linuxRunPuppetAgent(t *testing.T) {
 	cases := map[string]struct {
 		Config        map[string]interface{}
 		Commands      map[string]bool
@@ -366,7 +366,7 @@ func TestResourceProvisioner_nixRunPuppetAgent(t *testing.T) {
 		p.comm = c
 		p.output = new(terraform.MockUIOutput)
 
-		err = p.nixRunPuppetAgent()
+		err = p.linuxRunPuppetAgent()
 		if tc.ExpectedError {
 			if err == nil {
 				t.Fatalf("Expected error, but no error returned")
@@ -379,7 +379,7 @@ func TestResourceProvisioner_nixRunPuppetAgent(t *testing.T) {
 	}
 }
 
-func TestResourceProvisioner_nixIsPuppetEnterprise(t *testing.T) {
+func TestResourceProvisioner_linuxIsPuppetEnterprise(t *testing.T) {
 	cases := map[string]struct {
 		Config         map[string]interface{}
 		Commands       map[string]bool
@@ -463,7 +463,7 @@ func TestResourceProvisioner_nixIsPuppetEnterprise(t *testing.T) {
 		p.comm = c
 		p.output = new(terraform.MockUIOutput)
 
-		result, err := p.nixIsPuppetEnterprise()
+		result, err := p.linuxIsPuppetEnterprise()
 		if tc.ExpectedError {
 			if err == nil {
 				t.Fatalf("Expected error, but no error returned")

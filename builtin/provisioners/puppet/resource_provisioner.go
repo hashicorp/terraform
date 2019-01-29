@@ -5,8 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"os"
 	"strings"
 
 	"github.com/hashicorp/terraform/builtin/provisioners/puppet/bolt"
@@ -62,7 +60,7 @@ func Provisioner() terraform.ResourceProvisioner {
 			"os_type": &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: validation.StringInSlice([]string{"nix", "windows"}, false),
+				ValidateFunc: validation.StringInSlice([]string{"linux", "windows"}, false),
 			},
 			"use_sudo": &schema.Schema{
 				Type:     schema.TypeBool,
@@ -112,7 +110,7 @@ func applyFn(ctx context.Context) (rerr error) {
 	if p.OSType == "" {
 		switch connType := state.Ephemeral.ConnInfo["type"]; connType {
 		case "ssh", "":
-			p.OSType = "nix"
+			p.OSType = "linux"
 		case "winrm":
 			p.OSType = "windows"
 		default:
@@ -121,12 +119,12 @@ func applyFn(ctx context.Context) (rerr error) {
 	}
 
 	switch p.OSType {
-	case "nix":
-		p.runPuppetAgent = p.nixRunPuppetAgent
-		p.installPuppetAgent = p.nixInstallPuppetAgent
-		p.uploadFile = p.nixUploadFile
-		p.defaultCertname = p.nixDefaultCertname
-		p.isPuppetEnterprise = p.nixIsPuppetEnterprise
+	case "linux":
+		p.runPuppetAgent = p.linuxRunPuppetAgent
+		p.installPuppetAgent = p.linuxInstallPuppetAgent
+		p.uploadFile = p.linuxUploadFile
+		p.defaultCertname = p.linuxDefaultCertname
+		p.isPuppetEnterprise = p.linuxIsPuppetEnterprise
 	case "windows":
 		p.runPuppetAgent = p.windowsRunPuppetAgent
 		p.installPuppetAgent = p.windowsInstallPuppetAgent
@@ -209,36 +207,17 @@ func applyFn(ctx context.Context) (rerr error) {
 }
 
 func (p *provisioner) writeCSRAttributes(attrs *csrAttributes) (rerr error) {
-	file, err := ioutil.TempFile("", "puppet-csr-attrs")
-	if err != nil {
-		return fmt.Errorf("Failed to create a temp file: %s", err)
-	}
-	defer func() {
-		if err := os.Remove(file.Name()); err != nil {
-			rerr = err
-		}
-	}()
-
 	content, err := yaml.Marshal(attrs)
 	if err != nil {
 		return fmt.Errorf("Failed to marshal CSR attributes to YAML: %s", err)
 	}
 
-	_, err = file.WriteString(string(content))
-	if err != nil {
-		return fmt.Errorf("Failed to write YAML to temp file: %s", err)
-	}
-
-	_, err = file.Seek(0, 0)
-	if err != nil {
-		return err
-	}
 	configDir := map[string]string{
-		"nix":     "/etc/puppetlabs/puppet",
+		"linux":   "/etc/puppetlabs/puppet",
 		"windows": "C:\\ProgramData\\PuppetLabs\\Puppet\\etc",
 	}
 
-	return p.uploadFile(file, configDir[p.OSType], "csr_attributes.yaml")
+	return p.uploadFile(bytes.NewBuffer(content), configDir[p.OSType], "csr_attributes.yaml")
 }
 
 func (p *provisioner) generateAutosignToken(certname string) (string, error) {

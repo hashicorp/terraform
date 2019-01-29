@@ -37,25 +37,7 @@ func runCommand(command string) ([]byte, error) {
 	return cmd.Output()
 }
 
-func commandExists(command string) bool {
-	var cmdargs []string
-
-	if runtime.GOOS == "windows" {
-		cmdargs = []string{"where", "/q"}
-	} else {
-		cmdargs = []string{"command", "-v"}
-	}
-	cmdargs = append(cmdargs, command)
-
-	_, err := runCommand(strings.Join(cmdargs, " "))
-	return err == nil
-}
-
 func Task(connInfo map[string]string, sudo bool, task string, args map[string]string) (*Result, error) {
-	if !commandExists("bolt") {
-		return nil, fmt.Errorf("bolt command not available in PATH")
-	}
-
 	cmdargs := []string{"bolt", "task", "run", "--nodes", connInfo["type"] + "://" + connInfo["host"], "-u", connInfo["user"]}
 
 	if connInfo["type"] == "winrm" {

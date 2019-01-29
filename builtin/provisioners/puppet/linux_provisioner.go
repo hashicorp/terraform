@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform/communicator/remote"
 )
 
-func (p *provisioner) nixUploadFile(f io.Reader, dir string, filename string) error {
+func (p *provisioner) linuxUploadFile(f io.Reader, dir string, filename string) error {
 	_, err := p.runCommand("mkdir -p " + dir)
 	if err != nil {
 		return fmt.Errorf("Failed to make directory %s: %s", dir, err)
@@ -23,7 +23,7 @@ func (p *provisioner) nixUploadFile(f io.Reader, dir string, filename string) er
 	return err
 }
 
-func (p *provisioner) nixDefaultCertname() (string, error) {
+func (p *provisioner) linuxDefaultCertname() (string, error) {
 	certname, err := p.runCommand("hostname -f")
 	if err != nil {
 		return "", err
@@ -32,7 +32,7 @@ func (p *provisioner) nixDefaultCertname() (string, error) {
 	return certname, nil
 }
 
-func (p *provisioner) nixInstallPuppetAgent() error {
+func (p *provisioner) linuxInstallPuppetAgent() error {
 	_, err := p.runCommand(fmt.Sprintf("curl -kO https://%s:8140/packages/current/install.bash", p.Server))
 	if err != nil {
 		return err
@@ -47,8 +47,12 @@ func (p *provisioner) nixInstallPuppetAgent() error {
 	return err
 }
 
-func (p *provisioner) nixRunPuppetAgent() error {
-	_, err := p.runCommand(fmt.Sprintf("/opt/puppetlabs/puppet/bin/puppet agent --test --server %s --environment %s", p.Server, p.Environment))
+func (p *provisioner) linuxRunPuppetAgent() error {
+	_, err := p.runCommand(fmt.Sprintf(
+		"/opt/puppetlabs/puppet/bin/puppet agent --test --server %s --environment %s",
+		p.Server,
+		p.Environment,
+	))
 
 	// Puppet exits 2 if changes have been successfully made.
 	if err != nil {
@@ -61,8 +65,11 @@ func (p *provisioner) nixRunPuppetAgent() error {
 	return err
 }
 
-func (p *provisioner) nixIsPuppetEnterprise() (bool, error) {
-	status, err := p.runCommand(fmt.Sprintf(`curl -IsLk -w "%%{http_code}" -o /dev/null https://%s:8140/packages/current/install.bash`, p.Server))
+func (p *provisioner) linuxIsPuppetEnterprise() (bool, error) {
+	status, err := p.runCommand(fmt.Sprintf(
+		`curl -IsLk -w "%%{http_code}" -o /dev/null https://%s:8140/packages/current/install.bash`,
+		p.Server,
+	))
 	if err != nil {
 		return false, err
 	}

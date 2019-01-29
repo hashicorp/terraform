@@ -59,10 +59,10 @@ func TestProvisioner_Validate_bad_os_type(t *testing.T) {
 	}
 }
 
-func TestProvisioner_Validate_good_os_type_nix(t *testing.T) {
+func TestProvisioner_Validate_good_os_type_linux(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{
 		"server":  "puppet.test.com",
-		"os_type": "nix",
+		"os_type": "linux",
 	})
 
 	warn, errs := Provisioner().Validate(c)
