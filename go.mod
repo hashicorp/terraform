@@ -6,6 +6,7 @@ require (
 	github.com/Azure/go-autorest v10.15.4+incompatible
 	github.com/Azure/go-ntlmssp v0.0.0-20170803034930-c92175d54006 // indirect
 	github.com/ChrisTrenkamp/goxpath v0.0.0-20170625215350-4fe035839290 // indirect
+	github.com/DHowett/go-plist v0.0.0-20180609054337-500bd5b9081b // indirect
 	github.com/Unknwon/com v0.0.0-20151008135407-28b053d5a292 // indirect
 	github.com/abdullin/seq v0.0.0-20160510034733-d5467c17e7af // indirect
 	github.com/agext/levenshtein v1.2.1
@@ -76,7 +77,7 @@ require (
 	github.com/hashicorp/logutils v0.0.0-20150609070431-0dc08b1671f3
 	github.com/hashicorp/memberlist v0.1.0 // indirect
 	github.com/hashicorp/serf v0.0.0-20160124182025-e4ec8cc423bb // indirect
-	github.com/hashicorp/terraform-config-inspect v0.0.0-20181213005350-314d8affa1db
+	github.com/hashicorp/terraform-config-inspect v0.0.0-20190129165904-67302cb0361b
 	github.com/hashicorp/vault v0.0.0-20161029210149-9a60bf2a50e4
 	github.com/jen20/awspolicyequivalence v0.0.0-20170831201602-3d48364a137a // indirect
 	github.com/jonboulle/clockwork v0.1.0 // indirect
