@@ -85,7 +85,8 @@ func TestInit_fromModule_explicitDest(t *testing.T) {
 		// is causing a terraform.tfstate to get left behind in our directory
 		// here, which can interfere with our init process in a way that
 		// isn't relevant to this test.
-		t.Fatalf("some other test has left terraform.tfstate behind")
+		fullPath, _ := filepath.Abs(DefaultStateFilename)
+		t.Fatalf("some other test has left terraform.tfstate behind:\n%s", fullPath)
 	}
 
 	args := []string{
