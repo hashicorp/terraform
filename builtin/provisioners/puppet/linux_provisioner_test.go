@@ -4,7 +4,6 @@ import (
 	"io"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/communicator/remote"
@@ -375,107 +374,6 @@ func TestResourceProvisioner_linuxRunPuppetAgent(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Test %q failed: %v", k, err)
 			}
-		}
-	}
-}
-
-func TestResourceProvisioner_linuxIsPuppetEnterprise(t *testing.T) {
-	cases := map[string]struct {
-		Config         map[string]interface{}
-		Commands       map[string]bool
-		CommandFunc    func(*remote.Cmd) error
-		ExpectedError  bool
-		ExpectedResult bool
-	}{
-		"When the curl command fails": {
-			Config: map[string]interface{}{
-				"server":   "puppet.test.com",
-				"use_sudo": false,
-			},
-			CommandFunc: func(r *remote.Cmd) error {
-				r.SetExitStatus(1, &remote.ExitError{
-					Command:    "curl",
-					ExitStatus: 1,
-					Err:        nil,
-				})
-				return nil
-			},
-			ExpectedError:  true,
-			ExpectedResult: false,
-		},
-		"When the curl command prints an unparsable number to stdout": {
-			Config: map[string]interface{}{
-				"server":   "puppet.test.com",
-				"use_sudo": false,
-			},
-			CommandFunc: func(r *remote.Cmd) error {
-				r.Stdout.Write([]byte("something"))
-				time.Sleep(200 * time.Millisecond)
-				r.SetExitStatus(0, nil)
-				return nil
-			},
-			ExpectedError:  true,
-			ExpectedResult: false,
-		},
-		"When the curl command prints a 2xx status to stdout": {
-			Config: map[string]interface{}{
-				"server":   "puppet.test.com",
-				"use_sudo": false,
-			},
-			CommandFunc: func(r *remote.Cmd) error {
-				r.Stdout.Write([]byte("200"))
-				time.Sleep(200 * time.Millisecond)
-				r.SetExitStatus(0, nil)
-				return nil
-			},
-			ExpectedError:  false,
-			ExpectedResult: true,
-		},
-		"When the curl command prints a 4xx status to stdout": {
-			Config: map[string]interface{}{
-				"server":   "puppet.test.com",
-				"use_sudo": false,
-			},
-			CommandFunc: func(r *remote.Cmd) error {
-				r.Stdout.Write([]byte("404"))
-				time.Sleep(200 * time.Millisecond)
-				r.SetExitStatus(0, nil)
-				return nil
-			},
-			ExpectedError:  false,
-			ExpectedResult: false,
-		},
-	}
-
-	for k, tc := range cases {
-		p, err := decodeConfig(
-			schema.TestResourceDataRaw(t, Provisioner().(*schema.Provisioner).Schema, tc.Config),
-		)
-		if err != nil {
-			t.Fatalf("Error: %v", err)
-		}
-
-		c := new(communicator.MockCommunicator)
-		c.Commands = tc.Commands
-		if tc.CommandFunc != nil {
-			c.CommandFunc = tc.CommandFunc
-		}
-		p.comm = c
-		p.output = new(terraform.MockUIOutput)
-
-		result, err := p.linuxIsPuppetEnterprise()
-		if tc.ExpectedError {
-			if err == nil {
-				t.Fatalf("Expected error, but no error returned")
-			}
-		} else {
-			if err != nil {
-				t.Fatalf("Test %q failed: %v", k, err)
-			}
-		}
-
-		if result != tc.ExpectedResult {
-			t.Fatalf("Test %q failed: expected return %t, got %t", k, tc.ExpectedResult, result)
 		}
 	}
 }

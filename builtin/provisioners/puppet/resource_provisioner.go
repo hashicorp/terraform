@@ -32,7 +32,6 @@ type provisioner struct {
 	installPuppetAgent func() error
 	uploadFile         func(f io.Reader, dir string, filename string) error
 	defaultCertname    func() (string, error)
-	isPuppetEnterprise func() (bool, error)
 
 	instanceState *terraform.InstanceState
 	output        terraform.UIOutput
@@ -75,6 +74,7 @@ func Provisioner() terraform.ResourceProvisioner {
 			"open_source": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
+				Default:  true,
 			},
 			"certname": &schema.Schema{
 				Type:     schema.TypeString,
@@ -124,14 +124,12 @@ func applyFn(ctx context.Context) (rerr error) {
 		p.installPuppetAgent = p.linuxInstallPuppetAgent
 		p.uploadFile = p.linuxUploadFile
 		p.defaultCertname = p.linuxDefaultCertname
-		p.isPuppetEnterprise = p.linuxIsPuppetEnterprise
 	case "windows":
 		p.runPuppetAgent = p.windowsRunPuppetAgent
 		p.installPuppetAgent = p.windowsInstallPuppetAgent
 		p.uploadFile = p.windowsUploadFile
 		p.UseSudo = false
 		p.defaultCertname = p.windowsDefaultCertname
-		p.isPuppetEnterprise = p.windowsIsPuppetEnterprise
 	default:
 		return fmt.Errorf("Unsupported OS type: %s", p.OSType)
 	}
@@ -157,15 +155,6 @@ func applyFn(ctx context.Context) (rerr error) {
 	}()
 
 	p.comm = comm
-
-	_, ok := configData.GetOkExists("open_source")
-	if !ok {
-		isPE, err := p.isPuppetEnterprise()
-		if err != nil {
-			return fmt.Errorf("Unable to determine if %s is running Puppet Enterprise: %v", p.Server, err)
-		}
-		p.OpenSource = !isPE
-	}
 
 	if p.OpenSource {
 		p.installPuppetAgent = p.installPuppetAgentOpenSource

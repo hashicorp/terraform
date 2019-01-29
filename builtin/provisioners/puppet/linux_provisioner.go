@@ -3,7 +3,6 @@ package puppet
 import (
 	"fmt"
 	"io"
-	"strconv"
 
 	"github.com/hashicorp/terraform/communicator/remote"
 )
@@ -63,21 +62,4 @@ func (p *provisioner) linuxRunPuppetAgent() error {
 	}
 
 	return err
-}
-
-func (p *provisioner) linuxIsPuppetEnterprise() (bool, error) {
-	status, err := p.runCommand(fmt.Sprintf(
-		`curl -IsLk -w "%%{http_code}" -o /dev/null https://%s:8140/packages/current/install.bash`,
-		p.Server,
-	))
-	if err != nil {
-		return false, err
-	}
-
-	statusInt, err := strconv.Atoi(status)
-	if err != nil {
-		return false, err
-	}
-
-	return (statusInt < 400), nil
 }

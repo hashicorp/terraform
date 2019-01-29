@@ -3,7 +3,6 @@ package puppet
 import (
 	"fmt"
 	"io"
-	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform/communicator/remote"
@@ -69,23 +68,4 @@ func (p *provisioner) windowsRunPuppetAgent() error {
 	}
 
 	return err
-}
-
-func (p *provisioner) windowsIsPuppetEnterprise() (bool, error) {
-	status, err := p.runCommand(fmt.Sprintf(
-		`powershell -Command "& {[Net.ServicePointManager]::ServerCertificateValidationCallback = {$true}; `+
-			`$r = [System.Net.WebRequest]::Create('https://%s:8140/packages/current/install.ps1'); `+
-			`$r.Method = 'HEAD'; ($r.GetResponse().StatusCode) -as [int]}"`,
-		p.Server,
-	))
-	if err != nil {
-		return false, err
-	}
-
-	statusInt, err := strconv.Atoi(status)
-	if err != nil {
-		return false, err
-	}
-
-	return (statusInt < 400), nil
 }
