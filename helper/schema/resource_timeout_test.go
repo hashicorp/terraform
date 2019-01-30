@@ -129,6 +129,45 @@ func TestResourceTimeout_ConfigDecode(t *testing.T) {
 	}
 }
 
+func TestResourceTimeout_legacyConfigDecode(t *testing.T) {
+	r := &Resource{
+		Timeouts: &ResourceTimeout{
+			Create: DefaultTimeout(10 * time.Minute),
+			Update: DefaultTimeout(5 * time.Minute),
+		},
+	}
+
+	raw, err := config.NewRawConfig(
+		map[string]interface{}{
+			"foo": "bar",
+			TimeoutsConfigKey: []map[string]interface{}{
+				{
+					"create": "2m",
+					"update": "1m",
+				},
+			},
+		})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	c := terraform.NewResourceConfig(raw)
+
+	timeout := &ResourceTimeout{}
+	err = timeout.ConfigDecode(r, c)
+	if err != nil {
+		t.Fatalf("Expected good timeout returned:, %s", err)
+	}
+
+	expected := &ResourceTimeout{
+		Create: DefaultTimeout(2 * time.Minute),
+		Update: DefaultTimeout(1 * time.Minute),
+	}
+
+	if !reflect.DeepEqual(timeout, expected) {
+		t.Fatalf("bad timeout decode.\nExpected:\n%#v\nGot:\n%#v\n", expected, timeout)
+	}
+}
+
 func TestResourceTimeout_DiffEncode_basic(t *testing.T) {
 	cases := []struct {
 		Timeout  *ResourceTimeout

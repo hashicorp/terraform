@@ -278,7 +278,7 @@ func TestProviderValidate(t *testing.T) {
 	}
 }
 
-func TestProviderDiff_timeoutInvalidType(t *testing.T) {
+func TestProviderDiff_legacyTimeoutType(t *testing.T) {
 	p := &Provider{
 		ResourcesMap: map[string]*Resource{
 			"blah": &Resource{
@@ -298,6 +298,48 @@ func TestProviderDiff_timeoutInvalidType(t *testing.T) {
 	invalidCfg := map[string]interface{}{
 		"foo": 42,
 		"timeouts": []map[string]interface{}{
+			map[string]interface{}{
+				"create": "40m",
+			},
+		},
+	}
+	ic, err := config.NewRawConfig(invalidCfg)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	_, err = p.Diff(
+		&terraform.InstanceInfo{
+			Type: "blah",
+		},
+		nil,
+		terraform.NewResourceConfig(ic),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestProviderDiff_invalidTimeoutType(t *testing.T) {
+	p := &Provider{
+		ResourcesMap: map[string]*Resource{
+			"blah": &Resource{
+				Schema: map[string]*Schema{
+					"foo": {
+						Type:     TypeInt,
+						Optional: true,
+					},
+				},
+				Timeouts: &ResourceTimeout{
+					Create: DefaultTimeout(10 * time.Minute),
+				},
+			},
+		},
+	}
+
+	invalidCfg := map[string]interface{}{
+		"foo": 42,
+		"timeouts": []interface{}{
 			map[string]interface{}{
 				"create": "40m",
 			},
