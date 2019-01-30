@@ -110,7 +110,7 @@ func testProviderSchema() *terraform.ProviderSchema {
 					"woozles": {Type: cty.String, Optional: true},
 				},
 				BlockTypes: map[string]*configschema.NestedBlock{
-					"nested_attr": {
+					"nested": {
 						Nesting: configschema.NestingList,
 						Block: configschema.Block{
 							Attributes: map[string]*configschema.Attribute{
@@ -156,7 +156,7 @@ const nestedTestOutput = `# test_resource.baz[0]:
 resource "test_resource" "baz" {
     woozles = "confuzles"
 
-    nested_attr {
+    nested {
         value = "42"
     }
 }
@@ -180,7 +180,7 @@ func nestedState(t *testing.T) *states.State {
 		&states.ResourceInstanceObjectSrc{
 			Status:        states.ObjectReady,
 			SchemaVersion: 1,
-			AttrsJSON:     []byte(`{"woozles":"confuzles","nested_attr": [{"value": "42"}]}`),
+			AttrsJSON:     []byte(`{"woozles":"confuzles","nested": [{"value": "42"}]}`),
 		},
 		addrs.ProviderConfig{
 			Type: "test",
