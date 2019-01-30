@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"log"
 	"reflect"
 	"regexp"
 	"sort"
@@ -494,11 +495,12 @@ func (d *InstanceDiff) applyBlockDiff(path []string, attrs map[string]string, sc
 		// we need to find the set of all keys that traverse this block
 		candidateKeys := map[string]bool{}
 		blockKey := blockPrefix + n + "."
+		localBlockPrefix := localPrefix + n + "."
 
 		// we can only trust the diff for sets, since the path changes, so don't
 		// count existing values as candidate keys. If it turns out we're
-		// keeping the attributes, we will check catch it down below with
-		// "keepBlock" after we check the set count.
+		// keeping the attributes, we will catch it down below with "keepBlock"
+		// after we check the set count.
 		if block.Nesting != configschema.NestingSet {
 			for k := range attrs {
 				if strings.HasPrefix(k, blockKey) {
@@ -570,7 +572,7 @@ func (d *InstanceDiff) applyBlockDiff(path []string, attrs map[string]string, sc
 			}
 
 			for attr, v := range newAttrs {
-				result[localPrefix+n+"."+attr] = v
+				result[localBlockPrefix+attr] = v
 			}
 		}
 
@@ -589,24 +591,51 @@ func (d *InstanceDiff) applyBlockDiff(path []string, attrs map[string]string, sc
 				if strings.HasPrefix(k, blockKey) {
 					// we need the key relative to this block, so remove the
 					// entire prefix, then re-insert the block name.
-					localKey := n + "." + k[len(blockKey):]
-
+					localKey := localBlockPrefix + k[len(blockKey):]
 					result[localKey] = v
 				}
 			}
 		}
 
-		if countDiff, ok := d.Attributes[strings.Join(append(path, n, ".#"), ".")]; ok {
-
+		if countDiff, ok := d.Attributes[strings.Join(append(path, n, "#"), ".")]; ok {
 			if countDiff.NewComputed {
-				result[localPrefix+n+".#"] = hcl2shim.UnknownVariableValue
+				result[localBlockPrefix+"#"] = hcl2shim.UnknownVariableValue
 			} else {
-				result[localPrefix+n+".#"] = countDiff.New
+				result[localBlockPrefix+"#"] = countDiff.New
+
+				// While sets are complete, list are not, and we may not have all the
+				// information to track removals. If the list was truncated, we need to
+				// remove the extra items from the result.
+				if block.Nesting == configschema.NestingList &&
+					countDiff.New != "" && countDiff.New != hcl2shim.UnknownVariableValue {
+					length, _ := strconv.Atoi(countDiff.New)
+					for k := range result {
+						if !strings.HasPrefix(k, localBlockPrefix) {
+							continue
+						}
+
+						index := k[len(localBlockPrefix):]
+						nextDot := strings.Index(index, ".")
+						if nextDot < 1 {
+							continue
+						}
+						index = index[:nextDot]
+						i, err := strconv.Atoi(index)
+						if err != nil {
+							// this shouldn't happen since we added these
+							// ourself, but make note of it just in case.
+							log.Printf("[ERROR] bas list index in %q: %s", k, err)
+							continue
+						}
+						if i >= length {
+							delete(result, k)
+						}
+					}
+				}
 			}
 		} else {
-			result[localPrefix+n+".#"] = countFlatmapContainerValues(localPrefix+n+".#", result)
+			result[localBlockPrefix+"#"] = countFlatmapContainerValues(localBlockPrefix+"#", result)
 		}
-
 	}
 
 	return result, nil
