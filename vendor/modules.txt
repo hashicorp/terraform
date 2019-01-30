@@ -323,7 +323,7 @@ github.com/hashicorp/go-getter/helper/url
 github.com/hashicorp/go-hclog
 # github.com/hashicorp/go-multierror v1.0.0
 github.com/hashicorp/go-multierror
-# github.com/hashicorp/go-plugin v0.0.0-20181212150838-f444068e8f5a
+# github.com/hashicorp/go-plugin v0.0.0-20190129155509-362c99b11937
 github.com/hashicorp/go-plugin
 github.com/hashicorp/go-plugin/internal/proto
 # github.com/hashicorp/go-retryablehttp v0.5.1
@@ -545,7 +545,7 @@ golang.org/x/oauth2
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/google
-# golang.org/x/sys v0.0.0-20181128092732-4ed8d59d0b35
+# golang.org/x/sys v0.0.0-20190129075346-302c3dd5f1cc
 golang.org/x/sys/unix
 # golang.org/x/text v0.3.0
 golang.org/x/text/unicode/norm
