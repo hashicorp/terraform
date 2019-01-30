@@ -20,6 +20,27 @@ resource "test_resource_list" "foo" {
 		string = "a"
 		int = 1
 	}
+}
+				`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"test_resource_list.foo", "list_block.#", "1",
+					),
+					resource.TestCheckResourceAttr(
+						"test_resource_list.foo", "list_block.0.string", "a",
+					),
+					resource.TestCheckResourceAttr(
+						"test_resource_list.foo", "list_block.0.int", "1",
+					),
+				),
+			},
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_list" "foo" {
+	list_block {
+		string = "a"
+		int = 1
+	}
 
 	list_block {
 		string = "b"

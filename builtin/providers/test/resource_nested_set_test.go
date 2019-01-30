@@ -59,16 +59,6 @@ resource "test_resource_nested_set" "foo" {
 
 // the empty type_list must be passed to the provider with 1 nil element
 func TestResourceNestedSet_emptyBlock(t *testing.T) {
-	checkFunc := func(s *terraform.State) error {
-		root := s.ModuleByPath(addrs.RootModuleInstance)
-		res := root.Resources["test_resource_nested_set.foo"]
-		for k, v := range res.Primary.Attributes {
-			if strings.HasPrefix(k, "type_list") && v != "1" {
-				return fmt.Errorf("unexpected set value: %s:%s", k, v)
-			}
-		}
-		return nil
-	}
 	resource.UnitTest(t, resource.TestCase{
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckResourceDestroy,
@@ -80,7 +70,9 @@ resource "test_resource_nested_set" "foo" {
 	}
 }
 				`),
-				Check: checkFunc,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("test_resource_nested_set.foo", "type_list.#", "1"),
+				),
 			},
 		},
 	})
