@@ -674,7 +674,7 @@ func (m schemaMap) InternalValidate(topSchemaMap schemaMap) error {
 
 					var ok bool
 					if target, ok = sm[part]; !ok {
-						return fmt.Errorf("%s: ConflictsWith references unknown attribute (%s)", k, key)
+						return fmt.Errorf("%s: ConflictsWith references unknown attribute (%s) at part (%s)", k, key, part)
 					}
 
 					if subResource, ok := target.Elem.(*Resource); ok {
