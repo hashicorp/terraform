@@ -63,6 +63,14 @@ func TestState(t *testing.T) {
 			},
 			TestOutput,
 		},
+		{
+			&StateOpts{
+				State:   nestedState(t),
+				Color:   disabledColorize,
+				Schemas: testSchemas(),
+			},
+			nestedTestOutput,
+		},
 	}
 
 	for _, tt := range tests {
@@ -101,6 +109,17 @@ func testProviderSchema() *terraform.ProviderSchema {
 					"foo":     {Type: cty.String, Optional: true},
 					"woozles": {Type: cty.String, Optional: true},
 				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"nested": {
+						Nesting: configschema.NestingList,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"compute": {Type: cty.String, Optional: true},
+								"value":   {Type: cty.String, Optional: true},
+							},
+						},
+					},
+				},
 			},
 		},
 		DataSources: map[string]*configschema.Block{
@@ -132,3 +151,40 @@ resource "test_resource" "baz" {
 Outputs:
 
 bar = "bar value"`
+
+const nestedTestOutput = `# test_resource.baz[0]: 
+resource "test_resource" "baz" {
+    woozles = "confuzles"
+
+    nested {
+        value = "42"
+    }
+}
+
+`
+
+func nestedState(t *testing.T) *states.State {
+	state := states.NewState()
+
+	rootModule := state.RootModule()
+	if rootModule == nil {
+		t.Errorf("root module is nil; want valid object")
+	}
+
+	rootModule.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_resource",
+			Name: "baz",
+		}.Instance(addrs.IntKey(0)),
+		&states.ResourceInstanceObjectSrc{
+			Status:        states.ObjectReady,
+			SchemaVersion: 1,
+			AttrsJSON:     []byte(`{"woozles":"confuzles","nested": [{"value": "42"}]}`),
+		},
+		addrs.ProviderConfig{
+			Type: "test",
+		}.Absolute(addrs.RootModuleInstance),
+	)
+	return state
+}
