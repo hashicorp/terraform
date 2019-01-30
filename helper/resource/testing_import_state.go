@@ -101,14 +101,14 @@ func testStepImportState(
 		var states []*terraform.InstanceState
 		for _, r := range newState.RootModule().Resources {
 			if r.Primary != nil {
-				states = append(states, r.Primary)
+				is := r.Primary.DeepCopy()
+				is.Ephemeral.Type = r.Type // otherwise the check function cannot see the type
+				states = append(states, is)
 			}
 		}
-		// TODO: update for new state types
-		return nil, fmt.Errorf("ImportStateCheck call in testStepImportState not yet updated for new state types")
-		/*if err := step.ImportStateCheck(states); err != nil {
+		if err := step.ImportStateCheck(states); err != nil {
 			return state, err
-		}*/
+		}
 	}
 
 	// Verify that all the states match
