@@ -816,9 +816,13 @@ func (s *GRPCProviderServer) ImportResourceState(_ context.Context, req *proto.I
 			return resp, nil
 		}
 
-		// the legacy implementation could only import one type at a time
+		resourceType := is.Ephemeral.Type
+		if resourceType == "" {
+			resourceType = req.TypeName
+		}
+
 		importedResource := &proto.ImportResourceState_ImportedResource{
-			TypeName: req.TypeName,
+			TypeName: resourceType,
 			State: &proto.DynamicValue{
 				Msgpack: newStateMP,
 			},
