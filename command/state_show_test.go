@@ -187,6 +187,6 @@ const testStateShowOutput = `
 resource "test_instance" "foo" {
     bar = "value"
     foo = "value"
-    id = "bar"
+    id  = "bar"
 }
 `
