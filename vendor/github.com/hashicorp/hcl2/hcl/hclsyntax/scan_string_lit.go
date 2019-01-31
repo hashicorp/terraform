@@ -1,10 +1,10 @@
-// line 1 "scan_string_lit.rl"
+//line scan_string_lit.rl:1
 
 package hclsyntax
 
 // This file is generated from scan_string_lit.rl. DO NOT EDIT.
 
-// line 9 "scan_string_lit.go"
+//line scan_string_lit.go:9
 var _hclstrtok_actions []byte = []byte{
 	0, 1, 0, 1, 1, 2, 1, 0,
 }
@@ -114,12 +114,12 @@ const hclstrtok_error int = 0
 const hclstrtok_en_quoted int = 10
 const hclstrtok_en_unquoted int = 4
 
-// line 10 "scan_string_lit.rl"
+//line scan_string_lit.rl:10
 
 func scanStringLit(data []byte, quoted bool) [][]byte {
 	var ret [][]byte
 
-	// line 61 "scan_string_lit.rl"
+//line scan_string_lit.rl:61
 
 	// Ragel state
 	p := 0          // "Pointer" into data
@@ -144,11 +144,11 @@ func scanStringLit(data []byte, quoted bool) [][]byte {
 	    ret = append(ret, data[ts:te])
 	}*/
 
-	// line 154 "scan_string_lit.go"
+//line scan_string_lit.go:154
 	{
 	}
 
-	// line 158 "scan_string_lit.go"
+//line scan_string_lit.go:158
 	{
 		var _klen int
 		var _trans int
@@ -229,7 +229,7 @@ func scanStringLit(data []byte, quoted bool) [][]byte {
 			_acts++
 			switch _hclstrtok_actions[_acts-1] {
 			case 0:
-				// line 40 "scan_string_lit.rl"
+//line scan_string_lit.rl:40
 
 				// If te is behind p then we've skipped over some literal
 				// characters which we must now return.
@@ -239,12 +239,12 @@ func scanStringLit(data []byte, quoted bool) [][]byte {
 				ts = p
 
 			case 1:
-				// line 48 "scan_string_lit.rl"
+//line scan_string_lit.rl:48
 
 				te = p
 				ret = append(ret, data[ts:te])
 
-				// line 255 "scan_string_lit.go"
+//line scan_string_lit.go:253
 			}
 		}
 
@@ -267,12 +267,12 @@ func scanStringLit(data []byte, quoted bool) [][]byte {
 				__acts++
 				switch _hclstrtok_actions[__acts-1] {
 				case 1:
-					// line 48 "scan_string_lit.rl"
+//line scan_string_lit.rl:48
 
 					te = p
 					ret = append(ret, data[ts:te])
 
-					// line 281 "scan_string_lit.go"
+//line scan_string_lit.go:278
 				}
 			}
 		}
@@ -282,7 +282,7 @@ func scanStringLit(data []byte, quoted bool) [][]byte {
 		}
 	}
 
-	// line 89 "scan_string_lit.rl"
+//line scan_string_lit.rl:89
 
 	if te < p {
 		// Collect any leftover literal characters at the end of the input
