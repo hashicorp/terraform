@@ -53,7 +53,7 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway v1.5.1 // indirect
 	github.com/hashicorp/consul v0.0.0-20171026175957-610f3c86a089
 	github.com/hashicorp/errwrap v1.0.0
-	github.com/hashicorp/go-azure-helpers v0.0.0-20190129193224-166dfd221bb2
+	github.com/hashicorp/go-azure-helpers v0.0.0-20181126135526-ec113df69f49
 	github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de
 	github.com/hashicorp/go-cleanhttp v0.5.0
 	github.com/hashicorp/go-getter v0.0.0-20180327010114-90bb99a48d86
@@ -72,11 +72,11 @@ require (
 	github.com/hashicorp/golang-lru v0.5.0 // indirect
 	github.com/hashicorp/hcl v1.0.0
 	github.com/hashicorp/hcl2 v0.0.0-20190124230628-a9ca194bcdc3
-	github.com/hashicorp/hil v0.0.0-20190129155652-59d7c1fee952
+	github.com/hashicorp/hil v0.0.0-20170627220502-fa9f258a9250
 	github.com/hashicorp/logutils v0.0.0-20150609070431-0dc08b1671f3
 	github.com/hashicorp/memberlist v0.1.0 // indirect
 	github.com/hashicorp/serf v0.0.0-20160124182025-e4ec8cc423bb // indirect
-	github.com/hashicorp/terraform-config-inspect v0.0.0-20190129165904-67302cb0361b
+	github.com/hashicorp/terraform-config-inspect v0.0.0-20181213005350-314d8affa1db
 	github.com/hashicorp/vault v0.0.0-20161029210149-9a60bf2a50e4
 	github.com/jen20/awspolicyequivalence v0.0.0-20170831201602-3d48364a137a // indirect
 	github.com/jonboulle/clockwork v0.1.0 // indirect
@@ -100,10 +100,10 @@ require (
 	github.com/mitchellh/go-linereader v0.0.0-20141013185533-07bab5fdd958
 	github.com/mitchellh/go-wordwrap v1.0.0
 	github.com/mitchellh/hashstructure v0.0.0-20160209213820-6b17d669fac5
-	github.com/mitchellh/mapstructure v1.1.2
+	github.com/mitchellh/mapstructure v0.0.0-20170307201123-53818660ed49
 	github.com/mitchellh/panicwrap v0.0.0-20161208170302-ba9e1a65e0f7
 	github.com/mitchellh/prefixedio v0.0.0-20151214002211-6e6954073784
-	github.com/mitchellh/reflectwalk v1.0.0
+	github.com/mitchellh/reflectwalk v0.0.0-20170726202117-63d60e9d0dbc
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
 	github.com/packer-community/winrmcp v0.0.0-20180102160824-81144009af58
 	github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c // indirect
