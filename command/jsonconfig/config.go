@@ -34,8 +34,8 @@ type module struct {
 	Outputs map[string]configOutput `json:"outputs,omitempty"`
 	// Resources are sorted in a user-friendly order that is undefined at this
 	// time, but consistent.
-	Resources   []resource   `json:"resources,omitempty"`
-	ModuleCalls []moduleCall `json:"module_calls,omitempty"`
+	Resources   []resource            `json:"resources,omitempty"`
+	ModuleCalls map[string]moduleCall `json:"module_calls,omitempty"`
 }
 
 type moduleCall struct {
@@ -161,8 +161,8 @@ func marshalModule(c *configs.Config, schemas *terraform.Schemas) (module, error
 	return module, nil
 }
 
-func marshalModuleCalls(c *configs.Config, schemas *terraform.Schemas) []moduleCall {
-	var ret []moduleCall
+func marshalModuleCalls(c *configs.Config, schemas *terraform.Schemas) map[string]moduleCall {
+	ret := make(map[string]moduleCall)
 	for _, v := range c.Module.ModuleCalls {
 		mc := moduleCall{
 			ResolvedSource: v.SourceAddr,
@@ -190,7 +190,7 @@ func marshalModuleCalls(c *configs.Config, schemas *terraform.Schemas) []moduleC
 			childModule, _ := marshalModule(cc, schemas)
 			mc.Module = childModule
 		}
-		ret = append(ret, mc)
+		ret[v.Name] = mc
 
 	}
 
