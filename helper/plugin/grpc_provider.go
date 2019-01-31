@@ -454,7 +454,7 @@ func (s *GRPCProviderServer) ReadResource(_ context.Context, req *proto.ReadReso
 	}
 
 	newStateVal = copyTimeoutValues(newStateVal, stateVal)
-	newStateVal = copyMissingValues(newStateVal, stateVal)
+	newStateVal = normalizeNullValues(newStateVal, stateVal, false)
 
 	newStateMP, err := msgpack.Marshal(newStateVal, block.ImpliedType())
 	if err != nil {
@@ -508,7 +508,6 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 
 	// turn the proposed state into a legacy configuration
 	cfg := terraform.NewResourceConfigShimmed(proposedNewStateVal, block)
-
 	diff, err := s.provider.SimpleDiff(info, priorState, cfg)
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
@@ -549,6 +548,9 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
+
+	plannedStateVal = normalizeNullValues(plannedStateVal, proposedNewStateVal, true)
+
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
@@ -768,7 +770,7 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 		return resp, nil
 	}
 
-	newStateVal = copyMissingValues(newStateVal, plannedStateVal)
+	newStateVal = normalizeNullValues(newStateVal, plannedStateVal, false)
 	newStateVal = copyTimeoutValues(newStateVal, plannedStateVal)
 
 	newStateMP, err := msgpack.Marshal(newStateVal, block.ImpliedType())
@@ -1130,14 +1132,38 @@ func stripSchema(s *schema.Schema) *schema.Schema {
 	return newSchema
 }
 
-// Zero values and empty containers may be lost during apply. Copy zero values
-// and empty containers from src to dst when they are missing in dst.
-// This takes a little more liberty with set types, since we can't correlate
-// modified set values. In the case of sets, if the src set was wholly known we
-// assume the value was correctly applied and copy that entirely to the new
-// value.
-func copyMissingValues(dst, src cty.Value) cty.Value {
+// Zero values and empty containers may be interchanged by the apply process.
+// When there is a discrepency between src and dst value being null or empty,
+// prefer the src value. This takes a little more liberty with set types, since
+// we can't correlate modified set values. In the case of sets, if the src set
+// was wholly known we assume the value was correctly applied and copy that
+// entirely to the new value.
+// While apply prefers the src value, during plan we prefer dst whenever there
+// is an unknown or a set is involved, since the plan can alter the value
+// however it sees fit. This however means that a CustomizeDiffFunction may not
+// be able to change a null to an empty value or vice versa, but that should be
+// very uncommon nor was it reliable before 0.12 either.
+func normalizeNullValues(dst, src cty.Value, plan bool) cty.Value {
 	ty := dst.Type()
+
+	if !src.IsNull() && !src.IsKnown() {
+		return dst
+	}
+
+	// handle null/empty changes for collections
+	if ty.IsCollectionType() {
+		if src.IsNull() && !dst.IsNull() && dst.IsKnown() {
+			if dst.LengthInt() == 0 {
+				return src
+			}
+		}
+
+		if dst.IsNull() && !src.IsNull() && src.IsKnown() {
+			if src.LengthInt() == 0 {
+				return src
+			}
+		}
+	}
 
 	if src.IsNull() || !src.IsKnown() || !dst.IsKnown() {
 		return dst
@@ -1159,16 +1185,20 @@ func copyMissingValues(dst, src cty.Value) cty.Value {
 
 			dstVal := dstMap[key]
 			if dstVal == cty.NilVal {
+				if plan && ty.IsMapType() {
+					// let plan shape this map however it wants
+					continue
+				}
 				dstVal = cty.NullVal(ty.ElementType())
 			}
-			dstMap[key] = copyMissingValues(dstVal, v)
+			dstMap[key] = normalizeNullValues(dstVal, v, plan)
 		}
 
 		// you can't call MapVal/ObjectVal with empty maps, but nothing was
 		// copied in anyway. If the dst is nil, and the src is known, assume the
 		// src is correct.
 		if len(dstMap) == 0 {
-			if dst.IsNull() && src.IsWhollyKnown() {
+			if dst.IsNull() && src.IsWhollyKnown() && !plan {
 				return src
 			}
 			return dst
@@ -1184,21 +1214,39 @@ func copyMissingValues(dst, src cty.Value) cty.Value {
 		// If the original was wholly known, then we expect that is what the
 		// provider applied. The apply process loses too much information to
 		// reliably re-create the set.
-		if src.IsWhollyKnown() {
+		if src.IsWhollyKnown() && !plan {
 			return src
 		}
 
 	case ty.IsListType(), ty.IsTupleType():
 		// If the dst is nil, and the src is known, then we lost an empty value
-		// so take the original. This doesn't attempt to descend into the list
-		// values, since missing empty values may prevent us from correlating
-		// the correct src and dst indexes.
-		if dst.IsNull() && src.IsWhollyKnown() {
-			return src
+		// so take the original.
+		if dst.IsNull() {
+			if src.IsWhollyKnown() && !plan {
+				return src
+			}
+			return dst
+		}
+
+		// if the lengths are identical, then iterate over each element in succession.
+		srcLen := src.LengthInt()
+		dstLen := dst.LengthInt()
+		if srcLen == dstLen && srcLen > 0 {
+			srcs := src.AsValueSlice()
+			dsts := dst.AsValueSlice()
+
+			for i := 0; i < srcLen; i++ {
+				dsts[i] = normalizeNullValues(dsts[i], srcs[i], plan)
+			}
+
+			if ty.IsTupleType() {
+				return cty.TupleVal(dsts)
+			}
+			return cty.ListVal(dsts)
 		}
 
 	case ty.IsPrimitiveType():
-		if dst.IsNull() && src.IsWhollyKnown() {
+		if dst.IsNull() && src.IsWhollyKnown() && !plan {
 			return src
 		}
 	}
