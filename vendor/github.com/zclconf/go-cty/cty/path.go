@@ -136,9 +136,13 @@ type IndexStep struct {
 // Apply returns the value resulting from indexing the given value with
 // our key value.
 func (s IndexStep) Apply(val Value) (Value, error) {
+	if val == NilVal || val.IsNull() {
+		return NilVal, errors.New("cannot index a null value")
+	}
+
 	switch s.Key.Type() {
 	case Number:
-		if !val.Type().IsListType() {
+		if !(val.Type().IsListType() || val.Type().IsTupleType()) {
 			return NilVal, errors.New("not a list type")
 		}
 	case String:
@@ -174,6 +178,10 @@ type GetAttrStep struct {
 // Apply returns the value of our named attribute from the given value, which
 // must be of an object type that has a value of that name.
 func (s GetAttrStep) Apply(val Value) (Value, error) {
+	if val == NilVal || val.IsNull() {
+		return NilVal, errors.New("cannot access attributes on a null value")
+	}
+
 	if !val.Type().IsObjectType() {
 		return NilVal, errors.New("not an object type")
 	}

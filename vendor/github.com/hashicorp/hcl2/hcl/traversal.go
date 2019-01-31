@@ -255,66 +255,7 @@ type TraverseAttr struct {
 }
 
 func (tn TraverseAttr) TraversalStep(val cty.Value) (cty.Value, Diagnostics) {
-	if val.IsNull() {
-		return cty.DynamicVal, Diagnostics{
-			{
-				Severity: DiagError,
-				Summary:  "Attempt to get attribute from null value",
-				Detail:   "This value is null, so it does not have any attributes.",
-				Subject:  &tn.SrcRange,
-			},
-		}
-	}
-
-	ty := val.Type()
-	switch {
-	case ty.IsObjectType():
-		if !ty.HasAttribute(tn.Name) {
-			return cty.DynamicVal, Diagnostics{
-				{
-					Severity: DiagError,
-					Summary:  "Unsupported attribute",
-					Detail:   fmt.Sprintf("This object does not have an attribute named %q.", tn.Name),
-					Subject:  &tn.SrcRange,
-				},
-			}
-		}
-
-		if !val.IsKnown() {
-			return cty.UnknownVal(ty.AttributeType(tn.Name)), nil
-		}
-
-		return val.GetAttr(tn.Name), nil
-	case ty.IsMapType():
-		if !val.IsKnown() {
-			return cty.UnknownVal(ty.ElementType()), nil
-		}
-
-		idx := cty.StringVal(tn.Name)
-		if val.HasIndex(idx).False() {
-			return cty.DynamicVal, Diagnostics{
-				{
-					Severity: DiagError,
-					Summary:  "Missing map element",
-					Detail:   fmt.Sprintf("This map does not have an element with the key %q.", tn.Name),
-					Subject:  &tn.SrcRange,
-				},
-			}
-		}
-
-		return val.Index(idx), nil
-	case ty == cty.DynamicPseudoType:
-		return cty.DynamicVal, nil
-	default:
-		return cty.DynamicVal, Diagnostics{
-			{
-				Severity: DiagError,
-				Summary:  "Unsupported attribute",
-				Detail:   "This value does not have any attributes.",
-				Subject:  &tn.SrcRange,
-			},
-		}
-	}
+	return GetAttr(val, tn.Name, &tn.SrcRange)
 }
 
 func (tn TraverseAttr) SourceRange() Range {

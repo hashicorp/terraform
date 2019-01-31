@@ -71,7 +71,7 @@ require (
 	github.com/hashicorp/go-version v1.0.0
 	github.com/hashicorp/golang-lru v0.5.0 // indirect
 	github.com/hashicorp/hcl v1.0.0
-	github.com/hashicorp/hcl2 v0.0.0-20190124230628-a9ca194bcdc3
+	github.com/hashicorp/hcl2 v0.0.0-20190130225218-89dbc5eb3d9e
 	github.com/hashicorp/hil v0.0.0-20170627220502-fa9f258a9250
 	github.com/hashicorp/logutils v0.0.0-20150609070431-0dc08b1671f3
 	github.com/hashicorp/memberlist v0.1.0 // indirect
@@ -128,7 +128,7 @@ require (
 	github.com/xanzy/ssh-agent v0.2.0
 	github.com/xiang90/probing v0.0.0-20160813154853-07dd2e8dfe18 // indirect
 	github.com/xlab/treeprint v0.0.0-20161029104018-1d6e34225557
-	github.com/zclconf/go-cty v0.0.0-20190124225737-a385d646c1e9
+	github.com/zclconf/go-cty v0.0.0-20190130221141-d7fe3fa0020f
 	go.opencensus.io v0.17.0 // indirect
 	go.uber.org/atomic v1.3.2 // indirect
 	go.uber.org/multierr v1.1.0 // indirect
