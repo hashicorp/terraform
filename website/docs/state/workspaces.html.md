@@ -31,6 +31,7 @@ Multiple workspaces are currently supported by the following backends:
  * [Local](/docs/backends/types/local.html)
  * [Manta](/docs/backends/types/manta.html)
  * [S3](/docs/backends/types/s3.html)
+ * [Swift](/docs/backends/types/swift.html)
 
 In the 0.9 line of Terraform releases, this concept was known as "environment".
 It was renamed in 0.10 based on feedback about confusion caused by the
