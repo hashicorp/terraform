@@ -96,12 +96,14 @@ func TestBackendPath(t *testing.T) {
 	state1 := states.NewState()
 
 	// RemoteClient to test with
+	containerName, prefix := getContainerAndPrefix(b.container)
+	archiveContainerName, _ := getContainerAndPrefix(b.archiveContainer)
 	client := &RemoteClient{
-		name:             DEFAULT_NAME,
 		client:           b.client,
 		archive:          b.archive,
-		archiveContainer: b.archiveContainer,
-		container:        b.container,
+		archiveContainer: archiveContainerName,
+		container:        containerName,
+		prefix:           prefix,
 	}
 
 	stateMgr := &remote.State{Client: client}
@@ -143,12 +145,15 @@ func TestBackendArchive(t *testing.T) {
 	state1 := states.NewState()
 
 	// RemoteClient to test with
+	containerName, prefix := getContainerAndPrefix(b.container)
+	archiveContainerName, _ := getContainerAndPrefix(b.archiveContainer)
 	client := &RemoteClient{
 		name:             DEFAULT_NAME,
 		client:           b.client,
 		archive:          b.archive,
-		archiveContainer: b.archiveContainer,
-		container:        b.container,
+		archiveContainer: archiveContainerName,
+		container:        containerName,
+		prefix:           prefix,
 	}
 
 	stateMgr := &remote.State{Client: client}
@@ -169,8 +174,7 @@ func TestBackendArchive(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cnt, prefix := getContainerAndPrefix(archiveContainer)
-	archiveObjects := getSwiftObjectNames(t, b.client, cnt, prefix)
+	archiveObjects := getSwiftObjectNames(t, b.client, archiveContainer, "")
 	t.Logf("archiveObjects len = %d. Contents = %+v", len(archiveObjects), archiveObjects)
 	if len(archiveObjects) != 1 {
 		t.Fatalf("Invalid number of archive objects. Expected 1, got %d", len(archiveObjects))

@@ -20,19 +20,25 @@ const (
 
 // RemoteClient implements the Client interface for an Openstack Swift server.
 type RemoteClient struct {
-	name             string
 	client           *gophercloud.ServiceClient
 	container        string
+	prefix           string
+	name             string
 	archive          bool
 	archiveContainer string
 	expireSecs       int
 }
 
-func (c *RemoteClient) Get() (*remote.Payload, error) {
-	container, prefix := getContainerAndPrefix(c.container)
+func (c *RemoteClient) objectName() string {
+	if c.name == "" {
+		return c.prefix + DEFAULT_NAME + TFSTATE_SUFFIX
+	}
+	return c.prefix + c.name + TFSTATE_SUFFIX
+}
 
-	log.Printf("[DEBUG] Getting object %s in container %s", prefix+c.name+TFSTATE_SUFFIX, container)
-	result := objects.Download(c.client, container, prefix+c.name+TFSTATE_SUFFIX, nil)
+func (c *RemoteClient) Get() (*remote.Payload, error) {
+	log.Printf("[DEBUG] Getting object %s in container %s", c.objectName(), c.container)
+	result := objects.Download(c.client, c.container, c.objectName(), nil)
 
 	// Extract any errors from result
 	_, err := result.Extract()
@@ -64,9 +70,7 @@ func (c *RemoteClient) Put(data []byte) error {
 		return err
 	}
 
-	container, prefix := getContainerAndPrefix(c.container)
-
-	log.Printf("[DEBUG] Putting object %s in container %s", prefix+c.name+TFSTATE_SUFFIX, container)
+	log.Printf("[DEBUG] Putting object %s in container %s", c.objectName(), c.container)
 	reader := bytes.NewReader(data)
 	createOpts := objects.CreateOpts{
 		Content: reader,
@@ -77,16 +81,14 @@ func (c *RemoteClient) Put(data []byte) error {
 		createOpts.DeleteAfter = c.expireSecs
 	}
 
-	result := objects.Create(c.client, container, prefix+c.name+TFSTATE_SUFFIX, createOpts)
+	result := objects.Create(c.client, c.container, c.objectName(), createOpts)
 
 	return result.Err
 }
 
 func (c *RemoteClient) Delete() error {
-	container, prefix := getContainerAndPrefix(c.container)
-
-	log.Printf("[DEBUG] Deleting object %s in container %s", prefix+c.name+TFSTATE_SUFFIX, container)
-	result := objects.Delete(c.client, container, prefix+c.name+TFSTATE_SUFFIX, nil)
+	log.Printf("[DEBUG] Deleting object %s in container %s", c.objectName(), c.container)
+	result := objects.Delete(c.client, c.container, c.objectName(), nil)
 
 	if _, ok := result.Err.(gophercloud.ErrDefault404); ok {
 		return nil
@@ -99,23 +101,19 @@ func (c *RemoteClient) ensureContainerExists() error {
 	containerOpts := &containers.CreateOpts{}
 
 	if c.archive {
-		container, _ := getContainerAndPrefix(c.archiveContainer)
-
-		log.Printf("[DEBUG] Creating archive container %s", container)
-		result := containers.Create(c.client, container, nil)
+		log.Printf("[DEBUG] Creating archive container %s", c.archiveContainer)
+		result := containers.Create(c.client, c.archiveContainer, nil)
 		if result.Err != nil {
-			log.Printf("[DEBUG] Error creating archive container %s: %s", container, result.Err)
+			log.Printf("[DEBUG] Error creating archive container %s: %s", c.archiveContainer, result.Err)
 			return result.Err
 		}
 
 		log.Printf("[DEBUG] Enabling Versioning on container %s", c.container)
-		containerOpts.VersionsLocation = container
+		containerOpts.VersionsLocation = c.archiveContainer
 	}
 
-	container, _ := getContainerAndPrefix(c.container)
-
-	log.Printf("[DEBUG] Creating container %s", container)
-	result := containers.Create(c.client, container, containerOpts)
+	log.Printf("[DEBUG] Creating container %s", c.container)
+	result := containers.Create(c.client, c.container, containerOpts)
 	if result.Err != nil {
 		return result.Err
 	}

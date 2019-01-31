@@ -13,15 +13,12 @@ import (
 )
 
 func getContainerAndPrefix(container string) (string, string) {
-	prefix := ""
+	var prefix string
 	parts := strings.SplitN(container, "/", 2)
-	if len(parts) > 0 {
-		container = parts[0]
-		if len(parts) > 1 {
-			prefix = parts[1] + "/"
-		}
+	if len(parts) > 1 {
+		prefix = parts[1] + "/"
 	}
-	return container, prefix
+	return parts[0], prefix
 }
 
 func (b *Backend) Workspaces() ([]string, error) {
@@ -95,12 +92,16 @@ func (b *Backend) remoteClient(name string) (*RemoteClient, error) {
 		name = DEFAULT_NAME
 	}
 
+	container, prefix := getContainerAndPrefix(b.container)
+	archiveContainer, _ := getContainerAndPrefix(b.archiveContainer)
+
 	client := &RemoteClient{
 		name:             name,
 		client:           b.client,
-		container:        b.container,
+		container:        container,
+		prefix:           prefix,
 		archive:          b.archive,
-		archiveContainer: b.archiveContainer,
+		archiveContainer: archiveContainer,
 		expireSecs:       b.expireSecs,
 	}
 
