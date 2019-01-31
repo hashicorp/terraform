@@ -240,8 +240,8 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 				// when we use this value below, if the provider misbehaves.)
 				continue
 			}
-			plannedChangedVal, err := path.Apply(plannedNewVal)
-			if err != nil {
+			plannedChangedVal, pathDiags := hcl.ApplyPath(plannedNewVal, path, nil)
+			if pathDiags.HasErrors() {
 				// This always indicates a provider bug, since RequiresReplace
 				// should always refer only to whole attributes (and not into
 				// attribute values themselves) and these should always be
@@ -492,9 +492,9 @@ func processIgnoreChangesIndividual(prior, proposed cty.Value, ignoreChanges []h
 		// If we're able to follow the same path through the prior value,
 		// we'll take the value there instead, effectively undoing the
 		// change that was planned.
-		priorV, err := path.Apply(prior)
-		if err != nil {
-			// We just ignore the error and move on here, since we assume it's
+		priorV, diags := hcl.ApplyPath(prior, path, nil)
+		if diags.HasErrors() {
+			// We just ignore the errors and move on here, since we assume it's
 			// just because the prior value was a slightly-different shape.
 			// It could potentially also be that the traversal doesn't match
 			// the schema, but we should've caught that during the validate
