@@ -50,23 +50,20 @@ func testConformance(given Type, want Type, path Path, errs *[]error) {
 		givenAttrs := given.AttributeTypes()
 		wantAttrs := want.AttributeTypes()
 
-		if len(givenAttrs) != len(wantAttrs) {
-			// Something is missing from one of them.
-			for k := range givenAttrs {
-				if _, exists := wantAttrs[k]; !exists {
-					*errs = append(
-						*errs,
-						errorf(path, "unsupported attribute %q", k),
-					)
-				}
+		for k := range givenAttrs {
+			if _, exists := wantAttrs[k]; !exists {
+				*errs = append(
+					*errs,
+					errorf(path, "unsupported attribute %q", k),
+				)
 			}
-			for k := range wantAttrs {
-				if _, exists := givenAttrs[k]; !exists {
-					*errs = append(
-						*errs,
-						errorf(path, "missing required attribute %q", k),
-					)
-				}
+		}
+		for k := range wantAttrs {
+			if _, exists := givenAttrs[k]; !exists {
+				*errs = append(
+					*errs,
+					errorf(path, "missing required attribute %q", k),
+				)
 			}
 		}
 
