@@ -1,7 +1,6 @@
 package authentication
 
 import (
-	"github.com/Azure/go-autorest/autorest/adal"
 	"github.com/Azure/go-autorest/autorest/azure/cli"
 )
 
@@ -12,7 +11,6 @@ type azureCLIProfile struct {
 	environment     string
 	subscriptionId  string
 	tenantId        string
-	accessToken     *adal.Token
 }
 
 func (a *azureCLIProfile) populateFields() error {

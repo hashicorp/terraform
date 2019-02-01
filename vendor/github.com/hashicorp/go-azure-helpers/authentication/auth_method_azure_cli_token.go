@@ -40,7 +40,7 @@ func (a azureCliTokenAuth) build(b Builder) (authMethod, error) {
 
 	err = auth.profile.populateFields()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Error retrieving the Profile from the Azure CLI: %s Please re-authenticate using `az login`.", err)
 	}
 
 	err = auth.profile.populateClientId()
