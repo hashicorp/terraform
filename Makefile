@@ -55,7 +55,7 @@ test-compile: fmtcheck generate
 		echo "  make test-compile TEST=./builtin/providers/test"; \
 		exit 1; \
 	fi
-	go test -c $(TEST) $(TESTARGS)
+	go test -mod=vendor -c $(TEST) $(TESTARGS)
 
 # testrace runs the race checker
 testrace: fmtcheck generate
