@@ -30,6 +30,8 @@ path, a json representation of the current state will be shown.
 When `terraform show -json` is run with a path to a Terraform plan file, a json
 representation of the plan, configuration, and current state will be shown.
 
+The output format is covered in detail in [_JSON Format_](/docs/internals/json-format.html). 
+
 ## Usage
 
 Usage: `terraform show [options] [path]`
