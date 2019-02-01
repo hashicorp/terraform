@@ -1,6 +1,8 @@
 package test
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -26,23 +28,9 @@ func testResourceImportOther() *schema.Resource {
 				Optional: true,
 				Default:  true,
 			},
-			"nested": {
-				Type:     schema.TypeSet,
-				Optional: true,
-				ForceNew: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"string": {
-							Type:     schema.TypeString,
-							Optional: true,
-							Default:  "default nested",
-						},
-						"optional": {
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-					},
-				},
+			"computed": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 	}
@@ -74,10 +62,13 @@ func testResourceImportOtherUpdate(d *schema.ResourceData, meta interface{}) err
 }
 
 func testResourceImportOtherRead(d *schema.ResourceData, meta interface{}) error {
+	err := d.Set("computed", "hello!")
+	if err != nil {
+		return fmt.Errorf("failed to set 'computed' attribute: %s", err)
+	}
 	return nil
 }
 
 func testResourceImportOtherDelete(d *schema.ResourceData, meta interface{}) error {
-	d.SetId("")
 	return nil
 }
