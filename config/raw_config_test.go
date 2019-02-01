@@ -488,7 +488,7 @@ func TestRawConfig_implGob(t *testing.T) {
 	var _ gob.GobEncoder = new(RawConfig)
 }
 
-// verify that RawMap returns a identical copy
+// verify that RawMap returns an identical copy
 func TestNewRawConfig_rawMap(t *testing.T) {
 	raw := map[string]interface{}{
 		"foo": "${var.bar}",
