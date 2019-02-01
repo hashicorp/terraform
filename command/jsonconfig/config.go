@@ -34,8 +34,8 @@ type module struct {
 	Outputs map[string]configOutput `json:"outputs,omitempty"`
 	// Resources are sorted in a user-friendly order that is undefined at this
 	// time, but consistent.
-	Resources   []resource   `json:"resources,omitempty"`
-	ModuleCalls []moduleCall `json:"module_calls,omitempty"`
+	Resources   []resource            `json:"resources,omitempty"`
+	ModuleCalls map[string]moduleCall `json:"module_calls,omitempty"`
 }
 
 type moduleCall struct {
@@ -161,37 +161,39 @@ func marshalModule(c *configs.Config, schemas *terraform.Schemas) (module, error
 	return module, nil
 }
 
-func marshalModuleCalls(c *configs.Config, schemas *terraform.Schemas) []moduleCall {
-	var ret []moduleCall
-	for _, v := range c.Module.ModuleCalls {
-		mc := moduleCall{
-			ResolvedSource: v.SourceAddr,
+func marshalModuleCalls(c *configs.Config, schemas *terraform.Schemas) map[string]moduleCall {
+	ret := make(map[string]moduleCall)
+	for _, mc := range c.Module.ModuleCalls {
+		retMC := moduleCall{
+			ResolvedSource: mc.SourceAddr,
 		}
-		cExp := marshalExpression(v.Count)
+		cExp := marshalExpression(mc.Count)
 		if !cExp.Empty() {
-			mc.CountExpression = &cExp
+			retMC.CountExpression = &cExp
 		} else {
-			fExp := marshalExpression(v.ForEach)
+			fExp := marshalExpression(mc.ForEach)
 			if !fExp.Empty() {
-				mc.ForEachExpression = &fExp
+				retMC.ForEachExpression = &fExp
 			}
 		}
 
+		// get the called module's variables so we can build up the expressions
+		childModule := c.Children[mc.Name]
 		schema := &configschema.Block{}
 		schema.Attributes = make(map[string]*configschema.Attribute)
-		for _, variable := range c.Module.Variables {
+		for _, variable := range childModule.Module.Variables {
 			schema.Attributes[variable.Name] = &configschema.Attribute{
 				Required: variable.Default == cty.NilVal,
 			}
 		}
-		mc.Expressions = marshalExpressions(v.Config, schema)
+
+		retMC.Expressions = marshalExpressions(mc.Config, schema)
 
 		for _, cc := range c.Children {
 			childModule, _ := marshalModule(cc, schemas)
-			mc.Module = childModule
+			retMC.Module = childModule
 		}
-		ret = append(ret, mc)
-
+		ret[mc.Name] = retMC
 	}
 
 	return ret

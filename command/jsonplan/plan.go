@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/version"
 )
 
 // FormatVersion represents the version of the json format and will be
@@ -26,8 +27,9 @@ const FormatVersion = "0.1"
 // Plan is the top-level representation of the json format of a plan. It includes
 // the complete config and current state.
 type plan struct {
-	FormatVersion string      `json:"format_version,omitempty"`
-	PlannedValues stateValues `json:"planned_values,omitempty"`
+	FormatVersion    string      `json:"format_version,omitempty"`
+	TerraformVersion string      `json:"terraform_version,omitempty"`
+	PlannedValues    stateValues `json:"planned_values,omitempty"`
 	// ResourceChanges are sorted in a user-friendly order that is undefined at
 	// this time, but consistent.
 	ResourceChanges []resourceChange  `json:"resource_changes,omitempty"`
@@ -83,6 +85,7 @@ func Marshal(
 ) ([]byte, error) {
 
 	output := newPlan()
+	output.TerraformVersion = version.String()
 
 	// output.PlannedValues
 	err := output.marshalPlannedValues(p.Changes, schemas)
