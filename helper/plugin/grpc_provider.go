@@ -794,8 +794,6 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 func (s *GRPCProviderServer) ImportResourceState(_ context.Context, req *proto.ImportResourceState_Request) (*proto.ImportResourceState_Response, error) {
 	resp := &proto.ImportResourceState_Response{}
 
-	block := s.getResourceSchemaBlock(req.TypeName)
-
 	info := &terraform.InstanceInfo{
 		Type: req.TypeName,
 	}
@@ -810,6 +808,12 @@ func (s *GRPCProviderServer) ImportResourceState(_ context.Context, req *proto.I
 		// copy the ID again just to be sure it wasn't missed
 		is.Attributes["id"] = is.ID
 
+		resourceType := is.Ephemeral.Type
+		if resourceType == "" {
+			resourceType = req.TypeName
+		}
+
+		block := s.getResourceSchemaBlock(resourceType)
 		newStateVal, err := hcl2shim.HCL2ValueFromFlatmap(is.Attributes, block.ImpliedType())
 		if err != nil {
 			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
@@ -826,11 +830,6 @@ func (s *GRPCProviderServer) ImportResourceState(_ context.Context, req *proto.I
 		if err != nil {
 			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 			return resp, nil
-		}
-
-		resourceType := is.Ephemeral.Type
-		if resourceType == "" {
-			resourceType = req.TypeName
 		}
 
 		importedResource := &proto.ImportResourceState_ImportedResource{

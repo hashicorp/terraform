@@ -38,6 +38,8 @@ resource "test_resource_import_other" "foo" {
 						return fmt.Errorf("no instance with id import_other_main in state")
 					} else if got, want := is.Ephemeral.Type, "test_resource_import_other"; got != want {
 						return fmt.Errorf("import_other_main has wrong type %q; want %q", got, want)
+					} else if got, want := is.Attributes["computed"], "hello!"; got != want {
+						return fmt.Errorf("import_other_main has wrong value %q for its computed attribute; want %q", got, want)
 					}
 					if is, ok := byID["import_other_other"]; !ok {
 						return fmt.Errorf("no instance with id import_other_other in state")
