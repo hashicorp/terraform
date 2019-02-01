@@ -363,7 +363,7 @@ github.com/hashicorp/hcl2/gohcl
 github.com/hashicorp/hcl2/ext/typeexpr
 github.com/hashicorp/hcl2/ext/dynblock
 github.com/hashicorp/hcl2/hcltest
-# github.com/hashicorp/hil v0.0.0-20170627220502-fa9f258a9250
+# github.com/hashicorp/hil v0.0.0-20190129155652-59d7c1fee952
 github.com/hashicorp/hil
 github.com/hashicorp/hil/ast
 github.com/hashicorp/hil/parser
@@ -436,13 +436,13 @@ github.com/mitchellh/go-testing-interface
 github.com/mitchellh/go-wordwrap
 # github.com/mitchellh/hashstructure v0.0.0-20160209213820-6b17d669fac5
 github.com/mitchellh/hashstructure
-# github.com/mitchellh/mapstructure v0.0.0-20170307201123-53818660ed49
+# github.com/mitchellh/mapstructure v1.1.2
 github.com/mitchellh/mapstructure
 # github.com/mitchellh/panicwrap v0.0.0-20161208170302-ba9e1a65e0f7
 github.com/mitchellh/panicwrap
 # github.com/mitchellh/prefixedio v0.0.0-20151214002211-6e6954073784
 github.com/mitchellh/prefixedio
-# github.com/mitchellh/reflectwalk v0.0.0-20170726202117-63d60e9d0dbc
+# github.com/mitchellh/reflectwalk v1.0.0
 github.com/mitchellh/reflectwalk
 # github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
 github.com/nu7hatch/gouuid
