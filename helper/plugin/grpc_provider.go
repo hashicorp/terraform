@@ -454,7 +454,6 @@ func (s *GRPCProviderServer) ReadResource(_ context.Context, req *proto.ReadReso
 	}
 
 	newStateVal = copyTimeoutValues(newStateVal, stateVal)
-	newStateVal = normalizeNullValues(newStateVal, stateVal, false)
 
 	newStateMP, err := msgpack.Marshal(newStateVal, block.ImpliedType())
 	if err != nil {
