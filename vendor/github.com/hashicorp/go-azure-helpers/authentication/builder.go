@@ -18,9 +18,6 @@ type Builder struct {
 	// only applicable for Azure Stack at this time.
 	CustomResourceManagerEndpoint string
 
-	// Azure CLI Parsing
-	SupportsAzureCliParsing bool
-
 	// Azure CLI Tokens Auth
 	SupportsAzureCliToken bool
 
@@ -56,7 +53,6 @@ func (b Builder) Build() (*Config, error) {
 		servicePrincipalClientSecretAuth{},
 		managedServiceIdentityAuth{},
 		azureCliTokenAuth{},
-		azureCliParsingAuth{},
 	}
 
 	for _, method := range supportedAuthenticationMethods {

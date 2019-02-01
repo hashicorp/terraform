@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"strings"
-	"time"
 
 	"github.com/Azure/go-autorest/autorest/adal"
 	"github.com/Azure/go-autorest/autorest/azure/cli"
@@ -15,21 +14,11 @@ type azureCliAccessToken struct {
 	AccessToken  *adal.Token
 }
 
-func findValidAccessTokenForTenant(tokens []cli.Token, tenantId string, allowExpired bool) (*azureCliAccessToken, error) {
+func findValidAccessTokenForTenant(tokens []cli.Token, tenantId string) (*azureCliAccessToken, error) {
 	for _, accessToken := range tokens {
 		token, err := accessToken.ToADALToken()
 		if err != nil {
 			return nil, fmt.Errorf("[DEBUG] Error converting access token to token: %+v", err)
-		}
-
-		expirationDate, err := cli.ParseExpirationDate(accessToken.ExpiresOn)
-		if err != nil {
-			return nil, fmt.Errorf("Error parsing expiration date: %q", accessToken.ExpiresOn)
-		}
-
-		if expirationDate.UTC().Before(time.Now().UTC()) && !allowExpired {
-			log.Printf("[DEBUG] Token %q has expired", token.AccessToken)
-			continue
 		}
 
 		if !strings.Contains(accessToken.Resource, "management") {
