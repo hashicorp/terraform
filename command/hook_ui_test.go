@@ -188,7 +188,7 @@ func TestUiHookPostApply_emptyState(t *testing.T) {
 		t.Fatalf("Expected hook to continue, given: %#v", action)
 	}
 
-	expectedRegexp := "^data.google_compute_zones.available: Destruction complete after -?[a-z0-9.]+\n$"
+	expectedRegexp := "^data.google_compute_zones.available: Destruction complete after -?[a-z0-9µ.]+\n$"
 	output := ui.OutputWriter.String()
 	if matched, _ := regexp.MatchString(expectedRegexp, output); !matched {
 		t.Fatalf("Output didn't match regexp.\nExpected: %q\nGiven: %q", expectedRegexp, output)
