@@ -2,7 +2,6 @@ package swift
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"testing"
 	"time"
@@ -11,13 +10,7 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/containers"
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/objects"
 	"github.com/gophercloud/gophercloud/pagination"
-	"github.com/zclconf/go-cty/cty"
-
-	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/state/remote"
-	"github.com/hashicorp/terraform/states"
-	"github.com/hashicorp/terraform/states/statefile"
 )
 
 // verify that we are doing ACC tests or the Swift tests specifically
@@ -77,51 +70,6 @@ func TestBackend(t *testing.T) {
 	backend.TestBackendStates(t, b)
 }
 
-func TestBackendPath(t *testing.T) {
-	testACC(t)
-
-	path := fmt.Sprintf("terraform-state-swift-test-%x", time.Now().Unix())
-	t.Logf("[DEBUG] Generating backend config")
-	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"path": path,
-	})).(*Backend)
-	t.Logf("[DEBUG] Backend configured")
-
-	defer deleteSwiftContainer(t, b.client, path)
-
-	t.Logf("[DEBUG] Testing Backend")
-
-	// Generate some state
-	state1 := states.NewState()
-
-	// RemoteClient to test with
-	client := &RemoteClient{
-		client:           b.client,
-		archive:          b.archive,
-		archiveContainer: b.archiveContainer,
-		container:        b.container,
-	}
-
-	stateMgr := &remote.State{Client: client}
-	stateMgr.WriteState(state1)
-	if err := stateMgr.PersistState(); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := stateMgr.RefreshState(); err != nil {
-		t.Fatal(err)
-	}
-
-	// Add some state
-	mod := state1.EnsureModule(addrs.RootModuleInstance)
-	mod.SetOutputValue("bar", cty.StringVal("baz"), false)
-	stateMgr.WriteState(state1)
-	if err := stateMgr.PersistState(); err != nil {
-		t.Fatal(err)
-	}
-
-}
-
 func TestBackendArchive(t *testing.T) {
 	testACC(t)
 
@@ -138,76 +86,8 @@ func TestBackendArchive(t *testing.T) {
 		deleteSwiftContainer(t, b.client, archiveContainer)
 	}()
 
-	// RemoteClient to test with
-	client := &RemoteClient{
-		client:           b.client,
-		archive:          b.archive,
-		archiveContainer: b.archiveContainer,
-		container:        b.container,
-	}
+	backend.TestBackendStates(t, b)
 
-	stateMgr := &remote.State{Client: client}
-
-	workspaces, err := b.Workspaces()
-	if err != nil {
-		t.Fatalf("Error Reading States: %s", err)
-	}
-
-	// Generate some state
-	state1 := states.NewState()
-
-	// there should always be at least one default state
-	s2Mgr, err := b.StateMgr(workspaces[0])
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	s2Mgr.WriteState(state1)
-	if err := s2Mgr.PersistState(); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := s2Mgr.RefreshState(); err != nil {
-		t.Fatal(err)
-	}
-
-	// Add some state
-	mod := state1.EnsureModule(addrs.RootModuleInstance)
-	mod.SetOutputValue("bar", cty.StringVal("baz"), false)
-	s2Mgr.WriteState(state1)
-	if err := s2Mgr.PersistState(); err != nil {
-		t.Fatal(err)
-	}
-
-	archiveObjects := getSwiftObjectNames(t, b.client, archiveContainer)
-	t.Logf("archiveObjects len = %d. Contents = %+v", len(archiveObjects), archiveObjects)
-	if len(archiveObjects) != 1 {
-		t.Fatalf("Invalid number of archive objects. Expected 1, got %d", len(archiveObjects))
-	}
-
-	// Download archive state to validate
-	archiveData := downloadSwiftObject(t, b.client, archiveContainer, archiveObjects[0])
-	t.Logf("Archive data downloaded... Looks like: %+v", archiveData)
-	archiveStateFile, err := statefile.Read(archiveData)
-	if err != nil {
-		t.Fatalf("Error Reading State: %s", err)
-	}
-
-	t.Logf("Archive state lineage = %s, serial = %d", archiveStateFile.Lineage, archiveStateFile.Serial)
-	if stateMgr.StateSnapshotMeta().Lineage != archiveStateFile.Lineage {
-		t.Fatal("Got a different lineage")
-	}
-}
-
-// Helper function to download an object in a Swift container
-func downloadSwiftObject(t *testing.T, osClient *gophercloud.ServiceClient, container, object string) (data io.Reader) {
-	t.Logf("Attempting to download object %s from container %s", object, container)
-	res := objects.Download(osClient, container, object, nil)
-	if res.Err != nil {
-		t.Fatalf("Error downloading object: %s", res.Err)
-	}
-	data = res.Body
-	return
 }
 
 // Helper function to get a list of objects in a Swift container
