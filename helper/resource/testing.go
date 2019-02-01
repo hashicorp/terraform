@@ -1146,14 +1146,17 @@ func TestCheckModuleResourceAttrPair(mpFirst []string, nameFirst string, keyFirs
 }
 
 func testCheckResourceAttrPair(isFirst *terraform.InstanceState, nameFirst string, keyFirst string, isSecond *terraform.InstanceState, nameSecond string, keySecond string) error {
-	vFirst, ok := isFirst.Attributes[keyFirst]
-	if !ok {
-		return fmt.Errorf("%s: Attribute '%s' not found", nameFirst, keyFirst)
+	vFirst, okFirst := isFirst.Attributes[keyFirst]
+	vSecond, okSecond := isSecond.Attributes[keySecond]
+	if okFirst != okSecond {
+		if !okFirst {
+			return fmt.Errorf("%s: Attribute %q not set, but %q is set in %s as %q", nameFirst, keyFirst, keySecond, nameSecond, vSecond)
+		}
+		return fmt.Errorf("%s: Attribute %q is %q, but %q is not set in %s", nameFirst, keyFirst, vFirst, keySecond, nameSecond)
 	}
-
-	vSecond, ok := isSecond.Attributes[keySecond]
-	if !ok {
-		return fmt.Errorf("%s: Attribute '%s' not found", nameSecond, keySecond)
+	if !(okFirst || okSecond) {
+		// If they both don't exist then they are equally unset, so that's okay.
+		return nil
 	}
 
 	if vFirst != vSecond {
