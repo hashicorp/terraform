@@ -367,6 +367,41 @@ func TestSchemaMapCoreConfigSchema(t *testing.T) {
 				},
 			}),
 		},
+		"nested block with id": {
+			map[string]*Schema{
+				"foo": {
+					Type:     TypeList,
+					Optional: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							// Top-level id is always forced to be
+							// computed, but id is just like any
+							// other attr in a nested block.
+							"id": {
+								Type:     TypeString,
+								Optional: true,
+							},
+						},
+					},
+				},
+			},
+			testResource(&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"foo": &configschema.NestedBlock{
+						Nesting: configschema.NestingList,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"id": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+					},
+				},
+			}),
+		},
 		"sensitive": {
 			map[string]*Schema{
 				"string": {
