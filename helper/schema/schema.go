@@ -799,10 +799,19 @@ func (m schemaMap) diff(
 	for attrK, attrV := range unsupressedDiff.Attributes {
 		switch rd := d.(type) {
 		case *ResourceData:
-			if schema.DiffSuppressFunc != nil &&
-				attrV != nil &&
+			if schema.DiffSuppressFunc != nil && attrV != nil &&
 				schema.DiffSuppressFunc(attrK, attrV.Old, attrV.New, rd) {
-				continue
+				// If this attr diff is suppressed, we may still need it in the
+				// overall diff if it's contained within a set. Rather than
+				// dropping the diff, make it a NOOP.
+				if !all {
+					continue
+				}
+
+				attrV = &terraform.ResourceAttrDiff{
+					Old: attrV.Old,
+					New: attrV.Old,
+				}
 			}
 		}
 		diff.Attributes[attrK] = attrV
