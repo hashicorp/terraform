@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"log"
 	"sort"
 	"strings"
 
@@ -248,6 +249,7 @@ func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.At
 }
 
 func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *configschema.NestedBlock, old, new cty.Value, blankBefore bool, indent int, path cty.Path) {
+	log.Println("[DEBUG] writeNestedBlockDiffs called")
 	path = append(path, cty.GetAttrStep{Name: name})
 	if old.IsNull() && new.IsNull() {
 		// Nothing to do if both old and new is null
@@ -340,6 +342,7 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 			p.writeNestedBlockDiff(name, nil, &blockS.Block, plans.Create, oldItem, newItem, indent, path)
 		}
 	case configschema.NestingSet:
+		log.Println("[DEBUG] Diffing NestingSet...")
 		// For the sake of handling nested blocks, we'll treat a null set
 		// the same as an empty set since the config language doesn't
 		// distinguish these anyway.
@@ -369,6 +372,8 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 
 		for it := all.ElementIterator(); it.Next(); {
 			_, val := it.Element()
+
+			log.Printf("[DEBUG] DIFFing element: %#v", val)
 			var action plans.Action
 			var oldValue, newValue cty.Value
 			switch {

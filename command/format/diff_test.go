@@ -2435,6 +2435,60 @@ func TestResourceChange_nestedSet(t *testing.T) {
     }
 `,
 		},
+		"in-place update - to unknown": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+				"root_block_device": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+						"new_field":   cty.StringVal("new_value"),
+					}),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":                cty.StringVal("i-02ae66f368e8518a9"),
+				"ami":               cty.StringVal("ami-AFTER"),
+				"root_block_device": cty.UnknownVal(cty.EmptyObject),
+			}),
+			RequiredReplace: cty.NewPathSet(),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Optional: true, Computed: true},
+					"ami": {Type: cty.String, Optional: true},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"root_block_device": {
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"volume_type": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+								"new_field": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+							},
+						},
+						Nesting: configschema.NestingSet,
+					},
+				},
+			},
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ ami = "ami-BEFORE" -> "ami-AFTER"
+        id  = "i-02ae66f368e8518a9"
+
+      - root_block_device {
+        }
+    }
+`,
+		},
 	}
 	runTestCases(t, testCases)
 }
