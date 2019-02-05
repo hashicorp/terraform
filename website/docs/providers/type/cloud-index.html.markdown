@@ -59,7 +59,7 @@ vendor in close collaboration with HashiCorp, and are tested by HashiCorp.
 
 [Skytap](/docs/providers/skytap/index.html)
 
-[Selectel](/docs/providers/selvpc/index.html)
+[Selectel](/docs/providers/selectel/index.html)
 
 [SoftLayer](/docs/providers/softlayer/index.html)
 
