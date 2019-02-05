@@ -150,7 +150,7 @@ down to see all providers.
   <tr>
     <td><a href="/docs/providers/runscope/index.html">RunScope</a></td>
     <td><a href="/docs/providers/scaleway/index.html">Scaleway</a></td>
-    <td><a href="/docs/providers/selvpc/index.html">Selectel</a></td>
+    <td><a href="/docs/providers/selectel/index.html">Selectel</a></td>
   </tr>
   <tr>
     <td><a href="/docs/providers/skytap/index.html">Skytap</a></td>
