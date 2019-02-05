@@ -19,6 +19,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/terraform"
@@ -31,6 +32,27 @@ const PanicOnErr = "TF_SCHEMA_PANIC_ON_ERROR"
 
 // type used for schema package context keys
 type contextKey string
+
+var (
+	protoVersionMu sync.Mutex
+	protoVersion5  = false
+)
+
+func isProto5() bool {
+	protoVersionMu.Lock()
+	defer protoVersionMu.Unlock()
+	return protoVersion5
+
+}
+
+// SetProto5 enables a feature flag for any internal changes required required
+// to work with the new plugin protocol.  This should not be called by
+// provider.
+func SetProto5() {
+	protoVersionMu.Lock()
+	defer protoVersionMu.Unlock()
+	protoVersion5 = true
+}
 
 // Schema is used to describe the structure of a value.
 //
