@@ -261,6 +261,13 @@ type ApplyResourceChangeResponse struct {
 
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
+
+	// LegacyTypeSystem is set only if the provider is using the legacy SDK
+	// whose type system cannot be precisely mapped into the Terraform type
+	// system. We use this to bypass certain consistency checks that would
+	// otherwise fail due to this imprecise mapping. No other provider or SDK
+	// implementation is permitted to set this.
+	LegacyTypeSystem bool
 }
 
 type ImportResourceStateRequest struct {

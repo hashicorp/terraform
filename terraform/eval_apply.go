@@ -172,20 +172,35 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 		newVal = cty.UnknownAsNull(newVal)
 	}
 
-	// Only values that were marked as unknown in the planned value are allowed
-	// to change during the apply operation. (We do this after the unknown-ness
-	// check above so that we also catch anything that became unknown after
-	// being known during plan.)
-	if errs := objchange.AssertObjectCompatible(schema, change.After, newVal); len(errs) > 0 {
-		for _, err := range errs {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Provider produced inconsistent result after apply",
-				fmt.Sprintf(
-					"When applying changes to %s, provider %q produced an unexpected new value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-					absAddr, n.ProviderAddr.ProviderConfig.Type, tfdiags.FormatError(err),
-				),
-			))
+	if resp.LegacyTypeSystem {
+		// The shimming of the old type system in the legacy SDK is not precise
+		// enough to pass this consistency check, so we'll give it a pass here,
+		// but we will generate a warning about it so that we are more likely
+		// to notice in the logs if an inconsistency beyond the type system
+		// leads to a downstream provider failure.
+		log.Printf("[WARN] Provider %s is using the legacy provider SDK, so we cannot check the result value for consistency with the plan; downstream errors about inconsistent plans may actually be caused by incorrect values from %s", n.ProviderAddr.ProviderConfig.Type, absAddr)
+		// The sort of inconsistency we won't catch here is if a known value
+		// in the plan is changed during apply. That can cause downstream
+		// problems because a dependent resource would make its own plan based
+		// on the planned value, and thus get a different result during the
+		// apply phase. This will usually lead to a "Provider produced invalid plan"
+		// error that incorrectly blames the downstream resource for the change.
+	} else if change.Action != plans.Delete {
+		// Only values that were marked as unknown in the planned value are allowed
+		// to change during the apply operation. (We do this after the unknown-ness
+		// check above so that we also catch anything that became unknown after
+		// being known during plan.)
+		if errs := objchange.AssertObjectCompatible(schema, change.After, newVal); len(errs) > 0 {
+			for _, err := range errs {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Provider produced inconsistent result after apply",
+					fmt.Sprintf(
+						"When applying changes to %s, provider %q produced an unexpected new value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+						absAddr, n.ProviderAddr.ProviderConfig.Type, tfdiags.FormatError(err),
+					),
+				))
+			}
 		}
 	}
 
