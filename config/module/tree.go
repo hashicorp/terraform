@@ -210,6 +210,9 @@ func (t *Tree) getChildren(s *Storage) (map[string]*Tree, error) {
 			if tfileModule, ok := tfile.GetTerraformEntryOk(m.Source); ok {
 				log.Printf("[TRACE] Terraformfile: source found %s new source: %s", m.Source, tfileModule.Source)
 				m.Source = tfileModule.Source
+				if tfileModule.Version != "" {
+					m.Version = tfileModule.Version
+				}
 			} else {
 				log.Printf("[TRACE] Terraformfile: not found %s", m.Source)
 			}
