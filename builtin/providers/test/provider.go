@@ -33,6 +33,7 @@ func Provider() terraform.ResourceProvider {
 			"test_resource_list_set":         testResourceListSet(),
 			"test_resource_map":              testResourceMap(),
 			"test_resource_computed_set":     testResourceComputedSet(),
+			"test_resource_nested_id":        testResourceNestedId(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"test_data_source":    testDataSource(),
