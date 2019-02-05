@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/plans/objchange"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/states"
@@ -169,6 +170,23 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 		// bug, we accept this because storing a result here is always a
 		// best-effort sort of thing.
 		newVal = cty.UnknownAsNull(newVal)
+	}
+
+	// Only values that were marked as unknown in the planned value are allowed
+	// to change during the apply operation. (We do this after the unknown-ness
+	// check above so that we also catch anything that became unknown after
+	// being known during plan.)
+	if errs := objchange.AssertObjectCompatible(schema, change.After, newVal); len(errs) > 0 {
+		for _, err := range errs {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Provider produced inconsistent result after apply",
+				fmt.Sprintf(
+					"When applying changes to %s, provider %q produced an unexpected new value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+					absAddr, n.ProviderAddr.ProviderConfig.Type, tfdiags.FormatError(err),
+				),
+			))
+		}
 	}
 
 	// If a provider returns a null or non-null object at the wrong time then
