@@ -44,6 +44,10 @@ type GRPCProviderServer struct {
 }
 
 func (s *GRPCProviderServer) GetSchema(_ context.Context, req *proto.GetProviderSchema_Request) (*proto.GetProviderSchema_Response, error) {
+	// Here we are certain that the provider is being called through grpc, so
+	// make sure the feature flag for helper/schema is set
+	schema.SetProto5()
+
 	resp := &proto.GetProviderSchema_Response{
 		ResourceSchemas:   make(map[string]*proto.Schema),
 		DataSourceSchemas: make(map[string]*proto.Schema),
