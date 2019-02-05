@@ -665,8 +665,9 @@ func (d *InstanceDiff) applySingleAttrDiff(path []string, attrs map[string]strin
 		return result, nil
 	}
 
-	// "id" must exist and not be an empty string, or it must be unknown
-	if attr == "id" {
+	// "id" must exist and not be an empty string, or it must be unknown.
+	// This only applied to top-level "id" fields.
+	if attr == "id" && len(path) == 1 {
 		if old == "" {
 			result[attr] = config.UnknownVariableValue
 		} else {
