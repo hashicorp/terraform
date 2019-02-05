@@ -496,3 +496,34 @@ resource "test_resource_nested_set" "foo" {
 		},
 	})
 }
+
+func TestResourceNestedSet_multipleUnknownSetElements(t *testing.T) {
+	checkFunc := func(s *terraform.State) error {
+		return nil
+	}
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_nested_set" "a" {
+}
+
+resource "test_resource_nested_set" "b" {
+}
+
+resource "test_resource_nested_set" "c" {
+	multi {
+		optional = test_resource_nested_set.a.id
+	}
+	multi {
+		optional = test_resource_nested_set.b.id
+	}
+}
+				`),
+				Check: checkFunc,
+			},
+		},
+	})
+}
