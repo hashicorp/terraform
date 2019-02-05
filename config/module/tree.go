@@ -198,9 +198,25 @@ func (t *Tree) getChildren(s *Storage) (map[string]*Tree, error) {
 
 	// Go through all the modules and get the directory for them.
 	for _, m := range t.Modules() {
-		if _, ok := children[m.Name]; ok {
-			return nil, fmt.Errorf(
-				"module %s: duplicated. module names must be unique", m.Name)
+
+		// Check if we have to rewrite with Terraformfile entries
+		tfile, err := NewTerraformfile()
+		if err != nil {
+			// lets not fail in this case
+			log.Printf("[INFO] failed to read Terraformfile: %s", err)
+			return nil, nil
+		} else {
+			// Check if we have to overwrite source
+			if tfileModule, ok := tfile.GetTerraformEntryOk(m.Source); ok {
+				log.Printf("[TRACE] Terraformfile: source found %s new source: %s", m.Source, tfileModule.Source)
+				m.Source = tfileModule.Source
+			} else {
+				log.Printf("[TRACE] Terraformfile: not found %s", m.Source)
+			}
+			if _, ok := children[m.Name]; ok {
+				return nil, fmt.Errorf(
+					"module %s: duplicated. module names must be unique", m.Name)
+			}
 		}
 
 		// Determine the path to this child
