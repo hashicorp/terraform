@@ -25,7 +25,8 @@ func testOperationApply() *backend.Operation {
 }
 
 func TestRemote_applyBasic(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	mod, modCleanup := module.TestTree(t, "./test-fixtures/apply")
 	defer modCleanup()
@@ -67,7 +68,8 @@ func TestRemote_applyBasic(t *testing.T) {
 }
 
 func TestRemote_applyWithoutPermissions(t *testing.T) {
-	b := testBackendNoDefault(t)
+	b, bCleanup := testBackendNoDefault(t)
+	defer bCleanup()
 
 	// Create a named workspace without permissions.
 	w, err := b.client.Workspaces.Create(
@@ -104,7 +106,8 @@ func TestRemote_applyWithoutPermissions(t *testing.T) {
 }
 
 func TestRemote_applyWithVCS(t *testing.T) {
-	b := testBackendNoDefault(t)
+	b, bCleanup := testBackendNoDefault(t)
+	defer bCleanup()
 
 	// Create a named workspace with a VCS.
 	_, err := b.client.Workspaces.Create(
@@ -144,7 +147,8 @@ func TestRemote_applyWithVCS(t *testing.T) {
 }
 
 func TestRemote_applyWithParallelism(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	mod, modCleanup := module.TestTree(t, "./test-fixtures/apply")
 	defer modCleanup()
@@ -169,7 +173,8 @@ func TestRemote_applyWithParallelism(t *testing.T) {
 }
 
 func TestRemote_applyWithPlan(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	mod, modCleanup := module.TestTree(t, "./test-fixtures/apply")
 	defer modCleanup()
@@ -197,7 +202,8 @@ func TestRemote_applyWithPlan(t *testing.T) {
 }
 
 func TestRemote_applyWithoutRefresh(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	mod, modCleanup := module.TestTree(t, "./test-fixtures/apply")
 	defer modCleanup()
@@ -222,7 +228,8 @@ func TestRemote_applyWithoutRefresh(t *testing.T) {
 }
 
 func TestRemote_applyWithTarget(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	mod, modCleanup := module.TestTree(t, "./test-fixtures/apply")
 	defer modCleanup()
@@ -250,7 +257,8 @@ func TestRemote_applyWithTarget(t *testing.T) {
 }
 
 func TestRemote_applyWithVariables(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	mod, modCleanup := module.TestTree(t, "./test-fixtures/apply-variables")
 	defer modCleanup()
@@ -275,7 +283,8 @@ func TestRemote_applyWithVariables(t *testing.T) {
 }
 
 func TestRemote_applyNoConfig(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	op := testOperationApply()
 	op.Module = nil
@@ -299,7 +308,8 @@ func TestRemote_applyNoConfig(t *testing.T) {
 }
 
 func TestRemote_applyNoChanges(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	mod, modCleanup := module.TestTree(t, "./test-fixtures/apply-no-changes")
 	defer modCleanup()
@@ -328,7 +338,8 @@ func TestRemote_applyNoChanges(t *testing.T) {
 }
 
 func TestRemote_applyNoApprove(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	mod, modCleanup := module.TestTree(t, "./test-fixtures/apply")
 	defer modCleanup()
@@ -364,7 +375,8 @@ func TestRemote_applyNoApprove(t *testing.T) {
 }
 
 func TestRemote_applyAutoApprove(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	mod, modCleanup := module.TestTree(t, "./test-fixtures/apply")
 	defer modCleanup()
@@ -407,7 +419,8 @@ func TestRemote_applyAutoApprove(t *testing.T) {
 }
 
 func TestRemote_applyWithAutoApply(t *testing.T) {
-	b := testBackendNoDefault(t)
+	b, bCleanup := testBackendNoDefault(t)
+	defer bCleanup()
 
 	// Create a named workspace that auto applies.
 	_, err := b.client.Workspaces.Create(
@@ -469,7 +482,8 @@ func TestRemote_applyForceLocal(t *testing.T) {
 	}
 	defer os.Unsetenv("TF_FORCE_LOCAL_BACKEND")
 
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	mod, modCleanup := module.TestTree(t, "./test-fixtures/apply")
 	defer modCleanup()
@@ -514,7 +528,9 @@ func TestRemote_applyForceLocal(t *testing.T) {
 }
 
 func TestRemote_applyWorkspaceWithoutOperations(t *testing.T) {
-	b := testBackendNoDefault(t)
+	b, bCleanup := testBackendNoDefault(t)
+	defer bCleanup()
+
 	ctx := context.Background()
 
 	// Create a named workspace that doesn't allow operations.
@@ -572,7 +588,9 @@ func TestRemote_applyWorkspaceWithoutOperations(t *testing.T) {
 }
 
 func TestRemote_applyLockTimeout(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
+
 	ctx := context.Background()
 
 	// Retrieve the workspace used to run this operation in.
@@ -643,7 +661,8 @@ func TestRemote_applyLockTimeout(t *testing.T) {
 }
 
 func TestRemote_applyDestroy(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	mod, modCleanup := module.TestTree(t, "./test-fixtures/apply-destroy")
 	defer modCleanup()
@@ -686,7 +705,8 @@ func TestRemote_applyDestroy(t *testing.T) {
 }
 
 func TestRemote_applyDestroyNoConfig(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	input := testInput(t, map[string]string{
 		"approve": "yes",
@@ -718,7 +738,8 @@ func TestRemote_applyDestroyNoConfig(t *testing.T) {
 }
 
 func TestRemote_applyPolicyPass(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	mod, modCleanup := module.TestTree(t, "./test-fixtures/apply-policy-passed")
 	defer modCleanup()
@@ -763,7 +784,8 @@ func TestRemote_applyPolicyPass(t *testing.T) {
 }
 
 func TestRemote_applyPolicyHardFail(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	mod, modCleanup := module.TestTree(t, "./test-fixtures/apply-policy-hard-failed")
 	defer modCleanup()
@@ -810,7 +832,8 @@ func TestRemote_applyPolicyHardFail(t *testing.T) {
 }
 
 func TestRemote_applyPolicySoftFail(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	mod, modCleanup := module.TestTree(t, "./test-fixtures/apply-policy-soft-failed")
 	defer modCleanup()
@@ -856,7 +879,8 @@ func TestRemote_applyPolicySoftFail(t *testing.T) {
 }
 
 func TestRemote_applyPolicySoftFailAutoApprove(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	mod, modCleanup := module.TestTree(t, "./test-fixtures/apply-policy-soft-failed")
 	defer modCleanup()
@@ -904,7 +928,8 @@ func TestRemote_applyPolicySoftFailAutoApprove(t *testing.T) {
 }
 
 func TestRemote_applyPolicySoftFailAutoApply(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	// Create a named workspace that auto applies.
 	_, err := b.client.Workspaces.Create(
@@ -963,7 +988,8 @@ func TestRemote_applyPolicySoftFailAutoApply(t *testing.T) {
 }
 
 func TestRemote_applyWithRemoteError(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	mod, modCleanup := module.TestTree(t, "./test-fixtures/apply-with-error")
 	defer modCleanup()
