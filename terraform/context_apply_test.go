@@ -1882,7 +1882,7 @@ func TestContext2Apply_cancel(t *testing.T) {
 		return &InstanceDiff{
 			Attributes: map[string]*ResourceAttrDiff{
 				"value": &ResourceAttrDiff{
-					New: "bar",
+					New: "2",
 				},
 			},
 		}, nil
@@ -1931,7 +1931,15 @@ func TestContext2Apply_cancelBlock(t *testing.T) {
 	})
 
 	applyCh := make(chan struct{})
-	p.DiffFn = testDiffFn
+	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error) {
+		return &InstanceDiff{
+			Attributes: map[string]*ResourceAttrDiff{
+				"id": &ResourceAttrDiff{
+					New: "foo",
+				},
+			},
+		}, nil
+	}
 	p.ApplyFn = func(*InstanceInfo, *InstanceState, *InstanceDiff) (*InstanceState, error) {
 		close(applyCh)
 
@@ -4842,6 +4850,10 @@ func TestContext2Apply_errorDestroy_createBeforeDestroy(t *testing.T) {
 		// Create should work
 		is = &InstanceState{
 			ID: "foo",
+			Attributes: map[string]string{
+				"type":        "aws_instance",
+				"require_new": "xyz",
+			},
 		}
 		return is, nil
 	}
@@ -4866,7 +4878,6 @@ func TestContext2Apply_errorDestroy_createBeforeDestroy(t *testing.T) {
 func TestContext2Apply_multiDepose_createBeforeDestroy(t *testing.T) {
 	m := testModule(t, "apply-multi-depose-create-before-destroy")
 	p := testProvider("aws")
-	p.DiffFn = testDiffFn
 	p.GetSchemaReturn = &ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
@@ -4892,6 +4903,30 @@ func TestContext2Apply_multiDepose_createBeforeDestroy(t *testing.T) {
 		},
 	})
 
+	p.DiffFn = func(info *InstanceInfo, s *InstanceState, rc *ResourceConfig) (*InstanceDiff, error) {
+		if rc == nil {
+			return &InstanceDiff{
+				Destroy: true,
+			}, nil
+		}
+
+		rn, _ := rc.Get("require_new")
+		return &InstanceDiff{
+			Attributes: map[string]*ResourceAttrDiff{
+				"id": {
+					New:         unknownValue(),
+					NewComputed: true,
+					RequiresNew: true,
+				},
+				"require_new": {
+					Old:         s.Attributes["require_new"],
+					New:         rn.(string),
+					RequiresNew: true,
+				},
+			},
+		}, nil
+	}
+
 	ctx := testContext2(t, &ContextOpts{
 		Config:           m,
 		ProviderResolver: providers.ResolverFixed(ps),
@@ -4899,8 +4934,13 @@ func TestContext2Apply_multiDepose_createBeforeDestroy(t *testing.T) {
 	})
 	createdInstanceId := "bar"
 	// Create works
-	createFunc := func(is *InstanceState) (*InstanceState, error) {
-		return &InstanceState{ID: createdInstanceId}, nil
+	createFunc := func(is *InstanceState, id *InstanceDiff) (*InstanceState, error) {
+		return &InstanceState{
+			ID: createdInstanceId,
+			Attributes: map[string]string{
+				"require_new": id.Attributes["require_new"].New,
+			},
+		}, nil
 	}
 	// Destroy starts broken
 	destroyFunc := func(is *InstanceState) (*InstanceState, error) {
@@ -4910,7 +4950,7 @@ func TestContext2Apply_multiDepose_createBeforeDestroy(t *testing.T) {
 		if id.Destroy {
 			return destroyFunc(is)
 		} else {
-			return createFunc(is)
+			return createFunc(is, id)
 		}
 	}
 
@@ -4929,6 +4969,7 @@ func TestContext2Apply_multiDepose_createBeforeDestroy(t *testing.T) {
 aws_instance.web: (1 deposed)
   ID = bar
   provider = provider.aws
+  require_new = yes
   Deposed ID 1 = foo
 	`)
 
@@ -5011,6 +5052,7 @@ aws_instance.web: (1 deposed)
 aws_instance.web: (1 deposed)
   ID = qux
   provider = provider.aws
+  require_new = yes
   Deposed ID 1 = bar
 	`)
 
@@ -5038,6 +5080,7 @@ aws_instance.web: (1 deposed)
 aws_instance.web:
   ID = quux
   provider = provider.aws
+  require_new = yes
 	`)
 }
 
@@ -6982,7 +7025,7 @@ func TestContext2Apply_error(t *testing.T) {
 		return &InstanceDiff{
 			Attributes: map[string]*ResourceAttrDiff{
 				"value": &ResourceAttrDiff{
-					New: "bar",
+					New: "2",
 				},
 			},
 		}, nil
@@ -7051,7 +7094,7 @@ func TestContext2Apply_errorPartial(t *testing.T) {
 		return &InstanceDiff{
 			Attributes: map[string]*ResourceAttrDiff{
 				"value": &ResourceAttrDiff{
-					New: "bar",
+					New: "2",
 				},
 			},
 		}, nil
@@ -7183,7 +7226,8 @@ func TestContext2Apply_idAttr(t *testing.T) {
 		result := s.MergeDiff(d)
 		result.ID = "foo"
 		result.Attributes = map[string]string{
-			"id": "bar",
+			"id":  "bar",
+			"num": "42",
 		}
 
 		return result, nil
@@ -7204,7 +7248,7 @@ func TestContext2Apply_idAttr(t *testing.T) {
 
 	state, diags := ctx.Apply()
 	if diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("apply errors: %s", diags.Err())
 	}
 
 	mod := state.RootModule()
