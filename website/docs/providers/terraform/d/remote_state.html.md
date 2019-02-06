@@ -31,7 +31,7 @@ data "terraform_remote_state" "vpc" {
 
 resource "aws_instance" "foo" {
   # ...
-  subnet_id = "${data.terraform_remote_state.vpc.subnet_id}"
+  subnet_id = "${data.terraform_remote_state.vpc.outputs.subnet_id}"
 }
 ```
 
@@ -52,11 +52,9 @@ The following arguments are supported:
 
 ## Attributes Reference
 
-The following attributes are exported:
+In addition to the above, the following attributes are exported:
 
-* `backend` - See Argument Reference above.
-* `config` - See Argument Reference above.
-* `<OUTPUT NAME>` - Each root-level [output](/docs/configuration/outputs.html)
+* `outputs` - Each root-level [output](/docs/configuration/outputs.html)
   in the remote state appears as a top level attribute on the data source.
 
 ## Root Outputs Only
