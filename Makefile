@@ -73,11 +73,12 @@ cover:
 # source files, except the protobuf stubs which are built instead with
 # "make protobuf".
 generate: tools
-	# We turn off modules for "go generate" because our downstream generate
-	# commands are not all ready to deal with Go modules yet.
-	# See https://github.com/golang/go/issues/24661
-	# This also avoids downloading all of the deps that are in the vendor dir anyway.
-	GO111MODULE=off go generate ./...
+	GOFLAGS=-mod=vendor go generate ./...
+	# go fmt doesn't support -mod=vendor but it still wants to populate the
+	# module cache with everything in go.mod even though formatting requires
+	# no dependencies, and so we're disabling modules mode for this right
+	# now until the "go fmt" behavior is rationalized to either support the
+	# -mod= argument or _not_ try to install things.
 	GO111MODULE=off go fmt command/internal_plugin_list.go > /dev/null
 
 # We separate the protobuf generation because most development tasks on

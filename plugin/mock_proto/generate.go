@@ -1,3 +1,3 @@
-//go:generate mockgen -destination mock.go github.com/hashicorp/terraform/internal/tfplugin5 ProviderClient,ProvisionerClient,Provisioner_ProvisionResourceClient,Provisioner_ProvisionResourceServer
+//go:generate bash ./generate.sh
 
 package mock_tfplugin5
