@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"time"
 
@@ -227,7 +228,7 @@ func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Ope
 		if err != nil {
 			return generalError("Failed to retrieve policy check logs", err)
 		}
-		scanner := bufio.NewScanner(logs)
+		reader := bufio.NewReaderSize(logs, 64*1024)
 
 		// Retrieve the policy check to get its current status.
 		pc, err := b.client.PolicyChecks.Read(stopCtx, pc.ID)
@@ -249,13 +250,25 @@ func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Ope
 			b.CLI.Output(b.Colorize().Color(msgPrefix + ":\n"))
 		}
 
-		for scanner.Scan() {
-			if b.CLI != nil {
-				b.CLI.Output(b.Colorize().Color(scanner.Text()))
+		if b.CLI != nil {
+			for next := true; next; {
+				var l, line []byte
+
+				for isPrefix := true; isPrefix; {
+					l, isPrefix, err = reader.ReadLine()
+					if err != nil {
+						if err != io.EOF {
+							return generalError("Failed to read logs", err)
+						}
+						next = false
+					}
+					line = append(line, l...)
+				}
+
+				if next || len(line) > 0 {
+					b.CLI.Output(b.Colorize().Color(string(line)))
+				}
 			}
-		}
-		if err := scanner.Err(); err != nil {
-			return generalError("Failed to read logs", err)
 		}
 
 		switch pc.Status {
