@@ -796,6 +796,8 @@ const testTerraformApplyErrorDestroyCreateBeforeDestroyStr = `
 aws_instance.bar: (1 deposed)
   ID = foo
   provider = provider.aws
+  require_new = xyz
+  type = aws_instance
   Deposed ID 1 = bar
 `
 
