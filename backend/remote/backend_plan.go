@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -253,15 +254,27 @@ func (b *Remote) plan(stopCtx, cancelCtx context.Context, op *backend.Operation,
 	if err != nil {
 		return r, generalError("Failed to retrieve logs", err)
 	}
-	scanner := bufio.NewScanner(logs)
+	reader := bufio.NewReaderSize(logs, 64*1024)
 
-	for scanner.Scan() {
-		if b.CLI != nil {
-			b.CLI.Output(b.Colorize().Color(scanner.Text()))
+	if b.CLI != nil {
+		for next := true; next; {
+			var l, line []byte
+
+			for isPrefix := true; isPrefix; {
+				l, isPrefix, err = reader.ReadLine()
+				if err != nil {
+					if err != io.EOF {
+						return r, generalError("Failed to read logs", err)
+					}
+					next = false
+				}
+				line = append(line, l...)
+			}
+
+			if next || len(line) > 0 {
+				b.CLI.Output(b.Colorize().Color(string(line)))
+			}
 		}
-	}
-	if err := scanner.Err(); err != nil {
-		return r, generalError("Failed to read logs", err)
 	}
 
 	// Retrieve the run to get its current status.
