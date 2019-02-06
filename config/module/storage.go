@@ -100,6 +100,12 @@ func (s Storage) loadManifest() (moduleManifest, error) {
 	if err := json.Unmarshal(data, &manifest); err != nil {
 		return manifest, err
 	}
+
+	for _, record := range manifest.Modules {
+		// Make sure we use the correct path separator.
+		record.Dir = filepath.FromSlash(record.Dir)
+	}
+
 	return manifest, nil
 }
 
@@ -129,6 +135,9 @@ func (s Storage) recordModule(rec moduleRecord) error {
 			break
 		}
 	}
+
+	// Make sure we always use a slash separator.
+	rec.Dir = filepath.ToSlash(rec.Dir)
 
 	manifest.Modules = append(manifest.Modules, rec)
 
