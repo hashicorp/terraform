@@ -53,6 +53,23 @@ be no required changes. However, we still recommend to run the migration tool
 to upgrade to the more readable syntax conventions supported in this release,
 and to draw attention to any potential issues.
 
+## Remote State Referencing
+
+`terraform` provider has changed schema which caused all outputs to be nested
+under `outputs` field.
+
+### Before
+
+```hcl
+data.terraform_remote_state.vpc.something
+```
+
+### After
+
+```hcl
+data.terraform_remote_state.vpc.outputs.something
+```
+
 ## Upgrading Terraform providers
 
 We’ve updated the RPC protocol used by Terraform plugins to support typed data
