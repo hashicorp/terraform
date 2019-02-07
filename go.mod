@@ -33,7 +33,7 @@ require (
 	github.com/coreos/pkg v0.0.0-20160727233714-3ac0863d7acf // indirect
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dgrijalva/jwt-go v0.0.0-20160617170158-f0777076321a // indirect
-	github.com/dnaeon/go-vcr v1.0.1 // indirect
+	github.com/dnaeon/go-vcr v0.0.0-20170218072653-87d4990451a8 // indirect
 	github.com/dylanmei/iso8601 v0.1.0 // indirect
 	github.com/dylanmei/winrmtest v0.0.0-20170819153634-c2fbb09e6c08
 	github.com/ghodss/yaml v1.0.0 // indirect
@@ -81,7 +81,6 @@ require (
 	github.com/jtolds/gls v4.2.1+incompatible // indirect
 	github.com/kardianos/osext v0.0.0-20160811001526-c2c54e542fb7
 	github.com/keybase/go-crypto v0.0.0-20161004153544-93f5b35093ba // indirect
-	github.com/kr/pretty v0.1.0 // indirect
 	github.com/kylelemons/godebug v0.0.0-20170820004349-d65d576e9348 // indirect
 	github.com/lusis/go-artifactory v0.0.0-20160115162124-7e4ce345df82
 	github.com/masterzen/azure-sdk-for-go v0.0.0-20161014135628-ee4f0065d00c // indirect
@@ -142,6 +141,6 @@ require (
 	google.golang.org/appengine v0.0.0-20150527042145-b667a5000b08 // indirect
 	google.golang.org/genproto v0.0.0-20171002232614-f676e0f3ac63 // indirect
 	google.golang.org/grpc v0.0.0-20170809211603-7657092a1303 // indirect
-	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
+	gopkg.in/check.v1 v1.0.0-20161208181325-20d25e280405 // indirect
 	gopkg.in/yaml.v2 v2.0.0-20170407172122-cd8b52f8269e // indirect
 )
