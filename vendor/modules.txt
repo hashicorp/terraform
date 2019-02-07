@@ -178,7 +178,7 @@ github.com/bgentry/speakeasy
 github.com/blang/semver
 # github.com/chzyer/readline v0.0.0-20161106042343-c914be64f07d
 github.com/chzyer/readline
-# github.com/coreos/etcd v3.2.7+incompatible
+# github.com/coreos/etcd v3.2.0-rc.1.0.20170908195435-80aa810309d4+incompatible
 github.com/coreos/etcd/clientv3
 github.com/coreos/etcd/clientv3/concurrency
 github.com/coreos/etcd/pkg/transport
@@ -432,7 +432,7 @@ github.com/svanharmelen/jsonapi
 github.com/terraform-providers/terraform-provider-aws/aws
 # github.com/terraform-providers/terraform-provider-openstack v0.0.0-20170616075611-4080a521c6ea
 github.com/terraform-providers/terraform-provider-openstack/openstack
-# github.com/ugorji/go/codec v0.0.0-20190204201341-e444a5086c43
+# github.com/ugorji/go v0.0.0-20170107133203-ded73eae5db7
 github.com/ugorji/go/codec
 # github.com/ulikunitz/xz v0.5.4
 github.com/ulikunitz/xz
@@ -544,11 +544,11 @@ google.golang.org/grpc/health
 google.golang.org/grpc/health/grpc_health_v1
 google.golang.org/grpc/codes
 google.golang.org/grpc/grpclog
+google.golang.org/grpc/keepalive
 google.golang.org/grpc/metadata
 google.golang.org/grpc/connectivity
 google.golang.org/grpc/grpclb/grpc_lb_v1
 google.golang.org/grpc/internal
-google.golang.org/grpc/keepalive
 google.golang.org/grpc/naming
 google.golang.org/grpc/peer
 google.golang.org/grpc/stats
