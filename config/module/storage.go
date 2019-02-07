@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	getter "github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/registry"
@@ -101,9 +102,18 @@ func (s Storage) loadManifest() (moduleManifest, error) {
 		return manifest, err
 	}
 
-	for _, record := range manifest.Modules {
+	for i, rec := range manifest.Modules {
+		// If the path was recorded before we changed to always using a
+		// slash as separator, we delete the record from the manifest so
+		// it can be discovered again and will be recorded using a slash.
+		if strings.Contains(rec.Dir, "\\") {
+			manifest.Modules[i] = manifest.Modules[len(manifest.Modules)-1]
+			manifest.Modules = manifest.Modules[:len(manifest.Modules)-1]
+			continue
+		}
+
 		// Make sure we use the correct path separator.
-		record.Dir = filepath.FromSlash(record.Dir)
+		rec.Dir = filepath.FromSlash(rec.Dir)
 	}
 
 	return manifest, nil
