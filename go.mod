@@ -15,6 +15,7 @@ require (
 	github.com/apparentlymart/go-cidr v0.0.0-20170616213631-2bd8b58cf427
 	github.com/apparentlymart/go-textseg v0.0.0-20170531203952-b836f5c4d331 // indirect
 	github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e
+	github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da // indirect
 	github.com/armon/go-radix v0.0.0-20160115234725-4239b77079c7 // indirect
 	github.com/aws/aws-sdk-go v1.14.31
 	github.com/beevik/etree v0.0.0-20171015221209-af219c0c7ea1 // indirect
@@ -39,6 +40,7 @@ require (
 	github.com/go-test/deep v1.0.1
 	github.com/gogo/protobuf v1.2.0 // indirect
 	github.com/golang/groupcache v0.0.0-20190129154638-5b532d6fd5ef // indirect
+	github.com/google/btree v0.0.0-20180813153112-4030bb1f1f0c // indirect
 	github.com/google/go-cmp v0.2.0 // indirect
 	github.com/googleapis/gax-go v0.0.0-20161107002406-da06d194a00e // indirect
 	github.com/gophercloud/gophercloud v0.0.0-20170524130959-3027adb1ce72
@@ -52,11 +54,14 @@ require (
 	github.com/hashicorp/go-cleanhttp v0.5.0
 	github.com/hashicorp/go-getter v0.0.0-20180327010114-90bb99a48d86
 	github.com/hashicorp/go-hclog v0.0.0-20170716174523-b4e5765d1e5f
+	github.com/hashicorp/go-immutable-radix v1.0.0 // indirect
+	github.com/hashicorp/go-msgpack v0.5.3 // indirect
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hashicorp/go-plugin v0.0.0-20180125190438-e53f54cbf51e
 	github.com/hashicorp/go-retryablehttp v0.5.1
 	github.com/hashicorp/go-rootcerts v0.0.0-20160503143440-6bb64b370b90
 	github.com/hashicorp/go-safetemp v0.0.0-20180326211150-b1a1dbde6fdc // indirect
+	github.com/hashicorp/go-sockaddr v1.0.0 // indirect
 	github.com/hashicorp/go-tfe v0.3.4
 	github.com/hashicorp/go-uuid v1.0.0
 	github.com/hashicorp/go-version v1.0.0
@@ -64,8 +69,8 @@ require (
 	github.com/hashicorp/hcl2 v0.0.0-20180308163058-5f8ed954abd8
 	github.com/hashicorp/hil v0.0.0-20170627220502-fa9f258a9250
 	github.com/hashicorp/logutils v0.0.0-20150609070431-0dc08b1671f3
-	github.com/hashicorp/memberlist v0.1.3 // indirect
-	github.com/hashicorp/serf v0.0.0-20160124182025-e4ec8cc423bb // indirect
+	github.com/hashicorp/memberlist v0.0.0-20170208211506-23ad4b7d7b38 // indirect
+	github.com/hashicorp/serf v0.8.2-0.20171022020050-c20a0b1b1ea9 // indirect
 	github.com/hashicorp/vault v0.0.0-20161029210149-9a60bf2a50e4
 	github.com/hashicorp/yamux v0.0.0-20160720233140-d1caa6c97c9f // indirect
 	github.com/jen20/awspolicyequivalence v0.0.0-20170831201602-3d48364a137a // indirect
@@ -84,6 +89,7 @@ require (
 	github.com/mattn/go-colorable v0.0.0-20160220075935-9cbef7c35391
 	github.com/mattn/go-isatty v0.0.0-20161123143637-30a891c33c7c // indirect
 	github.com/mattn/go-shellwords v1.0.1
+	github.com/miekg/dns v1.0.14 // indirect
 	github.com/mitchellh/cli v0.0.0-20171129193617-33edc47170b5
 	github.com/mitchellh/colorstring v0.0.0-20150917214807-8631ce90f286
 	github.com/mitchellh/copystructure v0.0.0-20170525013902-d23ffcb85de3
@@ -99,6 +105,7 @@ require (
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
 	github.com/oklog/run v1.0.0 // indirect
 	github.com/packer-community/winrmcp v0.0.0-20180102160824-81144009af58
+	github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c // indirect
 	github.com/pkg/errors v0.0.0-20170505043639-c605e284fe17 // indirect
 	github.com/posener/complete v0.0.0-20171219111128-6bee943216c8
 	github.com/prometheus/client_golang v0.9.2 // indirect
@@ -106,6 +113,7 @@ require (
 	github.com/ryanuber/columnize v0.0.0-20161220214920-0fbbb3f0e3fb
 	github.com/satori/go.uuid v0.0.0-20160927100844-b061729afc07 // indirect
 	github.com/satori/uuid v0.0.0-20160927100844-b061729afc07 // indirect
+	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
 	github.com/smartystreets/assertions v0.0.0-20190116191733-b6c0e53d7304 // indirect
 	github.com/smartystreets/goconvey v0.0.0-20181108003508-044398e4856c // indirect
 	github.com/spf13/afero v1.0.2
@@ -122,6 +130,8 @@ require (
 	golang.org/x/crypto v0.0.0-20181029021203-45a5f77698d3
 	golang.org/x/net v0.0.0-20181201002055-351d144fa1fc
 	golang.org/x/oauth2 v0.0.0-20170928010508-bb50c06baba3
+	golang.org/x/sync v0.0.0-20181221193216-37e7f081c4d4 // indirect
+	golang.org/x/sys v0.0.0-20181026203630-95b1ffbd15a5 // indirect
 	golang.org/x/text v0.0.0-20171013141220-c01e4764d870 // indirect
 	google.golang.org/api v0.0.0-20171005000305-7a7376eff6a5
 	google.golang.org/appengine v0.0.0-20150527042145-b667a5000b08 // indirect
