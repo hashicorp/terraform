@@ -25,7 +25,11 @@ import (
 //go:cgo_import_dynamic libc___xnet_recvmsg __xnet_recvmsg "libsocket.so"
 //go:cgo_import_dynamic libc___xnet_sendmsg __xnet_sendmsg "libsocket.so"
 //go:cgo_import_dynamic libc_acct acct "libc.so"
+//go:cgo_import_dynamic libc___makedev __makedev "libc.so"
+//go:cgo_import_dynamic libc___major __major "libc.so"
+//go:cgo_import_dynamic libc___minor __minor "libc.so"
 //go:cgo_import_dynamic libc_ioctl ioctl "libc.so"
+//go:cgo_import_dynamic libc_poll poll "libc.so"
 //go:cgo_import_dynamic libc_access access "libc.so"
 //go:cgo_import_dynamic libc_adjtime adjtime "libc.so"
 //go:cgo_import_dynamic libc_chdir chdir "libc.so"
@@ -37,14 +41,17 @@ import (
 //go:cgo_import_dynamic libc_dup dup "libc.so"
 //go:cgo_import_dynamic libc_dup2 dup2 "libc.so"
 //go:cgo_import_dynamic libc_exit exit "libc.so"
+//go:cgo_import_dynamic libc_faccessat faccessat "libc.so"
 //go:cgo_import_dynamic libc_fchdir fchdir "libc.so"
 //go:cgo_import_dynamic libc_fchmod fchmod "libc.so"
 //go:cgo_import_dynamic libc_fchmodat fchmodat "libc.so"
 //go:cgo_import_dynamic libc_fchown fchown "libc.so"
 //go:cgo_import_dynamic libc_fchownat fchownat "libc.so"
 //go:cgo_import_dynamic libc_fdatasync fdatasync "libc.so"
+//go:cgo_import_dynamic libc_flock flock "libc.so"
 //go:cgo_import_dynamic libc_fpathconf fpathconf "libc.so"
 //go:cgo_import_dynamic libc_fstat fstat "libc.so"
+//go:cgo_import_dynamic libc_fstatat fstatat "libc.so"
 //go:cgo_import_dynamic libc_fstatvfs fstatvfs "libc.so"
 //go:cgo_import_dynamic libc_getdents getdents "libc.so"
 //go:cgo_import_dynamic libc_getgid getgid "libc.so"
@@ -74,6 +81,7 @@ import (
 //go:cgo_import_dynamic libc_mlock mlock "libc.so"
 //go:cgo_import_dynamic libc_mlockall mlockall "libc.so"
 //go:cgo_import_dynamic libc_mprotect mprotect "libc.so"
+//go:cgo_import_dynamic libc_msync msync "libc.so"
 //go:cgo_import_dynamic libc_munlock munlock "libc.so"
 //go:cgo_import_dynamic libc_munlockall munlockall "libc.so"
 //go:cgo_import_dynamic libc_nanosleep nanosleep "libc.so"
@@ -89,6 +97,7 @@ import (
 //go:cgo_import_dynamic libc_renameat renameat "libc.so"
 //go:cgo_import_dynamic libc_rmdir rmdir "libc.so"
 //go:cgo_import_dynamic libc_lseek lseek "libc.so"
+//go:cgo_import_dynamic libc_select select "libc.so"
 //go:cgo_import_dynamic libc_setegid setegid "libc.so"
 //go:cgo_import_dynamic libc_seteuid seteuid "libc.so"
 //go:cgo_import_dynamic libc_setgid setgid "libc.so"
@@ -120,6 +129,7 @@ import (
 //go:cgo_import_dynamic libc___xnet_connect __xnet_connect "libsocket.so"
 //go:cgo_import_dynamic libc_mmap mmap "libc.so"
 //go:cgo_import_dynamic libc_munmap munmap "libc.so"
+//go:cgo_import_dynamic libc_sendfile sendfile "libsendfile.so"
 //go:cgo_import_dynamic libc___xnet_sendto __xnet_sendto "libsocket.so"
 //go:cgo_import_dynamic libc___xnet_socket __xnet_socket "libsocket.so"
 //go:cgo_import_dynamic libc___xnet_socketpair __xnet_socketpair "libsocket.so"
@@ -128,7 +138,6 @@ import (
 //go:cgo_import_dynamic libc_getpeername getpeername "libsocket.so"
 //go:cgo_import_dynamic libc_setsockopt setsockopt "libsocket.so"
 //go:cgo_import_dynamic libc_recvfrom recvfrom "libsocket.so"
-//go:cgo_import_dynamic libc_sysconf sysconf "libc.so"
 
 //go:linkname procpipe libc_pipe
 //go:linkname procgetsockname libc_getsockname
@@ -145,7 +154,11 @@ import (
 //go:linkname proc__xnet_recvmsg libc___xnet_recvmsg
 //go:linkname proc__xnet_sendmsg libc___xnet_sendmsg
 //go:linkname procacct libc_acct
+//go:linkname proc__makedev libc___makedev
+//go:linkname proc__major libc___major
+//go:linkname proc__minor libc___minor
 //go:linkname procioctl libc_ioctl
+//go:linkname procpoll libc_poll
 //go:linkname procAccess libc_access
 //go:linkname procAdjtime libc_adjtime
 //go:linkname procChdir libc_chdir
@@ -157,14 +170,17 @@ import (
 //go:linkname procDup libc_dup
 //go:linkname procDup2 libc_dup2
 //go:linkname procExit libc_exit
+//go:linkname procFaccessat libc_faccessat
 //go:linkname procFchdir libc_fchdir
 //go:linkname procFchmod libc_fchmod
 //go:linkname procFchmodat libc_fchmodat
 //go:linkname procFchown libc_fchown
 //go:linkname procFchownat libc_fchownat
 //go:linkname procFdatasync libc_fdatasync
+//go:linkname procFlock libc_flock
 //go:linkname procFpathconf libc_fpathconf
 //go:linkname procFstat libc_fstat
+//go:linkname procFstatat libc_fstatat
 //go:linkname procFstatvfs libc_fstatvfs
 //go:linkname procGetdents libc_getdents
 //go:linkname procGetgid libc_getgid
@@ -194,6 +210,7 @@ import (
 //go:linkname procMlock libc_mlock
 //go:linkname procMlockall libc_mlockall
 //go:linkname procMprotect libc_mprotect
+//go:linkname procMsync libc_msync
 //go:linkname procMunlock libc_munlock
 //go:linkname procMunlockall libc_munlockall
 //go:linkname procNanosleep libc_nanosleep
@@ -209,6 +226,7 @@ import (
 //go:linkname procRenameat libc_renameat
 //go:linkname procRmdir libc_rmdir
 //go:linkname proclseek libc_lseek
+//go:linkname procSelect libc_select
 //go:linkname procSetegid libc_setegid
 //go:linkname procSeteuid libc_seteuid
 //go:linkname procSetgid libc_setgid
@@ -240,6 +258,7 @@ import (
 //go:linkname proc__xnet_connect libc___xnet_connect
 //go:linkname procmmap libc_mmap
 //go:linkname procmunmap libc_munmap
+//go:linkname procsendfile libc_sendfile
 //go:linkname proc__xnet_sendto libc___xnet_sendto
 //go:linkname proc__xnet_socket libc___xnet_socket
 //go:linkname proc__xnet_socketpair libc___xnet_socketpair
@@ -248,7 +267,6 @@ import (
 //go:linkname procgetpeername libc_getpeername
 //go:linkname procsetsockopt libc_setsockopt
 //go:linkname procrecvfrom libc_recvfrom
-//go:linkname procsysconf libc_sysconf
 
 var (
 	procpipe,
@@ -266,7 +284,11 @@ var (
 	proc__xnet_recvmsg,
 	proc__xnet_sendmsg,
 	procacct,
+	proc__makedev,
+	proc__major,
+	proc__minor,
 	procioctl,
+	procpoll,
 	procAccess,
 	procAdjtime,
 	procChdir,
@@ -278,14 +300,17 @@ var (
 	procDup,
 	procDup2,
 	procExit,
+	procFaccessat,
 	procFchdir,
 	procFchmod,
 	procFchmodat,
 	procFchown,
 	procFchownat,
 	procFdatasync,
+	procFlock,
 	procFpathconf,
 	procFstat,
+	procFstatat,
 	procFstatvfs,
 	procGetdents,
 	procGetgid,
@@ -315,6 +340,7 @@ var (
 	procMlock,
 	procMlockall,
 	procMprotect,
+	procMsync,
 	procMunlock,
 	procMunlockall,
 	procNanosleep,
@@ -330,6 +356,7 @@ var (
 	procRenameat,
 	procRmdir,
 	proclseek,
+	procSelect,
 	procSetegid,
 	procSeteuid,
 	procSetgid,
@@ -361,6 +388,7 @@ var (
 	proc__xnet_connect,
 	procmmap,
 	procmunmap,
+	procsendfile,
 	proc__xnet_sendto,
 	proc__xnet_socket,
 	proc__xnet_socketpair,
@@ -368,9 +396,10 @@ var (
 	proc__xnet_getsockopt,
 	procgetpeername,
 	procsetsockopt,
-	procrecvfrom,
-	procsysconf syscallFunc
+	procrecvfrom syscallFunc
 )
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func pipe(p *[2]_C_int) (n int, err error) {
 	r0, _, e1 := rawSysvicall6(uintptr(unsafe.Pointer(&procpipe)), 1, uintptr(unsafe.Pointer(p)), 0, 0, 0, 0, 0)
@@ -381,6 +410,8 @@ func pipe(p *[2]_C_int) (n int, err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func getsockname(fd int, rsa *RawSockaddrAny, addrlen *_Socklen) (err error) {
 	_, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procgetsockname)), 3, uintptr(fd), uintptr(unsafe.Pointer(rsa)), uintptr(unsafe.Pointer(addrlen)), 0, 0, 0)
 	if e1 != 0 {
@@ -388,6 +419,8 @@ func getsockname(fd int, rsa *RawSockaddrAny, addrlen *_Socklen) (err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Getcwd(buf []byte) (n int, err error) {
 	var _p0 *byte
@@ -402,6 +435,8 @@ func Getcwd(buf []byte) (n int, err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func getgroups(ngid int, gid *_Gid_t) (n int, err error) {
 	r0, _, e1 := rawSysvicall6(uintptr(unsafe.Pointer(&procgetgroups)), 2, uintptr(ngid), uintptr(unsafe.Pointer(gid)), 0, 0, 0, 0)
 	n = int(r0)
@@ -411,6 +446,8 @@ func getgroups(ngid int, gid *_Gid_t) (n int, err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func setgroups(ngid int, gid *_Gid_t) (err error) {
 	_, _, e1 := rawSysvicall6(uintptr(unsafe.Pointer(&procsetgroups)), 2, uintptr(ngid), uintptr(unsafe.Pointer(gid)), 0, 0, 0, 0)
 	if e1 != 0 {
@@ -418,6 +455,8 @@ func setgroups(ngid int, gid *_Gid_t) (err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func wait4(pid int32, statusp *_C_int, options int, rusage *Rusage) (wpid int32, err error) {
 	r0, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procwait4)), 4, uintptr(pid), uintptr(unsafe.Pointer(statusp)), uintptr(options), uintptr(unsafe.Pointer(rusage)), 0, 0)
@@ -427,6 +466,8 @@ func wait4(pid int32, statusp *_C_int, options int, rusage *Rusage) (wpid int32,
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func gethostname(buf []byte) (n int, err error) {
 	var _p0 *byte
@@ -441,6 +482,8 @@ func gethostname(buf []byte) (n int, err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func utimes(path string, times *[2]Timeval) (err error) {
 	var _p0 *byte
 	_p0, err = BytePtrFromString(path)
@@ -453,6 +496,8 @@ func utimes(path string, times *[2]Timeval) (err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func utimensat(fd int, path string, times *[2]Timespec, flag int) (err error) {
 	var _p0 *byte
@@ -467,6 +512,8 @@ func utimensat(fd int, path string, times *[2]Timespec, flag int) (err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func fcntl(fd int, cmd int, arg int) (val int, err error) {
 	r0, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procfcntl)), 3, uintptr(fd), uintptr(cmd), uintptr(arg), 0, 0, 0)
 	val = int(r0)
@@ -476,6 +523,8 @@ func fcntl(fd int, cmd int, arg int) (val int, err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func futimesat(fildes int, path *byte, times *[2]Timeval) (err error) {
 	_, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procfutimesat)), 3, uintptr(fildes), uintptr(unsafe.Pointer(path)), uintptr(unsafe.Pointer(times)), 0, 0, 0)
 	if e1 != 0 {
@@ -483,6 +532,8 @@ func futimesat(fildes int, path *byte, times *[2]Timeval) (err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func accept(s int, rsa *RawSockaddrAny, addrlen *_Socklen) (fd int, err error) {
 	r0, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procaccept)), 3, uintptr(s), uintptr(unsafe.Pointer(rsa)), uintptr(unsafe.Pointer(addrlen)), 0, 0, 0)
@@ -493,6 +544,8 @@ func accept(s int, rsa *RawSockaddrAny, addrlen *_Socklen) (fd int, err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func recvmsg(s int, msg *Msghdr, flags int) (n int, err error) {
 	r0, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&proc__xnet_recvmsg)), 3, uintptr(s), uintptr(unsafe.Pointer(msg)), uintptr(flags), 0, 0, 0)
 	n = int(r0)
@@ -501,6 +554,8 @@ func recvmsg(s int, msg *Msghdr, flags int) (n int, err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func sendmsg(s int, msg *Msghdr, flags int) (n int, err error) {
 	r0, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&proc__xnet_sendmsg)), 3, uintptr(s), uintptr(unsafe.Pointer(msg)), uintptr(flags), 0, 0, 0)
@@ -511,6 +566,8 @@ func sendmsg(s int, msg *Msghdr, flags int) (n int, err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func acct(path *byte) (err error) {
 	_, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procacct)), 1, uintptr(unsafe.Pointer(path)), 0, 0, 0, 0, 0)
 	if e1 != 0 {
@@ -519,6 +576,32 @@ func acct(path *byte) (err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
+func __makedev(version int, major uint, minor uint) (val uint64) {
+	r0, _, _ := sysvicall6(uintptr(unsafe.Pointer(&proc__makedev)), 3, uintptr(version), uintptr(major), uintptr(minor), 0, 0, 0)
+	val = uint64(r0)
+	return
+}
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
+func __major(version int, dev uint64) (val uint) {
+	r0, _, _ := sysvicall6(uintptr(unsafe.Pointer(&proc__major)), 2, uintptr(version), uintptr(dev), 0, 0, 0, 0)
+	val = uint(r0)
+	return
+}
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
+func __minor(version int, dev uint64) (val uint) {
+	r0, _, _ := sysvicall6(uintptr(unsafe.Pointer(&proc__minor)), 2, uintptr(version), uintptr(dev), 0, 0, 0, 0)
+	val = uint(r0)
+	return
+}
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func ioctl(fd int, req uint, arg uintptr) (err error) {
 	_, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procioctl)), 3, uintptr(fd), uintptr(req), uintptr(arg), 0, 0, 0)
 	if e1 != 0 {
@@ -526,6 +609,19 @@ func ioctl(fd int, req uint, arg uintptr) (err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
+func poll(fds *PollFd, nfds int, timeout int) (n int, err error) {
+	r0, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procpoll)), 3, uintptr(unsafe.Pointer(fds)), uintptr(nfds), uintptr(timeout), 0, 0, 0)
+	n = int(r0)
+	if e1 != 0 {
+		err = e1
+	}
+	return
+}
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Access(path string, mode uint32) (err error) {
 	var _p0 *byte
@@ -540,6 +636,8 @@ func Access(path string, mode uint32) (err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Adjtime(delta *Timeval, olddelta *Timeval) (err error) {
 	_, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procAdjtime)), 2, uintptr(unsafe.Pointer(delta)), uintptr(unsafe.Pointer(olddelta)), 0, 0, 0, 0)
 	if e1 != 0 {
@@ -547,6 +645,8 @@ func Adjtime(delta *Timeval, olddelta *Timeval) (err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Chdir(path string) (err error) {
 	var _p0 *byte
@@ -561,6 +661,8 @@ func Chdir(path string) (err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Chmod(path string, mode uint32) (err error) {
 	var _p0 *byte
 	_p0, err = BytePtrFromString(path)
@@ -573,6 +675,8 @@ func Chmod(path string, mode uint32) (err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Chown(path string, uid int, gid int) (err error) {
 	var _p0 *byte
@@ -587,6 +691,8 @@ func Chown(path string, uid int, gid int) (err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Chroot(path string) (err error) {
 	var _p0 *byte
 	_p0, err = BytePtrFromString(path)
@@ -600,6 +706,8 @@ func Chroot(path string) (err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Close(fd int) (err error) {
 	_, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procClose)), 1, uintptr(fd), 0, 0, 0, 0, 0)
 	if e1 != 0 {
@@ -607,6 +715,8 @@ func Close(fd int) (err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Creat(path string, mode uint32) (fd int, err error) {
 	var _p0 *byte
@@ -622,6 +732,8 @@ func Creat(path string, mode uint32) (fd int, err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Dup(fd int) (nfd int, err error) {
 	r0, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procDup)), 1, uintptr(fd), 0, 0, 0, 0, 0)
 	nfd = int(r0)
@@ -631,6 +743,8 @@ func Dup(fd int) (nfd int, err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Dup2(oldfd int, newfd int) (err error) {
 	_, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procDup2)), 2, uintptr(oldfd), uintptr(newfd), 0, 0, 0, 0)
 	if e1 != 0 {
@@ -639,10 +753,29 @@ func Dup2(oldfd int, newfd int) (err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Exit(code int) {
 	sysvicall6(uintptr(unsafe.Pointer(&procExit)), 1, uintptr(code), 0, 0, 0, 0, 0)
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
+func Faccessat(dirfd int, path string, mode uint32, flags int) (err error) {
+	var _p0 *byte
+	_p0, err = BytePtrFromString(path)
+	if err != nil {
+		return
+	}
+	_, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procFaccessat)), 4, uintptr(dirfd), uintptr(unsafe.Pointer(_p0)), uintptr(mode), uintptr(flags), 0, 0)
+	if e1 != 0 {
+		err = e1
+	}
+	return
+}
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Fchdir(fd int) (err error) {
 	_, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procFchdir)), 1, uintptr(fd), 0, 0, 0, 0, 0)
@@ -652,6 +785,8 @@ func Fchdir(fd int) (err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Fchmod(fd int, mode uint32) (err error) {
 	_, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procFchmod)), 2, uintptr(fd), uintptr(mode), 0, 0, 0, 0)
 	if e1 != 0 {
@@ -659,6 +794,8 @@ func Fchmod(fd int, mode uint32) (err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Fchmodat(dirfd int, path string, mode uint32, flags int) (err error) {
 	var _p0 *byte
@@ -673,6 +810,8 @@ func Fchmodat(dirfd int, path string, mode uint32, flags int) (err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Fchown(fd int, uid int, gid int) (err error) {
 	_, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procFchown)), 3, uintptr(fd), uintptr(uid), uintptr(gid), 0, 0, 0)
 	if e1 != 0 {
@@ -680,6 +819,8 @@ func Fchown(fd int, uid int, gid int) (err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Fchownat(dirfd int, path string, uid int, gid int, flags int) (err error) {
 	var _p0 *byte
@@ -694,6 +835,8 @@ func Fchownat(dirfd int, path string, uid int, gid int, flags int) (err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Fdatasync(fd int) (err error) {
 	_, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procFdatasync)), 1, uintptr(fd), 0, 0, 0, 0, 0)
 	if e1 != 0 {
@@ -701,6 +844,18 @@ func Fdatasync(fd int) (err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
+func Flock(fd int, how int) (err error) {
+	_, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procFlock)), 2, uintptr(fd), uintptr(how), 0, 0, 0, 0)
+	if e1 != 0 {
+		err = e1
+	}
+	return
+}
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Fpathconf(fd int, name int) (val int, err error) {
 	r0, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procFpathconf)), 2, uintptr(fd), uintptr(name), 0, 0, 0, 0)
@@ -711,6 +866,8 @@ func Fpathconf(fd int, name int) (val int, err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Fstat(fd int, stat *Stat_t) (err error) {
 	_, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procFstat)), 2, uintptr(fd), uintptr(unsafe.Pointer(stat)), 0, 0, 0, 0)
 	if e1 != 0 {
@@ -719,6 +876,23 @@ func Fstat(fd int, stat *Stat_t) (err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
+func Fstatat(fd int, path string, stat *Stat_t, flags int) (err error) {
+	var _p0 *byte
+	_p0, err = BytePtrFromString(path)
+	if err != nil {
+		return
+	}
+	_, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procFstatat)), 4, uintptr(fd), uintptr(unsafe.Pointer(_p0)), uintptr(unsafe.Pointer(stat)), uintptr(flags), 0, 0)
+	if e1 != 0 {
+		err = e1
+	}
+	return
+}
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Fstatvfs(fd int, vfsstat *Statvfs_t) (err error) {
 	_, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procFstatvfs)), 2, uintptr(fd), uintptr(unsafe.Pointer(vfsstat)), 0, 0, 0, 0)
 	if e1 != 0 {
@@ -726,6 +900,8 @@ func Fstatvfs(fd int, vfsstat *Statvfs_t) (err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Getdents(fd int, buf []byte, basep *uintptr) (n int, err error) {
 	var _p0 *byte
@@ -740,17 +916,23 @@ func Getdents(fd int, buf []byte, basep *uintptr) (n int, err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Getgid() (gid int) {
 	r0, _, _ := rawSysvicall6(uintptr(unsafe.Pointer(&procGetgid)), 0, 0, 0, 0, 0, 0, 0)
 	gid = int(r0)
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Getpid() (pid int) {
 	r0, _, _ := rawSysvicall6(uintptr(unsafe.Pointer(&procGetpid)), 0, 0, 0, 0, 0, 0, 0)
 	pid = int(r0)
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Getpgid(pid int) (pgid int, err error) {
 	r0, _, e1 := rawSysvicall6(uintptr(unsafe.Pointer(&procGetpgid)), 1, uintptr(pid), 0, 0, 0, 0, 0)
@@ -761,6 +943,8 @@ func Getpgid(pid int) (pgid int, err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Getpgrp() (pgid int, err error) {
 	r0, _, e1 := rawSysvicall6(uintptr(unsafe.Pointer(&procGetpgrp)), 0, 0, 0, 0, 0, 0, 0)
 	pgid = int(r0)
@@ -770,11 +954,15 @@ func Getpgrp() (pgid int, err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Geteuid() (euid int) {
 	r0, _, _ := sysvicall6(uintptr(unsafe.Pointer(&procGeteuid)), 0, 0, 0, 0, 0, 0, 0)
 	euid = int(r0)
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Getegid() (egid int) {
 	r0, _, _ := sysvicall6(uintptr(unsafe.Pointer(&procGetegid)), 0, 0, 0, 0, 0, 0, 0)
@@ -782,11 +970,15 @@ func Getegid() (egid int) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Getppid() (ppid int) {
 	r0, _, _ := sysvicall6(uintptr(unsafe.Pointer(&procGetppid)), 0, 0, 0, 0, 0, 0, 0)
 	ppid = int(r0)
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Getpriority(which int, who int) (n int, err error) {
 	r0, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procGetpriority)), 2, uintptr(which), uintptr(who), 0, 0, 0, 0)
@@ -797,6 +989,8 @@ func Getpriority(which int, who int) (n int, err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Getrlimit(which int, lim *Rlimit) (err error) {
 	_, _, e1 := rawSysvicall6(uintptr(unsafe.Pointer(&procGetrlimit)), 2, uintptr(which), uintptr(unsafe.Pointer(lim)), 0, 0, 0, 0)
 	if e1 != 0 {
@@ -804,6 +998,8 @@ func Getrlimit(which int, lim *Rlimit) (err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Getrusage(who int, rusage *Rusage) (err error) {
 	_, _, e1 := rawSysvicall6(uintptr(unsafe.Pointer(&procGetrusage)), 2, uintptr(who), uintptr(unsafe.Pointer(rusage)), 0, 0, 0, 0)
@@ -813,6 +1009,8 @@ func Getrusage(who int, rusage *Rusage) (err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Gettimeofday(tv *Timeval) (err error) {
 	_, _, e1 := rawSysvicall6(uintptr(unsafe.Pointer(&procGettimeofday)), 1, uintptr(unsafe.Pointer(tv)), 0, 0, 0, 0, 0)
 	if e1 != 0 {
@@ -821,11 +1019,15 @@ func Gettimeofday(tv *Timeval) (err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Getuid() (uid int) {
 	r0, _, _ := rawSysvicall6(uintptr(unsafe.Pointer(&procGetuid)), 0, 0, 0, 0, 0, 0, 0)
 	uid = int(r0)
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Kill(pid int, signum syscall.Signal) (err error) {
 	_, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procKill)), 2, uintptr(pid), uintptr(signum), 0, 0, 0, 0)
@@ -834,6 +1036,8 @@ func Kill(pid int, signum syscall.Signal) (err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Lchown(path string, uid int, gid int) (err error) {
 	var _p0 *byte
@@ -847,6 +1051,8 @@ func Lchown(path string, uid int, gid int) (err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Link(path string, link string) (err error) {
 	var _p0 *byte
@@ -866,6 +1072,8 @@ func Link(path string, link string) (err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Listen(s int, backlog int) (err error) {
 	_, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&proc__xnet_llisten)), 2, uintptr(s), uintptr(backlog), 0, 0, 0, 0)
 	if e1 != 0 {
@@ -873,6 +1081,8 @@ func Listen(s int, backlog int) (err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Lstat(path string, stat *Stat_t) (err error) {
 	var _p0 *byte
@@ -887,6 +1097,8 @@ func Lstat(path string, stat *Stat_t) (err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Madvise(b []byte, advice int) (err error) {
 	var _p0 *byte
 	if len(b) > 0 {
@@ -898,6 +1110,8 @@ func Madvise(b []byte, advice int) (err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Mkdir(path string, mode uint32) (err error) {
 	var _p0 *byte
@@ -912,6 +1126,8 @@ func Mkdir(path string, mode uint32) (err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Mkdirat(dirfd int, path string, mode uint32) (err error) {
 	var _p0 *byte
 	_p0, err = BytePtrFromString(path)
@@ -924,6 +1140,8 @@ func Mkdirat(dirfd int, path string, mode uint32) (err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Mkfifo(path string, mode uint32) (err error) {
 	var _p0 *byte
@@ -938,6 +1156,8 @@ func Mkfifo(path string, mode uint32) (err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Mkfifoat(dirfd int, path string, mode uint32) (err error) {
 	var _p0 *byte
 	_p0, err = BytePtrFromString(path)
@@ -950,6 +1170,8 @@ func Mkfifoat(dirfd int, path string, mode uint32) (err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Mknod(path string, mode uint32, dev int) (err error) {
 	var _p0 *byte
@@ -964,6 +1186,8 @@ func Mknod(path string, mode uint32, dev int) (err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Mknodat(dirfd int, path string, mode uint32, dev int) (err error) {
 	var _p0 *byte
 	_p0, err = BytePtrFromString(path)
@@ -977,6 +1201,8 @@ func Mknodat(dirfd int, path string, mode uint32, dev int) (err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Mlock(b []byte) (err error) {
 	var _p0 *byte
 	if len(b) > 0 {
@@ -989,6 +1215,8 @@ func Mlock(b []byte) (err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Mlockall(flags int) (err error) {
 	_, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procMlockall)), 1, uintptr(flags), 0, 0, 0, 0, 0)
 	if e1 != 0 {
@@ -996,6 +1224,8 @@ func Mlockall(flags int) (err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Mprotect(b []byte, prot int) (err error) {
 	var _p0 *byte
@@ -1009,6 +1239,22 @@ func Mprotect(b []byte, prot int) (err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
+func Msync(b []byte, flags int) (err error) {
+	var _p0 *byte
+	if len(b) > 0 {
+		_p0 = &b[0]
+	}
+	_, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procMsync)), 3, uintptr(unsafe.Pointer(_p0)), uintptr(len(b)), uintptr(flags), 0, 0, 0)
+	if e1 != 0 {
+		err = e1
+	}
+	return
+}
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Munlock(b []byte) (err error) {
 	var _p0 *byte
 	if len(b) > 0 {
@@ -1021,6 +1267,8 @@ func Munlock(b []byte) (err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Munlockall() (err error) {
 	_, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procMunlockall)), 0, 0, 0, 0, 0, 0, 0)
 	if e1 != 0 {
@@ -1029,6 +1277,8 @@ func Munlockall() (err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Nanosleep(time *Timespec, leftover *Timespec) (err error) {
 	_, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procNanosleep)), 2, uintptr(unsafe.Pointer(time)), uintptr(unsafe.Pointer(leftover)), 0, 0, 0, 0)
 	if e1 != 0 {
@@ -1036,6 +1286,8 @@ func Nanosleep(time *Timespec, leftover *Timespec) (err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Open(path string, mode int, perm uint32) (fd int, err error) {
 	var _p0 *byte
@@ -1051,6 +1303,8 @@ func Open(path string, mode int, perm uint32) (fd int, err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Openat(dirfd int, path string, flags int, mode uint32) (fd int, err error) {
 	var _p0 *byte
 	_p0, err = BytePtrFromString(path)
@@ -1064,6 +1318,8 @@ func Openat(dirfd int, path string, flags int, mode uint32) (fd int, err error) 
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Pathconf(path string, name int) (val int, err error) {
 	var _p0 *byte
@@ -1079,6 +1335,8 @@ func Pathconf(path string, name int) (val int, err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Pause() (err error) {
 	_, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procPause)), 0, 0, 0, 0, 0, 0, 0)
 	if e1 != 0 {
@@ -1086,6 +1344,8 @@ func Pause() (err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Pread(fd int, p []byte, offset int64) (n int, err error) {
 	var _p0 *byte
@@ -1100,6 +1360,8 @@ func Pread(fd int, p []byte, offset int64) (n int, err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Pwrite(fd int, p []byte, offset int64) (n int, err error) {
 	var _p0 *byte
 	if len(p) > 0 {
@@ -1113,6 +1375,8 @@ func Pwrite(fd int, p []byte, offset int64) (n int, err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func read(fd int, p []byte) (n int, err error) {
 	var _p0 *byte
 	if len(p) > 0 {
@@ -1125,6 +1389,8 @@ func read(fd int, p []byte) (n int, err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Readlink(path string, buf []byte) (n int, err error) {
 	var _p0 *byte
@@ -1144,6 +1410,8 @@ func Readlink(path string, buf []byte) (n int, err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Rename(from string, to string) (err error) {
 	var _p0 *byte
 	_p0, err = BytePtrFromString(from)
@@ -1161,6 +1429,8 @@ func Rename(from string, to string) (err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Renameat(olddirfd int, oldpath string, newdirfd int, newpath string) (err error) {
 	var _p0 *byte
@@ -1180,6 +1450,8 @@ func Renameat(olddirfd int, oldpath string, newdirfd int, newpath string) (err e
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Rmdir(path string) (err error) {
 	var _p0 *byte
 	_p0, err = BytePtrFromString(path)
@@ -1193,6 +1465,8 @@ func Rmdir(path string) (err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Seek(fd int, offset int64, whence int) (newoffset int64, err error) {
 	r0, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&proclseek)), 3, uintptr(fd), uintptr(offset), uintptr(whence), 0, 0, 0)
 	newoffset = int64(r0)
@@ -1202,6 +1476,18 @@ func Seek(fd int, offset int64, whence int) (newoffset int64, err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
+func Select(n int, r *FdSet, w *FdSet, e *FdSet, timeout *Timeval) (err error) {
+	_, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procSelect)), 5, uintptr(n), uintptr(unsafe.Pointer(r)), uintptr(unsafe.Pointer(w)), uintptr(unsafe.Pointer(e)), uintptr(unsafe.Pointer(timeout)), 0)
+	if e1 != 0 {
+		err = e1
+	}
+	return
+}
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Setegid(egid int) (err error) {
 	_, _, e1 := rawSysvicall6(uintptr(unsafe.Pointer(&procSetegid)), 1, uintptr(egid), 0, 0, 0, 0, 0)
 	if e1 != 0 {
@@ -1209,6 +1495,8 @@ func Setegid(egid int) (err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Seteuid(euid int) (err error) {
 	_, _, e1 := rawSysvicall6(uintptr(unsafe.Pointer(&procSeteuid)), 1, uintptr(euid), 0, 0, 0, 0, 0)
@@ -1218,6 +1506,8 @@ func Seteuid(euid int) (err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Setgid(gid int) (err error) {
 	_, _, e1 := rawSysvicall6(uintptr(unsafe.Pointer(&procSetgid)), 1, uintptr(gid), 0, 0, 0, 0, 0)
 	if e1 != 0 {
@@ -1225,6 +1515,8 @@ func Setgid(gid int) (err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Sethostname(p []byte) (err error) {
 	var _p0 *byte
@@ -1238,6 +1530,8 @@ func Sethostname(p []byte) (err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Setpgid(pid int, pgid int) (err error) {
 	_, _, e1 := rawSysvicall6(uintptr(unsafe.Pointer(&procSetpgid)), 2, uintptr(pid), uintptr(pgid), 0, 0, 0, 0)
 	if e1 != 0 {
@@ -1245,6 +1539,8 @@ func Setpgid(pid int, pgid int) (err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Setpriority(which int, who int, prio int) (err error) {
 	_, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procSetpriority)), 3, uintptr(which), uintptr(who), uintptr(prio), 0, 0, 0)
@@ -1254,6 +1550,8 @@ func Setpriority(which int, who int, prio int) (err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Setregid(rgid int, egid int) (err error) {
 	_, _, e1 := rawSysvicall6(uintptr(unsafe.Pointer(&procSetregid)), 2, uintptr(rgid), uintptr(egid), 0, 0, 0, 0)
 	if e1 != 0 {
@@ -1261,6 +1559,8 @@ func Setregid(rgid int, egid int) (err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Setreuid(ruid int, euid int) (err error) {
 	_, _, e1 := rawSysvicall6(uintptr(unsafe.Pointer(&procSetreuid)), 2, uintptr(ruid), uintptr(euid), 0, 0, 0, 0)
@@ -1270,6 +1570,8 @@ func Setreuid(ruid int, euid int) (err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Setrlimit(which int, lim *Rlimit) (err error) {
 	_, _, e1 := rawSysvicall6(uintptr(unsafe.Pointer(&procSetrlimit)), 2, uintptr(which), uintptr(unsafe.Pointer(lim)), 0, 0, 0, 0)
 	if e1 != 0 {
@@ -1277,6 +1579,8 @@ func Setrlimit(which int, lim *Rlimit) (err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Setsid() (pid int, err error) {
 	r0, _, e1 := rawSysvicall6(uintptr(unsafe.Pointer(&procSetsid)), 0, 0, 0, 0, 0, 0, 0)
@@ -1287,6 +1591,8 @@ func Setsid() (pid int, err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Setuid(uid int) (err error) {
 	_, _, e1 := rawSysvicall6(uintptr(unsafe.Pointer(&procSetuid)), 1, uintptr(uid), 0, 0, 0, 0, 0)
 	if e1 != 0 {
@@ -1295,6 +1601,8 @@ func Setuid(uid int) (err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Shutdown(s int, how int) (err error) {
 	_, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procshutdown)), 2, uintptr(s), uintptr(how), 0, 0, 0, 0)
 	if e1 != 0 {
@@ -1302,6 +1610,8 @@ func Shutdown(s int, how int) (err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Stat(path string, stat *Stat_t) (err error) {
 	var _p0 *byte
@@ -1316,6 +1626,8 @@ func Stat(path string, stat *Stat_t) (err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Statvfs(path string, vfsstat *Statvfs_t) (err error) {
 	var _p0 *byte
 	_p0, err = BytePtrFromString(path)
@@ -1328,6 +1640,8 @@ func Statvfs(path string, vfsstat *Statvfs_t) (err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Symlink(path string, link string) (err error) {
 	var _p0 *byte
@@ -1347,6 +1661,8 @@ func Symlink(path string, link string) (err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Sync() (err error) {
 	_, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procSync)), 0, 0, 0, 0, 0, 0, 0)
 	if e1 != 0 {
@@ -1354,6 +1670,8 @@ func Sync() (err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Times(tms *Tms) (ticks uintptr, err error) {
 	r0, _, e1 := rawSysvicall6(uintptr(unsafe.Pointer(&procTimes)), 1, uintptr(unsafe.Pointer(tms)), 0, 0, 0, 0, 0)
@@ -1363,6 +1681,8 @@ func Times(tms *Tms) (ticks uintptr, err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Truncate(path string, length int64) (err error) {
 	var _p0 *byte
@@ -1377,6 +1697,8 @@ func Truncate(path string, length int64) (err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Fsync(fd int) (err error) {
 	_, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procFsync)), 1, uintptr(fd), 0, 0, 0, 0, 0)
 	if e1 != 0 {
@@ -1384,6 +1706,8 @@ func Fsync(fd int) (err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Ftruncate(fd int, length int64) (err error) {
 	_, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procFtruncate)), 2, uintptr(fd), uintptr(length), 0, 0, 0, 0)
@@ -1393,11 +1717,15 @@ func Ftruncate(fd int, length int64) (err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Umask(mask int) (oldmask int) {
 	r0, _, _ := sysvicall6(uintptr(unsafe.Pointer(&procUmask)), 1, uintptr(mask), 0, 0, 0, 0, 0)
 	oldmask = int(r0)
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Uname(buf *Utsname) (err error) {
 	_, _, e1 := rawSysvicall6(uintptr(unsafe.Pointer(&procUname)), 1, uintptr(unsafe.Pointer(buf)), 0, 0, 0, 0, 0)
@@ -1406,6 +1734,8 @@ func Uname(buf *Utsname) (err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Unmount(target string, flags int) (err error) {
 	var _p0 *byte
@@ -1420,6 +1750,8 @@ func Unmount(target string, flags int) (err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Unlink(path string) (err error) {
 	var _p0 *byte
 	_p0, err = BytePtrFromString(path)
@@ -1432,6 +1764,8 @@ func Unlink(path string) (err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Unlinkat(dirfd int, path string, flags int) (err error) {
 	var _p0 *byte
@@ -1446,6 +1780,8 @@ func Unlinkat(dirfd int, path string, flags int) (err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func Ustat(dev int, ubuf *Ustat_t) (err error) {
 	_, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procUstat)), 2, uintptr(dev), uintptr(unsafe.Pointer(ubuf)), 0, 0, 0, 0)
 	if e1 != 0 {
@@ -1453,6 +1789,8 @@ func Ustat(dev int, ubuf *Ustat_t) (err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func Utime(path string, buf *Utimbuf) (err error) {
 	var _p0 *byte
@@ -1467,6 +1805,8 @@ func Utime(path string, buf *Utimbuf) (err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func bind(s int, addr unsafe.Pointer, addrlen _Socklen) (err error) {
 	_, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&proc__xnet_bind)), 3, uintptr(s), uintptr(addr), uintptr(addrlen), 0, 0, 0)
 	if e1 != 0 {
@@ -1475,6 +1815,8 @@ func bind(s int, addr unsafe.Pointer, addrlen _Socklen) (err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func connect(s int, addr unsafe.Pointer, addrlen _Socklen) (err error) {
 	_, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&proc__xnet_connect)), 3, uintptr(s), uintptr(addr), uintptr(addrlen), 0, 0, 0)
 	if e1 != 0 {
@@ -1482,6 +1824,8 @@ func connect(s int, addr unsafe.Pointer, addrlen _Socklen) (err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func mmap(addr uintptr, length uintptr, prot int, flag int, fd int, pos int64) (ret uintptr, err error) {
 	r0, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procmmap)), 6, uintptr(addr), uintptr(length), uintptr(prot), uintptr(flag), uintptr(fd), uintptr(pos))
@@ -1492,6 +1836,8 @@ func mmap(addr uintptr, length uintptr, prot int, flag int, fd int, pos int64) (
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func munmap(addr uintptr, length uintptr) (err error) {
 	_, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procmunmap)), 2, uintptr(addr), uintptr(length), 0, 0, 0, 0)
 	if e1 != 0 {
@@ -1499,6 +1845,19 @@ func munmap(addr uintptr, length uintptr) (err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
+func sendfile(outfd int, infd int, offset *int64, count int) (written int, err error) {
+	r0, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procsendfile)), 4, uintptr(outfd), uintptr(infd), uintptr(unsafe.Pointer(offset)), uintptr(count), 0, 0)
+	written = int(r0)
+	if e1 != 0 {
+		err = e1
+	}
+	return
+}
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func sendto(s int, buf []byte, flags int, to unsafe.Pointer, addrlen _Socklen) (err error) {
 	var _p0 *byte
@@ -1512,6 +1871,8 @@ func sendto(s int, buf []byte, flags int, to unsafe.Pointer, addrlen _Socklen) (
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func socket(domain int, typ int, proto int) (fd int, err error) {
 	r0, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&proc__xnet_socket)), 3, uintptr(domain), uintptr(typ), uintptr(proto), 0, 0, 0)
 	fd = int(r0)
@@ -1521,6 +1882,8 @@ func socket(domain int, typ int, proto int) (fd int, err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func socketpair(domain int, typ int, proto int, fd *[2]int32) (err error) {
 	_, _, e1 := rawSysvicall6(uintptr(unsafe.Pointer(&proc__xnet_socketpair)), 4, uintptr(domain), uintptr(typ), uintptr(proto), uintptr(unsafe.Pointer(fd)), 0, 0)
 	if e1 != 0 {
@@ -1528,6 +1891,8 @@ func socketpair(domain int, typ int, proto int, fd *[2]int32) (err error) {
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func write(fd int, p []byte) (n int, err error) {
 	var _p0 *byte
@@ -1542,6 +1907,8 @@ func write(fd int, p []byte) (n int, err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func getsockopt(s int, level int, name int, val unsafe.Pointer, vallen *_Socklen) (err error) {
 	_, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&proc__xnet_getsockopt)), 5, uintptr(s), uintptr(level), uintptr(name), uintptr(val), uintptr(unsafe.Pointer(vallen)), 0)
 	if e1 != 0 {
@@ -1549,6 +1916,8 @@ func getsockopt(s int, level int, name int, val unsafe.Pointer, vallen *_Socklen
 	}
 	return
 }
+
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
 
 func getpeername(fd int, rsa *RawSockaddrAny, addrlen *_Socklen) (err error) {
 	_, _, e1 := rawSysvicall6(uintptr(unsafe.Pointer(&procgetpeername)), 3, uintptr(fd), uintptr(unsafe.Pointer(rsa)), uintptr(unsafe.Pointer(addrlen)), 0, 0, 0)
@@ -1558,6 +1927,8 @@ func getpeername(fd int, rsa *RawSockaddrAny, addrlen *_Socklen) (err error) {
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func setsockopt(s int, level int, name int, val unsafe.Pointer, vallen uintptr) (err error) {
 	_, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procsetsockopt)), 5, uintptr(s), uintptr(level), uintptr(name), uintptr(val), uintptr(vallen), 0)
 	if e1 != 0 {
@@ -1566,6 +1937,8 @@ func setsockopt(s int, level int, name int, val unsafe.Pointer, vallen uintptr) 
 	return
 }
 
+// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT
+
 func recvfrom(fd int, p []byte, flags int, from *RawSockaddrAny, fromlen *_Socklen) (n int, err error) {
 	var _p0 *byte
 	if len(p) > 0 {
@@ -1573,15 +1946,6 @@ func recvfrom(fd int, p []byte, flags int, from *RawSockaddrAny, fromlen *_Sockl
 	}
 	r0, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procrecvfrom)), 6, uintptr(fd), uintptr(unsafe.Pointer(_p0)), uintptr(len(p)), uintptr(flags), uintptr(unsafe.Pointer(from)), uintptr(unsafe.Pointer(fromlen)))
 	n = int(r0)
-	if e1 != 0 {
-		err = e1
-	}
-	return
-}
-
-func sysconf(name int) (n int64, err error) {
-	r0, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procsysconf)), 1, uintptr(name), 0, 0, 0, 0, 0)
-	n = int64(r0)
 	if e1 != 0 {
 		err = e1
 	}

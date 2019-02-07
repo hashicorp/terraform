@@ -32,8 +32,6 @@
 		CompactionRequest
 		CompactionResponse
 		HashRequest
-		HashKVRequest
-		HashKVResponse
 		HashResponse
 		SnapshotRequest
 		SnapshotResponse
@@ -49,9 +47,6 @@
 		LeaseKeepAliveResponse
 		LeaseTimeToLiveRequest
 		LeaseTimeToLiveResponse
-		LeaseLeasesRequest
-		LeaseStatus
-		LeaseLeasesResponse
 		Member
 		MemberAddRequest
 		MemberAddResponse
@@ -63,8 +58,6 @@
 		MemberListResponse
 		DefragmentRequest
 		DefragmentResponse
-		MoveLeaderRequest
-		MoveLeaderResponse
 		AlarmRequest
 		AlarmMember
 		AlarmResponse
