@@ -471,7 +471,7 @@ golang.org/x/crypto/internal/subtle
 golang.org/x/crypto/md4
 golang.org/x/crypto/cast5
 golang.org/x/crypto/openpgp/elgamal
-# golang.org/x/net v0.0.0-20181201002055-351d144fa1fc
+# golang.org/x/net v0.0.0-20171004034648-a04bdaca5b32
 golang.org/x/net/context
 golang.org/x/net/html
 golang.org/x/net/idna
@@ -480,8 +480,8 @@ golang.org/x/net/context/ctxhttp
 golang.org/x/net/http2
 golang.org/x/net/trace
 golang.org/x/net/html/charset
-golang.org/x/net/http/httpguts
 golang.org/x/net/http2/hpack
+golang.org/x/net/lex/httplex
 golang.org/x/net/internal/timeseries
 # golang.org/x/oauth2 v0.0.0-20170928010508-bb50c06baba3
 golang.org/x/oauth2/jwt

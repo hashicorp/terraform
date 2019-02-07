@@ -2,7 +2,12 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package httpguts
+// Package httplex contains rules around lexical matters of various
+// HTTP-related specifications.
+//
+// This package is shared by the standard library (which vendors it)
+// and x/net/http2. It comes with no API stability promise.
+package httplex
 
 import (
 	"net"

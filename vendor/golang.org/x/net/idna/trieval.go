@@ -26,9 +26,9 @@ package idna
 //       15..3  index into xor or mapping table
 //     }
 //   } else {
-//       15..14 unused
-//       13     mayNeedNorm
-//       12..11 attributes
+//       15..13 unused
+//           12 modifier (including virama)
+//           11 virama modifier
 //       10..8  joining type
 //        7..3  category type
 //   }
@@ -49,20 +49,15 @@ const (
 	joinShift = 8
 	joinMask  = 0x07
 
-	// Attributes
-	attributesMask = 0x1800
-	viramaModifier = 0x1800
+	viramaModifier = 0x0800
 	modifier       = 0x1000
-	rtl            = 0x0800
-
-	mayNeedNorm = 0x2000
 )
 
 // A category corresponds to a category defined in the IDNA mapping table.
 type category uint16
 
 const (
-	unknown              category = 0 // not currently defined in unicode.
+	unknown              category = 0 // not defined currently in unicode.
 	mapped               category = 1
 	disallowedSTD3Mapped category = 2
 	deviation            category = 3
@@ -115,5 +110,5 @@ func (c info) isModifier() bool {
 }
 
 func (c info) isViramaModifier() bool {
-	return c&(attributesMask|catSmallMask) == viramaModifier
+	return c&(viramaModifier|catSmallMask) == viramaModifier
 }
