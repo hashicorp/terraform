@@ -449,7 +449,7 @@ A template data source looks like:
 
 ```hcl
 data "template_file" "example" {
-  template = "$${hello} $${world}!"
+  template = "${hello} ${world}!"
   vars {
     hello = "goodnight"
     world = "moon"
