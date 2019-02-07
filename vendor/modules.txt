@@ -277,7 +277,7 @@ github.com/hashicorp/consul/api
 github.com/hashicorp/consul/testutil
 github.com/hashicorp/consul/lib/freeport
 github.com/hashicorp/consul/testutil/retry
-# github.com/hashicorp/errwrap v1.0.0
+# github.com/hashicorp/errwrap v0.0.0-20141028054710-7554cd9344ce
 github.com/hashicorp/errwrap
 # github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de
 github.com/hashicorp/go-checkpoint
@@ -288,7 +288,7 @@ github.com/hashicorp/go-getter
 github.com/hashicorp/go-getter/helper/url
 # github.com/hashicorp/go-hclog v0.0.0-20170716174523-b4e5765d1e5f
 github.com/hashicorp/go-hclog
-# github.com/hashicorp/go-multierror v1.0.0
+# github.com/hashicorp/go-multierror v0.0.0-20150916205742-d30f09973e19
 github.com/hashicorp/go-multierror
 # github.com/hashicorp/go-plugin v0.0.0-20180125190438-e53f54cbf51e
 github.com/hashicorp/go-plugin
@@ -451,7 +451,7 @@ github.com/zclconf/go-cty/cty/function/stdlib
 github.com/zclconf/go-cty/cty/gocty
 github.com/zclconf/go-cty/cty/set
 github.com/zclconf/go-cty/cty/json
-# golang.org/x/crypto v0.0.0-20181029021203-45a5f77698d3
+# golang.org/x/crypto v0.0.0-20180211211603-9de5f2eaf759
 golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
 golang.org/x/crypto/ssh/knownhosts
@@ -467,7 +467,6 @@ golang.org/x/crypto/openpgp/errors
 golang.org/x/crypto/openpgp/packet
 golang.org/x/crypto/openpgp/s2k
 golang.org/x/crypto/ed25519/internal/edwards25519
-golang.org/x/crypto/internal/subtle
 golang.org/x/crypto/md4
 golang.org/x/crypto/cast5
 golang.org/x/crypto/openpgp/elgamal

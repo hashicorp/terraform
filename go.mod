@@ -23,9 +23,9 @@ require (
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
 	github.com/bgentry/speakeasy v0.0.0-20161015143505-675b82c74c0e // indirect
 	github.com/blang/semver v0.0.0-20170202183821-4a1e882c79dc
-	github.com/chzyer/logex v1.1.10 // indirect
+	github.com/chzyer/logex v1.1.11-0.20160617073814-96a4d311aa9b // indirect
 	github.com/chzyer/readline v0.0.0-20161106042343-c914be64f07d
-	github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1 // indirect
+	github.com/chzyer/test v0.0.0-20160617131543-bea8f082b6fd // indirect
 	github.com/coreos/bbolt v1.3.1-coreos.1 // indirect
 	github.com/coreos/etcd v3.2.0-rc.1.0.20170908195435-80aa810309d4+incompatible
 	github.com/coreos/go-semver v0.2.0 // indirect
@@ -50,14 +50,14 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway v1.2.2 // indirect
 	github.com/hashicorp/atlas-go v0.0.0-20161107204910-1792bd8de119
 	github.com/hashicorp/consul v0.0.0-20171026175957-610f3c86a089
-	github.com/hashicorp/errwrap v1.0.0
+	github.com/hashicorp/errwrap v0.0.0-20141028054710-7554cd9344ce
 	github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de
 	github.com/hashicorp/go-cleanhttp v0.5.0
 	github.com/hashicorp/go-getter v0.0.0-20180327010114-90bb99a48d86
 	github.com/hashicorp/go-hclog v0.0.0-20170716174523-b4e5765d1e5f
 	github.com/hashicorp/go-immutable-radix v1.0.0 // indirect
 	github.com/hashicorp/go-msgpack v0.5.3 // indirect
-	github.com/hashicorp/go-multierror v1.0.0
+	github.com/hashicorp/go-multierror v0.0.0-20150916205742-d30f09973e19
 	github.com/hashicorp/go-plugin v0.0.0-20180125190438-e53f54cbf51e
 	github.com/hashicorp/go-retryablehttp v0.5.1
 	github.com/hashicorp/go-rootcerts v0.0.0-20160503143440-6bb64b370b90
@@ -131,7 +131,7 @@ require (
 	github.com/xiang90/probing v0.0.0-20160813154853-07dd2e8dfe18 // indirect
 	github.com/xlab/treeprint v0.0.0-20161029104018-1d6e34225557
 	github.com/zclconf/go-cty v0.0.0-20180302160414-49fa5e03c418
-	golang.org/x/crypto v0.0.0-20181029021203-45a5f77698d3
+	golang.org/x/crypto v0.0.0-20180211211603-9de5f2eaf759
 	golang.org/x/net v0.0.0-20171004034648-a04bdaca5b32
 	golang.org/x/oauth2 v0.0.0-20170928010508-bb50c06baba3
 	golang.org/x/sync v0.0.0-20181221193216-37e7f081c4d4 // indirect
