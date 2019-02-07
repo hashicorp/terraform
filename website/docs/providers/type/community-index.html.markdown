@@ -157,7 +157,7 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
     <td><a href="https://github.com/mvisonneau/terraform-provider-updown">Updown.io</a></td>
     </tr>
     <tr>
-    <td><a href="https://github.com/SpamapS/terraform-provider-uptimerobot">Uptimerobot</a></td>
+    <td><a href="https://github.com/louy/terraform-provider-uptimerobot">Uptimerobot</a></td>
     <td><a href="https://github.com/GSLabDev/terraform-provider-vra">vRealize Automation</a></td>
     <td><a href="https://github.com/PortOfPortland/terraform-provider-windns">Win DNS</a></td>
     </tr>
