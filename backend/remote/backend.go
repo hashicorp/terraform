@@ -336,11 +336,6 @@ func (b *Remote) discover() (*url.URL, *disco.Constraints, error) {
 		return nil, nil, err
 	}
 
-	// Return early if we are a development build.
-	if tfversion.Prerelease == "dev" {
-		return service, nil, err
-	}
-
 	// We purposefully ignore the error and return the previous error, as
 	// checking for version constraints is considered optional.
 	constraints, _ := host.VersionConstraints(tfeServiceID, "terraform")
