@@ -104,7 +104,7 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, diags.Err()
 	}
 
-	proposedNewVal := objchange.ProposedNewObject(schema, priorVal, configVal)
+	proposedNewVal := objchange.PlannedDataResourceObject(schema, configVal)
 
 	// If our configuration contains any unknown values then we must defer the
 	// read to the apply phase by producing a "Read" change for this resource,
@@ -119,7 +119,11 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 				absAddr,
 			)
 		}
-		log.Printf("[TRACE] EvalReadData: %s configuration not fully known yet, so deferring to apply phase", absAddr)
+		if n.ForcePlanRead {
+			log.Printf("[TRACE] EvalReadData: %s configuration is fully known, but we're forcing a read plan to be created", absAddr)
+		} else {
+			log.Printf("[TRACE] EvalReadData: %s configuration not fully known yet, so deferring to apply phase", absAddr)
+		}
 
 		err := ctx.Hook(func(h Hook) (HookAction, error) {
 			return h.PreDiff(absAddr, states.CurrentGen, priorVal, proposedNewVal)
