@@ -50,14 +50,27 @@ func TestSetUnknowns(t *testing.T) {
 					},
 				},
 			},
-			cty.ObjectVal(map[string]cty.Value{}),
+			cty.NullVal(cty.Object(map[string]cty.Type{
+				"foo": cty.String,
+				"bar": cty.String,
+				"baz": cty.Object(map[string]cty.Type{
+					"boz": cty.String,
+					"biz": cty.String,
+				}),
+			})),
 			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.NullVal(cty.String),
 				"bar": cty.UnknownVal(cty.String),
 			}),
 		},
-		"no prior with set": {
-			// the set value should remain null
+		"null stays null": {
+			// if the object has no computed attributes, it should stay null
 			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"foo": &configschema.Attribute{
+						Type: cty.String,
+					},
+				},
 				BlockTypes: map[string]*configschema.NestedBlock{
 					"baz": {
 						Nesting: configschema.NestingSet,
@@ -73,8 +86,52 @@ func TestSetUnknowns(t *testing.T) {
 					},
 				},
 			},
-			cty.ObjectVal(map[string]cty.Value{}),
-			cty.ObjectVal(map[string]cty.Value{}),
+			cty.NullVal(cty.Object(map[string]cty.Type{
+				"foo": cty.String,
+				"baz": cty.Set(cty.Object(map[string]cty.Type{
+					"boz": cty.String,
+				})),
+			})),
+			cty.NullVal(cty.Object(map[string]cty.Type{
+				"foo": cty.String,
+				"baz": cty.Set(cty.Object(map[string]cty.Type{
+					"boz": cty.String,
+				})),
+			})),
+		},
+		"no prior with set": {
+			// the set value should remain null
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"foo": &configschema.Attribute{
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"baz": {
+						Nesting: configschema.NestingSet,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"boz": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.NullVal(cty.Object(map[string]cty.Type{
+				"foo": cty.String,
+				"baz": cty.Set(cty.Object(map[string]cty.Type{
+					"boz": cty.String,
+				})),
+			})),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.UnknownVal(cty.String),
+			}),
 		},
 		"prior attributes": {
 			&configschema.Block{
@@ -329,24 +386,97 @@ func TestSetUnknowns(t *testing.T) {
 				}),
 			}),
 		},
+		"prior nested list with dynamic": {
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"foo": {
+						Nesting: configschema.NestingList,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"bar": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+								"baz": {
+									Type:     cty.DynamicPseudoType,
+									Optional: true,
+									Computed: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.TupleVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.NullVal(cty.String),
+						"baz": cty.NumberIntVal(8),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.TupleVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.UnknownVal(cty.String),
+						"baz": cty.NumberIntVal(8),
+					}),
+				}),
+			}),
+		},
+		"prior nested map with dynamic": {
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"foo": {
+						Nesting: configschema.NestingMap,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"bar": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+								"baz": {
+									Type:     cty.DynamicPseudoType,
+									Optional: true,
+									Computed: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.ObjectVal(map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.StringVal("beep"),
+						"baz": cty.NullVal(cty.DynamicPseudoType),
+					}),
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.StringVal("boop"),
+						"baz": cty.NumberIntVal(8),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.ObjectVal(map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.StringVal("beep"),
+						"baz": cty.UnknownVal(cty.DynamicPseudoType),
+					}),
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.StringVal("boop"),
+						"baz": cty.NumberIntVal(8),
+					}),
+				}),
+			}),
+		},
 	} {
 		t.Run(n, func(t *testing.T) {
-			// coerce the values because SetUnknowns expects the values to be
-			// complete, and so we can take shortcuts writing them in the
-			// test.
-			v, err := tc.Schema.CoerceValue(tc.Val)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			expected, err := tc.Schema.CoerceValue(tc.Expected)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			got := SetUnknowns(v, tc.Schema)
-			if !got.RawEquals(expected) {
-				t.Fatalf("\nexpected: %#v\ngot:      %#v\n", expected, got)
+			got := SetUnknowns(tc.Val, tc.Schema)
+			if !got.RawEquals(tc.Expected) {
+				t.Fatalf("\nexpected: %#v\ngot:      %#v\n", tc.Expected, got)
 			}
 		})
 	}
