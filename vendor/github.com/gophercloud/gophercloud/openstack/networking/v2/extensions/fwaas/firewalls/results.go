@@ -14,6 +14,7 @@ type Firewall struct {
 	Status       string `json:"status"`
 	PolicyID     string `json:"firewall_policy_id"`
 	TenantID     string `json:"tenant_id"`
+	ProjectID    string `json:"project_id"`
 }
 
 type commonResult struct {
@@ -61,8 +62,8 @@ func (r FirewallPage) IsEmpty() (bool, error) {
 	return len(is) == 0, err
 }
 
-// ExtractFirewalls accepts a Page struct, specifically a RouterPage struct,
-// and extracts the elements into a slice of Router structs. In other words,
+// ExtractFirewalls accepts a Page struct, specifically a FirewallPage struct,
+// and extracts the elements into a slice of Firewall structs. In other words,
 // a generic collection is mapped into a relevant slice.
 func ExtractFirewalls(r pagination.Page) ([]Firewall, error) {
 	var s []Firewall
@@ -70,22 +71,26 @@ func ExtractFirewalls(r pagination.Page) ([]Firewall, error) {
 	return s, err
 }
 
-// GetResult represents the result of a get operation.
+// GetResult represents the result of a Get operation. Call its Extract
+// method to interpret it as a Firewall.
 type GetResult struct {
 	commonResult
 }
 
-// UpdateResult represents the result of an update operation.
+// UpdateResult represents the result of an Update operation. Call its Extract
+// method to interpret it as a Firewall.
 type UpdateResult struct {
 	commonResult
 }
 
-// DeleteResult represents the result of a delete operation.
+// DeleteResult represents the result of a delete operation. Call its
+// ExtractErr method to determine if the operation succeeded or failed.
 type DeleteResult struct {
 	gophercloud.ErrResult
 }
 
-// CreateResult represents the result of a create operation.
+// CreateResult represents the result of a Create operation. Call its Extract
+// method to interpret it as a Firewall.
 type CreateResult struct {
 	commonResult
 }
