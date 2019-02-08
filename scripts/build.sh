@@ -47,6 +47,10 @@ if [[ -n "${TF_RELEASE}" ]]; then
     LD_FLAGS="-s -w"
 fi
 
+# Ensure all remote modules are downloaded and cached before build so that
+# the concurrent builds launched by gox won't race to redundantly download them.
+go mod download
+
 # Build!
 echo "==> Building..."
 gox \

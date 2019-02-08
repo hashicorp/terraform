@@ -34,7 +34,6 @@ type RuneBuffer struct {
 
 func (r *RuneBuffer) OnWidthChange(newWidth int) {
 	r.Lock()
-	Debug("WIDTH: ", newWidth)
 	r.width = newWidth
 	r.Unlock()
 }
