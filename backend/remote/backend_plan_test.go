@@ -64,7 +64,8 @@ func TestRemote_planBasic(t *testing.T) {
 }
 
 func TestRemote_planLongLine(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan-long-line")
 	defer configCleanup()
