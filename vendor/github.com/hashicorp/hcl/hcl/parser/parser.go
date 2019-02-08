@@ -197,18 +197,9 @@ func (p *Parser) objectItem() (*ast.ObjectItem, error) {
 			keyStr = append(keyStr, k.Token.Text)
 		}
 
-		return nil, &PosError{
-			Pos: p.tok.Pos,
-			Err: fmt.Errorf(
-				"key '%s' expected start of object ('{') or assignment ('=')",
-				strings.Join(keyStr, " ")),
-		}
-	}
-
-	// key=#comment
-	// val
-	if p.lineComment != nil {
-		o.LineComment, p.lineComment = p.lineComment, nil
+		return nil, fmt.Errorf(
+			"key '%s' expected start of object ('{') or assignment ('=')",
+			strings.Join(keyStr, " "))
 	}
 
 	// do a look-ahead for line comment
@@ -328,10 +319,7 @@ func (p *Parser) objectType() (*ast.ObjectType, error) {
 
 	// No error, scan and expect the ending to be a brace
 	if tok := p.scan(); tok.Type != token.RBRACE {
-		return nil, &PosError{
-			Pos: tok.Pos,
-			Err: fmt.Errorf("object expected closing RBRACE got: %s", tok.Type),
-		}
+		return nil, fmt.Errorf("object expected closing RBRACE got: %s", tok.Type)
 	}
 
 	o.List = l

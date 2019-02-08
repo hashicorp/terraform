@@ -62,8 +62,13 @@ Value:
 			diags = diags.Append(interpDiags)
 
 		case hcl1token.HEREDOC:
-			// TODO: Implement
-			panic("HEREDOC not supported yet")
+			// TODO: Implement more complex handling to upgrade any
+			// interpolation sequences inside.
+
+			// TODO: If a heredoc has its termination delimeter inline (which is
+			// a bug that worked in terraform 0.11, so we need to support it
+			// here), move the delimiter to a new line.
+			buf.WriteString(tv.Text)
 
 		case hcl1token.BOOL:
 			if litVal.(bool) {
