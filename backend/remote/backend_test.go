@@ -21,14 +21,18 @@ func TestRemote(t *testing.T) {
 }
 
 func TestRemote_backendDefault(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
+
 	backend.TestBackendStates(t, b)
 	backend.TestBackendStateLocks(t, b, b)
 	backend.TestBackendStateForceUnlock(t, b, b)
 }
 
 func TestRemote_backendNoDefault(t *testing.T) {
-	b := testBackendNoDefault(t)
+	b, bCleanup := testBackendNoDefault(t)
+	defer bCleanup()
+
 	backend.TestBackendStates(t, b)
 }
 
@@ -207,7 +211,8 @@ func TestRemote_versionConstraints(t *testing.T) {
 }
 
 func TestRemote_localBackend(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	local, ok := b.local.(*backendLocal.Local)
 	if !ok {
@@ -221,7 +226,9 @@ func TestRemote_localBackend(t *testing.T) {
 }
 
 func TestRemote_addAndRemoveStatesDefault(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
+
 	if _, err := b.States(); err != backend.ErrNamedStatesNotSupported {
 		t.Fatalf("expected error %v, got %v", backend.ErrNamedStatesNotSupported, err)
 	}
@@ -244,7 +251,9 @@ func TestRemote_addAndRemoveStatesDefault(t *testing.T) {
 }
 
 func TestRemote_addAndRemoveStatesNoDefault(t *testing.T) {
-	b := testBackendNoDefault(t)
+	b, bCleanup := testBackendNoDefault(t)
+	defer bCleanup()
+
 	states, err := b.States()
 	if err != nil {
 		t.Fatal(err)
@@ -323,7 +332,8 @@ func TestRemote_addAndRemoveStatesNoDefault(t *testing.T) {
 }
 
 func TestRemote_checkConstraints(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	cases := map[string]struct {
 		constraints *disco.Constraints

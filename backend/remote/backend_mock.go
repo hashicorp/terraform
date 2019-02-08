@@ -620,9 +620,8 @@ func (m *mockRuns) List(ctx context.Context, workspaceID string, options tfe.Run
 		return nil, tfe.ErrResourceNotFound
 	}
 
-	rl := &tfe.RunList{}
-	for _, r := range m.workspaces[w.ID] {
-		rl.Items = append(rl.Items, r)
+	rl := &tfe.RunList{
+		Items: m.workspaces[w.ID],
 	}
 
 	rl.Pagination = &tfe.Pagination{
