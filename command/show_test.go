@@ -244,13 +244,29 @@ func showFixtureProvider() *terraform.MockProvider {
 	p := testProvider()
 	p.GetSchemaReturn = showFixtureSchema()
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		idVal := req.ProposedNewState.GetAttr("id")
+		amiVal := req.ProposedNewState.GetAttr("ami")
+		if idVal.IsNull() {
+			idVal = cty.UnknownVal(cty.String)
+		}
 		return providers.PlanResourceChangeResponse{
-			PlannedState: req.ProposedNewState,
+			PlannedState: cty.ObjectVal(map[string]cty.Value{
+				"id":  idVal,
+				"ami": amiVal,
+			}),
 		}
 	}
 	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+		idVal := req.PlannedState.GetAttr("id")
+		amiVal := req.PlannedState.GetAttr("ami")
+		if !idVal.IsKnown() {
+			idVal = cty.StringVal("placeholder")
+		}
 		return providers.ApplyResourceChangeResponse{
-			NewState: cty.UnknownAsNull(req.PlannedState),
+			NewState: cty.ObjectVal(map[string]cty.Value{
+				"id":  idVal,
+				"ami": amiVal,
+			}),
 		}
 	}
 	return p

@@ -18,7 +18,7 @@
                     "schema_version": 0,
                     "values": {
                         "ami": "bar",
-                        "id": null
+                        "id": "placeholder"
                     }
                 }
             ]
@@ -37,11 +37,11 @@
                 ],
                 "before": {
                     "ami": "foo",
-                    "id": null
+                    "id": "placeholder"
                 },
                 "after": {
                     "ami": "bar",
-                    "id": null
+                    "id": "placeholder"
                 },
                 "after_unknown": {
                     "ami": false,
@@ -61,7 +61,7 @@
                 ],
                 "before": {
                     "ami": "foo",
-                    "id": null
+                    "id": "placeholder"
                 },
                 "after": null,
                 "after_unknown": false
