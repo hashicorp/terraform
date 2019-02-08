@@ -4,7 +4,7 @@ services:
   - docker
 language: go
 go:
-- "1.11"
+- "1.11.5"
 
 # add TF_CONSUL_TEST=1 to run consul tests
 # they were causing timouts in travis
@@ -33,7 +33,6 @@ before_script:
 - git config --global url.https://github.com/.insteadOf ssh://git@github.com/
 
 script:
-- make vendor-status
 - make test
 - make e2etest
 - GOOS=windows go build
