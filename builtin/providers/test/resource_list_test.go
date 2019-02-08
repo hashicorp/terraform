@@ -133,3 +133,58 @@ resource "test_resource_list" "foo" {
 		},
 	})
 }
+
+func TestResourceList_interpolationChanges(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_list" "foo" {
+	list_block {
+		string = "x"
+	}
+}
+resource "test_resource_list" "bar" {
+	list_block {
+		string = test_resource_list.foo.id
+	}
+}
+				`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"test_resource_list.foo", "list_block.0.string", "x",
+					),
+					resource.TestCheckResourceAttr(
+						"test_resource_list.bar", "list_block.0.string", "testId",
+					),
+				),
+			},
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_list" "baz" {
+	list_block {
+		string = "x"
+		int = 1
+	}
+}
+resource "test_resource_list" "bar" {
+	list_block {
+		string = test_resource_list.baz.id
+		int = 3
+	}
+}
+				`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"test_resource_list.baz", "list_block.0.string", "x",
+					),
+					resource.TestCheckResourceAttr(
+						"test_resource_list.bar", "list_block.0.string", "testId",
+					),
+				),
+			},
+		},
+	})
+}
