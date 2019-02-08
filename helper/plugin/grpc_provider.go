@@ -511,23 +511,30 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 
 	// turn the proposed state into a legacy configuration
 	cfg := terraform.NewResourceConfigShimmed(proposedNewStateVal, block)
+
 	diff, err := s.provider.SimpleDiff(info, priorState, cfg)
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 
+	// if this is a new instance, we need to make sure ID is going to be computed
+	if priorStateVal.IsNull() {
+		if diff == nil {
+			diff = terraform.NewInstanceDiff()
+		}
+
+		diff.Attributes["id"] = &terraform.ResourceAttrDiff{
+			NewComputed: true,
+		}
+	}
+
 	if diff == nil || len(diff.Attributes) == 0 {
 		// schema.Provider.Diff returns nil if it ends up making a diff with no
 		// changes, but our new interface wants us to return an actual change
-		// description that _shows_ there are no changes. This is usually the
-		// PriorSate, however if there was no prior state and no diff, then we
-		// use the ProposedNewState.
-		if !priorStateVal.IsNull() {
-			resp.PlannedState = req.PriorState
-		} else {
-			resp.PlannedState = req.ProposedNewState
-		}
+		// description that _shows_ there are no changes. This is always the
+		// prior state, because we force a diff above if this is a new instance.
+		resp.PlannedState = req.PriorState
 		return resp, nil
 	}
 
@@ -561,7 +568,7 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 
 	plannedStateVal = copyTimeoutValues(plannedStateVal, proposedNewStateVal)
 
-	// The old SDK code has some inprecisions that cause it to sometimes
+	// The old SDK code has some imprecisions that cause it to sometimes
 	// generate differences that the SDK itself does not consider significant
 	// but Terraform Core would. To avoid producing weird do-nothing diffs
 	// in that case, we'll check if the provider as produced something we
@@ -573,6 +580,12 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 	if hcl2shim.ValuesSDKEquivalent(priorStateVal, plannedStateVal) {
 		plannedStateVal = priorStateVal
 		forceNoChanges = true
+	}
+
+	// if this was creating the resource, we need to set any remaining computed
+	// fields
+	if priorStateVal.IsNull() {
+		plannedStateVal = SetUnknowns(plannedStateVal, block)
 	}
 
 	plannedMP, err := msgpack.Marshal(plannedStateVal, block.ImpliedType())
