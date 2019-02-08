@@ -7,24 +7,23 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/availabilityzones"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/bootfromvolume"
-	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/floatingips"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/schedulerhints"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/secgroups"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/startstop"
-	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/tenantnetworks"
-	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/volumeattach"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/flavors"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/images"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceComputeInstanceV2() *schema.Resource {
@@ -41,51 +40,49 @@ func resourceComputeInstanceV2() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"region": &schema.Schema{
+			"region": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
 
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: false,
 			},
-			"image_id": &schema.Schema{
+			"image_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
 			},
-			"image_name": &schema.Schema{
+			"image_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
 			},
-			"flavor_id": &schema.Schema{
-				Type:        schema.TypeString,
-				Optional:    true,
-				ForceNew:    false,
-				Computed:    true,
-				DefaultFunc: schema.EnvDefaultFunc("OS_FLAVOR_ID", nil),
+			"flavor_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: false,
+				Computed: true,
 			},
-			"flavor_name": &schema.Schema{
-				Type:        schema.TypeString,
-				Optional:    true,
-				ForceNew:    false,
-				Computed:    true,
-				DefaultFunc: schema.EnvDefaultFunc("OS_FLAVOR_NAME", nil),
+			"flavor_name": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: false,
+				Computed: true,
 			},
-			"floating_ip": &schema.Schema{
-				Type:       schema.TypeString,
-				Optional:   true,
-				ForceNew:   false,
-				Deprecated: "Use the openstack_compute_floatingip_associate_v2 resource instead",
+			"floating_ip": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: false,
+				Removed:  "Use the openstack_compute_floatingip_associate_v2 resource instead",
 			},
-			"user_data": &schema.Schema{
+			"user_data": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -100,7 +97,7 @@ func resourceComputeInstanceV2() *schema.Resource {
 					}
 				},
 			},
-			"security_groups": &schema.Schema{
+			"security_groups": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				ForceNew: false,
@@ -108,60 +105,61 @@ func resourceComputeInstanceV2() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
-			"availability_zone": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-				Computed: true,
+			"availability_zone": {
+				Type:             schema.TypeString,
+				Optional:         true,
+				ForceNew:         true,
+				Computed:         true,
+				DiffSuppressFunc: suppressAvailabilityZoneDetailDiffs,
 			},
-			"network": &schema.Schema{
+			"network": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"uuid": &schema.Schema{
+						"uuid": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
 							Computed: true,
 						},
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
 							Computed: true,
 						},
-						"port": &schema.Schema{
+						"port": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
 							Computed: true,
 						},
-						"fixed_ip_v4": &schema.Schema{
+						"fixed_ip_v4": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
 							Computed: true,
 						},
-						"fixed_ip_v6": &schema.Schema{
+						"fixed_ip_v6": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
 							Computed: true,
 						},
-						"floating_ip": &schema.Schema{
-							Type:       schema.TypeString,
-							Optional:   true,
-							Computed:   true,
-							Deprecated: "Use the openstack_compute_floatingip_associate_v2 resource instead",
+						"floating_ip": {
+							Type:     schema.TypeString,
+							Optional: true,
+							Computed: true,
+							Removed:  "Use the openstack_compute_floatingip_associate_v2 resource instead",
 						},
-						"mac": &schema.Schema{
+						"mac": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"access_network": &schema.Schema{
+						"access_network": {
 							Type:     schema.TypeBool,
 							Optional: true,
 							Default:  false,
@@ -169,75 +167,86 @@ func resourceComputeInstanceV2() *schema.Resource {
 					},
 				},
 			},
-			"metadata": &schema.Schema{
+			"metadata": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				ForceNew: false,
 			},
-			"config_drive": &schema.Schema{
+			"config_drive": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
 			},
-			"admin_pass": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: false,
+			"admin_pass": {
+				Type:      schema.TypeString,
+				Optional:  true,
+				Sensitive: true,
+				ForceNew:  false,
 			},
-			"access_ip_v4": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-				Optional: true,
-				ForceNew: false,
-			},
-			"access_ip_v6": &schema.Schema{
+			"access_ip_v4": {
 				Type:     schema.TypeString,
 				Computed: true,
 				Optional: true,
 				ForceNew: false,
 			},
-			"key_pair": &schema.Schema{
+			"access_ip_v6": {
+				Type:     schema.TypeString,
+				Computed: true,
+				Optional: true,
+				ForceNew: false,
+			},
+			"key_pair": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			"block_device": &schema.Schema{
+			"block_device": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"source_type": &schema.Schema{
+						"source_type": {
 							Type:     schema.TypeString,
 							Required: true,
 							ForceNew: true,
 						},
-						"uuid": &schema.Schema{
+						"uuid": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
 						},
-						"volume_size": &schema.Schema{
+						"volume_size": {
 							Type:     schema.TypeInt,
 							Optional: true,
 							ForceNew: true,
 						},
-						"destination_type": &schema.Schema{
+						"destination_type": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
 						},
-						"boot_index": &schema.Schema{
+						"boot_index": {
 							Type:     schema.TypeInt,
 							Optional: true,
 							ForceNew: true,
 						},
-						"delete_on_termination": &schema.Schema{
+						"delete_on_termination": {
 							Type:     schema.TypeBool,
 							Optional: true,
 							Default:  false,
 							ForceNew: true,
 						},
-						"guest_format": &schema.Schema{
+						"guest_format": {
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+						"device_type": {
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+						"disk_bus": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
@@ -245,65 +254,69 @@ func resourceComputeInstanceV2() *schema.Resource {
 					},
 				},
 			},
-			"volume": &schema.Schema{
-				Type:       schema.TypeSet,
-				Optional:   true,
-				Deprecated: "Use block_device or openstack_compute_volume_attach_v2 instead",
+			"volume": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Removed:  "Use block_device or openstack_compute_volume_attach_v2 instead",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"id": &schema.Schema{
+						"id": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 						},
-						"volume_id": &schema.Schema{
+						"volume_id": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"device": &schema.Schema{
+						"device": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 						},
 					},
 				},
-				Set: resourceComputeVolumeAttachmentHash,
 			},
-			"scheduler_hints": &schema.Schema{
+			"scheduler_hints": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"group": &schema.Schema{
+						"group": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
 						},
-						"different_host": &schema.Schema{
+						"different_host": {
 							Type:     schema.TypeList,
 							Optional: true,
 							ForceNew: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
-						"same_host": &schema.Schema{
+						"same_host": {
 							Type:     schema.TypeList,
 							Optional: true,
 							ForceNew: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
-						"query": &schema.Schema{
+						"query": {
 							Type:     schema.TypeList,
 							Optional: true,
 							ForceNew: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
-						"target_cell": &schema.Schema{
+						"target_cell": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
 						},
-						"build_near_host_ip": &schema.Schema{
+						"build_near_host_ip": {
 							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+						"additional_properties": {
+							Type:     schema.TypeMap,
 							Optional: true,
 							ForceNew: true,
 						},
@@ -311,17 +324,17 @@ func resourceComputeInstanceV2() *schema.Resource {
 				},
 				Set: resourceComputeSchedulerHintsHash,
 			},
-			"personality": &schema.Schema{
+			"personality": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"file": &schema.Schema{
+						"file": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"content": &schema.Schema{
+						"content": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
@@ -329,19 +342,44 @@ func resourceComputeInstanceV2() *schema.Resource {
 				},
 				Set: resourceComputeInstancePersonalityHash,
 			},
-			"stop_before_destroy": &schema.Schema{
+			"stop_before_destroy": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
-			"force_delete": &schema.Schema{
+			"force_delete": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
-			"all_metadata": &schema.Schema{
+			"all_metadata": {
 				Type:     schema.TypeMap,
 				Computed: true,
+			},
+			"power_state": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: false,
+				Default:  "active",
+				ValidateFunc: validation.StringInSlice([]string{
+					"active", "shutoff",
+				}, true),
+				DiffSuppressFunc: suppressPowerStateDiffs,
+			},
+			"vendor_options": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				MinItems: 1,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"ignore_resize_confirmation": {
+							Type:     schema.TypeBool,
+							Default:  false,
+							Optional: true,
+						},
+					},
+				},
 			},
 		},
 	}
@@ -365,6 +403,9 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 		return err
 	}
 
+	// Determines the Flavor ID using the following rules:
+	// If a flavor_id was specified, use it.
+	// If a flavor_name was specified, lookup the flavor ID, report if error.
 	flavorId, err := getFlavorID(computeClient, d)
 	if err != nil {
 		return err
@@ -376,26 +417,15 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 		return err
 	}
 
-	// check if floating IP configuration is correct
-	if err := checkInstanceFloatingIPs(d); err != nil {
-		return err
-	}
-
 	// Build a list of networks with the information given upon creation.
 	// Error out if an invalid network configuration was used.
-	networkDetails, err := getInstanceNetworks(computeClient, d)
+	allInstanceNetworks, err := getAllInstanceNetworks(d, meta)
 	if err != nil {
 		return err
 	}
 
-	networks := make([]servers.Network, len(networkDetails))
-	for i, net := range networkDetails {
-		networks[i] = servers.Network{
-			UUID:    net["uuid"].(string),
-			Port:    net["port"].(string),
-			FixedIP: net["fixed_ip_v4"].(string),
-		}
-	}
+	// Build a []servers.Network to pass into the create options.
+	networks := expandInstanceNetworks(allInstanceNetworks)
 
 	configDrive := d.Get("config_drive").(bool)
 
@@ -483,25 +513,25 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 			server.ID, err)
 	}
 
-	// Now that the instance has been created, we need to do an early read on the
-	// networks in order to associate floating IPs
-	_, err = getInstanceNetworksAndAddresses(computeClient, d)
+	vmState := d.Get("power_state").(string)
+	if strings.ToLower(vmState) == "shutoff" {
+		err = startstop.Stop(computeClient, d.Id()).ExtractErr()
+		if err != nil {
+			return fmt.Errorf("Error stopping OpenStack instance: %s", err)
+		}
+		stopStateConf := &resource.StateChangeConf{
+			//Pending:    []string{"ACTIVE"},
+			Target:     []string{"SHUTOFF"},
+			Refresh:    ServerV2StateRefreshFunc(computeClient, d.Id()),
+			Timeout:    d.Timeout(schema.TimeoutCreate),
+			Delay:      10 * time.Second,
+			MinTimeout: 3 * time.Second,
+		}
 
-	// If floating IPs were specified, associate them after the instance has launched.
-	err = associateFloatingIPsToInstance(computeClient, d)
-	if err != nil {
-		return err
-	}
-
-	// if volumes were specified, attach them after the instance has launched.
-	if v, ok := d.GetOk("volume"); ok {
-		vols := v.(*schema.Set).List()
-		if blockClient, err := config.blockStorageV1Client(GetRegion(d, config)); err != nil {
-			return fmt.Errorf("Error creating OpenStack block storage client: %s", err)
-		} else {
-			if err := attachVolumesToInstance(computeClient, blockClient, d.Id(), vols); err != nil {
-				return err
-			}
+		log.Printf("[DEBUG] Waiting for instance (%s) to stop", d.Id())
+		_, err = stopStateConf.WaitForState()
+		if err != nil {
+			return fmt.Errorf("Error waiting for instance (%s) to become inactive(shutoff): %s", d.Id(), err)
 		}
 	}
 
@@ -525,7 +555,7 @@ func resourceComputeInstanceV2Read(d *schema.ResourceData, meta interface{}) err
 	d.Set("name", server.Name)
 
 	// Get the instance network and address information
-	networks, err := getInstanceNetworksAndAddresses(computeClient, d)
+	networks, err := flattenInstanceNetworks(d, meta)
 	if err != nil {
 		return err
 	}
@@ -533,6 +563,8 @@ func resourceComputeInstanceV2Read(d *schema.ResourceData, meta interface{}) err
 	// Determine the best IPv4 and IPv6 addresses to access the instance with
 	hostv4, hostv6 := getInstanceAccessAddresses(d, networks)
 
+	// AccessIPv4/v6 isn't standard in OpenStack, but there have been reports
+	// of them being used in some environments.
 	if server.AccessIPv4 != "" && hostv4 == "" {
 		hostv4 = server.AccessIPv4
 	}
@@ -547,7 +579,7 @@ func resourceComputeInstanceV2Read(d *schema.ResourceData, meta interface{}) err
 
 	// Determine the best IP address to use for SSH connectivity.
 	// Prefer IPv4 over IPv6.
-	preferredSSHAddress := ""
+	var preferredSSHAddress string
 	if hostv4 != "" {
 		preferredSSHAddress = hostv4
 	} else if hostv6 != "" {
@@ -587,15 +619,10 @@ func resourceComputeInstanceV2Read(d *schema.ResourceData, meta interface{}) err
 		return err
 	}
 
-	// volume attachments
-	if err := getVolumeAttachments(computeClient, d); err != nil {
-		return err
-	}
-
 	// Build a custom struct for the availability zone extension
 	var serverWithAZ struct {
 		servers.Server
-		availabilityzones.ServerExt
+		availabilityzones.ServerAvailabilityZoneExt
 	}
 
 	// Do another Get so the above work is not disturbed.
@@ -609,6 +636,15 @@ func resourceComputeInstanceV2Read(d *schema.ResourceData, meta interface{}) err
 
 	// Set the region
 	d.Set("region", GetRegion(d, config))
+
+	// Set the current power_state
+	currentStatus := strings.ToLower(server.Status)
+	switch currentStatus {
+	case "active", "shutoff", "error", "migrating":
+		d.Set("power_state", currentStatus)
+	default:
+		return fmt.Errorf("Invalid power_state for instance %s: %s", d.Id(), server.Status)
+	}
 
 	return nil
 }
@@ -632,15 +668,59 @@ func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) e
 		}
 	}
 
+	if d.HasChange("power_state") {
+		vmState := d.Get("power_state").(string)
+		if strings.ToLower(vmState) == "shutoff" {
+			err = startstop.Stop(computeClient, d.Id()).ExtractErr()
+			if err != nil {
+				return fmt.Errorf("Error stopping OpenStack instance: %s", err)
+			}
+			stopStateConf := &resource.StateChangeConf{
+				//Pending:    []string{"ACTIVE"},
+				Target:     []string{"SHUTOFF"},
+				Refresh:    ServerV2StateRefreshFunc(computeClient, d.Id()),
+				Timeout:    d.Timeout(schema.TimeoutUpdate),
+				Delay:      10 * time.Second,
+				MinTimeout: 3 * time.Second,
+			}
+
+			log.Printf("[DEBUG] Waiting for instance (%s) to stop", d.Id())
+			_, err = stopStateConf.WaitForState()
+			if err != nil {
+				return fmt.Errorf("Error waiting for instance (%s) to become inactive(shutoff): %s", d.Id(), err)
+			}
+		}
+		if strings.ToLower(vmState) == "active" {
+			err = startstop.Start(computeClient, d.Id()).ExtractErr()
+			if err != nil {
+				return fmt.Errorf("Error starting OpenStack instance: %s", err)
+			}
+			startStateConf := &resource.StateChangeConf{
+				//Pending:    []string{"SHUTOFF"},
+				Target:     []string{"ACTIVE"},
+				Refresh:    ServerV2StateRefreshFunc(computeClient, d.Id()),
+				Timeout:    d.Timeout(schema.TimeoutUpdate),
+				Delay:      10 * time.Second,
+				MinTimeout: 3 * time.Second,
+			}
+
+			log.Printf("[DEBUG] Waiting for instance (%s) to start", d.Id())
+			_, err = startStateConf.WaitForState()
+			if err != nil {
+				return fmt.Errorf("Error waiting for instance (%s) to become active: %s", d.Id(), err)
+			}
+		}
+	}
+
 	if d.HasChange("metadata") {
 		oldMetadata, newMetadata := d.GetChange("metadata")
 		var metadataToDelete []string
 
 		// Determine if any metadata keys were removed from the configuration.
 		// Then request those keys to be deleted.
-		for oldKey, _ := range oldMetadata.(map[string]interface{}) {
+		for oldKey := range oldMetadata.(map[string]interface{}) {
 			var found bool
-			for newKey, _ := range newMetadata.(map[string]interface{}) {
+			for newKey := range newMetadata.(map[string]interface{}) {
 				if oldKey == newKey {
 					found = true
 				}
@@ -712,91 +792,15 @@ func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) e
 		}
 	}
 
-	if d.HasChange("floating_ip") {
-		oldFIP, newFIP := d.GetChange("floating_ip")
-		log.Printf("[DEBUG] Old Floating IP: %v", oldFIP)
-		log.Printf("[DEBUG] New Floating IP: %v", newFIP)
-		if oldFIP.(string) != "" {
-			log.Printf("[DEBUG] Attempting to disassociate %s from %s", oldFIP, d.Id())
-			if err := disassociateFloatingIPFromInstance(computeClient, oldFIP.(string), d.Id(), ""); err != nil {
-				return fmt.Errorf("Error disassociating Floating IP during update: %s", err)
-			}
-		}
-
-		if newFIP.(string) != "" {
-			log.Printf("[DEBUG] Attempting to associate %s to %s", newFIP, d.Id())
-			if err := associateFloatingIPToInstance(computeClient, newFIP.(string), d.Id(), ""); err != nil {
-				return fmt.Errorf("Error associating Floating IP during update: %s", err)
-			}
-		}
-	}
-
-	if d.HasChange("network") {
-		oldNetworks, newNetworks := d.GetChange("network")
-		oldNetworkList := oldNetworks.([]interface{})
-		newNetworkList := newNetworks.([]interface{})
-		for i, oldNet := range oldNetworkList {
-			var oldFIP, newFIP string
-			var oldFixedIP, newFixedIP string
-
-			if oldNetRaw, ok := oldNet.(map[string]interface{}); ok {
-				oldFIP = oldNetRaw["floating_ip"].(string)
-				oldFixedIP = oldNetRaw["fixed_ip_v4"].(string)
-			}
-
-			if len(newNetworkList) > i {
-				if newNetRaw, ok := newNetworkList[i].(map[string]interface{}); ok {
-					newFIP = newNetRaw["floating_ip"].(string)
-					newFixedIP = newNetRaw["fixed_ip_v4"].(string)
-				}
-			}
-
-			// Only changes to the floating IP are supported
-			if oldFIP != "" && oldFIP != newFIP {
-				log.Printf("[DEBUG] Attempting to disassociate %s from %s", oldFIP, d.Id())
-				if err := disassociateFloatingIPFromInstance(computeClient, oldFIP, d.Id(), oldFixedIP); err != nil {
-					return fmt.Errorf("Error disassociating Floating IP during update: %s", err)
-				}
-			}
-
-			if newFIP != "" && oldFIP != newFIP {
-				log.Printf("[DEBUG] Attempting to associate %s to %s", newFIP, d.Id())
-				if err := associateFloatingIPToInstance(computeClient, newFIP, d.Id(), newFixedIP); err != nil {
-					return fmt.Errorf("Error associating Floating IP during update: %s", err)
-				}
-			}
-		}
-	}
-
-	if d.HasChange("volume") {
-		// old attachments and new attachments
-		oldAttachments, newAttachments := d.GetChange("volume")
-		// for each old attachment, detach the volume
-		oldAttachmentSet := oldAttachments.(*schema.Set).List()
-
-		log.Printf("[DEBUG] Attempting to detach the following volumes: %#v", oldAttachmentSet)
-		if blockClient, err := config.blockStorageV1Client(GetRegion(d, config)); err != nil {
-			return err
-		} else {
-			if err := detachVolumesFromInstance(computeClient, blockClient, d.Id(), oldAttachmentSet); err != nil {
-				return err
-			}
-		}
-
-		// for each new attachment, attach the volume
-		newAttachmentSet := newAttachments.(*schema.Set).List()
-		if blockClient, err := config.blockStorageV1Client(GetRegion(d, config)); err != nil {
-			return err
-		} else {
-			if err := attachVolumesToInstance(computeClient, blockClient, d.Id(), newAttachmentSet); err != nil {
-				return err
-			}
-		}
-
-		d.SetPartial("volume")
-	}
-
 	if d.HasChange("flavor_id") || d.HasChange("flavor_name") {
+		// Get vendor_options
+		vendorOptionsRaw := d.Get("vendor_options").(*schema.Set)
+		var ignoreResizeConfirmation bool
+		if vendorOptionsRaw.Len() > 0 {
+			vendorOptions := expandVendorOptions(vendorOptionsRaw.List())
+			ignoreResizeConfirmation = vendorOptions["ignore_resize_confirmation"].(bool)
+		}
+
 		var newFlavorId string
 		var err error
 		if d.HasChange("flavor_id") {
@@ -821,39 +825,56 @@ func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) e
 		// Wait for the instance to finish resizing.
 		log.Printf("[DEBUG] Waiting for instance (%s) to finish resizing", d.Id())
 
-		stateConf := &resource.StateChangeConf{
-			Pending:    []string{"RESIZE"},
-			Target:     []string{"VERIFY_RESIZE"},
-			Refresh:    ServerV2StateRefreshFunc(computeClient, d.Id()),
-			Timeout:    d.Timeout(schema.TimeoutUpdate),
-			Delay:      10 * time.Second,
-			MinTimeout: 3 * time.Second,
-		}
+		// Resize instance without confirmation if specified by user.
+		if ignoreResizeConfirmation {
+			stateConf := &resource.StateChangeConf{
+				Pending:    []string{"RESIZE", "VERIFY_RESIZE"},
+				Target:     []string{"ACTIVE", "SHUTOFF"},
+				Refresh:    ServerV2StateRefreshFunc(computeClient, d.Id()),
+				Timeout:    d.Timeout(schema.TimeoutUpdate),
+				Delay:      10 * time.Second,
+				MinTimeout: 3 * time.Second,
+			}
 
-		_, err = stateConf.WaitForState()
-		if err != nil {
-			return fmt.Errorf("Error waiting for instance (%s) to resize: %s", d.Id(), err)
-		}
+			_, err = stateConf.WaitForState()
+			if err != nil {
+				return fmt.Errorf("Error waiting for instance (%s) to resize: %s", d.Id(), err)
+			}
+		} else {
+			stateConf := &resource.StateChangeConf{
+				Pending:    []string{"RESIZE"},
+				Target:     []string{"VERIFY_RESIZE"},
+				Refresh:    ServerV2StateRefreshFunc(computeClient, d.Id()),
+				Timeout:    d.Timeout(schema.TimeoutUpdate),
+				Delay:      10 * time.Second,
+				MinTimeout: 3 * time.Second,
+			}
 
-		// Confirm resize.
-		log.Printf("[DEBUG] Confirming resize")
-		err = servers.ConfirmResize(computeClient, d.Id()).ExtractErr()
-		if err != nil {
-			return fmt.Errorf("Error confirming resize of OpenStack server: %s", err)
-		}
+			_, err = stateConf.WaitForState()
+			if err != nil {
+				return fmt.Errorf("Error waiting for instance (%s) to resize: %s", d.Id(), err)
+			}
 
-		stateConf = &resource.StateChangeConf{
-			Pending:    []string{"VERIFY_RESIZE"},
-			Target:     []string{"ACTIVE"},
-			Refresh:    ServerV2StateRefreshFunc(computeClient, d.Id()),
-			Timeout:    d.Timeout(schema.TimeoutUpdate),
-			Delay:      10 * time.Second,
-			MinTimeout: 3 * time.Second,
-		}
+			// Confirm resize.
+			log.Printf("[DEBUG] Confirming resize")
+			err = servers.ConfirmResize(computeClient, d.Id()).ExtractErr()
+			if err != nil {
+				return fmt.Errorf("Error confirming resize of OpenStack server: %s", err)
+			}
 
-		_, err = stateConf.WaitForState()
-		if err != nil {
-			return fmt.Errorf("Error waiting for instance (%s) to confirm resize: %s", d.Id(), err)
+			stateConf = &resource.StateChangeConf{
+				Pending:    []string{"VERIFY_RESIZE"},
+				Target:     []string{"ACTIVE", "SHUTOFF"},
+				Refresh:    ServerV2StateRefreshFunc(computeClient, d.Id()),
+				Timeout:    d.Timeout(schema.TimeoutUpdate),
+				Delay:      10 * time.Second,
+				MinTimeout: 3 * time.Second,
+			}
+
+			_, err = stateConf.WaitForState()
+			if err != nil {
+				return fmt.Errorf("Error waiting for instance (%s) to confirm resize: %s", d.Id(), err)
+			}
 		}
 	}
 
@@ -867,26 +888,10 @@ func resourceComputeInstanceV2Delete(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
 
-	// Make sure all volumes are detached before deleting
-	volumes := d.Get("volume")
-	if volumeSet, ok := volumes.(*schema.Set); ok {
-		volumeList := volumeSet.List()
-		if len(volumeList) > 0 {
-			log.Printf("[DEBUG] Attempting to detach the following volumes: %#v", volumeList)
-			if blockClient, err := config.blockStorageV1Client(GetRegion(d, config)); err != nil {
-				return err
-			} else {
-				if err := detachVolumesFromInstance(computeClient, blockClient, d.Id(), volumeList); err != nil {
-					return err
-				}
-			}
-		}
-	}
-
 	if d.Get("stop_before_destroy").(bool) {
 		err = startstop.Stop(computeClient, d.Id()).ExtractErr()
 		if err != nil {
-			log.Printf("[WARN] Error stopping OpenStack instance: %s", err)
+			log.Printf("[WARN] Error stopping openstack_compute_instance_v2: %s", err)
 		} else {
 			stopStateConf := &resource.StateChangeConf{
 				Pending:    []string{"ACTIVE"},
@@ -908,13 +913,13 @@ func resourceComputeInstanceV2Delete(d *schema.ResourceData, meta interface{}) e
 		log.Printf("[DEBUG] Force deleting OpenStack Instance %s", d.Id())
 		err = servers.ForceDelete(computeClient, d.Id()).ExtractErr()
 		if err != nil {
-			return fmt.Errorf("Error deleting OpenStack server: %s", err)
+			return CheckDeleted(d, err, "Error force deleting openstack_compute_instance_v2")
 		}
 	} else {
 		log.Printf("[DEBUG] Deleting OpenStack Instance %s", d.Id())
 		err = servers.Delete(computeClient, d.Id()).ExtractErr()
 		if err != nil {
-			return fmt.Errorf("Error deleting OpenStack server: %s", err)
+			return CheckDeleted(d, err, "Error deleting openstack_compute_instance_v2")
 		}
 	}
 
@@ -937,7 +942,6 @@ func resourceComputeInstanceV2Delete(d *schema.ResourceData, meta interface{}) e
 			d.Id(), err)
 	}
 
-	d.SetId("")
 	return nil
 }
 
@@ -966,291 +970,6 @@ func resourceInstanceSecGroupsV2(d *schema.ResourceData) []string {
 	return secgroups
 }
 
-// getInstanceNetworks collects instance network information from different sources
-// and aggregates it all together.
-func getInstanceNetworksAndAddresses(computeClient *gophercloud.ServiceClient, d *schema.ResourceData) ([]map[string]interface{}, error) {
-	server, err := servers.Get(computeClient, d.Id()).Extract()
-
-	if err != nil {
-		return nil, CheckDeleted(d, err, "server")
-	}
-
-	networkDetails, err := getInstanceNetworks(computeClient, d)
-	addresses := getInstanceAddresses(server.Addresses)
-	if err != nil {
-		return nil, err
-	}
-
-	// if there are no networkDetails, make networks at least a length of 1
-	networkLength := 1
-	if len(networkDetails) > 0 {
-		networkLength = len(networkDetails)
-	}
-	networks := make([]map[string]interface{}, networkLength)
-
-	// Loop through all networks and addresses,
-	// merge relevant address details.
-	if len(networkDetails) == 0 {
-		for netName, n := range addresses {
-			networks[0] = map[string]interface{}{
-				"name":        netName,
-				"fixed_ip_v4": n["fixed_ip_v4"],
-				"fixed_ip_v6": n["fixed_ip_v6"],
-				"floating_ip": n["floating_ip"],
-				"mac":         n["mac"],
-			}
-		}
-	} else {
-		for i, net := range networkDetails {
-			n := addresses[net["name"].(string)]
-
-			networks[i] = map[string]interface{}{
-				"uuid":           networkDetails[i]["uuid"],
-				"name":           networkDetails[i]["name"],
-				"port":           networkDetails[i]["port"],
-				"fixed_ip_v4":    n["fixed_ip_v4"],
-				"fixed_ip_v6":    n["fixed_ip_v6"],
-				"floating_ip":    n["floating_ip"],
-				"mac":            n["mac"],
-				"access_network": networkDetails[i]["access_network"],
-			}
-		}
-	}
-
-	log.Printf("[DEBUG] networks: %+v", networks)
-
-	return networks, nil
-}
-
-func getInstanceNetworks(computeClient *gophercloud.ServiceClient, d *schema.ResourceData) ([]map[string]interface{}, error) {
-	rawNetworks := d.Get("network").([]interface{})
-	newNetworks := make([]map[string]interface{}, 0, len(rawNetworks))
-	var tenantnet tenantnetworks.Network
-
-	tenantNetworkExt := true
-	for _, raw := range rawNetworks {
-		// Not sure what causes this, but it is a possibility (see GH-2323).
-		// Since we call this function to reconcile what we'll save in the
-		// state anyways, we just ignore it.
-		if raw == nil {
-			continue
-		}
-
-		rawMap := raw.(map[string]interface{})
-
-		// Both a floating IP and a port cannot be specified
-		if fip, ok := rawMap["floating_ip"].(string); ok {
-			if port, ok := rawMap["port"].(string); ok {
-				if fip != "" && port != "" {
-					return nil, fmt.Errorf("Only one of a floating IP or port may be specified per network.")
-				}
-			}
-		}
-
-		allPages, err := tenantnetworks.List(computeClient).AllPages()
-		if err != nil {
-			if _, ok := err.(gophercloud.ErrDefault404); ok {
-				log.Printf("[DEBUG] os-tenant-networks disabled")
-				tenantNetworkExt = false
-			}
-
-			log.Printf("[DEBUG] Err looks like: %+v", err)
-			if errCode, ok := err.(gophercloud.ErrUnexpectedResponseCode); ok {
-				if errCode.Actual == 403 {
-					log.Printf("[DEBUG] os-tenant-networks disabled.")
-					tenantNetworkExt = false
-				} else {
-					log.Printf("[DEBUG] unexpected os-tenant-networks error: %s", err)
-					tenantNetworkExt = false
-				}
-			}
-		}
-
-		// In some cases, a call to os-tenant-networks might work,
-		// but the response is invalid. Catch this during extraction.
-		networkList := []tenantnetworks.Network{}
-		if tenantNetworkExt {
-			networkList, err = tenantnetworks.ExtractNetworks(allPages)
-			if err != nil {
-				log.Printf("[DEBUG] error extracting os-tenant-networks results: %s", err)
-				tenantNetworkExt = false
-			}
-		}
-
-		networkID := ""
-		networkName := ""
-		if tenantNetworkExt {
-			for _, network := range networkList {
-				if network.Name == rawMap["name"] {
-					tenantnet = network
-				}
-				if network.ID == rawMap["uuid"] {
-					tenantnet = network
-				}
-			}
-
-			networkID = tenantnet.ID
-			networkName = tenantnet.Name
-		} else {
-			networkID = rawMap["uuid"].(string)
-			networkName = rawMap["name"].(string)
-		}
-
-		newNetworks = append(newNetworks, map[string]interface{}{
-			"uuid":           networkID,
-			"name":           networkName,
-			"port":           rawMap["port"].(string),
-			"fixed_ip_v4":    rawMap["fixed_ip_v4"].(string),
-			"access_network": rawMap["access_network"].(bool),
-		})
-	}
-
-	log.Printf("[DEBUG] networks: %+v", newNetworks)
-	return newNetworks, nil
-}
-
-func getInstanceAddresses(addresses map[string]interface{}) map[string]map[string]interface{} {
-	addrs := make(map[string]map[string]interface{})
-	for n, networkAddresses := range addresses {
-		addrs[n] = make(map[string]interface{})
-		for _, element := range networkAddresses.([]interface{}) {
-			address := element.(map[string]interface{})
-			if address["OS-EXT-IPS:type"] == "floating" {
-				addrs[n]["floating_ip"] = address["addr"]
-			} else {
-				if address["version"].(float64) == 4 {
-					addrs[n]["fixed_ip_v4"] = address["addr"].(string)
-				} else {
-					addrs[n]["fixed_ip_v6"] = fmt.Sprintf("[%s]", address["addr"].(string))
-				}
-			}
-			if mac, ok := address["OS-EXT-IPS-MAC:mac_addr"]; ok {
-				addrs[n]["mac"] = mac.(string)
-			}
-		}
-	}
-
-	log.Printf("[DEBUG] Addresses: %+v", addresses)
-
-	return addrs
-}
-
-func getInstanceAccessAddresses(d *schema.ResourceData, networks []map[string]interface{}) (string, string) {
-	var hostv4, hostv6 string
-
-	// Start with a global floating IP
-	floatingIP := d.Get("floating_ip").(string)
-	if floatingIP != "" {
-		hostv4 = floatingIP
-	}
-
-	// Loop through all networks
-	// If the network has a valid floating, fixed v4, or fixed v6 address
-	// and hostv4 or hostv6 is not set, set hostv4/hostv6.
-	// If the network is an "access_network" overwrite hostv4/hostv6.
-	for _, n := range networks {
-		var accessNetwork bool
-
-		if an, ok := n["access_network"].(bool); ok && an {
-			accessNetwork = true
-		}
-
-		if fixedIPv4, ok := n["fixed_ip_v4"].(string); ok && fixedIPv4 != "" {
-			if hostv4 == "" || accessNetwork {
-				hostv4 = fixedIPv4
-			}
-		}
-
-		if floatingIP, ok := n["floating_ip"].(string); ok && floatingIP != "" {
-			if hostv4 == "" || accessNetwork {
-				hostv4 = floatingIP
-			}
-		}
-
-		if fixedIPv6, ok := n["fixed_ip_v6"].(string); ok && fixedIPv6 != "" {
-			if hostv6 == "" || accessNetwork {
-				hostv6 = fixedIPv6
-			}
-		}
-	}
-
-	log.Printf("[DEBUG] OpenStack Instance Network Access Addresses: %s, %s", hostv4, hostv6)
-
-	return hostv4, hostv6
-}
-
-func checkInstanceFloatingIPs(d *schema.ResourceData) error {
-	rawNetworks := d.Get("network").([]interface{})
-	floatingIP := d.Get("floating_ip").(string)
-
-	for _, raw := range rawNetworks {
-		if raw == nil {
-			continue
-		}
-
-		rawMap := raw.(map[string]interface{})
-
-		// Error if a floating IP was specified both globally and in the network block.
-		if floatingIP != "" && rawMap["floating_ip"] != "" {
-			return fmt.Errorf("Cannot specify a floating IP both globally and in a network block.")
-		}
-	}
-	return nil
-}
-
-func associateFloatingIPsToInstance(computeClient *gophercloud.ServiceClient, d *schema.ResourceData) error {
-	floatingIP := d.Get("floating_ip").(string)
-	rawNetworks := d.Get("network").([]interface{})
-	instanceID := d.Id()
-
-	if floatingIP != "" {
-		if err := associateFloatingIPToInstance(computeClient, floatingIP, instanceID, ""); err != nil {
-			return err
-		}
-	} else {
-		for _, raw := range rawNetworks {
-			if raw == nil {
-				continue
-			}
-
-			rawMap := raw.(map[string]interface{})
-			if rawMap["floating_ip"].(string) != "" {
-				floatingIP := rawMap["floating_ip"].(string)
-				fixedIP := rawMap["fixed_ip_v4"].(string)
-				if err := associateFloatingIPToInstance(computeClient, floatingIP, instanceID, fixedIP); err != nil {
-					return err
-				}
-			}
-		}
-	}
-	return nil
-}
-
-func associateFloatingIPToInstance(computeClient *gophercloud.ServiceClient, floatingIP string, instanceID string, fixedIP string) error {
-	associateOpts := floatingips.AssociateOpts{
-		FloatingIP: floatingIP,
-		FixedIP:    fixedIP,
-	}
-
-	if err := floatingips.AssociateInstance(computeClient, instanceID, associateOpts).ExtractErr(); err != nil {
-		return fmt.Errorf("Error associating floating IP: %s", err)
-	}
-
-	return nil
-}
-
-func disassociateFloatingIPFromInstance(computeClient *gophercloud.ServiceClient, floatingIP string, instanceID string, fixedIP string) error {
-	disassociateOpts := floatingips.DisassociateOpts{
-		FloatingIP: floatingIP,
-	}
-
-	if err := floatingips.DisassociateInstance(computeClient, instanceID, disassociateOpts).ExtractErr(); err != nil {
-		return fmt.Errorf("Error disassociating floating IP: %s", err)
-	}
-
-	return nil
-}
-
 func resourceInstanceMetadataV2(d *schema.ResourceData) map[string]string {
 	m := make(map[string]string)
 	for key, val := range d.Get("metadata").(map[string]interface{}) {
@@ -1269,6 +988,8 @@ func resourceInstanceBlockDevicesV2(d *schema.ResourceData, bds []interface{}) (
 			BootIndex:           bdM["boot_index"].(int),
 			DeleteOnTermination: bdM["delete_on_termination"].(bool),
 			GuestFormat:         bdM["guest_format"].(string),
+			DeviceType:          bdM["device_type"].(string),
+			DiskBus:             bdM["disk_bus"].(string),
 		}
 
 		sourceType := bdM["source_type"].(string)
@@ -1323,12 +1044,13 @@ func resourceInstanceSchedulerHintsV2(d *schema.ResourceData, schedulerHintsRaw 
 	}
 
 	schedulerHints := schedulerhints.SchedulerHints{
-		Group:           schedulerHintsRaw["group"].(string),
-		DifferentHost:   differentHost,
-		SameHost:        sameHost,
-		Query:           query,
-		TargetCell:      schedulerHintsRaw["target_cell"].(string),
-		BuildNearHostIP: schedulerHintsRaw["build_near_host_ip"].(string),
+		Group:                schedulerHintsRaw["group"].(string),
+		DifferentHost:        differentHost,
+		SameHost:             sameHost,
+		Query:                query,
+		TargetCell:           schedulerHintsRaw["target_cell"].(string),
+		BuildNearHostIP:      schedulerHintsRaw["build_near_host_ip"].(string),
+		AdditionalProperties: schedulerHintsRaw["additional_properties"].(map[string]interface{}),
 	}
 
 	return schedulerHints
@@ -1415,23 +1137,33 @@ func setImageInformation(computeClient *gophercloud.ServiceClient, server *serve
 	return nil
 }
 
-func getFlavorID(client *gophercloud.ServiceClient, d *schema.ResourceData) (string, error) {
-	flavorId := d.Get("flavor_id").(string)
-
-	if flavorId != "" {
+func getFlavorID(computeClient *gophercloud.ServiceClient, d *schema.ResourceData) (string, error) {
+	if flavorId := d.Get("flavor_id").(string); flavorId != "" {
 		return flavorId, nil
+	} else {
+		// Try the OS_FLAVOR_ID environment variable
+		if v := os.Getenv("OS_FLAVOR_ID"); v != "" {
+			return v, nil
+		}
 	}
 
 	flavorName := d.Get("flavor_name").(string)
-	return flavors.IDFromName(client, flavorName)
-}
+	if flavorName == "" {
+		// Try the OS_FLAVOR_NAME environment variable
+		if v := os.Getenv("OS_FLAVOR_NAME"); v != "" {
+			flavorName = v
+		}
+	}
 
-func resourceComputeVolumeAttachmentHash(v interface{}) int {
-	var buf bytes.Buffer
-	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%s-", m["volume_id"].(string)))
+	if flavorName != "" {
+		flavorId, err := flavors.IDFromName(computeClient, flavorName)
+		if err != nil {
+			return "", err
+		}
+		return flavorId, nil
+	}
 
-	return hashcode.String(buf.String())
+	return "", fmt.Errorf("Neither a flavor_id or flavor_name could be determined.")
 }
 
 func resourceComputeSchedulerHintsHash(v interface{}) int {
@@ -1450,126 +1182,17 @@ func resourceComputeSchedulerHintsHash(v interface{}) int {
 		buf.WriteString(fmt.Sprintf("%s-", m["build_host_near_ip"].(string)))
 	}
 
+	if m["additional_properties"] != nil {
+		for _, v := range m["additional_properties"].(map[string]interface{}) {
+			buf.WriteString(fmt.Sprintf("%s-", v))
+		}
+	}
+
 	buf.WriteString(fmt.Sprintf("%s-", m["different_host"].([]interface{})))
 	buf.WriteString(fmt.Sprintf("%s-", m["same_host"].([]interface{})))
 	buf.WriteString(fmt.Sprintf("%s-", m["query"].([]interface{})))
 
 	return hashcode.String(buf.String())
-}
-
-func attachVolumesToInstance(computeClient *gophercloud.ServiceClient, blockClient *gophercloud.ServiceClient, serverId string, vols []interface{}) error {
-	for _, v := range vols {
-		va := v.(map[string]interface{})
-		volumeId := va["volume_id"].(string)
-		device := va["device"].(string)
-
-		s := ""
-		if serverId != "" {
-			s = serverId
-		} else if va["server_id"] != "" {
-			s = va["server_id"].(string)
-		} else {
-			return fmt.Errorf("Unable to determine server ID to attach volume.")
-		}
-
-		vaOpts := &volumeattach.CreateOpts{
-			Device:   device,
-			VolumeID: volumeId,
-		}
-
-		if _, err := volumeattach.Create(computeClient, s, vaOpts).Extract(); err != nil {
-			return err
-		}
-
-		stateConf := &resource.StateChangeConf{
-			Pending:    []string{"attaching", "available"},
-			Target:     []string{"in-use"},
-			Refresh:    VolumeV1StateRefreshFunc(blockClient, va["volume_id"].(string)),
-			Timeout:    30 * time.Minute,
-			Delay:      5 * time.Second,
-			MinTimeout: 2 * time.Second,
-		}
-
-		if _, err := stateConf.WaitForState(); err != nil {
-			return err
-		}
-
-		log.Printf("[INFO] Attached volume %s to instance %s", volumeId, serverId)
-	}
-	return nil
-}
-
-func detachVolumesFromInstance(computeClient *gophercloud.ServiceClient, blockClient *gophercloud.ServiceClient, serverId string, vols []interface{}) error {
-	for _, v := range vols {
-		va := v.(map[string]interface{})
-		aId := va["id"].(string)
-
-		log.Printf("[INFO] Attempting to detach volume %s", va["volume_id"])
-		if err := volumeattach.Delete(computeClient, serverId, aId).ExtractErr(); err != nil {
-			return err
-		}
-
-		stateConf := &resource.StateChangeConf{
-			Pending:    []string{"detaching", "in-use"},
-			Target:     []string{"available"},
-			Refresh:    VolumeV1StateRefreshFunc(blockClient, va["volume_id"].(string)),
-			Timeout:    30 * time.Minute,
-			Delay:      5 * time.Second,
-			MinTimeout: 2 * time.Second,
-		}
-
-		if _, err := stateConf.WaitForState(); err != nil {
-			return err
-		}
-		log.Printf("[INFO] Detached volume %s from instance %s", va["volume_id"], serverId)
-	}
-
-	return nil
-}
-
-func getVolumeAttachments(computeClient *gophercloud.ServiceClient, d *schema.ResourceData) error {
-	var vols []map[string]interface{}
-
-	allPages, err := volumeattach.List(computeClient, d.Id()).AllPages()
-	if err != nil {
-		if errCode, ok := err.(gophercloud.ErrUnexpectedResponseCode); ok {
-			if errCode.Actual == 403 {
-				log.Printf("[DEBUG] os-volume_attachments disabled.")
-				return nil
-			} else {
-				return err
-			}
-		}
-	}
-
-	allVolumeAttachments, err := volumeattach.ExtractVolumeAttachments(allPages)
-	if err != nil {
-		return err
-	}
-
-	if v, ok := d.GetOk("volume"); ok {
-		volumes := v.(*schema.Set).List()
-		for _, volume := range volumes {
-			if volumeMap, ok := volume.(map[string]interface{}); ok {
-				if v, ok := volumeMap["volume_id"].(string); ok {
-					for _, volumeAttachment := range allVolumeAttachments {
-						if v == volumeAttachment.ID {
-							vol := make(map[string]interface{})
-							vol["id"] = volumeAttachment.ID
-							vol["volume_id"] = volumeAttachment.VolumeID
-							vol["device"] = volumeAttachment.Device
-							vols = append(vols, vol)
-						}
-					}
-				}
-			}
-		}
-	}
-
-	log.Printf("[INFO] Volume attachments: %v", vols)
-	d.Set("volume", vols)
-
-	return nil
 }
 
 func checkBlockDeviceConfig(d *schema.ResourceData) error {
@@ -1627,4 +1250,30 @@ func resourceInstancePersonalityV2(d *schema.ResourceData) servers.Personality {
 	}
 
 	return personalities
+}
+
+// suppressAvailabilityZoneDetailDiffs will suppress diffs when a user specifies an
+// availability zone in the format of `az:host:node` and Nova/Compute responds with
+// only `az`.
+func suppressAvailabilityZoneDetailDiffs(k, old, new string, d *schema.ResourceData) bool {
+	if strings.Contains(new, ":") {
+		parts := strings.Split(new, ":")
+		az := parts[0]
+
+		if az == old {
+			return true
+		}
+	}
+
+	return false
+}
+
+// suppressPowerStateDiffs will allow a state of "error" or "migrating" even though we don't
+// allow them as a user input.
+func suppressPowerStateDiffs(k, old, new string, d *schema.ResourceData) bool {
+	if old == "error" || old == "migrating" {
+		return true
+	}
+
+	return false
 }
