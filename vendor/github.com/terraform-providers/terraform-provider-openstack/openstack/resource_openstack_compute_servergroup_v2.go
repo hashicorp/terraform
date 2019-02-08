@@ -19,30 +19,33 @@ func resourceComputeServerGroupV2() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"region": &schema.Schema{
+			"region": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
 
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Required: true,
 			},
-			"policies": &schema.Schema{
+
+			"policies": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
-			"members": &schema.Schema{
+
+			"members": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
-			"value_specs": &schema.Schema{
+
+			"value_specs": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				ForceNew: true,
@@ -58,18 +61,23 @@ func resourceComputeServerGroupV2Create(d *schema.ResourceData, meta interface{}
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
 
-	createOpts := ServerGroupCreateOpts{
+	name := d.Get("name").(string)
+
+	rawPolicies := d.Get("policies").([]interface{})
+	policies := expandComputeServerGroupV2Policies(computeClient, rawPolicies)
+
+	createOpts := ComputeServerGroupV2CreateOpts{
 		servergroups.CreateOpts{
-			Name:     d.Get("name").(string),
-			Policies: resourceServerGroupPoliciesV2(d),
+			Name:     name,
+			Policies: policies,
 		},
 		MapValueSpecs(d),
 	}
 
-	log.Printf("[DEBUG] Create Options: %#v", createOpts)
+	log.Printf("[DEBUG] openstack_compute_servergroup_v2 create options: %#v", createOpts)
 	newSG, err := servergroups.Create(computeClient, createOpts).Extract()
 	if err != nil {
-		return fmt.Errorf("Error creating ServerGroup: %s", err)
+		return fmt.Errorf("Error creating openstack_compute_servergroup_v2 %s: %s", name, err)
 	}
 
 	d.SetId(newSG.ID)
@@ -86,27 +94,14 @@ func resourceComputeServerGroupV2Read(d *schema.ResourceData, meta interface{}) 
 
 	sg, err := servergroups.Get(computeClient, d.Id()).Extract()
 	if err != nil {
-		return CheckDeleted(d, err, "server group")
+		return CheckDeleted(d, err, "Error retrieving openstack_compute_servergroup_v2")
 	}
 
-	log.Printf("[DEBUG] Retrieved ServerGroup %s: %+v", d.Id(), sg)
+	log.Printf("[DEBUG] Retrieved openstack_compute_servergroup_v2 %s: %#v", d.Id(), sg)
 
-	// Set the name
 	d.Set("name", sg.Name)
-
-	// Set the policies
-	policies := []string{}
-	for _, p := range sg.Policies {
-		policies = append(policies, p)
-	}
-	d.Set("policies", policies)
-
-	// Set the members
-	members := []string{}
-	for _, m := range sg.Members {
-		members = append(members, m)
-	}
-	d.Set("members", members)
+	d.Set("policies", sg.Policies)
+	d.Set("members", sg.Members)
 
 	d.Set("region", GetRegion(d, config))
 
@@ -120,19 +115,9 @@ func resourceComputeServerGroupV2Delete(d *schema.ResourceData, meta interface{}
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
 
-	log.Printf("[DEBUG] Deleting ServerGroup %s", d.Id())
 	if err := servergroups.Delete(computeClient, d.Id()).ExtractErr(); err != nil {
-		return fmt.Errorf("Error deleting ServerGroup: %s", err)
+		return CheckDeleted(d, err, "Error deleting openstack_compute_servergroup_v2")
 	}
 
 	return nil
-}
-
-func resourceServerGroupPoliciesV2(d *schema.ResourceData) []string {
-	rawPolicies := d.Get("policies").([]interface{})
-	policies := make([]string, len(rawPolicies))
-	for i, raw := range rawPolicies {
-		policies[i] = raw.(string)
-	}
-	return policies
 }
