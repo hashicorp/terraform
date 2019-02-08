@@ -40,7 +40,7 @@ func testInput(t *testing.T, answers map[string]string) *mockInput {
 	return &mockInput{answers: answers}
 }
 
-func testBackendDefault(t *testing.T) *Remote {
+func testBackendDefault(t *testing.T) (*Remote, func()) {
 	obj := cty.ObjectVal(map[string]cty.Value{
 		"hostname":     cty.NullVal(cty.String),
 		"organization": cty.StringVal("hashicorp"),
@@ -53,7 +53,7 @@ func testBackendDefault(t *testing.T) *Remote {
 	return testBackend(t, obj)
 }
 
-func testBackendNoDefault(t *testing.T) *Remote {
+func testBackendNoDefault(t *testing.T) (*Remote, func()) {
 	obj := cty.ObjectVal(map[string]cty.Value{
 		"hostname":     cty.NullVal(cty.String),
 		"organization": cty.StringVal("hashicorp"),
@@ -66,7 +66,7 @@ func testBackendNoDefault(t *testing.T) *Remote {
 	return testBackend(t, obj)
 }
 
-func testBackendNoOperations(t *testing.T) *Remote {
+func testBackendNoOperations(t *testing.T) (*Remote, func()) {
 	obj := cty.ObjectVal(map[string]cty.Value{
 		"hostname":     cty.NullVal(cty.String),
 		"organization": cty.StringVal("no-operations"),
@@ -80,16 +80,18 @@ func testBackendNoOperations(t *testing.T) *Remote {
 }
 
 func testRemoteClient(t *testing.T) remote.Client {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
+
 	raw, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("error: %v", err)
 	}
-	s := raw.(*remote.State)
-	return s.Client
+
+	return raw.(*remote.State).Client
 }
 
-func testBackend(t *testing.T, obj cty.Value) *Remote {
+func testBackend(t *testing.T, obj cty.Value) (*Remote, func()) {
 	s := testServer(t)
 	b := New(testDisco(s))
 
@@ -148,7 +150,7 @@ func testBackend(t *testing.T, obj cty.Value) *Remote {
 		}
 	}
 
-	return b
+	return b, s.Close
 }
 
 func testLocalBackend(t *testing.T, remote *Remote) backend.Enhanced {
@@ -193,8 +195,8 @@ func testServer(t *testing.T) *httptest.Server {
 		io.WriteString(w, `{
   "service": "tfe.v2.1",
   "product": "terraform",
-	"minimum": "0.11.8",
-	"maximum": "0.11.11"
+  "minimum": "0.1.0",
+  "maximum": "10.0.0"
 }`)
 	})
 
