@@ -3,6 +3,7 @@ package openstack
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 
@@ -15,25 +16,28 @@ func resourceNetworkingRouterRouteV2() *schema.Resource {
 		Create: resourceNetworkingRouterRouteV2Create,
 		Read:   resourceNetworkingRouterRouteV2Read,
 		Delete: resourceNetworkingRouterRouteV2Delete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
-			"region": &schema.Schema{
+			"region": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
-			"router_id": &schema.Schema{
+			"router_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"destination_cidr": &schema.Schema{
+			"destination_cidr": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"next_hop": &schema.Schema{
+			"next_hop": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -115,6 +119,26 @@ func resourceNetworkingRouterRouteV2Read(d *schema.ResourceData, meta interface{
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
+	destCidr := d.Get("destination_cidr").(string)
+	nextHop := d.Get("next_hop").(string)
+
+	routeIDParts := []string{}
+	if d.Id() != "" && strings.Contains(d.Id(), "-route-") {
+		routeIDParts = strings.Split(d.Id(), "-route-")
+		routeLastIDParts := strings.Split(routeIDParts[1], "-")
+
+		if routerId == "" {
+			routerId = routeIDParts[0]
+			d.Set("router_id", routerId)
+		}
+		if destCidr == "" {
+			destCidr = routeLastIDParts[0]
+		}
+		if nextHop == "" {
+			nextHop = routeLastIDParts[1]
+		}
+	}
+
 	n, err := routers.Get(networkingClient, routerId).Extract()
 	if err != nil {
 		if _, ok := err.(gophercloud.ErrDefault404); ok {
@@ -126,9 +150,6 @@ func resourceNetworkingRouterRouteV2Read(d *schema.ResourceData, meta interface{
 	}
 
 	log.Printf("[DEBUG] Retrieved Router %s: %+v", routerId, n)
-
-	var destCidr string = d.Get("destination_cidr").(string)
-	var nextHop string = d.Get("next_hop").(string)
 
 	d.Set("next_hop", "")
 	d.Set("destination_cidr", "")

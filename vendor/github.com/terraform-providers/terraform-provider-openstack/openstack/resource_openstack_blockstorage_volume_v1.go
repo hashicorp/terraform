@@ -1,7 +1,6 @@
 package openstack
 
 import (
-	"bytes"
 	"fmt"
 	"log"
 	"time"
@@ -9,7 +8,7 @@ import (
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/blockstorage/v1/volumes"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/volumeattach"
-	"github.com/hashicorp/terraform/helper/hashcode"
+
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -30,81 +29,90 @@ func resourceBlockStorageVolumeV1() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"region": &schema.Schema{
+			"region": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
 
-			"size": &schema.Schema{
+			"size": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
 			},
-			"name": &schema.Schema{
+
+			"name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: false,
 			},
-			"description": &schema.Schema{
+
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: false,
 			},
-			"availability_zone": &schema.Schema{
+
+			"availability_zone": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
 			},
-			"metadata": &schema.Schema{
+
+			"metadata": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				ForceNew: false,
 				Computed: true,
 			},
-			"snapshot_id": &schema.Schema{
+
+			"snapshot_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			"source_vol_id": &schema.Schema{
+
+			"source_vol_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			"image_id": &schema.Schema{
+
+			"image_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			"volume_type": &schema.Schema{
+
+			"volume_type": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
 			},
-			"attachment": &schema.Schema{
+
+			"attachment": {
 				Type:     schema.TypeSet,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"id": &schema.Schema{
+						"id": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"instance_id": &schema.Schema{
+						"instance_id": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"device": &schema.Schema{
+						"device": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
 					},
 				},
-				Set: resourceVolumeAttachmentHash,
+				Set: blockStorageVolumeV1AttachmentHash,
 			},
 		},
 	}
@@ -117,6 +125,7 @@ func resourceBlockStorageVolumeV1Create(d *schema.ResourceData, meta interface{}
 		return fmt.Errorf("Error creating OpenStack block storage client: %s", err)
 	}
 
+	metadata := d.Get("metadata").(map[string]interface{})
 	createOpts := &volumes.CreateOpts{
 		Description:      d.Get("description").(string),
 		AvailabilityZone: d.Get("availability_zone").(string),
@@ -126,25 +135,20 @@ func resourceBlockStorageVolumeV1Create(d *schema.ResourceData, meta interface{}
 		SourceVolID:      d.Get("source_vol_id").(string),
 		ImageID:          d.Get("image_id").(string),
 		VolumeType:       d.Get("volume_type").(string),
-		Metadata:         resourceContainerMetadataV2(d),
+		Metadata:         expandToMapStringString(metadata),
 	}
 
-	log.Printf("[DEBUG] Create Options: %#v", createOpts)
+	log.Printf("[DEBUG] openstack_blockstorage_volume_v1 create options: %#v", createOpts)
+
 	v, err := volumes.Create(blockStorageClient, createOpts).Extract()
 	if err != nil {
-		return fmt.Errorf("Error creating OpenStack volume: %s", err)
+		return fmt.Errorf("Error creating openstack_blockstorage_volume_v1: %s", err)
 	}
-	log.Printf("[INFO] Volume ID: %s", v.ID)
-
-	// Wait for the volume to become available.
-	log.Printf(
-		"[DEBUG] Waiting for volume (%s) to become available",
-		v.ID)
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"downloading", "creating"},
 		Target:     []string{"available"},
-		Refresh:    VolumeV1StateRefreshFunc(blockStorageClient, v.ID),
+		Refresh:    blockStorageVolumeV1StateRefreshFunc(blockStorageClient, v.ID),
 		Timeout:    d.Timeout(schema.TimeoutCreate),
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
@@ -153,8 +157,7 @@ func resourceBlockStorageVolumeV1Create(d *schema.ResourceData, meta interface{}
 	_, err = stateConf.WaitForState()
 	if err != nil {
 		return fmt.Errorf(
-			"Error waiting for volume (%s) to become ready: %s",
-			v.ID, err)
+			"Error waiting for openstack_blockstorage_volume_v1 %s to become ready: %s", v.ID, err)
 	}
 
 	// Store the ID now
@@ -173,10 +176,10 @@ func resourceBlockStorageVolumeV1Read(d *schema.ResourceData, meta interface{}) 
 
 	v, err := volumes.Get(blockStorageClient, d.Id()).Extract()
 	if err != nil {
-		return CheckDeleted(d, err, "volume")
+		return CheckDeleted(d, err, "Error retrieving openstack_blockstorage_volume_v1")
 	}
 
-	log.Printf("[DEBUG] Retrieved volume %s: %+v", d.Id(), v)
+	log.Printf("[DEBUG] Retrieved openstack_blockstorage_volume_v1 %s: %#v", d.Id(), v)
 
 	d.Set("size", v.Size)
 	d.Set("description", v.Description)
@@ -188,15 +191,12 @@ func resourceBlockStorageVolumeV1Read(d *schema.ResourceData, meta interface{}) 
 	d.Set("metadata", v.Metadata)
 	d.Set("region", GetRegion(d, config))
 
-	attachments := make([]map[string]interface{}, len(v.Attachments))
-	for i, attachment := range v.Attachments {
-		attachments[i] = make(map[string]interface{})
-		attachments[i]["id"] = attachment["id"]
-		attachments[i]["instance_id"] = attachment["server_id"]
-		attachments[i]["device"] = attachment["device"]
-		log.Printf("[DEBUG] attachment: %v", attachment)
+	attachments := flattenBlockStorageVolumeV1Attachments(v.Attachments)
+	log.Printf("[DEBUG] openstack_blockstorage_volume_v1 %s attachments: %#v", d.Id(), attachments)
+	if err := d.Set("attachment", attachments); err != nil {
+		log.Printf(
+			"[DEBUG] unable to set openstack_blockstorage_volume_v1 %s attachments: %s", d.Id(), err)
 	}
-	d.Set("attachment", attachments)
 
 	return nil
 }
@@ -208,18 +208,21 @@ func resourceBlockStorageVolumeV1Update(d *schema.ResourceData, meta interface{}
 		return fmt.Errorf("Error creating OpenStack block storage client: %s", err)
 	}
 
+	name := d.Get("name").(string)
+	description := d.Get("description").(string)
 	updateOpts := volumes.UpdateOpts{
-		Name:        d.Get("name").(string),
-		Description: d.Get("description").(string),
+		Name:        &name,
+		Description: &description,
 	}
 
 	if d.HasChange("metadata") {
-		updateOpts.Metadata = resourceVolumeMetadataV1(d)
+		metadata := d.Get("metadata").(map[string]interface{})
+		updateOpts.Metadata = expandToMapStringString(metadata)
 	}
 
 	_, err = volumes.Update(blockStorageClient, d.Id(), updateOpts).Extract()
 	if err != nil {
-		return fmt.Errorf("Error updating OpenStack volume: %s", err)
+		return fmt.Errorf("Error updating openstack_blockstorage_volume_v1 %s: %s", d.Id(), err)
 	}
 
 	return resourceBlockStorageVolumeV1Read(d, meta)
@@ -234,37 +237,55 @@ func resourceBlockStorageVolumeV1Delete(d *schema.ResourceData, meta interface{}
 
 	v, err := volumes.Get(blockStorageClient, d.Id()).Extract()
 	if err != nil {
-		return CheckDeleted(d, err, "volume")
+		return CheckDeleted(d, err, "Error retrieving openstack_blockstorage_volume_v1")
 	}
 
-	// make sure this volume is detached from all instances before deleting
+	// Make sure this volume is detached from all instances before deleting.
 	if len(v.Attachments) > 0 {
-		log.Printf("[DEBUG] detaching volumes")
-		if computeClient, err := config.computeV2Client(GetRegion(d, config)); err != nil {
-			return err
-		} else {
-			for _, volumeAttachment := range v.Attachments {
-				log.Printf("[DEBUG] Attachment: %v", volumeAttachment)
-				if err := volumeattach.Delete(computeClient, volumeAttachment["server_id"].(string), volumeAttachment["id"].(string)).ExtractErr(); err != nil {
-					return err
+		computeClient, err := config.computeV2Client(GetRegion(d, config))
+		if err != nil {
+			return fmt.Errorf("Error creating OpenStack compute client: %s", err)
+		}
+
+		for _, volumeAttachment := range v.Attachments {
+			log.Printf("[DEBUG] openstack_blockstorage_volume_v1 %s attachment: %#v", d.Id(), volumeAttachment)
+
+			serverID := volumeAttachment["server_id"].(string)
+			attachmentID := volumeAttachment["id"].(string)
+			if err := volumeattach.Delete(computeClient, serverID, attachmentID).ExtractErr(); err != nil {
+				// It's possible the volume was already detached by
+				// openstack_compute_volume_attach_v2, so consider
+				// a 404 acceptable and continue.
+				if _, ok := err.(gophercloud.ErrDefault404); ok {
+					continue
 				}
-			}
 
-			stateConf := &resource.StateChangeConf{
-				Pending:    []string{"in-use", "attaching", "detaching"},
-				Target:     []string{"available"},
-				Refresh:    VolumeV1StateRefreshFunc(blockStorageClient, d.Id()),
-				Timeout:    10 * time.Minute,
-				Delay:      10 * time.Second,
-				MinTimeout: 3 * time.Second,
-			}
+				// A 409 is also acceptable because there's another
+				// concurrent action happening.
+				if errCode, ok := err.(gophercloud.ErrUnexpectedResponseCode); ok {
+					if errCode.Actual == 409 {
+						continue
+					}
+				}
 
-			_, err = stateConf.WaitForState()
-			if err != nil {
 				return fmt.Errorf(
-					"Error waiting for volume (%s) to become available: %s",
-					d.Id(), err)
+					"Error detaching openstack_blockstorage_volume_v1 %s from %s: %s", d.Id(), serverID, err)
 			}
+		}
+
+		stateConf := &resource.StateChangeConf{
+			Pending:    []string{"in-use", "attaching", "detaching"},
+			Target:     []string{"available", "deleted"},
+			Refresh:    blockStorageVolumeV1StateRefreshFunc(blockStorageClient, d.Id()),
+			Timeout:    10 * time.Minute,
+			Delay:      10 * time.Second,
+			MinTimeout: 3 * time.Second,
+		}
+
+		_, err = stateConf.WaitForState()
+		if err != nil {
+			return fmt.Errorf(
+				"Error waiting for openstack_blockstorage_volume_v1 %s to become available: %s", d.Id(), err)
 		}
 	}
 
@@ -273,17 +294,14 @@ func resourceBlockStorageVolumeV1Delete(d *schema.ResourceData, meta interface{}
 	// If this is true, just move on. It'll eventually delete.
 	if v.Status != "deleting" {
 		if err := volumes.Delete(blockStorageClient, d.Id()).ExtractErr(); err != nil {
-			return CheckDeleted(d, err, "volume")
+			return CheckDeleted(d, err, "Error deleting openstack_blockstorage_volume_v1")
 		}
 	}
-
-	// Wait for the volume to delete before moving on.
-	log.Printf("[DEBUG] Waiting for volume (%s) to delete", d.Id())
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"deleting", "downloading", "available"},
 		Target:     []string{"deleted"},
-		Refresh:    VolumeV1StateRefreshFunc(blockStorageClient, d.Id()),
+		Refresh:    blockStorageVolumeV1StateRefreshFunc(blockStorageClient, d.Id()),
 		Timeout:    d.Timeout(schema.TimeoutDelete),
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
@@ -291,50 +309,8 @@ func resourceBlockStorageVolumeV1Delete(d *schema.ResourceData, meta interface{}
 
 	_, err = stateConf.WaitForState()
 	if err != nil {
-		return fmt.Errorf(
-			"Error waiting for volume (%s) to delete: %s",
-			d.Id(), err)
+		return fmt.Errorf("Error waiting for openstack_blockstorage_volume_v1 %s to delete: %s", d.Id(), err)
 	}
 
-	d.SetId("")
 	return nil
-}
-
-func resourceVolumeMetadataV1(d *schema.ResourceData) map[string]string {
-	m := make(map[string]string)
-	for key, val := range d.Get("metadata").(map[string]interface{}) {
-		m[key] = val.(string)
-	}
-	return m
-}
-
-// VolumeV1StateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
-// an OpenStack volume.
-func VolumeV1StateRefreshFunc(client *gophercloud.ServiceClient, volumeID string) resource.StateRefreshFunc {
-	return func() (interface{}, string, error) {
-		v, err := volumes.Get(client, volumeID).Extract()
-		if err != nil {
-			if _, ok := err.(gophercloud.ErrDefault404); ok {
-				return v, "deleted", nil
-			}
-			return nil, "", err
-		}
-
-		if v.Status == "error" {
-			return v, v.Status, fmt.Errorf("There was an error creating the volume. " +
-				"Please check with your cloud admin or check the Block Storage " +
-				"API logs to see why this error occurred.")
-		}
-
-		return v, v.Status, nil
-	}
-}
-
-func resourceVolumeAttachmentHash(v interface{}) int {
-	var buf bytes.Buffer
-	m := v.(map[string]interface{})
-	if m["instance_id"] != nil {
-		buf.WriteString(fmt.Sprintf("%s-", m["instance_id"].(string)))
-	}
-	return hashcode.String(buf.String())
 }

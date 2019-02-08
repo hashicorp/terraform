@@ -5,7 +5,7 @@ import (
 	"github.com/gophercloud/gophercloud/pagination"
 )
 
-// List returns a Pager that allows you to iterate over a collection of Network.
+// List returns a Pager that allows you to iterate over a collection of Networks.
 func List(client *gophercloud.ServiceClient) pagination.Pager {
 	return pagination.NewPager(client, listURL(client), func(r pagination.PageResult) pagination.Page {
 		return NetworkPage{pagination.SinglePageBase(r)}

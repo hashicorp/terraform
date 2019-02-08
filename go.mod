@@ -44,7 +44,8 @@ require (
 	github.com/google/btree v0.0.0-20180813153112-4030bb1f1f0c // indirect
 	github.com/google/go-cmp v0.1.1-0.20171002171727-8ebdfab36c66 // indirect
 	github.com/googleapis/gax-go v0.0.0-20161107002406-da06d194a00e // indirect
-	github.com/gophercloud/gophercloud v0.0.0-20170524130959-3027adb1ce72
+	github.com/gophercloud/gophercloud v0.0.0-20190208042652-bc37892e1968
+	github.com/gophercloud/utils v0.0.0-20190128072930-fbb6ab446f01 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20181103185306-d547d1d9531e // indirect
 	github.com/grpc-ecosystem/go-grpc-prometheus v0.0.0-20160910222444-6b7015e65d36 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.2.2 // indirect
@@ -122,7 +123,7 @@ require (
 	github.com/soheilhy/cmux v0.1.4 // indirect
 	github.com/spf13/afero v1.0.2
 	github.com/terraform-providers/terraform-provider-aws v1.29.0
-	github.com/terraform-providers/terraform-provider-openstack v0.0.0-20170616075611-4080a521c6ea
+	github.com/terraform-providers/terraform-provider-openstack v1.15.0
 	github.com/terraform-providers/terraform-provider-template v1.0.0 // indirect
 	github.com/terraform-providers/terraform-provider-tls v1.2.0 // indirect
 	github.com/ugorji/go v0.0.0-20170107133203-ded73eae5db7 // indirect
