@@ -55,6 +55,35 @@ func TestRemote_planBasic(t *testing.T) {
 	}
 }
 
+func TestRemote_planLongLine(t *testing.T) {
+	b := testBackendDefault(t)
+
+	mod, modCleanup := module.TestTree(t, "./test-fixtures/plan-long-line")
+	defer modCleanup()
+
+	op := testOperationPlan()
+	op.Module = mod
+	op.Workspace = backend.DefaultStateName
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Err != nil {
+		t.Fatalf("error running operation: %v", run.Err)
+	}
+	if run.PlanEmpty {
+		t.Fatal("expected a non-empty plan")
+	}
+
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+		t.Fatalf("missing plan summery in output: %s", output)
+	}
+}
+
 func TestRemote_planWithoutPermissions(t *testing.T) {
 	b, bCleanup := testBackendNoDefault(t)
 	defer bCleanup()

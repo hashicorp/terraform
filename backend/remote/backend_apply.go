@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"strings"
 
@@ -135,21 +136,34 @@ func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operati
 	if err != nil {
 		return r, generalError("error retrieving logs", err)
 	}
-	scanner := bufio.NewScanner(logs)
+	reader := bufio.NewReaderSize(logs, 64*1024)
 
-	skip := 0
-	for scanner.Scan() {
-		// Skip the first 3 lines to prevent duplicate output.
-		if skip < 3 {
-			skip++
-			continue
+	if b.CLI != nil {
+		skip := 0
+		for next := true; next; {
+			var l, line []byte
+
+			for isPrefix := true; isPrefix; {
+				l, isPrefix, err = reader.ReadLine()
+				if err != nil {
+					if err != io.EOF {
+						return r, generalError("error reading logs", err)
+					}
+					next = false
+				}
+				line = append(line, l...)
+			}
+
+			// Skip the first 3 lines to prevent duplicate output.
+			if skip < 3 {
+				skip++
+				continue
+			}
+
+			if next || len(line) > 0 {
+				b.CLI.Output(b.Colorize().Color(string(line)))
+			}
 		}
-		if b.CLI != nil {
-			b.CLI.Output(b.Colorize().Color(scanner.Text()))
-		}
-	}
-	if err := scanner.Err(); err != nil {
-		return r, generalError("error reading logs", err)
 	}
 
 	return r, nil
