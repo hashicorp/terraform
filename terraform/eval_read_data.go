@@ -227,6 +227,24 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 			),
 		))
 	}
+	if !newVal.IsWhollyKnown() {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Provider produced invalid object",
+			fmt.Sprintf(
+				"Provider %q produced a value for %s that is not wholly known.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				n.ProviderAddr.ProviderConfig.Type, absAddr,
+			),
+		))
+
+		// We'll still save the object, but we need to eliminate any unknown
+		// values first because we can't serialize them in the state file.
+		// Note that this may cause set elements to be coalesced if they
+		// differed only by having unknown values, but we don't worry about
+		// that here because we're saving the value only for inspection
+		// purposes; the error we added above will halt the graph walk.
+		newVal = cty.UnknownAsNull(newVal)
+	}
 
 	// Since we've completed the read, we actually have no change to make, but
 	// we'll produce a NoOp one anyway to preserve the usual flow of the
