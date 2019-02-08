@@ -1985,8 +1985,12 @@ func TestContext2Plan_dataResourceBecomesComputed(t *testing.T) {
 	}
 
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		fooVal := req.ProposedNewState.GetAttr("foo")
 		return providers.PlanResourceChangeResponse{
-			PlannedState:   req.ProposedNewState,
+			PlannedState: cty.ObjectVal(map[string]cty.Value{
+				"foo":      fooVal,
+				"computed": cty.UnknownVal(cty.String),
+			}),
 			PlannedPrivate: req.PriorPrivate,
 		}
 	}
@@ -1995,9 +1999,9 @@ func TestContext2Plan_dataResourceBecomesComputed(t *testing.T) {
 	ty := schema.ImpliedType()
 
 	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
-		State: cty.ObjectVal(map[string]cty.Value{
-			"foo": cty.UnknownVal(cty.String),
-		}),
+		// This should not be called, because the configuration for the
+		// data resource contains an unknown value for "foo".
+		Diagnostics: tfdiags.Diagnostics(nil).Append(fmt.Errorf("ReadDataSource called, but should not have been")),
 	}
 
 	ctx := testContext2(t, &ContextOpts{
