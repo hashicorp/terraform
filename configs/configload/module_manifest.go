@@ -81,6 +81,9 @@ func (m *moduleMgr) readModuleManifestSnapshot() error {
 
 	var read manifestSnapshotFile
 	err = json.Unmarshal(src, &read)
+	if err != nil {
+		return fmt.Errorf("error parsing snapshot file: %v", err)
+	}
 
 	new := make(moduleManifest)
 	for _, record := range read.Records {
@@ -90,12 +93,18 @@ func (m *moduleMgr) readModuleManifestSnapshot() error {
 				return fmt.Errorf("invalid version %q for %s: %s", record.VersionStr, record.Key, err)
 			}
 		}
+
 		if _, exists := new[record.Key]; exists {
 			// This should never happen in any valid file, so we'll catch it
 			// and report it to avoid confusing/undefined behavior if the
 			// snapshot file was edited incorrectly outside of Terraform.
 			return fmt.Errorf("snapshot file contains two records for path %s", record.Key)
 		}
+
+		// Make sure we use the correct path separator.
+		record.Dir = filepath.FromSlash(record.Dir)
+
+		// Add the verified and updated record to the manifest.
 		new[record.Key] = record
 	}
 
@@ -120,6 +129,11 @@ func (m *moduleMgr) writeModuleManifestSnapshot() error {
 		} else {
 			record.VersionStr = ""
 		}
+
+		// Make sure we always use a slash separator.
+		record.Dir = filepath.ToSlash(record.Dir)
+
+		// Append the verified and updated record.
 		write.Records = append(write.Records, record)
 	}
 
