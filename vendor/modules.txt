@@ -379,7 +379,7 @@ github.com/hashicorp/go-tfe
 github.com/hashicorp/go-uuid
 # github.com/hashicorp/go-version v1.0.0
 github.com/hashicorp/go-version
-# github.com/hashicorp/hcl v1.0.0
+# github.com/hashicorp/hcl v0.0.0-20170504190234-a4b07c25de5f
 github.com/hashicorp/hcl
 github.com/hashicorp/hcl/hcl/ast
 github.com/hashicorp/hcl/hcl/parser
@@ -411,7 +411,7 @@ github.com/hashicorp/hil/scanner
 github.com/hashicorp/logutils
 # github.com/hashicorp/serf v0.0.0-20160124182025-e4ec8cc423bb
 github.com/hashicorp/serf/coordinate
-# github.com/hashicorp/terraform-config-inspect v0.0.0-20190129165904-67302cb0361b
+# github.com/hashicorp/terraform-config-inspect v0.0.0-20190208170851-de963d052d6d
 github.com/hashicorp/terraform-config-inspect/tfconfig
 # github.com/hashicorp/vault v0.0.0-20161029210149-9a60bf2a50e4
 github.com/hashicorp/vault/helper/pgpkeys
