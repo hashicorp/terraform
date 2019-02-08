@@ -1,5 +1,9 @@
 ## 0.11.12 (Unreleased)
 
+BUG FIXES:
+
+* core: Use slashes in the module manifest to prevent Windows/Linux compatibility issues [GH-20246]
+
 ## 0.11.12-beta1 (January 28, 2019)
 
 IMPROVEMENTS:
