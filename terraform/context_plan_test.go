@@ -4990,8 +4990,20 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 		},
 	}
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		computedVal := req.ProposedNewState.GetAttr("computed")
+		if computedVal.IsNull() {
+			computedVal = cty.UnknownVal(cty.String)
+		}
 		return providers.PlanResourceChangeResponse{
-			PlannedState: req.ProposedNewState,
+			PlannedState: cty.ObjectVal(map[string]cty.Value{
+				"num":      req.ProposedNewState.GetAttr("num"),
+				"computed": computedVal,
+			}),
+		}
+	}
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+		return providers.ReadDataSourceResponse{
+			Diagnostics: tfdiags.Diagnostics(nil).Append(fmt.Errorf("ReadDataSource called, but should not have been")),
 		}
 	}
 
@@ -5004,11 +5016,20 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 		),
 	})
 
+	// We're skipping ctx.Refresh here, which simulates what happens when
+	// running "terraform plan -refresh=false". As a result, we don't get our
+	// usual opportunity to read the data source during the refresh step and
+	// thus the plan call below is forced to produce a deferred read action.
+
 	plan, diags := ctx.Plan()
+	if p.ReadDataSourceCalled {
+		t.Errorf("ReadDataSource was called on the provider, but should not have been because we didn't refresh")
+	}
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
+	seenAddrs := make(map[string]struct{})
 	for _, res := range plan.Changes.Resources {
 		var schema *configschema.Block
 		switch res.Addr.Resource.Resource.Mode {
@@ -5022,6 +5043,8 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+
+		seenAddrs[ric.Addr.String()] = struct{}{}
 
 		t.Run(ric.Addr.String(), func(t *testing.T) {
 			switch i := ric.Addr.String(); i {
@@ -5046,6 +5069,10 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 					t.Fatalf("resource %s should be read, got %s", ric.Addr, ric.Action)
 				}
 				checkVals(t, objectVal(t, schema, map[string]cty.Value{
+					// In a normal flow we would've read an exact value in
+					// ReadDataSource, but because this test doesn't run
+					// cty.Refresh we have no opportunity to do that lookup
+					// and a deferred read is forced.
 					"id":  cty.UnknownVal(cty.String),
 					"foo": cty.StringVal("0"),
 				}), ric.After)
@@ -5054,6 +5081,10 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 					t.Fatalf("resource %s should be read, got %s", ric.Addr, ric.Action)
 				}
 				checkVals(t, objectVal(t, schema, map[string]cty.Value{
+					// In a normal flow we would've read an exact value in
+					// ReadDataSource, but because this test doesn't run
+					// cty.Refresh we have no opportunity to do that lookup
+					// and a deferred read is forced.
 					"id":  cty.UnknownVal(cty.String),
 					"foo": cty.StringVal("1"),
 				}), ric.After)
@@ -5061,6 +5092,16 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 				t.Fatal("unknown instance:", i)
 			}
 		})
+	}
+
+	wantAddrs := map[string]struct{}{
+		"aws_instance.foo[0]": struct{}{},
+		"aws_instance.foo[1]": struct{}{},
+		"data.aws_vpc.bar[0]": struct{}{},
+		"data.aws_vpc.bar[1]": struct{}{},
+	}
+	if !cmp.Equal(seenAddrs, wantAddrs) {
+		t.Errorf("incorrect addresses in changeset:\n%s", cmp.Diff(wantAddrs, seenAddrs))
 	}
 }
 
