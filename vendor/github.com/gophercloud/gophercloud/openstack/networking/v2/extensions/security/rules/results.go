@@ -17,6 +17,9 @@ type SecGroupRule struct {
 	// instance. An egress rule is applied to traffic leaving the instance.
 	Direction string
 
+	// Descripton of the rule
+	Description string `json:"description"`
+
 	// Must be IPv4 or IPv6, and addresses represented in CIDR must match the
 	// ingress or egress rules.
 	EtherType string `json:"ethertype"`
@@ -48,8 +51,11 @@ type SecGroupRule struct {
 	// matches the specified IP prefix as the source IP address of the IP packet.
 	RemoteIPPrefix string `json:"remote_ip_prefix"`
 
-	// The owner of this security group rule.
+	// TenantID is the project owner of this security group rule.
 	TenantID string `json:"tenant_id"`
+
+	// ProjectID is the project owner of this security group rule.
+	ProjectID string `json:"project_id"`
 }
 
 // SecGroupRulePage is the page returned by a pager when traversing over a
@@ -102,17 +108,20 @@ func (r commonResult) Extract() (*SecGroupRule, error) {
 	return s.SecGroupRule, err
 }
 
-// CreateResult represents the result of a create operation.
+// CreateResult represents the result of a create operation. Call its Extract
+// method to interpret it as a SecGroupRule.
 type CreateResult struct {
 	commonResult
 }
 
-// GetResult represents the result of a get operation.
+// GetResult represents the result of a get operation. Call its Extract
+// method to interpret it as a SecGroupRule.
 type GetResult struct {
 	commonResult
 }
 
-// DeleteResult represents the result of a delete operation.
+// DeleteResult represents the result of a delete operation. Call its
+// ExtractErr method to determine if the request succeeded or failed.
 type DeleteResult struct {
 	gophercloud.ErrResult
 }
