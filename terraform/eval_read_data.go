@@ -104,7 +104,7 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, diags.Err()
 	}
 
-	proposedNewVal := objchange.ProposedNewObject(schema, priorVal, configVal)
+	proposedNewVal := objchange.PlannedDataResourceObject(schema, configVal)
 
 	// If our configuration contains any unknown values then we must defer the
 	// read to the apply phase by producing a "Read" change for this resource,
@@ -119,7 +119,11 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 				absAddr,
 			)
 		}
-		log.Printf("[TRACE] EvalReadData: %s configuration not fully known yet, so deferring to apply phase", absAddr)
+		if n.ForcePlanRead {
+			log.Printf("[TRACE] EvalReadData: %s configuration is fully known, but we're forcing a read plan to be created", absAddr)
+		} else {
+			log.Printf("[TRACE] EvalReadData: %s configuration not fully known yet, so deferring to apply phase", absAddr)
+		}
 
 		err := ctx.Hook(func(h Hook) (HookAction, error) {
 			return h.PreDiff(absAddr, states.CurrentGen, priorVal, proposedNewVal)
@@ -226,6 +230,24 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 				n.ProviderAddr.ProviderConfig.Type, absAddr,
 			),
 		))
+	}
+	if !newVal.IsWhollyKnown() {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Provider produced invalid object",
+			fmt.Sprintf(
+				"Provider %q produced a value for %s that is not wholly known.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				n.ProviderAddr.ProviderConfig.Type, absAddr,
+			),
+		))
+
+		// We'll still save the object, but we need to eliminate any unknown
+		// values first because we can't serialize them in the state file.
+		// Note that this may cause set elements to be coalesced if they
+		// differed only by having unknown values, but we don't worry about
+		// that here because we're saving the value only for inspection
+		// purposes; the error we added above will halt the graph walk.
+		newVal = cty.UnknownAsNull(newVal)
 	}
 
 	// Since we've completed the read, we actually have no change to make, but

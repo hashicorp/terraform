@@ -26,11 +26,38 @@ import (
 // block where _all_ attributes are computed.
 func ProposedNewObject(schema *configschema.Block, prior, config cty.Value) cty.Value {
 	if prior.IsNull() {
-		// In this case, we will treat the prior value as unknown so that
-		// any computed attributes not overridden in config will show as
-		// unknown values, rather than null values.
-		prior = cty.UnknownVal(schema.ImpliedType())
+		// In this case, we will construct a synthetic prior value that is
+		// similar to the result of decoding an empty configuration block,
+		// which simplifies our handling of the top-level attributes/blocks
+		// below by giving us one non-null level of object to pull values from.
+		prior = AllAttributesNull(schema)
 	}
+	return proposedNewObject(schema, prior, config)
+}
+
+// PlannedDataResourceObject is similar to ProposedNewObject but tailored for
+// planning data resources in particular. Specifically, it replaces the values
+// of any Computed attributes not set in the configuration with an unknown
+// value, which serves as a placeholder for a value to be filled in by the
+// provider when the data resource is finally read.
+//
+// Data resources are different because the planning of them is handled
+// entirely within Terraform Core and not subject to customization by the
+// provider. This function is, in effect, producing an equivalent result to
+// passing the ProposedNewObject result into a provider's PlanResourceChange
+// function, assuming a fixed implementation of PlanResourceChange that just
+// fills in unknown values as needed.
+func PlannedDataResourceObject(schema *configschema.Block, config cty.Value) cty.Value {
+	// Our trick here is to run the ProposedNewObject logic with an
+	// entirely-unknown prior value. Because of cty's unknown short-circuit
+	// behavior, any operation on prior returns another unknown, and so
+	// unknown values propagate into all of the parts of the resulting value
+	// that would normally be filled in by preserving the prior state.
+	prior := cty.UnknownVal(schema.ImpliedType())
+	return proposedNewObject(schema, prior, config)
+}
+
+func proposedNewObject(schema *configschema.Block, prior, config cty.Value) cty.Value {
 	if config.IsNull() || !config.IsKnown() {
 		// This is a weird situation, but we'll allow it anyway to free
 		// callers from needing to specifically check for these cases.
