@@ -152,12 +152,10 @@ func (p *plan) marshalPlanVariables(vars map[string]plans.DynamicValue, schemas 
 		if err != nil {
 			return err
 		}
-
 		p.Variables[k] = &variable{
 			Value: valJSON,
 		}
 	}
-
 	return nil
 }
 
