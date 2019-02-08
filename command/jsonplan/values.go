@@ -166,6 +166,9 @@ func marshalPlanResources(changes *plans.Changes, ris []addrs.AbsResourceInstanc
 		if changeV.After != cty.NilVal {
 			if changeV.After.IsWhollyKnown() {
 				resource.AttributeValues = marshalAttributeValues(changeV.After, schema)
+			} else {
+				knowns := omitUnknowns(changeV.After)
+				resource.AttributeValues = marshalAttributeValues(knowns, schema)
 			}
 		}
 
