@@ -102,11 +102,23 @@ func (s *Schema) coreConfigSchemaAttribute() *configschema.Attribute {
 		}
 	}
 
+	computed := s.Computed
+	if s.Optional {
+		// All optional attributes have a default of some kind, even if it's
+		// just the zero value of the attribute's type. Therefore from the
+		// perspective of _core_ schema, all optional attributes are computed,
+		// since at the coreschema layer "computed" encapsulates all of the
+		// different kinds of defaults: zero values, constant defaults,
+		// function-generated defaults, and computed values determined during
+		// the apply phase.
+		computed = true
+	}
+
 	return &configschema.Attribute{
 		Type:        s.coreConfigSchemaType(),
 		Optional:    opt,
 		Required:    reqd,
-		Computed:    s.Computed,
+		Computed:    computed,
 		Sensitive:   s.Sensitive,
 		Description: s.Description,
 	}

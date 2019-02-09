@@ -70,6 +70,7 @@ func TestSchemaMapCoreConfigSchema(t *testing.T) {
 					"float": {
 						Type:     cty.Number,
 						Optional: true,
+						Computed: true,
 					},
 					"bool": {
 						Type:     cty.Bool,
@@ -124,14 +125,17 @@ func TestSchemaMapCoreConfigSchema(t *testing.T) {
 					"set": {
 						Type:     cty.Set(cty.String),
 						Optional: true,
+						Computed: true,
 					},
 					"map": {
 						Type:     cty.Map(cty.Bool),
 						Optional: true,
+						Computed: true,
 					},
 					"map_default_type": {
 						Type:     cty.Map(cty.String),
 						Optional: true,
+						Computed: true,
 					},
 				},
 				BlockTypes: map[string]*configschema.NestedBlock{},
@@ -168,10 +172,12 @@ func TestSchemaMapCoreConfigSchema(t *testing.T) {
 					"set": {
 						Type:     cty.Set(cty.String),
 						Optional: true,
+						Computed: true,
 					},
 					"map": {
 						Type:     cty.Map(cty.Bool),
 						Optional: true,
+						Computed: true,
 					},
 				},
 				BlockTypes: map[string]*configschema.NestedBlock{},
@@ -214,6 +220,7 @@ func TestSchemaMapCoreConfigSchema(t *testing.T) {
 					"map": {
 						Type:     cty.Map(cty.String),
 						Optional: true,
+						Computed: true,
 					},
 				},
 				BlockTypes: map[string]*configschema.NestedBlock{
@@ -380,6 +387,7 @@ func TestSchemaMapCoreConfigSchema(t *testing.T) {
 					"string": {
 						Type:      cty.String,
 						Optional:  true,
+						Computed:  true,
 						Sensitive: true,
 					},
 				},
