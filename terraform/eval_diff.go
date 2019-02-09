@@ -216,6 +216,20 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, diags.Err()
 	}
 
+	for _, err := range objchange.AssertPlanValid(schema, priorVal, configVal, plannedNewVal) {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Provider produced invalid plan",
+			fmt.Sprintf(
+				"Provider %q planned an invalid value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				n.ProviderAddr.ProviderConfig.Type, tfdiags.FormatErrorPrefixed(err, absAddr.String()),
+			),
+		))
+	}
+	if diags.HasErrors() {
+		return nil, diags.Err()
+	}
+
 	{
 		var moreDiags tfdiags.Diagnostics
 		plannedNewVal, moreDiags = n.processIgnoreChanges(priorVal, plannedNewVal)
