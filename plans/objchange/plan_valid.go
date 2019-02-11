@@ -251,9 +251,17 @@ func assertPlannedValueValid(attrS *configschema.Attribute, priorV, configV, pla
 	// If none of the above conditions match, the provider has made an invalid
 	// change to this attribute.
 	if priorV.IsNull() {
-		errs = append(errs, path.NewErrorf("planned value %#v does not match config value %#v", plannedV, configV))
+		if attrS.Sensitive {
+			errs = append(errs, path.NewErrorf("sensitive planned value does not match config value"))
+		} else {
+			errs = append(errs, path.NewErrorf("planned value %#v does not match config value %#v", plannedV, configV))
+		}
 		return errs
 	}
-	errs = append(errs, path.NewErrorf("planned value %#v does not match config value %#v nor prior value %#v", plannedV, configV, priorV))
+	if attrS.Sensitive {
+		errs = append(errs, path.NewErrorf("sensitive planned value does not match config value nor prior value"))
+	} else {
+		errs = append(errs, path.NewErrorf("planned value %#v does not match config value %#v nor prior value %#v", plannedV, configV, priorV))
+	}
 	return errs
 }
