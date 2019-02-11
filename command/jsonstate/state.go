@@ -84,6 +84,13 @@ type resource struct {
 	// unknown values are omitted or set to null, making them indistinguishable
 	// from absent values.
 	AttributeValues attributeValues `json:"values,omitempty"`
+
+	// DependsOn contains a list of the resource's dependencies. The entries are
+	// addresses relative to the containing module.
+	DependsOn []string `json:"depends_on,omitempty"`
+
+	// Tainted is true if the resource is tainted in terraform state.
+	Tainted bool `json:"tainted,omitempty"`
 }
 
 // attributeValues is the JSON representation of the attribute values of the
@@ -275,6 +282,18 @@ func marshalResources(resources map[string]*states.Resource, schemas *terraform.
 			}
 
 			resource.AttributeValues = marshalAttributeValues(riObj.Value, schema)
+
+			if len(riObj.Dependencies) > 0 {
+				dependencies := make([]string, len(riObj.Dependencies))
+				for i, v := range riObj.Dependencies {
+					dependencies[i] = v.String()
+				}
+				resource.DependsOn = dependencies
+			}
+
+			if riObj.Status == states.ObjectTainted {
+				resource.Tainted = true
+			}
 
 			ret = append(ret, resource)
 		}
