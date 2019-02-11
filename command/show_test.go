@@ -312,9 +312,12 @@ func showFixturePlanFile(t *testing.T) string {
 }
 
 // this simplified plan struct allows us to preserve field order when marshaling
-// the command output.
+// the command output. NOTE: we are leaving "terraform_version" out of this test
+// to avoid needing to constantly update the expected output; as a potential
+// TODO we could write a jsonplan compare function.
 type plan struct {
 	FormatVersion   string                 `json:"format_version,omitempty"`
+	Variables       map[string]interface{} `json:"variables,omitempty"`
 	PlannedValues   map[string]interface{} `json:"planned_values,omitempty"`
 	ResourceChanges []interface{}          `json:"resource_changes,omitempty"`
 	OutputChanges   map[string]interface{} `json:"output_changes,omitempty"`

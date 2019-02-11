@@ -29,6 +29,7 @@ const FormatVersion = "0.1"
 type plan struct {
 	FormatVersion    string      `json:"format_version,omitempty"`
 	TerraformVersion string      `json:"terraform_version,omitempty"`
+	Variables        variables   `json:"variables,omitempty"`
 	PlannedValues    stateValues `json:"planned_values,omitempty"`
 	// ResourceChanges are sorted in a user-friendly order that is undefined at
 	// this time, but consistent.
@@ -76,6 +77,14 @@ type output struct {
 	Value     json.RawMessage `json:"value,omitempty"`
 }
 
+// variables is the JSON representation of the variables provided to the current
+// plan.
+type variables map[string]*variable
+
+type variable struct {
+	Value json.RawMessage `json:"value,omitempty"`
+}
+
 // Marshal returns the json encoding of a terraform plan.
 func Marshal(
 	config *configs.Config,
@@ -87,8 +96,13 @@ func Marshal(
 	output := newPlan()
 	output.TerraformVersion = version.String()
 
+	err := output.marshalPlanVariables(p.VariableValues, schemas)
+	if err != nil {
+		return nil, fmt.Errorf("error in marshalPlanVariables: %s", err)
+	}
+
 	// output.PlannedValues
-	err := output.marshalPlannedValues(p.Changes, schemas)
+	err = output.marshalPlannedValues(p.Changes, schemas)
 	if err != nil {
 		return nil, fmt.Errorf("error in marshalPlannedValues: %s", err)
 	}
@@ -120,6 +134,29 @@ func Marshal(
 	// add some polish
 	ret, err := json.MarshalIndent(output, "", "  ")
 	return ret, err
+}
+
+func (p *plan) marshalPlanVariables(vars map[string]plans.DynamicValue, schemas *terraform.Schemas) error {
+	if len(vars) == 0 {
+		return nil
+	}
+
+	p.Variables = make(variables, len(vars))
+
+	for k, v := range vars {
+		val, err := v.Decode(cty.DynamicPseudoType)
+		if err != nil {
+			return err
+		}
+		valJSON, err := ctyjson.Marshal(val, val.Type())
+		if err != nil {
+			return err
+		}
+		p.Variables[k] = &variable{
+			Value: valJSON,
+		}
+	}
+	return nil
 }
 
 func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform.Schemas) error {

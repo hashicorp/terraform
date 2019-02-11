@@ -1,5 +1,10 @@
 {
     "format_version": "0.1",
+    "variables": {
+        "test_var": {
+            "value": "bar"
+        }
+    },
     "planned_values": {
         "outputs": {
             "test": {
@@ -16,7 +21,10 @@
                     "type": "test_instance",
                     "name": "test",
                     "provider_name": "test",
-                    "schema_version": 0
+                    "schema_version": 0,
+                    "values": {
+                        "ami": "bar"
+                    }
                 },
                 {
                     "address": "test_instance.test[1]",
@@ -25,7 +33,10 @@
                     "type": "test_instance",
                     "name": "test",
                     "provider_name": "test",
-                    "schema_version": 0
+                    "schema_version": 0,
+                    "values": {
+                        "ami": "bar"
+                    }
                 },
                 {
                     "address": "test_instance.test[2]",
@@ -34,7 +45,10 @@
                     "type": "test_instance",
                     "name": "test",
                     "provider_name": "test",
-                    "schema_version": 0
+                    "schema_version": 0,
+                    "values": {
+                        "ami": "bar"
+                    }
                 }
             ]
         }
