@@ -167,6 +167,55 @@ func TestAssertPlanValid(t *testing.T) {
 				`.b[0].c: planned value cty.StringVal("new c value") does not match config value cty.StringVal("c value")`,
 			},
 		},
+		"no computed, invalid change in plan sensitive": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"a": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"b": {
+						Nesting: configschema.NestingList,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"c": {
+									Type:      cty.String,
+									Optional:  true,
+									Sensitive: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.NullVal(cty.Object(map[string]cty.Type{
+				"a": cty.String,
+				"b": cty.List(cty.Object(map[string]cty.Type{
+					"c": cty.String,
+				})),
+			})),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("a value"),
+				"b": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"c": cty.StringVal("c value"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("a value"),
+				"b": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"c": cty.StringVal("new c value"),
+					}),
+				}),
+			}),
+			[]string{
+				`.b[0].c: sensitive planned value does not match config value`,
+			},
+		},
 		"no computed, diff suppression in plan": {
 			&configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
