@@ -86,11 +86,11 @@ type resource struct {
 	AttributeValues attributeValues `json:"values,omitempty"`
 
 	// DependsOn contains a list of the resource's dependencies. The entries are
-	// addresses relative to the resouce.
+	// addresses relative to the containing module.
 	DependsOn []string `json:"depends_on,omitempty"`
 
 	// Tainted is true if the resource is tainted in terraform state.
-	Tainted bool `json:"tainted"`
+	Tainted bool `json:"tainted,omitempty"`
 }
 
 // attributeValues is the JSON representation of the attribute values of the
@@ -291,7 +291,9 @@ func marshalResources(resources map[string]*states.Resource, schemas *terraform.
 				resource.DependsOn = dependencies
 			}
 
-			resource.Tainted = (riObj.Status == states.ObjectTainted)
+			if riObj.Status == states.ObjectTainted {
+				resource.Tainted = true
+			}
 
 			ret = append(ret, resource)
 		}
