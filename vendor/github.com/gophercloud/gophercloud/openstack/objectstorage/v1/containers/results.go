@@ -47,14 +47,16 @@ func (r ContainerPage) LastMarker() (string, error) {
 	return names[len(names)-1], nil
 }
 
-// ExtractInfo is a function that takes a ListResult and returns the containers' information.
+// ExtractInfo is a function that takes a ListResult and returns the
+// containers' information.
 func ExtractInfo(r pagination.Page) ([]Container, error) {
 	var s []Container
 	err := (r.(ContainerPage)).ExtractInto(&s)
 	return s, err
 }
 
-// ExtractNames is a function that takes a ListResult and returns the containers' names.
+// ExtractNames is a function that takes a ListResult and returns the
+// containers' names.
 func ExtractNames(page pagination.Page) ([]string, error) {
 	casted := page.(ContainerPage)
 	ct := casted.Header.Get("Content-Type")
@@ -98,7 +100,9 @@ type GetHeader struct {
 	Read             []string  `json:"-"`
 	TransID          string    `json:"X-Trans-Id"`
 	VersionsLocation string    `json:"X-Versions-Location"`
+	HistoryLocation  string    `json:"X-History-Location"`
 	Write            []string  `json:"-"`
+	StoragePolicy    string    `json:"X-Storage-Policy"`
 }
 
 func (r *GetHeader) UnmarshalJSON(b []byte) error {
@@ -162,15 +166,14 @@ type GetResult struct {
 	gophercloud.HeaderResult
 }
 
-// Extract will return a struct of headers returned from a call to Get. To obtain
-// a map of headers, call the ExtractHeader method on the GetResult.
+// Extract will return a struct of headers returned from a call to Get.
 func (r GetResult) Extract() (*GetHeader, error) {
 	var s *GetHeader
 	err := r.ExtractInto(&s)
 	return s, err
 }
 
-// ExtractMetadata is a function that takes a GetResult (of type *stts.Response)
+// ExtractMetadata is a function that takes a GetResult (of type *http.Response)
 // and returns the custom metadata associated with the container.
 func (r GetResult) ExtractMetadata() (map[string]string, error) {
 	if r.Err != nil {
@@ -186,7 +189,8 @@ func (r GetResult) ExtractMetadata() (map[string]string, error) {
 	return metadata, nil
 }
 
-// CreateHeader represents the headers returned in the response from a Create request.
+// CreateHeader represents the headers returned in the response from a Create
+// request.
 type CreateHeader struct {
 	ContentLength int64     `json:"-"`
 	ContentType   string    `json:"Content-Type"`
@@ -224,21 +228,21 @@ func (r *CreateHeader) UnmarshalJSON(b []byte) error {
 }
 
 // CreateResult represents the result of a create operation. To extract the
-// the headers from the HTTP response, you can invoke the 'ExtractHeader'
-// method on the result struct.
+// the headers from the HTTP response, call its Extract method.
 type CreateResult struct {
 	gophercloud.HeaderResult
 }
 
-// Extract will return a struct of headers returned from a call to Create. To obtain
-// a map of headers, call the ExtractHeader method on the CreateResult.
+// Extract will return a struct of headers returned from a call to Create.
+// To extract the headers from the HTTP response, call its Extract method.
 func (r CreateResult) Extract() (*CreateHeader, error) {
 	var s *CreateHeader
 	err := r.ExtractInto(&s)
 	return s, err
 }
 
-// UpdateHeader represents the headers returned in the response from a Update request.
+// UpdateHeader represents the headers returned in the response from a Update
+// request.
 type UpdateHeader struct {
 	ContentLength int64     `json:"-"`
 	ContentType   string    `json:"Content-Type"`
@@ -276,21 +280,20 @@ func (r *UpdateHeader) UnmarshalJSON(b []byte) error {
 }
 
 // UpdateResult represents the result of an update operation. To extract the
-// the headers from the HTTP response, you can invoke the 'ExtractHeader'
-// method on the result struct.
+// the headers from the HTTP response, call its Extract method.
 type UpdateResult struct {
 	gophercloud.HeaderResult
 }
 
-// Extract will return a struct of headers returned from a call to Update. To obtain
-// a map of headers, call the ExtractHeader method on the UpdateResult.
+// Extract will return a struct of headers returned from a call to Update.
 func (r UpdateResult) Extract() (*UpdateHeader, error) {
 	var s *UpdateHeader
 	err := r.ExtractInto(&s)
 	return s, err
 }
 
-// DeleteHeader represents the headers returned in the response from a Delete request.
+// DeleteHeader represents the headers returned in the response from a Delete
+// request.
 type DeleteHeader struct {
 	ContentLength int64     `json:"-"`
 	ContentType   string    `json:"Content-Type"`
@@ -328,14 +331,12 @@ func (r *DeleteHeader) UnmarshalJSON(b []byte) error {
 }
 
 // DeleteResult represents the result of a delete operation. To extract the
-// the headers from the HTTP response, you can invoke the 'ExtractHeader'
-// method on the result struct.
+// the headers from the HTTP response, call its Extract method.
 type DeleteResult struct {
 	gophercloud.HeaderResult
 }
 
-// Extract will return a struct of headers returned from a call to Delete. To obtain
-// a map of headers, call the ExtractHeader method on the DeleteResult.
+// Extract will return a struct of headers returned from a call to Delete.
 func (r DeleteResult) Extract() (*DeleteHeader, error) {
 	var s *DeleteHeader
 	err := r.ExtractInto(&s)

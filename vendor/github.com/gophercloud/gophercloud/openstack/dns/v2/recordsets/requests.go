@@ -55,18 +55,20 @@ func ListByZone(client *gophercloud.ServiceClient, zoneID string, opts ListOptsB
 	})
 }
 
-// Get implements the recordset get request.
+// Get implements the recordset Get request.
 func Get(client *gophercloud.ServiceClient, zoneID string, rrsetID string) (r GetResult) {
 	_, r.Err = client.Get(rrsetURL(client, zoneID, rrsetID), &r.Body, nil)
 	return
 }
 
-// CreateOptsBuilder allows extensions to add additional attributes to the Create request.
+// CreateOptsBuilder allows extensions to add additional attributes to the
+// Create request.
 type CreateOptsBuilder interface {
 	ToRecordSetCreateMap() (map[string]interface{}, error)
 }
 
-// CreateOpts specifies the base attributes that may be used to create a RecordSet.
+// CreateOpts specifies the base attributes that may be used to create a
+// RecordSet.
 type CreateOpts struct {
 	// Name is the name of the RecordSet.
 	Name string `json:"name" required:"true"`
@@ -107,16 +109,23 @@ func Create(client *gophercloud.ServiceClient, zoneID string, opts CreateOptsBui
 	return
 }
 
-// UpdateOptsBuilder allows extensions to add additional attributes to the Update request.
+// UpdateOptsBuilder allows extensions to add additional attributes to the
+// Update request.
 type UpdateOptsBuilder interface {
 	ToRecordSetUpdateMap() (map[string]interface{}, error)
 }
 
-// UpdateOpts specifies the base attributes that may be updated on an existing RecordSet.
+// UpdateOpts specifies the base attributes that may be updated on an existing
+// RecordSet.
 type UpdateOpts struct {
-	Description string   `json:"description,omitempty"`
-	TTL         int      `json:"ttl,omitempty"`
-	Records     []string `json:"records,omitempty"`
+	// Description is a description of the RecordSet.
+	Description *string `json:"description,omitempty"`
+
+	// TTL is the time to live of the RecordSet.
+	TTL int `json:"ttl,omitempty"`
+
+	// Records are the DNS records of the RecordSet.
+	Records []string `json:"records,omitempty"`
 }
 
 // ToRecordSetUpdateMap formats an UpdateOpts structure into a request body.

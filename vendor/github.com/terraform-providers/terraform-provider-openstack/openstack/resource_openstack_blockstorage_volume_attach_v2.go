@@ -3,7 +3,6 @@ package openstack
 import (
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/gophercloud/gophercloud/openstack/blockstorage/extensions/volumeactions"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceBlockStorageVolumeAttachV2() *schema.Resource {
@@ -25,108 +25,103 @@ func resourceBlockStorageVolumeAttachV2() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"region": &schema.Schema{
+			"region": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
 
-			"volume_id": &schema.Schema{
+			"volume_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"instance_id": &schema.Schema{
-				Type:       schema.TypeString,
-				Optional:   true,
-				ForceNew:   true,
-				Deprecated: "instance_id is no longer used in this resource",
+			"instance_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Removed:  "instance_id is no longer used in this resource",
 			},
 
-			"host_name": &schema.Schema{
+			"host_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"device": &schema.Schema{
+			"device": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"attach_mode": &schema.Schema{
+			"attach_mode": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(string)
-					if value != "ro" && value != "rw" {
-						errors = append(errors, fmt.Errorf(
-							"Only 'ro' and 'rw' are supported values for 'attach_mode'"))
-					}
-					return
-				},
+				ValidateFunc: validation.StringInSlice([]string{
+					"ro", "rw",
+				}, false),
 			},
 
-			"initiator": &schema.Schema{
+			"initiator": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"ip_address": &schema.Schema{
+			"ip_address": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"multipath": &schema.Schema{
+			"multipath": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"os_type": &schema.Schema{
+			"os_type": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"platform": &schema.Schema{
+			"platform": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"wwpn": &schema.Schema{
+			"wwpn": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
-			"wwnn": &schema.Schema{
+			"wwnn": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
 			// Volume attachment information
-			"data": &schema.Schema{
+			"data": {
 				Type:      schema.TypeMap,
 				Computed:  true,
 				Sensitive: true,
 			},
 
-			"driver_volume_type": &schema.Schema{
+			"driver_volume_type": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"mount_point_base": &schema.Schema{
+			"mount_point_base": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -184,7 +179,8 @@ func resourceBlockStorageVolumeAttachV2Create(d *schema.ResourceData, meta inter
 
 	connInfo, err := volumeactions.InitializeConnection(client, volumeId, connOpts).Extract()
 	if err != nil {
-		return fmt.Errorf("Unable to create connection: %s", err)
+		return fmt.Errorf(
+			"Unable to initialize connection for openstack_blockstorage_volume_attach_v2: %s", err)
 	}
 
 	// Only uncomment this when debugging since connInfo contains sensitive information.
@@ -212,7 +208,7 @@ func resourceBlockStorageVolumeAttachV2Create(d *schema.ResourceData, meta inter
 	}
 
 	// Once the connection has been made, tell Cinder to mark the volume as attached.
-	attachMode, err := blockStorageVolumeAttachV2AttachMode(d.Get("attach_mode").(string))
+	attachMode, err := expandBlockStorageV2AttachMode(d.Get("attach_mode").(string))
 	if err != nil {
 		return nil
 	}
@@ -223,19 +219,21 @@ func resourceBlockStorageVolumeAttachV2Create(d *schema.ResourceData, meta inter
 		Mode:       attachMode,
 	}
 
-	log.Printf("[DEBUG] Attachment Options: %#v", attachOpts)
+	log.Printf("[DEBUG] openstack_blockstorage_volume_attach_v2 attach options: %#v", attachOpts)
 
 	if err := volumeactions.Attach(client, volumeId, attachOpts).ExtractErr(); err != nil {
-		return err
+		return fmt.Errorf(
+			"Error attaching openstack_blockstorage_volume_attach_v2 for volume %s: %s", volumeId, err)
 	}
 
 	// Wait for the volume to become available.
-	log.Printf("[DEBUG] Waiting for volume (%s) to become available", volumeId)
+	log.Printf(
+		"[DEBUG] Waiting for openstack_blockstorage_volume_attach_v2 volume %s to become available", volumeId)
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"available", "attaching"},
 		Target:     []string{"in-use"},
-		Refresh:    VolumeV2StateRefreshFunc(client, volumeId),
+		Refresh:    blockStorageVolumeV2StateRefreshFunc(client, volumeId),
 		Timeout:    d.Timeout(schema.TimeoutCreate),
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
@@ -243,14 +241,16 @@ func resourceBlockStorageVolumeAttachV2Create(d *schema.ResourceData, meta inter
 
 	_, err = stateConf.WaitForState()
 	if err != nil {
-		return fmt.Errorf("Error waiting for volume (%s) to become ready: %s", volumeId, err)
+		return fmt.Errorf(
+			"Error waiting for openstack_blockstorage_volume_attach_v2 volume %s to become in-use: %s", volumeId, err)
 	}
 
 	// Once the volume has been marked as attached,
 	// retrieve a fresh copy of it with all information now available.
 	volume, err := volumes.Get(client, volumeId).Extract()
 	if err != nil {
-		return err
+		return fmt.Errorf(
+			"Unable to retrieve openstack_blockstorage_volume_attach_v2 volume %s: %s", volumeId, err)
 	}
 
 	// Search for the attachmentId
@@ -263,7 +263,8 @@ func resourceBlockStorageVolumeAttachV2Create(d *schema.ResourceData, meta inter
 	}
 
 	if attachmentId == "" {
-		return fmt.Errorf("Unable to determine attachment ID.")
+		return fmt.Errorf(
+			"Unable to determine attachment ID for openstack_blockstorage_volume_attach_v2 volume %s.", volumeId)
 	}
 
 	// The ID must be a combination of the volume and attachment ID
@@ -281,17 +282,18 @@ func resourceBlockStorageVolumeAttachV2Read(d *schema.ResourceData, meta interfa
 		return fmt.Errorf("Error creating OpenStack block storage client: %s", err)
 	}
 
-	volumeId, attachmentId, err := blockStorageVolumeAttachV2ParseId(d.Id())
+	volumeId, attachmentId, err := blockStorageVolumeAttachV2ParseID(d.Id())
 	if err != nil {
 		return err
 	}
 
 	volume, err := volumes.Get(client, volumeId).Extract()
 	if err != nil {
-		return err
+		return fmt.Errorf(
+			"Unable to retrieve openstack_blockstorage_volume_attach_v2 volume %s: %s", volumeId, err)
 	}
 
-	log.Printf("[DEBUG] Retrieved volume %s: %#v", d.Id(), volume)
+	log.Printf("[DEBUG] Retrieved openstack_blockstorage_volume_attach_v2 volume %s: %#v", volumeId, volume)
 
 	var attachment volumes.Attachment
 	for _, v := range volume.Attachments {
@@ -300,7 +302,8 @@ func resourceBlockStorageVolumeAttachV2Read(d *schema.ResourceData, meta interfa
 		}
 	}
 
-	log.Printf("[DEBUG] Retrieved volume attachment: %#v", attachment)
+	log.Printf(
+		"[DEBUG] Retrieved openstack_blockstorage_volume_attach_v2 attachment %s: %#v", d.Id(), attachment)
 
 	return nil
 }
@@ -312,7 +315,10 @@ func resourceBlockStorageVolumeAttachV2Delete(d *schema.ResourceData, meta inter
 		return fmt.Errorf("Error creating OpenStack block storage client: %s", err)
 	}
 
-	volumeId, attachmentId, err := blockStorageVolumeAttachV2ParseId(d.Id())
+	volumeId, attachmentId, err := blockStorageVolumeAttachV2ParseID(d.Id())
+	if err != nil {
+		return err
+	}
 
 	// Terminate the connection
 	termOpts := &volumeactions.TerminateConnectionOpts{}
@@ -356,7 +362,8 @@ func resourceBlockStorageVolumeAttachV2Delete(d *schema.ResourceData, meta inter
 
 	err = volumeactions.TerminateConnection(client, volumeId, termOpts).ExtractErr()
 	if err != nil {
-		return fmt.Errorf("Error terminating volume connection %s: %s", volumeId, err)
+		return fmt.Errorf(
+			"Error terminating openstack_blockstorage_volume_attach_v2 connection %s: %s", d.Id(), err)
 	}
 
 	// Detach the volume
@@ -364,7 +371,8 @@ func resourceBlockStorageVolumeAttachV2Delete(d *schema.ResourceData, meta inter
 		AttachmentID: attachmentId,
 	}
 
-	log.Printf("[DEBUG] Detachment Options: %#v", detachOpts)
+	log.Printf(
+		"[DEBUG] openstack_blockstorage_volume_attach_v2 detachment options %s: %#v", d.Id(), detachOpts)
 
 	if err := volumeactions.Detach(client, volumeId, detachOpts).ExtractErr(); err != nil {
 		return err
@@ -373,7 +381,7 @@ func resourceBlockStorageVolumeAttachV2Delete(d *schema.ResourceData, meta inter
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"in-use", "attaching", "detaching"},
 		Target:     []string{"available"},
-		Refresh:    VolumeV2StateRefreshFunc(client, volumeId),
+		Refresh:    blockStorageVolumeV2StateRefreshFunc(client, volumeId),
 		Timeout:    d.Timeout(schema.TimeoutDelete),
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
@@ -381,34 +389,9 @@ func resourceBlockStorageVolumeAttachV2Delete(d *schema.ResourceData, meta inter
 
 	_, err = stateConf.WaitForState()
 	if err != nil {
-		return fmt.Errorf("Error waiting for volume (%s) to become available: %s", volumeId, err)
+		return fmt.Errorf(
+			"Error waiting for openstack_blockstorage_volume_attach_v2 volume %s to become available: %s", volumeId, err)
 	}
 
 	return nil
-}
-
-func blockStorageVolumeAttachV2AttachMode(v string) (volumeactions.AttachMode, error) {
-	var attachMode volumeactions.AttachMode
-	var attachError error
-	switch v {
-	case "":
-		attachMode = ""
-	case "ro":
-		attachMode = volumeactions.ReadOnly
-	case "rw":
-		attachMode = volumeactions.ReadWrite
-	default:
-		attachError = fmt.Errorf("Invalid attach_mode specified")
-	}
-
-	return attachMode, attachError
-}
-
-func blockStorageVolumeAttachV2ParseId(id string) (string, string, error) {
-	parts := strings.Split(id, "/")
-	if len(parts) < 2 {
-		return "", "", fmt.Errorf("Unable to determine attachment ID")
-	}
-
-	return parts[0], parts[1], nil
 }

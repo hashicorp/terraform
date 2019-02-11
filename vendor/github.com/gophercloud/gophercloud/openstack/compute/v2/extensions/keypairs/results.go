@@ -5,29 +5,33 @@ import (
 	"github.com/gophercloud/gophercloud/pagination"
 )
 
-// KeyPair is an SSH key known to the OpenStack Cloud that is available to be injected into
-// servers.
+// KeyPair is an SSH key known to the OpenStack Cloud that is available to be
+// injected into servers.
 type KeyPair struct {
-	// Name is used to refer to this keypair from other services within this region.
+	// Name is used to refer to this keypair from other services within this
+	// region.
 	Name string `json:"name"`
 
-	// Fingerprint is a short sequence of bytes that can be used to authenticate or validate a longer
-	// public key.
+	// Fingerprint is a short sequence of bytes that can be used to authenticate
+	// or validate a longer public key.
 	Fingerprint string `json:"fingerprint"`
 
-	// PublicKey is the public key from this pair, in OpenSSH format. "ssh-rsa AAAAB3Nz..."
+	// PublicKey is the public key from this pair, in OpenSSH format.
+	// "ssh-rsa AAAAB3Nz..."
 	PublicKey string `json:"public_key"`
 
 	// PrivateKey is the private key from this pair, in PEM format.
-	// "-----BEGIN RSA PRIVATE KEY-----\nMIICXA..." It is only present if this keypair was just
-	// returned from a Create call
+	// "-----BEGIN RSA PRIVATE KEY-----\nMIICXA..."
+	// It is only present if this KeyPair was just returned from a Create call.
 	PrivateKey string `json:"private_key"`
 
-	// UserID is the user who owns this keypair.
+	// UserID is the user who owns this KeyPair.
 	UserID string `json:"user_id"`
 }
 
-// KeyPairPage stores a single, only page of KeyPair results from a List call.
+// KeyPairPage stores a single page of all KeyPair results from a List call.
+// Use the ExtractKeyPairs function to convert the results to a slice of
+// KeyPairs.
 type KeyPairPage struct {
 	pagination.SinglePageBase
 }
@@ -58,7 +62,8 @@ type keyPairResult struct {
 	gophercloud.Result
 }
 
-// Extract is a method that attempts to interpret any KeyPair resource response as a KeyPair struct.
+// Extract is a method that attempts to interpret any KeyPair resource response
+// as a KeyPair struct.
 func (r keyPairResult) Extract() (*KeyPair, error) {
 	var s struct {
 		KeyPair *KeyPair `json:"keypair"`
@@ -67,20 +72,20 @@ func (r keyPairResult) Extract() (*KeyPair, error) {
 	return s.KeyPair, err
 }
 
-// CreateResult is the response from a Create operation. Call its Extract method to interpret it
-// as a KeyPair.
+// CreateResult is the response from a Create operation. Call its Extract method
+// to interpret it as a KeyPair.
 type CreateResult struct {
 	keyPairResult
 }
 
-// GetResult is the response from a Get operation. Call its Extract method to interpret it
-// as a KeyPair.
+// GetResult is the response from a Get operation. Call its Extract method to
+// interpret it as a KeyPair.
 type GetResult struct {
 	keyPairResult
 }
 
-// DeleteResult is the response from a Delete operation. Call its Extract method to determine if
-// the call succeeded or failed.
+// DeleteResult is the response from a Delete operation. Call its ExtractErr
+// method to determine if the call succeeded or failed.
 type DeleteResult struct {
 	gophercloud.ErrResult
 }
