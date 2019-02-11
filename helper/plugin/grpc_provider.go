@@ -656,7 +656,10 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 }
 
 func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.ApplyResourceChange_Request) (*proto.ApplyResourceChange_Response, error) {
-	resp := &proto.ApplyResourceChange_Response{}
+	resp := &proto.ApplyResourceChange_Response{
+		// Start with the existing state as a fallback
+		NewState: req.PriorState,
+	}
 
 	res := s.provider.ResourcesMap[req.TypeName]
 	block := res.CoreConfigSchema()
@@ -753,15 +756,17 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 	}
 
 	newInstanceState, err := s.provider.Apply(info, priorState, diff)
+	// we record the error here, but continue processing any returned state.
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
-		return resp, nil
 	}
 
 	newStateVal := cty.NullVal(block.ImpliedType())
 
-	// always return a nul value for destroy
-	if newInstanceState == nil || destroy {
+	// Always return a null value for destroy.
+	// While this is usually indicated by a nil state, check for missing ID or
+	// attributes in the case of a provider failure.
+	if destroy || newInstanceState == nil || newInstanceState.Attributes == nil || newInstanceState.ID == "" {
 		newStateMP, err := msgpack.Marshal(newStateVal, block.ImpliedType())
 		if err != nil {
 			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)

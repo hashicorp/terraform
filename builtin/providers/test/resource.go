@@ -1,6 +1,7 @@
 package test
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -123,12 +124,22 @@ func testResource() *schema.Resource {
 					},
 				},
 			},
+			"apply_error": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "return and error during apply",
+			},
 		},
 	}
 }
 
 func testResourceCreate(d *schema.ResourceData, meta interface{}) error {
 	d.SetId("testId")
+
+	errMsg, _ := d.Get("apply_error").(string)
+	if errMsg != "" {
+		return errors.New(errMsg)
+	}
 
 	// Required must make it through to Create
 	if _, ok := d.GetOk("required"); !ok {
@@ -156,6 +167,10 @@ func testResourceRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func testResourceUpdate(d *schema.ResourceData, meta interface{}) error {
+	errMsg, _ := d.Get("apply_error").(string)
+	if errMsg != "" {
+		return errors.New(errMsg)
+	}
 	return nil
 }
 
