@@ -79,7 +79,7 @@ type output struct {
 
 // variables is the JSON representation of the variables provided to the current
 // plan.
-type variables map[string]interface{}
+type variables map[string]*variable
 
 type variable struct {
 	Value json.RawMessage `json:"value,omitempty"`
