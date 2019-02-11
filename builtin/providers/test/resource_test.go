@@ -2,6 +2,7 @@ package test
 
 import (
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -620,6 +621,58 @@ resource "test_resource" "foo" {
 	}
 }
 				`),
+			},
+		},
+	})
+}
+
+func TestResource_updateError(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+  required     = "first"
+  required_map = {
+    a = "a"
+  }
+}
+`),
+			},
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+  required     = "second"
+  required_map = {
+    a = "a"
+  }
+  apply_error = "update_error"
+}
+`),
+				ExpectError: regexp.MustCompile("update_error"),
+			},
+		},
+	})
+}
+
+func TestResource_applyError(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+  required     = "second"
+  required_map = {
+    a = "a"
+  }
+  apply_error = "apply_error"
+}
+`),
+				ExpectError: regexp.MustCompile("apply_error"),
 			},
 		},
 	})
