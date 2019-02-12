@@ -188,3 +188,33 @@ resource "test_resource_list" "bar" {
 		},
 	})
 }
+
+func TestResourceList_removedForcesNew(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_list" "foo" {
+	list_block {
+		force_new = "ok"
+	}
+}
+				`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"test_resource_list.foo", "list_block.0.force_new", "ok",
+					),
+				),
+			},
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_list" "foo" {
+}
+				`),
+				Check: resource.ComposeTestCheckFunc(),
+			},
+		},
+	})
+}
