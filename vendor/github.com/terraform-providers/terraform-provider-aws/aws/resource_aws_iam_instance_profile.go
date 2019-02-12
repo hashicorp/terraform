@@ -52,7 +52,7 @@ func resourceAwsIamInstanceProfile() *schema.Resource {
 						errors = append(errors, fmt.Errorf(
 							"%q cannot be longer than 128 characters", k))
 					}
-					if !regexp.MustCompile("^[\\w+=,.@-]+$").MatchString(value) {
+					if !regexp.MustCompile(`^[\w+=,.@-]+$`).MatchString(value) {
 						errors = append(errors, fmt.Errorf(
 							"%q must match [\\w+=,.@-]", k))
 					}
@@ -72,7 +72,7 @@ func resourceAwsIamInstanceProfile() *schema.Resource {
 						errors = append(errors, fmt.Errorf(
 							"%q cannot be longer than 64 characters, name is limited to 128", k))
 					}
-					if !regexp.MustCompile("^[\\w+=,.@-]+$").MatchString(value) {
+					if !regexp.MustCompile(`^[\w+=,.@-]+$`).MatchString(value) {
 						errors = append(errors, fmt.Errorf(
 							"%q must match [\\w+=,.@-]", k))
 					}
@@ -122,7 +122,7 @@ func resourceAwsIamInstanceProfileCreate(d *schema.ResourceData, meta interface{
 	_, hasRoles := d.GetOk("roles")
 	_, hasRole := d.GetOk("role")
 
-	if hasRole == false && hasRoles == false {
+	if !hasRole && !hasRoles {
 		return fmt.Errorf("Either `role` or `roles` (deprecated) must be specified when creating an IAM Instance Profile")
 	}
 
@@ -342,9 +342,6 @@ func instanceProfileReadResult(d *schema.ResourceData, result *iam.InstanceProfi
 	for _, role := range result.Roles {
 		roles.Add(*role.RoleName)
 	}
-	if err := d.Set("roles", roles); err != nil {
-		return err
-	}
-
-	return nil
+	err := d.Set("roles", roles)
+	return err
 }

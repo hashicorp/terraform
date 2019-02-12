@@ -66,10 +66,7 @@ func resourceAwsKinesisStream() *schema.Resource {
 					kinesis.EncryptionTypeKms,
 				}, true),
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					if strings.ToLower(old) == strings.ToLower(new) {
-						return true
-					}
-					return false
+					return strings.EqualFold(old, new)
 				},
 			},
 

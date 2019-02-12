@@ -22,7 +22,7 @@ func setTagsNeptune(conn *neptune.Neptune, d *schema.ResourceData, arn string) e
 		// Set tags
 		if len(remove) > 0 {
 			log.Printf("[DEBUG] Removing tags: %s", remove)
-			k := make([]*string, len(remove), len(remove))
+			k := make([]*string, len(remove))
 			for i, t := range remove {
 				k[i] = t.Key
 			}
@@ -107,7 +107,8 @@ func tagIgnoredNeptune(t *neptune.Tag) bool {
 	filter := []string{"^aws:"}
 	for _, v := range filter {
 		log.Printf("[DEBUG] Matching %v with %v\n", v, aws.StringValue(t.Key))
-		if r, _ := regexp.MatchString(v, aws.StringValue(t.Key)); r == true {
+		r, _ := regexp.MatchString(v, aws.StringValue(t.Key))
+		if r {
 			log.Printf("[DEBUG] Found AWS specific tag %s (val: %s), ignoring.\n", aws.StringValue(t.Key), aws.StringValue(t.Value))
 			return true
 		}

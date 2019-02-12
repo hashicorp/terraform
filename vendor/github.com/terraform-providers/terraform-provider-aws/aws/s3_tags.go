@@ -52,6 +52,57 @@ func setTagsS3(conn *s3.S3, d *schema.ResourceData) error {
 	return nil
 }
 
+func getTagsS3Object(conn *s3.S3, d *schema.ResourceData) error {
+	resp, err := retryOnAwsCode(s3.ErrCodeNoSuchKey, func() (interface{}, error) {
+		return conn.GetObjectTagging(&s3.GetObjectTaggingInput{
+			Bucket: aws.String(d.Get("bucket").(string)),
+			Key:    aws.String(d.Get("key").(string)),
+		})
+	})
+	if err != nil {
+		return err
+	}
+
+	if err := d.Set("tags", tagsToMapS3(resp.(*s3.GetObjectTaggingOutput).TagSet)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func setTagsS3Object(conn *s3.S3, d *schema.ResourceData) error {
+	if d.HasChange("tags") {
+		oraw, nraw := d.GetChange("tags")
+		o := oraw.(map[string]interface{})
+		n := nraw.(map[string]interface{})
+
+		// Set tags
+		if len(o) > 0 {
+			_, err := conn.DeleteObjectTagging(&s3.DeleteObjectTaggingInput{
+				Bucket: aws.String(d.Get("bucket").(string)),
+				Key:    aws.String(d.Get("key").(string)),
+			})
+			if err != nil {
+				return err
+			}
+		}
+		if len(n) > 0 {
+			_, err := conn.PutObjectTagging(&s3.PutObjectTaggingInput{
+				Bucket: aws.String(d.Get("bucket").(string)),
+				Key:    aws.String(d.Get("key").(string)),
+				Tagging: &s3.Tagging{
+					TagSet: tagsFromMapS3(n),
+				},
+			})
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
 // diffTags takes our tags locally and the ones remotely and returns
 // the set of tags that must be created, and the set of tags that must
 // be destroyed.
@@ -128,7 +179,8 @@ func tagIgnoredS3(t *s3.Tag) bool {
 	filter := []string{"^aws:"}
 	for _, v := range filter {
 		log.Printf("[DEBUG] Matching %v with %v\n", v, *t.Key)
-		if r, _ := regexp.MatchString(v, *t.Key); r == true {
+		r, _ := regexp.MatchString(v, *t.Key)
+		if r {
 			log.Printf("[DEBUG] Found AWS specific tag %s (val: %s), ignoring.\n", *t.Key, *t.Value)
 			return true
 		}

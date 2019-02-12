@@ -46,7 +46,8 @@ const (
 	// ErrCodeInvalidStateException for service response error code
 	// "InvalidStateException".
 	//
-	// The private CA is in a state during which a report cannot be generated.
+	// The private CA is in a state during which a report or certificate cannot
+	// be generated.
 	ErrCodeInvalidStateException = "InvalidStateException"
 
 	// ErrCodeInvalidTagException for service response error code

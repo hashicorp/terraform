@@ -94,9 +94,10 @@ func dataSourceAwsEfsFileSystemRead(d *schema.ResourceData, meta interface{}) er
 				d.Id(), err.Error())
 		}
 
-		for _, tag := range tagsResp.Tags {
-			tags = append(tags, tag)
-		}
+		tags = append(tags, tagsResp.Tags...)
+		//for _, tag := range tagsResp.Tags {
+		//	tags = append(tags, tag)
+		//}
 
 		if tagsResp.NextMarker != nil {
 			marker = *tagsResp.NextMarker
@@ -141,9 +142,5 @@ func dataSourceAwsEfsFileSystemRead(d *schema.ResourceData, meta interface{}) er
 
 	region := meta.(*AWSClient).region
 	err = d.Set("dns_name", resourceAwsEfsDnsName(*fs.FileSystemId, region))
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }

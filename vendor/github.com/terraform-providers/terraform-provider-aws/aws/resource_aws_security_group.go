@@ -1137,7 +1137,7 @@ func matchRules(rType string, local []interface{}, remote []map[string]interface
 		}
 
 		if _, ok := r["self"]; ok {
-			if r["self"].(bool) == true {
+			if r["self"].(bool) {
 				lenSGs++
 			}
 		}

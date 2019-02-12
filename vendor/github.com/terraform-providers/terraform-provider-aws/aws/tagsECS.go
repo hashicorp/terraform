@@ -68,7 +68,8 @@ func tagIgnoredECS(t *ecs.Tag) bool {
 	filter := []string{"^aws:"}
 	for _, v := range filter {
 		log.Printf("[DEBUG] Matching %v with %v\n", v, aws.StringValue(t.Key))
-		if r, _ := regexp.MatchString(v, aws.StringValue(t.Key)); r == true {
+		r, _ := regexp.MatchString(v, aws.StringValue(t.Key))
+		if r {
 			log.Printf("[DEBUG] Found AWS specific tag %s (val: %s), ignoring.\n", aws.StringValue(t.Key), aws.StringValue(t.Value))
 			return true
 		}

@@ -137,11 +137,8 @@ func resourceAwsAppmeshVirtualRouterRead(d *schema.ResourceData, meta interface{
 	d.Set("arn", resp.VirtualRouter.Metadata.Arn)
 	d.Set("created_date", resp.VirtualRouter.Metadata.CreatedAt.Format(time.RFC3339))
 	d.Set("last_updated_date", resp.VirtualRouter.Metadata.LastUpdatedAt.Format(time.RFC3339))
-	if err := d.Set("spec", flattenAppmeshVirtualRouterSpec(resp.VirtualRouter.Spec)); err != nil {
-		return err
-	}
-
-	return nil
+	err1 := d.Set("spec", flattenAppmeshVirtualRouterSpec(resp.VirtualRouter.Spec))
+	return err1
 }
 
 func resourceAwsAppmeshVirtualRouterDelete(d *schema.ResourceData, meta interface{}) error {

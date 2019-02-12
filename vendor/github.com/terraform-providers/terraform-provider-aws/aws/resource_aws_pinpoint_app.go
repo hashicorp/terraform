@@ -262,7 +262,7 @@ func resourceAwsPinpointAppDelete(d *schema.ResourceData, meta interface{}) erro
 }
 
 func expandPinpointCampaignHook(configs []interface{}) *pinpoint.CampaignHook {
-	if configs == nil || len(configs) == 0 {
+	if len(configs) == 0 {
 		return nil
 	}
 
@@ -300,7 +300,7 @@ func flattenPinpointCampaignHook(ch *pinpoint.CampaignHook) []interface{} {
 }
 
 func expandPinpointCampaignLimits(configs []interface{}) *pinpoint.CampaignLimits {
-	if configs == nil || len(configs) == 0 {
+	if len(configs) == 0 {
 		return nil
 	}
 
@@ -343,7 +343,7 @@ func flattenPinpointCampaignLimits(cl *pinpoint.CampaignLimits) []interface{} {
 }
 
 func expandPinpointQuietTime(configs []interface{}) *pinpoint.QuietTime {
-	if configs == nil || len(configs) == 0 {
+	if len(configs) == 0 {
 		return nil
 	}
 

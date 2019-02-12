@@ -293,7 +293,7 @@ func expandGlueDynamoDBTargets(targets []interface{}) []*glue.DynamoDBTarget {
 		return []*glue.DynamoDBTarget{}
 	}
 
-	perms := make([]*glue.DynamoDBTarget, len(targets), len(targets))
+	perms := make([]*glue.DynamoDBTarget, len(targets))
 	for i, rawCfg := range targets {
 		cfg := rawCfg.(map[string]interface{})
 		perms[i] = expandGlueDynamoDBTarget(cfg)
@@ -314,7 +314,7 @@ func expandGlueS3Targets(targets []interface{}) []*glue.S3Target {
 		return []*glue.S3Target{}
 	}
 
-	perms := make([]*glue.S3Target, len(targets), len(targets))
+	perms := make([]*glue.S3Target, len(targets))
 	for i, rawCfg := range targets {
 		cfg := rawCfg.(map[string]interface{})
 		perms[i] = expandGlueS3Target(cfg)
@@ -338,7 +338,7 @@ func expandGlueJdbcTargets(targets []interface{}) []*glue.JdbcTarget {
 		return []*glue.JdbcTarget{}
 	}
 
-	perms := make([]*glue.JdbcTarget, len(targets), len(targets))
+	perms := make([]*glue.JdbcTarget, len(targets))
 	for i, rawCfg := range targets {
 		cfg := rawCfg.(map[string]interface{})
 		perms[i] = expandGlueJdbcTarget(cfg)

@@ -153,8 +153,7 @@ func resourceAwsRedshiftCluster() *schema.Resource {
 			"encrypted": {
 				Type:     schema.TypeBool,
 				Optional: true,
-				Computed: true,
-				ForceNew: true,
+				Default:  false,
 			},
 
 			"enhanced_vpc_routing": {
@@ -167,7 +166,6 @@ func resourceAwsRedshiftCluster() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
-				ForceNew:     true,
 				ValidateFunc: validateArn,
 			},
 
@@ -713,6 +711,16 @@ func resourceAwsRedshiftClusterUpdate(d *schema.ResourceData, meta interface{}) 
 		requestUpdate = true
 	}
 
+	if d.HasChange("encrypted") {
+		req.Encrypted = aws.Bool(d.Get("encrypted").(bool))
+		requestUpdate = true
+	}
+
+	if d.Get("encrypted").(bool) && d.HasChange("kms_key_id") {
+		req.KmsKeyId = aws.String(d.Get("kms_key_id").(string))
+		requestUpdate = true
+	}
+
 	if requestUpdate {
 		log.Printf("[INFO] Modifying Redshift Cluster: %s", d.Id())
 		log.Printf("[DEBUG] Redshift Cluster Modify options: %s", req)
@@ -893,7 +901,7 @@ func resourceAwsRedshiftClusterDelete(d *schema.ResourceData, meta interface{}) 
 	skipFinalSnapshot := d.Get("skip_final_snapshot").(bool)
 	deleteOpts.SkipFinalClusterSnapshot = aws.Bool(skipFinalSnapshot)
 
-	if skipFinalSnapshot == false {
+	if !skipFinalSnapshot {
 		if name, present := d.GetOk("final_snapshot_identifier"); present {
 			deleteOpts.FinalClusterSnapshotIdentifier = aws.String(name.(string))
 		} else {

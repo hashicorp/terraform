@@ -415,7 +415,7 @@ func expandGameliftIpPermissions(cfgs []interface{}) []*gamelift.IpPermission {
 		return []*gamelift.IpPermission{}
 	}
 
-	perms := make([]*gamelift.IpPermission, len(cfgs), len(cfgs))
+	perms := make([]*gamelift.IpPermission, len(cfgs))
 	for i, rawCfg := range cfgs {
 		cfg := rawCfg.(map[string]interface{})
 		perms[i] = expandGameliftIpPermission(cfg)
@@ -454,7 +454,7 @@ func flattenGameliftResourceCreationLimitPolicy(policy *gamelift.ResourceCreatio
 		return []interface{}{}
 	}
 
-	m := make(map[string]interface{}, 0)
+	m := make(map[string]interface{})
 	m["new_game_sessions_per_creator"] = *policy.NewGameSessionsPerCreator
 	m["policy_period_in_minutes"] = *policy.PolicyPeriodInMinutes
 
@@ -486,7 +486,7 @@ func expandGameliftServerProcesses(cfgs []interface{}) []*gamelift.ServerProcess
 		return []*gamelift.ServerProcess{}
 	}
 
-	processes := make([]*gamelift.ServerProcess, len(cfgs), len(cfgs))
+	processes := make([]*gamelift.ServerProcess, len(cfgs))
 	for i, rawCfg := range cfgs {
 		cfg := rawCfg.(map[string]interface{})
 		process := &gamelift.ServerProcess{

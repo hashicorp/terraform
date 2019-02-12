@@ -177,11 +177,8 @@ func resourceAwsAppmeshRouteRead(d *schema.ResourceData, meta interface{}) error
 	d.Set("arn", resp.Route.Metadata.Arn)
 	d.Set("created_date", resp.Route.Metadata.CreatedAt.Format(time.RFC3339))
 	d.Set("last_updated_date", resp.Route.Metadata.LastUpdatedAt.Format(time.RFC3339))
-	if err := d.Set("spec", flattenAppmeshRouteSpec(resp.Route.Spec)); err != nil {
-		return err
-	}
-
-	return nil
+	err1 := d.Set("spec", flattenAppmeshRouteSpec(resp.Route.Spec))
+	return err1
 }
 
 func resourceAwsAppmeshRouteUpdate(d *schema.ResourceData, meta interface{}) error {

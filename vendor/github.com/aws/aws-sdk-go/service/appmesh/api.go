@@ -937,7 +937,7 @@ func (c *AppMesh) DescribeMeshRequest(input *DescribeMeshInput) (req *request.Re
 
 // DescribeMesh API operation for AWS App Mesh.
 //
-// Describes an existing cluster.
+// Describes an existing service mesh.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3314,34 +3314,45 @@ func (s *DnsServiceDiscovery) SetServiceName(v string) *DnsServiceDiscovery {
 }
 
 // An object representing the health check policy for a virtual node's listener.
-//
-// Listener health checks are not available during the App Mesh preview.
 type HealthCheckPolicy struct {
 	_ struct{} `type:"structure"`
 
 	// The number of consecutive successful health checks that must occur before
 	// declaring listener healthy.
-	HealthyThreshold *int64 `locationName:"healthyThreshold" type:"integer"`
+	//
+	// HealthyThreshold is a required field
+	HealthyThreshold *int64 `locationName:"healthyThreshold" min:"2" type:"integer" required:"true"`
 
 	// The time period in milliseconds between each health check execution.
-	IntervalMillis *int64 `locationName:"intervalMillis" type:"long"`
+	//
+	// IntervalMillis is a required field
+	IntervalMillis *int64 `locationName:"intervalMillis" min:"5000" type:"long" required:"true"`
 
-	// The destination path for the health check request.
+	// The destination path for the health check request. This is only required
+	// if the specified protocol is HTTP; if the protocol is TCP, then this parameter
+	// is ignored.
 	Path *string `locationName:"path" type:"string"`
 
-	// The destination port for the health check request.
+	// The destination port for the health check request. This port must match the
+	// port defined in the PortMapping for the listener.
 	Port *int64 `locationName:"port" min:"1" type:"integer"`
 
 	// The protocol for the health check request.
-	Protocol *string `locationName:"protocol" type:"string" enum:"PortProtocol"`
+	//
+	// Protocol is a required field
+	Protocol *string `locationName:"protocol" type:"string" required:"true" enum:"PortProtocol"`
 
 	// The amount of time to wait when receiving a response from the health check,
 	// in milliseconds.
-	TimeoutMillis *int64 `locationName:"timeoutMillis" type:"long"`
+	//
+	// TimeoutMillis is a required field
+	TimeoutMillis *int64 `locationName:"timeoutMillis" min:"2000" type:"long" required:"true"`
 
 	// The number of consecutive failed health checks that must occur before declaring
 	// a virtual node unhealthy.
-	UnhealthyThreshold *int64 `locationName:"unhealthyThreshold" type:"integer"`
+	//
+	// UnhealthyThreshold is a required field
+	UnhealthyThreshold *int64 `locationName:"unhealthyThreshold" min:"2" type:"integer" required:"true"`
 }
 
 // String returns the string representation
@@ -3357,8 +3368,35 @@ func (s HealthCheckPolicy) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *HealthCheckPolicy) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "HealthCheckPolicy"}
+	if s.HealthyThreshold == nil {
+		invalidParams.Add(request.NewErrParamRequired("HealthyThreshold"))
+	}
+	if s.HealthyThreshold != nil && *s.HealthyThreshold < 2 {
+		invalidParams.Add(request.NewErrParamMinValue("HealthyThreshold", 2))
+	}
+	if s.IntervalMillis == nil {
+		invalidParams.Add(request.NewErrParamRequired("IntervalMillis"))
+	}
+	if s.IntervalMillis != nil && *s.IntervalMillis < 5000 {
+		invalidParams.Add(request.NewErrParamMinValue("IntervalMillis", 5000))
+	}
 	if s.Port != nil && *s.Port < 1 {
 		invalidParams.Add(request.NewErrParamMinValue("Port", 1))
+	}
+	if s.Protocol == nil {
+		invalidParams.Add(request.NewErrParamRequired("Protocol"))
+	}
+	if s.TimeoutMillis == nil {
+		invalidParams.Add(request.NewErrParamRequired("TimeoutMillis"))
+	}
+	if s.TimeoutMillis != nil && *s.TimeoutMillis < 2000 {
+		invalidParams.Add(request.NewErrParamMinValue("TimeoutMillis", 2000))
+	}
+	if s.UnhealthyThreshold == nil {
+		invalidParams.Add(request.NewErrParamRequired("UnhealthyThreshold"))
+	}
+	if s.UnhealthyThreshold != nil && *s.UnhealthyThreshold < 2 {
+		invalidParams.Add(request.NewErrParamMinValue("UnhealthyThreshold", 2))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -3974,8 +4012,6 @@ type Listener struct {
 	_ struct{} `type:"structure"`
 
 	// The health check information for the listener.
-	//
-	// Listener health checks are not available during the App Mesh preview.
 	HealthCheck *HealthCheckPolicy `locationName:"healthCheck" type:"structure"`
 
 	// The port mapping information for the listener.
@@ -4190,10 +4226,10 @@ type ResourceMetadata struct {
 	// with the APPMESH_VIRTUAL_NODE_CLUSTER environment variable.
 	Arn *string `locationName:"arn" type:"string"`
 
-	// The Unix epoch timestamp in seconds for when the cluster was created.
+	// The Unix epoch timestamp in seconds for when the resource was created.
 	CreatedAt *time.Time `locationName:"createdAt" type:"timestamp"`
 
-	// The Unix epoch timestamp in seconds for when the cluster was last updated.
+	// The Unix epoch timestamp in seconds for when the resource was last updated.
 	LastUpdatedAt *time.Time `locationName:"lastUpdatedAt" type:"timestamp"`
 
 	// The unique identifier for the resource.

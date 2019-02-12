@@ -13,14 +13,14 @@ const (
 	// ErrCodeApplicationAlreadyExistsException for service response error code
 	// "ApplicationAlreadyExistsException".
 	//
-	// An application with the specified name already exists with the applicable
-	// IAM user or AWS account.
+	// An application with the specified name with the IAM user or AWS account already
+	// exists.
 	ErrCodeApplicationAlreadyExistsException = "ApplicationAlreadyExistsException"
 
 	// ErrCodeApplicationDoesNotExistException for service response error code
 	// "ApplicationDoesNotExistException".
 	//
-	// The application does not exist with the applicable IAM user or AWS account.
+	// The application does not exist with the IAM user or AWS account.
 	ErrCodeApplicationDoesNotExistException = "ApplicationDoesNotExistException"
 
 	// ErrCodeApplicationLimitExceededException for service response error code
@@ -56,15 +56,14 @@ const (
 	// ErrCodeDeploymentConfigAlreadyExistsException for service response error code
 	// "DeploymentConfigAlreadyExistsException".
 	//
-	// A deployment configuration with the specified name already exists with the
-	// applicable IAM user or AWS account.
+	// A deployment configuration with the specified name with the IAM user or AWS
+	// account already exists .
 	ErrCodeDeploymentConfigAlreadyExistsException = "DeploymentConfigAlreadyExistsException"
 
 	// ErrCodeDeploymentConfigDoesNotExistException for service response error code
 	// "DeploymentConfigDoesNotExistException".
 	//
-	// The deployment configuration does not exist with the applicable IAM user
-	// or AWS account.
+	// The deployment configuration does not exist with the IAM user or AWS account.
 	ErrCodeDeploymentConfigDoesNotExistException = "DeploymentConfigDoesNotExistException"
 
 	// ErrCodeDeploymentConfigInUseException for service response error code
@@ -88,21 +87,20 @@ const (
 	// ErrCodeDeploymentDoesNotExistException for service response error code
 	// "DeploymentDoesNotExistException".
 	//
-	// The deployment does not exist with the applicable IAM user or AWS account.
+	// The deployment with the IAM user or AWS account does not exist.
 	ErrCodeDeploymentDoesNotExistException = "DeploymentDoesNotExistException"
 
 	// ErrCodeDeploymentGroupAlreadyExistsException for service response error code
 	// "DeploymentGroupAlreadyExistsException".
 	//
-	// A deployment group with the specified name already exists with the applicable
-	// IAM user or AWS account.
+	// A deployment group with the specified name with the IAM user or AWS account
+	// already exists.
 	ErrCodeDeploymentGroupAlreadyExistsException = "DeploymentGroupAlreadyExistsException"
 
 	// ErrCodeDeploymentGroupDoesNotExistException for service response error code
 	// "DeploymentGroupDoesNotExistException".
 	//
-	// The named deployment group does not exist with the applicable IAM user or
-	// AWS account.
+	// The named deployment group with the IAM user or AWS account does not exist.
 	ErrCodeDeploymentGroupDoesNotExistException = "DeploymentGroupDoesNotExistException"
 
 	// ErrCodeDeploymentGroupLimitExceededException for service response error code
@@ -172,7 +170,7 @@ const (
 	// "ECSServiceMappingLimitExceededException".
 	//
 	// The Amazon ECS service is associated with more than one deployment groups.
-	// An ECS service can only be associated with one deployment group.
+	// An Amazon ECS service can be associated with only one deployment group.
 	ErrCodeECSServiceMappingLimitExceededException = "ECSServiceMappingLimitExceededException"
 
 	// ErrCodeGitHubAccountTokenDoesNotExistException for service response error code
@@ -259,11 +257,11 @@ const (
 	//
 	//    * The alarm object is null.
 	//
-	//    * The alarm name is empty or null or exceeds the 255 character limit.
+	//    * The alarm name is empty or null or exceeds the limit of 255 characters.
 	//
 	//    * Two alarms with the same name have been specified.
 	//
-	//    * The alarm configuration is enabled but the alarm list is empty.
+	//    * The alarm configuration is enabled, but the alarm list is empty.
 	ErrCodeInvalidAlarmConfigException = "InvalidAlarmConfigException"
 
 	// ErrCodeInvalidApplicationNameException for service response error code
@@ -276,7 +274,7 @@ const (
 	// "InvalidAutoRollbackConfigException".
 	//
 	// The automatic rollback configuration was specified in an invalid format.
-	// For example, automatic rollback is enabled but an invalid triggering event
+	// For example, automatic rollback is enabled, but an invalid triggering event
 	// type or no event types were listed.
 	ErrCodeInvalidAutoRollbackConfigException = "InvalidAutoRollbackConfigException"
 
@@ -347,14 +345,14 @@ const (
 	// "InvalidDeploymentStyleException".
 	//
 	// An invalid deployment style was specified. Valid deployment types include
-	// "IN_PLACE" and "BLUE_GREEN". Valid deployment options include "WITH_TRAFFIC_CONTROL"
-	// and "WITHOUT_TRAFFIC_CONTROL".
+	// "IN_PLACE" and "BLUE_GREEN." Valid deployment options include "WITH_TRAFFIC_CONTROL"
+	// and "WITHOUT_TRAFFIC_CONTROL."
 	ErrCodeInvalidDeploymentStyleException = "InvalidDeploymentStyleException"
 
 	// ErrCodeInvalidDeploymentTargetIdException for service response error code
 	// "InvalidDeploymentTargetIdException".
 	//
-	// The target ID provide was not valid.
+	// The target ID provided was not valid.
 	ErrCodeInvalidDeploymentTargetIdException = "InvalidDeploymentTargetIdException"
 
 	// ErrCodeInvalidDeploymentWaitTypeException for service response error code
@@ -386,9 +384,9 @@ const (
 	// "InvalidFileExistsBehaviorException".
 	//
 	// An invalid fileExistsBehavior option was specified to determine how AWS CodeDeploy
-	// handles files or directories that already exist in a deployment target location
+	// handles files or directories that already exist in a deployment target location,
 	// but weren't part of the previous successful deployment. Valid values include
-	// "DISALLOW", "OVERWRITE", and "RETAIN".
+	// "DISALLOW," "OVERWRITE," and "RETAIN."
 	ErrCodeInvalidFileExistsBehaviorException = "InvalidFileExistsBehaviorException"
 
 	// ErrCodeInvalidGitHubAccountTokenException for service response error code
@@ -425,13 +423,13 @@ const (
 	// ErrCodeInvalidInputException for service response error code
 	// "InvalidInputException".
 	//
-	// The specified input was specified in an invalid format.
+	// The input was specified in an invalid format.
 	ErrCodeInvalidInputException = "InvalidInputException"
 
 	// ErrCodeInvalidInstanceNameException for service response error code
 	// "InvalidInstanceNameException".
 	//
-	// The specified on-premises instance name was specified in an invalid format.
+	// The on-premises instance name was specified in an invalid format.
 	ErrCodeInvalidInstanceNameException = "InvalidInstanceNameException"
 
 	// ErrCodeInvalidInstanceStatusException for service response error code
@@ -516,7 +514,7 @@ const (
 	//
 	// The service role ARN was specified in an invalid format. Or, if an Auto Scaling
 	// group was specified, the specified service role does not grant the appropriate
-	// permissions to Auto Scaling.
+	// permissions to Amazon EC2 Auto Scaling.
 	ErrCodeInvalidRoleException = "InvalidRoleException"
 
 	// ErrCodeInvalidSortByException for service response error code
@@ -535,13 +533,13 @@ const (
 	// ErrCodeInvalidTagException for service response error code
 	// "InvalidTagException".
 	//
-	// The specified tag was specified in an invalid format.
+	// The tag was specified in an invalid format.
 	ErrCodeInvalidTagException = "InvalidTagException"
 
 	// ErrCodeInvalidTagFilterException for service response error code
 	// "InvalidTagFilterException".
 	//
-	// The specified tag filter was specified in an invalid format.
+	// The tag filter was specified in an invalid format.
 	ErrCodeInvalidTagFilterException = "InvalidTagFilterException"
 
 	// ErrCodeInvalidTargetFilterNameException for service response error code
@@ -631,7 +629,7 @@ const (
 	// ErrCodeRevisionDoesNotExistException for service response error code
 	// "RevisionDoesNotExistException".
 	//
-	// The named revision does not exist with the applicable IAM user or AWS account.
+	// The named revision does not exist with the IAM user or AWS account.
 	ErrCodeRevisionDoesNotExistException = "RevisionDoesNotExistException"
 
 	// ErrCodeRevisionRequiredException for service response error code

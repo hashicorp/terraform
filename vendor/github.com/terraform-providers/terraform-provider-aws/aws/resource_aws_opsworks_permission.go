@@ -98,7 +98,7 @@ func resourceAwsOpsworksPermissionRead(d *schema.ResourceData, meta interface{})
 
 	}
 
-	if false == found {
+	if !found {
 		d.SetId("")
 		log.Printf("[INFO] The correct permission could not be found for: %s on stack: %s", d.Get("user_arn"), d.Get("stack_id"))
 	}

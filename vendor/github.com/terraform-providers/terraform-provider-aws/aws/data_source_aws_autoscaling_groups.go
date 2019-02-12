@@ -119,7 +119,7 @@ func dataSourceAwsAutoscalingGroupsRead(d *schema.ResourceData, meta interface{}
 }
 
 func expandAsgTagFilters(in []interface{}) []*autoscaling.Filter {
-	out := make([]*autoscaling.Filter, len(in), len(in))
+	out := make([]*autoscaling.Filter, len(in))
 	for i, filter := range in {
 		m := filter.(map[string]interface{})
 		values := expandStringList(m["values"].(*schema.Set).List())

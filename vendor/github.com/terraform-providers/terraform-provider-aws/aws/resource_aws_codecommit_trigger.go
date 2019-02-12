@@ -124,11 +124,7 @@ func resourceAwsCodeCommitTriggerDelete(d *schema.ResourceData, meta interface{}
 
 	_, err := conn.PutRepositoryTriggers(input)
 
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func expandAwsCodeCommitTriggers(configured []interface{}) []*codecommit.RepositoryTrigger {

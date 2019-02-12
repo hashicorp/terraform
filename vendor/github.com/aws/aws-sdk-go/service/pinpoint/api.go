@@ -12586,6 +12586,15 @@ func (s *EndpointsResponse) SetItem(v []*EndpointResponse) *EndpointsResponse {
 type Event struct {
 	_ struct{} `type:"structure"`
 
+	// The package name associated with the app that's recording the event.
+	AppPackageName *string `type:"string"`
+
+	// The title of the app that's recording the event.
+	AppTitle *string `type:"string"`
+
+	// The version number of the app that's recording the event.
+	AppVersionCode *string `type:"string"`
+
 	// Custom attributes that are associated with the event you're adding or updating.
 	Attributes map[string]*string `type:"map"`
 
@@ -12597,6 +12606,9 @@ type Event struct {
 
 	// Custom metrics related to the event.
 	Metrics map[string]*float64 `type:"map"`
+
+	// The name of the SDK that's being used to record the event.
+	SdkName *string `type:"string"`
 
 	// Information about the session in which the event occurred.
 	Session *Session `type:"structure"`
@@ -12613,6 +12625,24 @@ func (s Event) String() string {
 // GoString returns the string representation
 func (s Event) GoString() string {
 	return s.String()
+}
+
+// SetAppPackageName sets the AppPackageName field's value.
+func (s *Event) SetAppPackageName(v string) *Event {
+	s.AppPackageName = &v
+	return s
+}
+
+// SetAppTitle sets the AppTitle field's value.
+func (s *Event) SetAppTitle(v string) *Event {
+	s.AppTitle = &v
+	return s
+}
+
+// SetAppVersionCode sets the AppVersionCode field's value.
+func (s *Event) SetAppVersionCode(v string) *Event {
+	s.AppVersionCode = &v
+	return s
 }
 
 // SetAttributes sets the Attributes field's value.
@@ -12636,6 +12666,12 @@ func (s *Event) SetEventType(v string) *Event {
 // SetMetrics sets the Metrics field's value.
 func (s *Event) SetMetrics(v map[string]*float64) *Event {
 	s.Metrics = v
+	return s
+}
+
+// SetSdkName sets the SdkName field's value.
+func (s *Event) SetSdkName(v string) *Event {
+	s.SdkName = &v
 	return s
 }
 

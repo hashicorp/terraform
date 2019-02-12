@@ -150,9 +150,6 @@ func snapshotDescriptionAttributes(d *schema.ResourceData, snapshot *ec2.Snapsho
 	d.Set("owner_id", snapshot.OwnerId)
 	d.Set("owner_alias", snapshot.OwnerAlias)
 
-	if err := d.Set("tags", tagsToMap(snapshot.Tags)); err != nil {
-		return err
-	}
-
-	return nil
+	err := d.Set("tags", tagsToMap(snapshot.Tags))
+	return err
 }

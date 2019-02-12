@@ -182,7 +182,7 @@ type Signer struct {
 	// http://docs.aws.amazon.com/general/latest/gr/sigv4-create-canonical-request.html
 	DisableURIPathEscaping bool
 
-	// Disales the automatical setting of the HTTP request's Body field with the
+	// Disables the automatical setting of the HTTP request's Body field with the
 	// io.ReadSeeker passed in to the signer. This is useful if you're using a
 	// custom wrapper around the body for the io.ReadSeeker and want to preserve
 	// the Body value on the Request.Body.
@@ -754,7 +754,7 @@ func makeSha256Reader(reader io.ReadSeeker) []byte {
 const doubleSpace = "  "
 
 // stripExcessSpaces will rewrite the passed in slice's string values to not
-// contain muliple side-by-side spaces.
+// contain multiple side-by-side spaces.
 func stripExcessSpaces(vals []string) {
 	var j, k, l, m, spaces int
 	for i, str := range vals {

@@ -142,7 +142,7 @@ func resourceAwsApiGatewayStageCreate(d *schema.ResourceData, meta interface{}) 
 		input.DocumentationVersion = aws.String(v.(string))
 	}
 	if vars, ok := d.GetOk("variables"); ok {
-		variables := make(map[string]string, 0)
+		variables := make(map[string]string)
 		for k, v := range vars.(map[string]interface{}) {
 			variables[k] = v.(string)
 		}

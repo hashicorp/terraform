@@ -67,6 +67,7 @@ func resourceAwsMqConfiguration() *schema.Resource {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -78,6 +79,10 @@ func resourceAwsMqConfigurationCreate(d *schema.ResourceData, meta interface{}) 
 		EngineType:    aws.String(d.Get("engine_type").(string)),
 		EngineVersion: aws.String(d.Get("engine_version").(string)),
 		Name:          aws.String(d.Get("name").(string)),
+	}
+
+	if v, ok := d.GetOk("tags"); ok {
+		input.Tags = tagsFromMapGeneric(v.(map[string]interface{}))
 	}
 
 	log.Printf("[INFO] Creating MQ Configuration: %s", input)
@@ -130,7 +135,7 @@ func resourceAwsMqConfigurationRead(d *schema.ResourceData, meta interface{}) er
 
 	d.Set("data", string(b))
 
-	return nil
+	return getTagsMQ(conn, d, aws.StringValue(out.Arn))
 }
 
 func resourceAwsMqConfigurationUpdate(d *schema.ResourceData, meta interface{}) error {
@@ -151,6 +156,10 @@ func resourceAwsMqConfigurationUpdate(d *schema.ResourceData, meta interface{}) 
 	_, err := conn.UpdateConfiguration(&input)
 	if err != nil {
 		return err
+	}
+
+	if tagErr := setTagsMQ(conn, d, d.Get("arn").(string)); tagErr != nil {
+		return fmt.Errorf("error setting mq configuration tags: %s", err)
 	}
 
 	return resourceAwsMqConfigurationRead(d, meta)

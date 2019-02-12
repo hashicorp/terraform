@@ -2,8 +2,9 @@ package aws
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform/helper/validation"
 	"log"
+
+	"github.com/hashicorp/terraform/helper/validation"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ssm"
@@ -299,7 +300,7 @@ func resourceAwsSsmMaintenanceWindowTaskDelete(d *schema.ResourceData, meta inte
 
 	_, err := ssmconn.DeregisterTaskFromMaintenanceWindow(params)
 	if err != nil {
-		return err
+		return fmt.Errorf("error deregistering SSM Maintenance Window Task (%s): %s", d.Id(), err)
 	}
 
 	return nil

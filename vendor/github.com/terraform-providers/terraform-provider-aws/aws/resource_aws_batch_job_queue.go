@@ -95,11 +95,21 @@ func resourceAwsBatchJobQueueRead(d *schema.ResourceData, meta interface{}) erro
 		d.SetId("")
 		return nil
 	}
+
 	d.Set("arn", jq.JobQueueArn)
-	d.Set("compute_environments", jq.ComputeEnvironmentOrder)
+
+	computeEnvironments := make([]string, len(jq.ComputeEnvironmentOrder))
+	for _, computeEnvironmentOrder := range jq.ComputeEnvironmentOrder {
+		computeEnvironments[aws.Int64Value(computeEnvironmentOrder.Order)] = aws.StringValue(computeEnvironmentOrder.ComputeEnvironment)
+	}
+	if err := d.Set("compute_environments", computeEnvironments); err != nil {
+		return fmt.Errorf("error setting compute_environments: %s", err)
+	}
+
 	d.Set("name", jq.JobQueueName)
 	d.Set("priority", jq.Priority)
 	d.Set("state", jq.State)
+
 	return nil
 }
 

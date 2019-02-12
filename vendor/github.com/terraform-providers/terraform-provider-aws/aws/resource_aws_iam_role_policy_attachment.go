@@ -128,10 +128,7 @@ func attachPolicyToRole(conn *iam.IAM, role string, arn string) error {
 		RoleName:  aws.String(role),
 		PolicyArn: aws.String(arn),
 	})
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func detachPolicyFromRole(conn *iam.IAM, role string, arn string) error {
@@ -139,8 +136,5 @@ func detachPolicyFromRole(conn *iam.IAM, role string, arn string) error {
 		RoleName:  aws.String(role),
 		PolicyArn: aws.String(arn),
 	})
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }

@@ -61,7 +61,7 @@ func dataSourceAwsAmiIdsRead(d *schema.ResourceData, meta interface{}) error {
 	owners, ownersOk := d.GetOk("owners")
 	sortAscending := d.Get("sort_ascending").(bool)
 
-	if executableUsersOk == false && filtersOk == false && nameRegexOk == false && ownersOk == false {
+	if !executableUsersOk && !filtersOk && !nameRegexOk && !ownersOk {
 		return fmt.Errorf("One of executable_users, filters, name_regex, or owners must be assigned")
 	}
 

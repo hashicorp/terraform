@@ -11242,6 +11242,10 @@ type AssociationDescription struct {
 	// The association version.
 	AssociationVersion *string `type:"string"`
 
+	// Specify the target for the association. This target is required for associations
+	// that use an Automation document and target resources by using rate controls.
+	AutomationTargetParameterName *string `min:"1" type:"string"`
+
 	// The severity level that is assigned to the association.
 	ComplianceSeverity *string `type:"string" enum:"AssociationComplianceSeverity"`
 
@@ -11336,6 +11340,12 @@ func (s *AssociationDescription) SetAssociationName(v string) *AssociationDescri
 // SetAssociationVersion sets the AssociationVersion field's value.
 func (s *AssociationDescription) SetAssociationVersion(v string) *AssociationDescription {
 	s.AssociationVersion = &v
+	return s
+}
+
+// SetAutomationTargetParameterName sets the AutomationTargetParameterName field's value.
+func (s *AssociationDescription) SetAutomationTargetParameterName(v string) *AssociationDescription {
+	s.AutomationTargetParameterName = &v
 	return s
 }
 
@@ -12144,10 +12154,11 @@ func (s *AttachmentContent) SetUrl(v string) *AttachmentContent {
 	return s
 }
 
-// An attribute of an attachment, such as the attachment name or size.
+// An attribute of an attachment, such as the attachment name.
 type AttachmentInformation struct {
 	_ struct{} `type:"structure"`
 
+	// The name of the attachment.
 	Name *string `type:"string"`
 }
 
@@ -12534,7 +12545,7 @@ type AutomationExecutionMetadata struct {
 	// Timed out, or Cancelled.
 	AutomationExecutionStatus *string `type:"string" enum:"AutomationExecutionStatus"`
 
-	// Use this filter with DescribeAutomationExecution. Specify either Local of
+	// Use this filter with DescribeAutomationExecutions. Specify either Local or
 	// CrossAccount. CrossAccount is an Automation that executes in multiple AWS
 	// Regions and accounts. For more information, see Concurrently Executing Automations
 	// in Multiple AWS Regions and Accounts (http://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-automation-multiple-accounts-and-regions.html)
@@ -14306,6 +14317,10 @@ type CreateAssociationBatchRequestEntry struct {
 	// Specify a descriptive name for the association.
 	AssociationName *string `type:"string"`
 
+	// Specify the target for the association. This target is required for associations
+	// that use an Automation document and target resources by using rate controls.
+	AutomationTargetParameterName *string `min:"1" type:"string"`
+
 	// The severity level to assign to the association.
 	ComplianceSeverity *string `type:"string" enum:"AssociationComplianceSeverity"`
 
@@ -14372,6 +14387,9 @@ func (s CreateAssociationBatchRequestEntry) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *CreateAssociationBatchRequestEntry) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "CreateAssociationBatchRequestEntry"}
+	if s.AutomationTargetParameterName != nil && len(*s.AutomationTargetParameterName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AutomationTargetParameterName", 1))
+	}
 	if s.MaxConcurrency != nil && len(*s.MaxConcurrency) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("MaxConcurrency", 1))
 	}
@@ -14409,6 +14427,12 @@ func (s *CreateAssociationBatchRequestEntry) Validate() error {
 // SetAssociationName sets the AssociationName field's value.
 func (s *CreateAssociationBatchRequestEntry) SetAssociationName(v string) *CreateAssociationBatchRequestEntry {
 	s.AssociationName = &v
+	return s
+}
+
+// SetAutomationTargetParameterName sets the AutomationTargetParameterName field's value.
+func (s *CreateAssociationBatchRequestEntry) SetAutomationTargetParameterName(v string) *CreateAssociationBatchRequestEntry {
+	s.AutomationTargetParameterName = &v
 	return s
 }
 
@@ -14478,6 +14502,10 @@ type CreateAssociationInput struct {
 	// Specify a descriptive name for the association.
 	AssociationName *string `type:"string"`
 
+	// Specify the target for the association. This target is required for associations
+	// that use an Automation document and target resources by using rate controls.
+	AutomationTargetParameterName *string `min:"1" type:"string"`
+
 	// The severity level to assign to the association.
 	ComplianceSeverity *string `type:"string" enum:"AssociationComplianceSeverity"`
 
@@ -14545,6 +14573,9 @@ func (s CreateAssociationInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *CreateAssociationInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "CreateAssociationInput"}
+	if s.AutomationTargetParameterName != nil && len(*s.AutomationTargetParameterName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AutomationTargetParameterName", 1))
+	}
 	if s.MaxConcurrency != nil && len(*s.MaxConcurrency) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("MaxConcurrency", 1))
 	}
@@ -14582,6 +14613,12 @@ func (s *CreateAssociationInput) Validate() error {
 // SetAssociationName sets the AssociationName field's value.
 func (s *CreateAssociationInput) SetAssociationName(v string) *CreateAssociationInput {
 	s.AssociationName = &v
+	return s
+}
+
+// SetAutomationTargetParameterName sets the AutomationTargetParameterName field's value.
+func (s *CreateAssociationInput) SetAutomationTargetParameterName(v string) *CreateAssociationInput {
+	s.AutomationTargetParameterName = &v
 	return s
 }
 
@@ -28850,9 +28887,9 @@ type PatchSource struct {
 
 	// The value of the yum repo configuration. For example:
 	//
-	// cachedir=/var/cache/yum/$basesearch
+	// [main]
 	//
-	// $releasever
+	// cachedir=/var/cache/yum/$basesearch$releasever
 	//
 	// keepcache=0
 	//
@@ -32386,6 +32423,10 @@ type UpdateAssociationInput struct {
 	// this request succeeds, either specify $LATEST, or omit this parameter.
 	AssociationVersion *string `type:"string"`
 
+	// Specify the target for the association. This target is required for associations
+	// that use an Automation document and target resources by using rate controls.
+	AutomationTargetParameterName *string `min:"1" type:"string"`
+
 	// The severity level to assign to the association.
 	ComplianceSeverity *string `type:"string" enum:"AssociationComplianceSeverity"`
 
@@ -32451,6 +32492,9 @@ func (s *UpdateAssociationInput) Validate() error {
 	if s.AssociationId == nil {
 		invalidParams.Add(request.NewErrParamRequired("AssociationId"))
 	}
+	if s.AutomationTargetParameterName != nil && len(*s.AutomationTargetParameterName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AutomationTargetParameterName", 1))
+	}
 	if s.MaxConcurrency != nil && len(*s.MaxConcurrency) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("MaxConcurrency", 1))
 	}
@@ -32497,6 +32541,12 @@ func (s *UpdateAssociationInput) SetAssociationName(v string) *UpdateAssociation
 // SetAssociationVersion sets the AssociationVersion field's value.
 func (s *UpdateAssociationInput) SetAssociationVersion(v string) *UpdateAssociationInput {
 	s.AssociationVersion = &v
+	return s
+}
+
+// SetAutomationTargetParameterName sets the AutomationTargetParameterName field's value.
+func (s *UpdateAssociationInput) SetAutomationTargetParameterName(v string) *UpdateAssociationInput {
+	s.AutomationTargetParameterName = &v
 	return s
 }
 

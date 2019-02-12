@@ -748,11 +748,7 @@ func resourceAwsCodeDeployDeploymentGroupDelete(d *schema.ResourceData, meta int
 		DeploymentGroupName: aws.String(d.Get("deployment_group_name").(string)),
 	})
 
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func handleCreateError(err error) *resource.RetryError {
@@ -1193,7 +1189,7 @@ func autoRollbackConfigToMap(config *codedeploy.AutoRollbackConfiguration) []map
 
 	// only create configurations that are enabled or temporarily disabled (retaining events)
 	// otherwise empty configurations will be created
-	if config != nil && (*config.Enabled == true || len(config.Events) > 0) {
+	if config != nil && (*config.Enabled || len(config.Events) > 0) {
 		item := make(map[string]interface{})
 		item["enabled"] = *config.Enabled
 		item["events"] = schema.NewSet(schema.HashString, flattenStringList(config.Events))
@@ -1210,7 +1206,7 @@ func alarmConfigToMap(config *codedeploy.AlarmConfiguration) []map[string]interf
 
 	// only create configurations that are enabled or temporarily disabled (retaining alarms)
 	// otherwise empty configurations will be created
-	if config != nil && (*config.Enabled == true || len(config.Alarms) > 0) {
+	if config != nil && (*config.Enabled || len(config.Alarms) > 0) {
 		names := make([]*string, 0, len(config.Alarms))
 		for _, alarm := range config.Alarms {
 			names = append(names, alarm.Name)
@@ -1426,8 +1422,7 @@ func resourceAwsCodeDeployTagSetHash(v interface{}) int {
 	filterSet := tagSetMap["ec2_tag_filter"]
 	filterSetSlice := filterSet.(*schema.Set).List()
 
-	var x uint64
-	x = 1
+	var x uint64 = 1
 	for i, filter := range filterSetSlice {
 		x = ((x << 7) | (x >> (64 - 7))) ^ uint64(i) ^ uint64(resourceAwsCodeDeployTagFilterHash(filter))
 	}

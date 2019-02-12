@@ -512,7 +512,7 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 		}
 	}
 
-	// Availability Zones are optional if VPC Zone Identifer(s) are specified
+	// Availability Zones are optional if VPC Zone Identifier(s) are specified
 	if v, ok := d.GetOk("availability_zones"); ok && v.(*schema.Set).Len() > 0 {
 		createOpts.AvailabilityZones = expandStringList(v.(*schema.Set).List())
 	}
@@ -1080,11 +1080,7 @@ func enableASGSuspendedProcesses(d *schema.ResourceData, conn *autoscaling.AutoS
 	}
 
 	_, err := conn.SuspendProcesses(props)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func enableASGMetricsCollection(d *schema.ResourceData, conn *autoscaling.AutoScaling) error {
@@ -1096,11 +1092,8 @@ func enableASGMetricsCollection(d *schema.ResourceData, conn *autoscaling.AutoSc
 
 	log.Printf("[INFO] Enabling metrics collection for the ASG: %s", d.Id())
 	_, metricsErr := conn.EnableMetricsCollection(props)
-	if metricsErr != nil {
-		return metricsErr
-	}
+	return metricsErr
 
-	return nil
 }
 
 func updateASGSuspendedProcesses(d *schema.ResourceData, conn *autoscaling.AutoScaling) error {

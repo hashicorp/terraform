@@ -124,7 +124,7 @@ func resourceAwsEc2TransitGatewayRouteRead(d *schema.ResourceData, meta interfac
 	d.Set("destination_cidr_block", transitGatewayRoute.DestinationCidrBlock)
 
 	d.Set("transit_gateway_attachment_id", "")
-	if len(transitGatewayRoute.TransitGatewayAttachments) == 0 || transitGatewayRoute.TransitGatewayAttachments[0] != nil {
+	if len(transitGatewayRoute.TransitGatewayAttachments) > 0 && transitGatewayRoute.TransitGatewayAttachments[0] != nil {
 		d.Set("transit_gateway_attachment_id", transitGatewayRoute.TransitGatewayAttachments[0].TransitGatewayAttachmentId)
 	}
 

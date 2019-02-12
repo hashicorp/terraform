@@ -74,10 +74,7 @@ func resourceAwsNetworkAcl() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 							DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-								if strings.ToLower(old) == strings.ToLower(new) {
-									return true
-								}
-								return false
+								return strings.EqualFold(old, new)
 							},
 						},
 						"protocol": {
@@ -127,10 +124,7 @@ func resourceAwsNetworkAcl() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 							DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-								if strings.ToLower(old) == strings.ToLower(new) {
-									return true
-								}
-								return false
+								return strings.EqualFold(old, new)
 							},
 						},
 						"protocol": {
@@ -224,7 +218,7 @@ func resourceAwsNetworkAclRead(d *schema.ResourceData, meta interface{}) error {
 			continue
 		}
 
-		if *e.Egress == true {
+		if *e.Egress {
 			egressEntries = append(egressEntries, e)
 		} else {
 			ingressEntries = append(ingressEntries, e)

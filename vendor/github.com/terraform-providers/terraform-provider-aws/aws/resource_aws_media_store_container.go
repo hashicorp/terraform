@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/mediastore"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsMediaStoreContainer() *schema.Resource {
@@ -21,16 +22,10 @@ func resourceAwsMediaStoreContainer() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(string)
-					if !regexp.MustCompile("^\\w+$").MatchString(value) {
-						errors = append(errors, fmt.Errorf("%q must contain alphanumeric characters or underscores", k))
-					}
-					return
-				},
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validation.StringMatch(regexp.MustCompile(`^\w+$`), "must contain alphanumeric characters or underscores"),
 			},
 			"arn": {
 				Type:     schema.TypeString,
@@ -114,10 +109,10 @@ func resourceAwsMediaStoreContainerDelete(d *schema.ResourceData, meta interface
 			}
 			return resource.NonRetryableError(err)
 		}
-		return resource.RetryableError(nil)
+		return resource.RetryableError(fmt.Errorf("Media Store Container (%s) still exists", d.Id()))
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("error waiting for Media Store Container (%s) deletion: %s", d.Id(), err)
 	}
 
 	return nil

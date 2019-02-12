@@ -8242,9 +8242,7 @@ type CopyProductInput struct {
 	// A unique identifier that you provide to ensure idempotency. If multiple requests
 	// differ only by the idempotency token, the same response is returned for each
 	// repeated request.
-	//
-	// IdempotencyToken is a required field
-	IdempotencyToken *string `min:"1" type:"string" required:"true" idempotencyToken:"true"`
+	IdempotencyToken *string `min:"1" type:"string" idempotencyToken:"true"`
 
 	// The Amazon Resource Name (ARN) of the source product.
 	//
@@ -8275,9 +8273,6 @@ func (s CopyProductInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *CopyProductInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "CopyProductInput"}
-	if s.IdempotencyToken == nil {
-		invalidParams.Add(request.NewErrParamRequired("IdempotencyToken"))
-	}
 	if s.IdempotencyToken != nil && len(*s.IdempotencyToken) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("IdempotencyToken", 1))
 	}
@@ -8380,9 +8375,7 @@ type CreateConstraintInput struct {
 	// A unique identifier that you provide to ensure idempotency. If multiple requests
 	// differ only by the idempotency token, the same response is returned for each
 	// repeated request.
-	//
-	// IdempotencyToken is a required field
-	IdempotencyToken *string `min:"1" type:"string" required:"true" idempotencyToken:"true"`
+	IdempotencyToken *string `min:"1" type:"string" idempotencyToken:"true"`
 
 	// The constraint parameters, in JSON format. The syntax depends on the constraint
 	// type as follows:
@@ -8454,9 +8447,6 @@ func (s CreateConstraintInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *CreateConstraintInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "CreateConstraintInput"}
-	if s.IdempotencyToken == nil {
-		invalidParams.Add(request.NewErrParamRequired("IdempotencyToken"))
-	}
 	if s.IdempotencyToken != nil && len(*s.IdempotencyToken) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("IdempotencyToken", 1))
 	}
@@ -8594,9 +8584,7 @@ type CreatePortfolioInput struct {
 	// A unique identifier that you provide to ensure idempotency. If multiple requests
 	// differ only by the idempotency token, the same response is returned for each
 	// repeated request.
-	//
-	// IdempotencyToken is a required field
-	IdempotencyToken *string `min:"1" type:"string" required:"true" idempotencyToken:"true"`
+	IdempotencyToken *string `min:"1" type:"string" idempotencyToken:"true"`
 
 	// The name of the portfolio provider.
 	//
@@ -8625,9 +8613,6 @@ func (s *CreatePortfolioInput) Validate() error {
 	}
 	if s.DisplayName != nil && len(*s.DisplayName) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("DisplayName", 1))
-	}
-	if s.IdempotencyToken == nil {
-		invalidParams.Add(request.NewErrParamRequired("IdempotencyToken"))
 	}
 	if s.IdempotencyToken != nil && len(*s.IdempotencyToken) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("IdempotencyToken", 1))
@@ -8846,9 +8831,7 @@ type CreateProductInput struct {
 	// A unique identifier that you provide to ensure idempotency. If multiple requests
 	// differ only by the idempotency token, the same response is returned for each
 	// repeated request.
-	//
-	// IdempotencyToken is a required field
-	IdempotencyToken *string `min:"1" type:"string" required:"true" idempotencyToken:"true"`
+	IdempotencyToken *string `min:"1" type:"string" idempotencyToken:"true"`
 
 	// The name of the product.
 	//
@@ -8896,9 +8879,6 @@ func (s CreateProductInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *CreateProductInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "CreateProductInput"}
-	if s.IdempotencyToken == nil {
-		invalidParams.Add(request.NewErrParamRequired("IdempotencyToken"))
-	}
 	if s.IdempotencyToken != nil && len(*s.IdempotencyToken) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("IdempotencyToken", 1))
 	}
@@ -9064,9 +9044,7 @@ type CreateProvisionedProductPlanInput struct {
 	// A unique identifier that you provide to ensure idempotency. If multiple requests
 	// differ only by the idempotency token, the same response is returned for each
 	// repeated request.
-	//
-	// IdempotencyToken is a required field
-	IdempotencyToken *string `min:"1" type:"string" required:"true" idempotencyToken:"true"`
+	IdempotencyToken *string `min:"1" type:"string" idempotencyToken:"true"`
 
 	// Passed to CloudFormation. The SNS topic ARNs to which to publish stack-related
 	// events.
@@ -9124,9 +9102,6 @@ func (s CreateProvisionedProductPlanInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *CreateProvisionedProductPlanInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "CreateProvisionedProductPlanInput"}
-	if s.IdempotencyToken == nil {
-		invalidParams.Add(request.NewErrParamRequired("IdempotencyToken"))
-	}
 	if s.IdempotencyToken != nil && len(*s.IdempotencyToken) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("IdempotencyToken", 1))
 	}
@@ -9324,9 +9299,7 @@ type CreateProvisioningArtifactInput struct {
 	// A unique identifier that you provide to ensure idempotency. If multiple requests
 	// differ only by the idempotency token, the same response is returned for each
 	// repeated request.
-	//
-	// IdempotencyToken is a required field
-	IdempotencyToken *string `min:"1" type:"string" required:"true" idempotencyToken:"true"`
+	IdempotencyToken *string `min:"1" type:"string" idempotencyToken:"true"`
 
 	// The configuration for the provisioning artifact.
 	//
@@ -9352,9 +9325,6 @@ func (s CreateProvisioningArtifactInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *CreateProvisioningArtifactInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "CreateProvisioningArtifactInput"}
-	if s.IdempotencyToken == nil {
-		invalidParams.Add(request.NewErrParamRequired("IdempotencyToken"))
-	}
 	if s.IdempotencyToken != nil && len(*s.IdempotencyToken) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("IdempotencyToken", 1))
 	}
@@ -9486,9 +9456,7 @@ type CreateServiceActionInput struct {
 	// A unique identifier that you provide to ensure idempotency. If multiple requests
 	// differ only by the idempotency token, the same response is returned for each
 	// repeated request.
-	//
-	// IdempotencyToken is a required field
-	IdempotencyToken *string `min:"1" type:"string" required:"true" idempotencyToken:"true"`
+	IdempotencyToken *string `min:"1" type:"string" idempotencyToken:"true"`
 
 	// The self-service action name.
 	//
@@ -9517,9 +9485,6 @@ func (s *CreateServiceActionInput) Validate() error {
 	}
 	if s.DefinitionType == nil {
 		invalidParams.Add(request.NewErrParamRequired("DefinitionType"))
-	}
-	if s.IdempotencyToken == nil {
-		invalidParams.Add(request.NewErrParamRequired("IdempotencyToken"))
 	}
 	if s.IdempotencyToken != nil && len(*s.IdempotencyToken) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("IdempotencyToken", 1))
@@ -12107,9 +12072,7 @@ type ExecuteProvisionedProductPlanInput struct {
 	// A unique identifier that you provide to ensure idempotency. If multiple requests
 	// differ only by the idempotency token, the same response is returned for each
 	// repeated request.
-	//
-	// IdempotencyToken is a required field
-	IdempotencyToken *string `min:"1" type:"string" required:"true" idempotencyToken:"true"`
+	IdempotencyToken *string `min:"1" type:"string" idempotencyToken:"true"`
 
 	// The plan identifier.
 	//
@@ -12130,9 +12093,6 @@ func (s ExecuteProvisionedProductPlanInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *ExecuteProvisionedProductPlanInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "ExecuteProvisionedProductPlanInput"}
-	if s.IdempotencyToken == nil {
-		invalidParams.Add(request.NewErrParamRequired("IdempotencyToken"))
-	}
 	if s.IdempotencyToken != nil && len(*s.IdempotencyToken) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("IdempotencyToken", 1))
 	}
@@ -12203,9 +12163,7 @@ type ExecuteProvisionedProductServiceActionInput struct {
 	AcceptLanguage *string `type:"string"`
 
 	// An idempotency token that uniquely identifies the execute request.
-	//
-	// ExecuteToken is a required field
-	ExecuteToken *string `min:"1" type:"string" required:"true" idempotencyToken:"true"`
+	ExecuteToken *string `min:"1" type:"string" idempotencyToken:"true"`
 
 	// The identifier of the provisioned product.
 	//
@@ -12231,9 +12189,6 @@ func (s ExecuteProvisionedProductServiceActionInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *ExecuteProvisionedProductServiceActionInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "ExecuteProvisionedProductServiceActionInput"}
-	if s.ExecuteToken == nil {
-		invalidParams.Add(request.NewErrParamRequired("ExecuteToken"))
-	}
 	if s.ExecuteToken != nil && len(*s.ExecuteToken) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("ExecuteToken", 1))
 	}
@@ -14602,9 +14557,7 @@ type ProvisionProductInput struct {
 	ProductId *string `min:"1" type:"string" required:"true"`
 
 	// An idempotency token that uniquely identifies the provisioning request.
-	//
-	// ProvisionToken is a required field
-	ProvisionToken *string `min:"1" type:"string" required:"true" idempotencyToken:"true"`
+	ProvisionToken *string `min:"1" type:"string" idempotencyToken:"true"`
 
 	// A user-friendly name for the provisioned product. This value must be unique
 	// for the AWS account and cannot be updated after the product is provisioned.
@@ -14650,9 +14603,6 @@ func (s *ProvisionProductInput) Validate() error {
 	}
 	if s.ProductId != nil && len(*s.ProductId) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("ProductId", 1))
-	}
-	if s.ProvisionToken == nil {
-		invalidParams.Add(request.NewErrParamRequired("ProvisionToken"))
 	}
 	if s.ProvisionToken != nil && len(*s.ProvisionToken) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("ProvisionToken", 1))
@@ -17394,9 +17344,7 @@ type TerminateProvisionedProductInput struct {
 	// token is only valid during the termination process. After the provisioned
 	// product is terminated, subsequent requests to terminate the same provisioned
 	// product always return ResourceNotFound.
-	//
-	// TerminateToken is a required field
-	TerminateToken *string `min:"1" type:"string" required:"true" idempotencyToken:"true"`
+	TerminateToken *string `min:"1" type:"string" idempotencyToken:"true"`
 }
 
 // String returns the string representation
@@ -17417,9 +17365,6 @@ func (s *TerminateProvisionedProductInput) Validate() error {
 	}
 	if s.ProvisionedProductName != nil && len(*s.ProvisionedProductName) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("ProvisionedProductName", 1))
-	}
-	if s.TerminateToken == nil {
-		invalidParams.Add(request.NewErrParamRequired("TerminateToken"))
 	}
 	if s.TerminateToken != nil && len(*s.TerminateToken) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("TerminateToken", 1))
@@ -17956,9 +17901,7 @@ type UpdateProvisionedProductInput struct {
 	ProvisioningPreferences *UpdateProvisioningPreferences `type:"structure"`
 
 	// The idempotency token that uniquely identifies the provisioning update request.
-	//
-	// UpdateToken is a required field
-	UpdateToken *string `min:"1" type:"string" required:"true" idempotencyToken:"true"`
+	UpdateToken *string `min:"1" type:"string" idempotencyToken:"true"`
 }
 
 // String returns the string representation
@@ -17988,9 +17931,6 @@ func (s *UpdateProvisionedProductInput) Validate() error {
 	}
 	if s.ProvisioningArtifactId != nil && len(*s.ProvisioningArtifactId) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("ProvisioningArtifactId", 1))
-	}
-	if s.UpdateToken == nil {
-		invalidParams.Add(request.NewErrParamRequired("UpdateToken"))
 	}
 	if s.UpdateToken != nil && len(*s.UpdateToken) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("UpdateToken", 1))

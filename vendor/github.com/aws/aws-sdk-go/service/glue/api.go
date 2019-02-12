@@ -11396,12 +11396,16 @@ func (s *CreateGrokClassifierRequest) SetName(v string) *CreateGrokClassifierReq
 type CreateJobInput struct {
 	_ struct{} `type:"structure"`
 
+	// This parameter is deprecated. Use MaxCapacity instead.
+	//
 	// The number of AWS Glue data processing units (DPUs) to allocate to this Job.
 	// From 2 to 100 DPUs can be allocated; the default is 10. A DPU is a relative
 	// measure of processing power that consists of 4 vCPUs of compute capacity
 	// and 16 GB of memory. For more information, see the AWS Glue pricing page
 	// (https://aws.amazon.com/glue/pricing/).
-	AllocatedCapacity *int64 `type:"integer"`
+	//
+	// Deprecated: This property is deprecated, use MaxCapacity instead.
+	AllocatedCapacity *int64 `deprecated:"true" type:"integer"`
 
 	// The JobCommand that executes this job.
 	//
@@ -11434,6 +11438,11 @@ type CreateJobInput struct {
 
 	// This field is reserved for future use.
 	LogUri *string `type:"string"`
+
+	// AWS Glue supports running jobs on a JobCommand.Name="pythonshell" with allocated
+	// processing as low as 0.0625 DPU, which can be specified using MaxCapacity.
+	// Glue ETL jobs running in any other way cannot have fractional DPU allocations.
+	MaxCapacity *float64 `type:"double"`
 
 	// The maximum number of times to retry this job if it fails.
 	MaxRetries *int64 `type:"integer"`
@@ -11542,6 +11551,12 @@ func (s *CreateJobInput) SetExecutionProperty(v *ExecutionProperty) *CreateJobIn
 // SetLogUri sets the LogUri field's value.
 func (s *CreateJobInput) SetLogUri(v string) *CreateJobInput {
 	s.LogUri = &v
+	return s
+}
+
+// SetMaxCapacity sets the MaxCapacity field's value.
+func (s *CreateJobInput) SetMaxCapacity(v float64) *CreateJobInput {
+	s.MaxCapacity = &v
 	return s
 }
 
@@ -17086,12 +17101,16 @@ func (s *JdbcTarget) SetPath(v string) *JdbcTarget {
 type Job struct {
 	_ struct{} `type:"structure"`
 
+	// This field is deprecated, use MaxCapacity instead.
+	//
 	// The number of AWS Glue data processing units (DPUs) allocated to runs of
 	// this job. From 2 to 100 DPUs can be allocated; the default is 10. A DPU is
 	// a relative measure of processing power that consists of 4 vCPUs of compute
 	// capacity and 16 GB of memory. For more information, see the AWS Glue pricing
 	// page (https://aws.amazon.com/glue/pricing/).
-	AllocatedCapacity *int64 `type:"integer"`
+	//
+	// Deprecated: This property is deprecated, use MaxCapacity instead.
+	AllocatedCapacity *int64 `deprecated:"true" type:"integer"`
 
 	// The JobCommand that executes this job.
 	Command *JobCommand `type:"structure"`
@@ -17128,6 +17147,11 @@ type Job struct {
 
 	// This field is reserved for future use.
 	LogUri *string `type:"string"`
+
+	// AWS Glue supports running jobs on a JobCommand.Name="pythonshell" with allocated
+	// processing as low as 0.0625 DPU, which can be specified using MaxCapacity.
+	// Glue ETL jobs running in any other way cannot have fractional DPU allocations.
+	MaxCapacity *float64 `type:"double"`
 
 	// The maximum number of times to retry this job after a JobRun fails.
 	MaxRetries *int64 `type:"integer"`
@@ -17211,6 +17235,12 @@ func (s *Job) SetLastModifiedOn(v time.Time) *Job {
 // SetLogUri sets the LogUri field's value.
 func (s *Job) SetLogUri(v string) *Job {
 	s.LogUri = &v
+	return s
+}
+
+// SetMaxCapacity sets the MaxCapacity field's value.
+func (s *Job) SetMaxCapacity(v float64) *Job {
+	s.MaxCapacity = &v
 	return s
 }
 
@@ -17347,7 +17377,8 @@ func (s *JobBookmarksEncryption) SetKmsKeyArn(v string) *JobBookmarksEncryption 
 type JobCommand struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the job command: this must be glueetl.
+	// The name of the job command: this must be glueetl, for an Apache Spark ETL
+	// job, or pythonshell, for a Python shell job.
 	Name *string `type:"string"`
 
 	// Specifies the S3 path to a script that executes a job (required).
@@ -17380,12 +17411,16 @@ func (s *JobCommand) SetScriptLocation(v string) *JobCommand {
 type JobRun struct {
 	_ struct{} `type:"structure"`
 
+	// This field is deprecated, use MaxCapacity instead.
+	//
 	// The number of AWS Glue data processing units (DPUs) allocated to this JobRun.
 	// From 2 to 100 DPUs can be allocated; the default is 10. A DPU is a relative
 	// measure of processing power that consists of 4 vCPUs of compute capacity
 	// and 16 GB of memory. For more information, see the AWS Glue pricing page
 	// (https://aws.amazon.com/glue/pricing/).
-	AllocatedCapacity *int64 `type:"integer"`
+	//
+	// Deprecated: This property is deprecated, use MaxCapacity instead.
+	AllocatedCapacity *int64 `deprecated:"true" type:"integer"`
 
 	// The job arguments associated with this run. These override equivalent default
 	// arguments set for the job.
@@ -17432,6 +17467,11 @@ type JobRun struct {
 	// name (in other words, /aws-glue/jobs-yourRoleName-yourSecurityConfigurationName/),
 	// then that security configuration will be used to encrypt the log group.
 	LogGroupName *string `type:"string"`
+
+	// AWS Glue supports running jobs on a JobCommand.Name="pythonshell" with allocated
+	// processing as low as 0.0625 DPU, which can be specified using MaxCapacity.
+	// Glue ETL jobs running in any other way cannot have fractional DPU allocations.
+	MaxCapacity *float64 `type:"double"`
 
 	// Specifies configuration properties of a job run notification.
 	NotificationProperty *NotificationProperty `type:"structure"`
@@ -17536,6 +17576,12 @@ func (s *JobRun) SetLogGroupName(v string) *JobRun {
 	return s
 }
 
+// SetMaxCapacity sets the MaxCapacity field's value.
+func (s *JobRun) SetMaxCapacity(v float64) *JobRun {
+	s.MaxCapacity = &v
+	return s
+}
+
 // SetNotificationProperty sets the NotificationProperty field's value.
 func (s *JobRun) SetNotificationProperty(v *NotificationProperty) *JobRun {
 	s.NotificationProperty = v
@@ -17583,12 +17629,16 @@ func (s *JobRun) SetTriggerName(v string) *JobRun {
 type JobUpdate struct {
 	_ struct{} `type:"structure"`
 
+	// This field is deprecated. Use MaxCapacity instead.
+	//
 	// The number of AWS Glue data processing units (DPUs) to allocate to this Job.
 	// From 2 to 100 DPUs can be allocated; the default is 10. A DPU is a relative
 	// measure of processing power that consists of 4 vCPUs of compute capacity
 	// and 16 GB of memory. For more information, see the AWS Glue pricing page
 	// (https://aws.amazon.com/glue/pricing/).
-	AllocatedCapacity *int64 `type:"integer"`
+	//
+	// Deprecated: This property is deprecated, use MaxCapacity instead.
+	AllocatedCapacity *int64 `deprecated:"true" type:"integer"`
 
 	// The JobCommand that executes this job (required).
 	Command *JobCommand `type:"structure"`
@@ -17619,6 +17669,11 @@ type JobUpdate struct {
 
 	// This field is reserved for future use.
 	LogUri *string `type:"string"`
+
+	// AWS Glue supports running jobs on a JobCommand.Name="pythonshell" with allocated
+	// processing as low as 0.0625 DPU, which can be specified using MaxCapacity.
+	// Glue ETL jobs running in any other way cannot have fractional DPU allocations.
+	MaxCapacity *float64 `type:"double"`
 
 	// The maximum number of times to retry this job if it fails.
 	MaxRetries *int64 `type:"integer"`
@@ -17708,6 +17763,12 @@ func (s *JobUpdate) SetExecutionProperty(v *ExecutionProperty) *JobUpdate {
 // SetLogUri sets the LogUri field's value.
 func (s *JobUpdate) SetLogUri(v string) *JobUpdate {
 	s.LogUri = &v
+	return s
+}
+
+// SetMaxCapacity sets the MaxCapacity field's value.
+func (s *JobUpdate) SetMaxCapacity(v float64) *JobUpdate {
+	s.MaxCapacity = &v
 	return s
 }
 
@@ -19223,12 +19284,16 @@ func (s StartCrawlerScheduleOutput) GoString() string {
 type StartJobRunInput struct {
 	_ struct{} `type:"structure"`
 
+	// This field is deprecated, use MaxCapacity instead.
+	//
 	// The number of AWS Glue data processing units (DPUs) to allocate to this JobRun.
 	// From 2 to 100 DPUs can be allocated; the default is 10. A DPU is a relative
 	// measure of processing power that consists of 4 vCPUs of compute capacity
 	// and 16 GB of memory. For more information, see the AWS Glue pricing page
 	// (https://aws.amazon.com/glue/pricing/).
-	AllocatedCapacity *int64 `type:"integer"`
+	//
+	// Deprecated: This property is deprecated, use MaxCapacity instead.
+	AllocatedCapacity *int64 `deprecated:"true" type:"integer"`
 
 	// The job arguments specifically for this run. They override the equivalent
 	// default arguments set for in the job definition itself.
@@ -19252,6 +19317,11 @@ type StartJobRunInput struct {
 
 	// The ID of a previous JobRun to retry.
 	JobRunId *string `min:"1" type:"string"`
+
+	// AWS Glue supports running jobs on a JobCommand.Name="pythonshell" with allocated
+	// processing as low as 0.0625 DPU, which can be specified using MaxCapacity.
+	// Glue ETL jobs running in any other way cannot have fractional DPU allocations.
+	MaxCapacity *float64 `type:"double"`
 
 	// Specifies configuration properties of a job run notification.
 	NotificationProperty *NotificationProperty `type:"structure"`
@@ -19328,6 +19398,12 @@ func (s *StartJobRunInput) SetJobName(v string) *StartJobRunInput {
 // SetJobRunId sets the JobRunId field's value.
 func (s *StartJobRunInput) SetJobRunId(v string) *StartJobRunInput {
 	s.JobRunId = &v
+	return s
+}
+
+// SetMaxCapacity sets the MaxCapacity field's value.
+func (s *StartJobRunInput) SetMaxCapacity(v float64) *StartJobRunInput {
+	s.MaxCapacity = &v
 	return s
 }
 

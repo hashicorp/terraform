@@ -267,7 +267,7 @@ func resourceAwsSqsQueueRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
 			log.Printf("ERROR Found %s", awsErr.Code())
-			if "AWS.SimpleQueueService.NonExistentQueue" == awsErr.Code() {
+			if awsErr.Code() == "AWS.SimpleQueueService.NonExistentQueue" {
 				d.SetId("")
 				log.Printf("[DEBUG] SQS Queue (%s) not found", d.Get("name").(string))
 				return nil
@@ -343,10 +343,7 @@ func resourceAwsSqsQueueDelete(d *schema.ResourceData, meta interface{}) error {
 	_, err := sqsconn.DeleteQueue(&sqs.DeleteQueueInput{
 		QueueUrl: aws.String(d.Id()),
 	})
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func extractNameFromSqsQueueUrl(queue string) (string, error) {

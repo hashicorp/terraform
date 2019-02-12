@@ -259,7 +259,7 @@ func dataSourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	instanceID, instanceIDOk := d.GetOk("instance_id")
 	tags, tagsOk := d.GetOk("instance_tags")
 
-	if filtersOk == false && instanceIDOk == false && tagsOk == false {
+	if !filtersOk && !instanceIDOk && !tagsOk {
 		return fmt.Errorf("One of filters, instance_tags, or instance_id must be assigned")
 	}
 

@@ -221,9 +221,8 @@ func resourceAwsEfsMountTargetRead(d *schema.ResourceData, meta interface{}) err
 	}
 
 	region := meta.(*AWSClient).region
-	err = d.Set("dns_name", resourceAwsEfsMountTargetDnsName(*mt.FileSystemId, region))
-	if err != nil {
-		return err
+	if err := d.Set("dns_name", resourceAwsEfsMountTargetDnsName(aws.StringValue(mt.FileSystemId), region)); err != nil {
+		return fmt.Errorf("error setting dns_name: %s", err)
 	}
 
 	return nil

@@ -424,11 +424,7 @@ func resourceAwsRouteUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	// Replace the route
 	_, err := conn.ReplaceRoute(replaceOpts)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func resourceAwsRouteDelete(d *schema.ResourceData, meta interface{}) error {
@@ -445,8 +441,7 @@ func resourceAwsRouteDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 	log.Printf("[DEBUG] Route delete opts: %s", deleteOpts)
 
-	var err error
-	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+	var err error = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		log.Printf("[DEBUG] Trying to delete route with opts %s", deleteOpts)
 		resp, err := conn.DeleteRoute(deleteOpts)
 		log.Printf("[DEBUG] Route delete result: %s", resp)
@@ -468,11 +463,7 @@ func resourceAwsRouteDelete(d *schema.ResourceData, meta interface{}) error {
 		return resource.NonRetryableError(err)
 	})
 
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func resourceAwsRouteExists(d *schema.ResourceData, meta interface{}) (bool, error) {

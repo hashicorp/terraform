@@ -239,11 +239,7 @@ func resourceAwsServiceDiscoveryServiceDelete(d *schema.ResourceData, meta inter
 	}
 
 	_, err := conn.DeleteService(input)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func expandServiceDiscoveryDnsConfig(configured map[string]interface{}) *servicediscovery.DnsConfig {

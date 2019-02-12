@@ -1159,6 +1159,16 @@ func (c *Lightsail) CreateDiskSnapshotRequest(input *CreateDiskSnapshotInput) (r
 // snapshot. You may remount and use your disk while the snapshot status is
 // pending.
 //
+// You can also use this operation to create a snapshot of an instance's system
+// volume. You might want to do this, for example, to recover data from the
+// system volume of a botched instance or to create a backup of the system volume
+// like you would for a block storage disk. To create a snapshot of a system
+// volume, just define the instance name parameter when issuing the snapshot
+// command, and a snapshot of the defined instance's system volume will be created.
+// After the snapshot is available, you can create a block storage disk from
+// the snapshot and attach it to a running instance to access the data on the
+// disk.
+//
 // The create disk snapshot operation supports tag-based access control via
 // request tags. For more information, see the Lightsail Dev Guide (https://lightsail.aws.amazon.com/ls/docs/en/articles/amazon-lightsail-controlling-access-using-tags).
 //
@@ -4099,7 +4109,7 @@ func (c *Lightsail) ExportSnapshotRequest(input *ExportSnapshotInput) (req *requ
 
 // ExportSnapshot API operation for Amazon Lightsail.
 //
-// Exports a Amazon Lightsail instance or block storage disk snapshot to Amazon
+// Exports an Amazon Lightsail instance or block storage disk snapshot to Amazon
 // Elastic Compute Cloud (Amazon EC2). This operation results in an export snapshot
 // record that can be used with the create cloud formation stack operation to
 // create new Amazon EC2 instances.
@@ -9287,10 +9297,7 @@ func (c *Lightsail) RebootInstanceRequest(input *RebootInstanceInput) (req *requ
 
 // RebootInstance API operation for Amazon Lightsail.
 //
-// Restarts a specific instance. When your Amazon Lightsail instance is finished
-// rebooting, Lightsail assigns a new public IP address. To use the same IP
-// address after restarting, create a static IP address and attach it to the
-// instance.
+// Restarts a specific instance.
 //
 // The reboot instance operation supports tag-based access control via resource
 // tags applied to the resource identified by instanceName. For more information,
@@ -9613,6 +9620,11 @@ func (c *Lightsail) StartInstanceRequest(input *StartInstanceInput) (req *reques
 // Starts a specific Amazon Lightsail instance from a stopped state. To restart
 // an instance, use the reboot instance operation.
 //
+// When you start a stopped instance, Lightsail assigns a new public IP address
+// to the instance. To use the same IP address after stopping and starting an
+// instance, create a static IP address and attach it to the instance. For more
+// information, see the Lightsail Dev Guide (https://lightsail.aws.amazon.com/ls/docs/en/articles/lightsail-create-static-ip).
+//
 // The start instance operation supports tag-based access control via resource
 // tags applied to the resource identified by instanceName. For more information,
 // see the Lightsail Dev Guide (https://lightsail.aws.amazon.com/ls/docs/en/articles/amazon-lightsail-controlling-access-using-tags).
@@ -9829,6 +9841,11 @@ func (c *Lightsail) StopInstanceRequest(input *StopInstanceInput) (req *request.
 // StopInstance API operation for Amazon Lightsail.
 //
 // Stops a specific Amazon Lightsail instance that is currently running.
+//
+// When you start a stopped instance, Lightsail assigns a new public IP address
+// to the instance. To use the same IP address after stopping and starting an
+// instance, create a static IP address and attach it to the instance. For more
+// information, see the Lightsail Dev Guide (https://lightsail.aws.amazon.com/ls/docs/en/articles/lightsail-create-static-ip).
 //
 // The stop instance operation supports tag-based access control via resource
 // tags applied to the resource identified by instanceName. For more information,
@@ -12045,16 +12062,24 @@ func (s *CreateDiskOutput) SetOperations(v []*Operation) *CreateDiskOutput {
 type CreateDiskSnapshotInput struct {
 	_ struct{} `type:"structure"`
 
-	// The unique name of the source disk (e.g., my-source-disk).
+	// The unique name of the source disk (e.g., Disk-Virginia-1).
 	//
-	// DiskName is a required field
-	DiskName *string `locationName:"diskName" type:"string" required:"true"`
+	// This parameter cannot be defined together with the instance name parameter.
+	// The disk name and instance name parameters are mutually exclusive.
+	DiskName *string `locationName:"diskName" type:"string"`
 
 	// The name of the destination disk snapshot (e.g., my-disk-snapshot) based
 	// on the source disk.
 	//
 	// DiskSnapshotName is a required field
 	DiskSnapshotName *string `locationName:"diskSnapshotName" type:"string" required:"true"`
+
+	// The unique name of the source instance (e.g., Amazon_Linux-512MB-Virginia-1).
+	// When this is defined, a snapshot of the instance's system volume is created.
+	//
+	// This parameter cannot be defined together with the disk name parameter. The
+	// instance name and disk name parameters are mutually exclusive.
+	InstanceName *string `locationName:"instanceName" type:"string"`
 
 	// The tag keys and optional values to add to the resource during create.
 	//
@@ -12075,9 +12100,6 @@ func (s CreateDiskSnapshotInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *CreateDiskSnapshotInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "CreateDiskSnapshotInput"}
-	if s.DiskName == nil {
-		invalidParams.Add(request.NewErrParamRequired("DiskName"))
-	}
 	if s.DiskSnapshotName == nil {
 		invalidParams.Add(request.NewErrParamRequired("DiskSnapshotName"))
 	}
@@ -12097,6 +12119,12 @@ func (s *CreateDiskSnapshotInput) SetDiskName(v string) *CreateDiskSnapshotInput
 // SetDiskSnapshotName sets the DiskSnapshotName field's value.
 func (s *CreateDiskSnapshotInput) SetDiskSnapshotName(v string) *CreateDiskSnapshotInput {
 	s.DiskSnapshotName = &v
+	return s
+}
+
+// SetInstanceName sets the InstanceName field's value.
+func (s *CreateDiskSnapshotInput) SetInstanceName(v string) *CreateDiskSnapshotInput {
+	s.InstanceName = &v
 	return s
 }
 
@@ -14816,12 +14844,20 @@ type DiskSnapshot struct {
 	// The date when the disk snapshot was created.
 	CreatedAt *time.Time `locationName:"createdAt" type:"timestamp"`
 
-	// The Amazon Resource Name (ARN) of the source disk from which you are creating
-	// the disk snapshot.
+	// The Amazon Resource Name (ARN) of the source disk from which the disk snapshot
+	// was created.
 	FromDiskArn *string `locationName:"fromDiskArn" type:"string"`
 
-	// The unique name of the source disk from which you are creating the disk snapshot.
+	// The unique name of the source disk from which the disk snapshot was created.
 	FromDiskName *string `locationName:"fromDiskName" type:"string"`
+
+	// The Amazon Resource Name (ARN) of the source instance from which the disk
+	// (system volume) snapshot was created.
+	FromInstanceArn *string `locationName:"fromInstanceArn" type:"string"`
+
+	// The unique name of the source instance from which the disk (system volume)
+	// snapshot was created.
+	FromInstanceName *string `locationName:"fromInstanceName" type:"string"`
 
 	// The AWS Region and Availability Zone where the disk snapshot was created.
 	Location *ResourceLocation `locationName:"location" type:"structure"`
@@ -14882,6 +14918,18 @@ func (s *DiskSnapshot) SetFromDiskArn(v string) *DiskSnapshot {
 // SetFromDiskName sets the FromDiskName field's value.
 func (s *DiskSnapshot) SetFromDiskName(v string) *DiskSnapshot {
 	s.FromDiskName = &v
+	return s
+}
+
+// SetFromInstanceArn sets the FromInstanceArn field's value.
+func (s *DiskSnapshot) SetFromInstanceArn(v string) *DiskSnapshot {
+	s.FromInstanceArn = &v
+	return s
+}
+
+// SetFromInstanceName sets the FromInstanceName field's value.
+func (s *DiskSnapshot) SetFromInstanceName(v string) *DiskSnapshot {
+	s.FromInstanceName = &v
 	return s
 }
 
@@ -19103,6 +19151,8 @@ type InstanceEntry struct {
 	//    * INSTANCE — Use the firewall settings from the source Lightsail instance.
 	//
 	//    * NONE — Default to Amazon EC2.
+	//
+	//    * CLOSED — All ports closed.
 	//
 	// PortInfoSource is a required field
 	PortInfoSource *string `locationName:"portInfoSource" type:"string" required:"true" enum:"PortInfoSourceType"`
@@ -23825,6 +23875,9 @@ const (
 
 	// PortInfoSourceTypeNone is a PortInfoSourceType enum value
 	PortInfoSourceTypeNone = "NONE"
+
+	// PortInfoSourceTypeClosed is a PortInfoSourceType enum value
+	PortInfoSourceTypeClosed = "CLOSED"
 )
 
 const (

@@ -575,10 +575,15 @@ func resourceAwsKinesisAnalyticsApplicationCreate(d *schema.ResourceData, meta i
 		createOpts.Outputs = []*kinesisanalytics.Output{outputs}
 	}
 
+	// Retry for IAM eventual consistency
 	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
 		output, err := conn.CreateApplication(createOpts)
 		if err != nil {
 			if isAWSErr(err, kinesisanalytics.ErrCodeInvalidArgumentException, "Kinesis Analytics service doesn't have sufficient privileges") {
+				return resource.RetryableError(err)
+			}
+			// InvalidArgumentException: Given IAM role arn : arn:aws:iam::123456789012:role/xxx does not provide Invoke permissions on the Lambda resource : arn:aws:lambda:us-west-2:123456789012:function:yyy
+			if isAWSErr(err, kinesisanalytics.ErrCodeInvalidArgumentException, "does not provide Invoke permissions on the Lambda resource") {
 				return resource.RetryableError(err)
 			}
 			return resource.NonRetryableError(err)
@@ -679,6 +684,7 @@ func resourceAwsKinesisAnalyticsApplicationUpdate(d *schema.ResourceData, meta i
 					CurrentApplicationVersionId: aws.Int64(int64(version)),
 					CloudWatchLoggingOption:     cloudwatchLoggingOption,
 				}
+				// Retry for IAM eventual consistency
 				err := resource.Retry(1*time.Minute, func() *resource.RetryError {
 					_, err := conn.AddApplicationCloudWatchLoggingOption(addOpts)
 					if err != nil {
@@ -706,10 +712,15 @@ func resourceAwsKinesisAnalyticsApplicationUpdate(d *schema.ResourceData, meta i
 					CurrentApplicationVersionId: aws.Int64(int64(version)),
 					Input:                       input,
 				}
+				// Retry for IAM eventual consistency
 				err := resource.Retry(1*time.Minute, func() *resource.RetryError {
 					_, err := conn.AddApplicationInput(addOpts)
 					if err != nil {
 						if isAWSErr(err, kinesisanalytics.ErrCodeInvalidArgumentException, "Kinesis Analytics service doesn't have sufficient privileges") {
+							return resource.RetryableError(err)
+						}
+						// InvalidArgumentException: Given IAM role arn : arn:aws:iam::123456789012:role/xxx does not provide Invoke permissions on the Lambda resource : arn:aws:lambda:us-west-2:123456789012:function:yyy
+						if isAWSErr(err, kinesisanalytics.ErrCodeInvalidArgumentException, "does not provide Invoke permissions on the Lambda resource") {
 							return resource.RetryableError(err)
 						}
 						return resource.NonRetryableError(err)
@@ -733,10 +744,15 @@ func resourceAwsKinesisAnalyticsApplicationUpdate(d *schema.ResourceData, meta i
 					CurrentApplicationVersionId: aws.Int64(int64(version)),
 					Output:                      output,
 				}
+				// Retry for IAM eventual consistency
 				err := resource.Retry(1*time.Minute, func() *resource.RetryError {
 					_, err := conn.AddApplicationOutput(addOpts)
 					if err != nil {
 						if isAWSErr(err, kinesisanalytics.ErrCodeInvalidArgumentException, "Kinesis Analytics service doesn't have sufficient privileges") {
+							return resource.RetryableError(err)
+						}
+						// InvalidArgumentException: Given IAM role arn : arn:aws:iam::123456789012:role/xxx does not provide Invoke permissions on the Lambda resource : arn:aws:lambda:us-west-2:123456789012:function:yyy
+						if isAWSErr(err, kinesisanalytics.ErrCodeInvalidArgumentException, "does not provide Invoke permissions on the Lambda resource") {
 							return resource.RetryableError(err)
 						}
 						return resource.NonRetryableError(err)
@@ -762,6 +778,7 @@ func resourceAwsKinesisAnalyticsApplicationUpdate(d *schema.ResourceData, meta i
 					CurrentApplicationVersionId: aws.Int64(int64(version)),
 					ReferenceDataSource:         referenceData,
 				}
+				// Retry for IAM eventual consistency
 				err := resource.Retry(1*time.Minute, func() *resource.RetryError {
 					_, err := conn.AddApplicationReferenceDataSource(addOpts)
 					if err != nil {

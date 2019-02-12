@@ -140,7 +140,7 @@ func resourceAwsSsmMaintenanceWindowTargetUpdate(d *schema.ResourceData, meta in
 
 	_, err := ssmconn.UpdateMaintenanceWindowTarget(params)
 	if err != nil {
-		return err
+		return fmt.Errorf("error updating SSM Maintenance Window Target (%s): %s", d.Id(), err)
 	}
 
 	return nil
@@ -158,7 +158,7 @@ func resourceAwsSsmMaintenanceWindowTargetDelete(d *schema.ResourceData, meta in
 
 	_, err := ssmconn.DeregisterTargetFromMaintenanceWindow(params)
 	if err != nil {
-		return err
+		return fmt.Errorf("error deregistering SSM Maintenance Window Target (%s): %s", d.Id(), err)
 	}
 
 	return nil

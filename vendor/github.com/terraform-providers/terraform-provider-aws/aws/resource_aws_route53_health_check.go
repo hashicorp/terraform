@@ -386,9 +386,5 @@ func resourceAwsRoute53HealthCheckDelete(d *schema.ResourceData, meta interface{
 
 	log.Printf("[DEBUG] Deleteing Route53 health check: %s", d.Id())
 	_, err := conn.DeleteHealthCheck(&route53.DeleteHealthCheckInput{HealthCheckId: aws.String(d.Id())})
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }

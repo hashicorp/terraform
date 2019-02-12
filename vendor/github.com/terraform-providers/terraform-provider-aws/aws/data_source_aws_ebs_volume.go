@@ -144,9 +144,6 @@ func volumeDescriptionAttributes(d *schema.ResourceData, client *AWSClient, volu
 	d.Set("snapshot_id", volume.SnapshotId)
 	d.Set("volume_type", volume.VolumeType)
 
-	if err := d.Set("tags", tagsToMap(volume.Tags)); err != nil {
-		return err
-	}
-
-	return nil
+	err := d.Set("tags", tagsToMap(volume.Tags))
+	return err
 }

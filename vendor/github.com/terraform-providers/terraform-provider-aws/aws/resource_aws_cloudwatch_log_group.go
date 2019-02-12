@@ -117,7 +117,7 @@ func resourceAwsCloudWatchLogGroupRead(d *schema.ResourceData, meta interface{})
 	d.Set("kms_key_id", lg.KmsKeyId)
 	d.Set("retention_in_days", lg.RetentionInDays)
 
-	tags := make(map[string]string, 0)
+	tags := make(map[string]string)
 	tagsOutput, err := conn.ListTagsLogGroup(&cloudwatchlogs.ListTagsLogGroupInput{
 		LogGroupName: aws.String(d.Id()),
 	})

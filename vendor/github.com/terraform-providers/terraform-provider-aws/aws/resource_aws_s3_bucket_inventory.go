@@ -358,7 +358,7 @@ func flattenS3InventoryFilter(filter *s3.InventoryFilter) []map[string]interface
 
 	result := make([]map[string]interface{}, 0, 1)
 
-	m := make(map[string]interface{}, 0)
+	m := make(map[string]interface{})
 	if filter.Prefix != nil {
 		m["prefix"] = aws.StringValue(filter.Prefix)
 	}

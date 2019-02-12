@@ -129,8 +129,8 @@ func resourceAwsRoute53ZoneCreate(d *schema.ResourceData, meta interface{}) erro
 
 	// Private Route53 Hosted Zones can only be created with their first VPC association,
 	// however we need to associate the remaining after creation.
-	var vpcs []*route53.VPC
-	vpcs = expandRoute53VPCs(d.Get("vpc").(*schema.Set).List(), region)
+
+	var vpcs []*route53.VPC = expandRoute53VPCs(d.Get("vpc").(*schema.Set).List(), region)
 
 	// Backwards compatibility
 	if vpcID, ok := d.GetOk("vpc_id"); ok {

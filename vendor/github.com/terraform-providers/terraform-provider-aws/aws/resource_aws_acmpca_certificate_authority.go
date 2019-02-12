@@ -702,9 +702,7 @@ func listAcmpcaTags(conn *acmpca.ACMPCA, certificateAuthorityArn string) ([]*acm
 		if err != nil {
 			return tags, err
 		}
-		for _, tag := range output.Tags {
-			tags = append(tags, tag)
-		}
+		tags = append(tags, output.Tags...)
 		if output.NextToken == nil {
 			break
 		}

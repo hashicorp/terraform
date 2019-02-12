@@ -27,9 +27,7 @@ func getTagsKinesisFirehose(conn *firehose.Firehose, d *schema.ResourceData, sn 
 			return err
 		}
 
-		for _, tag := range resp.Tags {
-			tags = append(tags, tag)
-		}
+		tags = append(tags, resp.Tags...)
 
 		// If HasMoreTags is true in the response, more tags are available.
 		// To list the remaining tags, set ExclusiveStartTagKey to the key
@@ -40,11 +38,8 @@ func getTagsKinesisFirehose(conn *firehose.Firehose, d *schema.ResourceData, sn 
 		exclusiveStartTagKey = aws.StringValue(tags[len(tags)-1].Key)
 	}
 
-	if err := d.Set("tags", tagsToMapKinesisFirehose(tags)); err != nil {
-		return err
-	}
-
-	return nil
+	err := d.Set("tags", tagsToMapKinesisFirehose(tags))
+	return err
 }
 
 // setTags is a helper to set the tags for a resource. It expects the
@@ -59,7 +54,7 @@ func setTagsKinesisFirehose(conn *firehose.Firehose, d *schema.ResourceData, sn 
 		// Set tags
 		if len(remove) > 0 {
 			log.Printf("[DEBUG] Removing tags: %#v", remove)
-			k := make([]*string, len(remove), len(remove))
+			k := make([]*string, len(remove))
 			for i, t := range remove {
 				k[i] = t.Key
 			}
@@ -144,7 +139,8 @@ func tagIgnoredKinesisFirehose(t *firehose.Tag) bool {
 	filter := []string{"^aws:"}
 	for _, v := range filter {
 		log.Printf("[DEBUG] Matching %v with %v\n", v, *t.Key)
-		if r, _ := regexp.MatchString(v, *t.Key); r == true {
+		r, _ := regexp.MatchString(v, *t.Key)
+		if r {
 			log.Printf("[DEBUG] Found AWS specific tag %s (val: %s), ignoring.\n", *t.Key, *t.Value)
 			return true
 		}

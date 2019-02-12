@@ -96,9 +96,7 @@ func resourceAwsLoadBalancerBackendServerPoliciesRead(d *schema.ResourceData, me
 			continue
 		}
 
-		for _, name := range backendServer.PolicyNames {
-			policyNames = append(policyNames, name)
-		}
+		policyNames = append(policyNames, backendServer.PolicyNames...)
 	}
 
 	d.Set("load_balancer_name", loadBalancerName)

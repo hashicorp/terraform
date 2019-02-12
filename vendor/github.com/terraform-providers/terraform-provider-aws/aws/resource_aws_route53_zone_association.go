@@ -134,11 +134,7 @@ func resourceAwsRoute53ZoneAssociationDelete(d *schema.ResourceData, meta interf
 	}
 
 	_, err := r53.DisassociateVPCFromHostedZone(req)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func resourceAwsRoute53ZoneAssociationParseId(id string) (zone_id, vpc_id string) {
