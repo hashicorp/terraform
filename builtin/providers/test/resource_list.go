@@ -25,6 +25,11 @@ func testResourceList() *schema.Resource {
 							Type:     schema.TypeInt,
 							Optional: true,
 						},
+						"force_new": {
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
 						"sublist_block": {
 							Type:     schema.TypeList,
 							Optional: true,
