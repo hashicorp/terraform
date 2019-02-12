@@ -71,12 +71,12 @@ func Host(base *net.IPNet, num int) (net.IP, error) {
 	if numUint64 > maxHostNum {
 		return nil, fmt.Errorf("prefix of %d does not accommodate a host numbered %d", parentLen, num)
 	}
-        var bitlength int
-        if ip.To4() != nil {
-              bitlength = 32
-        } else {
-              bitlength = 128
-        }
+	var bitlength int
+	if ip.To4() != nil {
+		bitlength = 32
+	} else {
+		bitlength = 128
+	}
 	return insertNumIntoIP(ip, num, bitlength), nil
 }
 
