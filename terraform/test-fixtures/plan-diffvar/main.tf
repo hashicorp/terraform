@@ -1,7 +1,7 @@
 resource "aws_instance" "foo" {
-    num = "2"
+  num = "3"
 }
 
 resource "aws_instance" "bar" {
-    num = "${aws_instance.foo.num}"
+  num = aws_instance.foo.num
 }
