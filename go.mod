@@ -67,7 +67,7 @@ require (
 	github.com/hashicorp/go-rootcerts v0.0.0-20160503143440-6bb64b370b90
 	github.com/hashicorp/go-safetemp v0.0.0-20180326211150-b1a1dbde6fdc // indirect
 	github.com/hashicorp/go-sockaddr v0.0.0-20180320115054-6d291a969b86 // indirect
-	github.com/hashicorp/go-tfe v0.3.7
+	github.com/hashicorp/go-tfe v0.3.8
 	github.com/hashicorp/go-uuid v1.0.0
 	github.com/hashicorp/go-version v1.0.0
 	github.com/hashicorp/golang-lru v0.5.0 // indirect
