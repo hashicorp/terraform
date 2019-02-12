@@ -463,7 +463,7 @@ github.com/mattn/go-shellwords
 github.com/mitchellh/cli
 # github.com/mitchellh/colorstring v0.0.0-20150917214807-8631ce90f286
 github.com/mitchellh/colorstring
-# github.com/mitchellh/copystructure v0.0.0-20170525013902-d23ffcb85de3
+# github.com/mitchellh/copystructure v1.0.0
 github.com/mitchellh/copystructure
 # github.com/mitchellh/go-homedir v1.0.0
 github.com/mitchellh/go-homedir
@@ -481,7 +481,7 @@ github.com/mitchellh/mapstructure
 github.com/mitchellh/panicwrap
 # github.com/mitchellh/prefixedio v0.0.0-20151214002211-6e6954073784
 github.com/mitchellh/prefixedio
-# github.com/mitchellh/reflectwalk v0.0.0-20170726202117-63d60e9d0dbc
+# github.com/mitchellh/reflectwalk v1.0.0
 github.com/mitchellh/reflectwalk
 # github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
 github.com/nu7hatch/gouuid
