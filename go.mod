@@ -12,7 +12,7 @@ require (
 	github.com/agl/ed25519 v0.0.0-20150830182803-278e1ec8e8a6 // indirect
 	github.com/antchfx/xpath v0.0.0-20170728053731-b5c552e1acbd // indirect
 	github.com/antchfx/xquery v0.0.0-20170730121040-eb8c3c172607 // indirect
-	github.com/apparentlymart/go-cidr v0.0.0-20170616213631-2bd8b58cf427
+	github.com/apparentlymart/go-cidr v1.0.0
 	github.com/apparentlymart/go-dump v0.0.0-20180507223929-23540a00eaa3
 	github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e
 	github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da // indirect
@@ -21,7 +21,7 @@ require (
 	github.com/beevik/etree v0.0.0-20171015221209-af219c0c7ea1 // indirect
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
 	github.com/bgentry/speakeasy v0.0.0-20161015143505-675b82c74c0e // indirect
-	github.com/blang/semver v0.0.0-20170202183821-4a1e882c79dc
+	github.com/blang/semver v3.5.1+incompatible
 	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/boombuler/barcode v1.0.0 // indirect
 	github.com/chzyer/logex v1.1.10 // indirect
@@ -74,7 +74,7 @@ require (
 	github.com/hashicorp/hcl v0.0.0-20170504190234-a4b07c25de5f
 	github.com/hashicorp/hcl2 v0.0.0-20190130225218-89dbc5eb3d9e
 	github.com/hashicorp/hil v0.0.0-20170627220502-fa9f258a9250
-	github.com/hashicorp/logutils v0.0.0-20150609070431-0dc08b1671f3
+	github.com/hashicorp/logutils v1.0.0
 	github.com/hashicorp/memberlist v0.1.0 // indirect
 	github.com/hashicorp/serf v0.0.0-20160124182025-e4ec8cc423bb // indirect
 	github.com/hashicorp/terraform-config-inspect v0.0.0-20190208230122-b0707673339c
@@ -96,15 +96,15 @@ require (
 	github.com/miekg/dns v1.0.8 // indirect
 	github.com/mitchellh/cli v0.0.0-20171129193617-33edc47170b5
 	github.com/mitchellh/colorstring v0.0.0-20150917214807-8631ce90f286
-	github.com/mitchellh/copystructure v0.0.0-20170525013902-d23ffcb85de3
+	github.com/mitchellh/copystructure v1.0.0
 	github.com/mitchellh/go-homedir v1.0.0
 	github.com/mitchellh/go-linereader v0.0.0-20141013185533-07bab5fdd958
 	github.com/mitchellh/go-wordwrap v1.0.0
-	github.com/mitchellh/hashstructure v0.0.0-20160209213820-6b17d669fac5
+	github.com/mitchellh/hashstructure v1.0.0
 	github.com/mitchellh/mapstructure v0.0.0-20170307201123-53818660ed49
 	github.com/mitchellh/panicwrap v0.0.0-20161208170302-ba9e1a65e0f7
 	github.com/mitchellh/prefixedio v0.0.0-20151214002211-6e6954073784
-	github.com/mitchellh/reflectwalk v0.0.0-20170726202117-63d60e9d0dbc
+	github.com/mitchellh/reflectwalk v1.0.0
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
 	github.com/packer-community/winrmcp v0.0.0-20180102160824-81144009af58
 	github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c // indirect
