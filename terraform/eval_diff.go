@@ -236,16 +236,15 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		for _, path := range resp.RequiresReplace {
 			if priorVal.IsNull() {
 				// If prior is null then we don't expect any RequiresReplace at all,
-				// because this is a Create action. (This is just to avoid errors
-				// when we use this value below, if the provider misbehaves.)
+				// because this is a Create action.
 				continue
 			}
-			plannedChangedVal, pathDiags := hcl.ApplyPath(plannedNewVal, path, nil)
-			if pathDiags.HasErrors() {
-				// This always indicates a provider bug, since RequiresReplace
-				// should always refer only to whole attributes (and not into
-				// attribute values themselves) and these should always be
-				// present, even though they might be null or unknown.
+
+			priorChangedVal, priorPathDiags := hcl.ApplyPath(priorVal, path, nil)
+			plannedChangedVal, plannedPathDiags := hcl.ApplyPath(plannedNewVal, path, nil)
+			if plannedPathDiags.HasErrors() && priorPathDiags.HasErrors() {
+				// This means the path was invalid in both the prior and new
+				// values, which is an error with the provider itself.
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Provider produced invalid plan",
@@ -256,17 +255,26 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 				))
 				continue
 			}
-			priorChangedVal, err := path.Apply(priorVal)
-			if err != nil {
-				// Should never happen since prior and changed should be of
-				// the same type, but we'll allow it for robustness.
-				reqRep.Add(path)
+
+			// Make sure we have valid Values for both values.
+			// Note: if the opposing value was of the type
+			// cty.DynamicPseudoType, the type assigned here may not exactly
+			// match the schema. This is fine here, since we're only going to
+			// check for equality, but if the NullVal is to be used, we need to
+			// check the schema for th true type.
+			switch {
+			case priorChangedVal == cty.NilVal && plannedChangedVal == cty.NilVal:
+				// this should never happen without ApplyPath errors above
+				panic("requires replace path returned 2 nil values")
+			case priorChangedVal == cty.NilVal:
+				priorChangedVal = cty.NullVal(plannedChangedVal.Type())
+			case plannedChangedVal == cty.NilVal:
+				plannedChangedVal = cty.NullVal(priorChangedVal.Type())
 			}
-			if priorChangedVal != cty.NilVal {
-				eqV := plannedChangedVal.Equals(priorChangedVal)
-				if !eqV.IsKnown() || eqV.False() {
-					reqRep.Add(path)
-				}
+
+			eqV := plannedChangedVal.Equals(priorChangedVal)
+			if !eqV.IsKnown() || eqV.False() {
+				reqRep.Add(path)
 			}
 		}
 		if diags.HasErrors() {
