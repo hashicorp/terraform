@@ -445,7 +445,7 @@ func TestContext2Plan_moduleCycle(t *testing.T) {
 				Attributes: map[string]*configschema.Attribute{
 					"id":         {Type: cty.String, Computed: true},
 					"some_input": {Type: cty.String, Optional: true},
-					"type":       {Type: cty.String, Optional: true},
+					"type":       {Type: cty.String, Computed: true},
 				},
 			},
 		},
@@ -644,9 +644,10 @@ func TestContext2Plan_moduleInputComputed(t *testing.T) {
 		switch i := ric.Addr.String(); i {
 		case "aws_instance.bar":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"id":   cty.UnknownVal(cty.String),
-				"foo":  cty.UnknownVal(cty.String),
-				"type": cty.StringVal("aws_instance"),
+				"id":      cty.UnknownVal(cty.String),
+				"foo":     cty.UnknownVal(cty.String),
+				"type":    cty.StringVal("aws_instance"),
+				"compute": cty.StringVal("foo"),
 			}), ric.After)
 		case "module.child.aws_instance.foo":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
@@ -1401,9 +1402,10 @@ func TestContext2Plan_moduleVarComputed(t *testing.T) {
 			}), ric.After)
 		case "module.child.aws_instance.foo":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"id":   cty.UnknownVal(cty.String),
-				"foo":  cty.UnknownVal(cty.String),
-				"type": cty.StringVal("aws_instance"),
+				"id":      cty.UnknownVal(cty.String),
+				"foo":     cty.UnknownVal(cty.String),
+				"type":    cty.StringVal("aws_instance"),
+				"compute": cty.StringVal("foo"),
 			}), ric.After)
 		default:
 			t.Fatal("unknown instance:", i)
@@ -1745,10 +1747,11 @@ func TestContext2Plan_computed(t *testing.T) {
 			}), ric.After)
 		case "aws_instance.foo":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"id":   cty.UnknownVal(cty.String),
-				"foo":  cty.UnknownVal(cty.String),
-				"num":  cty.NumberIntVal(2),
-				"type": cty.StringVal("aws_instance"),
+				"id":      cty.UnknownVal(cty.String),
+				"foo":     cty.UnknownVal(cty.String),
+				"num":     cty.NumberIntVal(2),
+				"type":    cty.StringVal("aws_instance"),
+				"compute": cty.StringVal("foo"),
 			}), ric.After)
 		default:
 			t.Fatal("unknown instance:", i)
@@ -2096,6 +2099,10 @@ func TestContext2Plan_computedList(t *testing.T) {
 				New:         "",
 				NewComputed: true,
 			}
+			diff.Attributes["compute"] = &ResourceAttrDiff{
+				Old: "",
+				New: compute,
+			}
 		}
 
 		fooOld := s.Attributes["foo"]
@@ -2168,8 +2175,9 @@ func TestContext2Plan_computedList(t *testing.T) {
 			}), ric.After)
 		case "aws_instance.foo":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"list": cty.UnknownVal(cty.List(cty.String)),
-				"num":  cty.NumberIntVal(2),
+				"list":    cty.UnknownVal(cty.List(cty.String)),
+				"num":     cty.NumberIntVal(2),
+				"compute": cty.StringVal("list.#"),
 			}), ric.After)
 		default:
 			t.Fatal("unknown instance:", i)
@@ -2207,6 +2215,10 @@ func TestContext2Plan_computedMultiIndex(t *testing.T) {
 				Old:         "",
 				New:         "",
 				NewComputed: true,
+			}
+			diff.Attributes["compute"] = &ResourceAttrDiff{
+				Old: "",
+				New: compute,
 			}
 		}
 
@@ -2270,13 +2282,15 @@ func TestContext2Plan_computedMultiIndex(t *testing.T) {
 		switch i := ric.Addr.String(); i {
 		case "aws_instance.foo[0]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"ip":  cty.UnknownVal(cty.List(cty.String)),
-				"foo": cty.NullVal(cty.List(cty.String)),
+				"ip":      cty.UnknownVal(cty.List(cty.String)),
+				"foo":     cty.NullVal(cty.List(cty.String)),
+				"compute": cty.StringVal("ip.#"),
 			}), ric.After)
 		case "aws_instance.foo[1]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"ip":  cty.UnknownVal(cty.List(cty.String)),
-				"foo": cty.NullVal(cty.List(cty.String)),
+				"ip":      cty.UnknownVal(cty.List(cty.String)),
+				"foo":     cty.NullVal(cty.List(cty.String)),
+				"compute": cty.StringVal("ip.#"),
 			}), ric.After)
 		case "aws_instance.bar[0]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
