@@ -1878,14 +1878,21 @@ func TestContext2Apply_cancel(t *testing.T) {
 			},
 		}, nil
 	}
-	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error) {
-		return &InstanceDiff{
-			Attributes: map[string]*ResourceAttrDiff{
-				"value": &ResourceAttrDiff{
-					New: "2",
-				},
-			},
-		}, nil
+	p.DiffFn = func(info *InstanceInfo, s *InstanceState, rc *ResourceConfig) (*InstanceDiff, error) {
+		d := &InstanceDiff{
+			Attributes: map[string]*ResourceAttrDiff{},
+		}
+		if new, ok := rc.Get("value"); ok {
+			d.Attributes["value"] = &ResourceAttrDiff{
+				New: new.(string),
+			}
+		}
+		if new, ok := rc.Get("foo"); ok {
+			d.Attributes["foo"] = &ResourceAttrDiff{
+				New: new.(string),
+			}
+		}
+		return d, nil
 	}
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
@@ -1937,6 +1944,9 @@ func TestContext2Apply_cancelBlock(t *testing.T) {
 				"id": &ResourceAttrDiff{
 					New: "foo",
 				},
+				"num": &ResourceAttrDiff{
+					New: "2",
+				},
 			},
 		}, nil
 	}
@@ -1954,6 +1964,9 @@ func TestContext2Apply_cancelBlock(t *testing.T) {
 
 		return &InstanceState{
 			ID: "foo",
+			Attributes: map[string]string{
+				"num": "2",
+			},
 		}, nil
 	}
 
@@ -2002,6 +2015,7 @@ func TestContext2Apply_cancelBlock(t *testing.T) {
 aws_instance.foo:
   ID = foo
   provider = provider.aws
+  num = 2
 	`)
 }
 
@@ -2130,15 +2144,15 @@ func TestContext2Apply_compute(t *testing.T) {
 		),
 	})
 
-	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("plan errors: %s", diags.Err())
-	}
-
 	ctx.variables = InputValues{
 		"value": &InputValue{
 			Value:      cty.NumberIntVal(1),
 			SourceType: ValueFromCaller,
 		},
+	}
+
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -3741,25 +3755,35 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 
 	p.ApplyFn = testApplyFn
 
-	p.DiffFn = func(info *InstanceInfo, s *InstanceState, c *ResourceConfig) (*InstanceDiff, error) {
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		proposed := req.ProposedNewState
 		configsLock.Lock()
 		defer configsLock.Unlock()
-		key := c.Config["key"].(string)
-		configs[key] = c
+		key := proposed.GetAttr("key").AsString()
+		// This test was originally written using the legacy p.DiffFn interface,
+		// and so the assertions below expect an old-style ResourceConfig, which
+		// we'll construct via our shim for now to avoid rewriting all of the
+		// assertions.
+		configs[key] = NewResourceConfigShimmed(req.Config, p.GetSchemaReturn.ResourceTypes["test_thing"])
 
-		// Return a minimal diff to make sure this resource gets included in
-		// the apply graph and thus the final state, but otherwise we're just
-		// gathering data for assertions.
-		return &InstanceDiff{
-			Attributes: map[string]*ResourceAttrDiff{
-				"id": &ResourceAttrDiff{
-					NewComputed: true,
-				},
-				"name": &ResourceAttrDiff{
-					New: key,
-				},
-			},
-		}, nil
+		retVals := make(map[string]cty.Value)
+		for it := proposed.ElementIterator(); it.Next(); {
+			idxVal, val := it.Element()
+			idx := idxVal.AsString()
+
+			switch idx {
+			case "id":
+				retVals[idx] = cty.UnknownVal(cty.String)
+			case "name":
+				retVals[idx] = cty.StringVal(key)
+			default:
+				retVals[idx] = val
+			}
+		}
+
+		return providers.PlanResourceChangeResponse{
+			PlannedState: cty.ObjectVal(retVals),
+		}
 	}
 
 	p.GetSchemaReturn = &ProviderSchema{
@@ -6149,21 +6173,33 @@ func TestContext2Apply_outputDiffVars(t *testing.T) {
 
 		result := s.MergeDiff(d)
 		result.ID = "foo"
-		result.Attributes["foo"] = "bar"
 		return result, nil
 	}
-	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error) {
-		return &InstanceDiff{
-			Attributes: map[string]*ResourceAttrDiff{
-				"foo": &ResourceAttrDiff{
-					NewComputed: true,
-					Type:        DiffAttrOutput,
-				},
-				"bar": &ResourceAttrDiff{
-					New: "baz",
-				},
-			},
-		}, nil
+	p.DiffFn = func(info *InstanceInfo, s *InstanceState, rc *ResourceConfig) (*InstanceDiff, error) {
+		d := &InstanceDiff{
+			Attributes: map[string]*ResourceAttrDiff{},
+		}
+		if new, ok := rc.Get("value"); ok {
+			d.Attributes["value"] = &ResourceAttrDiff{
+				New: new.(string),
+			}
+		}
+		if new, ok := rc.Get("foo"); ok {
+			d.Attributes["foo"] = &ResourceAttrDiff{
+				New: new.(string),
+			}
+		} else if rc.IsComputed("foo") {
+			d.Attributes["foo"] = &ResourceAttrDiff{
+				NewComputed: true,
+				Type:        DiffAttrOutput, // This doesn't actually really do anything anymore, but this test originally set it.
+			}
+		}
+		if new, ok := rc.Get("num"); ok {
+			d.Attributes["num"] = &ResourceAttrDiff{
+				New: fmt.Sprintf("%#v", new),
+			}
+		}
+		return d, nil
 	}
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
@@ -6899,14 +6935,21 @@ func TestContext2Apply_destroyOrphan(t *testing.T) {
 		result.ID = "foo"
 		return result, nil
 	}
-	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error) {
-		return &InstanceDiff{
-			Attributes: map[string]*ResourceAttrDiff{
-				"value": &ResourceAttrDiff{
-					New: "bar",
-				},
-			},
-		}, nil
+	p.DiffFn = func(info *InstanceInfo, s *InstanceState, rc *ResourceConfig) (*InstanceDiff, error) {
+		d := &InstanceDiff{
+			Attributes: map[string]*ResourceAttrDiff{},
+		}
+		if new, ok := rc.Get("value"); ok {
+			d.Attributes["value"] = &ResourceAttrDiff{
+				New: new.(string),
+			}
+		}
+		if new, ok := rc.Get("foo"); ok {
+			d.Attributes["foo"] = &ResourceAttrDiff{
+				New: new.(string),
+			}
+		}
+		return d, nil
 	}
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
@@ -7021,14 +7064,21 @@ func TestContext2Apply_error(t *testing.T) {
 			},
 		}, nil
 	}
-	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error) {
-		return &InstanceDiff{
-			Attributes: map[string]*ResourceAttrDiff{
-				"value": &ResourceAttrDiff{
-					New: "2",
-				},
-			},
-		}, nil
+	p.DiffFn = func(info *InstanceInfo, s *InstanceState, rc *ResourceConfig) (*InstanceDiff, error) {
+		d := &InstanceDiff{
+			Attributes: map[string]*ResourceAttrDiff{},
+		}
+		if new, ok := rc.Get("value"); ok {
+			d.Attributes["value"] = &ResourceAttrDiff{
+				New: new.(string),
+			}
+		}
+		if new, ok := rc.Get("foo"); ok {
+			d.Attributes["foo"] = &ResourceAttrDiff{
+				New: new.(string),
+			}
+		}
+		return d, nil
 	}
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
@@ -7090,14 +7140,21 @@ func TestContext2Apply_errorPartial(t *testing.T) {
 			},
 		}, nil
 	}
-	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error) {
-		return &InstanceDiff{
-			Attributes: map[string]*ResourceAttrDiff{
-				"value": &ResourceAttrDiff{
-					New: "2",
-				},
-			},
-		}, nil
+	p.DiffFn = func(info *InstanceInfo, s *InstanceState, rc *ResourceConfig) (*InstanceDiff, error) {
+		d := &InstanceDiff{
+			Attributes: map[string]*ResourceAttrDiff{},
+		}
+		if new, ok := rc.Get("value"); ok {
+			d.Attributes["value"] = &ResourceAttrDiff{
+				New: new.(string),
+			}
+		}
+		if new, ok := rc.Get("foo"); ok {
+			d.Attributes["foo"] = &ResourceAttrDiff{
+				New: new.(string),
+			}
+		}
+		return d, nil
 	}
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
@@ -8907,6 +8964,7 @@ func TestContext2Apply_issue5254(t *testing.T) {
 template_file.child:
   ID = foo
   provider = provider.template
+  __template_requires_new = true
   template = Hi
   type = template_file
 
