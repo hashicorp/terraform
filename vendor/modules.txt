@@ -195,7 +195,7 @@ github.com/beevik/etree
 github.com/bgentry/go-netrc/netrc
 # github.com/bgentry/speakeasy v0.0.0-20161015143505-675b82c74c0e
 github.com/bgentry/speakeasy
-# github.com/blang/semver v0.0.0-20170202183821-4a1e882c79dc
+# github.com/blang/semver v3.5.1+incompatible
 github.com/blang/semver
 # github.com/chzyer/readline v0.0.0-20161106042343-c914be64f07d
 github.com/chzyer/readline
