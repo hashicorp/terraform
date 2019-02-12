@@ -162,12 +162,6 @@ github.com/hashicorp/golang-lru v0.5.0 h1:CL2msUPvZTLb5O648aiLNJw3hnBxN2+1Jq8rCO
 github.com/hashicorp/golang-lru v0.5.0/go.mod h1:/m3WP610KZHVQ1SGc6re/UDhFvYD7pJ4Ao+sR/qLZy8=
 github.com/hashicorp/hcl v0.0.0-20170504190234-a4b07c25de5f h1:UdxlrJz4JOnY8W+DbLISwf2B8WXEolNRA8BGCwI9jws=
 github.com/hashicorp/hcl v0.0.0-20170504190234-a4b07c25de5f/go.mod h1:oZtUIOe8dh44I2q6ScRibXws4Ajl+d+nod3AaR9vL5w=
-github.com/hashicorp/hcl v0.0.0-20180320202055-f40e974e75af h1:g6buE1uPu/jBP1YRkIqjoqBz5CraM5TukA+MmymQQXA=
-github.com/hashicorp/hcl v0.0.0-20180320202055-f40e974e75af/go.mod h1:oZtUIOe8dh44I2q6ScRibXws4Ajl+d+nod3AaR9vL5w=
-github.com/hashicorp/hcl v0.0.0-20180403142333-25340db58d11 h1:/WXmgbjMlEHeC4Pbb5h/TfV3cAe6HuKDKdlWz1eoBd4=
-github.com/hashicorp/hcl v0.0.0-20180403142333-25340db58d11/go.mod h1:oZtUIOe8dh44I2q6ScRibXws4Ajl+d+nod3AaR9vL5w=
-github.com/hashicorp/hcl v1.0.0 h1:0Anlzjpi4vEasTeNFn2mLJgTSwt0+6sfsiTG8qcWGx4=
-github.com/hashicorp/hcl v1.0.0/go.mod h1:E5yfLk+7swimpb2L/Alb/PJmXilQ/rhwaUYs4T20WEQ=
 github.com/hashicorp/hcl2 v0.0.0-20181208003705-670926858200/go.mod h1:ShfpTh661oAaxo7VcNxg0zcZW6jvMa7Moy2oFx7e5dE=
 github.com/hashicorp/hcl2 v0.0.0-20190130225218-89dbc5eb3d9e h1:wcDATcjAY0ebgNtuyt00GxJll5fCChrevvrIdguzhQQ=
 github.com/hashicorp/hcl2 v0.0.0-20190130225218-89dbc5eb3d9e/go.mod h1:HtEzazM5AZ9fviNEof8QZB4T1Vz9UhHrGhnMPzl//Ek=
@@ -179,10 +173,7 @@ github.com/hashicorp/memberlist v0.1.0 h1:qSsCiC0WYD39lbSitKNt40e30uorm2Ss/d4JGU
 github.com/hashicorp/memberlist v0.1.0/go.mod h1:ncdBp14cuox2iFOq3kDiquKU6fqsTBc3W6JvZwjxxsE=
 github.com/hashicorp/serf v0.0.0-20160124182025-e4ec8cc423bb h1:ZbgmOQt8DOg796figP87/EFCVx2v2h9yRvwHF/zceX4=
 github.com/hashicorp/serf v0.0.0-20160124182025-e4ec8cc423bb/go.mod h1:h/Ru6tmZazX7WO/GDmwdpS975F019L4t5ng5IgwbNrE=
-github.com/hashicorp/terraform-config-inspect v0.0.0-20190129165904-67302cb0361b h1:A+sv28TB1pIfYHFBnEDUYIKA12RTVLsYjvu9JS+dxz8=
-github.com/hashicorp/terraform-config-inspect v0.0.0-20190129165904-67302cb0361b/go.mod h1:nKgb1xGwu9K9mk77DQJoM/XD19kEyrKFNstmjxB6/48=
-github.com/hashicorp/terraform-config-inspect v0.0.0-20190208170851-de963d052d6d h1:6sogMHZHRQKJz4qCUZBvNU9ajPeJ7PK/P6c8UexD+pY=
-github.com/hashicorp/terraform-config-inspect v0.0.0-20190208170851-de963d052d6d/go.mod h1:ItvqtvbC3K23FFET62ZwnkwtpbKZm8t8eMcWjmVVjD8=
+github.com/hashicorp/terraform-config-inspect v0.0.0-20190208230122-b0707673339c h1:nCnsfi66NloVlmquh5dLox5yBwQk5CV5s2roWvbstnE=
 github.com/hashicorp/terraform-config-inspect v0.0.0-20190208230122-b0707673339c/go.mod h1:ItvqtvbC3K23FFET62ZwnkwtpbKZm8t8eMcWjmVVjD8=
 github.com/hashicorp/vault v0.0.0-20161029210149-9a60bf2a50e4 h1:SGDekHLK2IRoVS7Fb4olLyWvc2VmwKgyFC05j6X3NII=
 github.com/hashicorp/vault v0.0.0-20161029210149-9a60bf2a50e4/go.mod h1:KfSyffbKxoVyspOdlaGVjIuwLobi07qD1bAbosPMpP0=
