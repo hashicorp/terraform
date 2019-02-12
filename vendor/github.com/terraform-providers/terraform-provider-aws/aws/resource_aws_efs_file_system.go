@@ -255,9 +255,7 @@ func resourceAwsEfsFileSystemRead(d *schema.ResourceData, meta interface{}) erro
 				d.Id(), err.Error())
 		}
 
-		for _, tag := range tagsResp.Tags {
-			tags = append(tags, tag)
-		}
+		tags = append(tags, tagsResp.Tags...)
 
 		if tagsResp.NextMarker != nil {
 			marker = *tagsResp.NextMarker
@@ -301,9 +299,8 @@ func resourceAwsEfsFileSystemRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("throughput_mode", fs.ThroughputMode)
 
 	region := meta.(*AWSClient).region
-	err = d.Set("dns_name", resourceAwsEfsDnsName(*fs.FileSystemId, region))
-	if err != nil {
-		return err
+	if err := d.Set("dns_name", resourceAwsEfsDnsName(aws.StringValue(fs.FileSystemId), region)); err != nil {
+		return fmt.Errorf("error setting dns_name: %s", err)
 	}
 
 	return nil

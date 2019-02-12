@@ -135,11 +135,7 @@ func resourceAwsGameliftAliasDelete(d *schema.ResourceData, meta interface{}) er
 	_, err := conn.DeleteAlias(&gamelift.DeleteAliasInput{
 		AliasId: aws.String(d.Id()),
 	})
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func expandGameliftRoutingStrategy(cfg []interface{}) *gamelift.RoutingStrategy {
@@ -168,7 +164,7 @@ func flattenGameliftRoutingStrategy(rs *gamelift.RoutingStrategy) []interface{} 
 		return []interface{}{}
 	}
 
-	m := make(map[string]interface{}, 0)
+	m := make(map[string]interface{})
 	if rs.FleetId != nil {
 		m["fleet_id"] = *rs.FleetId
 	}

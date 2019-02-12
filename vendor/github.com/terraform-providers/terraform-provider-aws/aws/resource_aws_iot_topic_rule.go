@@ -608,9 +608,5 @@ func resourceAwsIotTopicRuleDelete(d *schema.ResourceData, meta interface{}) err
 	log.Printf("[DEBUG] Deleting IoT Topic Rule: %s", params)
 	_, err := conn.DeleteTopicRule(params)
 
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }

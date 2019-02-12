@@ -128,11 +128,8 @@ func resourceAwsIamUserGroupMembershipDelete(d *schema.ResourceData, meta interf
 	user := d.Get("user").(string)
 	groups := expandStringList(d.Get("groups").(*schema.Set).List())
 
-	if err := removeUserFromGroups(conn, user, groups); err != nil {
-		return err
-	}
-
-	return nil
+	err := removeUserFromGroups(conn, user, groups)
+	return err
 }
 
 func removeUserFromGroups(conn *iam.IAM, user string, groups []*string) error {

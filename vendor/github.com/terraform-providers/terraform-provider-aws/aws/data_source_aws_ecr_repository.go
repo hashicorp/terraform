@@ -1,10 +1,10 @@
 package aws
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -31,6 +31,7 @@ func dataSourceAwsEcrRepository() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"tags": tagsSchemaComputed(),
 		},
 	}
 }
@@ -38,30 +39,33 @@ func dataSourceAwsEcrRepository() *schema.Resource {
 func dataSourceAwsEcrRepositoryRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ecrconn
 
-	repositoryName := d.Get("name").(string)
 	params := &ecr.DescribeRepositoriesInput{
-		RepositoryNames: []*string{aws.String(repositoryName)},
+		RepositoryNames: aws.StringSlice([]string{d.Get("name").(string)}),
 	}
 	log.Printf("[DEBUG] Reading ECR repository: %s", params)
 	out, err := conn.DescribeRepositories(params)
 	if err != nil {
-		if ecrerr, ok := err.(awserr.Error); ok && ecrerr.Code() == "RepositoryNotFoundException" {
+		if isAWSErr(err, ecr.ErrCodeRepositoryNotFoundException, "") {
 			log.Printf("[WARN] ECR Repository %s not found, removing from state", d.Id())
 			d.SetId("")
 			return nil
 		}
-		return err
+		return fmt.Errorf("error reading ECR repository: %s", err)
 	}
 
 	repository := out.Repositories[0]
 
 	log.Printf("[DEBUG] Received ECR repository %s", out)
 
-	d.SetId(*repository.RepositoryName)
+	d.SetId(aws.StringValue(repository.RepositoryName))
 	d.Set("arn", repository.RepositoryArn)
 	d.Set("registry_id", repository.RegistryId)
 	d.Set("name", repository.RepositoryName)
 	d.Set("repository_url", repository.RepositoryUri)
+
+	if err := getTagsECR(conn, d); err != nil {
+		return fmt.Errorf("error getting ECR repository tags: %s", err)
+	}
 
 	return nil
 }

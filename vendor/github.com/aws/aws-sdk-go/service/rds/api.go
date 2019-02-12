@@ -58,9 +58,9 @@ func (c *RDS) AddRoleToDBClusterRequest(input *AddRoleToDBClusterInput) (req *re
 
 // AddRoleToDBCluster API operation for Amazon Relational Database Service.
 //
-// Associates an Identity and Access Management (IAM) role from an Aurora DB
-// cluster. For more information, see Authorizing Amazon Aurora MySQL to Access
-// Other AWS Services on Your Behalf (http://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/AuroraMySQL.Integrating.Authorizing.html)
+// Associates an Identity and Access Management (IAM) role from an Amazon Aurora
+// DB cluster. For more information, see Authorizing Amazon Aurora MySQL to
+// Access Other AWS Services on Your Behalf (http://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/AuroraMySQL.Integrating.Authorizing.html)
 // in the Amazon Aurora User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -102,6 +102,97 @@ func (c *RDS) AddRoleToDBCluster(input *AddRoleToDBClusterInput) (*AddRoleToDBCl
 // for more information on using Contexts.
 func (c *RDS) AddRoleToDBClusterWithContext(ctx aws.Context, input *AddRoleToDBClusterInput, opts ...request.Option) (*AddRoleToDBClusterOutput, error) {
 	req, out := c.AddRoleToDBClusterRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opAddRoleToDBInstance = "AddRoleToDBInstance"
+
+// AddRoleToDBInstanceRequest generates a "aws/request.Request" representing the
+// client's request for the AddRoleToDBInstance operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See AddRoleToDBInstance for more information on using the AddRoleToDBInstance
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the AddRoleToDBInstanceRequest method.
+//    req, resp := client.AddRoleToDBInstanceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/AddRoleToDBInstance
+func (c *RDS) AddRoleToDBInstanceRequest(input *AddRoleToDBInstanceInput) (req *request.Request, output *AddRoleToDBInstanceOutput) {
+	op := &request.Operation{
+		Name:       opAddRoleToDBInstance,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &AddRoleToDBInstanceInput{}
+	}
+
+	output = &AddRoleToDBInstanceOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// AddRoleToDBInstance API operation for Amazon Relational Database Service.
+//
+// Associates an AWS Identity and Access Management (IAM) role with a DB instance.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Relational Database Service's
+// API operation AddRoleToDBInstance for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeDBInstanceNotFoundFault "DBInstanceNotFound"
+//   DBInstanceIdentifier doesn't refer to an existing DB instance.
+//
+//   * ErrCodeDBInstanceRoleAlreadyExistsFault "DBInstanceRoleAlreadyExists"
+//   The specified RoleArn or FeatureName value is already associated with the
+//   DB instance.
+//
+//   * ErrCodeInvalidDBInstanceStateFault "InvalidDBInstanceState"
+//   The DB instance isn't in a valid state.
+//
+//   * ErrCodeDBInstanceRoleQuotaExceededFault "DBInstanceRoleQuotaExceeded"
+//   You can't associate any more AWS Identity and Access Management (IAM) roles
+//   with the DB instance because the quota has been reached.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/AddRoleToDBInstance
+func (c *RDS) AddRoleToDBInstance(input *AddRoleToDBInstanceInput) (*AddRoleToDBInstanceOutput, error) {
+	req, out := c.AddRoleToDBInstanceRequest(input)
+	return out, req.Send()
+}
+
+// AddRoleToDBInstanceWithContext is the same as AddRoleToDBInstance with the addition of
+// the ability to pass a context and additional request options.
+//
+// See AddRoleToDBInstance for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *RDS) AddRoleToDBInstanceWithContext(ctx aws.Context, input *AddRoleToDBInstanceInput, opts ...request.Option) (*AddRoleToDBInstanceOutput, error) {
+	req, out := c.AddRoleToDBInstanceRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -1621,6 +1712,7 @@ func (c *RDS) CreateDBInstanceRequest(input *CreateDBInstanceInput) (req *reques
 //   Domain doesn't refer to an existing Active Directory domain.
 //
 //   * ErrCodeBackupPolicyNotFoundFault "BackupPolicyNotFoundFault"
+//   The backup policy was not found.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/CreateDBInstance
 func (c *RDS) CreateDBInstance(input *CreateDBInstanceInput) (*CreateDBInstanceOutput, error) {
@@ -8291,6 +8383,7 @@ func (c *RDS) ModifyDBInstanceRequest(input *ModifyDBInstanceInput) (req *reques
 //   Domain doesn't refer to an existing Active Directory domain.
 //
 //   * ErrCodeBackupPolicyNotFoundFault "BackupPolicyNotFoundFault"
+//   The backup policy was not found.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/ModifyDBInstance
 func (c *RDS) ModifyDBInstance(input *ModifyDBInstanceInput) (*ModifyDBInstanceOutput, error) {
@@ -9444,9 +9537,9 @@ func (c *RDS) RemoveRoleFromDBClusterRequest(input *RemoveRoleFromDBClusterInput
 
 // RemoveRoleFromDBCluster API operation for Amazon Relational Database Service.
 //
-// Disassociates an Identity and Access Management (IAM) role from an Aurora
-// DB cluster. For more information, see Authorizing Amazon Aurora MySQL to
-// Access Other AWS Services on Your Behalf  (http://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/AuroraMySQL.Integrating.Authorizing.html)
+// Disassociates an AWS Identity and Access Management (IAM) role from an Amazon
+// Aurora DB cluster. For more information, see Authorizing Amazon Aurora MySQL
+// to Access Other AWS Services on Your Behalf  (http://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/AuroraMySQL.Integrating.Authorizing.html)
 // in the Amazon Aurora User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -9484,6 +9577,94 @@ func (c *RDS) RemoveRoleFromDBCluster(input *RemoveRoleFromDBClusterInput) (*Rem
 // for more information on using Contexts.
 func (c *RDS) RemoveRoleFromDBClusterWithContext(ctx aws.Context, input *RemoveRoleFromDBClusterInput, opts ...request.Option) (*RemoveRoleFromDBClusterOutput, error) {
 	req, out := c.RemoveRoleFromDBClusterRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opRemoveRoleFromDBInstance = "RemoveRoleFromDBInstance"
+
+// RemoveRoleFromDBInstanceRequest generates a "aws/request.Request" representing the
+// client's request for the RemoveRoleFromDBInstance operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See RemoveRoleFromDBInstance for more information on using the RemoveRoleFromDBInstance
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the RemoveRoleFromDBInstanceRequest method.
+//    req, resp := client.RemoveRoleFromDBInstanceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/RemoveRoleFromDBInstance
+func (c *RDS) RemoveRoleFromDBInstanceRequest(input *RemoveRoleFromDBInstanceInput) (req *request.Request, output *RemoveRoleFromDBInstanceOutput) {
+	op := &request.Operation{
+		Name:       opRemoveRoleFromDBInstance,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &RemoveRoleFromDBInstanceInput{}
+	}
+
+	output = &RemoveRoleFromDBInstanceOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// RemoveRoleFromDBInstance API operation for Amazon Relational Database Service.
+//
+// Disassociates an AWS Identity and Access Management (IAM) role from a DB
+// instance.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Relational Database Service's
+// API operation RemoveRoleFromDBInstance for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeDBInstanceNotFoundFault "DBInstanceNotFound"
+//   DBInstanceIdentifier doesn't refer to an existing DB instance.
+//
+//   * ErrCodeDBInstanceRoleNotFoundFault "DBInstanceRoleNotFound"
+//   The specified RoleArn value doesn't match the specifed feature for the DB
+//   instance.
+//
+//   * ErrCodeInvalidDBInstanceStateFault "InvalidDBInstanceState"
+//   The DB instance isn't in a valid state.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/RemoveRoleFromDBInstance
+func (c *RDS) RemoveRoleFromDBInstance(input *RemoveRoleFromDBInstanceInput) (*RemoveRoleFromDBInstanceOutput, error) {
+	req, out := c.RemoveRoleFromDBInstanceRequest(input)
+	return out, req.Send()
+}
+
+// RemoveRoleFromDBInstanceWithContext is the same as RemoveRoleFromDBInstance with the addition of
+// the ability to pass a context and additional request options.
+//
+// See RemoveRoleFromDBInstance for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *RDS) RemoveRoleFromDBInstanceWithContext(ctx aws.Context, input *RemoveRoleFromDBInstanceInput, opts ...request.Option) (*RemoveRoleFromDBInstanceOutput, error) {
+	req, out := c.RemoveRoleFromDBInstanceRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -10414,6 +10595,7 @@ func (c *RDS) RestoreDBInstanceFromDBSnapshotRequest(input *RestoreDBInstanceFro
 //   DBParameterGroupName doesn't refer to an existing DB parameter group.
 //
 //   * ErrCodeBackupPolicyNotFoundFault "BackupPolicyNotFoundFault"
+//   The backup policy was not found.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/RestoreDBInstanceFromDBSnapshot
 func (c *RDS) RestoreDBInstanceFromDBSnapshot(input *RestoreDBInstanceFromDBSnapshotInput) (*RestoreDBInstanceFromDBSnapshotOutput, error) {
@@ -10557,6 +10739,7 @@ func (c *RDS) RestoreDBInstanceFromS3Request(input *RestoreDBInstanceFromS3Input
 //   An error occurred accessing an AWS KMS key.
 //
 //   * ErrCodeBackupPolicyNotFoundFault "BackupPolicyNotFoundFault"
+//   The backup policy was not found.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/RestoreDBInstanceFromS3
 func (c *RDS) RestoreDBInstanceFromS3(input *RestoreDBInstanceFromS3Input) (*RestoreDBInstanceFromS3Output, error) {
@@ -10716,6 +10899,7 @@ func (c *RDS) RestoreDBInstanceToPointInTimeRequest(input *RestoreDBInstanceToPo
 //   Domain doesn't refer to an existing Active Directory domain.
 //
 //   * ErrCodeBackupPolicyNotFoundFault "BackupPolicyNotFoundFault"
+//   The backup policy was not found.
 //
 //   * ErrCodeDBParameterGroupNotFoundFault "DBParameterGroupNotFound"
 //   DBParameterGroupName doesn't refer to an existing DB parameter group.
@@ -11350,6 +11534,88 @@ func (s AddRoleToDBClusterOutput) String() string {
 
 // GoString returns the string representation
 func (s AddRoleToDBClusterOutput) GoString() string {
+	return s.String()
+}
+
+type AddRoleToDBInstanceInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the DB instance to associate the IAM role with.
+	//
+	// DBInstanceIdentifier is a required field
+	DBInstanceIdentifier *string `type:"string" required:"true"`
+
+	// The name of the feature for the DB instance that the IAM role is to be associated
+	// with. For the list of supported feature names, see DBEngineVersion.
+	//
+	// FeatureName is a required field
+	FeatureName *string `type:"string" required:"true"`
+
+	// The Amazon Resource Name (ARN) of the IAM role to associate with the DB instance,
+	// for example arn:aws:iam::123456789012:role/AccessRole.
+	//
+	// RoleArn is a required field
+	RoleArn *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s AddRoleToDBInstanceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AddRoleToDBInstanceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AddRoleToDBInstanceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AddRoleToDBInstanceInput"}
+	if s.DBInstanceIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("DBInstanceIdentifier"))
+	}
+	if s.FeatureName == nil {
+		invalidParams.Add(request.NewErrParamRequired("FeatureName"))
+	}
+	if s.RoleArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("RoleArn"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDBInstanceIdentifier sets the DBInstanceIdentifier field's value.
+func (s *AddRoleToDBInstanceInput) SetDBInstanceIdentifier(v string) *AddRoleToDBInstanceInput {
+	s.DBInstanceIdentifier = &v
+	return s
+}
+
+// SetFeatureName sets the FeatureName field's value.
+func (s *AddRoleToDBInstanceInput) SetFeatureName(v string) *AddRoleToDBInstanceInput {
+	s.FeatureName = &v
+	return s
+}
+
+// SetRoleArn sets the RoleArn field's value.
+func (s *AddRoleToDBInstanceInput) SetRoleArn(v string) *AddRoleToDBInstanceInput {
+	s.RoleArn = &v
+	return s
+}
+
+type AddRoleToDBInstanceOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s AddRoleToDBInstanceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AddRoleToDBInstanceOutput) GoString() string {
 	return s.String()
 }
 
@@ -17399,6 +17665,12 @@ type DBEngineVersion struct {
 	// A list of the supported DB engine modes.
 	SupportedEngineModes []*string `type:"list"`
 
+	// A list of features supported by the DB engine. Supported feature names include
+	// the following.
+	//
+	//    * s3Import
+	SupportedFeatureNames []*string `type:"list"`
+
 	// A list of the time zones supported by this engine for the Timezone parameter
 	// of the CreateDBInstance action.
 	SupportedTimezones []*Timezone `locationNameList:"Timezone" type:"list"`
@@ -17479,6 +17751,12 @@ func (s *DBEngineVersion) SetSupportedEngineModes(v []*string) *DBEngineVersion 
 	return s
 }
 
+// SetSupportedFeatureNames sets the SupportedFeatureNames field's value.
+func (s *DBEngineVersion) SetSupportedFeatureNames(v []*string) *DBEngineVersion {
+	s.SupportedFeatureNames = v
+	return s
+}
+
 // SetSupportedTimezones sets the SupportedTimezones field's value.
 func (s *DBEngineVersion) SetSupportedTimezones(v []*Timezone) *DBEngineVersion {
 	s.SupportedTimezones = v
@@ -17511,6 +17789,10 @@ type DBInstance struct {
 
 	// Specifies the allocated storage size specified in gibibytes.
 	AllocatedStorage *int64 `type:"integer"`
+
+	// The AWS Identity and Access Management (IAM) roles associated with the DB
+	// instance.
+	AssociatedRoles []*DBInstanceRole `locationNameList:"DBInstanceRole" type:"list"`
 
 	// Indicates that minor version patches are applied automatically.
 	AutoMinorVersionUpgrade *bool `type:"boolean"`
@@ -17766,6 +18048,12 @@ func (s DBInstance) GoString() string {
 // SetAllocatedStorage sets the AllocatedStorage field's value.
 func (s *DBInstance) SetAllocatedStorage(v int64) *DBInstance {
 	s.AllocatedStorage = &v
+	return s
+}
+
+// SetAssociatedRoles sets the AssociatedRoles field's value.
+func (s *DBInstance) SetAssociatedRoles(v []*DBInstanceRole) *DBInstance {
+	s.AssociatedRoles = v
 	return s
 }
 
@@ -18342,6 +18630,61 @@ func (s *DBInstanceAutomatedBackup) SetTimezone(v string) *DBInstanceAutomatedBa
 // SetVpcId sets the VpcId field's value.
 func (s *DBInstanceAutomatedBackup) SetVpcId(v string) *DBInstanceAutomatedBackup {
 	s.VpcId = &v
+	return s
+}
+
+// Describes an AWS Identity and Access Management (IAM) role that is associated
+// with a DB instance.
+type DBInstanceRole struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the feature associated with the AWS Identity and Access Management
+	// (IAM) role. For the list of supported feature names, see DBEngineVersion.
+	FeatureName *string `type:"string"`
+
+	// The Amazon Resource Name (ARN) of the IAM role that is associated with the
+	// DB instance.
+	RoleArn *string `type:"string"`
+
+	// Describes the state of association between the IAM role and the DB instance.
+	// The Status property returns one of the following values:
+	//
+	//    * ACTIVE - the IAM role ARN is associated with the DB instance and can
+	//    be used to access other AWS services on your behalf.
+	//
+	//    * PENDING - the IAM role ARN is being associated with the DB instance.
+	//
+	//    * INVALID - the IAM role ARN is associated with the DB instance, but the
+	//    DB instance is unable to assume the IAM role in order to access other
+	//    AWS services on your behalf.
+	Status *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DBInstanceRole) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DBInstanceRole) GoString() string {
+	return s.String()
+}
+
+// SetFeatureName sets the FeatureName field's value.
+func (s *DBInstanceRole) SetFeatureName(v string) *DBInstanceRole {
+	s.FeatureName = &v
+	return s
+}
+
+// SetRoleArn sets the RoleArn field's value.
+func (s *DBInstanceRole) SetRoleArn(v string) *DBInstanceRole {
+	s.RoleArn = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *DBInstanceRole) SetStatus(v string) *DBInstanceRole {
+	s.Status = &v
 	return s
 }
 
@@ -26354,6 +26697,10 @@ type ModifyDBInstanceInput struct {
 
 	// The configuration setting for the log types to be enabled for export to CloudWatch
 	// Logs for a specific DB instance.
+	//
+	// A change to the CloudwatchLogsExportConfiguration parameter is always applied
+	// to the DB instance immediately. Therefore, the ApplyImmediately parameter
+	// has no effect.
 	CloudwatchLogsExportConfiguration *CloudwatchLogsExportConfiguration `type:"structure"`
 
 	// True to copy all tags from the DB instance to snapshots of the DB instance,
@@ -29666,6 +30013,88 @@ func (s RemoveRoleFromDBClusterOutput) String() string {
 
 // GoString returns the string representation
 func (s RemoveRoleFromDBClusterOutput) GoString() string {
+	return s.String()
+}
+
+type RemoveRoleFromDBInstanceInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the DB instance to disassociate the IAM role from.
+	//
+	// DBInstanceIdentifier is a required field
+	DBInstanceIdentifier *string `type:"string" required:"true"`
+
+	// The name of the feature for the DB instance that the IAM role is to be disassociated
+	// from. For the list of supported feature names, see DBEngineVersion.
+	//
+	// FeatureName is a required field
+	FeatureName *string `type:"string" required:"true"`
+
+	// The Amazon Resource Name (ARN) of the IAM role to disassociate from the DB
+	// instance, for example arn:aws:iam::123456789012:role/AccessRole.
+	//
+	// RoleArn is a required field
+	RoleArn *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s RemoveRoleFromDBInstanceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RemoveRoleFromDBInstanceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RemoveRoleFromDBInstanceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RemoveRoleFromDBInstanceInput"}
+	if s.DBInstanceIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("DBInstanceIdentifier"))
+	}
+	if s.FeatureName == nil {
+		invalidParams.Add(request.NewErrParamRequired("FeatureName"))
+	}
+	if s.RoleArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("RoleArn"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDBInstanceIdentifier sets the DBInstanceIdentifier field's value.
+func (s *RemoveRoleFromDBInstanceInput) SetDBInstanceIdentifier(v string) *RemoveRoleFromDBInstanceInput {
+	s.DBInstanceIdentifier = &v
+	return s
+}
+
+// SetFeatureName sets the FeatureName field's value.
+func (s *RemoveRoleFromDBInstanceInput) SetFeatureName(v string) *RemoveRoleFromDBInstanceInput {
+	s.FeatureName = &v
+	return s
+}
+
+// SetRoleArn sets the RoleArn field's value.
+func (s *RemoveRoleFromDBInstanceInput) SetRoleArn(v string) *RemoveRoleFromDBInstanceInput {
+	s.RoleArn = &v
+	return s
+}
+
+type RemoveRoleFromDBInstanceOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s RemoveRoleFromDBInstanceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RemoveRoleFromDBInstanceOutput) GoString() string {
 	return s.String()
 }
 

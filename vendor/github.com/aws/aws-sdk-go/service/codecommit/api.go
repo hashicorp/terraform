@@ -4043,6 +4043,13 @@ func (c *CodeCommit) PutFileRequest(input *PutFileInput) (req *request.Request, 
 //   can be added using PutFile is 6 MB. For files larger than 6 MB but smaller
 //   than 2 GB, add them using a Git client.
 //
+//   * ErrCodeFolderContentSizeLimitExceededException "FolderContentSizeLimitExceededException"
+//   The specified file is in a folder that exceeds the folder content size limit.
+//   Either save the file in a folder that has less content, or remove files or
+//   subfolders from the folder so it does not exceed the size limit. For more
+//   information about limits in AWS CodeCommit, see AWS CodeCommit User Guide
+//   (http://docs.aws.amazon.com/codecommit/latest/userguide/limits.html).
+//
 //   * ErrCodePathRequiredException "PathRequiredException"
 //   The folderPath for a location cannot be null.
 //
@@ -4114,6 +4121,11 @@ func (c *CodeCommit) PutFileRequest(input *PutFileInput) (req *request.Request, 
 //   has the same name as a file that already exists in this repository. Either
 //   provide a different name for the file, or specify a different path for the
 //   file.
+//
+//   * ErrCodeFilePathConflictsWithSubmodulePathException "FilePathConflictsWithSubmodulePathException"
+//   The specified file path or folder has the same path as a submodule in this
+//   repository. Either provide a different name for the file, or save the file
+//   in a directory that does not conflict with the submodule path.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/PutFile
 func (c *CodeCommit) PutFile(input *PutFileInput) (*PutFileOutput, error) {

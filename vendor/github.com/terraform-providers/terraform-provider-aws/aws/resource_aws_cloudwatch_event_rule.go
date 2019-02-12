@@ -100,7 +100,7 @@ func resourceAwsCloudWatchEventRuleCreate(d *schema.ResourceData, meta interface
 	err = resource.Retry(30*time.Second, func() *resource.RetryError {
 		var err error
 		out, err = conn.PutRule(input)
-		pattern := regexp.MustCompile("cannot be assumed by principal '[a-z]+\\.amazonaws\\.com'\\.$")
+		pattern := regexp.MustCompile(`cannot be assumed by principal '[a-z]+\.amazonaws\.com'\.$`)
 		if err != nil {
 			if awsErr, ok := err.(awserr.Error); ok {
 				if awsErr.Code() == "ValidationException" && pattern.MatchString(awsErr.Message()) {
@@ -190,7 +190,7 @@ func resourceAwsCloudWatchEventRuleUpdate(d *schema.ResourceData, meta interface
 	// IAM Roles take some time to propagate
 	err = resource.Retry(30*time.Second, func() *resource.RetryError {
 		_, err := conn.PutRule(input)
-		pattern := regexp.MustCompile("cannot be assumed by principal '[a-z]+\\.amazonaws\\.com'\\.$")
+		pattern := regexp.MustCompile(`cannot be assumed by principal '[a-z]+\.amazonaws\.com'\.$`)
 		if err != nil {
 			if awsErr, ok := err.(awserr.Error); ok {
 				if awsErr.Code() == "ValidationException" && pattern.MatchString(awsErr.Message()) {

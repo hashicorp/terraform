@@ -126,26 +126,28 @@ func resourceAwsLambdaPermissionCreate(d *schema.ResourceData, meta interface{})
 
 	log.Printf("[DEBUG] Adding new Lambda permission: %s", input)
 	var out *lambda.AddPermissionOutput
+	// Retry for IAM and Lambda eventual consistency
 	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
 		var err error
 		out, err = conn.AddPermission(&input)
 
+		if isAWSErr(err, lambda.ErrCodeResourceConflictException, "") {
+			return resource.RetryableError(err)
+		}
+
+		if isAWSErr(err, lambda.ErrCodeResourceNotFoundException, "") {
+			return resource.RetryableError(err)
+		}
+
 		if err != nil {
-			if awsErr, ok := err.(awserr.Error); ok {
-				// IAM is eventually consistent :/
-				if awsErr.Code() == "ResourceConflictException" {
-					return resource.RetryableError(
-						fmt.Errorf("Error adding new Lambda Permission for %s, retrying: %s",
-							*input.FunctionName, err))
-				}
-			}
 			return resource.NonRetryableError(err)
 		}
+
 		return nil
 	})
 
 	if err != nil {
-		return err
+		return fmt.Errorf("Error adding new Lambda Permission for %s: %s", functionName, err)
 	}
 
 	if out != nil && out.Statement != nil {

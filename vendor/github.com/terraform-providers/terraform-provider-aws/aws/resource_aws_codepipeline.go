@@ -475,9 +475,5 @@ func resourceAwsCodePipelineDelete(d *schema.ResourceData, meta interface{}) err
 		Name: aws.String(d.Id()),
 	})
 
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }

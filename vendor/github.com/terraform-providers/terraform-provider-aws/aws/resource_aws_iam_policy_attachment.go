@@ -185,7 +185,7 @@ func resourceAwsIamPolicyAttachmentDelete(d *schema.ResourceData, meta interface
 }
 
 func composeErrors(desc string, uErr error, rErr error, gErr error) error {
-	errMsg := fmt.Sprintf(desc)
+	errMsg := fmt.Sprint(desc)
 	errs := []error{uErr, rErr, gErr}
 	for _, e := range errs {
 		if e != nil {
@@ -217,8 +217,7 @@ func attachPolicyToRoles(conn *iam.IAM, roles []*string, arn string) error {
 			return err
 		}
 
-		var attachmentErr error
-		attachmentErr = resource.Retry(2*time.Minute, func() *resource.RetryError {
+		var attachmentErr = resource.Retry(2*time.Minute, func() *resource.RetryError {
 
 			input := iam.ListRolePoliciesInput{
 				RoleName: r,

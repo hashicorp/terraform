@@ -10,7 +10,7 @@ func resourceAwsDbEventSubscriptionImport(
 	// in order to populate the necessary values. This takes the "id" from the supplied StateFunc
 	// and sets it as the "name" attribute, as described in the import documentation. This allows
 	// the Read function to actually succeed and set the ID of the resource
-	results := make([]*schema.ResourceData, 1, 1)
+	results := make([]*schema.ResourceData, 1)
 	d.Set("name", d.Id())
 	results[0] = d
 	return results, nil

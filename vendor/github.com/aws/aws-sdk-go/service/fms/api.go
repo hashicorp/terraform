@@ -338,8 +338,8 @@ func (c *FMS) DisassociateAdminAccountRequest(input *DisassociateAdminAccountInp
 // DisassociateAdminAccount API operation for Firewall Management Service.
 //
 // Disassociates the account that has been set as the AWS Firewall Manager administrator
-// account. You will need to submit an AssociateAdminAccount request to set
-// a new account as the AWS Firewall administrator.
+// account. To set a different account as the administrator account, you must
+// submit an AssociateAdminAccount request .
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1327,6 +1327,10 @@ func (s DeleteNotificationChannelOutput) GoString() string {
 type DeletePolicyInput struct {
 	_ struct{} `type:"structure"`
 
+	// If True, the request will also delete all web ACLs in this policy. Associated
+	// resources will no longer be protected by web ACLs in this policy.
+	DeleteAllPolicyResources *bool `type:"boolean"`
+
 	// The ID of the policy that you want to delete. PolicyId is returned by PutPolicy
 	// and by ListPolicies.
 	//
@@ -1358,6 +1362,12 @@ func (s *DeletePolicyInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetDeleteAllPolicyResources sets the DeleteAllPolicyResources field's value.
+func (s *DeletePolicyInput) SetDeleteAllPolicyResources(v bool) *DeletePolicyInput {
+	s.DeleteAllPolicyResources = &v
+	return s
 }
 
 // SetPolicyId sets the PolicyId field's value.
@@ -1819,8 +1829,7 @@ type ListMemberAccountsInput struct {
 	// Specifies the number of member account IDs that you want AWS Firewall Manager
 	// to return for this request. If you have more IDs than the number that you
 	// specify for MaxResults, the response includes a NextToken value that you
-	// can use to get another batch of member account IDs. The maximum value for
-	// MaxResults is 100.
+	// can use to get another batch of member account IDs.
 	MaxResults *int64 `min:"1" type:"integer"`
 
 	// If you specify a value for MaxResults and you have more account IDs than
@@ -2002,8 +2011,8 @@ type Policy struct {
 	_ struct{} `type:"structure"`
 
 	// Specifies the AWS account IDs to exclude from the policy. The IncludeMap
-	// values are evaluated first, with all of the appropriate account IDs added
-	// to the policy. Then the accounts listed in ExcludeMap are removed, resulting
+	// values are evaluated first, with all the appropriate account IDs added to
+	// the policy. Then the accounts listed in ExcludeMap are removed, resulting
 	// in the final list of accounts to add to the policy.
 	//
 	// The key to the map is ACCOUNT. For example, a valid ExcludeMap would be {“ACCOUNT”
@@ -2019,9 +2028,9 @@ type Policy struct {
 	ExcludeResourceTags *bool `type:"boolean" required:"true"`
 
 	// Specifies the AWS account IDs to include in the policy. If IncludeMap is
-	// null, all accounts in the AWS Organization are included in the policy. If
-	// IncludeMap is not null, only values listed in IncludeMap will be included
-	// in the policy.
+	// null, all accounts in the organization in AWS Organizations are included
+	// in the policy. If IncludeMap is not null, only values listed in IncludeMap
+	// are included in the policy.
 	//
 	// The key to the map is ACCOUNT. For example, a valid IncludeMap would be {“ACCOUNT”
 	// : [“accountID1”, “accountID2”]}.
@@ -2201,8 +2210,8 @@ type PolicyComplianceDetail struct {
 
 	// Details about problems with dependent services, such as AWS WAF or AWS Config,
 	// that are causing a resource to be non-compliant. The details include the
-	// name of the dependent service and the error message recieved indicating the
-	// problem with the service.
+	// name of the dependent service and the error message received that indicates
+	// the problem with the service.
 	IssueInfoMap map[string]*string `type:"map"`
 
 	// The AWS account ID.
@@ -2281,8 +2290,8 @@ type PolicyComplianceStatus struct {
 
 	// Details about problems with dependent services, such as AWS WAF or AWS Config,
 	// that are causing a resource to be non-compliant. The details include the
-	// name of the dependent service and the error message recieved indicating the
-	// problem with the service.
+	// name of the dependent service and the error message received that indicates
+	// the problem with the service.
 	IssueInfoMap map[string]*string `type:"map"`
 
 	// Time stamp of the last update to the EvaluationResult objects.

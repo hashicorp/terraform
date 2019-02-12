@@ -455,7 +455,7 @@ func expandAppautoscalingCustomizedMetricSpecification(configured []interface{})
 		}
 
 		if s, ok := data["dimensions"].(*schema.Set); ok && s.Len() > 0 {
-			dimensions := make([]*applicationautoscaling.MetricDimension, s.Len(), s.Len())
+			dimensions := make([]*applicationautoscaling.MetricDimension, s.Len())
 			for i, d := range s.List() {
 				dimension := d.(map[string]interface{})
 				dimensions[i] = &applicationautoscaling.MetricDimension{
@@ -635,7 +635,7 @@ func flattenStepScalingPolicyConfiguration(cfg *applicationautoscaling.StepScali
 		return []interface{}{}
 	}
 
-	m := make(map[string]interface{}, 0)
+	m := make(map[string]interface{})
 
 	if cfg.AdjustmentType != nil {
 		m["adjustment_type"] = *cfg.AdjustmentType
@@ -657,10 +657,10 @@ func flattenStepScalingPolicyConfiguration(cfg *applicationautoscaling.StepScali
 }
 
 func flattenAppautoscalingStepAdjustments(adjs []*applicationautoscaling.StepAdjustment) []interface{} {
-	out := make([]interface{}, len(adjs), len(adjs))
+	out := make([]interface{}, len(adjs))
 
 	for i, adj := range adjs {
-		m := make(map[string]interface{}, 0)
+		m := make(map[string]interface{})
 
 		m["scaling_adjustment"] = *adj.ScalingAdjustment
 
@@ -682,7 +682,7 @@ func flattenTargetTrackingScalingPolicyConfiguration(cfg *applicationautoscaling
 		return []interface{}{}
 	}
 
-	m := make(map[string]interface{}, 0)
+	m := make(map[string]interface{})
 	m["target_value"] = *cfg.TargetValue
 
 	if cfg.DisableScaleIn != nil {
@@ -726,7 +726,7 @@ func flattenCustomizedMetricSpecification(cfg *applicationautoscaling.Customized
 }
 
 func flattenMetricDimensions(ds []*applicationautoscaling.MetricDimension) []interface{} {
-	l := make([]interface{}, len(ds), len(ds))
+	l := make([]interface{}, len(ds))
 	for i, d := range ds {
 		l[i] = map[string]interface{}{
 			"name":  *d.Name,

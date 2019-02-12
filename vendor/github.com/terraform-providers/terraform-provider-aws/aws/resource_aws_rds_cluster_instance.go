@@ -353,7 +353,7 @@ func resourceAwsRDSClusterInstanceRead(d *schema.ResourceData, meta interface{})
 
 	for _, m := range dbc.DBClusterMembers {
 		if *db.DBInstanceIdentifier == *m.DBInstanceIdentifier {
-			if *m.IsClusterWriter == true {
+			if *m.IsClusterWriter {
 				d.Set("writer", true)
 			} else {
 				d.Set("writer", false)
@@ -552,11 +552,8 @@ func resourceAwsRDSClusterInstanceDelete(d *schema.ResourceData, meta interface{
 		Delay:      30 * time.Second, // Wait 30 secs before starting
 	}
 
-	if _, err := stateConf.WaitForState(); err != nil {
-		return err
-	}
-
-	return nil
+	_, err := stateConf.WaitForState()
+	return err
 
 }
 

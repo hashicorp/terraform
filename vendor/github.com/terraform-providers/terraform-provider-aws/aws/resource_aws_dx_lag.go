@@ -136,11 +136,8 @@ func resourceAwsDxLagRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("connections_bandwidth", lag.ConnectionsBandwidth)
 	d.Set("location", lag.Location)
 
-	if err := getTagsDX(conn, d, arn); err != nil {
-		return err
-	}
-
-	return nil
+	err1 := getTagsDX(conn, d, arn)
+	return err1
 }
 
 func resourceAwsDxLagUpdate(d *schema.ResourceData, meta interface{}) error {

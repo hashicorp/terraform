@@ -75,11 +75,7 @@ func resourceAwsSesConfigurationSetDelete(d *schema.ResourceData, meta interface
 		ConfigurationSetName: aws.String(d.Id()),
 	})
 
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func findConfigurationSet(name string, token *string, meta interface{}) (bool, error) {

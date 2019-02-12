@@ -134,7 +134,7 @@ func dataSourceAwsS3BucketObjectRead(d *schema.ResourceData, meta interface{}) e
 	if err != nil {
 		return fmt.Errorf("Failed getting S3 object: %s Bucket: %q Object: %q", err, bucket, key)
 	}
-	if out.DeleteMarker != nil && *out.DeleteMarker == true {
+	if out.DeleteMarker != nil && *out.DeleteMarker {
 		return fmt.Errorf("Requested S3 object %q%s has been deleted",
 			bucket+key, versionText)
 	}

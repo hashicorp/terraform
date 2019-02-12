@@ -45,7 +45,7 @@ func EcsContainerDefinitionsAreEquivalent(def1, def2 string, isAWSVPC bool) (boo
 		return false, err
 	}
 
-	equal := bytes.Compare(canonicalJson1, canonicalJson2) == 0
+	equal := bytes.Equal(canonicalJson1, canonicalJson2)
 	if !equal {
 		log.Printf("[DEBUG] Canonical definitions are not equal.\nFirst: %s\nSecond: %s\n",
 			canonicalJson1, canonicalJson2)

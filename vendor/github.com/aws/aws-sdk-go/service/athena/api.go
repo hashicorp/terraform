@@ -1561,9 +1561,7 @@ type DeleteNamedQueryInput struct {
 	_ struct{} `type:"structure"`
 
 	// The unique ID of the query to delete.
-	//
-	// NamedQueryId is a required field
-	NamedQueryId *string `type:"string" required:"true" idempotencyToken:"true"`
+	NamedQueryId *string `type:"string" idempotencyToken:"true"`
 }
 
 // String returns the string representation
@@ -1574,19 +1572,6 @@ func (s DeleteNamedQueryInput) String() string {
 // GoString returns the string representation
 func (s DeleteNamedQueryInput) GoString() string {
 	return s.String()
-}
-
-// Validate inspects the fields of the type to determine if they are valid.
-func (s *DeleteNamedQueryInput) Validate() error {
-	invalidParams := request.ErrInvalidParams{Context: "DeleteNamedQueryInput"}
-	if s.NamedQueryId == nil {
-		invalidParams.Add(request.NewErrParamRequired("NamedQueryId"))
-	}
-
-	if invalidParams.Len() > 0 {
-		return invalidParams
-	}
-	return nil
 }
 
 // SetNamedQueryId sets the NamedQueryId field's value.
@@ -2550,9 +2535,7 @@ type StopQueryExecutionInput struct {
 	_ struct{} `type:"structure"`
 
 	// The unique ID of the query execution to stop.
-	//
-	// QueryExecutionId is a required field
-	QueryExecutionId *string `type:"string" required:"true" idempotencyToken:"true"`
+	QueryExecutionId *string `type:"string" idempotencyToken:"true"`
 }
 
 // String returns the string representation
@@ -2563,19 +2546,6 @@ func (s StopQueryExecutionInput) String() string {
 // GoString returns the string representation
 func (s StopQueryExecutionInput) GoString() string {
 	return s.String()
-}
-
-// Validate inspects the fields of the type to determine if they are valid.
-func (s *StopQueryExecutionInput) Validate() error {
-	invalidParams := request.ErrInvalidParams{Context: "StopQueryExecutionInput"}
-	if s.QueryExecutionId == nil {
-		invalidParams.Add(request.NewErrParamRequired("QueryExecutionId"))
-	}
-
-	if invalidParams.Len() > 0 {
-		return invalidParams
-	}
-	return nil
 }
 
 // SetQueryExecutionId sets the QueryExecutionId field's value.

@@ -77,7 +77,7 @@ func resourceAwsElasticSearchDomainPolicyUpsert(d *schema.ResourceData, meta int
 			return resource.NonRetryableError(err)
 		}
 
-		if *out.DomainStatus.Processing == false {
+		if !*out.DomainStatus.Processing {
 			return nil
 		}
 
@@ -111,16 +111,12 @@ func resourceAwsElasticSearchDomainPolicyDelete(d *schema.ResourceData, meta int
 			return resource.NonRetryableError(err)
 		}
 
-		if *out.DomainStatus.Processing == false {
+		if !*out.DomainStatus.Processing {
 			return nil
 		}
 
 		return resource.RetryableError(
 			fmt.Errorf("%q: Timeout while waiting for policy to be deleted", d.Id()))
 	})
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }

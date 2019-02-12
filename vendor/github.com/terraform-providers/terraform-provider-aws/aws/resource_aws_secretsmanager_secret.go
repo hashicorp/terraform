@@ -348,7 +348,7 @@ func resourceAwsSecretsManagerSecretUpdate(d *schema.ResourceData, meta interfac
 
 		if len(remove) > 0 {
 			log.Printf("[DEBUG] Removing Secrets Manager Secret %q tags: %#v", d.Id(), remove)
-			k := make([]*string, len(remove), len(remove))
+			k := make([]*string, len(remove))
 			for i, t := range remove {
 				k[i] = t.Key
 			}

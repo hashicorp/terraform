@@ -2,11 +2,11 @@ package aws
 
 import (
 	"fmt"
+	"log"
 	"net/url"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -97,7 +97,8 @@ func resourceAwsIamRolePolicyRead(d *schema.ResourceData, meta interface{}) erro
 
 	getResp, err := iamconn.GetRolePolicy(request)
 	if err != nil {
-		if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" { // XXX test me
+		if isAWSErr(err, iam.ErrCodeNoSuchEntityException, "") {
+			log.Printf("[WARN] IAM Role Policy (%s) for %s not found, removing from state", name, role)
 			d.SetId("")
 			return nil
 		}
@@ -135,6 +136,9 @@ func resourceAwsIamRolePolicyDelete(d *schema.ResourceData, meta interface{}) er
 	}
 
 	if _, err := iamconn.DeleteRolePolicy(request); err != nil {
+		if isAWSErr(err, iam.ErrCodeNoSuchEntityException, "") {
+			return nil
+		}
 		return fmt.Errorf("Error deleting IAM role policy %s: %s", d.Id(), err)
 	}
 	return nil

@@ -115,7 +115,7 @@ func waitForASGCapacity(
 	})
 	if aErr == nil {
 		if len(resp.Activities) > 0 {
-			recentStatus = fmt.Sprintf("%s", resp.Activities[0])
+			recentStatus = (resp.Activities[0].String())
 		} else {
 			recentStatus = "(0 activities found)"
 		}

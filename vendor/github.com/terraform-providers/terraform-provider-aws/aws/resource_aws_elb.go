@@ -944,7 +944,7 @@ func validateHeathCheckTarget(v interface{}, k string) (ws []string, errors []er
 				"%q cannot contain a path in the Health Check target: %s",
 				k, value))
 		}
-		break
+
 	case "http", "https":
 		// Check if value is in the form <PROTOCOL>:<PORT>/<PATH> for HTTP and/or HTTPS.
 		if matches[3] == "" {
@@ -959,7 +959,7 @@ func validateHeathCheckTarget(v interface{}, k string) (ws []string, errors []er
 				"than 1024 characters in the Health Check target: %s",
 				k, value))
 		}
-		break
+
 	}
 
 	return
@@ -1029,11 +1029,7 @@ func cleanupELBNetworkInterfaces(conn *ec2.EC2, name string) error {
 	}
 
 	err = deleteNetworkInterfaces(conn, out.NetworkInterfaces)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func detachNetworkInterfaces(conn *ec2.EC2, nis []*ec2.NetworkInterface) error {

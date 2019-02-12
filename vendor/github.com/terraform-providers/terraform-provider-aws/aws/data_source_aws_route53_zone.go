@@ -96,7 +96,7 @@ func dataSourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) erro
 				hostedZoneFound = hostedZone
 				break
 				// we check if the name is the same as requested and if private zone field is the same as requested or if there is a vpc_id
-			} else if *hostedZone.Name == name && (*hostedZone.Config.PrivateZone == d.Get("private_zone").(bool) || (*hostedZone.Config.PrivateZone == true && vpcIdExists)) {
+			} else if *hostedZone.Name == name && (*hostedZone.Config.PrivateZone == d.Get("private_zone").(bool) || (*hostedZone.Config.PrivateZone && vpcIdExists)) {
 				matchingVPC := false
 				if vpcIdExists {
 					reqHostedZone := &route53.GetHostedZoneInput{}

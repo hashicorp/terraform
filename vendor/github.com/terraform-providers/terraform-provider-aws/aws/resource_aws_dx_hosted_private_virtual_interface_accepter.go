@@ -120,11 +120,8 @@ func resourceAwsDxHostedPrivateVirtualInterfaceAccepterRead(d *schema.ResourceDa
 	d.Set("virtual_interface_id", vif.VirtualInterfaceId)
 	d.Set("vpn_gateway_id", vif.VirtualGatewayId)
 	d.Set("dx_gateway_id", vif.DirectConnectGatewayId)
-	if err := getTagsDX(conn, d, d.Get("arn").(string)); err != nil {
-		return err
-	}
-
-	return nil
+	err1 := getTagsDX(conn, d, d.Get("arn").(string))
+	return err1
 }
 
 func resourceAwsDxHostedPrivateVirtualInterfaceAccepterUpdate(d *schema.ResourceData, meta interface{}) error {

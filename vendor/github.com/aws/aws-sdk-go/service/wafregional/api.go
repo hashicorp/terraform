@@ -56,7 +56,8 @@ func (c *WAFRegional) AssociateWebACLRequest(input *AssociateWebACLInput) (req *
 
 // AssociateWebACL API operation for AWS WAF Regional.
 //
-// Associates a web ACL with a resource.
+// Associates a web ACL with a resource, either an application load balancer
+// or Amazon API Gateway stage.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -469,8 +470,8 @@ func (c *WAFRegional) CreateIPSetRequest(input *waf.CreateIPSetInput) (req *requ
 
 // CreateIPSet API operation for AWS WAF Regional.
 //
-// Creates an IPSet, which you use to specify which web requests you want to
-// allow or block based on the IP addresses that the requests originate from.
+// Creates an IPSet, which you use to specify which web requests that you want
+// to allow or block based on the IP addresses that the requests originate from.
 // For example, if you're receiving a lot of requests from one or more individual
 // IP addresses or one or more ranges of IP addresses and you want to block
 // the requests, you can create an IPSet that contains those IP addresses and
@@ -1027,8 +1028,8 @@ func (c *WAFRegional) CreateRuleRequest(input *waf.CreateRuleInput) (req *reques
 // Creates a Rule, which contains the IPSet objects, ByteMatchSet objects, and
 // other predicates that identify the requests that you want to block. If you
 // add more than one predicate to a Rule, a request must match all of the specifications
-// to be allowed or blocked. For example, suppose you add the following to a
-// Rule:
+// to be allowed or blocked. For example, suppose that you add the following
+// to a Rule:
 //
 //    * An IPSet that matches the IP address 192.0.2.44/32
 //
@@ -3578,7 +3579,8 @@ func (c *WAFRegional) DisassociateWebACLRequest(input *DisassociateWebACLInput) 
 
 // DisassociateWebACL API operation for AWS WAF Regional.
 //
-// Removes a web ACL from the specified resource.
+// Removes a web ACL from the specified resource, either an application load
+// balancer or Amazon API Gateway stage.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -5217,7 +5219,8 @@ func (c *WAFRegional) GetWebACLForResourceRequest(input *GetWebACLForResourceInp
 
 // GetWebACLForResource API operation for AWS WAF Regional.
 //
-// Returns the web ACL for the specified resource.
+// Returns the web ACL for the specified resource, either an application load
+// balancer or Amazon API Gateway stage.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -8249,7 +8252,8 @@ func (c *WAFRegional) UpdateRuleRequest(input *waf.UpdateRuleInput) (req *reques
 // a predicate, such as a ByteMatchSet or an IPSet, that specifies the web requests
 // that you want to allow, block, or count. If you add more than one predicate
 // to a Rule, a request must match all of the specifications to be allowed,
-// blocked, or counted. For example, suppose you add the following to a Rule:
+// blocked, or counted. For example, suppose that you add the following to a
+// Rule:
 //
 //    * A ByteMatchSet that matches the value BadBot in the User-Agent header
 //
@@ -8849,10 +8853,10 @@ func (c *WAFRegional) UpdateSqlInjectionMatchSetRequest(input *waf.UpdateSqlInje
 // You can only specify a single type of TextTransformation.
 //
 // You use SqlInjectionMatchSet objects to specify which CloudFront requests
-// you want to allow, block, or count. For example, if you're receiving requests
-// that contain snippets of SQL code in the query string and you want to block
-// the requests, you can create a SqlInjectionMatchSet with the applicable settings,
-// and then configure AWS WAF to block the requests.
+// that you want to allow, block, or count. For example, if you're receiving
+// requests that contain snippets of SQL code in the query string and you want
+// to block the requests, you can create a SqlInjectionMatchSet with the applicable
+// settings, and then configure AWS WAF to block the requests.
 //
 // To create and configure a SqlInjectionMatchSet, perform the following steps:
 //
@@ -9033,8 +9037,8 @@ func (c *WAFRegional) UpdateWebACLRequest(input *waf.UpdateWebACLInput) (req *re
 //    the default action if a request doesn't match the criteria in any of the
 //    Rules in a WebACL.
 //
-//    * The Rules that you want to add and/or delete. If you want to replace
-//    one Rule with another, you delete the existing Rule and add the new one.
+//    * The Rules that you want to add or delete. If you want to replace one
+//    Rule with another, you delete the existing Rule and add the new one.
 //
 //    * For each Rule, whether you want AWS WAF to allow requests, block requests,
 //    or count requests that match the conditions in the Rule.
@@ -9043,9 +9047,9 @@ func (c *WAFRegional) UpdateWebACLRequest(input *waf.UpdateWebACLInput) (req *re
 //    If you add more than one Rule to a WebACL, AWS WAF evaluates each request
 //    against the Rules in order based on the value of Priority. (The Rule that
 //    has the lowest value for Priority is evaluated first.) When a web request
-//    matches all of the predicates (such as ByteMatchSets and IPSets) in a
-//    Rule, AWS WAF immediately takes the corresponding action, allow or block,
-//    and doesn't evaluate the request against the remaining Rules in the WebACL,
+//    matches all the predicates (such as ByteMatchSets and IPSets) in a Rule,
+//    AWS WAF immediately takes the corresponding action, allow or block, and
+//    doesn't evaluate the request against the remaining Rules in the WebACL,
 //    if any.
 //
 // To create and configure a WebACL, perform the following steps:
@@ -9065,6 +9069,14 @@ func (c *WAFRegional) UpdateWebACLRequest(input *waf.UpdateWebACLInput) (req *re
 // Submit an UpdateWebACL request to specify the Rules that you want to include
 // in the WebACL, to specify the default action, and to associate the WebACL
 // with a CloudFront distribution.
+//
+// The ActivatedRule can be a rule group. If you specify a rule group as your
+// ActivatedRule, you can exclude specific rules from that rule group.
+//
+// If you already have a rule group associated with a web ACL and want to submit
+// an UpdateWebACL request to exclude certain rules from that rule group, you
+// must first remove the rule group from the web ACL, the re-insert it again,
+// specifying the excluded rules. For details, see ActivatedRule$ExcludedRules.
 //
 // Be aware that if you try to add a RATE_BASED rule to a web ACL without setting
 // the rule type when first creating the rule, the UpdateWebACL request will
@@ -9247,8 +9259,8 @@ func (c *WAFRegional) UpdateXssMatchSetRequest(input *waf.UpdateXssMatchSetInput
 // each XssMatchTuple object, you specify the following values:
 //
 //    * Action: Whether to insert the object into or delete the object from
-//    the array. To change a XssMatchTuple, you delete the existing object and
-//    add a new one.
+//    the array. To change an XssMatchTuple, you delete the existing object
+//    and add a new one.
 //
 //    * FieldToMatch: The part of web requests that you want AWS WAF to inspect
 //    and, if you want AWS WAF to inspect a header or custom query parameter,
@@ -9260,11 +9272,11 @@ func (c *WAFRegional) UpdateXssMatchSetRequest(input *waf.UpdateXssMatchSetInput
 //
 // You can only specify a single type of TextTransformation.
 //
-// You use XssMatchSet objects to specify which CloudFront requests you want
-// to allow, block, or count. For example, if you're receiving requests that
-// contain cross-site scripting attacks in the request body and you want to
-// block the requests, you can create an XssMatchSet with the applicable settings,
-// and then configure AWS WAF to block the requests.
+// You use XssMatchSet objects to specify which CloudFront requests that you
+// want to allow, block, or count. For example, if you're receiving requests
+// that contain cross-site scripting attacks in the request body and you want
+// to block the requests, you can create an XssMatchSet with the applicable
+// settings, and then configure AWS WAF to block the requests.
 //
 // To create and configure an XssMatchSet, perform the following steps:
 //
@@ -9396,7 +9408,14 @@ func (c *WAFRegional) UpdateXssMatchSetWithContext(ctx aws.Context, input *waf.U
 type AssociateWebACLInput struct {
 	_ struct{} `type:"structure"`
 
-	// The ARN (Amazon Resource Name) of the resource to be protected.
+	// The ARN (Amazon Resource Name) of the resource to be protected, either an
+	// application load balancer or Amazon API Gateway stage.
+	//
+	// The ARN should be in one of the following formats:
+	//
+	//    * For an Application Load Balancer: arn:aws:elasticloadbalancing:region:account-id:loadbalancer/app/load-balancer-name/load-balancer-id
+	//
+	//    * For an Amazon API Gateway stage: arn:aws:apigateway:region::/restapis/api-id/stages/stage-name
 	//
 	// ResourceArn is a required field
 	ResourceArn *string `min:"1" type:"string" required:"true"`
@@ -9469,7 +9488,14 @@ type DisassociateWebACLInput struct {
 	_ struct{} `type:"structure"`
 
 	// The ARN (Amazon Resource Name) of the resource from which the web ACL is
-	// being removed.
+	// being removed, either an application load balancer or Amazon API Gateway
+	// stage.
+	//
+	// The ARN should be in one of the following formats:
+	//
+	//    * For an Application Load Balancer: arn:aws:elasticloadbalancing:region:account-id:loadbalancer/app/load-balancer-name/load-balancer-id
+	//
+	//    * For an Amazon API Gateway stage: arn:aws:apigateway:region::/restapis/api-id/stages/stage-name
 	//
 	// ResourceArn is a required field
 	ResourceArn *string `min:"1" type:"string" required:"true"`
@@ -9524,7 +9550,14 @@ func (s DisassociateWebACLOutput) GoString() string {
 type GetWebACLForResourceInput struct {
 	_ struct{} `type:"structure"`
 
-	// The ARN (Amazon Resource Name) of the resource for which to get the web ACL.
+	// The ARN (Amazon Resource Name) of the resource for which to get the web ACL,
+	// either an application load balancer or Amazon API Gateway stage.
+	//
+	// The ARN should be in one of the following formats:
+	//
+	//    * For an Application Load Balancer: arn:aws:elasticloadbalancing:region:account-id:loadbalancer/app/load-balancer-name/load-balancer-id
+	//
+	//    * For an Amazon API Gateway stage: arn:aws:apigateway:region::/restapis/api-id/stages/stage-name
 	//
 	// ResourceArn is a required field
 	ResourceArn *string `min:"1" type:"string" required:"true"`
@@ -9589,7 +9622,7 @@ func (s *GetWebACLForResourceOutput) SetWebACLSummary(v *waf.WebACLSummary) *Get
 type ListResourcesForWebACLInput struct {
 	_ struct{} `type:"structure"`
 
-	// The type of resource to list, either and application load balancer or Amazon
+	// The type of resource to list, either an application load balancer or Amazon
 	// API Gateway.
 	ResourceType *string `type:"string" enum:"ResourceType"`
 
@@ -10532,6 +10565,9 @@ const (
 
 	// ParameterExceptionFieldNextMarker is a ParameterExceptionField enum value
 	ParameterExceptionFieldNextMarker = "NEXT_MARKER"
+
+	// ParameterExceptionFieldResourceArn is a ParameterExceptionField enum value
+	ParameterExceptionFieldResourceArn = "RESOURCE_ARN"
 )
 
 const (
@@ -10540,6 +10576,9 @@ const (
 
 	// ParameterExceptionReasonIllegalCombination is a ParameterExceptionReason enum value
 	ParameterExceptionReasonIllegalCombination = "ILLEGAL_COMBINATION"
+
+	// ParameterExceptionReasonIllegalArgument is a ParameterExceptionReason enum value
+	ParameterExceptionReasonIllegalArgument = "ILLEGAL_ARGUMENT"
 )
 
 const (

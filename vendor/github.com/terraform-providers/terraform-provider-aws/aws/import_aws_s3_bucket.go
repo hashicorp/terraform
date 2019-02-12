@@ -13,7 +13,7 @@ func resourceAwsS3BucketImportState(
 	d *schema.ResourceData,
 	meta interface{}) ([]*schema.ResourceData, error) {
 
-	results := make([]*schema.ResourceData, 1, 1)
+	results := make([]*schema.ResourceData, 1)
 	results[0] = d
 
 	conn := meta.(*AWSClient).s3conn

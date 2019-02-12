@@ -120,9 +120,7 @@ func describeConfigAggregateAuthorizations(conn *configservice.ConfigService) ([
 		if err != nil {
 			return aggregationAuthorizations, err
 		}
-		for _, aggregationAuthorization := range output.AggregationAuthorizations {
-			aggregationAuthorizations = append(aggregationAuthorizations, aggregationAuthorization)
-		}
+		aggregationAuthorizations = append(aggregationAuthorizations, output.AggregationAuthorizations...)
 		if output.NextToken == nil {
 			break
 		}

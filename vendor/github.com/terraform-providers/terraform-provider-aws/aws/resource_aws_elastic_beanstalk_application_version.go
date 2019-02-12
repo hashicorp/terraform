@@ -133,7 +133,7 @@ func resourceAwsElasticBeanstalkApplicationVersionDelete(d *schema.ResourceData,
 	application := d.Get("application").(string)
 	name := d.Id()
 
-	if d.Get("force_delete").(bool) == false {
+	if !d.Get("force_delete").(bool) {
 		environments, err := versionUsedBy(application, name, conn)
 		if err != nil {
 			return err

@@ -45,7 +45,7 @@ func dataSourceAwsEbsSnapshotIdsRead(d *schema.ResourceData, meta interface{}) e
 	filters, filtersOk := d.GetOk("filter")
 	owners, ownersOk := d.GetOk("owners")
 
-	if restorableUsers == false && filtersOk == false && ownersOk == false {
+	if restorableUsers == false && !filtersOk && !ownersOk {
 		return fmt.Errorf("One of filters, restorable_by_user_ids, or owners must be assigned")
 	}
 

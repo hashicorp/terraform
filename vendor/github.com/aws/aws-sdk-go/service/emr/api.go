@@ -3034,24 +3034,16 @@ func (s AddTagsOutput) GoString() string {
 	return s.String()
 }
 
-// An application is any Amazon or third-party software that you can add to
-// the cluster. This structure contains a list of strings that indicates the
-// software to use with the cluster and accepts a user argument list. Amazon
-// EMR accepts and forwards the argument list to the corresponding installation
-// script as bootstrap action argument. For more information, see Using the
-// MapR Distribution for Hadoop (http://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-mapr.html).
-// Currently supported values are:
+// With Amazon EMR release version 4.0 and later, the only accepted parameter
+// is the application name. To pass arguments to applications, you use configuration
+// classifications specified using configuration JSON objects. For more information,
+// see Configuring Applications (http://docs.aws.amazon.com/emr/latest/ReleaseGuide/emr-configure-apps.html).
 //
-//    * "mapr-m3" - launch the cluster using MapR M3 Edition.
-//
-//    * "mapr-m5" - launch the cluster using MapR M5 Edition.
-//
-//    * "mapr" with the user arguments specifying "--edition,m3" or "--edition,m5"
-//    - launch the cluster using MapR M3 or M5 Edition, respectively.
-//
-// In Amazon EMR releases 4.x and later, the only accepted parameter is the
-// application name. To pass arguments to applications, you supply a configuration
-// for each application.
+// With earlier Amazon EMR releases, the application is any Amazon or third-party
+// software that you can add to the cluster. This structure contains a list
+// of strings that indicates the software to use with the cluster and accepts
+// a user argument list. Amazon EMR accepts and forwards the argument list to
+// the corresponding installation script as bootstrap action argument.
 type Application struct {
 	_ struct{} `type:"structure"`
 
@@ -4788,7 +4780,8 @@ type Ec2InstanceAttributes struct {
 	// A list of additional Amazon EC2 security group IDs for the master node.
 	AdditionalMasterSecurityGroups []*string `type:"list"`
 
-	// A list of additional Amazon EC2 security group IDs for the slave nodes.
+	// A list of additional Amazon EC2 security group IDs for the core and task
+	// nodes.
 	AdditionalSlaveSecurityGroups []*string `type:"list"`
 
 	// The Availability Zone in which the cluster will run.
@@ -4811,7 +4804,7 @@ type Ec2InstanceAttributes struct {
 	// The identifier of the Amazon EC2 security group for the master node.
 	EmrManagedMasterSecurityGroup *string `type:"string"`
 
-	// The identifier of the Amazon EC2 security group for the slave nodes.
+	// The identifier of the Amazon EC2 security group for the core and task nodes.
 	EmrManagedSlaveSecurityGroup *string `type:"string"`
 
 	// The IAM role that was specified when the cluster was launched. The EC2 instances
@@ -7028,7 +7021,8 @@ type JobFlowInstancesConfig struct {
 	// A list of additional Amazon EC2 security group IDs for the master node.
 	AdditionalMasterSecurityGroups []*string `type:"list"`
 
-	// A list of additional Amazon EC2 security group IDs for the slave nodes.
+	// A list of additional Amazon EC2 security group IDs for the core and task
+	// nodes.
 	AdditionalSlaveSecurityGroups []*string `type:"list"`
 
 	// The name of the EC2 key pair that can be used to ssh to the master node as
@@ -7059,7 +7053,7 @@ type JobFlowInstancesConfig struct {
 	// The identifier of the Amazon EC2 security group for the master node.
 	EmrManagedMasterSecurityGroup *string `type:"string"`
 
-	// The identifier of the Amazon EC2 security group for the slave nodes.
+	// The identifier of the Amazon EC2 security group for the core and task nodes.
 	EmrManagedSlaveSecurityGroup *string `type:"string"`
 
 	// Applies only to Amazon EMR release versions earlier than 4.0. The Hadoop
@@ -7097,7 +7091,7 @@ type JobFlowInstancesConfig struct {
 	// to access clusters in VPC private subnets.
 	ServiceAccessSecurityGroup *string `type:"string"`
 
-	// The EC2 instance type of the slave nodes.
+	// The EC2 instance type of the core and task nodes.
 	SlaveInstanceType *string `min:"1" type:"string"`
 
 	// Specifies whether to lock the cluster to prevent the Amazon EC2 instances
@@ -7271,8 +7265,9 @@ type JobFlowInstancesDetail struct {
 	HadoopVersion *string `type:"string"`
 
 	// The number of Amazon EC2 instances in the cluster. If the value is 1, the
-	// same instance serves as both the master and slave node. If the value is greater
-	// than 1, one instance is the master node and all others are slave nodes.
+	// same instance serves as both the master and core and task node. If the value
+	// is greater than 1, one instance is the master node and all others are core
+	// and task nodes.
 	//
 	// InstanceCount is a required field
 	InstanceCount *int64 `type:"integer" required:"true"`
@@ -7307,7 +7302,7 @@ type JobFlowInstancesDetail struct {
 	// The Amazon EC2 Availability Zone for the cluster.
 	Placement *PlacementType `type:"structure"`
 
-	// The Amazon EC2 slave node instance type.
+	// The Amazon EC2 core and task node instance type.
 	//
 	// SlaveInstanceType is a required field
 	SlaveInstanceType *string `min:"1" type:"string" required:"true"`
@@ -8617,9 +8612,10 @@ type RunJobFlowInput struct {
 	// 4.0 and later, ReleaseLabel is used. To specify a custom AMI, use CustomAmiID.
 	AmiVersion *string `type:"string"`
 
-	// For Amazon EMR releases 4.0 and later. A list of applications for the cluster.
-	// Valid values are: "Hadoop", "Hive", "Mahout", "Pig", and "Spark." They are
-	// case insensitive.
+	// Applies to Amazon EMR releases 4.0 and later. A case-insensitive list of
+	// applications for Amazon EMR to install and configure when launching the cluster.
+	// For a list of applications available for each Amazon EMR release version,
+	// see the Amazon EMR Release Guide (http://docs.aws.amazon.com/emr/latest/ReleaseGuide/).
 	Applications []*Application `type:"list"`
 
 	// An IAM role for automatic scaling policies. The default role is EMR_AutoScaling_DefaultRole.
@@ -9595,10 +9591,11 @@ type SpotProvisioningSpecification struct {
 	BlockDurationMinutes *int64 `type:"integer"`
 
 	// The action to take when TargetSpotCapacity has not been fulfilled when the
-	// TimeoutDurationMinutes has expired. Spot instances are not uprovisioned within
-	// the Spot provisioining timeout. Valid values are TERMINATE_CLUSTER and SWITCH_TO_ON_DEMAND.
-	// SWITCH_TO_ON_DEMAND specifies that if no Spot instances are available, On-Demand
-	// Instances should be provisioned to fulfill any remaining Spot capacity.
+	// TimeoutDurationMinutes has expired; that is, when all Spot instances could
+	// not be provisioned within the Spot provisioning timeout. Valid values are
+	// TERMINATE_CLUSTER and SWITCH_TO_ON_DEMAND. SWITCH_TO_ON_DEMAND specifies
+	// that if no Spot instances are available, On-Demand Instances should be provisioned
+	// to fulfill any remaining Spot capacity.
 	//
 	// TimeoutAction is a required field
 	TimeoutAction *string `type:"string" required:"true" enum:"SpotProvisioningTimeoutAction"`
@@ -9660,8 +9657,9 @@ func (s *SpotProvisioningSpecification) SetTimeoutDurationMinutes(v int64) *Spot
 type Step struct {
 	_ struct{} `type:"structure"`
 
-	// This specifies what action to take when the cluster step fails. Possible
-	// values are TERMINATE_CLUSTER, CANCEL_AND_WAIT, and CONTINUE.
+	// The action to take when the cluster step fails. Possible values are TERMINATE_CLUSTER,
+	// CANCEL_AND_WAIT, and CONTINUE. TERMINATE_JOB_FLOW is provided for backward
+	// compatibility. We recommend using TERMINATE_CLUSTER instead.
 	ActionOnFailure *string `type:"string" enum:"ActionOnFailure"`
 
 	// The Hadoop job configuration of the cluster step.
@@ -9721,7 +9719,9 @@ func (s *Step) SetStatus(v *StepStatus) *Step {
 type StepConfig struct {
 	_ struct{} `type:"structure"`
 
-	// The action to take if the step fails.
+	// The action to take when the cluster step fails. Possible values are TERMINATE_CLUSTER,
+	// CANCEL_AND_WAIT, and CONTINUE. TERMINATE_JOB_FLOW is provided for backward
+	// compatibility. We recommend using TERMINATE_CLUSTER instead.
 	ActionOnFailure *string `type:"string" enum:"ActionOnFailure"`
 
 	// The JAR file used for the step.
@@ -9975,8 +9975,9 @@ func (s *StepStatus) SetTimeline(v *StepTimeline) *StepStatus {
 type StepSummary struct {
 	_ struct{} `type:"structure"`
 
-	// This specifies what action to take when the cluster step fails. Possible
-	// values are TERMINATE_CLUSTER, CANCEL_AND_WAIT, and CONTINUE.
+	// The action to take when the cluster step fails. Possible values are TERMINATE_CLUSTER,
+	// CANCEL_AND_WAIT, and CONTINUE. TERMINATE_JOB_FLOW is available for backward
+	// compatibility. We recommend using TERMINATE_CLUSTER instead.
 	ActionOnFailure *string `type:"string" enum:"ActionOnFailure"`
 
 	// The Hadoop job configuration of the cluster step.

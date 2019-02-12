@@ -49,7 +49,7 @@ func resourceAwsIamRole() *schema.Resource {
 						errors = append(errors, fmt.Errorf(
 							"%q cannot be longer than 64 characters", k))
 					}
-					if !regexp.MustCompile("^[\\w+=,.@-]*$").MatchString(value) {
+					if !regexp.MustCompile(`^[\w+=,.@-]*$`).MatchString(value) {
 						errors = append(errors, fmt.Errorf(
 							"%q must match [\\w+=,.@-]", k))
 					}
@@ -69,7 +69,7 @@ func resourceAwsIamRole() *schema.Resource {
 						errors = append(errors, fmt.Errorf(
 							"%q cannot be longer than 32 characters, name is limited to 64", k))
 					}
-					if !regexp.MustCompile("^[\\w+=,.@-]*$").MatchString(value) {
+					if !regexp.MustCompile(`^[\w+=,.@-]*$`).MatchString(value) {
 						errors = append(errors, fmt.Errorf(
 							"%q must match [\\w+=,.@-]", k))
 					}
@@ -341,83 +341,19 @@ func resourceAwsIamRoleDelete(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
 
 	// Roles cannot be destroyed when attached to an existing Instance Profile
-	resp, err := iamconn.ListInstanceProfilesForRole(&iam.ListInstanceProfilesForRoleInput{
-		RoleName: aws.String(d.Id()),
-	})
-	if err != nil {
-		return fmt.Errorf("Error listing Profiles for IAM Role (%s) when trying to delete: %s", d.Id(), err)
-	}
-
-	// Loop and remove this Role from any Profiles
-	if len(resp.InstanceProfiles) > 0 {
-		for _, i := range resp.InstanceProfiles {
-			_, err := iamconn.RemoveRoleFromInstanceProfile(&iam.RemoveRoleFromInstanceProfileInput{
-				InstanceProfileName: i.InstanceProfileName,
-				RoleName:            aws.String(d.Id()),
-			})
-			if err != nil {
-				return fmt.Errorf("Error deleting IAM Role %s: %s", d.Id(), err)
-			}
-		}
+	if err := deleteAwsIamRoleInstanceProfiles(iamconn, d.Id()); err != nil {
+		return fmt.Errorf("error deleting IAM Role (%s) instance profiles: %s", d.Id(), err)
 	}
 
 	if d.Get("force_detach_policies").(bool) {
 		// For managed policies
-		managedPolicies := make([]*string, 0)
-		err = iamconn.ListAttachedRolePoliciesPages(&iam.ListAttachedRolePoliciesInput{
-			RoleName: aws.String(d.Id()),
-		}, func(page *iam.ListAttachedRolePoliciesOutput, lastPage bool) bool {
-			for _, v := range page.AttachedPolicies {
-				managedPolicies = append(managedPolicies, v.PolicyArn)
-			}
-			return len(page.AttachedPolicies) > 0
-		})
-		if err != nil {
-			return fmt.Errorf("Error listing Policies for IAM Role (%s) when trying to delete: %s", d.Id(), err)
-		}
-		if len(managedPolicies) > 0 {
-			for _, parn := range managedPolicies {
-				_, err = iamconn.DetachRolePolicy(&iam.DetachRolePolicyInput{
-					PolicyArn: parn,
-					RoleName:  aws.String(d.Id()),
-				})
-				if err != nil {
-					if isAWSErr(err, iam.ErrCodeNoSuchEntityException, "") {
-						log.Printf("[WARN] Role policy attachment (%s) was already removed from role (%s)", aws.StringValue(parn), d.Id())
-					} else {
-						return fmt.Errorf("Error deleting IAM Role %s: %s", d.Id(), err)
-					}
-				}
-			}
+		if err := deleteAwsIamRolePolicyAttachments(iamconn, d.Id()); err != nil {
+			return fmt.Errorf("error deleting IAM Role (%s) policy attachments: %s", d.Id(), err)
 		}
 
 		// For inline policies
-		inlinePolicies := make([]*string, 0)
-		err = iamconn.ListRolePoliciesPages(&iam.ListRolePoliciesInput{
-			RoleName: aws.String(d.Id()),
-		}, func(page *iam.ListRolePoliciesOutput, lastPage bool) bool {
-			for _, v := range page.PolicyNames {
-				inlinePolicies = append(inlinePolicies, v)
-			}
-			return len(page.PolicyNames) > 0
-		})
-		if err != nil {
-			return fmt.Errorf("Error listing inline Policies for IAM Role (%s) when trying to delete: %s", d.Id(), err)
-		}
-		if len(inlinePolicies) > 0 {
-			for _, pname := range inlinePolicies {
-				_, err := iamconn.DeleteRolePolicy(&iam.DeleteRolePolicyInput{
-					PolicyName: pname,
-					RoleName:   aws.String(d.Id()),
-				})
-				if err != nil {
-					if isAWSErr(err, iam.ErrCodeNoSuchEntityException, "") {
-						log.Printf("[WARN] Inline role policy (%s) was already removed from role (%s)", aws.StringValue(pname), d.Id())
-					} else {
-						return fmt.Errorf("Error deleting inline policy of IAM Role %s: %s", d.Id(), err)
-					}
-				}
-			}
+		if err := deleteAwsIamRolePolicies(iamconn, d.Id()); err != nil {
+			return fmt.Errorf("error deleting IAM Role (%s) policies: %s", d.Id(), err)
 		}
 	}
 
@@ -437,4 +373,99 @@ func resourceAwsIamRoleDelete(d *schema.ResourceData, meta interface{}) error {
 		}
 		return nil
 	})
+}
+
+func deleteAwsIamRoleInstanceProfiles(conn *iam.IAM, rolename string) error {
+	resp, err := conn.ListInstanceProfilesForRole(&iam.ListInstanceProfilesForRoleInput{
+		RoleName: aws.String(rolename),
+	})
+	if err != nil {
+		return fmt.Errorf("Error listing Profiles for IAM Role (%s) when trying to delete: %s", rolename, err)
+	}
+
+	// Loop and remove this Role from any Profiles
+	for _, i := range resp.InstanceProfiles {
+		input := &iam.RemoveRoleFromInstanceProfileInput{
+			InstanceProfileName: i.InstanceProfileName,
+			RoleName:            aws.String(rolename),
+		}
+
+		_, err := conn.RemoveRoleFromInstanceProfile(input)
+
+		if err != nil {
+			return fmt.Errorf("Error deleting IAM Role %s: %s", rolename, err)
+		}
+	}
+
+	return nil
+}
+
+func deleteAwsIamRolePolicyAttachments(conn *iam.IAM, rolename string) error {
+	managedPolicies := make([]*string, 0)
+	input := &iam.ListAttachedRolePoliciesInput{
+		RoleName: aws.String(rolename),
+	}
+
+	err := conn.ListAttachedRolePoliciesPages(input, func(page *iam.ListAttachedRolePoliciesOutput, lastPage bool) bool {
+		for _, v := range page.AttachedPolicies {
+			managedPolicies = append(managedPolicies, v.PolicyArn)
+		}
+		return !lastPage
+	})
+	if err != nil {
+		return fmt.Errorf("Error listing Policies for IAM Role (%s) when trying to delete: %s", rolename, err)
+	}
+	for _, parn := range managedPolicies {
+		input := &iam.DetachRolePolicyInput{
+			PolicyArn: parn,
+			RoleName:  aws.String(rolename),
+		}
+
+		_, err = conn.DetachRolePolicy(input)
+
+		if isAWSErr(err, iam.ErrCodeNoSuchEntityException, "") {
+			continue
+		}
+
+		if err != nil {
+			return fmt.Errorf("Error deleting IAM Role %s: %s", rolename, err)
+		}
+	}
+
+	return nil
+}
+
+func deleteAwsIamRolePolicies(conn *iam.IAM, rolename string) error {
+	inlinePolicies := make([]*string, 0)
+	input := &iam.ListRolePoliciesInput{
+		RoleName: aws.String(rolename),
+	}
+
+	err := conn.ListRolePoliciesPages(input, func(page *iam.ListRolePoliciesOutput, lastPage bool) bool {
+		inlinePolicies = append(inlinePolicies, page.PolicyNames...)
+		return !lastPage
+	})
+
+	if err != nil {
+		return fmt.Errorf("Error listing inline Policies for IAM Role (%s) when trying to delete: %s", rolename, err)
+	}
+
+	for _, pname := range inlinePolicies {
+		input := &iam.DeleteRolePolicyInput{
+			PolicyName: pname,
+			RoleName:   aws.String(rolename),
+		}
+
+		_, err := conn.DeleteRolePolicy(input)
+
+		if isAWSErr(err, iam.ErrCodeNoSuchEntityException, "") {
+			continue
+		}
+
+		if err != nil {
+			return fmt.Errorf("Error deleting inline policy of IAM Role %s: %s", rolename, err)
+		}
+	}
+
+	return nil
 }
