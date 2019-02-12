@@ -173,9 +173,14 @@ func marshalModule(c *configs.Config, schemas *terraform.Schemas) (module, error
 	if len(c.Module.Variables) > 0 {
 		vars := make(variables, len(c.Module.Variables))
 		for k, v := range c.Module.Variables {
-			defaultValJSON, err := ctyjson.Marshal(v.Default, v.Default.Type())
-			if err != nil {
-				return module, err
+			var defaultValJSON []byte
+			if v.Default == cty.NilVal {
+				defaultValJSON = nil
+			} else {
+				defaultValJSON, err = ctyjson.Marshal(v.Default, v.Default.Type())
+				if err != nil {
+					return module, err
+				}
 			}
 			vars[k] = &variable{
 				Default:     defaultValJSON,
