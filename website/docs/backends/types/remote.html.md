@@ -18,10 +18,9 @@ To use this backend you need a Terraform Enterprise account on
 [app.terraform.io](https://app.terraform.io) or have a private instance of
 Terraform Enterprise (version v201809-1 or newer).
 
--> **Preview Release**: As of Terraform 0.11.8, the remote backend is a preview
-   release and we do not recommend using it with production workloads. Please
-   continue to use the existing [Terraform
-   Enterprise](terraform-enterprise.html) backend for production workspaces.
+-> **Beta Release**: As of Terraform 0.11.12, the remote backend is a beta
+   release. We believe it is ready for production workloads, but it's still new
+   enough that you might find unexpected issues.
 
 ## Command Support
 
