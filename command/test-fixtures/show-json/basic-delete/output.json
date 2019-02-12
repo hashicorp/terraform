@@ -85,29 +85,32 @@
     },
     "prior_state": {
         "format_version": "0.1",
+        "terraform_version": "0.12.0",
         "values": {
             "root_module": {
                 "resources": [
                     {
                         "address": "test_instance.test",
+                        "schema_version": 0,
                         "mode": "managed",
                         "type": "test_instance",
                         "name": "test",
                         "provider_name": "test",
                         "values": {
-                            "ami": {},
-                            "id": {}
+                            "ami": "foo",
+                            "id": "placeholder"
                         }
                     },
                     {
                         "address": "test_instance.test-delete",
+                        "schema_version": 0,
                         "mode": "managed",
                         "type": "test_instance",
                         "name": "test-delete",
                         "provider_name": "test",
                         "values": {
-                            "ami": {},
-                            "id": {}
+                            "ami": "foo",
+                            "id": "placeholder"
                         }
                     }
                 ]
@@ -133,10 +136,20 @@
                     "name": "test",
                     "provider_config_key": "provider.test",
                     "schema_version": 0,
-                    "count_expression": {},
-                    "for_each_expression": {}
+                    "expressions": {
+                        "ami": {
+                            "references": [
+                                "var.test_var"
+                            ]
+                        }
+                    }
                 }
-            ]
+            ],
+            "variables": {
+                "test_var": {
+                    "default": "bar"
+                }
+            }
         }
     }
 }

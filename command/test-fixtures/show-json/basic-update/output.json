@@ -67,6 +67,7 @@
     },
     "prior_state": {
         "format_version": "0.1",
+        "terraform_version": "0.12.0",
         "values": {
             "root_module": {
                 "resources": [
@@ -75,10 +76,11 @@
                         "mode": "managed",
                         "type": "test_instance",
                         "name": "test",
+                        "schema_version": 0,
                         "provider_name": "test",
                         "values": {
-                            "ami": {},
-                            "id": {}
+                            "ami": "bar",
+                            "id": "placeholder"
                         }
                     }
                 ]
@@ -104,10 +106,20 @@
                     "name": "test",
                     "provider_config_key": "provider.test",
                     "schema_version": 0,
-                    "count_expression": {},
-                    "for_each_expression": {}
+                    "expressions": {
+                        "ami": {
+                            "references": [
+                                "var.test_var"
+                            ]
+                        }
+                    }
                 }
-            ]
+            ],
+            "variables": {
+                "test_var": {
+                    "default": "bar"
+                }
+            }
         }
     }
 }
