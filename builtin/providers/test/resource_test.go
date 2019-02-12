@@ -677,3 +677,58 @@ resource "test_resource" "foo" {
 		},
 	})
 }
+
+func TestResource_emptyStrings(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+  required     = "second"
+  required_map = {
+    a = "a"
+  }
+
+  list = [""]
+}
+`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("test_resource.foo", "list.0", ""),
+				),
+			},
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+  required     = "second"
+  required_map = {
+    a = "a"
+  }
+
+  list = ["", "b"]
+}
+`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("test_resource.foo", "list.0", ""),
+					resource.TestCheckResourceAttr("test_resource.foo", "list.1", "b"),
+				),
+			},
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+  required     = "second"
+  required_map = {
+    a = "a"
+  }
+
+  list = [""]
+}
+`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("test_resource.foo", "list.0", ""),
+				),
+			},
+		},
+	})
+}

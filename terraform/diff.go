@@ -811,9 +811,10 @@ func (d *InstanceDiff) applyCollectionDiff(path []string, attrs map[string]strin
 		}
 	}
 
-	// Don't trust helper/schema to return a valid count, or even have one at
-	// all.
-	result[name+"."+idx] = countFlatmapContainerValues(name+"."+idx, result)
+	// Fill in the count value if it was missing for some reason:
+	if result[name+"."+idx] == "" {
+		result[name+"."+idx] = countFlatmapContainerValues(name+"."+idx, result)
+	}
 	return result, nil
 }
 
