@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	"github.com/zclconf/go-cty/cty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
@@ -36,6 +37,7 @@ type module struct {
 	// time, but consistent.
 	Resources   []resource            `json:"resources,omitempty"`
 	ModuleCalls map[string]moduleCall `json:"module_calls,omitempty"`
+	Variables   variables             `json:"variables,omitempty"`
 }
 
 type moduleCall struct {
@@ -44,6 +46,15 @@ type moduleCall struct {
 	CountExpression   *expression            `json:"count_expression,omitempty"`
 	ForEachExpression *expression            `json:"for_each_expression,omitempty"`
 	Module            module                 `json:"module,omitempty"`
+}
+
+// variables is the JSON representation of the variables provided to the current
+// plan.
+type variables map[string]*variable
+
+type variable struct {
+	Default     json.RawMessage `json:"default,omitempty"`
+	Description string          `json:"description,omitempty"`
 }
 
 // Resource is the representation of a resource in the config
@@ -158,6 +169,27 @@ func marshalModule(c *configs.Config, schemas *terraform.Schemas) (module, error
 	}
 	module.Outputs = outputs
 	module.ModuleCalls = marshalModuleCalls(c, schemas)
+
+	if len(c.Module.Variables) > 0 {
+		vars := make(variables, len(c.Module.Variables))
+		for k, v := range c.Module.Variables {
+			var defaultValJSON []byte
+			if v.Default == cty.NilVal {
+				defaultValJSON = nil
+			} else {
+				defaultValJSON, err = ctyjson.Marshal(v.Default, v.Default.Type())
+				if err != nil {
+					return module, err
+				}
+			}
+			vars[k] = &variable{
+				Default:     defaultValJSON,
+				Description: v.Description,
+			}
+		}
+		module.Variables = vars
+	}
+
 	return module, nil
 }
 

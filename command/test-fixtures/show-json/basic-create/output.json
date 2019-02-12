@@ -147,12 +147,23 @@
                     "name": "test",
                     "provider_config_key": "provider.test",
                     "schema_version": 0,
+                    "expressions": {
+                        "ami": {
+                            "references": [
+                                "var.test_var"
+                            ]
+                        }
+                    },
                     "count_expression": {
                         "constant_value": 3
-                    },
-                    "for_each_expression": {}
+                    }
                 }
-            ]
+            ],
+            "variables": {
+                "test_var": {
+                    "default": "bar"
+                }
+            }
         }
     }
 }
