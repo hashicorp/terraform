@@ -74,7 +74,7 @@ require (
 	github.com/hashicorp/hcl v0.0.0-20170504190234-a4b07c25de5f
 	github.com/hashicorp/hcl2 v0.0.0-20190130225218-89dbc5eb3d9e
 	github.com/hashicorp/hil v0.0.0-20170627220502-fa9f258a9250
-	github.com/hashicorp/logutils v0.0.0-20150609070431-0dc08b1671f3
+	github.com/hashicorp/logutils v1.0.0
 	github.com/hashicorp/memberlist v0.1.0 // indirect
 	github.com/hashicorp/serf v0.0.0-20160124182025-e4ec8cc423bb // indirect
 	github.com/hashicorp/terraform-config-inspect v0.0.0-20190208230122-b0707673339c
