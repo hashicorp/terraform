@@ -20126,6 +20126,15 @@ type CreateTopicRuleInput struct {
 	// RuleName is a required field
 	RuleName *string `location:"uri" locationName:"ruleName" min:"1" type:"string" required:"true"`
 
+	// Metadata which can be used to manage the topic rule.
+	//
+	// For URI Request parameters use format: ...key1=value1&key2=value2...
+	//
+	// For the CLI command-line parameter use format: --tags "key1=value1&key2=value2..."
+	//
+	// For the cli-input-json file use format: "tags": "key1=value1&key2=value2..."
+	Tags *string `location:"header" locationName:"x-amz-tagging" type:"string"`
+
 	// The rule payload.
 	//
 	// TopicRulePayload is a required field
@@ -20169,6 +20178,12 @@ func (s *CreateTopicRuleInput) Validate() error {
 // SetRuleName sets the RuleName field's value.
 func (s *CreateTopicRuleInput) SetRuleName(v string) *CreateTopicRuleInput {
 	s.RuleName = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *CreateTopicRuleInput) SetTags(v string) *CreateTopicRuleInput {
+	s.Tags = &v
 	return s
 }
 
@@ -24007,10 +24022,14 @@ type DynamoDBv2Action struct {
 	//
 	// Each attribute in the message payload will be written to a separate column
 	// in the DynamoDB database.
-	PutItem *PutItemInput `locationName:"putItem" type:"structure"`
+	//
+	// PutItem is a required field
+	PutItem *PutItemInput `locationName:"putItem" type:"structure" required:"true"`
 
 	// The ARN of the IAM role that grants access to the DynamoDB table.
-	RoleArn *string `locationName:"roleArn" type:"string"`
+	//
+	// RoleArn is a required field
+	RoleArn *string `locationName:"roleArn" type:"string" required:"true"`
 }
 
 // String returns the string representation
@@ -24026,6 +24045,12 @@ func (s DynamoDBv2Action) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *DynamoDBv2Action) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "DynamoDBv2Action"}
+	if s.PutItem == nil {
+		invalidParams.Add(request.NewErrParamRequired("PutItem"))
+	}
+	if s.RoleArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("RoleArn"))
+	}
 	if s.PutItem != nil {
 		if err := s.PutItem.Validate(); err != nil {
 			invalidParams.AddNested("PutItem", err.(request.ErrInvalidParams))

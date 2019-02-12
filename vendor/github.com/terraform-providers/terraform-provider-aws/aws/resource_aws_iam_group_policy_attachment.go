@@ -123,10 +123,7 @@ func attachPolicyToGroup(conn *iam.IAM, group string, arn string) error {
 		GroupName: aws.String(group),
 		PolicyArn: aws.String(arn),
 	})
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func detachPolicyFromGroup(conn *iam.IAM, group string, arn string) error {
@@ -134,8 +131,5 @@ func detachPolicyFromGroup(conn *iam.IAM, group string, arn string) error {
 		GroupName: aws.String(group),
 		PolicyArn: aws.String(arn),
 	})
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }

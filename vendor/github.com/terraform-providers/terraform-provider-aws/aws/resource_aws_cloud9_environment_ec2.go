@@ -223,9 +223,6 @@ func resourceAwsCloud9EnvironmentEc2Delete(d *schema.ResourceData, meta interfac
 		}
 		return resource.RetryableError(fmt.Errorf("Cloud9 EC2 Environment %q still exists", d.Id()))
 	})
-	if err != nil {
-		return err
-	}
 
 	return err
 }

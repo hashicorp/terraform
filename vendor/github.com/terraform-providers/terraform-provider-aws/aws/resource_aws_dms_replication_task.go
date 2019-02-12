@@ -274,11 +274,8 @@ func resourceAwsDmsReplicationTaskDelete(d *schema.ResourceData, meta interface{
 
 	// Wait, catching any errors
 	_, err = stateConf.WaitForState()
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return err
 }
 
 func resourceAwsDmsReplicationTaskSetState(d *schema.ResourceData, task *dms.ReplicationTask) error {

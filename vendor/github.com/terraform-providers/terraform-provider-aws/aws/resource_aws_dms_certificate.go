@@ -114,11 +114,7 @@ func resourceAwsDmsCertificateDelete(d *schema.ResourceData, meta interface{}) e
 	log.Printf("[DEBUG] DMS delete certificate: %#v", request)
 
 	_, err := conn.DeleteCertificate(request)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func resourceAwsDmsCertificateSetState(d *schema.ResourceData, cert *dms.Certificate) error {

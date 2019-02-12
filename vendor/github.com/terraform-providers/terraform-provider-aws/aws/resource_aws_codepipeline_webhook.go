@@ -118,10 +118,8 @@ func extractCodePipelineWebhookAuthConfig(authType string, authConfig map[string
 	switch authType {
 	case codepipeline.WebhookAuthenticationTypeIp:
 		conf.AllowedIPRange = aws.String(authConfig["allowed_ip_range"].(string))
-		break
 	case codepipeline.WebhookAuthenticationTypeGithubHmac:
 		conf.SecretToken = aws.String(authConfig["secret_token"].(string))
-		break
 	}
 
 	return &conf

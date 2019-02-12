@@ -57,7 +57,7 @@ func (c *ELBV2) AddListenerCertificatesRequest(input *AddListenerCertificatesInp
 
 // AddListenerCertificates API operation for Elastic Load Balancing.
 //
-// Adds the specified certificate to the specified secure listener.
+// Adds the specified certificate to the specified HTTPS listener.
 //
 // If the certificate was already added, the call is successful but the certificate
 // is not added again.
@@ -1259,7 +1259,7 @@ func (c *ELBV2) DescribeListenerCertificatesRequest(input *DescribeListenerCerti
 
 // DescribeListenerCertificates API operation for Elastic Load Balancing.
 //
-// Describes the certificates for the specified secure listener.
+// Describes the certificates for the specified HTTPS listener.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2278,9 +2278,10 @@ func (c *ELBV2) ModifyListenerRequest(input *ModifyListenerInput) (req *request.
 // Modifies the specified properties of the specified listener.
 //
 // Any properties that you do not specify retain their current values. However,
-// changing the protocol from HTTPS to HTTP removes the security policy and
-// SSL certificate properties. If you change the protocol from HTTP to HTTPS,
-// you must add the security policy and server certificate.
+// changing the protocol from HTTPS to HTTP, or from TLS to TCP, removes the
+// security policy and server certificate properties. If you change the protocol
+// from HTTP to HTTPS, or from TCP to TLS, you must add the security policy
+// and server certificate properties.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2874,7 +2875,7 @@ func (c *ELBV2) RemoveListenerCertificatesRequest(input *RemoveListenerCertifica
 
 // RemoveListenerCertificates API operation for Elastic Load Balancing.
 //
-// Removes the specified certificate from the specified secure listener.
+// Removes the specified certificate from the specified HTTPS listener.
 //
 // You can't remove the default certificate for a listener. To replace the default
 // certificate, call ModifyListener.
@@ -3379,11 +3380,11 @@ func (c *ELBV2) SetSubnetsWithContext(ctx aws.Context, input *SetSubnetsInput, o
 type Action struct {
 	_ struct{} `type:"structure"`
 
-	// [HTTPS listener] Information for using Amazon Cognito to authenticate users.
+	// [HTTPS listeners] Information for using Amazon Cognito to authenticate users.
 	// Specify only when Type is authenticate-cognito.
 	AuthenticateCognitoConfig *AuthenticateCognitoActionConfig `type:"structure"`
 
-	// [HTTPS listener] Information about an identity provider that is compliant
+	// [HTTPS listeners] Information about an identity provider that is compliant
 	// with OpenID Connect (OIDC). Specify only when Type is authenticate-oidc.
 	AuthenticateOidcConfig *AuthenticateOidcActionConfig `type:"structure"`
 
@@ -4065,9 +4066,9 @@ func (s *Cipher) SetPriority(v int64) *Cipher {
 type CreateListenerInput struct {
 	_ struct{} `type:"structure"`
 
-	// [HTTPS listeners] The default SSL server certificate. You must provide exactly
-	// one certificate. Set CertificateArn to the certificate ARN but do not set
-	// IsDefault.
+	// [HTTPS and TLS listeners] The default SSL server certificate. You must provide
+	// exactly one certificate. Set CertificateArn to the certificate ARN but do
+	// not set IsDefault.
 	//
 	// To create a certificate list, use AddListenerCertificates.
 	Certificates []*Certificate `type:"list"`
@@ -4076,13 +4077,13 @@ type CreateListenerInput struct {
 	// or one or more fixed-response actions.
 	//
 	// If the action type is forward, you specify a target group. The protocol of
-	// the target group must be HTTP or HTTPS for an Application Load Balancer or
-	// TCP for a Network Load Balancer.
+	// the target group must be HTTP or HTTPS for an Application Load Balancer.
+	// The protocol of the target group must be TCP or TLS for a Network Load Balancer.
 	//
-	// [HTTPS listener] If the action type is authenticate-oidc, you authenticate
+	// [HTTPS listeners] If the action type is authenticate-oidc, you authenticate
 	// users through an identity provider that is OpenID Connect (OIDC) compliant.
 	//
-	// [HTTPS listener] If the action type is authenticate-cognito, you authenticate
+	// [HTTPS listeners] If the action type is authenticate-cognito, you authenticate
 	// users through the user pools supported by Amazon Cognito.
 	//
 	// [Application Load Balancer] If the action type is redirect, you redirect
@@ -4106,13 +4107,14 @@ type CreateListenerInput struct {
 
 	// The protocol for connections from clients to the load balancer. For Application
 	// Load Balancers, the supported protocols are HTTP and HTTPS. For Network Load
-	// Balancers, the supported protocol is TCP.
+	// Balancers, the supported protocols are TCP and TLS.
 	//
 	// Protocol is a required field
 	Protocol *string `type:"string" required:"true" enum:"ProtocolEnum"`
 
-	// [HTTPS listeners] The security policy that defines which ciphers and protocols
-	// are supported. The default is the current predefined security policy.
+	// [HTTPS and TLS listeners] The security policy that defines which ciphers
+	// and protocols are supported. The default is the current predefined security
+	// policy.
 	SslPolicy *string `type:"string"`
 }
 
@@ -4396,13 +4398,13 @@ type CreateRuleInput struct {
 	// actions: forward, fixed-response, or redirect.
 	//
 	// If the action type is forward, you specify a target group. The protocol of
-	// the target group must be HTTP or HTTPS for an Application Load Balancer or
-	// TCP for a Network Load Balancer.
+	// the target group must be HTTP or HTTPS for an Application Load Balancer.
+	// The protocol of the target group must be TCP or TLS for a Network Load Balancer.
 	//
-	// [HTTPS listener] If the action type is authenticate-oidc, you authenticate
+	// [HTTPS listeners] If the action type is authenticate-oidc, you authenticate
 	// users through an identity provider that is OpenID Connect (OIDC) compliant.
 	//
-	// [HTTPS listener] If the action type is authenticate-cognito, you authenticate
+	// [HTTPS listeners] If the action type is authenticate-cognito, you authenticate
 	// users through the user pools supported by Amazon Cognito.
 	//
 	// [Application Load Balancer] If the action type is redirect, you redirect
@@ -4575,9 +4577,10 @@ type CreateTargetGroupInput struct {
 	HealthCheckPort *string `type:"string"`
 
 	// The protocol the load balancer uses when performing health checks on targets.
-	// The TCP protocol is supported only if the protocol of the target group is
-	// TCP. For Application Load Balancers, the default is HTTP. For Network Load
-	// Balancers, the default is TCP.
+	// For Application Load Balancers, the default is HTTP. For Network Load Balancers,
+	// the default is TCP. The TCP protocol is supported for health checks only
+	// if the protocol of the target group is TCP or TLS. The TLS protocol is not
+	// supported for health checks.
 	HealthCheckProtocol *string `type:"string" enum:"ProtocolEnum"`
 
 	// The amount of time, in seconds, during which no response from a target means
@@ -4613,8 +4616,8 @@ type CreateTargetGroupInput struct {
 
 	// The protocol to use for routing traffic to the targets. For Application Load
 	// Balancers, the supported protocols are HTTP and HTTPS. For Network Load Balancers,
-	// the supported protocol is TCP. If the target is a Lambda function, this parameter
-	// does not apply.
+	// the supported protocols are TCP and TLS. If the target is a Lambda function,
+	// this parameter does not apply.
 	Protocol *string `type:"string" enum:"ProtocolEnum"`
 
 	// The type of target that you must specify when registering targets with this
@@ -6119,7 +6122,7 @@ type Listener struct {
 	_ struct{} `type:"structure"`
 
 	// The SSL server certificate. You must provide a certificate if the protocol
-	// is HTTPS.
+	// is HTTPS or TLS.
 	Certificates []*Certificate `type:"list"`
 
 	// The default actions for the listener.
@@ -6506,9 +6509,9 @@ func (s *Matcher) SetHttpCode(v string) *Matcher {
 type ModifyListenerInput struct {
 	_ struct{} `type:"structure"`
 
-	// [HTTPS listeners] The default SSL server certificate. You must provide exactly
-	// one certificate. Set CertificateArn to the certificate ARN but do not set
-	// IsDefault.
+	// [HTTPS and TLS listeners] The default SSL server certificate. You must provide
+	// exactly one certificate. Set CertificateArn to the certificate ARN but do
+	// not set IsDefault.
 	//
 	// To create a certificate list, use AddListenerCertificates.
 	Certificates []*Certificate `type:"list"`
@@ -6517,13 +6520,13 @@ type ModifyListenerInput struct {
 	// or one or more fixed-response actions.
 	//
 	// If the action type is forward, you specify a target group. The protocol of
-	// the target group must be HTTP or HTTPS for an Application Load Balancer or
-	// TCP for a Network Load Balancer.
+	// the target group must be HTTP or HTTPS for an Application Load Balancer.
+	// The protocol of the target group must be TCP or TLS for a Network Load Balancer.
 	//
-	// [HTTPS listener] If the action type is authenticate-oidc, you authenticate
+	// [HTTPS listeners] If the action type is authenticate-oidc, you authenticate
 	// users through an identity provider that is OpenID Connect (OIDC) compliant.
 	//
-	// [HTTPS listener] If the action type is authenticate-cognito, you authenticate
+	// [HTTPS listeners] If the action type is authenticate-cognito, you authenticate
 	// users through the user pools supported by Amazon Cognito.
 	//
 	// [Application Load Balancer] If the action type is redirect, you redirect
@@ -6542,12 +6545,12 @@ type ModifyListenerInput struct {
 	Port *int64 `min:"1" type:"integer"`
 
 	// The protocol for connections from clients to the load balancer. Application
-	// Load Balancers support HTTP and HTTPS and Network Load Balancers support
-	// TCP.
+	// Load Balancers support the HTTP and HTTPS protocols. Network Load Balancers
+	// support the TCP and TLS protocols.
 	Protocol *string `type:"string" enum:"ProtocolEnum"`
 
-	// [HTTPS listeners] The security policy that defines which protocols and ciphers
-	// are supported. For more information, see Security Policies (http://docs.aws.amazon.com/elasticloadbalancing/latest/application/create-https-listener.html#describe-ssl-policies)
+	// [HTTPS and TLS listeners] The security policy that defines which protocols
+	// and ciphers are supported. For more information, see Security Policies (http://docs.aws.amazon.com/elasticloadbalancing/latest/application/create-https-listener.html#describe-ssl-policies)
 	// in the Application Load Balancers Guide.
 	SslPolicy *string `type:"string"`
 }
@@ -6728,13 +6731,13 @@ type ModifyRuleInput struct {
 	// The actions.
 	//
 	// If the action type is forward, you specify a target group. The protocol of
-	// the target group must be HTTP or HTTPS for an Application Load Balancer or
-	// TCP for a Network Load Balancer.
+	// the target group must be HTTP or HTTPS for an Application Load Balancer.
+	// The protocol of the target group must be TCP or TLS for a Network Load Balancer.
 	//
-	// [HTTPS listener] If the action type is authenticate-oidc, you authenticate
+	// [HTTPS listeners] If the action type is authenticate-oidc, you authenticate
 	// users through an identity provider that is OpenID Connect (OIDC) compliant.
 	//
-	// [HTTPS listener] If the action type is authenticate-cognito, you authenticate
+	// [HTTPS listeners] If the action type is authenticate-cognito, you authenticate
 	// users through the user pools supported by Amazon Cognito.
 	//
 	// [Application Load Balancer] If the action type is redirect, you redirect
@@ -6951,8 +6954,9 @@ type ModifyTargetGroupInput struct {
 	HealthCheckPort *string `type:"string"`
 
 	// The protocol the load balancer uses when performing health checks on targets.
-	// The TCP protocol is supported only if the protocol of the target group is
-	// TCP.
+	// The TCP protocol is supported for health checks only if the protocol of the
+	// target group is TCP or TLS. The TLS protocol is not supported for health
+	// checks.
 	//
 	// If the protocol of the target group is TCP, you can't modify this setting.
 	HealthCheckProtocol *string `type:"string" enum:"ProtocolEnum"`
@@ -8617,6 +8621,9 @@ const (
 
 	// ProtocolEnumTcp is a ProtocolEnum enum value
 	ProtocolEnumTcp = "TCP"
+
+	// ProtocolEnumTls is a ProtocolEnum enum value
+	ProtocolEnumTls = "TLS"
 )
 
 const (

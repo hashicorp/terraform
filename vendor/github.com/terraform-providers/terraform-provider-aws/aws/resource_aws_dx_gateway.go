@@ -113,16 +113,7 @@ func resourceAwsDxGatewayDelete(d *schema.ResourceData, meta interface{}) error 
 		return fmt.Errorf("Error deleting Direct Connect gateway: %s", err)
 	}
 
-	stateConf := &resource.StateChangeConf{
-		Pending:    []string{directconnect.GatewayStatePending, directconnect.GatewayStateAvailable, directconnect.GatewayStateDeleting},
-		Target:     []string{directconnect.GatewayStateDeleted},
-		Refresh:    dxGatewayStateRefresh(conn, d.Id()),
-		Timeout:    d.Timeout(schema.TimeoutDelete),
-		Delay:      10 * time.Second,
-		MinTimeout: 5 * time.Second,
-	}
-	_, err = stateConf.WaitForState()
-	if err != nil {
+	if err := waitForDirectConnectGatewayDeletion(conn, d.Id(), d.Timeout(schema.TimeoutDelete)); err != nil {
 		return fmt.Errorf("Error waiting for Direct Connect gateway (%s) to be deleted: %s", d.Id(), err)
 	}
 
@@ -151,4 +142,19 @@ func dxGatewayStateRefresh(conn *directconnect.DirectConnect, dxgwId string) res
 			return nil, "", fmt.Errorf("Found %d Direct Connect gateways for %s, expected 1", n, dxgwId)
 		}
 	}
+}
+
+func waitForDirectConnectGatewayDeletion(conn *directconnect.DirectConnect, gatewayID string, timeout time.Duration) error {
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{directconnect.GatewayStatePending, directconnect.GatewayStateAvailable, directconnect.GatewayStateDeleting},
+		Target:     []string{directconnect.GatewayStateDeleted},
+		Refresh:    dxGatewayStateRefresh(conn, gatewayID),
+		Timeout:    timeout,
+		Delay:      10 * time.Second,
+		MinTimeout: 5 * time.Second,
+	}
+
+	_, err := stateConf.WaitForState()
+
+	return err
 }

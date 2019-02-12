@@ -406,7 +406,7 @@ func getGlacierVaultNotification(glacierconn *glacier.Glacier, vaultName string)
 		return nil, fmt.Errorf("Error reading Glacier Vault Notifications: %s", err.Error())
 	}
 
-	notifications := make(map[string]interface{}, 0)
+	notifications := make(map[string]interface{})
 
 	log.Print("[DEBUG] Flattening Glacier Vault Notifications")
 

@@ -2,11 +2,11 @@ package aws
 
 import (
 	"fmt"
+	"log"
 	"net/url"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -88,7 +88,8 @@ func resourceAwsIamGroupPolicyRead(d *schema.ResourceData, meta interface{}) err
 	var err error
 	getResp, err := iamconn.GetGroupPolicy(request)
 	if err != nil {
-		if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" { // XXX test me
+		if isAWSErr(err, iam.ErrCodeNoSuchEntityException, "") {
+			log.Printf("[WARN] IAM Group Policy (%s) for %s not found, removing from state", name, group)
 			d.SetId("")
 			return nil
 		}
@@ -122,6 +123,9 @@ func resourceAwsIamGroupPolicyDelete(d *schema.ResourceData, meta interface{}) e
 	}
 
 	if _, err := iamconn.DeleteGroupPolicy(request); err != nil {
+		if isAWSErr(err, iam.ErrCodeNoSuchEntityException, "") {
+			return nil
+		}
 		return fmt.Errorf("Error deleting IAM group policy %s: %s", d.Id(), err)
 	}
 	return nil

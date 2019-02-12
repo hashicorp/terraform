@@ -274,9 +274,5 @@ func resourceAwsCustomerGatewayDelete(d *schema.ResourceData, meta interface{}) 
 		}
 	})
 
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }

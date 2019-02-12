@@ -212,9 +212,9 @@ func resourceAwsRDSClusterParameterGroupUpdate(d *schema.ResourceData, meta inte
 				} else {
 					paramsToModify, parameters = parameters[:rdsClusterParameterGroupMaxParamsBulkEdit], parameters[rdsClusterParameterGroupMaxParamsBulkEdit:]
 				}
-				parameterGroupName := d.Get("name").(string)
+
 				modifyOpts := rds.ModifyDBClusterParameterGroupInput{
-					DBClusterParameterGroupName: aws.String(parameterGroupName),
+					DBClusterParameterGroupName: aws.String(d.Id()),
 					Parameters:                  paramsToModify,
 				}
 

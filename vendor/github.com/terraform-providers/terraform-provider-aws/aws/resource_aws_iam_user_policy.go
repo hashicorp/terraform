@@ -2,11 +2,11 @@ package aws
 
 import (
 	"fmt"
+	"log"
 	"net/url"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -101,7 +101,8 @@ func resourceAwsIamUserPolicyRead(d *schema.ResourceData, meta interface{}) erro
 
 	getResp, err := iamconn.GetUserPolicy(request)
 	if err != nil {
-		if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" { // XXX test me
+		if isAWSErr(err, iam.ErrCodeNoSuchEntityException, "") {
+			log.Printf("[WARN] IAM User Policy (%s) for %s not found, removing from state", name, user)
 			d.SetId("")
 			return nil
 		}
@@ -139,6 +140,9 @@ func resourceAwsIamUserPolicyDelete(d *schema.ResourceData, meta interface{}) er
 	}
 
 	if _, err := iamconn.DeleteUserPolicy(request); err != nil {
+		if isAWSErr(err, iam.ErrCodeNoSuchEntityException, "") {
+			return nil
+		}
 		return fmt.Errorf("Error deleting IAM user policy %s: %s", d.Id(), err)
 	}
 	return nil

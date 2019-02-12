@@ -205,9 +205,7 @@ func fetchAllEMRInstanceGroups(conn *emr.EMR, clusterId string) ([]*emr.Instance
 		}
 
 		if respGrps.InstanceGroups != nil {
-			for _, g := range respGrps.InstanceGroups {
-				groups = append(groups, g)
-			}
+			groups = append(groups, respGrps.InstanceGroups...)
 		} else {
 			log.Printf("[DEBUG] EMR Instance Group list was empty")
 		}
@@ -309,8 +307,5 @@ func resourceAwsEMRInstanceGroupDelete(d *schema.ResourceData, meta interface{})
 	}
 
 	_, err := conn.ModifyInstanceGroups(params)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }

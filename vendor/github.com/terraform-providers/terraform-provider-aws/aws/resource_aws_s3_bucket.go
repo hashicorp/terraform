@@ -243,6 +243,7 @@ func resourceAwsS3Bucket() *schema.Resource {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Set:      expirationHash,
+							MaxItems: 1,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"date": {
@@ -264,6 +265,7 @@ func resourceAwsS3Bucket() *schema.Resource {
 						},
 						"noncurrent_version_expiration": {
 							Type:     schema.TypeSet,
+							MaxItems: 1,
 							Optional: true,
 							Set:      expirationHash,
 							Elem: &schema.Resource{
@@ -530,6 +532,64 @@ func resourceAwsS3Bucket() *schema.Resource {
 				},
 			},
 
+			"object_lock_configuration": {
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"object_lock_enabled": {
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: true,
+							ValidateFunc: validation.StringInSlice([]string{
+								s3.ObjectLockEnabledEnabled,
+							}, false),
+						},
+
+						"rule": {
+							Type:     schema.TypeList,
+							Optional: true,
+							MaxItems: 1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"default_retention": {
+										Type:     schema.TypeList,
+										Required: true,
+										MinItems: 1,
+										MaxItems: 1,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"mode": {
+													Type:     schema.TypeString,
+													Required: true,
+													ValidateFunc: validation.StringInSlice([]string{
+														s3.ObjectLockModeGovernance,
+														s3.ObjectLockModeCompliance,
+													}, false),
+												},
+
+												"days": {
+													Type:         schema.TypeInt,
+													Optional:     true,
+													ValidateFunc: validation.IntAtLeast(1),
+												},
+
+												"years": {
+													Type:         schema.TypeInt,
+													Optional:     true,
+													ValidateFunc: validation.IntAtLeast(1),
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -575,6 +635,12 @@ func resourceAwsS3BucketCreate(d *schema.ResourceData, meta interface{}) error {
 
 	if err := validateS3BucketName(bucket, awsRegion); err != nil {
 		return fmt.Errorf("Error validating S3 bucket name: %s", err)
+	}
+
+	// S3 Object Lock can only be enabled on bucket creation.
+	objectLockConfiguration := expandS3ObjectLockConfiguration(d.Get("object_lock_configuration").([]interface{}))
+	if objectLockConfiguration != nil && aws.StringValue(objectLockConfiguration.ObjectLockEnabled) == s3.ObjectLockEnabledEnabled {
+		req.ObjectLockEnabledForBucket = aws.Bool(true)
 	}
 
 	err := resource.Retry(5*time.Minute, func() *resource.RetryError {
@@ -671,6 +737,12 @@ func resourceAwsS3BucketUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	if d.HasChange("server_side_encryption_configuration") {
 		if err := resourceAwsS3BucketServerSideEncryptionConfigurationUpdate(s3conn, d); err != nil {
+			return err
+		}
+	}
+
+	if d.HasChange("object_lock_configuration") {
+		if err := resourceAwsS3BucketObjectLockConfigurationUpdate(s3conn, d); err != nil {
 			return err
 		}
 	}
@@ -870,7 +942,7 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 	})
 
 	// Amazon S3 Transfer Acceleration might not be supported in the region
-	if err != nil && !isAWSErr(err, "UnsupportedArgument", "") {
+	if err != nil && !isAWSErr(err, "MethodNotAllowed", "") && !isAWSErr(err, "UnsupportedArgument", "") {
 		return fmt.Errorf("error getting S3 Bucket acceleration configuration: %s", err)
 	}
 	if accelerate, ok := accelerateResponse.(*s3.GetBucketAccelerateConfigurationOutput); ok {
@@ -1080,6 +1152,15 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	if err := d.Set("server_side_encryption_configuration", serverSideEncryptionConfiguration); err != nil {
 		return fmt.Errorf("error setting server_side_encryption_configuration: %s", err)
+	}
+
+	// Object Lock configuration.
+	if conf, err := readS3ObjectLockConfiguration(s3conn, d.Id()); err != nil {
+		return fmt.Errorf("error getting S3 Bucket Object Lock configuration: %s", err)
+	} else {
+		if err := d.Set("object_lock_configuration", conf); err != nil {
+			return fmt.Errorf("error setting object_lock_configuration: %s", err)
+		}
 	}
 
 	// Add the region as an attribute
@@ -1729,6 +1810,23 @@ func resourceAwsS3BucketServerSideEncryptionConfigurationUpdate(s3conn *s3.S3, d
 	return nil
 }
 
+func resourceAwsS3BucketObjectLockConfigurationUpdate(s3conn *s3.S3, d *schema.ResourceData) error {
+	// S3 Object Lock configuration cannot be deleted, only updated.
+	req := &s3.PutObjectLockConfigurationInput{
+		Bucket:                  aws.String(d.Get("bucket").(string)),
+		ObjectLockConfiguration: expandS3ObjectLockConfiguration(d.Get("object_lock_configuration").([]interface{})),
+	}
+
+	_, err := retryOnAwsCode(s3.ErrCodeNoSuchBucket, func() (interface{}, error) {
+		return s3conn.PutObjectLockConfiguration(req)
+	})
+	if err != nil {
+		return fmt.Errorf("error putting S3 object lock configuration: %s", err)
+	}
+
+	return nil
+}
+
 func resourceAwsS3BucketReplicationConfigurationUpdate(s3conn *s3.S3, d *schema.ResourceData) error {
 	bucket := d.Get("bucket").(string)
 	replicationConfiguration := d.Get("replication_configuration").([]interface{})
@@ -2369,4 +2467,88 @@ func sourceSseKmsObjectsHash(v interface{}) int {
 
 type S3Website struct {
 	Endpoint, Domain string
+}
+
+//
+// S3 Object Lock functions.
+//
+
+func readS3ObjectLockConfiguration(conn *s3.S3, bucket string) (interface{}, error) {
+	resp, err := retryOnAwsCode(s3.ErrCodeNoSuchBucket, func() (interface{}, error) {
+		return conn.GetObjectLockConfiguration(&s3.GetObjectLockConfigurationInput{
+			Bucket: aws.String(bucket),
+		})
+	})
+	if err != nil {
+		if isAWSErr(err, "ObjectLockConfigurationNotFoundError", "") {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return flattenS3ObjectLockConfiguration(resp.(*s3.GetObjectLockConfigurationOutput).ObjectLockConfiguration), nil
+}
+
+func expandS3ObjectLockConfiguration(vConf []interface{}) *s3.ObjectLockConfiguration {
+	if len(vConf) == 0 || vConf[0] == nil {
+		return nil
+	}
+
+	mConf := vConf[0].(map[string]interface{})
+
+	conf := &s3.ObjectLockConfiguration{}
+
+	if vObjectLockEnabled, ok := mConf["object_lock_enabled"].(string); ok && vObjectLockEnabled != "" {
+		conf.ObjectLockEnabled = aws.String(vObjectLockEnabled)
+	}
+
+	if vRule, ok := mConf["rule"].([]interface{}); ok && len(vRule) > 0 {
+		mRule := vRule[0].(map[string]interface{})
+
+		if vDefaultRetention, ok := mRule["default_retention"].([]interface{}); ok && len(vDefaultRetention) > 0 && vDefaultRetention[0] != nil {
+			mDefaultRetention := vDefaultRetention[0].(map[string]interface{})
+
+			conf.Rule = &s3.ObjectLockRule{
+				DefaultRetention: &s3.DefaultRetention{},
+			}
+
+			if vMode, ok := mDefaultRetention["mode"].(string); ok && vMode != "" {
+				conf.Rule.DefaultRetention.Mode = aws.String(vMode)
+			}
+			if vDays, ok := mDefaultRetention["days"].(int); ok && vDays > 0 {
+				conf.Rule.DefaultRetention.Days = aws.Int64(int64(vDays))
+			}
+			if vYears, ok := mDefaultRetention["years"].(int); ok && vYears > 0 {
+				conf.Rule.DefaultRetention.Years = aws.Int64(int64(vYears))
+			}
+		}
+	}
+
+	return conf
+}
+
+func flattenS3ObjectLockConfiguration(conf *s3.ObjectLockConfiguration) []interface{} {
+	if conf == nil {
+		return []interface{}{}
+	}
+
+	mConf := map[string]interface{}{
+		"object_lock_enabled": aws.StringValue(conf.ObjectLockEnabled),
+	}
+
+	if conf.Rule != nil && conf.Rule.DefaultRetention != nil {
+		mRule := map[string]interface{}{
+			"default_retention": []interface{}{
+				map[string]interface{}{
+					"mode":  aws.StringValue(conf.Rule.DefaultRetention.Mode),
+					"days":  int(aws.Int64Value(conf.Rule.DefaultRetention.Days)),
+					"years": int(aws.Int64Value(conf.Rule.DefaultRetention.Years)),
+				},
+			},
+		}
+
+		mConf["rule"] = []interface{}{mRule}
+	}
+
+	return []interface{}{mConf}
 }

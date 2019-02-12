@@ -94,11 +94,8 @@ func resourceAwsDxHostedPublicVirtualInterfaceAccepterRead(d *schema.ResourceDat
 	}
 
 	d.Set("virtual_interface_id", vif.VirtualInterfaceId)
-	if err := getTagsDX(conn, d, d.Get("arn").(string)); err != nil {
-		return err
-	}
-
-	return nil
+	err1 := getTagsDX(conn, d, d.Get("arn").(string))
+	return err1
 }
 
 func resourceAwsDxHostedPublicVirtualInterfaceAccepterUpdate(d *schema.ResourceData, meta interface{}) error {

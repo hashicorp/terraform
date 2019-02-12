@@ -582,6 +582,82 @@ func (c *EC2) AllocateHostsWithContext(ctx aws.Context, input *AllocateHostsInpu
 	return out, req.Send()
 }
 
+const opApplySecurityGroupsToClientVpnTargetNetwork = "ApplySecurityGroupsToClientVpnTargetNetwork"
+
+// ApplySecurityGroupsToClientVpnTargetNetworkRequest generates a "aws/request.Request" representing the
+// client's request for the ApplySecurityGroupsToClientVpnTargetNetwork operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ApplySecurityGroupsToClientVpnTargetNetwork for more information on using the ApplySecurityGroupsToClientVpnTargetNetwork
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ApplySecurityGroupsToClientVpnTargetNetworkRequest method.
+//    req, resp := client.ApplySecurityGroupsToClientVpnTargetNetworkRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ApplySecurityGroupsToClientVpnTargetNetwork
+func (c *EC2) ApplySecurityGroupsToClientVpnTargetNetworkRequest(input *ApplySecurityGroupsToClientVpnTargetNetworkInput) (req *request.Request, output *ApplySecurityGroupsToClientVpnTargetNetworkOutput) {
+	op := &request.Operation{
+		Name:       opApplySecurityGroupsToClientVpnTargetNetwork,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ApplySecurityGroupsToClientVpnTargetNetworkInput{}
+	}
+
+	output = &ApplySecurityGroupsToClientVpnTargetNetworkOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ApplySecurityGroupsToClientVpnTargetNetwork API operation for Amazon Elastic Compute Cloud.
+//
+// Applies a security group to the association between the target network and
+// the Client VPN endpoint. This action replaces the existing security groups
+// with the specified security groups.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ApplySecurityGroupsToClientVpnTargetNetwork for usage and error information.
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ApplySecurityGroupsToClientVpnTargetNetwork
+func (c *EC2) ApplySecurityGroupsToClientVpnTargetNetwork(input *ApplySecurityGroupsToClientVpnTargetNetworkInput) (*ApplySecurityGroupsToClientVpnTargetNetworkOutput, error) {
+	req, out := c.ApplySecurityGroupsToClientVpnTargetNetworkRequest(input)
+	return out, req.Send()
+}
+
+// ApplySecurityGroupsToClientVpnTargetNetworkWithContext is the same as ApplySecurityGroupsToClientVpnTargetNetwork with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ApplySecurityGroupsToClientVpnTargetNetwork for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EC2) ApplySecurityGroupsToClientVpnTargetNetworkWithContext(ctx aws.Context, input *ApplySecurityGroupsToClientVpnTargetNetworkInput, opts ...request.Option) (*ApplySecurityGroupsToClientVpnTargetNetworkOutput, error) {
+	req, out := c.ApplySecurityGroupsToClientVpnTargetNetworkRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opAssignIpv6Addresses = "AssignIpv6Addresses"
 
 // AssignIpv6AddressesRequest generates a "aws/request.Request" representing the
@@ -848,6 +924,84 @@ func (c *EC2) AssociateAddress(input *AssociateAddressInput) (*AssociateAddressO
 // for more information on using Contexts.
 func (c *EC2) AssociateAddressWithContext(ctx aws.Context, input *AssociateAddressInput, opts ...request.Option) (*AssociateAddressOutput, error) {
 	req, out := c.AssociateAddressRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opAssociateClientVpnTargetNetwork = "AssociateClientVpnTargetNetwork"
+
+// AssociateClientVpnTargetNetworkRequest generates a "aws/request.Request" representing the
+// client's request for the AssociateClientVpnTargetNetwork operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See AssociateClientVpnTargetNetwork for more information on using the AssociateClientVpnTargetNetwork
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the AssociateClientVpnTargetNetworkRequest method.
+//    req, resp := client.AssociateClientVpnTargetNetworkRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateClientVpnTargetNetwork
+func (c *EC2) AssociateClientVpnTargetNetworkRequest(input *AssociateClientVpnTargetNetworkInput) (req *request.Request, output *AssociateClientVpnTargetNetworkOutput) {
+	op := &request.Operation{
+		Name:       opAssociateClientVpnTargetNetwork,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &AssociateClientVpnTargetNetworkInput{}
+	}
+
+	output = &AssociateClientVpnTargetNetworkOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// AssociateClientVpnTargetNetwork API operation for Amazon Elastic Compute Cloud.
+//
+// Associates a target network with a Client VPN endpoint. A target network
+// is a subnet in a VPC. You can associate multiple subnets from the same VPC
+// with a Client VPN endpoint. You can associate only one subnet in each Availability
+// Zone. We recommend that you associate at least two subnets to provide Availability
+// Zone redundancy.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation AssociateClientVpnTargetNetwork for usage and error information.
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateClientVpnTargetNetwork
+func (c *EC2) AssociateClientVpnTargetNetwork(input *AssociateClientVpnTargetNetworkInput) (*AssociateClientVpnTargetNetworkOutput, error) {
+	req, out := c.AssociateClientVpnTargetNetworkRequest(input)
+	return out, req.Send()
+}
+
+// AssociateClientVpnTargetNetworkWithContext is the same as AssociateClientVpnTargetNetwork with the addition of
+// the ability to pass a context and additional request options.
+//
+// See AssociateClientVpnTargetNetwork for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EC2) AssociateClientVpnTargetNetworkWithContext(ctx aws.Context, input *AssociateClientVpnTargetNetworkInput, opts ...request.Option) (*AssociateClientVpnTargetNetworkOutput, error) {
+	req, out := c.AssociateClientVpnTargetNetworkRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -1736,6 +1890,83 @@ func (c *EC2) AttachVpnGateway(input *AttachVpnGatewayInput) (*AttachVpnGatewayO
 // for more information on using Contexts.
 func (c *EC2) AttachVpnGatewayWithContext(ctx aws.Context, input *AttachVpnGatewayInput, opts ...request.Option) (*AttachVpnGatewayOutput, error) {
 	req, out := c.AttachVpnGatewayRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opAuthorizeClientVpnIngress = "AuthorizeClientVpnIngress"
+
+// AuthorizeClientVpnIngressRequest generates a "aws/request.Request" representing the
+// client's request for the AuthorizeClientVpnIngress operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See AuthorizeClientVpnIngress for more information on using the AuthorizeClientVpnIngress
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the AuthorizeClientVpnIngressRequest method.
+//    req, resp := client.AuthorizeClientVpnIngressRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AuthorizeClientVpnIngress
+func (c *EC2) AuthorizeClientVpnIngressRequest(input *AuthorizeClientVpnIngressInput) (req *request.Request, output *AuthorizeClientVpnIngressOutput) {
+	op := &request.Operation{
+		Name:       opAuthorizeClientVpnIngress,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &AuthorizeClientVpnIngressInput{}
+	}
+
+	output = &AuthorizeClientVpnIngressOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// AuthorizeClientVpnIngress API operation for Amazon Elastic Compute Cloud.
+//
+// Adds an ingress authorization rule to a Client VPN endpoint. Ingress authorization
+// rules act as firewall rules that grant access to networks. You must configure
+// ingress authorization rules to enable clients to access resources in AWS
+// or on-premises networks.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation AuthorizeClientVpnIngress for usage and error information.
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AuthorizeClientVpnIngress
+func (c *EC2) AuthorizeClientVpnIngress(input *AuthorizeClientVpnIngressInput) (*AuthorizeClientVpnIngressOutput, error) {
+	req, out := c.AuthorizeClientVpnIngressRequest(input)
+	return out, req.Send()
+}
+
+// AuthorizeClientVpnIngressWithContext is the same as AuthorizeClientVpnIngress with the addition of
+// the ability to pass a context and additional request options.
+//
+// See AuthorizeClientVpnIngress for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EC2) AuthorizeClientVpnIngressWithContext(ctx aws.Context, input *AuthorizeClientVpnIngressInput, opts ...request.Option) (*AuthorizeClientVpnIngressOutput, error) {
+	req, out := c.AuthorizeClientVpnIngressRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -3051,6 +3282,159 @@ func (c *EC2) CreateCapacityReservation(input *CreateCapacityReservationInput) (
 // for more information on using Contexts.
 func (c *EC2) CreateCapacityReservationWithContext(ctx aws.Context, input *CreateCapacityReservationInput, opts ...request.Option) (*CreateCapacityReservationOutput, error) {
 	req, out := c.CreateCapacityReservationRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opCreateClientVpnEndpoint = "CreateClientVpnEndpoint"
+
+// CreateClientVpnEndpointRequest generates a "aws/request.Request" representing the
+// client's request for the CreateClientVpnEndpoint operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See CreateClientVpnEndpoint for more information on using the CreateClientVpnEndpoint
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the CreateClientVpnEndpointRequest method.
+//    req, resp := client.CreateClientVpnEndpointRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateClientVpnEndpoint
+func (c *EC2) CreateClientVpnEndpointRequest(input *CreateClientVpnEndpointInput) (req *request.Request, output *CreateClientVpnEndpointOutput) {
+	op := &request.Operation{
+		Name:       opCreateClientVpnEndpoint,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &CreateClientVpnEndpointInput{}
+	}
+
+	output = &CreateClientVpnEndpointOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// CreateClientVpnEndpoint API operation for Amazon Elastic Compute Cloud.
+//
+// Creates a Client VPN endpoint. A Client VPN endpoint is the resource you
+// create and configure to enable and manage client VPN sessions. It is the
+// destination endpoint at which all client VPN sessions are terminated.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CreateClientVpnEndpoint for usage and error information.
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateClientVpnEndpoint
+func (c *EC2) CreateClientVpnEndpoint(input *CreateClientVpnEndpointInput) (*CreateClientVpnEndpointOutput, error) {
+	req, out := c.CreateClientVpnEndpointRequest(input)
+	return out, req.Send()
+}
+
+// CreateClientVpnEndpointWithContext is the same as CreateClientVpnEndpoint with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateClientVpnEndpoint for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EC2) CreateClientVpnEndpointWithContext(ctx aws.Context, input *CreateClientVpnEndpointInput, opts ...request.Option) (*CreateClientVpnEndpointOutput, error) {
+	req, out := c.CreateClientVpnEndpointRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opCreateClientVpnRoute = "CreateClientVpnRoute"
+
+// CreateClientVpnRouteRequest generates a "aws/request.Request" representing the
+// client's request for the CreateClientVpnRoute operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See CreateClientVpnRoute for more information on using the CreateClientVpnRoute
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the CreateClientVpnRouteRequest method.
+//    req, resp := client.CreateClientVpnRouteRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateClientVpnRoute
+func (c *EC2) CreateClientVpnRouteRequest(input *CreateClientVpnRouteInput) (req *request.Request, output *CreateClientVpnRouteOutput) {
+	op := &request.Operation{
+		Name:       opCreateClientVpnRoute,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &CreateClientVpnRouteInput{}
+	}
+
+	output = &CreateClientVpnRouteOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// CreateClientVpnRoute API operation for Amazon Elastic Compute Cloud.
+//
+// Adds a route to a network to a Client VPN endpoint. Each Client VPN endpoint
+// has a route table that describes the available destination network routes.
+// Each route in the route table specifies the path for traﬃc to speciﬁc resources
+// or networks.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CreateClientVpnRoute for usage and error information.
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateClientVpnRoute
+func (c *EC2) CreateClientVpnRoute(input *CreateClientVpnRouteInput) (*CreateClientVpnRouteOutput, error) {
+	req, out := c.CreateClientVpnRouteRequest(input)
+	return out, req.Send()
+}
+
+// CreateClientVpnRouteWithContext is the same as CreateClientVpnRoute with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateClientVpnRoute for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EC2) CreateClientVpnRouteWithContext(ctx aws.Context, input *CreateClientVpnRouteInput, opts ...request.Option) (*CreateClientVpnRouteOutput, error) {
+	req, out := c.CreateClientVpnRouteRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -4692,7 +5076,10 @@ func (c *EC2) CreatePlacementGroupRequest(input *CreatePlacementGroupInput) (req
 //
 // A cluster placement group is a logical grouping of instances within a single
 // Availability Zone that benefit from low network latency, high network throughput.
-// A spread placement group places instances on distinct hardware.
+// A spread placement group places instances on distinct hardware. A partition
+// placement group places groups of instances in different partitions, where
+// instances in one partition do not share the same hardware with instances
+// in another partition.
 //
 // For more information, see Placement Groups (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/placement-groups.html)
 // in the Amazon Elastic Compute Cloud User Guide.
@@ -6554,6 +6941,159 @@ func (c *EC2) CreateVpnGateway(input *CreateVpnGatewayInput) (*CreateVpnGatewayO
 // for more information on using Contexts.
 func (c *EC2) CreateVpnGatewayWithContext(ctx aws.Context, input *CreateVpnGatewayInput, opts ...request.Option) (*CreateVpnGatewayOutput, error) {
 	req, out := c.CreateVpnGatewayRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDeleteClientVpnEndpoint = "DeleteClientVpnEndpoint"
+
+// DeleteClientVpnEndpointRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteClientVpnEndpoint operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteClientVpnEndpoint for more information on using the DeleteClientVpnEndpoint
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteClientVpnEndpointRequest method.
+//    req, resp := client.DeleteClientVpnEndpointRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteClientVpnEndpoint
+func (c *EC2) DeleteClientVpnEndpointRequest(input *DeleteClientVpnEndpointInput) (req *request.Request, output *DeleteClientVpnEndpointOutput) {
+	op := &request.Operation{
+		Name:       opDeleteClientVpnEndpoint,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteClientVpnEndpointInput{}
+	}
+
+	output = &DeleteClientVpnEndpointOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DeleteClientVpnEndpoint API operation for Amazon Elastic Compute Cloud.
+//
+// Deletes the specified Client VPN endpoint. You must disassociate all target
+// networks before you can delete a Client VPN endpoint.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DeleteClientVpnEndpoint for usage and error information.
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteClientVpnEndpoint
+func (c *EC2) DeleteClientVpnEndpoint(input *DeleteClientVpnEndpointInput) (*DeleteClientVpnEndpointOutput, error) {
+	req, out := c.DeleteClientVpnEndpointRequest(input)
+	return out, req.Send()
+}
+
+// DeleteClientVpnEndpointWithContext is the same as DeleteClientVpnEndpoint with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteClientVpnEndpoint for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EC2) DeleteClientVpnEndpointWithContext(ctx aws.Context, input *DeleteClientVpnEndpointInput, opts ...request.Option) (*DeleteClientVpnEndpointOutput, error) {
+	req, out := c.DeleteClientVpnEndpointRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDeleteClientVpnRoute = "DeleteClientVpnRoute"
+
+// DeleteClientVpnRouteRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteClientVpnRoute operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteClientVpnRoute for more information on using the DeleteClientVpnRoute
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteClientVpnRouteRequest method.
+//    req, resp := client.DeleteClientVpnRouteRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteClientVpnRoute
+func (c *EC2) DeleteClientVpnRouteRequest(input *DeleteClientVpnRouteInput) (req *request.Request, output *DeleteClientVpnRouteOutput) {
+	op := &request.Operation{
+		Name:       opDeleteClientVpnRoute,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteClientVpnRouteInput{}
+	}
+
+	output = &DeleteClientVpnRouteOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DeleteClientVpnRoute API operation for Amazon Elastic Compute Cloud.
+//
+// Deletes a route from a Client VPN endpoint. You can only delete routes that
+// you manually added using the CreateClientVpnRoute action. You cannot delete
+// routes that were automatically added when associating a subnet. To remove
+// routes that have been automatically added, disassociate the target subnet
+// from the Client VPN endpoint.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DeleteClientVpnRoute for usage and error information.
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteClientVpnRoute
+func (c *EC2) DeleteClientVpnRoute(input *DeleteClientVpnRouteInput) (*DeleteClientVpnRouteOutput, error) {
+	req, out := c.DeleteClientVpnRouteRequest(input)
+	return out, req.Send()
+}
+
+// DeleteClientVpnRouteWithContext is the same as DeleteClientVpnRoute with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteClientVpnRoute for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EC2) DeleteClientVpnRouteWithContext(ctx aws.Context, input *DeleteClientVpnRouteInput, opts ...request.Option) (*DeleteClientVpnRouteOutput, error) {
+	req, out := c.DeleteClientVpnRouteRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -10141,6 +10681,377 @@ func (c *EC2) DescribeClassicLinkInstancesWithContext(ctx aws.Context, input *De
 	return out, req.Send()
 }
 
+const opDescribeClientVpnAuthorizationRules = "DescribeClientVpnAuthorizationRules"
+
+// DescribeClientVpnAuthorizationRulesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeClientVpnAuthorizationRules operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeClientVpnAuthorizationRules for more information on using the DescribeClientVpnAuthorizationRules
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeClientVpnAuthorizationRulesRequest method.
+//    req, resp := client.DescribeClientVpnAuthorizationRulesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeClientVpnAuthorizationRules
+func (c *EC2) DescribeClientVpnAuthorizationRulesRequest(input *DescribeClientVpnAuthorizationRulesInput) (req *request.Request, output *DescribeClientVpnAuthorizationRulesOutput) {
+	op := &request.Operation{
+		Name:       opDescribeClientVpnAuthorizationRules,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeClientVpnAuthorizationRulesInput{}
+	}
+
+	output = &DescribeClientVpnAuthorizationRulesOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeClientVpnAuthorizationRules API operation for Amazon Elastic Compute Cloud.
+//
+// Describes the authorization rules for a specified Client VPN endpoint.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeClientVpnAuthorizationRules for usage and error information.
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeClientVpnAuthorizationRules
+func (c *EC2) DescribeClientVpnAuthorizationRules(input *DescribeClientVpnAuthorizationRulesInput) (*DescribeClientVpnAuthorizationRulesOutput, error) {
+	req, out := c.DescribeClientVpnAuthorizationRulesRequest(input)
+	return out, req.Send()
+}
+
+// DescribeClientVpnAuthorizationRulesWithContext is the same as DescribeClientVpnAuthorizationRules with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeClientVpnAuthorizationRules for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EC2) DescribeClientVpnAuthorizationRulesWithContext(ctx aws.Context, input *DescribeClientVpnAuthorizationRulesInput, opts ...request.Option) (*DescribeClientVpnAuthorizationRulesOutput, error) {
+	req, out := c.DescribeClientVpnAuthorizationRulesRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDescribeClientVpnConnections = "DescribeClientVpnConnections"
+
+// DescribeClientVpnConnectionsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeClientVpnConnections operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeClientVpnConnections for more information on using the DescribeClientVpnConnections
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeClientVpnConnectionsRequest method.
+//    req, resp := client.DescribeClientVpnConnectionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeClientVpnConnections
+func (c *EC2) DescribeClientVpnConnectionsRequest(input *DescribeClientVpnConnectionsInput) (req *request.Request, output *DescribeClientVpnConnectionsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeClientVpnConnections,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeClientVpnConnectionsInput{}
+	}
+
+	output = &DescribeClientVpnConnectionsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeClientVpnConnections API operation for Amazon Elastic Compute Cloud.
+//
+// Describes active client connections and connections that have been terminated
+// within the last 60 minutes for the specified Client VPN endpoint.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeClientVpnConnections for usage and error information.
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeClientVpnConnections
+func (c *EC2) DescribeClientVpnConnections(input *DescribeClientVpnConnectionsInput) (*DescribeClientVpnConnectionsOutput, error) {
+	req, out := c.DescribeClientVpnConnectionsRequest(input)
+	return out, req.Send()
+}
+
+// DescribeClientVpnConnectionsWithContext is the same as DescribeClientVpnConnections with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeClientVpnConnections for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EC2) DescribeClientVpnConnectionsWithContext(ctx aws.Context, input *DescribeClientVpnConnectionsInput, opts ...request.Option) (*DescribeClientVpnConnectionsOutput, error) {
+	req, out := c.DescribeClientVpnConnectionsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDescribeClientVpnEndpoints = "DescribeClientVpnEndpoints"
+
+// DescribeClientVpnEndpointsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeClientVpnEndpoints operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeClientVpnEndpoints for more information on using the DescribeClientVpnEndpoints
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeClientVpnEndpointsRequest method.
+//    req, resp := client.DescribeClientVpnEndpointsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeClientVpnEndpoints
+func (c *EC2) DescribeClientVpnEndpointsRequest(input *DescribeClientVpnEndpointsInput) (req *request.Request, output *DescribeClientVpnEndpointsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeClientVpnEndpoints,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeClientVpnEndpointsInput{}
+	}
+
+	output = &DescribeClientVpnEndpointsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeClientVpnEndpoints API operation for Amazon Elastic Compute Cloud.
+//
+// Describes one or more Client VPN endpoints in the account.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeClientVpnEndpoints for usage and error information.
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeClientVpnEndpoints
+func (c *EC2) DescribeClientVpnEndpoints(input *DescribeClientVpnEndpointsInput) (*DescribeClientVpnEndpointsOutput, error) {
+	req, out := c.DescribeClientVpnEndpointsRequest(input)
+	return out, req.Send()
+}
+
+// DescribeClientVpnEndpointsWithContext is the same as DescribeClientVpnEndpoints with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeClientVpnEndpoints for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EC2) DescribeClientVpnEndpointsWithContext(ctx aws.Context, input *DescribeClientVpnEndpointsInput, opts ...request.Option) (*DescribeClientVpnEndpointsOutput, error) {
+	req, out := c.DescribeClientVpnEndpointsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDescribeClientVpnRoutes = "DescribeClientVpnRoutes"
+
+// DescribeClientVpnRoutesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeClientVpnRoutes operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeClientVpnRoutes for more information on using the DescribeClientVpnRoutes
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeClientVpnRoutesRequest method.
+//    req, resp := client.DescribeClientVpnRoutesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeClientVpnRoutes
+func (c *EC2) DescribeClientVpnRoutesRequest(input *DescribeClientVpnRoutesInput) (req *request.Request, output *DescribeClientVpnRoutesOutput) {
+	op := &request.Operation{
+		Name:       opDescribeClientVpnRoutes,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeClientVpnRoutesInput{}
+	}
+
+	output = &DescribeClientVpnRoutesOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeClientVpnRoutes API operation for Amazon Elastic Compute Cloud.
+//
+// Describes the routes for the specified Client VPN endpoint.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeClientVpnRoutes for usage and error information.
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeClientVpnRoutes
+func (c *EC2) DescribeClientVpnRoutes(input *DescribeClientVpnRoutesInput) (*DescribeClientVpnRoutesOutput, error) {
+	req, out := c.DescribeClientVpnRoutesRequest(input)
+	return out, req.Send()
+}
+
+// DescribeClientVpnRoutesWithContext is the same as DescribeClientVpnRoutes with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeClientVpnRoutes for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EC2) DescribeClientVpnRoutesWithContext(ctx aws.Context, input *DescribeClientVpnRoutesInput, opts ...request.Option) (*DescribeClientVpnRoutesOutput, error) {
+	req, out := c.DescribeClientVpnRoutesRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDescribeClientVpnTargetNetworks = "DescribeClientVpnTargetNetworks"
+
+// DescribeClientVpnTargetNetworksRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeClientVpnTargetNetworks operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeClientVpnTargetNetworks for more information on using the DescribeClientVpnTargetNetworks
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeClientVpnTargetNetworksRequest method.
+//    req, resp := client.DescribeClientVpnTargetNetworksRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeClientVpnTargetNetworks
+func (c *EC2) DescribeClientVpnTargetNetworksRequest(input *DescribeClientVpnTargetNetworksInput) (req *request.Request, output *DescribeClientVpnTargetNetworksOutput) {
+	op := &request.Operation{
+		Name:       opDescribeClientVpnTargetNetworks,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeClientVpnTargetNetworksInput{}
+	}
+
+	output = &DescribeClientVpnTargetNetworksOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeClientVpnTargetNetworks API operation for Amazon Elastic Compute Cloud.
+//
+// Describes the target networks associated with the specified Client VPN endpoint.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeClientVpnTargetNetworks for usage and error information.
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeClientVpnTargetNetworks
+func (c *EC2) DescribeClientVpnTargetNetworks(input *DescribeClientVpnTargetNetworksInput) (*DescribeClientVpnTargetNetworksOutput, error) {
+	req, out := c.DescribeClientVpnTargetNetworksRequest(input)
+	return out, req.Send()
+}
+
+// DescribeClientVpnTargetNetworksWithContext is the same as DescribeClientVpnTargetNetworks with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeClientVpnTargetNetworks for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EC2) DescribeClientVpnTargetNetworksWithContext(ctx aws.Context, input *DescribeClientVpnTargetNetworksInput, opts ...request.Option) (*DescribeClientVpnTargetNetworksOutput, error) {
+	req, out := c.DescribeClientVpnTargetNetworksRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDescribeConversionTasks = "DescribeConversionTasks"
 
 // DescribeConversionTasksRequest generates a "aws/request.Request" representing the
@@ -11093,7 +12004,7 @@ func (c *EC2) DescribeHostReservationOfferingsRequest(input *DescribeHostReserva
 // Describes the Dedicated Host reservations that are available to purchase.
 //
 // The results describe all the Dedicated Host reservation offerings, including
-// offerings that may not match the instance family and region of your Dedicated
+// offerings that may not match the instance family and Region of your Dedicated
 // Hosts. When purchasing an offering, ensure that the instance family and Region
 // of the offering matches that of the Dedicated Hosts with which it is to be
 // associated. For more information about supported instance types, see Dedicated
@@ -11248,7 +12159,7 @@ func (c *EC2) DescribeHostsRequest(input *DescribeHostsInput) (req *request.Requ
 //
 // Describes one or more of your Dedicated Hosts.
 //
-// The results describe only the Dedicated Hosts in the region you're currently
+// The results describe only the Dedicated Hosts in the Region you're currently
 // using. All listed instances consume capacity on your Dedicated Host. Dedicated
 // Hosts that have recently been released are listed with the state released.
 //
@@ -15189,6 +16100,13 @@ func (c *EC2) DescribeSpotInstanceRequestsRequest(input *DescribeSpotInstanceReq
 // instance. Alternatively, you can use DescribeInstances with a filter to look
 // for instances where the instance lifecycle is spot.
 //
+// We recommend that you set MaxResults to a value between 5 and 1000 to limit
+// the number of results returned. This paginates the output, which makes the
+// list more manageable and returns the results faster. If the list of results
+// exceeds your MaxResults value, then that number of results is returned along
+// with a NextToken value that can be passed to a subsequent DescribeSpotInstanceRequests
+// request to retrieve the remaining results.
+//
 // Spot Instance requests are deleted four hours after they are canceled and
 // their instances are terminated.
 //
@@ -18180,6 +19098,90 @@ func (c *EC2) DisassociateAddressWithContext(ctx aws.Context, input *Disassociat
 	return out, req.Send()
 }
 
+const opDisassociateClientVpnTargetNetwork = "DisassociateClientVpnTargetNetwork"
+
+// DisassociateClientVpnTargetNetworkRequest generates a "aws/request.Request" representing the
+// client's request for the DisassociateClientVpnTargetNetwork operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DisassociateClientVpnTargetNetwork for more information on using the DisassociateClientVpnTargetNetwork
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DisassociateClientVpnTargetNetworkRequest method.
+//    req, resp := client.DisassociateClientVpnTargetNetworkRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisassociateClientVpnTargetNetwork
+func (c *EC2) DisassociateClientVpnTargetNetworkRequest(input *DisassociateClientVpnTargetNetworkInput) (req *request.Request, output *DisassociateClientVpnTargetNetworkOutput) {
+	op := &request.Operation{
+		Name:       opDisassociateClientVpnTargetNetwork,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DisassociateClientVpnTargetNetworkInput{}
+	}
+
+	output = &DisassociateClientVpnTargetNetworkOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DisassociateClientVpnTargetNetwork API operation for Amazon Elastic Compute Cloud.
+//
+// Disassociates a target network from the specified Client VPN endpoint. When
+// you disassociate the last target network from a Client VPN, the following
+// happens:
+//
+//    * The route that was automatically added for the VPC is deleted
+//
+//    * All active client connections are terminated
+//
+//    * New client connections are disallowed
+//
+//    * The Client VPN endpoint's status changes to pending-associate
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DisassociateClientVpnTargetNetwork for usage and error information.
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisassociateClientVpnTargetNetwork
+func (c *EC2) DisassociateClientVpnTargetNetwork(input *DisassociateClientVpnTargetNetworkInput) (*DisassociateClientVpnTargetNetworkOutput, error) {
+	req, out := c.DisassociateClientVpnTargetNetworkRequest(input)
+	return out, req.Send()
+}
+
+// DisassociateClientVpnTargetNetworkWithContext is the same as DisassociateClientVpnTargetNetwork with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DisassociateClientVpnTargetNetwork for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EC2) DisassociateClientVpnTargetNetworkWithContext(ctx aws.Context, input *DisassociateClientVpnTargetNetworkInput, opts ...request.Option) (*DisassociateClientVpnTargetNetworkOutput, error) {
+	req, out := c.DisassociateClientVpnTargetNetworkRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDisassociateIamInstanceProfile = "DisassociateIamInstanceProfile"
 
 // DisassociateIamInstanceProfileRequest generates a "aws/request.Request" representing the
@@ -18948,6 +19950,158 @@ func (c *EC2) EnableVpcClassicLinkDnsSupport(input *EnableVpcClassicLinkDnsSuppo
 // for more information on using Contexts.
 func (c *EC2) EnableVpcClassicLinkDnsSupportWithContext(ctx aws.Context, input *EnableVpcClassicLinkDnsSupportInput, opts ...request.Option) (*EnableVpcClassicLinkDnsSupportOutput, error) {
 	req, out := c.EnableVpcClassicLinkDnsSupportRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opExportClientVpnClientCertificateRevocationList = "ExportClientVpnClientCertificateRevocationList"
+
+// ExportClientVpnClientCertificateRevocationListRequest generates a "aws/request.Request" representing the
+// client's request for the ExportClientVpnClientCertificateRevocationList operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ExportClientVpnClientCertificateRevocationList for more information on using the ExportClientVpnClientCertificateRevocationList
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ExportClientVpnClientCertificateRevocationListRequest method.
+//    req, resp := client.ExportClientVpnClientCertificateRevocationListRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ExportClientVpnClientCertificateRevocationList
+func (c *EC2) ExportClientVpnClientCertificateRevocationListRequest(input *ExportClientVpnClientCertificateRevocationListInput) (req *request.Request, output *ExportClientVpnClientCertificateRevocationListOutput) {
+	op := &request.Operation{
+		Name:       opExportClientVpnClientCertificateRevocationList,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ExportClientVpnClientCertificateRevocationListInput{}
+	}
+
+	output = &ExportClientVpnClientCertificateRevocationListOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ExportClientVpnClientCertificateRevocationList API operation for Amazon Elastic Compute Cloud.
+//
+// Downloads the client certificate revocation list for the specified Client
+// VPN endpoint.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ExportClientVpnClientCertificateRevocationList for usage and error information.
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ExportClientVpnClientCertificateRevocationList
+func (c *EC2) ExportClientVpnClientCertificateRevocationList(input *ExportClientVpnClientCertificateRevocationListInput) (*ExportClientVpnClientCertificateRevocationListOutput, error) {
+	req, out := c.ExportClientVpnClientCertificateRevocationListRequest(input)
+	return out, req.Send()
+}
+
+// ExportClientVpnClientCertificateRevocationListWithContext is the same as ExportClientVpnClientCertificateRevocationList with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ExportClientVpnClientCertificateRevocationList for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EC2) ExportClientVpnClientCertificateRevocationListWithContext(ctx aws.Context, input *ExportClientVpnClientCertificateRevocationListInput, opts ...request.Option) (*ExportClientVpnClientCertificateRevocationListOutput, error) {
+	req, out := c.ExportClientVpnClientCertificateRevocationListRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opExportClientVpnClientConfiguration = "ExportClientVpnClientConfiguration"
+
+// ExportClientVpnClientConfigurationRequest generates a "aws/request.Request" representing the
+// client's request for the ExportClientVpnClientConfiguration operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ExportClientVpnClientConfiguration for more information on using the ExportClientVpnClientConfiguration
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ExportClientVpnClientConfigurationRequest method.
+//    req, resp := client.ExportClientVpnClientConfigurationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ExportClientVpnClientConfiguration
+func (c *EC2) ExportClientVpnClientConfigurationRequest(input *ExportClientVpnClientConfigurationInput) (req *request.Request, output *ExportClientVpnClientConfigurationOutput) {
+	op := &request.Operation{
+		Name:       opExportClientVpnClientConfiguration,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ExportClientVpnClientConfigurationInput{}
+	}
+
+	output = &ExportClientVpnClientConfigurationOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ExportClientVpnClientConfiguration API operation for Amazon Elastic Compute Cloud.
+//
+// Downloads the contents of the Client VPN endpoint configuration file for
+// the specified Client VPN endpoint. The Client VPN endpoint configuration
+// file includes the Client VPN endpoint and certificate information clients
+// need to establish a connection with the Client VPN endpoint.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ExportClientVpnClientConfiguration for usage and error information.
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ExportClientVpnClientConfiguration
+func (c *EC2) ExportClientVpnClientConfiguration(input *ExportClientVpnClientConfigurationInput) (*ExportClientVpnClientConfigurationOutput, error) {
+	req, out := c.ExportClientVpnClientConfigurationRequest(input)
+	return out, req.Send()
+}
+
+// ExportClientVpnClientConfigurationWithContext is the same as ExportClientVpnClientConfiguration with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ExportClientVpnClientConfiguration for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EC2) ExportClientVpnClientConfigurationWithContext(ctx aws.Context, input *ExportClientVpnClientConfigurationInput, opts ...request.Option) (*ExportClientVpnClientConfigurationOutput, error) {
+	req, out := c.ExportClientVpnClientConfigurationRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -19742,6 +20896,84 @@ func (c *EC2) GetTransitGatewayRouteTablePropagationsWithContext(ctx aws.Context
 	return out, req.Send()
 }
 
+const opImportClientVpnClientCertificateRevocationList = "ImportClientVpnClientCertificateRevocationList"
+
+// ImportClientVpnClientCertificateRevocationListRequest generates a "aws/request.Request" representing the
+// client's request for the ImportClientVpnClientCertificateRevocationList operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ImportClientVpnClientCertificateRevocationList for more information on using the ImportClientVpnClientCertificateRevocationList
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ImportClientVpnClientCertificateRevocationListRequest method.
+//    req, resp := client.ImportClientVpnClientCertificateRevocationListRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ImportClientVpnClientCertificateRevocationList
+func (c *EC2) ImportClientVpnClientCertificateRevocationListRequest(input *ImportClientVpnClientCertificateRevocationListInput) (req *request.Request, output *ImportClientVpnClientCertificateRevocationListOutput) {
+	op := &request.Operation{
+		Name:       opImportClientVpnClientCertificateRevocationList,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ImportClientVpnClientCertificateRevocationListInput{}
+	}
+
+	output = &ImportClientVpnClientCertificateRevocationListOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ImportClientVpnClientCertificateRevocationList API operation for Amazon Elastic Compute Cloud.
+//
+// Uploads a client certificate revocation list to the specified Client VPN
+// endpoint. Uploading a client certificate revocation list overwrites the existing
+// client certificate revocation list.
+//
+// Uploading a client certificate revocation list resets existing client connections.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ImportClientVpnClientCertificateRevocationList for usage and error information.
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ImportClientVpnClientCertificateRevocationList
+func (c *EC2) ImportClientVpnClientCertificateRevocationList(input *ImportClientVpnClientCertificateRevocationListInput) (*ImportClientVpnClientCertificateRevocationListOutput, error) {
+	req, out := c.ImportClientVpnClientCertificateRevocationListRequest(input)
+	return out, req.Send()
+}
+
+// ImportClientVpnClientCertificateRevocationListWithContext is the same as ImportClientVpnClientCertificateRevocationList with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ImportClientVpnClientCertificateRevocationList for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EC2) ImportClientVpnClientCertificateRevocationListWithContext(ctx aws.Context, input *ImportClientVpnClientCertificateRevocationListInput, opts ...request.Option) (*ImportClientVpnClientCertificateRevocationListOutput, error) {
+	req, out := c.ImportClientVpnClientCertificateRevocationListRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opImportImage = "ImportImage"
 
 // ImportImageRequest generates a "aws/request.Request" representing the
@@ -20206,6 +21438,83 @@ func (c *EC2) ModifyCapacityReservation(input *ModifyCapacityReservationInput) (
 // for more information on using Contexts.
 func (c *EC2) ModifyCapacityReservationWithContext(ctx aws.Context, input *ModifyCapacityReservationInput, opts ...request.Option) (*ModifyCapacityReservationOutput, error) {
 	req, out := c.ModifyCapacityReservationRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opModifyClientVpnEndpoint = "ModifyClientVpnEndpoint"
+
+// ModifyClientVpnEndpointRequest generates a "aws/request.Request" representing the
+// client's request for the ModifyClientVpnEndpoint operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ModifyClientVpnEndpoint for more information on using the ModifyClientVpnEndpoint
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ModifyClientVpnEndpointRequest method.
+//    req, resp := client.ModifyClientVpnEndpointRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyClientVpnEndpoint
+func (c *EC2) ModifyClientVpnEndpointRequest(input *ModifyClientVpnEndpointInput) (req *request.Request, output *ModifyClientVpnEndpointOutput) {
+	op := &request.Operation{
+		Name:       opModifyClientVpnEndpoint,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ModifyClientVpnEndpointInput{}
+	}
+
+	output = &ModifyClientVpnEndpointOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ModifyClientVpnEndpoint API operation for Amazon Elastic Compute Cloud.
+//
+// Modifies the specified Client VPN endpoint. You can only modify an endpoint's
+// server certificate information, client connection logging information, DNS
+// server, and description. Modifying the DNS server resets existing client
+// connections.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ModifyClientVpnEndpoint for usage and error information.
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyClientVpnEndpoint
+func (c *EC2) ModifyClientVpnEndpoint(input *ModifyClientVpnEndpointInput) (*ModifyClientVpnEndpointOutput, error) {
+	req, out := c.ModifyClientVpnEndpointRequest(input)
+	return out, req.Send()
+}
+
+// ModifyClientVpnEndpointWithContext is the same as ModifyClientVpnEndpoint with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ModifyClientVpnEndpoint for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EC2) ModifyClientVpnEndpointWithContext(ctx aws.Context, input *ModifyClientVpnEndpointInput, opts ...request.Option) (*ModifyClientVpnEndpointOutput, error) {
+	req, out := c.ModifyClientVpnEndpointRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -21024,8 +22333,8 @@ func (c *EC2) ModifyInstancePlacementRequest(input *ModifyInstancePlacementInput
 // name must be specified in the request. Affinity and tenancy can be modified
 // in the same request.
 //
-// To modify the host ID, tenancy, or placement group for an instance, the instance
-// must be in the stopped state.
+// To modify the host ID, tenancy, placement group, or partition for an instance,
+// the instance must be in the stopped state.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -24658,6 +25967,80 @@ func (c *EC2) RestoreAddressToClassicWithContext(ctx aws.Context, input *Restore
 	return out, req.Send()
 }
 
+const opRevokeClientVpnIngress = "RevokeClientVpnIngress"
+
+// RevokeClientVpnIngressRequest generates a "aws/request.Request" representing the
+// client's request for the RevokeClientVpnIngress operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See RevokeClientVpnIngress for more information on using the RevokeClientVpnIngress
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the RevokeClientVpnIngressRequest method.
+//    req, resp := client.RevokeClientVpnIngressRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RevokeClientVpnIngress
+func (c *EC2) RevokeClientVpnIngressRequest(input *RevokeClientVpnIngressInput) (req *request.Request, output *RevokeClientVpnIngressOutput) {
+	op := &request.Operation{
+		Name:       opRevokeClientVpnIngress,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &RevokeClientVpnIngressInput{}
+	}
+
+	output = &RevokeClientVpnIngressOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// RevokeClientVpnIngress API operation for Amazon Elastic Compute Cloud.
+//
+// Removes an ingress authorization rule from a Client VPN endpoint.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation RevokeClientVpnIngress for usage and error information.
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RevokeClientVpnIngress
+func (c *EC2) RevokeClientVpnIngress(input *RevokeClientVpnIngressInput) (*RevokeClientVpnIngressOutput, error) {
+	req, out := c.RevokeClientVpnIngressRequest(input)
+	return out, req.Send()
+}
+
+// RevokeClientVpnIngressWithContext is the same as RevokeClientVpnIngress with the addition of
+// the ability to pass a context and additional request options.
+//
+// See RevokeClientVpnIngress for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EC2) RevokeClientVpnIngressWithContext(ctx aws.Context, input *RevokeClientVpnIngressInput, opts ...request.Option) (*RevokeClientVpnIngressOutput, error) {
+	req, out := c.RevokeClientVpnIngressRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opRevokeSecurityGroupEgress = "RevokeSecurityGroupEgress"
 
 // RevokeSecurityGroupEgressRequest generates a "aws/request.Request" representing the
@@ -25328,6 +26711,82 @@ func (c *EC2) StopInstances(input *StopInstancesInput) (*StopInstancesOutput, er
 // for more information on using Contexts.
 func (c *EC2) StopInstancesWithContext(ctx aws.Context, input *StopInstancesInput, opts ...request.Option) (*StopInstancesOutput, error) {
 	req, out := c.StopInstancesRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opTerminateClientVpnConnections = "TerminateClientVpnConnections"
+
+// TerminateClientVpnConnectionsRequest generates a "aws/request.Request" representing the
+// client's request for the TerminateClientVpnConnections operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See TerminateClientVpnConnections for more information on using the TerminateClientVpnConnections
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the TerminateClientVpnConnectionsRequest method.
+//    req, resp := client.TerminateClientVpnConnectionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/TerminateClientVpnConnections
+func (c *EC2) TerminateClientVpnConnectionsRequest(input *TerminateClientVpnConnectionsInput) (req *request.Request, output *TerminateClientVpnConnectionsOutput) {
+	op := &request.Operation{
+		Name:       opTerminateClientVpnConnections,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &TerminateClientVpnConnectionsInput{}
+	}
+
+	output = &TerminateClientVpnConnectionsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// TerminateClientVpnConnections API operation for Amazon Elastic Compute Cloud.
+//
+// Terminates active Client VPN endpoint connections. This action can be used
+// to terminate a specific client connection, or up to five connections established
+// by a specific user.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation TerminateClientVpnConnections for usage and error information.
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/TerminateClientVpnConnections
+func (c *EC2) TerminateClientVpnConnections(input *TerminateClientVpnConnectionsInput) (*TerminateClientVpnConnectionsOutput, error) {
+	req, out := c.TerminateClientVpnConnectionsRequest(input)
+	return out, req.Send()
+}
+
+// TerminateClientVpnConnectionsWithContext is the same as TerminateClientVpnConnections with the addition of
+// the ability to pass a context and additional request options.
+//
+// See TerminateClientVpnConnections for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EC2) TerminateClientVpnConnectionsWithContext(ctx aws.Context, input *TerminateClientVpnConnectionsInput, opts ...request.Option) (*TerminateClientVpnConnectionsOutput, error) {
+	req, out := c.TerminateClientVpnConnectionsRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -26771,6 +28230,108 @@ func (s *AllowedPrincipal) SetPrincipalType(v string) *AllowedPrincipal {
 	return s
 }
 
+type ApplySecurityGroupsToClientVpnTargetNetworkInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the Client VPN endpoint.
+	//
+	// ClientVpnEndpointId is a required field
+	ClientVpnEndpointId *string `type:"string" required:"true"`
+
+	// Checks whether you have the required permissions for the action, without
+	// actually making the request, and provides an error response. If you have
+	// the required permissions, the error response is DryRunOperation. Otherwise,
+	// it is UnauthorizedOperation.
+	DryRun *bool `type:"boolean"`
+
+	// The IDs of the security groups to apply to the associated target network.
+	// Up to 5 security groups can be applied to an associated target network.
+	//
+	// SecurityGroupIds is a required field
+	SecurityGroupIds []*string `locationName:"SecurityGroupId" locationNameList:"item" type:"list" required:"true"`
+
+	// The ID of the VPC in which the associated target network is located.
+	//
+	// VpcId is a required field
+	VpcId *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s ApplySecurityGroupsToClientVpnTargetNetworkInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ApplySecurityGroupsToClientVpnTargetNetworkInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ApplySecurityGroupsToClientVpnTargetNetworkInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ApplySecurityGroupsToClientVpnTargetNetworkInput"}
+	if s.ClientVpnEndpointId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClientVpnEndpointId"))
+	}
+	if s.SecurityGroupIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("SecurityGroupIds"))
+	}
+	if s.VpcId == nil {
+		invalidParams.Add(request.NewErrParamRequired("VpcId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClientVpnEndpointId sets the ClientVpnEndpointId field's value.
+func (s *ApplySecurityGroupsToClientVpnTargetNetworkInput) SetClientVpnEndpointId(v string) *ApplySecurityGroupsToClientVpnTargetNetworkInput {
+	s.ClientVpnEndpointId = &v
+	return s
+}
+
+// SetDryRun sets the DryRun field's value.
+func (s *ApplySecurityGroupsToClientVpnTargetNetworkInput) SetDryRun(v bool) *ApplySecurityGroupsToClientVpnTargetNetworkInput {
+	s.DryRun = &v
+	return s
+}
+
+// SetSecurityGroupIds sets the SecurityGroupIds field's value.
+func (s *ApplySecurityGroupsToClientVpnTargetNetworkInput) SetSecurityGroupIds(v []*string) *ApplySecurityGroupsToClientVpnTargetNetworkInput {
+	s.SecurityGroupIds = v
+	return s
+}
+
+// SetVpcId sets the VpcId field's value.
+func (s *ApplySecurityGroupsToClientVpnTargetNetworkInput) SetVpcId(v string) *ApplySecurityGroupsToClientVpnTargetNetworkInput {
+	s.VpcId = &v
+	return s
+}
+
+type ApplySecurityGroupsToClientVpnTargetNetworkOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The IDs of the applied security groups.
+	SecurityGroupIds []*string `locationName:"securityGroupIds" locationNameList:"item" type:"list"`
+}
+
+// String returns the string representation
+func (s ApplySecurityGroupsToClientVpnTargetNetworkOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ApplySecurityGroupsToClientVpnTargetNetworkOutput) GoString() string {
+	return s.String()
+}
+
+// SetSecurityGroupIds sets the SecurityGroupIds field's value.
+func (s *ApplySecurityGroupsToClientVpnTargetNetworkOutput) SetSecurityGroupIds(v []*string) *ApplySecurityGroupsToClientVpnTargetNetworkOutput {
+	s.SecurityGroupIds = v
+	return s
+}
+
 type AssignIpv6AddressesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -27061,6 +28622,102 @@ func (s AssociateAddressOutput) GoString() string {
 // SetAssociationId sets the AssociationId field's value.
 func (s *AssociateAddressOutput) SetAssociationId(v string) *AssociateAddressOutput {
 	s.AssociationId = &v
+	return s
+}
+
+type AssociateClientVpnTargetNetworkInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the Client VPN endpoint.
+	//
+	// ClientVpnEndpointId is a required field
+	ClientVpnEndpointId *string `type:"string" required:"true"`
+
+	// Checks whether you have the required permissions for the action, without
+	// actually making the request, and provides an error response. If you have
+	// the required permissions, the error response is DryRunOperation. Otherwise,
+	// it is UnauthorizedOperation.
+	DryRun *bool `type:"boolean"`
+
+	// The ID of the subnet to associate with the Client VPN endpoint.
+	//
+	// SubnetId is a required field
+	SubnetId *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s AssociateClientVpnTargetNetworkInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AssociateClientVpnTargetNetworkInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AssociateClientVpnTargetNetworkInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AssociateClientVpnTargetNetworkInput"}
+	if s.ClientVpnEndpointId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClientVpnEndpointId"))
+	}
+	if s.SubnetId == nil {
+		invalidParams.Add(request.NewErrParamRequired("SubnetId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClientVpnEndpointId sets the ClientVpnEndpointId field's value.
+func (s *AssociateClientVpnTargetNetworkInput) SetClientVpnEndpointId(v string) *AssociateClientVpnTargetNetworkInput {
+	s.ClientVpnEndpointId = &v
+	return s
+}
+
+// SetDryRun sets the DryRun field's value.
+func (s *AssociateClientVpnTargetNetworkInput) SetDryRun(v bool) *AssociateClientVpnTargetNetworkInput {
+	s.DryRun = &v
+	return s
+}
+
+// SetSubnetId sets the SubnetId field's value.
+func (s *AssociateClientVpnTargetNetworkInput) SetSubnetId(v string) *AssociateClientVpnTargetNetworkInput {
+	s.SubnetId = &v
+	return s
+}
+
+type AssociateClientVpnTargetNetworkOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The unique ID of the target network association.
+	AssociationId *string `locationName:"associationId" type:"string"`
+
+	// The current state of the target network association.
+	Status *AssociationStatus `locationName:"status" type:"structure"`
+}
+
+// String returns the string representation
+func (s AssociateClientVpnTargetNetworkOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AssociateClientVpnTargetNetworkOutput) GoString() string {
+	return s.String()
+}
+
+// SetAssociationId sets the AssociationId field's value.
+func (s *AssociateClientVpnTargetNetworkOutput) SetAssociationId(v string) *AssociateClientVpnTargetNetworkOutput {
+	s.AssociationId = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *AssociateClientVpnTargetNetworkOutput) SetStatus(v *AssociationStatus) *AssociateClientVpnTargetNetworkOutput {
+	s.Status = v
 	return s
 }
 
@@ -27576,6 +29233,73 @@ func (s *AssociateVpcCidrBlockOutput) SetVpcId(v string) *AssociateVpcCidrBlockO
 	return s
 }
 
+// Describes a target network that is associated with a Client VPN endpoint.
+// A target network is a subnet in a VPC.
+type AssociatedTargetNetwork struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the subnet.
+	NetworkId *string `locationName:"networkId" type:"string"`
+
+	// The target network type.
+	NetworkType *string `locationName:"networkType" type:"string" enum:"AssociatedNetworkType"`
+}
+
+// String returns the string representation
+func (s AssociatedTargetNetwork) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AssociatedTargetNetwork) GoString() string {
+	return s.String()
+}
+
+// SetNetworkId sets the NetworkId field's value.
+func (s *AssociatedTargetNetwork) SetNetworkId(v string) *AssociatedTargetNetwork {
+	s.NetworkId = &v
+	return s
+}
+
+// SetNetworkType sets the NetworkType field's value.
+func (s *AssociatedTargetNetwork) SetNetworkType(v string) *AssociatedTargetNetwork {
+	s.NetworkType = &v
+	return s
+}
+
+// Describes the state of a target network association.
+type AssociationStatus struct {
+	_ struct{} `type:"structure"`
+
+	// The state of the target network association.
+	Code *string `locationName:"code" type:"string" enum:"AssociationStatusCode"`
+
+	// A message about the status of the target network association, if applicable.
+	Message *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s AssociationStatus) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AssociationStatus) GoString() string {
+	return s.String()
+}
+
+// SetCode sets the Code field's value.
+func (s *AssociationStatus) SetCode(v string) *AssociationStatus {
+	s.Code = &v
+	return s
+}
+
+// SetMessage sets the Message field's value.
+func (s *AssociationStatus) SetMessage(v string) *AssociationStatus {
+	s.Message = &v
+	return s
+}
+
 type AttachClassicLinkVpcInput struct {
 	_ struct{} `type:"structure"`
 
@@ -28073,6 +29797,193 @@ func (s AttributeValue) GoString() string {
 // SetValue sets the Value field's value.
 func (s *AttributeValue) SetValue(v string) *AttributeValue {
 	s.Value = &v
+	return s
+}
+
+// Information about an authorization rule.
+type AuthorizationRule struct {
+	_ struct{} `type:"structure"`
+
+	// Indicates whether the authorization rule grants access to all clients.
+	AccessAll *bool `locationName:"accessAll" type:"boolean"`
+
+	// The ID of the Client VPN endpoint with which the authorization rule is associated.
+	ClientVpnEndpointId *string `locationName:"clientVpnEndpointId" type:"string"`
+
+	// A brief description of the authorization rule.
+	Description *string `locationName:"description" type:"string"`
+
+	// The IPv4 address range, in CIDR notation, of the network to which the authorization
+	// rule applies.
+	DestinationCidr *string `locationName:"destinationCidr" type:"string"`
+
+	// The ID of the Active Directory group to which the authorization rule grants
+	// access.
+	GroupId *string `locationName:"groupId" type:"string"`
+
+	// The current state of the authorization rule.
+	Status *ClientVpnAuthorizationRuleStatus `locationName:"status" type:"structure"`
+}
+
+// String returns the string representation
+func (s AuthorizationRule) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AuthorizationRule) GoString() string {
+	return s.String()
+}
+
+// SetAccessAll sets the AccessAll field's value.
+func (s *AuthorizationRule) SetAccessAll(v bool) *AuthorizationRule {
+	s.AccessAll = &v
+	return s
+}
+
+// SetClientVpnEndpointId sets the ClientVpnEndpointId field's value.
+func (s *AuthorizationRule) SetClientVpnEndpointId(v string) *AuthorizationRule {
+	s.ClientVpnEndpointId = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *AuthorizationRule) SetDescription(v string) *AuthorizationRule {
+	s.Description = &v
+	return s
+}
+
+// SetDestinationCidr sets the DestinationCidr field's value.
+func (s *AuthorizationRule) SetDestinationCidr(v string) *AuthorizationRule {
+	s.DestinationCidr = &v
+	return s
+}
+
+// SetGroupId sets the GroupId field's value.
+func (s *AuthorizationRule) SetGroupId(v string) *AuthorizationRule {
+	s.GroupId = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *AuthorizationRule) SetStatus(v *ClientVpnAuthorizationRuleStatus) *AuthorizationRule {
+	s.Status = v
+	return s
+}
+
+type AuthorizeClientVpnIngressInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the Active Directory group to grant access.
+	AccessGroupId *string `type:"string"`
+
+	// Indicates whether to grant access to all clients. Use true to grant all clients
+	// who successfully establish a VPN connection access to the network.
+	AuthorizeAllGroups *bool `type:"boolean"`
+
+	// The ID of the Client VPN endpoint.
+	//
+	// ClientVpnEndpointId is a required field
+	ClientVpnEndpointId *string `type:"string" required:"true"`
+
+	// A brief description of the authorization rule.
+	Description *string `type:"string"`
+
+	// Checks whether you have the required permissions for the action, without
+	// actually making the request, and provides an error response. If you have
+	// the required permissions, the error response is DryRunOperation. Otherwise,
+	// it is UnauthorizedOperation.
+	DryRun *bool `type:"boolean"`
+
+	// The IPv4 address range, in CIDR notation, of the network for which access
+	// is being authorized.
+	//
+	// TargetNetworkCidr is a required field
+	TargetNetworkCidr *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s AuthorizeClientVpnIngressInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AuthorizeClientVpnIngressInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AuthorizeClientVpnIngressInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AuthorizeClientVpnIngressInput"}
+	if s.ClientVpnEndpointId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClientVpnEndpointId"))
+	}
+	if s.TargetNetworkCidr == nil {
+		invalidParams.Add(request.NewErrParamRequired("TargetNetworkCidr"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAccessGroupId sets the AccessGroupId field's value.
+func (s *AuthorizeClientVpnIngressInput) SetAccessGroupId(v string) *AuthorizeClientVpnIngressInput {
+	s.AccessGroupId = &v
+	return s
+}
+
+// SetAuthorizeAllGroups sets the AuthorizeAllGroups field's value.
+func (s *AuthorizeClientVpnIngressInput) SetAuthorizeAllGroups(v bool) *AuthorizeClientVpnIngressInput {
+	s.AuthorizeAllGroups = &v
+	return s
+}
+
+// SetClientVpnEndpointId sets the ClientVpnEndpointId field's value.
+func (s *AuthorizeClientVpnIngressInput) SetClientVpnEndpointId(v string) *AuthorizeClientVpnIngressInput {
+	s.ClientVpnEndpointId = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *AuthorizeClientVpnIngressInput) SetDescription(v string) *AuthorizeClientVpnIngressInput {
+	s.Description = &v
+	return s
+}
+
+// SetDryRun sets the DryRun field's value.
+func (s *AuthorizeClientVpnIngressInput) SetDryRun(v bool) *AuthorizeClientVpnIngressInput {
+	s.DryRun = &v
+	return s
+}
+
+// SetTargetNetworkCidr sets the TargetNetworkCidr field's value.
+func (s *AuthorizeClientVpnIngressInput) SetTargetNetworkCidr(v string) *AuthorizeClientVpnIngressInput {
+	s.TargetNetworkCidr = &v
+	return s
+}
+
+type AuthorizeClientVpnIngressOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The current state of the authorization rule.
+	Status *ClientVpnAuthorizationRuleStatus `locationName:"status" type:"structure"`
+}
+
+// String returns the string representation
+func (s AuthorizeClientVpnIngressOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AuthorizeClientVpnIngressOutput) GoString() string {
+	return s.String()
+}
+
+// SetStatus sets the Status field's value.
+func (s *AuthorizeClientVpnIngressOutput) SetStatus(v *ClientVpnAuthorizationRuleStatus) *AuthorizeClientVpnIngressOutput {
+	s.Status = v
 	return s
 }
 
@@ -29258,14 +31169,10 @@ type CancelSpotFleetRequestsError struct {
 	_ struct{} `type:"structure"`
 
 	// The error code.
-	//
-	// Code is a required field
-	Code *string `locationName:"code" type:"string" required:"true" enum:"CancelBatchErrorCode"`
+	Code *string `locationName:"code" type:"string" enum:"CancelBatchErrorCode"`
 
 	// The description for the error code.
-	//
-	// Message is a required field
-	Message *string `locationName:"message" type:"string" required:"true"`
+	Message *string `locationName:"message" type:"string"`
 }
 
 // String returns the string representation
@@ -29295,14 +31202,10 @@ type CancelSpotFleetRequestsErrorItem struct {
 	_ struct{} `type:"structure"`
 
 	// The error.
-	//
-	// Error is a required field
-	Error *CancelSpotFleetRequestsError `locationName:"error" type:"structure" required:"true"`
+	Error *CancelSpotFleetRequestsError `locationName:"error" type:"structure"`
 
 	// The ID of the Spot Fleet request.
-	//
-	// SpotFleetRequestId is a required field
-	SpotFleetRequestId *string `locationName:"spotFleetRequestId" type:"string" required:"true"`
+	SpotFleetRequestId *string `locationName:"spotFleetRequestId" type:"string"`
 }
 
 // String returns the string representation
@@ -29431,19 +31334,13 @@ type CancelSpotFleetRequestsSuccessItem struct {
 	_ struct{} `type:"structure"`
 
 	// The current state of the Spot Fleet request.
-	//
-	// CurrentSpotFleetRequestState is a required field
-	CurrentSpotFleetRequestState *string `locationName:"currentSpotFleetRequestState" type:"string" required:"true" enum:"BatchState"`
+	CurrentSpotFleetRequestState *string `locationName:"currentSpotFleetRequestState" type:"string" enum:"BatchState"`
 
 	// The previous state of the Spot Fleet request.
-	//
-	// PreviousSpotFleetRequestState is a required field
-	PreviousSpotFleetRequestState *string `locationName:"previousSpotFleetRequestState" type:"string" required:"true" enum:"BatchState"`
+	PreviousSpotFleetRequestState *string `locationName:"previousSpotFleetRequestState" type:"string" enum:"BatchState"`
 
 	// The ID of the Spot Fleet request.
-	//
-	// SpotFleetRequestId is a required field
-	SpotFleetRequestId *string `locationName:"spotFleetRequestId" type:"string" required:"true"`
+	SpotFleetRequestId *string `locationName:"spotFleetRequestId" type:"string"`
 }
 
 // String returns the string representation
@@ -29923,6 +31820,55 @@ func (s *CapacityReservationTargetResponse) SetCapacityReservationId(v string) *
 	return s
 }
 
+// Information about the client certificate used for authentication.
+type CertificateAuthentication struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the client certificate.
+	ClientRootCertificateChain *string `locationName:"clientRootCertificateChain" type:"string"`
+}
+
+// String returns the string representation
+func (s CertificateAuthentication) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CertificateAuthentication) GoString() string {
+	return s.String()
+}
+
+// SetClientRootCertificateChain sets the ClientRootCertificateChain field's value.
+func (s *CertificateAuthentication) SetClientRootCertificateChain(v string) *CertificateAuthentication {
+	s.ClientRootCertificateChain = &v
+	return s
+}
+
+// Information about the client certificate to be used for authentication.
+type CertificateAuthenticationRequest struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the client certificate. The certificate must be signed by a certificate
+	// authority (CA) and it must be provisioned in AWS Certificate Manager (ACM).
+	ClientRootCertificateChainArn *string `type:"string"`
+}
+
+// String returns the string representation
+func (s CertificateAuthenticationRequest) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CertificateAuthenticationRequest) GoString() string {
+	return s.String()
+}
+
+// SetClientRootCertificateChainArn sets the ClientRootCertificateChainArn field's value.
+func (s *CertificateAuthenticationRequest) SetClientRootCertificateChainArn(v string) *CertificateAuthenticationRequest {
+	s.ClientRootCertificateChainArn = &v
+	return s
+}
+
 // Provides authorization for Amazon to bring a specific IP address range to
 // a specific AWS account using bring your own IP addresses (BYOIP).
 type CidrAuthorizationContext struct {
@@ -30090,9 +32036,7 @@ type ClassicLoadBalancer struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the load balancer.
-	//
-	// Name is a required field
-	Name *string `locationName:"name" type:"string" required:"true"`
+	Name *string `locationName:"name" type:"string"`
 }
 
 // String returns the string representation
@@ -30103,19 +32047,6 @@ func (s ClassicLoadBalancer) String() string {
 // GoString returns the string representation
 func (s ClassicLoadBalancer) GoString() string {
 	return s.String()
-}
-
-// Validate inspects the fields of the type to determine if they are valid.
-func (s *ClassicLoadBalancer) Validate() error {
-	invalidParams := request.ErrInvalidParams{Context: "ClassicLoadBalancer"}
-	if s.Name == nil {
-		invalidParams.Add(request.NewErrParamRequired("Name"))
-	}
-
-	if invalidParams.Len() > 0 {
-		return invalidParams
-	}
-	return nil
 }
 
 // SetName sets the Name field's value.
@@ -30130,9 +32061,7 @@ type ClassicLoadBalancersConfig struct {
 	_ struct{} `type:"structure"`
 
 	// One or more Classic Load Balancers.
-	//
-	// ClassicLoadBalancers is a required field
-	ClassicLoadBalancers []*ClassicLoadBalancer `locationName:"classicLoadBalancers" locationNameList:"item" min:"1" type:"list" required:"true"`
+	ClassicLoadBalancers []*ClassicLoadBalancer `locationName:"classicLoadBalancers" locationNameList:"item" min:"1" type:"list"`
 }
 
 // String returns the string representation
@@ -30148,21 +32077,8 @@ func (s ClassicLoadBalancersConfig) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *ClassicLoadBalancersConfig) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "ClassicLoadBalancersConfig"}
-	if s.ClassicLoadBalancers == nil {
-		invalidParams.Add(request.NewErrParamRequired("ClassicLoadBalancers"))
-	}
 	if s.ClassicLoadBalancers != nil && len(s.ClassicLoadBalancers) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("ClassicLoadBalancers", 1))
-	}
-	if s.ClassicLoadBalancers != nil {
-		for i, v := range s.ClassicLoadBalancers {
-			if v == nil {
-				continue
-			}
-			if err := v.Validate(); err != nil {
-				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "ClassicLoadBalancers", i), err.(request.ErrInvalidParams))
-			}
-		}
 	}
 
 	if invalidParams.Len() > 0 {
@@ -30174,6 +32090,40 @@ func (s *ClassicLoadBalancersConfig) Validate() error {
 // SetClassicLoadBalancers sets the ClassicLoadBalancers field's value.
 func (s *ClassicLoadBalancersConfig) SetClassicLoadBalancers(v []*ClassicLoadBalancer) *ClassicLoadBalancersConfig {
 	s.ClassicLoadBalancers = v
+	return s
+}
+
+// Describes the state of a client certificate revocation list.
+type ClientCertificateRevocationListStatus struct {
+	_ struct{} `type:"structure"`
+
+	// The state of the client certificate revocation list.
+	Code *string `locationName:"code" type:"string" enum:"ClientCertificateRevocationListStatusCode"`
+
+	// A message about the status of the client certificate revocation list, if
+	// applicable.
+	Message *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ClientCertificateRevocationListStatus) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ClientCertificateRevocationListStatus) GoString() string {
+	return s.String()
+}
+
+// SetCode sets the Code field's value.
+func (s *ClientCertificateRevocationListStatus) SetCode(v string) *ClientCertificateRevocationListStatus {
+	s.Code = &v
+	return s
+}
+
+// SetMessage sets the Message field's value.
+func (s *ClientCertificateRevocationListStatus) SetMessage(v string) *ClientCertificateRevocationListStatus {
+	s.Message = &v
 	return s
 }
 
@@ -30225,6 +32175,606 @@ func (s *ClientData) SetUploadSize(v float64) *ClientData {
 // SetUploadStart sets the UploadStart field's value.
 func (s *ClientData) SetUploadStart(v time.Time) *ClientData {
 	s.UploadStart = &v
+	return s
+}
+
+// Describes the authentication methods used by a Client VPN endpoint. Client
+// VPN supports Active Directory and mutual authentication. For more information,
+// see Authentication (vpn/latest/clientvpn-admin/authentication-authrization.html#client-authentication)
+// in the AWS Client VPN Admin Guide.
+type ClientVpnAuthentication struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the Active Directory, if applicable.
+	ActiveDirectory *DirectoryServiceAuthentication `locationName:"activeDirectory" type:"structure"`
+
+	// Information about the authentication certificates, if applicable.
+	MutualAuthentication *CertificateAuthentication `locationName:"mutualAuthentication" type:"structure"`
+
+	// The authentication type used.
+	Type *string `locationName:"type" type:"string" enum:"ClientVpnAuthenticationType"`
+}
+
+// String returns the string representation
+func (s ClientVpnAuthentication) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ClientVpnAuthentication) GoString() string {
+	return s.String()
+}
+
+// SetActiveDirectory sets the ActiveDirectory field's value.
+func (s *ClientVpnAuthentication) SetActiveDirectory(v *DirectoryServiceAuthentication) *ClientVpnAuthentication {
+	s.ActiveDirectory = v
+	return s
+}
+
+// SetMutualAuthentication sets the MutualAuthentication field's value.
+func (s *ClientVpnAuthentication) SetMutualAuthentication(v *CertificateAuthentication) *ClientVpnAuthentication {
+	s.MutualAuthentication = v
+	return s
+}
+
+// SetType sets the Type field's value.
+func (s *ClientVpnAuthentication) SetType(v string) *ClientVpnAuthentication {
+	s.Type = &v
+	return s
+}
+
+// Describes the authentication method to be used by a Client VPN endpoint.
+// Client VPN supports Active Directory and mutual authentication. For more
+// information, see Authentication (vpn/latest/clientvpn-admin/authentication-authrization.html#client-authentication)
+// in the AWS Client VPN Admin Guide.
+type ClientVpnAuthenticationRequest struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the Active Directory to be used, if applicable. You must
+	// provide this information if Type is directory-service-authentication.
+	ActiveDirectory *DirectoryServiceAuthenticationRequest `type:"structure"`
+
+	// Information about the authentication certificates to be used, if applicable.
+	// You must provide this information if Type is certificate-authentication.
+	MutualAuthentication *CertificateAuthenticationRequest `type:"structure"`
+
+	// The type of client authentication to be used. Specify certificate-authentication
+	// to use certificate-based authentication, or directory-service-authentication
+	// to use Active Directory authentication.
+	Type *string `type:"string" enum:"ClientVpnAuthenticationType"`
+}
+
+// String returns the string representation
+func (s ClientVpnAuthenticationRequest) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ClientVpnAuthenticationRequest) GoString() string {
+	return s.String()
+}
+
+// SetActiveDirectory sets the ActiveDirectory field's value.
+func (s *ClientVpnAuthenticationRequest) SetActiveDirectory(v *DirectoryServiceAuthenticationRequest) *ClientVpnAuthenticationRequest {
+	s.ActiveDirectory = v
+	return s
+}
+
+// SetMutualAuthentication sets the MutualAuthentication field's value.
+func (s *ClientVpnAuthenticationRequest) SetMutualAuthentication(v *CertificateAuthenticationRequest) *ClientVpnAuthenticationRequest {
+	s.MutualAuthentication = v
+	return s
+}
+
+// SetType sets the Type field's value.
+func (s *ClientVpnAuthenticationRequest) SetType(v string) *ClientVpnAuthenticationRequest {
+	s.Type = &v
+	return s
+}
+
+// Describes the state of an authorization rule.
+type ClientVpnAuthorizationRuleStatus struct {
+	_ struct{} `type:"structure"`
+
+	// The state of the authorization rule.
+	Code *string `locationName:"code" type:"string" enum:"ClientVpnAuthorizationRuleStatusCode"`
+
+	// A message about the status of the authorization rule, if applicable.
+	Message *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ClientVpnAuthorizationRuleStatus) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ClientVpnAuthorizationRuleStatus) GoString() string {
+	return s.String()
+}
+
+// SetCode sets the Code field's value.
+func (s *ClientVpnAuthorizationRuleStatus) SetCode(v string) *ClientVpnAuthorizationRuleStatus {
+	s.Code = &v
+	return s
+}
+
+// SetMessage sets the Message field's value.
+func (s *ClientVpnAuthorizationRuleStatus) SetMessage(v string) *ClientVpnAuthorizationRuleStatus {
+	s.Message = &v
+	return s
+}
+
+// Describes a client connection.
+type ClientVpnConnection struct {
+	_ struct{} `type:"structure"`
+
+	// The IP address of the client.
+	ClientIp *string `locationName:"clientIp" type:"string"`
+
+	// The ID of the Client VPN endpoint to which the client is connected.
+	ClientVpnEndpointId *string `locationName:"clientVpnEndpointId" type:"string"`
+
+	// The common name associated with the client. This is either the name of the
+	// client certificate, or the Active Directory user name.
+	CommonName *string `locationName:"commonName" type:"string"`
+
+	// The date and time the client connection was terminated.
+	ConnectionEndTime *string `locationName:"connectionEndTime" type:"string"`
+
+	// The date and time the client connection was established.
+	ConnectionEstablishedTime *string `locationName:"connectionEstablishedTime" type:"string"`
+
+	// The ID of the client connection.
+	ConnectionId *string `locationName:"connectionId" type:"string"`
+
+	// The number of bytes received by the client.
+	EgressBytes *string `locationName:"egressBytes" type:"string"`
+
+	// The number of packets received by the client.
+	EgressPackets *string `locationName:"egressPackets" type:"string"`
+
+	// The number of bytes sent by the client.
+	IngressBytes *string `locationName:"ingressBytes" type:"string"`
+
+	// The number of packets sent by the client.
+	IngressPackets *string `locationName:"ingressPackets" type:"string"`
+
+	// The current state of the client connection.
+	Status *ClientVpnConnectionStatus `locationName:"status" type:"structure"`
+
+	// The current date and time.
+	Timestamp *string `locationName:"timestamp" type:"string"`
+
+	// The username of the client who established the client connection. This information
+	// is only provided if Active Directory client authentication is used.
+	Username *string `locationName:"username" type:"string"`
+}
+
+// String returns the string representation
+func (s ClientVpnConnection) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ClientVpnConnection) GoString() string {
+	return s.String()
+}
+
+// SetClientIp sets the ClientIp field's value.
+func (s *ClientVpnConnection) SetClientIp(v string) *ClientVpnConnection {
+	s.ClientIp = &v
+	return s
+}
+
+// SetClientVpnEndpointId sets the ClientVpnEndpointId field's value.
+func (s *ClientVpnConnection) SetClientVpnEndpointId(v string) *ClientVpnConnection {
+	s.ClientVpnEndpointId = &v
+	return s
+}
+
+// SetCommonName sets the CommonName field's value.
+func (s *ClientVpnConnection) SetCommonName(v string) *ClientVpnConnection {
+	s.CommonName = &v
+	return s
+}
+
+// SetConnectionEndTime sets the ConnectionEndTime field's value.
+func (s *ClientVpnConnection) SetConnectionEndTime(v string) *ClientVpnConnection {
+	s.ConnectionEndTime = &v
+	return s
+}
+
+// SetConnectionEstablishedTime sets the ConnectionEstablishedTime field's value.
+func (s *ClientVpnConnection) SetConnectionEstablishedTime(v string) *ClientVpnConnection {
+	s.ConnectionEstablishedTime = &v
+	return s
+}
+
+// SetConnectionId sets the ConnectionId field's value.
+func (s *ClientVpnConnection) SetConnectionId(v string) *ClientVpnConnection {
+	s.ConnectionId = &v
+	return s
+}
+
+// SetEgressBytes sets the EgressBytes field's value.
+func (s *ClientVpnConnection) SetEgressBytes(v string) *ClientVpnConnection {
+	s.EgressBytes = &v
+	return s
+}
+
+// SetEgressPackets sets the EgressPackets field's value.
+func (s *ClientVpnConnection) SetEgressPackets(v string) *ClientVpnConnection {
+	s.EgressPackets = &v
+	return s
+}
+
+// SetIngressBytes sets the IngressBytes field's value.
+func (s *ClientVpnConnection) SetIngressBytes(v string) *ClientVpnConnection {
+	s.IngressBytes = &v
+	return s
+}
+
+// SetIngressPackets sets the IngressPackets field's value.
+func (s *ClientVpnConnection) SetIngressPackets(v string) *ClientVpnConnection {
+	s.IngressPackets = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *ClientVpnConnection) SetStatus(v *ClientVpnConnectionStatus) *ClientVpnConnection {
+	s.Status = v
+	return s
+}
+
+// SetTimestamp sets the Timestamp field's value.
+func (s *ClientVpnConnection) SetTimestamp(v string) *ClientVpnConnection {
+	s.Timestamp = &v
+	return s
+}
+
+// SetUsername sets the Username field's value.
+func (s *ClientVpnConnection) SetUsername(v string) *ClientVpnConnection {
+	s.Username = &v
+	return s
+}
+
+// Describes the status of a client connection.
+type ClientVpnConnectionStatus struct {
+	_ struct{} `type:"structure"`
+
+	// The state of the client connection.
+	Code *string `locationName:"code" type:"string" enum:"ClientVpnConnectionStatusCode"`
+
+	// A message about the status of the client connection, if applicable.
+	Message *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ClientVpnConnectionStatus) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ClientVpnConnectionStatus) GoString() string {
+	return s.String()
+}
+
+// SetCode sets the Code field's value.
+func (s *ClientVpnConnectionStatus) SetCode(v string) *ClientVpnConnectionStatus {
+	s.Code = &v
+	return s
+}
+
+// SetMessage sets the Message field's value.
+func (s *ClientVpnConnectionStatus) SetMessage(v string) *ClientVpnConnectionStatus {
+	s.Message = &v
+	return s
+}
+
+// Describes a Client VPN endpoint.
+type ClientVpnEndpoint struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the associated target networks. A target network is a subnet
+	// in a VPC.
+	AssociatedTargetNetworks []*AssociatedTargetNetwork `locationName:"associatedTargetNetwork" locationNameList:"item" type:"list"`
+
+	// Information about the authentication method used by the Client VPN endpoint.
+	AuthenticationOptions []*ClientVpnAuthentication `locationName:"authenticationOptions" locationNameList:"item" type:"list"`
+
+	// The IPv4 address range, in CIDR notation, from which client IP addresses
+	// are assigned.
+	ClientCidrBlock *string `locationName:"clientCidrBlock" type:"string"`
+
+	// The ID of the Client VPN endpoint.
+	ClientVpnEndpointId *string `locationName:"clientVpnEndpointId" type:"string"`
+
+	// Information about the client connection logging options for the Client VPN
+	// endpoint.
+	ConnectionLogOptions *ConnectionLogResponseOptions `locationName:"connectionLogOptions" type:"structure"`
+
+	// The date and time the Client VPN endpoint was created.
+	CreationTime *string `locationName:"creationTime" type:"string"`
+
+	// The date and time the Client VPN endpoint was deleted, if applicable. Information
+	// about deleted Client VPN endpoints is retained for 24 hours, unless a new
+	// Client VPN is created with the same name.
+	DeletionTime *string `locationName:"deletionTime" type:"string"`
+
+	// A brief description of the endpoint.
+	Description *string `locationName:"description" type:"string"`
+
+	// The DNS name to be used by clients when establishing a connection.
+	DnsName *string `locationName:"dnsName" type:"string"`
+
+	// The ARN of the server certificate.
+	ServerCertificateArn *string `locationName:"serverCertificateArn" type:"string"`
+
+	// Indicates whether VPN split tunneling is supported.
+	SplitTunnel *bool `locationName:"splitTunnel" type:"boolean"`
+
+	// The current state of the Client VPN endpoint.
+	Status *ClientVpnEndpointStatus `locationName:"status" type:"structure"`
+
+	// The transport protocol used by the Client VPN endpoint.
+	TransportProtocol *string `locationName:"transportProtocol" type:"string" enum:"TransportProtocol"`
+
+	// The protocol used by the VPN session.
+	VpnProtocol *string `locationName:"vpnProtocol" type:"string" enum:"VpnProtocol"`
+}
+
+// String returns the string representation
+func (s ClientVpnEndpoint) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ClientVpnEndpoint) GoString() string {
+	return s.String()
+}
+
+// SetAssociatedTargetNetworks sets the AssociatedTargetNetworks field's value.
+func (s *ClientVpnEndpoint) SetAssociatedTargetNetworks(v []*AssociatedTargetNetwork) *ClientVpnEndpoint {
+	s.AssociatedTargetNetworks = v
+	return s
+}
+
+// SetAuthenticationOptions sets the AuthenticationOptions field's value.
+func (s *ClientVpnEndpoint) SetAuthenticationOptions(v []*ClientVpnAuthentication) *ClientVpnEndpoint {
+	s.AuthenticationOptions = v
+	return s
+}
+
+// SetClientCidrBlock sets the ClientCidrBlock field's value.
+func (s *ClientVpnEndpoint) SetClientCidrBlock(v string) *ClientVpnEndpoint {
+	s.ClientCidrBlock = &v
+	return s
+}
+
+// SetClientVpnEndpointId sets the ClientVpnEndpointId field's value.
+func (s *ClientVpnEndpoint) SetClientVpnEndpointId(v string) *ClientVpnEndpoint {
+	s.ClientVpnEndpointId = &v
+	return s
+}
+
+// SetConnectionLogOptions sets the ConnectionLogOptions field's value.
+func (s *ClientVpnEndpoint) SetConnectionLogOptions(v *ConnectionLogResponseOptions) *ClientVpnEndpoint {
+	s.ConnectionLogOptions = v
+	return s
+}
+
+// SetCreationTime sets the CreationTime field's value.
+func (s *ClientVpnEndpoint) SetCreationTime(v string) *ClientVpnEndpoint {
+	s.CreationTime = &v
+	return s
+}
+
+// SetDeletionTime sets the DeletionTime field's value.
+func (s *ClientVpnEndpoint) SetDeletionTime(v string) *ClientVpnEndpoint {
+	s.DeletionTime = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *ClientVpnEndpoint) SetDescription(v string) *ClientVpnEndpoint {
+	s.Description = &v
+	return s
+}
+
+// SetDnsName sets the DnsName field's value.
+func (s *ClientVpnEndpoint) SetDnsName(v string) *ClientVpnEndpoint {
+	s.DnsName = &v
+	return s
+}
+
+// SetServerCertificateArn sets the ServerCertificateArn field's value.
+func (s *ClientVpnEndpoint) SetServerCertificateArn(v string) *ClientVpnEndpoint {
+	s.ServerCertificateArn = &v
+	return s
+}
+
+// SetSplitTunnel sets the SplitTunnel field's value.
+func (s *ClientVpnEndpoint) SetSplitTunnel(v bool) *ClientVpnEndpoint {
+	s.SplitTunnel = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *ClientVpnEndpoint) SetStatus(v *ClientVpnEndpointStatus) *ClientVpnEndpoint {
+	s.Status = v
+	return s
+}
+
+// SetTransportProtocol sets the TransportProtocol field's value.
+func (s *ClientVpnEndpoint) SetTransportProtocol(v string) *ClientVpnEndpoint {
+	s.TransportProtocol = &v
+	return s
+}
+
+// SetVpnProtocol sets the VpnProtocol field's value.
+func (s *ClientVpnEndpoint) SetVpnProtocol(v string) *ClientVpnEndpoint {
+	s.VpnProtocol = &v
+	return s
+}
+
+// Describes the state of a Client VPN endpoint.
+type ClientVpnEndpointStatus struct {
+	_ struct{} `type:"structure"`
+
+	// The state of the Client VPN endpoint. Possible states include:
+	//
+	//    * pending-associate - The Client VPN endpoint has been created but no
+	//    target networks have been associated. The Client VPN endpoint cannot accept
+	//    connections.
+	//
+	//    * available - The Client VPN endpoint has been created and a target network
+	//    has been associated. The Client VPN endpoint can accept connections.
+	//
+	//    * deleting - The Client VPN endpoint is being deleted. The Client VPN
+	//    endpoint cannot accept connections.
+	//
+	//    * deleted - The Client VPN endpoint has been deleted. The Client VPN endpoint
+	//    cannot accept connections.
+	Code *string `locationName:"code" type:"string" enum:"ClientVpnEndpointStatusCode"`
+
+	// A message about the status of the Client VPN endpoint.
+	Message *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ClientVpnEndpointStatus) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ClientVpnEndpointStatus) GoString() string {
+	return s.String()
+}
+
+// SetCode sets the Code field's value.
+func (s *ClientVpnEndpointStatus) SetCode(v string) *ClientVpnEndpointStatus {
+	s.Code = &v
+	return s
+}
+
+// SetMessage sets the Message field's value.
+func (s *ClientVpnEndpointStatus) SetMessage(v string) *ClientVpnEndpointStatus {
+	s.Message = &v
+	return s
+}
+
+// Information about a Client VPN endpoint route.
+type ClientVpnRoute struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the Client VPN endpoint with which the route is associated.
+	ClientVpnEndpointId *string `locationName:"clientVpnEndpointId" type:"string"`
+
+	// A brief description of the route.
+	Description *string `locationName:"description" type:"string"`
+
+	// The IPv4 address range, in CIDR notation, of the route destination.
+	DestinationCidr *string `locationName:"destinationCidr" type:"string"`
+
+	// Indicates how the route was associated with the Client VPN endpoint. associate
+	// indicates that the route was automatically added when the target network
+	// was associated with the Client VPN endpoint. add-route indicates that the
+	// route was manually added using the CreateClientVpnRoute action.
+	Origin *string `locationName:"origin" type:"string"`
+
+	// The current state of the route.
+	Status *ClientVpnRouteStatus `locationName:"status" type:"structure"`
+
+	// The ID of the subnet through which traffic is routed.
+	TargetSubnet *string `locationName:"targetSubnet" type:"string"`
+
+	// The route type.
+	Type *string `locationName:"type" type:"string"`
+}
+
+// String returns the string representation
+func (s ClientVpnRoute) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ClientVpnRoute) GoString() string {
+	return s.String()
+}
+
+// SetClientVpnEndpointId sets the ClientVpnEndpointId field's value.
+func (s *ClientVpnRoute) SetClientVpnEndpointId(v string) *ClientVpnRoute {
+	s.ClientVpnEndpointId = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *ClientVpnRoute) SetDescription(v string) *ClientVpnRoute {
+	s.Description = &v
+	return s
+}
+
+// SetDestinationCidr sets the DestinationCidr field's value.
+func (s *ClientVpnRoute) SetDestinationCidr(v string) *ClientVpnRoute {
+	s.DestinationCidr = &v
+	return s
+}
+
+// SetOrigin sets the Origin field's value.
+func (s *ClientVpnRoute) SetOrigin(v string) *ClientVpnRoute {
+	s.Origin = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *ClientVpnRoute) SetStatus(v *ClientVpnRouteStatus) *ClientVpnRoute {
+	s.Status = v
+	return s
+}
+
+// SetTargetSubnet sets the TargetSubnet field's value.
+func (s *ClientVpnRoute) SetTargetSubnet(v string) *ClientVpnRoute {
+	s.TargetSubnet = &v
+	return s
+}
+
+// SetType sets the Type field's value.
+func (s *ClientVpnRoute) SetType(v string) *ClientVpnRoute {
+	s.Type = &v
+	return s
+}
+
+// Describes the state of a Client VPN endpoint route.
+type ClientVpnRouteStatus struct {
+	_ struct{} `type:"structure"`
+
+	// The state of the Client VPN endpoint route.
+	Code *string `locationName:"code" type:"string" enum:"ClientVpnRouteStatusCode"`
+
+	// A message about the status of the Client VPN endpoint route, if applicable.
+	Message *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ClientVpnRouteStatus) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ClientVpnRouteStatus) GoString() string {
+	return s.String()
+}
+
+// SetCode sets the Code field's value.
+func (s *ClientVpnRouteStatus) SetCode(v string) *ClientVpnRouteStatus {
+	s.Code = &v
+	return s
+}
+
+// SetMessage sets the Message field's value.
+func (s *ClientVpnRouteStatus) SetMessage(v string) *ClientVpnRouteStatus {
+	s.Message = &v
 	return s
 }
 
@@ -30323,6 +32873,95 @@ func (s *ConfirmProductInstanceOutput) SetOwnerId(v string) *ConfirmProductInsta
 // SetReturn sets the Return field's value.
 func (s *ConfirmProductInstanceOutput) SetReturn(v bool) *ConfirmProductInstanceOutput {
 	s.Return = &v
+	return s
+}
+
+// Describes the client connection logging options for the Client VPN endpoint.
+type ConnectionLogOptions struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the CloudWatch Logs log group.
+	CloudwatchLogGroup *string `type:"string"`
+
+	// The name of the CloudWatch Logs log stream to which the connection data is
+	// published.
+	CloudwatchLogStream *string `type:"string"`
+
+	// Indicates whether connection logging is enabled.
+	Enabled *bool `type:"boolean"`
+}
+
+// String returns the string representation
+func (s ConnectionLogOptions) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ConnectionLogOptions) GoString() string {
+	return s.String()
+}
+
+// SetCloudwatchLogGroup sets the CloudwatchLogGroup field's value.
+func (s *ConnectionLogOptions) SetCloudwatchLogGroup(v string) *ConnectionLogOptions {
+	s.CloudwatchLogGroup = &v
+	return s
+}
+
+// SetCloudwatchLogStream sets the CloudwatchLogStream field's value.
+func (s *ConnectionLogOptions) SetCloudwatchLogStream(v string) *ConnectionLogOptions {
+	s.CloudwatchLogStream = &v
+	return s
+}
+
+// SetEnabled sets the Enabled field's value.
+func (s *ConnectionLogOptions) SetEnabled(v bool) *ConnectionLogOptions {
+	s.Enabled = &v
+	return s
+}
+
+// Information about the client connection logging options for a Client VPN
+// endpoint.
+type ConnectionLogResponseOptions struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the Amazon CloudWatch Logs log group to which connection logging
+	// data is published.
+	CloudwatchLogGroup *string `type:"string"`
+
+	// The name of the Amazon CloudWatch Logs log stream to which connection logging
+	// data is published.
+	CloudwatchLogStream *string `type:"string"`
+
+	// Indicates whether client connection logging is enabled for the Client VPN
+	// endpoint.
+	Enabled *bool `type:"boolean"`
+}
+
+// String returns the string representation
+func (s ConnectionLogResponseOptions) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ConnectionLogResponseOptions) GoString() string {
+	return s.String()
+}
+
+// SetCloudwatchLogGroup sets the CloudwatchLogGroup field's value.
+func (s *ConnectionLogResponseOptions) SetCloudwatchLogGroup(v string) *ConnectionLogResponseOptions {
+	s.CloudwatchLogGroup = &v
+	return s
+}
+
+// SetCloudwatchLogStream sets the CloudwatchLogStream field's value.
+func (s *ConnectionLogResponseOptions) SetCloudwatchLogStream(v string) *ConnectionLogResponseOptions {
+	s.CloudwatchLogStream = &v
+	return s
+}
+
+// SetEnabled sets the Enabled field's value.
+func (s *ConnectionLogResponseOptions) SetEnabled(v bool) *ConnectionLogResponseOptions {
+	s.Enabled = &v
 	return s
 }
 
@@ -31259,6 +33898,318 @@ func (s CreateCapacityReservationOutput) GoString() string {
 // SetCapacityReservation sets the CapacityReservation field's value.
 func (s *CreateCapacityReservationOutput) SetCapacityReservation(v *CapacityReservation) *CreateCapacityReservationOutput {
 	s.CapacityReservation = v
+	return s
+}
+
+type CreateClientVpnEndpointInput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the authentication method to be used to authenticate clients.
+	//
+	// AuthenticationOptions is a required field
+	AuthenticationOptions []*ClientVpnAuthenticationRequest `locationName:"Authentication" type:"list" required:"true"`
+
+	// The IPv4 address range, in CIDR notation, from which to assign client IP
+	// addresses. The address range cannot overlap with the local CIDR of the VPC
+	// in which the associated subnet is located, or the routes that you add manually.
+	// The address range cannot be changed after the Client VPN endpoint has been
+	// created. The CIDR block should be /22 or greater.
+	//
+	// ClientCidrBlock is a required field
+	ClientCidrBlock *string `type:"string" required:"true"`
+
+	// Unique, case-sensitive identifier you provide to ensure the idempotency of
+	// the request. For more information, see  How to Ensure Idempotency (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Run_Instance_Idempotency.html).
+	ClientToken *string `type:"string" idempotencyToken:"true"`
+
+	// Information about the client connection logging options.
+	//
+	// If you enable client connection logging, data about client connections is
+	// sent to a Cloudwatch Logs log stream. The following information is logged:
+	//
+	//    * Client connection requests
+	//
+	//    * Client connection results (successful and unsuccessful)
+	//
+	//    * Reasons for unsuccessful client connection requests
+	//
+	//    * Client connection termination time
+	//
+	// ConnectionLogOptions is a required field
+	ConnectionLogOptions *ConnectionLogOptions `type:"structure" required:"true"`
+
+	// A brief description of the Client VPN endpoint.
+	Description *string `type:"string"`
+
+	// Information about the DNS servers to be used for DNS resolution. A Client
+	// VPN endpoint can have up to two DNS servers. If no DNS server is specified,
+	// the DNS address of the VPC that is to be associated with Client VPN endpoint
+	// is used as the DNS server.
+	DnsServers []*string `locationNameList:"item" type:"list"`
+
+	// Checks whether you have the required permissions for the action, without
+	// actually making the request, and provides an error response. If you have
+	// the required permissions, the error response is DryRunOperation. Otherwise,
+	// it is UnauthorizedOperation.
+	DryRun *bool `type:"boolean"`
+
+	// The ARN of the server certificate. For more information, see the AWS Certificate
+	// Manager User Guide (acm/latest/userguide/acm-overview.html) .
+	//
+	// ServerCertificateArn is a required field
+	ServerCertificateArn *string `type:"string" required:"true"`
+
+	// The transport protocol to be used by the VPN session.
+	//
+	// Default value: udp
+	TransportProtocol *string `type:"string" enum:"TransportProtocol"`
+}
+
+// String returns the string representation
+func (s CreateClientVpnEndpointInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateClientVpnEndpointInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateClientVpnEndpointInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateClientVpnEndpointInput"}
+	if s.AuthenticationOptions == nil {
+		invalidParams.Add(request.NewErrParamRequired("AuthenticationOptions"))
+	}
+	if s.ClientCidrBlock == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClientCidrBlock"))
+	}
+	if s.ConnectionLogOptions == nil {
+		invalidParams.Add(request.NewErrParamRequired("ConnectionLogOptions"))
+	}
+	if s.ServerCertificateArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ServerCertificateArn"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAuthenticationOptions sets the AuthenticationOptions field's value.
+func (s *CreateClientVpnEndpointInput) SetAuthenticationOptions(v []*ClientVpnAuthenticationRequest) *CreateClientVpnEndpointInput {
+	s.AuthenticationOptions = v
+	return s
+}
+
+// SetClientCidrBlock sets the ClientCidrBlock field's value.
+func (s *CreateClientVpnEndpointInput) SetClientCidrBlock(v string) *CreateClientVpnEndpointInput {
+	s.ClientCidrBlock = &v
+	return s
+}
+
+// SetClientToken sets the ClientToken field's value.
+func (s *CreateClientVpnEndpointInput) SetClientToken(v string) *CreateClientVpnEndpointInput {
+	s.ClientToken = &v
+	return s
+}
+
+// SetConnectionLogOptions sets the ConnectionLogOptions field's value.
+func (s *CreateClientVpnEndpointInput) SetConnectionLogOptions(v *ConnectionLogOptions) *CreateClientVpnEndpointInput {
+	s.ConnectionLogOptions = v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *CreateClientVpnEndpointInput) SetDescription(v string) *CreateClientVpnEndpointInput {
+	s.Description = &v
+	return s
+}
+
+// SetDnsServers sets the DnsServers field's value.
+func (s *CreateClientVpnEndpointInput) SetDnsServers(v []*string) *CreateClientVpnEndpointInput {
+	s.DnsServers = v
+	return s
+}
+
+// SetDryRun sets the DryRun field's value.
+func (s *CreateClientVpnEndpointInput) SetDryRun(v bool) *CreateClientVpnEndpointInput {
+	s.DryRun = &v
+	return s
+}
+
+// SetServerCertificateArn sets the ServerCertificateArn field's value.
+func (s *CreateClientVpnEndpointInput) SetServerCertificateArn(v string) *CreateClientVpnEndpointInput {
+	s.ServerCertificateArn = &v
+	return s
+}
+
+// SetTransportProtocol sets the TransportProtocol field's value.
+func (s *CreateClientVpnEndpointInput) SetTransportProtocol(v string) *CreateClientVpnEndpointInput {
+	s.TransportProtocol = &v
+	return s
+}
+
+type CreateClientVpnEndpointOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the Client VPN endpoint.
+	ClientVpnEndpointId *string `locationName:"clientVpnEndpointId" type:"string"`
+
+	// The DNS name to be used by clients when establishing their VPN session.
+	DnsName *string `locationName:"dnsName" type:"string"`
+
+	// The current state of the Client VPN endpoint.
+	Status *ClientVpnEndpointStatus `locationName:"status" type:"structure"`
+}
+
+// String returns the string representation
+func (s CreateClientVpnEndpointOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateClientVpnEndpointOutput) GoString() string {
+	return s.String()
+}
+
+// SetClientVpnEndpointId sets the ClientVpnEndpointId field's value.
+func (s *CreateClientVpnEndpointOutput) SetClientVpnEndpointId(v string) *CreateClientVpnEndpointOutput {
+	s.ClientVpnEndpointId = &v
+	return s
+}
+
+// SetDnsName sets the DnsName field's value.
+func (s *CreateClientVpnEndpointOutput) SetDnsName(v string) *CreateClientVpnEndpointOutput {
+	s.DnsName = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *CreateClientVpnEndpointOutput) SetStatus(v *ClientVpnEndpointStatus) *CreateClientVpnEndpointOutput {
+	s.Status = v
+	return s
+}
+
+type CreateClientVpnRouteInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the Client VPN endpoint to which to add the route.
+	//
+	// ClientVpnEndpointId is a required field
+	ClientVpnEndpointId *string `type:"string" required:"true"`
+
+	// A brief description of the route.
+	Description *string `type:"string"`
+
+	// The IPv4 address range, in CIDR notation, of the route destination. For example:
+	//
+	//    * To add a route for Internet access, enter 0.0.0.0/0
+	//
+	//    * To add a route for a peered VPC, enter the peered VPC's IPv4 CIDR range
+	//
+	//    * To add a route for an on-premises network, enter the AWS Site-to-Site
+	//    VPN connection's IPv4 CIDR range
+	//
+	// Route address ranges cannot overlap with the CIDR range specified for client
+	// allocation.
+	//
+	// DestinationCidrBlock is a required field
+	DestinationCidrBlock *string `type:"string" required:"true"`
+
+	// Checks whether you have the required permissions for the action, without
+	// actually making the request, and provides an error response. If you have
+	// the required permissions, the error response is DryRunOperation. Otherwise,
+	// it is UnauthorizedOperation.
+	DryRun *bool `type:"boolean"`
+
+	// The ID of the subnet through which you want to route traffic. The specified
+	// subnet must be an existing target network of the Client VPN endpoint.
+	//
+	// TargetVpcSubnetId is a required field
+	TargetVpcSubnetId *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s CreateClientVpnRouteInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateClientVpnRouteInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateClientVpnRouteInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateClientVpnRouteInput"}
+	if s.ClientVpnEndpointId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClientVpnEndpointId"))
+	}
+	if s.DestinationCidrBlock == nil {
+		invalidParams.Add(request.NewErrParamRequired("DestinationCidrBlock"))
+	}
+	if s.TargetVpcSubnetId == nil {
+		invalidParams.Add(request.NewErrParamRequired("TargetVpcSubnetId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClientVpnEndpointId sets the ClientVpnEndpointId field's value.
+func (s *CreateClientVpnRouteInput) SetClientVpnEndpointId(v string) *CreateClientVpnRouteInput {
+	s.ClientVpnEndpointId = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *CreateClientVpnRouteInput) SetDescription(v string) *CreateClientVpnRouteInput {
+	s.Description = &v
+	return s
+}
+
+// SetDestinationCidrBlock sets the DestinationCidrBlock field's value.
+func (s *CreateClientVpnRouteInput) SetDestinationCidrBlock(v string) *CreateClientVpnRouteInput {
+	s.DestinationCidrBlock = &v
+	return s
+}
+
+// SetDryRun sets the DryRun field's value.
+func (s *CreateClientVpnRouteInput) SetDryRun(v bool) *CreateClientVpnRouteInput {
+	s.DryRun = &v
+	return s
+}
+
+// SetTargetVpcSubnetId sets the TargetVpcSubnetId field's value.
+func (s *CreateClientVpnRouteInput) SetTargetVpcSubnetId(v string) *CreateClientVpnRouteInput {
+	s.TargetVpcSubnetId = &v
+	return s
+}
+
+type CreateClientVpnRouteOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The current state of the route.
+	Status *ClientVpnRouteStatus `locationName:"status" type:"structure"`
+}
+
+// String returns the string representation
+func (s CreateClientVpnRouteOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateClientVpnRouteOutput) GoString() string {
+	return s.String()
+}
+
+// SetStatus sets the Status field's value.
+func (s *CreateClientVpnRouteOutput) SetStatus(v *ClientVpnRouteStatus) *CreateClientVpnRouteOutput {
+	s.Status = v
 	return s
 }
 
@@ -33528,17 +36479,16 @@ type CreatePlacementGroupInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// A name for the placement group. Must be unique within the scope of your account
-	// for the region.
+	// for the Region.
 	//
 	// Constraints: Up to 255 ASCII characters
-	//
-	// GroupName is a required field
-	GroupName *string `locationName:"groupName" type:"string" required:"true"`
+	GroupName *string `locationName:"groupName" type:"string"`
+
+	// The number of partitions. Valid only when Strategy is set to partition.
+	PartitionCount *int64 `type:"integer"`
 
 	// The placement strategy.
-	//
-	// Strategy is a required field
-	Strategy *string `locationName:"strategy" type:"string" required:"true" enum:"PlacementStrategy"`
+	Strategy *string `locationName:"strategy" type:"string" enum:"PlacementStrategy"`
 }
 
 // String returns the string representation
@@ -33551,22 +36501,6 @@ func (s CreatePlacementGroupInput) GoString() string {
 	return s.String()
 }
 
-// Validate inspects the fields of the type to determine if they are valid.
-func (s *CreatePlacementGroupInput) Validate() error {
-	invalidParams := request.ErrInvalidParams{Context: "CreatePlacementGroupInput"}
-	if s.GroupName == nil {
-		invalidParams.Add(request.NewErrParamRequired("GroupName"))
-	}
-	if s.Strategy == nil {
-		invalidParams.Add(request.NewErrParamRequired("Strategy"))
-	}
-
-	if invalidParams.Len() > 0 {
-		return invalidParams
-	}
-	return nil
-}
-
 // SetDryRun sets the DryRun field's value.
 func (s *CreatePlacementGroupInput) SetDryRun(v bool) *CreatePlacementGroupInput {
 	s.DryRun = &v
@@ -33576,6 +36510,12 @@ func (s *CreatePlacementGroupInput) SetDryRun(v bool) *CreatePlacementGroupInput
 // SetGroupName sets the GroupName field's value.
 func (s *CreatePlacementGroupInput) SetGroupName(v string) *CreatePlacementGroupInput {
 	s.GroupName = &v
+	return s
+}
+
+// SetPartitionCount sets the PartitionCount field's value.
+func (s *CreatePlacementGroupInput) SetPartitionCount(v int64) *CreatePlacementGroupInput {
+	s.PartitionCount = &v
 	return s
 }
 
@@ -34331,6 +37271,9 @@ type CreateTagsInput struct {
 
 	// The IDs of one or more resources, separated by spaces.
 	//
+	// Constraints: Up to 1000 resource IDs. We recommend breaking up this request
+	// into smaller batches.
+	//
 	// Resources is a required field
 	Resources []*string `locationName:"ResourceId" type:"list" required:"true"`
 
@@ -34845,7 +37788,7 @@ type CreateVolumeInput struct {
 	Encrypted *bool `locationName:"encrypted" type:"boolean"`
 
 	// The number of I/O operations per second (IOPS) to provision for the volume,
-	// with a maximum ratio of 50 IOPS/GiB. Range is 100 to 64,000IOPS for volumes
+	// with a maximum ratio of 50 IOPS/GiB. Range is 100 to 64,000 IOPS for volumes
 	// in most regions. Maximum IOPS of 64,000 is guaranteed only on Nitro-based
 	// instances (AWSEC2/latest/UserGuide/instance-types.html#ec2-nitro-instances).
 	// Other instance families guarantee performance up to 32,000 IOPS. For more
@@ -36078,6 +39021,175 @@ func (s *CustomerGateway) SetTags(v []*Tag) *CustomerGateway {
 // SetType sets the Type field's value.
 func (s *CustomerGateway) SetType(v string) *CustomerGateway {
 	s.Type = &v
+	return s
+}
+
+type DeleteClientVpnEndpointInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the Client VPN to be deleted.
+	//
+	// ClientVpnEndpointId is a required field
+	ClientVpnEndpointId *string `type:"string" required:"true"`
+
+	// Checks whether you have the required permissions for the action, without
+	// actually making the request, and provides an error response. If you have
+	// the required permissions, the error response is DryRunOperation. Otherwise,
+	// it is UnauthorizedOperation.
+	DryRun *bool `type:"boolean"`
+}
+
+// String returns the string representation
+func (s DeleteClientVpnEndpointInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteClientVpnEndpointInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteClientVpnEndpointInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteClientVpnEndpointInput"}
+	if s.ClientVpnEndpointId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClientVpnEndpointId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClientVpnEndpointId sets the ClientVpnEndpointId field's value.
+func (s *DeleteClientVpnEndpointInput) SetClientVpnEndpointId(v string) *DeleteClientVpnEndpointInput {
+	s.ClientVpnEndpointId = &v
+	return s
+}
+
+// SetDryRun sets the DryRun field's value.
+func (s *DeleteClientVpnEndpointInput) SetDryRun(v bool) *DeleteClientVpnEndpointInput {
+	s.DryRun = &v
+	return s
+}
+
+type DeleteClientVpnEndpointOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The current state of the Client VPN endpoint.
+	Status *ClientVpnEndpointStatus `locationName:"status" type:"structure"`
+}
+
+// String returns the string representation
+func (s DeleteClientVpnEndpointOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteClientVpnEndpointOutput) GoString() string {
+	return s.String()
+}
+
+// SetStatus sets the Status field's value.
+func (s *DeleteClientVpnEndpointOutput) SetStatus(v *ClientVpnEndpointStatus) *DeleteClientVpnEndpointOutput {
+	s.Status = v
+	return s
+}
+
+type DeleteClientVpnRouteInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the Client VPN endpoint from which the route is to be deleted.
+	//
+	// ClientVpnEndpointId is a required field
+	ClientVpnEndpointId *string `type:"string" required:"true"`
+
+	// The IPv4 address range, in CIDR notation, of the route to be deleted.
+	//
+	// DestinationCidrBlock is a required field
+	DestinationCidrBlock *string `type:"string" required:"true"`
+
+	// Checks whether you have the required permissions for the action, without
+	// actually making the request, and provides an error response. If you have
+	// the required permissions, the error response is DryRunOperation. Otherwise,
+	// it is UnauthorizedOperation.
+	DryRun *bool `type:"boolean"`
+
+	// The ID of the target subnet used by the route.
+	TargetVpcSubnetId *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DeleteClientVpnRouteInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteClientVpnRouteInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteClientVpnRouteInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteClientVpnRouteInput"}
+	if s.ClientVpnEndpointId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClientVpnEndpointId"))
+	}
+	if s.DestinationCidrBlock == nil {
+		invalidParams.Add(request.NewErrParamRequired("DestinationCidrBlock"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClientVpnEndpointId sets the ClientVpnEndpointId field's value.
+func (s *DeleteClientVpnRouteInput) SetClientVpnEndpointId(v string) *DeleteClientVpnRouteInput {
+	s.ClientVpnEndpointId = &v
+	return s
+}
+
+// SetDestinationCidrBlock sets the DestinationCidrBlock field's value.
+func (s *DeleteClientVpnRouteInput) SetDestinationCidrBlock(v string) *DeleteClientVpnRouteInput {
+	s.DestinationCidrBlock = &v
+	return s
+}
+
+// SetDryRun sets the DryRun field's value.
+func (s *DeleteClientVpnRouteInput) SetDryRun(v bool) *DeleteClientVpnRouteInput {
+	s.DryRun = &v
+	return s
+}
+
+// SetTargetVpcSubnetId sets the TargetVpcSubnetId field's value.
+func (s *DeleteClientVpnRouteInput) SetTargetVpcSubnetId(v string) *DeleteClientVpnRouteInput {
+	s.TargetVpcSubnetId = &v
+	return s
+}
+
+type DeleteClientVpnRouteOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The current state of the route.
+	Status *ClientVpnRouteStatus `locationName:"status" type:"structure"`
+}
+
+// String returns the string representation
+func (s DeleteClientVpnRouteOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteClientVpnRouteOutput) GoString() string {
+	return s.String()
+}
+
+// SetStatus sets the Status field's value.
+func (s *DeleteClientVpnRouteOutput) SetStatus(v *ClientVpnRouteStatus) *DeleteClientVpnRouteOutput {
+	s.Status = v
 	return s
 }
 
@@ -37860,6 +40972,9 @@ type DeleteTagsInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The IDs of one or more resources, separated by spaces.
+	//
+	// Constraints: Up to 1000 resource IDs. We recommend breaking up this request
+	// into smaller batches.
 	//
 	// Resources is a required field
 	Resources []*string `locationName:"resourceId" type:"list" required:"true"`
@@ -39717,6 +42832,600 @@ func (s *DescribeClassicLinkInstancesOutput) SetInstances(v []*ClassicLinkInstan
 
 // SetNextToken sets the NextToken field's value.
 func (s *DescribeClassicLinkInstancesOutput) SetNextToken(v string) *DescribeClassicLinkInstancesOutput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribeClientVpnAuthorizationRulesInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the Client VPN endpoint.
+	//
+	// ClientVpnEndpointId is a required field
+	ClientVpnEndpointId *string `type:"string" required:"true"`
+
+	// Checks whether you have the required permissions for the action, without
+	// actually making the request, and provides an error response. If you have
+	// the required permissions, the error response is DryRunOperation. Otherwise,
+	// it is UnauthorizedOperation.
+	DryRun *bool `type:"boolean"`
+
+	// One or more filters. Filter names and values are case-sensitive.
+	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
+
+	// The maximum number of results to return for the request in a single page.
+	// The remaining results can be seen by sending another request with the nextToken
+	// value.
+	MaxResults *int64 `min:"5" type:"integer"`
+
+	// The token to retrieve the next page of results.
+	NextToken *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeClientVpnAuthorizationRulesInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeClientVpnAuthorizationRulesInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeClientVpnAuthorizationRulesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeClientVpnAuthorizationRulesInput"}
+	if s.ClientVpnEndpointId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClientVpnEndpointId"))
+	}
+	if s.MaxResults != nil && *s.MaxResults < 5 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 5))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClientVpnEndpointId sets the ClientVpnEndpointId field's value.
+func (s *DescribeClientVpnAuthorizationRulesInput) SetClientVpnEndpointId(v string) *DescribeClientVpnAuthorizationRulesInput {
+	s.ClientVpnEndpointId = &v
+	return s
+}
+
+// SetDryRun sets the DryRun field's value.
+func (s *DescribeClientVpnAuthorizationRulesInput) SetDryRun(v bool) *DescribeClientVpnAuthorizationRulesInput {
+	s.DryRun = &v
+	return s
+}
+
+// SetFilters sets the Filters field's value.
+func (s *DescribeClientVpnAuthorizationRulesInput) SetFilters(v []*Filter) *DescribeClientVpnAuthorizationRulesInput {
+	s.Filters = v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *DescribeClientVpnAuthorizationRulesInput) SetMaxResults(v int64) *DescribeClientVpnAuthorizationRulesInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeClientVpnAuthorizationRulesInput) SetNextToken(v string) *DescribeClientVpnAuthorizationRulesInput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribeClientVpnAuthorizationRulesOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the authorization rules.
+	AuthorizationRules []*AuthorizationRule `locationName:"authorizationRule" locationNameList:"item" type:"list"`
+
+	// The token to use to retrieve the next page of results. This value is null
+	// when there are no more results to return.
+	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeClientVpnAuthorizationRulesOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeClientVpnAuthorizationRulesOutput) GoString() string {
+	return s.String()
+}
+
+// SetAuthorizationRules sets the AuthorizationRules field's value.
+func (s *DescribeClientVpnAuthorizationRulesOutput) SetAuthorizationRules(v []*AuthorizationRule) *DescribeClientVpnAuthorizationRulesOutput {
+	s.AuthorizationRules = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeClientVpnAuthorizationRulesOutput) SetNextToken(v string) *DescribeClientVpnAuthorizationRulesOutput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribeClientVpnConnectionsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the Client VPN endpoint.
+	//
+	// ClientVpnEndpointId is a required field
+	ClientVpnEndpointId *string `type:"string" required:"true"`
+
+	// Checks whether you have the required permissions for the action, without
+	// actually making the request, and provides an error response. If you have
+	// the required permissions, the error response is DryRunOperation. Otherwise,
+	// it is UnauthorizedOperation.
+	DryRun *bool `type:"boolean"`
+
+	// One or more filters. Filter names and values are case-sensitive.
+	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
+
+	// The maximum number of results to return for the request in a single page.
+	// The remaining results can be seen by sending another request with the nextToken
+	// value.
+	MaxResults *int64 `min:"5" type:"integer"`
+
+	// The token to retrieve the next page of results.
+	NextToken *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeClientVpnConnectionsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeClientVpnConnectionsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeClientVpnConnectionsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeClientVpnConnectionsInput"}
+	if s.ClientVpnEndpointId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClientVpnEndpointId"))
+	}
+	if s.MaxResults != nil && *s.MaxResults < 5 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 5))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClientVpnEndpointId sets the ClientVpnEndpointId field's value.
+func (s *DescribeClientVpnConnectionsInput) SetClientVpnEndpointId(v string) *DescribeClientVpnConnectionsInput {
+	s.ClientVpnEndpointId = &v
+	return s
+}
+
+// SetDryRun sets the DryRun field's value.
+func (s *DescribeClientVpnConnectionsInput) SetDryRun(v bool) *DescribeClientVpnConnectionsInput {
+	s.DryRun = &v
+	return s
+}
+
+// SetFilters sets the Filters field's value.
+func (s *DescribeClientVpnConnectionsInput) SetFilters(v []*Filter) *DescribeClientVpnConnectionsInput {
+	s.Filters = v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *DescribeClientVpnConnectionsInput) SetMaxResults(v int64) *DescribeClientVpnConnectionsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeClientVpnConnectionsInput) SetNextToken(v string) *DescribeClientVpnConnectionsInput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribeClientVpnConnectionsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the active and terminated client connections.
+	Connections []*ClientVpnConnection `locationName:"connections" locationNameList:"item" type:"list"`
+
+	// The token to use to retrieve the next page of results. This value is null
+	// when there are no more results to return.
+	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeClientVpnConnectionsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeClientVpnConnectionsOutput) GoString() string {
+	return s.String()
+}
+
+// SetConnections sets the Connections field's value.
+func (s *DescribeClientVpnConnectionsOutput) SetConnections(v []*ClientVpnConnection) *DescribeClientVpnConnectionsOutput {
+	s.Connections = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeClientVpnConnectionsOutput) SetNextToken(v string) *DescribeClientVpnConnectionsOutput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribeClientVpnEndpointsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the Client VPN endpoint.
+	ClientVpnEndpointIds []*string `locationName:"ClientVpnEndpointId" locationNameList:"item" type:"list"`
+
+	// Checks whether you have the required permissions for the action, without
+	// actually making the request, and provides an error response. If you have
+	// the required permissions, the error response is DryRunOperation. Otherwise,
+	// it is UnauthorizedOperation.
+	DryRun *bool `type:"boolean"`
+
+	// One or more filters. Filter names and values are case-sensitive.
+	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
+
+	// The maximum number of results to return for the request in a single page.
+	// The remaining results can be seen by sending another request with the nextToken
+	// value.
+	MaxResults *int64 `min:"5" type:"integer"`
+
+	// The token to retrieve the next page of results.
+	NextToken *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeClientVpnEndpointsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeClientVpnEndpointsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeClientVpnEndpointsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeClientVpnEndpointsInput"}
+	if s.MaxResults != nil && *s.MaxResults < 5 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 5))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClientVpnEndpointIds sets the ClientVpnEndpointIds field's value.
+func (s *DescribeClientVpnEndpointsInput) SetClientVpnEndpointIds(v []*string) *DescribeClientVpnEndpointsInput {
+	s.ClientVpnEndpointIds = v
+	return s
+}
+
+// SetDryRun sets the DryRun field's value.
+func (s *DescribeClientVpnEndpointsInput) SetDryRun(v bool) *DescribeClientVpnEndpointsInput {
+	s.DryRun = &v
+	return s
+}
+
+// SetFilters sets the Filters field's value.
+func (s *DescribeClientVpnEndpointsInput) SetFilters(v []*Filter) *DescribeClientVpnEndpointsInput {
+	s.Filters = v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *DescribeClientVpnEndpointsInput) SetMaxResults(v int64) *DescribeClientVpnEndpointsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeClientVpnEndpointsInput) SetNextToken(v string) *DescribeClientVpnEndpointsInput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribeClientVpnEndpointsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the Client VPN endpoints.
+	ClientVpnEndpoints []*ClientVpnEndpoint `locationName:"clientVpnEndpoint" locationNameList:"item" type:"list"`
+
+	// The token to use to retrieve the next page of results. This value is null
+	// when there are no more results to return.
+	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeClientVpnEndpointsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeClientVpnEndpointsOutput) GoString() string {
+	return s.String()
+}
+
+// SetClientVpnEndpoints sets the ClientVpnEndpoints field's value.
+func (s *DescribeClientVpnEndpointsOutput) SetClientVpnEndpoints(v []*ClientVpnEndpoint) *DescribeClientVpnEndpointsOutput {
+	s.ClientVpnEndpoints = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeClientVpnEndpointsOutput) SetNextToken(v string) *DescribeClientVpnEndpointsOutput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribeClientVpnRoutesInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the Client VPN endpoint.
+	//
+	// ClientVpnEndpointId is a required field
+	ClientVpnEndpointId *string `type:"string" required:"true"`
+
+	// Checks whether you have the required permissions for the action, without
+	// actually making the request, and provides an error response. If you have
+	// the required permissions, the error response is DryRunOperation. Otherwise,
+	// it is UnauthorizedOperation.
+	DryRun *bool `type:"boolean"`
+
+	// One or more filters. Filter names and values are case-sensitive.
+	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
+
+	// The maximum number of results to return for the request in a single page.
+	// The remaining results can be seen by sending another request with the nextToken
+	// value.
+	MaxResults *int64 `min:"5" type:"integer"`
+
+	// The token to retrieve the next page of results.
+	NextToken *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeClientVpnRoutesInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeClientVpnRoutesInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeClientVpnRoutesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeClientVpnRoutesInput"}
+	if s.ClientVpnEndpointId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClientVpnEndpointId"))
+	}
+	if s.MaxResults != nil && *s.MaxResults < 5 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 5))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClientVpnEndpointId sets the ClientVpnEndpointId field's value.
+func (s *DescribeClientVpnRoutesInput) SetClientVpnEndpointId(v string) *DescribeClientVpnRoutesInput {
+	s.ClientVpnEndpointId = &v
+	return s
+}
+
+// SetDryRun sets the DryRun field's value.
+func (s *DescribeClientVpnRoutesInput) SetDryRun(v bool) *DescribeClientVpnRoutesInput {
+	s.DryRun = &v
+	return s
+}
+
+// SetFilters sets the Filters field's value.
+func (s *DescribeClientVpnRoutesInput) SetFilters(v []*Filter) *DescribeClientVpnRoutesInput {
+	s.Filters = v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *DescribeClientVpnRoutesInput) SetMaxResults(v int64) *DescribeClientVpnRoutesInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeClientVpnRoutesInput) SetNextToken(v string) *DescribeClientVpnRoutesInput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribeClientVpnRoutesOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The token to use to retrieve the next page of results. This value is null
+	// when there are no more results to return.
+	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
+
+	// Information about the Client VPN endpoint routes.
+	Routes []*ClientVpnRoute `locationName:"routes" locationNameList:"item" type:"list"`
+}
+
+// String returns the string representation
+func (s DescribeClientVpnRoutesOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeClientVpnRoutesOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeClientVpnRoutesOutput) SetNextToken(v string) *DescribeClientVpnRoutesOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetRoutes sets the Routes field's value.
+func (s *DescribeClientVpnRoutesOutput) SetRoutes(v []*ClientVpnRoute) *DescribeClientVpnRoutesOutput {
+	s.Routes = v
+	return s
+}
+
+type DescribeClientVpnTargetNetworksInput struct {
+	_ struct{} `type:"structure"`
+
+	// The IDs of the target network associations.
+	AssociationIds []*string `locationNameList:"item" type:"list"`
+
+	// The ID of the Client VPN endpoint.
+	//
+	// ClientVpnEndpointId is a required field
+	ClientVpnEndpointId *string `type:"string" required:"true"`
+
+	// Checks whether you have the required permissions for the action, without
+	// actually making the request, and provides an error response. If you have
+	// the required permissions, the error response is DryRunOperation. Otherwise,
+	// it is UnauthorizedOperation.
+	DryRun *bool `type:"boolean"`
+
+	// One or more filters. Filter names and values are case-sensitive.
+	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
+
+	// The maximum number of results to return for the request in a single page.
+	// The remaining results can be seen by sending another request with the nextToken
+	// value.
+	MaxResults *int64 `min:"5" type:"integer"`
+
+	// The token to retrieve the next page of results.
+	NextToken *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeClientVpnTargetNetworksInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeClientVpnTargetNetworksInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeClientVpnTargetNetworksInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeClientVpnTargetNetworksInput"}
+	if s.ClientVpnEndpointId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClientVpnEndpointId"))
+	}
+	if s.MaxResults != nil && *s.MaxResults < 5 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 5))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAssociationIds sets the AssociationIds field's value.
+func (s *DescribeClientVpnTargetNetworksInput) SetAssociationIds(v []*string) *DescribeClientVpnTargetNetworksInput {
+	s.AssociationIds = v
+	return s
+}
+
+// SetClientVpnEndpointId sets the ClientVpnEndpointId field's value.
+func (s *DescribeClientVpnTargetNetworksInput) SetClientVpnEndpointId(v string) *DescribeClientVpnTargetNetworksInput {
+	s.ClientVpnEndpointId = &v
+	return s
+}
+
+// SetDryRun sets the DryRun field's value.
+func (s *DescribeClientVpnTargetNetworksInput) SetDryRun(v bool) *DescribeClientVpnTargetNetworksInput {
+	s.DryRun = &v
+	return s
+}
+
+// SetFilters sets the Filters field's value.
+func (s *DescribeClientVpnTargetNetworksInput) SetFilters(v []*Filter) *DescribeClientVpnTargetNetworksInput {
+	s.Filters = v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *DescribeClientVpnTargetNetworksInput) SetMaxResults(v int64) *DescribeClientVpnTargetNetworksInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeClientVpnTargetNetworksInput) SetNextToken(v string) *DescribeClientVpnTargetNetworksInput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribeClientVpnTargetNetworksOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the associated target networks.
+	ClientVpnTargetNetworks []*TargetNetwork `locationName:"clientVpnTargetNetworks" locationNameList:"item" type:"list"`
+
+	// The token to use to retrieve the next page of results. This value is null
+	// when there are no more results to return.
+	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeClientVpnTargetNetworksOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeClientVpnTargetNetworksOutput) GoString() string {
+	return s.String()
+}
+
+// SetClientVpnTargetNetworks sets the ClientVpnTargetNetworks field's value.
+func (s *DescribeClientVpnTargetNetworksOutput) SetClientVpnTargetNetworks(v []*TargetNetwork) *DescribeClientVpnTargetNetworksOutput {
+	s.ClientVpnTargetNetworks = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeClientVpnTargetNetworksOutput) SetNextToken(v string) *DescribeClientVpnTargetNetworksOutput {
 	s.NextToken = &v
 	return s
 }
@@ -42811,6 +46520,9 @@ type DescribeInstancesInput struct {
 	//
 	//    * placement-group-name - The name of the placement group for the instance.
 	//
+	//    * placement-partition-number - The partition in which the instance is
+	//    located.
+	//
 	//    * platform - The platform. Use windows if you have Windows instances;
 	//    otherwise, leave blank.
 	//
@@ -44178,7 +47890,7 @@ type DescribePlacementGroupsInput struct {
 	//    * state - The state of the placement group (pending | available | deleting
 	//    | deleted).
 	//
-	//    * strategy - The strategy of the placement group (cluster | spread).
+	//    * strategy - The strategy of the placement group (cluster | spread | partition).
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
 	// One or more placement group names.
@@ -46268,18 +49980,14 @@ type DescribeSpotFleetInstancesOutput struct {
 
 	// The running instances. This list is refreshed periodically and might be out
 	// of date.
-	//
-	// ActiveInstances is a required field
-	ActiveInstances []*ActiveInstance `locationName:"activeInstanceSet" locationNameList:"item" type:"list" required:"true"`
+	ActiveInstances []*ActiveInstance `locationName:"activeInstanceSet" locationNameList:"item" type:"list"`
 
 	// The token required to retrieve the next set of results. This value is null
 	// when there are no more results to return.
 	NextToken *string `locationName:"nextToken" type:"string"`
 
 	// The ID of the Spot Fleet request.
-	//
-	// SpotFleetRequestId is a required field
-	SpotFleetRequestId *string `locationName:"spotFleetRequestId" type:"string" required:"true"`
+	SpotFleetRequestId *string `locationName:"spotFleetRequestId" type:"string"`
 }
 
 // String returns the string representation
@@ -46409,31 +50117,23 @@ type DescribeSpotFleetRequestHistoryOutput struct {
 	_ struct{} `type:"structure"`
 
 	// Information about the events in the history of the Spot Fleet request.
-	//
-	// HistoryRecords is a required field
-	HistoryRecords []*HistoryRecord `locationName:"historyRecordSet" locationNameList:"item" type:"list" required:"true"`
+	HistoryRecords []*HistoryRecord `locationName:"historyRecordSet" locationNameList:"item" type:"list"`
 
 	// The last date and time for the events, in UTC format (for example, YYYY-MM-DDTHH:MM:SSZ).
 	// All records up to this time were retrieved.
 	//
 	// If nextToken indicates that there are more results, this value is not present.
-	//
-	// LastEvaluatedTime is a required field
-	LastEvaluatedTime *time.Time `locationName:"lastEvaluatedTime" type:"timestamp" required:"true"`
+	LastEvaluatedTime *time.Time `locationName:"lastEvaluatedTime" type:"timestamp"`
 
 	// The token required to retrieve the next set of results. This value is null
 	// when there are no more results to return.
 	NextToken *string `locationName:"nextToken" type:"string"`
 
 	// The ID of the Spot Fleet request.
-	//
-	// SpotFleetRequestId is a required field
-	SpotFleetRequestId *string `locationName:"spotFleetRequestId" type:"string" required:"true"`
+	SpotFleetRequestId *string `locationName:"spotFleetRequestId" type:"string"`
 
 	// The starting date and time for the events, in UTC format (for example, YYYY-MM-DDTHH:MM:SSZ).
-	//
-	// StartTime is a required field
-	StartTime *time.Time `locationName:"startTime" type:"timestamp" required:"true"`
+	StartTime *time.Time `locationName:"startTime" type:"timestamp"`
 }
 
 // String returns the string representation
@@ -46541,9 +50241,7 @@ type DescribeSpotFleetRequestsOutput struct {
 	NextToken *string `locationName:"nextToken" type:"string"`
 
 	// Information about the configuration of your Spot Fleet.
-	//
-	// SpotFleetRequestConfigs is a required field
-	SpotFleetRequestConfigs []*SpotFleetRequestConfig `locationName:"spotFleetRequestConfigSet" locationNameList:"item" type:"list" required:"true"`
+	SpotFleetRequestConfigs []*SpotFleetRequestConfig `locationName:"spotFleetRequestConfigSet" locationNameList:"item" type:"list"`
 }
 
 // String returns the string representation
@@ -46686,6 +50384,15 @@ type DescribeSpotInstanceRequestsInput struct {
 	//    * valid-until - The end date of the request.
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
+	// The maximum number of results to return in a single call. Specify a value
+	// between 5 and 1000. To retrieve the remaining results, make another call
+	// with the returned NextToken value.
+	MaxResults *int64 `type:"integer"`
+
+	// The token to request the next set of results. This value is null when there
+	// are no more results to return.
+	NextToken *string `type:"string"`
+
 	// One or more Spot Instance request IDs.
 	SpotInstanceRequestIds []*string `locationName:"SpotInstanceRequestId" locationNameList:"SpotInstanceRequestId" type:"list"`
 }
@@ -46712,6 +50419,18 @@ func (s *DescribeSpotInstanceRequestsInput) SetFilters(v []*Filter) *DescribeSpo
 	return s
 }
 
+// SetMaxResults sets the MaxResults field's value.
+func (s *DescribeSpotInstanceRequestsInput) SetMaxResults(v int64) *DescribeSpotInstanceRequestsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeSpotInstanceRequestsInput) SetNextToken(v string) *DescribeSpotInstanceRequestsInput {
+	s.NextToken = &v
+	return s
+}
+
 // SetSpotInstanceRequestIds sets the SpotInstanceRequestIds field's value.
 func (s *DescribeSpotInstanceRequestsInput) SetSpotInstanceRequestIds(v []*string) *DescribeSpotInstanceRequestsInput {
 	s.SpotInstanceRequestIds = v
@@ -46721,6 +50440,10 @@ func (s *DescribeSpotInstanceRequestsInput) SetSpotInstanceRequestIds(v []*strin
 // Contains the output of DescribeSpotInstanceRequests.
 type DescribeSpotInstanceRequestsOutput struct {
 	_ struct{} `type:"structure"`
+
+	// The token to use to retrieve the next set of results. This value is null
+	// when there are no more results to return.
+	NextToken *string `locationName:"nextToken" type:"string"`
 
 	// One or more Spot Instance requests.
 	SpotInstanceRequests []*SpotInstanceRequest `locationName:"spotInstanceRequestSet" locationNameList:"item" type:"list"`
@@ -46734,6 +50457,12 @@ func (s DescribeSpotInstanceRequestsOutput) String() string {
 // GoString returns the string representation
 func (s DescribeSpotInstanceRequestsOutput) GoString() string {
 	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeSpotInstanceRequestsOutput) SetNextToken(v string) *DescribeSpotInstanceRequestsOutput {
+	s.NextToken = &v
+	return s
 }
 
 // SetSpotInstanceRequests sets the SpotInstanceRequests field's value.
@@ -47234,15 +50963,15 @@ type DescribeTransitGatewayAttachmentsInput struct {
 
 	// One or more filters. The possible values are:
 	//
-	//    * association-id - The ID of the association.
+	//    * association.transit-gateway-route-table-id - The ID of the route table
+	//    for the transit gateway.
 	//
-	//    * association-route-table-id - The ID of the route table for the transit
-	//    gateway.
-	//
-	//    * associate-state - The state of the association (associating | associated
+	//    * association.state - The state of the association (associating | associated
 	//    | disassociating).
 	//
 	//    * resource-id - The ID of the resource.
+	//
+	//    * resource-owner - The ID of the AWS account that owns the resource.
 	//
 	//    * resource-type - The resource type (vpc | vpn).
 	//
@@ -47371,13 +51100,13 @@ type DescribeTransitGatewayRouteTablesInput struct {
 	//    * default-propagation-route-table - Indicates whether this is the default
 	//    propagation route table for the transit gateway (true | false).
 	//
+	//    * state - The state of the attachment (pendingAcceptance | pending | available
+	//    | modifying | deleting | deleted | failed | rejected).
+	//
 	//    * transit-gateway-id - The ID of the transit gateway.
 	//
 	//    * transit-gateway-route-table-id - The ID of the transit gateway route
 	//    table.
-	//
-	//    * transit-gateway-route-table-state - The state (pending | available |
-	//    deleting | deleted).
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
 	// The maximum number of results to return with a single call. To retrieve the
@@ -47488,10 +51217,10 @@ type DescribeTransitGatewayVpcAttachmentsInput struct {
 
 	// One or more filters. The possible values are:
 	//
-	//    * transit-gateway-attachment-id - The ID of the attachment.
+	//    * state - The state of the attachment (pendingAcceptance | pending | available
+	//    | modifying | deleting | deleted | failed | rejected).
 	//
-	//    * transit-gateway-attachment-state - The state of the attachment (pendingAcceptance
-	//    | pending | available | modifying | deleting | deleted | failed | rejected).
+	//    * transit-gateway-attachment-id - The ID of the attachment.
 	//
 	//    * transit-gateway-id - The ID of the transit gateway.
 	//
@@ -47606,23 +51335,36 @@ type DescribeTransitGatewaysInput struct {
 
 	// One or more filters. The possible values are:
 	//
-	//    * amazon-side-asn - The private ASN for the Amazon side of a BGP session.
+	//    * owner-id - The ID of the AWS account that owns the transit gateway.
 	//
-	//    * association-default-route-table-id - The ID of the default association
+	//    * options.propagation-default-route-table-id - The ID of the default propagation
 	//    route table.
 	//
-	//    * default-route-table-association - Indicates whether resource attachments
-	//    are automatically associated with the default association route table
-	//    (enable | disable).
+	//    * options.amazon-side-asn - The private ASN for the Amazon side of a BGP
+	//    session.
 	//
-	//    * default-route-table-propagation - Indicates whether resource attachments
-	//    automatically propagate routes to the default propagation route table
-	//    (enable | disable).
-	//
-	//    * owner-account-id - The ID of the AWS account that owns the transit gateway.
-	//
-	//    * propagation-default-route-table-id - The ID of the default propagation
+	//    * options.association-default-route-table-id - The ID of the default association
 	//    route table.
+	//
+	//    * options.auto-accept-shared-attachments - Indicates whether there is
+	//    automatic acceptance of attachment requests (enable | disable).
+	//
+	//    * options.default-route-table-association - Indicates whether resource
+	//    attachments are automatically associated with the default association
+	//    route table (enable | disable).
+	//
+	//    * options.default-route-table-propagation - Indicates whether resource
+	//    attachments automatically propagate routes to the default propagation
+	//    route table (enable | disable).
+	//
+	//    * options.dns-support - Indicates whether DNS support is enabled (enable
+	//    | disable).
+	//
+	//    * options.vpn-ecmp-support - Indicates whether Equal Cost Multipath Protocol
+	//    support is enabled (enable | disable).
+	//
+	//    * state - The state of the attachment (pendingAcceptance | pending | available
+	//    | modifying | deleting | deleted | failed | rejected).
 	//
 	//    * transit-gateway-id - The ID of the transit gateway.
 	//
@@ -50070,6 +53812,54 @@ func (s *DhcpOptions) SetTags(v []*Tag) *DhcpOptions {
 	return s
 }
 
+// Describes an Active Directory.
+type DirectoryServiceAuthentication struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the Active Directory used for authentication.
+	DirectoryId *string `locationName:"directoryId" type:"string"`
+}
+
+// String returns the string representation
+func (s DirectoryServiceAuthentication) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DirectoryServiceAuthentication) GoString() string {
+	return s.String()
+}
+
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *DirectoryServiceAuthentication) SetDirectoryId(v string) *DirectoryServiceAuthentication {
+	s.DirectoryId = &v
+	return s
+}
+
+// Describes the Active Directory to be used for client authentication.
+type DirectoryServiceAuthenticationRequest struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the Active Directory to be used for authentication.
+	DirectoryId *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DirectoryServiceAuthenticationRequest) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DirectoryServiceAuthenticationRequest) GoString() string {
+	return s.String()
+}
+
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *DirectoryServiceAuthenticationRequest) SetDirectoryId(v string) *DirectoryServiceAuthenticationRequest {
+	s.DirectoryId = &v
+	return s
+}
+
 type DisableTransitGatewayRouteTablePropagationInput struct {
 	_ struct{} `type:"structure"`
 
@@ -50399,6 +54189,102 @@ func (s DisassociateAddressOutput) String() string {
 // GoString returns the string representation
 func (s DisassociateAddressOutput) GoString() string {
 	return s.String()
+}
+
+type DisassociateClientVpnTargetNetworkInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the target network association.
+	//
+	// AssociationId is a required field
+	AssociationId *string `type:"string" required:"true"`
+
+	// The ID of the Client VPN endpoint from which to disassociate the target network.
+	//
+	// ClientVpnEndpointId is a required field
+	ClientVpnEndpointId *string `type:"string" required:"true"`
+
+	// Checks whether you have the required permissions for the action, without
+	// actually making the request, and provides an error response. If you have
+	// the required permissions, the error response is DryRunOperation. Otherwise,
+	// it is UnauthorizedOperation.
+	DryRun *bool `type:"boolean"`
+}
+
+// String returns the string representation
+func (s DisassociateClientVpnTargetNetworkInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DisassociateClientVpnTargetNetworkInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DisassociateClientVpnTargetNetworkInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DisassociateClientVpnTargetNetworkInput"}
+	if s.AssociationId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AssociationId"))
+	}
+	if s.ClientVpnEndpointId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClientVpnEndpointId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAssociationId sets the AssociationId field's value.
+func (s *DisassociateClientVpnTargetNetworkInput) SetAssociationId(v string) *DisassociateClientVpnTargetNetworkInput {
+	s.AssociationId = &v
+	return s
+}
+
+// SetClientVpnEndpointId sets the ClientVpnEndpointId field's value.
+func (s *DisassociateClientVpnTargetNetworkInput) SetClientVpnEndpointId(v string) *DisassociateClientVpnTargetNetworkInput {
+	s.ClientVpnEndpointId = &v
+	return s
+}
+
+// SetDryRun sets the DryRun field's value.
+func (s *DisassociateClientVpnTargetNetworkInput) SetDryRun(v bool) *DisassociateClientVpnTargetNetworkInput {
+	s.DryRun = &v
+	return s
+}
+
+type DisassociateClientVpnTargetNetworkOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the target network association.
+	AssociationId *string `locationName:"associationId" type:"string"`
+
+	// The current state of the target network association.
+	Status *AssociationStatus `locationName:"status" type:"structure"`
+}
+
+// String returns the string representation
+func (s DisassociateClientVpnTargetNetworkOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DisassociateClientVpnTargetNetworkOutput) GoString() string {
+	return s.String()
+}
+
+// SetAssociationId sets the AssociationId field's value.
+func (s *DisassociateClientVpnTargetNetworkOutput) SetAssociationId(v string) *DisassociateClientVpnTargetNetworkOutput {
+	s.AssociationId = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *DisassociateClientVpnTargetNetworkOutput) SetStatus(v *AssociationStatus) *DisassociateClientVpnTargetNetworkOutput {
+	s.Status = v
+	return s
 }
 
 type DisassociateIamInstanceProfileInput struct {
@@ -51023,6 +54909,42 @@ func (s *DnsEntry) SetHostedZoneId(v string) *DnsEntry {
 	return s
 }
 
+// Information about the DNS server to be used.
+type DnsServersOptionsModifyStructure struct {
+	_ struct{} `type:"structure"`
+
+	// The IPv4 address range, in CIDR notation, of the DNS servers to be used.
+	// You can specify up to two DNS servers. Ensure that the DNS servers can be
+	// reached by the clients. The specified values overwrite the existing values.
+	CustomDnsServers []*string `locationNameList:"item" type:"list"`
+
+	// Indicates whether DNS servers should be used. Specify False to delete the
+	// existing DNS servers.
+	Enabled *bool `type:"boolean"`
+}
+
+// String returns the string representation
+func (s DnsServersOptionsModifyStructure) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DnsServersOptionsModifyStructure) GoString() string {
+	return s.String()
+}
+
+// SetCustomDnsServers sets the CustomDnsServers field's value.
+func (s *DnsServersOptionsModifyStructure) SetCustomDnsServers(v []*string) *DnsServersOptionsModifyStructure {
+	s.CustomDnsServers = v
+	return s
+}
+
+// SetEnabled sets the Enabled field's value.
+func (s *DnsServersOptionsModifyStructure) SetEnabled(v bool) *DnsServersOptionsModifyStructure {
+	s.Enabled = &v
+	return s
+}
+
 // Describes a block device for an EBS volume.
 type EbsBlockDevice struct {
 	_ struct{} `type:"structure"`
@@ -51049,8 +54971,8 @@ type EbsBlockDevice struct {
 	// and bursting, see Amazon EBS Volume Types (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumeTypes.html)
 	// in the Amazon Elastic Compute Cloud User Guide.
 	//
-	// Constraints: Range is 100-10,000 IOPS for gp2 volumes and 100 to 64,000IOPS
-	// for io1 volumes in most regions. Maximum io1IOPS of 64,000 is guaranteed
+	// Constraints: Range is 100-16,000 IOPS for gp2 volumes and 100 to 64,000IOPS
+	// for io1 volumes in most Regions. Maximum io1IOPS of 64,000 is guaranteed
 	// only on Nitro-based instances (AWSEC2/latest/UserGuide/instance-types.html#ec2-nitro-instances).
 	// Other instance families guarantee performance up to 32,000 IOPS. For more
 	// information, see Amazon EBS Volume Types (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumeTypes.html)
@@ -51998,6 +55920,161 @@ func (s *EventInformation) SetEventSubType(v string) *EventInformation {
 // SetInstanceId sets the InstanceId field's value.
 func (s *EventInformation) SetInstanceId(v string) *EventInformation {
 	s.InstanceId = &v
+	return s
+}
+
+type ExportClientVpnClientCertificateRevocationListInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the Client VPN endpoint.
+	//
+	// ClientVpnEndpointId is a required field
+	ClientVpnEndpointId *string `type:"string" required:"true"`
+
+	// Checks whether you have the required permissions for the action, without
+	// actually making the request, and provides an error response. If you have
+	// the required permissions, the error response is DryRunOperation. Otherwise,
+	// it is UnauthorizedOperation.
+	DryRun *bool `type:"boolean"`
+}
+
+// String returns the string representation
+func (s ExportClientVpnClientCertificateRevocationListInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ExportClientVpnClientCertificateRevocationListInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ExportClientVpnClientCertificateRevocationListInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ExportClientVpnClientCertificateRevocationListInput"}
+	if s.ClientVpnEndpointId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClientVpnEndpointId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClientVpnEndpointId sets the ClientVpnEndpointId field's value.
+func (s *ExportClientVpnClientCertificateRevocationListInput) SetClientVpnEndpointId(v string) *ExportClientVpnClientCertificateRevocationListInput {
+	s.ClientVpnEndpointId = &v
+	return s
+}
+
+// SetDryRun sets the DryRun field's value.
+func (s *ExportClientVpnClientCertificateRevocationListInput) SetDryRun(v bool) *ExportClientVpnClientCertificateRevocationListInput {
+	s.DryRun = &v
+	return s
+}
+
+type ExportClientVpnClientCertificateRevocationListOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the client certificate revocation list.
+	CertificateRevocationList *string `locationName:"certificateRevocationList" type:"string"`
+
+	// The current state of the client certificate revocation list.
+	Status *ClientCertificateRevocationListStatus `locationName:"status" type:"structure"`
+}
+
+// String returns the string representation
+func (s ExportClientVpnClientCertificateRevocationListOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ExportClientVpnClientCertificateRevocationListOutput) GoString() string {
+	return s.String()
+}
+
+// SetCertificateRevocationList sets the CertificateRevocationList field's value.
+func (s *ExportClientVpnClientCertificateRevocationListOutput) SetCertificateRevocationList(v string) *ExportClientVpnClientCertificateRevocationListOutput {
+	s.CertificateRevocationList = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *ExportClientVpnClientCertificateRevocationListOutput) SetStatus(v *ClientCertificateRevocationListStatus) *ExportClientVpnClientCertificateRevocationListOutput {
+	s.Status = v
+	return s
+}
+
+type ExportClientVpnClientConfigurationInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the Client VPN endpoint.
+	//
+	// ClientVpnEndpointId is a required field
+	ClientVpnEndpointId *string `type:"string" required:"true"`
+
+	// Checks whether you have the required permissions for the action, without
+	// actually making the request, and provides an error response. If you have
+	// the required permissions, the error response is DryRunOperation. Otherwise,
+	// it is UnauthorizedOperation.
+	DryRun *bool `type:"boolean"`
+}
+
+// String returns the string representation
+func (s ExportClientVpnClientConfigurationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ExportClientVpnClientConfigurationInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ExportClientVpnClientConfigurationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ExportClientVpnClientConfigurationInput"}
+	if s.ClientVpnEndpointId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClientVpnEndpointId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClientVpnEndpointId sets the ClientVpnEndpointId field's value.
+func (s *ExportClientVpnClientConfigurationInput) SetClientVpnEndpointId(v string) *ExportClientVpnClientConfigurationInput {
+	s.ClientVpnEndpointId = &v
+	return s
+}
+
+// SetDryRun sets the DryRun field's value.
+func (s *ExportClientVpnClientConfigurationInput) SetDryRun(v bool) *ExportClientVpnClientConfigurationInput {
+	s.DryRun = &v
+	return s
+}
+
+type ExportClientVpnClientConfigurationOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The contents of the Client VPN endpoint configuration file.
+	ClientConfiguration *string `locationName:"clientConfiguration" type:"string"`
+}
+
+// String returns the string representation
+func (s ExportClientVpnClientConfigurationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ExportClientVpnClientConfigurationOutput) GoString() string {
+	return s.String()
+}
+
+// SetClientConfiguration sets the ClientConfiguration field's value.
+func (s *ExportClientVpnClientConfigurationOutput) SetClientConfiguration(v string) *ExportClientVpnClientConfigurationOutput {
+	s.ClientConfiguration = &v
 	return s
 }
 
@@ -54053,8 +58130,6 @@ type GetTransitGatewayRouteTableAssociationsInput struct {
 
 	// One or more filters. The possible values are:
 	//
-	//    * association-id - The ID of the association.
-	//
 	//    * resource-id - The ID of the resource.
 	//
 	//    * resource-type - The resource type (vpc | vpn).
@@ -54381,9 +58456,7 @@ type HistoryRecord struct {
 	_ struct{} `type:"structure"`
 
 	// Information about the event.
-	//
-	// EventInformation is a required field
-	EventInformation *EventInformation `locationName:"eventInformation" type:"structure" required:"true"`
+	EventInformation *EventInformation `locationName:"eventInformation" type:"structure"`
 
 	// The event type.
 	//
@@ -54395,14 +58468,10 @@ type HistoryRecord struct {
 	//    * instanceChange - An instance was launched or terminated.
 	//
 	//    * Information - An informational event.
-	//
-	// EventType is a required field
-	EventType *string `locationName:"eventType" type:"string" required:"true" enum:"EventType"`
+	EventType *string `locationName:"eventType" type:"string" enum:"EventType"`
 
 	// The date and time of the event, in UTC format (for example, YYYY-MM-DDTHH:MM:SSZ).
-	//
-	// Timestamp is a required field
-	Timestamp *time.Time `locationName:"timestamp" type:"timestamp" required:"true"`
+	Timestamp *time.Time `locationName:"timestamp" type:"timestamp"`
 }
 
 // String returns the string representation
@@ -55411,6 +59480,96 @@ func (s *ImageDiskContainer) SetUrl(v string) *ImageDiskContainer {
 // SetUserBucket sets the UserBucket field's value.
 func (s *ImageDiskContainer) SetUserBucket(v *UserBucket) *ImageDiskContainer {
 	s.UserBucket = v
+	return s
+}
+
+type ImportClientVpnClientCertificateRevocationListInput struct {
+	_ struct{} `type:"structure"`
+
+	// The client certificate revocation list file. For more information, see Generate
+	// a Client Certificate Revocation List (vpn/latest/clientvpn-admin/cvpn-working-certificates.html#cvpn-working-certificates-generate)
+	// in the AWS Client VPN Admin Guide.
+	//
+	// CertificateRevocationList is a required field
+	CertificateRevocationList *string `type:"string" required:"true"`
+
+	// The ID of the Client VPN endpoint to which the client certificate revocation
+	// list applies.
+	//
+	// ClientVpnEndpointId is a required field
+	ClientVpnEndpointId *string `type:"string" required:"true"`
+
+	// Checks whether you have the required permissions for the action, without
+	// actually making the request, and provides an error response. If you have
+	// the required permissions, the error response is DryRunOperation. Otherwise,
+	// it is UnauthorizedOperation.
+	DryRun *bool `type:"boolean"`
+}
+
+// String returns the string representation
+func (s ImportClientVpnClientCertificateRevocationListInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ImportClientVpnClientCertificateRevocationListInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ImportClientVpnClientCertificateRevocationListInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ImportClientVpnClientCertificateRevocationListInput"}
+	if s.CertificateRevocationList == nil {
+		invalidParams.Add(request.NewErrParamRequired("CertificateRevocationList"))
+	}
+	if s.ClientVpnEndpointId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClientVpnEndpointId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetCertificateRevocationList sets the CertificateRevocationList field's value.
+func (s *ImportClientVpnClientCertificateRevocationListInput) SetCertificateRevocationList(v string) *ImportClientVpnClientCertificateRevocationListInput {
+	s.CertificateRevocationList = &v
+	return s
+}
+
+// SetClientVpnEndpointId sets the ClientVpnEndpointId field's value.
+func (s *ImportClientVpnClientCertificateRevocationListInput) SetClientVpnEndpointId(v string) *ImportClientVpnClientCertificateRevocationListInput {
+	s.ClientVpnEndpointId = &v
+	return s
+}
+
+// SetDryRun sets the DryRun field's value.
+func (s *ImportClientVpnClientCertificateRevocationListInput) SetDryRun(v bool) *ImportClientVpnClientCertificateRevocationListInput {
+	s.DryRun = &v
+	return s
+}
+
+type ImportClientVpnClientCertificateRevocationListOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Returns true if the request succeeds; otherwise, it returns an error.
+	Return *bool `locationName:"return" type:"boolean"`
+}
+
+// String returns the string representation
+func (s ImportClientVpnClientCertificateRevocationListOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ImportClientVpnClientCertificateRevocationListOutput) GoString() string {
+	return s.String()
+}
+
+// SetReturn sets the Return field's value.
+func (s *ImportClientVpnClientCertificateRevocationListOutput) SetReturn(v bool) *ImportClientVpnClientCertificateRevocationListOutput {
+	s.Return = &v
 	return s
 }
 
@@ -60853,6 +65012,128 @@ func (s *ModifyCapacityReservationOutput) SetReturn(v bool) *ModifyCapacityReser
 	return s
 }
 
+type ModifyClientVpnEndpointInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the Client VPN endpoint to modify.
+	//
+	// ClientVpnEndpointId is a required field
+	ClientVpnEndpointId *string `type:"string" required:"true"`
+
+	// Information about the client connection logging options.
+	//
+	// If you enable client connection logging, data about client connections is
+	// sent to a Cloudwatch Logs log stream. The following information is logged:
+	//
+	//    * Client connection requests
+	//
+	//    * Client connection results (successful and unsuccessful)
+	//
+	//    * Reasons for unsuccessful client connection requests
+	//
+	//    * Client connection termination time
+	ConnectionLogOptions *ConnectionLogOptions `type:"structure"`
+
+	// A brief description of the Client VPN endpoint.
+	Description *string `type:"string"`
+
+	// Information about the DNS servers to be used by Client VPN connections. A
+	// Client VPN endpoint can have up to two DNS servers.
+	DnsServers *DnsServersOptionsModifyStructure `type:"structure"`
+
+	// Checks whether you have the required permissions for the action, without
+	// actually making the request, and provides an error response. If you have
+	// the required permissions, the error response is DryRunOperation. Otherwise,
+	// it is UnauthorizedOperation.
+	DryRun *bool `type:"boolean"`
+
+	// The ARN of the server certificate to be used. The server certificate must
+	// be provisioned in AWS Certificate Manager (ACM).
+	ServerCertificateArn *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ModifyClientVpnEndpointInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ModifyClientVpnEndpointInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ModifyClientVpnEndpointInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ModifyClientVpnEndpointInput"}
+	if s.ClientVpnEndpointId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClientVpnEndpointId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClientVpnEndpointId sets the ClientVpnEndpointId field's value.
+func (s *ModifyClientVpnEndpointInput) SetClientVpnEndpointId(v string) *ModifyClientVpnEndpointInput {
+	s.ClientVpnEndpointId = &v
+	return s
+}
+
+// SetConnectionLogOptions sets the ConnectionLogOptions field's value.
+func (s *ModifyClientVpnEndpointInput) SetConnectionLogOptions(v *ConnectionLogOptions) *ModifyClientVpnEndpointInput {
+	s.ConnectionLogOptions = v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *ModifyClientVpnEndpointInput) SetDescription(v string) *ModifyClientVpnEndpointInput {
+	s.Description = &v
+	return s
+}
+
+// SetDnsServers sets the DnsServers field's value.
+func (s *ModifyClientVpnEndpointInput) SetDnsServers(v *DnsServersOptionsModifyStructure) *ModifyClientVpnEndpointInput {
+	s.DnsServers = v
+	return s
+}
+
+// SetDryRun sets the DryRun field's value.
+func (s *ModifyClientVpnEndpointInput) SetDryRun(v bool) *ModifyClientVpnEndpointInput {
+	s.DryRun = &v
+	return s
+}
+
+// SetServerCertificateArn sets the ServerCertificateArn field's value.
+func (s *ModifyClientVpnEndpointInput) SetServerCertificateArn(v string) *ModifyClientVpnEndpointInput {
+	s.ServerCertificateArn = &v
+	return s
+}
+
+type ModifyClientVpnEndpointOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Returns true if the request succeeds; otherwise, it returns an error.
+	Return *bool `locationName:"return" type:"boolean"`
+}
+
+// String returns the string representation
+func (s ModifyClientVpnEndpointOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ModifyClientVpnEndpointOutput) GoString() string {
+	return s.String()
+}
+
+// SetReturn sets the Return field's value.
+func (s *ModifyClientVpnEndpointOutput) SetReturn(v bool) *ModifyClientVpnEndpointOutput {
+	s.Return = &v
+	return s
+}
+
 type ModifyFleetInput struct {
 	_ struct{} `type:"structure"`
 
@@ -61918,7 +66199,8 @@ type ModifyInstancePlacementInput struct {
 
 	// The name of the placement group in which to place the instance. For spread
 	// placement groups, the instance must have a tenancy of default. For cluster
-	// placement groups, the instance must have a tenancy of default or dedicated.
+	// and partition placement groups, the instance must have a tenancy of default
+	// or dedicated.
 	//
 	// To remove an instance from a placement group, specify an empty string ("").
 	GroupName *string `type:"string"`
@@ -61930,6 +66212,9 @@ type ModifyInstancePlacementInput struct {
 	//
 	// InstanceId is a required field
 	InstanceId *string `locationName:"instanceId" type:"string" required:"true"`
+
+	// Reserved for future use.
+	PartitionNumber *int64 `type:"integer"`
 
 	// The tenancy for the instance.
 	Tenancy *string `locationName:"tenancy" type:"string" enum:"HostTenancy"`
@@ -61979,6 +66264,12 @@ func (s *ModifyInstancePlacementInput) SetHostId(v string) *ModifyInstancePlacem
 // SetInstanceId sets the InstanceId field's value.
 func (s *ModifyInstancePlacementInput) SetInstanceId(v string) *ModifyInstancePlacementInput {
 	s.InstanceId = &v
+	return s
+}
+
+// SetPartitionNumber sets the PartitionNumber field's value.
+func (s *ModifyInstancePlacementInput) SetPartitionNumber(v int64) *ModifyInstancePlacementInput {
+	s.PartitionNumber = &v
 	return s
 }
 
@@ -64840,6 +69131,10 @@ type OnDemandOptions struct {
 	// minimum target capacity is not reached, the fleet launches no instances.
 	MinTargetCapacity *int64 `locationName:"minTargetCapacity" type:"integer"`
 
+	// Indicates that the fleet launches all On-Demand Instances into a single Availability
+	// Zone.
+	SingleAvailabilityZone *bool `locationName:"singleAvailabilityZone" type:"boolean"`
+
 	// Indicates that the fleet uses a single instance type to launch all On-Demand
 	// Instances in the fleet.
 	SingleInstanceType *bool `locationName:"singleInstanceType" type:"boolean"`
@@ -64867,6 +69162,12 @@ func (s *OnDemandOptions) SetMinTargetCapacity(v int64) *OnDemandOptions {
 	return s
 }
 
+// SetSingleAvailabilityZone sets the SingleAvailabilityZone field's value.
+func (s *OnDemandOptions) SetSingleAvailabilityZone(v bool) *OnDemandOptions {
+	s.SingleAvailabilityZone = &v
+	return s
+}
+
 // SetSingleInstanceType sets the SingleInstanceType field's value.
 func (s *OnDemandOptions) SetSingleInstanceType(v bool) *OnDemandOptions {
 	s.SingleInstanceType = &v
@@ -64888,6 +69189,10 @@ type OnDemandOptionsRequest struct {
 	// The minimum target capacity for On-Demand Instances in the fleet. If the
 	// minimum target capacity is not reached, the fleet launches no instances.
 	MinTargetCapacity *int64 `type:"integer"`
+
+	// Indicates that the fleet launches all On-Demand Instances into a single Availability
+	// Zone.
+	SingleAvailabilityZone *bool `type:"boolean"`
 
 	// Indicates that the fleet uses a single instance type to launch all On-Demand
 	// Instances in the fleet.
@@ -64913,6 +69218,12 @@ func (s *OnDemandOptionsRequest) SetAllocationStrategy(v string) *OnDemandOption
 // SetMinTargetCapacity sets the MinTargetCapacity field's value.
 func (s *OnDemandOptionsRequest) SetMinTargetCapacity(v int64) *OnDemandOptionsRequest {
 	s.MinTargetCapacity = &v
+	return s
+}
+
+// SetSingleAvailabilityZone sets the SingleAvailabilityZone field's value.
+func (s *OnDemandOptionsRequest) SetSingleAvailabilityZone(v bool) *OnDemandOptionsRequest {
+	s.SingleAvailabilityZone = &v
 	return s
 }
 
@@ -65082,6 +69393,10 @@ type Placement struct {
 	// is not supported for the ImportInstance command.
 	HostId *string `locationName:"hostId" type:"string"`
 
+	// The number of the partition the instance is in. Valid only if the placement
+	// group strategy is set to partition.
+	PartitionNumber *int64 `locationName:"partitionNumber" type:"integer"`
+
 	// Reserved for future use.
 	SpreadDomain *string `locationName:"spreadDomain" type:"string"`
 
@@ -65125,6 +69440,12 @@ func (s *Placement) SetHostId(v string) *Placement {
 	return s
 }
 
+// SetPartitionNumber sets the PartitionNumber field's value.
+func (s *Placement) SetPartitionNumber(v int64) *Placement {
+	s.PartitionNumber = &v
+	return s
+}
+
 // SetSpreadDomain sets the SpreadDomain field's value.
 func (s *Placement) SetSpreadDomain(v string) *Placement {
 	s.SpreadDomain = &v
@@ -65143,6 +69464,9 @@ type PlacementGroup struct {
 
 	// The name of the placement group.
 	GroupName *string `locationName:"groupName" type:"string"`
+
+	// The number of partitions. Valid only if strategy is set to partition.
+	PartitionCount *int64 `locationName:"partitionCount" type:"integer"`
 
 	// The state of the placement group.
 	State *string `locationName:"state" type:"string" enum:"PlacementGroupState"`
@@ -65164,6 +69488,12 @@ func (s PlacementGroup) GoString() string {
 // SetGroupName sets the GroupName field's value.
 func (s *PlacementGroup) SetGroupName(v string) *PlacementGroup {
 	s.GroupName = &v
+	return s
+}
+
+// SetPartitionCount sets the PartitionCount field's value.
+func (s *PlacementGroup) SetPartitionCount(v int64) *PlacementGroup {
+	s.PartitionCount = &v
 	return s
 }
 
@@ -68226,9 +72556,7 @@ type RequestSpotFleetOutput struct {
 	_ struct{} `type:"structure"`
 
 	// The ID of the Spot Fleet request.
-	//
-	// SpotFleetRequestId is a required field
-	SpotFleetRequestId *string `locationName:"spotFleetRequestId" type:"string" required:"true"`
+	SpotFleetRequestId *string `locationName:"spotFleetRequestId" type:"string"`
 }
 
 // String returns the string representation
@@ -70236,6 +74564,112 @@ func (s *RestoreAddressToClassicOutput) SetPublicIp(v string) *RestoreAddressToC
 // SetStatus sets the Status field's value.
 func (s *RestoreAddressToClassicOutput) SetStatus(v string) *RestoreAddressToClassicOutput {
 	s.Status = &v
+	return s
+}
+
+type RevokeClientVpnIngressInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the Active Directory group for which to revoke access.
+	AccessGroupId *string `type:"string"`
+
+	// The ID of the Client VPN endpoint with which the authorization rule is associated.
+	//
+	// ClientVpnEndpointId is a required field
+	ClientVpnEndpointId *string `type:"string" required:"true"`
+
+	// Checks whether you have the required permissions for the action, without
+	// actually making the request, and provides an error response. If you have
+	// the required permissions, the error response is DryRunOperation. Otherwise,
+	// it is UnauthorizedOperation.
+	DryRun *bool `type:"boolean"`
+
+	// Indicates whether access should be revoked for all clients.
+	RevokeAllGroups *bool `type:"boolean"`
+
+	// The IPv4 address range, in CIDR notation, of the network for which access
+	// is being removed.
+	//
+	// TargetNetworkCidr is a required field
+	TargetNetworkCidr *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s RevokeClientVpnIngressInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RevokeClientVpnIngressInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RevokeClientVpnIngressInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RevokeClientVpnIngressInput"}
+	if s.ClientVpnEndpointId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClientVpnEndpointId"))
+	}
+	if s.TargetNetworkCidr == nil {
+		invalidParams.Add(request.NewErrParamRequired("TargetNetworkCidr"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAccessGroupId sets the AccessGroupId field's value.
+func (s *RevokeClientVpnIngressInput) SetAccessGroupId(v string) *RevokeClientVpnIngressInput {
+	s.AccessGroupId = &v
+	return s
+}
+
+// SetClientVpnEndpointId sets the ClientVpnEndpointId field's value.
+func (s *RevokeClientVpnIngressInput) SetClientVpnEndpointId(v string) *RevokeClientVpnIngressInput {
+	s.ClientVpnEndpointId = &v
+	return s
+}
+
+// SetDryRun sets the DryRun field's value.
+func (s *RevokeClientVpnIngressInput) SetDryRun(v bool) *RevokeClientVpnIngressInput {
+	s.DryRun = &v
+	return s
+}
+
+// SetRevokeAllGroups sets the RevokeAllGroups field's value.
+func (s *RevokeClientVpnIngressInput) SetRevokeAllGroups(v bool) *RevokeClientVpnIngressInput {
+	s.RevokeAllGroups = &v
+	return s
+}
+
+// SetTargetNetworkCidr sets the TargetNetworkCidr field's value.
+func (s *RevokeClientVpnIngressInput) SetTargetNetworkCidr(v string) *RevokeClientVpnIngressInput {
+	s.TargetNetworkCidr = &v
+	return s
+}
+
+type RevokeClientVpnIngressOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The current state of the authorization rule.
+	Status *ClientVpnAuthorizationRuleStatus `locationName:"status" type:"structure"`
+}
+
+// String returns the string representation
+func (s RevokeClientVpnIngressOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RevokeClientVpnIngressOutput) GoString() string {
+	return s.String()
+}
+
+// SetStatus sets the Status field's value.
+func (s *RevokeClientVpnIngressOutput) SetStatus(v *ClientVpnAuthorizationRuleStatus) *RevokeClientVpnIngressOutput {
+	s.Status = v
 	return s
 }
 
@@ -72504,8 +76938,6 @@ type SearchTransitGatewayRoutesInput struct {
 	//
 	//    * transit-gateway-route-type - The route type (static | propagated).
 	//
-	//    * transit-gateway-route-vpn-connection-id - The ID of the VPN connection.
-	//
 	// Filters is a required field
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list" required:"true"`
 
@@ -73334,7 +77766,7 @@ type SnapshotDiskContainer struct {
 
 	// The format of the disk image being imported.
 	//
-	// Valid values: VHD | VMDK | OVA
+	// Valid values: VHD | VMDK
 	Format *string `type:"string"`
 
 	// The URL to the Amazon S3-based disk image being imported. It can either be
@@ -73791,24 +78223,16 @@ type SpotFleetRequestConfig struct {
 	ActivityStatus *string `locationName:"activityStatus" type:"string" enum:"ActivityStatus"`
 
 	// The creation date and time of the request.
-	//
-	// CreateTime is a required field
-	CreateTime *time.Time `locationName:"createTime" type:"timestamp" required:"true"`
+	CreateTime *time.Time `locationName:"createTime" type:"timestamp"`
 
 	// The configuration of the Spot Fleet request.
-	//
-	// SpotFleetRequestConfig is a required field
-	SpotFleetRequestConfig *SpotFleetRequestConfigData `locationName:"spotFleetRequestConfig" type:"structure" required:"true"`
+	SpotFleetRequestConfig *SpotFleetRequestConfigData `locationName:"spotFleetRequestConfig" type:"structure"`
 
 	// The ID of the Spot Fleet request.
-	//
-	// SpotFleetRequestId is a required field
-	SpotFleetRequestId *string `locationName:"spotFleetRequestId" type:"string" required:"true"`
+	SpotFleetRequestId *string `locationName:"spotFleetRequestId" type:"string"`
 
 	// The state of the Spot Fleet request.
-	//
-	// SpotFleetRequestState is a required field
-	SpotFleetRequestState *string `locationName:"spotFleetRequestState" type:"string" required:"true" enum:"BatchState"`
+	SpotFleetRequestState *string `locationName:"spotFleetRequestState" type:"string" enum:"BatchState"`
 }
 
 // String returns the string representation
@@ -73947,9 +78371,10 @@ type SpotFleetRequestConfigData struct {
 	// capacity or also attempts to maintain it. When this value is request, the
 	// Spot Fleet only places the required requests. It does not attempt to replenish
 	// Spot Instances if capacity is diminished, nor does it submit requests in
-	// alternative Spot pools if capacity is not available. To maintain a certain
-	// target capacity, the Spot Fleet places the required requests to meet capacity
-	// and automatically replenishes any interrupted instances. Default: maintain.
+	// alternative Spot pools if capacity is not available. When this value is maintain,
+	// the Spot Fleet maintains the target capacity. The Spot Fleet places the required
+	// requests to meet capacity and automatically replenishes any interrupted instances.
+	// Default: maintain. instant is listed but is not used by Spot Fleet.
 	Type *string `locationName:"type" type:"string" enum:"FleetType"`
 
 	// The start date and time of the request, in UTC format (for example, YYYY-MM-DDTHH:MM:SSZ).
@@ -74523,6 +78948,10 @@ type SpotOptions struct {
 	// target capacity is not reached, the fleet launches no instances.
 	MinTargetCapacity *int64 `locationName:"minTargetCapacity" type:"integer"`
 
+	// Indicates that the fleet launches all Spot Instances into a single Availability
+	// Zone.
+	SingleAvailabilityZone *bool `locationName:"singleAvailabilityZone" type:"boolean"`
+
 	// Indicates that the fleet uses a single instance type to launch all Spot Instances
 	// in the fleet.
 	SingleInstanceType *bool `locationName:"singleInstanceType" type:"boolean"`
@@ -74562,6 +78991,12 @@ func (s *SpotOptions) SetMinTargetCapacity(v int64) *SpotOptions {
 	return s
 }
 
+// SetSingleAvailabilityZone sets the SingleAvailabilityZone field's value.
+func (s *SpotOptions) SetSingleAvailabilityZone(v bool) *SpotOptions {
+	s.SingleAvailabilityZone = &v
+	return s
+}
+
 // SetSingleInstanceType sets the SingleInstanceType field's value.
 func (s *SpotOptions) SetSingleInstanceType(v bool) *SpotOptions {
 	s.SingleInstanceType = &v
@@ -74588,6 +79023,10 @@ type SpotOptionsRequest struct {
 	// The minimum target capacity for Spot Instances in the fleet. If the minimum
 	// target capacity is not reached, the fleet launches no instances.
 	MinTargetCapacity *int64 `type:"integer"`
+
+	// Indicates that the fleet launches all Spot Instances into a single Availability
+	// Zone.
+	SingleAvailabilityZone *bool `type:"boolean"`
 
 	// Indicates that the fleet uses a single instance type to launch all Spot Instances
 	// in the fleet.
@@ -74625,6 +79064,12 @@ func (s *SpotOptionsRequest) SetInstancePoolsToUseCount(v int64) *SpotOptionsReq
 // SetMinTargetCapacity sets the MinTargetCapacity field's value.
 func (s *SpotOptionsRequest) SetMinTargetCapacity(v int64) *SpotOptionsRequest {
 	s.MinTargetCapacity = &v
+	return s
+}
+
+// SetSingleAvailabilityZone sets the SingleAvailabilityZone field's value.
+func (s *SpotOptionsRequest) SetSingleAvailabilityZone(v bool) *SpotOptionsRequest {
+	s.SingleAvailabilityZone = &v
 	return s
 }
 
@@ -75778,9 +80223,7 @@ type TargetGroup struct {
 	_ struct{} `type:"structure"`
 
 	// The Amazon Resource Name (ARN) of the target group.
-	//
-	// Arn is a required field
-	Arn *string `locationName:"arn" type:"string" required:"true"`
+	Arn *string `locationName:"arn" type:"string"`
 }
 
 // String returns the string representation
@@ -75791,19 +80234,6 @@ func (s TargetGroup) String() string {
 // GoString returns the string representation
 func (s TargetGroup) GoString() string {
 	return s.String()
-}
-
-// Validate inspects the fields of the type to determine if they are valid.
-func (s *TargetGroup) Validate() error {
-	invalidParams := request.ErrInvalidParams{Context: "TargetGroup"}
-	if s.Arn == nil {
-		invalidParams.Add(request.NewErrParamRequired("Arn"))
-	}
-
-	if invalidParams.Len() > 0 {
-		return invalidParams
-	}
-	return nil
 }
 
 // SetArn sets the Arn field's value.
@@ -75818,9 +80248,7 @@ type TargetGroupsConfig struct {
 	_ struct{} `type:"structure"`
 
 	// One or more target groups.
-	//
-	// TargetGroups is a required field
-	TargetGroups []*TargetGroup `locationName:"targetGroups" locationNameList:"item" min:"1" type:"list" required:"true"`
+	TargetGroups []*TargetGroup `locationName:"targetGroups" locationNameList:"item" min:"1" type:"list"`
 }
 
 // String returns the string representation
@@ -75836,21 +80264,8 @@ func (s TargetGroupsConfig) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *TargetGroupsConfig) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "TargetGroupsConfig"}
-	if s.TargetGroups == nil {
-		invalidParams.Add(request.NewErrParamRequired("TargetGroups"))
-	}
 	if s.TargetGroups != nil && len(s.TargetGroups) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("TargetGroups", 1))
-	}
-	if s.TargetGroups != nil {
-		for i, v := range s.TargetGroups {
-			if v == nil {
-				continue
-			}
-			if err := v.Validate(); err != nil {
-				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "TargetGroups", i), err.(request.ErrInvalidParams))
-			}
-		}
 	}
 
 	if invalidParams.Len() > 0 {
@@ -75862,6 +80277,75 @@ func (s *TargetGroupsConfig) Validate() error {
 // SetTargetGroups sets the TargetGroups field's value.
 func (s *TargetGroupsConfig) SetTargetGroups(v []*TargetGroup) *TargetGroupsConfig {
 	s.TargetGroups = v
+	return s
+}
+
+// Describes a target network associated with a Client VPN endpoint.
+type TargetNetwork struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the association.
+	AssociationId *string `locationName:"associationId" type:"string"`
+
+	// The ID of the Client VPN endpoint with which the target network is associated.
+	ClientVpnEndpointId *string `locationName:"clientVpnEndpointId" type:"string"`
+
+	// The IDs of the security groups applied to the target network association.
+	SecurityGroups []*string `locationName:"securityGroups" locationNameList:"item" type:"list"`
+
+	// The current state of the target network association.
+	Status *AssociationStatus `locationName:"status" type:"structure"`
+
+	// The ID of the subnet specified as the target network.
+	TargetNetworkId *string `locationName:"targetNetworkId" type:"string"`
+
+	// The ID of the VPC in which the target network (subnet) is located.
+	VpcId *string `locationName:"vpcId" type:"string"`
+}
+
+// String returns the string representation
+func (s TargetNetwork) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TargetNetwork) GoString() string {
+	return s.String()
+}
+
+// SetAssociationId sets the AssociationId field's value.
+func (s *TargetNetwork) SetAssociationId(v string) *TargetNetwork {
+	s.AssociationId = &v
+	return s
+}
+
+// SetClientVpnEndpointId sets the ClientVpnEndpointId field's value.
+func (s *TargetNetwork) SetClientVpnEndpointId(v string) *TargetNetwork {
+	s.ClientVpnEndpointId = &v
+	return s
+}
+
+// SetSecurityGroups sets the SecurityGroups field's value.
+func (s *TargetNetwork) SetSecurityGroups(v []*string) *TargetNetwork {
+	s.SecurityGroups = v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *TargetNetwork) SetStatus(v *AssociationStatus) *TargetNetwork {
+	s.Status = v
+	return s
+}
+
+// SetTargetNetworkId sets the TargetNetworkId field's value.
+func (s *TargetNetwork) SetTargetNetworkId(v string) *TargetNetwork {
+	s.TargetNetworkId = &v
+	return s
+}
+
+// SetVpcId sets the VpcId field's value.
+func (s *TargetNetwork) SetVpcId(v string) *TargetNetwork {
+	s.VpcId = &v
 	return s
 }
 
@@ -75898,6 +80382,159 @@ func (s *TargetReservationValue) SetReservationValue(v *ReservationValue) *Targe
 // SetTargetConfiguration sets the TargetConfiguration field's value.
 func (s *TargetReservationValue) SetTargetConfiguration(v *TargetConfiguration) *TargetReservationValue {
 	s.TargetConfiguration = v
+	return s
+}
+
+type TerminateClientVpnConnectionsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the Client VPN endpoint to which the client is connected.
+	//
+	// ClientVpnEndpointId is a required field
+	ClientVpnEndpointId *string `type:"string" required:"true"`
+
+	// The ID of the client connection to be terminated.
+	ConnectionId *string `type:"string"`
+
+	// Checks whether you have the required permissions for the action, without
+	// actually making the request, and provides an error response. If you have
+	// the required permissions, the error response is DryRunOperation. Otherwise,
+	// it is UnauthorizedOperation.
+	DryRun *bool `type:"boolean"`
+
+	// The name of the user who initiated the connection. Use this option to terminate
+	// all active connections for the specified user. This option can only be used
+	// if the user has established up to five connections.
+	Username *string `type:"string"`
+}
+
+// String returns the string representation
+func (s TerminateClientVpnConnectionsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TerminateClientVpnConnectionsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TerminateClientVpnConnectionsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TerminateClientVpnConnectionsInput"}
+	if s.ClientVpnEndpointId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClientVpnEndpointId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClientVpnEndpointId sets the ClientVpnEndpointId field's value.
+func (s *TerminateClientVpnConnectionsInput) SetClientVpnEndpointId(v string) *TerminateClientVpnConnectionsInput {
+	s.ClientVpnEndpointId = &v
+	return s
+}
+
+// SetConnectionId sets the ConnectionId field's value.
+func (s *TerminateClientVpnConnectionsInput) SetConnectionId(v string) *TerminateClientVpnConnectionsInput {
+	s.ConnectionId = &v
+	return s
+}
+
+// SetDryRun sets the DryRun field's value.
+func (s *TerminateClientVpnConnectionsInput) SetDryRun(v bool) *TerminateClientVpnConnectionsInput {
+	s.DryRun = &v
+	return s
+}
+
+// SetUsername sets the Username field's value.
+func (s *TerminateClientVpnConnectionsInput) SetUsername(v string) *TerminateClientVpnConnectionsInput {
+	s.Username = &v
+	return s
+}
+
+type TerminateClientVpnConnectionsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the Client VPN endpoint.
+	ClientVpnEndpointId *string `locationName:"clientVpnEndpointId" type:"string"`
+
+	// The current state of the client connections.
+	ConnectionStatuses []*TerminateConnectionStatus `locationName:"connectionStatuses" locationNameList:"item" type:"list"`
+
+	// The user who established the terminated client connections.
+	Username *string `locationName:"username" type:"string"`
+}
+
+// String returns the string representation
+func (s TerminateClientVpnConnectionsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TerminateClientVpnConnectionsOutput) GoString() string {
+	return s.String()
+}
+
+// SetClientVpnEndpointId sets the ClientVpnEndpointId field's value.
+func (s *TerminateClientVpnConnectionsOutput) SetClientVpnEndpointId(v string) *TerminateClientVpnConnectionsOutput {
+	s.ClientVpnEndpointId = &v
+	return s
+}
+
+// SetConnectionStatuses sets the ConnectionStatuses field's value.
+func (s *TerminateClientVpnConnectionsOutput) SetConnectionStatuses(v []*TerminateConnectionStatus) *TerminateClientVpnConnectionsOutput {
+	s.ConnectionStatuses = v
+	return s
+}
+
+// SetUsername sets the Username field's value.
+func (s *TerminateClientVpnConnectionsOutput) SetUsername(v string) *TerminateClientVpnConnectionsOutput {
+	s.Username = &v
+	return s
+}
+
+// Information about a terminated Client VPN endpoint client connection.
+type TerminateConnectionStatus struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the client connection.
+	ConnectionId *string `locationName:"connectionId" type:"string"`
+
+	// A message about the status of the client connection, if applicable.
+	CurrentStatus *ClientVpnConnectionStatus `locationName:"currentStatus" type:"structure"`
+
+	// The state of the client connection.
+	PreviousStatus *ClientVpnConnectionStatus `locationName:"previousStatus" type:"structure"`
+}
+
+// String returns the string representation
+func (s TerminateConnectionStatus) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TerminateConnectionStatus) GoString() string {
+	return s.String()
+}
+
+// SetConnectionId sets the ConnectionId field's value.
+func (s *TerminateConnectionStatus) SetConnectionId(v string) *TerminateConnectionStatus {
+	s.ConnectionId = &v
+	return s
+}
+
+// SetCurrentStatus sets the CurrentStatus field's value.
+func (s *TerminateConnectionStatus) SetCurrentStatus(v *ClientVpnConnectionStatus) *TerminateConnectionStatus {
+	s.CurrentStatus = v
+	return s
+}
+
+// SetPreviousStatus sets the PreviousStatus field's value.
+func (s *TerminateConnectionStatus) SetPreviousStatus(v *ClientVpnConnectionStatus) *TerminateConnectionStatus {
+	s.PreviousStatus = v
 	return s
 }
 
@@ -77224,9 +81861,7 @@ type UnsuccessfulItem struct {
 	_ struct{} `type:"structure"`
 
 	// Information about the error.
-	//
-	// Error is a required field
-	Error *UnsuccessfulItemError `locationName:"error" type:"structure" required:"true"`
+	Error *UnsuccessfulItemError `locationName:"error" type:"structure"`
 
 	// The ID of the resource.
 	ResourceId *string `locationName:"resourceId" type:"string"`
@@ -77260,14 +81895,10 @@ type UnsuccessfulItemError struct {
 	_ struct{} `type:"structure"`
 
 	// The error code.
-	//
-	// Code is a required field
-	Code *string `locationName:"code" type:"string" required:"true"`
+	Code *string `locationName:"code" type:"string"`
 
 	// The error message accompanying the error code.
-	//
-	// Message is a required field
-	Message *string `locationName:"message" type:"string" required:"true"`
+	Message *string `locationName:"message" type:"string"`
 }
 
 // String returns the string representation
@@ -77752,7 +82383,7 @@ type Volume struct {
 	// (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumeTypes.html)
 	// in the Amazon Elastic Compute Cloud User Guide.
 	//
-	// Constraints: Range is 100-10,000 IOPS for gp2 volumes and 100 to 64,000IOPS
+	// Constraints: Range is 100-16,000 IOPS for gp2 volumes and 100 to 64,000IOPS
 	// for io1 volumes in most regions. Maximum io1IOPS of 64,000 is guaranteed
 	// only on Nitro-based instances (AWSEC2/latest/UserGuide/instance-types.html#ec2-nitro-instances).
 	// Other instance families guarantee performance up to 32,000 IOPS. For more
@@ -79569,6 +84200,28 @@ const (
 )
 
 const (
+	// AssociatedNetworkTypeVpc is a AssociatedNetworkType enum value
+	AssociatedNetworkTypeVpc = "vpc"
+)
+
+const (
+	// AssociationStatusCodeAssociating is a AssociationStatusCode enum value
+	AssociationStatusCodeAssociating = "associating"
+
+	// AssociationStatusCodeAssociated is a AssociationStatusCode enum value
+	AssociationStatusCodeAssociated = "associated"
+
+	// AssociationStatusCodeAssociationFailed is a AssociationStatusCode enum value
+	AssociationStatusCodeAssociationFailed = "association-failed"
+
+	// AssociationStatusCodeDisassociating is a AssociationStatusCode enum value
+	AssociationStatusCodeDisassociating = "disassociating"
+
+	// AssociationStatusCodeDisassociated is a AssociationStatusCode enum value
+	AssociationStatusCodeDisassociated = "disassociated"
+)
+
+const (
 	// AttachmentStatusAttaching is a AttachmentStatus enum value
 	AttachmentStatusAttaching = "attaching"
 
@@ -79769,6 +84422,78 @@ const (
 
 	// CapacityReservationTenancyDedicated is a CapacityReservationTenancy enum value
 	CapacityReservationTenancyDedicated = "dedicated"
+)
+
+const (
+	// ClientCertificateRevocationListStatusCodePending is a ClientCertificateRevocationListStatusCode enum value
+	ClientCertificateRevocationListStatusCodePending = "pending"
+
+	// ClientCertificateRevocationListStatusCodeActive is a ClientCertificateRevocationListStatusCode enum value
+	ClientCertificateRevocationListStatusCodeActive = "active"
+)
+
+const (
+	// ClientVpnAuthenticationTypeCertificateAuthentication is a ClientVpnAuthenticationType enum value
+	ClientVpnAuthenticationTypeCertificateAuthentication = "certificate-authentication"
+
+	// ClientVpnAuthenticationTypeDirectoryServiceAuthentication is a ClientVpnAuthenticationType enum value
+	ClientVpnAuthenticationTypeDirectoryServiceAuthentication = "directory-service-authentication"
+)
+
+const (
+	// ClientVpnAuthorizationRuleStatusCodeAuthorizing is a ClientVpnAuthorizationRuleStatusCode enum value
+	ClientVpnAuthorizationRuleStatusCodeAuthorizing = "authorizing"
+
+	// ClientVpnAuthorizationRuleStatusCodeActive is a ClientVpnAuthorizationRuleStatusCode enum value
+	ClientVpnAuthorizationRuleStatusCodeActive = "active"
+
+	// ClientVpnAuthorizationRuleStatusCodeFailed is a ClientVpnAuthorizationRuleStatusCode enum value
+	ClientVpnAuthorizationRuleStatusCodeFailed = "failed"
+
+	// ClientVpnAuthorizationRuleStatusCodeRevoking is a ClientVpnAuthorizationRuleStatusCode enum value
+	ClientVpnAuthorizationRuleStatusCodeRevoking = "revoking"
+)
+
+const (
+	// ClientVpnConnectionStatusCodeActive is a ClientVpnConnectionStatusCode enum value
+	ClientVpnConnectionStatusCodeActive = "active"
+
+	// ClientVpnConnectionStatusCodeFailedToTerminate is a ClientVpnConnectionStatusCode enum value
+	ClientVpnConnectionStatusCodeFailedToTerminate = "failed-to-terminate"
+
+	// ClientVpnConnectionStatusCodeTerminating is a ClientVpnConnectionStatusCode enum value
+	ClientVpnConnectionStatusCodeTerminating = "terminating"
+
+	// ClientVpnConnectionStatusCodeTerminated is a ClientVpnConnectionStatusCode enum value
+	ClientVpnConnectionStatusCodeTerminated = "terminated"
+)
+
+const (
+	// ClientVpnEndpointStatusCodePendingAssociate is a ClientVpnEndpointStatusCode enum value
+	ClientVpnEndpointStatusCodePendingAssociate = "pending-associate"
+
+	// ClientVpnEndpointStatusCodeAvailable is a ClientVpnEndpointStatusCode enum value
+	ClientVpnEndpointStatusCodeAvailable = "available"
+
+	// ClientVpnEndpointStatusCodeDeleting is a ClientVpnEndpointStatusCode enum value
+	ClientVpnEndpointStatusCodeDeleting = "deleting"
+
+	// ClientVpnEndpointStatusCodeDeleted is a ClientVpnEndpointStatusCode enum value
+	ClientVpnEndpointStatusCodeDeleted = "deleted"
+)
+
+const (
+	// ClientVpnRouteStatusCodeCreating is a ClientVpnRouteStatusCode enum value
+	ClientVpnRouteStatusCodeCreating = "creating"
+
+	// ClientVpnRouteStatusCodeActive is a ClientVpnRouteStatusCode enum value
+	ClientVpnRouteStatusCodeActive = "active"
+
+	// ClientVpnRouteStatusCodeFailed is a ClientVpnRouteStatusCode enum value
+	ClientVpnRouteStatusCodeFailed = "failed"
+
+	// ClientVpnRouteStatusCodeDeleting is a ClientVpnRouteStatusCode enum value
+	ClientVpnRouteStatusCodeDeleting = "deleting"
 )
 
 const (
@@ -80429,14 +85154,8 @@ const (
 	// InstanceTypeR54xlarge is a InstanceType enum value
 	InstanceTypeR54xlarge = "r5.4xlarge"
 
-	// InstanceTypeR58xlarge is a InstanceType enum value
-	InstanceTypeR58xlarge = "r5.8xlarge"
-
 	// InstanceTypeR512xlarge is a InstanceType enum value
 	InstanceTypeR512xlarge = "r5.12xlarge"
-
-	// InstanceTypeR516xlarge is a InstanceType enum value
-	InstanceTypeR516xlarge = "r5.16xlarge"
 
 	// InstanceTypeR524xlarge is a InstanceType enum value
 	InstanceTypeR524xlarge = "r5.24xlarge"
@@ -80474,14 +85193,8 @@ const (
 	// InstanceTypeR5d4xlarge is a InstanceType enum value
 	InstanceTypeR5d4xlarge = "r5d.4xlarge"
 
-	// InstanceTypeR5d8xlarge is a InstanceType enum value
-	InstanceTypeR5d8xlarge = "r5d.8xlarge"
-
 	// InstanceTypeR5d12xlarge is a InstanceType enum value
 	InstanceTypeR5d12xlarge = "r5d.12xlarge"
-
-	// InstanceTypeR5d16xlarge is a InstanceType enum value
-	InstanceTypeR5d16xlarge = "r5d.16xlarge"
 
 	// InstanceTypeR5d24xlarge is a InstanceType enum value
 	InstanceTypeR5d24xlarge = "r5d.24xlarge"
@@ -81069,6 +85782,9 @@ const (
 
 	// PlacementStrategySpread is a PlacementStrategy enum value
 	PlacementStrategySpread = "spread"
+
+	// PlacementStrategyPartition is a PlacementStrategy enum value
+	PlacementStrategyPartition = "partition"
 )
 
 const (
@@ -81663,6 +86379,14 @@ const (
 )
 
 const (
+	// TransportProtocolTcp is a TransportProtocol enum value
+	TransportProtocolTcp = "tcp"
+
+	// TransportProtocolUdp is a TransportProtocol enum value
+	TransportProtocolUdp = "udp"
+)
+
+const (
 	// UnsuccessfulInstanceCreditSpecificationErrorCodeInvalidInstanceIdMalformed is a UnsuccessfulInstanceCreditSpecificationErrorCode enum value
 	UnsuccessfulInstanceCreditSpecificationErrorCodeInvalidInstanceIdMalformed = "InvalidInstanceID.Malformed"
 
@@ -81863,6 +86587,11 @@ const (
 
 	// VpnEcmpSupportValueDisable is a VpnEcmpSupportValue enum value
 	VpnEcmpSupportValueDisable = "disable"
+)
+
+const (
+	// VpnProtocolOpenvpn is a VpnProtocol enum value
+	VpnProtocolOpenvpn = "openvpn"
 )
 
 const (

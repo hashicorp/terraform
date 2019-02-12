@@ -44,7 +44,7 @@ func resourceAwsDirectoryServiceConditionalForwarder() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				ValidateFunc: validation.StringMatch(regexp.MustCompile("^([a-zA-Z0-9]+[\\.-])+([a-zA-Z0-9])+[.]?$"), "invalid value, see the RemoteDomainName attribute documentation: https://docs.aws.amazon.com/directoryservice/latest/devguide/API_ConditionalForwarder.html"),
+				ValidateFunc: validation.StringMatch(regexp.MustCompile(`^([a-zA-Z0-9]+[\.-])+([a-zA-Z0-9])+[.]?$`), "invalid value, see the RemoteDomainName attribute documentation: https://docs.aws.amazon.com/directoryservice/latest/devguide/API_ConditionalForwarder.html"),
 			},
 		},
 	}

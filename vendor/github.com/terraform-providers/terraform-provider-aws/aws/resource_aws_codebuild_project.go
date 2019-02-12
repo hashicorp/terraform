@@ -727,9 +727,9 @@ func expandProjectSourceData(data map[string]interface{}) codebuild.ProjectSourc
 		projectSource.Location = aws.String(data["location"].(string))
 	}
 
-	// Only valid for BITBUCKET and GITHUB source type, e.g.
-	// InvalidInputException: Source type GITHUB_ENTERPRISE does not support ReportBuildStatus
-	if sourceType == codebuild.SourceTypeBitbucket || sourceType == codebuild.SourceTypeGithub {
+	// Only valid for BITBUCKET, GITHUB, and GITHUB_ENTERPRISE source types, e.g.
+	// InvalidInputException: Source type NO_SOURCE does not support ReportBuildStatus
+	if sourceType == codebuild.SourceTypeBitbucket || sourceType == codebuild.SourceTypeGithub || sourceType == codebuild.SourceTypeGithubEnterprise {
 		projectSource.ReportBuildStatus = aws.Bool(data["report_build_status"].(bool))
 	}
 
@@ -922,12 +922,7 @@ func resourceAwsCodeBuildProjectDelete(d *schema.ResourceData, meta interface{})
 	_, err := conn.DeleteProject(&codebuild.DeleteProjectInput{
 		Name: aws.String(d.Id()),
 	})
-
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func flattenAwsCodeBuildProjectSecondaryArtifacts(artifactsList []*codebuild.ProjectArtifacts) *schema.Set {

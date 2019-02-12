@@ -28,9 +28,13 @@
 // specify a bucket policy that grants ACM PCA write permission.
 //
 // You can also call the CreateCertificateAuthorityAuditReport to create an
-// optional audit report that lists every time the CA private key is used. The
-// private key is used for signing when the IssueCertificate or RevokeCertificate
-// operation is called.
+// optional audit report, which enumerates all of the issued, valid, expired,
+// and revoked certificates from the CA.
+//
+// Each ACM PCA API operation has a throttling limit which determines the number
+// of times the operation can be called per second. For more information, see
+// API Rate Limits in ACM PCA (acm-pca/latest/userguide/PcaLimits.html#PcaLimits-api)
+// in the ACM PCA user guide.
 //
 // See https://docs.aws.amazon.com/goto/WebAPI/acm-pca-2017-08-22 for more information on this service.
 //

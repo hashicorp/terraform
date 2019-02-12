@@ -168,7 +168,7 @@ func resourceAwsCodeDeployDeploymentConfigRead(d *schema.ResourceData, meta inte
 	resp, err := conn.GetDeploymentConfig(input)
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
-			if "DeploymentConfigDoesNotExistException" == awsErr.Code() {
+			if awsErr.Code() == "DeploymentConfigDoesNotExistException" {
 				log.Printf("[DEBUG] CodeDeploy Deployment Config (%s) not found", d.Id())
 				d.SetId("")
 				return nil
@@ -204,11 +204,7 @@ func resourceAwsCodeDeployDeploymentConfigDelete(d *schema.ResourceData, meta in
 	}
 
 	_, err := conn.DeleteDeploymentConfig(input)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func expandAwsCodeDeployConfigMinimumHealthHosts(d *schema.ResourceData) *codedeploy.MinimumHealthyHosts {

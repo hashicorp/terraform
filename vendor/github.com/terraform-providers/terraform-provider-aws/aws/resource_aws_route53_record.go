@@ -110,7 +110,7 @@ func resourceAwsRoute53Record() *schema.Resource {
 							Required:  true,
 							StateFunc: normalizeAwsAliasName,
 							DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-								return strings.ToLower(old) == strings.ToLower(new)
+								return strings.EqualFold(old, new)
 							},
 						},
 
@@ -262,7 +262,7 @@ func resourceAwsRoute53RecordUpdate(d *schema.ResourceData, meta interface{}) er
 
 	if !d.HasChange("type") && !d.HasChange("set_identifier") {
 		// If neither type nor set_identifier changed we use UPSERT,
-		// for resouce update here we simply fall through to
+		// for resource update here we simply fall through to
 		// our resource create function.
 		return resourceAwsRoute53RecordCreate(d, meta)
 	}
@@ -748,10 +748,6 @@ func resourceAwsRoute53RecordDelete(d *schema.ResourceData, meta interface{}) er
 	}
 
 	err = waitForRoute53RecordSetToSync(conn, cleanChangeID(*changeInfo.Id))
-	if err != nil {
-		return err
-	}
-
 	return err
 }
 

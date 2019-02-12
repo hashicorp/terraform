@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"regexp"
@@ -106,6 +107,11 @@ func resourceAwsRDSCluster() *schema.Resource {
 				Computed: true,
 			},
 
+			"global_cluster_identifier": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
 			"reader_endpoint": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -130,6 +136,7 @@ func resourceAwsRDSCluster() *schema.Resource {
 				ForceNew: true,
 				Default:  "provisioned",
 				ValidateFunc: validation.StringInSlice([]string{
+					"global",
 					"parallelquery",
 					"provisioned",
 					"serverless",
@@ -750,6 +757,10 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 			createOpts.EngineVersion = aws.String(attr.(string))
 		}
 
+		if attr, ok := d.GetOk("global_cluster_identifier"); ok {
+			createOpts.GlobalClusterIdentifier = aws.String(attr.(string))
+		}
+
 		if attr := d.Get("vpc_security_group_ids").(*schema.Set); attr.Len() > 0 {
 			createOpts.VpcSecurityGroupIds = expandStringList(attr.List())
 		}
@@ -975,6 +986,21 @@ func resourceAwsRDSClusterRead(d *schema.ResourceData, meta interface{}) error {
 		log.Printf("[WARN] Failed to save tags for RDS Cluster (%s): %s", aws.StringValue(dbc.DBClusterIdentifier), err)
 	}
 
+	// Fetch and save Global Cluster if engine mode global
+	d.Set("global_cluster_identifier", "")
+
+	if aws.StringValue(dbc.EngineMode) == "global" {
+		globalCluster, err := rdsDescribeGlobalClusterFromDbClusterARN(conn, aws.StringValue(dbc.DBClusterArn))
+
+		if err != nil {
+			return fmt.Errorf("error reading RDS Global Cluster information for DB Cluster (%s): %s", d.Id(), err)
+		}
+
+		if globalCluster != nil {
+			d.Set("global_cluster_identifier", globalCluster.GlobalClusterIdentifier)
+		}
+	}
+
 	return nil
 }
 
@@ -1084,6 +1110,30 @@ func resourceAwsRDSClusterUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
+	if d.HasChange("global_cluster_identifier") {
+		oRaw, nRaw := d.GetChange("global_cluster_identifier")
+		o := oRaw.(string)
+		n := nRaw.(string)
+
+		if o == "" {
+			return errors.New("Existing RDS Clusters cannot be added to an existing RDS Global Cluster")
+		}
+
+		if n != "" {
+			return errors.New("Existing RDS Clusters cannot be migrated between existing RDS Global Clusters")
+		}
+
+		input := &rds.RemoveFromGlobalClusterInput{
+			DbClusterIdentifier:     aws.String(d.Get("arn").(string)),
+			GlobalClusterIdentifier: aws.String(o),
+		}
+
+		log.Printf("[DEBUG] Removing RDS Cluster from RDS Global Cluster: %s", input)
+		if _, err := conn.RemoveFromGlobalCluster(input); err != nil {
+			return fmt.Errorf("error removing RDS Cluster (%s) from RDS Global Cluster: %s", d.Id(), err)
+		}
+	}
+
 	if d.HasChange("iam_roles") {
 		oraw, nraw := d.GetChange("iam_roles")
 		if oraw == nil {
@@ -1128,6 +1178,22 @@ func resourceAwsRDSClusterDelete(d *schema.ResourceData, meta interface{}) error
 	conn := meta.(*AWSClient).rdsconn
 	log.Printf("[DEBUG] Destroying RDS Cluster (%s)", d.Id())
 
+	// Automatically remove from global cluster to bypass this error on deletion:
+	// InvalidDBClusterStateFault: This cluster is a part of a global cluster, please remove it from globalcluster first
+	if d.Get("global_cluster_identifier").(string) != "" {
+		input := &rds.RemoveFromGlobalClusterInput{
+			DbClusterIdentifier:     aws.String(d.Get("arn").(string)),
+			GlobalClusterIdentifier: aws.String(d.Get("global_cluster_identifier").(string)),
+		}
+
+		log.Printf("[DEBUG] Removing RDS Cluster from RDS Global Cluster: %s", input)
+		_, err := conn.RemoveFromGlobalCluster(input)
+
+		if err != nil && !isAWSErr(err, rds.ErrCodeGlobalClusterNotFoundFault, "") {
+			return fmt.Errorf("error removing RDS Cluster (%s) from RDS Global Cluster: %s", d.Id(), err)
+		}
+	}
+
 	deleteOpts := rds.DeleteDBClusterInput{
 		DBClusterIdentifier: aws.String(d.Id()),
 	}
@@ -1135,7 +1201,7 @@ func resourceAwsRDSClusterDelete(d *schema.ResourceData, meta interface{}) error
 	skipFinalSnapshot := d.Get("skip_final_snapshot").(bool)
 	deleteOpts.SkipFinalSnapshot = aws.Bool(skipFinalSnapshot)
 
-	if skipFinalSnapshot == false {
+	if !skipFinalSnapshot {
 		if name, present := d.GetOk("final_snapshot_identifier"); present {
 			deleteOpts.FinalDBSnapshotIdentifier = aws.String(name.(string))
 		} else {
@@ -1220,11 +1286,7 @@ func setIamRoleToRdsCluster(clusterIdentifier string, roleArn string, conn *rds.
 		RoleArn:             aws.String(roleArn),
 	}
 	_, err := conn.AddRoleToDBCluster(params)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func removeIamRoleFromRdsCluster(clusterIdentifier string, roleArn string, conn *rds.RDS) error {
@@ -1233,11 +1295,7 @@ func removeIamRoleFromRdsCluster(clusterIdentifier string, roleArn string, conn 
 		RoleArn:             aws.String(roleArn),
 	}
 	_, err := conn.RemoveRoleFromDBCluster(params)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 var resourceAwsRdsClusterCreatePendingStates = []string{

@@ -125,9 +125,5 @@ func dataSourceAwsInstancesRead(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	err = d.Set("public_ips", publicIps)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }

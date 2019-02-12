@@ -617,5 +617,4 @@ func resourceAwsOpsworksSetApplicationAttributes(d *schema.ResourceData, v map[s
 		return
 	}
 
-	return
 }

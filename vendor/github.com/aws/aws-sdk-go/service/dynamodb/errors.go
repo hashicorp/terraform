@@ -166,29 +166,38 @@ const (
 	//
 	// The entire transaction request was rejected.
 	//
-	// DynamoDB will reject the entire TransactWriteItems request if any of the
-	// following is true:
+	// DynamoDB rejects a TransactWriteItems request under the following circumstances:
 	//
-	//    *  A table in the TransactWriteItems request does not exist.
+	//    * A condition in one of the condition expressions is not met.
 	//
-	//    *  A table in the TransactWriteItems request is on a different account
+	//    * A table in the TransactWriteItems request is in a different account
 	//    or region.
 	//
-	//    *  Operations contain item schema violations.
+	//    * More than one action in the TransactWriteItems operation targets the
+	//    same item.
 	//
-	//    *  More than one write operation (UpdateItem, PutItem, DeleteItem) operates
-	//    on the same item.
+	//    * There is insufficient provisioned capacity for the transaction to be
+	//    completed.
 	//
-	//    *  More than one check operation operates on the same item.
+	//    * An item size becomes too large (larger than 400 KB), or a local secondary
+	//    index (LSI) becomes too large, or a similar validation error occurs because
+	//    of changes made by the transaction.
 	//
-	//    *  The number of operations sent in the TransactWriteItems request is
-	//    0 or greater than 10.
+	//    * There is a user error, such as an invalid data format.
 	//
-	//    *  A TransactWriteItems request exceeds the maximum 4 MB request size.
+	// DynamoDB rejects a TransactGetItems request under the following circumstances:
 	//
+	//    * There is an ongoing TransactGetItems operation that conflicts with a
+	//    concurrent PutItem, UpdateItem, DeleteItem or TransactWriteItems request.
+	//    In this case the TransactGetItems operation fails with a TransactionCanceledException.
 	//
-	//    *  Any operation in the TransactWriteItems request would cause an item
-	//    to become larger than 400KB.
+	//    * A table in the TransactGetItems request is in a different account or
+	//    region.
+	//
+	//    * There is insufficient provisioned capacity for the transaction to be
+	//    completed.
+	//
+	//    * There is a user error, such as an invalid data format.
 	ErrCodeTransactionCanceledException = "TransactionCanceledException"
 
 	// ErrCodeTransactionConflictException for service response error code

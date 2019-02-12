@@ -8,6 +8,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
+	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
 )
 
 const opBatchCheckLayerAvailability = "BatchCheckLayerAvailability"
@@ -455,6 +457,15 @@ func (c *ECR) CreateRepositoryRequest(input *CreateRepositoryInput) (req *reques
 //   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
+//
+//   * ErrCodeInvalidTagParameterException "InvalidTagParameterException"
+//   An invalid parameter has been specified. Tag keys can have a maximum character
+//   length of 128 characters, and tag values can have a maximum length of 256
+//   characters.
+//
+//   * ErrCodeTooManyTagsException "TooManyTagsException"
+//   The list of tags on the repository is over the limit. The maximum number
+//   of tags that can be applied to a repository is 50.
 //
 //   * ErrCodeRepositoryAlreadyExistsException "RepositoryAlreadyExistsException"
 //   The specified repository already exists in the specified registry.
@@ -1756,6 +1767,93 @@ func (c *ECR) ListImagesPagesWithContext(ctx aws.Context, input *ListImagesInput
 	return p.Err()
 }
 
+const opListTagsForResource = "ListTagsForResource"
+
+// ListTagsForResourceRequest generates a "aws/request.Request" representing the
+// client's request for the ListTagsForResource operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListTagsForResource for more information on using the ListTagsForResource
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListTagsForResourceRequest method.
+//    req, resp := client.ListTagsForResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/ListTagsForResource
+func (c *ECR) ListTagsForResourceRequest(input *ListTagsForResourceInput) (req *request.Request, output *ListTagsForResourceOutput) {
+	op := &request.Operation{
+		Name:       opListTagsForResource,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ListTagsForResourceInput{}
+	}
+
+	output = &ListTagsForResourceOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListTagsForResource API operation for Amazon EC2 Container Registry.
+//
+// List the tags for an Amazon ECR resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EC2 Container Registry's
+// API operation ListTagsForResource for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   The specified parameter is invalid. Review the available parameters for the
+//   API request.
+//
+//   * ErrCodeRepositoryNotFoundException "RepositoryNotFoundException"
+//   The specified repository could not be found. Check the spelling of the specified
+//   repository and ensure that you are performing operations on the correct registry.
+//
+//   * ErrCodeServerException "ServerException"
+//   These errors are usually caused by a server-side issue.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/ListTagsForResource
+func (c *ECR) ListTagsForResource(input *ListTagsForResourceInput) (*ListTagsForResourceOutput, error) {
+	req, out := c.ListTagsForResourceRequest(input)
+	return out, req.Send()
+}
+
+// ListTagsForResourceWithContext is the same as ListTagsForResource with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListTagsForResource for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ECR) ListTagsForResourceWithContext(ctx aws.Context, input *ListTagsForResourceInput, opts ...request.Option) (*ListTagsForResourceOutput, error) {
+	req, out := c.ListTagsForResourceRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opPutImage = "PutImage"
 
 // PutImageRequest generates a "aws/request.Request" representing the
@@ -2126,6 +2224,201 @@ func (c *ECR) StartLifecyclePolicyPreview(input *StartLifecyclePolicyPreviewInpu
 // for more information on using Contexts.
 func (c *ECR) StartLifecyclePolicyPreviewWithContext(ctx aws.Context, input *StartLifecyclePolicyPreviewInput, opts ...request.Option) (*StartLifecyclePolicyPreviewOutput, error) {
 	req, out := c.StartLifecyclePolicyPreviewRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opTagResource = "TagResource"
+
+// TagResourceRequest generates a "aws/request.Request" representing the
+// client's request for the TagResource operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See TagResource for more information on using the TagResource
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the TagResourceRequest method.
+//    req, resp := client.TagResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/TagResource
+func (c *ECR) TagResourceRequest(input *TagResourceInput) (req *request.Request, output *TagResourceOutput) {
+	op := &request.Operation{
+		Name:       opTagResource,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &TagResourceInput{}
+	}
+
+	output = &TagResourceOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// TagResource API operation for Amazon EC2 Container Registry.
+//
+// Adds specified tags to a resource with the specified ARN. Existing tags on
+// a resource are not changed if they are not specified in the request parameters.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EC2 Container Registry's
+// API operation TagResource for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   The specified parameter is invalid. Review the available parameters for the
+//   API request.
+//
+//   * ErrCodeInvalidTagParameterException "InvalidTagParameterException"
+//   An invalid parameter has been specified. Tag keys can have a maximum character
+//   length of 128 characters, and tag values can have a maximum length of 256
+//   characters.
+//
+//   * ErrCodeTooManyTagsException "TooManyTagsException"
+//   The list of tags on the repository is over the limit. The maximum number
+//   of tags that can be applied to a repository is 50.
+//
+//   * ErrCodeRepositoryNotFoundException "RepositoryNotFoundException"
+//   The specified repository could not be found. Check the spelling of the specified
+//   repository and ensure that you are performing operations on the correct registry.
+//
+//   * ErrCodeServerException "ServerException"
+//   These errors are usually caused by a server-side issue.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/TagResource
+func (c *ECR) TagResource(input *TagResourceInput) (*TagResourceOutput, error) {
+	req, out := c.TagResourceRequest(input)
+	return out, req.Send()
+}
+
+// TagResourceWithContext is the same as TagResource with the addition of
+// the ability to pass a context and additional request options.
+//
+// See TagResource for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ECR) TagResourceWithContext(ctx aws.Context, input *TagResourceInput, opts ...request.Option) (*TagResourceOutput, error) {
+	req, out := c.TagResourceRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opUntagResource = "UntagResource"
+
+// UntagResourceRequest generates a "aws/request.Request" representing the
+// client's request for the UntagResource operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UntagResource for more information on using the UntagResource
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the UntagResourceRequest method.
+//    req, resp := client.UntagResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/UntagResource
+func (c *ECR) UntagResourceRequest(input *UntagResourceInput) (req *request.Request, output *UntagResourceOutput) {
+	op := &request.Operation{
+		Name:       opUntagResource,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &UntagResourceInput{}
+	}
+
+	output = &UntagResourceOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// UntagResource API operation for Amazon EC2 Container Registry.
+//
+// Deletes specified tags from a resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EC2 Container Registry's
+// API operation UntagResource for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   The specified parameter is invalid. Review the available parameters for the
+//   API request.
+//
+//   * ErrCodeInvalidTagParameterException "InvalidTagParameterException"
+//   An invalid parameter has been specified. Tag keys can have a maximum character
+//   length of 128 characters, and tag values can have a maximum length of 256
+//   characters.
+//
+//   * ErrCodeTooManyTagsException "TooManyTagsException"
+//   The list of tags on the repository is over the limit. The maximum number
+//   of tags that can be applied to a repository is 50.
+//
+//   * ErrCodeRepositoryNotFoundException "RepositoryNotFoundException"
+//   The specified repository could not be found. Check the spelling of the specified
+//   repository and ensure that you are performing operations on the correct registry.
+//
+//   * ErrCodeServerException "ServerException"
+//   These errors are usually caused by a server-side issue.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/UntagResource
+func (c *ECR) UntagResource(input *UntagResourceInput) (*UntagResourceOutput, error) {
+	req, out := c.UntagResourceRequest(input)
+	return out, req.Send()
+}
+
+// UntagResourceWithContext is the same as UntagResource with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UntagResource for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ECR) UntagResourceWithContext(ctx aws.Context, input *UntagResourceInput, opts ...request.Option) (*UntagResourceOutput, error) {
+	req, out := c.UntagResourceRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -2745,6 +3038,8 @@ type CreateRepositoryInput struct {
 	//
 	// RepositoryName is a required field
 	RepositoryName *string `locationName:"repositoryName" min:"2" type:"string" required:"true"`
+
+	Tags []*Tag `locationName:"tags" type:"list"`
 }
 
 // String returns the string representation
@@ -2776,6 +3071,12 @@ func (s *CreateRepositoryInput) Validate() error {
 // SetRepositoryName sets the RepositoryName field's value.
 func (s *CreateRepositoryInput) SetRepositoryName(v string) *CreateRepositoryInput {
 	s.RepositoryName = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *CreateRepositoryInput) SetTags(v []*Tag) *CreateRepositoryInput {
+	s.Tags = v
 	return s
 }
 
@@ -3119,7 +3420,7 @@ type DescribeImagesInput struct {
 	// results in a single page along with a nextToken response element. The remaining
 	// results of the initial request can be seen by sending another DescribeImages
 	// request with the returned nextToken value. This value can be between 1 and
-	// 100. If this parameter is not used, then DescribeImages returns up to 100
+	// 1000. If this parameter is not used, then DescribeImages returns up to 100
 	// results and a nextToken value, if applicable. This option cannot be used
 	// when you specify images with imageIds.
 	MaxResults *int64 `locationName:"maxResults" min:"1" type:"integer"`
@@ -3136,8 +3437,7 @@ type DescribeImagesInput struct {
 	// registry is assumed.
 	RegistryId *string `locationName:"registryId" type:"string"`
 
-	// A list of repositories to describe. If this parameter is omitted, then all
-	// repositories in a registry are described.
+	// A list of repositories to describe.
 	//
 	// RepositoryName is a required field
 	RepositoryName *string `locationName:"repositoryName" min:"2" type:"string" required:"true"`
@@ -3254,7 +3554,7 @@ type DescribeRepositoriesInput struct {
 	// returns maxResults results in a single page along with a nextToken response
 	// element. The remaining results of the initial request can be seen by sending
 	// another DescribeRepositories request with the returned nextToken value. This
-	// value can be between 1 and 100. If this parameter is not used, then DescribeRepositories
+	// value can be between 1 and 1000. If this parameter is not used, then DescribeRepositories
 	// returns up to 100 results and a nextToken value, if applicable. This option
 	// cannot be used when you specify repositories with repositoryNames.
 	MaxResults *int64 `locationName:"maxResults" min:"1" type:"integer"`
@@ -3640,7 +3940,7 @@ type GetLifecyclePolicyPreviewInput struct {
 	// only returns  maxResults results in a single page along with a nextToken
 	// response element. The remaining results of the initial request can be seen
 	// by sending  another GetLifecyclePolicyPreviewRequest request with the returned
-	// nextToken  value. This value can be between 1 and 100. If this  parameter
+	// nextToken  value. This value can be between 1 and 1000. If this  parameter
 	// is not used, then GetLifecyclePolicyPreviewRequest returns up to  100 results
 	// and a nextToken value, if  applicable. This option cannot be used when you
 	// specify images with imageIds.
@@ -4452,9 +4752,9 @@ type ListImagesInput struct {
 	// When this parameter is used, ListImages only returns maxResults results in
 	// a single page along with a nextToken response element. The remaining results
 	// of the initial request can be seen by sending another ListImages request
-	// with the returned nextToken value. This value can be between 1 and 100. If
-	// this parameter is not used, then ListImages returns up to 100 results and
-	// a nextToken value, if applicable.
+	// with the returned nextToken value. This value can be between 1 and 1000.
+	// If this parameter is not used, then ListImages returns up to 100 results
+	// and a nextToken value, if applicable.
 	MaxResults *int64 `locationName:"maxResults" min:"1" type:"integer"`
 
 	// The nextToken value returned from a previous paginated ListImages request
@@ -4568,6 +4868,68 @@ func (s *ListImagesOutput) SetImageIds(v []*ImageIdentifier) *ListImagesOutput {
 // SetNextToken sets the NextToken field's value.
 func (s *ListImagesOutput) SetNextToken(v string) *ListImagesOutput {
 	s.NextToken = &v
+	return s
+}
+
+type ListTagsForResourceInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) that identifies the resource for which to
+	// list the tags. Currently, the only supported resource is an Amazon ECR repository.
+	//
+	// ResourceArn is a required field
+	ResourceArn *string `locationName:"resourceArn" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s ListTagsForResourceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListTagsForResourceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListTagsForResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListTagsForResourceInput"}
+	if s.ResourceArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceArn"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetResourceArn sets the ResourceArn field's value.
+func (s *ListTagsForResourceInput) SetResourceArn(v string) *ListTagsForResourceInput {
+	s.ResourceArn = &v
+	return s
+}
+
+type ListTagsForResourceOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The tags for the resource.
+	Tags []*Tag `locationName:"tags" type:"list"`
+}
+
+// String returns the string representation
+func (s ListTagsForResourceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListTagsForResourceOutput) GoString() string {
+	return s.String()
+}
+
+// SetTags sets the Tags field's value.
+func (s *ListTagsForResourceOutput) SetTags(v []*Tag) *ListTagsForResourceOutput {
+	s.Tags = v
 	return s
 }
 
@@ -5074,6 +5436,180 @@ func (s *StartLifecyclePolicyPreviewOutput) SetStatus(v string) *StartLifecycleP
 	return s
 }
 
+// The metadata that you apply to a resource to help you categorize and organize
+// them. Each tag consists of a key and an optional value, both of which you
+// define. Tag keys can have a maximum character length of 128 characters, and
+// tag values can have a maximum length of 256 characters.
+type Tag struct {
+	_ struct{} `type:"structure"`
+
+	// One part of a key-value pair that make up a tag. A key is a general label
+	// that acts like a category for more specific tag values.
+	Key *string `type:"string"`
+
+	// The optional part of a key-value pair that make up a tag. A value acts as
+	// a descriptor within a tag category (key).
+	Value *string `type:"string"`
+}
+
+// String returns the string representation
+func (s Tag) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Tag) GoString() string {
+	return s.String()
+}
+
+// SetKey sets the Key field's value.
+func (s *Tag) SetKey(v string) *Tag {
+	s.Key = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *Tag) SetValue(v string) *Tag {
+	s.Value = &v
+	return s
+}
+
+type TagResourceInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the the resource to which to add tags.
+	// Currently, the only supported resource is an Amazon ECR repository.
+	//
+	// ResourceArn is a required field
+	ResourceArn *string `locationName:"resourceArn" type:"string" required:"true"`
+
+	// The tags to add to the resource. A tag is an array of key-value pairs. Tag
+	// keys can have a maximum character length of 128 characters, and tag values
+	// can have a maximum length of 256 characters.
+	//
+	// Tags is a required field
+	Tags []*Tag `locationName:"tags" type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s TagResourceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TagResourceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TagResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TagResourceInput"}
+	if s.ResourceArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceArn"))
+	}
+	if s.Tags == nil {
+		invalidParams.Add(request.NewErrParamRequired("Tags"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetResourceArn sets the ResourceArn field's value.
+func (s *TagResourceInput) SetResourceArn(v string) *TagResourceInput {
+	s.ResourceArn = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *TagResourceInput) SetTags(v []*Tag) *TagResourceInput {
+	s.Tags = v
+	return s
+}
+
+type TagResourceOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s TagResourceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TagResourceOutput) GoString() string {
+	return s.String()
+}
+
+type UntagResourceInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the resource from which to remove tags.
+	// Currently, the only supported resource is an Amazon ECR repository.
+	//
+	// ResourceArn is a required field
+	ResourceArn *string `locationName:"resourceArn" type:"string" required:"true"`
+
+	// The keys of the tags to be removed.
+	//
+	// TagKeys is a required field
+	TagKeys []*string `locationName:"tagKeys" type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s UntagResourceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UntagResourceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UntagResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UntagResourceInput"}
+	if s.ResourceArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceArn"))
+	}
+	if s.TagKeys == nil {
+		invalidParams.Add(request.NewErrParamRequired("TagKeys"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetResourceArn sets the ResourceArn field's value.
+func (s *UntagResourceInput) SetResourceArn(v string) *UntagResourceInput {
+	s.ResourceArn = &v
+	return s
+}
+
+// SetTagKeys sets the TagKeys field's value.
+func (s *UntagResourceInput) SetTagKeys(v []*string) *UntagResourceInput {
+	s.TagKeys = v
+	return s
+}
+
+type UntagResourceOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s UntagResourceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UntagResourceOutput) GoString() string {
+	return s.String()
+}
+
 type UploadLayerPartInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5292,4 +5828,7 @@ const (
 
 	// TagStatusUntagged is a TagStatus enum value
 	TagStatusUntagged = "UNTAGGED"
+
+	// TagStatusAny is a TagStatus enum value
+	TagStatusAny = "ANY"
 )

@@ -1027,7 +1027,7 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 				if ec2err, ok := err.(awserr.Error); ok {
 					// Tolerate InvalidParameterCombination error in Classic, otherwise
 					// return the error
-					if "InvalidParameterCombination" != ec2err.Code() {
+					if ec2err.Code() != "InvalidParameterCombination" {
 						return err
 					}
 					log.Printf("[WARN] Attempted to modify SourceDestCheck on non VPC instance: %s", ec2err.Message())
@@ -1214,11 +1214,8 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 func resourceAwsInstanceDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
-	if err := awsTerminateInstance(conn, d.Id(), d.Timeout(schema.TimeoutDelete)); err != nil {
-		return err
-	}
-
-	return nil
+	err := awsTerminateInstance(conn, d.Id(), d.Timeout(schema.TimeoutDelete))
+	return err
 }
 
 // InstanceStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
@@ -1925,9 +1922,16 @@ func awsTerminateInstance(conn *ec2.EC2, id string, timeout time.Duration) error
 		InstanceIds: []*string{aws.String(id)},
 	}
 	if _, err := conn.TerminateInstances(req); err != nil {
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidInstanceID.NotFound" {
+			return nil
+		}
 		return fmt.Errorf("Error terminating instance: %s", err)
 	}
 
+	return waitForInstanceDeletion(conn, id, timeout)
+}
+
+func waitForInstanceDeletion(conn *ec2.EC2, id string, timeout time.Duration) error {
 	log.Printf("[DEBUG] Waiting for instance (%s) to become terminated", id)
 
 	stateConf := &resource.StateChangeConf{

@@ -199,11 +199,7 @@ func resourceAwsSesEventDestinationDelete(d *schema.ResourceData, meta interface
 		EventDestinationName: aws.String(d.Id()),
 	})
 
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func generateCloudWatchDestination(v []interface{}) []*ses.CloudWatchDimensionConfiguration {

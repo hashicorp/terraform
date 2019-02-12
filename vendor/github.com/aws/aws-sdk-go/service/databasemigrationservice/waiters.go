@@ -512,10 +512,10 @@ func (c *DatabaseMigrationService) WaitUntilReplicationTaskStoppedWithContext(ct
 }
 
 // WaitUntilTestConnectionSucceeds uses the AWS Database Migration Service API operation
-// TestConnection to wait for a condition to be met before returning.
+// DescribeConnections to wait for a condition to be met before returning.
 // If the condition is not met within the max attempt window, an error will
 // be returned.
-func (c *DatabaseMigrationService) WaitUntilTestConnectionSucceeds(input *TestConnectionInput) error {
+func (c *DatabaseMigrationService) WaitUntilTestConnectionSucceeds(input *DescribeConnectionsInput) error {
 	return c.WaitUntilTestConnectionSucceedsWithContext(aws.BackgroundContext(), input)
 }
 
@@ -527,7 +527,7 @@ func (c *DatabaseMigrationService) WaitUntilTestConnectionSucceeds(input *TestCo
 // the context is nil a panic will occur. In the future the SDK may create
 // sub-contexts for http.Requests. See https://golang.org/pkg/context/
 // for more information on using Contexts.
-func (c *DatabaseMigrationService) WaitUntilTestConnectionSucceedsWithContext(ctx aws.Context, input *TestConnectionInput, opts ...request.WaiterOption) error {
+func (c *DatabaseMigrationService) WaitUntilTestConnectionSucceedsWithContext(ctx aws.Context, input *DescribeConnectionsInput, opts ...request.WaiterOption) error {
 	w := request.Waiter{
 		Name:        "WaitUntilTestConnectionSucceeds",
 		MaxAttempts: 60,
@@ -535,23 +535,23 @@ func (c *DatabaseMigrationService) WaitUntilTestConnectionSucceedsWithContext(ct
 		Acceptors: []request.WaiterAcceptor{
 			{
 				State:   request.SuccessWaiterState,
-				Matcher: request.PathWaiterMatch, Argument: "Connection.Status",
+				Matcher: request.PathAllWaiterMatch, Argument: "Connections[].Status",
 				Expected: "successful",
 			},
 			{
 				State:   request.FailureWaiterState,
-				Matcher: request.PathWaiterMatch, Argument: "Connection.Status",
+				Matcher: request.PathAnyWaiterMatch, Argument: "Connections[].Status",
 				Expected: "failed",
 			},
 		},
 		Logger: c.Config.Logger,
 		NewRequest: func(opts []request.Option) (*request.Request, error) {
-			var inCpy *TestConnectionInput
+			var inCpy *DescribeConnectionsInput
 			if input != nil {
 				tmp := *input
 				inCpy = &tmp
 			}
-			req, _ := c.TestConnectionRequest(inCpy)
+			req, _ := c.DescribeConnectionsRequest(inCpy)
 			req.SetContext(ctx)
 			req.ApplyOptions(opts...)
 			return req, nil

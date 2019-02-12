@@ -49,10 +49,7 @@ func resourceAwsEcsService() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					if d.Get("scheduling_strategy").(string) == ecs.SchedulingStrategyDaemon {
-						return true
-					}
-					return false
+					return d.Get("scheduling_strategy").(string) == ecs.SchedulingStrategyDaemon
 				},
 			},
 
@@ -73,6 +70,12 @@ func resourceAwsEcsService() *schema.Resource {
 				ForceNew: true,
 				Optional: true,
 				Default:  "EC2",
+			},
+
+			"platform_version": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
 			},
 
 			"scheduling_strategy": {
@@ -223,10 +226,7 @@ func resourceAwsEcsService() *schema.Resource {
 							ForceNew: true,
 							Optional: true,
 							DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-								if strings.ToLower(old) == strings.ToLower(new) {
-									return true
-								}
-								return false
+								return strings.EqualFold(old, new)
 							},
 						},
 					},
@@ -271,10 +271,7 @@ func resourceAwsEcsService() *schema.Resource {
 								return value
 							},
 							DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-								if strings.ToLower(old) == strings.ToLower(new) {
-									return true
-								}
-								return false
+								return strings.EqualFold(old, new)
 							},
 						},
 					},
@@ -414,6 +411,10 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 
 	if v, ok := d.GetOk("propagate_tags"); ok {
 		input.PropagateTags = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("platform_version"); ok {
+		input.PlatformVersion = aws.String(v.(string))
 	}
 
 	loadBalancers := expandEcsLoadBalancers(d.Get("load_balancer").(*schema.Set).List())
@@ -596,6 +597,7 @@ func resourceAwsEcsServiceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("launch_type", service.LaunchType)
 	d.Set("enable_ecs_managed_tags", service.EnableECSManagedTags)
 	d.Set("propagate_tags", service.PropagateTags)
+	d.Set("platform_version", service.PlatformVersion)
 
 	// Save cluster in the same format
 	if strings.HasPrefix(d.Get("cluster").(string), "arn:"+meta.(*AWSClient).partition+":ecs:") {
@@ -885,6 +887,11 @@ func resourceAwsEcsServiceUpdate(d *schema.ResourceData, meta interface{}) error
 				MinimumHealthyPercent: aws.Int64(int64(d.Get("deployment_minimum_healthy_percent").(int))),
 			}
 		}
+	}
+
+	if d.HasChange("platform_version") {
+		updateService = true
+		input.PlatformVersion = aws.String(d.Get("platform_version").(string))
 	}
 
 	if d.HasChange("health_check_grace_period_seconds") {

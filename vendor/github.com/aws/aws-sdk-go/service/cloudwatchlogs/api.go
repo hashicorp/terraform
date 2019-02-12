@@ -3615,7 +3615,7 @@ func (c *CloudWatchLogs) StartQueryRequest(input *StartQueryInput) (req *request
 // StartQuery API operation for Amazon CloudWatch Logs.
 //
 // Schedules a query of a log group using CloudWatch Logs Insights. You specify
-// the log group to query, the query string to use, and the time to query.
+// the log group and time range to query, and the query string to use.
 //
 // For more information, see CloudWatch Logs Insights Query Syntax (http://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CWL_QuerySyntax.html).
 //
@@ -8265,8 +8265,8 @@ func (s *SearchedLogStream) SetSearchedCompletely(v bool) *SearchedLogStream {
 type StartQueryInput struct {
 	_ struct{} `type:"structure"`
 
-	// The time to end this query, if it is still running. Specified as epoch time,
-	// the number of seconds since January 1, 1970, 00:00:00 UTC.
+	// The end of the time range to query. Specified as epoch time, the number of
+	// seconds since January 1, 1970, 00:00:00 UTC.
 	//
 	// EndTime is a required field
 	EndTime *int64 `locationName:"endTime" type:"long" required:"true"`
@@ -8286,8 +8286,8 @@ type StartQueryInput struct {
 	// QueryString is a required field
 	QueryString *string `locationName:"queryString" type:"string" required:"true"`
 
-	// The time to start the query. Specified as epoch time, the number of seconds
-	// since January 1, 1970, 00:00:00 UTC.
+	// The beginning of the time range to query. Specified as epoch time, the number
+	// of seconds since January 1, 1970, 00:00:00 UTC.
 	//
 	// StartTime is a required field
 	StartTime *int64 `locationName:"startTime" type:"long" required:"true"`

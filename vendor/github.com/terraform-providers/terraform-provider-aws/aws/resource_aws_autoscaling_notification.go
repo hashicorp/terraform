@@ -194,11 +194,8 @@ func resourceAwsAutoscalingNotificationDelete(d *schema.ResourceData, meta inter
 	gl := convertSetToList(d.Get("group_names").(*schema.Set))
 
 	topic := d.Get("topic_arn").(string)
-	if err := removeNotificationConfigToGroupsWithTopic(conn, gl, topic); err != nil {
-		return err
-	}
-
-	return nil
+	err := removeNotificationConfigToGroupsWithTopic(conn, gl, topic)
+	return err
 }
 
 func convertSetToList(s *schema.Set) (nl []*string) {

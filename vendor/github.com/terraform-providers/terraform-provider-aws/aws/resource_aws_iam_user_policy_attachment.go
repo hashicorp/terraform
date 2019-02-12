@@ -125,10 +125,7 @@ func attachPolicyToUser(conn *iam.IAM, user string, arn string) error {
 		UserName:  aws.String(user),
 		PolicyArn: aws.String(arn),
 	})
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func detachPolicyFromUser(conn *iam.IAM, user string, arn string) error {
@@ -136,8 +133,5 @@ func detachPolicyFromUser(conn *iam.IAM, user string, arn string) error {
 		UserName:  aws.String(user),
 		PolicyArn: aws.String(arn),
 	})
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }

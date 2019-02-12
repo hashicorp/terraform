@@ -144,9 +144,5 @@ func resourceAwsPlacementGroupDelete(d *schema.ResourceData, meta interface{}) e
 	}
 
 	_, err = wait.WaitForState()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
