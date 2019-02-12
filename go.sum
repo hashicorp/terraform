@@ -239,8 +239,8 @@ github.com/mitchellh/go-testing-interface v0.0.0-20171004221916-a61a99592b77/go.
 github.com/mitchellh/go-wordwrap v0.0.0-20150314170334-ad45545899c7/go.mod h1:ZXFpozHsX6DPmq2I0TCekCxypsnAUbP2oI0UX1GXzOo=
 github.com/mitchellh/go-wordwrap v1.0.0 h1:6GlHJ/LTGMrIJbwgdqdl2eEH8o+Exx/0m8ir9Gns0u4=
 github.com/mitchellh/go-wordwrap v1.0.0/go.mod h1:ZXFpozHsX6DPmq2I0TCekCxypsnAUbP2oI0UX1GXzOo=
-github.com/mitchellh/hashstructure v0.0.0-20160209213820-6b17d669fac5 h1:h+4fp6yIoLPf/K2egDK3kvYM2zqb28gJIWWMiDzBdKM=
-github.com/mitchellh/hashstructure v0.0.0-20160209213820-6b17d669fac5/go.mod h1:QjSHrPWS+BGUVBYkbTZWEnOh3G1DutKwClXU/ABz6AQ=
+github.com/mitchellh/hashstructure v1.0.0 h1:ZkRJX1CyOoTkar7p/mLS5TZU4nJ1Rn/F8u9dGS02Q3Y=
+github.com/mitchellh/hashstructure v1.0.0/go.mod h1:QjSHrPWS+BGUVBYkbTZWEnOh3G1DutKwClXU/ABz6AQ=
 github.com/mitchellh/mapstructure v0.0.0-20170307201123-53818660ed49 h1:kaWdlw4YogwkDl8CG+/VxhXkrL9uz3n1D9QBC2pEGLE=
 github.com/mitchellh/mapstructure v0.0.0-20170307201123-53818660ed49/go.mod h1:FVVH3fgwuzCH5S8UJGiWEs2h04kUh9fWfEaFds41c1Y=
 github.com/mitchellh/panicwrap v0.0.0-20161208170302-ba9e1a65e0f7 h1:+PBI9A4rLQJlch3eQI/RkTY2HzX+bl2lPUf3goenBxs=
