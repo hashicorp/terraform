@@ -121,11 +121,7 @@ func resourceAwsRedshiftSnapshotCopyGrantDelete(d *schema.ResourceData, meta int
 	log.Printf("[DEBUG] Checking if grant is deleted: %s", grantName)
 	err = waitForAwsRedshiftSnapshotCopyGrantToBeDeleted(conn, grantName)
 
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func resourceAwsRedshiftSnapshotCopyGrantExists(d *schema.ResourceData, meta interface{}) (bool, error) {

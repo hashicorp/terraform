@@ -188,7 +188,7 @@ func resourceAwsApiGatewayMethodSettingsUpdate(d *schema.ResourceData, meta inte
 		ops = append(ops, &apigateway.PatchOperation{
 			Op:    aws.String("replace"),
 			Path:  aws.String(prefix + "caching/dataEncrypted"),
-			Value: aws.String(fmt.Sprintf("%d", d.Get("settings.0.cache_data_encrypted").(int))),
+			Value: aws.String(fmt.Sprintf("%t", d.Get("settings.0.cache_data_encrypted").(bool))),
 		})
 	}
 	if d.HasChange("settings.0.require_authorization_for_cache_control") {

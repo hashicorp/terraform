@@ -5784,7 +5784,7 @@ type CreateServiceInput struct {
 
 	// Specifies whether to enable Amazon ECS managed tags for the tasks within
 	// the service. For more information, see Tagging Your Amazon ECS Resources
-	// (http://docs.aws.amazon.com/AmazonECS/latest/developerguide/Using_Tags.html)
+	// (http://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-using-tags.html)
 	// in the Amazon Elastic Container Service Developer Guide.
 	EnableECSManagedTags *bool `locationName:"enableECSManagedTags" type:"boolean"`
 
@@ -10297,7 +10297,7 @@ type RunTaskInput struct {
 	Count *int64 `locationName:"count" type:"integer"`
 
 	// Specifies whether to enable Amazon ECS managed tags for the task. For more
-	// information, see Tagging Your Amazon ECS Resources (http://docs.aws.amazon.com/AmazonECS/latest/developerguide/Using_Tags.html)
+	// information, see Tagging Your Amazon ECS Resources (http://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-using-tags.html)
 	// in the Amazon Elastic Container Service Developer Guide.
 	EnableECSManagedTags *bool `locationName:"enableECSManagedTags" type:"boolean"`
 
@@ -10647,7 +10647,7 @@ type Service struct {
 	DesiredCount *int64 `locationName:"desiredCount" type:"integer"`
 
 	// Specifies whether to enable Amazon ECS managed tags for the tasks in the
-	// service. For more information, see Tagging Your Amazon ECS Resources (http://docs.aws.amazon.com/AmazonECS/latest/developerguide/Using_Tags.html)
+	// service. For more information, see Tagging Your Amazon ECS Resources (http://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-using-tags.html)
 	// in the Amazon Elastic Container Service Developer Guide.
 	EnableECSManagedTags *bool `locationName:"enableECSManagedTags" type:"boolean"`
 
@@ -11108,7 +11108,7 @@ type StartTaskInput struct {
 	ContainerInstances []*string `locationName:"containerInstances" type:"list" required:"true"`
 
 	// Specifies whether to enable Amazon ECS managed tags for the task. For more
-	// information, see Tagging Your Amazon ECS Resources (http://docs.aws.amazon.com/AmazonECS/latest/developerguide/Using_Tags.html)
+	// information, see Tagging Your Amazon ECS Resources (http://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-using-tags.html)
 	// in the Amazon Elastic Container Service Developer Guide.
 	EnableECSManagedTags *bool `locationName:"enableECSManagedTags" type:"boolean"`
 

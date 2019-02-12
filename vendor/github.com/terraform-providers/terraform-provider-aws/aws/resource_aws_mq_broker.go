@@ -203,6 +203,7 @@ func resourceAwsMqBroker() *schema.Resource {
 					},
 				},
 			},
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -236,6 +237,9 @@ func resourceAwsMqBrokerCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 	if v, ok := d.GetOk("subnet_ids"); ok {
 		input.SubnetIds = expandStringList(v.(*schema.Set).List())
+	}
+	if v, ok := d.GetOk("tags"); ok {
+		input.Tags = tagsFromMapGeneric(v.(map[string]interface{}))
 	}
 
 	log.Printf("[INFO] Creating MQ Broker: %s", input)
@@ -320,7 +324,7 @@ func resourceAwsMqBrokerRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	rawUsers := make([]*mq.User, len(out.Users), len(out.Users))
+	rawUsers := make([]*mq.User, len(out.Users))
 	for i, u := range out.Users {
 		uOut, err := conn.DescribeUser(&mq.DescribeUserInput{
 			BrokerId: aws.String(d.Id()),
@@ -338,12 +342,11 @@ func resourceAwsMqBrokerRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	users := flattenMqUsers(rawUsers, d.Get("user").(*schema.Set).List())
-	err = d.Set("user", users)
-	if err != nil {
+	if err = d.Set("user", users); err != nil {
 		return err
 	}
 
-	return nil
+	return getTagsMQ(conn, d, aws.StringValue(out.BrokerArn))
 }
 
 func resourceAwsMqBrokerUpdate(d *schema.ResourceData, meta interface{}) error {
@@ -399,6 +402,10 @@ func resourceAwsMqBrokerUpdate(d *schema.ResourceData, meta interface{}) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if tagErr := setTagsMQ(conn, d, d.Get("arn").(string)); tagErr != nil {
+		return fmt.Errorf("error setting mq broker tags: %s", tagErr)
 	}
 
 	return nil
@@ -496,7 +503,7 @@ func updateAwsMqBrokerUsers(conn *mq.MQ, bId string, oldUsers, newUsers []interf
 func diffAwsMqBrokerUsers(bId string, oldUsers, newUsers []interface{}) (
 	cr []*mq.CreateUserRequest, di []*mq.DeleteUserInput, ur []*mq.UpdateUserRequest, e error) {
 
-	existingUsers := make(map[string]interface{}, 0)
+	existingUsers := make(map[string]interface{})
 	for _, ou := range oldUsers {
 		u := ou.(map[string]interface{})
 		username := u["username"].(string)

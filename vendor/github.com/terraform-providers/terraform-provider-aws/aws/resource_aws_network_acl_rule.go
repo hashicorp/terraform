@@ -125,7 +125,7 @@ func resourceAwsNetworkAclRuleCreate(d *schema.ResourceData, meta interface{}) e
 	cidr, hasCidr := d.GetOk("cidr_block")
 	ipv6Cidr, hasIpv6Cidr := d.GetOk("ipv6_cidr_block")
 
-	if hasCidr == false && hasIpv6Cidr == false {
+	if !hasCidr && !hasIpv6Cidr {
 		return fmt.Errorf("Either `cidr_block` or `ipv6_cidr_block` must be defined")
 	}
 

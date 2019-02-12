@@ -130,9 +130,5 @@ func resourceAwsServiceDiscoveryPrivateDnsNamespaceDelete(d *schema.ResourceData
 	}
 
 	_, err = stateConf.WaitForState()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }

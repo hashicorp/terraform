@@ -9,18 +9,13 @@ require (
 	github.com/Unknwon/com v0.0.0-20151008135407-28b053d5a292 // indirect
 	github.com/abdullin/seq v0.0.0-20160510034733-d5467c17e7af // indirect
 	github.com/agext/levenshtein v1.2.1
-	github.com/agl/ed25519 v0.0.0-20150830182803-278e1ec8e8a6 // indirect
 	github.com/antchfx/xpath v0.0.0-20170728053731-b5c552e1acbd // indirect
 	github.com/antchfx/xquery v0.0.0-20170730121040-eb8c3c172607 // indirect
 	github.com/apparentlymart/go-cidr v1.0.0
 	github.com/apparentlymart/go-dump v0.0.0-20180507223929-23540a00eaa3
 	github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e
 	github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da // indirect
-	github.com/armon/go-radix v0.0.0-20160115234725-4239b77079c7 // indirect
-	github.com/aws/aws-sdk-go v1.16.4
-	github.com/beevik/etree v0.0.0-20171015221209-af219c0c7ea1 // indirect
-	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
-	github.com/bgentry/speakeasy v0.0.0-20161015143505-675b82c74c0e // indirect
+	github.com/aws/aws-sdk-go v1.16.26
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/boombuler/barcode v1.0.0 // indirect
@@ -38,7 +33,6 @@ require (
 	github.com/dylanmei/winrmtest v0.0.0-20170819153634-c2fbb09e6c08
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-test/deep v1.0.1
-	github.com/gogo/protobuf v0.0.0-20180821102207-98f6aa8b3bcf // indirect
 	github.com/golang/groupcache v0.0.0-20180513044358-24b0969c4cb7 // indirect
 	github.com/golang/mock v1.2.0
 	github.com/golang/protobuf v1.2.0
@@ -65,7 +59,6 @@ require (
 	github.com/hashicorp/go-plugin v0.0.0-20190129155509-362c99b11937
 	github.com/hashicorp/go-retryablehttp v0.5.1
 	github.com/hashicorp/go-rootcerts v0.0.0-20160503143440-6bb64b370b90
-	github.com/hashicorp/go-safetemp v0.0.0-20180326211150-b1a1dbde6fdc // indirect
 	github.com/hashicorp/go-sockaddr v0.0.0-20180320115054-6d291a969b86 // indirect
 	github.com/hashicorp/go-tfe v0.3.7
 	github.com/hashicorp/go-uuid v1.0.0
@@ -78,20 +71,17 @@ require (
 	github.com/hashicorp/memberlist v0.1.0 // indirect
 	github.com/hashicorp/serf v0.0.0-20160124182025-e4ec8cc423bb // indirect
 	github.com/hashicorp/terraform-config-inspect v0.0.0-20190208230122-b0707673339c
-	github.com/hashicorp/vault v0.0.0-20161029210149-9a60bf2a50e4
-	github.com/jen20/awspolicyequivalence v0.0.0-20170831201602-3d48364a137a // indirect
+	github.com/hashicorp/vault v0.10.4
 	github.com/jonboulle/clockwork v0.1.0 // indirect
 	github.com/joyent/triton-go v0.0.0-20180313100802-d8f9c0314926
 	github.com/jtolds/gls v4.2.1+incompatible // indirect
 	github.com/kardianos/osext v0.0.0-20170510131534-ae77be60afb1
-	github.com/keybase/go-crypto v0.0.0-20161004153544-93f5b35093ba // indirect
 	github.com/lusis/go-artifactory v0.0.0-20160115162124-7e4ce345df82
 	github.com/marstr/guid v1.1.0 // indirect
 	github.com/masterzen/azure-sdk-for-go v0.0.0-20161014135628-ee4f0065d00c // indirect
 	github.com/masterzen/simplexml v0.0.0-20160608183007-4572e39b1ab9 // indirect
 	github.com/masterzen/winrm v0.0.0-20180224160350-7e40f93ae939
 	github.com/mattn/go-colorable v0.0.0-20160220075935-9cbef7c35391
-	github.com/mattn/go-isatty v0.0.0-20161123143637-30a891c33c7c // indirect
 	github.com/mattn/go-shellwords v1.0.1
 	github.com/miekg/dns v1.0.8 // indirect
 	github.com/mitchellh/cli v0.0.0-20171129193617-33edc47170b5
@@ -118,13 +108,12 @@ require (
 	github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a // indirect
 	github.com/soheilhy/cmux v0.1.4 // indirect
 	github.com/spf13/afero v1.0.2
-	github.com/terraform-providers/terraform-provider-aws v1.52.0
+	github.com/terraform-providers/terraform-provider-aws v1.58.0
 	github.com/terraform-providers/terraform-provider-openstack v1.15.0
 	github.com/terraform-providers/terraform-provider-template v1.0.0 // indirect
 	github.com/terraform-providers/terraform-provider-tls v1.2.0 // indirect
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20171017195756-830351dc03c6 // indirect
 	github.com/ugorji/go v0.0.0-20180813092308-00b869d2f4a5 // indirect
-	github.com/ulikunitz/xz v0.5.4 // indirect
 	github.com/vmihailenco/msgpack v4.0.1+incompatible // indirect
 	github.com/xanzy/ssh-agent v0.2.0
 	github.com/xiang90/probing v0.0.0-20160813154853-07dd2e8dfe18 // indirect

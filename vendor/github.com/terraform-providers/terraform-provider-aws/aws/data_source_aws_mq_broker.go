@@ -147,6 +147,7 @@ func dataSourceAwsMqBroker() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Computed: true,
 			},
+			"tags": tagsSchemaComputed(),
 			"user": {
 				Type:     schema.TypeSet,
 				Computed: true,

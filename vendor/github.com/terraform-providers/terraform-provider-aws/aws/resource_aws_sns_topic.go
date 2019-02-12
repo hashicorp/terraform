@@ -241,10 +241,8 @@ func resourceAwsSnsTopicDelete(d *schema.ResourceData, meta interface{}) error {
 	_, err := snsconn.DeleteTopic(&sns.DeleteTopicInput{
 		TopicArn: aws.String(d.Id()),
 	})
-	if err != nil {
-		return err
-	}
-	return nil
+
+	return err
 }
 
 func updateAwsSnsTopicAttribute(topicArn, name string, value interface{}, conn *sns.SNS) error {
@@ -267,8 +265,6 @@ func updateAwsSnsTopicAttribute(topicArn, name string, value interface{}, conn *
 	_, err := retryOnAwsCode(sns.ErrCodeInvalidParameterException, func() (interface{}, error) {
 		return conn.SetTopicAttributes(&req)
 	})
-	if err != nil {
-		return err
-	}
-	return nil
+
+	return err
 }

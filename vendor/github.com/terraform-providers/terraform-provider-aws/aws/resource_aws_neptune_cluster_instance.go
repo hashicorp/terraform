@@ -304,7 +304,7 @@ func resourceAwsNeptuneClusterInstanceRead(d *schema.ResourceData, meta interfac
 	}
 	for _, m := range dbc.DBClusterMembers {
 		if aws.StringValue(db.DBInstanceIdentifier) == aws.StringValue(m.DBInstanceIdentifier) {
-			if aws.BoolValue(m.IsClusterWriter) == true {
+			if aws.BoolValue(m.IsClusterWriter) {
 				d.Set("writer", true)
 			} else {
 				d.Set("writer", false)
@@ -460,11 +460,8 @@ func resourceAwsNeptuneClusterInstanceDelete(d *schema.ResourceData, meta interf
 		Delay:      30 * time.Second,
 	}
 
-	if _, err := stateConf.WaitForState(); err != nil {
-		return err
-	}
-
-	return nil
+	_, err := stateConf.WaitForState()
+	return err
 
 }
 

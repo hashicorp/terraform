@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	elasticsearch "github.com/aws/aws-sdk-go/service/elasticsearchservice"
 	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/hashicorp/terraform/helper/customdiff"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/structure"
@@ -26,6 +27,31 @@ func resourceAwsElasticSearchDomain() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: resourceAwsElasticSearchDomainImport,
 		},
+
+		CustomizeDiff: customdiff.Sequence(
+			customdiff.ForceNewIf("elasticsearch_version", func(d *schema.ResourceDiff, meta interface{}) bool {
+				newVersion := d.Get("elasticsearch_version").(string)
+				domainName := d.Get("domain_name").(string)
+
+				conn := meta.(*AWSClient).esconn
+				resp, err := conn.GetCompatibleElasticsearchVersions(&elasticsearch.GetCompatibleElasticsearchVersionsInput{
+					DomainName: aws.String(domainName),
+				})
+				if err != nil {
+					log.Printf("[ERROR] Failed to get compatible ElasticSearch versions %s", domainName)
+					return false
+				}
+				if len(resp.CompatibleElasticsearchVersions) != 1 {
+					return true
+				}
+				for _, targetVersion := range resp.CompatibleElasticsearchVersions[0].TargetVersions {
+					if aws.StringValue(targetVersion) == newVersion {
+						return false
+					}
+				}
+				return true
+			}),
+		),
 
 		Schema: map[string]*schema.Schema{
 			"access_policies": {
@@ -253,7 +279,6 @@ func resourceAwsElasticSearchDomain() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "1.5",
-				ForceNew: true,
 			},
 			"cognito_options": {
 				Type:             schema.TypeList,
@@ -731,7 +756,7 @@ func resourceAwsElasticSearchDomainUpdate(d *schema.ResourceData, meta interface
 			return resource.NonRetryableError(err)
 		}
 
-		if *out.DomainStatus.Processing == false {
+		if !*out.DomainStatus.Processing {
 			return nil
 		}
 
@@ -740,6 +765,40 @@ func resourceAwsElasticSearchDomainUpdate(d *schema.ResourceData, meta interface
 	})
 	if err != nil {
 		return err
+	}
+
+	if d.HasChange("elasticsearch_version") {
+		upgradeInput := elasticsearch.UpgradeElasticsearchDomainInput{
+			DomainName:    aws.String(d.Get("domain_name").(string)),
+			TargetVersion: aws.String(d.Get("elasticsearch_version").(string)),
+		}
+
+		_, err := conn.UpgradeElasticsearchDomain(&upgradeInput)
+		if err != nil {
+			return fmt.Errorf("Failed to upgrade elasticsearch domain: %s", err)
+		}
+
+		stateConf := &resource.StateChangeConf{
+			Pending: []string{elasticsearch.UpgradeStatusInProgress},
+			Target:  []string{elasticsearch.UpgradeStatusSucceeded},
+			Refresh: func() (interface{}, string, error) {
+				out, err := conn.GetUpgradeStatus(&elasticsearch.GetUpgradeStatusInput{
+					DomainName: aws.String(d.Get("domain_name").(string)),
+				})
+				if err != nil {
+					return nil, "", err
+				}
+
+				return out, aws.StringValue(out.StepStatus), nil
+			},
+			Timeout:    60 * time.Minute, // TODO: Make this configurable. Large ES domains may take a very long time to upgrade
+			MinTimeout: 10 * time.Second,
+			Delay:      30 * time.Second, // The upgrade status isn't instantly available for the current upgrade so will either be nil or reflect a previous upgrade
+		}
+		_, waitErr := stateConf.WaitForState()
+		if waitErr != nil {
+			return waitErr
+		}
 	}
 
 	d.Partial(false)

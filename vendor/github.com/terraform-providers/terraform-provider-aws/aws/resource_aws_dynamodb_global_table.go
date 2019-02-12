@@ -129,12 +129,8 @@ func resourceAwsDynamoDbGlobalTableUpdate(d *schema.ResourceData, meta interface
 		replicaUpdateDeleteReplicas := expandAwsDynamoDbReplicaUpdateDeleteReplicas(os.Difference(ns).List())
 
 		replicaUpdates := make([]*dynamodb.ReplicaUpdate, 0, (len(replicaUpdateCreateReplicas) + len(replicaUpdateDeleteReplicas)))
-		for _, replicaUpdate := range replicaUpdateCreateReplicas {
-			replicaUpdates = append(replicaUpdates, replicaUpdate)
-		}
-		for _, replicaUpdate := range replicaUpdateDeleteReplicas {
-			replicaUpdates = append(replicaUpdates, replicaUpdate)
-		}
+		replicaUpdates = append(replicaUpdates, replicaUpdateCreateReplicas...)
+		replicaUpdates = append(replicaUpdates, replicaUpdateDeleteReplicas...)
 
 		input := &dynamodb.UpdateGlobalTableInput{
 			GlobalTableName: aws.String(d.Id()),
@@ -247,11 +243,7 @@ func flattenAwsDynamoDbGlobalTable(d *schema.ResourceData, globalTableDescriptio
 	d.Set("name", globalTableDescription.GlobalTableName)
 
 	err = d.Set("replica", flattenAwsDynamoDbReplicas(globalTableDescription.ReplicationGroup))
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func expandAwsDynamoDbReplicaUpdateCreateReplicas(configuredReplicas []interface{}) []*dynamodb.ReplicaUpdate {

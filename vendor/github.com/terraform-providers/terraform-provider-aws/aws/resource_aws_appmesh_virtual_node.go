@@ -178,11 +178,8 @@ func resourceAwsAppmeshVirtualNodeRead(d *schema.ResourceData, meta interface{})
 	d.Set("arn", resp.VirtualNode.Metadata.Arn)
 	d.Set("created_date", resp.VirtualNode.Metadata.CreatedAt.Format(time.RFC3339))
 	d.Set("last_updated_date", resp.VirtualNode.Metadata.LastUpdatedAt.Format(time.RFC3339))
-	if err := d.Set("spec", flattenAppmeshVirtualNodeSpec(resp.VirtualNode.Spec)); err != nil {
-		return err
-	}
-
-	return nil
+	err1 := d.Set("spec", flattenAppmeshVirtualNodeSpec(resp.VirtualNode.Spec))
+	return err1
 }
 
 func resourceAwsAppmeshVirtualNodeUpdate(d *schema.ResourceData, meta interface{}) error {

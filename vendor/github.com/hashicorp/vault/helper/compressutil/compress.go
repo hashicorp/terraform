@@ -6,6 +6,9 @@ import (
 	"compress/lzw"
 	"fmt"
 	"io"
+
+	"github.com/golang/snappy"
+	"github.com/hashicorp/errwrap"
 )
 
 const (
@@ -20,16 +23,35 @@ const (
 	// Byte value used as canary when using Lzw format
 	CompressionCanaryLzw byte = 'L'
 
+	// Byte value used as canary when using Snappy format
+	CompressionCanarySnappy byte = 'S'
+
 	CompressionTypeLzw = "lzw"
 
 	CompressionTypeGzip = "gzip"
+
+	CompressionTypeSnappy = "snappy"
 )
+
+// SnappyReadCloser embeds the snappy reader which implements the io.Reader
+// interface. The decompress procedure in this utility expects an
+// io.ReadCloser. This type implements the io.Closer interface to retain the
+// generic way of decompression.
+type SnappyReadCloser struct {
+	*snappy.Reader
+}
+
+// Close is a noop method implemented only to satisfy the io.Closer interface
+func (s *SnappyReadCloser) Close() error {
+	return nil
+}
 
 // CompressionConfig is used to select a compression type to be performed by
 // Compress and Decompress utilities.
 // Supported types are:
 // * CompressionTypeLzw
 // * CompressionTypeGzip
+// * CompressionTypeSnappy
 //
 // When using CompressionTypeGzip, the compression levels can also be chosen:
 // * gzip.DefaultCompression
@@ -78,11 +100,15 @@ func Compress(data []byte, config *CompressionConfig) ([]byte, error) {
 			config.GzipCompressionLevel = gzip.DefaultCompression
 		}
 		writer, err = gzip.NewWriterLevel(&buf, config.GzipCompressionLevel)
+	case CompressionTypeSnappy:
+		buf.Write([]byte{CompressionCanarySnappy})
+		writer = snappy.NewBufferedWriter(&buf)
 	default:
 		return nil, fmt.Errorf("unsupported compression type")
 	}
+
 	if err != nil {
-		return nil, fmt.Errorf("failed to create a compression writer; err: %v", err)
+		return nil, errwrap.Wrapf("failed to create a compression writer: {{err}}", err)
 	}
 
 	if writer == nil {
@@ -92,7 +118,7 @@ func Compress(data []byte, config *CompressionConfig) ([]byte, error) {
 	// Compress the input and place it in the same buffer containing the
 	// canary byte.
 	if _, err = writer.Write(data); err != nil {
-		return nil, fmt.Errorf("failed to compress input data; err: %v", err)
+		return nil, errwrap.Wrapf("failed to compress input data: err: {{err}}", err)
 	}
 
 	// Close the io.WriteCloser
@@ -117,22 +143,29 @@ func Decompress(data []byte) ([]byte, bool, error) {
 	}
 
 	switch {
+	// If the first byte matches the canary byte, remove the canary
+	// byte and try to decompress the data that is after the canary.
 	case data[0] == CompressionCanaryGzip:
-		// If the first byte matches the canary byte, remove the canary
-		// byte and try to decompress the data that is after the canary.
 		if len(data) < 2 {
 			return nil, false, fmt.Errorf("invalid 'data' after the canary")
 		}
 		data = data[1:]
 		reader, err = gzip.NewReader(bytes.NewReader(data))
 	case data[0] == CompressionCanaryLzw:
-		// If the first byte matches the canary byte, remove the canary
-		// byte and try to decompress the data that is after the canary.
 		if len(data) < 2 {
 			return nil, false, fmt.Errorf("invalid 'data' after the canary")
 		}
 		data = data[1:]
 		reader = lzw.NewReader(bytes.NewReader(data), lzw.LSB, 8)
+
+	case data[0] == CompressionCanarySnappy:
+		if len(data) < 2 {
+			return nil, false, fmt.Errorf("invalid 'data' after the canary")
+		}
+		data = data[1:]
+		reader = &SnappyReadCloser{
+			Reader: snappy.NewReader(bytes.NewReader(data)),
+		}
 	default:
 		// If the first byte doesn't match the canary byte, it means
 		// that the content was not compressed at all. Indicate the
@@ -140,7 +173,7 @@ func Decompress(data []byte) ([]byte, bool, error) {
 		return nil, true, nil
 	}
 	if err != nil {
-		return nil, false, fmt.Errorf("failed to create a compression reader; err: %v", err)
+		return nil, false, errwrap.Wrapf("failed to create a compression reader: {{err}}", err)
 	}
 	if reader == nil {
 		return nil, false, fmt.Errorf("failed to create a compression reader")

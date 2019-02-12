@@ -220,6 +220,14 @@ const (
 	// file name.
 	ErrCodeFileNameConflictsWithDirectoryNameException = "FileNameConflictsWithDirectoryNameException"
 
+	// ErrCodeFilePathConflictsWithSubmodulePathException for service response error code
+	// "FilePathConflictsWithSubmodulePathException".
+	//
+	// The specified file path or folder has the same path as a submodule in this
+	// repository. Either provide a different name for the file, or save the file
+	// in a directory that does not conflict with the submodule path.
+	ErrCodeFilePathConflictsWithSubmodulePathException = "FilePathConflictsWithSubmodulePathException"
+
 	// ErrCodeFileTooLargeException for service response error code
 	// "FileTooLargeException".
 	//
@@ -227,6 +235,16 @@ const (
 	// information about limits in AWS CodeCommit, see AWS CodeCommit User Guide
 	// (http://docs.aws.amazon.com/codecommit/latest/userguide/limits.html).
 	ErrCodeFileTooLargeException = "FileTooLargeException"
+
+	// ErrCodeFolderContentSizeLimitExceededException for service response error code
+	// "FolderContentSizeLimitExceededException".
+	//
+	// The specified file is in a folder that exceeds the folder content size limit.
+	// Either save the file in a folder that has less content, or remove files or
+	// subfolders from the folder so it does not exceed the size limit. For more
+	// information about limits in AWS CodeCommit, see AWS CodeCommit User Guide
+	// (http://docs.aws.amazon.com/codecommit/latest/userguide/limits.html).
+	ErrCodeFolderContentSizeLimitExceededException = "FolderContentSizeLimitExceededException"
 
 	// ErrCodeFolderDoesNotExistException for service response error code
 	// "FolderDoesNotExistException".

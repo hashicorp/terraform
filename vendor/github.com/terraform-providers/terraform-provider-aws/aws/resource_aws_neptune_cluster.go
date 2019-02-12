@@ -613,7 +613,7 @@ func resourceAwsNeptuneClusterDelete(d *schema.ResourceData, meta interface{}) e
 	skipFinalSnapshot := d.Get("skip_final_snapshot").(bool)
 	deleteOpts.SkipFinalSnapshot = aws.Bool(skipFinalSnapshot)
 
-	if skipFinalSnapshot == false {
+	if !skipFinalSnapshot {
 		if name, present := d.GetOk("final_snapshot_identifier"); present {
 			deleteOpts.FinalDBSnapshotIdentifier = aws.String(name.(string))
 		} else {
@@ -702,11 +702,7 @@ func setIamRoleToNeptuneCluster(clusterIdentifier string, roleArn string, conn *
 		RoleArn:             aws.String(roleArn),
 	}
 	_, err := conn.AddRoleToDBCluster(params)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func removeIamRoleFromNeptuneCluster(clusterIdentifier string, roleArn string, conn *neptune.Neptune) error {
@@ -715,11 +711,7 @@ func removeIamRoleFromNeptuneCluster(clusterIdentifier string, roleArn string, c
 		RoleArn:             aws.String(roleArn),
 	}
 	_, err := conn.RemoveRoleFromDBCluster(params)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 var resourceAwsNeptuneClusterCreatePendingStates = []string{

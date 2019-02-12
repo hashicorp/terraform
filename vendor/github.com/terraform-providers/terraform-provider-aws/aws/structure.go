@@ -23,6 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dax"
 	"github.com/aws/aws-sdk-go/service/directconnect"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
+	"github.com/aws/aws-sdk-go/service/docdb"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
@@ -41,6 +42,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/aws/aws-sdk-go/service/waf"
+	"github.com/aws/aws-sdk-go/service/worklink"
 	"github.com/beevik/etree"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/structure"
@@ -349,7 +351,29 @@ func expandRedshiftParameters(configured []interface{}) ([]*redshift.Parameter, 
 	return parameters, nil
 }
 
-func expandOptionConfiguration(configured []interface{}) ([]*rds.OptionConfiguration, error) {
+// Takes the result of flatmap.Expand for an array of parameters and
+// returns Parameter API compatible objects
+func expandDocDBParameters(configured []interface{}) ([]*docdb.Parameter, error) {
+	parameters := make([]*docdb.Parameter, 0, len(configured))
+
+	// Loop over our configured parameters and create
+	// an array of aws-sdk-go compatible objects
+	for _, pRaw := range configured {
+		data := pRaw.(map[string]interface{})
+
+		p := &docdb.Parameter{
+			ApplyMethod:    aws.String(data["apply_method"].(string)),
+			ParameterName:  aws.String(data["name"].(string)),
+			ParameterValue: aws.String(data["value"].(string)),
+		}
+
+		parameters = append(parameters, p)
+	}
+
+	return parameters, nil
+}
+
+func expandOptionConfiguration(configured []interface{}) []*rds.OptionConfiguration {
 	var option []*rds.OptionConfiguration
 
 	for _, pRaw := range configured {
@@ -391,7 +415,7 @@ func expandOptionConfiguration(configured []interface{}) ([]*rds.OptionConfigura
 		option = append(option, o)
 	}
 
-	return option, nil
+	return option
 }
 
 func expandOptionSetting(list []interface{}) []*rds.OptionSetting {
@@ -725,57 +749,96 @@ func flattenEcsContainerDefinitions(definitions []*ecs.ContainerDefinition) (str
 }
 
 // Flattens an array of Options into a []map[string]interface{}
-func flattenOptions(list []*rds.Option) []map[string]interface{} {
-	result := make([]map[string]interface{}, 0, len(list))
-	for _, i := range list {
-		if i.OptionName != nil {
-			r := make(map[string]interface{})
-			r["option_name"] = strings.ToLower(*i.OptionName)
-			// Default empty string, guard against nil parameter values
-			r["port"] = ""
-			if i.Port != nil {
-				r["port"] = int(*i.Port)
-			}
-			r["version"] = ""
-			if i.OptionVersion != nil {
-				r["version"] = strings.ToLower(*i.OptionVersion)
-			}
-			if i.VpcSecurityGroupMemberships != nil {
-				vpcs := make([]string, 0, len(i.VpcSecurityGroupMemberships))
-				for _, vpc := range i.VpcSecurityGroupMemberships {
-					id := vpc.VpcSecurityGroupId
-					vpcs = append(vpcs, *id)
-				}
+func flattenOptions(apiOptions []*rds.Option, optionConfigurations []*rds.OptionConfiguration) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0)
 
-				r["vpc_security_group_memberships"] = vpcs
-			}
-			if i.DBSecurityGroupMemberships != nil {
-				dbs := make([]string, 0, len(i.DBSecurityGroupMemberships))
-				for _, db := range i.DBSecurityGroupMemberships {
-					id := db.DBSecurityGroupName
-					dbs = append(dbs, *id)
-				}
-
-				r["db_security_group_memberships"] = dbs
-			}
-			if i.OptionSettings != nil {
-				settings := make([]map[string]interface{}, 0, len(i.OptionSettings))
-				for _, j := range i.OptionSettings {
-					setting := map[string]interface{}{
-						"name": *j.Name,
-					}
-					if j.Value != nil {
-						setting["value"] = *j.Value
-					}
-
-					settings = append(settings, setting)
-				}
-
-				r["option_settings"] = settings
-			}
-			result = append(result, r)
+	for _, apiOption := range apiOptions {
+		if apiOption == nil || apiOption.OptionName == nil {
+			continue
 		}
+
+		var configuredOption *rds.OptionConfiguration
+
+		for _, optionConfiguration := range optionConfigurations {
+			if aws.StringValue(apiOption.OptionName) == aws.StringValue(optionConfiguration.OptionName) {
+				configuredOption = optionConfiguration
+				break
+			}
+		}
+
+		dbSecurityGroupMemberships := make([]interface{}, 0)
+		for _, db := range apiOption.DBSecurityGroupMemberships {
+			if db != nil {
+				dbSecurityGroupMemberships = append(dbSecurityGroupMemberships, aws.StringValue(db.DBSecurityGroupName))
+			}
+		}
+
+		optionSettings := make([]interface{}, 0)
+		for _, apiOptionSetting := range apiOption.OptionSettings {
+			// The RDS API responds with all settings. Omit settings that match default value,
+			// but only if unconfigured. This is to prevent operators from continually needing
+			// to continually update their Terraform configurations to match new option settings
+			// when added by the API.
+			var configuredOptionSetting *rds.OptionSetting
+
+			if configuredOption != nil {
+				for _, configuredOptionOptionSetting := range configuredOption.OptionSettings {
+					if aws.StringValue(apiOptionSetting.Name) == aws.StringValue(configuredOptionOptionSetting.Name) {
+						configuredOptionSetting = configuredOptionOptionSetting
+						break
+					}
+				}
+			}
+
+			if configuredOptionSetting == nil && aws.StringValue(apiOptionSetting.Value) == aws.StringValue(apiOptionSetting.DefaultValue) {
+				continue
+			}
+
+			optionSetting := map[string]interface{}{
+				"name":  aws.StringValue(apiOptionSetting.Name),
+				"value": aws.StringValue(apiOptionSetting.Value),
+			}
+
+			// Some values, like passwords, are sent back from the API as ****.
+			// Set the response to match the configuration to prevent an unexpected difference
+			if configuredOptionSetting != nil && aws.StringValue(apiOptionSetting.Value) == "****" {
+				optionSetting["value"] = aws.StringValue(configuredOptionSetting.Value)
+			}
+
+			optionSettings = append(optionSettings, optionSetting)
+		}
+		optionSettingsResource := &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"name": {
+					Type:     schema.TypeString,
+					Required: true,
+				},
+				"value": {
+					Type:     schema.TypeString,
+					Required: true,
+				},
+			},
+		}
+
+		vpcSecurityGroupMemberships := make([]interface{}, 0)
+		for _, vpc := range apiOption.VpcSecurityGroupMemberships {
+			if vpc != nil {
+				vpcSecurityGroupMemberships = append(vpcSecurityGroupMemberships, aws.StringValue(vpc.VpcSecurityGroupId))
+			}
+		}
+
+		r := map[string]interface{}{
+			"db_security_group_memberships":  schema.NewSet(schema.HashString, dbSecurityGroupMemberships),
+			"option_name":                    aws.StringValue(apiOption.OptionName),
+			"option_settings":                schema.NewSet(schema.HashResource(optionSettingsResource), optionSettings),
+			"port":                           aws.Int64Value(apiOption.Port),
+			"version":                        aws.StringValue(apiOption.OptionVersion),
+			"vpc_security_group_memberships": schema.NewSet(schema.HashString, vpcSecurityGroupMemberships),
+		}
+
+		result = append(result, r)
 	}
+
 	return result
 }
 
@@ -829,6 +892,21 @@ func flattenElastiCacheParameters(list []*elasticache.Parameter) []map[string]in
 
 // Flattens an array of Parameters into a []map[string]interface{}
 func flattenNeptuneParameters(list []*neptune.Parameter) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, len(list))
+	for _, i := range list {
+		if i.ParameterValue != nil {
+			result = append(result, map[string]interface{}{
+				"apply_method": aws.StringValue(i.ApplyMethod),
+				"name":         aws.StringValue(i.ParameterName),
+				"value":        aws.StringValue(i.ParameterValue),
+			})
+		}
+	}
+	return result
+}
+
+// Flattens an array of Parameters into a []map[string]interface{}
+func flattenDocDBParameters(list []*docdb.Parameter) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(list))
 	for _, i := range list {
 		if i.ParameterValue != nil {
@@ -1001,13 +1079,13 @@ func flattenStepAdjustments(adjustments []*autoscaling.StepAdjustment) []map[str
 	result := make([]map[string]interface{}, 0, len(adjustments))
 	for _, raw := range adjustments {
 		a := map[string]interface{}{
-			"scaling_adjustment": *raw.ScalingAdjustment,
+			"scaling_adjustment": aws.Int64Value(raw.ScalingAdjustment),
 		}
 		if raw.MetricIntervalUpperBound != nil {
-			a["metric_interval_upper_bound"] = *raw.MetricIntervalUpperBound
+			a["metric_interval_upper_bound"] = fmt.Sprintf("%g", aws.Float64Value(raw.MetricIntervalUpperBound))
 		}
 		if raw.MetricIntervalLowerBound != nil {
-			a["metric_interval_lower_bound"] = *raw.MetricIntervalLowerBound
+			a["metric_interval_lower_bound"] = fmt.Sprintf("%g", aws.Float64Value(raw.MetricIntervalLowerBound))
 		}
 		result = append(result, a)
 	}
@@ -1408,6 +1486,14 @@ func flattenLambdaEnvironment(lambdaEnv *lambda.EnvironmentResponse) []interface
 	}
 
 	return []interface{}{envs}
+}
+
+func flattenLambdaLayers(layers []*lambda.Layer) []interface{} {
+	arns := make([]*string, len(layers))
+	for i, layer := range layers {
+		arns[i] = layer.Arn
+	}
+	return flattenStringList(arns)
 }
 
 func flattenLambdaVpcConfigResponse(s *lambda.VpcConfigResponse) []map[string]interface{} {
@@ -2907,9 +2993,9 @@ func flattenIoTRuleSqsActions(actions []*iot.Action) []map[string]interface{} {
 		result := make(map[string]interface{})
 		v := a.Sqs
 		if v != nil {
-			result["role_arn"] = *v.RoleArn
-			result["use_base64"] = *v.UseBase64
-			result["queue_url"] = *v.QueueUrl
+			result["role_arn"] = aws.StringValue(v.RoleArn)
+			result["use_base64"] = aws.BoolValue(v.UseBase64)
+			result["queue_url"] = aws.StringValue(v.QueueUrl)
 
 			results = append(results, result)
 		}
@@ -3637,6 +3723,41 @@ func flattenWafWebAclRules(ts []*waf.ActivatedRule) []map[string]interface{} {
 		out[i] = m
 	}
 	return out
+}
+
+func flattenWorkLinkNetworkConfigResponse(c *worklink.DescribeCompanyNetworkConfigurationOutput) []map[string]interface{} {
+	config := make(map[string]interface{})
+
+	if c == nil {
+		return nil
+	}
+
+	if len(c.SubnetIds) == 0 && len(c.SecurityGroupIds) == 0 && aws.StringValue(c.VpcId) == "" {
+		return nil
+	}
+
+	config["subnet_ids"] = schema.NewSet(schema.HashString, flattenStringList(c.SubnetIds))
+	config["security_group_ids"] = schema.NewSet(schema.HashString, flattenStringList(c.SecurityGroupIds))
+	config["vpc_id"] = aws.StringValue(c.VpcId)
+
+	return []map[string]interface{}{config}
+}
+
+func flattenWorkLinkIdentityProviderConfigResponse(c *worklink.DescribeIdentityProviderConfigurationOutput) []map[string]interface{} {
+	config := make(map[string]interface{})
+
+	if c.IdentityProviderType == nil && c.IdentityProviderSamlMetadata == nil {
+		return nil
+	}
+
+	if c.IdentityProviderType != nil {
+		config["type"] = aws.StringValue(c.IdentityProviderType)
+	}
+	if c.IdentityProviderSamlMetadata != nil {
+		config["saml_metadata"] = aws.StringValue(c.IdentityProviderSamlMetadata)
+	}
+
+	return []map[string]interface{}{config}
 }
 
 // escapeJsonPointer escapes string per RFC 6901

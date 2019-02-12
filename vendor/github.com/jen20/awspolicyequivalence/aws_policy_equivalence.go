@@ -9,10 +9,11 @@ package awspolicy
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
+	"regexp"
 	"strings"
 
-	"github.com/hashicorp/errwrap"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -29,21 +30,21 @@ import (
 func PoliciesAreEquivalent(policy1, policy2 string) (bool, error) {
 	policy1intermediate := &intermediateAwsPolicyDocument{}
 	if err := json.Unmarshal([]byte(policy1), policy1intermediate); err != nil {
-		return false, errwrap.Wrapf("Error unmarshaling policy: {{err}}", err)
+		return false, fmt.Errorf("Error unmarshaling policy: %s", err)
 	}
 
 	policy2intermediate := &intermediateAwsPolicyDocument{}
 	if err := json.Unmarshal([]byte(policy2), policy2intermediate); err != nil {
-		return false, errwrap.Wrapf("Error unmarshaling policy: {{err}}", err)
+		return false, fmt.Errorf("Error unmarshaling policy: %s", err)
 	}
 
 	policy1Doc, err := policy1intermediate.document()
 	if err != nil {
-		return false, errwrap.Wrapf("Error parsing policy: {{err}}", err)
+		return false, fmt.Errorf("Error parsing policy: %s", err)
 	}
 	policy2Doc, err := policy2intermediate.document()
 	if err != nil {
-		return false, errwrap.Wrapf("Error parsing policy: {{err}}", err)
+		return false, fmt.Errorf("Error parsing policy: %s", err)
 	}
 
 	return policy1Doc.equals(policy2Doc), nil
@@ -61,12 +62,12 @@ func (intermediate *intermediateAwsPolicyDocument) document() (*awsPolicyDocumen
 	switch s := intermediate.Statements.(type) {
 	case []interface{}:
 		if err := mapstructure.Decode(s, &statements); err != nil {
-			return nil, errwrap.Wrapf("Error parsing statement: {{err}}", err)
+			return nil, fmt.Errorf("Error parsing statement: %s", err)
 		}
 	case map[string]interface{}:
 		var singleStatement *awsPolicyStatement
 		if err := mapstructure.Decode(s, &singleStatement); err != nil {
-			return nil, errwrap.Wrapf("Error parsing statement: {{err}}", err)
+			return nil, fmt.Errorf("Error parsing statement: %s", err)
 		}
 		statements = append(statements, singleStatement)
 	default:
@@ -209,24 +210,27 @@ func (statement *awsPolicyStatement) equals(other *awsPolicyStatement) bool {
 }
 
 func mapPrincipalsEqual(ours, theirs interface{}) bool {
-	ourPrincipalMap, ok := ours.(map[string]interface{})
-	if !ok {
-		return false
+	ourPrincipalMap, oursOk := ours.(map[string]interface{})
+	theirPrincipalMap, theirsOk := theirs.(map[string]interface{})
+
+	oursNormalized := make(map[string]awsPrincipalStringSet)
+	if oursOk {
+		for key, val := range ourPrincipalMap {
+			var tmp = newAWSPrincipalStringSet(val)
+			if len(tmp) > 0 {
+				oursNormalized[key] = tmp
+			}
+		}
 	}
 
-	theirPrincipalMap, ok := theirs.(map[string]interface{})
-	if !ok {
-		return false
-	}
-
-	oursNormalized := make(map[string]awsStringSet)
-	for key, val := range ourPrincipalMap {
-		oursNormalized[key] = newAWSStringSet(val)
-	}
-
-	theirsNormalized := make(map[string]awsStringSet)
-	for key, val := range theirPrincipalMap {
-		theirsNormalized[key] = newAWSStringSet(val)
+	theirsNormalized := make(map[string]awsPrincipalStringSet)
+	if theirsOk {
+		for key, val := range theirPrincipalMap {
+			var tmp = newAWSPrincipalStringSet(val)
+			if len(tmp) > 0 {
+				theirsNormalized[key] = newAWSPrincipalStringSet(val)
+			}
+		}
 	}
 
 	for key, ours := range oursNormalized {
@@ -264,6 +268,26 @@ func stringPrincipalsEqual(ours, theirs interface{}) bool {
 
 	if ourPrincipal == theirPrincipal {
 		return true
+	}
+
+	// Handle AWS converting account ID principal to root IAM user ARN
+	// ACCOUNTID == arn:PARTITION:iam::ACCOUNTID:root
+	awsAccountIDRegex := regexp.MustCompile(`^[0-9]{12}$`)
+
+	if awsAccountIDRegex.MatchString(ourPrincipal) {
+		if theirArn, err := parseAwsArnString(theirPrincipal); err == nil {
+			if theirArn.service == "iam" && theirArn.resource == "root" && theirArn.account == ourPrincipal {
+				return true
+			}
+		}
+	}
+
+	if awsAccountIDRegex.MatchString(theirPrincipal) {
+		if ourArn, err := parseAwsArnString(ourPrincipal); err == nil {
+			if ourArn.service == "iam" && ourArn.resource == "root" && ourArn.account == theirPrincipal {
+				return true
+			}
+		}
 	}
 
 	return false
@@ -338,6 +362,7 @@ func (conditions awsConditionsBlock) Equals(other awsConditionsBlock) bool {
 }
 
 type awsStringSet []string
+type awsPrincipalStringSet awsStringSet
 
 // newAWSStringSet constructs an awsStringSet from an interface{} - which
 // may be nil, a single string, or []interface{} (each of which is a string).
@@ -353,6 +378,9 @@ func newAWSStringSet(members interface{}) awsStringSet {
 	}
 
 	if multiple, ok := members.([]interface{}); ok {
+		if len(multiple) == 0 {
+			return awsStringSet{}
+		}
 		actions := make([]string, len(multiple))
 		for i, action := range multiple {
 			actions[i] = action.(string)
@@ -361,6 +389,10 @@ func newAWSStringSet(members interface{}) awsStringSet {
 	}
 
 	return nil
+}
+
+func newAWSPrincipalStringSet(members interface{}) awsPrincipalStringSet {
+	return awsPrincipalStringSet(newAWSStringSet(members))
 }
 
 func (actions awsStringSet) equals(other awsStringSet) bool {
@@ -380,4 +412,54 @@ func (actions awsStringSet) equals(other awsStringSet) bool {
 	}
 
 	return reflect.DeepEqual(ourMap, theirMap)
+}
+
+func (ours awsPrincipalStringSet) equals(theirs awsPrincipalStringSet) bool {
+	if len(ours) != len(theirs) {
+		return false
+	}
+
+	for _, ourPrincipal := range ours {
+		matches := false
+		for _, theirPrincipal := range theirs {
+			if stringPrincipalsEqual(ourPrincipal, theirPrincipal) {
+				matches = true
+				break
+			}
+		}
+		if !matches {
+			return false
+		}
+	}
+
+	return true
+}
+
+// awsArn describes an Amazon Resource Name
+// More information: http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
+type awsArn struct {
+	account   string
+	partition string
+	region    string
+	resource  string
+	service   string
+}
+
+// parseAwsArnString converts a string into an awsArn
+// Expects string in form of: arn:PARTITION:SERVICE:REGION:ACCOUNT:RESOURCE
+func parseAwsArnString(arn string) (awsArn, error) {
+	if !strings.HasPrefix(arn, "arn:") {
+		return awsArn{}, fmt.Errorf("expected arn: prefix, received: %s", arn)
+	}
+	arnParts := strings.SplitN(arn, ":", 6)
+	if len(arnParts) != 6 {
+		return awsArn{}, fmt.Errorf("expected 6 colon delimited sections, received: %s", arn)
+	}
+	return awsArn{
+		account:   arnParts[4],
+		partition: arnParts[1],
+		region:    arnParts[3],
+		resource:  arnParts[5],
+		service:   arnParts[2],
+	}, nil
 }

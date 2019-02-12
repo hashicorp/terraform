@@ -187,11 +187,8 @@ func resourceAwsApiGatewayVpcLinkDelete(d *schema.ResourceData, meta interface{}
 		},
 	}
 
-	if _, err := stateConf.WaitForState(); err != nil {
-		return err
-	}
-
-	return nil
+	_, err = stateConf.WaitForState()
+	return err
 }
 
 func apigatewayVpcLinkRefreshStatusFunc(conn *apigateway.APIGateway, vl string) resource.StateRefreshFunc {

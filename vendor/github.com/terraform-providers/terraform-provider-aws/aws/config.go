@@ -18,17 +18,20 @@ import (
 	"github.com/aws/aws-sdk-go/service/acm"
 	"github.com/aws/aws-sdk-go/service/acmpca"
 	"github.com/aws/aws-sdk-go/service/apigateway"
+	"github.com/aws/aws-sdk-go/service/apigatewayv2"
 	"github.com/aws/aws-sdk-go/service/applicationautoscaling"
 	"github.com/aws/aws-sdk-go/service/appmesh"
 	"github.com/aws/aws-sdk-go/service/appsync"
 	"github.com/aws/aws-sdk-go/service/athena"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/service/backup"
 	"github.com/aws/aws-sdk-go/service/batch"
 	"github.com/aws/aws-sdk-go/service/budgets"
 	"github.com/aws/aws-sdk-go/service/cloud9"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudfront"
 	"github.com/aws/aws-sdk-go/service/cloudhsmv2"
+	"github.com/aws/aws-sdk-go/service/cloudsearch"
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
@@ -40,13 +43,16 @@ import (
 	"github.com/aws/aws-sdk-go/service/cognitoidentity"
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go/service/configservice"
+	"github.com/aws/aws-sdk-go/service/costandusagereportservice"
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice"
+	"github.com/aws/aws-sdk-go/service/datapipeline"
 	"github.com/aws/aws-sdk-go/service/datasync"
 	"github.com/aws/aws-sdk-go/service/dax"
 	"github.com/aws/aws-sdk-go/service/devicefarm"
 	"github.com/aws/aws-sdk-go/service/directconnect"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
 	"github.com/aws/aws-sdk-go/service/dlm"
+	"github.com/aws/aws-sdk-go/service/docdb"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecr"
@@ -62,33 +68,48 @@ import (
 	"github.com/aws/aws-sdk-go/service/emr"
 	"github.com/aws/aws-sdk-go/service/firehose"
 	"github.com/aws/aws-sdk-go/service/fms"
+	"github.com/aws/aws-sdk-go/service/fsx"
 	"github.com/aws/aws-sdk-go/service/gamelift"
 	"github.com/aws/aws-sdk-go/service/glacier"
+	"github.com/aws/aws-sdk-go/service/globalaccelerator"
 	"github.com/aws/aws-sdk-go/service/glue"
 	"github.com/aws/aws-sdk-go/service/guardduty"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/inspector"
 	"github.com/aws/aws-sdk-go/service/iot"
+	"github.com/aws/aws-sdk-go/service/kafka"
 	"github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/aws/aws-sdk-go/service/kinesisanalytics"
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/aws/aws-sdk-go/service/lexmodelbuildingservice"
+	"github.com/aws/aws-sdk-go/service/licensemanager"
 	"github.com/aws/aws-sdk-go/service/lightsail"
 	"github.com/aws/aws-sdk-go/service/macie"
+	"github.com/aws/aws-sdk-go/service/mediaconnect"
+	"github.com/aws/aws-sdk-go/service/mediaconvert"
+	"github.com/aws/aws-sdk-go/service/medialive"
+	"github.com/aws/aws-sdk-go/service/mediapackage"
 	"github.com/aws/aws-sdk-go/service/mediastore"
+	"github.com/aws/aws-sdk-go/service/mediastoredata"
 	"github.com/aws/aws-sdk-go/service/mq"
 	"github.com/aws/aws-sdk-go/service/neptune"
 	"github.com/aws/aws-sdk-go/service/opsworks"
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/aws/aws-sdk-go/service/pinpoint"
 	"github.com/aws/aws-sdk-go/service/pricing"
+	"github.com/aws/aws-sdk-go/service/ram"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/redshift"
+	"github.com/aws/aws-sdk-go/service/resourcegroups"
 	"github.com/aws/aws-sdk-go/service/route53"
+	"github.com/aws/aws-sdk-go/service/route53resolver"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3control"
+	"github.com/aws/aws-sdk-go/service/sagemaker"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/aws/aws-sdk-go/service/securityhub"
+	"github.com/aws/aws-sdk-go/service/serverlessapplicationrepository"
 	"github.com/aws/aws-sdk-go/service/servicecatalog"
 	"github.com/aws/aws-sdk-go/service/servicediscovery"
 	"github.com/aws/aws-sdk-go/service/ses"
@@ -103,9 +124,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/transfer"
 	"github.com/aws/aws-sdk-go/service/waf"
 	"github.com/aws/aws-sdk-go/service/wafregional"
+	"github.com/aws/aws-sdk-go/service/worklink"
 	"github.com/aws/aws-sdk-go/service/workspaces"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/hashicorp/go-cleanhttp"
+	cleanhttp "github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -150,6 +172,7 @@ type Config struct {
 	RdsEndpoint              string
 	R53Endpoint              string
 	S3Endpoint               string
+	S3ControlEndpoint        string
 	SnsEndpoint              string
 	SqsEndpoint              string
 	StsEndpoint              string
@@ -165,99 +188,121 @@ type Config struct {
 }
 
 type AWSClient struct {
-	cfconn                *cloudformation.CloudFormation
-	cloud9conn            *cloud9.Cloud9
-	cloudfrontconn        *cloudfront.CloudFront
-	cloudhsmv2conn        *cloudhsmv2.CloudHSMV2
-	cloudtrailconn        *cloudtrail.CloudTrail
-	cloudwatchconn        *cloudwatch.CloudWatch
-	cloudwatchlogsconn    *cloudwatchlogs.CloudWatchLogs
-	cloudwatcheventsconn  *cloudwatchevents.CloudWatchEvents
-	cognitoconn           *cognitoidentity.CognitoIdentity
-	cognitoidpconn        *cognitoidentityprovider.CognitoIdentityProvider
-	configconn            *configservice.ConfigService
-	datasyncconn          *datasync.DataSync
-	daxconn               *dax.DAX
-	devicefarmconn        *devicefarm.DeviceFarm
-	dlmconn               *dlm.DLM
-	dmsconn               *databasemigrationservice.DatabaseMigrationService
-	dsconn                *directoryservice.DirectoryService
-	dynamodbconn          *dynamodb.DynamoDB
-	ec2conn               *ec2.EC2
-	ecrconn               *ecr.ECR
-	ecsconn               *ecs.ECS
-	efsconn               *efs.EFS
-	eksconn               *eks.EKS
-	elbconn               *elb.ELB
-	elbv2conn             *elbv2.ELBV2
-	emrconn               *emr.EMR
-	esconn                *elasticsearch.ElasticsearchService
-	acmconn               *acm.ACM
-	acmpcaconn            *acmpca.ACMPCA
-	apigateway            *apigateway.APIGateway
-	appautoscalingconn    *applicationautoscaling.ApplicationAutoScaling
-	autoscalingconn       *autoscaling.AutoScaling
-	s3conn                *s3.S3
-	secretsmanagerconn    *secretsmanager.SecretsManager
-	securityhubconn       *securityhub.SecurityHub
-	scconn                *servicecatalog.ServiceCatalog
-	sesConn               *ses.SES
-	simpledbconn          *simpledb.SimpleDB
-	sqsconn               *sqs.SQS
-	snsconn               *sns.SNS
-	stsconn               *sts.STS
-	redshiftconn          *redshift.Redshift
-	r53conn               *route53.Route53
-	partition             string
-	accountid             string
-	supportedplatforms    []string
-	region                string
-	rdsconn               *rds.RDS
-	iamconn               *iam.IAM
-	kinesisconn           *kinesis.Kinesis
-	kinesisanalyticsconn  *kinesisanalytics.KinesisAnalytics
-	kmsconn               *kms.KMS
-	gameliftconn          *gamelift.GameLift
-	firehoseconn          *firehose.Firehose
-	fmsconn               *fms.FMS
-	inspectorconn         *inspector.Inspector
-	elasticacheconn       *elasticache.ElastiCache
-	elasticbeanstalkconn  *elasticbeanstalk.ElasticBeanstalk
-	elastictranscoderconn *elastictranscoder.ElasticTranscoder
-	lambdaconn            *lambda.Lambda
-	lightsailconn         *lightsail.Lightsail
-	macieconn             *macie.Macie
-	mqconn                *mq.MQ
-	opsworksconn          *opsworks.OpsWorks
-	organizationsconn     *organizations.Organizations
-	glacierconn           *glacier.Glacier
-	guarddutyconn         *guardduty.GuardDuty
-	codebuildconn         *codebuild.CodeBuild
-	codedeployconn        *codedeploy.CodeDeploy
-	codecommitconn        *codecommit.CodeCommit
-	codepipelineconn      *codepipeline.CodePipeline
-	sdconn                *servicediscovery.ServiceDiscovery
-	sfnconn               *sfn.SFN
-	ssmconn               *ssm.SSM
-	storagegatewayconn    *storagegateway.StorageGateway
-	swfconn               *swf.SWF
-	wafconn               *waf.WAF
-	wafregionalconn       *wafregional.WAFRegional
-	iotconn               *iot.IoT
-	batchconn             *batch.Batch
-	glueconn              *glue.Glue
-	athenaconn            *athena.Athena
-	dxconn                *directconnect.DirectConnect
-	mediastoreconn        *mediastore.MediaStore
-	appsyncconn           *appsync.AppSync
-	lexmodelconn          *lexmodelbuildingservice.LexModelBuildingService
-	budgetconn            *budgets.Budgets
-	neptuneconn           *neptune.Neptune
-	pricingconn           *pricing.Pricing
-	pinpointconn          *pinpoint.Pinpoint
-	workspacesconn        *workspaces.WorkSpaces
-	appmeshconn           *appmesh.AppMesh
-	transferconn          *transfer.Transfer
+	accountid                           string
+	acmconn                             *acm.ACM
+	acmpcaconn                          *acmpca.ACMPCA
+	apigateway                          *apigateway.APIGateway
+	apigatewayv2conn                    *apigatewayv2.ApiGatewayV2
+	appautoscalingconn                  *applicationautoscaling.ApplicationAutoScaling
+	appmeshconn                         *appmesh.AppMesh
+	appsyncconn                         *appsync.AppSync
+	athenaconn                          *athena.Athena
+	autoscalingconn                     *autoscaling.AutoScaling
+	backupconn                          *backup.Backup
+	batchconn                           *batch.Batch
+	budgetconn                          *budgets.Budgets
+	cfconn                              *cloudformation.CloudFormation
+	cloud9conn                          *cloud9.Cloud9
+	cloudfrontconn                      *cloudfront.CloudFront
+	cloudhsmv2conn                      *cloudhsmv2.CloudHSMV2
+	cloudsearchconn                     *cloudsearch.CloudSearch
+	cloudtrailconn                      *cloudtrail.CloudTrail
+	cloudwatchconn                      *cloudwatch.CloudWatch
+	cloudwatcheventsconn                *cloudwatchevents.CloudWatchEvents
+	cloudwatchlogsconn                  *cloudwatchlogs.CloudWatchLogs
+	codebuildconn                       *codebuild.CodeBuild
+	codecommitconn                      *codecommit.CodeCommit
+	codedeployconn                      *codedeploy.CodeDeploy
+	codepipelineconn                    *codepipeline.CodePipeline
+	cognitoconn                         *cognitoidentity.CognitoIdentity
+	cognitoidpconn                      *cognitoidentityprovider.CognitoIdentityProvider
+	configconn                          *configservice.ConfigService
+	costandusagereportconn              *costandusagereportservice.CostandUsageReportService
+	datapipelineconn                    *datapipeline.DataPipeline
+	datasyncconn                        *datasync.DataSync
+	daxconn                             *dax.DAX
+	devicefarmconn                      *devicefarm.DeviceFarm
+	dlmconn                             *dlm.DLM
+	dmsconn                             *databasemigrationservice.DatabaseMigrationService
+	docdbconn                           *docdb.DocDB
+	dsconn                              *directoryservice.DirectoryService
+	dxconn                              *directconnect.DirectConnect
+	dynamodbconn                        *dynamodb.DynamoDB
+	ec2conn                             *ec2.EC2
+	ecrconn                             *ecr.ECR
+	ecsconn                             *ecs.ECS
+	efsconn                             *efs.EFS
+	eksconn                             *eks.EKS
+	elasticacheconn                     *elasticache.ElastiCache
+	elasticbeanstalkconn                *elasticbeanstalk.ElasticBeanstalk
+	elastictranscoderconn               *elastictranscoder.ElasticTranscoder
+	elbconn                             *elb.ELB
+	elbv2conn                           *elbv2.ELBV2
+	emrconn                             *emr.EMR
+	esconn                              *elasticsearch.ElasticsearchService
+	firehoseconn                        *firehose.Firehose
+	fmsconn                             *fms.FMS
+	fsxconn                             *fsx.FSx
+	gameliftconn                        *gamelift.GameLift
+	glacierconn                         *glacier.Glacier
+	globalacceleratorconn               *globalaccelerator.GlobalAccelerator
+	glueconn                            *glue.Glue
+	guarddutyconn                       *guardduty.GuardDuty
+	iamconn                             *iam.IAM
+	inspectorconn                       *inspector.Inspector
+	iotconn                             *iot.IoT
+	kafkaconn                           *kafka.Kafka
+	kinesisanalyticsconn                *kinesisanalytics.KinesisAnalytics
+	kinesisconn                         *kinesis.Kinesis
+	kmsconn                             *kms.KMS
+	lambdaconn                          *lambda.Lambda
+	lexmodelconn                        *lexmodelbuildingservice.LexModelBuildingService
+	licensemanagerconn                  *licensemanager.LicenseManager
+	lightsailconn                       *lightsail.Lightsail
+	macieconn                           *macie.Macie
+	mediaconnectconn                    *mediaconnect.MediaConnect
+	mediaconvertconn                    *mediaconvert.MediaConvert
+	medialiveconn                       *medialive.MediaLive
+	mediapackageconn                    *mediapackage.MediaPackage
+	mediastoreconn                      *mediastore.MediaStore
+	mediastoredataconn                  *mediastoredata.MediaStoreData
+	mqconn                              *mq.MQ
+	neptuneconn                         *neptune.Neptune
+	opsworksconn                        *opsworks.OpsWorks
+	organizationsconn                   *organizations.Organizations
+	partition                           string
+	pinpointconn                        *pinpoint.Pinpoint
+	pricingconn                         *pricing.Pricing
+	r53conn                             *route53.Route53
+	ramconn                             *ram.RAM
+	rdsconn                             *rds.RDS
+	redshiftconn                        *redshift.Redshift
+	region                              string
+	resourcegroupsconn                  *resourcegroups.ResourceGroups
+	route53resolverconn                 *route53resolver.Route53Resolver
+	s3conn                              *s3.S3
+	s3controlconn                       *s3control.S3Control
+	sagemakerconn                       *sagemaker.SageMaker
+	scconn                              *servicecatalog.ServiceCatalog
+	sdconn                              *servicediscovery.ServiceDiscovery
+	secretsmanagerconn                  *secretsmanager.SecretsManager
+	securityhubconn                     *securityhub.SecurityHub
+	serverlessapplicationrepositoryconn *serverlessapplicationrepository.ServerlessApplicationRepository
+	sesConn                             *ses.SES
+	sfnconn                             *sfn.SFN
+	simpledbconn                        *simpledb.SimpleDB
+	snsconn                             *sns.SNS
+	sqsconn                             *sqs.SQS
+	ssmconn                             *ssm.SSM
+	storagegatewayconn                  *storagegateway.StorageGateway
+	stsconn                             *sts.STS
+	supportedplatforms                  []string
+	swfconn                             *swf.SWF
+	transferconn                        *transfer.Transfer
+	wafconn                             *waf.WAF
+	wafregionalconn                     *wafregional.WAFRegional
+	worklinkconn                        *worklink.WorkLink
+	workspacesconn                      *workspaces.WorkSpaces
 }
 
 func (c *AWSClient) S3() *s3.S3 {
@@ -433,6 +478,7 @@ func (c *Config) Client() (interface{}, error) {
 	awsKmsSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.KmsEndpoint)})
 	awsRdsSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.RdsEndpoint)})
 	awsS3Sess := sess.Copy(&aws.Config{Endpoint: aws.String(c.S3Endpoint)})
+	awsS3ControlSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.S3ControlEndpoint)})
 	awsSnsSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.SnsEndpoint)})
 	awsSqsSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.SqsEndpoint)})
 	awsStsSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.StsEndpoint)})
@@ -506,32 +552,43 @@ func (c *Config) Client() (interface{}, error) {
 		}
 	}
 
-	client.budgetconn = budgets.New(sess)
 	client.acmconn = acm.New(awsAcmSess)
 	client.acmpcaconn = acmpca.New(sess)
 	client.apigateway = apigateway.New(awsApigatewaySess)
+	client.apigatewayv2conn = apigatewayv2.New(sess)
 	client.appautoscalingconn = applicationautoscaling.New(sess)
+	client.appmeshconn = appmesh.New(sess)
+	client.appsyncconn = appsync.New(sess)
+	client.athenaconn = athena.New(sess)
 	client.autoscalingconn = autoscaling.New(awsAutoscalingSess)
-	client.cloud9conn = cloud9.New(sess)
+	client.backupconn = backup.New(sess)
+	client.batchconn = batch.New(sess)
+	client.budgetconn = budgets.New(sess)
 	client.cfconn = cloudformation.New(awsCfSess)
+	client.cloud9conn = cloud9.New(sess)
 	client.cloudfrontconn = cloudfront.New(sess)
 	client.cloudhsmv2conn = cloudhsmv2.New(sess)
+	client.cloudsearchconn = cloudsearch.New(sess)
 	client.cloudtrailconn = cloudtrail.New(sess)
 	client.cloudwatchconn = cloudwatch.New(awsCwSess)
 	client.cloudwatcheventsconn = cloudwatchevents.New(awsCweSess)
 	client.cloudwatchlogsconn = cloudwatchlogs.New(awsCwlSess)
-	client.codecommitconn = codecommit.New(sess)
 	client.codebuildconn = codebuild.New(sess)
+	client.codecommitconn = codecommit.New(sess)
 	client.codedeployconn = codedeploy.New(sess)
-	client.configconn = configservice.New(sess)
+	client.codepipelineconn = codepipeline.New(sess)
 	client.cognitoconn = cognitoidentity.New(sess)
 	client.cognitoidpconn = cognitoidentityprovider.New(sess)
-	client.codepipelineconn = codepipeline.New(sess)
+	client.configconn = configservice.New(sess)
+	client.costandusagereportconn = costandusagereportservice.New(sess)
+	client.datapipelineconn = datapipeline.New(sess)
 	client.datasyncconn = datasync.New(sess)
 	client.daxconn = dax.New(awsDynamoSess)
 	client.dlmconn = dlm.New(sess)
 	client.dmsconn = databasemigrationservice.New(sess)
+	client.docdbconn = docdb.New(sess)
 	client.dsconn = directoryservice.New(sess)
+	client.dxconn = directconnect.New(sess)
 	client.dynamodbconn = dynamodb.New(awsDynamoSess)
 	client.ecrconn = ecr.New(awsEcrSess)
 	client.ecsconn = ecs.New(awsEcsSess)
@@ -546,52 +603,63 @@ func (c *Config) Client() (interface{}, error) {
 	client.esconn = elasticsearch.New(awsEsSess)
 	client.firehoseconn = firehose.New(sess)
 	client.fmsconn = fms.New(sess)
-	client.inspectorconn = inspector.New(sess)
+	client.fsxconn = fsx.New(sess)
 	client.gameliftconn = gamelift.New(sess)
 	client.glacierconn = glacier.New(sess)
+	client.globalacceleratorconn = globalaccelerator.New(sess)
+	client.glueconn = glue.New(sess)
 	client.guarddutyconn = guardduty.New(sess)
+	client.inspectorconn = inspector.New(sess)
 	client.iotconn = iot.New(sess)
-	client.kinesisconn = kinesis.New(awsKinesisSess)
+	client.kafkaconn = kafka.New(sess)
 	client.kinesisanalyticsconn = kinesisanalytics.New(awsKinesisAnalyticsSess)
+	client.kinesisconn = kinesis.New(awsKinesisSess)
 	client.kmsconn = kms.New(awsKmsSess)
 	client.lambdaconn = lambda.New(awsLambdaSess)
 	client.lexmodelconn = lexmodelbuildingservice.New(sess)
+	client.licensemanagerconn = licensemanager.New(sess)
 	client.lightsailconn = lightsail.New(sess)
 	client.macieconn = macie.New(sess)
+	client.mediaconnectconn = mediaconnect.New(sess)
+	client.mediaconvertconn = mediaconvert.New(sess)
+	client.medialiveconn = medialive.New(sess)
+	client.mediapackageconn = mediapackage.New(sess)
+	client.mediastoreconn = mediastore.New(sess)
+	client.mediastoredataconn = mediastoredata.New(sess)
 	client.mqconn = mq.New(sess)
+	client.neptuneconn = neptune.New(sess)
 	client.neptuneconn = neptune.New(sess)
 	client.opsworksconn = opsworks.New(sess)
 	client.organizationsconn = organizations.New(sess)
+	client.pinpointconn = pinpoint.New(sess)
+	client.pricingconn = pricing.New(sess)
 	client.r53conn = route53.New(r53Sess)
+	client.ramconn = ram.New(sess)
 	client.rdsconn = rds.New(awsRdsSess)
 	client.redshiftconn = redshift.New(sess)
-	client.simpledbconn = simpledb.New(sess)
+	client.resourcegroupsconn = resourcegroups.New(sess)
+	client.route53resolverconn = route53resolver.New(sess)
 	client.s3conn = s3.New(awsS3Sess)
+	client.s3controlconn = s3control.New(awsS3ControlSess)
+	client.sagemakerconn = sagemaker.New(sess)
 	client.scconn = servicecatalog.New(sess)
 	client.sdconn = servicediscovery.New(sess)
-	client.sesConn = ses.New(sess)
 	client.secretsmanagerconn = secretsmanager.New(sess)
 	client.securityhubconn = securityhub.New(sess)
+	client.serverlessapplicationrepositoryconn = serverlessapplicationrepository.New(sess)
+	client.sesConn = ses.New(sess)
 	client.sfnconn = sfn.New(sess)
+	client.simpledbconn = simpledb.New(sess)
 	client.snsconn = sns.New(awsSnsSess)
 	client.sqsconn = sqs.New(awsSqsSess)
 	client.ssmconn = ssm.New(awsSsmSess)
 	client.storagegatewayconn = storagegateway.New(sess)
 	client.swfconn = swf.New(sess)
+	client.transferconn = transfer.New(sess)
 	client.wafconn = waf.New(sess)
 	client.wafregionalconn = wafregional.New(sess)
-	client.batchconn = batch.New(sess)
-	client.glueconn = glue.New(sess)
-	client.athenaconn = athena.New(sess)
-	client.dxconn = directconnect.New(sess)
-	client.mediastoreconn = mediastore.New(sess)
-	client.appsyncconn = appsync.New(sess)
-	client.neptuneconn = neptune.New(sess)
-	client.pricingconn = pricing.New(sess)
-	client.pinpointconn = pinpoint.New(sess)
+	client.worklinkconn = worklink.New(sess)
 	client.workspacesconn = workspaces.New(sess)
-	client.appmeshconn = appmesh.New(sess)
-	client.transferconn = transfer.New(sess)
 
 	// Workaround for https://github.com/aws/aws-sdk-go/issues/1376
 	client.kinesisconn.Handlers.Retry.PushBack(func(r *request.Request) {

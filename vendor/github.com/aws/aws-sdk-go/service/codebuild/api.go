@@ -4390,10 +4390,33 @@ type ProjectEnvironment struct {
 	// project.
 	EnvironmentVariables []*EnvironmentVariable `locationName:"environmentVariables" type:"list"`
 
-	// The ID of the Docker image to use for this build project.
+	// The image tag or image digest that identifies the Docker image to use for
+	// this build project. Use the following formats:
+	//
+	//    * For an image tag: registry/repository:tag. For example, to specify an
+	//    image with the tag "latest," use registry/repository:latest.
+	//
+	//    * For an image digest: registry/repository@digest. For example, to specify
+	//    an image with the digest "sha256:cbbf2f9a99b47fc460d422812b6a5adff7dfee951d8fa2e4a98caa0382cfbdbf,"
+	//    use registry/repository@sha256:cbbf2f9a99b47fc460d422812b6a5adff7dfee951d8fa2e4a98caa0382cfbdbf.
 	//
 	// Image is a required field
 	Image *string `locationName:"image" min:"1" type:"string" required:"true"`
+
+	// The type of credentials AWS CodeBuild uses to pull images in your build.
+	// There are two valid values:
+	//
+	//    * CODEBUILD specifies that AWS CodeBuild uses its own credentials. This
+	//    requires that you modify your ECR repository policy to trust AWS CodeBuild's
+	//    service principal.
+	//
+	//    * SERVICE_ROLE specifies that AWS CodeBuild uses your build project's
+	//    service role.
+	//
+	// When you use a cross-account or private registry image, you must use SERVICE_ROLE
+	// credentials. When you use an AWS CodeBuild curated image, you must use CODEBUILD
+	// credentials.
+	ImagePullCredentialsType *string `locationName:"imagePullCredentialsType" type:"string" enum:"ImagePullCredentialsType"`
 
 	// Enables running the Docker daemon inside a Docker container. Set to true
 	// only if the build project is be used to build Docker images, and the specified
@@ -4418,6 +4441,9 @@ type ProjectEnvironment struct {
 	// --storage-driver=overlay& - timeout 15 -t sh -c "until docker info; do echo
 	// .; sleep 1; done"
 	PrivilegedMode *bool `locationName:"privilegedMode" type:"boolean"`
+
+	// The credentials for access to a private registry.
+	RegistryCredential *RegistryCredential `locationName:"registryCredential" type:"structure"`
 
 	// The type of build environment to use for related builds.
 	//
@@ -4460,6 +4486,11 @@ func (s *ProjectEnvironment) Validate() error {
 			}
 		}
 	}
+	if s.RegistryCredential != nil {
+		if err := s.RegistryCredential.Validate(); err != nil {
+			invalidParams.AddNested("RegistryCredential", err.(request.ErrInvalidParams))
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -4491,9 +4522,21 @@ func (s *ProjectEnvironment) SetImage(v string) *ProjectEnvironment {
 	return s
 }
 
+// SetImagePullCredentialsType sets the ImagePullCredentialsType field's value.
+func (s *ProjectEnvironment) SetImagePullCredentialsType(v string) *ProjectEnvironment {
+	s.ImagePullCredentialsType = &v
+	return s
+}
+
 // SetPrivilegedMode sets the PrivilegedMode field's value.
 func (s *ProjectEnvironment) SetPrivilegedMode(v bool) *ProjectEnvironment {
 	s.PrivilegedMode = &v
+	return s
+}
+
+// SetRegistryCredential sets the RegistryCredential field's value.
+func (s *ProjectEnvironment) SetRegistryCredential(v *RegistryCredential) *ProjectEnvironment {
+	s.RegistryCredential = v
 	return s
 }
 
@@ -4749,6 +4792,75 @@ func (s *ProjectSourceVersion) SetSourceVersion(v string) *ProjectSourceVersion 
 	return s
 }
 
+// Information about credentials that provide access to a private Docker registry.
+// When this is set:
+//
+//    * imagePullCredentialsType must be set to SERVICE_ROLE.
+//
+//    *  images cannot be curated or an Amazon ECR image.
+//
+// For more information, see Private Registry with AWS Secrets Manager Samle
+// for AWS CodeBuild (http://docs.aws.amazon.com/codebuild/latest/userguide/sample-private-registry.html).
+type RegistryCredential struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) or name of credentials created using AWS Secrets
+	// Manager.
+	//
+	// The credential can use the name of the credentials only if they exist in
+	// your current region.
+	//
+	// Credential is a required field
+	Credential *string `locationName:"credential" min:"1" type:"string" required:"true"`
+
+	// The service that created the credentials to access a private Docker registry.
+	// The valid value, SECRETS_MANAGER, is for AWS Secrets Manager.
+	//
+	// CredentialProvider is a required field
+	CredentialProvider *string `locationName:"credentialProvider" type:"string" required:"true" enum:"CredentialProviderType"`
+}
+
+// String returns the string representation
+func (s RegistryCredential) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RegistryCredential) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RegistryCredential) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RegistryCredential"}
+	if s.Credential == nil {
+		invalidParams.Add(request.NewErrParamRequired("Credential"))
+	}
+	if s.Credential != nil && len(*s.Credential) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Credential", 1))
+	}
+	if s.CredentialProvider == nil {
+		invalidParams.Add(request.NewErrParamRequired("CredentialProvider"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetCredential sets the Credential field's value.
+func (s *RegistryCredential) SetCredential(v string) *RegistryCredential {
+	s.Credential = &v
+	return s
+}
+
+// SetCredentialProvider sets the CredentialProvider field's value.
+func (s *RegistryCredential) SetCredentialProvider(v string) *RegistryCredential {
+	s.CredentialProvider = &v
+	return s
+}
+
 // Information about S3 logs for a build project.
 type S3LogsConfig struct {
 	_ struct{} `type:"structure"`
@@ -4949,6 +5061,21 @@ type StartBuildInput struct {
 	// build project.
 	ImageOverride *string `locationName:"imageOverride" min:"1" type:"string"`
 
+	// The type of credentials AWS CodeBuild uses to pull images in your build.
+	// There are two valid values:
+	//
+	//    * CODEBUILD specifies that AWS CodeBuild uses its own credentials. This
+	//    requires that you modify your ECR repository policy to trust AWS CodeBuild's
+	//    service principal.
+	//
+	//    * SERVICE_ROLE specifies that AWS CodeBuild uses your build project's
+	//    service role.
+	//
+	// When using a cross-account or private registry image, you must use SERVICE_ROLE
+	// credentials. When using an AWS CodeBuild curated image, you must use CODEBUILD
+	// credentials.
+	ImagePullCredentialsTypeOverride *string `locationName:"imagePullCredentialsTypeOverride" type:"string" enum:"ImagePullCredentialsType"`
+
 	// Enable this flag to override the insecure SSL setting that is specified in
 	// the build project. The insecure SSL setting determines whether to ignore
 	// SSL warnings while connecting to the project source code. This override applies
@@ -4969,6 +5096,9 @@ type StartBuildInput struct {
 
 	// The number of minutes a build is allowed to be queued before it times out.
 	QueuedTimeoutInMinutesOverride *int64 `locationName:"queuedTimeoutInMinutesOverride" min:"5" type:"integer"`
+
+	// The credentials for access to a private registry.
+	RegistryCredentialOverride *RegistryCredential `locationName:"registryCredentialOverride" type:"structure"`
 
 	// Set to true to report to your source provider the status of a build's start
 	// and completion. If you use this option with a source provider other than
@@ -5084,6 +5214,11 @@ func (s *StartBuildInput) Validate() error {
 			invalidParams.AddNested("LogsConfigOverride", err.(request.ErrInvalidParams))
 		}
 	}
+	if s.RegistryCredentialOverride != nil {
+		if err := s.RegistryCredentialOverride.Validate(); err != nil {
+			invalidParams.AddNested("RegistryCredentialOverride", err.(request.ErrInvalidParams))
+		}
+	}
 	if s.SecondaryArtifactsOverride != nil {
 		for i, v := range s.SecondaryArtifactsOverride {
 			if v == nil {
@@ -5186,6 +5321,12 @@ func (s *StartBuildInput) SetImageOverride(v string) *StartBuildInput {
 	return s
 }
 
+// SetImagePullCredentialsTypeOverride sets the ImagePullCredentialsTypeOverride field's value.
+func (s *StartBuildInput) SetImagePullCredentialsTypeOverride(v string) *StartBuildInput {
+	s.ImagePullCredentialsTypeOverride = &v
+	return s
+}
+
 // SetInsecureSslOverride sets the InsecureSslOverride field's value.
 func (s *StartBuildInput) SetInsecureSslOverride(v bool) *StartBuildInput {
 	s.InsecureSslOverride = &v
@@ -5213,6 +5354,12 @@ func (s *StartBuildInput) SetProjectName(v string) *StartBuildInput {
 // SetQueuedTimeoutInMinutesOverride sets the QueuedTimeoutInMinutesOverride field's value.
 func (s *StartBuildInput) SetQueuedTimeoutInMinutesOverride(v int64) *StartBuildInput {
 	s.QueuedTimeoutInMinutesOverride = &v
+	return s
+}
+
+// SetRegistryCredentialOverride sets the RegistryCredentialOverride field's value.
+func (s *StartBuildInput) SetRegistryCredentialOverride(v *RegistryCredential) *StartBuildInput {
+	s.RegistryCredentialOverride = v
 	return s
 }
 
@@ -6005,6 +6152,11 @@ const (
 )
 
 const (
+	// CredentialProviderTypeSecretsManager is a CredentialProviderType enum value
+	CredentialProviderTypeSecretsManager = "SECRETS_MANAGER"
+)
+
+const (
 	// EnvironmentTypeWindowsContainer is a EnvironmentType enum value
 	EnvironmentTypeWindowsContainer = "WINDOWS_CONTAINER"
 
@@ -6018,6 +6170,14 @@ const (
 
 	// EnvironmentVariableTypeParameterStore is a EnvironmentVariableType enum value
 	EnvironmentVariableTypeParameterStore = "PARAMETER_STORE"
+)
+
+const (
+	// ImagePullCredentialsTypeCodebuild is a ImagePullCredentialsType enum value
+	ImagePullCredentialsTypeCodebuild = "CODEBUILD"
+
+	// ImagePullCredentialsTypeServiceRole is a ImagePullCredentialsType enum value
+	ImagePullCredentialsTypeServiceRole = "SERVICE_ROLE"
 )
 
 const (

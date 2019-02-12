@@ -280,7 +280,7 @@ func revokeAllNetworkACLEntries(netaclId string, meta interface{}) error {
 
 		// track if this is an egress or ingress rule, for logging purposes
 		rt := "ingress"
-		if *e.Egress == true {
+		if *e.Egress {
 			rt = "egress"
 		}
 

@@ -163,11 +163,7 @@ func resourceAwsDmsReplicationSubnetGroupDelete(d *schema.ResourceData, meta int
 	log.Printf("[DEBUG] DMS delete replication subnet group: %#v", request)
 
 	_, err := conn.DeleteReplicationSubnetGroup(request)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func resourceAwsDmsReplicationSubnetGroupSetState(d *schema.ResourceData, group *dms.ReplicationSubnetGroup) error {

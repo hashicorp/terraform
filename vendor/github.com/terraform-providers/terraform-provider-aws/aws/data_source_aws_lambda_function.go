@@ -40,6 +40,14 @@ func dataSourceAwsLambdaFunction() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"layers": {
+				Type:     schema.TypeList,
+				Computed: true,
+				MaxItems: 5,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 			"memory_size": {
 				Type:     schema.TypeInt,
 				Computed: true,

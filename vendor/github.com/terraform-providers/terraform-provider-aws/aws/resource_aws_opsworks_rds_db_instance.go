@@ -65,7 +65,7 @@ func resourceAwsOpsworksRdsDbInstanceUpdate(d *schema.ResourceData, meta interfa
 		requestUpdate = true
 	}
 
-	if true == requestUpdate {
+	if requestUpdate {
 		log.Printf("[DEBUG] Opsworks RDS DB Instance Modification request: %s", req)
 
 		err := resource.Retry(2*time.Minute, func() *resource.RetryError {
@@ -121,11 +121,7 @@ func resourceAwsOpsworksRdsDbInstanceDeregister(d *schema.ResourceData, meta int
 		return nil
 	})
 
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func resourceAwsOpsworksRdsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
@@ -157,7 +153,7 @@ func resourceAwsOpsworksRdsDbInstanceRead(d *schema.ResourceData, meta interface
 
 	}
 
-	if false == found {
+	if !found {
 		d.SetId("")
 		log.Printf("[INFO] The rds instance '%s' could not be found for stack: '%s'", d.Get("rds_db_instance_arn"), d.Get("stack_id"))
 	}

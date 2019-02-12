@@ -189,11 +189,8 @@ func resourceAwsDxPrivateVirtualInterfaceRead(d *schema.ResourceData, meta inter
 	d.Set("dx_gateway_id", vif.DirectConnectGatewayId)
 	d.Set("mtu", vif.Mtu)
 	d.Set("jumbo_frame_capable", vif.JumboFrameCapable)
-	if err := getTagsDX(conn, d, d.Get("arn").(string)); err != nil {
-		return err
-	}
-
-	return nil
+	err1 := getTagsDX(conn, d, d.Get("arn").(string))
+	return err1
 }
 
 func resourceAwsDxPrivateVirtualInterfaceUpdate(d *schema.ResourceData, meta interface{}) error {

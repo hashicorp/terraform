@@ -239,10 +239,7 @@ func resourceAwsEc2Fleet() *schema.Resource {
 									return false
 								}
 								totalTargetCapacityO, _ := d.GetChange("target_capacity_specification.0.total_target_capacity")
-								if oldInt != totalTargetCapacityO.(int) {
-									return false
-								}
-								return true
+								return oldInt == totalTargetCapacityO.(int)
 							},
 						},
 						"spot_target_capacity": {
@@ -270,10 +267,7 @@ func resourceAwsEc2Fleet() *schema.Resource {
 									return false
 								}
 								totalTargetCapacityO, _ := d.GetChange("target_capacity_specification.0.total_target_capacity")
-								if oldInt != totalTargetCapacityO.(int) {
-									return false
-								}
-								return true
+								return oldInt == totalTargetCapacityO.(int)
 							},
 						},
 						"total_target_capacity": {

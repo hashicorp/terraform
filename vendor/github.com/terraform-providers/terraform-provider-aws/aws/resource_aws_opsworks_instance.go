@@ -585,11 +585,8 @@ func resourceAwsOpsworksInstanceRead(d *schema.ResourceData, meta interface{}) e
 	for _, sg := range instance.SecurityGroupIds {
 		sgs = append(sgs, *sg)
 	}
-	if err := d.Set("security_group_ids", sgs); err != nil {
-		return err
-	}
-
-	return nil
+	err1 := d.Set("security_group_ids", sgs)
+	return err1
 }
 
 func resourceAwsOpsworksInstanceCreate(d *schema.ResourceData, meta interface{}) error {
@@ -855,11 +852,7 @@ func resourceAwsOpsworksInstanceDelete(d *schema.ResourceData, meta interface{})
 	log.Printf("[DEBUG] Deleting OpsWorks instance: %s", d.Id())
 
 	_, err := client.DeleteInstance(req)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func resourceAwsOpsworksInstanceImport(

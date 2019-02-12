@@ -197,10 +197,8 @@ func resourceAwsSnsTopicSubscriptionDelete(d *schema.ResourceData, meta interfac
 	_, err := snsconn.Unsubscribe(&sns.UnsubscribeInput{
 		SubscriptionArn: aws.String(d.Id()),
 	})
-	if err != nil {
-		return err
-	}
-	return nil
+
+	return err
 }
 
 func subscribeToSNSTopic(d *schema.ResourceData, snsconn *sns.SNS) (output *sns.SubscribeOutput, err error) {

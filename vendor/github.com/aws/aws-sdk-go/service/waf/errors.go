@@ -172,6 +172,19 @@ const (
 	//    * You tried to delete a Rule that is still referenced by a WebACL.
 	ErrCodeReferencedItemException = "WAFReferencedItemException"
 
+	// ErrCodeServiceLinkedRoleErrorException for service response error code
+	// "WAFServiceLinkedRoleErrorException".
+	//
+	// AWS WAF is not able to access the service linked role. This can be caused
+	// by a previous PutLoggingConfiguration request, which can lock the service
+	// linked role for about 20 seconds. Please try your request again. The service
+	// linked role can also be locked by a previous DeleteServiceLinkedRole request,
+	// which can lock the role for 15 minutes or more. If you recently made a DeleteServiceLinkedRole,
+	// wait at least 15 minutes and try the request again. If you receive this same
+	// exception again, you will have to wait additional time until the role is
+	// unlocked.
+	ErrCodeServiceLinkedRoleErrorException = "WAFServiceLinkedRoleErrorException"
+
 	// ErrCodeStaleDataException for service response error code
 	// "WAFStaleDataException".
 	//

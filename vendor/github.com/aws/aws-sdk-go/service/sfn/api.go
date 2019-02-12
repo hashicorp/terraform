@@ -3,6 +3,7 @@
 package sfn
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -860,7 +861,7 @@ func (c *SFN) GetExecutionHistoryRequest(input *GetExecutionHistoryInput) (req *
 // If nextToken is returned, there are more results available. The value of
 // nextToken is a unique pagination token for each page. Make the call again
 // using the returned token to retrieve the next page. Keep all other arguments
-// unchanged. Each pagination token expires after 60 seconds. Using an expired
+// unchanged. Each pagination token expires after 24 hours. Using an expired
 // pagination token will return an HTTP 400 InvalidToken error.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -1007,7 +1008,7 @@ func (c *SFN) ListActivitiesRequest(input *ListActivitiesInput) (req *request.Re
 // If nextToken is returned, there are more results available. The value of
 // nextToken is a unique pagination token for each page. Make the call again
 // using the returned token to retrieve the next page. Keep all other arguments
-// unchanged. Each pagination token expires after 60 seconds. Using an expired
+// unchanged. Each pagination token expires after 24 hours. Using an expired
 // pagination token will return an HTTP 400 InvalidToken error.
 //
 // This operation is eventually consistent. The results are best effort and
@@ -1152,7 +1153,7 @@ func (c *SFN) ListExecutionsRequest(input *ListExecutionsInput) (req *request.Re
 // If nextToken is returned, there are more results available. The value of
 // nextToken is a unique pagination token for each page. Make the call again
 // using the returned token to retrieve the next page. Keep all other arguments
-// unchanged. Each pagination token expires after 60 seconds. Using an expired
+// unchanged. Each pagination token expires after 24 hours. Using an expired
 // pagination token will return an HTTP 400 InvalidToken error.
 //
 // This operation is eventually consistent. The results are best effort and
@@ -1302,7 +1303,7 @@ func (c *SFN) ListStateMachinesRequest(input *ListStateMachinesInput) (req *requ
 // If nextToken is returned, there are more results available. The value of
 // nextToken is a unique pagination token for each page. Make the call again
 // using the returned token to retrieve the next page. Keep all other arguments
-// unchanged. Each pagination token expires after 60 seconds. Using an expired
+// unchanged. Each pagination token expires after 24 hours. Using an expired
 // pagination token will return an HTTP 400 InvalidToken error.
 //
 // This operation is eventually consistent. The results are best effort and
@@ -1389,6 +1390,89 @@ func (c *SFN) ListStateMachinesPagesWithContext(ctx aws.Context, input *ListStat
 		cont = fn(p.Page().(*ListStateMachinesOutput), !p.HasNextPage())
 	}
 	return p.Err()
+}
+
+const opListTagsForResource = "ListTagsForResource"
+
+// ListTagsForResourceRequest generates a "aws/request.Request" representing the
+// client's request for the ListTagsForResource operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListTagsForResource for more information on using the ListTagsForResource
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListTagsForResourceRequest method.
+//    req, resp := client.ListTagsForResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/states-2016-11-23/ListTagsForResource
+func (c *SFN) ListTagsForResourceRequest(input *ListTagsForResourceInput) (req *request.Request, output *ListTagsForResourceOutput) {
+	op := &request.Operation{
+		Name:       opListTagsForResource,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ListTagsForResourceInput{}
+	}
+
+	output = &ListTagsForResourceOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListTagsForResource API operation for AWS Step Functions.
+//
+// List tags for a given resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Step Functions's
+// API operation ListTagsForResource for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidArn "InvalidArn"
+//   The provided Amazon Resource Name (ARN) is invalid.
+//
+//   * ErrCodeResourceNotFound "ResourceNotFound"
+//   Could not fine the referenced resource. Only state machine and activity ARNs
+//   are supported.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/states-2016-11-23/ListTagsForResource
+func (c *SFN) ListTagsForResource(input *ListTagsForResourceInput) (*ListTagsForResourceOutput, error) {
+	req, out := c.ListTagsForResourceRequest(input)
+	return out, req.Send()
+}
+
+// ListTagsForResourceWithContext is the same as ListTagsForResource with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListTagsForResource for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *SFN) ListTagsForResourceWithContext(ctx aws.Context, input *ListTagsForResourceInput, opts ...request.Option) (*ListTagsForResourceOutput, error) {
+	req, out := c.ListTagsForResourceRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opSendTaskFailure = "SendTaskFailure"
@@ -1842,6 +1926,179 @@ func (c *SFN) StopExecution(input *StopExecutionInput) (*StopExecutionOutput, er
 // for more information on using Contexts.
 func (c *SFN) StopExecutionWithContext(ctx aws.Context, input *StopExecutionInput, opts ...request.Option) (*StopExecutionOutput, error) {
 	req, out := c.StopExecutionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opTagResource = "TagResource"
+
+// TagResourceRequest generates a "aws/request.Request" representing the
+// client's request for the TagResource operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See TagResource for more information on using the TagResource
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the TagResourceRequest method.
+//    req, resp := client.TagResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/states-2016-11-23/TagResource
+func (c *SFN) TagResourceRequest(input *TagResourceInput) (req *request.Request, output *TagResourceOutput) {
+	op := &request.Operation{
+		Name:       opTagResource,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &TagResourceInput{}
+	}
+
+	output = &TagResourceOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// TagResource API operation for AWS Step Functions.
+//
+// Add a tag to a Step Functions resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Step Functions's
+// API operation TagResource for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidArn "InvalidArn"
+//   The provided Amazon Resource Name (ARN) is invalid.
+//
+//   * ErrCodeResourceNotFound "ResourceNotFound"
+//   Could not fine the referenced resource. Only state machine and activity ARNs
+//   are supported.
+//
+//   * ErrCodeTooManyTags "TooManyTags"
+//   You've exceeded the number of tags allowed for a resource. See the  Limits
+//   Topic (http://docs.aws.amazon.com/step-functions/latest/dg/limits.html) in
+//   the AWS Step Functions Developer Guide.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/states-2016-11-23/TagResource
+func (c *SFN) TagResource(input *TagResourceInput) (*TagResourceOutput, error) {
+	req, out := c.TagResourceRequest(input)
+	return out, req.Send()
+}
+
+// TagResourceWithContext is the same as TagResource with the addition of
+// the ability to pass a context and additional request options.
+//
+// See TagResource for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *SFN) TagResourceWithContext(ctx aws.Context, input *TagResourceInput, opts ...request.Option) (*TagResourceOutput, error) {
+	req, out := c.TagResourceRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opUntagResource = "UntagResource"
+
+// UntagResourceRequest generates a "aws/request.Request" representing the
+// client's request for the UntagResource operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UntagResource for more information on using the UntagResource
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the UntagResourceRequest method.
+//    req, resp := client.UntagResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/states-2016-11-23/UntagResource
+func (c *SFN) UntagResourceRequest(input *UntagResourceInput) (req *request.Request, output *UntagResourceOutput) {
+	op := &request.Operation{
+		Name:       opUntagResource,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &UntagResourceInput{}
+	}
+
+	output = &UntagResourceOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// UntagResource API operation for AWS Step Functions.
+//
+// Remove a tag from a Step Functions resource
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Step Functions's
+// API operation UntagResource for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidArn "InvalidArn"
+//   The provided Amazon Resource Name (ARN) is invalid.
+//
+//   * ErrCodeResourceNotFound "ResourceNotFound"
+//   Could not fine the referenced resource. Only state machine and activity ARNs
+//   are supported.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/states-2016-11-23/UntagResource
+func (c *SFN) UntagResource(input *UntagResourceInput) (*UntagResourceOutput, error) {
+	req, out := c.UntagResourceRequest(input)
+	return out, req.Send()
+}
+
+// UntagResourceWithContext is the same as UntagResource with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UntagResource for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *SFN) UntagResourceWithContext(ctx aws.Context, input *UntagResourceInput, opts ...request.Option) (*UntagResourceOutput, error) {
+	req, out := c.UntagResourceRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -3392,7 +3649,7 @@ type GetExecutionHistoryInput struct {
 	// If nextToken is returned, there are more results available. The value of
 	// nextToken is a unique pagination token for each page. Make the call again
 	// using the returned token to retrieve the next page. Keep all other arguments
-	// unchanged. Each pagination token expires after 60 seconds. Using an expired
+	// unchanged. Each pagination token expires after 24 hours. Using an expired
 	// pagination token will return an HTTP 400 InvalidToken error.
 	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
 
@@ -3464,7 +3721,7 @@ type GetExecutionHistoryOutput struct {
 	// If nextToken is returned, there are more results available. The value of
 	// nextToken is a unique pagination token for each page. Make the call again
 	// using the returned token to retrieve the next page. Keep all other arguments
-	// unchanged. Each pagination token expires after 60 seconds. Using an expired
+	// unchanged. Each pagination token expires after 24 hours. Using an expired
 	// pagination token will return an HTTP 400 InvalidToken error.
 	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
 }
@@ -3576,15 +3833,16 @@ type HistoryEvent struct {
 	// Contains details about the start of a task during an execution.
 	TaskStartedEventDetails *TaskStartedEventDetails `locationName:"taskStartedEventDetails" type:"structure"`
 
+	// Contains details about a task that failed to submit during an execution.
 	TaskSubmitFailedEventDetails *TaskSubmitFailedEventDetails `locationName:"taskSubmitFailedEventDetails" type:"structure"`
 
+	// Contains details about a task submitted to a resource .
 	TaskSubmittedEventDetails *TaskSubmittedEventDetails `locationName:"taskSubmittedEventDetails" type:"structure"`
 
-	// Contains details about the start of connected service by a task state.
+	// Contains details about the successful completion of a task state.
 	TaskSucceededEventDetails *TaskSucceededEventDetails `locationName:"taskSucceededEventDetails" type:"structure"`
 
-	// Contains details about a connected service timeout that occured during an
-	// execution.
+	// Contains details about a resource timeout that occurred during an execution.
 	TaskTimedOutEventDetails *TaskTimedOutEventDetails `locationName:"taskTimedOutEventDetails" type:"structure"`
 
 	// The date and time the event occurred.
@@ -4011,7 +4269,7 @@ type ListActivitiesInput struct {
 	// If nextToken is returned, there are more results available. The value of
 	// nextToken is a unique pagination token for each page. Make the call again
 	// using the returned token to retrieve the next page. Keep all other arguments
-	// unchanged. Each pagination token expires after 60 seconds. Using an expired
+	// unchanged. Each pagination token expires after 24 hours. Using an expired
 	// pagination token will return an HTTP 400 InvalidToken error.
 	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
 }
@@ -4062,7 +4320,7 @@ type ListActivitiesOutput struct {
 	// If nextToken is returned, there are more results available. The value of
 	// nextToken is a unique pagination token for each page. Make the call again
 	// using the returned token to retrieve the next page. Keep all other arguments
-	// unchanged. Each pagination token expires after 60 seconds. Using an expired
+	// unchanged. Each pagination token expires after 24 hours. Using an expired
 	// pagination token will return an HTTP 400 InvalidToken error.
 	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
 }
@@ -4103,7 +4361,7 @@ type ListExecutionsInput struct {
 	// If nextToken is returned, there are more results available. The value of
 	// nextToken is a unique pagination token for each page. Make the call again
 	// using the returned token to retrieve the next page. Keep all other arguments
-	// unchanged. Each pagination token expires after 60 seconds. Using an expired
+	// unchanged. Each pagination token expires after 24 hours. Using an expired
 	// pagination token will return an HTTP 400 InvalidToken error.
 	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
 
@@ -4181,7 +4439,7 @@ type ListExecutionsOutput struct {
 	// If nextToken is returned, there are more results available. The value of
 	// nextToken is a unique pagination token for each page. Make the call again
 	// using the returned token to retrieve the next page. Keep all other arguments
-	// unchanged. Each pagination token expires after 60 seconds. Using an expired
+	// unchanged. Each pagination token expires after 24 hours. Using an expired
 	// pagination token will return an HTTP 400 InvalidToken error.
 	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
 }
@@ -4222,7 +4480,7 @@ type ListStateMachinesInput struct {
 	// If nextToken is returned, there are more results available. The value of
 	// nextToken is a unique pagination token for each page. Make the call again
 	// using the returned token to retrieve the next page. Keep all other arguments
-	// unchanged. Each pagination token expires after 60 seconds. Using an expired
+	// unchanged. Each pagination token expires after 24 hours. Using an expired
 	// pagination token will return an HTTP 400 InvalidToken error.
 	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
 }
@@ -4268,7 +4526,7 @@ type ListStateMachinesOutput struct {
 	// If nextToken is returned, there are more results available. The value of
 	// nextToken is a unique pagination token for each page. Make the call again
 	// using the returned token to retrieve the next page. Keep all other arguments
-	// unchanged. Each pagination token expires after 60 seconds. Using an expired
+	// unchanged. Each pagination token expires after 24 hours. Using an expired
 	// pagination token will return an HTTP 400 InvalidToken error.
 	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
 
@@ -4295,6 +4553,70 @@ func (s *ListStateMachinesOutput) SetNextToken(v string) *ListStateMachinesOutpu
 // SetStateMachines sets the StateMachines field's value.
 func (s *ListStateMachinesOutput) SetStateMachines(v []*StateMachineListItem) *ListStateMachinesOutput {
 	s.StateMachines = v
+	return s
+}
+
+type ListTagsForResourceInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) for the Step Functions state machine or activity.
+	//
+	// ResourceArn is a required field
+	ResourceArn *string `locationName:"resourceArn" min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s ListTagsForResourceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListTagsForResourceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListTagsForResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListTagsForResourceInput"}
+	if s.ResourceArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceArn"))
+	}
+	if s.ResourceArn != nil && len(*s.ResourceArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceArn", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetResourceArn sets the ResourceArn field's value.
+func (s *ListTagsForResourceInput) SetResourceArn(v string) *ListTagsForResourceInput {
+	s.ResourceArn = &v
+	return s
+}
+
+type ListTagsForResourceOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An array of tags associated with the resource.
+	Tags []*Tag `locationName:"tags" type:"list"`
+}
+
+// String returns the string representation
+func (s ListTagsForResourceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListTagsForResourceOutput) GoString() string {
+	return s.String()
+}
+
+// SetTags sets the Tags field's value.
+func (s *ListTagsForResourceOutput) SetTags(v []*Tag) *ListTagsForResourceOutput {
+	s.Tags = v
 	return s
 }
 
@@ -4842,6 +5164,135 @@ func (s *StopExecutionOutput) SetStopDate(v time.Time) *StopExecutionOutput {
 	return s
 }
 
+// Tags are key-value pairs that can be associated with Step Functions state
+// machines and activities.
+type Tag struct {
+	_ struct{} `type:"structure"`
+
+	// The key of a tag.
+	Key *string `locationName:"key" min:"1" type:"string"`
+
+	// The value of a tag.
+	Value *string `locationName:"value" type:"string"`
+}
+
+// String returns the string representation
+func (s Tag) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Tag) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Tag) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Tag"}
+	if s.Key != nil && len(*s.Key) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Key", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetKey sets the Key field's value.
+func (s *Tag) SetKey(v string) *Tag {
+	s.Key = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *Tag) SetValue(v string) *Tag {
+	s.Value = &v
+	return s
+}
+
+type TagResourceInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) for the Step Functions state machine or activity.
+	//
+	// ResourceArn is a required field
+	ResourceArn *string `locationName:"resourceArn" min:"1" type:"string" required:"true"`
+
+	// The list of tags to add to a resource.
+	//
+	// Tags may only contain unicode letters, digits, whitespace, or these symbols:
+	// _ . : / = + - @.
+	//
+	// Tags is a required field
+	Tags []*Tag `locationName:"tags" type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s TagResourceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TagResourceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TagResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TagResourceInput"}
+	if s.ResourceArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceArn"))
+	}
+	if s.ResourceArn != nil && len(*s.ResourceArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceArn", 1))
+	}
+	if s.Tags == nil {
+		invalidParams.Add(request.NewErrParamRequired("Tags"))
+	}
+	if s.Tags != nil {
+		for i, v := range s.Tags {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Tags", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetResourceArn sets the ResourceArn field's value.
+func (s *TagResourceInput) SetResourceArn(v string) *TagResourceInput {
+	s.ResourceArn = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *TagResourceInput) SetTags(v []*Tag) *TagResourceInput {
+	s.Tags = v
+	return s
+}
+
+type TagResourceOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s TagResourceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TagResourceOutput) GoString() string {
+	return s.String()
+}
+
 // Contains details about a task failure event.
 type TaskFailedEventDetails struct {
 	_ struct{} `type:"structure"`
@@ -4852,12 +5303,12 @@ type TaskFailedEventDetails struct {
 	// The error code of the failure.
 	Error *string `locationName:"error" type:"string" sensitive:"true"`
 
-	// The service name of the connected service in a task state.
+	// The service name of the resource in a task state.
 	//
 	// Resource is a required field
 	Resource *string `locationName:"resource" min:"1" type:"string" required:"true"`
 
-	// The action of the connected service called by a task state.
+	// The action of the resource called by a task state.
 	//
 	// ResourceType is a required field
 	ResourceType *string `locationName:"resourceType" min:"1" type:"string" required:"true"`
@@ -4901,20 +5352,22 @@ func (s *TaskFailedEventDetails) SetResourceType(v string) *TaskFailedEventDetai
 type TaskScheduledEventDetails struct {
 	_ struct{} `type:"structure"`
 
-	// The JSON data passed to the connected service referenced in a task state.
+	// The JSON data passed to the resource referenced in a task state.
 	//
 	// Parameters is a required field
 	Parameters *string `locationName:"parameters" type:"string" required:"true" sensitive:"true"`
 
+	// The region of the scheduled task
+	//
 	// Region is a required field
 	Region *string `locationName:"region" min:"1" type:"string" required:"true"`
 
-	// The service name of the connected service in a task state.
+	// The service name of the resource in a task state.
 	//
 	// Resource is a required field
 	Resource *string `locationName:"resource" min:"1" type:"string" required:"true"`
 
-	// The action of the connected service called by a task state.
+	// The action of the resource called by a task state.
 	//
 	// ResourceType is a required field
 	ResourceType *string `locationName:"resourceType" min:"1" type:"string" required:"true"`
@@ -4973,12 +5426,12 @@ type TaskStartFailedEventDetails struct {
 	// The error code of the failure.
 	Error *string `locationName:"error" type:"string" sensitive:"true"`
 
-	// The service name of the connected service in a task state.
+	// The service name of the resource in a task state.
 	//
 	// Resource is a required field
 	Resource *string `locationName:"resource" min:"1" type:"string" required:"true"`
 
-	// The action of the connected service called by a task state.
+	// The action of the resource called by a task state.
 	//
 	// ResourceType is a required field
 	ResourceType *string `locationName:"resourceType" min:"1" type:"string" required:"true"`
@@ -5022,12 +5475,12 @@ func (s *TaskStartFailedEventDetails) SetResourceType(v string) *TaskStartFailed
 type TaskStartedEventDetails struct {
 	_ struct{} `type:"structure"`
 
-	// The service name of the connected service in a task state.
+	// The service name of the resource in a task state.
 	//
 	// Resource is a required field
 	Resource *string `locationName:"resource" min:"1" type:"string" required:"true"`
 
-	// The action of the connected service called by a task state.
+	// The action of the resource called by a task state.
 	//
 	// ResourceType is a required field
 	ResourceType *string `locationName:"resourceType" min:"1" type:"string" required:"true"`
@@ -5055,6 +5508,7 @@ func (s *TaskStartedEventDetails) SetResourceType(v string) *TaskStartedEventDet
 	return s
 }
 
+// Contains details about a task that failed to submit during an execution.
 type TaskSubmitFailedEventDetails struct {
 	_ struct{} `type:"structure"`
 
@@ -5064,12 +5518,12 @@ type TaskSubmitFailedEventDetails struct {
 	// The error code of the failure.
 	Error *string `locationName:"error" type:"string" sensitive:"true"`
 
-	// The service name of the connected service in a task state.
+	// The service name of the resource in a task state.
 	//
 	// Resource is a required field
 	Resource *string `locationName:"resource" min:"1" type:"string" required:"true"`
 
-	// The action of the connected service called by a task state.
+	// The action of the resource called by a task state.
 	//
 	// ResourceType is a required field
 	ResourceType *string `locationName:"resourceType" min:"1" type:"string" required:"true"`
@@ -5109,18 +5563,19 @@ func (s *TaskSubmitFailedEventDetails) SetResourceType(v string) *TaskSubmitFail
 	return s
 }
 
+// Contains details about a task submitted to a resource .
 type TaskSubmittedEventDetails struct {
 	_ struct{} `type:"structure"`
 
-	// The response from a connected service when a task has started.
+	// The response from a resource when a task has started.
 	Output *string `locationName:"output" type:"string" sensitive:"true"`
 
-	// The service name of the connected service in a task state.
+	// The service name of the resource in a task state.
 	//
 	// Resource is a required field
 	Resource *string `locationName:"resource" min:"1" type:"string" required:"true"`
 
-	// The action of the connected service called by a task state.
+	// The action of the resource called by a task state.
 	//
 	// ResourceType is a required field
 	ResourceType *string `locationName:"resourceType" min:"1" type:"string" required:"true"`
@@ -5154,20 +5609,20 @@ func (s *TaskSubmittedEventDetails) SetResourceType(v string) *TaskSubmittedEven
 	return s
 }
 
-// Contains details about the start of connected service by a task state.
+// Contains details about the successful completion of a task state.
 type TaskSucceededEventDetails struct {
 	_ struct{} `type:"structure"`
 
-	// The full JSON response from a connected service when a task has succeeded.
-	// This response becomes the output of the related task.
+	// The full JSON response from a resource when a task has succeeded. This response
+	// becomes the output of the related task.
 	Output *string `locationName:"output" type:"string" sensitive:"true"`
 
-	// The service name of the connected service in a task state.
+	// The service name of the resource in a task state.
 	//
 	// Resource is a required field
 	Resource *string `locationName:"resource" min:"1" type:"string" required:"true"`
 
-	// The action of the connected service called by a task state.
+	// The action of the resource called by a task state.
 	//
 	// ResourceType is a required field
 	ResourceType *string `locationName:"resourceType" min:"1" type:"string" required:"true"`
@@ -5201,8 +5656,7 @@ func (s *TaskSucceededEventDetails) SetResourceType(v string) *TaskSucceededEven
 	return s
 }
 
-// Contains details about a connected service timeout that occured during an
-// execution.
+// Contains details about a resource timeout that occurred during an execution.
 type TaskTimedOutEventDetails struct {
 	_ struct{} `type:"structure"`
 
@@ -5212,12 +5666,12 @@ type TaskTimedOutEventDetails struct {
 	// The error code of the failure.
 	Error *string `locationName:"error" type:"string" sensitive:"true"`
 
-	// The service name of the connected service in a task state.
+	// The service name of the resource in a task state.
 	//
 	// Resource is a required field
 	Resource *string `locationName:"resource" min:"1" type:"string" required:"true"`
 
-	// The action of the connected service called by a task state.
+	// The action of the resource called by a task state.
 	//
 	// ResourceType is a required field
 	ResourceType *string `locationName:"resourceType" min:"1" type:"string" required:"true"`
@@ -5255,6 +5709,75 @@ func (s *TaskTimedOutEventDetails) SetResource(v string) *TaskTimedOutEventDetai
 func (s *TaskTimedOutEventDetails) SetResourceType(v string) *TaskTimedOutEventDetails {
 	s.ResourceType = &v
 	return s
+}
+
+type UntagResourceInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) for the Step Functions state machine or activity.
+	//
+	// ResourceArn is a required field
+	ResourceArn *string `locationName:"resourceArn" min:"1" type:"string" required:"true"`
+
+	// The list of tags to remove from the resource.
+	//
+	// TagKeys is a required field
+	TagKeys []*string `locationName:"tagKeys" type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s UntagResourceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UntagResourceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UntagResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UntagResourceInput"}
+	if s.ResourceArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceArn"))
+	}
+	if s.ResourceArn != nil && len(*s.ResourceArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceArn", 1))
+	}
+	if s.TagKeys == nil {
+		invalidParams.Add(request.NewErrParamRequired("TagKeys"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetResourceArn sets the ResourceArn field's value.
+func (s *UntagResourceInput) SetResourceArn(v string) *UntagResourceInput {
+	s.ResourceArn = &v
+	return s
+}
+
+// SetTagKeys sets the TagKeys field's value.
+func (s *UntagResourceInput) SetTagKeys(v []*string) *UntagResourceInput {
+	s.TagKeys = v
+	return s
+}
+
+type UntagResourceOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s UntagResourceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UntagResourceOutput) GoString() string {
+	return s.String()
 }
 
 type UpdateStateMachineInput struct {

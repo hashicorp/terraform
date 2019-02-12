@@ -72,8 +72,5 @@ func resourceAwsLightsailDomainDelete(d *schema.ResourceData, meta interface{}) 
 		DomainName: aws.String(d.Id()),
 	})
 
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }

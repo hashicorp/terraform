@@ -473,6 +473,94 @@ func (c *StorageGateway) AddWorkingStorageWithContext(ctx aws.Context, input *Ad
 	return out, req.Send()
 }
 
+const opAttachVolume = "AttachVolume"
+
+// AttachVolumeRequest generates a "aws/request.Request" representing the
+// client's request for the AttachVolume operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See AttachVolume for more information on using the AttachVolume
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the AttachVolumeRequest method.
+//    req, resp := client.AttachVolumeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/storagegateway-2013-06-30/AttachVolume
+func (c *StorageGateway) AttachVolumeRequest(input *AttachVolumeInput) (req *request.Request, output *AttachVolumeOutput) {
+	op := &request.Operation{
+		Name:       opAttachVolume,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &AttachVolumeInput{}
+	}
+
+	output = &AttachVolumeOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// AttachVolume API operation for AWS Storage Gateway.
+//
+// Connects a volume to an iSCSI connection and then attaches the volume to
+// the specified gateway. Detaching and attaching a volume enables you to recover
+// your data from one gateway to a different gateway without creating a snapshot.
+// It also makes it easier to move your volumes from an on-premises gateway
+// to a gateway hosted on an Amazon EC2 instance.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Storage Gateway's
+// API operation AttachVolume for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidGatewayRequestException "InvalidGatewayRequestException"
+//   An exception occurred because an invalid gateway request was issued to the
+//   service. For more information, see the error and message fields.
+//
+//   * ErrCodeInternalServerError "InternalServerError"
+//   An internal server error has occurred during the request. For more information,
+//   see the error and message fields.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/storagegateway-2013-06-30/AttachVolume
+func (c *StorageGateway) AttachVolume(input *AttachVolumeInput) (*AttachVolumeOutput, error) {
+	req, out := c.AttachVolumeRequest(input)
+	return out, req.Send()
+}
+
+// AttachVolumeWithContext is the same as AttachVolume with the addition of
+// the ability to pass a context and additional request options.
+//
+// See AttachVolume for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *StorageGateway) AttachVolumeWithContext(ctx aws.Context, input *AttachVolumeInput, opts ...request.Option) (*AttachVolumeOutput, error) {
+	req, out := c.AttachVolumeRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opCancelArchival = "CancelArchival"
 
 // CancelArchivalRequest generates a "aws/request.Request" representing the
@@ -3855,6 +3943,94 @@ func (c *StorageGateway) DescribeWorkingStorageWithContext(ctx aws.Context, inpu
 	return out, req.Send()
 }
 
+const opDetachVolume = "DetachVolume"
+
+// DetachVolumeRequest generates a "aws/request.Request" representing the
+// client's request for the DetachVolume operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DetachVolume for more information on using the DetachVolume
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DetachVolumeRequest method.
+//    req, resp := client.DetachVolumeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/storagegateway-2013-06-30/DetachVolume
+func (c *StorageGateway) DetachVolumeRequest(input *DetachVolumeInput) (req *request.Request, output *DetachVolumeOutput) {
+	op := &request.Operation{
+		Name:       opDetachVolume,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DetachVolumeInput{}
+	}
+
+	output = &DetachVolumeOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DetachVolume API operation for AWS Storage Gateway.
+//
+// Disconnects a volume from an iSCSI connection and then detaches the volume
+// from the specified gateway. Detaching and attaching a volume enables you
+// to recover your data from one gateway to a different gateway without creating
+// a snapshot. It also makes it easier to move your volumes from an on-premises
+// gateway to a gateway hosted on an Amazon EC2 instance.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Storage Gateway's
+// API operation DetachVolume for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidGatewayRequestException "InvalidGatewayRequestException"
+//   An exception occurred because an invalid gateway request was issued to the
+//   service. For more information, see the error and message fields.
+//
+//   * ErrCodeInternalServerError "InternalServerError"
+//   An internal server error has occurred during the request. For more information,
+//   see the error and message fields.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/storagegateway-2013-06-30/DetachVolume
+func (c *StorageGateway) DetachVolume(input *DetachVolumeInput) (*DetachVolumeOutput, error) {
+	req, out := c.DetachVolumeRequest(input)
+	return out, req.Send()
+}
+
+// DetachVolumeWithContext is the same as DetachVolume with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DetachVolume for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *StorageGateway) DetachVolumeWithContext(ctx aws.Context, input *DetachVolumeInput, opts ...request.Option) (*DetachVolumeOutput, error) {
+	req, out := c.DetachVolumeRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDisableGateway = "DisableGateway"
 
 // DisableGatewayRequest generates a "aws/request.Request" representing the
@@ -7169,6 +7345,150 @@ func (s *AddWorkingStorageOutput) SetGatewayARN(v string) *AddWorkingStorageOutp
 	return s
 }
 
+// AttachVolumeInput
+type AttachVolumeInput struct {
+	_ struct{} `type:"structure"`
+
+	// The unique device ID or other distinguishing data that identifies the local
+	// disk used to create the volume. This value is only required when you are
+	// attaching a stored volume.
+	DiskId *string `min:"1" type:"string"`
+
+	// The Amazon Resource Name (ARN) of the gateway that you want to attach the
+	// volume to.
+	//
+	// GatewayARN is a required field
+	GatewayARN *string `min:"50" type:"string" required:"true"`
+
+	// The network interface of the gateway on which to expose the iSCSI target.
+	// Only IPv4 addresses are accepted. Use DescribeGatewayInformation to get a
+	// list of the network interfaces available on a gateway.
+	//
+	// Valid Values: A valid IP address.
+	//
+	// NetworkInterfaceId is a required field
+	NetworkInterfaceId *string `type:"string" required:"true"`
+
+	// The name of the iSCSI target used by an initiator to connect to a volume
+	// and used as a suffix for the target ARN. For example, specifying TargetName
+	// as myvolume results in the target ARN of arn:aws:storagegateway:us-east-2:111122223333:gateway/sgw-12A3456B/target/iqn.1997-05.com.amazon:myvolume.
+	// The target name must be unique across all volumes on a gateway.
+	//
+	// If you don't specify a value, Storage Gateway uses the value that was previously
+	// used for this volume as the new target name.
+	TargetName *string `min:"1" type:"string"`
+
+	// The Amazon Resource Name (ARN) of the volume to attach to the specified gateway.
+	//
+	// VolumeARN is a required field
+	VolumeARN *string `min:"50" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s AttachVolumeInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AttachVolumeInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AttachVolumeInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AttachVolumeInput"}
+	if s.DiskId != nil && len(*s.DiskId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DiskId", 1))
+	}
+	if s.GatewayARN == nil {
+		invalidParams.Add(request.NewErrParamRequired("GatewayARN"))
+	}
+	if s.GatewayARN != nil && len(*s.GatewayARN) < 50 {
+		invalidParams.Add(request.NewErrParamMinLen("GatewayARN", 50))
+	}
+	if s.NetworkInterfaceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("NetworkInterfaceId"))
+	}
+	if s.TargetName != nil && len(*s.TargetName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TargetName", 1))
+	}
+	if s.VolumeARN == nil {
+		invalidParams.Add(request.NewErrParamRequired("VolumeARN"))
+	}
+	if s.VolumeARN != nil && len(*s.VolumeARN) < 50 {
+		invalidParams.Add(request.NewErrParamMinLen("VolumeARN", 50))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDiskId sets the DiskId field's value.
+func (s *AttachVolumeInput) SetDiskId(v string) *AttachVolumeInput {
+	s.DiskId = &v
+	return s
+}
+
+// SetGatewayARN sets the GatewayARN field's value.
+func (s *AttachVolumeInput) SetGatewayARN(v string) *AttachVolumeInput {
+	s.GatewayARN = &v
+	return s
+}
+
+// SetNetworkInterfaceId sets the NetworkInterfaceId field's value.
+func (s *AttachVolumeInput) SetNetworkInterfaceId(v string) *AttachVolumeInput {
+	s.NetworkInterfaceId = &v
+	return s
+}
+
+// SetTargetName sets the TargetName field's value.
+func (s *AttachVolumeInput) SetTargetName(v string) *AttachVolumeInput {
+	s.TargetName = &v
+	return s
+}
+
+// SetVolumeARN sets the VolumeARN field's value.
+func (s *AttachVolumeInput) SetVolumeARN(v string) *AttachVolumeInput {
+	s.VolumeARN = &v
+	return s
+}
+
+// AttachVolumeOutput
+type AttachVolumeOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the volume target, which includes the iSCSI
+	// name for the initiator that was used to connect to the target.
+	TargetARN *string `min:"50" type:"string"`
+
+	// The Amazon Resource Name (ARN) of the volume that was attached to the gateway.
+	VolumeARN *string `min:"50" type:"string"`
+}
+
+// String returns the string representation
+func (s AttachVolumeOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AttachVolumeOutput) GoString() string {
+	return s.String()
+}
+
+// SetTargetARN sets the TargetARN field's value.
+func (s *AttachVolumeOutput) SetTargetARN(v string) *AttachVolumeOutput {
+	s.TargetARN = &v
+	return s
+}
+
+// SetVolumeARN sets the VolumeARN field's value.
+func (s *AttachVolumeOutput) SetVolumeARN(v string) *AttachVolumeOutput {
+	s.VolumeARN = &v
+	return s
+}
+
 // Describes an iSCSI cached volume.
 type CachediSCSIVolume struct {
 	_ struct{} `type:"structure"`
@@ -7185,8 +7505,17 @@ type CachediSCSIVolume struct {
 	// snapshot ID used, e.g. snap-78e22663. Otherwise, this field is not included.
 	SourceSnapshotId *string `type:"string"`
 
+	// The name of the iSCSI target that is used by an initiator to connect to a
+	// volume and used as a suffix for the target ARN. For example, specifying TargetName
+	// as myvolume results in the target ARN of arn:aws:storagegateway:us-east-2:111122223333:gateway/sgw-12A3456B/target/iqn.1997-05.com.amazon:myvolume.
+	TargetName *string `min:"1" type:"string"`
+
 	// The Amazon Resource Name (ARN) of the storage volume.
 	VolumeARN *string `min:"50" type:"string"`
+
+	// A value that indicates whether a storage volume is attached to or detached
+	// from a gateway.
+	VolumeAttachmentStatus *string `min:"3" type:"string"`
 
 	// The unique identifier of the volume, e.g. vol-AE4B946D.
 	VolumeId *string `min:"12" type:"string"`
@@ -7244,9 +7573,21 @@ func (s *CachediSCSIVolume) SetSourceSnapshotId(v string) *CachediSCSIVolume {
 	return s
 }
 
+// SetTargetName sets the TargetName field's value.
+func (s *CachediSCSIVolume) SetTargetName(v string) *CachediSCSIVolume {
+	s.TargetName = &v
+	return s
+}
+
 // SetVolumeARN sets the VolumeARN field's value.
 func (s *CachediSCSIVolume) SetVolumeARN(v string) *CachediSCSIVolume {
 	s.VolumeARN = &v
+	return s
+}
+
+// SetVolumeAttachmentStatus sets the VolumeAttachmentStatus field's value.
+func (s *CachediSCSIVolume) SetVolumeAttachmentStatus(v string) *CachediSCSIVolume {
+	s.VolumeAttachmentStatus = &v
 	return s
 }
 
@@ -7687,7 +8028,7 @@ func (s *CreateCachediSCSIVolumeInput) SetVolumeSizeInBytes(v int64) *CreateCach
 type CreateCachediSCSIVolumeOutput struct {
 	_ struct{} `type:"structure"`
 
-	// he Amazon Resource Name (ARN) of the volume target that includes the iSCSI
+	// The Amazon Resource Name (ARN) of the volume target, which includes the iSCSI
 	// name that initiators can use to connect to the target.
 	TargetARN *string `min:"50" type:"string"`
 
@@ -8554,7 +8895,7 @@ func (s *CreateStorediSCSIVolumeInput) SetTargetName(v string) *CreateStorediSCS
 type CreateStorediSCSIVolumeOutput struct {
 	_ struct{} `type:"structure"`
 
-	// he Amazon Resource Name (ARN) of the volume target that includes the iSCSI
+	// The Amazon Resource Name (ARN) of the volume target, which includes the iSCSI
 	// name that initiators can use to connect to the target.
 	TargetARN *string `min:"50" type:"string"`
 
@@ -10292,7 +10633,7 @@ type DescribeSMBSettingsOutput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the domain that the gateway is joined to.
-	DomainName *string `type:"string"`
+	DomainName *string `min:"1" type:"string"`
 
 	// The Amazon Resource Name (ARN) of the gateway. Use the ListGateways operation
 	// to return a list of gateways for your account and region.
@@ -11152,6 +11493,83 @@ func (s *DescribeWorkingStorageOutput) SetWorkingStorageUsedInBytes(v int64) *De
 	return s
 }
 
+// AttachVolumeInput
+type DetachVolumeInput struct {
+	_ struct{} `type:"structure"`
+
+	// Set to true to forcibly remove the iSCSI connection of the target volume
+	// and detach the volume. The default is false. If this value is set to false,
+	// you must manually disconnect the iSCSI connection from the target volume.
+	ForceDetach *bool `type:"boolean"`
+
+	// The Amazon Resource Name (ARN) of the volume to detach from the gateway.
+	//
+	// VolumeARN is a required field
+	VolumeARN *string `min:"50" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DetachVolumeInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DetachVolumeInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DetachVolumeInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DetachVolumeInput"}
+	if s.VolumeARN == nil {
+		invalidParams.Add(request.NewErrParamRequired("VolumeARN"))
+	}
+	if s.VolumeARN != nil && len(*s.VolumeARN) < 50 {
+		invalidParams.Add(request.NewErrParamMinLen("VolumeARN", 50))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetForceDetach sets the ForceDetach field's value.
+func (s *DetachVolumeInput) SetForceDetach(v bool) *DetachVolumeInput {
+	s.ForceDetach = &v
+	return s
+}
+
+// SetVolumeARN sets the VolumeARN field's value.
+func (s *DetachVolumeInput) SetVolumeARN(v string) *DetachVolumeInput {
+	s.VolumeARN = &v
+	return s
+}
+
+// AttachVolumeOutput
+type DetachVolumeOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the volume that was detached.
+	VolumeARN *string `min:"50" type:"string"`
+}
+
+// String returns the string representation
+func (s DetachVolumeOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DetachVolumeOutput) GoString() string {
+	return s.String()
+}
+
+// SetVolumeARN sets the VolumeARN field's value.
+func (s *DetachVolumeOutput) SetVolumeARN(v string) *DetachVolumeOutput {
+	s.VolumeARN = &v
+	return s
+}
+
 // Lists iSCSI information about a VTL device.
 type DeviceiSCSIAttributes struct {
 	_ struct{} `type:"structure"`
@@ -11275,13 +11693,13 @@ func (s *DisableGatewayOutput) SetGatewayARN(v string) *DisableGatewayOutput {
 type Disk struct {
 	_ struct{} `type:"structure"`
 
-	// The iSCSI Qualified Name (IQN) that is defined for a disk. This field is
+	// The iSCSI qualified name (IQN) that is defined for a disk. This field is
 	// not included in the response if the local disk is not defined as an iSCSI
 	// target. The format of this field is targetIqn::LUNNumber::region-volumeId.
 	DiskAllocationResource *string `type:"string"`
 
 	// One of the DiskAllocationType enumeration values that identifies how a local
-	// disk is used. Valid values: "UPLOAD_BUFFER", "CACHE_STORAGE".
+	// disk is used. Valid values: UPLOAD_BUFFER, CACHE_STORAGE
 	DiskAllocationType *string `min:"3" type:"string"`
 
 	// A list of values that represents attributes of a local disk.
@@ -11528,28 +11946,38 @@ func (s *GatewayInfo) SetGatewayType(v string) *GatewayInfo {
 type JoinDomainInput struct {
 	_ struct{} `type:"structure"`
 
+	// List of IPv4 addresses, NetBIOS names, or host names of your domain server.
+	// If you need to specify the port number include it after the colon (“:”).
+	// For example, mydc.mydomain.com:389.
+	DomainControllers []*string `type:"list"`
+
 	// The name of the domain that you want the gateway to join.
 	//
 	// DomainName is a required field
-	DomainName *string `type:"string" required:"true"`
+	DomainName *string `min:"1" type:"string" required:"true"`
 
-	// The unique Amazon Resource Name (ARN) of the file gateway you want to add
-	// to the Active Directory domain.
+	// The Amazon Resource Name (ARN) of the gateway. Use the ListGateways operation
+	// to return a list of gateways for your account and region.
 	//
 	// GatewayARN is a required field
 	GatewayARN *string `min:"50" type:"string" required:"true"`
+
+	// The organizational unit (OU) is a container with an Active Directory that
+	// can hold users, groups, computers, and other OUs and this parameter specifies
+	// the OU that the gateway will join within the AD domain.
+	OrganizationalUnit *string `min:"1" type:"string"`
 
 	// Sets the password of the user who has permission to add the gateway to the
 	// Active Directory domain.
 	//
 	// Password is a required field
-	Password *string `type:"string" required:"true" sensitive:"true"`
+	Password *string `min:"1" type:"string" required:"true" sensitive:"true"`
 
 	// Sets the user name of user who has permission to add the gateway to the Active
 	// Directory domain.
 	//
 	// UserName is a required field
-	UserName *string `type:"string" required:"true"`
+	UserName *string `min:"1" type:"string" required:"true"`
 }
 
 // String returns the string representation
@@ -11568,23 +11996,41 @@ func (s *JoinDomainInput) Validate() error {
 	if s.DomainName == nil {
 		invalidParams.Add(request.NewErrParamRequired("DomainName"))
 	}
+	if s.DomainName != nil && len(*s.DomainName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DomainName", 1))
+	}
 	if s.GatewayARN == nil {
 		invalidParams.Add(request.NewErrParamRequired("GatewayARN"))
 	}
 	if s.GatewayARN != nil && len(*s.GatewayARN) < 50 {
 		invalidParams.Add(request.NewErrParamMinLen("GatewayARN", 50))
 	}
+	if s.OrganizationalUnit != nil && len(*s.OrganizationalUnit) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("OrganizationalUnit", 1))
+	}
 	if s.Password == nil {
 		invalidParams.Add(request.NewErrParamRequired("Password"))
 	}
+	if s.Password != nil && len(*s.Password) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Password", 1))
+	}
 	if s.UserName == nil {
 		invalidParams.Add(request.NewErrParamRequired("UserName"))
+	}
+	if s.UserName != nil && len(*s.UserName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("UserName", 1))
 	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetDomainControllers sets the DomainControllers field's value.
+func (s *JoinDomainInput) SetDomainControllers(v []*string) *JoinDomainInput {
+	s.DomainControllers = v
+	return s
 }
 
 // SetDomainName sets the DomainName field's value.
@@ -11596,6 +12042,12 @@ func (s *JoinDomainInput) SetDomainName(v string) *JoinDomainInput {
 // SetGatewayARN sets the GatewayARN field's value.
 func (s *JoinDomainInput) SetGatewayARN(v string) *JoinDomainInput {
 	s.GatewayARN = &v
+	return s
+}
+
+// SetOrganizationalUnit sets the OrganizationalUnit field's value.
+func (s *JoinDomainInput) SetOrganizationalUnit(v string) *JoinDomainInput {
+	s.OrganizationalUnit = &v
 	return s
 }
 
@@ -12768,10 +13220,11 @@ func (s *NotifyWhenUploadedOutput) SetNotificationId(v string) *NotifyWhenUpload
 	return s
 }
 
+// RefreshCacheInput
 type RefreshCacheInput struct {
 	_ struct{} `type:"structure"`
 
-	// The Amazon Resource Name (ARN) of the file share.
+	// The Amazon Resource Name (ARN) of the file share you want to refresh.
 	//
 	// FileShareARN is a required field
 	FileShareARN *string `min:"50" type:"string" required:"true"`
@@ -13711,8 +14164,17 @@ type StorediSCSIVolume struct {
 	// snapshot ID used, e.g. snap-78e22663. Otherwise, this field is not included.
 	SourceSnapshotId *string `type:"string"`
 
+	// The name of the iSCSI target that is used by an initiator to connect to a
+	// volume and used as a suffix for the target ARN. For example, specifying TargetName
+	// as myvolume results in the target ARN of arn:aws:storagegateway:us-east-2:111122223333:gateway/sgw-12A3456B/target/iqn.1997-05.com.amazon:myvolume.
+	TargetName *string `min:"1" type:"string"`
+
 	// The Amazon Resource Name (ARN) of the storage volume.
 	VolumeARN *string `min:"50" type:"string"`
+
+	// A value that indicates whether a storage volume is attached to, detached
+	// from, or is in the process of detaching from a gateway.
+	VolumeAttachmentStatus *string `min:"3" type:"string"`
 
 	// The ID of the local disk that was specified in the CreateStorediSCSIVolume
 	// operation.
@@ -13780,9 +14242,21 @@ func (s *StorediSCSIVolume) SetSourceSnapshotId(v string) *StorediSCSIVolume {
 	return s
 }
 
+// SetTargetName sets the TargetName field's value.
+func (s *StorediSCSIVolume) SetTargetName(v string) *StorediSCSIVolume {
+	s.TargetName = &v
+	return s
+}
+
 // SetVolumeARN sets the VolumeARN field's value.
 func (s *StorediSCSIVolume) SetVolumeARN(v string) *StorediSCSIVolume {
 	s.VolumeARN = &v
+	return s
+}
+
+// SetVolumeAttachmentStatus sets the VolumeAttachmentStatus field's value.
+func (s *StorediSCSIVolume) SetVolumeAttachmentStatus(v string) *StorediSCSIVolume {
+	s.VolumeAttachmentStatus = &v
 	return s
 }
 
@@ -15374,6 +15848,8 @@ type VolumeInfo struct {
 	// (-).
 	VolumeARN *string `min:"50" type:"string"`
 
+	VolumeAttachmentStatus *string `min:"3" type:"string"`
+
 	// The unique identifier assigned to the volume. This ID becomes part of the
 	// volume Amazon Resource Name (ARN), which you use as input for other operations.
 	//
@@ -15415,6 +15891,12 @@ func (s *VolumeInfo) SetGatewayId(v string) *VolumeInfo {
 // SetVolumeARN sets the VolumeARN field's value.
 func (s *VolumeInfo) SetVolumeARN(v string) *VolumeInfo {
 	s.VolumeARN = &v
+	return s
+}
+
+// SetVolumeAttachmentStatus sets the VolumeAttachmentStatus field's value.
+func (s *VolumeInfo) SetVolumeAttachmentStatus(v string) *VolumeInfo {
+	s.VolumeAttachmentStatus = &v
 	return s
 }
 

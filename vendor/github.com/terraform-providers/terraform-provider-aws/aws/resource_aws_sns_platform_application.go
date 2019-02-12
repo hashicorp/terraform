@@ -240,10 +240,7 @@ func resourceAwsSnsPlatformApplicationDelete(d *schema.ResourceData, meta interf
 	_, err := snsconn.DeletePlatformApplication(&sns.DeletePlatformApplicationInput{
 		PlatformApplicationArn: aws.String(d.Id()),
 	})
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func decodeResourceAwsSnsPlatformApplicationID(input string) (arnS, name, platform string, err error) {

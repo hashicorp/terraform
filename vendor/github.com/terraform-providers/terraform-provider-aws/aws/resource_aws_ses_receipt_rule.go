@@ -595,11 +595,7 @@ func resourceAwsSesReceiptRuleRead(d *schema.ResourceData, meta interface{}) err
 	}
 
 	err = d.Set("workmail_action", workmailActionList)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func resourceAwsSesReceiptRuleDelete(d *schema.ResourceData, meta interface{}) error {

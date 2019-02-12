@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"math/big"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -103,20 +104,16 @@ func generateIAMPassword(length int) string {
 // Check the generated password contains all character classes listed in the
 // IAM password policy.
 func checkIAMPwdPolicy(pass []byte) bool {
-	if !(bytes.ContainsAny(pass, charLower) &&
+	return (bytes.ContainsAny(pass, charLower) &&
 		bytes.ContainsAny(pass, charNumbers) &&
 		bytes.ContainsAny(pass, charSymbols) &&
-		bytes.ContainsAny(pass, charUpper)) {
-		return false
-	}
-
-	return true
+		bytes.ContainsAny(pass, charUpper))
 }
 
 func resourceAwsIamUserLoginProfileCreate(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
 
-	encryptionKey, err := encryption.RetrieveGPGKey(d.Get("pgp_key").(string))
+	encryptionKey, err := encryption.RetrieveGPGKey(strings.TrimSpace(d.Get("pgp_key").(string)))
 	if err != nil {
 		return err
 	}

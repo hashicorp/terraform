@@ -183,11 +183,7 @@ func resourceAwsIAMServerCertificateDelete(d *schema.ResourceData, meta interfac
 		return nil
 	})
 
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func resourceAwsIAMServerCertificateImport(

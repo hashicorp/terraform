@@ -363,11 +363,10 @@ func resourceAwsSsmDocumentDelete(d *schema.ResourceData, meta interface{}) erro
 			return resource.NonRetryableError(err)
 		}
 
-		return resource.RetryableError(
-			fmt.Errorf("%q: Timeout while waiting for the document to be deleted", d.Id()))
+		return resource.RetryableError(fmt.Errorf("SSM Document (%s) still exists", d.Id()))
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("error waiting for SSM Document (%s) deletion: %s", d.Id(), err)
 	}
 
 	return nil

@@ -16,6 +16,7 @@ func resourceAwsDbSnapshot() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsDbSnapshotCreate,
 		Read:   resourceAwsDbSnapshotRead,
+		Update: resourceAwsDbSnapshotUpdate,
 		Delete: resourceAwsDbSnapshotDelete,
 
 		Timeouts: &schema.ResourceTimeout{
@@ -102,16 +103,19 @@ func resourceAwsDbSnapshot() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"tags": tagsSchema(),
 		},
 	}
 }
 
 func resourceAwsDbSnapshotCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).rdsconn
+	tags := tagsFromMapRDS(d.Get("tags").(map[string]interface{}))
 
 	params := &rds.CreateDBSnapshotInput{
 		DBInstanceIdentifier: aws.String(d.Get("db_instance_identifier").(string)),
 		DBSnapshotIdentifier: aws.String(d.Get("db_snapshot_identifier").(string)),
+		Tags:                 tags,
 	}
 
 	_, err := conn.CreateDBSnapshot(params)
@@ -167,6 +171,9 @@ func resourceAwsDbSnapshotRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("snapshot_type", snapshot.SnapshotType)
 	d.Set("status", snapshot.Status)
 	d.Set("vpc_id", snapshot.VpcId)
+	if err := saveTagsRDS(conn, d, aws.StringValue(snapshot.DBSnapshotArn)); err != nil {
+		log.Printf("[WARN] Failed to save tags for RDS Snapshot (%s): %s", d.Id(), err)
+	}
 
 	return nil
 }
@@ -178,8 +185,46 @@ func resourceAwsDbSnapshotDelete(d *schema.ResourceData, meta interface{}) error
 		DBSnapshotIdentifier: aws.String(d.Id()),
 	}
 	_, err := conn.DeleteDBSnapshot(params)
-	if err != nil {
-		return err
+	return err
+}
+
+func resourceAwsDbSnapshotUpdate(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).rdsconn
+	arn := d.Get("db_snapshot_arn").(string)
+	if d.HasChange("tags") {
+		oldTagsRaw, newTagsRaw := d.GetChange("tags")
+		oldTagsMap := oldTagsRaw.(map[string]interface{})
+		newTagsMap := newTagsRaw.(map[string]interface{})
+		createTags, removeTags := diffTagsRDS(tagsFromMapRDS(oldTagsMap), tagsFromMapRDS(newTagsMap))
+
+		if len(removeTags) > 0 {
+			removeTagKeys := make([]*string, len(removeTags))
+			for i, removeTag := range removeTags {
+				removeTagKeys[i] = removeTag.Key
+			}
+
+			input := &rds.RemoveTagsFromResourceInput{
+				ResourceName: aws.String(arn),
+				TagKeys:      removeTagKeys,
+			}
+
+			log.Printf("[DEBUG] Untagging RDS Cluster: %s", input)
+			if _, err := conn.RemoveTagsFromResource(input); err != nil {
+				return fmt.Errorf("error untagging RDS Cluster (%s): %s", d.Id(), err)
+			}
+		}
+
+		if len(createTags) > 0 {
+			input := &rds.AddTagsToResourceInput{
+				ResourceName: aws.String(arn),
+				Tags:         createTags,
+			}
+
+			log.Printf("[DEBUG] Tagging RDS Cluster: %s", input)
+			if _, err := conn.AddTagsToResource(input); err != nil {
+				return fmt.Errorf("error tagging RDS Cluster (%s): %s", d.Id(), err)
+			}
+		}
 	}
 
 	return nil

@@ -20,6 +20,9 @@ func resourceAwsAppCookieStickinessPolicy() *schema.Resource {
 		Create: resourceAwsAppCookieStickinessPolicyCreate,
 		Read:   resourceAwsAppCookieStickinessPolicyRead,
 		Delete: resourceAwsAppCookieStickinessPolicyDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -136,7 +139,9 @@ func resourceAwsAppCookieStickinessPolicyRead(d *schema.ResourceData, meta inter
 	d.Set("cookie_name", cookieAttr.AttributeValue)
 	d.Set("name", policyName)
 	d.Set("load_balancer", lbName)
-	d.Set("lb_port", lbPort)
+
+	lbPortInt, _ := strconv.Atoi(lbPort)
+	d.Set("lb_port", lbPortInt)
 
 	return nil
 }
