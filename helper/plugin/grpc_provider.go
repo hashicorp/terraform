@@ -1209,10 +1209,11 @@ func normalizeNullValues(dst, src cty.Value, plan bool) cty.Value {
 	switch {
 	case ty.IsMapType(), ty.IsObjectType():
 		var dstMap map[string]cty.Value
-		if dst.IsNull() {
-			dstMap = map[string]cty.Value{}
-		} else {
+		if !dst.IsNull() {
 			dstMap = dst.AsValueMap()
+		}
+		if dstMap == nil {
+			dstMap = map[string]cty.Value{}
 		}
 
 		ei := src.ElementIterator()
@@ -1226,7 +1227,7 @@ func normalizeNullValues(dst, src cty.Value, plan bool) cty.Value {
 					// let plan shape this map however it wants
 					continue
 				}
-				dstVal = cty.NullVal(ty.ElementType())
+				dstVal = cty.NullVal(v.Type())
 			}
 			dstMap[key] = normalizeNullValues(dstVal, v, plan)
 		}

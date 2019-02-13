@@ -877,6 +877,16 @@ func TestNormalizeNullValues(t *testing.T) {
 			}),
 			Plan: true,
 		},
+		{
+			Src: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("a"),
+			}),
+			Dst: cty.EmptyObjectVal,
+			Expect: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.NullVal(cty.String),
+			}),
+			Plan: true,
+		},
 
 		// a list in an object in a list, going from null to empty
 		{
