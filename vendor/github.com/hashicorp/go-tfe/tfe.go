@@ -251,13 +251,8 @@ func rateLimitBackoff(min, max time.Duration, attemptNum int, resp *http.Respons
 
 // configureLimiter configures the rate limiter.
 func (c *Client) configureLimiter() error {
-	u, err := c.baseURL.Parse("/")
-	if err != nil {
-		return err
-	}
-
 	// Create a new request.
-	req, err := http.NewRequest("GET", u.String(), nil)
+	req, err := http.NewRequest("GET", c.baseURL.String(), nil)
 	if err != nil {
 		return err
 	}
@@ -266,6 +261,7 @@ func (c *Client) configureLimiter() error {
 	for k, v := range c.headers {
 		req.Header[k] = v
 	}
+	req.Header.Set("Accept", "application/vnd.api+json")
 
 	// Make a single request to retrieve the rate limit headers.
 	resp, err := c.http.HTTPClient.Do(req)
