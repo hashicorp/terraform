@@ -1,5 +1,6 @@
 syntax = "proto3";
-package proto;
+package plugin;
+option go_package = "plugin";
 
 message Empty {
 }
