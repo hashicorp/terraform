@@ -1223,6 +1223,52 @@ func TestInterpolateFuncFile(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncFileHashFuncs(t *testing.T) {
+	tf, err := ioutil.TempFile("", "tf")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	path := tf.Name()
+	tf.Write([]byte("foo"))
+	tf.Close()
+	defer os.Remove(path)
+
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				fmt.Sprintf(`${filebase64sha256("%s")}`, path),
+				"LCa0a2j/xo/5m0U8HTBBNBNCLXBkg7+g+YpeiGJm564=",
+				false,
+			},
+			{
+				fmt.Sprintf(`${filebase64sha512("%s")}`, path),
+				"9/u6bgY2+JDlb7vzKD5STG+jIErimDgtYkdB0NxmODJuKCxBvl5CVNiCB3LFUYosWowMf37aGVlKfrU5RT4e1w==",
+				false,
+			},
+			{
+				fmt.Sprintf(`${filemd5("%s")}`, path),
+				"acbd18db4cc2f85cedef654fccc4a4d8",
+				false,
+			},
+			{
+				fmt.Sprintf(`${filesha1("%s")}`, path),
+				"0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33",
+				false,
+			},
+			{
+				fmt.Sprintf(`${filesha256("%s")}`, path),
+				"2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae",
+				false,
+			},
+			{
+				fmt.Sprintf(`${filesha512("%s")}`, path),
+				"f7fbba6e0636f890e56fbbf3283e524c6fa3204ae298382d624741d0dc6638326e282c41be5e4254d8820772c5518a2c5a8c0c7f7eda19594a7eb539453e1ed7",
+				false,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncFormat(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
