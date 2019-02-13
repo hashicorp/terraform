@@ -353,9 +353,7 @@ func (p *provisioner) createDir(o terraform.UIOutput, comm communicator.Communic
 
 func (p *provisioner) removeDir(o terraform.UIOutput, comm communicator.Communicator, dir string) error {
 	o.Output(fmt.Sprintf("Removing directory: %s", dir))
-	cmd := &remote.Cmd{
-		Command: fmt.Sprintf("rm -rf '%s'", dir),
-	}
+	cmd := &remote.Cmd{Command: fmt.Sprintf(p.sudo("rm -rf %s"), dir)}
 	if err := comm.Start(cmd); err != nil {
 		return err
 	}
