@@ -226,6 +226,13 @@ func New() backend.Backend {
 				Description: "The maximum number of times an AWS API request is retried on retryable failure.",
 				Default:     5,
 			},
+
+			"compression": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Enable gzip compression before sending sate file into bucket",
+				Default:     false,
+			},
 		},
 	}
 
@@ -248,6 +255,7 @@ type Backend struct {
 	kmsKeyID             string
 	ddbTable             string
 	workspaceKeyPrefix   string
+	compression          bool
 }
 
 func (b *Backend) configure(ctx context.Context) error {
@@ -264,6 +272,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	b.acl = data.Get("acl").(string)
 	b.kmsKeyID = data.Get("kms_key_id").(string)
 	b.workspaceKeyPrefix = data.Get("workspace_key_prefix").(string)
+	b.compression = data.Get("compression").(bool)
 
 	b.ddbTable = data.Get("dynamodb_table").(string)
 	if b.ddbTable == "" {

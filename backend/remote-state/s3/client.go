@@ -2,12 +2,14 @@ package s3
 
 import (
 	"bytes"
+	"compress/gzip"
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"time"
 
@@ -36,6 +38,7 @@ type RemoteClient struct {
 	acl                  string
 	kmsKeyID             string
 	ddbTable             string
+	compression          bool
 }
 
 var (
@@ -122,9 +125,14 @@ func (c *RemoteClient) get() (*remote.Payload, error) {
 		return nil, fmt.Errorf("Failed to read remote state: %s", err)
 	}
 
-	sum := md5.Sum(buf.Bytes())
+	data, err := c.decompress(buf.Bytes())
+	if err != nil {
+		return nil, err
+	}
+
+	sum := md5.Sum(data)
 	payload := &remote.Payload{
-		Data: buf.Bytes(),
+		Data: data,
 		MD5:  sum[:],
 	}
 
@@ -138,12 +146,17 @@ func (c *RemoteClient) get() (*remote.Payload, error) {
 
 func (c *RemoteClient) Put(data []byte) error {
 	contentType := "application/json"
-	contentLength := int64(len(data))
+	objectBody := data
+	if c.compression {
+		objectBody = c.compress(data)
+		contentType = "gzip"
+	}
 
+	contentLength := int64(len(objectBody))
 	i := &s3.PutObjectInput{
 		ContentType:   &contentType,
 		ContentLength: &contentLength,
-		Body:          bytes.NewReader(data),
+		Body:          bytes.NewReader(objectBody),
 		Bucket:        &c.bucketName,
 		Key:           &c.path,
 	}
@@ -381,6 +394,32 @@ func (c *RemoteClient) Unlock(id string) error {
 
 func (c *RemoteClient) lockPath() string {
 	return fmt.Sprintf("%s/%s", c.bucketName, c.path)
+}
+
+func (c *RemoteClient) decompress(data []byte) ([]byte, error) {
+	if len(data) == 0 {
+		return data, nil
+	}
+	gz, err := gzip.NewReader(bytes.NewReader(data))
+	if err != nil {
+		if err == gzip.ErrHeader {
+			// not a gzipped data
+			return data, nil
+		}
+
+		return nil, err
+	}
+	defer gz.Close()
+
+	return ioutil.ReadAll(gz)
+}
+
+func (c *RemoteClient) compress(data []byte) []byte {
+	b := &bytes.Buffer{}
+	gz := gzip.NewWriter(b)
+	gz.Write(data)
+	gz.Close()
+	return b.Bytes()
 }
 
 const errBadChecksumFmt = `state data in S3 does not have the expected content.

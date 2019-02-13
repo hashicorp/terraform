@@ -204,114 +204,130 @@ func TestRemoteClient_clientMD5(t *testing.T) {
 
 // verify that a client won't return a state with an incorrect checksum.
 func TestRemoteClient_stateChecksum(t *testing.T) {
-	testACC(t)
-
-	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
-	keyName := "testState"
-
-	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"bucket":         bucketName,
-		"key":            keyName,
-		"dynamodb_table": bucketName,
-	})).(*Backend)
-
-	createS3Bucket(t, b1.s3Client, bucketName)
-	defer deleteS3Bucket(t, b1.s3Client, bucketName)
-	createDynamoDBTable(t, b1.dynClient, bucketName)
-	defer deleteDynamoDBTable(t, b1.dynClient, bucketName)
-
-	s1, err := b1.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
-	}
-	client1 := s1.(*remote.State).Client
-
-	// create a old and new state version to persist
-	s := state.TestStateInitial()
-	sf := &statefile.File{State: s}
-	var oldState bytes.Buffer
-	if err := statefile.Write(sf, &oldState); err != nil {
-		t.Fatal(err)
-	}
-	sf.Serial++
-	var newState bytes.Buffer
-	if err := statefile.Write(sf, &newState); err != nil {
-		t.Fatal(err)
+	testCases := map[string]struct {
+		compression bool
+	}{
+		"without compression": {
+			compression: false,
+		},
+		"with compression": {
+			compression: true,
+		},
 	}
 
-	// Use b2 without a dynamodb_table to bypass the lock table to write the state directly.
-	// client2 will write the "incorrect" state, simulating s3 eventually consistency delays
-	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"bucket": bucketName,
-		"key":    keyName,
-	})).(*Backend)
-	s2, err := b2.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
-	}
-	client2 := s2.(*remote.State).Client
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			testACC(t)
 
-	// write the new state through client2 so that there is no checksum yet
-	if err := client2.Put(newState.Bytes()); err != nil {
-		t.Fatal(err)
-	}
+			bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+			keyName := "testState"
 
-	// verify that we can pull a state without a checksum
-	if _, err := client1.Get(); err != nil {
-		t.Fatal(err)
-	}
+			b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+				"bucket":         bucketName,
+				"key":            keyName,
+				"dynamodb_table": bucketName,
+				"compression":    tc.compression,
+			})).(*Backend)
 
-	// write the new state back with its checksum
-	if err := client1.Put(newState.Bytes()); err != nil {
-		t.Fatal(err)
-	}
+			createS3Bucket(t, b1.s3Client, bucketName)
+			defer deleteS3Bucket(t, b1.s3Client, bucketName)
+			createDynamoDBTable(t, b1.dynClient, bucketName)
+			defer deleteDynamoDBTable(t, b1.dynClient, bucketName)
 
-	// put an empty state in place to check for panics during get
-	if err := client2.Put([]byte{}); err != nil {
-		t.Fatal(err)
-	}
+			s1, err := b1.StateMgr(backend.DefaultStateName)
+			if err != nil {
+				t.Fatal(err)
+			}
+			client1 := s1.(*remote.State).Client
 
-	// remove the timeouts so we can fail immediately
-	origTimeout := consistencyRetryTimeout
-	origInterval := consistencyRetryPollInterval
-	defer func() {
-		consistencyRetryTimeout = origTimeout
-		consistencyRetryPollInterval = origInterval
-	}()
-	consistencyRetryTimeout = 0
-	consistencyRetryPollInterval = 0
+			// create a old and new state version to persist
+			s := state.TestStateInitial()
+			sf := &statefile.File{State: s}
+			var oldState bytes.Buffer
+			if err := statefile.Write(sf, &oldState); err != nil {
+				t.Fatal(err)
+			}
+			sf.Serial++
+			var newState bytes.Buffer
+			if err := statefile.Write(sf, &newState); err != nil {
+				t.Fatal(err)
+			}
 
-	// fetching an empty state through client1 should now error out due to a
-	// mismatched checksum.
-	if _, err := client1.Get(); !strings.HasPrefix(err.Error(), errBadChecksumFmt[:80]) {
-		t.Fatalf("expected state checksum error: got %s", err)
-	}
+			// Use b2 without a dynamodb_table to bypass the lock table to write the state directly.
+			// client2 will write the "incorrect" state, simulating s3 eventually consistency delays
+			b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+				"bucket": bucketName,
+				"key":    keyName,
+			})).(*Backend)
+			s2, err := b2.StateMgr(backend.DefaultStateName)
+			if err != nil {
+				t.Fatal(err)
+			}
+			client2 := s2.(*remote.State).Client
 
-	// put the old state in place of the new, without updating the checksum
-	if err := client2.Put(oldState.Bytes()); err != nil {
-		t.Fatal(err)
-	}
+			// write the new state through client2 so that there is no checksum yet
+			if err := client2.Put(newState.Bytes()); err != nil {
+				t.Fatal(err)
+			}
 
-	// fetching the wrong state through client1 should now error out due to a
-	// mismatched checksum.
-	if _, err := client1.Get(); !strings.HasPrefix(err.Error(), errBadChecksumFmt[:80]) {
-		t.Fatalf("expected state checksum error: got %s", err)
-	}
+			// verify that we can pull a state without a checksum
+			if _, err := client1.Get(); err != nil {
+				t.Fatal(err)
+			}
 
-	// update the state with the correct one after we Get again
-	testChecksumHook = func() {
-		if err := client2.Put(newState.Bytes()); err != nil {
-			t.Fatal(err)
-		}
-		testChecksumHook = nil
-	}
+			// write the new state back with its checksum
+			if err := client1.Put(newState.Bytes()); err != nil {
+				t.Fatal(err)
+			}
 
-	consistencyRetryTimeout = origTimeout
+			// put an empty state in place to check for panics during get
+			if err := client2.Put([]byte{}); err != nil {
+				t.Fatal(err)
+			}
 
-	// this final Get will fail to fail the checksum verification, the above
-	// callback will update the state with the correct version, and Get should
-	// retry automatically.
-	if _, err := client1.Get(); err != nil {
-		t.Fatal(err)
+			// remove the timeouts so we can fail immediately
+			origTimeout := consistencyRetryTimeout
+			origInterval := consistencyRetryPollInterval
+			defer func() {
+				consistencyRetryTimeout = origTimeout
+				consistencyRetryPollInterval = origInterval
+			}()
+			consistencyRetryTimeout = 0
+			consistencyRetryPollInterval = 0
+
+			// fetching an empty state through client1 should now error out due to a
+			// mismatched checksum.
+			if _, err := client1.Get(); !strings.HasPrefix(err.Error(), errBadChecksumFmt[:80]) {
+				t.Fatalf("expected state checksum error: got %s", err)
+			}
+
+			// put the old state in place of the new, without updating the checksum
+			if err := client2.Put(oldState.Bytes()); err != nil {
+				t.Fatal(err)
+			}
+
+			// fetching the wrong state through client1 should now error out due to a
+			// mismatched checksum.
+			if _, err := client1.Get(); !strings.HasPrefix(err.Error(), errBadChecksumFmt[:80]) {
+				t.Fatalf("expected state checksum error: got %s", err)
+			}
+
+			// update the state with the correct one after we Get again
+			testChecksumHook = func() {
+				if err := client2.Put(newState.Bytes()); err != nil {
+					t.Fatal(err)
+				}
+				testChecksumHook = nil
+			}
+
+			consistencyRetryTimeout = origTimeout
+
+			// this final Get will fail to fail the checksum verification, the above
+			// callback will update the state with the correct version, and Get should
+			// retry automatically.
+			if _, err := client1.Get(); err != nil {
+				t.Fatal(err)
+			}
+		})
 	}
 }
