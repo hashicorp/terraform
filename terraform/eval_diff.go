@@ -242,8 +242,11 @@ func (n *EvalDiff) processIgnoreChanges(diff *InstanceDiff) error {
 
 			// If any RequiresNew attribute isn't ignored, we need to keep the diff
 			// as-is to be able to replace the resource.
-			if v.RequiresNew && !ignorableAttrKeys[k] {
-				return nil
+			if v.RequiresNew {
+				if !ignorableAttrKeys[k] {
+					return nil
+				}
+				v.RequiresNew = false
 			}
 		}
 
