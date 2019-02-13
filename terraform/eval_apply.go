@@ -173,11 +173,16 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 		newVal = cty.UnknownAsNull(newVal)
 	}
 
-	if change.Action != plans.Delete {
+	if change.Action != plans.Delete && !diags.HasErrors() {
 		// Only values that were marked as unknown in the planned value are allowed
 		// to change during the apply operation. (We do this after the unknown-ness
 		// check above so that we also catch anything that became unknown after
 		// being known during plan.)
+		//
+		// If we are returning other errors anyway then we'll give this
+		// a pass since the other errors are usually the explanation for
+		// this one and so it's more helpful to let the user focus on the
+		// root cause rather than distract with this extra problem.
 		if errs := objchange.AssertObjectCompatible(schema, change.After, newVal); len(errs) > 0 {
 			if resp.LegacyTypeSystem {
 				// The shimming of the old type system in the legacy SDK is not precise
@@ -238,6 +243,20 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 				),
 			))
 		}
+	}
+
+	// Sometimes providers return a null value when an operation fails for some
+	// reason, but for any action other than delete we'd rather keep the prior
+	// state so that the error can be corrected on a subsequent run. We must
+	// only do this for null new value though, or else we may discard partial
+	// updates the provider was able to complete.
+	if change.Action != plans.Delete && diags.HasErrors() && newVal.IsNull() {
+		// Otherwise, we'll continue but using the prior state as the new value,
+		// making this effectively a no-op. If the item really _has_ been
+		// deleted then our next refresh will detect that and fix it up.
+		// If change.Action is Create then change.Before will also be null,
+		// which is fine.
+		newVal = change.Before
 	}
 
 	var newState *states.ResourceInstanceObject
