@@ -1,5 +1,12 @@
 ## 0.11.12 (Unreleased)
 
+IMPROVEMENTS:
+
+* The `filemd5`, `filesha1`, etc functions from Terraform v0.12 are backported primarily to allow writing
+  modules that can work in both Terraform 0.11 and 0.12, since the `sha1(file("..."))` pattern in 0.12
+  works only for files containing valid UTF-8 text; `sha1file("...")` must be used instead.  Both
+  forms are equivalent in Terraform 0.11.
+
 BUG FIXES:
 
 * backend/remote: Fix "token too long" errors when streaming remote operation logs [GH-20241]
