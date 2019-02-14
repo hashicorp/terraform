@@ -50,6 +50,125 @@ func testResourceListSet() *schema.Resource {
 					},
 				},
 			},
+			"replication_configuration": {
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"role": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"rules": {
+							Type:     schema.TypeSet,
+							Required: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"id": {
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+									"destination": {
+										Type:     schema.TypeSet,
+										MaxItems: 1,
+										MinItems: 1,
+										Required: true,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"account_id": {
+													Type:     schema.TypeString,
+													Optional: true,
+												},
+												"bucket": {
+													Type:     schema.TypeString,
+													Required: true,
+												},
+												"storage_class": {
+													Type:     schema.TypeString,
+													Optional: true,
+												},
+												"replica_kms_key_id": {
+													Type:     schema.TypeString,
+													Optional: true,
+												},
+												"access_control_translation": {
+													Type:     schema.TypeList,
+													Optional: true,
+													MinItems: 1,
+													MaxItems: 1,
+													Elem: &schema.Resource{
+														Schema: map[string]*schema.Schema{
+															"owner": {
+																Type:     schema.TypeString,
+																Required: true,
+															},
+														},
+													},
+												},
+											},
+										},
+									},
+									"source_selection_criteria": {
+										Type:     schema.TypeSet,
+										Optional: true,
+										MinItems: 1,
+										MaxItems: 1,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"sse_kms_encrypted_objects": {
+													Type:     schema.TypeSet,
+													Optional: true,
+													MinItems: 1,
+													MaxItems: 1,
+													Elem: &schema.Resource{
+														Schema: map[string]*schema.Schema{
+															"enabled": {
+																Type:     schema.TypeBool,
+																Required: true,
+															},
+														},
+													},
+												},
+											},
+										},
+									},
+									"prefix": {
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+									"status": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+									"priority": {
+										Type:     schema.TypeInt,
+										Optional: true,
+									},
+									"filter": {
+										Type:     schema.TypeList,
+										Optional: true,
+										MinItems: 1,
+										MaxItems: 1,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"prefix": {
+													Type:     schema.TypeString,
+													Optional: true,
+												},
+												"tags": {
+													Type:     schema.TypeMap,
+													Optional: true,
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 }
