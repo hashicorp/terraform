@@ -171,7 +171,7 @@ func testResourceUpdate(d *schema.ResourceData, meta interface{}) error {
 	if errMsg != "" {
 		return errors.New(errMsg)
 	}
-	return nil
+	return testResourceRead(d, meta)
 }
 
 func testResourceDelete(d *schema.ResourceData, meta interface{}) error {
