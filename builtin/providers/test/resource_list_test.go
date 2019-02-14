@@ -218,3 +218,61 @@ resource "test_resource_list" "foo" {
 		},
 	})
 }
+
+func TestResourceList_emptyStrings(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_list" "foo" {
+  list_block {
+    sublist = ["a", ""]
+  }
+
+  list_block {
+    sublist = [""]
+  }
+
+  list_block {
+    sublist = ["", "c", ""]
+  }
+}
+				`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("test_resource_list.foo", "list_block.0.sublist.0", "a"),
+					resource.TestCheckResourceAttr("test_resource_list.foo", "list_block.0.sublist.1", ""),
+					resource.TestCheckResourceAttr("test_resource_list.foo", "list_block.1.sublist.0", ""),
+					resource.TestCheckResourceAttr("test_resource_list.foo", "list_block.2.sublist.0", ""),
+					resource.TestCheckResourceAttr("test_resource_list.foo", "list_block.2.sublist.1", "c"),
+					resource.TestCheckResourceAttr("test_resource_list.foo", "list_block.2.sublist.2", ""),
+				),
+			},
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_list" "foo" {
+  list_block {
+    sublist = [""]
+  }
+
+  list_block {
+    sublist = []
+  }
+
+  list_block {
+    sublist = ["", "c"]
+  }
+}
+			`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("test_resource_list.foo", "list_block.0.sublist.#", "1"),
+					resource.TestCheckResourceAttr("test_resource_list.foo", "list_block.0.sublist.0", ""),
+					resource.TestCheckResourceAttr("test_resource_list.foo", "list_block.1.sublist.#", "0"),
+					resource.TestCheckResourceAttr("test_resource_list.foo", "list_block.2.sublist.1", "c"),
+					resource.TestCheckResourceAttr("test_resource_list.foo", "list_block.2.sublist.#", "2"),
+				),
+			},
+		},
+	})
+}
