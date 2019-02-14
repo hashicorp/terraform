@@ -35,7 +35,6 @@
             "mode": "managed",
             "type": "test_instance",
             "name": "test",
-            "deposed": true,
             "change": {
                 "actions": [
                     "no-op"
