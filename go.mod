@@ -65,7 +65,7 @@ require (
 	github.com/hashicorp/go-version v1.0.0
 	github.com/hashicorp/golang-lru v0.5.0 // indirect
 	github.com/hashicorp/hcl v0.0.0-20170504190234-a4b07c25de5f
-	github.com/hashicorp/hcl2 v0.0.0-20190130225218-89dbc5eb3d9e
+	github.com/hashicorp/hcl2 v0.0.0-20190214011454-504b92060753
 	github.com/hashicorp/hil v0.0.0-20190212112733-ab17b08d6590
 	github.com/hashicorp/logutils v1.0.0
 	github.com/hashicorp/memberlist v0.1.0 // indirect
