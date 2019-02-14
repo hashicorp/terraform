@@ -437,6 +437,15 @@ The supported built-in functions are:
       of the key used to encrypt their initial password, you might use:
       `zipmap(aws_iam_user.users.*.name, aws_iam_user_login_profile.users.*.key_fingerprint)`.
 
+The hashing functions `base64sha256`, `base64sha512`, `md5`, `sha1`, `sha256`,
+and `sha512` all have variants with a `file` prefix, like `filesha1`, which
+interpret their first argument as a path to a file on disk rather than as a
+literal string. This allows safely creating hashes of binary files that might
+otherwise be corrupted in memory if loaded into Terraform strings (which are
+assumed to be UTF-8). `filesha1(filename)` is equivalent to `sha1(file(filename))`
+in Terraform 0.11 and earlier, but the latter will fail for binary files in
+Terraform 0.12 and later.
+
 ## Templates
 
 Long strings can be managed using templates.
