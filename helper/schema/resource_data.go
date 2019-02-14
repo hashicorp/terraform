@@ -52,6 +52,8 @@ type getResult struct {
 // UnsafeSetFieldRaw allows setting arbitrary values in state to arbitrary
 // values, bypassing schema. This MUST NOT be used in normal circumstances -
 // it exists only to support the remote_state data source.
+//
+// Deprecated: Fully define schema attributes and use Set() instead.
 func (d *ResourceData) UnsafeSetFieldRaw(key string, value string) {
 	d.once.Do(d.init)
 
