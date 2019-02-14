@@ -1073,6 +1073,43 @@ func TestAssertObjectCompatible(t *testing.T) {
 				`.block: planned set element cty.Value{ty: cty.Object(map[string]cty.Type{"foo":cty.String}), v: map[string]interface {}{"foo":"hello"}} does not correlate with any element in actual`,
 			},
 		},
+		{
+			// This one is an odd situation where the value representing the
+			// block itself is unknown. This is never supposed to be true,
+			// but in legacy SDK mode we allow such things to pass through as
+			// a warning, and so we must tolerate them for matching purposes.
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"block": {
+						Nesting: configschema.NestingSet,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"foo": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"block": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.UnknownVal(cty.String),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.UnknownVal(cty.String),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"block": cty.UnknownVal(cty.Set(cty.Object(map[string]cty.Type{
+					"foo": cty.String,
+				}))),
+			}),
+			nil,
+		},
 	}
 
 	for _, test := range tests {

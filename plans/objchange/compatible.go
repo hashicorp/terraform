@@ -157,7 +157,7 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 				}
 			}
 		case configschema.NestingSet:
-			if !plannedV.IsKnown() || plannedV.IsNull() || actualV.IsNull() {
+			if !plannedV.IsKnown() || !actualV.IsKnown() || plannedV.IsNull() || actualV.IsNull() {
 				continue
 			}
 
