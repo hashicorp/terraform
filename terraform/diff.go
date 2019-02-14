@@ -546,7 +546,7 @@ func (d *InstanceDiff) applyBlockDiff(path []string, attrs map[string]string, sc
 					}
 
 					// check for empty "count" keys
-					if strings.HasSuffix(attr, ".#") && diff.New == "0" {
+					if (strings.HasSuffix(attr, ".#") || strings.HasSuffix(attr, ".%")) && diff.New == "0" {
 						continue
 					}
 

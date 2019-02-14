@@ -498,6 +498,12 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 		return resp, nil
 	}
 
+	// We don't usually plan destroys, but this can return early in any case.
+	if proposedNewStateVal.IsNull() {
+		resp.PlannedState = req.ProposedNewState
+		return resp, nil
+	}
+
 	info := &terraform.InstanceInfo{
 		Type: req.TypeName,
 	}
