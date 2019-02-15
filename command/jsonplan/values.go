@@ -88,6 +88,7 @@ func marshalPlannedValues(changes *plans.Changes, schemas *terraform.Schemas) (m
 	// 		module -> [children modules]
 	moduleResourceMap := make(map[string][]addrs.AbsResourceInstance)
 	moduleMap := make(map[string][]addrs.ModuleInstance)
+	seenModules := make(map[string]bool)
 
 	for _, resource := range changes.Resources {
 		// if the resource is being deleted, skip over it.
@@ -98,7 +99,10 @@ func marshalPlannedValues(changes *plans.Changes, schemas *terraform.Schemas) (m
 			// root has no parents.
 			if containingModule != "" {
 				parent := resource.Addr.Module.Parent().String()
-				moduleMap[parent] = append(moduleMap[parent], resource.Addr.Module)
+				if !seenModules[parent] {
+					moduleMap[parent] = append(moduleMap[parent], resource.Addr.Module)
+					seenModules[parent] = true
+				}
 			}
 		}
 	}

@@ -2,6 +2,7 @@ package command
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -10,6 +11,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
@@ -146,24 +148,35 @@ func TestShow_json_output(t *testing.T) {
 		}
 
 		t.Run(entry.Name(), func(t *testing.T) {
+			td := tempDir(t)
 			inputDir := filepath.Join(fixtureDir, entry.Name())
-
-			cwd, err := os.Getwd()
-			if err != nil {
-				t.Fatalf("err: %s", err)
-			}
-			if err := os.Chdir(inputDir); err != nil {
-				t.Fatalf("err: %s", err)
-			}
-			defer os.Chdir(cwd)
+			copy.CopyDir(inputDir, td)
+			defer os.RemoveAll(td)
+			defer testChdir(t, td)()
 
 			p := showFixtureProvider()
 			ui := new(cli.MockUi)
-			pc := &PlanCommand{
-				Meta: Meta{
-					testingOverrides: metaOverridesForProvider(p),
-					Ui:               ui,
+			m := Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+			}
+
+			// init
+			ic := &InitCommand{
+				Meta: m,
+				providerInstaller: &mockProviderInstaller{
+					Providers: map[string][]string{
+						"test": []string{"1.2.3"},
+					},
+					Dir: m.pluginDir(),
 				},
+			}
+			if code := ic.Run([]string{}); code != 0 {
+				t.Fatalf("init failed\n%s", ui.ErrorWriter)
+			}
+
+			pc := &PlanCommand{
+				Meta: m,
 			}
 
 			args := []string{
@@ -171,16 +184,14 @@ func TestShow_json_output(t *testing.T) {
 			}
 
 			if code := pc.Run(args); code != 0 {
+				fmt.Println(ui.OutputWriter.String())
 				t.Fatalf("wrong exit status %d; want 0\nstderr: %s", code, ui.ErrorWriter.String())
 			}
 
 			// flush the plan output from the mock ui
 			ui.OutputWriter.Reset()
 			sc := &ShowCommand{
-				Meta: Meta{
-					testingOverrides: metaOverridesForProvider(p),
-					Ui:               ui,
-				},
+				Meta: m,
 			}
 
 			args = []string{
