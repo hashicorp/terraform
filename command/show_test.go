@@ -184,7 +184,6 @@ func TestShow_json_output(t *testing.T) {
 			}
 
 			if code := pc.Run(args); code != 0 {
-				fmt.Println(ui.OutputWriter.String())
 				t.Fatalf("wrong exit status %d; want 0\nstderr: %s", code, ui.ErrorWriter.String())
 			}
 
