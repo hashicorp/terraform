@@ -3,6 +3,7 @@ package flatmap
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 )
 
 // Flatten takes a structure and turns into a flat map[string]string.
@@ -34,6 +35,8 @@ func flatten(result map[string]string, prefix string, v reflect.Value) {
 		} else {
 			result[prefix] = "false"
 		}
+	case reflect.Float32, reflect.Float64:
+		result[prefix] = strconv.FormatFloat(v.Float(), 'f', -1, 64)
 	case reflect.Int:
 		result[prefix] = fmt.Sprintf("%d", v.Int())
 	case reflect.Map:

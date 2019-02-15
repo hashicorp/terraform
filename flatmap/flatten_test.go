@@ -73,6 +73,29 @@ func TestFlatten(t *testing.T) {
 				"foo.0.ports.1": "2",
 			},
 		},
+
+		{
+			Input: map[string]interface{}{
+				"foo": []map[interface{}]interface{}{
+					map[interface{}]interface{}{
+						"name": "bar",
+						"ports": []string{
+							"1",
+							"2",
+						},
+						"threshold": 0.7,
+					},
+				},
+			},
+			Output: map[string]string{
+				"foo.#":           "1",
+				"foo.0.name":      "bar",
+				"foo.0.ports.#":   "2",
+				"foo.0.ports.0":   "1",
+				"foo.0.ports.1":   "2",
+				"foo.0.threshold": "0.7",
+			},
+		},
 	}
 
 	for _, tc := range cases {
