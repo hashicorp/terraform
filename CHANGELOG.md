@@ -29,6 +29,7 @@ IMPROVEMENTS:
 * command/init: Add provider protocol compatibility UI err msg during registry discovery [GH-19976]
 * command/show: Add support for machine readable output via a `-json` argument to `terraform show` [GH-19687]
 * command/state: Use locking when updating states [GH-19939]
+* provisioner/salt: Default values for `remote_state_tree` and `remote_pillar_roots` [GH-17151]
 
 BUG FIXES:
 
