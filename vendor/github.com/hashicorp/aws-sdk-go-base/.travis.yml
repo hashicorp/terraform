@@ -1,0 +1,21 @@
+dist: xenial
+language: go
+go:
+- "1.11.x"
+env:
+  GOFLAGS=-mod=vendor
+
+install:
+- make tools
+
+script:
+- make lint
+- make test
+
+branches:
+  only:
+  - master
+matrix:
+  fast_finish: true
+  allow_failures:
+  - go: tip
