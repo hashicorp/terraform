@@ -41,11 +41,12 @@ type module struct {
 }
 
 type moduleCall struct {
-	ResolvedSource    string                 `json:"resolved_source,omitempty"`
+	Source            string                 `json:"source,omitempty"`
 	Expressions       map[string]interface{} `json:"expressions,omitempty"`
 	CountExpression   *expression            `json:"count_expression,omitempty"`
 	ForEachExpression *expression            `json:"for_each_expression,omitempty"`
 	Module            module                 `json:"module,omitempty"`
+	VersionConstraint string                 `json:"version_constraint,omitempty"`
 }
 
 // variables is the JSON representation of the variables provided to the current
@@ -197,7 +198,8 @@ func marshalModuleCalls(c *configs.Config, schemas *terraform.Schemas) map[strin
 	ret := make(map[string]moduleCall)
 	for _, mc := range c.Module.ModuleCalls {
 		retMC := moduleCall{
-			ResolvedSource: mc.SourceAddr,
+			Source:            mc.SourceAddr,
+			VersionConstraint: mc.Version.Required.String(),
 		}
 		cExp := marshalExpression(mc.Count)
 		if !cExp.Empty() {
