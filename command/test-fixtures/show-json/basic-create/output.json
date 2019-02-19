@@ -60,7 +60,6 @@
             "mode": "managed",
             "type": "test_instance",
             "name": "test",
-            "deposed": true,
             "change": {
                 "actions": [
                     "create"
@@ -81,7 +80,6 @@
             "mode": "managed",
             "type": "test_instance",
             "name": "test",
-            "deposed": true,
             "change": {
                 "actions": [
                     "create"
@@ -102,7 +100,6 @@
             "mode": "managed",
             "type": "test_instance",
             "name": "test",
-            "deposed": true,
             "change": {
                 "actions": [
                     "create"
