@@ -74,7 +74,7 @@ down to see all providers.
   </tr>
   <tr>
     <td><a href="/docs/providers/gitlab/index.html">Gitlab</a></td>
-    <td><a href="/docs/providers/google/index.html">Google Cloud</a></td>
+    <td><a href="/docs/providers/google/index.html">Google Cloud Platform</a></td>
     <td><a href="/docs/providers/grafana/index.html">Grafana</a></td>
   </tr>
   <tr>
