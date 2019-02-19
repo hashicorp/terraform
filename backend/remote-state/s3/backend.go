@@ -155,7 +155,7 @@ func New() backend.Backend {
 				Optional:    true,
 				Description: "Skip getting the supported EC2 platforms.",
 				Default:     false,
-				Deprecated:  "This attribute is no longer used.",
+				Deprecated:  "The S3 Backend does not require EC2 functionality and this attribute is no longer used.",
 			},
 
 			"skip_region_validation": {
@@ -171,7 +171,7 @@ func New() backend.Backend {
 				Optional:    true,
 				Description: "Skip requesting the account ID.",
 				Default:     false,
-				Deprecated:  "This attribute is no longer used.",
+				Deprecated:  "The S3 Backend no longer automatically uses IAM or STS functionality to lookup the AWS Account ID and this attribute is no longer used.",
 			},
 
 			"skip_metadata_api_check": {
