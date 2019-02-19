@@ -123,7 +123,7 @@ To include custom plugins in the bundle file, create a local directory "./plugin
 and put all the plugins you want to include there. Optionally, you can use the
 `-plugin-dir` flag to specify a location where to find the plugins. To be recognized
 as a valid plugin, the file must have a name of the form
-`terraform-provider-<NAME>-v<VERSION>`. In
+`terraform-provider-<NAME>_v<VERSION>`. In
 addition, ensure that the plugin is built using the same operating system and
 architecture used for Terraform Enterprise. Typically this will be `linux` and `amd64`.
 
