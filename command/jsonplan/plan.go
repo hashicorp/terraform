@@ -242,7 +242,9 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 			AfterUnknown: a,
 		}
 
-		r.Deposed = rc.DeposedKey == states.NotDeposed
+		if rc.DeposedKey != states.NotDeposed {
+			r.Deposed = rc.DeposedKey.String()
+		}
 
 		key := addr.Resource.Key
 		if key != nil {

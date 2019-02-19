@@ -56,7 +56,7 @@ type resourceChange struct {
 	// "deposed", if set, indicates that this action applies to a "deposed"
 	// object of the given instance rather than to its "current" object. Omitted
 	// for changes to the current object.
-	Deposed bool `json:"deposed,omitempty"`
+	Deposed string `json:"deposed,omitempty"`
 
 	// Change describes the change that will be made to this object
 	Change change `json:"change,omitempty"`
