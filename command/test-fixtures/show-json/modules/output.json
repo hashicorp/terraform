@@ -144,7 +144,7 @@
             },
             "module_calls": {
                 "test": {
-                    "resolved_source": "./foo",
+                    "source": "./foo",
                     "expressions": {
                         "test_var": {
                             "constant_value": "baz"
