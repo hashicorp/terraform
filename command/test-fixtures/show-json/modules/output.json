@@ -1,0 +1,193 @@
+{
+    "format_version": "0.1",
+    "planned_values": {
+        "outputs": {
+            "test": {
+                "sensitive": false,
+                "value": "baz"
+            }
+        },
+        "root_module": {
+            "child_modules": [
+                {
+                    "resources": [
+                        {
+                            "address": "module.test.test_instance.test[0]",
+                            "mode": "managed",
+                            "type": "test_instance",
+                            "name": "test",
+                            "index": 0,
+                            "provider_name": "test",
+                            "schema_version": 0,
+                            "values": {
+                                "ami": "baz"
+                            }
+                        },
+                        {
+                            "address": "module.test.test_instance.test[1]",
+                            "mode": "managed",
+                            "type": "test_instance",
+                            "name": "test",
+                            "index": 1,
+                            "provider_name": "test",
+                            "schema_version": 0,
+                            "values": {
+                                "ami": "baz"
+                            }
+                        },
+                        {
+                            "address": "module.test.test_instance.test[2]",
+                            "mode": "managed",
+                            "type": "test_instance",
+                            "name": "test",
+                            "index": 2,
+                            "provider_name": "test",
+                            "schema_version": 0,
+                            "values": {
+                                "ami": "baz"
+                            }
+                        }
+                    ],
+                    "address": "module.test"
+                }
+            ]
+        }
+    },
+    "resource_changes": [
+        {
+            "address": "module.test.test_instance.test[0]",
+            "module_address": "module.test",
+            "mode": "managed",
+            "type": "test_instance",
+            "name": "test",
+            "index": 0,
+            "deposed": true,
+            "change": {
+                "actions": [
+                    "create"
+                ],
+                "before": null,
+                "after": {
+                    "ami": "baz"
+                },
+                "after_unknown": {
+                    "ami": false,
+                    "id": true
+                }
+            }
+        },
+        {
+            "address": "module.test.test_instance.test[1]",
+            "module_address": "module.test",
+            "mode": "managed",
+            "type": "test_instance",
+            "name": "test",
+            "index": 1,
+            "deposed": true,
+            "change": {
+                "actions": [
+                    "create"
+                ],
+                "before": null,
+                "after": {
+                    "ami": "baz"
+                },
+                "after_unknown": {
+                    "ami": false,
+                    "id": true
+                }
+            }
+        },
+        {
+            "address": "module.test.test_instance.test[2]",
+            "module_address": "module.test",
+            "mode": "managed",
+            "type": "test_instance",
+            "name": "test",
+            "index": 2,
+            "deposed": true,
+            "change": {
+                "actions": [
+                    "create"
+                ],
+                "before": null,
+                "after": {
+                    "ami": "baz"
+                },
+                "after_unknown": {
+                    "ami": false,
+                    "id": true
+                }
+            }
+        }
+    ],
+    "output_changes": {
+        "test": {
+            "actions": [
+                "create"
+            ],
+            "before": null,
+            "after": "baz",
+            "after_unknown": false
+        }
+    },
+    "configuration": {
+        "root_module": {
+            "outputs": {
+                "test": {
+                    "expression": {
+                        "references": [
+                            "module.test.test"
+                        ]
+                    }
+                }
+            },
+            "module_calls": {
+                "test": {
+                    "source": "./foo",
+                    "expressions": {
+                        "test_var": {
+                            "constant_value": "baz"
+                        }
+                    },
+                    "module": {
+                        "outputs": {
+                            "test": {
+                                "expression": {
+                                    "references": [
+                                        "var.test_var"
+                                    ]
+                                }
+                            }
+                        },
+                        "resources": [
+                            {
+                                "address": "test_instance.test",
+                                "mode": "managed",
+                                "type": "test_instance",
+                                "name": "test",
+                                "provider_config_key": "provider.test",
+                                "expressions": {
+                                    "ami": {
+                                        "references": [
+                                            "var.test_var"
+                                        ]
+                                    }
+                                },
+                                "schema_version": 0,
+                                "count_expression": {
+                                    "constant_value": 3
+                                }
+                            }
+                        ],
+                        "variables": {
+                            "test_var": {
+                                "default": "bar"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
