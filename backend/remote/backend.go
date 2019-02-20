@@ -33,6 +33,7 @@ import (
 const (
 	defaultHostname    = "app.terraform.io"
 	defaultParallelism = 10
+	stateServiceID     = "state.v2"
 	tfeServiceID       = "tfe.v2.1"
 )
 
@@ -211,9 +212,17 @@ func (b *Remote) Configure(obj cty.Value) tfdiags.Diagnostics {
 		}
 	}
 
+	// Determine if we are forced to use the local backend.
+	b.forceLocal = os.Getenv("TF_FORCE_LOCAL_BACKEND") != ""
+
+	serviceID := tfeServiceID
+	if b.forceLocal {
+		serviceID = stateServiceID
+	}
+
 	// Discover the service URL for this host to confirm that it provides
 	// a remote backend API and to get the version constraints.
-	service, constraints, err := b.discover()
+	service, constraints, err := b.discover(serviceID)
 
 	// First check any contraints we might have received.
 	if constraints != nil {
@@ -313,13 +322,13 @@ func (b *Remote) Configure(obj cty.Value) tfdiags.Diagnostics {
 
 	// Configure a local backend for when we need to run operations locally.
 	b.local = backendLocal.NewWithBackend(b)
-	b.forceLocal = !entitlements.Operations || os.Getenv("TF_FORCE_LOCAL_BACKEND") != ""
+	b.forceLocal = b.forceLocal || !entitlements.Operations
 
 	return diags
 }
 
 // discover the remote backend API service URL and version constraints.
-func (b *Remote) discover() (*url.URL, *disco.Constraints, error) {
+func (b *Remote) discover(serviceID string) (*url.URL, *disco.Constraints, error) {
 	hostname, err := svchost.ForComparison(b.hostname)
 	if err != nil {
 		return nil, nil, err
@@ -330,7 +339,7 @@ func (b *Remote) discover() (*url.URL, *disco.Constraints, error) {
 		return nil, nil, err
 	}
 
-	service, err := host.ServiceURL(tfeServiceID)
+	service, err := host.ServiceURL(serviceID)
 	// Return the error, unless its a disco.ErrVersionNotSupported error.
 	if _, ok := err.(*disco.ErrVersionNotSupported); !ok && err != nil {
 		return nil, nil, err
@@ -338,7 +347,7 @@ func (b *Remote) discover() (*url.URL, *disco.Constraints, error) {
 
 	// We purposefully ignore the error and return the previous error, as
 	// checking for version constraints is considered optional.
-	constraints, _ := host.VersionConstraints(tfeServiceID, "terraform")
+	constraints, _ := host.VersionConstraints(serviceID, "terraform")
 
 	return service, constraints, err
 }
