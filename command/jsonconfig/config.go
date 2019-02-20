@@ -295,7 +295,7 @@ func marshalResources(resources map[string]*configs.Resource, schemas *terraform
 		}
 
 		schema, schemaVer := schemas.ResourceTypeConfig(
-			v.ProviderConfigAddr().StringCompact(),
+			v.ProviderConfigAddr().Type,
 			v.Mode,
 			v.Type,
 		)
