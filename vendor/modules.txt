@@ -1,4 +1,4 @@
-# cloud.google.com/go v0.26.0
+# cloud.google.com/go v0.36.0
 cloud.google.com/go/storage
 cloud.google.com/go/iam
 cloud.google.com/go/internal
@@ -161,8 +161,8 @@ github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
 # github.com/google/go-querystring v1.0.0
 github.com/google/go-querystring/query
-# github.com/googleapis/gax-go v0.0.0-20161107002406-da06d194a00e
-github.com/googleapis/gax-go
+# github.com/googleapis/gax-go/v2 v2.0.3
+github.com/googleapis/gax-go/v2
 # github.com/gophercloud/gophercloud v0.0.0-20190208042652-bc37892e1968
 github.com/gophercloud/gophercloud
 github.com/gophercloud/gophercloud/openstack
@@ -441,9 +441,10 @@ github.com/zclconf/go-cty/cty/function
 github.com/zclconf/go-cty/cty/function/stdlib
 github.com/zclconf/go-cty/cty/msgpack
 github.com/zclconf/go-cty/cty/set
-# go.opencensus.io v0.17.0
+# go.opencensus.io v0.18.0
 go.opencensus.io/trace
 go.opencensus.io/plugin/ochttp
+go.opencensus.io/exemplar
 go.opencensus.io/internal
 go.opencensus.io/trace/internal
 go.opencensus.io/trace/tracestate
@@ -489,7 +490,7 @@ golang.org/x/net/http2/hpack
 golang.org/x/net/html
 golang.org/x/net/http/httpguts
 golang.org/x/net/html/atom
-# golang.org/x/oauth2 v0.0.0-20181003184128-c57b0facaced
+# golang.org/x/oauth2 v0.0.0-20181203162652-d668ce993890
 golang.org/x/oauth2/jwt
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
@@ -497,7 +498,7 @@ golang.org/x/oauth2/jws
 golang.org/x/oauth2/google
 # golang.org/x/sys v0.0.0-20190129075346-302c3dd5f1cc
 golang.org/x/sys/unix
-# golang.org/x/text v0.3.0
+# golang.org/x/text v0.3.1-0.20180807135948-17ff2d5776d2
 golang.org/x/text/unicode/norm
 golang.org/x/text/transform
 golang.org/x/text/secure/bidirule
@@ -513,12 +514,14 @@ golang.org/x/text/encoding/korean
 golang.org/x/text/encoding/simplifiedchinese
 golang.org/x/text/encoding/traditionalchinese
 golang.org/x/text/encoding/unicode
-golang.org/x/text/internal/tag
+golang.org/x/text/internal/language
+golang.org/x/text/internal/language/compact
 golang.org/x/text/internal/utf8internal
 golang.org/x/text/runes
+golang.org/x/text/internal/tag
 # golang.org/x/time v0.0.0-20181108054448-85acf8d2951c
 golang.org/x/time/rate
-# google.golang.org/api v0.0.0-20181015145326-625cd1887957
+# google.golang.org/api v0.1.0
 google.golang.org/api/iterator
 google.golang.org/api/option
 google.golang.org/api/googleapi
@@ -541,7 +544,7 @@ google.golang.org/appengine/internal/datastore
 google.golang.org/appengine/internal/base
 google.golang.org/appengine/internal/log
 google.golang.org/appengine/internal/remote_api
-# google.golang.org/genproto v0.0.0-20180831171423-11092d34479b
+# google.golang.org/genproto v0.0.0-20190201180003-4b09977fb922
 google.golang.org/genproto/googleapis/iam/v1
 google.golang.org/genproto/googleapis/rpc/status
 google.golang.org/genproto/googleapis/rpc/code

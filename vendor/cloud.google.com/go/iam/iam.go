@@ -22,13 +22,15 @@
 package iam
 
 import (
+	"context"
+	"fmt"
 	"time"
 
-	gax "github.com/googleapis/gax-go"
-	"golang.org/x/net/context"
+	gax "github.com/googleapis/gax-go/v2"
 	pb "google.golang.org/genproto/googleapis/iam/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 )
 
 // client abstracts the IAMPolicy API to allow multiple implementations.
@@ -56,6 +58,9 @@ var withRetry = gax.WithRetry(func() gax.Retryer {
 
 func (g *grpcClient) Get(ctx context.Context, resource string) (*pb.Policy, error) {
 	var proto *pb.Policy
+	md := metadata.Pairs("x-goog-request-params", fmt.Sprintf("%s=%v", "resource", resource))
+	ctx = insertMetadata(ctx, md)
+
 	err := gax.Invoke(ctx, func(ctx context.Context, _ gax.CallSettings) error {
 		var err error
 		proto, err = g.c.GetIamPolicy(ctx, &pb.GetIamPolicyRequest{Resource: resource})
@@ -68,6 +73,9 @@ func (g *grpcClient) Get(ctx context.Context, resource string) (*pb.Policy, erro
 }
 
 func (g *grpcClient) Set(ctx context.Context, resource string, p *pb.Policy) error {
+	md := metadata.Pairs("x-goog-request-params", fmt.Sprintf("%s=%v", "resource", resource))
+	ctx = insertMetadata(ctx, md)
+
 	return gax.Invoke(ctx, func(ctx context.Context, _ gax.CallSettings) error {
 		_, err := g.c.SetIamPolicy(ctx, &pb.SetIamPolicyRequest{
 			Resource: resource,
@@ -79,6 +87,9 @@ func (g *grpcClient) Set(ctx context.Context, resource string, p *pb.Policy) err
 
 func (g *grpcClient) Test(ctx context.Context, resource string, perms []string) ([]string, error) {
 	var res *pb.TestIamPermissionsResponse
+	md := metadata.Pairs("x-goog-request-params", fmt.Sprintf("%s=%v", "resource", resource))
+	ctx = insertMetadata(ctx, md)
+
 	err := gax.Invoke(ctx, func(ctx context.Context, _ gax.CallSettings) error {
 		var err error
 		res, err = g.c.TestIamPermissions(ctx, &pb.TestIamPermissionsRequest{
@@ -289,4 +300,16 @@ func memberIndex(m string, b *pb.Binding) int {
 		}
 	}
 	return -1
+}
+
+// insertMetadata inserts metadata into the given context
+func insertMetadata(ctx context.Context, mds ...metadata.MD) context.Context {
+	out, _ := metadata.FromOutgoingContext(ctx)
+	out = out.Copy()
+	for _, md := range mds {
+		for k, v := range md {
+			out[k] = append(out[k], v...)
+		}
+	}
+	return metadata.NewOutgoingContext(ctx, out)
 }

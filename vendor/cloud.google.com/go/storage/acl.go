@@ -15,11 +15,11 @@
 package storage
 
 import (
+	"context"
 	"net/http"
 	"reflect"
 
 	"cloud.google.com/go/internal/trace"
-	"golang.org/x/net/context"
 	"google.golang.org/api/googleapi"
 	raw "google.golang.org/api/storage/v1"
 )
@@ -121,7 +121,7 @@ func (a *ACLHandle) bucketDefaultList(ctx context.Context) ([]ACLRule, error) {
 	var err error
 	err = runWithRetry(ctx, func() error {
 		req := a.c.raw.DefaultObjectAccessControls.List(a.bucket)
-		a.configureCall(req, ctx)
+		a.configureCall(ctx, req)
 		acls, err = req.Do()
 		return err
 	})
@@ -134,7 +134,7 @@ func (a *ACLHandle) bucketDefaultList(ctx context.Context) ([]ACLRule, error) {
 func (a *ACLHandle) bucketDefaultDelete(ctx context.Context, entity ACLEntity) error {
 	return runWithRetry(ctx, func() error {
 		req := a.c.raw.DefaultObjectAccessControls.Delete(a.bucket, string(entity))
-		a.configureCall(req, ctx)
+		a.configureCall(ctx, req)
 		return req.Do()
 	})
 }
@@ -144,7 +144,7 @@ func (a *ACLHandle) bucketList(ctx context.Context) ([]ACLRule, error) {
 	var err error
 	err = runWithRetry(ctx, func() error {
 		req := a.c.raw.BucketAccessControls.List(a.bucket)
-		a.configureCall(req, ctx)
+		a.configureCall(ctx, req)
 		acls, err = req.Do()
 		return err
 	})
@@ -162,7 +162,7 @@ func (a *ACLHandle) bucketSet(ctx context.Context, entity ACLEntity, role ACLRol
 	}
 	err := runWithRetry(ctx, func() error {
 		req := a.c.raw.BucketAccessControls.Update(a.bucket, string(entity), acl)
-		a.configureCall(req, ctx)
+		a.configureCall(ctx, req)
 		_, err := req.Do()
 		return err
 	})
@@ -175,7 +175,7 @@ func (a *ACLHandle) bucketSet(ctx context.Context, entity ACLEntity, role ACLRol
 func (a *ACLHandle) bucketDelete(ctx context.Context, entity ACLEntity) error {
 	return runWithRetry(ctx, func() error {
 		req := a.c.raw.BucketAccessControls.Delete(a.bucket, string(entity))
-		a.configureCall(req, ctx)
+		a.configureCall(ctx, req)
 		return req.Do()
 	})
 }
@@ -185,7 +185,7 @@ func (a *ACLHandle) objectList(ctx context.Context) ([]ACLRule, error) {
 	var err error
 	err = runWithRetry(ctx, func() error {
 		req := a.c.raw.ObjectAccessControls.List(a.bucket, a.object)
-		a.configureCall(req, ctx)
+		a.configureCall(ctx, req)
 		acls, err = req.Do()
 		return err
 	})
@@ -212,7 +212,7 @@ func (a *ACLHandle) objectSet(ctx context.Context, entity ACLEntity, role ACLRol
 	} else {
 		req = a.c.raw.ObjectAccessControls.Update(a.bucket, a.object, string(entity), acl)
 	}
-	a.configureCall(req, ctx)
+	a.configureCall(ctx, req)
 	return runWithRetry(ctx, func() error {
 		_, err := req.Do()
 		return err
@@ -222,12 +222,12 @@ func (a *ACLHandle) objectSet(ctx context.Context, entity ACLEntity, role ACLRol
 func (a *ACLHandle) objectDelete(ctx context.Context, entity ACLEntity) error {
 	return runWithRetry(ctx, func() error {
 		req := a.c.raw.ObjectAccessControls.Delete(a.bucket, a.object, string(entity))
-		a.configureCall(req, ctx)
+		a.configureCall(ctx, req)
 		return req.Do()
 	})
 }
 
-func (a *ACLHandle) configureCall(call interface{ Header() http.Header }, ctx context.Context) {
+func (a *ACLHandle) configureCall(ctx context.Context, call interface{ Header() http.Header }) {
 	vc := reflect.ValueOf(call)
 	vc.MethodByName("Context").Call([]reflect.Value{reflect.ValueOf(ctx)})
 	if a.userProject != "" {

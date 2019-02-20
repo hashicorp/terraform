@@ -163,5 +163,14 @@ SignedURL for details.
         // TODO: Handle error.
     }
     fmt.Println(url)
+
+Errors
+
+Errors returned by this client are often of the type [`googleapi.Error`](https://godoc.org/google.golang.org/api/googleapi#Error).
+These errors can be introspected for more information by type asserting to the richer `googleapi.Error` type. For example:
+
+	if e, ok := err.(*googleapi.Error); ok {
+		  if e.Code == 409 { ... }
+	}
 */
 package storage // import "cloud.google.com/go/storage"

@@ -67,5 +67,5 @@ func goVer(s string) string {
 }
 
 func notSemverRune(r rune) bool {
-	return strings.IndexRune("0123456789.", r) < 0
+	return !strings.ContainsRune("0123456789.", r)
 }
