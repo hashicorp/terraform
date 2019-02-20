@@ -163,7 +163,6 @@ func New() backend.Backend {
 				Optional:    true,
 				Description: "Skip static validation of region name.",
 				Default:     false,
-				Deprecated:  "This attribute is no longer used.",
 			},
 
 			"skip_requesting_account_id": {
@@ -171,7 +170,7 @@ func New() backend.Backend {
 				Optional:    true,
 				Description: "Skip requesting the account ID.",
 				Default:     false,
-				Deprecated:  "The S3 Backend no longer automatically uses IAM or STS functionality to lookup the AWS Account ID and this attribute is no longer used.",
+				Deprecated:  "The S3 Backend no longer automatically looks up the AWS Account ID and this attribute is no longer used.",
 			},
 
 			"skip_metadata_api_check": {
@@ -260,6 +259,12 @@ func (b *Backend) configure(ctx context.Context) error {
 
 	// Grab the resource data
 	data := schema.FromContextBackendConfig(ctx)
+
+	if !data.Get("skip_region_validation").(bool) {
+		if err := awsbase.ValidateRegion(data.Get("region").(string)); err != nil {
+			return err
+		}
+	}
 
 	b.bucketName = data.Get("bucket").(string)
 	b.keyName = data.Get("key").(string)
