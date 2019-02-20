@@ -15,9 +15,10 @@
 package storage
 
 import (
+	"context"
+
 	"cloud.google.com/go/iam"
 	"cloud.google.com/go/internal/trace"
-	"golang.org/x/net/context"
 	raw "google.golang.org/api/storage/v1"
 	iampb "google.golang.org/genproto/googleapis/iam/v1"
 )

@@ -243,13 +243,16 @@ func startSpanInternal(name string, hasParent bool, parent SpanContext, remotePa
 
 // End ends the span.
 func (s *Span) End() {
+	if s == nil {
+		return
+	}
+	if s.executionTracerTaskEnd != nil {
+		s.executionTracerTaskEnd()
+	}
 	if !s.IsRecordingEvents() {
 		return
 	}
 	s.endOnce.Do(func() {
-		if s.executionTracerTaskEnd != nil {
-			s.executionTracerTaskEnd()
-		}
 		exp, _ := exporters.Load().(exportersMap)
 		mustExport := s.spanContext.IsSampled() && len(exp) > 0
 		if s.spanStore != nil || mustExport {

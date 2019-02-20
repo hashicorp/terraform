@@ -15,12 +15,12 @@
 package storage
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"regexp"
 
 	"cloud.google.com/go/internal/trace"
-	"golang.org/x/net/context"
 	raw "google.golang.org/api/storage/v1"
 )
 

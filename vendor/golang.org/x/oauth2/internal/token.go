@@ -5,6 +5,7 @@
 package internal
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -17,7 +18,6 @@ import (
 	"strings"
 	"time"
 
-	"golang.org/x/net/context"
 	"golang.org/x/net/context/ctxhttp"
 )
 
@@ -133,6 +133,10 @@ var brokenAuthHeaderProviders = []string{
 	"https://whats.todaysplan.com.au/rest/oauth/access_token",
 	"https://stackoverflow.com/oauth/access_token",
 	"https://account.health.nokia.com",
+	"https://accounts.zoho.com",
+	"https://gitter.im/login/oauth/token",
+	"https://openid-connect.onelogin.com/oidc",
+	"https://api.dailymotion.com/oauth/token",
 }
 
 // brokenAuthHeaderDomains lists broken providers that issue dynamic endpoints.

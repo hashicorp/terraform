@@ -15,6 +15,7 @@
 package storage
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -22,7 +23,6 @@ import (
 
 	"cloud.google.com/go/internal/optional"
 	"cloud.google.com/go/internal/trace"
-	"golang.org/x/net/context"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
 	raw "google.golang.org/api/storage/v1"
@@ -186,6 +186,7 @@ func (b *BucketHandle) newGetCall() (*raw.BucketsGetCall, error) {
 	return req, nil
 }
 
+// Update updates a bucket's attributes.
 func (b *BucketHandle) Update(ctx context.Context, uattrs BucketAttrsToUpdate) (attrs *BucketAttrs, err error) {
 	ctx = trace.StartSpan(ctx, "cloud.google.com/go/storage.Bucket.Create")
 	defer func() { trace.EndSpan(ctx, err) }()
@@ -231,9 +232,17 @@ type BucketAttrs struct {
 	// ACL is the list of access control rules on the bucket.
 	ACL []ACLRule
 
+	// BucketPolicyOnly configures access checks to use only bucket-level IAM
+	// policies.
+	BucketPolicyOnly BucketPolicyOnly
+
 	// DefaultObjectACL is the list of access controls to
 	// apply to new objects when no object ACL is provided.
 	DefaultObjectACL []ACLRule
+
+	// DefaultEventBasedHold is the default value for event-based hold on
+	// newly created objects in this bucket. It defaults to false.
+	DefaultEventBasedHold bool
 
 	// If not empty, applies a predefined set of access controls. It should be set
 	// only when creating a bucket.
@@ -306,12 +315,23 @@ type BucketAttrs struct {
 	Website *BucketWebsite
 }
 
+// BucketPolicyOnly configures access checks to use only bucket-level IAM
+// policies.
+type BucketPolicyOnly struct {
+	// Enabled specifies whether access checks use only bucket-level IAM
+	// policies. Enabled may be disabled until the locked time.
+	Enabled bool
+	// LockedTime specifies the deadline for changing Enabled from true to
+	// false.
+	LockedTime time.Time
+}
+
 // Lifecycle is the lifecycle configuration for objects in the bucket.
 type Lifecycle struct {
 	Rules []LifecycleRule
 }
 
-// Retention policy enforces a minimum retention time for all objects
+// RetentionPolicy enforces a minimum retention time for all objects
 // contained in the bucket.
 //
 // Any attempt to overwrite or delete objects younger than the retention
@@ -334,6 +354,11 @@ type RetentionPolicy struct {
 	// EffectiveTime is the time from which the policy was enforced and
 	// effective. This field is read-only.
 	EffectiveTime time.Time
+
+	// IsLocked describes whether the bucket is locked. Once locked, an
+	// object retention policy cannot be modified.
+	// This field is read-only.
+	IsLocked bool
 }
 
 const (
@@ -433,7 +458,7 @@ type BucketLogging struct {
 	LogObjectPrefix string
 }
 
-// Website holds the bucket's website configuration, controlling how the
+// BucketWebsite holds the bucket's website configuration, controlling how the
 // service behaves when accessing bucket contents as a web site. See
 // https://cloud.google.com/storage/docs/static-website for more information.
 type BucketWebsite struct {
@@ -458,22 +483,24 @@ func newBucket(b *raw.Bucket) (*BucketAttrs, error) {
 		return nil, err
 	}
 	return &BucketAttrs{
-		Name:              b.Name,
-		Location:          b.Location,
-		MetaGeneration:    b.Metageneration,
-		StorageClass:      b.StorageClass,
-		Created:           convertTime(b.TimeCreated),
-		VersioningEnabled: b.Versioning != nil && b.Versioning.Enabled,
-		ACL:               toBucketACLRules(b.Acl),
-		DefaultObjectACL:  toObjectACLRules(b.DefaultObjectAcl),
-		Labels:            b.Labels,
-		RequesterPays:     b.Billing != nil && b.Billing.RequesterPays,
-		Lifecycle:         toLifecycle(b.Lifecycle),
-		RetentionPolicy:   rp,
-		CORS:              toCORS(b.Cors),
-		Encryption:        toBucketEncryption(b.Encryption),
-		Logging:           toBucketLogging(b.Logging),
-		Website:           toBucketWebsite(b.Website),
+		Name:                  b.Name,
+		Location:              b.Location,
+		MetaGeneration:        b.Metageneration,
+		DefaultEventBasedHold: b.DefaultEventBasedHold,
+		StorageClass:          b.StorageClass,
+		Created:               convertTime(b.TimeCreated),
+		VersioningEnabled:     b.Versioning != nil && b.Versioning.Enabled,
+		ACL:                   toBucketACLRules(b.Acl),
+		DefaultObjectACL:      toObjectACLRules(b.DefaultObjectAcl),
+		Labels:                b.Labels,
+		RequesterPays:         b.Billing != nil && b.Billing.RequesterPays,
+		Lifecycle:             toLifecycle(b.Lifecycle),
+		RetentionPolicy:       rp,
+		CORS:                  toCORS(b.Cors),
+		Encryption:            toBucketEncryption(b.Encryption),
+		Logging:               toBucketLogging(b.Logging),
+		Website:               toBucketWebsite(b.Website),
+		BucketPolicyOnly:      toBucketPolicyOnly(b.IamConfiguration),
 	}, nil
 }
 
@@ -498,6 +525,14 @@ func (b *BucketAttrs) toRawBucket() *raw.Bucket {
 	if b.RequesterPays {
 		bb = &raw.BucketBilling{RequesterPays: true}
 	}
+	var bktIAM *raw.BucketIamConfiguration
+	if b.BucketPolicyOnly.Enabled {
+		bktIAM = &raw.BucketIamConfiguration{
+			BucketPolicyOnly: &raw.BucketIamConfigurationBucketPolicyOnly{
+				Enabled: true,
+			},
+		}
+	}
 	return &raw.Bucket{
 		Name:             b.Name,
 		Location:         b.Location,
@@ -513,6 +548,7 @@ func (b *BucketAttrs) toRawBucket() *raw.Bucket {
 		Encryption:       b.Encryption.toRawBucketEncryption(),
 		Logging:          b.Logging.toRawBucketLogging(),
 		Website:          b.Website.toRawBucketWebsite(),
+		IamConfiguration: bktIAM,
 	}
 }
 
@@ -547,12 +583,21 @@ type BucketEncryption struct {
 	DefaultKMSKeyName string
 }
 
+// BucketAttrsToUpdate define the attributes to update during an Update call.
 type BucketAttrsToUpdate struct {
 	// If set, updates whether the bucket uses versioning.
 	VersioningEnabled optional.Bool
 
 	// If set, updates whether the bucket is a Requester Pays bucket.
 	RequesterPays optional.Bool
+
+	// DefaultEventBasedHold is the default value for event-based hold on
+	// newly created objects in this bucket.
+	DefaultEventBasedHold optional.Bool
+
+	// BucketPolicyOnly configures access checks to use only bucket-level IAM
+	// policies.
+	BucketPolicyOnly *BucketPolicyOnly
 
 	// If set, updates the retention policy of the bucket. Using
 	// RetentionPolicy.RetentionPeriod = 0 will delete the existing policy.
@@ -616,6 +661,10 @@ func (ua *BucketAttrsToUpdate) toRawBucket() *raw.Bucket {
 		rb.Cors = toRawCORS(ua.CORS)
 		rb.ForceSendFields = append(rb.ForceSendFields, "Cors")
 	}
+	if ua.DefaultEventBasedHold != nil {
+		rb.DefaultEventBasedHold = optional.ToBool(ua.DefaultEventBasedHold)
+		rb.ForceSendFields = append(rb.ForceSendFields, "DefaultEventBasedHold")
+	}
 	if ua.RetentionPolicy != nil {
 		if ua.RetentionPolicy.RetentionPeriod == 0 {
 			rb.NullFields = append(rb.NullFields, "RetentionPolicy")
@@ -634,6 +683,13 @@ func (ua *BucketAttrsToUpdate) toRawBucket() *raw.Bucket {
 		rb.Billing = &raw.BucketBilling{
 			RequesterPays:   optional.ToBool(ua.RequesterPays),
 			ForceSendFields: []string{"RequesterPays"},
+		}
+	}
+	if ua.BucketPolicyOnly != nil {
+		rb.IamConfiguration = &raw.BucketIamConfiguration{
+			BucketPolicyOnly: &raw.BucketIamConfigurationBucketPolicyOnly{
+				Enabled: ua.BucketPolicyOnly.Enabled,
+			},
 		}
 	}
 	if ua.Encryption != nil {
@@ -799,6 +855,7 @@ func toRetentionPolicy(rp *raw.BucketRetentionPolicy) (*RetentionPolicy, error) 
 	return &RetentionPolicy{
 		RetentionPeriod: time.Duration(rp.RetentionPeriod) * time.Second,
 		EffectiveTime:   t,
+		IsLocked:        rp.IsLocked,
 	}, nil
 }
 
@@ -951,6 +1008,22 @@ func toBucketWebsite(w *raw.BucketWebsite) *BucketWebsite {
 	return &BucketWebsite{
 		MainPageSuffix: w.MainPageSuffix,
 		NotFoundPage:   w.NotFoundPage,
+	}
+}
+
+func toBucketPolicyOnly(b *raw.BucketIamConfiguration) BucketPolicyOnly {
+	if b == nil || b.BucketPolicyOnly == nil || !b.BucketPolicyOnly.Enabled {
+		return BucketPolicyOnly{}
+	}
+	lt, err := time.Parse(time.RFC3339, b.BucketPolicyOnly.LockedTime)
+	if err != nil {
+		return BucketPolicyOnly{
+			Enabled: true,
+		}
+	}
+	return BucketPolicyOnly{
+		Enabled:    true,
+		LockedTime: lt,
 	}
 }
 
