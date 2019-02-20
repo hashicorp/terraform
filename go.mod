@@ -1,7 +1,7 @@
 module github.com/hashicorp/terraform
 
 require (
-	cloud.google.com/go v0.15.0
+	cloud.google.com/go v0.26.0
 	github.com/Azure/azure-sdk-for-go v21.3.0+incompatible
 	github.com/Azure/go-autorest v10.15.4+incompatible
 	github.com/Azure/go-ntlmssp v0.0.0-20170803034930-c92175d54006 // indirect
@@ -43,6 +43,7 @@ require (
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
 	github.com/google/btree v0.0.0-20180813153112-4030bb1f1f0c // indirect
 	github.com/google/go-cmp v0.2.0
+	github.com/google/martian v2.1.0+incompatible // indirect
 	github.com/googleapis/gax-go v0.0.0-20161107002406-da06d194a00e // indirect
 	github.com/gophercloud/gophercloud v0.0.0-20190208042652-bc37892e1968
 	github.com/gophercloud/utils v0.0.0-20190128072930-fbb6ab446f01 // indirect
@@ -134,7 +135,7 @@ require (
 	golang.org/x/oauth2 v0.0.0-20181003184128-c57b0facaced
 	google.golang.org/api v0.0.0-20181015145326-625cd1887957
 	google.golang.org/appengine v1.3.0 // indirect
-	google.golang.org/grpc v1.14.0
+	google.golang.org/grpc v1.18.0
 	gopkg.in/vmihailenco/msgpack.v2 v2.9.1 // indirect
 	labix.org/v2/mgo v0.0.0-20140701140051-000000000287 // indirect
 	launchpad.net/gocheck v0.0.0-20140225173054-000000000087 // indirect
