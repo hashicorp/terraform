@@ -21,6 +21,7 @@ IMPROVEMENTS:
 * backend/s3: Support for the new AWS region `eu-north-1` [GH-19651]
 * backend/s3: Enhance retry logic and provide `max_retries` configuration to retry attempts [GH-19951]
 * backend/s3: Enhance S3 `NoSuchBucket` error to include additional information [GH-19951]
+* backend/s3: Remove unused EC2 platform and AWS Account ID lookup, and deprecate equivalent `skip_get_ec2_platforms` and `skip_requesting_account_id` arguments [GH-20374]
 * core: Enhance service discovery error handling and messaging [GH-19589]
 * core: Add support to retrieve version constraints to service discovery [GH-19647]
 * core: Validate provisioner connection blocks, and mark host field as required [GH-19707]
