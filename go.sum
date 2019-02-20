@@ -150,6 +150,8 @@ github.com/hashicorp/go-multierror v1.0.0/go.mod h1:dHtQlpGsu+cZNNAkkCN/P3hoUDHh
 github.com/hashicorp/go-plugin v0.0.0-20170816151819-a5174f84d7f8/go.mod h1:JSqWYsict+jzcj0+xElxyrBQRPNoiWQuddnxArJ7XHQ=
 github.com/hashicorp/go-plugin v0.0.0-20190212232519-b838ffee39ce h1:I3KJUf8jyMubLFeHit2ibr9YeVxJX2CXMXVM6xlB+Qk=
 github.com/hashicorp/go-plugin v0.0.0-20190212232519-b838ffee39ce/go.mod h1:++UyYGoz3o5w9ZzAdZxtQKrWWP+iqPBn3cQptSMzBuY=
+github.com/hashicorp/go-plugin v0.0.0-20190220160451-3f118e8ee104 h1:9iQ/zrTOJqzP+kH37s6xNb6T1RysiT7fnDD3DJbspVw=
+github.com/hashicorp/go-plugin v0.0.0-20190220160451-3f118e8ee104/go.mod h1:++UyYGoz3o5w9ZzAdZxtQKrWWP+iqPBn3cQptSMzBuY=
 github.com/hashicorp/go-retryablehttp v0.5.1 h1:Vsx5XKPqPs3M6sM4U4GWyUqFS8aBiL9U5gkgvpkg4SE=
 github.com/hashicorp/go-retryablehttp v0.5.1/go.mod h1:9B5zBasrRhHXnJnui7y6sL7es7NDiJgTc6Er0maI1Xs=
 github.com/hashicorp/go-rootcerts v0.0.0-20160503143440-6bb64b370b90 h1:VBj0QYQ0u2MCJzBfeYXGexnAl17GsH1yidnoxCqqD9E=
