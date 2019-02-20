@@ -62,13 +62,78 @@ Value:
 			diags = diags.Append(interpDiags)
 
 		case hcl1token.HEREDOC:
-			// TODO: Implement more complex handling to upgrade any
-			// interpolation sequences inside.
+			// HCL1's "Value" method for tokens pulls out the body and removes
+			// any indents in the source for a flush heredoc, which throws away
+			// information we need to upgrade. Therefore we're going to
+			// re-implement a subset of that logic here where we want to retain
+			// the whitespace verbatim even in flush mode.
 
-			// TODO: If a heredoc has its termination delimeter inline (which is
-			// a bug that worked in terraform 0.11, so we need to support it
-			// here), move the delimiter to a new line.
-			buf.WriteString(tv.Text)
+			firstNewlineIdx := strings.IndexByte(tv.Text, '\n')
+			if firstNewlineIdx < 0 {
+				// Should never happen, because tv.Value would already have
+				// panicked above in this case.
+				panic("heredoc doesn't contain newline")
+			}
+			introducer := tv.Text[:firstNewlineIdx+1]
+			marker := introducer[2:] // trim off << prefix
+			if marker[0] == '-' {
+				marker = marker[1:] // also trim of - prefix for flush heredoc
+			}
+			body := tv.Text[len(introducer) : len(tv.Text)-len(marker)]
+			flush := introducer[2] == '-'
+			if flush {
+				// HCL1 treats flush heredocs differently, trimming off any
+				// spare whitespace that might appear after the trailing
+				// newline, and so we must replicate that here to avoid
+				// introducing additional whitespace in the output.
+				body = strings.TrimRight(body, " \t")
+			}
+
+			// Now we have:
+			//  - introducer is the first line, like "<<-FOO\n"
+			//  - marker is the end marker, like "FOO\n"
+			//  - body is the raw data between the introducer and the marker,
+			//    which we need to do recursive upgrading for.
+
+			buf.WriteString(introducer)
+			if !interp {
+				// Easy case: escape all interpolation-looking sequences.
+				printHeredocLiteralFromHILOutput(&buf, body)
+			} else {
+				hilNode, err := hil.Parse(body)
+				if err != nil {
+					diags = diags.Append(&hcl2.Diagnostic{
+						Severity: hcl2.DiagError,
+						Summary:  "Invalid interpolated string",
+						Detail:   fmt.Sprintf("Interpolation parsing failed: %s", err),
+						Subject:  hcl1PosRange(filename, tv.Pos).Ptr(),
+					})
+				}
+				if _, ok := hilNode.(*hilast.Output); !ok {
+					// hil.Parse usually produces an output, but it can sometimes
+					// produce an isolated expression if the input is entirely
+					// a single interpolation.
+					hilNode = &hilast.Output{
+						Exprs: []hilast.Node{hilNode},
+						Posx:  hilNode.Pos(),
+					}
+				}
+				interpDiags := upgradeHeredocBody(&buf, hilNode.(*hilast.Output), filename, an)
+				diags = diags.Append(interpDiags)
+			}
+			if !strings.HasSuffix(body, "\n") {
+				// The versions of HCL1 vendored into Terraform <=0.11
+				// incorrectly allowed the end marker to appear at the end of
+				// the final line of the body, rather than on a line of its own.
+				// That is no longer valid in HCL2, so we need to fix it up.
+				buf.WriteByte('\n')
+			}
+			// NOTE: Marker intentionally contains an extra newline here because
+			// we need to ensure that any follow-on expression bits end up on
+			// a separate line, or else the HCL2 parser won't be able to
+			// recognize the heredoc marker. This causes an extra empty line
+			// in some cases, which we accept for simplicity's sake.
+			buf.WriteString(marker)
 
 		case hcl1token.BOOL:
 			if litVal.(bool) {
@@ -426,6 +491,27 @@ Value:
 	}
 
 	return buf.Bytes(), diags
+}
+
+func upgradeHeredocBody(buf *bytes.Buffer, val *hilast.Output, filename string, an *analysis) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	for _, item := range val.Exprs {
+		if lit, ok := item.(*hilast.LiteralNode); ok {
+			if litStr, ok := lit.Value.(string); ok {
+				printHeredocLiteralFromHILOutput(buf, litStr)
+				continue
+			}
+		}
+		interped, interpDiags := upgradeExpr(item, filename, true, an)
+		diags = diags.Append(interpDiags)
+
+		buf.WriteString("${")
+		buf.Write(interped)
+		buf.WriteString("}")
+	}
+
+	return diags
 }
 
 func upgradeTraversalExpr(val interface{}, filename string, an *analysis) ([]byte, tfdiags.Diagnostics) {
