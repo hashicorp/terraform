@@ -5,7 +5,6 @@ import (
 
 	"github.com/hashicorp/terraform/tfdiags"
 
-	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/plugin/discovery"
 	"github.com/hashicorp/terraform/providers"
 )
@@ -170,18 +169,6 @@ type ResourceProvider interface {
 	// ReadDataApply initializes a data instance using the configuration
 	// in a diff produced by ReadDataDiff.
 	ReadDataApply(*InstanceInfo, *InstanceDiff) (*InstanceState, error)
-}
-
-// ResourceProviderError may be returned when creating a Context if the
-// required providers cannot be satisfied. This error can then be used to
-// format a more useful message for the user.
-type ResourceProviderError struct {
-	Errors []error
-}
-
-func (e *ResourceProviderError) Error() string {
-	// use multierror to format the default output
-	return multierror.Append(nil, e.Errors...).Error()
 }
 
 // ResourceProviderCloser is an interface that providers that can close
