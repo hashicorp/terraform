@@ -12,7 +12,7 @@
                 {
                     "resources": [
                         {
-                            "address": "module.test.test_instance.test[0]",
+                            "address": "module.module_test.test_instance.test[0]",
                             "mode": "managed",
                             "type": "test_instance",
                             "name": "test",
@@ -24,7 +24,7 @@
                             }
                         },
                         {
-                            "address": "module.test.test_instance.test[1]",
+                            "address": "module.module_test.test_instance.test[1]",
                             "mode": "managed",
                             "type": "test_instance",
                             "name": "test",
@@ -36,7 +36,7 @@
                             }
                         },
                         {
-                            "address": "module.test.test_instance.test[2]",
+                            "address": "module.module_test.test_instance.test[2]",
                             "mode": "managed",
                             "type": "test_instance",
                             "name": "test",
@@ -48,15 +48,15 @@
                             }
                         }
                     ],
-                    "address": "module.test"
+                    "address": "module.module_test"
                 }
             ]
         }
     },
     "resource_changes": [
         {
-            "address": "module.test.test_instance.test[0]",
-            "module_address": "module.test",
+            "address": "module.module_test.test_instance.test[0]",
+            "module_address": "module.module_test",
             "mode": "managed",
             "type": "test_instance",
             "name": "test",
@@ -76,8 +76,8 @@
             }
         },
         {
-            "address": "module.test.test_instance.test[1]",
-            "module_address": "module.test",
+            "address": "module.module_test.test_instance.test[1]",
+            "module_address": "module.module_test",
             "mode": "managed",
             "type": "test_instance",
             "name": "test",
@@ -97,8 +97,8 @@
             }
         },
         {
-            "address": "module.test.test_instance.test[2]",
-            "module_address": "module.test",
+            "address": "module.module_test.test_instance.test[2]",
+            "module_address": "module.module_test",
             "mode": "managed",
             "type": "test_instance",
             "name": "test",
@@ -134,16 +134,16 @@
                 "test": {
                     "expression": {
                         "references": [
-                            "module.test.test"
+                            "module.module_test.test"
                         ]
                     },
                     "depends_on": [
-                        "module.test"
+                        "module.module_test"
                     ]
                 }
             },
             "module_calls": {
-                "test": {
+                "module_test": {
                     "source": "./foo",
                     "expressions": {
                         "test_var": {
@@ -166,7 +166,7 @@
                                 "mode": "managed",
                                 "type": "test_instance",
                                 "name": "test",
-                                "provider_config_key": "provider.test",
+                                "provider_config_key": "module_test:test",
                                 "expressions": {
                                     "ami": {
                                         "references": [
@@ -187,6 +187,12 @@
                         }
                     }
                 }
+            }
+        },
+        "provider_config": {
+            "module_test:test": {
+                "module_address": "module_test",
+                "name": "test"
             }
         }
     }
