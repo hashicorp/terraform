@@ -16,6 +16,7 @@ IMPROVEMENTS:
 * backend/remote: Log early to indicate remote execution started [GH-19941]
 * backend/remote: Make sure the correct error is shown when having version incompatibilities [GH-20086]
 * backend/remote: Fix "token too long" errors when streaming remote operation logs [GH-20242]
+* backend/remote: Use the `state.v2` service when using remote state only [GH-20379]
 * backend/s3: Support DynamoDB, IAM, and STS endpoint configurations [GH-19571]
 * backend/s3: Support for the new AWS region `eu-north-1` [GH-19651]
 * backend/s3: Enhance retry logic and provide `max_retries` configuration to retry attempts [GH-19951]
