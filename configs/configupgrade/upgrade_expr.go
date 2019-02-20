@@ -207,7 +207,7 @@ Value:
 		case int:
 			buf.WriteString(strconv.Itoa(tl))
 		case float64:
-			buf.WriteString(strconv.FormatFloat(tl, 'f', 64, 64))
+			buf.WriteString(strconv.FormatFloat(tl, 'f', -1, 64))
 		case bool:
 			if tl {
 				buf.WriteString("true")
@@ -398,6 +398,49 @@ Value:
 				buf.WriteByte(']')
 				break Value
 			}
+
+			// HIL used some undocumented special functions to implement certain
+			// operations, but since those were actually callable in real expressions
+			// some users inevitably depended on them, so we'll fix them up here.
+			// These each become two function calls to preserve the old behavior
+			// of implicitly converting to the source type first. Usage of these
+			// is relatively rare, so the result doesn't need to be too pretty.
+		case "__builtin_BoolToString":
+			buf.WriteString("tostring(tobool(")
+			buf.Write(argExprs[0])
+			buf.WriteString("))")
+			break Value
+		case "__builtin_FloatToString":
+			buf.WriteString("tostring(tonumber(")
+			buf.Write(argExprs[0])
+			buf.WriteString("))")
+			break Value
+		case "__builtin_IntToString":
+			buf.WriteString("tostring(floor(")
+			buf.Write(argExprs[0])
+			buf.WriteString("))")
+			break Value
+		case "__builtin_StringToInt":
+			buf.WriteString("floor(tostring(")
+			buf.Write(argExprs[0])
+			buf.WriteString("))")
+			break Value
+		case "__builtin_StringToFloat":
+			buf.WriteString("tonumber(tostring(")
+			buf.Write(argExprs[0])
+			buf.WriteString("))")
+			break Value
+		case "__builtin_StringToBool":
+			buf.WriteString("tobool(tostring(")
+			buf.Write(argExprs[0])
+			buf.WriteString("))")
+			break Value
+		case "__builtin_FloatToInt", "__builtin_IntToFloat":
+			// Since "floor" already has an implicit conversion of its argument
+			// to number, and the result is a whole number in either case,
+			// these ones are easier. (We no longer distinguish int and float
+			// as types in HCL2, even though HIL did.)
+			name = "floor"
 		}
 
 		buf.WriteString(name)
