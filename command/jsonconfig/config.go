@@ -32,7 +32,7 @@ type providerConfig struct {
 }
 
 type module struct {
-	Outputs map[string]configOutput `json:"outputs,omitempty"`
+	Outputs map[string]output `json:"outputs,omitempty"`
 	// Resources are sorted in a user-friendly order that is undefined at this
 	// time, but consistent.
 	Resources   []resource            `json:"resources,omitempty"`
@@ -90,11 +90,15 @@ type resource struct {
 	// These are omitted if the corresponding argument isn't set.
 	CountExpression   *expression `json:"count_expression,omitempty"`
 	ForEachExpression *expression `json:"for_each_expression,omitempty"`
+
+	DependsOn []string `json:"depends_on,omitempty"`
 }
 
-type configOutput struct {
-	Sensitive  bool       `json:"sensitive,omitempty"`
-	Expression expression `json:"expression,omitempty"`
+type output struct {
+	Sensitive   bool       `json:"sensitive,omitempty"`
+	Expression  expression `json:"expression,omitempty"`
+	DependsOn   []string   `json:"depends_on,omitempty"`
+	Description string     `json:"description,omitempty"`
 }
 
 type provisioner struct {
@@ -161,12 +165,30 @@ func marshalModule(c *configs.Config, schemas *terraform.Schemas) (module, error
 	rs = append(managedResources, dataResources...)
 	module.Resources = rs
 
-	outputs := make(map[string]configOutput)
+	outputs := make(map[string]output)
 	for _, v := range c.Module.Outputs {
-		outputs[v.Name] = configOutput{
+		o := output{
 			Sensitive:  v.Sensitive,
 			Expression: marshalExpression(v.Expr),
 		}
+		if v.Description != "" {
+			o.Description = v.Description
+		}
+		if len(v.DependsOn) > 0 {
+			dependencies := make([]string, len(v.DependsOn))
+			for i, d := range v.DependsOn {
+				ref, diags := addrs.ParseRef(d)
+				// we should not get an error here, because `terraform validate`
+				// would have complained well before this point, but if we do we'll
+				// silenty skip it.
+				if !diags.HasErrors() {
+					dependencies[i] = ref.Subject.String()
+				}
+			}
+			o.DependsOn = dependencies
+		}
+
+		outputs[v.Name] = o
 	}
 	module.Outputs = outputs
 	module.ModuleCalls = marshalModuleCalls(c, schemas)
@@ -287,6 +309,20 @@ func marshalResources(resources map[string]*configs.Resource, schemas *terraform
 				provisioners = append(provisioners, prov)
 			}
 			r.Provisioners = provisioners
+		}
+
+		if len(v.DependsOn) > 0 {
+			dependencies := make([]string, len(v.DependsOn))
+			for i, d := range v.DependsOn {
+				ref, diags := addrs.ParseRef(d)
+				// we should not get an error here, because `terraform validate`
+				// would have complained well before this point, but if we do we'll
+				// silenty skip it.
+				if !diags.HasErrors() {
+					dependencies[i] = ref.Subject.String()
+				}
+			}
+			r.DependsOn = dependencies
 		}
 
 		rs = append(rs, r)

@@ -4,5 +4,6 @@ module "test" {
 }
 
 output "test" {
-  value = module.test.test
+  value      = module.test.test
+  depends_on = [module.test]
 }
