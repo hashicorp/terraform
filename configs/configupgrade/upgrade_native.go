@@ -627,6 +627,12 @@ func printStringLiteralFromHILOutput(buf *bytes.Buffer, val string) {
 	buf.WriteString(val)
 }
 
+func printHeredocLiteralFromHILOutput(buf *bytes.Buffer, val string) {
+	val = strings.Replace(val, `${`, `$${`, -1)
+	val = strings.Replace(val, `%{`, `%%{`, -1)
+	buf.WriteString(val)
+}
+
 func collectAdhocComments(f *hcl1ast.File) *commentQueue {
 	comments := make(map[hcl1token.Pos]*hcl1ast.CommentGroup)
 	for _, c := range f.Comments {
