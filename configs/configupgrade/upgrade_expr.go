@@ -560,6 +560,14 @@ func upgradeHeredocBody(buf *bytes.Buffer, val *hilast.Output, filename string, 
 func upgradeTraversalExpr(val interface{}, filename string, an *analysis) ([]byte, tfdiags.Diagnostics) {
 	if lit, ok := val.(*hcl1ast.LiteralType); ok && lit.Token.Type == hcl1token.STRING {
 		trStr := lit.Token.Value().(string)
+		if strings.HasSuffix(trStr, ".%") || strings.HasSuffix(trStr, ".#") {
+			// Terraform 0.11 would often not validate traversals given in
+			// strings and so users would get away with this sort of
+			// flatmap-implementation-detail reference, particularly inside
+			// ignore_changes. We'll just trim these off to tolerate it,
+			// rather than failing below in ParseTraversalAbs.
+			trStr = trStr[:len(trStr)-2]
+		}
 		trSrc := []byte(trStr)
 		_, trDiags := hcl2syntax.ParseTraversalAbs(trSrc, "", hcl2.Pos{})
 		if !trDiags.HasErrors() {
