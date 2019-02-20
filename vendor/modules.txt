@@ -253,7 +253,7 @@ github.com/gophercloud/gophercloud/openstack/db/v1/datastores
 github.com/gophercloud/gophercloud/internal
 # github.com/gophercloud/utils v0.0.0-20190128072930-fbb6ab446f01
 github.com/gophercloud/utils/openstack/clientconfig
-# github.com/hashicorp/aws-sdk-go-base v0.1.0
+# github.com/hashicorp/aws-sdk-go-base v0.2.0
 github.com/hashicorp/aws-sdk-go-base
 # github.com/hashicorp/consul v0.0.0-20171026175957-610f3c86a089
 github.com/hashicorp/consul/api
