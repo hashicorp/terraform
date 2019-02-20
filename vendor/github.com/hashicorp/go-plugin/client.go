@@ -21,7 +21,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-	"unicode"
 
 	hclog "github.com/hashicorp/go-hclog"
 )
@@ -933,21 +932,48 @@ func (c *Client) dialer(_ string, timeout time.Duration) (net.Conn, error) {
 	return conn, nil
 }
 
+var stdErrBufferSize = 64 * 1024
+
 func (c *Client) logStderr(r io.Reader) {
 	defer c.clientWaitGroup.Done()
-
-	scanner := bufio.NewScanner(r)
 	l := c.logger.Named(filepath.Base(c.config.Cmd.Path))
 
-	for scanner.Scan() {
-		line := scanner.Text()
-		c.config.Stderr.Write([]byte(line + "\n"))
-		line = strings.TrimRightFunc(line, unicode.IsSpace)
+	reader := bufio.NewReaderSize(r, stdErrBufferSize)
+	// continuation indicates the previous line was a prefix
+	continuation := false
+
+	for {
+		line, isPrefix, err := reader.ReadLine()
+		switch {
+		case err == io.EOF:
+			return
+		case err != nil:
+			l.Error("reading plugin stderr", "error", err)
+			return
+		}
+
+		c.config.Stderr.Write(line)
+
+		// The line was longer than our max token size, so it's likely
+		// incomplete and won't unmarshal.
+		if isPrefix || continuation {
+			l.Debug(string(line))
+
+			// if we're finishing a continued line, add the newline back in
+			if !isPrefix {
+				c.config.Stderr.Write([]byte{'\n'})
+			}
+
+			continuation = isPrefix
+			continue
+		}
+
+		c.config.Stderr.Write([]byte{'\n'})
 
 		entry, err := parseJSON(line)
 		// If output is not JSON format, print directly to Debug
 		if err != nil {
-			l.Debug(line)
+			l.Debug(string(line))
 		} else {
 			out := flattenKVPairs(entry.KVPairs)
 
@@ -965,9 +991,5 @@ func (c *Client) logStderr(r io.Reader) {
 				l.Error(entry.Message, out...)
 			}
 		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		l.Error("reading plugin stderr", "error", err)
 	}
 }
