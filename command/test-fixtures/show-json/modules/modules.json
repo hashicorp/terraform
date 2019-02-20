@@ -1,1 +1,0 @@
-{"Modules":[{"Key":"","Source":"","Dir":"/Users/kristin/go/src/github.com/hashicorp/terraform/command/test-fixtures/show-json/modules"},{"Key":"test","Source":"./foo","Dir":"/Users/kristin/go/src/github.com/hashicorp/terraform/command/test-fixtures/show-json/modules/foo"}]}

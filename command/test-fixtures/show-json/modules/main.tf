@@ -1,9 +1,9 @@
-module "test" {
+module "module_test" {
   source   = "./foo"
   test_var = "baz"
 }
 
 output "test" {
-  value      = module.test.test
-  depends_on = [module.test]
+  value      = module.module_test.test
+  depends_on = [module.module_test]
 }

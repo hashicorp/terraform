@@ -25,10 +25,11 @@ type config struct {
 // provider configurations are the one concept in Terraform that can span across
 // module boundaries.
 type providerConfig struct {
-	Name          string                 `json:"name,omitempty"`
-	Alias         string                 `json:"alias,omitempty"`
-	ModuleAddress string                 `json:"module_address,omitempty"`
-	Expressions   map[string]interface{} `json:"expressions,omitempty"`
+	Name              string                 `json:"name,omitempty"`
+	Alias             string                 `json:"alias,omitempty"`
+	VersionConstraint string                 `json:"version_constraint,omitempty"`
+	ModuleAddress     string                 `json:"module_address,omitempty"`
+	Expressions       map[string]interface{} `json:"expressions,omitempty"`
 }
 
 type module struct {
@@ -71,6 +72,10 @@ type resource struct {
 
 	// ProviderConfigKey is the key into "provider_configs" (shown above) for
 	// the provider configuration that this resource is associated with.
+	//
+	// NOTE: If a given resource is in a ModuleCall, and the provider was
+	// configured outside of the module (in a higher level configuration file),
+	// the ProviderConfigKey will not match a key in the ProviderConfigs map.
 	ProviderConfigKey string `json:"provider_config_key,omitempty"`
 
 	// Provisioners is an optional field which describes any provisioners.
@@ -114,7 +119,7 @@ func Marshal(c *configs.Config, schemas *terraform.Schemas) ([]byte, error) {
 	marshalProviderConfigs(c, schemas, pcs)
 	output.ProviderConfigs = pcs
 
-	rootModule, err := marshalModule(c, schemas)
+	rootModule, err := marshalModule(c, schemas, "")
 	if err != nil {
 		return nil, err
 	}
@@ -135,12 +140,16 @@ func marshalProviderConfigs(
 
 	for k, pc := range c.Module.ProviderConfigs {
 		schema := schemas.ProviderConfig(pc.Name)
-		m[k] = providerConfig{
-			Name:          pc.Name,
-			Alias:         pc.Alias,
-			ModuleAddress: c.Path.String(),
-			Expressions:   marshalExpressions(pc.Config, schema),
+		p := providerConfig{
+			Name:              pc.Name,
+			Alias:             pc.Alias,
+			ModuleAddress:     c.Path.String(),
+			Expressions:       marshalExpressions(pc.Config, schema),
+			VersionConstraint: pc.Version.Required.String(),
 		}
+		absPC := opaqueProviderKey(k, c.Path.String())
+
+		m[absPC] = p
 	}
 
 	// Must also visit our child modules, recursively.
@@ -149,15 +158,15 @@ func marshalProviderConfigs(
 	}
 }
 
-func marshalModule(c *configs.Config, schemas *terraform.Schemas) (module, error) {
+func marshalModule(c *configs.Config, schemas *terraform.Schemas, addr string) (module, error) {
 	var module module
 	var rs []resource
 
-	managedResources, err := marshalResources(c.Module.ManagedResources, schemas)
+	managedResources, err := marshalResources(c.Module.ManagedResources, schemas, addr)
 	if err != nil {
 		return module, err
 	}
-	dataResources, err := marshalResources(c.Module.DataResources, schemas)
+	dataResources, err := marshalResources(c.Module.DataResources, schemas, addr)
 	if err != nil {
 		return module, err
 	}
@@ -245,8 +254,8 @@ func marshalModuleCalls(c *configs.Config, schemas *terraform.Schemas) map[strin
 
 		retMC.Expressions = marshalExpressions(mc.Config, schema)
 
-		for _, cc := range c.Children {
-			childModule, _ := marshalModule(cc, schemas)
+		for name, cc := range c.Children {
+			childModule, _ := marshalModule(cc, schemas, name)
 			retMC.Module = childModule
 		}
 		ret[mc.Name] = retMC
@@ -256,14 +265,14 @@ func marshalModuleCalls(c *configs.Config, schemas *terraform.Schemas) map[strin
 
 }
 
-func marshalResources(resources map[string]*configs.Resource, schemas *terraform.Schemas) ([]resource, error) {
+func marshalResources(resources map[string]*configs.Resource, schemas *terraform.Schemas, moduleAddr string) ([]resource, error) {
 	var rs []resource
 	for _, v := range resources {
 		r := resource{
 			Address:           v.Addr().String(),
 			Type:              v.Type,
 			Name:              v.Name,
-			ProviderConfigKey: v.ProviderConfigAddr().String(),
+			ProviderConfigKey: opaqueProviderKey(v.ProviderConfigAddr().StringCompact(), moduleAddr),
 		}
 
 		switch v.Mode {
@@ -286,7 +295,7 @@ func marshalResources(resources map[string]*configs.Resource, schemas *terraform
 		}
 
 		schema, schemaVer := schemas.ResourceTypeConfig(
-			v.ProviderConfigAddr().StringCompact(),
+			v.ProviderConfigAddr().Type,
 			v.Mode,
 			v.Type,
 		)
@@ -331,4 +340,14 @@ func marshalResources(resources map[string]*configs.Resource, schemas *terraform
 		return rs[i].Address < rs[j].Address
 	})
 	return rs, nil
+}
+
+// opaqueProviderKey generates a unique absProviderConfig-like string from the module
+// address and provider
+func opaqueProviderKey(provider string, addr string) (key string) {
+	key = provider
+	if addr != "" {
+		key = fmt.Sprintf("%s:%s", addr, provider)
+	}
+	return key
 }
