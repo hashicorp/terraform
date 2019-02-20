@@ -177,7 +177,11 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 			continue
 		}
 
-		schema, _ := schemas.ResourceTypeConfig(rc.ProviderAddr.ProviderConfig.StringCompact(), addr.Resource.Resource.Mode, addr.Resource.Resource.Type)
+		schema, _ := schemas.ResourceTypeConfig(
+			rc.ProviderAddr.ProviderConfig.Type,
+			addr.Resource.Resource.Mode,
+			addr.Resource.Resource.Type,
+		)
 		if schema == nil {
 			return fmt.Errorf("no schema found for %s", r.Address)
 		}
