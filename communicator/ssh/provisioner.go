@@ -3,6 +3,7 @@ package ssh
 import (
 	"bytes"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -259,17 +260,17 @@ func readPrivateKey(pk string) (ssh.AuthMethod, error) {
 	// show a nicer error if the private key has a password.
 	block, _ := pem.Decode([]byte(pk))
 	if block == nil {
-		return nil, fmt.Errorf("Failed to read key %q: no key found", pk)
+		return nil, errors.New("Failed to read ssh private key: no key found")
 	}
 	if block.Headers["Proc-Type"] == "4,ENCRYPTED" {
-		return nil, fmt.Errorf(
-			"Failed to read key %q: password protected keys are\n"+
-				"not supported. Please decrypt the key prior to use.", pk)
+		return nil, errors.New(
+			"Failed to read ssh private key: password protected keys are\n" +
+				"not supported. Please decrypt the key prior to use.")
 	}
 
 	signer, err := ssh.ParsePrivateKey([]byte(pk))
 	if err != nil {
-		return nil, fmt.Errorf("Failed to parse key file %q: %s", pk, err)
+		return nil, fmt.Errorf("Failed to parse ssh private key: %s", err)
 	}
 
 	return ssh.PublicKeys(signer), nil
