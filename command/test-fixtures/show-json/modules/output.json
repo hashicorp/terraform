@@ -61,7 +61,6 @@
             "type": "test_instance",
             "name": "test",
             "index": 0,
-            "deposed": true,
             "change": {
                 "actions": [
                     "create"
@@ -83,7 +82,6 @@
             "type": "test_instance",
             "name": "test",
             "index": 1,
-            "deposed": true,
             "change": {
                 "actions": [
                     "create"
@@ -105,7 +103,6 @@
             "type": "test_instance",
             "name": "test",
             "index": 2,
-            "deposed": true,
             "change": {
                 "actions": [
                     "create"
@@ -139,7 +136,10 @@
                         "references": [
                             "module.test.test"
                         ]
-                    }
+                    },
+                    "depends_on": [
+                        "module.test"
+                    ]
                 }
             },
             "module_calls": {
