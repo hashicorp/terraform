@@ -45,47 +45,49 @@ The following example illustrates the structure of the common `<values-represent
   // "root_module" describes the resources and child modules in the root module.
   "root_module": {
     "resources": [
-      // "address" is the absolute resource address, which callers must consider
-      // opaque but may do full string comparisons with other address strings or
-      // pass this verbatim to other Terraform commands that are documented to
-      // accept absolute resource addresses. The module-local portions of this
-      // address are extracted in other properties below.
-      "address": "aws_instance.example[1]",
+      {
+        // "address" is the absolute resource address, which callers must consider
+        // opaque but may do full string comparisons with other address strings or
+        // pass this verbatim to other Terraform commands that are documented to
+        // accept absolute resource addresses. The module-local portions of this
+        // address are extracted in other properties below.
+        "address": "aws_instance.example[1]",
 
-      // "mode" can be "managed", for resources, or "data", for data resources
-      "mode": "managed",
-      "type": "aws_instance",
-      "name": "example",
+        // "mode" can be "managed", for resources, or "data", for data resources
+        "mode": "managed",
+        "type": "aws_instance",
+        "name": "example",
 
-      // If the count or for_each meta-arguments are set for this resource, the
-      // additional key "index" is present to give the instance index key. This
-      // is omitted for the single instance of a resource that isn't using count
-      // or for_each.
-      "index": 1,
+        // If the count or for_each meta-arguments are set for this resource, the
+        // additional key "index" is present to give the instance index key. This
+        // is omitted for the single instance of a resource that isn't using count
+        // or for_each.
+        "index": 1,
 
-      // "provider_name" is the name of the provider that is responsible for
-      // this resource. This is only the provider name, not a provider
-      // configuration address, and so no module path nor alias will be
-      // indicated here. This is included to allow the property "type" to be
-      // interpreted unambiguously in the unusual situation where a provider
-      // offers a resource type whose name does not start with its own name,
-      // such as the "googlebeta" provider offering "google_compute_instance".
-      "provider_name": "aws",
+        // "provider_name" is the name of the provider that is responsible for
+        // this resource. This is only the provider name, not a provider
+        // configuration address, and so no module path nor alias will be
+        // indicated here. This is included to allow the property "type" to be
+        // interpreted unambiguously in the unusual situation where a provider
+        // offers a resource type whose name does not start with its own name,
+        // such as the "googlebeta" provider offering "google_compute_instance".
+        "provider_name": "aws",
 
-      // "schema_version" indicates which version of the resource type schema
-      // the "values" property conforms to.
-      "schema_version": 2,
+        // "schema_version" indicates which version of the resource type schema
+        // the "values" property conforms to.
+        "schema_version": 2,
 
-      // "values" is the JSON representation of the attribute values of the
-      // resource, whose structure depends on the resource type schema. Any
-      // unknown values are omitted or set to null, making them
-      // indistinguishable from absent values; callers which need to distinguish
-      // unknown from unset must use the plan-specific or config-specific
-      // structures described in later sections.
-      "values": {
-        "id": "i-abc123",
-        "instance_type": "t2.micro",
-        // etc, etc
+        // "values" is the JSON representation of the attribute values of the
+        // resource, whose structure depends on the resource type schema. Any
+        // unknown values are omitted or set to null, making them
+        // indistinguishable from absent values; callers which need to distinguish
+        // unknown from unset must use the plan-specific or config-specific
+        // structures described in later sections.
+        "values": {
+          "id": "i-abc123",
+          "instance_type": "t2.micro",
+          // etc, etc
+        }
       }
     ]
 
