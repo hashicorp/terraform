@@ -53,7 +53,7 @@ github.com/antchfx/xpath
 github.com/antchfx/xquery/xml
 # github.com/apparentlymart/go-cidr v1.0.0
 github.com/apparentlymart/go-cidr/cidr
-# github.com/apparentlymart/go-dump v0.0.0-20180507223929-23540a00eaa3
+# github.com/apparentlymart/go-dump v0.0.0-20190214190832-042adf3cf4a0
 github.com/apparentlymart/go-dump/dump
 # github.com/apparentlymart/go-textseg v1.0.0
 github.com/apparentlymart/go-textseg/textseg
