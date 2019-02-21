@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package tracestate implements support for the Tracestate header of the
+// W3C TraceContext propagation format.
 package tracestate
 
 import (
