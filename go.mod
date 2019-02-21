@@ -18,7 +18,6 @@ require (
 	github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
 	github.com/aws/aws-sdk-go v1.16.36
-	github.com/bgentry/speakeasy v0.1.0 // indirect
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/chzyer/logex v1.1.10 // indirect
@@ -85,7 +84,7 @@ require (
 	github.com/mattn/go-colorable v0.0.9
 	github.com/mattn/go-shellwords v1.0.1
 	github.com/miekg/dns v1.0.8 // indirect
-	github.com/mitchellh/cli v0.0.0-20171129193617-33edc47170b5
+	github.com/mitchellh/cli v1.0.0
 	github.com/mitchellh/colorstring v0.0.0-20150917214807-8631ce90f286
 	github.com/mitchellh/copystructure v1.0.0
 	github.com/mitchellh/go-homedir v1.0.0
@@ -100,7 +99,7 @@ require (
 	github.com/packer-community/winrmcp v0.0.0-20180102160824-81144009af58
 	github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c // indirect
 	github.com/pkg/errors v0.0.0-20170505043639-c605e284fe17 // indirect
-	github.com/posener/complete v0.0.0-20171219111128-6bee943216c8
+	github.com/posener/complete v1.1.1
 	github.com/satori/go.uuid v0.0.0-20160927100844-b061729afc07 // indirect
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
 	github.com/sirupsen/logrus v1.1.1 // indirect

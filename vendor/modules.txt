@@ -136,6 +136,8 @@ github.com/dimchansky/utfbom
 github.com/dylanmei/iso8601
 # github.com/dylanmei/winrmtest v0.0.0-20170819153634-c2fbb09e6c08
 github.com/dylanmei/winrmtest
+# github.com/fatih/color v1.7.0
+github.com/fatih/color
 # github.com/go-test/deep v1.0.1
 github.com/go-test/deep
 # github.com/gogo/protobuf v1.2.0
@@ -372,7 +374,7 @@ github.com/mattn/go-colorable
 github.com/mattn/go-isatty
 # github.com/mattn/go-shellwords v1.0.1
 github.com/mattn/go-shellwords
-# github.com/mitchellh/cli v0.0.0-20171129193617-33edc47170b5
+# github.com/mitchellh/cli v1.0.0
 github.com/mitchellh/cli
 # github.com/mitchellh/colorstring v0.0.0-20150917214807-8631ce90f286
 github.com/mitchellh/colorstring
@@ -404,7 +406,7 @@ github.com/oklog/run
 github.com/packer-community/winrmcp/winrmcp
 # github.com/pkg/errors v0.0.0-20170505043639-c605e284fe17
 github.com/pkg/errors
-# github.com/posener/complete v0.0.0-20171219111128-6bee943216c8
+# github.com/posener/complete v1.1.1
 github.com/posener/complete
 github.com/posener/complete/cmd/install
 github.com/posener/complete/cmd
