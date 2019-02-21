@@ -180,7 +180,11 @@ down to see all providers.
   <tr>
     <td><a href="/docs/providers/nsxt/index.html">VMware NSX-T</a></td>
     <td><a href="/docs/providers/vsphere/index.html">VMware vSphere</a></td>
+<<<<<<< HEAD
     <td><a></a></td>
+=======
+    <td><a href="/docs/providers/yandex/index.html">Yandex</a></td>
+>>>>>>> c62528351... adding new provider links
   </tr>
 </table>
 
