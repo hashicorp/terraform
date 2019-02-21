@@ -85,7 +85,7 @@ require (
 	github.com/mattn/go-shellwords v1.0.1
 	github.com/miekg/dns v1.0.8 // indirect
 	github.com/mitchellh/cli v1.0.0
-	github.com/mitchellh/colorstring v0.0.0-20150917214807-8631ce90f286
+	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db
 	github.com/mitchellh/copystructure v1.0.0
 	github.com/mitchellh/go-homedir v1.0.0
 	github.com/mitchellh/go-linereader v0.0.0-20141013185533-07bab5fdd958
