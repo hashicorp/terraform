@@ -71,4 +71,6 @@ vendor in close collaboration with HashiCorp, and are tested by HashiCorp.
 
 [UCloud](/docs/providers/ucloud/index.html)
 
+[Yandex](/docs/providers/yandex/index.html)
+
 [1&1](/docs/providers/oneandone/index.html)
