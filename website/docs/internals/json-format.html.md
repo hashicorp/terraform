@@ -263,15 +263,16 @@ Because the configuration models are produced at a stage prior to expression eva
   // across module boundaries.
   "provider_configs": {
 
-  // Keys in this map are to be considered opaque by callers, and used just for
-  // lookups using the "provider_config_key" property in each resource object.
-    "opaque_provider_ref": {
+    // Keys in the provider_configs map are to be considered opaque by callers,
+    // and used just for lookups using the "provider_config_key" property in each
+    // resource object.
+    "opaque_provider_ref_aws": {
 
       // "name" is the name of the provider without any alias
       "name": "aws",
 
       // "alias" is the alias set for a non-default configuration, or unset for
-			// a default configuration.
+      // a default configuration.
       "alias": "foo",
 
       // "module_address" is included only for provider configurations that are
@@ -316,13 +317,13 @@ Because the configuration models are produced at a stage prior to expression eva
         // "provider_config_key" is the key into "provider_configs" (shown
         // above) for the provider configuration that this resource is
         // associated with.
-        "provider_config_key": "blahblahopaque",
+        "provider_config_key": "opaque_provider_ref_aws",
 
-    // "provisioners" is an optional field which describes any provisioners.
-    // Connection info will not be included here.
-    "provisioners": [
-      {
-        "type": "local-exec",
+        // "provisioners" is an optional field which describes any provisioners.
+        // Connection info will not be included here.
+        "provisioners": [
+          {
+            "type": "local-exec",
 
            // "expressions" describes the provisioner configuration
            "expressions": <expressions-representation>
