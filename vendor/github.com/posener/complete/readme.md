@@ -1,11 +1,11 @@
 # complete
 
+A tool for bash writing bash completion in go, and bash completion for the go command line.
+
 [![Build Status](https://travis-ci.org/posener/complete.svg?branch=master)](https://travis-ci.org/posener/complete)
 [![codecov](https://codecov.io/gh/posener/complete/branch/master/graph/badge.svg)](https://codecov.io/gh/posener/complete)
 [![GoDoc](https://godoc.org/github.com/posener/complete?status.svg)](http://godoc.org/github.com/posener/complete)
 [![Go Report Card](https://goreportcard.com/badge/github.com/posener/complete)](https://goreportcard.com/report/github.com/posener/complete)
-
-A tool for bash writing bash completion in go.
 
 Writing bash completion scripts is a hard work. This package provides an easy way
 to create bash completion scripts for any command, and also an easy way to install/uninstall
@@ -42,6 +42,7 @@ Supported shells:
 
 - [x] bash
 - [x] zsh
+- [x] fish
 
 ### Usage
 
