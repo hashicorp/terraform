@@ -413,7 +413,7 @@ github.com/posener/complete/cmd
 github.com/posener/complete/match
 # github.com/satori/go.uuid v0.0.0-20160927100844-b061729afc07
 github.com/satori/go.uuid
-# github.com/spf13/afero v1.0.2
+# github.com/spf13/afero v1.2.1
 github.com/spf13/afero
 github.com/spf13/afero/mem
 # github.com/svanharmelen/jsonapi v0.0.0-20180618144545-0c0828c3f16d
