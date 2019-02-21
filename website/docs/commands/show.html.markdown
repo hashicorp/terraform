@@ -28,7 +28,7 @@ For Terraform state files (including when no path is provided),
 For Terraform plan files, `terraform show -json` will show a JSON representation
 of the plan, configuration, and current state.
 
-The output format is covered in detail in [JSON Format](/docs/internals/json-format.html).
+The output format is covered in detail in [JSON Output Format](/docs/internals/json-format.html).
 
 ## Usage
 
