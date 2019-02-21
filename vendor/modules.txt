@@ -394,7 +394,7 @@ github.com/mitchellh/hashstructure
 github.com/mitchellh/mapstructure
 # github.com/mitchellh/panicwrap v0.0.0-20190213213626-17011010aaa4
 github.com/mitchellh/panicwrap
-# github.com/mitchellh/prefixedio v0.0.0-20151214002211-6e6954073784
+# github.com/mitchellh/prefixedio v0.0.0-20190213213902-5733675afd51
 github.com/mitchellh/prefixedio
 # github.com/mitchellh/reflectwalk v1.0.0
 github.com/mitchellh/reflectwalk
