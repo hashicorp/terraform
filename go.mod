@@ -14,7 +14,7 @@ require (
 	github.com/antchfx/xquery v0.0.0-20170730121040-eb8c3c172607 // indirect
 	github.com/apparentlymart/go-cidr v1.0.0
 	github.com/apparentlymart/go-dump v0.0.0-20190214190832-042adf3cf4a0
-	github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e
+	github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2
 	github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
 	github.com/aws/aws-sdk-go v1.16.36
