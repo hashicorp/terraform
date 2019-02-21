@@ -406,7 +406,7 @@ github.com/oklog/run
 github.com/packer-community/winrmcp/winrmcp
 # github.com/pkg/errors v0.0.0-20170505043639-c605e284fe17
 github.com/pkg/errors
-# github.com/posener/complete v1.1.1
+# github.com/posener/complete v1.2.1
 github.com/posener/complete
 github.com/posener/complete/cmd/install
 github.com/posener/complete/cmd

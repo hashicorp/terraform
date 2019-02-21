@@ -99,7 +99,7 @@ require (
 	github.com/packer-community/winrmcp v0.0.0-20180102160824-81144009af58
 	github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c // indirect
 	github.com/pkg/errors v0.0.0-20170505043639-c605e284fe17 // indirect
-	github.com/posener/complete v1.1.1
+	github.com/posener/complete v1.2.1
 	github.com/satori/go.uuid v0.0.0-20160927100844-b061729afc07 // indirect
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
 	github.com/sirupsen/logrus v1.1.1 // indirect
