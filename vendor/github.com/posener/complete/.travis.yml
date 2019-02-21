@@ -1,17 +1,16 @@
 language: go
 sudo: false
 go:
+  - 1.11
+  - 1.10.x
   - 1.9
   - 1.8
 
 before_install:
   - go get -u -t ./...
-  - go get -u gopkg.in/alecthomas/gometalinter.v1
-  - gometalinter.v1 --install
 
 script:
-  - gometalinter.v1 --config metalinter.json ./...
-  - ./test.sh
+  - GO111MODULE=on ./test.sh
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)

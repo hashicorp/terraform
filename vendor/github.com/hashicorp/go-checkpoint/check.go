@@ -1,11 +1,7 @@
-// checkpoint is a package for checking version information and alerts
-// for a HashiCorp product.
 package checkpoint
 
 import (
-	"bytes"
-	"context"
-	"crypto/rand"
+	crand "crypto/rand"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -23,112 +19,9 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-cleanhttp"
-	uuid "github.com/hashicorp/go-uuid"
 )
 
-var magicBytes [4]byte = [4]byte{0x35, 0x77, 0x69, 0xFB}
-
-// ReportParams are the parameters for configuring a telemetry report.
-type ReportParams struct {
-	// Signature is some random signature that should be stored and used
-	// as a cookie-like value. This ensures that alerts aren't repeated.
-	// If the signature is changed, repeat alerts may be sent down. The
-	// signature should NOT be anything identifiable to a user (such as
-	// a MAC address). It should be random.
-	//
-	// If SignatureFile is given, then the signature will be read from this
-	// file. If the file doesn't exist, then a random signature will
-	// automatically be generated and stored here. SignatureFile will be
-	// ignored if Signature is given.
-	Signature     string `json:"signature"`
-	SignatureFile string `json:"-"`
-
-	StartTime     time.Time   `json:"start_time"`
-	EndTime       time.Time   `json:"end_time"`
-	Arch          string      `json:"arch"`
-	OS            string      `json:"os"`
-	Payload       interface{} `json:"payload,omitempty"`
-	Product       string      `json:"product"`
-	RunID         string      `json:"run_id"`
-	SchemaVersion string      `json:"schema_version"`
-	Version       string      `json:"version"`
-}
-
-func (i *ReportParams) signature() string {
-	signature := i.Signature
-	if i.Signature == "" && i.SignatureFile != "" {
-		var err error
-		signature, err = checkSignature(i.SignatureFile)
-		if err != nil {
-			return ""
-		}
-	}
-	return signature
-}
-
-// Report sends telemetry information to checkpoint
-func Report(ctx context.Context, r *ReportParams) error {
-	if disabled := os.Getenv("CHECKPOINT_DISABLE"); disabled != "" {
-		return nil
-	}
-
-	req, err := ReportRequest(r)
-	if err != nil {
-		return err
-	}
-
-	client := cleanhttp.DefaultClient()
-	resp, err := client.Do(req.WithContext(ctx))
-	if err != nil {
-		return err
-	}
-	if resp.StatusCode != 201 {
-		return fmt.Errorf("Unknown status: %d", resp.StatusCode)
-	}
-
-	return nil
-}
-
-// ReportRequest creates a request object for making a report
-func ReportRequest(r *ReportParams) (*http.Request, error) {
-	// Populate some fields automatically if we can
-	if r.RunID == "" {
-		uuid, err := uuid.GenerateUUID()
-		if err != nil {
-			return nil, err
-		}
-		r.RunID = uuid
-	}
-	if r.Arch == "" {
-		r.Arch = runtime.GOARCH
-	}
-	if r.OS == "" {
-		r.OS = runtime.GOOS
-	}
-	if r.Signature == "" {
-		r.Signature = r.signature()
-	}
-
-	b, err := json.Marshal(r)
-	if err != nil {
-		return nil, err
-	}
-
-	u := &url.URL{
-		Scheme: "https",
-		Host:   "checkpoint-api.hashicorp.com",
-		Path:   fmt.Sprintf("/v1/telemetry/%s", r.Product),
-	}
-
-	req, err := http.NewRequest("POST", u.String(), bytes.NewReader(b))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Add("Accept", "application/json")
-	req.Header.Add("User-Agent", "HashiCorp/go-checkpoint")
-
-	return req, nil
-}
+var magicBytes = [4]byte{0x35, 0x77, 0x69, 0xFB}
 
 // CheckParams are the parameters for configuring a check request.
 type CheckParams struct {
@@ -177,14 +70,14 @@ type CheckParams struct {
 
 // CheckResponse is the response for a check request.
 type CheckResponse struct {
-	Product             string
-	CurrentVersion      string `json:"current_version"`
-	CurrentReleaseDate  int    `json:"current_release_date"`
-	CurrentDownloadURL  string `json:"current_download_url"`
-	CurrentChangelogURL string `json:"current_changelog_url"`
-	ProjectWebsite      string `json:"project_website"`
-	Outdated            bool   `json:"outdated"`
-	Alerts              []*CheckAlert
+	Product             string        `json:"product"`
+	CurrentVersion      string        `json:"current_version"`
+	CurrentReleaseDate  int           `json:"current_release_date"`
+	CurrentDownloadURL  string        `json:"current_download_url"`
+	CurrentChangelogURL string        `json:"current_changelog_url"`
+	ProjectWebsite      string        `json:"project_website"`
+	Outdated            bool          `json:"outdated"`
+	Alerts              []*CheckAlert `json:"alerts"`
 }
 
 // CheckAlert is a single alert message from a check request.
@@ -192,11 +85,11 @@ type CheckResponse struct {
 // These never have to be manually constructed, and are typically populated
 // into a CheckResponse as a result of the Check request.
 type CheckAlert struct {
-	ID      int
-	Date    int
-	Message string
-	URL     string
-	Level   string
+	ID      int    `json:"id"`
+	Date    int    `json:"date"`
+	Message string `json:"message"`
+	URL     string `json:"url"`
+	Level   string `json:"level"`
 }
 
 // Check checks for alerts and new version information.
@@ -205,7 +98,7 @@ func Check(p *CheckParams) (*CheckResponse, error) {
 		return &CheckResponse{}, nil
 	}
 
-	// set a default timeout of 3 sec for the check request (in milliseconds)
+	// Set a default timeout of 3 sec for the check request (in milliseconds)
 	timeout := 3000
 	if _, err := strconv.Atoi(os.Getenv("CHECKPOINT_TIMEOUT")); err == nil {
 		timeout, _ = strconv.Atoi(os.Getenv("CHECKPOINT_TIMEOUT"))
@@ -253,8 +146,8 @@ func Check(p *CheckParams) (*CheckResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Add("Accept", "application/json")
-	req.Header.Add("User-Agent", "HashiCorp/go-checkpoint")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", "HashiCorp/go-checkpoint")
 
 	client := cleanhttp.DefaultClient()
 
@@ -266,6 +159,8 @@ func Check(p *CheckParams) (*CheckResponse, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
+
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf("Unknown status: %d", resp.StatusCode)
 	}
@@ -390,14 +285,11 @@ func checkCache(current string, path string, d time.Duration) (io.ReadCloser, er
 
 	return f, nil
 }
-
 func checkResult(r io.Reader) (*CheckResponse, error) {
 	var result CheckResponse
-	dec := json.NewDecoder(r)
-	if err := dec.Decode(&result); err != nil {
+	if err := json.NewDecoder(r).Decode(&result); err != nil {
 		return nil, err
 	}
-
 	return &result, nil
 }
 
@@ -426,7 +318,7 @@ func checkSignature(path string) (string, error) {
 	var b [16]byte
 	n := 0
 	for n < 16 {
-		n2, err := rand.Read(b[n:])
+		n2, err := crand.Read(b[n:])
 		if err != nil {
 			return "", err
 		}
@@ -456,7 +348,7 @@ func writeCacheHeader(f io.Writer, v string) error {
 	}
 
 	// Write out our current version length
-	var length uint32 = uint32(len(v))
+	length := uint32(len(v))
 	if err := binary.Write(f, binary.LittleEndian, length); err != nil {
 		return err
 	}
