@@ -18,7 +18,6 @@ require (
 	github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
 	github.com/aws/aws-sdk-go v1.16.36
-	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
 	github.com/bgentry/speakeasy v0.1.0 // indirect
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/boltdb/bolt v1.3.1 // indirect
@@ -52,7 +51,7 @@ require (
 	github.com/hashicorp/go-azure-helpers v0.0.0-20190129193224-166dfd221bb2
 	github.com/hashicorp/go-checkpoint v0.5.0
 	github.com/hashicorp/go-cleanhttp v0.5.0
-	github.com/hashicorp/go-getter v0.0.0-20180327010114-90bb99a48d86
+	github.com/hashicorp/go-getter v1.1.0
 	github.com/hashicorp/go-hclog v0.0.0-20181001195459-61d530d6c27f
 	github.com/hashicorp/go-immutable-radix v0.0.0-20180129170900-7f3cd4390caa // indirect
 	github.com/hashicorp/go-msgpack v0.0.0-20150518234257-fa3f63826f7c // indirect
@@ -60,11 +59,10 @@ require (
 	github.com/hashicorp/go-plugin v0.0.0-20190220160451-3f118e8ee104
 	github.com/hashicorp/go-retryablehttp v0.5.1
 	github.com/hashicorp/go-rootcerts v0.0.0-20160503143440-6bb64b370b90
-	github.com/hashicorp/go-safetemp v1.0.0 // indirect
 	github.com/hashicorp/go-sockaddr v0.0.0-20180320115054-6d291a969b86 // indirect
 	github.com/hashicorp/go-tfe v0.3.8
 	github.com/hashicorp/go-uuid v1.0.0
-	github.com/hashicorp/go-version v1.0.0
+	github.com/hashicorp/go-version v1.1.0
 	github.com/hashicorp/golang-lru v0.5.0 // indirect
 	github.com/hashicorp/hcl v0.0.0-20170504190234-a4b07c25de5f
 	github.com/hashicorp/hcl2 v0.0.0-20190214011454-504b92060753
@@ -84,8 +82,7 @@ require (
 	github.com/masterzen/azure-sdk-for-go v0.0.0-20161014135628-ee4f0065d00c // indirect
 	github.com/masterzen/simplexml v0.0.0-20160608183007-4572e39b1ab9 // indirect
 	github.com/masterzen/winrm v0.0.0-20180224160350-7e40f93ae939
-	github.com/mattn/go-colorable v0.0.0-20160220075935-9cbef7c35391
-	github.com/mattn/go-isatty v0.0.4 // indirect
+	github.com/mattn/go-colorable v0.0.9
 	github.com/mattn/go-shellwords v1.0.1
 	github.com/miekg/dns v1.0.8 // indirect
 	github.com/mitchellh/cli v0.0.0-20171129193617-33edc47170b5
@@ -114,7 +111,6 @@ require (
 	github.com/terraform-providers/terraform-provider-openstack v1.15.0
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20171017195756-830351dc03c6 // indirect
 	github.com/ugorji/go v0.0.0-20180813092308-00b869d2f4a5 // indirect
-	github.com/ulikunitz/xz v0.5.4 // indirect
 	github.com/vmihailenco/msgpack v4.0.1+incompatible // indirect
 	github.com/xanzy/ssh-agent v0.2.0
 	github.com/xiang90/probing v0.0.0-20160813154853-07dd2e8dfe18 // indirect

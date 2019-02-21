@@ -86,6 +86,10 @@
 
 ## Log
 
+### 2018-10-28
+
+Release v0.5.5 fixes issues #19 observing ErrLimit outputs.
+
 ### 2017-06-05
 
 Release v0.5.4 fixes issues #15 of another problem with the padding size
@@ -102,7 +106,7 @@ Release v0.5.2 became necessary to allow the decoding of xz files with
 4-byte padding in the block header. Many thanks to Greg, who reported
 the issue.
 
-### 2016-07-23 
+### 2016-07-23
 
 Release v0.5.1 became necessary to fix problems with 32-bit platforms.
 Many thanks to Bruno Brigas, who reported the issue.
@@ -194,7 +198,7 @@ and lzma.Writer and fixed the error handling.
 By computing the bit length of the LZMA operations I was able to
 improve the greedy algorithm implementation. By using an 8 MByte buffer
 the compression rate was not as good as for xz but already better then
-gzip default. 
+gzip default.
 
 Compression is currently slow, but this is something we will be able to
 improve over time.
@@ -213,7 +217,7 @@ The package lzb contains now the basic implementation for creating or
 reading LZMA byte streams. It allows the support for the implementation
 of the DAG-shortest-path algorithm for the compression function.
 
-### 2015-04-23 
+### 2015-04-23
 
 Completed yesterday the lzbase classes. I'm a little bit concerned that
 using the components may require too much code, but on the other hand
@@ -242,7 +246,7 @@ right lzbase.Reader and lzbase.Writer.
 
 As a start I have implemented ReaderState and WriterState to ensure
 that the state for reading is only used by readers and WriterState only
-used by Writers. 
+used by Writers.
 
 ### 2015-04-20
 
@@ -274,7 +278,7 @@ almost all files from lzma.
 
 ### 2015-03-31
 
-Removed only a TODO item. 
+Removed only a TODO item.
 
 However in Francesco Campoy's presentation "Go for Javaneros
 (Javaïstes?)" is the the idea that using an embedded field E, all the

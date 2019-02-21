@@ -270,7 +270,7 @@ github.com/hashicorp/go-azure-helpers/storage
 github.com/hashicorp/go-checkpoint
 # github.com/hashicorp/go-cleanhttp v0.5.0
 github.com/hashicorp/go-cleanhttp
-# github.com/hashicorp/go-getter v0.0.0-20180327010114-90bb99a48d86
+# github.com/hashicorp/go-getter v1.1.0
 github.com/hashicorp/go-getter
 github.com/hashicorp/go-getter/helper/url
 # github.com/hashicorp/go-hclog v0.0.0-20181001195459-61d530d6c27f
@@ -292,7 +292,7 @@ github.com/hashicorp/go-slug
 github.com/hashicorp/go-tfe
 # github.com/hashicorp/go-uuid v1.0.0
 github.com/hashicorp/go-uuid
-# github.com/hashicorp/go-version v1.0.0
+# github.com/hashicorp/go-version v1.1.0
 github.com/hashicorp/go-version
 # github.com/hashicorp/hcl v0.0.0-20170504190234-a4b07c25de5f
 github.com/hashicorp/hcl
@@ -366,7 +366,7 @@ github.com/masterzen/simplexml/dom
 # github.com/masterzen/winrm v0.0.0-20180224160350-7e40f93ae939
 github.com/masterzen/winrm
 github.com/masterzen/winrm/soap
-# github.com/mattn/go-colorable v0.0.0-20160220075935-9cbef7c35391
+# github.com/mattn/go-colorable v0.0.9
 github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.4
 github.com/mattn/go-isatty
@@ -382,7 +382,7 @@ github.com/mitchellh/copystructure
 github.com/mitchellh/go-homedir
 # github.com/mitchellh/go-linereader v0.0.0-20141013185533-07bab5fdd958
 github.com/mitchellh/go-linereader
-# github.com/mitchellh/go-testing-interface v0.0.0-20171004221916-a61a99592b77
+# github.com/mitchellh/go-testing-interface v1.0.0
 github.com/mitchellh/go-testing-interface
 # github.com/mitchellh/go-wordwrap v1.0.0
 github.com/mitchellh/go-wordwrap
@@ -420,7 +420,7 @@ github.com/svanharmelen/jsonapi
 github.com/terraform-providers/terraform-provider-openstack/openstack
 # github.com/ugorji/go v0.0.0-20180813092308-00b869d2f4a5
 github.com/ugorji/go/codec
-# github.com/ulikunitz/xz v0.5.4
+# github.com/ulikunitz/xz v0.5.5
 github.com/ulikunitz/xz
 github.com/ulikunitz/xz/internal/xlog
 github.com/ulikunitz/xz/lzma
