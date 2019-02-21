@@ -325,9 +325,9 @@ Because the configuration models are produced at a stage prior to expression eva
           {
             "type": "local-exec",
 
-           // "expressions" describes the provisioner configuration
-           "expressions": <expressions-representation>
-           },
+            // "expressions" describes the provisioner configuration
+            "expressions": <expressions-representation>
+          },
         ],
 
         // "expressions" describes the resource-type-specific content of the
