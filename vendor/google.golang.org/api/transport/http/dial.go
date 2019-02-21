@@ -12,20 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package transport/http supports network connections to HTTP servers.
+// Package http supports network connections to HTTP servers.
 // This package is not intended for use by end developers. Use the
 // google.golang.org/api/option package to configure API clients.
 package http
 
 import (
+	"context"
 	"errors"
 	"net/http"
 
-	"golang.org/x/net/context"
+	"go.opencensus.io/plugin/ochttp"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/googleapi/transport"
 	"google.golang.org/api/internal"
 	"google.golang.org/api/option"
+	"google.golang.org/api/transport/http/internal/propagation"
 )
 
 // NewClient returns an HTTP client for use communicating with a Google cloud
@@ -135,4 +137,11 @@ func defaultBaseTransport(ctx context.Context) http.RoundTripper {
 		return appengineUrlfetchHook(ctx)
 	}
 	return http.DefaultTransport
+}
+
+func addOCTransport(trans http.RoundTripper) http.RoundTripper {
+	return &ochttp.Transport{
+		Base:        trans,
+		Propagation: &propagation.HTTPFormat{},
+	}
 }
