@@ -16,7 +16,7 @@ Since the format of plan files isn't suited for use with external tools (and lik
 
 Use `terraform show -json <FILE>` to generate a JSON representation of a plan or state file. See [the `terraform show` documentation](/docs/commands/show.html) for more details.
 
--> **Note:** The JSON output format is experimental and subject to change. A `"format_version"` key is included in the output. The minor version portion will be incremented for compatible additions to the output, and the major version portion will be incremented for any format changes which require changes for correct processing.
+-> **Note:** The output includes a `format_version` key, which currently has major version zero to indicate that the format is experimental and subject to change. A future version will assign a non-zero major version and make stronger promises about compatibility. We do not anticipate any significant breaking changes to the format before its first major version, however.
 
 ## Format Summary
 
@@ -42,9 +42,8 @@ Because state does not currently have any significant metadata not covered by th
 
 ```javascript
 {
-  // "values" is a values representation object
-  // derived from the values in the state. Because the state
-  // is always fully known, this is always complete.
+  // "values" is a values representation object derived from the values in the
+  // state. Because the state is always fully known, this is always complete.
   "values": <values-representation>
 
   "terraform_version": "version.string"
@@ -61,6 +60,8 @@ For ease of consumption by callers, the plan representation includes a partial r
 
 ```javascript
 {
+  "format_version": "0.1",
+
   // "prior_state" is a representation of the state that the configuration is
   // being applied to, using the state representation described above.
   "prior_state": <state-representation>,
@@ -439,10 +440,7 @@ In some cases, it is the entire content of a block (possibly after certain speci
   "root_block_device": <expression-representation>,
   "ebs_block_device": [
     <expression-representation>
-  ],
-  "potential_future_map_block": {
-    "foo": <expression-representation>
-  }
+  ]
 }
 ```
 
