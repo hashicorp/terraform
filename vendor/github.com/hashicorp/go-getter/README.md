@@ -97,7 +97,7 @@ would download the given HTTP URL using the Git protocol.
 
 Forced protocols will also override any detectors.
 
-In the absense of a forced protocol, detectors may be run on the URL, transforming
+In the absence of a forced protocol, detectors may be run on the URL, transforming
 the protocol anyways. The above example would've used the Git protocol either
 way since the Git detector would've detected it was a GitHub URL.
 
@@ -155,19 +155,43 @@ For file downloads of any protocol, go-getter can automatically verify
 a checksum for you. Note that checksumming only works for downloading files,
 not directories, but checksumming will work for any protocol.
 
-To checksum a file, append a `checksum` query parameter to the URL.
-The paramter value should be in the format of `type:value`, where
-type is "md5", "sha1", "sha256", or "sha512". The "value" should be
-the actual checksum value. go-getter will parse out this query parameter
-automatically and use it to verify the checksum. An example URL
-is shown below:
+To checksum a file, append a `checksum` query parameter to the URL. go-getter
+will parse out this query parameter automatically and use it to verify the
+checksum. The parameter value can be in the format of `type:value` or just
+`value`, where type is "md5", "sha1", "sha256", "sha512" or "file" . The
+"value" should be the actual checksum value or download URL for "file". When
+`type` part is omitted, type will be guessed based on the length of the
+checksum string. Examples:
 
 ```
 ./foo.txt?checksum=md5:b7d96c89d09d9e204f5fedc4d5d55b21
 ```
 
+```
+./foo.txt?checksum=b7d96c89d09d9e204f5fedc4d5d55b21
+```
+
+```
+./foo.txt?checksum=file:./foo.txt.sha256sum
+```
+ 
+When checksumming from a file - ex: with `checksum=file:url` - go-getter will
+get the file linked in the URL after `file:` using the same configuration. For
+example, in `file:http://releases.ubuntu.com/cosmic/MD5SUMS` go-getter will
+download a checksum file under the aforementioned url using the http protocol.
+All protocols supported by go-getter can be used. The checksum file will be
+downloaded in a temporary file then parsed. The destination of the temporary
+file can be changed by setting system specific environment variables: `TMPDIR`
+for unix; `TMP`, `TEMP` or `USERPROFILE` on windows. Read godoc of
+[os.TempDir](https://golang.org/pkg/os/#TempDir) for more information on the
+temporary directory selection. Content of files are expected to be BSD or GNU
+style. Once go-getter is done with the checksum file; it is deleted.
+
 The checksum query parameter is never sent to the backend protocol
 implementation. It is used at a higher level by go-getter itself.
+
+If the destination file exists and the checksums match: download
+will be skipped.
 
 ### Unarchiving
 
@@ -215,11 +239,12 @@ from the URL before going to the final protocol downloader.
 
 ## Protocol-Specific Options
 
-This section documents the protocol-specific options that can be specified
-for go-getter. These options should be appended to the input as normal query
-parameters. Depending on the usage of go-getter, applications may provide
-alternate ways of inputting options. For example, [Nomad](https://www.nomadproject.io)
-provides a nice options block for specifying options rather than in the URL.
+This section documents the protocol-specific options that can be specified for
+go-getter. These options should be appended to the input as normal query
+parameters ([HTTP headers](#headers) are an exception to this, however).
+Depending on the usage of go-getter, applications may provide alternate ways of
+inputting options. For example, [Nomad](https://www.nomadproject.io) provides a
+nice options block for specifying options rather than in the URL.
 
 ## General (All Protocols)
 
@@ -250,6 +275,9 @@ None
     from a private key file on disk, you would run `base64 -w0 <file>`.
 
     **Note**: Git 2.3+ is required to use this feature.
+  
+  * `depth` - The Git clone depth. The provided number specifies the last `n`
+    revisions to clone from the repository.
 
 ### Mercurial (`hg`)
 
@@ -262,6 +290,13 @@ None
 To use HTTP basic authentication with go-getter, simply prepend `username:password@` to the
 hostname in the URL such as `https://Aladdin:OpenSesame@www.example.com/index.html`. All special
 characters, including the username and password, must be URL encoded.
+
+#### Headers
+
+Optional request headers can be added by supplying them in a custom
+[`HttpGetter`](https://godoc.org/github.com/hashicorp/go-getter#HttpGetter)
+(_not_ as query parameters like most other options). These headers will be sent
+out on every request the getter in question makes.
 
 ### S3 (`s3`)
 

@@ -205,7 +205,7 @@ func (u *CacheOnReadFs) OpenFile(name string, flag int, perm os.FileMode) (File,
 			bfi.Close() // oops, what if O_TRUNC was set and file opening in the layer failed...?
 			return nil, err
 		}
-		return &UnionFile{base: bfi, layer: lfi}, nil
+		return &UnionFile{Base: bfi, Layer: lfi}, nil
 	}
 	return u.layer.OpenFile(name, flag, perm)
 }
@@ -251,7 +251,7 @@ func (u *CacheOnReadFs) Open(name string) (File, error) {
 	if err != nil && bfile == nil {
 		return nil, err
 	}
-	return &UnionFile{base: bfile, layer: lfile}, nil
+	return &UnionFile{Base: bfile, Layer: lfile}, nil
 }
 
 func (u *CacheOnReadFs) Mkdir(name string, perm os.FileMode) error {
@@ -286,5 +286,5 @@ func (u *CacheOnReadFs) Create(name string) (File, error) {
 		bfh.Close()
 		return nil, err
 	}
-	return &UnionFile{base: bfh, layer: lfh}, nil
+	return &UnionFile{Base: bfh, Layer: lfh}, nil
 }

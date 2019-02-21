@@ -57,11 +57,20 @@ func newArgs(line string) Args {
 	}
 }
 
+// splitFields returns a list of fields from the given command line.
+// If the last character is space, it appends an empty field in the end
+// indicating that the field before it was completed.
+// If the last field is of the form "a=b", it splits it to two fields: "a", "b",
+// So it can be completed.
 func splitFields(line string) []string {
 	parts := strings.Fields(line)
+
+	// Add empty field if the last field was completed.
 	if len(line) > 0 && unicode.IsSpace(rune(line[len(line)-1])) {
 		parts = append(parts, "")
 	}
+
+	// Treat the last field if it is of the form "a=b"
 	parts = splitLastEqual(parts)
 	return parts
 }

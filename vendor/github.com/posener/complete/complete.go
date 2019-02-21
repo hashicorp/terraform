@@ -10,14 +10,16 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 
 	"github.com/posener/complete/cmd"
 	"github.com/posener/complete/match"
 )
 
 const (
-	envComplete = "COMP_LINE"
-	envDebug    = "COMP_DEBUG"
+	envLine  = "COMP_LINE"
+	envPoint = "COMP_POINT"
+	envDebug = "COMP_DEBUG"
 )
 
 // Complete structs define completion for a command with CLI options
@@ -55,13 +57,18 @@ func (c *Complete) Run() bool {
 // For installation: it assumes that flags were added and parsed before
 // it was called.
 func (c *Complete) Complete() bool {
-	line, ok := getLine()
+	line, point, ok := getEnv()
 	if !ok {
 		// make sure flags parsed,
 		// in case they were not added in the main program
 		return c.CLI.Run()
 	}
-	Log("Completing line: %s", line)
+
+	if point >= 0 && point < len(line) {
+		line = line[:point]
+	}
+
+	Log("Completing phrase: %s", line)
 	a := newArgs(line)
 	Log("Completing last field: %s", a.Last)
 	options := c.Command.Predict(a)
@@ -79,12 +86,19 @@ func (c *Complete) Complete() bool {
 	return true
 }
 
-func getLine() (string, bool) {
-	line := os.Getenv(envComplete)
+func getEnv() (line string, point int, ok bool) {
+	line = os.Getenv(envLine)
 	if line == "" {
-		return "", false
+		return
 	}
-	return line, true
+	point, err := strconv.Atoi(os.Getenv(envPoint))
+	if err != nil {
+		// If failed parsing point for some reason, set it to point
+		// on the end of the line.
+		Log("Failed parsing point %s: %v", os.Getenv(envPoint), err)
+		point = len(line)
+	}
+	return line, point, true
 }
 
 func (c *Complete) output(options []string) {

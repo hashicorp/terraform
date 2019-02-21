@@ -131,6 +131,9 @@ func (f *File) Sync() error {
 }
 
 func (f *File) Readdir(count int) (res []os.FileInfo, err error) {
+	if !f.fileData.dir {
+		return nil, &os.PathError{Op: "readdir", Path: f.fileData.name, Err: errors.New("not a dir")}
+	}
 	var outLength int64
 
 	f.fileData.Lock()
