@@ -398,6 +398,23 @@ Value:
 				buf.WriteByte(']')
 				break Value
 			}
+		case "element":
+			// We cannot replace element with index syntax safely in general
+			// because users may be relying on its special modulo wraparound
+			// behavior that the index syntax doesn't do. However, if it seems
+			// like the user is trying to use element with a set, we'll insert
+			// an explicit conversion to list to mimic the implicit conversion
+			// that we used to do as an unintended side-effect of how functions
+			// work in HIL.
+			if len(argExprs) > 0 {
+				argTy := an.InferExpressionType(argExprs[0], nil)
+				if argTy.IsSetType() {
+					newExpr := []byte(`tolist(`)
+					newExpr = append(newExpr, argExprs[0]...)
+					newExpr = append(newExpr, ')')
+					argExprs[0] = newExpr
+				}
+			}
 
 			// HIL used some undocumented special functions to implement certain
 			// operations, but since those were actually callable in real expressions
