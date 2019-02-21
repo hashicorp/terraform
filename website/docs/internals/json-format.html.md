@@ -89,7 +89,7 @@ The following example illustrates the structure of the common `<values-represent
       }
     ]
 
-    "child_modules": {
+    "child_modules": [
       // Each entry in "child_modules" has the same structure as the root_module
       // object, with the additional "address" property shown below.
       {
