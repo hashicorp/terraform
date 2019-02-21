@@ -266,7 +266,7 @@ github.com/hashicorp/errwrap
 # github.com/hashicorp/go-azure-helpers v0.0.0-20190129193224-166dfd221bb2
 github.com/hashicorp/go-azure-helpers/authentication
 github.com/hashicorp/go-azure-helpers/storage
-# github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de
+# github.com/hashicorp/go-checkpoint v0.5.0
 github.com/hashicorp/go-checkpoint
 # github.com/hashicorp/go-cleanhttp v0.5.0
 github.com/hashicorp/go-cleanhttp
