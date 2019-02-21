@@ -4,6 +4,7 @@ A tool for bash writing bash completion in go, and bash completion for the go co
 
 [![Build Status](https://travis-ci.org/posener/complete.svg?branch=master)](https://travis-ci.org/posener/complete)
 [![codecov](https://codecov.io/gh/posener/complete/branch/master/graph/badge.svg)](https://codecov.io/gh/posener/complete)
+[![golangci](https://golangci.com/badges/github.com/posener/complete.svg)](https://golangci.com/r/github.com/posener/complete)
 [![GoDoc](https://godoc.org/github.com/posener/complete?status.svg)](http://godoc.org/github.com/posener/complete)
 [![Go Report Card](https://goreportcard.com/badge/github.com/posener/complete)](https://goreportcard.com/report/github.com/posener/complete)
 

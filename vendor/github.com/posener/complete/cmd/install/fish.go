@@ -16,7 +16,10 @@ type fish struct {
 
 func (f fish) Install(cmd, bin string) error {
 	completionFile := filepath.Join(f.configDir, "completions", fmt.Sprintf("%s.fish", cmd))
-	completeCmd := f.cmd(cmd, bin)
+	completeCmd, err := f.cmd(cmd, bin)
+	if err != nil {
+		return err
+	}
 	if _, err := os.Stat(completionFile); err == nil {
 		return fmt.Errorf("already installed at %s", completionFile)
 	}
@@ -33,10 +36,10 @@ func (f fish) Uninstall(cmd, bin string) error {
 	return os.Remove(completionFile)
 }
 
-func (f fish) cmd(cmd, bin string) string {
+func (f fish) cmd(cmd, bin string) (string, error) {
 	var buf bytes.Buffer
 	params := struct{ Cmd, Bin string }{cmd, bin}
-	template.Must(template.New("cmd").Parse(`
+	tmpl := template.Must(template.New("cmd").Parse(`
 function __complete_{{.Cmd}}
     set -lx COMP_LINE (string join ' ' (commandline -o))
     test (commandline -ct) = ""
@@ -44,7 +47,10 @@ function __complete_{{.Cmd}}
     {{.Bin}}
 end
 complete -c {{.Cmd}} -a "(__complete_{{.Cmd}})"
-`)).Execute(&buf, params)
-
-	return string(buf.Bytes())
+`))
+	err := tmpl.Execute(&buf, params)
+	if err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }
