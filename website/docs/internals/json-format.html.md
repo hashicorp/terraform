@@ -33,7 +33,7 @@ The JSON output format consists of the following objects and sub-objects:
 - [Values Representation](#values-representation) — A sub-object of both plan and state output that describes current state or planned state.
 - [Configuration Representation](#configuration-representation) — A sub-object of plan output that describes a parsed Terraform configuration.
     - [Expression Representation](#expression-representation) — A sub-object of a configuration representation that describes an unevaluated expression.
-    - [Expressions Representation](#expressions-representation) — A sub-object of a configuration representation that describes the contents of a block that includes expressions.
+    - [Block Expressions Representation](#block-expressions-representation) — A sub-object of a configuration representation that describes the expressions nested inside a block.
 - [Change Representation](#change-representation) — A sub-object of plan output that describes planned changes to an object.
 
 ## State Representation
@@ -282,9 +282,9 @@ Because the configuration models are produced at a stage prior to expression eva
       "module_address": "module.child",
 
       // "expressions" describes the provider-specific content of the
-      // configuration block, as an expressions representation that will be
-      // discussed in a subsequent example.
-      "expressions": <expressions-representation>
+      // configuration block, as a block expressions representation (see section
+      // below).
+      "expressions": <block-expressions-representation>
     }
   },
 
@@ -327,13 +327,13 @@ Because the configuration models are produced at a stage prior to expression eva
             "type": "local-exec",
 
             // "expressions" describes the provisioner configuration
-            "expressions": <expressions-representation>
+            "expressions": <block-expressions-representation>
           },
         ],
 
         // "expressions" describes the resource-type-specific content of the
         // configuration block.
-        "expressions": <expressions-representation>,
+        "expressions": <block-expressions-representation>,
 
         // "schema_version" is the schema version number indicated by the
         // provider for the type-specific arguments described in "expressions".
@@ -367,7 +367,7 @@ Because the configuration models are produced at a stage prior to expression eva
 
         // "expressions" describes the expressions for the arguments within the
         // block that correspond to input variables in the child module.
-        "expressions": <expressions-representation>,
+        "expressions": <block-expressions-representation>,
 
         // "count_expression" and "for_each_expression" describe the expressions
         // given for the corresponding meta-arguments in the module
@@ -420,9 +420,9 @@ Each unevaluated expression in the configuration is represented with an `<expres
 }
 ```
 
-### Expressions Representation
+### Block Expressions Representation
 
-In some cases, it is the entire content of a block (possibly after certain special arguments have already been handled and removed) that must be represented. For that, we have an `<expressions-representation>` structure:
+In some cases, it is the entire content of a block (possibly after certain special arguments have already been handled and removed) that must be represented. For that, we have an `<block-expressions-representation>` structure:
 
 ```javascript
 {
@@ -432,9 +432,9 @@ In some cases, it is the entire content of a block (possibly after certain speci
   "instance_type": <expression-representation>,
 
   // Nested block arguments are mapped as either a single nested
-  // <expressions-representation> or an array object of these, depending on the
+  // <block-expressions-representation> or an array object of these, depending on the
   // block nesting mode chosen in the schema.
-  //  - "single" nesting is a direct <expressions-representation>
+  //  - "single" nesting is a direct <block-expressions-representation>
   //  - "list" and "set" produce arrays
   //  - "map" produces an object
   "root_block_device": <expression-representation>,
