@@ -481,6 +481,13 @@ func (c *Communicator) scpSession(scpCommand string, f func(io.Writer, *bufio.Re
 	// our data and has completed. Or has errored.
 	log.Println("[DEBUG] Waiting for SSH session to complete.")
 	err = session.Wait()
+
+	// log any stderr before exiting on an error
+	scpErr := stderr.String()
+	if len(scpErr) > 0 {
+		log.Printf("[ERROR] scp stderr: %q", stderr)
+	}
+
 	if err != nil {
 		if exitErr, ok := err.(*ssh.ExitError); ok {
 			// Otherwise, we have an ExitErorr, meaning we can just read
@@ -497,11 +504,6 @@ func (c *Communicator) scpSession(scpCommand string, f func(io.Writer, *bufio.Re
 		}
 
 		return err
-	}
-
-	scpErr := stderr.String()
-	if len(scpErr) > 0 {
-		log.Printf("[ERROR] scp stderr: %q", stderr)
 	}
 
 	return nil
