@@ -10,7 +10,7 @@ description: |-
 
 -> **Note:** This format is available in Terraform 0.12 and later.
 
-When Terraform plans changes, it prints a human-readable summary to the terminal. It can also, when run with `-out=<PATH>`, write a much more detailed binary plan file, which can later be used to apply those changes.
+When Terraform plans to make changes, it prints a human-readable summary to the terminal. It can also, when run with `-out=<PATH>`, write a much more detailed binary plan file, which can later be used to apply those changes.
 
 Since the format of plan files isn't suited for use with external tools (and likely never will be), Terraform can output a machine-readable JSON representation of a plan file's changes. It can also convert state files to the same format, to simplify data loading and provide better long-term compatibility.
 
@@ -243,7 +243,7 @@ The following example illustrates the structure of a `<values-representation>`:
 }
 ```
 
-The translation of attribute and output values is the same intuitive mapping from HCL types to JSON types used by Terraform's jsonencode function. This mapping does lose some information: lists, sets, and tuples all lower to JSON arrays while maps and objects both lower to JSON objects. Unknown values and null values are both treated as absent or null.
+The translation of attribute and output values is the same intuitive mapping from HCL types to JSON types used by Terraform's [`jsonencode`](/docs/configuration/functions/jsonencode.html) function. This mapping does lose some information: lists, sets, and tuples all lower to JSON arrays while maps and objects both lower to JSON objects. Unknown values and null values are both treated as absent or null.
 
 Only the "current" object for each resource instance is described. "Deposed" objects are not reflected in this structure at all; in plan representations, you can refer to the change representations for further details.
 
