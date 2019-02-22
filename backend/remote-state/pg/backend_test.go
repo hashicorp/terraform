@@ -16,9 +16,9 @@ import (
 
 // verify that we are doing ACC tests or the Postgres tests specifically
 func testACC(t *testing.T) {
-	skip := os.Getenv("TF_ACC") == "" && os.Getenv("TF_PG_TEST") == ""
+	skip := os.Getenv("TF_ACC") == ""
 	if skip {
-		t.Log("pg backend tests require setting TF_ACC or TF_PG_TEST")
+		t.Log("pg backend tests require setting TF_ACC")
 		t.Skip()
 	}
 	if os.Getenv("DATABASE_URL") == "" {
