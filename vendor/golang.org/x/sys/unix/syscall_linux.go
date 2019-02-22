@@ -14,6 +14,7 @@ package unix
 import (
 	"encoding/binary"
 	"net"
+	"runtime"
 	"syscall"
 	"unsafe"
 )
@@ -80,6 +81,12 @@ func ioctlSetTermios(fd int, req uint, value *Termios) error {
 	return ioctl(fd, req, uintptr(unsafe.Pointer(value)))
 }
 
+func IoctlSetRTCTime(fd int, value *RTCTime) error {
+	err := ioctl(fd, RTC_SET_TIME, uintptr(unsafe.Pointer(value)))
+	runtime.KeepAlive(value)
+	return err
+}
+
 // IoctlGetInt performs an ioctl operation which gets an integer value
 // from fd, using the specified request number.
 func IoctlGetInt(fd int, req uint) (int, error) {
@@ -97,6 +104,12 @@ func IoctlGetWinsize(fd int, req uint) (*Winsize, error) {
 func IoctlGetTermios(fd int, req uint) (*Termios, error) {
 	var value Termios
 	err := ioctl(fd, req, uintptr(unsafe.Pointer(&value)))
+	return &value, err
+}
+
+func IoctlGetRTCTime(fd int) (*RTCTime, error) {
+	var value RTCTime
+	err := ioctl(fd, RTC_RD_TIME, uintptr(unsafe.Pointer(&value)))
 	return &value, err
 }
 
