@@ -186,8 +186,8 @@ Usage: terraform show [options] [path]
 Options:
 
   -no-color           If specified, output won't contain any color.
-  -json				  If specified, output the Terraform plan in a machine-
-						readable form. Only available for plan files.
+  -json               If specified, output the Terraform plan or state in
+                      a machine-readable form.
 
 `
 	return strings.TrimSpace(helpText)
