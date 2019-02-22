@@ -313,6 +313,18 @@ var connectionBlockSupersetSchema = &configschema.Block{
 	},
 }
 
+// connectionBlockSupersetSchema is a schema representing the superset of all
+// possible arguments for "connection" blocks across all supported connection
+// types.
+//
+// This currently lives here because we've not yet updated our communicator
+// subsystem to be aware of schema itself. It's exported only for use in the
+// configs/configupgrade package and should not be used from anywhere else.
+// The caller may not modify any part of the returned schema data structure.
+func ConnectionBlockSupersetSchema() *configschema.Block {
+	return connectionBlockSupersetSchema
+}
+
 // EvalValidateResource is an EvalNode implementation that validates
 // the configuration of a resource.
 type EvalValidateResource struct {
