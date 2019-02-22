@@ -75,12 +75,7 @@ down to see all providers.
   <tr>
     <td><a href="/docs/providers/github/index.html">GitHub</a></td>
     <td><a href="/docs/providers/gitlab/index.html">Gitlab</a></td>
-<<<<<<< HEAD
     <td><a href="/docs/providers/google/index.html">Google Cloud</a></td>
-    <td><a href="/docs/providers/grafana/index.html">Grafana</a></td>
-=======
-    <td><a href="/docs/providers/google/index.html">Google Cloud Platform</a></td>
->>>>>>> 266fb573c... add Cisco ASA provider links
   </tr>
   <tr>
     <td><a href="/docs/providers/grafana/index.html">Grafana</a></td>
