@@ -1,7 +1,8 @@
-resource "test_instance" "foo" {
+variable "login_username" {}
+
+resource "aws_instance" "foo" {
   connection {
-    type = "ssh"
-    host = "${self.private_ip}"
+    user = "${var.login_username}"
   }
 
   provisioner "test" {
@@ -12,7 +13,7 @@ resource "test_instance" "foo" {
 
     connection {
       type = "winrm"
-      host = "${self.public_ip}"
+      user = "${var.login_username}"
     }
   }
 }

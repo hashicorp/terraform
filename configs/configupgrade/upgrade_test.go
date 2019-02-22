@@ -250,6 +250,18 @@ var testProviders = map[string]providers.Factory{
 		}
 		return p, nil
 	}),
+	"aws": providers.Factory(func() (providers.Interface, error) {
+		// This is here only so we can test the provisioner connection info
+		// migration behavior, which is resource-type specific. Do not use
+		// it in any other tests.
+		p := &terraform.MockProvider{}
+		p.GetSchemaReturn = &terraform.ProviderSchema{
+			ResourceTypes: map[string]*configschema.Block{
+				"aws_instance": {},
+			},
+		}
+		return p, nil
+	}),
 }
 
 var testProvisioners = map[string]provisioners.Factory{
