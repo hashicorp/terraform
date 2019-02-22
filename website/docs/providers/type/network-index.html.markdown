@@ -35,4 +35,6 @@ in close collaboration with HashiCorp, and are tested by HashiCorp.
 
 [PowerDNS](/docs/providers/powerdns/index.html)
 
+[Cisco ASA](/docs/provider/ciscoasa/index.html)
+
 [UltraDNS](/docs/providers/ultradns/index.html)
