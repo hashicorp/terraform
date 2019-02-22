@@ -149,31 +149,36 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
     <tr>
     <td><a href="https://github.com/ShopRunner/terraform-provider-snowflake">Snowflake</a></td>
     <td><a href="https://github.com/chanzuckerberg/terraform-provider-snowflake">snowflakedb</a></td>
-    <td><a href="https://github.com/armory-io/terraform-provider-spinnaker">Spinnaker</a></td>
+    <td><a href="https://github.com/carlpett/terraform-provider-sops">sops</a></td>
     </tr>
     <tr>
+    <td><a href="https://github.com/armory-io/terraform-provider-spinnaker">Spinnaker</a></td>
+    <td><a href="https://github.com/odedniv/terraform-provider-sql">SQL</a></td>
     <td><a href="https://github.com/Ashald/terraform-provider-stateful">Stateful</a></td>
+    </tr>
+    <tr>
     <td><a href="https://github.com/franckverrot/terraform-provider-stripe">Stripe</a></td>
     <td><a href="https://github.com/SumoLogic/sumologic-terraform-provider">Sumo Logic</a></td>
+    <td><a href="https://github.com/cvbarros/terraform-provider-teamcity">TeamCity</a></td>
     </tr>
     <tr>
-    <td><a href="https://github.com/cvbarros/terraform-provider-teamcity">TeamCity</a></td>
     <td><a href="https://github.com/bocodigitalmedia/terraform-provider-transloadit">Transloadit</a></td>
     <td><a href="https://github.com/mvisonneau/terraform-provider-updown">Updown.io</a></td>
+    <td><a href="https://github.com/SpamapS/terraform-provider-uptimerobot">Uptimerobot</a></td>
     </tr>
     <tr>
-    <td><a href="https://github.com/SpamapS/terraform-provider-uptimerobot">Uptimerobot</a></td>
     <td><a href="https://github.com/GSLabDev/terraform-provider-vra">vRealize Automation</a></td>
     <td><a href="https://github.com/PortOfPortland/terraform-provider-windns">Win DNS</a></td>
+    <td><a href="https://github.com/Ashald/terraform-provider-yaml">YAML</a></td>
     </tr>
     <tr>
-    <td><a href="https://github.com/Ashald/terraform-provider-yaml">YAML</a></td>
     <td><a href="https://github.com/Venafi/terraform-provider-venafi">Venafi</a></td>
     <td><a href="https://github.com/squat/terraform-provider-vultr">Vultr</a></td>
+    <td><a href="https://github.com/cormacrelf/terraform-provider-zerotier">ZeroTier</a></td>
     </tr>
     <tr>
-    <td><a href="https://github.com/cormacrelf/terraform-provider-zerotier">ZeroTier</a></td>
     <td><a href="https://github.com/ArthurHlt/terraform-provider-zipper">Zipper</a></td>
+    <td><a></a></td>
     <td><a></a></td>
     </tr>
 
