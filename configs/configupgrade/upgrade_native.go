@@ -329,24 +329,8 @@ func (u *Upgrader) upgradeNativeSyntaxResource(filename string, buf *bytes.Buffe
 	rules["depends_on"] = dependsOnAttributeRule(filename, an)
 	rules["provider"] = maybeBareTraversalAttributeRule(filename, an)
 	rules["lifecycle"] = nestedBlockRule(filename, lifecycleBlockBodyRules(filename, an), an, adhocComments)
-	rules["connection"] = func(buf *bytes.Buffer, blockAddr string, item *hcl1ast.ObjectItem) tfdiags.Diagnostics {
-		// TODO: For the few resource types that were setting ConnInfo in
-		// state after create/update in prior versions, generate the additional
-		// explicit connection settings that are now required if and only if
-		// there's at least one provisioner block.
-		// For now, we just pass this through as-is.
-		hcl1printer.Fprint(buf, item)
-		buf.WriteByte('\n')
-		return nil
-	}
-	rules["provisioner"] = func(buf *bytes.Buffer, blockAddr string, item *hcl1ast.ObjectItem) tfdiags.Diagnostics {
-		// TODO: Look up the provisioner schema and map this properly to ensure
-		// any references get properly updated.
-		// For now, we just pass this through as-is.
-		hcl1printer.Fprint(buf, item)
-		buf.WriteByte('\n')
-		return nil
-	}
+	rules["connection"] = connectionBlockRule(filename, an, adhocComments)
+	rules["provisioner"] = provisionerBlockRule(filename, an, adhocComments)
 
 	printComments(buf, item.LeadComment)
 	printBlockOpen(buf, blockType, labels, item.LineComment)
