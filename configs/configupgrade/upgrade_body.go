@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	hcl1ast "github.com/hashicorp/hcl/hcl/ast"
+	hcl1printer "github.com/hashicorp/hcl/hcl/printer"
 	hcl1token "github.com/hashicorp/hcl/hcl/token"
 	hcl2 "github.com/hashicorp/hcl2/hcl"
 	hcl2syntax "github.com/hashicorp/hcl2/hcl/hclsyntax"
@@ -552,5 +553,71 @@ func lifecycleBlockBodyRules(filename string, an *analysis) bodyContentRules {
 
 			return diags
 		},
+	}
+}
+
+func provisionerBlockRule(filename string, an *analysis, adhocComments *commentQueue) bodyItemRule {
+	// Unlike some other examples above, this is a rule for the entire
+	// provisioner block, rather than just for its contents. Therefore it must
+	// also produce the block header and body delimiters.
+	return func(buf *bytes.Buffer, blockAddr string, item *hcl1ast.ObjectItem) tfdiags.Diagnostics {
+		var diags tfdiags.Diagnostics
+		body := item.Val.(*hcl1ast.ObjectType)
+		declRange := hcl1PosRange(filename, item.Keys[0].Pos())
+
+		if len(item.Keys) < 2 {
+			diags = diags.Append(&hcl2.Diagnostic{
+				Severity: hcl2.DiagError,
+				Summary:  "Invalid provisioner block",
+				Detail:   "A provisioner block must have one label: the provisioner type.",
+				Subject:  &declRange,
+			})
+			return diags
+		}
+
+		typeName := item.Keys[1].Token.Value().(string)
+		schema := an.ProvisionerSchemas[typeName]
+		if schema == nil {
+			// This message is assuming that if the user _is_ using a third-party
+			// provisioner plugin they already know how to install it for normal
+			// use and so we don't need to spell out those instructions in detail
+			// here.
+			diags = diags.Append(&hcl2.Diagnostic{
+				Severity: hcl2.DiagError,
+				Summary:  "Unknown provisioner type",
+				Detail:   fmt.Sprintf("The provisioner type %q is not supported. If this is a third-party plugin, make sure its plugin executable is available in one of the usual plugin search paths.", typeName),
+				Subject:  &declRange,
+			})
+			return diags
+		}
+
+		rules := schemaDefaultBodyRules(filename, schema, an, adhocComments)
+		rules["when"] = maybeBareTraversalAttributeRule(filename, an)
+		rules["on_failure"] = maybeBareTraversalAttributeRule(filename, an)
+		rules["connection"] = connectionBlockRule(filename, an, adhocComments)
+
+		printComments(buf, item.LeadComment)
+		printBlockOpen(buf, "provisioner", []string{typeName}, item.LineComment)
+		bodyDiags := upgradeBlockBody(filename, fmt.Sprintf("%s.provisioner[%q]", blockAddr, typeName), buf, body.List.Items, body.Rbrace, rules, adhocComments)
+		diags = diags.Append(bodyDiags)
+		buf.WriteString("}\n")
+
+		return diags
+	}
+}
+
+func connectionBlockRule(filename string, an *analysis, adhocComments *commentQueue) bodyItemRule {
+	// Unlike some other examples above, this is a rule for the entire
+	// connection block, rather than just for its contents. Therefore it must
+	// also produce the block header and body delimiters.
+	return func(buf *bytes.Buffer, blockAddr string, item *hcl1ast.ObjectItem) tfdiags.Diagnostics {
+		// TODO: For the few resource types that were setting ConnInfo in
+		// state after create/update in prior versions, generate the additional
+		// explicit connection settings that are now required if and only if
+		// there's at least one provisioner block.
+		// For now, we just pass this through as-is.
+		hcl1printer.Fprint(buf, item)
+		buf.WriteByte('\n')
+		return nil
 	}
 }
