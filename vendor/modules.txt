@@ -344,7 +344,7 @@ github.com/joyent/triton-go/authentication
 github.com/joyent/triton-go/errors
 github.com/joyent/triton-go/storage
 github.com/joyent/triton-go/client
-# github.com/kardianos/osext v0.0.0-20170510131534-ae77be60afb1
+# github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0
 github.com/kardianos/osext
 # github.com/keybase/go-crypto v0.0.0-20161004153544-93f5b35093ba
 github.com/keybase/go-crypto/openpgp
