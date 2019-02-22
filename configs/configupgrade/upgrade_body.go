@@ -514,8 +514,8 @@ func lifecycleBlockBodyRules(filename string, an *analysis) bodyContentRules {
 			if !ok {
 				diags = diags.Append(&hcl2.Diagnostic{
 					Severity: hcl2.DiagError,
-					Summary:  "Invalid providers argument",
-					Detail:   `The "providers" argument must be a map from provider addresses in the child module to corresponding provider addresses in this module.`,
+					Summary:  "Invalid ignore_changes argument",
+					Detail:   `The "ignore_changes" argument must be a list of attribute expressions relative to this resource.`,
 					Subject:  hcl1PosRange(filename, item.Keys[0].Pos()).Ptr(),
 				})
 				return diags
