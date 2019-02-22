@@ -145,11 +145,11 @@ data "terraform_remote_state" "foo" {
 
 The following configuration options are supported:
 
-* `storage_account_name` - (Required) The Name of [the Storage Account](https://www.terraform.io/docs/providers/azurerm/r/storage_account.html).
+* `storage_account_name` - (Required) The Name of [the Storage Account](https://www.terraform.io/docs/providers/azurerm/r/storage_account.html). This can also be sourced from the `ARM_STORAGE_ACCOUNT_NAME` environment variable.
 
-* `container_name` - (Required) The Name of [the Storage Container](https://www.terraform.io/docs/providers/azurerm/r/storage_container.html) within the Storage Account.
+* `container_name` - (Required) The Name of [the Storage Container](https://www.terraform.io/docs/providers/azurerm/r/storage_container.html) within the Storage Account. This can also be sourced from the `ARM_STORAGE_CONTAINER_NAME` environment variable.
 
-* `key` - (Required) The name of the Blob used to retrieve/store Terraform's State file inside the Storage Container.
+* `key` - (Required) The name of the Blob used to retrieve/store Terraform's State file inside the Storage Container. When using workspaces, the workspace state blob key will be prefixed with this value. This can also be sourced from the `ARM_STORAGE_BLOB_KEY` environment variable.
 
 * `environment` - (Optional) The Azure Environment which should be used. This can also be sourced from the `ARM_ENVIRONMENT` environment variable. Possible values are `public`, `china`, `german`, `stack` and `usgovernment`. Defaults to `public`.
 

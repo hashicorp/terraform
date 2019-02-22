@@ -16,18 +16,21 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The name of the storage account.",
+				DefaultFunc: schema.EnvDefaultFunc("ARM_STORAGE_ACCOUNT_NAME", nil),
 			},
 
 			"container_name": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The container name.",
+				DefaultFunc: schema.EnvDefaultFunc("ARM_STORAGE_CONTAINER_NAME", nil),
 			},
 
 			"key": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The blob key.",
+				DefaultFunc: schema.EnvDefaultFunc("ARM_STORAGE_BLOB_KEY", nil),
 			},
 
 			"environment": {
