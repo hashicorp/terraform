@@ -1,4 +1,9 @@
 <% wrap_layout :inner do %>
+  <% content_for(:custom_share) do %>
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta property="og:image" content="<%= image_url("og-image-large.png") %>"/>
+  <% end %>
+
   <% content_for :sidebar do %>
     <h4><a href="/intro/index.html">Introduction to Terraform</a></h4>
 
