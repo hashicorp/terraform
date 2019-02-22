@@ -3,7 +3,6 @@ package state
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"os"
 	"os/user"
 	"time"
@@ -13,12 +12,6 @@ import (
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/version"
 )
-
-var rngSource *rand.Rand
-
-func init() {
-	rngSource = rand.New(rand.NewSource(time.Now().UnixNano()))
-}
 
 // State is a deprecated alias for statemgr.Full
 type State = statemgr.Full
@@ -82,13 +75,7 @@ func LockWithContext(ctx context.Context, s State, info *LockInfo) (string, erro
 
 // Generate a LockInfo structure, populating the required fields.
 func NewLockInfo() *LockInfo {
-	// this doesn't need to be cryptographically secure, just unique.
-	// Using math/rand alleviates the need to check handle the read error.
-	// Use a uuid format to match other IDs used throughout Terraform.
-	buf := make([]byte, 16)
-	rngSource.Read(buf)
-
-	id, err := uuid.FormatUUID(buf)
+	id, err := uuid.GenerateUUID()
 	if err != nil {
 		// this of course shouldn't happen
 		panic(err)
