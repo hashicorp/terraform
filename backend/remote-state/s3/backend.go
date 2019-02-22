@@ -21,12 +21,14 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The name of the S3 bucket",
+				DefaultFunc: schema.EnvDefaultFunc("AWS_S3_BUCKET", nil),
 			},
 
 			"key": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The path to the state file inside the bucket",
+				DefaultFunc: schema.EnvDefaultFunc("AWS_S3_KEY", nil),
 				ValidateFunc: func(v interface{}, s string) ([]string, []error) {
 					// s3 will strip leading slashes from an object, so while this will
 					// technically be accepted by s3, it will break our workspace hierarchy.
