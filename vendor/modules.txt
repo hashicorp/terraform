@@ -42,7 +42,7 @@ github.com/ChrisTrenkamp/goxpath/internal/xsort
 github.com/ChrisTrenkamp/goxpath/tree/xmltree/xmlnode
 # github.com/Unknwon/com v0.0.0-20151008135407-28b053d5a292
 github.com/Unknwon/com
-# github.com/agext/levenshtein v1.2.1
+# github.com/agext/levenshtein v1.2.2
 github.com/agext/levenshtein
 # github.com/agl/ed25519 v0.0.0-20150830182803-278e1ec8e8a6
 github.com/agl/ed25519
@@ -344,7 +344,7 @@ github.com/joyent/triton-go/authentication
 github.com/joyent/triton-go/errors
 github.com/joyent/triton-go/storage
 github.com/joyent/triton-go/client
-# github.com/kardianos/osext v0.0.0-20170510131534-ae77be60afb1
+# github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0
 github.com/kardianos/osext
 # github.com/keybase/go-crypto v0.0.0-20161004153544-93f5b35093ba
 github.com/keybase/go-crypto/openpgp
