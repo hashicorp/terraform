@@ -7,13 +7,13 @@ import (
 	"strings"
 
 	hcl1ast "github.com/hashicorp/hcl/hcl/ast"
-	hcl1printer "github.com/hashicorp/hcl/hcl/printer"
 	hcl1token "github.com/hashicorp/hcl/hcl/token"
 	hcl2 "github.com/hashicorp/hcl2/hcl"
 	hcl2syntax "github.com/hashicorp/hcl2/hcl/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -611,13 +611,25 @@ func connectionBlockRule(filename string, an *analysis, adhocComments *commentQu
 	// connection block, rather than just for its contents. Therefore it must
 	// also produce the block header and body delimiters.
 	return func(buf *bytes.Buffer, blockAddr string, item *hcl1ast.ObjectItem) tfdiags.Diagnostics {
+		var diags tfdiags.Diagnostics
+		body := item.Val.(*hcl1ast.ObjectType)
+
 		// TODO: For the few resource types that were setting ConnInfo in
 		// state after create/update in prior versions, generate the additional
 		// explicit connection settings that are now required if and only if
 		// there's at least one provisioner block.
 		// For now, we just pass this through as-is.
-		hcl1printer.Fprint(buf, item)
-		buf.WriteByte('\n')
-		return nil
+
+		schema := terraform.ConnectionBlockSupersetSchema()
+		rules := schemaDefaultBodyRules(filename, schema, an, adhocComments)
+		rules["type"] = noInterpAttributeRule(filename, cty.String, an) // type is processed early in the config loader, so cannot interpolate
+
+		printComments(buf, item.LeadComment)
+		printBlockOpen(buf, "connection", nil, item.LineComment)
+		bodyDiags := upgradeBlockBody(filename, fmt.Sprintf("%s.connection", blockAddr), buf, body.List.Items, body.Rbrace, rules, adhocComments)
+		diags = diags.Append(bodyDiags)
+		buf.WriteString("}\n")
+
+		return diags
 	}
 }
