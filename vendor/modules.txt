@@ -372,7 +372,7 @@ github.com/masterzen/winrm/soap
 github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.5
 github.com/mattn/go-isatty
-# github.com/mattn/go-shellwords v1.0.1
+# github.com/mattn/go-shellwords v1.0.4
 github.com/mattn/go-shellwords
 # github.com/mitchellh/cli v1.0.0
 github.com/mitchellh/cli
