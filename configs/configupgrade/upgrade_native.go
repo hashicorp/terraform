@@ -329,8 +329,10 @@ func (u *Upgrader) upgradeNativeSyntaxResource(filename string, buf *bytes.Buffe
 	rules["depends_on"] = dependsOnAttributeRule(filename, an)
 	rules["provider"] = maybeBareTraversalAttributeRule(filename, an)
 	rules["lifecycle"] = nestedBlockRule(filename, lifecycleBlockBodyRules(filename, an), an, adhocComments)
-	rules["connection"] = connectionBlockRule(filename, an, adhocComments)
-	rules["provisioner"] = provisionerBlockRule(filename, an, adhocComments)
+	if addr.Mode == addrs.ManagedResourceMode {
+		rules["connection"] = connectionBlockRule(filename, addr.Type, an, adhocComments)
+		rules["provisioner"] = provisionerBlockRule(filename, addr.Type, an, adhocComments)
+	}
 
 	printComments(buf, item.LeadComment)
 	printBlockOpen(buf, blockType, labels, item.LineComment)

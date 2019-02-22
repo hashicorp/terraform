@@ -3,6 +3,7 @@ package configupgrade
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -556,7 +557,7 @@ func lifecycleBlockBodyRules(filename string, an *analysis) bodyContentRules {
 	}
 }
 
-func provisionerBlockRule(filename string, an *analysis, adhocComments *commentQueue) bodyItemRule {
+func provisionerBlockRule(filename string, resourceType string, an *analysis, adhocComments *commentQueue) bodyItemRule {
 	// Unlike some other examples above, this is a rule for the entire
 	// provisioner block, rather than just for its contents. Therefore it must
 	// also produce the block header and body delimiters.
@@ -594,7 +595,7 @@ func provisionerBlockRule(filename string, an *analysis, adhocComments *commentQ
 		rules := schemaDefaultBodyRules(filename, schema, an, adhocComments)
 		rules["when"] = maybeBareTraversalAttributeRule(filename, an)
 		rules["on_failure"] = maybeBareTraversalAttributeRule(filename, an)
-		rules["connection"] = connectionBlockRule(filename, an, adhocComments)
+		rules["connection"] = connectionBlockRule(filename, resourceType, an, adhocComments)
 
 		printComments(buf, item.LeadComment)
 		printBlockOpen(buf, "provisioner", []string{typeName}, item.LineComment)
@@ -606,7 +607,7 @@ func provisionerBlockRule(filename string, an *analysis, adhocComments *commentQ
 	}
 }
 
-func connectionBlockRule(filename string, an *analysis, adhocComments *commentQueue) bodyItemRule {
+func connectionBlockRule(filename string, resourceType string, an *analysis, adhocComments *commentQueue) bodyItemRule {
 	// Unlike some other examples above, this is a rule for the entire
 	// connection block, rather than just for its contents. Therefore it must
 	// also produce the block header and body delimiters.
@@ -626,10 +627,249 @@ func connectionBlockRule(filename string, an *analysis, adhocComments *commentQu
 
 		printComments(buf, item.LeadComment)
 		printBlockOpen(buf, "connection", nil, item.LineComment)
+
+		// Terraform 0.12 no longer supports "magical" configuration of defaults
+		// in the connection block from logic in the provider because explicit
+		// is better than implicit, but for backward-compatibility we'll populate
+		// an existing connection block with any settings that would've been
+		// previously set automatically for a set of instance types we know
+		// had this behavior in versions prior to the v0.12 release.
+		if defaults := resourceTypeAutomaticConnectionExprs[resourceType]; len(defaults) > 0 {
+			names := make([]string, 0, len(defaults))
+			for name := range defaults {
+				names = append(names, name)
+			}
+			sort.Strings(names)
+			for _, name := range names {
+				exprSrc := defaults[name]
+				if existing := body.List.Filter(name); len(existing.Items) > 0 {
+					continue // Existing explicit value, so no need for a default
+				}
+				printAttribute(buf, name, []byte(exprSrc), nil)
+			}
+		}
+
 		bodyDiags := upgradeBlockBody(filename, fmt.Sprintf("%s.connection", blockAddr), buf, body.List.Items, body.Rbrace, rules, adhocComments)
 		diags = diags.Append(bodyDiags)
 		buf.WriteString("}\n")
 
 		return diags
 	}
+}
+
+// Prior to Terraform 0.12 providers were able to supply default connection
+// settings that would partially populate the "connection" block with
+// automatically-selected values.
+//
+// In practice, this feature was often confusing in that the provider would not
+// have enough information to select a suitable host address or protocol from
+// multiple possible options and so would just make an arbitrary decision.
+//
+// With our principle of "explicit is better than implicit", as of Terraform 0.12
+// we now require all connection settings to be configured explicitly by the
+// user so that it's clear and explicit in the configuration which protocol and
+// IP address are being selected. To avoid generating errors immediately after
+// upgrade, though, we'll make a best effort to populate something functionally
+// equivalent to what the provider would've done automatically for any resource
+// types we know about in this table.
+//
+// The leaf values in this data structure are raw expressions to be inserted,
+// and so they must use valid expression syntax as understood by Terraform 0.12.
+// They should generally be expressions using only constant values or expressions
+// in terms of attributes accessed via the special "self" object. These should
+// mimic as closely as possible the logic that the provider itself used to
+// implement.
+//
+// NOTE: Because provider releases are independent from Terraform Core releases,
+// there could potentially be new 0.11-compatible provider releases that
+// introduce new uses of default connection info that this map doesn't know
+// about. The upgrade tool will not handle these, and so we will advise
+// provider developers that this mechanism is not to be used for any new
+// resource types, even in 0.11 mode.
+var resourceTypeAutomaticConnectionExprs = map[string]map[string]string{
+	"aws_instance": map[string]string{
+		"type": `"ssh"`,
+		"host": `coalesce(self.public_ip, self.private_ip)`,
+	},
+	"aws_spot_instance_request": map[string]string{
+		"type":     `"ssh"`,
+		"host":     `coalesce(self.public_ip, self.private_ip)`,
+		"user":     `self.username != "" ? self.username : null`,
+		"password": `self.password != "" ? self.password : null`,
+	},
+	"azure_instance": map[string]string{
+		"type": `"ssh" # TF-UPGRADE-TODO: If this is a windows instance without an SSH server, change to "winrm"`,
+		"host": `coalesce(self.vip_address, self.ip_address)`,
+	},
+	"azurerm_virtual_machine": map[string]string{
+		"type": `"ssh" # TF-UPGRADE-TODO: If this is a windows instance without an SSH server, change to "winrm"`,
+		// The azurerm_virtual_machine resource type does not expose a remote
+		// access IP address directly, instead requring the user to separately
+		// fetch the network interface.
+		// (If we can add a "default_ssh_ip" or similar attribute to this
+		// resource type before its first 0.12-compatible release then we should
+		// update this to use that instead, for simplicity's sake.)
+		"host": `"" # TF-UPGRADE-TODO: Set this to the IP address of the machine's primary network interface`,
+	},
+	"brightbox_server": map[string]string{
+		"type": `"ssh"`,
+		"host": `coalesce(self.public_hostname, self.ipv6_hostname, self.fqdn)`,
+	},
+	"cloudscale_server": map[string]string{
+		"type": `"ssh"`,
+		// The logic for selecting this is pretty complicated for this resource
+		// type, and the result is not exposed as an isolated attribute, so
+		// the conversion here is a little messy. We include newlines in this
+		// one so that the auto-formatter can indent it nicely for readability.
+		// NOTE: In v1.0.1 of this provider (the latest at the time of this
+		// writing) it has an possible bug where it selects _public_ IPv4
+		// addresses but _private_ IPv6 addresses. That behavior is followed
+		// here to maximize compatibility with existing configurations.
+		"host": `coalesce( # TF-UPGRADE-TODO: Simplify this to reference a specific desired IP address, if possible.
+			concat(
+				flatten([
+					for i in self.network_interface : [
+						for a in i.addresses : a.address
+						if a.version == 4
+					]
+					if i.type == "public"
+				]),
+				flatten([
+					for i in self.network_interface : [
+						for a in i.addresses : a.address
+						if a.version == 6
+					]
+					if i.type == "private"
+				]),
+			)...
+		)`,
+	},
+	"cloudstack_instance": map[string]string{
+		"type": `"ssh"`,
+		"host": `self.ip_address`,
+	},
+	"digitalocean_droplet": map[string]string{
+		"type": `"ssh"`,
+		"host": `self.ipv4_address`,
+	},
+	"flexibleengine_compute_bms_server_v2": map[string]string{
+		"type": `"ssh"`,
+		"host": `coalesce(self.access_ip_v4, self.access_ip_v6)`,
+	},
+	"flexibleengine_compute_instance_v2": map[string]string{
+		"type": `"ssh"`,
+		"host": `coalesce(self.access_ip_v4, self.access_ip_v6)`,
+	},
+	"google_compute_instance": map[string]string{
+		"type": `"ssh"`,
+		// The logic for selecting this is pretty complicated for this resource
+		// type, and the result is not exposed as an isolated attribute, so
+		// the conversion here is a little messy. We include newlines in this
+		// one so that the auto-formatter can indent it nicely for readability.
+		// (If we can add a "default_ssh_ip" or similar attribute to this
+		// resource type before its first 0.12-compatible release then we should
+		// update this to use that instead, for simplicity's sake.)
+		"host": `coalesce( # TF-UPGRADE-TODO: Simplify this to reference a specific desired IP address, if possible.
+			concat(
+				# Prefer any available NAT IP address
+				flatten([
+					for ni in self.network_interface : [
+						for ac in ni.access_config : ac.nat_ip
+					]
+				]),
+
+				# Otherwise, use the first available LAN IP address
+				[
+					for ni in self.network_interface : ni.network_ip
+				],
+			)...
+		)`,
+	},
+	"hcloud_server": map[string]string{
+		"type": `"ssh"`,
+		"host": `self.ipv4_address`,
+	},
+	"huaweicloud_compute_instance_v2": map[string]string{
+		"type": `"ssh"`,
+		"host": `coalesce(self.access_ip_v4, self.access_ip_v6)`,
+	},
+	"linode_instance": map[string]string{
+		"type": `"ssh"`,
+		"host": `self.ipv4[0]`,
+	},
+	"oneandone_baremetal_server": map[string]string{
+		"type":        `ssh`,
+		"host":        `self.ips[0].ip`,
+		"password":    `self.password != "" ? self.password : null`,
+		"private_key": `self.ssh_key_path != "" ? file(self.ssh_key_path) : null`,
+	},
+	"oneandone_server": map[string]string{
+		"type":        `ssh`,
+		"host":        `self.ips[0].ip`,
+		"password":    `self.password != "" ? self.password : null`,
+		"private_key": `self.ssh_key_path != "" ? file(self.ssh_key_path) : null`,
+	},
+	"openstack_compute_instance_v2": map[string]string{
+		"type": `"ssh"`,
+		"host": `coalesce(self.access_ip_v4, self.access_ip_v6)`,
+	},
+	"opentelekomcloud_compute_bms_server_v2": map[string]string{
+		"type": `"ssh"`,
+		"host": `coalesce(self.access_ip_v4, self.access_ip_v6)`,
+	},
+	"opentelekomcloud_compute_instance_v2": map[string]string{
+		"type": `"ssh"`,
+		"host": `coalesce(self.access_ip_v4, self.access_ip_v6)`,
+	},
+	"packet_device": map[string]string{
+		"type": `"ssh"`,
+		"host": `self.access_public_ipv4`,
+	},
+	"profitbricks_server": map[string]string{
+		"type": `"ssh"`,
+		"host": `coalesce(self.primary_nic.ips...)`,
+		// The value for this isn't exported anywhere on the object, so we'll
+		// need to have the user fix it up manually.
+		"password": `"" # TF-UPGRADE-TODO: set this to a suitable value, such as the boot image password`,
+	},
+	"scaleway_server": map[string]string{
+		"type": `"ssh"`,
+		"host": `self.public_ip`,
+	},
+	"telefonicaopencloud_compute_bms_server_v2": map[string]string{
+		"type": `"ssh"`,
+		"host": `coalesce(self.access_ip_v4, self.access_ip_v6)`,
+	},
+	"telefonicaopencloud_compute_instance_v2": map[string]string{
+		"type": `"ssh"`,
+		"host": `coalesce(self.access_ip_v4, self.access_ip_v6)`,
+	},
+	"triton_machine": map[string]string{
+		"type": `"ssh"`,
+		"host": `self.primaryip`, // convention would call for this to be named "primary_ip", but "primaryip" is the name this resource type uses
+	},
+	"vsphere_virtual_machine": map[string]string{
+		"type": `"ssh"`,
+		"host": `self.default_ip_address`,
+	},
+	"yandex_compute_instance": map[string]string{
+		"type": `"ssh"`,
+		// The logic for selecting this is pretty complicated for this resource
+		// type, and the result is not exposed as an isolated attribute, so
+		// the conversion here is a little messy. We include newlines in this
+		// one so that the auto-formatter can indent it nicely for readability.
+		"host": `coalesce( # TF-UPGRADE-TODO: Simplify this to reference a specific desired IP address, if possible.
+			concat(
+				# Prefer any available NAT IP address
+				for i in self.network_interface: [
+					i.nat_ip_address
+				],
+
+				# Otherwise, use the first available internal IP address
+				for i in self.network_interface: [
+					i.ip_address
+				],
+			)...
+		)`,
+	},
 }
