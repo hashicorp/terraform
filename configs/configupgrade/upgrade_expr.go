@@ -224,6 +224,44 @@ Value:
 		// here so we can normalize and introduce some newer syntax where it's
 		// safe to do so.
 		parts := strings.Split(tv.Name, ".")
+
+		// First we need to deal with the .count pseudo-attributes that 0.11 and
+		// prior allowed for resources. These no longer exist, because they
+		// don't do anything we can't do with the length(...) function.
+		if len(parts) > 0 {
+			var rAddr addrs.Resource
+			switch parts[0] {
+			case "data":
+				if len(parts) == 4 && parts[3] == "count" {
+					rAddr.Mode = addrs.DataResourceMode
+					rAddr.Type = parts[1]
+					rAddr.Name = parts[2]
+				}
+			default:
+				if len(parts) == 3 && parts[2] == "count" {
+					rAddr.Mode = addrs.ManagedResourceMode
+					rAddr.Type = parts[0]
+					rAddr.Name = parts[1]
+				}
+			}
+
+			// We need to check if the thing being referenced is actually an
+			// existing resource, because other three-part traversals might
+			// coincidentally end with "count".
+			if hasCount, exists := an.ResourceHasCount[rAddr]; exists {
+				if hasCount {
+					buf.WriteString("length(")
+					buf.WriteString(rAddr.String())
+					buf.WriteString(")")
+				} else {
+					// If the resource does not have count, the .count
+					// attr would've always returned 1 before.
+					buf.WriteString("1")
+				}
+				break Value
+			}
+		}
+
 		parts = upgradeTraversalParts(parts, an) // might add/remove/change parts
 		first, remain := parts[0], parts[1:]
 		buf.WriteString(first)
