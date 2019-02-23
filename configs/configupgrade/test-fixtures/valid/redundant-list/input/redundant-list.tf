@@ -22,6 +22,18 @@ resource "test_instance" "bad4" {
   security_groups = ["${list("a", "b", "c")}"]
 }
 
+resource "test_instance" "bad5" {
+  security_groups = ["${test_instance.bad1.subnet_ids}"] # this one references a set
+}
+
+resource "test_instance" "bad6" {
+  subnet_ids = ["${test_instance.bad1.security_groups}"] # this one defines a set
+}
+
+resource "test_instance" "bad7" {
+  subnet_ids = ["${test_instance.bad1.*.id}"] # this one defines a set
+}
+
 # The rest of these should keep the same amount of list-ness
 
 resource "test_instance" "ok1" {
