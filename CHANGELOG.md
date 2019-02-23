@@ -2,12 +2,15 @@
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
+* backend/s3: `workspace_key_prefix` can no longer be defined with leading or trailing slashes. Users should verify the state paths in s3 if they need to change this in case there are extra slashes in the keys [GH-20432]
 * config: `path.module` and `path.root` now return paths with forward slashes on all operating systems, including Windows. This avoids the need to write constructed paths differently for Windows vs. other operating systems, but any existing constructed paths containing backslashes for Windows must now be rewritten to use forward slashes, like `"${path.module}/foo/bar"`. [GH-19708]
 * config: `path.module` and `path.root` are now relative to the current working directory, rather than absolute as before. This avoids including a host-specific absolute path prefix on constructed paths, but may show as a diff after upgrade in situations where a constructed path is included in a resource attribute value. [GH-19708]
 * tools/terraform-bundle: use the `terraform-bundle` of the same tag as the targeted terraform binary version. This avoids adding complexity to resolve protocol versions across different terraform versions. [GH-20030]
 
 IMPROVEMENTS:
 
+* communicator/ssh: Add SSH certificate authentication [GH-18896]
+* communicator/ssh: Enable ssh keepalive messages for long running commands [GH-20437]
 * config: New set-theory functions `sethaselement`, `setunion`, `setintersection`, and `setproduct` for working with set values.
 * config: New type conversion functions `tostring`, `tonumber`, `tobool`, `tolist`, `toset`, and `tomap`. Explicit conversions are rarely required but occasionally useful; use these functions only when necessary.
 * plugins: Plugin RPC connection is now authenticated [GH-19629]
@@ -17,6 +20,7 @@ IMPROVEMENTS:
 * backend/remote: Make sure the correct error is shown when having version incompatibilities [GH-20086]
 * backend/remote: Fix "token too long" errors when streaming remote operation logs [GH-20242]
 * backend/remote: Use the `state.v2` service when using remote state only [GH-20379]
+* backend/s3: Fix missing workspace entries when using `workspace_key_prefix` with trailing slashes [GH-20432]
 * backend/s3: Support DynamoDB, IAM, and STS endpoint configurations [GH-19571]
 * backend/s3: Support for the new AWS region `eu-north-1` [GH-19651]
 * backend/s3: Enhance retry logic and provide `max_retries` configuration to retry attempts [GH-19951]
