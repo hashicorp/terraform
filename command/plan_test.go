@@ -686,6 +686,38 @@ func TestPlan_varFileDefault(t *testing.T) {
 	}
 }
 
+func TestPlan_varFileWithDecls(t *testing.T) {
+	tmp, cwd := testCwd(t)
+	defer testFixCwd(t, tmp, cwd)
+
+	varFilePath := testTempFile(t)
+	if err := ioutil.WriteFile(varFilePath, []byte(planVarFileWithDecl), 0644); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	p := planVarsFixtureProvider()
+	ui := cli.NewMockUi()
+	c := &PlanCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"-var-file", varFilePath,
+		testFixturePath("plan-vars"),
+	}
+	if code := c.Run(args); code == 0 {
+		t.Fatalf("succeeded; want failure\n\n%s", ui.OutputWriter.String())
+	}
+
+	msg := ui.ErrorWriter.String()
+	if got, want := msg, "Variable declaration in .tfvars file"; !strings.Contains(got, want) {
+		t.Fatalf("missing expected error message\nwant message containing %q\ngot:\n%s", want, got)
+	}
+}
+
 func TestPlan_detailedExitcode(t *testing.T) {
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -890,6 +922,13 @@ func planVarsFixtureProvider() *terraform.MockProvider {
 
 const planVarFile = `
 foo = "bar"
+`
+
+const planVarFileWithDecl = `
+foo = "bar"
+
+variable "nope" {
+}
 `
 
 const testPlanNoStateStr = `
