@@ -182,7 +182,7 @@ func TestStart(t *testing.T) {
 // TestKeepAlives verifies that the keepalive messages don't interfere with
 // normal operation of the client.
 func TestKeepAlives(t *testing.T) {
-	address := newMockLineServer(t, nil)
+	address := newMockLineServer(t, nil, testClientPublicKey)
 	parts := strings.Split(address, ":")
 
 	r := &terraform.InstanceState{
