@@ -199,6 +199,11 @@ func TestBackendExtraPaths(t *testing.T) {
 	}
 
 	// remove the state with extra subkey
+	if err := client.Delete(); err != nil {
+		t.Fatal(err)
+	}
+
+	// delete the real workspace
 	if err := b.DeleteWorkspace("s2"); err != nil {
 		t.Fatal(err)
 	}
@@ -216,7 +221,7 @@ func TestBackendExtraPaths(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if stateMgr.StateSnapshotMeta().Lineage == s2Lineage {
+	if s2Mgr.(*remote.State).StateSnapshotMeta().Lineage == s2Lineage {
 		t.Fatal("state s2 was not deleted")
 	}
 	s2 = s2Mgr.State()
