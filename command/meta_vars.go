@@ -165,6 +165,37 @@ func (m *Meta) addVarsFromFile(filename string, sourceType terraform.ValueSource
 		}
 	}
 
+	// Before we do our real decode, we'll probe to see if there are any blocks
+	// of type "variable" in this body, since it's a common mistake for new
+	// users to put variable declarations in tfvars rather than variable value
+	// definitions, and otherwise our error message for that case is not so
+	// helpful.
+	{
+		content, _, _ := f.Body.PartialContent(&hcl.BodySchema{
+			Blocks: []hcl.BlockHeaderSchema{
+				{
+					Type:       "variable",
+					LabelNames: []string{"name"},
+				},
+			},
+		})
+		for _, block := range content.Blocks {
+			name := block.Labels[0]
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Variable declaration in .tfvars file",
+				Detail:   fmt.Sprintf("A .tfvars file is used to assign values to variables that have already been declared in .tf files, not to declare new variables. To declare variable %q, place this block in one of your .tf files, such as variables.tf.\n\nTo set a value for this variable in %s, use the definition syntax instead:\n    %s = <value>", name, block.TypeRange.Filename, name),
+				Subject:  &block.TypeRange,
+			})
+		}
+		if diags.HasErrors() {
+			// If we already found problems then JustAttributes below will find
+			// the same problems with less-helpful messages, so we'll bail for
+			// now to let the user focus on the immediate problem.
+			return diags
+		}
+	}
+
 	attrs, hclDiags := f.Body.JustAttributes()
 	diags = diags.Append(hclDiags)
 
