@@ -19,11 +19,7 @@ func (b *Block) DecoderSpec() hcldec.Spec {
 	}
 
 	for name, attrS := range b.Attributes {
-		ret[name] = &hcldec.AttrSpec{
-			Name:     name,
-			Type:     attrS.Type,
-			Required: attrS.Required,
-		}
+		ret[name] = attrS.decoderSpec(name)
 	}
 
 	for name, blockS := range b.BlockTypes {
@@ -102,4 +98,12 @@ func (b *Block) DecoderSpec() hcldec.Spec {
 	}
 
 	return ret
+}
+
+func (a *Attribute) decoderSpec(name string) hcldec.Spec {
+	return &hcldec.AttrSpec{
+		Name:     name,
+		Type:     a.Type,
+		Required: a.Required,
+	}
 }
