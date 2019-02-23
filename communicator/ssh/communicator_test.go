@@ -179,6 +179,48 @@ func TestStart(t *testing.T) {
 	}
 }
 
+// TestKeepAlives verifies that the keepalive messages don't interfere with
+// normal operation of the client.
+func TestKeepAlives(t *testing.T) {
+	address := newMockLineServer(t, nil)
+	parts := strings.Split(address, ":")
+
+	r := &terraform.InstanceState{
+		Ephemeral: terraform.EphemeralState{
+			ConnInfo: map[string]string{
+				"type":     "ssh",
+				"user":     "user",
+				"password": "pass",
+				"host":     parts[0],
+				"port":     parts[1],
+				"timeout":  "30s",
+			},
+		},
+	}
+
+	c, err := New(r)
+	if err != nil {
+		t.Fatalf("error creating communicator: %s", err)
+	}
+
+	if err := c.Connect(nil); err != nil {
+		t.Fatal(err)
+	}
+
+	var cmd remote.Cmd
+	stdout := new(bytes.Buffer)
+	cmd.Command = "echo foo"
+	cmd.Stdout = stdout
+
+	// wait a bit before executing the command, so that at least 1 keepalive is sent
+	time.Sleep(3 * time.Second)
+
+	err = c.Start(&cmd)
+	if err != nil {
+		t.Fatalf("error executing remote command: %s", err)
+	}
+}
+
 func TestLostConnection(t *testing.T) {
 	address := newMockLineServer(t, nil, testClientPublicKey)
 	parts := strings.Split(address, ":")
