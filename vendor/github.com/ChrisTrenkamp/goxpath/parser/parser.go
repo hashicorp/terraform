@@ -3,7 +3,7 @@ package parser
 import (
 	"fmt"
 
-	"github.com/ChrisTrenkamp/goxpath/internal/lexer"
+	"github.com/ChrisTrenkamp/goxpath/lexer"
 )
 
 type stateType int
