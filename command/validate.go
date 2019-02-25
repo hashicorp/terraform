@@ -234,11 +234,6 @@ Usage: terraform validate [options] [dir]
   state. It is thus primarily useful for general verification of reusable
   modules, including correctness of attribute names and value types.
 
-  To verify configuration in the context of a particular run (a particular
-  target workspace, operation variables, etc), use the following command
-  instead:
-      terraform plan -validate-only
-
   It is safe to run this command automatically, for example as a post-save
   check in a text editor or as a test step for a re-usable module in a CI
   system.
@@ -249,6 +244,10 @@ Usage: terraform validate [options] [dir]
       terraform init -backend=false
 
   If dir is not specified, then the current directory will be used.
+
+  To verify configuration in the context of a particular run (a particular
+  target workspace, operation variables, etc), use the terraform plan
+  subcommand instead, which includes an implied validation check.
 
 Options:
 
