@@ -18,7 +18,9 @@ func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operati
 
 	var diags tfdiags.Diagnostics
 
-	if !w.Permissions.CanUpdate {
+	// We should remove the `CanUpdate` part of this test, but for now
+	// (to remain compatible with tfe.v2.1) we'll leave it in here.
+	if !w.Permissions.CanUpdate && !w.Permissions.CanQueueApply {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Insufficient rights to apply changes",
