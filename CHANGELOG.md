@@ -20,6 +20,7 @@ IMPROVEMENTS:
 * backend/remote: Make sure the correct error is shown when having version incompatibilities [GH-20086]
 * backend/remote: Fix "token too long" errors when streaming remote operation logs [GH-20242]
 * backend/remote: Use the `state.v2` service when using remote state only [GH-20379]
+* backend/remote: Use the `can-queue-apply` permission to detect if apply is allowed [GH-20460]
 * backend/s3: Fix missing workspace entries when using `workspace_key_prefix` with trailing slashes [GH-20432]
 * backend/s3: Support DynamoDB, IAM, and STS endpoint configurations [GH-19571]
 * backend/s3: Support for the new AWS region `eu-north-1` [GH-19651]
