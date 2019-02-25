@@ -1,0 +1,25 @@
+{
+    "format_version": "0.1",
+    "provider_schemas": {
+        "test": {
+            "resource_schemas": {
+                "test_instance": {
+                    "version": 0,
+                    "block": {
+                        "attributes": {
+                            "ami": {
+                                "type": "string",
+                                "optional": true
+                            },
+                            "id": {
+                                "type": "string",
+                                "optional": true,
+                                "computed": true
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

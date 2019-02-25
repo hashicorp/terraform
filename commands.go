@@ -186,6 +186,12 @@ func initCommands(config *Config, services *disco.Disco) {
 			}, nil
 		},
 
+		"providers schema": func() (cli.Command, error) {
+			return &command.ProvidersSchemaCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"push": func() (cli.Command, error) {
 			return &command.PushCommand{
 				Meta: meta,
