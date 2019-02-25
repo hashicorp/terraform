@@ -122,10 +122,16 @@ type RunPermissions struct {
 
 // RunStatusTimestamps holds the timestamps for individual run statuses.
 type RunStatusTimestamps struct {
-	ErroredAt  time.Time `json:"errored-at"`
-	FinishedAt time.Time `json:"finished-at"`
-	QueuedAt   time.Time `json:"queued-at"`
-	StartedAt  time.Time `json:"started-at"`
+	ErroredAt            time.Time `json:"errored-at"`
+	FinishedAt           time.Time `json:"finished-at"`
+	QueuedAt             time.Time `json:"queued-at"`
+	StartedAt            time.Time `json:"started-at"`
+	ApplyingAt           time.Time `json:"applying-at"`
+	AppliedAt            time.Time `json:"applied-at"`
+	PlanningAt           time.Time `json:"planning-at"`
+	PlannedAt            time.Time `json:"planned-at"`
+	PlannedAndFinishedAt time.Time `json:"planned-and-finished-at"`
+	PlanQueuabledAt      time.Time `json:"plan-queueable-at"`
 }
 
 // RunListOptions represents the options for listing runs.
