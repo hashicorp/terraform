@@ -46,7 +46,7 @@ func NewClientWithParameters(endpoint *Endpoint, user, password string, params *
 		url:        endpoint.url(),
 		useHTTPS:   endpoint.HTTPS,
 		// default transport
-		http: &clientRequest{},
+		http: &clientRequest{ dial:params.Dial },
 	}
 
 	// switch to other transport if provided
