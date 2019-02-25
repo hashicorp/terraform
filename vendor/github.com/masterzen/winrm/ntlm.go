@@ -3,6 +3,7 @@ package winrm
 import (
 	"github.com/Azure/go-ntlmssp"
 	"github.com/masterzen/winrm/soap"
+	"net"
 )
 
 // ClientNTLM provides a transport via NTLMv2
@@ -20,4 +21,13 @@ func (c *ClientNTLM) Transport(endpoint *Endpoint) error {
 // Post make post to the winrm soap service (forwarded to clientRequest implementation)
 func (c ClientNTLM) Post(client *Client, request *soap.SoapMessage) (string, error) {
 	return c.clientRequest.Post(client, request)
+}
+
+
+func NewClientNTLMWithDial(dial func(network, addr string) (net.Conn, error)) *ClientNTLM {
+	return &ClientNTLM{
+		clientRequest{
+			dial:dial,
+		},
+	}
 }

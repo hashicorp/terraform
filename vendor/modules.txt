@@ -23,22 +23,22 @@ github.com/Azure/go-autorest/autorest/date
 github.com/Azure/go-autorest/autorest/azure/cli
 github.com/Azure/go-autorest/autorest/to
 github.com/Azure/go-autorest/autorest/validation
-# github.com/Azure/go-ntlmssp v0.0.0-20170803034930-c92175d54006
+# github.com/Azure/go-ntlmssp v0.0.0-20180810175552-4a21cbd618b4
 github.com/Azure/go-ntlmssp
-# github.com/ChrisTrenkamp/goxpath v0.0.0-20170625215350-4fe035839290
+# github.com/ChrisTrenkamp/goxpath v0.0.0-20170922090931-c385f95c6022
 github.com/ChrisTrenkamp/goxpath
 github.com/ChrisTrenkamp/goxpath/tree
 github.com/ChrisTrenkamp/goxpath/tree/xmltree
 github.com/ChrisTrenkamp/goxpath/internal/execxp
-github.com/ChrisTrenkamp/goxpath/internal/parser
+github.com/ChrisTrenkamp/goxpath/parser
 github.com/ChrisTrenkamp/goxpath/tree/xmltree/xmlbuilder
 github.com/ChrisTrenkamp/goxpath/tree/xmltree/xmlele
-github.com/ChrisTrenkamp/goxpath/internal/lexer
-github.com/ChrisTrenkamp/goxpath/internal/parser/findutil
-github.com/ChrisTrenkamp/goxpath/internal/parser/intfns
-github.com/ChrisTrenkamp/goxpath/internal/parser/pathexpr
-github.com/ChrisTrenkamp/goxpath/internal/xconst
+github.com/ChrisTrenkamp/goxpath/internal/execxp/findutil
+github.com/ChrisTrenkamp/goxpath/internal/execxp/intfns
 github.com/ChrisTrenkamp/goxpath/internal/xsort
+github.com/ChrisTrenkamp/goxpath/lexer
+github.com/ChrisTrenkamp/goxpath/parser/pathexpr
+github.com/ChrisTrenkamp/goxpath/xconst
 github.com/ChrisTrenkamp/goxpath/tree/xmltree/xmlnode
 # github.com/Unknwon/com v0.0.0-20151008135407-28b053d5a292
 github.com/Unknwon/com
@@ -360,12 +360,9 @@ github.com/keybase/go-crypto/openpgp/elgamal
 github.com/lusis/go-artifactory/src/artifactory.v401
 # github.com/marstr/guid v1.1.0
 github.com/marstr/guid
-# github.com/masterzen/azure-sdk-for-go v0.0.0-20161014135628-ee4f0065d00c
-github.com/masterzen/azure-sdk-for-go/core/http
-github.com/masterzen/azure-sdk-for-go/core/tls
 # github.com/masterzen/simplexml v0.0.0-20160608183007-4572e39b1ab9
 github.com/masterzen/simplexml/dom
-# github.com/masterzen/winrm v0.0.0-20180224160350-7e40f93ae939
+# github.com/masterzen/winrm v0.0.0-20190223112901-5e5c9a7fe54b
 github.com/masterzen/winrm
 github.com/masterzen/winrm/soap
 # github.com/mattn/go-colorable v0.1.1
@@ -458,7 +455,7 @@ go.opencensus.io/trace/propagation
 go.opencensus.io
 go.opencensus.io/stats/internal
 go.opencensus.io/internal/tagencoding
-# golang.org/x/crypto v0.0.0-20190219172222-a4c6cb3142f2
+# golang.org/x/crypto v0.0.0-20190222235706-ffb98f73852f
 golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
 golang.org/x/crypto/ssh/knownhosts
