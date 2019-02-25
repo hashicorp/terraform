@@ -5,10 +5,12 @@ import (
 )
 
 type schema struct {
-	Version uint64 `json:"version,omitempty"`
+	Version uint64 `json:"version"`
 	Block   *block `json:"block,omitempty"`
 }
 
+// marshalSchema is a convenience wrapper around mashalBlock. Schema version
+// should be set by the caller.
 func marshalSchema(block *configschema.Block) *schema {
 	if block == nil {
 		return &schema{}

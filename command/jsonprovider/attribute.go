@@ -16,6 +16,8 @@ type attribute struct {
 }
 
 func marshalAttribute(attr *configschema.Attribute) *attribute {
+	// we're not concerned about errors because at this point the schema has
+	// already been checked and re-checked.
 	attrTy, _ := attr.Type.MarshalJSON()
 
 	return &attribute{

@@ -23,6 +23,14 @@ func TestMarshalAttribute(t *testing.T) {
 				Computed:      true,
 			},
 		},
+		{ // collection types look a little odd.
+			&configschema.Attribute{Type: cty.Map(cty.String), Optional: true, Computed: true},
+			&attribute{
+				AttributeType: json.RawMessage(`["map","string"]`),
+				Optional:      true,
+				Computed:      true,
+			},
+		},
 	}
 
 	for _, test := range tests {

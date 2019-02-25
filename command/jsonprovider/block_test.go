@@ -20,7 +20,7 @@ func TestMarshalBlock(t *testing.T) {
 			&block{},
 		},
 		{
-			&configschema.Block{
+			Input: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"id":  {Type: cty.String, Optional: true, Computed: true},
 					"ami": {Type: cty.String, Optional: true},
@@ -37,7 +37,7 @@ func TestMarshalBlock(t *testing.T) {
 					},
 				},
 			},
-			&block{
+			Want: &block{
 				Attributes: map[string]*attribute{
 					"ami": {AttributeType: json.RawMessage(`"string"`), Optional: true},
 					"id":  {AttributeType: json.RawMessage(`"string"`), Optional: true, Computed: true},

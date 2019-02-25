@@ -12,8 +12,8 @@ type block struct {
 type blockType struct {
 	NestingMode string `json:"nesting_mode,omitempty"`
 	Block       *block `json:"block,omitempty"`
-	MinItems    uint64 `json:"min_items,omitempty"`
-	MaxItems    uint64 `json:"max_items,omitempty"`
+	MinItems    uint64 `json:"min_items"`
+	MaxItems    uint64 `json:"max_items"`
 }
 
 func marshalBlockTypes(nestedBlock *configschema.NestedBlock) *blockType {
@@ -47,6 +47,7 @@ func marshalBlock(configBlock *configschema.Block) *block {
 	if configBlock == nil {
 		return &block{}
 	}
+
 	var ret block
 	if len(configBlock.Attributes) > 0 {
 		attrs := make(map[string]*attribute, len(configBlock.Attributes))

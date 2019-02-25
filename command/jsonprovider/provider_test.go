@@ -1,6 +1,7 @@
 package jsonprovider
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -18,6 +19,91 @@ func TestMarshalProvider(t *testing.T) {
 		{
 			nil,
 			Provider{},
+		},
+		{
+			testProvider(),
+			Provider{
+				Provider: &schema{
+					Block: &block{
+						Attributes: map[string]*attribute{
+							"region": {
+								AttributeType: json.RawMessage(`"string"`),
+								Required:      true,
+							},
+						},
+					},
+				},
+				ResourceSchemas: map[string]*schema{
+					"test_instance": {
+						Version: 42,
+						Block: &block{
+							Attributes: map[string]*attribute{
+								"id": {
+									AttributeType: json.RawMessage(`"string"`),
+									Optional:      true,
+									Computed:      true,
+								},
+								"ami": {
+									AttributeType: json.RawMessage(`"string"`),
+									Optional:      true,
+								},
+							},
+							BlockTypes: map[string]*blockType{
+								"network_interface": {
+									Block: &block{
+										Attributes: map[string]*attribute{
+											"device_index": {
+												AttributeType: json.RawMessage(`"string"`),
+												Optional:      true,
+											},
+											"description": {
+												AttributeType: json.RawMessage(`"string"`),
+												Optional:      true,
+											},
+										},
+									},
+									NestingMode: "list",
+								},
+							},
+						},
+					},
+				},
+				DataSourceSchemas: map[string]*schema{
+					"test_data_source": {
+						Version: 3,
+						Block: &block{
+							Attributes: map[string]*attribute{
+								"id": {
+									AttributeType: json.RawMessage(`"string"`),
+									Optional:      true,
+									Computed:      true,
+								},
+								"ami": {
+									AttributeType: json.RawMessage(`"string"`),
+									Optional:      true,
+								},
+							},
+							BlockTypes: map[string]*blockType{
+								"network_interface": {
+									Block: &block{
+										Attributes: map[string]*attribute{
+											"device_index": {
+												AttributeType: json.RawMessage(`"string"`),
+												Optional:      true,
+											},
+											"description": {
+												AttributeType: json.RawMessage(`"string"`),
+												Optional:      true,
+											},
+										},
+									},
+									NestingMode: "list",
+								},
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 
@@ -39,6 +125,11 @@ func testProviders() *terraform.Schemas {
 
 func testProvider() *terraform.ProviderSchema {
 	return &terraform.ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"region": {Type: cty.String, Required: true},
+			},
+		},
 		ResourceTypes: map[string]*configschema.Block{
 			"test_instance": {
 				Attributes: map[string]*configschema.Attribute{
