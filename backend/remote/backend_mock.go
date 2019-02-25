@@ -972,6 +972,15 @@ func (m *mockWorkspaces) Delete(ctx context.Context, organization, workspace str
 	return nil
 }
 
+func (m *mockWorkspaces) RemoveVCSConnection(ctx context.Context, organization, workspace string) (*tfe.Workspace, error) {
+	w, ok := m.workspaceNames[workspace]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+	w.VCSRepo = nil
+	return w, nil
+}
+
 func (m *mockWorkspaces) Lock(ctx context.Context, workspaceID string, options tfe.WorkspaceLockOptions) (*tfe.Workspace, error) {
 	w, ok := m.workspaceIDs[workspaceID]
 	if !ok {
