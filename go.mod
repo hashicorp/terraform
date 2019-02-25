@@ -114,6 +114,7 @@ require (
 	github.com/xanzy/ssh-agent v0.2.1
 	github.com/xiang90/probing v0.0.0-20160813154853-07dd2e8dfe18 // indirect
 	github.com/xlab/treeprint v0.0.0-20161029104018-1d6e34225557
+	github.com/youmark/pkcs8 v0.0.0-20181201043747-70daafe5d78a
 	github.com/zclconf/go-cty v0.0.0-20190201220620-4ca19710f056
 	go.uber.org/atomic v1.3.2 // indirect
 	go.uber.org/multierr v1.1.0 // indirect

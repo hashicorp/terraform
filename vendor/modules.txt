@@ -434,6 +434,8 @@ github.com/vmihailenco/msgpack/codes
 github.com/xanzy/ssh-agent
 # github.com/xlab/treeprint v0.0.0-20161029104018-1d6e34225557
 github.com/xlab/treeprint
+# github.com/youmark/pkcs8 v0.0.0-20181201043747-70daafe5d78a
+github.com/youmark/pkcs8
 # github.com/zclconf/go-cty v0.0.0-20190201220620-4ca19710f056
 github.com/zclconf/go-cty/cty
 github.com/zclconf/go-cty/cty/gocty
@@ -465,6 +467,7 @@ golang.org/x/crypto/ssh/knownhosts
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/openpgp
 golang.org/x/crypto/pkcs12
+golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/curve25519
 golang.org/x/crypto/ed25519
 golang.org/x/crypto/internal/chacha20
