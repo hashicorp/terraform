@@ -16,7 +16,9 @@ import (
 func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operation, w *tfe.Workspace) (*tfe.Run, error) {
 	log.Printf("[INFO] backend/remote: starting Apply operation")
 
-	if !w.Permissions.CanUpdate {
+	// We should remove the `CanUpdate` part of this test, but for now
+	// (to remain compatible with tfe.v2.1) we'll leave it in here.
+	if !w.Permissions.CanUpdate && !w.Permissions.CanQueueApply {
 		return nil, fmt.Errorf(strings.TrimSpace(applyErrNoUpdateRights))
 	}
 
