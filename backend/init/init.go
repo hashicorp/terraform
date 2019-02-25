@@ -108,11 +108,11 @@ type deprecatedBackendShim struct {
 	Message string
 }
 
-// ValidateConfig delegates to the wrapped backend to validate its config
+// PrepareConfig delegates to the wrapped backend to validate its config
 // and then appends shim's deprecation warning.
-func (b deprecatedBackendShim) ValidateConfig(obj cty.Value) tfdiags.Diagnostics {
-	diags := b.Backend.ValidateConfig(obj)
-	return diags.Append(tfdiags.SimpleWarning(b.Message))
+func (b deprecatedBackendShim) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
+	newObj, diags := b.Backend.PrepareConfig(obj)
+	return newObj, diags.Append(tfdiags.SimpleWarning(b.Message))
 }
 
 // DeprecateBackend can be used to wrap a backend to retrun a deprecation

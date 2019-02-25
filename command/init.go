@@ -446,6 +446,7 @@ func (c *InitCommand) initBackend(root *configs.Module, extraConfig rawFlags) (b
 		ConfigOverride: backendConfigOverride,
 		Init:           true,
 	}
+
 	back, backDiags := c.Backend(opts)
 	diags = diags.Append(backDiags)
 	return back, true, diags
