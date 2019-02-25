@@ -1,6 +1,6 @@
 package parser
 
-import "github.com/ChrisTrenkamp/goxpath/internal/lexer"
+import "github.com/ChrisTrenkamp/goxpath/lexer"
 
 //NodeType enumerations
 const (
