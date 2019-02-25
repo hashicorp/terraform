@@ -139,9 +139,9 @@ func (b *Local) ConfigSchema() *configschema.Block {
 	}
 }
 
-func (b *Local) ValidateConfig(obj cty.Value) tfdiags.Diagnostics {
+func (b *Local) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	if b.Backend != nil {
-		return b.Backend.ValidateConfig(obj)
+		return b.Backend.PrepareConfig(obj)
 	}
 
 	var diags tfdiags.Diagnostics
@@ -170,7 +170,7 @@ func (b *Local) ValidateConfig(obj cty.Value) tfdiags.Diagnostics {
 		}
 	}
 
-	return diags
+	return obj, diags
 }
 
 func (b *Local) Configure(obj cty.Value) tfdiags.Diagnostics {

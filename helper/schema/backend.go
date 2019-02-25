@@ -49,9 +49,9 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 	return b.CoreConfigSchema()
 }
 
-func (b *Backend) ValidateConfig(obj cty.Value) tfdiags.Diagnostics {
+func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	if b == nil {
-		return nil
+		return obj, nil
 	}
 
 	var diags tfdiags.Diagnostics
@@ -63,7 +63,7 @@ func (b *Backend) ValidateConfig(obj cty.Value) tfdiags.Diagnostics {
 	for _, err := range errs {
 		diags = diags.Append(err)
 	}
-	return diags
+	return obj, diags
 }
 
 func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {

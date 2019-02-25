@@ -17,8 +17,8 @@ func (Nil) ConfigSchema() *configschema.Block {
 	return &configschema.Block{}
 }
 
-func (Nil) ValidateConfig(cty.Value) tfdiags.Diagnostics {
-	return nil
+func (Nil) PrepareConfig(v cty.Value) (cty.Value, tfdiags.Diagnostics) {
+	return v, nil
 }
 
 func (Nil) Configure(cty.Value) tfdiags.Diagnostics {

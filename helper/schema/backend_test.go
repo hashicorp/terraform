@@ -48,7 +48,7 @@ func TestBackendValidate(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
-			diags := tc.B.ValidateConfig(cty.ObjectVal(tc.Config))
+			_, diags := tc.B.PrepareConfig(cty.ObjectVal(tc.Config))
 			if diags.HasErrors() != tc.Err {
 				t.Errorf("wrong number of diagnostics")
 			}
