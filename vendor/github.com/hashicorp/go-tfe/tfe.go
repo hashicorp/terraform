@@ -35,9 +35,6 @@ const (
 )
 
 var (
-	// random is used to generate pseudo-random numbers.
-	random = rand.New(rand.NewSource(time.Now().UnixNano()))
-
 	// ErrWorkspaceLocked is returned when trying to lock a
 	// locked workspace.
 	ErrWorkspaceLocked = errors.New("workspace already locked")
@@ -232,8 +229,11 @@ func rateLimitRetry(ctx context.Context, resp *http.Response, err error) (bool, 
 // the reset time retrieved from the headers. But if the final wait time is
 // less then min, min will be used instead.
 func rateLimitBackoff(min, max time.Duration, attemptNum int, resp *http.Response) time.Duration {
+	// rnd is used to generate pseudo-random numbers.
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+
 	// First create some jitter bounded by the min and max durations.
-	jitter := time.Duration(rand.Float64() * float64(max-min))
+	jitter := time.Duration(rnd.Float64() * float64(max-min))
 
 	if resp != nil {
 		if v := resp.Header.Get(headerRateReset); v != "" {
