@@ -12,8 +12,8 @@ type block struct {
 type blockType struct {
 	NestingMode string `json:"nesting_mode,omitempty"`
 	Block       *block `json:"block,omitempty"`
-	MinItems    uint64 `json:"min_items"`
-	MaxItems    uint64 `json:"max_items"`
+	MinItems    uint64 `json:"min_items,omitempty"`
+	MaxItems    uint64 `json:"max_items,omitempty"`
 }
 
 func marshalBlockTypes(nestedBlock *configschema.NestedBlock) *blockType {
@@ -26,19 +26,17 @@ func marshalBlockTypes(nestedBlock *configschema.NestedBlock) *blockType {
 		MaxItems: uint64(nestedBlock.MaxItems),
 	}
 
-	switch nestedBlock.Nesting.String() {
-	case "nestingModeInvalid":
-		ret.NestingMode = "invalid"
-	case "NestingSingle":
+	switch nestedBlock.Nesting {
+	case configschema.NestingSingle:
 		ret.NestingMode = "single"
-	case "NestingList":
+	case configschema.NestingList:
 		ret.NestingMode = "list"
-	case "NestingSet":
+	case configschema.NestingSet:
 		ret.NestingMode = "set"
-	case "NestingMap":
+	case configschema.NestingMap:
 		ret.NestingMode = "map"
 	default:
-		// unpossible.
+		ret.NestingMode = "invalid"
 	}
 	return ret
 }
