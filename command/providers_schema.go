@@ -31,10 +31,17 @@ func (c *ProvidersSchemaCommand) Run(args []string) int {
 
 	cmdFlags := c.Meta.defaultFlagSet("providers schema")
 	var jsonOutput bool
-	cmdFlags.BoolVar(&jsonOutput, "json", true, "produce JSON output")
+	cmdFlags.BoolVar(&jsonOutput, "json", false, "produce JSON output")
 
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
+		return 1
+	}
+
+	if !jsonOutput {
+		c.Ui.Error(
+			"The `terraform providers schema` command requires the `-json` flag.\n")
+		cmdFlags.Usage()
 		return 1
 	}
 

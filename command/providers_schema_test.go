@@ -22,8 +22,9 @@ func TestProvidersSchema_error(t *testing.T) {
 		},
 	}
 
-	if code := c.Run(nil); code != 0 {
-		t.Fatalf("bad: \n%s", ui.OutputWriter.String())
+	if code := c.Run(nil); code != 1 {
+		fmt.Println(ui.OutputWriter.String())
+		t.Fatalf("expected error: \n%s", ui.OutputWriter.String())
 	}
 }
 
@@ -62,7 +63,7 @@ func TestProvidersSchema_output(t *testing.T) {
 
 	// `terraform provider schemas` command
 	pc := &ProvidersSchemaCommand{Meta: m}
-	if code := pc.Run([]string{}); code != 0 {
+	if code := pc.Run([]string{"-json"}); code != 0 {
 		t.Fatalf("wrong exit status %d; want 0\nstderr: %s", code, ui.ErrorWriter.String())
 	}
 	var got, want providerSchemas
