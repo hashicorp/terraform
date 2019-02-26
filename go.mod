@@ -8,8 +8,6 @@ require (
 	github.com/abdullin/seq v0.0.0-20160510034733-d5467c17e7af // indirect
 	github.com/agext/levenshtein v1.2.2
 	github.com/agl/ed25519 v0.0.0-20150830182803-278e1ec8e8a6 // indirect
-	github.com/antchfx/xpath v0.0.0-20170728053731-b5c552e1acbd // indirect
-	github.com/antchfx/xquery v0.0.0-20170730121040-eb8c3c172607 // indirect
 	github.com/apparentlymart/go-cidr v1.0.0
 	github.com/apparentlymart/go-dump v0.0.0-20190214190832-042adf3cf4a0
 	github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2
@@ -28,7 +26,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dnaeon/go-vcr v0.0.0-20180920040454-5637cf3d8a31 // indirect
 	github.com/dylanmei/iso8601 v0.1.0 // indirect
-	github.com/dylanmei/winrmtest v0.0.0-20170819153634-c2fbb09e6c08
+	github.com/dylanmei/winrmtest v0.0.0-20190225150635-99b7fe2fddf1
 	github.com/go-test/deep v1.0.1
 	github.com/gogo/protobuf v1.2.0 // indirect
 	github.com/golang/groupcache v0.0.0-20180513044358-24b0969c4cb7 // indirect
@@ -95,7 +93,6 @@ require (
 	github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c // indirect
 	github.com/pkg/errors v0.0.0-20170505043639-c605e284fe17 // indirect
 	github.com/posener/complete v1.2.1
-	github.com/satori/go.uuid v0.0.0-20160927100844-b061729afc07 // indirect
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
 	github.com/sirupsen/logrus v1.1.1 // indirect
 	github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d // indirect

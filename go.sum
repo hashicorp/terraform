@@ -29,10 +29,10 @@ github.com/agext/levenshtein v1.2.2/go.mod h1:JEDfjyjHDjOF/1e4FlBE/PkbqA9OfWu2ki
 github.com/agl/ed25519 v0.0.0-20150830182803-278e1ec8e8a6 h1:LoeFxdq5zUCBQPhbQKE6zvoGwHMxCBlqwbH9+9kHoHA=
 github.com/agl/ed25519 v0.0.0-20150830182803-278e1ec8e8a6/go.mod h1:WPjqKcmVOxf0XSf3YxCJs6N6AOSrOx3obionmG7T0y0=
 github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239/go.mod h1:2FmKhYUyUczH0OGQWaF5ceTx0UBShxjsH6f8oGKYe2c=
-github.com/antchfx/xpath v0.0.0-20170728053731-b5c552e1acbd h1:S3Fr6QnkpW9VRjiEY4psQHhhbbahASuNVj52YIce7lI=
-github.com/antchfx/xpath v0.0.0-20170728053731-b5c552e1acbd/go.mod h1:Yee4kTMuNiPYJ7nSNorELQMr1J33uOpXDMByNYhvtNk=
-github.com/antchfx/xquery v0.0.0-20170730121040-eb8c3c172607 h1:BFFG6KP8ASFBg2ptWsJn8p8RDufBjBDKIxLU7BTYGOM=
-github.com/antchfx/xquery v0.0.0-20170730121040-eb8c3c172607/go.mod h1:LzD22aAzDP8/dyiCKFp31He4m2GPjl0AFyzDtZzUu9M=
+github.com/antchfx/xpath v0.0.0-20190129040759-c8489ed3251e h1:ptBAamGVd6CfRsUtyHD+goy2JGhv1QC32v3gqM8mYAM=
+github.com/antchfx/xpath v0.0.0-20190129040759-c8489ed3251e/go.mod h1:Yee4kTMuNiPYJ7nSNorELQMr1J33uOpXDMByNYhvtNk=
+github.com/antchfx/xquery v0.0.0-20180515051857-ad5b8c7a47b0 h1:JaCC8jz0zdMLk2m+qCCVLLLM/PL93p84w4pK3aJWj60=
+github.com/antchfx/xquery v0.0.0-20180515051857-ad5b8c7a47b0/go.mod h1:LzD22aAzDP8/dyiCKFp31He4m2GPjl0AFyzDtZzUu9M=
 github.com/apparentlymart/go-cidr v1.0.0 h1:lGDvXx8Lv9QHjrAVP7jyzleG4F9+FkRhJcEsDFxeb8w=
 github.com/apparentlymart/go-cidr v1.0.0/go.mod h1:EBcsNrHc3zQeuaeCeCtQruQm+n9/YjEn/vI25Lg7Gwc=
 github.com/apparentlymart/go-dump v0.0.0-20180507223929-23540a00eaa3 h1:ZSTrOEhiM5J5RFxEaFvMZVEAM1KvT1YzbEOwB2EAGjA=
@@ -93,8 +93,8 @@ github.com/dnaeon/go-vcr v0.0.0-20180920040454-5637cf3d8a31/go.mod h1:aBB1+wY4s9
 github.com/dustin/go-humanize v1.0.0/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25KnS6fMYU6eOk=
 github.com/dylanmei/iso8601 v0.1.0 h1:812NGQDBcqquTfH5Yeo7lwR0nzx/cKdsmf3qMjPURUI=
 github.com/dylanmei/iso8601 v0.1.0/go.mod h1:w9KhXSgIyROl1DefbMYIE7UVSIvELTbMrCfx+QkYnoQ=
-github.com/dylanmei/winrmtest v0.0.0-20170819153634-c2fbb09e6c08 h1:0bp6/GrNOrTDtSXe9YYGCwf8jp5Fb/b+4a6MTRm4qzY=
-github.com/dylanmei/winrmtest v0.0.0-20170819153634-c2fbb09e6c08/go.mod h1:VBVDFSBXCIW8JaHQpI8lldSKfYaLMzP9oyq6IJ4fhzY=
+github.com/dylanmei/winrmtest v0.0.0-20190225150635-99b7fe2fddf1 h1:r1oACdS2XYiAWcfF8BJXkoU8l1J71KehGR+d99yWEDA=
+github.com/dylanmei/winrmtest v0.0.0-20190225150635-99b7fe2fddf1/go.mod h1:lcy9/2gH1jn/VCLouHA6tOEwLoNVd4GW6zhuKLmHC2Y=
 github.com/fatih/color v1.7.0 h1:DkWD4oS2D8LGGgTQ6IvwJJXSL5Vp2ffcQg58nFV38Ys=
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=
 github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568/go.mod h1:xEzjJPgXI435gkrCt3MPfRiAkVrwSbHsst4LCFVfpJc=
@@ -326,8 +326,8 @@ github.com/prometheus/common v0.0.0-20180801064454-c7de2306084e/go.mod h1:daVV7q
 github.com/prometheus/procfs v0.0.0-20180725123919-05ee40e3a273 h1:agujYaXJSxSo18YNX3jzl+4G6Bstwt+kqv47GS12uL0=
 github.com/prometheus/procfs v0.0.0-20180725123919-05ee40e3a273/go.mod h1:c3At6R/oaqEKCNdg8wHV1ftS6bRYblBhIjjI8uT2IGk=
 github.com/russross/blackfriday v1.5.2/go.mod h1:JO/DiYxRf+HjHt06OyowR9PTA263kcR/rfWxYHBV53g=
-github.com/satori/go.uuid v0.0.0-20160927100844-b061729afc07 h1:DEZDfcCVq3xDJrjqdCgyN/dHYVoqR92MCsdqCdxmnhM=
-github.com/satori/go.uuid v0.0.0-20160927100844-b061729afc07/go.mod h1:dA0hQrYB0VpLJoorglMZABFdXlWrHn1NEOzdhQKdks0=
+github.com/satori/go.uuid v1.2.0 h1:0uYX9dsZ2yD7q2RtLRtPSdGDWzjeM3TbMJP9utgA0ww=
+github.com/satori/go.uuid v1.2.0/go.mod h1:dA0hQrYB0VpLJoorglMZABFdXlWrHn1NEOzdhQKdks0=
 github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 h1:nn5Wsu0esKSJiIVhscUtVbo7ada43DJhG55ua/hjS5I=
 github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529/go.mod h1:DxrIzT+xaE7yg65j358z/aeFdxmN0P9QXhEzd20vsDc=
 github.com/sergi/go-diff v1.0.0 h1:Kpca3qRNrduNnOQeazBd0ysaKrUJiIuISHxogkT9RPQ=
