@@ -1242,7 +1242,13 @@ func (p *parser) parseObjectCons() (Expression, hcl.Diagnostics) {
 		panic("parseObjectCons called without peeker pointing to open brace")
 	}
 
-	if forKeyword.TokenMatches(p.Peek()) {
+	// We must temporarily stop looking at newlines here while we check for
+	// a "for" keyword, since for expressions are _not_ newline-sensitive,
+	// even though object constructors are.
+	p.PushIncludeNewlines(false)
+	isFor := forKeyword.TokenMatches(p.Peek())
+	p.PopIncludeNewlines()
+	if isFor {
 		return p.finishParsingForExpr(open)
 	}
 
@@ -1377,6 +1383,8 @@ func (p *parser) parseObjectCons() (Expression, hcl.Diagnostics) {
 }
 
 func (p *parser) finishParsingForExpr(open Token) (Expression, hcl.Diagnostics) {
+	p.PushIncludeNewlines(false)
+	defer p.PopIncludeNewlines()
 	introducer := p.Read()
 	if !forKeyword.TokenMatches(introducer) {
 		// Should never happen if callers are behaving
