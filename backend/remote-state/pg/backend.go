@@ -29,7 +29,7 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Name of the automatically managed Postgres schema to store state",
-				Default:     "terraform_remote_backend",
+				Default:     "terraform_remote_state",
 			},
 		},
 	}
