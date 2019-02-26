@@ -2,19 +2,16 @@ dist: trusty
 sudo: required
 services:
   - docker
-  - postgresql
 language: go
 go:
 - "1.11.5"
-addons:
-  postgresql: 9.6
 
 # add TF_CONSUL_TEST=1 to run consul tests
 # they were causing timouts in travis
 # add TF_ETCDV3_TEST=1 to run etcdv3 tests
 # if added, TF_ETCDV3_ENDPOINTS must be set to a comma-separated list of (insecure) etcd endpoints against which to test
 env:
-  - CONSUL_VERSION=0.7.5 GOMAXPROCS=4 GO111MODULE=on DATABASE_URL=postgres://localhost/terraform_backend_pg_test?sslmode=disable
+  - CONSUL_VERSION=0.7.5 GOMAXPROCS=4 GO111MODULE=on
 
 # Fetch consul for the backend and provider tests
 before_install:
@@ -34,7 +31,6 @@ install:
 
 before_script:
 - git config --global url.https://github.com/.insteadOf ssh://git@github.com/
-- psql --command 'create database terraform_backend_pg_test;' --host localhost --username postgres
 
 script:
 - make test
