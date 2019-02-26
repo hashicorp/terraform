@@ -50,7 +50,7 @@ The following configuration options or environment variables are supported:
  
 ## Technical Design
 
-Postgres version 9.5 or newer is required to support advisory locks, the "ON CONFLICT" upsert syntax, *jsonb* data type.
+Postgres version 9.5 or newer is required to support advisory locks and the "ON CONFLICT" upsert syntax.
 
 This backend creates one table **states** in the automatically-managed Postgres schema configured by the `schema_name` variable.
 

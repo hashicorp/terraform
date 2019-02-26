@@ -58,8 +58,7 @@ func (b *Backend) StateMgr(name string) (state.State, error) {
 	}
 
 	// Check to see if this state already exists.
-	// If we're trying to force-unlock a state, we can't take the lock before
-	// fetching the state. If the state doesn't exist, we have to assume this
+	// If the state doesn't exist, we have to assume this
 	// is a normal create operation, and take the lock at that point.
 	existing, err := b.Workspaces()
 	if err != nil {
