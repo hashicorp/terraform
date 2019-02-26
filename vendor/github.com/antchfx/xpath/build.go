@@ -23,9 +23,12 @@ type builder struct {
 func axisPredicate(root *axisNode) func(NodeNavigator) bool {
 	// get current axix node type.
 	typ := ElementNode
-	if root.AxeType == "attribute" {
+	switch root.AxeType {
+	case "attribute":
 		typ = AttributeNode
-	} else {
+	case "self", "parent":
+		typ = allNode
+	default:
 		switch root.Prop {
 		case "comment":
 			typ = CommentNode
@@ -34,12 +37,17 @@ func axisPredicate(root *axisNode) func(NodeNavigator) bool {
 			//	case "processing-instruction":
 		//	typ = ProcessingInstructionNode
 		case "node":
-			typ = ElementNode
+			typ = allNode
 		}
 	}
+	nametest := root.LocalName != "" || root.Prefix != ""
 	predicate := func(n NodeNavigator) bool {
-		if typ == n.NodeType() || typ == TextNode {
-			if root.LocalName == "" || (root.LocalName == n.LocalName() && root.Prefix == n.Prefix()) {
+		if typ == n.NodeType() || typ == allNode || typ == TextNode {
+			if nametest {
+				if root.LocalName == n.LocalName() && root.Prefix == n.Prefix() {
+					return true
+				}
+			} else {
 				return true
 			}
 		}
@@ -61,18 +69,16 @@ func (b *builder) processAxisNode(root *axisNode) (query, error) {
 	if root.Input == nil {
 		qyInput = &contextQuery{}
 	} else {
-		if b.flag&filterFlag == 0 {
-			if root.AxeType == "child" && (root.Input.Type() == nodeAxis) {
-				if input := root.Input.(*axisNode); input.AxeType == "descendant-or-self" {
-					var qyGrandInput query
-					if input.Input != nil {
-						qyGrandInput, _ = b.processNode(input.Input)
-					} else {
-						qyGrandInput = &contextQuery{}
-					}
-					qyOutput = &descendantQuery{Input: qyGrandInput, Predicate: predicate, Self: true}
-					return qyOutput, nil
+		if root.AxeType == "child" && (root.Input.Type() == nodeAxis) {
+			if input := root.Input.(*axisNode); input.AxeType == "descendant-or-self" {
+				var qyGrandInput query
+				if input.Input != nil {
+					qyGrandInput, _ = b.processNode(input.Input)
+				} else {
+					qyGrandInput = &contextQuery{}
 				}
+				qyOutput = &descendantQuery{Input: qyGrandInput, Predicate: predicate, Self: true}
+				return qyOutput, nil
 			}
 		}
 		qyInput, err = b.processNode(root.Input)
@@ -157,6 +163,16 @@ func (b *builder) processFunctionNode(root *functionNode) (query, error) {
 			return nil, err
 		}
 		qyOutput = &functionQuery{Input: b.firstInput, Func: startwithFunc(arg1, arg2)}
+	case "ends-with":
+		arg1, err := b.processNode(root.Args[0])
+		if err != nil {
+			return nil, err
+		}
+		arg2, err := b.processNode(root.Args[1])
+		if err != nil {
+			return nil, err
+		}
+		qyOutput = &functionQuery{Input: b.firstInput, Func: endwithFunc(arg1, arg2)}
 	case "contains":
 		arg1, err := b.processNode(root.Args[0])
 		if err != nil {
@@ -189,6 +205,25 @@ func (b *builder) processFunctionNode(root *functionNode) (query, error) {
 			}
 		}
 		qyOutput = &functionQuery{Input: b.firstInput, Func: substringFunc(arg1, arg2, arg3)}
+	case "substring-before", "substring-after":
+		//substring-xxxx( haystack, needle )
+		if len(root.Args) != 2 {
+			return nil, errors.New("xpath: substring-before function must have two parameters")
+		}
+		var (
+			arg1, arg2 query
+			err        error
+		)
+		if arg1, err = b.processNode(root.Args[0]); err != nil {
+			return nil, err
+		}
+		if arg2, err = b.processNode(root.Args[1]); err != nil {
+			return nil, err
+		}
+		qyOutput = &functionQuery{
+			Input: b.firstInput,
+			Func:  substringIndFunc(arg1, arg2, root.FuncName == "substring-after"),
+		}
 	case "string-length":
 		// string-length( [string] )
 		if len(root.Args) < 1 {
@@ -208,6 +243,25 @@ func (b *builder) processFunctionNode(root *functionNode) (query, error) {
 			return nil, err
 		}
 		qyOutput = &functionQuery{Input: argQuery, Func: normalizespaceFunc}
+	case "translate":
+		//translate( string , string, string )
+		if len(root.Args) != 3 {
+			return nil, errors.New("xpath: translate function must have three parameters")
+		}
+		var (
+			arg1, arg2, arg3 query
+			err              error
+		)
+		if arg1, err = b.processNode(root.Args[0]); err != nil {
+			return nil, err
+		}
+		if arg2, err = b.processNode(root.Args[1]); err != nil {
+			return nil, err
+		}
+		if arg3, err = b.processNode(root.Args[2]); err != nil {
+			return nil, err
+		}
+		qyOutput = &functionQuery{Input: b.firstInput, Func: translateFunc(arg1, arg2, arg3)}
 	case "not":
 		if len(root.Args) == 0 {
 			return nil, errors.New("xpath: not function must have at least one parameter")
@@ -217,12 +271,62 @@ func (b *builder) processFunctionNode(root *functionNode) (query, error) {
 			return nil, err
 		}
 		qyOutput = &functionQuery{Input: argQuery, Func: notFunc}
-	case "name":
-		qyOutput = &functionQuery{Input: b.firstInput, Func: nameFunc}
+	case "name", "local-name", "namespace-uri":
+		inp := b.firstInput
+		if len(root.Args) > 1 {
+			return nil, fmt.Errorf("xpath: %s function must have at most one parameter", root.FuncName)
+		}
+		if len(root.Args) == 1 {
+			argQuery, err := b.processNode(root.Args[0])
+			if err != nil {
+				return nil, err
+			}
+			inp = argQuery
+		}
+		f := &functionQuery{Input: inp}
+		switch root.FuncName {
+		case "name":
+			f.Func = nameFunc
+		case "local-name":
+			f.Func = localNameFunc
+		case "namespace-uri":
+			f.Func = namespaceFunc
+		}
+		qyOutput = f
+	case "true", "false":
+		val := root.FuncName == "true"
+		qyOutput = &functionQuery{
+			Input: b.firstInput,
+			Func: func(_ query, _ iterator) interface{} {
+				return val
+			},
+		}
 	case "last":
 		qyOutput = &functionQuery{Input: b.firstInput, Func: lastFunc}
 	case "position":
 		qyOutput = &functionQuery{Input: b.firstInput, Func: positionFunc}
+	case "boolean", "number", "string":
+		inp := b.firstInput
+		if len(root.Args) > 1 {
+			return nil, fmt.Errorf("xpath: %s function must have at most one parameter", root.FuncName)
+		}
+		if len(root.Args) == 1 {
+			argQuery, err := b.processNode(root.Args[0])
+			if err != nil {
+				return nil, err
+			}
+			inp = argQuery
+		}
+		f := &functionQuery{Input: inp}
+		switch root.FuncName {
+		case "boolean":
+			f.Func = booleanFunc
+		case "string":
+			f.Func = stringFunc
+		case "number":
+			f.Func = numberFunc
+		}
+		qyOutput = f
 	case "count":
 		//if b.firstInput == nil {
 		//	return nil, errors.New("xpath: expression must evaluate to node-set")
@@ -244,6 +348,24 @@ func (b *builder) processFunctionNode(root *functionNode) (query, error) {
 			return nil, err
 		}
 		qyOutput = &functionQuery{Input: argQuery, Func: sumFunc}
+	case "ceiling", "floor", "round":
+		if len(root.Args) == 0 {
+			return nil, fmt.Errorf("xpath: ceiling(node-sets) function must with have parameters node-sets")
+		}
+		argQuery, err := b.processNode(root.Args[0])
+		if err != nil {
+			return nil, err
+		}
+		f := &functionQuery{Input: argQuery}
+		switch root.FuncName {
+		case "ceiling":
+			f.Func = ceilingFunc
+		case "floor":
+			f.Func = floorFunc
+		case "round":
+			f.Func = roundFunc
+		}
+		qyOutput = f
 	case "concat":
 		if len(root.Args) < 2 {
 			return nil, fmt.Errorf("xpath: concat() must have at least two arguments")
@@ -304,12 +426,14 @@ func (b *builder) processOperatorNode(root *operatorNode) (query, error) {
 			exprFunc = neFunc
 		}
 		qyOutput = &logicalQuery{Left: left, Right: right, Do: exprFunc}
-	case "or", "and", "|":
+	case "or", "and":
 		isOr := false
-		if root.Op == "or" || root.Op == "|" {
+		if root.Op == "or" {
 			isOr = true
 		}
 		qyOutput = &booleanQuery{Left: left, Right: right, IsOr: isOr}
+	case "|":
+		qyOutput = &unionQuery{Left: left, Right: right}
 	}
 	return qyOutput, nil
 }
