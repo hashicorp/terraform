@@ -19,14 +19,38 @@ This backend supports [state locking](/docs/state/locking.html).
 ```hcl
 terraform {
   backend "pg" {
-    conn_str = "postgres://localhost/terraform_backend"
+    conn_str = "postgres://user:pass@db.example.com/terraform_backend"
   }
 }
 ```
 
-Before initializing the backend with `terraform init`, the database must already exist.
+Before initializing the backend with `terraform init`, the database must already exist:
 
-We recommend using a [partial configuration](/docs/backends/config.html#partial-configuration) for the `conn_str` variable, because it typically contains access credentials that should not be committed to source control.
+```
+createdb terraform_backend
+```
+
+This `createdb` command is found in [Postgres client applications](https://www.postgresql.org/docs/9.5/reference-client.html) which are installed along with the database server.
+
+We recommend using a [partial configuration](/docs/backends/config.html#partial-configuration) for the `conn_str` variable, because it typically contains access credentials that should not be committed to source control:
+
+```hcl
+terraform {
+  backend "pg" {}
+}
+```
+
+Then, set the credentials when initializing the configuration:
+
+```
+terraform init -backend-config="conn_str=postgres://user:pass@db.example.com/terraform_backend"
+```
+
+To use a Postgres server running on the same machine as Terraform, configure localhost with SSL disabled:
+
+```
+terraform init -backend-config="conn_str=postgres://localhost/terraform_backend?sslmode=disable"
+```
 
 ## Example Referencing
 
@@ -56,7 +80,7 @@ This backend creates one table **states** in the automatically-managed Postgres 
 
 The table is keyed by the [workspace](/docs/state/workspaces.html) name. If workspaces are not in use, the name `default` is used.
 
-Locking is supported using [Postgres advisory locks](https://www.postgresql.org/docs/9.5/explicit-locking.html#ADVISORY-LOCKS).
+Locking is supported using [Postgres advisory locks](https://www.postgresql.org/docs/9.5/explicit-locking.html#ADVISORY-LOCKS). [`force-unlock`](https://www.terraform.io/docs/commands/force-unlock.html) is not supported, because these database-native locks will automatically unlock when the transaction is aborted or the connection fails. To see outstanding locks in a Postgres server, use the [`pg_locks` system view](https://www.postgresql.org/docs/9.5/view-pg-locks.html).
 
 The **states** table contains:
 
