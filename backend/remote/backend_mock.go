@@ -919,8 +919,8 @@ func (m *mockWorkspaces) Create(ctx context.Context, organization string, option
 		Name:       *options.Name,
 		Operations: !strings.HasSuffix(*options.Name, "no-operations"),
 		Permissions: &tfe.WorkspacePermissions{
-			CanQueueRun: true,
-			CanUpdate:   true,
+			CanQueueApply: true,
+			CanQueueRun:   true,
 		},
 	}
 	if options.AutoApply != nil {
