@@ -97,10 +97,11 @@ func testBackend(t *testing.T, obj cty.Value) (*Remote, func()) {
 	b := New(testDisco(s))
 
 	// Configure the backend so the client is created.
-	valDiags := b.ValidateConfig(obj)
+	newObj, valDiags := b.PrepareConfig(obj)
 	if len(valDiags) != 0 {
 		t.Fatal(valDiags.ErrWithWarnings())
 	}
+	obj = newObj
 
 	confDiags := b.Configure(obj)
 	if len(confDiags) != 0 {

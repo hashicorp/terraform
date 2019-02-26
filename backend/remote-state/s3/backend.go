@@ -41,7 +41,10 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The region of the S3 bucket.",
-				DefaultFunc: schema.EnvDefaultFunc("AWS_DEFAULT_REGION", nil),
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"AWS_REGION",
+					"AWS_DEFAULT_REGION",
+				}, nil),
 			},
 
 			"dynamodb_endpoint": {

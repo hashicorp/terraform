@@ -8,11 +8,12 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-func TestBackendValidate(t *testing.T) {
+func TestBackendPrepare(t *testing.T) {
 	cases := []struct {
 		Name   string
 		B      *Backend
 		Config map[string]cty.Value
+		Expect map[string]cty.Value
 		Err    bool
 	}{
 		{
@@ -25,6 +26,7 @@ func TestBackendValidate(t *testing.T) {
 					},
 				},
 			},
+			map[string]cty.Value{},
 			map[string]cty.Value{},
 			true,
 		},
@@ -42,15 +44,87 @@ func TestBackendValidate(t *testing.T) {
 			map[string]cty.Value{
 				"foo": cty.StringVal("bar"),
 			},
+			map[string]cty.Value{
+				"foo": cty.StringVal("bar"),
+			},
+			false,
+		},
+
+		{
+			"unused default",
+			&Backend{
+				Schema: map[string]*Schema{
+					"foo": &Schema{
+						Optional: true,
+						Type:     TypeString,
+						Default:  "baz",
+					},
+				},
+			},
+			map[string]cty.Value{
+				"foo": cty.StringVal("bar"),
+			},
+			map[string]cty.Value{
+				"foo": cty.StringVal("bar"),
+			},
+			false,
+		},
+
+		{
+			"default",
+			&Backend{
+				Schema: map[string]*Schema{
+					"foo": &Schema{
+						Type:     TypeString,
+						Optional: true,
+						Default:  "baz",
+					},
+				},
+			},
+			map[string]cty.Value{},
+			map[string]cty.Value{
+				"foo": cty.StringVal("baz"),
+			},
+			false,
+		},
+
+		{
+			"default func",
+			&Backend{
+				Schema: map[string]*Schema{
+					"foo": &Schema{
+						Type:     TypeString,
+						Optional: true,
+						DefaultFunc: func() (interface{}, error) {
+							return "baz", nil
+						},
+					},
+				},
+			},
+			map[string]cty.Value{},
+			map[string]cty.Value{
+				"foo": cty.StringVal("baz"),
+			},
 			false,
 		},
 	}
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
-			diags := tc.B.ValidateConfig(cty.ObjectVal(tc.Config))
+			configVal, diags := tc.B.PrepareConfig(cty.ObjectVal(tc.Config))
 			if diags.HasErrors() != tc.Err {
-				t.Errorf("wrong number of diagnostics")
+				for _, d := range diags {
+					t.Error(d.Description())
+				}
+			}
+
+			if tc.Err {
+				return
+			}
+
+			expect := cty.ObjectVal(tc.Expect)
+			if !expect.RawEquals(configVal) {
+				t.Fatalf("\nexpected: %#v\ngot:     %#v\n", expect, configVal)
 			}
 		})
 	}

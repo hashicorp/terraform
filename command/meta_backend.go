@@ -180,11 +180,12 @@ func (m *Meta) BackendForPlan(settings plans.Backend) (backend.Enhanced, tfdiags
 		return nil, diags
 	}
 
-	validateDiags := b.ValidateConfig(configVal)
+	newVal, validateDiags := b.PrepareConfig(configVal)
 	diags = diags.Append(validateDiags)
 	if validateDiags.HasErrors() {
 		return nil, diags
 	}
+	configVal = newVal
 
 	configureDiags := b.Configure(configVal)
 	diags = diags.Append(configureDiags)
@@ -917,11 +918,13 @@ func (m *Meta) backend_C_r_S_unchanged(c *configs.Backend, cHash int, sMgr *stat
 	}
 
 	// Validate the config and then configure the backend
-	validDiags := b.ValidateConfig(configVal)
+	newVal, validDiags := b.PrepareConfig(configVal)
 	diags = diags.Append(validDiags)
 	if validDiags.HasErrors() {
 		return nil, diags
 	}
+	configVal = newVal
+
 	configDiags := b.Configure(configVal)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
@@ -1037,11 +1040,12 @@ func (m *Meta) backendInitFromConfig(c *configs.Backend) (backend.Backend, cty.V
 		}
 	}
 
-	validateDiags := b.ValidateConfig(configVal)
+	newVal, validateDiags := b.PrepareConfig(configVal)
 	diags = diags.Append(validateDiags.InConfigBody(c.Config))
 	if validateDiags.HasErrors() {
 		return nil, cty.NilVal, diags
 	}
+	configVal = newVal
 
 	configureDiags := b.Configure(configVal)
 	diags = diags.Append(configureDiags.InConfigBody(c.Config))
@@ -1067,11 +1071,12 @@ func (m *Meta) backendInitFromSaved(s *terraform.BackendState) (backend.Backend,
 		return nil, diags
 	}
 
-	validateDiags := b.ValidateConfig(configVal)
+	newVal, validateDiags := b.PrepareConfig(configVal)
 	diags = diags.Append(validateDiags)
 	if validateDiags.HasErrors() {
 		return nil, diags
 	}
+	configVal = newVal
 
 	configureDiags := b.Configure(configVal)
 	diags = diags.Append(configureDiags)
