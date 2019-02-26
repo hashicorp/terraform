@@ -70,7 +70,7 @@ data "terraform_remote_state" "network" {
 The following configuration options or environment variables are supported:
 
  * `conn_str` - (Required) Postgres connection string; a `postgres://` URL
- * `schema_name` - Name of the automatically-managed Postgres schema to store locks & state, default `terraform_remote_backend`.
+ * `schema_name` - Name of the automatically-managed Postgres schema, default `terraform_remote_state`.
  
 ## Technical Design
 
