@@ -1,7 +1,7 @@
 package pg
 
 // Create the test database: createdb terraform_backend_pg_test
-// TF_PG_TEST=true make test TEST=./backend/remote-state/pg TESTARGS='-v -run ^TestBackend'
+// TF_ACC=1 make test TEST=./backend/remote-state/pg TESTARGS='-v -run ^TestBackend'
 
 import (
 	"database/sql"
@@ -48,11 +48,6 @@ func TestBackendConfig(t *testing.T) {
 
 	if b == nil {
 		t.Fatal("Backend could not be configured")
-	}
-
-	_, err = b.db.Query(fmt.Sprintf("SELECT name, info, created_at FROM %s.%s LIMIT 1", schemaName, locksTableName))
-	if err != nil {
-		t.Fatal(err)
 	}
 
 	_, err = b.db.Query(fmt.Sprintf("SELECT name, data FROM %s.%s LIMIT 1", schemaName, statesTableName))
@@ -124,38 +119,6 @@ func TestBackendStateLocks(t *testing.T) {
 		t.Fatal("Backend could not be configured")
 	}
 
-	backend.TestBackendStateLocks(t, b, bb)
-	backend.TestBackendStateForceUnlock(t, b, bb)
-}
-
-func TestBackendStateLocksDisabled(t *testing.T) {
-	testACC(t)
-	connStr := getDatabaseUrl()
-	schemaName := fmt.Sprintf("terraform_%s", t.Name())
-	dbCleaner, err := sql.Open("postgres", connStr)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer dbCleaner.Query(fmt.Sprintf("DROP SCHEMA IF EXISTS %s CASCADE", schemaName))
-
-	config := backend.TestWrapConfig(map[string]interface{}{
-		"conn_str":    connStr,
-		"schema_name": schemaName,
-		"lock":        false,
-	})
-	b := backend.TestBackendConfig(t, New(), config).(*Backend)
-
-	if b == nil {
-		t.Fatal("Backend could not be configured")
-	}
-
-	bb := backend.TestBackendConfig(t, New(), config).(*Backend)
-
-	if bb == nil {
-		t.Fatal("Backend could not be configured")
-	}
-
-	backend.TestBackendStates(t, b)
 	backend.TestBackendStateLocks(t, b, bb)
 }
 

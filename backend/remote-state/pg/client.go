@@ -1,13 +1,11 @@
 package pg
 
 import (
+	"context"
 	"crypto/md5"
 	"database/sql"
-	"encoding/json"
-	"errors"
 	"fmt"
 
-	multierror "github.com/hashicorp/go-multierror"
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
@@ -20,31 +18,48 @@ type RemoteClient struct {
 	Name       string
 	SchemaName string
 
-	// Uses locks to synchronize state access
-	lock bool
+	// In-flight database transaction. Empty unless Locked.
+	txn  *sql.Tx
 	info *state.LockInfo
 }
 
 func (c *RemoteClient) Get() (*remote.Payload, error) {
 	query := `SELECT data FROM %s.%s WHERE name = $1`
-	row := c.Client.QueryRow(fmt.Sprintf(query, c.SchemaName, statesTableName), c.Name)
+	var row *sql.Row
+	// Use the open transaction when present
+	if c.txn != nil {
+		row = c.txn.QueryRow(fmt.Sprintf(query, c.SchemaName, statesTableName), c.Name)
+	} else {
+		row = c.Client.QueryRow(fmt.Sprintf(query, c.SchemaName, statesTableName), c.Name)
+	}
 	var data []byte
 	err := row.Scan(&data)
-	if err != nil {
+	switch {
+	case err == sql.ErrNoRows:
+		// No existing state returns empty.
 		return nil, nil
+	case err != nil:
+		return nil, err
+	default:
+		md5 := md5.Sum(data)
+		return &remote.Payload{
+			Data: data,
+			MD5:  md5[:],
+		}, nil
 	}
-	md5 := md5.Sum(data)
-	return &remote.Payload{
-		Data: data,
-		MD5:  md5[:],
-	}, nil
 }
 
 func (c *RemoteClient) Put(data []byte) error {
 	query := `INSERT INTO %s.%s (name, data) VALUES ($1, $2)
 		ON CONFLICT (name) DO UPDATE
 		SET data = $2 WHERE %s.name = $1`
-	_, err := c.Client.Exec(fmt.Sprintf(query, c.SchemaName, statesTableName, statesTableName), c.Name, data)
+	var err error
+	// Use the open transaction when present
+	if c.txn != nil {
+		_, err = c.txn.Exec(fmt.Sprintf(query, c.SchemaName, statesTableName, statesTableName), c.Name, data)
+	} else {
+		_, err = c.Client.Exec(fmt.Sprintf(query, c.SchemaName, statesTableName, statesTableName), c.Name, data)
+	}
 	if err != nil {
 		return err
 	}
@@ -53,7 +68,13 @@ func (c *RemoteClient) Put(data []byte) error {
 
 func (c *RemoteClient) Delete() error {
 	query := `DELETE FROM %s.%s WHERE name = $1`
-	_, err := c.Client.Exec(fmt.Sprintf(query, c.SchemaName, statesTableName), c.Name)
+	var err error
+	// Use the open transaction when present
+	if c.txn != nil {
+		_, err = c.txn.Exec(fmt.Sprintf(query, c.SchemaName, statesTableName), c.Name)
+	} else {
+		_, err = c.Client.Exec(fmt.Sprintf(query, c.SchemaName, statesTableName), c.Name)
+	}
 	if err != nil {
 		return err
 	}
@@ -61,98 +82,100 @@ func (c *RemoteClient) Delete() error {
 }
 
 func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
-	// No-op when locking is disabled
-	if !c.lock {
-		return "", nil
-	}
-
-	c.info = info
+	var err error
+	var lockID string
+	var txn *sql.Tx
 
 	if info.ID == "" {
-		lockID, err := uuid.GenerateUUID()
+		lockID, err = uuid.GenerateUUID()
 		if err != nil {
 			return "", err
 		}
-
+		info.Operation = "client"
 		info.ID = lockID
 	}
 
-	lockInfo, _ := c.getLockInfo()
-	if lockInfo != nil {
-		lockErr := &state.LockError{
-			Info: lockInfo,
+	if c.txn == nil {
+		// Most strict transaction isolation to prevent cross-talk
+		// between incomplete state transactions.
+		txn, err = c.Client.BeginTx(context.Background(), &sql.TxOptions{
+			Isolation: sql.LevelSerializable,
+		})
+		if err != nil {
+			return "", err
 		}
-		lockErr.Err = errors.New("state locked")
-		return "", lockErr
+		c.txn = txn
+	} else {
+		return "", fmt.Errorf("Already in a transaction")
 	}
 
-	query := `INSERT INTO %s.%s (name, info) VALUES ($1, $2)`
-	data, err := json.Marshal(info)
+	// Do not wait before giving up on a contended lock.
+	_, err = c.Client.Exec(`SET LOCAL lock_timeout = 0`)
 	if err != nil {
+		c.rollback(info)
 		return "", err
 	}
-	_, err = c.Client.Exec(fmt.Sprintf(query, c.SchemaName, locksTableName), c.Name, data)
-	if err != nil {
+
+	// Try to acquire lock for the existing row.
+	query := `SELECT pg_try_advisory_xact_lock(%s.id) FROM %s.%s WHERE %s.name = $1`
+	row := c.txn.QueryRow(fmt.Sprintf(query, statesTableName, c.SchemaName, statesTableName, statesTableName), c.Name)
+	var didLock []byte
+	err = row.Scan(&didLock)
+	switch {
+	case err == sql.ErrNoRows:
+		// When the row does not yet exist in state, take
+		// the `-1` lock to create the new row.
+		innerRow := c.txn.QueryRow(`SELECT pg_try_advisory_xact_lock(-1)`)
+		var innerDidLock []byte
+		err := innerRow.Scan(&innerDidLock)
+		if err != nil {
+			c.rollback(info)
+			return "", err
+		}
+		if string(innerDidLock) == "false" {
+			c.rollback(info)
+			return "", &state.LockError{Info: info}
+		}
+	case err != nil:
+		c.rollback(info)
 		return "", err
-	}
-
-	if err != nil {
-		lockInfo, infoErr := c.getLockInfo()
-		if infoErr != nil {
-			err = multierror.Append(err, infoErr)
-		}
-
-		lockErr := &state.LockError{
-			Err:  err,
-			Info: lockInfo,
-		}
-		return "", lockErr
+	case string(didLock) == "false":
+		c.rollback(info)
+		return "", &state.LockError{Info: info}
+	default:
 	}
 
 	return info.ID, nil
 }
 
 func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
-	query := `SELECT info FROM %s.%s WHERE name = $1`
-	row := c.Client.QueryRow(fmt.Sprintf(query, c.SchemaName, locksTableName), c.Name)
-	var data []byte
-	err := row.Scan(&data)
-	if err != nil {
-		return nil, err
-	}
-
-	lockInfo := &state.LockInfo{}
-	err = json.Unmarshal(data, lockInfo)
-	if err != nil {
-		return nil, err
-	}
-
-	return lockInfo, nil
+	return c.info, nil
 }
 
 func (c *RemoteClient) Unlock(id string) error {
-	lockErr := &state.LockError{}
-
-	lockInfo, err := c.getLockInfo()
-	if err != nil {
-		lockErr.Err = fmt.Errorf("failed to retrieve lock info: %s", err)
-		return lockErr
+	if c.txn != nil {
+		err := c.txn.Commit()
+		if err != nil {
+			return err
+		}
+		c.txn = nil
 	}
-	lockErr.Info = lockInfo
-
-	if lockInfo.ID != id {
-		lockErr.Err = fmt.Errorf("lock id %q does not match existing lock", id)
-		return lockErr
-	}
-
-	query := `DELETE FROM %s.%s WHERE name = $1`
-	_, err = c.Client.Exec(fmt.Sprintf(query, c.SchemaName, locksTableName), c.Name)
-	if err != nil {
-		lockErr.Err = err
-		return lockErr
-	}
-
 	c.info = nil
+	return nil
+}
 
+// This must be called from any code path where the
+// transaction would not be committed (unlocked),
+// otherwise the transactions will leak and prevent
+// the process from exiting cleanly.
+func (c *RemoteClient) rollback(info *state.LockInfo) error {
+	if c.txn != nil {
+		err := c.txn.Rollback()
+		if err != nil {
+			return err
+		}
+		c.txn = nil
+	}
+	c.info = nil
 	return nil
 }
