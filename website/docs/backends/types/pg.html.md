@@ -46,23 +46,20 @@ data "terraform_remote_state" "network" {
 The following configuration options or environment variables are supported:
 
  * `conn_str` - (Required) Postgres connection string; a `postgres://` URL
- * `lock` - Use locks to synchronize state access, default `true`
  * `schema_name` - Name of the automatically-managed Postgres schema to store locks & state, default `terraform_remote_backend`.
  
 ## Technical Design
 
-Postgres version 9.5 or newer is required to support the "ON CONFLICT" upsert syntax and *jsonb* data type.
+Postgres version 9.5 or newer is required to support advisory locks, the "ON CONFLICT" upsert syntax, *jsonb* data type.
 
-This backend creates two tables, **states** and **locks**, in the automatically-managed Postgres schema configured by the `schema_name` variable.
+This backend creates one table **states** in the automatically-managed Postgres schema configured by the `schema_name` variable.
 
-Both tables are keyed by the [workspace](/docs/state/workspaces.html) name. If workspaces are not in use, the name `default` is used.
+The table is keyed by the [workspace](/docs/state/workspaces.html) name. If workspaces are not in use, the name `default` is used.
+
+Locking is supported using [Postgres advisory locks](https://www.postgresql.org/docs/9.5/explicit-locking.html#ADVISORY-LOCKS).
 
 The **states** table contains:
 
+ * a serial integer `id`, used as the key for advisory locks
  * the workspace `name` key as *text* with a unique index
- * the Terraform state `data` JSON as *text*.
-
-The **locks** table contains:
-
- * the workspace `name` key as *text* with a unique index
- * the lock's `info` JSON as *jsonb*.
+ * the Terraform state `data` as *text*

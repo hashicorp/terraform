@@ -11,8 +11,6 @@ import (
 )
 
 const (
-	locksTableName  = "locks"
-	locksIndexName  = "locks_by_name"
 	statesTableName = "states"
 	statesIndexName = "states_by_name"
 )
@@ -27,17 +25,10 @@ func New() backend.Backend {
 				Description: "Postgres connection string; a `postgres://` URL",
 			},
 
-			"lock": &schema.Schema{
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "Use locks to synchronize state access",
-				Default:     true,
-			},
-
 			"schema_name": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "Name of the automatically managed Postgres schema to store locks & state",
+				Description: "Name of the automatically managed Postgres schema to store state",
 				Default:     "terraform_remote_backend",
 			},
 		},
@@ -56,7 +47,6 @@ type Backend struct {
 	configData *schema.ResourceData
 	connStr    string
 	schemaName string
-	lock       bool
 }
 
 func (b *Backend) configure(ctx context.Context) error {
@@ -66,7 +56,6 @@ func (b *Backend) configure(ctx context.Context) error {
 
 	b.connStr = data.Get("conn_str").(string)
 	b.schemaName = data.Get("schema_name").(string)
-	b.lock = data.Get("lock").(bool)
 
 	db, err := sql.Open("postgres", b.connStr)
 	if err != nil {
@@ -79,25 +68,10 @@ func (b *Backend) configure(ctx context.Context) error {
 	if _, err := db.Query(fmt.Sprintf(query, b.schemaName)); err != nil {
 		return err
 	}
-	query = `SET search_path TO %s`
-	if _, err := db.Query(fmt.Sprintf(query, b.schemaName)); err != nil {
-		return err
-	}
 	query = `CREATE TABLE IF NOT EXISTS %s.%s (
-		name text,
-		info jsonb,
-		created_at timestamp default current_timestamp
-	)`
-	if _, err := db.Query(fmt.Sprintf(query, b.schemaName, locksTableName)); err != nil {
-		return err
-	}
-	query = `CREATE UNIQUE INDEX IF NOT EXISTS %s ON %s.%s (name)`
-	if _, err := db.Query(fmt.Sprintf(query, locksIndexName, b.schemaName, locksTableName)); err != nil {
-		return err
-	}
-	query = `CREATE TABLE IF NOT EXISTS %s.%s (
-		name text,
-		data text
+		id SERIAL PRIMARY KEY,
+		name TEXT,
+		data TEXT
 	)`
 	if _, err := db.Query(fmt.Sprintf(query, b.schemaName, statesTableName)); err != nil {
 		return err

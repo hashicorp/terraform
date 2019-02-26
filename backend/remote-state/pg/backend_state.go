@@ -2,7 +2,6 @@ package pg
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/state"
@@ -55,23 +54,13 @@ func (b *Backend) StateMgr(name string) (state.State, error) {
 			Client:     b.db,
 			Name:       name,
 			SchemaName: b.schemaName,
-			lock:       b.lock,
 		},
-	}
-
-	// If we're not locking, disable it
-	if !b.lock {
-		stateMgr = &state.LockDisabled{Inner: stateMgr}
 	}
 
 	// Check to see if this state already exists.
 	// If we're trying to force-unlock a state, we can't take the lock before
 	// fetching the state. If the state doesn't exist, we have to assume this
 	// is a normal create operation, and take the lock at that point.
-	//
-	// If we need to force-unlock, but for some reason the state no longer
-	// exists, the user will have to use the `psql` tool to manually fix the
-	// situation.
 	existing, err := b.Workspaces()
 	if err != nil {
 		return nil, err
@@ -99,13 +88,11 @@ func (b *Backend) StateMgr(name string) (state.State, error) {
 		// Local helper function so we can call it multiple places
 		lockUnlock := func(parent error) error {
 			if err := stateMgr.Unlock(lockId); err != nil {
-				return fmt.Errorf(strings.TrimSpace(errStateUnlock), lockId, err)
+				return fmt.Errorf(`error unlocking Postgres state: %s`, err)
 			}
-
 			return parent
 		}
 
-		// If we have no state, we have to create an empty state
 		if v := stateMgr.State(); v == nil {
 			if err := stateMgr.WriteState(states.NewState()); err != nil {
 				err = lockUnlock(err)
@@ -125,13 +112,3 @@ func (b *Backend) StateMgr(name string) (state.State, error) {
 
 	return stateMgr, nil
 }
-
-const errStateUnlock = `
-Error unlocking Postgres state. Lock ID: %s
-
-Error: %s
-
-You may have to force-unlock this state in order to use it again.
-The "pg" backend acquires a lock during initialization to ensure
-the minimum required key/values are prepared.
-`
