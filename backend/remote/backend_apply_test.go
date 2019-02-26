@@ -76,6 +76,29 @@ func TestRemote_applyBasic(t *testing.T) {
 	}
 }
 
+func TestRemote_applyCanceled(t *testing.T) {
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
+
+	op, configCleanup := testOperationApply(t, "./test-fixtures/apply")
+	defer configCleanup()
+
+	op.Workspace = backend.DefaultStateName
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	// Stop the run to simulate a Ctrl-C.
+	run.Stop()
+
+	<-run.Done()
+	if run.Result == backend.OperationSuccess {
+		t.Fatal("expected apply operation to fail")
+	}
+}
+
 func TestRemote_applyWithoutPermissions(t *testing.T) {
 	b, bCleanup := testBackendNoDefault(t)
 	defer bCleanup()
@@ -91,7 +114,7 @@ func TestRemote_applyWithoutPermissions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating named workspace: %v", err)
 	}
-	w.Permissions.CanUpdate = false
+	w.Permissions.CanQueueApply = false
 
 	op, configCleanup := testOperationApply(t, "./test-fixtures/apply")
 	defer configCleanup()
