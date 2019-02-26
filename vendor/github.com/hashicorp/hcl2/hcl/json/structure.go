@@ -266,6 +266,9 @@ func (b *body) unpackBlock(v node, typeName string, typeRange *hcl.Range, labels
 	copy(labelR, labelRanges)
 
 	switch tv := v.(type) {
+	case *nullVal:
+		// There is no block content, e.g the value is null.
+		return
 	case *objectVal:
 		// Single instance of the block
 		*blocks = append(*blocks, &hcl.Block{
@@ -324,6 +327,8 @@ func (b *body) collectDeepAttrs(v node, labelName *string) ([]*objectAttr, hcl.D
 	var attrs []*objectAttr
 
 	switch tv := v.(type) {
+	case *nullVal:
+		// If a value is null, then we don't return any attributes or return an error.
 
 	case *objectVal:
 		attrs = append(attrs, tv.Attrs...)
