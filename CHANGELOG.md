@@ -35,6 +35,7 @@ IMPROVEMENTS:
 * command/format: Reduce whitespaces in empty fields [GH-19995]
 * command/format: Render null in dark gray [GH-19616]
 * command/init: Add provider protocol compatibility UI err msg during registry discovery [GH-19976]
+* command/providers schema: Add command to export schemas for all currently-configured providers [GH-20446]
 * command/show: Add support for machine readable output via a `-json` argument to `terraform show` [GH-19687]
 * command/state: Use locking when updating states [GH-19939]
 * provisioner/salt: Default values for `remote_state_tree` and `remote_pillar_roots` [GH-17151]
