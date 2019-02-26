@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"database/sql"
 	"fmt"
+	"sync"
 
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform/state"
@@ -19,13 +20,17 @@ type RemoteClient struct {
 	SchemaName string
 
 	// In-flight database transaction. Empty unless Locked.
-	txn  *sql.Tx
-	info *state.LockInfo
+	txn    *sql.Tx
+	txnMux sync.Mutex
+	info   *state.LockInfo
 }
 
 func (c *RemoteClient) Get() (*remote.Payload, error) {
 	query := `SELECT data FROM %s.%s WHERE name = $1`
 	var row *sql.Row
+	// Take exclusive access to the database transaction
+	c.txnMux.Lock()
+	defer c.txnMux.Unlock()
 	// Use the open transaction when present
 	if c.txn != nil {
 		row = c.txn.QueryRow(fmt.Sprintf(query, c.SchemaName, statesTableName), c.Name)
@@ -54,6 +59,9 @@ func (c *RemoteClient) Put(data []byte) error {
 		ON CONFLICT (name) DO UPDATE
 		SET data = $2 WHERE %s.name = $1`
 	var err error
+	// Take exclusive access to the database transaction
+	c.txnMux.Lock()
+	defer c.txnMux.Unlock()
 	// Use the open transaction when present
 	if c.txn != nil {
 		_, err = c.txn.Exec(fmt.Sprintf(query, c.SchemaName, statesTableName, statesTableName), c.Name, data)
@@ -69,6 +77,9 @@ func (c *RemoteClient) Put(data []byte) error {
 func (c *RemoteClient) Delete() error {
 	query := `DELETE FROM %s.%s WHERE name = $1`
 	var err error
+	// Take exclusive access to the database transaction
+	c.txnMux.Lock()
+	defer c.txnMux.Unlock()
 	// Use the open transaction when present
 	if c.txn != nil {
 		_, err = c.txn.Exec(fmt.Sprintf(query, c.SchemaName, statesTableName), c.Name)
@@ -94,6 +105,10 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 		info.Operation = "client"
 		info.ID = lockID
 	}
+
+	// Take exclusive access to the database transaction
+	c.txnMux.Lock()
+	defer c.txnMux.Unlock()
 
 	if c.txn == nil {
 		// Most strict transaction isolation to prevent cross-talk
@@ -153,6 +168,9 @@ func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
 }
 
 func (c *RemoteClient) Unlock(id string) error {
+	// Take exclusive access to the database transaction
+	c.txnMux.Lock()
+	defer c.txnMux.Unlock()
 	if c.txn != nil {
 		err := c.txn.Commit()
 		if err != nil {
@@ -168,6 +186,9 @@ func (c *RemoteClient) Unlock(id string) error {
 // transaction would not be committed (unlocked),
 // otherwise the transactions will leak and prevent
 // the process from exiting cleanly.
+//
+// Does not use mutex because this will implicitly be
+// called from within an already mutex'd scope.
 func (c *RemoteClient) rollback(info *state.LockInfo) error {
 	if c.txn != nil {
 		err := c.txn.Rollback()
