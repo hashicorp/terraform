@@ -102,11 +102,11 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 			Isolation: sql.LevelSerializable,
 		})
 		if err != nil {
-			return "", err
+			return "", &state.LockError{Info: info, Err: err}
 		}
 		c.txn = txn
 	} else {
-		return "", fmt.Errorf("Already in a transaction")
+		return "", &state.LockError{Info: info, Err: fmt.Errorf("Client is already in a locking transaction")}
 	}
 
 	// Do not wait before giving up on a contended lock.
@@ -130,18 +130,18 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 		err := innerRow.Scan(&innerDidLock)
 		if err != nil {
 			c.rollback(info)
-			return "", err
+			return "", &state.LockError{Info: info, Err: err}
 		}
 		if string(innerDidLock) == "false" {
 			c.rollback(info)
-			return "", &state.LockError{Info: info}
+			return "", &state.LockError{Info: info, Err: fmt.Errorf("Workspace is already locked: %s", c.Name)}
 		}
 	case err != nil:
 		c.rollback(info)
-		return "", err
+		return "", &state.LockError{Info: info, Err: err}
 	case string(didLock) == "false":
 		c.rollback(info)
-		return "", &state.LockError{Info: info}
+		return "", &state.LockError{Info: info, Err: fmt.Errorf("Workspace is already locked: %s", c.Name)}
 	default:
 	}
 
