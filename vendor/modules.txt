@@ -47,9 +47,9 @@ github.com/agext/levenshtein
 # github.com/agl/ed25519 v0.0.0-20150830182803-278e1ec8e8a6
 github.com/agl/ed25519
 github.com/agl/ed25519/edwards25519
-# github.com/antchfx/xpath v0.0.0-20170728053731-b5c552e1acbd
+# github.com/antchfx/xpath v0.0.0-20190129040759-c8489ed3251e
 github.com/antchfx/xpath
-# github.com/antchfx/xquery v0.0.0-20170730121040-eb8c3c172607
+# github.com/antchfx/xquery v0.0.0-20180515051857-ad5b8c7a47b0
 github.com/antchfx/xquery/xml
 # github.com/apparentlymart/go-cidr v1.0.0
 github.com/apparentlymart/go-cidr/cidr
@@ -134,7 +134,7 @@ github.com/dgrijalva/jwt-go
 github.com/dimchansky/utfbom
 # github.com/dylanmei/iso8601 v0.1.0
 github.com/dylanmei/iso8601
-# github.com/dylanmei/winrmtest v0.0.0-20170819153634-c2fbb09e6c08
+# github.com/dylanmei/winrmtest v0.0.0-20190225150635-99b7fe2fddf1
 github.com/dylanmei/winrmtest
 # github.com/fatih/color v1.7.0
 github.com/fatih/color
@@ -170,10 +170,10 @@ github.com/gophercloud/gophercloud
 github.com/gophercloud/gophercloud/openstack
 github.com/gophercloud/gophercloud/openstack/objectstorage/v1/containers
 github.com/gophercloud/gophercloud/openstack/objectstorage/v1/objects
+github.com/gophercloud/gophercloud/pagination
 github.com/gophercloud/gophercloud/openstack/identity/v2/tokens
 github.com/gophercloud/gophercloud/openstack/identity/v3/tokens
 github.com/gophercloud/gophercloud/openstack/utils
-github.com/gophercloud/gophercloud/pagination
 github.com/gophercloud/gophercloud/openstack/objectstorage/v1/accounts
 github.com/gophercloud/gophercloud/openstack/blockstorage/extensions/volumeactions
 github.com/gophercloud/gophercloud/openstack/blockstorage/v1/volumes
@@ -408,7 +408,7 @@ github.com/posener/complete
 github.com/posener/complete/cmd/install
 github.com/posener/complete/cmd
 github.com/posener/complete/match
-# github.com/satori/go.uuid v0.0.0-20160927100844-b061729afc07
+# github.com/satori/go.uuid v1.2.0
 github.com/satori/go.uuid
 # github.com/spf13/afero v1.2.1
 github.com/spf13/afero
