@@ -139,8 +139,8 @@ func (b *Remote) ConfigSchema() *configschema.Block {
 	}
 }
 
-// ValidateConfig implements backend.Enhanced.
-func (b *Remote) ValidateConfig(obj cty.Value) tfdiags.Diagnostics {
+// PrepareConfig implements backend.Backend.
+func (b *Remote) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	if val := obj.GetAttr("organization"); val.IsNull() || val.AsString() == "" {
@@ -182,7 +182,7 @@ func (b *Remote) ValidateConfig(obj cty.Value) tfdiags.Diagnostics {
 		))
 	}
 
-	return diags
+	return obj, diags
 }
 
 // Configure implements backend.Enhanced.

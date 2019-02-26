@@ -76,7 +76,7 @@ func TestBackendConfig_invalidKey(t *testing.T) {
 		"dynamodb_table": "dynamoTable",
 	})
 
-	diags := New().ValidateConfig(cfg)
+	_, diags := New().PrepareConfig(cfg)
 	if !diags.HasErrors() {
 		t.Fatal("expected config validation error")
 	}
