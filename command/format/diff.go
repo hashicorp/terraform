@@ -122,6 +122,16 @@ func ResourceChange(
 		panic(fmt.Sprintf("failed to decode plan for %s while rendering diff: %s", addr, err))
 	}
 
+	// We currently have an opt-out that permits the legacy SDK to return values
+	// that defy our usual conventions around handling of nesting blocks. To
+	// avoid the rendering code from needing to handle all of these, we'll
+	// normalize first.
+	// (Ideally we'd do this as part of the SDK opt-out implementation in core,
+	// but we've added it here for now to reduce risk of unexpected impacts
+	// on other code in core.)
+	changeV.Change.Before = objchange.NormalizeObjectFromLegacySDK(changeV.Change.Before, schema)
+	changeV.Change.After = objchange.NormalizeObjectFromLegacySDK(changeV.Change.After, schema)
+
 	bodyWritten := p.writeBlockBodyDiff(schema, changeV.Before, changeV.After, 6, path)
 	if bodyWritten {
 		buf.WriteString("\n")
