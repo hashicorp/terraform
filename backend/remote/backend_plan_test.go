@@ -63,6 +63,29 @@ func TestRemote_planBasic(t *testing.T) {
 	}
 }
 
+func TestRemote_planCanceled(t *testing.T) {
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
+
+	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
+	defer configCleanup()
+
+	op.Workspace = backend.DefaultStateName
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	// Stop the run to simulate a Ctrl-C.
+	run.Stop()
+
+	<-run.Done()
+	if run.Result == backend.OperationSuccess {
+		t.Fatal("expected plan operation to fail")
+	}
+}
+
 func TestRemote_planLongLine(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
