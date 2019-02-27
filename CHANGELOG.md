@@ -51,6 +51,7 @@ BUG FIXES:
 * backend/local: Avoid rendering data sources on destroy [GH-19613]
 * backend/local: Fix incorrect destroy/update count on apply [GH-19610]
 * backend/local: Render CBD replacement (+/-) correctly [GH-19642]
+* backend/remote: Exit with 1 when a remote run is canceled [GH-20481]
 * command/format: Fix rendering of nested blocks during update [GH-19611]
 * command/format: Fix rendering of force-new updates [GH-19609]
 * command/format: Fix rendering of nested (JSON) object [GH-20071]
