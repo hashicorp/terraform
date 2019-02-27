@@ -10,7 +10,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	awsbase "github.com/hashicorp/aws-sdk-go-base"
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/version"
 )
 
 // New creates a new backend for S3 remote state.
@@ -296,6 +298,7 @@ func (b *Backend) configure(ctx context.Context) error {
 		AssumeRolePolicy:      data.Get("assume_role_policy").(string),
 		AssumeRoleSessionName: data.Get("session_name").(string),
 		CredsFilename:         data.Get("shared_credentials_file").(string),
+		DebugLogging:          logging.IsDebugOrHigher(),
 		IamEndpoint:           data.Get("iam_endpoint").(string),
 		MaxRetries:            data.Get("max_retries").(int),
 		Profile:               data.Get("profile").(string),
@@ -305,6 +308,11 @@ func (b *Backend) configure(ctx context.Context) error {
 		SkipMetadataApiCheck:  data.Get("skip_metadata_api_check").(bool),
 		StsEndpoint:           data.Get("sts_endpoint").(string),
 		Token:                 data.Get("token").(string),
+		UserAgentProducts: []*awsbase.UserAgentProduct{
+			{Name: "APN", Version: "1.0"},
+			{Name: "HashiCorp", Version: "1.0"},
+			{Name: "Terraform", Version: version.String()},
+		},
 	}
 
 	sess, err := awsbase.GetSession(cfg)
