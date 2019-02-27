@@ -11,6 +11,7 @@ BUG FIXES:
 
 * backend/remote: Fix "token too long" errors when streaming remote operation logs [GH-20241]
 * backend/remote: Use the `can-queue-apply` permission to detect if apply is allowed [GH-20462]
+* backend/remote: Exit with 1 when a remote run is canceled [GH-20482]
 * core: Use slashes in the module manifest to prevent Windows/Linux compatibility issues [GH-20246]
 
 ## 0.11.12-beta1 (January 28, 2019)
