@@ -1,7 +1,7 @@
 package pg
 
 // Create the test database: createdb terraform_backend_pg_test
-// TF_ACC=1 make test TEST=./backend/remote-state/pg TESTARGS='-v -run ^TestBackend'
+// TF_ACC=1 GO111MODULE=on go test -v -mod=vendor -timeout=2m -parallel=4 github.com/hashicorp/terraform/backend/remote-state/pg
 
 import (
 	"database/sql"
@@ -14,7 +14,10 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// verify that we are doing ACC tests or the Postgres tests specifically
+// Function to skip a test unless in ACCeptance test mode.
+//
+// A running Postgres server identified by env variable
+// DATABASE_URL is required for acceptance tests.
 func testACC(t *testing.T) {
 	skip := os.Getenv("TF_ACC") == ""
 	if skip {
