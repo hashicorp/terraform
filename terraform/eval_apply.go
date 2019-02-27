@@ -203,6 +203,13 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 				// on the planned value, and thus get a different result during the
 				// apply phase. This will usually lead to a "Provider produced invalid plan"
 				// error that incorrectly blames the downstream resource for the change.
+				//
+				// TODO: Ideally we should use objchange.NormalizeObjectFromLegacySDK
+				// here so the rest of Terraform is shielded from some of the oddities
+				// of the legacy SDK, but for the moment we've done that only in
+				// format.ResourceChange to reduce the risk of unexpected impacts
+				// elsewhere.
+
 			} else {
 				for _, err := range errs {
 					diags = diags.Append(tfdiags.Sourceless(

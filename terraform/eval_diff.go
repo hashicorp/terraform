@@ -229,6 +229,12 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 				fmt.Fprintf(&buf, "\n      - %s", tfdiags.FormatError(err))
 			}
 			log.Print(buf.String())
+
+			// TODO: Ideally we should use objchange.NormalizeObjectFromLegacySDK
+			// here so the rest of Terraform is shielded from some of the oddities
+			// of the legacy SDK, but for the moment we've done that only in
+			// format.ResourceChange to reduce the risk of unexpected impacts
+			// elsewhere.
 		} else {
 			for _, err := range errs {
 				diags = diags.Append(tfdiags.Sourceless(
