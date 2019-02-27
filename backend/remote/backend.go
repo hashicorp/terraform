@@ -607,6 +607,11 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 			return
 		}
 
+		if r == nil && opErr == context.Canceled {
+			runningOp.ExitCode = 1
+			return
+		}
+
 		if r != nil {
 			// Retrieve the run to get its current status.
 			r, err := b.client.Runs.Read(cancelCtx, r.ID)
@@ -622,7 +627,7 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 				runningOp.Err = b.cancel(cancelCtx, op, r)
 			}
 
-			if runningOp.Err == nil && r.Status == tfe.RunErrored {
+			if runningOp.Err == nil && (r.Status == tfe.RunCanceled || r.Status == tfe.RunErrored) {
 				runningOp.ExitCode = 1
 			}
 		}
