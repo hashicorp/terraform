@@ -45,6 +45,7 @@ BUG FIXES:
 * config: Detect and reject self-referencing local values [GH-19706]
 * config: Accept and ignore UTF-8 byte-order mark for configuration files [GH-19715]
 * config: More helpful error message for a situation that may arise on upgrade from Terraform 0.11 or earlier [GH-19727]
+* config: Backends configured with `-backend-config` are correctly applied and stored along with default values [GH-20480]
 * connection/winrm: Set the correct default port when HTTPS is used [GH-19540]
 * plugins: GRPC plugins shutdown correctly when Close is called [GH-19629]
 * backend/local: Avoid rendering data sources on destroy [GH-19613]
@@ -61,6 +62,9 @@ BUG FIXES:
 * core: Correct errors when referencing a resource containing count without an index [GH-19674]
 * core: Fix occasional invalid provider errors when scaling down a counted datasource [GH-19676]
 * core: Fix crash when applying a stored plan containing destroys [GH-19726]
+
+NEW FEATURES:
+* backend/pg: Support for using Postgresql for remote state storage [GH-19070]
 
 ## 0.12.0-alpha4 (December 7, 2018)
 NOTES:
