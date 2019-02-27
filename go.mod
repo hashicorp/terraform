@@ -72,6 +72,7 @@ require (
 	github.com/jtolds/gls v4.2.1+incompatible // indirect
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0
 	github.com/keybase/go-crypto v0.0.0-20161004153544-93f5b35093ba // indirect
+	github.com/lib/pq v1.0.0
 	github.com/lusis/go-artifactory v0.0.0-20160115162124-7e4ce345df82
 	github.com/marstr/guid v1.1.0 // indirect
 	github.com/masterzen/winrm v0.0.0-20190223112901-5e5c9a7fe54b
