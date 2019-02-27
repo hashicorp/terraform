@@ -1,5 +1,8 @@
 package pg
 
+// Create the test database: createdb terraform_backend_pg_test
+// TF_ACC=1 GO111MODULE=on go test -v -mod=vendor -timeout=2m -parallel=4 github.com/hashicorp/terraform/backend/remote-state/pg
+
 import (
 	"database/sql"
 	"fmt"
@@ -15,6 +18,7 @@ func TestRemoteClient_impl(t *testing.T) {
 }
 
 func TestRemoteClient(t *testing.T) {
+	testACC(t)
 	connStr := getDatabaseUrl()
 	schemaName := fmt.Sprintf("terraform_%s", t.Name())
 	dbCleaner, err := sql.Open("postgres", connStr)
@@ -42,6 +46,7 @@ func TestRemoteClient(t *testing.T) {
 }
 
 func TestRemoteLocks(t *testing.T) {
+	testACC(t)
 	connStr := getDatabaseUrl()
 	schemaName := fmt.Sprintf("terraform_%s", t.Name())
 	dbCleaner, err := sql.Open("postgres", connStr)
