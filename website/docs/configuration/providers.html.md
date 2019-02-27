@@ -130,7 +130,7 @@ provider "aws" {
 ```
 
 This meta-argument applies to all providers.
-[The `terraform providers` command](/docs/commands/providers/index.html) can be used
+[The `terraform providers` command](/docs/commands/providers.html) can be used
 to view the specified version constraints for all providers used in the
 current configuration.
 
