@@ -1,3 +1,6 @@
+## 0.12.0-beta2 (Unreleased)
+
+
 ## 0.12.0-beta1 (Feb 28, 2019)
 
 Please see [the announcement post](https://www.hashicorp.com/blog/announcing-terraform-0-1-2-beta1) for details on how to use this release.
