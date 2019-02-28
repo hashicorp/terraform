@@ -932,8 +932,11 @@ move to a newer major release of this provider. Alternatively, if you are
 attempting to upgrade the provider to a new major version you may need to
 also upgrade Terraform to support the new version.
 
-Consult the documentation for this provider for more information on
-compatibility between provider versions and Terraform versions.
+Terraform v0.12.0-beta2 was released before all providers were updated for
+compatibility. For more information on provider availability for beta2,
+including workarounds for testing with not-yet-supported providers, please see
+the release announcement:
+    https://www.hashicorp.com/blog/announcing-terraform-0-1-2-beta-2
 `
 
 const errProviderInstallError = `
