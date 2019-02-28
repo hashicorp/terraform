@@ -145,7 +145,30 @@ func (c *ShowCommand) Run(args []string) int {
 	if plan != nil {
 		if jsonOutput == true {
 			config := ctx.Config()
-			jsonPlan, err := jsonplan.Marshal(config, plan, stateFile, schemas)
+
+			var err error
+			var jsonPlan []byte
+
+			// If there is no prior state, we have all the schemas needed.
+			if stateFile == nil {
+				jsonPlan, err = jsonplan.Marshal(config, plan, stateFile, schemas, nil)
+			} else {
+				// If there is state, we need the state-specific schemas, which
+				// may differ from the schemas loaded from the plan.
+				// This occurs if there is a data_source in the state that was
+				// removed from the configuration, because terraform core does
+				// not need to load the schema to remove a data source.
+				opReq.PlanFile = nil
+				ctx, _, ctxDiags := local.Context(opReq)
+				diags = diags.Append(ctxDiags)
+				if ctxDiags.HasErrors() {
+					c.showDiagnostics(diags)
+					return 1
+				}
+				stateSchemas := ctx.Schemas()
+				jsonPlan, err = jsonplan.Marshal(config, plan, stateFile, schemas, stateSchemas)
+			}
+
 			if err != nil {
 				c.Ui.Error(fmt.Sprintf("Failed to marshal plan to json: %s", err))
 				return 1
@@ -234,10 +257,6 @@ func getStateFromEnv(b backend.Backend, env string) (*statefile.File, error) {
 	stateStore, err := b.StateMgr(env)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to load state manager: %s", err)
-	}
-
-	if err := stateStore.RefreshState(); err != nil {
-		return nil, fmt.Errorf("Failed to load state: %s", err)
 	}
 
 	sf := statemgr.Export(stateStore)
