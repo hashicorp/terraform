@@ -121,6 +121,10 @@ func marshalPlannedValues(changes *plans.Changes, schemas *terraform.Schemas) (m
 	if err != nil {
 		return ret, err
 	}
+	sort.Slice(childModules, func(i, j int) bool {
+		return childModules[i].Address < childModules[j].Address
+	})
+
 	ret.ChildModules = childModules
 
 	return ret, nil
