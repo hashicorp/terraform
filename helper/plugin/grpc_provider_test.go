@@ -709,6 +709,11 @@ func TestNormalizeFlatmapContainers(t *testing.T) {
 			attrs:  map[string]string{"map.%": "0", "list.#": "0", "id": "1"},
 			expect: map[string]string{"id": "1", "map.%": "0", "list.#": "0"},
 		},
+		{
+			prior:  map[string]string{"list.#": "1", "list.0": "old value"},
+			attrs:  map[string]string{"list.#": "0"},
+			expect: map[string]string{},
+		},
 	} {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			got := normalizeFlatmapContainers(tc.prior, tc.attrs, false)

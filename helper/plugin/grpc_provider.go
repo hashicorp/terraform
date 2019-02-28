@@ -431,7 +431,7 @@ func (s *GRPCProviderServer) ReadResource(_ context.Context, req *proto.ReadReso
 		// here we use the prior state to check for unknown/zero containers values
 		// when normalizing the flatmap.
 		stateAttrs := hcl2shim.FlatmapValueFromHCL2(stateVal)
-		newInstanceState.Attributes = normalizeFlatmapContainers(stateAttrs, newInstanceState.Attributes, true)
+		newInstanceState.Attributes = normalizeFlatmapContainers(stateAttrs, newInstanceState.Attributes, false)
 	}
 
 	if newInstanceState == nil || newInstanceState.ID == "" {
