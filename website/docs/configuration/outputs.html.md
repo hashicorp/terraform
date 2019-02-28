@@ -109,7 +109,7 @@ modules.
 
 Just as with
 [resource dependencies](./resources.html#resource-dependencies),
-Terraform analyzes the `value` expression for an output value and autmatically
+Terraform analyzes the `value` expression for an output value and automatically
 determines a set of dependencies, but in less-common cases there are
 dependencies that cannot be recognized implicitly. In these rare cases, the
 `depends_on` argument can be used to create additional explicit dependencies:
