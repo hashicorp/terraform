@@ -102,7 +102,7 @@ only within Terraform itself, calculating some results and exposing them
 for use elsewhere.
 
 For example, local-only data sources exist for
-[rendering templates](/docs/providers/template/d/template_file.html),
+[rendering templates](/docs/providers/template/d/file.html),
 [reading local files](/docs/providers/local/d/file.html), and
 [rendering AWS IAM policies](/docs/providers/aws/d/iam_policy_document.html).
 
