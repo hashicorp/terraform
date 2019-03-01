@@ -243,6 +243,7 @@ func (r *Resource) CoreConfigSchema() *configschema.Block {
 		if r.Timeouts.Create != nil {
 			timeouts.Attributes[TimeoutCreate] = &configschema.Attribute{
 				Type:     cty.String,
+				Computed: true,
 				Optional: true,
 			}
 		}
@@ -250,6 +251,7 @@ func (r *Resource) CoreConfigSchema() *configschema.Block {
 		if r.Timeouts.Read != nil {
 			timeouts.Attributes[TimeoutRead] = &configschema.Attribute{
 				Type:     cty.String,
+				Computed: true,
 				Optional: true,
 			}
 		}
@@ -257,6 +259,7 @@ func (r *Resource) CoreConfigSchema() *configschema.Block {
 		if r.Timeouts.Update != nil {
 			timeouts.Attributes[TimeoutUpdate] = &configschema.Attribute{
 				Type:     cty.String,
+				Computed: true,
 				Optional: true,
 			}
 		}
@@ -264,6 +267,7 @@ func (r *Resource) CoreConfigSchema() *configschema.Block {
 		if r.Timeouts.Delete != nil {
 			timeouts.Attributes[TimeoutDelete] = &configschema.Attribute{
 				Type:     cty.String,
+				Computed: true,
 				Optional: true,
 			}
 		}
@@ -271,6 +275,7 @@ func (r *Resource) CoreConfigSchema() *configschema.Block {
 		if r.Timeouts.Default != nil {
 			timeouts.Attributes[TimeoutDefault] = &configschema.Attribute{
 				Type:     cty.String,
+				Computed: true,
 				Optional: true,
 			}
 		}
