@@ -431,7 +431,7 @@ func (s *GRPCProviderServer) ReadResource(_ context.Context, req *proto.ReadReso
 		// here we use the prior state to check for unknown/zero containers values
 		// when normalizing the flatmap.
 		stateAttrs := hcl2shim.FlatmapValueFromHCL2(stateVal)
-		newInstanceState.Attributes = normalizeFlatmapContainers(stateAttrs, newInstanceState.Attributes, true)
+		newInstanceState.Attributes = normalizeFlatmapContainers(stateAttrs, newInstanceState.Attributes, false)
 	}
 
 	if newInstanceState == nil || newInstanceState.ID == "" {
@@ -492,6 +492,8 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 		return resp, nil
 	}
 
+	create := priorStateVal.IsNull()
+
 	proposedNewStateVal, err := msgpack.Unmarshal(req.ProposedNewState.Msgpack, block.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
@@ -533,7 +535,7 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 	}
 
 	// if this is a new instance, we need to make sure ID is going to be computed
-	if priorStateVal.IsNull() {
+	if create {
 		if diff == nil {
 			diff = terraform.NewInstanceDiff()
 		}
@@ -554,6 +556,17 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 
 	if priorState == nil {
 		priorState = &terraform.InstanceState{}
+	}
+
+	// if we're not creating a new resource, remove any new computed fields
+	if !create {
+		for attr, d := range diff.Attributes {
+			// If there's no change, then don't let this go through as NewComputed.
+			// This usually only happens when Old and New are both empty.
+			if d.NewComputed && d.Old == d.New {
+				delete(diff.Attributes, attr)
+			}
+		}
 	}
 
 	// now we need to apply the diff to the prior state, so get the planned state
@@ -598,7 +611,7 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 
 	// if this was creating the resource, we need to set any remaining computed
 	// fields
-	if priorStateVal.IsNull() {
+	if create {
 		plannedStateVal = SetUnknowns(plannedStateVal, block)
 	}
 
