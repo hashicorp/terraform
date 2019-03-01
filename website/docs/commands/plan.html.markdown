@@ -25,7 +25,7 @@ for later execution with `terraform apply`, which can be useful when
 
 ## Usage
 
-Usage: `terraform plan [options] [dir-or-plan]`
+Usage: `terraform plan [options] [dir]`
 
 By default, `plan` requires no flags and looks in the current directory
 for the configuration and state file to refresh.

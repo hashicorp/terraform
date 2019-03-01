@@ -62,6 +62,8 @@ _except_ the following:
 - `count`
 - `for_each`
 - `lifecycle`
+- `depends_on`
+- `locals`
 
 These names are reserved for meta-arguments in
 [module configuration blocks](./modules.html), and cannot be
