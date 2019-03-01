@@ -1,5 +1,5 @@
 variable "test_var" {
-  default = "bar"
+  default = "foo-var"
 }
 resource "test_instance" "test" {
   ami   = var.test_var
