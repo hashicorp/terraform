@@ -383,11 +383,20 @@ func (i *ProviderInstaller) getProviderChecksum(urls *response.TerraformProvider
 		return "", fmt.Errorf("error fetching checksums signature: %s", err)
 	}
 
-	// Verify GPG signature.
+	// Verify the GPG signature returned from the Registry.
 	asciiArmor := urls.SigningKeys.GPGASCIIArmor()
 	signer, err := verifySig(shasums, signature, asciiArmor)
 	if err != nil {
 		log.Printf("[ERROR] error verifying signature: %s", err)
+		return "", fmt.Errorf(gpgVerificationError)
+	}
+
+	// Also verify the GPG signature against the HashiCorp public key. This is
+	// a temporary additional check until a more robust key verification
+	// process is added in a future release.
+	_, err = verifySig(shasums, signature, HashicorpPublicKey)
+	if err != nil {
+		log.Printf("[ERROR] error verifying signature against HashiCorp public key: %s", err)
 		return "", fmt.Errorf(gpgVerificationError)
 	}
 
