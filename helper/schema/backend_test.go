@@ -32,6 +32,21 @@ func TestBackendPrepare(t *testing.T) {
 		},
 
 		{
+			"Null config",
+			&Backend{
+				Schema: map[string]*Schema{
+					"foo": &Schema{
+						Required: true,
+						Type:     TypeString,
+					},
+				},
+			},
+			nil,
+			map[string]cty.Value{},
+			true,
+		},
+
+		{
 			"Basic required field set",
 			&Backend{
 				Schema: map[string]*Schema{
@@ -111,7 +126,11 @@ func TestBackendPrepare(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
-			configVal, diags := tc.B.PrepareConfig(cty.ObjectVal(tc.Config))
+			cfgVal := cty.NullVal(cty.Object(map[string]cty.Type{}))
+			if tc.Config != nil {
+				cfgVal = cty.ObjectVal(tc.Config)
+			}
+			configVal, diags := tc.B.PrepareConfig(cfgVal)
 			if diags.HasErrors() != tc.Err {
 				for _, d := range diags {
 					t.Error(d.Description())

@@ -1038,6 +1038,13 @@ func (m *Meta) backendInitFromConfig(c *configs.Backend) (backend.Backend, cty.V
 		if err != nil {
 			diags = diags.Append(fmt.Errorf("Error asking for input to configure backend %q: %s", c.Type, err))
 		}
+
+		// We get an unknown here if the if the user aborted input, but we can't
+		// turn that into a config value, so set it to null and let the provider
+		// handle it in PrepareConfig.
+		if !configVal.IsKnown() {
+			configVal = cty.NullVal(configVal.Type())
+		}
 	}
 
 	newVal, validateDiags := b.PrepareConfig(configVal)
