@@ -62,6 +62,9 @@ _except_ the following:
 - `count`
 - `for_each`
 - `lifecycle`
+- `depends_on`
+- `locals`
+
 
 These names are reserved for meta-arguments in
 [module configuration blocks](./modules.html), and cannot be
@@ -285,16 +288,3 @@ precedence over earlier ones:
 values behave the same way as other variables: the last value found overrides
 the previous values. This is a change from previous versions of Terraform, which
 would _merge_ map values instead of overriding them.
-
-### Reserved Words
-The following words have special meaning to Terraform, and cannot be used as
-variable names:
-
-* `count`
-* `depends_on`
-* `for_each`
-* `lifecycle`
-* `locals`
-* `providers`
-* `source`
-* `version`
