@@ -65,7 +65,6 @@ _except_ the following:
 - `depends_on`
 - `locals`
 
-
 These names are reserved for meta-arguments in
 [module configuration blocks](./modules.html), and cannot be
 declared as variable names.
