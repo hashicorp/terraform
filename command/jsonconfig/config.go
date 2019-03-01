@@ -200,6 +200,7 @@ func marshalModule(c *configs.Config, schemas *terraform.Schemas, addr string) (
 		outputs[v.Name] = o
 	}
 	module.Outputs = outputs
+
 	module.ModuleCalls = marshalModuleCalls(c, schemas)
 
 	if len(c.Module.Variables) > 0 {
@@ -227,42 +228,43 @@ func marshalModule(c *configs.Config, schemas *terraform.Schemas, addr string) (
 
 func marshalModuleCalls(c *configs.Config, schemas *terraform.Schemas) map[string]moduleCall {
 	ret := make(map[string]moduleCall)
-	for _, mc := range c.Module.ModuleCalls {
-		retMC := moduleCall{
-			Source:            mc.SourceAddr,
-			VersionConstraint: mc.Version.Required.String(),
-		}
-		cExp := marshalExpression(mc.Count)
-		if !cExp.Empty() {
-			retMC.CountExpression = &cExp
-		} else {
-			fExp := marshalExpression(mc.ForEach)
-			if !fExp.Empty() {
-				retMC.ForEachExpression = &fExp
-			}
-		}
 
-		// get the called module's variables so we can build up the expressions
-		childModule := c.Children[mc.Name]
-		schema := &configschema.Block{}
-		schema.Attributes = make(map[string]*configschema.Attribute)
-		for _, variable := range childModule.Module.Variables {
-			schema.Attributes[variable.Name] = &configschema.Attribute{
-				Required: variable.Default == cty.NilVal,
-			}
-		}
-
-		retMC.Expressions = marshalExpressions(mc.Config, schema)
-
-		for name, cc := range c.Children {
-			childModule, _ := marshalModule(cc, schemas, name)
-			retMC.Module = childModule
-		}
-		ret[mc.Name] = retMC
+	for name, mc := range c.Module.ModuleCalls {
+		mcConfig := c.Children[name]
+		ret[name] = marshalModuleCall(mcConfig, mc, schemas)
 	}
 
 	return ret
+}
 
+func marshalModuleCall(c *configs.Config, mc *configs.ModuleCall, schemas *terraform.Schemas) moduleCall {
+	ret := moduleCall{
+		Source:            mc.SourceAddr,
+		VersionConstraint: mc.Version.Required.String(),
+	}
+	cExp := marshalExpression(mc.Count)
+	if !cExp.Empty() {
+		ret.CountExpression = &cExp
+	} else {
+		fExp := marshalExpression(mc.ForEach)
+		if !fExp.Empty() {
+			ret.ForEachExpression = &fExp
+		}
+	}
+
+	schema := &configschema.Block{}
+	schema.Attributes = make(map[string]*configschema.Attribute)
+	for _, variable := range c.Module.Variables {
+		schema.Attributes[variable.Name] = &configschema.Attribute{
+			Required: variable.Default == cty.NilVal,
+		}
+	}
+
+	ret.Expressions = marshalExpressions(mc.Config, schema)
+	module, _ := marshalModule(c, schemas, mc.Name)
+	ret.Module = module
+
+	return ret
 }
 
 func marshalResources(resources map[string]*configs.Resource, schemas *terraform.Schemas, moduleAddr string) ([]resource, error) {
