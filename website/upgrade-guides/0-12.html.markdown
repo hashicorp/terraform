@@ -13,6 +13,8 @@ information to help when trying out the beta releases of Terraform v0.12.0, and
 will be updated with more detail until the final release. Please do not use
 v0.12.0 prereleases against production infrastructure.
 
+~> If you are trying v0.12.0-beta1, please see [the release announcement](https://www.hashicorp.com/blog/announcing-terraform-0-1-2-beta1) for some important extra information.
+
 [Terraform v0.12 will be a major release](https://hashicorp.com/blog/terraform-0-1-2-preview)
 focused on configuration language improvements and thus will include some
 changes that you'll need to consider when upgrading. The goal of this guide is
