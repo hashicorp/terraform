@@ -46,6 +46,9 @@ for the resource itself. Most arguments in this section depend on the
 resource type, and indeed in this example both `ami` and `instance_type` are
 arguments defined specifically for [the `aws_instance` resource type](/docs/providers/aws/r/instance.html).
 
+-> **Note:** Resource names must start with a letter or underscore, and may
+contain only letters, digits, underscores, and dashes.
+
 ## Resource Types and Arguments
 
 Each resource is associated with a single _resource type_, which determines
