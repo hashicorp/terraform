@@ -540,6 +540,43 @@ func TestAssertPlanValid(t *testing.T) {
 			}),
 			nil,
 		},
+
+		// A block may be null in config, but contain computed elements added by
+		// the provider. This mimics how timeouts are added for the legacy sdk.
+		"computed elements in block": {
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"a": {
+						Nesting: configschema.NestingSingle,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"b": {
+									Type:     cty.String,
+									Computed: true,
+									Optional: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.NullVal(cty.Object(map[string]cty.Type{
+				"a": cty.Object(map[string]cty.Type{
+					"b": cty.String,
+				}),
+			})),
+			cty.NullVal(cty.Object(map[string]cty.Type{
+				"a": cty.Object(map[string]cty.Type{
+					"b": cty.String,
+				}),
+			})),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ObjectVal(map[string]cty.Value{
+					"b": cty.StringVal("c value"),
+				}),
+			}),
+			nil,
+		},
 	}
 
 	for name, test := range tests {
