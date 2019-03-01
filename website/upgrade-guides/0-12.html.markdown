@@ -237,6 +237,13 @@ into a list. The upgrade tool does not remove or attempt to consolidate
 any existing duplicate arguments, but other commands like `terraform validate`
 will detect and report these after upgrading.
 
+## Terraform Configuration upgrades requiring human intervention 
+There are some known situations that will be detected, but not upgrade, by the
+upgrade tool. Some examples of these situatations include:
+
+* `count` can no longer be used a variable name.
+* `resource` names cannot start with a number, though they can still contain numbers.
+
 ## Working with `count` on resources
 
 The `count` feature allows declaration of multiple instances of a particular
