@@ -83,6 +83,45 @@ func TestProposedNewObject(t *testing.T) {
 				}),
 			}),
 		},
+		"null block remains null": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"baz": {
+						Nesting: configschema.NestingSingle,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"boz": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.NullVal(cty.DynamicPseudoType),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.StringVal("bar"),
+				"baz": cty.NullVal(cty.Object(map[string]cty.Type{
+					"boz": cty.String,
+				})),
+			}),
+			// The baz block does not exist in the config, and therefore
+			// shouldn't be planned.
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.StringVal("bar"),
+				"baz": cty.NullVal(cty.Object(map[string]cty.Type{
+					"boz": cty.String,
+				})),
+			}),
+		},
 		"no prior with set": {
 			// This one is here because our handling of sets is more complex
 			// than others (due to the fuzzy correlation heuristic) and

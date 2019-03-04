@@ -25,6 +25,13 @@ import (
 // produce strange results with more "extreme" cases, such as a nested set
 // block where _all_ attributes are computed.
 func ProposedNewObject(schema *configschema.Block, prior, config cty.Value) cty.Value {
+	// If the config and prior are both null, return early here before
+	// populating the prior block. The prevents non-null blocks from appearing
+	// the proposed state value.
+	if config.IsNull() && prior.IsNull() {
+		return prior
+	}
+
 	if prior.IsNull() {
 		// In this case, we will construct a synthetic prior value that is
 		// similar to the result of decoding an empty configuration block,
