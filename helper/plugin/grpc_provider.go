@@ -1125,22 +1125,34 @@ func normalizeFlatmapContainers(prior map[string]string, attrs map[string]string
 // the Private/Meta fields. we need to copy those values into the planned state
 // so that core doesn't see a perpetual diff with the timeout block.
 func copyTimeoutValues(to cty.Value, from cty.Value) cty.Value {
-	// if `from` is null, then there are no attributes, and if `to` is null we
-	// are planning to remove it altogether.
-	if from.IsNull() || to.IsNull() {
+	// if `to` is null we are planning to remove it altogether.
+	if to.IsNull() {
 		return to
+	}
+	toAttrs := to.AsValueMap()
+	// We need to remove the key since the hcl2shims will add a non-null block
+	// because we can't determine if a single block was null from the flatmapped
+	// values. This needs to conform to the correct schema for marshaling, so
+	// change the value to null rather than deleting it from the object map.
+	timeouts, ok := toAttrs[schema.TimeoutsConfigKey]
+	if ok {
+		toAttrs[schema.TimeoutsConfigKey] = cty.NullVal(timeouts.Type())
+	}
+
+	// if from is null then there are no timeouts to copy
+	if from.IsNull() {
+		return cty.ObjectVal(toAttrs)
 	}
 
 	fromAttrs := from.AsValueMap()
-	timeouts, ok := fromAttrs[schema.TimeoutsConfigKey]
+	timeouts, ok = fromAttrs[schema.TimeoutsConfigKey]
 
-	// no timeouts to copy
-	// timeouts shouldn't be unknown, but don't copy possibly invalid values
+	// timeouts shouldn't be unknown, but don't copy possibly invalid values either
 	if !ok || timeouts.IsNull() || !timeouts.IsWhollyKnown() {
-		return to
+		// no timeouts block to copy
+		return cty.ObjectVal(toAttrs)
 	}
 
-	toAttrs := to.AsValueMap()
 	toAttrs[schema.TimeoutsConfigKey] = timeouts
 
 	return cty.ObjectVal(toAttrs)
