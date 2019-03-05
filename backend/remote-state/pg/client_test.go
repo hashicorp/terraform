@@ -59,12 +59,18 @@ func TestRemoteLocks(t *testing.T) {
 		"conn_str":    connStr,
 		"schema_name": schemaName,
 	})
-	b := backend.TestBackendConfig(t, New(), config).(*Backend)
 
-	s, err := b.StateMgr(backend.DefaultStateName)
+	b1 := backend.TestBackendConfig(t, New(), config).(*Backend)
+	s1, err := b1.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	remote.TestRemoteLocks(t, s.(*remote.State).Client, s.(*remote.State).Client)
+	b2 := backend.TestBackendConfig(t, New(), config).(*Backend)
+	s2, err := b2.StateMgr(backend.DefaultStateName)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	remote.TestRemoteLocks(t, s1.(*remote.State).Client, s2.(*remote.State).Client)
 }
