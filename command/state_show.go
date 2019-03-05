@@ -35,6 +35,12 @@ func (c *StateShowCommand) Run(args []string) int {
 		return cli.RunResultHelp
 	}
 
+	// Check for user-supplied plugin path
+	if c.pluginPath, err = c.loadPluginPath(); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
+		return 1
+	}
+
 	// Load the backend
 	b, backendDiags := c.Backend(nil)
 	if backendDiags.HasErrors() {
