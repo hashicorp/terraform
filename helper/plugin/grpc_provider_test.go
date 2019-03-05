@@ -716,7 +716,7 @@ func TestNormalizeFlatmapContainers(t *testing.T) {
 		},
 	} {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			got := normalizeFlatmapContainers(tc.prior, tc.attrs, false)
+			got := normalizeFlatmapContainers(tc.prior, tc.attrs)
 			if !reflect.DeepEqual(tc.expect, got) {
 				t.Fatalf("expected:\n%#v\ngot:\n%#v\n", tc.expect, got)
 			}
