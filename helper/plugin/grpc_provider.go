@@ -747,6 +747,17 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 		}
 	}
 
+	// We need to fix any sets that may be using the "~" index prefix to
+	// indicate partially computed. The special sigil isn't really used except
+	// as a clue to visually indicate that the set isn't wholly known.
+	for k, d := range diff.Attributes {
+		if strings.Contains(k, ".~") {
+			delete(diff.Attributes, k)
+			k = strings.Replace(k, ".~", ".", -1)
+			diff.Attributes[k] = d
+		}
+	}
+
 	// add NewExtra Fields that may have been stored in the private data
 	if newExtra := private[newExtraKey]; newExtra != nil {
 		for k, v := range newExtra.(map[string]interface{}) {
