@@ -80,7 +80,7 @@ This backend creates one table **states** in the automatically-managed Postgres 
 
 The table is keyed by the [workspace](/docs/state/workspaces.html) name. If workspaces are not in use, the name `default` is used.
 
-Locking is supported using [Postgres advisory locks](https://www.postgresql.org/docs/9.5/explicit-locking.html#ADVISORY-LOCKS). [`force-unlock`](https://www.terraform.io/docs/commands/force-unlock.html) is not supported, because these database-native locks will automatically unlock when the transaction is aborted or the connection fails. To see outstanding locks in a Postgres server, use the [`pg_locks` system view](https://www.postgresql.org/docs/9.5/view-pg-locks.html).
+Locking is supported using [Postgres advisory locks](https://www.postgresql.org/docs/9.5/explicit-locking.html#ADVISORY-LOCKS). [`force-unlock`](https://www.terraform.io/docs/commands/force-unlock.html) is not supported, because these database-native locks will automatically unlock when the session is aborted or the connection fails. To see outstanding locks in a Postgres server, use the [`pg_locks` system view](https://www.postgresql.org/docs/9.5/view-pg-locks.html).
 
 The **states** table contains:
 
