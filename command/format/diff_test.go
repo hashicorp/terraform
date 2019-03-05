@@ -25,6 +25,7 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be created
   + resource "test_instance" "example" {
       + id = (known after apply)
@@ -44,6 +45,7 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be destroyed
   - resource "test_instance" "example" {
       - id = "i-02ae66f368e8518a9" -> null
@@ -65,6 +67,7 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be destroyed
   - resource "test_instance" "example" {
       - id = "i-02ae66f368e8518a9" -> null
@@ -89,6 +92,7 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
       ~ ami = "ami-BEFORE" -> "ami-AFTER"
@@ -116,6 +120,7 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
 			RequiredReplace: cty.NewPathSet(cty.Path{
 				cty.GetAttrStep{Name: "ami"},
 			}),
+			Tainted: false,
 			ExpectedOutput: `  # test_instance.example must be replaced
 -/+ resource "test_instance" "example" {
       ~ ami = "ami-BEFORE" -> "ami-AFTER" # forces replacement
@@ -144,6 +149,7 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
       ~ ami = "ami-BEFORE" -> "ami-AFTER"
@@ -172,6 +178,7 @@ new line
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
@@ -205,6 +212,7 @@ new line
 			RequiredReplace: cty.NewPathSet(cty.Path{
 				cty.GetAttrStep{Name: "more_lines"},
 			}),
+			Tainted: false,
 			ExpectedOutput: `  # test_instance.example must be replaced
 -/+ resource "test_instance" "example" {
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
@@ -233,6 +241,7 @@ new line
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be created
   + resource "test_instance" "example" {
       + id       = (known after apply)
@@ -261,11 +270,42 @@ new line
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
       ~ id       = "blah" -> (known after apply)
         password = (sensitive value)
       ~ str      = "before" -> "after"
+    }
+`,
+		},
+
+		// tainted resources
+		"replace tainted resource": {
+			Action: plans.DeleteThenCreate,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.UnknownVal(cty.String),
+				"ami": cty.StringVal("ami-AFTER"),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Optional: true, Computed: true},
+					"ami": {Type: cty.String, Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(cty.Path{
+				cty.GetAttrStep{Name: "ami"},
+			}),
+			Tainted: true,
+			ExpectedOutput: `  # test_instance.example is tainted, so must be replaced
+-/+ resource "test_instance" "example" {
+      ~ ami = "ami-BEFORE" -> "ami-AFTER" # forces replacement
+      ~ id  = "i-02ae66f368e8518a9" -> (known after apply)
     }
 `,
 		},
@@ -295,6 +335,7 @@ func TestResourceChange_JSON(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be created
   + resource "test_instance" "example" {
       + id         = (known after apply)
@@ -333,6 +374,7 @@ func TestResourceChange_JSON(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
@@ -363,6 +405,7 @@ func TestResourceChange_JSON(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
@@ -394,6 +437,7 @@ func TestResourceChange_JSON(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
@@ -425,6 +469,7 @@ func TestResourceChange_JSON(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
@@ -462,6 +507,7 @@ func TestResourceChange_JSON(t *testing.T) {
 			RequiredReplace: cty.NewPathSet(cty.Path{
 				cty.GetAttrStep{Name: "json_field"},
 			}),
+			Tainted: false,
 			ExpectedOutput: `  # test_instance.example must be replaced
 -/+ resource "test_instance" "example" {
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
@@ -493,6 +539,7 @@ func TestResourceChange_JSON(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
@@ -526,6 +573,7 @@ func TestResourceChange_JSON(t *testing.T) {
 			RequiredReplace: cty.NewPathSet(cty.Path{
 				cty.GetAttrStep{Name: "json_field"},
 			}),
+			Tainted: false,
 			ExpectedOutput: `  # test_instance.example must be replaced
 -/+ resource "test_instance" "example" {
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
@@ -553,6 +601,7 @@ func TestResourceChange_JSON(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be created
   + resource "test_instance" "example" {
       + id         = (known after apply)
@@ -578,6 +627,7 @@ func TestResourceChange_JSON(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
@@ -609,6 +659,7 @@ func TestResourceChange_JSON(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
@@ -640,6 +691,7 @@ func TestResourceChange_JSON(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
@@ -674,6 +726,7 @@ func TestResourceChange_JSON(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
@@ -706,6 +759,7 @@ func TestResourceChange_JSON(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
@@ -740,6 +794,7 @@ func TestResourceChange_JSON(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
@@ -776,6 +831,7 @@ func TestResourceChange_JSON(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
@@ -812,6 +868,7 @@ func TestResourceChange_JSON(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
@@ -862,6 +919,7 @@ func TestResourceChange_primitiveList(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
         ami        = "ami-STATIC"
@@ -895,6 +953,7 @@ func TestResourceChange_primitiveList(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
         ami        = "ami-STATIC"
@@ -933,6 +992,7 @@ func TestResourceChange_primitiveList(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
         ami        = "ami-STATIC"
@@ -975,6 +1035,7 @@ func TestResourceChange_primitiveList(t *testing.T) {
 			RequiredReplace: cty.NewPathSet(cty.Path{
 				cty.GetAttrStep{Name: "list_field"},
 			}),
+			Tainted: false,
 			ExpectedOutput: `  # test_instance.example must be replaced
 -/+ resource "test_instance" "example" {
         ami        = "ami-STATIC"
@@ -1014,6 +1075,7 @@ func TestResourceChange_primitiveList(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
         ami        = "ami-STATIC"
@@ -1043,6 +1105,7 @@ func TestResourceChange_primitiveList(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be created
   + resource "test_instance" "example" {
       + ami        = "ami-STATIC"
@@ -1076,6 +1139,7 @@ func TestResourceChange_primitiveList(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
         ami        = "ami-STATIC"
@@ -1109,6 +1173,7 @@ func TestResourceChange_primitiveList(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
         ami        = "ami-STATIC"
@@ -1146,6 +1211,7 @@ func TestResourceChange_primitiveList(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
         ami        = "ami-STATIC"
@@ -1189,6 +1255,7 @@ func TestResourceChange_primitiveList(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
         ami        = "ami-STATIC"
@@ -1232,6 +1299,7 @@ func TestResourceChange_primitiveSet(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
         ami       = "ami-STATIC"
@@ -1265,6 +1333,7 @@ func TestResourceChange_primitiveSet(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
         ami       = "ami-STATIC"
@@ -1303,6 +1372,7 @@ func TestResourceChange_primitiveSet(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
         ami       = "ami-STATIC"
@@ -1345,6 +1415,7 @@ func TestResourceChange_primitiveSet(t *testing.T) {
 			RequiredReplace: cty.NewPathSet(cty.Path{
 				cty.GetAttrStep{Name: "set_field"},
 			}),
+			Tainted: false,
 			ExpectedOutput: `  # test_instance.example must be replaced
 -/+ resource "test_instance" "example" {
         ami       = "ami-STATIC"
@@ -1384,6 +1455,7 @@ func TestResourceChange_primitiveSet(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
         ami       = "ami-STATIC"
@@ -1413,6 +1485,7 @@ func TestResourceChange_primitiveSet(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be created
   + resource "test_instance" "example" {
       + ami       = "ami-STATIC"
@@ -1477,6 +1550,7 @@ func TestResourceChange_primitiveSet(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
         ami       = "ami-STATIC"
@@ -1509,6 +1583,7 @@ func TestResourceChange_primitiveSet(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
         ami       = "ami-STATIC"
@@ -1547,6 +1622,7 @@ func TestResourceChange_primitiveSet(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
         ami       = "ami-STATIC"
@@ -1588,6 +1664,7 @@ func TestResourceChange_map(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
         ami       = "ami-STATIC"
@@ -1621,6 +1698,7 @@ func TestResourceChange_map(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
         ami       = "ami-STATIC"
@@ -1659,6 +1737,7 @@ func TestResourceChange_map(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
         ami       = "ami-STATIC"
@@ -1701,6 +1780,7 @@ func TestResourceChange_map(t *testing.T) {
 			RequiredReplace: cty.NewPathSet(cty.Path{
 				cty.GetAttrStep{Name: "map_field"},
 			}),
+			Tainted: false,
 			ExpectedOutput: `  # test_instance.example must be replaced
 -/+ resource "test_instance" "example" {
         ami       = "ami-STATIC"
@@ -1740,6 +1820,7 @@ func TestResourceChange_map(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
         ami       = "ami-STATIC"
@@ -1769,6 +1850,7 @@ func TestResourceChange_map(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be created
   + resource "test_instance" "example" {
       + ami       = "ami-STATIC"
@@ -1806,6 +1888,7 @@ func TestResourceChange_map(t *testing.T) {
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
         ami       = "ami-STATIC"
@@ -1846,6 +1929,7 @@ func TestResourceChange_nestedList(t *testing.T) {
 				}),
 			}),
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			Schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"id":  {Type: cty.String, Optional: true, Computed: true},
@@ -1895,6 +1979,7 @@ func TestResourceChange_nestedList(t *testing.T) {
 				}),
 			}),
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			Schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"id":  {Type: cty.String, Optional: true, Computed: true},
@@ -1942,6 +2027,7 @@ func TestResourceChange_nestedList(t *testing.T) {
 				}),
 			}),
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			Schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"id":  {Type: cty.String, Optional: true, Computed: true},
@@ -1997,6 +2083,7 @@ func TestResourceChange_nestedList(t *testing.T) {
 				}),
 			}),
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			Schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"id":  {Type: cty.String, Optional: true, Computed: true},
@@ -2060,6 +2147,7 @@ func TestResourceChange_nestedList(t *testing.T) {
 				cty.IndexStep{Key: cty.NumberIntVal(0)},
 				cty.GetAttrStep{Name: "volume_type"},
 			}),
+			Tainted: false,
 			Schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"id":  {Type: cty.String, Optional: true, Computed: true},
@@ -2115,6 +2203,7 @@ func TestResourceChange_nestedList(t *testing.T) {
 			RequiredReplace: cty.NewPathSet(cty.Path{
 				cty.GetAttrStep{Name: "root_block_device"},
 			}),
+			Tainted: false,
 			Schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"id":  {Type: cty.String, Optional: true, Computed: true},
@@ -2165,6 +2254,7 @@ func TestResourceChange_nestedList(t *testing.T) {
 				"root_block_device": cty.ListValEmpty(cty.EmptyObject),
 			}),
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			Schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"id":  {Type: cty.String, Optional: true, Computed: true},
@@ -2226,6 +2316,7 @@ func TestResourceChange_nestedSet(t *testing.T) {
 				}),
 			}),
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			Schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"id":  {Type: cty.String, Optional: true, Computed: true},
@@ -2281,6 +2372,7 @@ func TestResourceChange_nestedSet(t *testing.T) {
 				}),
 			}),
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			Schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"id":  {Type: cty.String, Optional: true, Computed: true},
@@ -2345,6 +2437,7 @@ func TestResourceChange_nestedSet(t *testing.T) {
 			RequiredReplace: cty.NewPathSet(cty.Path{
 				cty.GetAttrStep{Name: "root_block_device"},
 			}),
+			Tainted: false,
 			Schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"id":  {Type: cty.String, Optional: true, Computed: true},
@@ -2398,6 +2491,7 @@ func TestResourceChange_nestedSet(t *testing.T) {
 				"root_block_device": cty.SetValEmpty(cty.EmptyObject),
 			}),
 			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
 			Schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"id":  {Type: cty.String, Optional: true, Computed: true},
@@ -2446,6 +2540,7 @@ type testCase struct {
 	After           cty.Value
 	Schema          *configschema.Block
 	RequiredReplace cty.PathSet
+	Tainted         bool
 	ExpectedOutput  string
 }
 
@@ -2481,7 +2576,7 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 				RequiredReplace: tc.RequiredReplace,
 			}
 
-			output := ResourceChange(change, tc.Schema, color)
+			output := ResourceChange(change, tc.Tainted, tc.Schema, color)
 			if output != tc.ExpectedOutput {
 				t.Fatalf("Unexpected diff.\nExpected:\n%s\nGiven:\n%s\n", tc.ExpectedOutput, output)
 			}
