@@ -431,7 +431,7 @@ func (s *GRPCProviderServer) ReadResource(_ context.Context, req *proto.ReadReso
 		// here we use the prior state to check for unknown/zero containers values
 		// when normalizing the flatmap.
 		stateAttrs := hcl2shim.FlatmapValueFromHCL2(stateVal)
-		newInstanceState.Attributes = normalizeFlatmapContainers(stateAttrs, newInstanceState.Attributes, false)
+		newInstanceState.Attributes = normalizeFlatmapContainers(stateAttrs, newInstanceState.Attributes)
 	}
 
 	if newInstanceState == nil || newInstanceState.ID == "" {
@@ -572,7 +572,7 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 	// now we need to apply the diff to the prior state, so get the planned state
 	plannedAttrs, err := diff.Apply(priorState.Attributes, block)
 
-	plannedAttrs = normalizeFlatmapContainers(priorState.Attributes, plannedAttrs, false)
+	plannedAttrs = normalizeFlatmapContainers(priorState.Attributes, plannedAttrs)
 
 	plannedStateVal, err := hcl2shim.HCL2ValueFromFlatmap(plannedAttrs, block.ImpliedType())
 	if err != nil {
@@ -808,7 +808,7 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 	// here we use the planned state to check for unknown/zero containers values
 	// when normalizing the flatmap.
 	plannedState := hcl2shim.FlatmapValueFromHCL2(plannedStateVal)
-	newInstanceState.Attributes = normalizeFlatmapContainers(plannedState, newInstanceState.Attributes, true)
+	newInstanceState.Attributes = normalizeFlatmapContainers(plannedState, newInstanceState.Attributes)
 
 	// We keep the null val if we destroyed the resource, otherwise build the
 	// entire object, even if the new state was nil.
@@ -819,6 +819,7 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 	}
 
 	newStateVal = normalizeNullValues(newStateVal, plannedStateVal, false)
+
 	newStateVal = copyTimeoutValues(newStateVal, plannedStateVal)
 
 	newStateMP, err := msgpack.Marshal(newStateVal, block.ImpliedType())
@@ -995,7 +996,7 @@ func pathToAttributePath(path cty.Path) *proto.AttributePath {
 // allows a provider to set an empty computed container in the state without
 // creating perpetual diff. This can differ slightly between plan and apply, so
 // the apply flag is passed when called from ApplyResourceChange.
-func normalizeFlatmapContainers(prior map[string]string, attrs map[string]string, apply bool) map[string]string {
+func normalizeFlatmapContainers(prior map[string]string, attrs map[string]string) map[string]string {
 	isCount := regexp.MustCompile(`.\.[%#]$`).MatchString
 
 	// While we can't determine if the value was actually computed here, we will
@@ -1008,11 +1009,6 @@ func normalizeFlatmapContainers(prior map[string]string, attrs map[string]string
 	for k, v := range prior {
 		if isCount(k) && (v == "0" || v == hcl2shim.UnknownVariableValue) {
 			zeros[k] = true
-		}
-
-		// fixup any 1->0 conversions that happened during Apply
-		if apply && isCount(k) && v == "1" && attrs[k] == "0" {
-			attrs[k] = "1"
 		}
 	}
 
@@ -1291,7 +1287,7 @@ func normalizeNullValues(dst, src cty.Value, plan bool) cty.Value {
 		// If the dst is nil, and the src is known, then we lost an empty value
 		// so take the original.
 		if dst.IsNull() {
-			if src.IsWhollyKnown() && !plan {
+			if src.IsWhollyKnown() && src.LengthInt() == 0 && !plan {
 				return src
 			}
 			return dst
