@@ -179,7 +179,7 @@ func (h Hostname) GoString() string {
 // If the port portion is invalid, the input string is returned verbatim along
 // with a non-nil error.
 //
-// An empty string is a valid port portion representing the absense of a port.
+// An empty string is a valid port portion representing the absence of a port.
 // If non-empty, the first character must be a colon.
 func normalizePortPortion(s string) (string, error) {
 	if s == "" {
