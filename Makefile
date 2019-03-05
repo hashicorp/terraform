@@ -17,7 +17,7 @@ bin: fmtcheck generate
 # dev creates binaries for testing Terraform locally. These are put
 # into ./bin/ as well as $GOPATH/bin
 dev: fmtcheck generate
-	go install -mod=vendor .
+	GO111MODULE=on go install -mod=vendor .
 
 quickdev: generate
 	go install -mod=vendor .
@@ -32,7 +32,7 @@ plugin-dev: generate
 # we run this one package at a time here because running the entire suite in
 # one command creates memory usage issues when running in Travis-CI.
 test: fmtcheck generate
-	go list -mod=vendor $(TEST) | xargs -t -n4 go test $(TESTARGS) -mod=vendor -timeout=2m -parallel=4
+	GO111MODULE=on go list -mod=vendor $(TEST) | GO111MODULE=on xargs -t -n4 go test $(TESTARGS) -mod=vendor -timeout=2m -parallel=4
 
 # testacc runs acceptance tests
 testacc: fmtcheck generate
