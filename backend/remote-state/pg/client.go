@@ -80,7 +80,7 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 		var didUnlock []byte
 		err := row.Scan(&didUnlock)
 		if err != nil {
-			return &state.LockError{Info: c.info, Err: err}
+			return &state.LockError{Info: info, Err: err}
 		}
 		return nil
 	}
