@@ -270,6 +270,14 @@ func (i *ProviderInstaller) install(provider string, version Version, url string
 		// normal resolution machinery can find it.
 		filename := filepath.Base(cached)
 		targetPath := filepath.Join(i.Dir, filename)
+		// check if the target dir exists, and create it if not
+		var err error
+		if _, StatErr := os.Stat(i.Dir); os.IsNotExist(StatErr) {
+			err = os.Mkdir(i.Dir, 0700)
+		}
+		if err != nil {
+			return err
+		}
 
 		log.Printf("[DEBUG] installing %s %s to %s from local cache %s", provider, version, targetPath, cached)
 
