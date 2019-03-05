@@ -7,9 +7,8 @@ description: The source argument within a module block specifies the location of
 
 # Module Sources
 
-As introduced in [the _Usage_ section](/docs/modules/usage.html), the `source`
-argument in a `module` block tells Terraform where to find the source code
-for the desired child module.
+The `source` argument in [a `module` block](/docs/configuration/modules.html)
+tells Terraform where to find the source code for the desired child module.
 
 Terraform uses this during the module installation step of `terraform init`
 to download the source code to a directory on local disk so that it can be
