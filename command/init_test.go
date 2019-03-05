@@ -67,7 +67,10 @@ func TestInit_multipleArgs(t *testing.T) {
 
 func TestInit_fromModule_explicitDest(t *testing.T) {
 	dir := tempDir(t)
-	err := os.Mkdir(dir, os.ModePerm)
+	err := os.MkdirAll(dir, os.ModePerm)
+	defer os.RemoveAll(dir)
+	defer testChdir(t, dir)()
+
 	if err != nil {
 		t.Fatal(err)
 	}
