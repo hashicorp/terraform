@@ -276,3 +276,45 @@ resource "test_resource_list" "foo" {
 		},
 	})
 }
+
+func TestResourceList_addRemove(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_list" "foo" {
+}
+				`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("test_resource_list.foo", "computed_list.#", "0"),
+					resource.TestCheckResourceAttr("test_resource_list.foo", "dependent_list.#", "0"),
+				),
+			},
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_list" "foo" {
+	dependent_list {
+		val = "a"
+	}
+}
+				`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("test_resource_list.foo", "computed_list.#", "1"),
+					resource.TestCheckResourceAttr("test_resource_list.foo", "dependent_list.#", "1"),
+				),
+			},
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_list" "foo" {
+}
+				`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("test_resource_list.foo", "computed_list.#", "0"),
+					resource.TestCheckResourceAttr("test_resource_list.foo", "dependent_list.#", "0"),
+				),
+			},
+		},
+	})
+}
