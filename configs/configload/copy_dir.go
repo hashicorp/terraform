@@ -2,6 +2,7 @@ package configload
 
 import (
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -57,6 +58,25 @@ func copyDir(dst, src string) error {
 			}
 
 			return nil
+		}
+
+		// info.IsDir() returns false for symlinks, even if the symlink is a
+		// directory.
+		if info.Mode()&os.ModeSymlink == os.ModeSymlink {
+			_, err := ioutil.ReadDir(path)
+			if err == nil {
+				// it was a directory ALL ALONG!!!
+				if path == filepath.Join(src, dst) {
+					// dst is in src; don't walk it.
+					return nil
+				}
+
+				if err := os.MkdirAll(dstPath, 0755); err != nil {
+					return err
+				}
+
+				return nil
+			}
 		}
 
 		// If we have a file, copy the contents.

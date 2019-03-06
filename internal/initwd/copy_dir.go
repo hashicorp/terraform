@@ -62,8 +62,6 @@ func copyDir(dst, src string) error {
 
 		// info.IsDir() returns false for symlinks, even if the symlink is a
 		// directory.
-		// TODO: This may be fixed - or different - in go1.12, at which point we
-		// can remove this ugly, duplicate block
 		if info.Mode()&os.ModeSymlink == os.ModeSymlink {
 			_, err := ioutil.ReadDir(path)
 			if err == nil {
