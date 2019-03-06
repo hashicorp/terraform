@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/terraform/plans/objchange"
+
 	"github.com/zclconf/go-cty/cty"
 	ctyconvert "github.com/zclconf/go-cty/cty/convert"
 	"github.com/zclconf/go-cty/cty/msgpack"
@@ -458,6 +460,7 @@ func (s *GRPCProviderServer) ReadResource(_ context.Context, req *proto.ReadReso
 	}
 
 	newStateVal = copyTimeoutValues(newStateVal, stateVal)
+	newStateVal = objchange.NormalizeObjectFromLegacySDK(newStateVal, block)
 
 	newStateMP, err := msgpack.Marshal(newStateVal, block.ImpliedType())
 	if err != nil {
@@ -594,6 +597,7 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 	}
 
 	plannedStateVal = copyTimeoutValues(plannedStateVal, proposedNewStateVal)
+	plannedStateVal = objchange.NormalizeObjectFromLegacySDK(plannedStateVal, block)
 
 	// The old SDK code has some imprecisions that cause it to sometimes
 	// generate differences that the SDK itself does not consider significant
@@ -832,6 +836,7 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 	newStateVal = normalizeNullValues(newStateVal, plannedStateVal, false)
 
 	newStateVal = copyTimeoutValues(newStateVal, plannedStateVal)
+	newStateVal = objchange.NormalizeObjectFromLegacySDK(newStateVal, block)
 
 	newStateMP, err := msgpack.Marshal(newStateVal, block.ImpliedType())
 	if err != nil {
@@ -955,6 +960,7 @@ func (s *GRPCProviderServer) ReadDataSource(_ context.Context, req *proto.ReadDa
 	}
 
 	newStateVal = copyTimeoutValues(newStateVal, configVal)
+	newStateVal = objchange.NormalizeObjectFromLegacySDK(newStateVal, block)
 
 	newStateMP, err := msgpack.Marshal(newStateVal, block.ImpliedType())
 	if err != nil {
