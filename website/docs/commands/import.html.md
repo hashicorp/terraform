@@ -48,6 +48,10 @@ The command-line flags are all optional. The list of available flags are:
 
 * `-no-color` - If specified, output won't contain any color.
 
+* `-parallelism=n` - Limit the number of concurrent operation as Terraform
+  [walks the graph](/docs/internals/graph.html#walking-the-graph). Defaults
+  to 10.
+
 * `-provider=provider` - Specified provider to use for import. The value should be a provider
   alias in the form `TYPE.ALIAS`, such as "aws.eu". This defaults to the normal
   provider based on the prefix of the resource being imported. You usually
