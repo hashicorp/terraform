@@ -187,8 +187,8 @@ github.com/hashicorp/go-slug v0.2.0 h1:MVdZAkTmDsUi1AT+3NQDsn8n3ssnVSIHwiM6RcUHv
 github.com/hashicorp/go-slug v0.2.0/go.mod h1:+zDycQOzGqOqMW7Kn2fp9vz/NtqpMLQlgb9JUF+0km4=
 github.com/hashicorp/go-sockaddr v0.0.0-20180320115054-6d291a969b86 h1:7YOlAIO2YWnJZkQp7B5eFykaIY7C9JndqAFQyVV5BhM=
 github.com/hashicorp/go-sockaddr v0.0.0-20180320115054-6d291a969b86/go.mod h1:7Xibr9yA9JjQq1JpNB2Vw7kxv8xerXegt+ozgdvDeDU=
-github.com/hashicorp/go-tfe v0.3.10 h1:6uPnPHNPxXDe3k/Vt6fovygYTaWJ8f/7zdHc++f7NJU=
-github.com/hashicorp/go-tfe v0.3.10/go.mod h1:LHLchj07PCYgQqcyE5Sz+g4zrMNW+nALKbiSNTZedEs=
+github.com/hashicorp/go-tfe v0.3.11 h1:PHw0f1XeriVkqBikhXgZm/t65GR/fEH1iUl/d/9qKbU=
+github.com/hashicorp/go-tfe v0.3.11/go.mod h1:LHLchj07PCYgQqcyE5Sz+g4zrMNW+nALKbiSNTZedEs=
 github.com/hashicorp/go-uuid v1.0.0 h1:RS8zrF7PhGwyNPOtxSClXXj9HA8feRnJzgnI1RJCSnM=
 github.com/hashicorp/go-uuid v1.0.0/go.mod h1:6SBZvOh/SIDV7/2o3Jml5SYk/TvGqwFJ/bN7x4byOro=
 github.com/hashicorp/go-version v1.1.0 h1:bPIoEKD27tNdebFGGxxYwcL4nepeY4j1QP23PFRGzg0=
@@ -245,8 +245,6 @@ github.com/kylelemons/godebug v0.0.0-20170820004349-d65d576e9348 h1:MtvEpTB6LX3v
 github.com/kylelemons/godebug v0.0.0-20170820004349-d65d576e9348/go.mod h1:B69LEHPfb2qLo0BaaOLcbitczOKLWTsrBG9LczfCD4k=
 github.com/lib/pq v1.0.0 h1:X5PMW56eZitiTeO7tKzZxFCSpbFZJtkMMooicw2us9A=
 github.com/lib/pq v1.0.0/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=
-github.com/lib/pq v1.0.1-0.20181016162627-9eb73efc1fcc h1:9GUJohDyEsZO3cDfQuSxTf38xvk+gRWe+fDv3L9oWHA=
-github.com/lib/pq v1.0.1-0.20181016162627-9eb73efc1fcc/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=
 github.com/lusis/go-artifactory v0.0.0-20160115162124-7e4ce345df82 h1:wnfcqULT+N2seWf6y4yHzmi7GD2kNx4Ute0qArktD48=
 github.com/lusis/go-artifactory v0.0.0-20160115162124-7e4ce345df82/go.mod h1:y54tfGmO3NKssKveTEFFzH8C/akrSOy/iW9qEAUDV84=
 github.com/marstr/guid v1.1.0 h1:/M4H/1G4avsieL6BbUwCOBzulmoeKVP5ux/3mQNnbyI=
