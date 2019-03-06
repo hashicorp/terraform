@@ -60,7 +60,8 @@ The command-line flags are all optional. The list of available flags are:
   plans below.
 
 * `-parallelism=n` - Limit the number of concurrent operation as Terraform
-  [walks the graph](/docs/internals/graph.html#walking-the-graph).
+  [walks the graph](/docs/internals/graph.html#walking-the-graph). Defaults
+  to 10.
 
 * `-refresh=true` - Update the state prior to checking for differences.
 
