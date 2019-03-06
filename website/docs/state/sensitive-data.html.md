@@ -13,7 +13,7 @@ and your definition of "sensitive." The state contains resource IDs and all
 resource attributes. For resources such as databases, this may contain initial
 passwords.
 
-Some resources (such as RDS databases) have options for PGP encrypting the
+Some resources (such as AWS IAM Access Keys) have options for PGP encrypting the
 values within the state. This is implemented on a per-resource basis and
 you should assume the value is plaintext unless otherwise documented.
 
