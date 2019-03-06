@@ -59,6 +59,20 @@ func copyDir(dst, src string) error {
 			return nil
 		}
 
+		// If the current path is a symlink, recreate the symlink relative to
+		// the dst directory
+		if info.Mode()&os.ModeSymlink == os.ModeSymlink {
+			// the original symlink target
+			target, err := filepath.EvalSymlinks(path)
+			if err != nil {
+				return err
+			}
+
+			newTarget, err := filepath.Rel(src, target)
+
+			return os.Symlink(newTarget, dstPath)
+		}
+
 		// If we have a file, copy the contents.
 		srcF, err := os.Open(path)
 		if err != nil {
