@@ -176,7 +176,7 @@ Resource actions are indicated with the following symbols:
 
 Terraform will perform the following actions:
 
-  # test_instance.foo must be replaced
+  # test_instance.foo is tainted, so must be replaced
 -/+ resource "test_instance" "foo" {
         ami = "bar"
 
@@ -239,7 +239,7 @@ Resource actions are indicated with the following symbols:
 
 Terraform will perform the following actions:
 
-  # test_instance.foo must be replaced
+  # test_instance.foo is tainted, so must be replaced
 +/- resource "test_instance" "foo" {
         ami = "bar"
 
