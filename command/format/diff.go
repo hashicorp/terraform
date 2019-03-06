@@ -29,6 +29,7 @@ import (
 // no color codes will be included.
 func ResourceChange(
 	change *plans.ResourceInstanceChangeSrc,
+	tainted bool,
 	schema *configschema.Block,
 	color *colorstring.Colorize,
 ) string {
@@ -56,7 +57,11 @@ func ResourceChange(
 	case plans.Update:
 		buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] will be updated in-place", dispAddr)))
 	case plans.CreateThenDelete, plans.DeleteThenCreate:
-		buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] must be [bold][red]replaced", dispAddr)))
+		if tainted {
+			buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] is tainted, so must be [bold][red]replaced", dispAddr)))
+		} else {
+			buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] must be [bold][red]replaced", dispAddr)))
+		}
 	case plans.Delete:
 		buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] will be [bold][red]destroyed", dispAddr)))
 	default:
