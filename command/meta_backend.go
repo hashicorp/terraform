@@ -773,7 +773,7 @@ func (m *Meta) selectWorkspace(b backend.Backend) error {
 
 	// If the selected workspace is not migrated, ask the user to select
 	// a workspace from the list of migrated workspaces.
-	v, err := m.UIInput().Input(&terraform.InputOpts{
+	v, err := m.UIInput().Input(context.Background(), &terraform.InputOpts{
 		Id: "select-workspace",
 		Query: fmt.Sprintf(
 			"\n[reset][bold][yellow]The currently selected workspace (%s) is not migrated.[reset]",

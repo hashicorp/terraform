@@ -15,7 +15,6 @@ import (
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/svchost"
@@ -68,9 +67,6 @@ type Remote struct {
 	// prefix is used to filter down a set of workspaces that use a single
 	// configuration.
 	prefix string
-
-	// schema defines the configuration for the backend.
-	schema *schema.Backend
 
 	// services is used for service discovery
 	services *disco.Disco
@@ -726,13 +722,13 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 }
 
 func (b *Remote) cancel(cancelCtx context.Context, op *backend.Operation, r *tfe.Run) error {
-	if r.Status == tfe.RunPending && r.Actions.IsCancelable {
+	if r.Actions.IsCancelable {
 		// Only ask if the remote operation should be canceled
 		// if the auto approve flag is not set.
 		if !op.AutoApprove {
-			v, err := op.UIIn.Input(&terraform.InputOpts{
+			v, err := op.UIIn.Input(cancelCtx, &terraform.InputOpts{
 				Id:          "cancel",
-				Query:       "\nDo you want to cancel the pending remote operation?",
+				Query:       "\nDo you want to cancel the remote operation?",
 				Description: "Only 'yes' will be accepted to cancel.",
 			})
 			if err != nil {

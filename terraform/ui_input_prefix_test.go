@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"context"
 	"testing"
 )
 
@@ -15,7 +16,7 @@ func testPrefixUIInput(t *testing.T) {
 		UIInput:  input,
 	}
 
-	_, err := prefix.Input(&InputOpts{Id: "bar"})
+	_, err := prefix.Input(context.Background(), &InputOpts{Id: "bar"})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
