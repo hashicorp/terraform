@@ -128,7 +128,7 @@ type Meta struct {
 	//
 	// stateOutPath is used to override the output path for the state.
 	// If not provided, the StatePath is used causing the old state to
-	// be overriden.
+	// be overridden.
 	//
 	// backupPath is used to backup the state file before writing a modified
 	// version. It defaults to stateOutPath + DefaultBackupExtension
@@ -470,7 +470,7 @@ func (m *Meta) confirm(opts *terraform.InputOpts) (bool, error) {
 	}
 
 	for i := 0; i < 2; i++ {
-		v, err := m.UIInput().Input(opts)
+		v, err := m.UIInput().Input(context.Background(), opts)
 		if err != nil {
 			return false, fmt.Errorf(
 				"Error asking for confirmation: %s", err)

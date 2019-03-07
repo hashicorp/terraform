@@ -12,6 +12,7 @@
 package schema
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"reflect"
@@ -1255,7 +1256,7 @@ func (m schemaMap) inputString(
 	input terraform.UIInput,
 	k string,
 	schema *Schema) (interface{}, error) {
-	result, err := input.Input(&terraform.InputOpts{
+	result, err := input.Input(context.Background(), &terraform.InputOpts{
 		Id:          k,
 		Query:       k,
 		Description: schema.Description,

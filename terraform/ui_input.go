@@ -1,10 +1,12 @@
 package terraform
 
+import "context"
+
 // UIInput is the interface that must be implemented to ask for input
 // from this user. This should forward the request to wherever the user
 // inputs things to ask for values.
 type UIInput interface {
-	Input(*InputOpts) (string, error)
+	Input(context.Context, *InputOpts) (string, error)
 }
 
 // InputOpts are options for asking for input.
