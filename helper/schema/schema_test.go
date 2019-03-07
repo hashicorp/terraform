@@ -3836,6 +3836,94 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 			},
 			false,
 		},
+
+		"ConfigModeBlock with Elem *Resource": {
+			map[string]*Schema{
+				"block": &Schema{
+					Type:       TypeList,
+					ConfigMode: SchemaConfigModeBlock,
+					Optional:   true,
+					Elem:       &Resource{},
+				},
+			},
+			false,
+		},
+
+		"ConfigModeBlock Computed with Elem *Resource": {
+			map[string]*Schema{
+				"block": &Schema{
+					Type:       TypeList,
+					ConfigMode: SchemaConfigModeBlock,
+					Computed:   true,
+					Elem:       &Resource{},
+				},
+			},
+			true, // ConfigMode of block cannot be used for computed schema
+		},
+
+		"ConfigModeBlock with Elem *Schema": {
+			map[string]*Schema{
+				"block": &Schema{
+					Type:       TypeList,
+					ConfigMode: SchemaConfigModeBlock,
+					Optional:   true,
+					Elem: &Schema{
+						Type: TypeString,
+					},
+				},
+			},
+			true,
+		},
+
+		"ConfigModeBlock with no Elem": {
+			map[string]*Schema{
+				"block": &Schema{
+					Type:       TypeString,
+					ConfigMode: SchemaConfigModeBlock,
+					Optional:   true,
+				},
+			},
+			true,
+		},
+
+		"ConfigModeBlock inside ConfigModeAttr": {
+			map[string]*Schema{
+				"block": &Schema{
+					Type:       TypeList,
+					ConfigMode: SchemaConfigModeAttr,
+					Optional:   true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"sub": &Schema{
+								Type:       TypeList,
+								ConfigMode: SchemaConfigModeBlock,
+								Elem:       &Resource{},
+							},
+						},
+					},
+				},
+			},
+			true, // ConfigMode of block cannot be used in child of schema with ConfigMode of attribute
+		},
+
+		"ConfigModeAuto with *Resource inside ConfigModeAttr": {
+			map[string]*Schema{
+				"block": &Schema{
+					Type:       TypeList,
+					ConfigMode: SchemaConfigModeAttr,
+					Optional:   true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"sub": &Schema{
+								Type: TypeList,
+								Elem: &Resource{},
+							},
+						},
+					},
+				},
+			},
+			true, // in *schema.Resource with ConfigMode of attribute, so must also have ConfigMode of attribute
+		},
 	}
 
 	for tn, tc := range cases {
