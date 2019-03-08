@@ -459,6 +459,156 @@ func TestRemote_applyAutoApprove(t *testing.T) {
 	}
 }
 
+func TestRemote_applyApprovedExternally(t *testing.T) {
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
+
+	op, configCleanup := testOperationApply(t, "./test-fixtures/apply")
+	defer configCleanup()
+
+	input := testInput(t, map[string]string{
+		"approve": "wait-for-external-update",
+	})
+
+	op.UIIn = input
+	op.UIOut = b.CLI
+	op.Workspace = backend.DefaultStateName
+
+	ctx := context.Background()
+
+	run, err := b.Operation(ctx, op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	// Wait 2 seconds to make sure the run started.
+	time.Sleep(2 * time.Second)
+
+	wl, err := b.client.Workspaces.List(
+		ctx,
+		b.organization,
+		tfe.WorkspaceListOptions{
+			ListOptions: tfe.ListOptions{PageNumber: 2, PageSize: 10},
+		},
+	)
+	if err != nil {
+		t.Fatalf("unexpected error listing workspaces: %v", err)
+	}
+	if len(wl.Items) != 1 {
+		t.Fatalf("expected 1 workspace, got %d workspaces", len(wl.Items))
+	}
+
+	rl, err := b.client.Runs.List(ctx, wl.Items[0].ID, tfe.RunListOptions{})
+	if err != nil {
+		t.Fatalf("unexpected error listing runs: %v", err)
+	}
+	if len(rl.Items) != 1 {
+		t.Fatalf("expected 1 run, got %d runs", len(rl.Items))
+	}
+
+	err = b.client.Runs.Apply(context.Background(), rl.Items[0].ID, tfe.RunApplyOptions{})
+	if err != nil {
+		t.Fatalf("unexpected error approving run: %v", err)
+	}
+
+	<-run.Done()
+	if run.Result != backend.OperationSuccess {
+		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
+	}
+	if run.PlanEmpty {
+		t.Fatalf("expected a non-empty plan")
+	}
+
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if !strings.Contains(output, "Running apply in the remote backend") {
+		t.Fatalf("expected remote backend header in output: %s", output)
+	}
+	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+		t.Fatalf("expected plan summery in output: %s", output)
+	}
+	if !strings.Contains(output, "approved using the UI or API") {
+		t.Fatalf("expected external approval in output: %s", output)
+	}
+	if !strings.Contains(output, "1 added, 0 changed, 0 destroyed") {
+		t.Fatalf("expected apply summery in output: %s", output)
+	}
+}
+
+func TestRemote_applyDiscardedExternally(t *testing.T) {
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
+
+	op, configCleanup := testOperationApply(t, "./test-fixtures/apply")
+	defer configCleanup()
+
+	input := testInput(t, map[string]string{
+		"approve": "wait-for-external-update",
+	})
+
+	op.UIIn = input
+	op.UIOut = b.CLI
+	op.Workspace = backend.DefaultStateName
+
+	ctx := context.Background()
+
+	run, err := b.Operation(ctx, op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	// Wait 2 seconds to make sure the run started.
+	time.Sleep(2 * time.Second)
+
+	wl, err := b.client.Workspaces.List(
+		ctx,
+		b.organization,
+		tfe.WorkspaceListOptions{
+			ListOptions: tfe.ListOptions{PageNumber: 2, PageSize: 10},
+		},
+	)
+	if err != nil {
+		t.Fatalf("unexpected error listing workspaces: %v", err)
+	}
+	if len(wl.Items) != 1 {
+		t.Fatalf("expected 1 workspace, got %d workspaces", len(wl.Items))
+	}
+
+	rl, err := b.client.Runs.List(ctx, wl.Items[0].ID, tfe.RunListOptions{})
+	if err != nil {
+		t.Fatalf("unexpected error listing runs: %v", err)
+	}
+	if len(rl.Items) != 1 {
+		t.Fatalf("expected 1 run, got %d runs", len(rl.Items))
+	}
+
+	err = b.client.Runs.Discard(context.Background(), rl.Items[0].ID, tfe.RunDiscardOptions{})
+	if err != nil {
+		t.Fatalf("unexpected error discarding run: %v", err)
+	}
+
+	<-run.Done()
+	if run.Result == backend.OperationSuccess {
+		t.Fatal("expected apply operation to fail")
+	}
+	if !run.PlanEmpty {
+		t.Fatalf("expected plan to be empty")
+	}
+
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if !strings.Contains(output, "Running apply in the remote backend") {
+		t.Fatalf("expected remote backend header in output: %s", output)
+	}
+	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+		t.Fatalf("expected plan summery in output: %s", output)
+	}
+	if !strings.Contains(output, "discarded using the UI or API") {
+		t.Fatalf("expected external discard output: %s", output)
+	}
+	if strings.Contains(output, "1 added, 0 changed, 0 destroyed") {
+		t.Fatalf("unexpected apply summery in output: %s", output)
+	}
+}
+
 func TestRemote_applyWithAutoApply(t *testing.T) {
 	b, bCleanup := testBackendNoDefault(t)
 	defer bCleanup()
