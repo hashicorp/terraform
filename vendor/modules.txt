@@ -290,7 +290,7 @@ github.com/hashicorp/go-rootcerts
 github.com/hashicorp/go-safetemp
 # github.com/hashicorp/go-slug v0.2.0
 github.com/hashicorp/go-slug
-# github.com/hashicorp/go-tfe v0.3.10
+# github.com/hashicorp/go-tfe v0.3.11
 github.com/hashicorp/go-tfe
 # github.com/hashicorp/go-uuid v1.0.0
 github.com/hashicorp/go-uuid
