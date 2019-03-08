@@ -6,6 +6,7 @@ IMPROVEMENTS:
   modules that can work in both Terraform 0.11 and 0.12, since the `sha1(file("..."))` pattern in 0.12
   works only for files containing valid UTF-8 text; `sha1file("...")` must be used instead.  Both
   forms are equivalent in Terraform 0.11.
+* backend/remote: Retry calls when the remote backend responds with a server error [GH-20589]
 
 BUG FIXES:
 
