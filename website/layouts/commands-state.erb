@@ -45,37 +45,8 @@
 
     </ul>
 
-    <h4>Other Docs</h4>
+    <%= partial("layouts/otherdocs", :locals => { :skip => "Terraform CLI" }) %>
 
-    <ul class="nav docs-sidenav">
-      <li>
-        <a class="back" href="/downloads.html">Download Terraform</a>
-      </li>
-
-      <li>
-        <a class="back" href="/intro/index.html">Introduction to Terraform</a>
-      </li>
-
-      <li>
-        <a class="back" href="/docs/enterprise/index.html">Terraform Enterprise</a>
-      </li>
-
-      <li>
-        <a class="back" href="/guides/index.html">Guides and Whitepapers</a>
-      </li>
-
-      <li>
-        <a class="back" href="/docs/registry/index.html">Terraform Registry</a>
-      </li>
-
-      <li>
-        <a class="back" href="/docs/github-actions/index.html">Terraform GitHub Actions</a>
-      </li>
-
-      <li>
-        <a class="back" href="/docs/extend/index.html">Extending Terraform</a>
-      </li>
-    </ul>
   <% end %>
 
   <%= yield %>
