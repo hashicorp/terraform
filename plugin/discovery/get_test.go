@@ -170,12 +170,12 @@ func TestVersionListing(t *testing.T) {
 	}
 
 	if len(versions) != len(expected) {
-		t.Fatalf("Received wrong number of versions. expected: %q, got: %q", expected, versions)
+		t.Fatalf("Received wrong number of versions. expected: %#v, got: %#v", expected, versions)
 	}
 
 	for i, v := range versions {
 		if v.Version != expected[i].Version {
-			t.Fatalf("incorrect version: %q, expected %q", v, expected[i])
+			t.Fatalf("incorrect version: %#v, expected %#v", v, expected[i])
 		}
 	}
 }

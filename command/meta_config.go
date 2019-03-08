@@ -1,8 +1,8 @@
 package command
 
 import (
+	"context"
 	"fmt"
-	"github.com/hashicorp/terraform/internal/earlyconfig"
 	"os"
 	"path/filepath"
 	"sort"
@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/internal/earlyconfig"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/registry"
 	"github.com/hashicorp/terraform/terraform"
@@ -285,7 +286,7 @@ func (m *Meta) inputForSchema(given cty.Value, schema *configschema.Block) (cty.
 		attrS := schema.Attributes[name]
 
 		for {
-			strVal, err := input.Input(&terraform.InputOpts{
+			strVal, err := input.Input(context.Background(), &terraform.InputOpts{
 				Id:          name,
 				Query:       name,
 				Description: attrS.Description,

@@ -313,7 +313,7 @@ func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Ope
 }
 
 func (b *Remote) confirm(stopCtx context.Context, op *backend.Operation, opts *terraform.InputOpts, r *tfe.Run, keyword string) error {
-	v, err := op.UIIn.Input(opts)
+	v, err := op.UIIn.Input(stopCtx, opts)
 	if err != nil {
 		return fmt.Errorf("Error asking %s: %v", opts.Id, err)
 	}
