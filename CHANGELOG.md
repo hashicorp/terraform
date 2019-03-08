@@ -4,6 +4,7 @@ IMPROVEMENTS:
 
 * The warning for undeclared variables in `.tfvars` files now consolidates multiple warnings when there are more than three, to avoid an overwhelming wall of warnings in situations where a common `.tfvars` file is used across many configurations. Setting "global" variables in `.tfvars` is deprecated for v0.12 and should be replaced with the `TF_VAR_...` environment variables. [GH-20581]
 * backend/remote: Retry calls when the remote backend responds with a server error [GH-20588]
+* backend/remote: Check for external updates while waiting for user input [GH-20620]
 
 ## 0.12.0-beta1 (Feb 28, 2019)
 
