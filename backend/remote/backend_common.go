@@ -15,6 +15,14 @@ import (
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
+var (
+	errApplyDiscarded   = errors.New("Apply discarded.")
+	errDestroyDiscarded = errors.New("Destroy discarded.")
+	errRunApproved      = errors.New("approved using the UI or API")
+	errRunDiscarded     = errors.New("discarded using the UI or API")
+	errRunOverridden    = errors.New("overridden using the UI or API")
+)
+
 // backoff will perform exponential backoff based on the iteration and
 // limited by the provided min and max (in milliseconds) durations.
 func backoff(min, max float64, iter int) time.Duration {
@@ -296,12 +304,15 @@ func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Ope
 			Description: "Only 'override' will be accepted to override.",
 		}
 
-		if err = b.confirm(stopCtx, op, opts, r, "override"); err != nil {
+		err = b.confirm(stopCtx, op, opts, r, "override")
+		if err != nil && err != errRunOverridden {
 			return err
 		}
 
-		if _, err = b.client.PolicyChecks.Override(stopCtx, pc.ID); err != nil {
-			return generalError("Failed to override policy check", err)
+		if err != errRunOverridden {
+			if _, err = b.client.PolicyChecks.Override(stopCtx, pc.ID); err != nil {
+				return generalError("Failed to override policy check", err)
+			}
 		}
 
 		if b.CLI != nil {
@@ -313,35 +324,115 @@ func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Ope
 }
 
 func (b *Remote) confirm(stopCtx context.Context, op *backend.Operation, opts *terraform.InputOpts, r *tfe.Run, keyword string) error {
-	v, err := op.UIIn.Input(stopCtx, opts)
-	if err != nil {
-		return fmt.Errorf("Error asking %s: %v", opts.Id, err)
-	}
-	if v != keyword {
-		// Retrieve the run again to get its current status.
-		r, err = b.client.Runs.Read(stopCtx, r.ID)
-		if err != nil {
-			return generalError("Failed to retrieve run", err)
-		}
+	doneCtx, cancel := context.WithCancel(stopCtx)
+	result := make(chan error, 2)
 
-		// Make sure we discard the run if possible.
-		if r.Actions.IsDiscardable {
-			err = b.client.Runs.Discard(stopCtx, r.ID, tfe.RunDiscardOptions{})
-			if err != nil {
-				if op.Destroy {
-					return generalError("Failed to discard destroy", err)
+	go func() {
+		// Make sure we cancel doneCtx before we return
+		// so the input command is also canceled.
+		defer cancel()
+
+		for {
+			select {
+			case <-doneCtx.Done():
+				return
+			case <-stopCtx.Done():
+				return
+			case <-time.After(3 * time.Second):
+				// Retrieve the run again to get its current status.
+				r, err := b.client.Runs.Read(stopCtx, r.ID)
+				if err != nil {
+					result <- generalError("Failed to retrieve run", err)
+					return
 				}
-				return generalError("Failed to discard apply", err)
+
+				switch keyword {
+				case "override":
+					if r.Status != tfe.RunPolicyOverride {
+						if r.Status == tfe.RunDiscarded {
+							err = errRunDiscarded
+						} else {
+							err = errRunOverridden
+						}
+					}
+				case "yes":
+					if !r.Actions.IsConfirmable {
+						if r.Status == tfe.RunDiscarded {
+							err = errRunDiscarded
+						} else {
+							err = errRunApproved
+						}
+					}
+				}
+
+				if err != nil {
+					if b.CLI != nil {
+						b.CLI.Output(b.Colorize().Color(
+							fmt.Sprintf("[reset][yellow]%s[reset]", err.Error())))
+					}
+
+					if err == errRunDiscarded {
+						if op.Destroy {
+							err = errDestroyDiscarded
+						}
+						err = errApplyDiscarded
+					}
+
+					result <- err
+					return
+				}
 			}
 		}
+	}()
 
-		// Even if the run was disarding successfully, we still
-		// return an error as the apply command was cancelled.
-		if op.Destroy {
-			return errors.New("Destroy discarded.")
+	result <- func() error {
+		v, err := op.UIIn.Input(doneCtx, opts)
+		if err != nil && err != context.Canceled && stopCtx.Err() != context.Canceled {
+			return fmt.Errorf("Error asking %s: %v", opts.Id, err)
 		}
-		return errors.New("Apply discarded.")
-	}
 
-	return nil
+		// We return the error of our parent channel as we don't
+		// care about the error of the doneCtx which is only used
+		// within this function. So if the doneCtx was canceled
+		// because stopCtx was canceled, this will properly return
+		// a context.Canceled error and otherwise it returns nil.
+		if doneCtx.Err() == context.Canceled || stopCtx.Err() == context.Canceled {
+			return stopCtx.Err()
+		}
+
+		// Make sure we cancel the context here so the loop that
+		// checks for external changes to the run is ended before
+		// we start to make changes ourselves.
+		cancel()
+
+		if v != keyword {
+			// Retrieve the run again to get its current status.
+			r, err = b.client.Runs.Read(stopCtx, r.ID)
+			if err != nil {
+				return generalError("Failed to retrieve run", err)
+			}
+
+			// Make sure we discard the run if possible.
+			if r.Actions.IsDiscardable {
+				err = b.client.Runs.Discard(stopCtx, r.ID, tfe.RunDiscardOptions{})
+				if err != nil {
+					if op.Destroy {
+						return generalError("Failed to discard destroy", err)
+					}
+					return generalError("Failed to discard apply", err)
+				}
+			}
+
+			// Even if the run was discarded successfully, we still
+			// return an error as the apply command was canceled.
+			if op.Destroy {
+				return errDestroyDiscarded
+			}
+			return errApplyDiscarded
+		}
+
+		return nil
+	}()
+
+	return <-result
 }
