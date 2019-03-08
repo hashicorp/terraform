@@ -3,6 +3,7 @@ package command
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -38,7 +39,7 @@ type UIInput struct {
 	once        sync.Once
 }
 
-func (i *UIInput) Input(opts *terraform.InputOpts) (string, error) {
+func (i *UIInput) Input(ctx context.Context, opts *terraform.InputOpts) (string, error) {
 	i.once.Do(i.init)
 
 	r := i.Reader
@@ -137,6 +138,12 @@ func (i *UIInput) Input(opts *terraform.InputOpts) (string, error) {
 		}
 
 		return line, nil
+	case <-ctx.Done():
+		// Print a newline so that any further output starts properly
+		// on a new line.
+		fmt.Fprintln(w)
+
+		return "", ctx.Err()
 	case <-sigCh:
 		// Print a newline so that any further output starts properly
 		// on a new line.

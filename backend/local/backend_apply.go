@@ -112,7 +112,7 @@ func (b *Local) opApply(
 				b.CLI.Output("")
 			}
 
-			v, err := op.UIIn.Input(&terraform.InputOpts{
+			v, err := op.UIIn.Input(stopCtx, &terraform.InputOpts{
 				Id:          "approve",
 				Query:       query,
 				Description: desc,

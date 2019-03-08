@@ -217,7 +217,7 @@ type mockInput struct {
 	answers map[string]string
 }
 
-func (m *mockInput) Input(opts *terraform.InputOpts) (string, error) {
+func (m *mockInput) Input(ctx context.Context, opts *terraform.InputOpts) (string, error) {
 	v, ok := m.answers[opts.Id]
 	if !ok {
 		return "", fmt.Errorf("unexpected input request in test: %s", opts.Id)

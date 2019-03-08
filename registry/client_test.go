@@ -232,7 +232,7 @@ func TestLookupProviderVersions(t *testing.T) {
 		for _, v := range resp.Versions {
 			_, err := version.NewVersion(v.Version)
 			if err != nil {
-				t.Fatalf("invalid version %q: %s", v, err)
+				t.Fatalf("invalid version %#v: %v", v, err)
 			}
 		}
 	}
