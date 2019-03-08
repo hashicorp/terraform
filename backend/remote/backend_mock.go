@@ -222,6 +222,12 @@ func (m *mockInput) Input(ctx context.Context, opts *terraform.InputOpts) (strin
 	if !ok {
 		return "", fmt.Errorf("unexpected input request in test: %s", opts.Id)
 	}
+	if v == "wait-for-external-update" {
+		select {
+		case <-ctx.Done():
+		case <-time.After(time.Minute):
+		}
+	}
 	delete(m.answers, opts.Id)
 	return v, nil
 }
@@ -704,7 +710,7 @@ func (m *mockRuns) Read(ctx context.Context, runID string) (*tfe.Run, error) {
 	}
 
 	logs, _ := ioutil.ReadFile(m.client.Plans.logs[r.Plan.LogReadURL])
-	if r.Plan.Status == tfe.PlanFinished {
+	if r.Status == tfe.RunPlanning && r.Plan.Status == tfe.PlanFinished {
 		if r.IsDestroy || bytes.Contains(logs, []byte("1 to add, 0 to change, 0 to destroy")) {
 			r.Actions.IsCancelable = false
 			r.Actions.IsConfirmable = true
@@ -730,6 +736,7 @@ func (m *mockRuns) Apply(ctx context.Context, runID string, options tfe.RunApply
 	if r.Status != tfe.RunPending {
 		// Only update the status if the run is not pending anymore.
 		r.Status = tfe.RunApplying
+		r.Actions.IsConfirmable = false
 		r.Apply.Status = tfe.ApplyRunning
 	}
 	return nil
@@ -744,7 +751,13 @@ func (m *mockRuns) ForceCancel(ctx context.Context, runID string, options tfe.Ru
 }
 
 func (m *mockRuns) Discard(ctx context.Context, runID string, options tfe.RunDiscardOptions) error {
-	panic("not implemented")
+	r, ok := m.runs[runID]
+	if !ok {
+		return tfe.ErrResourceNotFound
+	}
+	r.Status = tfe.RunDiscarded
+	r.Actions.IsConfirmable = false
+	return nil
 }
 
 type mockStateVersions struct {
