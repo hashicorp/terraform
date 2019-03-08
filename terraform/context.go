@@ -8,12 +8,11 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/hashicorp/terraform/tfdiags"
-
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/hashicorp/terraform/version"
 )
 
@@ -415,7 +414,7 @@ func (c *Context) Input(mode InputMode) error {
 			retry := 0
 			for {
 				var err error
-				value, err = c.uiInput.Input(&InputOpts{
+				value, err = c.uiInput.Input(context.Background(), &InputOpts{
 					Id:          fmt.Sprintf("var.%s", n),
 					Query:       fmt.Sprintf("var.%s", n),
 					Description: v.Description,

@@ -201,7 +201,7 @@ func (m *Meta) selectWorkspace(b backend.Backend) error {
 
 	// If the selected workspace is not migrated, ask the user to select
 	// a workspace from the list of migrated workspaces.
-	v, err := m.UIInput().Input(&terraform.InputOpts{
+	v, err := m.UIInput().Input(context.Background(), &terraform.InputOpts{
 		Id: "select-workspace",
 		Query: fmt.Sprintf(
 			"[reset][bold][yellow]The currently selected workspace (%s) is not migrated.[reset]",
@@ -280,7 +280,7 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 		// If the backend doesn't support using the default state, we ask the user
 		// for a new name and migrate the default state to the given named state.
 		stateTwo, err = func() (state.State, error) {
-			name, err := m.UIInput().Input(&terraform.InputOpts{
+			name, err := m.UIInput().Input(context.Background(), &terraform.InputOpts{
 				Id: "new-state-name",
 				Query: fmt.Sprintf(
 					"[reset][bold][yellow]The %q backend configuration only allows "+
