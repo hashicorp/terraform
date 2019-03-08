@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"context"
 	"errors"
 	"reflect"
 	"strings"
@@ -251,7 +252,7 @@ func TestContext2Input_providerId(t *testing.T) {
 
 	var actual interface{}
 	p.InputFn = func(i UIInput, c *ResourceConfig) (*ResourceConfig, error) {
-		v, err := i.Input(&InputOpts{Id: "foo"})
+		v, err := i.Input(context.Background(), &InputOpts{Id: "foo"})
 		if err != nil {
 			return nil, err
 		}

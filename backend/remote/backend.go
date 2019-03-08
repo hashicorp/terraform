@@ -638,13 +638,13 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 }
 
 func (b *Remote) cancel(cancelCtx context.Context, op *backend.Operation, r *tfe.Run) error {
-	if r.Status == tfe.RunPending && r.Actions.IsCancelable {
+	if r.Actions.IsCancelable {
 		// Only ask if the remote operation should be canceled
 		// if the auto approve flag is not set.
 		if !op.AutoApprove {
-			v, err := op.UIIn.Input(&terraform.InputOpts{
+			v, err := op.UIIn.Input(cancelCtx, &terraform.InputOpts{
 				Id:          "cancel",
-				Query:       "\nDo you want to cancel the pending remote operation?",
+				Query:       "\nDo you want to cancel the remote operation?",
 				Description: "Only 'yes' will be accepted to cancel.",
 			})
 			if err != nil {
