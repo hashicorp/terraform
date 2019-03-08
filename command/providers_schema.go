@@ -100,7 +100,7 @@ func (c *ProvidersSchemaCommand) Run(args []string) int {
 }
 
 const providersSchemaCommandHelp = `
-Usage: terraform providers schemas -json
+Usage: terraform providers schema -json
 
   Prints out a json representation of the schemas for all providers used 
   in the current configuration.
