@@ -283,10 +283,10 @@ func (b *Remote) plan(stopCtx, cancelCtx context.Context, op *backend.Operation,
 		return r, generalError("Failed to retrieve run", err)
 	}
 
-	// Return if the run errored. We return without an error, even
-	// if the run errored, as the error is already displayed by the
-	// output of the remote run.
-	if r.Status == tfe.RunErrored {
+	// Return if the run is canceled or errored. We return without
+	// an error, even if the run errored, as the error is already
+	// displayed by the output of the remote run.
+	if r.Status == tfe.RunCanceled || r.Status == tfe.RunErrored {
 		return r, nil
 	}
 
