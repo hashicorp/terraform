@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	tfe "github.com/hashicorp/go-tfe"
 	version "github.com/hashicorp/go-version"
@@ -49,6 +50,9 @@ type Remote struct {
 
 	// client is the remote backend API client
 	client *tfe.Client
+
+	// lastRetry is set to the last time a request was retried
+	lastRetry time.Time
 
 	// hostname of the remote backend server
 	hostname string
@@ -198,10 +202,11 @@ func (b *Remote) configure(ctx context.Context) error {
 	}
 
 	cfg := &tfe.Config{
-		Address:  service.String(),
-		BasePath: service.Path,
-		Token:    token,
-		Headers:  make(http.Header),
+		Address:      service.String(),
+		BasePath:     service.Path,
+		Token:        token,
+		Headers:      make(http.Header),
+		RetryLogHook: b.retryLogHook,
 	}
 
 	// Set the version header to the current version.
@@ -225,6 +230,9 @@ func (b *Remote) configure(ctx context.Context) error {
 	// Configure a local backend for when we need to run operations locally.
 	b.local = backendLocal.NewWithBackend(b)
 	b.forceLocal = !entitlements.Operations || os.Getenv("TF_FORCE_LOCAL_BACKEND") != ""
+
+	// Enable retries for server errors as the backend is now fully configured.
+	b.client.RetryServerErrors(true)
 
 	return nil
 }
@@ -367,6 +375,31 @@ func (b *Remote) token() (string, error) {
 		return creds.Token(), nil
 	}
 	return "", nil
+}
+
+// retryLogHook is invoked each time a request is retried allowing the
+// backend to log any connection issues to prevent data loss.
+func (b *Remote) retryLogHook(attemptNum int, resp *http.Response) {
+	if b.CLI != nil {
+		// Ignore the first retry to make sure any delayed output will
+		// be written to the console before we start logging retries.
+		//
+		// The retry logic in the TFE client will retry both rate limited
+		// requests and server errors, but in the remote backend we only
+		// care about server errors so we ignore rate limit (429) errors.
+		if attemptNum == 0 || resp.StatusCode == 429 {
+			// Reset the last retry time.
+			b.lastRetry = time.Now()
+			return
+		}
+
+		if attemptNum == 1 {
+			b.CLI.Output(b.Colorize().Color(strings.TrimSpace(initialRetryError)))
+		} else {
+			b.CLI.Output(b.Colorize().Color(strings.TrimSpace(
+				fmt.Sprintf(repeatedRetryError, time.Since(b.lastRetry).Round(time.Second)))))
+		}
+	}
 }
 
 // Input is called to ask the user for input for completing the configuration.
@@ -730,6 +763,17 @@ const notFoundErr = `
 The configured "remote" backend returns '404 Not Found' errors for resources
 that do not exist, as well as for resources that a user doesn't have access
 to. When the resource does exists, please check the rights for the used token.
+`
+
+// The newline in this error is to make it look good in the CLI!
+const initialRetryError = `
+[reset][yellow]There was an error connecting to the remote backend. Please do not exit
+Terraform to prevent data loss! Trying to restore the connection...
+[reset]
+`
+
+const repeatedRetryError = `
+[reset][yellow]Still trying to restore the connection... (%s elapsed)[reset]
 `
 
 const operationCanceled = `

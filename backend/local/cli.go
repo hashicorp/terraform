@@ -6,6 +6,12 @@ import (
 
 // backend.CLI impl.
 func (b *Local) CLIInit(opts *backend.CLIOpts) error {
+	if cli, ok := b.Backend.(backend.CLI); ok {
+		if err := cli.CLIInit(opts); err != nil {
+			return err
+		}
+	}
+
 	b.CLI = opts.CLI
 	b.CLIColor = opts.CLIColor
 	b.ContextOpts = opts.ContextOpts
