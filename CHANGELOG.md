@@ -7,6 +7,7 @@ IMPROVEMENTS:
   works only for files containing valid UTF-8 text; `sha1file("...")` must be used instead.  Both
   forms are equivalent in Terraform 0.11.
 * backend/remote: Retry calls when the remote backend responds with a server error [GH-20589]
+* backend/remote: Check for external updates while waiting for user input [GH-20622]
 
 BUG FIXES:
 
