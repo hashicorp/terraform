@@ -497,7 +497,7 @@ For example, if `var.list` is a list of strings, then the following expression
 produces a list of strings with all-uppercase letters:
 
 ```hcl
-[for s in var.list: upper(s)]
+[for s in var.list : upper(s)]
 ```
 
 This `for` expression iterates over each element of `var.list`, and then
@@ -511,7 +511,7 @@ it produces. The above example uses `[` and `]`, which produces a tuple. If
 expressions must be provided separated by the `=>` symbol:
 
 ```hcl
-{for s in var.list: s => upper(s)}
+{for s in var.list : s => upper(s)}
 ```
 
 This expression produces an object whose attributes are the original elements
@@ -522,7 +522,7 @@ from the source collection, which can produce a value with fewer elements than
 the source:
 
 ```
-[for s in var.list: upper(s) if s != ""]
+[for s in var.list : upper(s) if s != ""]
 ```
 
 The source value can also be an object or map value, in which case two
@@ -530,7 +530,7 @@ temporary variable names can be provided to access the keys and values
 respectively:
 
 ```
-[for k, v in var.map: length(k) + length(v)]
+[for k, v in var.map : length(k) + length(v)]
 ```
 
 Finally, if the result type is an object (using `{` and `}` delimiters) then
@@ -538,7 +538,7 @@ the value result expression can be followed by the `...` symbol to group
 together results that have a common key:
 
 ```
-{for s in var.list: substr(s, 0, 1) => s... if s != ""}
+{for s in var.list : substr(s, 0, 1) => s... if s != ""}
 ```
 
 ## Splat Expressions
@@ -550,7 +550,7 @@ If `var.list` is a list of objects that all have an attribute `id`, then
 a list of the ids could be produced with the following `for` expression:
 
 ```hcl
-[for o in var.list: o.id]
+[for o in var.list : o.id]
 ```
 
 This is equivalent to the following _splat expression:_
@@ -572,7 +572,7 @@ var.list[*].interfaces[0].name
 The above expression is equivalent to the following `for` expression:
 
 ```hcl
-[for o in var.list: o.interfaces[0].name]
+[for o in var.list : o.interfaces[0].name]
 ```
 
 Splat expressions also have another useful effect: if they are applied to
@@ -609,7 +609,7 @@ This form has a subtly different behavior, equivalent to the following
 `for` expression:
 
 ```
-[for o in var.list: o.interfaces][0].name
+[for o in var.list : o.interfaces][0].name
 ```
 
 Notice that with the attribute-only splat expression the index operation
