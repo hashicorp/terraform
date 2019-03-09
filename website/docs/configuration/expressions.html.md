@@ -170,6 +170,9 @@ The following named values are available:
 
     If the resource has the `count` argument set, the value of this expression
     is a _list_ of objects representing its instances.
+
+    For more information, see
+    [references to resource attributes](#references-to-resource-attributes) below.
 * `var.<NAME>` is the value of the
   [input variable](./variables.html) of the given name.
 * `local.<NAME>` is the value of the
@@ -205,6 +208,81 @@ in their block bodies, and Terraform analyzes these expressions to automatically
 infer dependencies between objects. For example, an expression in a resource
 argument that refers to another managed resource creates an implicit dependency
 between the two resources.
+
+### References to Resource Attributes
+
+The most common reference type is a reference to an attribute of a resource
+which has been declared either with a `resource` or `data` block. Because
+the contents of such blocks can be quite complicated themselves, expressions
+referring to these contents can also be complicated.
+
+Consider the following example resource block:
+
+```hcl
+resource "aws_instance" "example" {
+  ami           = "ami-abc123"
+  instance_type = "t2.micro"
+
+  ebs_block_device {
+    device_name = "sda2"
+    volume_size = 16
+  }
+  ebs_block_device {
+    device_name = "sda3"
+    volume_size = 20
+  }
+}
+```
+
+The documentation for [`aws_instance`](/docs/providers/aws/r/instance.html)
+lists all of the arguments and nested blocks supported for this resource type,
+and also lists a number of attributes that are _exported_ by this resource
+type. All of these different resource type schema constructs are available
+for use in references, as follows:
+
+* The `ami` argument set in the configuration can be used elsewhere with
+  the reference expression `aws_instance.example.ami`.
+* The `id` attribute exported by this resource type can be read using the
+  same syntax, giving `aws_instance.example.id`.
+* The arguments of the `ebs_block_device` nested blocks can be accessed using
+  a [splat expression](#splat-expressions). For example, to obtain a list of
+  all of the `device_name` values, use
+  `aws_instance.example.ebs_block_device[*].device_name`.
+* The nested blocks in this particular resource type do not have any exported
+  attributes, but if `ebs_block_device` were to have a documented `id`
+  attribute then a list of them could be accessed similarly as
+  `aws_instance.example.ebs_block_device[*].id`.
+* Sometimes nested blocks are defined as taking a logical key to identify each
+  block, which serves a similar purpose as the resource's own name by providing
+  a convenient way to refer to that single block in expressions. If `aws_instance`
+  had a hypothetical nested block type `device` that accepted such a key, it
+  would look like this in configuration:
+
+  ```hcl
+    device "foo" {
+      size = 2
+    }
+    device "bar" {
+      size = 4
+    }
+  ```
+
+  Arguments inside blocks with _keys_ can be accessed using index syntax, such
+  as `aws_instance.example.device["foo"].size`.
+
+  To obtain a map of values of a particular argument for _labelled_ nested
+  block types, use a [`for` expression](for-expressions):
+  `[for k, device in aws_instance.example.device : k => device.size]`.
+
+When a particular resource has the special
+[`count`](https://www.terraform.io/docs/configuration/resources.html#count-multiple-resource-instances)
+argument set, the resource itself becomes a list of instance objects rather than
+a single object. In that case, access the attributes of the instances using
+either [splat expressions](#splat-expressions) or index syntax:
+
+* `aws_instance.example[*].id` returns a list of all of the ids of each of the
+  instances.
+* `aws_instance.example[0].id` returns just the id of the first instance.
 
 ### Local Named Values
 
