@@ -1965,9 +1965,11 @@ func TestResourceChange_nestedList(t *testing.T) {
 			Action: plans.Update,
 			Mode:   addrs.ManagedResourceMode,
 			Before: cty.ObjectVal(map[string]cty.Value{
-				"id":                cty.StringVal("i-02ae66f368e8518a9"),
-				"ami":               cty.StringVal("ami-BEFORE"),
-				"root_block_device": cty.ListValEmpty(cty.EmptyObject),
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+				"root_block_device": cty.ListValEmpty(cty.Object(map[string]cty.Type{
+					"volume_type": cty.String,
+				})),
 			}),
 			After: cty.ObjectVal(map[string]cty.Value{
 				"id":  cty.StringVal("i-02ae66f368e8518a9"),
@@ -2013,9 +2015,11 @@ func TestResourceChange_nestedList(t *testing.T) {
 			Action: plans.Update,
 			Mode:   addrs.ManagedResourceMode,
 			Before: cty.ObjectVal(map[string]cty.Value{
-				"id":                cty.StringVal("i-02ae66f368e8518a9"),
-				"ami":               cty.StringVal("ami-BEFORE"),
-				"root_block_device": cty.ListValEmpty(cty.EmptyObject),
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+				"root_block_device": cty.ListValEmpty(cty.Object(map[string]cty.Type{
+					"volume_type": cty.String,
+				})),
 			}),
 			After: cty.ObjectVal(map[string]cty.Value{
 				"id":  cty.StringVal("i-02ae66f368e8518a9"),
@@ -2249,9 +2253,12 @@ func TestResourceChange_nestedList(t *testing.T) {
 				}),
 			}),
 			After: cty.ObjectVal(map[string]cty.Value{
-				"id":                cty.StringVal("i-02ae66f368e8518a9"),
-				"ami":               cty.StringVal("ami-AFTER"),
-				"root_block_device": cty.ListValEmpty(cty.EmptyObject),
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-AFTER"),
+				"root_block_device": cty.ListValEmpty(cty.Object(map[string]cty.Type{
+					"volume_type": cty.String,
+					"new_field":   cty.String,
+				})),
 			}),
 			RequiredReplace: cty.NewPathSet(),
 			Tainted:         false,
@@ -2292,6 +2299,47 @@ func TestResourceChange_nestedList(t *testing.T) {
     }
 `,
 		},
+		"with dynamically-typed attribute": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"block": cty.EmptyTupleVal,
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"block": cty.TupleVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("foo"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.True,
+					}),
+				}),
+			}),
+			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
+			Schema: &configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"block": {
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"attr": {Type: cty.DynamicPseudoType, Optional: true},
+							},
+						},
+						Nesting: configschema.NestingList,
+					},
+				},
+			},
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      + block {
+          + attr = "foo"
+        }
+      + block {
+          + attr = true
+        }
+    }
+`,
+		},
 	}
 	runTestCases(t, testCases)
 }
@@ -2302,9 +2350,11 @@ func TestResourceChange_nestedSet(t *testing.T) {
 			Action: plans.Update,
 			Mode:   addrs.ManagedResourceMode,
 			Before: cty.ObjectVal(map[string]cty.Value{
-				"id":                cty.StringVal("i-02ae66f368e8518a9"),
-				"ami":               cty.StringVal("ami-BEFORE"),
-				"root_block_device": cty.SetValEmpty(cty.EmptyObject),
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+				"root_block_device": cty.SetValEmpty(cty.Object(map[string]cty.Type{
+					"volume_type": cty.String,
+				})),
 			}),
 			After: cty.ObjectVal(map[string]cty.Value{
 				"id":  cty.StringVal("i-02ae66f368e8518a9"),
@@ -2486,9 +2536,12 @@ func TestResourceChange_nestedSet(t *testing.T) {
 				}),
 			}),
 			After: cty.ObjectVal(map[string]cty.Value{
-				"id":                cty.StringVal("i-02ae66f368e8518a9"),
-				"ami":               cty.StringVal("ami-AFTER"),
-				"root_block_device": cty.SetValEmpty(cty.EmptyObject),
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-AFTER"),
+				"root_block_device": cty.SetValEmpty(cty.Object(map[string]cty.Type{
+					"volume_type": cty.String,
+					"new_field":   cty.String,
+				})),
 			}),
 			RequiredReplace: cty.NewPathSet(),
 			Tainted:         false,
@@ -2549,14 +2602,28 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
+			ty := tc.Schema.ImpliedType()
+
 			beforeVal := tc.Before
-			before, err := plans.NewDynamicValue(beforeVal, beforeVal.Type())
+			switch { // Some fixups to make the test cases a little easier to write
+			case beforeVal.IsNull():
+				beforeVal = cty.NullVal(ty) // allow mistyped nulls
+			case !beforeVal.IsKnown():
+				beforeVal = cty.UnknownVal(ty) // allow mistyped unknowns
+			}
+			before, err := plans.NewDynamicValue(beforeVal, ty)
 			if err != nil {
 				t.Fatal(err)
 			}
 
 			afterVal := tc.After
-			after, err := plans.NewDynamicValue(afterVal, afterVal.Type())
+			switch { // Some fixups to make the test cases a little easier to write
+			case afterVal.IsNull():
+				afterVal = cty.NullVal(ty) // allow mistyped nulls
+			case !afterVal.IsKnown():
+				afterVal = cty.UnknownVal(ty) // allow mistyped unknowns
+			}
+			after, err := plans.NewDynamicValue(afterVal, ty)
 			if err != nil {
 				t.Fatal(err)
 			}
