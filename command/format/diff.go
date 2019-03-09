@@ -400,8 +400,56 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 		}
 
 	case configschema.NestingMap:
-		// TODO: Implement this, once helper/schema is actually able to
-		// produce schemas containing nested map block types.
+		// For the sake of handling nested blocks, we'll treat a null map
+		// the same as an empty map since the config language doesn't
+		// distinguish these anyway.
+		old = ctyNullBlockMapAsEmpty(old)
+		new = ctyNullBlockMapAsEmpty(new)
+
+		oldItems := old.AsValueMap()
+		newItems := new.AsValueMap()
+		if (len(oldItems) + len(newItems)) == 0 {
+			// Nothing to do if both maps are empty
+			return
+		}
+
+		allKeys := make(map[string]bool)
+		for k := range oldItems {
+			allKeys[k] = true
+		}
+		for k := range newItems {
+			allKeys[k] = true
+		}
+		allKeysOrder := make([]string, 0, len(allKeys))
+		for k := range allKeys {
+			allKeysOrder = append(allKeysOrder, k)
+		}
+		sort.Strings(allKeysOrder)
+
+		if blankBefore {
+			p.buf.WriteRune('\n')
+		}
+
+		for _, k := range allKeysOrder {
+			var action plans.Action
+			oldValue := oldItems[k]
+			newValue := newItems[k]
+			switch {
+			case oldValue == cty.NilVal:
+				oldValue = cty.NullVal(newValue.Type())
+				action = plans.Create
+			case newValue == cty.NilVal:
+				newValue = cty.NullVal(oldValue.Type())
+				action = plans.Delete
+			case !newValue.RawEquals(oldValue):
+				action = plans.Update
+			default:
+				action = plans.NoOp
+			}
+
+			path := append(path, cty.IndexStep{Key: cty.StringVal(k)})
+			p.writeNestedBlockDiff(name, &k, &blockS.Block, action, oldValue, newValue, indent, path)
+		}
 	}
 }
 
