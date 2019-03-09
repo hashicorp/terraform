@@ -299,12 +299,8 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 		// For the sake of handling nested blocks, we'll treat a null list
 		// the same as an empty list since the config language doesn't
 		// distinguish these anyway.
-		if old.IsNull() {
-			old = cty.ListValEmpty(old.Type().ElementType())
-		}
-		if new.IsNull() {
-			new = cty.ListValEmpty(new.Type().ElementType())
-		}
+		old = ctyNullBlockListAsEmpty(old)
+		new = ctyNullBlockListAsEmpty(new)
 
 		oldItems := ctyCollectionValues(old)
 		newItems := ctyCollectionValues(new)
@@ -358,12 +354,8 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 		// For the sake of handling nested blocks, we'll treat a null set
 		// the same as an empty set since the config language doesn't
 		// distinguish these anyway.
-		if old.IsNull() {
-			old = cty.SetValEmpty(old.Type().ElementType())
-		}
-		if new.IsNull() {
-			new = cty.SetValEmpty(new.Type().ElementType())
-		}
+		old = ctyNullBlockSetAsEmpty(old)
+		new = ctyNullBlockSetAsEmpty(new)
 
 		oldItems := ctyCollectionValues(old)
 		newItems := ctyCollectionValues(new)
@@ -1100,4 +1092,47 @@ func ctyEnsurePathCapacity(path cty.Path, minExtra int) cty.Path {
 	newPath := make(cty.Path, len(path), newCap)
 	copy(newPath, path)
 	return newPath
+}
+
+// ctyNullBlockListAsEmpty either returns the given value verbatim if it is non-nil
+// or returns an empty value of a suitable type to serve as a placeholder for it.
+//
+// In particular, this function handles the special situation where a "list" is
+// actually represented as a tuple type where nested blocks contain
+// dynamically-typed values.
+func ctyNullBlockListAsEmpty(in cty.Value) cty.Value {
+	if !in.IsNull() {
+		return in
+	}
+	if ty := in.Type(); ty.IsListType() {
+		return cty.ListValEmpty(ty.ElementType())
+	}
+	return cty.EmptyTupleVal // must need a tuple, then
+}
+
+// ctyNullBlockMapAsEmpty either returns the given value verbatim if it is non-nil
+// or returns an empty value of a suitable type to serve as a placeholder for it.
+//
+// In particular, this function handles the special situation where a "map" is
+// actually represented as an object type where nested blocks contain
+// dynamically-typed values.
+func ctyNullBlockMapAsEmpty(in cty.Value) cty.Value {
+	if !in.IsNull() {
+		return in
+	}
+	if ty := in.Type(); ty.IsMapType() {
+		return cty.MapValEmpty(ty.ElementType())
+	}
+	return cty.EmptyObjectVal // must need an object, then
+}
+
+// ctyNullBlockSetAsEmpty either returns the given value verbatim if it is non-nil
+// or returns an empty value of a suitable type to serve as a placeholder for it.
+func ctyNullBlockSetAsEmpty(in cty.Value) cty.Value {
+	if !in.IsNull() {
+		return in
+	}
+	// Dynamically-typed attributes are not supported inside blocks backed by
+	// sets, so our result here is always a set.
+	return cty.SetValEmpty(in.Type().ElementType())
 }
