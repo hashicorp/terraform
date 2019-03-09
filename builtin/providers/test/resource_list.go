@@ -75,6 +75,36 @@ func testResourceList() *schema.Resource {
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
+
+			"never_set": {
+				Type:     schema.TypeList,
+				MaxItems: 1,
+				Optional: true,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"sublist": {
+							Type:     schema.TypeList,
+							MaxItems: 1,
+							ForceNew: true,
+							Optional: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"bool": {
+										Type:     schema.TypeBool,
+										ForceNew: true,
+										Required: true,
+									},
+									"string": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -101,10 +131,21 @@ func testResourceListRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	// "computing" these values should insert empty containers into the
+	// never_set block.
+	values := make(map[string]interface{})
+	values["sublist"] = []interface{}{}
+	d.Set("never_set", []interface{}{values})
+
 	return nil
 }
 
 func testResourceListUpdate(d *schema.ResourceData, meta interface{}) error {
+	block := d.Get("never_set").([]interface{})
+	if len(block) > 0 {
+		// if profiles contains any values, they should not be nil
+		_ = block[0].(map[string]interface{})
+	}
 	return testResourceListRead(d, meta)
 }
 

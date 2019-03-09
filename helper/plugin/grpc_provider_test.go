@@ -672,28 +672,20 @@ func TestNormalizeFlatmapContainers(t *testing.T) {
 		expect map[string]string
 	}{
 		{
-			attrs:  map[string]string{"id": "1", "multi.2.set.#": "1", "multi.1.set.#": "0", "single.#": "0"},
-			expect: map[string]string{"id": "1", "multi.2.set.#": "1"},
-		},
-		{
 			attrs:  map[string]string{"id": "1", "multi.2.set.#": "2", "multi.2.set.1.foo": "bar", "multi.1.set.#": "0", "single.#": "0"},
-			expect: map[string]string{"id": "1", "multi.2.set.#": "1", "multi.2.set.1.foo": "bar"},
+			expect: map[string]string{"id": "1", "multi.2.set.#": "1", "multi.2.set.1.foo": "bar", "multi.1.set.#": "0", "single.#": "0"},
 		},
 		{
 			attrs:  map[string]string{"id": "78629a0f5f3f164f", "multi.#": "1"},
 			expect: map[string]string{"id": "78629a0f5f3f164f", "multi.#": "1"},
 		},
 		{
-			attrs:  map[string]string{"id": "78629a0f5f3f164f", "multi.#": "0"},
-			expect: map[string]string{"id": "78629a0f5f3f164f"},
-		},
-		{
 			attrs:  map[string]string{"multi.529860700.set.#": "0", "multi.#": "1", "id": "78629a0f5f3f164f"},
-			expect: map[string]string{"id": "78629a0f5f3f164f", "multi.#": "1"},
+			expect: map[string]string{"multi.529860700.set.#": "0", "multi.#": "1", "id": "78629a0f5f3f164f"},
 		},
 		{
 			attrs:  map[string]string{"set.2.required": "bar", "set.2.list.#": "1", "set.2.list.0": "x", "set.1.list.#": "0", "set.#": "2"},
-			expect: map[string]string{"set.2.list.#": "1", "set.2.list.0": "x", "set.2.required": "bar", "set.#": "1"},
+			expect: map[string]string{"set.2.required": "bar", "set.2.list.#": "1", "set.2.list.0": "x", "set.1.list.#": "0", "set.#": "2"},
 		},
 		{
 			attrs:  map[string]string{"map.%": hcl2shim.UnknownVariableValue, "list.#": hcl2shim.UnknownVariableValue, "id": "1"},
@@ -702,7 +694,7 @@ func TestNormalizeFlatmapContainers(t *testing.T) {
 		{
 			prior:  map[string]string{"map.%": "0"},
 			attrs:  map[string]string{"map.%": "0", "list.#": "0", "id": "1"},
-			expect: map[string]string{"id": "1", "map.%": "0"},
+			expect: map[string]string{"id": "1", "list.#": "0", "map.%": "0"},
 		},
 		{
 			prior:  map[string]string{"map.%": hcl2shim.UnknownVariableValue, "list.#": "0"},
@@ -712,7 +704,7 @@ func TestNormalizeFlatmapContainers(t *testing.T) {
 		{
 			prior:  map[string]string{"list.#": "1", "list.0": "old value"},
 			attrs:  map[string]string{"list.#": "0"},
-			expect: map[string]string{},
+			expect: map[string]string{"list.#": "0"},
 		},
 	} {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
