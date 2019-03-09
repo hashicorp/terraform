@@ -224,6 +224,74 @@ func TestNormalizeObjectFromLegacySDK(t *testing.T) {
 				}),
 			}),
 		},
+		"block list with dynamic type": {
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"a": {
+						Nesting: configschema.NestingList,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"b": {Type: cty.DynamicPseudoType, Optional: true},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.TupleVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"b": cty.StringVal("hello"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"b": cty.True,
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.TupleVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"b": cty.StringVal("hello"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"b": cty.True,
+					}),
+				}),
+			}),
+		},
+		"block map with dynamic type": {
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"a": {
+						Nesting: configschema.NestingMap,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"b": {Type: cty.DynamicPseudoType, Optional: true},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ObjectVal(map[string]cty.Value{
+					"one": cty.ObjectVal(map[string]cty.Value{
+						"b": cty.StringVal("hello"),
+					}),
+					"another": cty.ObjectVal(map[string]cty.Value{
+						"b": cty.True,
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ObjectVal(map[string]cty.Value{
+					"one": cty.ObjectVal(map[string]cty.Value{
+						"b": cty.StringVal("hello"),
+					}),
+					"another": cty.ObjectVal(map[string]cty.Value{
+						"b": cty.True,
+					}),
+				}),
+			}),
+		},
 	}
 
 	for name, test := range tests {
