@@ -93,12 +93,30 @@ func TestModuleInstaller(t *testing.T) {
 	assertResultDeepEqual(t, gotTraces, wantTraces)
 }
 
+func TestModuleInstaller_error(t *testing.T) {
+	fixtureDir := filepath.Clean("test-fixtures/local-module-error")
+	dir, done := tempChdir(t, fixtureDir)
+	defer done()
+
+	hooks := &testInstallHooks{}
+
+	modulesDir := filepath.Join(dir, ".terraform/modules")
+	inst := NewModuleInstaller(modulesDir, nil)
+	_, diags := inst.InstallModules(".", false, hooks)
+
+	if !diags.HasErrors() {
+		t.Fatal("expected error")
+	} else {
+		assertDiagnosticSummary(t, diags, "Failed to locate local module source")
+	}
+}
+
 func TestLoaderInstallModules_registry(t *testing.T) {
 	if os.Getenv("TF_ACC") == "" {
 		t.Skip("this test accesses registry.terraform.io and github.com; set TF_ACC=1 to run it")
 	}
 
-	fixtureDir := filepath.Clean("test-fixtures/local-modules")
+	fixtureDir := filepath.Clean("test-fixtures/registry-modules")
 	dir, done := tempChdir(t, fixtureDir)
 	defer done()
 
@@ -125,7 +143,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 			Name:       "Install",
 			ModuleAddr: "acctest_child_a",
 			Version:    v,
-			LocalPath:  ".terraform/modules/acctest_child_a/hashicorp-terraform-aws-module-installer-acctest-853d038/modules/child_a",
+			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_child_a/hashicorp-terraform-aws-module-installer-acctest-853d038/modules/child_a"),
 		},
 
 		// acctest_child_a.child_b
@@ -133,7 +151,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 		{
 			Name:       "Install",
 			ModuleAddr: "acctest_child_a.child_b",
-			LocalPath:  ".terraform/modules/acctest_child_a/hashicorp-terraform-aws-module-installer-acctest-853d038/modules/child_b",
+			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_child_a/hashicorp-terraform-aws-module-installer-acctest-853d038/modules/child_b"),
 		},
 
 		// acctest_child_b accesses //modules/child_b directly
@@ -147,7 +165,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 			Name:       "Install",
 			ModuleAddr: "acctest_child_b",
 			Version:    v,
-			LocalPath:  ".terraform/modules/acctest_child_b/hashicorp-terraform-aws-module-installer-acctest-853d038/modules/child_b",
+			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_child_b/hashicorp-terraform-aws-module-installer-acctest-853d038/modules/child_b"),
 		},
 
 		// acctest_root
@@ -161,7 +179,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 			Name:       "Install",
 			ModuleAddr: "acctest_root",
 			Version:    v,
-			LocalPath:  ".terraform/modules/acctest_root/hashicorp-terraform-aws-module-installer-acctest-853d038",
+			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_root/hashicorp-terraform-aws-module-installer-acctest-853d038"),
 		},
 
 		// acctest_root.child_a
@@ -169,7 +187,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 		{
 			Name:       "Install",
 			ModuleAddr: "acctest_root.child_a",
-			LocalPath:  ".terraform/modules/acctest_root/hashicorp-terraform-aws-module-installer-acctest-853d038/modules/child_a",
+			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_root/hashicorp-terraform-aws-module-installer-acctest-853d038/modules/child_a"),
 		},
 
 		// acctest_root.child_a.child_b
@@ -177,7 +195,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 		{
 			Name:       "Install",
 			ModuleAddr: "acctest_root.child_a.child_b",
-			LocalPath:  ".terraform/modules/acctest_root/hashicorp-terraform-aws-module-installer-acctest-853d038/modules/child_b",
+			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_root/hashicorp-terraform-aws-module-installer-acctest-853d038/modules/child_b"),
 		},
 	}
 
@@ -248,7 +266,7 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 		{
 			Name:       "Install",
 			ModuleAddr: "acctest_child_a",
-			LocalPath:  ".terraform/modules/acctest_child_a/modules/child_a",
+			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_child_a/modules/child_a"),
 		},
 
 		// acctest_child_a.child_b
@@ -256,7 +274,7 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 		{
 			Name:       "Install",
 			ModuleAddr: "acctest_child_a.child_b",
-			LocalPath:  ".terraform/modules/acctest_child_a/modules/child_b",
+			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_child_a/modules/child_b"),
 		},
 
 		// acctest_child_b accesses //modules/child_b directly
@@ -268,7 +286,7 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 		{
 			Name:       "Install",
 			ModuleAddr: "acctest_child_b",
-			LocalPath:  ".terraform/modules/acctest_child_b/modules/child_b",
+			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_child_b/modules/child_b"),
 		},
 
 		// acctest_root
@@ -280,7 +298,7 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 		{
 			Name:       "Install",
 			ModuleAddr: "acctest_root",
-			LocalPath:  ".terraform/modules/acctest_root",
+			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_root"),
 		},
 
 		// acctest_root.child_a
@@ -288,7 +306,7 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 		{
 			Name:       "Install",
 			ModuleAddr: "acctest_root.child_a",
-			LocalPath:  ".terraform/modules/acctest_root/modules/child_a",
+			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_root/modules/child_a"),
 		},
 
 		// acctest_root.child_a.child_b
@@ -296,7 +314,7 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 		{
 			Name:       "Install",
 			ModuleAddr: "acctest_root.child_a.child_b",
-			LocalPath:  ".terraform/modules/acctest_root/modules/child_b",
+			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_root/modules/child_b"),
 		},
 	}
 

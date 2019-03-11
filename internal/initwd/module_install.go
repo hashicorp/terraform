@@ -199,6 +199,22 @@ func (i *ModuleInstaller) installDescendentModules(rootMod *tfconfig.Module, roo
 				diags = append(diags, mDiags...)
 				return mod, v, diags
 
+			case isMaybeRelativeLocalPath(req.SourceAddr, instPath):
+				log.Printf(
+					"[TRACE] ModuleInstaller: %s looks like a local path but is missing ./ or ../",
+					req.SourceAddr,
+				)
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to locate local module source",
+					fmt.Sprintf(
+						"%s looks like a relative path, but Terraform cannot determine the module source. "+
+							"Add ./ at the start of the source string if this is a relative path.",
+						req.SourceAddr,
+					),
+				))
+				return nil, nil, diags
+
 			default:
 				log.Printf("[TRACE] ModuleInstaller: %s address %q will be handled by go-getter", key, req.SourceAddr)
 
