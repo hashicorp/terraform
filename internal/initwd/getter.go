@@ -189,13 +189,12 @@ func isRegistrySourceAddr(addr string) bool {
 
 func isMaybeRelativeLocalPath(addr, path string) bool {
 	realAddr, err := getter.Detect(addr, path, getter.Detectors)
-
 	// this error will be handled by the next function
 	if err != nil {
 		return false
 	} else {
 		if strings.HasPrefix(realAddr, "file://") {
-			_, err := os.Stat(realAddr)
+			_, err := os.Stat(realAddr[7:])
 			if err != nil {
 				return true
 			}
