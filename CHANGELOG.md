@@ -1,5 +1,9 @@
 ## 0.11.13 (Unreleased)
 
+BUG FIXES:
+
+* backend/remote: Fix a backend initialization bug [GH-20638]
+
 ## 0.11.12 (March 8, 2019)
 
 IMPROVEMENTS:
