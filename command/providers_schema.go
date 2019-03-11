@@ -45,6 +45,12 @@ func (c *ProvidersSchemaCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Check for user-supplied plugin path
+	if c.pluginPath, err = c.loadPluginPath(); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
+		return 1
+	}
+
 	var diags tfdiags.Diagnostics
 
 	// Load the backend
@@ -100,7 +106,7 @@ func (c *ProvidersSchemaCommand) Run(args []string) int {
 }
 
 const providersSchemaCommandHelp = `
-Usage: terraform providers schemas -json
+Usage: terraform providers schema -json
 
   Prints out a json representation of the schemas for all providers used 
   in the current configuration.

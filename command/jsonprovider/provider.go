@@ -42,8 +42,7 @@ func Marshal(s *terraform.Schemas) ([]byte, error) {
 		providers.Schemas[k] = marshalProvider(v)
 	}
 
-	// add some polish for the human consumers
-	ret, err := json.MarshalIndent(providers, "", "  ")
+	ret, err := json.Marshal(providers)
 	return ret, err
 }
 
