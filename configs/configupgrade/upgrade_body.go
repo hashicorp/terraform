@@ -947,7 +947,14 @@ func isMaybeRelativeLocalPath(addr string) bool {
 		return false
 	}
 
-	realAddr, err := getter.Detect(addr, ".", getter.Detectors)
+	goGetterDetectors := []getter.Detector{
+		new(getter.GitHubDetector),
+		new(getter.BitBucketDetector),
+		new(getter.S3Detector),
+		new(getter.FileDetector),
+	}
+
+	realAddr, err := getter.Detect(addr, ".", goGetterDetectors)
 	// it's unclear what the problem may be, so we'll
 	// just pass it through normally
 	if err != nil {
