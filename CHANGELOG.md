@@ -1,8 +1,8 @@
-## 0.11.13 (Unreleased)
+## 0.11.13 (March 11, 2019)
 
 BUG FIXES:
 
-* backend/remote: Fix a backend initialization bug [GH-20638]
+* backend/remote: Fix a backend initialization bug ([#20638](https://github.com/hashicorp/terraform/issues/20638))
 
 ## 0.11.12 (March 8, 2019)
 
