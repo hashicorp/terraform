@@ -3,10 +3,12 @@ package configupgrade
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
 
+	getter "github.com/hashicorp/go-getter"
 	hcl1ast "github.com/hashicorp/hcl/hcl/ast"
 	hcl1token "github.com/hashicorp/hcl/hcl/token"
 	hcl2 "github.com/hashicorp/hcl2/hcl"
@@ -14,6 +16,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/registry/regsrc"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -657,6 +660,54 @@ func connectionBlockRule(filename string, resourceType string, an *analysis, adh
 	}
 }
 
+func moduleSourceRule(filename string, an *analysis) bodyItemRule {
+	return func(buf *bytes.Buffer, blockAddr string, item *hcl1ast.ObjectItem) tfdiags.Diagnostics {
+		var diags tfdiags.Diagnostics
+		val, ok := item.Val.(*hcl1ast.LiteralType)
+		if !ok {
+			diags = diags.Append(&hcl2.Diagnostic{
+				Severity: hcl2.DiagError,
+				Summary:  "Invalid source argument",
+				Detail:   `The "source" argument must be a single string containing the module source.`,
+				Subject:  hcl1PosRange(filename, item.Keys[0].Pos()).Ptr(),
+			})
+			return diags
+		}
+		if val.Token.Type != hcl1token.STRING {
+			diags = diags.Append(&hcl2.Diagnostic{
+				Severity: hcl2.DiagError,
+				Summary:  "Invalid source argument",
+				Detail:   `The "source" argument must be a single string containing the module source.`,
+				Subject:  hcl1PosRange(filename, item.Keys[0].Pos()).Ptr(),
+			})
+			return diags
+		}
+
+		litVal := val.Token.Value().(string)
+
+		if isMaybeRelativeLocalPath(litVal) {
+			diags = diags.Append(&hcl2.Diagnostic{
+				Severity: hcl2.DiagWarning,
+				Summary:  "Possible relative module source",
+				Detail:   "Terraform cannot determine the given module source, but it appears to be a relative path",
+				Subject:  hcl1PosRange(filename, item.Keys[0].Pos()).Ptr(),
+			})
+			buf.WriteString(
+				"# TF-UPGRADE-TODO: In Terraform v0.11 and earlier, it was possible to\n" +
+					"# reference a relative module source without a preceding ./, but it is no\n" +
+					"# longer supported in Terraform v0.12.\n" +
+					"#\n" +
+					"# If the below module source is indeed a relative local path, add./ to the\n" +
+					"# start of the source string.\n",
+			)
+		}
+		newVal, exprDiags := upgradeExpr(val, filename, false, an)
+		diags = diags.Append(exprDiags)
+		buf.WriteString("source = " + string(newVal) + "\n")
+		return diags
+	}
+}
+
 // Prior to Terraform 0.12 providers were able to supply default connection
 // settings that would partially populate the "connection" block with
 // automatically-selected values.
@@ -872,4 +923,42 @@ var resourceTypeAutomaticConnectionExprs = map[string]map[string]string{
 			)...
 		)`,
 	},
+}
+
+// copied directly from internal/initwd/getter.go
+var localSourcePrefixes = []string{
+	"./",
+	"../",
+	".\\",
+	"..\\",
+}
+
+func isMaybeRelativeLocalPath(addr string) bool {
+	for _, prefix := range localSourcePrefixes {
+		if strings.HasPrefix(addr, prefix) {
+			// it is _definitely_ a relative path
+			return false
+		}
+	}
+
+	_, err := regsrc.ParseModuleSource(addr)
+	if err == nil {
+		// it is a registry source
+		return false
+	}
+
+	realAddr, err := getter.Detect(addr, ".", getter.Detectors)
+	// it's unclear what the problem may be, so we'll
+	// just pass it through normally
+	if err != nil {
+		return false
+	} else {
+		if strings.HasPrefix(realAddr, "file://") {
+			_, err := os.Stat(realAddr[7:])
+			if err != nil {
+				return true
+			}
+		}
+	}
+	return false
 }
