@@ -36,7 +36,7 @@ Since Terraform's concept of a set requires all of the elements to be of the
 same type, mixed-typed elements will be converted to the most general type:
 
 ```
-> tolist(["a", "b", 3])
+> toset(["a", "b", 3])
 [
   "a",
   "b",
@@ -49,7 +49,7 @@ ordering of the argument elements is lost and any duplicate values are
 coalesced:
 
 ```
-> tolist(["c", "b", "b"])
+> toset(["c", "b", "b"])
 [
   "b",
   "c",
