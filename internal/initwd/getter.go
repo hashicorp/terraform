@@ -78,7 +78,7 @@ type reusingGetter map[string]string
 // go-getter library, which have very inconsistent quality as
 // end-user-actionable error messages. At this time we do not have any
 // reasonable way to improve these error messages at this layer because
-// the underlying errors are not separatelyr recognizable.
+// the underlying errors are not separately recognizable.
 func (g reusingGetter) getWithGoGetter(instPath, addr string) (string, error) {
 	packageAddr, subDir := splitAddrSubdir(addr)
 
@@ -185,4 +185,20 @@ func isLocalSourceAddr(addr string) bool {
 func isRegistrySourceAddr(addr string) bool {
 	_, err := regsrc.ParseModuleSource(addr)
 	return err == nil
+}
+
+func isMaybeRelativeLocalPath(addr, path string) bool {
+	realAddr, err := getter.Detect(addr, path, getter.Detectors)
+	// this error will be handled by the next function
+	if err != nil {
+		return false
+	} else {
+		if strings.HasPrefix(realAddr, "file://") {
+			_, err := os.Stat(realAddr[7:])
+			if err != nil {
+				return true
+			}
+		}
+	}
+	return false
 }
