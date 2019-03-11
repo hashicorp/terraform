@@ -27,7 +27,7 @@ are constructed from consecutive pairs of arguments.
 {
   "a" = "b"
   "c" = "d"
-]
+}
 ```
 
 Do not use the above form in Terraform v0.12 or above. Instead, use the
@@ -38,7 +38,7 @@ built-in map construction syntax, which achieves the same result:
 {
   "a" = "b"
   "c" = "d"
-]
+}
 ```
 
 ## Related Functions
