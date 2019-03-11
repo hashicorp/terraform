@@ -798,7 +798,6 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 	}
-
 	newStateVal := cty.NullVal(block.ImpliedType())
 
 	// Always return a null value for destroy.
@@ -1114,8 +1113,6 @@ func normalizeFlatmapContainers(prior map[string]string, attrs map[string]string
 			attrs[k] = "1"
 		case len(indexes) > 0:
 			attrs[k] = strconv.Itoa(len(indexes))
-		default:
-			delete(attrs, k)
 		}
 	}
 

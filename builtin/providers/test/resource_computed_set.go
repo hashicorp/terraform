@@ -70,6 +70,12 @@ func testResourceComputedSet() *schema.Resource {
 					},
 				},
 			},
+			"optional_set": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
 		},
 	}
 }
@@ -101,6 +107,9 @@ func testResourceComputedSetRead(d *schema.ResourceData, meta interface{}) error
 	}
 
 	d.Set("string_set", schema.NewSet(schema.HashString, set))
+
+	// This isn't computed, but we should be able to ignore without issues.
+	d.Set("optional_set", []interface{}{})
 	return nil
 }
 
