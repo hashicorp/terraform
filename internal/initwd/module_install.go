@@ -209,7 +209,7 @@ func (i *ModuleInstaller) installDescendentModules(rootMod *tfconfig.Module, roo
 					"Failed to locate local module source",
 					fmt.Sprintf(
 						"%s looks like a relative path, but Terraform cannot determine the module source. "+
-							"Add ./ to the source string if this is a relative path.",
+							"Add ./ at the start of the source string if this is a relative path.",
 						req.SourceAddr,
 					),
 				))
