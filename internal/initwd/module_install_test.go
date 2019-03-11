@@ -93,6 +93,24 @@ func TestModuleInstaller(t *testing.T) {
 	assertResultDeepEqual(t, gotTraces, wantTraces)
 }
 
+func TestModuleInstaller_error(t *testing.T) {
+	fixtureDir := filepath.Clean("test-fixtures/local-module-error")
+	dir, done := tempChdir(t, fixtureDir)
+	defer done()
+
+	hooks := &testInstallHooks{}
+
+	modulesDir := filepath.Join(dir, ".terraform/modules")
+	inst := NewModuleInstaller(modulesDir, nil)
+	_, diags := inst.InstallModules(".", false, hooks)
+
+	if !diags.HasErrors() {
+		t.Fatal("expected error")
+	} else {
+		assertDiagnosticSummary(t, diags, "Failed to locate local module source")
+	}
+}
+
 func TestLoaderInstallModules_registry(t *testing.T) {
 	if os.Getenv("TF_ACC") == "" {
 		t.Skip("this test accesses registry.terraform.io and github.com; set TF_ACC=1 to run it")
