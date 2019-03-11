@@ -188,7 +188,7 @@ func isRegistrySourceAddr(addr string) bool {
 }
 
 func isMaybeRelativeLocalPath(addr, path string) bool {
-	realAddr, err := getter.Detect(addr, path, getter.Detectors)
+	realAddr, err := getter.Detect(addr, path, goGetterDetectors)
 	// this error will be handled by the next function
 	if err != nil {
 		return false
