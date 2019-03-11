@@ -135,8 +135,7 @@ func Marshal(
 		return nil, fmt.Errorf("error marshaling config: %s", err)
 	}
 
-	// add some polish
-	ret, err := json.MarshalIndent(output, "", "  ")
+	ret, err := json.Marshal(output)
 	return ret, err
 }
 

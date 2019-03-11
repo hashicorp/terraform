@@ -135,7 +135,7 @@ func Marshal(sf *statefile.File, schemas *terraform.Schemas) ([]byte, error) {
 		return nil, err
 	}
 
-	ret, err := json.MarshalIndent(output, "", "  ")
+	ret, err := json.Marshal(output)
 	return ret, err
 }
 
