@@ -6,6 +6,10 @@ IMPROVEMENTS:
 * backend/remote: Retry calls when the remote backend responds with a server error [GH-20588]
 * backend/remote: Check for external updates while waiting for user input [GH-20620]
 
+BUG FIXES:
+
+* config: Correct `filebase64sha256` function return value [GH-20654]
+
 ## 0.12.0-beta1 (Feb 28, 2019)
 
 Please see [the announcement post](https://www.hashicorp.com/blog/announcing-terraform-0-1-2-beta1) for details on how to use this release.
