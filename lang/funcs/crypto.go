@@ -39,7 +39,7 @@ var Base64Sha256Func = makeStringHashFunction(sha256.New, base64.StdEncoding.Enc
 // MakeFileBase64Sha256Func constructs a function that is like Base64Sha256Func but reads the
 // contents of a file rather than hashing a given literal string.
 func MakeFileBase64Sha256Func(baseDir string) function.Function {
-	return makeFileHashFunction(baseDir, sha512.New, base64.StdEncoding.EncodeToString)
+	return makeFileHashFunction(baseDir, sha256.New, base64.StdEncoding.EncodeToString)
 }
 
 // Base64Sha512Func constructs a function that computes the SHA256 hash of a given string
