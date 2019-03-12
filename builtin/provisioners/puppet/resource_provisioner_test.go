@@ -89,6 +89,36 @@ func TestProvisioner_Validate_good_os_type_windows(t *testing.T) {
 	}
 }
 
+func TestProvisioner_Validate_bad_bolt_timeout(t *testing.T) {
+	c := testConfig(t, map[string]interface{}{
+		"server":       "puppet.test.com",
+		"bolt_timeout": "123oeau",
+	})
+
+	warn, errs := Provisioner().Validate(c)
+	if len(warn) > 0 {
+		t.Fatalf("Warnings: %v", warn)
+	}
+	if len(errs) == 0 {
+		t.Fatalf("Should have errors")
+	}
+}
+
+func TestProvisioner_Validate_good_bolt_timeout(t *testing.T) {
+	c := testConfig(t, map[string]interface{}{
+		"server":       "puppet.test.com",
+		"bolt_timeout": "123m",
+	})
+
+	warn, errs := Provisioner().Validate(c)
+	if len(warn) > 0 {
+		t.Fatalf("Warnings: %v", warn)
+	}
+	if len(errs) > 0 {
+		t.Fatalf("Errors: %v", warn)
+	}
+}
+
 func testConfig(t *testing.T, c map[string]interface{}) *terraform.ResourceConfig {
 	r, err := config.NewRawConfig(c)
 	if err != nil {

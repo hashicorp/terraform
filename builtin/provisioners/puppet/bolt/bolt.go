@@ -20,7 +20,7 @@ type Result struct {
 	ElapsedTime int `json:"elapsed_time"`
 }
 
-func runCommand(command string) ([]byte, error) {
+func runCommand(command string, timeout time.Duration) ([]byte, error) {
 	var cmdargs []string
 
 	if runtime.GOOS == "windows" {
@@ -30,14 +30,14 @@ func runCommand(command string) ([]byte, error) {
 	}
 	cmdargs = append(cmdargs, command)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, cmdargs[0], cmdargs[1:]...)
 	return cmd.Output()
 }
 
-func Task(connInfo map[string]string, sudo bool, task string, args map[string]string) (*Result, error) {
+func Task(connInfo map[string]string, timeout time.Duration, sudo bool, task string, args map[string]string) (*Result, error) {
 	cmdargs := []string{
 		"bolt", "task", "run", "--nodes", connInfo["type"] + "://" + connInfo["host"], "-u", connInfo["user"],
 	}
@@ -60,7 +60,7 @@ func Task(connInfo map[string]string, sudo bool, task string, args map[string]st
 		}
 	}
 
-	out, err := runCommand(strings.Join(cmdargs, " "))
+	out, err := runCommand(strings.Join(cmdargs, " "), timeout)
 	if err != nil {
 		return nil, fmt.Errorf("Bolt: \"%s\": %s: %s", strings.Join(cmdargs, " "), out, err)
 	}

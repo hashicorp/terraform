@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform/builtin/provisioners/puppet/bolt"
 	"github.com/hashicorp/terraform/communicator"
@@ -27,6 +28,7 @@ type provisioner struct {
 	Autosign    bool
 	OpenSource  bool
 	UseSudo     bool
+	BoltTimeout time.Duration
 
 	runPuppetAgent     func() error
 	installPuppetAgent func() error
@@ -88,6 +90,18 @@ func Provisioner() terraform.ResourceProvisioner {
 				Type:     schema.TypeString,
 				Default:  "production",
 				Optional: true,
+			},
+			"bolt_timeout": &schema.Schema{
+				Type:     schema.TypeString,
+				Default:  "5m",
+				Optional: true,
+				ValidateFunc: func(val interface{}, key string) (warns []string, errs []error) {
+					_, err := time.ParseDuration(val.(string))
+					if err != nil {
+						errs = append(errs, err)
+					}
+					return
+				},
 			},
 		},
 		ApplyFunc: applyFn,
@@ -216,6 +230,7 @@ func (p *provisioner) generateAutosignToken(certname string) (string, error) {
 
 	result, err := bolt.Task(
 		masterConnInfo,
+		p.BoltTimeout,
 		p.ServerUser != "root",
 		task,
 		map[string]string{"certname": certname},
@@ -238,6 +253,7 @@ func (p *provisioner) generateAutosignToken(certname string) (string, error) {
 func (p *provisioner) installPuppetAgentOpenSource() error {
 	result, err := bolt.Task(
 		p.instanceState.Ephemeral.ConnInfo,
+		p.BoltTimeout,
 		p.UseSudo,
 		"puppet_agent::install",
 		nil,
@@ -301,6 +317,7 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 		PPRole:      d.Get("pp_role").(string),
 		Environment: d.Get("environment").(string),
 	}
+	p.BoltTimeout, _ = time.ParseDuration(d.Get("bolt_timeout").(string))
 
 	return p, nil
 }
