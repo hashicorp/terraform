@@ -8,7 +8,7 @@ const (
 	// "BackupInUseException".
 	//
 	// There is another ongoing conflicting backup control plane operation on the
-	// table. The backups is either being created, deleted or restored to a table.
+	// table. The backup is either being created, deleted or restored to a table.
 	ErrCodeBackupInUseException = "BackupInUseException"
 
 	// ErrCodeBackupNotFoundException for service response error code
@@ -40,6 +40,13 @@ const (
 	//
 	// The specified global table does not exist.
 	ErrCodeGlobalTableNotFoundException = "GlobalTableNotFoundException"
+
+	// ErrCodeIdempotentParameterMismatchException for service response error code
+	// "IdempotentParameterMismatchException".
+	//
+	// DynamoDB rejected the request because you retried a request with a different
+	// payload but with an idempotent token that was already used.
+	ErrCodeIdempotentParameterMismatchException = "IdempotentParameterMismatchException"
 
 	// ErrCodeIndexNotFoundException for service response error code
 	// "IndexNotFoundException".
@@ -112,6 +119,14 @@ const (
 	// The specified replica is no longer part of the global table.
 	ErrCodeReplicaNotFoundException = "ReplicaNotFoundException"
 
+	// ErrCodeRequestLimitExceeded for service response error code
+	// "RequestLimitExceeded".
+	//
+	// Throughput exceeds the current throughput limit for your account. Please
+	// contact AWS Support at AWS Support (http://docs.aws.amazon.com/https:/aws.amazon.com/support)
+	// to request a limit increase.
+	ErrCodeRequestLimitExceeded = "RequestLimitExceeded"
+
 	// ErrCodeResourceInUseException for service response error code
 	// "ResourceInUseException".
 	//
@@ -145,4 +160,55 @@ const (
 	// A source table with the name TableName does not currently exist within the
 	// subscriber's account.
 	ErrCodeTableNotFoundException = "TableNotFoundException"
+
+	// ErrCodeTransactionCanceledException for service response error code
+	// "TransactionCanceledException".
+	//
+	// The entire transaction request was rejected.
+	//
+	// DynamoDB rejects a TransactWriteItems request under the following circumstances:
+	//
+	//    * A condition in one of the condition expressions is not met.
+	//
+	//    * A table in the TransactWriteItems request is in a different account
+	//    or region.
+	//
+	//    * More than one action in the TransactWriteItems operation targets the
+	//    same item.
+	//
+	//    * There is insufficient provisioned capacity for the transaction to be
+	//    completed.
+	//
+	//    * An item size becomes too large (larger than 400 KB), or a local secondary
+	//    index (LSI) becomes too large, or a similar validation error occurs because
+	//    of changes made by the transaction.
+	//
+	//    * There is a user error, such as an invalid data format.
+	//
+	// DynamoDB rejects a TransactGetItems request under the following circumstances:
+	//
+	//    * There is an ongoing TransactGetItems operation that conflicts with a
+	//    concurrent PutItem, UpdateItem, DeleteItem or TransactWriteItems request.
+	//    In this case the TransactGetItems operation fails with a TransactionCanceledException.
+	//
+	//    * A table in the TransactGetItems request is in a different account or
+	//    region.
+	//
+	//    * There is insufficient provisioned capacity for the transaction to be
+	//    completed.
+	//
+	//    * There is a user error, such as an invalid data format.
+	ErrCodeTransactionCanceledException = "TransactionCanceledException"
+
+	// ErrCodeTransactionConflictException for service response error code
+	// "TransactionConflictException".
+	//
+	// Operation was rejected because there is an ongoing transaction for the item.
+	ErrCodeTransactionConflictException = "TransactionConflictException"
+
+	// ErrCodeTransactionInProgressException for service response error code
+	// "TransactionInProgressException".
+	//
+	// The transaction with the given request token is already in progress.
+	ErrCodeTransactionInProgressException = "TransactionInProgressException"
 )

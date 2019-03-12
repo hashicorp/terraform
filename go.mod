@@ -17,8 +17,7 @@ require (
 	github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e
 	github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da // indirect
 	github.com/armon/go-radix v0.0.0-20160115234725-4239b77079c7 // indirect
-	github.com/aws/aws-sdk-go v1.14.31
-	github.com/beevik/etree v0.0.0-20171015221209-af219c0c7ea1 // indirect
+	github.com/aws/aws-sdk-go v1.16.36
 	github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973 // indirect
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
 	github.com/bgentry/speakeasy v0.0.0-20161015143505-675b82c74c0e // indirect
@@ -50,15 +49,16 @@ require (
 	github.com/grpc-ecosystem/go-grpc-prometheus v0.0.0-20160910222444-6b7015e65d36 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.2.2 // indirect
 	github.com/hashicorp/atlas-go v0.0.0-20161107204910-1792bd8de119
+	github.com/hashicorp/aws-sdk-go-base v0.3.0
 	github.com/hashicorp/consul v0.0.0-20171026175957-610f3c86a089
-	github.com/hashicorp/errwrap v0.0.0-20141028054710-7554cd9344ce
+	github.com/hashicorp/errwrap v1.0.0
 	github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de
 	github.com/hashicorp/go-cleanhttp v0.5.0
 	github.com/hashicorp/go-getter v0.0.0-20180327010114-90bb99a48d86
 	github.com/hashicorp/go-hclog v0.0.0-20170716174523-b4e5765d1e5f
 	github.com/hashicorp/go-immutable-radix v1.0.0 // indirect
 	github.com/hashicorp/go-msgpack v0.5.3 // indirect
-	github.com/hashicorp/go-multierror v0.0.0-20150916205742-d30f09973e19
+	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hashicorp/go-plugin v0.0.0-20180125190438-e53f54cbf51e
 	github.com/hashicorp/go-retryablehttp v0.5.1
 	github.com/hashicorp/go-rootcerts v0.0.0-20160503143440-6bb64b370b90
@@ -75,8 +75,6 @@ require (
 	github.com/hashicorp/serf v0.8.2-0.20171022020050-c20a0b1b1ea9 // indirect
 	github.com/hashicorp/vault v0.0.0-20161029210149-9a60bf2a50e4
 	github.com/hashicorp/yamux v0.0.0-20160720233140-d1caa6c97c9f // indirect
-	github.com/jen20/awspolicyequivalence v0.0.0-20170831201602-3d48364a137a // indirect
-	github.com/jmespath/go-jmespath v0.0.0-20160803190731-bd40a432e4c7 // indirect
 	github.com/jonboulle/clockwork v0.1.0 // indirect
 	github.com/joyent/triton-go v0.0.0-20180313100802-d8f9c0314926
 	github.com/jtolds/gls v4.2.1+incompatible // indirect
@@ -122,10 +120,7 @@ require (
 	github.com/smartystreets/goconvey v0.0.0-20181108003508-044398e4856c // indirect
 	github.com/soheilhy/cmux v0.1.4 // indirect
 	github.com/spf13/afero v1.0.2
-	github.com/terraform-providers/terraform-provider-aws v1.29.0
 	github.com/terraform-providers/terraform-provider-openstack v1.15.0
-	github.com/terraform-providers/terraform-provider-template v1.0.0 // indirect
-	github.com/terraform-providers/terraform-provider-tls v1.2.0 // indirect
 	github.com/ugorji/go v0.0.0-20170107133203-ded73eae5db7 // indirect
 	github.com/ulikunitz/xz v0.5.4 // indirect
 	github.com/xanzy/ssh-agent v0.2.0
@@ -133,11 +128,10 @@ require (
 	github.com/xlab/treeprint v0.0.0-20161029104018-1d6e34225557
 	github.com/zclconf/go-cty v0.0.0-20180302160414-49fa5e03c418
 	golang.org/x/crypto v0.0.0-20180211211603-9de5f2eaf759
-	golang.org/x/net v0.0.0-20171004034648-a04bdaca5b32
+	golang.org/x/net v0.0.0-20190213061140-3a22650c66bd
 	golang.org/x/oauth2 v0.0.0-20170928010508-bb50c06baba3
 	golang.org/x/sync v0.0.0-20181221193216-37e7f081c4d4 // indirect
 	golang.org/x/sys v0.0.0-20181026203630-95b1ffbd15a5 // indirect
-	golang.org/x/text v0.0.0-20171013141220-c01e4764d870 // indirect
 	google.golang.org/api v0.0.0-20171005000305-7a7376eff6a5
 	google.golang.org/appengine v0.0.0-20150527042145-b667a5000b08 // indirect
 	google.golang.org/genproto v0.0.0-20171002232614-f676e0f3ac63 // indirect
