@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"regexp"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -427,13 +425,6 @@ func (s *GRPCProviderServer) ReadResource(_ context.Context, req *proto.ReadReso
 		return resp, nil
 	}
 
-	if newInstanceState != nil {
-		// here we use the prior state to check for unknown/zero containers values
-		// when normalizing the flatmap.
-		stateAttrs := hcl2shim.FlatmapValueFromHCL2(stateVal)
-		newInstanceState.Attributes = normalizeFlatmapContainers(stateAttrs, newInstanceState.Attributes)
-	}
-
 	if newInstanceState == nil || newInstanceState.ID == "" {
 		// The old provider API used an empty id to signal that the remote
 		// object appears to have been deleted, but our new protocol expects
@@ -571,8 +562,6 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 
 	// now we need to apply the diff to the prior state, so get the planned state
 	plannedAttrs, err := diff.Apply(priorState.Attributes, block)
-
-	plannedAttrs = normalizeFlatmapContainers(priorState.Attributes, plannedAttrs)
 
 	plannedStateVal, err := hcl2shim.HCL2ValueFromFlatmap(plannedAttrs, block.ImpliedType())
 	if err != nil {
@@ -817,8 +806,6 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 
 	// here we use the planned state to check for unknown/zero containers values
 	// when normalizing the flatmap.
-	plannedState := hcl2shim.FlatmapValueFromHCL2(plannedStateVal)
-	newInstanceState.Attributes = normalizeFlatmapContainers(plannedState, newInstanceState.Attributes)
 
 	// We keep the null val if we destroyed the resource, otherwise build the
 	// entire object, even if the new state was nil.
@@ -998,131 +985,6 @@ func pathToAttributePath(path cty.Path) *proto.AttributePath {
 	}
 
 	return &proto.AttributePath{Steps: steps}
-}
-
-// normalizeFlatmapContainers removes empty containers, and fixes counts in a
-// set of flatmapped attributes. The prior value is used to determine if there
-// could be zero-length flatmap containers which we need to preserve. This
-// allows a provider to set an empty computed container in the state without
-// creating perpetual diff. This can differ slightly between plan and apply, so
-// the apply flag is passed when called from ApplyResourceChange.
-func normalizeFlatmapContainers(prior map[string]string, attrs map[string]string) map[string]string {
-	isCount := regexp.MustCompile(`.\.[%#]$`).MatchString
-
-	// While we can't determine if the value was actually computed here, we will
-	// trust that our shims stored and retrieved a zero-value container
-	// correctly.
-	zeros := map[string]bool{}
-	// Empty blocks have a count of 1 with no other attributes. Just record all
-	// "1"s here to override 0-length blocks when setting the count below.
-	ones := map[string]bool{}
-	for k, v := range prior {
-		if isCount(k) && (v == "0" || v == hcl2shim.UnknownVariableValue) {
-			zeros[k] = true
-		}
-	}
-
-	for k, v := range attrs {
-		// store any "1" values, since if the length was 1 and there are no
-		// items, it was probably an empty set block. Hopefully checking for a 1
-		// value with no items is sufficient, without cross-referencing the
-		// schema.
-		if isCount(k) && v == "1" {
-			ones[k] = true
-			// make sure we don't have the same key under both categories.
-			delete(zeros, k)
-		}
-	}
-
-	// The "ones" were stored to look for sets with an empty value, so we need
-	// to verify that we only store ones with no attrs.
-	expectedEmptySets := map[string]bool{}
-	for one := range ones {
-		prefix := one[:len(one)-1]
-
-		found := 0
-		for k := range attrs {
-			// since this can be recursive, we check that the attrs isn't also a #.
-			if strings.HasPrefix(k, prefix) && !isCount(k) {
-				found++
-			}
-		}
-
-		if found == 0 {
-			expectedEmptySets[one] = true
-		}
-	}
-
-	// find container keys
-	var keys []string
-	for k, v := range attrs {
-		if !isCount(k) {
-			continue
-		}
-
-		if v == hcl2shim.UnknownVariableValue {
-			// if the index value indicates the container is unknown, skip
-			// updating the counts.
-			continue
-		}
-
-		keys = append(keys, k)
-	}
-
-	// sort the keys in reverse, so that we check the longest subkeys first
-	sort.Slice(keys, func(i, j int) bool {
-		a, b := keys[i], keys[j]
-
-		if strings.HasPrefix(a, b) {
-			return true
-		}
-
-		if strings.HasPrefix(b, a) {
-			return false
-		}
-
-		return a > b
-	})
-
-	for _, k := range keys {
-		prefix := k[:len(k)-1]
-		indexes := map[string]int{}
-		for cand := range attrs {
-			if cand == k {
-				continue
-			}
-
-			if strings.HasPrefix(cand, prefix) {
-				idx := cand[len(prefix):]
-				dot := strings.Index(idx, ".")
-				if dot > 0 {
-					idx = idx[:dot]
-				}
-				indexes[idx]++
-			}
-		}
-
-		switch {
-		case len(indexes) == 0 && zeros[k]:
-			// if there were no keys, but the value was known to be zero, the provider
-			// must have set the computed value to an empty container, and we
-			// need to leave it in the flatmap.
-			attrs[k] = "0"
-		case len(indexes) == 0 && ones[k]:
-			// We need to retain any empty blocks that had a 1 count with no attributes.
-			attrs[k] = "1"
-		case len(indexes) > 0:
-			attrs[k] = strconv.Itoa(len(indexes))
-		}
-	}
-
-	for k := range expectedEmptySets {
-		if _, ok := attrs[k]; !ok {
-			attrs[k] = "1"
-		}
-	}
-
-	return attrs
 }
 
 // helper/schema throws away timeout values from the config and stores them in
