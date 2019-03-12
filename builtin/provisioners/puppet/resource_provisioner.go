@@ -100,7 +100,7 @@ func Provisioner() terraform.ResourceProvisioner {
 					if err != nil {
 						errs = append(errs, err)
 					}
-					return
+					return warns, errs
 				},
 			},
 		},
