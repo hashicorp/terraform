@@ -94,7 +94,7 @@ func Provisioner() terraform.ResourceProvisioner {
 	}
 }
 
-func applyFn(ctx context.Context) (rerr error) {
+func applyFn(ctx context.Context) error {
 	output := ctx.Value(schema.ProvOutputKey).(terraform.UIOutput)
 	state := ctx.Value(schema.ProvRawStateKey).(*terraform.InstanceState)
 	configData := ctx.Value(schema.ProvConfigDataKey).(*schema.ResourceData)
@@ -148,11 +148,7 @@ func applyFn(ctx context.Context) (rerr error) {
 	if err != nil {
 		return err
 	}
-	defer func() {
-		if err := comm.Disconnect(); err != nil {
-			rerr = err
-		}
-	}()
+	defer comm.Disconnect()
 
 	p.comm = comm
 
