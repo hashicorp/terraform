@@ -187,8 +187,21 @@ type Schema struct {
 	//
 	// If the field Optional is set to true then MinItems is ignored and thus
 	// effectively zero.
+	//
+	// If MaxItems is 1, you may optionally also set AsSingle in order to have
+	// Terraform v0.12 or later treat a TypeList or TypeSet as if it were a
+	// single value. It will remain a list or set in Terraform v0.10 and v0.11.
+	// Enabling this for an existing attribute after you've made at least one
+	// v0.12-compatible provider release is a breaking change. AsSingle is
+	// likely to misbehave when used with deeply-nested set structures due to
+	// the imprecision of set diffs, so be sure to test it thoroughly,
+	// including updates that change the set members at all levels. AsSingle
+	// exists primarily to be used in conjunction with ConfigMode when forcing
+	// a nested resource to be treated as an attribute, so it can be considered
+	// an attribute of object type rather than of list/set of object.
 	MaxItems int
 	MinItems int
+	AsSingle bool
 
 	// PromoteSingle originally allowed for a single element to be assigned
 	// where a primitive list was expected, but this no longer works from
@@ -808,6 +821,15 @@ func (m schemaMap) internalValidate(topSchemaMap schemaMap, attrsOnly bool) erro
 		} else {
 			if v.MaxItems > 0 || v.MinItems > 0 {
 				return fmt.Errorf("%s: MaxItems and MinItems are only supported on lists or sets", k)
+			}
+		}
+
+		if v.AsSingle {
+			if v.MaxItems != 1 {
+				return fmt.Errorf("%s: MaxItems must be 1 when AsSingle is set", k)
+			}
+			if v.Type != TypeList && v.Type != TypeSet {
+				return fmt.Errorf("%s: AsSingle can be used only with TypeList and TypeSet schemas", k)
 			}
 		}
 

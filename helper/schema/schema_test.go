@@ -3924,6 +3924,68 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 			},
 			true, // in *schema.Resource with ConfigMode of attribute, so must also have ConfigMode of attribute
 		},
+
+		"AsSingle okay": {
+			map[string]*Schema{
+				"block": &Schema{
+					Type:     TypeList,
+					Optional: true,
+					MaxItems: 1,
+					AsSingle: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"sub": &Schema{
+								Type:     TypeList,
+								Optional: true,
+								Elem:     &Resource{},
+							},
+						},
+					},
+				},
+			},
+			false,
+		},
+
+		"AsSingle without MaxItems": {
+			map[string]*Schema{
+				"block": &Schema{
+					Type:     TypeList,
+					Optional: true,
+					AsSingle: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"sub": &Schema{
+								Type:     TypeList,
+								Optional: true,
+								Elem:     &Resource{},
+							},
+						},
+					},
+				},
+			},
+			true, // MaxItems must be 1 when AsSingle is set
+		},
+
+		"AsSingle on primitive type": {
+			map[string]*Schema{
+				"block": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					MaxItems: 1,
+					AsSingle: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"sub": &Schema{
+								Type:     TypeList,
+								Optional: true,
+								Elem:     &Resource{},
+							},
+						},
+					},
+				},
+			},
+			true, // Unexpected error occurred: block: MaxItems and MinItems are only supported on lists or sets
+		},
 	}
 
 	for tn, tc := range cases {
