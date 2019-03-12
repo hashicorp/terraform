@@ -229,7 +229,11 @@ func (p *provisioner) generateAutosignToken(certname string) (string, error) {
 	}
 
 	if result.Items[0].Status != "success" {
-		return "", fmt.Errorf("Bolt %s failed on %s: %v", task, result.Items[0].Node, result.Items[0].Result["_error"])
+		return "", fmt.Errorf("Bolt %s failed on %s: %v",
+			task,
+			result.Items[0].Node,
+			result.Items[0].Result["_error"],
+		)
 	}
 
 	return result.Items[0].Result["_output"], nil
@@ -273,13 +277,13 @@ func (p *provisioner) runCommand(command string) (stdout string, err error) {
 	err = p.comm.Start(cmd)
 	if err != nil {
 		err = fmt.Errorf("Error executing command %q: %v", cmd.Command, err)
-		return
+		return stdout, err
 	}
 
 	err = cmd.Wait()
 	stdout = strings.TrimSpace(stdoutBuffer.String())
 
-	return
+	return stdout, err
 }
 
 func (p *provisioner) copyToOutput(reader io.Reader) {
