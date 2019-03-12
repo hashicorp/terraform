@@ -173,6 +173,9 @@ func (m *Meta) dirIsConfigPath(dir string) bool {
 // directory even if loadBackendConfig succeeded.)
 func (m *Meta) loadBackendConfig(rootDir string) (*configs.Backend, tfdiags.Diagnostics) {
 	mod, diags := m.loadSingleModule(rootDir)
+	if diags.HasErrors() {
+		return nil, diags
+	}
 	return mod.Backend, diags
 }
 
