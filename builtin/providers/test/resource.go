@@ -163,6 +163,15 @@ func testResourceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("computed_map", map[string]string{"key1": "value1"})
 	d.Set("computed_list", []string{"listval1", "listval2"})
 	d.Set("computed_set", []string{"setval1", "setval2"})
+
+	// if there is no "set" value, erroneously set it to an empty set. This
+	// might change a null value to an empty set, but we should be able to
+	// ignore that.
+	s := d.Get("set")
+	if s == nil || s.(*schema.Set).Len() == 0 {
+		d.Set("set", []interface{}{})
+	}
+
 	return nil
 }
 
