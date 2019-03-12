@@ -49,6 +49,16 @@ func TestUnlock(t *testing.T) {
 	if code := c.Run(args); code != 1 {
 		t.Fatalf("bad: %d\n%s\n%s", code, ui.OutputWriter.String(), ui.ErrorWriter.String())
 	}
+
+	// make sure we don't crash with arguments in the wrong order
+	args = []string{
+		"LOCK_ID",
+		"-force",
+	}
+
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("bad: %d\n%s\n%s", code, ui.OutputWriter.String(), ui.ErrorWriter.String())
+	}
 }
 
 // Newly configured backend
