@@ -12,10 +12,10 @@ import (
 
 type Result struct {
 	Items []struct {
-		Node   string
-		Status string
-		Result map[string]string
-	}
+		Node   string            `json:"node"`
+		Status string            `json:"status"`
+		Result map[string]string `json:"result"`
+	} `json:"items"`
 	NodeCount   int `json:"node_count"`
 	ElapsedTime int `json:"elapsed_time"`
 }
