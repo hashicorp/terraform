@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
 
-	getter "github.com/hashicorp/go-getter"
 	hcl1ast "github.com/hashicorp/hcl/hcl/ast"
 	hcl1token "github.com/hashicorp/hcl/hcl/token"
 	hcl2 "github.com/hashicorp/hcl2/hcl"
@@ -685,7 +685,7 @@ func moduleSourceRule(filename string, an *analysis) bodyItemRule {
 
 		litVal := val.Token.Value().(string)
 
-		if isMaybeRelativeLocalPath(litVal) {
+		if isMaybeRelativeLocalPath(litVal, an.ModuleDir) {
 			diags = diags.Append(&hcl2.Diagnostic{
 				Severity: hcl2.DiagWarning,
 				Summary:  "Possible relative module source",
@@ -698,7 +698,8 @@ func moduleSourceRule(filename string, an *analysis) bodyItemRule {
 					"# longer supported in Terraform v0.12.\n" +
 					"#\n" +
 					"# If the below module source is indeed a relative local path, add./ to the\n" +
-					"# start of the source string.\n",
+					"# start of the source string. If that is not the case, then leave it as-is\n" +
+					"# and remove this TODO comment.\n",
 			)
 		}
 		newVal, exprDiags := upgradeExpr(val, filename, false, an)
@@ -933,7 +934,13 @@ var localSourcePrefixes = []string{
 	"..\\",
 }
 
-func isMaybeRelativeLocalPath(addr string) bool {
+// isMaybeRelativeLocalPath tries to catch situations where a module source is
+// an improperly-referenced relative path, such as "module" instead of
+// "./module". This is a simple check that could return a false positive in the
+// unlikely-yet-plausible case that a module source is for eg. a github
+// repository that also looks exactly like an existing relative path. This
+// should only be used to return a warning.
+func isMaybeRelativeLocalPath(addr, dir string) bool {
 	for _, prefix := range localSourcePrefixes {
 		if strings.HasPrefix(addr, prefix) {
 			// it is _definitely_ a relative path
@@ -947,25 +954,13 @@ func isMaybeRelativeLocalPath(addr string) bool {
 		return false
 	}
 
-	goGetterDetectors := []getter.Detector{
-		new(getter.GitHubDetector),
-		new(getter.BitBucketDetector),
-		new(getter.S3Detector),
-		new(getter.FileDetector),
+	possibleRelPath := filepath.Join(dir, addr)
+	_, err = os.Stat(possibleRelPath)
+	if err == nil {
+		// If there is no error, something exists at what would be the relative
+		// path, if the module source started with ./
+		return true
 	}
 
-	realAddr, err := getter.Detect(addr, ".", goGetterDetectors)
-	// it's unclear what the problem may be, so we'll
-	// just pass it through normally
-	if err != nil {
-		return false
-	} else {
-		if strings.HasPrefix(realAddr, "file://") {
-			_, err := os.Stat(realAddr[7:])
-			if err != nil {
-				return true
-			}
-		}
-	}
 	return false
 }
