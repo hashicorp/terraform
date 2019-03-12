@@ -3,15 +3,12 @@ package plugin
 import (
 	"context"
 	"fmt"
-	"reflect"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/helper/schema"
 	proto "github.com/hashicorp/terraform/internal/tfplugin5"
 	"github.com/hashicorp/terraform/terraform"
@@ -665,57 +662,6 @@ func TestGetSchemaTimeouts(t *testing.T) {
 	}
 }
 
-func TestNormalizeFlatmapContainers(t *testing.T) {
-	for i, tc := range []struct {
-		prior  map[string]string
-		attrs  map[string]string
-		expect map[string]string
-	}{
-		{
-			attrs:  map[string]string{"id": "1", "multi.2.set.#": "2", "multi.2.set.1.foo": "bar", "multi.1.set.#": "0", "single.#": "0"},
-			expect: map[string]string{"id": "1", "multi.2.set.#": "1", "multi.2.set.1.foo": "bar", "multi.1.set.#": "0", "single.#": "0"},
-		},
-		{
-			attrs:  map[string]string{"id": "78629a0f5f3f164f", "multi.#": "1"},
-			expect: map[string]string{"id": "78629a0f5f3f164f", "multi.#": "1"},
-		},
-		{
-			attrs:  map[string]string{"multi.529860700.set.#": "0", "multi.#": "1", "id": "78629a0f5f3f164f"},
-			expect: map[string]string{"multi.529860700.set.#": "0", "multi.#": "1", "id": "78629a0f5f3f164f"},
-		},
-		{
-			attrs:  map[string]string{"set.2.required": "bar", "set.2.list.#": "1", "set.2.list.0": "x", "set.1.list.#": "0", "set.#": "2"},
-			expect: map[string]string{"set.2.required": "bar", "set.2.list.#": "1", "set.2.list.0": "x", "set.1.list.#": "0", "set.#": "2"},
-		},
-		{
-			attrs:  map[string]string{"map.%": hcl2shim.UnknownVariableValue, "list.#": hcl2shim.UnknownVariableValue, "id": "1"},
-			expect: map[string]string{"id": "1", "map.%": hcl2shim.UnknownVariableValue, "list.#": hcl2shim.UnknownVariableValue},
-		},
-		{
-			prior:  map[string]string{"map.%": "0"},
-			attrs:  map[string]string{"map.%": "0", "list.#": "0", "id": "1"},
-			expect: map[string]string{"id": "1", "list.#": "0", "map.%": "0"},
-		},
-		{
-			prior:  map[string]string{"map.%": hcl2shim.UnknownVariableValue, "list.#": "0"},
-			attrs:  map[string]string{"map.%": "0", "list.#": "0", "id": "1"},
-			expect: map[string]string{"id": "1", "map.%": "0", "list.#": "0"},
-		},
-		{
-			prior:  map[string]string{"list.#": "1", "list.0": "old value"},
-			attrs:  map[string]string{"list.#": "0"},
-			expect: map[string]string{"list.#": "0"},
-		},
-	} {
-		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			got := normalizeFlatmapContainers(tc.prior, tc.attrs)
-			if !reflect.DeepEqual(tc.expect, got) {
-				t.Fatalf("expected:\n%#v\ngot:\n%#v\n", tc.expect, got)
-			}
-		})
-	}
-}
-
 func TestNormalizeNullValues(t *testing.T) {
 	for i, tc := range []struct {
 		Src, Dst, Expect cty.Value
@@ -742,6 +688,19 @@ func TestNormalizeNullValues(t *testing.T) {
 					}),
 				}),
 			}),
+		},
+		{
+			// A zero set value is kept
+			Src: cty.ObjectVal(map[string]cty.Value{
+				"set": cty.SetValEmpty(cty.String),
+			}),
+			Dst: cty.ObjectVal(map[string]cty.Value{
+				"set": cty.SetValEmpty(cty.String),
+			}),
+			Expect: cty.ObjectVal(map[string]cty.Value{
+				"set": cty.SetValEmpty(cty.String),
+			}),
+			Plan: true,
 		},
 		{
 			// The known set value is copied over the null set value
