@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/terraform/registry/regsrc"
 	"github.com/hashicorp/terraform/registry/response"
 	"github.com/hashicorp/terraform/svchost/disco"
+	"github.com/hashicorp/terraform/tfdiags"
 	tfversion "github.com/hashicorp/terraform/version"
 	"github.com/mitchellh/cli"
 )
@@ -54,7 +55,7 @@ func init() {
 // An Installer maintains a local cache of plugins by downloading plugins
 // from an online repository.
 type Installer interface {
-	Get(name string, req Constraints) (PluginMeta, error)
+	Get(name string, req Constraints) (PluginMeta, tfdiags.Diagnostics, error)
 	PurgeUnused(used map[string]PluginMeta) (removed PluginMetaSet, err error)
 }
 
@@ -111,7 +112,9 @@ type ProviderInstaller struct {
 // are produced under the assumption that if presented to the user they will
 // be presented alongside context about what is being installed, and thus the
 // error messages do not redundantly include such information.
-func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, error) {
+func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, tfdiags.Diagnostics, error) {
+	var diags tfdiags.Diagnostics
+
 	// a little bit of initialization.
 	if i.OS == "" {
 		i.OS = runtime.GOOS
@@ -129,19 +132,19 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 	// TODO: return multiple errors
 	if err != nil {
 		if registry.IsServiceNotProvided(err) {
-			return PluginMeta{}, err
+			return PluginMeta{}, diags, err
 		}
-		return PluginMeta{}, ErrorNoSuchProvider
+		return PluginMeta{}, diags, ErrorNoSuchProvider
 	}
 	if len(allVersions.Versions) == 0 {
-		return PluginMeta{}, ErrorNoSuitableVersion
+		return PluginMeta{}, diags, ErrorNoSuitableVersion
 	}
 	providerSource := allVersions.ID
 
 	// Filter the list of plugin versions to those which meet the version constraints
 	versions := allowedVersions(allVersions, req)
 	if len(versions) == 0 {
-		return PluginMeta{}, ErrorNoSuitableVersion
+		return PluginMeta{}, diags, ErrorNoSuitableVersion
 	}
 
 	// sort them newest to oldest. The newest version wins!
@@ -152,7 +155,7 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 	if err := i.checkPlatformCompatibility(versions[0]); err != nil {
 		versions = i.platformCompatibleVersions(versions)
 		if len(versions) == 0 {
-			return PluginMeta{}, ErrorNoVersionCompatibleWithPlatform
+			return PluginMeta{}, diags, ErrorNoVersionCompatibleWithPlatform
 		}
 	}
 
@@ -165,7 +168,7 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 		closestMatch, err := i.findClosestProtocolCompatibleVersion(allVersions.Versions)
 		if err != nil {
 			// No operation here if we can't find a version with compatible protocol
-			return PluginMeta{}, err
+			return PluginMeta{}, diags, err
 		}
 
 		// Prompt version suggestion to UI based on closest protocol match
@@ -182,7 +185,7 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 			constraintStr = "(any version)"
 		}
 
-		return PluginMeta{}, errwrap.Wrap(ErrorVersionIncompatible, fmt.Errorf(fmt.Sprintf(
+		return PluginMeta{}, diags, errwrap.Wrap(ErrorVersionIncompatible, fmt.Errorf(fmt.Sprintf(
 			errMsg, provider, v.String(), tfversion.String(),
 			closestVersion.String(), closestVersion.MinorUpgradeConstraintStr(), constraintStr)))
 	}
@@ -193,7 +196,7 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 	if !i.SkipVerify {
 		sha256, err := i.getProviderChecksum(downloadURLs)
 		if err != nil {
-			return PluginMeta{}, err
+			return PluginMeta{}, diags, err
 		}
 
 		// add the checksum parameter for go-getter to verify the download for us.
@@ -207,7 +210,7 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 	log.Printf("[DEBUG] getting provider %q version %q", printedProviderName, versionMeta.Version)
 	err = i.install(provider, v, providerURL)
 	if err != nil {
-		return PluginMeta{}, err
+		return PluginMeta{}, diags, err
 	}
 
 	// Find what we just installed
@@ -224,7 +227,7 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 		// This should never happen. Suggests that the release archive
 		// contains an executable file whose name doesn't match the
 		// expected convention.
-		return PluginMeta{}, fmt.Errorf(
+		return PluginMeta{}, diags, fmt.Errorf(
 			"failed to find installed plugin version %s; this is a bug in Terraform and should be reported",
 			versionMeta.Version,
 		)
@@ -235,7 +238,7 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 		// particular version was re-released with a different
 		// executable filename. We consider releases as immutable, so
 		// this is an error.
-		return PluginMeta{}, fmt.Errorf(
+		return PluginMeta{}, diags, fmt.Errorf(
 			"multiple plugins installed for version %s; this is a bug in Terraform and should be reported",
 			versionMeta.Version,
 		)
@@ -243,8 +246,7 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 
 	// By now we know we have exactly one meta, and so "Newest" will
 	// return that one.
-	return metas.Newest(), nil
-
+	return metas.Newest(), diags, nil
 }
 
 func (i *ProviderInstaller) install(provider string, version Version, url string) error {

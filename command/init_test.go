@@ -24,6 +24,7 @@ import (
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 func TestInit_empty(t *testing.T) {
@@ -964,8 +965,8 @@ func TestInit_getProviderHaveLegacyVersion(t *testing.T) {
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
 		},
-		providerInstaller: callbackPluginInstaller(func(provider string, req discovery.Constraints) (discovery.PluginMeta, error) {
-			return discovery.PluginMeta{}, fmt.Errorf("EXPECTED PROVIDER ERROR %s", provider)
+		providerInstaller: callbackPluginInstaller(func(provider string, req discovery.Constraints) (discovery.PluginMeta, tfdiags.Diagnostics, error) {
+			return discovery.PluginMeta{}, tfdiags.Diagnostics{}, fmt.Errorf("EXPECTED PROVIDER ERROR %s", provider)
 		}),
 	}
 
@@ -1174,9 +1175,9 @@ func TestInit_pluginDirProvidersDoesNotGet(t *testing.T) {
 
 	c := &InitCommand{
 		Meta: m,
-		providerInstaller: callbackPluginInstaller(func(provider string, req discovery.Constraints) (discovery.PluginMeta, error) {
+		providerInstaller: callbackPluginInstaller(func(provider string, req discovery.Constraints) (discovery.PluginMeta, tfdiags.Diagnostics, error) {
 			t.Fatalf("plugin installer should not have been called for %q", provider)
-			return discovery.PluginMeta{}, nil
+			return discovery.PluginMeta{}, tfdiags.Diagnostics{}, nil
 		}),
 	}
 
