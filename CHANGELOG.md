@@ -1,5 +1,13 @@
 ## 0.11.14 (Unreleased)
 
+IMPROVEMENTS:
+
+* backend/s3: Support DynamoDB, IAM, and STS endpoint configurations [GH-20659]
+* backend/s3: Support for AWS regions `eu-north-1` and `us-gov-east-1` [GH-20659]
+* backend/s3: Enhance retry logic and provide `max_retries` configuration for retry attempts [GH-20659]
+* backend/s3: Enhance S3 `NoSuchBucket` error to include additional information [GH-20659]
+* backend/s3: Remove unused EC2 platform and AWS Account ID lookup, and deprecate equivalent `skip_get_ec2_platforms` and `skip_requesting_account_id` arguments [GH-20659]
+
 ## 0.11.13 (March 11, 2019)
 
 BUG FIXES:
