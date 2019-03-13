@@ -32,42 +32,47 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
     <td><a href="https://github.com/AviatrixSystems/terraform-provider-aviatrix">Aviatrix</a></td>
     </tr>
     <tr>
+    <td><a href="https://github.com/mauromedda/terraform-provider-awx">AWX</a></td>
     <td><a href="https://github.com/agarciamiravet/terraform-provider-azuredevops">Azure Devops</a></td>
+    <td><a href= "https://gitlab.com/kiwicom/terraform-provider-cphalo">CloudPassage Halo</a></td>
+    </tr>
+    <tr>
     <td><a href="https://github.com/cloudamqp/terraform-provider">CloudAMQP</a></td>
     <td><a href="https://github.com/cloudkarafka/terraform-provider">CloudKarafka</a></td>
+    <td><a href="https://github.com/cloudmqtt/terraform-provider">CloudMQTT</a></td>
     </tr>
     <tr>
-    <td><a href="https://github.com/cloudmqtt/terraform-provider">CloudMQTT</a></td>
     <td><a href="https://github.com/stripe/terraform-provider-confidant">Confidant</a></td>
     <td><a href="https://github.com/Ashald/terraform-provider-consulacl">Consul ACL</a></td>
+    <td><a href="https://github.com/coreos/terraform-provider-ct">CoreOS Container Linux Configs</a></td>
     </tr>
     <tr>
-    <td><a href="https://github.com/coreos/terraform-provider-ct">CoreOS Container Linux Configs</a></td>
     <td><a href="https://github.com/nicolai86/terraform-provider-couchdb">CouchDB</a></td>
     <td><a href="https://github.com/orange-cloudfoundry/terraform-provider-credhub">Credhub</a></td>
+    <td><a href="https://github.com/betabandido/terraform-provider-databricks">Databricks</a></td>
     </tr>
     <tr>
-    <td><a href="https://github.com/betabandido/terraform-provider-databricks">Databricks</a></td>
     <td><a href="https://github.com/plukevdh/terraform-provider-dmsnitch">Dead Man's Snitch</a></td>
     <td><a href="https://github.com/rackn/terraform-provider-drp/">Digital Rebar</a></td>
+    <td><a href="https://github.com/gstruct/terraform-provider-dockermachine">Docker Machine</a></td>
     </tr>
     <tr>
-    <td><a href="https://github.com/gstruct/terraform-provider-dockermachine">Docker Machine</a></td>
     <td><a href="https://github.com/artisanofcode/terraform-provider-drone">Drone</a></td>
     <td><a href="https://github.com/callensm/terraform-provider-dropbox">Dropbox</a></td>
+    <td><a href="https://github.com/broamski/terraform-provider-duo">Duo Security</a></td>
     </tr>
     <tr>
-    <td><a href="https://github.com/broamski/terraform-provider-duo">Duo Security</a></td>
     <td><a href="https://github.com/alexissavin/terraform-provider-solidserver">EfficientIP</a></td>
     <td><a href="https://github.com/phillbaker/terraform-provider-elasticsearch">Elasticsearch</a></td>
+    <td><a href="https://github.com/elephantsql/terraform-provider">ElephantSQL</a></td>
     </tr>
     <tr>
-    <td><a href="https://github.com/elephantsql/terraform-provider">ElephantSQL</a></td>
     <td><a href="https://github.com/josenk/terraform-provider-esxi">ESXI</a></td>
     <td><a href="https://github.com/tiramiseb/terraform-provider-gandi">Gandi</a></td>
+    <td><a href="https://github.com/Mastercard/terraform-provider-restapi">Generic Rest API</a></td>
     </tr>
     <tr>
-    <td><a href="https://github.com/Mastercard/terraform-provider-restapi">Generic Rest API</a></td>
+    <td><a href="https://github.com/fourplusone/terraform-provider-git">Git</a></td>
     <td><a href="https://github.com/MikeSouza/terraform-provider-glue">Glue</a></td> 
     <td><a href="https://github.com/drewsonne/terraform-provider-gocd">GoCD</a></td>
     </tr>
