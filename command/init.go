@@ -494,7 +494,8 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 		}
 
 		for provider, reqd := range missing {
-			_, err := c.providerInstaller.Get(provider, reqd.Versions)
+			_, providerDiags, err := c.providerInstaller.Get(provider, reqd.Versions)
+			diags = diags.Append(providerDiags)
 
 			if err != nil {
 				constraint := reqd.Versions.String()
