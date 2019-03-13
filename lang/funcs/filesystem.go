@@ -40,7 +40,7 @@ func MakeFileFunc(baseDir string, encBase64 bool) function.Function {
 				return cty.StringVal(enc), nil
 			default:
 				if !utf8.Valid(src) {
-					return cty.UnknownVal(cty.String), fmt.Errorf("contents of %s are not valid UTF-8; to read arbitrary bytes, use the filebase64 function instead", path)
+					return cty.UnknownVal(cty.String), fmt.Errorf("contents of %s are not valid UTF-8; use the filebase64 function to obtain the Base64 encoded contents or the other file functions (e.g. filemd5, filesha256) to obtain file hashing results instead", path)
 				}
 				return cty.StringVal(string(src)), nil
 			}
