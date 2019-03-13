@@ -448,7 +448,7 @@ func (s *GRPCProviderServer) ReadResource(_ context.Context, req *proto.ReadReso
 		return resp, nil
 	}
 
-	newStateVal = normalizeNullValues(newStateVal, stateVal, false)
+	newStateVal = normalizeNullValues(newStateVal, stateVal, true)
 	newStateVal = copyTimeoutValues(newStateVal, stateVal)
 
 	newStateMP, err := msgpack.Marshal(newStateVal, block.ImpliedType())
@@ -1078,7 +1078,7 @@ func stripSchema(s *schema.Schema) *schema.Schema {
 // however it sees fit. This however means that a CustomizeDiffFunction may not
 // be able to change a null to an empty value or vice versa, but that should be
 // very uncommon nor was it reliable before 0.12 either.
-func normalizeNullValues(dst, src cty.Value, plan bool) cty.Value {
+func normalizeNullValues(dst, src cty.Value, preferDst bool) cty.Value {
 	ty := dst.Type()
 
 	if !src.IsNull() && !src.IsKnown() {
@@ -1121,20 +1121,20 @@ func normalizeNullValues(dst, src cty.Value, plan bool) cty.Value {
 
 			dstVal := dstMap[key]
 			if dstVal == cty.NilVal {
-				if plan && ty.IsMapType() {
+				if preferDst && ty.IsMapType() {
 					// let plan shape this map however it wants
 					continue
 				}
 				dstVal = cty.NullVal(v.Type())
 			}
-			dstMap[key] = normalizeNullValues(dstVal, v, plan)
+			dstMap[key] = normalizeNullValues(dstVal, v, preferDst)
 		}
 
 		// you can't call MapVal/ObjectVal with empty maps, but nothing was
 		// copied in anyway. If the dst is nil, and the src is known, assume the
 		// src is correct.
 		if len(dstMap) == 0 {
-			if dst.IsNull() && src.IsWhollyKnown() && !plan {
+			if dst.IsNull() && src.IsWhollyKnown() && !preferDst {
 				return src
 			}
 			return dst
@@ -1150,7 +1150,7 @@ func normalizeNullValues(dst, src cty.Value, plan bool) cty.Value {
 		// If the original was wholly known, then we expect that is what the
 		// provider applied. The apply process loses too much information to
 		// reliably re-create the set.
-		if src.IsWhollyKnown() && !plan {
+		if src.IsWhollyKnown() && !preferDst {
 			return src
 		}
 
@@ -1158,7 +1158,7 @@ func normalizeNullValues(dst, src cty.Value, plan bool) cty.Value {
 		// If the dst is nil, and the src is known, then we lost an empty value
 		// so take the original.
 		if dst.IsNull() {
-			if src.IsWhollyKnown() && src.LengthInt() == 0 && !plan {
+			if src.IsWhollyKnown() && src.LengthInt() == 0 && !preferDst {
 				return src
 			}
 			return dst
@@ -1172,7 +1172,7 @@ func normalizeNullValues(dst, src cty.Value, plan bool) cty.Value {
 			dsts := dst.AsValueSlice()
 
 			for i := 0; i < srcLen; i++ {
-				dsts[i] = normalizeNullValues(dsts[i], srcs[i], plan)
+				dsts[i] = normalizeNullValues(dsts[i], srcs[i], preferDst)
 			}
 
 			if ty.IsTupleType() {
@@ -1182,7 +1182,7 @@ func normalizeNullValues(dst, src cty.Value, plan bool) cty.Value {
 		}
 
 	case ty.IsPrimitiveType():
-		if dst.IsNull() && src.IsWhollyKnown() && !plan {
+		if dst.IsNull() && src.IsWhollyKnown() && !preferDst {
 			return src
 		}
 	}

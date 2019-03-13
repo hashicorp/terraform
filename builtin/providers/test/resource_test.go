@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -728,6 +729,63 @@ resource "test_resource" "foo" {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("test_resource.foo", "list.0", ""),
 				),
+			},
+		},
+	})
+}
+
+func TestResource_setDrift(t *testing.T) {
+	testProvider := testAccProviders["test"]
+	res := testProvider.(*schema.Provider).ResourcesMap["test_resource"]
+
+	// reset the Read function after the test
+	defer func() {
+		res.Read = testResourceRead
+	}()
+
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+  required     = "first"
+  required_map = {
+    a = "a"
+	}
+	set = ["a", "b"]
+}
+`),
+				Check: func(s *terraform.State) error {
+					return nil
+				},
+			},
+			resource.TestStep{
+				PreConfig: func() {
+					// update the Read function to return the wrong "set" attribute values.
+					res.Read = func(d *schema.ResourceData, meta interface{}) error {
+						// update as expected first
+						if err := testResourceRead(d, meta); err != nil {
+							return err
+						}
+						d.Set("set", []interface{}{"a", "x"})
+						return nil
+					}
+				},
+				// Leave the config, so we can detect the mismatched set values.
+				// Updating the config would force the test to pass even if the Read
+				// function values were ignored.
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+  required     = "second"
+  required_map = {
+    a = "a"
+	}
+	set = ["a", "b"]
+}
+`),
+				ExpectNonEmptyPlan: true,
 			},
 		},
 	})
