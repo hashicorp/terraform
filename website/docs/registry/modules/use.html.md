@@ -76,7 +76,7 @@ follow [semantic versioning](http://semver.org/). In addition to pure syntax,
 we encourage all modules to follow the full guidelines of semantic versioning.
 
 Terraform since version 0.11 will resolve any provided
-[module version constraints](/docs/modules/usage.html#module-versions) and
+[module version constraints](/docs/configuration/modules.html#module-versions) and
 using them is highly recommended to avoid pulling in breaking changes.
 
 Terraform versions after 0.10.6 but before 0.11 have partial support for the registry

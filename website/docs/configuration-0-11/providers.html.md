@@ -190,7 +190,7 @@ alias separated by a period, such as `"aws.west"` above.
 
 Provider configurations may also be passed from a parent module into a
 child module, as described in
-[_Providers within Modules_](/docs/modules/usage.html#providers-within-modules).
+[_Providers within Modules_](./modules.html#providers-within-modules).
 
 ## Interpolation
 

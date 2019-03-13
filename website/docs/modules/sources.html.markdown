@@ -120,7 +120,7 @@ access your Terraform Enterprise instance.
 
 Registry modules support versioning. You can provide a specific version as shown
 in the above examples, or use flexible
-[version constraints](/docs/modules/usage.html#module-versions).
+[version constraints](/docs/configuration/modules.html#module-versions).
 
 You can learn more about the registry at the
 [Terraform Registry documentation](/docs/registry/modules/use.html#using-modules).

@@ -54,7 +54,7 @@ When given a value, causes terraform commands to behave as if the `-module-depth
 export TF_MODULE_DEPTH=0
 ```
 
-For more information regarding modules, check out the section on [Using Modules](/docs/modules/usage.html).
+For more information regarding modules, see [Configuration Language: Modules](/docs/configuration/modules.html).
 
 ## TF_VAR_name
 
