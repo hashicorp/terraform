@@ -271,7 +271,7 @@ for use in references, as follows:
   as `aws_instance.example.device["foo"].size`.
 
   To obtain a map of values of a particular argument for _labelled_ nested
-  block types, use a [`for` expression](for-expressions):
+  block types, use a [`for` expression](#for-expressions):
   `[for k, device in aws_instance.example.device : k => device.size]`.
 
 When a particular resource has the special
