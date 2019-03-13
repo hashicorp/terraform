@@ -29,9 +29,16 @@ data "terraform_remote_state" "vpc" {
   }
 }
 
+# Terraform >= 0.12
 resource "aws_instance" "foo" {
   # ...
   subnet_id = "${data.terraform_remote_state.vpc.outputs.subnet_id}"
+}
+
+# Terraform <= 0.11
+resource "aws_instance" "foo" {
+  # ...
+  subnet_id = "${data.terraform_remote_state.vpc.subnet_id}"
 }
 ```
 
@@ -54,7 +61,9 @@ The following arguments are supported:
 
 In addition to the above, the following attributes are exported:
 
-* `outputs` - Each root-level [output](/docs/configuration/outputs.html)
+* (v0.12+) `outputs` - Each root-level [output](/docs/configuration/outputs.html)
+  in the remote state appears as a top level attribute on the data source.
+* (<= v0.11) `<OUTPUT NAME>` - Each root-level [output](/docs/configuration/outputs.html)
   in the remote state appears as a top level attribute on the data source.
 
 ## Root Outputs Only
