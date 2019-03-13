@@ -107,7 +107,7 @@ func TestModuleInstaller_error(t *testing.T) {
 	if !diags.HasErrors() {
 		t.Fatal("expected error")
 	} else {
-		assertDiagnosticSummary(t, diags, "Failed to locate local module source")
+		assertDiagnosticSummary(t, diags, "Module not found")
 	}
 }
 

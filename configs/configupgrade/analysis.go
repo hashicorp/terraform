@@ -25,6 +25,7 @@ type analysis struct {
 	ResourceProviderType map[addrs.Resource]string
 	ResourceHasCount     map[addrs.Resource]bool
 	VariableTypes        map[string]string
+	ModuleDir            string
 }
 
 // analyze processes the configuration files included inside the receiver

@@ -150,7 +150,7 @@ command and dealing with them before running this command again.
 		Providers:    c.providerResolver(),
 		Provisioners: c.provisionerFactories(),
 	}
-	newSources, upgradeDiags := upgrader.Upgrade(sources)
+	newSources, upgradeDiags := upgrader.Upgrade(sources, dir)
 	diags = diags.Append(upgradeDiags)
 	if upgradeDiags.HasErrors() {
 		c.showDiagnostics(diags)
