@@ -15,8 +15,16 @@ RUN apk add --update git bash openssh
 
 ENV TF_DEV=true
 ENV TF_RELEASE=1
+ENV GO111MODULE=on
 
 WORKDIR $GOPATH/src/github.com/hashicorp/terraform
+
+RUN go get -u github.com/kardianos/govendor
+RUN go get -u golang.org/x/tools/cmd/stringer
+RUN go get -u golang.org/x/tools/cmd/cover
+# To utilize Docker caching
+COPY go.mod go.mod
+RUN go mod vendor
 COPY . .
 RUN /bin/bash scripts/build.sh
 
