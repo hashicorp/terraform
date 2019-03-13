@@ -27,7 +27,7 @@ when the meaning is clear from context.
 
 ## Declaring a Local Value
 
-A set of related local values can be delared together in a single `locals`
+A set of related local values can be declared together in a single `locals`
 block:
 
 ```hcl
