@@ -143,7 +143,7 @@ Along with the `source` meta-argument described above, module blocks have
 some more meta-arguments that have special meaning across all modules,
 described in more detail in other sections:
 
-* `version` - (Optional) A [version constraint](/docs/modules/usage.html#module-versions)
+* `version` - (Optional) A [version constraint](#module-versions)
   string that specifies which versions of the referenced module are acceptable.
   The newest version matching the constraint will be used. `version` is supported
   only for modules retrieved from module registries.
@@ -151,7 +151,7 @@ described in more detail in other sections:
 * `providers` - (Optional) A map whose keys are provider configuration names
   that are expected by child module and whose values are corresponding
   provider names in the calling module. This allows
-  [provider configurations to be passed explicitly to child modules](/docs/modules/usage.html#providers-within-modules).
+  [provider configurations to be passed explicitly to child modules](#passing-providers-explicitly).
   If not specified, the child module inherits all of the default (un-aliased)
   provider configurations from the calling module.
 
