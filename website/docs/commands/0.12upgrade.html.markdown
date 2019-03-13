@@ -71,7 +71,7 @@ the change.
 Once upgraded the configuration will no longer be compatible with Terraform
 v0.11 and earlier. When upgrading a shared module that is called from multiple
 configurations, you may need to
-[fix existing configurations to a previous version](/docs/modules/usage.html#module-versions)
+[fix existing configurations to a previous version](/docs/configuration/modules.html#module-versions)
 to allow for a gradual upgrade. If the module is published via
 [a Terraform registry](/docs/registry/), assign a new _major_ version number
 to the upgraded module source to represent the fact that this is a breaking
