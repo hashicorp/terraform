@@ -52,7 +52,7 @@ github.com/apparentlymart/go-textseg/textseg
 github.com/armon/circbuf
 # github.com/armon/go-radix v0.0.0-20160115234725-4239b77079c7
 github.com/armon/go-radix
-# github.com/aws/aws-sdk-go v1.14.31
+# github.com/aws/aws-sdk-go v1.16.36
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/awserr
 github.com/aws/aws-sdk-go/service/dynamodb
@@ -63,10 +63,12 @@ github.com/aws/aws-sdk-go/internal/sdkio
 github.com/aws/aws-sdk-go/aws/awsutil
 github.com/aws/aws-sdk-go/aws/client
 github.com/aws/aws-sdk-go/aws/client/metadata
+github.com/aws/aws-sdk-go/aws/crr
 github.com/aws/aws-sdk-go/aws/request
 github.com/aws/aws-sdk-go/aws/signer/v4
 github.com/aws/aws-sdk-go/private/protocol
 github.com/aws/aws-sdk-go/private/protocol/jsonrpc
+github.com/aws/aws-sdk-go/internal/s3err
 github.com/aws/aws-sdk-go/private/protocol/eventstream
 github.com/aws/aws-sdk-go/private/protocol/eventstream/eventstreamapi
 github.com/aws/aws-sdk-go/private/protocol/rest
@@ -77,99 +79,20 @@ github.com/aws/aws-sdk-go/aws/credentials/stscreds
 github.com/aws/aws-sdk-go/aws/defaults
 github.com/aws/aws-sdk-go/aws/ec2metadata
 github.com/aws/aws-sdk-go/aws/session
-github.com/aws/aws-sdk-go/private/protocol/json/jsonutil
-github.com/aws/aws-sdk-go/service/acm
-github.com/aws/aws-sdk-go/service/acmpca
-github.com/aws/aws-sdk-go/service/apigateway
-github.com/aws/aws-sdk-go/service/applicationautoscaling
-github.com/aws/aws-sdk-go/service/appsync
-github.com/aws/aws-sdk-go/service/athena
-github.com/aws/aws-sdk-go/service/autoscaling
-github.com/aws/aws-sdk-go/service/batch
-github.com/aws/aws-sdk-go/service/budgets
-github.com/aws/aws-sdk-go/service/cloud9
-github.com/aws/aws-sdk-go/service/cloudformation
-github.com/aws/aws-sdk-go/service/cloudfront
-github.com/aws/aws-sdk-go/service/cloudtrail
-github.com/aws/aws-sdk-go/service/cloudwatch
-github.com/aws/aws-sdk-go/service/cloudwatchevents
-github.com/aws/aws-sdk-go/service/cloudwatchlogs
-github.com/aws/aws-sdk-go/service/codebuild
-github.com/aws/aws-sdk-go/service/codecommit
-github.com/aws/aws-sdk-go/service/codedeploy
-github.com/aws/aws-sdk-go/service/codepipeline
-github.com/aws/aws-sdk-go/service/cognitoidentity
-github.com/aws/aws-sdk-go/service/cognitoidentityprovider
-github.com/aws/aws-sdk-go/service/configservice
-github.com/aws/aws-sdk-go/service/databasemigrationservice
-github.com/aws/aws-sdk-go/service/dax
-github.com/aws/aws-sdk-go/service/devicefarm
-github.com/aws/aws-sdk-go/service/directconnect
-github.com/aws/aws-sdk-go/service/directoryservice
-github.com/aws/aws-sdk-go/service/ec2
-github.com/aws/aws-sdk-go/service/ecr
-github.com/aws/aws-sdk-go/service/ecs
-github.com/aws/aws-sdk-go/service/efs
-github.com/aws/aws-sdk-go/service/eks
-github.com/aws/aws-sdk-go/service/elasticache
-github.com/aws/aws-sdk-go/service/elasticbeanstalk
-github.com/aws/aws-sdk-go/service/elasticsearchservice
-github.com/aws/aws-sdk-go/service/elastictranscoder
-github.com/aws/aws-sdk-go/service/elb
-github.com/aws/aws-sdk-go/service/elbv2
-github.com/aws/aws-sdk-go/service/emr
-github.com/aws/aws-sdk-go/service/firehose
-github.com/aws/aws-sdk-go/service/fms
-github.com/aws/aws-sdk-go/service/gamelift
-github.com/aws/aws-sdk-go/service/glacier
-github.com/aws/aws-sdk-go/service/glue
-github.com/aws/aws-sdk-go/service/guardduty
 github.com/aws/aws-sdk-go/service/iam
-github.com/aws/aws-sdk-go/service/inspector
-github.com/aws/aws-sdk-go/service/iot
-github.com/aws/aws-sdk-go/service/kinesis
-github.com/aws/aws-sdk-go/service/kms
-github.com/aws/aws-sdk-go/service/lambda
-github.com/aws/aws-sdk-go/service/lexmodelbuildingservice
-github.com/aws/aws-sdk-go/service/lightsail
-github.com/aws/aws-sdk-go/service/macie
-github.com/aws/aws-sdk-go/service/mediastore
-github.com/aws/aws-sdk-go/service/mq
-github.com/aws/aws-sdk-go/service/neptune
-github.com/aws/aws-sdk-go/service/opsworks
-github.com/aws/aws-sdk-go/service/organizations
-github.com/aws/aws-sdk-go/service/pricing
-github.com/aws/aws-sdk-go/service/rds
-github.com/aws/aws-sdk-go/service/redshift
-github.com/aws/aws-sdk-go/service/route53
-github.com/aws/aws-sdk-go/service/secretsmanager
-github.com/aws/aws-sdk-go/service/servicecatalog
-github.com/aws/aws-sdk-go/service/servicediscovery
-github.com/aws/aws-sdk-go/service/ses
-github.com/aws/aws-sdk-go/service/sfn
-github.com/aws/aws-sdk-go/service/simpledb
-github.com/aws/aws-sdk-go/service/sns
-github.com/aws/aws-sdk-go/service/sqs
-github.com/aws/aws-sdk-go/service/ssm
-github.com/aws/aws-sdk-go/service/storagegateway
 github.com/aws/aws-sdk-go/service/sts
-github.com/aws/aws-sdk-go/service/swf
-github.com/aws/aws-sdk-go/service/waf
-github.com/aws/aws-sdk-go/service/wafregional
+github.com/aws/aws-sdk-go/internal/ini
 github.com/aws/aws-sdk-go/internal/shareddefaults
 github.com/aws/aws-sdk-go/internal/sdkrand
+github.com/aws/aws-sdk-go/private/protocol/json/jsonutil
 github.com/aws/aws-sdk-go/private/protocol/query
 github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil
 github.com/aws/aws-sdk-go/internal/sdkuri
 github.com/aws/aws-sdk-go/aws/corehandlers
 github.com/aws/aws-sdk-go/aws/credentials/endpointcreds
+github.com/aws/aws-sdk-go/aws/credentials/processcreds
 github.com/aws/aws-sdk-go/aws/csm
-github.com/aws/aws-sdk-go/private/protocol/restjson
-github.com/aws/aws-sdk-go/private/protocol/ec2query
-github.com/aws/aws-sdk-go/private/signer/v2
 github.com/aws/aws-sdk-go/private/protocol/query/queryutil
-# github.com/beevik/etree v0.0.0-20171015221209-af219c0c7ea1
-github.com/beevik/etree
 # github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d
 github.com/bgentry/go-netrc/netrc
 # github.com/bgentry/speakeasy v0.0.0-20161015143505-675b82c74c0e
@@ -202,8 +125,6 @@ github.com/dgrijalva/jwt-go
 github.com/dylanmei/iso8601
 # github.com/dylanmei/winrmtest v0.0.0-20170819153634-c2fbb09e6c08
 github.com/dylanmei/winrmtest
-# github.com/go-ini/ini v1.25.4
-github.com/go-ini/ini
 # github.com/go-test/deep v1.0.1
 github.com/go-test/deep
 # github.com/golang/protobuf v1.2.0
@@ -311,12 +232,14 @@ github.com/gophercloud/utils/openstack/clientconfig
 # github.com/hashicorp/atlas-go v0.0.0-20161107204910-1792bd8de119
 github.com/hashicorp/atlas-go/archive
 github.com/hashicorp/atlas-go/v1
+# github.com/hashicorp/aws-sdk-go-base v0.3.0
+github.com/hashicorp/aws-sdk-go-base
 # github.com/hashicorp/consul v0.0.0-20171026175957-610f3c86a089
 github.com/hashicorp/consul/api
 github.com/hashicorp/consul/testutil
 github.com/hashicorp/consul/lib/freeport
 github.com/hashicorp/consul/testutil/retry
-# github.com/hashicorp/errwrap v0.0.0-20141028054710-7554cd9344ce
+# github.com/hashicorp/errwrap v1.0.0
 github.com/hashicorp/errwrap
 # github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de
 github.com/hashicorp/go-checkpoint
@@ -327,7 +250,7 @@ github.com/hashicorp/go-getter
 github.com/hashicorp/go-getter/helper/url
 # github.com/hashicorp/go-hclog v0.0.0-20170716174523-b4e5765d1e5f
 github.com/hashicorp/go-hclog
-# github.com/hashicorp/go-multierror v0.0.0-20150916205742-d30f09973e19
+# github.com/hashicorp/go-multierror v1.0.0
 github.com/hashicorp/go-multierror
 # github.com/hashicorp/go-plugin v0.0.0-20180125190438-e53f54cbf51e
 github.com/hashicorp/go-plugin
@@ -381,9 +304,7 @@ github.com/hashicorp/vault/helper/jsonutil
 github.com/hashicorp/vault/helper/compressutil
 # github.com/hashicorp/yamux v0.0.0-20160720233140-d1caa6c97c9f
 github.com/hashicorp/yamux
-# github.com/jen20/awspolicyequivalence v0.0.0-20170831201602-3d48364a137a
-github.com/jen20/awspolicyequivalence
-# github.com/jmespath/go-jmespath v0.0.0-20160803190731-bd40a432e4c7
+# github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af
 github.com/jmespath/go-jmespath
 # github.com/joyent/triton-go v0.0.0-20180313100802-d8f9c0314926
 github.com/joyent/triton-go
@@ -467,8 +388,6 @@ github.com/spf13/afero
 github.com/spf13/afero/mem
 # github.com/svanharmelen/jsonapi v0.0.0-20180618144545-0c0828c3f16d
 github.com/svanharmelen/jsonapi
-# github.com/terraform-providers/terraform-provider-aws v1.29.0
-github.com/terraform-providers/terraform-provider-aws/aws
 # github.com/terraform-providers/terraform-provider-openstack v1.15.0
 github.com/terraform-providers/terraform-provider-openstack/openstack
 # github.com/ugorji/go v0.0.0-20170107133203-ded73eae5db7
@@ -509,7 +428,7 @@ golang.org/x/crypto/ed25519/internal/edwards25519
 golang.org/x/crypto/md4
 golang.org/x/crypto/cast5
 golang.org/x/crypto/openpgp/elgamal
-# golang.org/x/net v0.0.0-20171004034648-a04bdaca5b32
+# golang.org/x/net v0.0.0-20190213061140-3a22650c66bd
 golang.org/x/net/context
 golang.org/x/net/html
 golang.org/x/net/idna
@@ -518,8 +437,8 @@ golang.org/x/net/context/ctxhttp
 golang.org/x/net/http2
 golang.org/x/net/trace
 golang.org/x/net/html/charset
+golang.org/x/net/http/httpguts
 golang.org/x/net/http2/hpack
-golang.org/x/net/lex/httplex
 golang.org/x/net/internal/timeseries
 # golang.org/x/oauth2 v0.0.0-20170928010508-bb50c06baba3
 golang.org/x/oauth2/jwt
@@ -529,7 +448,7 @@ golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 # golang.org/x/sys v0.0.0-20181026203630-95b1ffbd15a5
 golang.org/x/sys/unix
-# golang.org/x/text v0.0.0-20171013141220-c01e4764d870
+# golang.org/x/text v0.3.0
 golang.org/x/text/unicode/norm
 golang.org/x/text/transform
 golang.org/x/text/secure/bidirule

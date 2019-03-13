@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/s3"
+	awsbase "github.com/hashicorp/aws-sdk-go-base"
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/helper/schema"
-
-	terraformAWS "github.com/terraform-providers/terraform-provider-aws/aws"
+	"github.com/hashicorp/terraform/version"
 )
 
 // New creates a new backend for S3 remote state.
@@ -44,11 +46,32 @@ func New() backend.Backend {
 				DefaultFunc: schema.EnvDefaultFunc("AWS_DEFAULT_REGION", nil),
 			},
 
+			"dynamodb_endpoint": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A custom endpoint for the DynamoDB API",
+				DefaultFunc: schema.EnvDefaultFunc("AWS_DYNAMODB_ENDPOINT", ""),
+			},
+
 			"endpoint": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "A custom endpoint for the S3 API",
 				DefaultFunc: schema.EnvDefaultFunc("AWS_S3_ENDPOINT", ""),
+			},
+
+			"iam_endpoint": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A custom endpoint for the IAM API",
+				DefaultFunc: schema.EnvDefaultFunc("AWS_IAM_ENDPOINT", ""),
+			},
+
+			"sts_endpoint": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A custom endpoint for the STS API",
+				DefaultFunc: schema.EnvDefaultFunc("AWS_STS_ENDPOINT", ""),
 			},
 
 			"encrypt": {
@@ -134,6 +157,7 @@ func New() backend.Backend {
 				Optional:    true,
 				Description: "Skip getting the supported EC2 platforms.",
 				Default:     false,
+				Deprecated:  "The S3 Backend does not require EC2 functionality and this attribute is no longer used.",
 			},
 
 			"skip_region_validation": {
@@ -148,6 +172,7 @@ func New() backend.Backend {
 				Optional:    true,
 				Description: "Skip requesting the account ID.",
 				Default:     false,
+				Deprecated:  "The S3 Backend no longer automatically looks up the AWS Account ID and this attribute is no longer used.",
 			},
 
 			"skip_metadata_api_check": {
@@ -198,6 +223,13 @@ func New() backend.Backend {
 				Description: "Force s3 to use path style api.",
 				Default:     false,
 			},
+
+			"max_retries": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "The maximum number of times an AWS API request is retried on retryable failure.",
+				Default:     5,
+			},
 		},
 	}
 
@@ -230,6 +262,12 @@ func (b *Backend) configure(ctx context.Context) error {
 	// Grab the resource data
 	data := schema.FromContextBackendConfig(ctx)
 
+	if !data.Get("skip_region_validation").(bool) {
+		if err := awsbase.ValidateRegion(data.Get("region").(string)); err != nil {
+			return err
+		}
+	}
+
 	b.bucketName = data.Get("bucket").(string)
 	b.keyName = data.Get("key").(string)
 	b.serverSideEncryption = data.Get("encrypt").(bool)
@@ -243,33 +281,42 @@ func (b *Backend) configure(ctx context.Context) error {
 		b.ddbTable = data.Get("lock_table").(string)
 	}
 
-	cfg := &terraformAWS.Config{
-		AccessKey:               data.Get("access_key").(string),
-		AssumeRoleARN:           data.Get("role_arn").(string),
-		AssumeRoleExternalID:    data.Get("external_id").(string),
-		AssumeRolePolicy:        data.Get("assume_role_policy").(string),
-		AssumeRoleSessionName:   data.Get("session_name").(string),
-		CredsFilename:           data.Get("shared_credentials_file").(string),
-		Profile:                 data.Get("profile").(string),
-		Region:                  data.Get("region").(string),
-		S3Endpoint:              data.Get("endpoint").(string),
-		SecretKey:               data.Get("secret_key").(string),
-		Token:                   data.Get("token").(string),
-		SkipCredsValidation:     data.Get("skip_credentials_validation").(bool),
-		SkipGetEC2Platforms:     data.Get("skip_get_ec2_platforms").(bool),
-		SkipRegionValidation:    data.Get("skip_region_validation").(bool),
-		SkipRequestingAccountId: data.Get("skip_requesting_account_id").(bool),
-		SkipMetadataApiCheck:    data.Get("skip_metadata_api_check").(bool),
-		S3ForcePathStyle:        data.Get("force_path_style").(bool),
+	cfg := &awsbase.Config{
+		AccessKey:             data.Get("access_key").(string),
+		AssumeRoleARN:         data.Get("role_arn").(string),
+		AssumeRoleExternalID:  data.Get("external_id").(string),
+		AssumeRolePolicy:      data.Get("assume_role_policy").(string),
+		AssumeRoleSessionName: data.Get("session_name").(string),
+		CredsFilename:         data.Get("shared_credentials_file").(string),
+		DebugLogging:          logging.IsDebugOrHigher(),
+		IamEndpoint:           data.Get("iam_endpoint").(string),
+		MaxRetries:            data.Get("max_retries").(int),
+		Profile:               data.Get("profile").(string),
+		Region:                data.Get("region").(string),
+		SecretKey:             data.Get("secret_key").(string),
+		SkipCredsValidation:   data.Get("skip_credentials_validation").(bool),
+		SkipMetadataApiCheck:  data.Get("skip_metadata_api_check").(bool),
+		StsEndpoint:           data.Get("sts_endpoint").(string),
+		Token:                 data.Get("token").(string),
+		UserAgentProducts: []*awsbase.UserAgentProduct{
+			{Name: "APN", Version: "1.0"},
+			{Name: "HashiCorp", Version: "1.0"},
+			{Name: "Terraform", Version: version.String()},
+		},
 	}
 
-	client, err := cfg.Client()
+	sess, err := awsbase.GetSession(cfg)
 	if err != nil {
 		return err
 	}
 
-	b.s3Client = client.(*terraformAWS.AWSClient).S3()
-	b.dynClient = client.(*terraformAWS.AWSClient).DynamoDB()
+	b.dynClient = dynamodb.New(sess.Copy(&aws.Config{
+		Endpoint: aws.String(data.Get("dynamodb_endpoint").(string)),
+	}))
+	b.s3Client = s3.New(sess.Copy(&aws.Config{
+		Endpoint:         aws.String(data.Get("endpoint").(string)),
+		S3ForcePathStyle: aws.Bool(data.Get("force_path_style").(bool)),
+	}))
 
 	return nil
 }
