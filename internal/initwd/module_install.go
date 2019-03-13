@@ -481,9 +481,9 @@ func (i *ModuleInstaller) installGoGetterModule(req *earlyconfig.ModuleRequest, 
 				"Module not found",
 				fmt.Sprintf(
 					"The module address %q could not be resolved.\n\n"+
-						"If you intended this as a path relative to the current module, use\n"+
-						"\"./%s\" instead. The \"./\" prefix indicates that the\n"+
-						"address is a relative filesystem path.",
+						"If you intended this as a path relative to the current "+
+						"module, use \"./%s\" instead. The \"./\" prefix "+
+						"indicates that the address is a relative filesystem path.",
 					req.SourceAddr, req.SourceAddr,
 				),
 			))
