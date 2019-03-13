@@ -199,22 +199,6 @@ func (i *ModuleInstaller) installDescendentModules(rootMod *tfconfig.Module, roo
 				diags = append(diags, mDiags...)
 				return mod, v, diags
 
-			case isMaybeRelativeLocalPath(req.SourceAddr, instPath):
-				log.Printf(
-					"[TRACE] ModuleInstaller: %s looks like a local path but is missing ./ or ../",
-					req.SourceAddr,
-				)
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Failed to locate local module source",
-					fmt.Sprintf(
-						"%s looks like a relative path, but Terraform cannot determine the module source. "+
-							"Add ./ at the start of the source string if this is a relative path.",
-						req.SourceAddr,
-					),
-				))
-				return nil, nil, diags
-
 			default:
 				log.Printf("[TRACE] ModuleInstaller: %s address %q will be handled by go-getter", key, req.SourceAddr)
 
@@ -487,17 +471,36 @@ func (i *ModuleInstaller) installGoGetterModule(req *earlyconfig.ModuleRequest, 
 
 	modDir, err := getter.getWithGoGetter(instPath, req.SourceAddr)
 	if err != nil {
-		// Errors returned by go-getter have very inconsistent quality as
-		// end-user error messages, but for now we're accepting that because
-		// we have no way to recognize any specific errors to improve them
-		// and masking the error entirely would hide valuable diagnostic
-		// information from the user.
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Failed to download module",
-			fmt.Sprintf("Error attempting to download module %q (%s:%d) source code from %q: %s", req.Name, req.CallPos.Filename, req.CallPos.Line, packageAddr, err),
-		))
+		if err, ok := err.(*MaybeRelativePathErr); ok {
+			log.Printf(
+				"[TRACE] ModuleInstaller: %s looks like a local path but is missing ./ or ../",
+				req.SourceAddr,
+			)
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Module not found",
+				fmt.Sprintf(
+					"The module address %q could not be resolved.\n\n"+
+						"If you intended this as a path relative to the current "+
+						"module, use \"./%s\" instead. The \"./\" prefix "+
+						"indicates that the address is a relative filesystem path.",
+					req.SourceAddr, req.SourceAddr,
+				),
+			))
+		} else {
+			// Errors returned by go-getter have very inconsistent quality as
+			// end-user error messages, but for now we're accepting that because
+			// we have no way to recognize any specific errors to improve them
+			// and masking the error entirely would hide valuable diagnostic
+			// information from the user.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to download module",
+				fmt.Sprintf("Error attempting to download module %q (%s:%d) source code from %q: %s", req.Name, req.CallPos.Filename, req.CallPos.Line, packageAddr, err),
+			))
+		}
 		return nil, diags
+
 	}
 
 	log.Printf("[TRACE] ModuleInstaller: %s %q was downloaded to %s", key, req.SourceAddr, modDir)

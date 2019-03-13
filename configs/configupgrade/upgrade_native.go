@@ -209,7 +209,7 @@ func (u *Upgrader) upgradeNativeSyntaxFile(filename string, src []byte, an *anal
 			// start with the straightforward mapping of those and override
 			// the special lifecycle arguments below.
 			rules := justAttributesBodyRules(filename, body, an)
-			rules["source"] = noInterpAttributeRule(filename, cty.String, an)
+			rules["source"] = moduleSourceRule(filename, an)
 			rules["version"] = noInterpAttributeRule(filename, cty.String, an)
 			rules["providers"] = func(buf *bytes.Buffer, blockAddr string, item *hcl1ast.ObjectItem) tfdiags.Diagnostics {
 				var diags tfdiags.Diagnostics

@@ -53,7 +53,7 @@ func TestUpgradeValid(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			gotSrc, diags := u.Upgrade(inputSrc)
+			gotSrc, diags := u.Upgrade(inputSrc, inputDir)
 			if diags.HasErrors() {
 				t.Error(diags.Err())
 			}
@@ -101,7 +101,7 @@ func TestUpgradeRenameJSON(t *testing.T) {
 	u := &Upgrader{
 		Providers: providers.ResolverFixed(testProviders),
 	}
-	gotSrc, diags := u.Upgrade(inputSrc)
+	gotSrc, diags := u.Upgrade(inputSrc, inputDir)
 	if diags.HasErrors() {
 		t.Error(diags.Err())
 	}

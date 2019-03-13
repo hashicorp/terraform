@@ -89,6 +89,10 @@ func (g reusingGetter) getWithGoGetter(instPath, addr string) (string, error) {
 		return "", err
 	}
 
+	if isMaybeRelativeLocalPath(realAddr) {
+		return "", &MaybeRelativePathErr{addr}
+	}
+
 	var realSubDir string
 	realAddr, realSubDir = splitAddrSubdir(realAddr)
 	if realSubDir != "" {
@@ -187,17 +191,19 @@ func isRegistrySourceAddr(addr string) bool {
 	return err == nil
 }
 
-func isMaybeRelativeLocalPath(addr, path string) bool {
-	realAddr, err := getter.Detect(addr, path, getter.Detectors)
-	// this error will be handled by the next function
-	if err != nil {
-		return false
-	} else {
-		if strings.HasPrefix(realAddr, "file://") {
-			_, err := os.Stat(realAddr[7:])
-			if err != nil {
-				return true
-			}
+type MaybeRelativePathErr struct {
+	Addr string
+}
+
+func (e *MaybeRelativePathErr) Error() string {
+	return fmt.Sprintf("Terraform cannot determine the module source for %s", e.Addr)
+}
+
+func isMaybeRelativeLocalPath(addr string) bool {
+	if strings.HasPrefix(addr, "file://") {
+		_, err := os.Stat(addr[7:])
+		if err != nil {
+			return true
 		}
 	}
 	return false
