@@ -478,11 +478,13 @@ func (i *ModuleInstaller) installGoGetterModule(req *earlyconfig.ModuleRequest, 
 			)
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
-				"Failed to locate local module source",
+				"Module not found",
 				fmt.Sprintf(
-					"%s looks like a relative path, but Terraform cannot determine the module source. "+
-						"Add ./ at the start of the source string if this is a relative path.",
-					req.SourceAddr,
+					"The module address %q could not be resolved.\n\n"+
+						"If you intended this as a path relative to the current module, use\n"+
+						"\"./%s\" instead. The \"./\" prefix indicates that the\n"+
+						"address is a relative filesystem path.",
+					req.SourceAddr, req.SourceAddr,
 				),
 			))
 		} else {

@@ -697,7 +697,7 @@ func moduleSourceRule(filename string, an *analysis) bodyItemRule {
 					"# reference a relative module source without a preceding ./, but it is no\n" +
 					"# longer supported in Terraform v0.12.\n" +
 					"#\n" +
-					"# If the below module source is indeed a relative local path, add./ to the\n" +
+					"# If the below module source is indeed a relative local path, add ./ to the\n" +
 					"# start of the source string. If that is not the case, then leave it as-is\n" +
 					"# and remove this TODO comment.\n",
 			)
