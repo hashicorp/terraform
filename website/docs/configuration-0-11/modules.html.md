@@ -61,7 +61,7 @@ All modules require a `source` argument, which is a meta-argument defined by
 Terraform CLI. Its value is either the path to a local directory of the
 module's configuration files, or a remote module source that Terraform should
 download and use. This value must be a literal string with no template
-sequences; arbitrary expressions are not allowed. For more information on
+sequences; interpolations are not allowed. For more information on
 possible values for this argument, see [Module Sources](/docs/modules/sources.html).
 
 The same source address can be specified in multiple `module` blocks to create
@@ -93,7 +93,7 @@ resource "aws_elb" "example" {
 ```
 
 For more information about referring to named values, see
-[Expressions](./expressions.html).
+[Interpolation](./interpolation.html).
 
 ## Module Versions
 
