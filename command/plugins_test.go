@@ -197,7 +197,7 @@ func (i *mockProviderInstaller) PurgeUnused(map[string]discovery.PluginMeta) (di
 	return ret, nil
 }
 
-type callbackPluginInstaller func(provider string, req discovery.Constraints) (discovery.PluginMeta, error)
+type callbackPluginInstaller func(provider string, req discovery.Constraints) (discovery.PluginMeta, tfdiags.Diagnostics, error)
 
 func (cb callbackPluginInstaller) Get(provider string, req discovery.Constraints) (discovery.PluginMeta, tfdiags.Diagnostics, error) {
 	return cb(provider, req)

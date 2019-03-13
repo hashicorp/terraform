@@ -136,6 +136,17 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, t
 		}
 		return PluginMeta{}, diags, ErrorNoSuchProvider
 	}
+
+	// Add any warnings from the response to diags
+	for _, warning := range allVersions.Warnings {
+		hostname, err := i.hostname()
+		if err != nil {
+			return PluginMeta{}, diags, err
+		}
+		diag := tfdiags.SimpleWarning(fmt.Sprintf("%s: %s", hostname, warning))
+		diags = diags.Append(diag)
+	}
+
 	if len(allVersions.Versions) == 0 {
 		return PluginMeta{}, diags, ErrorNoSuitableVersion
 	}
@@ -421,6 +432,16 @@ func (i *ProviderInstaller) getProviderChecksum(urls *response.TerraformProvider
 
 	// Extract checksum for this os/arch platform binary.
 	return checksumForFile(shasums, urls.Filename), nil
+}
+
+func (i *ProviderInstaller) hostname() (string, error) {
+	provider := regsrc.NewTerraformProvider("", i.OS, i.Arch)
+	svchost, err := provider.SvcHost()
+	if err != nil {
+		return "", err
+	}
+
+	return svchost.ForDisplay(), nil
 }
 
 // list all versions available for the named provider
