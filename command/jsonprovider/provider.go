@@ -14,7 +14,7 @@ const FormatVersion = "0.1"
 // providers is the top-level object returned when exporting provider schemas
 type providers struct {
 	FormatVersion string               `json:"format_version"`
-	Schemas       map[string]*Provider `json:"provider_schemas"`
+	Schemas       map[string]*Provider `json:"provider_schemas,omitempty"`
 }
 
 type Provider struct {
