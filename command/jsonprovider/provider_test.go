@@ -14,15 +14,15 @@ import (
 func TestMarshalProvider(t *testing.T) {
 	tests := []struct {
 		Input *terraform.ProviderSchema
-		Want  Provider
+		Want  *Provider
 	}{
 		{
 			nil,
-			Provider{},
+			&Provider{},
 		},
 		{
 			testProvider(),
-			Provider{
+			&Provider{
 				Provider: &schema{
 					Block: &block{
 						Attributes: map[string]*attribute{

@@ -140,14 +140,6 @@ func (c *ShowCommand) Run(args []string) int {
 		}
 	}
 
-	// This is an odd-looking check, because it's ok if we have a plan and an
-	// empty state, and we've already validated that any command-line arguments
-	// have been read successfully
-	if plan == nil && stateFile == nil {
-		c.Ui.Output("No state.")
-		return 0
-	}
-
 	if plan != nil {
 		if jsonOutput == true {
 			config := ctx.Config()
@@ -188,6 +180,8 @@ func (c *ShowCommand) Run(args []string) int {
 	}
 
 	if jsonOutput == true {
+		// At this point, it is possible that there is neither state nor a plan.
+		// That's ok, we'll just return an empty object.
 		jsonState, err := jsonstate.Marshal(stateFile, schemas)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Failed to marshal state to json: %s", err))
@@ -195,6 +189,10 @@ func (c *ShowCommand) Run(args []string) int {
 		}
 		c.Ui.Output(string(jsonState))
 	} else {
+		if stateFile == nil {
+			c.Ui.Output("No state.")
+			return 0
+		}
 		c.Ui.Output(format.State(&format.StateOpts{
 			State:   stateFile.State,
 			Color:   c.Colorize(),
