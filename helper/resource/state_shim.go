@@ -4,13 +4,11 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/helper/schema"
-
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // shimState takes a new *states.State and reverts it to a legacy state for the provider ACC tests
@@ -154,6 +152,7 @@ func shimmedAttributes(instance *states.ResourceInstanceObjectSrc, res *schema.R
 	}
 
 	instanceState, err := res.ShimInstanceStateFromValue(rio.Value)
+	// instanceState has already had the AsSingle fixup applied because ShimInstanceStateFromValue calls FixupAsSingleInstanceStateIn.
 	if err != nil {
 		return nil, err
 	}
