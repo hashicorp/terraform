@@ -29,6 +29,9 @@ Restart=on-failure
 {{ if .BuilderAuthToken -}}
 Environment="HAB_AUTH_TOKEN={{ .BuilderAuthToken }}"
 {{ end -}}
+{{ if .CtlSecret -}}
+Environment="HAB_CTL_SECRET={{ .CtlSecret }}"
+{{ end -}}
 
 [Install]
 WantedBy=default.target
@@ -46,6 +49,7 @@ type provisioner struct {
 	PermanentPeer    bool
 	ListenGossip     string
 	ListenHTTP       string
+	ListenCTL        string
 	Peer             string
 	RingKey          string
 	RingKeyContent   string
@@ -59,6 +63,7 @@ type provisioner struct {
 	OverrideName     string
 	Organization     string
 	BuilderAuthToken string
+	CtlSecret        string
 	SupOptions       string
 }
 
@@ -101,6 +106,10 @@ func Provisioner() terraform.ResourceProvisioner {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"listen_ctl": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"ring_key": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -130,6 +139,10 @@ func Provisioner() terraform.ResourceProvisioner {
 				Optional: true,
 			},
 			"builder_auth_token": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"ctl_secret": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 			},
@@ -293,21 +306,24 @@ func validateFn(c *terraform.ResourceConfig) (ws []string, es []error) {
 	// Validate service level configs
 	services, ok := c.Get("service")
 	if ok {
-		for _, service := range services.([]map[string]interface{}) {
-			strategy, ok := service["strategy"].(string)
-			if ok && !updateStrategies[strategy] {
-				es = append(es, errors.New(strategy+" is not a valid update strategy."))
-			}
-
-			topology, ok := service["topology"].(string)
-			if ok && !topologies[topology] {
-				es = append(es, errors.New(topology+" is not a valid topology"))
-			}
-
-			builderURL, ok := service["url"].(string)
+		for _, s := range services.([]interface{}) {
+			service, ok := s.(map[string]interface{})
 			if ok {
-				if _, err := url.ParseRequestURI(builderURL); err != nil {
-					es = append(es, errors.New(builderURL+" is not a valid URL."))
+				strategy, ok := service["strategy"].(string)
+				if ok && !updateStrategies[strategy] {
+					es = append(es, errors.New(strategy+" is not a valid update strategy."))
+				}
+
+				topology, ok := service["topology"].(string)
+				if ok && !topologies[topology] {
+					es = append(es, errors.New(topology+" is not a valid topology"))
+				}
+
+				builderURL, ok := service["url"].(string)
+				if ok {
+					if _, err := url.ParseRequestURI(builderURL); err != nil {
+						es = append(es, errors.New(builderURL+" is not a valid URL."))
+					}
 				}
 			}
 		}
@@ -358,12 +374,14 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 		PermanentPeer:    d.Get("permanent_peer").(bool),
 		ListenGossip:     d.Get("listen_gossip").(string),
 		ListenHTTP:       d.Get("listen_http").(string),
+		ListenCTL:        d.Get("listen_ctl").(string),
 		URL:              d.Get("url").(string),
 		Channel:          d.Get("channel").(string),
 		Events:           d.Get("events").(string),
 		OverrideName:     d.Get("override_name").(string),
 		Organization:     d.Get("organization").(string),
 		BuilderAuthToken: d.Get("builder_auth_token").(string),
+		CtlSecret:        d.Get("ctl_secret").(string),
 	}
 
 	return p, nil
@@ -471,6 +489,7 @@ func (p *provisioner) installHab(o terraform.UIOutput, comm communicator.Communi
 func (p *provisioner) startHab(o terraform.UIOutput, comm communicator.Communicator) error {
 	// Install the supervisor first
 	var command string
+	var env string
 	if p.Version == "" {
 		command += fmt.Sprintf("hab install core/hab-sup")
 	} else {
@@ -481,7 +500,10 @@ func (p *provisioner) startHab(o terraform.UIOutput, comm communicator.Communica
 		command = fmt.Sprintf("sudo -E %s", command)
 	}
 
-	command = fmt.Sprintf("env HAB_NONINTERACTIVE=true %s", command)
+	if p.CtlSecret == "" {
+		env = fmt.Sprintf("HAB_CTL_SECRET=%s %s", p.CtlSecret, env)
+	}
+	command = fmt.Sprintf("env HAB_NONINTERACTIVE=true %s %s", env, command)
 
 	if err := p.runCommand(o, comm, command); err != nil {
 		return err
@@ -499,6 +521,10 @@ func (p *provisioner) startHab(o terraform.UIOutput, comm communicator.Communica
 
 	if p.ListenHTTP != "" {
 		options += fmt.Sprintf(" --listen-http %s", p.ListenHTTP)
+	}
+
+	if p.ListenCTL != "" {
+		options += fmt.Sprintf(" --listen-ctl %s", p.ListenCTL)
 	}
 
 	if p.Peer != "" {
@@ -544,7 +570,7 @@ func (p *provisioner) startHab(o terraform.UIOutput, comm communicator.Communica
 func (p *provisioner) startHabUnmanaged(o terraform.UIOutput, comm communicator.Communicator, options string) error {
 	// Create the sup directory for the log file
 	var command string
-	var token string
+	var env string
 	if p.UseSudo {
 		command = "sudo mkdir -p /hab/sup/default && sudo chmod o+w /hab/sup/default"
 	} else {
@@ -555,13 +581,19 @@ func (p *provisioner) startHabUnmanaged(o terraform.UIOutput, comm communicator.
 	}
 
 	if p.BuilderAuthToken != "" {
-		token = fmt.Sprintf("env HAB_AUTH_TOKEN=%s", p.BuilderAuthToken)
+		env = fmt.Sprintf("%s HAB_AUTH_TOKEN=%s", env, p.BuilderAuthToken)
+	}
+	if p.CtlSecret != "" {
+		env = fmt.Sprintf("%s HAB_CTL_SECRET=%s", env, p.CtlSecret)
+	}
+	if env != "" {
+		env = fmt.Sprintf("env %s", env)
 	}
 
 	if p.UseSudo {
-		command = fmt.Sprintf("(%s setsid sudo -E hab sup run %s > /hab/sup/default/sup.log 2>&1 &) ; sleep 1", token, options)
+		command = fmt.Sprintf("(%s setsid sudo -E hab sup run %s > /hab/sup/default/sup.log 2>&1 &) ; sleep 1", env, options)
 	} else {
-		command = fmt.Sprintf("(%s setsid hab sup run %s > /hab/sup/default/sup.log 2>&1 <&1 &) ; sleep 1", token, options)
+		command = fmt.Sprintf("(%s setsid hab sup run %s > /hab/sup/default/sup.log 2>&1 <&1 &) ; sleep 1", env, options)
 	}
 	return p.runCommand(o, comm, command)
 }
@@ -654,6 +686,7 @@ func (p *provisioner) installHabPackage(o terraform.UIOutput, comm communicator.
 
 func (p *provisioner) startHabService(o terraform.UIOutput, comm communicator.Communicator, service Service) error {
 	var command string
+	var env string
 	if err := p.installHabPackage(o, comm, service); err != nil {
 		return err
 	}
@@ -695,7 +728,14 @@ func (p *provisioner) startHabService(o terraform.UIOutput, comm communicator.Co
 		command = fmt.Sprintf("sudo -E %s", command)
 	}
 	if p.BuilderAuthToken != "" {
-		command = fmt.Sprintf("env HAB_AUTH_TOKEN=%s %s", p.BuilderAuthToken, command)
+		env = fmt.Sprintf("HAB_AUTH_TOKEN=%s %s", p.BuilderAuthToken, env)
+	}
+	// CTL_SECRET is not needed for local run
+	//if p.CtlSecret != "" {
+	//	env = fmt.Sprintf("HAB_CTL_SECRET=%s %s", p.CtlSecret, env)
+	//}
+	if env != "" {
+		command = fmt.Sprintf("env %s %s", env, command)
 	}
 	return p.runCommand(o, comm, command)
 }

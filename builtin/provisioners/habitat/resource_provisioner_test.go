@@ -23,6 +23,8 @@ func TestResourceProvisioner_Validate_good(t *testing.T) {
 		"peer":         "1.2.3.4",
 		"version":      "0.32.0",
 		"service_type": "systemd",
+		"listen_ctl":   "0.0.0.0:9632",
+		"ctl_secret":   "zxUO9ilb6etO3JqW3nYCy+UZ6n/+DsQYuKYNmlng6nlF09O6qXF3GRhuihdn1hZZ39OsWka0Zcvjg1yyhnmWeQ==",
 	})
 
 	warn, errs := Provisioner().Validate(c)
@@ -50,7 +52,7 @@ func TestResourceProvisioner_Validate_bad(t *testing.T) {
 
 func TestResourceProvisioner_Validate_bad_service_config(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{
-		"service": []map[string]interface{}{
+		"service": []interface{}{
 			map[string]interface{}{"name": "core/foo", "strategy": "bar", "topology": "baz", "url": "badurl"},
 		},
 	})
