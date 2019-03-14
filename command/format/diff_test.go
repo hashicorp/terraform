@@ -32,6 +32,26 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
     }
 `,
 		},
+		"creation (null string)": {
+			Action: plans.Create,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.NullVal(cty.EmptyObject),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"string": cty.StringVal("null"),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"string": {Type: cty.String, Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
+			ExpectedOutput: `  # test_instance.example will be created
+  + resource "test_instance" "example" {
+      + string = "null"
+    }
+`,
+		},
 		"deletion": {
 			Action: plans.Delete,
 			Mode:   addrs.ManagedResourceMode,
