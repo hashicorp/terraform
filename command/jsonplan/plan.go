@@ -124,9 +124,11 @@ func Marshal(
 	}
 
 	// output.PriorState
-	output.PriorState, err = jsonstate.Marshal(sf, stateSchemas)
-	if err != nil {
-		return nil, fmt.Errorf("error marshaling prior state: %s", err)
+	if sf != nil && !sf.State.Empty() {
+		output.PriorState, err = jsonstate.Marshal(sf, stateSchemas)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling prior state: %s", err)
+		}
 	}
 
 	// output.Config
