@@ -24,6 +24,9 @@ func decodeVersionConstraint(attr *hcl.Attribute) (VersionConstraint, hcl.Diagno
 	}
 
 	val, diags := attr.Expr.Value(nil)
+	if diags.HasErrors() {
+		return ret, diags
+	}
 	var err error
 	val, err = convert.Convert(val, cty.String)
 	if err != nil {
