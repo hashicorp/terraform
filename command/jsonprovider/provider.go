@@ -13,8 +13,8 @@ const FormatVersion = "0.1"
 
 // providers is the top-level object returned when exporting provider schemas
 type providers struct {
-	FormatVersion string              `json:"format_version"`
-	Schemas       map[string]Provider `json:"provider_schemas"`
+	FormatVersion string               `json:"format_version"`
+	Schemas       map[string]*Provider `json:"provider_schemas"`
 }
 
 type Provider struct {
@@ -24,7 +24,7 @@ type Provider struct {
 }
 
 func newProviders() *providers {
-	schemas := make(map[string]Provider)
+	schemas := make(map[string]*Provider)
 	return &providers{
 		FormatVersion: FormatVersion,
 		Schemas:       schemas,
@@ -42,9 +42,9 @@ func Marshal(s *terraform.Schemas) ([]byte, error) {
 	return ret, err
 }
 
-func marshalProvider(tps *terraform.ProviderSchema) Provider {
+func marshalProvider(tps *terraform.ProviderSchema) *Provider {
 	if tps == nil {
-		return Provider{}
+		return &Provider{}
 	}
 
 	var ps *schema
@@ -62,7 +62,7 @@ func marshalProvider(tps *terraform.ProviderSchema) Provider {
 		ds = marshalSchemas(tps.DataSources, tps.ResourceTypeSchemaVersions)
 	}
 
-	return Provider{
+	return &Provider{
 		Provider:          ps,
 		ResourceSchemas:   rs,
 		DataSourceSchemas: ds,
