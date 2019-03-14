@@ -32,10 +32,6 @@ func newProviders() *providers {
 }
 
 func Marshal(s *terraform.Schemas) ([]byte, error) {
-	if len(s.Providers) == 0 {
-		return nil, nil
-	}
-
 	providers := newProviders()
 
 	for k, v := range s.Providers {
