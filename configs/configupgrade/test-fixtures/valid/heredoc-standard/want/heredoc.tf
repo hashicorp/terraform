@@ -12,5 +12,5 @@ EOF
 }
 
 output "local" {
-value = local.cert_options
+  value = local.cert_options
 }

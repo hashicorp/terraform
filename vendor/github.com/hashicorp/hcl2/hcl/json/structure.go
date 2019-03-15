@@ -499,6 +499,8 @@ func (e *expression) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
 			return cty.DynamicVal, diags
 		}
 		return cty.ObjectVal(attrs), diags
+	case *nullVal:
+		return cty.NullVal(cty.DynamicPseudoType), nil
 	default:
 		// Default to DynamicVal so that ASTs containing invalid nodes can
 		// still be partially-evaluated.
