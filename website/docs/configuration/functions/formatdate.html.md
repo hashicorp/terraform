@@ -1,7 +1,7 @@
 ---
 layout: "functions"
 page_title: "formatdate - Functions - Configuration Language"
-sidebar_current: "docs-funcs-string-formatdate-x"
+sidebar_current: "docs-funcs-datetime-formatdate"
 description: |-
   The formatdate function converts a timestamp into a different time format.
 ---
