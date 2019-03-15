@@ -9,6 +9,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
 * config: Correct `filebase64sha256` function return value [GH-20654]
+* command/fmt: "Heredoc" sequences no longer cause incorrect indentation for following blocks [GH-20715]
 
 ## 0.12.0-beta1 (Feb 28, 2019)
 
