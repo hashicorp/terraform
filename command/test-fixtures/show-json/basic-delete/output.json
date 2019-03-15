@@ -34,6 +34,7 @@
             "address": "test_instance.test",
             "mode": "managed",
             "type": "test_instance",
+            "provider_name": "test",
             "name": "test",
             "change": {
                 "actions": [
@@ -57,6 +58,7 @@
             "address": "test_instance.test-delete",
             "mode": "managed",
             "type": "test_instance",
+            "provider_name": "test",
             "name": "test-delete",
             "change": {
                 "actions": [

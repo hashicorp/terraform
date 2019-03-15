@@ -271,6 +271,7 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 		r.ModuleAddress = addr.Module.String()
 		r.Name = addr.Resource.Resource.Name
 		r.Type = addr.Resource.Resource.Type
+		r.ProviderName = rc.ProviderAddr.ProviderConfig.StringCompact()
 
 		p.ResourceChanges = append(p.ResourceChanges, r)
 

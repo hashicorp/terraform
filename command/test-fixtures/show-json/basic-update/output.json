@@ -34,6 +34,7 @@
             "address": "test_instance.test",
             "mode": "managed",
             "type": "test_instance",
+            "provider_name": "test",
             "name": "test",
             "change": {
                 "actions": [

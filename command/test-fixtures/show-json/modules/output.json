@@ -76,6 +76,7 @@
             "mode": "managed",
             "type": "test_instance",
             "name": "test",
+            "provider_name": "test",
             "change": {
                 "actions": [
                     "create"
@@ -95,6 +96,7 @@
             "module_address": "module.module_test_foo",
             "mode": "managed",
             "type": "test_instance",
+            "provider_name": "test",
             "name": "test",
             "index": 0,
             "change": {
@@ -116,6 +118,7 @@
             "module_address": "module.module_test_foo",
             "mode": "managed",
             "type": "test_instance",
+            "provider_name": "test",
             "name": "test",
             "index": 1,
             "change": {
@@ -137,6 +140,7 @@
             "module_address": "module.module_test_foo",
             "mode": "managed",
             "type": "test_instance",
+            "provider_name": "test",
             "name": "test",
             "index": 2,
             "change": {

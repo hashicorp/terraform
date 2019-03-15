@@ -59,6 +59,7 @@
             "index": 0,
             "mode": "managed",
             "type": "test_instance",
+            "provider_name": "test",
             "name": "test",
             "change": {
                 "actions": [
@@ -79,6 +80,7 @@
             "index": 1,
             "mode": "managed",
             "type": "test_instance",
+            "provider_name": "test",
             "name": "test",
             "change": {
                 "actions": [
@@ -99,6 +101,7 @@
             "index": 2,
             "mode": "managed",
             "type": "test_instance",
+            "provider_name": "test",
             "name": "test",
             "change": {
                 "actions": [
