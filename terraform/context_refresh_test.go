@@ -89,6 +89,79 @@ func TestContext2Refresh(t *testing.T) {
 	}
 }
 
+func TestContext2Refresh_dynamicAttr(t *testing.T) {
+	m := testModule(t, "refresh-dynamic")
+
+	startingState := states.BuildState(func(ss *states.SyncState) {
+		ss.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				Status:    states.ObjectReady,
+				AttrsJSON: []byte(`{"dynamic":{"type":"string","value":"hello"}}`),
+			},
+			addrs.ProviderConfig{
+				Type: "test",
+			}.Absolute(addrs.RootModuleInstance),
+		)
+	})
+
+	readStateVal := cty.ObjectVal(map[string]cty.Value{
+		"dynamic": cty.EmptyTupleVal,
+	})
+
+	p := testProvider("test")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"dynamic": {Type: cty.DynamicPseudoType, Optional: true},
+				},
+			},
+		},
+	}
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+		return providers.ReadResourceResponse{
+			NewState: readStateVal,
+		}
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+		State: startingState,
+	})
+
+	schema := p.GetSchemaReturn.ResourceTypes["test_instance"]
+	ty := schema.ImpliedType()
+
+	s, diags := ctx.Refresh()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	if !p.ReadResourceCalled {
+		t.Fatal("ReadResource should be called")
+	}
+
+	mod := s.RootModule()
+	newState, err := mod.Resources["test_instance.foo"].Instances[addrs.NoKey].Current.Decode(ty)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !cmp.Equal(readStateVal, newState.Value, valueComparer) {
+		t.Error(cmp.Diff(newState.Value, readStateVal, valueComparer, equateEmpty))
+	}
+}
+
 func TestContext2Refresh_dataComputedModuleVar(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-data-module-var")
