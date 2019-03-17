@@ -177,7 +177,7 @@ func proposedNewObject(schema *configschema.Block, prior, config cty.Value) cty.
 					atys := configV.Type().AttributeTypes()
 					for name := range atys {
 						configEV := configV.GetAttr(name)
-						if !priorV.Type().HasAttribute(name) {
+						if !priorV.IsKnown() || priorV.IsNull() || !priorV.Type().HasAttribute(name) {
 							// If there is no corresponding prior element then
 							// we just take the config value as-is.
 							newVals[name] = configEV

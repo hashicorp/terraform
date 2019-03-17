@@ -312,6 +312,45 @@ func TestAssertPlanValid(t *testing.T) {
 			}),
 			nil,
 		},
+		"nested map, normal update": {
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"b": {
+						Nesting: configschema.NestingMap,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"c": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"b": cty.MapVal(map[string]cty.Value{
+					"boop": cty.ObjectVal(map[string]cty.Value{
+						"c": cty.StringVal("hello"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"b": cty.MapVal(map[string]cty.Value{
+					"boop": cty.ObjectVal(map[string]cty.Value{
+						"c": cty.StringVal("howdy"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"b": cty.MapVal(map[string]cty.Value{
+					"boop": cty.ObjectVal(map[string]cty.Value{
+						"c": cty.StringVal("howdy"),
+					}),
+				}),
+			}),
+			nil,
+		},
 
 		// Nested block collections are never null
 		"nested list, null in plan": {
