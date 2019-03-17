@@ -182,7 +182,7 @@ func assertPlanValid(schema *configschema.Block, priorState, config, plannedStat
 					configEV := configV.Index(idx)
 					priorEV := cty.NullVal(blockS.ImpliedType())
 					if !priorV.IsNull() && priorV.HasIndex(idx).True() {
-						priorEV = priorV.GetAttr(k)
+						priorEV = priorV.Index(idx)
 					}
 					moreErrs := assertPlanValid(&blockS.Block, priorEV, configEV, plannedEV, path)
 					errs = append(errs, moreErrs...)
