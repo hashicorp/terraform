@@ -40,6 +40,7 @@ func TestBackendConfig(t *testing.T) {
 		"key":            "state",
 		"encrypt":        true,
 		"dynamodb_table": "dynamoTable",
+		"compression":    true,
 	}
 
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
@@ -52,6 +53,9 @@ func TestBackendConfig(t *testing.T) {
 	}
 	if b.keyName != "state" {
 		t.Fatalf("Incorrect keyName was populated")
+	}
+	if !b.compression {
+		t.Fatalf("Incorrect compression was populated")
 	}
 
 	credentials, err := b.s3Client.Config.Credentials.Get()
