@@ -25,7 +25,7 @@ import (
 func (s *Scope) ExpandBlock(body hcl.Body, schema *configschema.Block) (hcl.Body, tfdiags.Diagnostics) {
 	spec := schema.DecoderSpec()
 
-	traversals := dynblock.ForEachVariablesHCLDec(body, spec)
+	traversals := dynblock.ExpandVariablesHCLDec(body, spec)
 	refs, diags := References(traversals)
 
 	ctx, ctxDiags := s.EvalContext(refs)

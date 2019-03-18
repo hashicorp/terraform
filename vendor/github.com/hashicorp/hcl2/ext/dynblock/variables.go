@@ -5,19 +5,31 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-// WalkVariables begins the recursive process of walking the variables in the
-// given body that are needed by any "for_each" or "labels" attributes in
-// "dynamic" blocks. The result is a WalkVariablesNode, which can extract
-// root-level variable traversals and produce a list of child nodes that
-// also need to be processed by calling Visit.
+// WalkVariables begins the recursive process of walking all expressions and
+// nested blocks in the given body and its child bodies while taking into
+// account any "dynamic" blocks.
 //
 // This function requires that the caller walk through the nested block
 // structure in the given body level-by-level so that an appropriate schema
 // can be provided at each level to inform further processing. This workflow
 // is thus easiest to use for calling applications that have some higher-level
 // schema representation available with which to drive this multi-step
-// process.
-func WalkForEachVariables(body hcl.Body) WalkVariablesNode {
+// process. If your application uses the hcldec package, you may be able to
+// use VariablesHCLDec instead for a more automatic approach.
+func WalkVariables(body hcl.Body) WalkVariablesNode {
+	return WalkVariablesNode{
+		body:           body,
+		includeContent: true,
+	}
+}
+
+// WalkExpandVariables is like Variables but it includes only the variables
+// required for successful block expansion, ignoring any variables referenced
+// inside block contents. The result is the minimal set of all variables
+// required for a call to Expand, excluding variables that would only be
+// needed to subsequently call Content or PartialContent on the expanded
+// body.
+func WalkExpandVariables(body hcl.Body) WalkVariablesNode {
 	return WalkVariablesNode{
 		body: body,
 	}
@@ -26,6 +38,8 @@ func WalkForEachVariables(body hcl.Body) WalkVariablesNode {
 type WalkVariablesNode struct {
 	body hcl.Body
 	it   *iteration
+
+	includeContent bool
 }
 
 type WalkVariablesChild struct {
@@ -49,6 +63,22 @@ func (n WalkVariablesNode) Visit(schema *hcl.BodySchema) (vars []hcl.Traversal, 
 	}
 
 	children = make([]WalkVariablesChild, 0, len(container.Blocks))
+
+	if n.includeContent {
+		for _, attr := range container.Attributes {
+			for _, traversal := range attr.Expr.Variables() {
+				var ours, inherited bool
+				if n.it != nil {
+					ours = traversal.RootName() == n.it.IteratorName
+					_, inherited = n.it.Inherited[traversal.RootName()]
+				}
+
+				if !(ours || inherited) {
+					vars = append(vars, traversal)
+				}
+			}
+		}
+	}
 
 	for _, block := range container.Blocks {
 		switch block.Type {
@@ -104,8 +134,9 @@ func (n WalkVariablesNode) Visit(schema *hcl.BodySchema) (vars []hcl.Traversal, 
 				children = append(children, WalkVariablesChild{
 					BlockTypeName: blockTypeName,
 					Node: WalkVariablesNode{
-						body: contentBlock.Body,
-						it:   blockIt,
+						body:           contentBlock.Body,
+						it:             blockIt,
+						includeContent: n.includeContent,
 					},
 				})
 			}
@@ -114,8 +145,9 @@ func (n WalkVariablesNode) Visit(schema *hcl.BodySchema) (vars []hcl.Traversal, 
 			children = append(children, WalkVariablesChild{
 				BlockTypeName: block.Type,
 				Node: WalkVariablesNode{
-					body: block.Body,
-					it:   n.it,
+					body:           block.Body,
+					it:             n.it,
+					includeContent: n.includeContent,
 				},
 			})
 
