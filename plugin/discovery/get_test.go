@@ -415,7 +415,7 @@ func TestProviderInstallerGet(t *testing.T) {
 		Ui:                    cli.NewMockUi(),
 		registry:              registry.NewClient(Disco(server), nil),
 	}
-	_, err = i.Get("test", AllVersions)
+	_, _, err = i.Get("test", AllVersions)
 
 	if err != ErrorNoVersionCompatibleWithPlatform {
 		t.Fatal("want error for incompatible version")
@@ -432,20 +432,20 @@ func TestProviderInstallerGet(t *testing.T) {
 	}
 
 	{
-		_, err := i.Get("test", ConstraintStr(">9.0.0").MustParse())
+		_, _, err := i.Get("test", ConstraintStr(">9.0.0").MustParse())
 		if err != ErrorNoSuitableVersion {
 			t.Fatal("want error for mismatching constraints")
 		}
 	}
 
 	{
-		_, err := i.Get("nonexist", AllVersions)
+		_, _, err := i.Get("nonexist", AllVersions)
 		if err != ErrorNoSuchProvider {
 			t.Fatal("want error for no such provider")
 		}
 	}
 
-	gotMeta, err := i.Get("test", AllVersions)
+	gotMeta, _, err := i.Get("test", AllVersions)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -503,7 +503,7 @@ func TestProviderInstallerGet_cache(t *testing.T) {
 		Arch:                  "mockarch",
 	}
 
-	gotMeta, err := i.Get("test", AllVersions)
+	gotMeta, _, err := i.Get("test", AllVersions)
 	if err != nil {
 		t.Fatal(err)
 	}
