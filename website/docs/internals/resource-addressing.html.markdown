@@ -43,6 +43,10 @@ resource_type.resource_name[N]
    addressing a resource where `count > 1` means that the address references
    all instances.
 
+-> In Terraform v0.12 and later, a resource spec without a module path prefix
+matches only resources in the root module. In earlier versions, a resource spec
+without a module path prefix will match resources with the same type and name
+in any descendent module.
 
 ## Examples
 

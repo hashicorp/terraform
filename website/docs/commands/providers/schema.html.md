@@ -11,6 +11,8 @@ description: |-
 
 The `terraform providers schema` command is used to print detailed schemas for the providers used in the current configuration.
 
+-> `terraform providers schema` requires **Terraform v0.12 or later**.
+
 ## Usage
 
 Usage: `terraform providers schema [options]`
