@@ -13,6 +13,8 @@ If anyone from the community or an interested third party is willing to maintain
 
 <!-- /archived-provider -->
 
+**Note:** The SoftLayer provider is deprecated and not under active development. It will not work with many IBM Cloud resources and is not compatible with the new IBM Cloud APIs.
+
 Terraform Provider
 ==================
 

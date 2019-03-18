@@ -12,9 +12,7 @@ The SoftLayer provider is used to manage SoftLayer resources.
 
 Use the navigation to the left to read about the available resources.
 
--> **Note:** The SoftLayer provider is new as of Terraform 0.6.16.
-It is ready to be used but many features are still being added. If there
-is a SoftLayer feature missing, please report it in the GitHub repo.
+!> **Note:** The SoftLayer provider is deprecated and not under active development. It will not work with many IBM Cloud resources and is not compatible with the new IBM Cloud APIs.
 
 ## Example Usage
 
