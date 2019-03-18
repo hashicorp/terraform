@@ -18,17 +18,19 @@ To use this backend you need a Terraform Enterprise account on
 [app.terraform.io](https://app.terraform.io) or have a private instance of
 Terraform Enterprise (version v201809-1 or newer).
 
+-> Note: We recommend using at least Terraform v0.11.13 with the remote backend.
+
 ## Command Support
 
 Currently the remote backend supports the following Terraform commands:
 
 - `apply`
-- `console`
+- `console` (supported in Terraform >= v0.11.12)
 - `destroy` (requires manually setting `CONFIRM_DESTROY=1` on the workspace)
 - `fmt`
 - `get`
-- `graph`
-- `import`
+- `graph` (supported in Terraform >= v0.11.12)
+- `import` (supported in Terraform >= v0.11.12)
 - `init`
 - `output`
 - `plan`
