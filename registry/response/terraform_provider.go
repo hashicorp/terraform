@@ -32,6 +32,7 @@ type TerraformProviderVersion struct {
 type TerraformProviderVersions struct {
 	ID       string                      `json:"id"`
 	Versions []*TerraformProviderVersion `json:"versions"`
+	Warnings []string                    `json:"warnings"`
 }
 
 // TerraformProviderPlatform is the Terraform-specific response structure for a
