@@ -189,12 +189,13 @@ type Operation struct {
 
 	// The options below are more self-explanatory and affect the runtime
 	// behavior of the operation.
-	AutoApprove  bool
-	Destroy      bool
-	DestroyForce bool
-	Parallelism  int
-	Targets      []addrs.Targetable
-	Variables    map[string]UnparsedVariableValue
+	AutoApprove         bool
+	AllowUndeclaredVars bool
+	Destroy             bool
+	DestroyForce        bool
+	Parallelism         int
+	Targets             []addrs.Targetable
+	Variables           map[string]UnparsedVariableValue
 
 	// Input/output/control options.
 	UIIn  terraform.UIInput

@@ -27,7 +27,7 @@ type ApplyCommand struct {
 }
 
 func (c *ApplyCommand) Run(args []string) int {
-	var destroyForce, refresh, autoApprove bool
+	var destroyForce, refresh, autoApprove, allowUndeclaredVars bool
 	args, err := c.Meta.process(args, true)
 	if err != nil {
 		return 1
@@ -50,6 +50,7 @@ func (c *ApplyCommand) Run(args []string) int {
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
 	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
+	cmdFlags.BoolVar(&allowUndeclaredVars, "allow-undeclared-vars", false, "allow-undeclared-vars")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -180,6 +181,7 @@ func (c *ApplyCommand) Run(args []string) int {
 	opReq.ConfigDir = configPath
 	opReq.Destroy = c.Destroy
 	opReq.DestroyForce = destroyForce
+	opReq.AllowUndeclaredVars = allowUndeclaredVars
 	opReq.PlanFile = planFile
 	opReq.PlanRefresh = refresh
 	opReq.Type = backend.OperationTypeApply

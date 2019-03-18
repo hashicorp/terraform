@@ -136,13 +136,15 @@ func (b *Local) contextDirect(op *backend.Operation, opts terraform.ContextOpts)
 	}
 	opts.Config = config
 
-	variables, varDiags := backend.ParseVariableValues(op.Variables, config.Module.Variables)
-	diags = diags.Append(varDiags)
+	if !op.AllowUndeclaredVars {
+		variables, varDiags := backend.ParseVariableValues(op.Variables, config.Module.Variables)
+		diags = diags.Append(varDiags)
+		if op.Variables != nil {
+			opts.Variables = variables
+		}
+	}
 	if diags.HasErrors() {
 		return nil, nil, diags
-	}
-	if op.Variables != nil {
-		opts.Variables = variables
 	}
 
 	tfCtx, ctxDiags := terraform.NewContext(&opts)

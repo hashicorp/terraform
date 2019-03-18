@@ -17,7 +17,7 @@ type PlanCommand struct {
 }
 
 func (c *PlanCommand) Run(args []string) int {
-	var destroy, refresh, detailed bool
+	var destroy, refresh, detailed, allowUndeclaredVars bool
 	var outPath string
 
 	args, err := c.Meta.process(args, true)
@@ -34,6 +34,7 @@ func (c *PlanCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&detailed, "detailed-exitcode", false, "detailed-exitcode")
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
 	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
+	cmdFlags.BoolVar(&allowUndeclaredVars, "allow-undeclared-vars", false, "allow-undeclared-vars")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -96,6 +97,7 @@ func (c *PlanCommand) Run(args []string) int {
 	opReq := c.Operation(b)
 	opReq.ConfigDir = configPath
 	opReq.Destroy = destroy
+	opReq.AllowUndeclaredVars = allowUndeclaredVars
 	opReq.PlanRefresh = refresh
 	opReq.PlanOutPath = outPath
 	opReq.PlanRefresh = refresh
