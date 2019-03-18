@@ -42,3 +42,5 @@ The command-line flags are all optional. The list of available flags are:
 * `-no-color` - Disables output with coloring
 
 * `-json` - Displays machine-readable output from a state or plan file
+
+-> JSON output via the `-json` option requires **Terraform v0.12 or later**.

@@ -12,7 +12,7 @@ The `terraform 0.12upgrade` command applies several automatic upgrade rules to
 help prepare a module that was written for Terraform v0.11 to be used
 with Terraform v0.12.
 
--> This command requires Terraform v0.12 or later.
+-> This command requires **Terraform v0.12 or later**.
 
 ## Usage
 
