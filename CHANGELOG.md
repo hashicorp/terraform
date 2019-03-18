@@ -1,5 +1,9 @@
 ## 0.12.0-beta2 (Unreleased)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+* The `terraform state ...` family of commands have all been adjusted to more consistently match how resource addresses are resolved elsewhere in Terraform. In general the matches are now _more_ specific than they were before (matching less, rather than more) but if you are using any of those commands in existing automation please verify that you will still getting expected behavior using the `-dry-run` options.
+
 IMPROVEMENTS:
 
 * The warning for undeclared variables in `.tfvars` files now consolidates multiple warnings when there are more than three, to avoid an overwhelming wall of warnings in situations where a common `.tfvars` file is used across many configurations. Setting "global" variables in `.tfvars` is deprecated for v0.12 and should be replaced with the `TF_VAR_...` environment variables. [GH-20581]
@@ -10,6 +14,8 @@ BUG FIXES:
 
 * config: Correct `filebase64sha256` function return value [GH-20654]
 * command/fmt: "Heredoc" sequences no longer cause incorrect indentation for following blocks [GH-20715]
+* command/state ...: The address-matching logic for all of these commands now correctly matches an address like `aws_instance.foo` only in the root module, rather than maching all resources/instances of the given type and name in descendent modules too. [GH-20719]
+* command/state mv: Some regressions between 0.11 and 0.12 have been addressed. [GH-20719]
 
 ## 0.12.0-beta1 (Feb 28, 2019)
 
