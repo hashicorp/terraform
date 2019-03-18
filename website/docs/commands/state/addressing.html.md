@@ -8,13 +8,13 @@ description: |-
 
 # Resource Addressing
 
-The `terraform state` subcommands make heavy use of resource addressing
-for targeting and filtering specific resources and modules within the state.
+The `terraform state` subcommands use
+[standard address syntax](/docs/internals/resource-addressing.html) to refer
+to individual resources, resource instances, and modules. This is the same
+syntax used for the `-target` option to the `apply` and `plan` commands.
 
-Resource addressing is a common feature of Terraform that is used in
-multiple locations. For example, resource addressing syntax is also used for
-the `-target` flag for apply and plan commands.
+Most state commands allow referring to individual resource instances, whole
+resources (which may have multiple instances if `count` or `for_each` is used),
+or even whole modules.
 
-Because resource addressing is unified across Terraform, it is documented
-in a single place rather than duplicating it in multiple locations. You
-can find the [resource addressing documentation here](/docs/internals/resource-addressing.html).
+For more information on the syntax, see [Resource Addressing](/docs/internals/resource-addressing.html).
