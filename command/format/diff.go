@@ -1067,7 +1067,7 @@ func ctySequenceDiff(old, new []cty.Value) []*plans.Change {
 	var oldI, newI, lcsI int
 	for oldI < len(old) || newI < len(new) || lcsI < len(lcs) {
 		for oldI < len(old) && (lcsI >= len(lcs) || !old[oldI].RawEquals(lcs[lcsI])) {
-			isObjectDiff := old[oldI].Type().IsObjectType() && new[newI].Type().IsObjectType()
+			isObjectDiff := old[oldI].Type().IsObjectType() && (newI >= len(new) || new[newI].Type().IsObjectType())
 			if isObjectDiff && newI < len(new) {
 				ret = append(ret, &plans.Change{
 					Action: plans.Update,
