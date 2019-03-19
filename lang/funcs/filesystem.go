@@ -92,7 +92,7 @@ func MakeTemplateFileFunc(baseDir string, funcsCb func() map[string]function.Fun
 
 	renderTmpl := func(expr hcl.Expression, varsVal cty.Value) (cty.Value, error) {
 		if varsTy := varsVal.Type(); !(varsTy.IsMapType() || varsTy.IsObjectType()) {
-			return cty.DynamicVal, function.NewArgErrorf(2, "invalid vars value: must be a map") // or an object, but we don't strongly distinguish these most of the time
+			return cty.DynamicVal, function.NewArgErrorf(1, "invalid vars value: must be a map") // or an object, but we don't strongly distinguish these most of the time
 		}
 
 		ctx := &hcl.EvalContext{
@@ -105,7 +105,7 @@ func MakeTemplateFileFunc(baseDir string, funcsCb func() map[string]function.Fun
 		for _, traversal := range expr.Variables() {
 			root := traversal.RootName()
 			if _, ok := ctx.Variables[root]; !ok {
-				return cty.DynamicVal, function.NewArgErrorf(2, "vars map does not contain key %q, referenced at %s", root, traversal[0].SourceRange())
+				return cty.DynamicVal, function.NewArgErrorf(1, "vars map does not contain key %q, referenced at %s", root, traversal[0].SourceRange())
 			}
 		}
 
