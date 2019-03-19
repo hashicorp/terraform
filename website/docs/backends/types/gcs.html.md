@@ -60,3 +60,5 @@ The following configuration options are supported:
  *  `region` / `GOOGLE_REGION` - (Optional) The region in which a new bucket is created.
     For more information, see [Bucket Locations](https://cloud.google.com/storage/docs/bucket-locations).
  *  `encryption_key` / `GOOGLE_ENCRYPTION_KEY` - (Optional) A 32 byte base64 encoded 'customer supplied encryption key' used to encrypt all state. For more information see [Customer Supplied Encryption Keys](https://cloud.google.com/storage/docs/encryption#customer-supplied).
+ *  `lock_heartbeat_interval` - (Optional) The time between consecutive heartbeats on the lock file as a [duration string](https://golang.org/pkg/time/#ParseDuration). Defaults to "1m".
+ *  `lock_stale_after` - (Optional) The mininum duration (as a [duration string](https://golang.org/pkg/time/#ParseDuration)) that must have passed since the youngest recorded heartbeat before the lock file is considered stale/orphaned. Defaults to "15m".

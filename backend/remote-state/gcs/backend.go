@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"cloud.google.com/go/storage"
 	"github.com/hashicorp/terraform/backend"
@@ -35,6 +36,13 @@ type Backend struct {
 
 	projectID string
 	region    string
+
+	// Time between consecutive heartbeats on the lock file.
+	lockHeartbeatInterval time.Duration
+
+	// The mininum duration that must have passed since the youngest
+	// recorded heartbeat before the lock file is considered stale/orphaned.
+	lockStaleAfter time.Duration
 }
 
 func New() backend.Backend {
@@ -87,6 +95,20 @@ func New() backend.Backend {
 				Optional:    true,
 				Description: "Region / location in which to create the bucket",
 				Default:     "",
+			},
+
+			"lock_heartbeat_interval": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Time between consecutive heartbeats on the lock file as a duration string (cf. https://golang.org/pkg/time/#ParseDuration).",
+				Default:     "1m",
+			},
+
+			"lock_stale_after": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Mininum duration (cf. https://golang.org/pkg/time/#ParseDuration) that must have passed since the youngest recorded heartbeat before the lock file is considered stale/orphaned.",
+				Default:     "15m",
 			},
 		},
 	}
@@ -147,13 +169,13 @@ func (b *Backend) configure(ctx context.Context) error {
 		conf := jwt.Config{
 			Email:      account.ClientEmail,
 			PrivateKey: []byte(account.PrivateKey),
-			Scopes:     []string{storage.ScopeReadWrite},
+			Scopes:     []string{storage.ScopeFullControl},
 			TokenURL:   "https://accounts.google.com/o/oauth2/token",
 		}
 
 		opts = append(opts, option.WithHTTPClient(conf.Client(ctx)))
 	} else {
-		opts = append(opts, option.WithScopes(storage.ScopeReadWrite))
+		opts = append(opts, option.WithScopes(storage.ScopeFullControl))
 	}
 
 	opts = append(opts, option.WithUserAgent(httpclient.UserAgentString()))
@@ -186,6 +208,16 @@ func (b *Backend) configure(ctx context.Context) error {
 			return fmt.Errorf("Error decoding encryption key: %s", err)
 		}
 		b.encryptionKey = k
+	}
+
+	b.lockHeartbeatInterval, err = time.ParseDuration(data.Get("lock_heartbeat_interval").(string))
+	if err != nil {
+		return fmt.Errorf("Error parsing lock_heartbeat_interval: %s", err)
+	}
+
+	b.lockStaleAfter, err = time.ParseDuration(data.Get("lock_stale_after").(string))
+	if err != nil {
+		return fmt.Errorf("Error parsing lock_stale_after: %s", err)
 	}
 
 	return nil

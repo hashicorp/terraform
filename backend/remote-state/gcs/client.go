@@ -4,10 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"strconv"
+	"sync"
+	"time"
 
 	"cloud.google.com/go/storage"
-	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
 	"golang.org/x/net/context"
@@ -17,13 +20,32 @@ import (
 // blobs representing state.
 // Implements "state/remote".ClientLocker
 type remoteClient struct {
-	storageContext context.Context
-	storageClient  *storage.Client
-	bucketName     string
-	stateFilePath  string
-	lockFilePath   string
-	encryptionKey  []byte
+	mutex sync.Mutex
+
+	storageContext        context.Context
+	storageClient         *storage.Client
+	bucketName            string
+	stateFilePath         string
+	lockFilePath          string
+	encryptionKey         []byte
+	lockHeartbeatInterval time.Duration
+	lockStaleAfter        time.Duration
+
+	// The initial generation number of the lock file created by this
+	// remoteClient.
+	generation *int64
+
+	// Channel used for signalling the lock-heartbeating goroutine to stop.
+	stopHeartbeatCh chan bool
 }
+
+// Name of the metadata header on the lock file which indicates that the lock
+// file has been created by a client which is supposed to periodically perform
+// heartbeats on it. This header facilitates a safe migration from previous
+// Terraform versions that do not yet perform any heartbeats on the lock file.
+// A lock file will only be considered stale and force-unlocked if its age
+// exceeds lockStaleAfter AND this metadata header is present.
+const metadataHeaderHeartbeatEnabled = "x-goog-meta-heartbeating"
 
 func (c *remoteClient) Get() (payload *remote.Payload, err error) {
 	stateFileReader, err := c.stateFile().NewReader(c.storageContext)
@@ -77,6 +99,112 @@ func (c *remoteClient) Delete() error {
 	return nil
 }
 
+// createLockFile writes to a lock file, ensuring file creation. Returns the
+// generation number.
+func (c *remoteClient) createLockFile(infoJson []byte) (int64, error) {
+	w := c.lockFile().If(storage.Conditions{DoesNotExist: true}).NewWriter(c.storageContext)
+	err := func() error {
+		// Add metadata signalling to other clients that heartbeats will be
+		// performed on this lock file.
+		w.ObjectAttrs.Metadata = map[string]string{metadataHeaderHeartbeatEnabled: "true"}
+
+		if _, err := w.Write(infoJson); err != nil {
+			return err
+		}
+		return w.Close()
+	}()
+
+	if err != nil {
+		return 0, c.lockError(fmt.Errorf("writing %q failed: %v", c.lockFileURL(), err))
+	}
+
+	return w.Attrs().Generation, nil
+}
+
+func isHeartbeatEnabled(attrs *storage.ObjectAttrs) bool {
+	if attrs.Metadata != nil {
+		if val, ok := attrs.Metadata[metadataHeaderHeartbeatEnabled]; ok {
+			if val == "true" {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// unlockIfStale force-unlocks the lock file if it is stale. Returns true if a
+// stale lock was removed (and therefore a retry makes sense), otherwise false.
+func (c *remoteClient) unlockIfStale() bool {
+	if attrs, err := c.lockFile().Attrs(c.storageContext); err == nil {
+		if !isHeartbeatEnabled(attrs) {
+			// Metadata header metadataHeaderHeartbeatEnabled is
+			// not present, thus this lock file is owned by an
+			// older client that does not perform heartbeats on the
+			// lock file. Therefore, we cannot be sure whether the
+			// lock file might be stale. Better don't force-unlock!
+			log.Printf("[TRACE] Found existing lock file %s from an older client that does not perform heartbeats", c.lockFileURL())
+			return false
+		}
+		age := time.Since(attrs.Updated)
+		if age > c.lockStaleAfter {
+			log.Printf("[WARN] Existing lock file %s is considered stale, last heartbeat was %s ago", c.lockFileURL(), age)
+			if err := c.Unlock(strconv.FormatInt(attrs.Generation, 10)); err != nil {
+				log.Printf("[WARN] Failed to release stale lock: %s", err)
+			} else {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// heartbeatLockFile periodically updates the "updated" timestamp of the lock
+// file until the lock is released in Unlock().
+func (c *remoteClient) heartbeatLockFile() {
+	log.Printf("[TRACE] Starting heartbeat on lock file %s, interval is %s", c.lockFileURL(), c.lockHeartbeatInterval)
+
+	ticker := time.NewTicker(c.lockHeartbeatInterval)
+	defer ticker.Stop()
+
+	defer func() {
+		c.mutex.Lock()
+		c.stopHeartbeatCh = nil
+		c.mutex.Unlock()
+	}()
+
+	for {
+		select {
+		case <-c.stopHeartbeatCh:
+			log.Printf("[TRACE] Stopping heartbeat on lock file %s", c.lockFileURL())
+			return
+		case t := <-ticker.C:
+			log.Printf("[TRACE] Performing heartbeat on lock file %s, tick %q", c.lockFileURL(), t)
+			if attrs, err := c.lockFile().Attrs(c.storageContext); err != nil {
+				log.Printf("[WARN] Failed to retrieve attributes of lock file %s: %s", c.lockFileURL(), err)
+			} else {
+				c.mutex.Lock()
+				generation := *c.generation
+				c.mutex.Unlock()
+
+				if attrs.Generation != generation {
+					// This is no longer the lock file that we started with. Stop heartbeating on it.
+					log.Printf("[WARN] Stopping heartbeat on lock file %s as it changed underneath.", c.lockFileURL())
+					return
+				}
+
+				// Update the "updated" timestamp by removing non-existent metadata.
+				uattrs := storage.ObjectAttrsToUpdate{Metadata: make(map[string]string)}
+				uattrs.Metadata["x-goog-meta-terraform-state-heartbeat"] = ""
+				if _, err := c.lockFile().Update(c.storageContext, uattrs); err != nil {
+					log.Printf("[WARN] Failed to perform heartbeat on lock file %s: %s", c.lockFileURL(), err)
+				}
+			}
+		}
+	}
+}
+
 // Lock writes to a lock file, ensuring file creation. Returns the generation
 // number, which must be passed to Unlock().
 func (c *remoteClient) Lock(info *state.LockInfo) (string, error) {
@@ -89,20 +217,25 @@ func (c *remoteClient) Lock(info *state.LockInfo) (string, error) {
 		return "", err
 	}
 
-	lockFile := c.lockFile()
-	w := lockFile.If(storage.Conditions{DoesNotExist: true}).NewWriter(c.storageContext)
-	err = func() error {
-		if _, err := w.Write(infoJson); err != nil {
-			return err
-		}
-		return w.Close()
-	}()
-
+	generation, err := c.createLockFile(infoJson)
 	if err != nil {
-		return "", c.lockError(fmt.Errorf("writing %q failed: %v", c.lockFileURL(), err))
+		if c.unlockIfStale() {
+			generation, err = c.createLockFile(infoJson)
+		}
+	}
+	if err != nil {
+		return "", c.lockError(fmt.Errorf("failed to create lock file %q: %v", c.lockFileURL(), err))
 	}
 
-	info.ID = strconv.FormatInt(w.Attrs().Generation, 10)
+	info.ID = strconv.FormatInt(generation, 10)
+
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	c.generation = &generation
+	c.stopHeartbeatCh = make(chan bool)
+
+	go c.heartbeatLockFile()
 
 	return info.ID, nil
 }
@@ -111,6 +244,14 @@ func (c *remoteClient) Unlock(id string) error {
 	gen, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
 		return err
+	}
+
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	if c.stopHeartbeatCh != nil {
+		log.Printf("[TRACE] Stopping heartbeat on lock file %s before removing the lock", c.lockFileURL())
+		c.stopHeartbeatCh <- true
 	}
 
 	if err := c.lockFile().If(storage.Conditions{GenerationMatch: gen}).Delete(c.storageContext); err != nil {
