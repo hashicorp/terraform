@@ -10,25 +10,33 @@ description: |-
 
 **Kind: Enhanced**
 
-The remote backend stores state and runs operations remotely. When running
-`terraform plan` or `terraform apply` with this backend, the actual execution
-occurs in Terraform Enterprise, with log output streaming to the local terminal.
-
-To use this backend you need a Terraform Enterprise account on
-[app.terraform.io](https://app.terraform.io) or have a private instance of
+-> **Note:** We recommend using Terraform v0.11.13 or newer with this
+backend. This backend requires either a Terraform Enterprise account on
+[app.terraform.io](https://app.terraform.io) or a private instance of
 Terraform Enterprise (version v201809-1 or newer).
+
+The remote backend stores state and runs operations in Terraform Enterprise.
+
+When used with a Pro or Premium tier Terraform Enterprise account, operations
+like `terraform plan` or `terraform apply` are executed in Terraform
+Enterprise's run environment, with log output streaming to the local terminal.
+Remote plans and applies use variable values from the associated Terraform
+Enterprise workspace.
+
+When used with a free Terraform Enterprise account, operations are executed on
+the local machine and state is stored in Terraform Enterprise.
 
 ## Command Support
 
 Currently the remote backend supports the following Terraform commands:
 
 - `apply`
-- `console`
+- `console` (supported in Terraform >= v0.11.12)
 - `destroy` (requires manually setting `CONFIRM_DESTROY=1` on the workspace)
 - `fmt`
 - `get`
-- `graph`
-- `import`
+- `graph` (supported in Terraform >= v0.11.12)
+- `import` (supported in Terraform >= v0.11.12)
 - `init`
 - `output`
 - `plan`
