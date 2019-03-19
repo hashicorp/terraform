@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/providers"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestPlanGraphBuilder_impl(t *testing.T) {
@@ -62,6 +63,90 @@ func TestPlanGraphBuilder(t *testing.T) {
 
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testPlanGraphBuilderStr)
+	if actual != expected {
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	}
+}
+
+func TestPlanGraphBuilder_dynamicBlock(t *testing.T) {
+	provider := &MockProvider{
+		GetSchemaReturn: &ProviderSchema{
+			ResourceTypes: map[string]*configschema.Block{
+				"test_thing": {
+					Attributes: map[string]*configschema.Attribute{
+						"id":   {Type: cty.String, Computed: true},
+						"list": {Type: cty.List(cty.String), Computed: true},
+					},
+					BlockTypes: map[string]*configschema.NestedBlock{
+						"nested": {
+							Nesting: configschema.NestingList,
+							Block: configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"foo": {Type: cty.String, Optional: true},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	components := &basicComponentFactory{
+		providers: map[string]providers.Factory{
+			"test": providers.FactoryFixed(provider),
+		},
+	}
+
+	b := &PlanGraphBuilder{
+		Config:     testModule(t, "graph-builder-plan-dynblock"),
+		Components: components,
+		Schemas: &Schemas{
+			Providers: map[string]*ProviderSchema{
+				"test": provider.GetSchemaReturn,
+			},
+		},
+		DisableReduce: true,
+	}
+
+	g, err := b.Build(addrs.RootModuleInstance)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if g.Path.String() != addrs.RootModuleInstance.String() {
+		t.Fatalf("wrong module path %q", g.Path)
+	}
+
+	// This test is here to make sure we properly detect references inside
+	// the special "dynamic" block construct. The most important thing here
+	// is that at the end test_thing.c depends on both test_thing.a and
+	// test_thing.b. Other details might shift over time as other logic in
+	// the graph builders changes.
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(`
+meta.count-boundary (EachMode fixup)
+  provider.test
+  test_thing.a
+  test_thing.b
+  test_thing.c
+provider.test
+provider.test (close)
+  provider.test
+  test_thing.a
+  test_thing.b
+  test_thing.c
+root
+  meta.count-boundary (EachMode fixup)
+  provider.test (close)
+test_thing.a
+  provider.test
+test_thing.b
+  provider.test
+test_thing.c
+  provider.test
+  test_thing.a
+  test_thing.b
+`)
 	if actual != expected {
 		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
 	}
