@@ -192,7 +192,8 @@ func TestStateShim(t *testing.T) {
 				},
 				Resources: map[string]*terraform.ResourceState{
 					"test_thing.baz": &terraform.ResourceState{
-						Type: "test_thing",
+						Type:     "test_thing",
+						Provider: "provider.test",
 						Primary: &terraform.InstanceState{
 							ID: "baz",
 							Attributes: map[string]string{
@@ -202,7 +203,8 @@ func TestStateShim(t *testing.T) {
 						},
 					},
 					"test_thing.foo": &terraform.ResourceState{
-						Type: "test_thing",
+						Type:     "test_thing",
+						Provider: "provider.test",
 						Primary: &terraform.InstanceState{
 							ID: "foo",
 							Attributes: map[string]string{
@@ -221,7 +223,8 @@ func TestStateShim(t *testing.T) {
 				Path: []string{"root", "child"},
 				Resources: map[string]*terraform.ResourceState{
 					"test_thing.baz": &terraform.ResourceState{
-						Type: "test_thing",
+						Type:     "test_thing",
+						Provider: "module.child.provider.test",
 						Primary: &terraform.InstanceState{
 							ID: "bar",
 							Attributes: map[string]string{
@@ -241,7 +244,8 @@ func TestStateShim(t *testing.T) {
 						Dependencies: []string{"data.test_data_thing.foo"},
 					},
 					"data.test_data_thing.foo": &terraform.ResourceState{
-						Type: "test_data_thing",
+						Type:     "test_data_thing",
+						Provider: "module.child.provider.test",
 						Primary: &terraform.InstanceState{
 							ID: "bar",
 							Attributes: map[string]string{
@@ -251,7 +255,8 @@ func TestStateShim(t *testing.T) {
 						},
 					},
 					"test_thing.lots.0": &terraform.ResourceState{
-						Type: "test_thing",
+						Type:     "test_thing",
+						Provider: "module.child.provider.test",
 						Primary: &terraform.InstanceState{
 							ID: "0",
 							Attributes: map[string]string{
@@ -261,7 +266,8 @@ func TestStateShim(t *testing.T) {
 						},
 					},
 					"test_thing.lots.1": &terraform.ResourceState{
-						Type: "test_thing",
+						Type:     "test_thing",
+						Provider: "module.child.provider.test",
 						Primary: &terraform.InstanceState{
 							ID: "1",
 							Attributes: map[string]string{
@@ -272,7 +278,8 @@ func TestStateShim(t *testing.T) {
 						},
 					},
 					"test_thing.single_count": &terraform.ResourceState{
-						Type: "test_thing",
+						Type:     "test_thing",
+						Provider: "module.child.provider.test",
 						Primary: &terraform.InstanceState{
 							ID: "single",
 							Attributes: map[string]string{
@@ -314,6 +321,6 @@ func TestStateShim(t *testing.T) {
 	}
 
 	if !expected.Equal(shimmed) {
-		t.Fatalf("\nexpected state:\n%s\n\ngot state:\n%s", expected, shimmed)
+		t.Fatalf("wrong result state\ngot:\n%s\n\nwant:\n%s", expected, shimmed)
 	}
 }
