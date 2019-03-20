@@ -1854,6 +1854,128 @@ func TestMerge(t *testing.T) {
 	}
 }
 
+func TestReverse(t *testing.T) {
+	tests := []struct {
+		List cty.Value
+		Want cty.Value
+		Err  string
+	}{
+		{
+			cty.ListValEmpty(cty.String),
+			cty.ListValEmpty(cty.String),
+			"",
+		},
+		{
+			cty.ListVal([]cty.Value{cty.StringVal("a")}),
+			cty.ListVal([]cty.Value{cty.StringVal("a")}),
+			"",
+		},
+		{
+			cty.ListVal([]cty.Value{cty.StringVal("a"), cty.StringVal("b")}),
+			cty.ListVal([]cty.Value{cty.StringVal("b"), cty.StringVal("a")}),
+			"",
+		},
+		{
+			cty.ListVal([]cty.Value{cty.StringVal("a"), cty.StringVal("b"), cty.StringVal("c")}),
+			cty.ListVal([]cty.Value{cty.StringVal("c"), cty.StringVal("b"), cty.StringVal("a")}),
+			"",
+		},
+		{
+			cty.ListVal([]cty.Value{cty.UnknownVal(cty.String), cty.StringVal("b"), cty.StringVal("c")}),
+			cty.ListVal([]cty.Value{cty.StringVal("c"), cty.StringVal("b"), cty.UnknownVal(cty.String)}),
+			"",
+		},
+		{
+			cty.EmptyTupleVal,
+			cty.EmptyTupleVal,
+			"",
+		},
+		{
+			cty.TupleVal([]cty.Value{cty.StringVal("a")}),
+			cty.TupleVal([]cty.Value{cty.StringVal("a")}),
+			"",
+		},
+		{
+			cty.TupleVal([]cty.Value{cty.StringVal("a"), cty.True}),
+			cty.TupleVal([]cty.Value{cty.True, cty.StringVal("a")}),
+			"",
+		},
+		{
+			cty.TupleVal([]cty.Value{cty.StringVal("a"), cty.True, cty.Zero}),
+			cty.TupleVal([]cty.Value{cty.Zero, cty.True, cty.StringVal("a")}),
+			"",
+		},
+		{
+			cty.SetValEmpty(cty.String),
+			cty.ListValEmpty(cty.String),
+			"",
+		},
+		{
+			cty.SetVal([]cty.Value{cty.StringVal("a")}),
+			cty.ListVal([]cty.Value{cty.StringVal("a")}),
+			"",
+		},
+		{
+			cty.SetVal([]cty.Value{cty.StringVal("a"), cty.StringVal("b")}),
+			cty.ListVal([]cty.Value{cty.StringVal("a"), cty.StringVal("b")}),
+			"",
+		},
+		{
+			cty.SetVal([]cty.Value{cty.StringVal("a"), cty.StringVal("b"), cty.StringVal("c")}),
+			cty.ListVal([]cty.Value{cty.StringVal("a"), cty.StringVal("c"), cty.StringVal("b")}),
+			"",
+		},
+		{
+			cty.StringVal("no"),
+			cty.NilVal,
+			"can only reverse list or tuple values, not string",
+		},
+		{
+			cty.True,
+			cty.NilVal,
+			"can only reverse list or tuple values, not bool",
+		},
+		{
+			cty.MapValEmpty(cty.String),
+			cty.NilVal,
+			"can only reverse list or tuple values, not map of string",
+		},
+		{
+			cty.NullVal(cty.List(cty.String)),
+			cty.NilVal,
+			"argument must not be null",
+		},
+		{
+			cty.UnknownVal(cty.List(cty.String)),
+			cty.UnknownVal(cty.List(cty.String)),
+			"",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("reverse(%#v)", test.List), func(t *testing.T) {
+			got, err := Reverse(test.List)
+
+			if test.Err != "" {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				if got, want := err.Error(), test.Err; got != want {
+					t.Fatalf("wrong error\ngot:  %s\nwant: %s", got, want)
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+
+}
+
 func TestSetProduct(t *testing.T) {
 	tests := []struct {
 		Sets []cty.Value
