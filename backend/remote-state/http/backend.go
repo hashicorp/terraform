@@ -2,16 +2,23 @@ package http
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/rsa"
 	"crypto/tls"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"net/http"
 	"net/url"
+	"reflect"
 
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/helper/pathorcontents"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
+	"github.com/youmark/pkcs8"
 )
 
 func New() backend.Backend {
@@ -65,6 +72,31 @@ func New() backend.Backend {
 				Optional:    true,
 				Default:     false,
 				Description: "Whether to skip TLS verification.",
+			},
+			"tls_client_cert": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("HTTP_BACKEND_TLS_CLIENT_CERT", ""),
+				Description: "The client certificate used for authentication. Path to file or contents.",
+			},
+			"tls_client_key": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("HTTP_BACKEND_TLS_CLIENT_KEY", ""),
+				Description: "The client key used for authentication. Path to file or contents.",
+			},
+			"tls_client_key_password": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("HTTP_BACKEND_TLS_CLIENT_KEY_PASSWORD", ""),
+				Description: "The password for the client key used for authentication. If present and client key not encrypted it will fail",
+			},
+			"tls_client_ca": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "",
+				DefaultFunc: schema.EnvDefaultFunc("HTTP_BACKEND_TLS_CLIENT_CA", ""),
+				Description: "The CAs that the client trusts by default. Path to file or contents.",
 			},
 		},
 	}
@@ -129,6 +161,134 @@ func (b *Backend) configure(ctx context.Context) error {
 		client.Transport.(*http.Transport).TLSClientConfig = &tls.Config{
 			InsecureSkipVerify: true,
 		}
+	}
+	clientCert := data.Get("tls_client_cert").(string)
+	if clientCert != "" {
+		config := &tls.Config{}
+		// Has TLS client cert
+		clientKey := data.Get("tls_client_key").(string)
+		if clientKey == "" {
+			return fmt.Errorf("If client cert is present, client key must be too")
+		}
+		clientCA := data.Get("tls_client_ca").(string)
+		caCertPool, err := x509.SystemCertPool()
+
+		if err != nil {
+			caCertPool = x509.NewCertPool()
+		}
+		if clientCA != "" {
+			clientCAContents, wasPath, err := pathorcontents.Read(clientCA)
+			if err != nil {
+				if wasPath {
+					return fmt.Errorf("error reading certificate: %s", clientCA)
+				}
+			} else {
+				caCertPool.AppendCertsFromPEM([]byte(clientCAContents))
+			}
+		}
+		config.RootCAs = caCertPool
+		clientKeyContents, wasPath, err := pathorcontents.Read(clientKey)
+		if err != nil {
+			if wasPath {
+				return fmt.Errorf("error reading key from file %s", clientKey)
+			} else {
+				return fmt.Errorf("error reading key %+v", err)
+			}
+		}
+		clientCertContents, wasPath, err := pathorcontents.Read(clientCert)
+		if err != nil {
+			if wasPath {
+				return fmt.Errorf("error reading cert from file %s %+v", clientCert, err)
+			} else {
+				return fmt.Errorf("error reading certificate %+v", err)
+			}
+		}
+
+		block, r := pem.Decode([]byte(clientKeyContents))
+		if block == nil {
+			return fmt.Errorf("error decoding client key. Not a valid key. Rest: %+v", r)
+		}
+		clientKeyPassword := data.Get("tls_client_key_password").(string)
+		var certPair tls.Certificate
+		if block.Type == "ENCRYPTED PRIVATE KEY" || x509.IsEncryptedPEMBlock(block) {
+			var key interface{}
+			var err error
+			key, err = pkcs8.ParsePKCS8PrivateKey(block.Bytes, []byte(clientKeyPassword))
+			var pemData []byte
+			if err == nil {
+				switch key.(type) {
+				case *rsa.PrivateKey:
+					rsaKey, ok := key.(*rsa.PrivateKey)
+					if !ok {
+						return fmt.Errorf("Error casting key to rsa.PrivateKey. Typeof key: %s", reflect.TypeOf(key))
+					}
+					pkcs8Key, err := x509.MarshalPKCS8PrivateKey(rsaKey)
+					if err != nil {
+						return fmt.Errorf("Error marshalling key %+v", err)
+					}
+					pemData = pem.EncodeToMemory(
+						&pem.Block{
+							Type:  "RSA PRIVATE KEY",
+							Bytes: pkcs8Key,
+						},
+					)
+				case *ecdsa.PrivateKey:
+					ecdsaKey, ok := key.(*ecdsa.PrivateKey)
+					if !ok {
+						return fmt.Errorf("Error casting key to ecdsa.PrivateKey. Typeof key: %s", reflect.TypeOf(key))
+					}
+					pkcs8Key, err := x509.MarshalECPrivateKey(ecdsaKey)
+					if err != nil {
+						return fmt.Errorf("Error marshalling key %+v", err)
+					}
+					pemData = pem.EncodeToMemory(
+						&pem.Block{
+							Type:  "PRIVATE KEY",
+							Bytes: pkcs8Key,
+						},
+					)
+
+				default:
+					return fmt.Errorf("unsupported type %+v", reflect.TypeOf(key))
+				}
+				certPair, err = tls.X509KeyPair([]byte(clientCertContents), pemData)
+				if err != nil {
+					return fmt.Errorf("Error parsing a public/private key pair from pkcs8 encrypted block: %s", err)
+				}
+			} else {
+				der, err := x509.DecryptPEMBlock(block, []byte(clientKeyPassword))
+				if err != nil {
+					return fmt.Errorf("decrypt failed: %+v", err)
+				}
+				pkcs1Key, err := x509.ParsePKCS1PrivateKey(der)
+				if err != nil {
+					return fmt.Errorf("Error marshalling key %+v", err)
+				}
+				pkcs1KeyBytes := x509.MarshalPKCS1PrivateKey(pkcs1Key)
+				pemData = pem.EncodeToMemory(
+					&pem.Block{
+						Type:    "RSA PRIVATE KEY",
+						Bytes:   pkcs1KeyBytes,
+						Headers: block.Headers,
+					},
+				)
+				if err != nil {
+					return fmt.Errorf("invalid private key: %+v", err)
+				}
+				certPair, err = tls.X509KeyPair([]byte(clientCertContents), pemData)
+				if err != nil {
+					return fmt.Errorf("error parsing certificate + encrypted pkcs1 key %+v", err)
+				}
+			}
+		} else {
+			certPair, err = tls.X509KeyPair([]byte(clientCert), []byte(clientKey))
+			if err != nil {
+				return fmt.Errorf("error parsing certificates %+v . Block: %#v", err, block.Headers)
+			}
+		}
+		config.Certificates = []tls.Certificate{certPair}
+		config.BuildNameToCertificate()
+		client.Transport.(*http.Transport).TLSClientConfig = config
 	}
 
 	b.client = &httpClient{
