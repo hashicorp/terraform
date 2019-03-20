@@ -807,6 +807,49 @@ var MergeFunc = function.New(&function.Spec{
 	},
 })
 
+// ReverseFunc takes a sequence and produces a new sequence of the same length
+// with all of the same elements as the given sequence but in reverse order.
+var ReverseFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "list",
+			Type: cty.DynamicPseudoType,
+		},
+	},
+	Type: func(args []cty.Value) (cty.Type, error) {
+		argTy := args[0].Type()
+		switch {
+		case argTy.IsTupleType():
+			argTys := argTy.TupleElementTypes()
+			retTys := make([]cty.Type, len(argTys))
+			for i, ty := range argTys {
+				retTys[len(retTys)-i-1] = ty
+			}
+			return cty.Tuple(retTys), nil
+		case argTy.IsListType(), argTy.IsSetType(): // We accept sets here to mimic the usual behavior of auto-converting to list
+			return cty.List(argTy.ElementType()), nil
+		default:
+			return cty.NilType, function.NewArgErrorf(0, "can only reverse list or tuple values, not %s", argTy.FriendlyName())
+		}
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		in := args[0].AsValueSlice()
+		outVals := make([]cty.Value, len(in))
+		for i, v := range in {
+			outVals[len(outVals)-i-1] = v
+		}
+		switch {
+		case retType.IsTupleType():
+			return cty.TupleVal(outVals), nil
+		default:
+			if len(outVals) == 0 {
+				return cty.ListValEmpty(retType.ElementType()), nil
+			}
+			return cty.ListVal(outVals), nil
+		}
+	},
+})
+
 // SetProductFunc calculates the cartesian product of two or more sets or
 // sequences. If the arguments are all lists then the result is a list of tuples,
 // preserving the ordering of all of the input lists. Otherwise the result is a
@@ -1290,6 +1333,12 @@ func Matchkeys(values, keys, searchset cty.Value) (cty.Value, error) {
 // the argument sequence takes precedence.
 func Merge(maps ...cty.Value) (cty.Value, error) {
 	return MergeFunc.Call(maps)
+}
+
+// Reverse takes a sequence and produces a new sequence of the same length
+// with all of the same elements as the given sequence but in reverse order.
+func Reverse(list cty.Value) (cty.Value, error) {
+	return ReverseFunc.Call([]cty.Value{list})
 }
 
 // SetProduct computes the cartesian product of sets or sequences.
