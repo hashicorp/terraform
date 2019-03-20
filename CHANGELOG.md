@@ -3,6 +3,7 @@
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
 * The `terraform state ...` family of commands have all been adjusted to more consistently match how resource addresses are resolved elsewhere in Terraform. In general the matches are now _more_ specific than they were before (matching less, rather than more) but if you are using any of those commands in existing automation please verify that you will still getting expected behavior using the `-dry-run` options.
+* The `project` and `region` arguments for the `gcs` backend have now been removed, after having first been deprecated and then ignored in previous versions. These arguments are no longer needed because the backend expects the specified bucket to already exist. [GH-19285]
 
 IMPROVEMENTS:
 
