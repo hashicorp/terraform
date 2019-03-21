@@ -16,7 +16,7 @@ earlier, see
 
 The JSON encoding is defined in [RFC 7159](https://tools.ietf.org/html/rfc7159).
 
-This fucntion maps
+This function maps
 [Terraform language values](../expressions.html#types-and-values)
 to JSON values in the following way:
 

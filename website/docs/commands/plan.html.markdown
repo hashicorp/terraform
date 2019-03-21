@@ -113,7 +113,7 @@ large configurations, prefer instead to break large configurations into
 several smaller configurations that can each be independently applied.
 [Data sources](/docs/configuration/data-sources.html) can be used to access
 information about resources created in other configurations, allowing
-a complex system architecture to be broken down into more managable parts
+a complex system architecture to be broken down into more manageable parts
 that can be updated independently.
 
 ## Security Warning

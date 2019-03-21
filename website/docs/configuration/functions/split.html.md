@@ -4,7 +4,7 @@ page_title: "split - Functions - Configuration Language"
 sidebar_current: "docs-funcs-string-split"
 description: |-
   The split function produces a list by dividing a given string at all
-  occurences of a given separator.
+  occurrences of a given separator.
 ---
 
 # `split` Function
@@ -13,7 +13,7 @@ description: |-
 earlier, see
 [0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
 
-`split` produces a list by dividing a given string at all occurences of a
+`split` produces a list by dividing a given string at all occurrences of a
 given separator.
 
 ```hcl

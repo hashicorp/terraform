@@ -36,7 +36,7 @@ Terraform v0.12.
 
 We recommend using this command in a clean version control work tree, so that
 you can easily see the proposed changes as a diff against the latest commit.
-If you have uncommited changes already present, we recommend aborting this
+If you have uncommitted changes already present, we recommend aborting this
 command and dealing with them before running this command again.
 
 Would you like to upgrade the module in the current directory?

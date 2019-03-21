@@ -96,6 +96,6 @@ longer recommended for use:
 * `providers` - a configuration block that allows specifying the locations of
   specific plugins for each named provider. This mechanism is deprecated
   because it is unable to specify a version number for each plugin, and thus
-  it does not co-operate with the plugin versioning mechansim. Instead,
+  it does not co-operate with the plugin versioning mechanism. Instead,
   place the plugin executable files in
   [the third-party plugins directory](/docs/configuration/providers.html#third-party-plugins).

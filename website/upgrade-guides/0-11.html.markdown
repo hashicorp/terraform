@@ -270,7 +270,7 @@ configurations, see [_Providers Within Modules_](/docs/configuration-0-11/module
 
 ## Error Checking for Output Values
 
-Prior to Terraform 0.11, if an error occured when evaluating the `value`
+Prior to Terraform 0.11, if an error occurred when evaluating the `value`
 expression within an `output` block then it would be silently ignored and
 the empty string used as the result. This was inconvenient because it made it
 very hard to debug errors within output expressions.
