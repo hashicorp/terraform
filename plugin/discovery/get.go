@@ -30,12 +30,6 @@ import (
 
 const protocolVersionHeader = "x-terraform-protocol-version"
 
-const gpgVerificationError = `GPG signature verification error:
-Terraform was unable to verify the GPG signature of the downloaded provider
-files using the keys downloaded from the Terraform Registry. This may mean that
-the publisher of the provider removed the key it was signed with, or that the
-distributed files were changed after this version was released.`
-
 var httpClient *http.Client
 
 var errVersionNotFound = errors.New("version not found")
@@ -205,6 +199,16 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, t
 	providerURL := downloadURLs.DownloadURL
 
 	if !i.SkipVerify {
+		// Terraform verifies the integrity of a provider release before downloading
+		// the plugin binary. The digital signature (SHA256SUMS.sig) on the
+		// release distribution (SHA256SUMS) is verified with the public key of the
+		// publisher provided in the Terraform Registry response, ensuring that
+		// everything is as intended by the publisher. The checksum of the provider
+		// plugin is expected in the SHA256SUMS file and is double checked to match
+		// the checksum of the original published release to the Registry. This
+		// enforces immutability of releases between the Registry and the plugin's
+		// host location. Lastly, the integrity of the binary is verified upon
+		// download matches the Registry and signed checksum.
 		sha256, err := i.getProviderChecksum(downloadURLs)
 		if err != nil {
 			return PluginMeta{}, diags, err
@@ -391,25 +395,27 @@ func (i *ProviderInstaller) PurgeUnused(used map[string]PluginMeta) (PluginMetaS
 	return removed, errs
 }
 
-func (i *ProviderInstaller) getProviderChecksum(urls *response.TerraformProviderPlatformLocation) (string, error) {
+func (i *ProviderInstaller) getProviderChecksum(resp *response.TerraformProviderPlatformLocation) (string, error) {
 	// Get SHA256SUMS file.
-	shasums, err := getFile(urls.ShasumsURL)
+	shasums, err := getFile(resp.ShasumsURL)
 	if err != nil {
-		return "", fmt.Errorf("error fetching checksums: %s", err)
+		log.Printf("[ERROR] error fetching checksums from %q: %s", resp.ShasumsURL, err)
+		return "", ErrorMissingChecksumVerification
 	}
 
 	// Get SHA256SUMS.sig file.
-	signature, err := getFile(urls.ShasumsSignatureURL)
+	signature, err := getFile(resp.ShasumsSignatureURL)
 	if err != nil {
-		return "", fmt.Errorf("error fetching checksums signature: %s", err)
+		log.Printf("[ERROR] error fetching checksums signature from %q: %s", resp.ShasumsSignatureURL, err)
+		return "", ErrorSignatureVerification
 	}
 
 	// Verify the GPG signature returned from the Registry.
-	asciiArmor := urls.SigningKeys.GPGASCIIArmor()
+	asciiArmor := resp.SigningKeys.GPGASCIIArmor()
 	signer, err := verifySig(shasums, signature, asciiArmor)
 	if err != nil {
 		log.Printf("[ERROR] error verifying signature: %s", err)
-		return "", fmt.Errorf(gpgVerificationError)
+		return "", ErrorSignatureVerification
 	}
 
 	// Also verify the GPG signature against the HashiCorp public key. This is
@@ -418,7 +424,7 @@ func (i *ProviderInstaller) getProviderChecksum(urls *response.TerraformProvider
 	_, err = verifySig(shasums, signature, HashicorpPublicKey)
 	if err != nil {
 		log.Printf("[ERROR] error verifying signature against HashiCorp public key: %s", err)
-		return "", fmt.Errorf(gpgVerificationError)
+		return "", ErrorSignatureVerification
 	}
 
 	// Display identity for GPG key which succeeded verifying the signature.
@@ -430,8 +436,17 @@ func (i *ProviderInstaller) getProviderChecksum(urls *response.TerraformProvider
 	identity := strings.Join(identities, ", ")
 	log.Printf("[DEBUG] verified GPG signature with key from %s", identity)
 
-	// Extract checksum for this os/arch platform binary.
-	return checksumForFile(shasums, urls.Filename), nil
+	// Extract checksum for this os/arch platform binary and verify against Registry
+	checksum := checksumForFile(shasums, resp.Filename)
+	if checksum == "" {
+		log.Printf("[ERROR] missing checksum for %s from source %s", resp.Filename, resp.ShasumsURL)
+		return "", ErrorMissingChecksumVerification
+	} else if checksum != resp.Shasum {
+		log.Printf("[ERROR] unexpected checksum for %s from source %q", resp.Filename, resp.ShasumsURL)
+		return "", ErrorChecksumVerification
+	}
+
+	return checksum, nil
 }
 
 func (i *ProviderInstaller) hostname() (string, error) {
