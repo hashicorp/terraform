@@ -316,7 +316,7 @@ mapping rules that apply to each top-level block type.
 
 Some meta-arguments for the `resource` and `data` block types take direct
 references to objects, or literal keywords. When represented in JSON, the
-reference or keyword is given as a JSON string with no additonal surrounding
+reference or keyword is given as a JSON string with no additional surrounding
 spaces or symbols.
 
 For example, the `provider` meta-argument takes a `<PROVIDER>.<ALIAS>` reference

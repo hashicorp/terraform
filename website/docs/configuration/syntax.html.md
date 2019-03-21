@@ -88,7 +88,7 @@ require none as with the nested `network_interface` block type.
 
 After the block type keyword and any labels, the block _body_ is delimited
 by the `{` and `}` characters. Within the block body, further arguments
-and blocks may be nested, creating a heirarchy of blocks and their associated
+and blocks may be nested, creating a hierarchy of blocks and their associated
 arguments.
 
 The Terraform language uses a limited number of _top-level block types,_ which
