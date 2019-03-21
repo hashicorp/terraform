@@ -606,13 +606,14 @@ func TestProviderChecksum(t *testing.T) {
 
 	tests := []struct {
 		Name string
-		URLs *response.TerraformProviderPlatformLocation
+		Resp *response.TerraformProviderPlatformLocation
 		Err  bool
 	}{
 		{
 			"good",
 			&response.TerraformProviderPlatformLocation{
 				Filename:            "terraform-provider-template_0.1.0_darwin_amd64.zip",
+				Shasum:              "3c3e7df78b1f0161a3f941c271d5501f7b5e5f2c53738e7a371459712f5d4726",
 				ShasumsURL:          "http://127.0.0.1:8080/terraform-provider-template/0.1.0/terraform-provider-template_0.1.0_SHA256SUMS",
 				ShasumsSignatureURL: "http://127.0.0.1:8080/terraform-provider-template/0.1.0/terraform-provider-template_0.1.0_SHA256SUMS.sig",
 				SigningKeys: response.SigningKeyList{
@@ -653,32 +654,68 @@ func TestProviderChecksum(t *testing.T) {
 			},
 			true,
 		},
+		{
+			"mismatch checksum",
+			&response.TerraformProviderPlatformLocation{
+				Filename:            "terraform-provider-template_0.1.0_darwin_amd64.zip",
+				Shasum:              "force mismatch",
+				ShasumsURL:          "http://127.0.0.1:8080/terraform-provider-template/0.1.0/terraform-provider-template_0.1.0_SHA256SUMS",
+				ShasumsSignatureURL: "http://127.0.0.1:8080/terraform-provider-template/0.1.0/terraform-provider-template_0.1.0_SHA256SUMS.sig",
+				SigningKeys: response.SigningKeyList{
+					GPGKeys: []*response.GPGKey{
+						&response.GPGKey{
+							ASCIIArmor: string(hashicorpKey),
+						},
+					},
+				},
+			},
+			true,
+		},
+		{
+			"missing checksum for file",
+			&response.TerraformProviderPlatformLocation{
+				Filename:            "terraform-provider-template_0.1.0_darwin_amd64_missing_checksum.zip",
+				Shasum:              "checksum",
+				ShasumsURL:          "http://127.0.0.1:8080/terraform-provider-template/0.1.0/terraform-provider-template_0.1.0_SHA256SUMS",
+				ShasumsSignatureURL: "http://127.0.0.1:8080/terraform-provider-template/0.1.0/terraform-provider-template_0.1.0_SHA256SUMS.sig",
+				SigningKeys: response.SigningKeyList{
+					GPGKeys: []*response.GPGKey{
+						&response.GPGKey{
+							ASCIIArmor: string(hashicorpKey),
+						},
+					},
+				},
+			},
+			true,
+		},
 	}
 
 	i := ProviderInstaller{}
 
 	for _, test := range tests {
-		sha256sum, err := i.getProviderChecksum(test.URLs)
-		if test.Err {
-			if err == nil {
-				t.Fatal("succeeded; want error")
+		t.Run(test.Name, func(t *testing.T) {
+			sha256sum, err := i.getProviderChecksum(test.Resp)
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
 			}
-			return
-		} else if err != nil {
-			t.Fatalf("unexpected error: %s", err)
-		}
 
-		// get the expected checksum for our os/arch
-		sumData, err := ioutil.ReadFile("testdata/terraform-provider-template_0.1.0_SHA256SUMS")
-		if err != nil {
-			t.Fatal(err)
-		}
+			// get the expected checksum for our os/arch
+			sumData, err := ioutil.ReadFile("testdata/terraform-provider-template_0.1.0_SHA256SUMS")
+			if err != nil {
+				t.Fatal(err)
+			}
 
-		expected := checksumForFile(sumData, test.URLs.Filename)
+			expected := checksumForFile(sumData, test.Resp.Filename)
 
-		if sha256sum != expected {
-			t.Fatalf("expected: %s\ngot %s\n", sha256sum, expected)
-		}
+			if sha256sum != expected {
+				t.Fatalf("expected: %s\ngot %s\n", sha256sum, expected)
+			}
+		})
 	}
 }
 
