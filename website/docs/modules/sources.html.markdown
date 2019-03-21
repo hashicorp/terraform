@@ -203,7 +203,7 @@ suitable credentials for that repository.
 
 If you use the SSH protocol then any configured SSH keys will be used
 automatically. This is the most common way to access non-public Git
-repositories from automated systems beacuse it is easy to configure
+repositories from automated systems because it is easy to configure
 and allows access to private repositories without interactive prompts.
 
 If using the HTTP/HTTPS protocol, or any other protocol that uses
@@ -250,7 +250,7 @@ with suitable credentials for that repository.
 
 If you use the SSH protocol then any configured SSH keys will be used
 automatically. This is the most common way to access non-public Mercurial
-repositories from automated systems beacuse it is easy to configure
+repositories from automated systems because it is easy to configure
 and allows access to private repositories without interactive prompts.
 
 If your Terraform configuration will be used within [Terraform Enterprise](https://www.hashicorp.com/products/terraform),

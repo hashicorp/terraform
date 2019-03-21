@@ -81,7 +81,7 @@ During init, the root configuration directory is consulted for
 [backend configuration](/docs/backends/config.html) and the chosen backend
 is initialized using the given configuration settings.
 
-Re-running init with an already-initalized backend will update the working
+Re-running init with an already-initialized backend will update the working
 directory to use the new backend settings. Depending on what changed, this
 may result in interactive prompts to confirm migration of workspace states.
 The `-force-copy` option suppresses these prompts and answers "yes" to the

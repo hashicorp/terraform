@@ -220,7 +220,7 @@ output "hostname" {
 ```
 
 You can then write _other_ modules that expect only a Kubernetes cluster
-hostname as input and use them interchangably with any of your Kubernetes
+hostname as input and use them interchangeably with any of your Kubernetes
 cluster modules:
 
 ```hcl
