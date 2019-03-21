@@ -19,7 +19,18 @@ import (
 // If any errors occur during upgrade, error diagnostics are returned. In that
 // case it is not safe to proceed with using the original state object.
 func UpgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Interface, src *states.ResourceInstanceObjectSrc, currentSchema *configschema.Block, currentVersion uint64) (*states.ResourceInstanceObjectSrc, tfdiags.Diagnostics) {
-	if src.SchemaVersion == currentVersion {
+	currentTy := currentSchema.ImpliedType()
+
+	// If the state is currently in flatmap format and the current schema
+	// contains DynamicPseudoType attributes then we won't be able to convert
+	// it to JSON without the provider's help even if the schema version matches,
+	// since only the provider knows how to interpret the dynamic attribute
+	// value in flatmap format to convert it to JSON.
+	schemaHasDynamic := currentTy.HasDynamicTypes()
+	stateIsFlatmap := len(src.AttrsJSON) == 0
+	forceProviderUpgrade := schemaHasDynamic && stateIsFlatmap
+
+	if src.SchemaVersion == currentVersion && !forceProviderUpgrade {
 		// No upgrading required, then.
 		return src, nil
 	}
@@ -62,10 +73,10 @@ func UpgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Int
 		Version: int64(src.SchemaVersion),
 	}
 
-	if len(src.AttrsJSON) != 0 {
-		req.RawStateJSON = src.AttrsJSON
-	} else {
+	if stateIsFlatmap {
 		req.RawStateFlatmap = src.AttrsFlat
+	} else {
+		req.RawStateJSON = src.AttrsJSON
 	}
 
 	resp := provider.UpgradeResourceState(req)
