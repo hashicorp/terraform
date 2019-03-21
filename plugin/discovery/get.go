@@ -211,6 +211,16 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, t
 	providerURL := downloadURLs.DownloadURL
 
 	if !i.SkipVerify {
+		// Terraform verifies the integrity of a provider release before downloading
+		// the plugin binary. The digital signature (SHA256SUMS.sig) on the
+		// release distribution (SHA256SUMS) is verified with the public key of the
+		// publisher provided in the Terraform Registry response, ensuring that
+		// everything is as intended by the publisher. The checksum of the provider
+		// plugin is expected in the SHA256SUMS file and is double checked to match
+		// the checksum of the original published release to the Registry. This
+		// enforces immutability of releases between the Registry and the plugin's
+		// host location. Lastly, the integrity of the binary is verified upon
+		// download matches the Registry and signed checksum.
 		sha256, err := i.getProviderChecksum(downloadURLs)
 		if err != nil {
 			return PluginMeta{}, diags, err
