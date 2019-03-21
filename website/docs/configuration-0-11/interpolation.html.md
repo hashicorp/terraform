@@ -184,7 +184,7 @@ The supported built-in functions are:
     **This is not equivalent** of `base64encode(sha512(string))`
     since `sha512()` returns hexadecimal representation.
 
-  * `bcrypt(password, cost)` - Returns the Blowfish encrypted hash of the string 
+  * `bcrypt(password, cost)` - Returns the Blowfish encrypted hash of the string
     at the given cost. A default `cost` of 10 will be used if not provided.
 
   * `ceil(float)` - Returns the least integer value greater than or equal
@@ -411,9 +411,9 @@ The supported built-in functions are:
    invocation of the function, so in order to prevent diffs on every plan & apply, it must be used with the
    [`ignore_changes`](./resources.html#ignore-changes) lifecycle attribute.
 
-  * `timeadd(time, duration)` - Returns a UTC timestamp string corresponding to adding a given `duration` to `time` in RFC 3339 format.      
-    For example, `timeadd("2017-11-22T00:00:00Z", "10m")` produces a value `"2017-11-22T00:10:00Z"`. 
-    
+  * `timeadd(time, duration)` - Returns a UTC timestamp string corresponding to adding a given `duration` to `time` in RFC 3339 format.
+    For example, `timeadd("2017-11-22T00:00:00Z", "10m")` produces a value `"2017-11-22T00:10:00Z"`.
+
   * `title(string)` - Returns a copy of the string with the first characters of all the words capitalized.
 
   * `transpose(map)` - Swaps the keys and list values in a map of lists of strings. For example, transpose(map("a", list("1", "2"), "b", list("2", "3")) produces a value equivalent to map("1", list("a"), "2", list("a", "b"), "3", list("b")).
@@ -451,14 +451,20 @@ Terraform 0.12 and later.
 Long strings can be managed using templates.
 [Templates](/docs/providers/template/index.html) are
 [data-sources](./data-sources.html) defined by a
-filename and some variables to use during interpolation. They have a
-computed `rendered` attribute containing the result.
+string with interpolation tokens (usually loaded from a file) and some variables
+to use during interpolation. They have a computed `rendered` attribute
+containing the result.
 
 A template data source looks like:
 
 ```hcl
+# templates/greeting.tpl
+${hello} ${world}!
+```
+
+```hcl
 data "template_file" "example" {
-  template = "$${hello} $${world}!"
+  template = "${file("templates/greeting.tpl")}"
   vars {
     hello = "goodnight"
     world = "moon"
@@ -472,7 +478,12 @@ output "rendered" {
 
 Then the rendered value would be `goodnight moon!`.
 
-Note that the double dollar signs (`$$`) are needed in inline templates. Otherwise Terraform will return an error.
+-> **Note:** If you specify the template as a literal string instead of loading
+a file, the inline template must use double dollar signs (like `$${hello}`) to
+prevent Terraform from interpolating values from the configuration into the
+string. This is because `template_file` creates its own instance of the
+interpolation system, with values provided by its nested `vars` block instead of
+by the surrounding scope of the configuration.
 
 You may use any of the built-in functions in your template. For more
 details on template usage, please see the
