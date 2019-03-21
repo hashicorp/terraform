@@ -35,6 +35,22 @@ const ErrorNoSuchProvider = Error("no provider exists with the given name")
 // requested platform
 const ErrorNoVersionCompatibleWithPlatform = Error("no available version is compatible for the requested platform")
 
+// ErrorMissingChecksumVerification indicates that either the provider
+// distribution is missing the SHA256SUMS file or the checksum file does
+// not contain a checksum for the binary plugin
+const ErrorMissingChecksumVerification = Error("unable to verify checksum")
+
+// ErrorChecksumVerification indicates that the current checksum of the
+// provider plugin has changed since the initial release and is not trusted
+// to download
+const ErrorChecksumVerification = Error("unexpected plugin checksum")
+
+// ErrorSignatureVerification indicates that the digital signature for a
+// provider distribution could not be verified for one of the following
+// reasons: missing signature file, missing public key, or the signature
+// was not signed by any known key for the publisher
+const ErrorSignatureVerification = Error("unable to verify signature")
+
 func (err Error) Error() string {
 	return string(err)
 }
