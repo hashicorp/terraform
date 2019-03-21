@@ -36,6 +36,12 @@ files using the keys downloaded from the Terraform Registry. This may mean that
 the publisher of the provider removed the key it was signed with, or that the
 distributed files were changed after this version was released.`
 
+const checksumVerificationError = `Checksum verification error:
+The checksum for provider distribution %q from the Terraform Registry
+did not match the source (%s).
+This may mean that the distributed files were changed after this version
+was released.`
+
 var httpClient *http.Client
 
 var errVersionNotFound = errors.New("version not found")
@@ -391,21 +397,21 @@ func (i *ProviderInstaller) PurgeUnused(used map[string]PluginMeta) (PluginMetaS
 	return removed, errs
 }
 
-func (i *ProviderInstaller) getProviderChecksum(urls *response.TerraformProviderPlatformLocation) (string, error) {
+func (i *ProviderInstaller) getProviderChecksum(resp *response.TerraformProviderPlatformLocation) (string, error) {
 	// Get SHA256SUMS file.
-	shasums, err := getFile(urls.ShasumsURL)
+	shasums, err := getFile(resp.ShasumsURL)
 	if err != nil {
 		return "", fmt.Errorf("error fetching checksums: %s", err)
 	}
 
 	// Get SHA256SUMS.sig file.
-	signature, err := getFile(urls.ShasumsSignatureURL)
+	signature, err := getFile(resp.ShasumsSignatureURL)
 	if err != nil {
 		return "", fmt.Errorf("error fetching checksums signature: %s", err)
 	}
 
 	// Verify the GPG signature returned from the Registry.
-	asciiArmor := urls.SigningKeys.GPGASCIIArmor()
+	asciiArmor := resp.SigningKeys.GPGASCIIArmor()
 	signer, err := verifySig(shasums, signature, asciiArmor)
 	if err != nil {
 		log.Printf("[ERROR] error verifying signature: %s", err)
@@ -430,8 +436,13 @@ func (i *ProviderInstaller) getProviderChecksum(urls *response.TerraformProvider
 	identity := strings.Join(identities, ", ")
 	log.Printf("[DEBUG] verified GPG signature with key from %s", identity)
 
-	// Extract checksum for this os/arch platform binary.
-	return checksumForFile(shasums, urls.Filename), nil
+	// Extract checksum for this os/arch platform binary and verify against Registry
+	checksum := checksumForFile(shasums, resp.Filename)
+	if checksum == "" || checksum != resp.Shasum {
+		return "", fmt.Errorf(checksumVerificationError, resp.Filename, resp.ShasumsURL)
+	}
+
+	return checksum, nil
 }
 
 func (i *ProviderInstaller) hostname() (string, error) {
