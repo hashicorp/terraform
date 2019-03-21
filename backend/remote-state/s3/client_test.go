@@ -226,7 +226,7 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 	}
 	client1 := s1.(*remote.State).Client
 
-	// create a old and new state version to persist
+	// create an old and new state version to persist
 	s := state.TestStateInitial()
 	sf := &statefile.File{State: s}
 	var oldState bytes.Buffer

@@ -35,7 +35,7 @@ type Communicator interface {
 	// Upload is used to upload a single file
 	Upload(string, io.Reader) error
 
-	// UploadScript is used to upload a file as a executable script
+	// UploadScript is used to upload a file as an executable script
 	UploadScript(string, io.Reader) error
 
 	// UploadDir is used to upload a directory

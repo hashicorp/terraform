@@ -1556,7 +1556,7 @@ func TestMetaBackend_planLocalStatePath(t *testing.T) {
 	// Create an alternate output path
 	statePath := "foo.tfstate"
 
-	// put a initial state there that needs to be backed up
+	// put an initial state there that needs to be backed up
 	err = (statemgr.NewFilesystem(statePath)).WriteState(original)
 	if err != nil {
 		t.Fatal(err)
