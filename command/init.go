@@ -532,6 +532,11 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 				case err == discovery.ErrorNoVersionCompatible:
 					// Generic version incompatible msg
 					c.Ui.Error(fmt.Sprintf(errProviderIncompatible, provider, constraint))
+				case err == discovery.ErrorSignatureVerification:
+					c.Ui.Error(fmt.Sprintf(errSignatureVerification, provider))
+				case err == discovery.ErrorChecksumVerification,
+					err == discovery.ErrorMissingChecksumVerification:
+					c.Ui.Error(fmt.Sprintf(errChecksumVerification, provider))
 				default:
 					c.Ui.Error(fmt.Sprintf(errProviderInstallError, provider, err.Error(), DefaultPluginVendorDir))
 				}
@@ -928,7 +933,7 @@ const errProviderInstallError = `
 
 Terraform analyses the configuration and state and automatically downloads
 plugins for the providers used. However, when attempting to download this
-plugin an unexpected error occured.
+plugin an unexpected error occurred.
 
 This may be caused if for some reason Terraform is unable to reach the
 plugin repository. The repository may be unreachable if access is blocked
@@ -958,4 +963,19 @@ and placing the plugin's executable file in one of the directories given in
 by -plugin-dir on the command line, or in the following directory if custom
 plugin directories are not set:
     %[2]s
+`
+
+const errChecksumVerification = `
+[reset][bold][red]Error verifying checksum for provider %[1]q[reset][red]
+The checksum for provider distribution from the Terraform Registry
+did not match the source. This may mean that the distributed files
+were changed after this version was released to the Registry.
+`
+
+const errSignatureVerification = `
+[reset][bold][red]Error verifying GPG signature for provider %[1]q[reset][red]
+Terraform was unable to verify the GPG signature of the downloaded provider
+files using the keys downloaded from the Terraform Registry. This may mean that
+the publisher of the provider removed the key it was signed with, or that the
+distributed files were changed after this version was released.
 `
