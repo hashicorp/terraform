@@ -23,7 +23,7 @@ The attributes are listed in alphabetical order (with the except of "id"
 which is always at the top). They are outputted in a way that is easy
 to parse on the command-line.
 
-This command requires a address that points to a single resource in the
+This command requires an address that points to a single resource in the
 state. Addresses are
 in [resource addressing format](/docs/commands/state/addressing.html).
 
