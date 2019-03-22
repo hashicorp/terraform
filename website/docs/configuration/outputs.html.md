@@ -41,9 +41,10 @@ output "instance_ip_addr" {
 }
 ```
 
-The label immediately after the `output` keyword is the name that can be used
-to access this output in the parent module, if any, or the name that will be
-displayed to the user for output values in the root module.
+The label immediately after the `output` keyword is the name, which must be a
+valid [identifier](./syntax.html#identifiers). In a root module, this name is
+displayed to the user; in a child module, it can be used to access the output's
+value.
 
 The `value` argument takes an [expression](./expressions.html)
 whose result is to be returned to the user. In this example, the expression
@@ -51,10 +52,18 @@ refers to the `private_ip` attribute exposed by an `aws_instance` resource
 defined elsewhere in this module (not shown). Any valid expression is allowed
 as an output value.
 
-Several other optional arguments are allowed within `output` blocks. These
-will be described in the following sections.
+## Accessing Child Module Outputs
 
-## Output Value Documentation
+In a parent module, outputs of child modules are available in expressions as
+`module.<MODULE NAME>.<OUTPUT NAME>`. For example, if a child module named
+`web_server` declared an output named `instance_ip_addr`, you could access that
+value as `module.web_server.instance_ip_addr`.
+
+## Optional Arguments
+
+`output` blocks can optionally include `description`, `sensitive`, and `depends_on` arguments, which are described in the following sections.
+
+### `description` — Output Value Documentation
 
 Because the output values of a module are part of its user interface, you can
 briefly describe the purpose of each value using the optional `description`
@@ -73,7 +82,7 @@ string might be included in documentation about the module, and so it should be
 written from the perspective of the user of the module rather than its
 maintainer. For commentary for module maintainers, use comments.
 
-## Sensitive Output Values
+### `sensitive` — Suppressing Values in CLI Output
 
 An output can be marked as containing sensitive material using the optional
 `sensitive` argument:
@@ -96,7 +105,7 @@ Sensitive output values are still recorded in the
 to access the state data. For more information, see
 [_Sensitive Data in State_](/docs/state/sensitive-data.html).
 
-## Output Dependencies
+### `depends_on` — Explicit Output Dependencies
 
 Since output values are just a means for passing data out of a module, it is
 usually not necessary to worry about their relationships with other nodes in
