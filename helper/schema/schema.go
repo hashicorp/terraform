@@ -781,6 +781,10 @@ func (m schemaMap) internalValidate(topSchemaMap schemaMap, attrsOnly bool) erro
 			return fmt.Errorf("%s: SkipCoreTypeCheck must be false unless ConfigMode is attribute", k)
 		}
 
+		if isBlock && v.Computed && v.Optional {
+			return fmt.Errorf("%s: nested block cannot be both Computed and Optional; consider unsetting Computed and exporting defaults in a separate attribute, or use ConfigMode: SchemaConfigModeAttr to force attribute syntax so that both unset and empty can be represented", k)
+		}
+
 		if v.Computed && v.Default != nil {
 			return fmt.Errorf("%s: Default must be nil if computed", k)
 		}

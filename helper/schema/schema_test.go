@@ -3986,6 +3986,45 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 			},
 			true, // Unexpected error occurred: block: MaxItems and MinItems are only supported on lists or sets
 		},
+
+		"Optional+Computed nested block": {
+			map[string]*Schema{
+				"block": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"sub": &Schema{
+								Type:     TypeString,
+								Optional: true,
+							},
+						},
+					},
+				},
+			},
+			true, // nested block cannot be both Computed and Optional
+		},
+
+		"Optional+Computed nested resource as attribute": {
+			map[string]*Schema{
+				"block": &Schema{
+					Type:       TypeString,
+					ConfigMode: SchemaConfigModeAttr,
+					Optional:   true,
+					Computed:   true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"sub": &Schema{
+								Type:     TypeString,
+								Optional: true,
+							},
+						},
+					},
+				},
+			},
+			false, // Optional+Computed is fine in attribute mode
+		},
 	}
 
 	for tn, tc := range cases {
