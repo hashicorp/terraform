@@ -3,6 +3,7 @@ package hcl2shim
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -365,5 +366,43 @@ func TestRequiresReplace(t *testing.T) {
 		})
 
 	}
+}
 
+func TestFlatmapKeyFromPath(t *testing.T) {
+	for i, tc := range []struct {
+		path cty.Path
+		attr string
+	}{
+		{
+			path: cty.Path{
+				cty.GetAttrStep{Name: "force_new"},
+			},
+			attr: "force_new",
+		},
+		{
+			path: cty.Path{
+				cty.GetAttrStep{Name: "attr"},
+				cty.IndexStep{Key: cty.NumberIntVal(0)},
+				cty.GetAttrStep{Name: "force_new"},
+			},
+			attr: "attr.0.force_new",
+		},
+		{
+			path: cty.Path{
+				cty.GetAttrStep{Name: "attr"},
+				cty.IndexStep{Key: cty.StringVal("key")},
+				cty.GetAttrStep{Name: "obj_attr"},
+				cty.IndexStep{Key: cty.NumberIntVal(0)},
+				cty.GetAttrStep{Name: "force_new"},
+			},
+			attr: "attr.key.obj_attr.0.force_new",
+		},
+	} {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			attr := FlatmapKeyFromPath(tc.path)
+			if attr != tc.attr {
+				t.Fatalf("expected:%q got:%q", tc.attr, attr)
+			}
+		})
+	}
 }
