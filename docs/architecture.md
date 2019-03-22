@@ -85,7 +85,7 @@ elsewhere.
 
 To execute an operation locally, the `local` backend uses a _state manager_
 (either
-[`state.LocalState`](https://godoc.org/github.com/hashicorp/terraform/state#LocalState) if the
+[`statemgr.Filesystem`](https://godoc.org/github.com/hashicorp/terraform/states/statemgr#Filesystem) if the
 local backend is being used directly, or an implementation provided by whatever
 backend is being wrapped) to retrieve the current state for the workspace
 specified in the operation, then uses the _config loader_ to load and do
@@ -135,23 +135,30 @@ allowing Terraform to interpret them at a more appropriate time.
 
 ## State Manager
 
-A _state manager_ is responsible for storing and retrieving the
+A _state manager_ is responsible for storing and retrieving snapshots of the
 [Terraform state](https://www.terraform.io/docs/state/index.html)
 for a particular workspace. Each manager is an implementation of
-[`state.State`](https://godoc.org/github.com/hashicorp/terraform/state#State)
-provided by a _backend_.
+some combination of interfaces in
+[the `statemgr` package](https://godoc.org/github.com/hashicorp/terraform/states/statemgr),
+with most practical managers implementing the full set of operations
+described by
+[`statemgr.Full`](https://godoc.org/github.com/hashicorp/terraform/states/statemgr#Full)
+provided by a _backend_. The smaller interfaces exist primarily for use in
+other function signatures to be explicit about what actions the function might
+take on the state manager; there is little reason to write a state manager
+that does not implement all of `statemgr.Full`.
 
 The implementation
-[`state.LocalState`](https://godoc.org/github.com/hashicorp/terraform/state#LocalState) is used
+[`statemgr.Filesystem`](https://godoc.org/github.com/hashicorp/terraform/states/statemgr#Filesystem) is used
 by default (by the `local` backend) and is responsible for the familiar
 `terraform.tfstate` local file that most Terraform users start with, before
 they switch to [remote state](https://www.terraform.io/docs/state/remote.html).
-Other implementations of `state.State` are used to implement remote state.
+Other implementations of `statemgr.Full` are used to implement remote state.
 Each of these saves and retrieves state via a remote network service
 appropriate to the backend that creates it.
 
-A state manager accepts and returns state as a
-[`terraform.State`](https://godoc.org/github.com/hashicorp/terraform/terraform#State)
+A state manager accepts and returns a state snapshot as a
+[`states.State`](https://godoc.org/github.com/hashicorp/terraform/states#State)
 object. The state manager is responsible for exactly how that object is
 serialized and stored, but all state managers at the time of writing use
 the same JSON serialization format, storing the resulting JSON bytes in some
@@ -212,7 +219,7 @@ import examples include:
   them.
 
 There are many more different graph transforms, which can be discovered
-by reading the source code for the different graph transformers. Each graph
+by reading the source code for the different graph builders. Each graph
 builder uses a different subset of these depending on the needs of the
 operation that is being performed.
 
@@ -228,8 +235,7 @@ itself is implemented in
 [the low-level `dag` package](https://godoc.org/github.com/hashicorp/terraform/dag#AcyclicGraph.Walk)
 (where "DAG" is short for [_Directed Acyclic Graph_](https://en.wikipedia.org/wiki/Directed_acyclic_graph)), in
 [`AcyclicGraph.Walk`](https://godoc.org/github.com/hashicorp/terraform/dag#AcyclicGraph.Walk).
-However, the "interesting" Terraform walk functionality is implemented
-in
+However, the "interesting" Terraform walk functionality is implemented in
 [`terraform.ContextGraphWalker`](https://godoc.org/github.com/hashicorp/terraform/terraform#ContextGraphWalker),
 which implements a small set of higher-level operations that are performed
 during the graph walk:
@@ -250,13 +256,16 @@ Each vertex in the graph is evaluated, in an order that guarantees that the
 "happens after" edges will be respected. If possible, the graph walk algorithm
 will evaluate multiple vertices concurrently. Vertex evaluation code must
 therefore make careful use of concurrency primitives such as mutexes in order
-to coordinate access to shared objects such as the `terraform.State` object.
+to coordinate access to shared objects such as the `states.State` object.
+In most cases, we use the helper wrapper
+[`states.SyncState`](https://godoc.org/github.com/hashicorp/terraform/states#SyncState)
+to safely implement concurrent reads and writes from the shared state.
 
 ## Vertex Evaluation
 
-The action taken for each vertex during the _graph walk_ is called
-_evaluation_. In practice, evaluation includes any arbitrary action that make
-sense for a particular vertex type.
+The action taken for each vertex during the graph walk is called
+_evaluation_. Evaluation runs a sequence of arbitrary actions that make sense
+for a particular vertex type.
 
 For example, evaluation of a vertex representing a resource instance during
 a plan operation would include the following high-level steps:
@@ -340,29 +349,39 @@ any expressions in the configuration block associated with the vertex. This
 completes the processing of the portions of the configuration that were not
 processed by the configuration loader.
 
-At the time of writing this, the portions of Terraform that handle this
-are in flux in a development branch, and so we cannot currently link to the
-relevant portions of code, but the high-level process for this is:
+The high-level process for expression evaluation is:
 
-* Analyze the configuration expressions to see which other objects they refer
+1. Analyze the configuration expressions to see which other objects they refer
   to. For example, the expression `aws_instance.example[1]` refers to one of
   the instances created by a `resource "aws_instance" "example"` block in
-  configuration.
+  configuration. This analysis is performed by
+  [`lang.References`](https://godoc.org/github.com/hashicorp/terraform/lang#References),
+  or more often one of the helper wrappers around it:
+  [`lang.ReferencesInBlock`](https://godoc.org/github.com/hashicorp/terraform/lang#ReferencesInBlock)
+  or
+  [`lang.ReferencesInExpr`](https://godoc.org/github.com/hashicorp/terraform/lang#ReferencesInExpr)
 
-* Retrieve from the state the data for the objects that are referred to and
+2. Retrieve from the state the data for the objects that are referred to and
   create a lookup table of the values from these objects that the
   HCL evaluation code can refer to.
 
-* Prepare the table of built-in functions so that HCL evaluation can refer to
+3. Prepare the table of built-in functions so that HCL evaluation can refer to
   them.
 
-* Ask HCL to evaluate each attribute's expression (a `hcl.Expression` object)
+4. Ask HCL to evaluate each attribute's expression (a `hcl.Expression` object)
   against the data and function lookup tables.
 
-This produces a dynamic value represented as a
+In practice, steps 2 through 4 are usually run all together using one
+of the methods on [`lang.Scope`](https://godoc.org/github.com/hashicorp/terraform/lang#Scope);
+most commonly,
+[`lang.EvalBlock`](https://godoc.org/github.com/hashicorp/terraform/lang#Scope.EvalBlock)
+or
+[`lang.EvalExpr`](https://godoc.org/github.com/hashicorp/terraform/lang#Scope.EvalExpr).
+
+Expression evaluation produces a dynamic value represented as a
 [`cty.Value`](https://godoc.org/github.com/zclconf/go-cty/cty#Value).
 This Go type represents values from the Terraform language and such values
-are eventually passed to plugins.
+are eventually passed to provider plugins.
 
 ### Sub-graphs
 
