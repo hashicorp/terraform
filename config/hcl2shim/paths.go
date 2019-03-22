@@ -251,3 +251,26 @@ func pathFromFlatmapKeySet(key string, ty cty.Type) (cty.Path, error) {
 	// set as a whole changed.
 	return nil, nil
 }
+
+// FlatmapKeyFromPath returns the flatmap equivalent of the given cty.Path for
+// use in generating legacy style diffs.
+func FlatmapKeyFromPath(path cty.Path) string {
+	var parts []string
+
+	for _, step := range path {
+		switch step := step.(type) {
+		case cty.GetAttrStep:
+			parts = append(parts, step.Name)
+		case cty.IndexStep:
+			switch ty := step.Key.Type(); {
+			case ty == cty.String:
+				parts = append(parts, step.Key.AsString())
+			case ty == cty.Number:
+				i, _ := step.Key.AsBigFloat().Int64()
+				parts = append(parts, strconv.Itoa(int(i)))
+			}
+		}
+	}
+
+	return strings.Join(parts, ".")
+}
