@@ -1,7 +1,7 @@
 ---
 layout: "commands-workspace"
 page_title: "Command: workspace show"
-sidebar_current: "docs-workspace-sub-show"
+sidebar_current: "docs-commands-workspace-sub-show"
 description: |-
   The terraform workspace show command is used to output the current workspace.
 ---
