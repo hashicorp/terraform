@@ -55,7 +55,9 @@ as an output value.
 ## Accessing Child Module Outputs
 
 In a parent module, outputs of child modules are available in expressions as
-`module.<MODULE NAME>.<OUTPUT NAME>`.
+`module.<MODULE NAME>.<OUTPUT NAME>`. For example, if a child module named
+`web_server` declared an output named `instance_ip_addr`, you could access that
+value as `module.web_server.instance_ip_addr`.
 
 ## Optional Arguments
 
@@ -103,7 +105,7 @@ Sensitive output values are still recorded in the
 to access the state data. For more information, see
 [_Sensitive Data in State_](/docs/state/sensitive-data.html).
 
-### `depends_on` — Manual Output Dependencies
+### `depends_on` — Explicit Output Dependencies
 
 Since output values are just a means for passing data out of a module, it is
 usually not necessary to worry about their relationships with other nodes in

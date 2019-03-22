@@ -134,8 +134,8 @@ However, some dependencies cannot be recognized implicitly in configuration. For
 example, if Terraform must manage access control policies _and_ take actions
 that require those policies to be present, there is a hidden dependency between
 the access policy and a resource whose creation depends on it. In these rare
-cases, [the `depends_on` meta-argument](#depends_on-hidden-resource-dependencies)
-can explicitly specify a dependency.
+cases, [the `depends_on` meta-argument][inpage-depend] can explicitly specify a
+dependency.
 
 ## Meta-Arguments
 
@@ -151,14 +151,16 @@ any resource type to change the behavior of resources:
 These arguments often have additional restrictions on what language features can
 be used with them, which are described in each
 
-### `depends_on`: Hidden Resource Dependencies
+### `depends_on`: Explicit Resource Dependencies
 
-[inpage-depend]: #depends_on-hidden-resource-dependencies
+[inpage-depend]: #depends_on-explicit-resource-dependencies
 
 Use the `depends_on` meta-argument to handle hidden resource dependencies that
-Terraform can't automatically infer. Hidden dependencies happen when a resource
-relies on some other resource's behavior but _doesn't_ access any of that
-resource's data in its arguments.
+Terraform can't automatically infer.
+
+Explicitly specifying a dependency is only necessary when a resource relies on
+some other resource's behavior but _doesn't_ access any of that resource's data
+in its arguments.
 
 This argument is available in all `resource` blocks, regardless of resource
 type. For example:
