@@ -2,7 +2,6 @@ package azure
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -203,10 +202,6 @@ func (b *Backend) configure(ctx context.Context) error {
 	armClient, err := buildArmClient(config)
 	if err != nil {
 		return err
-	}
-
-	if config.AccessKey == "" && config.SasToken == "" && config.ResourceGroupName == "" {
-		return fmt.Errorf("Either an Access Key / SAS Token or the Resource Group for the Storage Account must be specified")
 	}
 
 	b.armClient = armClient
