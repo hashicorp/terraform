@@ -61,8 +61,8 @@ The following arguments are supported:
 
 In addition to the above, the following attributes are exported:
 
-* (v0.12+) `outputs` - Each root-level [output](/docs/configuration/outputs.html)
-  in the remote state appears as a top level attribute on the data source.
+* (v0.12+) `outputs` - An object containing every root-level 
+  [output](/docs/configuration/outputs.html) in the remote state.
 * (<= v0.11) `<OUTPUT NAME>` - Each root-level [output](/docs/configuration/outputs.html)
   in the remote state appears as a top level attribute on the data source.
 
