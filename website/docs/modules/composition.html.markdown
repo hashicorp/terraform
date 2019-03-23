@@ -13,7 +13,7 @@ description: |-
    described in this section _do_ apply to earlier versions, but the examples
    shown are using v0.12-only syntax and features. For general information
    on module usage in prior versions, see
-   [/docs/configuration-0-11/modules.html](the v0.11 documentation about modules).
+   [the v0.11 documentation about modules](/docs/configuration-0-11/modules.html).
 
 In a simple Terraform configuration with only one root module, we create a
 flat set of resources and use Terraform's expression syntax to describe the
