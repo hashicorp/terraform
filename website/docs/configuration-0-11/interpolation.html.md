@@ -397,8 +397,8 @@ The supported built-in functions are:
       strings.
       Examples: `sort(aws_instance.foo.*.id)`, `sort(var.list_of_strings)`
 
-  * `split(delim, string)` - Splits the string previously created by `join`
-      back into a list. This is useful for pushing lists through module
+  * `split(delim, string)` - Returns a list by splitting the string based on
+      the delimiter. This is useful for pushing lists through module
       outputs since they currently only support string values. Depending on the
       use, the string this is being performed within may need to be wrapped
       in brackets to indicate that the output is actually a list, e.g.
