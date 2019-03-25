@@ -263,6 +263,10 @@ func getStateFromEnv(b backend.Backend, env string) (*statefile.File, error) {
 		return nil, fmt.Errorf("Failed to load state manager: %s", err)
 	}
 
+	if err := stateStore.RefreshState(); err != nil {
+		return nil, fmt.Errorf("Failed to load state: %s", err)
+	}
+
 	sf := statemgr.Export(stateStore)
 
 	return sf, nil
