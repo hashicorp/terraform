@@ -1,0 +1,19 @@
+{
+    "Modules": [
+        {
+            "Source": "./childC",
+            "Key": "1.childC;./childC",
+            "Version": "",
+            "Dir": ".terraform/modules/a34dacd2c3ffa3a6826b24bc1fdbab34",
+            "Root": ""
+        },
+        {
+            "Source": "./childD",
+            "Key": "1.childD;./childD",
+            "Version": "",
+            "Dir": ".terraform/modules/fbb2lcahc331b9da421bb4b91f341aa8",
+            "Root": ""
+        }
+    ]
+}
+
