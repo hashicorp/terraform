@@ -8,6 +8,10 @@ IMPROVEMENTS:
 * backend/s3: Enhance S3 `NoSuchBucket` error to include additional information [GH-20659]
 * backend/s3: Remove unused EC2 platform and AWS Account ID lookup, and deprecate equivalent `skip_get_ec2_platforms` and `skip_requesting_account_id` arguments [GH-20659]
 
+BUG FIXES:
+
+* core: Fix a potential crash when loading module manifests with Windows paths [GH-20812]
+
 ## 0.11.13 (March 11, 2019)
 
 BUG FIXES:
