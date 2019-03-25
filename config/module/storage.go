@@ -102,19 +102,24 @@ func (s Storage) loadManifest() (moduleManifest, error) {
 		return manifest, err
 	}
 
+	filtered := manifest.Modules[:0]
 	for i, rec := range manifest.Modules {
 		// If the path was recorded before we changed to always using a
-		// slash as separator, we delete the record from the manifest so
+		// slash as separator, we filter the record from the manifest so
 		// it can be discovered again and will be recorded using a slash.
 		if strings.Contains(rec.Dir, "\\") {
-			manifest.Modules[i] = manifest.Modules[len(manifest.Modules)-1]
-			manifest.Modules = manifest.Modules[:len(manifest.Modules)-1]
 			continue
 		}
 
 		// Make sure we use the correct path separator.
 		rec.Dir = filepath.FromSlash(rec.Dir)
+
+		// Add the module to the filtered module slice.
+		filtered = append(filtered, manifest.Modules[i])
 	}
+
+	// Update the manifest modules.
+	manifest.Modules = filtered
 
 	return manifest, nil
 }
@@ -126,18 +131,18 @@ func (s Storage) loadManifest() (moduleManifest, error) {
 func (s Storage) recordModule(rec moduleRecord) error {
 	manifest, err := s.loadManifest()
 	if err != nil {
-		// if there was a problem with the file, we will attempt to write a new
+		// If there was a problem with the file, we will attempt to write a new
 		// one. Any non-data related error should surface there.
 		log.Printf("[WARN] error reading module manifest: %s", err)
 	}
 
-	// do nothing if we already have the exact module
+	// Do nothing if we already have the exact module.
 	for i, stored := range manifest.Modules {
 		if rec == stored {
 			return nil
 		}
 
-		// they are not equal, but if the storage path is the same we need to
+		// They are not equal, but if the storage path is the same we need to
 		// remove this rec to be replaced.
 		if rec.Dir == stored.Dir {
 			manifest.Modules[i] = manifest.Modules[len(manifest.Modules)-1]

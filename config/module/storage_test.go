@@ -52,6 +52,57 @@ func TestGetModule(t *testing.T) {
 	}
 }
 
+func TestManifestLoad_allLinux(t *testing.T) {
+	server := test.Registry()
+	defer server.Close()
+	disco := test.Disco(server)
+
+	storage := NewStorage("test-fixtures/manifest-load/linux-paths", disco)
+
+	manifest, err := storage.loadManifest()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(manifest.Modules) != 2 {
+		t.Fatalf("expected 2 modules, got %+v", manifest.Modules)
+	}
+}
+
+func TestManifestLoad_allWindows(t *testing.T) {
+	server := test.Registry()
+	defer server.Close()
+	disco := test.Disco(server)
+
+	storage := NewStorage("test-fixtures/manifest-load/windows-paths", disco)
+
+	manifest, err := storage.loadManifest()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(manifest.Modules) != 0 {
+		t.Fatalf("expected no modules, got %+v", manifest.Modules)
+	}
+}
+
+func TestManifestLoad_windowsAndLinux(t *testing.T) {
+	server := test.Registry()
+	defer server.Close()
+	disco := test.Disco(server)
+
+	storage := NewStorage("test-fixtures/manifest-load/windows-linux", disco)
+
+	manifest, err := storage.loadManifest()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(manifest.Modules) != 2 {
+		t.Fatalf("expected 2 modules, got %+v", manifest.Modules)
+	}
+}
+
 // GitHub archives always contain the module source in a single subdirectory,
 // so the registry will return a path with with a `//*` suffix. We need to make
 // sure this doesn't intefere with our internal handling of `//` subdir.
