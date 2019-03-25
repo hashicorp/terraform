@@ -30,7 +30,7 @@ how to communicate with the resource.
 
 ## Creation-Time Provisioners
 
-Provisioners by default run when the resource they are defined within is
+By default, provisioners run when the resource they are defined within is
 created. Creation-time provisioners are only run during _creation_, not
 during updating or any other lifecycle. They are meant as a means to perform
 bootstrapping of a system.
@@ -49,6 +49,17 @@ which is covered in detail below.
 
 If `when = "destroy"` is specified, the provisioner will run when the
 resource it is defined within is _destroyed_.
+
+```hcl
+resource "aws_instance" "web" {
+  # ...
+
+  provisioner "local-exec" {
+    when    = "destroy"
+    command = "echo 'Destroy-time provisioner'"
+  }
+}
+```
 
 Destroy provisioners are run before the resource is destroyed. If they
 fail, Terraform will error and rerun the provisioners again on the next
@@ -69,6 +80,8 @@ remove a resource with a destroy-time provisioner:
 
 This limitation may be addressed in future versions of Terraform. For now,
 destroy-time provisioners must be used sparingly and with care.
+
+~> **NOTE:** A destroy-time provisioner within a resource that is tainted _will not_ run. This includes resources that are marked tainted from a failed creation-time provisioner or tainted manually using `terraform taint`.
 
 ## Multiple Provisioners
 
