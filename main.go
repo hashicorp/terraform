@@ -231,7 +231,12 @@ func wrappedMain() int {
 
 func cliConfigFile() (string, error) {
 	mustExist := true
-	configFilePath := os.Getenv("TERRAFORM_CONFIG")
+
+	configFilePath := os.Getenv("TF_CLI_CONFIG_FILE")
+	if configFilePath == "" {
+		configFilePath = os.Getenv("TERRAFORM_CONFIG")
+	}
+
 	if configFilePath == "" {
 		var err error
 		configFilePath, err = ConfigFile()
