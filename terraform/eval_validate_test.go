@@ -372,11 +372,12 @@ func TestEvalValidateProvisioner_valid(t *testing.T) {
 		Config: &configs.Provisioner{
 			Type:   "baz",
 			Config: hcl.EmptyBody(),
-		},
-		ConnConfig: &configs.Connection{
-			Config: configs.SynthBody("", map[string]cty.Value{
-				"host": cty.StringVal("foo"),
-			}),
+			Connection: &configs.Connection{
+				Config: configs.SynthBody("", map[string]cty.Value{
+					"host": cty.StringVal("localhost"),
+					"type": cty.StringVal("ssh"),
+				}),
+			},
 		},
 	}
 
@@ -419,12 +420,12 @@ func TestEvalValidateProvisioner_warning(t *testing.T) {
 		Config: &configs.Provisioner{
 			Type:   "baz",
 			Config: hcl.EmptyBody(),
-		},
-		ConnConfig: &configs.Connection{
-			Config: configs.SynthBody("", map[string]cty.Value{
-				"host": cty.StringVal("localhost"),
-				"type": cty.StringVal("ssh"),
-			}),
+			Connection: &configs.Connection{
+				Config: configs.SynthBody("", map[string]cty.Value{
+					"host": cty.StringVal("localhost"),
+					"type": cty.StringVal("ssh"),
+				}),
+			},
 		},
 	}
 
@@ -477,13 +478,13 @@ func TestEvalValidateProvisioner_connectionInvalid(t *testing.T) {
 		Config: &configs.Provisioner{
 			Type:   "baz",
 			Config: hcl.EmptyBody(),
-		},
-		ConnConfig: &configs.Connection{
-			Config: configs.SynthBody("", map[string]cty.Value{
-				"type":             cty.StringVal("ssh"),
-				"bananananananana": cty.StringVal("foo"),
-				"bazaz":            cty.StringVal("bar"),
-			}),
+			Connection: &configs.Connection{
+				Config: configs.SynthBody("", map[string]cty.Value{
+					"type":             cty.StringVal("ssh"),
+					"bananananananana": cty.StringVal("foo"),
+					"bazaz":            cty.StringVal("bar"),
+				}),
+			},
 		},
 	}
 
