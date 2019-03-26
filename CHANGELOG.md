@@ -24,6 +24,30 @@ BUG FIXES:
 * command/state mv: Some regressions between 0.11 and 0.12 have been addressed. [GH-20719]
 * command/plan: Diff renderer will no longer panic if an object is removed from the end of a list of objects. [GH-20765]
 
+## 0.11.13 (March 11, 2019)
+
+BUG FIXES:
+
+* backend/remote: Fix a backend initialization bug (#20638)
+
+## 0.11.12 (March 8, 2019)
+
+IMPROVEMENTS:
+
+* The `filemd5`, `filesha1`, etc functions from Terraform v0.12 are backported primarily to allow writing
+modules that can work in both Terraform 0.11 and 0.12, since the `sha1(file("..."))` pattern in 0.12
+works only for files containing valid UTF-8 text; `sha1file("...")` must be used instead. Both
+forms are equivalent in Terraform 0.11.
+* backend/remote: Retry calls when the remote backend responds with a server error (#20589)
+* backend/remote: Check for external updates while waiting for user input (#20622)
+
+BUG FIXES:
+
+* backend/remote: Fix "token too long" errors when streaming remote operation logs (#20241)
+* backend/remote: Use the `can-queue-apply` permission to detect if apply is allowed (#20462)
+* backend/remote: Exit with 1 when a remote run is canceled (#20482)
+* core: Use slashes in the module manifest to prevent Windows/Linux compatibility issues (#20246)
+
 ## 0.12.0-beta1 (Feb 28, 2019)
 
 Please see [the announcement post](https://www.hashicorp.com/blog/announcing-terraform-0-1-2-beta1) for details on how to use this release.
@@ -94,6 +118,19 @@ BUG FIXES:
 
 NEW FEATURES:
 * backend/pg: Support for using Postgresql for remote state storage ([#19070](https://github.com/hashicorp/terraform/issues/19070))
+
+## v0.11.12-beta1 (January 28, 2019)
+
+IMPROVEMENTS:
+
+* command/state: Use locking when updating states (#19939)
+* backend/remote: Add support for remote state only organizations (#20007)
+* backend/remote: Make sure the correct error is shown when having version incompatibilities (#20086)
+
+BUG FIXES:
+
+* backend/remote: Fix an error that prevents checking version constraints (#19668)
+* backend/remote: Compare versions without the prerelease (#19705)
 
 ## 0.12.0-alpha4 (December 7, 2018)
 NOTES:
