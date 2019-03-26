@@ -329,6 +329,34 @@ new line
     }
 `,
 		},
+		"force replacement with empty before value": {
+			Action: plans.DeleteThenCreate,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"name":   cty.StringVal("name"),
+				"forced": cty.StringVal(""),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"name":   cty.StringVal("name"),
+				"forced": cty.StringVal("example"),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"name":   {Type: cty.String, Optional: true},
+					"forced": {Type: cty.String, Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(cty.Path{
+				cty.GetAttrStep{Name: "forced"},
+			}),
+			Tainted: false,
+			ExpectedOutput: `  # test_instance.example must be replaced
+-/+ resource "test_instance" "example" {
+      + forced = "example" # forces replacement
+        name   = "name"
+    }
+`,
+		},
 	}
 
 	runTestCases(t, testCases)
