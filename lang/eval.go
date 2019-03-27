@@ -5,12 +5,12 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/hashicorp/terraform/addrs"
-
 	"github.com/hashicorp/hcl2/ext/dynblock"
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/hcl2/hcldec"
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/lang/blocktoattr"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
@@ -57,6 +57,14 @@ func (s *Scope) EvalBlock(body hcl.Body, schema *configschema.Block) (cty.Value,
 		// it's likely evaluation will produce redundant copies of the same errors.
 		return cty.UnknownVal(schema.ImpliedType()), diags
 	}
+
+	// HACK: In order to remain compatible with some assumptions made in
+	// Terraform v0.11 and earlier about the approximate equivalence of
+	// attribute vs. block syntax, we do a just-in-time fixup here to allow
+	// any attribute in the schema that has a list-of-objects or set-of-objects
+	// kind to potentially be populated instead by one or more nested blocks
+	// whose type is the attribute name.
+	body = blocktoattr.FixUpBlockAttrs(body, schema)
 
 	val, evalDiags := hcldec.Decode(body, spec, ctx)
 	diags = diags.Append(evalDiags)
