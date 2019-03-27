@@ -504,6 +504,8 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 				}
 
 				switch {
+				case err == discovery.ErrorServiceUnreachable:
+					c.Ui.Error(errDiscoveryServiceUnreachable)
 				case err == discovery.ErrorNoSuchProvider:
 					c.Ui.Error(fmt.Sprintf(errProviderNotFound, provider, DefaultPluginVendorDir))
 				case err == discovery.ErrorNoSuitableVersion:
@@ -876,6 +878,12 @@ To prevent automatic upgrades to new major versions that may contain breaking
 changes, it is recommended to add version = "..." constraints to the
 corresponding provider blocks in configuration, with the constraint strings
 suggested below.
+`
+
+const errDiscoveryServiceUnreachable = `
+[reset][bold][red]Registry service unreachable.[reset][red]
+
+This may indicate a network issue, or an issue with the requested Terraform Registry.
 `
 
 const errProviderNotFound = `
