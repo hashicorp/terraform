@@ -884,6 +884,8 @@ const errDiscoveryServiceUnreachable = `
 [reset][bold][red]Registry service unreachable.[reset][red]
 
 This may indicate a network issue, or an issue with the requested Terraform Registry.
+
+Check https://status.hashicorp.com/ for registry status updates.
 `
 
 const errProviderNotFound = `
