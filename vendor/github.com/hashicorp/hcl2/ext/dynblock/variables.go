@@ -47,6 +47,18 @@ type WalkVariablesChild struct {
 	Node          WalkVariablesNode
 }
 
+// Body returns the HCL Body associated with the child node, in case the caller
+// wants to do some sort of inspection of it in order to decide what schema
+// to pass to Visit.
+//
+// Most implementations should just fetch a fixed schema based on the
+// BlockTypeName field and not access this. Deciding on a schema dynamically
+// based on the body is a strange thing to do and generally necessary only if
+// your caller is already doing other bizarre things with HCL bodies.
+func (c WalkVariablesChild) Body() hcl.Body {
+	return c.Node.body
+}
+
 // Visit returns the variable traversals required for any "dynamic" blocks
 // directly in the body associated with this node, and also returns any child
 // nodes that must be visited in order to continue the walk.
