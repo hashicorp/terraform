@@ -51,6 +51,10 @@ const ErrorChecksumVerification = Error("unexpected plugin checksum")
 // was not signed by any known key for the publisher
 const ErrorSignatureVerification = Error("unable to verify signature")
 
+// ErrorServiceUnreachable indicates that the network was unable to connect
+// to the registry service
+const ErrorServiceUnreachable = Error("registry service is unreachable")
+
 func (err Error) Error() string {
 	return string(err)
 }

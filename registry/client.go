@@ -62,7 +62,7 @@ func NewClient(services *disco.Disco, client *http.Client) *Client {
 func (c *Client) Discover(host svchost.Hostname, serviceID string) (*url.URL, error) {
 	service, err := c.services.DiscoverServiceURL(host, serviceID)
 	if err != nil {
-		return nil, err
+		return nil, &ServiceUnreachableError{err}
 	}
 	if !strings.HasSuffix(service.Path, "/") {
 		service.Path += "/"
