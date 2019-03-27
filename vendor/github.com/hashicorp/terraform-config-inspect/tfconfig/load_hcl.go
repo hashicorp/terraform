@@ -284,6 +284,12 @@ func loadModule(dir string) (*Module, Diagnostics) {
 					Pos:  sourcePosHCL(block.DefRange),
 				}
 
+				// check if this is overriding an existing module
+				var origSource string
+				if origMod, exists := mod.ModuleCalls[name]; exists {
+					origSource = origMod.Source
+				}
+
 				mod.ModuleCalls[name] = mc
 
 				if attr, defined := content.Attributes["source"]; defined {
@@ -291,6 +297,10 @@ func loadModule(dir string) (*Module, Diagnostics) {
 					valDiags := gohcl.DecodeExpression(attr.Expr, nil, &source)
 					diags = append(diags, valDiags...)
 					mc.Source = source
+				}
+
+				if mc.Source == "" {
+					mc.Source = origSource
 				}
 
 				if attr, defined := content.Attributes["version"]; defined {
