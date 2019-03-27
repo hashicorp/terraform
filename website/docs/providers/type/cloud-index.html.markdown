@@ -29,6 +29,7 @@ vendor in close collaboration with HashiCorp, and are tested by HashiCorp.
 - [Heroku](/docs/providers/heroku/index.html)
 - [Hetzner Cloud](/docs/providers/hcloud/index.html)
 - [HuaweiCloud](/docs/providers/huaweicloud/index.html)
+- [JDcloud](/docs/providers/jdcloud/index.html)
 - [Linode](/docs/providers/linode/index.html)
 - [Naver Cloud](/docs/providers/ncloud/index.html)
 - [Nutanix](/docs/providers/nutanix/index.html)
