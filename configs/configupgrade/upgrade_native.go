@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -178,6 +179,9 @@ func (u *Upgrader) upgradeNativeSyntaxFile(filename string, src []byte, an *anal
 			}
 
 			printComments(&buf, item.LeadComment)
+			if invalidLabel(labels[0]) {
+				printLabelTodo(&buf, labels[0])
+			}
 			printBlockOpen(&buf, blockType, labels, item.LineComment)
 
 			rules := bodyContentRules{
@@ -335,6 +339,9 @@ func (u *Upgrader) upgradeNativeSyntaxResource(filename string, buf *bytes.Buffe
 	}
 
 	printComments(buf, item.LeadComment)
+	if invalidLabel(labels[1]) {
+		printLabelTodo(buf, labels[1])
+	}
 	printBlockOpen(buf, blockType, labels, item.LineComment)
 	bodyDiags := upgradeBlockBody(filename, addr.String(), buf, body.List.Items, body.Rbrace, rules, adhocComments)
 	diags = diags.Append(bodyDiags)
@@ -766,4 +773,24 @@ func schemaHasSettableArguments(schema *configschema.Block) bool {
 		}
 	}
 	return false
+}
+
+func invalidLabel(name string) bool {
+	matched, err := regexp.Match(`[0-9]`, []byte{name[0]})
+	if err == nil {
+		return matched
+	}
+	// This isn't likely, but if there's an error here we'll just ignore it and
+	// move on.
+	return false
+}
+
+func printLabelTodo(buf *bytes.Buffer, label string) {
+	buf.WriteString("# TF-UPGRADE-TODO: In Terraform v0.11 and earlier, it was possible to begin a\n" +
+		"# resource name with a number, but it is no longer possible in Terraform v0.12.\n" +
+		"#\n" +
+		"# Rename the resource and run `terraform state mv` to apply the rename in the\n" +
+		"# state. Detailed information on the `state move` command can be found in the\n" +
+		"# documentation online: https://www.terraform.io/docs/commands/state/mv.html\n",
+	)
 }
