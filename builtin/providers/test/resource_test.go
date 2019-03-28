@@ -790,3 +790,129 @@ resource "test_resource" "foo" {
 		},
 	})
 }
+
+func TestResource_optionalComputedMap(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+	required           = "yep"
+	required_map = {
+	  key = "value"
+	}
+	optional_computed_map = {
+		foo = "bar"
+		baz = ""
+	}
+}
+				`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"test_resource.foo", "optional_computed_map.foo", "bar",
+					),
+					resource.TestCheckResourceAttr(
+						"test_resource.foo", "optional_computed_map.baz", "",
+					),
+				),
+			},
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+	required           = "yep"
+	required_map = {
+	  key = "value"
+	}
+	optional_computed_map = {}
+}
+				`),
+				// removing the map from the config should still leave an empty computed map
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"test_resource.foo", "optional_computed_map.%", "0",
+					),
+				),
+			},
+		},
+	})
+}
+
+func TestResource_plannedComputed(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+	required           = "ok"
+	required_map = {
+	  key = "value"
+	}
+}
+				`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"test_resource.foo", "planned_computed", "ok",
+					),
+				),
+			},
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+	required           = "changed"
+	required_map = {
+	  key = "value"
+	}
+}
+				`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"test_resource.foo", "planned_computed", "changed",
+					),
+				),
+			},
+		},
+	})
+}
+
+func TestDiffApply_map(t *testing.T) {
+	resSchema := map[string]*schema.Schema{
+		"map": {
+			Type:     schema.TypeMap,
+			Optional: true,
+			Computed: true,
+			Elem:     &schema.Schema{Type: schema.TypeString},
+		},
+	}
+
+	priorAttrs := map[string]string{
+		"id":      "ok",
+		"map.%":   "2",
+		"map.foo": "bar",
+		"map.bar": "",
+	}
+
+	diff := &terraform.InstanceDiff{
+		Attributes: map[string]*terraform.ResourceAttrDiff{
+			"map.foo": &terraform.ResourceAttrDiff{Old: "bar", New: "", NewRemoved: true},
+			"map.bar": &terraform.ResourceAttrDiff{Old: "", New: "", NewRemoved: true},
+		},
+	}
+
+	newAttrs, err := diff.Apply(priorAttrs, (&schema.Resource{Schema: resSchema}).CoreConfigSchema())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expect := map[string]string{
+		"id":    "ok",
+		"map.%": "0",
+	}
+
+	if !reflect.DeepEqual(newAttrs, expect) {
+		t.Fatalf("expected:%#v got:%#v", expect, newAttrs)
+	}
+}

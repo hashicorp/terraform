@@ -11,6 +11,13 @@ func testResourceList() *schema.Resource {
 		Update: testResourceListUpdate,
 		Delete: testResourceListDelete,
 
+		CustomizeDiff: func(d *schema.ResourceDiff, _ interface{}) error {
+			if d.HasChange("dependent_list") {
+				d.SetNewComputed("computed_list")
+			}
+			return nil
+		},
+
 		Schema: map[string]*schema.Schema{
 			"list_block": {
 				Type:     schema.TypeList,
@@ -51,6 +58,19 @@ func testResourceList() *schema.Resource {
 									"int": {
 										Type:     schema.TypeInt,
 										Required: true,
+									},
+								},
+							},
+						},
+						"sublist_block_optional": {
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"list": {
+										Type:     schema.TypeList,
+										Optional: true,
+										Elem:     &schema.Schema{Type: schema.TypeString},
 									},
 								},
 							},
