@@ -152,6 +152,80 @@ test_thing.c
 	}
 }
 
+func TestPlanGraphBuilder_attrAsBlocks(t *testing.T) {
+	provider := &MockProvider{
+		GetSchemaReturn: &ProviderSchema{
+			ResourceTypes: map[string]*configschema.Block{
+				"test_thing": {
+					Attributes: map[string]*configschema.Attribute{
+						"id": {Type: cty.String, Computed: true},
+						"nested": {
+							Type: cty.List(cty.Object(map[string]cty.Type{
+								"foo": cty.String,
+							})),
+							Optional: true,
+						},
+					},
+				},
+			},
+		},
+	}
+	components := &basicComponentFactory{
+		providers: map[string]providers.Factory{
+			"test": providers.FactoryFixed(provider),
+		},
+	}
+
+	b := &PlanGraphBuilder{
+		Config:     testModule(t, "graph-builder-plan-attr-as-blocks"),
+		Components: components,
+		Schemas: &Schemas{
+			Providers: map[string]*ProviderSchema{
+				"test": provider.GetSchemaReturn,
+			},
+		},
+		DisableReduce: true,
+	}
+
+	g, err := b.Build(addrs.RootModuleInstance)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if g.Path.String() != addrs.RootModuleInstance.String() {
+		t.Fatalf("wrong module path %q", g.Path)
+	}
+
+	// This test is here to make sure we properly detect references inside
+	// the "nested" block that is actually defined in the schema as a
+	// list-of-objects attribute. This requires some special effort
+	// inside lang.ReferencesInBlock to make sure it searches blocks of
+	// type "nested" along with an attribute named "nested".
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(`
+meta.count-boundary (EachMode fixup)
+  provider.test
+  test_thing.a
+  test_thing.b
+provider.test
+provider.test (close)
+  provider.test
+  test_thing.a
+  test_thing.b
+root
+  meta.count-boundary (EachMode fixup)
+  provider.test (close)
+test_thing.a
+  provider.test
+test_thing.b
+  provider.test
+  test_thing.a
+`)
+	if actual != expected {
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	}
+}
+
 func TestPlanGraphBuilder_targetModule(t *testing.T) {
 	b := &PlanGraphBuilder{
 		Config:     testModule(t, "graph-builder-plan-target-module-provider"),
