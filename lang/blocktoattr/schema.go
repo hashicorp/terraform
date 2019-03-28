@@ -7,6 +7,9 @@ import (
 )
 
 func ambiguousNames(schema *configschema.Block) map[string]struct{} {
+	if schema == nil {
+		return nil
+	}
 	ambiguousNames := make(map[string]struct{})
 	for name, attrS := range schema.Attributes {
 		aty := attrS.Type

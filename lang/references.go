@@ -1,10 +1,10 @@
 package lang
 
 import (
-	"github.com/hashicorp/hcl2/ext/dynblock"
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/lang/blocktoattr"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -51,14 +51,21 @@ func ReferencesInBlock(body hcl.Body, schema *configschema.Block) ([]*addrs.Refe
 	if body == nil {
 		return nil, nil
 	}
-	spec := schema.DecoderSpec()
 
-	// We use dynblock.VariablesHCLDec instead of hcldec.Variables here because
-	// when we evaluate a block we'll apply the HCL dynamic block extension
-	// expansion to it first, and so we need this specialized version in order
-	// to properly understand what the dependencies will be once expanded.
-	// Otherwise, we'd miss references that only occur inside dynamic blocks.
-	traversals := dynblock.VariablesHCLDec(body, spec)
+	// We use blocktoattr.ExpandedVariables instead of hcldec.Variables or
+	// dynblock.VariablesHCLDec here because when we evaluate a block we'll
+	// first apply the dynamic block extension and _then_ the blocktoattr
+	// transform, and so blocktoattr.ExpandedVariables takes into account
+	// both of those transforms when it analyzes the body to ensure we find
+	// all of the references as if they'd already moved into their final
+	// locations, even though we can't expand dynamic blocks yet until we
+	// already know which variables are required.
+	//
+	// The set of cases we want to detect here is covered by the tests for
+	// the plan graph builder in the main 'terraform' package, since it's
+	// in a better position to test this due to having mock providers etc
+	// available.
+	traversals := blocktoattr.ExpandedVariables(body, schema)
 	return References(traversals)
 }
 
