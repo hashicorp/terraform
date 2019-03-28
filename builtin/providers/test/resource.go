@@ -18,6 +18,13 @@ func testResource() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
+		CustomizeDiff: func(d *schema.ResourceDiff, _ interface{}) error {
+			if d.HasChange("required") {
+				d.SetNewComputed("planned_computed")
+			}
+			return nil
+		},
+
 		Schema: map[string]*schema.Schema{
 			"required": {
 				Type:     schema.TypeString,
@@ -129,6 +136,11 @@ func testResource() *schema.Resource {
 				Optional:    true,
 				Description: "return and error during apply",
 			},
+			"planned_computed": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "copied the required field during apply, and plans computed when changed",
+			},
 		},
 	}
 }
@@ -163,6 +175,8 @@ func testResourceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("computed_map", map[string]string{"key1": "value1"})
 	d.Set("computed_list", []string{"listval1", "listval2"})
 	d.Set("computed_set", []string{"setval1", "setval2"})
+
+	d.Set("planned_computed", d.Get("required"))
 
 	// if there is no "set" value, erroneously set it to an empty set. This
 	// might change a null value to an empty set, but we should be able to
