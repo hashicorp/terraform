@@ -237,8 +237,11 @@ func loadModuleLegacyHCL(dir string) (*Module, Diagnostics) {
 					Version: block.Version,
 					Pos:     sourcePosLegacyHCL(item.Pos(), filename),
 				}
-				if _, exists := mod.ModuleCalls[name]; exists {
-					return nil, diagnosticsErrorf("duplicate module block for %q", name)
+				// it's possible this module call is from an override file
+				if origMod, exists := mod.ModuleCalls[name]; exists {
+					if mc.Source == "" {
+						mc.Source = origMod.Source
+					}
 				}
 				mod.ModuleCalls[name] = mc
 			}

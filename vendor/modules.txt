@@ -328,7 +328,7 @@ github.com/hashicorp/hil/scanner
 github.com/hashicorp/logutils
 # github.com/hashicorp/serf v0.0.0-20160124182025-e4ec8cc423bb
 github.com/hashicorp/serf/coordinate
-# github.com/hashicorp/terraform-config-inspect v0.0.0-20190208230122-b0707673339c
+# github.com/hashicorp/terraform-config-inspect v0.0.0-20190327195015-8022a2663a70
 github.com/hashicorp/terraform-config-inspect/tfconfig
 # github.com/hashicorp/vault v0.10.4
 github.com/hashicorp/vault/helper/pgpkeys

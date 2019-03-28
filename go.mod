@@ -65,7 +65,7 @@ require (
 	github.com/hashicorp/logutils v1.0.0
 	github.com/hashicorp/memberlist v0.1.0 // indirect
 	github.com/hashicorp/serf v0.0.0-20160124182025-e4ec8cc423bb // indirect
-	github.com/hashicorp/terraform-config-inspect v0.0.0-20190208230122-b0707673339c
+	github.com/hashicorp/terraform-config-inspect v0.0.0-20190327195015-8022a2663a70
 	github.com/hashicorp/vault v0.10.4
 	github.com/jonboulle/clockwork v0.1.0 // indirect
 	github.com/joyent/triton-go v0.0.0-20180313100802-d8f9c0314926

@@ -214,6 +214,8 @@ github.com/hashicorp/serf v0.0.0-20160124182025-e4ec8cc423bb h1:ZbgmOQt8DOg796fi
 github.com/hashicorp/serf v0.0.0-20160124182025-e4ec8cc423bb/go.mod h1:h/Ru6tmZazX7WO/GDmwdpS975F019L4t5ng5IgwbNrE=
 github.com/hashicorp/terraform-config-inspect v0.0.0-20190208230122-b0707673339c h1:nCnsfi66NloVlmquh5dLox5yBwQk5CV5s2roWvbstnE=
 github.com/hashicorp/terraform-config-inspect v0.0.0-20190208230122-b0707673339c/go.mod h1:ItvqtvbC3K23FFET62ZwnkwtpbKZm8t8eMcWjmVVjD8=
+github.com/hashicorp/terraform-config-inspect v0.0.0-20190327195015-8022a2663a70 h1:oZm5nE11yhzsTRz/YrUyDMSvixePqjoZihwn8ipuOYI=
+github.com/hashicorp/terraform-config-inspect v0.0.0-20190327195015-8022a2663a70/go.mod h1:ItvqtvbC3K23FFET62ZwnkwtpbKZm8t8eMcWjmVVjD8=
 github.com/hashicorp/vault v0.10.4 h1:4x0lHxui/ZRp/B3E0Auv1QNBJpzETqHR2kQD3mHSBJU=
 github.com/hashicorp/vault v0.10.4/go.mod h1:KfSyffbKxoVyspOdlaGVjIuwLobi07qD1bAbosPMpP0=
 github.com/hashicorp/yamux v0.0.0-20180604194846-3520598351bb h1:b5rjCoWHc7eqmAS4/qyk21ZsHyb6Mxv/jykxvNTkU4M=
