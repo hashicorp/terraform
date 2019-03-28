@@ -28,21 +28,10 @@ func FixUpBlockAttrs(body hcl.Body, schema *configschema.Block) hcl.Body {
 		schema = &configschema.Block{}
 	}
 
-	// We'll do a quick sniff first to see if there's even anything ambiguous
-	// in this schema. (We still need to wrap it even if not, just in case we
-	// need to do fixup inside nested blocks.
-	ambiguousNames := make(map[string]struct{})
-	for name, attrS := range schema.Attributes {
-		aty := attrS.Type
-		if (aty.IsListType() || aty.IsSetType()) && aty.ElementType().IsObjectType() {
-			ambiguousNames[name] = struct{}{}
-		}
-	}
-
 	return &fixupBody{
 		original: body,
 		schema:   schema,
-		names:    ambiguousNames,
+		names:    ambiguousNames(schema),
 	}
 }
 
@@ -91,64 +80,7 @@ func (b *fixupBody) MissingItemRange() hcl.Range {
 // in the given schema, but some attribute schemas may instead be replaced by
 // block header schemas.
 func (b *fixupBody) effectiveSchema(given *hcl.BodySchema) *hcl.BodySchema {
-	ret := &hcl.BodySchema{}
-
-	appearsAsBlock := make(map[string]struct{})
-	{
-		// We'll construct some throwaway schemas here just to probe for
-		// whether each of our ambiguous names seems to be being used as
-		// an attribute or a block. We need to check both because in JSON
-		// syntax we rely on the schema to decide between attribute or block
-		// interpretation and so JSON will always answer yes to both of
-		// these questions and we want to prefer the attribute interpretation
-		// in that case.
-		var probeSchema hcl.BodySchema
-
-		for name := range b.names {
-			probeSchema = hcl.BodySchema{
-				Attributes: []hcl.AttributeSchema{
-					{
-						Name: name,
-					},
-				},
-			}
-			content, _, _ := b.original.PartialContent(&probeSchema)
-			if _, exists := content.Attributes[name]; exists {
-				// Can decode as an attribute, so we'll go with that.
-				continue
-			}
-			probeSchema = hcl.BodySchema{
-				Blocks: []hcl.BlockHeaderSchema{
-					{
-						Type: name,
-					},
-				},
-			}
-			content, _, _ = b.original.PartialContent(&probeSchema)
-			if len(content.Blocks) > 0 {
-				// No attribute present and at least one block present, so
-				// we'll need to rewrite this one as a block for a successful
-				// result.
-				appearsAsBlock[name] = struct{}{}
-			}
-		}
-	}
-
-	for _, attrS := range given.Attributes {
-		if _, exists := appearsAsBlock[attrS.Name]; exists {
-			ret.Blocks = append(ret.Blocks, hcl.BlockHeaderSchema{
-				Type: attrS.Name,
-			})
-		} else {
-			ret.Attributes = append(ret.Attributes, attrS)
-		}
-	}
-
-	// Anything that is specified as a block type in the input schema remains
-	// that way by just passing through verbatim.
-	ret.Blocks = append(ret.Blocks, given.Blocks...)
-
-	return ret
+	return effectiveSchema(given, b.original, b.names, true)
 }
 
 func (b *fixupBody) fixupContent(content *hcl.BodyContent) *hcl.BodyContent {
@@ -251,21 +183,4 @@ func (e *fixupBlocksExpr) Range() hcl.Range {
 
 func (e *fixupBlocksExpr) StartRange() hcl.Range {
 	return e.blocks[0].DefRange
-}
-
-// schemaForCtyType converts a cty object type into an approximately-equivalent
-// configschema.Block. If the given type is not an object type then this
-// function will panic.
-func schemaForCtyType(ty cty.Type) *configschema.Block {
-	atys := ty.AttributeTypes()
-	ret := &configschema.Block{
-		Attributes: make(map[string]*configschema.Attribute, len(atys)),
-	}
-	for name, aty := range atys {
-		ret.Attributes[name] = &configschema.Attribute{
-			Type:     aty,
-			Optional: true,
-		}
-	}
-	return ret
 }
