@@ -157,7 +157,15 @@ func (b *Local) opApply(
 	runningOp.State = applyState
 	err := statemgr.WriteAndPersist(opState, applyState)
 	if err != nil {
-		diags = diags.Append(b.backupStateForError(applyState, err))
+		// Export the state file from the state manager and assign the new
+		// state. This is needed to preserve the existing serial and lineage.
+		stateFile := statemgr.Export(opState)
+		if stateFile == nil {
+			stateFile = &statefile.File{}
+		}
+		stateFile.State = applyState
+
+		diags = diags.Append(b.backupStateForError(stateFile, err))
 		b.ReportResult(runningOp, diags)
 		return
 	}
@@ -208,11 +216,11 @@ func (b *Local) opApply(
 // to local disk to help the user recover. This is a "last ditch effort" sort
 // of thing, so we really don't want to end up in this codepath; we should do
 // everything we possibly can to get the state saved _somewhere_.
-func (b *Local) backupStateForError(applyState *states.State, err error) error {
+func (b *Local) backupStateForError(stateFile *statefile.File, err error) error {
 	b.CLI.Error(fmt.Sprintf("Failed to save state: %s\n", err))
 
 	local := statemgr.NewFilesystem("errored.tfstate")
-	writeErr := local.WriteState(applyState)
+	writeErr := local.WriteStateForMigration(stateFile, true)
 	if writeErr != nil {
 		b.CLI.Error(fmt.Sprintf(
 			"Also failed to create local state file for recovery: %s\n\n", writeErr,
@@ -223,9 +231,6 @@ func (b *Local) backupStateForError(applyState *states.State, err error) error {
 		// but at least the user has _some_ path to recover if we end up
 		// here for some reason.
 		stateBuf := new(bytes.Buffer)
-		stateFile := &statefile.File{
-			State: applyState,
-		}
 		jsonErr := statefile.Write(stateFile, stateBuf)
 		if jsonErr != nil {
 			b.CLI.Error(fmt.Sprintf(
