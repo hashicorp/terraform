@@ -125,6 +125,10 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, t
 
 	// TODO: return multiple errors
 	if err != nil {
+		log.Printf("[DEBUG] %s", err)
+		if registry.IsServiceUnreachable(err) {
+			return PluginMeta{}, diags, ErrorServiceUnreachable
+		}
 		if registry.IsServiceNotProvided(err) {
 			return PluginMeta{}, diags, err
 		}
