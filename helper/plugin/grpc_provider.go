@@ -1144,6 +1144,14 @@ func normalizeNullValues(dst, src cty.Value, preferDst bool) cty.Value {
 	ty := dst.Type()
 
 	if !src.IsNull() && !src.IsKnown() {
+		// While this seems backwards to return src when preferDst is set, it
+		// means this might be a plan scenario, and it must retain unknown
+		// interpolated placeholders, which could be lost if we're only updating
+		// a resource. If this is a read scenario, then there shouldn't be any
+		// unknowns all.
+		if dst.IsNull() && preferDst {
+			return src
+		}
 		return dst
 	}
 
@@ -1176,11 +1184,8 @@ func normalizeNullValues(dst, src cty.Value, preferDst bool) cty.Value {
 			dstMap = map[string]cty.Value{}
 		}
 
-		ei := src.ElementIterator()
-		for ei.Next() {
-			k, v := ei.Element()
-			key := k.AsString()
-
+		srcMap := src.AsValueMap()
+		for key, v := range srcMap {
 			dstVal := dstMap[key]
 			if dstVal == cty.NilVal {
 				if preferDst && ty.IsMapType() {
@@ -1203,6 +1208,24 @@ func normalizeNullValues(dst, src cty.Value, preferDst bool) cty.Value {
 		}
 
 		if ty.IsMapType() {
+			// helper/schema will populate an optional+computed map with
+			// unknowns which we have to fixup here.
+			// It would be preferable to simply prevent any known value from
+			// becoming unknown, but concessions have to be made to retain the
+			// broken legacy behavior when possible.
+			for k, srcVal := range srcMap {
+				if !srcVal.IsNull() && srcVal.IsKnown() {
+					dstVal, ok := dstMap[k]
+					if !ok {
+						continue
+					}
+
+					if !dstVal.IsNull() && !dstVal.IsKnown() {
+						dstMap[k] = srcVal
+					}
+				}
+			}
+
 			return cty.MapVal(dstMap)
 		}
 
@@ -1217,12 +1240,29 @@ func normalizeNullValues(dst, src cty.Value, preferDst bool) cty.Value {
 		}
 
 	case ty.IsListType(), ty.IsTupleType():
-		// If the dst is nil, and the src is known, then we lost an empty value
+		// If the dst is null, and the src is known, then we lost an empty value
 		// so take the original.
 		if dst.IsNull() {
 			if src.IsWhollyKnown() && src.LengthInt() == 0 && !preferDst {
 				return src
 			}
+
+			// if dst is null and src only contains unknown values, then we lost
+			// those during a plan (which is when preferDst is set, there would
+			// be no unknowns during read).
+			if preferDst && !src.IsNull() {
+				allUnknown := true
+				for _, v := range src.AsValueSlice() {
+					if v.IsKnown() {
+						allUnknown = false
+						break
+					}
+				}
+				if allUnknown {
+					return src
+				}
+			}
+
 			return dst
 		}
 
