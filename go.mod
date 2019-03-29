@@ -117,6 +117,11 @@ require (
 	google.golang.org/api v0.1.0
 	google.golang.org/grpc v1.18.0
 	gopkg.in/vmihailenco/msgpack.v2 v2.9.1 // indirect
-	labix.org/v2/mgo v0.0.0-20140701140051-000000000287 // indirect
-	launchpad.net/gocheck v0.0.0-20140225173054-000000000087 // indirect
+	labix.org/v2/mgo v0.0.0-00010101000000-000000000000 // indirect
+	launchpad.net/gocheck v0.0.0-00010101000000-000000000000 // indirect
+)
+
+replace (
+	labix.org/v2/mgo => gopkg.in/mgo.v2 v2.0.0-20140701140051-2e26580ebcca
+	launchpad.net/gocheck => github.com/go-check/check v0.0.0-20140225173054-eb6ee6f84d0a848c7f11b46cd11f28875ba56b1c
 )
