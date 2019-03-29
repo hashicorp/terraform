@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/errwrap"
+	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/state"
@@ -22,19 +23,28 @@ func (b *Remote) Context(op *backend.Operation) (*terraform.Context, state.State
 		op.StateLocker = clistate.NewNoopLocker()
 	}
 
+	// Configure the remote workspace name.
+	workspace := op.Workspace
+	switch {
+	case op.Workspace == backend.DefaultStateName:
+		workspace = b.workspace
+	case b.prefix != "" && !strings.HasPrefix(op.Workspace, b.prefix):
+		workspace = b.prefix + op.Workspace
+	}
+
 	// Get the latest state.
-	log.Printf("[TRACE] backend/remote: requesting state manager for workspace %q", op.Workspace)
+	log.Printf("[TRACE] backend/remote: requesting state manager for workspace %q", workspace)
 	s, err := b.State(op.Workspace)
 	if err != nil {
 		return nil, nil, errwrap.Wrapf("Error loading state: {{err}}", err)
 	}
 
-	log.Printf("[TRACE] backend/remote: requesting state lock for workspace %q", op.Workspace)
+	log.Printf("[TRACE] backend/remote: requesting state lock for workspace %q", workspace)
 	if err := op.StateLocker.Lock(s, op.Type.String()); err != nil {
 		return nil, nil, errwrap.Wrapf("Error locking state: {{err}}", err)
 	}
 
-	log.Printf("[TRACE] backend/remote: reading remote state for workspace %q", op.Workspace)
+	log.Printf("[TRACE] backend/remote: reading remote state for workspace %q", workspace)
 	if err := s.RefreshState(); err != nil {
 		return nil, nil, errwrap.Wrapf("Error loading state: {{err}}", err)
 	}
@@ -51,11 +61,27 @@ func (b *Remote) Context(op *backend.Operation) (*terraform.Context, state.State
 	opts.Targets = op.Targets
 	opts.UIInput = op.UIIn
 
-	// Load the latest state. If we enter contextFromPlanFile below then the
-	// state snapshot in the plan file must match this, or else it'll return
-	// error diagnostics.
-	log.Printf("[TRACE] backend/remote: retrieving remote state snapshot for workspace %q", op.Workspace)
+	// Load the latest state.
+	log.Printf("[TRACE] backend/remote: retrieving remote state snapshot for workspace %q", workspace)
 	opts.State = s.State()
+
+	log.Printf("[TRACE] backend/remote: retrieving variables from workspace %q", workspace)
+	tfeVariables, err := b.client.Variables.List(context.Background(), tfe.VariableListOptions{
+		Organization: tfe.String(b.organization),
+		Workspace:    tfe.String(workspace),
+	})
+	if err != nil && err != tfe.ErrResourceNotFound {
+		return nil, nil, fmt.Errorf("error loading variables: %v", err)
+	}
+
+	if tfeVariables != nil {
+		for _, v := range tfeVariables.Items {
+			if v.Sensitive {
+				v.Value = "<sensitive>"
+			}
+			opts.Variables[v.Key] = v.Value
+		}
+	}
 
 	tfCtx, err := terraform.NewContext(&opts)
 
