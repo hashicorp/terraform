@@ -1144,6 +1144,14 @@ func normalizeNullValues(dst, src cty.Value, preferDst bool) cty.Value {
 	ty := dst.Type()
 
 	if !src.IsNull() && !src.IsKnown() {
+		// While this seems backwards to return src when preferDst is set, it
+		// means this might be a plan scenario, and it must retain unknown
+		// interpolated placeholders, which could be lost if we're only updating
+		// a resource. If this is a read scenario, then there shouldn't be any
+		// unknowns all.
+		if dst.IsNull() && preferDst {
+			return src
+		}
 		return dst
 	}
 
