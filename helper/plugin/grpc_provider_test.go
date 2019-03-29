@@ -909,7 +909,7 @@ func TestNormalizeNullValues(t *testing.T) {
 				}),
 			}),
 		},
-		// the empty list should be transferred, but the new unknown show not be overridden
+		// the empty list should be transferred, but the new unknown should not be overridden
 		{
 			Src: cty.ObjectVal(map[string]cty.Value{
 				"network_interface": cty.ListVal([]cty.Value{
@@ -938,6 +938,28 @@ func TestNormalizeNullValues(t *testing.T) {
 						"address":       cty.StringVal("address"),
 						"name":          cty.StringVal("nic0"),
 					}),
+				}),
+			}),
+			Plan: true,
+		},
+		{
+			// fix unknowns added to a map
+			Src: cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("a"),
+					"b": cty.StringVal(""),
+				}),
+			}),
+			Dst: cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("a"),
+					"b": cty.UnknownVal(cty.String),
+				}),
+			}),
+			Expect: cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("a"),
+					"b": cty.StringVal(""),
 				}),
 			}),
 			Plan: true,
