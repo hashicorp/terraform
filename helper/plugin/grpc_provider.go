@@ -1240,12 +1240,29 @@ func normalizeNullValues(dst, src cty.Value, preferDst bool) cty.Value {
 		}
 
 	case ty.IsListType(), ty.IsTupleType():
-		// If the dst is nil, and the src is known, then we lost an empty value
+		// If the dst is null, and the src is known, then we lost an empty value
 		// so take the original.
 		if dst.IsNull() {
 			if src.IsWhollyKnown() && src.LengthInt() == 0 && !preferDst {
 				return src
 			}
+
+			// if dst is null and src only contains unknown values, then we lost
+			// those during a plan (which is when preferDst is set, there would
+			// be no unknowns during read).
+			if preferDst && !src.IsNull() {
+				allUnknown := true
+				for _, v := range src.AsValueSlice() {
+					if v.IsKnown() {
+						allUnknown = false
+						break
+					}
+				}
+				if allUnknown {
+					return src
+				}
+			}
+
 			return dst
 		}
 
