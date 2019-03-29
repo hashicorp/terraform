@@ -964,6 +964,43 @@ func TestNormalizeNullValues(t *testing.T) {
 			}),
 			Plan: true,
 		},
+		{
+			// fix unknowns lost from a list
+			Src: cty.ObjectVal(map[string]cty.Value{
+				"top": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"list": cty.ListVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"values": cty.ListVal([]cty.Value{cty.UnknownVal(cty.String)}),
+							}),
+						}),
+					}),
+				}),
+			}),
+			Dst: cty.ObjectVal(map[string]cty.Value{
+				"top": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"list": cty.ListVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"values": cty.NullVal(cty.List(cty.String)),
+							}),
+						}),
+					}),
+				}),
+			}),
+			Expect: cty.ObjectVal(map[string]cty.Value{
+				"top": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"list": cty.ListVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"values": cty.ListVal([]cty.Value{cty.UnknownVal(cty.String)}),
+							}),
+						}),
+					}),
+				}),
+			}),
+			Plan: true,
+		},
 	} {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			got := normalizeNullValues(tc.Dst, tc.Src, tc.Plan)
