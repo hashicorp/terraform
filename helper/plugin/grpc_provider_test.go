@@ -909,7 +909,7 @@ func TestNormalizeNullValues(t *testing.T) {
 				}),
 			}),
 		},
-		// the empty list should be transferred, but the new unknown show not be overridden
+		// the empty list should be transferred, but the new unknown should not be overridden
 		{
 			Src: cty.ObjectVal(map[string]cty.Value{
 				"network_interface": cty.ListVal([]cty.Value{
@@ -937,6 +937,65 @@ func TestNormalizeNullValues(t *testing.T) {
 						"access_config": cty.ListValEmpty(cty.Object(map[string]cty.Type{"public_ptr_domain_name": cty.String, "nat_ip": cty.String})),
 						"address":       cty.StringVal("address"),
 						"name":          cty.StringVal("nic0"),
+					}),
+				}),
+			}),
+			Plan: true,
+		},
+		{
+			// fix unknowns added to a map
+			Src: cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("a"),
+					"b": cty.StringVal(""),
+				}),
+			}),
+			Dst: cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("a"),
+					"b": cty.UnknownVal(cty.String),
+				}),
+			}),
+			Expect: cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("a"),
+					"b": cty.StringVal(""),
+				}),
+			}),
+			Plan: true,
+		},
+		{
+			// fix unknowns lost from a list
+			Src: cty.ObjectVal(map[string]cty.Value{
+				"top": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"list": cty.ListVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"values": cty.ListVal([]cty.Value{cty.UnknownVal(cty.String)}),
+							}),
+						}),
+					}),
+				}),
+			}),
+			Dst: cty.ObjectVal(map[string]cty.Value{
+				"top": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"list": cty.ListVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"values": cty.NullVal(cty.List(cty.String)),
+							}),
+						}),
+					}),
+				}),
+			}),
+			Expect: cty.ObjectVal(map[string]cty.Value{
+				"top": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"list": cty.ListVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"values": cty.ListVal([]cty.Value{cty.UnknownVal(cty.String)}),
+							}),
+						}),
 					}),
 				}),
 			}),

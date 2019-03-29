@@ -318,3 +318,132 @@ resource "test_resource_list" "foo" {
 		},
 	})
 }
+
+func TestResourceList_planUnknownInterpolation(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_list" "foo" {
+	list_block {
+		string = "x"
+	}
+}
+resource "test_resource_list" "bar" {
+	list_block {
+		sublist = [
+			test_resource_list.foo.list_block[0].string,
+		]
+	}
+}
+				`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"test_resource_list.bar", "list_block.0.sublist.0", "x",
+					),
+				),
+			},
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_list" "foo" {
+	list_block {
+		string = "x"
+	}
+	dependent_list {
+		val = "y"
+	}
+}
+resource "test_resource_list" "bar" {
+	list_block {
+		sublist = [
+			test_resource_list.foo.computed_list[0],
+		]
+	}
+}
+				`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"test_resource_list.bar", "list_block.0.sublist.0", "y",
+					),
+				),
+			},
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_list" "foo" {
+	list_block {
+		string = "x"
+	}
+	dependent_list {
+		val = "z"
+	}
+}
+resource "test_resource_list" "bar" {
+	list_block {
+		sublist = [
+			test_resource_list.foo.computed_list[0],
+		]
+	}
+}
+				`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"test_resource_list.bar", "list_block.0.sublist.0", "z",
+					),
+				),
+			},
+		},
+	})
+}
+
+func TestResourceList_planUnknownInterpolationList(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_list" "foo" {
+	dependent_list {
+		val = "y"
+	}
+}
+resource "test_resource_list" "bar" {
+	list_block {
+		sublist_block_optional {
+			list = test_resource_list.foo.computed_list
+		}
+	}
+}
+				`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"test_resource_list.bar", "list_block.0.sublist_block_optional.0.list.0", "y",
+					),
+				),
+			},
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_list" "foo" {
+	dependent_list {
+		val = "z"
+	}
+}
+resource "test_resource_list" "bar" {
+	list_block {
+		sublist_block_optional {
+			list = test_resource_list.foo.computed_list
+		}
+	}
+}
+				`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"test_resource_list.bar", "list_block.0.sublist_block_optional.0.list.0", "z",
+					),
+				),
+			},
+		},
+	})
+}
