@@ -13,12 +13,12 @@ import (
 	hcl1token "github.com/hashicorp/hcl/hcl/token"
 	hcl2 "github.com/hashicorp/hcl2/hcl"
 	hcl2syntax "github.com/hashicorp/hcl2/hcl/hclsyntax"
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/lang/blocktoattr"
 	"github.com/hashicorp/terraform/registry/regsrc"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // bodyContentRules is a mapping from item names (argument names and block type
@@ -318,7 +318,7 @@ func nestedBlockRule(filename string, nestedRules bodyContentRules, an *analysis
 	}
 }
 
-func nestedBlockRuleWithDynamic(filename string, nestedRules bodyContentRules, nestedSchema *configschema.NestedBlock, an *analysis, adhocComments *commentQueue) bodyItemRule {
+func nestedBlockRuleWithDynamic(filename string, nestedRules bodyContentRules, nestedSchema *configschema.NestedBlock, emptyAsAttr bool, an *analysis, adhocComments *commentQueue) bodyItemRule {
 	return func(buf *bytes.Buffer, blockAddr string, item *hcl1ast.ObjectItem) tfdiags.Diagnostics {
 		// In Terraform v0.11 it was possible in some cases to trick Terraform
 		// and providers into accepting HCL's attribute syntax and some HIL
@@ -389,6 +389,17 @@ func nestedBlockRuleWithDynamic(filename string, nestedRules bodyContentRules, n
 			blockItems = append(blockItems, item.Val)
 		}
 
+		if len(blockItems) == 0 && emptyAsAttr {
+			// Terraform v0.12's config decoder allows using block syntax for
+			// certain attribute types, which we prefer as idiomatic usage
+			// causing us to end up in this function in such cases, but as
+			// a special case users can still use the attribute syntax to
+			// explicitly write an empty list. For more information, see
+			// the lang/blocktoattr package.
+			printAttribute(buf, item.Keys[0].Token.Value().(string), []byte{'[', ']'}, item.LineComment)
+			return diags
+		}
+
 		for _, blockItem := range blockItems {
 			switch ti := blockItem.(type) {
 			case *hcl1ast.ObjectType:
@@ -455,11 +466,23 @@ func schemaDefaultBodyRules(filename string, schema *configschema.Block, an *ana
 	}
 
 	for name, attrS := range schema.Attributes {
+		if aty := attrS.Type; blocktoattr.TypeCanBeBlocks(aty) {
+			// Terraform's standard body processing rules for arbitrary schemas
+			// have a special case where list-of-object or set-of-object
+			// attributes can be specified as a sequence of nested blocks
+			// instead of a single list attribute. We prefer that form during
+			// upgrade for historical reasons, to avoid making large changes
+			// to existing configurations that were following documented idiom.
+			synthSchema := blocktoattr.SchemaForCtyContainerType(aty)
+			nestedRules := schemaDefaultBodyRules(filename, &synthSchema.Block, an, adhocComments)
+			ret[name] = nestedBlockRuleWithDynamic(filename, nestedRules, synthSchema, true, an, adhocComments)
+			continue
+		}
 		ret[name] = normalAttributeRule(filename, attrS.Type, an)
 	}
 	for name, blockS := range schema.BlockTypes {
 		nestedRules := schemaDefaultBodyRules(filename, &blockS.Block, an, adhocComments)
-		ret[name] = nestedBlockRuleWithDynamic(filename, nestedRules, blockS, an, adhocComments)
+		ret[name] = nestedBlockRuleWithDynamic(filename, nestedRules, blockS, false, an, adhocComments)
 	}
 
 	return ret

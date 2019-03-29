@@ -34,7 +34,7 @@ func walkVariables(node dynblock.WalkVariablesNode, body hcl.Body, schema *confi
 		if blockS, exists := schema.BlockTypes[child.BlockTypeName]; exists {
 			vars = append(vars, walkVariables(child.Node, child.Body(), &blockS.Block)...)
 		} else if attrS, exists := schema.Attributes[child.BlockTypeName]; exists {
-			synthSchema := schemaForCtyType(attrS.Type.ElementType())
+			synthSchema := SchemaForCtyElementType(attrS.Type.ElementType())
 			vars = append(vars, walkVariables(child.Node, child.Body(), synthSchema)...)
 		}
 	}
