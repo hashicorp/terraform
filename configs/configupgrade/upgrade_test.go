@@ -198,6 +198,7 @@ var testProviders = map[string]providers.Factory{
 						"tags":            {Type: cty.Map(cty.String), Optional: true},
 						"security_groups": {Type: cty.List(cty.String), Optional: true},
 						"subnet_ids":      {Type: cty.Set(cty.String), Optional: true},
+						"list_of_obj":     {Type: cty.List(cty.EmptyObject), Optional: true},
 					},
 					BlockTypes: map[string]*configschema.NestedBlock{
 						"network": {

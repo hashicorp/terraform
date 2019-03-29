@@ -146,7 +146,7 @@ func (e *fixupBlocksExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostic
 	// the result is imprecise and in particular will just consider all
 	// the attributes to be optional and let the provider eventually decide
 	// whether to return errors if they turn out to be null when required.
-	schema := schemaForCtyType(e.ety) // this schema's ImpliedType will match e.ety
+	schema := SchemaForCtyElementType(e.ety) // this schema's ImpliedType will match e.ety
 	spec := schema.DecoderSpec()
 
 	vals := make([]cty.Value, len(e.blocks))
@@ -167,7 +167,7 @@ func (e *fixupBlocksExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostic
 
 func (e *fixupBlocksExpr) Variables() []hcl.Traversal {
 	var ret []hcl.Traversal
-	schema := schemaForCtyType(e.ety)
+	schema := SchemaForCtyElementType(e.ety)
 	spec := schema.DecoderSpec()
 	for _, block := range e.blocks {
 		ret = append(ret, hcldec.Variables(block.Body, spec)...)
