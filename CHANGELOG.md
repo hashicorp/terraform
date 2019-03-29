@@ -19,6 +19,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+* backend/remote: Ensure variables are loaded correctly when using `terraform console` [GH-20857]
 * config: Correct `filebase64sha256` function return value [GH-20654]
 * command/fmt: "Heredoc" sequences no longer cause incorrect indentation for following blocks [GH-20715]
 * command/state ...: The address-matching logic for all of these commands now correctly matches an address like `aws_instance.foo` only in the root module, rather than maching all resources/instances of the given type and name in descendent modules too. [GH-20719]
