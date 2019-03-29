@@ -1184,11 +1184,8 @@ func normalizeNullValues(dst, src cty.Value, preferDst bool) cty.Value {
 			dstMap = map[string]cty.Value{}
 		}
 
-		ei := src.ElementIterator()
-		for ei.Next() {
-			k, v := ei.Element()
-			key := k.AsString()
-
+		srcMap := src.AsValueMap()
+		for key, v := range srcMap {
 			dstVal := dstMap[key]
 			if dstVal == cty.NilVal {
 				if preferDst && ty.IsMapType() {
@@ -1211,6 +1208,24 @@ func normalizeNullValues(dst, src cty.Value, preferDst bool) cty.Value {
 		}
 
 		if ty.IsMapType() {
+			// helper/schema will populate an optional+computed map with
+			// unknowns which we have to fixup here.
+			// It would be preferable to simply prevent any known value from
+			// becoming unknown, but concessions have to be made to retain the
+			// broken legacy behavior when possible.
+			for k, srcVal := range srcMap {
+				if !srcVal.IsNull() && srcVal.IsKnown() {
+					dstVal, ok := dstMap[k]
+					if !ok {
+						continue
+					}
+
+					if !dstVal.IsNull() && !dstVal.IsKnown() {
+						dstMap[k] = srcVal
+					}
+				}
+			}
+
 			return cty.MapVal(dstMap)
 		}
 
