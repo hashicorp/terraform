@@ -253,6 +253,9 @@ func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.At
 		switch {
 		case showJustNew:
 			p.writeValue(new, action, indent+2)
+			if p.pathForcesNewResource(path) {
+				p.buf.WriteString(p.color.Color(forcesNewResourceCaption))
+			}
 		default:
 			// We show new even if it is null to emphasize the fact
 			// that it is being unset, since otherwise it is easy to
