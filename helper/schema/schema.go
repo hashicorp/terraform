@@ -279,7 +279,8 @@ type Schema struct {
 	// guaranteed to be of the proper Schema type, and it can yield warnings or
 	// errors based on inspection of that value.
 	//
-	// ValidateFunc currently only works for primitive types and maps.
+	// ValidateFunc currently only works for primitive types and TypeList / TypeSet
+	// of primitive type elements.
 	ValidateFunc SchemaValidateFunc
 
 	// Sensitive ensures that the attribute's value does not get displayed in
