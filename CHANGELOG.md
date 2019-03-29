@@ -25,6 +25,7 @@ BUG FIXES:
 * command/state ...: The address-matching logic for all of these commands now correctly matches an address like `aws_instance.foo` only in the root module, rather than maching all resources/instances of the given type and name in descendent modules too. [GH-20719]
 * command/state mv: Some regressions between 0.11 and 0.12 have been addressed. [GH-20719]
 * command/plan: Diff renderer will no longer panic if an object is removed from the end of a list of objects. [GH-20765]
+* command/plan: Diff renderer will now correctly indicate when adding a new attribute is what forces resource instance replacement. [GH-20827]
 
 ## 0.12.0-beta1 (Feb 28, 2019)
 
