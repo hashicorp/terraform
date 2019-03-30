@@ -164,6 +164,29 @@ func TestValidationIntInSlice(t *testing.T) {
 	})
 }
 
+func TestValidationFloatBetween(t *testing.T) {
+	runTestCases(t, []testCase{
+		{
+			val: 1.0,
+			f:   FloatBetween(1.0, 1.0),
+		},
+		{
+			val: 1.0,
+			f:   FloatBetween(0.0, 2.0),
+		},
+		{
+			val:         1.0,
+			f:           FloatBetween(2, 3),
+			expectedErr: regexp.MustCompile("expected [\\w]+ to be in the range \\(2 - 3\\), got 1"),
+		},
+		{
+			val:         "1",
+			f:           FloatBetween(2.0, 3.0),
+			expectedErr: regexp.MustCompile("expected type of [\\w]+ to be float64"),
+		},
+	})
+}
+
 func TestValidationStringInSlice(t *testing.T) {
 	runTestCases(t, []testCase{
 		{

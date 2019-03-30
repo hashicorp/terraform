@@ -124,6 +124,25 @@ func IntInSlice(valid []int) schema.SchemaValidateFunc {
 	}
 }
 
+// FloatBetween returns a SchemaValidateFunc which tests if the provided value
+// is of type float and is between min and max (inclusive)
+func FloatBetween(min, max float64) schema.SchemaValidateFunc {
+	return func(i interface{}, k string) (s []string, es []error) {
+		v, ok := i.(float64)
+		if !ok {
+			es = append(es, fmt.Errorf("expected type of %s to be float64", k))
+			return
+		}
+
+		if v < min || v > max {
+			es = append(es, fmt.Errorf("expected %s to be in the range (%g - %g), got %g", k, min, max, v))
+			return
+		}
+
+		return
+	}
+}
+
 // StringInSlice returns a SchemaValidateFunc which tests if the provided value
 // is of type string and matches the value of an element in the valid slice
 // will test with in lower case if ignoreCase is true
