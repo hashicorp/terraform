@@ -122,8 +122,10 @@ values are not saved, but this provides a convenient workflow when getting
 started with Terraform. UI Input is not recommended for everyday use of
 Terraform.
 
--> **Note**: UI Input is only supported for string variables. List and map
-variables must be populated via one of the other mechanisms.
+-> **Note**: In Terraform versions 0.11 and earlier, UI Input is only supported
+for string variables. List and map variables must be populated via one of the
+other mechanisms. Terraform 0.12 introduces the ability to populate complex
+variable types from the UI prompt.
 
 #### Variable Defaults
 

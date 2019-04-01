@@ -172,6 +172,8 @@ when running the `terraform plan` and `terraform apply` commands:
 
 ```
 terraform apply -var="image_id=ami-abc123"
+terraform apply -var='image_id_list=["ami-abc123","ami-def456"]'
+terraform apply -var='image_id_map={"us-east-1":"ami-abc123","us-east-2":"ami-def456"}'
 ```
 
 The `-var` option can be used any number of times in a single command.
