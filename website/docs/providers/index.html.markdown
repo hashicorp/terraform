@@ -66,7 +66,7 @@ down to see all providers.
 - [Icinga2](/docs/providers/icinga2/index.html)
 - [Ignition](/docs/providers/ignition/index.html)
 - [InfluxDB](/docs/providers/influxdb/index.html)
-- [JDcloud](/docs/providers/jdcloud/index.html)
+- [JDCloud](/docs/providers/jdcloud/index.html)
 - [Kubernetes](/docs/providers/kubernetes/index.html)
 - [Librato](/docs/providers/librato/index.html)
 - [Linode](/docs/providers/linode/index.html)
