@@ -232,6 +232,26 @@ func TestConfigValueFromHCL2Block(t *testing.T) {
 			&configschema.Block{},
 			nil,
 		},
+		// nulls should be filtered out of the config, since they couldn't exist
+		// in hcl.
+		{
+			cty.ObjectVal(map[string]cty.Value{
+				"list": cty.ListVal([]cty.Value{
+					cty.StringVal("ok"),
+					cty.NullVal(cty.String)}),
+			}),
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"list": {
+						Type:     cty.List(cty.String),
+						Optional: true,
+					},
+				},
+			},
+			map[string]interface{}{
+				"list": []interface{}{"ok"},
+			},
+		},
 	}
 
 	for _, test := range tests {
