@@ -3,6 +3,7 @@ package plugin
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -11,6 +12,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/terraform/helper/schema"
 	proto "github.com/hashicorp/terraform/internal/tfplugin5"
+	"github.com/hashicorp/terraform/plugin/convert"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/msgpack"
@@ -1006,6 +1008,73 @@ func TestNormalizeNullValues(t *testing.T) {
 			got := normalizeNullValues(tc.Dst, tc.Src, tc.Plan)
 			if !got.RawEquals(tc.Expect) {
 				t.Fatalf("\nexpected: %#v\ngot:      %#v\n", tc.Expect, got)
+			}
+		})
+	}
+}
+
+func TestValidateNulls(t *testing.T) {
+	for i, tc := range []struct {
+		Cfg cty.Value
+		Err bool
+	}{
+		{
+			Cfg: cty.ObjectVal(map[string]cty.Value{
+				"list": cty.ListVal([]cty.Value{
+					cty.StringVal("string"),
+					cty.NullVal(cty.String),
+				}),
+			}),
+			Err: true,
+		},
+		{
+			Cfg: cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					"string": cty.StringVal("string"),
+					"null":   cty.NullVal(cty.String),
+				}),
+			}),
+			Err: false,
+		},
+		{
+			Cfg: cty.ObjectVal(map[string]cty.Value{
+				"object": cty.ObjectVal(map[string]cty.Value{
+					"list": cty.ListVal([]cty.Value{
+						cty.StringVal("string"),
+						cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+			Err: true,
+		},
+		{
+			Cfg: cty.ObjectVal(map[string]cty.Value{
+				"object": cty.ObjectVal(map[string]cty.Value{
+					"list": cty.ListVal([]cty.Value{
+						cty.StringVal("string"),
+						cty.NullVal(cty.String),
+					}),
+					"list2": cty.ListVal([]cty.Value{
+						cty.StringVal("string"),
+						cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+			Err: true,
+		},
+	} {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			d := validateConfigNulls(tc.Cfg, nil)
+			diags := convert.ProtoToDiagnostics(d)
+			switch {
+			case tc.Err:
+				if !diags.HasErrors() {
+					t.Fatal("expected error")
+				}
+			default:
+				if diags.HasErrors() {
+					t.Fatalf("unexpected error: %q", diags.Err())
+				}
 			}
 		})
 	}
