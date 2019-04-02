@@ -62,6 +62,14 @@ func Diagnostic(diag tfdiags.Diagnostic, sources map[string][]byte, color *color
 		// Make sure the snippet includes the highlight. This should be true
 		// for any reasonable diagnostic, but we'll make sure.
 		snippetRange = hcl.RangeOver(snippetRange, highlightRange)
+		if snippetRange.Empty() {
+			snippetRange.End.Byte++
+			snippetRange.End.Column++
+		}
+		if highlightRange.Empty() {
+			highlightRange.End.Byte++
+			highlightRange.End.Column++
+		}
 
 		var src []byte
 		if sources != nil {
@@ -77,13 +85,6 @@ func Diagnostic(diag tfdiags.Diagnostic, sources map[string][]byte, color *color
 			file, offset := parseRange(src, highlightRange)
 
 			headerRange := highlightRange
-			if snippetRange.Empty() {
-				// We assume that empty range signals diagnostic
-				// related to the whole body, so we lookup the definition
-				// instead of attempting to render empty range
-				snippetRange = hcled.ContextDefRange(file, offset-1)
-				headerRange = snippetRange
-			}
 
 			contextStr := hcled.ContextString(file, offset-1)
 			if contextStr != "" {
@@ -100,18 +101,14 @@ func Diagnostic(diag tfdiags.Diagnostic, sources map[string][]byte, color *color
 					continue
 				}
 				beforeRange, highlightedRange, afterRange := lineRange.PartitionAround(highlightRange)
-				if highlightedRange.Empty() {
-					fmt.Fprintf(&buf, "%4d: %s\n", lineRange.Start.Line, sc.Bytes())
-				} else {
-					before := beforeRange.SliceBytes(src)
-					highlighted := highlightedRange.SliceBytes(src)
-					after := afterRange.SliceBytes(src)
-					fmt.Fprintf(
-						&buf, color.Color("%4d: %s[underline]%s[reset]%s\n"),
-						lineRange.Start.Line,
-						before, highlighted, after,
-					)
-				}
+				before := beforeRange.SliceBytes(src)
+				highlighted := highlightedRange.SliceBytes(src)
+				after := afterRange.SliceBytes(src)
+				fmt.Fprintf(
+					&buf, color.Color("%4d: %s[underline]%s[reset]%s\n"),
+					lineRange.Start.Line,
+					before, highlighted, after,
+				)
 			}
 
 		}
@@ -180,12 +177,6 @@ func Diagnostic(diag tfdiags.Diagnostic, sources map[string][]byte, color *color
 	return buf.String()
 }
 
-// sourceCodeContextStr attempts to find a user-friendly description of
-// the location of the given range in the given source code.
-//
-// An empty string is returned if no suitable description is available, e.g.
-// because the source is invalid, or because the offset is not inside any sort
-// of identifiable container.
 func parseRange(src []byte, rng hcl.Range) (*hcl.File, int) {
 	filename := rng.Filename
 	offset := rng.Start.Byte
