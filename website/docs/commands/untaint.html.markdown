@@ -17,9 +17,7 @@ This command _will not_ modify infrastructure, but does modify the state file
 in order to unmark a resource as tainted.
 
 ~> **NOTE on Tainted Indexes:** In certain edge cases, more than one tainted
-instance can be present for a single resource. When this happens, the `-index`
-flag is required to select which of the tainted instances to restore as
-primary. You can use the `terraform show` command to inspect the state and
+instance can be present for a single resource. When this happens, you need to specify the index after the resources, e.g. `my-resource-example.2`. You can use the `terraform show` command to inspect the state and
 determine which index holds the instance you'd like to restore. In the vast
 majority of cases, there will only be one tainted instance, and the `-index`
 flag can be omitted.
@@ -40,12 +38,6 @@ certain cases, see above note). The list of available flags are:
 
 * `-backup=path` - Path to the backup file. Defaults to `-state-out` with
   the ".backup" extension. Disabled by setting to "-".
-
-* `-index=n` - Selects a single tainted instance when there are more than one
-  tainted instances present in the state for a given resource. This flag is
-  required when multiple tainted instances are present. The vast majority of the
-  time, there is a maximum of one tainted instance per resource, so this flag
-  can be safely omitted.
 
 * `-lock=true` - Lock the state file when locking is supported.
 
