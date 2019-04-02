@@ -1342,7 +1342,8 @@ func validateConfigNulls(v cty.Value, path cty.Path) []*proto.Diagnostic {
 			if ev.IsNull() {
 				diags = append(diags, &proto.Diagnostic{
 					Severity:  proto.Diagnostic_ERROR,
-					Summary:   "null value found in list",
+					Summary:   "Null value found in list",
+					Detail:    "Null values are not allowed for this attribute value.",
 					Attribute: convert.PathToAttributePath(append(path, cty.IndexStep{Key: kv})),
 				})
 				continue
