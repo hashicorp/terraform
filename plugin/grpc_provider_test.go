@@ -26,6 +26,7 @@ func mockProviderClient(t *testing.T) *mockproto.MockProviderClient {
 	client.EXPECT().GetSchema(
 		gomock.Any(),
 		gomock.Any(),
+		gomock.Any(),
 	).Return(providerProtoSchema(), nil)
 
 	return client
