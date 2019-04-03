@@ -47,8 +47,7 @@ func (s *Scope) ExpandBlock(body hcl.Body, schema *configschema.Block) (hcl.Body
 func (s *Scope) EvalBlock(body hcl.Body, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
 	spec := schema.DecoderSpec()
 
-	traversals := hcldec.Variables(body, spec)
-	refs, diags := References(traversals)
+	refs, diags := ReferencesInBlock(body, schema)
 
 	ctx, ctxDiags := s.EvalContext(refs)
 	diags = diags.Append(ctxDiags)
