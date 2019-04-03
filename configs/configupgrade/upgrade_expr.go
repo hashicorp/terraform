@@ -55,6 +55,7 @@ Value:
 					Detail:   fmt.Sprintf("Interpolation parsing failed: %s", err),
 					Subject:  hcl1PosRange(filename, tv.Pos).Ptr(),
 				})
+				return nil, diags
 			}
 
 			interpSrc, interpDiags := upgradeExpr(hilNode, filename, interp, an)
