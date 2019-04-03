@@ -26,6 +26,7 @@ BUG FIXES:
 * command/state mv: Some regressions between 0.11 and 0.12 have been addressed. [GH-20719]
 * command/plan: Diff renderer will no longer panic if an object is removed from the end of a list of objects. [GH-20765]
 * command/plan: Diff renderer will now correctly indicate when adding a new attribute is what forces resource instance replacement. [GH-20827]
+* helper/schema: Prevent crash when setting a `TypeSet` attribute with a typed `nil` of `*schema.Set` [GH-20891]
 
 ## 0.12.0-beta1 (Feb 28, 2019)
 
