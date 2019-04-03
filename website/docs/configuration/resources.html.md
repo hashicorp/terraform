@@ -523,3 +523,4 @@ The set of configurable operations is chosen by each resource type. Most
 resource types do not support the `timeouts` block at all. Consult the
 documentation for each resource type to see which operations it offers
 for configuration, if any.
+
