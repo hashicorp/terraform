@@ -279,7 +279,11 @@ func (b *Body) JustAttributes() (hcl.Attributes, hcl.Diagnostics) {
 }
 
 func (b *Body) MissingItemRange() hcl.Range {
-	return b.EndRange
+	return hcl.Range{
+		Filename: b.SrcRange.Filename,
+		Start:    b.SrcRange.Start,
+		End:      b.SrcRange.Start,
+	}
 }
 
 // Attributes is the collection of attribute definitions within a body.
