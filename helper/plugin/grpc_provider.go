@@ -611,17 +611,6 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 		priorState = &terraform.InstanceState{}
 	}
 
-	// if we're not creating a new resource, remove any new computed fields
-	if !create {
-		for attr, d := range diff.Attributes {
-			// If there's no change, then don't let this go through as NewComputed.
-			// This usually only happens when Old and New are both empty.
-			if d.NewComputed && d.Old == d.New {
-				delete(diff.Attributes, attr)
-			}
-		}
-	}
-
 	// now we need to apply the diff to the prior state, so get the planned state
 	plannedAttrs, err := diff.Apply(priorState.Attributes, res.CoreConfigSchemaWhenShimmed())
 	schema.FixupAsSingleInstanceStateOut(

@@ -19,7 +19,7 @@ func testResource() *schema.Resource {
 		},
 
 		CustomizeDiff: func(d *schema.ResourceDiff, _ interface{}) error {
-			if d.HasChange("required") {
+			if d.HasChange("optional") {
 				d.SetNewComputed("planned_computed")
 			}
 			return nil
@@ -176,7 +176,7 @@ func testResourceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("computed_list", []string{"listval1", "listval2"})
 	d.Set("computed_set", []string{"setval1", "setval2"})
 
-	d.Set("planned_computed", d.Get("required"))
+	d.Set("planned_computed", d.Get("optional"))
 
 	// if there is no "set" value, erroneously set it to an empty set. This
 	// might change a null value to an empty set, but we should be able to
