@@ -847,25 +847,27 @@ func TestResource_plannedComputed(t *testing.T) {
 			resource.TestStep{
 				Config: strings.TrimSpace(`
 resource "test_resource" "foo" {
-	required           = "ok"
+	required = "ok"
 	required_map = {
 	  key = "value"
 	}
+	optional = "hi"
 }
 				`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
-						"test_resource.foo", "planned_computed", "ok",
+						"test_resource.foo", "planned_computed", "hi",
 					),
 				),
 			},
 			resource.TestStep{
 				Config: strings.TrimSpace(`
 resource "test_resource" "foo" {
-	required           = "changed"
+	required = "ok"
 	required_map = {
 	  key = "value"
 	}
+	optional = "changed"
 }
 				`),
 				Check: resource.ComposeTestCheckFunc(
@@ -915,4 +917,59 @@ func TestDiffApply_map(t *testing.T) {
 	if !reflect.DeepEqual(newAttrs, expect) {
 		t.Fatalf("expected:%#v got:%#v", expect, newAttrs)
 	}
+}
+
+func TestResource_dependsComputed(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+variable "change" {
+	default = false
+}
+
+resource "test_resource" "foo" {
+	required = "ok"
+	required_map = {
+	    key = "value"
+	}
+	optional = var.change ? "after" : ""
+}
+
+resource "test_resource" "bar" {
+	count = var.change ? 1 : 0
+	required = test_resource.foo.planned_computed
+	required_map = {
+		key = "value"
+	}
+}
+				`),
+			},
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+variable "change" {
+	default = true
+}
+
+resource "test_resource" "foo" {
+	required = "ok"
+	required_map = {
+	    key = "value"
+	}
+	optional = var.change ? "after" : ""
+}
+
+resource "test_resource" "bar" {
+	count = var.change ? 1 : 0
+	required = test_resource.foo.planned_computed
+	required_map = {
+		key = "value"
+	}
+}
+				`),
+			},
+		},
+	})
 }
