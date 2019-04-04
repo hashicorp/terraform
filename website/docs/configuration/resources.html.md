@@ -445,7 +445,7 @@ meta-arguments are supported:
 
 The `lifecycle` settings all effect how Terraform constructs and traverses
 the dependency graph. As a result, only literal values can be used because
-the processing happens to early for arbitrary expression evaluation.
+the processing happens too early for arbitrary expression evaluation.
 
 ### `provisioner` and `connection`: Resource Provisioners
 
