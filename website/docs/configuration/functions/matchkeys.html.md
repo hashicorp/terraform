@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "list - Functions - Configuration Language"
+page_title: "matchkeys - Functions - Configuration Language"
 sidebar_current: "docs-funcs-collection-matchkeys"
 description: |-
   The matchkeys function takes a subset of elements from one list by matching
