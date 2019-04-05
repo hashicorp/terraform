@@ -113,3 +113,11 @@ This is a purely cosmetic change to Terraform's human-readable output, and the
 exact output differences can change between minor Terraform versions.
 
 For more details see [Running Terraform in Automation](https://learn.hashicorp.com/terraform/development/running-terraform-in-automation).
+
+## TF_CLI_CONFIG_FILE
+
+The location of the [Terraform CLI configuration file](/docs/commands/cli-config.html).
+
+```shell
+export TF_CLI_CONFIG_FILE="$HOME/.terraformrc-custom"
+```

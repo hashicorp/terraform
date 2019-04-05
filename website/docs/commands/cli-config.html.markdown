@@ -32,6 +32,9 @@ CLI configuration file, even though Windows Explorer may _display_ its name
 as just `terraform.rc`. Use `dir` from PowerShell or Command Prompt to
 confirm the filename.
 
+The location of the Terraform CLI configuration file can also be specified
+using the `TF_CLI_CONFIG_FILE` [environment variable](/docs/commands/environment-variables.html).
+
 ## Configuration File Syntax
 
 The configuration file uses the same _HCL_ syntax as `.tf` files, but with
