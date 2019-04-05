@@ -77,6 +77,39 @@ foo {
 				},
 			},
 		},
+		"block syntax with nested blocks": {
+			src: `
+foo {
+  bar {
+    boop = baz
+  }
+}
+`,
+			schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {
+						Type: cty.List(cty.Object(map[string]cty.Type{
+							"bar": cty.List(cty.Object(map[string]cty.Type{
+								"boop": cty.String,
+							})),
+						})),
+						Optional: true,
+					},
+				},
+			},
+			want: []hcl.Traversal{
+				{
+					hcl.TraverseRoot{
+						Name: "baz",
+						SrcRange: hcl.Range{
+							Filename: "test.tf",
+							Start:    hcl.Pos{Line: 4, Column: 12, Byte: 26},
+							End:      hcl.Pos{Line: 4, Column: 15, Byte: 29},
+						},
+					},
+				},
+			},
+		},
 		"dynamic block syntax": {
 			src: `
 dynamic "foo" {

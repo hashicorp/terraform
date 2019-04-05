@@ -152,7 +152,8 @@ func (e *fixupBlocksExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostic
 	vals := make([]cty.Value, len(e.blocks))
 	var diags hcl.Diagnostics
 	for i, block := range e.blocks {
-		val, blockDiags := hcldec.Decode(block.Body, spec, ctx)
+		body := FixUpBlockAttrs(block.Body, schema)
+		val, blockDiags := hcldec.Decode(body, spec, ctx)
 		diags = append(diags, blockDiags...)
 		if val == cty.NilVal {
 			val = cty.UnknownVal(e.ety)
