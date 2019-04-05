@@ -143,8 +143,17 @@ Value:
 				buf.WriteString("false")
 			}
 
+		case hcl1token.NUMBER:
+			num := tv.Value()
+			buf.WriteString(strconv.FormatInt(num.(int64), 10))
+
+		case hcl1token.FLOAT:
+			num := tv.Value()
+			buf.WriteString(strconv.FormatFloat(num.(float64), 'f', -1, 64))
+
 		default:
-			// For everything else (NUMBER, FLOAT) we'll just pass through the given bytes verbatim.
+			// For everything else we'll just pass through the given bytes verbatim,
+			// but we should't get here because the above is intended to be exhaustive.
 			buf.WriteString(tv.Text)
 
 		}
