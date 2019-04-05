@@ -216,7 +216,7 @@ foo {
 				}),
 			}),
 		},
-		"nested fixup": {
+		"fixup inside block": {
 			src: `
 container {
   foo {
@@ -237,6 +237,56 @@ container {
 					"container": {
 						Nesting: configschema.NestingList,
 						Block:   *fooSchema,
+					},
+				},
+			},
+			want: cty.ObjectVal(map[string]cty.Value{
+				"container": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.ListVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"bar": cty.StringVal("baz"),
+							}),
+							cty.ObjectVal(map[string]cty.Value{
+								"bar": cty.StringVal("boop"),
+							}),
+						}),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.ListVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"bar": cty.StringVal("beep value"),
+							}),
+						}),
+					}),
+				}),
+			}),
+		},
+		"fixup inside attribute-as-block": {
+			src: `
+container {
+  foo {
+    bar = "baz"
+  }
+  foo {
+    bar = "boop"
+  }
+}
+container {
+  foo {
+    bar = beep
+  }
+}
+`,
+			schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"container": {
+						Type: cty.List(cty.Object(map[string]cty.Type{
+							"foo": cty.List(cty.Object(map[string]cty.Type{
+								"bar": cty.String,
+							})),
+						})),
+						Optional: true,
 					},
 				},
 			},
