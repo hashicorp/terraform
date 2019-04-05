@@ -504,7 +504,7 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 				}
 
 				switch {
-				case err == discovery.ErrorServiceUnreachable:
+				case err == discovery.ErrorServiceUnreachable, err == discovery.ErrorPublicRegistryUnreachable:
 					c.Ui.Error(errDiscoveryServiceUnreachable)
 				case err == discovery.ErrorNoSuchProvider:
 					c.Ui.Error(fmt.Sprintf(errProviderNotFound, provider, DefaultPluginVendorDir))
@@ -884,8 +884,6 @@ const errDiscoveryServiceUnreachable = `
 [reset][bold][red]Registry service unreachable.[reset][red]
 
 This may indicate a network issue, or an issue with the requested Terraform Registry.
-
-Check https://status.hashicorp.com/ for registry status updates.
 `
 
 const errProviderNotFound = `
