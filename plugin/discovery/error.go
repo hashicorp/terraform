@@ -55,6 +55,10 @@ const ErrorSignatureVerification = Error("unable to verify signature")
 // to the registry service
 const ErrorServiceUnreachable = Error("registry service is unreachable")
 
+// ErrorPublicRegistryUnreachable indicates that the network was unable to connect
+// to the public registry in particular, so we can show a link to the statuspage
+const ErrorPublicRegistryUnreachable = Error("registry service is unreachable, check https://status.hashicorp.com/ for status updates")
+
 func (err Error) Error() string {
 	return string(err)
 }
