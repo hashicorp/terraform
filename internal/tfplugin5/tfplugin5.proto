@@ -95,6 +95,7 @@ message Schema {
             LIST = 2;
             SET = 3;
             MAP = 4;
+            GROUP = 5;
         }
 
         string type_name = 1;

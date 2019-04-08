@@ -50,6 +50,25 @@ func TestBlockEmptyValue(t *testing.T) {
 		{
 			&Block{
 				BlockTypes: map[string]*NestedBlock{
+					"group": {
+						Nesting: NestingGroup,
+						Block: Block{
+							Attributes: map[string]*Attribute{
+								"str": {Type: cty.String, Required: true},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"group": cty.ObjectVal(map[string]cty.Value{
+					"str": cty.NullVal(cty.String),
+				}),
+			}),
+		},
+		{
+			&Block{
+				BlockTypes: map[string]*NestedBlock{
 					"list": {
 						Nesting: NestingList,
 						Block: Block{

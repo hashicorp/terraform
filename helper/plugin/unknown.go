@@ -64,7 +64,7 @@ func SetUnknowns(val cty.Value, schema *configschema.Block) cty.Value {
 		// This switches on the value type here, so we can correctly switch
 		// between Tuples/Lists and Maps/Objects.
 		switch {
-		case blockS.Nesting == configschema.NestingSingle:
+		case blockS.Nesting == configschema.NestingSingle || blockS.Nesting == configschema.NestingGroup:
 			// NestingSingle is the only exception here, where we treat the
 			// block directly as an object
 			newVals[name] = SetUnknowns(blockVal, &blockS.Block)

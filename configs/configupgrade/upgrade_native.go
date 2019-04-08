@@ -550,7 +550,7 @@ func printDynamicBlockBody(buf *bytes.Buffer, iterName string, schema *configsch
 		case configschema.NestingMap:
 			printAttribute(buf, "for_each", []byte(fmt.Sprintf(`lookup(%s.value, %q, {})`, iterName, name)), nil)
 			printAttribute(buf, "labels", []byte(fmt.Sprintf(`[%s.key]`, name)), nil)
-		case configschema.NestingSingle:
+		case configschema.NestingSingle, configschema.NestingGroup:
 			printAttribute(buf, "for_each", []byte(fmt.Sprintf(`lookup(%s.value, %q, null) != null ? [%s.value.%s] : []`, iterName, name, iterName, name)), nil)
 		default:
 			printAttribute(buf, "for_each", []byte(fmt.Sprintf(`lookup(%s.value, %q, [])`, iterName, name)), nil)

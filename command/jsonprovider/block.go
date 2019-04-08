@@ -29,6 +29,8 @@ func marshalBlockTypes(nestedBlock *configschema.NestedBlock) *blockType {
 	switch nestedBlock.Nesting {
 	case configschema.NestingSingle:
 		ret.NestingMode = "single"
+	case configschema.NestingGroup:
+		ret.NestingMode = "group"
 	case configschema.NestingList:
 		ret.NestingMode = "list"
 	case configschema.NestingSet:
