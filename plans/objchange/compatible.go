@@ -67,7 +67,7 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 		// expression is itself unknown and thus it cannot predict how many
 		// child blocks will get created.
 		switch blockS.Nesting {
-		case configschema.NestingSingle:
+		case configschema.NestingSingle, configschema.NestingGroup:
 			if allLeafValuesUnknown(plannedV) && !plannedV.IsNull() {
 				return errs
 			}
@@ -84,7 +84,7 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 
 		path := append(path, cty.GetAttrStep{Name: name})
 		switch blockS.Nesting {
-		case configschema.NestingSingle:
+		case configschema.NestingSingle, configschema.NestingGroup:
 			moreErrs := assertObjectCompatible(&blockS.Block, plannedV, actualV, path)
 			errs = append(errs, moreErrs...)
 		case configschema.NestingList:

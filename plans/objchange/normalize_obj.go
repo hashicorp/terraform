@@ -45,9 +45,13 @@ func NormalizeObjectFromLegacySDK(val cty.Value, schema *configschema.Block) cty
 		}
 
 		switch blockS.Nesting {
-		case configschema.NestingSingle:
+		case configschema.NestingSingle, configschema.NestingGroup:
 			if lv.IsKnown() {
-				vals[name] = NormalizeObjectFromLegacySDK(lv, &blockS.Block)
+				if lv.IsNull() && blockS.Nesting == configschema.NestingGroup {
+					vals[name] = blockS.EmptyValue()
+				} else {
+					vals[name] = NormalizeObjectFromLegacySDK(lv, &blockS.Block)
+				}
 			} else {
 				vals[name] = unknownBlockStub(&blockS.Block)
 			}
@@ -105,7 +109,7 @@ func unknownBlockStub(schema *configschema.Block) cty.Value {
 	}
 	for name, blockS := range schema.BlockTypes {
 		switch blockS.Nesting {
-		case configschema.NestingSingle:
+		case configschema.NestingSingle, configschema.NestingGroup:
 			vals[name] = unknownBlockStub(&blockS.Block)
 		case configschema.NestingList:
 			// In principle we may be expected to produce a tuple value here,

@@ -278,19 +278,20 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 	// the objects within are computed.
 
 	switch blockS.Nesting {
-	case configschema.NestingSingle:
+	case configschema.NestingSingle, configschema.NestingGroup:
 		var action plans.Action
+		eqV := new.Equals(old)
 		switch {
 		case old.IsNull():
 			action = plans.Create
 		case new.IsNull():
 			action = plans.Delete
-		case !new.IsKnown() || !old.IsKnown():
+		case !new.IsWhollyKnown() || !old.IsWhollyKnown():
 			// "old" should actually always be known due to our contract
 			// that old values must never be unknown, but we'll allow it
 			// anyway to be robust.
 			action = plans.Update
-		case !(new.Equals(old).True()):
+		case !eqV.IsKnown() || !eqV.True():
 			action = plans.Update
 		}
 

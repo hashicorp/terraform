@@ -34,11 +34,19 @@ func (b *Block) DecoderSpec() hcldec.Spec {
 		childSpec := blockS.Block.DecoderSpec()
 
 		switch blockS.Nesting {
-		case NestingSingle:
+		case NestingSingle, NestingGroup:
 			ret[name] = &hcldec.BlockSpec{
 				TypeName: name,
 				Nested:   childSpec,
 				Required: blockS.MinItems == 1 && blockS.MaxItems >= 1,
+			}
+			if blockS.Nesting == NestingGroup {
+				ret[name] = &hcldec.DefaultSpec{
+					Primary: ret[name],
+					Default: &hcldec.LiteralSpec{
+						Value: blockS.EmptyValue(),
+					},
+				}
 			}
 		case NestingList:
 			// We prefer to use a list where possible, since it makes our

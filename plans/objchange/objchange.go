@@ -121,7 +121,7 @@ func proposedNewObject(schema *configschema.Block, prior, config cty.Value) cty.
 		var newV cty.Value
 		switch blockType.Nesting {
 
-		case configschema.NestingSingle:
+		case configschema.NestingSingle, configschema.NestingGroup:
 			newV = ProposedNewObject(&blockType.Block, priorV, configV)
 
 		case configschema.NestingList:
@@ -335,7 +335,7 @@ func setElementCompareValue(schema *configschema.Block, v cty.Value, isConfig bo
 	for name, blockType := range schema.BlockTypes {
 		switch blockType.Nesting {
 
-		case configschema.NestingSingle:
+		case configschema.NestingSingle, configschema.NestingGroup:
 			attrs[name] = setElementCompareValue(&blockType.Block, v.GetAttr(name), isConfig)
 
 		case configschema.NestingList, configschema.NestingSet:
