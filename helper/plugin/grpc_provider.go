@@ -275,12 +275,6 @@ func (s *GRPCProviderServer) UpgradeResourceState(_ context.Context, req *proto.
 		}
 	}
 
-	// NOTE WELL: The AsSingle mechanism cannot be automatically normalized here,
-	// so providers that use it must be ready to handle both normalized and
-	// unnormalized input in their upgrade codepaths. The _result_ of an upgrade
-	// should set a single-element list/set for any AsSingle element so that it
-	// can be normalized to a single value automatically on return.
-
 	// We first need to upgrade a flatmap state if it exists.
 	// There should never be both a JSON and Flatmap state in the request.
 	if req.RawState.Flatmap != nil {
@@ -297,8 +291,6 @@ func (s *GRPCProviderServer) UpgradeResourceState(_ context.Context, req *proto.
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
-
-	schema.FixupAsSingleConfigValueOut(jsonMap, s.provider.ResourcesMap[req.TypeName].Schema)
 
 	// now we need to turn the state into the default json representation, so
 	// that it can be re-decoded using the actual schema.
@@ -468,7 +460,6 @@ func (s *GRPCProviderServer) ReadResource(_ context.Context, req *proto.ReadReso
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
-	// res.ShimInstanceStateFromValue result has already had FixupAsSingleInstanceStateIn applied
 
 	newInstanceState, err := res.RefreshWithoutUpgrade(instanceState, s.provider.Meta())
 	if err != nil {
@@ -560,7 +551,6 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
-	// res.ShimInstanceStateFromValue result has already had FixupAsSingleInstanceStateIn applied
 	priorPrivate := make(map[string]interface{})
 	if len(req.PriorPrivate) > 0 {
 		if err := json.Unmarshal(req.PriorPrivate, &priorPrivate); err != nil {
@@ -612,17 +602,7 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 	}
 
 	// now we need to apply the diff to the prior state, so get the planned state
-	plannedAttrs, err := diff.Apply(priorState.Attributes, res.CoreConfigSchemaWhenShimmed())
-	schema.FixupAsSingleInstanceStateOut(
-		&terraform.InstanceState{Attributes: plannedAttrs},
-		s.provider.ResourcesMap[req.TypeName],
-	)
-
-	// We also fix up the diff for AsSingle here, but note that we intentionally
-	// do it _after_ diff.Apply (so that the state can have its own fixup applied)
-	// but before we deal with requiresNew below so that fixing up the diff
-	// also fixes up the requiresNew keys to match.
-	schema.FixupAsSingleInstanceDiffOut(diff, s.provider.ResourcesMap[req.TypeName])
+	plannedAttrs, err := diff.Apply(priorState.Attributes, block)
 
 	plannedStateVal, err := hcl2shim.HCL2ValueFromFlatmap(plannedAttrs, blockForShimming.ImpliedType())
 	if err != nil {
@@ -763,7 +743,6 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
-	// res.ShimInstanceStateFromValue result has already had FixupAsSingleInstanceStateIn applied
 
 	private := make(map[string]interface{})
 	if len(req.PlannedPrivate) > 0 {
@@ -785,10 +764,7 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 			Destroy:    true,
 		}
 	} else {
-		diff, err = schema.DiffFromValues(
-			priorStateVal, plannedStateVal,
-			stripResourceModifiers(res),
-		)
+		diff, err = schema.DiffFromValues(priorStateVal, plannedStateVal, stripResourceModifiers(res))
 		if err != nil {
 			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 			return resp, nil
@@ -801,10 +777,6 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 			Meta:       make(map[string]interface{}),
 		}
 	}
-
-	// NOTE WELL: schema.DiffFromValues has already effectively applied
-	// schema.FixupAsSingleInstanceDiffIn to the diff, so we need not (and must not)
-	// repeat that here.
 
 	// We need to fix any sets that may be using the "~" index prefix to
 	// indicate partially computed. The special sigil isn't really used except
@@ -934,8 +906,6 @@ func (s *GRPCProviderServer) ImportResourceState(_ context.Context, req *proto.I
 		// copy the ID again just to be sure it wasn't missed
 		is.Attributes["id"] = is.ID
 
-		schema.FixupAsSingleInstanceStateOut(is, s.provider.ResourcesMap[req.TypeName])
-
 		resourceType := is.Ephemeral.Type
 		if resourceType == "" {
 			resourceType = req.TypeName
@@ -1014,7 +984,6 @@ func (s *GRPCProviderServer) ReadDataSource(_ context.Context, req *proto.ReadDa
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
-	schema.FixupAsSingleInstanceStateOut(newInstanceState, s.provider.DataSourcesMap[req.TypeName])
 
 	newStateVal, err := schema.StateValueFromInstanceState(newInstanceState, blockForShimming.ImpliedType())
 	if err != nil {
