@@ -87,17 +87,17 @@ func (s *GRPCProviderServer) getDatasourceSchemaBlockForCore(name string) *confi
 }
 
 func (s *GRPCProviderServer) getProviderSchemaBlockForShimming() *configschema.Block {
-	return schema.InternalMap(s.provider.Schema).CoreConfigSchemaForShimming()
+	return schema.InternalMap(s.provider.Schema).CoreConfigSchema()
 }
 
 func (s *GRPCProviderServer) getResourceSchemaBlockForShimming(name string) *configschema.Block {
 	res := s.provider.ResourcesMap[name]
-	return res.CoreConfigSchemaForShimming()
+	return res.CoreConfigSchema()
 }
 
 func (s *GRPCProviderServer) getDatasourceSchemaBlockForShimming(name string) *configschema.Block {
 	dat := s.provider.DataSourcesMap[name]
-	return dat.CoreConfigSchemaForShimming()
+	return dat.CoreConfigSchema()
 }
 
 func (s *GRPCProviderServer) PrepareProviderConfig(_ context.Context, req *proto.PrepareProviderConfig_Request) (*proto.PrepareProviderConfig_Response, error) {
@@ -190,7 +190,6 @@ func (s *GRPCProviderServer) PrepareProviderConfig(_ context.Context, req *proto
 	}
 
 	config := terraform.NewResourceConfigShimmed(configVal, blockForShimming)
-	schema.FixupAsSingleResourceConfigIn(config, s.provider.Schema)
 
 	warns, errs := s.provider.Validate(config)
 	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, convert.WarnsAndErrsToProto(warns, errs))
@@ -219,7 +218,6 @@ func (s *GRPCProviderServer) ValidateResourceTypeConfig(_ context.Context, req *
 	}
 
 	config := terraform.NewResourceConfigShimmed(configVal, blockForShimming)
-	schema.FixupAsSingleResourceConfigIn(config, s.provider.ResourcesMap[req.TypeName].Schema)
 
 	warns, errs := s.provider.ValidateResource(req.TypeName, config)
 	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, convert.WarnsAndErrsToProto(warns, errs))
@@ -246,7 +244,6 @@ func (s *GRPCProviderServer) ValidateDataSourceConfig(_ context.Context, req *pr
 	}
 
 	config := terraform.NewResourceConfigShimmed(configVal, blockForShimming)
-	schema.FixupAsSingleResourceConfigIn(config, s.provider.DataSourcesMap[req.TypeName].Schema)
 
 	warns, errs := s.provider.ValidateDataSource(req.TypeName, config)
 	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, convert.WarnsAndErrsToProto(warns, errs))
@@ -324,7 +321,7 @@ func (s *GRPCProviderServer) upgradeFlatmapState(version int, m map[string]strin
 	// first determine if we need to call the legacy MigrateState func
 	requiresMigrate := version < res.SchemaVersion
 
-	schemaType := res.CoreConfigSchemaForShimming().ImpliedType()
+	schemaType := res.CoreConfigSchema().ImpliedType()
 
 	// if there are any StateUpgraders, then we need to only compare
 	// against the first version there
@@ -435,7 +432,6 @@ func (s *GRPCProviderServer) Configure(_ context.Context, req *proto.Configure_R
 	}
 
 	config := terraform.NewResourceConfigShimmed(configVal, blockForShimming)
-	schema.FixupAsSingleResourceConfigIn(config, s.provider.Schema)
 	err = s.provider.Configure(config)
 	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 
@@ -484,7 +480,6 @@ func (s *GRPCProviderServer) ReadResource(_ context.Context, req *proto.ReadReso
 	// helper/schema should always copy the ID over, but do it again just to be safe
 	newInstanceState.Attributes["id"] = newInstanceState.ID
 
-	schema.FixupAsSingleInstanceStateOut(newInstanceState, s.provider.ResourcesMap[req.TypeName])
 	newStateVal, err := hcl2shim.HCL2ValueFromFlatmap(newInstanceState.Attributes, blockForShimming.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
@@ -569,7 +564,6 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 
 	// turn the proposed state into a legacy configuration
 	cfg := terraform.NewResourceConfigShimmed(proposedNewStateVal, blockForShimming)
-	schema.FixupAsSingleResourceConfigIn(cfg, s.provider.ResourcesMap[req.TypeName].Schema)
 
 	diff, err := s.provider.SimpleDiff(info, priorState, cfg)
 	if err != nil {
@@ -602,7 +596,7 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 	}
 
 	// now we need to apply the diff to the prior state, so get the planned state
-	plannedAttrs, err := diff.Apply(priorState.Attributes, block)
+	plannedAttrs, err := diff.Apply(priorState.Attributes, blockForShimming)
 
 	plannedStateVal, err := hcl2shim.HCL2ValueFromFlatmap(plannedAttrs, blockForShimming.ImpliedType())
 	if err != nil {
@@ -829,7 +823,6 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 	}
-	schema.FixupAsSingleInstanceStateOut(newInstanceState, s.provider.ResourcesMap[req.TypeName])
 	newStateVal := cty.NullVal(blockForShimming.ImpliedType())
 
 	// Always return a null value for destroy.
@@ -968,7 +961,6 @@ func (s *GRPCProviderServer) ReadDataSource(_ context.Context, req *proto.ReadDa
 	}
 
 	config := terraform.NewResourceConfigShimmed(configVal, blockForShimming)
-	schema.FixupAsSingleResourceConfigIn(config, s.provider.DataSourcesMap[req.TypeName].Schema)
 
 	// we need to still build the diff separately with the Read method to match
 	// the old behavior
