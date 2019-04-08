@@ -14,10 +14,6 @@ import (
 // derives a terraform.InstanceDiff to give to the legacy providers. This is
 // used to take the states provided by the new ApplyResourceChange method and
 // convert them to a state+diff required for the legacy Apply method.
-//
-// If the fixup function is non-nil, it will be called with the constructed
-// shimmed InstanceState and ResourceConfig values to do any necessary in-place
-// mutations before producing the diff.
 func DiffFromValues(prior, planned cty.Value, res *Resource) (*terraform.InstanceDiff, error) {
 	return diffFromValues(prior, planned, res, nil)
 }
@@ -28,7 +24,6 @@ func DiffFromValues(prior, planned cty.Value, res *Resource) (*terraform.Instanc
 // have already been done.
 func diffFromValues(prior, planned cty.Value, res *Resource, cust CustomizeDiffFunc) (*terraform.InstanceDiff, error) {
 	instanceState, err := res.ShimInstanceStateFromValue(prior)
-	// The result of ShimInstanceStateFromValue already has FixupAsSingleInstanceStateIn applied
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +31,6 @@ func diffFromValues(prior, planned cty.Value, res *Resource, cust CustomizeDiffF
 	configSchema := res.CoreConfigSchema()
 
 	cfg := terraform.NewResourceConfigShimmed(planned, configSchema)
-	FixupAsSingleResourceConfigIn(cfg, schemaMap(res.Schema))
 
 	diff, err := schemaMap(res.Schema).Diff(instanceState, cfg, cust, nil, false)
 	if err != nil {
