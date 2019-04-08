@@ -110,7 +110,7 @@ type VariableCreateOptions struct {
 	Key *string `jsonapi:"attr,key"`
 
 	// The value of the variable.
-	Value *string `jsonapi:"attr,value"`
+	Value *string `jsonapi:"attr,value,omitempty"`
 
 	// Whether this is a Terraform or environment variable.
 	Category *CategoryType `jsonapi:"attr,category"`
@@ -128,9 +128,6 @@ type VariableCreateOptions struct {
 func (o VariableCreateOptions) valid() error {
 	if !validString(o.Key) {
 		return errors.New("key is required")
-	}
-	if !validString(o.Value) {
-		return errors.New("value is required")
 	}
 	if o.Category == nil {
 		return errors.New("category is required")
