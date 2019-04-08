@@ -162,8 +162,6 @@ func (r *Resource) ShimInstanceStateFromValue(state cty.Value) (*terraform.Insta
 	// match those from the Schema.
 	s := terraform.NewInstanceStateShimmedFromValue(state, r.SchemaVersion)
 
-	FixupAsSingleInstanceStateIn(s, r)
-
 	// We now rebuild the state through the ResourceData, so that the set indexes
 	// match what helper/schema expects.
 	data, err := schemaMap(r.Schema).Data(s, nil)

@@ -191,7 +191,6 @@ func (p *GRPCProvider) PrepareProviderConfig(r providers.PrepareProviderConfigRe
 
 func (p *GRPCProvider) ValidateResourceTypeConfig(r providers.ValidateResourceTypeConfigRequest) (resp providers.ValidateResourceTypeConfigResponse) {
 	log.Printf("[TRACE] GRPCProvider: ValidateResourceTypeConfig")
-
 	resourceSchema := p.getResourceSchema(r.TypeName)
 
 	mp, err := msgpack.Marshal(r.Config, resourceSchema.Block.ImpliedType())
