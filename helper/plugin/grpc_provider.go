@@ -87,17 +87,22 @@ func (s *GRPCProviderServer) getDatasourceSchemaBlockForCore(name string) *confi
 }
 
 func (s *GRPCProviderServer) getProviderSchemaBlockForShimming() *configschema.Block {
-	return schema.InternalMap(s.provider.Schema).CoreConfigSchema()
+	newSchema := map[string]*schema.Schema{}
+	for attr, s := range s.provider.Schema {
+		newSchema[attr] = schema.LegacySchema(s)
+	}
+
+	return schema.InternalMap(newSchema).CoreConfigSchema()
 }
 
 func (s *GRPCProviderServer) getResourceSchemaBlockForShimming(name string) *configschema.Block {
 	res := s.provider.ResourcesMap[name]
-	return res.CoreConfigSchema()
+	return schema.LegacyResourceSchema(res).CoreConfigSchema()
 }
 
 func (s *GRPCProviderServer) getDatasourceSchemaBlockForShimming(name string) *configschema.Block {
 	dat := s.provider.DataSourcesMap[name]
-	return dat.CoreConfigSchema()
+	return schema.LegacyResourceSchema(dat).CoreConfigSchema()
 }
 
 func (s *GRPCProviderServer) PrepareProviderConfig(_ context.Context, req *proto.PrepareProviderConfig_Request) (*proto.PrepareProviderConfig_Response, error) {
@@ -321,7 +326,7 @@ func (s *GRPCProviderServer) upgradeFlatmapState(version int, m map[string]strin
 	// first determine if we need to call the legacy MigrateState func
 	requiresMigrate := version < res.SchemaVersion
 
-	schemaType := res.CoreConfigSchema().ImpliedType()
+	schemaType := schema.LegacyResourceSchema(res).CoreConfigSchema().ImpliedType()
 
 	// if there are any StateUpgraders, then we need to only compare
 	// against the first version there
