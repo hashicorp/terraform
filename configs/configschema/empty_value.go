@@ -35,6 +35,8 @@ func (b *NestedBlock) EmptyValue() cty.Value {
 	switch b.Nesting {
 	case NestingSingle:
 		return cty.NullVal(b.Block.ImpliedType())
+	case NestingGroup:
+		return b.Block.EmptyValue()
 	case NestingList:
 		if ty := b.Block.ImpliedType(); ty.HasDynamicTypes() {
 			return cty.EmptyTupleVal

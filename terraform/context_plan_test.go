@@ -1759,6 +1759,80 @@ func TestContext2Plan_computed(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_blockNestingGroup(t *testing.T) {
+	m := testModule(t, "plan-block-nesting-group")
+	p := testProvider("test")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test": {
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"blah": {
+						Nesting: configschema.NestingGroup,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"baz": {Type: cty.String, Required: true},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+
+	if got, want := 1, len(plan.Changes.Resources); got != want {
+		t.Fatalf("wrong number of planned resource changes %d; want %d\n%s", got, want, spew.Sdump(plan.Changes.Resources))
+	}
+
+	if !p.PlanResourceChangeCalled {
+		t.Fatalf("PlanResourceChange was not called at all")
+	}
+
+	got := p.PlanResourceChangeRequest
+	want := providers.PlanResourceChangeRequest{
+		TypeName: "test",
+
+		// Because block type "blah" is defined as NestingGroup, we get a non-null
+		// value for it with null nested attributes, rather than the "blah" object
+		// itself being null, when there's no "blah" block in the config at all.
+		//
+		// This represents the situation where the remote service _always_ creates
+		// a single "blah", regardless of whether the block is present, but when
+		// the block _is_ present the user can override some aspects of it. The
+		// absense of the block means "use the defaults", in that case.
+		Config: cty.ObjectVal(map[string]cty.Value{
+			"blah": cty.ObjectVal(map[string]cty.Value{
+				"baz": cty.NullVal(cty.String),
+			}),
+		}),
+		ProposedNewState: cty.ObjectVal(map[string]cty.Value{
+			"blah": cty.ObjectVal(map[string]cty.Value{
+				"baz": cty.NullVal(cty.String),
+			}),
+		}),
+	}
+	if !cmp.Equal(got, want, valueTrans) {
+		t.Errorf("wrong PlanResourceChange request\n%s", cmp.Diff(got, want, valueTrans))
+	}
+}
+
 func TestContext2Plan_computedDataResource(t *testing.T) {
 	m := testModule(t, "plan-computed-data-resource")
 	p := testProvider("aws")

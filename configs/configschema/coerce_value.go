@@ -74,7 +74,7 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 	for typeName, blockS := range b.BlockTypes {
 		switch blockS.Nesting {
 
-		case NestingSingle:
+		case NestingSingle, NestingGroup:
 			switch {
 			case ty.HasAttribute(typeName):
 				var err error
@@ -84,7 +84,11 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 					return cty.UnknownVal(b.ImpliedType()), err
 				}
 			case blockS.MinItems != 1 && blockS.MaxItems != 1:
-				attrs[typeName] = cty.NullVal(blockS.ImpliedType())
+				if blockS.Nesting == NestingGroup {
+					attrs[typeName] = blockS.EmptyValue()
+				} else {
+					attrs[typeName] = cty.NullVal(blockS.ImpliedType())
+				}
 			default:
 				// We use the word "attribute" here because we're talking about
 				// the cty sense of that word rather than the HCL sense.
