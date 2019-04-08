@@ -112,6 +112,10 @@ type StateVersionCreateOptions struct {
 	// The base64 encoded state.
 	State *string `jsonapi:"attr,state"`
 
+	// Force can be set to skip certain validations. Wrong use
+	// of this flag can cause data loss, so USE WITH CAUTION!
+	Force *bool `jsonapi:"attr,force"`
+
 	// Specifies the run to associate the state with.
 	Run *Run `jsonapi:"relation,run,omitempty"`
 }
