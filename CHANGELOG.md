@@ -15,6 +15,7 @@ IMPROVEMENTS:
 * backend/remote: Retry calls when the remote backend responds with a server error [GH-20588]
 * backend/remote: Check for external updates while waiting for user input [GH-20620]
 * config: The `coalesce` function now skips null values [GH-21002]
+* backend/pg: Switch pg backend to session-level advisory locking [GH-20561]
 * plugin/discover: Parse and display provider warnings from the Terraform Registry [GH-20674]
 * plugin/registry: Add friendly error for when registry unresponsive [GH-20853]
 
