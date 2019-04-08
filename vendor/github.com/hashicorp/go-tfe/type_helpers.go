@@ -35,6 +35,11 @@ func Int64(v int64) *int64 {
 	return &v
 }
 
+// NotificationDestination returns a pointer to the given notification configuration destination type
+func NotificationDestination(v NotificationDestinationType) *NotificationDestinationType {
+	return &v
+}
+
 // ServiceProvider returns a pointer to the given service provider type.
 func ServiceProvider(v ServiceProviderType) *ServiceProviderType {
 	return &v

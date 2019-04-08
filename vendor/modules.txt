@@ -282,17 +282,17 @@ github.com/hashicorp/go-multierror
 # github.com/hashicorp/go-plugin v0.0.0-20190322172744-52e1c4730856
 github.com/hashicorp/go-plugin
 github.com/hashicorp/go-plugin/internal/plugin
-# github.com/hashicorp/go-retryablehttp v0.5.1
+# github.com/hashicorp/go-retryablehttp v0.5.2
 github.com/hashicorp/go-retryablehttp
 # github.com/hashicorp/go-rootcerts v1.0.0
 github.com/hashicorp/go-rootcerts
 # github.com/hashicorp/go-safetemp v1.0.0
 github.com/hashicorp/go-safetemp
-# github.com/hashicorp/go-slug v0.2.0
+# github.com/hashicorp/go-slug v0.3.0
 github.com/hashicorp/go-slug
-# github.com/hashicorp/go-tfe v0.3.11
+# github.com/hashicorp/go-tfe v0.3.14
 github.com/hashicorp/go-tfe
-# github.com/hashicorp/go-uuid v1.0.0
+# github.com/hashicorp/go-uuid v1.0.1
 github.com/hashicorp/go-uuid
 # github.com/hashicorp/go-version v1.1.0
 github.com/hashicorp/go-version
@@ -522,7 +522,7 @@ golang.org/x/text/internal/language/compact
 golang.org/x/text/internal/utf8internal
 golang.org/x/text/runes
 golang.org/x/text/internal/tag
-# golang.org/x/time v0.0.0-20181108054448-85acf8d2951c
+# golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 golang.org/x/time/rate
 # google.golang.org/api v0.1.0
 google.golang.org/api/iterator
