@@ -119,7 +119,6 @@ func LegacySchema(s *Schema) *Schema {
 	newSchema := new(Schema)
 	*newSchema = *s
 	newSchema.ConfigMode = SchemaConfigModeAuto
-	newSchema.PromoteSingle = false
 	newSchema.SkipCoreTypeCheck = false
 
 	switch e := newSchema.Elem.(type) {
