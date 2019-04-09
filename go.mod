@@ -60,12 +60,12 @@ require (
 	github.com/hashicorp/go-msgpack v0.5.3 // indirect
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hashicorp/go-plugin v0.0.0-20180125190438-e53f54cbf51e
-	github.com/hashicorp/go-retryablehttp v0.5.1
+	github.com/hashicorp/go-retryablehttp v0.5.2
 	github.com/hashicorp/go-rootcerts v0.0.0-20160503143440-6bb64b370b90
 	github.com/hashicorp/go-safetemp v0.0.0-20180326211150-b1a1dbde6fdc // indirect
 	github.com/hashicorp/go-sockaddr v1.0.0 // indirect
-	github.com/hashicorp/go-tfe v0.3.11
-	github.com/hashicorp/go-uuid v1.0.0
+	github.com/hashicorp/go-tfe v0.3.14
+	github.com/hashicorp/go-uuid v1.0.1
 	github.com/hashicorp/go-version v1.0.0
 	github.com/hashicorp/hcl v0.0.0-20170504190234-a4b07c25de5f
 	github.com/hashicorp/hcl2 v0.0.0-20180308163058-5f8ed954abd8
