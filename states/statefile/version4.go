@@ -148,7 +148,15 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 				case isV4.AttributesRaw != nil:
 					obj.AttrsJSON = isV4.AttributesRaw
 				case isV4.AttributesFlat != nil:
+
 					obj.AttrsFlat = isV4.AttributesFlat
+
+					// TODO: Complete decrypt
+					// temp1 := make(map[string]string)
+					// for key, value := range isV4.AttributesFlat {
+					// 	temp1[key] = string(decrypt([]byte(value), "sample"))
+					// }
+
 				default:
 					// This is odd, but we'll accept it and just treat the
 					// object has being empty. In practice this should arise
@@ -480,6 +488,12 @@ func appendInstanceObjectStateV4(rs *states.Resource, is *states.ResourceInstanc
 				fmt.Sprintf("Instance %s has an unsupported instance key: %#v.", rs.Addr.Instance(key), key),
 			))
 		}
+	}
+
+	//Trying to encrypt the values of the instance attributes
+	temp := make(map[string]string)
+	for key, value := range obj.AttrsFlat {
+		temp[key] = string(encrypt([]byte(value), "sample"))
 	}
 
 	return append(isV4s, instanceObjectStateV4{
