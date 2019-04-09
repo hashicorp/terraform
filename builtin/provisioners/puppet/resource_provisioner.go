@@ -19,16 +19,17 @@ import (
 )
 
 type provisioner struct {
-	Server      string
-	ServerUser  string
-	OSType      string
-	Certname    string
-	PPRole      string
-	Environment string
-	Autosign    bool
-	OpenSource  bool
-	UseSudo     bool
-	BoltTimeout time.Duration
+	Server            string
+	ServerUser        string
+	OSType            string
+	Certname          string
+	Environment       string
+	Autosign          bool
+	OpenSource        bool
+	UseSudo           bool
+	BoltTimeout       time.Duration
+	CustomAttributes  map[string]interface{}
+	ExtensionRequests map[string]interface{}
 
 	runPuppetAgent     func() error
 	installPuppetAgent func() error
@@ -82,8 +83,12 @@ func Provisioner() terraform.ResourceProvisioner {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"pp_role": &schema.Schema{
-				Type:     schema.TypeString,
+			"extension_requests": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+			},
+			"custom_attributes": &schema.Schema{
+				Type:     schema.TypeMap,
 				Optional: true,
 			},
 			"environment": &schema.Schema{
@@ -172,7 +177,14 @@ func applyFn(ctx context.Context) error {
 
 	csrAttrs := new(csrAttributes)
 	csrAttrs.CustomAttributes = make(map[string]string)
+	for k, v := range p.CustomAttributes {
+		csrAttrs.CustomAttributes[k] = v.(string)
+	}
+
 	csrAttrs.ExtensionRequests = make(map[string]string)
+	for k, v := range p.ExtensionRequests {
+		csrAttrs.ExtensionRequests[k] = v.(string)
+	}
 
 	if p.Autosign {
 		if p.Certname == "" {
@@ -184,10 +196,6 @@ func applyFn(ctx context.Context) error {
 			return fmt.Errorf("Failed to generate an autosign token: %s", err)
 		}
 		csrAttrs.CustomAttributes["challengePassword"] = autosignToken
-	}
-
-	if p.PPRole != "" {
-		csrAttrs.ExtensionRequests["pp_role"] = p.PPRole
 	}
 
 	if err = p.writeCSRAttributes(csrAttrs); err != nil {
@@ -307,15 +315,16 @@ func (p *provisioner) copyToOutput(reader io.Reader) {
 
 func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 	p := &provisioner{
-		UseSudo:     d.Get("use_sudo").(bool),
-		Server:      d.Get("server").(string),
-		ServerUser:  d.Get("server_user").(string),
-		OSType:      strings.ToLower(d.Get("os_type").(string)),
-		Autosign:    d.Get("autosign").(bool),
-		OpenSource:  d.Get("open_source").(bool),
-		Certname:    strings.ToLower(d.Get("certname").(string)),
-		PPRole:      d.Get("pp_role").(string),
-		Environment: d.Get("environment").(string),
+		UseSudo:           d.Get("use_sudo").(bool),
+		Server:            d.Get("server").(string),
+		ServerUser:        d.Get("server_user").(string),
+		OSType:            strings.ToLower(d.Get("os_type").(string)),
+		Autosign:          d.Get("autosign").(bool),
+		OpenSource:        d.Get("open_source").(bool),
+		Certname:          strings.ToLower(d.Get("certname").(string)),
+		ExtensionRequests: d.Get("extension_requests").(map[string]interface{}),
+		CustomAttributes:  d.Get("custom_attributes").(map[string]interface{}),
+		Environment:       d.Get("environment").(string),
 	}
 	p.BoltTimeout, _ = time.ParseDuration(d.Get("bolt_timeout").(string))
 
