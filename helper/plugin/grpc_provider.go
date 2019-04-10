@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/zclconf/go-cty/cty"
 	ctyconvert "github.com/zclconf/go-cty/cty/convert"
@@ -777,17 +776,6 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 		}
 	}
 
-	// We need to fix any sets that may be using the "~" index prefix to
-	// indicate partially computed. The special sigil isn't really used except
-	// as a clue to visually indicate that the set isn't wholly known.
-	for k, d := range diff.Attributes {
-		if strings.Contains(k, ".~") {
-			delete(diff.Attributes, k)
-			k = strings.Replace(k, ".~", ".", -1)
-			diff.Attributes[k] = d
-		}
-	}
-
 	// add NewExtra Fields that may have been stored in the private data
 	if newExtra := private[newExtraKey]; newExtra != nil {
 		for k, v := range newExtra.(map[string]interface{}) {
@@ -806,16 +794,14 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 		diff.Meta = private
 	}
 
-	// We need to turn off any RequiresNew. There could be attributes
-	// without changes in here inserted by helper/schema, but if they have
-	// RequiresNew then the state will will be dropped from the ResourceData.
-	for k := range diff.Attributes {
-		diff.Attributes[k].RequiresNew = false
-	}
-
-	// check that any "removed" attributes actually exist in the prior state, or
-	// helper/schema will confuse itself
 	for k, d := range diff.Attributes {
+		// We need to turn off any RequiresNew. There could be attributes
+		// without changes in here inserted by helper/schema, but if they have
+		// RequiresNew then the state will be dropped from the ResourceData.
+		d.RequiresNew = false
+
+		// Check that any "removed" attributes that don't actually exist in the
+		// prior state, or helper/schema will confuse itself
 		if d.NewRemoved {
 			if _, ok := priorState.Attributes[k]; !ok {
 				delete(diff.Attributes, k)
@@ -844,9 +830,6 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 		}
 		return resp, nil
 	}
-
-	// here we use the planned state to check for unknown/zero containers values
-	// when normalizing the flatmap.
 
 	// We keep the null val if we destroyed the resource, otherwise build the
 	// entire object, even if the new state was nil.
