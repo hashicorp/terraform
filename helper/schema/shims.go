@@ -6,6 +6,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -31,6 +32,8 @@ func diffFromValues(prior, planned cty.Value, res *Resource, cust CustomizeDiffF
 	configSchema := res.CoreConfigSchema()
 
 	cfg := terraform.NewResourceConfigShimmed(planned, configSchema)
+	removeConfigUnknowns(cfg.Config)
+	removeConfigUnknowns(cfg.Raw)
 
 	diff, err := schemaMap(res.Schema).Diff(instanceState, cfg, cust, nil, false)
 	if err != nil {
@@ -38,6 +41,28 @@ func diffFromValues(prior, planned cty.Value, res *Resource, cust CustomizeDiffF
 	}
 
 	return diff, err
+}
+
+// During apply the only unknown values are those which are to be computed by
+// the resource itself. These may have been marked as unknown config values, and
+// need to be removed to prevent the UnknownVariableValue from appearing the diff.
+func removeConfigUnknowns(cfg map[string]interface{}) {
+	for k, v := range cfg {
+		switch v := v.(type) {
+		case string:
+			if v == config.UnknownVariableValue {
+				cfg[k] = ""
+			}
+		case []interface{}:
+			for _, i := range v {
+				if m, ok := i.(map[string]interface{}); ok {
+					removeConfigUnknowns(m)
+				}
+			}
+		case map[string]interface{}:
+			removeConfigUnknowns(v)
+		}
+	}
 }
 
 // ApplyDiff takes a cty.Value state and applies a terraform.InstanceDiff to
