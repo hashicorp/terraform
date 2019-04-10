@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
+	"github.com/aliyun/aliyun-tablestore-go-sdk/tablestore"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/config/hcl2shim"
 	"strings"
@@ -31,24 +32,26 @@ func TestBackend_impl(t *testing.T) {
 func TestBackendConfig(t *testing.T) {
 	testACC(t)
 	config := map[string]interface{}{
-		"region": "cn-beijing",
-		"bucket": "terraform-backend-oss-test",
-		"path":   "mystate",
-		"name":   "first.tfstate",
+		"region":              "cn-beijing",
+		"bucket":              "terraform-backend-oss-test",
+		"prefix":              "mystate",
+		"key":                 "first.tfstate",
+		"tablestore_endpoint": "https://terraformstate.cn-beijing.ots.aliyuncs.com",
+		"tablestore_table":    "TableStore",
 	}
 
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
 
-	if !strings.HasPrefix(b.ossClient.Config.Endpoint, "http://oss-cn-beijing") {
+	if !strings.HasPrefix(b.ossClient.Config.Endpoint, "https://oss-cn-beijing") {
 		t.Fatalf("Incorrect region was provided")
 	}
 	if b.bucketName != "terraform-backend-oss-test" {
 		t.Fatalf("Incorrect bucketName was provided")
 	}
-	if b.statePath != "mystate" {
+	if b.statePrefix != "mystate" {
 		t.Fatalf("Incorrect state file path was provided")
 	}
-	if b.stateName != "first.tfstate" {
+	if b.stateKey != "first.tfstate" {
 		t.Fatalf("Incorrect keyName was provided")
 	}
 
@@ -63,10 +66,12 @@ func TestBackendConfig(t *testing.T) {
 func TestBackendConfig_invalidKey(t *testing.T) {
 	testACC(t)
 	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{
-		"region": "cn-beijing",
-		"bucket": "terraform-backend-oss-test",
-		"path":   "/leading-slash",
-		"name":   "/test.tfstate",
+		"region":              "cn-beijing",
+		"bucket":              "terraform-backend-oss-test",
+		"prefix":              "/leading-slash",
+		"name":                "/test.tfstate",
+		"tablestore_endpoint": "https://terraformstate.cn-beijing.ots.aliyuncs.com",
+		"tablestore_table":    "TableStore",
 	})
 
 	_, results := New().PrepareConfig(cfg)
@@ -79,16 +84,16 @@ func TestBackend(t *testing.T) {
 	testACC(t)
 
 	bucketName := fmt.Sprintf("terraform-remote-oss-test-%x", time.Now().Unix())
-	statePath := "multi/level/path/"
+	statePrefix := "multi/level/path/"
 
 	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"bucket": bucketName,
-		"path":   statePath,
+		"prefix": statePrefix,
 	})).(*Backend)
 
 	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"bucket": bucketName,
-		"path":   statePath,
+		"prefix": statePrefix,
 	})).(*Backend)
 
 	createOSSBucket(t, b1.ossClient, bucketName)
@@ -130,5 +135,37 @@ func deleteOSSBucket(t *testing.T, ossClient *oss.Client, bucketName string) {
 
 	if err := ossClient.DeleteBucket(bucketName); err != nil {
 		t.Logf(warning, err)
+	}
+}
+
+// create the dynamoDB table, and wait until we can query it.
+func createTablestoreTable(t *testing.T, otsClient *tablestore.TableStoreClient, tableName string) {
+	tableMeta := new(tablestore.TableMeta)
+	tableMeta.TableName = tableName
+	tableMeta.AddPrimaryKeyColumn("testbackend", tablestore.PrimaryKeyType_STRING)
+
+	tableOption := new(tablestore.TableOption)
+	tableOption.TimeToAlive = -1
+	tableOption.MaxVersion = 1
+
+	reservedThroughput := new(tablestore.ReservedThroughput)
+
+	_, err := otsClient.CreateTable(&tablestore.CreateTableRequest{
+		TableMeta:          tableMeta,
+		TableOption:        tableOption,
+		ReservedThroughput: reservedThroughput,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func deleteTablestoreTable(t *testing.T, otsClient *tablestore.TableStoreClient, tableName string) {
+	params := &tablestore.DeleteTableRequest{
+		TableName: tableName,
+	}
+	_, err := otsClient.DeleteTable(params)
+	if err != nil {
+		t.Logf("WARNING: Failed to delete the test TableStore table %q. It has been left in your Alibaba Cloud account and may incur charges. (error was %s)", tableName, err)
 	}
 }

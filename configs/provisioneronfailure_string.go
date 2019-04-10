@@ -4,6 +4,15 @@ package configs
 
 import "strconv"
 
+func _() {
+	// An "invalid array index" compiler error signifies that the constant values have changed.
+	// Re-run the stringer command to generate them again.
+	var x [1]struct{}
+	_ = x[ProvisionerOnFailureInvalid-0]
+	_ = x[ProvisionerOnFailureContinue-1]
+	_ = x[ProvisionerOnFailureFail-2]
+}
+
 const _ProvisionerOnFailure_name = "ProvisionerOnFailureInvalidProvisionerOnFailureContinueProvisionerOnFailureFail"
 
 var _ProvisionerOnFailure_index = [...]uint8{0, 27, 55, 79}

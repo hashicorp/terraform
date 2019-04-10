@@ -11,9 +11,8 @@ import (
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/credentials"
-	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/resource"
-	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/utils"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/location"
+	"github.com/aliyun/aliyun-tablestore-go-sdk/tablestore"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/terraform/version"
 	"log"
@@ -44,7 +43,7 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Alibaba Cloud Security Token",
-				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_SECURITY_TOKEN", os.Getenv("SECURITY_TOKEN")),
+				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_SECURITY_TOKEN", ""),
 			},
 
 			"region": &schema.Schema{
@@ -53,7 +52,12 @@ func New() backend.Backend {
 				Description: "The region of the OSS bucket.",
 				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_REGION", os.Getenv("ALICLOUD_DEFAULT_REGION")),
 			},
-
+			"tablestore_endpoint": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A custom endpoint for the TableStore API",
+				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_TABLESTORE_ENDPOINT", ""),
+			},
 			"endpoint": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -67,30 +71,38 @@ func New() backend.Backend {
 				Description: "The name of the OSS bucket",
 			},
 
-			"path": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The path relative to your object storage directory where the state file will be stored.",
-			},
-
-			"name": &schema.Schema{
+			"prefix": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The name of the state file inside the bucket",
+				Description: "The directory where state files will be saved inside the bucket",
+				Default:     "env:",
+				ValidateFunc: func(v interface{}, s string) ([]string, []error) {
+					prefix := v.(string)
+					if strings.HasPrefix(prefix, "/") || strings.HasPrefix(prefix, "./") {
+						return nil, []error{fmt.Errorf("workspace_key_prefix must not start with '/' or './'")}
+					}
+					return nil, nil
+				},
+			},
+
+			"key": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The path of the state file inside the bucket",
 				ValidateFunc: func(v interface{}, s string) ([]string, []error) {
 					if strings.HasPrefix(v.(string), "/") || strings.HasSuffix(v.(string), "/") {
-						return nil, []error{fmt.Errorf("name can not start and end with '/'")}
+						return nil, []error{fmt.Errorf("key can not start and end with '/'")}
 					}
 					return nil, nil
 				},
 				Default: "terraform.tfstate",
 			},
 
-			"lock": &schema.Schema{
-				Type:        schema.TypeBool,
+			"tablestore_table": {
+				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "Whether to lock state access. Defaults to true",
-				Default:     true,
+				Description: "TableStore table for state locking and consistency",
+				Default:     "",
 			},
 
 			"encrypt": &schema.Schema{
@@ -130,14 +142,16 @@ type Backend struct {
 
 	// The fields below are set from configure
 	ossClient *oss.Client
+	otsClient *tablestore.TableStoreClient
 
 	bucketName           string
-	statePath            string
-	stateName            string
+	statePrefix          string
+	stateKey             string
 	serverSideEncryption bool
 	acl                  string
 	endpoint             string
-	lock                 bool
+	otsEndpoint          string
+	otsTable             string
 }
 
 func (b *Backend) configure(ctx context.Context) error {
@@ -149,27 +163,20 @@ func (b *Backend) configure(ctx context.Context) error {
 	d := schema.FromContextBackendConfig(ctx)
 
 	b.bucketName = d.Get("bucket").(string)
-	dir := strings.Trim(d.Get("path").(string), "/")
-	if strings.HasPrefix(dir, "./") {
-		dir = strings.TrimPrefix(dir, "./")
-
-	}
-
-	b.statePath = dir
-	b.stateName = d.Get("name").(string)
+	b.statePrefix = strings.TrimPrefix(strings.Trim(d.Get("prefix").(string), "/"), "./")
+	b.stateKey = d.Get("key").(string)
 	b.serverSideEncryption = d.Get("encrypt").(bool)
 	b.acl = d.Get("acl").(string)
-	b.lock = d.Get("lock").(bool)
 
-	access_key := d.Get("access_key").(string)
-	secret_key := d.Get("secret_key").(string)
-	security_token := d.Get("security_token").(string)
+	accessKey := d.Get("access_key").(string)
+	secretKey := d.Get("secret_key").(string)
+	securityToken := d.Get("security_token").(string)
 	region := d.Get("region").(string)
 	endpoint := d.Get("endpoint").(string)
 	schma := "https"
 
 	if endpoint == "" {
-		endpointItem, _ := b.getOSSEndpointByRegion(access_key, secret_key, security_token, region)
+		endpointItem, _ := b.getOSSEndpointByRegion(accessKey, secretKey, securityToken, region)
 		if endpointItem != nil && len(endpointItem.Endpoint) > 0 {
 			if len(endpointItem.Protocols.Protocols) > 0 {
 				// HTTP or HTTPS
@@ -191,13 +198,23 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 	log.Printf("[DEBUG] Instantiate OSS client using endpoint: %#v", endpoint)
 	var options []oss.ClientOption
-	if security_token != "" {
-		options = append(options, oss.SecurityToken(security_token))
+	if securityToken != "" {
+		options = append(options, oss.SecurityToken(securityToken))
 	}
 	options = append(options, oss.UserAgent(fmt.Sprintf("%s/%s", TerraformUA, TerraformVersion)))
 
-	client, err := oss.New(endpoint, access_key, secret_key, options...)
+	client, err := oss.New(endpoint, accessKey, secretKey, options...)
 	b.ossClient = client
+	otsEndpoint := d.Get("tablestore_endpoint").(string)
+	if otsEndpoint != "" {
+		if !strings.HasPrefix(otsEndpoint, "http") {
+			otsEndpoint = fmt.Sprintf("%s://%s", schma, otsEndpoint)
+		}
+		b.otsEndpoint = otsEndpoint
+		parts := strings.Split(strings.TrimPrefix(strings.TrimPrefix(otsEndpoint, "https://"), "http://"), ".")
+		b.otsClient = tablestore.NewClientWithConfig(otsEndpoint, parts[0], accessKey, secretKey, securityToken, tablestore.NewDefaultTableStoreConfig())
+	}
+	b.otsTable = d.Get("tablestore_table").(string)
 
 	return err
 }
@@ -222,11 +239,6 @@ func (b *Backend) getOSSEndpointByRegion(access_key, secret_key, security_token,
 }
 
 func getSdkConfig() *sdk.Config {
-	// Fix bug "open /usr/local/go/lib/time/zoneinfo.zip: no such file or directory" which happened in windows.
-	if data, ok := resource.GetTZData("GMT"); ok {
-		utils.TZData = data
-		utils.LoadLocationFromTZData = time.LoadLocationFromTZData
-	}
 	return sdk.NewConfig().
 		WithMaxRetryTime(5).
 		WithTimeout(time.Duration(30) * time.Second).

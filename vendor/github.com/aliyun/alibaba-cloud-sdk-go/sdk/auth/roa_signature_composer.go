@@ -62,7 +62,10 @@ func completeROASignParams(request requests.AcsRequest, signer Signer, regionId 
 				headerParams["x-acs-security-token"] = value
 				continue
 			}
-
+			if key == "BearerToken" {
+				headerParams["x-acs-bearer-token"] = value
+				continue
+			}
 			queryParams[key] = value
 		}
 	}

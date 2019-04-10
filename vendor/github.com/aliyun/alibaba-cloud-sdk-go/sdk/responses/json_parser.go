@@ -9,7 +9,7 @@ import (
 	"sync"
 	"unsafe"
 
-	"github.com/json-iterator/go"
+	jsoniter "github.com/json-iterator/go"
 )
 
 const maxUint = ^uint(0)
@@ -22,7 +22,12 @@ var initJson = &sync.Once{}
 func initJsonParserOnce() {
 	initJson.Do(func() {
 		registerBetterFuzzyDecoder()
-		jsonParser = jsoniter.ConfigCompatibleWithStandardLibrary
+		jsonParser = jsoniter.Config{
+			EscapeHTML:             true,
+			SortMapKeys:            true,
+			ValidateJsonRawMessage: true,
+			CaseSensitive:          true,
+		}.Froze()
 	})
 }
 

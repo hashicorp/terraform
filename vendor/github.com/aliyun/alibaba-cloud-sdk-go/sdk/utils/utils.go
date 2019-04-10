@@ -26,10 +26,6 @@ import (
 	"github.com/satori/go.uuid"
 )
 
-// if you use go 1.10 or higher, you can hack this util by these to avoid "TimeZone.zip not found" on Windows
-var LoadLocationFromTZData func(name string, data []byte) (*time.Location, error) = nil
-var TZData []byte = nil
-
 func GetUUIDV4() (uuidHex string) {
 	uuidV4 := uuid.NewV4()
 	uuidHex = hex.EncodeToString(uuidV4.Bytes())
@@ -44,29 +40,15 @@ func GetMD5Base64(bytes []byte) (base64Value string) {
 	return
 }
 
-func GetGMTLocation() (*time.Location, error) {
-	if LoadLocationFromTZData != nil && TZData != nil {
-		return LoadLocationFromTZData("GMT", TZData)
-	} else {
-		return time.LoadLocation("GMT")
-	}
-}
-
 func GetTimeInFormatISO8601() (timeStr string) {
-	gmt, err := GetGMTLocation()
+	gmt := time.FixedZone("GMT", 0)
 
-	if err != nil {
-		panic(err)
-	}
 	return time.Now().In(gmt).Format("2006-01-02T15:04:05Z")
 }
 
 func GetTimeInFormatRFC2616() (timeStr string) {
-	gmt, err := GetGMTLocation()
+	gmt := time.FixedZone("GMT", 0)
 
-	if err != nil {
-		panic(err)
-	}
 	return time.Now().In(gmt).Format("Mon, 02 Jan 2006 15:04:05 GMT")
 }
 

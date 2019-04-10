@@ -8,14 +8,16 @@ require (
 	github.com/abdullin/seq v0.0.0-20160510034733-d5467c17e7af // indirect
 	github.com/agext/levenshtein v1.2.2
 	github.com/agl/ed25519 v0.0.0-20150830182803-278e1ec8e8a6 // indirect
-	github.com/aliyun/alibaba-cloud-sdk-go v0.0.0-20190104080739-ef2ef6084d8f
+	github.com/aliyun/alibaba-cloud-sdk-go v0.0.0-20190329064014-6e358769c32a
 	github.com/aliyun/aliyun-oss-go-sdk v0.0.0-20190103054945-8205d1f41e70
+	github.com/aliyun/aliyun-tablestore-go-sdk v4.1.2+incompatible
 	github.com/apparentlymart/go-cidr v1.0.0
 	github.com/apparentlymart/go-dump v0.0.0-20190214190832-042adf3cf4a0
 	github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2
 	github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
 	github.com/aws/aws-sdk-go v1.16.36
+	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/chzyer/logex v1.1.10 // indirect
@@ -97,7 +99,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/packer-community/winrmcp v0.0.0-20180102160824-81144009af58
 	github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c // indirect
-	github.com/pkg/errors v0.0.0-20170505043639-c605e284fe17 // indirect
+	github.com/pkg/errors v0.0.0-20170505043639-c605e284fe17
 	github.com/posener/complete v1.2.1
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
 	github.com/sirupsen/logrus v1.1.1 // indirect
@@ -121,6 +123,7 @@ require (
 	golang.org/x/oauth2 v0.0.0-20190220154721-9b3c75971fc9
 	google.golang.org/api v0.1.0
 	google.golang.org/grpc v1.18.0
+	gopkg.in/ini.v1 v1.42.0 // indirect
 	gopkg.in/vmihailenco/msgpack.v2 v2.9.1 // indirect
 	labix.org/v2/mgo v0.0.0-20140701140051-000000000287 // indirect
 	launchpad.net/gocheck v0.0.0-20140225173054-000000000087 // indirect

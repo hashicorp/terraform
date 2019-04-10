@@ -8,12 +8,13 @@ description: |-
 
 # OSS
 
-**Kind: Standard (with locking via OSS)**
+**Kind: Standard (with locking via TableStore)**
 
 Stores the state as a given key in a given bucket on Stores
 [Alibaba Cloud OSS](https://www.alibabacloud.com/help/product/31815.htm).
-This backend also supports state locking and consistency checking via Alibaba Cloud OSS.
-
+This backend also supports state locking and consistency checking via
+[Alibaba Cloud Table Store](https://www.alibabacloud.com/help/doc-detail/27280.htm), which can be enabled by setting
+the `tablestore_table` field to an existing TableStore table name.
 
 ## Example Configuration
 
@@ -21,14 +22,18 @@ This backend also supports state locking and consistency checking via Alibaba Cl
 terraform {
   backend "oss" {
     bucket = "bucket-for-terraform-state"
-    path   = "path/mystate"
-    name   = "version-1.tfstate"
+    prefix   = "path/mystate"
+    key   = "version-1.tfstate"
     region = "cn-beijing"
+    tablestore_endpoint = "https://terraform-remote.cn-hangzhou.ots.aliyuncs.com"
+    tablestore_table = "statelock"
   }
 }
 ```
 
-This assumes we have a bucket created called `bucket-for-terraform-state`. The
+This assumes we have a [OSS Bucket](https://www.terraform.io/docs/providers/alicloud/r/oss_bucket.html) created called `bucket-for-terraform-state`,
+a [OTS Instance](https://www.terraform.io/docs/providers/alicloud/r/ots_instance.html) called `terraform-remote` and
+a [OTS TableStore](https://www.terraform.io/docs/providers/alicloud/r/ots_table.html) called `statelock`. The
 Terraform state will be written into the file `path/mystate/version-1.tfstate`.
 
 
@@ -42,7 +47,8 @@ source](/docs/providers/terraform/d/remote_state.html).
 terraform {
   backend "oss" {
     bucket = "remote-state-dns"
-    path    = "mystate/state"
+    prefix = "mystate/state"
+    key    = "terraform.tfstate"
     region = "cn-beijing"
   }
 }
@@ -52,16 +58,17 @@ The `terraform_remote_state` data source will return all of the root outputs
 defined in the referenced remote state, an example output might look like:
 
 ```
-terraform_remote_state.dns
-    id                          = 2018-4-16 09:13:55.309409899 +0000 UTC
-    backend                     = oss
-    config.%                    = 4
-    config.bucket               = remote-state-dns
-    config.path                 = mystate/state
-    config.name                 = terraform.tfstate
-    config.region               = cn-beijing
-    environment                 = default
-    workspace                   = default
+data "terraform_remote_state" "network" {
+    backend   = "oss"
+    config    = {
+        bucket = "remote-state-dns"
+        key    = "terraform.tfstate"
+        prefix = "mystate/state"
+        region = "cn-beijing"
+    }
+    outputs   = {}
+    workspace = "default"
+}
 ```
 
 ## Configuration variables
@@ -74,9 +81,10 @@ The following configuration options or environment variables are supported:
  * `region` - (Optional) The region of the OSS bucket. It supports environment variables `ALICLOUD_REGION` and `ALICLOUD_DEFAULT_REGION`.
  * `endpoint` - (Optional) A custom endpoint for the OSS API. It supports environment variables `ALICLOUD_OSS_ENDPOINT` and `OSS_ENDPOINT`.
  * `bucket` - (Required) The name of the OSS bucket.
- * `path` - (Required) The path directory of the state file will be stored.
- * `name` - (Optional) The name of the state file. Defaults to `terraform.tfstate`.
- * `lock` - (Optional) Whether to lock state access. Defaults to `true`.
+ * `prefix` - (Opeional) The path directory of the state file will be stored. Default to "env:".
+ * `key` - (Optional) The name of the state file. Defaults to `terraform.tfstate`.
+ * `tablestore_endpoint` / `ALICLOUD_TABLESTORE_ENDPOINT` - (Optional) A custom endpoint for the TableStore API.
+ * `tablestore_table` - (Optional) A TableStore table for state locking and consistency.
  * `encrypt` - (Optional) Whether to enable server side
    encryption of the state file. If it is true, OSS will use 'AES256' encryption algorithm to encrypt state file.
  * `acl` - (Optional) [Object

@@ -20,6 +20,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/errors"
 )
@@ -72,6 +73,12 @@ type AcsRequest interface {
 	GetAcceptFormat() string
 	GetLocationServiceCode() string
 	GetLocationEndpointType() string
+	GetReadTimeout() time.Duration
+	GetConnectTimeout() time.Duration
+	SetReadTimeout(readTimeout time.Duration)
+	SetConnectTimeout(connectTimeout time.Duration)
+	SetHTTPSInsecure(isInsecure bool)
+	GetHTTPSInsecure() *bool
 
 	GetUserAgent() map[string]string
 
@@ -92,11 +99,14 @@ type AcsRequest interface {
 
 // base class
 type baseRequest struct {
-	Scheme   string
-	Method   string
-	Domain   string
-	Port     string
-	RegionId string
+	Scheme         string
+	Method         string
+	Domain         string
+	Port           string
+	RegionId       string
+	ReadTimeout    time.Duration
+	ConnectTimeout time.Duration
+	isInsecure     *bool
 
 	userAgent map[string]string
 	product   string
@@ -125,6 +135,30 @@ func (request *baseRequest) GetQueryParams() map[string]string {
 
 func (request *baseRequest) GetFormParams() map[string]string {
 	return request.FormParams
+}
+
+func (request *baseRequest) GetReadTimeout() time.Duration {
+	return request.ReadTimeout
+}
+
+func (request *baseRequest) GetConnectTimeout() time.Duration {
+	return request.ConnectTimeout
+}
+
+func (request *baseRequest) SetReadTimeout(readTimeout time.Duration) {
+	request.ReadTimeout = readTimeout
+}
+
+func (request *baseRequest) SetConnectTimeout(connectTimeout time.Duration) {
+	request.ConnectTimeout = connectTimeout
+}
+
+func (request *baseRequest) GetHTTPSInsecure() *bool {
+	return request.isInsecure
+}
+
+func (request *baseRequest) SetHTTPSInsecure(isInsecure bool) {
+	request.isInsecure = &isInsecure
 }
 
 func (request *baseRequest) GetContent() []byte {
@@ -294,7 +328,7 @@ func flatRepeatedList(dataValue reflect.Value, request AcsRequest, position, pre
 					for m := 0; m < repeatedFieldValue.Len(); m++ {
 						elementValue := repeatedFieldValue.Index(m)
 						key := prefix + name + "." + strconv.Itoa(m+1)
-						if elementValue.Type().String() == "string" {
+						if elementValue.Type().Kind().String() == "string" {
 							value := elementValue.String()
 							err = addParam(request, fieldPosition, key, value)
 							if err != nil {

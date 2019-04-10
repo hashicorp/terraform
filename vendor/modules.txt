@@ -47,20 +47,24 @@ github.com/agext/levenshtein
 # github.com/agl/ed25519 v0.0.0-20150830182803-278e1ec8e8a6
 github.com/agl/ed25519
 github.com/agl/ed25519/edwards25519
-# github.com/aliyun/alibaba-cloud-sdk-go v0.0.0-20190104080739-ef2ef6084d8f
+# github.com/aliyun/alibaba-cloud-sdk-go v0.0.0-20190329064014-6e358769c32a
 github.com/aliyun/alibaba-cloud-sdk-go/sdk
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/credentials
-github.com/aliyun/alibaba-cloud-sdk-go/sdk/resource
-github.com/aliyun/alibaba-cloud-sdk-go/sdk/utils
 github.com/aliyun/alibaba-cloud-sdk-go/services/location
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth
+github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/credentials/provider
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/endpoints
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/errors
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/responses
+github.com/aliyun/alibaba-cloud-sdk-go/sdk/utils
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/signers
 # github.com/aliyun/aliyun-oss-go-sdk v0.0.0-20190103054945-8205d1f41e70
 github.com/aliyun/aliyun-oss-go-sdk/oss
+# github.com/aliyun/aliyun-tablestore-go-sdk v4.1.2+incompatible
+github.com/aliyun/aliyun-tablestore-go-sdk/tablestore
+github.com/aliyun/aliyun-tablestore-go-sdk/tablestore/otsprotocol
+github.com/aliyun/aliyun-tablestore-go-sdk/tablestore/search
 # github.com/antchfx/xpath v0.0.0-20190129040759-c8489ed3251e
 github.com/antchfx/xpath
 # github.com/antchfx/xquery v0.0.0-20180515051857-ad5b8c7a47b0
@@ -607,5 +611,7 @@ google.golang.org/grpc/credentials/internal
 google.golang.org/grpc/balancer/base
 google.golang.org/grpc/binarylog/grpc_binarylog_v1
 google.golang.org/grpc/internal/syscall
+# gopkg.in/ini.v1 v1.42.0
+gopkg.in/ini.v1
 # gopkg.in/yaml.v2 v2.2.2
 gopkg.in/yaml.v2

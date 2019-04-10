@@ -24,7 +24,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/errors"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/responses"
-	"github.com/jmespath/go-jmespath"
+	jmespath "github.com/jmespath/go-jmespath"
 )
 
 type SignerKeyPair struct {
@@ -97,7 +97,7 @@ func (signer *SignerKeyPair) GetExtraParam() map[string]string {
 }
 
 func (signer *SignerKeyPair) Sign(stringToSign, secretSuffix string) string {
-	secret := signer.sessionCredential.AccessKeyId + secretSuffix
+	secret := signer.sessionCredential.AccessKeySecret + secretSuffix
 	return ShaHmac1(stringToSign, secret)
 }
 
@@ -107,6 +107,7 @@ func (signer *SignerKeyPair) buildCommonRequest() (request *requests.CommonReque
 	request.Version = "2015-04-01"
 	request.ApiName = "GenerateSessionAccessKey"
 	request.Scheme = requests.HTTPS
+	request.SetDomain("sts.ap-northeast-1.aliyuncs.com")
 	request.QueryParams["PublicKeyId"] = signer.credential.PublicKeyId
 	request.QueryParams["DurationSeconds"] = strconv.Itoa(signer.credentialExpiration)
 	return
