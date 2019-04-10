@@ -3590,6 +3590,14 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 				}
 			}
 
+			// there would be no unknown config variables during apply, so
+			// return early here.
+			for _, v := range tc.ConfigVariables {
+				if s, ok := v.Value.(string); ok && s == config.UnknownVariableValue {
+					return
+				}
+			}
+
 			// our diff function can't set DestroyTainted, but match the
 			// expected value here for the test fixtures
 			if tainted {
@@ -3609,4 +3617,56 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 
 func resourceSchemaToBlock(s map[string]*Schema) *configschema.Block {
 	return (&Resource{Schema: s}).CoreConfigSchema()
+}
+
+func TestRemoveConfigUnknowns(t *testing.T) {
+	cfg := map[string]interface{}{
+		"id": "74D93920-ED26-11E3-AC10-0800200C9A66",
+		"route_rules": []interface{}{
+			map[string]interface{}{
+				"cidr_block":        "74D93920-ED26-11E3-AC10-0800200C9A66",
+				"destination":       "0.0.0.0/0",
+				"destination_type":  "CIDR_BLOCK",
+				"network_entity_id": "1",
+			},
+			map[string]interface{}{
+				"cidr_block":       "74D93920-ED26-11E3-AC10-0800200C9A66",
+				"destination":      "0.0.0.0/0",
+				"destination_type": "CIDR_BLOCK",
+				"sub_block": []interface{}{
+					map[string]interface{}{
+						"computed": "74D93920-ED26-11E3-AC10-0800200C9A66",
+					},
+				},
+			},
+		},
+	}
+
+	expect := map[string]interface{}{
+		"id": "",
+		"route_rules": []interface{}{
+			map[string]interface{}{
+				"cidr_block":        "",
+				"destination":       "0.0.0.0/0",
+				"destination_type":  "CIDR_BLOCK",
+				"network_entity_id": "1",
+			},
+			map[string]interface{}{
+				"cidr_block":       "",
+				"destination":      "0.0.0.0/0",
+				"destination_type": "CIDR_BLOCK",
+				"sub_block": []interface{}{
+					map[string]interface{}{
+						"computed": "",
+					},
+				},
+			},
+		},
+	}
+
+	removeConfigUnknowns(cfg)
+
+	if !reflect.DeepEqual(cfg, expect) {
+		t.Fatalf("\nexpected: %#v\ngot: %#v", expect, cfg)
+	}
 }
