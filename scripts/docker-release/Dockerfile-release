@@ -35,8 +35,10 @@ RUN apk add --no-cache git curl openssh gnupg && \
 
 FROM alpine:3.9.2 as final
 
-COPY --from=build ["/bin/terraform", "/bin/terraform"]
-
 LABEL "com.hashicorp.terraform.version"="${TERRAFORM_VERSION}"
+
+RUN apk add --no-cache git openssh
+
+COPY --from=build ["/bin/terraform", "/bin/terraform"]
 
 ENTRYPOINT ["/bin/terraform"]

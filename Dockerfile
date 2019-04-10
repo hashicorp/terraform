@@ -22,6 +22,8 @@ RUN /bin/bash scripts/build.sh
 
 FROM golang:alpine AS final
 
+RUN apk add --no-cache git openssh
+
 COPY --from=build ["${GOPATH}/bin/terraform", "/bin/terraform"]
 
-ENTRYPOINT ["terraform"]
+ENTRYPOINT ["/bin/terraform"]
