@@ -4,6 +4,18 @@ package schema
 
 import "strconv"
 
+func _() {
+	// An "invalid array index" compiler error signifies that the constant values have changed.
+	// Re-run the stringer command to generate them again.
+	var x [1]struct{}
+	_ = x[getSourceState-1]
+	_ = x[getSourceConfig-2]
+	_ = x[getSourceDiff-4]
+	_ = x[getSourceSet-8]
+	_ = x[getSourceExact-16]
+	_ = x[getSourceLevelMask-15]
+}
+
 const (
 	_getSource_name_0 = "getSourceStategetSourceConfig"
 	_getSource_name_1 = "getSourceDiff"

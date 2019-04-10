@@ -4,6 +4,15 @@ package states
 
 import "strconv"
 
+func _() {
+	// An "invalid array index" compiler error signifies that the constant values have changed.
+	// Re-run the stringer command to generate them again.
+	var x [1]struct{}
+	_ = x[NoEach-0]
+	_ = x[EachList-76]
+	_ = x[EachMap-77]
+}
+
 const (
 	_EachMode_name_0 = "NoEach"
 	_EachMode_name_1 = "EachListEachMap"

@@ -24,7 +24,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/credentials"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/responses"
-	"github.com/jmespath/go-jmespath"
+	jmespath "github.com/jmespath/go-jmespath"
 )
 
 var securityCredURL = "http://100.100.100.200/latest/meta-data/ram/security-credentials/"
@@ -88,7 +88,7 @@ func (signer *EcsRamRoleSigner) GetExtraParam() map[string]string {
 }
 
 func (signer *EcsRamRoleSigner) Sign(stringToSign, secretSuffix string) string {
-	secret := signer.sessionCredential.AccessKeyId + secretSuffix
+	secret := signer.sessionCredential.AccessKeySecret + secretSuffix
 	return ShaHmac1(stringToSign, secret)
 }
 

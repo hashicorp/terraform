@@ -34,6 +34,7 @@ func ShaHmac1(source, secret string) string {
 }
 
 func Sha256WithRsa(source, secret string) string {
+	// block, _ := pem.Decode([]byte(secret))
 	decodeString, err := base64.StdEncoding.DecodeString(secret)
 	if err != nil {
 		panic(err)

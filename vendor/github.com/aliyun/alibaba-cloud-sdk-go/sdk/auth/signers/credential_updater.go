@@ -21,7 +21,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/responses"
 )
 
-const defaultInAdvanceScale = 0.8
+const defaultInAdvanceScale = 0.95
 
 type credentialUpdater struct {
 	credentialExpiration int

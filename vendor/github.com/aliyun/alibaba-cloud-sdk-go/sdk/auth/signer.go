@@ -44,6 +44,10 @@ func NewSignerWithCredential(credential Credential, commonApi func(request *requ
 		{
 			signer = signers.NewStsTokenSigner(instance)
 		}
+	case *credentials.BearerTokenCredential:
+		{
+			signer = signers.NewBearerTokenSigner(instance)
+		}
 	case *credentials.RamRoleArnCredential:
 		{
 			signer, err = signers.NewRamRoleArnSigner(instance, commonApi)

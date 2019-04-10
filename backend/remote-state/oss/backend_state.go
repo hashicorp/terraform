@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/states"
 
+	"github.com/aliyun/aliyun-tablestore-go-sdk/tablestore"
 	"log"
 	"path"
 )
@@ -33,7 +34,32 @@ func (b *Backend) remoteClient(name string) (*RemoteClient, error) {
 		lockFile:             b.lockFile(name),
 		serverSideEncryption: b.serverSideEncryption,
 		acl:                  b.acl,
-		doLock:               b.lock,
+		otsTable:             b.otsTable,
+		otsClient:            b.otsClient,
+	}
+	if b.otsEndpoint != "" && b.otsTable != "" {
+		table, err := b.otsClient.DescribeTable(&tablestore.DescribeTableRequest{
+			TableName: b.otsTable,
+		})
+		if err != nil {
+			return client, fmt.Errorf("Error describing table store %s: %#v", b.otsTable, err)
+		}
+		for _, t := range table.TableMeta.SchemaEntry {
+			pkMeta := TableStorePrimaryKeyMeta{
+				PKName: *t.Name,
+			}
+			if *t.Type == tablestore.PrimaryKeyType_INTEGER {
+				pkMeta.PKType = "Integer"
+			} else if *t.Type == tablestore.PrimaryKeyType_STRING {
+				pkMeta.PKType = "String"
+			} else if *t.Type == tablestore.PrimaryKeyType_BINARY {
+				pkMeta.PKType = "Binary"
+			} else {
+				return client, fmt.Errorf("Unsupported PrimaryKey type: %d.", *t.Type)
+			}
+			client.otsTabkePK = pkMeta
+			break
+		}
 	}
 
 	return client, nil
@@ -46,7 +72,7 @@ func (b *Backend) Workspaces() ([]string, error) {
 	}
 
 	var options []oss.Option
-	options = append(options, oss.Prefix(b.statePath))
+	options = append(options, oss.Prefix(b.statePrefix+"/"))
 	resp, err := bucket.ListObjects(options...)
 
 	if err != nil {
@@ -54,9 +80,17 @@ func (b *Backend) Workspaces() ([]string, error) {
 	}
 
 	result := []string{backend.DefaultStateName}
+	prefix := b.statePrefix
 	for _, obj := range resp.Objects {
-		if b.keyEnv(obj.Key) != "" {
-			result = append(result, b.keyEnv(obj.Key))
+		// we have 3 parts, the state prefix, the workspace name, and the state file: <prefix>/<worksapce-name>/<key>
+		if path.Join(b.statePrefix, b.stateKey) == obj.Key {
+			// filter the default workspace
+			continue
+		}
+
+		parts := strings.Split(strings.TrimPrefix(obj.Key, prefix+"/"), "/")
+		if len(parts) > 0 && parts[0] != "" {
+			result = append(result, parts[0])
 		}
 	}
 
@@ -83,16 +117,13 @@ func (b *Backend) StateMgr(name string) (state.State, error) {
 	}
 	stateMgr := &remote.State{Client: client}
 
-	if !b.lock {
-		stateMgr.DisableLocks()
-	}
 	// Check to see if this state already exists.
 	existing, err := b.Workspaces()
 	if err != nil {
 		return nil, err
 	}
 
-	log.Printf("[DEBUG] Current state name: %s. All States:%#v", name, existing)
+	log.Printf("[DEBUG] Current workspace name: %s. All workspaces:%#v", name, existing)
 
 	exists := false
 	for _, s := range existing {
@@ -146,41 +177,15 @@ func (b *Backend) StateMgr(name string) (state.State, error) {
 	return stateMgr, nil
 }
 
-// extract the object name from the OSS key
-func (b *Backend) keyEnv(key string) string {
-	// we have 3 parts, the state path, the state name, and the state file
-	parts := strings.Split(key, "/")
-	length := len(parts)
-	if length < 3 {
-		// use default state
-		return ""
-	}
-
-	// shouldn't happen since we listed by prefix
-	if strings.Join(parts[0:length-2], "/") != b.statePath {
-		return ""
-	}
-
-	// not our key, so don't include it in our listing
-	if parts[length-1] != b.stateName {
-		return ""
-	}
-
-	return parts[length-2]
-}
-
 func (b *Backend) stateFile(name string) string {
 	if name == backend.DefaultStateName {
-		return path.Join(b.statePath, b.stateName)
+		return path.Join(b.statePrefix, b.stateKey)
 	}
-	return path.Join(b.statePath, name, b.stateName)
+	return path.Join(b.statePrefix, name, b.stateKey)
 }
 
 func (b *Backend) lockFile(name string) string {
-	if name == backend.DefaultStateName {
-		return path.Join(b.statePath, b.stateName+lockFileSuffix)
-	}
-	return path.Join(b.statePath, name, b.stateName+lockFileSuffix)
+	return b.stateFile(name) + lockFileSuffix
 }
 
 const stateUnlockError = `

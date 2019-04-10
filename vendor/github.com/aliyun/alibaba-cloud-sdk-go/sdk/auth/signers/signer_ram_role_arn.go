@@ -25,7 +25,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/errors"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/responses"
-	"github.com/jmespath/go-jmespath"
+	jmespath "github.com/jmespath/go-jmespath"
 )
 
 const (
@@ -119,6 +119,9 @@ func (signer *RamRoleArnSigner) buildCommonRequest() (request *requests.CommonRe
 	request.ApiName = "AssumeRole"
 	request.Scheme = requests.HTTPS
 	request.QueryParams["RoleArn"] = signer.credential.RoleArn
+	if signer.credential.Policy != "" {
+		request.QueryParams["Policy"] = signer.credential.Policy
+	}
 	request.QueryParams["RoleSessionName"] = signer.credential.RoleSessionName
 	request.QueryParams["DurationSeconds"] = strconv.Itoa(signer.credentialExpiration)
 	return
