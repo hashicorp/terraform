@@ -8,22 +8,17 @@
 # binary from releases.hashicorp.com; these are built instead from
 # scripts/docker-release/Dockerfile-release.
 
-FROM golang:alpine AS build
+FROM golang:alpine
 LABEL maintainer="HashiCorp Terraform Team <terraform@hashicorp.com>"
+
+RUN apk add --update git bash openssh
 
 ENV TF_DEV=true
 ENV TF_RELEASE=1
-
-RUN apk add --no-cache git bash openssh
 
 WORKDIR $GOPATH/src/github.com/hashicorp/terraform
 COPY . .
 RUN /bin/bash scripts/build.sh
 
-FROM golang:alpine AS final
-
-RUN apk add --no-cache git openssh
-
-COPY --from=build ["${GOPATH}/bin/terraform", "/bin/terraform"]
-
-ENTRYPOINT ["/bin/terraform"]
+WORKDIR $GOPATH
+ENTRYPOINT ["terraform"]
