@@ -75,6 +75,9 @@ func (b *Remote) Context(op *backend.Operation) (*terraform.Context, state.State
 	}
 
 	if tfeVariables != nil {
+		if opts.Variables == nil {
+			opts.Variables = make(map[string]interface{})
+		}
 		for _, v := range tfeVariables.Items {
 			if v.Sensitive {
 				v.Value = "<sensitive>"
