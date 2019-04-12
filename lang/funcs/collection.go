@@ -153,13 +153,13 @@ var CoalesceFunc = function.New(&function.Spec{
 			if argVal.IsNull() {
 				continue
 			}
-			if retType == cty.String && argVal.AsString() == "" {
+			if retType == cty.String && argVal.RawEquals(cty.StringVal("")) {
 				continue
 			}
 
 			return argVal, nil
 		}
-		return cty.NilVal, fmt.Errorf("no non-null arguments")
+		return cty.NilVal, fmt.Errorf("no non-null, non-empty-string arguments")
 	},
 })
 
