@@ -246,7 +246,7 @@ Operating system  | User plugins directory
 Windows           | `%APPDATA%\terraform.d\plugins`
 All other systems | `~/.terraform.d/plugins`
 
-Once a plugin is installed, `terraform init` can initialize it normally.
+Once a plugin is installed, `terraform init` can initialize it normally. You can run this command from any directory.
 
 Providers distributed by HashiCorp can also go in the user plugins directory. If
 a manually installed version meets the configuration's version constraints,
