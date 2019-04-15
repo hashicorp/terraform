@@ -25,6 +25,7 @@ BUG FIXES:
 * config: Correct `filebase64sha256` function return value [GH-20654]
 * command/fmt: "Heredoc" sequences no longer cause incorrect indentation for following blocks [GH-20715]
 * command/state ...: The address-matching logic for all of these commands now correctly matches an address like `aws_instance.foo` only in the root module, rather than maching all resources/instances of the given type and name in descendent modules too. [GH-20719]
+* command/state list: Properly load user-supplied statefile. [GH-21015]
 * command/state mv: Some regressions between 0.11 and 0.12 have been addressed. [GH-20719]
 * command/plan: Diff renderer will no longer panic if an object is removed from the end of a list of objects. [GH-20765]
 * command/plan: Diff renderer will now correctly indicate when adding a new attribute is what forces resource instance replacement. [GH-20827]
