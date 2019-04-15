@@ -23,13 +23,18 @@ func (c *StateListCommand) Run(args []string) int {
 		return 1
 	}
 
+	var statePath string
 	cmdFlags := c.Meta.defaultFlagSet("state list")
-	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
+	cmdFlags.StringVar(&statePath, "state", "", "path")
 	lookupId := cmdFlags.String("id", "", "Restrict output to paths with a resource having the specified ID.")
 	if err := cmdFlags.Parse(args); err != nil {
 		return cli.RunResultHelp
 	}
 	args = cmdFlags.Args()
+
+	if statePath != "" {
+		c.Meta.statePath = statePath
+	}
 
 	// Load the backend
 	b, backendDiags := c.Backend(nil)
