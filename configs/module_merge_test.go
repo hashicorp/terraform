@@ -136,3 +136,66 @@ func TestModuleOverrideModule(t *testing.T) {
 
 	assertResultDeepEqual(t, gotArgs, wantArgs)
 }
+
+func TestModuleOverrideDynamic(t *testing.T) {
+	schema := &hcl.BodySchema{
+		Blocks: []hcl.BlockHeaderSchema{
+			{Type: "foo"},
+			{Type: "dynamic", LabelNames: []string{"type"}},
+		},
+	}
+
+	t.Run("base is dynamic", func(t *testing.T) {
+		mod, diags := testModuleFromDir("test-fixtures/valid-modules/override-dynamic-block-base")
+		assertNoDiagnostics(t, diags)
+		if mod == nil {
+			t.Fatalf("module is nil")
+		}
+
+		if _, exists := mod.ManagedResources["test.foo"]; !exists {
+			t.Fatalf("no module 'example'")
+		}
+		if len(mod.ManagedResources) != 1 {
+			t.Fatalf("wrong number of managed resources in result %d; want 1", len(mod.ManagedResources))
+		}
+
+		body := mod.ManagedResources["test.foo"].Config
+		content, diags := body.Content(schema)
+		assertNoDiagnostics(t, diags)
+
+		if len(content.Blocks) != 1 {
+			t.Fatalf("wrong number of blocks in result %d; want 1", len(content.Blocks))
+		}
+		if got, want := content.Blocks[0].Type, "foo"; got != want {
+			t.Fatalf("wrong block type %q; want %q", got, want)
+		}
+	})
+	t.Run("override is dynamic", func(t *testing.T) {
+		mod, diags := testModuleFromDir("test-fixtures/valid-modules/override-dynamic-block-override")
+		assertNoDiagnostics(t, diags)
+		if mod == nil {
+			t.Fatalf("module is nil")
+		}
+
+		if _, exists := mod.ManagedResources["test.foo"]; !exists {
+			t.Fatalf("no module 'example'")
+		}
+		if len(mod.ManagedResources) != 1 {
+			t.Fatalf("wrong number of managed resources in result %d; want 1", len(mod.ManagedResources))
+		}
+
+		body := mod.ManagedResources["test.foo"].Config
+		content, diags := body.Content(schema)
+		assertNoDiagnostics(t, diags)
+
+		if len(content.Blocks) != 1 {
+			t.Fatalf("wrong number of blocks in result %d; want 1", len(content.Blocks))
+		}
+		if got, want := content.Blocks[0].Type, "dynamic"; got != want {
+			t.Fatalf("wrong block type %q; want %q", got, want)
+		}
+		if got, want := content.Blocks[0].Labels[0], "foo"; got != want {
+			t.Fatalf("wrong dynamic block label %q; want %q", got, want)
+		}
+	})
+}

@@ -43,3 +43,21 @@ func schemaForOverrides(schema *hcl.BodySchema) *hcl.BodySchema {
 
 	return ret
 }
+
+// schemaWithDynamic takes a *hcl.BodySchema and produces a new one that
+// is equivalent except that it accepts an additional block type "dynamic" with
+// a single label, used to recognize usage of the HCL dynamic block extension.
+func schemaWithDynamic(schema *hcl.BodySchema) *hcl.BodySchema {
+	ret := &hcl.BodySchema{
+		Attributes: schema.Attributes,
+		Blocks:     make([]hcl.BlockHeaderSchema, len(schema.Blocks), len(schema.Blocks)+1),
+	}
+
+	copy(ret.Blocks, schema.Blocks)
+	ret.Blocks = append(ret.Blocks, hcl.BlockHeaderSchema{
+		Type:       "dynamic",
+		LabelNames: []string{"type"},
+	})
+
+	return ret
+}
