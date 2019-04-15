@@ -77,7 +77,7 @@ func (c *OutputCommand) Run(args []string) int {
 	}
 
 	if err := stateStore.RefreshState(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to refresh state: %s", err))
+		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 		return 1
 	}
 
