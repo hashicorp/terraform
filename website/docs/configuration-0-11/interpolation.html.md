@@ -45,9 +45,11 @@ variable.
 
 #### User list variables
 
-The syntax is `"${var.LIST}"`. For example, `"${var.subnets}"`
-would get the value of the `subnets` list, as a list. You can also
-return list elements by index: `${var.subnets[idx]}`.
+The syntax is `["${var.LIST}"]`. For example, `["${var.subnets}"]`
+would get the value of the `subnets` list, as a list. The surrounding
+brackets are necessary for the value to retain its type of `list`. To
+return an individual element, omit the surrounding brackets and provide
+an index: `${var.subnets[idx]}`.
 
 #### Attributes of your own resource
 
