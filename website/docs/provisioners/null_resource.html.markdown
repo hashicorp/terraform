@@ -1,24 +1,25 @@
 ---
 layout: "docs"
-page_title: "Provisioners: null_resource"
+page_title: "Provisioners Without a Resource"
 sidebar_current: "docs-provisioners-null-resource"
 description: |-
   The `null_resource` is a resource allows you to configure provisioners that
   are not directly associated with a single existing resource.
 ---
 
-# null\_resource
+# Provisioners Without a Resource
 
-The `null_resource` is a resource that allows you to configure provisioners
-that are not directly associated with a single existing resource.
+[null]: /docs/providers/null/resource.html
 
-A `null_resource` behaves exactly like any other resource, so you configure
-[provisioners](/docs/provisioners/index.html), [connection
-details](/docs/provisioners/connection.html), and other meta-parameters in the
-same way you would on any other resource.
+If you need to run provisioners that aren't directly associated with a specific
+resource, you can associate them with a `null_resource`.
 
-This allows fine-grained control over when provisioners run in the dependency
-graph.
+Instances of [`null_resource`][null] are treated like normal resources, but they
+don't do anything. Like with any other resource, you can configure
+[provisioners](/docs/provisioners/index.html) and [connection
+details](/docs/provisioners/connection.html) on a `null_resource`. You can also
+use its `triggers` argument and any meta-arguments to control exactly where in
+the dependency graph its provisioners will run.
 
 ## Example usage
 
@@ -31,7 +32,7 @@ resource "aws_instance" "cluster" {
 
 resource "null_resource" "cluster" {
   # Changes to any instance of the cluster requires re-provisioning
-  triggers {
+  triggers = {
     cluster_instance_ids = "${join(",", aws_instance.cluster.*.id)}"
   }
 
@@ -52,8 +53,9 @@ resource "null_resource" "cluster" {
 
 ## Argument Reference
 
-In addition to all the resource configuration available, `null_resource` supports the following specific configuration options:
+In addition to meta-arguments supported by all resources, `null_resource`
+supports the following specific arguments:
 
- * `triggers` - A mapping of values which should trigger a rerun of this set of
-   provisioners. Values are meant to be interpolated references to variables or
+ * `triggers` - A map of values which should cause this set of provisioners to
+   re-run. Values are meant to be interpolated references to variables or
    attributes of other resources.
