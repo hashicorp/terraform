@@ -227,6 +227,60 @@ func (b *Remote) parseVariableValues(op *backend.Operation) (terraform.InputValu
 	return result, diags
 }
 
+func (b *Remote) costEstimation(stopCtx, cancelCtx context.Context, op *backend.Operation, r *tfe.Run) error {
+	if b.CLI != nil {
+		b.CLI.Output("\n------------------------------------------------------------------------\n")
+	}
+	var ce = r.CostEstimation
+
+	logs, err := b.client.CostEstimation.Logs(stopCtx, ce.ID)
+	if err != nil {
+		return generalError("Failed to retrieve cost estimation logs", err)
+	}
+	scanner := bufio.NewScanner(logs)
+
+	// Retrieve the cost estimation to get its current status.
+	ce, err := b.client.CostEstimation.Read(stopCtx, ce.ID)
+	if err != nil {
+		return generalError("Failed to retrieve cost estimation", err)
+	}
+
+	var msgPrefix = "Cost estimation"
+
+	if b.CLI != nil {
+		b.CLI.Output(b.Colorize().Color(msgPrefix + ":\n"))
+	}
+
+	for scanner.Scan() {
+		if b.CLI != nil {
+			b.CLI.Output(b.Colorize().Color(scanner.Text()))
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return generalError("Failed to read logs", err)
+	}
+
+	switch ce.Status {
+	case tfe.CostEstimationFinished:
+		if r.HasChanges && op.Type == backend.OperationTypeApply || b.CLI != nil {
+			b.CLI.Output("\n------------------------------------------------------------------------")
+		}
+		return nil
+	case tfe.CostEstimationErrored:
+		return fmt.Errorf(msgPrefix + " errored.")
+	case tfe.CostEstimationCanceled:
+		return fmt.Errorf(msgPrefix + " canceled.")
+	default:
+		return fmt.Errorf("Unknown or unexpected cost estimation state: %s", ce.Status)
+	}
+
+	if b.CLI != nil {
+		b.CLI.Output("------------------------------------------------------------------------")
+	}
+
+	return nil
+}
+
 func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Operation, r *tfe.Run) error {
 	if b.CLI != nil {
 		b.CLI.Output("\n------------------------------------------------------------------------\n")
