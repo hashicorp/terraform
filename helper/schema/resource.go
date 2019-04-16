@@ -754,6 +754,13 @@ func (r *Resource) TestResourceData() *ResourceData {
 	}
 }
 
+// SchemasForFlatmapPath tries its best to find a sequence of schemas that
+// the given dot-delimited attribute path traverses through in the schema
+// of the receiving Resource.
+func (r *Resource) SchemasForFlatmapPath(path string) []*Schema {
+	return SchemasForFlatmapPath(path, r.Schema)
+}
+
 // Returns true if the resource is "top level" i.e. not a sub-resource.
 func (r *Resource) isTopLevel() bool {
 	// TODO: This is a heuristic; replace with a definitive attribute?

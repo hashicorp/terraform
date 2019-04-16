@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/hcl2/hcl/hclsyntax"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -130,6 +131,21 @@ func testStepImportState(
 					r.Primary.ID)
 			}
 
+			// We'll try our best to find the schema for this resource type
+			// so we can ignore Removed fields during validation. If we fail
+			// to find the schema then we won't ignore them and so the test
+			// will need to rely on explicit ImportStateVerifyIgnore, though
+			// this shouldn't happen in any reasonable case.
+			var rsrcSchema *schema.Resource
+			if providerAddr, diags := addrs.ParseAbsProviderConfigStr(r.Provider); !diags.HasErrors() {
+				providerType := providerAddr.ProviderConfig.Type
+				if provider, ok := step.providers[providerType]; ok {
+					if provider, ok := provider.(*schema.Provider); ok {
+						rsrcSchema = provider.ResourcesMap[r.Type]
+					}
+				}
+			}
+
 			// don't add empty flatmapped containers, so we can more easily
 			// compare the attributes
 			skipEmpty := func(k, v string) bool {
@@ -160,14 +176,35 @@ func testStepImportState(
 
 			// Remove fields we're ignoring
 			for _, v := range step.ImportStateVerifyIgnore {
-				for k, _ := range actual {
+				for k := range actual {
 					if strings.HasPrefix(k, v) {
 						delete(actual, k)
 					}
 				}
-				for k, _ := range expected {
+				for k := range expected {
 					if strings.HasPrefix(k, v) {
 						delete(expected, k)
+					}
+				}
+			}
+
+			// Also remove any attributes that are marked as "Removed" in the
+			// schema, if we have a schema to check that against.
+			if rsrcSchema != nil {
+				for k := range actual {
+					for _, schema := range rsrcSchema.SchemasForFlatmapPath(k) {
+						if schema.Removed != "" {
+							delete(actual, k)
+							break
+						}
+					}
+				}
+				for k := range expected {
+					for _, schema := range rsrcSchema.SchemasForFlatmapPath(k) {
+						if schema.Removed != "" {
+							delete(expected, k)
+							break
+						}
 					}
 				}
 			}
