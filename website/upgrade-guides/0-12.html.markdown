@@ -237,7 +237,46 @@ into a list. The upgrade tool does not remove or attempt to consolidate
 any existing duplicate arguments, but other commands like `terraform validate`
 will detect and report these after upgrading.
 
+## Integer vs. Float Number Types
+
+From Terraform v0.12, the Terraform language no longer distinguishes between
+integer and float types, instead just having a single "number" type that can
+represent high-precision floating point numbers. This new type can represent
+any value that could be represented before, plus many new values due to the
+expanded precision.
+
+In most cases this change should not cause any significant behavior change, but
+please note that in particular the behavior of the division operator is now
+different: it _always_ performs floating point division, whereas before it
+would sometimes perform integer division by attempting to infer intent from
+the argument types.
+
+If you are relying on integer division behavior in your configuration, please
+use the `floor` function to obtain the previous result. A common place this
+would arise is in index operations, where the index is computed by division:
+
+```hcl
+  example = var.items[floor(count.index / var.any_number)]
+```
+
+Using a fractional number to index a list will produce an error telling you
+that this is not allowed, serving as a prompt to add `floor`:
+
+```
+Error: Invalid index
+
+The given key does not identify an element in this collection value: indexing a
+sequence requires a whole number, but the given index (0.5) has a fractional
+part.
+```
+
+Unfortunately the automatic upgrade tool cannot apply a fix for this case
+because it does not have enough information to know if floating point or integer
+division was intended by the configuration author, so this change must be made
+manually where needed.
+
 ## Terraform Configuration upgrades requiring human intervention 
+
 There are some known situations that will be detected, but not upgrade, by the
 upgrade tool. Some examples of these situatations include:
 
