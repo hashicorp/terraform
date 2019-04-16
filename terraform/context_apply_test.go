@@ -7097,6 +7097,80 @@ func TestContext2Apply_error(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_errorDestroy(t *testing.T) {
+	m := testModule(t, "empty")
+	p := testProvider("test")
+
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_thing": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		// Should actually be called for this test, because Terraform Core
+		// constructs the plan for a destroy operation itself.
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
+	}
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+		// The apply (in this case, a destroy) always fails, so we can verify
+		// that the object stays in the state after a destroy fails even though
+		// we aren't returning a new state object here.
+		return providers.ApplyResourceChangeResponse{
+			Diagnostics: tfdiags.Diagnostics(nil).Append(fmt.Errorf("failed")),
+		}
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		State: states.BuildState(func(ss *states.SyncState) {
+			ss.SetResourceInstanceCurrent(
+				addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "test_thing",
+					Name: "foo",
+				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+				&states.ResourceInstanceObjectSrc{
+					Status:    states.ObjectReady,
+					AttrsJSON: []byte(`{"id":"baz"}`),
+				},
+				addrs.ProviderConfig{
+					Type: "test",
+				}.Absolute(addrs.RootModuleInstance),
+			)
+		}),
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
+	}
+
+	state, diags := ctx.Apply()
+	if diags == nil {
+		t.Fatal("should have error")
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(`
+test_thing.foo:
+  ID = baz
+  provider = provider.test
+`) // test_thing.foo is still here, even though provider returned no new state along with its error
+	if actual != expected {
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	}
+}
+
 func TestContext2Apply_errorCreateInvalidNew(t *testing.T) {
 	m := testModule(t, "apply-error")
 
