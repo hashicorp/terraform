@@ -192,9 +192,22 @@ Value:
 			diags = diags.Append(moreDiags)
 			valueSrc, moreDiags := upgradeExpr(item.Val, filename, interp, an)
 			diags = diags.Append(moreDiags)
+			if item.LeadComment != nil {
+				for _, c := range item.LeadComment.List {
+					buf.WriteString(c.Text)
+					buf.WriteByte('\n')
+				}
+			}
+
 			buf.Write(keySrc)
 			buf.WriteString(" = ")
 			buf.Write(valueSrc)
+			if item.LineComment != nil {
+				for _, c := range item.LineComment.List {
+					buf.WriteByte(' ')
+					buf.WriteString(c.Text)
+				}
+			}
 			buf.WriteString("\n")
 		}
 		buf.WriteString("}")
