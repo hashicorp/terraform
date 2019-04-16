@@ -100,6 +100,20 @@ resource "test_resource_config_mode" "foo" {
 			resource.TestStep{
 				Config: strings.TrimSpace(`
 resource "test_resource_config_mode" "foo" {
+	resource_as_attr_dynamic = [
+		{
+		},
+	]
+}
+				`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("test_resource_config_mode.foo", "resource_as_attr.#", "1"),
+					resource.TestCheckResourceAttr("test_resource_config_mode.foo", "resource_as_attr_dynamic.#", "1"),
+				),
+			},
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_config_mode" "foo" {
 	resource_as_attr = []
 	resource_as_attr_dynamic = []
 }
