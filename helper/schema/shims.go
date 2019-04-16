@@ -133,9 +133,10 @@ func LegacyResourceSchema(r *Resource) *Resource {
 	return newResource
 }
 
-// LegacySchema takes a *Schema and returns a deep copy with 0.12 specific
-// features removed. This is used by the shims to get a configschema that
-// directly matches the structure of the schema.Resource.
+// LegacySchema takes a *Schema and returns a deep copy with some 0.12-specific
+// features disabled. This is used by the shims to get a configschema that
+// better reflects the given schema.Resource, without any adjustments we
+// make for when sending a schema to Terraform Core.
 func LegacySchema(s *Schema) *Schema {
 	if s == nil {
 		return nil
@@ -143,7 +144,6 @@ func LegacySchema(s *Schema) *Schema {
 	// start with a shallow copy
 	newSchema := new(Schema)
 	*newSchema = *s
-	newSchema.ConfigMode = SchemaConfigModeAuto
 	newSchema.SkipCoreTypeCheck = false
 
 	switch e := newSchema.Elem.(type) {
