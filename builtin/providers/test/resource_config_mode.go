@@ -18,6 +18,7 @@ func testResourceConfigMode() *schema.Resource {
 				Type:       schema.TypeList,
 				ConfigMode: schema.SchemaConfigModeAttr,
 				Optional:   true,
+				Computed:   true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"foo": {
