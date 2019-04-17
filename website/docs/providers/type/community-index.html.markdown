@@ -49,6 +49,7 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
 - [EfficientIP](https://github.com/alexissavin/terraform-provider-solidserver)
 - [Elasticsearch](https://github.com/phillbaker/terraform-provider-elasticsearch)
 - [ElephantSQL](https://github.com/elephantsql/terraform-provider)
+- [Enterprise Cloud](https://github.com/nttcom/terraform-provider-ecl)
 - [ESXI](https://github.com/josenk/terraform-provider-esxi)
 - [Gandi](https://github.com/tiramiseb/terraform-provider-gandi)
 - [Generic Rest API](https://github.com/Mastercard/terraform-provider-restapi)
