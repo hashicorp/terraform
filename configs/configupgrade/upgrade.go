@@ -35,11 +35,11 @@ func (u *Upgrader) Upgrade(input ModuleSources, dir string) (ModuleSources, tfdi
 	var diags tfdiags.Diagnostics
 
 	an, err := u.analyze(input)
-	an.ModuleDir = dir
 	if err != nil {
 		diags = diags.Append(err)
 		return ret, diags
 	}
+	an.ModuleDir = dir
 
 	for name, src := range input {
 		ext := fileExt(name)
