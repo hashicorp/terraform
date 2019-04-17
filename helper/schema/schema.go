@@ -266,7 +266,8 @@ type Schema struct {
 	// guaranteed to be of the proper Schema type, and it can yield warnings or
 	// errors based on inspection of that value.
 	//
-	// ValidateFunc currently only works for primitive types.
+	// ValidateFunc is honored only when the schema's Type is set to TypeInt,
+	// TypeFloat, TypeString, TypeBool, or TypeMap. It is ignored for all other types.
 	ValidateFunc SchemaValidateFunc
 
 	// Sensitive ensures that the attribute's value does not get displayed in
