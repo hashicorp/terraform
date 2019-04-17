@@ -93,6 +93,7 @@ BUG FIXES:
 * command/format: Fix rendering of force-new updates ([#19609](https://github.com/hashicorp/terraform/issues/19609))
 * command/format: Fix rendering of nested (JSON) object ([#20071](https://github.com/hashicorp/terraform/issues/20071))
 * command/format: Fix rendering of unknown elements in set/map/list ([#20067](https://github.com/hashicorp/terraform/issues/20067))
+* command/graph: Honor user-supplied plugin path [#18083]
 * command/init: Fix plugin installer using wrong protocol causing incompatiable API version with plugin ([#19221](https://github.com/hashicorp/terraform/issues/19221))
 * command/providers: Support `-no-color` argument to `terraform providers`, which was previously incorrectly returning an error ([#19671](https://github.com/hashicorp/terraform/issues/19671))
 * helper/schema: Fix setting a set in a list ([#19552](https://github.com/hashicorp/terraform/issues/19552))
