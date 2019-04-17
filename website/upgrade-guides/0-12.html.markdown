@@ -275,6 +275,58 @@ because it does not have enough information to know if floating point or integer
 division was intended by the configuration author, so this change must be made
 manually where needed.
 
+## Referring to List Variables
+
+In early versions of Terraform, before list support became first-class, we
+required using seemingly-redundant list brackets around a single expression
+in order to hint to the language interpreter that a list interpretation was
+desired:
+
+```hcl
+  # Example for older versions of Terraform; not valid for v0.12
+  example = ["${var.any_list}"]
+```
+
+This strange requirement was subsequently lifted after the introduction of
+first-class list support, but we retained compatibility with this older usage
+for a transitional period by including some fixup logic that would detect when
+list brackets contain list expressions and automatically flatten to a single
+list.
+
+As part of implementing the first-class expressions support for v0.12, we needed
+to finally remove that backward-compatibility mechanism to avoid ambiguity
+in the language, so an expression like the above will now produce a list of
+lists and thus produce a type checking error for any argument that was expecting
+a list of some other type.
+
+The upgrade tool is able to recognize most simple usage of this pattern and
+rewrite automatically to just refer to the list directly:
+
+```hcl
+  example = var.any_list
+```
+
+However, an unintended side-effect of this compatiblity mechanism was to
+also flatten mixed lists of single-value and list expressions into a single
+list automatically. We didn't intend for this to be a part of the language, but
+in retrospect it was an obvious consequence of how the compatibility mechanism
+was implemented. If you have expressions in your modules that produce a list
+of strings by using list brackets with a mixture of string and list-of-string
+sub-expressions, you will need to rewrite this to explicitly use
+[the `flatten` function](/docs/configuration/functions/flatten.html)
+to make the special treatment more obvious to the reader:
+
+```hcl
+  example = flatten([
+    "single string",
+    var.any_list,
+  ])
+```
+
+The configuration upgrade tool unfortunately cannot make this change
+automatically, because it doesn't have enough information to know for certain
+which interpretation was intended for a given list.
+
 ## Terraform Configuration upgrades requiring human intervention 
 
 There are some known situations that will be detected, but not upgrade, by the
