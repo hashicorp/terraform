@@ -31,6 +31,7 @@ BUG FIXES:
 * command/plan: Diff renderer will now correctly indicate when adding a new attribute is what forces resource instance replacement. [GH-20827]
 * config: The `coalesce` function will now correctly ignore empty strings [GH-21002]
 * helper/schema: Prevent crash when setting a `TypeSet` attribute with a typed `nil` of `*schema.Set` [GH-20891]
+* core: Restore pre-v0.12 behavior of retaining objects in state if a delete operation fails. [GH-21033]
 
 ## 0.12.0-beta1 (Feb 28, 2019)
 
