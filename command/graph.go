@@ -45,6 +45,12 @@ func (c *GraphCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Check for user-supplied plugin path
+	if c.pluginPath, err = c.loadPluginPath(); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
+		return 1
+	}
+
 	// Check if the path is a plan
 	var plan *plans.Plan
 	planFile, err := c.PlanFile(configPath)
