@@ -11,7 +11,7 @@ Here are some of the most common:
 
 * [AWS](https://github.com/terraform-providers/terraform-provider-aws)
 * [Azure](https://github.com/terraform-providers/terraform-provider-azurerm)
-* [Google](https://github.com/terraform-providers/terraform-provider-aws)
+* [Google](https://github.com/terraform-providers/terraform-provider-google)
 * [Oracle](https://github.com/terraform-providers/terraform-provider-oci)
 * [Kubernetes](https://github.com/terraform-providers/terraform-provider-kubernetes)
 
