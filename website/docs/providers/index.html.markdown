@@ -53,6 +53,7 @@ down to see all providers.
 - [F5 BIG-IP](/docs/providers/bigip/index.html)
 - [Fastly](/docs/providers/fastly/index.html)
 - [FlexibleEngine](/docs/providers/flexibleengine/index.html)
+- [Fortios](/docs/providers/fortios/index.html)
 - [GitHub](/docs/providers/github/index.html)
 - [Gitlab](/docs/providers/gitlab/index.html)
 - [Google Cloud Platform](/docs/providers/google/index.html)
