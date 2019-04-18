@@ -1,38 +1,41 @@
-## 0.12.0-beta2 (Unreleased)
+## 0.12.0-rc1 (Unreleased)
+
+
+## 0.12.0-beta2 (Apr 18, 2019)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
 * The `terraform state ...` family of commands have all been adjusted to more consistently match how resource addresses are resolved elsewhere in Terraform. In general the matches are now _more_ specific than they were before (matching less, rather than more) but if you are using any of those commands in existing automation please verify that you will still getting expected behavior using the `-dry-run` options.
-* The `project` and `region` arguments for the `gcs` backend have now been removed, after having first been deprecated and then ignored in previous versions. These arguments are no longer needed because the backend expects the specified bucket to already exist. [GH-19285]
+* The `project` and `region` arguments for the `gcs` backend have now been removed, after having first been deprecated and then ignored in previous versions. These arguments are no longer needed because the backend expects the specified bucket to already exist. ([#19285](https://github.com/hashicorp/terraform/issues/19285))
 
 NEW FEATURES:
 
-* New function `reverse`, for reversing lists. [GH-18887]
+* New function `reverse`, for reversing lists. ([#18887](https://github.com/hashicorp/terraform/issues/18887))
 
 IMPROVEMENTS:
 
-* The warning for undeclared variables in `.tfvars` files now consolidates multiple warnings when there are more than three, to avoid an overwhelming wall of warnings in situations where a common `.tfvars` file is used across many configurations. Setting "global" variables in `.tfvars` is deprecated for v0.12 and should be replaced with the `TF_VAR_...` environment variables. [GH-20581]
-* backend/remote: Retry calls when the remote backend responds with a server error [GH-20588]
-* backend/remote: Check for external updates while waiting for user input [GH-20620]
-* config: The `coalesce` function now skips null values [GH-21002]
-* backend/pg: Switch pg backend to session-level advisory locking [GH-20561]
-* plugin/discover: Parse and display provider warnings from the Terraform Registry [GH-20674]
-* plugin/registry: Add friendly error for when registry unresponsive [GH-20853]
+* The warning for undeclared variables in `.tfvars` files now consolidates multiple warnings when there are more than three, to avoid an overwhelming wall of warnings in situations where a common `.tfvars` file is used across many configurations. Setting "global" variables in `.tfvars` is deprecated for v0.12 and should be replaced with the `TF_VAR_...` environment variables. ([#20581](https://github.com/hashicorp/terraform/issues/20581))
+* backend/remote: Retry calls when the remote backend responds with a server error ([#20588](https://github.com/hashicorp/terraform/issues/20588))
+* backend/remote: Check for external updates while waiting for user input ([#20620](https://github.com/hashicorp/terraform/issues/20620))
+* config: The `coalesce` function now skips null values ([#21002](https://github.com/hashicorp/terraform/issues/21002))
+* backend/pg: Switch pg backend to session-level advisory locking ([#20561](https://github.com/hashicorp/terraform/issues/20561))
+* plugin/discover: Parse and display provider warnings from the Terraform Registry ([#20674](https://github.com/hashicorp/terraform/issues/20674))
+* plugin/registry: Add friendly error for when registry unresponsive ([#20853](https://github.com/hashicorp/terraform/issues/20853))
 
 BUG FIXES:
 
-* backend/remote: Ensure variables are loaded correctly when using `terraform console` [GH-20857]
-* backend/remote: Make sure workspaces are correctly uploaded [GH-20952]
-* config: Correct `filebase64sha256` function return value [GH-20654]
-* command/fmt: "Heredoc" sequences no longer cause incorrect indentation for following blocks [GH-20715]
-* command/state ...: The address-matching logic for all of these commands now correctly matches an address like `aws_instance.foo` only in the root module, rather than maching all resources/instances of the given type and name in descendent modules too. [GH-20719]
-* command/state list: Properly load user-supplied statefile. [GH-21015]
-* command/state mv: Some regressions between 0.11 and 0.12 have been addressed. [GH-20719]
-* command/plan: Diff renderer will no longer panic if an object is removed from the end of a list of objects. [GH-20765]
-* command/plan: Diff renderer will now correctly indicate when adding a new attribute is what forces resource instance replacement. [GH-20827]
-* config: The `coalesce` function will now correctly ignore empty strings [GH-21002]
-* helper/schema: Prevent crash when setting a `TypeSet` attribute with a typed `nil` of `*schema.Set` [GH-20891]
-* core: Restore pre-v0.12 behavior of retaining objects in state if a delete operation fails. [GH-21033]
+* backend/remote: Ensure variables are loaded correctly when using `terraform console` ([#20857](https://github.com/hashicorp/terraform/issues/20857))
+* backend/remote: Make sure workspaces are correctly uploaded ([#20952](https://github.com/hashicorp/terraform/issues/20952))
+* config: Correct `filebase64sha256` function return value ([#20654](https://github.com/hashicorp/terraform/issues/20654))
+* command/fmt: "Heredoc" sequences no longer cause incorrect indentation for following blocks ([#20715](https://github.com/hashicorp/terraform/issues/20715))
+* command/state ...: The address-matching logic for all of these commands now correctly matches an address like `aws_instance.foo` only in the root module, rather than maching all resources/instances of the given type and name in descendent modules too. ([#20719](https://github.com/hashicorp/terraform/issues/20719))
+* command/state list: Properly load user-supplied statefile. ([#21015](https://github.com/hashicorp/terraform/issues/21015))
+* command/state mv: Some regressions between 0.11 and 0.12 have been addressed. ([#20719](https://github.com/hashicorp/terraform/issues/20719))
+* command/plan: Diff renderer will no longer panic if an object is removed from the end of a list of objects. ([#20765](https://github.com/hashicorp/terraform/issues/20765))
+* command/plan: Diff renderer will now correctly indicate when adding a new attribute is what forces resource instance replacement. ([#20827](https://github.com/hashicorp/terraform/issues/20827))
+* config: The `coalesce` function will now correctly ignore empty strings ([#21002](https://github.com/hashicorp/terraform/issues/21002))
+* helper/schema: Prevent crash when setting a `TypeSet` attribute with a typed `nil` of `*schema.Set` ([#20891](https://github.com/hashicorp/terraform/issues/20891))
+* core: Restore pre-v0.12 behavior of retaining objects in state if a delete operation fails. ([#21033](https://github.com/hashicorp/terraform/issues/21033))
 
 ## 0.12.0-beta1 (Feb 28, 2019)
 
