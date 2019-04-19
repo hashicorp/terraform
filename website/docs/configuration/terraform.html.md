@@ -111,8 +111,8 @@ minimum version for that provider.
 
 ```hcl
 terraform {
-  required_providers = {
-    aws = ">= 1.0.0"
+  required_providers {
+    aws = ">= 2.7.0"
   }
 }
 ```
