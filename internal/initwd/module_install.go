@@ -2,7 +2,6 @@ package initwd
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform/registry"
 	"log"
 	"os"
 	"path/filepath"
@@ -13,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/internal/earlyconfig"
 	"github.com/hashicorp/terraform/internal/modsdir"
+	"github.com/hashicorp/terraform/registry"
 	"github.com/hashicorp/terraform/registry/regsrc"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -245,6 +245,17 @@ func (i *ModuleInstaller) installLocalModule(req *earlyconfig.ModuleRequest, key
 	// filesystem at all because the parent already wrote
 	// the files we need, and so we just load up what's already here.
 	newDir := filepath.Join(parentRecord.Dir, req.SourceAddr)
+
+	// it is possible that the local directory is a symlink
+	newDir, err := filepath.EvalSymlinks(newDir)
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Unreadable module directory",
+			fmt.Sprintf("Unable to follow module source symlink: %s", err.Error()),
+		))
+	}
+
 	log.Printf("[TRACE] ModuleInstaller: %s uses directory from parent: %s", key, newDir)
 	mod, mDiags := earlyconfig.LoadModule(newDir)
 	if mod == nil {
