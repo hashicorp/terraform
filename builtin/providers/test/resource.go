@@ -141,6 +141,13 @@ func testResource() *schema.Resource {
 				Computed:    true,
 				Description: "copied the required field during apply, and plans computed when changed",
 			},
+			// this should return unset from GetOkExists
+			"get_ok_exists_false": {
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Optional:    true,
+				Description: "do not set in config",
+			},
 		},
 	}
 }
@@ -184,6 +191,12 @@ func testResourceRead(d *schema.ResourceData, meta interface{}) error {
 	s := d.Get("set")
 	if s == nil || s.(*schema.Set).Len() == 0 {
 		d.Set("set", []interface{}{})
+	}
+
+	// This should not show as set unless it's set in the config
+	_, ok := d.GetOkExists("get_ok_exists_false")
+	if ok {
+		return errors.New("get_ok_exists_false should not be set")
 	}
 
 	return nil
