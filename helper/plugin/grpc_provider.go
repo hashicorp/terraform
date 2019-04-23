@@ -490,7 +490,7 @@ func (s *GRPCProviderServer) ReadResource(_ context.Context, req *proto.ReadReso
 		return resp, nil
 	}
 
-	newStateVal = normalizeNullValues(newStateVal, stateVal, true)
+	newStateVal = normalizeNullValues(newStateVal, stateVal, false)
 	newStateVal = copyTimeoutValues(newStateVal, stateVal)
 
 	newStateMP, err := msgpack.Marshal(newStateVal, blockForCore.ImpliedType())
@@ -614,7 +614,7 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 		return resp, nil
 	}
 
-	plannedStateVal = normalizeNullValues(plannedStateVal, proposedNewStateVal, true)
+	plannedStateVal = normalizeNullValues(plannedStateVal, proposedNewStateVal, false)
 
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
@@ -839,7 +839,7 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 		return resp, nil
 	}
 
-	newStateVal = normalizeNullValues(newStateVal, plannedStateVal, false)
+	newStateVal = normalizeNullValues(newStateVal, plannedStateVal, true)
 
 	newStateVal = copyTimeoutValues(newStateVal, plannedStateVal)
 
@@ -1108,15 +1108,13 @@ func stripSchema(s *schema.Schema) *schema.Schema {
 // however it sees fit. This however means that a CustomizeDiffFunction may not
 // be able to change a null to an empty value or vice versa, but that should be
 // very uncommon nor was it reliable before 0.12 either.
-func normalizeNullValues(dst, src cty.Value, preferDst bool) cty.Value {
+func normalizeNullValues(dst, src cty.Value, apply bool) cty.Value {
 	ty := dst.Type()
 	if !src.IsNull() && !src.IsKnown() {
-		// While this seems backwards to return src when preferDst is set, it
-		// means this might be a plan scenario, and it must retain unknown
-		// interpolated placeholders, which could be lost if we're only updating
-		// a resource. If this is a read scenario, then there shouldn't be any
-		// unknowns all.
-		if dst.IsNull() && preferDst {
+		// Return src during plan to retain unknown interpolated placeholders,
+		// which could be lost if we're only updating a resource. If this is a
+		// read scenario, then there shouldn't be any unknowns all.
+		if dst.IsNull() && !apply {
 			return src
 		}
 		return dst
@@ -1154,26 +1152,26 @@ func normalizeNullValues(dst, src cty.Value, preferDst bool) cty.Value {
 		srcMap := src.AsValueMap()
 		for key, v := range srcMap {
 			dstVal, ok := dstMap[key]
-			if !ok && !preferDst && ty.IsMapType() {
+			if !ok && apply && ty.IsMapType() {
 				// don't transfer old map values to dst during apply
 				continue
 			}
 
 			if dstVal == cty.NilVal {
-				if preferDst && ty.IsMapType() {
+				if !apply && ty.IsMapType() {
 					// let plan shape this map however it wants
 					continue
 				}
 				dstVal = cty.NullVal(v.Type())
 			}
-			dstMap[key] = normalizeNullValues(dstVal, v, preferDst)
+			dstMap[key] = normalizeNullValues(dstVal, v, apply)
 		}
 
 		// you can't call MapVal/ObjectVal with empty maps, but nothing was
 		// copied in anyway. If the dst is nil, and the src is known, assume the
 		// src is correct.
 		if len(dstMap) == 0 {
-			if dst.IsNull() && src.IsWhollyKnown() && !preferDst {
+			if dst.IsNull() && src.IsWhollyKnown() && apply {
 				return src
 			}
 			return dst
@@ -1207,7 +1205,7 @@ func normalizeNullValues(dst, src cty.Value, preferDst bool) cty.Value {
 		// If the original was wholly known, then we expect that is what the
 		// provider applied. The apply process loses too much information to
 		// reliably re-create the set.
-		if src.IsWhollyKnown() && !preferDst {
+		if src.IsWhollyKnown() && apply {
 			return src
 		}
 
@@ -1215,14 +1213,13 @@ func normalizeNullValues(dst, src cty.Value, preferDst bool) cty.Value {
 		// If the dst is null, and the src is known, then we lost an empty value
 		// so take the original.
 		if dst.IsNull() {
-			if src.IsWhollyKnown() && src.LengthInt() == 0 && !preferDst {
+			if src.IsWhollyKnown() && src.LengthInt() == 0 && apply {
 				return src
 			}
 
 			// if dst is null and src only contains unknown values, then we lost
-			// those during a plan (which is when preferDst is set, there would
-			// be no unknowns during read).
-			if preferDst && !src.IsNull() {
+			// those during a read or plan.
+			if !apply && !src.IsNull() {
 				allUnknown := true
 				for _, v := range src.AsValueSlice() {
 					if v.IsKnown() {
@@ -1246,7 +1243,7 @@ func normalizeNullValues(dst, src cty.Value, preferDst bool) cty.Value {
 			dsts := dst.AsValueSlice()
 
 			for i := 0; i < srcLen; i++ {
-				dsts[i] = normalizeNullValues(dsts[i], srcs[i], preferDst)
+				dsts[i] = normalizeNullValues(dsts[i], srcs[i], apply)
 			}
 
 			if ty.IsTupleType() {
@@ -1256,7 +1253,7 @@ func normalizeNullValues(dst, src cty.Value, preferDst bool) cty.Value {
 		}
 
 	case ty.IsPrimitiveType():
-		if dst.IsNull() && src.IsWhollyKnown() && !preferDst {
+		if dst.IsNull() && src.IsWhollyKnown() && apply {
 			return src
 		}
 	}
