@@ -667,7 +667,7 @@ func TestGetSchemaTimeouts(t *testing.T) {
 func TestNormalizeNullValues(t *testing.T) {
 	for i, tc := range []struct {
 		Src, Dst, Expect cty.Value
-		Plan             bool
+		Apply            bool
 	}{
 		{
 			// The known set value is copied over the null set value
@@ -690,6 +690,7 @@ func TestNormalizeNullValues(t *testing.T) {
 					}),
 				}),
 			}),
+			Apply: true,
 		},
 		{
 			// A zero set value is kept
@@ -702,7 +703,6 @@ func TestNormalizeNullValues(t *testing.T) {
 			Expect: cty.ObjectVal(map[string]cty.Value{
 				"set": cty.SetValEmpty(cty.String),
 			}),
-			Plan: true,
 		},
 		{
 			// The known set value is copied over the null set value
@@ -724,7 +724,6 @@ func TestNormalizeNullValues(t *testing.T) {
 					"foo": cty.String,
 				}))),
 			}),
-			Plan: true,
 		},
 		{
 			// The empty map is copied over the null map
@@ -737,6 +736,7 @@ func TestNormalizeNullValues(t *testing.T) {
 			Expect: cty.ObjectVal(map[string]cty.Value{
 				"map": cty.MapValEmpty(cty.String),
 			}),
+			Apply: true,
 		},
 		{
 			// A zero value primitive is copied over a null primitive
@@ -749,6 +749,7 @@ func TestNormalizeNullValues(t *testing.T) {
 			Expect: cty.ObjectVal(map[string]cty.Value{
 				"string": cty.StringVal(""),
 			}),
+			Apply: true,
 		},
 		{
 			// Plan primitives are kept
@@ -761,7 +762,6 @@ func TestNormalizeNullValues(t *testing.T) {
 			Expect: cty.ObjectVal(map[string]cty.Value{
 				"string": cty.NullVal(cty.String),
 			}),
-			Plan: true,
 		},
 		{
 			// The null map is retained, because the src was unknown
@@ -774,6 +774,7 @@ func TestNormalizeNullValues(t *testing.T) {
 			Expect: cty.ObjectVal(map[string]cty.Value{
 				"map": cty.NullVal(cty.Map(cty.String)),
 			}),
+			Apply: true,
 		},
 		{
 			// the nul set is retained, because the src set contains an unknown value
@@ -794,6 +795,7 @@ func TestNormalizeNullValues(t *testing.T) {
 					"foo": cty.String,
 				}))),
 			}),
+			Apply: true,
 		},
 		{
 			// Retain don't re-add unexpected planned values in a map
@@ -813,7 +815,6 @@ func TestNormalizeNullValues(t *testing.T) {
 					"a": cty.StringVal("a"),
 				}),
 			}),
-			Plan: true,
 		},
 		{
 			// Remove extra values after apply
@@ -833,7 +834,7 @@ func TestNormalizeNullValues(t *testing.T) {
 					"a": cty.StringVal("a"),
 				}),
 			}),
-			Plan: false,
+			Apply: true,
 		},
 		{
 			Src: cty.ObjectVal(map[string]cty.Value{
@@ -843,7 +844,6 @@ func TestNormalizeNullValues(t *testing.T) {
 			Expect: cty.ObjectVal(map[string]cty.Value{
 				"a": cty.NullVal(cty.String),
 			}),
-			Plan: true,
 		},
 
 		// a list in an object in a list, going from null to empty
@@ -877,6 +877,7 @@ func TestNormalizeNullValues(t *testing.T) {
 					}),
 				}),
 			}),
+			Apply: true,
 		},
 
 		// a list in an object in a list, going from empty to null
@@ -910,6 +911,7 @@ func TestNormalizeNullValues(t *testing.T) {
 					}),
 				}),
 			}),
+			Apply: true,
 		},
 		// the empty list should be transferred, but the new unknown should not be overridden
 		{
@@ -942,7 +944,6 @@ func TestNormalizeNullValues(t *testing.T) {
 					}),
 				}),
 			}),
-			Plan: true,
 		},
 		{
 			// fix unknowns added to a map
@@ -964,7 +965,6 @@ func TestNormalizeNullValues(t *testing.T) {
 					"b": cty.StringVal(""),
 				}),
 			}),
-			Plan: true,
 		},
 		{
 			// fix unknowns lost from a list
@@ -1001,11 +1001,10 @@ func TestNormalizeNullValues(t *testing.T) {
 					}),
 				}),
 			}),
-			Plan: true,
 		},
 	} {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			got := normalizeNullValues(tc.Dst, tc.Src, tc.Plan)
+			got := normalizeNullValues(tc.Dst, tc.Src, tc.Apply)
 			if !got.RawEquals(tc.Expect) {
 				t.Fatalf("\nexpected: %#v\ngot:      %#v\n", tc.Expect, got)
 			}
