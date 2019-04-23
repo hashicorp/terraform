@@ -291,7 +291,7 @@ func (b *Remote) plan(stopCtx, cancelCtx context.Context, op *backend.Operation,
 	}
 
 	// Show Cost Estimation
-	if r.CostEstimations != nil {
+	if r.CostEstimation != nil {
 		err = b.costEstimation(stopCtx, cancelCtx, op, r)
 		if err != nil {
 			generalError("Cost Estimation error", err)
