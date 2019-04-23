@@ -1834,6 +1834,23 @@ func TestInterpolateFuncSplit(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncStrRev(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${strrev("test")}`,
+				"tset",
+				false,
+			},
+			{
+				`${strrev("a ☃")}`,
+				"☃ a",
+				false,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncLookup(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Vars: map[string]ast.Variable{

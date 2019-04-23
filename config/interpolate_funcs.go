@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/apparentlymart/go-cidr/cidr"
+	"github.com/apparentlymart/go-textseg/textseg"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
@@ -129,6 +130,7 @@ func Funcs() map[string]ast.Function {
 		"slice":        interpolationFuncSlice(),
 		"sort":         interpolationFuncSort(),
 		"split":        interpolationFuncSplit(),
+		"strrev":       interpolationFuncStrRev(),
 		"substr":       interpolationFuncSubstr(),
 		"timestamp":    interpolationFuncTimestamp(),
 		"timeadd":      interpolationFuncTimeAdd(),
@@ -1443,6 +1445,30 @@ func interpolationFuncSha512() ast.Function {
 			h.Write([]byte(s))
 			hash := hex.EncodeToString(h.Sum(nil))
 			return hash, nil
+		},
+	}
+}
+
+func interpolationFuncStrRev() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			// github.com/zclconf/go-cty/cty/function/stdlib/string.go(ReverseFunc)
+			in := []byte(args[0].(string))
+			out := make([]byte, len(in))
+			pos := len(out)
+
+			inB := []byte(in)
+			for i := 0; i < len(in); {
+				d, _, _ := textseg.ScanGraphemeClusters(inB[i:], true)
+				cluster := in[i : i+d]
+				pos -= len(cluster)
+				copy(out[pos:], cluster)
+				i += d
+			}
+
+			return string(out), nil
 		},
 	}
 }
