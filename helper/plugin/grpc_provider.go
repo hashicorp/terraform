@@ -1110,7 +1110,6 @@ func stripSchema(s *schema.Schema) *schema.Schema {
 // very uncommon nor was it reliable before 0.12 either.
 func normalizeNullValues(dst, src cty.Value, preferDst bool) cty.Value {
 	ty := dst.Type()
-
 	if !src.IsNull() && !src.IsKnown() {
 		// While this seems backwards to return src when preferDst is set, it
 		// means this might be a plan scenario, and it must retain unknown
@@ -1154,7 +1153,12 @@ func normalizeNullValues(dst, src cty.Value, preferDst bool) cty.Value {
 
 		srcMap := src.AsValueMap()
 		for key, v := range srcMap {
-			dstVal := dstMap[key]
+			dstVal, ok := dstMap[key]
+			if !ok && !preferDst && ty.IsMapType() {
+				// don't transfer old map values to dst during apply
+				continue
+			}
+
 			if dstVal == cty.NilVal {
 				if preferDst && ty.IsMapType() {
 					// let plan shape this map however it wants
