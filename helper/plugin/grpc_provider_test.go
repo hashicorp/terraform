@@ -796,26 +796,6 @@ func TestNormalizeNullValues(t *testing.T) {
 			}),
 		},
 		{
-			// Retain the zero value within the map
-			Src: cty.ObjectVal(map[string]cty.Value{
-				"map": cty.MapVal(map[string]cty.Value{
-					"a": cty.StringVal("a"),
-					"b": cty.StringVal(""),
-				}),
-			}),
-			Dst: cty.ObjectVal(map[string]cty.Value{
-				"map": cty.MapVal(map[string]cty.Value{
-					"a": cty.StringVal("a"),
-				}),
-			}),
-			Expect: cty.ObjectVal(map[string]cty.Value{
-				"map": cty.MapVal(map[string]cty.Value{
-					"a": cty.StringVal("a"),
-					"b": cty.StringVal(""),
-				}),
-			}),
-		},
-		{
 			// Retain don't re-add unexpected planned values in a map
 			Src: cty.ObjectVal(map[string]cty.Value{
 				"map": cty.MapVal(map[string]cty.Value{
@@ -834,6 +814,26 @@ func TestNormalizeNullValues(t *testing.T) {
 				}),
 			}),
 			Plan: true,
+		},
+		{
+			// Remove extra values after apply
+			Src: cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("a"),
+					"b": cty.StringVal("b"),
+				}),
+			}),
+			Dst: cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("a"),
+				}),
+			}),
+			Expect: cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("a"),
+				}),
+			}),
+			Plan: false,
 		},
 		{
 			Src: cty.ObjectVal(map[string]cty.Value{
