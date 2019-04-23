@@ -973,3 +973,22 @@ resource "test_resource" "bar" {
 		},
 	})
 }
+
+func TestResource_optionalComputedBool(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+	required = "yep"
+	required_map = {
+	    key = "value"
+	}
+}
+				`),
+			},
+		},
+	})
+}
