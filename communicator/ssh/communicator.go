@@ -353,16 +353,16 @@ func (c *Communicator) Upload(path string, input io.Reader) error {
 	size := int64(0)
 
 	switch src := input.(type) {
-	case *os.File:
+	case interface {
+		Stat() (os.FileInfo, error)
+	}:
 		fi, err := src.Stat()
 		if err == nil {
 			size = fi.Size()
 		}
-	case *bytes.Buffer:
-		size = int64(src.Len())
-	case *bytes.Reader:
-		size = int64(src.Len())
-	case *strings.Reader:
+	case interface {
+		Len() int
+	}:
 		size = int64(src.Len())
 	}
 
