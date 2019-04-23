@@ -233,14 +233,14 @@ func (b *Remote) costEstimation(stopCtx, cancelCtx context.Context, op *backend.
 	}
 	var ce = r.CostEstimation
 
-	logs, err := b.client.CostEstimation.Logs(stopCtx, ce.ID)
+	logs, err := b.client.CostEstimations.Logs(stopCtx, ce.ID)
 	if err != nil {
 		return generalError("Failed to retrieve cost estimation logs", err)
 	}
 	scanner := bufio.NewScanner(logs)
 
 	// Retrieve the cost estimation to get its current status.
-	ce, err := b.client.CostEstimation.Read(stopCtx, ce.ID)
+	ce, err = b.client.CostEstimations.Read(stopCtx, ce.ID)
 	if err != nil {
 		return generalError("Failed to retrieve cost estimation", err)
 	}
