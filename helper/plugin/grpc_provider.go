@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/zclconf/go-cty/cty"
 	ctyconvert "github.com/zclconf/go-cty/cty/convert"
@@ -595,6 +596,14 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 		return resp, nil
 	}
 
+	// remove the special set ~ sigil from computed values
+	for k, d := range diff.Attributes {
+		if strings.Contains(k, ".~") {
+			delete(diff.Attributes, k)
+			diff.Attributes[strings.Replace(k, ".~", ".", -1)] = d
+		}
+	}
+
 	if priorState == nil {
 		priorState = &terraform.InstanceState{}
 	}
@@ -773,6 +782,14 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 		diff = &terraform.InstanceDiff{
 			Attributes: make(map[string]*terraform.ResourceAttrDiff),
 			Meta:       make(map[string]interface{}),
+		}
+	}
+
+	// remove the special set ~ sigil from computed values
+	for k, d := range diff.Attributes {
+		if strings.Contains(k, ".~") {
+			delete(diff.Attributes, k)
+			diff.Attributes[strings.Replace(k, ".~", ".", -1)] = d
 		}
 	}
 
