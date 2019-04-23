@@ -151,17 +151,7 @@ resource "test_resource_nested_set" "foo" {
 	})
 }
 
-func TestResourceNestedSet_addRemove(t *testing.T) {
-	var id string
-	checkFunc := func(s *terraform.State) error {
-		root := s.ModuleByPath(addrs.RootModuleInstance)
-		res := root.Resources["test_resource_nested_set.foo"]
-		if res.Primary.ID == id {
-			return errors.New("expected new resource")
-		}
-		id = res.Primary.ID
-		return nil
-	}
+func TestResourceNestedSet_forceNewSet(t *testing.T) {
 	resource.UnitTest(t, resource.TestCase{
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckResourceDestroy,
@@ -171,24 +161,27 @@ func TestResourceNestedSet_addRemove(t *testing.T) {
 resource "test_resource_nested_set" "foo" {
 }
 				`),
-				Check: checkFunc,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"test_resource_nested_set.foo", "single.#", "0",
+					),
+				),
 			},
 			resource.TestStep{
 				Config: strings.TrimSpace(`
+resource "test_resource_nested_set" "bar" {
+}
+
 resource "test_resource_nested_set" "foo" {
 	single {
-		value = "bar"
+		value = test_resource_nested_set.bar.id
 	}
 }
 				`),
 				Check: resource.ComposeTestCheckFunc(
-					checkFunc,
 					resource.TestCheckResourceAttr(
 						"test_resource_nested_set.foo", "single.#", "1",
 					),
-					// the hash of single seems to change here, so we're not
-					// going to test for "value" directly
-					// FIXME: figure out why the set hash changes
 				),
 			},
 			resource.TestStep{
@@ -200,41 +193,12 @@ resource "test_resource_nested_set" "foo" {
 					resource.TestCheckResourceAttr(
 						"test_resource_nested_set.foo", "single.#", "0",
 					),
-					checkFunc,
 				),
-			},
-			resource.TestStep{
-				Config: strings.TrimSpace(`
-resource "test_resource_nested_set" "foo" {
-	single {
-		value = "bar"
-	}
-}
-				`),
-				Check: checkFunc,
-			},
-			resource.TestStep{
-				Config: strings.TrimSpace(`
-resource "test_resource_nested_set" "foo" {
-	single {
-		value = "bar"
-		optional = "baz"
-	}
-}
-				`),
-				Check: checkFunc,
-			},
-
-			resource.TestStep{
-				Config: strings.TrimSpace(`
-resource "test_resource_nested_set" "foo" {
-}
-			   	`),
-				Check: checkFunc,
 			},
 		},
 	})
 }
+
 func TestResourceNestedSet_multiAddRemove(t *testing.T) {
 	checkFunc := func(s *terraform.State) error {
 		return nil

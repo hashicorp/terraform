@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 
+	"github.com/hashicorp/terraform/helper/customdiff"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -17,6 +18,12 @@ func testResourceNestedSet() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
+
+		CustomizeDiff: customdiff.All(
+			customdiff.ForceNewIfChange("single", func(old, new, meta interface{}) bool {
+				return old.(*schema.Set).Len() == 0 || new.(*schema.Set).Len() == 0
+			}),
+		),
 
 		Schema: map[string]*schema.Schema{
 			"optional": {
