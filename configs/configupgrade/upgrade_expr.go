@@ -248,41 +248,9 @@ Value:
 		// safe to do so.
 		parts := strings.Split(tv.Name, ".")
 
-		// First we need to deal with the .count pseudo-attributes that 0.11 and
-		// prior allowed for resources. These no longer exist, because they
-		// don't do anything we can't do with the length(...) function.
-		if len(parts) > 0 {
-			var rAddr addrs.Resource
-			switch parts[0] {
-			case "data":
-				if len(parts) == 4 && parts[3] == "count" {
-					rAddr.Mode = addrs.DataResourceMode
-					rAddr.Type = parts[1]
-					rAddr.Name = parts[2]
-				}
-			default:
-				if len(parts) == 3 && parts[2] == "count" {
-					rAddr.Mode = addrs.ManagedResourceMode
-					rAddr.Type = parts[0]
-					rAddr.Name = parts[1]
-				}
-			}
-
-			// We need to check if the thing being referenced is actually an
-			// existing resource, because other three-part traversals might
-			// coincidentally end with "count".
-			if hasCount, exists := an.ResourceHasCount[rAddr]; exists {
-				if hasCount {
-					buf.WriteString("length(")
-					buf.WriteString(rAddr.String())
-					buf.WriteString(")")
-				} else {
-					// If the resource does not have count, the .count
-					// attr would've always returned 1 before.
-					buf.WriteString("1")
-				}
-				break Value
-			}
+		transformed := transformCountPseudoAttribute(&buf, parts, an)
+		if transformed {
+			break Value
 		}
 
 		parts = upgradeTraversalParts(parts, an) // might add/remove/change parts
@@ -293,42 +261,7 @@ Value:
 			break
 		}
 
-		first, remain := parts[0], parts[1:]
-		buf.WriteString(first)
-		seenSplat := false
-		for _, part := range remain {
-			if part == "*" {
-				seenSplat = true
-				buf.WriteString(".*")
-				continue
-			}
-
-			// Other special cases apply only if we've not previously
-			// seen a splat expression marker, since attribute vs. index
-			// syntax have different interpretations after a simple splat.
-			if !seenSplat {
-				if v, err := strconv.Atoi(part); err == nil {
-					// Looks like it's old-style index traversal syntax foo.0.bar
-					// so we'll replace with canonical index syntax foo[0].bar.
-					fmt.Fprintf(&buf, "[%d]", v)
-					continue
-				}
-				if !hcl2syntax.ValidIdentifier(part) {
-					// This should be rare since HIL's identifier syntax is _close_
-					// to HCL2's, but we'll get here if one of the intervening
-					// parts is not a valid identifier in isolation, since HIL
-					// did not consider these to be separate identifiers.
-					// e.g. foo.1bar would be invalid in HCL2; must instead be foo["1bar"].
-					buf.WriteByte('[')
-					printQuotedString(&buf, part)
-					buf.WriteByte(']')
-					continue
-				}
-			}
-
-			buf.WriteByte('.')
-			buf.WriteString(part)
-		}
+		printHilTraversalPartsAsHcl2(&buf, parts)
 
 	case *hilast.Arithmetic:
 		op, exists := hilArithmeticOpSyms[tv.Op]
@@ -560,14 +493,74 @@ Value:
 		buf.Write(falseSrc)
 
 	case *hilast.Index:
-		targetSrc, exprDiags := upgradeExpr(tv.Target, filename, true, an)
-		diags = diags.Append(exprDiags)
+		target, ok := tv.Target.(*hilast.VariableAccess)
+		if !ok {
+			panic(fmt.Sprintf("Index node with unsupported target type (%T)", tv.Target))
+		}
+		parts := strings.Split(target.Name, ".")
+
 		keySrc, exprDiags := upgradeExpr(tv.Key, filename, true, an)
 		diags = diags.Append(exprDiags)
-		buf.Write(targetSrc)
-		buf.WriteString("[")
-		buf.Write(keySrc)
-		buf.WriteString("]")
+
+		transformed := transformCountPseudoAttribute(&buf, parts, an)
+		if transformed {
+			break Value
+		}
+
+		parts = upgradeTraversalParts(parts, an) // might add/remove/change parts
+
+		vDiags := validateHilAddress(target.Name, filename)
+		if len(vDiags) > 0 {
+			diags = diags.Append(vDiags)
+			break
+		}
+
+		first, remain := parts[0], parts[1:]
+
+		var rAddr addrs.Resource
+		switch parts[0] {
+		case "data":
+			if len(parts) == 5 && parts[3] == "*" {
+				rAddr.Mode = addrs.DataResourceMode
+				rAddr.Type = parts[1]
+				rAddr.Name = parts[2]
+			}
+		default:
+			if len(parts) == 4 && parts[2] == "*" {
+				rAddr.Mode = addrs.ManagedResourceMode
+				rAddr.Type = parts[0]
+				rAddr.Name = parts[1]
+			}
+		}
+
+		// We need to check if the thing being referenced has count
+		// to retain backward compatibility
+		hasCount := false
+		if v, exists := an.ResourceHasCount[rAddr]; exists {
+			hasCount = v
+		}
+
+		hasSplat := false
+
+		buf.WriteString(first)
+		for _, part := range remain {
+			// Attempt to convert old-style splat indexing to new one
+			// e.g. res.label.*.attr[idx] to res.label[idx].attr
+			if part == "*" && hasCount {
+				hasSplat = true
+				buf.WriteString(fmt.Sprintf("[%s]", keySrc))
+				continue
+			}
+
+			buf.WriteByte('.')
+			buf.WriteString(part)
+		}
+
+		if !hasSplat {
+			buf.WriteString("[")
+			buf.Write(keySrc)
+			buf.WriteString("]")
+		}
 
 	case *hilast.Output:
 		if len(tv.Exprs) == 1 {
@@ -656,6 +649,85 @@ func getResourceLabel(parts []string) (string, bool) {
 	}
 
 	return parts[1], true
+}
+
+// transformCountPseudoAttribute deals with the .count pseudo-attributes
+// that 0.11 and prior allowed for resources. These no longer exist,
+// because they don't do anything we can't do with the length(...) function.
+func transformCountPseudoAttribute(buf *bytes.Buffer, parts []string, an *analysis) (transformed bool) {
+	if len(parts) > 0 {
+		var rAddr addrs.Resource
+		switch parts[0] {
+		case "data":
+			if len(parts) == 4 && parts[3] == "count" {
+				rAddr.Mode = addrs.DataResourceMode
+				rAddr.Type = parts[1]
+				rAddr.Name = parts[2]
+			}
+		default:
+			if len(parts) == 3 && parts[2] == "count" {
+				rAddr.Mode = addrs.ManagedResourceMode
+				rAddr.Type = parts[0]
+				rAddr.Name = parts[1]
+			}
+		}
+		// We need to check if the thing being referenced is actually an
+		// existing resource, because other three-part traversals might
+		// coincidentally end with "count".
+		if hasCount, exists := an.ResourceHasCount[rAddr]; exists {
+			if hasCount {
+				buf.WriteString("length(")
+				buf.WriteString(rAddr.String())
+				buf.WriteString(")")
+			} else {
+				// If the resource does not have count, the .count
+				// attr would've always returned 1 before.
+				buf.WriteString("1")
+			}
+			transformed = true
+			return
+		}
+	}
+	return
+}
+
+func printHilTraversalPartsAsHcl2(buf *bytes.Buffer, parts []string) {
+	first, remain := parts[0], parts[1:]
+	buf.WriteString(first)
+	seenSplat := false
+	for _, part := range remain {
+		if part == "*" {
+			seenSplat = true
+			buf.WriteString(".*")
+			continue
+		}
+
+		// Other special cases apply only if we've not previously
+		// seen a splat expression marker, since attribute vs. index
+		// syntax have different interpretations after a simple splat.
+		if !seenSplat {
+			if v, err := strconv.Atoi(part); err == nil {
+				// Looks like it's old-style index traversal syntax foo.0.bar
+				// so we'll replace with canonical index syntax foo[0].bar.
+				fmt.Fprintf(buf, "[%d]", v)
+				continue
+			}
+			if !hcl2syntax.ValidIdentifier(part) {
+				// This should be rare since HIL's identifier syntax is _close_
+				// to HCL2's, but we'll get here if one of the intervening
+				// parts is not a valid identifier in isolation, since HIL
+				// did not consider these to be separate identifiers.
+				// e.g. foo.1bar would be invalid in HCL2; must instead be foo["1bar"].
+				buf.WriteByte('[')
+				printQuotedString(buf, part)
+				buf.WriteByte(']')
+				continue
+			}
+		}
+
+		buf.WriteByte('.')
+		buf.WriteString(part)
+	}
 }
 
 func upgradeHeredocBody(buf *bytes.Buffer, val *hilast.Output, filename string, an *analysis) tfdiags.Diagnostics {
