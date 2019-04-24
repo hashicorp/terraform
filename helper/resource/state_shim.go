@@ -64,6 +64,7 @@ func shimNewState(newState *states.State, providers map[string]terraform.Resourc
 						Attributes: flatmap,
 						Tainted:    i.Current.Status == states.ObjectTainted,
 					},
+					Provider: res.ProviderConfig.String(),
 				}
 				if i.Current.SchemaVersion != 0 {
 					resState.Primary.Meta = map[string]interface{}{

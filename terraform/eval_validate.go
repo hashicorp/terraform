@@ -109,13 +109,13 @@ func (n *EvalValidateProvider) Eval(ctx EvalContext) (interface{}, error) {
 }
 
 // EvalValidateProvisioner is an EvalNode implementation that validates
-// the configuration of a provisioner belonging to a resource.
+// the configuration of a provisioner belonging to a resource. The provisioner
+// config is expected to contain the merged connection configurations.
 type EvalValidateProvisioner struct {
 	ResourceAddr     addrs.Resource
 	Provisioner      *provisioners.Interface
 	Schema           **configschema.Block
 	Config           *configs.Provisioner
-	ConnConfig       *configs.Connection
 	ResourceHasCount bool
 }
 
@@ -149,10 +149,9 @@ func (n *EvalValidateProvisioner) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	{
-		// Now validate the connection config, which might either be from
-		// the provisioner block itself or inherited from the resource's
-		// shared connection info.
-		connDiags := n.validateConnConfig(ctx, n.ConnConfig, n.ResourceAddr)
+		// Now validate the connection config, which contains the merged bodies
+		// of the resource and provisioner connection blocks.
+		connDiags := n.validateConnConfig(ctx, config.Connection, n.ResourceAddr)
 		diags = diags.Append(connDiags)
 	}
 
@@ -252,6 +251,10 @@ var connectionBlockSupersetSchema = &configschema.Block{
 			Type:     cty.String,
 			Optional: true,
 		},
+		"certificate": {
+			Type:     cty.String,
+			Optional: true,
+		},
 		"host_key": {
 			Type:     cty.String,
 			Optional: true,
@@ -307,6 +310,18 @@ var connectionBlockSupersetSchema = &configschema.Block{
 			Optional: true,
 		},
 	},
+}
+
+// connectionBlockSupersetSchema is a schema representing the superset of all
+// possible arguments for "connection" blocks across all supported connection
+// types.
+//
+// This currently lives here because we've not yet updated our communicator
+// subsystem to be aware of schema itself. It's exported only for use in the
+// configs/configupgrade package and should not be used from anywhere else.
+// The caller may not modify any part of the returned schema data structure.
+func ConnectionBlockSupersetSchema() *configschema.Block {
+	return connectionBlockSupersetSchema
 }
 
 // EvalValidateResource is an EvalNode implementation that validates

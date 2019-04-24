@@ -10,23 +10,29 @@ import (
 )
 
 // SchedulerHints represents a set of scheduling hints that are passed to the
-// OpenStack scheduler
+// OpenStack scheduler.
 type SchedulerHints struct {
 	// Group specifies a Server Group to place the instance in.
 	Group string
+
 	// DifferentHost will place the instance on a compute node that does not
 	// host the given instances.
 	DifferentHost []string
+
 	// SameHost will place the instance on a compute node that hosts the given
 	// instances.
 	SameHost []string
+
 	// Query is a conditional statement that results in compute nodes able to
 	// host the instance.
 	Query []interface{}
+
 	// TargetCell specifies a cell name where the instance will be placed.
 	TargetCell string `json:"target_cell,omitempty"`
+
 	// BuildNearHostIP specifies a subnet of compute nodes to host the instance.
 	BuildNearHostIP string
+
 	// AdditionalProperies are arbitrary key/values that are not validated by nova.
 	AdditionalProperties map[string]interface{}
 }
@@ -79,8 +85,9 @@ func (opts SchedulerHints) ToServerSchedulerHintsCreateMap() (map[string]interfa
 		sh["same_host"] = opts.SameHost
 	}
 
-	/* Query can be something simple like:
-	     [">=", "$free_ram_mb", 1024]
+	/*
+		Query can be something simple like:
+			 [">=", "$free_ram_mb", 1024]
 
 			Or more complex like:
 				['and',
@@ -130,6 +137,7 @@ func (opts SchedulerHints) ToServerSchedulerHintsCreateMap() (map[string]interfa
 // CreateOptsExt adds a SchedulerHints option to the base CreateOpts.
 type CreateOptsExt struct {
 	servers.CreateOptsBuilder
+
 	// SchedulerHints provides a set of hints to the scheduler.
 	SchedulerHints CreateOptsBuilder
 }

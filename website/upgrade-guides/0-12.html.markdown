@@ -8,28 +8,83 @@ description: |-
 
 # Upgrading to Terraform v0.12
 
-~> Terraform 0.12 has not yet been released. This guide is proactive to help
-users understand what the upgrade path to 0.12 will be like. This guide will
-be updated with more detail up until the release of 0.12.
+~> Terraform 0.12 has not yet been released. This guide includes some initial
+information to help when trying out the beta releases of Terraform v0.12.0, and
+will be updated with more detail until the final release. Please do not use
+v0.12.0 prereleases against production infrastructure.
+
+~> If you are trying v0.12.0-beta1, please see [the release announcement](https://www.hashicorp.com/blog/announcing-terraform-0-1-2-beta1) for some important extra information.
 
 [Terraform v0.12 will be a major release](https://hashicorp.com/blog/terraform-0-1-2-preview)
 focused on configuration language improvements and thus will include some
 changes that you'll need to consider when upgrading. The goal of this guide is
-to cover the most common upgrade concerns and issues. For the majority of users,
-no steps will need to be taken to upgrade. The sections below explain which
-users are likely to be in the small group who will need to make manual changes
-to upgrade to 0.12.
+to cover the most common upgrade concerns and issues.
+
+For most users, upgrading configuration should be completely automatic. Some
+simple configurations will require no changes at all, and most other
+configurations can be prepared by running
+[the automatic upgrade tool](/docs/commands/0.12upgrade.html). Please read on
+for more information and recommendations on the upgrade process.
+
+## Upgrade to Terraform 0.11 first
+
+If you are currently using Terraform v0.10 or earlier, we strongly recommend
+first completing an upgrade to the latest Terraform v0.11 release first. This
+will give you an opportunity to address any changes required for the previous
+major version upgrades separately, rather than making multiple changes at
+once.
+
+In particular, if you are upgrading from a Terraform version prior to v0.9,
+you _must_ first [upgrade to Terraform v0.9](/upgrade-guides/0-9.html) and
+switch to initializing with `terraform init`, because v0.12 no longer includes
+the functionality for automatically migrating from the legacy remote state
+mechanism.
 
 This guide focuses on changes from v0.11 to v0.12. Each previous major release
 has its own upgrade guide, so please consult the other guides (available in the
-navigation) if you are upgrading directly from an earlier version.
+navigation) to upgrade step-by-step to v0.11 first.
+
+## Upgrading Terraform providers
+
+The new language features in Terraform v0.12 required some changes to the
+protocol Terraform uses to interact with provider plugins. These changes give
+Terraform CLI access to the resource type schemas of each provider, allowing
+for more helpful validation-related error messages and more predictable behavior.
+
+However, this means that provider releases built before v0.12 cannot be used.
+We have updated the provider SDK to support both the old and new protocols at
+once, to allow upgrading to newer provider versions while remaining on
+Terraform v0.11.
+
+We recommend upgrading to the latest versions of all providers you use
+and ensuring that `terraform plan` is working with them before upgrading to
+Terraform v0.12, since this allows you to reduce risk by changing only one
+component at a time, particularly if you will be adopting a new major version
+of a provider which may have breaking changes of its own.
+
+### Third-party Providers
+
+The Terraform team at HashiCorp is working with the maintainers of the
+HashiCorp-distributed providers to produce v0.12-compatible releases, which
+will appear gradually before the v0.12.0 final release.
+
+Third-party providers that are not distributed by HashiCorp will also require
+updates. We will share more information on the upgrade procedure as we get
+closer to final release. In the mean time, the first step is to upgrade the
+vendored `github.com/hashicorp/terraform` packages to a v0.12 release tag and
+verify that the acceptance tests are still working. Because acceptance tests
+contain configuration snippets, you may need to perform some of the
+configuration upgrade steps described in the following sections to make the
+acceptance tests compatible with the v0.12 configuration language.
 
 ## Upgrading Terraform configuration
 
-The majority of users will not need to make manual changes to their Terraform
-configurations to upgrade to 0.12. The users who will need to make manual
-changes are users who use language workarounds in previous Terraform versions.
-Examples of these workarounds include:
+Some users with simple configurations may find that no changes are required at
+all, and most configurations that _do_ require updates can be upgraded
+automatically using [the automatic upgrade tool](/docs/commands/0.12upgrade.html).
+
+Some users have written configurations that include workarounds for limitations
+in previous versions of the Terraform language, such as:
 
 - Treating block types like attributes in an attempt to work around Terraform
   not supporting generating nested blocks dynamically.
@@ -39,63 +94,439 @@ Examples of these workarounds include:
   order to force them to be interpreted as lists even when there are unknown
   items in the list.
 
-Note that these workarounds are not "wrong", but rather clever solutions by
-dedicated community members! These folks have been the inspiration for HCL2 and
-these solutions have given guidance on how to make the Terraform language
-more flexible to meet the needs of complex infrastructure.
+These workarounds were clever solutions offered by community members, and have
+been partial inspiration for new language features. These workarounds should no
+longer be necessary in Terraform v0.12, but the same results may now need to be
+achieved using new language constructs.
 
-Terraform 0.12 will be released with a migration tool that will make most of
-the required updates automatically, and also provide guidance on any changes
-that require human input.
+The upgrade tool can replace many of these workarounds with the new solutions
+automatically. In rarer cases, the intent of the original configuration may be
+ambiguous, in which case the tool will add to your configuration a comment
+containing the marker `TF-UPGRADE-TODO` to indicate a situation where your
+human intuition is required to decide how to proceed.
 
-For users who follow the examples in the Terraform documentation, there should
-be no required changes. However, we still recommend to run the migration tool
-to upgrade to the more readable syntax conventions supported in this release,
-and to draw attention to any potential issues.
+We recommend running the upgrade tool in a clean version control work tree so
+that you can use the VCS diffing tools to easily see and review all of the
+proposed updates. Search the upgraded module for `TF-UPGRADE-TODO` to find
+the situations where human attention is required.
 
-## Upgrading Terraform providers
+Even if your existing configuration works without upgrading, we still recommend
+to run the upgrade tool to update to the more readable syntax conventions
+supported in this release, and to draw attention to any potential issues.
 
-We’ve updated the RPC protocol used by Terraform plugins to support typed data
-and schema transfer.
+The following sections describe in more detail some of the situations that will
+be detected and upgraded by the upgrade tool, both to help understand the
+purpose of certain proposed changes and to help users who may not wish to
+use the automatic upgrade tool. However, the following sections are not
+completely comprehensive so we still recommend using the upgrade tool to review
+its output, even if you then discard the proposed changes and make your updates
+manually.
 
-In Terraform 0.12 Terraform will have an awareness of the schemas used by both
-provider and provisioner plugins. This V1 for the RPC plugin protocols will
-still use the old-style passing of `map[string]interface{}` for config and
-`map[string]string` with flatmap for state and diff.
+### Remote state references
 
-To avoid the need to atomically upgrade both Terraform Core and the providers
-all at once, new provider versions will be released that are compatible with
-both v0.12 and prior versions. Users will need to upgrade to the new
-v0.12-compatible provider releases before upgrading Terraform Core, but can
-use these newer provider releases with prior Terraform versions to transition
-gradually and reduce risk.
+The `terraform_remote_state` data source has changed slightly for the v0.12
+release to make all of the remote state outputs available as a single map
+value, rather than as top-level attributes as in previous releases.
 
-This compatibility support will be handled automatically by a new version of
-the plugin SDK so that provider maintainers need only to upgrade to the
-latest version and rebuild.
+In previous releases, a reference to a `vpc_id` output exported by the remote
+state data source might have looked like this:
 
-The dual-protocol compatibility will be retained at least until the next
-major release of the plugin SDK, in order to give users time to perform a
-gradual upgrade of each provider and of Terraform Core itself.
+```hcl
+data.terraform_remote_state.vpc.vpc_id
+```
 
-## Upgrading modules
+This value must now be accessed via the new `outputs` attribute:
 
-Module authors will need to complete several steps to get their modules ready
-for v0.12.
+```hcl
+data.terraform_remote_state.vpc.outputs.vpc_id
+```
 
-1. Follow the steps in "Upgrading Terraform configurations" above to get the
-   module code upgraded
-1. The migration tool will automatically add a `>= 0.12.0` Terraform version
-   constraint to indicate that the module has been upgraded to use v0.12-only
-   features.
-1. If the module is published in a module registry, publish a new major version
-   of the module to indicate that the new version is not compatible with older
-   versions of Terraform. If you are not using a registry, be sure that
-   downstream consumers of the module are aware of the update.
+Where appropriate, you can also access the outputs attribute directly to
+work with the whole map as a single value:
 
-Module consumers can then upgrade to the new versions of the module by upgrading
-their configurations to 0.12 and updating the module version constraint in each
-configuration to refer to the new major version.
+```hcl
+data.terraform_remote_state.vpc.outputs
+```
+
+### Attributes vs. blocks
+
+Terraform resource configurations consist of both arguments that set
+individual properties of the main object being described, and nested blocks
+which declare zero or more other objects that are modeled as being part of
+their parent. For example:
+
+```hcl
+resource "aws_instance" "example" {
+  instance_type = "t2.micro"
+  ami           = "ami-abcd1234"
+
+  tags = {
+    Name = "example instance"
+  }
+
+  ebs_block_device {
+    device_name = "sda2"
+    volume_type = "gp2"
+    volume_size = 24
+  }
+}
+```
+
+In the above resource, `instance_type`, `ami`, and `tags` are both direct
+arguments of the `aws_instance` resource, while `ebs_block_device` describes
+a separate EBS block device object that is, in some sense, a part of the
+parent instance.
+
+Due to the design of the configuration language decoder in Terraform v0.11 and
+earlier, it was in many cases possible to interchange the argument syntax
+(with `=`) and the block syntax (with just braces) when dealing with map
+arguments vs. nested blocks. However, this led to some subtle bugs and
+limitations, so Terraform v0.12 now requires consistent usage of argument
+syntax for arguments and nested block syntax for nested blocks.
+
+In return for this new strictness, Terraform v0.12 now allows map keys to be
+set dynamically from expressions, which is a long-requested feature. The
+main difference between a map attribute and a nested block is that a map
+attribute will usually have user-defined keys, like we see in the `tags`
+example above, while a nested block always has a fixed set of supported
+arguments defined by the resource type schema, which Terraform will validate.
+
+The configuration upgrade tool uses the provider's schema to recognize the
+nature of each construct and will select the right syntax automatically. For
+most simple usage, this will just involve adding or removing the equals sign
+as appropriate.
+
+A more complicated scenario is where users found that they could exploit this
+flexibility to -- with some caveats -- dynamically generate nested blocks even
+though this wasn't intentionally allowed:
+
+```hcl
+  # Example of no-longer-supported workaround from 0.11 and earlier
+  ebs_block_device = "${concat(map("device_name", "sda4"), var.extra_block_devices)}"
+```
+
+Terraform v0.12 now includes a first-class feature for dynamically generating
+nested blocks using expressions, using the special `dynamic` block type. The
+above can now be written like this, separating the static block device from
+the dynamic ones:
+
+```hcl
+  ebs_block_device {
+    device_name = "sda4"
+  }
+  dynamic "ebs_block_device" {
+    for_each = var.extra_block_devices
+    content {
+      device_name = ebs_block_device.value.device_name
+      volume_type = ebs_block_device.value.volume_type
+      volume_size = ebs_block_device.value.volume_size
+    }
+  }
+```
+
+The configuration upgrade tool will detect use of the above workaround and
+rewrite it as a `dynamic` block, but it may make non-ideal decisions for how to
+flatten your expression down into static vs. dynamic blocks, so we recommend
+reviewing the generated `dynamic` blocks to see if any simplifications are
+possible.
+
+Terraform v0.12 now also requires that each argument be set only once within
+a particular block, whereas before Terraform would either take the last
+definition or, in some cases, attempt to merge together multiple definitions
+into a list. The upgrade tool does not remove or attempt to consolidate
+any existing duplicate arguments, but other commands like `terraform validate`
+will detect and report these after upgrading.
+
+## Integer vs. Float Number Types
+
+From Terraform v0.12, the Terraform language no longer distinguishes between
+integer and float types, instead just having a single "number" type that can
+represent high-precision floating point numbers. This new type can represent
+any value that could be represented before, plus many new values due to the
+expanded precision.
+
+In most cases this change should not cause any significant behavior change, but
+please note that in particular the behavior of the division operator is now
+different: it _always_ performs floating point division, whereas before it
+would sometimes perform integer division by attempting to infer intent from
+the argument types.
+
+If you are relying on integer division behavior in your configuration, please
+use the `floor` function to obtain the previous result. A common place this
+would arise is in index operations, where the index is computed by division:
+
+```hcl
+  example = var.items[floor(count.index / var.any_number)]
+```
+
+Using a fractional number to index a list will produce an error telling you
+that this is not allowed, serving as a prompt to add `floor`:
+
+```
+Error: Invalid index
+
+The given key does not identify an element in this collection value: indexing a
+sequence requires a whole number, but the given index (0.5) has a fractional
+part.
+```
+
+Unfortunately the automatic upgrade tool cannot apply a fix for this case
+because it does not have enough information to know if floating point or integer
+division was intended by the configuration author, so this change must be made
+manually where needed.
+
+## Referring to List Variables
+
+In early versions of Terraform, before list support became first-class, we
+required using seemingly-redundant list brackets around a single expression
+in order to hint to the language interpreter that a list interpretation was
+desired:
+
+```hcl
+  # Example for older versions of Terraform; not valid for v0.12
+  example = ["${var.any_list}"]
+```
+
+This strange requirement was subsequently lifted after the introduction of
+first-class list support, but we retained compatibility with this older usage
+for a transitional period by including some fixup logic that would detect when
+list brackets contain list expressions and automatically flatten to a single
+list.
+
+As part of implementing the first-class expressions support for v0.12, we needed
+to finally remove that backward-compatibility mechanism to avoid ambiguity
+in the language, so an expression like the above will now produce a list of
+lists and thus produce a type checking error for any argument that was expecting
+a list of some other type.
+
+The upgrade tool is able to recognize most simple usage of this pattern and
+rewrite automatically to just refer to the list directly:
+
+```hcl
+  example = var.any_list
+```
+
+However, an unintended side-effect of this compatiblity mechanism was to
+also flatten mixed lists of single-value and list expressions into a single
+list automatically. We didn't intend for this to be a part of the language, but
+in retrospect it was an obvious consequence of how the compatibility mechanism
+was implemented. If you have expressions in your modules that produce a list
+of strings by using list brackets with a mixture of string and list-of-string
+sub-expressions, you will need to rewrite this to explicitly use
+[the `flatten` function](/docs/configuration/functions/flatten.html)
+to make the special treatment more obvious to the reader:
+
+```hcl
+  example = flatten([
+    "single string",
+    var.any_list,
+  ])
+```
+
+The configuration upgrade tool unfortunately cannot make this change
+automatically, because it doesn't have enough information to know for certain
+which interpretation was intended for a given list.
+
+## Terraform Configuration upgrades requiring human intervention 
+
+There are some known situations that will be detected, but not upgrade, by the
+upgrade tool. Some examples of these situatations include:
+
+* `count` can no longer be used a variable name.
+* `resource` names cannot start with a number, though they can still contain numbers.
+
+## Working with `count` on resources
+
+The `count` feature allows declaration of multiple instances of a particular
+resource constructed from the same configuration. In Terraform v0.11, any
+use of `count` would generally lead to referring to the resource in question
+using the "splat expression" syntax elsewhere in the configuration:
+
+```
+aws_instance.example.*.id[0]
+```
+
+Because `aws_instance.example` itself was not directly referencable in
+Terraform v0.11, the expression system allowed some flexibility in how such
+expressions were resolved. For example, Terraform would treat
+`aws_instance.example.id` as an alias for `aws_instance.example.*.id[0]`.
+
+Terraform v0.12 allows referring to an entire resource as an object value,
+but that required making a decision on what type of value is returned by
+`aws_instance.example`. The new rules are as follows:
+
+* For resources where `count` is _not_ set, a reference like
+  `aws_instance.example` returns a single object, whose attributes can be
+  accessed in the usual way, like `aws_instance.example.id`.
+
+* For resources where `count` _is_ set -- even if the expression evaluates to
+  `1` -- `aws_instance.example` returns a list of objects whose length is
+  decided by the count. In this case `aws_instance.example.id` is an error,
+  and must instead be written as `aws_instance.example[0].id` to access
+  one of the objects before retrieving its `id` attribute value.
+
+The splat syntax is still available and will still be useful in situations
+where a list result is needed, but we recommend updating expressions like
+`aws_instance.example.*.id[count.index]` to instead be
+`aws_instance.example[count.index].id`, which should be easier to read and
+understand for those who are familiar with other languages.
+
+Another consequence of the new handling of `count` is that you can use the
+`length` function directly with references to resources that have `count` set:
+
+```
+length(aws_instance.example)
+```
+
+This replaces the v0.11 special case of `aws_instance.example.count`, which
+can no longer be supported due to `aws_instance.example` being a list.
+
+The upgrade tool will automatically detect references that are inconsistent
+with the `count` setting on the target resource and rewrite them to use the
+new syntax. The upgrade tool will _not_ rewrite usage of splat syntax to
+direct index syntax, because the old splat syntax form is still compatible.
+
+Another `count`-related change is that Terraform now requires `count` to be
+assigned a numeric value, and will not automatically convert a boolean value
+to a number in the interests of clarity. If you wish to use a boolean value
+to activate or deactivate a particular resource, use the conditional operator
+to show clearly how the boolean value maps to a number value:
+
+```hcl
+  count = var.enabled ? 1 : 0
+```
+
+## First-class expressions
+
+Terraform v0.11 and earlier allowed expressions only within interpolation
+sequences, like `"${var.example}"`. Because expressions are such an important
+part of Terraform -- they are the means by which we connect the attributes of
+one resource to the configuration of another -- Terraform v0.12 now allows
+you to use expressions directly when defining most attributes.
+
+```
+  ami = var.ami
+```
+
+The generalization of expression handling also has some other benefits. For
+example, it's now possible to directly construct lists and maps within
+expressions using the normal syntax, whereas in Terraform v0.11 we required
+using the `list` and `map` functions:
+
+```
+  # Old 0.11 example
+  tags = "${merge(map("Name", "example"), var.common_tags)}"
+
+  # Updated 0.12 example
+  tags = merge({ Name = "example" }, var.common_tags)
+```
+
+The automatic upgrade tool will perform rewrites like these automatically,
+making expressions easier to read and understand.
+
+## Default settings in `connection` blocks
+
+Terraform v0.11 and earlier allowed providers to pre-populate certain arguments
+in a `connection` block for use with remote provisioners. Several resource
+type implementations use this to pre-populate `type` as `"ssh"` and `host`
+as one of the IP addresses of the compute instance being created.
+
+While that feature was convenient in some cases, we found that in practice it
+was hard for users to predict how it would behave, since each provider had its
+own rules for whether to prefer public vs. private IP addresses, which network
+interface to use, whether to use IPv4 or IPv6, etc.
+
+It also violated our design principle of "explicit is better than implicit": we
+think it's important that someone who is unfamiliar with a particular Terraform
+configuration (or with Terraform itself) to be able to read the configuration
+and make a good guess as to what it will achieve, and the default connection
+settings feature left an important detail unstated: how do the provisioners
+access the host?
+
+With this in mind, Terraform v0.12 no longer performs any automatic population
+of `connection` blocks. Instead, if you are using any remote provisioners you
+should explicitly set the connection type and the hostname to connect to:
+
+```hcl
+  connection {
+    type = "ssh"
+    host = self.public_ip
+    # ...
+  }
+```
+
+The automatic upgrade tool will detect existing `connection` blocks that are
+lacking these settings within resource types that are known to have previously
+set defaults, and it will write out an expression that approximates whatever
+selection logic the provider was previously doing in its own implementation.
+
+Unfortunately in some cases the provider did not export the result of the
+possibly-rather-complex host selection expression as a single attribute, and so
+for some resource types the generated `host` expression will be quite
+complicated. We recommend reviewing these and replacing them with a simpler
+expression where possible, since you will often know better than Terraform does
+which of the instance IP addresses are likely to be accessible from the host
+where Terraform is running.
+
+## Upgrades for reusable modules
+
+If you are making upgrades to a reusable module that is consumed by many
+different configurations, you may need to take care with the timing of your
+upgrade and of how you publish it.
+
+We strongly recommend using module versioning, either via a Terraform registry
+or via version control arguments in your module source addresses, to pin
+existing references to the old version of the module and then publish the
+upgraded version under a new version number. If you are using semantic
+versioning, such as in a Terraform registry, the updates made by the upgrade
+tool should be considered a breaking change and published as a new major
+version.
+
+The migration tool will automatically add a `>= 0.12.0` Terraform version
+constraint to indicate that the module has been upgraded to use v0.12-only
+features. By using version constraints, users can gradually update their callers
+to use the newly-upgraded version as they begin to use Terraform v0.12 with
+those modules.
+
+For simpler modules it may be possible to carefully adapt them to be both
+0.11 and 0.12 compatible at the same time, by following the upgrade notes in
+earlier sections and avoiding any 0.12-only features. However, for any module
+using a undocumented workarounds for 0.11 limitations it is unlikely to be
+possible to both update it for Terraform v0.12 and retain v0.11 compatibility
+at the same time, because those undocumented workarounds have been replaced
+with new features in Terraform v0.12.
+
+## Map variables no longer merge when overridden
+
+In prior versions of Terraform, a variable of type `"map"` had a special
+behavior where any value provided via mechanisms such as the `-var` command
+line option would be keywise-merged with any default value associated with
+the variable. This was useful in early versions of Terraform that lacked
+mechanisms for doing such merging explicitly, but since Terraform v0.10
+introduced the concept of local values we consider it preferable to perform
+such merges manually so that they are explicit in configuration:
+
+```
+variable "example_map" {
+  type = map(string)
+  default = {}
+}
+
+locals {
+  default_map_keys = {
+    "a" = "b"
+  }
+  merged_map_keys = merge(local.default_map_keys, var.example_map)
+}
+```
+
+In order to improve the consistency of variable handling across types, the
+map variable merging behavior is removed in Terraform v0.12. Because this
+mechanism was driven by command line options rather than configuration, the
+automatic upgrade tool cannot automatically handle it. If you are relying on
+the merging feature, you must reorganize your configuration to use explicit
+merging like in the above example, or else your default map value will be
+entirely overridden by any explicitly-set value.
 
 ## Upgrading Sentinel policies
 

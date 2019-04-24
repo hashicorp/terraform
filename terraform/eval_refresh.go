@@ -71,12 +71,12 @@ func (n *EvalRefresh) Eval(ctx EvalContext) (interface{}, error) {
 		panic("new state is cty.NilVal")
 	}
 
-	for _, err := range schema.ImpliedType().TestConformance(resp.NewState.Type()) {
+	for _, err := range resp.NewState.Type().TestConformance(schema.ImpliedType()) {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Provider produced invalid object",
 			fmt.Sprintf(
-				"Provider %q planned an invalid value for %s: %s during refresh.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				"Provider %q planned an invalid value for %s during refresh: %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
 				n.ProviderAddr.ProviderConfig.Type, absAddr, tfdiags.FormatError(err),
 			),
 		))

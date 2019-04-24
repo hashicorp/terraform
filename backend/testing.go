@@ -39,12 +39,14 @@ func TestBackendConfig(t *testing.T, b Backend, c hcl.Body) Backend {
 	obj, decDiags := hcldec.Decode(c, spec, nil)
 	diags = diags.Append(decDiags)
 
-	valDiags := b.ValidateConfig(obj)
+	newObj, valDiags := b.PrepareConfig(obj)
 	diags = diags.Append(valDiags.InConfigBody(c))
 
 	if len(diags) != 0 {
 		t.Fatal(diags.ErrWithWarnings())
 	}
+
+	obj = newObj
 
 	confDiags := b.Configure(obj)
 	if len(confDiags) != 0 {

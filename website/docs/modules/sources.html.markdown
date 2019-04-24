@@ -7,9 +7,8 @@ description: The source argument within a module block specifies the location of
 
 # Module Sources
 
-As introduced in [the _Usage_ section](/docs/modules/usage.html), the `source`
-argument in a `module` block tells Terraform where to find the source code
-for the desired child module.
+The `source` argument in [a `module` block](/docs/configuration/modules.html)
+tells Terraform where to find the source code for the desired child module.
 
 Terraform uses this during the module installation step of `terraform init`
 to download the source code to a directory on local disk so that it can be
@@ -121,7 +120,7 @@ access your Terraform Enterprise instance.
 
 Registry modules support versioning. You can provide a specific version as shown
 in the above examples, or use flexible
-[version constraints](/docs/modules/usage.html#module-versions).
+[version constraints](/docs/configuration/modules.html#module-versions).
 
 You can learn more about the registry at the
 [Terraform Registry documentation](/docs/registry/modules/use.html#using-modules).
@@ -204,7 +203,7 @@ suitable credentials for that repository.
 
 If you use the SSH protocol then any configured SSH keys will be used
 automatically. This is the most common way to access non-public Git
-repositories from automated systems beacuse it is easy to configure
+repositories from automated systems because it is easy to configure
 and allows access to private repositories without interactive prompts.
 
 If using the HTTP/HTTPS protocol, or any other protocol that uses
@@ -251,7 +250,7 @@ with suitable credentials for that repository.
 
 If you use the SSH protocol then any configured SSH keys will be used
 automatically. This is the most common way to access non-public Mercurial
-repositories from automated systems beacuse it is easy to configure
+repositories from automated systems because it is easy to configure
 and allows access to private repositories without interactive prompts.
 
 If your Terraform configuration will be used within [Terraform Enterprise](https://www.hashicorp.com/products/terraform),
@@ -331,7 +330,7 @@ module "vpc" {
 
 You can use archives stored in S3 as module sources using the special `s3::`
 prefix, followed by
-[an S3 bucket object URL](http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingBucket.html#access-bucket-intro).
+[a path-style S3 bucket object URL](http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingBucket.html#access-bucket-intro).
 
 ```hcl
 module "consul" {

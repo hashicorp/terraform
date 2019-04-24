@@ -1,6 +1,7 @@
 package command
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -127,7 +128,7 @@ command and dealing with them before running this command again.
 		if dir != "." {
 			query = fmt.Sprintf("Would you like to upgrade the module in %s?", dir)
 		}
-		v, err := c.UIInput().Input(&terraform.InputOpts{
+		v, err := c.UIInput().Input(context.Background(), &terraform.InputOpts{
 			Id:          "approve",
 			Query:       query,
 			Description: `Only 'yes' will be accepted to confirm.`,
@@ -149,7 +150,7 @@ command and dealing with them before running this command again.
 		Providers:    c.providerResolver(),
 		Provisioners: c.provisionerFactories(),
 	}
-	newSources, upgradeDiags := upgrader.Upgrade(sources)
+	newSources, upgradeDiags := upgrader.Upgrade(sources, dir)
 	diags = diags.Append(upgradeDiags)
 	if upgradeDiags.HasErrors() {
 		c.showDiagnostics(diags)

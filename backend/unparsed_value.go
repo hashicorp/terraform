@@ -28,6 +28,12 @@ func ParseVariableValues(vv map[string]UnparsedVariableValue, decls map[string]*
 	var diags tfdiags.Diagnostics
 	ret := make(terraform.InputValues, len(vv))
 
+	// Currently we're generating only warnings for undeclared variables
+	// defined in files (see below) but we only want to generate a few warnings
+	// at a time because existing deployments may have lots of these and
+	// the result can therefore be overwhelming.
+	seenUndeclaredInFile := 0
+
 	for name, rv := range vv {
 		var mode configs.VariableParsingMode
 		config, declared := decls[name]
@@ -56,12 +62,16 @@ func ParseVariableValues(vv map[string]UnparsedVariableValue, decls map[string]*
 				// feedback to users who make typos. Those using this approach
 				// should migrate to using environment variables instead before
 				// this becomes an error in a future major release.
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagWarning,
-					Summary:  "Value for undeclared variable",
-					Detail:   fmt.Sprintf("The root module does not declare a variable named %q. To use this value, add a \"variable\" block to the configuration.\n\nUsing a variables file to set an undeclared variable is deprecated and will become an error in a future release. If you wish to provide certain \"global\" settings to all configurations in your organization, use TF_VAR_... environment variables to set these instead.", name),
-					Subject:  val.SourceRange.ToHCL().Ptr(),
-				})
+				if seenUndeclaredInFile < 3 {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagWarning,
+						Summary:  "Value for undeclared variable",
+						Detail:   fmt.Sprintf("The root module does not declare a variable named %q. To use this value, add a \"variable\" block to the configuration.\n\nUsing a variables file to set an undeclared variable is deprecated and will become an error in a future release. If you wish to provide certain \"global\" settings to all configurations in your organization, use TF_VAR_... environment variables to set these instead.", name),
+						Subject:  val.SourceRange.ToHCL().Ptr(),
+					})
+				}
+				seenUndeclaredInFile++
+
 			case terraform.ValueFromEnvVar:
 				// We allow and ignore undeclared names for environment
 				// variables, because users will often set these globally
@@ -86,6 +96,15 @@ func ParseVariableValues(vv map[string]UnparsedVariableValue, decls map[string]*
 		}
 
 		ret[name] = val
+	}
+
+	if seenUndeclaredInFile >= 3 {
+		extras := seenUndeclaredInFile - 2
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Values for undeclared variables",
+			Detail:   fmt.Sprintf("In addition to the other similar warnings shown, %d other variable(s) defined without being declared.", extras),
+		})
 	}
 
 	return ret, diags

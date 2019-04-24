@@ -3,6 +3,7 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl2/hcl"
@@ -172,34 +173,48 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 		newVal = cty.UnknownAsNull(newVal)
 	}
 
-	if resp.LegacyTypeSystem {
-		// The shimming of the old type system in the legacy SDK is not precise
-		// enough to pass this consistency check, so we'll give it a pass here,
-		// but we will generate a warning about it so that we are more likely
-		// to notice in the logs if an inconsistency beyond the type system
-		// leads to a downstream provider failure.
-		log.Printf("[WARN] Provider %s is using the legacy provider SDK, so we cannot check the result value for consistency with the plan; downstream errors about inconsistent plans may actually be caused by incorrect values from %s", n.ProviderAddr.ProviderConfig.Type, absAddr)
-		// The sort of inconsistency we won't catch here is if a known value
-		// in the plan is changed during apply. That can cause downstream
-		// problems because a dependent resource would make its own plan based
-		// on the planned value, and thus get a different result during the
-		// apply phase. This will usually lead to a "Provider produced invalid plan"
-		// error that incorrectly blames the downstream resource for the change.
-	} else if change.Action != plans.Delete {
+	if change.Action != plans.Delete && !diags.HasErrors() {
 		// Only values that were marked as unknown in the planned value are allowed
 		// to change during the apply operation. (We do this after the unknown-ness
 		// check above so that we also catch anything that became unknown after
 		// being known during plan.)
+		//
+		// If we are returning other errors anyway then we'll give this
+		// a pass since the other errors are usually the explanation for
+		// this one and so it's more helpful to let the user focus on the
+		// root cause rather than distract with this extra problem.
 		if errs := objchange.AssertObjectCompatible(schema, change.After, newVal); len(errs) > 0 {
-			for _, err := range errs {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Provider produced inconsistent result after apply",
-					fmt.Sprintf(
-						"When applying changes to %s, provider %q produced an unexpected new value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-						absAddr, n.ProviderAddr.ProviderConfig.Type, tfdiags.FormatError(err),
-					),
-				))
+			if resp.LegacyTypeSystem {
+				// The shimming of the old type system in the legacy SDK is not precise
+				// enough to pass this consistency check, so we'll give it a pass here,
+				// but we will generate a warning about it so that we are more likely
+				// to notice in the logs if an inconsistency beyond the type system
+				// leads to a downstream provider failure.
+				var buf strings.Builder
+				fmt.Fprintf(&buf, "[WARN] Provider %q produced an unexpected new value for %s, but we are tolerating it because it is using the legacy plugin SDK.\n    The following problems may be the cause of any confusing errors from downstream operations:", n.ProviderAddr.ProviderConfig.Type, absAddr)
+				for _, err := range errs {
+					fmt.Fprintf(&buf, "\n      - %s", tfdiags.FormatError(err))
+				}
+				log.Print(buf.String())
+
+				// The sort of inconsistency we won't catch here is if a known value
+				// in the plan is changed during apply. That can cause downstream
+				// problems because a dependent resource would make its own plan based
+				// on the planned value, and thus get a different result during the
+				// apply phase. This will usually lead to a "Provider produced invalid plan"
+				// error that incorrectly blames the downstream resource for the change.
+
+			} else {
+				for _, err := range errs {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Provider produced inconsistent result after apply",
+						fmt.Sprintf(
+							"When applying changes to %s, provider %q produced an unexpected new value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+							absAddr, n.ProviderAddr.ProviderConfig.Type, tfdiags.FormatError(err),
+						),
+					))
+				}
 			}
 		}
 	}
@@ -229,6 +244,20 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 				),
 			))
 		}
+	}
+
+	// Sometimes providers return a null value when an operation fails for some
+	// reason, but we'd rather keep the prior state so that the error can be
+	// corrected on a subsequent run. We must only do this for null new value
+	// though, or else we may discard partial updates the provider was able to
+	// complete.
+	if diags.HasErrors() && newVal.IsNull() {
+		// Otherwise, we'll continue but using the prior state as the new value,
+		// making this effectively a no-op. If the item really _has_ been
+		// deleted then our next refresh will detect that and fix it up.
+		// If change.Action is Create then change.Before will also be null,
+		// which is fine.
+		newVal = change.Before
 	}
 
 	var newState *states.ResourceInstanceObject

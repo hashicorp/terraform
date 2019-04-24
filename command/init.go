@@ -446,6 +446,7 @@ func (c *InitCommand) initBackend(root *configs.Module, extraConfig rawFlags) (b
 		ConfigOverride: backendConfigOverride,
 		Init:           true,
 	}
+
 	back, backDiags := c.Backend(opts)
 	diags = diags.Append(backDiags)
 	return back, true, diags
@@ -493,7 +494,8 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 		}
 
 		for provider, reqd := range missing {
-			_, err := c.providerInstaller.Get(provider, reqd.Versions)
+			_, providerDiags, err := c.providerInstaller.Get(provider, reqd.Versions)
+			diags = diags.Append(providerDiags)
 
 			if err != nil {
 				constraint := reqd.Versions.String()
@@ -502,6 +504,8 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 				}
 
 				switch {
+				case err == discovery.ErrorServiceUnreachable, err == discovery.ErrorPublicRegistryUnreachable:
+					c.Ui.Error(errDiscoveryServiceUnreachable)
 				case err == discovery.ErrorNoSuchProvider:
 					c.Ui.Error(fmt.Sprintf(errProviderNotFound, provider, DefaultPluginVendorDir))
 				case err == discovery.ErrorNoSuitableVersion:
@@ -530,6 +534,11 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 				case err == discovery.ErrorNoVersionCompatible:
 					// Generic version incompatible msg
 					c.Ui.Error(fmt.Sprintf(errProviderIncompatible, provider, constraint))
+				case err == discovery.ErrorSignatureVerification:
+					c.Ui.Error(fmt.Sprintf(errSignatureVerification, provider))
+				case err == discovery.ErrorChecksumVerification,
+					err == discovery.ErrorMissingChecksumVerification:
+					c.Ui.Error(fmt.Sprintf(errChecksumVerification, provider))
 				default:
 					c.Ui.Error(fmt.Sprintf(errProviderInstallError, provider, err.Error(), DefaultPluginVendorDir))
 				}
@@ -871,6 +880,12 @@ corresponding provider blocks in configuration, with the constraint strings
 suggested below.
 `
 
+const errDiscoveryServiceUnreachable = `
+[reset][bold][red]Registry service unreachable.[reset][red]
+
+This may indicate a network issue, or an issue with the requested Terraform Registry.
+`
+
 const errProviderNotFound = `
 [reset][bold][red]Provider %[1]q not available for installation.[reset][red]
 
@@ -926,7 +941,7 @@ const errProviderInstallError = `
 
 Terraform analyses the configuration and state and automatically downloads
 plugins for the providers used. However, when attempting to download this
-plugin an unexpected error occured.
+plugin an unexpected error occurred.
 
 This may be caused if for some reason Terraform is unable to reach the
 plugin repository. The repository may be unreachable if access is blocked
@@ -956,4 +971,19 @@ and placing the plugin's executable file in one of the directories given in
 by -plugin-dir on the command line, or in the following directory if custom
 plugin directories are not set:
     %[2]s
+`
+
+const errChecksumVerification = `
+[reset][bold][red]Error verifying checksum for provider %[1]q[reset][red]
+The checksum for provider distribution from the Terraform Registry
+did not match the source. This may mean that the distributed files
+were changed after this version was released to the Registry.
+`
+
+const errSignatureVerification = `
+[reset][bold][red]Error verifying GPG signature for provider %[1]q[reset][red]
+Terraform was unable to verify the GPG signature of the downloaded provider
+files using the keys downloaded from the Terraform Registry. This may mean that
+the publisher of the provider removed the key it was signed with, or that the
+distributed files were changed after this version was released.
 `

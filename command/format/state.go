@@ -116,7 +116,12 @@ func formatStateModule(p blockBodyDiffPrinter, m *states.Module, schemas *terraf
 
 			switch addr.Mode {
 			case addrs.ManagedResourceMode:
-				if _, exists := schemas.Providers[provider].ResourceTypes[addr.Type]; !exists {
+				schema, _ = schemas.ResourceTypeConfig(
+					provider,
+					addr.Mode,
+					addr.Type,
+				)
+				if schema == nil {
 					p.buf.WriteString(fmt.Sprintf(
 						"# missing schema for provider %q resource type %s\n\n", provider, addr.Type))
 					continue
@@ -127,9 +132,13 @@ func formatStateModule(p blockBodyDiffPrinter, m *states.Module, schemas *terraf
 					addr.Type,
 					addr.Name,
 				))
-				schema = schemas.Providers[provider].ResourceTypes[addr.Type]
 			case addrs.DataResourceMode:
-				if _, exists := schemas.Providers[provider].ResourceTypes[addr.Type]; !exists {
+				schema, _ = schemas.ResourceTypeConfig(
+					provider,
+					addr.Mode,
+					addr.Type,
+				)
+				if schema == nil {
 					p.buf.WriteString(fmt.Sprintf(
 						"# missing schema for provider %q data source %s\n\n", provider, addr.Type))
 					continue
@@ -140,7 +149,6 @@ func formatStateModule(p blockBodyDiffPrinter, m *states.Module, schemas *terraf
 					addr.Type,
 					addr.Name,
 				))
-				schema = schemas.Providers[provider].DataSources[addr.Type]
 			default:
 				// should never happen, since the above is exhaustive
 				p.buf.WriteString(addr.String())

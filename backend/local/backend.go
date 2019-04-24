@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strings"
 	"sync"
 
 	"github.com/hashicorp/terraform/backend"
@@ -140,9 +139,9 @@ func (b *Local) ConfigSchema() *configschema.Block {
 	}
 }
 
-func (b *Local) ValidateConfig(obj cty.Value) tfdiags.Diagnostics {
+func (b *Local) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	if b.Backend != nil {
-		return b.Backend.ValidateConfig(obj)
+		return b.Backend.PrepareConfig(obj)
 	}
 
 	var diags tfdiags.Diagnostics
@@ -171,7 +170,7 @@ func (b *Local) ValidateConfig(obj cty.Value) tfdiags.Diagnostics {
 		}
 	}
 
-	return diags
+	return obj, diags
 }
 
 func (b *Local) Configure(obj cty.Value) tfdiags.Diagnostics {
@@ -594,25 +593,3 @@ func (b *Local) stateWorkspaceDir() string {
 
 	return DefaultWorkspaceDir
 }
-
-func (b *Local) pluginInitRequired(providerErr *terraform.ResourceProviderError) {
-	b.CLI.Output(b.Colorize().Color(fmt.Sprintf(
-		strings.TrimSpace(errPluginInit)+"\n",
-		providerErr)))
-}
-
-// this relies on multierror to format the plugin errors below the copy
-const errPluginInit = `
-[reset][bold][yellow]Plugin reinitialization required. Please run "terraform init".[reset]
-[yellow]Reason: Could not satisfy plugin requirements.
-
-Plugins are external binaries that Terraform uses to access and manipulate
-resources. The configuration provided requires plugins which can't be located,
-don't satisfy the version constraints, or are otherwise incompatible.
-
-[reset][red]%s
-
-[reset][yellow]Terraform automatically discovers provider requirements from your
-configuration, including providers used in child modules. To see the
-requirements and constraints from each module, run "terraform providers".
-`

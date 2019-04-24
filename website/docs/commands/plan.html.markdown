@@ -25,7 +25,7 @@ for later execution with `terraform apply`, which can be useful when
 
 ## Usage
 
-Usage: `terraform plan [options] [dir-or-plan]`
+Usage: `terraform plan [options] [dir]`
 
 By default, `plan` requires no flags and looks in the current directory
 for the configuration and state file to refresh.
@@ -60,7 +60,8 @@ The command-line flags are all optional. The list of available flags are:
   plans below.
 
 * `-parallelism=n` - Limit the number of concurrent operation as Terraform
-  [walks the graph](/docs/internals/graph.html#walking-the-graph).
+  [walks the graph](/docs/internals/graph.html#walking-the-graph). Defaults
+  to 10.
 
 * `-refresh=true` - Update the state prior to checking for differences.
 
@@ -93,7 +94,7 @@ to specify the constraint. The resource address is interpreted as follows:
 
 * If the given address has a _resource spec_, only the specified resource
   is targeted. If the named resource uses `count` and no explicit index
-  is specified in the address, all of the instances sharing the given
+  is specified in the address (i.e. aws_instance.example[3]), all of the instances sharing the given
   resource name are targeted.
 
 * If the given address _does not_ have a resource spec, and instead just
@@ -112,7 +113,7 @@ large configurations, prefer instead to break large configurations into
 several smaller configurations that can each be independently applied.
 [Data sources](/docs/configuration/data-sources.html) can be used to access
 information about resources created in other configurations, allowing
-a complex system architecture to be broken down into more managable parts
+a complex system architecture to be broken down into more manageable parts
 that can be updated independently.
 
 ## Security Warning

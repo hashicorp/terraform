@@ -1148,6 +1148,21 @@ func TestCheckModuleResourceAttrPair(mpFirst []string, nameFirst string, keyFirs
 func testCheckResourceAttrPair(isFirst *terraform.InstanceState, nameFirst string, keyFirst string, isSecond *terraform.InstanceState, nameSecond string, keySecond string) error {
 	vFirst, okFirst := isFirst.Attributes[keyFirst]
 	vSecond, okSecond := isSecond.Attributes[keySecond]
+
+	// Container count values of 0 should not be relied upon, and not reliably
+	// maintained by helper/schema. For the purpose of tests, consider unset and
+	// 0 to be equal.
+	if len(keyFirst) > 2 && len(keySecond) > 2 && keyFirst[len(keyFirst)-2:] == keySecond[len(keySecond)-2:] &&
+		(strings.HasSuffix(keyFirst, ".#") || strings.HasSuffix(keyFirst, ".%")) {
+		// they have the same suffix, and it is a collection count key.
+		if vFirst == "0" || vFirst == "" {
+			okFirst = false
+		}
+		if vSecond == "0" || vSecond == "" {
+			okSecond = false
+		}
+	}
+
 	if okFirst != okSecond {
 		if !okFirst {
 			return fmt.Errorf("%s: Attribute %q not set, but %q is set in %s as %q", nameFirst, keyFirst, keySecond, nameSecond, vSecond)

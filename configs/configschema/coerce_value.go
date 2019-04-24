@@ -74,7 +74,7 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 	for typeName, blockS := range b.BlockTypes {
 		switch blockS.Nesting {
 
-		case NestingSingle:
+		case NestingSingle, NestingGroup:
 			switch {
 			case ty.HasAttribute(typeName):
 				var err error
@@ -84,7 +84,11 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 					return cty.UnknownVal(b.ImpliedType()), err
 				}
 			case blockS.MinItems != 1 && blockS.MaxItems != 1:
-				attrs[typeName] = cty.NullVal(blockS.ImpliedType())
+				if blockS.Nesting == NestingGroup {
+					attrs[typeName] = blockS.EmptyValue()
+				} else {
+					attrs[typeName] = cty.NullVal(blockS.ImpliedType())
+				}
 			default:
 				// We use the word "attribute" here because we're talking about
 				// the cty sense of that word rather than the HCL sense.
@@ -225,7 +229,29 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 						elems[key.AsString()] = val
 					}
 				}
-				attrs[typeName] = cty.MapVal(elems)
+
+				// If the attribute values here contain any DynamicPseudoTypes,
+				// the concrete type must be an object.
+				useObject := false
+				switch {
+				case coll.Type().IsObjectType():
+					useObject = true
+				default:
+					// It's possible that we were given a map, and need to coerce it to an object
+					ety := coll.Type().ElementType()
+					for _, v := range elems {
+						if !v.Type().Equals(ety) {
+							useObject = true
+							break
+						}
+					}
+				}
+
+				if useObject {
+					attrs[typeName] = cty.ObjectVal(elems)
+				} else {
+					attrs[typeName] = cty.MapVal(elems)
+				}
 			default:
 				attrs[typeName] = cty.MapValEmpty(blockS.ImpliedType())
 			}

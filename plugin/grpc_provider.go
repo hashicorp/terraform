@@ -119,7 +119,13 @@ func (p *GRPCProvider) GetSchema() (resp providers.GetSchemaResponse) {
 	resp.ResourceTypes = make(map[string]providers.Schema)
 	resp.DataSources = make(map[string]providers.Schema)
 
-	protoResp, err := p.client.GetSchema(p.ctx, new(proto.GetProviderSchema_Request))
+	// Some providers may generate quite large schemas, and the internal default
+	// grpc response size limit is 4MB. 64MB should cover most any use case, and
+	// if we get providers nearing that we may want to consider a finer-grained
+	// API to fetch individual resource schemas.
+	// Note: this option is marked as EXPERIMENTAL in the grpc API.
+	const maxRecvSize = 64 << 20
+	protoResp, err := p.client.GetSchema(p.ctx, new(proto.GetProviderSchema_Request), grpc.MaxRecvMsgSizeCallOption{MaxRecvMsgSize: maxRecvSize})
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -185,7 +191,6 @@ func (p *GRPCProvider) PrepareProviderConfig(r providers.PrepareProviderConfigRe
 
 func (p *GRPCProvider) ValidateResourceTypeConfig(r providers.ValidateResourceTypeConfigRequest) (resp providers.ValidateResourceTypeConfigResponse) {
 	log.Printf("[TRACE] GRPCProvider: ValidateResourceTypeConfig")
-
 	resourceSchema := p.getResourceSchema(r.TypeName)
 
 	mp, err := msgpack.Marshal(r.Config, resourceSchema.Block.ImpliedType())
@@ -401,6 +406,8 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 	}
 
 	resp.PlannedPrivate = protoResp.PlannedPrivate
+
+	resp.LegacyTypeSystem = protoResp.LegacyTypeSystem
 
 	return resp
 }

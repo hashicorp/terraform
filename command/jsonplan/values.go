@@ -88,6 +88,7 @@ func marshalPlannedValues(changes *plans.Changes, schemas *terraform.Schemas) (m
 	// 		module -> [children modules]
 	moduleResourceMap := make(map[string][]addrs.AbsResourceInstance)
 	moduleMap := make(map[string][]addrs.ModuleInstance)
+	seenModules := make(map[string]bool)
 
 	for _, resource := range changes.Resources {
 		// if the resource is being deleted, skip over it.
@@ -98,7 +99,13 @@ func marshalPlannedValues(changes *plans.Changes, schemas *terraform.Schemas) (m
 			// root has no parents.
 			if containingModule != "" {
 				parent := resource.Addr.Module.Parent().String()
-				moduleMap[parent] = append(moduleMap[parent], resource.Addr.Module)
+				// we likely will see multiple resources in one module, so we
+				// only need to report the "parent" module for each child module
+				// once.
+				if !seenModules[containingModule] {
+					moduleMap[parent] = append(moduleMap[parent], resource.Addr.Module)
+					seenModules[containingModule] = true
+				}
 			}
 		}
 	}
@@ -114,6 +121,10 @@ func marshalPlannedValues(changes *plans.Changes, schemas *terraform.Schemas) (m
 	if err != nil {
 		return ret, err
 	}
+	sort.Slice(childModules, func(i, j int) bool {
+		return childModules[i].Address < childModules[j].Address
+	})
+
 	ret.ChildModules = childModules
 
 	return ret, nil
@@ -150,7 +161,7 @@ func marshalPlanResources(changes *plans.Changes, ris []addrs.AbsResourceInstanc
 		}
 
 		schema, schemaVer := schemas.ResourceTypeConfig(
-			resource.ProviderName,
+			r.ProviderAddr.ProviderConfig.Type,
 			r.Addr.Resource.Resource.Mode,
 			resource.Type,
 		)
@@ -166,6 +177,9 @@ func marshalPlanResources(changes *plans.Changes, ris []addrs.AbsResourceInstanc
 		if changeV.After != cty.NilVal {
 			if changeV.After.IsWhollyKnown() {
 				resource.AttributeValues = marshalAttributeValues(changeV.After, schema)
+			} else {
+				knowns := omitUnknowns(changeV.After)
+				resource.AttributeValues = marshalAttributeValues(knowns, schema)
 			}
 		}
 

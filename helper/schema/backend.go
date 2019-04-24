@@ -2,6 +2,7 @@ package schema
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -9,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/terraform"
+	ctyconvert "github.com/zclconf/go-cty/cty/convert"
 )
 
 // Backend represents a partial backend.Backend implementation and simplifies
@@ -49,13 +51,86 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 	return b.CoreConfigSchema()
 }
 
-func (b *Backend) ValidateConfig(obj cty.Value) tfdiags.Diagnostics {
+func (b *Backend) PrepareConfig(configVal cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	if b == nil {
-		return nil
+		return configVal, nil
+	}
+	var diags tfdiags.Diagnostics
+	var err error
+
+	// In order to use Transform below, this needs to be filled out completely
+	// according the schema.
+	configVal, err = b.CoreConfigSchema().CoerceValue(configVal)
+	if err != nil {
+		return configVal, diags.Append(err)
 	}
 
-	var diags tfdiags.Diagnostics
-	shimRC := b.shimConfig(obj)
+	// lookup any required, top-level attributes that are Null, and see if we
+	// have a Default value available.
+	configVal, err = cty.Transform(configVal, func(path cty.Path, val cty.Value) (cty.Value, error) {
+		// we're only looking for top-level attributes
+		if len(path) != 1 {
+			return val, nil
+		}
+
+		// nothing to do if we already have a value
+		if !val.IsNull() {
+			return val, nil
+		}
+
+		// get the Schema definition for this attribute
+		getAttr, ok := path[0].(cty.GetAttrStep)
+		// these should all exist, but just ignore anything strange
+		if !ok {
+			return val, nil
+		}
+
+		attrSchema := b.Schema[getAttr.Name]
+		// continue to ignore anything that doesn't match
+		if attrSchema == nil {
+			return val, nil
+		}
+
+		// this is deprecated, so don't set it
+		if attrSchema.Deprecated != "" || attrSchema.Removed != "" {
+			return val, nil
+		}
+
+		// find a default value if it exists
+		def, err := attrSchema.DefaultValue()
+		if err != nil {
+			diags = diags.Append(fmt.Errorf("error getting default for %q: %s", getAttr.Name, err))
+			return val, err
+		}
+
+		// no default
+		if def == nil {
+			return val, nil
+		}
+
+		// create a cty.Value and make sure it's the correct type
+		tmpVal := hcl2shim.HCL2ValueFromConfigValue(def)
+
+		// helper/schema used to allow setting "" to a bool
+		if val.Type() == cty.Bool && tmpVal.RawEquals(cty.StringVal("")) {
+			// return a warning about the conversion
+			diags = diags.Append("provider set empty string as default value for bool " + getAttr.Name)
+			tmpVal = cty.False
+		}
+
+		val, err = ctyconvert.Convert(tmpVal, val.Type())
+		if err != nil {
+			diags = diags.Append(fmt.Errorf("error setting default for %q: %s", getAttr.Name, err))
+		}
+
+		return val, err
+	})
+	if err != nil {
+		// any error here was already added to the diagnostics
+		return configVal, diags
+	}
+
+	shimRC := b.shimConfig(configVal)
 	warns, errs := schemaMap(b.Schema).Validate(shimRC)
 	for _, warn := range warns {
 		diags = diags.Append(tfdiags.SimpleWarning(warn))
@@ -63,7 +138,7 @@ func (b *Backend) ValidateConfig(obj cty.Value) tfdiags.Diagnostics {
 	for _, err := range errs {
 		diags = diags.Append(err)
 	}
-	return diags
+	return configVal, diags
 }
 
 func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
@@ -107,7 +182,11 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 // that should be populated enough to appease the not-yet-updated functionality
 // in this package. This should be removed once everything is updated.
 func (b *Backend) shimConfig(obj cty.Value) *terraform.ResourceConfig {
-	shimMap := hcl2shim.ConfigValueFromHCL2(obj).(map[string]interface{})
+	shimMap, ok := hcl2shim.ConfigValueFromHCL2(obj).(map[string]interface{})
+	if !ok {
+		// If the configVal was nil, we still want a non-nil map here.
+		shimMap = map[string]interface{}{}
+	}
 	return &terraform.ResourceConfig{
 		Config: shimMap,
 		Raw:    shimMap,

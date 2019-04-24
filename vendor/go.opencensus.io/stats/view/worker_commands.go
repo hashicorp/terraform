@@ -21,6 +21,8 @@ import (
 	"strings"
 	"time"
 
+	"go.opencensus.io/exemplar"
+
 	"go.opencensus.io/stats"
 	"go.opencensus.io/stats/internal"
 	"go.opencensus.io/tag"
@@ -140,8 +142,10 @@ func (cmd *retrieveDataReq) handleCommand(w *worker) {
 // recordReq is the command to record data related to multiple measures
 // at once.
 type recordReq struct {
-	tm *tag.Map
-	ms []stats.Measurement
+	tm          *tag.Map
+	ms          []stats.Measurement
+	attachments map[string]string
+	t           time.Time
 }
 
 func (cmd *recordReq) handleCommand(w *worker) {
@@ -151,7 +155,12 @@ func (cmd *recordReq) handleCommand(w *worker) {
 		}
 		ref := w.getMeasureRef(m.Measure().Name())
 		for v := range ref.views {
-			v.addSample(cmd.tm, m.Value())
+			e := &exemplar.Exemplar{
+				Value:       m.Value(),
+				Timestamp:   cmd.t,
+				Attachments: cmd.attachments,
+			}
+			v.addSample(cmd.tm, e)
 		}
 	}
 }

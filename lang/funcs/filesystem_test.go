@@ -159,6 +159,12 @@ func TestTemplateFile(t *testing.T) {
 		t.Run(fmt.Sprintf("TemplateFile(%#v, %#v)", test.Path, test.Vars), func(t *testing.T) {
 			got, err := templateFileFn.Call([]cty.Value{test.Path, test.Vars})
 
+			if argErr, ok := err.(function.ArgError); ok {
+				if argErr.Index < 0 || argErr.Index > 1 {
+					t.Errorf("ArgError index %d is out of range for templatefile (must be 0 or 1)", argErr.Index)
+				}
+			}
+
 			if test.Err {
 				if err == nil {
 					t.Fatal("succeeded; want error")

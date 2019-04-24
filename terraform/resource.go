@@ -281,7 +281,7 @@ func newResourceConfigShimmedComputedKeys(obj cty.Value, schema *configschema.Bl
 		}
 
 		switch blockS.Nesting {
-		case configschema.NestingSingle:
+		case configschema.NestingSingle, configschema.NestingGroup:
 			keys := newResourceConfigShimmedComputedKeys(blockVal, &blockS.Block, fmt.Sprintf("%s%s.", prefix, typeName))
 			ret = append(ret, keys...)
 		case configschema.NestingList, configschema.NestingSet:

@@ -20,169 +20,113 @@ DNSimple, CloudFlare).
 Use the navigation to the left to find available providers by type or scroll
 down to see all providers.
 
-<table class="table">
+<div style="column-width: 14em;">
 
-  <tr>
-    <td><a href="/docs/providers/acme/index.html">ACME</a></td>
-    <td><a href="/docs/providers/alicloud/index.html">Alicloud</a></td>
-    <td><a href="/docs/providers/archive/index.html">Archive</a></td>
-  </tr>
-  <tr>
-    <td><a href="/docs/providers/arukas/index.html">Arukas</a></td>
-    <td><a href="/docs/providers/aws/index.html">AWS</a></td>
-    <td><a href="/docs/providers/azuread/index.html">Azure Active Directory</a></td>
-  </tr>
-  <tr>
-    <td><a href="/docs/providers/azurerm/index.html">Azure</a></td>
-    <td><a href="/docs/providers/azurestack/index.html">Azure Stack</a></td>
-    <td><a href="/docs/providers/bitbucket/index.html">Bitbucket</a></td>
-  </tr>
-  <tr>
-  <td><a href="/docs/providers/brightbox/index.html">Brightbox</a></td>
-    <td><a href="/docs/providers/clc/index.html">CenturyLinkCloud</a></td>
-    <td><a href="/docs/providers/chef/index.html">Chef</a></td>
-  </tr>
-  <tr>
-    <td><a href="/docs/providers/circonus/index.html">Circonus</a></td>
-    <td><a href="/docs/providers/cloudflare/index.html">Cloudflare</a></td>
-    <td><a href="/docs/providers/cloudscale/index.html">CloudScale.ch</a></td>
-  </tr>
-  <tr>
-    <td><a href="/docs/providers/cloudstack/index.html">CloudStack</a></td>
-    <td><a href="/docs/providers/cobbler/index.html">Cobbler</a></td>
-    <td><a href="/docs/providers/consul/index.html">Consul</a></td>
-  </tr>
-  <tr>
-    <td><a href="/docs/providers/datadog/index.html">Datadog</a></td>
-    <td><a href="/docs/providers/do/index.html">DigitalOcean</a></td>
-    <td><a href="/docs/providers/dns/index.html">DNS</a></td>
-  </tr>
-  <tr>
-    <td><a href="/docs/providers/dme/index.html">DNSMadeEasy</a></td>
-    <td><a href="/docs/providers/dnsimple/index.html">DNSimple</a></td>
-    <td><a href="/docs/providers/docker/index.html">Docker</a></td>
-  </tr>
-  <tr>
-    <td><a href="/docs/providers/dyn/index.html">Dyn</a></td>
-    <td><a href="/docs/providers/external/index.html">External</a></td>
-    <td><a href="/docs/providers/bigip/index.html">F5 BIG-IP</a></td>
-  </tr>
-  <tr>
-    <td><a href="/docs/providers/fastly/index.html">Fastly</a></td>
-    <td><a href="/docs/providers/flexibleengine/index.html">FlexibleEngine</a></td>
-    <td><a href="/docs/providers/github/index.html">GitHub</a></td>
-  </tr>
-  <tr>
-    <td><a href="/docs/providers/gitlab/index.html">Gitlab</a></td>
-    <td><a href="/docs/providers/google/index.html">Google Cloud</a></td>
-    <td><a href="/docs/providers/grafana/index.html">Grafana</a></td>
-  </tr>
-  <tr>
-    <td><a href="/docs/providers/hedvig/index.html">Hedvig</a></td>
-    <td><a href="/docs/providers/helm/index.html">Helm</a></td>
-    <td><a href="/docs/providers/heroku/index.html">Heroku</a></td>
-  </tr>
-  <tr>
-    <td><a href="/docs/providers/hcloud/index.html">Hetzner Cloud</a></td>
-    <td><a href="/docs/providers/http/index.html">HTTP</a></td>
-    <td><a href="/docs/providers/huaweicloud/index.html">HuaweiCloud</a></td>
-  </tr>
-  <tr>
-    <td><a href="/docs/providers/icinga2/index.html">Icinga2</a></td>
-    <td><a href="/docs/providers/ignition/index.html">Ignition</a></td>
-    <td><a href="/docs/providers/influxdb/index.html">InfluxDB</a></td>
-  </tr>
-  <tr>
-    <td><a href="/docs/providers/kubernetes/index.html">Kubernetes</a></td>
-    <td><a href="/docs/providers/librato/index.html">Librato</a></td>
-    <td><a href="/docs/providers/linode/index.html">Linode</a></td>
-  </tr>
-  <tr>
-    <td><a href="/docs/providers/local/index.html">Local</a></td>
-    <td><a href="/docs/providers/logentries/index.html">Logentries</a></td>
-    <td><a href="/docs/providers/logicmonitor/index.html">LogicMonitor</a></td>
-  </tr>
-  <tr>
-    <td><a href="/docs/providers/mailgun/index.html">Mailgun</a></td>
-    <td><a href="/docs/providers/mysql/index.html">MySQL</a></td>
-    <td><a href="/docs/providers/netlify/index.html">Netlify</a></td>
-  </tr>
-  <tr>
-    <td><a href="/docs/providers/newrelic/index.html">New Relic</a></td>
-    <td><a href="/docs/providers/nomad/index.html">Nomad</a></td>
-    <td><a href="/docs/providers/ns1/index.html">NS1</a></td>
-  </tr>
-  <tr>
-    <td><a href="/docs/providers/null/index.html">Null</a></td>
-    <td><a href="/docs/providers/nutanix/index.html">Nutanix</a></td>
-    <td><a href="/docs/providers/oneandone/index.html">1&1</a></td>
-  </tr>
-  <tr>
-    <td><a href="/docs/providers/openstack/index.html">OpenStack</a></td>
-    <td><a href="/docs/providers/opentelekomcloud/index.html">OpenTelekomCloud</a></td>
-    <td><a href="/docs/providers/opsgenie/index.html">OpsGenie</a></td>
-  </tr>
-  <tr>
-    <td><a href="/docs/providers/oci/index.html">Oracle Cloud Infrastructure</a></td>
-    <td><a href="/docs/providers/oraclepaas/index.html">Oracle Cloud Platform</a></td>
-    <td><a href="/docs/providers/opc/index.html">Oracle Public Cloud</a></td>
-  </tr>
-  <tr>
-    <td><a href="/docs/providers/ovh/index.html">OVH</a></td>
-    <td><a href="/docs/providers/packet/index.html">Packet</a></td>
-    <td><a href="/docs/providers/pagerduty/index.html">PagerDuty</a></td>
-  </tr>
-  <tr>
-    <td><a href="/docs/providers/panos/index.html">Palo Alto Networks</a></td>
-    <td><a href="/docs/providers/postgresql/index.html">PostgreSQL</a></td>
-    <td><a href="/docs/providers/powerdns/index.html">PowerDNS</a></td>
-  </tr>
-  <tr>
-    <td><a href="/docs/providers/profitbricks/index.html">ProfitBricks</a></td>
-    <td><a href="/docs/providers/rabbitmq/index.html">RabbitMQ</a></td>
-    <td><a href="/docs/providers/rancher/index.html">Rancher</a></td>
-  </tr>
-  <tr>
-    <td><a href="/docs/providers/random/index.html">Random</a></td>
-    <td><a href="/docs/providers/rightscale/index.html">RightScale</a></td>
-    <td><a href="/docs/providers/rundeck/index.html">Rundeck</a></td>
-  </tr>
-  <tr>
-    <td><a href="/docs/providers/runscope/index.html">RunScope</a></td>
-    <td><a href="/docs/providers/scaleway/index.html">Scaleway</a></td>
-    <td><a href="/docs/providers/selectel/index.html">Selectel</a></td>
-  </tr>
-  <tr>
-    <td><a href="/docs/providers/skytap/index.html">Skytap</a></td>
-    <td><a href="/docs/providers/softlayer/index.html">SoftLayer</a></td>
-    <td><a href="/docs/providers/statuscake/index.html">StatusCake</a></td>
-  </tr>
-  <tr>
-    <td><a href="/docs/providers/spotinst/index.html">Spotinst</a></td>
-    <td><a href="/docs/providers/telefonicaopencloud/index.html">TelefonicaOpenCloud</a></td>
-    <td><a href="/docs/providers/template/index.html">Template</a></td>
-  </tr>
-  <tr>
-    <td><a href="/docs/providers/tencentcloud/index.html">TencentCloud</a></td>
-    <td><a href="/docs/providers/terraform/index.html">Terraform</a></td>
-    <td><a href="/docs/providers/tfe/index.html">Terraform Enterprise</a></td>
-  </tr>
-  <tr>
-    <td><a href="/docs/providers/tls/index.html">TLS</a></td>
-    <td><a href="/docs/providers/triton/index.html">Triton</a></td>
-    <td><a href="/docs/providers/ucloud/index.html">UCloud</a></td>
-  </tr>
-  <tr>
-    <td><a href="/docs/providers/ultradns/index.html">UltraDNS</a></td>
-    <td><a href="/docs/providers/vault/index.html">Vault</a></td>
-    <td><a href="/docs/providers/vcd/index.html">VMware vCloud Director</a></td>
-  </tr>
-  <tr>
-    <td><a href="/docs/providers/nsxt/index.html">VMware NSX-T</a></td>
-    <td><a href="/docs/providers/vsphere/index.html">VMware vSphere</a></td>
-    <td><a></a></td>
-    </tr>
-</table>
 
+- [ACME](/docs/providers/acme/index.html)
+- [Alicloud](/docs/providers/alicloud/index.html)
+- [Archive](/docs/providers/archive/index.html)
+- [Arukas](/docs/providers/arukas/index.html)
+- [AWS](/docs/providers/aws/index.html)
+- [Azure](/docs/providers/azurerm/index.html)
+- [Azure Active Directory](/docs/providers/azuread/index.html)
+- [Azure Stack](/docs/providers/azurestack/index.html)
+- [Bitbucket](/docs/providers/bitbucket/index.html)
+- [Brightbox](/docs/providers/brightbox/index.html)
+- [CenturyLinkCloud](/docs/providers/clc/index.html)
+- [Chef](/docs/providers/chef/index.html)
+- [Circonus](/docs/providers/circonus/index.html)
+- [Cisco ASA](/docs/providers/ciscoasa/index.html)
+- [Cloudflare](/docs/providers/cloudflare/index.html)
+- [CloudScale.ch](/docs/providers/cloudscale/index.html)
+- [CloudStack](/docs/providers/cloudstack/index.html)
+- [Cobbler](/docs/providers/cobbler/index.html)
+- [Consul](/docs/providers/consul/index.html)
+- [Datadog](/docs/providers/datadog/index.html)
+- [DigitalOcean](/docs/providers/do/index.html)
+- [DNS](/docs/providers/dns/index.html)
+- [DNSimple](/docs/providers/dnsimple/index.html)
+- [DNSMadeEasy](/docs/providers/dme/index.html)
+- [Docker](/docs/providers/docker/index.html)
+- [Dyn](/docs/providers/dyn/index.html)
+- [External](/docs/providers/external/index.html)
+- [F5 BIG-IP](/docs/providers/bigip/index.html)
+- [Fastly](/docs/providers/fastly/index.html)
+- [FlexibleEngine](/docs/providers/flexibleengine/index.html)
+- [Fortios](/docs/providers/fortios/index.html)
+- [GitHub](/docs/providers/github/index.html)
+- [Gitlab](/docs/providers/gitlab/index.html)
+- [Google Cloud Platform](/docs/providers/google/index.html)
+- [Grafana](/docs/providers/grafana/index.html)
+- [Hedvig](/docs/providers/hedvig/index.html)
+- [Helm](/docs/providers/helm/index.html)
+- [Heroku](/docs/providers/heroku/index.html)
+- [Hetzner Cloud](/docs/providers/hcloud/index.html)
+- [HTTP](/docs/providers/http/index.html)
+- [HuaweiCloud](/docs/providers/huaweicloud/index.html)
+- [Icinga2](/docs/providers/icinga2/index.html)
+- [Ignition](/docs/providers/ignition/index.html)
+- [InfluxDB](/docs/providers/influxdb/index.html)
+- [JDCloud](/docs/providers/jdcloud/index.html)
+- [Kubernetes](/docs/providers/kubernetes/index.html)
+- [Librato](/docs/providers/librato/index.html)
+- [Linode](/docs/providers/linode/index.html)
+- [Local](/docs/providers/local/index.html)
+- [Logentries](/docs/providers/logentries/index.html)
+- [LogicMonitor](/docs/providers/logicmonitor/index.html)
+- [Mailgun](/docs/providers/mailgun/index.html)
+- [MySQL](/docs/providers/mysql/index.html)
+- [Naver Cloud](/docs/providers/ncloud/index.html)
+- [Netlify](/docs/providers/netlify/index.html)
+- [New Relic](/docs/providers/newrelic/index.html)
+- [Nomad](/docs/providers/nomad/index.html)
+- [NS1](/docs/providers/ns1/index.html)
+- [Null](/docs/providers/null/index.html)
+- [Nutanix](/docs/providers/nutanix/index.html)
+- [1&1](/docs/providers/oneandone/index.html)
+- [OpenStack](/docs/providers/openstack/index.html)
+- [OpenTelekomCloud](/docs/providers/opentelekomcloud/index.html)
+- [OpsGenie](/docs/providers/opsgenie/index.html)
+- [Oracle Cloud Infrastructure](/docs/providers/oci/index.html)
+- [Oracle Cloud Platform](/docs/providers/oraclepaas/index.html)
+- [Oracle Public Cloud](/docs/providers/opc/index.html)
+- [OVH](/docs/providers/ovh/index.html)
+- [Packet](/docs/providers/packet/index.html)
+- [PagerDuty](/docs/providers/pagerduty/index.html)
+- [Palo Alto Networks](/docs/providers/panos/index.html)
+- [PostgreSQL](/docs/providers/postgresql/index.html)
+- [PowerDNS](/docs/providers/powerdns/index.html)
+- [ProfitBricks](/docs/providers/profitbricks/index.html)
+- [RabbitMQ](/docs/providers/rabbitmq/index.html)
+- [Rancher](/docs/providers/rancher/index.html)
+- [Random](/docs/providers/random/index.html)
+- [RightScale](/docs/providers/rightscale/index.html)
+- [Rundeck](/docs/providers/rundeck/index.html)
+- [RunScope](/docs/providers/runscope/index.html)
+- [Scaleway](/docs/providers/scaleway/index.html)
+- [Selectel](/docs/providers/selectel/index.html)
+- [Skytap](/docs/providers/skytap/index.html)
+- [SoftLayer](/docs/providers/softlayer/index.html)
+- [Spotinst](/docs/providers/spotinst/index.html)
+- [StatusCake](/docs/providers/statuscake/index.html)
+- [TelefonicaOpenCloud](/docs/providers/telefonicaopencloud/index.html)
+- [Template](/docs/providers/template/index.html)
+- [TencentCloud](/docs/providers/tencentcloud/index.html)
+- [Terraform](/docs/providers/terraform/index.html)
+- [Terraform Enterprise](/docs/providers/tfe/index.html)
+- [TLS](/docs/providers/tls/index.html)
+- [Triton](/docs/providers/triton/index.html)
+- [UCloud](/docs/providers/ucloud/index.html)
+- [UltraDNS](/docs/providers/ultradns/index.html)
+- [Vault](/docs/providers/vault/index.html)
+- [VMware NSX-T](/docs/providers/nsxt/index.html)
+- [VMware vCloud Director](/docs/providers/vcd/index.html)
+- [VMware vSphere](/docs/providers/vsphere/index.html)
+- [Yandex](/docs/providers/yandex/index.html)
+
+
+</div>
+
+-----
 
 More providers can be found on our [Community Providers](/docs/providers/type/community-index.html) page.

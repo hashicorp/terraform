@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"log"
 
 	tfe "github.com/hashicorp/go-tfe"
@@ -17,7 +18,9 @@ func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operati
 
 	var diags tfdiags.Diagnostics
 
-	if !w.Permissions.CanUpdate {
+	// We should remove the `CanUpdate` part of this test, but for now
+	// (to remain compatible with tfe.v2.1) we'll leave it in here.
+	if !w.Permissions.CanUpdate && !w.Permissions.CanQueueApply {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Insufficient rights to apply changes",
@@ -116,7 +119,7 @@ func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operati
 	// This check is also performed in the plan method to determine if
 	// the policies should be checked, but we need to check the values
 	// here again to determine if we are done and should return.
-	if !r.HasChanges || r.Status == tfe.RunErrored {
+	if !r.HasChanges || r.Status == tfe.RunCanceled || r.Status == tfe.RunErrored {
 		return r, nil
 	}
 
@@ -174,14 +177,16 @@ func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operati
 					"Only 'yes' will be accepted to approve."
 			}
 
-			if err = b.confirm(stopCtx, op, opts, r, "yes"); err != nil {
+			err = b.confirm(stopCtx, op, opts, r, "yes")
+			if err != nil && err != errRunApproved {
 				return r, err
 			}
 		}
 
-		err = b.client.Runs.Apply(stopCtx, r.ID, tfe.RunApplyOptions{})
-		if err != nil {
-			return r, generalError("Failed to approve the apply command", err)
+		if err != errRunApproved {
+			if err = b.client.Runs.Apply(stopCtx, r.ID, tfe.RunApplyOptions{}); err != nil {
+				return r, generalError("Failed to approve the apply command", err)
+			}
 		}
 	}
 
@@ -202,21 +207,34 @@ func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operati
 	if err != nil {
 		return r, generalError("Failed to retrieve logs", err)
 	}
-	scanner := bufio.NewScanner(logs)
+	reader := bufio.NewReaderSize(logs, 64*1024)
 
-	skip := 0
-	for scanner.Scan() {
-		// Skip the first 3 lines to prevent duplicate output.
-		if skip < 3 {
-			skip++
-			continue
+	if b.CLI != nil {
+		skip := 0
+		for next := true; next; {
+			var l, line []byte
+
+			for isPrefix := true; isPrefix; {
+				l, isPrefix, err = reader.ReadLine()
+				if err != nil {
+					if err != io.EOF {
+						return r, generalError("Failed to read logs", err)
+					}
+					next = false
+				}
+				line = append(line, l...)
+			}
+
+			// Skip the first 3 lines to prevent duplicate output.
+			if skip < 3 {
+				skip++
+				continue
+			}
+
+			if next || len(line) > 0 {
+				b.CLI.Output(b.Colorize().Color(string(line)))
+			}
 		}
-		if b.CLI != nil {
-			b.CLI.Output(b.Colorize().Color(scanner.Text()))
-		}
-	}
-	if err := scanner.Err(); err != nil {
-		return r, generalError("Failed to read logs", err)
 	}
 
 	return r, nil

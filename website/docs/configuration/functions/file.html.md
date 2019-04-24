@@ -48,5 +48,5 @@ Hello World
   interpreting the contents as UTF-8 text.
 * [`fileexists`](./fileexists.html) determines whether a file exists
   at a given path.
-* [`templatefile`](./templatefile.html) renders uses a file from disk as a
+* [`templatefile`](./templatefile.html) renders using a file from disk as a
   template.

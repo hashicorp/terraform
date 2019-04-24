@@ -2,7 +2,6 @@ package initwd
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform/registry"
 	"log"
 	"os"
 	"path/filepath"
@@ -13,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/internal/earlyconfig"
 	"github.com/hashicorp/terraform/internal/modsdir"
+	"github.com/hashicorp/terraform/registry"
 	"github.com/hashicorp/terraform/registry/regsrc"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -245,7 +245,18 @@ func (i *ModuleInstaller) installLocalModule(req *earlyconfig.ModuleRequest, key
 	// filesystem at all because the parent already wrote
 	// the files we need, and so we just load up what's already here.
 	newDir := filepath.Join(parentRecord.Dir, req.SourceAddr)
+
 	log.Printf("[TRACE] ModuleInstaller: %s uses directory from parent: %s", key, newDir)
+	// it is possible that the local directory is a symlink
+	newDir, err := filepath.EvalSymlinks(newDir)
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Unreadable module directory",
+			fmt.Sprintf("Unable to evaluate directory symlink: %s", err.Error()),
+		))
+	}
+
 	mod, mDiags := earlyconfig.LoadModule(newDir)
 	if mod == nil {
 		// nil indicates missing or unreadable directory, so we'll
@@ -471,17 +482,36 @@ func (i *ModuleInstaller) installGoGetterModule(req *earlyconfig.ModuleRequest, 
 
 	modDir, err := getter.getWithGoGetter(instPath, req.SourceAddr)
 	if err != nil {
-		// Errors returned by go-getter have very inconsistent quality as
-		// end-user error messages, but for now we're accepting that because
-		// we have no way to recognize any specific errors to improve them
-		// and masking the error entirely would hide valuable diagnostic
-		// information from the user.
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Failed to download module",
-			fmt.Sprintf("Error attempting to download module %q (%s:%d) source code from %q: %s", req.Name, req.CallPos.Filename, req.CallPos.Line, packageAddr, err),
-		))
+		if err, ok := err.(*MaybeRelativePathErr); ok {
+			log.Printf(
+				"[TRACE] ModuleInstaller: %s looks like a local path but is missing ./ or ../",
+				req.SourceAddr,
+			)
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Module not found",
+				fmt.Sprintf(
+					"The module address %q could not be resolved.\n\n"+
+						"If you intended this as a path relative to the current "+
+						"module, use \"./%s\" instead. The \"./\" prefix "+
+						"indicates that the address is a relative filesystem path.",
+					req.SourceAddr, req.SourceAddr,
+				),
+			))
+		} else {
+			// Errors returned by go-getter have very inconsistent quality as
+			// end-user error messages, but for now we're accepting that because
+			// we have no way to recognize any specific errors to improve them
+			// and masking the error entirely would hide valuable diagnostic
+			// information from the user.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to download module",
+				fmt.Sprintf("Error attempting to download module %q (%s:%d) source code from %q: %s", req.Name, req.CallPos.Filename, req.CallPos.Line, packageAddr, err),
+			))
+		}
 		return nil, diags
+
 	}
 
 	log.Printf("[TRACE] ModuleInstaller: %s %q was downloaded to %s", key, req.SourceAddr, modDir)

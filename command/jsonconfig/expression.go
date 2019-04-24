@@ -97,7 +97,7 @@ func marshalExpressions(body hcl.Body, schema *configschema.Block) expressions {
 		}
 
 		switch blockS.Nesting {
-		case configschema.NestingSingle:
+		case configschema.NestingSingle, configschema.NestingGroup:
 			ret[typeName] = marshalExpressions(block.Body, &blockS.Block)
 		case configschema.NestingList, configschema.NestingSet:
 			if _, exists := ret[typeName]; !exists {

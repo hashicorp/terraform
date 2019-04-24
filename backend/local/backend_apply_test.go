@@ -123,8 +123,7 @@ func TestLocal_applyError(t *testing.T) {
 	b, cleanup := TestLocal(t)
 	defer cleanup()
 
-	p := TestLocalProvider(t, b, "test", nil)
-	p.GetSchemaReturn = &terraform.ProviderSchema{
+	schema := &terraform.ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"test_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -134,6 +133,7 @@ func TestLocal_applyError(t *testing.T) {
 			},
 		},
 	}
+	p := TestLocalProvider(t, b, "test", schema)
 
 	var lock sync.Mutex
 	errored := false

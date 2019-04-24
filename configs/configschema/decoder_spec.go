@@ -19,11 +19,7 @@ func (b *Block) DecoderSpec() hcldec.Spec {
 	}
 
 	for name, attrS := range b.Attributes {
-		ret[name] = &hcldec.AttrSpec{
-			Name:     name,
-			Type:     attrS.Type,
-			Required: attrS.Required,
-		}
+		ret[name] = attrS.decoderSpec(name)
 	}
 
 	for name, blockS := range b.BlockTypes {
@@ -38,11 +34,19 @@ func (b *Block) DecoderSpec() hcldec.Spec {
 		childSpec := blockS.Block.DecoderSpec()
 
 		switch blockS.Nesting {
-		case NestingSingle:
+		case NestingSingle, NestingGroup:
 			ret[name] = &hcldec.BlockSpec{
 				TypeName: name,
 				Nested:   childSpec,
 				Required: blockS.MinItems == 1 && blockS.MaxItems >= 1,
+			}
+			if blockS.Nesting == NestingGroup {
+				ret[name] = &hcldec.DefaultSpec{
+					Primary: ret[name],
+					Default: &hcldec.LiteralSpec{
+						Value: blockS.EmptyValue(),
+					},
+				}
 			}
 		case NestingList:
 			// We prefer to use a list where possible, since it makes our
@@ -102,4 +106,12 @@ func (b *Block) DecoderSpec() hcldec.Spec {
 	}
 
 	return ret
+}
+
+func (a *Attribute) decoderSpec(name string) hcldec.Spec {
+	return &hcldec.AttrSpec{
+		Name:     name,
+		Type:     a.Type,
+		Required: a.Required,
+	}
 }

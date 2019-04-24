@@ -1,5 +1,10 @@
 {
     "format_version": "0.1",
+    "variables": {
+        "test_var": {
+            "value": "bar"
+        }
+    },
     "planned_values": {
         "outputs": {
             "test": {
@@ -16,7 +21,10 @@
                     "type": "test_instance",
                     "name": "test",
                     "provider_name": "test",
-                    "schema_version": 0
+                    "schema_version": 0,
+                    "values": {
+                        "ami": "bar"
+                    }
                 },
                 {
                     "address": "test_instance.test[1]",
@@ -25,7 +33,10 @@
                     "type": "test_instance",
                     "name": "test",
                     "provider_name": "test",
-                    "schema_version": 0
+                    "schema_version": 0,
+                    "values": {
+                        "ami": "bar"
+                    }
                 },
                 {
                     "address": "test_instance.test[2]",
@@ -34,7 +45,10 @@
                     "type": "test_instance",
                     "name": "test",
                     "provider_name": "test",
-                    "schema_version": 0
+                    "schema_version": 0,
+                    "values": {
+                        "ami": "bar"
+                    }
                 }
             ]
         }
@@ -45,8 +59,8 @@
             "index": 0,
             "mode": "managed",
             "type": "test_instance",
+            "provider_name": "test",
             "name": "test",
-            "deposed": true,
             "change": {
                 "actions": [
                     "create"
@@ -66,8 +80,8 @@
             "index": 1,
             "mode": "managed",
             "type": "test_instance",
+            "provider_name": "test",
             "name": "test",
-            "deposed": true,
             "change": {
                 "actions": [
                     "create"
@@ -87,8 +101,8 @@
             "index": 2,
             "mode": "managed",
             "type": "test_instance",
+            "provider_name": "test",
             "name": "test",
-            "deposed": true,
             "change": {
                 "actions": [
                     "create"
@@ -131,14 +145,25 @@
                     "mode": "managed",
                     "type": "test_instance",
                     "name": "test",
-                    "provider_config_key": "provider.test",
+                    "provider_config_key": "test",
                     "schema_version": 0,
+                    "expressions": {
+                        "ami": {
+                            "references": [
+                                "var.test_var"
+                            ]
+                        }
+                    },
                     "count_expression": {
                         "constant_value": 3
-                    },
-                    "for_each_expression": {}
+                    }
                 }
-            ]
+            ],
+            "variables": {
+                "test_var": {
+                    "default": "bar"
+                }
+            }
         }
     }
 }

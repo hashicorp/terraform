@@ -14,24 +14,14 @@ by the vendors and the Terraform community, and are tested by HashiCorp.
 
 ---
 
-[ACME](/docs/providers/acme/index.html)
-
-[Archive](/docs/providers/archive/index.html)
-
-[Cobbler](/docs/providers/cobbler/index.html)
-
-[External](/docs/providers/external/index.html)
-
-[Ignition](/docs/providers/ignition/index.html)
-
-[Local](/docs/providers/local/index.html)
-
-[Netlify](/docs/providers/netlify/index.html)
-
-[Null](/docs/providers/null/index.html)
-
-[Random](/docs/providers/random/index.html)
-
-[Template](/docs/providers/template/index.html)
-
-[TLS](/docs/providers/tls/index.html)
+- [ACME](/docs/providers/acme/index.html)
+- [Archive](/docs/providers/archive/index.html)
+- [Cobbler](/docs/providers/cobbler/index.html)
+- [External](/docs/providers/external/index.html)
+- [Ignition](/docs/providers/ignition/index.html)
+- [Local](/docs/providers/local/index.html)
+- [Netlify](/docs/providers/netlify/index.html)
+- [Null](/docs/providers/null/index.html)
+- [Random](/docs/providers/random/index.html)
+- [Template](/docs/providers/template/index.html)
+- [TLS](/docs/providers/tls/index.html)

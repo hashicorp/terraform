@@ -216,6 +216,34 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, diags.Err()
 	}
 
+	if errs := objchange.AssertPlanValid(schema, priorVal, configVal, plannedNewVal); len(errs) > 0 {
+		if resp.LegacyTypeSystem {
+			// The shimming of the old type system in the legacy SDK is not precise
+			// enough to pass this consistency check, so we'll give it a pass here,
+			// but we will generate a warning about it so that we are more likely
+			// to notice in the logs if an inconsistency beyond the type system
+			// leads to a downstream provider failure.
+			var buf strings.Builder
+			fmt.Fprintf(&buf, "[WARN] Provider %q produced an invalid plan for %s, but we are tolerating it because it is using the legacy plugin SDK.\n    The following problems may be the cause of any confusing errors from downstream operations:", n.ProviderAddr.ProviderConfig.Type, absAddr)
+			for _, err := range errs {
+				fmt.Fprintf(&buf, "\n      - %s", tfdiags.FormatError(err))
+			}
+			log.Print(buf.String())
+		} else {
+			for _, err := range errs {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Provider produced invalid plan",
+					fmt.Sprintf(
+						"Provider %q planned an invalid value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+						n.ProviderAddr.ProviderConfig.Type, tfdiags.FormatErrorPrefixed(err, absAddr.String()),
+					),
+				))
+			}
+			return nil, diags.Err()
+		}
+	}
+
 	{
 		var moreDiags tfdiags.Diagnostics
 		plannedNewVal, moreDiags = n.processIgnoreChanges(priorVal, plannedNewVal)
@@ -236,16 +264,15 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		for _, path := range resp.RequiresReplace {
 			if priorVal.IsNull() {
 				// If prior is null then we don't expect any RequiresReplace at all,
-				// because this is a Create action. (This is just to avoid errors
-				// when we use this value below, if the provider misbehaves.)
+				// because this is a Create action.
 				continue
 			}
-			plannedChangedVal, pathDiags := hcl.ApplyPath(plannedNewVal, path, nil)
-			if pathDiags.HasErrors() {
-				// This always indicates a provider bug, since RequiresReplace
-				// should always refer only to whole attributes (and not into
-				// attribute values themselves) and these should always be
-				// present, even though they might be null or unknown.
+
+			priorChangedVal, priorPathDiags := hcl.ApplyPath(priorVal, path, nil)
+			plannedChangedVal, plannedPathDiags := hcl.ApplyPath(plannedNewVal, path, nil)
+			if plannedPathDiags.HasErrors() && priorPathDiags.HasErrors() {
+				// This means the path was invalid in both the prior and new
+				// values, which is an error with the provider itself.
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Provider produced invalid plan",
@@ -256,17 +283,26 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 				))
 				continue
 			}
-			priorChangedVal, err := path.Apply(priorVal)
-			if err != nil {
-				// Should never happen since prior and changed should be of
-				// the same type, but we'll allow it for robustness.
-				reqRep.Add(path)
+
+			// Make sure we have valid Values for both values.
+			// Note: if the opposing value was of the type
+			// cty.DynamicPseudoType, the type assigned here may not exactly
+			// match the schema. This is fine here, since we're only going to
+			// check for equality, but if the NullVal is to be used, we need to
+			// check the schema for th true type.
+			switch {
+			case priorChangedVal == cty.NilVal && plannedChangedVal == cty.NilVal:
+				// this should never happen without ApplyPath errors above
+				panic("requires replace path returned 2 nil values")
+			case priorChangedVal == cty.NilVal:
+				priorChangedVal = cty.NullVal(plannedChangedVal.Type())
+			case plannedChangedVal == cty.NilVal:
+				plannedChangedVal = cty.NullVal(priorChangedVal.Type())
 			}
-			if priorChangedVal != cty.NilVal {
-				eqV := plannedChangedVal.Equals(priorChangedVal)
-				if !eqV.IsKnown() || eqV.False() {
-					reqRep.Add(path)
-				}
+
+			eqV := plannedChangedVal.Equals(priorChangedVal)
+			if !eqV.IsKnown() || eqV.False() {
+				reqRep.Add(path)
 			}
 		}
 		if diags.HasErrors() {

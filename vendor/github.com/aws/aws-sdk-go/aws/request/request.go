@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -266,7 +265,7 @@ func (r *Request) SetReaderBody(reader io.ReadSeeker) {
 
 // Presign returns the request's signed URL. Error will be returned
 // if the signing fails. The expire parameter is only used for presigned Amazon
-// S3 API requests. All other AWS services will use a fixed expriation
+// S3 API requests. All other AWS services will use a fixed expiration
 // time of 15 minutes.
 //
 // It is invalid to create a presigned URL with a expire duration 0 or less. An
@@ -286,7 +285,7 @@ func (r *Request) Presign(expire time.Duration) (string, error) {
 // PresignRequest behaves just like presign, with the addition of returning a
 // set of headers that were signed. The expire parameter is only used for
 // presigned Amazon S3 API requests. All other AWS services will use a fixed
-// expriation time of 15 minutes.
+// expiration time of 15 minutes.
 //
 // It is invalid to create a presigned URL with a expire duration 0 or less. An
 // error is returned if expire duration is 0 or less.
@@ -480,7 +479,7 @@ func (r *Request) Send() error {
 
 		if err := r.sendRequest(); err == nil {
 			return nil
-		} else if !shouldRetryCancel(r) {
+		} else if !shouldRetryCancel(r.Error) {
 			return err
 		} else {
 			r.Handlers.Retry.Run(r)
@@ -562,30 +561,46 @@ func AddToUserAgent(r *Request, s string) {
 	r.HTTPRequest.Header.Set("User-Agent", s)
 }
 
-func shouldRetryCancel(r *Request) bool {
-	awsErr, ok := r.Error.(awserr.Error)
-	timeoutErr := false
-	errStr := r.Error.Error()
-	if ok {
-		if awsErr.Code() == CanceledErrorCode {
+type temporary interface {
+	Temporary() bool
+}
+
+func shouldRetryCancel(err error) bool {
+	switch err := err.(type) {
+	case awserr.Error:
+		if err.Code() == CanceledErrorCode {
 			return false
 		}
-		err := awsErr.OrigErr()
-		netErr, netOK := err.(net.Error)
-		timeoutErr = netOK && netErr.Temporary()
-		if urlErr, ok := err.(*url.Error); !timeoutErr && ok {
-			errStr = urlErr.Err.Error()
+		return shouldRetryCancel(err.OrigErr())
+	case *url.Error:
+		if strings.Contains(err.Error(), "connection refused") {
+			// Refused connections should be retried as the service may not yet
+			// be running on the port. Go TCP dial considers refused
+			// connections as not temporary.
+			return true
 		}
+		// *url.Error only implements Temporary after golang 1.6 but since
+		// url.Error only wraps the error:
+		return shouldRetryCancel(err.Err)
+	case temporary:
+		// If the error is temporary, we want to allow continuation of the
+		// retry process
+		return err.Temporary()
+	case nil:
+		// `awserr.Error.OrigErr()` can be nil, meaning there was an error but
+		// because we don't know the cause, it is marked as retriable. See
+		// TestRequest4xxUnretryable for an example.
+		return true
+	default:
+		switch err.Error() {
+		case "net/http: request canceled",
+			"net/http: request canceled while waiting for connection":
+			// known 1.5 error case when an http request is cancelled
+			return false
+		}
+		// here we don't know the error; so we allow a retry.
+		return true
 	}
-
-	// There can be two types of canceled errors here.
-	// The first being a net.Error and the other being an error.
-	// If the request was timed out, we want to continue the retry
-	// process. Otherwise, return the canceled error.
-	return timeoutErr ||
-		(errStr != "net/http: request canceled" &&
-			errStr != "net/http: request canceled while waiting for connection")
-
 }
 
 // SanitizeHostForHeader removes default port from host and updates request.Host

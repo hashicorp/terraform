@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/mitchellh/cli"
 )
 
@@ -104,21 +105,14 @@ func (c *StateMvCommand) Run(args []string) int {
 		}
 	}
 
-	// Filter what we are moving.
-	results, err := c.filter(stateFrom, []string{args[0]})
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateFilter, err))
-		return cli.RunResultHelp
-	}
-
-	// If we have no results, exit early as we're not going to do anything.
-	if len(results) == 0 {
-		if dryRun {
-			c.Ui.Output("Would have moved nothing.")
-		} else {
-			c.Ui.Output("No matching objects found.")
-		}
-		return 0
+	var diags tfdiags.Diagnostics
+	sourceAddr, moreDiags := c.lookupSingleStateObjectAddr(stateFrom, args[0])
+	diags = diags.Append(moreDiags)
+	destAddr, moreDiags := c.lookupSingleStateObjectAddr(stateFrom, args[1])
+	diags = diags.Append(moreDiags)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
 	}
 
 	prefix := "Move"
@@ -126,28 +120,54 @@ func (c *StateMvCommand) Run(args []string) int {
 		prefix = "Would move"
 	}
 
+	const msgInvalidSource = "Invalid source address"
+	const msgInvalidTarget = "Invalid target address"
+
 	var moved int
 	ssFrom := stateFrom.SyncWrapper()
-	for _, result := range c.moveableResult(results) {
-		switch addrFrom := result.Address.(type) {
+	sourceAddrs := c.sourceObjectAddrs(stateFrom, sourceAddr)
+	if len(sourceAddrs) == 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			msgInvalidSource,
+			fmt.Sprintf("Cannot move %s: does not match anything in the current state.", sourceAddr),
+		))
+	}
+	for _, rawAddrFrom := range sourceAddrs {
+		switch addrFrom := rawAddrFrom.(type) {
 		case addrs.ModuleInstance:
-			search, err := addrs.ParseModuleInstanceStr(args[0])
-			if err != nil {
-				c.Ui.Error(fmt.Sprintf(errStateMv, err))
-				return 1
-			}
-			addrTo, err := addrs.ParseModuleInstanceStr(args[1])
-			if err != nil {
-				c.Ui.Error(fmt.Sprintf(errStateMv, err))
+			search := sourceAddr.(addrs.ModuleInstance)
+			addrTo, ok := destAddr.(addrs.ModuleInstance)
+			if !ok {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					msgInvalidTarget,
+					fmt.Sprintf("Cannot move %s to %s: the target must also be a module.", addrFrom, addrTo),
+				))
+				c.showDiagnostics(diags)
 				return 1
 			}
 
 			if len(search) < len(addrFrom) {
-				addrTo = append(addrTo, addrFrom[len(search):]...)
+				n := make(addrs.ModuleInstance, 0, len(addrTo)+len(addrFrom)-len(search))
+				n = append(n, addrTo...)
+				n = append(n, addrFrom[len(search):]...)
+				addrTo = n
 			}
 
 			if stateTo.Module(addrTo) != nil {
 				c.Ui.Error(fmt.Sprintf(errStateMv, "destination module already exists"))
+				return 1
+			}
+
+			ms := ssFrom.Module(addrFrom)
+			if ms == nil {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					msgInvalidSource,
+					fmt.Sprintf("The current state does not contain %s.", addrFrom),
+				))
+				c.showDiagnostics(diags)
 				return 1
 			}
 
@@ -157,31 +177,48 @@ func (c *StateMvCommand) Run(args []string) int {
 				ssFrom.RemoveModule(addrFrom)
 
 				// Update the address before adding it to the state.
-				m := result.Value.(*states.Module)
-				m.Addr = addrTo
-				stateTo.Modules[addrTo.String()] = m
+				ms.Addr = addrTo
+				stateTo.Modules[addrTo.String()] = ms
 			}
 
 		case addrs.AbsResource:
-			addrTo, err := addrs.ParseAbsResourceStr(args[1])
-			if err != nil {
-				c.Ui.Error(fmt.Sprintf(errStateMv, err))
+			addrTo, ok := destAddr.(addrs.AbsResource)
+			if !ok {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					msgInvalidTarget,
+					fmt.Sprintf("Cannot move %s to %s: the target must also be a whole resource.", addrFrom, addrTo),
+				))
+				c.showDiagnostics(diags)
 				return 1
 			}
-
-			if addrFrom.Resource.Type != addrTo.Resource.Type {
-				c.Ui.Error(fmt.Sprintf(
-					errStateMv, "resource types do not match"))
-				return 1
-			}
+			diags = diags.Append(c.validateResourceMove(addrFrom, addrTo))
 			if stateTo.Module(addrTo.Module) == nil {
-				c.Ui.Error(fmt.Sprintf(
-					errStateMv, "destination module does not exist"))
-				return 1
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					msgInvalidTarget,
+					fmt.Sprintf("Cannot move to %s: %s does not exist in the current state.", addrTo, addrTo.Module),
+				))
 			}
 			if stateTo.Resource(addrTo) != nil {
-				c.Ui.Error(fmt.Sprintf(
-					errStateMv, "destination resource already exists"))
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					msgInvalidTarget,
+					fmt.Sprintf("Cannot move to %s: there is already a resource at that address in the current state.", addrTo),
+				))
+			}
+
+			rs := ssFrom.Resource(addrFrom)
+			if rs == nil {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					msgInvalidSource,
+					fmt.Sprintf("The current state does not contain %s.", addrFrom),
+				))
+			}
+
+			if diags.HasErrors() {
+				c.showDiagnostics(diags)
 				return 1
 			}
 
@@ -191,43 +228,99 @@ func (c *StateMvCommand) Run(args []string) int {
 				ssFrom.RemoveResource(addrFrom)
 
 				// Update the address before adding it to the state.
-				rs := result.Value.(*states.Resource)
 				rs.Addr = addrTo.Resource
 				stateTo.Module(addrTo.Module).Resources[addrTo.Resource.String()] = rs
 			}
 
 		case addrs.AbsResourceInstance:
-			addrTo, err := addrs.ParseAbsResourceInstanceStr(args[1])
-			if err != nil {
-				c.Ui.Error(fmt.Sprintf(errStateMv, err))
-				return 1
+			addrTo, ok := destAddr.(addrs.AbsResourceInstance)
+			if !ok {
+				ra, ok := destAddr.(addrs.AbsResource)
+				if !ok {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						msgInvalidTarget,
+						fmt.Sprintf("Cannot move %s to %s: the target must also be a resource instance.", addrFrom, addrTo),
+					))
+					c.showDiagnostics(diags)
+					return 1
+				}
+				addrTo = ra.Instance(addrs.NoKey)
 			}
 
+			diags = diags.Append(c.validateResourceMove(addrFrom.ContainingResource(), addrTo.ContainingResource()))
+
 			if stateTo.Module(addrTo.Module) == nil {
-				c.Ui.Error(fmt.Sprintf(
-					errStateMv, "destination module does not exist"))
-				return 1
-			}
-			if stateTo.Resource(addrTo.ContainingResource()) == nil {
-				c.Ui.Error(fmt.Sprintf(
-					errStateMv, "destination resource does not exist"))
-				return 1
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					msgInvalidTarget,
+					fmt.Sprintf("Cannot move to %s: %s does not exist in the current state.", addrTo, addrTo.Module),
+				))
 			}
 			if stateTo.ResourceInstance(addrTo) != nil {
-				c.Ui.Error(fmt.Sprintf(
-					errStateMv, "destination resource instance already exists"))
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					msgInvalidTarget,
+					fmt.Sprintf("Cannot move to %s: there is already a resource instance at that address in the current state.", addrTo),
+				))
+			}
+
+			is := ssFrom.ResourceInstance(addrFrom)
+			if is == nil {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					msgInvalidSource,
+					fmt.Sprintf("The current state does not contain %s.", addrFrom),
+				))
+			}
+
+			if diags.HasErrors() {
+				c.showDiagnostics(diags)
 				return 1
 			}
 
 			moved++
 			c.Ui.Output(fmt.Sprintf("%s %q to %q", prefix, addrFrom.String(), args[1]))
 			if !dryRun {
+				fromResourceAddr := addrFrom.ContainingResource()
+				fromProviderAddr := ssFrom.Resource(fromResourceAddr).ProviderConfig
 				ssFrom.ForgetResourceInstanceAll(addrFrom)
-				ssFrom.RemoveResourceIfEmpty(addrFrom.ContainingResource())
+				ssFrom.RemoveResourceIfEmpty(fromResourceAddr)
 
 				rs := stateTo.Resource(addrTo.ContainingResource())
-				rs.Instances[addrTo.Resource.Key] = result.Value.(*states.ResourceInstance)
+				if rs == nil {
+					// If we're moving to an address without an index then that
+					// suggests the user's intent is to establish both the
+					// resource and the instance at the same time (since the
+					// address covers both), but if there's an index in the
+					// target then the resource must already exist.
+					if addrTo.Resource.Key != addrs.NoKey {
+						diags = diags.Append(tfdiags.Sourceless(
+							tfdiags.Error,
+							msgInvalidTarget,
+							fmt.Sprintf("Cannot move to %s: %s does not exist in the current state.", addrTo, addrTo.ContainingResource()),
+						))
+						c.showDiagnostics(diags)
+						return 1
+					}
+
+					resourceAddr := addrTo.ContainingResource()
+					stateTo.SyncWrapper().SetResourceMeta(
+						resourceAddr,
+						states.NoEach,
+						fromProviderAddr, // in this case, we bring the provider along as if we were moving the whole resource
+					)
+					rs = stateTo.Resource(resourceAddr)
+				}
+
+				rs.Instances[addrTo.Resource.Key] = is
 			}
+		default:
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				msgInvalidSource,
+				fmt.Sprintf("Cannot move %s: Terraform doesn't know how to move this object.", rawAddrFrom),
+			))
 		}
 	}
 
@@ -260,6 +353,8 @@ func (c *StateMvCommand) Run(args []string) int {
 		}
 	}
 
+	c.showDiagnostics(diags)
+
 	if moved == 0 {
 		c.Ui.Output("No matching objects found.")
 	} else {
@@ -268,24 +363,82 @@ func (c *StateMvCommand) Run(args []string) int {
 	return 0
 }
 
-// moveableResult takes the result from a filter operation and returns what
-// object(s) to move. The reason we do this is because in the module case
-// we must add the list of all modules returned versus just the root module.
-func (c *StateMvCommand) moveableResult(results []*states.FilterResult) []*states.FilterResult {
-	result := results[:1]
+// sourceObjectAddrs takes a single source object address and expands it to
+// potentially multiple objects that need to be handled within it.
+//
+// In particular, this handles the case where a module is requested directly:
+// if it has any child modules, then they must also be moved. It also resolves
+// the ambiguity that an index-less resource address could either be a resource
+// address or a resource instance address, by making a decision about which
+// is intended based on the current state of the resource in question.
+func (c *StateMvCommand) sourceObjectAddrs(state *states.State, matched addrs.Targetable) []addrs.Targetable {
+	var ret []addrs.Targetable
 
-	if len(results) > 1 {
-		// If a state module then we should add the full list of modules.
-		if _, ok := result[0].Address.(addrs.ModuleInstance); ok {
-			for _, r := range results[1:] {
-				if _, ok := r.Address.(addrs.ModuleInstance); ok {
-					result = append(result, r)
-				}
+	switch addr := matched.(type) {
+	case addrs.ModuleInstance:
+		for _, mod := range state.Modules {
+			if len(mod.Addr) < len(addr) {
+				continue // can't possibly be our selection or a child of it
 			}
+			if !mod.Addr[:len(addr)].Equal(addr) {
+				continue
+			}
+			ret = append(ret, mod.Addr)
 		}
+	case addrs.AbsResource:
+		// If this refers to a resource without "count" or "for_each" set then
+		// we'll assume the user intended it to be a resource instance
+		// address instead, to allow for requests like this:
+		//   terraform state mv aws_instance.foo aws_instance.bar[1]
+		// That wouldn't be allowed if aws_instance.foo had multiple instances
+		// since we can't move multiple instances into one.
+		if rs := state.Resource(addr); rs != nil && rs.EachMode == states.NoEach {
+			ret = append(ret, addr.Instance(addrs.NoKey))
+		} else {
+			ret = append(ret, addr)
+		}
+	default:
+		ret = append(ret, matched)
 	}
 
-	return result
+	return ret
+}
+
+func (c *StateMvCommand) validateResourceMove(addrFrom, addrTo addrs.AbsResource) tfdiags.Diagnostics {
+	const msgInvalidRequest = "Invalid state move request"
+
+	var diags tfdiags.Diagnostics
+	if addrFrom.Resource.Mode != addrTo.Resource.Mode {
+		switch addrFrom.Resource.Mode {
+		case addrs.ManagedResourceMode:
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				msgInvalidRequest,
+				fmt.Sprintf("Cannot move %s to %s: a managed resource can be moved only to another managed resource address.", addrFrom, addrTo),
+			))
+		case addrs.DataResourceMode:
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				msgInvalidRequest,
+				fmt.Sprintf("Cannot move %s to %s: a data resource can be moved only to another data resource address.", addrFrom, addrTo),
+			))
+		default:
+			// In case a new mode is added in future, this unhelpful error is better than nothing.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				msgInvalidRequest,
+				fmt.Sprintf("Cannot move %s to %s: cannot change resource mode.", addrFrom, addrTo),
+			))
+		}
+	}
+	if addrFrom.Resource.Type != addrTo.Resource.Type {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			msgInvalidRequest,
+			fmt.Sprintf("Cannot move %s to %s: resource types don't match.", addrFrom, addrTo),
+		))
+	}
+	return diags
 }
 
 func (c *StateMvCommand) Help() string {

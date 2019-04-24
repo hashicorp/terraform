@@ -1,4 +1,4 @@
-// Copyright 2016 Google Inc. All Rights Reserved.
+// Copyright 2016 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,12 +15,10 @@
 package internal
 
 import (
-	"fmt"
+	"context"
 	"time"
 
-	gax "github.com/googleapis/gax-go"
-
-	"golang.org/x/net/context"
+	gax "github.com/googleapis/gax-go/v2"
 )
 
 // Retry calls the supplied function f repeatedly according to the provided
@@ -48,7 +46,7 @@ func retry(ctx context.Context, bo gax.Backoff, f func() (stop bool, err error),
 		p := bo.Pause()
 		if cerr := sleep(ctx, p); cerr != nil {
 			if lastErr != nil {
-				return fmt.Errorf("%v; last function err: %v", cerr, lastErr)
+				return Annotatef(lastErr, "retry failed with %v; last error", cerr)
 			}
 			return cerr
 		}

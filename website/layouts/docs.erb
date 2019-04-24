@@ -1,6 +1,6 @@
 <% wrap_layout :inner do %>
   <% content_for :sidebar do %>
-    <h4><a href="/docs/index.html">Terraform CLI</a></h4>
+    <h4><a href="/docs/cli-index.html">Terraform CLI</a></h4>
 
     <ul class="nav docs-sidenav">
       <li<%= sidebar_current("docs-conf") %>>
@@ -229,6 +229,10 @@
           <li<%= sidebar_current("docs-commands-workspace") %>>
             <a href="/docs/commands/workspace/index.html">workspace</a>
           </li>
+
+          <li<%= sidebar_current("docs-commands-012upgrade") %>>
+            <a href="/docs/commands/0.12upgrade.html">0.12upgrade</a>
+          </li>
         </ul>
       </li>
 
@@ -323,6 +327,10 @@
             <a href="/docs/provisioners/connection.html">Provisioner Connections</a>
           </li>
 
+          <li<%= sidebar_current("docs-provisioners-null-resource") %>>
+            <a href="/docs/provisioners/null_resource.html">Provisioners Without a Resource</a>
+          </li>
+
           <li<%= sidebar_current("docs-provisioners-chef") %>>
             <a href="/docs/provisioners/chef.html">chef Provisioner</a>
           </li>
@@ -339,10 +347,6 @@
             <a href="/docs/provisioners/local-exec.html">local-exec Provisioner</a>
           </li>
 
-          <li<%= sidebar_current("docs-provisioners-null-resource") %>>
-            <a href="/docs/provisioners/null_resource.html">null_resource Provisioner</a>
-          </li>
-
           <li<%= sidebar_current("docs-provisioners-remote") %>>
             <a href="/docs/provisioners/remote-exec.html">remote-exec Provisioner</a>
           </li>
@@ -356,16 +360,16 @@
       <li<%= sidebar_current("docs-modules") %>>
         <a href="/docs/modules/index.html">Modules</a>
         <ul class="nav">
-          <li<%= sidebar_current("docs-modules-usage") %>>
-            <a href="/docs/modules/usage.html">Usage</a>
+          <li<%= sidebar_current("docs-modules-publish") %>>
+            <a href="/docs/modules/publish.html">Publishing Modules</a>
           </li>
 
           <li<%= sidebar_current("docs-modules-sources") %>>
-            <a href="/docs/modules/sources.html">Sources</a>
+            <a href="/docs/modules/sources.html">Source Types</a>
           </li>
 
-          <li<%= sidebar_current("docs-modules-create") %>>
-            <a href="/docs/modules/create.html">Creating Modules</a>
+          <li<%= sidebar_current("docs-modules-composition") %>>
+            <a href="/docs/modules/composition.html">Module Composition</a>
           </li>
         </ul>
       </li>
@@ -431,6 +435,10 @@
             <a href="/docs/internals/resource-addressing.html">Resource Addressing</a>
           </li>
 
+          <li<%= sidebar_current("docs-internals-json") %>>
+            <a href="/docs/internals/json-format.html">JSON Output Format</a>
+          </li>
+
           <li<%= sidebar_current("docs-internals-remote-service-discovery") %>>
             <a href="/docs/internals/remote-service-discovery.html">Remote Service Discovery</a>
           </li>
@@ -443,37 +451,7 @@
 
     </ul>
 
-    <h4>Other Docs</h4>
-
-    <ul class="nav docs-sidenav">
-      <li>
-        <a class="back" href="/downloads.html">Download Terraform</a>
-      </li>
-
-      <li>
-        <a class="back" href="/intro/index.html">Introduction to Terraform</a>
-      </li>
-
-      <li>
-        <a class="back" href="/docs/enterprise/index.html">Terraform Enterprise</a>
-      </li>
-
-      <li>
-        <a class="back" href="/guides/index.html">Guides and Whitepapers</a>
-      </li>
-
-      <li>
-        <a class="back" href="/docs/registry/index.html">Terraform Registry</a>
-      </li>
-
-      <li>
-        <a class="back" href="/docs/github-actions/index.html">Terraform GitHub Actions</a>
-      </li>
-
-      <li>
-        <a class="back" href="/docs/extend/index.html">Extending Terraform</a>
-      </li>
-    </ul>
+    <%= partial("layouts/otherdocs", :locals => { :skip => "Terraform CLI" }) %>
   <% end %>
 
   <%= yield %>

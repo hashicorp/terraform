@@ -1,5 +1,5 @@
 // Package statemgr defines the interfaces and some supporting functionality
-// for "stage managers", which are components responsible for writing state
+// for "state managers", which are components responsible for writing state
 // to some persistent storage and then later retrieving it.
 //
 // State managers will usually (but not necessarily) use the state file formats

@@ -58,8 +58,8 @@ simple_attr = "val"
 	}
 	emptySrcRng := &SourceRange{
 		Filename: "test.tf",
-		Start:    SourcePos{Line: 33, Column: 1, Byte: 440},
-		End:      SourcePos{Line: 33, Column: 1, Byte: 440},
+		Start:    SourcePos{Line: 1, Column: 1, Byte: 0},
+		End:      SourcePos{Line: 1, Column: 1, Byte: 0},
 	}
 
 	testCases := []struct {

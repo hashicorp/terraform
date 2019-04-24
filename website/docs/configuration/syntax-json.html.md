@@ -1,7 +1,7 @@
 ---
 layout: "docs"
 page_title: "JSON Configuration Syntax - Configuration Language"
-sidebar_current: "docs-config-json-syntax"
+sidebar_current: "docs-config-syntax-json"
 description: |-
   In addition to the native syntax that is most commonly used with Terraform,
   the Terraform language can also be expressed in a JSON-compatible syntax.
@@ -316,7 +316,7 @@ mapping rules that apply to each top-level block type.
 
 Some meta-arguments for the `resource` and `data` block types take direct
 references to objects, or literal keywords. When represented in JSON, the
-reference or keyword is given as a JSON string with no additonal surrounding
+reference or keyword is given as a JSON string with no additional surrounding
 spaces or symbols.
 
 For example, the `provider` meta-argument takes a `<PROVIDER>.<ALIAS>` reference

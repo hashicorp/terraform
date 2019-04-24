@@ -19,9 +19,11 @@ type ListOptsBuilder interface {
 type ListOpts struct {
 	Status       string `q:"status"`
 	Name         string `q:"name"`
+	Description  string `q:"description"`
 	AdminStateUp *bool  `q:"admin_state_up"`
 	NetworkID    string `q:"network_id"`
 	TenantID     string `q:"tenant_id"`
+	ProjectID    string `q:"project_id"`
 	DeviceOwner  string `q:"device_owner"`
 	MACAddress   string `q:"mac_address"`
 	ID           string `q:"id"`
@@ -30,6 +32,10 @@ type ListOpts struct {
 	Marker       string `q:"marker"`
 	SortKey      string `q:"sort_key"`
 	SortDir      string `q:"sort_dir"`
+	Tags         string `q:"tags"`
+	TagsAny      string `q:"tags-any"`
+	NotTags      string `q:"not-tags"`
+	NotTagsAny   string `q:"not-tags-any"`
 }
 
 // ToPortListQuery formats a ListOpts into a query string.
@@ -65,10 +71,8 @@ func Get(c *gophercloud.ServiceClient, id string) (r GetResult) {
 	return
 }
 
-// CreateOptsBuilder is the interface options structs have to satisfy in order
-// to be used in the main Create operation in this package. Since many
-// extensions decorate or modify the common logic, it is useful for them to
-// satisfy a basic interface in order for them to be used.
+// CreateOptsBuilder allows extensions to add additional parameters to the
+// Create request.
 type CreateOptsBuilder interface {
 	ToPortCreateMap() (map[string]interface{}, error)
 }
@@ -77,17 +81,19 @@ type CreateOptsBuilder interface {
 type CreateOpts struct {
 	NetworkID           string        `json:"network_id" required:"true"`
 	Name                string        `json:"name,omitempty"`
+	Description         string        `json:"description,omitempty"`
 	AdminStateUp        *bool         `json:"admin_state_up,omitempty"`
 	MACAddress          string        `json:"mac_address,omitempty"`
 	FixedIPs            interface{}   `json:"fixed_ips,omitempty"`
 	DeviceID            string        `json:"device_id,omitempty"`
 	DeviceOwner         string        `json:"device_owner,omitempty"`
 	TenantID            string        `json:"tenant_id,omitempty"`
-	SecurityGroups      []string      `json:"security_groups,omitempty"`
+	ProjectID           string        `json:"project_id,omitempty"`
+	SecurityGroups      *[]string     `json:"security_groups,omitempty"`
 	AllowedAddressPairs []AddressPair `json:"allowed_address_pairs,omitempty"`
 }
 
-// ToPortCreateMap casts a CreateOpts struct to a map.
+// ToPortCreateMap builds a request body from CreateOpts.
 func (opts CreateOpts) ToPortCreateMap() (map[string]interface{}, error) {
 	return gophercloud.BuildRequestBody(opts, "port")
 }
@@ -104,26 +110,25 @@ func Create(c *gophercloud.ServiceClient, opts CreateOptsBuilder) (r CreateResul
 	return
 }
 
-// UpdateOptsBuilder is the interface options structs have to satisfy in order
-// to be used in the main Update operation in this package. Since many
-// extensions decorate or modify the common logic, it is useful for them to
-// satisfy a basic interface in order for them to be used.
+// UpdateOptsBuilder allows extensions to add additional parameters to the
+// Update request.
 type UpdateOptsBuilder interface {
 	ToPortUpdateMap() (map[string]interface{}, error)
 }
 
 // UpdateOpts represents the attributes used when updating an existing port.
 type UpdateOpts struct {
-	Name                string        `json:"name,omitempty"`
-	AdminStateUp        *bool         `json:"admin_state_up,omitempty"`
-	FixedIPs            interface{}   `json:"fixed_ips,omitempty"`
-	DeviceID            string        `json:"device_id,omitempty"`
-	DeviceOwner         string        `json:"device_owner,omitempty"`
-	SecurityGroups      []string      `json:"security_groups"`
-	AllowedAddressPairs []AddressPair `json:"allowed_address_pairs"`
+	Name                *string        `json:"name,omitempty"`
+	Description         *string        `json:"description,omitempty"`
+	AdminStateUp        *bool          `json:"admin_state_up,omitempty"`
+	FixedIPs            interface{}    `json:"fixed_ips,omitempty"`
+	DeviceID            *string        `json:"device_id,omitempty"`
+	DeviceOwner         *string        `json:"device_owner,omitempty"`
+	SecurityGroups      *[]string      `json:"security_groups,omitempty"`
+	AllowedAddressPairs *[]AddressPair `json:"allowed_address_pairs,omitempty"`
 }
 
-// ToPortUpdateMap casts an UpdateOpts struct to a map.
+// ToPortUpdateMap builds a request body from UpdateOpts.
 func (opts UpdateOpts) ToPortUpdateMap() (map[string]interface{}, error) {
 	return gophercloud.BuildRequestBody(opts, "port")
 }
@@ -148,11 +153,17 @@ func Delete(c *gophercloud.ServiceClient, id string) (r DeleteResult) {
 	return
 }
 
-// IDFromName is a convenience function that returns a port's ID given its name.
+// IDFromName is a convenience function that returns a port's ID,
+// given its name.
 func IDFromName(client *gophercloud.ServiceClient, name string) (string, error) {
 	count := 0
 	id := ""
-	pages, err := List(client, nil).AllPages()
+
+	listOpts := ListOpts{
+		Name: name,
+	}
+
+	pages, err := List(client, listOpts).AllPages()
 	if err != nil {
 		return "", err
 	}

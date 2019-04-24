@@ -41,13 +41,21 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 		return errs
 	}
 
-	for name := range schema.Attributes {
+	for name, attrS := range schema.Attributes {
 		plannedV := planned.GetAttr(name)
 		actualV := actual.GetAttr(name)
 
 		path := append(path, cty.GetAttrStep{Name: name})
 		moreErrs := assertValueCompatible(plannedV, actualV, path)
-		errs = append(errs, moreErrs...)
+		if attrS.Sensitive {
+			if len(moreErrs) > 0 {
+				// Use a vague placeholder message instead, to avoid disclosing
+				// sensitive information.
+				errs = append(errs, path.NewErrorf("inconsistent values for sensitive attribute"))
+			}
+		} else {
+			errs = append(errs, moreErrs...)
+		}
 	}
 	for name, blockS := range schema.BlockTypes {
 		plannedV := planned.GetAttr(name)
@@ -59,7 +67,7 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 		// expression is itself unknown and thus it cannot predict how many
 		// child blocks will get created.
 		switch blockS.Nesting {
-		case configschema.NestingSingle:
+		case configschema.NestingSingle, configschema.NestingGroup:
 			if allLeafValuesUnknown(plannedV) && !plannedV.IsNull() {
 				return errs
 			}
@@ -76,7 +84,7 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 
 		path := append(path, cty.GetAttrStep{Name: name})
 		switch blockS.Nesting {
-		case configschema.NestingSingle:
+		case configschema.NestingSingle, configschema.NestingGroup:
 			moreErrs := assertObjectCompatible(&blockS.Block, plannedV, actualV, path)
 			errs = append(errs, moreErrs...)
 		case configschema.NestingList:
@@ -149,7 +157,7 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 				}
 			}
 		case configschema.NestingSet:
-			if !plannedV.IsKnown() || plannedV.IsNull() || actualV.IsNull() {
+			if !plannedV.IsKnown() || !actualV.IsKnown() || plannedV.IsNull() || actualV.IsNull() {
 				continue
 			}
 

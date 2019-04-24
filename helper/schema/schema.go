@@ -12,6 +12,7 @@
 package schema
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"reflect"
@@ -73,6 +74,54 @@ type Schema struct {
 	//   TypeSet - *schema.Set
 	//
 	Type ValueType
+
+	// ConfigMode allows for overriding the default behaviors for mapping
+	// schema entries onto configuration constructs.
+	//
+	// By default, the Elem field is used to choose whether a particular
+	// schema is represented in configuration as an attribute or as a nested
+	// block; if Elem is a *schema.Resource then it's a block and it's an
+	// attribute otherwise.
+	//
+	// If Elem is *schema.Resource then setting ConfigMode to
+	// SchemaConfigModeAttr will force it to be represented in configuration
+	// as an attribute, which means that the Computed flag can be used to
+	// provide default elements when the argument isn't set at all, while still
+	// allowing the user to force zero elements by explicitly assigning an
+	// empty list.
+	//
+	// When Computed is set without Optional, the attribute is not settable
+	// in configuration at all and so SchemaConfigModeAttr is the automatic
+	// behavior, and SchemaConfigModeBlock is not permitted.
+	ConfigMode SchemaConfigMode
+
+	// SkipCoreTypeCheck, if set, will advertise this attribute to Terraform Core
+	// has being dynamically-typed rather than deriving a type from the schema.
+	// This has the effect of making Terraform Core skip all type-checking of
+	// the value, and thus leaves all type checking up to a combination of this
+	// SDK and the provider's own code.
+	//
+	// This flag does nothing for Terraform versions prior to v0.12, because
+	// in prior versions there was no Core-side typecheck anyway.
+	//
+	// The most practical effect of this flag is to allow object-typed schemas
+	// (specified with Elem: schema.Resource) to pass through Terraform Core
+	// even without all of the object type attributes specified, which may be
+	// useful when using ConfigMode: SchemaConfigModeAttr to achieve
+	// nested-block-like behaviors while using attribute syntax.
+	//
+	// However, by doing so we require type information to be sent and stored
+	// per-object rather than just once statically in the schema, and so this
+	// will change the wire serialization of a resource type in state. Changing
+	// the value of SkipCoreTypeCheck will therefore require a state migration
+	// if there has previously been any release of the provider compatible with
+	// Terraform v0.12.
+	//
+	// SkipCoreTypeCheck can only be set when ConfigMode is SchemaConfigModeAttr,
+	// because nested blocks cannot be decoded by Terraform Core without at
+	// least shallow information about the next level of nested attributes and
+	// blocks.
+	SkipCoreTypeCheck bool
 
 	// If one of these is set, then this item can come from the configuration.
 	// Both cannot be set. If Optional is set, the value is optional. If
@@ -146,7 +195,8 @@ type Schema struct {
 	// The following fields are only set for a TypeList, TypeSet, or TypeMap.
 	//
 	// Elem represents the element type. For a TypeMap, it must be a *Schema
-	// with a Type of TypeString, otherwise it may be either a *Schema or a
+	// with a Type that is one of the primitives: TypeString, TypeBool,
+	// TypeInt, or TypeFloat. Otherwise it may be either a *Schema or a
 	// *Resource. If it is *Schema, the element type is just a simple value.
 	// If it is *Resource, the element type is a complex structure,
 	// potentially with its own lifecycle.
@@ -216,7 +266,8 @@ type Schema struct {
 	// guaranteed to be of the proper Schema type, and it can yield warnings or
 	// errors based on inspection of that value.
 	//
-	// ValidateFunc currently only works for primitive types.
+	// ValidateFunc is honored only when the schema's Type is set to TypeInt,
+	// TypeFloat, TypeString, TypeBool, or TypeMap. It is ignored for all other types.
 	ValidateFunc SchemaValidateFunc
 
 	// Sensitive ensures that the attribute's value does not get displayed in
@@ -225,6 +276,17 @@ type Schema struct {
 	// values.
 	Sensitive bool
 }
+
+// SchemaConfigMode is used to influence how a schema item is mapped into a
+// corresponding configuration construct, using the ConfigMode field of
+// Schema.
+type SchemaConfigMode int
+
+const (
+	SchemaConfigModeAuto SchemaConfigMode = iota
+	SchemaConfigModeAttr
+	SchemaConfigModeBlock
+)
 
 // SchemaDiffSuppressFunc is a function which can be used to determine
 // whether a detected diff on a schema element is "valid" or not, and
@@ -647,6 +709,10 @@ func (m schemaMap) Validate(c *terraform.ResourceConfig) ([]string, []error) {
 // from a unit test (and not in user-path code) to verify that a schema
 // is properly built.
 func (m schemaMap) InternalValidate(topSchemaMap schemaMap) error {
+	return m.internalValidate(topSchemaMap, false)
+}
+
+func (m schemaMap) internalValidate(topSchemaMap schemaMap, attrsOnly bool) error {
 	if topSchemaMap == nil {
 		topSchemaMap = m
 	}
@@ -665,6 +731,42 @@ func (m schemaMap) InternalValidate(topSchemaMap schemaMap) error {
 
 		if !v.Required && !v.Optional && !v.Computed {
 			return fmt.Errorf("%s: One of optional, required, or computed must be set", k)
+		}
+
+		computedOnly := v.Computed && !v.Optional
+
+		isBlock := false
+
+		switch v.ConfigMode {
+		case SchemaConfigModeBlock:
+			if _, ok := v.Elem.(*Resource); !ok {
+				return fmt.Errorf("%s: ConfigMode of block is allowed only when Elem is *schema.Resource", k)
+			}
+			if attrsOnly {
+				return fmt.Errorf("%s: ConfigMode of block cannot be used in child of schema with ConfigMode of attribute", k)
+			}
+			if computedOnly {
+				return fmt.Errorf("%s: ConfigMode of block cannot be used for computed schema", k)
+			}
+			isBlock = true
+		case SchemaConfigModeAttr:
+			// anything goes
+		case SchemaConfigModeAuto:
+			// Since "Auto" for Elem: *Resource would create a nested block,
+			// and that's impossible inside an attribute, we require it to be
+			// explicitly overridden as mode "Attr" for clarity.
+			if _, ok := v.Elem.(*Resource); ok {
+				isBlock = true
+				if attrsOnly {
+					return fmt.Errorf("%s: in *schema.Resource with ConfigMode of attribute, so must also have ConfigMode of attribute", k)
+				}
+			}
+		default:
+			return fmt.Errorf("%s: invalid ConfigMode value", k)
+		}
+
+		if isBlock && v.SkipCoreTypeCheck {
+			return fmt.Errorf("%s: SkipCoreTypeCheck must be false unless ConfigMode is attribute", k)
 		}
 
 		if v.Computed && v.Default != nil {
@@ -731,7 +833,9 @@ func (m schemaMap) InternalValidate(topSchemaMap schemaMap) error {
 
 			switch t := v.Elem.(type) {
 			case *Resource:
-				if err := t.InternalValidate(topSchemaMap, true); err != nil {
+				attrsOnly := attrsOnly || v.ConfigMode == SchemaConfigModeAttr
+
+				if err := schemaMap(t.Schema).internalValidate(topSchemaMap, attrsOnly); err != nil {
 					return err
 				}
 			case *Schema:
@@ -1255,7 +1359,7 @@ func (m schemaMap) inputString(
 	input terraform.UIInput,
 	k string,
 	schema *Schema) (interface{}, error) {
-	result, err := input.Input(&terraform.InputOpts{
+	result, err := input.Input(context.Background(), &terraform.InputOpts{
 		Id:          k,
 		Query:       k,
 		Description: schema.Description,

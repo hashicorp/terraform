@@ -191,7 +191,7 @@ func (c *PlanCommand) Run(args []string) int {
 
 func (c *PlanCommand) Help() string {
 	helpText := `
-Usage: terraform plan [options] [DIR-OR-PLAN]
+Usage: terraform plan [options] [DIR]
 
   Generates an execution plan for Terraform.
 
@@ -199,9 +199,6 @@ Usage: terraform plan [options] [DIR-OR-PLAN]
   sense for what Terraform will do. Optionally, the plan can be saved to
   a Terraform plan file, and apply can take this plan file to execute
   this plan exactly.
-
-  If a saved plan is passed as an argument, this command will output
-  the saved plan contents. It will not modify the given plan.
 
 Options:
 

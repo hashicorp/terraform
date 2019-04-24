@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/planfile"
+	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -161,7 +162,7 @@ func (b *Local) opPlan(
 			return
 		}
 
-		b.renderPlan(plan, schemas)
+		b.renderPlan(plan, baseState, schemas)
 
 		// If we've accumulated any warnings along the way then we'll show them
 		// here just before we show the summary and next steps. If we encountered
@@ -188,7 +189,7 @@ func (b *Local) opPlan(
 	}
 }
 
-func (b *Local) renderPlan(plan *plans.Plan, schemas *terraform.Schemas) {
+func (b *Local) renderPlan(plan *plans.Plan, state *states.State, schemas *terraform.Schemas) {
 	counts := map[plans.Action]int{}
 	var rChanges []*plans.ResourceInstanceChangeSrc
 	for _, change := range plan.Changes.Resources {
@@ -255,8 +256,19 @@ func (b *Local) renderPlan(plan *plans.Plan, schemas *terraform.Schemas) {
 			b.CLI.Output(fmt.Sprintf("(schema missing for %s)\n", rcs.Addr))
 			continue
 		}
+
+		// check if the change is due to a tainted resource
+		tainted := false
+		if !state.Empty() {
+			rs := state.ResourceInstance(rcs.Addr)
+			if rs != nil {
+				tainted = rs.Current.Status == states.ObjectTainted
+			}
+		}
+
 		b.CLI.Output(format.ResourceChange(
 			rcs,
+			tainted,
 			rSchema,
 			b.CLIColor,
 		))

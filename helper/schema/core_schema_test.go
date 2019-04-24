@@ -298,19 +298,14 @@ func TestSchemaMapCoreConfigSchema(t *testing.T) {
 				},
 			},
 			testResource(&configschema.Block{
-				Attributes: map[string]*configschema.Attribute{},
-				BlockTypes: map[string]*configschema.NestedBlock{
+				Attributes: map[string]*configschema.Attribute{
 					"list": {
-						Nesting:  configschema.NestingList,
-						Block:    configschema.Block{},
-						MinItems: 0,
-						MaxItems: 0,
+						Type:     cty.List(cty.EmptyObject),
+						Computed: true,
 					},
 					"set": {
-						Nesting:  configschema.NestingSet,
-						Block:    configschema.Block{},
-						MinItems: 0,
-						MaxItems: 0,
+						Type:     cty.Set(cty.EmptyObject),
+						Computed: true,
 					},
 				},
 			}),
@@ -444,6 +439,28 @@ func TestSchemaMapCoreConfigSchema(t *testing.T) {
 				Attributes: map[string]*configschema.Attribute{
 					"string": {
 						Type:     cty.String,
+						Optional: true, // Just so we can progress to provider-driven validation and return the error there
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{},
+			}),
+		},
+		"skip core type check": {
+			map[string]*Schema{
+				"list": {
+					Type:              TypeList,
+					ConfigMode:        SchemaConfigModeAttr,
+					SkipCoreTypeCheck: true,
+					Optional:          true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{},
+					},
+				},
+			},
+			testResource(&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"list": {
+						Type:     cty.DynamicPseudoType,
 						Optional: true, // Just so we can progress to provider-driven validation and return the error there
 					},
 				},

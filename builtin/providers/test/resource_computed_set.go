@@ -1,9 +1,12 @@
 package test
 
 import (
+	"bytes"
 	"fmt"
 	"math/rand"
+	"strings"
 
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -39,8 +42,51 @@ func testResourceComputedSet() *schema.Resource {
 				},
 				Set: schema.HashString,
 			},
+
+			"rule": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"id": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+
+						"ip_protocol": {
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: false,
+						},
+
+						"cidr": {
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: false,
+							StateFunc: func(v interface{}) string {
+								return strings.ToLower(v.(string))
+							},
+						},
+					},
+				},
+			},
+			"optional_set": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
 		},
 	}
+}
+
+func computeSecGroupV2RuleHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%s-", m["ip_protocol"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", strings.ToLower(m["cidr"].(string))))
+
+	return hashcode.String(buf.String())
 }
 
 func testResourceComputedSetCreate(d *schema.ResourceData, meta interface{}) error {
@@ -61,6 +107,9 @@ func testResourceComputedSetRead(d *schema.ResourceData, meta interface{}) error
 	}
 
 	d.Set("string_set", schema.NewSet(schema.HashString, set))
+
+	// This isn't computed, but we should be able to ignore without issues.
+	d.Set("optional_set", []interface{}{})
 	return nil
 }
 

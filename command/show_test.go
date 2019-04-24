@@ -2,6 +2,7 @@ package command
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -10,6 +11,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
@@ -146,24 +148,35 @@ func TestShow_json_output(t *testing.T) {
 		}
 
 		t.Run(entry.Name(), func(t *testing.T) {
+			td := tempDir(t)
 			inputDir := filepath.Join(fixtureDir, entry.Name())
-
-			cwd, err := os.Getwd()
-			if err != nil {
-				t.Fatalf("err: %s", err)
-			}
-			if err := os.Chdir(inputDir); err != nil {
-				t.Fatalf("err: %s", err)
-			}
-			defer os.Chdir(cwd)
+			copy.CopyDir(inputDir, td)
+			defer os.RemoveAll(td)
+			defer testChdir(t, td)()
 
 			p := showFixtureProvider()
 			ui := new(cli.MockUi)
-			pc := &PlanCommand{
-				Meta: Meta{
-					testingOverrides: metaOverridesForProvider(p),
-					Ui:               ui,
+			m := Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+			}
+
+			// init
+			ic := &InitCommand{
+				Meta: m,
+				providerInstaller: &mockProviderInstaller{
+					Providers: map[string][]string{
+						"test": []string{"1.2.3"},
+					},
+					Dir: m.pluginDir(),
 				},
+			}
+			if code := ic.Run([]string{}); code != 0 {
+				t.Fatalf("init failed\n%s", ui.ErrorWriter)
+			}
+
+			pc := &PlanCommand{
+				Meta: m,
 			}
 
 			args := []string{
@@ -177,10 +190,7 @@ func TestShow_json_output(t *testing.T) {
 			// flush the plan output from the mock ui
 			ui.OutputWriter.Reset()
 			sc := &ShowCommand{
-				Meta: Meta{
-					testingOverrides: metaOverridesForProvider(p),
-					Ui:               ui,
-				},
+				Meta: m,
 			}
 
 			args = []string{
@@ -195,6 +205,89 @@ func TestShow_json_output(t *testing.T) {
 
 			// compare ui output to wanted output
 			var got, want plan
+
+			gotString := ui.OutputWriter.String()
+			json.Unmarshal([]byte(gotString), &got)
+
+			wantFile, err := os.Open("output.json")
+			if err != nil {
+				t.Fatalf("err: %s", err)
+			}
+			defer wantFile.Close()
+			byteValue, err := ioutil.ReadAll(wantFile)
+			if err != nil {
+				t.Fatalf("err: %s", err)
+			}
+			json.Unmarshal([]byte(byteValue), &want)
+
+			if !cmp.Equal(got, want) {
+				fmt.Println(ui.OutputWriter.String())
+				t.Fatalf("wrong result:\n %v\n", cmp.Diff(got, want))
+			}
+
+		})
+
+	}
+}
+
+// similar test as above, without the plan
+func TestShow_json_output_state(t *testing.T) {
+	fixtureDir := "test-fixtures/show-json-state"
+	testDirs, err := ioutil.ReadDir(fixtureDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, entry := range testDirs {
+		if !entry.IsDir() {
+			continue
+		}
+
+		t.Run(entry.Name(), func(t *testing.T) {
+			td := tempDir(t)
+			inputDir := filepath.Join(fixtureDir, entry.Name())
+			copy.CopyDir(inputDir, td)
+			defer os.RemoveAll(td)
+			defer testChdir(t, td)()
+
+			p := showFixtureProvider()
+			ui := new(cli.MockUi)
+			m := Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+			}
+
+			// init
+			ic := &InitCommand{
+				Meta: m,
+				providerInstaller: &mockProviderInstaller{
+					Providers: map[string][]string{
+						"test": []string{"1.2.3"},
+					},
+					Dir: m.pluginDir(),
+				},
+			}
+			if code := ic.Run([]string{}); code != 0 {
+				t.Fatalf("init failed\n%s", ui.ErrorWriter)
+			}
+
+			// flush the plan output from the mock ui
+			ui.OutputWriter.Reset()
+			sc := &ShowCommand{
+				Meta: m,
+			}
+
+			if code := sc.Run([]string{"-json"}); code != 0 {
+				t.Fatalf("wrong exit status %d; want 0\nstderr: %s", code, ui.ErrorWriter.String())
+			}
+
+			// compare ui output to wanted output
+			type state struct {
+				FormatVersion    string                 `json:"format_version,omitempty"`
+				TerraformVersion string                 `json:"terraform_version"`
+				Values           map[string]interface{} `json:"values,omitempty"`
+			}
+			var got, want state
 
 			gotString := ui.OutputWriter.String()
 			json.Unmarshal([]byte(gotString), &got)
@@ -244,13 +337,29 @@ func showFixtureProvider() *terraform.MockProvider {
 	p := testProvider()
 	p.GetSchemaReturn = showFixtureSchema()
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		idVal := req.ProposedNewState.GetAttr("id")
+		amiVal := req.ProposedNewState.GetAttr("ami")
+		if idVal.IsNull() {
+			idVal = cty.UnknownVal(cty.String)
+		}
 		return providers.PlanResourceChangeResponse{
-			PlannedState: req.ProposedNewState,
+			PlannedState: cty.ObjectVal(map[string]cty.Value{
+				"id":  idVal,
+				"ami": amiVal,
+			}),
 		}
 	}
 	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+		idVal := req.PlannedState.GetAttr("id")
+		amiVal := req.PlannedState.GetAttr("ami")
+		if !idVal.IsKnown() {
+			idVal = cty.StringVal("placeholder")
+		}
 		return providers.ApplyResourceChangeResponse{
-			NewState: cty.UnknownAsNull(req.PlannedState),
+			NewState: cty.ObjectVal(map[string]cty.Value{
+				"id":  idVal,
+				"ami": amiVal,
+			}),
 		}
 	}
 	return p
@@ -296,12 +405,15 @@ func showFixturePlanFile(t *testing.T) string {
 }
 
 // this simplified plan struct allows us to preserve field order when marshaling
-// the command output.
+// the command output. NOTE: we are leaving "terraform_version" out of this test
+// to avoid needing to constantly update the expected output; as a potential
+// TODO we could write a jsonplan compare function.
 type plan struct {
 	FormatVersion   string                 `json:"format_version,omitempty"`
+	Variables       map[string]interface{} `json:"variables,omitempty"`
 	PlannedValues   map[string]interface{} `json:"planned_values,omitempty"`
 	ResourceChanges []interface{}          `json:"resource_changes,omitempty"`
 	OutputChanges   map[string]interface{} `json:"output_changes,omitempty"`
-	PriorState      string                 `json:"prior_state,omitempty"`
-	Config          string                 `json:"configuration,omitempty"`
+	PriorState      map[string]interface{} `json:"prior_state,omitempty"`
+	Config          map[string]interface{} `json:"configuration,omitempty"`
 }

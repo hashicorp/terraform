@@ -54,14 +54,27 @@ func (m schemaMap) CoreConfigSchema() *configschema.Block {
 				continue
 			}
 		}
-		switch schema.Elem.(type) {
-		case *Schema, ValueType:
+		switch schema.ConfigMode {
+		case SchemaConfigModeAttr:
 			ret.Attributes[name] = schema.coreConfigSchemaAttribute()
-		case *Resource:
+		case SchemaConfigModeBlock:
 			ret.BlockTypes[name] = schema.coreConfigSchemaBlock()
-		default:
-			// Should never happen for a valid schema
-			panic(fmt.Errorf("invalid Schema.Elem %#v; need *Schema or *Resource", schema.Elem))
+		default: // SchemaConfigModeAuto, or any other invalid value
+			if schema.Computed && !schema.Optional {
+				// Computed-only schemas are always handled as attributes,
+				// because they never appear in configuration.
+				ret.Attributes[name] = schema.coreConfigSchemaAttribute()
+				continue
+			}
+			switch schema.Elem.(type) {
+			case *Schema, ValueType:
+				ret.Attributes[name] = schema.coreConfigSchemaAttribute()
+			case *Resource:
+				ret.BlockTypes[name] = schema.coreConfigSchemaBlock()
+			default:
+				// Should never happen for a valid schema
+				panic(fmt.Errorf("invalid Schema.Elem %#v; need *Schema or *Resource", schema.Elem))
+			}
 		}
 	}
 
@@ -161,6 +174,14 @@ func (s *Schema) coreConfigSchemaBlock() *configschema.NestedBlock {
 // coreConfigSchemaType determines the core config schema type that corresponds
 // to a particular schema's type.
 func (s *Schema) coreConfigSchemaType() cty.Type {
+	if s.SkipCoreTypeCheck {
+		// If we're preparing a schema for Terraform Core and the schema is
+		// asking us to skip the Core type-check then we'll tell core that this
+		// attribute is dynamically-typed, so it'll just pass through anything
+		// and let us validate it on the plugin side.
+		return cty.DynamicPseudoType
+	}
+
 	switch s.Type {
 	case TypeString:
 		return cty.String
@@ -181,9 +202,10 @@ func (s *Schema) coreConfigSchemaType() cty.Type {
 			// common one so we'll just shim it.
 			elemType = (&Schema{Type: set}).coreConfigSchemaType()
 		case *Resource:
-			// In practice we don't actually use this for normal schema
-			// construction because we construct a NestedBlock in that
-			// case instead. See schemaMap.CoreConfigSchema.
+			// By default we construct a NestedBlock in this case, but this
+			// behavior is selected either for computed-only schemas or
+			// when ConfigMode is explicitly SchemaConfigModeBlock.
+			// See schemaMap.CoreConfigSchema for the exact rules.
 			elemType = set.coreConfigSchema().ImpliedType()
 		default:
 			if set != nil {

@@ -25,6 +25,7 @@ type analysis struct {
 	ResourceProviderType map[addrs.Resource]string
 	ResourceHasCount     map[addrs.Resource]bool
 	VariableTypes        map[string]string
+	ModuleDir            string
 }
 
 // analyze processes the configuration files included inside the receiver
@@ -262,7 +263,20 @@ func (u *Upgrader) analyze(ms ModuleSources) (*analysis, error) {
 		ret.ProviderSchemas[name] = schema
 	}
 
-	// TODO: Also ProvisionerSchemas
+	for name, fn := range u.Provisioners {
+		log.Printf("[TRACE] Fetching schema from provisioner %q", name)
+		provisioner, err := fn()
+		if err != nil {
+			return nil, fmt.Errorf("failed to load provisioner %q: %s", name, err)
+		}
+
+		resp := provisioner.GetSchema()
+		if resp.Diagnostics.HasErrors() {
+			return nil, resp.Diagnostics.Err()
+		}
+
+		ret.ProvisionerSchemas[name] = resp.Provisioner
+	}
 
 	return ret, nil
 }

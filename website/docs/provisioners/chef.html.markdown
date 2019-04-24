@@ -28,7 +28,7 @@ resource "aws_instance" "web" {
   # ...
 
   provisioner "chef" {
-    attributes_json = <<-EOF
+    attributes_json = <<EOF
       {
         "key": "value",
         "app": {

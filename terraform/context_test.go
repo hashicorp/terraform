@@ -4,7 +4,9 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -195,6 +197,10 @@ func testDiffFn(
 	diff := new(InstanceDiff)
 	diff.Attributes = make(map[string]*ResourceAttrDiff)
 
+	defer func() {
+		log.Printf("[TRACE] testDiffFn: generated diff is:\n%s", spew.Sdump(diff))
+	}()
+
 	if s != nil {
 		diff.DestroyTainted = s.Tainted
 	}
@@ -202,6 +208,28 @@ func testDiffFn(
 	for k, v := range c.Raw {
 		// Ignore __-prefixed keys since they're used for magic
 		if k[0] == '_' && k[1] == '_' {
+			// ...though we do still need to include them in the diff, to
+			// simulate normal provider behaviors.
+			old := s.Attributes[k]
+			var new string
+			switch tv := v.(type) {
+			case string:
+				new = tv
+			default:
+				new = fmt.Sprintf("%#v", v)
+			}
+			if new == hil.UnknownValue {
+				diff.Attributes[k] = &ResourceAttrDiff{
+					Old:         old,
+					New:         "",
+					NewComputed: true,
+				}
+			} else {
+				diff.Attributes[k] = &ResourceAttrDiff{
+					Old: old,
+					New: new,
+				}
+			}
 			continue
 		}
 
@@ -211,10 +239,25 @@ func testDiffFn(
 
 		// This key is used for other purposes
 		if k == "compute_value" {
+			if old, ok := s.Attributes["compute_value"]; !ok || old != v.(string) {
+				diff.Attributes["compute_value"] = &ResourceAttrDiff{
+					Old: old,
+					New: v.(string),
+				}
+			}
 			continue
 		}
 
 		if k == "compute" {
+			// The "compute" value itself must be included in the diff if it
+			// has changed since prior.
+			if old, ok := s.Attributes["compute"]; !ok || old != v.(string) {
+				diff.Attributes["compute"] = &ResourceAttrDiff{
+					Old: old,
+					New: v.(string),
+				}
+			}
+
 			if v == hil.UnknownValue || v == "unknown" {
 				// compute wasn't set in the config, so don't use these
 				// computed values from the schema.
@@ -520,6 +563,7 @@ func testProviderSchema(name string) *ProviderSchema {
 					"foo": {
 						Type:     cty.String,
 						Optional: true,
+						Computed: true,
 					},
 					"bar": {
 						Type:     cty.String,
@@ -538,6 +582,7 @@ func testProviderSchema(name string) *ProviderSchema {
 					"value": {
 						Type:     cty.String,
 						Optional: true,
+						Computed: true,
 					},
 					"output": {
 						Type:     cty.String,
@@ -600,10 +645,12 @@ func testProviderSchema(name string) *ProviderSchema {
 					"id": {
 						Type:     cty.String,
 						Optional: true,
+						Computed: true,
 					},
 					"ids": {
 						Type:     cty.List(cty.String),
 						Optional: true,
+						Computed: true,
 					},
 				},
 			},

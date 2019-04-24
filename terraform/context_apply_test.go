@@ -1878,14 +1878,21 @@ func TestContext2Apply_cancel(t *testing.T) {
 			},
 		}, nil
 	}
-	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error) {
-		return &InstanceDiff{
-			Attributes: map[string]*ResourceAttrDiff{
-				"value": &ResourceAttrDiff{
-					New: "2",
-				},
-			},
-		}, nil
+	p.DiffFn = func(info *InstanceInfo, s *InstanceState, rc *ResourceConfig) (*InstanceDiff, error) {
+		d := &InstanceDiff{
+			Attributes: map[string]*ResourceAttrDiff{},
+		}
+		if new, ok := rc.Get("value"); ok {
+			d.Attributes["value"] = &ResourceAttrDiff{
+				New: new.(string),
+			}
+		}
+		if new, ok := rc.Get("foo"); ok {
+			d.Attributes["foo"] = &ResourceAttrDiff{
+				New: new.(string),
+			}
+		}
+		return d, nil
 	}
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
@@ -1937,6 +1944,9 @@ func TestContext2Apply_cancelBlock(t *testing.T) {
 				"id": &ResourceAttrDiff{
 					New: "foo",
 				},
+				"num": &ResourceAttrDiff{
+					New: "2",
+				},
 			},
 		}, nil
 	}
@@ -1954,6 +1964,9 @@ func TestContext2Apply_cancelBlock(t *testing.T) {
 
 		return &InstanceState{
 			ID: "foo",
+			Attributes: map[string]string{
+				"num": "2",
+			},
 		}, nil
 	}
 
@@ -2002,6 +2015,7 @@ func TestContext2Apply_cancelBlock(t *testing.T) {
 aws_instance.foo:
   ID = foo
   provider = provider.aws
+  num = 2
 	`)
 }
 
@@ -2130,15 +2144,15 @@ func TestContext2Apply_compute(t *testing.T) {
 		),
 	})
 
-	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("plan errors: %s", diags.Err())
-	}
-
 	ctx.variables = InputValues{
 		"value": &InputValue{
 			Value:      cty.NumberIntVal(1),
 			SourceType: ValueFromCaller,
 		},
+	}
+
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -3741,25 +3755,35 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 
 	p.ApplyFn = testApplyFn
 
-	p.DiffFn = func(info *InstanceInfo, s *InstanceState, c *ResourceConfig) (*InstanceDiff, error) {
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		proposed := req.ProposedNewState
 		configsLock.Lock()
 		defer configsLock.Unlock()
-		key := c.Config["key"].(string)
-		configs[key] = c
+		key := proposed.GetAttr("key").AsString()
+		// This test was originally written using the legacy p.DiffFn interface,
+		// and so the assertions below expect an old-style ResourceConfig, which
+		// we'll construct via our shim for now to avoid rewriting all of the
+		// assertions.
+		configs[key] = NewResourceConfigShimmed(req.Config, p.GetSchemaReturn.ResourceTypes["test_thing"])
 
-		// Return a minimal diff to make sure this resource gets included in
-		// the apply graph and thus the final state, but otherwise we're just
-		// gathering data for assertions.
-		return &InstanceDiff{
-			Attributes: map[string]*ResourceAttrDiff{
-				"id": &ResourceAttrDiff{
-					NewComputed: true,
-				},
-				"name": &ResourceAttrDiff{
-					New: key,
-				},
-			},
-		}, nil
+		retVals := make(map[string]cty.Value)
+		for it := proposed.ElementIterator(); it.Next(); {
+			idxVal, val := it.Element()
+			idx := idxVal.AsString()
+
+			switch idx {
+			case "id":
+				retVals[idx] = cty.UnknownVal(cty.String)
+			case "name":
+				retVals[idx] = cty.StringVal(key)
+			default:
+				retVals[idx] = val
+			}
+		}
+
+		return providers.PlanResourceChangeResponse{
+			PlannedState: cty.ObjectVal(retVals),
+		}
 	}
 
 	p.GetSchemaReturn = &ProviderSchema{
@@ -6149,21 +6173,33 @@ func TestContext2Apply_outputDiffVars(t *testing.T) {
 
 		result := s.MergeDiff(d)
 		result.ID = "foo"
-		result.Attributes["foo"] = "bar"
 		return result, nil
 	}
-	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error) {
-		return &InstanceDiff{
-			Attributes: map[string]*ResourceAttrDiff{
-				"foo": &ResourceAttrDiff{
-					NewComputed: true,
-					Type:        DiffAttrOutput,
-				},
-				"bar": &ResourceAttrDiff{
-					New: "baz",
-				},
-			},
-		}, nil
+	p.DiffFn = func(info *InstanceInfo, s *InstanceState, rc *ResourceConfig) (*InstanceDiff, error) {
+		d := &InstanceDiff{
+			Attributes: map[string]*ResourceAttrDiff{},
+		}
+		if new, ok := rc.Get("value"); ok {
+			d.Attributes["value"] = &ResourceAttrDiff{
+				New: new.(string),
+			}
+		}
+		if new, ok := rc.Get("foo"); ok {
+			d.Attributes["foo"] = &ResourceAttrDiff{
+				New: new.(string),
+			}
+		} else if rc.IsComputed("foo") {
+			d.Attributes["foo"] = &ResourceAttrDiff{
+				NewComputed: true,
+				Type:        DiffAttrOutput, // This doesn't actually really do anything anymore, but this test originally set it.
+			}
+		}
+		if new, ok := rc.Get("num"); ok {
+			d.Attributes["num"] = &ResourceAttrDiff{
+				New: fmt.Sprintf("%#v", new),
+			}
+		}
+		return d, nil
 	}
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
@@ -6899,14 +6935,21 @@ func TestContext2Apply_destroyOrphan(t *testing.T) {
 		result.ID = "foo"
 		return result, nil
 	}
-	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error) {
-		return &InstanceDiff{
-			Attributes: map[string]*ResourceAttrDiff{
-				"value": &ResourceAttrDiff{
-					New: "bar",
-				},
-			},
-		}, nil
+	p.DiffFn = func(info *InstanceInfo, s *InstanceState, rc *ResourceConfig) (*InstanceDiff, error) {
+		d := &InstanceDiff{
+			Attributes: map[string]*ResourceAttrDiff{},
+		}
+		if new, ok := rc.Get("value"); ok {
+			d.Attributes["value"] = &ResourceAttrDiff{
+				New: new.(string),
+			}
+		}
+		if new, ok := rc.Get("foo"); ok {
+			d.Attributes["foo"] = &ResourceAttrDiff{
+				New: new.(string),
+			}
+		}
+		return d, nil
 	}
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
@@ -7021,14 +7064,21 @@ func TestContext2Apply_error(t *testing.T) {
 			},
 		}, nil
 	}
-	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error) {
-		return &InstanceDiff{
-			Attributes: map[string]*ResourceAttrDiff{
-				"value": &ResourceAttrDiff{
-					New: "2",
-				},
-			},
-		}, nil
+	p.DiffFn = func(info *InstanceInfo, s *InstanceState, rc *ResourceConfig) (*InstanceDiff, error) {
+		d := &InstanceDiff{
+			Attributes: map[string]*ResourceAttrDiff{},
+		}
+		if new, ok := rc.Get("value"); ok {
+			d.Attributes["value"] = &ResourceAttrDiff{
+				New: new.(string),
+			}
+		}
+		if new, ok := rc.Get("foo"); ok {
+			d.Attributes["foo"] = &ResourceAttrDiff{
+				New: new.(string),
+			}
+		}
+		return d, nil
 	}
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
@@ -7044,6 +7094,233 @@ func TestContext2Apply_error(t *testing.T) {
 	expected := strings.TrimSpace(testTerraformApplyErrorStr)
 	if actual != expected {
 		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	}
+}
+
+func TestContext2Apply_errorDestroy(t *testing.T) {
+	m := testModule(t, "empty")
+	p := testProvider("test")
+
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_thing": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		// Should actually be called for this test, because Terraform Core
+		// constructs the plan for a destroy operation itself.
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
+	}
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+		// The apply (in this case, a destroy) always fails, so we can verify
+		// that the object stays in the state after a destroy fails even though
+		// we aren't returning a new state object here.
+		return providers.ApplyResourceChangeResponse{
+			Diagnostics: tfdiags.Diagnostics(nil).Append(fmt.Errorf("failed")),
+		}
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		State: states.BuildState(func(ss *states.SyncState) {
+			ss.SetResourceInstanceCurrent(
+				addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "test_thing",
+					Name: "foo",
+				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+				&states.ResourceInstanceObjectSrc{
+					Status:    states.ObjectReady,
+					AttrsJSON: []byte(`{"id":"baz"}`),
+				},
+				addrs.ProviderConfig{
+					Type: "test",
+				}.Absolute(addrs.RootModuleInstance),
+			)
+		}),
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
+	}
+
+	state, diags := ctx.Apply()
+	if diags == nil {
+		t.Fatal("should have error")
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(`
+test_thing.foo:
+  ID = baz
+  provider = provider.test
+`) // test_thing.foo is still here, even though provider returned no new state along with its error
+	if actual != expected {
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	}
+}
+
+func TestContext2Apply_errorCreateInvalidNew(t *testing.T) {
+	m := testModule(t, "apply-error")
+
+	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"value": {Type: cty.String, Optional: true},
+					"foo":   {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
+	}
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+		// We're intentionally returning an inconsistent new state here
+		// because we want to test that Terraform ignores the inconsistency
+		// when accompanied by another error.
+		return providers.ApplyResourceChangeResponse{
+			NewState: cty.ObjectVal(map[string]cty.Value{
+				"value": cty.StringVal("wrong wrong wrong wrong"),
+				"foo":   cty.StringVal("absolutely brimming over with wrongability"),
+			}),
+			Diagnostics: tfdiags.Diagnostics(nil).Append(fmt.Errorf("forced error")),
+		}
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
+	}
+
+	state, diags := ctx.Apply()
+	if diags == nil {
+		t.Fatal("should have error")
+	}
+	if got, want := len(diags), 1; got != want {
+		// There should be no additional diagnostics generated by Terraform's own eval logic,
+		// because the provider's own error supersedes them.
+		t.Errorf("wrong number of diagnostics %d; want %d\n%s", got, want, diags.Err())
+	}
+	if got, want := diags.Err().Error(), "forced error"; !strings.Contains(got, want) {
+		t.Errorf("returned error does not contain %q, but it should\n%s", want, diags.Err())
+	}
+	if got, want := len(state.RootModule().Resources), 2; got != want {
+		t.Errorf("%d resources in state before prune; should have %d\n%s", got, want, spew.Sdump(state))
+	}
+	state.PruneResourceHusks() // aws_instance.bar with no instances gets left behind when we bail out, but that's okay
+	if got, want := len(state.RootModule().Resources), 1; got != want {
+		t.Errorf("%d resources in state after prune; should have only one (aws_instance.foo, tainted)\n%s", got, spew.Sdump(state))
+	}
+}
+
+func TestContext2Apply_errorUpdateNullNew(t *testing.T) {
+	m := testModule(t, "apply-error")
+
+	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"value": {Type: cty.String, Optional: true},
+					"foo":   {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
+	}
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+		// We're intentionally returning no NewState here because we want to
+		// test that Terraform retains the prior state, rather than treating
+		// the returned null as "no state" (object deleted).
+		return providers.ApplyResourceChangeResponse{
+			Diagnostics: tfdiags.Diagnostics(nil).Append(fmt.Errorf("forced error")),
+		}
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		State: states.BuildState(func(ss *states.SyncState) {
+			ss.SetResourceInstanceCurrent(
+				addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "aws_instance",
+					Name: "foo",
+				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+				&states.ResourceInstanceObjectSrc{
+					Status:    states.ObjectReady,
+					AttrsJSON: []byte(`{"value":"old"}`),
+				},
+				addrs.ProviderConfig{
+					Type: "aws",
+				}.Absolute(addrs.RootModuleInstance),
+			)
+		}),
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
+	}
+
+	state, diags := ctx.Apply()
+	if diags == nil {
+		t.Fatal("should have error")
+	}
+	if got, want := len(diags), 1; got != want {
+		// There should be no additional diagnostics generated by Terraform's own eval logic,
+		// because the provider's own error supersedes them.
+		t.Errorf("wrong number of diagnostics %d; want %d\n%s", got, want, diags.Err())
+	}
+	if got, want := diags.Err().Error(), "forced error"; !strings.Contains(got, want) {
+		t.Errorf("returned error does not contain %q, but it should\n%s", want, diags.Err())
+	}
+	state.PruneResourceHusks()
+	if got, want := len(state.RootModule().Resources), 1; got != want {
+		t.Fatalf("%d resources in state; should have only one (aws_instance.foo, unmodified)\n%s", got, spew.Sdump(state))
+	}
+
+	is := state.ResourceInstance(addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: "aws_instance",
+		Name: "foo",
+	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance))
+	if is == nil {
+		t.Fatalf("aws_instance.foo is not in the state after apply")
+	}
+	if got, want := is.Current.AttrsJSON, []byte(`"old"`); !bytes.Contains(got, want) {
+		t.Fatalf("incorrect attributes for aws_instance.foo\ngot: %s\nwant: JSON containing %s\n\n%s", got, want, spew.Sdump(is))
 	}
 }
 
@@ -7090,14 +7367,21 @@ func TestContext2Apply_errorPartial(t *testing.T) {
 			},
 		}, nil
 	}
-	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error) {
-		return &InstanceDiff{
-			Attributes: map[string]*ResourceAttrDiff{
-				"value": &ResourceAttrDiff{
-					New: "2",
-				},
-			},
-		}, nil
+	p.DiffFn = func(info *InstanceInfo, s *InstanceState, rc *ResourceConfig) (*InstanceDiff, error) {
+		d := &InstanceDiff{
+			Attributes: map[string]*ResourceAttrDiff{},
+		}
+		if new, ok := rc.Get("value"); ok {
+			d.Attributes["value"] = &ResourceAttrDiff{
+				New: new.(string),
+			}
+		}
+		if new, ok := rc.Get("foo"); ok {
+			d.Attributes["foo"] = &ResourceAttrDiff{
+				New: new.(string),
+			}
+		}
+		return d, nil
 	}
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
@@ -8907,6 +9191,7 @@ func TestContext2Apply_issue5254(t *testing.T) {
 template_file.child:
   ID = foo
   provider = provider.template
+  __template_requires_new = true
   template = Hi
   type = template_file
 

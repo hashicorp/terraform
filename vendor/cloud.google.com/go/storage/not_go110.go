@@ -1,4 +1,4 @@
-// Copyright 2017 Google Inc. All Rights Reserved.
+// Copyright 2017 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -34,6 +34,8 @@ func shouldRetry(err error) bool {
 		// Unfortunately the error type is unexported, so we resort to string
 		// matching.
 		return strings.Contains(e.Error(), "REFUSED_STREAM")
+	case interface{ Temporary() bool }:
+		return e.Temporary()
 	default:
 		return false
 	}

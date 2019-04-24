@@ -3,6 +3,9 @@ package configupgrade
 import (
 	"bytes"
 	"fmt"
+	"os"
+	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -10,10 +13,12 @@ import (
 	hcl1token "github.com/hashicorp/hcl/hcl/token"
 	hcl2 "github.com/hashicorp/hcl2/hcl"
 	hcl2syntax "github.com/hashicorp/hcl2/hcl/hclsyntax"
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/lang/blocktoattr"
+	"github.com/hashicorp/terraform/registry/regsrc"
+	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // bodyContentRules is a mapping from item names (argument names and block type
@@ -313,7 +318,7 @@ func nestedBlockRule(filename string, nestedRules bodyContentRules, an *analysis
 	}
 }
 
-func nestedBlockRuleWithDynamic(filename string, nestedRules bodyContentRules, nestedSchema *configschema.NestedBlock, an *analysis, adhocComments *commentQueue) bodyItemRule {
+func nestedBlockRuleWithDynamic(filename string, nestedRules bodyContentRules, nestedSchema *configschema.NestedBlock, emptyAsAttr bool, an *analysis, adhocComments *commentQueue) bodyItemRule {
 	return func(buf *bytes.Buffer, blockAddr string, item *hcl1ast.ObjectItem) tfdiags.Diagnostics {
 		// In Terraform v0.11 it was possible in some cases to trick Terraform
 		// and providers into accepting HCL's attribute syntax and some HIL
@@ -384,6 +389,17 @@ func nestedBlockRuleWithDynamic(filename string, nestedRules bodyContentRules, n
 			blockItems = append(blockItems, item.Val)
 		}
 
+		if len(blockItems) == 0 && emptyAsAttr {
+			// Terraform v0.12's config decoder allows using block syntax for
+			// certain attribute types, which we prefer as idiomatic usage
+			// causing us to end up in this function in such cases, but as
+			// a special case users can still use the attribute syntax to
+			// explicitly write an empty list. For more information, see
+			// the lang/blocktoattr package.
+			printAttribute(buf, item.Keys[0].Token.Value().(string), []byte{'[', ']'}, item.LineComment)
+			return diags
+		}
+
 		for _, blockItem := range blockItems {
 			switch ti := blockItem.(type) {
 			case *hcl1ast.ObjectType:
@@ -450,11 +466,23 @@ func schemaDefaultBodyRules(filename string, schema *configschema.Block, an *ana
 	}
 
 	for name, attrS := range schema.Attributes {
+		if aty := attrS.Type; blocktoattr.TypeCanBeBlocks(aty) {
+			// Terraform's standard body processing rules for arbitrary schemas
+			// have a special case where list-of-object or set-of-object
+			// attributes can be specified as a sequence of nested blocks
+			// instead of a single list attribute. We prefer that form during
+			// upgrade for historical reasons, to avoid making large changes
+			// to existing configurations that were following documented idiom.
+			synthSchema := blocktoattr.SchemaForCtyContainerType(aty)
+			nestedRules := schemaDefaultBodyRules(filename, &synthSchema.Block, an, adhocComments)
+			ret[name] = nestedBlockRuleWithDynamic(filename, nestedRules, synthSchema, true, an, adhocComments)
+			continue
+		}
 		ret[name] = normalAttributeRule(filename, attrS.Type, an)
 	}
 	for name, blockS := range schema.BlockTypes {
 		nestedRules := schemaDefaultBodyRules(filename, &blockS.Block, an, adhocComments)
-		ret[name] = nestedBlockRuleWithDynamic(filename, nestedRules, blockS, an, adhocComments)
+		ret[name] = nestedBlockRuleWithDynamic(filename, nestedRules, blockS, false, an, adhocComments)
 	}
 
 	return ret
@@ -514,8 +542,8 @@ func lifecycleBlockBodyRules(filename string, an *analysis) bodyContentRules {
 			if !ok {
 				diags = diags.Append(&hcl2.Diagnostic{
 					Severity: hcl2.DiagError,
-					Summary:  "Invalid providers argument",
-					Detail:   `The "providers" argument must be a map from provider addresses in the child module to corresponding provider addresses in this module.`,
+					Summary:  "Invalid ignore_changes argument",
+					Detail:   `The "ignore_changes" argument must be a list of attribute expressions relative to this resource.`,
 					Subject:  hcl1PosRange(filename, item.Keys[0].Pos()).Ptr(),
 				})
 				return diags
@@ -553,4 +581,409 @@ func lifecycleBlockBodyRules(filename string, an *analysis) bodyContentRules {
 			return diags
 		},
 	}
+}
+
+func provisionerBlockRule(filename string, resourceType string, an *analysis, adhocComments *commentQueue) bodyItemRule {
+	// Unlike some other examples above, this is a rule for the entire
+	// provisioner block, rather than just for its contents. Therefore it must
+	// also produce the block header and body delimiters.
+	return func(buf *bytes.Buffer, blockAddr string, item *hcl1ast.ObjectItem) tfdiags.Diagnostics {
+		var diags tfdiags.Diagnostics
+		body := item.Val.(*hcl1ast.ObjectType)
+		declRange := hcl1PosRange(filename, item.Keys[0].Pos())
+
+		if len(item.Keys) < 2 {
+			diags = diags.Append(&hcl2.Diagnostic{
+				Severity: hcl2.DiagError,
+				Summary:  "Invalid provisioner block",
+				Detail:   "A provisioner block must have one label: the provisioner type.",
+				Subject:  &declRange,
+			})
+			return diags
+		}
+
+		typeName := item.Keys[1].Token.Value().(string)
+		schema := an.ProvisionerSchemas[typeName]
+		if schema == nil {
+			// This message is assuming that if the user _is_ using a third-party
+			// provisioner plugin they already know how to install it for normal
+			// use and so we don't need to spell out those instructions in detail
+			// here.
+			diags = diags.Append(&hcl2.Diagnostic{
+				Severity: hcl2.DiagError,
+				Summary:  "Unknown provisioner type",
+				Detail:   fmt.Sprintf("The provisioner type %q is not supported. If this is a third-party plugin, make sure its plugin executable is available in one of the usual plugin search paths.", typeName),
+				Subject:  &declRange,
+			})
+			return diags
+		}
+
+		rules := schemaDefaultBodyRules(filename, schema, an, adhocComments)
+		rules["when"] = maybeBareTraversalAttributeRule(filename, an)
+		rules["on_failure"] = maybeBareTraversalAttributeRule(filename, an)
+		rules["connection"] = connectionBlockRule(filename, resourceType, an, adhocComments)
+
+		printComments(buf, item.LeadComment)
+		printBlockOpen(buf, "provisioner", []string{typeName}, item.LineComment)
+		bodyDiags := upgradeBlockBody(filename, fmt.Sprintf("%s.provisioner[%q]", blockAddr, typeName), buf, body.List.Items, body.Rbrace, rules, adhocComments)
+		diags = diags.Append(bodyDiags)
+		buf.WriteString("}\n")
+
+		return diags
+	}
+}
+
+func connectionBlockRule(filename string, resourceType string, an *analysis, adhocComments *commentQueue) bodyItemRule {
+	// Unlike some other examples above, this is a rule for the entire
+	// connection block, rather than just for its contents. Therefore it must
+	// also produce the block header and body delimiters.
+	return func(buf *bytes.Buffer, blockAddr string, item *hcl1ast.ObjectItem) tfdiags.Diagnostics {
+		var diags tfdiags.Diagnostics
+		body := item.Val.(*hcl1ast.ObjectType)
+
+		// TODO: For the few resource types that were setting ConnInfo in
+		// state after create/update in prior versions, generate the additional
+		// explicit connection settings that are now required if and only if
+		// there's at least one provisioner block.
+		// For now, we just pass this through as-is.
+
+		schema := terraform.ConnectionBlockSupersetSchema()
+		rules := schemaDefaultBodyRules(filename, schema, an, adhocComments)
+		rules["type"] = noInterpAttributeRule(filename, cty.String, an) // type is processed early in the config loader, so cannot interpolate
+
+		printComments(buf, item.LeadComment)
+		printBlockOpen(buf, "connection", nil, item.LineComment)
+
+		// Terraform 0.12 no longer supports "magical" configuration of defaults
+		// in the connection block from logic in the provider because explicit
+		// is better than implicit, but for backward-compatibility we'll populate
+		// an existing connection block with any settings that would've been
+		// previously set automatically for a set of instance types we know
+		// had this behavior in versions prior to the v0.12 release.
+		if defaults := resourceTypeAutomaticConnectionExprs[resourceType]; len(defaults) > 0 {
+			names := make([]string, 0, len(defaults))
+			for name := range defaults {
+				names = append(names, name)
+			}
+			sort.Strings(names)
+			for _, name := range names {
+				exprSrc := defaults[name]
+				if existing := body.List.Filter(name); len(existing.Items) > 0 {
+					continue // Existing explicit value, so no need for a default
+				}
+				printAttribute(buf, name, []byte(exprSrc), nil)
+			}
+		}
+
+		bodyDiags := upgradeBlockBody(filename, fmt.Sprintf("%s.connection", blockAddr), buf, body.List.Items, body.Rbrace, rules, adhocComments)
+		diags = diags.Append(bodyDiags)
+		buf.WriteString("}\n")
+
+		return diags
+	}
+}
+
+func moduleSourceRule(filename string, an *analysis) bodyItemRule {
+	return func(buf *bytes.Buffer, blockAddr string, item *hcl1ast.ObjectItem) tfdiags.Diagnostics {
+		var diags tfdiags.Diagnostics
+		val, ok := item.Val.(*hcl1ast.LiteralType)
+		if !ok {
+			diags = diags.Append(&hcl2.Diagnostic{
+				Severity: hcl2.DiagError,
+				Summary:  "Invalid source argument",
+				Detail:   `The "source" argument must be a single string containing the module source.`,
+				Subject:  hcl1PosRange(filename, item.Keys[0].Pos()).Ptr(),
+			})
+			return diags
+		}
+		if val.Token.Type != hcl1token.STRING {
+			diags = diags.Append(&hcl2.Diagnostic{
+				Severity: hcl2.DiagError,
+				Summary:  "Invalid source argument",
+				Detail:   `The "source" argument must be a single string containing the module source.`,
+				Subject:  hcl1PosRange(filename, item.Keys[0].Pos()).Ptr(),
+			})
+			return diags
+		}
+
+		litVal := val.Token.Value().(string)
+
+		if isMaybeRelativeLocalPath(litVal, an.ModuleDir) {
+			diags = diags.Append(&hcl2.Diagnostic{
+				Severity: hcl2.DiagWarning,
+				Summary:  "Possible relative module source",
+				Detail:   "Terraform cannot determine the given module source, but it appears to be a relative path",
+				Subject:  hcl1PosRange(filename, item.Keys[0].Pos()).Ptr(),
+			})
+			buf.WriteString(
+				"# TF-UPGRADE-TODO: In Terraform v0.11 and earlier, it was possible to\n" +
+					"# reference a relative module source without a preceding ./, but it is no\n" +
+					"# longer supported in Terraform v0.12.\n" +
+					"#\n" +
+					"# If the below module source is indeed a relative local path, add ./ to the\n" +
+					"# start of the source string. If that is not the case, then leave it as-is\n" +
+					"# and remove this TODO comment.\n",
+			)
+		}
+		newVal, exprDiags := upgradeExpr(val, filename, false, an)
+		diags = diags.Append(exprDiags)
+		buf.WriteString("source = " + string(newVal) + "\n")
+		return diags
+	}
+}
+
+// Prior to Terraform 0.12 providers were able to supply default connection
+// settings that would partially populate the "connection" block with
+// automatically-selected values.
+//
+// In practice, this feature was often confusing in that the provider would not
+// have enough information to select a suitable host address or protocol from
+// multiple possible options and so would just make an arbitrary decision.
+//
+// With our principle of "explicit is better than implicit", as of Terraform 0.12
+// we now require all connection settings to be configured explicitly by the
+// user so that it's clear and explicit in the configuration which protocol and
+// IP address are being selected. To avoid generating errors immediately after
+// upgrade, though, we'll make a best effort to populate something functionally
+// equivalent to what the provider would've done automatically for any resource
+// types we know about in this table.
+//
+// The leaf values in this data structure are raw expressions to be inserted,
+// and so they must use valid expression syntax as understood by Terraform 0.12.
+// They should generally be expressions using only constant values or expressions
+// in terms of attributes accessed via the special "self" object. These should
+// mimic as closely as possible the logic that the provider itself used to
+// implement.
+//
+// NOTE: Because provider releases are independent from Terraform Core releases,
+// there could potentially be new 0.11-compatible provider releases that
+// introduce new uses of default connection info that this map doesn't know
+// about. The upgrade tool will not handle these, and so we will advise
+// provider developers that this mechanism is not to be used for any new
+// resource types, even in 0.11 mode.
+var resourceTypeAutomaticConnectionExprs = map[string]map[string]string{
+	"aws_instance": map[string]string{
+		"type": `"ssh"`,
+		"host": `coalesce(self.public_ip, self.private_ip)`,
+	},
+	"aws_spot_instance_request": map[string]string{
+		"type":     `"ssh"`,
+		"host":     `coalesce(self.public_ip, self.private_ip)`,
+		"user":     `self.username != "" ? self.username : null`,
+		"password": `self.password != "" ? self.password : null`,
+	},
+	"azure_instance": map[string]string{
+		"type": `"ssh" # TF-UPGRADE-TODO: If this is a windows instance without an SSH server, change to "winrm"`,
+		"host": `coalesce(self.vip_address, self.ip_address)`,
+	},
+	"azurerm_virtual_machine": map[string]string{
+		"type": `"ssh" # TF-UPGRADE-TODO: If this is a windows instance without an SSH server, change to "winrm"`,
+		// The azurerm_virtual_machine resource type does not expose a remote
+		// access IP address directly, instead requring the user to separately
+		// fetch the network interface.
+		// (If we can add a "default_ssh_ip" or similar attribute to this
+		// resource type before its first 0.12-compatible release then we should
+		// update this to use that instead, for simplicity's sake.)
+		"host": `"" # TF-UPGRADE-TODO: Set this to the IP address of the machine's primary network interface`,
+	},
+	"brightbox_server": map[string]string{
+		"type": `"ssh"`,
+		"host": `coalesce(self.public_hostname, self.ipv6_hostname, self.fqdn)`,
+	},
+	"cloudscale_server": map[string]string{
+		"type": `"ssh"`,
+		// The logic for selecting this is pretty complicated for this resource
+		// type, and the result is not exposed as an isolated attribute, so
+		// the conversion here is a little messy. We include newlines in this
+		// one so that the auto-formatter can indent it nicely for readability.
+		// NOTE: In v1.0.1 of this provider (the latest at the time of this
+		// writing) it has an possible bug where it selects _public_ IPv4
+		// addresses but _private_ IPv6 addresses. That behavior is followed
+		// here to maximize compatibility with existing configurations.
+		"host": `coalesce( # TF-UPGRADE-TODO: Simplify this to reference a specific desired IP address, if possible.
+			concat(
+				flatten([
+					for i in self.network_interface : [
+						for a in i.addresses : a.address
+						if a.version == 4
+					]
+					if i.type == "public"
+				]),
+				flatten([
+					for i in self.network_interface : [
+						for a in i.addresses : a.address
+						if a.version == 6
+					]
+					if i.type == "private"
+				]),
+			)...
+		)`,
+	},
+	"cloudstack_instance": map[string]string{
+		"type": `"ssh"`,
+		"host": `self.ip_address`,
+	},
+	"digitalocean_droplet": map[string]string{
+		"type": `"ssh"`,
+		"host": `self.ipv4_address`,
+	},
+	"flexibleengine_compute_bms_server_v2": map[string]string{
+		"type": `"ssh"`,
+		"host": `coalesce(self.access_ip_v4, self.access_ip_v6)`,
+	},
+	"flexibleengine_compute_instance_v2": map[string]string{
+		"type": `"ssh"`,
+		"host": `coalesce(self.access_ip_v4, self.access_ip_v6)`,
+	},
+	"google_compute_instance": map[string]string{
+		"type": `"ssh"`,
+		// The logic for selecting this is pretty complicated for this resource
+		// type, and the result is not exposed as an isolated attribute, so
+		// the conversion here is a little messy. We include newlines in this
+		// one so that the auto-formatter can indent it nicely for readability.
+		// (If we can add a "default_ssh_ip" or similar attribute to this
+		// resource type before its first 0.12-compatible release then we should
+		// update this to use that instead, for simplicity's sake.)
+		"host": `coalesce( # TF-UPGRADE-TODO: Simplify this to reference a specific desired IP address, if possible.
+			concat(
+				# Prefer any available NAT IP address
+				flatten([
+					for ni in self.network_interface : [
+						for ac in ni.access_config : ac.nat_ip
+					]
+				]),
+
+				# Otherwise, use the first available LAN IP address
+				[
+					for ni in self.network_interface : ni.network_ip
+				],
+			)...
+		)`,
+	},
+	"hcloud_server": map[string]string{
+		"type": `"ssh"`,
+		"host": `self.ipv4_address`,
+	},
+	"huaweicloud_compute_instance_v2": map[string]string{
+		"type": `"ssh"`,
+		"host": `coalesce(self.access_ip_v4, self.access_ip_v6)`,
+	},
+	"linode_instance": map[string]string{
+		"type": `"ssh"`,
+		"host": `self.ipv4[0]`,
+	},
+	"oneandone_baremetal_server": map[string]string{
+		"type":        `ssh`,
+		"host":        `self.ips[0].ip`,
+		"password":    `self.password != "" ? self.password : null`,
+		"private_key": `self.ssh_key_path != "" ? file(self.ssh_key_path) : null`,
+	},
+	"oneandone_server": map[string]string{
+		"type":        `ssh`,
+		"host":        `self.ips[0].ip`,
+		"password":    `self.password != "" ? self.password : null`,
+		"private_key": `self.ssh_key_path != "" ? file(self.ssh_key_path) : null`,
+	},
+	"openstack_compute_instance_v2": map[string]string{
+		"type": `"ssh"`,
+		"host": `coalesce(self.access_ip_v4, self.access_ip_v6)`,
+	},
+	"opentelekomcloud_compute_bms_server_v2": map[string]string{
+		"type": `"ssh"`,
+		"host": `coalesce(self.access_ip_v4, self.access_ip_v6)`,
+	},
+	"opentelekomcloud_compute_instance_v2": map[string]string{
+		"type": `"ssh"`,
+		"host": `coalesce(self.access_ip_v4, self.access_ip_v6)`,
+	},
+	"packet_device": map[string]string{
+		"type": `"ssh"`,
+		"host": `self.access_public_ipv4`,
+	},
+	"profitbricks_server": map[string]string{
+		"type": `"ssh"`,
+		"host": `coalesce(self.primary_nic.ips...)`,
+		// The value for this isn't exported anywhere on the object, so we'll
+		// need to have the user fix it up manually.
+		"password": `"" # TF-UPGRADE-TODO: set this to a suitable value, such as the boot image password`,
+	},
+	"scaleway_server": map[string]string{
+		"type": `"ssh"`,
+		"host": `self.public_ip`,
+	},
+	"telefonicaopencloud_compute_bms_server_v2": map[string]string{
+		"type": `"ssh"`,
+		"host": `coalesce(self.access_ip_v4, self.access_ip_v6)`,
+	},
+	"telefonicaopencloud_compute_instance_v2": map[string]string{
+		"type": `"ssh"`,
+		"host": `coalesce(self.access_ip_v4, self.access_ip_v6)`,
+	},
+	"triton_machine": map[string]string{
+		"type": `"ssh"`,
+		"host": `self.primaryip`, // convention would call for this to be named "primary_ip", but "primaryip" is the name this resource type uses
+	},
+	"vsphere_virtual_machine": map[string]string{
+		"type": `"ssh"`,
+		"host": `self.default_ip_address`,
+	},
+	"yandex_compute_instance": map[string]string{
+		"type": `"ssh"`,
+		// The logic for selecting this is pretty complicated for this resource
+		// type, and the result is not exposed as an isolated attribute, so
+		// the conversion here is a little messy. We include newlines in this
+		// one so that the auto-formatter can indent it nicely for readability.
+		"host": `coalesce( # TF-UPGRADE-TODO: Simplify this to reference a specific desired IP address, if possible.
+			concat(
+				# Prefer any available NAT IP address
+				for i in self.network_interface: [
+					i.nat_ip_address
+				],
+
+				# Otherwise, use the first available internal IP address
+				for i in self.network_interface: [
+					i.ip_address
+				],
+			)...
+		)`,
+	},
+}
+
+// copied directly from internal/initwd/getter.go
+var localSourcePrefixes = []string{
+	"./",
+	"../",
+	".\\",
+	"..\\",
+}
+
+// isMaybeRelativeLocalPath tries to catch situations where a module source is
+// an improperly-referenced relative path, such as "module" instead of
+// "./module". This is a simple check that could return a false positive in the
+// unlikely-yet-plausible case that a module source is for eg. a github
+// repository that also looks exactly like an existing relative path. This
+// should only be used to return a warning.
+func isMaybeRelativeLocalPath(addr, dir string) bool {
+	for _, prefix := range localSourcePrefixes {
+		if strings.HasPrefix(addr, prefix) {
+			// it is _definitely_ a relative path
+			return false
+		}
+	}
+
+	_, err := regsrc.ParseModuleSource(addr)
+	if err == nil {
+		// it is a registry source
+		return false
+	}
+
+	possibleRelPath := filepath.Join(dir, addr)
+	_, err = os.Stat(possibleRelPath)
+	if err == nil {
+		// If there is no error, something exists at what would be the relative
+		// path, if the module source started with ./
+		return true
+	}
+
+	return false
 }

@@ -79,12 +79,12 @@ func formatIndent(lines []formatLine) {
 		netBrackets := 0
 		for _, token := range line.lead {
 			netBrackets += tokenBracketChange(token)
-		}
-		for _, token := range line.assign {
-			netBrackets += tokenBracketChange(token)
 			if token.Type == hclsyntax.TokenOHeredoc {
 				inHeredoc = true
 			}
+		}
+		for _, token := range line.assign {
+			netBrackets += tokenBracketChange(token)
 		}
 
 		switch {

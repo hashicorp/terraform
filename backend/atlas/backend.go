@@ -12,7 +12,6 @@ import (
 
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/terraform"
@@ -42,9 +41,6 @@ type Backend struct {
 	//---------------------------------------------------------------
 	// stateClient is the legacy state client, setup in Configure
 	stateClient *stateClient
-
-	// schema is the schema for configuration, set by init
-	schema *schema.Backend
 
 	// opLock locks operations
 	opLock sync.Mutex
@@ -79,7 +75,7 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 	}
 }
 
-func (b *Backend) ValidateConfig(obj cty.Value) tfdiags.Diagnostics {
+func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	name := obj.GetAttr("name").AsString()
@@ -105,7 +101,7 @@ func (b *Backend) ValidateConfig(obj cty.Value) tfdiags.Diagnostics {
 		}
 	}
 
-	return diags
+	return obj, diags
 }
 
 func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
@@ -116,7 +112,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		RunId: os.Getenv("ATLAS_RUN_ID"),
 	}
 
-	name := obj.GetAttr("name").AsString() // assumed valid due to ValidateConfig method
+	name := obj.GetAttr("name").AsString() // assumed valid due to PrepareConfig method
 	slashIdx := strings.Index(name, "/")
 	client.User = name[:slashIdx]
 	client.Name = name[slashIdx+1:]
@@ -139,7 +135,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		addr := v.AsString()
 		addrURL, err := url.Parse(addr)
 		if err != nil {
-			// We already validated the URL in ValidateConfig, so this shouldn't happen
+			// We already validated the URL in PrepareConfig, so this shouldn't happen
 			panic(err)
 		}
 		client.Server = addr

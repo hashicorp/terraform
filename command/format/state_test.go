@@ -42,6 +42,21 @@ func TestState(t *testing.T) {
 			Type: "test",
 		}.Absolute(addrs.RootModuleInstance),
 	)
+	rootModule.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.DataResourceMode,
+			Type: "test_data_source",
+			Name: "data",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status:        states.ObjectReady,
+			SchemaVersion: 1,
+			AttrsJSON:     []byte(`{"compute":"sure"}`),
+		},
+		addrs.ProviderConfig{
+			Type: "test",
+		}.Absolute(addrs.RootModuleInstance),
+	)
 
 	tests := []struct {
 		State *StateOpts
@@ -142,7 +157,12 @@ func testSchemas() *terraform.Schemas {
 	}
 }
 
-const TestOutput = `# test_resource.baz[0]: 
+const TestOutput = `# data.test_data_source.data: 
+data "test_data_source" "data" {
+    compute = "sure"
+}
+
+# test_resource.baz[0]: 
 resource "test_resource" "baz" {
     woozles = "confuzles"
 }

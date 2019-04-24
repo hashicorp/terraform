@@ -217,10 +217,16 @@ type mockInput struct {
 	answers map[string]string
 }
 
-func (m *mockInput) Input(opts *terraform.InputOpts) (string, error) {
+func (m *mockInput) Input(ctx context.Context, opts *terraform.InputOpts) (string, error) {
 	v, ok := m.answers[opts.Id]
 	if !ok {
 		return "", fmt.Errorf("unexpected input request in test: %s", opts.Id)
+	}
+	if v == "wait-for-external-update" {
+		select {
+		case <-ctx.Done():
+		case <-time.After(time.Minute):
+		}
 	}
 	delete(m.answers, opts.Id)
 	return v, nil
@@ -620,9 +626,8 @@ func (m *mockRuns) List(ctx context.Context, workspaceID string, options tfe.Run
 		return nil, tfe.ErrResourceNotFound
 	}
 
-	rl := &tfe.RunList{}
-	for _, r := range m.workspaces[w.ID] {
-		rl.Items = append(rl.Items, r)
+	rl := &tfe.RunList{
+		Items: m.workspaces[w.ID],
 	}
 
 	rl.Pagination = &tfe.Pagination{
@@ -705,7 +710,7 @@ func (m *mockRuns) Read(ctx context.Context, runID string) (*tfe.Run, error) {
 	}
 
 	logs, _ := ioutil.ReadFile(m.client.Plans.logs[r.Plan.LogReadURL])
-	if r.Plan.Status == tfe.PlanFinished {
+	if r.Status == tfe.RunPlanning && r.Plan.Status == tfe.PlanFinished {
 		if r.IsDestroy || bytes.Contains(logs, []byte("1 to add, 0 to change, 0 to destroy")) {
 			r.Actions.IsCancelable = false
 			r.Actions.IsConfirmable = true
@@ -731,6 +736,7 @@ func (m *mockRuns) Apply(ctx context.Context, runID string, options tfe.RunApply
 	if r.Status != tfe.RunPending {
 		// Only update the status if the run is not pending anymore.
 		r.Status = tfe.RunApplying
+		r.Actions.IsConfirmable = false
 		r.Apply.Status = tfe.ApplyRunning
 	}
 	return nil
@@ -745,7 +751,13 @@ func (m *mockRuns) ForceCancel(ctx context.Context, runID string, options tfe.Ru
 }
 
 func (m *mockRuns) Discard(ctx context.Context, runID string, options tfe.RunDiscardOptions) error {
-	panic("not implemented")
+	r, ok := m.runs[runID]
+	if !ok {
+		return tfe.ErrResourceNotFound
+	}
+	r.Status = tfe.RunDiscarded
+	r.Actions.IsConfirmable = false
+	return nil
 }
 
 type mockStateVersions struct {
@@ -920,8 +932,8 @@ func (m *mockWorkspaces) Create(ctx context.Context, organization string, option
 		Name:       *options.Name,
 		Operations: !strings.HasSuffix(*options.Name, "no-operations"),
 		Permissions: &tfe.WorkspacePermissions{
-			CanQueueRun: true,
-			CanUpdate:   true,
+			CanQueueApply: true,
+			CanQueueRun:   true,
 		},
 	}
 	if options.AutoApply != nil {
@@ -971,6 +983,15 @@ func (m *mockWorkspaces) Delete(ctx context.Context, organization, workspace str
 	}
 	delete(m.workspaceNames, workspace)
 	return nil
+}
+
+func (m *mockWorkspaces) RemoveVCSConnection(ctx context.Context, organization, workspace string) (*tfe.Workspace, error) {
+	w, ok := m.workspaceNames[workspace]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+	w.VCSRepo = nil
+	return w, nil
 }
 
 func (m *mockWorkspaces) Lock(ctx context.Context, workspaceID string, options tfe.WorkspaceLockOptions) (*tfe.Workspace, error) {

@@ -225,7 +225,7 @@ module "aws_vpc" {
 ```
 
 Modules have some special requirements when passing in providers; see
-[Providers within Modules](/docs/modules/usage.html#providers-within-modules)
+[Providers within Modules](./modules.html#providers-within-modules)
 for more details. In most cases, only _root modules_ should define provider
 configurations, with all child modules obtaining their provider configurations
 from their parents.

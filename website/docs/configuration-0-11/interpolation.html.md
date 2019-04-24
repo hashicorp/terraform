@@ -184,7 +184,7 @@ The supported built-in functions are:
     **This is not equivalent** of `base64encode(sha512(string))`
     since `sha512()` returns hexadecimal representation.
 
-  * `bcrypt(password, cost)` - Returns the Blowfish encrypted hash of the string 
+  * `bcrypt(password, cost)` - Returns the Blowfish encrypted hash of the string
     at the given cost. A default `cost` of 10 will be used if not provided.
 
   * `ceil(float)` - Returns the least integer value greater than or equal
@@ -392,13 +392,13 @@ The supported built-in functions are:
   * `slice(list, from, to)` - Returns the portion of `list` between `from` (inclusive) and `to` (exclusive).
       Example: `slice(var.list_of_strings, 0, length(var.list_of_strings) - 1)`
 
-  * `sort(list)` - Returns a lexographically sorted list of the strings contained in
+  * `sort(list)` - Returns a lexicographically sorted list of the strings contained in
       the list passed as an argument. Sort may only be used with lists which contain only
       strings.
       Examples: `sort(aws_instance.foo.*.id)`, `sort(var.list_of_strings)`
 
-  * `split(delim, string)` - Splits the string previously created by `join`
-      back into a list. This is useful for pushing lists through module
+  * `split(delim, string)` - Returns a list by splitting the string based on
+      the delimiter. This is useful for pushing lists through module
       outputs since they currently only support string values. Depending on the
       use, the string this is being performed within may need to be wrapped
       in brackets to indicate that the output is actually a list, e.g.
@@ -411,9 +411,9 @@ The supported built-in functions are:
    invocation of the function, so in order to prevent diffs on every plan & apply, it must be used with the
    [`ignore_changes`](./resources.html#ignore-changes) lifecycle attribute.
 
-  * `timeadd(time, duration)` - Returns a UTC timestamp string corresponding to adding a given `duration` to `time` in RFC 3339 format.      
-    For example, `timeadd("2017-11-22T00:00:00Z", "10m")` produces a value `"2017-11-22T00:10:00Z"`. 
-    
+  * `timeadd(time, duration)` - Returns a UTC timestamp string corresponding to adding a given `duration` to `time` in RFC 3339 format.
+    For example, `timeadd("2017-11-22T00:00:00Z", "10m")` produces a value `"2017-11-22T00:10:00Z"`.
+
   * `title(string)` - Returns a copy of the string with the first characters of all the words capitalized.
 
   * `transpose(map)` - Swaps the keys and list values in a map of lists of strings. For example, transpose(map("a", list("1", "2"), "b", list("2", "3")) produces a value equivalent to map("1", list("a"), "2", list("a", "b"), "3", list("b")).
@@ -437,19 +437,34 @@ The supported built-in functions are:
       of the key used to encrypt their initial password, you might use:
       `zipmap(aws_iam_user.users.*.name, aws_iam_user_login_profile.users.*.key_fingerprint)`.
 
+The hashing functions `base64sha256`, `base64sha512`, `md5`, `sha1`, `sha256`,
+and `sha512` all have variants with a `file` prefix, like `filesha1`, which
+interpret their first argument as a path to a file on disk rather than as a
+literal string. This allows safely creating hashes of binary files that might
+otherwise be corrupted in memory if loaded into Terraform strings (which are
+assumed to be UTF-8). `filesha1(filename)` is equivalent to `sha1(file(filename))`
+in Terraform 0.11 and earlier, but the latter will fail for binary files in
+Terraform 0.12 and later.
+
 ## Templates
 
 Long strings can be managed using templates.
 [Templates](/docs/providers/template/index.html) are
 [data-sources](./data-sources.html) defined by a
-filename and some variables to use during interpolation. They have a
-computed `rendered` attribute containing the result.
+string with interpolation tokens (usually loaded from a file) and some variables
+to use during interpolation. They have a computed `rendered` attribute
+containing the result.
 
 A template data source looks like:
 
 ```hcl
+# templates/greeting.tpl
+${hello} ${world}!
+```
+
+```hcl
 data "template_file" "example" {
-  template = "$${hello} $${world}!"
+  template = "${file("templates/greeting.tpl")}"
   vars {
     hello = "goodnight"
     world = "moon"
@@ -463,6 +478,13 @@ output "rendered" {
 
 Then the rendered value would be `goodnight moon!`.
 
+-> **Note:** If you specify the template as a literal string instead of loading
+a file, the inline template must use double dollar signs (like `$${hello}`) to
+prevent Terraform from interpolating values from the configuration into the
+string. This is because `template_file` creates its own instance of the
+interpolation system, with values provided by its nested `vars` block instead of
+by the surrounding scope of the configuration.
+
 You may use any of the built-in functions in your template. For more
 details on template usage, please see the
 [template_file documentation](/docs/providers/template/d/file.html).
@@ -473,10 +495,6 @@ Here is an example that combines the capabilities of templates with the interpol
 from `count` to give us a parameterized template, unique to each resource instance:
 
 ```hcl
-variable "count" {
-  default = 2
-}
-
 variable "hostnames" {
   default = {
     "0" = "example1.org"

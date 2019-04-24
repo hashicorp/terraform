@@ -120,6 +120,7 @@ func Funcs() map[string]ast.Function {
 		"pow":          interpolationFuncPow(),
 		"uuid":         interpolationFuncUUID(),
 		"replace":      interpolationFuncReplace(),
+		"reverse":      interpolationFuncReverse(),
 		"rsadecrypt":   interpolationFuncRsaDecrypt(),
 		"sha1":         interpolationFuncSha1(),
 		"sha256":       interpolationFuncSha256(),
@@ -951,6 +952,25 @@ func interpolationFuncReplace() ast.Function {
 			}
 
 			return strings.Replace(s, search, replace, -1), nil
+		},
+	}
+}
+
+// interpolationFuncReverse implements the "reverse" function that does list reversal
+func interpolationFuncReverse() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeList},
+		ReturnType: ast.TypeList,
+		Variadic:   false,
+		Callback: func(args []interface{}) (interface{}, error) {
+			inputList := args[0].([]ast.Variable)
+
+			reversedList := make([]ast.Variable, len(inputList))
+			for idx := range inputList {
+				reversedList[len(inputList)-1-idx] = inputList[idx]
+			}
+
+			return reversedList, nil
 		},
 	}
 }

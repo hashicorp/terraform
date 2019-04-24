@@ -64,12 +64,12 @@ func TestFileBase64Sha256(t *testing.T) {
 	}{
 		{
 			cty.StringVal("testdata/hello.txt"),
-			cty.StringVal("LHT9F+2v2A6ER7DUZ0HuJDt+t03SFJoKsbkkb7MDgvJ+hT2FhXGeDmfL2g2qj1FnEGRhXWRa4nrLFb+xRH9Fmw=="),
+			cty.StringVal("pZGm1Av0IEBKARczz7exkNYsZb8LzaMrV7J32a2fFG4="),
 			false,
 		},
 		{
 			cty.StringVal("testdata/icon.png"),
-			cty.StringVal("wSInO/tKEOaLGCAY2h/7gtLWMpzyLJ0ijFh95JTpYrPzXQYgviAdL9ZgpD9EAte8On+drvhFvjIFsfQUwxbNPQ=="),
+			cty.StringVal("47U1q9IZW093SmAzdC820Skpn8vHPvc8szud/Y3ezpo="),
 			false,
 		},
 		{
@@ -79,7 +79,7 @@ func TestFileBase64Sha256(t *testing.T) {
 		},
 	}
 
-	fileSHA256 := MakeFileBase64Sha512Func(".")
+	fileSHA256 := MakeFileBase64Sha256Func(".")
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("filebase64sha256(%#v)", test.Path), func(t *testing.T) {

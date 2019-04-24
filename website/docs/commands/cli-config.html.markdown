@@ -32,6 +32,9 @@ CLI configuration file, even though Windows Explorer may _display_ its name
 as just `terraform.rc`. Use `dir` from PowerShell or Command Prompt to
 confirm the filename.
 
+The location of the Terraform CLI configuration file can also be specified
+using the `TF_CLI_CONFIG_FILE` [environment variable](/docs/commands/environment-variables.html).
+
 ## Configuration File Syntax
 
 The configuration file uses the same _HCL_ syntax as `.tf` files, but with
@@ -96,6 +99,6 @@ longer recommended for use:
 * `providers` - a configuration block that allows specifying the locations of
   specific plugins for each named provider. This mechanism is deprecated
   because it is unable to specify a version number for each plugin, and thus
-  it does not co-operate with the plugin versioning mechansim. Instead,
+  it does not co-operate with the plugin versioning mechanism. Instead,
   place the plugin executable files in
   [the third-party plugins directory](/docs/configuration/providers.html#third-party-plugins).

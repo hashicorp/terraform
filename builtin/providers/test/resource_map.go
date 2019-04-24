@@ -23,6 +23,16 @@ func testResourceMap() *schema.Resource {
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
+			"map_values": {
+				Type:     schema.TypeMap,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"computed_map": {
+				Type:     schema.TypeMap,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
 		},
 	}
 }
@@ -35,15 +45,20 @@ func testResourceMapCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.SetId("testId")
-	return nil
+	return testResourceMapRead(d, meta)
 }
 
 func testResourceMapRead(d *schema.ResourceData, meta interface{}) error {
+	var computedMap map[string]interface{}
+	if v, ok := d.GetOk("map_values"); ok {
+		computedMap = v.(map[string]interface{})
+	}
+	d.Set("computed_map", computedMap)
 	return nil
 }
 
 func testResourceMapUpdate(d *schema.ResourceData, meta interface{}) error {
-	return nil
+	return testResourceMapRead(d, meta)
 }
 
 func testResourceMapDelete(d *schema.ResourceData, meta interface{}) error {

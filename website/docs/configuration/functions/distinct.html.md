@@ -15,7 +15,7 @@ earlier, see
 `distinct` takes a list and returns a new list with any duplicate elements
 removed.
 
-The first occurence of each value is retained and the relative ordering of
+The first occurrence of each value is retained and the relative ordering of
 these elements is preserved.
 
 ## Examples

@@ -201,8 +201,8 @@ func (h *Host) VersionConstraints(id, product string) (*Constraints, error) {
 
 	// Set a default timeout of 1 sec for the versions request (in milliseconds)
 	timeout := 1000
-	if _, err := strconv.Atoi(os.Getenv("CHECKPOINT_TIMEOUT")); err == nil {
-		timeout, _ = strconv.Atoi(os.Getenv("CHECKPOINT_TIMEOUT"))
+	if v, err := strconv.Atoi(os.Getenv("CHECKPOINT_TIMEOUT")); err == nil {
+		timeout = v
 	}
 
 	client := &http.Client{
