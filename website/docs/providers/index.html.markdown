@@ -58,6 +58,7 @@ down to see all providers.
 - [Gitlab](/docs/providers/gitlab/index.html)
 - [Google Cloud Platform](/docs/providers/google/index.html)
 - [Grafana](/docs/providers/grafana/index.html)
+- [Gridscale](/docs/providers/gridscale)
 - [Hedvig](/docs/providers/hedvig/index.html)
 - [Helm](/docs/providers/helm/index.html)
 - [Heroku](/docs/providers/heroku/index.html)
