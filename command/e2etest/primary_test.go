@@ -69,13 +69,8 @@ func TestPrimarySeparatePlan(t *testing.T) {
 		t.Fatalf("failed to read plan file: %s", err)
 	}
 
-	stateResources := plan.State.RootModule().Resources
-	diffResources := plan.Diff.RootModule().Resources
-
-	if len(stateResources) != 1 || stateResources["data.template_file.test"] == nil {
-		t.Errorf("incorrect state in plan; want just data.template_file.test to have been rendered, but have:\n%s", spew.Sdump(stateResources))
-	}
-	if len(diffResources) != 1 || diffResources["null_resource.test"] == nil {
+	diffResources := plan.Changes.Resources
+	if len(diffResources) != 1 || diffResources[0].Addr.String() != "null_resource.test" {
 		t.Errorf("incorrect diff in plan; want just null_resource.test to have been rendered, but have:\n%s", spew.Sdump(diffResources))
 	}
 
@@ -94,9 +89,9 @@ func TestPrimarySeparatePlan(t *testing.T) {
 		t.Fatalf("failed to read state file: %s", err)
 	}
 
-	stateResources = state.RootModule().Resources
+	stateResources := state.RootModule().Resources
 	var gotResources []string
-	for n := range stateResources {
+	for n, _ := range stateResources {
 		gotResources = append(gotResources, n)
 	}
 	sort.Strings(gotResources)
