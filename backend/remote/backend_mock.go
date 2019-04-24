@@ -21,6 +21,7 @@ import (
 type mockClient struct {
 	Applies               *mockApplies
 	ConfigurationVersions *mockConfigurationVersions
+	CostEstimations       *mockCostEstimations
 	Organizations         *mockOrganizations
 	Plans                 *mockPlans
 	PolicyChecks          *mockPolicyChecks
@@ -33,6 +34,7 @@ func newMockClient() *mockClient {
 	c := &mockClient{}
 	c.Applies = newMockApplies(c)
 	c.ConfigurationVersions = newMockConfigurationVersions(c)
+	c.CostEstimations = newMockCostEstimations(c)
 	c.Organizations = newMockOrganizations(c)
 	c.Plans = newMockPlans(c)
 	c.PolicyChecks = newMockPolicyChecks(c)
@@ -210,6 +212,111 @@ func (m *mockConfigurationVersions) Upload(ctx context.Context, url, path string
 	m.uploadPaths[cv.ID] = path
 	cv.Status = tfe.ConfigurationUploaded
 	return nil
+}
+
+type mockCostEstimations struct {
+	client      *mockClient
+	estimations map[string]*tfe.CostEstimation
+	logs        map[string]string
+}
+
+func newMockCostEstimations(client *mockClient) *mockCostEstimations {
+	return &mockCostEstimations{
+		client:      client,
+		estimations: make(map[string]*tfe.CostEstimation),
+		logs:        make(map[string]string),
+	}
+}
+
+// create is a helper function to create a mock plan that uses the configured
+// working directory to find the logfile.
+func (m *mockCostEstimations) create(cvID, workspaceID string) (*tfe.CostEstimation, error) {
+	id := generateID("ce-")
+
+	ce := &tfe.CostEstimation{
+		ID:     id,
+		Status: tfe.CostEstimationQueued,
+	}
+
+	w, ok := m.client.Workspaces.workspaceIDs[workspaceID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+
+	logfile := filepath.Join(
+		m.client.ConfigurationVersions.uploadPaths[cvID],
+		w.WorkingDirectory,
+		"ce.log",
+	)
+
+	if _, err := os.Stat(logfile); os.IsNotExist(err) {
+		return nil, nil
+	}
+
+	m.logs[ce.ID] = logfile
+	m.estimations[ce.ID] = ce
+
+	return ce, nil
+}
+
+func (m *mockCostEstimations) Read(ctx context.Context, costEstimationID string) (*tfe.CostEstimation, error) {
+	ce, ok := m.estimations[costEstimationID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+
+	logfile, ok := m.logs[ce.ID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+
+	if _, err := os.Stat(logfile); os.IsNotExist(err) {
+		return nil, fmt.Errorf("logfile does not exist")
+	}
+
+	logs, err := ioutil.ReadFile(logfile)
+	if err != nil {
+		return nil, err
+	}
+
+	if bytes.Contains(logs, []byte("SKU")) {
+		ce.Status = tfe.CostEstimationFinished
+	} else {
+		// As this is an unexpected state, we say the estimation errored.
+		ce.Status = tfe.CostEstimationErrored
+	}
+
+	return ce, nil
+}
+
+func (m *mockCostEstimations) Logs(ctx context.Context, costEstimationID string) (io.Reader, error) {
+	ce, ok := m.estimations[costEstimationID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+
+	logfile, ok := m.logs[ce.ID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+
+	if _, err := os.Stat(logfile); os.IsNotExist(err) {
+		return bytes.NewBufferString("logfile does not exist"), nil
+	}
+
+	logs, err := ioutil.ReadFile(logfile)
+	if err != nil {
+		return nil, err
+	}
+
+	if bytes.Contains(logs, []byte("SKU")) {
+		ce.Status = tfe.CostEstimationFinished
+	} else {
+		// As this is an unexpected state, we say the estimation errored.
+		ce.Status = tfe.CostEstimationErrored
+	}
+
+	return bytes.NewBuffer(logs), nil
 }
 
 // mockInput is a mock implementation of terraform.UIInput.
@@ -652,19 +759,25 @@ func (m *mockRuns) Create(ctx context.Context, options tfe.RunCreateOptions) (*t
 		return nil, err
 	}
 
+	ce, err := m.client.CostEstimations.create(options.ConfigurationVersion.ID, options.Workspace.ID)
+	if err != nil {
+		return nil, err
+	}
+
 	pc, err := m.client.PolicyChecks.create(options.ConfigurationVersion.ID, options.Workspace.ID)
 	if err != nil {
 		return nil, err
 	}
 
 	r := &tfe.Run{
-		ID:          generateID("run-"),
-		Actions:     &tfe.RunActions{IsCancelable: true},
-		Apply:       a,
-		HasChanges:  false,
-		Permissions: &tfe.RunPermissions{},
-		Plan:        p,
-		Status:      tfe.RunPending,
+		ID:             generateID("run-"),
+		Actions:        &tfe.RunActions{IsCancelable: true},
+		Apply:          a,
+		CostEstimation: ce,
+		HasChanges:     false,
+		Permissions:    &tfe.RunPermissions{},
+		Plan:           p,
+		Status:         tfe.RunPending,
 	}
 
 	if pc != nil {
@@ -1035,6 +1148,10 @@ func (m *mockWorkspaces) AssignSSHKey(ctx context.Context, workspaceID string, o
 }
 
 func (m *mockWorkspaces) UnassignSSHKey(ctx context.Context, workspaceID string) (*tfe.Workspace, error) {
+	panic("not implemented")
+}
+
+func (m *mockWorkspaces) RemoveVCSConnection(ctx context.Context, organizationID string, workspaceID string) (*tfe.Workspace, error) {
 	panic("not implemented")
 }
 
