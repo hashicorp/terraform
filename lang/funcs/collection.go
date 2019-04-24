@@ -257,13 +257,13 @@ var CompactFunc = function.New(&function.Spec{
 	},
 })
 
-// ContainsFunc contructs a function that determines whether a given list contains
-// a given single value as one of its elements.
+// ContainsFunc contructs a function that determines whether a given list or
+// set contains a given single value as one of its elements.
 var ContainsFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
 			Name: "list",
-			Type: cty.List(cty.DynamicPseudoType),
+			Type: cty.DynamicPseudoType,
 		},
 		{
 			Name: "value",
@@ -272,12 +272,18 @@ var ContainsFunc = function.New(&function.Spec{
 	},
 	Type: function.StaticReturnType(cty.Bool),
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
-
-		_, err = Index(args[0], args[1])
-		if err != nil {
-			return cty.False, nil
+		ty := args[0].Type()
+		switch {
+		case ty.IsSetType():
+			return args[0].HasElement(args[1]), nil
+		case ty.IsListType():
+			_, err = Index(args[0], args[1])
+			if err != nil {
+				return cty.False, nil
+			}
+		default:
+			return cty.NilVal, fmt.Errorf("argument must be a list or set")
 		}
-
 		return cty.True, nil
 	},
 })

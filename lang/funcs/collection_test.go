@@ -617,6 +617,24 @@ func TestContains(t *testing.T) {
 		cty.StringVal("brown"),
 		cty.UnknownVal(cty.String),
 	})
+	setOfStrings := cty.SetVal([]cty.Value{
+		cty.StringVal("the"),
+		cty.StringVal("quick"),
+		cty.StringVal("brown"),
+		cty.StringVal("fox"),
+	})
+	setOfInts := cty.SetVal([]cty.Value{
+		cty.NumberIntVal(1),
+		cty.NumberIntVal(2),
+		cty.NumberIntVal(3),
+		cty.NumberIntVal(4),
+	})
+	setWithUnknown := cty.SetVal([]cty.Value{
+		cty.StringVal("the"),
+		cty.StringVal("quick"),
+		cty.StringVal("brown"),
+		cty.UnknownVal(cty.String),
+	})
 
 	tests := []struct {
 		List  cty.Value
@@ -654,8 +672,44 @@ func TestContains(t *testing.T) {
 			cty.BoolVal(false),
 			false,
 		},
+		{
+			setOfStrings,
+			cty.StringVal("the"),
+			cty.BoolVal(true),
+			false,
+		},
+		{
+			setWithUnknown,
+			cty.StringVal("the"),
+			cty.BoolVal(true),
+			false,
+		},
+		{
+			setOfStrings,
+			cty.StringVal("penguin"),
+			cty.BoolVal(false),
+			false,
+		},
+		{
+			setOfInts,
+			cty.NumberIntVal(1),
+			cty.BoolVal(true),
+			false,
+		},
+		{
+			setOfInts,
+			cty.NumberIntVal(42),
+			cty.BoolVal(false),
+			false,
+		},
 		{ // And now we mix and match
 			listOfInts,
+			cty.StringVal("1"),
+			cty.BoolVal(false),
+			false,
+		},
+		{ // And now we mix and match
+			setOfInts,
 			cty.StringVal("1"),
 			cty.BoolVal(false),
 			false,
