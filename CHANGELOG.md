@@ -1,5 +1,8 @@
 ## 0.12.0-rc1 (Unreleased)
 
+NEW FEATURES: 
+
+* New function `strrev`, for reversing unicode strings. [#21091]
 
 ## 0.12.0-beta2 (Apr 18, 2019)
 
