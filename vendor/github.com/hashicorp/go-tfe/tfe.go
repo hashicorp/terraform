@@ -106,6 +106,7 @@ type Client struct {
 
 	Applies                    Applies
 	ConfigurationVersions      ConfigurationVersions
+	CostEstimations            CostEstimations
 	NotificationConfigurations NotificationConfigurations
 	OAuthClients               OAuthClients
 	OAuthTokens                OAuthTokens
@@ -195,6 +196,7 @@ func NewClient(cfg *Config) (*Client, error) {
 	// Create the services.
 	client.Applies = &applies{client: client}
 	client.ConfigurationVersions = &configurationVersions{client: client}
+	client.CostEstimations = &costEstimations{client: client}
 	client.NotificationConfigurations = &notificationConfigurations{client: client}
 	client.OAuthClients = &oAuthClients{client: client}
 	client.OAuthTokens = &oAuthTokens{client: client}
@@ -247,7 +249,7 @@ func (c *Client) retryHTTPBackoff(min, max time.Duration, attemptNum int, resp *
 	}
 
 	// Use the rate limit backoff function when we are rate limited.
-	if resp.StatusCode == 429 {
+	if resp != nil && resp.StatusCode == 429 {
 		return rateLimitBackoff(min, max, attemptNum, resp)
 	}
 
