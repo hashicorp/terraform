@@ -25,6 +25,7 @@ vendor in close collaboration with HashiCorp, and are tested by HashiCorp.
 - [DigitalOcean](/docs/providers/do/index.html)
 - [Fastly](/docs/providers/fastly/index.html)
 - [FlexibleEngine](/docs/providers/flexibleengine/index.html)
+- [Gridscale](/docs/providers/gridscale/index.html)
 - [Hedvig](/docs/providers/hedvig/index.html)
 - [Heroku](/docs/providers/heroku/index.html)
 - [Hetzner Cloud](/docs/providers/hcloud/index.html)
