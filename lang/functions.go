@@ -88,7 +88,6 @@ func (s *Scope) Functions() map[string]function.Function {
 			"replace":          funcs.ReplaceFunc,
 			"reverse":          funcs.ReverseFunc,
 			"rsadecrypt":       funcs.RsaDecryptFunc,
-			"sethaselement":    stdlib.SetHasElementFunc,
 			"setintersection":  stdlib.SetIntersectionFunc,
 			"setproduct":       funcs.SetProductFunc,
 			"setunion":         stdlib.SetUnionFunc,
