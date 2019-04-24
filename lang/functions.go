@@ -99,6 +99,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"slice":            funcs.SliceFunc,
 			"sort":             funcs.SortFunc,
 			"split":            funcs.SplitFunc,
+			"strrev":           stdlib.ReverseFunc,
 			"substr":           stdlib.SubstrFunc,
 			"timestamp":        funcs.TimestampFunc,
 			"timeadd":          funcs.TimeAddFunc,
