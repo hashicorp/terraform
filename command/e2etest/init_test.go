@@ -24,7 +24,7 @@ func TestInitProviders(t *testing.T) {
 
 	fixturePath := filepath.Join("test-fixtures", "template-provider")
 	tf := e2e.NewBinary(terraformBin, fixturePath)
-	//defer tf.Close()
+	defer tf.Close()
 
 	stdout, stderr, err := tf.Run("init")
 	if err != nil {
@@ -135,8 +135,6 @@ func TestInitProviders_pluginCache(t *testing.T) {
 
 func TestInit_fromModule(t *testing.T) {
 	t.Parallel()
-
-	// t.Skip("cannot run this test until we have an AWS provider release supporting plugin protocol version 5")
 
 	// This test reaches out to registry.terraform.io and github.com to lookup
 	// and fetch a module.
