@@ -49,7 +49,7 @@ require (
 	github.com/hashicorp/go-getter v1.1.0
 	github.com/hashicorp/go-hclog v0.0.0-20181001195459-61d530d6c27f
 	github.com/hashicorp/go-immutable-radix v0.0.0-20180129170900-7f3cd4390caa // indirect
-	github.com/hashicorp/go-msgpack v0.0.0-20150518234257-fa3f63826f7c // indirect
+	github.com/hashicorp/go-msgpack v0.5.4 // indirect
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hashicorp/go-plugin v0.0.0-20190322172744-52e1c4730856
 	github.com/hashicorp/go-retryablehttp v0.5.2
@@ -116,7 +116,4 @@ require (
 	golang.org/x/oauth2 v0.0.0-20190220154721-9b3c75971fc9
 	google.golang.org/api v0.1.0
 	google.golang.org/grpc v1.18.0
-	gopkg.in/vmihailenco/msgpack.v2 v2.9.1 // indirect
-	labix.org/v2/mgo v0.0.0-20140701140051-000000000287 // indirect
-	launchpad.net/gocheck v0.0.0-20140225173054-000000000087 // indirect
 )
