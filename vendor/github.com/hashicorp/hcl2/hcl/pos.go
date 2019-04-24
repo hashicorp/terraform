@@ -31,6 +31,9 @@ type Pos struct {
 	Byte int
 }
 
+// InitialPos is a suitable position to use to mark the start of a file.
+var InitialPos = Pos{Byte: 0, Line: 1, Column: 1}
+
 // Range represents a span of characters between two positions in a source
 // file.
 //

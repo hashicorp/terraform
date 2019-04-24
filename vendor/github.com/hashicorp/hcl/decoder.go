@@ -89,7 +89,7 @@ func (d *decoder) decode(name string, node ast.Node, result reflect.Value) error
 	switch k.Kind() {
 	case reflect.Bool:
 		return d.decodeBool(name, node, result)
-	case reflect.Float32, reflect.Float64:
+	case reflect.Float64:
 		return d.decodeFloat(name, node, result)
 	case reflect.Int, reflect.Int32, reflect.Int64:
 		return d.decodeInt(name, node, result)
@@ -137,13 +137,13 @@ func (d *decoder) decodeBool(name string, node ast.Node, result reflect.Value) e
 func (d *decoder) decodeFloat(name string, node ast.Node, result reflect.Value) error {
 	switch n := node.(type) {
 	case *ast.LiteralType:
-		if n.Token.Type == token.FLOAT || n.Token.Type == token.NUMBER {
+		if n.Token.Type == token.FLOAT {
 			v, err := strconv.ParseFloat(n.Token.Text, 64)
 			if err != nil {
 				return err
 			}
 
-			result.Set(reflect.ValueOf(v).Convert(result.Type()))
+			result.Set(reflect.ValueOf(v))
 			return nil
 		}
 	}
@@ -573,11 +573,7 @@ func (d *decoder) decodeStruct(name string, node ast.Node, result reflect.Value)
 
 	// Compile the list of all the fields that we're going to be decoding
 	// from all the structs.
-	type field struct {
-		field reflect.StructField
-		val   reflect.Value
-	}
-	fields := []field{}
+	fields := make(map[*reflect.StructField]reflect.Value)
 	for len(structs) > 0 {
 		structVal := structs[0]
 		structs = structs[1:]
@@ -620,7 +616,7 @@ func (d *decoder) decodeStruct(name string, node ast.Node, result reflect.Value)
 			}
 
 			// Normal struct field, store it away
-			fields = append(fields, field{fieldType, structVal.Field(i)})
+			fields[&fieldType] = structVal.Field(i)
 		}
 	}
 
@@ -628,27 +624,26 @@ func (d *decoder) decodeStruct(name string, node ast.Node, result reflect.Value)
 	decodedFields := make([]string, 0, len(fields))
 	decodedFieldsVal := make([]reflect.Value, 0)
 	unusedKeysVal := make([]reflect.Value, 0)
-	for _, f := range fields {
-		field, fieldValue := f.field, f.val
-		if !fieldValue.IsValid() {
+	for fieldType, field := range fields {
+		if !field.IsValid() {
 			// This should never happen
 			panic("field is not valid")
 		}
 
 		// If we can't set the field, then it is unexported or something,
 		// and we just continue onwards.
-		if !fieldValue.CanSet() {
+		if !field.CanSet() {
 			continue
 		}
 
-		fieldName := field.Name
+		fieldName := fieldType.Name
 
-		tagValue := field.Tag.Get(tagName)
+		tagValue := fieldType.Tag.Get(tagName)
 		tagParts := strings.SplitN(tagValue, ",", 2)
 		if len(tagParts) >= 2 {
 			switch tagParts[1] {
 			case "decodedFields":
-				decodedFieldsVal = append(decodedFieldsVal, fieldValue)
+				decodedFieldsVal = append(decodedFieldsVal, field)
 				continue
 			case "key":
 				if item == nil {
@@ -659,10 +654,10 @@ func (d *decoder) decodeStruct(name string, node ast.Node, result reflect.Value)
 					}
 				}
 
-				fieldValue.SetString(item.Keys[0].Token.Value().(string))
+				field.SetString(item.Keys[0].Token.Value().(string))
 				continue
 			case "unusedKeys":
-				unusedKeysVal = append(unusedKeysVal, fieldValue)
+				unusedKeysVal = append(unusedKeysVal, field)
 				continue
 			}
 		}
@@ -689,7 +684,7 @@ func (d *decoder) decodeStruct(name string, node ast.Node, result reflect.Value)
 		// because we actually want the value.
 		fieldName = fmt.Sprintf("%s.%s", name, fieldName)
 		if len(prefixMatches.Items) > 0 {
-			if err := d.decode(fieldName, prefixMatches, fieldValue); err != nil {
+			if err := d.decode(fieldName, prefixMatches, field); err != nil {
 				return err
 			}
 		}
@@ -699,12 +694,12 @@ func (d *decoder) decodeStruct(name string, node ast.Node, result reflect.Value)
 				decodeNode = &ast.ObjectList{Items: ot.List.Items}
 			}
 
-			if err := d.decode(fieldName, decodeNode, fieldValue); err != nil {
+			if err := d.decode(fieldName, decodeNode, field); err != nil {
 				return err
 			}
 		}
 
-		decodedFields = append(decodedFields, field.Name)
+		decodedFields = append(decodedFields, fieldType.Name)
 	}
 
 	if len(decodedFieldsVal) > 0 {

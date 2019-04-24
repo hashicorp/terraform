@@ -527,3 +527,56 @@ resource "test_resource_nested_set" "c" {
 		},
 	})
 }
+
+func TestResourceNestedSet_interpolationChanges(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_nested_set" "foo" {
+	single {
+		value = "x"
+	}
+}
+resource "test_resource_nested_set" "bar" {
+	single {
+		value = test_resource_nested_set.foo.id
+	}
+}
+				`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"test_resource_nested_set.foo", "single.#", "1",
+					),
+					resource.TestCheckResourceAttr(
+						"test_resource_nested_set.bar", "single.#", "1",
+					),
+				),
+			},
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_nested_set" "baz" {
+	single {
+		value = "x"
+	}
+}
+resource "test_resource_nested_set" "bar" {
+	single {
+		value = test_resource_nested_set.baz.id
+	}
+}
+				`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"test_resource_nested_set.baz", "single.#", "1",
+					),
+					resource.TestCheckResourceAttr(
+						"test_resource_nested_set.bar", "single.#", "1",
+					),
+				),
+			},
+		},
+	})
+}

@@ -95,6 +95,7 @@ message Schema {
             LIST = 2;
             SET = 3;
             MAP = 4;
+            GROUP = 5;
         }
 
         string type_name = 1;
@@ -239,6 +240,20 @@ message PlanResourceChange {
         repeated AttributePath requires_replace = 2;
         bytes planned_private = 3; 
         repeated Diagnostic diagnostics = 4;
+
+
+        // This may be set only by the helper/schema "SDK" in the main Terraform
+        // repository, to request that Terraform Core >=0.12 permit additional
+        // inconsistencies that can result from the legacy SDK type system
+        // and its imprecise mapping to the >=0.12 type system.
+        // The change in behavior implied by this flag makes sense only for the
+        // specific details of the legacy SDK type system, and are not a general
+        // mechanism to avoid proper type handling in providers.
+        //
+        //     ====              DO NOT USE THIS              ====
+        //     ==== THIS MUST BE LEFT UNSET IN ALL OTHER SDKS ====
+        //     ====              DO NOT USE THIS              ====
+        bool legacy_type_system = 5;
     }
 }
 

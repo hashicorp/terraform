@@ -119,6 +119,50 @@ var LengthFunc = function.New(&function.Spec{
 	},
 })
 
+// CoalesceFunc contructs a function that takes any number of arguments and
+// returns the first one that isn't empty. This function was copied from go-cty
+// stdlib and modified so that it returns the first *non-empty* non-null element
+// from a sequence, instead of merely the first non-null.
+var CoalesceFunc = function.New(&function.Spec{
+	Params: []function.Parameter{},
+	VarParam: &function.Parameter{
+		Name:             "vals",
+		Type:             cty.DynamicPseudoType,
+		AllowUnknown:     true,
+		AllowDynamicType: true,
+		AllowNull:        true,
+	},
+	Type: func(args []cty.Value) (ret cty.Type, err error) {
+		argTypes := make([]cty.Type, len(args))
+		for i, val := range args {
+			argTypes[i] = val.Type()
+		}
+		retType, _ := convert.UnifyUnsafe(argTypes)
+		if retType == cty.NilType {
+			return cty.NilType, fmt.Errorf("all arguments must have the same type")
+		}
+		return retType, nil
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		for _, argVal := range args {
+			// We already know this will succeed because of the checks in our Type func above
+			argVal, _ = convert.Convert(argVal, retType)
+			if !argVal.IsKnown() {
+				return cty.UnknownVal(retType), nil
+			}
+			if argVal.IsNull() {
+				continue
+			}
+			if retType == cty.String && argVal.RawEquals(cty.StringVal("")) {
+				continue
+			}
+
+			return argVal, nil
+		}
+		return cty.NilVal, fmt.Errorf("no non-null, non-empty-string arguments")
+	},
+})
+
 // CoalesceListFunc contructs a function that takes any number of list arguments
 // and returns the first one that isn't empty.
 var CoalesceListFunc = function.New(&function.Spec{
@@ -807,6 +851,49 @@ var MergeFunc = function.New(&function.Spec{
 	},
 })
 
+// ReverseFunc takes a sequence and produces a new sequence of the same length
+// with all of the same elements as the given sequence but in reverse order.
+var ReverseFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "list",
+			Type: cty.DynamicPseudoType,
+		},
+	},
+	Type: func(args []cty.Value) (cty.Type, error) {
+		argTy := args[0].Type()
+		switch {
+		case argTy.IsTupleType():
+			argTys := argTy.TupleElementTypes()
+			retTys := make([]cty.Type, len(argTys))
+			for i, ty := range argTys {
+				retTys[len(retTys)-i-1] = ty
+			}
+			return cty.Tuple(retTys), nil
+		case argTy.IsListType(), argTy.IsSetType(): // We accept sets here to mimic the usual behavior of auto-converting to list
+			return cty.List(argTy.ElementType()), nil
+		default:
+			return cty.NilType, function.NewArgErrorf(0, "can only reverse list or tuple values, not %s", argTy.FriendlyName())
+		}
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		in := args[0].AsValueSlice()
+		outVals := make([]cty.Value, len(in))
+		for i, v := range in {
+			outVals[len(outVals)-i-1] = v
+		}
+		switch {
+		case retType.IsTupleType():
+			return cty.TupleVal(outVals), nil
+		default:
+			if len(outVals) == 0 {
+				return cty.ListValEmpty(retType.ElementType()), nil
+			}
+			return cty.ListVal(outVals), nil
+		}
+	},
+})
+
 // SetProductFunc calculates the cartesian product of two or more sets or
 // sequences. If the arguments are all lists then the result is a list of tuples,
 // preserving the ordering of all of the input lists. Otherwise the result is a
@@ -1215,6 +1302,11 @@ func Length(collection cty.Value) (cty.Value, error) {
 	return LengthFunc.Call([]cty.Value{collection})
 }
 
+// Coalesce takes any number of arguments and returns the first one that isn't empty.
+func Coalesce(args ...cty.Value) (cty.Value, error) {
+	return CoalesceFunc.Call(args)
+}
+
 // CoalesceList takes any number of list arguments and returns the first one that isn't empty.
 func CoalesceList(args ...cty.Value) (cty.Value, error) {
 	return CoalesceListFunc.Call(args)
@@ -1290,6 +1382,12 @@ func Matchkeys(values, keys, searchset cty.Value) (cty.Value, error) {
 // the argument sequence takes precedence.
 func Merge(maps ...cty.Value) (cty.Value, error) {
 	return MergeFunc.Call(maps)
+}
+
+// Reverse takes a sequence and produces a new sequence of the same length
+// with all of the same elements as the given sequence but in reverse order.
+func Reverse(list cty.Value) (cty.Value, error) {
+	return ReverseFunc.Call([]cty.Value{list})
 }
 
 // SetProduct computes the cartesian product of sets or sequences.

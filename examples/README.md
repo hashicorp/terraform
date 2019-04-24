@@ -23,5 +23,5 @@ repositories contain documentation specific to their provider:
 * [CenturyLink Cloud Examples](https://github.com/terraform-providers/terraform-provider-clc/tree/master/examples)
 * [Consul Examples](https://github.com/terraform-providers/terraform-provider-consul/tree/master/examples)
 * [DigitalOcean Examples](https://github.com/terraform-providers/terraform-provider-digitalocean/tree/master/examples)
-* [Google Cloud Examples](https://github.com/terraform-providers/terraform-provider-google/tree/master/examples)
+* [Google Cloud Platform Examples](https://github.com/terraform-providers/terraform-provider-google/tree/master/examples)
 * [OpenStack Examples](https://github.com/terraform-providers/terraform-provider-openstack/tree/master/examples)

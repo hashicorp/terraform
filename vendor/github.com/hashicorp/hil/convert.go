@@ -47,8 +47,23 @@ func hilMapstructureWeakDecode(m interface{}, rawVal interface{}) error {
 }
 
 func InterfaceToVariable(input interface{}) (ast.Variable, error) {
-	if inputVariable, ok := input.(ast.Variable); ok {
-		return inputVariable, nil
+	if iv, ok := input.(ast.Variable); ok {
+		return iv, nil
+	}
+
+	// This is just to maintain backward compatibility
+	// after https://github.com/mitchellh/mapstructure/pull/98
+	if v, ok := input.([]ast.Variable); ok {
+		return ast.Variable{
+			Type:  ast.TypeList,
+			Value: v,
+		}, nil
+	}
+	if v, ok := input.(map[string]ast.Variable); ok {
+		return ast.Variable{
+			Type:  ast.TypeMap,
+			Value: v,
+		}, nil
 	}
 
 	var stringVal string

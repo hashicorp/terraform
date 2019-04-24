@@ -78,7 +78,7 @@ type reusingGetter map[string]string
 // go-getter library, which have very inconsistent quality as
 // end-user-actionable error messages. At this time we do not have any
 // reasonable way to improve these error messages at this layer because
-// the underlying errors are not separatelyr recognizable.
+// the underlying errors are not separately recognizable.
 func (g reusingGetter) getWithGoGetter(instPath, addr string) (string, error) {
 	packageAddr, subDir := splitAddrSubdir(addr)
 
@@ -87,6 +87,10 @@ func (g reusingGetter) getWithGoGetter(instPath, addr string) (string, error) {
 	realAddr, err := getter.Detect(packageAddr, instPath, getter.Detectors)
 	if err != nil {
 		return "", err
+	}
+
+	if isMaybeRelativeLocalPath(realAddr) {
+		return "", &MaybeRelativePathErr{addr}
 	}
 
 	var realSubDir string
@@ -185,4 +189,22 @@ func isLocalSourceAddr(addr string) bool {
 func isRegistrySourceAddr(addr string) bool {
 	_, err := regsrc.ParseModuleSource(addr)
 	return err == nil
+}
+
+type MaybeRelativePathErr struct {
+	Addr string
+}
+
+func (e *MaybeRelativePathErr) Error() string {
+	return fmt.Sprintf("Terraform cannot determine the module source for %s", e.Addr)
+}
+
+func isMaybeRelativeLocalPath(addr string) bool {
+	if strings.HasPrefix(addr, "file://") {
+		_, err := os.Stat(addr[7:])
+		if err != nil {
+			return true
+		}
+	}
+	return false
 }

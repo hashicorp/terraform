@@ -12,7 +12,7 @@ type commonResult struct {
 	gophercloud.Result
 }
 
-// Extract interprets a GetResult, CreateResult or UpdateResult as a concrete RecordSet.
+// Extract interprets a GetResult, CreateResult or UpdateResult as a RecordSet.
 // An error is returned if the original call or the extraction failed.
 func (r commonResult) Extract() (*RecordSet, error) {
 	var s *RecordSet
@@ -20,12 +20,14 @@ func (r commonResult) Extract() (*RecordSet, error) {
 	return s, err
 }
 
-// CreateResult is the deferred result of a Create call.
+// CreateResult is the result of a Create operation. Call its Extract method to
+// interpret the result as a RecordSet.
 type CreateResult struct {
 	commonResult
 }
 
-// GetResult is the deferred result of a Get call.
+// GetResult is the result of a Get operation. Call its Extract method to
+// interpret the result as a RecordSet.
 type GetResult struct {
 	commonResult
 }
@@ -35,12 +37,14 @@ type RecordSetPage struct {
 	pagination.LinkedPageBase
 }
 
-// UpdateResult is the deferred result of an Update call.
+// UpdateResult is result of an Update operation. Call its Extract method to
+// interpret the result as a RecordSet.
 type UpdateResult struct {
 	commonResult
 }
 
-// DeleteResult is the deferred result of an Delete call.
+// DeleteResult is result of a Delete operation. Call its ExtractErr method to
+// determine if the operation succeeded or failed.
 type DeleteResult struct {
 	gophercloud.ErrResult
 }
@@ -51,7 +55,7 @@ func (r RecordSetPage) IsEmpty() (bool, error) {
 	return len(s) == 0, err
 }
 
-// ExtractRecordSets extracts a slice of RecordSets from a Collection acquired from List.
+// ExtractRecordSets extracts a slice of RecordSets from a List result.
 func ExtractRecordSets(r pagination.Page) ([]RecordSet, error) {
 	var s struct {
 		RecordSets []RecordSet `json:"recordsets"`
@@ -60,6 +64,7 @@ func ExtractRecordSets(r pagination.Page) ([]RecordSet, error) {
 	return s.RecordSets, err
 }
 
+// RecordSet represents a DNS Record Set.
 type RecordSet struct {
 	// ID is the unique ID of the recordset
 	ID string `json:"id"`
@@ -95,7 +100,7 @@ type RecordSet struct {
 	Description string `json:"description"`
 
 	// Version is the revision of the recordset.
-	Version int `json:version"`
+	Version int `json:"version"`
 
 	// CreatedAt is the date when the recordset was created.
 	CreatedAt time.Time `json:"-"`
@@ -104,7 +109,8 @@ type RecordSet struct {
 	UpdatedAt time.Time `json:"-"`
 
 	// Links includes HTTP references to the itself,
-	// useful for passing along to other APIs that might want a recordset reference.
+	// useful for passing along to other APIs that might want a recordset
+	// reference.
 	Links []gophercloud.Link `json:"-"`
 }
 

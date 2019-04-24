@@ -33,7 +33,8 @@ func testOperationApply(t *testing.T, configDir string) (*backend.Operation, fun
 }
 
 func TestRemote_applyBasic(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	op, configCleanup := testOperationApply(t, "./test-fixtures/apply")
 	defer configCleanup()
@@ -75,8 +76,32 @@ func TestRemote_applyBasic(t *testing.T) {
 	}
 }
 
+func TestRemote_applyCanceled(t *testing.T) {
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
+
+	op, configCleanup := testOperationApply(t, "./test-fixtures/apply")
+	defer configCleanup()
+
+	op.Workspace = backend.DefaultStateName
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	// Stop the run to simulate a Ctrl-C.
+	run.Stop()
+
+	<-run.Done()
+	if run.Result == backend.OperationSuccess {
+		t.Fatal("expected apply operation to fail")
+	}
+}
+
 func TestRemote_applyWithoutPermissions(t *testing.T) {
-	b := testBackendNoDefault(t)
+	b, bCleanup := testBackendNoDefault(t)
+	defer bCleanup()
 
 	// Create a named workspace without permissions.
 	w, err := b.client.Workspaces.Create(
@@ -89,7 +114,7 @@ func TestRemote_applyWithoutPermissions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating named workspace: %v", err)
 	}
-	w.Permissions.CanUpdate = false
+	w.Permissions.CanQueueApply = false
 
 	op, configCleanup := testOperationApply(t, "./test-fixtures/apply")
 	defer configCleanup()
@@ -114,7 +139,8 @@ func TestRemote_applyWithoutPermissions(t *testing.T) {
 }
 
 func TestRemote_applyWithVCS(t *testing.T) {
-	b := testBackendNoDefault(t)
+	b, bCleanup := testBackendNoDefault(t)
+	defer bCleanup()
 
 	// Create a named workspace with a VCS.
 	_, err := b.client.Workspaces.Create(
@@ -154,7 +180,8 @@ func TestRemote_applyWithVCS(t *testing.T) {
 }
 
 func TestRemote_applyWithParallelism(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	op, configCleanup := testOperationApply(t, "./test-fixtures/apply")
 	defer configCleanup()
@@ -179,7 +206,8 @@ func TestRemote_applyWithParallelism(t *testing.T) {
 }
 
 func TestRemote_applyWithPlan(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	op, configCleanup := testOperationApply(t, "./test-fixtures/apply")
 	defer configCleanup()
@@ -207,7 +235,8 @@ func TestRemote_applyWithPlan(t *testing.T) {
 }
 
 func TestRemote_applyWithoutRefresh(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	op, configCleanup := testOperationApply(t, "./test-fixtures/apply")
 	defer configCleanup()
@@ -232,7 +261,8 @@ func TestRemote_applyWithoutRefresh(t *testing.T) {
 }
 
 func TestRemote_applyWithTarget(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	op, configCleanup := testOperationApply(t, "./test-fixtures/apply")
 	defer configCleanup()
@@ -262,7 +292,8 @@ func TestRemote_applyWithTarget(t *testing.T) {
 }
 
 func TestRemote_applyWithVariables(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	op, configCleanup := testOperationApply(t, "./test-fixtures/apply-variables")
 	defer configCleanup()
@@ -287,7 +318,8 @@ func TestRemote_applyWithVariables(t *testing.T) {
 }
 
 func TestRemote_applyNoConfig(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	op, configCleanup := testOperationApply(t, "./test-fixtures/empty")
 	defer configCleanup()
@@ -314,7 +346,8 @@ func TestRemote_applyNoConfig(t *testing.T) {
 }
 
 func TestRemote_applyNoChanges(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	op, configCleanup := testOperationApply(t, "./test-fixtures/apply-no-changes")
 	defer configCleanup()
@@ -344,7 +377,8 @@ func TestRemote_applyNoChanges(t *testing.T) {
 }
 
 func TestRemote_applyNoApprove(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	op, configCleanup := testOperationApply(t, "./test-fixtures/apply")
 	defer configCleanup()
@@ -381,7 +415,8 @@ func TestRemote_applyNoApprove(t *testing.T) {
 }
 
 func TestRemote_applyAutoApprove(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	op, configCleanup := testOperationApply(t, "./test-fixtures/apply")
 	defer configCleanup()
@@ -424,8 +459,159 @@ func TestRemote_applyAutoApprove(t *testing.T) {
 	}
 }
 
+func TestRemote_applyApprovedExternally(t *testing.T) {
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
+
+	op, configCleanup := testOperationApply(t, "./test-fixtures/apply")
+	defer configCleanup()
+
+	input := testInput(t, map[string]string{
+		"approve": "wait-for-external-update",
+	})
+
+	op.UIIn = input
+	op.UIOut = b.CLI
+	op.Workspace = backend.DefaultStateName
+
+	ctx := context.Background()
+
+	run, err := b.Operation(ctx, op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	// Wait 2 seconds to make sure the run started.
+	time.Sleep(2 * time.Second)
+
+	wl, err := b.client.Workspaces.List(
+		ctx,
+		b.organization,
+		tfe.WorkspaceListOptions{
+			ListOptions: tfe.ListOptions{PageNumber: 2, PageSize: 10},
+		},
+	)
+	if err != nil {
+		t.Fatalf("unexpected error listing workspaces: %v", err)
+	}
+	if len(wl.Items) != 1 {
+		t.Fatalf("expected 1 workspace, got %d workspaces", len(wl.Items))
+	}
+
+	rl, err := b.client.Runs.List(ctx, wl.Items[0].ID, tfe.RunListOptions{})
+	if err != nil {
+		t.Fatalf("unexpected error listing runs: %v", err)
+	}
+	if len(rl.Items) != 1 {
+		t.Fatalf("expected 1 run, got %d runs", len(rl.Items))
+	}
+
+	err = b.client.Runs.Apply(context.Background(), rl.Items[0].ID, tfe.RunApplyOptions{})
+	if err != nil {
+		t.Fatalf("unexpected error approving run: %v", err)
+	}
+
+	<-run.Done()
+	if run.Result != backend.OperationSuccess {
+		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
+	}
+	if run.PlanEmpty {
+		t.Fatalf("expected a non-empty plan")
+	}
+
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if !strings.Contains(output, "Running apply in the remote backend") {
+		t.Fatalf("expected remote backend header in output: %s", output)
+	}
+	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+		t.Fatalf("expected plan summery in output: %s", output)
+	}
+	if !strings.Contains(output, "approved using the UI or API") {
+		t.Fatalf("expected external approval in output: %s", output)
+	}
+	if !strings.Contains(output, "1 added, 0 changed, 0 destroyed") {
+		t.Fatalf("expected apply summery in output: %s", output)
+	}
+}
+
+func TestRemote_applyDiscardedExternally(t *testing.T) {
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
+
+	op, configCleanup := testOperationApply(t, "./test-fixtures/apply")
+	defer configCleanup()
+
+	input := testInput(t, map[string]string{
+		"approve": "wait-for-external-update",
+	})
+
+	op.UIIn = input
+	op.UIOut = b.CLI
+	op.Workspace = backend.DefaultStateName
+
+	ctx := context.Background()
+
+	run, err := b.Operation(ctx, op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	// Wait 2 seconds to make sure the run started.
+	time.Sleep(2 * time.Second)
+
+	wl, err := b.client.Workspaces.List(
+		ctx,
+		b.organization,
+		tfe.WorkspaceListOptions{
+			ListOptions: tfe.ListOptions{PageNumber: 2, PageSize: 10},
+		},
+	)
+	if err != nil {
+		t.Fatalf("unexpected error listing workspaces: %v", err)
+	}
+	if len(wl.Items) != 1 {
+		t.Fatalf("expected 1 workspace, got %d workspaces", len(wl.Items))
+	}
+
+	rl, err := b.client.Runs.List(ctx, wl.Items[0].ID, tfe.RunListOptions{})
+	if err != nil {
+		t.Fatalf("unexpected error listing runs: %v", err)
+	}
+	if len(rl.Items) != 1 {
+		t.Fatalf("expected 1 run, got %d runs", len(rl.Items))
+	}
+
+	err = b.client.Runs.Discard(context.Background(), rl.Items[0].ID, tfe.RunDiscardOptions{})
+	if err != nil {
+		t.Fatalf("unexpected error discarding run: %v", err)
+	}
+
+	<-run.Done()
+	if run.Result == backend.OperationSuccess {
+		t.Fatal("expected apply operation to fail")
+	}
+	if !run.PlanEmpty {
+		t.Fatalf("expected plan to be empty")
+	}
+
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if !strings.Contains(output, "Running apply in the remote backend") {
+		t.Fatalf("expected remote backend header in output: %s", output)
+	}
+	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+		t.Fatalf("expected plan summery in output: %s", output)
+	}
+	if !strings.Contains(output, "discarded using the UI or API") {
+		t.Fatalf("expected external discard output: %s", output)
+	}
+	if strings.Contains(output, "1 added, 0 changed, 0 destroyed") {
+		t.Fatalf("unexpected apply summery in output: %s", output)
+	}
+}
+
 func TestRemote_applyWithAutoApply(t *testing.T) {
-	b := testBackendNoDefault(t)
+	b, bCleanup := testBackendNoDefault(t)
+	defer bCleanup()
 
 	// Create a named workspace that auto applies.
 	_, err := b.client.Workspaces.Create(
@@ -488,7 +674,8 @@ func TestRemote_applyForceLocal(t *testing.T) {
 	}
 	defer os.Unsetenv("TF_FORCE_LOCAL_BACKEND")
 
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	op, configCleanup := testOperationApply(t, "./test-fixtures/apply")
 	defer configCleanup()
@@ -531,7 +718,9 @@ func TestRemote_applyForceLocal(t *testing.T) {
 }
 
 func TestRemote_applyWorkspaceWithoutOperations(t *testing.T) {
-	b := testBackendNoDefault(t)
+	b, bCleanup := testBackendNoDefault(t)
+	defer bCleanup()
+
 	ctx := context.Background()
 
 	// Create a named workspace that doesn't allow operations.
@@ -587,7 +776,9 @@ func TestRemote_applyWorkspaceWithoutOperations(t *testing.T) {
 }
 
 func TestRemote_applyLockTimeout(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
+
 	ctx := context.Background()
 
 	// Retrieve the workspace used to run this operation in.
@@ -659,7 +850,8 @@ func TestRemote_applyLockTimeout(t *testing.T) {
 }
 
 func TestRemote_applyDestroy(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	op, configCleanup := testOperationApply(t, "./test-fixtures/apply-destroy")
 	defer configCleanup()
@@ -703,7 +895,8 @@ func TestRemote_applyDestroy(t *testing.T) {
 }
 
 func TestRemote_applyDestroyNoConfig(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	input := testInput(t, map[string]string{
 		"approve": "yes",
@@ -736,7 +929,8 @@ func TestRemote_applyDestroyNoConfig(t *testing.T) {
 }
 
 func TestRemote_applyPolicyPass(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	op, configCleanup := testOperationApply(t, "./test-fixtures/apply-policy-passed")
 	defer configCleanup()
@@ -782,7 +976,8 @@ func TestRemote_applyPolicyPass(t *testing.T) {
 }
 
 func TestRemote_applyPolicyHardFail(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	op, configCleanup := testOperationApply(t, "./test-fixtures/apply-policy-hard-failed")
 	defer configCleanup()
@@ -833,7 +1028,8 @@ func TestRemote_applyPolicyHardFail(t *testing.T) {
 }
 
 func TestRemote_applyPolicySoftFail(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	op, configCleanup := testOperationApply(t, "./test-fixtures/apply-policy-soft-failed")
 	defer configCleanup()
@@ -880,7 +1076,8 @@ func TestRemote_applyPolicySoftFail(t *testing.T) {
 }
 
 func TestRemote_applyPolicySoftFailAutoApprove(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	op, configCleanup := testOperationApply(t, "./test-fixtures/apply-policy-soft-failed")
 	defer configCleanup()
@@ -932,7 +1129,8 @@ func TestRemote_applyPolicySoftFailAutoApprove(t *testing.T) {
 }
 
 func TestRemote_applyPolicySoftFailAutoApply(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	// Create a named workspace that auto applies.
 	_, err := b.client.Workspaces.Create(
@@ -992,7 +1190,8 @@ func TestRemote_applyPolicySoftFailAutoApply(t *testing.T) {
 }
 
 func TestRemote_applyWithRemoteError(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	op, configCleanup := testOperationApply(t, "./test-fixtures/apply-with-error")
 	defer configCleanup()

@@ -109,7 +109,7 @@ func New() backend.Backend {
 			"insecure": &schema.Schema{
 				Type:        schema.TypeBool,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("OS_INSECURE", ""),
+				DefaultFunc: schema.EnvDefaultFunc("OS_INSECURE", nil),
 				Description: descriptions["insecure"],
 			},
 
@@ -172,6 +172,13 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: descriptions["expire_after"],
+			},
+
+			"lock": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Lock state access",
+				Default:     true,
 			},
 		},
 	}
@@ -238,6 +245,7 @@ type Backend struct {
 	archiveContainer string
 	expireSecs       int
 	container        string
+	lock             bool
 }
 
 func (b *Backend) configure(ctx context.Context) error {
@@ -247,7 +255,6 @@ func (b *Backend) configure(ctx context.Context) error {
 
 	// Grab the resource data
 	data := schema.FromContextBackendConfig(ctx)
-
 	config := &tf_openstack.Config{
 		CACertFile:       data.Get("cacert_file").(string),
 		ClientCertFile:   data.Get("cert").(string),
@@ -256,13 +263,17 @@ func (b *Backend) configure(ctx context.Context) error {
 		DomainName:       data.Get("domain_name").(string),
 		EndpointType:     data.Get("endpoint_type").(string),
 		IdentityEndpoint: data.Get("auth_url").(string),
-		Insecure:         data.Get("insecure").(bool),
 		Password:         data.Get("password").(string),
 		Token:            data.Get("token").(string),
 		TenantID:         data.Get("tenant_id").(string),
 		TenantName:       data.Get("tenant_name").(string),
 		Username:         data.Get("user_name").(string),
 		UserID:           data.Get("user_id").(string),
+	}
+
+	if v, ok := data.GetOkExists("insecure"); ok {
+		insecure := v.(bool)
+		config.Insecure = &insecure
 	}
 
 	if err := config.LoadAndValidate(); err != nil {
@@ -275,6 +286,9 @@ func (b *Backend) configure(ctx context.Context) error {
 		// Check deprecated field
 		b.container = data.Get("path").(string)
 	}
+
+	// Store the lock information
+	b.lock = data.Get("lock").(bool)
 
 	// Enable object archiving?
 	if archiveContainer, ok := data.GetOk("archive_container"); ok {

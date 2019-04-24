@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -178,6 +179,9 @@ func (u *Upgrader) upgradeNativeSyntaxFile(filename string, src []byte, an *anal
 			}
 
 			printComments(&buf, item.LeadComment)
+			if invalidLabel(labels[0]) {
+				printLabelTodo(&buf, labels[0])
+			}
 			printBlockOpen(&buf, blockType, labels, item.LineComment)
 
 			rules := bodyContentRules{
@@ -209,7 +213,7 @@ func (u *Upgrader) upgradeNativeSyntaxFile(filename string, src []byte, an *anal
 			// start with the straightforward mapping of those and override
 			// the special lifecycle arguments below.
 			rules := justAttributesBodyRules(filename, body, an)
-			rules["source"] = noInterpAttributeRule(filename, cty.String, an)
+			rules["source"] = moduleSourceRule(filename, an)
 			rules["version"] = noInterpAttributeRule(filename, cty.String, an)
 			rules["providers"] = func(buf *bytes.Buffer, blockAddr string, item *hcl1ast.ObjectItem) tfdiags.Diagnostics {
 				var diags tfdiags.Diagnostics
@@ -329,26 +333,15 @@ func (u *Upgrader) upgradeNativeSyntaxResource(filename string, buf *bytes.Buffe
 	rules["depends_on"] = dependsOnAttributeRule(filename, an)
 	rules["provider"] = maybeBareTraversalAttributeRule(filename, an)
 	rules["lifecycle"] = nestedBlockRule(filename, lifecycleBlockBodyRules(filename, an), an, adhocComments)
-	rules["connection"] = func(buf *bytes.Buffer, blockAddr string, item *hcl1ast.ObjectItem) tfdiags.Diagnostics {
-		// TODO: For the few resource types that were setting ConnInfo in
-		// state after create/update in prior versions, generate the additional
-		// explicit connection settings that are now required if and only if
-		// there's at least one provisioner block.
-		// For now, we just pass this through as-is.
-		hcl1printer.Fprint(buf, item)
-		buf.WriteByte('\n')
-		return nil
-	}
-	rules["provisioner"] = func(buf *bytes.Buffer, blockAddr string, item *hcl1ast.ObjectItem) tfdiags.Diagnostics {
-		// TODO: Look up the provisioner schema and map this properly to ensure
-		// any references get properly updated.
-		// For now, we just pass this through as-is.
-		hcl1printer.Fprint(buf, item)
-		buf.WriteByte('\n')
-		return nil
+	if addr.Mode == addrs.ManagedResourceMode {
+		rules["connection"] = connectionBlockRule(filename, addr.Type, an, adhocComments)
+		rules["provisioner"] = provisionerBlockRule(filename, addr.Type, an, adhocComments)
 	}
 
 	printComments(buf, item.LeadComment)
+	if invalidLabel(labels[1]) {
+		printLabelTodo(buf, labels[1])
+	}
 	printBlockOpen(buf, blockType, labels, item.LineComment)
 	bodyDiags := upgradeBlockBody(filename, addr.String(), buf, body.List.Items, body.Rbrace, rules, adhocComments)
 	diags = diags.Append(bodyDiags)
@@ -557,7 +550,7 @@ func printDynamicBlockBody(buf *bytes.Buffer, iterName string, schema *configsch
 		case configschema.NestingMap:
 			printAttribute(buf, "for_each", []byte(fmt.Sprintf(`lookup(%s.value, %q, {})`, iterName, name)), nil)
 			printAttribute(buf, "labels", []byte(fmt.Sprintf(`[%s.key]`, name)), nil)
-		case configschema.NestingSingle:
+		case configschema.NestingSingle, configschema.NestingGroup:
 			printAttribute(buf, "for_each", []byte(fmt.Sprintf(`lookup(%s.value, %q, null) != null ? [%s.value.%s] : []`, iterName, name, iterName, name)), nil)
 		default:
 			printAttribute(buf, "for_each", []byte(fmt.Sprintf(`lookup(%s.value, %q, [])`, iterName, name)), nil)
@@ -622,6 +615,12 @@ func printStringLiteralFromHILOutput(buf *bytes.Buffer, val string) {
 	val = strings.Replace(val, `"`, `\"`, -1)
 	val = strings.Replace(val, "\n", `\n`, -1)
 	val = strings.Replace(val, "\r", `\r`, -1)
+	val = strings.Replace(val, `${`, `$${`, -1)
+	val = strings.Replace(val, `%{`, `%%{`, -1)
+	buf.WriteString(val)
+}
+
+func printHeredocLiteralFromHILOutput(buf *bytes.Buffer, val string) {
 	val = strings.Replace(val, `${`, `$${`, -1)
 	val = strings.Replace(val, `%{`, `%%{`, -1)
 	buf.WriteString(val)
@@ -774,4 +773,24 @@ func schemaHasSettableArguments(schema *configschema.Block) bool {
 		}
 	}
 	return false
+}
+
+func invalidLabel(name string) bool {
+	matched, err := regexp.Match(`[0-9]`, []byte{name[0]})
+	if err == nil {
+		return matched
+	}
+	// This isn't likely, but if there's an error here we'll just ignore it and
+	// move on.
+	return false
+}
+
+func printLabelTodo(buf *bytes.Buffer, label string) {
+	buf.WriteString("# TF-UPGRADE-TODO: In Terraform v0.11 and earlier, it was possible to begin a\n" +
+		"# resource name with a number, but it is no longer possible in Terraform v0.12.\n" +
+		"#\n" +
+		"# Rename the resource and run `terraform state mv` to apply the rename in the\n" +
+		"# state. Detailed information on the `state move` command can be found in the\n" +
+		"# documentation online: https://www.terraform.io/docs/commands/state/mv.html\n",
+	)
 }

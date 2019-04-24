@@ -2,6 +2,7 @@ package hcl
 
 import (
 	"fmt"
+	"math/big"
 
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
@@ -84,6 +85,27 @@ func Index(collection, key cty.Value, srcRange *Range) (cty.Value, Diagnostics) 
 			}
 		}
 		if has.False() {
+			// We have a more specialized error message for the situation of
+			// using a fractional number to index into a sequence, because
+			// that will tend to happen if the user is trying to use division
+			// to calculate an index and not realizing that HCL does float
+			// division rather than integer division.
+			if (ty.IsListType() || ty.IsTupleType()) && key.Type().Equals(cty.Number) {
+				if key.IsKnown() && !key.IsNull() {
+					bf := key.AsBigFloat()
+					if _, acc := bf.Int(nil); acc != big.Exact {
+						return cty.DynamicVal, Diagnostics{
+							{
+								Severity: DiagError,
+								Summary:  "Invalid index",
+								Detail:   fmt.Sprintf("The given key does not identify an element in this collection value: indexing a sequence requires a whole number, but the given index (%g) has a fractional part.", bf),
+								Subject:  srcRange,
+							},
+						}
+					}
+				}
+			}
+
 			return cty.DynamicVal, Diagnostics{
 				{
 					Severity: DiagError,

@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/terraform/registry/regsrc"
 	"github.com/hashicorp/terraform/registry/response"
 	"github.com/hashicorp/terraform/svchost/disco"
+	"github.com/hashicorp/terraform/tfdiags"
 	tfversion "github.com/hashicorp/terraform/version"
 	"github.com/mitchellh/cli"
 )
@@ -28,12 +29,6 @@ import (
 // Releases are located by querying the terraform registry.
 
 const protocolVersionHeader = "x-terraform-protocol-version"
-
-const gpgVerificationError = `GPG signature verification error:
-Terraform was unable to verify the GPG signature of the downloaded provider
-files using the keys downloaded from the Terraform Registry. This may mean that
-the publisher of the provider removed the key it was signed with, or that the
-distributed files were changed after this version was released.`
 
 var httpClient *http.Client
 
@@ -54,7 +49,7 @@ func init() {
 // An Installer maintains a local cache of plugins by downloading plugins
 // from an online repository.
 type Installer interface {
-	Get(name string, req Constraints) (PluginMeta, error)
+	Get(name string, req Constraints) (PluginMeta, tfdiags.Diagnostics, error)
 	PurgeUnused(used map[string]PluginMeta) (removed PluginMetaSet, err error)
 }
 
@@ -111,7 +106,9 @@ type ProviderInstaller struct {
 // are produced under the assumption that if presented to the user they will
 // be presented alongside context about what is being installed, and thus the
 // error messages do not redundantly include such information.
-func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, error) {
+func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, tfdiags.Diagnostics, error) {
+	var diags tfdiags.Diagnostics
+
 	// a little bit of initialization.
 	if i.OS == "" {
 		i.OS = runtime.GOOS
@@ -128,20 +125,39 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 
 	// TODO: return multiple errors
 	if err != nil {
-		if registry.IsServiceNotProvided(err) {
-			return PluginMeta{}, err
+		log.Printf("[DEBUG] %s", err)
+		if registry.IsServiceUnreachable(err) {
+			registryHost, err := i.hostname()
+			if err == nil && registryHost == regsrc.PublicRegistryHost.Raw {
+				return PluginMeta{}, diags, ErrorPublicRegistryUnreachable
+			}
+			return PluginMeta{}, diags, ErrorServiceUnreachable
 		}
-		return PluginMeta{}, ErrorNoSuchProvider
+		if registry.IsServiceNotProvided(err) {
+			return PluginMeta{}, diags, err
+		}
+		return PluginMeta{}, diags, ErrorNoSuchProvider
 	}
+
+	// Add any warnings from the response to diags
+	for _, warning := range allVersions.Warnings {
+		hostname, err := i.hostname()
+		if err != nil {
+			return PluginMeta{}, diags, err
+		}
+		diag := tfdiags.SimpleWarning(fmt.Sprintf("%s: %s", hostname, warning))
+		diags = diags.Append(diag)
+	}
+
 	if len(allVersions.Versions) == 0 {
-		return PluginMeta{}, ErrorNoSuitableVersion
+		return PluginMeta{}, diags, ErrorNoSuitableVersion
 	}
 	providerSource := allVersions.ID
 
 	// Filter the list of plugin versions to those which meet the version constraints
 	versions := allowedVersions(allVersions, req)
 	if len(versions) == 0 {
-		return PluginMeta{}, ErrorNoSuitableVersion
+		return PluginMeta{}, diags, ErrorNoSuitableVersion
 	}
 
 	// sort them newest to oldest. The newest version wins!
@@ -152,7 +168,7 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 	if err := i.checkPlatformCompatibility(versions[0]); err != nil {
 		versions = i.platformCompatibleVersions(versions)
 		if len(versions) == 0 {
-			return PluginMeta{}, ErrorNoVersionCompatibleWithPlatform
+			return PluginMeta{}, diags, ErrorNoVersionCompatibleWithPlatform
 		}
 	}
 
@@ -165,7 +181,7 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 		closestMatch, err := i.findClosestProtocolCompatibleVersion(allVersions.Versions)
 		if err != nil {
 			// No operation here if we can't find a version with compatible protocol
-			return PluginMeta{}, err
+			return PluginMeta{}, diags, err
 		}
 
 		// Prompt version suggestion to UI based on closest protocol match
@@ -182,7 +198,7 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 			constraintStr = "(any version)"
 		}
 
-		return PluginMeta{}, errwrap.Wrap(ErrorVersionIncompatible, fmt.Errorf(fmt.Sprintf(
+		return PluginMeta{}, diags, errwrap.Wrap(ErrorVersionIncompatible, fmt.Errorf(fmt.Sprintf(
 			errMsg, provider, v.String(), tfversion.String(),
 			closestVersion.String(), closestVersion.MinorUpgradeConstraintStr(), constraintStr)))
 	}
@@ -191,9 +207,19 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 	providerURL := downloadURLs.DownloadURL
 
 	if !i.SkipVerify {
+		// Terraform verifies the integrity of a provider release before downloading
+		// the plugin binary. The digital signature (SHA256SUMS.sig) on the
+		// release distribution (SHA256SUMS) is verified with the public key of the
+		// publisher provided in the Terraform Registry response, ensuring that
+		// everything is as intended by the publisher. The checksum of the provider
+		// plugin is expected in the SHA256SUMS file and is double checked to match
+		// the checksum of the original published release to the Registry. This
+		// enforces immutability of releases between the Registry and the plugin's
+		// host location. Lastly, the integrity of the binary is verified upon
+		// download matches the Registry and signed checksum.
 		sha256, err := i.getProviderChecksum(downloadURLs)
 		if err != nil {
-			return PluginMeta{}, err
+			return PluginMeta{}, diags, err
 		}
 
 		// add the checksum parameter for go-getter to verify the download for us.
@@ -207,7 +233,7 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 	log.Printf("[DEBUG] getting provider %q version %q", printedProviderName, versionMeta.Version)
 	err = i.install(provider, v, providerURL)
 	if err != nil {
-		return PluginMeta{}, err
+		return PluginMeta{}, diags, err
 	}
 
 	// Find what we just installed
@@ -224,7 +250,7 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 		// This should never happen. Suggests that the release archive
 		// contains an executable file whose name doesn't match the
 		// expected convention.
-		return PluginMeta{}, fmt.Errorf(
+		return PluginMeta{}, diags, fmt.Errorf(
 			"failed to find installed plugin version %s; this is a bug in Terraform and should be reported",
 			versionMeta.Version,
 		)
@@ -235,7 +261,7 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 		// particular version was re-released with a different
 		// executable filename. We consider releases as immutable, so
 		// this is an error.
-		return PluginMeta{}, fmt.Errorf(
+		return PluginMeta{}, diags, fmt.Errorf(
 			"multiple plugins installed for version %s; this is a bug in Terraform and should be reported",
 			versionMeta.Version,
 		)
@@ -243,8 +269,7 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 
 	// By now we know we have exactly one meta, and so "Newest" will
 	// return that one.
-	return metas.Newest(), nil
-
+	return metas.Newest(), diags, nil
 }
 
 func (i *ProviderInstaller) install(provider string, version Version, url string) error {
@@ -270,6 +295,14 @@ func (i *ProviderInstaller) install(provider string, version Version, url string
 		// normal resolution machinery can find it.
 		filename := filepath.Base(cached)
 		targetPath := filepath.Join(i.Dir, filename)
+		// check if the target dir exists, and create it if not
+		var err error
+		if _, StatErr := os.Stat(i.Dir); os.IsNotExist(StatErr) {
+			err = os.Mkdir(i.Dir, 0700)
+		}
+		if err != nil {
+			return err
+		}
 
 		log.Printf("[DEBUG] installing %s %s to %s from local cache %s", provider, version, targetPath, cached)
 
@@ -370,25 +403,36 @@ func (i *ProviderInstaller) PurgeUnused(used map[string]PluginMeta) (PluginMetaS
 	return removed, errs
 }
 
-func (i *ProviderInstaller) getProviderChecksum(urls *response.TerraformProviderPlatformLocation) (string, error) {
+func (i *ProviderInstaller) getProviderChecksum(resp *response.TerraformProviderPlatformLocation) (string, error) {
 	// Get SHA256SUMS file.
-	shasums, err := getFile(urls.ShasumsURL)
+	shasums, err := getFile(resp.ShasumsURL)
 	if err != nil {
-		return "", fmt.Errorf("error fetching checksums: %s", err)
+		log.Printf("[ERROR] error fetching checksums from %q: %s", resp.ShasumsURL, err)
+		return "", ErrorMissingChecksumVerification
 	}
 
 	// Get SHA256SUMS.sig file.
-	signature, err := getFile(urls.ShasumsSignatureURL)
+	signature, err := getFile(resp.ShasumsSignatureURL)
 	if err != nil {
-		return "", fmt.Errorf("error fetching checksums signature: %s", err)
+		log.Printf("[ERROR] error fetching checksums signature from %q: %s", resp.ShasumsSignatureURL, err)
+		return "", ErrorSignatureVerification
 	}
 
-	// Verify GPG signature.
-	asciiArmor := urls.SigningKeys.GPGASCIIArmor()
+	// Verify the GPG signature returned from the Registry.
+	asciiArmor := resp.SigningKeys.GPGASCIIArmor()
 	signer, err := verifySig(shasums, signature, asciiArmor)
 	if err != nil {
 		log.Printf("[ERROR] error verifying signature: %s", err)
-		return "", fmt.Errorf(gpgVerificationError)
+		return "", ErrorSignatureVerification
+	}
+
+	// Also verify the GPG signature against the HashiCorp public key. This is
+	// a temporary additional check until a more robust key verification
+	// process is added in a future release.
+	_, err = verifySig(shasums, signature, HashicorpPublicKey)
+	if err != nil {
+		log.Printf("[ERROR] error verifying signature against HashiCorp public key: %s", err)
+		return "", ErrorSignatureVerification
 	}
 
 	// Display identity for GPG key which succeeded verifying the signature.
@@ -400,8 +444,27 @@ func (i *ProviderInstaller) getProviderChecksum(urls *response.TerraformProvider
 	identity := strings.Join(identities, ", ")
 	log.Printf("[DEBUG] verified GPG signature with key from %s", identity)
 
-	// Extract checksum for this os/arch platform binary.
-	return checksumForFile(shasums, urls.Filename), nil
+	// Extract checksum for this os/arch platform binary and verify against Registry
+	checksum := checksumForFile(shasums, resp.Filename)
+	if checksum == "" {
+		log.Printf("[ERROR] missing checksum for %s from source %s", resp.Filename, resp.ShasumsURL)
+		return "", ErrorMissingChecksumVerification
+	} else if checksum != resp.Shasum {
+		log.Printf("[ERROR] unexpected checksum for %s from source %q", resp.Filename, resp.ShasumsURL)
+		return "", ErrorChecksumVerification
+	}
+
+	return checksum, nil
+}
+
+func (i *ProviderInstaller) hostname() (string, error) {
+	provider := regsrc.NewTerraformProvider("", i.OS, i.Arch)
+	svchost, err := provider.SvcHost()
+	if err != nil {
+		return "", err
+	}
+
+	return svchost.ForDisplay(), nil
 }
 
 // list all versions available for the named provider

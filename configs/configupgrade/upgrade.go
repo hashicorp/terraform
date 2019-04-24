@@ -30,7 +30,7 @@ import (
 // warnings are also represented as "TF-UPGRADE-TODO:" comments in the
 // generated source files so that users can visit them all and decide what to
 // do with them.
-func (u *Upgrader) Upgrade(input ModuleSources) (ModuleSources, tfdiags.Diagnostics) {
+func (u *Upgrader) Upgrade(input ModuleSources, dir string) (ModuleSources, tfdiags.Diagnostics) {
 	ret := make(ModuleSources)
 	var diags tfdiags.Diagnostics
 
@@ -39,6 +39,7 @@ func (u *Upgrader) Upgrade(input ModuleSources) (ModuleSources, tfdiags.Diagnost
 		diags = diags.Append(err)
 		return ret, diags
 	}
+	an.ModuleDir = dir
 
 	for name, src := range input {
 		ext := fileExt(name)

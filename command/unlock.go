@@ -1,6 +1,7 @@
 package command
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -88,7 +89,7 @@ func (c *UnlockCommand) Run(args []string) int {
 			"This will allow local Terraform commands to modify this state, even though it\n" +
 			"may be still be in use. Only 'yes' will be accepted to confirm."
 
-		v, err := c.UIInput().Input(&terraform.InputOpts{
+		v, err := c.UIInput().Input(context.Background(), &terraform.InputOpts{
 			Id:          "force-unlock",
 			Query:       "Do you really want to force-unlock?",
 			Description: desc,

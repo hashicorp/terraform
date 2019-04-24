@@ -107,10 +107,12 @@ func RetrieveData(viewName string) ([]*Row, error) {
 	return resp.rows, resp.err
 }
 
-func record(tags *tag.Map, ms interface{}) {
+func record(tags *tag.Map, ms interface{}, attachments map[string]string) {
 	req := &recordReq{
-		tm: tags,
-		ms: ms.([]stats.Measurement),
+		tm:          tags,
+		ms:          ms.([]stats.Measurement),
+		attachments: attachments,
+		t:           time.Now(),
 	}
 	defaultWorker.c <- req
 }

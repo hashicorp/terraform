@@ -22,6 +22,7 @@ import (
 	backendHTTP "github.com/hashicorp/terraform/backend/remote-state/http"
 	backendInmem "github.com/hashicorp/terraform/backend/remote-state/inmem"
 	backendManta "github.com/hashicorp/terraform/backend/remote-state/manta"
+	backendPg "github.com/hashicorp/terraform/backend/remote-state/pg"
 	backendS3 "github.com/hashicorp/terraform/backend/remote-state/s3"
 	backendSwift "github.com/hashicorp/terraform/backend/remote-state/swift"
 )
@@ -61,6 +62,7 @@ func Init(services *disco.Disco) {
 		"http":        func() backend.Backend { return backendHTTP.New() },
 		"inmem":       func() backend.Backend { return backendInmem.New() },
 		"manta":       func() backend.Backend { return backendManta.New() },
+		"pg":          func() backend.Backend { return backendPg.New() },
 		"s3":          func() backend.Backend { return backendS3.New() },
 		"swift":       func() backend.Backend { return backendSwift.New() },
 
@@ -108,11 +110,11 @@ type deprecatedBackendShim struct {
 	Message string
 }
 
-// ValidateConfig delegates to the wrapped backend to validate its config
+// PrepareConfig delegates to the wrapped backend to validate its config
 // and then appends shim's deprecation warning.
-func (b deprecatedBackendShim) ValidateConfig(obj cty.Value) tfdiags.Diagnostics {
-	diags := b.Backend.ValidateConfig(obj)
-	return diags.Append(tfdiags.SimpleWarning(b.Message))
+func (b deprecatedBackendShim) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
+	newObj, diags := b.Backend.PrepareConfig(obj)
+	return newObj, diags.Append(tfdiags.SimpleWarning(b.Message))
 }
 
 // DeprecateBackend can be used to wrap a backend to retrun a deprecation

@@ -44,6 +44,11 @@ func TestProposedNewObject(t *testing.T) {
 									Optional: true,
 									Computed: true,
 								},
+								"biz": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
 							},
 						},
 					},
@@ -55,14 +60,66 @@ func TestProposedNewObject(t *testing.T) {
 				"bar": cty.NullVal(cty.String),
 				"baz": cty.ObjectVal(map[string]cty.Value{
 					"boz": cty.StringVal("world"),
+
+					// An unknown in the config represents a situation where
+					// an argument is explicitly set to an expression result
+					// that is derived from an unknown value. This is distinct
+					// from leaving it null, which allows the provider itself
+					// to decide the value during PlanResourceChange.
+					"biz": cty.UnknownVal(cty.String),
 				}),
 			}),
 			cty.ObjectVal(map[string]cty.Value{
 				"foo": cty.StringVal("hello"),
-				"bar": cty.UnknownVal(cty.String),
+
+				// unset computed attributes are null in the proposal; provider
+				// usually changes them to "unknown" during PlanResourceChange,
+				// to indicate that the value will be decided during apply.
+				"bar": cty.NullVal(cty.String),
+
 				"baz": cty.ObjectVal(map[string]cty.Value{
 					"boz": cty.StringVal("world"),
+					"biz": cty.UnknownVal(cty.String), // explicit unknown preserved from config
 				}),
+			}),
+		},
+		"null block remains null": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"baz": {
+						Nesting: configschema.NestingSingle,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"boz": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.NullVal(cty.DynamicPseudoType),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.StringVal("bar"),
+				"baz": cty.NullVal(cty.Object(map[string]cty.Type{
+					"boz": cty.String,
+				})),
+			}),
+			// The baz block does not exist in the config, and therefore
+			// shouldn't be planned.
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.StringVal("bar"),
+				"baz": cty.NullVal(cty.Object(map[string]cty.Type{
+					"boz": cty.String,
+				})),
 			}),
 		},
 		"no prior with set": {
@@ -468,7 +525,49 @@ func TestProposedNewObject(t *testing.T) {
 					}),
 					cty.ObjectVal(map[string]cty.Value{
 						"bar": cty.StringVal("bosh"),
-						"baz": cty.UnknownVal(cty.String),
+						"baz": cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+		},
+		"sets differing only by unknown": {
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"multi": {
+						Nesting: configschema.NestingSet,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"optional": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.NullVal(cty.DynamicPseudoType),
+			cty.ObjectVal(map[string]cty.Value{
+				"multi": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"optional": cty.UnknownVal(cty.String),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"optional": cty.UnknownVal(cty.String),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"multi": cty.SetVal([]cty.Value{
+					// These remain distinct because unknown values never
+					// compare equal. They may be consolidated together once
+					// the values become known, though.
+					cty.ObjectVal(map[string]cty.Value{
+						"optional": cty.UnknownVal(cty.String),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"optional": cty.UnknownVal(cty.String),
 					}),
 				}),
 			}),

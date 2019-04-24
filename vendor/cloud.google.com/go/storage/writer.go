@@ -1,4 +1,4 @@
-// Copyright 2014 Google Inc. All Rights Reserved.
+// Copyright 2014 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,13 +15,14 @@
 package storage
 
 import (
+	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
+	"sync"
 	"unicode/utf8"
 
-	"golang.org/x/net/context"
 	"google.golang.org/api/googleapi"
 	raw "google.golang.org/api/storage/v1"
 )
@@ -47,8 +48,11 @@ type Writer struct {
 	// to the nearest multiple of 256K. If zero, chunking will be disabled and
 	// the object will be uploaded in a single request.
 	//
-	// ChunkSize will default to a reasonable value. Any custom configuration
-	// must be done before the first Write call.
+	// ChunkSize will default to a reasonable value. If you perform many concurrent
+	// writes of small objects, you may wish set ChunkSize to a value that matches
+	// your objects' sizes to avoid consuming large amounts of memory.
+	//
+	// ChunkSize must be set before the first Write call.
 	ChunkSize int
 
 	// ProgressFunc can be used to monitor the progress of a large write.
@@ -68,8 +72,10 @@ type Writer struct {
 	pw     *io.PipeWriter
 
 	donec chan struct{} // closed after err and obj are set.
-	err   error
 	obj   *ObjectAttrs
+
+	mu  sync.Mutex
+	err error
 }
 
 func (w *Writer) open() error {
@@ -82,9 +88,14 @@ func (w *Writer) open() error {
 	if !utf8.ValidString(attrs.Name) {
 		return fmt.Errorf("storage: object name %q is not valid UTF-8", attrs.Name)
 	}
+	if attrs.KMSKeyName != "" && w.o.encryptionKey != nil {
+		return errors.New("storage: cannot use KMSKeyName with a customer-supplied encryption key")
+	}
 	pr, pw := io.Pipe()
 	w.pw = pw
 	w.opened = true
+
+	go w.monitorCancel()
 
 	if w.ChunkSize < 0 {
 		return errors.New("storage: Writer.ChunkSize must be non-negative")
@@ -113,9 +124,17 @@ func (w *Writer) open() error {
 		if w.ProgressFunc != nil {
 			call.ProgressUpdater(func(n, _ int64) { w.ProgressFunc(n) })
 		}
+		if attrs.KMSKeyName != "" {
+			call.KmsKeyName(attrs.KMSKeyName)
+		}
+		if attrs.PredefinedACL != "" {
+			call.PredefinedAcl(attrs.PredefinedACL)
+		}
 		if err := setEncryptionHeaders(call.Header(), w.o.encryptionKey, false); err != nil {
+			w.mu.Lock()
 			w.err = err
-			pr.CloseWithError(w.err)
+			w.mu.Unlock()
+			pr.CloseWithError(err)
 			return
 		}
 		var resp *raw.Object
@@ -142,8 +161,10 @@ func (w *Writer) open() error {
 			}
 		}
 		if err != nil {
+			w.mu.Lock()
 			w.err = err
-			pr.CloseWithError(w.err)
+			w.mu.Unlock()
+			pr.CloseWithError(err)
 			return
 		}
 		w.obj = newObject(resp)
@@ -158,15 +179,30 @@ func (w *Writer) open() error {
 // use the error returned from Writer.Close to determine if
 // the upload was successful.
 func (w *Writer) Write(p []byte) (n int, err error) {
-	if w.err != nil {
-		return 0, w.err
+	w.mu.Lock()
+	werr := w.err
+	w.mu.Unlock()
+	if werr != nil {
+		return 0, werr
 	}
 	if !w.opened {
 		if err := w.open(); err != nil {
 			return 0, err
 		}
 	}
-	return w.pw.Write(p)
+	n, err = w.pw.Write(p)
+	if err != nil {
+		w.mu.Lock()
+		werr := w.err
+		w.mu.Unlock()
+		// Preserve existing functionality that when context is canceled, Write will return
+		// context.Canceled instead of "io: read/write on closed pipe". This hides the
+		// pipe implementation detail from users and makes Write seem as though it's an RPC.
+		if werr == context.Canceled || werr == context.DeadlineExceeded {
+			return n, werr
+		}
+	}
+	return n, err
 }
 
 // Close completes the write operation and flushes any buffered data.
@@ -178,15 +214,39 @@ func (w *Writer) Close() error {
 			return err
 		}
 	}
+
+	// Closing either the read or write causes the entire pipe to close.
 	if err := w.pw.Close(); err != nil {
 		return err
 	}
+
 	<-w.donec
+	w.mu.Lock()
+	defer w.mu.Unlock()
 	return w.err
+}
+
+// monitorCancel is intended to be used as a background goroutine. It monitors the
+// the context, and when it observes that the context has been canceled, it manually
+// closes things that do not take a context.
+func (w *Writer) monitorCancel() {
+	select {
+	case <-w.ctx.Done():
+		w.mu.Lock()
+		werr := w.ctx.Err()
+		w.err = werr
+		w.mu.Unlock()
+
+		// Closing either the read or write causes the entire pipe to close.
+		w.CloseWithError(werr)
+	case <-w.donec:
+	}
 }
 
 // CloseWithError aborts the write operation with the provided error.
 // CloseWithError always returns nil.
+//
+// Deprecated: cancel the context passed to NewWriter instead.
 func (w *Writer) CloseWithError(err error) error {
 	if !w.opened {
 		return nil

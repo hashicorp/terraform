@@ -719,6 +719,74 @@ func TestContext2Validate_provisionerConfig_bad(t *testing.T) {
 	}
 }
 
+func TestContext2Validate_badResourceConnection(t *testing.T) {
+	m := testModule(t, "validate-bad-resource-connection")
+	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
+
+	pr := simpleMockProvisioner()
+
+	c := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		Provisioners: map[string]ProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+	})
+
+	diags := c.Validate()
+	t.Log(diags.Err())
+	if !diags.HasErrors() {
+		t.Fatalf("succeeded; want error")
+	}
+}
+
+func TestContext2Validate_badProvisionerConnection(t *testing.T) {
+	m := testModule(t, "validate-bad-prov-connection")
+	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
+
+	pr := simpleMockProvisioner()
+
+	c := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		Provisioners: map[string]ProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+	})
+
+	diags := c.Validate()
+	t.Log(diags.Err())
+	if !diags.HasErrors() {
+		t.Fatalf("succeeded; want error")
+	}
+}
+
 func TestContext2Validate_provisionerConfig_good(t *testing.T) {
 	m := testModule(t, "validate-bad-prov-conf")
 	p := testProvider("aws")
@@ -962,7 +1030,7 @@ func TestContext2Validate_targetedDestroy(t *testing.T) {
 	}
 }
 
-func TestContext2Validate_varRefFilled(t *testing.T) {
+func TestContext2Validate_varRefUnknown(t *testing.T) {
 	m := testModule(t, "validate-variable-ref")
 	p := testProvider("aws")
 	p.GetSchemaReturn = &ProviderSchema{
@@ -996,7 +1064,11 @@ func TestContext2Validate_varRefFilled(t *testing.T) {
 	}
 
 	c.Validate()
-	if !value.RawEquals(cty.StringVal("bar")) {
+
+	// Input variables are always unknown during the validate walk, because
+	// we're checking for validity of all possible input values. Validity
+	// against specific input values is checked during the plan walk.
+	if !value.RawEquals(cty.UnknownVal(cty.String)) {
 		t.Fatalf("bad: %#v", value)
 	}
 }

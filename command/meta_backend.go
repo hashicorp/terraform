@@ -180,11 +180,12 @@ func (m *Meta) BackendForPlan(settings plans.Backend) (backend.Enhanced, tfdiags
 		return nil, diags
 	}
 
-	validateDiags := b.ValidateConfig(configVal)
+	newVal, validateDiags := b.PrepareConfig(configVal)
 	diags = diags.Append(validateDiags)
 	if validateDiags.HasErrors() {
 		return nil, diags
 	}
+	configVal = newVal
 
 	configureDiags := b.Configure(configVal)
 	diags = diags.Append(configureDiags)
@@ -772,7 +773,7 @@ func (m *Meta) selectWorkspace(b backend.Backend) error {
 
 	// If the selected workspace is not migrated, ask the user to select
 	// a workspace from the list of migrated workspaces.
-	v, err := m.UIInput().Input(&terraform.InputOpts{
+	v, err := m.UIInput().Input(context.Background(), &terraform.InputOpts{
 		Id: "select-workspace",
 		Query: fmt.Sprintf(
 			"\n[reset][bold][yellow]The currently selected workspace (%s) is not migrated.[reset]",
@@ -917,11 +918,13 @@ func (m *Meta) backend_C_r_S_unchanged(c *configs.Backend, cHash int, sMgr *stat
 	}
 
 	// Validate the config and then configure the backend
-	validDiags := b.ValidateConfig(configVal)
+	newVal, validDiags := b.PrepareConfig(configVal)
 	diags = diags.Append(validDiags)
 	if validDiags.HasErrors() {
 		return nil, diags
 	}
+	configVal = newVal
+
 	configDiags := b.Configure(configVal)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
@@ -1035,13 +1038,21 @@ func (m *Meta) backendInitFromConfig(c *configs.Backend) (backend.Backend, cty.V
 		if err != nil {
 			diags = diags.Append(fmt.Errorf("Error asking for input to configure backend %q: %s", c.Type, err))
 		}
+
+		// We get an unknown here if the if the user aborted input, but we can't
+		// turn that into a config value, so set it to null and let the provider
+		// handle it in PrepareConfig.
+		if !configVal.IsKnown() {
+			configVal = cty.NullVal(configVal.Type())
+		}
 	}
 
-	validateDiags := b.ValidateConfig(configVal)
+	newVal, validateDiags := b.PrepareConfig(configVal)
 	diags = diags.Append(validateDiags.InConfigBody(c.Config))
 	if validateDiags.HasErrors() {
 		return nil, cty.NilVal, diags
 	}
+	configVal = newVal
 
 	configureDiags := b.Configure(configVal)
 	diags = diags.Append(configureDiags.InConfigBody(c.Config))
@@ -1067,11 +1078,12 @@ func (m *Meta) backendInitFromSaved(s *terraform.BackendState) (backend.Backend,
 		return nil, diags
 	}
 
-	validateDiags := b.ValidateConfig(configVal)
+	newVal, validateDiags := b.PrepareConfig(configVal)
 	diags = diags.Append(validateDiags)
 	if validateDiags.HasErrors() {
 		return nil, diags
 	}
+	configVal = newVal
 
 	configureDiags := b.Configure(configVal)
 	diags = diags.Append(configureDiags)

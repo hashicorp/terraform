@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"path"
 	"testing"
 
 	tfe "github.com/hashicorp/go-tfe"
@@ -40,7 +41,7 @@ func testInput(t *testing.T, answers map[string]string) *mockInput {
 	return &mockInput{answers: answers}
 }
 
-func testBackendDefault(t *testing.T) *Remote {
+func testBackendDefault(t *testing.T) (*Remote, func()) {
 	obj := cty.ObjectVal(map[string]cty.Value{
 		"hostname":     cty.NullVal(cty.String),
 		"organization": cty.StringVal("hashicorp"),
@@ -53,7 +54,7 @@ func testBackendDefault(t *testing.T) *Remote {
 	return testBackend(t, obj)
 }
 
-func testBackendNoDefault(t *testing.T) *Remote {
+func testBackendNoDefault(t *testing.T) (*Remote, func()) {
 	obj := cty.ObjectVal(map[string]cty.Value{
 		"hostname":     cty.NullVal(cty.String),
 		"organization": cty.StringVal("hashicorp"),
@@ -66,7 +67,7 @@ func testBackendNoDefault(t *testing.T) *Remote {
 	return testBackend(t, obj)
 }
 
-func testBackendNoOperations(t *testing.T) *Remote {
+func testBackendNoOperations(t *testing.T) (*Remote, func()) {
 	obj := cty.ObjectVal(map[string]cty.Value{
 		"hostname":     cty.NullVal(cty.String),
 		"organization": cty.StringVal("no-operations"),
@@ -80,24 +81,27 @@ func testBackendNoOperations(t *testing.T) *Remote {
 }
 
 func testRemoteClient(t *testing.T) remote.Client {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
+
 	raw, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("error: %v", err)
 	}
-	s := raw.(*remote.State)
-	return s.Client
+
+	return raw.(*remote.State).Client
 }
 
-func testBackend(t *testing.T, obj cty.Value) *Remote {
+func testBackend(t *testing.T, obj cty.Value) (*Remote, func()) {
 	s := testServer(t)
 	b := New(testDisco(s))
 
 	// Configure the backend so the client is created.
-	valDiags := b.ValidateConfig(obj)
+	newObj, valDiags := b.PrepareConfig(obj)
 	if len(valDiags) != 0 {
 		t.Fatal(valDiags.ErrWithWarnings())
 	}
+	obj = newObj
 
 	confDiags := b.Configure(obj)
 	if len(confDiags) != 0 {
@@ -148,7 +152,7 @@ func testBackend(t *testing.T, obj cty.Value) *Remote {
 		}
 	}
 
-	return b
+	return b, s.Close
 }
 
 func testLocalBackend(t *testing.T, remote *Remote) backend.Enhanced {
@@ -182,6 +186,7 @@ func testServer(t *testing.T) *httptest.Server {
 	mux.HandleFunc("/well-known/terraform.json", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		io.WriteString(w, `{
+  "state.v2": "/api/v2/",
   "tfe.v2.1": "/api/v2/",
   "versions.v1": "/v1/versions/"
 }`)
@@ -190,12 +195,12 @@ func testServer(t *testing.T) *httptest.Server {
 	// Respond to service version constraints calls.
 	mux.HandleFunc("/v1/versions/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		io.WriteString(w, `{
-  "service": "tfe.v2.1",
+		io.WriteString(w, fmt.Sprintf(`{
+  "service": "%s",
   "product": "terraform",
-	"minimum": "0.11.8",
-	"maximum": "0.11.11"
-}`)
+  "minimum": "0.1.0",
+  "maximum": "10.0.0"
+}`, path.Base(r.URL.Path)))
 	})
 
 	// Respond to the initial query to read the hashicorp org entitlements.
@@ -257,6 +262,7 @@ func testServer(t *testing.T) *httptest.Server {
 // localhost to a local test server.
 func testDisco(s *httptest.Server) *disco.Disco {
 	services := map[string]interface{}{
+		"state.v2":    fmt.Sprintf("%s/api/v2/", s.URL),
 		"tfe.v2.1":    fmt.Sprintf("%s/api/v2/", s.URL),
 		"versions.v1": fmt.Sprintf("%s/v1/versions/", s.URL),
 	}

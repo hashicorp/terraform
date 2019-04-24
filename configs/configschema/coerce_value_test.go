@@ -436,6 +436,101 @@ func TestCoerceValue(t *testing.T) {
 			}),
 			``,
 		},
+		"dynamic value attributes": {
+			&Block{
+				BlockTypes: map[string]*NestedBlock{
+					"foo": {
+						Nesting: NestingMap,
+						Block: Block{
+							Attributes: map[string]*Attribute{
+								"bar": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+								"baz": {
+									Type:     cty.DynamicPseudoType,
+									Optional: true,
+									Computed: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.ObjectVal(map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.StringVal("beep"),
+					}),
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.StringVal("boop"),
+						"baz": cty.NumberIntVal(8),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.ObjectVal(map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.StringVal("beep"),
+						"baz": cty.NullVal(cty.DynamicPseudoType),
+					}),
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.StringVal("boop"),
+						"baz": cty.NumberIntVal(8),
+					}),
+				}),
+			}),
+			``,
+		},
+		"dynamic attributes in map": {
+			// Convert a block represented as a map to an object if a
+			// DynamicPseudoType causes the element types to mismatch.
+			&Block{
+				BlockTypes: map[string]*NestedBlock{
+					"foo": {
+						Nesting: NestingMap,
+						Block: Block{
+							Attributes: map[string]*Attribute{
+								"bar": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+								"baz": {
+									Type:     cty.DynamicPseudoType,
+									Optional: true,
+									Computed: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.MapVal(map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.StringVal("beep"),
+					}),
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.StringVal("boop"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.ObjectVal(map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.StringVal("beep"),
+						"baz": cty.NullVal(cty.DynamicPseudoType),
+					}),
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.StringVal("boop"),
+						"baz": cty.NullVal(cty.DynamicPseudoType),
+					}),
+				}),
+			}),
+			``,
+		},
 	}
 
 	for name, test := range tests {

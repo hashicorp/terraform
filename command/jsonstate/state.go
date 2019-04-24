@@ -23,9 +23,9 @@ const FormatVersion = "0.1"
 // state is the top-level representation of the json format of a terraform
 // state.
 type state struct {
-	FormatVersion    string      `json:"format_version,omitempty"`
-	TerraformVersion string      `json:"terraform_version"`
-	Values           stateValues `json:"values,omitempty"`
+	FormatVersion    string       `json:"format_version,omitempty"`
+	TerraformVersion string       `json:"terraform_version,omitempty"`
+	Values           *stateValues `json:"values,omitempty"`
 }
 
 // stateValues is the common representation of resolved values for both the prior
@@ -84,6 +84,13 @@ type resource struct {
 	// unknown values are omitted or set to null, making them indistinguishable
 	// from absent values.
 	AttributeValues attributeValues `json:"values,omitempty"`
+
+	// DependsOn contains a list of the resource's dependencies. The entries are
+	// addresses relative to the containing module.
+	DependsOn []string `json:"depends_on,omitempty"`
+
+	// Tainted is true if the resource is tainted in terraform state.
+	Tainted bool `json:"tainted,omitempty"`
 }
 
 // attributeValues is the JSON representation of the attribute values of the
@@ -114,21 +121,24 @@ func newState() *state {
 
 // Marshal returns the json encoding of a terraform state.
 func Marshal(sf *statefile.File, schemas *terraform.Schemas) ([]byte, error) {
+	output := newState()
+
 	if sf == nil || sf.State.Empty() {
-		return nil, nil
+		ret, err := json.Marshal(output)
+		return ret, err
 	}
 
-	output := newState()
 	if sf.TerraformVersion != nil {
 		output.TerraformVersion = sf.TerraformVersion.String()
 	}
+
 	// output.StateValues
 	err := output.marshalStateValues(sf.State, schemas)
 	if err != nil {
 		return nil, err
 	}
 
-	ret, err := json.MarshalIndent(output, "", "  ")
+	ret, err := json.Marshal(output)
 	return ret, err
 }
 
@@ -148,7 +158,7 @@ func (jsonstate *state) marshalStateValues(s *states.State, schemas *terraform.S
 		return err
 	}
 
-	jsonstate.Values = sv
+	jsonstate.Values = &sv
 	return nil
 }
 
@@ -260,7 +270,7 @@ func marshalResources(resources map[string]*states.Resource, schemas *terraform.
 			}
 
 			schema, _ := schemas.ResourceTypeConfig(
-				r.ProviderConfig.ProviderConfig.StringCompact(),
+				r.ProviderConfig.ProviderConfig.Type,
 				r.Addr.Mode,
 				r.Addr.Type,
 			)
@@ -275,6 +285,18 @@ func marshalResources(resources map[string]*states.Resource, schemas *terraform.
 			}
 
 			resource.AttributeValues = marshalAttributeValues(riObj.Value, schema)
+
+			if len(riObj.Dependencies) > 0 {
+				dependencies := make([]string, len(riObj.Dependencies))
+				for i, v := range riObj.Dependencies {
+					dependencies[i] = v.String()
+				}
+				resource.DependsOn = dependencies
+			}
+
+			if riObj.Status == states.ObjectTainted {
+				resource.Tainted = true
+			}
 
 			ret = append(ret, resource)
 		}

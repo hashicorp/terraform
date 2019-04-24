@@ -31,6 +31,9 @@ type Workspaces interface {
 	// Delete a workspace by its name.
 	Delete(ctx context.Context, organization string, workspace string) error
 
+	// RemoveVCSConnection from a workspace.
+	RemoveVCSConnection(ctx context.Context, organization, workspace string) (*Workspace, error)
+
 	// Lock a workspace by its ID.
 	Lock(ctx context.Context, workspaceID string, options WorkspaceLockOptions) (*Workspace, error)
 
@@ -98,10 +101,13 @@ type WorkspaceActions struct {
 // WorkspacePermissions represents the workspace permissions.
 type WorkspacePermissions struct {
 	CanDestroy        bool `json:"can-destroy"`
+	CanForceUnlock    bool `json:"can-force-unlock"`
 	CanLock           bool `json:"can-lock"`
+	CanQueueApply     bool `json:"can-queue-apply"`
 	CanQueueDestroy   bool `json:"can-queue-destroy"`
 	CanQueueRun       bool `json:"can-queue-run"`
 	CanReadSettings   bool `json:"can-read-settings"`
+	CanUnlock         bool `json:"can-unlock"`
 	CanUpdate         bool `json:"can-update"`
 	CanUpdateVariable bool `json:"can-update-variable"`
 }
@@ -331,6 +337,41 @@ func (s *workspaces) Delete(ctx context.Context, organization, workspace string)
 	}
 
 	return s.client.do(ctx, req, nil)
+}
+
+// workspaceRemoveVCSConnectionOptions
+type workspaceRemoveVCSConnectionOptions struct {
+	ID      string          `jsonapi:"primary,workspaces"`
+	VCSRepo *VCSRepoOptions `jsonapi:"attr,vcs-repo"`
+}
+
+// RemoveVCSConnection from a workspace.
+func (s *workspaces) RemoveVCSConnection(ctx context.Context, organization, workspace string) (*Workspace, error) {
+	if !validStringID(&organization) {
+		return nil, errors.New("invalid value for organization")
+	}
+	if !validStringID(&workspace) {
+		return nil, errors.New("invalid value for workspace")
+	}
+
+	u := fmt.Sprintf(
+		"organizations/%s/workspaces/%s",
+		url.QueryEscape(organization),
+		url.QueryEscape(workspace),
+	)
+
+	req, err := s.client.newRequest("PATCH", u, &workspaceRemoveVCSConnectionOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	w := &Workspace{}
+	err = s.client.do(ctx, req, w)
+	if err != nil {
+		return nil, err
+	}
+
+	return w, nil
 }
 
 // WorkspaceLockOptions represents the options for locking a workspace.

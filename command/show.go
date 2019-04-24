@@ -45,6 +45,12 @@ func (c *ShowCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Check for user-supplied plugin path
+	if c.pluginPath, err = c.loadPluginPath(); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
+		return 1
+	}
+
 	var diags tfdiags.Diagnostics
 
 	// Load the backend
@@ -134,18 +140,33 @@ func (c *ShowCommand) Run(args []string) int {
 		}
 	}
 
-	// This is an odd-looking check, because it's ok if we have a plan and an
-	// empty state, and we've already validated that any command-line arguments
-	// have been read successfully
-	if plan == nil && stateFile == nil {
-		c.Ui.Output("No state.")
-		return 0
-	}
-
 	if plan != nil {
 		if jsonOutput == true {
 			config := ctx.Config()
-			jsonPlan, err := jsonplan.Marshal(config, plan, stateFile, schemas)
+
+			var err error
+			var jsonPlan []byte
+
+			// If there is no prior state, we have all the schemas needed.
+			if stateFile == nil {
+				jsonPlan, err = jsonplan.Marshal(config, plan, stateFile, schemas, nil)
+			} else {
+				// If there is state, we need the state-specific schemas, which
+				// may differ from the schemas loaded from the plan.
+				// This occurs if there is a data_source in the state that was
+				// removed from the configuration, because terraform core does
+				// not need to load the schema to remove a data source.
+				opReq.PlanFile = nil
+				ctx, _, ctxDiags := local.Context(opReq)
+				diags = diags.Append(ctxDiags)
+				if ctxDiags.HasErrors() {
+					c.showDiagnostics(diags)
+					return 1
+				}
+				stateSchemas := ctx.Schemas()
+				jsonPlan, err = jsonplan.Marshal(config, plan, stateFile, schemas, stateSchemas)
+			}
+
 			if err != nil {
 				c.Ui.Error(fmt.Sprintf("Failed to marshal plan to json: %s", err))
 				return 1
@@ -159,6 +180,8 @@ func (c *ShowCommand) Run(args []string) int {
 	}
 
 	if jsonOutput == true {
+		// At this point, it is possible that there is neither state nor a plan.
+		// That's ok, we'll just return an empty object.
 		jsonState, err := jsonstate.Marshal(stateFile, schemas)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Failed to marshal state to json: %s", err))
@@ -166,6 +189,10 @@ func (c *ShowCommand) Run(args []string) int {
 		}
 		c.Ui.Output(string(jsonState))
 	} else {
+		if stateFile == nil {
+			c.Ui.Output("No state.")
+			return 0
+		}
 		c.Ui.Output(format.State(&format.StateOpts{
 			State:   stateFile.State,
 			Color:   c.Colorize(),
@@ -186,8 +213,8 @@ Usage: terraform show [options] [path]
 Options:
 
   -no-color           If specified, output won't contain any color.
-  -json				  If specified, output the Terraform plan in a machine-
-						readable form. Only available for plan files.
+  -json               If specified, output the Terraform plan or state in
+                      a machine-readable form.
 
 `
 	return strings.TrimSpace(helpText)

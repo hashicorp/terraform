@@ -39,10 +39,18 @@ var JoinFunc = function.New(&function.Spec{
 		}
 
 		items := make([]string, 0, l)
-		for _, list := range listVals {
+		for ai, list := range listVals {
+			ei := 0
 			for it := list.ElementIterator(); it.Next(); {
 				_, val := it.Element()
+				if val.IsNull() {
+					if len(listVals) > 1 {
+						return cty.UnknownVal(cty.String), function.NewArgErrorf(ai+1, "element %d of list %d is null; cannot concatenate null values", ei, ai+1)
+					}
+					return cty.UnknownVal(cty.String), function.NewArgErrorf(ai+1, "element %d is null; cannot concatenate null values", ei)
+				}
 				items = append(items, val.AsString())
+				ei++
 			}
 		}
 

@@ -56,6 +56,10 @@ type Handler struct {
 	// for spans started by this transport.
 	StartOptions trace.StartOptions
 
+	// GetStartOptions allows to set start options per request. If set,
+	// StartOptions is going to be ignored.
+	GetStartOptions func(*http.Request) trace.StartOptions
+
 	// IsPublicEndpoint should be set to true for publicly accessible HTTP(S)
 	// servers. If true, any trace metadata set on the incoming request will
 	// be added as a linked trace instead of being added as a parent of the
@@ -93,15 +97,21 @@ func (h *Handler) startTrace(w http.ResponseWriter, r *http.Request) (*http.Requ
 		name = h.FormatSpanName(r)
 	}
 	ctx := r.Context()
+
+	startOpts := h.StartOptions
+	if h.GetStartOptions != nil {
+		startOpts = h.GetStartOptions(r)
+	}
+
 	var span *trace.Span
 	sc, ok := h.extractSpanContext(r)
 	if ok && !h.IsPublicEndpoint {
 		ctx, span = trace.StartSpanWithRemoteParent(ctx, name, sc,
-			trace.WithSampler(h.StartOptions.Sampler),
+			trace.WithSampler(startOpts.Sampler),
 			trace.WithSpanKind(trace.SpanKindServer))
 	} else {
 		ctx, span = trace.StartSpan(ctx, name,
-			trace.WithSampler(h.StartOptions.Sampler),
+			trace.WithSampler(startOpts.Sampler),
 			trace.WithSpanKind(trace.SpanKindServer),
 		)
 		if ok {
@@ -168,6 +178,7 @@ func (t *trackingResponseWriter) end(tags *addedTags) {
 
 		span := trace.FromContext(t.ctx)
 		span.SetStatus(TraceStatus(t.statusCode, t.statusLine))
+		span.AddAttributes(trace.Int64Attribute(StatusCodeAttribute, int64(t.statusCode)))
 
 		m := []stats.Measurement{
 			ServerLatency.M(float64(time.Since(t.start)) / float64(time.Millisecond)),
@@ -179,8 +190,7 @@ func (t *trackingResponseWriter) end(tags *addedTags) {
 		allTags := make([]tag.Mutator, len(tags.t)+1)
 		allTags[0] = tag.Upsert(StatusCode, strconv.Itoa(t.statusCode))
 		copy(allTags[1:], tags.t)
-		ctx, _ := tag.New(t.ctx, allTags...)
-		stats.Record(ctx, m...)
+		stats.RecordWithTags(t.ctx, allTags, m...)
 	})
 }
 

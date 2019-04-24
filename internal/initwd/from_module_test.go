@@ -52,17 +52,17 @@ func TestDirFromModule_registry(t *testing.T) {
 			Name:       "Install",
 			ModuleAddr: "root",
 			Version:    v,
-			LocalPath:  ".terraform/modules/root/hashicorp-terraform-aws-module-installer-acctest-5e87aff",
+			LocalPath:  filepath.Join(dir, ".terraform/modules/root/hashicorp-terraform-aws-module-installer-acctest-5e87aff"),
 		},
 		{
 			Name:       "Install",
 			ModuleAddr: "root.child_a",
-			LocalPath:  ".terraform/modules/root/hashicorp-terraform-aws-module-installer-acctest-5e87aff/modules/child_a",
+			LocalPath:  filepath.Join(dir, ".terraform/modules/root/hashicorp-terraform-aws-module-installer-acctest-5e87aff/modules/child_a"),
 		},
 		{
 			Name:       "Install",
 			ModuleAddr: "root.child_a.child_b",
-			LocalPath:  ".terraform/modules/root/hashicorp-terraform-aws-module-installer-acctest-5e87aff/modules/child_b",
+			LocalPath:  filepath.Join(dir, ".terraform/modules/root/hashicorp-terraform-aws-module-installer-acctest-5e87aff/modules/child_b"),
 		},
 	}
 

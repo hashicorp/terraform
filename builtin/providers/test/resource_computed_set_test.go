@@ -50,3 +50,22 @@ resource "test_resource_computed_set" "foo" {
 		},
 	})
 }
+
+func TestResourceComputedSet_ruleTest(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_computed_set" "foo" {
+	rule {
+		ip_protocol = "udp"
+		cidr = "0.0.0.0/0"
+	}
+}
+				`),
+			},
+		},
+	})
+}

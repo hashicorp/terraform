@@ -23,6 +23,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"go.opencensus.io/exemplar"
+
 	"go.opencensus.io/stats"
 	"go.opencensus.io/stats/internal"
 	"go.opencensus.io/tag"
@@ -127,12 +129,12 @@ func (v *viewInternal) collectedRows() []*Row {
 	return v.collector.collectedRows(v.view.TagKeys)
 }
 
-func (v *viewInternal) addSample(m *tag.Map, val float64) {
+func (v *viewInternal) addSample(m *tag.Map, e *exemplar.Exemplar) {
 	if !v.isSubscribed() {
 		return
 	}
 	sig := string(encodeWithKeys(m, v.view.TagKeys))
-	v.collector.addSample(sig, val)
+	v.collector.addSample(sig, e)
 }
 
 // A Data is a set of rows about usage of the single measure associated

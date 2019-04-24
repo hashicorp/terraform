@@ -1326,3 +1326,109 @@ func TestTestCheckResourceAttrPair(t *testing.T) {
 		})
 	}
 }
+
+func TestTestCheckResourceAttrPairCount(t *testing.T) {
+	tests := map[string]struct {
+		state   *terraform.State
+		attr    string
+		wantErr string
+	}{
+		"unset and 0 equal list": {
+			&terraform.State{
+				Modules: []*terraform.ModuleState{
+					{
+						Path: []string{"root"},
+						Resources: map[string]*terraform.ResourceState{
+							"test.a": {
+								Primary: &terraform.InstanceState{
+									Attributes: map[string]string{
+										"a.#": "0",
+									},
+								},
+							},
+							"test.b": {
+								Primary: &terraform.InstanceState{
+									Attributes: map[string]string{},
+								},
+							},
+						},
+					},
+				},
+			},
+			"a.#",
+			``,
+		},
+		"unset and 0 equal map": {
+			&terraform.State{
+				Modules: []*terraform.ModuleState{
+					{
+						Path: []string{"root"},
+						Resources: map[string]*terraform.ResourceState{
+							"test.a": {
+								Primary: &terraform.InstanceState{
+									Attributes: map[string]string{
+										"a.%": "0",
+									},
+								},
+							},
+							"test.b": {
+								Primary: &terraform.InstanceState{
+									Attributes: map[string]string{},
+								},
+							},
+						},
+					},
+				},
+			},
+			"a.%",
+			``,
+		},
+		"count equal": {
+			&terraform.State{
+				Modules: []*terraform.ModuleState{
+					{
+						Path: []string{"root"},
+						Resources: map[string]*terraform.ResourceState{
+							"test.a": {
+								Primary: &terraform.InstanceState{
+									Attributes: map[string]string{
+										"a.%": "1",
+									},
+								},
+							},
+							"test.b": {
+								Primary: &terraform.InstanceState{
+									Attributes: map[string]string{
+										"a.%": "1",
+									}},
+							},
+						},
+					},
+				},
+			},
+			"a.%",
+			``,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			fn := TestCheckResourceAttrPair("test.a", test.attr, "test.b", test.attr)
+			err := fn(test.state)
+
+			if test.wantErr != "" {
+				if err == nil {
+					t.Fatalf("succeeded; want error\nwant: %s", test.wantErr)
+				}
+				if got, want := err.Error(), test.wantErr; got != want {
+					t.Fatalf("wrong error\ngot:  %s\nwant: %s", got, want)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("failed; want success\ngot: %s", err.Error())
+			}
+		})
+	}
+}

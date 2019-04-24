@@ -29,8 +29,8 @@ type RangeScanner struct {
 	err error  // error from last scan, if any
 }
 
-// Create a new RangeScanner for the given buffer, producing ranges for the
-// given filename.
+// NewRangeScanner creates a new RangeScanner for the given buffer, producing
+// ranges for the given filename.
 //
 // Since ranges have grapheme-cluster granularity rather than byte granularity,
 // the scanner will produce incorrect results if the given SplitFunc creates
@@ -39,15 +39,19 @@ type RangeScanner struct {
 // around individual UTF-8 sequences, which will split any multi-sequence
 // grapheme clusters.
 func NewRangeScanner(b []byte, filename string, cb bufio.SplitFunc) *RangeScanner {
+	return NewRangeScannerFragment(b, filename, InitialPos, cb)
+}
+
+// NewRangeScannerFragment is like NewRangeScanner but the ranges it produces
+// will be offset by the given starting position, which is appropriate for
+// sub-slices of a file, whereas NewRangeScanner assumes it is scanning an
+// entire file.
+func NewRangeScannerFragment(b []byte, filename string, start Pos, cb bufio.SplitFunc) *RangeScanner {
 	return &RangeScanner{
 		filename: filename,
 		b:        b,
 		cb:       cb,
-		pos: Pos{
-			Byte:   0,
-			Line:   1,
-			Column: 1,
-		},
+		pos:      start,
 	}
 }
 

@@ -115,7 +115,7 @@ func (b *Block) StaticValidateTraversal(traversal hcl.Traversal) tfdiags.Diagnos
 }
 
 func (b *NestedBlock) staticValidateTraversal(typeName string, traversal hcl.Traversal) tfdiags.Diagnostics {
-	if b.Nesting == NestingSingle {
+	if b.Nesting == NestingSingle || b.Nesting == NestingGroup {
 		// Single blocks are easy: just pass right through.
 		return b.Block.StaticValidateTraversal(traversal)
 	}

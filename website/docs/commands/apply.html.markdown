@@ -38,7 +38,8 @@ The command-line flags are all optional. The list of available flags are:
 * `-no-color` - Disables output with coloring.
 
 * `-parallelism=n` - Limit the number of concurrent operation as Terraform
-  [walks the graph](/docs/internals/graph.html#walking-the-graph).
+  [walks the graph](/docs/internals/graph.html#walking-the-graph). Defaults to
+  10.
 
 * `-refresh=true` - Update the state for each resource prior to planning
   and applying. This has no effect if a plan file is given directly to

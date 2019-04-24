@@ -287,7 +287,7 @@ one variable file, the last value specified is effective.
 ### Variable Merging
 
 When multiple values are provided for the same input variable, map values are
-merged while all other values are overriden by the last definition.
+merged while all other values are overridden by the last definition.
 
 For example, if you define a variable twice on the command line:
 

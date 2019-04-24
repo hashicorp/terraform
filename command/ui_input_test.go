@@ -2,6 +2,7 @@ package command
 
 import (
 	"bytes"
+	"context"
 	"testing"
 
 	"github.com/hashicorp/terraform/terraform"
@@ -17,7 +18,7 @@ func TestUIInputInput(t *testing.T) {
 		Writer: bytes.NewBuffer(nil),
 	}
 
-	v, err := i.Input(&terraform.InputOpts{})
+	v, err := i.Input(context.Background(), &terraform.InputOpts{})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -33,7 +34,7 @@ func TestUIInputInput_spaces(t *testing.T) {
 		Writer: bytes.NewBuffer(nil),
 	}
 
-	v, err := i.Input(&terraform.InputOpts{})
+	v, err := i.Input(context.Background(), &terraform.InputOpts{})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

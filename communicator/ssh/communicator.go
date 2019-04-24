@@ -3,6 +3,7 @@ package ssh
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -26,6 +27,9 @@ import (
 const (
 	// DefaultShebang is added at the top of a SSH script file
 	DefaultShebang = "#!/bin/sh\n"
+
+	// enable ssh keeplive probes by default
+	keepAliveInterval = 2 * time.Second
 )
 
 // randShared is a global random generator object that is shared.
@@ -37,11 +41,12 @@ var randShared *rand.Rand
 
 // Communicator represents the SSH communicator
 type Communicator struct {
-	connInfo *connectionInfo
-	client   *ssh.Client
-	config   *sshConfig
-	conn     net.Conn
-	address  string
+	connInfo        *connectionInfo
+	client          *ssh.Client
+	config          *sshConfig
+	conn            net.Conn
+	address         string
+	cancelKeepAlive context.CancelFunc
 
 	lock sync.Mutex
 }
@@ -125,11 +130,13 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 				"  User: %s\n"+
 				"  Password: %t\n"+
 				"  Private key: %t\n"+
+				"  Certificate: %t\n"+
 				"  SSH Agent: %t\n"+
 				"  Checking Host Key: %t",
 			c.connInfo.Host, c.connInfo.User,
 			c.connInfo.Password != "",
 			c.connInfo.PrivateKey != "",
+			c.connInfo.Certificate != "",
 			c.connInfo.Agent,
 			c.connInfo.HostKey != "",
 		))
@@ -203,17 +210,49 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 		}
 	}
 
+	if err != nil {
+		return err
+	}
+
 	if o != nil {
 		o.Output("Connected!")
 	}
 
-	return err
+	ctx, cancelKeepAlive := context.WithCancel(context.TODO())
+	c.cancelKeepAlive = cancelKeepAlive
+
+	// Start a keepalive goroutine to help maintain the connection for
+	// long-running commands.
+	log.Printf("[DEBUG] starting ssh KeepAlives")
+	go func() {
+		t := time.NewTicker(keepAliveInterval)
+		defer t.Stop()
+		for {
+			select {
+			case <-t.C:
+				// there's no useful response to these, just abort when there's
+				// an error.
+				_, _, err := c.client.SendRequest("keepalive@terraform.io", true, nil)
+				if err != nil {
+					return
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	return nil
 }
 
 // Disconnect implementation of communicator.Communicator interface
 func (c *Communicator) Disconnect() error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
+
+	if c.cancelKeepAlive != nil {
+		c.cancelKeepAlive()
+	}
 
 	if c.config.sshAgent != nil {
 		if err := c.config.sshAgent.Close(); err != nil {
@@ -481,6 +520,13 @@ func (c *Communicator) scpSession(scpCommand string, f func(io.Writer, *bufio.Re
 	// our data and has completed. Or has errored.
 	log.Println("[DEBUG] Waiting for SSH session to complete.")
 	err = session.Wait()
+
+	// log any stderr before exiting on an error
+	scpErr := stderr.String()
+	if len(scpErr) > 0 {
+		log.Printf("[ERROR] scp stderr: %q", stderr)
+	}
+
 	if err != nil {
 		if exitErr, ok := err.(*ssh.ExitError); ok {
 			// Otherwise, we have an ExitErorr, meaning we can just read
@@ -497,11 +543,6 @@ func (c *Communicator) scpSession(scpCommand string, f func(io.Writer, *bufio.Re
 		}
 
 		return err
-	}
-
-	scpErr := stderr.String()
-	if len(scpErr) > 0 {
-		log.Printf("[ERROR] scp stderr: %q", stderr)
 	}
 
 	return nil

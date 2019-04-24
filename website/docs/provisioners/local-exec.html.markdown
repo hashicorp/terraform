@@ -81,7 +81,7 @@ resource "aws_instance" "web" {
   provisioner "local-exec" {
     command = "echo $FOO $BAR $BAZ >> env_vars.txt"
 
-    environment {
+    environment = {
       FOO = "bar"
       BAR = 1
       BAZ = "true"

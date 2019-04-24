@@ -75,7 +75,7 @@ func ConfigValueFromHCL2Block(v cty.Value, schema *configschema.Block) map[strin
 
 		switch blockS.Nesting {
 
-		case configschema.NestingSingle:
+		case configschema.NestingSingle, configschema.NestingGroup:
 			ret[name] = ConfigValueFromHCL2Block(bv, &blockS.Block)
 
 		case configschema.NestingList, configschema.NestingSet:

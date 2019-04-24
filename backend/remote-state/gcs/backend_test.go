@@ -181,7 +181,6 @@ func setupBackend(t *testing.T, bucket, prefix, key string) backend.Backend {
 	}
 
 	config := map[string]interface{}{
-		"project":        projectID,
 		"bucket":         bucket,
 		"prefix":         prefix,
 		"encryption_key": key,
@@ -199,9 +198,9 @@ func setupBackend(t *testing.T, bucket, prefix, key string) backend.Backend {
 		}
 
 		attrs := &storage.BucketAttrs{
-			Location: be.region,
+			Location: os.Getenv("GOOGLE_REGION"),
 		}
-		err := bkt.Create(be.storageContext, be.projectID, attrs)
+		err := bkt.Create(be.storageContext, projectID, attrs)
 		if err != nil {
 			t.Fatal(err)
 		}

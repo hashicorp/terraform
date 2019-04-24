@@ -53,3 +53,66 @@ resource "test_resource_list_set" "foo" {
 		},
 	})
 }
+
+func TestResourceListSet_updateNested(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_list_set" "foo" {
+    replication_configuration {
+        role = "role_id"
+        rules {
+            id     = "foobar"
+            status = "Enabled"
+            priority = 42
+            filter {
+		          tags = {
+                ReplicateMe = "Yes"
+              }
+            }
+            destination {
+                bucket        = "bucket_id"
+                storage_class = "STANDARD"
+            }
+        }
+    }
+}
+				`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("test_resource_list_set.foo", "replication_configuration.0.rules.#", "1"),
+				),
+			},
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_list_set" "foo" {
+    replication_configuration {
+        role = "role_id"
+        rules {
+            id     = "foobar"
+            status = "Enabled"
+            priority = 42
+            filter {
+              prefix = "foo"
+		          tags = {
+                ReplicateMe = "Yes"
+                AnotherTag  = "OK"
+              }
+            }
+            destination {
+                bucket        = "bucket_id"
+                storage_class = "STANDARD"
+            }
+        }
+    }
+}
+				`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("test_resource_list_set.foo", "replication_configuration.0.rules.#", "1"),
+				),
+			},
+		},
+	})
+}
