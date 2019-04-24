@@ -228,9 +228,9 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, t
 		}
 	}
 
-	printedProviderName := fmt.Sprintf("%s (%s)", provider, providerSource)
-	i.Ui.Info(fmt.Sprintf("- Downloading plugin for provider %q (%s)...", printedProviderName, versionMeta.Version))
-	log.Printf("[DEBUG] getting provider %q version %q", printedProviderName, versionMeta.Version)
+	printedProviderName := fmt.Sprintf("%q (%s)", provider, providerSource)
+	i.Ui.Info(fmt.Sprintf("- Downloading plugin for provider %s %s...", printedProviderName, versionMeta.Version))
+	log.Printf("[DEBUG] getting provider %s version %q", printedProviderName, versionMeta.Version)
 	err = i.install(provider, v, providerURL)
 	if err != nil {
 		return PluginMeta{}, diags, err
