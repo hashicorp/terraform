@@ -228,7 +228,7 @@ func (b *Remote) parseVariableValues(op *backend.Operation) (terraform.InputValu
 }
 
 func (b *Remote) costEstimation(stopCtx, cancelCtx context.Context, op *backend.Operation, r *tfe.Run) error {
-	if r.CostEstimation != nil {
+	if r.CostEstimation == nil {
 		return nil
 	}
 
