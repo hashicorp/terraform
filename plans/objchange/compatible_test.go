@@ -1070,7 +1070,7 @@ func TestAssertObjectCompatible(t *testing.T) {
 				}),
 			}),
 			[]string{
-				`.block: planned set element cty.Value{ty: cty.Object(map[string]cty.Type{"foo":cty.String}), v: map[string]interface {}{"foo":"hello"}} does not correlate with any element in actual`,
+				`.block: planned set element cty.ObjectVal(map[string]cty.Value{"foo":cty.StringVal("hello")}) does not correlate with any element in actual`,
 			},
 		},
 		{
