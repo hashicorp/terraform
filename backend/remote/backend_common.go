@@ -240,7 +240,7 @@ func (b *Remote) costEstimation(stopCtx, cancelCtx context.Context, op *backend.
 	if err != nil {
 		return generalError("Failed to retrieve cost estimation logs", err)
 	}
-	reader := bufio.NewReaderSize(logs, 64*1024)
+	scanner := bufio.NewScanner(logs)
 
 	// Retrieve the cost estimation to get its current status.
 	ce, err := b.client.CostEstimations.Read(stopCtx, r.CostEstimation.ID)
@@ -253,25 +253,14 @@ func (b *Remote) costEstimation(stopCtx, cancelCtx context.Context, op *backend.
 		b.CLI.Output(b.Colorize().Color(msgPrefix + ":\n"))
 	}
 
-	if b.CLI != nil {
-		for next := true; next; {
-			var l, line []byte
-
-			for isPrefix := true; isPrefix; {
-				l, isPrefix, err = reader.ReadLine()
-				if err != nil {
-					if err != io.EOF {
-						return generalError("Failed to read logs", err)
-					}
-					next = false
-				}
-				line = append(line, l...)
-			}
-
-			if next || len(line) > 0 {
-				b.CLI.Output(b.Colorize().Color(string(line)))
-			}
+	for scanner.Scan() {
+		if b.CLI != nil {
+			b.CLI.Output(b.Colorize().Color(scanner.Text()))
 		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return generalError("Failed to read logs", err)
 	}
 
 	switch ce.Status {
