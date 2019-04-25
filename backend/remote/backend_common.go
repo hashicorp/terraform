@@ -228,36 +228,50 @@ func (b *Remote) parseVariableValues(op *backend.Operation) (terraform.InputValu
 }
 
 func (b *Remote) costEstimation(stopCtx, cancelCtx context.Context, op *backend.Operation, r *tfe.Run) error {
+	if r.CostEstimation != nil {
+		return nil
+	}
+
 	if b.CLI != nil {
 		b.CLI.Output("\n------------------------------------------------------------------------\n")
 	}
-	var ce = r.CostEstimation
 
-	logs, err := b.client.CostEstimations.Logs(stopCtx, ce.ID)
+	logs, err := b.client.CostEstimations.Logs(stopCtx, r.CostEstimation.ID)
 	if err != nil {
 		return generalError("Failed to retrieve cost estimation logs", err)
 	}
-	scanner := bufio.NewScanner(logs)
+	reader := bufio.NewReaderSize(logs, 64*1024)
 
 	// Retrieve the cost estimation to get its current status.
-	ce, err = b.client.CostEstimations.Read(stopCtx, ce.ID)
+	ce, err := b.client.CostEstimations.Read(stopCtx, r.CostEstimation.ID)
 	if err != nil {
 		return generalError("Failed to retrieve cost estimation", err)
 	}
 
-	var msgPrefix = "Cost estimation"
-
+	msgPrefix := "Cost estimation"
 	if b.CLI != nil {
 		b.CLI.Output(b.Colorize().Color(msgPrefix + ":\n"))
 	}
 
-	for scanner.Scan() {
-		if b.CLI != nil {
-			b.CLI.Output(b.Colorize().Color(scanner.Text()))
+	if b.CLI != nil {
+		for next := true; next; {
+			var l, line []byte
+
+			for isPrefix := true; isPrefix; {
+				l, isPrefix, err = reader.ReadLine()
+				if err != nil {
+					if err != io.EOF {
+						return generalError("Failed to read logs", err)
+					}
+					next = false
+				}
+				line = append(line, l...)
+			}
+
+			if next || len(line) > 0 {
+				b.CLI.Output(b.Colorize().Color(string(line)))
+			}
 		}
-	}
-	if err := scanner.Err(); err != nil {
-		return generalError("Failed to read logs", err)
 	}
 
 	switch ce.Status {
