@@ -228,8 +228,8 @@ func newMockCostEstimations(client *mockClient) *mockCostEstimations {
 	}
 }
 
-// create is a helper function to create a mock plan that uses the configured
-// working directory to find the logfile.
+// create is a helper function to create a mock cost estimation that uses the
+// configured working directory to find the logfile.
 func (m *mockCostEstimations) create(cvID, workspaceID string) (*tfe.CostEstimation, error) {
 	id := generateID("ce-")
 
@@ -264,28 +264,6 @@ func (m *mockCostEstimations) Read(ctx context.Context, costEstimationID string)
 	if !ok {
 		return nil, tfe.ErrResourceNotFound
 	}
-
-	logfile, ok := m.logs[ce.ID]
-	if !ok {
-		return nil, tfe.ErrResourceNotFound
-	}
-
-	if _, err := os.Stat(logfile); os.IsNotExist(err) {
-		return nil, fmt.Errorf("logfile does not exist")
-	}
-
-	logs, err := ioutil.ReadFile(logfile)
-	if err != nil {
-		return nil, err
-	}
-
-	if bytes.Contains(logs, []byte("SKU")) {
-		ce.Status = tfe.CostEstimationFinished
-	} else {
-		// As this is an unexpected state, we say the estimation errored.
-		ce.Status = tfe.CostEstimationErrored
-	}
-
 	return ce, nil
 }
 
@@ -309,12 +287,7 @@ func (m *mockCostEstimations) Logs(ctx context.Context, costEstimationID string)
 		return nil, err
 	}
 
-	if bytes.Contains(logs, []byte("SKU")) {
-		ce.Status = tfe.CostEstimationFinished
-	} else {
-		// As this is an unexpected state, we say the estimation errored.
-		ce.Status = tfe.CostEstimationErrored
-	}
+	ce.Status = tfe.CostEstimationFinished
 
 	return bytes.NewBuffer(logs), nil
 }
@@ -1148,10 +1121,6 @@ func (m *mockWorkspaces) AssignSSHKey(ctx context.Context, workspaceID string, o
 }
 
 func (m *mockWorkspaces) UnassignSSHKey(ctx context.Context, workspaceID string) (*tfe.Workspace, error) {
-	panic("not implemented")
-}
-
-func (m *mockWorkspaces) RemoveVCSConnection(ctx context.Context, organizationID string, workspaceID string) (*tfe.Workspace, error) {
 	panic("not implemented")
 }
 
