@@ -276,7 +276,7 @@ func (b *Remote) costEstimation(stopCtx, cancelCtx context.Context, op *backend.
 
 	switch ce.Status {
 	case tfe.CostEstimationFinished:
-		if r.HasChanges && op.Type == backend.OperationTypeApply || b.CLI != nil {
+		if len(r.PolicyChecks) == 0 && r.HasChanges && op.Type == backend.OperationTypeApply && b.CLI != nil {
 			b.CLI.Output("\n------------------------------------------------------------------------")
 		}
 		return nil
