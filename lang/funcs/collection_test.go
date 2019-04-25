@@ -673,9 +673,6 @@ func TestContains(t *testing.T) {
 		},
 	}
 
-	// TODO: rework this (and other) test to first go through the HCL layer,
-	// which provides an automatic conversion from set to list, so we can add
-	// set tests.
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("contains(%#v, %#v)", test.List, test.Value), func(t *testing.T) {
 			got, err := Contains(test.List, test.Value)

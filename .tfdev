@@ -1,0 +1,12 @@
+version_info {
+  commit_var  =    "main.GitCommit"
+  version_var =    "github.com/hashicorp/terraform/version.Version"
+  prerelease_var = "github.com/hashicorp/terraform/version.Prerelease"
+}
+
+version_exec = false
+
+platform {
+    os = "darwin"
+    arch = "amd64"
+}
