@@ -2,6 +2,7 @@ package configupgrade
 
 import (
 	"bytes"
+	"flag"
 	"io"
 	"io/ioutil"
 	"log"
@@ -286,6 +287,7 @@ func init() {
 }
 
 func TestMain(m *testing.M) {
+	flag.Parse()
 	if testing.Verbose() {
 		// if we're verbose, use the logging requested by TF_LOG
 		logging.SetOutput()
