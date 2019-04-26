@@ -126,7 +126,7 @@ Terraform providers in the past and are familiar with the requirements and proce
 |--------------------|:-----------------------------|:---------------------|
 | Crest Data Systems | malhar@crestdatasys.com      | www.crestdatasys.com |
 | DigitalOnUs        | hashicorp@digitalonus.com    | www.digitalonus.com  |
-| MustWin            | bd@mustwin.com               | www.mustwin.com      |
+| Akava              | bd@akava.io                  | www.akava.io         |
 | OpenCredo          | hashicorp@opencredo.com      | www.opencredo.com    |
 
 ### 4. Review
