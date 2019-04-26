@@ -8,6 +8,8 @@ IMPROVEMENTS:
 
 * backend/s3: Support for the new AWS region `ap-east-1` [GH-21117]
 * command/init: Improve formatting of provider names during discovery [GH-21094]
+* command/0.12upgrade: Upgrade indexing of splat syntax [GH-21103]
+* command/0.12upgrade: Return error for invalid references (e.g. with initial digits) [GH-21103]
 
 ## 0.12.0-beta2 (Apr 18, 2019)
 
