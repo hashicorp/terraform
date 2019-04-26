@@ -4,6 +4,10 @@ NEW FEATURES:
 
 * New function `strrev`, for reversing unicode strings. [#21091]
 
+IMPROVEMENTS:
+
+* backend/s3: Support for the new AWS region `ap-east-1` [GH-21117]
+
 ## 0.12.0-beta2 (Apr 18, 2019)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
