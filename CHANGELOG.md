@@ -7,6 +7,7 @@ NEW FEATURES:
 IMPROVEMENTS:
 
 * backend/s3: Support for the new AWS region `ap-east-1` [GH-21117]
+* command/init: Improve formatting of provider names during discovery [GH-21094]
 
 ## 0.12.0-beta2 (Apr 18, 2019)
 
