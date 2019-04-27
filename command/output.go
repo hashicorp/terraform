@@ -112,14 +112,14 @@ func (c *OutputCommand) Run(args []string) int {
 	}
 
 	if !jsonOutput && (state.Empty() || len(mod.OutputValues) == 0) {
-		c.Ui.Error(
+		c.Ui.Output(
 			"The state file either has no outputs defined, or all the defined\n" +
 				"outputs are empty. Please define an output in your configuration\n" +
 				"with the `output` keyword and run `terraform refresh` for it to\n" +
 				"become available. If you are using interpolation, please verify\n" +
 				"the interpolated value is not empty. You can use the \n" +
 				"`terraform console` command to assist.")
-		return 1
+		return 0
 	}
 
 	if name == "" {
