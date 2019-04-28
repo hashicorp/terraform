@@ -58,5 +58,8 @@ The following configuration options are supported:
    Defaults to `UNLOCK`.
  * `username` - (Optional) The username for HTTP basic authentication
  * `password` - (Optional) The password for HTTP basic authentication
+ * `cert_file` - (Optional) The path to the certificate file for TLS authentication
+ * `key_file` - (Optional) The path to the key file for TLS authentication
+ * `ca_file` - (Optional) The path to the CA file for TLS authentication
  * `skip_cert_verification` - (Optional) Whether to skip TLS verification.
    Defaults to `false`.

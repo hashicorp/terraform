@@ -3,7 +3,9 @@ package http
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 
@@ -59,6 +61,21 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The password for HTTP basic authentication",
+			},
+			"cert_file": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The path to the certificate file for TLS authentication",
+			},
+			"key_file": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The path to the key file for TLS authentication",
+			},
+			"ca_file": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The path to the CA file for TLS authentication",
 			},
 			"skip_cert_verification": &schema.Schema{
 				Type:        schema.TypeBool,
@@ -129,6 +146,32 @@ func (b *Backend) configure(ctx context.Context) error {
 		client.Transport.(*http.Transport).TLSClientConfig = &tls.Config{
 			InsecureSkipVerify: true,
 		}
+	}
+
+	if data.Get("cert_file").(string) != "" {
+		// Load the client cert
+		cert, err := tls.LoadX509KeyPair(data.Get("cert_file").(string), data.Get("key_file").(string))
+		if err != nil {
+			return fmt.Errorf("failed to load client certificate: %s", err)
+		}
+
+		tlsConfig := &tls.Config{
+			Certificates: []tls.Certificate{cert},
+		}
+
+		if data.Get("ca_file").(string) != "" {
+			// Load the CA cert
+			caCert, err := ioutil.ReadFile(data.Get("ca_file").(string))
+			if err != nil {
+				return fmt.Errorf("failed to load CA file: %s", err)
+			}
+			caCertPool := x509.NewCertPool()
+			caCertPool.AppendCertsFromPEM(caCert)
+			tlsConfig.RootCAs = caCertPool
+		}
+
+		tlsConfig.BuildNameToCertificate()
+		client.Transport.(*http.Transport).TLSClientConfig = tlsConfig
 	}
 
 	b.client = &httpClient{

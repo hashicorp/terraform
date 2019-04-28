@@ -676,6 +676,9 @@ func TestApply_plan_remoteState(t *testing.T) {
 		"unlock_method":          cty.NullVal(cty.String),
 		"username":               cty.NullVal(cty.String),
 		"password":               cty.NullVal(cty.String),
+		"cert_file":              cty.NullVal(cty.String),
+		"key_file":               cty.NullVal(cty.String),
+		"ca_file":                cty.NullVal(cty.String),
 		"skip_cert_verification": cty.NullVal(cty.Bool),
 	})
 	backendConfigRaw, err := plans.NewDynamicValue(backendConfig, backendConfig.Type())
