@@ -1101,8 +1101,8 @@ func ctySequenceDiff(old, new []cty.Value) []*plans.Change {
 		if lcsI < len(lcs) {
 			ret = append(ret, &plans.Change{
 				Action: plans.NoOp,
-				Before: new[newI],
-				After:  new[newI],
+				Before: lcs[lcsI],
+				After:  lcs[lcsI],
 			})
 
 			// All of our indexes advance together now, since the line
