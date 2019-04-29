@@ -56,10 +56,4 @@ func skipIfCannotAccessNetwork(t *testing.T) {
 	if !canAccessNetwork() {
 		t.Skip("network access not allowed; use TF_ACC=1 to enable")
 	}
-
-	// During the early part of the Terraform v0.12 release process, certain
-	// upstream resources are not yet ready to support it and so these
-	// tests cannot be run. These will be re-enabled prior to Terraform v0.12.0
-	// final.
-	t.Skip("all tests with external network access are temporarily disabled until upstream services are updated")
 }
