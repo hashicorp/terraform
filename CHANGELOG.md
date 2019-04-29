@@ -11,6 +11,10 @@ IMPROVEMENTS:
 * command/0.12upgrade: Upgrade indexing of splat syntax [GH-21103]
 * command/0.12upgrade: Return error for invalid references (e.g. with initial digits) [GH-21103]
 
+BUG FIXES:
+
+* core: Make sure UIInput keeps working after being canceled [GH-21139]
+
 ## 0.12.0-beta2 (Apr 18, 2019)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
