@@ -73,9 +73,6 @@ func TestPlanApplyInAutomation(t *testing.T) {
 	// stateResources := plan.Changes.Resources
 	diffResources := plan.Changes.Resources
 
-	//if len(stateResources) != 1 || stateResources ["data.template_file.test"] == nil {
-	// 	t.Errorf("incorrect state in plan; want just data.template_file.test to have been rendered, but have:\n%s", spew.Sdump(stateResources))
-	// }
 	if len(diffResources) != 1 || diffResources[0].Addr.String() != "null_resource.test" {
 		t.Errorf("incorrect number of resources in plan")
 	}
