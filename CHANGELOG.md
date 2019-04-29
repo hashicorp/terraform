@@ -13,6 +13,7 @@ BUG FIXES:
 * backend/remote: Ensure variables are loaded correctly when using `terraform console` [GH-20858]
 * backend/remote: Make sure workspaces are correctly uploaded [GH-20953]
 * core: Fix a potential crash when loading module manifests with Windows paths [GH-20812]
+* core: Make sure UIInput keeps working after being canceled [GH-21140]
 
 ## 0.11.13 (March 11, 2019)
 
