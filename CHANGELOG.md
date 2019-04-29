@@ -7,6 +7,7 @@ IMPROVEMENTS:
 * backend/s3: Enhance retry logic and provide `max_retries` configuration for retry attempts [GH-20659]
 * backend/s3: Enhance S3 `NoSuchBucket` error to include additional information [GH-20659]
 * backend/s3: Remove unused EC2 platform and AWS Account ID lookup, and deprecate equivalent `skip_get_ec2_platforms` and `skip_requesting_account_id` arguments [GH-20659]
+* backend/remote: Do not unlock a workspace after a failed state upload [GH-21148]
 
 BUG FIXES:
 
