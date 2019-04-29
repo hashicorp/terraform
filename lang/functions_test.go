@@ -765,6 +765,10 @@ func TestFunctions(t *testing.T) {
 	// Check that there is at least one test case for each function, omitting
 	// those functions that do not return consistent values
 	allFunctions := scope.Functions()
+
+	// TODO: we can test the impure functions partially by configuring the scope
+	// with PureOnly: true and then verify that they return unknown values of a
+	// suitable type.
 	for _, impureFunc := range impureFunctions {
 		delete(allFunctions, impureFunc)
 	}

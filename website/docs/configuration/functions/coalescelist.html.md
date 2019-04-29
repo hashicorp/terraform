@@ -19,23 +19,23 @@ that isn't empty.
 ## Examples
 
 ```
-> coalesce(["a", "b"], ["c", "d"])
+> coalescelist(["a", "b"], ["c", "d"])
 [
   "a",
   "b",
 ]
-> coalesce([], ["c", "d"])
+> coalescelist([], ["c", "d"])
 [
   "c",
   "d",
 ]
 ```
 
-To perform the `coalesce` operation with a list of lists, use the `...`
+To perform the `coalescelist` operation with a list of lists, use the `...`
 symbol to expand the outer list as arguments:
 
 ```
-> coalesce([[], ["c", "d"]]...)
+> coalescelist([[], ["c", "d"]]...)
 [
   "c",
   "d",
