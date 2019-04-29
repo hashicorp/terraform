@@ -3008,6 +3008,49 @@ func TestResourceChange_nestedMap(t *testing.T) {
     }
 `,
 		},
+		"in-place sequence update - deletion": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"list": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{"attr": cty.StringVal("x")}),
+					cty.ObjectVal(map[string]cty.Value{"attr": cty.StringVal("y")}),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"list": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{"attr": cty.StringVal("y")}),
+					cty.ObjectVal(map[string]cty.Value{"attr": cty.StringVal("z")}),
+				}),
+			}),
+			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
+			Schema: &configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"list": {
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"attr": {
+									Type:     cty.String,
+									Required: true,
+								},
+							},
+						},
+						Nesting: configschema.NestingList,
+					},
+				},
+			},
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ list {
+          ~ attr = "x" -> "y"
+        }
+      ~ list {
+          ~ attr = "y" -> "z"
+        }
+    }
+`,
+		},
 	}
 	runTestCases(t, testCases)
 }
