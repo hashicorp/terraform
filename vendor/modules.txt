@@ -279,7 +279,7 @@ github.com/hashicorp/go-getter/helper/url
 github.com/hashicorp/go-hclog
 # github.com/hashicorp/go-multierror v1.0.0
 github.com/hashicorp/go-multierror
-# github.com/hashicorp/go-plugin v0.0.0-20190322172744-52e1c4730856
+# github.com/hashicorp/go-plugin v1.0.1-0.20190430211030-5692942914bb
 github.com/hashicorp/go-plugin
 github.com/hashicorp/go-plugin/internal/plugin
 # github.com/hashicorp/go-retryablehttp v0.5.2
