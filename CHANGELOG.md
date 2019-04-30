@@ -15,6 +15,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
 * core: Make sure UIInput keeps working after being canceled [GH-21139]
+* states/statefile: properly upgrade dependency syntax [GH-21159]
 
 ## 0.12.0-beta2 (Apr 18, 2019)
 
