@@ -310,7 +310,7 @@ func TestFunctions(t *testing.T) {
 		"flatten": {
 			{
 				`flatten([["a", "b"], ["c", "d"]])`,
-				cty.ListVal([]cty.Value{
+				cty.TupleVal([]cty.Value{
 					cty.StringVal("a"),
 					cty.StringVal("b"),
 					cty.StringVal("c"),

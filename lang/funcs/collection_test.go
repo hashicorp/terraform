@@ -1074,10 +1074,10 @@ func TestFlatten(t *testing.T) {
 				}),
 			}),
 			cty.TupleVal([]cty.Value{
-				cty.StringVal("b"),
 				cty.StringVal("a"),
-				cty.StringVal("d"),
+				cty.StringVal("b"),
 				cty.StringVal("c"),
+				cty.StringVal("d"),
 			}),
 			false,
 		},
@@ -1093,8 +1093,8 @@ func TestFlatten(t *testing.T) {
 				}),
 			}),
 			cty.TupleVal([]cty.Value{
-				cty.StringVal("b"),
 				cty.StringVal("a"),
+				cty.StringVal("b"),
 				cty.StringVal("c"),
 				cty.StringVal("d"),
 			}),
