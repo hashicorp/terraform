@@ -2354,6 +2354,11 @@ func TestSlice(t *testing.T) {
 		cty.StringVal("a"),
 		cty.UnknownVal(cty.String),
 	})
+	tuple := cty.TupleVal([]cty.Value{
+		cty.StringVal("a"),
+		cty.NumberIntVal(1),
+		cty.UnknownVal(cty.List(cty.String)),
+	})
 	tests := []struct {
 		List       cty.Value
 		StartIndex cty.Value
@@ -2370,9 +2375,23 @@ func TestSlice(t *testing.T) {
 			}),
 			false,
 		},
-		{ // unknowns in the list
+		{ // slice only an unknown value
 			listWithUnknowns,
 			cty.NumberIntVal(1),
+			cty.NumberIntVal(2),
+			cty.ListVal([]cty.Value{cty.UnknownVal(cty.String)}),
+			false,
+		},
+		{ // slice multiple values, which contain an unknown
+			listWithUnknowns,
+			cty.NumberIntVal(0),
+			cty.NumberIntVal(2),
+			listWithUnknowns,
+			false,
+		},
+		{ // an unknown list should be slicable, returning an unknown list
+			cty.UnknownVal(cty.List(cty.String)),
+			cty.NumberIntVal(0),
 			cty.NumberIntVal(2),
 			cty.UnknownVal(cty.List(cty.String)),
 			false,
@@ -2414,10 +2433,44 @@ func TestSlice(t *testing.T) {
 			cty.NilVal,
 			true,
 		},
+		{ // sets are not slice-able
+			cty.SetVal([]cty.Value{
+				cty.StringVal("x"),
+				cty.StringVal("y"),
+			}),
+			cty.NumberIntVal(0),
+			cty.NumberIntVal(0),
+			cty.NilVal,
+			true,
+		},
+		{ // tuple slice
+			tuple,
+			cty.NumberIntVal(1),
+			cty.NumberIntVal(3),
+			cty.TupleVal([]cty.Value{
+				cty.NumberIntVal(1),
+				cty.UnknownVal(cty.List(cty.String)),
+			}),
+			false,
+		},
+		{ // empty list slice
+			listOfStrings,
+			cty.NumberIntVal(2),
+			cty.NumberIntVal(2),
+			cty.ListValEmpty(cty.String),
+			false,
+		},
+		{ // empty tuple slice
+			tuple,
+			cty.NumberIntVal(3),
+			cty.NumberIntVal(3),
+			cty.EmptyTupleVal,
+			false,
+		},
 	}
 
-	for _, test := range tests {
-		t.Run(fmt.Sprintf("slice(%#v, %#v, %#v)", test.List, test.StartIndex, test.EndIndex), func(t *testing.T) {
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("%d-slice(%#v, %#v, %#v)", i, test.List, test.StartIndex, test.EndIndex), func(t *testing.T) {
 			got, err := Slice(test.List, test.StartIndex, test.EndIndex)
 
 			if test.Err {
