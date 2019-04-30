@@ -2005,12 +2005,12 @@ func TestReverse(t *testing.T) {
 		},
 		{
 			cty.SetVal([]cty.Value{cty.StringVal("a"), cty.StringVal("b")}),
-			cty.ListVal([]cty.Value{cty.StringVal("a"), cty.StringVal("b")}),
+			cty.ListVal([]cty.Value{cty.StringVal("b"), cty.StringVal("a")}), // set-of-string iterates in lexicographical order
 			"",
 		},
 		{
-			cty.SetVal([]cty.Value{cty.StringVal("a"), cty.StringVal("b"), cty.StringVal("c")}),
-			cty.ListVal([]cty.Value{cty.StringVal("a"), cty.StringVal("c"), cty.StringVal("b")}),
+			cty.SetVal([]cty.Value{cty.StringVal("b"), cty.StringVal("a"), cty.StringVal("c")}),
+			cty.ListVal([]cty.Value{cty.StringVal("c"), cty.StringVal("b"), cty.StringVal("a")}), // set-of-string iterates in lexicographical order
 			"",
 		},
 		{
