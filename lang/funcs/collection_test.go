@@ -2332,9 +2332,23 @@ func TestSlice(t *testing.T) {
 			}),
 			false,
 		},
-		{ // unknowns in the list
+		{ // slice only an unknown value
 			listWithUnknowns,
 			cty.NumberIntVal(1),
+			cty.NumberIntVal(2),
+			cty.ListVal([]cty.Value{cty.UnknownVal(cty.String)}),
+			false,
+		},
+		{ // slice multiple values, which contain an unknown
+			listWithUnknowns,
+			cty.NumberIntVal(0),
+			cty.NumberIntVal(2),
+			listWithUnknowns,
+			false,
+		},
+		{ // an unknown list should be slicable, returning an unknown list
+			cty.UnknownVal(cty.List(cty.String)),
+			cty.NumberIntVal(0),
 			cty.NumberIntVal(2),
 			cty.UnknownVal(cty.List(cty.String)),
 			false,

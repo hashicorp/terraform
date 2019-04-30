@@ -1041,9 +1041,6 @@ var SliceFunc = function.New(&function.Spec{
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		inputList := args[0]
-		if !inputList.IsWhollyKnown() {
-			return cty.UnknownVal(retType), nil
-		}
 		var startIndex, endIndex int
 
 		if err = gocty.FromCtyValue(args[1], &startIndex); err != nil {
