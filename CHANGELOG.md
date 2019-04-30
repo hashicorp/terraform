@@ -2,7 +2,7 @@
 
 NEW FEATURES: 
 
-* New function `strrev`, for reversing unicode strings. [#21091]
+* New function `strrev`, for reversing unicode strings. [GH-21091]
 
 IMPROVEMENTS:
 
