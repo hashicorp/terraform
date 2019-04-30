@@ -2564,12 +2564,12 @@ func TestResourceChange_nestedSet(t *testing.T) {
       ~ ami = "ami-BEFORE" -> "ami-AFTER"
         id  = "i-02ae66f368e8518a9"
 
-      - root_block_device {
-          - volume_type = "gp2" -> null
-        }
       + root_block_device {
           + new_field   = "new_value"
           + volume_type = "gp2"
+        }
+      - root_block_device {
+          - volume_type = "gp2" -> null
         }
     }
 `,
@@ -2624,11 +2624,11 @@ func TestResourceChange_nestedSet(t *testing.T) {
       ~ ami = "ami-BEFORE" -> "ami-AFTER"
         id  = "i-02ae66f368e8518a9"
 
-      - root_block_device { # forces replacement
-          - volume_type = "gp2" -> null
-        }
       + root_block_device { # forces replacement
           + volume_type = "different"
+        }
+      - root_block_device { # forces replacement
+          - volume_type = "gp2" -> null
         }
     }
 `,
