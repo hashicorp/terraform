@@ -225,7 +225,7 @@ in the section above.
 
 * Plan to continue supporting the provider with additional functionality as well as addressing any open issues.
 
-* All Terraform Providers are required to contain a MPL-2.0 open source lisence.
+* All Terraform providers are required to contain a MPL-2.0 open source license.
 
 ## Contact Us
 
