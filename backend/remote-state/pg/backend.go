@@ -65,7 +65,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	// Prepare database schema, tables, & indexes.
 	var query string
 	query = `CREATE SCHEMA IF NOT EXISTS %s`
-	if _, err := db.Query(fmt.Sprintf(query, b.schemaName)); err != nil {
+	if _, err := db.Exec(fmt.Sprintf(query, b.schemaName)); err != nil {
 		return err
 	}
 	query = `CREATE TABLE IF NOT EXISTS %s.%s (
@@ -73,11 +73,11 @@ func (b *Backend) configure(ctx context.Context) error {
 		name TEXT,
 		data TEXT
 	)`
-	if _, err := db.Query(fmt.Sprintf(query, b.schemaName, statesTableName)); err != nil {
+	if _, err := db.Exec(fmt.Sprintf(query, b.schemaName, statesTableName)); err != nil {
 		return err
 	}
 	query = `CREATE UNIQUE INDEX IF NOT EXISTS %s ON %s.%s (name)`
-	if _, err := db.Query(fmt.Sprintf(query, statesIndexName, b.schemaName, statesTableName)); err != nil {
+	if _, err := db.Exec(fmt.Sprintf(query, statesIndexName, b.schemaName, statesTableName)); err != nil {
 		return err
 	}
 
