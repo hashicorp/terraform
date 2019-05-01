@@ -592,9 +592,16 @@ func TestFunctions(t *testing.T) {
 
 		"slice": {
 			{
-				`slice(["a", "b", "c", "d"], 1, 3)`,
+				// force a list type here for testing
+				`slice(list("a", "b", "c", "d"), 1, 3)`,
 				cty.ListVal([]cty.Value{
 					cty.StringVal("b"), cty.StringVal("c"),
+				}),
+			},
+			{
+				`slice(["a", "b", 3, 4], 1, 3)`,
+				cty.TupleVal([]cty.Value{
+					cty.StringVal("b"), cty.NumberIntVal(3),
 				}),
 			},
 		},
