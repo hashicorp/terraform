@@ -118,6 +118,8 @@ to parallelize the test execution.
 Each provider has a section in the Terraform documentation. You'll want to add
 new index file and individual pages for each resource supported by the provider.
 
+All Terraform providers are required to contain a MPL-2.0 open source license.
+
 While developing the provider code yourself is certainly possible, you can also
 choose to leverage one of the following development agencies who’ve developed
 Terraform providers in the past and are familiar with the requirements and process.
