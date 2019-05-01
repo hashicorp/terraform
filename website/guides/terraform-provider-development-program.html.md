@@ -118,6 +118,8 @@ to parallelize the test execution.
 Each provider has a section in the Terraform documentation. You'll want to add
 new index file and individual pages for each resource supported by the provider.
 
+All Terraform providers are required to contain a MPL-2.0 open source license.
+
 While developing the provider code yourself is certainly possible, you can also
 choose to leverage one of the following development agencies who’ve developed
 Terraform providers in the past and are familiar with the requirements and process.
@@ -223,9 +225,9 @@ in the section above.
 
 * Address all review feedback, ensure that each resource has a corresponding  acceptance test, and the documentation is complete
 
-* Create a PR for the provider against the HashiCorp provided empty repo.
-
 * Plan to continue supporting the provider with additional functionality as well as addressing any open issues.
+
+* All Terraform providers are required to contain a MPL-2.0 open source license.
 
 ## Contact Us
 
