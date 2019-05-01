@@ -155,7 +155,7 @@ func TestFunctions(t *testing.T) {
 
 			{
 				`coalescelist(["first", "second"], ["third", "fourth"])`,
-				cty.ListVal([]cty.Value{
+				cty.TupleVal([]cty.Value{
 					cty.StringVal("first"), cty.StringVal("second"),
 				}),
 			},
@@ -163,8 +163,15 @@ func TestFunctions(t *testing.T) {
 
 		"coalescelist": {
 			{
-				`coalescelist(["a", "b"], ["c", "d"])`,
+				`coalescelist(list("a", "b"), list("c", "d"))`,
 				cty.ListVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.StringVal("b"),
+				}),
+			},
+			{
+				`coalescelist(["a", "b"], ["c", "d"])`,
+				cty.TupleVal([]cty.Value{
 					cty.StringVal("a"),
 					cty.StringVal("b"),
 				}),
