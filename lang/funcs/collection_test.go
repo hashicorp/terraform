@@ -721,6 +721,26 @@ func TestContains(t *testing.T) {
 			cty.BoolVal(true),
 			false,
 		},
+		{ // set val
+			cty.SetVal([]cty.Value{
+				cty.StringVal("quick"),
+				cty.StringVal("brown"),
+				cty.StringVal("fox"),
+			}),
+			cty.StringVal("quick"),
+			cty.BoolVal(true),
+			false,
+		},
+		{ // tuple val
+			cty.TupleVal([]cty.Value{
+				cty.StringVal("quick"),
+				cty.StringVal("brown"),
+				cty.NumberIntVal(3),
+			}),
+			cty.NumberIntVal(3),
+			cty.BoolVal(true),
+			false,
+		},
 	}
 
 	for _, test := range tests {

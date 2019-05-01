@@ -268,7 +268,7 @@ var ContainsFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
 			Name: "list",
-			Type: cty.List(cty.DynamicPseudoType),
+			Type: cty.DynamicPseudoType,
 		},
 		{
 			Name: "value",
@@ -277,8 +277,14 @@ var ContainsFunc = function.New(&function.Spec{
 	},
 	Type: function.StaticReturnType(cty.Bool),
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		arg := args[0]
+		ty := arg.Type()
 
-		_, err = Index(args[0], args[1])
+		if !ty.IsListType() && !ty.IsTupleType() && !ty.IsSetType() {
+			return cty.NilVal, errors.New("argument must be list, tuple, or set")
+		}
+
+		_, err = Index(cty.TupleVal(arg.AsValueSlice()), args[1])
 		if err != nil {
 			return cty.False, nil
 		}
