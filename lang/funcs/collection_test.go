@@ -1035,7 +1035,7 @@ func TestFlatten(t *testing.T) {
 					cty.StringVal("d"),
 				}),
 			}),
-			cty.ListVal([]cty.Value{
+			cty.TupleVal([]cty.Value{
 				cty.StringVal("a"),
 				cty.StringVal("b"),
 				cty.StringVal("c"),
@@ -1054,12 +1054,50 @@ func TestFlatten(t *testing.T) {
 					cty.StringVal("d"),
 				}),
 			}),
-			cty.UnknownVal(cty.List(cty.DynamicPseudoType)),
+			cty.DynamicVal,
 			false,
 		},
 		{
 			cty.ListValEmpty(cty.String),
-			cty.ListValEmpty(cty.DynamicPseudoType),
+			cty.EmptyTupleVal,
+			false,
+		},
+		{
+			cty.SetVal([]cty.Value{
+				cty.SetVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.StringVal("b"),
+				}),
+				cty.SetVal([]cty.Value{
+					cty.StringVal("c"),
+					cty.StringVal("d"),
+				}),
+			}),
+			cty.TupleVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("b"),
+				cty.StringVal("c"),
+				cty.StringVal("d"),
+			}),
+			false,
+		},
+		{
+			cty.TupleVal([]cty.Value{
+				cty.SetVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.StringVal("b"),
+				}),
+				cty.ListVal([]cty.Value{
+					cty.StringVal("c"),
+					cty.StringVal("d"),
+				}),
+			}),
+			cty.TupleVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("b"),
+				cty.StringVal("c"),
+				cty.StringVal("d"),
+			}),
 			false,
 		},
 	}

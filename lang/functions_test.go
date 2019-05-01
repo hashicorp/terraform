@@ -309,8 +309,8 @@ func TestFunctions(t *testing.T) {
 
 		"flatten": {
 			{
-				`flatten([tolist(["a", "b"]), tolist(["c", "d"])])`,
-				cty.ListVal([]cty.Value{
+				`flatten([["a", "b"], ["c", "d"]])`,
+				cty.TupleVal([]cty.Value{
 					cty.StringVal("a"),
 					cty.StringVal("b"),
 					cty.StringVal("c"),
