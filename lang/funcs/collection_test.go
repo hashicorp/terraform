@@ -1043,6 +1043,44 @@ func TestFlatten(t *testing.T) {
 			}),
 			false,
 		},
+		// handle single elements as arguments
+		{
+			cty.TupleVal([]cty.Value{
+				cty.ListVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.StringVal("b"),
+				}),
+				cty.StringVal("c"),
+			}),
+			cty.TupleVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("b"),
+				cty.StringVal("c"),
+			}), false,
+		},
+		// handle single elements and mixed primitive types as arguments
+		{
+			cty.TupleVal([]cty.Value{
+				cty.ListVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.StringVal("b"),
+				}),
+				cty.StringVal("c"),
+				cty.TupleVal([]cty.Value{
+					cty.StringVal("x"),
+					cty.NumberIntVal(1),
+				}),
+			}),
+			cty.TupleVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("b"),
+				cty.StringVal("c"),
+				cty.StringVal("x"),
+				cty.NumberIntVal(1),
+			}),
+			false,
+		},
+		// Primitive unknowns should still be flattened to a tuple
 		{
 			cty.ListVal([]cty.Value{
 				cty.ListVal([]cty.Value{
@@ -1054,8 +1092,26 @@ func TestFlatten(t *testing.T) {
 					cty.StringVal("d"),
 				}),
 			}),
-			cty.DynamicVal,
-			false,
+			cty.TupleVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("b"),
+				cty.UnknownVal(cty.String),
+				cty.StringVal("d"),
+			}), false,
+		},
+		// An unknown series should return an unknown dynamic value
+		{
+			cty.TupleVal([]cty.Value{
+				cty.ListVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.StringVal("b"),
+				}),
+				cty.TupleVal([]cty.Value{
+					cty.UnknownVal(cty.List(cty.String)),
+					cty.StringVal("d"),
+				}),
+			}),
+			cty.UnknownVal(cty.DynamicPseudoType), false,
 		},
 		{
 			cty.ListValEmpty(cty.String),
@@ -1102,8 +1158,8 @@ func TestFlatten(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(fmt.Sprintf("flatten(%#v)", test.List), func(t *testing.T) {
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("%d-flatten(%#v)", i, test.List), func(t *testing.T) {
 			got, err := Flatten(test.List)
 
 			if test.Err {
