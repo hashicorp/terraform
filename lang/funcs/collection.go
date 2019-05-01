@@ -427,32 +427,47 @@ var FlattenFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
 			Name: "list",
-			Type: cty.List(cty.DynamicPseudoType),
+			Type: cty.DynamicPseudoType,
 		},
 	},
-	Type: function.StaticReturnType(cty.List(cty.DynamicPseudoType)),
+	Type: func(args []cty.Value) (cty.Type, error) {
+		if !args[0].IsWhollyKnown() {
+			return cty.DynamicPseudoType, nil
+		}
+
+		argTy := args[0].Type()
+		if !argTy.IsListType() && !argTy.IsSetType() && !argTy.IsTupleType() {
+			return cty.NilType, fmt.Errorf("can only flatten lists, sets and tuples")
+		}
+
+		outputList := make([]cty.Value, 0)
+		retVal := flattener(outputList, args[0])
+		tys := make([]cty.Type, len(retVal))
+		for i, ty := range retVal {
+			tys[i] = ty.Type()
+		}
+		return cty.Tuple(tys), nil
+	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		inputList := args[0]
 		if !inputList.IsWhollyKnown() {
 			return cty.UnknownVal(retType), nil
 		}
-
 		if inputList.LengthInt() == 0 {
-			return cty.ListValEmpty(retType.ElementType()), nil
+			return cty.EmptyTupleVal, nil
 		}
 		outputList := make([]cty.Value, 0)
 
-		return cty.ListVal(flattener(outputList, inputList)), nil
+		return cty.TupleVal(flattener(outputList, inputList)), nil
 	},
 })
 
 // Flatten until it's not a cty.List
 func flattener(finalList []cty.Value, flattenList cty.Value) []cty.Value {
-
 	for it := flattenList.ElementIterator(); it.Next(); {
 		_, val := it.Element()
 
-		if val.Type().IsListType() {
+		if val.Type().IsListType() || val.Type().IsSetType() || val.Type().IsTupleType() {
 			finalList = flattener(finalList, val)
 		} else {
 			finalList = append(finalList, val)
