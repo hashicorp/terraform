@@ -379,7 +379,7 @@ var ChunklistFunc = function.New(&function.Spec{
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		listVal := args[0]
-		if !listVal.IsWhollyKnown() {
+		if !listVal.IsKnown() {
 			return cty.UnknownVal(retType), nil
 		}
 
