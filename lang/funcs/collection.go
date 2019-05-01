@@ -44,7 +44,7 @@ var ElementFunc = function.New(&function.Spec{
 				return cty.DynamicPseudoType, fmt.Errorf("invalid index: %s", err)
 			}
 			if len(etys) == 0 {
-				return cty.DynamicPseudoType, fmt.Errorf("cannot use element function with an empty list")
+				return cty.DynamicPseudoType, errors.New("cannot use element function with an empty list")
 			}
 			index = index % len(etys)
 			return etys[index], nil
@@ -66,7 +66,7 @@ var ElementFunc = function.New(&function.Spec{
 
 		l := args[0].LengthInt()
 		if l == 0 {
-			return cty.DynamicVal, fmt.Errorf("cannot use element function with an empty list")
+			return cty.DynamicVal, errors.New("cannot use element function with an empty list")
 		}
 		index = index % l
 
@@ -91,7 +91,7 @@ var LengthFunc = function.New(&function.Spec{
 		case collTy == cty.String || collTy.IsTupleType() || collTy.IsObjectType() || collTy.IsListType() || collTy.IsMapType() || collTy.IsSetType() || collTy == cty.DynamicPseudoType:
 			return cty.Number, nil
 		default:
-			return cty.Number, fmt.Errorf("argument must be a string, a collection type, or a structural type")
+			return cty.Number, errors.New("argument must be a string, a collection type, or a structural type")
 		}
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
@@ -115,7 +115,7 @@ var LengthFunc = function.New(&function.Spec{
 			return coll.Length(), nil
 		default:
 			// Should never happen, because of the checks in our Type func above
-			return cty.UnknownVal(cty.Number), fmt.Errorf("impossible value type for length(...)")
+			return cty.UnknownVal(cty.Number), errors.New("impossible value type for length(...)")
 		}
 	},
 })
@@ -140,7 +140,7 @@ var CoalesceFunc = function.New(&function.Spec{
 		}
 		retType, _ := convert.UnifyUnsafe(argTypes)
 		if retType == cty.NilType {
-			return cty.NilType, fmt.Errorf("all arguments must have the same type")
+			return cty.NilType, errors.New("all arguments must have the same type")
 		}
 		return retType, nil
 	},
@@ -160,7 +160,7 @@ var CoalesceFunc = function.New(&function.Spec{
 
 			return argVal, nil
 		}
-		return cty.NilVal, fmt.Errorf("no non-null, non-empty-string arguments")
+		return cty.NilVal, errors.New("no non-null, non-empty-string arguments")
 	},
 })
 
@@ -170,32 +170,43 @@ var CoalesceListFunc = function.New(&function.Spec{
 	Params: []function.Parameter{},
 	VarParam: &function.Parameter{
 		Name:             "vals",
-		Type:             cty.List(cty.DynamicPseudoType),
+		Type:             cty.DynamicPseudoType,
 		AllowUnknown:     true,
 		AllowDynamicType: true,
 		AllowNull:        true,
 	},
 	Type: func(args []cty.Value) (ret cty.Type, err error) {
 		if len(args) == 0 {
-			return cty.NilType, fmt.Errorf("at least one argument is required")
+			return cty.NilType, errors.New("at least one argument is required")
 		}
 
 		argTypes := make([]cty.Type, len(args))
 
 		for i, arg := range args {
+			// if any argument is unknown, we can't be certain know which type we will return
+			if !arg.IsKnown() {
+				return cty.DynamicPseudoType, nil
+			}
+			ty := arg.Type()
+
+			if !ty.IsListType() && !ty.IsTupleType() {
+				return cty.NilType, errors.New("coalescelist arguments must be lists or tuples")
+			}
+
 			argTypes[i] = arg.Type()
 		}
 
-		retType, _ := convert.UnifyUnsafe(argTypes)
-		if retType == cty.NilType {
-			return cty.NilType, fmt.Errorf("all arguments must have the same type")
+		last := argTypes[0]
+		// If there are mixed types, we have to return a dynamic type.
+		for _, next := range argTypes[1:] {
+			if !next.Equals(last) {
+				return cty.DynamicPseudoType, nil
+			}
 		}
 
-		return retType, nil
+		return last, nil
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
-
-		vals := make([]cty.Value, 0, len(args))
 		for _, arg := range args {
 			if !arg.IsKnown() {
 				// If we run into an unknown list at some point, we can't
@@ -204,21 +215,12 @@ var CoalesceListFunc = function.New(&function.Spec{
 				return cty.UnknownVal(retType), nil
 			}
 
-			// We already know this will succeed because of the checks in our Type func above
-			arg, _ = convert.Convert(arg, retType)
-
-			it := arg.ElementIterator()
-			for it.Next() {
-				_, v := it.Element()
-				vals = append(vals, v)
-			}
-
-			if len(vals) > 0 {
-				return cty.ListVal(vals), nil
+			if arg.LengthInt() > 0 {
+				return arg, nil
 			}
 		}
 
-		return cty.NilVal, fmt.Errorf("no non-null arguments")
+		return cty.NilVal, errors.New("no non-null arguments")
 	},
 })
 
@@ -300,7 +302,7 @@ var IndexFunc = function.New(&function.Spec{
 	Type: function.StaticReturnType(cty.Number),
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		if !(args[0].Type().IsListType() || args[0].Type().IsTupleType()) {
-			return cty.NilVal, fmt.Errorf("argument must be a list or tuple")
+			return cty.NilVal, errors.New("argument must be a list or tuple")
 		}
 
 		if !args[0].IsKnown() {
@@ -308,7 +310,7 @@ var IndexFunc = function.New(&function.Spec{
 		}
 
 		if args[0].LengthInt() == 0 { // Easy path
-			return cty.NilVal, fmt.Errorf("cannot search an empty list")
+			return cty.NilVal, errors.New("cannot search an empty list")
 		}
 
 		for it := args[0].ElementIterator(); it.Next(); {
@@ -324,7 +326,7 @@ var IndexFunc = function.New(&function.Spec{
 				return i, nil
 			}
 		}
-		return cty.NilVal, fmt.Errorf("item not found")
+		return cty.NilVal, errors.New("item not found")
 
 	},
 })
@@ -390,7 +392,7 @@ var ChunklistFunc = function.New(&function.Spec{
 		}
 
 		if size < 0 {
-			return cty.NilVal, fmt.Errorf("the size argument must be positive")
+			return cty.NilVal, errors.New("the size argument must be positive")
 		}
 
 		output := make([]cty.Value, 0)
@@ -438,7 +440,7 @@ var FlattenFunc = function.New(&function.Spec{
 
 		argTy := args[0].Type()
 		if !argTy.IsListType() && !argTy.IsSetType() && !argTy.IsTupleType() {
-			return cty.NilType, fmt.Errorf("can only flatten lists, sets and tuples")
+			return cty.NilType, errors.New("can only flatten lists, sets and tuples")
 		}
 
 		retVal, known := flattener(args[0])
@@ -576,7 +578,7 @@ var ListFunc = function.New(&function.Spec{
 	},
 	Type: func(args []cty.Value) (ret cty.Type, err error) {
 		if len(args) == 0 {
-			return cty.NilType, fmt.Errorf("at least one argument is required")
+			return cty.NilType, errors.New("at least one argument is required")
 		}
 
 		argTypes := make([]cty.Type, len(args))
@@ -587,7 +589,7 @@ var ListFunc = function.New(&function.Spec{
 
 		retType, _ := convert.UnifyUnsafe(argTypes)
 		if retType == cty.NilType {
-			return cty.NilType, fmt.Errorf("all arguments must have the same type")
+			return cty.NilType, errors.New("all arguments must have the same type")
 		}
 
 		return cty.List(retType), nil
@@ -681,7 +683,7 @@ var LookupFunc = function.New(&function.Spec{
 				case ty.Equals(cty.Number):
 					return cty.NumberVal(v.AsBigFloat()), nil
 				default:
-					return cty.NilVal, fmt.Errorf("lookup() can only be used with flat lists")
+					return cty.NilVal, errors.New("lookup() can only be used with flat lists")
 				}
 			}
 		}
@@ -727,7 +729,7 @@ var MapFunc = function.New(&function.Spec{
 
 		valType, _ := convert.UnifyUnsafe(argTypes)
 		if valType == cty.NilType {
-			return cty.NilType, fmt.Errorf("all arguments must have the same type")
+			return cty.NilType, errors.New("all arguments must have the same type")
 		}
 
 		return cty.Map(valType), nil
@@ -792,7 +794,7 @@ var MatchkeysFunc = function.New(&function.Spec{
 	},
 	Type: func(args []cty.Value) (cty.Type, error) {
 		if !args[1].Type().Equals(args[2].Type()) {
-			return cty.NilType, fmt.Errorf("lists must be of the same type")
+			return cty.NilType, errors.New("lists must be of the same type")
 		}
 
 		return args[0].Type(), nil
@@ -803,7 +805,7 @@ var MatchkeysFunc = function.New(&function.Spec{
 		}
 
 		if args[0].LengthInt() != args[1].LengthInt() {
-			return cty.ListValEmpty(retType.ElementType()), fmt.Errorf("length of keys and values should be equal")
+			return cty.ListValEmpty(retType.ElementType()), errors.New("length of keys and values should be equal")
 		}
 
 		output := make([]cty.Value, 0)
@@ -938,7 +940,7 @@ var SetProductFunc = function.New(&function.Spec{
 	},
 	Type: func(args []cty.Value) (retType cty.Type, err error) {
 		if len(args) < 2 {
-			return cty.NilType, fmt.Errorf("at least two arguments are required")
+			return cty.NilType, errors.New("at least two arguments are required")
 		}
 
 		listCount := 0
@@ -1156,7 +1158,7 @@ var TransposeFunc = function.New(&function.Spec{
 			for iter := inVal.ElementIterator(); iter.Next(); {
 				_, val := iter.Element()
 				if !val.Type().Equals(cty.String) {
-					return cty.MapValEmpty(cty.List(cty.String)), fmt.Errorf("input must be a map of lists of strings")
+					return cty.MapValEmpty(cty.List(cty.String)), errors.New("input must be a map of lists of strings")
 				}
 
 				outKey := val.AsString()
@@ -1216,7 +1218,7 @@ var ValuesFunc = function.New(&function.Spec{
 			}
 			return cty.Tuple(tys), nil
 		}
-		return cty.NilType, fmt.Errorf("values() requires a map as the first argument")
+		return cty.NilType, errors.New("values() requires a map as the first argument")
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		mapVar := args[0]
@@ -1283,7 +1285,7 @@ var ZipmapFunc = function.New(&function.Spec{
 			return cty.Object(atys), nil
 
 		default:
-			return cty.NilType, fmt.Errorf("values argument must be a list or tuple value")
+			return cty.NilType, errors.New("values argument must be a list or tuple value")
 		}
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {

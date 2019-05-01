@@ -417,7 +417,7 @@ func TestCoalesceList(t *testing.T) {
 				}),
 			},
 			cty.ListVal([]cty.Value{
-				cty.StringVal("1"), cty.StringVal("2"),
+				cty.NumberIntVal(1), cty.NumberIntVal(2),
 			}),
 			false,
 		},
@@ -476,7 +476,7 @@ func TestCoalesceList(t *testing.T) {
 				cty.ListValEmpty(cty.String),
 				cty.UnknownVal(cty.List(cty.String)),
 			},
-			cty.UnknownVal(cty.List(cty.String)),
+			cty.DynamicVal,
 			false,
 		},
 		{ // unknown list
@@ -486,13 +486,63 @@ func TestCoalesceList(t *testing.T) {
 					cty.StringVal("third"), cty.StringVal("fourth"),
 				}),
 			},
-			cty.UnknownVal(cty.List(cty.String)),
+			cty.DynamicVal,
 			false,
+		},
+		{ // unknown tuple
+			[]cty.Value{
+				cty.UnknownVal(cty.Tuple([]cty.Type{cty.String})),
+				cty.ListVal([]cty.Value{
+					cty.StringVal("third"), cty.StringVal("fourth"),
+				}),
+			},
+			cty.DynamicVal,
+			false,
+		},
+		{ // empty tuple
+			[]cty.Value{
+				cty.EmptyTupleVal,
+				cty.ListVal([]cty.Value{
+					cty.StringVal("third"), cty.StringVal("fourth"),
+				}),
+			},
+			cty.ListVal([]cty.Value{
+				cty.StringVal("third"), cty.StringVal("fourth"),
+			}),
+			false,
+		},
+		{ // tuple value
+			[]cty.Value{
+				cty.TupleVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.NumberIntVal(2),
+				}),
+				cty.ListVal([]cty.Value{
+					cty.StringVal("third"), cty.StringVal("fourth"),
+				}),
+			},
+			cty.TupleVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.NumberIntVal(2),
+			}),
+			false,
+		},
+		{ // reject set value
+			[]cty.Value{
+				cty.SetVal([]cty.Value{
+					cty.StringVal("a"),
+				}),
+				cty.ListVal([]cty.Value{
+					cty.StringVal("third"), cty.StringVal("fourth"),
+				}),
+			},
+			cty.NilVal,
+			true,
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(fmt.Sprintf("coalescelist(%#v)", test.Values), func(t *testing.T) {
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("%d-coalescelist(%#v)", i, test.Values), func(t *testing.T) {
 			got, err := CoalesceList(test.Values...)
 
 			if test.Err {
