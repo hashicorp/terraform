@@ -993,13 +993,29 @@ func TestChunklist(t *testing.T) {
 				cty.UnknownVal(cty.String),
 			}),
 			cty.NumberIntVal(1),
+			cty.ListVal([]cty.Value{
+				cty.ListVal([]cty.Value{
+					cty.StringVal("a"),
+				}),
+				cty.ListVal([]cty.Value{
+					cty.StringVal("b"),
+				}),
+				cty.ListVal([]cty.Value{
+					cty.UnknownVal(cty.String),
+				}),
+			}),
+			false,
+		},
+		{
+			cty.UnknownVal(cty.List(cty.String)),
+			cty.NumberIntVal(1),
 			cty.UnknownVal(cty.List(cty.List(cty.String))),
 			false,
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(fmt.Sprintf("chunklist(%#v, %#v)", test.List, test.Size), func(t *testing.T) {
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("%d-chunklist(%#v, %#v)", i, test.List, test.Size), func(t *testing.T) {
 			got, err := Chunklist(test.List, test.Size)
 
 			if test.Err {
