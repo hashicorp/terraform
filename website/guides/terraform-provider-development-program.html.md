@@ -223,9 +223,9 @@ in the section above.
 
 * Address all review feedback, ensure that each resource has a corresponding  acceptance test, and the documentation is complete
 
-* Create a PR for the provider against the HashiCorp provided empty repo.
-
 * Plan to continue supporting the provider with additional functionality as well as addressing any open issues.
+
+* All Terraform Providers are required to contain a MPL-2.0 open source lisence.
 
 ## Contact Us
 
