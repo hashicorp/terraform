@@ -441,8 +441,11 @@ var FlattenFunc = function.New(&function.Spec{
 			return cty.NilType, fmt.Errorf("can only flatten lists, sets and tuples")
 		}
 
-		outputList := make([]cty.Value, 0)
-		retVal := flattener(outputList, args[0])
+		retVal, known := flattener(args[0])
+		if !known {
+			return cty.DynamicPseudoType, nil
+		}
+
 		tys := make([]cty.Type, len(retVal))
 		for i, ty := range retVal {
 			tys[i] = ty.Type()
@@ -451,30 +454,41 @@ var FlattenFunc = function.New(&function.Spec{
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		inputList := args[0]
-		if !inputList.IsWhollyKnown() {
-			return cty.UnknownVal(retType), nil
-		}
 		if inputList.LengthInt() == 0 {
 			return cty.EmptyTupleVal, nil
 		}
-		outputList := make([]cty.Value, 0)
 
-		return cty.TupleVal(flattener(outputList, inputList)), nil
+		out, known := flattener(inputList)
+		if !known {
+			return cty.UnknownVal(retType), nil
+		}
+
+		return cty.TupleVal(out), nil
 	},
 })
 
-// Flatten until it's not a cty.List
-func flattener(finalList []cty.Value, flattenList cty.Value) []cty.Value {
+// Flatten until it's not a cty.List, and return whether the value is known.
+// We can flatten lists with unknown values, as long as they are not
+// lists themselves.
+func flattener(flattenList cty.Value) ([]cty.Value, bool) {
+	out := make([]cty.Value, 0)
 	for it := flattenList.ElementIterator(); it.Next(); {
 		_, val := it.Element()
-
 		if val.Type().IsListType() || val.Type().IsSetType() || val.Type().IsTupleType() {
-			finalList = flattener(finalList, val)
+			if !val.IsKnown() {
+				return out, false
+			}
+
+			res, known := flattener(val)
+			if !known {
+				return res, known
+			}
+			out = append(out, res...)
 		} else {
-			finalList = append(finalList, val)
+			out = append(out, val)
 		}
 	}
-	return finalList
+	return out, true
 }
 
 // KeysFunc contructs a function that takes a map and returns a sorted list of the map keys.
