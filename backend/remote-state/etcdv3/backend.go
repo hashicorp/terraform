@@ -2,6 +2,7 @@ package etcd
 
 import (
 	"context"
+	"time"
 
 	etcdv3 "github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/pkg/transport"
@@ -20,6 +21,7 @@ const (
 	cacertPathKey      = "cacert_path"
 	certPathKey        = "cert_path"
 	keyPathKey         = "key_path"
+	dialTimeoutKey     = "dial_timeout"
 )
 
 func New() backend.Backend {
@@ -83,6 +85,13 @@ func New() backend.Backend {
 				Description: "The path to a PEM-encoded key to provide to etcd for secure client identification.",
 				Default:     "",
 			},
+
+			dialTimeoutKey: &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Timeout for client connections.",
+				Default:     "2s",
+			},
 		},
 	}
 
@@ -136,6 +145,13 @@ func (b *Backend) rawClient() (*etcdv3.Client, error) {
 	}
 	if v, ok := b.data.GetOk(keyPathKey); ok && v.(string) != "" {
 		tlsInfo.KeyFile = v.(string)
+	}
+	if v, ok := b.data.GetOk(dialTimeoutKey); ok && v.(string) != "" {
+		d, err := time.ParseDuration(v.(string))
+		if err != nil {
+			return nil, err
+		}
+		config.DialTimeout = d
 	}
 
 	if tlsCfg, err := tlsInfo.ClientConfig(); err != nil {
