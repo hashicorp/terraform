@@ -21,4 +21,4 @@ COPY . .
 RUN /bin/bash scripts/build.sh
 
 WORKDIR $GOPATH
-ENTRYPOINT ["terraform"]
+CMD ["terraform"]

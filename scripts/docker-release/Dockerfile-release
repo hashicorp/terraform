@@ -41,4 +41,4 @@ RUN apk add --no-cache git openssh
 
 COPY --from=build ["/bin/terraform", "/bin/terraform"]
 
-ENTRYPOINT ["/bin/terraform"]
+CMD ["/bin/terraform"]
