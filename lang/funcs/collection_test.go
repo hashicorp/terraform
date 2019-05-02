@@ -417,7 +417,7 @@ func TestCoalesceList(t *testing.T) {
 				}),
 			},
 			cty.ListVal([]cty.Value{
-				cty.StringVal("1"), cty.StringVal("2"),
+				cty.NumberIntVal(1), cty.NumberIntVal(2),
 			}),
 			false,
 		},
@@ -476,7 +476,7 @@ func TestCoalesceList(t *testing.T) {
 				cty.ListValEmpty(cty.String),
 				cty.UnknownVal(cty.List(cty.String)),
 			},
-			cty.UnknownVal(cty.List(cty.String)),
+			cty.DynamicVal,
 			false,
 		},
 		{ // unknown list
@@ -486,13 +486,63 @@ func TestCoalesceList(t *testing.T) {
 					cty.StringVal("third"), cty.StringVal("fourth"),
 				}),
 			},
-			cty.UnknownVal(cty.List(cty.String)),
+			cty.DynamicVal,
 			false,
+		},
+		{ // unknown tuple
+			[]cty.Value{
+				cty.UnknownVal(cty.Tuple([]cty.Type{cty.String})),
+				cty.ListVal([]cty.Value{
+					cty.StringVal("third"), cty.StringVal("fourth"),
+				}),
+			},
+			cty.DynamicVal,
+			false,
+		},
+		{ // empty tuple
+			[]cty.Value{
+				cty.EmptyTupleVal,
+				cty.ListVal([]cty.Value{
+					cty.StringVal("third"), cty.StringVal("fourth"),
+				}),
+			},
+			cty.ListVal([]cty.Value{
+				cty.StringVal("third"), cty.StringVal("fourth"),
+			}),
+			false,
+		},
+		{ // tuple value
+			[]cty.Value{
+				cty.TupleVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.NumberIntVal(2),
+				}),
+				cty.ListVal([]cty.Value{
+					cty.StringVal("third"), cty.StringVal("fourth"),
+				}),
+			},
+			cty.TupleVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.NumberIntVal(2),
+			}),
+			false,
+		},
+		{ // reject set value
+			[]cty.Value{
+				cty.SetVal([]cty.Value{
+					cty.StringVal("a"),
+				}),
+				cty.ListVal([]cty.Value{
+					cty.StringVal("third"), cty.StringVal("fourth"),
+				}),
+			},
+			cty.NilVal,
+			true,
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(fmt.Sprintf("coalescelist(%#v)", test.Values), func(t *testing.T) {
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("%d-coalescelist(%#v)", i, test.Values), func(t *testing.T) {
 			got, err := CoalesceList(test.Values...)
 
 			if test.Err {
@@ -668,6 +718,26 @@ func TestContains(t *testing.T) {
 				cty.StringVal("fox"),
 			}),
 			cty.StringVal("quick"),
+			cty.BoolVal(true),
+			false,
+		},
+		{ // set val
+			cty.SetVal([]cty.Value{
+				cty.StringVal("quick"),
+				cty.StringVal("brown"),
+				cty.StringVal("fox"),
+			}),
+			cty.StringVal("quick"),
+			cty.BoolVal(true),
+			false,
+		},
+		{ // tuple val
+			cty.TupleVal([]cty.Value{
+				cty.StringVal("quick"),
+				cty.StringVal("brown"),
+				cty.NumberIntVal(3),
+			}),
+			cty.NumberIntVal(3),
 			cty.BoolVal(true),
 			false,
 		},
@@ -993,13 +1063,29 @@ func TestChunklist(t *testing.T) {
 				cty.UnknownVal(cty.String),
 			}),
 			cty.NumberIntVal(1),
+			cty.ListVal([]cty.Value{
+				cty.ListVal([]cty.Value{
+					cty.StringVal("a"),
+				}),
+				cty.ListVal([]cty.Value{
+					cty.StringVal("b"),
+				}),
+				cty.ListVal([]cty.Value{
+					cty.UnknownVal(cty.String),
+				}),
+			}),
+			false,
+		},
+		{
+			cty.UnknownVal(cty.List(cty.String)),
+			cty.NumberIntVal(1),
 			cty.UnknownVal(cty.List(cty.List(cty.String))),
 			false,
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(fmt.Sprintf("chunklist(%#v, %#v)", test.List, test.Size), func(t *testing.T) {
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("%d-chunklist(%#v, %#v)", i, test.List, test.Size), func(t *testing.T) {
 			got, err := Chunklist(test.List, test.Size)
 
 			if test.Err {
@@ -1043,6 +1129,44 @@ func TestFlatten(t *testing.T) {
 			}),
 			false,
 		},
+		// handle single elements as arguments
+		{
+			cty.TupleVal([]cty.Value{
+				cty.ListVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.StringVal("b"),
+				}),
+				cty.StringVal("c"),
+			}),
+			cty.TupleVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("b"),
+				cty.StringVal("c"),
+			}), false,
+		},
+		// handle single elements and mixed primitive types as arguments
+		{
+			cty.TupleVal([]cty.Value{
+				cty.ListVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.StringVal("b"),
+				}),
+				cty.StringVal("c"),
+				cty.TupleVal([]cty.Value{
+					cty.StringVal("x"),
+					cty.NumberIntVal(1),
+				}),
+			}),
+			cty.TupleVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("b"),
+				cty.StringVal("c"),
+				cty.StringVal("x"),
+				cty.NumberIntVal(1),
+			}),
+			false,
+		},
+		// Primitive unknowns should still be flattened to a tuple
 		{
 			cty.ListVal([]cty.Value{
 				cty.ListVal([]cty.Value{
@@ -1054,8 +1178,26 @@ func TestFlatten(t *testing.T) {
 					cty.StringVal("d"),
 				}),
 			}),
-			cty.DynamicVal,
-			false,
+			cty.TupleVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("b"),
+				cty.UnknownVal(cty.String),
+				cty.StringVal("d"),
+			}), false,
+		},
+		// An unknown series should return an unknown dynamic value
+		{
+			cty.TupleVal([]cty.Value{
+				cty.ListVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.StringVal("b"),
+				}),
+				cty.TupleVal([]cty.Value{
+					cty.UnknownVal(cty.List(cty.String)),
+					cty.StringVal("d"),
+				}),
+			}),
+			cty.UnknownVal(cty.DynamicPseudoType), false,
 		},
 		{
 			cty.ListValEmpty(cty.String),
@@ -1102,8 +1244,8 @@ func TestFlatten(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(fmt.Sprintf("flatten(%#v)", test.List), func(t *testing.T) {
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("%d-flatten(%#v)", i, test.List), func(t *testing.T) {
 			got, err := Flatten(test.List)
 
 			if test.Err {
@@ -2354,6 +2496,11 @@ func TestSlice(t *testing.T) {
 		cty.StringVal("a"),
 		cty.UnknownVal(cty.String),
 	})
+	tuple := cty.TupleVal([]cty.Value{
+		cty.StringVal("a"),
+		cty.NumberIntVal(1),
+		cty.UnknownVal(cty.List(cty.String)),
+	})
 	tests := []struct {
 		List       cty.Value
 		StartIndex cty.Value
@@ -2370,9 +2517,23 @@ func TestSlice(t *testing.T) {
 			}),
 			false,
 		},
-		{ // unknowns in the list
+		{ // slice only an unknown value
 			listWithUnknowns,
 			cty.NumberIntVal(1),
+			cty.NumberIntVal(2),
+			cty.ListVal([]cty.Value{cty.UnknownVal(cty.String)}),
+			false,
+		},
+		{ // slice multiple values, which contain an unknown
+			listWithUnknowns,
+			cty.NumberIntVal(0),
+			cty.NumberIntVal(2),
+			listWithUnknowns,
+			false,
+		},
+		{ // an unknown list should be slicable, returning an unknown list
+			cty.UnknownVal(cty.List(cty.String)),
+			cty.NumberIntVal(0),
 			cty.NumberIntVal(2),
 			cty.UnknownVal(cty.List(cty.String)),
 			false,
@@ -2414,10 +2575,44 @@ func TestSlice(t *testing.T) {
 			cty.NilVal,
 			true,
 		},
+		{ // sets are not slice-able
+			cty.SetVal([]cty.Value{
+				cty.StringVal("x"),
+				cty.StringVal("y"),
+			}),
+			cty.NumberIntVal(0),
+			cty.NumberIntVal(0),
+			cty.NilVal,
+			true,
+		},
+		{ // tuple slice
+			tuple,
+			cty.NumberIntVal(1),
+			cty.NumberIntVal(3),
+			cty.TupleVal([]cty.Value{
+				cty.NumberIntVal(1),
+				cty.UnknownVal(cty.List(cty.String)),
+			}),
+			false,
+		},
+		{ // empty list slice
+			listOfStrings,
+			cty.NumberIntVal(2),
+			cty.NumberIntVal(2),
+			cty.ListValEmpty(cty.String),
+			false,
+		},
+		{ // empty tuple slice
+			tuple,
+			cty.NumberIntVal(3),
+			cty.NumberIntVal(3),
+			cty.EmptyTupleVal,
+			false,
+		},
 	}
 
-	for _, test := range tests {
-		t.Run(fmt.Sprintf("slice(%#v, %#v, %#v)", test.List, test.StartIndex, test.EndIndex), func(t *testing.T) {
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("%d-slice(%#v, %#v, %#v)", i, test.List, test.StartIndex, test.EndIndex), func(t *testing.T) {
 			got, err := Slice(test.List, test.StartIndex, test.EndIndex)
 
 			if test.Err {
