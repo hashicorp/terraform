@@ -527,13 +527,6 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
-		"sethaselement": {
-			{
-				`sethaselement(["a", "b"], "b")`,
-				cty.BoolVal(true),
-			},
-		},
-
 		"setintersection": {
 			{
 				`setintersection(["a", "b"], ["b", "c"], ["b", "d"])`,
