@@ -930,6 +930,58 @@ func TestNewResourceConfigShimmed(t *testing.T) {
 			},
 		},
 		{
+			Name: "unknown in nested blocks",
+			Val: cty.ObjectVal(map[string]cty.Value{
+				"bar": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"baz": cty.ListVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"list": cty.UnknownVal(cty.List(cty.String)),
+							}),
+						}),
+					}),
+				}),
+			}),
+			Schema: &configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"bar": {
+						Block: configschema.Block{
+							BlockTypes: map[string]*configschema.NestedBlock{
+								"baz": {
+									Block: configschema.Block{
+										Attributes: map[string]*configschema.Attribute{
+											"list": {Type: cty.List(cty.String),
+												Optional: true,
+											},
+										},
+									},
+									Nesting: configschema.NestingList,
+								},
+							},
+						},
+						Nesting: configschema.NestingList,
+					},
+				},
+			},
+			Expected: &ResourceConfig{
+				ComputedKeys: []string{"bar.0.baz.0.list"},
+				Raw: map[string]interface{}{
+					"bar": []interface{}{map[string]interface{}{
+						"baz": []interface{}{map[string]interface{}{
+							"list": "74D93920-ED26-11E3-AC10-0800200C9A66",
+						}},
+					}},
+				},
+				Config: map[string]interface{}{
+					"bar": []interface{}{map[string]interface{}{
+						"baz": []interface{}{map[string]interface{}{
+							"list": "74D93920-ED26-11E3-AC10-0800200C9A66",
+						}},
+					}},
+				},
+			},
+		},
+		{
 			Name: "null blocks",
 			Val: cty.ObjectVal(map[string]cty.Value{
 				"bar": cty.NullVal(cty.Map(cty.String)),
