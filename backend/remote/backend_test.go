@@ -126,9 +126,9 @@ func TestRemote_config(t *testing.T) {
 	}
 }
 
-// TestRemote_cached_config is similar to the test above, but we mimic loading a
+// TestRemote_CachedConfig is similar to the test above, but we mimic loading a
 // cached backend config by skipping the validate call
-func TestRemote_config_cached(t *testing.T) {
+func TestRemote_CachedConfig(t *testing.T) {
 	cases := map[string]struct {
 		config map[string]interface{}
 		err    error
