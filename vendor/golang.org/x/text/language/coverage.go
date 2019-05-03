@@ -80,7 +80,7 @@ func (s allSubtags) Tags() []Tag {
 	return nil
 }
 
-// coverage is used used by NewCoverage which is used as a convenient way for
+// coverage is used by NewCoverage which is used as a convenient way for
 // creating Coverage implementations for partially defined data. Very often a
 // package will only need to define a subset of slices. coverage provides a
 // convenient way to do this. Moreover, packages using NewCoverage, instead of
