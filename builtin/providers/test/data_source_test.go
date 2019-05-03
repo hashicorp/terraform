@@ -239,3 +239,53 @@ data "test_data_source" "two" {
 		},
 	})
 }
+
+func TestDataSource_planUpdate(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: strings.TrimSpace(`
+resource "test_resource" "a" {
+	required = "first"
+	required_map = {
+	    key = "1"
+	}
+	optional_force_new = "first"
+}
+
+data "test_data_source" "a" {
+  input = "${test_resource.a.computed_from_required}"
+}
+
+output "out" {
+  value = "${data.test_data_source.a.output}"
+}
+				`),
+			},
+			{
+				Config: strings.TrimSpace(`
+resource "test_resource" "a" {
+	required = "second"
+	required_map = {
+	    key = "1"
+	}
+	optional_force_new = "second"
+}
+
+data "test_data_source" "a" {
+  input = "${test_resource.a.computed_from_required}"
+}
+
+output "out" {
+  value = "${data.test_data_source.a.output}"
+}
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.test_data_source.a", "output", "second"),
+					resource.TestCheckOutput("out", "second"),
+				),
+			},
+		},
+	})
+}
