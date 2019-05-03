@@ -5,8 +5,4 @@ version_info {
 }
 
 version_exec = false
-
-platform {
-    os = "darwin"
-    arch = "amd64"
-}
+disable_provider_requirements = true
