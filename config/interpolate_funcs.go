@@ -30,6 +30,7 @@ import (
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
 	"github.com/mitchellh/go-homedir"
+	uuidv5 "github.com/satori/go.uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -111,6 +112,7 @@ func Funcs() map[string]ast.Function {
 		"pathexpand":       interpolationFuncPathExpand(),
 		"pow":              interpolationFuncPow(),
 		"uuid":             interpolationFuncUUID(),
+		"uuidv5":           interpolationFuncUUIDV5(),
 		"replace":          interpolationFuncReplace(),
 		"rsadecrypt":       interpolationFuncRsaDecrypt(),
 		"sha1":             interpolationFuncSha1(),
@@ -1500,6 +1502,33 @@ func interpolationFuncUUID() ast.Function {
 		ReturnType: ast.TypeString,
 		Callback: func(args []interface{}) (interface{}, error) {
 			return uuid.GenerateUUID()
+		},
+	}
+}
+
+func interpolationFuncUUIDV5() ast.Function {
+	return ast.Function{
+		ArgTypes: []ast.Type{
+			ast.TypeString, // namespace
+			ast.TypeString, // name
+		},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			var namespace uuidv5.UUID
+			switch {
+			case args[0].(string) == "dns":
+				namespace = uuidv5.NamespaceDNS
+			case args[0].(string) == "url":
+				namespace = uuidv5.NamespaceURL
+			case args[0].(string) == "oid":
+				namespace = uuidv5.NamespaceOID
+			case args[0].(string) == "x500":
+				namespace = uuidv5.NamespaceX500
+			default:
+				return nil, fmt.Errorf("uuidv5() doesn't support namespace %s", args[0].(string))
+			}
+			val := args[1].(string)
+			return uuidv5.NewV5(namespace, val).String(), nil
 		},
 	}
 }

@@ -2451,6 +2451,38 @@ func TestInterpolateFuncUUID(t *testing.T) {
 	}
 }
 
+func TestInterpolateFuncUUIDV5(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${uuidv5("dns", "tada")}`,
+				"faa898db-9b9d-5b75-86a9-149e7bb8e3b8",
+				false,
+			},
+			{
+				`${uuidv5("url", "tada")}`,
+				"2c1ff6b4-211f-577e-94de-d978b0caa16e",
+				false,
+			},
+			{
+				`${uuidv5("oid", "tada")}`,
+				"61eeea26-5176-5288-87fc-232d6ed30d2f",
+				false,
+			},
+			{
+				`${uuidv5("x500", "tada")}`,
+				"7e12415e-f7c9-57c3-9e43-52dc9950d264",
+				false,
+			},
+			{
+				`${uuidv5("tada", "tada")}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncTimestamp(t *testing.T) {
 	currentTime := time.Now().UTC()
 	ast, err := hil.Parse("${timestamp()}")
