@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/hashicorp/go-multierror"
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/clistate"
@@ -390,16 +390,14 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, error) {
 	case c != nil && s.Remote.Empty() && !s.Backend.Empty():
 		// If our configuration is the same, then we're just initializing
 		// a previously configured remote backend.
-		if !s.Backend.Empty() {
-			hash := s.Backend.Hash
-			// on init we need an updated hash containing any extra options
-			// that were added after merging.
-			if opts.Init {
-				hash = s.Backend.Rehash()
-			}
-			if hash == cHash {
-				return m.backend_C_r_S_unchanged(c, sMgr)
-			}
+		hash := s.Backend.Hash
+		// on init we need an updated hash containing any extra options
+		// that were added after merging.
+		if opts.Init {
+			hash = s.Backend.Rehash()
+		}
+		if hash == cHash {
+			return m.backend_C_r_S_unchanged(c, sMgr)
 		}
 
 		if !opts.Init {
@@ -412,7 +410,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, error) {
 
 		log.Printf(
 			"[WARN] command: backend config change! saved: %d, new: %d",
-			s.Backend.Hash, cHash)
+			hash, cHash)
 		return m.backend_C_r_S_changed(c, sMgr, true)
 
 	// Configuring a backend for the first time while having legacy

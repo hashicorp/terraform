@@ -126,6 +126,42 @@ func TestRemote_config(t *testing.T) {
 	}
 }
 
+// TestRemote_CachedConfig is similar to the test above, but we mimic loading a
+// cached backend config by skipping the validate call
+func TestRemote_CachedConfig(t *testing.T) {
+	cases := map[string]struct {
+		config map[string]interface{}
+		err    error
+	}{
+		"0.12 config": {
+			config: map[string]interface{}{
+				"hostname":     "nonexisting.local",
+				"organization": "hashicorp",
+				"workspaces": map[string]interface{}{
+					"name": "prod",
+				},
+			},
+			err: errors.New("the cached backend configuration is not valid for this version of terraform"),
+		},
+	}
+	for name, tc := range cases {
+		s := testServer(t)
+		b := New(testDisco(s))
+
+		// Get the proper config structure
+		rc, err := config.NewRawConfig(tc.config)
+		if err != nil {
+			t.Fatalf("%s: error creating raw config: %v", name, err)
+		}
+		conf := terraform.NewResourceConfig(rc)
+
+		// Configure
+		err = b.Configure(conf)
+		if err != tc.err && err != nil && tc.err != nil && !strings.Contains(err.Error(), tc.err.Error()) {
+			t.Fatalf("%s: expected error %q, got: %q", name, tc.err, err)
+		}
+	}
+}
 func TestRemote_versionConstraints(t *testing.T) {
 	cases := map[string]struct {
 		config     map[string]interface{}
