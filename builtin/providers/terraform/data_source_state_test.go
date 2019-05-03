@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"github.com/hashicorp/terraform/tfdiags"
 	"testing"
 
 	"github.com/apparentlymart/go-dump/dump"
@@ -138,6 +139,80 @@ func TestState_basic(t *testing.T) {
 			}),
 			true,
 		},
+		"wrong type for config": {
+			cty.ObjectVal(map[string]cty.Value{
+				"backend": cty.StringVal("local"),
+				"config":  cty.StringVal("nope"),
+			}),
+			cty.NilVal,
+			true,
+		},
+		"wrong type for config with unknown backend": {
+			cty.ObjectVal(map[string]cty.Value{
+				"backend": cty.UnknownVal(cty.String),
+				"config":  cty.StringVal("nope"),
+			}),
+			cty.NilVal,
+			true,
+		},
+		"wrong type for config with unknown config": {
+			cty.ObjectVal(map[string]cty.Value{
+				"backend": cty.StringVal("local"),
+				"config":  cty.UnknownVal(cty.String),
+			}),
+			cty.NilVal,
+			true,
+		},
+		"wrong type for defaults": {
+			cty.ObjectVal(map[string]cty.Value{
+				"backend": cty.StringVal("local"),
+				"config": cty.ObjectVal(map[string]cty.Value{
+					"path": cty.StringVal("./test-fixtures/basic.tfstate"),
+				}),
+				"defaults": cty.StringVal("nope"),
+			}),
+			cty.NilVal,
+			true,
+		},
+		"config as map": {
+			cty.ObjectVal(map[string]cty.Value{
+				"backend": cty.StringVal("local"),
+				"config": cty.MapVal(map[string]cty.Value{
+					"path": cty.StringVal("./test-fixtures/empty.tfstate"),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"backend": cty.StringVal("local"),
+				"config": cty.MapVal(map[string]cty.Value{
+					"path": cty.StringVal("./test-fixtures/empty.tfstate"),
+				}),
+				"defaults":  cty.NullVal(cty.DynamicPseudoType),
+				"outputs":   cty.EmptyObjectVal,
+				"workspace": cty.StringVal(backend.DefaultStateName),
+			}),
+			false,
+		},
+		"defaults as map": {
+			cty.ObjectVal(map[string]cty.Value{
+				"backend": cty.StringVal("local"),
+				"config": cty.ObjectVal(map[string]cty.Value{
+					"path": cty.StringVal("./test-fixtures/basic.tfstate"),
+				}),
+				"defaults": cty.MapValEmpty(cty.String),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"backend": cty.StringVal("local"),
+				"config": cty.ObjectVal(map[string]cty.Value{
+					"path": cty.StringVal("./test-fixtures/basic.tfstate"),
+				}),
+				"defaults": cty.MapValEmpty(cty.String),
+				"outputs": cty.ObjectVal(map[string]cty.Value{
+					"foo": cty.StringVal("bar"),
+				}),
+				"workspace": cty.StringVal(backend.DefaultStateName),
+			}),
+			false,
+		},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -146,7 +221,15 @@ func TestState_basic(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error: %s", err)
 			}
-			got, diags := dataSourceRemoteStateRead(&config)
+
+			diags := dataSourceRemoteStateValidate(config)
+
+			var got cty.Value
+			if !diags.HasErrors() && config.IsWhollyKnown() {
+				var moreDiags tfdiags.Diagnostics
+				got, moreDiags = dataSourceRemoteStateRead(config)
+				diags = diags.Append(moreDiags)
+			}
 
 			if test.Err {
 				if !diags.HasErrors() {
@@ -156,8 +239,8 @@ func TestState_basic(t *testing.T) {
 				t.Fatalf("unexpected errors: %s", diags.Err())
 			}
 
-			if !test.Want.RawEquals(got) {
-				t.Errorf("wrong result\nconfig: %sgot: %swant: %s", dump.Value(config), dump.Value(got), dump.Value(test.Want))
+			if test.Want != cty.NilVal && !test.Want.RawEquals(got) {
+				t.Errorf("wrong result\nconfig: %sgot:    %swant:   %s", dump.Value(config), dump.Value(got), dump.Value(test.Want))
 			}
 		})
 	}
