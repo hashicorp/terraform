@@ -541,3 +541,12 @@ workspaces must be upgraded to Terraform 0.12 otherwise Sentinel policies will
 fail on versions below 0.12.
 
 More details on this upgrade process will be added prior to the final release.
+
+## Upgrading Remote Backend Configuration
+
+Terraform Enterprise users, and users of the Terrafrom SAAS free tier, will need
+to run `terraform init -reconfigure` to upgrade to Terraform 0.12. 
+
+Terraform provides a message stating that `terraform init` is required; while
+there is no harm in running this command, the next error message will clarify
+that `terraform init -reconfigure` is required.
