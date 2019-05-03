@@ -85,17 +85,18 @@ const (
 	// things that might work in other languages they are familiar with, or
 	// simply make incorrect assumptions about the HCL language.
 
-	TokenBitwiseAnd TokenType = '&'
-	TokenBitwiseOr  TokenType = '|'
-	TokenBitwiseNot TokenType = '~'
-	TokenBitwiseXor TokenType = '^'
-	TokenStarStar   TokenType = '➚'
-	TokenApostrophe TokenType = '\''
-	TokenBacktick   TokenType = '`'
-	TokenSemicolon  TokenType = ';'
-	TokenTabs       TokenType = '␉'
-	TokenInvalid    TokenType = '�'
-	TokenBadUTF8    TokenType = '💩'
+	TokenBitwiseAnd    TokenType = '&'
+	TokenBitwiseOr     TokenType = '|'
+	TokenBitwiseNot    TokenType = '~'
+	TokenBitwiseXor    TokenType = '^'
+	TokenStarStar      TokenType = '➚'
+	TokenApostrophe    TokenType = '\''
+	TokenBacktick      TokenType = '`'
+	TokenSemicolon     TokenType = ';'
+	TokenTabs          TokenType = '␉'
+	TokenInvalid       TokenType = '�'
+	TokenBadUTF8       TokenType = '💩'
+	TokenQuotedNewline TokenType = '␤'
 
 	// TokenNil is a placeholder for when a token is required but none is
 	// available, e.g. when reporting errors. The scanner will never produce
@@ -285,6 +286,13 @@ func checkInvalidTokens(tokens Tokens) hcl.Diagnostics {
 
 				toldBadUTF8++
 			}
+		case TokenQuotedNewline:
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid multi-line string",
+				Detail:   "Quoted strings may not be split over multiple lines. To produce a multi-line string, either use the \\n escape to represent a newline character or use the \"heredoc\" multi-line template syntax.",
+				Subject:  &tok.Range,
+			})
 		case TokenInvalid:
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
