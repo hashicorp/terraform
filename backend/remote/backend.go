@@ -149,8 +149,16 @@ func (b *Remote) configure(ctx context.Context) error {
 	b.hostname = d.Get("hostname").(string)
 	b.organization = d.Get("organization").(string)
 
+	// The backend schema for the workspaces attribute changed in terraform
+	// 0.12, and causes a panic when encountered by 0.11. While we don't support
+	// downgrading, we do want to protect users from that panic.
+	wsConfig := d.Get("workspaces").(*schema.Set).List()
+	if len(wsConfig) == 0 {
+		return fmt.Errorf("the cached backend configuration is not valid for this version of terraform")
+	}
+
 	// Get and assert the workspaces configuration block.
-	workspace := d.Get("workspaces").(*schema.Set).List()[0].(map[string]interface{})
+	workspace := wsConfig[0].(map[string]interface{})
 
 	// Get the default workspace name and prefix.
 	b.workspace = workspace["name"].(string)
