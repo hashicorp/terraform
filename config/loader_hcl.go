@@ -603,7 +603,7 @@ func loadVariablesHcl(list *ast.ObjectList) ([]*Variable, error) {
 		// Verify the keys
 		if len(item.Keys) != 1 {
 			return nil, fmt.Errorf(
-				"position %s: 'variable' must be followed by exactly one strings: a name",
+				"position %s: 'variable' must be followed by exactly one string: a name",
 				item.Pos())
 		}
 
