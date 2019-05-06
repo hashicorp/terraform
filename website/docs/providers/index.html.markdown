@@ -122,6 +122,7 @@ down to see all providers.
 - [Vault](/docs/providers/vault/index.html)
 - [VMware NSX-T](/docs/providers/nsxt/index.html)
 - [VMware vCloud Director](/docs/providers/vcd/index.html)
+- [VMware vRA7](/docs/providers/vra7/index.html)
 - [VMware vSphere](/docs/providers/vsphere/index.html)
 - [Yandex](/docs/providers/yandex/index.html)
 
