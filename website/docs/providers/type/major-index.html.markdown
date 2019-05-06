@@ -29,4 +29,5 @@ tested by HashiCorp.
 - [Oracle Public Cloud](/docs/providers/opc/index.html)
 - [VMware NSX-T](/docs/providers/nsxt/index.html)
 - [vCloud Director](/docs/providers/vcd/index.html)
+- [VMware vRA7](/docs/providers/vra7/index.html)
 - [VMware vSphere](/docs/providers/vsphere/index.html)
