@@ -1950,6 +1950,20 @@ func ReadState(src io.Reader) (*State, error) {
 		}
 
 		result = v3State
+	case 4:
+		// Version 4 is the one introduced by Terraform v0.12. We only have
+		// minimal support here for reading the _outputs_ portion of such
+		// a state, so the result in this case is suitable only for the
+		// terraform_remote_state data source.
+		// The result of this can never pass CheckStateVersion, so version
+		// 4 state snapshots will not be accepted as a starting state for any
+		// Terraform operation.
+		v4State, err := readStateV4OutputsOnly(jsonBytes)
+		if err != nil {
+			return nil, err
+		}
+
+		result = v4State
 	default:
 		return nil, fmt.Errorf("Terraform %s does not support state version %d, please update.",
 			tfversion.SemVer.String(), versionIdentifier.Version)
@@ -2070,6 +2084,67 @@ func ReadStateV3(jsonBytes []byte) (*State, error) {
 	return state, nil
 }
 
+func readStateV4OutputsOnly(src []byte) (*State, error) {
+	type StateV4 struct {
+		TerraformVersion string `json:"terraform_version"`
+		Serial           int64  `json:"serial"`
+		Lineage          string `json:"lineage"`
+		RootOutputs      map[string]struct {
+			Value     interface{} `json:"value"` // encoding/json's default result is good enough for our purposes here
+			Sensitive bool        `json:"sensitive,omitempty"`
+		} `json:"outputs"`
+	}
+
+	var raw StateV4
+	if err := json.Unmarshal(src, &raw); err != nil {
+		return nil, fmt.Errorf("Decoding state file failed: %s", err)
+	}
+
+	// Now we'll adapt what we read to fit within the V3-oriented state type.
+	ret := &State{}
+	ret.Version = 4 // greater than 3, so will never pass CheckStateVersion
+	ret.TFVersion = raw.TerraformVersion
+	ret.Serial = raw.Serial
+	ret.Lineage = raw.Lineage
+
+	// The outputs require a little more work because we must deconstruct the
+	// cty-oriented types and values into as-close-as-possible values that
+	// mimic what would be saved in state format version 3.
+	mod := &ModuleState{
+		Path:      []string{"root"},
+		Outputs:   map[string]*OutputState{},
+		Locals:    map[string]interface{}{},
+		Resources: map[string]*ResourceState{},
+	}
+	outputs := mod.Outputs
+
+	for k, rawOS := range raw.RootOutputs {
+		os := &OutputState{}
+		os.Sensitive = rawOS.Sensitive
+		os.Value = rawOS.Value
+		switch tv := os.Value.(type) {
+		case map[string]interface{}:
+			os.Type = "map"
+		case []interface{}:
+			os.Type = "list"
+		case float64:
+			os.Type = "string"
+			os.Value = strconv.FormatFloat(tv, 'f', -1, 64)
+		case bool:
+			os.Type = "string"
+			os.Value = strconv.FormatBool(tv)
+		default:
+			os.Type = "string"
+		}
+
+		outputs[k] = os
+	}
+
+	ret.Modules = append(ret.Modules, mod)
+
+	return ret, nil
+}
+
 // WriteState writes a state somewhere in a binary format.
 func WriteState(d *State, dst io.Writer) error {
 	// writing a nil state is a noop.
@@ -2187,7 +2262,7 @@ func (s moduleStateSort) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 
-// StateCompatible returns an error if the state is not compatible with the
+// CheckStateVersion returns an error if the state is not compatible with the
 // current version of terraform.
 func CheckStateVersion(state *State) error {
 	if state == nil {
@@ -2197,6 +2272,19 @@ func CheckStateVersion(state *State) error {
 	if state.FromFutureTerraform() {
 		return fmt.Errorf(stateInvalidTerraformVersionErr, state.TFVersion)
 	}
+
+	if state.Version > 3 {
+		// We only support version 4 enough for terraform_remote_state to
+		// read from it, so we need to hard-fail here to prevent any weird
+		// behavior if a user tries to use Terraform 0.11 against a state
+		// snapshot created by Terraform v0.12 or later. (terraform_remote_state
+		// doesn't call CheckStateVersion.)
+		// We use a different message here because getting here suggests that
+		// the user tried to rewrite the terraform_version value in a state
+		// created in a later version in the hope it'd work.
+		return fmt.Errorf(stateVersionTooNewError, state.Version)
+	}
+
 	return nil
 }
 
@@ -2214,5 +2302,14 @@ Terraform doesn't allow running any operations against a state
 that was written by a future Terraform version. The state is
 reporting it is written by Terraform '%s'
 
-Please run at least that version of Terraform to continue.
+A newer version of Terraform is required to make changes to the current
+workspace.
+`
+
+const stateVersionTooNewError = `
+The latest state snapshot is using snapshot format %d, which is too new for
+this version of Terraform.
+
+A newer version of Terraform is required to make changes to the current
+workspace.
 `

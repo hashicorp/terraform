@@ -111,6 +111,52 @@ func TestState_defaults(t *testing.T) {
 	})
 }
 
+func TestState_version4(t *testing.T) {
+	// This test is for our special support for reading state version 4 as
+	// remote state even though this Terraform version doesn't support that
+	// version for any other purpose.
+
+	resource.UnitTest(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccState_version4,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckStateValue("data.terraform_remote_state.foo", "from_resource", "7585419850792319264"),
+					testAccCheckStateValue("data.terraform_remote_state.foo", "string", "value"),
+					testAccCheckStateValue("data.terraform_remote_state.foo", "bool", "true"),
+					testAccCheckStateValue("data.terraform_remote_state.foo", "float", "1.2"),
+					testAccCheckStateValue("data.terraform_remote_state.foo", "integer", "3"),
+					testAccCheckStateValue("data.terraform_remote_state.foo", "list.#", "2"),
+					testAccCheckStateValue("data.terraform_remote_state.foo", "list.0", "value 1"),
+					testAccCheckStateValue("data.terraform_remote_state.foo", "list.1", "value 2"),
+					testAccCheckStateValue("data.terraform_remote_state.foo", "set.#", "2"),
+					testAccCheckStateValue("data.terraform_remote_state.foo", "set.0", "value 1"),
+					testAccCheckStateValue("data.terraform_remote_state.foo", "set.1", "value 2"),
+					testAccCheckStateValue("data.terraform_remote_state.foo", "tuple.#", "2"),
+					testAccCheckStateValue("data.terraform_remote_state.foo", "tuple.0", "value 1"),
+					testAccCheckStateValue("data.terraform_remote_state.foo", "tuple.1", "value 2"),
+					testAccCheckStateValue("data.terraform_remote_state.foo", "mixed_tuple.#", "2"),
+					testAccCheckStateValue("data.terraform_remote_state.foo", "mixed_tuple.0", "value 1"),
+					testAccCheckStateValue("data.terraform_remote_state.foo", "mixed_tuple.1.#", "1"),
+					testAccCheckStateValue("data.terraform_remote_state.foo", "mixed_tuple.1.0", "value 2"),
+					testAccCheckStateValue("data.terraform_remote_state.foo", "map.%", "2"),
+					testAccCheckStateValue("data.terraform_remote_state.foo", "map.a", "value 1"),
+					testAccCheckStateValue("data.terraform_remote_state.foo", "map.b", "value 2"),
+					testAccCheckStateValue("data.terraform_remote_state.foo", "object.%", "2"),
+					testAccCheckStateValue("data.terraform_remote_state.foo", "object.a", "value 1"),
+					testAccCheckStateValue("data.terraform_remote_state.foo", "object.b", "value 2"),
+					testAccCheckStateValue("data.terraform_remote_state.foo", "mixed_object.%", "2"),
+					testAccCheckStateValue("data.terraform_remote_state.foo", "mixed_object.a", "value 1"),
+					testAccCheckStateValue("data.terraform_remote_state.foo", "mixed_object.b.#", "1"),
+					testAccCheckStateValue("data.terraform_remote_state.foo", "mixed_object.b.0", "value 2"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckStateValue(id, name, value string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[id]
@@ -221,5 +267,14 @@ data "terraform_remote_state" "foo" {
 
 	config {
 		path = "./test-fixtures/basic.tfstate"
+	}
+}`
+
+const testAccState_version4 = `
+data "terraform_remote_state" "foo" {
+	backend = "local"
+
+	config {
+		path = "./test-fixtures/version4.tfstate"
 	}
 }`
