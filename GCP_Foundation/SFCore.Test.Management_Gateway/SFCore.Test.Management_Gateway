@@ -1,0 +1,108 @@
+ module "Policy_from_SFCore-Test-Management_Gateway_to_SFCore-Test-Perimeter_LoadBalancer" {
+  source = "./firewall/ingress_rule"
+  name = "rule-6"
+  network = "${var.vpc}"
+  project = "${var.project}"
+  priority= 10000
+  tcp_ports = ["1-65355"]
+  udp_ports = ["1-65355"]
+  target_tags = ["sfcore-test-perimeter-loadbalancer"]
+  source_tags = ["sfcore-test-management-gateway"]
+  source_ranges= ["20.16.0.0/12"]
+} 
+ module "Policy_from_SFCore-Test-Management_Gateway_to_SFCore-Test-Logging_Monitoring" {
+  source = "./firewall/ingress_rule"
+  name = "rule-7"
+  network = "${var.vpc}"
+  project = "${var.project}"
+  priority= 10000
+  tcp_ports = ["1-65355"]
+  udp_ports = ["1-65355"]
+  target_tags = ["sfcore-test-logging-monitoring"]
+  source_tags = ["sfcore-test-management-gateway"]
+  source_ranges= ["20.16.0.0/12"]
+} 
+ module "Policy_from_SFCore-Test-Management_Gateway_to_SFCore-Test-Management_Truth" {
+  source = "./firewall/ingress_rule"
+  name = "rule-8"
+  network = "${var.vpc}"
+  project = "${var.project}"
+  priority= 10000
+  tcp_ports = ["1-65355"]
+  udp_ports = ["1-65355"]
+  target_tags = ["sfcore-test-management-truth"]
+  source_tags = ["sfcore-test-management-gateway"]
+  source_ranges= ["20.16.0.0/12"]
+} 
+ module "Policy_from_SFCore-Test-Management_Gateway_to_SFCore-Test-Perimeter_Services" {
+  source = "./firewall/ingress_rule"
+  name = "rule-9"
+  network = "${var.vpc}"
+  project = "${var.project}"
+  priority= 10000
+  tcp_ports = ["22","53","80","111","123","443","500-1024","2049","6501","8080-8081","8443","32765-65535"]
+  udp_ports = ["53","111","123","161","500-1024","2049","6501","32765-65535"]
+  target_tags = ["sfcore-test-perimeter-services"]
+  source_tags = ["sfcore-test-management-gateway"]
+  source_ranges= ["20.16.0.0/12"]
+} 
+ module "Policy_from_SFCore-Test-Management_Gateway_to_SFCore-Test-Perimeter_LoadBalancer" {
+  source = "./firewall/ingress_rule"
+  name = "rule-10"
+  network = "${var.vpc}"
+  project = "${var.project}"
+  priority= 10000
+  tcp_ports = ["1-65355"]
+  udp_ports = ["1-65355"]
+  target_tags = ["sfcore-test-perimeter-loadbalancer"]
+  source_tags = ["sfcore-test-management-gateway"]
+  source_ranges= ["20.16.0.0/12"]
+} 
+ module "Policy_from_SFCore-Test-Management_Gateway_to_SFCore-Test-Logging_Monitoring" {
+  source = "./firewall/ingress_rule"
+  name = "rule-11"
+  network = "${var.vpc}"
+  project = "${var.project}"
+  priority= 10000
+  tcp_ports = ["1-65355"]
+  udp_ports = ["1-65355"]
+  target_tags = ["sfcore-test-logging-monitoring"]
+  source_tags = ["sfcore-test-management-gateway"]
+  source_ranges= ["20.16.0.0/12"]
+} 
+ module "Policy_from_SFCore-Test-Management_Gateway_to_SFCore-Test-Management_Truth" {
+  source = "./firewall/ingress_rule"
+  name = "rule-12"
+  network = "${var.vpc}"
+  project = "${var.project}"
+  priority= 10000
+  tcp_ports = ["1-65355"]
+  udp_ports = ["1-65355"]
+  target_tags = ["sfcore-test-management-truth"]
+  source_tags = ["sfcore-test-management-gateway"]
+  source_ranges= ["20.16.0.0/12"]
+} 
+ module "Policy_from_SFCore-Test-Management_Gateway_to_SFCore-Test-Perimeter_Services" {
+  source = "./firewall/ingress_rule"
+  name = "rule-13"
+  network = "${var.vpc}"
+  project = "${var.project}"
+  priority= 10000
+  tcp_ports = ["22","53","80","111","123","443","500-1024","2049","6501","8080-8081","8443","32765-65535"]
+  udp_ports = ["53","111","123","161","500-1024","2049","6501","32765-65535"]
+  target_tags = ["sfcore-test-perimeter-services"]
+  source_tags = ["sfcore-test-management-gateway"]
+  source_ranges= ["20.16.0.0/12"]
+} 
+ module "intra_sg_rule" {
+  source = "./firewall/ingress_rule"
+  name = "rule-14"
+  network = "${var.vpc}"
+  project = "${var.project}"
+  priority= 10000
+  tcp_ports = ["1-65355"]
+  udp_ports = ["1-65355"]
+  target_tags = ["sfcore-test-management-gateway"]
+  source_tags = ["sfcore-test-management-gateway"]
+  source_ranges= ["20.16.0.0/12"]
+} 

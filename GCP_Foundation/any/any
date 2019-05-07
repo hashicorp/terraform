@@ -1,0 +1,120 @@
+ module "Policy_from_any_to_SFCore-Test-Logging_Monitoring" {
+  source = "./firewall/ingress_rule"
+  name = "rule-15"
+  network = "${var.vpc}"
+  project = "${var.project}"
+  priority= 10000
+  tcp_ports = ["80","162","426","443","514","516","518","2181","5140-5149","6667","7014","7442","8080","8443-8444","9001-9002","9093-9094","9998","11443","18443-18444","33000-33100"]
+  udp_ports = ["53","161-162","514","5140","6343"]
+  target_tags = ["sfcore-test-logging-monitoring"]
+  source_tags = [""]
+  source_ranges= [""]
+} 
+ module "Policy_from_any_to_SFCore-Test-Perimeter_Services" {
+  source = "./firewall/ingress_rule"
+  name = "rule-16"
+  network = "${var.vpc}"
+  project = "${var.project}"
+  priority= 10000
+  tcp_ports = ["25","53","111","123","500-1024","2049","6501","8080-8081","8443","32765-65535"]
+  udp_ports = ["53","111","123","500-1024","2049","6501","8192","32765-65535"]
+  target_tags = ["sfcore-test-perimeter-services"]
+  source_tags = [""]
+  source_ranges= [""]
+} 
+ module "Policy_from_any_to_SFCore-Test-Management_Truth" {
+  source = "./firewall/ingress_rule"
+  name = "rule-17"
+  network = "${var.vpc}"
+  project = "${var.project}"
+  priority= 10000
+  tcp_ports = ["1-65355"]
+  udp_ports = ["1-65355"]
+  target_tags = ["sfcore-test-management-truth"]
+  source_tags = [""]
+  source_ranges= [""]
+} 
+ module "Policy_from_any_to_SFCore-Test-Perimeter_LoadBalancer" {
+  source = "./firewall/ingress_rule"
+  name = "rule-18"
+  network = "${var.vpc}"
+  project = "${var.project}"
+  priority= 10000
+  tcp_ports = ["1-65355"]
+  udp_ports = ["1-65355"]
+  target_tags = ["sfcore-test-perimeter-loadbalancer"]
+  source_tags = [""]
+  source_ranges= [""]
+} 
+ module "Policy_from_any_to_SFCore-Test-Management_Gateway" {
+  source = "./firewall/ingress_rule"
+  name = "rule-19"
+  network = "${var.vpc}"
+  project = "${var.project}"
+  priority= 10000
+  tcp_ports = ["1-65355"]
+  udp_ports = ["1-65355"]
+  target_tags = ["sfcore-test-management-gateway"]
+  source_tags = [""]
+  source_ranges= [""]
+} 
+ module "Policy_from_any_to_SFCore-Test-Logging_Monitoring" {
+  source = "./firewall/ingress_rule"
+  name = "rule-20"
+  network = "${var.vpc}"
+  project = "${var.project}"
+  priority= 10000
+  tcp_ports = ["80","162","426","443","514","516","518","2181","5140-5149","6667","7014","7442","8080","8443-8444","9001-9002","9093-9094","9998","11443","18443-18444","33000-33100"]
+  udp_ports = ["53","161-162","514","5140","6343"]
+  target_tags = ["sfcore-test-logging-monitoring"]
+  source_tags = [""]
+  source_ranges= [""]
+} 
+ module "Policy_from_any_to_SFCore-Test-Perimeter_Services" {
+  source = "./firewall/ingress_rule"
+  name = "rule-21"
+  network = "${var.vpc}"
+  project = "${var.project}"
+  priority= 10000
+  tcp_ports = ["25","53","111","123","500-1024","2049","6501","8080-8081","8443","32765-65535"]
+  udp_ports = ["53","111","123","500-1024","2049","6501","8192","32765-65535"]
+  target_tags = ["sfcore-test-perimeter-services"]
+  source_tags = [""]
+  source_ranges= [""]
+} 
+ module "Policy_from_any_to_SFCore-Test-Management_Truth" {
+  source = "./firewall/ingress_rule"
+  name = "rule-22"
+  network = "${var.vpc}"
+  project = "${var.project}"
+  priority= 10000
+  tcp_ports = ["1-65355"]
+  udp_ports = ["1-65355"]
+  target_tags = ["sfcore-test-management-truth"]
+  source_tags = [""]
+  source_ranges= [""]
+} 
+ module "Policy_from_any_to_SFCore-Test-Perimeter_LoadBalancer" {
+  source = "./firewall/ingress_rule"
+  name = "rule-23"
+  network = "${var.vpc}"
+  project = "${var.project}"
+  priority= 10000
+  tcp_ports = ["1-65355"]
+  udp_ports = ["1-65355"]
+  target_tags = ["sfcore-test-perimeter-loadbalancer"]
+  source_tags = [""]
+  source_ranges= [""]
+} 
+ module "Policy_from_any_to_SFCore-Test-Management_Gateway" {
+  source = "./firewall/ingress_rule"
+  name = "rule-24"
+  network = "${var.vpc}"
+  project = "${var.project}"
+  priority= 10000
+  tcp_ports = ["1-65355"]
+  udp_ports = ["1-65355"]
+  target_tags = ["sfcore-test-management-gateway"]
+  source_tags = [""]
+  source_ranges= [""]
+} 

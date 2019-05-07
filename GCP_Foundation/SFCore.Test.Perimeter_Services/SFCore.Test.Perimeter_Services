@@ -1,0 +1,60 @@
+ module "Policy_from_SFCore-Test-Perimeter_Services_to_SFCore-Test-Logging_Monitoring" {
+  source = "./firewall/ingress_rule"
+  name = "rule-1"
+  network = "${var.vpc}"
+  project = "${var.project}"
+  priority= 10000
+  tcp_ports = ["443","516","518","5140-5149","8005-8006","8305"]
+  udp_ports = []
+  target_tags = ["sfcore-test-logging-monitoring"]
+  source_tags = ["sfcore-test-perimeter-services"]
+  source_ranges= ["20.64.0.0/12"]
+} 
+ module "Policy_from_SFCore-Test-Perimeter_Services_to_SFCore-Test-Management_Truth" {
+  source = "./firewall/ingress_rule"
+  name = "rule-2"
+  network = "${var.vpc}"
+  project = "${var.project}"
+  priority= 10000
+  tcp_ports = ["1-65355"]
+  udp_ports = ["1-65355"]
+  target_tags = ["sfcore-test-management-truth"]
+  source_tags = ["sfcore-test-perimeter-services"]
+  source_ranges= ["20.64.0.0/12"]
+} 
+ module "Policy_from_SFCore-Test-Perimeter_Services_to_SFCore-Test-Logging_Monitoring" {
+  source = "./firewall/ingress_rule"
+  name = "rule-3"
+  network = "${var.vpc}"
+  project = "${var.project}"
+  priority= 10000
+  tcp_ports = ["443","516","518","5140-5149","8005-8006","8305"]
+  udp_ports = []
+  target_tags = ["sfcore-test-logging-monitoring"]
+  source_tags = ["sfcore-test-perimeter-services"]
+  source_ranges= ["20.64.0.0/12"]
+} 
+ module "Policy_from_SFCore-Test-Perimeter_Services_to_SFCore-Test-Management_Truth" {
+  source = "./firewall/ingress_rule"
+  name = "rule-4"
+  network = "${var.vpc}"
+  project = "${var.project}"
+  priority= 10000
+  tcp_ports = ["1-65355"]
+  udp_ports = ["1-65355"]
+  target_tags = ["sfcore-test-management-truth"]
+  source_tags = ["sfcore-test-perimeter-services"]
+  source_ranges= ["20.64.0.0/12"]
+} 
+ module "intra_sg_rule" {
+  source = "./firewall/ingress_rule"
+  name = "rule-5"
+  network = "${var.vpc}"
+  project = "${var.project}"
+  priority= 10000
+  tcp_ports = ["1-65355"]
+  udp_ports = ["1-65355"]
+  target_tags = ["sfcore-test-perimeter-services"]
+  source_tags = ["sfcore-test-perimeter-services"]
+  source_ranges= ["20.64.0.0/12"]
+} 
