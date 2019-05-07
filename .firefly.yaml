@@ -1,0 +1,4 @@
+---
+templates:
+ - type: terraform
+   path: "/"
