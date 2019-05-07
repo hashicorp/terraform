@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"log"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/go-multierror"
@@ -86,6 +87,11 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, error) {
 			b, err = m.backendFromPlan(opts)
 		} else {
 			b, err = m.backendFromConfig(opts)
+			if opts.Init && b != nil && err == nil {
+				// Its possible that the currently selected workspace doesn't exist, so
+				// we call selectWorkspace to ensure an existing workspace is selected.
+				err = m.selectWorkspace(b)
+			}
 		}
 		if err != nil {
 			return nil, err
@@ -143,6 +149,56 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, error) {
 	}
 
 	return local, nil
+}
+
+// selectWorkspace gets a list of existing workspaces and then checks
+// if the currently selected workspace is valid. If not, it will ask
+// the user to select a workspace from the list.
+func (m *Meta) selectWorkspace(b backend.Backend) error {
+	workspaces, err := b.States()
+	if err == backend.ErrNamedStatesNotSupported {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("Failed to get existing workspaces: %s", err)
+	}
+	if len(workspaces) == 0 {
+		return fmt.Errorf(errBackendNoExistingWorkspaces)
+	}
+
+	// Get the currently selected workspace.
+	workspace := m.Workspace()
+
+	// Check if any of the existing workspaces matches the selected
+	// workspace and create a numbered list of existing workspaces.
+	var list strings.Builder
+	for i, w := range workspaces {
+		if w == workspace {
+			return nil
+		}
+		fmt.Fprintf(&list, "%d. %s\n", i+1, w)
+	}
+
+	// If the selected workspace doesn't exist, ask the user to select
+	// a workspace from the list of existing workspaces.
+	v, err := m.UIInput().Input(context.Background(), &terraform.InputOpts{
+		Id: "select-workspace",
+		Query: fmt.Sprintf(
+			"[reset][bold][yellow]The currently selected workspace (%s) does not exist.[reset]",
+			workspace),
+		Description: fmt.Sprintf(
+			strings.TrimSpace(inputBackendSelectWorkspace), list.String()),
+	})
+	if err != nil {
+		return fmt.Errorf("Error asking to select workspace: %s", err)
+	}
+
+	idx, err := strconv.Atoi(v)
+	if err != nil || (idx < 1 || idx > len(workspaces)) {
+		return fmt.Errorf("Error selecting workspace: input not a valid number")
+	}
+
+	return m.SetWorkspace(workspaces[idx-1])
 }
 
 // IsLocalBackend returns true if the backend is a local backend. We use this
@@ -997,7 +1053,6 @@ func (m *Meta) backend_C_r_s(
 	m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
 		"[reset][green]\n"+strings.TrimSpace(successBackendSet), s.Backend.Type)))
 
-	// Return the backend
 	return b, nil
 }
 
@@ -1406,6 +1461,14 @@ backend type. Please check your configuration and your Terraform version.
 
 If you'd like to run Terraform and store state locally, you can fix this
 error by removing the backend configuration from your configuration.
+`
+
+const errBackendNoExistingWorkspaces = `
+No existing workspaces. Use the "terraform workspace" command to create
+and select a new workspace.
+
+If the backend already contains existing workspaces, you may need to update
+the workspace name or prefix in the backend configuration.
 `
 
 const errBackendRemoteRead = `
