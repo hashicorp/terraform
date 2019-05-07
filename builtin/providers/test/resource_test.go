@@ -992,3 +992,40 @@ resource "test_resource" "foo" {
 		},
 	})
 }
+
+func TestResource_replacedOptionalComputed(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_nested" "a" {
+}
+
+resource "test_resource" "foo" {
+	required = "yep"
+	required_map = {
+	    key = "value"
+	}
+	optional_computed = test_resource_nested.a.id
+}
+				`),
+			},
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_nested" "b" {
+}
+
+resource "test_resource" "foo" {
+	required = "yep"
+	required_map = {
+	    key = "value"
+	}
+	optional_computed = test_resource_nested.b.id
+}
+				`),
+			},
+		},
+	})
+}
