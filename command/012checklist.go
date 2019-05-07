@@ -7,6 +7,8 @@ import (
 	"sort"
 	"strings"
 
+	hcl2syntax "github.com/hashicorp/hcl2/hcl/hclsyntax"
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
 )
 
@@ -115,7 +117,7 @@ func zeroTwelveChecklists(mod *module.Tree, into map[string][]string) bool {
 			// in the upstream repository.
 			childItems := zeroTwelveChecklistForModule(childMod)
 			if len(childItems) > 0 {
-				items = append(items, "Upgrade child module %q to a version that passes \"terraform 0.12checklist\".")
+				items = append(items, fmt.Sprintf("Upgrade child module %q to a version that passes \"terraform 0.12checklist\".", strings.Join(mod.Path(), ".")))
 			}
 			continue
 		}
@@ -135,6 +137,7 @@ func zeroTwelveChecklists(mod *module.Tree, into map[string][]string) bool {
 
 func zeroTwelveChecklistForModule(mod *module.Tree) []string {
 	var items []string
+	cfg := mod.Config()
 
 	// Strings added to items must be Markdown-formatted. They can be multi-line
 	// as long as all of the lines are valid to be nested inside a list item.
@@ -148,6 +151,37 @@ func zeroTwelveChecklistForModule(mod *module.Tree) []string {
 	//
 	// Each element of "items" will be rendered as a task list item using
 	// GitHub's task list extension.
+
+	for _, rc := range cfg.Resources {
+		var blockType string
+		switch rc.Mode {
+		case config.ManagedResourceMode:
+			blockType = "resource"
+		case config.DataResourceMode:
+			blockType = "data"
+		default: // should never happen, because any other type would be a configuration loading error
+			blockType = "???"
+		}
+		if !hcl2syntax.ValidIdentifier(rc.Name) {
+			items = append(items, fmt.Sprintf(
+				"`%s %q %q` has a name that is not a valid identifier.\n\n"+
+					"In Terraform 0.12, resource names must start with a letter. To fix this, rename the resource in the configuration and then use `terraform state mv` to mirror that name change in the state.",
+				blockType, rc.Type, rc.Name,
+			))
+		}
+	}
+	for _, pc := range cfg.ProviderConfigs {
+		if pc.Alias == "" {
+			continue
+		}
+		if !hcl2syntax.ValidIdentifier(pc.Alias) {
+			items = append(items, fmt.Sprintf(
+				"`provider %q` alias %q is not a valid identifier.\n\n"+
+					"In Terraform 0.12, provider aliases must start with a letter. To fix this, rename the provider alias and any references to it in the configuration and then run `terraform apply` to re-attach any existing resources to the new alias name.",
+				pc.Name, pc.Alias,
+			))
+		}
+	}
 
 	return items
 }
