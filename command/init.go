@@ -299,7 +299,7 @@ func (c *InitCommand) Run(args []string) int {
 
 	if back == nil {
 		// If we didn't initialize a backend then we'll try to at least
-		// instantiate one. This might fail if it wasn't already initalized
+		// instantiate one. This might fail if it wasn't already initialized
 		// by a previous run, so we must still expect that "back" may be nil
 		// in code that follows.
 		var backDiags tfdiags.Diagnostics
