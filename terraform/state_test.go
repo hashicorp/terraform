@@ -1675,7 +1675,7 @@ func TestReadStateNewVersion(t *testing.T) {
 		Version int
 	}
 
-	buf, err := json.Marshal(&out{StateVersion + 1})
+	buf, err := json.Marshal(&out{StateVersion + 2})
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
