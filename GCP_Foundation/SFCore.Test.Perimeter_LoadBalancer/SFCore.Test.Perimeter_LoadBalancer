@@ -1,0 +1,72 @@
+ module "Policy_from_SFCore-Test-Perimeter_LoadBalancer_to_SFCore-Test-Logging_Monitoring" {
+  source = "./firewall/ingress_rule"
+  name = "rule-25"
+  network = "${var.vpc}"
+  project = "${var.project}"
+  priority= 10000
+  tcp_ports = ["22","8443"]
+  udp_ports = []
+  target_tags = ["sfcore-test-logging-monitoring"]
+  source_tags = ["sfcore-test-perimeter-loadbalancer"]
+  source_ranges= ["20.48.0.0/12"]
+} 
+ module "Policy_from_SFCore-Test-Perimeter_LoadBalancer_to_SFCore-Test-Management_Truth" {
+  source = "./firewall/ingress_rule"
+  name = "rule-26"
+  network = "${var.vpc}"
+  project = "${var.project}"
+  priority= 10000
+  tcp_ports = ["1-65355"]
+  udp_ports = ["1-65355"]
+  target_tags = ["sfcore-test-management-truth"]
+  source_tags = ["sfcore-test-perimeter-loadbalancer"]
+  source_ranges= ["20.48.0.0/12"]
+} 
+ module "Policy_from_SFCore-Test-Perimeter_LoadBalancer_to_SFCore-Test-Perimeter_Services" {
+  source = "./firewall/ingress_rule"
+  name = "rule-27"
+  network = "${var.vpc}"
+  project = "${var.project}"
+  priority= 10000
+  tcp_ports = ["53","111","123","500-1024","2049","6501","32765-65535"]
+  udp_ports = ["53","111","123","500-1024","2049","6501","32765-65535"]
+  target_tags = ["sfcore-test-perimeter-services"]
+  source_tags = ["sfcore-test-perimeter-loadbalancer"]
+  source_ranges= ["20.48.0.0/12"]
+} 
+ module "Policy_from_SFCore-Test-Perimeter_LoadBalancer_to_SFCore-Test-Perimeter_Services" {
+  source = "./firewall/ingress_rule"
+  name = "rule-28"
+  network = "${var.vpc}"
+  project = "${var.project}"
+  priority= 10000
+  tcp_ports = ["53","111","123","500-1024","2049","6501","32765-65535"]
+  udp_ports = ["53","111","123","500-1024","2049","6501","32765-65535"]
+  target_tags = ["sfcore-test-perimeter-services"]
+  source_tags = ["sfcore-test-perimeter-loadbalancer"]
+  source_ranges= ["20.48.0.0/12"]
+} 
+ module "Policy_from_SFCore-Test-Perimeter_LoadBalancer_to_SFCore-Test-Management_Truth" {
+  source = "./firewall/ingress_rule"
+  name = "rule-29"
+  network = "${var.vpc}"
+  project = "${var.project}"
+  priority= 10000
+  tcp_ports = ["1-65355"]
+  udp_ports = ["1-65355"]
+  target_tags = ["sfcore-test-management-truth"]
+  source_tags = ["sfcore-test-perimeter-loadbalancer"]
+  source_ranges= ["20.48.0.0/12"]
+} 
+ module "intra_sg_rule" {
+  source = "./firewall/ingress_rule"
+  name = "rule-30"
+  network = "${var.vpc}"
+  project = "${var.project}"
+  priority= 10000
+  tcp_ports = ["1-65355"]
+  udp_ports = ["1-65355"]
+  target_tags = ["sfcore-test-perimeter-loadbalancer"]
+  source_tags = ["sfcore-test-perimeter-loadbalancer"]
+  source_ranges= ["20.48.0.0/12"]
+} 

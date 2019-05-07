@@ -1,0 +1,84 @@
+ module "Policy_from_SFCore-Test-Management_Truth_to_SFCore-Test-Perimeter_LoadBalancer" {
+  source = "./firewall/ingress_rule"
+  name = "rule-38"
+  network = "${var.vpc}"
+  project = "${var.project}"
+  priority= 10000
+  tcp_ports = ["4194","10248-10250","10255"]
+  udp_ports = []
+  target_tags = ["sfcore-test-perimeter-loadbalancer"]
+  source_tags = ["sfcore-test-management-truth"]
+  source_ranges= ["20.32.0.0/12"]
+} 
+ module "Policy_from_SFCore-Test-Management_Truth_to_SFCore-Test-Logging_Monitoring" {
+  source = "./firewall/ingress_rule"
+  name = "rule-39"
+  network = "${var.vpc}"
+  project = "${var.project}"
+  priority= 10000
+  tcp_ports = ["80","443","1521","4194","4200","7014","7442","8080","8443-8444","9998","10248-10250","10255","15372","18443-18444"]
+  udp_ports = ["162"]
+  target_tags = ["sfcore-test-logging-monitoring"]
+  source_tags = ["sfcore-test-management-truth"]
+  source_ranges= ["20.32.0.0/12"]
+} 
+ module "Policy_from_SFCore-Test-Management_Truth_to_SFCore-Test-Management_Gateway" {
+  source = "./firewall/ingress_rule"
+  name = "rule-40"
+  network = "${var.vpc}"
+  project = "${var.project}"
+  priority= 10000
+  tcp_ports = ["22","80","111","162","443","1521","2001-2009","2049","2181","2484","4194","4567","4900","5666","6681-6689","7802","8026-8027","8080-8081","8443","8980-8981","10248-10250","10255","50052"]
+  udp_ports = ["69","111","161-162","2049","2323","25826"]
+  target_tags = ["sfcore-test-management-gateway"]
+  source_tags = ["sfcore-test-management-truth"]
+  source_ranges= ["20.32.0.0/12"]
+} 
+ module "Policy_from_SFCore-Test-Management_Truth_to_SFCore-Test-Perimeter_LoadBalancer" {
+  source = "./firewall/ingress_rule"
+  name = "rule-41"
+  network = "${var.vpc}"
+  project = "${var.project}"
+  priority= 10000
+  tcp_ports = ["4194","10248-10250","10255"]
+  udp_ports = []
+  target_tags = ["sfcore-test-perimeter-loadbalancer"]
+  source_tags = ["sfcore-test-management-truth"]
+  source_ranges= ["20.32.0.0/12"]
+} 
+ module "Policy_from_SFCore-Test-Management_Truth_to_SFCore-Test-Logging_Monitoring" {
+  source = "./firewall/ingress_rule"
+  name = "rule-42"
+  network = "${var.vpc}"
+  project = "${var.project}"
+  priority= 10000
+  tcp_ports = ["80","443","1521","4194","4200","7014","7442","8080","8443-8444","9998","10248-10250","10255","15372","18443-18444"]
+  udp_ports = ["162"]
+  target_tags = ["sfcore-test-logging-monitoring"]
+  source_tags = ["sfcore-test-management-truth"]
+  source_ranges= ["20.32.0.0/12"]
+} 
+ module "Policy_from_SFCore-Test-Management_Truth_to_SFCore-Test-Management_Gateway" {
+  source = "./firewall/ingress_rule"
+  name = "rule-43"
+  network = "${var.vpc}"
+  project = "${var.project}"
+  priority= 10000
+  tcp_ports = ["22","80","111","162","443","1521","2001-2009","2049","2181","2484","4194","4567","4900","5666","6681-6689","7802","8026-8027","8080-8081","8443","8980-8981","10248-10250","10255","50052"]
+  udp_ports = ["69","111","161-162","2049","2323","25826"]
+  target_tags = ["sfcore-test-management-gateway"]
+  source_tags = ["sfcore-test-management-truth"]
+  source_ranges= ["20.32.0.0/12"]
+} 
+ module "intra_sg_rule" {
+  source = "./firewall/ingress_rule"
+  name = "rule-44"
+  network = "${var.vpc}"
+  project = "${var.project}"
+  priority= 10000
+  tcp_ports = ["1-65355"]
+  udp_ports = ["1-65355"]
+  target_tags = ["sfcore-test-management-truth"]
+  source_tags = ["sfcore-test-management-truth"]
+  source_ranges= ["20.32.0.0/12"]
+} 
