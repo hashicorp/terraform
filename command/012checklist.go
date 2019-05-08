@@ -70,9 +70,16 @@ func (c *ZeroTwelveChecklistCommand) Run(args []string) int {
 	items := make(map[string][]string)
 	hasItems := c.zeroTwelveChecklists(root, items)
 	if !hasItems {
-		// TODO: Success message
+		fmt.Print(
+			"Looks good! We did not detect any problems that ought to be\naddressed before upgrading to Terraform v0.12.\n\n" +
+				"This tool is not perfect though, so please check the v0.12 upgrade\nguide for additional guidance, and for next steps:\n    https://www.terraform.io/upgrade-guides/0-12.html\n\n",
+		)
 		return 0
 	}
+
+	fmt.Print(
+		"After analyzing this configuration and working directory, we have identified some necessary steps that we recommend you take before upgrading to Terraform v0.12:\n\n",
+	)
 
 	modKeys := make([]string, 0, len(items))
 	for k := range items {
@@ -103,6 +110,10 @@ func (c *ZeroTwelveChecklistCommand) Run(args []string) int {
 			fmt.Printf("\n")
 		}
 	}
+
+	fmt.Print(
+		"Taking these steps before upgrading to Terraform v0.12 will simplify the upgrade process by avoiding syntax errors and other compatibility problems.\n\n",
+	)
 
 	return 1
 }
