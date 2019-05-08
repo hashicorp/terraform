@@ -97,7 +97,7 @@ resources into source files in whatever way makes sense for your infrastructure.
 ## Terraform CLI vs. Providers
 
 The Terraform command line interface (CLI) is a general engine for evaluating
-and applying Terraform configuations. It defines the Terraform language syntax
+and applying Terraform configurations. It defines the Terraform language syntax
 and overall structure, and coordinates sequences of changes that must be made to
 make remote infrastructure match the given configuration.
 
