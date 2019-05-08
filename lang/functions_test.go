@@ -777,6 +777,29 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"uuidv5": {
+			{
+				`uuidv5("dns", "tada")`,
+				cty.StringVal("faa898db-9b9d-5b75-86a9-149e7bb8e3b8"),
+			},
+			{
+				`uuidv5("url", "tada")`,
+				cty.StringVal("2c1ff6b4-211f-577e-94de-d978b0caa16e"),
+			},
+			{
+				`uuidv5("oid", "tada")`,
+				cty.StringVal("61eeea26-5176-5288-87fc-232d6ed30d2f"),
+			},
+			{
+				`uuidv5("x500", "tada")`,
+				cty.StringVal("7e12415e-f7c9-57c3-9e43-52dc9950d264"),
+			},
+			{
+				`uuidv5("6ba7b810-9dad-11d1-80b4-00c04fd430c8", "tada")`,
+				cty.StringVal("faa898db-9b9d-5b75-86a9-149e7bb8e3b8"),
+			},
+		},
+
 		"values": {
 			{
 				`values({"hello"="world", "what's"="up"})`,
