@@ -1,5 +1,9 @@
 ## 0.11.14 (Unreleased)
 
+NEW FEATURES:
+
+* `terraform 0.12checklist` command detects and reports on some preparation steps that will make a subsequent Terraform 0.12 upgrade smoother.
+
 IMPROVEMENTS:
 
 * backend/s3: Support DynamoDB, IAM, and STS endpoint configurations [GH-20659]
