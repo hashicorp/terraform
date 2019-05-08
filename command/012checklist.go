@@ -2,15 +2,26 @@ package command
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
+	"net/url"
+	"path"
 	"sort"
 	"strings"
 
 	hcl2syntax "github.com/hashicorp/hcl2/hcl/hclsyntax"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/httpclient"
+	"github.com/hashicorp/terraform/plugin/discovery"
+	"github.com/hashicorp/terraform/svchost"
+	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/version"
 )
+
+var pluginProtocol5Constraint = discovery.ConstraintStr("~> 5.0").MustParse()
 
 // ZeroTwelveChecklistCommand is a Command implementation that checks whether
 // a configuration is ready for upgrade to Terraform 0.12, producing a list
@@ -57,13 +68,12 @@ func (c *ZeroTwelveChecklistCommand) Run(args []string) int {
 	}
 
 	items := make(map[string][]string)
-	hasItems := zeroTwelveChecklists(root, items)
+	hasItems := c.zeroTwelveChecklists(root, items)
 	if !hasItems {
 		// TODO: Success message
 		return 0
 	}
 
-	// TODO: Format the checklist.
 	modKeys := make([]string, 0, len(items))
 	for k := range items {
 		modKeys = append(modKeys, k)
@@ -97,10 +107,17 @@ func (c *ZeroTwelveChecklistCommand) Run(args []string) int {
 	return 1
 }
 
-func zeroTwelveChecklists(mod *module.Tree, into map[string][]string) bool {
+func (c *ZeroTwelveChecklistCommand) zeroTwelveChecklists(mod *module.Tree, into map[string][]string) bool {
 	key := strings.Join(mod.Path(), ".")
-	items := zeroTwelveChecklistForModule(mod)
+	items := c.zeroTwelveChecklistForModule(mod)
 	hasItems := false
+
+	if len(mod.Path()) == 0 { // It's the root module, then
+		// We only report providers for the root module because they are
+		// configuration-global and so this method already traverses the
+		// whole tree itself.
+		items = append(items, c.zeroTwelveChecklistForProviders(mod)...)
+	}
 
 	childMods := mod.Children()
 	for _, modCall := range mod.Config().Modules {
@@ -115,14 +132,14 @@ func zeroTwelveChecklists(mod *module.Tree, into map[string][]string) bool {
 			// up into a single action item for our calling module if any
 			// changes are needed, since the changes really need to be made
 			// in the upstream repository.
-			childItems := zeroTwelveChecklistForModule(childMod)
+			childItems := c.zeroTwelveChecklistForModule(childMod)
 			if len(childItems) > 0 {
 				items = append(items, fmt.Sprintf("Upgrade child module %q to a version that passes \"terraform 0.12checklist\".", strings.Join(mod.Path(), ".")))
 			}
 			continue
 		}
 
-		childHasItems := zeroTwelveChecklists(childMod, into)
+		childHasItems := c.zeroTwelveChecklists(childMod, into)
 		if childHasItems {
 			hasItems = true
 		}
@@ -135,7 +152,7 @@ func zeroTwelveChecklists(mod *module.Tree, into map[string][]string) bool {
 	return hasItems
 }
 
-func zeroTwelveChecklistForModule(mod *module.Tree) []string {
+func (c *ZeroTwelveChecklistCommand) zeroTwelveChecklistForModule(mod *module.Tree) []string {
 	var items []string
 	cfg := mod.Config()
 
@@ -179,6 +196,146 @@ func zeroTwelveChecklistForModule(mod *module.Tree) []string {
 				"`provider %q` alias %q is not a valid identifier.\n\n"+
 					"In Terraform 0.12, provider aliases must start with a letter. To fix this, rename the provider alias and any references to it in the configuration and then run `terraform apply` to re-attach any existing resources to the new alias name.",
 				pc.Name, pc.Alias,
+			))
+		}
+	}
+
+	return items
+}
+
+func (c *ZeroTwelveChecklistCommand) zeroTwelveChecklistForProviders(root *module.Tree) []string {
+	var items []string
+
+	const registryHost = svchost.Hostname("registry.terraform.io")
+	httpClient := httpclient.New()
+
+	host, err := c.Services.Discover(registryHost)
+	if err != nil {
+		items = append(items, "Terraform couldn't reach the Terraform Registry (at `registry.terraform.io`) to determine whether current provider plugins are v0.12-compatible.\n\nIn general, we recommend upgrading to the latest version of each provider before upgrading to Terraform v0.12.")
+		return items
+	}
+	baseURL, err := host.ServiceURL("providers.v1")
+	if err != nil {
+		items = append(items, "The Terraform Registry (at `registry.terraform.io`) does not seem to support the provider registry protocol (v1) that we depend on for provider compatibilty information. Perhaps an intermediate proxy is interfering with our requests, or this protocol version has become obsolete.\n\nIn general, we recommend upgrading to the latest version of each provider before upgrading to Terraform v0.12.")
+		return items
+	}
+
+	// What we are looking for here is any installed plugin that could be
+	// selected by this configuration but doesn't support Terraform v0.12.
+	// We can't determine protocol support by interrogating the executable
+	// directly, so instead we'll try to look it up via the Terraform Registry
+	// (mimicking what Terraform v0.12 would do) and see what the registry
+	// thinks is compatible.
+	available := c.providerPluginSet()
+	requirements := terraform.ModuleTreeDependencies(root, nil).AllPluginRequirements()
+	candidates := available.ConstrainVersions(requirements)
+	names := make([]string, 0, len(candidates))
+	for name := range candidates {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	for _, name := range names {
+		// We'll reach out to the registry now to see which versions are
+		// available that support protocol version 5, so we can filter
+		// our candidates further.
+		versionsPath := path.Join("-", url.PathEscape(name), "versions")
+		versionsURL := baseURL.String() + versionsPath
+
+		req, err := http.NewRequest("GET", versionsURL, nil)
+		if err != nil {
+			// We control all of the input to NewRequest above, so this should never happen in practice.
+			items = append(items, fmt.Sprintf("Failed to construct HTTP request to %s to discover what is available for provider %q: %s.", versionsURL, name, err))
+			continue
+		}
+		req.Header.Set("X-Terraform-Version", version.String())
+
+		// We assume no auth required here; in the unlikely event that the public
+		// registry starts requiring auth in future, this tool is likely to be
+		// obsolete.
+		resp, err := httpClient.Do(req)
+		if err != nil {
+			items = append(items, fmt.Sprintf("Provider %q may need to be upgraded to a newer version that supports Terraform 0.12. (Request for supported version information failed: %s.)", name, err))
+			continue
+		}
+		defer resp.Body.Close()
+
+		switch resp.StatusCode {
+		case http.StatusOK:
+			// OK
+		case http.StatusNotFound:
+			// Could happen if the provider is not one that HashiCorp distributes.
+			items = append(items, fmt.Sprintf("Provider %q may need to be upgraded to a newer version that supports Terraform 0.12. (Supported version information is not available for this provider.)", name))
+			continue
+		default:
+			items = append(items, fmt.Sprintf("Provider %q may need to be upgraded to a newer version that supports Terraform 0.12. (Request for supported version information failed with status %s.)", name, resp.Status))
+			continue
+		}
+
+		type ResponseBody struct {
+			Versions []struct {
+				Version   discovery.VersionStr   `json:"version"`
+				Protocols []discovery.VersionStr `json:"protocols"`
+			} `json:"versions"`
+		}
+		var body ResponseBody
+		dec := json.NewDecoder(resp.Body)
+		if err := dec.Decode(&body); err != nil {
+			items = append(items, fmt.Sprintf("Provider %q may need to be upgraded to a newer version that supports Terraform 0.12. (Request for supported version information returned an invalid response: %s.)", name, err))
+			continue
+		}
+
+		have := candidates[name]
+		supportedVersions := make(discovery.PluginMetaSet)
+		compatible := false
+	Versions:
+		for _, raw := range body.Versions {
+			proto5 := false
+			for _, protoVerRaw := range raw.Protocols {
+				protoVer, err := protoVerRaw.Parse()
+				if err != nil {
+					continue
+				}
+				if pluginProtocol5Constraint.Allows(protoVer) {
+					proto5 = true
+					break
+				}
+			}
+			if !proto5 {
+				continue
+			}
+
+			for meta := range have {
+				if meta.Name == name && meta.Version == raw.Version {
+					compatible = true
+					break Versions
+				}
+			}
+			supportedVersions.Add(discovery.PluginMeta{
+				Name:    name,
+				Version: raw.Version,
+			})
+		}
+
+		if !compatible {
+			if len(supportedVersions) == 0 {
+				// If we get here then this seems to be a HashiCorp-distributed
+				// provider (otherwise the registry would've returned 404 above)
+				// but there isn't a v0.12-compatible release available for it.
+				items = append(items, fmt.Sprintf(
+					"Upgrade provider %q to a version that is compatible with Terraform 0.12.\n\n"+
+						"No compatible version is available for automatic installation at this time. If this provider is still supported (not archived) then a compatible release should be available soon. For more information, check for 0.12 compatibility tasks in the provider's issue tracker.",
+					name,
+				))
+				continue
+			}
+
+			newest := supportedVersions.Newest()
+			items = append(items, fmt.Sprintf(
+				"Upgrade provider %q to version %s or newer.\n\n"+
+					"No currently-installed version is compatible with Terraform 0.12. To upgrade, set the version constraint for this provider as follows and then run `terraform init`:\n\n"+
+					"    version = \"~> %s\"",
+				name, newest.Version, newest.Version,
 			))
 		}
 	}
