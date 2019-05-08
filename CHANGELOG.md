@@ -16,6 +16,7 @@ BUG FIXES:
 * backend/remote: Fix panic when loading cached configuration with 0.12 backend schema [GH-21199]
 * core: Fix a potential crash when loading module manifests with Windows paths [GH-20812]
 * core: Make sure UIInput keeps working after being canceled [GH-21140]
+* core: Always try to select a workspace after initialization [GH-21230]
 
 ## 0.11.13 (March 11, 2019)
 
