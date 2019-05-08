@@ -2,10 +2,11 @@
 
 NEW FEATURES:
 
-* `terraform 0.12checklist` command detects and reports on some preparation steps that will make a subsequent Terraform 0.12 upgrade smoother.
+* `terraform 0.12checklist` command detects and reports on some preparation steps that will make a subsequent Terraform 0.12 upgrade smoother. [GH-21241]
 
 IMPROVEMENTS:
 
+* provider/terraform: The `terraform_remote_state` data source is now able to read outputs from a state snapshot created by Terraform 0.12, to provide more flexibility when upgrading individual configurations to Terraform 0.12 in a decomposed environment. [GH-21226]
 * backend/s3: Support DynamoDB, IAM, and STS endpoint configurations [GH-20659]
 * backend/s3: Support for AWS regions `eu-north-1` and `us-gov-east-1` [GH-20659]
 * backend/s3: Enhance retry logic and provide `max_retries` configuration for retry attempts [GH-20659]
