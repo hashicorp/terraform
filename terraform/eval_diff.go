@@ -368,7 +368,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		}
 		plannedNewVal = resp.PlannedState
 		plannedPrivate = resp.PlannedPrivate
-		for _, err := range schema.ImpliedType().TestConformance(plannedNewVal.Type()) {
+		for _, err := range plannedNewVal.Type().TestConformance(schema.ImpliedType()) {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Provider produced invalid plan",
