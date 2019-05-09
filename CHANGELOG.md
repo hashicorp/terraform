@@ -265,6 +265,8 @@ In addition to the high-level known issues above, please refer also to [the GitH
 
 ## 0.11.11 (December 14, 2018)
 
+**NOTE:** Subsequent releases in the v0.11.x line occurred after this branch pivoted to v0.12.0 development. For more information on these, see [the v0.11 maintenance changelog](https://github.com/hashicorp/terraform/blob/v0.11/CHANGELOG.md).
+
 IMPROVEMENTS:
 
 * backend/remote: Return detailed version (in)compatibility information ([#19660](https://github.com/hashicorp/terraform/issues/19660))
