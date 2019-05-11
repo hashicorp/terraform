@@ -1731,12 +1731,25 @@ func (m schemaMap) validatePrimitive(
 		}
 		decoded = n
 	case TypeInt:
-		// Verify that we can parse this as an int
-		var n int
-		if err := mapstructure.WeakDecode(raw, &n); err != nil {
-			return nil, []error{fmt.Errorf("%s: %s", k, err)}
+		switch {
+		case isProto5():
+			// We need to verify the type precisely, because WeakDecode will
+			// decode a float as an integer.
+
+			// the config shims only use int for integral number values
+			if v, ok := raw.(int); ok {
+				decoded = v
+			} else {
+				return nil, []error{fmt.Errorf("%s: must be a whole number, got %v", k, raw)}
+			}
+		default:
+			// Verify that we can parse this as an int
+			var n int
+			if err := mapstructure.WeakDecode(raw, &n); err != nil {
+				return nil, []error{fmt.Errorf("%s: %s", k, err)}
+			}
+			decoded = n
 		}
-		decoded = n
 	case TypeFloat:
 		// Verify that we can parse this as an int
 		var n float64

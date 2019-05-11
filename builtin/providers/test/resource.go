@@ -153,6 +153,10 @@ func testResource() *schema.Resource {
 				Optional:    true,
 				Description: "do not set in config",
 			},
+			"int": {
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
 		},
 	}
 }

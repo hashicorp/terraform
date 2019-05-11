@@ -1029,3 +1029,24 @@ resource "test_resource" "foo" {
 		},
 	})
 }
+
+func TestResource_floatInIntAttr(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+	required = "yep"
+	required_map = {
+	    key = "value"
+	}
+	int = 40.2
+}
+				`),
+				ExpectError: regexp.MustCompile(`must be a whole number, got 40.2`),
+			},
+		},
+	})
+}
