@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"strconv"
 
 	"github.com/zclconf/go-cty/cty"
@@ -293,6 +294,9 @@ func (s *GRPCProviderServer) UpgradeResourceState(_ context.Context, req *proto.
 		return resp, nil
 	}
 
+	// The provider isn't required to clean out removed fields
+	s.removeAttributes(jsonMap, blockForShimming.ImpliedType())
+
 	// now we need to turn the state into the default json representation, so
 	// that it can be re-decoded using the actual schema.
 	val, err := schema.JSONMapToStateValue(jsonMap, blockForShimming)
@@ -402,6 +406,52 @@ func (s *GRPCProviderServer) upgradeJSONState(version int, m map[string]interfac
 	}
 
 	return m, nil
+}
+
+// Remove any attributes no longer present in the schema, so that the json can
+// be correctly decoded.
+func (s *GRPCProviderServer) removeAttributes(v interface{}, ty cty.Type) {
+	// we're only concerned with finding maps that corespond to object
+	// attributes
+	switch v := v.(type) {
+	case []interface{}:
+		// If these aren't blocks the next call will be a noop
+		if ty.IsListType() || ty.IsSetType() {
+			eTy := ty.ElementType()
+			for _, eV := range v {
+				s.removeAttributes(eV, eTy)
+			}
+		}
+		return
+	case map[string]interface{}:
+		// map blocks aren't yet supported, but handle this just in case
+		if ty.IsMapType() {
+			eTy := ty.ElementType()
+			for _, eV := range v {
+				s.removeAttributes(eV, eTy)
+			}
+			return
+		}
+
+		if !ty.IsObjectType() {
+			// This shouldn't happen, and will fail to decode further on, so
+			// there's no need to handle it here.
+			log.Printf("[WARN] unexpected type %#v for map in json state", ty)
+			return
+		}
+
+		attrTypes := ty.AttributeTypes()
+		for attr, attrV := range v {
+			attrTy, ok := attrTypes[attr]
+			if !ok {
+				log.Printf("[DEBUG] attribute %q no longer present in schema", attr)
+				delete(v, attr)
+				continue
+			}
+
+			s.removeAttributes(attrV, attrTy)
+		}
+	}
 }
 
 func (s *GRPCProviderServer) Stop(_ context.Context, _ *proto.Stop_Request) (*proto.Stop_Response, error) {

@@ -116,6 +116,145 @@ func TestUpgradeState_jsonState(t *testing.T) {
 	}
 }
 
+func TestUpgradeState_removedAttr(t *testing.T) {
+	r1 := &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"two": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+		},
+	}
+
+	r2 := &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"multi": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"set": {
+							Type:     schema.TypeSet,
+							Optional: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"required": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	r3 := &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"config_mode_attr": {
+				Type:              schema.TypeList,
+				ConfigMode:        schema.SchemaConfigModeAttr,
+				SkipCoreTypeCheck: true,
+				Optional:          true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"foo": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	p := &schema.Provider{
+		ResourcesMap: map[string]*schema.Resource{
+			"r1": r1,
+			"r2": r2,
+			"r3": r3,
+		},
+	}
+
+	server := &GRPCProviderServer{
+		provider: p,
+	}
+
+	for _, tc := range []struct {
+		name     string
+		raw      string
+		expected cty.Value
+	}{
+		{
+			name: "r1",
+			raw:  `{"id":"bar","removed":"removed","two":"2"}`,
+			expected: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("bar"),
+				"two": cty.StringVal("2"),
+			}),
+		},
+		{
+			name: "r2",
+			raw:  `{"id":"bar","multi":[{"set":[{"required":"ok","removed":"removed"}]}]}`,
+			expected: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("bar"),
+				"multi": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"set": cty.SetVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"required": cty.StringVal("ok"),
+							}),
+						}),
+					}),
+				}),
+			}),
+		},
+		{
+			name: "r3",
+			raw:  `{"id":"bar","config_mode_attr":[{"foo":"ok","removed":"removed"}]}`,
+			expected: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("bar"),
+				"config_mode_attr": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.StringVal("ok"),
+					}),
+				}),
+			}),
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			req := &proto.UpgradeResourceState_Request{
+				TypeName: tc.name,
+				Version:  0,
+				RawState: &proto.RawState{
+					Json: []byte(tc.raw),
+				},
+			}
+			resp, err := server.UpgradeResourceState(nil, req)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if len(resp.Diagnostics) > 0 {
+				for _, d := range resp.Diagnostics {
+					t.Errorf("%#v", d)
+				}
+				t.Fatal("error")
+			}
+			val, err := msgpack.Unmarshal(resp.UpgradedState.Msgpack, p.ResourcesMap[tc.name].CoreConfigSchema().ImpliedType())
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !tc.expected.RawEquals(val) {
+				t.Fatalf("\nexpected: %#v\ngot:      %#v\n", tc.expected, val)
+			}
+		})
+	}
+
+}
+
 func TestUpgradeState_flatmapState(t *testing.T) {
 	r := &schema.Resource{
 		SchemaVersion: 4,
