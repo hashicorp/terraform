@@ -42,6 +42,7 @@ Currently the remote backend supports the following Terraform commands:
 - `plan`
 - `providers`
 - `show`
+- `state` (supports all sub-commands: list, mv, pull, push, rm, show)
 - `taint`
 - `untaint`
 - `validate`
