@@ -27,6 +27,27 @@ type fileChecksum struct {
 	Filename string
 }
 
+// A ChecksumError is returned when a checksum differs
+type ChecksumError struct {
+	Hash     hash.Hash
+	Actual   []byte
+	Expected []byte
+	File     string
+}
+
+func (cerr *ChecksumError) Error() string {
+	if cerr == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf(
+		"Checksums did not match for %s.\nExpected: %s\nGot: %s\n%T",
+		cerr.File,
+		hex.EncodeToString(cerr.Expected),
+		hex.EncodeToString(cerr.Actual),
+		cerr.Hash, // ex: *sha256.digest
+	)
+}
+
 // checksum is a simple method to compute the checksum of a source file
 // and compare it to the given expected value.
 func (c *fileChecksum) checksum(source string) error {
@@ -42,10 +63,12 @@ func (c *fileChecksum) checksum(source string) error {
 	}
 
 	if actual := c.Hash.Sum(nil); !bytes.Equal(actual, c.Value) {
-		return fmt.Errorf(
-			"Checksums did not match.\nExpected: %s\nGot: %s",
-			hex.EncodeToString(c.Value),
-			hex.EncodeToString(actual))
+		return &ChecksumError{
+			Hash:     c.Hash,
+			Actual:   actual,
+			Expected: c.Value,
+			File:     source,
+		}
 	}
 
 	return nil
