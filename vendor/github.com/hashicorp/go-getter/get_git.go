@@ -34,6 +34,15 @@ func (g *GitGetter) Get(dst string, u *url.URL) error {
 		return fmt.Errorf("git must be available and on the PATH")
 	}
 
+	// The port number must be parseable as an integer. If not, the user
+	// was probably trying to use a scp-style address, in which case the
+	// ssh:// prefix must be removed to indicate that.
+	if portStr := u.Port(); portStr != "" {
+		if _, err := strconv.ParseUint(portStr, 10, 16); err != nil {
+			return fmt.Errorf("invalid port number %q; if using the \"scp-like\" git address scheme where a colon introduces the path instead, remove the ssh:// portion and use just the git:: prefix", portStr)
+		}
+	}
+
 	// Extract some query parameters we use
 	var ref, sshKey string
 	var depth int
@@ -87,26 +96,6 @@ func (g *GitGetter) Get(dst string, u *url.URL) error {
 		fh.Close()
 		if err != nil {
 			return err
-		}
-	}
-
-	// For SSH-style URLs, if they use the SCP syntax of host:path, then
-	// the URL will be mangled. We detect that here and correct the path.
-	// Example: host:path/bar will turn into host/path/bar
-	if u.Scheme == "ssh" {
-		if idx := strings.Index(u.Host, ":"); idx > -1 {
-			// Copy the URL so we don't modify the input
-			var newU url.URL = *u
-			u = &newU
-
-			// Path includes the part after the ':'.
-			u.Path = u.Host[idx+1:] + u.Path
-			if u.Path[0] != '/' {
-				u.Path = "/" + u.Path
-			}
-
-			// Host trims up to the :
-			u.Host = u.Host[:idx]
 		}
 	}
 
