@@ -1163,25 +1163,22 @@ func normalizeNullValues(dst, src cty.Value, apply bool) cty.Value {
 	if !src.IsNull() && !src.IsKnown() {
 		// Return src during plan to retain unknown interpolated placeholders,
 		// which could be lost if we're only updating a resource. If this is a
-		// read scenario, then there shouldn't be any unknowns all.
+		// read scenario, then there shouldn't be any unknowns at all.
 		if dst.IsNull() && !apply {
 			return src
 		}
 		return dst
 	}
 
-	// handle null/empty changes for collections
-	if ty.IsCollectionType() {
-		if src.IsNull() && !dst.IsNull() && dst.IsKnown() {
-			if dst.LengthInt() == 0 {
-				return src
-			}
-		}
+	// Handle null/empty changes for collections during apply.
+	// A change between null and empty values prefers src to make sure the state
+	// is consistent between plan and apply.
+	if ty.IsCollectionType() && apply {
+		dstEmpty := !dst.IsNull() && dst.IsKnown() && dst.LengthInt() == 0
+		srcEmpty := !src.IsNull() && src.IsKnown() && src.LengthInt() == 0
 
-		if dst.IsNull() && !src.IsNull() && src.IsKnown() {
-			if src.LengthInt() == 0 {
-				return src
-			}
+		if (src.IsNull() && dstEmpty) || (srcEmpty && dst.IsNull()) {
+			return src
 		}
 	}
 
@@ -1214,6 +1211,7 @@ func normalizeNullValues(dst, src cty.Value, apply bool) cty.Value {
 				}
 				dstVal = cty.NullVal(v.Type())
 			}
+
 			dstMap[key] = normalizeNullValues(dstVal, v, apply)
 		}
 
