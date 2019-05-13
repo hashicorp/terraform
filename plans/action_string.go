@@ -4,6 +4,19 @@ package plans
 
 import "strconv"
 
+func _() {
+	// An "invalid array index" compiler error signifies that the constant values have changed.
+	// Re-run the stringer command to generate them again.
+	var x [1]struct{}
+	_ = x[NoOp-0]
+	_ = x[Create-43]
+	_ = x[Read-8592]
+	_ = x[Update-126]
+	_ = x[DeleteThenCreate-8723]
+	_ = x[CreateThenDelete-177]
+	_ = x[Delete-45]
+}
+
 const (
 	_Action_name_0 = "NoOp"
 	_Action_name_1 = "Create"
