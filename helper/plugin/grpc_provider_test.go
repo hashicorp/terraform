@@ -1141,6 +1141,41 @@ func TestNormalizeNullValues(t *testing.T) {
 				}),
 			}),
 		},
+		{
+			Src: cty.ObjectVal(map[string]cty.Value{
+				"set": cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{
+					"list": cty.List(cty.String),
+				}))),
+			}),
+			Dst: cty.ObjectVal(map[string]cty.Value{
+				"set": cty.SetValEmpty(cty.Object(map[string]cty.Type{
+					"list": cty.List(cty.String),
+				})),
+			}),
+			Expect: cty.ObjectVal(map[string]cty.Value{
+				"set": cty.SetValEmpty(cty.Object(map[string]cty.Type{
+					"list": cty.List(cty.String),
+				})),
+			}),
+		},
+		{
+			Src: cty.ObjectVal(map[string]cty.Value{
+				"set": cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{
+					"list": cty.List(cty.String),
+				}))),
+			}),
+			Dst: cty.ObjectVal(map[string]cty.Value{
+				"set": cty.SetValEmpty(cty.Object(map[string]cty.Type{
+					"list": cty.List(cty.String),
+				})),
+			}),
+			Expect: cty.ObjectVal(map[string]cty.Value{
+				"set": cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{
+					"list": cty.List(cty.String),
+				}))),
+			}),
+			Apply: true,
+		},
 	} {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			got := normalizeNullValues(tc.Dst, tc.Src, tc.Apply)
