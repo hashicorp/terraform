@@ -52,7 +52,7 @@ func (s *GRPCProviderServer) GetSchema(_ context.Context, req *proto.GetProvider
 	}
 
 	resp.Provider = &proto.Schema{
-		Block: convert.ConfigSchemaToProto(s.getProviderSchemaBlockForCore()),
+		Block: convert.ConfigSchemaToProto(s.getProviderSchemaBlock()),
 	}
 
 	for typ, res := range s.provider.ResourcesMap {
@@ -72,46 +72,26 @@ func (s *GRPCProviderServer) GetSchema(_ context.Context, req *proto.GetProvider
 	return resp, nil
 }
 
-func (s *GRPCProviderServer) getProviderSchemaBlockForCore() *configschema.Block {
+func (s *GRPCProviderServer) getProviderSchemaBlock() *configschema.Block {
 	return schema.InternalMap(s.provider.Schema).CoreConfigSchema()
 }
 
-func (s *GRPCProviderServer) getResourceSchemaBlockForCore(name string) *configschema.Block {
+func (s *GRPCProviderServer) getResourceSchemaBlock(name string) *configschema.Block {
 	res := s.provider.ResourcesMap[name]
 	return res.CoreConfigSchema()
 }
 
-func (s *GRPCProviderServer) getDatasourceSchemaBlockForCore(name string) *configschema.Block {
+func (s *GRPCProviderServer) getDatasourceSchemaBlock(name string) *configschema.Block {
 	dat := s.provider.DataSourcesMap[name]
 	return dat.CoreConfigSchema()
-}
-
-func (s *GRPCProviderServer) getProviderSchemaBlockForShimming() *configschema.Block {
-	newSchema := map[string]*schema.Schema{}
-	for attr, s := range s.provider.Schema {
-		newSchema[attr] = schema.LegacySchema(s)
-	}
-
-	return schema.InternalMap(newSchema).CoreConfigSchema()
-}
-
-func (s *GRPCProviderServer) getResourceSchemaBlockForShimming(name string) *configschema.Block {
-	res := s.provider.ResourcesMap[name]
-	return schema.LegacyResourceSchema(res).CoreConfigSchema()
-}
-
-func (s *GRPCProviderServer) getDatasourceSchemaBlockForShimming(name string) *configschema.Block {
-	dat := s.provider.DataSourcesMap[name]
-	return schema.LegacyResourceSchema(dat).CoreConfigSchema()
 }
 
 func (s *GRPCProviderServer) PrepareProviderConfig(_ context.Context, req *proto.PrepareProviderConfig_Request) (*proto.PrepareProviderConfig_Response, error) {
 	resp := &proto.PrepareProviderConfig_Response{}
 
-	blockForCore := s.getProviderSchemaBlockForCore()
-	blockForShimming := s.getProviderSchemaBlockForShimming()
+	schemaBlock := s.getProviderSchemaBlock()
 
-	configVal, err := msgpack.Unmarshal(req.Config.Msgpack, blockForCore.ImpliedType())
+	configVal, err := msgpack.Unmarshal(req.Config.Msgpack, schemaBlock.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
@@ -182,7 +162,7 @@ func (s *GRPCProviderServer) PrepareProviderConfig(_ context.Context, req *proto
 		return resp, nil
 	}
 
-	configVal, err = blockForShimming.CoerceValue(configVal)
+	configVal, err = schemaBlock.CoerceValue(configVal)
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
@@ -194,12 +174,12 @@ func (s *GRPCProviderServer) PrepareProviderConfig(_ context.Context, req *proto
 		return resp, nil
 	}
 
-	config := terraform.NewResourceConfigShimmed(configVal, blockForShimming)
+	config := terraform.NewResourceConfigShimmed(configVal, schemaBlock)
 
 	warns, errs := s.provider.Validate(config)
 	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, convert.WarnsAndErrsToProto(warns, errs))
 
-	preparedConfigMP, err := msgpack.Marshal(configVal, blockForCore.ImpliedType())
+	preparedConfigMP, err := msgpack.Marshal(configVal, schemaBlock.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
@@ -213,16 +193,15 @@ func (s *GRPCProviderServer) PrepareProviderConfig(_ context.Context, req *proto
 func (s *GRPCProviderServer) ValidateResourceTypeConfig(_ context.Context, req *proto.ValidateResourceTypeConfig_Request) (*proto.ValidateResourceTypeConfig_Response, error) {
 	resp := &proto.ValidateResourceTypeConfig_Response{}
 
-	blockForCore := s.getResourceSchemaBlockForCore(req.TypeName)
-	blockForShimming := s.getResourceSchemaBlockForShimming(req.TypeName)
+	schemaBlock := s.getResourceSchemaBlock(req.TypeName)
 
-	configVal, err := msgpack.Unmarshal(req.Config.Msgpack, blockForCore.ImpliedType())
+	configVal, err := msgpack.Unmarshal(req.Config.Msgpack, schemaBlock.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 
-	config := terraform.NewResourceConfigShimmed(configVal, blockForShimming)
+	config := terraform.NewResourceConfigShimmed(configVal, schemaBlock)
 
 	warns, errs := s.provider.ValidateResource(req.TypeName, config)
 	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, convert.WarnsAndErrsToProto(warns, errs))
@@ -233,10 +212,9 @@ func (s *GRPCProviderServer) ValidateResourceTypeConfig(_ context.Context, req *
 func (s *GRPCProviderServer) ValidateDataSourceConfig(_ context.Context, req *proto.ValidateDataSourceConfig_Request) (*proto.ValidateDataSourceConfig_Response, error) {
 	resp := &proto.ValidateDataSourceConfig_Response{}
 
-	blockForCore := s.getDatasourceSchemaBlockForCore(req.TypeName)
-	blockForShimming := s.getDatasourceSchemaBlockForShimming(req.TypeName)
+	schemaBlock := s.getDatasourceSchemaBlock(req.TypeName)
 
-	configVal, err := msgpack.Unmarshal(req.Config.Msgpack, blockForCore.ImpliedType())
+	configVal, err := msgpack.Unmarshal(req.Config.Msgpack, schemaBlock.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
@@ -248,7 +226,7 @@ func (s *GRPCProviderServer) ValidateDataSourceConfig(_ context.Context, req *pr
 		return resp, nil
 	}
 
-	config := terraform.NewResourceConfigShimmed(configVal, blockForShimming)
+	config := terraform.NewResourceConfigShimmed(configVal, schemaBlock)
 
 	warns, errs := s.provider.ValidateDataSource(req.TypeName, config)
 	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, convert.WarnsAndErrsToProto(warns, errs))
@@ -260,7 +238,7 @@ func (s *GRPCProviderServer) UpgradeResourceState(_ context.Context, req *proto.
 	resp := &proto.UpgradeResourceState_Response{}
 
 	res := s.provider.ResourcesMap[req.TypeName]
-	blockForCore := s.getResourceSchemaBlockForCore(req.TypeName)
+	schemaBlock := s.getResourceSchemaBlock(req.TypeName)
 
 	version := int(req.Version)
 
@@ -296,18 +274,18 @@ func (s *GRPCProviderServer) UpgradeResourceState(_ context.Context, req *proto.
 	}
 
 	// The provider isn't required to clean out removed fields
-	s.removeAttributes(jsonMap, blockForCore.ImpliedType())
+	s.removeAttributes(jsonMap, schemaBlock.ImpliedType())
 
 	// now we need to turn the state into the default json representation, so
 	// that it can be re-decoded using the actual schema.
-	val, err := schema.JSONMapToStateValue(jsonMap, blockForCore)
+	val, err := schema.JSONMapToStateValue(jsonMap, schemaBlock)
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 
 	// encode the final state to the expected msgpack format
-	newStateMP, err := msgpack.Marshal(val, blockForCore.ImpliedType())
+	newStateMP, err := msgpack.Marshal(val, schemaBlock.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
@@ -330,7 +308,7 @@ func (s *GRPCProviderServer) upgradeFlatmapState(version int, m map[string]strin
 	// first determine if we need to call the legacy MigrateState func
 	requiresMigrate := version < res.SchemaVersion
 
-	schemaType := schema.LegacyResourceSchema(res).CoreConfigSchema().ImpliedType()
+	schemaType := res.CoreConfigSchema().ImpliedType()
 
 	// if there are any StateUpgraders, then we need to only compare
 	// against the first version there
@@ -474,10 +452,9 @@ func (s *GRPCProviderServer) Stop(_ context.Context, _ *proto.Stop_Request) (*pr
 func (s *GRPCProviderServer) Configure(_ context.Context, req *proto.Configure_Request) (*proto.Configure_Response, error) {
 	resp := &proto.Configure_Response{}
 
-	blockForCore := s.getProviderSchemaBlockForCore()
-	blockForShimming := s.getProviderSchemaBlockForShimming()
+	schemaBlock := s.getProviderSchemaBlock()
 
-	configVal, err := msgpack.Unmarshal(req.Config.Msgpack, blockForCore.ImpliedType())
+	configVal, err := msgpack.Unmarshal(req.Config.Msgpack, schemaBlock.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
@@ -491,7 +468,7 @@ func (s *GRPCProviderServer) Configure(_ context.Context, req *proto.Configure_R
 		return resp, nil
 	}
 
-	config := terraform.NewResourceConfigShimmed(configVal, blockForShimming)
+	config := terraform.NewResourceConfigShimmed(configVal, schemaBlock)
 	err = s.provider.Configure(config)
 	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 
@@ -502,10 +479,9 @@ func (s *GRPCProviderServer) ReadResource(_ context.Context, req *proto.ReadReso
 	resp := &proto.ReadResource_Response{}
 
 	res := s.provider.ResourcesMap[req.TypeName]
-	blockForCore := s.getResourceSchemaBlockForCore(req.TypeName)
-	blockForShimming := s.getResourceSchemaBlockForShimming(req.TypeName)
+	schemaBlock := s.getResourceSchemaBlock(req.TypeName)
 
-	stateVal, err := msgpack.Unmarshal(req.CurrentState.Msgpack, blockForCore.ImpliedType())
+	stateVal, err := msgpack.Unmarshal(req.CurrentState.Msgpack, schemaBlock.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
@@ -527,7 +503,7 @@ func (s *GRPCProviderServer) ReadResource(_ context.Context, req *proto.ReadReso
 		// The old provider API used an empty id to signal that the remote
 		// object appears to have been deleted, but our new protocol expects
 		// to see a null value (in the cty sense) in that case.
-		newStateMP, err := msgpack.Marshal(cty.NullVal(blockForCore.ImpliedType()), blockForCore.ImpliedType())
+		newStateMP, err := msgpack.Marshal(cty.NullVal(schemaBlock.ImpliedType()), schemaBlock.ImpliedType())
 		if err != nil {
 			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		}
@@ -540,7 +516,7 @@ func (s *GRPCProviderServer) ReadResource(_ context.Context, req *proto.ReadReso
 	// helper/schema should always copy the ID over, but do it again just to be safe
 	newInstanceState.Attributes["id"] = newInstanceState.ID
 
-	newStateVal, err := hcl2shim.HCL2ValueFromFlatmap(newInstanceState.Attributes, blockForShimming.ImpliedType())
+	newStateVal, err := hcl2shim.HCL2ValueFromFlatmap(newInstanceState.Attributes, schemaBlock.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
@@ -549,7 +525,7 @@ func (s *GRPCProviderServer) ReadResource(_ context.Context, req *proto.ReadReso
 	newStateVal = normalizeNullValues(newStateVal, stateVal, false)
 	newStateVal = copyTimeoutValues(newStateVal, stateVal)
 
-	newStateMP, err := msgpack.Marshal(newStateVal, blockForCore.ImpliedType())
+	newStateMP, err := msgpack.Marshal(newStateVal, schemaBlock.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
@@ -574,10 +550,9 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 	resp.LegacyTypeSystem = true
 
 	res := s.provider.ResourcesMap[req.TypeName]
-	blockForCore := s.getResourceSchemaBlockForCore(req.TypeName)
-	blockForShimming := s.getResourceSchemaBlockForShimming(req.TypeName)
+	schemaBlock := s.getResourceSchemaBlock(req.TypeName)
 
-	priorStateVal, err := msgpack.Unmarshal(req.PriorState.Msgpack, blockForCore.ImpliedType())
+	priorStateVal, err := msgpack.Unmarshal(req.PriorState.Msgpack, schemaBlock.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
@@ -585,7 +560,7 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 
 	create := priorStateVal.IsNull()
 
-	proposedNewStateVal, err := msgpack.Unmarshal(req.ProposedNewState.Msgpack, blockForCore.ImpliedType())
+	proposedNewStateVal, err := msgpack.Unmarshal(req.ProposedNewState.Msgpack, schemaBlock.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
@@ -623,7 +598,7 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 	}
 
 	// turn the proposed state into a legacy configuration
-	cfg := terraform.NewResourceConfigShimmed(proposedNewStateVal, blockForShimming)
+	cfg := terraform.NewResourceConfigShimmed(proposedNewStateVal, schemaBlock)
 
 	diff, err := s.provider.SimpleDiff(info, priorState, cfg)
 	if err != nil {
@@ -656,15 +631,15 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 	}
 
 	// now we need to apply the diff to the prior state, so get the planned state
-	plannedAttrs, err := diff.Apply(priorState.Attributes, blockForShimming)
+	plannedAttrs, err := diff.Apply(priorState.Attributes, schemaBlock)
 
-	plannedStateVal, err := hcl2shim.HCL2ValueFromFlatmap(plannedAttrs, blockForShimming.ImpliedType())
+	plannedStateVal, err := hcl2shim.HCL2ValueFromFlatmap(plannedAttrs, schemaBlock.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 
-	plannedStateVal, err = blockForShimming.CoerceValue(plannedStateVal)
+	plannedStateVal, err = schemaBlock.CoerceValue(plannedStateVal)
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
@@ -696,10 +671,10 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 	// if this was creating the resource, we need to set any remaining computed
 	// fields
 	if create {
-		plannedStateVal = SetUnknowns(plannedStateVal, blockForShimming)
+		plannedStateVal = SetUnknowns(plannedStateVal, schemaBlock)
 	}
 
-	plannedMP, err := msgpack.Marshal(plannedStateVal, blockForCore.ImpliedType())
+	plannedMP, err := msgpack.Marshal(plannedStateVal, schemaBlock.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
@@ -752,7 +727,7 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 		requiresNew = append(requiresNew, "id")
 	}
 
-	requiresReplace, err := hcl2shim.RequiresReplace(requiresNew, blockForShimming.ImpliedType())
+	requiresReplace, err := hcl2shim.RequiresReplace(requiresNew, schemaBlock.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
@@ -773,16 +748,15 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 	}
 
 	res := s.provider.ResourcesMap[req.TypeName]
-	blockForCore := s.getResourceSchemaBlockForCore(req.TypeName)
-	blockForShimming := s.getResourceSchemaBlockForShimming(req.TypeName)
+	schemaBlock := s.getResourceSchemaBlock(req.TypeName)
 
-	priorStateVal, err := msgpack.Unmarshal(req.PriorState.Msgpack, blockForCore.ImpliedType())
+	priorStateVal, err := msgpack.Unmarshal(req.PriorState.Msgpack, schemaBlock.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 
-	plannedStateVal, err := msgpack.Unmarshal(req.PlannedState.Msgpack, blockForCore.ImpliedType())
+	plannedStateVal, err := msgpack.Unmarshal(req.PlannedState.Msgpack, schemaBlock.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
@@ -870,13 +844,13 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 	}
-	newStateVal := cty.NullVal(blockForShimming.ImpliedType())
+	newStateVal := cty.NullVal(schemaBlock.ImpliedType())
 
 	// Always return a null value for destroy.
 	// While this is usually indicated by a nil state, check for missing ID or
 	// attributes in the case of a provider failure.
 	if destroy || newInstanceState == nil || newInstanceState.Attributes == nil || newInstanceState.ID == "" {
-		newStateMP, err := msgpack.Marshal(newStateVal, blockForCore.ImpliedType())
+		newStateMP, err := msgpack.Marshal(newStateVal, schemaBlock.ImpliedType())
 		if err != nil {
 			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 			return resp, nil
@@ -889,7 +863,7 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 
 	// We keep the null val if we destroyed the resource, otherwise build the
 	// entire object, even if the new state was nil.
-	newStateVal, err = schema.StateValueFromInstanceState(newInstanceState, blockForShimming.ImpliedType())
+	newStateVal, err = schema.StateValueFromInstanceState(newInstanceState, schemaBlock.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
@@ -899,7 +873,7 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 
 	newStateVal = copyTimeoutValues(newStateVal, plannedStateVal)
 
-	newStateMP, err := msgpack.Marshal(newStateVal, blockForCore.ImpliedType())
+	newStateMP, err := msgpack.Marshal(newStateVal, schemaBlock.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
@@ -948,15 +922,14 @@ func (s *GRPCProviderServer) ImportResourceState(_ context.Context, req *proto.I
 			resourceType = req.TypeName
 		}
 
-		blockForCore := s.getResourceSchemaBlockForCore(resourceType)
-		blockForShimming := s.getResourceSchemaBlockForShimming(resourceType)
-		newStateVal, err := hcl2shim.HCL2ValueFromFlatmap(is.Attributes, blockForShimming.ImpliedType())
+		schemaBlock := s.getResourceSchemaBlock(resourceType)
+		newStateVal, err := hcl2shim.HCL2ValueFromFlatmap(is.Attributes, schemaBlock.ImpliedType())
 		if err != nil {
 			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 			return resp, nil
 		}
 
-		newStateMP, err := msgpack.Marshal(newStateVal, blockForCore.ImpliedType())
+		newStateMP, err := msgpack.Marshal(newStateVal, schemaBlock.ImpliedType())
 		if err != nil {
 			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 			return resp, nil
@@ -985,10 +958,9 @@ func (s *GRPCProviderServer) ImportResourceState(_ context.Context, req *proto.I
 func (s *GRPCProviderServer) ReadDataSource(_ context.Context, req *proto.ReadDataSource_Request) (*proto.ReadDataSource_Response, error) {
 	resp := &proto.ReadDataSource_Response{}
 
-	blockForCore := s.getDatasourceSchemaBlockForCore(req.TypeName)
-	blockForShimming := s.getDatasourceSchemaBlockForShimming(req.TypeName)
+	schemaBlock := s.getDatasourceSchemaBlock(req.TypeName)
 
-	configVal, err := msgpack.Unmarshal(req.Config.Msgpack, blockForCore.ImpliedType())
+	configVal, err := msgpack.Unmarshal(req.Config.Msgpack, schemaBlock.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
@@ -1004,7 +976,7 @@ func (s *GRPCProviderServer) ReadDataSource(_ context.Context, req *proto.ReadDa
 		return resp, nil
 	}
 
-	config := terraform.NewResourceConfigShimmed(configVal, blockForShimming)
+	config := terraform.NewResourceConfigShimmed(configVal, schemaBlock)
 
 	// we need to still build the diff separately with the Read method to match
 	// the old behavior
@@ -1021,7 +993,7 @@ func (s *GRPCProviderServer) ReadDataSource(_ context.Context, req *proto.ReadDa
 		return resp, nil
 	}
 
-	newStateVal, err := schema.StateValueFromInstanceState(newInstanceState, blockForShimming.ImpliedType())
+	newStateVal, err := schema.StateValueFromInstanceState(newInstanceState, schemaBlock.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
@@ -1029,7 +1001,7 @@ func (s *GRPCProviderServer) ReadDataSource(_ context.Context, req *proto.ReadDa
 
 	newStateVal = copyTimeoutValues(newStateVal, configVal)
 
-	newStateMP, err := msgpack.Marshal(newStateVal, blockForCore.ImpliedType())
+	newStateMP, err := msgpack.Marshal(newStateVal, schemaBlock.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
