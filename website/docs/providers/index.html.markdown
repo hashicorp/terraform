@@ -100,6 +100,7 @@ down to see all providers.
 - [ProfitBricks](/docs/providers/profitbricks/index.html)
 - [RabbitMQ](/docs/providers/rabbitmq/index.html)
 - [Rancher](/docs/providers/rancher/index.html)
+- [Rancher2](/docs/providers/rancher2/index.html)
 - [Random](/docs/providers/random/index.html)
 - [RightScale](/docs/providers/rightscale/index.html)
 - [Rundeck](/docs/providers/rundeck/index.html)
