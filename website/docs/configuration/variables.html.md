@@ -265,7 +265,7 @@ $ export TF_VAR_availability_zone_names='["us-west-1b","us-west-1d"]'
 ```
 
 For readability, and to avoid the need to worry about shell escaping, we
-recommend always setting complex variable values via varable definitions files.
+recommend always setting complex variable values via variable definitions files.
 
 ### Variable Definition Precedence
 
