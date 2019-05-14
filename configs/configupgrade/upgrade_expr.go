@@ -168,10 +168,17 @@ Value:
 			src, moreDiags := upgradeExpr(node, filename, interp, an)
 			diags = diags.Append(moreDiags)
 			buf.Write(src)
-			if multiline {
-				buf.WriteString(",\n")
-			} else if i < len(tv.List)-1 {
-				buf.WriteString(", ")
+			if lit, ok := node.(*hcl1ast.LiteralType); ok && lit.LineComment != nil {
+				for _, comment := range lit.LineComment.List {
+					buf.WriteString(", " + comment.Text)
+					buf.WriteString("\n")
+				}
+			} else {
+				if multiline {
+					buf.WriteString(",\n")
+				} else if i < len(tv.List)-1 {
+					buf.WriteString(", ")
+				}
 			}
 		}
 		buf.WriteString("]")
