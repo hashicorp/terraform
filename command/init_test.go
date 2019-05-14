@@ -1310,3 +1310,33 @@ func TestInit_012UpgradeNeededInAutomation(t *testing.T) {
 		t.Errorf("looks like we incorrectly gave an upgrade command to run:\n%s", output)
 	}
 }
+
+func TestInit_syntaxErrorVersionSniff(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-sniff-version-error"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	// Check output.
+	// Currently, this lands in the "upgrade may be needed" codepath, because
+	// the intentional syntax error in our test fixture is something that
+	// "terraform 0.12upgrade" could fix.
+	output := ui.OutputWriter.String()
+	if got, want := output, "Terraform has initialized, but configuration upgrades may be needed"; !strings.Contains(got, want) {
+		t.Fatalf("wrong output\ngot:\n%s\n\nwant: message containing %q", got, want)
+	}
+}
