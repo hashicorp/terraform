@@ -174,14 +174,6 @@ func (s *Schema) coreConfigSchemaBlock() *configschema.NestedBlock {
 // coreConfigSchemaType determines the core config schema type that corresponds
 // to a particular schema's type.
 func (s *Schema) coreConfigSchemaType() cty.Type {
-	if s.SkipCoreTypeCheck {
-		// If we're preparing a schema for Terraform Core and the schema is
-		// asking us to skip the Core type-check then we'll tell core that this
-		// attribute is dynamically-typed, so it'll just pass through anything
-		// and let us validate it on the plugin side.
-		return cty.DynamicPseudoType
-	}
-
 	switch s.Type {
 	case TypeString:
 		return cty.String
