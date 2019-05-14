@@ -2,6 +2,9 @@
 
 The following are the significant changes since 0.12.0-rc1.
 
+BUG FIXES:
+
+* configs/configupgrade: preserve in-line comments on lists [#21299]
 
 ## 0.12.0-rc1 (May 7, 2019)
 
