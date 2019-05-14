@@ -154,10 +154,9 @@ func TestUpgradeState_removedAttr(t *testing.T) {
 	r3 := &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"config_mode_attr": {
-				Type:              schema.TypeList,
-				ConfigMode:        schema.SchemaConfigModeAttr,
-				SkipCoreTypeCheck: true,
-				Optional:          true,
+				Type:       schema.TypeList,
+				ConfigMode: schema.SchemaConfigModeAttr,
+				Optional:   true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"foo": {
