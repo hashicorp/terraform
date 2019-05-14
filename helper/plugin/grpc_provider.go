@@ -261,30 +261,31 @@ func (s *GRPCProviderServer) UpgradeResourceState(_ context.Context, req *proto.
 
 	res := s.provider.ResourcesMap[req.TypeName]
 	blockForCore := s.getResourceSchemaBlockForCore(req.TypeName)
-	blockForShimming := s.getResourceSchemaBlockForShimming(req.TypeName)
 
 	version := int(req.Version)
 
-	var jsonMap map[string]interface{}
+	jsonMap := map[string]interface{}{}
 	var err error
 
-	// if there's a JSON state, we need to decode it.
-	if len(req.RawState.Json) > 0 {
-		err = json.Unmarshal(req.RawState.Json, &jsonMap)
-		if err != nil {
-			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
-			return resp, nil
-		}
-	}
-
+	switch {
 	// We first need to upgrade a flatmap state if it exists.
 	// There should never be both a JSON and Flatmap state in the request.
-	if req.RawState.Flatmap != nil {
+	case len(req.RawState.Flatmap) > 0:
 		jsonMap, version, err = s.upgradeFlatmapState(version, req.RawState.Flatmap, res)
 		if err != nil {
 			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 			return resp, nil
 		}
+	// if there's a JSON state, we need to decode it.
+	case len(req.RawState.Json) > 0:
+		err = json.Unmarshal(req.RawState.Json, &jsonMap)
+		if err != nil {
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+			return resp, nil
+		}
+	default:
+		log.Println("[DEBUG] no state provided to upgrade")
+		return resp, nil
 	}
 
 	// complete the upgrade of the JSON states
@@ -295,11 +296,11 @@ func (s *GRPCProviderServer) UpgradeResourceState(_ context.Context, req *proto.
 	}
 
 	// The provider isn't required to clean out removed fields
-	s.removeAttributes(jsonMap, blockForShimming.ImpliedType())
+	s.removeAttributes(jsonMap, blockForCore.ImpliedType())
 
 	// now we need to turn the state into the default json representation, so
 	// that it can be re-decoded using the actual schema.
-	val, err := schema.JSONMapToStateValue(jsonMap, blockForShimming)
+	val, err := schema.JSONMapToStateValue(jsonMap, blockForCore)
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
@@ -430,6 +431,11 @@ func (s *GRPCProviderServer) removeAttributes(v interface{}, ty cty.Type) {
 			for _, eV := range v {
 				s.removeAttributes(eV, eTy)
 			}
+			return
+		}
+
+		if ty == cty.DynamicPseudoType {
+			log.Printf("[DEBUG] ignoring dynamic block: %#v\n", v)
 			return
 		}
 
