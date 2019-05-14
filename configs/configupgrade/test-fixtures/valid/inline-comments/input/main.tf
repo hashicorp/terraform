@@ -7,3 +7,19 @@ variable "list" {
     "baz",
   ]
 }
+
+variable "list2" {
+  type = "list"
+
+  default = [
+    "foo",
+    "bar",
+    "baz",
+  ]
+}
+
+variable "list_the_third" {
+  type = "list"
+
+  default = ["foo", "bar", "baz"]
+}

@@ -171,8 +171,6 @@ Value:
 			if lit, ok := node.(*hcl1ast.LiteralType); ok && lit.LineComment != nil {
 				for _, comment := range lit.LineComment.List {
 					buf.WriteString(", " + comment.Text)
-				}
-				if multiline {
 					buf.WriteString("\n")
 				}
 			} else {
