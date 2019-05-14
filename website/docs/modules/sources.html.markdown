@@ -230,6 +230,26 @@ module "vpc" {
 The value of the `ref` argument can be any reference that would be accepted
 by the `git checkout` command, including branch and tag names.
 
+### "scp-like" address syntax
+
+When using Git over SSH, we recommend using the `ssh://`-prefixed URL form
+for consistency with all of the other URL-like git address forms.
+You may opt to use the alternative "scp-like" syntax instead, in which case you
+must omit the `ssh://` scheme part and include only the `git::` part.
+For example:
+
+```hcl
+module "storage" {
+  source = "git::username@example.com:storage.git"
+}
+```
+
+
+If you use the `ssh://` URL scheme then Terraform will assume that the colon
+marks the beginning of a port number, rather than the beginning of the path.
+This matches how Git itself interprets these different forms, aside from
+the Terraform-specific `git::` selector prefix.
+
 ## Generic Mercurial Repository
 
 You can use arbitrary Mercurial repositories by prefixing the address with the
