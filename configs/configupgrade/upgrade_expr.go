@@ -184,6 +184,10 @@ Value:
 		buf.WriteString("]")
 
 	case *hcl1ast.ObjectType:
+		if len(tv.List.Items) == 0 {
+			buf.WriteString("{}")
+			break
+		}
 		buf.WriteString("{\n")
 		for _, item := range tv.List.Items {
 			if len(item.Keys) != 1 {
