@@ -79,15 +79,16 @@ const (
 	//
 	// There is no limit to the number of daily on-demand backups that can be taken.
 	//
-	// Up to 10 simultaneous table operations are allowed per account. These operations
+	// Up to 50 simultaneous table operations are allowed per account. These operations
 	// include CreateTable, UpdateTable, DeleteTable,UpdateTimeToLive, RestoreTableFromBackup,
 	// and RestoreTableToPointInTime.
 	//
-	// For tables with secondary indexes, only one of those tables can be in the
-	// CREATING state at any point in time. Do not attempt to create more than one
-	// such table simultaneously.
+	// The only exception is when you are creating a table with one or more secondary
+	// indexes. You can have up to 25 such requests running at a time; however,
+	// if the table or index specifications are complex, DynamoDB might temporarily
+	// reduce the number of concurrent operations.
 	//
-	// The total limit of tables in the ACTIVE state is 250.
+	// There is a soft account limit of 256 tables.
 	ErrCodeLimitExceededException = "LimitExceededException"
 
 	// ErrCodePointInTimeRecoveryUnavailableException for service response error code
@@ -103,7 +104,7 @@ const (
 	// requests that receive this exception. Your request is eventually successful,
 	// unless your retry queue is too large to finish. Reduce the frequency of requests
 	// and use exponential backoff. For more information, go to Error Retries and
-	// Exponential Backoff (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html#Programming.Errors.RetryAndBackoff)
+	// Exponential Backoff (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html#Programming.Errors.RetryAndBackoff)
 	// in the Amazon DynamoDB Developer Guide.
 	ErrCodeProvisionedThroughputExceededException = "ProvisionedThroughputExceededException"
 
@@ -123,7 +124,7 @@ const (
 	// "RequestLimitExceeded".
 	//
 	// Throughput exceeds the current throughput limit for your account. Please
-	// contact AWS Support at AWS Support (http://docs.aws.amazon.com/https:/aws.amazon.com/support)
+	// contact AWS Support at AWS Support (https://docs.aws.amazon.com/https:/aws.amazon.com/support)
 	// to request a limit increase.
 	ErrCodeRequestLimitExceeded = "RequestLimitExceeded"
 

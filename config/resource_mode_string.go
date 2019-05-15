@@ -4,6 +4,14 @@ package config
 
 import "strconv"
 
+func _() {
+	// An "invalid array index" compiler error signifies that the constant values have changed.
+	// Re-run the stringer command to generate them again.
+	var x [1]struct{}
+	_ = x[ManagedResourceMode-0]
+	_ = x[DataResourceMode-1]
+}
+
 const _ResourceMode_name = "ManagedResourceModeDataResourceMode"
 
 var _ResourceMode_index = [...]uint8{0, 19, 35}

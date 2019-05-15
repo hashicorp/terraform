@@ -52,9 +52,12 @@ func Build(req *request.Request) {
 		target := req.ClientInfo.TargetPrefix + "." + req.Operation.Name
 		req.HTTPRequest.Header.Add("X-Amz-Target", target)
 	}
-	if req.ClientInfo.JSONVersion != "" {
+
+	// Only set the content type if one is not already specified and an
+	// JSONVersion is specified.
+	if ct, v := req.HTTPRequest.Header.Get("Content-Type"), req.ClientInfo.JSONVersion; len(ct) == 0 && len(v) != 0 {
 		jsonVersion := req.ClientInfo.JSONVersion
-		req.HTTPRequest.Header.Add("Content-Type", "application/x-amz-json-"+jsonVersion)
+		req.HTTPRequest.Header.Set("Content-Type", "application/x-amz-json-"+jsonVersion)
 	}
 }
 

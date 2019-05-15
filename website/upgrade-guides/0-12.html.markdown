@@ -8,15 +8,8 @@ description: |-
 
 # Upgrading to Terraform v0.12
 
-~> Terraform 0.12 has not yet been released. This guide includes some initial
-information to help when trying out the beta releases of Terraform v0.12.0, and
-will be updated with more detail until the final release. Please do not use
-v0.12.0 prereleases against production infrastructure.
-
-~> If you are trying v0.12.0-beta1, please see [the release announcement](https://www.hashicorp.com/blog/announcing-terraform-0-1-2-beta1) for some important extra information.
-
-[Terraform v0.12 will be a major release](https://hashicorp.com/blog/terraform-0-1-2-preview)
-focused on configuration language improvements and thus will include some
+[Terraform v0.12 is a major release](https://hashicorp.com/blog/terraform-0-1-2-preview)
+focused on configuration language improvements and thus includes some
 changes that you'll need to consider when upgrading. The goal of this guide is
 to cover the most common upgrade concerns and issues.
 
@@ -26,13 +19,17 @@ configurations can be prepared by running
 [the automatic upgrade tool](/docs/commands/0.12upgrade.html). Please read on
 for more information and recommendations on the upgrade process.
 
+-> If you are a developer maintaining a provider plugin, please see
+[the documentation on 0.12 compatibility for providers](/docs/extend/terraform-0.12-compatibility.html)
+to learn more about the changes that are required.
+
+
 ## Upgrade to Terraform 0.11 first
 
-If you are currently using Terraform v0.10 or earlier, we strongly recommend
-first completing an upgrade to the latest Terraform v0.11 release first. This
-will give you an opportunity to address any changes required for the previous
-major version upgrades separately, rather than making multiple changes at
-once.
+We strongly recommend completing an upgrade to the latest Terraform v0.11
+release first. This will give you an opportunity to address any changes
+required for the previous major version upgrades separately, rather than
+making multiple changes at once.
 
 In particular, if you are upgrading from a Terraform version prior to v0.9,
 you _must_ first [upgrade to Terraform v0.9](/upgrade-guides/0-9.html) and
@@ -44,83 +41,173 @@ This guide focuses on changes from v0.11 to v0.12. Each previous major release
 has its own upgrade guide, so please consult the other guides (available in the
 navigation) to upgrade step-by-step to v0.11 first.
 
-## Upgrading Terraform providers
+Terraform v0.11.14 (and any subsequent v0.11 releases) also include some
+additional functionality to help smooth the upgrade, which we will use later
+in this guide.
 
-The new language features in Terraform v0.12 required some changes to the
-protocol Terraform uses to interact with provider plugins. These changes give
-Terraform CLI access to the resource type schemas of each provider, allowing
-for more helpful validation-related error messages and more predictable behavior.
+Prior versions of Terraform are available from
+[the releases server](https://releases.hashicorp.com/terraform/).
 
-However, this means that provider releases built before v0.12 cannot be used.
-We have updated the provider SDK to support both the old and new protocols at
-once, to allow upgrading to newer provider versions while remaining on
-Terraform v0.11.
+## Pre-upgrade Checklist
 
-We recommend upgrading to the latest versions of all providers you use
-and ensuring that `terraform plan` is working with them before upgrading to
-Terraform v0.12, since this allows you to reduce risk by changing only one
-component at a time, particularly if you will be adopting a new major version
-of a provider which may have breaking changes of its own.
+Terraform v0.11.14 introduced a temporary helper command
+`terraform 0.12checklist`, which analyzes your configuration to detect any
+required steps that will be easier to perform before upgrading.
 
-### Third-party Providers
+To use it, first upgrade to [Terraform v0.11.14](https://releases.hashicorp.com/terraform/0.11.14/).
+Then, perform the following steps:
 
-The Terraform team at HashiCorp is working with the maintainers of the
-HashiCorp-distributed providers to produce v0.12-compatible releases, which
-will appear gradually before the v0.12.0 final release.
+* `terraform init` to ensure your working directory is fully initialized and
+  all required plugins are installed and selected.
+* `terraform apply` to ensure that your real infrastructure and Terraform
+  state are consistent with the current configuration. The instructions
+  produced by the checklist command assume that configuration and state are
+  synchronized.
+* `terraform 0.12checklist` to see if there are any pre-upgrade steps in the
+  checklist.
 
-Third-party providers that are not distributed by HashiCorp will also require
-updates. We will share more information on the upgrade procedure as we get
-closer to final release. In the mean time, the first step is to upgrade the
-vendored `github.com/hashicorp/terraform` packages to a v0.12 release tag and
-verify that the acceptance tests are still working. Because acceptance tests
-contain configuration snippets, you may need to perform some of the
-configuration upgrade steps described in the following sections to make the
-acceptance tests compatible with the v0.12 configuration language.
+If all is well, the final command will produce a message like this:
+
+```
+Looks good! We did not detect any problems that ought to be
+addressed before upgrading to Terraform v0.12
+
+This tool is not perfect though, so please check the v0.12 upgrade
+guide for additional guidance, and for next steps:
+    https://www.terraform.io/upgrade-guides/0-12.html
+```
+
+As the message suggests, the next step in that case is to read the remainder
+of this page to prepare for and carry out the upgrade.
+
+However, the checklist command may instead produce a list of one or more tasks
+that we recommend you perform before upgrading to Terraform 0.12, because they
+are easier to perform with a fully-functional Terraform 0.11 than with a
+Terraform 0.12 that has encountered compatibility problems.
+
+The tasks it may suggest you perform could include:
+
+* Upgrading any provider versions that are not compatible with Terraform v0.12.
+  We recommend upgrading to the latest version of each provider before upgrading
+  because that will avoid changing many things in one step.
+* Renaming any resources or provider aliases that have names that start with
+  digits, because that is no longer valid in Terraform 0.12.
+* Upgrading any external modules the configuration uses which themselves have
+  the above problems.
+
+In each case, the tool will give some direction on how to perform the task it
+is suggesting.
+
+The output from `terraform 0.12checklist` is in Markdown format so that it can
+easily be pasted into a Markdown-compatible issue tracker, should you want
+to track the necessary tasks or share the work with other team members.
+
+After all of the tasks are complete, run `terraform 0.12checklist` one more time
+to verify that everything is complete. If so, continue reading the following
+sections to complete the upgrade!
+
+## Upgrading to Terraform 0.12
+
+Before switching to Terraform 0.12, we recommend using Terraform v0.11.14 (or
+any later v0.11 release) to perform one last `terraform init` and
+`terraform apply` to ensure that everything is initialized and synchronized.
+
+Once `terraform apply` shows no changes pending, switch over to a Terraform
+v0.12 release and run `terraform init` again to upgrade the working directory
+metadata to v0.12 format. (Once you've done this, you'll need to delete the
+`.terraform` directory if you wish to return to Terraform v0.11, but no
+real infrastructure or persisted state will be upgraded yet.)
+
+It is possible that your configuration may be using configuration constructs
+that are not Terraform v0.12 compatible and thus require upgrade. In that case,
+`terraform init` will produce the following message:
+
+```
+Terraform has initialized, but configuration upgrades may be needed.
+
+Terraform found syntax errors in the configuration that prevented full
+initialization. If you've recently upgraded to Terraform v0.12, this may be
+because your configuration uses syntax constructs that are no longer valid,
+and so must be updated before full initialization is possible.
+
+Terraform has installed the required providers to support the configuration
+upgrade process. To begin upgrading your configuration, run the following:
+    terraform 0.12upgrade
+
+To see the full set of errors that led to this message, run:
+    terraform validate
+```
+
+As mentioned in the message, Terraform has partially initialized the directory
+just enough to perform the configuration upgrade process, which is described
+in the following section.
+
+We recommend running the configuration upgrade tool even if you do not see
+the above message, because it may detect and fix constructs that are
+syntactically correct but still need some changes to work as expected with
+Terraform v0.12.
 
 ## Upgrading Terraform configuration
 
-Some users with simple configurations may find that no changes are required at
-all, and most configurations that _do_ require updates can be upgraded
-automatically using [the automatic upgrade tool](/docs/commands/0.12upgrade.html).
+Terraform v0.12 includes a new command `terraform 0.12upgrade` that will
+read the configuration files for a module written for Terraform 0.11 and
+update them in-place to use the cleaner Terraform 0.12 syntax and also
+adjust for use of features that have changed behavior in the 0.12 Terraform
+language.
 
-Some users have written configurations that include workarounds for limitations
-in previous versions of the Terraform language, such as:
+Simple configuration files are likely to be understood by Terraform 0.12 as-is,
+because the language is still broadly compatible, but we recommend that everyone
+run the upgrade tool nonetheless. Even if your configuration is already
+compatible, the tool will update your configuration to use the cleaner syntax
+available in Terraform 0.12, which should improve readability.
 
-- Treating block types like attributes in an attempt to work around Terraform
-  not supporting generating nested blocks dynamically.
-  ([#7034](https://github.com/hashicorp/terraform/issues/7034))
+To run the command, first make sure that your local working directory is synced
+with your version control system so that there are no changes outstanding. This
+will make it easier to review the changes that the upgrade tool is proposing,
+using the diff feature of your version control system.
 
-- Wrapping redundant list brackets (`[` and `]`) around splat expressions in
-  order to force them to be interpreted as lists even when there are unknown
-  items in the list.
+With a fully-initialized working directory (all necessary providers and child
+modules installed), run `terraform 0.12upgrade` to begin the process. By default
+it will print some information about what it is about to do and prompt for
+confirmation:
 
-These workarounds were clever solutions offered by community members, and have
-been partial inspiration for new language features. These workarounds should no
-longer be necessary in Terraform v0.12, but the same results may now need to be
-achieved using new language constructs.
+```
+This command will rewrite the configuration files in the given directory so
+that they use the new syntax features from Terraform v0.12, and will identify
+any constructs that may need to be adjusted for correct operation with
+Terraform v0.12.
 
-The upgrade tool can replace many of these workarounds with the new solutions
-automatically. In rarer cases, the intent of the original configuration may be
-ambiguous, in which case the tool will add to your configuration a comment
-containing the marker `TF-UPGRADE-TODO` to indicate a situation where your
-human intuition is required to decide how to proceed.
+We recommend using this command in a clean version control work tree, so that
+you can easily see the proposed changes as a diff against the latest commit.
+If you have uncommited changes already present, we recommend aborting this
+command and dealing with them before running this command again.
 
-We recommend running the upgrade tool in a clean version control work tree so
-that you can use the VCS diffing tools to easily see and review all of the
-proposed updates. Search the upgraded module for `TF-UPGRADE-TODO` to find
-the situations where human attention is required.
+Would you like to upgrade the module in the current directory?
+```
 
-Even if your existing configuration works without upgrading, we still recommend
-to run the upgrade tool to update to the more readable syntax conventions
-supported in this release, and to draw attention to any potential issues.
+If you answer yes, the `.tf` and `.tfvars` files in your current working
+directory will be rewritten in-place.
 
-The following sections describe in more detail some of the situations that will
-be detected and upgraded by the upgrade tool, both to help understand the
-purpose of certain proposed changes and to help users who may not wish to
-use the automatic upgrade tool. However, the following sections are not
-completely comprehensive so we still recommend using the upgrade tool to review
-its output, even if you then discard the proposed changes and make your updates
-manually.
+The upgrade tool may also print out warnings about constructs it wasn't able to
+migrate fully automatically; in that case, it will also emit comments into the
+rewritten source files containing the special marker `TF-UPGRADE-TODO`, as
+a prompt for a decision you'll need to make to complete the upgrade.
+
+Once the upgrade tool has successfully completed and you've resolved any
+`TF-UPGRADE-TODO` prompts, use your version control tool to review the proposed
+changes and then run `terraform plan` to see the effect of those changes.
+
+In most cases, `terraform plan` should report that no changes are required,
+because the updated configuration is equivalent to before.
+
+The remaining sections below describe both some common changes that the upgrade
+tool is able to make automatically, and some other upgrade situations that
+the configuration tool may not be able to fully resolve. If you encounter
+any errors during the upgrade or during the subsequent `terraform plan`, the
+sections below may give some additional context for how to proceed.
+
+Once you're happy with the updated configuration, commit it to version control
+in the usual way and apply it with Terraform 0.12.
 
 ### Remote state references
 
@@ -141,12 +228,25 @@ This value must now be accessed via the new `outputs` attribute:
 data.terraform_remote_state.vpc.outputs.vpc_id
 ```
 
+The upgrade tool will rewrite remote state references automatically to include
+the additional `outputs` attribute.
+
 Where appropriate, you can also access the outputs attribute directly to
 work with the whole map as a single value:
 
 ```hcl
 data.terraform_remote_state.vpc.outputs
 ```
+
+Another consideration for `terraform_remote_state` is that this data source must
+be able to parse the latest state snapshot for a separate Terraform
+configuration that may have been updated by a newer version of Terraform.
+To provide flexibility when upgrading decomposed environments that use
+`terraform_remote_state`, Terraform v0.11.14 introduced support for reading
+outputs from the Terraform v0.12 state format, so if you upgrade all of your
+configurations to Terraform v0.11.14 first you can then perform v0.12 upgrades
+of individual configurations in any order, without breaking
+`terraform_remote_state` usage.
 
 ### Attributes vs. blocks
 
@@ -174,8 +274,7 @@ resource "aws_instance" "example" {
 
 In the above resource, `instance_type`, `ami`, and `tags` are both direct
 arguments of the `aws_instance` resource, while `ebs_block_device` describes
-a separate EBS block device object that is, in some sense, a part of the
-parent instance.
+a separate EBS block device object that is connected to the parent instance.
 
 Due to the design of the configuration language decoder in Terraform v0.11 and
 earlier, it was in many cases possible to interchange the argument syntax
@@ -237,7 +336,7 @@ into a list. The upgrade tool does not remove or attempt to consolidate
 any existing duplicate arguments, but other commands like `terraform validate`
 will detect and report these after upgrading.
 
-## Integer vs. Float Number Types
+### Integer vs. Float Number Types
 
 From Terraform v0.12, the Terraform language no longer distinguishes between
 integer and float types, instead just having a single "number" type that can
@@ -275,7 +374,7 @@ because it does not have enough information to know if floating point or integer
 division was intended by the configuration author, so this change must be made
 manually where needed.
 
-## Referring to List Variables
+### Referring to List Variables
 
 In early versions of Terraform, before list support became first-class, we
 required using seemingly-redundant list brackets around a single expression
@@ -327,15 +426,55 @@ The configuration upgrade tool unfortunately cannot make this change
 automatically, because it doesn't have enough information to know for certain
 which interpretation was intended for a given list.
 
-## Terraform Configuration upgrades requiring human intervention 
+For complex examples that the upgrade tool is not able to adjust automatically,
+subsequent Terraform operations may produce an error message like the following:
 
-There are some known situations that will be detected, but not upgrade, by the
-upgrade tool. Some examples of these situatations include:
+```
+Error: Incorrect attribute value type
 
-* `count` can no longer be used a variable name.
-* `resource` names cannot start with a number, though they can still contain numbers.
+  on redundant-list-brackets.tf line 9, in resource "aws_security_group" "foo":
+   9:     cidr_blocks = ["${var.cidr_blocks}"]
 
-## Working with `count` on resources
+Inappropriate value for attribute "cidr_blocks": element 0: string required.
+```
+
+This message is reporting that Terraform has understood this expression as a
+list of lists, and therefore element zero is a list rather than a string. To
+fix the error, remove the redundant list brackets and possibly add a
+`flatten` function call as described above, for more complex cases.
+
+### Reserved Variable Names
+
+In preparation for new features planned for future releases, Terraform 0.12
+reserves some additional names that can no longer be used as input variable
+names for modules. These reserved names are:
+
+* `count`
+* `depends_on`
+* `for_each`
+* `lifecycle`
+* `providers`
+* `source`
+
+When any of these names is used as the label of a `variable` block, Terraform
+will now generate the following error:
+
+```
+Error: Invalid variable name
+
+  on reserved-variable-names.tf line 2, in variable "count":
+   2: variable "count" {
+
+The variable name "count" is reserved due to its special meaning inside module
+blocks.
+```
+
+The upgrade tool cannot automatically adjust for these reserved names, because
+it does not know what new name would be more appropriate. To proceed, you must
+unfortunately rename these input variables and make a new major release of
+the module in question, since renaming input variables is a breaking change.
+
+### Working with `count` on resources
 
 The `count` feature allows declaration of multiple instances of a particular
 resource constructed from the same configuration. In Terraform v0.11, any
@@ -396,7 +535,7 @@ to show clearly how the boolean value maps to a number value:
   count = var.enabled ? 1 : 0
 ```
 
-## First-class expressions
+### First-class expressions
 
 Terraform v0.11 and earlier allowed expressions only within interpolation
 sequences, like `"${var.example}"`. Because expressions are such an important
@@ -424,7 +563,7 @@ using the `list` and `map` functions:
 The automatic upgrade tool will perform rewrites like these automatically,
 making expressions easier to read and understand.
 
-## Default settings in `connection` blocks
+### Default settings in `connection` blocks
 
 Terraform v0.11 and earlier allowed providers to pre-populate certain arguments
 in a `connection` block for use with remote provisioners. Several resource
@@ -490,8 +629,8 @@ those modules.
 
 For simpler modules it may be possible to carefully adapt them to be both
 0.11 and 0.12 compatible at the same time, by following the upgrade notes in
-earlier sections and avoiding any 0.12-only features. However, for any module
-using a undocumented workarounds for 0.11 limitations it is unlikely to be
+earlier sections and avoiding any v0.12-only features. However, for any module
+using a undocumented workarounds for v0.11 limitations it is unlikely to be
 possible to both update it for Terraform v0.12 and retain v0.11 compatibility
 at the same time, because those undocumented workarounds have been replaced
 with new features in Terraform v0.12.
@@ -541,3 +680,12 @@ workspaces must be upgraded to Terraform 0.12 otherwise Sentinel policies will
 fail on versions below 0.12.
 
 More details on this upgrade process will be added prior to the final release.
+
+## Upgrading `remote` Backend Configuration
+
+Terraform Enterprise users, and users of the Terrafrom SAAS free tier, will need
+to run `terraform init -reconfigure` to upgrade to Terraform 0.12. 
+
+Terraform provides a message stating that `terraform init` is required; while
+there is no harm in running this command, the next error message will clarify
+that `terraform init -reconfigure` is required.

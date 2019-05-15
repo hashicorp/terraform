@@ -257,7 +257,7 @@ $ export TF_VAR_image_id=ami-abc123
 However, if a root module variable uses a [type constraint](#type-constraints)
 to require a complex value (list, set, map, object, or tuple), Terraform will
 instead attempt to parse its value using the same syntax used within variable
-definitions files, which requires cafeful attention to the string escaping rules
+definitions files, which requires careful attention to the string escaping rules
 in your shell:
 
 ```

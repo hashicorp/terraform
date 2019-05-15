@@ -976,15 +976,15 @@ func (c *Client) logStderr(r io.Reader) {
 			// Attempt to infer the desired log level from the commonly used
 			// string prefixes
 			switch line := string(line); {
-			case strings.HasPrefix("[TRACE]", line):
+			case strings.HasPrefix(line, "[TRACE]"):
 				l.Trace(line)
-			case strings.HasPrefix("[DEBUG]", line):
+			case strings.HasPrefix(line, "[DEBUG]"):
 				l.Debug(line)
-			case strings.HasPrefix("[INFO]", line):
+			case strings.HasPrefix(line, "[INFO]"):
 				l.Info(line)
-			case strings.HasPrefix("[WARN]", line):
+			case strings.HasPrefix(line, "[WARN]"):
 				l.Warn(line)
-			case strings.HasPrefix("[ERROR]", line):
+			case strings.HasPrefix(line, "[ERROR]"):
 				l.Error(line)
 			default:
 				l.Debug(line)

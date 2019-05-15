@@ -36,7 +36,7 @@ the ordering of the given elements is not preserved.
 
 ## Related Functions
 
-* [`sethaselement`](./sethaselement.html) tests whether a given set contains
+* [`contains`](./contains.html) tests whether a given list or set contains
   a given element value.
 * [`setproduct`](./setproduct.html) computes the _cartesian product_ of multiple
   sets.

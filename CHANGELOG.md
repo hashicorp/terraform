@@ -1,5 +1,32 @@
-## 0.12.0-rc1 (Unreleased)
+## 0.12.0 (Unreleased)
 
+The following are the significant changes since 0.12.0-rc1.
+
+BUG FIXES:
+
+* configs/configupgrade: preserve in-line comments on lists [#21299]
+
+## 0.12.0-rc1 (May 7, 2019)
+
+The following are the significant changes since 0.12.0-beta2.
+
+NEW FEATURES: 
+
+* New function `strrev`, for reversing unicode strings. ([#21091](https://github.com/hashicorp/terraform/issues/21091))
+
+IMPROVEMENTS:
+
+* backend/s3: Support for the new AWS region `ap-east-1` ([#21117](https://github.com/hashicorp/terraform/issues/21117))
+* backend/remote: Do not unlock a workspace after a failed state upload ([#21148](https://github.com/hashicorp/terraform/issues/21148))
+* command/init: Improve formatting of provider names during discovery ([#21094](https://github.com/hashicorp/terraform/issues/21094))
+* command/0.12upgrade: Upgrade indexing of splat syntax ([#21103](https://github.com/hashicorp/terraform/issues/21103))
+* command/0.12upgrade: Return error for invalid references (e.g. with initial digits) ([#21103](https://github.com/hashicorp/terraform/issues/21103))
+
+BUG FIXES:
+
+* core: Make sure UIInput keeps working after being canceled ([#21139](https://github.com/hashicorp/terraform/issues/21139))
+* lang/funcs: `flatten` fix handling of sets and tuples; return a tuple ([#21171](https://github.com/hashicorp/terraform/issues/21171))
+* states/statefile: properly upgrade dependency syntax ([#21159](https://github.com/hashicorp/terraform/issues/21159))
 
 ## 0.12.0-beta2 (Apr 18, 2019)
 
@@ -240,6 +267,8 @@ Since v0.12.0-alpha1 is an experimental build, this list is certainly incomplete
 In addition to the high-level known issues above, please refer also to [the GitHub issues for this alpha release](https://github.com/hashicorp/terraform/issues?utf8=%E2%9C%93&q=is%3Aissue+label%3Av0.12-alpha1+). This list will be updated with new reports throughout the alpha1 period, including workarounds where possible to allow for continued testing. (Issues shown in that list as closed indicate that the problem has been fixed for a future release; it is probably still present in the alpha1 release.)
 
 ## 0.11.11 (December 14, 2018)
+
+**NOTE:** Subsequent releases in the v0.11.x line occurred after this branch pivoted to v0.12.0 development. For more information on these, see [the v0.11 maintenance changelog](https://github.com/hashicorp/terraform/blob/v0.11/CHANGELOG.md).
 
 IMPROVEMENTS:
 
