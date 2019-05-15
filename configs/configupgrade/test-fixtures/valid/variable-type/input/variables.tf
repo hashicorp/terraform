@@ -4,8 +4,12 @@ variable "s" {
 
 variable "l" {
   type = "list"
+
+  default = []
 }
 
 variable "m" {
   type = "map"
+
+  default = {}
 }
