@@ -26,6 +26,7 @@ and are tested by HashiCorp.
 - [Nomad](/docs/providers/nomad/index.html)
 - [RabbitMQ](/docs/providers/rabbitmq/index.html)
 - [Rancher](/docs/providers/rancher/index.html)
+- [Rancher2](/docs/providers/rancher2/index.html)
 - [RightScale](/docs/providers/rightscale/index.html)
 - [Rundeck](/docs/providers/rundeck/index.html)
 - [Spotinst](/docs/providers/spotinst/index.html)

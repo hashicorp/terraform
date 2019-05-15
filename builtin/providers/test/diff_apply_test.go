@@ -131,7 +131,7 @@ func TestDiffApply_set(t *testing.T) {
 		"id":                                 "testID",
 	}
 
-	attrs, err := diff.Apply(priorAttrs, schema.LegacyResourceSchema(&schema.Resource{Schema: resSchema}).CoreConfigSchema())
+	attrs, err := diff.Apply(priorAttrs, (&schema.Resource{Schema: resSchema}).CoreConfigSchema())
 	if err != nil {
 		t.Fatal(err)
 	}

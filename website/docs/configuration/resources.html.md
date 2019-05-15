@@ -249,7 +249,7 @@ the resource block itself — identified as `aws_instance.server` —
 and the multiple _resource instances_ associated with it, identified as
 `aws_instance.server[0]`, `aws_instance.server[1]`, etc. Each instance has a
 distinct infrastructure object associated with it (as described above in
-[Resource Behavior](#resource-behavior)), and each is separtely created,
+[Resource Behavior](#resource-behavior)), and each is separately created,
 updated, or destroyed when the configuration is applied.
 
 When `count` is _not_ present, a resource block has only a single resource

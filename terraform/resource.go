@@ -2,7 +2,6 @@ package terraform
 
 import (
 	"fmt"
-	"log"
 	"reflect"
 	"sort"
 	"strconv"
@@ -236,7 +235,7 @@ func NewResourceConfigShimmed(val cty.Value, schema *configschema.Block) *Resour
 		// schema here so that we can preserve the expected invariant
 		// that an attribute is always either wholly known or wholly unknown, while
 		// a child block can be partially unknown.
-		ret.ComputedKeys = newResourceConfigShimmedComputedKeys(val, schema, "")
+		ret.ComputedKeys = newResourceConfigShimmedComputedKeys(val, "")
 	} else {
 		ret.Config = make(map[string]interface{})
 	}
@@ -245,72 +244,45 @@ func NewResourceConfigShimmed(val cty.Value, schema *configschema.Block) *Resour
 	return ret
 }
 
-// newResourceConfigShimmedComputedKeys finds all of the unknown values in the
-// given object, which must conform to the given schema, returning them in
-// the format that's expected for ResourceConfig.ComputedKeys.
-func newResourceConfigShimmedComputedKeys(obj cty.Value, schema *configschema.Block, prefix string) []string {
+// Record the any config values in ComputedKeys. This field had been unused in
+// helper/schema, but in the new protocol we're using this so that the SDK can
+// now handle having an unknown collection. The legacy diff code doesn't
+// properly handle the unknown, because it can't be expressed in the same way
+// between the config and diff.
+func newResourceConfigShimmedComputedKeys(val cty.Value, path string) []string {
 	var ret []string
-	ty := obj.Type()
+	ty := val.Type()
 
-	if schema == nil {
-		log.Printf("[WARN] NewResourceConfigShimmed: can't identify computed keys because no schema is available")
-		return nil
+	if val.IsNull() {
+		return ret
 	}
 
-	for attrName := range schema.Attributes {
-		if !ty.HasAttribute(attrName) {
-			// Should never happen, but we'll tolerate it anyway
-			continue
+	if !val.IsKnown() {
+		// we shouldn't have an entirely unknown resource, but prevent empty
+		// strings just in case
+		if len(path) > 0 {
+			ret = append(ret, path)
 		}
-
-		attrVal := obj.GetAttr(attrName)
-		if !attrVal.IsWhollyKnown() {
-			ret = append(ret, prefix+attrName)
-		}
+		return ret
 	}
 
-	for typeName, blockS := range schema.BlockTypes {
-		if !ty.HasAttribute(typeName) {
-			// Should never happen, but we'll tolerate it anyway
-			continue
-		}
-
-		blockVal := obj.GetAttr(typeName)
-		if blockVal.IsNull() || !blockVal.IsKnown() {
-			continue
-		}
-
-		switch blockS.Nesting {
-		case configschema.NestingSingle, configschema.NestingGroup:
-			keys := newResourceConfigShimmedComputedKeys(blockVal, &blockS.Block, fmt.Sprintf("%s%s.", prefix, typeName))
+	if path != "" {
+		path += "."
+	}
+	switch {
+	case ty.IsListType(), ty.IsTupleType(), ty.IsSetType():
+		i := 0
+		for it := val.ElementIterator(); it.Next(); i++ {
+			_, subVal := it.Element()
+			keys := newResourceConfigShimmedComputedKeys(subVal, fmt.Sprintf("%s%d", path, i))
 			ret = append(ret, keys...)
-		case configschema.NestingList, configschema.NestingSet:
-			// Producing computed keys items for sets is not really useful
-			// since they are not usefully addressable anyway, but we'll treat
-			// them like lists just so that ret.ComputedKeys accounts for them
-			// all. Our legacy system didn't support sets here anyway, so
-			// treating them as lists is the most accurate translation. Although
-			// set traversal isn't in any particular order, it is _stable_ as
-			// long as the list isn't mutated, and so we know we'll see the
-			// same order here as hcl2shim.ConfigValueFromHCL2 would've seen
-			// inside NewResourceConfigShimmed above.
-			i := 0
-			for it := blockVal.ElementIterator(); it.Next(); i++ {
-				_, subVal := it.Element()
-				subPrefix := fmt.Sprintf("%s.%s%d.", typeName, prefix, i)
-				keys := newResourceConfigShimmedComputedKeys(subVal, &blockS.Block, subPrefix)
-				ret = append(ret, keys...)
-			}
-		case configschema.NestingMap:
-			for it := blockVal.ElementIterator(); it.Next(); {
-				subK, subVal := it.Element()
-				subPrefix := fmt.Sprintf("%s.%s%s.", typeName, prefix, subK.AsString())
-				keys := newResourceConfigShimmedComputedKeys(subVal, &blockS.Block, subPrefix)
-				ret = append(ret, keys...)
-			}
-		default:
-			// Should never happen, since the above is exhaustive.
-			panic(fmt.Errorf("unsupported block nesting type %s", blockS.Nesting))
+		}
+
+	case ty.IsMapType(), ty.IsObjectType():
+		for it := val.ElementIterator(); it.Next(); {
+			subK, subVal := it.Element()
+			keys := newResourceConfigShimmedComputedKeys(subVal, fmt.Sprintf("%s%s", path, subK.AsString()))
+			ret = append(ret, keys...)
 		}
 	}
 

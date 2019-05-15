@@ -1,10 +1,9 @@
 package gocty
 
 import (
+	"math"
 	"math/big"
 	"reflect"
-
-	"math"
 
 	"github.com/zclconf/go-cty/cty"
 )
@@ -112,11 +111,7 @@ func fromCtyBool(val cty.Value, target reflect.Value, path cty.Path) error {
 	switch target.Kind() {
 
 	case reflect.Bool:
-		if val.True() {
-			target.Set(reflect.ValueOf(true))
-		} else {
-			target.Set(reflect.ValueOf(false))
-		}
+		target.SetBool(val.True())
 		return nil
 
 	default:
@@ -175,8 +170,7 @@ func fromCtyNumberInt(bf *big.Float, target reflect.Value, path cty.Path) error 
 		return path.NewErrorf("value must be a whole number, between %d and %d", min, max)
 	}
 
-	target.Set(reflect.ValueOf(iv).Convert(target.Type()))
-
+	target.SetInt(iv)
 	return nil
 }
 
@@ -202,25 +196,13 @@ func fromCtyNumberUInt(bf *big.Float, target reflect.Value, path cty.Path) error
 		return path.NewErrorf("value must be a whole number, between 0 and %d inclusive", max)
 	}
 
-	target.Set(reflect.ValueOf(iv).Convert(target.Type()))
-
+	target.SetUint(iv)
 	return nil
 }
 
 func fromCtyNumberFloat(bf *big.Float, target reflect.Value, path cty.Path) error {
 	switch target.Kind() {
-	case reflect.Float32:
-		fv, accuracy := bf.Float32()
-		if accuracy != big.Exact {
-			// We allow the precision to be truncated as part of our conversion,
-			// but we don't want to silently introduce infinities.
-			if math.IsInf(float64(fv), 0) {
-				return path.NewErrorf("value must be between %f and %f inclusive", -math.MaxFloat32, math.MaxFloat32)
-			}
-		}
-		target.Set(reflect.ValueOf(fv))
-		return nil
-	case reflect.Float64:
+	case reflect.Float32, reflect.Float64:
 		fv, accuracy := bf.Float64()
 		if accuracy != big.Exact {
 			// We allow the precision to be truncated as part of our conversion,
@@ -229,7 +211,7 @@ func fromCtyNumberFloat(bf *big.Float, target reflect.Value, path cty.Path) erro
 				return path.NewErrorf("value must be between %f and %f inclusive", -math.MaxFloat64, math.MaxFloat64)
 			}
 		}
-		target.Set(reflect.ValueOf(fv))
+		target.SetFloat(fv)
 		return nil
 	default:
 		panic("unsupported kind of float")
@@ -239,17 +221,17 @@ func fromCtyNumberFloat(bf *big.Float, target reflect.Value, path cty.Path) erro
 func fromCtyNumberBig(bf *big.Float, target reflect.Value, path cty.Path) error {
 	switch {
 
-	case bigFloatType.AssignableTo(target.Type()):
+	case bigFloatType.ConvertibleTo(target.Type()):
 		// Easy!
-		target.Set(reflect.ValueOf(bf).Elem())
+		target.Set(reflect.ValueOf(bf).Elem().Convert(target.Type()))
 		return nil
 
-	case bigIntType.AssignableTo(target.Type()):
+	case bigIntType.ConvertibleTo(target.Type()):
 		bi, accuracy := bf.Int(nil)
 		if accuracy != big.Exact {
 			return path.NewErrorf("value must be a whole number")
 		}
-		target.Set(reflect.ValueOf(bi).Elem())
+		target.Set(reflect.ValueOf(bi).Elem().Convert(target.Type()))
 		return nil
 
 	default:
@@ -259,9 +241,8 @@ func fromCtyNumberBig(bf *big.Float, target reflect.Value, path cty.Path) error 
 
 func fromCtyString(val cty.Value, target reflect.Value, path cty.Path) error {
 	switch target.Kind() {
-
 	case reflect.String:
-		target.Set(reflect.ValueOf(val.AsString()))
+		target.SetString(val.AsString())
 		return nil
 
 	default:

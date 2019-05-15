@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // NodeApplyableResourceInstance represents a resource instance that is
@@ -106,6 +107,27 @@ func (n *NodeApplyableResourceInstance) EvalTree() EvalNode {
 
 	// Determine the dependencies for the state.
 	stateDeps := n.StateReferences()
+
+	if n.Config == nil {
+		// This should not be possible, but we've got here in at least one
+		// case as discussed in the following issue:
+		//    https://github.com/hashicorp/terraform/issues/21258
+		// To avoid an outright crash here, we'll instead return an explicit
+		// error.
+		var diags tfdiags.Diagnostics
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Resource node has no configuration attached",
+			fmt.Sprintf(
+				"The graph node for %s has no configuration attached to it. This suggests a bug in Terraform's apply graph builder; please report it!",
+				addr,
+			),
+		))
+		err := diags.Err()
+		return &EvalReturnError{
+			Error: &err,
+		}
+	}
 
 	// Eval info is different depending on what kind of resource this is
 	switch n.Config.Mode {

@@ -9,6 +9,28 @@ description: |-
 
 # Attributes as Blocks
 
+-> **Note:** This page is an appendix to the Terraform documentation, and is
+outside the normal navigation hierarchy. Most users do not need to know the full
+details of the behavior described below.
+
+## Summary
+
+Many resource types use repeatable nested blocks to manage collections of
+sub-objects related to the primary resource.
+
+Rarely, some resource types _also_ support an argument with the same name as a
+nested block type, and will purge any sub-objects of that type if that argument
+is set to an empty list (`<ATTR> = []`).
+
+Most users do not need to know any further details of this "nested block or
+empty list" behavior. However, read further if you need to:
+
+- Use Terraform's [JSON syntax](/docs/configuration/syntax-json.html) with this
+  type of resource.
+- Create a reusable module that wraps this type of resource.
+
+## Details
+
 In Terraform v0.12 and later, the language makes a distinction between
 [argument syntax and nested block syntax](/docs/configuration/syntax.html#arguments-and-blocks)
 within blocks:

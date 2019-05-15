@@ -4,7 +4,67 @@ package hclsyntax
 
 import "strconv"
 
-const _TokenType_name = "TokenNilTokenNewlineTokenBangTokenPercentTokenBitwiseAndTokenApostropheTokenOParenTokenCParenTokenStarTokenPlusTokenCommaTokenMinusTokenDotTokenSlashTokenColonTokenSemicolonTokenLessThanTokenEqualTokenGreaterThanTokenQuestionTokenCommentTokenOHeredocTokenIdentTokenNumberLitTokenQuotedLitTokenStringLitTokenOBrackTokenCBrackTokenBitwiseXorTokenBacktickTokenCHeredocTokenOBraceTokenBitwiseOrTokenCBraceTokenBitwiseNotTokenOQuoteTokenCQuoteTokenTemplateControlTokenEllipsisTokenFatArrowTokenTemplateSeqEndTokenAndTokenOrTokenTemplateInterpTokenEqualOpTokenNotEqualTokenLessThanEqTokenGreaterThanEqTokenEOFTokenTabsTokenStarStarTokenInvalidTokenBadUTF8"
+func _() {
+	// An "invalid array index" compiler error signifies that the constant values have changed.
+	// Re-run the stringer command to generate them again.
+	var x [1]struct{}
+	_ = x[TokenOBrace-123]
+	_ = x[TokenCBrace-125]
+	_ = x[TokenOBrack-91]
+	_ = x[TokenCBrack-93]
+	_ = x[TokenOParen-40]
+	_ = x[TokenCParen-41]
+	_ = x[TokenOQuote-171]
+	_ = x[TokenCQuote-187]
+	_ = x[TokenOHeredoc-72]
+	_ = x[TokenCHeredoc-104]
+	_ = x[TokenStar-42]
+	_ = x[TokenSlash-47]
+	_ = x[TokenPlus-43]
+	_ = x[TokenMinus-45]
+	_ = x[TokenPercent-37]
+	_ = x[TokenEqual-61]
+	_ = x[TokenEqualOp-8788]
+	_ = x[TokenNotEqual-8800]
+	_ = x[TokenLessThan-60]
+	_ = x[TokenLessThanEq-8804]
+	_ = x[TokenGreaterThan-62]
+	_ = x[TokenGreaterThanEq-8805]
+	_ = x[TokenAnd-8743]
+	_ = x[TokenOr-8744]
+	_ = x[TokenBang-33]
+	_ = x[TokenDot-46]
+	_ = x[TokenComma-44]
+	_ = x[TokenEllipsis-8230]
+	_ = x[TokenFatArrow-8658]
+	_ = x[TokenQuestion-63]
+	_ = x[TokenColon-58]
+	_ = x[TokenTemplateInterp-8747]
+	_ = x[TokenTemplateControl-955]
+	_ = x[TokenTemplateSeqEnd-8718]
+	_ = x[TokenQuotedLit-81]
+	_ = x[TokenStringLit-83]
+	_ = x[TokenNumberLit-78]
+	_ = x[TokenIdent-73]
+	_ = x[TokenComment-67]
+	_ = x[TokenNewline-10]
+	_ = x[TokenEOF-9220]
+	_ = x[TokenBitwiseAnd-38]
+	_ = x[TokenBitwiseOr-124]
+	_ = x[TokenBitwiseNot-126]
+	_ = x[TokenBitwiseXor-94]
+	_ = x[TokenStarStar-10138]
+	_ = x[TokenApostrophe-39]
+	_ = x[TokenBacktick-96]
+	_ = x[TokenSemicolon-59]
+	_ = x[TokenTabs-9225]
+	_ = x[TokenInvalid-65533]
+	_ = x[TokenBadUTF8-128169]
+	_ = x[TokenQuotedNewline-9252]
+	_ = x[TokenNil-0]
+}
+
+const _TokenType_name = "TokenNilTokenNewlineTokenBangTokenPercentTokenBitwiseAndTokenApostropheTokenOParenTokenCParenTokenStarTokenPlusTokenCommaTokenMinusTokenDotTokenSlashTokenColonTokenSemicolonTokenLessThanTokenEqualTokenGreaterThanTokenQuestionTokenCommentTokenOHeredocTokenIdentTokenNumberLitTokenQuotedLitTokenStringLitTokenOBrackTokenCBrackTokenBitwiseXorTokenBacktickTokenCHeredocTokenOBraceTokenBitwiseOrTokenCBraceTokenBitwiseNotTokenOQuoteTokenCQuoteTokenTemplateControlTokenEllipsisTokenFatArrowTokenTemplateSeqEndTokenAndTokenOrTokenTemplateInterpTokenEqualOpTokenNotEqualTokenLessThanEqTokenGreaterThanEqTokenEOFTokenTabsTokenQuotedNewlineTokenStarStarTokenInvalidTokenBadUTF8"
 
 var _TokenType_map = map[TokenType]string{
 	0:      _TokenType_name[0:8],
@@ -57,9 +117,10 @@ var _TokenType_map = map[TokenType]string{
 	8805:   _TokenType_name[577:595],
 	9220:   _TokenType_name[595:603],
 	9225:   _TokenType_name[603:612],
-	10138:  _TokenType_name[612:625],
-	65533:  _TokenType_name[625:637],
-	128169: _TokenType_name[637:649],
+	9252:   _TokenType_name[612:630],
+	10138:  _TokenType_name[630:643],
+	65533:  _TokenType_name[643:655],
+	128169: _TokenType_name[655:667],
 }
 
 func (i TokenType) String() string {

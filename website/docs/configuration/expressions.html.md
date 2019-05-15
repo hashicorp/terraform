@@ -701,7 +701,7 @@ sequence, with the following characters selecting the escape behavior:
 | `\"`         | Literal quote (without terminating the string)                                |
 | `\\`         | Literal backslash                                                             |
 | `\uNNNN`     | Unicode character from the basic multilingual plane (NNNN is four hex digits) |
-| `\UNNNNNNNN` | Unicode character from supplimentary planes (NNNNNNNN is eight hex digits)    |
+| `\UNNNNNNNN` | Unicode character from supplementary planes (NNNNNNNN is eight hex digits)    |
 
 The alternative syntax for string literals is the so-called "heredoc" style,
 inspired by Unix shell languages. This style allows multi-line strings to

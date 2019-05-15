@@ -4,6 +4,15 @@ package states
 
 import "strconv"
 
+func _() {
+	// An "invalid array index" compiler error signifies that the constant values have changed.
+	// Re-run the stringer command to generate them again.
+	var x [1]struct{}
+	_ = x[ObjectReady-82]
+	_ = x[ObjectTainted-84]
+	_ = x[ObjectPlanned-80]
+}
+
 const (
 	_ObjectStatus_name_0 = "ObjectPlanned"
 	_ObjectStatus_name_1 = "ObjectReady"

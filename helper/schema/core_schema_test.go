@@ -445,28 +445,6 @@ func TestSchemaMapCoreConfigSchema(t *testing.T) {
 				BlockTypes: map[string]*configschema.NestedBlock{},
 			}),
 		},
-		"skip core type check": {
-			map[string]*Schema{
-				"list": {
-					Type:              TypeList,
-					ConfigMode:        SchemaConfigModeAttr,
-					SkipCoreTypeCheck: true,
-					Optional:          true,
-					Elem: &Resource{
-						Schema: map[string]*Schema{},
-					},
-				},
-			},
-			testResource(&configschema.Block{
-				Attributes: map[string]*configschema.Attribute{
-					"list": {
-						Type:     cty.DynamicPseudoType,
-						Optional: true, // Just so we can progress to provider-driven validation and return the error there
-					},
-				},
-				BlockTypes: map[string]*configschema.NestedBlock{},
-			}),
-		},
 	}
 
 	for name, test := range tests {

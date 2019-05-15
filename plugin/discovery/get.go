@@ -228,9 +228,9 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, t
 		}
 	}
 
-	printedProviderName := fmt.Sprintf("%s (%s)", provider, providerSource)
-	i.Ui.Info(fmt.Sprintf("- Downloading plugin for provider %q (%s)...", printedProviderName, versionMeta.Version))
-	log.Printf("[DEBUG] getting provider %q version %q", printedProviderName, versionMeta.Version)
+	printedProviderName := fmt.Sprintf("%q (%s)", provider, providerSource)
+	i.Ui.Info(fmt.Sprintf("- Downloading plugin for provider %s %s...", printedProviderName, versionMeta.Version))
+	log.Printf("[DEBUG] getting provider %s version %q", printedProviderName, versionMeta.Version)
 	err = i.install(provider, v, providerURL)
 	if err != nil {
 		return PluginMeta{}, diags, err
@@ -298,7 +298,7 @@ func (i *ProviderInstaller) install(provider string, version Version, url string
 		// check if the target dir exists, and create it if not
 		var err error
 		if _, StatErr := os.Stat(i.Dir); os.IsNotExist(StatErr) {
-			err = os.Mkdir(i.Dir, 0700)
+			err = os.MkdirAll(i.Dir, 0700)
 		}
 		if err != nil {
 			return err

@@ -919,6 +919,7 @@ func TestNewResourceConfigShimmed(t *testing.T) {
 				},
 			},
 			Expected: &ResourceConfig{
+				ComputedKeys: []string{"bar", "baz"},
 				Raw: map[string]interface{}{
 					"bar": config.UnknownVariableValue,
 					"baz": config.UnknownVariableValue,
@@ -926,6 +927,167 @@ func TestNewResourceConfigShimmed(t *testing.T) {
 				Config: map[string]interface{}{
 					"bar": config.UnknownVariableValue,
 					"baz": config.UnknownVariableValue,
+				},
+			},
+		},
+		{
+			Name: "unknown in nested blocks",
+			Val: cty.ObjectVal(map[string]cty.Value{
+				"bar": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"baz": cty.ListVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"list": cty.UnknownVal(cty.List(cty.String)),
+							}),
+						}),
+					}),
+				}),
+			}),
+			Schema: &configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"bar": {
+						Block: configschema.Block{
+							BlockTypes: map[string]*configschema.NestedBlock{
+								"baz": {
+									Block: configschema.Block{
+										Attributes: map[string]*configschema.Attribute{
+											"list": {Type: cty.List(cty.String),
+												Optional: true,
+											},
+										},
+									},
+									Nesting: configschema.NestingList,
+								},
+							},
+						},
+						Nesting: configschema.NestingList,
+					},
+				},
+			},
+			Expected: &ResourceConfig{
+				ComputedKeys: []string{"bar.0.baz.0.list"},
+				Raw: map[string]interface{}{
+					"bar": []interface{}{map[string]interface{}{
+						"baz": []interface{}{map[string]interface{}{
+							"list": "74D93920-ED26-11E3-AC10-0800200C9A66",
+						}},
+					}},
+				},
+				Config: map[string]interface{}{
+					"bar": []interface{}{map[string]interface{}{
+						"baz": []interface{}{map[string]interface{}{
+							"list": "74D93920-ED26-11E3-AC10-0800200C9A66",
+						}},
+					}},
+				},
+			},
+		},
+		{
+			Name: "unknown in set",
+			Val: cty.ObjectVal(map[string]cty.Value{
+				"bar": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"val": cty.UnknownVal(cty.String),
+					}),
+				}),
+			}),
+			Schema: &configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"bar": {
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"val": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+						Nesting: configschema.NestingSet,
+					},
+				},
+			},
+			Expected: &ResourceConfig{
+				ComputedKeys: []string{"bar.0.val"},
+				Raw: map[string]interface{}{
+					"bar": []interface{}{map[string]interface{}{
+						"val": "74D93920-ED26-11E3-AC10-0800200C9A66",
+					}},
+				},
+				Config: map[string]interface{}{
+					"bar": []interface{}{map[string]interface{}{
+						"val": "74D93920-ED26-11E3-AC10-0800200C9A66",
+					}},
+				},
+			},
+		},
+		{
+			Name: "unknown in attribute sets",
+			Val: cty.ObjectVal(map[string]cty.Value{
+				"bar": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"val": cty.UnknownVal(cty.String),
+					}),
+				}),
+				"baz": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.UnknownVal(cty.Object(map[string]cty.Type{
+							"attr": cty.List(cty.String),
+						})),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"attr": cty.UnknownVal(cty.List(cty.String)),
+						}),
+					}),
+				}),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"bar": &configschema.Attribute{
+						Type: cty.Set(cty.Object(map[string]cty.Type{
+							"val": cty.String,
+						})),
+					},
+					"baz": &configschema.Attribute{
+						Type: cty.Set(cty.Object(map[string]cty.Type{
+							"obj": cty.Object(map[string]cty.Type{
+								"attr": cty.List(cty.String),
+							}),
+						})),
+					},
+				},
+			},
+			Expected: &ResourceConfig{
+				ComputedKeys: []string{"bar.0.val", "baz.0.obj.attr", "baz.1.obj"},
+				Raw: map[string]interface{}{
+					"bar": []interface{}{map[string]interface{}{
+						"val": "74D93920-ED26-11E3-AC10-0800200C9A66",
+					}},
+					"baz": []interface{}{
+						map[string]interface{}{
+							"obj": map[string]interface{}{
+								"attr": "74D93920-ED26-11E3-AC10-0800200C9A66",
+							},
+						},
+						map[string]interface{}{
+							"obj": "74D93920-ED26-11E3-AC10-0800200C9A66",
+						},
+					},
+				},
+				Config: map[string]interface{}{
+					"bar": []interface{}{map[string]interface{}{
+						"val": "74D93920-ED26-11E3-AC10-0800200C9A66",
+					}},
+					"baz": []interface{}{
+						map[string]interface{}{
+							"obj": map[string]interface{}{
+								"attr": "74D93920-ED26-11E3-AC10-0800200C9A66",
+							},
+						},
+						map[string]interface{}{
+							"obj": "74D93920-ED26-11E3-AC10-0800200C9A66",
+						},
+					},
 				},
 			},
 		},

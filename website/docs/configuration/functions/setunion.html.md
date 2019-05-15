@@ -39,7 +39,7 @@ the ordering of the given elements is not preserved.
 
 ## Related Functions
 
-* [`sethaselement`](./sethaselement.html) tests whether a given set contains
+* [`contains`](./contains.html) tests whether a given list or set contains
   a given element value.
 * [`setintersection`](./setintersection.html) computes the _intersection_ of
   multiple sets.
