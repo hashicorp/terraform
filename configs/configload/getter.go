@@ -22,6 +22,7 @@ var goGetterDetectors = []getter.Detector{
 	new(getter.BitBucketDetector),
 	new(getter.S3Detector),
 	new(getter.FileDetector),
+	new(getter.GCSDetector),
 }
 
 var goGetterNoDetectors = []getter.Detector{}
@@ -45,6 +46,7 @@ var goGetterDecompressors = map[string]getter.Decompressor{
 var goGetterGetters = map[string]getter.Getter{
 	"file":  new(getter.FileGetter),
 	"git":   new(getter.GitGetter),
+	"gcs":   new(getter.GCSGetter),
 	"hg":    new(getter.HgGetter),
 	"s3":    new(getter.S3Getter),
 	"http":  getterHTTPGetter,
