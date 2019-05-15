@@ -474,6 +474,62 @@ it does not know what new name would be more appropriate. To proceed, you must
 unfortunately rename these input variables and make a new major release of
 the module in question, since renaming input variables is a breaking change.
 
+### Type Constraints on Variables
+
+In Terraform v0.11, variables were documented as accepting only strings, lists
+of strings, and maps of strings. However, in practice Terraform permitted
+lists of lists and lists of maps and other nested structures in some cases,
+even though it was then generally inconvenient to work with those values
+elsewhere in the module due to limitations of the index syntax, `element`
+function, and `lookup` function.
+
+Terraform now allows various [type constraints](/docs/configuration/types.html)
+to be specified, as part of the language's new type system and generalized
+functions and operators. However, because lists and maps of non-string values
+were not officially supported in 0.11, existing configurations do not have
+enough information for the upgrade tool to know what element type was intended.
+It will therefore assume that lists and maps are of strings as documented,
+which will be incorrect for configurations using more complex structures. The
+result will be one of the following error messages:
+
+```
+Error: Invalid default value for variable
+
+  on child_module/example.tf line 4, in variable "example":
+   4:   default = [
+   5:     {
+   6:       "foo" = "bar"
+   7:     },
+   8:   ]
+
+This default value is not compatible with the variable's type constraint:
+element 0: string required.
+```
+
+```
+Error: Invalid value for module argument
+
+  on variables-incorrect-elem-type.tf line 4, in module "child":
+   4:   example = [
+   5:     {
+   6:       "foo" = "bar"
+   7:     },
+   8:   ]
+
+The given value is not suitable for child module variable "example" defined at
+child/child.tf:1,1-19: element 0: string required.
+```
+
+To fix this, change the `type` argument from `list(string)` or `map(string)`
+to a more appropriate [type constraint](/docs/configuration/types.html).
+
+If you're not sure what type constraint to use yet, another option is to
+use the type constraint `any`, which will effectively disable validation and
+allow any value. We recommend using specific types where possible, but selecting
+`any` during upgrade may be preferable, so that the work to select and define
+a more precise type can be saved for a later change at your leisure, once
+upgrading is complete.
+
 ### Working with `count` on resources
 
 The `count` feature allows declaration of multiple instances of a particular
