@@ -88,7 +88,7 @@ where `<NAME>` matches the label given in the declaration block:
 ```hcl
 resource "aws_instance" "example" {
   instance_type = "t2.micro"
-  ami           = var.image_id
+  ami           = "${var.image_id}"
 }
 ```
 
