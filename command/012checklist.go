@@ -23,6 +23,18 @@ import (
 
 var pluginProtocol5Constraint = discovery.ConstraintStr("~> 5.0").MustParse()
 
+var zeroTwelveReservedVariableNames = map[string]struct{}{
+	"source":     {},
+	"version":    {},
+	"count":      {},
+	"for_each":   {},
+	"depends_on": {},
+	"providers":  {},
+	"lifecycle":  {},
+	"locals":     {},
+	"provider":   {},
+}
+
 // ZeroTwelveChecklistCommand is a Command implementation that checks whether
 // a configuration is ready for upgrade to Terraform 0.12, producing a list
 // of remaining preparation steps if not.
@@ -207,6 +219,17 @@ func (c *ZeroTwelveChecklistCommand) zeroTwelveChecklistForModule(mod *module.Tr
 				"`provider %q` alias %q is not a valid identifier.\n\n"+
 					"In Terraform 0.12, provider aliases must start with a letter. To fix this, rename the provider alias and any references to it in the configuration and then run `terraform apply` to re-attach any existing resources to the new alias name.",
 				pc.Name, pc.Alias,
+			))
+		}
+	}
+	for _, vc := range cfg.Variables {
+		if _, exists := zeroTwelveReservedVariableNames[vc.Name]; exists {
+			items = append(items, fmt.Sprintf(
+				"The variable name %q is now reserved.\n\n"+
+					"Terraform 0.12 reserves certain variable names that have (or will have in future) a special meaning when used in a \"module\" block. The name of this variable must be changed before upgrading to v0.12. "+
+					"This will unfortunately be a breaking change for any user of this module, requiring a major release to indicate that.\n"+
+					"For more information on the reserved variable names, see the documentation at https://www.terraform.io/docs/configuration/variables.html .",
+				vc.Name,
 			))
 		}
 	}
