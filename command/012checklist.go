@@ -157,7 +157,7 @@ func (c *ZeroTwelveChecklistCommand) zeroTwelveChecklists(mod *module.Tree, into
 			// in the upstream repository.
 			childItems := c.zeroTwelveChecklistForModule(childMod)
 			if len(childItems) > 0 {
-				items = append(items, fmt.Sprintf("Upgrade child module %q to a version that passes \"terraform 0.12checklist\".", strings.Join(mod.Path(), ".")))
+				items = append(items, fmt.Sprintf("Upgrade child module %q to a version that passes \"terraform 0.12checklist\".", strings.Join(childMod.Path(), ".")))
 			}
 			continue
 		}
