@@ -124,6 +124,8 @@ func TestModuleInstaller_invalid_version_constraint_error(t *testing.T) {
 
 	if !diags.HasErrors() {
 		t.Fatal("expected error")
+	} else {
+		assertDiagnosticSummary(t, diags, "Invalid version constraint")
 	}
 }
 

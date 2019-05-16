@@ -486,6 +486,7 @@ func (i *ModuleInstaller) installGoGetterModule(req *earlyconfig.ModuleRequest, 
 			"Invalid version constraint",
 			fmt.Sprintf("Cannot apply a version constraint to module %q (at %s:%d) because it has a non Registry URL.", req.Name, req.CallPos.Filename, req.CallPos.Line),
 		))
+		return nil, diags
 	}
 
 	modDir, err := getter.getWithGoGetter(instPath, req.SourceAddr)
