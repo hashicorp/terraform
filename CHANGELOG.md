@@ -1,27 +1,27 @@
-## 0.11.14 (Unreleased)
+## 0.11.14 (May 16, 2019)
 
 NEW FEATURES:
 
-* `terraform 0.12checklist` command detects and reports on some preparation steps that will make a subsequent Terraform 0.12 upgrade smoother. [GH-21241]
+* `terraform 0.12checklist` command detects and reports on some preparation steps that will make a subsequent Terraform 0.12 upgrade smoother. ([#21241](https://github.com/hashicorp/terraform/issues/21241))
 
 IMPROVEMENTS:
 
-* provider/terraform: The `terraform_remote_state` data source is now able to read outputs from a state snapshot created by Terraform 0.12, to provide more flexibility when upgrading individual configurations to Terraform 0.12 in a decomposed environment. [GH-21226]
-* backend/s3: Support DynamoDB, IAM, and STS endpoint configurations [GH-20659]
-* backend/s3: Support for AWS regions `eu-north-1` and `us-gov-east-1` [GH-20659]
-* backend/s3: Enhance retry logic and provide `max_retries` configuration for retry attempts [GH-20659]
-* backend/s3: Enhance S3 `NoSuchBucket` error to include additional information [GH-20659]
-* backend/s3: Remove unused EC2 platform and AWS Account ID lookup, and deprecate equivalent `skip_get_ec2_platforms` and `skip_requesting_account_id` arguments [GH-20659]
-* backend/remote: Do not unlock a workspace after a failed state upload [GH-21148]
+* provider/terraform: The `terraform_remote_state` data source is now able to read outputs from a state snapshot created by Terraform 0.12, to provide more flexibility when upgrading individual configurations to Terraform 0.12 in a decomposed environment. ([#21226](https://github.com/hashicorp/terraform/issues/21226))
+* backend/s3: Support DynamoDB, IAM, and STS endpoint configurations ([#20659](https://github.com/hashicorp/terraform/issues/20659))
+* backend/s3: Support for AWS regions `eu-north-1` and `us-gov-east-1` ([#20659](https://github.com/hashicorp/terraform/issues/20659))
+* backend/s3: Enhance retry logic and provide `max_retries` configuration for retry attempts ([#20659](https://github.com/hashicorp/terraform/issues/20659))
+* backend/s3: Enhance S3 `NoSuchBucket` error to include additional information ([#20659](https://github.com/hashicorp/terraform/issues/20659))
+* backend/s3: Remove unused EC2 platform and AWS Account ID lookup, and deprecate equivalent `skip_get_ec2_platforms` and `skip_requesting_account_id` arguments ([#20659](https://github.com/hashicorp/terraform/issues/20659))
+* backend/remote: Do not unlock a workspace after a failed state upload ([#21148](https://github.com/hashicorp/terraform/issues/21148))
 
 BUG FIXES:
 
-* backend/remote: Ensure variables are loaded correctly when using `terraform console` [GH-20858]
-* backend/remote: Make sure workspaces are correctly uploaded [GH-20953]
-* backend/remote: Fix panic when loading cached configuration with 0.12 backend schema [GH-21199]
-* core: Fix a potential crash when loading module manifests with Windows paths [GH-20812]
-* core: Make sure UIInput keeps working after being canceled [GH-21140]
-* core: Always try to select a workspace after initialization [GH-21230]
+* backend/remote: Ensure variables are loaded correctly when using `terraform console` ([#20858](https://github.com/hashicorp/terraform/issues/20858))
+* backend/remote: Make sure workspaces are correctly uploaded ([#20953](https://github.com/hashicorp/terraform/issues/20953))
+* backend/remote: Fix panic when loading cached configuration with 0.12 backend schema ([#21199](https://github.com/hashicorp/terraform/issues/21199))
+* core: Fix a potential crash when loading module manifests with Windows paths ([#20812](https://github.com/hashicorp/terraform/issues/20812))
+* core: Make sure UIInput keeps working after being canceled ([#21140](https://github.com/hashicorp/terraform/issues/21140))
+* core: Always try to select a workspace after initialization ([#21230](https://github.com/hashicorp/terraform/issues/21230))
 
 ## 0.11.13 (March 11, 2019)
 
