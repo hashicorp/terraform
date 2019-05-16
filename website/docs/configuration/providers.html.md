@@ -125,7 +125,7 @@ to the provider configuration block:
 provider "aws" {
   version = "~> 1.0"
 
-  region     = "us-east-1"
+  region = "us-east-1"
 }
 ```
 
@@ -205,7 +205,7 @@ meta-argument to a `<PROVIDER NAME>.<ALIAS>` reference:
 
 ```hcl
 resource "aws_instance" "foo" {
-  provider = aws.west
+  provider = "aws.west"
 
   # ...
 }
@@ -219,7 +219,7 @@ provider names inside the module:
 module "aws_vpc" {
   source = "./aws_vpc"
   providers = {
-    aws = aws.west
+    aws = "aws.west"
   }
 }
 ```
