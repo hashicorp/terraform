@@ -15,7 +15,7 @@ earlier, see
 `formatdate` converts a timestamp into a different time format.
 
 ```hcl
-format(spec, timestamp)
+formatdate(spec, timestamp)
 ```
 
 In the Terraform language, timestamps are conventionally represented as
