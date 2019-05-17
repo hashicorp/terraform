@@ -125,7 +125,7 @@ to the provider configuration block:
 provider "aws" {
   version = "~> 1.0"
 
-  region     = "us-east-1"
+  region = "us-east-1"
 }
 ```
 
