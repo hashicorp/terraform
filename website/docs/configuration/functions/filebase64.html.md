@@ -17,7 +17,7 @@ earlier, see
 a base64-encoded string.
 
 ```hcl
-filebase64(path)
+filebase64sha256(path)
 ```
 
 The result is a Base64 representation of the raw bytes in the given file.
@@ -38,7 +38,7 @@ files that are generated dynamically during a Terraform operation.
 ## Examples
 
 ```
-> filebase64("${path.module}/hello.txt")
+> filebase64sha256("${path.module}/hello.txt")
 SGVsbG8gV29ybGQ=
 ```
 
