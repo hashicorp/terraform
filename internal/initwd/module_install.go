@@ -480,6 +480,15 @@ func (i *ModuleInstaller) installGoGetterModule(req *earlyconfig.ModuleRequest, 
 	packageAddr, _ := splitAddrSubdir(req.SourceAddr)
 	hooks.Download(key, packageAddr, nil)
 
+	if len(req.VersionConstraints) != 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid version constraint",
+			fmt.Sprintf("Cannot apply a version constraint to module %q (at %s:%d) because it has a non Registry URL.", req.Name, req.CallPos.Filename, req.CallPos.Line),
+		))
+		return nil, diags
+	}
+
 	modDir, err := getter.getWithGoGetter(instPath, req.SourceAddr)
 	if err != nil {
 		if _, ok := err.(*MaybeRelativePathErr); ok {
