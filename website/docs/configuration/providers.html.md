@@ -205,7 +205,7 @@ meta-argument to a `<PROVIDER NAME>.<ALIAS>` reference:
 
 ```hcl
 resource "aws_instance" "foo" {
-  provider = aws.west
+  provider = "aws.west"
 
   # ...
 }
@@ -219,7 +219,7 @@ provider names inside the module:
 module "aws_vpc" {
   source = "./aws_vpc"
   providers = {
-    aws = aws.west
+    aws = "aws.west"
   }
 }
 ```
