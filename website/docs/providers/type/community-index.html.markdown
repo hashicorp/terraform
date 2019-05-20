@@ -88,7 +88,7 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
 - [OpenAPI](https://github.com/dikhan/terraform-provider-openapi)
 - [OpenFaaS](https://github.com/ewilde/terraform-provider-openfaas)
 - [OpenvCloud](https://github.com/gig-tech/terraform-provider-ovc)
-- [Opsgenie](https://github.com/nlamirault/terraform-provider-opsgenie)
+- [Opsgenie](https://github.com/nlamirault/terraform-provider-opsgenie/tree/apiv2)
 - [oVirt](https://github.com/imjoey/terraform-provider-ovirt)
 - [Pass](https://github.com/camptocamp/terraform-provider-pass)
 - [Pingdom](https://bitbucket.org/devops_sysops/pingdom-provider)
