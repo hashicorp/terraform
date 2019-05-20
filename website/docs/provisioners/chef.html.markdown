@@ -43,6 +43,7 @@ resource "aws_instance" "web" {
     EOF
 
     environment     = "_default"
+    client_options  = ["chef_license 'accept'"]
     run_list        = ["cookbook::recipe"]
     node_name       = "webserver1"
     secret_key      = "${file("../encrypted_data_bag_secret")}"
