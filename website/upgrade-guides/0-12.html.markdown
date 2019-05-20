@@ -723,20 +723,6 @@ the merging feature, you must reorganize your configuration to use explicit
 merging like in the above example, or else your default map value will be
 entirely overridden by any explicitly-set value.
 
-## Upgrading Sentinel policies
-
-Terraform Enterprise users of Sentinel will need to complete the below steps to
-upgrade Sentinel to work with Terraform 0.12.
-
-1. Update Terraform configurations to 0.12
-1. Update Sentinel policies
-
-Because Sentinel is applied across all workspaces in Terraform Enterprise, all
-workspaces must be upgraded to Terraform 0.12 otherwise Sentinel policies will
-fail on versions below 0.12.
-
-More details on this upgrade process will be added prior to the final release.
-
 ## Upgrading `remote` Backend Configuration
 
 Terraform Enterprise users, and users of the Terrafrom SAAS free tier, will need
