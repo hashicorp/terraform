@@ -34,11 +34,11 @@ The full set of language improvements is too large to list them all out exhausti
 
 * **First-class expressions:** Prior to v0.12, expressions could be used only via string interpolation, like `"${var.foo}"`. Expressions are now fully integrated into the language, allowing them to be used directly as argument values, like `ami = var.ami`.
 
-* **`for` expressions:** This new expression construct allows the construction of a list or map by transforming and filtering elements from another list or map. For more information, refer to [the _`for` expressions_ documentation](https://www.terraform.io/docs/configuration/expressions.html.md#for-expressions).
+* **`for` expressions:** This new expression construct allows the construction of a list or map by transforming and filtering elements from another list or map. For more information, refer to [the _`for` expressions_ documentation](https://www.terraform.io/docs/configuration/expressions.html#for-expressions).
 
 * **Dynamic configuration blocks:** For nested configuration blocks accepted as part of a resource configuration, it is now possible to dynamically generate zero or more blocks corresponding to items in a list or map using the special new `dynamic` block construct. This is the official replacement for the common (but buggy) unofficial workaround of treating a block type name as if it were an attribute expecting a list of maps value, which worked sometimes before as a result of some unintended coincidences in the implementation.
 
-* **Generalised "splat" operator:** The `aws_instance.foo.*.id` syntax was previously a special case only for resources with `count` set. It is now an operator within the expression language that can be applied to any list value. There is also an optional new splat variant that allows both index and attribute access operations on each item in the list. For more information, refer to [the _Splat Expressions_ documentation](https://www.terraform.io//configuration/expressions.html.md#splat-expressions).
+* **Generalised "splat" operator:** The `aws_instance.foo.*.id` syntax was previously a special case only for resources with `count` set. It is now an operator within the expression language that can be applied to any list value. There is also an optional new splat variant that allows both index and attribute access operations on each item in the list. For more information, refer to [the _Splat Expressions_ documentation](https://www.terraform.io//configuration/expressions.html#splat-expressions).
 
 * **Nullable argument values:** It is now possible to use a conditional expression like `var.foo != "" ? var.foo : null` to conditionally leave an argument value unset, whereas before Terraform required the configuration author to provide a specific default value in this case. Assigning `null` to an argument is equivalent to omitting that argument entirely.
 
@@ -46,7 +46,7 @@ The full set of language improvements is too large to list them all out exhausti
 
 * **Resource and module object values:** An entire resource or module can now be treated as an object value within expressions, including passing them through input variables and output values to other modules, using an attribute-less reference syntax, like `aws_instance.foo`.
 
-* **Extended template syntax:** The simple interpolation syntax from prior versions is extended to become a simple template language, with support for conditional interpolations and repeated interpolations through iteration. For more information, see [the _String Templates_ documentation](https://www.terraform.io/configuration/expressions.html.md#string-templates).
+* **Extended template syntax:** The simple interpolation syntax from prior versions is extended to become a simple template language, with support for conditional interpolations and repeated interpolations through iteration. For more information, see [the _String Templates_ documentation](https://www.terraform.io/configuration/expressions.html#string-templates).
 
 * **`jsondecode` and `csvdecode` interpolation functions:** Due to the richer type system in the new configuration language implementation, we can now offer functions for decoding serialization formats. [`jsondecode`](https://www.terraform.io/docs/configuration/functions/jsondecode.html) is the opposite of [`jsonencode`](https://www.terraform.io/docs/configuration/functions/jsonencode.html), while [`csvdecode`](https://www.terraform.io/docs/configuration/functions/csvdecode.html) provides a way to load in lists of maps from a compact tabular representation.
 
@@ -58,7 +58,7 @@ The full set of language improvements is too large to list them all out exhausti
 
 * `terraform validate` now accepts an argument `-json` which produces machine-readable output. Please refer to the documentation for this command for details on the format and some caveats that consumers must consider when using this interface. ([#17539](https://github.com/hashicorp/terraform/issues/17539))
 
-* The JSON-based variant of the Terraform language now has a more tightly-specified and reliable mapping to the native syntax variant. In prior versions, certain Terraform configuration features did not function as expected or were not usable via the JSON-based forms. For more information, see [the _JSON Configuration Syntax_ documentation](https://www.terraform.io/docs/configuration/syntax-json.html.md).
+* The JSON-based variant of the Terraform language now has a more tightly-specified and reliable mapping to the native syntax variant. In prior versions, certain Terraform configuration features did not function as expected or were not usable via the JSON-based forms. For more information, see [the _JSON Configuration Syntax_ documentation](https://www.terraform.io/docs/configuration/syntax-json.html).
 
 * The new built-in function [`templatefile`](https://www.terraform.io/docs/configuration/functions/templatefile.html) allows rendering a template from a file directly in the language, without installing the separate Template provider and using the `template_file` data source.
 
