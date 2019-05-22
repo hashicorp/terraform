@@ -731,3 +731,22 @@ to run `terraform init -reconfigure` to upgrade to Terraform 0.12.
 Terraform provides a message stating that `terraform init` is required; while
 there is no harm in running this command, the next error message will clarify
 that `terraform init -reconfigure` is required.
+
+## Upgrading Sentinel policies
+
+The Terraform Sentinel imports have been updated to work with Terraform 0.12.
+Care has been taken to ensure that the API is as backwards compatible as
+possible and most policies will continue to work without modification. However,
+there are some important changes and certain policies will need to modified.
+
+More information on the changes can be found in our page on [using Sentinel with
+Terraform 0.12](/docs/enterprise/sentinel/sentinel-tf-012.html).
+
+It's strongly advised that you test your Sentinel policies after upgrading to
+Terraform 0.12 to ensure they continue to work as expected. [Mock
+generation](/docs/enterprise/sentinel/mock.html) has also been updated to
+produce mock data for the Sentinel imports as they appear in Terraform 0.12.
+
+For more information on testing a policy with 0.11 and 0.12 at the same time,
+see the section on [testing a policy with 0.11 and 0.12
+simultaneously](/docs/enterprise/sentinel/sentinel-tf-012.html#testing-a-policy-with-0-11-and-0-12-simultaneously).
