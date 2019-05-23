@@ -98,6 +98,7 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 	// Multi-state to multi-state. We merge the states together (migrating
 	// each from the source to the destination one by one).
 	case !oneSingle && !twoSingle:
+		fmt.Printf("STATES: %q\n", oneStates)
 		// If the source only has one state and it is the default,
 		// treat it as if it doesn't support multi-state.
 		if len(oneStates) == 1 && oneStates[0] == backend.DefaultStateName {
