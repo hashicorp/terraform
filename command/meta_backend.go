@@ -823,6 +823,8 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *state.
 		return nil, diags
 	}
 
+	fmt.Println("HERE")
+
 	// Perform the migration
 	err := m.backendMigrateState(&backendMigrateOpts{
 		OneType: s.Backend.Type,
