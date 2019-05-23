@@ -2,6 +2,7 @@ package lang
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -50,6 +51,19 @@ func TestFunctions(t *testing.T) {
 			{
 				`abs(-1)`,
 				cty.NumberIntVal(1),
+			},
+		},
+
+		"abspath": {
+			{
+				`abspath(".")`,
+				cty.StringVal((func() string {
+					cwd, err := os.Getwd()
+					if err != nil {
+						panic(err)
+					}
+					return cwd
+				})()),
 			},
 		},
 
