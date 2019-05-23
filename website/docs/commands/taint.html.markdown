@@ -80,6 +80,8 @@ The resource aws_security_group.allow_all in the module root has been marked as 
 This example will only taint a resource within a module:
 
 ```
+$ terraform state list
+module.couchbase aws_instance.cb_node.9
 $ terraform taint -module=couchbase aws_instance.cb_node.9
 The resource aws_instance.cb_node.9 in the module root.couchbase has been marked as tainted!
 ```
