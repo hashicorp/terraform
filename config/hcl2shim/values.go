@@ -223,6 +223,12 @@ func HCL2ValueFromConfigValue(v interface{}) cty.Value {
 			vals[k] = HCL2ValueFromConfigValue(ev)
 		}
 		return cty.ObjectVal(vals)
+        case map[string]string{}:
+		vals := map[string]cty.Value{}
+		for k, ev := range tv {
+			vals[k] = HCL2ValueFromConfigValue(ev)
+		}
+		return cty.ObjectVal(vals)
 	default:
 		// HCL/HIL should never generate anything that isn't caught by
 		// the above, so if we get here something has gone very wrong.
