@@ -1,5 +1,9 @@
 ## 0.12.1 (Unreleased)
 
+BUG FIXES:
+
+core: Always try to select a workspace after initialization (#21234)
+
 ## 0.12.0 (May 22, 2019)
 
 ---
