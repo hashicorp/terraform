@@ -24,7 +24,7 @@ down to see all providers.
 
 
 - [ACME](/docs/providers/acme/index.html)
-- [Alicloud](/docs/providers/alicloud/index.html)
+- [Alibaba Cloud](/docs/providers/alicloud/index.html)
 - [Archive](/docs/providers/archive/index.html)
 - [Arukas](/docs/providers/arukas/index.html)
 - [AWS](/docs/providers/aws/index.html)
