@@ -86,7 +86,6 @@
                     "ami": "bar-var"
                 },
                 "after_unknown": {
-                    "ami": false,
                     "id": true
                 }
             }
@@ -108,7 +107,6 @@
                     "ami": "baz"
                 },
                 "after_unknown": {
-                    "ami": false,
                     "id": true
                 }
             }
@@ -130,7 +128,6 @@
                     "ami": "baz"
                 },
                 "after_unknown": {
-                    "ami": false,
                     "id": true
                 }
             }
@@ -152,7 +149,6 @@
                     "ami": "baz"
                 },
                 "after_unknown": {
-                    "ami": false,
                     "id": true
                 }
             }
