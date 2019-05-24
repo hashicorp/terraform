@@ -671,7 +671,7 @@ func TestInit_inputFalse(t *testing.T) {
 	}
 
 	// A missing input=false should abort rather than loop infinitely
-	args = []string{"-backend-config=path=bar"}
+	args = []string{"-backend-config=path=baz"}
 	if code := c.Run(args); code == 0 {
 		t.Fatal("init should have failed", ui.OutputWriter)
 	}
