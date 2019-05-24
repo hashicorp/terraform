@@ -244,7 +244,9 @@ func (n *NodeAbstractResourceInstance) References() []*addrs.Reference {
 			// to find the root cause another time.
 			//
 			// https://github.com/hashicorp/terraform/issues/21407
-			if s.Current != nil {
+			if s.Current == nil {
+				log.Printf("[WARN] no current state found for %s", n.Name())
+			} else {
 				for _, addr := range s.Current.Dependencies {
 					if addr == nil {
 						// Should never happen; indicates a bug in the state loader
