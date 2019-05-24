@@ -456,6 +456,52 @@ func TestInit_backendConfigKVReInit(t *testing.T) {
 	}
 }
 
+func TestInit_backendConfigKVReInitWithConfigDiff(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-backend"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{"-input=false"}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	ui = new(cli.MockUi)
+	c = &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	// a second init with identical config should require no changes, nor
+	// should it change the backend.
+	args = []string{"-input=false", "-backend-config", "path=foo"}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	// make sure the backend is configured how we expect
+	configState := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
+	cfg := map[string]interface{}{}
+	if err := json.Unmarshal(configState.Backend.ConfigRaw, &cfg); err != nil {
+		t.Fatal(err)
+	}
+	if cfg["path"] != "foo" {
+		t.Fatalf(`expected backend path="foo", got path="%v"`, cfg["foo"])
+	}
+}
+
 func TestInit_targetSubdir(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
