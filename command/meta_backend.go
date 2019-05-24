@@ -185,9 +185,8 @@ func (m *Meta) BackendForPlan(settings plans.Backend) (backend.Enhanced, tfdiags
 	if validateDiags.HasErrors() {
 		return nil, diags
 	}
-	configVal = newVal
 
-	configureDiags := b.Configure(configVal)
+	configureDiags := b.Configure(newVal)
 	diags = diags.Append(configureDiags)
 
 	// If the backend supports CLI initialization, do it.
@@ -922,9 +921,8 @@ func (m *Meta) backend_C_r_S_unchanged(c *configs.Backend, cHash int, sMgr *stat
 	if validDiags.HasErrors() {
 		return nil, diags
 	}
-	configVal = newVal
 
-	configDiags := b.Configure(configVal)
+	configDiags := b.Configure(newVal)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
 		return nil, diags
@@ -1051,9 +1049,8 @@ func (m *Meta) backendInitFromConfig(c *configs.Backend) (backend.Backend, cty.V
 	if validateDiags.HasErrors() {
 		return nil, cty.NilVal, diags
 	}
-	configVal = newVal
 
-	configureDiags := b.Configure(configVal)
+	configureDiags := b.Configure(newVal)
 	diags = diags.Append(configureDiags.InConfigBody(c.Config))
 
 	return b, configVal, diags
@@ -1082,9 +1079,8 @@ func (m *Meta) backendInitFromSaved(s *terraform.BackendState) (backend.Backend,
 	if validateDiags.HasErrors() {
 		return nil, diags
 	}
-	configVal = newVal
 
-	configureDiags := b.Configure(configVal)
+	configureDiags := b.Configure(newVal)
 	diags = diags.Append(configureDiags)
 
 	return b, diags
