@@ -513,6 +513,34 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"range": {
+			{
+				`range(3)`,
+				cty.ListVal([]cty.Value{
+					cty.NumberIntVal(0),
+					cty.NumberIntVal(1),
+					cty.NumberIntVal(2),
+				}),
+			},
+			{
+				`range(1, 4)`,
+				cty.ListVal([]cty.Value{
+					cty.NumberIntVal(1),
+					cty.NumberIntVal(2),
+					cty.NumberIntVal(3),
+				}),
+			},
+			{
+				`range(1, 8, 2)`,
+				cty.ListVal([]cty.Value{
+					cty.NumberIntVal(1),
+					cty.NumberIntVal(3),
+					cty.NumberIntVal(5),
+					cty.NumberIntVal(7),
+				}),
+			},
+		},
+
 		"replace": {
 			{
 				`replace("hello", "hel", "bel")`,
