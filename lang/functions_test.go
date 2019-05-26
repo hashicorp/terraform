@@ -787,6 +787,29 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"yamldecode": {
+			{
+				`yamldecode("true")`,
+				cty.True,
+			},
+		},
+
+		"yamlencode": {
+			{
+				`yamlencode(["foo", "bar", true])`,
+				cty.StringVal("- \"foo\"\n- \"bar\"\n- true\n"),
+			},
+			{
+				`yamlencode({a = "b", c = "d"})`,
+				cty.StringVal("\"a\": \"b\"\n\"c\": \"d\"\n"),
+			},
+			{
+				`yamlencode(true)`,
+				// the ... here is an "end of document" marker, produced for implied primitive types only
+				cty.StringVal("true\n...\n"),
+			},
+		},
+
 		"zipmap": {
 			{
 				`zipmap(["hello", "bar"], ["world", "baz"])`,

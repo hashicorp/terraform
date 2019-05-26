@@ -3,6 +3,7 @@ package lang
 import (
 	"fmt"
 
+	ctyyaml "github.com/zclconf/go-cty-yaml"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 	"github.com/zclconf/go-cty/cty/function/stdlib"
@@ -116,6 +117,8 @@ func (s *Scope) Functions() map[string]function.Function {
 			"urlencode":        funcs.URLEncodeFunc,
 			"uuid":             funcs.UUIDFunc,
 			"values":           funcs.ValuesFunc,
+			"yamldecode":       ctyyaml.YAMLDecodeFunc,
+			"yamlencode":       ctyyaml.YAMLEncodeFunc,
 			"zipmap":           funcs.ZipmapFunc,
 		}
 
