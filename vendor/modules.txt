@@ -444,6 +444,8 @@ github.com/zclconf/go-cty/cty/function
 github.com/zclconf/go-cty/cty/function/stdlib
 github.com/zclconf/go-cty/cty/msgpack
 github.com/zclconf/go-cty/cty/set
+# github.com/zclconf/go-cty-yaml v0.1.0
+github.com/zclconf/go-cty-yaml
 # go.opencensus.io v0.18.0
 go.opencensus.io/trace
 go.opencensus.io/plugin/ochttp
