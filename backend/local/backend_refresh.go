@@ -63,7 +63,7 @@ func (b *Local) opRefresh(
 		}
 	}
 
-	// Perform the refresh in a goroutine so we can be interrupted
+	// Perform the refresh in a goroutine so it can be interrupted
 	var newState *states.State
 	var refreshDiags tfdiags.Diagnostics
 	doneCh := make(chan struct{})

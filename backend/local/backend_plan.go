@@ -95,7 +95,7 @@ func (b *Local) opPlan(
 		}
 	}
 
-	// Perform the plan in a goroutine so we can be interrupted
+	// Perform the plan in a goroutine so it can be interrupted
 	var plan *plans.Plan
 	var planDiags tfdiags.Diagnostics
 	doneCh := make(chan struct{})

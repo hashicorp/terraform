@@ -137,7 +137,7 @@ func (b *Local) opApply(
 	// Setup our hook for continuous state updates
 	stateHook.StateMgr = opState
 
-	// Start the apply in a goroutine so that we can be interrupted.
+	// Start the apply in a goroutine so it can be interrupted.
 	var applyState *states.State
 	var applyDiags tfdiags.Diagnostics
 	doneCh := make(chan struct{})
