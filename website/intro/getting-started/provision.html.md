@@ -73,7 +73,7 @@ Apply complete! Resources: 2 added, 0 changed, 0 destroyed.
 
 Terraform will output anything from provisioners to the console,
 but in this case there is no output. However, we can verify
-everything worked by looking at the `ip_address.txt` file:
+everything worked by looking at the `ip_address.txt` file on your local machine:
 
 ```
 $ cat ip_address.txt
