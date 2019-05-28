@@ -238,21 +238,31 @@ func (n *NodeAbstractResourceInstance) References() []*addrs.Reference {
 			// need to do a little work here to massage this to the form we now
 			// want.
 			var result []*addrs.Reference
-			for _, addr := range s.Current.Dependencies {
-				if addr == nil {
-					// Should never happen; indicates a bug in the state loader
-					panic(fmt.Sprintf("dependencies for current object on %s contains nil address", n.ResourceInstanceAddr()))
-				}
 
-				// This is a little weird: we need to manufacture an addrs.Reference
-				// with a fake range here because the state isn't something we can
-				// make source references into.
-				result = append(result, &addrs.Reference{
-					Subject: addr,
-					SourceRange: tfdiags.SourceRange{
-						Filename: "(state file)",
-					},
-				})
+			// It is (apparently) possible for s.Current to be nil. This proved
+			// difficult to reproduce, so we will fix the symptom here and hope
+			// to find the root cause another time.
+			//
+			// https://github.com/hashicorp/terraform/issues/21407
+			if s.Current == nil {
+				log.Printf("[WARN] no current state found for %s", n.Name())
+			} else {
+				for _, addr := range s.Current.Dependencies {
+					if addr == nil {
+						// Should never happen; indicates a bug in the state loader
+						panic(fmt.Sprintf("dependencies for current object on %s contains nil address", n.ResourceInstanceAddr()))
+					}
+
+					// This is a little weird: we need to manufacture an addrs.Reference
+					// with a fake range here because the state isn't something we can
+					// make source references into.
+					result = append(result, &addrs.Reference{
+						Subject: addr,
+						SourceRange: tfdiags.SourceRange{
+							Filename: "(state file)",
+						},
+					})
+				}
 			}
 			return result
 		}
