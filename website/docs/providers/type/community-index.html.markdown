@@ -105,7 +105,7 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
 - [Sensu](https://github.com/jtopjian/terraform-provider-sensu)
 - [Sentry](https://github.com/jianyuan/terraform-provider-sentry)
 - [Sewan](https://github.com/SewanDevs/terraform-provider-sewan)
-- [SignalFx](https://github.com/Yelp/terraform-provider-signalform)
+- [SignalFx](https://github.com/signalfx/terraform-provider-signalfx)
 - [Smartronix](https://github.com/changli3/terraform-provider-smartronix)
 - [Snowflake](https://github.com/ShopRunner/terraform-provider-snowflake)
 - [snowflakedb](https://github.com/chanzuckerberg/terraform-provider-snowflake)
