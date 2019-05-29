@@ -243,9 +243,8 @@ func (m *Meta) BackendForPlan(settings plans.Backend) (backend.Enhanced, tfdiags
 	if validateDiags.HasErrors() {
 		return nil, diags
 	}
-	configVal = newVal
 
-	configureDiags := b.Configure(configVal)
+	configureDiags := b.Configure(newVal)
 	diags = diags.Append(configureDiags)
 
 	// If the backend supports CLI initialization, do it.
@@ -521,12 +520,11 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 
 	// Potentially changing a backend configuration
 	case c != nil && !s.Backend.Empty():
-		// If we're not initializing, then it's sufficient for the configuration
-		// hashes to match, since that suggests that the static backend
-		// settings in the configuration files are unchanged. (The only
-		// record we have of CLI overrides is in the settings cache in this
-		// case, so we have no other source to compare with.
-		if !opts.Init && uint64(cHash) == s.Backend.Hash {
+		// We are not going to migrate if were not initializing and the hashes
+		// match indicating that the stored config is valid. If we are
+		// initializing, then we also assume the the backend config is OK if
+		// the hashes match, as long as we're not providing any new overrides.
+		if (uint64(cHash) == s.Backend.Hash) && (!opts.Init || opts.ConfigOverride == nil) {
 			log.Printf("[TRACE] Meta.Backend: using already-initialized, unchanged %q backend configuration", c.Type)
 			return m.backend_C_r_S_unchanged(c, cHash, sMgr)
 		}
@@ -922,9 +920,8 @@ func (m *Meta) backend_C_r_S_unchanged(c *configs.Backend, cHash int, sMgr *stat
 	if validDiags.HasErrors() {
 		return nil, diags
 	}
-	configVal = newVal
 
-	configDiags := b.Configure(configVal)
+	configDiags := b.Configure(newVal)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
 		return nil, diags
@@ -1051,9 +1048,8 @@ func (m *Meta) backendInitFromConfig(c *configs.Backend) (backend.Backend, cty.V
 	if validateDiags.HasErrors() {
 		return nil, cty.NilVal, diags
 	}
-	configVal = newVal
 
-	configureDiags := b.Configure(configVal)
+	configureDiags := b.Configure(newVal)
 	diags = diags.Append(configureDiags.InConfigBody(c.Config))
 
 	return b, configVal, diags
@@ -1082,9 +1078,8 @@ func (m *Meta) backendInitFromSaved(s *terraform.BackendState) (backend.Backend,
 	if validateDiags.HasErrors() {
 		return nil, diags
 	}
-	configVal = newVal
 
-	configureDiags := b.Configure(configVal)
+	configureDiags := b.Configure(newVal)
 	diags = diags.Append(configureDiags)
 
 	return b, diags
