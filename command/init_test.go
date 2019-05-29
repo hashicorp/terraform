@@ -454,6 +454,22 @@ func TestInit_backendConfigKVReInit(t *testing.T) {
 	if cfg["path"] != "test" {
 		t.Fatalf(`expected backend path="test", got path="%v"`, cfg["path"])
 	}
+
+	// override the -backend-config options by settings
+	args = []string{"-input=false", "-backend-config", ""}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	// make sure the backend is configured how we expect
+	configState = testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
+	cfg = map[string]interface{}{}
+	if err := json.Unmarshal(configState.Backend.ConfigRaw, &cfg); err != nil {
+		t.Fatal(err)
+	}
+	if cfg["path"] != nil {
+		t.Fatalf(`expected backend path="<nil>", got path="%v"`, cfg["path"])
+	}
 }
 
 func TestInit_backendConfigKVReInitWithConfigDiff(t *testing.T) {

@@ -299,7 +299,7 @@ func (c *InitCommand) Run(args []string) int {
 
 	if back == nil {
 		// If we didn't initialize a backend then we'll try to at least
-		// instantiate one. This might fail if it wasn't already initalized
+		// instantiate one. This might fail if it wasn't already initialized
 		// by a previous run, so we must still expect that "back" may be nil
 		// in code that follows.
 		var backDiags tfdiags.Diagnostics
@@ -673,6 +673,12 @@ func (c *InitCommand) backendConfigOverrideBody(flags rawFlags, schema *configsc
 		newBody := configs.SynthBody("-backend-config=...", synthVals)
 		mergeBody(newBody)
 		synthVals = make(map[string]cty.Value)
+	}
+
+	if len(items) == 1 && items[0].Value == "" {
+		// Explicitly remove all -backend-config options.
+		// We do this by setting an empty but non-nil ConfigOverrides.
+		return configs.SynthBody("-backend-config=''", synthVals), diags
 	}
 
 	for _, item := range items {
