@@ -675,6 +675,12 @@ func (c *InitCommand) backendConfigOverrideBody(flags rawFlags, schema *configsc
 		synthVals = make(map[string]cty.Value)
 	}
 
+	if len(items) == 1 && items[0].Value == "" {
+		// Explicitly remove all -backend-config options.
+		// We do this by setting an empty but non-nil ConfigOverrides.
+		return configs.SynthBody("-backend-config=''", synthVals), diags
+	}
+
 	for _, item := range items {
 		eq := strings.Index(item.Value, "=")
 
