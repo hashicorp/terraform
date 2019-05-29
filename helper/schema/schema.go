@@ -1365,10 +1365,12 @@ func (m schemaMap) validate(
 			"%q: this field cannot be set", k)}
 	}
 
-	if raw == config.UnknownVariableValue {
-		// If the value is unknown then we can't validate it yet.
-		// In particular, this avoids spurious type errors where downstream
-		// validation code sees UnknownVariableValue as being just a string.
+	// If the value is unknown then we can't validate it yet.
+	// In particular, this avoids spurious type errors where downstream
+	// validation code sees UnknownVariableValue as being just a string.
+	// The SDK has to allow the unknown value through initially, so that
+	// Required fields set via an interpolated value are accepted.
+	if !isWhollyKnown(raw) {
 		return nil, nil
 	}
 
@@ -1380,6 +1382,28 @@ func (m schemaMap) validate(
 	return m.validateType(k, raw, schema, c)
 }
 
+// isWhollyKnown returns false if the argument contains an UnknownVariableValue
+func isWhollyKnown(raw interface{}) bool {
+	switch raw := raw.(type) {
+	case string:
+		if raw == config.UnknownVariableValue {
+			return false
+		}
+	case []interface{}:
+		for _, v := range raw {
+			if !isWhollyKnown(v) {
+				return false
+			}
+		}
+	case map[string]interface{}:
+		for _, v := range raw {
+			if !isWhollyKnown(v) {
+				return false
+			}
+		}
+	}
+	return true
+}
 func (m schemaMap) validateConflictingAttributes(
 	k string,
 	schema *Schema,
