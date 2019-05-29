@@ -60,6 +60,11 @@ func New() backend.Backend {
 				Optional:    true,
 				Description: "The password for HTTP basic authentication",
 			},
+			"token": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The token for HTTP bearer authentication",
+			},
 			"skip_cert_verification": &schema.Schema{
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -142,6 +147,7 @@ func (b *Backend) configure(ctx context.Context) error {
 
 		Username: data.Get("username").(string),
 		Password: data.Get("password").(string),
+		Token:    data.Get("token").(string),
 
 		// accessible only for testing use
 		Client: client,

@@ -58,5 +58,6 @@ The following configuration options are supported:
    Defaults to `UNLOCK`.
  * `username` - (Optional) The username for HTTP basic authentication
  * `password` - (Optional) The password for HTTP basic authentication
+ * `token` - (Optional) The token for HTTP bearer authentication
  * `skip_cert_verification` - (Optional) Whether to skip TLS verification.
    Defaults to `false`.

@@ -40,6 +40,9 @@ func TestHTTPClientFactory(t *testing.T) {
 	if client.Username != "" || client.Password != "" {
 		t.Fatal("Unexpected username or password")
 	}
+	if client.Token != "" {
+		t.Fatal("Unexpected token")
+	}
 
 	// custom
 	conf = map[string]cty.Value{
@@ -73,5 +76,18 @@ func TestHTTPClientFactory(t *testing.T) {
 	if client.Username != "user" || client.Password != "pass" {
 		t.Fatalf("Unexpected username \"%s\" vs \"%s\" or password \"%s\" vs \"%s\"", client.Username, conf["username"],
 			client.Password, conf["password"])
+	}
+
+	// Token Auth
+	conf = map[string]cty.Value{
+		"address": cty.StringVal("http://127.0.0.1:8888/foo"),
+		"token":   cty.StringVal("token"),
+	}
+
+	b = backend.TestBackendConfig(t, New(), configs.SynthBody("synth", conf)).(*Backend)
+	client = b.client
+
+	if client.Token != "token" {
+		t.Fatalf("Unexpected token \"%s\" vs \"%s\"", client.Token, conf["token"])
 	}
 }

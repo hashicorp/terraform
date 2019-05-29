@@ -31,6 +31,7 @@ type httpClient struct {
 	Client   *http.Client
 	Username string
 	Password string
+	Token    string
 
 	lockID       string
 	jsonLockInfo []byte
@@ -48,9 +49,19 @@ func (c *httpClient) httpRequest(method string, url *url.URL, data *[]byte, what
 	if err != nil {
 		return nil, fmt.Errorf("Failed to make %s HTTP request: %s", what, err)
 	}
+
+	if c.Username != "" && c.Token != "" {
+		return nil, fmt.Errorf("Cannot use Basic and Token Authentication at the same time.ß")
+	}
+
 	// Setup basic auth
 	if c.Username != "" {
 		req.SetBasicAuth(c.Username, c.Password)
+	}
+
+	// Setup token auth
+	if c.Token != "" {
+		req.Header.Set("Authorization", "Bearer "+c.Token)
 	}
 
 	// Work with data/body
