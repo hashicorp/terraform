@@ -52,7 +52,7 @@ The full set of language improvements is too large to list them all out exhausti
 
 * **Resource and module object values:** An entire resource or module can now be treated as an object value within expressions, including passing them through input variables and output values to other modules, using an attribute-less reference syntax, like `aws_instance.foo`.
 
-* **Extended template syntax:** The simple interpolation syntax from prior versions is extended to become a simple template language, with support for conditional interpolations and repeated interpolations through iteration. For more information, see [the _String Templates_ documentation](https://www.terraform.io/configuration/expressions.html#string-templates).
+* **Extended template syntax:** The simple interpolation syntax from prior versions is extended to become a simple template language, with support for conditional interpolations and repeated interpolations through iteration. For more information, see [the _String Templates_ documentation](https://www.terraform.io/docs/configuration/expressions.html#string-templates).
 
 * **`jsondecode` and `csvdecode` interpolation functions:** Due to the richer type system in the new configuration language implementation, we can now offer functions for decoding serialization formats. [`jsondecode`](https://www.terraform.io/docs/configuration/functions/jsondecode.html) is the opposite of [`jsonencode`](https://www.terraform.io/docs/configuration/functions/jsonencode.html), while [`csvdecode`](https://www.terraform.io/docs/configuration/functions/csvdecode.html) provides a way to load in lists of maps from a compact tabular representation.
 
