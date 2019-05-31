@@ -902,6 +902,11 @@ func TestDistinct(t *testing.T) {
 			false,
 		},
 		{
+			cty.ListValEmpty(cty.String),
+			cty.ListValEmpty(cty.String),
+			false,
+		},
+		{
 			cty.ListVal([]cty.Value{
 				cty.StringVal("a"),
 				cty.StringVal("b"),
