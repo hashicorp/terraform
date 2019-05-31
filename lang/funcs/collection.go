@@ -363,6 +363,9 @@ var DistinctFunc = function.New(&function.Spec{
 			}
 		}
 
+		if len(list) == 0 {
+			return cty.ListValEmpty(retType.ElementType()), nil
+		}
 		return cty.ListVal(list), nil
 	},
 })
