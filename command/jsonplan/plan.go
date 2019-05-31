@@ -210,17 +210,7 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 				if err != nil {
 					return err
 				}
-				afterUnknown, _ = cty.Transform(changeV.After, func(path cty.Path, val cty.Value) (cty.Value, error) {
-					if val.IsNull() {
-						return cty.False, nil
-					}
-
-					if val.IsKnown() {
-						return cty.False, nil
-					}
-
-					return cty.True, nil
-				})
+				afterUnknown = cty.EmptyObjectVal
 			} else {
 				filteredAfter := omitUnknowns(changeV.After)
 				if filteredAfter.IsNull() {
