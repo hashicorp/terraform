@@ -129,6 +129,42 @@ func TestModuleInstaller_invalid_version_constraint_error(t *testing.T) {
 	}
 }
 
+func TestModuleInstaller_invalidVersionConstraintGetter(t *testing.T) {
+	fixtureDir := filepath.Clean("test-fixtures/invalid-version-constraint")
+	dir, done := tempChdir(t, fixtureDir)
+	defer done()
+
+	hooks := &testInstallHooks{}
+
+	modulesDir := filepath.Join(dir, ".terraform/modules")
+	inst := NewModuleInstaller(modulesDir, nil)
+	_, diags := inst.InstallModules(".", false, hooks)
+
+	if !diags.HasErrors() {
+		t.Fatal("expected error")
+	} else {
+		assertDiagnosticSummary(t, diags, "Invalid version constraint")
+	}
+}
+
+func TestModuleInstaller_invalidVersionConstraintLocal(t *testing.T) {
+	fixtureDir := filepath.Clean("test-fixtures/invalid-version-constraint-local")
+	dir, done := tempChdir(t, fixtureDir)
+	defer done()
+
+	hooks := &testInstallHooks{}
+
+	modulesDir := filepath.Join(dir, ".terraform/modules")
+	inst := NewModuleInstaller(modulesDir, nil)
+	_, diags := inst.InstallModules(".", false, hooks)
+
+	if !diags.HasErrors() {
+		t.Fatal("expected error")
+	} else {
+		assertDiagnosticSummary(t, diags, "Invalid version constraint")
+	}
+}
+
 func TestModuleInstaller_symlink(t *testing.T) {
 	fixtureDir := filepath.Clean("test-fixtures/local-module-symlink")
 	dir, done := tempChdir(t, fixtureDir)
