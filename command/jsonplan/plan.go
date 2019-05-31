@@ -215,10 +215,6 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 						return cty.False, nil
 					}
 
-					if !val.Type().IsPrimitiveType() {
-						return val, nil // just pass through non-primitives; they already contain our transform results
-					}
-
 					if val.IsKnown() {
 						return cty.False, nil
 					}
