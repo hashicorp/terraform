@@ -1866,3 +1866,43 @@ test_thing.bar:
 		}
 	}
 }
+
+func TestContext2Refresh_dataValidation(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+data "aws_data_source" "foo" {
+  foo = "bar"
+}
+`,
+	})
+
+	p := testProvider("aws")
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		resp.PlannedState = req.ProposedNewState
+		return
+	}
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) (resp providers.ReadDataSourceResponse) {
+		resp.State = req.Config
+		return
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	_, diags := ctx.Refresh()
+	if diags.HasErrors() {
+		// Should get this error:
+		// Unsupported attribute: This object does not have an attribute named "missing"
+		t.Fatal(diags.Err())
+	}
+
+	if !p.ValidateDataSourceConfigCalled {
+		t.Fatal("ValidateDataSourceConfig not called during plan")
+	}
+}
