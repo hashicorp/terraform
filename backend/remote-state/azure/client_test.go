@@ -2,6 +2,7 @@ package azure
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 
@@ -306,4 +307,44 @@ func TestPutMaintainsMetaData(t *testing.T) {
 	if blobReference.Metadata[headerName] != expectedValue {
 		t.Fatalf("%q was not set to %q in the MetaData: %+v", headerName, expectedValue, blobReference.Metadata)
 	}
+}
+
+func TestRemoteClientWithKeyVaultEncryption(t *testing.T) {
+	testAccAzureBackend(t)
+
+	rs := acctest.RandString(4)
+
+	keyVaultName := fmt.Sprintf("keyvaultterraform%s", rs)
+	keyName := "myKey"
+	keyIdentifier := fmt.Sprintf("https://%s.vault.azure.net/keys/%s", keyVaultName, keyName)
+
+	ctx := context.TODO()
+	res := testResourceNamesWithKeyVault(rs, "testState", keyVaultName, keyName)
+	armClient := buildTestClientWithKeyVault(t, res)
+
+	err := armClient.buildTestResources(ctx, &res)
+	defer armClient.destroyTestResources(ctx, res)
+	if err != nil {
+		t.Fatalf("Error creating Test Resources: %q", err)
+	}
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"storage_account_name":     res.storageAccountName,
+		"container_name":           res.storageContainerName,
+		"key":                      res.storageKeyName,
+		"resource_group_name":      res.resourceGroup,
+		"subscription_id":          os.Getenv("ARM_SUBSCRIPTION_ID"),
+		"tenant_id":                os.Getenv("ARM_TENANT_ID"),
+		"client_id":                os.Getenv("ARM_CLIENT_ID"),
+		"client_secret":            os.Getenv("ARM_CLIENT_SECRET"),
+		"environment":              os.Getenv("ARM_ENVIRONMENT"),
+		"key_vault_key_identifier": keyIdentifier,
+	})).(*Backend)
+
+	state, err := b.StateMgr(backend.DefaultStateName)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	remote.TestClient(t, state.(*remote.State).Client)
 }
