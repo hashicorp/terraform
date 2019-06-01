@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"reflect"
@@ -5721,6 +5722,49 @@ resource "aws_instance" "foo" {
 	wantErrStr := "Unsupported attribute"
 	if !strings.Contains(gotErrStr, wantErrStr) {
 		t.Fatalf("missing expected error\ngot: %s\n\nwant: error containing %q", gotErrStr, wantErrStr)
+	}
+}
+
+func TestContext2Plan_variableValidation(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "x" {
+  default = "bar"
+}
+
+resource "aws_instance" "foo" {
+  foo = var.x
+}`,
+	})
+
+	p := testProvider("aws")
+	p.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) (resp providers.ValidateResourceTypeConfigResponse) {
+		foo := req.Config.GetAttr("foo").AsString()
+		if foo == "bar" {
+			resp.Diagnostics = resp.Diagnostics.Append(errors.New("foo cannot be bar"))
+		}
+		return
+	}
+
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		resp.PlannedState = req.ProposedNewState
+		return
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	_, diags := ctx.Plan()
+	if !diags.HasErrors() {
+		// Should get this error:
+		// Unsupported attribute: This object does not have an attribute named "missing"
+		t.Fatal("succeeded; want errors")
 	}
 }
 

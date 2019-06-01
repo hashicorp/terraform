@@ -174,6 +174,20 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		}
 	}
 
+	log.Printf("[TRACE] Re-validating config for %q", n.Addr.Absolute(ctx.Path()))
+	// Allow the provider to validate the final set of values.
+	// The config was statically validated early on, but there may have been
+	// unknown values which the provider could not validate at the time.
+	validateResp := provider.ValidateResourceTypeConfig(
+		providers.ValidateResourceTypeConfigRequest{
+			TypeName: n.Addr.Resource.Type,
+			Config:   configVal,
+		},
+	)
+	if validateResp.Diagnostics.HasErrors() {
+		return nil, validateResp.Diagnostics.InConfigBody(config.Config).Err()
+	}
+
 	// The provider gets an opportunity to customize the proposed new value,
 	// which in turn produces the _planned_ new value.
 	resp := provider.PlanResourceChange(providers.PlanResourceChangeRequest{
