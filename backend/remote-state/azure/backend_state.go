@@ -87,6 +87,7 @@ func (b *Backend) StateMgr(name string) (state.State, error) {
 		blobClient:    *blobClient,
 		containerName: b.containerName,
 		keyName:       b.path(name),
+		encClient:     b.armClient.encClient,
 	}
 
 	stateMgr := &remote.State{Client: client}

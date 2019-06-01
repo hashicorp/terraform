@@ -2,6 +2,7 @@ package azure
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -27,6 +28,7 @@ type RemoteClient struct {
 	containerName string
 	keyName       string
 	leaseID       string
+	encClient     *EncryptionClient
 }
 
 func (c *RemoteClient) Get() (*remote.Payload, error) {
@@ -55,8 +57,17 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 		return nil, fmt.Errorf("Failed to read remote state: %s", err)
 	}
 
+	dataProcessed := buf.Bytes()
+	// Decrypt operation if Key Vault key is provided
+	if c.encClient != nil {
+		dataProcessed, err = c.encClient.Decrypt(context.TODO(), buf.Bytes())
+		if err != nil {
+			return nil, fmt.Errorf("Error during decryption: %v", err)
+		}
+	}
+
 	payload := &remote.Payload{
-		Data: buf.Bytes(),
+		Data: dataProcessed,
 	}
 
 	// If there was no data, then return nil
@@ -72,11 +83,20 @@ func (c *RemoteClient) Put(data []byte) error {
 	setOptions := &storage.SetBlobPropertiesOptions{}
 	putOptions := &storage.PutBlobOptions{}
 
+	var err error
+	dataProcessed := data
+	// Encrypt operation if Key Vault key is provided
+	if c.encClient != nil {
+		dataProcessed, err = c.encClient.Encrypt(context.TODO(), data)
+		if err != nil {
+			return fmt.Errorf("Error during encryption: %v", err)
+		}
+	}
+
 	containerReference := c.blobClient.GetContainerReference(c.containerName)
 	blobReference := containerReference.GetBlobReference(c.keyName)
-
 	blobReference.Properties.ContentType = "application/json"
-	blobReference.Properties.ContentLength = int64(len(data))
+	blobReference.Properties.ContentLength = int64(len(dataProcessed))
 
 	if c.leaseID != "" {
 		getOptions.LeaseID = c.leaseID
@@ -96,7 +116,7 @@ func (c *RemoteClient) Put(data []byte) error {
 		}
 	}
 
-	reader := bytes.NewReader(data)
+	reader := bytes.NewReader(dataProcessed)
 
 	err = blobReference.CreateBlockBlobFromReader(reader, putOptions)
 	if err != nil {
