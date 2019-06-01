@@ -1,13 +1,15 @@
 package azure
 
 import (
-	// "context"
-	// "fmt"
+	"context"
+	"crypto/rsa"
+	"crypto/sha512"
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
 
-	// "github.com/hashicorp/terraform/helper/acctest"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/Azure/azure-sdk-for-go/services/keyvault/2016-10-01/keyvault"
 )
 
@@ -365,4 +367,96 @@ func testGetKeyVaultAlgorithmParametersWithAlgorithm(t *testing.T, algorithm key
 			t.Errorf("Decrypt block size wasn't correct. Expected: %v, Got: %v", pe.decryptBlockSizeBytes, pa.decryptBlockSizeBytes)
 		}
 	}
+}
+
+
+// Integration Tests
+
+func TestKeyVaultEncryption(t * testing.T){
+	testAccAzureBackend(t)
+
+	ctx := context.TODO()
+	rs := acctest.RandString(4)
+	
+	keyVaultName := fmt.Sprintf("keyvaultterraform%s", rs)
+	keyName := "myKey"
+	keyIdentifier := fmt.Sprintf("https://%s.vault.azure.net/keys/%s", keyVaultName, keyName)
+
+	res := testResourceNamesWithKeyVault(rs, "testState", keyVaultName, keyName)
+	armClient := buildTestClientWithKeyVault(t, res)
+
+	defer armClient.destroyTestResources(ctx, res)
+	err := armClient.buildTestResources(ctx, &res)
+	if err != nil {
+		t.Errorf("Error creating Test Resources: %q", err)
+	}
+
+	c := armClient.encClient
+
+	smallData := acctest.RandString(20)
+	largeData := acctest.RandString(3000)
+
+	smallDataBytes := []byte(smallData)
+	largeDataBytes := []byte(largeData)
+
+	t.Run("GetDetails", func(t *testing.T) {
+		details, err := c.getKeyVaultKeyDetails(ctx)
+		if err != nil {
+			t.Fatalf("Error when getting key details: %v", err)
+		}
+	
+		if !strings.Contains(*details.Key.Kid, keyIdentifier){
+			t.Fatalf("Key details was not correct. Expected: %v, Got: %v", keyIdentifier, *details.Key.Kid)
+		}
+	})
+
+	t.Run("EncryptByteBlock", func(t *testing.T) {
+		encrypted, err := c.encryptByteBlock(ctx, smallDataBytes)
+		if err != nil {
+			t.Fatalf("Error when encrypting data: %v", err)
+		}
+
+		if len(encrypted) != 342 { //TODO: Use other key sizes rather than 2048
+			t.Fatalf("Error when encrypting data, wrong size. Expected: %v, Got: %v", 342, len(encrypted))
+		}
+	})
+
+	t.Run("DecryptByteBlock", func(t *testing.T) {
+		encrypted, err := c.encryptByteBlock(ctx, smallDataBytes)
+		if err != nil {
+			t.Fatalf("Error when encrypting data: %v", err)
+		}
+
+		decrypted, err := c.decryptByteBlock(ctx, encrypted)
+		if err != nil {
+			t.Fatalf("Error when decrypting data: %v", err)
+		}
+
+		if !reflect.DeepEqual(decrypted, smallDataBytes) {
+			t.Fatalf("Data received from decryption was not correct. Expected: %v, Got: %v", smallDataBytes, decrypted)
+		}
+	})
+
+	t.Run("Encrypt", func(t *testing.T) {
+		_, err := c.Encrypt(ctx, largeDataBytes)
+		if err != nil {
+			t.Fatalf("Error when encrypting data: %v", err)
+		}
+	})
+
+	t.Run("Decrypt", func(t *testing.T) {
+		encrypted, err := c.Encrypt(ctx, largeDataBytes)
+		if err != nil {
+			t.Fatalf("Error when encrypting data: %v", err)
+		}
+
+		decrypted, err := c.Decrypt(ctx, encrypted)
+		if err != nil {
+			t.Fatalf("Error when decrypting data: %v", err)
+		}
+
+		if !reflect.DeepEqual(decrypted, largeDataBytes) {
+			t.Fatalf("Data received from decryption was not correct. Expected: %v, Got: %v", largeDataBytes, decrypted)
+		}
+	})
 }

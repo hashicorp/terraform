@@ -64,16 +64,6 @@ func parseKeyVaultKeyInfo(keyVaultKeyIdentifier string) (*KeyVaultKeyInfo, error
 	return &info, nil
 }
 
-func (e *EncryptionClient) getKeyVaultKeyDetails() (*keyvault.KeyBundle, error) {
-	keyBundle, err := e.KvClient.GetKey(context.TODO(), e.kvInfo.vaultURL, e.kvInfo.keyName, e.kvInfo.keyVersion)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &keyBundle, nil
-}
-
 func generatePublicKeyFromKeyBundle(keyBundle *keyvault.KeyBundle) (*rsa.PublicKey, error) {
 	nDecoded, err := base64.RawURLEncoding.DecodeString(*keyBundle.Key.N)
 	if err != nil {
@@ -146,8 +136,18 @@ func getKeyVaultAlgorithmParameters(algorithm keyvault.JSONWebKeyEncryptionAlgor
 	return kp
 }
 
-func (e *EncryptionClient) fillKeyDetails() error {
-	keyDetails, err := e.getKeyVaultKeyDetails()
+func (e *EncryptionClient) getKeyVaultKeyDetails(ctx context.Context) (*keyvault.KeyBundle, error) {
+	keyBundle, err := e.KvClient.GetKey(ctx, e.kvInfo.vaultURL, e.kvInfo.keyName, e.kvInfo.keyVersion)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &keyBundle, nil
+}
+
+func (e *EncryptionClient) fillKeyDetails(ctx context.Context) error {
+	keyDetails, err := e.getKeyVaultKeyDetails(ctx)
 	if err != nil {
 		return err
 	}
@@ -183,9 +183,13 @@ func (e *EncryptionClient) encryptByteBlock(ctx context.Context, data []byte) ([
 
 	// Lazy loading for key details
 	if e.kvAlgorithmParameters == nil {
-		if err := e.fillKeyDetails(); err != nil {
+		if err := e.fillKeyDetails(ctx); err != nil {
 			return nil, err
 		}
+	}
+
+	if len(data) > e.kvAlgorithmParameters.encryptBlockSizeBytes {
+		return nil, fmt.Errorf("Can not encrypt more than %v bytes at a time.", e.kvAlgorithmParameters.encryptBlockSizeBytes)
 	}
 
 	encoded := base64.RawStdEncoding.EncodeToString(data)
@@ -206,9 +210,13 @@ func (e *EncryptionClient) decryptByteBlock(ctx context.Context, data []byte) ([
 
 	// Lazy loading for key details
 	if e.kvAlgorithmParameters == nil {
-		if err := e.fillKeyDetails(); err != nil {
+		if err := e.fillKeyDetails(ctx); err != nil {
 			return nil, err
 		}
+	}
+
+	if len(data) > e.kvAlgorithmParameters.decryptBlockSizeBytes {
+		return nil, fmt.Errorf("Can not decrypt more than %v bytes at a time.", e.kvAlgorithmParameters.decryptBlockSizeBytes)
 	}
 
 	str := string(data)
