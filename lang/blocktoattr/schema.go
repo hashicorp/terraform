@@ -55,10 +55,11 @@ func effectiveSchema(given *hcl.BodySchema, body hcl.Body, ambiguousNames map[st
 				},
 			}
 			content, _, _ = body.PartialContent(&probeSchema)
-			if len(content.Blocks) > 0 {
-				// No attribute present and at least one block present, so
-				// we'll need to rewrite this one as a block for a successful
-				// result.
+			if len(content.Blocks) > 0 || dynamicExpanded {
+				// A dynamic block with an empty iterator returns nothing.
+				// If there's no attribute and we have either a block or a
+				// dynamic expansion, we need to rewrite this one as a
+				// block for a successful result.
 				appearsAsBlock[name] = struct{}{}
 			}
 		}
