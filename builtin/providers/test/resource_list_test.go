@@ -1,6 +1,7 @@
 package test
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 
@@ -477,6 +478,57 @@ resource "test_resource_list" "b" {
 }
 				`),
 				Check: resource.ComposeTestCheckFunc(),
+			},
+		},
+	})
+}
+
+func TestResourceList_dynamicMinItems(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+variable "a" {
+  type = list(number)
+  default = [1]
+}
+
+resource "test_resource_list" "b" {
+	dynamic "min_items" {
+		for_each = var.a
+		content {
+		  val = "foo"
+		}
+	}
+}
+				`),
+				ExpectError: regexp.MustCompile(`attribute supports 2`),
+			},
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_list" "a" {
+	dependent_list {
+		val = "a"
+	}
+
+	dependent_list {
+		val = "b"
+	}
+}
+resource "test_resource_list" "b" {
+	list_block {
+		string = "constant"
+	}
+	dynamic "min_items" {
+		for_each = test_resource_list.a.computed_list
+		content {
+		  val = min_items.value
+		}
+	}
+}
+				`),
 			},
 		},
 	})
