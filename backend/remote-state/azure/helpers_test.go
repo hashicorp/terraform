@@ -13,6 +13,8 @@ import (
 	armStorage "github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/storage/mgmt/storage"
 	"github.com/Azure/azure-sdk-for-go/storage"
 	sasStorage "github.com/hashicorp/go-azure-helpers/storage"
+
+	"github.com/Azure/azure-sdk-for-go/services/keyvault/mgmt/2016-10-01/keyvault"
 )
 
 const (
@@ -200,4 +202,9 @@ func (c ArmClient) destroyTestResources(ctx context.Context, resources resourceN
 	}
 
 	return nil
+}
+
+func getVaultsClient() keyvault.VaultsClient {
+	vaultsClient := keyvault.NewVaultsClient("")
+	return vaultsClient
 }
