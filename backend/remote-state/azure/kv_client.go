@@ -243,6 +243,13 @@ func (e *EncryptionClient) Encrypt(ctx context.Context, data []byte) ([]byte, er
 		return final, nil
 	}
 
+	// Lazy loading for key details
+	if e.kvAlgorithmParameters == nil {
+		if err := e.fillKeyDetails(ctx); err != nil {
+			return nil, err
+		}
+	}
+
 	c := e.kvAlgorithmParameters.encryptBlockSizeBytes
 	n := len(data) / c
 	for i := 0; i < n; i++ {
@@ -268,6 +275,13 @@ func (e *EncryptionClient) Decrypt(ctx context.Context, data []byte) ([]byte, er
 
 	if len(data) == 0 {
 		return final, nil
+	}
+
+	// Lazy loading for key details
+	if e.kvAlgorithmParameters == nil {
+		if err := e.fillKeyDetails(ctx); err != nil {
+			return nil, err
+		}
 	}
 
 	c := e.kvAlgorithmParameters.decryptBlockSizeBytes
