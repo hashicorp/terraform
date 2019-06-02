@@ -76,6 +76,19 @@ terraform {
 
 -> **NOTE:** When using a Service Principal or an Access Key - we recommend using a [Partial Configuration](/docs/backends/config.html) for the credentials.
 
+When using an Azure Key Vault key to encrypt the blob used by the Terraform's State file:
+
+```hcl
+terraform {
+  backend "azurerm" {
+    storage_account_name     = "abcd1234"
+    container_name           = "tfstate"
+    key                      = "prod.terraform.tfstate"
+    key_vault_key_identifier = "https://keyvaultname.vault.azure.net/keys/myKey/99d67321dd9841af859129cd5551a871"
+  }
+}
+```
+
 ## Example Referencing
 
 When authenticating using a Service Principal:
@@ -150,6 +163,8 @@ The following configuration options are supported:
 * `container_name` - (Required) The Name of [the Storage Container](https://www.terraform.io/docs/providers/azurerm/r/storage_container.html) within the Storage Account.
 
 * `key` - (Required) The name of the Blob used to retrieve/store Terraform's State file inside the Storage Container.
+
+* `key_vault_key_identifier` - (Optional) The identifier of the [Azure Key Vault key](https://www.terraform.io/docs/providers/azurerm/d/key_vault_key.html). If this value is provided the key will be used to encrypt the blob used by the Terraform's State file.
 
 * `environment` - (Optional) The Azure Environment which should be used. This can also be sourced from the `ARM_ENVIRONMENT` environment variable. Possible values are `public`, `china`, `german`, `stack` and `usgovernment`. Defaults to `public`.
 
