@@ -535,6 +535,11 @@ func (s *GRPCProviderServer) ReadResource(_ context.Context, req *proto.ReadReso
 		Msgpack: newStateMP,
 	}
 
+	// helper/schema did previously handle private data during refresh, but
+	// core is now going to expect this to be maintained in order to
+	// persist it in the state.
+	resp.Private = req.Private
+
 	return resp, nil
 }
 
