@@ -48,10 +48,7 @@
                     "ami": "bar",
                     "id": "placeholder"
                 },
-                "after_unknown": {
-                    "ami": false,
-                    "id": false
-                }
+                "after_unknown": {}
             }
         }
     ],

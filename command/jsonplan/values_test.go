@@ -173,7 +173,7 @@ func TestMarshalPlanResources(t *testing.T) {
 		Want   []resource
 		Err    bool
 	}{
-		"create with unkonwns": {
+		"create with unknowns": {
 			Action: plans.Create,
 			Before: cty.NullVal(cty.EmptyObject),
 			After: cty.ObjectVal(map[string]cty.Value{
