@@ -800,7 +800,13 @@ var MatchkeysFunc = function.New(&function.Spec{
 		},
 	},
 	Type: func(args []cty.Value) (cty.Type, error) {
-		if !args[1].Type().Equals(args[2].Type()) {
+		argTypes := make([]cty.Type, 2)
+		for i := 0; i < 2; i++ {
+			argTypes[i] = args[i+1].Type()
+		}
+
+		ty, _ := convert.UnifyUnsafe(argTypes)
+		if ty == cty.NilType {
 			return cty.NilType, errors.New("lists must be of the same type")
 		}
 
