@@ -2,7 +2,6 @@ package command
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -221,7 +220,6 @@ func TestShow_json_output(t *testing.T) {
 			json.Unmarshal([]byte(byteValue), &want)
 
 			if !cmp.Equal(got, want) {
-				fmt.Println(ui.OutputWriter.String())
 				t.Fatalf("wrong result:\n %v\n", cmp.Diff(got, want))
 			}
 
