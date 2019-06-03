@@ -3,6 +3,7 @@
 BUG FIXES:
 
 * core: Always try to select a workspace after initialization [GH-21234]
+* command/show: fix inconsistent json output causing a panic [GH-21541] 
 * config: `distinct` function no longer panics when given an empty list [GH-21538]
 
 ## 0.12.0 (May 22, 2019)
