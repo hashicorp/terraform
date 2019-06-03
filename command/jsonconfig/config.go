@@ -238,8 +238,7 @@ func marshalModuleCalls(c *configs.Config, schemas *terraform.Schemas) map[strin
 }
 
 func marshalModuleCall(c *configs.Config, mc *configs.ModuleCall, schemas *terraform.Schemas) moduleCall {
-	// It's possible, though unlikely, to have a module call with a nil config
-	// https://github.com/hashicorp/terraform/issues/21543
+	// It is possible to have a module call with a nil config.
 	if c == nil {
 		return moduleCall{}
 	}
