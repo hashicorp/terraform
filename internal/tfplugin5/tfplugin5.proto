@@ -219,10 +219,12 @@ message ReadResource {
     message Request {
         string type_name = 1;
         DynamicValue current_state = 2;
+        bytes private = 3;
     }
     message Response {
         DynamicValue new_state = 1;
         repeated Diagnostic diagnostics = 2;
+        bytes private = 3;
     }
 }
 
