@@ -1883,8 +1883,7 @@ func TestMatchkeys(t *testing.T) {
 			cty.UnknownVal(cty.List(cty.String)),
 			false,
 		},
-		// errors
-		{ // different types
+		{ // different types that can be unified
 			cty.ListVal([]cty.Value{
 				cty.StringVal("a"),
 			}),
@@ -1894,9 +1893,10 @@ func TestMatchkeys(t *testing.T) {
 			cty.ListVal([]cty.Value{
 				cty.StringVal("a"),
 			}),
-			cty.NilVal,
-			true,
+			cty.ListValEmpty(cty.String),
+			false,
 		},
+		// errors
 		{ // different types
 			cty.ListVal([]cty.Value{
 				cty.StringVal("a"),
