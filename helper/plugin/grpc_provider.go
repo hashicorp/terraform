@@ -574,6 +574,7 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 	// We don't usually plan destroys, but this can return early in any case.
 	if proposedNewStateVal.IsNull() {
 		resp.PlannedState = req.ProposedNewState
+		resp.PlannedPrivate = req.PriorPrivate
 		return resp, nil
 	}
 
