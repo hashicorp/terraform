@@ -18,6 +18,7 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
 <div style="column-width: 14em;">
 
 
+- [1Password](https://github.com/anasinnyk/terraform-provider-1password/)
 - [Abiquo](https://github.com/abiquo/terraform-provider-abiquo)
 - [Active Directory](https://github.com/GSLabDev/terraform-provider-ad)
 - [Aiven](https://github.com/aiven/terraform-provider-aiven)
@@ -31,10 +32,12 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
 - [AWX](https://github.com/mauromedda/terraform-provider-awx)
 - [Azure Devops](https://github.com/agarciamiravet/terraform-provider-azuredevops)
 - [Cherry Servers](https://github.com/cherryservers/terraform-provider-cherryservers)
+- [Cloud Foundry](https://github.com/cloudfoundry-community/terraform-provider-cf)
 - [CloudAMQP](https://github.com/cloudamqp/terraform-provider)
 - [CloudKarafka](https://github.com/cloudkarafka/terraform-provider)
 - [CloudMQTT](https://github.com/cloudmqtt/terraform-provider)
 - [CloudPassage Halo](https://gitlab.com/kiwicom/terraform-provider-cphalo)
+- [CodeClimate](https://github.com/babbel/terraform-provider-codeclimate)
 - [Confidant](https://github.com/stripe/terraform-provider-confidant)
 - [Consul ACL](https://github.com/Ashald/terraform-provider-consulacl)
 - [CoreOS Container Linux Configs](https://github.com/coreos/terraform-provider-ct)
@@ -70,6 +73,7 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
 - [Jira (Extended)](https://github.com/fourplusone/terraform-provider-jira)
 - [JumpCloud](https://github.com/geekmuse/jumpcloud-terraform-provider)
 - [Kafka](https://github.com/Mongey/terraform-provider-kafka)
+- [Kafka Connect](https://github.com/b-social/terraform-provider-kafkaconnect)
 - [Keboola](https://github.com/plmwong/terraform-provider-keboola)
 - [Keycloak](https://github.com/mrparkers/terraform-provider-keycloak)
 - [Kibana](https://github.com/ewilde/terraform-provider-kibana)
@@ -105,7 +109,7 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
 - [Sensu](https://github.com/jtopjian/terraform-provider-sensu)
 - [Sentry](https://github.com/jianyuan/terraform-provider-sentry)
 - [Sewan](https://github.com/SewanDevs/terraform-provider-sewan)
-- [SignalFx](https://github.com/Yelp/terraform-provider-signalform)
+- [SignalFx](https://github.com/signalfx/terraform-provider-signalfx)
 - [Smartronix](https://github.com/changli3/terraform-provider-smartronix)
 - [Snowflake](https://github.com/ShopRunner/terraform-provider-snowflake)
 - [snowflakedb](https://github.com/chanzuckerberg/terraform-provider-snowflake)
