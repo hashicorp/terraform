@@ -12,6 +12,8 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 
@@ -557,8 +559,8 @@ func TestRefresh_backup(t *testing.T) {
 	}
 
 	newState := testStateRead(t, statePath)
-	if !reflect.DeepEqual(newState, state) {
-		t.Fatalf("bad: %#v", newState)
+	if !cmp.Equal(newState, state, cmpopts.EquateEmpty()) {
+		t.Fatalf("got:\n%s\nexpected:\n%s\n", newState, state)
 	}
 
 	newState = testStateRead(t, outPath)
