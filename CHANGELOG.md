@@ -1,5 +1,9 @@
 ## 0.12.2 (Unreleased)
 
+NEW FEATURES:
+
+* `range` function for generating a sequence of numbers as a list [GH-21461]
+
 ## 0.12.1 (June 3, 2019)
 
 BUG FIXES:
