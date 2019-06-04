@@ -412,6 +412,11 @@ type plan struct {
 	PlannedValues   map[string]interface{} `json:"planned_values,omitempty"`
 	ResourceChanges []interface{}          `json:"resource_changes,omitempty"`
 	OutputChanges   map[string]interface{} `json:"output_changes,omitempty"`
-	PriorState      map[string]interface{} `json:"prior_state,omitempty"`
+	PriorState      priorState             `json:"prior_state,omitempty"`
 	Config          map[string]interface{} `json:"configuration,omitempty"`
+}
+
+type priorState struct {
+	FormatVersion string                 `json:"format_version,omitempty"`
+	Values        map[string]interface{} `json:"values,omitempty"`
 }

@@ -91,12 +91,7 @@ func Marshal(
 	p *plans.Plan,
 	sf *statefile.File,
 	schemas *terraform.Schemas,
-	stateSchemas *terraform.Schemas,
 ) ([]byte, error) {
-	if stateSchemas == nil {
-		stateSchemas = schemas
-	}
-
 	output := newPlan()
 	output.TerraformVersion = version.String()
 
@@ -125,7 +120,7 @@ func Marshal(
 
 	// output.PriorState
 	if sf != nil && !sf.State.Empty() {
-		output.PriorState, err = jsonstate.Marshal(sf, stateSchemas)
+		output.PriorState, err = jsonstate.Marshal(sf, schemas)
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling prior state: %s", err)
 		}
