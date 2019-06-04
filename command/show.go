@@ -200,9 +200,9 @@ func (c *ShowCommand) Synopsis() string {
 	return "Inspect Terraform state or plan"
 }
 
-// getPlanFromPath returns a plan if the user-supplied path points to a planfile.
-// If both plan and error are nil, the path is likely a directory.
-// An error could suggest that the given path points to a statefile.
+// getPlanFromPath returns a plan and statefile if the user-supplied path points
+// to a planfile. If both plan and error are nil, the path is likely a
+// directory. An error could suggest that the given path points to a statefile.
 func getPlanFromPath(path string) (*plans.Plan, *statefile.File, error) {
 	pr, err := planfile.Open(path)
 	if err != nil {
