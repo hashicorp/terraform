@@ -3,6 +3,7 @@
 NEW FEATURES:
 
 * `range` function for generating a sequence of numbers as a list [GH-21461]
+* `yamldecode` and *experimental* `yamlencode` functions for working with YAML-serialized data [GH-21459]
 
 ## 0.12.1 (June 3, 2019)
 
