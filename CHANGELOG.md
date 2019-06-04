@@ -6,6 +6,8 @@ BUG FIXES:
 * command/show: fix inconsistent json output causing a panic [GH-21541] 
 * config: `distinct` function no longer panics when given an empty list [GH-21538]
 * config: Don't panic when a `version` constraint is added to a module that was previously initialized without one [GH-21542]
+* config: `matchkeys` function argument type checking will no longer fail incorrectly during validation [GH-21576]
+* backend/local: Don't panic if an instance in the state only has deposed instances, and no current instance [GH-21575]
 
 ## 0.12.0 (May 22, 2019)
 
