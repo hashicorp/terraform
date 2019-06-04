@@ -800,6 +800,8 @@ var MatchkeysFunc = function.New(&function.Spec{
 		},
 	},
 	Type: func(args []cty.Value) (cty.Type, error) {
+		// Verify that args[1] (keys) and args[2] (searchset) are of the same
+		// (or unifiable) type
 		argTypes := make([]cty.Type, 2)
 		for i := 0; i < 2; i++ {
 			argTypes[i] = args[i+1].Type()
@@ -807,9 +809,10 @@ var MatchkeysFunc = function.New(&function.Spec{
 
 		ty, _ := convert.UnifyUnsafe(argTypes)
 		if ty == cty.NilType {
-			return cty.NilType, errors.New("lists must be of the same type")
+			return cty.NilType, errors.New("keys and searchset must be of the same type")
 		}
 
+		// the return type is based on args[0] (values)
 		return args[0].Type(), nil
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
@@ -822,10 +825,18 @@ var MatchkeysFunc = function.New(&function.Spec{
 		}
 
 		output := make([]cty.Value, 0)
-
 		values := args[0]
-		keys := args[1]
-		searchset := args[2]
+
+		// Keys and searchset must be the same type.
+		// We can skip error checking here because we've already verified that
+		// they can be unified in the Type function
+		argTypes := make([]cty.Type, 2)
+		for i := 0; i < 2; i++ {
+			argTypes[i] = args[i+1].Type()
+		}
+		ty, _ := convert.UnifyUnsafe(argTypes)
+		keys, _ := convert.Convert(args[1], ty)
+		searchset, _ := convert.Convert(args[2], ty)
 
 		// if searchset is empty, return an empty list.
 		if searchset.LengthInt() == 0 {
