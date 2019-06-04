@@ -459,6 +459,13 @@ func TestFunctions(t *testing.T) {
 					cty.StringVal("a"),
 				}),
 			},
+			{ // mixing types in searchset
+				`matchkeys(["a", "b", "c"], [1, 2, 3], [1, "3"])`,
+				cty.ListVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.StringVal("c"),
+				}),
+			},
 		},
 
 		"max": {
