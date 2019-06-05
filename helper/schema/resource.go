@@ -6,7 +6,6 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -692,7 +691,7 @@ func (r *Resource) InternalValidate(topSchemaMap schemaMap, writable bool) error
 }
 
 func isReservedDataSourceFieldName(name string) bool {
-	for _, reservedName := range config.ReservedDataSourceFields {
+	for _, reservedName := range ReservedDataSourceFields {
 		if name == reservedName {
 			return true
 		}
@@ -707,7 +706,7 @@ func isReservedResourceFieldName(name string, s *Schema) bool {
 		return false
 	}
 
-	for _, reservedName := range config.ReservedResourceFields {
+	for _, reservedName := range ReservedResourceFields {
 		if name == reservedName {
 			return true
 		}

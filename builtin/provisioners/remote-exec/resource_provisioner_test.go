@@ -11,7 +11,6 @@ import (
 
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/communicator/remote"
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -264,10 +263,5 @@ func TestProvisionerTimeout(t *testing.T) {
 }
 
 func testConfig(t *testing.T, c map[string]interface{}) *terraform.ResourceConfig {
-	r, err := config.NewRawConfig(c)
-	if err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-
-	return terraform.NewResourceConfig(r)
+	return terraform.NewResourceConfigRaw(c)
 }

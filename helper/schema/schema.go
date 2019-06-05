@@ -22,11 +22,38 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/copystructure"
 	"github.com/mitchellh/mapstructure"
 )
+
+var ReservedDataSourceFields = []string{
+	"connection",
+	"count",
+	"depends_on",
+	"lifecycle",
+	"provider",
+	"provisioner",
+}
+
+var ReservedResourceFields = []string{
+	"connection",
+	"count",
+	"depends_on",
+	"id",
+	"lifecycle",
+	"provider",
+	"provisioner",
+}
+
+var ReservedProviderFields = []string{
+	"alias",
+	"version",
+}
+
+// UnknownVariableValue is a sentinel value that can be used
+// to denote that the value of a variable is unknown at this time.
+const UnknownVariableValue = "74D93920-ED26-11E3-AC10-0800200C9A66"
 
 // Name of ENV variable which (if not empty) prefers panic over error
 const PanicOnErr = "TF_SCHEMA_PANIC_ON_ERROR"
@@ -1386,7 +1413,7 @@ func (m schemaMap) validate(
 func isWhollyKnown(raw interface{}) bool {
 	switch raw := raw.(type) {
 	case string:
-		if raw == config.UnknownVariableValue {
+		if raw == UnknownVariableValue {
 			return false
 		}
 	case []interface{}:
@@ -1415,7 +1442,7 @@ func (m schemaMap) validateConflictingAttributes(
 
 	for _, conflictingKey := range schema.ConflictsWith {
 		if raw, ok := c.Get(conflictingKey); ok {
-			if raw == config.UnknownVariableValue {
+			if raw == UnknownVariableValue {
 				// An unknown value might become unset (null) once known, so
 				// we must defer validation until it's known.
 				continue
@@ -1435,7 +1462,7 @@ func (m schemaMap) validateList(
 	c *terraform.ResourceConfig) ([]string, []error) {
 	// first check if the list is wholly unknown
 	if s, ok := raw.(string); ok {
-		if s == config.UnknownVariableValue {
+		if s == UnknownVariableValue {
 			return nil, nil
 		}
 	}
@@ -1513,7 +1540,7 @@ func (m schemaMap) validateMap(
 	c *terraform.ResourceConfig) ([]string, []error) {
 	// first check if the list is wholly unknown
 	if s, ok := raw.(string); ok {
-		if s == config.UnknownVariableValue {
+		if s == UnknownVariableValue {
 			return nil, nil
 		}
 	}

@@ -6,7 +6,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -50,7 +49,7 @@ func removeConfigUnknowns(cfg map[string]interface{}) {
 	for k, v := range cfg {
 		switch v := v.(type) {
 		case string:
-			if v == config.UnknownVariableValue {
+			if v == UnknownVariableValue {
 				delete(cfg, k)
 			}
 		case []interface{}:

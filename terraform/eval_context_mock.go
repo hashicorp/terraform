@@ -7,7 +7,6 @@ import (
 	"github.com/zclconf/go-cty/cty/convert"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/lang"
 	"github.com/hashicorp/terraform/plans"
@@ -109,18 +108,6 @@ type MockEvalContext struct {
 	EvaluationScopeSelf    addrs.Referenceable
 	EvaluationScopeKeyData InstanceKeyEvalData
 	EvaluationScopeScope   *lang.Scope
-
-	InterpolateCalled       bool
-	InterpolateConfig       *config.RawConfig
-	InterpolateResource     *Resource
-	InterpolateConfigResult *ResourceConfig
-	InterpolateError        error
-
-	InterpolateProviderCalled       bool
-	InterpolateProviderConfig       *config.ProviderConfig
-	InterpolateProviderResource     *Resource
-	InterpolateProviderConfigResult *ResourceConfig
-	InterpolateProviderError        error
 
 	PathCalled bool
 	PathPath   addrs.ModuleInstance
@@ -309,22 +296,6 @@ func (c *MockEvalContext) EvaluationScope(self addrs.Referenceable, keyData Inst
 	c.EvaluationScopeSelf = self
 	c.EvaluationScopeKeyData = keyData
 	return c.EvaluationScopeScope
-}
-
-func (c *MockEvalContext) Interpolate(
-	config *config.RawConfig, resource *Resource) (*ResourceConfig, error) {
-	c.InterpolateCalled = true
-	c.InterpolateConfig = config
-	c.InterpolateResource = resource
-	return c.InterpolateConfigResult, c.InterpolateError
-}
-
-func (c *MockEvalContext) InterpolateProvider(
-	config *config.ProviderConfig, resource *Resource) (*ResourceConfig, error) {
-	c.InterpolateProviderCalled = true
-	c.InterpolateProviderConfig = config
-	c.InterpolateProviderResource = resource
-	return c.InterpolateProviderConfigResult, c.InterpolateError
 }
 
 func (c *MockEvalContext) Path() addrs.ModuleInstance {

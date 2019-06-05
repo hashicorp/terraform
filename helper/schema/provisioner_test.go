@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -125,12 +124,8 @@ func TestProvisionerValidate(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
-			c, err := config.NewRawConfig(tc.Config)
-			if err != nil {
-				t.Fatalf("err: %s", err)
-			}
-
-			ws, es := tc.P.Validate(terraform.NewResourceConfig(c))
+			c := terraform.NewResourceConfigRaw(tc.Config)
+			ws, es := tc.P.Validate(c)
 			if len(es) > 0 != tc.Err {
 				t.Fatalf("%d: %#v %s", i, es, es)
 			}
@@ -191,10 +186,7 @@ func TestProvisionerApply(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
-			c, err := config.NewRawConfig(tc.Config)
-			if err != nil {
-				t.Fatalf("err: %s", err)
-			}
+			c := terraform.NewResourceConfigRaw(tc.Config)
 
 			state := &terraform.InstanceState{
 				Ephemeral: terraform.EphemeralState{
@@ -202,8 +194,7 @@ func TestProvisionerApply(t *testing.T) {
 				},
 			}
 
-			err = tc.P.Apply(
-				nil, state, terraform.NewResourceConfig(c))
+			err := tc.P.Apply(nil, state, c)
 			if err != nil != tc.Err {
 				t.Fatalf("%d: %s", i, err)
 			}
@@ -236,12 +227,8 @@ func TestProvisionerApply_nilState(t *testing.T) {
 		"foo": 42,
 	}
 
-	c, err := config.NewRawConfig(conf)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	err = p.Apply(nil, nil, terraform.NewResourceConfig(c))
+	c := terraform.NewResourceConfigRaw(conf)
+	err := p.Apply(nil, nil, c)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -300,11 +287,7 @@ func TestProvisionerStop_apply(t *testing.T) {
 		"foo": 42,
 	}
 
-	c, err := config.NewRawConfig(conf)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
+	c := terraform.NewResourceConfigRaw(conf)
 	state := &terraform.InstanceState{
 		Ephemeral: terraform.EphemeralState{
 			ConnInfo: conn,
@@ -314,7 +297,7 @@ func TestProvisionerStop_apply(t *testing.T) {
 	// Run the apply in a goroutine
 	doneCh := make(chan struct{})
 	go func() {
-		p.Apply(nil, state, terraform.NewResourceConfig(c))
+		p.Apply(nil, state, c)
 		close(doneCh)
 	}()
 

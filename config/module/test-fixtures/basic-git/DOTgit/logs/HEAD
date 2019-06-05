@@ -1,7 +1,0 @@
-0000000000000000000000000000000000000000 497bc37401eb3c9b11865b1768725b64066eccee Mitchell Hashimoto <mitchell.hashimoto@gmail.com> 1410850637 -0700	commit (initial): A commit
-497bc37401eb3c9b11865b1768725b64066eccee 243f0fc5c4e586d1a3daa54c981b6f34e9ab1085 Mitchell Hashimoto <mitchell.hashimoto@gmail.com> 1410886526 -0700	commit: tag1
-243f0fc5c4e586d1a3daa54c981b6f34e9ab1085 1f31e97f053caeb5d6b7bffa3faf82941c99efa2 Mitchell Hashimoto <mitchell.hashimoto@gmail.com> 1410886536 -0700	commit: remove tag1
-1f31e97f053caeb5d6b7bffa3faf82941c99efa2 1f31e97f053caeb5d6b7bffa3faf82941c99efa2 Mitchell Hashimoto <mitchell.hashimoto@gmail.com> 1410886909 -0700	checkout: moving from master to test-branch
-1f31e97f053caeb5d6b7bffa3faf82941c99efa2 7b7614f8759ac8b5e4b02be65ad8e2667be6dd87 Mitchell Hashimoto <mitchell.hashimoto@gmail.com> 1410886913 -0700	commit: Branch
-7b7614f8759ac8b5e4b02be65ad8e2667be6dd87 1f31e97f053caeb5d6b7bffa3faf82941c99efa2 Mitchell Hashimoto <mitchell.hashimoto@gmail.com> 1410886916 -0700	checkout: moving from test-branch to master
-1f31e97f053caeb5d6b7bffa3faf82941c99efa2 146492b04efe0aae2b8288c5c0aef6a951030fde Mitchell Hashimoto <mitchell.hashimoto@gmail.com> 1411767116 -0700	commit: add subdir

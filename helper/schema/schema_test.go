@@ -13,7 +13,6 @@ import (
 
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -134,14 +133,13 @@ func interfaceToVariableSwallowError(input interface{}) ast.Variable {
 
 func TestSchemaMap_Diff(t *testing.T) {
 	cases := []struct {
-		Name            string
-		Schema          map[string]*Schema
-		State           *terraform.InstanceState
-		Config          map[string]interface{}
-		ConfigVariables map[string]ast.Variable
-		CustomizeDiff   CustomizeDiffFunc
-		Diff            *terraform.InstanceDiff
-		Err             bool
+		Name          string
+		Schema        map[string]*Schema
+		State         *terraform.InstanceState
+		Config        map[string]interface{}
+		CustomizeDiff CustomizeDiffFunc
+		Diff          *terraform.InstanceDiff
+		Err           bool
 	}{
 		{
 			Schema: map[string]*Schema{
@@ -400,37 +398,6 @@ func TestSchemaMap_Diff(t *testing.T) {
 		},
 
 		{
-			Name: "Variable (just checking)",
-			Schema: map[string]*Schema{
-				"availability_zone": &Schema{
-					Type:     TypeString,
-					Optional: true,
-				},
-			},
-
-			State: nil,
-
-			Config: map[string]interface{}{
-				"availability_zone": "${var.foo}",
-			},
-
-			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError("bar"),
-			},
-
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"availability_zone": &terraform.ResourceAttrDiff{
-						Old: "",
-						New: "bar",
-					},
-				},
-			},
-
-			Err: false,
-		},
-
-		{
 			Name: "Variable computed",
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
@@ -442,18 +409,14 @@ func TestSchemaMap_Diff(t *testing.T) {
 			State: nil,
 
 			Config: map[string]interface{}{
-				"availability_zone": "${var.foo}",
-			},
-
-			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError(config.UnknownVariableValue),
+				"availability_zone": UnknownVariableValue,
 			},
 
 			Diff: &terraform.InstanceDiff{
 				Attributes: map[string]*terraform.ResourceAttrDiff{
 					"availability_zone": &terraform.ResourceAttrDiff{
 						Old:         "",
-						New:         "${var.foo}",
+						New:         UnknownVariableValue,
 						NewComputed: true,
 					},
 				},
@@ -663,11 +626,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			State: nil,
 
 			Config: map[string]interface{}{
-				"ports": []interface{}{1, "${var.foo}"},
-			},
-
-			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError([]interface{}{"2", "5"}),
+				"ports": []interface{}{1, 2, 5},
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -706,12 +665,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			State: nil,
 
 			Config: map[string]interface{}{
-				"ports": []interface{}{1, "${var.foo}"},
-			},
-
-			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError([]interface{}{
-					config.UnknownVariableValue, "5"}),
+				"ports": []interface{}{1, UnknownVariableValue, 5},
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -1039,11 +993,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			State: nil,
 
 			Config: map[string]interface{}{
-				"ports": []interface{}{"${var.foo}", 1},
-			},
-
-			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError([]interface{}{"2", "5"}),
+				"ports": []interface{}{"2", "5", 1},
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -1086,12 +1036,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			State: nil,
 
 			Config: map[string]interface{}{
-				"ports": []interface{}{1, "${var.foo}"},
-			},
-
-			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError([]interface{}{
-					config.UnknownVariableValue, "5"}),
+				"ports": []interface{}{1, UnknownVariableValue, "5"},
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -1268,7 +1213,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			},
 
 			Config: map[string]interface{}{
-				"ingress": []map[string]interface{}{
+				"ingress": []interface{}{
 					map[string]interface{}{
 						"ports": []interface{}{443},
 					},
@@ -1773,11 +1718,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			},
 
 			Config: map[string]interface{}{
-				"instances": []interface{}{"${var.foo}"},
-			},
-
-			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError(config.UnknownVariableValue),
+				"instances": []interface{}{UnknownVariableValue},
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -1820,16 +1761,12 @@ func TestSchemaMap_Diff(t *testing.T) {
 			State: nil,
 
 			Config: map[string]interface{}{
-				"route": []map[string]interface{}{
+				"route": []interface{}{
 					map[string]interface{}{
 						"index":   "1",
-						"gateway": "${var.foo}",
+						"gateway": UnknownVariableValue,
 					},
 				},
-			},
-
-			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError(config.UnknownVariableValue),
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -1844,7 +1781,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 					},
 					"route.~1.gateway": &terraform.ResourceAttrDiff{
 						Old:         "",
-						New:         "${var.foo}",
+						New:         UnknownVariableValue,
 						NewComputed: true,
 					},
 				},
@@ -1886,18 +1823,14 @@ func TestSchemaMap_Diff(t *testing.T) {
 			State: nil,
 
 			Config: map[string]interface{}{
-				"route": []map[string]interface{}{
+				"route": []interface{}{
 					map[string]interface{}{
 						"index": "1",
 						"gateway": []interface{}{
-							"${var.foo}",
+							UnknownVariableValue,
 						},
 					},
 				},
-			},
-
-			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError(config.UnknownVariableValue),
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -1961,12 +1894,8 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			Config: map[string]interface{}{
 				"vars": map[string]interface{}{
-					"bar": "${var.foo}",
+					"bar": UnknownVariableValue,
 				},
-			},
-
-			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError(config.UnknownVariableValue),
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -2065,7 +1994,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			},
 
 			Config: map[string]interface{}{
-				"block_device": []map[string]interface{}{
+				"block_device": []interface{}{
 					map[string]interface{}{
 						"device_name": "/dev/sda1",
 					},
@@ -2307,7 +2236,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 		},
 
 		{
-			Name: "Set element computed substring",
+			Name: "Set element computed element",
 			Schema: map[string]*Schema{
 				"ports": &Schema{
 					Type:     TypeSet,
@@ -2322,11 +2251,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			State: nil,
 
 			Config: map[string]interface{}{
-				"ports": []interface{}{1, "${var.foo}32"},
-			},
-
-			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError(config.UnknownVariableValue),
+				"ports": []interface{}{1, UnknownVariableValue},
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -2393,7 +2318,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			State: nil,
 
 			Config: map[string]interface{}{
-				"route": []map[string]interface{}{
+				"route": []interface{}{
 					map[string]interface{}{
 						"index":        "1",
 						"gateway-name": "hello",
@@ -2456,8 +2381,8 @@ func TestSchemaMap_Diff(t *testing.T) {
 			State: nil,
 
 			Config: map[string]interface{}{
-				"service_account": []map[string]interface{}{
-					{
+				"service_account": []interface{}{
+					map[string]interface{}{
 						"scopes": []interface{}{"123"},
 					},
 				},
@@ -2715,12 +2640,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			State: &terraform.InstanceState{},
 
 			Config: map[string]interface{}{
-				"foo": "${var.foo}",
-			},
-
-			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError(
-					config.UnknownVariableValue),
+				"foo": UnknownVariableValue,
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -2761,11 +2681,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			},
 
 			Config: map[string]interface{}{
-				"ports": []interface{}{"${var.foo}", 2, 1},
-			},
-
-			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError(config.UnknownVariableValue),
+				"ports": []interface{}{UnknownVariableValue, 2, 1},
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -2802,14 +2718,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			},
 
 			Config: map[string]interface{}{
-				"config": []interface{}{"${var.a}", "${var.b}"},
-			},
-
-			ConfigVariables: map[string]ast.Variable{
-				"var.a": interfaceToVariableSwallowError(
-					config.UnknownVariableValue),
-				"var.b": interfaceToVariableSwallowError(
-					config.UnknownVariableValue),
+				"config": []interface{}{UnknownVariableValue, UnknownVariableValue},
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -3207,15 +3116,8 @@ func TestSchemaMap_Diff(t *testing.T) {
 				},
 			},
 
-			// this does necessarily depend on an interpolated value, but this
-			// is often how it comes about in a configuration, otherwise the
-			// value would be unset.
 			Config: map[string]interface{}{
-				"attr": "${var.foo}",
-			},
-
-			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError(""),
+				"attr": "",
 			},
 		},
 
@@ -3269,18 +3171,9 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
-			c, err := config.NewRawConfig(tc.Config)
-			if err != nil {
-				t.Fatalf("err: %s", err)
-			}
+			c := terraform.NewResourceConfigRaw(tc.Config)
 
-			if len(tc.ConfigVariables) > 0 {
-				if err := c.Interpolate(tc.ConfigVariables); err != nil {
-					t.Fatalf("err: %s", err)
-				}
-			}
-
-			d, err := schemaMap(tc.Schema).Diff(tc.State, terraform.NewResourceConfig(c), tc.CustomizeDiff, nil, true)
+			d, err := schemaMap(tc.Schema).Diff(tc.State, c, tc.CustomizeDiff, nil, true)
 			if err != nil != tc.Err {
 				t.Fatalf("err: %s", err)
 			}
@@ -3438,15 +3331,10 @@ func TestSchemaMap_Input(t *testing.T) {
 			tc.Config = make(map[string]interface{})
 		}
 
-		c, err := config.NewRawConfig(tc.Config)
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-
 		input := new(terraform.MockUIInput)
 		input.InputReturnMap = tc.Input
 
-		rc := terraform.NewResourceConfig(c)
+		rc := terraform.NewResourceConfigRaw(tc.Config)
 		rc.Config = make(map[string]interface{})
 
 		actual, err := schemaMap(tc.Schema).Input(input, rc)
@@ -3462,11 +3350,7 @@ func TestSchemaMap_Input(t *testing.T) {
 
 func TestSchemaMap_InputDefault(t *testing.T) {
 	emptyConfig := make(map[string]interface{})
-	c, err := config.NewRawConfig(emptyConfig)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	rc := terraform.NewResourceConfig(c)
+	rc := terraform.NewResourceConfigRaw(emptyConfig)
 	rc.Config = make(map[string]interface{})
 
 	input := new(terraform.MockUIInput)
@@ -3496,11 +3380,7 @@ func TestSchemaMap_InputDefault(t *testing.T) {
 
 func TestSchemaMap_InputDeprecated(t *testing.T) {
 	emptyConfig := make(map[string]interface{})
-	c, err := config.NewRawConfig(emptyConfig)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	rc := terraform.NewResourceConfig(c)
+	rc := terraform.NewResourceConfigRaw(emptyConfig)
 	rc.Config = make(map[string]interface{})
 
 	input := new(terraform.MockUIInput)
@@ -3942,12 +3822,11 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 
 func TestSchemaMap_DiffSuppress(t *testing.T) {
 	cases := map[string]struct {
-		Schema          map[string]*Schema
-		State           *terraform.InstanceState
-		Config          map[string]interface{}
-		ConfigVariables map[string]ast.Variable
-		ExpectedDiff    *terraform.InstanceDiff
-		Err             bool
+		Schema       map[string]*Schema
+		State        *terraform.InstanceState
+		Config       map[string]interface{}
+		ExpectedDiff *terraform.InstanceDiff
+		Err          bool
 	}{
 		"#0 - Suppress otherwise valid diff by returning true": {
 			Schema: map[string]*Schema{
@@ -4088,20 +3967,16 @@ func TestSchemaMap_DiffSuppress(t *testing.T) {
 			State: nil,
 
 			Config: map[string]interface{}{
-				"outer": []map[string]interface{}{
+				"outer": []interface{}{
 					map[string]interface{}{
 						"outer_str": "foo",
-						"inner": []map[string]interface{}{
+						"inner": []interface{}{
 							map[string]interface{}{
-								"inner_str": "${var.bar}",
+								"inner_str": UnknownVariableValue,
 							},
 						},
 					},
 				},
-			},
-
-			ConfigVariables: map[string]ast.Variable{
-				"var.bar": interfaceToVariableSwallowError(config.UnknownVariableValue),
 			},
 
 			ExpectedDiff: &terraform.InstanceDiff{
@@ -4120,7 +3995,7 @@ func TestSchemaMap_DiffSuppress(t *testing.T) {
 					},
 					"outer.~1.inner.~2.inner_str": &terraform.ResourceAttrDiff{
 						Old:         "",
-						New:         "${var.bar}",
+						New:         UnknownVariableValue,
 						NewComputed: true,
 					},
 				},
@@ -4163,20 +4038,16 @@ func TestSchemaMap_DiffSuppress(t *testing.T) {
 			State: nil,
 
 			Config: map[string]interface{}{
-				"outer": []map[string]interface{}{
+				"outer": []interface{}{
 					map[string]interface{}{
 						"outer_str": "foo",
-						"inner": []map[string]interface{}{
+						"inner": []interface{}{
 							map[string]interface{}{
-								"inner_str": "${var.bar}",
+								"inner_str": UnknownVariableValue,
 							},
 						},
 					},
 				},
-			},
-
-			ConfigVariables: map[string]ast.Variable{
-				"var.bar": interfaceToVariableSwallowError(config.UnknownVariableValue),
 			},
 
 			ExpectedDiff: &terraform.InstanceDiff{
@@ -4195,7 +4066,7 @@ func TestSchemaMap_DiffSuppress(t *testing.T) {
 					},
 					"outer.~1.inner.0.inner_str": &terraform.ResourceAttrDiff{
 						Old:         "",
-						New:         "${var.bar}",
+						New:         UnknownVariableValue,
 						NewComputed: true,
 					},
 				},
@@ -4207,18 +4078,9 @@ func TestSchemaMap_DiffSuppress(t *testing.T) {
 
 	for tn, tc := range cases {
 		t.Run(tn, func(t *testing.T) {
-			c, err := config.NewRawConfig(tc.Config)
-			if err != nil {
-				t.Fatalf("#%q err: %s", tn, err)
-			}
+			c := terraform.NewResourceConfigRaw(tc.Config)
 
-			if len(tc.ConfigVariables) > 0 {
-				if err := c.Interpolate(tc.ConfigVariables); err != nil {
-					t.Fatalf("#%q err: %s", tn, err)
-				}
-			}
-
-			d, err := schemaMap(tc.Schema).Diff(tc.State, terraform.NewResourceConfig(c), nil, nil, true)
+			d, err := schemaMap(tc.Schema).Diff(tc.State, c, nil, nil, true)
 			if err != nil != tc.Err {
 				t.Fatalf("#%q err: %s", tn, err)
 			}
@@ -4234,7 +4096,6 @@ func TestSchemaMap_Validate(t *testing.T) {
 	cases := map[string]struct {
 		Schema   map[string]*Schema
 		Config   map[string]interface{}
-		Vars     map[string]string
 		Err      bool
 		Errors   []error
 		Warnings []string
@@ -4263,11 +4124,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			},
 
 			Config: map[string]interface{}{
-				"size": "${var.foo}",
-			},
-
-			Vars: map[string]string{
-				"var.foo": config.UnknownVariableValue,
+				"size": UnknownVariableValue,
 			},
 		},
 
@@ -4318,7 +4175,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: true,
 		},
 
-		"Bad type, interpolated": {
+		"Bad type": {
 			Schema: map[string]*Schema{
 				"size": &Schema{
 					Type:     TypeInt,
@@ -4327,11 +4184,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			},
 
 			Config: map[string]interface{}{
-				"size": "${var.foo}",
-			},
-
-			Vars: map[string]string{
-				"var.foo": "nope",
+				"size": "nope",
 			},
 
 			Err: true,
@@ -4503,7 +4356,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			},
 
 			Config: map[string]interface{}{
-				"strings": config.UnknownVariableValue,
+				"strings": UnknownVariableValue,
 			},
 
 			Err: false,
@@ -4560,33 +4413,6 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: false,
 		},
 
-		"Good sub-resource, interpolated value": {
-			Schema: map[string]*Schema{
-				"ingress": &Schema{
-					Type:     TypeList,
-					Optional: true,
-					Elem: &Resource{
-						Schema: map[string]*Schema{
-							"from": &Schema{
-								Type:     TypeInt,
-								Required: true,
-							},
-						},
-					},
-				},
-			},
-
-			Config: map[string]interface{}{
-				"ingress": []interface{}{
-					`${map("from", "80")}`,
-				},
-			},
-
-			Vars: map[string]string{},
-
-			Err: false,
-		},
-
 		"Good sub-resource, computed value": {
 			Schema: map[string]*Schema{
 				"ingress": &Schema{
@@ -4605,12 +4431,10 @@ func TestSchemaMap_Validate(t *testing.T) {
 
 			Config: map[string]interface{}{
 				"ingress": []interface{}{
-					`${map("from", var.port)}`,
+					map[string]interface{}{
+						"from": UnknownVariableValue,
+					},
 				},
-			},
-
-			Vars: map[string]string{
-				"var.port": config.UnknownVariableValue,
 			},
 
 			Err: false,
@@ -4644,11 +4468,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			},
 
 			Config: map[string]interface{}{
-				"foo": "${var.foo}",
-			},
-
-			Vars: map[string]string{
-				"var.foo": config.UnknownVariableValue,
+				"foo": UnknownVariableValue,
 			},
 
 			Err: true,
@@ -5016,7 +4836,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 
 			Config: map[string]interface{}{
 				"whitelist": "white-val",
-				"blacklist": config.UnknownVariableValue,
+				"blacklist": UnknownVariableValue,
 			},
 
 			Err: false,
@@ -5036,7 +4856,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			},
 
 			Config: map[string]interface{}{
-				"whitelist": config.UnknownVariableValue,
+				"whitelist": UnknownVariableValue,
 				"blacklist": "black-val",
 			},
 
@@ -5063,7 +4883,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			},
 
 			Config: map[string]interface{}{
-				"whitelist": config.UnknownVariableValue,
+				"whitelist": UnknownVariableValue,
 				"blacklist": "black-val",
 				"greenlist": "green-val",
 			},
@@ -5274,10 +5094,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 			Config: map[string]interface{}{
-				"validate_me": "${var.foo}",
-			},
-			Vars: map[string]string{
-				"var.foo": config.UnknownVariableValue,
+				"validate_me": UnknownVariableValue,
 			},
 
 			Err: false,
@@ -5452,15 +5269,11 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 			Config: map[string]interface{}{
-				"outer": []map[string]interface{}{
-					{
-						"list": []interface{}{"${var.a}", "${var.b}", "c"},
+				"outer": []interface{}{
+					map[string]interface{}{
+						"list": []interface{}{"A", UnknownVariableValue, "c"},
 					},
 				},
-			},
-			Vars: map[string]string{
-				"var.a": "A",
-				"var.b": config.UnknownVariableValue,
 			},
 			Err: false,
 		},
@@ -5468,22 +5281,9 @@ func TestSchemaMap_Validate(t *testing.T) {
 
 	for tn, tc := range cases {
 		t.Run(tn, func(t *testing.T) {
-			c, err := config.NewRawConfig(tc.Config)
-			if err != nil {
-				t.Fatalf("err: %s", err)
-			}
-			if tc.Vars != nil {
-				vars := make(map[string]ast.Variable)
-				for k, v := range tc.Vars {
-					vars[k] = ast.Variable{Value: v, Type: ast.TypeString}
-				}
+			c := terraform.NewResourceConfigRaw(tc.Config)
 
-				if err := c.Interpolate(vars); err != nil {
-					t.Fatalf("err: %s", err)
-				}
-			}
-
-			ws, es := schemaMap(tc.Schema).Validate(terraform.NewResourceConfig(c))
+			ws, es := schemaMap(tc.Schema).Validate(c)
 			if len(es) > 0 != tc.Err {
 				if len(es) == 0 {
 					t.Errorf("%q: no errors", tn)
@@ -5578,11 +5378,8 @@ func TestSchemaSet_ValidateMaxItems(t *testing.T) {
 	}
 
 	for tn, tc := range cases {
-		c, err := config.NewRawConfig(tc.Config)
-		if err != nil {
-			t.Fatalf("%q: err: %s", tn, err)
-		}
-		_, es := schemaMap(tc.Schema).Validate(terraform.NewResourceConfig(c))
+		c := terraform.NewResourceConfigRaw(tc.Config)
+		_, es := schemaMap(tc.Schema).Validate(c)
 
 		if len(es) > 0 != tc.Err {
 			if len(es) == 0 {
@@ -5669,11 +5466,8 @@ func TestSchemaSet_ValidateMinItems(t *testing.T) {
 	}
 
 	for tn, tc := range cases {
-		c, err := config.NewRawConfig(tc.Config)
-		if err != nil {
-			t.Fatalf("%q: err: %s", tn, err)
-		}
-		_, es := schemaMap(tc.Schema).Validate(terraform.NewResourceConfig(c))
+		c := terraform.NewResourceConfigRaw(tc.Config)
+		_, es := schemaMap(tc.Schema).Validate(c)
 
 		if len(es) > 0 != tc.Err {
 			if len(es) == 0 {

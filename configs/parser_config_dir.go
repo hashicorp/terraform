@@ -2,6 +2,7 @@ package configs
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -139,4 +140,24 @@ func IsIgnoredFile(name string) bool {
 	return strings.HasPrefix(name, ".") || // Unix-like hidden files
 		strings.HasSuffix(name, "~") || // vim
 		strings.HasPrefix(name, "#") && strings.HasSuffix(name, "#") // emacs
+}
+
+// IsEmptyDir returns true if the given filesystem path contains no Terraform
+// configuration files.
+//
+// Unlike the methods of the Parser type, this function always consults the
+// real filesystem, and thus it isn't appropriate to use when working with
+// configuration loaded from a plan file.
+func IsEmptyDir(path string) (bool, error) {
+	if _, err := os.Stat(path); err != nil && os.IsNotExist(err) {
+		return true, nil
+	}
+
+	p := NewParser(nil)
+	fs, os, err := p.dirFiles(path)
+	if err != nil {
+		return false, err
+	}
+
+	return len(fs) == 0 && len(os) == 0, nil
 }

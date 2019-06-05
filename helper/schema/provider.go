@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -116,7 +115,7 @@ func (p *Provider) InternalValidate() error {
 }
 
 func isReservedProviderFieldName(name string) bool {
-	for _, reservedName := range config.ReservedProviderFields {
+	for _, reservedName := range ReservedProviderFields {
 		if name == reservedName {
 			return true
 		}

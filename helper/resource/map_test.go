@@ -4,7 +4,6 @@ import (
 	"reflect"
 	"testing"
 
-	tfconfig "github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/helper/config"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -70,10 +69,5 @@ func TestMapValidate(t *testing.T) {
 }
 
 func testConfigForMap(t *testing.T, c map[string]interface{}) *terraform.ResourceConfig {
-	r, err := tfconfig.NewRawConfig(c)
-	if err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-
-	return terraform.NewResourceConfig(r)
+	return terraform.NewResourceConfigRaw(c)
 }

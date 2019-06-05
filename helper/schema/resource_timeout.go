@@ -5,7 +5,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/copystructure"
 )
@@ -69,8 +68,17 @@ func (t *ResourceTimeout) ConfigDecode(s *Resource, c *terraform.ResourceConfig)
 			rawTimeouts = append(rawTimeouts, raw)
 		case []map[string]interface{}:
 			rawTimeouts = raw
+		case []interface{}:
+			for _, sliceI := range raw {
+				if slice, ok := sliceI.(map[string]interface{}); ok {
+					rawTimeouts = append(rawTimeouts, slice)
+				} else {
+					log.Printf("[ERROR] Invalid timeout structure: %#v", raw)
+					return fmt.Errorf("Invalid Timeout structure found in []interface{}")
+				}
+			}
 		case string:
-			if raw == config.UnknownVariableValue {
+			if raw == UnknownVariableValue {
 				// Timeout is not defined in the config
 				// Defaults will be used instead
 				return nil

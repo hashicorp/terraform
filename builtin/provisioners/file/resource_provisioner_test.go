@@ -3,7 +3,6 @@ package file
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -50,7 +49,7 @@ func TestResourceProvider_Validate_good_content(t *testing.T) {
 
 func TestResourceProvider_Validate_good_unknown_variable_value(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{
-		"content":     config.UnknownVariableValue,
+		"content":     schema.UnknownVariableValue,
 		"destination": "/tmp/bar",
 	})
 
@@ -108,10 +107,5 @@ func TestResourceProvider_Validate_bad_to_many_src(t *testing.T) {
 }
 
 func testConfig(t *testing.T, c map[string]interface{}) *terraform.ResourceConfig {
-	r, err := config.NewRawConfig(c)
-	if err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-
-	return terraform.NewResourceConfig(r)
+	return terraform.NewResourceConfigRaw(c)
 }

@@ -2,8 +2,7 @@ package terraform
 
 import (
 	"sort"
-
-	"github.com/hashicorp/terraform/config"
+	"strings"
 )
 
 // Semaphore is a wrapper around a channel to provide
@@ -49,7 +48,21 @@ func (s Semaphore) Release() {
 }
 
 func resourceProvider(resourceType, explicitProvider string) string {
-	return config.ResourceProviderFullName(resourceType, explicitProvider)
+	if explicitProvider != "" {
+		// check for an explicit provider name, or return the original
+		parts := strings.SplitAfter(explicitProvider, "provider.")
+		return parts[len(parts)-1]
+	}
+
+	idx := strings.IndexRune(resourceType, '_')
+	if idx == -1 {
+		// If no underscores, the resource name is assumed to be
+		// also the provider name, e.g. if the provider exposes
+		// only a single resource of each type.
+		return resourceType
+	}
+
+	return resourceType[:idx]
 }
 
 // strSliceContains checks if a given string is contained in a slice

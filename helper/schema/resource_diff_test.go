@@ -7,8 +7,6 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/hashicorp/hil/ast"
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -808,7 +806,7 @@ func TestForceNew(t *testing.T) {
 				},
 			},
 			Config: testConfig(t, map[string]interface{}{
-				"foo": []map[string]interface{}{
+				"foo": []interface{}{
 					map[string]interface{}{
 						"bar": "abcdefg",
 						"baz": "changed",
@@ -905,7 +903,7 @@ func TestForceNew(t *testing.T) {
 				},
 			},
 			Config: testConfig(t, map[string]interface{}{
-				"foo": []map[string]interface{}{
+				"foo": []interface{}{
 					map[string]interface{}{
 						"bar": "abcdefg",
 					},
@@ -1089,7 +1087,7 @@ func TestClear(t *testing.T) {
 				},
 			},
 			Config: testConfig(t, map[string]interface{}{
-				"foo": []map[string]interface{}{
+				"foo": []interface{}{
 					map[string]interface{}{
 						"bar": "bar2",
 						"baz": "baz1",
@@ -1137,7 +1135,7 @@ func TestClear(t *testing.T) {
 				},
 			},
 			Config: testConfig(t, map[string]interface{}{
-				"foo": []map[string]interface{}{
+				"foo": []interface{}{
 					map[string]interface{}{
 						"bar": "bar2",
 						"baz": "baz2",
@@ -1257,7 +1255,7 @@ func TestGetChangedKeysPrefix(t *testing.T) {
 			},
 			Config: testConfig(t, map[string]interface{}{
 				"testfield": "modified",
-				"foo": []map[string]interface{}{
+				"foo": []interface{}{
 					map[string]interface{}{
 						"bar": "abcdefg",
 						"baz": "changed",
@@ -1900,16 +1898,10 @@ func TestResourceDiffNewValueKnown(t *testing.T) {
 					"availability_zone": "foo",
 				},
 			},
-			Config: testConfigInterpolate(
+			Config: testConfig(
 				t,
 				map[string]interface{}{
-					"availability_zone": "${var.foo}",
-				},
-				map[string]ast.Variable{
-					"var.foo": ast.Variable{
-						Value: config.UnknownVariableValue,
-						Type:  ast.TypeString,
-					},
+					"availability_zone": UnknownVariableValue,
 				},
 			),
 			Diff: &terraform.InstanceDiff{
@@ -1931,16 +1923,10 @@ func TestResourceDiffNewValueKnown(t *testing.T) {
 					"availability_zone": "foo",
 				},
 			},
-			Config: testConfigInterpolate(
+			Config: testConfig(
 				t,
 				map[string]interface{}{
-					"availability_zone": "${var.foo}",
-				},
-				map[string]ast.Variable{
-					"var.foo": ast.Variable{
-						Value: config.UnknownVariableValue,
-						Type:  ast.TypeString,
-					},
+					"availability_zone": UnknownVariableValue,
 				},
 			),
 			Diff: &terraform.InstanceDiff{
@@ -1991,16 +1977,10 @@ func TestResourceDiffNewValueKnownSetNew(t *testing.T) {
 				"availability_zone": "foo",
 			},
 		},
-		Config: testConfigInterpolate(
+		Config: testConfig(
 			t,
 			map[string]interface{}{
-				"availability_zone": "${var.foo}",
-			},
-			map[string]ast.Variable{
-				"var.foo": ast.Variable{
-					Value: config.UnknownVariableValue,
-					Type:  ast.TypeString,
-				},
+				"availability_zone": UnknownVariableValue,
 			},
 		),
 		Diff: &terraform.InstanceDiff{

@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"io/ioutil"
 	"log"
 	"os"
@@ -15,13 +14,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hil"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
@@ -165,7 +165,7 @@ func testApplyFn(
 		id = idAttr.New
 	}
 
-	if id == "" || id == config.UnknownVariableValue {
+	if id == "" || id == hcl2shim.UnknownVariableValue {
 		id = "foo"
 	}
 
@@ -978,7 +978,7 @@ func legacyDiffComparisonString(changes *plans.Changes) string {
 				v := newAttrs[attrK]
 				u := oldAttrs[attrK]
 
-				if v == config.UnknownVariableValue {
+				if v == hcl2shim.UnknownVariableValue {
 					v = "<computed>"
 				}
 				// NOTE: we don't support <sensitive> here because we would
