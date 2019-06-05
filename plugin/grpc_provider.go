@@ -330,6 +330,7 @@ func (p *GRPCProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 	protoReq := &proto.ReadResource_Request{
 		TypeName:     r.TypeName,
 		CurrentState: &proto.DynamicValue{Msgpack: mp},
+		Private:      r.Private,
 	}
 
 	protoResp, err := p.client.ReadResource(p.ctx, protoReq)
@@ -348,6 +349,7 @@ func (p *GRPCProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 		}
 	}
 	resp.NewState = state
+	resp.Private = protoResp.Private
 
 	return resp
 }

@@ -27,6 +27,27 @@ resource "test_resource_timeout" "foo" {
 		},
 	})
 }
+
+func TestResourceTimeout_delete(t *testing.T) {
+	// If the delete timeout isn't saved until destroy, the cleanup here will
+	// fail because the default is only 20m.
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_timeout" "foo" {
+	delete_delay = "25m"
+	timeouts {
+		delete = "30m"
+	}
+}
+				`),
+			},
+		},
+	})
+}
 func TestResourceTimeout_update(t *testing.T) {
 	resource.UnitTest(t, resource.TestCase{
 		Providers:    testAccProviders,

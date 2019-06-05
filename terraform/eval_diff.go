@@ -448,8 +448,9 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 			// must _also_ record the returned change in the active plan,
 			// which the expression evaluator will use in preference to this
 			// incomplete value recorded in the state.
-			Status: states.ObjectPlanned,
-			Value:  plannedNewVal,
+			Status:  states.ObjectPlanned,
+			Value:   plannedNewVal,
+			Private: plannedPrivate,
 		}
 	}
 
@@ -790,6 +791,7 @@ func (n *EvalDiffDestroy) Eval(ctx EvalContext) (interface{}, error) {
 			Before: state.Value,
 			After:  cty.NullVal(cty.DynamicPseudoType),
 		},
+		Private:      state.Private,
 		ProviderAddr: n.ProviderAddr,
 	}
 
