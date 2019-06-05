@@ -44,6 +44,7 @@ func TestResourceProvisioner_Validate_bad(t *testing.T) {
 	if len(warn) > 0 {
 		t.Fatalf("Warnings: %v", warn)
 	}
+	//Two errors, one for service_type, other for missing required accept_license argument
 	if len(errs) != 2 {
 		t.Fatalf("Should have two errors")
 	}
