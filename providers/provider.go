@@ -176,6 +176,10 @@ type ReadResourceRequest struct {
 
 	// PriorState contains the previously saved state value for this resource.
 	PriorState cty.Value
+
+	// Private is an opaque blob that will be stored in state along with the
+	// resource. It is intended only for interpretation by the provider itself.
+	Private []byte
 }
 
 type ReadResourceResponse struct {
@@ -184,6 +188,10 @@ type ReadResourceResponse struct {
 
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
+
+	// Private is an opaque blob that will be stored in state along with the
+	// resource. It is intended only for interpretation by the provider itself.
+	Private []byte
 }
 
 type PlanResourceChangeRequest struct {
