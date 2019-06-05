@@ -677,6 +677,9 @@ func TestApply_plan_remoteState(t *testing.T) {
 		"username":               cty.NullVal(cty.String),
 		"password":               cty.NullVal(cty.String),
 		"skip_cert_verification": cty.NullVal(cty.Bool),
+		"retry_max":              cty.NullVal(cty.String),
+		"retry_wait_min":         cty.NullVal(cty.String),
+		"retry_wait_max":         cty.NullVal(cty.String),
 	})
 	backendConfigRaw, err := plans.NewDynamicValue(backendConfig, backendConfig.Type())
 	if err != nil {
