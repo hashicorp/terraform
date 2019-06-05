@@ -5,9 +5,13 @@ NEW FEATURES:
 * `range` function for generating a sequence of numbers as a list [GH-21461]
 * `yamldecode` and *experimental* `yamlencode` functions for working with YAML-serialized data [GH-21459]
 
+ENHANCEMENTS:
+
+* backend/http: implement retries for the http backend [GH-19702]
+
 BUG FIXES:
 
-* command/show: use the state snapshot included in the planfile when rendering a plan to json [#GH-21597]
+* command/show: use the state snapshot included in the planfile when rendering a plan to json [GH-21597]
 
 ## 0.12.1 (June 3, 2019)
 
