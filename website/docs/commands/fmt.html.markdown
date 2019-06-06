@@ -37,5 +37,5 @@ The command-line flags are all optional. The list of available flags are:
 * `-write=true` - Write result to source file instead of STDOUT (disabled if
     using STDIN or -check)
 * `-diff=false` - Display diffs of formatting changes
-* `-check=false` - Check if the input is formatted. Exit status will be 0 if
+* `-check=true` - Check if the input is formatted. Exit status will be 0 if
     all input is properly formatted and non-zero otherwise.
