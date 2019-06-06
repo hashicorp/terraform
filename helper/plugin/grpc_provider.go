@@ -2,7 +2,6 @@ package plugin
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -316,11 +315,15 @@ func (s *GRPCProviderServer) upgradeFlatmapState(version int, m map[string]strin
 		requiresMigrate = version < res.StateUpgraders[0].Version
 	}
 
-	if requiresMigrate {
-		if res.MigrateState == nil {
-			return nil, 0, errors.New("cannot upgrade state, missing MigrateState function")
+	if requiresMigrate && res.MigrateState == nil {
+		// Providers were previously allowed to bump the version
+		// without declaring MigrateState.
+		// If there are further upgraders, then we've only updated that far.
+		if len(res.StateUpgraders) > 0 {
+			schemaType = res.StateUpgraders[0].Type
+			upgradedVersion = res.StateUpgraders[0].Version
 		}
-
+	} else if requiresMigrate {
 		is := &terraform.InstanceState{
 			ID:         m["id"],
 			Attributes: m,
