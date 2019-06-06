@@ -12,6 +12,7 @@ ENHANCEMENTS:
 BUG FIXES:
 
 * command/show: use the state snapshot included in the planfile when rendering a plan to json [GH-21597]
+* core: Don't panic when encountering an invalid `depends_on` [GH-21590]
 
 ## 0.12.1 (June 3, 2019)
 
