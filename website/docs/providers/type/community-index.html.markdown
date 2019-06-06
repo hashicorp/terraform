@@ -23,6 +23,7 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
 - [Active Directory](https://github.com/GSLabDev/terraform-provider-ad)
 - [Aiven](https://github.com/aiven/terraform-provider-aiven)
 - [AlienVault](https://github.com/form3tech-oss/terraform-provider-alienvault)
+- [AnsibleVault](https://github.com/MeilleursAgents/terraform-provider-ansiblevault)
 - [Apigee](https://github.com/zambien/terraform-provider-apigee)
 - [Artifactory](https://github.com/atlassian/terraform-provider-artifactory)
 - [Auth](https://github.com/Shuttl-Tech/terraform-provider-auth)
