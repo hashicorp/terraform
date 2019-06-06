@@ -3,7 +3,9 @@ package module
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"sort"
+	"strings"
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/registry/response"
@@ -58,6 +60,24 @@ func newest(versions []string, constraint string) (string, error) {
 			continue
 		}
 		if cs.Check(v) {
+			// We matched the constraint. But did it??
+			// If the constraint is an equal for something with build data
+			// we should see if our match IS that
+			// >0.9.0+def [< 0.9.0+abc]
+			constraintMeta := strings.SplitAfterN(cs.String(), "+", 2)
+			fmt.Println(constraintMeta[1])
+			// if we have some metadata there
+			// does the version have metadata?
+			fmt.Println(v.Metadata())
+			// What kind of constraint do we have?
+			// if it is pure equality, does our metadata match??
+
+			ourregex := regexp.MustCompile("^=[0-9]")
+			if ourregex.MatchString(cs.String()) {
+				if constraintMeta[1] != v.Metadata() {
+					continue
+				}
+			}
 			return versions[i], nil
 		}
 	}
