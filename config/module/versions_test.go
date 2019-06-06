@@ -63,20 +63,23 @@ func TestNewestModulesWithMetadata(t *testing.T) {
 	mpv := &response.ModuleProviderVersions{
 		Source: "registry/test/module",
 		Versions: []*response.ModuleVersion{
-			{Version: "0.0.4"},
-			{Version: "0.3.1"},
-			{Version: "2.0.1"},
-			{Version: "1.2.0"},
 			{Version: "0.9.0"},
 			{Version: "0.9.0+def"},
 			{Version: "0.9.0+abc"},
 			{Version: "0.9.0+xyz"},
-			{Version: "0.9.0+trees"},
 		},
 	}
+
 	// with metadata and explicit version request
 	expected := "0.9.0+def"
 	m, _ := newestVersion(mpv.Versions, "=0.9.0+def")
+	if m.Version != expected {
+		t.Fatalf("expected version %q, got %q", expected, m.Version)
+	}
+
+	// respect explicit equality, but >/</~ will be ignored
+	expected = "0.9.0"
+	m, _ = newestVersion(mpv.Versions, "~>0.9.0+abc")
 	if m.Version != expected {
 		t.Fatalf("expected version %q, got %q", expected, m.Version)
 	}

@@ -13,6 +13,8 @@ import (
 
 const anyVersion = ">=0.0.0"
 
+var explicitEqualityConstraint = regexp.MustCompile("^=[0-9]")
+
 // return the newest version that satisfies the provided constraint
 func newest(versions []string, constraint string) (string, error) {
 	if constraint == "" {
@@ -52,6 +54,11 @@ func newest(versions []string, constraint string) (string, error) {
 		return iv.GreaterThan(jv)
 	})
 
+	// Store whether the constraint contains a metadata requirement,
+	// so we can check if we should be returning a specific metadata version
+	constraintMeta := strings.SplitAfterN(cs.String(), "+", 2)
+	equalsConstraint := explicitEqualityConstraint.MatchString(cs.String())
+
 	// versions are now in order, so just find the first which satisfies the
 	// constraint
 	for i := range versions {
@@ -60,20 +67,8 @@ func newest(versions []string, constraint string) (string, error) {
 			continue
 		}
 		if cs.Check(v) {
-			// We matched the constraint. But did it??
-			// If the constraint is an equal for something with build data
-			// we should see if our match IS that
-			// >0.9.0+def [< 0.9.0+abc]
-			constraintMeta := strings.SplitAfterN(cs.String(), "+", 2)
-			fmt.Println(constraintMeta[1])
-			// if we have some metadata there
-			// does the version have metadata?
-			fmt.Println(v.Metadata())
-			// What kind of constraint do we have?
-			// if it is pure equality, does our metadata match??
-
-			ourregex := regexp.MustCompile("^=[0-9]")
-			if ourregex.MatchString(cs.String()) {
+			// Constraint has metadata and is explicit equality
+			if len(constraintMeta) > 1 && equalsConstraint {
 				if constraintMeta[1] != v.Metadata() {
 					continue
 				}
