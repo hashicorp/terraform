@@ -42,7 +42,7 @@ func newest(versions []string, constraint string) (string, error) {
 	}
 
 	if (len(cs) > 1 || !equalsConstraint) && len(constraintMetas) > 0 {
-		return "", fmt.Errorf("Constraints including metadata must have explicit equality, or are otherwise too ambiguous: %s", cs.String())
+		return "", fmt.Errorf("Constraints including build metadata must have explicit equality, or are otherwise too ambiguous: %s", cs.String())
 	}
 
 	// If the version string includes metadata, this is valid in go-version,
