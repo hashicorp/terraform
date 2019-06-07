@@ -8,6 +8,7 @@ NEW FEATURES:
 ENHANCEMENTS:
 
 * backend/http: implement retries for the http backend [GH-19702]
+* config: consider build metadata when interpreting module versions [GH-21640]
 
 BUG FIXES:
 
