@@ -8,7 +8,7 @@ description: |-
 
 # Command: push
 
-~> **Important:** The `terraform push` command is deprecated, and only works with [the legacy version of Terraform Enterprise](/docs/enterprise-legacy/index.html). In the current version of Terraform Enterprise, you can upload configurations using the API. See [the docs about API-driven runs](/docs/enterprise/run/api.html) for more details.
+~> **Important:** The `terraform push` command is deprecated, and only works with the legacy version of Terraform Enterprise. In the current version of Terraform Enterprise, you can upload configurations using the API. See [the docs about API-driven runs](/docs/enterprise/run/api.html) for more details.
 
 The `terraform push` command uploads your Terraform configuration to
 be managed by HashiCorp's [Terraform Enterprise](https://www.hashicorp.com/products/terraform/).
