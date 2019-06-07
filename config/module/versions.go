@@ -25,6 +25,30 @@ func newest(versions []string, constraint string) (string, error) {
 		return "", err
 	}
 
+	// Store whether the constraint is an explicit equality that
+	// contains a metadata requirement, so we can return a specific
+	// if requested metadata version
+	var constraintMetas []string
+	var equalsConstraint bool
+	for i := range cs {
+		constraintMeta := strings.SplitAfterN(cs[i].String(), "+", 2)
+		if len(constraintMeta) > 1 {
+			constraintMetas = append(constraintMetas, constraintMeta[1])
+		}
+	}
+
+	if len(cs) == 1 {
+		equalsConstraint = explicitEqualityConstraint.MatchString(cs.String())
+	}
+
+	if (len(cs) > 1 || !equalsConstraint) && len(constraintMetas) > 0 {
+		return "", fmt.Errorf("Constraints including metadata must have explicit equality, or are otherwise too ambiguous: %s", cs.String())
+	}
+
+	// If the version string includes metadata, this is valid in go-version,
+	// However, it's confusing as to what expected behavior should be,
+	// so give an error so the user can do something more logical
+
 	switch len(versions) {
 	case 0:
 		return "", errors.New("no versions found")
@@ -54,16 +78,6 @@ func newest(versions []string, constraint string) (string, error) {
 		return iv.GreaterThan(jv)
 	})
 
-	// Store whether the constraint is an explicit equality that
-	// contains a metadata requirement, so we can return a specific
-	// if requested metadata version
-	var constraintMeta []string
-	var equalsConstraint bool
-	if len(cs) == 1 {
-		constraintMeta = strings.SplitAfterN(cs.String(), "+", 2)
-		equalsConstraint = explicitEqualityConstraint.MatchString(cs.String())
-	}
-
 	// versions are now in order, so just find the first which satisfies the
 	// constraint
 	for i := range versions {
@@ -73,8 +87,8 @@ func newest(versions []string, constraint string) (string, error) {
 		}
 		if cs.Check(v) {
 			// Constraint has metadata and is explicit equality
-			if equalsConstraint && len(constraintMeta) > 1 {
-				if constraintMeta[1] != v.Metadata() {
+			if equalsConstraint && len(constraintMetas) > 0 {
+				if constraintMetas[0] != v.Metadata() {
 					continue
 				}
 			}
