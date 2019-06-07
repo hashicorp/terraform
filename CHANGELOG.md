@@ -4,6 +4,7 @@ NEW FEATURES:
 
 * `range` function for generating a sequence of numbers as a list [GH-21461]
 * `yamldecode` and *experimental* `yamlencode` functions for working with YAML-serialized data [GH-21459]
+* `uuidv5` function for generating name-based (as opposed to pseudorandom) UUIDs [GH-21244]
 
 ENHANCEMENTS:
 
