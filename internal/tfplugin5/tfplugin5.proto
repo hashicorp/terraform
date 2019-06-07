@@ -1,6 +1,6 @@
-// Terraform Plugin RPC protocol version 5.0
+// Terraform Plugin RPC protocol version 5.1
 //
-// This file defines version 5.0 of the RPC protocol. To implement a plugin
+// This file defines version 5.1 of the RPC protocol. To implement a plugin
 // against this protocol, copy this definition into your own codebase and
 // use protoc to generate stubs for your target language.
 //
