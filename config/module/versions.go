@@ -41,13 +41,12 @@ func newest(versions []string, constraint string) (string, error) {
 		equalsConstraint = explicitEqualityConstraint.MatchString(cs.String())
 	}
 
-	if (len(cs) > 1 || !equalsConstraint) && len(constraintMetas) > 0 {
-		return "", fmt.Errorf("Constraints including build metadata must have explicit equality, or are otherwise too ambiguous: %s", cs.String())
-	}
-
 	// If the version string includes metadata, this is valid in go-version,
 	// However, it's confusing as to what expected behavior should be,
 	// so give an error so the user can do something more logical
+	if (len(cs) > 1 || !equalsConstraint) && len(constraintMetas) > 0 {
+		return "", fmt.Errorf("Constraints including build metadata must have explicit equality, or are otherwise too ambiguous: %s", cs.String())
+	}
 
 	switch len(versions) {
 	case 0:
