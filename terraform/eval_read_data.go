@@ -179,6 +179,17 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 		)
 	}
 
+	log.Printf("[TRACE] Re-validating config for %s", absAddr)
+	validateResp := provider.ValidateDataSourceConfig(
+		providers.ValidateDataSourceConfigRequest{
+			TypeName: n.Addr.Resource.Type,
+			Config:   configVal,
+		},
+	)
+	if validateResp.Diagnostics.HasErrors() {
+		return nil, validateResp.Diagnostics.InConfigBody(n.Config.Config).Err()
+	}
+
 	// If we get down here then our configuration is complete and we're read
 	// to actually call the provider to read the data.
 	log.Printf("[TRACE] EvalReadData: %s configuration is complete, so reading from provider", absAddr)
