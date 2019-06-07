@@ -25,9 +25,10 @@ func newest(versions []string, constraint string) (string, error) {
 		return "", err
 	}
 
-	// Store whether the constraint is an explicit equality that
-	// contains a metadata requirement, so we can return a specific
-	// if requested metadata version
+	// Find any build metadata in the constraints, and
+	// store whether the constraint is an explicit equality that
+	// contains a build metadata requirement, so we can return a specific,
+	// if requested, build metadata version
 	var constraintMetas []string
 	var equalsConstraint bool
 	for i := range cs {
