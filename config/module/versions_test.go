@@ -77,13 +77,12 @@ func TestNewestModulesWithMetadata(t *testing.T) {
 		t.Fatalf("expected version %q, got %q", expected, m.Version)
 	}
 
-	// respect explicit equality, but >/</~ will be ignored
+	// respect explicit equality, but >/</~, or metadata in multiple constraints, will give an error
 	_, err := newestVersion(mpv.Versions, "~>0.9.0+abc")
 	if err == nil {
 		t.Fatalf("expected an error, but did not get one")
 	}
 
-	// if there's build metadata in one of multiple constraints, expect an error
 	_, err = newestVersion(mpv.Versions, ">0.8.0+abc, <1.0.0")
 	if err == nil {
 		t.Fatalf("expected an error, but did not get one")
