@@ -3,13 +3,17 @@ package module
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"sort"
+	"strings"
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/registry/response"
 )
 
 const anyVersion = ">=0.0.0"
+
+var explicitEqualityConstraint = regexp.MustCompile("^=[0-9]")
 
 // return the newest version that satisfies the provided constraint
 func newest(versions []string, constraint string) (string, error) {
@@ -19,6 +23,30 @@ func newest(versions []string, constraint string) (string, error) {
 	cs, err := version.NewConstraint(constraint)
 	if err != nil {
 		return "", err
+	}
+
+	// Find any build metadata in the constraints, and
+	// store whether the constraint is an explicit equality that
+	// contains a build metadata requirement, so we can return a specific,
+	// if requested, build metadata version
+	var constraintMetas []string
+	var equalsConstraint bool
+	for i := range cs {
+		constraintMeta := strings.SplitAfterN(cs[i].String(), "+", 2)
+		if len(constraintMeta) > 1 {
+			constraintMetas = append(constraintMetas, constraintMeta[1])
+		}
+	}
+
+	if len(cs) == 1 {
+		equalsConstraint = explicitEqualityConstraint.MatchString(cs.String())
+	}
+
+	// If the version string includes metadata, this is valid in go-version,
+	// However, it's confusing as to what expected behavior should be,
+	// so give an error so the user can do something more logical
+	if (len(cs) > 1 || !equalsConstraint) && len(constraintMetas) > 0 {
+		return "", fmt.Errorf("Constraints including build metadata must have explicit equality, or are otherwise too ambiguous: %s", cs.String())
 	}
 
 	switch len(versions) {
@@ -58,6 +86,12 @@ func newest(versions []string, constraint string) (string, error) {
 			continue
 		}
 		if cs.Check(v) {
+			// Constraint has metadata and is explicit equality
+			if equalsConstraint && len(constraintMetas) > 0 {
+				if constraintMetas[0] != v.Metadata() {
+					continue
+				}
+			}
 			return versions[i], nil
 		}
 	}
