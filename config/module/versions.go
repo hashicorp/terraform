@@ -54,10 +54,15 @@ func newest(versions []string, constraint string) (string, error) {
 		return iv.GreaterThan(jv)
 	})
 
-	// Store whether the constraint contains a metadata requirement,
-	// so we can check if we should be returning a specific metadata version
-	constraintMeta := strings.SplitAfterN(cs.String(), "+", 2)
-	equalsConstraint := explicitEqualityConstraint.MatchString(cs.String())
+	// Store whether the constraint is an explicit equality that
+	// contains a metadata requirement, so we can return a specific
+	// if requested metadata version
+	var constraintMeta []string
+	var equalsConstraint bool
+	if len(cs) == 1 {
+		constraintMeta = strings.SplitAfterN(cs.String(), "+", 2)
+		equalsConstraint = explicitEqualityConstraint.MatchString(cs.String())
+	}
 
 	// versions are now in order, so just find the first which satisfies the
 	// constraint
@@ -68,7 +73,7 @@ func newest(versions []string, constraint string) (string, error) {
 		}
 		if cs.Check(v) {
 			// Constraint has metadata and is explicit equality
-			if len(constraintMeta) > 1 && equalsConstraint {
+			if equalsConstraint && len(constraintMeta) > 1 {
 				if constraintMeta[1] != v.Metadata() {
 					continue
 				}
