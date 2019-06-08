@@ -345,6 +345,12 @@ func initCommands(config *Config, services *disco.Disco) {
 				Meta: meta,
 			}, nil
 		},
+
+		"testing eval": func() (cli.Command, error) {
+			return &command.TestingEvalCommand{
+				Meta: meta,
+			}, nil
+		},
 	}
 }
 
