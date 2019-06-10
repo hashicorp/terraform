@@ -437,6 +437,86 @@ func TestUpgradeState_flatmapState(t *testing.T) {
 	}
 }
 
+func TestUpgradeState_flatmapStateMissingMigrateState(t *testing.T) {
+	r := &schema.Resource{
+		SchemaVersion: 1,
+		Schema: map[string]*schema.Schema{
+			"one": {
+				Type:     schema.TypeInt,
+				Required: true,
+			},
+		},
+	}
+
+	server := &GRPCProviderServer{
+		provider: &schema.Provider{
+			ResourcesMap: map[string]*schema.Resource{
+				"test": r,
+			},
+		},
+	}
+
+	testReqs := []*proto.UpgradeResourceState_Request{
+		{
+			TypeName: "test",
+			Version:  0,
+			RawState: &proto.RawState{
+				Flatmap: map[string]string{
+					"id":  "bar",
+					"one": "1",
+				},
+			},
+		},
+		{
+			TypeName: "test",
+			Version:  1,
+			RawState: &proto.RawState{
+				Flatmap: map[string]string{
+					"id":  "bar",
+					"one": "1",
+				},
+			},
+		},
+		{
+			TypeName: "test",
+			Version:  1,
+			RawState: &proto.RawState{
+				Json: []byte(`{"id":"bar","one":1}`),
+			},
+		},
+	}
+
+	for i, req := range testReqs {
+		t.Run(fmt.Sprintf("%d-%d", i, req.Version), func(t *testing.T) {
+			resp, err := server.UpgradeResourceState(nil, req)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if len(resp.Diagnostics) > 0 {
+				for _, d := range resp.Diagnostics {
+					t.Errorf("%#v", d)
+				}
+				t.Fatal("error")
+			}
+
+			val, err := msgpack.Unmarshal(resp.UpgradedState.Msgpack, r.CoreConfigSchema().ImpliedType())
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			expected := cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("bar"),
+				"one": cty.NumberIntVal(1),
+			})
+
+			if !cmp.Equal(expected, val, valueComparer, equateEmpty) {
+				t.Fatal(cmp.Diff(expected, val, valueComparer, equateEmpty))
+			}
+		})
+	}
+}
+
 func TestPlanResourceChange(t *testing.T) {
 	r := &schema.Resource{
 		SchemaVersion: 4,
