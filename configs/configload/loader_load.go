@@ -64,7 +64,15 @@ func (l *Loader) moduleWalkerLoad(req *configs.ModuleRequest) (*configs.Module, 
 			Subject:  &req.SourceAddrRange,
 		})
 	}
-	if !req.VersionConstraint.Required.Check(record.Version) {
+	if len(req.VersionConstraint.Required) > 0 && record.Version == nil {
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Module version requirements have changed",
+			Detail:   "The version requirements have changed since this module was installed and the installed version is no longer acceptable. Run \"terraform init\" to install all modules required by this configuration.",
+			Subject:  &req.SourceAddrRange,
+		})
+	}
+	if record.Version != nil && !req.VersionConstraint.Required.Check(record.Version) {
 		diags = append(diags, &hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Module version requirements have changed",

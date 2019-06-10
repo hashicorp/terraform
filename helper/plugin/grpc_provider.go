@@ -535,6 +535,11 @@ func (s *GRPCProviderServer) ReadResource(_ context.Context, req *proto.ReadReso
 		Msgpack: newStateMP,
 	}
 
+	// helper/schema did previously handle private data during refresh, but
+	// core is now going to expect this to be maintained in order to
+	// persist it in the state.
+	resp.Private = req.Private
+
 	return resp, nil
 }
 
@@ -569,6 +574,7 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 	// We don't usually plan destroys, but this can return early in any case.
 	if proposedNewStateVal.IsNull() {
 		resp.PlannedState = req.ProposedNewState
+		resp.PlannedPrivate = req.PriorPrivate
 		return resp, nil
 	}
 

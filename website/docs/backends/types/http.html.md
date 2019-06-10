@@ -61,3 +61,8 @@ The following configuration options are supported:
  * `token` - (Optional) The token for HTTP bearer authentication
  * `skip_cert_verification` - (Optional) Whether to skip TLS verification.
    Defaults to `false`.
+ * `retry_max` – (Optional) The number of HTTP request retries. Defaults to `2`.
+ * `retry_wait_min` – (Optional) The minimum time in seconds to wait between HTTP request attempts.
+   Defaults to `1`.
+ * `retry_wait_max` – (Optional) The maximum time in seconds to wait between HTTP request attempts.
+   Defaults to `30`.

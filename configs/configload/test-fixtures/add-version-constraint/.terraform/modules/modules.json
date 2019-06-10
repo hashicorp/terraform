@@ -1,0 +1,14 @@
+{
+    "Modules": [
+        {
+            "Key": "",
+            "Source": "",
+            "Dir": "test-fixtures/add-version-constraint"
+        },
+        {
+            "Key": "child",
+            "Source": "hashicorp/module-installer-acctest/aws",
+            "Dir": "test-fixtures/add-version-constraint/.terraform/modules/child"
+        }
+    ]
+}

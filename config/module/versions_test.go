@@ -58,3 +58,33 @@ func TestNewestInvalidModuleVersion(t *testing.T) {
 		t.Fatalf("expected version %q, got %q", expected, m.Version)
 	}
 }
+
+func TestNewestModulesWithMetadata(t *testing.T) {
+	mpv := &response.ModuleProviderVersions{
+		Source: "registry/test/module",
+		Versions: []*response.ModuleVersion{
+			{Version: "0.9.0"},
+			{Version: "0.9.0+def"},
+			{Version: "0.9.0+abc"},
+			{Version: "0.9.0+xyz"},
+		},
+	}
+
+	// with metadata and explicit version request
+	expected := "0.9.0+def"
+	m, _ := newestVersion(mpv.Versions, "=0.9.0+def")
+	if m.Version != expected {
+		t.Fatalf("expected version %q, got %q", expected, m.Version)
+	}
+
+	// respect explicit equality, but >/</~, or metadata in multiple constraints, will give an error
+	_, err := newestVersion(mpv.Versions, "~>0.9.0+abc")
+	if err == nil {
+		t.Fatalf("expected an error, but did not get one")
+	}
+
+	_, err = newestVersion(mpv.Versions, ">0.8.0+abc, <1.0.0")
+	if err == nil {
+		t.Fatalf("expected an error, but did not get one")
+	}
+}

@@ -1,8 +1,31 @@
-## 0.12.1 (Unreleased)
+## 0.12.2 (Unreleased)
+
+NEW FEATURES:
+
+* `range` function for generating a sequence of numbers as a list [GH-21461]
+* `yamldecode` and *experimental* `yamlencode` functions for working with YAML-serialized data [GH-21459]
+* `uuidv5` function for generating name-based (as opposed to pseudorandom) UUIDs [GH-21244]
+
+ENHANCEMENTS:
+
+* backend/http: implement retries for the http backend [GH-19702]
+* config: consider build metadata when interpreting module versions [GH-21640]
 
 BUG FIXES:
 
-core: Always try to select a workspace after initialization [GH-21234]
+* command/show: use the state snapshot included in the planfile when rendering a plan to json [GH-21597]
+* core: Don't panic when encountering an invalid `depends_on` [GH-21590]
+
+## 0.12.1 (June 3, 2019)
+
+BUG FIXES:
+
+* core: Always try to select a workspace after initialization ([#21234](https://github.com/hashicorp/terraform/issues/21234))
+* command/show: fix inconsistent json output causing a panic [[#21541](https://github.com/hashicorp/terraform/issues/21541)] 
+* config: `distinct` function no longer panics when given an empty list ([#21538](https://github.com/hashicorp/terraform/issues/21538))
+* config: Don't panic when a `version` constraint is added to a module that was previously initialized without one ([#21542](https://github.com/hashicorp/terraform/issues/21542))
+* config: `matchkeys` function argument type checking will no longer fail incorrectly during validation ([#21576](https://github.com/hashicorp/terraform/issues/21576))
+* backend/local: Don't panic if an instance in the state only has deposed instances, and no current instance ([#21575](https://github.com/hashicorp/terraform/issues/21575))
 
 ## 0.12.0 (May 22, 2019)
 
@@ -52,7 +75,7 @@ The full set of language improvements is too large to list them all out exhausti
 
 * **Resource and module object values:** An entire resource or module can now be treated as an object value within expressions, including passing them through input variables and output values to other modules, using an attribute-less reference syntax, like `aws_instance.foo`.
 
-* **Extended template syntax:** The simple interpolation syntax from prior versions is extended to become a simple template language, with support for conditional interpolations and repeated interpolations through iteration. For more information, see [the _String Templates_ documentation](https://www.terraform.io/configuration/expressions.html#string-templates).
+* **Extended template syntax:** The simple interpolation syntax from prior versions is extended to become a simple template language, with support for conditional interpolations and repeated interpolations through iteration. For more information, see [the _String Templates_ documentation](https://www.terraform.io/docs/configuration/expressions.html#string-templates).
 
 * **`jsondecode` and `csvdecode` interpolation functions:** Due to the richer type system in the new configuration language implementation, we can now offer functions for decoding serialization formats. [`jsondecode`](https://www.terraform.io/docs/configuration/functions/jsondecode.html) is the opposite of [`jsonencode`](https://www.terraform.io/docs/configuration/functions/jsonencode.html), while [`csvdecode`](https://www.terraform.io/docs/configuration/functions/csvdecode.html) provides a way to load in lists of maps from a compact tabular representation.
 

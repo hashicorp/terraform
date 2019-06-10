@@ -328,8 +328,8 @@ func TestEvalValidateResource_invalidDependsOn(t *testing.T) {
 		t.Fatalf("error for supposedly-valid config: %s", err)
 	}
 
-	// No we'll make it invalid, but adding additional traversal steps
-	// on the end of what we're referencing. This is intended to catch the
+	// Now we'll make it invalid by adding additional traversal steps at
+	// the end of what we're referencing. This is intended to catch the
 	// situation where the user tries to depend on e.g. a specific resource
 	// attribute, rather than the whole resource, like aws_instance.foo.id.
 	rc.DependsOn = append(rc.DependsOn, hcl.Traversal{
@@ -341,6 +341,22 @@ func TestEvalValidateResource_invalidDependsOn(t *testing.T) {
 		},
 		hcl.TraverseAttr{
 			Name: "extra",
+		},
+	})
+
+	_, err = node.Eval(ctx)
+	if err == nil {
+		t.Fatal("no error for invalid depends_on")
+	}
+	if got, want := err.Error(), "Invalid depends_on reference"; !strings.Contains(got, want) {
+		t.Fatalf("wrong error\ngot:  %s\nwant: Message containing %q", got, want)
+	}
+
+	// Test for handling an unknown root without attribute, like a
+	// typo that omits the dot inbetween "path.module".
+	rc.DependsOn = append(rc.DependsOn, hcl.Traversal{
+		hcl.TraverseRoot{
+			Name: "pathmodule",
 		},
 	})
 
