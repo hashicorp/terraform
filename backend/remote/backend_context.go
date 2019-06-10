@@ -89,6 +89,9 @@ func (b *Remote) Context(op *backend.Operation) (*terraform.Context, statemgr.Fu
 	}
 
 	if tfeVariables != nil {
+		if op.Variables == nil {
+			op.Variables = make(map[string]backend.UnparsedVariableValue)
+		}
 		for _, v := range tfeVariables.Items {
 			if v.Sensitive {
 				v.Value = "<sensitive>"
@@ -100,12 +103,12 @@ func (b *Remote) Context(op *backend.Operation) (*terraform.Context, statemgr.Fu
 		}
 	}
 
-	variables, varDiags := backend.ParseVariableValues(op.Variables, config.Module.Variables)
-	diags = diags.Append(varDiags)
-	if diags.HasErrors() {
-		return nil, nil, diags
-	}
 	if op.Variables != nil {
+		variables, varDiags := backend.ParseVariableValues(op.Variables, config.Module.Variables)
+		diags = diags.Append(varDiags)
+		if diags.HasErrors() {
+			return nil, nil, diags
+		}
 		opts.Variables = variables
 	}
 

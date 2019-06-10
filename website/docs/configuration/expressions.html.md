@@ -673,11 +673,22 @@ Since the `for_each` argument accepts any collection or structural value,
 you can use a `for` expression or splat expression to transform an existing
 collection.
 
+The iterator object (`ingress` in the example above) has two attributes:
+
+* `key` is the map key or list element index for the current element. If the
+  `for_each` exression produces a _set_ value then `key` is identical to
+  `value` and should not be used.
+* `value` is the value of the current element.
+
 A `dynamic` block can only generate arguments that belong to the resource type,
 data source, provider or provisioner being configured. It is _not_ possible
 to generate meta-argument blocks such as `lifecycle` and `provisioner`
 blocks, since Terraform must process these before it is safe to evaluate
 expressions.
+
+If you need to iterate over combinations of values from multiple collections,
+use [`setproduct`](./functions/setproduct.html) to create a single collection
+containing all of the combinations.
 
 ### Best Practices for `dynamic` Blocks
 
@@ -701,7 +712,7 @@ sequence, with the following characters selecting the escape behavior:
 | `\"`         | Literal quote (without terminating the string)                                |
 | `\\`         | Literal backslash                                                             |
 | `\uNNNN`     | Unicode character from the basic multilingual plane (NNNN is four hex digits) |
-| `\UNNNNNNNN` | Unicode character from supplimentary planes (NNNNNNNN is eight hex digits)    |
+| `\UNNNNNNNN` | Unicode character from supplementary planes (NNNNNNNN is eight hex digits)    |
 
 The alternative syntax for string literals is the so-called "heredoc" style,
 inspired by Unix shell languages. This style allows multi-line strings to

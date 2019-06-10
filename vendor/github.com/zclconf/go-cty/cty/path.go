@@ -51,6 +51,11 @@ func (p Path) Index(v Value) Path {
 	return ret
 }
 
+// IndexPath is a convenience method to start a new Path with an IndexStep.
+func IndexPath(v Value) Path {
+	return Path{}.Index(v)
+}
+
 // GetAttr returns a new Path that is the reciever with a GetAttrStep appended
 // to the end.
 //
@@ -64,6 +69,11 @@ func (p Path) GetAttr(name string) Path {
 		Name: name,
 	}
 	return ret
+}
+
+// GetAttrPath is a convenience method to start a new Path with a GetAttrStep.
+func GetAttrPath(name string) Path {
+	return Path{}.GetAttr(name)
 }
 
 // Apply applies each of the steps in turn to successive values starting with

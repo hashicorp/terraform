@@ -53,6 +53,18 @@
             ]
         }
     },
+    "prior_state": {
+        "format_version": "0.1",
+        "values": {
+            "outputs": {
+                "test": {
+                    "sensitive": false,
+                    "value": "bar"
+                }
+            },
+            "root_module": {}
+        }
+    },
     "resource_changes": [
         {
             "address": "test_instance.test[0]",
@@ -67,7 +79,6 @@
                 ],
                 "before": null,
                 "after_unknown": {
-                    "ami": false,
                     "id": true
                 },
                 "after": {
@@ -88,7 +99,6 @@
                 ],
                 "before": null,
                 "after_unknown": {
-                    "ami": false,
                     "id": true
                 },
                 "after": {
@@ -109,7 +119,6 @@
                 ],
                 "before": null,
                 "after_unknown": {
-                    "ami": false,
                     "id": true
                 },
                 "after": {

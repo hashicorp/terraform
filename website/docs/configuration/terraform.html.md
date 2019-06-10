@@ -69,7 +69,7 @@ can specify its own version requirements. The requirements of all modules
 in the tree must be satisfied.
 
 Use Terraform version constraints in a collaborative environment to
-ensure that everyone is using a spceific Terraform version, or using at least
+ensure that everyone is using a specific Terraform version, or using at least
 a minimum Terraform version that has behavior expected by the configuration.
 
 The `required_version` setting applies only to the version of Terraform CLI.
@@ -111,8 +111,8 @@ minimum version for that provider.
 
 ```hcl
 terraform {
-  required_providers = {
-    aws = ">= 1.0.0"
+  required_providers {
+    aws = ">= 2.7.0"
   }
 }
 ```

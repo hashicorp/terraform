@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 
@@ -677,6 +678,9 @@ func TestApply_plan_remoteState(t *testing.T) {
 		"username":               cty.NullVal(cty.String),
 		"password":               cty.NullVal(cty.String),
 		"skip_cert_verification": cty.NullVal(cty.Bool),
+		"retry_max":              cty.NullVal(cty.String),
+		"retry_wait_min":         cty.NullVal(cty.String),
+		"retry_wait_max":         cty.NullVal(cty.String),
 	})
 	backendConfigRaw, err := plans.NewDynamicValue(backendConfig, backendConfig.Type())
 	if err != nil {
@@ -1389,7 +1393,7 @@ func TestApply_backup(t *testing.T) {
 
 	actual := backupState.RootModule().Resources["test_instance.foo"]
 	expected := originalState.RootModule().Resources["test_instance.foo"]
-	if !cmp.Equal(actual, expected) {
+	if !cmp.Equal(actual, expected, cmpopts.EquateEmpty()) {
 		t.Fatalf(
 			"wrong aws_instance.foo state\n%s",
 			cmp.Diff(expected, actual, cmp.Transformer("bytesAsString", func(b []byte) string {

@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -130,12 +131,12 @@ func TestDiffApply_set(t *testing.T) {
 		"id":                                 "testID",
 	}
 
-	attrs, err := diff.Apply(priorAttrs, schema.LegacyResourceSchema(&schema.Resource{Schema: resSchema}).CoreConfigSchema())
+	attrs, err := diff.Apply(priorAttrs, (&schema.Resource{Schema: resSchema}).CoreConfigSchema())
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	if !reflect.DeepEqual(attrs, expected) {
-		t.Fatalf("\nexpected: %#v\ngot: %#v\n", expected, attrs)
+		t.Fatalf("wrong result\ngot: %s\nwant: %s\n", spew.Sdump(attrs), spew.Sdump(expected))
 	}
 }

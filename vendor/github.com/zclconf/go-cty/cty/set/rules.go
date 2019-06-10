@@ -23,3 +23,21 @@ type Rules interface {
 	// be equivalent.
 	Equivalent(interface{}, interface{}) bool
 }
+
+// OrderedRules is an extension of Rules that can apply a partial order to
+// element values. When a set's Rules implements OrderedRules an iterator
+// over the set will return items in the order described by the rules.
+//
+// If the given order is not a total order (that is, some pairs of non-equivalent
+// elements do not have a defined order) then the resulting iteration order
+// is undefined but consistent for a particular version of cty. The exact
+// order in that case is not part of the contract and is subject to change
+// between versions.
+type OrderedRules interface {
+	Rules
+
+	// Less returns true if and only if the first argument should sort before
+	// the second argument. If the second argument should sort before the first
+	// or if there is no defined order for the values, return false.
+	Less(interface{}, interface{}) bool
+}

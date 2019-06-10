@@ -11,6 +11,8 @@ import (
 	"testing"
 
 	"github.com/go-test/deep"
+
+	tfversion "github.com/hashicorp/terraform/version"
 )
 
 func TestRoundtrip(t *testing.T) {
@@ -19,6 +21,8 @@ func TestRoundtrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	currentVersion := tfversion.Version
 
 	for _, info := range entries {
 		const inSuffix = ".in.tfstate"
@@ -56,7 +60,7 @@ func TestRoundtrip(t *testing.T) {
 			}
 			oSrcGot := buf.Bytes()
 
-			var oGot, oWant interface{}
+			var oGot, oWant map[string]interface{}
 			err = json.Unmarshal(oSrcGot, &oGot)
 			if err != nil {
 				t.Fatalf("result isn't JSON: %s", err)
@@ -65,6 +69,9 @@ func TestRoundtrip(t *testing.T) {
 			if err != nil {
 				t.Fatalf("wanted result isn't JSON: %s", err)
 			}
+
+			// A newly written state should always reflect the current terraform version.
+			oWant["terraform_version"] = currentVersion
 
 			problems := deep.Equal(oGot, oWant)
 			sort.Strings(problems)

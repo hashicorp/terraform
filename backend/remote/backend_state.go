@@ -14,11 +14,12 @@ import (
 )
 
 type remoteClient struct {
-	client       *tfe.Client
-	lockInfo     *state.LockInfo
-	organization string
-	runID        string
-	workspace    *tfe.Workspace
+	client         *tfe.Client
+	lockInfo       *state.LockInfo
+	organization   string
+	runID          string
+	stateUploadErr bool
+	workspace      *tfe.Workspace
 }
 
 // Get the remote state.
@@ -31,12 +32,12 @@ func (r *remoteClient) Get() (*remote.Payload, error) {
 			// If no state exists, then return nil.
 			return nil, nil
 		}
-		return nil, fmt.Errorf("Error retrieving remote state: %v", err)
+		return nil, fmt.Errorf("Error retrieving state: %v", err)
 	}
 
 	state, err := r.client.StateVersions.Download(ctx, sv.DownloadURL)
 	if err != nil {
-		return nil, fmt.Errorf("Error downloading remote state: %v", err)
+		return nil, fmt.Errorf("Error downloading state: %v", err)
 	}
 
 	// If the state is empty, then return nil.
@@ -79,7 +80,8 @@ func (r *remoteClient) Put(state []byte) error {
 	// Create the new state.
 	_, err = r.client.StateVersions.Create(ctx, r.workspace.ID, options)
 	if err != nil {
-		return fmt.Errorf("Error creating remote state: %v", err)
+		r.stateUploadErr = true
+		return fmt.Errorf("Error uploading state: %v", err)
 	}
 
 	return nil
@@ -106,6 +108,9 @@ func (r *remoteClient) Lock(info *state.LockInfo) (string, error) {
 		Reason: tfe.String("Locked by Terraform"),
 	})
 	if err != nil {
+		if err == tfe.ErrWorkspaceLocked {
+			err = fmt.Errorf("%s (lock ID: \"%s/%s\")", err, r.organization, r.workspace.Name)
+		}
 		lockErr.Err = err
 		return "", lockErr
 	}
@@ -118,6 +123,13 @@ func (r *remoteClient) Lock(info *state.LockInfo) (string, error) {
 // Unlock the remote state.
 func (r *remoteClient) Unlock(id string) error {
 	ctx := context.Background()
+
+	// We first check if there was an error while uploading the latest
+	// state. If so, we will not unlock the workspace to prevent any
+	// changes from being applied until the correct state is uploaded.
+	if r.stateUploadErr {
+		return nil
+	}
 
 	lockErr := &state.LockError{Info: r.lockInfo}
 
@@ -141,7 +153,12 @@ func (r *remoteClient) Unlock(id string) error {
 
 	// Verify the optional force-unlock lock ID.
 	if r.organization+"/"+r.workspace.Name != id {
-		lockErr.Err = fmt.Errorf("lock ID does not match existing lock")
+		lockErr.Err = fmt.Errorf(
+			"lock ID %q does not match existing lock ID \"%s/%s\"",
+			id,
+			r.organization,
+			r.workspace.Name,
+		)
 		return lockErr
 	}
 

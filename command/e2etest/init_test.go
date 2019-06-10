@@ -39,7 +39,7 @@ func TestInitProviders(t *testing.T) {
 		t.Errorf("success message is missing from output:\n%s", stdout)
 	}
 
-	if !strings.Contains(stdout, "- Downloading plugin for provider \"template\"") {
+	if !strings.Contains(stdout, "- Downloading plugin for provider \"template\" (terraform-providers/template)") {
 		t.Errorf("provider download message is missing from output:\n%s", stdout)
 		t.Logf("(this can happen if you have a copy of the plugin in one of the global plugin search dirs)")
 	}
@@ -112,10 +112,10 @@ func TestInitProviders_pluginCache(t *testing.T) {
 
 	stderr := cmd.Stderr.(*bytes.Buffer).String()
 	if stderr != "" {
-		t.Errorf("unexpected stderr output:\n%s", stderr)
+		t.Errorf("unexpected stderr output:\n%s\n", stderr)
 	}
 
-	path := fmt.Sprintf(".terraform/plugins/%s_%s/terraform-provider-template_v0.1.0_x4", runtime.GOOS, runtime.GOARCH)
+	path := fmt.Sprintf(".terraform/plugins/%s_%s/terraform-provider-template_v2.1.0_x4", runtime.GOOS, runtime.GOARCH)
 	content, err := tf.ReadFile(path)
 	if err != nil {
 		t.Fatalf("failed to read installed plugin from %s: %s", path, err)
@@ -124,11 +124,11 @@ func TestInitProviders_pluginCache(t *testing.T) {
 		t.Errorf("template plugin was not installed from local cache")
 	}
 
-	if !tf.FileExists(fmt.Sprintf(".terraform/plugins/%s_%s/terraform-provider-null_v0.1.0_x4", runtime.GOOS, runtime.GOARCH)) {
+	if !tf.FileExists(fmt.Sprintf(".terraform/plugins/%s_%s/terraform-provider-null_v2.1.0_x4", runtime.GOOS, runtime.GOARCH)) {
 		t.Errorf("null plugin was not installed")
 	}
 
-	if !tf.FileExists(fmt.Sprintf("cache/%s_%s/terraform-provider-null_v0.1.0_x4", runtime.GOOS, runtime.GOARCH)) {
+	if !tf.FileExists(fmt.Sprintf("cache/%s_%s/terraform-provider-null_v2.1.0_x4", runtime.GOOS, runtime.GOARCH)) {
 		t.Errorf("null plugin is not in cache after install")
 	}
 }

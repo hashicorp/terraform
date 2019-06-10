@@ -51,7 +51,7 @@ func removeConfigUnknowns(cfg map[string]interface{}) {
 		switch v := v.(type) {
 		case string:
 			if v == config.UnknownVariableValue {
-				cfg[k] = ""
+				delete(cfg, k)
 			}
 		case []interface{}:
 			for _, i := range v {
@@ -112,46 +112,4 @@ func JSONMapToStateValue(m map[string]interface{}, block *configschema.Block) (c
 // ID as the "id" attribute.
 func StateValueFromInstanceState(is *terraform.InstanceState, ty cty.Type) (cty.Value, error) {
 	return is.AttrsAsObjectValue(ty)
-}
-
-// LegacyResourceSchema takes a *Resource and returns a deep copy with 0.12 specific
-// features removed. This is used by the shims to get a configschema that
-// directly matches the structure of the schema.Resource.
-func LegacyResourceSchema(r *Resource) *Resource {
-	if r == nil {
-		return nil
-	}
-	// start with a shallow copy
-	newResource := new(Resource)
-	*newResource = *r
-	newResource.Schema = map[string]*Schema{}
-
-	for k, s := range r.Schema {
-		newResource.Schema[k] = LegacySchema(s)
-	}
-
-	return newResource
-}
-
-// LegacySchema takes a *Schema and returns a deep copy with 0.12 specific
-// features removed. This is used by the shims to get a configschema that
-// directly matches the structure of the schema.Resource.
-func LegacySchema(s *Schema) *Schema {
-	if s == nil {
-		return nil
-	}
-	// start with a shallow copy
-	newSchema := new(Schema)
-	*newSchema = *s
-	newSchema.ConfigMode = SchemaConfigModeAuto
-	newSchema.SkipCoreTypeCheck = false
-
-	switch e := newSchema.Elem.(type) {
-	case *Schema:
-		newSchema.Elem = LegacySchema(e)
-	case *Resource:
-		newSchema.Elem = LegacyResourceSchema(e)
-	}
-
-	return newSchema
 }

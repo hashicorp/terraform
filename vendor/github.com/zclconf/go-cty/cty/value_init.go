@@ -56,6 +56,18 @@ func ParseNumberVal(s string) (Value, error) {
 	return NumberVal(f), nil
 }
 
+// MustParseNumberVal is like ParseNumberVal but it will panic in case of any
+// error. It can be used during initialization or any other situation where
+// the given string is a constant or otherwise known to be correct by the
+// caller.
+func MustParseNumberVal(s string) Value {
+	ret, err := ParseNumberVal(s)
+	if err != nil {
+		panic(err)
+	}
+	return ret
+}
+
 // NumberIntVal returns a Value of type Number whose internal value is equal
 // to the given integer.
 func NumberIntVal(v int64) Value {

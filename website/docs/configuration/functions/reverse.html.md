@@ -25,3 +25,7 @@ with all of the same elements as the given sequence but in reverse order.
   1,
 ]
 ```
+
+## Related Functions
+
+* [`strrev`](./strrev.html) reverses a string.

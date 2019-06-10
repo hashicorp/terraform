@@ -215,6 +215,23 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 	d.Evaluator.VariableValuesLock.Lock()
 	defer d.Evaluator.VariableValuesLock.Unlock()
 
+	// During the validate walk, input variables are always unknown so
+	// that we are validating the configuration for all possible input values
+	// rather than for a specific set. Checking against a specific set of
+	// input values then happens during the plan walk.
+	//
+	// This is important because otherwise the validation walk will tend to be
+	// overly strict, requiring expressions throughout the configuration to
+	// be complicated to accommodate all possible inputs, whereas returning
+	// known here allows for simpler patterns like using input values as
+	// guards to broadly enable/disable resources, avoid processing things
+	// that are disabled, etc. Terraform's static validation leans towards
+	// being liberal in what it accepts because the subsequent plan walk has
+	// more information available and so can be more conservative.
+	if d.Operation == walkValidate {
+		return cty.UnknownVal(wantType), diags
+	}
+
 	moduleAddrStr := d.ModulePath.String()
 	vals := d.Evaluator.VariableValues[moduleAddrStr]
 	if vals == nil {

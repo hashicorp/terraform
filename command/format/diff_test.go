@@ -2564,12 +2564,12 @@ func TestResourceChange_nestedSet(t *testing.T) {
       ~ ami = "ami-BEFORE" -> "ami-AFTER"
         id  = "i-02ae66f368e8518a9"
 
-      - root_block_device {
-          - volume_type = "gp2" -> null
-        }
       + root_block_device {
           + new_field   = "new_value"
           + volume_type = "gp2"
+        }
+      - root_block_device {
+          - volume_type = "gp2" -> null
         }
     }
 `,
@@ -2624,11 +2624,11 @@ func TestResourceChange_nestedSet(t *testing.T) {
       ~ ami = "ami-BEFORE" -> "ami-AFTER"
         id  = "i-02ae66f368e8518a9"
 
-      - root_block_device { # forces replacement
-          - volume_type = "gp2" -> null
-        }
       + root_block_device { # forces replacement
           + volume_type = "different"
+        }
+      - root_block_device { # forces replacement
+          - volume_type = "gp2" -> null
         }
     }
 `,
@@ -3004,6 +3004,49 @@ func TestResourceChange_nestedMap(t *testing.T) {
       - root_block_device "a" {
           - new_field   = "new_value" -> null
           - volume_type = "gp2" -> null
+        }
+    }
+`,
+		},
+		"in-place sequence update - deletion": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"list": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{"attr": cty.StringVal("x")}),
+					cty.ObjectVal(map[string]cty.Value{"attr": cty.StringVal("y")}),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"list": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{"attr": cty.StringVal("y")}),
+					cty.ObjectVal(map[string]cty.Value{"attr": cty.StringVal("z")}),
+				}),
+			}),
+			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
+			Schema: &configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"list": {
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"attr": {
+									Type:     cty.String,
+									Required: true,
+								},
+							},
+						},
+						Nesting: configschema.NestingList,
+					},
+				},
+			},
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ list {
+          ~ attr = "x" -> "y"
+        }
+      ~ list {
+          ~ attr = "y" -> "z"
         }
     }
 `,

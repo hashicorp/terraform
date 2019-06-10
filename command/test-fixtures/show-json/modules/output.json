@@ -69,6 +69,18 @@
             ]
         }
     },
+    "prior_state": {
+        "format_version": "0.1",
+        "values": {
+            "outputs": {
+                "test": {
+                    "sensitive": false,
+                    "value": "baz"
+                }
+            },
+            "root_module": {}
+        }
+    },
     "resource_changes": [
         {
             "address": "module.module_test_bar.test_instance.test",
@@ -86,7 +98,6 @@
                     "ami": "bar-var"
                 },
                 "after_unknown": {
-                    "ami": false,
                     "id": true
                 }
             }
@@ -108,7 +119,6 @@
                     "ami": "baz"
                 },
                 "after_unknown": {
-                    "ami": false,
                     "id": true
                 }
             }
@@ -130,7 +140,6 @@
                     "ami": "baz"
                 },
                 "after_unknown": {
-                    "ami": false,
                     "id": true
                 }
             }
@@ -152,7 +161,6 @@
                     "ami": "baz"
                 },
                 "after_unknown": {
-                    "ami": false,
                     "id": true
                 }
             }

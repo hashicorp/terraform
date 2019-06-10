@@ -1,6 +1,7 @@
 package funcs
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 
@@ -43,7 +44,7 @@ var ElementFunc = function.New(&function.Spec{
 				return cty.DynamicPseudoType, fmt.Errorf("invalid index: %s", err)
 			}
 			if len(etys) == 0 {
-				return cty.DynamicPseudoType, fmt.Errorf("cannot use element function with an empty list")
+				return cty.DynamicPseudoType, errors.New("cannot use element function with an empty list")
 			}
 			index = index % len(etys)
 			return etys[index], nil
@@ -65,7 +66,7 @@ var ElementFunc = function.New(&function.Spec{
 
 		l := args[0].LengthInt()
 		if l == 0 {
-			return cty.DynamicVal, fmt.Errorf("cannot use element function with an empty list")
+			return cty.DynamicVal, errors.New("cannot use element function with an empty list")
 		}
 		index = index % l
 
@@ -90,7 +91,7 @@ var LengthFunc = function.New(&function.Spec{
 		case collTy == cty.String || collTy.IsTupleType() || collTy.IsObjectType() || collTy.IsListType() || collTy.IsMapType() || collTy.IsSetType() || collTy == cty.DynamicPseudoType:
 			return cty.Number, nil
 		default:
-			return cty.Number, fmt.Errorf("argument must be a string, a collection type, or a structural type")
+			return cty.Number, errors.New("argument must be a string, a collection type, or a structural type")
 		}
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
@@ -114,43 +115,98 @@ var LengthFunc = function.New(&function.Spec{
 			return coll.Length(), nil
 		default:
 			// Should never happen, because of the checks in our Type func above
-			return cty.UnknownVal(cty.Number), fmt.Errorf("impossible value type for length(...)")
+			return cty.UnknownVal(cty.Number), errors.New("impossible value type for length(...)")
 		}
 	},
 })
 
-// CoalesceListFunc contructs a function that takes any number of list arguments
+// CoalesceFunc constructs a function that takes any number of arguments and
+// returns the first one that isn't empty. This function was copied from go-cty
+// stdlib and modified so that it returns the first *non-empty* non-null element
+// from a sequence, instead of merely the first non-null.
+var CoalesceFunc = function.New(&function.Spec{
+	Params: []function.Parameter{},
+	VarParam: &function.Parameter{
+		Name:             "vals",
+		Type:             cty.DynamicPseudoType,
+		AllowUnknown:     true,
+		AllowDynamicType: true,
+		AllowNull:        true,
+	},
+	Type: func(args []cty.Value) (ret cty.Type, err error) {
+		argTypes := make([]cty.Type, len(args))
+		for i, val := range args {
+			argTypes[i] = val.Type()
+		}
+		retType, _ := convert.UnifyUnsafe(argTypes)
+		if retType == cty.NilType {
+			return cty.NilType, errors.New("all arguments must have the same type")
+		}
+		return retType, nil
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		for _, argVal := range args {
+			// We already know this will succeed because of the checks in our Type func above
+			argVal, _ = convert.Convert(argVal, retType)
+			if !argVal.IsKnown() {
+				return cty.UnknownVal(retType), nil
+			}
+			if argVal.IsNull() {
+				continue
+			}
+			if retType == cty.String && argVal.RawEquals(cty.StringVal("")) {
+				continue
+			}
+
+			return argVal, nil
+		}
+		return cty.NilVal, errors.New("no non-null, non-empty-string arguments")
+	},
+})
+
+// CoalesceListFunc constructs a function that takes any number of list arguments
 // and returns the first one that isn't empty.
 var CoalesceListFunc = function.New(&function.Spec{
 	Params: []function.Parameter{},
 	VarParam: &function.Parameter{
 		Name:             "vals",
-		Type:             cty.List(cty.DynamicPseudoType),
+		Type:             cty.DynamicPseudoType,
 		AllowUnknown:     true,
 		AllowDynamicType: true,
 		AllowNull:        true,
 	},
 	Type: func(args []cty.Value) (ret cty.Type, err error) {
 		if len(args) == 0 {
-			return cty.NilType, fmt.Errorf("at least one argument is required")
+			return cty.NilType, errors.New("at least one argument is required")
 		}
 
 		argTypes := make([]cty.Type, len(args))
 
 		for i, arg := range args {
+			// if any argument is unknown, we can't be certain know which type we will return
+			if !arg.IsKnown() {
+				return cty.DynamicPseudoType, nil
+			}
+			ty := arg.Type()
+
+			if !ty.IsListType() && !ty.IsTupleType() {
+				return cty.NilType, errors.New("coalescelist arguments must be lists or tuples")
+			}
+
 			argTypes[i] = arg.Type()
 		}
 
-		retType, _ := convert.UnifyUnsafe(argTypes)
-		if retType == cty.NilType {
-			return cty.NilType, fmt.Errorf("all arguments must have the same type")
+		last := argTypes[0]
+		// If there are mixed types, we have to return a dynamic type.
+		for _, next := range argTypes[1:] {
+			if !next.Equals(last) {
+				return cty.DynamicPseudoType, nil
+			}
 		}
 
-		return retType, nil
+		return last, nil
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
-
-		vals := make([]cty.Value, 0, len(args))
 		for _, arg := range args {
 			if !arg.IsKnown() {
 				// If we run into an unknown list at some point, we can't
@@ -159,25 +215,16 @@ var CoalesceListFunc = function.New(&function.Spec{
 				return cty.UnknownVal(retType), nil
 			}
 
-			// We already know this will succeed because of the checks in our Type func above
-			arg, _ = convert.Convert(arg, retType)
-
-			it := arg.ElementIterator()
-			for it.Next() {
-				_, v := it.Element()
-				vals = append(vals, v)
-			}
-
-			if len(vals) > 0 {
-				return cty.ListVal(vals), nil
+			if arg.LengthInt() > 0 {
+				return arg, nil
 			}
 		}
 
-		return cty.NilVal, fmt.Errorf("no non-null arguments")
+		return cty.NilVal, errors.New("no non-null arguments")
 	},
 })
 
-// CompactFunc contructs a function that takes a list of strings and returns a new list
+// CompactFunc constructs a function that takes a list of strings and returns a new list
 // with any empty string elements removed.
 var CompactFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
@@ -213,13 +260,13 @@ var CompactFunc = function.New(&function.Spec{
 	},
 })
 
-// ContainsFunc contructs a function that determines whether a given list contains
-// a given single value as one of its elements.
+// ContainsFunc constructs a function that determines whether a given list or
+// set contains a given single value as one of its elements.
 var ContainsFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
 			Name: "list",
-			Type: cty.List(cty.DynamicPseudoType),
+			Type: cty.DynamicPseudoType,
 		},
 		{
 			Name: "value",
@@ -228,8 +275,14 @@ var ContainsFunc = function.New(&function.Spec{
 	},
 	Type: function.StaticReturnType(cty.Bool),
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		arg := args[0]
+		ty := arg.Type()
 
-		_, err = Index(args[0], args[1])
+		if !ty.IsListType() && !ty.IsTupleType() && !ty.IsSetType() {
+			return cty.NilVal, errors.New("argument must be list, tuple, or set")
+		}
+
+		_, err = Index(cty.TupleVal(arg.AsValueSlice()), args[1])
 		if err != nil {
 			return cty.False, nil
 		}
@@ -238,7 +291,7 @@ var ContainsFunc = function.New(&function.Spec{
 	},
 })
 
-// IndexFunc contructs a function that finds the element index for a given value in a list.
+// IndexFunc constructs a function that finds the element index for a given value in a list.
 var IndexFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
@@ -253,7 +306,7 @@ var IndexFunc = function.New(&function.Spec{
 	Type: function.StaticReturnType(cty.Number),
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		if !(args[0].Type().IsListType() || args[0].Type().IsTupleType()) {
-			return cty.NilVal, fmt.Errorf("argument must be a list or tuple")
+			return cty.NilVal, errors.New("argument must be a list or tuple")
 		}
 
 		if !args[0].IsKnown() {
@@ -261,7 +314,7 @@ var IndexFunc = function.New(&function.Spec{
 		}
 
 		if args[0].LengthInt() == 0 { // Easy path
-			return cty.NilVal, fmt.Errorf("cannot search an empty list")
+			return cty.NilVal, errors.New("cannot search an empty list")
 		}
 
 		for it := args[0].ElementIterator(); it.Next(); {
@@ -277,12 +330,12 @@ var IndexFunc = function.New(&function.Spec{
 				return i, nil
 			}
 		}
-		return cty.NilVal, fmt.Errorf("item not found")
+		return cty.NilVal, errors.New("item not found")
 
 	},
 })
 
-// DistinctFunc contructs a function that takes a list and returns a new list
+// DistinctFunc constructs a function that takes a list and returns a new list
 // with any duplicate elements removed.
 var DistinctFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
@@ -310,11 +363,14 @@ var DistinctFunc = function.New(&function.Spec{
 			}
 		}
 
+		if len(list) == 0 {
+			return cty.ListValEmpty(retType.ElementType()), nil
+		}
 		return cty.ListVal(list), nil
 	},
 })
 
-// ChunklistFunc contructs a function that splits a single list into fixed-size chunks,
+// ChunklistFunc constructs a function that splits a single list into fixed-size chunks,
 // returning a list of lists.
 var ChunklistFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
@@ -332,7 +388,7 @@ var ChunklistFunc = function.New(&function.Spec{
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		listVal := args[0]
-		if !listVal.IsWhollyKnown() {
+		if !listVal.IsKnown() {
 			return cty.UnknownVal(retType), nil
 		}
 
@@ -343,7 +399,7 @@ var ChunklistFunc = function.New(&function.Spec{
 		}
 
 		if size < 0 {
-			return cty.NilVal, fmt.Errorf("the size argument must be positive")
+			return cty.NilVal, errors.New("the size argument must be positive")
 		}
 
 		output := make([]cty.Value, 0)
@@ -375,47 +431,76 @@ var ChunklistFunc = function.New(&function.Spec{
 	},
 })
 
-// FlattenFunc contructs a function that takes a list and replaces any elements
+// FlattenFunc constructs a function that takes a list and replaces any elements
 // that are lists with a flattened sequence of the list contents.
 var FlattenFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
 			Name: "list",
-			Type: cty.List(cty.DynamicPseudoType),
+			Type: cty.DynamicPseudoType,
 		},
 	},
-	Type: function.StaticReturnType(cty.List(cty.DynamicPseudoType)),
+	Type: func(args []cty.Value) (cty.Type, error) {
+		if !args[0].IsWhollyKnown() {
+			return cty.DynamicPseudoType, nil
+		}
+
+		argTy := args[0].Type()
+		if !argTy.IsListType() && !argTy.IsSetType() && !argTy.IsTupleType() {
+			return cty.NilType, errors.New("can only flatten lists, sets and tuples")
+		}
+
+		retVal, known := flattener(args[0])
+		if !known {
+			return cty.DynamicPseudoType, nil
+		}
+
+		tys := make([]cty.Type, len(retVal))
+		for i, ty := range retVal {
+			tys[i] = ty.Type()
+		}
+		return cty.Tuple(tys), nil
+	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		inputList := args[0]
-		if !inputList.IsWhollyKnown() {
+		if inputList.LengthInt() == 0 {
+			return cty.EmptyTupleVal, nil
+		}
+
+		out, known := flattener(inputList)
+		if !known {
 			return cty.UnknownVal(retType), nil
 		}
 
-		if inputList.LengthInt() == 0 {
-			return cty.ListValEmpty(retType.ElementType()), nil
-		}
-		outputList := make([]cty.Value, 0)
-
-		return cty.ListVal(flattener(outputList, inputList)), nil
+		return cty.TupleVal(out), nil
 	},
 })
 
-// Flatten until it's not a cty.List
-func flattener(finalList []cty.Value, flattenList cty.Value) []cty.Value {
-
+// Flatten until it's not a cty.List, and return whether the value is known.
+// We can flatten lists with unknown values, as long as they are not
+// lists themselves.
+func flattener(flattenList cty.Value) ([]cty.Value, bool) {
+	out := make([]cty.Value, 0)
 	for it := flattenList.ElementIterator(); it.Next(); {
 		_, val := it.Element()
+		if val.Type().IsListType() || val.Type().IsSetType() || val.Type().IsTupleType() {
+			if !val.IsKnown() {
+				return out, false
+			}
 
-		if val.Type().IsListType() {
-			finalList = flattener(finalList, val)
+			res, known := flattener(val)
+			if !known {
+				return res, known
+			}
+			out = append(out, res...)
 		} else {
-			finalList = append(finalList, val)
+			out = append(out, val)
 		}
 	}
-	return finalList
+	return out, true
 }
 
-// KeysFunc contructs a function that takes a map and returns a sorted list of the map keys.
+// KeysFunc constructs a function that takes a map and returns a sorted list of the map keys.
 var KeysFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
@@ -485,7 +570,7 @@ var KeysFunc = function.New(&function.Spec{
 	},
 })
 
-// ListFunc contructs a function that takes an arbitrary number of arguments
+// ListFunc constructs a function that takes an arbitrary number of arguments
 // and returns a list containing those values in the same order.
 //
 // This function is deprecated in Terraform v0.12
@@ -500,7 +585,7 @@ var ListFunc = function.New(&function.Spec{
 	},
 	Type: func(args []cty.Value) (ret cty.Type, err error) {
 		if len(args) == 0 {
-			return cty.NilType, fmt.Errorf("at least one argument is required")
+			return cty.NilType, errors.New("at least one argument is required")
 		}
 
 		argTypes := make([]cty.Type, len(args))
@@ -511,7 +596,7 @@ var ListFunc = function.New(&function.Spec{
 
 		retType, _ := convert.UnifyUnsafe(argTypes)
 		if retType == cty.NilType {
-			return cty.NilType, fmt.Errorf("all arguments must have the same type")
+			return cty.NilType, errors.New("all arguments must have the same type")
 		}
 
 		return cty.List(retType), nil
@@ -529,7 +614,7 @@ var ListFunc = function.New(&function.Spec{
 	},
 })
 
-// LookupFunc contructs a function that performs dynamic lookups of map types.
+// LookupFunc constructs a function that performs dynamic lookups of map types.
 var LookupFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
@@ -605,7 +690,7 @@ var LookupFunc = function.New(&function.Spec{
 				case ty.Equals(cty.Number):
 					return cty.NumberVal(v.AsBigFloat()), nil
 				default:
-					return cty.NilVal, fmt.Errorf("lookup() can only be used with flat lists")
+					return cty.NilVal, errors.New("lookup() can only be used with flat lists")
 				}
 			}
 		}
@@ -623,7 +708,7 @@ var LookupFunc = function.New(&function.Spec{
 	},
 })
 
-// MapFunc contructs a function that takes an even number of arguments and
+// MapFunc constructs a function that takes an even number of arguments and
 // returns a map whose elements are constructed from consecutive pairs of arguments.
 //
 // This function is deprecated in Terraform v0.12
@@ -651,7 +736,7 @@ var MapFunc = function.New(&function.Spec{
 
 		valType, _ := convert.UnifyUnsafe(argTypes)
 		if valType == cty.NilType {
-			return cty.NilType, fmt.Errorf("all arguments must have the same type")
+			return cty.NilType, errors.New("all arguments must have the same type")
 		}
 
 		return cty.Map(valType), nil
@@ -696,7 +781,7 @@ var MapFunc = function.New(&function.Spec{
 	},
 })
 
-// MatchkeysFunc contructs a function that constructs a new list by taking a
+// MatchkeysFunc constructs a function that constructs a new list by taking a
 // subset of elements from one list whose indexes match the corresponding
 // indexes of values in another list.
 var MatchkeysFunc = function.New(&function.Spec{
@@ -715,10 +800,12 @@ var MatchkeysFunc = function.New(&function.Spec{
 		},
 	},
 	Type: func(args []cty.Value) (cty.Type, error) {
-		if !args[1].Type().Equals(args[2].Type()) {
-			return cty.NilType, fmt.Errorf("lists must be of the same type")
+		ty, _ := convert.UnifyUnsafe([]cty.Type{args[1].Type(), args[2].Type()})
+		if ty == cty.NilType {
+			return cty.NilType, errors.New("keys and searchset must be of the same type")
 		}
 
+		// the return type is based on args[0] (values)
 		return args[0].Type(), nil
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
@@ -727,14 +814,18 @@ var MatchkeysFunc = function.New(&function.Spec{
 		}
 
 		if args[0].LengthInt() != args[1].LengthInt() {
-			return cty.ListValEmpty(retType.ElementType()), fmt.Errorf("length of keys and values should be equal")
+			return cty.ListValEmpty(retType.ElementType()), errors.New("length of keys and values should be equal")
 		}
 
 		output := make([]cty.Value, 0)
-
 		values := args[0]
-		keys := args[1]
-		searchset := args[2]
+
+		// Keys and searchset must be the same type.
+		// We can skip error checking here because we've already verified that
+		// they can be unified in the Type function
+		ty, _ := convert.UnifyUnsafe([]cty.Type{args[1].Type(), args[2].Type()})
+		keys, _ := convert.Convert(args[1], ty)
+		searchset, _ := convert.Convert(args[2], ty)
 
 		// if searchset is empty, return an empty list.
 		if searchset.LengthInt() == 0 {
@@ -774,7 +865,7 @@ var MatchkeysFunc = function.New(&function.Spec{
 	},
 })
 
-// MergeFunc contructs a function that takes an arbitrary number of maps and
+// MergeFunc constructs a function that takes an arbitrary number of maps and
 // returns a single map that contains a merged set of elements from all of the maps.
 //
 // If more than one given map defines the same key then the one that is later in
@@ -862,7 +953,7 @@ var SetProductFunc = function.New(&function.Spec{
 	},
 	Type: func(args []cty.Value) (retType cty.Type, err error) {
 		if len(args) < 2 {
-			return cty.NilType, fmt.Errorf("at least two arguments are required")
+			return cty.NilType, errors.New("at least two arguments are required")
 		}
 
 		listCount := 0
@@ -973,69 +1064,124 @@ var SetProductFunc = function.New(&function.Spec{
 	},
 })
 
-// SliceFunc contructs a function that extracts some consecutive elements
+// SliceFunc constructs a function that extracts some consecutive elements
 // from within a list.
 var SliceFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
 			Name: "list",
-			Type: cty.List(cty.DynamicPseudoType),
+			Type: cty.DynamicPseudoType,
 		},
 		{
-			Name: "startIndex",
+			Name: "start_index",
 			Type: cty.Number,
 		},
 		{
-			Name: "endIndex",
+			Name: "end_index",
 			Type: cty.Number,
 		},
 	},
 	Type: func(args []cty.Value) (cty.Type, error) {
-		return args[0].Type(), nil
+		arg := args[0]
+		argTy := arg.Type()
+
+		if argTy.IsSetType() {
+			return cty.NilType, function.NewArgErrorf(0, "cannot slice a set, because its elements do not have indices; use the tolist function to force conversion to list if the ordering of the result is not important")
+		}
+		if !argTy.IsListType() && !argTy.IsTupleType() {
+			return cty.NilType, function.NewArgErrorf(0, "must be a list or tuple value")
+		}
+
+		startIndex, endIndex, idxsKnown, err := sliceIndexes(args)
+		if err != nil {
+			return cty.NilType, err
+		}
+
+		if argTy.IsListType() {
+			return argTy, nil
+		}
+
+		if !idxsKnown {
+			// If we don't know our start/end indices then we can't predict
+			// the result type if we're planning to return a tuple.
+			return cty.DynamicPseudoType, nil
+		}
+		return cty.Tuple(argTy.TupleElementTypes()[startIndex:endIndex]), nil
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		inputList := args[0]
-		if !inputList.IsWhollyKnown() {
-			return cty.UnknownVal(retType), nil
-		}
-		var startIndex, endIndex int
 
-		if err = gocty.FromCtyValue(args[1], &startIndex); err != nil {
-			return cty.NilVal, fmt.Errorf("invalid start index: %s", err)
-		}
-		if err = gocty.FromCtyValue(args[2], &endIndex); err != nil {
-			return cty.NilVal, fmt.Errorf("invalid start index: %s", err)
+		if retType == cty.DynamicPseudoType {
+			return cty.DynamicVal, nil
 		}
 
-		if startIndex < 0 {
-			return cty.NilVal, fmt.Errorf("from index must be >= 0")
-		}
-		if endIndex > inputList.LengthInt() {
-			return cty.NilVal, fmt.Errorf("to index must be <= length of the input list")
-		}
-		if startIndex > endIndex {
-			return cty.NilVal, fmt.Errorf("from index must be <= to index")
+		// we ignore idxsKnown return value here because the indices are always
+		// known here, or else the call would've short-circuited.
+		startIndex, endIndex, _, err := sliceIndexes(args)
+		if err != nil {
+			return cty.NilVal, err
 		}
 
-		var outputList []cty.Value
-
-		i := 0
-		for it := inputList.ElementIterator(); it.Next(); {
-			_, v := it.Element()
-			if i >= startIndex && i < endIndex {
-				outputList = append(outputList, v)
+		if endIndex-startIndex == 0 {
+			if retType.IsTupleType() {
+				return cty.EmptyTupleVal, nil
 			}
-			i++
-		}
-
-		if len(outputList) == 0 {
 			return cty.ListValEmpty(retType.ElementType()), nil
 		}
+
+		outputList := inputList.AsValueSlice()[startIndex:endIndex]
+
+		if retType.IsTupleType() {
+			return cty.TupleVal(outputList), nil
+		}
+
 		return cty.ListVal(outputList), nil
 	},
 })
 
+func sliceIndexes(args []cty.Value) (int, int, bool, error) {
+	var startIndex, endIndex, length int
+	var startKnown, endKnown, lengthKnown bool
+
+	if args[0].Type().IsTupleType() || args[0].IsKnown() { // if it's a tuple then we always know the length by the type, but lists must be known
+		length = args[0].LengthInt()
+		lengthKnown = true
+	}
+
+	if args[1].IsKnown() {
+		if err := gocty.FromCtyValue(args[1], &startIndex); err != nil {
+			return 0, 0, false, function.NewArgErrorf(1, "invalid start index: %s", err)
+		}
+		if startIndex < 0 {
+			return 0, 0, false, function.NewArgErrorf(1, "start index must not be less than zero")
+		}
+		if lengthKnown && startIndex > length {
+			return 0, 0, false, function.NewArgErrorf(1, "start index must not be greater than the length of the list")
+		}
+		startKnown = true
+	}
+	if args[2].IsKnown() {
+		if err := gocty.FromCtyValue(args[2], &endIndex); err != nil {
+			return 0, 0, false, function.NewArgErrorf(2, "invalid end index: %s", err)
+		}
+		if endIndex < 0 {
+			return 0, 0, false, function.NewArgErrorf(2, "end index must not be less than zero")
+		}
+		if lengthKnown && endIndex > length {
+			return 0, 0, false, function.NewArgErrorf(2, "end index must not be greater than the length of the list")
+		}
+		endKnown = true
+	}
+	if startKnown && endKnown {
+		if startIndex > endIndex {
+			return 0, 0, false, function.NewArgErrorf(1, "start index must not be greater than end index")
+		}
+	}
+	return startIndex, endIndex, startKnown && endKnown, nil
+}
+
 // TransposeFunc contructs a function that takes a map of lists of strings and
+// TransposeFunc constructs a function that takes a map of lists of strings and
 // swaps the keys and values to produce a new map of lists of strings.
 var TransposeFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
@@ -1059,7 +1205,7 @@ var TransposeFunc = function.New(&function.Spec{
 			for iter := inVal.ElementIterator(); iter.Next(); {
 				_, val := iter.Element()
 				if !val.Type().Equals(cty.String) {
-					return cty.MapValEmpty(cty.List(cty.String)), fmt.Errorf("input must be a map of lists of strings")
+					return cty.MapValEmpty(cty.List(cty.String)), errors.New("input must be a map of lists of strings")
 				}
 
 				outKey := val.AsString()
@@ -1085,7 +1231,7 @@ var TransposeFunc = function.New(&function.Spec{
 	},
 })
 
-// ValuesFunc contructs a function that returns a list of the map values,
+// ValuesFunc constructs a function that returns a list of the map values,
 // in the order of the sorted keys.
 var ValuesFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
@@ -1119,7 +1265,7 @@ var ValuesFunc = function.New(&function.Spec{
 			}
 			return cty.Tuple(tys), nil
 		}
-		return cty.NilType, fmt.Errorf("values() requires a map as the first argument")
+		return cty.NilType, errors.New("values() requires a map as the first argument")
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		mapVar := args[0]
@@ -1142,7 +1288,7 @@ var ValuesFunc = function.New(&function.Spec{
 	},
 })
 
-// ZipmapFunc contructs a function that constructs a map from a list of keys
+// ZipmapFunc constructs a function that constructs a map from a list of keys
 // and a corresponding list of values.
 var ZipmapFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
@@ -1186,7 +1332,7 @@ var ZipmapFunc = function.New(&function.Spec{
 			return cty.Object(atys), nil
 
 		default:
-			return cty.NilType, fmt.Errorf("values argument must be a list or tuple value")
+			return cty.NilType, errors.New("values argument must be a list or tuple value")
 		}
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
@@ -1256,6 +1402,11 @@ func Element(list, index cty.Value) (cty.Value, error) {
 // Unicode characters in the given string.
 func Length(collection cty.Value) (cty.Value, error) {
 	return LengthFunc.Call([]cty.Value{collection})
+}
+
+// Coalesce takes any number of arguments and returns the first one that isn't empty.
+func Coalesce(args ...cty.Value) (cty.Value, error) {
+	return CoalesceFunc.Call(args)
 }
 
 // CoalesceList takes any number of list arguments and returns the first one that isn't empty.

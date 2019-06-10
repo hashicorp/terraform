@@ -247,11 +247,11 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	// Sometimes providers return a null value when an operation fails for some
-	// reason, but for any action other than delete we'd rather keep the prior
-	// state so that the error can be corrected on a subsequent run. We must
-	// only do this for null new value though, or else we may discard partial
-	// updates the provider was able to complete.
-	if change.Action != plans.Delete && diags.HasErrors() && newVal.IsNull() {
+	// reason, but we'd rather keep the prior state so that the error can be
+	// corrected on a subsequent run. We must only do this for null new value
+	// though, or else we may discard partial updates the provider was able to
+	// complete.
+	if diags.HasErrors() && newVal.IsNull() {
 		// Otherwise, we'll continue but using the prior state as the new value,
 		// making this effectively a no-op. If the item really _has_ been
 		// deleted then our next refresh will detect that and fix it up.

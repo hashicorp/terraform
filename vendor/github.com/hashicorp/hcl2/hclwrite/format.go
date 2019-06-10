@@ -248,8 +248,8 @@ func spaceAfterToken(subject, before, after *Token) bool {
 		// Don't use spaces around attribute access dots
 		return false
 
-	case after.Type == hclsyntax.TokenComma:
-		// No space right before a comma in an argument list
+	case after.Type == hclsyntax.TokenComma || after.Type == hclsyntax.TokenEllipsis:
+		// No space right before a comma or ... in an argument list
 		return false
 
 	case subject.Type == hclsyntax.TokenComma:

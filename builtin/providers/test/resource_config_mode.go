@@ -18,6 +18,7 @@ func testResourceConfigMode() *schema.Resource {
 				Type:       schema.TypeList,
 				ConfigMode: schema.SchemaConfigModeAttr,
 				Optional:   true,
+				Computed:   true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"foo": {
@@ -27,17 +28,20 @@ func testResourceConfigMode() *schema.Resource {
 					},
 				},
 			},
-			"resource_as_attr_dynamic": {
-				Type:              schema.TypeList,
-				ConfigMode:        schema.SchemaConfigModeAttr,
-				SkipCoreTypeCheck: true,
-				Optional:          true,
+			"nested_set": {
+				Type:       schema.TypeSet,
+				Optional:   true,
+				ConfigMode: schema.SchemaConfigModeAttr,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"foo": {
+						"value": {
 							Type:     schema.TypeString,
 							Optional: true,
-							Default:  "default",
+						},
+						"set": {
+							Type:     schema.TypeSet,
+							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 					},
 				},
@@ -52,14 +56,12 @@ func testResourceConfigModeCreate(d *schema.ResourceData, meta interface{}) erro
 }
 
 func testResourceConfigModeRead(d *schema.ResourceData, meta interface{}) error {
-	for _, k := range []string{"resource_as_attr", "resource_as_attr_dynamic"} {
-		if l, ok := d.Get(k).([]interface{}); !ok {
-			return fmt.Errorf("%s should appear as []interface{}, not %T", k, l)
-		} else {
-			for i, item := range l {
-				if _, ok := item.(map[string]interface{}); !ok {
-					return fmt.Errorf("%s[%d] should appear as map[string]interface{}, not %T", k, i, item)
-				}
+	if l, ok := d.Get("resource_as_attr").([]interface{}); !ok {
+		return fmt.Errorf("resource_as_attr should appear as []interface{}, not %T", l)
+	} else {
+		for i, item := range l {
+			if _, ok := item.(map[string]interface{}); !ok {
+				return fmt.Errorf("resource_as_attr[%d] should appear as map[string]interface{}, not %T", i, item)
 			}
 		}
 	}

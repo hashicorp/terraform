@@ -116,6 +116,144 @@ func TestUpgradeState_jsonState(t *testing.T) {
 	}
 }
 
+func TestUpgradeState_removedAttr(t *testing.T) {
+	r1 := &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"two": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+		},
+	}
+
+	r2 := &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"multi": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"set": {
+							Type:     schema.TypeSet,
+							Optional: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"required": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	r3 := &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"config_mode_attr": {
+				Type:       schema.TypeList,
+				ConfigMode: schema.SchemaConfigModeAttr,
+				Optional:   true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"foo": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	p := &schema.Provider{
+		ResourcesMap: map[string]*schema.Resource{
+			"r1": r1,
+			"r2": r2,
+			"r3": r3,
+		},
+	}
+
+	server := &GRPCProviderServer{
+		provider: p,
+	}
+
+	for _, tc := range []struct {
+		name     string
+		raw      string
+		expected cty.Value
+	}{
+		{
+			name: "r1",
+			raw:  `{"id":"bar","removed":"removed","two":"2"}`,
+			expected: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("bar"),
+				"two": cty.StringVal("2"),
+			}),
+		},
+		{
+			name: "r2",
+			raw:  `{"id":"bar","multi":[{"set":[{"required":"ok","removed":"removed"}]}]}`,
+			expected: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("bar"),
+				"multi": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"set": cty.SetVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"required": cty.StringVal("ok"),
+							}),
+						}),
+					}),
+				}),
+			}),
+		},
+		{
+			name: "r3",
+			raw:  `{"id":"bar","config_mode_attr":[{"foo":"ok","removed":"removed"}]}`,
+			expected: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("bar"),
+				"config_mode_attr": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.StringVal("ok"),
+					}),
+				}),
+			}),
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			req := &proto.UpgradeResourceState_Request{
+				TypeName: tc.name,
+				Version:  0,
+				RawState: &proto.RawState{
+					Json: []byte(tc.raw),
+				},
+			}
+			resp, err := server.UpgradeResourceState(nil, req)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if len(resp.Diagnostics) > 0 {
+				for _, d := range resp.Diagnostics {
+					t.Errorf("%#v", d)
+				}
+				t.Fatal("error")
+			}
+			val, err := msgpack.Unmarshal(resp.UpgradedState.Msgpack, p.ResourcesMap[tc.name].CoreConfigSchema().ImpliedType())
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !tc.expected.RawEquals(val) {
+				t.Fatalf("\nexpected: %#v\ngot:      %#v\n", tc.expected, val)
+			}
+		})
+	}
+
+}
+
 func TestUpgradeState_flatmapState(t *testing.T) {
 	r := &schema.Resource{
 		SchemaVersion: 4,
@@ -667,7 +805,7 @@ func TestGetSchemaTimeouts(t *testing.T) {
 func TestNormalizeNullValues(t *testing.T) {
 	for i, tc := range []struct {
 		Src, Dst, Expect cty.Value
-		Plan             bool
+		Apply            bool
 	}{
 		{
 			// The known set value is copied over the null set value
@@ -690,6 +828,7 @@ func TestNormalizeNullValues(t *testing.T) {
 					}),
 				}),
 			}),
+			Apply: true,
 		},
 		{
 			// A zero set value is kept
@@ -702,7 +841,6 @@ func TestNormalizeNullValues(t *testing.T) {
 			Expect: cty.ObjectVal(map[string]cty.Value{
 				"set": cty.SetValEmpty(cty.String),
 			}),
-			Plan: true,
 		},
 		{
 			// The known set value is copied over the null set value
@@ -724,7 +862,6 @@ func TestNormalizeNullValues(t *testing.T) {
 					"foo": cty.String,
 				}))),
 			}),
-			Plan: true,
 		},
 		{
 			// The empty map is copied over the null map
@@ -737,6 +874,7 @@ func TestNormalizeNullValues(t *testing.T) {
 			Expect: cty.ObjectVal(map[string]cty.Value{
 				"map": cty.MapValEmpty(cty.String),
 			}),
+			Apply: true,
 		},
 		{
 			// A zero value primitive is copied over a null primitive
@@ -749,6 +887,7 @@ func TestNormalizeNullValues(t *testing.T) {
 			Expect: cty.ObjectVal(map[string]cty.Value{
 				"string": cty.StringVal(""),
 			}),
+			Apply: true,
 		},
 		{
 			// Plan primitives are kept
@@ -761,7 +900,6 @@ func TestNormalizeNullValues(t *testing.T) {
 			Expect: cty.ObjectVal(map[string]cty.Value{
 				"string": cty.NullVal(cty.String),
 			}),
-			Plan: true,
 		},
 		{
 			// The null map is retained, because the src was unknown
@@ -774,6 +912,7 @@ func TestNormalizeNullValues(t *testing.T) {
 			Expect: cty.ObjectVal(map[string]cty.Value{
 				"map": cty.NullVal(cty.Map(cty.String)),
 			}),
+			Apply: true,
 		},
 		{
 			// the nul set is retained, because the src set contains an unknown value
@@ -794,26 +933,7 @@ func TestNormalizeNullValues(t *testing.T) {
 					"foo": cty.String,
 				}))),
 			}),
-		},
-		{
-			// Retain the zero value within the map
-			Src: cty.ObjectVal(map[string]cty.Value{
-				"map": cty.MapVal(map[string]cty.Value{
-					"a": cty.StringVal("a"),
-					"b": cty.StringVal(""),
-				}),
-			}),
-			Dst: cty.ObjectVal(map[string]cty.Value{
-				"map": cty.MapVal(map[string]cty.Value{
-					"a": cty.StringVal("a"),
-				}),
-			}),
-			Expect: cty.ObjectVal(map[string]cty.Value{
-				"map": cty.MapVal(map[string]cty.Value{
-					"a": cty.StringVal("a"),
-					"b": cty.StringVal(""),
-				}),
-			}),
+			Apply: true,
 		},
 		{
 			// Retain don't re-add unexpected planned values in a map
@@ -833,7 +953,26 @@ func TestNormalizeNullValues(t *testing.T) {
 					"a": cty.StringVal("a"),
 				}),
 			}),
-			Plan: true,
+		},
+		{
+			// Remove extra values after apply
+			Src: cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("a"),
+					"b": cty.StringVal("b"),
+				}),
+			}),
+			Dst: cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("a"),
+				}),
+			}),
+			Expect: cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("a"),
+				}),
+			}),
+			Apply: true,
 		},
 		{
 			Src: cty.ObjectVal(map[string]cty.Value{
@@ -843,7 +982,6 @@ func TestNormalizeNullValues(t *testing.T) {
 			Expect: cty.ObjectVal(map[string]cty.Value{
 				"a": cty.NullVal(cty.String),
 			}),
-			Plan: true,
 		},
 
 		// a list in an object in a list, going from null to empty
@@ -877,6 +1015,7 @@ func TestNormalizeNullValues(t *testing.T) {
 					}),
 				}),
 			}),
+			Apply: true,
 		},
 
 		// a list in an object in a list, going from empty to null
@@ -910,6 +1049,7 @@ func TestNormalizeNullValues(t *testing.T) {
 					}),
 				}),
 			}),
+			Apply: true,
 		},
 		// the empty list should be transferred, but the new unknown should not be overridden
 		{
@@ -942,7 +1082,6 @@ func TestNormalizeNullValues(t *testing.T) {
 					}),
 				}),
 			}),
-			Plan: true,
 		},
 		{
 			// fix unknowns added to a map
@@ -964,7 +1103,6 @@ func TestNormalizeNullValues(t *testing.T) {
 					"b": cty.StringVal(""),
 				}),
 			}),
-			Plan: true,
 		},
 		{
 			// fix unknowns lost from a list
@@ -1001,11 +1139,45 @@ func TestNormalizeNullValues(t *testing.T) {
 					}),
 				}),
 			}),
-			Plan: true,
+		},
+		{
+			Src: cty.ObjectVal(map[string]cty.Value{
+				"set": cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{
+					"list": cty.List(cty.String),
+				}))),
+			}),
+			Dst: cty.ObjectVal(map[string]cty.Value{
+				"set": cty.SetValEmpty(cty.Object(map[string]cty.Type{
+					"list": cty.List(cty.String),
+				})),
+			}),
+			Expect: cty.ObjectVal(map[string]cty.Value{
+				"set": cty.SetValEmpty(cty.Object(map[string]cty.Type{
+					"list": cty.List(cty.String),
+				})),
+			}),
+		},
+		{
+			Src: cty.ObjectVal(map[string]cty.Value{
+				"set": cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{
+					"list": cty.List(cty.String),
+				}))),
+			}),
+			Dst: cty.ObjectVal(map[string]cty.Value{
+				"set": cty.SetValEmpty(cty.Object(map[string]cty.Type{
+					"list": cty.List(cty.String),
+				})),
+			}),
+			Expect: cty.ObjectVal(map[string]cty.Value{
+				"set": cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{
+					"list": cty.List(cty.String),
+				}))),
+			}),
+			Apply: true,
 		},
 	} {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			got := normalizeNullValues(tc.Dst, tc.Src, tc.Plan)
+			got := normalizeNullValues(tc.Dst, tc.Src, tc.Apply)
 			if !got.RawEquals(tc.Expect) {
 				t.Fatalf("\nexpected: %#v\ngot:      %#v\n", tc.Expect, got)
 			}

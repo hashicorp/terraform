@@ -194,12 +194,12 @@ implementations would have the following variable declared:
 
 ```hcl
 variable "recordsets" {
-  type = object({
+  type = list(object({
     name    = string
     type    = string
     ttl     = number
     records = list(string)
-  })
+  }))
 }
 ```
 
