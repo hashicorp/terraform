@@ -67,6 +67,7 @@ func init() {
 	Getters = map[string]Getter{
 		"file":  new(FileGetter),
 		"git":   new(GitGetter),
+		"gcs":   new(GCSGetter),
 		"hg":    new(HgGetter),
 		"s3":    new(S3Getter),
 		"http":  httpGetter,

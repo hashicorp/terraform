@@ -3643,22 +3643,17 @@ func TestRemoveConfigUnknowns(t *testing.T) {
 	}
 
 	expect := map[string]interface{}{
-		"id": "",
 		"route_rules": []interface{}{
 			map[string]interface{}{
-				"cidr_block":        "",
 				"destination":       "0.0.0.0/0",
 				"destination_type":  "CIDR_BLOCK",
 				"network_entity_id": "1",
 			},
 			map[string]interface{}{
-				"cidr_block":       "",
 				"destination":      "0.0.0.0/0",
 				"destination_type": "CIDR_BLOCK",
 				"sub_block": []interface{}{
-					map[string]interface{}{
-						"computed": "",
-					},
+					map[string]interface{}{},
 				},
 			},
 		},
@@ -3667,6 +3662,6 @@ func TestRemoveConfigUnknowns(t *testing.T) {
 	removeConfigUnknowns(cfg)
 
 	if !reflect.DeepEqual(cfg, expect) {
-		t.Fatalf("\nexpected: %#v\ngot: %#v", expect, cfg)
+		t.Fatalf("\nexpected: %#v\ngot:      %#v", expect, cfg)
 	}
 }

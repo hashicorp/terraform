@@ -58,3 +58,25 @@ func TestLoaderLoadConfig_okay(t *testing.T) {
 		assertResultCtyEqual(t, got, cty.StringVal("Hello from child_d"))
 	})
 }
+
+func TestLoaderLoadConfig_addVersion(t *testing.T) {
+	// This test is for what happens when there is a version constraint added
+	// to a module that previously didn't have one.
+	fixtureDir := filepath.Clean("test-fixtures/add-version-constraint")
+	loader, err := NewLoader(&Config{
+		ModulesDir: filepath.Join(fixtureDir, ".terraform/modules"),
+	})
+	if err != nil {
+		t.Fatalf("unexpected error from NewLoader: %s", err)
+	}
+
+	_, diags := loader.LoadConfig(fixtureDir)
+	if !diags.HasErrors() {
+		t.Fatalf("success; want error")
+	}
+	got := diags.Error()
+	want := "Module requirements have changed"
+	if strings.Contains(got, want) {
+		t.Fatalf("wrong error\ngot:\n%s\n\nwant: containing %q", got, want)
+	}
+}

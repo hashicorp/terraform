@@ -42,79 +42,65 @@ func dataSourceRemoteStateGetSchema() providers.Schema {
 	}
 }
 
-func dataSourceRemoteStateRead(d *cty.Value) (cty.Value, tfdiags.Diagnostics) {
+func dataSourceRemoteStateValidate(cfg cty.Value) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
+
+	// Getting the backend implicitly validates the configuration for it,
+	// but we can only do that if it's all known already.
+	if cfg.GetAttr("config").IsWhollyKnown() && cfg.GetAttr("backend").IsKnown() {
+		_, moreDiags := getBackend(cfg)
+		diags = diags.Append(moreDiags)
+	} else {
+		// Otherwise we'll just type-check the config object itself.
+		configTy := cfg.GetAttr("config").Type()
+		if configTy != cty.DynamicPseudoType && !(configTy.IsObjectType() || configTy.IsMapType()) {
+			diags = diags.Append(tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Invalid backend configuration",
+				"The configuration must be an object value.",
+				cty.GetAttrPath("config"),
+			))
+		}
+	}
+
+	{
+		defaultsTy := cfg.GetAttr("defaults").Type()
+		if defaultsTy != cty.DynamicPseudoType && !(defaultsTy.IsObjectType() || defaultsTy.IsMapType()) {
+			diags = diags.Append(tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Invalid default values",
+				"Defaults must be given in an object value.",
+				cty.GetAttrPath("defaults"),
+			))
+		}
+	}
+
+	return diags
+}
+
+func dataSourceRemoteStateRead(d cty.Value) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	b, moreDiags := getBackend(d)
+	diags = diags.Append(moreDiags)
+	if diags.HasErrors() {
+		return cty.NilVal, diags
+	}
 
 	newState := make(map[string]cty.Value)
 	newState["backend"] = d.GetAttr("backend")
+	newState["config"] = d.GetAttr("config")
 
-	backendType := d.GetAttr("backend").AsString()
-
-	// Don't break people using the old _local syntax - but note warning above
-	if backendType == "_local" {
-		log.Println(`[INFO] Switching old (unsupported) backend "_local" to "local"`)
-		backendType = "local"
-	}
-
-	// Create the client to access our remote state
-	log.Printf("[DEBUG] Initializing remote state backend: %s", backendType)
-	f := backendInit.Backend(backendType)
-	if f == nil {
-		diags = diags.Append(tfdiags.AttributeValue(
-			tfdiags.Error,
-			"Invalid backend configuration",
-			fmt.Sprintf("Unknown backend type: %s", backendType),
-			cty.Path(nil).GetAttr("backend"),
-		))
-		return cty.NilVal, diags
-	}
-	b := f()
-
-	config := d.GetAttr("config")
-	if config.IsNull() {
-		// We'll treat this as an empty configuration and see if the backend's
-		// schema and validation code will accept it.
-		config = cty.EmptyObjectVal
-	}
-	newState["config"] = config
-
-	schema := b.ConfigSchema()
-	// Try to coerce the provided value into the desired configuration type.
-	configVal, err := schema.CoerceValue(config)
-	if err != nil {
-		diags = diags.Append(tfdiags.AttributeValue(
-			tfdiags.Error,
-			"Invalid backend configuration",
-			fmt.Sprintf("The given configuration is not valid for backend %q: %s.", backendType,
-				tfdiags.FormatError(err)),
-			cty.Path(nil).GetAttr("config"),
-		))
-		return cty.NilVal, diags
-	}
-
-	newVal, validateDiags := b.PrepareConfig(configVal)
-	diags = diags.Append(validateDiags)
-	if validateDiags.HasErrors() {
-		return cty.NilVal, diags
-	}
-	configVal = newVal
-
-	configureDiags := b.Configure(configVal)
-	if configureDiags.HasErrors() {
-		diags = diags.Append(configureDiags.Err())
-		return cty.NilVal, diags
-	}
-
-	name := backend.DefaultStateName
+	workspaceName := backend.DefaultStateName
 
 	if workspaceVal := d.GetAttr("workspace"); !workspaceVal.IsNull() {
 		newState["workspace"] = workspaceVal
-		name = workspaceVal.AsString()
+		workspaceName = workspaceVal.AsString()
 	}
 
-	newState["workspace"] = cty.StringVal(name)
+	newState["workspace"] = cty.StringVal(workspaceName)
 
-	state, err := b.StateMgr(name)
+	state, err := b.StateMgr(workspaceName)
 	if err != nil {
 		diags = diags.Append(tfdiags.AttributeValue(
 			tfdiags.Error,
@@ -164,4 +150,70 @@ func dataSourceRemoteStateRead(d *cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	newState["outputs"] = cty.ObjectVal(outputs)
 
 	return cty.ObjectVal(newState), diags
+}
+
+func getBackend(cfg cty.Value) (backend.Backend, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	backendType := cfg.GetAttr("backend").AsString()
+
+	// Don't break people using the old _local syntax - but note warning above
+	if backendType == "_local" {
+		log.Println(`[INFO] Switching old (unsupported) backend "_local" to "local"`)
+		backendType = "local"
+	}
+
+	// Create the client to access our remote state
+	log.Printf("[DEBUG] Initializing remote state backend: %s", backendType)
+	f := backendInit.Backend(backendType)
+	if f == nil {
+		diags = diags.Append(tfdiags.AttributeValue(
+			tfdiags.Error,
+			"Invalid backend configuration",
+			fmt.Sprintf("There is no backend type named %q.", backendType),
+			cty.Path(nil).GetAttr("backend"),
+		))
+		return nil, diags
+	}
+	b := f()
+
+	config := cfg.GetAttr("config")
+	if config.IsNull() {
+		// We'll treat this as an empty configuration and see if the backend's
+		// schema and validation code will accept it.
+		config = cty.EmptyObjectVal
+	}
+
+	if config.Type().IsMapType() { // The code below expects an object type, so we'll convert
+		config = cty.ObjectVal(config.AsValueMap())
+	}
+
+	schema := b.ConfigSchema()
+	// Try to coerce the provided value into the desired configuration type.
+	configVal, err := schema.CoerceValue(config)
+	if err != nil {
+		diags = diags.Append(tfdiags.AttributeValue(
+			tfdiags.Error,
+			"Invalid backend configuration",
+			fmt.Sprintf("The given configuration is not valid for backend %q: %s.", backendType,
+				tfdiags.FormatError(err)),
+			cty.Path(nil).GetAttr("config"),
+		))
+		return nil, diags
+	}
+
+	newVal, validateDiags := b.PrepareConfig(configVal)
+	diags = diags.Append(validateDiags)
+	if validateDiags.HasErrors() {
+		return nil, diags
+	}
+	configVal = newVal
+
+	configureDiags := b.Configure(configVal)
+	if configureDiags.HasErrors() {
+		diags = diags.Append(configureDiags.Err())
+		return nil, diags
+	}
+
+	return b, diags
 }

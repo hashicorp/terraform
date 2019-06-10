@@ -174,6 +174,20 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		}
 	}
 
+	log.Printf("[TRACE] Re-validating config for %q", n.Addr.Absolute(ctx.Path()))
+	// Allow the provider to validate the final set of values.
+	// The config was statically validated early on, but there may have been
+	// unknown values which the provider could not validate at the time.
+	validateResp := provider.ValidateResourceTypeConfig(
+		providers.ValidateResourceTypeConfigRequest{
+			TypeName: n.Addr.Resource.Type,
+			Config:   configVal,
+		},
+	)
+	if validateResp.Diagnostics.HasErrors() {
+		return nil, validateResp.Diagnostics.InConfigBody(config.Config).Err()
+	}
+
 	// The provider gets an opportunity to customize the proposed new value,
 	// which in turn produces the _planned_ new value.
 	resp := provider.PlanResourceChange(providers.PlanResourceChangeRequest{
@@ -368,7 +382,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		}
 		plannedNewVal = resp.PlannedState
 		plannedPrivate = resp.PlannedPrivate
-		for _, err := range schema.ImpliedType().TestConformance(plannedNewVal.Type()) {
+		for _, err := range plannedNewVal.Type().TestConformance(schema.ImpliedType()) {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Provider produced invalid plan",
@@ -448,8 +462,9 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 			// must _also_ record the returned change in the active plan,
 			// which the expression evaluator will use in preference to this
 			// incomplete value recorded in the state.
-			Status: states.ObjectPlanned,
-			Value:  plannedNewVal,
+			Status:  states.ObjectPlanned,
+			Value:   plannedNewVal,
+			Private: plannedPrivate,
 		}
 	}
 
@@ -790,6 +805,7 @@ func (n *EvalDiffDestroy) Eval(ctx EvalContext) (interface{}, error) {
 			Before: state.Value,
 			After:  cty.NullVal(cty.DynamicPseudoType),
 		},
+		Private:      state.Private,
 		ProviderAddr: n.ProviderAddr,
 	}
 

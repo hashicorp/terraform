@@ -95,34 +95,6 @@ type Schema struct {
 	// behavior, and SchemaConfigModeBlock is not permitted.
 	ConfigMode SchemaConfigMode
 
-	// SkipCoreTypeCheck, if set, will advertise this attribute to Terraform Core
-	// has being dynamically-typed rather than deriving a type from the schema.
-	// This has the effect of making Terraform Core skip all type-checking of
-	// the value, and thus leaves all type checking up to a combination of this
-	// SDK and the provider's own code.
-	//
-	// This flag does nothing for Terraform versions prior to v0.12, because
-	// in prior versions there was no Core-side typecheck anyway.
-	//
-	// The most practical effect of this flag is to allow object-typed schemas
-	// (specified with Elem: schema.Resource) to pass through Terraform Core
-	// even without all of the object type attributes specified, which may be
-	// useful when using ConfigMode: SchemaConfigModeAttr to achieve
-	// nested-block-like behaviors while using attribute syntax.
-	//
-	// However, by doing so we require type information to be sent and stored
-	// per-object rather than just once statically in the schema, and so this
-	// will change the wire serialization of a resource type in state. Changing
-	// the value of SkipCoreTypeCheck will therefore require a state migration
-	// if there has previously been any release of the provider compatible with
-	// Terraform v0.12.
-	//
-	// SkipCoreTypeCheck can only be set when ConfigMode is SchemaConfigModeAttr,
-	// because nested blocks cannot be decoded by Terraform Core without at
-	// least shallow information about the next level of nested attributes and
-	// blocks.
-	SkipCoreTypeCheck bool
-
 	// If one of these is set, then this item can come from the configuration.
 	// Both cannot be set. If Optional is set, the value is optional. If
 	// Required is set, the value is required.
@@ -266,7 +238,8 @@ type Schema struct {
 	// guaranteed to be of the proper Schema type, and it can yield warnings or
 	// errors based on inspection of that value.
 	//
-	// ValidateFunc currently only works for primitive types.
+	// ValidateFunc is honored only when the schema's Type is set to TypeInt,
+	// TypeFloat, TypeString, TypeBool, or TypeMap. It is ignored for all other types.
 	ValidateFunc SchemaValidateFunc
 
 	// Sensitive ensures that the attribute's value does not get displayed in
@@ -734,8 +707,6 @@ func (m schemaMap) internalValidate(topSchemaMap schemaMap, attrsOnly bool) erro
 
 		computedOnly := v.Computed && !v.Optional
 
-		isBlock := false
-
 		switch v.ConfigMode {
 		case SchemaConfigModeBlock:
 			if _, ok := v.Elem.(*Resource); !ok {
@@ -747,7 +718,6 @@ func (m schemaMap) internalValidate(topSchemaMap schemaMap, attrsOnly bool) erro
 			if computedOnly {
 				return fmt.Errorf("%s: ConfigMode of block cannot be used for computed schema", k)
 			}
-			isBlock = true
 		case SchemaConfigModeAttr:
 			// anything goes
 		case SchemaConfigModeAuto:
@@ -755,17 +725,12 @@ func (m schemaMap) internalValidate(topSchemaMap schemaMap, attrsOnly bool) erro
 			// and that's impossible inside an attribute, we require it to be
 			// explicitly overridden as mode "Attr" for clarity.
 			if _, ok := v.Elem.(*Resource); ok {
-				isBlock = true
 				if attrsOnly {
 					return fmt.Errorf("%s: in *schema.Resource with ConfigMode of attribute, so must also have ConfigMode of attribute", k)
 				}
 			}
 		default:
 			return fmt.Errorf("%s: invalid ConfigMode value", k)
-		}
-
-		if isBlock && v.SkipCoreTypeCheck {
-			return fmt.Errorf("%s: SkipCoreTypeCheck must be false unless ConfigMode is attribute", k)
 		}
 
 		if v.Computed && v.Default != nil {
@@ -1400,10 +1365,12 @@ func (m schemaMap) validate(
 			"%q: this field cannot be set", k)}
 	}
 
-	if raw == config.UnknownVariableValue {
-		// If the value is unknown then we can't validate it yet.
-		// In particular, this avoids spurious type errors where downstream
-		// validation code sees UnknownVariableValue as being just a string.
+	// If the value is unknown then we can't validate it yet.
+	// In particular, this avoids spurious type errors where downstream
+	// validation code sees UnknownVariableValue as being just a string.
+	// The SDK has to allow the unknown value through initially, so that
+	// Required fields set via an interpolated value are accepted.
+	if !isWhollyKnown(raw) {
 		return nil, nil
 	}
 
@@ -1415,6 +1382,28 @@ func (m schemaMap) validate(
 	return m.validateType(k, raw, schema, c)
 }
 
+// isWhollyKnown returns false if the argument contains an UnknownVariableValue
+func isWhollyKnown(raw interface{}) bool {
+	switch raw := raw.(type) {
+	case string:
+		if raw == config.UnknownVariableValue {
+			return false
+		}
+	case []interface{}:
+		for _, v := range raw {
+			if !isWhollyKnown(v) {
+				return false
+			}
+		}
+	case map[string]interface{}:
+		for _, v := range raw {
+			if !isWhollyKnown(v) {
+				return false
+			}
+		}
+	}
+	return true
+}
 func (m schemaMap) validateConflictingAttributes(
 	k string,
 	schema *Schema,
@@ -1730,12 +1719,25 @@ func (m schemaMap) validatePrimitive(
 		}
 		decoded = n
 	case TypeInt:
-		// Verify that we can parse this as an int
-		var n int
-		if err := mapstructure.WeakDecode(raw, &n); err != nil {
-			return nil, []error{fmt.Errorf("%s: %s", k, err)}
+		switch {
+		case isProto5():
+			// We need to verify the type precisely, because WeakDecode will
+			// decode a float as an integer.
+
+			// the config shims only use int for integral number values
+			if v, ok := raw.(int); ok {
+				decoded = v
+			} else {
+				return nil, []error{fmt.Errorf("%s: must be a whole number, got %v", k, raw)}
+			}
+		default:
+			// Verify that we can parse this as an int
+			var n int
+			if err := mapstructure.WeakDecode(raw, &n); err != nil {
+				return nil, []error{fmt.Errorf("%s: %s", k, err)}
+			}
+			decoded = n
 		}
-		decoded = n
 	case TypeFloat:
 		// Verify that we can parse this as an int
 		var n float64

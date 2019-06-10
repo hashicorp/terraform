@@ -31,14 +31,14 @@ number of fields, or this function will produce an error.
 > csvdecode("a,b,c\n1,2,3\n4,5,6")
 [
   {
-    "a" = 1
-    "b" = 2
-    "c" = 3
+    "a" = "1"
+    "b" = "2"
+    "c" = "3"
   },
   {
-    "a" = 4
-    "b" = 5
-    "c" = 6
+    "a" = "4"
+    "b" = "5"
+    "c" = "6"
   }
 ]
 ```

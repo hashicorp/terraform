@@ -213,6 +213,16 @@ func (b *expandBody) expandBlocks(schema *hcl.BodySchema, rawBlocks hcl.Blocks, 
 				diags = append(diags, blockDiags...)
 				if block != nil {
 					block.Body = b.expandChild(block.Body, i)
+
+					// We additionally force all of the leaf attribute values
+					// in the result to be unknown so the calling application
+					// can, if necessary, use that as a heuristic to detect
+					// when a single nested block might be standing in for
+					// multiple blocks yet to be expanded. This retains the
+					// structure of the generated body but forces all of its
+					// leaf attribute values to be unknown.
+					block.Body = unknownBody{block.Body}
+
 					blocks = append(blocks, block)
 				}
 			}

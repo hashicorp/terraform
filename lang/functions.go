@@ -3,6 +3,7 @@ package lang
 import (
 	"fmt"
 
+	ctyyaml "github.com/zclconf/go-cty-yaml"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 	"github.com/zclconf/go-cty/cty/function/stdlib"
@@ -42,7 +43,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"cidrhost":         funcs.CidrHostFunc,
 			"cidrnetmask":      funcs.CidrNetmaskFunc,
 			"cidrsubnet":       funcs.CidrSubnetFunc,
-			"coalesce":         stdlib.CoalesceFunc,
+			"coalesce":         funcs.CoalesceFunc,
 			"coalescelist":     funcs.CoalesceListFunc,
 			"compact":          funcs.CompactFunc,
 			"concat":           stdlib.ConcatFunc,
@@ -85,10 +86,10 @@ func (s *Scope) Functions() map[string]function.Function {
 			"min":              stdlib.MinFunc,
 			"pathexpand":       funcs.PathExpandFunc,
 			"pow":              funcs.PowFunc,
+			"range":            stdlib.RangeFunc,
 			"replace":          funcs.ReplaceFunc,
 			"reverse":          funcs.ReverseFunc,
 			"rsadecrypt":       funcs.RsaDecryptFunc,
-			"sethaselement":    stdlib.SetHasElementFunc,
 			"setintersection":  stdlib.SetIntersectionFunc,
 			"setproduct":       funcs.SetProductFunc,
 			"setunion":         stdlib.SetUnionFunc,
@@ -99,6 +100,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"slice":            funcs.SliceFunc,
 			"sort":             funcs.SortFunc,
 			"split":            funcs.SplitFunc,
+			"strrev":           stdlib.ReverseFunc,
 			"substr":           stdlib.SubstrFunc,
 			"timestamp":        funcs.TimestampFunc,
 			"timeadd":          funcs.TimeAddFunc,
@@ -114,7 +116,10 @@ func (s *Scope) Functions() map[string]function.Function {
 			"upper":            stdlib.UpperFunc,
 			"urlencode":        funcs.URLEncodeFunc,
 			"uuid":             funcs.UUIDFunc,
+			"uuidv5":           funcs.UUIDV5Func,
 			"values":           funcs.ValuesFunc,
+			"yamldecode":       ctyyaml.YAMLDecodeFunc,
+			"yamlencode":       ctyyaml.YAMLEncodeFunc,
 			"zipmap":           funcs.ZipmapFunc,
 		}
 

@@ -40,11 +40,12 @@ var _ hcl.Body = mergeBody{}
 
 func (b mergeBody) Content(schema *hcl.BodySchema) (*hcl.BodyContent, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
-	oSchema := schemaForOverrides(schema)
+	baseSchema := schemaWithDynamic(schema)
+	overrideSchema := schemaWithDynamic(schemaForOverrides(schema))
 
-	baseContent, cDiags := b.Base.Content(schema)
+	baseContent, _, cDiags := b.Base.PartialContent(baseSchema)
 	diags = append(diags, cDiags...)
-	overrideContent, cDiags := b.Override.Content(oSchema)
+	overrideContent, _, cDiags := b.Override.PartialContent(overrideSchema)
 	diags = append(diags, cDiags...)
 
 	content := b.prepareContent(baseContent, overrideContent)
@@ -54,11 +55,12 @@ func (b mergeBody) Content(schema *hcl.BodySchema) (*hcl.BodyContent, hcl.Diagno
 
 func (b mergeBody) PartialContent(schema *hcl.BodySchema) (*hcl.BodyContent, hcl.Body, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
-	oSchema := schemaForOverrides(schema)
+	baseSchema := schemaWithDynamic(schema)
+	overrideSchema := schemaWithDynamic(schemaForOverrides(schema))
 
-	baseContent, baseRemain, cDiags := b.Base.PartialContent(schema)
+	baseContent, baseRemain, cDiags := b.Base.PartialContent(baseSchema)
 	diags = append(diags, cDiags...)
-	overrideContent, overrideRemain, cDiags := b.Override.PartialContent(oSchema)
+	overrideContent, overrideRemain, cDiags := b.Override.PartialContent(overrideSchema)
 	diags = append(diags, cDiags...)
 
 	content := b.prepareContent(baseContent, overrideContent)
@@ -90,9 +92,21 @@ func (b mergeBody) prepareContent(base *hcl.BodyContent, override *hcl.BodyConte
 
 	overriddenBlockTypes := make(map[string]bool)
 	for _, block := range override.Blocks {
+		if block.Type == "dynamic" {
+			overriddenBlockTypes[block.Labels[0]] = true
+			continue
+		}
 		overriddenBlockTypes[block.Type] = true
 	}
 	for _, block := range base.Blocks {
+		// We skip over dynamic blocks whose type label is an overridden type
+		// but note that below we do still leave them as dynamic blocks in
+		// the result because expanding the dynamic blocks that are left is
+		// done much later during the core graph walks, where we can safely
+		// evaluate the expressions.
+		if block.Type == "dynamic" && overriddenBlockTypes[block.Labels[0]] {
+			continue
+		}
 		if overriddenBlockTypes[block.Type] {
 			continue
 		}

@@ -196,6 +196,20 @@ dynamic "foo" {
 				}),
 			}),
 		},
+		"dynamic block with empty iterator": {
+			src: `
+dynamic "foo" {
+  for_each = []
+  content {
+    bar = foo.value
+  }
+}
+`,
+			schema: fooSchema,
+			want: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.NullVal(fooSchema.Attributes["foo"].Type),
+			}),
+		},
 		"both attribute and block syntax": {
 			src: `
 foo = []

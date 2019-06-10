@@ -3,12 +3,13 @@ package cty
 import (
 	"fmt"
 	"math/big"
-
 	"reflect"
 
 	"github.com/zclconf/go-cty/cty/set"
 )
 
+// GoString is an implementation of fmt.GoStringer that produces concise
+// source-like representations of values suitable for use in debug messages.
 func (val Value) GoString() string {
 	if val == NilVal {
 		return "cty.NilVal"
@@ -32,9 +33,8 @@ func (val Value) GoString() string {
 	case Bool:
 		if val.v.(bool) {
 			return "cty.True"
-		} else {
-			return "cty.False"
 		}
+		return "cty.False"
 	case Number:
 		fv := val.v.(*big.Float)
 		// We'll try to use NumberIntVal or NumberFloatVal if we can, since
@@ -45,19 +45,42 @@ func (val Value) GoString() string {
 		if rfv, accuracy := fv.Float64(); accuracy == big.Exact {
 			return fmt.Sprintf("cty.NumberFloatVal(%#v)", rfv)
 		}
-		return fmt.Sprintf("cty.NumberVal(new(big.Float).Parse(\"%#v\", 10))", fv)
+		return fmt.Sprintf("cty.MustParseNumberVal(%q)", fv.Text('f', -1))
 	case String:
 		return fmt.Sprintf("cty.StringVal(%#v)", val.v)
 	}
 
 	switch {
 	case val.ty.IsSetType():
-		vals := val.v.(set.Set).Values()
-		if vals == nil || len(vals) == 0 {
-			return fmt.Sprintf("cty.SetValEmpty()")
-		} else {
-			return fmt.Sprintf("cty.SetVal(%#v)", vals)
+		vals := val.AsValueSlice()
+		if len(vals) == 0 {
+			return fmt.Sprintf("cty.SetValEmpty(%#v)", val.ty.ElementType())
 		}
+		return fmt.Sprintf("cty.SetVal(%#v)", vals)
+	case val.ty.IsListType():
+		vals := val.AsValueSlice()
+		if len(vals) == 0 {
+			return fmt.Sprintf("cty.ListValEmpty(%#v)", val.ty.ElementType())
+		}
+		return fmt.Sprintf("cty.ListVal(%#v)", vals)
+	case val.ty.IsMapType():
+		vals := val.AsValueMap()
+		if len(vals) == 0 {
+			return fmt.Sprintf("cty.MapValEmpty(%#v)", val.ty.ElementType())
+		}
+		return fmt.Sprintf("cty.MapVal(%#v)", vals)
+	case val.ty.IsTupleType():
+		if val.ty.Equals(EmptyTuple) {
+			return "cty.EmptyTupleVal"
+		}
+		vals := val.AsValueSlice()
+		return fmt.Sprintf("cty.TupleVal(%#v)", vals)
+	case val.ty.IsObjectType():
+		if val.ty.Equals(EmptyObject) {
+			return "cty.EmptyObjectVal"
+		}
+		vals := val.AsValueMap()
+		return fmt.Sprintf("cty.ObjectVal(%#v)", vals)
 	case val.ty.IsCapsuleType():
 		return fmt.Sprintf("cty.CapsuleVal(%#v, %#v)", val.ty, val.v)
 	}

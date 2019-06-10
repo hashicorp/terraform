@@ -232,9 +232,13 @@ func (u *Upgrader) analyze(ms ModuleSources) (*analysis, error) {
 		}
 	}
 
-	providerFactories, err := u.Providers.ResolveProviders(m.PluginRequirements())
-	if err != nil {
-		return nil, fmt.Errorf("error resolving providers: %s", err)
+	providerFactories, errs := u.Providers.ResolveProviders(m.PluginRequirements())
+	if len(errs) > 0 {
+		var errorsMsg string
+		for _, err := range errs {
+			errorsMsg += fmt.Sprintf("\n- %s", err)
+		}
+		return nil, fmt.Errorf("error resolving providers:\n%s", errorsMsg)
 	}
 
 	for name, fn := range providerFactories {

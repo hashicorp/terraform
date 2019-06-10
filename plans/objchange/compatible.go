@@ -61,30 +61,22 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 		plannedV := planned.GetAttr(name)
 		actualV := actual.GetAttr(name)
 
-		// As a special case, we permit a "planned" block with exactly one
-		// element where all of the "leaf" values are unknown, since that's
-		// what HCL's dynamic block extension generates if the for_each
-		// expression is itself unknown and thus it cannot predict how many
-		// child blocks will get created.
-		switch blockS.Nesting {
-		case configschema.NestingSingle, configschema.NestingGroup:
-			if allLeafValuesUnknown(plannedV) && !plannedV.IsNull() {
-				return errs
-			}
-		case configschema.NestingList, configschema.NestingMap, configschema.NestingSet:
-			if plannedV.IsKnown() && !plannedV.IsNull() && plannedV.LengthInt() == 1 {
-				elemVs := plannedV.AsValueSlice()
-				if allLeafValuesUnknown(elemVs[0]) {
-					return errs
-				}
-			}
-		default:
-			panic(fmt.Sprintf("unsupported nesting mode %s", blockS.Nesting))
-		}
+		// As a special case, if there were any blocks whose leaf attributes
+		// are all unknown then we assume (possibly incorrectly) that the
+		// HCL dynamic block extension is in use with an unknown for_each
+		// argument, and so we will do looser validation here that allows
+		// for those blocks to have expanded into a different number of blocks
+		// if the for_each value is now known.
+		maybeUnknownBlocks := couldHaveUnknownBlockPlaceholder(plannedV, blockS, false)
 
 		path := append(path, cty.GetAttrStep{Name: name})
 		switch blockS.Nesting {
 		case configschema.NestingSingle, configschema.NestingGroup:
+			// If an unknown block placeholder was present then the placeholder
+			// may have expanded out into zero blocks, which is okay.
+			if maybeUnknownBlocks && actualV.IsNull() {
+				continue
+			}
 			moreErrs := assertObjectCompatible(&blockS.Block, plannedV, actualV, path)
 			errs = append(errs, moreErrs...)
 		case configschema.NestingList:
@@ -93,6 +85,14 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 			// both support a similar-enough API that we can treat them the
 			// same for our purposes here.
 			if !plannedV.IsKnown() || plannedV.IsNull() || actualV.IsNull() {
+				continue
+			}
+
+			if maybeUnknownBlocks {
+				// When unknown blocks are present the final blocks may be
+				// at different indices than the planned blocks, so unfortunately
+				// we can't do our usual checks in this case without generating
+				// false negatives.
 				continue
 			}
 
@@ -130,10 +130,12 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 					moreErrs := assertObjectCompatible(&blockS.Block, plannedEV, actualEV, append(path, cty.GetAttrStep{Name: k}))
 					errs = append(errs, moreErrs...)
 				}
-				for k := range actualAtys {
-					if _, ok := plannedAtys[k]; !ok {
-						errs = append(errs, path.NewErrorf("new block key %q has appeared", k))
-						continue
+				if !maybeUnknownBlocks { // new blocks may appear if unknown blocks were present in the plan
+					for k := range actualAtys {
+						if _, ok := plannedAtys[k]; !ok {
+							errs = append(errs, path.NewErrorf("new block key %q has appeared", k))
+							continue
+						}
 					}
 				}
 			} else {
@@ -142,7 +144,7 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 				}
 				plannedL := plannedV.LengthInt()
 				actualL := actualV.LengthInt()
-				if plannedL != actualL {
+				if plannedL != actualL && !maybeUnknownBlocks { // new blocks may appear if unknown blocks were persent in the plan
 					errs = append(errs, path.NewErrorf("block count changed from %d to %d", plannedL, actualL))
 					continue
 				}
@@ -302,18 +304,77 @@ func indexStrForErrors(v cty.Value) string {
 	}
 }
 
-func allLeafValuesUnknown(v cty.Value) bool {
-	seenKnownValue := false
-	cty.Walk(v, func(path cty.Path, cv cty.Value) (bool, error) {
-		if cv.IsNull() {
-			seenKnownValue = true
+// couldHaveUnknownBlockPlaceholder is a heuristic that recognizes how the
+// HCL dynamic block extension behaves when it's asked to expand a block whose
+// for_each argument is unknown. In such cases, it generates a single placeholder
+// block with all leaf attribute values unknown, and once the for_each
+// expression becomes known the placeholder may be replaced with any number
+// of blocks, so object compatibility checks would need to be more liberal.
+//
+// Set "nested" if testing a block that is nested inside a candidate block
+// placeholder; this changes the interpretation of there being no blocks of
+// a type to allow for there being zero nested blocks.
+func couldHaveUnknownBlockPlaceholder(v cty.Value, blockS *configschema.NestedBlock, nested bool) bool {
+	switch blockS.Nesting {
+	case configschema.NestingSingle, configschema.NestingGroup:
+		if nested && v.IsNull() {
+			return true // for nested blocks, a single block being unset doesn't disqualify from being an unknown block placeholder
 		}
-		if cv.Type().IsPrimitiveType() && cv.IsKnown() {
-			seenKnownValue = true
+		return couldBeUnknownBlockPlaceholderElement(v, &blockS.Block)
+	default:
+		// These situations should be impossible for correct providers, but
+		// we permit the legacy SDK to produce some incorrect outcomes
+		// for compatibility with its existing logic, and so we must be
+		// tolerant here.
+		if !v.IsKnown() {
+			return true
 		}
-		return true, nil
-	})
-	return !seenKnownValue
+		if v.IsNull() {
+			return false // treated as if the list were empty, so we would see zero iterations below
+		}
+
+		// For all other nesting modes, our value should be something iterable.
+		for it := v.ElementIterator(); it.Next(); {
+			_, ev := it.Element()
+			if couldBeUnknownBlockPlaceholderElement(ev, &blockS.Block) {
+				return true
+			}
+		}
+
+		// Our default changes depending on whether we're testing the candidate
+		// block itself or something nested inside of it: zero blocks of a type
+		// can never contain a dynamic block placeholder, but a dynamic block
+		// placeholder might contain zero blocks of one of its own nested block
+		// types, if none were set in the config at all.
+		return nested
+	}
+}
+
+func couldBeUnknownBlockPlaceholderElement(v cty.Value, schema *configschema.Block) bool {
+	if v.IsNull() {
+		return false // null value can never be a placeholder element
+	}
+	if !v.IsKnown() {
+		return true // this should never happen for well-behaved providers, but can happen with the legacy SDK opt-outs
+	}
+	for name := range schema.Attributes {
+		av := v.GetAttr(name)
+
+		// Unknown block placeholders contain only unknown or null attribute
+		// values, depending on whether or not a particular attribute was set
+		// explicitly inside the content block. Note that this is imprecise:
+		// non-placeholders can also match this, so this function can generate
+		// false positives.
+		if av.IsKnown() && !av.IsNull() {
+			return false
+		}
+	}
+	for name, blockS := range schema.BlockTypes {
+		if !couldHaveUnknownBlockPlaceholder(v.GetAttr(name), blockS, true) {
+			return false
+		}
+	}
+	return true
 }
 
 // assertSetValuesCompatible checks that each of the elements in a can

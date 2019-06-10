@@ -1,0 +1,23 @@
+{
+    "format_version": "0.1",
+    "terraform_version": "0.12.1-dev",
+    "planned_values": {
+        "root_module": {}
+    },
+    "configuration": {
+        "root_module": {
+            "module_calls": {
+                "my_module": {
+                    "source": "./modules",
+                    "module": {
+                        "module_calls": {
+                            "more": {
+                                "module": {}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

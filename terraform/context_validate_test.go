@@ -1030,7 +1030,7 @@ func TestContext2Validate_targetedDestroy(t *testing.T) {
 	}
 }
 
-func TestContext2Validate_varRefFilled(t *testing.T) {
+func TestContext2Validate_varRefUnknown(t *testing.T) {
 	m := testModule(t, "validate-variable-ref")
 	p := testProvider("aws")
 	p.GetSchemaReturn = &ProviderSchema{
@@ -1064,7 +1064,11 @@ func TestContext2Validate_varRefFilled(t *testing.T) {
 	}
 
 	c.Validate()
-	if !value.RawEquals(cty.StringVal("bar")) {
+
+	// Input variables are always unknown during the validate walk, because
+	// we're checking for validity of all possible input values. Validity
+	// against specific input values is checked during the plan walk.
+	if !value.RawEquals(cty.UnknownVal(cty.String)) {
 		t.Fatalf("bad: %#v", value)
 	}
 }

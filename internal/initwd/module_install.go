@@ -2,7 +2,6 @@ package initwd
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform/registry"
 	"log"
 	"os"
 	"path/filepath"
@@ -13,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/internal/earlyconfig"
 	"github.com/hashicorp/terraform/internal/modsdir"
+	"github.com/hashicorp/terraform/registry"
 	"github.com/hashicorp/terraform/registry/regsrc"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -245,7 +245,18 @@ func (i *ModuleInstaller) installLocalModule(req *earlyconfig.ModuleRequest, key
 	// filesystem at all because the parent already wrote
 	// the files we need, and so we just load up what's already here.
 	newDir := filepath.Join(parentRecord.Dir, req.SourceAddr)
+
 	log.Printf("[TRACE] ModuleInstaller: %s uses directory from parent: %s", key, newDir)
+	// it is possible that the local directory is a symlink
+	newDir, err := filepath.EvalSymlinks(newDir)
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Unreadable module directory",
+			fmt.Sprintf("Unable to evaluate directory symlink: %s", err.Error()),
+		))
+	}
+
 	mod, mDiags := earlyconfig.LoadModule(newDir)
 	if mod == nil {
 		// nil indicates missing or unreadable directory, so we'll
@@ -417,7 +428,7 @@ func (i *ModuleInstaller) installRegistryModule(req *earlyconfig.ModuleRequest, 
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Failed to download module",
-			fmt.Sprintf("Error attempting to download module %q (%s:%d) source code from %q: %s.", req.Name, req.CallPos.Filename, req.CallPos.Line, dlAddr, err),
+			fmt.Sprintf("Could not download module %q (%s:%d) source code from %q: %s.", req.Name, req.CallPos.Filename, req.CallPos.Line, dlAddr, err),
 		))
 		return nil, nil, diags
 	}
@@ -469,9 +480,18 @@ func (i *ModuleInstaller) installGoGetterModule(req *earlyconfig.ModuleRequest, 
 	packageAddr, _ := splitAddrSubdir(req.SourceAddr)
 	hooks.Download(key, packageAddr, nil)
 
+	if len(req.VersionConstraints) != 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid version constraint",
+			fmt.Sprintf("Cannot apply a version constraint to module %q (at %s:%d) because it has a non Registry URL.", req.Name, req.CallPos.Filename, req.CallPos.Line),
+		))
+		return nil, diags
+	}
+
 	modDir, err := getter.getWithGoGetter(instPath, req.SourceAddr)
 	if err != nil {
-		if err, ok := err.(*MaybeRelativePathErr); ok {
+		if _, ok := err.(*MaybeRelativePathErr); ok {
 			log.Printf(
 				"[TRACE] ModuleInstaller: %s looks like a local path but is missing ./ or ../",
 				req.SourceAddr,
@@ -496,7 +516,7 @@ func (i *ModuleInstaller) installGoGetterModule(req *earlyconfig.ModuleRequest, 
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Failed to download module",
-				fmt.Sprintf("Error attempting to download module %q (%s:%d) source code from %q: %s", req.Name, req.CallPos.Filename, req.CallPos.Line, packageAddr, err),
+				fmt.Sprintf("Could not download module %q (%s:%d) source code from %q: %s", req.Name, req.CallPos.Filename, req.CallPos.Line, packageAddr, err),
 			))
 		}
 		return nil, diags

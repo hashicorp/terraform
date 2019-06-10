@@ -40,11 +40,21 @@ func (p *Provider) PrepareProviderConfig(req providers.PrepareProviderConfigRequ
 }
 
 // ValidateDataSourceConfig is used to validate the data source configuration values.
-func (p *Provider) ValidateDataSourceConfig(providers.ValidateDataSourceConfigRequest) providers.ValidateDataSourceConfigResponse {
+func (p *Provider) ValidateDataSourceConfig(req providers.ValidateDataSourceConfigRequest) providers.ValidateDataSourceConfigResponse {
 	// FIXME: move the backend configuration validate call that's currently
 	// inside the read method  into here so that we can catch provider configuration
 	// errors in terraform validate as well as during terraform plan.
 	var res providers.ValidateDataSourceConfigResponse
+
+	// This should not happen
+	if req.TypeName != "terraform_remote_state" {
+		res.Diagnostics.Append(fmt.Errorf("Error: unsupported data source %s", req.TypeName))
+		return res
+	}
+
+	diags := dataSourceRemoteStateValidate(req.Config)
+	res.Diagnostics = diags
+
 	return res
 }
 
@@ -67,7 +77,7 @@ func (p *Provider) ReadDataSource(req providers.ReadDataSourceRequest) providers
 		return res
 	}
 
-	newState, diags := dataSourceRemoteStateRead(&req.Config)
+	newState, diags := dataSourceRemoteStateRead(req.Config)
 
 	res.State = newState
 	res.Diagnostics = diags

@@ -77,6 +77,7 @@ type OrganizationList struct {
 type Organization struct {
 	Name                   string                   `jsonapi:"primary,organizations"`
 	CollaboratorAuthPolicy AuthPolicyType           `jsonapi:"attr,collaborator-auth-policy"`
+	CostEstimationEnabled  bool                     `jsonapi:"attr,cost-estimation-enabled"`
 	CreatedAt              time.Time                `jsonapi:"attr,created-at,iso8601"`
 	Email                  string                   `jsonapi:"attr,email"`
 	EnterprisePlan         EnterprisePlanType       `jsonapi:"attr,enterprise-plan"`
@@ -167,6 +168,9 @@ type OrganizationCreateOptions struct {
 	// Authentication policy.
 	CollaboratorAuthPolicy *AuthPolicyType `jsonapi:"attr,collaborator-auth-policy,omitempty"`
 
+	// Enable Cost Estimation
+	CostEstimationEnabled *bool `jsonapi:"attr,cost-estimation-enabled,omitempty"`
+
 	// The name of the "owners" team
 	OwnersTeamSAMLRoleID *string `jsonapi:"attr,owners-team-saml-role-id,omitempty"`
 }
@@ -247,6 +251,9 @@ type OrganizationUpdateOptions struct {
 
 	// Authentication policy.
 	CollaboratorAuthPolicy *AuthPolicyType `jsonapi:"attr,collaborator-auth-policy,omitempty"`
+
+	// Enable Cost Estimation
+	CostEstimationEnabled *bool `jsonapi:"attr,cost-estimation-enabled,omitempty"`
 
 	// The name of the "owners" team
 	OwnersTeamSAMLRoleID *string `jsonapi:"attr,owners-team-saml-role-id,omitempty"`

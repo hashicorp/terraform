@@ -373,7 +373,7 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 	for _, traversal := range n.Config.DependsOn {
 		ref, refDiags := addrs.ParseRef(traversal)
 		diags = diags.Append(refDiags)
-		if len(ref.Remaining) != 0 {
+		if !refDiags.HasErrors() && len(ref.Remaining) != 0 {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid depends_on reference",

@@ -119,6 +119,75 @@ var ConcatFunc = function.New(&function.Spec{
 	},
 })
 
+var RangeFunc = function.New(&function.Spec{
+	VarParam: &function.Parameter{
+		Name: "params",
+		Type: cty.Number,
+	},
+	Type: function.StaticReturnType(cty.List(cty.Number)),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		var start, end, step cty.Value
+		switch len(args) {
+		case 1:
+			if args[0].LessThan(cty.Zero).True() {
+				start, end, step = cty.Zero, args[0], cty.NumberIntVal(-1)
+			} else {
+				start, end, step = cty.Zero, args[0], cty.NumberIntVal(1)
+			}
+		case 2:
+			if args[1].LessThan(args[0]).True() {
+				start, end, step = args[0], args[1], cty.NumberIntVal(-1)
+			} else {
+				start, end, step = args[0], args[1], cty.NumberIntVal(1)
+			}
+		case 3:
+			start, end, step = args[0], args[1], args[2]
+		default:
+			return cty.NilVal, fmt.Errorf("must have one, two, or three arguments")
+		}
+
+		var vals []cty.Value
+
+		if step == cty.Zero {
+			return cty.NilVal, function.NewArgErrorf(2, "step must not be zero")
+		}
+		down := step.LessThan(cty.Zero).True()
+
+		if down {
+			if end.GreaterThan(start).True() {
+				return cty.NilVal, function.NewArgErrorf(1, "end must be less than start when step is negative")
+			}
+		} else {
+			if end.LessThan(start).True() {
+				return cty.NilVal, function.NewArgErrorf(1, "end must be greater than start when step is positive")
+			}
+		}
+
+		num := start
+		for {
+			if down {
+				if num.LessThanOrEqualTo(end).True() {
+					break
+				}
+			} else {
+				if num.GreaterThanOrEqualTo(end).True() {
+					break
+				}
+			}
+			if len(vals) >= 1024 {
+				// Artificial limit to prevent bad arguments from consuming huge amounts of memory
+				return cty.NilVal, fmt.Errorf("more than 1024 values were generated; either decrease the difference between start and end or use a smaller step")
+			}
+			vals = append(vals, num)
+			num = num.Add(step)
+		}
+		if len(vals) == 0 {
+			return cty.ListValEmpty(cty.Number), nil
+		}
+		return cty.ListVal(vals), nil
+	},
+})
+
 // Concat takes one or more sequences (lists or tuples) and returns the single
 // sequence that results from concatenating them together in order.
 //
@@ -127,4 +196,23 @@ var ConcatFunc = function.New(&function.Spec{
 // constructed from the given sequence types.
 func Concat(seqs ...cty.Value) (cty.Value, error) {
 	return ConcatFunc.Call(seqs)
+}
+
+// Range creates a list of numbers by starting from the given starting value,
+// then adding the given step value until the result is greater than or
+// equal to the given stopping value. Each intermediate result becomes an
+// element in the resulting list.
+//
+// When all three parameters are set, the order is (start, end, step). If
+// only two parameters are set, they are the start and end respectively and
+// step defaults to 1. If only one argument is set, it gives the end value
+// with start defaulting to 0 and step defaulting to 1.
+//
+// Because the resulting list must be fully buffered in memory, there is an
+// artificial cap of 1024 elements, after which this function will return
+// an error to avoid consuming unbounded amounts of memory. The Range function
+// is primarily intended for creating small lists of indices to iterate over,
+// so there should be no reason to generate huge lists with it.
+func Range(params ...cty.Value) (cty.Value, error) {
+	return RangeFunc.Call(params)
 }

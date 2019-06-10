@@ -3,6 +3,7 @@ package test
 import (
 	"fmt"
 
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -22,6 +23,25 @@ func testResourceMap() *schema.Resource {
 				Type:     schema.TypeMap,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
+				ValidateFunc: func(v interface{}, _ string) ([]string, []error) {
+					errs := []error{}
+					for k, v := range v.(map[string]interface{}) {
+						if v == config.UnknownVariableValue {
+							errs = append(errs, fmt.Errorf("unknown value in ValidateFunc: %q=%q", k, v))
+						}
+					}
+					return nil, errs
+				},
+			},
+			"map_values": {
+				Type:     schema.TypeMap,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"computed_map": {
+				Type:     schema.TypeMap,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 		},
 	}
@@ -35,15 +55,20 @@ func testResourceMapCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.SetId("testId")
-	return nil
+	return testResourceMapRead(d, meta)
 }
 
 func testResourceMapRead(d *schema.ResourceData, meta interface{}) error {
+	var computedMap map[string]interface{}
+	if v, ok := d.GetOk("map_values"); ok {
+		computedMap = v.(map[string]interface{})
+	}
+	d.Set("computed_map", computedMap)
 	return nil
 }
 
 func testResourceMapUpdate(d *schema.ResourceData, meta interface{}) error {
-	return nil
+	return testResourceMapRead(d, meta)
 }
 
 func testResourceMapDelete(d *schema.ResourceData, meta interface{}) error {

@@ -646,8 +646,10 @@ func (d *InstanceDiff) applyBlockDiff(path []string, attrs map[string]string, sc
 func (d *InstanceDiff) applyAttrDiff(path []string, attrs map[string]string, attrSchema *configschema.Attribute) (map[string]string, error) {
 	ty := attrSchema.Type
 	switch {
-	case ty.IsListType(), ty.IsTupleType(), ty.IsMapType(), ty.IsSetType():
+	case ty.IsListType(), ty.IsTupleType(), ty.IsMapType():
 		return d.applyCollectionDiff(path, attrs, attrSchema)
+	case ty.IsSetType():
+		return d.applySetDiff(path, attrs, attrSchema)
 	default:
 		return d.applySingleAttrDiff(path, attrs, attrSchema)
 	}
@@ -871,6 +873,46 @@ func (d *InstanceDiff) applyCollectionDiff(path []string, attrs map[string]strin
 	}
 
 	return result, nil
+}
+
+func (d *InstanceDiff) applySetDiff(path []string, attrs map[string]string, attrSchema *configschema.Attribute) (map[string]string, error) {
+	// We only need this special behavior for sets of object.
+	if !attrSchema.Type.ElementType().IsObjectType() {
+		// The normal collection apply behavior will work okay for this one, then.
+		return d.applyCollectionDiff(path, attrs, attrSchema)
+	}
+
+	// When we're dealing with a set of an object type we actually want to
+	// use our normal _block type_ apply behaviors, so we'll construct ourselves
+	// a synthetic schema that treats the object type as a block type and
+	// then delegate to our block apply method.
+	synthSchema := &configschema.Block{
+		Attributes: make(map[string]*configschema.Attribute),
+	}
+
+	for name, ty := range attrSchema.Type.ElementType().AttributeTypes() {
+		// We can safely make everything into an attribute here because in the
+		// event that there are nested set attributes we'll end up back in
+		// here again recursively and can then deal with the next level of
+		// expansion.
+		synthSchema.Attributes[name] = &configschema.Attribute{
+			Type:     ty,
+			Optional: true,
+		}
+	}
+
+	parentPath := path[:len(path)-1]
+	childName := path[len(path)-1]
+	containerSchema := &configschema.Block{
+		BlockTypes: map[string]*configschema.NestedBlock{
+			childName: {
+				Nesting: configschema.NestingSet,
+				Block:   *synthSchema,
+			},
+		},
+	}
+
+	return d.applyBlockDiff(parentPath, attrs, containerSchema)
 }
 
 // countFlatmapContainerValues returns the number of values in the flatmapped container

@@ -976,6 +976,65 @@ func TestContext2Refresh_stateBasic(t *testing.T) {
 	}
 }
 
+func TestContext2Refresh_dataCount(t *testing.T) {
+	p := testProvider("test")
+	m := testModule(t, "refresh-data-count")
+
+	// This test is verifying that a data resource count can refer to a
+	// resource attribute that can't be known yet during refresh (because
+	// the resource in question isn't in the state at all). In that case,
+	// we skip the data resource during refresh and process it during the
+	// subsequent plan step instead.
+	//
+	// Normally it's an error for "count" to be computed, but during the
+	// refresh step we allow it because we _expect_ to be working with an
+	// incomplete picture of the world sometimes, particularly when we're
+	// creating object for the first time against an empty state.
+	//
+	// For more information, see:
+	//    https://github.com/hashicorp/terraform/issues/21047
+
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test": {
+				Attributes: map[string]*configschema.Attribute{
+					"things": {Type: cty.List(cty.String), Optional: true},
+				},
+			},
+		},
+		DataSources: map[string]*configschema.Block{
+			"test": {},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+		Config: m,
+	})
+
+	s, diags := ctx.Refresh()
+	if p.ReadResourceCalled {
+		// The managed resource doesn't exist in the state yet, so there's
+		// nothing to refresh.
+		t.Errorf("ReadResource was called, but should not have been")
+	}
+	if p.ReadDataSourceCalled {
+		// The data resource should've been skipped because its count cannot
+		// be determined yet.
+		t.Errorf("ReadDataSource was called, but should not have been")
+	}
+
+	if diags.HasErrors() {
+		t.Fatalf("refresh errors: %s", diags.Err())
+	}
+
+	checkStateString(t, s, `<no state>`)
+}
+
 func TestContext2Refresh_dataOrphan(t *testing.T) {
 	p := testProvider("null")
 	state := MustShimLegacyState(&State{
@@ -1805,5 +1864,45 @@ test_thing.bar:
 		if got != want {
 			t.Fatalf("wrong result state\ngot:\n%s\n\nwant:\n%s", got, want)
 		}
+	}
+}
+
+func TestContext2Refresh_dataValidation(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+data "aws_data_source" "foo" {
+  foo = "bar"
+}
+`,
+	})
+
+	p := testProvider("aws")
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		resp.PlannedState = req.ProposedNewState
+		return
+	}
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) (resp providers.ReadDataSourceResponse) {
+		resp.State = req.Config
+		return
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	_, diags := ctx.Refresh()
+	if diags.HasErrors() {
+		// Should get this error:
+		// Unsupported attribute: This object does not have an attribute named "missing"
+		t.Fatal(diags.Err())
+	}
+
+	if !p.ValidateDataSourceConfigCalled {
+		t.Fatal("ValidateDataSourceConfig not called during plan")
 	}
 }
