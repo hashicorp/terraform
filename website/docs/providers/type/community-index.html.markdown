@@ -56,6 +56,7 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
 - [ElephantSQL](https://github.com/elephantsql/terraform-provider)
 - [Enterprise Cloud](https://github.com/nttcom/terraform-provider-ecl)
 - [ESXI](https://github.com/josenk/terraform-provider-esxi)
+- [Foreman](https://github.com/wayfair/terraform-provider-foreman)
 - [Gandi](https://github.com/tiramiseb/terraform-provider-gandi)
 - [Generic Rest API](https://github.com/Mastercard/terraform-provider-restapi)
 - [Git](https://github.com/fourplusone/terraform-provider-git)
