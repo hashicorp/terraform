@@ -12,11 +12,17 @@ import (
 
 func TestParseVariableValuesUndeclared(t *testing.T) {
 	vv := map[string]UnparsedVariableValue{
-		"undeclared0": testUnparsedVariableValue("0"),
-		"undeclared1": testUnparsedVariableValue("1"),
-		"undeclared2": testUnparsedVariableValue("2"),
-		"undeclared3": testUnparsedVariableValue("3"),
-		"undeclared4": testUnparsedVariableValue("4"),
+		// these two shouldn't generate a diag message
+		"undeclared0": testUnparsedFileVariableValue("0"),
+		"undeclared1": testUnparsedEnvVariableValue("1"),
+		// these two should generate 2 diag messages
+		"undeclared2": testUnparsedAutoFileVariableValue("2"),
+		"undeclared3": testUnparsedConfigVariableValue("3"),
+		// add more undeclared values that generate a diag to test suppression
+		"undeclared4": testUnparsedConfigVariableValue("4"),
+		"undeclared5": testUnparsedConfigVariableValue("5"),
+		"undeclared6": testUnparsedConfigVariableValue("6"),
+		"undeclared7": testUnparsedConfigVariableValue("7"),
 	}
 	decls := map[string]*configs.Variable{}
 
@@ -45,9 +51,9 @@ func TestParseVariableValuesUndeclared(t *testing.T) {
 	}
 }
 
-type testUnparsedVariableValue string
+type testUnparsedFileVariableValue string
 
-func (v testUnparsedVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
+func (v testUnparsedFileVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
 	return &terraform.InputValue{
 		Value:      cty.StringVal(string(v)),
 		SourceType: terraform.ValueFromNamedFile,
@@ -56,5 +62,32 @@ func (v testUnparsedVariableValue) ParseVariableValue(mode configs.VariableParsi
 			Start:    tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
 			End:      tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
 		},
+	}, nil
+}
+
+type testUnparsedEnvVariableValue string
+
+func (v testUnparsedEnvVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
+	return &terraform.InputValue{
+		Value:      cty.StringVal(string(v)),
+		SourceType: terraform.ValueFromEnvVar,
+	}, nil
+}
+
+type testUnparsedAutoFileVariableValue string
+
+func (v testUnparsedAutoFileVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
+	return &terraform.InputValue{
+		Value:      cty.StringVal(string(v)),
+		SourceType: terraform.ValueFromAutoFile,
+	}, nil
+}
+
+type testUnparsedConfigVariableValue string
+
+func (v testUnparsedConfigVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
+	return &terraform.InputValue{
+		Value:      cty.StringVal(string(v)),
+		SourceType: terraform.ValueFromConfig,
 	}, nil
 }

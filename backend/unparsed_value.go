@@ -51,7 +51,7 @@ func ParseVariableValues(vv map[string]UnparsedVariableValue, decls map[string]*
 
 		if !declared {
 			switch val.SourceType {
-			case terraform.ValueFromConfig, terraform.ValueFromAutoFile, terraform.ValueFromNamedFile:
+			case terraform.ValueFromConfig, terraform.ValueFromAutoFile:
 				// These source types have source ranges, so we can produce
 				// a nice error message with good context.
 				//
@@ -72,9 +72,9 @@ func ParseVariableValues(vv map[string]UnparsedVariableValue, decls map[string]*
 				}
 				seenUndeclaredInFile++
 
-			case terraform.ValueFromEnvVar:
+			case terraform.ValueFromEnvVar, terraform.ValueFromNamedFile:
 				// We allow and ignore undeclared names for environment
-				// variables, because users will often set these globally
+				// variables and those set in named files, because users will often set these globally
 				// when they are used across many (but not necessarily all)
 				// configurations.
 			case terraform.ValueFromCLIArg:
