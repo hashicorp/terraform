@@ -65,6 +65,19 @@ The following configuration options are supported:
  * `password` - (Optional) The Password to login with. If omitted, the
    `OS_PASSWORD` environment variable is used.
 
+ * `application_credential_id` - (Optional) (Identity v3 only) The ID of an
+    application credential to authenticate with. An
+    `application_credential_secret` has to bet set along with this parameter.
+
+ * `application_credential_name` - (Optional) (Identity v3 only) The name of an
+    application credential to authenticate with. Conflicts with the
+    `application_credential_name`, requires `user_id`, or `user_name` and
+    `domain_name` (or `domain_id`) to be set.
+
+ * `application_credential_secret` - (Optional) (Identity v3 only) The secret of an
+    application credential to authenticate with. Required by
+    `application_credential_id` or `application_credential_name`.
+
  * `token` - (Optional) Access token to login with instead of user and password.
     If omitted, the `OS_AUTH_TOKEN` variable is used.
 
