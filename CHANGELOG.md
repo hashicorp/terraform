@@ -1,27 +1,27 @@
-## 0.12.2 (Unreleased)
+## 0.12.2 (June 12, 2019)
 
 NEW FEATURES:
 
-* provisioners: new provisioner: `puppet` [GH-18851]
-* `range` function for generating a sequence of numbers as a list [GH-21461]
-* `yamldecode` and *experimental* `yamlencode` functions for working with YAML-serialized data [GH-21459]
-* `uuidv5` function for generating name-based (as opposed to pseudorandom) UUIDs [GH-21244]
-* backend/oss: Add support for Alibaba OSS remote state [GH-16927]
+* provisioners: new provisioner: `puppet` ([#18851](https://github.com/hashicorp/terraform/issues/18851))
+* `range` function for generating a sequence of numbers as a list ([#21461](https://github.com/hashicorp/terraform/issues/21461))
+* `yamldecode` and *experimental* `yamlencode` functions for working with YAML-serialized data ([#21459](https://github.com/hashicorp/terraform/issues/21459))
+* `uuidv5` function for generating name-based (as opposed to pseudorandom) UUIDs ([#21244](https://github.com/hashicorp/terraform/issues/21244))
+* backend/oss: Add support for Alibaba OSS remote state ([#16927](https://github.com/hashicorp/terraform/issues/16927))
 
 ENHANCEMENTS:
 
-* config: consider build metadata when interpreting module versions [GH-21640]
-* backend/http: implement retries for the http backend [GH-19702]
-* backend/swift: authentication mechanisms now more consistent with other OpenStack-compatible tools [GH-18671]
+* config: consider build metadata when interpreting module versions ([#21640](https://github.com/hashicorp/terraform/issues/21640))
+* backend/http: implement retries for the http backend ([#19702](https://github.com/hashicorp/terraform/issues/19702))
+* backend/swift: authentication mechanisms now more consistent with other OpenStack-compatible tools ([#18671](https://github.com/hashicorp/terraform/issues/18671))
 
 BUG FIXES:
 
-* command/show: use the state snapshot included in the planfile when rendering a plan to json [GH-21597]
-* config: Fix issue with empty dynamic blocks failing when usign ConfigModeAttr [GH-21549]
-* core: Re-validate resource config during final plan [GH-21555]
-* core: Fix missing resource timeouts during destroy [GH-21611]
-* core: Don't panic when encountering an invalid `depends_on` [GH-21590]
-* backend: Fix panic when upgrading from a state with a hash value greater than MaxInt [GH-21484]
+* command/show: use the state snapshot included in the planfile when rendering a plan to json ([#21597](https://github.com/hashicorp/terraform/issues/21597))
+* config: Fix issue with empty dynamic blocks failing when usign ConfigModeAttr ([#21549](https://github.com/hashicorp/terraform/issues/21549))
+* core: Re-validate resource config during final plan ([#21555](https://github.com/hashicorp/terraform/issues/21555))
+* core: Fix missing resource timeouts during destroy ([#21611](https://github.com/hashicorp/terraform/issues/21611))
+* core: Don't panic when encountering an invalid `depends_on` ([#21590](https://github.com/hashicorp/terraform/issues/21590))
+* backend: Fix panic when upgrading from a state with a hash value greater than MaxInt ([#21484](https://github.com/hashicorp/terraform/issues/21484))
 
 ## 0.12.1 (June 3, 2019)
 
