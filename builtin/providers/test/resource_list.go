@@ -95,7 +95,19 @@ func testResourceList() *schema.Resource {
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
-
+			"min_items": {
+				Type:     schema.TypeList,
+				Optional: true,
+				MinItems: 2,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"val": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+			},
 			"never_set": {
 				Type:     schema.TypeList,
 				MaxItems: 1,

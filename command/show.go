@@ -115,7 +115,7 @@ func (c *ShowCommand) Run(args []string) int {
 	// if that fails, try to read the cli argument as a path to a statefile
 	if len(args) > 0 {
 		path := args[0]
-		plan, planErr = getPlanFromPath(path)
+		plan, stateFile, planErr = getPlanFromPath(path)
 		if planErr != nil {
 			stateFile, stateErr = getStateFromPath(path)
 			if stateErr != nil {
@@ -129,9 +129,7 @@ func (c *ShowCommand) Run(args []string) int {
 				return 1
 			}
 		}
-	}
-
-	if stateFile == nil {
+	} else {
 		env := c.Workspace()
 		stateFile, stateErr = getStateFromEnv(b, env)
 		if err != nil {
@@ -143,29 +141,7 @@ func (c *ShowCommand) Run(args []string) int {
 	if plan != nil {
 		if jsonOutput == true {
 			config := ctx.Config()
-
-			var err error
-			var jsonPlan []byte
-
-			// If there is no prior state, we have all the schemas needed.
-			if stateFile == nil {
-				jsonPlan, err = jsonplan.Marshal(config, plan, stateFile, schemas, nil)
-			} else {
-				// If there is state, we need the state-specific schemas, which
-				// may differ from the schemas loaded from the plan.
-				// This occurs if there is a data_source in the state that was
-				// removed from the configuration, because terraform core does
-				// not need to load the schema to remove a data source.
-				opReq.PlanFile = nil
-				ctx, _, ctxDiags := local.Context(opReq)
-				diags = diags.Append(ctxDiags)
-				if ctxDiags.HasErrors() {
-					c.showDiagnostics(diags)
-					return 1
-				}
-				stateSchemas := ctx.Schemas()
-				jsonPlan, err = jsonplan.Marshal(config, plan, stateFile, schemas, stateSchemas)
-			}
+			jsonPlan, err := jsonplan.Marshal(config, plan, stateFile, schemas)
 
 			if err != nil {
 				c.Ui.Error(fmt.Sprintf("Failed to marshal plan to json: %s", err))
@@ -224,19 +200,21 @@ func (c *ShowCommand) Synopsis() string {
 	return "Inspect Terraform state or plan"
 }
 
-// getPlanFromPath returns a plan if the user-supplied path points to a planfile.
-// If both plan and error are nil, the path is likely a directory.
-// An error could suggest that the given path points to a statefile.
-func getPlanFromPath(path string) (*plans.Plan, error) {
+// getPlanFromPath returns a plan and statefile if the user-supplied path points
+// to a planfile. If both plan and error are nil, the path is likely a
+// directory. An error could suggest that the given path points to a statefile.
+func getPlanFromPath(path string) (*plans.Plan, *statefile.File, error) {
 	pr, err := planfile.Open(path)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	plan, err := pr.ReadPlan()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return plan, nil
+
+	stateFile, err := pr.ReadStateFile()
+	return plan, stateFile, nil
 }
 
 // getStateFromPath returns a statefile if the user-supplied path points to a statefile.
