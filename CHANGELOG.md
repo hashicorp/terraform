@@ -15,6 +15,7 @@ ENHANCEMENTS:
 * config: consider build metadata when interpreting module versions ([#21640](https://github.com/hashicorp/terraform/issues/21640))
 * backend/http: implement retries for the http backend ([#19702](https://github.com/hashicorp/terraform/issues/19702))
 * backend/swift: authentication mechanisms now more consistent with other OpenStack-compatible tools ([#18671](https://github.com/hashicorp/terraform/issues/18671))
+* backend/swift: add application credential support ([#20914](https://github.com/hashicorp/terraform/pull/20914))
 
 BUG FIXES:
 
