@@ -150,6 +150,11 @@ to downloading a new version. To upgrade to the latest acceptable version
 of each provider, run `terraform init -upgrade`. This command also upgrades
 to the latest versions of all Terraform modules.
 
+Additional provider version requirements can be specified in the 
+[`required_providers`](/docs/configuration/terraform.html#specifying-required-provider-versions)
+block inside the `terraform` configuration. Constraints are combined together
+using logical AND.
+
 ## `alias`: Multiple Provider Instances
 
 [inpage-alias]: #alias-multiple-provider-instances
