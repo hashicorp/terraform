@@ -41,6 +41,27 @@ func New() backend.Backend {
 				Description: descriptions["user_name"],
 			},
 
+			"application_credential_id": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("OS_APPLICATION_CREDENTIAL_ID", ""),
+				Description: descriptions["application_credential_id"],
+			},
+
+			"application_credential_name": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("OS_APPLICATION_CREDENTIAL_NAME", ""),
+				Description: descriptions["application_credential_name"],
+			},
+
+			"application_credential_secret": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("OS_APPLICATION_CREDENTIAL_SECRET", ""),
+				Description: descriptions["application_credential_secret"],
+			},
+
 			"tenant_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -234,6 +255,12 @@ func init() {
 
 		"user_id": "User ID to login with.",
 
+		"application_credential_id": "Application Credential ID to login with.",
+
+		"application_credential_name": "Application Credential name to login with.",
+
+		"application_credential_secret": "Application Credential secret to login with.",
+
 		"tenant_id": "The ID of the Tenant (Identity v2) or Project (Identity v3)\n" +
 			"to login with.",
 
@@ -304,25 +331,28 @@ func (b *Backend) configure(ctx context.Context) error {
 	// Grab the resource data
 	data := schema.FromContextBackendConfig(ctx)
 	config := &tf_openstack.Config{
-		CACertFile:        data.Get("cacert_file").(string),
-		ClientCertFile:    data.Get("cert").(string),
-		ClientKeyFile:     data.Get("key").(string),
-		Cloud:             data.Get("cloud").(string),
-		DefaultDomain:     data.Get("default_domain").(string),
-		DomainID:          data.Get("domain_id").(string),
-		DomainName:        data.Get("domain_name").(string),
-		EndpointType:      data.Get("endpoint_type").(string),
-		IdentityEndpoint:  data.Get("auth_url").(string),
-		Password:          data.Get("password").(string),
-		ProjectDomainID:   data.Get("project_domain_id").(string),
-		ProjectDomainName: data.Get("project_domain_name").(string),
-		Token:             data.Get("token").(string),
-		TenantID:          data.Get("tenant_id").(string),
-		TenantName:        data.Get("tenant_name").(string),
-		UserDomainID:      data.Get("user_domain_id").(string),
-		UserDomainName:    data.Get("user_domain_name").(string),
-		Username:          data.Get("user_name").(string),
-		UserID:            data.Get("user_id").(string),
+		CACertFile:                  data.Get("cacert_file").(string),
+		ClientCertFile:              data.Get("cert").(string),
+		ClientKeyFile:               data.Get("key").(string),
+		Cloud:                       data.Get("cloud").(string),
+		DefaultDomain:               data.Get("default_domain").(string),
+		DomainID:                    data.Get("domain_id").(string),
+		DomainName:                  data.Get("domain_name").(string),
+		EndpointType:                data.Get("endpoint_type").(string),
+		IdentityEndpoint:            data.Get("auth_url").(string),
+		Password:                    data.Get("password").(string),
+		ProjectDomainID:             data.Get("project_domain_id").(string),
+		ProjectDomainName:           data.Get("project_domain_name").(string),
+		Token:                       data.Get("token").(string),
+		TenantID:                    data.Get("tenant_id").(string),
+		TenantName:                  data.Get("tenant_name").(string),
+		UserDomainID:                data.Get("user_domain_id").(string),
+		UserDomainName:              data.Get("user_domain_name").(string),
+		Username:                    data.Get("user_name").(string),
+		UserID:                      data.Get("user_id").(string),
+		ApplicationCredentialID:     data.Get("application_credential_id").(string),
+		ApplicationCredentialName:   data.Get("application_credential_name").(string),
+		ApplicationCredentialSecret: data.Get("application_credential_secret").(string),
 	}
 
 	if v, ok := data.GetOkExists("insecure"); ok {
