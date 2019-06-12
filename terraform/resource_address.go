@@ -365,6 +365,8 @@ func NewLegacyResourceInstanceAddress(addr addrs.AbsResourceInstance) *ResourceA
 		ret.Index = -1
 	} else if ik, ok := addr.Resource.Key.(addrs.IntKey); ok {
 		ret.Index = int(ik)
+	} else if _, ok := addr.Resource.Key.(addrs.StringKey); ok {
+		ret.Index = -1
 	} else {
 		panic(fmt.Errorf("cannot shim resource instance with key %#v to legacy ResourceAddress.Index", addr.Resource.Key))
 	}
