@@ -10,8 +10,9 @@ NEW FEATURES:
 
 ENHANCEMENTS:
 
-* backend/http: implement retries for the http backend [GH-19702]
 * config: consider build metadata when interpreting module versions [GH-21640]
+* backend/http: implement retries for the http backend [GH-19702]
+* backend/swift: authentication mechanisms now more consistent with other OpenStack-compatible tools [GH-18671]
 
 BUG FIXES:
 
