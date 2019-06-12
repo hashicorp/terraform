@@ -328,19 +328,17 @@ provider "aws" {
 Each resource should then have its own `provider` attribute set to either
 `"aws.src"` or `"aws.dst"` to choose which of the two provider instances to use.
 
-At this time it is required to write an explicit proxy configuration block
-even for default (un-aliased) provider configurations when they will be passed
-via an explicit `providers` block:
+A proxy configuration block is one that is either completely empty or that
+contains only the `alias` argument. It serves as a placeholder for
+provider configurations passed between modules. Although an empty proxy
+configuration block is valid, it is not necessary: proxy configuration blocks
+are needed only to establish which _alias_ provider configurations a child
+module is expecting.
 
-```hcl
-provider "aws" {
-}
-```
-
-If such a block is not present, the child module will behave as if it has no
-configurations of this type at all, which may cause input prompts to supply
-any required provider configuration arguments. This limitation will be
-addressed in a future version of Terraform.
+A proxy configuration block must not include the `version` argument. To specify
+version constraints for a particular child module without creating a local
+module configuration, use the [`required_providers`](/docs/configuration/terraform.html#specifying-required-provider-versions)
+setting inside a `terraform` block.
 
 ## Multiple Instances of a Module
 
