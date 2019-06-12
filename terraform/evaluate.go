@@ -120,20 +120,24 @@ type InstanceKeyEvalData struct {
 
 // EvalDataForInstanceKey constructs a suitable InstanceKeyEvalData for
 // evaluating in a context that has the given instance key.
-func EvalDataForInstanceKey(key addrs.InstanceKey) InstanceKeyEvalData {
-	// At the moment we don't actually implement for_each, so we only
-	// ever populate CountIndex.
-	// (When we implement for_each later we may need to reorganize this some,
-	// so that we can resolve the ambiguity that an int key may either be
-	// a count.index or an each.key where for_each is over a list.)
-
+func EvalDataForInstanceKey(key addrs.InstanceKey, forEachMap map[string]cty.Value) InstanceKeyEvalData {
 	var countIdx cty.Value
+	var eachKey cty.Value
+	var eachVal cty.Value
+
 	if intKey, ok := key.(addrs.IntKey); ok {
 		countIdx = cty.NumberIntVal(int64(intKey))
 	}
 
+	if stringKey, ok := key.(addrs.StringKey); ok {
+		eachKey = cty.StringVal(string(stringKey))
+		eachVal = forEachMap[string(stringKey)]
+	}
+
 	return InstanceKeyEvalData{
 		CountIndex: countIdx,
+		EachKey:    eachKey,
+		EachValue:  eachVal,
 	}
 }
 
@@ -171,6 +175,37 @@ func (d *evaluationStateData) GetCountAttr(addr addrs.CountAttr, rng tfdiags.Sou
 		})
 		return cty.DynamicVal, diags
 	}
+}
+
+func (d *evaluationStateData) GetForEachAttr(addr addrs.ForEachAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	var returnVal cty.Value
+	switch addr.Name {
+
+	case "key":
+		returnVal = d.InstanceKeyData.EachKey
+	case "value":
+		returnVal = d.InstanceKeyData.EachValue
+	default:
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  `Invalid "each" attribute`,
+			Detail:   fmt.Sprintf(`The "each" object does not have an attribute named %q. The supported attributes are each.key and each.value, the current key and value pair of the "for_each" attribute set.`, addr.Name),
+			Subject:  rng.ToHCL().Ptr(),
+		})
+		return cty.DynamicVal, diags
+	}
+
+	if returnVal == cty.NilVal {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  `Reference to "each" in context without for_each`,
+			Detail:   fmt.Sprintf(`The "each" object can be used only in "resource" blocks, and only when the "for_each" argument is set.`),
+			Subject:  rng.ToHCL().Ptr(),
+		})
+		return cty.UnknownVal(cty.DynamicPseudoType), diags
+	}
+	return returnVal, diags
 }
 
 func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
@@ -569,7 +604,7 @@ func (d *evaluationStateData) GetResourceInstance(addr addrs.ResourceInstance, r
 		}
 	case states.EachMap:
 		multi = key == addrs.NoKey
-		if _, ok := addr.Key.(addrs.IntKey); !multi && !ok {
+		if _, ok := addr.Key.(addrs.StringKey); !multi && !ok {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid resource index",

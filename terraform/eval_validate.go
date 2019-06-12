@@ -370,6 +370,17 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 		diags = diags.Append(countDiags)
 	}
 
+	if n.Config.ForEach != nil {
+		keyData = InstanceKeyEvalData{
+			EachKey:   cty.UnknownVal(cty.String),
+			EachValue: cty.UnknownVal(cty.DynamicPseudoType),
+		}
+
+		// Evaluate the for_each expression here so we can expose the diagnostics
+		_, forEachDiags := evaluateResourceForEachExpression(n.Config.ForEach, ctx)
+		diags = diags.Append(forEachDiags)
+	}
+
 	for _, traversal := range n.Config.DependsOn {
 		ref, refDiags := addrs.ParseRef(traversal)
 		diags = diags.Append(refDiags)
