@@ -20,8 +20,9 @@ func NewTerraformfile() (*Terraformfile, error) {
 	tfilepathenv := os.Getenv("TERRAFORMFILE_PATH")
 	if tfilepathenv != "" {
 		tfilepath = tfilepathenv
+	} else {
+		tfilepath = "./Terraformfile"
 	}
-	tfilepath = "./Terraformfile"
 
 	tfiledata, err := ioutil.ReadFile(tfilepath)
 	if err != nil {
