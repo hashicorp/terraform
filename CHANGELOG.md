@@ -17,6 +17,9 @@ ENHANCEMENTS:
 BUG FIXES:
 
 * command/show: use the state snapshot included in the planfile when rendering a plan to json [GH-21597]
+* config: Fix issue with empty dynamic blocks failing when usign ConfigModeAttr [GH-21549]
+* core: Re-validate resource config during final plan [GH-21555]
+* core: Fix missing resource timeouts during destroy [GH-21611]
 * core: Don't panic when encountering an invalid `depends_on` [GH-21590]
 * backend: Fix panic when upgrading from a state with a hash value greater than MaxInt [GH-21484]
 
