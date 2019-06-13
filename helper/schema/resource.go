@@ -387,6 +387,16 @@ func (r *Resource) ReadDataApply(
 		return nil, err
 	}
 
+	// Instance Diff shoould have the timeout info, need to copy it over to the
+	// ResourceData meta
+	rt := ResourceTimeout{}
+	if _, ok := d.Meta[TimeoutKey]; ok {
+		if err := rt.DiffDecode(d); err != nil {
+			log.Printf("[ERR] Error decoding ResourceTimeout: %s", err)
+		}
+	}
+	data.timeouts = &rt
+
 	err = r.Read(data, meta)
 	state := data.State()
 	if state != nil && state.ID == "" {
