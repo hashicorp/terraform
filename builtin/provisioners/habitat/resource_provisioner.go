@@ -5,17 +5,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
-	"net/url"
-	"path"
-	"strings"
-	"text/template"
-
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/communicator/remote"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 	"github.com/hashicorp/terraform/terraform"
-	linereader "github.com/mitchellh/go-linereader"
+	"github.com/mitchellh/go-linereader"
+	"io"
+	"net/url"
+	"path"
+	"path/filepath"
+	"strings"
+	"text/template"
 )
 
 const installURL = "https://raw.githubusercontent.com/habitat-sh/habitat/master/components/hab/install.sh"
@@ -26,29 +27,34 @@ Description=Habitat Supervisor
 [Service]
 ExecStart=/bin/hab sup run {{ .SupOptions }}
 Restart=on-failure
+{{ if .GatewayAuthToken -}}
+Environment=HAB_SUP_GATEWAY_AUTH_TOKEN={{ .GatewayAuthToken }}
+{{ end -}}
 {{ if .BuilderAuthToken -}}
 Environment="HAB_AUTH_TOKEN={{ .BuilderAuthToken }}"
+{{ end -}}
+{{ if .License -}}
+Environment="HAB_LICENSE={{ .License }}"
 {{ end -}}
 
 [Install]
 WantedBy=default.target
 `
 
-var serviceTypes = map[string]bool{"unmanaged": true, "systemd": true}
-var updateStrategies = map[string]bool{"at-once": true, "rolling": true, "none": true}
-var topologies = map[string]bool{"leader": true, "standalone": true}
-
-type provisionFn func(terraform.UIOutput, communicator.Communicator) error
-
 type provisioner struct {
 	Version          string
+	License          string
+	AutoUpdate       bool
+	HttpDisable      bool
 	Services         []Service
 	PermanentPeer    bool
+	ListenCtl        string
 	ListenGossip     string
 	ListenHTTP       string
-	Peer             string
+	Peers            []string
 	RingKey          string
 	RingKeyContent   string
+	CtlSecret        string
 	SkipInstall      bool
 	UseSudo          bool
 	ServiceType      string
@@ -56,8 +62,8 @@ type provisioner struct {
 	URL              string
 	Channel          string
 	Events           string
-	OverrideName     string
 	Organization     string
+	GatewayAuthToken string
 	BuilderAuthToken string
 	SupOptions       string
 }
@@ -69,14 +75,30 @@ func Provisioner() terraform.ResourceProvisioner {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"peer": &schema.Schema{
+			"license": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"service_type": &schema.Schema{
-				Type:     schema.TypeString,
+			"auto_update": &schema.Schema{
+				Type:     schema.TypeBool,
 				Optional: true,
-				Default:  "systemd",
+				Default:  false,
+			},
+			"http_disable": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+			"peers": &schema.Schema{
+				Type:     schema.TypeList,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Optional: true,
+			},
+			"service_type": &schema.Schema{
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "systemd",
+				ValidateFunc: validation.StringInSlice([]string{"systemd", "unmanaged"}, false),
 			},
 			"service_name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -92,6 +114,10 @@ func Provisioner() terraform.ResourceProvisioner {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
+			},
+			"listen_ctl": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 			"listen_gossip": &schema.Schema{
 				Type:     schema.TypeString,
@@ -109,9 +135,20 @@ func Provisioner() terraform.ResourceProvisioner {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"ctl_secret": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"url": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				ValidateFunc: func(val interface{}, key string) (warns []string, errs []error) {
+					_, err := url.Parse(val.(string))
+					if err != nil {
+						errs = append(errs, err)
+					}
+					return warns, errs
+				},
 			},
 			"channel": &schema.Schema{
 				Type:     schema.TypeString,
@@ -121,11 +158,11 @@ func Provisioner() terraform.ResourceProvisioner {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"override_name": &schema.Schema{
+			"organization": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"organization": &schema.Schema{
+			"gateway_auth_token": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 			},
@@ -167,19 +204,20 @@ func Provisioner() terraform.ResourceProvisioner {
 							Optional: true,
 						},
 						"topology": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: validation.StringInSlice([]string{"leader", "standalone"}, false),
 						},
 						"user_toml": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 						"strategy": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: validation.StringInSlice([]string{"none", "rolling", "at-once"}, false),
 						},
 						"channel": &schema.Schema{
-
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -190,16 +228,19 @@ func Provisioner() terraform.ResourceProvisioner {
 						"url": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+							ValidateFunc: func(val interface{}, key string) (warns []string, errs []error) {
+								_, err := url.Parse(val.(string))
+								if err != nil {
+									errs = append(errs, err)
+								}
+								return warns, errs
+							},
 						},
 						"application": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 						"environment": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-						"override_name": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -258,6 +299,13 @@ func applyFn(ctx context.Context) error {
 		}
 	}
 
+	if p.CtlSecret != "" {
+		o.Output("Uploading ctl secret...")
+		if err := p.uploadCtlSecret(o, comm); err != nil {
+			return err
+		}
+	}
+
 	o.Output("Starting the habitat supervisor...")
 	if err := p.startHab(o, comm); err != nil {
 		return err
@@ -276,42 +324,22 @@ func applyFn(ctx context.Context) error {
 }
 
 func validateFn(c *terraform.ResourceConfig) (ws []string, es []error) {
-	serviceType, ok := c.Get("service_type")
-	if ok {
-		if !serviceTypes[serviceType.(string)] {
-			es = append(es, errors.New(serviceType.(string)+" is not a valid service_type."))
-		}
-	}
+	//ringKey, ok := c.Get("ring_key")
+	//if ok && ringKey != "" && ringKey != hcl2shim.UnknownVariableValue {
+	//	ringKeyContent, ringKeyContentOk := c.Get("ring_key_content")
+	//	if ringKeyContentOk && ringKeyContent == "" {
+	//		es = append(es, errors.New("if ring_key is specified, ring_key_content must also be specified"))
+	//	}
+	//}
+	//
+	//ringKeyContent, ok := c.Get("ring_key_content")
+	//if ok && ringKeyContent != "" && ringKeyContent != hcl2shim.UnknownVariableValue {
+	//	ringKey, ringOk := c.Get("ring_key")
+	//	if ringOk && ringKey == "" {
+	//		es = append(es, errors.New("if ring_key_content is specified, ring_key must also be specified"))
+	//	}
+	//}
 
-	builderURL, ok := c.Get("url")
-	if ok {
-		if _, err := url.ParseRequestURI(builderURL.(string)); err != nil {
-			es = append(es, errors.New(builderURL.(string)+" is not a valid URL."))
-		}
-	}
-
-	// Validate service level configs
-	services, ok := c.Get("service")
-	if ok {
-		for _, service := range services.([]map[string]interface{}) {
-			strategy, ok := service["strategy"].(string)
-			if ok && !updateStrategies[strategy] {
-				es = append(es, errors.New(strategy+" is not a valid update strategy."))
-			}
-
-			topology, ok := service["topology"].(string)
-			if ok && !topologies[topology] {
-				es = append(es, errors.New(topology+" is not a valid topology"))
-			}
-
-			builderURL, ok := service["url"].(string)
-			if ok {
-				if _, err := url.ParseRequestURI(builderURL); err != nil {
-					es = append(es, errors.New(builderURL+" is not a valid URL."))
-				}
-			}
-		}
-	}
 	return ws, es
 }
 
@@ -327,7 +355,6 @@ type Service struct {
 	UserTOML        string
 	AppName         string
 	Environment     string
-	OverrideName    string
 	ServiceGroupKey string
 }
 
@@ -348,25 +375,38 @@ func (b *Bind) toBindString() string {
 func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 	p := &provisioner{
 		Version:          d.Get("version").(string),
-		Peer:             d.Get("peer").(string),
+		License:          d.Get("license").(string),
+		AutoUpdate:       d.Get("auto_update").(bool),
+		HttpDisable:      d.Get("http_disable").(bool),
+		Peers:            getPeers(d.Get("peers").([]interface{})),
 		Services:         getServices(d.Get("service").(*schema.Set).List()),
 		UseSudo:          d.Get("use_sudo").(bool),
 		ServiceType:      d.Get("service_type").(string),
 		ServiceName:      d.Get("service_name").(string),
 		RingKey:          d.Get("ring_key").(string),
 		RingKeyContent:   d.Get("ring_key_content").(string),
+		CtlSecret:        d.Get("ctl_secret").(string),
 		PermanentPeer:    d.Get("permanent_peer").(bool),
+		ListenCtl:        d.Get("listen_ctl").(string),
 		ListenGossip:     d.Get("listen_gossip").(string),
 		ListenHTTP:       d.Get("listen_http").(string),
 		URL:              d.Get("url").(string),
 		Channel:          d.Get("channel").(string),
 		Events:           d.Get("events").(string),
-		OverrideName:     d.Get("override_name").(string),
 		Organization:     d.Get("organization").(string),
 		BuilderAuthToken: d.Get("builder_auth_token").(string),
+		GatewayAuthToken: d.Get("gateway_auth_token").(string),
 	}
 
 	return p, nil
+}
+
+func getPeers(v []interface{}) []string {
+	peers := make([]string, 0, len(v))
+	for _, rawPeerData := range v {
+		peers = append(peers, rawPeerData.(string))
+	}
+	return peers
 }
 
 func getServices(v []interface{}) []Service {
@@ -381,7 +421,6 @@ func getServices(v []interface{}) []Service {
 		url := (serviceData["url"].(string))
 		app := (serviceData["application"].(string))
 		env := (serviceData["environment"].(string))
-		override := (serviceData["override_name"].(string))
 		userToml := (serviceData["user_toml"].(string))
 		serviceGroupKey := (serviceData["service_key"].(string))
 		var bindStrings []string
@@ -406,7 +445,6 @@ func getServices(v []interface{}) []Service {
 			Binds:           binds,
 			AppName:         app,
 			Environment:     env,
-			OverrideName:    override,
 			ServiceGroupKey: serviceGroupKey,
 		}
 		services = append(services, service)
@@ -431,40 +469,55 @@ func getBinds(v []interface{}) []Bind {
 	return binds
 }
 
-func (p *provisioner) uploadRingKey(o terraform.UIOutput, comm communicator.Communicator) error {
-	command := fmt.Sprintf("echo '%s' | hab ring key import", p.RingKeyContent)
-	if p.UseSudo {
-		command = fmt.Sprintf("echo '%s' | sudo hab ring key import", p.RingKeyContent)
+func (p *provisioner) uploadCtlSecret(o terraform.UIOutput, comm communicator.Communicator) error {
+	destination := fmt.Sprintf("/hab/sup/default/CTL_SECRET")
+	// Create the destination directory
+	err := p.runCommand(o, comm, fmt.Sprintf("mkdir -p %s", filepath.Dir(destination)))
+	if err != nil {
+		return err
 	}
-	return p.runCommand(o, comm, command)
+
+	keyContent := strings.NewReader(p.CtlSecret)
+	if p.UseSudo {
+		tempPath := fmt.Sprintf("/tmp/CTL_SECRET")
+		if err := comm.Upload(tempPath, keyContent); err != nil {
+			return err
+		}
+
+		return p.runCommand(o, comm, fmt.Sprintf("mv %s %s && chown root:root %s && chmod 0600 %s", tempPath, destination, destination, destination))
+	}
+
+	return comm.Upload(destination, keyContent)
+}
+
+func (p *provisioner) uploadRingKey(o terraform.UIOutput, comm communicator.Communicator) error {
+	return p.runCommand(o, comm, fmt.Sprintf(`echo -e "%s" | hab ring key import`, p.RingKeyContent))
 }
 
 func (p *provisioner) installHab(o terraform.UIOutput, comm communicator.Communicator) error {
-	// Build the install command
-	command := fmt.Sprintf("curl -L0 %s > install.sh", installURL)
-	if err := p.runCommand(o, comm, command); err != nil {
+	// Download the hab installer
+	if err := p.runCommand(o, comm, fmt.Sprintf("curl --silent -L0 %s > install.sh", installURL)); err != nil {
 		return err
 	}
 
-	// Run the install script
+	// Run the hab install script
+	var command string
 	if p.Version == "" {
-		command = fmt.Sprintf("env HAB_NONINTERACTIVE=true bash ./install.sh ")
+		command = fmt.Sprintf("bash ./install.sh ")
 	} else {
-		command = fmt.Sprintf("env HAB_NONINTERACTIVE=true bash ./install.sh -v %s", p.Version)
-	}
-
-	if p.UseSudo {
-		command = fmt.Sprintf("sudo %s", command)
+		command = fmt.Sprintf("bash ./install.sh -v %s", p.Version)
 	}
 
 	if err := p.runCommand(o, comm, command); err != nil {
 		return err
 	}
 
+	// Create the hab user
 	if err := p.createHabUser(o, comm); err != nil {
 		return err
 	}
 
+	// Cleanup the installer
 	return p.runCommand(o, comm, fmt.Sprintf("rm -f install.sh"))
 }
 
@@ -477,20 +530,18 @@ func (p *provisioner) startHab(o terraform.UIOutput, comm communicator.Communica
 		command += fmt.Sprintf("hab install core/hab-sup/%s", p.Version)
 	}
 
-	if p.UseSudo {
-		command = fmt.Sprintf("sudo -E %s", command)
-	}
-
-	command = fmt.Sprintf("env HAB_NONINTERACTIVE=true %s", command)
-
 	if err := p.runCommand(o, comm, command); err != nil {
 		return err
 	}
 
-	// Build up sup options
+	// Build up supervisor options
 	options := ""
 	if p.PermanentPeer {
-		options += " -I"
+		options += " --permanent-peer"
+	}
+
+	if p.ListenCtl != "" {
+		options += fmt.Sprintf(" --listen-ctl %s", p.ListenCtl)
 	}
 
 	if p.ListenGossip != "" {
@@ -501,8 +552,8 @@ func (p *provisioner) startHab(o terraform.UIOutput, comm communicator.Communica
 		options += fmt.Sprintf(" --listen-http %s", p.ListenHTTP)
 	}
 
-	if p.Peer != "" {
-		options += fmt.Sprintf(" --peer %s", p.Peer)
+	if len(p.Peers) > 0 {
+		options += fmt.Sprintf(" --peer %s", strings.Join(p.Peers, " --peer "))
 	}
 
 	if p.RingKey != "" {
@@ -521,16 +572,21 @@ func (p *provisioner) startHab(o terraform.UIOutput, comm communicator.Communica
 		options += fmt.Sprintf(" --events %s", p.Events)
 	}
 
-	if p.OverrideName != "" {
-		options += fmt.Sprintf(" --override-name %s", p.OverrideName)
-	}
-
 	if p.Organization != "" {
 		options += fmt.Sprintf(" --org %s", p.Organization)
 	}
 
+	if p.HttpDisable == true {
+		options += fmt.Sprintf(" --http-disable")
+	}
+
+	if p.AutoUpdate == true {
+		options += fmt.Sprintf(" --auto-update")
+	}
+
 	p.SupOptions = options
 
+	// Start hab depending on service type
 	switch p.ServiceType {
 	case "unmanaged":
 		return p.startHabUnmanaged(o, comm, options)
@@ -541,29 +597,29 @@ func (p *provisioner) startHab(o terraform.UIOutput, comm communicator.Communica
 	}
 }
 
+// This func is a little different than the others since we need to expose HAB_AUTH_TOKEN and HAB_LICENSE to a shell
+// sub-process that's actually running the supervisor.
+// @TODO: Test further
 func (p *provisioner) startHabUnmanaged(o terraform.UIOutput, comm communicator.Communicator, options string) error {
-	// Create the sup directory for the log file
-	var command string
 	var token string
-	if p.UseSudo {
-		command = "sudo mkdir -p /hab/sup/default && sudo chmod o+w /hab/sup/default"
-	} else {
-		command = "mkdir -p /hab/sup/default && chmod o+w /hab/sup/default"
-	}
-	if err := p.runCommand(o, comm, command); err != nil {
+	var license string
+
+	// Create the sup directory for the log file
+	if err := p.runCommand(o, comm, "mkdir -p /hab/sup/default && chmod o+w /hab/sup/default"); err != nil {
 		return err
 	}
 
+	// Set HAB_AUTH_TOKEN if provided
 	if p.BuilderAuthToken != "" {
-		token = fmt.Sprintf("env HAB_AUTH_TOKEN=%s", p.BuilderAuthToken)
+		token = fmt.Sprintf("HAB_AUTH_TOKEN=%s", p.BuilderAuthToken)
 	}
 
-	if p.UseSudo {
-		command = fmt.Sprintf("(%s setsid sudo -E hab sup run %s > /hab/sup/default/sup.log 2>&1 &) ; sleep 1", token, options)
-	} else {
-		command = fmt.Sprintf("(%s setsid hab sup run %s > /hab/sup/default/sup.log 2>&1 <&1 &) ; sleep 1", token, options)
+	// Set HAB_LICENSE if provided
+	if p.License != "" {
+		license = fmt.Sprintf("HAB_LICENSE=%s", p.License)
 	}
-	return p.runCommand(o, comm, command)
+
+	return p.runCommand(o, comm, fmt.Sprintf("(env %s%s setsid hab sup run %s > /hab/sup/default/sup.log 2>&1 <&1 &) ; sleep 1", token, license, options))
 }
 
 func (p *provisioner) startHabSystemd(o terraform.UIOutput, comm communicator.Communicator, options string) error {
@@ -576,52 +632,29 @@ func (p *provisioner) startHabSystemd(o terraform.UIOutput, comm communicator.Co
 		return fmt.Errorf("Error executing %s template: %s", "hab-supervisor.service", err)
 	}
 
-	var command string
-	if p.UseSudo {
-		command = fmt.Sprintf("sudo echo '%s' | sudo tee /etc/systemd/system/%s.service > /dev/null", &buf, p.ServiceName)
-	} else {
-		command = fmt.Sprintf("echo '%s' | tee /etc/systemd/system/%s.service > /dev/null", &buf, p.ServiceName)
-	}
-
-	if err := p.runCommand(o, comm, command); err != nil {
+	if err := p.runCommand(o, comm, fmt.Sprintf(`echo -e "%s" | tee /etc/systemd/system/%s.service > /dev/null`, &buf, p.ServiceName)); err != nil {
 		return err
 	}
 
-	if p.UseSudo {
-		command = fmt.Sprintf("sudo systemctl enable hab-supervisor && sudo systemctl start hab-supervisor")
-	} else {
-		command = fmt.Sprintf("systemctl enable hab-supervisor && systemctl start hab-supervisor")
-	}
-	return p.runCommand(o, comm, command)
+	return p.runCommand(o, comm, fmt.Sprintf("systemctl enable %s && systemctl start %s", p.ServiceName, p.ServiceName))
 }
 
 func (p *provisioner) createHabUser(o terraform.UIOutput, comm communicator.Communicator) error {
-	addUser := false
+	var addUser bool
+
 	// Install busybox to get us the user tools we need
-	command := fmt.Sprintf("env HAB_NONINTERACTIVE=true hab install core/busybox")
-	if p.UseSudo {
-		command = fmt.Sprintf("sudo %s", command)
-	}
-	if err := p.runCommand(o, comm, command); err != nil {
+	if err := p.runCommand(o, comm, fmt.Sprintf("hab install core/busybox")); err != nil {
 		return err
 	}
 
 	// Check for existing hab user
-	command = fmt.Sprintf("hab pkg exec core/busybox id hab")
-	if p.UseSudo {
-		command = fmt.Sprintf("sudo %s", command)
-	}
-	if err := p.runCommand(o, comm, command); err != nil {
+	if err := p.runCommand(o, comm, fmt.Sprintf("hab pkg exec core/busybox id hab")); err != nil {
 		o.Output("No existing hab user detected, creating...")
 		addUser = true
 	}
 
 	if addUser {
-		command = fmt.Sprintf("hab pkg exec core/busybox adduser -D -g \"\" hab")
-		if p.UseSudo {
-			command = fmt.Sprintf("sudo %s", command)
-		}
-		return p.runCommand(o, comm, command)
+		return p.runCommand(o, comm, fmt.Sprintf("hab pkg exec core/busybox adduser -D -g \"\" hab"))
 	}
 
 	return nil
@@ -631,8 +664,8 @@ func (p *provisioner) createHabUser(o terraform.UIOutput, comm communicator.Comm
 // available. Until then we install here to provide output and a noisy failure mechanism because
 // if you install with the pkg load, it occurs asynchronously and fails quietly.
 func (p *provisioner) installHabPackage(o terraform.UIOutput, comm communicator.Communicator, service Service) error {
-	var command string
-	options := ""
+	var options string
+
 	if service.Channel != "" {
 		options += fmt.Sprintf(" --channel %s", service.Channel)
 	}
@@ -640,20 +673,13 @@ func (p *provisioner) installHabPackage(o terraform.UIOutput, comm communicator.
 	if service.URL != "" {
 		options += fmt.Sprintf(" --url %s", service.URL)
 	}
-	if p.UseSudo {
-		command = fmt.Sprintf("env HAB_NONINTERACTIVE=true sudo -E hab pkg install %s %s", service.Name, options)
-	} else {
-		command = fmt.Sprintf("env HAB_NONINTERACTIVE=true hab pkg install %s %s", service.Name, options)
-	}
 
-	if p.BuilderAuthToken != "" {
-		command = fmt.Sprintf("env HAB_AUTH_TOKEN=%s %s", p.BuilderAuthToken, command)
-	}
-	return p.runCommand(o, comm, command)
+	return p.runCommand(o, comm, fmt.Sprintf("hab pkg install %s %s", service.Name, options))
 }
 
 func (p *provisioner) startHabService(o terraform.UIOutput, comm communicator.Communicator, service Service) error {
-	var command string
+	var options string
+
 	if err := p.installHabPackage(o, comm, service); err != nil {
 		return err
 	}
@@ -663,10 +689,12 @@ func (p *provisioner) startHabService(o terraform.UIOutput, comm communicator.Co
 
 	// Upload service group key
 	if service.ServiceGroupKey != "" {
-		p.uploadServiceGroupKey(o, comm, service.ServiceGroupKey)
+		err := p.uploadServiceGroupKey(o, comm, service.ServiceGroupKey)
+		if err != nil {
+			return err
+		}
 	}
 
-	options := ""
 	if service.Topology != "" {
 		options += fmt.Sprintf(" --topology %s", service.Topology)
 	}
@@ -690,14 +718,8 @@ func (p *provisioner) startHabService(o terraform.UIOutput, comm communicator.Co
 	for _, bind := range service.Binds {
 		options += fmt.Sprintf(" --bind %s", bind.toBindString())
 	}
-	command = fmt.Sprintf("hab svc load %s %s", service.Name, options)
-	if p.UseSudo {
-		command = fmt.Sprintf("sudo -E %s", command)
-	}
-	if p.BuilderAuthToken != "" {
-		command = fmt.Sprintf("env HAB_AUTH_TOKEN=%s %s", p.BuilderAuthToken, command)
-	}
-	return p.runCommand(o, comm, command)
+
+	return p.runCommand(o, comm, fmt.Sprintf("hab svc load %s %s", service.Name, options))
 }
 
 func (p *provisioner) uploadServiceGroupKey(o terraform.UIOutput, comm communicator.Communicator, key string) error {
@@ -711,8 +733,8 @@ func (p *provisioner) uploadServiceGroupKey(o terraform.UIOutput, comm communica
 		if err := comm.Upload(tempPath, keyContent); err != nil {
 			return err
 		}
-		command := fmt.Sprintf("sudo mv %s %s", tempPath, destPath)
-		return p.runCommand(o, comm, command)
+
+		return p.runCommand(o, comm, fmt.Sprintf("mv %s %s", tempPath, destPath))
 	}
 
 	return comm.Upload(destPath, keyContent)
@@ -721,11 +743,8 @@ func (p *provisioner) uploadServiceGroupKey(o terraform.UIOutput, comm communica
 func (p *provisioner) uploadUserTOML(o terraform.UIOutput, comm communicator.Communicator, service Service) error {
 	// Create the hab svc directory to lay down the user.toml before loading the service
 	o.Output("Uploading user.toml for service: " + service.Name)
-	destDir := fmt.Sprintf("/hab/svc/%s", service.getPackageName(service.Name))
+	destDir := fmt.Sprintf("/hab/user/%s/config", service.getPackageName(service.Name))
 	command := fmt.Sprintf("mkdir -p %s", destDir)
-	if p.UseSudo {
-		command = fmt.Sprintf("sudo %s", command)
-	}
 	if err := p.runCommand(o, comm, command); err != nil {
 		return err
 	}
@@ -736,7 +755,7 @@ func (p *provisioner) uploadUserTOML(o terraform.UIOutput, comm communicator.Com
 		if err := comm.Upload("/tmp/user.toml", userToml); err != nil {
 			return err
 		}
-		command = fmt.Sprintf("sudo mv /tmp/user.toml %s", destDir)
+		command = fmt.Sprintf("mv /tmp/user.toml %s", destDir)
 		return p.runCommand(o, comm, command)
 	}
 
@@ -752,6 +771,25 @@ func (p *provisioner) copyOutput(o terraform.UIOutput, r io.Reader) {
 }
 
 func (p *provisioner) runCommand(o terraform.UIOutput, comm communicator.Communicator, command string) error {
+	// Always set HAB_NONINTERACTIVE
+	env := fmt.Sprintf("env HAB_NONINTERACTIVE=true")
+
+	// Set license acceptance
+	if p.License != "" {
+		env += fmt.Sprintf(" HAB_LICENSE=%s", p.License)
+	}
+
+	// Set builder auth token
+	if p.BuilderAuthToken != "" {
+		env += fmt.Sprintf(" HAB_AUTH_TOKEN=%s", p.BuilderAuthToken)
+	}
+
+	if p.UseSudo {
+		command = fmt.Sprintf("%s sudo -E /bin/bash -c '%s'", env, command)
+	} else {
+		command = fmt.Sprintf("%s /bin/bash -c '%s'", env, command)
+	}
+
 	outR, outW := io.Pipe()
 	errR, errW := io.Pipe()
 
