@@ -55,7 +55,7 @@ However, in some cases existing provider features were relying on the
 conflation of these two concepts in the language of Terraform v0.11 and earlier,
 using nested block syntax in most cases but using argument syntax to represent
 explicitly the idea of removing all existing objects of that type, since the
-absense of any blocks was interpreted as "ignore any existing objects".
+absence of any blocks was interpreted as "ignore any existing objects".
 
 The information on this page only applies to certain special arguments that
 were relying on this usage pattern prior to Terraform v0.12. The documentation
