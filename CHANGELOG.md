@@ -1,5 +1,9 @@
 ## 0.12.3 (Unreleased)
 
+ENHANCEMENTS:
+
+* config: add GCS source support for modules [GH-21254]
+
 ## 0.12.2 (June 12, 2019)
 
 NEW FEATURES:
