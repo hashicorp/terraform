@@ -55,7 +55,7 @@ down to see all providers.
 - [FlexibleEngine](/docs/providers/flexibleengine/index.html)
 - [FortiOS](/docs/providers/fortios/index.html)
 - [GitHub](/docs/providers/github/index.html)
-- [Gitlab](/docs/providers/gitlab/index.html)
+- [GitLab](/docs/providers/gitlab/index.html)
 - [Google Cloud Platform](/docs/providers/google/index.html)
 - [Grafana](/docs/providers/grafana/index.html)
 - [Gridscale](/docs/providers/gridscale)
