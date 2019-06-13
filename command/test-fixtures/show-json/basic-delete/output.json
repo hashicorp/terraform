@@ -48,10 +48,7 @@
                     "ami": "bar",
                     "id": "placeholder"
                 },
-                "after_unknown": {
-                    "ami": false,
-                    "id": false
-                }
+                "after_unknown": {}
             }
         },
         {
@@ -69,7 +66,7 @@
                     "id": "placeholder"
                 },
                 "after": null,
-                "after_unknown": false
+                "after_unknown": {}
             }
         }
     ],
@@ -85,8 +82,13 @@
     },
     "prior_state": {
         "format_version": "0.1",
-        "terraform_version": "0.12.0",
         "values": {
+            "outputs": {
+                "test": {
+                    "sensitive": false,
+                    "value": "bar"
+                }
+            },
             "root_module": {
                 "resources": [
                     {

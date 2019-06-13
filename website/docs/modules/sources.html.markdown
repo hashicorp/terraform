@@ -31,6 +31,8 @@ types, as listed below.
 
   * [S3 buckets](#s3-bucket)
 
+  * [GCS buckets](#gcs-bucket)
+
 Each of these is described in the following sections. Module source addresses
 use a _URL-like_ syntax, but with extensions to support unambiguous selection
 of sources and additional features.
@@ -374,6 +376,30 @@ preferring those earlier in the list when multiple are available:
 * The default profile in the `.aws/credentials` file in your home directory.
 * If running on an EC2 instance, temporary credentials associated with the
   instance's IAM Instance Profile.
+
+## GCS Bucket
+
+You can use archives stored in Google Cloud Storage as module sources using the special `gcs::`
+prefix, followed by
+[a GCS bucket object URL](https://cloud.google.com/storage/docs/request-endpoints#typical).
+
+For example
+
+* `gcs::https://www.googleapis.com/storage/v1/BUCKET_NAME/PATH_TO_MODULE`
+* `gcs::https://www.googleapis.com/storage/v1/BUCKET_NAME/PATH/TO/module.zip`
+
+```hcl
+module "consul" {
+  source = "gcs::https://www.googleapis.com/storage/v1/modules/foomodule.zip"
+}
+```
+
+The module installer uses Google Cloud SDK to authenticate with GCS. To set credentials you can:
+
+* Enter the path of your service account key file in the GOOGLE_APPLICATION_CREDENTIALS environment variable, or;
+* If you're running Terraform from a GCE instance, default credentials are automatically available. See [Creating and Enabling Service Accounts](https://cloud.google.com/compute/docs/authentication) for Instances for more details
+* On your computer, you can make your Google identity available by running `gcloud auth application-default login`.
+
 
 ## Modules in Package Sub-directories
 

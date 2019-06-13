@@ -1,8 +1,45 @@
-## 0.12.1 (Unreleased)
+## 0.12.3 (Unreleased)
+
+ENHANCEMENTS:
+
+* config: add GCS source support for modules [GH-21254]
+
+## 0.12.2 (June 12, 2019)
+
+NEW FEATURES:
+
+* provisioners: new provisioner: `puppet` ([#18851](https://github.com/hashicorp/terraform/issues/18851))
+* `range` function for generating a sequence of numbers as a list ([#21461](https://github.com/hashicorp/terraform/issues/21461))
+* `yamldecode` and *experimental* `yamlencode` functions for working with YAML-serialized data ([#21459](https://github.com/hashicorp/terraform/issues/21459))
+* `uuidv5` function for generating name-based (as opposed to pseudorandom) UUIDs ([#21244](https://github.com/hashicorp/terraform/issues/21244))
+* backend/oss: Add support for Alibaba OSS remote state ([#16927](https://github.com/hashicorp/terraform/issues/16927))
+
+ENHANCEMENTS:
+
+* config: consider build metadata when interpreting module versions ([#21640](https://github.com/hashicorp/terraform/issues/21640))
+* backend/http: implement retries for the http backend ([#19702](https://github.com/hashicorp/terraform/issues/19702))
+* backend/swift: authentication mechanisms now more consistent with other OpenStack-compatible tools ([#18671](https://github.com/hashicorp/terraform/issues/18671))
+* backend/swift: add application credential support ([#20914](https://github.com/hashicorp/terraform/pull/20914))
 
 BUG FIXES:
 
-core: Always try to select a workspace after initialization [GH-21234]
+* command/show: use the state snapshot included in the planfile when rendering a plan to json ([#21597](https://github.com/hashicorp/terraform/issues/21597))
+* config: Fix issue with empty dynamic blocks failing when usign ConfigModeAttr ([#21549](https://github.com/hashicorp/terraform/issues/21549))
+* core: Re-validate resource config during final plan ([#21555](https://github.com/hashicorp/terraform/issues/21555))
+* core: Fix missing resource timeouts during destroy ([#21611](https://github.com/hashicorp/terraform/issues/21611))
+* core: Don't panic when encountering an invalid `depends_on` ([#21590](https://github.com/hashicorp/terraform/issues/21590))
+* backend: Fix panic when upgrading from a state with a hash value greater than MaxInt ([#21484](https://github.com/hashicorp/terraform/issues/21484))
+
+## 0.12.1 (June 3, 2019)
+
+BUG FIXES:
+
+* core: Always try to select a workspace after initialization ([#21234](https://github.com/hashicorp/terraform/issues/21234))
+* command/show: fix inconsistent json output causing a panic [[#21541](https://github.com/hashicorp/terraform/issues/21541)] 
+* config: `distinct` function no longer panics when given an empty list ([#21538](https://github.com/hashicorp/terraform/issues/21538))
+* config: Don't panic when a `version` constraint is added to a module that was previously initialized without one ([#21542](https://github.com/hashicorp/terraform/issues/21542))
+* config: `matchkeys` function argument type checking will no longer fail incorrectly during validation ([#21576](https://github.com/hashicorp/terraform/issues/21576))
+* backend/local: Don't panic if an instance in the state only has deposed instances, and no current instance ([#21575](https://github.com/hashicorp/terraform/issues/21575))
 
 ## 0.12.0 (May 22, 2019)
 

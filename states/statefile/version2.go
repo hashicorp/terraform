@@ -205,5 +205,5 @@ type instanceStateV2 struct {
 type backendStateV2 struct {
 	Type      string          `json:"type"`   // Backend type
 	ConfigRaw json.RawMessage `json:"config"` // Backend raw config
-	Hash      int             `json:"hash"`   // Hash of portion of configuration from config files
+	Hash      uint64          `json:"hash"`   // Hash of portion of configuration from config files
 }

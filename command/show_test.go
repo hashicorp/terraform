@@ -2,7 +2,6 @@ package command
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -221,7 +220,6 @@ func TestShow_json_output(t *testing.T) {
 			json.Unmarshal([]byte(byteValue), &want)
 
 			if !cmp.Equal(got, want) {
-				fmt.Println(ui.OutputWriter.String())
 				t.Fatalf("wrong result:\n %v\n", cmp.Diff(got, want))
 			}
 
@@ -414,6 +412,11 @@ type plan struct {
 	PlannedValues   map[string]interface{} `json:"planned_values,omitempty"`
 	ResourceChanges []interface{}          `json:"resource_changes,omitempty"`
 	OutputChanges   map[string]interface{} `json:"output_changes,omitempty"`
-	PriorState      map[string]interface{} `json:"prior_state,omitempty"`
+	PriorState      priorState             `json:"prior_state,omitempty"`
 	Config          map[string]interface{} `json:"configuration,omitempty"`
+}
+
+type priorState struct {
+	FormatVersion string                 `json:"format_version,omitempty"`
+	Values        map[string]interface{} `json:"values,omitempty"`
 }

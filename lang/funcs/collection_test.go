@@ -902,6 +902,11 @@ func TestDistinct(t *testing.T) {
 			false,
 		},
 		{
+			cty.ListValEmpty(cty.String),
+			cty.ListValEmpty(cty.String),
+			false,
+		},
+		{
 			cty.ListVal([]cty.Value{
 				cty.StringVal("a"),
 				cty.StringVal("b"),
@@ -1878,8 +1883,7 @@ func TestMatchkeys(t *testing.T) {
 			cty.UnknownVal(cty.List(cty.String)),
 			false,
 		},
-		// errors
-		{ // different types
+		{ // different types that can be unified
 			cty.ListVal([]cty.Value{
 				cty.StringVal("a"),
 			}),
@@ -1889,9 +1893,41 @@ func TestMatchkeys(t *testing.T) {
 			cty.ListVal([]cty.Value{
 				cty.StringVal("a"),
 			}),
-			cty.NilVal,
-			true,
+			cty.ListValEmpty(cty.String),
+			false,
 		},
+		{ // complex values: values is a different type from keys and searchset
+			cty.ListVal([]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"foo": cty.StringVal("bar"),
+				}),
+				cty.MapVal(map[string]cty.Value{
+					"foo": cty.StringVal("baz"),
+				}),
+				cty.MapVal(map[string]cty.Value{
+					"foo": cty.StringVal("beep"),
+				}),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("b"),
+				cty.StringVal("c"),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("c"),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"foo": cty.StringVal("bar"),
+				}),
+				cty.MapVal(map[string]cty.Value{
+					"foo": cty.StringVal("beep"),
+				}),
+			}),
+			false,
+		},
+		// errors
 		{ // different types
 			cty.ListVal([]cty.Value{
 				cty.StringVal("a"),
