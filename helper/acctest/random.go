@@ -16,24 +16,25 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+func init() {
+	rand.Seed(time.Now().UTC().UnixNano())
+}
+
 // Helpers for generating random tidbits for use in identifiers to prevent
 // collisions in acceptance tests.
 
 // RandInt generates a random integer
 func RandInt() int {
-	reseed()
 	return rand.New(rand.NewSource(time.Now().UnixNano())).Int()
 }
 
 // RandomWithPrefix is used to generate a unique name with a prefix, for
 // randomizing names in acceptance tests
 func RandomWithPrefix(name string) string {
-	reseed()
 	return fmt.Sprintf("%s-%d", name, rand.New(rand.NewSource(time.Now().UnixNano())).Int())
 }
 
 func RandIntRange(min int, max int) int {
-	reseed()
 	source := rand.New(rand.NewSource(time.Now().UnixNano()))
 	rangeMax := max - min
 
@@ -48,7 +49,6 @@ func RandString(strlen int) string {
 // RandStringFromCharSet generates a random string by selecting characters from
 // the charset provided
 func RandStringFromCharSet(strlen int, charSet string) string {
-	reseed()
 	result := make([]byte, strlen)
 	for i := 0; i < strlen; i++ {
 		result[i] = charSet[rand.Intn(len(charSet))]
@@ -127,11 +127,6 @@ func pemEncode(b []byte, block string) (string, error) {
 	}
 
 	return buf.String(), nil
-}
-
-// Seeds random with current timestamp
-func reseed() {
-	rand.Seed(time.Now().UTC().UnixNano())
 }
 
 const (
