@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/helper/schema"
 	proto "github.com/hashicorp/terraform/internal/tfplugin5"
+	"github.com/hashicorp/terraform/plans/objchange"
 	"github.com/hashicorp/terraform/plugin/convert"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -282,6 +283,17 @@ func (s *GRPCProviderServer) UpgradeResourceState(_ context.Context, req *proto.
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
+
+	// Now we need to make sure blocks are represented correctly, which means
+	// that missing blocks are empty collections, rather than null.
+	// First we need to CoerceValue to ensure that all object types match.
+	val, err = schemaBlock.CoerceValue(val)
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
+	// Normalize the value and fill in any missing blocks.
+	val = objchange.NormalizeObjectFromLegacySDK(val, schemaBlock)
 
 	// encode the final state to the expected msgpack format
 	newStateMP, err := msgpack.Marshal(val, schemaBlock.ImpliedType())
