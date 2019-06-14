@@ -3,6 +3,7 @@
 ENHANCEMENTS:
 
 * config: add GCS source support for modules [GH-21254]
+* command/format: Reduce extra whitespaces & new lines [GH-21334]
 
 ## 0.12.2 (June 12, 2019)
 
