@@ -132,11 +132,11 @@ func Provisioner() terraform.ResourceProvisioner {
 				ValidateFunc: func(val interface{}, key string) (warns []string, errs []error) {
 					u, err := url.Parse(val.(string))
 					if err != nil {
-						errs = append(errs, err)
+						errs = append(errs, fmt.Errorf("invalid URL specified for %q: %v", key, err))
 					}
 
 					if u.Scheme == "" {
-						errs = append(errs, fmt.Errorf("invalid URL specified for service (no scheme specified)"))
+						errs = append(errs, fmt.Errorf("invalid URL specified for %q (scheme must be specified)", key))
 					}
 
 					return warns, errs
@@ -223,11 +223,11 @@ func Provisioner() terraform.ResourceProvisioner {
 							ValidateFunc: func(val interface{}, key string) (warns []string, errs []error) {
 								u, err := url.Parse(val.(string))
 								if err != nil {
-									errs = append(errs, err)
+									errs = append(errs, fmt.Errorf("invalid URL specified for %q: %v", key, err))
 								}
 
 								if u.Scheme == "" {
-									errs = append(errs, fmt.Errorf("invalid URL specified for service (no scheme specified)"))
+									errs = append(errs, fmt.Errorf("invalid URL specified for %q (scheme must be specified)", key))
 								}
 
 								return warns, errs
