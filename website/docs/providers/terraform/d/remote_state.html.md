@@ -22,6 +22,22 @@ use interpolations when configuring them.
 ## Example Usage
 
 ```hcl
+# Terraform >= 0.12
+
+data "terraform_remote_state" "vpc" {
+  backend = "atlas"
+  config = {
+    name = "hashicorp/vpc-prod"
+  }
+}
+
+resource "aws_instance" "foo" {
+  # ...
+  subnet_id = data.terraform_remote_state.vpc.outputs.subnet_id
+}
+
+# Terraform <= 0.11
+
 data "terraform_remote_state" "vpc" {
   backend = "atlas"
   config {
@@ -29,13 +45,6 @@ data "terraform_remote_state" "vpc" {
   }
 }
 
-# Terraform >= 0.12
-resource "aws_instance" "foo" {
-  # ...
-  subnet_id = data.terraform_remote_state.vpc.outputs.subnet_id
-}
-
-# Terraform <= 0.11
 resource "aws_instance" "foo" {
   # ...
   subnet_id = "${data.terraform_remote_state.vpc.subnet_id}"
