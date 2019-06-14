@@ -2045,6 +2045,17 @@ func TestMerge(t *testing.T) {
 			cty.NilVal,
 			true,
 		},
+
+		{ // argument error, for a null type
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("b"),
+				}),
+				cty.NullVal(cty.String),
+			},
+			cty.NilVal,
+			true,
+		},
 		{ // merge maps of maps
 			[]cty.Value{
 				cty.MapVal(map[string]cty.Value{
