@@ -262,6 +262,18 @@ func TestUpgradeState_flatmapState(t *testing.T) {
 				Type:     schema.TypeInt,
 				Required: true,
 			},
+			"block": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"attr": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
+			},
 		},
 		// this MigrateState will take the state to version 2
 		MigrateState: func(v int, is *terraform.InstanceState, _ interface{}) (*terraform.InstanceState, error) {
@@ -426,8 +438,9 @@ func TestUpgradeState_flatmapState(t *testing.T) {
 			}
 
 			expected := cty.ObjectVal(map[string]cty.Value{
-				"id":   cty.StringVal("bar"),
-				"four": cty.NumberIntVal(4),
+				"block": cty.ListValEmpty(cty.Object(map[string]cty.Type{"attr": cty.String})),
+				"id":    cty.StringVal("bar"),
+				"four":  cty.NumberIntVal(4),
 			})
 
 			if !cmp.Equal(expected, val, valueComparer, equateEmpty) {
