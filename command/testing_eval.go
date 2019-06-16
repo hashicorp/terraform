@@ -193,7 +193,13 @@ func (c *TestingEvalCommand) testingEval(modDir, refStr, dataFn string) (val cty
 			for i := 0; i < count; i++ {
 				*countIndexVal = cty.NumberIntVal(int64(i))
 
-				result, moreDiags := scope.EvalBlock(rc.Config, schema)
+				body, moreDiags := scope.ExpandBlock(rc.Config, schema)
+				diags = diags.Append(moreDiags)
+				if moreDiags.HasErrors() {
+					return
+				}
+				result, moreDiags := scope.EvalBlock(body, schema)
+
 				diags = diags.Append(moreDiags)
 				if result == cty.NilVal {
 					result = cty.NullVal(objTy)
@@ -206,7 +212,14 @@ func (c *TestingEvalCommand) testingEval(modDir, refStr, dataFn string) (val cty
 			return
 		} else {
 			// Result will be a single object
-			result, moreDiags := scope.EvalBlock(rc.Config, schema)
+			body, moreDiags := scope.ExpandBlock(rc.Config, schema)
+
+			diags = diags.Append(moreDiags)
+			if moreDiags.HasErrors() {
+				return
+			}
+			result, moreDiags := scope.EvalBlock(body, schema)
+
 			diags = diags.Append(moreDiags)
 			if result == cty.NilVal {
 				result = cty.NullVal(objTy)
