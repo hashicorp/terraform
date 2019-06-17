@@ -5,6 +5,10 @@ ENHANCEMENTS:
 * config: add GCS source support for modules [GH-21254]
 * command/format: Reduce extra whitespaces & new lines [GH-21334]
 
+BUG FIXES:
+
+* lang/funcs: Fix `merge` panic on null values. Now will give an error if null used [GH-21695] 
+
 ## 0.12.2 (June 12, 2019)
 
 NEW FEATURES:
