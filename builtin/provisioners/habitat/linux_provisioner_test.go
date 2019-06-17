@@ -41,11 +41,11 @@ func TestLinuxProvisioner_linuxInstallHabitat(t *testing.T) {
 			},
 
 			Commands: map[string]bool{
-				"env HAB_NONINTERACTIVE=true sudo -E /bin/bash -c 'curl --silent -L0 https://raw.githubusercontent.com/habitat-sh/habitat/master/components/hab/install.sh > install.sh'": true,
-				"env HAB_NONINTERACTIVE=true sudo -E /bin/bash -c 'bash ./install.sh -v 0.79.1'":                                                                                          true,
-				"env HAB_NONINTERACTIVE=true sudo -E /bin/bash -c 'hab install core/busybox'":                                                                                             true,
-				"env HAB_NONINTERACTIVE=true sudo -E /bin/bash -c 'hab pkg exec core/busybox adduser -D -g \"\" hab'":                                                                     true,
-				"env HAB_NONINTERACTIVE=true sudo -E /bin/bash -c 'rm -f install.sh'":                                                                                                     true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'curl --silent -L0 https://raw.githubusercontent.com/habitat-sh/habitat/master/components/hab/install.sh > install.sh'": true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'bash ./install.sh -v 0.79.1'":                                                                                          true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'hab install core/busybox'":                                                                                             true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'hab pkg exec core/busybox adduser -D -g \"\" hab'":                                                                     true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'rm -f install.sh'":                                                                                                     true,
 			},
 		},
 		"Installation without sudo": {
@@ -57,11 +57,11 @@ func TestLinuxProvisioner_linuxInstallHabitat(t *testing.T) {
 			},
 
 			Commands: map[string]bool{
-				"env HAB_NONINTERACTIVE=true /bin/bash -c 'curl --silent -L0 https://raw.githubusercontent.com/habitat-sh/habitat/master/components/hab/install.sh > install.sh'": true,
-				"env HAB_NONINTERACTIVE=true /bin/bash -c 'bash ./install.sh -v 0.79.1'":                                                                                          true,
-				"env HAB_NONINTERACTIVE=true /bin/bash -c 'hab install core/busybox'":                                                                                             true,
-				"env HAB_NONINTERACTIVE=true /bin/bash -c 'hab pkg exec core/busybox adduser -D -g \"\" hab'":                                                                     true,
-				"env HAB_NONINTERACTIVE=true /bin/bash -c 'rm -f install.sh'":                                                                                                     true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true /bin/bash -c 'curl --silent -L0 https://raw.githubusercontent.com/habitat-sh/habitat/master/components/hab/install.sh > install.sh'": true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true /bin/bash -c 'bash ./install.sh -v 0.79.1'":                                                                                          true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true /bin/bash -c 'hab install core/busybox'":                                                                                             true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true /bin/bash -c 'hab pkg exec core/busybox adduser -D -g \"\" hab'":                                                                     true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true /bin/bash -c 'rm -f install.sh'":                                                                                                     true,
 			},
 		},
 		"Installation with Habitat license acceptance": {
@@ -74,11 +74,11 @@ func TestLinuxProvisioner_linuxInstallHabitat(t *testing.T) {
 			},
 
 			Commands: map[string]bool{
-				"env HAB_NONINTERACTIVE=true HAB_LICENSE=accept-no-persist sudo -E /bin/bash -c 'curl --silent -L0 https://raw.githubusercontent.com/habitat-sh/habitat/master/components/hab/install.sh > install.sh'": true,
-				"env HAB_NONINTERACTIVE=true HAB_LICENSE=accept-no-persist sudo -E /bin/bash -c 'bash ./install.sh -v 0.81.0'":                                                                                          true,
-				"env HAB_NONINTERACTIVE=true HAB_LICENSE=accept-no-persist sudo -E /bin/bash -c 'hab install core/busybox'":                                                                                             true,
-				"env HAB_NONINTERACTIVE=true HAB_LICENSE=accept-no-persist sudo -E /bin/bash -c 'hab pkg exec core/busybox adduser -D -g \"\" hab'":                                                                     true,
-				"env HAB_NONINTERACTIVE=true HAB_LICENSE=accept-no-persist sudo -E /bin/bash -c 'rm -f install.sh'":                                                                                                     true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true HAB_LICENSE=accept-no-persist sudo -E /bin/bash -c 'curl --silent -L0 https://raw.githubusercontent.com/habitat-sh/habitat/master/components/hab/install.sh > install.sh'": true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true HAB_LICENSE=accept-no-persist sudo -E /bin/bash -c 'bash ./install.sh -v 0.81.0'":                                                                                          true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true HAB_LICENSE=accept-no-persist sudo -E /bin/bash -c 'hab install core/busybox'":                                                                                             true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true HAB_LICENSE=accept-no-persist sudo -E /bin/bash -c 'hab pkg exec core/busybox adduser -D -g \"\" hab'":                                                                     true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true HAB_LICENSE=accept-no-persist sudo -E /bin/bash -c 'rm -f install.sh'":                                                                                                     true,
 			},
 		},
 	}
@@ -119,9 +119,9 @@ func TestLinuxProvisioner_linuxStartHabitat(t *testing.T) {
 			},
 
 			Commands: map[string]bool{
-				"env HAB_NONINTERACTIVE=true sudo -E /bin/bash -c 'hab install core/hab-sup/0.79.1'":                             true,
-				"env HAB_NONINTERACTIVE=true sudo -E /bin/bash -c 'systemctl enable hab-sup && systemctl start hab-sup'":         true,
-				"env HAB_NONINTERACTIVE=true sudo -E /bin/bash -c 'mv /tmp/hab-sup.service /etc/systemd/system/hab-sup.service'": true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'hab install core/hab-sup/0.79.1'":                             true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'systemctl enable hab-sup && systemctl start hab-sup'":         true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'mv /tmp/hab-sup.service /etc/systemd/system/hab-sup.service'": true,
 			},
 
 			Uploads: map[string]string{
@@ -138,8 +138,8 @@ func TestLinuxProvisioner_linuxStartHabitat(t *testing.T) {
 			},
 
 			Commands: map[string]bool{
-				"env HAB_NONINTERACTIVE=true /bin/bash -c 'hab install core/hab-sup/0.79.1'":                     true,
-				"env HAB_NONINTERACTIVE=true /bin/bash -c 'systemctl enable hab-sup && systemctl start hab-sup'": true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true /bin/bash -c 'hab install core/hab-sup/0.79.1'":                     true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true /bin/bash -c 'systemctl enable hab-sup && systemctl start hab-sup'": true,
 			},
 
 			Uploads: map[string]string{
@@ -157,9 +157,9 @@ func TestLinuxProvisioner_linuxStartHabitat(t *testing.T) {
 			},
 
 			Commands: map[string]bool{
-				"env HAB_NONINTERACTIVE=true HAB_LICENSE=accept-no-persist sudo -E /bin/bash -c 'hab install core/hab-sup/0.81.0'":                                                                                                      true,
-				"env HAB_NONINTERACTIVE=true HAB_LICENSE=accept-no-persist sudo -E /bin/bash -c 'mkdir -p /hab/sup/default && chmod o+w /hab/sup/default'":                                                                              true,
-				"env HAB_NONINTERACTIVE=true HAB_LICENSE=accept-no-persist sudo -E /bin/bash -c '(env HAB_LICENSE=accept-no-persist  setsid hab sup run --peer 1.2.3.4 --auto-update > /hab/sup/default/sup.log 2>&1 <&1 &) ; sleep 1'": true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true HAB_LICENSE=accept-no-persist sudo -E /bin/bash -c 'hab install core/hab-sup/0.81.0'":                                                                                                      true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true HAB_LICENSE=accept-no-persist sudo -E /bin/bash -c 'mkdir -p /hab/sup/default && chmod o+w /hab/sup/default'":                                                                              true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true HAB_LICENSE=accept-no-persist sudo -E /bin/bash -c '(env HAB_LICENSE=accept-no-persist  setsid hab sup run --peer 1.2.3.4 --auto-update > /hab/sup/default/sup.log 2>&1 <&1 &) ; sleep 1'": true,
 			},
 
 			Uploads: map[string]string{
@@ -182,9 +182,9 @@ func TestLinuxProvisioner_linuxStartHabitat(t *testing.T) {
 			},
 
 			Commands: map[string]bool{
-				"env HAB_NONINTERACTIVE=true HAB_AUTH_TOKEN=dead-beef sudo -E /bin/bash -c 'hab install core/hab-sup/0.79.1'":                             true,
-				"env HAB_NONINTERACTIVE=true HAB_AUTH_TOKEN=dead-beef sudo -E /bin/bash -c 'systemctl enable hab-sup && systemctl start hab-sup'":         true,
-				"env HAB_NONINTERACTIVE=true HAB_AUTH_TOKEN=dead-beef sudo -E /bin/bash -c 'mv /tmp/hab-sup.service /etc/systemd/system/hab-sup.service'": true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true HAB_AUTH_TOKEN=dead-beef sudo -E /bin/bash -c 'hab install core/hab-sup/0.79.1'":                             true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true HAB_AUTH_TOKEN=dead-beef sudo -E /bin/bash -c 'systemctl enable hab-sup && systemctl start hab-sup'":         true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true HAB_AUTH_TOKEN=dead-beef sudo -E /bin/bash -c 'mv /tmp/hab-sup.service /etc/systemd/system/hab-sup.service'": true,
 			},
 
 			Uploads: map[string]string{
@@ -231,7 +231,7 @@ func TestLinuxProvisioner_linuxUploadRingKey(t *testing.T) {
 			},
 
 			Commands: map[string]bool{
-				"env HAB_NONINTERACTIVE=true sudo -E /bin/bash -c 'echo -e \"dead-beef\" | hab ring key import'": true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'echo -e \"dead-beef\" | hab ring key import'": true,
 			},
 		},
 	}
@@ -297,14 +297,14 @@ func TestLinuxProvisioner_linuxStartHabitatService(t *testing.T) {
 			},
 
 			Commands: map[string]bool{
-				"env HAB_NONINTERACTIVE=true sudo -E /bin/bash -c 'hab pkg install core/foo  --channel stable'":                                                                        true,
-				"env HAB_NONINTERACTIVE=true sudo -E /bin/bash -c 'mkdir -p /hab/user/foo/config'":                                                                                     true,
-				"env HAB_NONINTERACTIVE=true sudo -E /bin/bash -c 'mv /tmp/user-a5b83ec1b302d109f41852ae17379f75c36dff9bc598aae76b6f7c9cd425fd76.toml /hab/user/foo/config/user.toml'": true,
-				"env HAB_NONINTERACTIVE=true sudo -E /bin/bash -c 'hab svc load core/foo  --topology standalone --strategy none --channel stable --bind backend:bar.default'":          true,
-				"env HAB_NONINTERACTIVE=true sudo -E /bin/bash -c 'hab pkg install core/bar  --channel staging'":                                                                       true,
-				"env HAB_NONINTERACTIVE=true sudo -E /bin/bash -c 'mkdir -p /hab/user/bar/config'":                                                                                     true,
-				"env HAB_NONINTERACTIVE=true sudo -E /bin/bash -c 'mv /tmp/user-6466ae3283ae1bd4737b00367bc676c6465b25682169ea5f7da222f3f078a5bf.toml /hab/user/bar/config/user.toml'": true,
-				"env HAB_NONINTERACTIVE=true sudo -E /bin/bash -c 'hab svc load core/bar  --topology standalone --strategy rolling --channel staging'":                                 true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'hab pkg install core/foo  --channel stable'":                                                                        true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'mkdir -p /hab/user/foo/config'":                                                                                     true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'mv /tmp/user-a5b83ec1b302d109f41852ae17379f75c36dff9bc598aae76b6f7c9cd425fd76.toml /hab/user/foo/config/user.toml'": true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'hab svc load core/foo  --topology standalone --strategy none --channel stable --bind backend:bar.default'":          true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'hab pkg install core/bar  --channel staging'":                                                                       true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'mkdir -p /hab/user/bar/config'":                                                                                     true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'mv /tmp/user-6466ae3283ae1bd4737b00367bc676c6465b25682169ea5f7da222f3f078a5bf.toml /hab/user/bar/config/user.toml'": true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'hab svc load core/bar  --topology standalone --strategy rolling --channel staging'":                                 true,
 			},
 
 			Uploads: map[string]string{
