@@ -876,7 +876,6 @@ var MergeFunc = function.New(&function.Spec{
 		Name:             "maps",
 		Type:             cty.DynamicPseudoType,
 		AllowDynamicType: true,
-		AllowNull:        true,
 	},
 	Type: function.StaticReturnType(cty.DynamicPseudoType),
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
