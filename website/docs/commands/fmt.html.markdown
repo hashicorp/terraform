@@ -33,9 +33,8 @@ input (STDIN).
 
 The command-line flags are all optional. The list of available flags are:
 
-* `-list=true` - List files whose formatting differs (disabled if using STDIN)
-* `-write=true` - Write result to source file instead of STDOUT (disabled if
-    using STDIN or -check)
-* `-diff=false` - Display diffs of formatting changes
-* `-check=false` - Check if the input is formatted. Exit status will be 0 if
+* `-list=false` - Don't list the files containing formatting inconsistencies.
+* `-write=false` - Don't overwrite the input files. (This is implied by `-check` or when the input is STDIN.)
+* `-diff` - Display diffs of formatting changes
+* `-check` - Check if the input is formatted. Exit status will be 0 if
     all input is properly formatted and non-zero otherwise.
