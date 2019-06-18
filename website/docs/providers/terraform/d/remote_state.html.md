@@ -22,7 +22,6 @@ use interpolations when configuring them.
 ## Example Usage
 
 ```hcl
-
 data "terraform_remote_state" "vpc" {
   backend = "atlas"
   config = {
