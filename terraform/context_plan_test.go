@@ -4870,6 +4870,87 @@ func TestContext2Plan_ignoreChangesWildcard(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_ignoreChangesInMap(t *testing.T) {
+	p := testProvider("test")
+
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_ignore_changes_map": {
+				Attributes: map[string]*configschema.Attribute{
+					"tags": {Type: cty.Map(cty.String), Optional: true},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
+	}
+
+	p.DiffFn = testDiffFn
+
+	s := states.BuildState(func(ss *states.SyncState) {
+		ss.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_ignore_changes_map",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				Status:    states.ObjectReady,
+				AttrsJSON: []byte(`{"tags":{"ignored":"from state","other":"from state"}}`),
+			},
+			addrs.ProviderConfig{
+				Type: "test",
+			}.Absolute(addrs.RootModuleInstance),
+		)
+	})
+	m := testModule(t, "plan-ignore-changes-in-map")
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+		State: s,
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+
+	schema := p.GetSchemaReturn.ResourceTypes["test_ignore_changes_map"]
+	ty := schema.ImpliedType()
+
+	if got, want := len(plan.Changes.Resources), 1; got != want {
+		t.Fatalf("wrong number of changes %d; want %d", got, want)
+	}
+
+	res := plan.Changes.Resources[0]
+	ric, err := res.Decode(ty)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Action != plans.Update {
+		t.Fatalf("resource %s should be updated, got %s", ric.Addr, res.Action)
+	}
+
+	if got, want := ric.Addr.String(), "test_ignore_changes_map.foo"; got != want {
+		t.Fatalf("unexpected resource address %s; want %s", got, want)
+	}
+
+	checkVals(t, objectVal(t, schema, map[string]cty.Value{
+		"tags": cty.MapVal(map[string]cty.Value{
+			"ignored": cty.StringVal("from state"),
+			"other":   cty.StringVal("from config"),
+		}),
+	}), ric.After)
+}
+
 func TestContext2Plan_moduleMapLiteral(t *testing.T) {
 	m := testModule(t, "plan-module-map-literal")
 	p := testProvider("aws")
