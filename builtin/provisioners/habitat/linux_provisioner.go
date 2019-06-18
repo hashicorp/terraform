@@ -348,7 +348,7 @@ func (p *provisioner) uploadUserTOML(o terraform.UIOutput, comm communicator.Com
 }
 
 func (p *provisioner) linuxGetCommand(command string) string {
-	// Always set HAB_NONINTERACTIVE & HAB_NO_COLOR
+	// Always set HAB_NONINTERACTIVE & HAB_NOCOLORING
 	env := fmt.Sprintf("env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true")
 
 	// Set license acceptance
