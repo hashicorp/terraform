@@ -436,6 +436,35 @@ meta-arguments are supported:
     }
     ```
 
+    You can also ignore specific map elements by writing references like
+    `tags["Name"]` in the `ignore_changes` list, though with an important
+    caveat: the ignoring applies only to in-place updates to an existing
+    key. Adding or removing a key is treated by Terraform as a change to the
+    containing map itself rather than to the individual key, and so if you
+    wish to ignore changes to a particular tag made by an external system
+    you must ensure that the Terraform configuration creates a placeholder
+    element for that tag name so that the external system changes will be
+    understood as an in-place edit of that key:
+
+    ```hcl
+    resource "aws_instance" "example" {
+      # ...
+
+      tags = {
+        # Initial value for Name is overridden by our automatic scheduled
+        # re-tagging process; changes to this are ignored by ignore_changes
+        # below.
+        Name = "placeholder"
+      }
+
+      lifecycle {
+        ignore_changes = [
+          tags["Name"],
+        ]
+      }
+    }
+    ```
+
     Instead of a list, the special keyword `all` may be used to instruct
     Terraform to ignore _all_ attributes, which means that Terraform can
     create and destroy the remote object but will never propose updates to it.
