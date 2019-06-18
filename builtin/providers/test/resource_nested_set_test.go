@@ -30,6 +30,46 @@ resource "test_resource_nested_set" "foo" {
 	})
 }
 
+func TestResourceNestedSet_basicImport(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_nested_set" "foo" {
+	single {
+		value = "bar"
+	}
+}
+				`),
+			},
+			resource.TestStep{
+				ImportState:  true,
+				ResourceName: "test_resource_nested_set.foo",
+				Config: strings.TrimSpace(`
+resource "test_resource_nested_set" "foo" {
+	single {
+		value = "bar"
+	}
+}
+				`),
+				ImportStateCheck: func(ss []*terraform.InstanceState) error {
+					for _, s := range ss {
+						if s.Attributes["multi.#"] != "0" ||
+							s.Attributes["single.#"] != "0" ||
+							s.Attributes["type_list.#"] != "0" ||
+							s.Attributes["with_list.#"] != "0" {
+							return fmt.Errorf("missing blocks in imported state:\n%s", s)
+						}
+					}
+					return nil
+				},
+			},
+		},
+	})
+}
+
 // The set should not be generated because of it's computed value
 func TestResourceNestedSet_noSet(t *testing.T) {
 	checkFunc := func(s *terraform.State) error {

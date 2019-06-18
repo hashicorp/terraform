@@ -967,6 +967,9 @@ func (s *GRPCProviderServer) ImportResourceState(_ context.Context, req *proto.I
 			return resp, nil
 		}
 
+		// Normalize the value and fill in any missing blocks.
+		newStateVal = objchange.NormalizeObjectFromLegacySDK(newStateVal, schemaBlock)
+
 		newStateMP, err := msgpack.Marshal(newStateVal, schemaBlock.ImpliedType())
 		if err != nil {
 			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
