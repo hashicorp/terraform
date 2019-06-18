@@ -40,7 +40,7 @@ BUG FIXES:
 BUG FIXES:
 
 * core: Always try to select a workspace after initialization ([#21234](https://github.com/hashicorp/terraform/issues/21234))
-* command/show: fix inconsistent json output causing a panic [[#21541](https://github.com/hashicorp/terraform/issues/21541)] 
+* command/show: fix inconsistent json output causing a panic ([#21541](https://github.com/hashicorp/terraform/issues/21541))
 * config: `distinct` function no longer panics when given an empty list ([#21538](https://github.com/hashicorp/terraform/issues/21538))
 * config: Don't panic when a `version` constraint is added to a module that was previously initialized without one ([#21542](https://github.com/hashicorp/terraform/issues/21542))
 * config: `matchkeys` function argument type checking will no longer fail incorrectly during validation ([#21576](https://github.com/hashicorp/terraform/issues/21576))
