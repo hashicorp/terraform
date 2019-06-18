@@ -5,7 +5,7 @@ behavior "regexp_issue_labeler" "panic_label" {
 
 behavior "regexp_issue_notifier" "panic_notify" {
     regexp = "panic:"
-    slack_channel = env.COMMITTERS_SLACK_CHANNEL
+    slack_channel = env.TERRAFORM_SLACK_CHANNEL
     message = "Panic report! https://github.com/${var.repository}/issues/${var.issue_number} has a panic in it."
 }
 
