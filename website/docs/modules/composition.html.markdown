@@ -106,20 +106,93 @@ module "consul_cluster" {
 }
 ```
 
-This technique is also an answer to the common situation where in one
-configuration a particular object already exists and just needs to be queried,
-while in another configuration the equivalent object must be managed directly.
-This commonly arises, for example, in development environment scenarios where
-certain infrastructure may be shared across development environments for cost
-reasons but managed directly inline in production for isolation.
+### Conditional Creation of Objects
 
-This is the best way to model such situations in Terraform. We do not recommend
-attempting to construct "if this already exists then use it, otherwise create it"
-conditional configurations; instead, decompose your system into modules and
-decide for each configuration whether each modular object is directly managed or
-merely used by reference. This makes each configuration a more direct description
-of your intent, allowing Terraform to produce a more accurate plan, and making
-it clearer to future maintainers how each configuration is expected to behave.
+In situations where the same module is used across multiple environments,
+it's common to see that some necessary object already exists in some
+environments but needs to be created in other environments.
+
+For example, this can arise in development environment scenarios: for cost
+reasons, certain infrastructure may be shared across multiple development
+environments, while in production the infrastructure is unique and managed
+directly by the production configuration.
+
+Rather than trying to write a module that itself tries detect whether something
+exists and create it if not, we recommend applying the dependency inversion
+approach: making the module accept the object it needs as an argument, via
+an input variable.
+
+For example, consider a situation where a Terraform module deploys compute
+instances based on a disk image, and in some environments there is a
+specialized disk image available while other environments share a common
+base disk image. Rather than having the module itself handle both of these
+scenarios, we can instead declare an input variable for an object representing
+the disk image. Using AWS EC2 as an example, we might declare a common subtype
+of the `aws_ami` resource type and data source schemas:
+
+```hcl
+variable "ami" {
+  type = object({
+    # Declare an object using only the subset of attributes the module
+    # needs. Terraform will allow any object that has at least these
+    # attributes.
+    id           = string
+    architecture = string
+  })
+}
+```
+
+The caller of this module can now itself directly represent whether this is
+an AMI to be created inline or an AMI to be retrieved from elsewhere:
+
+```hcl
+# In situations where the AMI will be directly managed:
+
+resource "aws_ami_copy" "example" {
+  name              = "local-copy-of-ami"
+  source_ami_id     = "ami-abc123"
+  source_ami_region = "eu-west-1"
+}
+
+module "example" {
+  source = "./modules/example"
+
+  ami = aws_ami_copy.example
+}
+```
+
+```hcl
+# Or, in situations where the AMI already exists:
+
+data "aws_ami" "example" {
+  owner = "9999933333"
+
+  tags = {
+    application = "example-app"
+    environment = "dev"
+  }
+}
+
+module "example" {
+  source = "./modules/example"
+
+  ami = data.aws_ami.example
+}
+```
+
+This is consistent with Terraform's declarative style: rather than creating
+modules with complex conditional branches, we we directly describe what
+should already exist and what we want Terraform to manage itself.
+
+By following this pattern, we can be explicit about in which situations we
+expect the AMI to already be present and which we don't. A future reader
+of the configuration can then directly understand what it is intending to do
+without first needing to inspect the state of the remote system.
+
+In the above example, the object to be created or read is simple enough to
+be given inline as a single resource, but we can also compose together multiple
+modules as described elsewhere on this page in situations where the
+dependencies themselves are complicated enough to benefit from abstractions.
 
 ## Multi-cloud Abstractions
 
