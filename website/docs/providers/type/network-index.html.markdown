@@ -17,6 +17,7 @@ in close collaboration with HashiCorp, and are tested by HashiCorp.
 ---
 
 
+- [Akamai](/docs/providers/akamai/index.html)
 - [Cloudflare](/docs/providers/cloudflare/index.html)
 - [Cisco ASA](/docs/providers/ciscoasa/index.html)
 - [DNS](/docs/providers/dns/index.html)
