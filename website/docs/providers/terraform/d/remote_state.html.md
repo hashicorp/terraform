@@ -24,7 +24,7 @@ use interpolations when configuring them.
 ```hcl
 data "terraform_remote_state" "vpc" {
   backend = "atlas"
-  config {
+  config = {
     name = "hashicorp/vpc-prod"
   }
 }
