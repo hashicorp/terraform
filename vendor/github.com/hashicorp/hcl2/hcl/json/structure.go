@@ -416,12 +416,14 @@ func (e *expression) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
 	case *booleanVal:
 		return cty.BoolVal(v.Value), nil
 	case *arrayVal:
+		var diags hcl.Diagnostics
 		vals := []cty.Value{}
 		for _, jsonVal := range v.Values {
-			val, _ := (&expression{src: jsonVal}).Value(ctx)
+			val, valDiags := (&expression{src: jsonVal}).Value(ctx)
 			vals = append(vals, val)
+			diags = append(diags, valDiags...)
 		}
-		return cty.TupleVal(vals), nil
+		return cty.TupleVal(vals), diags
 	case *objectVal:
 		var diags hcl.Diagnostics
 		attrs := map[string]cty.Value{}
