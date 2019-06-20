@@ -52,6 +52,8 @@ type PlanGraphBuilder struct {
 	ConcreteProvider       ConcreteProviderNodeFunc
 	ConcreteResource       ConcreteResourceNodeFunc
 	ConcreteResourceOrphan ConcreteResourceInstanceNodeFunc
+	ConcreteOutput         func(abstract *NodeAbstractOutput) dag.Vertex
+	ConcreteOutputOrphan   func(abstract *NodeAbstractOutput) dag.Vertex
 
 	once sync.Once
 }
@@ -86,8 +88,14 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// Add the local values
 		&LocalTransformer{Config: b.Config},
 
-		// Add the outputs
-		&OutputTransformer{Config: b.Config},
+		// Add both present and orphaned outputs.
+		&OutputTransformer{
+			Config: b.Config,
+			State:  b.State,
+
+			Concrete:       b.ConcreteOutput,
+			ConcreteOrphan: b.ConcreteOutputOrphan,
+		},
 
 		// Add orphan resources
 		&OrphanResourceInstanceTransformer{
@@ -103,12 +111,6 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		&StateTransformer{
 			ConcreteDeposed: concreteResourceInstanceDeposed,
 			State:           b.State,
-		},
-
-		// Create orphan output nodes
-		&OrphanOutputTransformer{
-			Config: b.Config,
-			State:  b.State,
 		},
 
 		// Attach the configuration to any resources
@@ -199,6 +201,18 @@ func (b *PlanGraphBuilder) init() {
 	b.ConcreteResourceOrphan = func(a *NodeAbstractResourceInstance) dag.Vertex {
 		return &NodePlannableResourceInstanceOrphan{
 			NodeAbstractResourceInstance: a,
+		}
+	}
+
+	b.ConcreteOutput = func(abstract *NodeAbstractOutput) dag.Vertex {
+		return &NodePlannableOutput{
+			NodeAbstractOutput: abstract,
+		}
+	}
+
+	b.ConcreteOutputOrphan = func(abstract *NodeAbstractOutput) dag.Vertex {
+		return &NodePlannableOutput{
+			NodeAbstractOutput: abstract,
 		}
 	}
 }

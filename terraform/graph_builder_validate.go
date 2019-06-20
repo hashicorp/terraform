@@ -27,6 +27,12 @@ func ValidateGraphBuilder(p *PlanGraphBuilder) GraphBuilder {
 		}
 	}
 
+	p.ConcreteOutput = func(a *NodeAbstractOutput) dag.Vertex {
+		return &NodeValidatableOutput{
+			NodeAbstractOutput: a,
+		}
+	}
+
 	// We purposely don't set any other concrete types since they don't
 	// require validation.
 

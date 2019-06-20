@@ -9,7 +9,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-func TestEvalWriteMapOutput(t *testing.T) {
+func TestEvalRefreshMapOutput(t *testing.T) {
 	ctx := new(MockEvalContext)
 	ctx.StateState = states.NewState().SyncWrapper()
 
@@ -43,7 +43,7 @@ func TestEvalWriteMapOutput(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		evalNode := &EvalWriteOutput{
+		evalNode := &EvalRefreshOutput{
 			Addr: addrs.OutputValue{Name: tc.name},
 		}
 		ctx.EvaluateExprResult = tc.val

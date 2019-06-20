@@ -26,6 +26,18 @@ func AssertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 	return assertObjectCompatible(schema, planned, actual, nil)
 }
 
+// AssertValueCompatible checks whether the given "actual" value is a valid
+// completion of the possibly-partially-unknown "planned" value, treating
+// the two values as plain argument values.
+//
+// This function is not appropriate for comparing object values that represent
+// the content of a whole configuration block. Use AssertObjectCompatible
+// for that instead, so you can provide the corresponding schema to support
+// the special checks for blocks.
+func AssertValueCompatible(planned, actual cty.Value) []error {
+	return assertValueCompatible(planned, actual, nil)
+}
+
 func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Value, path cty.Path) []error {
 	var errs []error
 	if planned.IsNull() && !actual.IsNull() {

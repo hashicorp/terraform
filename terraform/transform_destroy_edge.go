@@ -157,6 +157,28 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 		&AttachSchemaTransformer{Schemas: t.Schemas},
 
 		&ReferenceTransformer{},
+
+		// We needed the local values, output values, and input variable nodes
+		// in order to properly determine the connectivity in
+		// ReferenceTransformer, but ultimately our destroy edges only care
+		// about the relative dependencies of resources and their providers.
+		// We'll remove those supporting named value nodes now so that the
+		// destroy nodes do not ended up depending on them: that would create
+		// an incorrect result, because the named values must be evaluated
+		// _after_ nodes are destroyed in order to correctly update in response
+		// to the destruction.
+		&RemoveNodesTransformer{
+			ShouldKeep: func(v dag.Vertex) bool {
+				switch v.(type) {
+				case NodeOutput, *NodeLocal, NodeVariable:
+					// We drop these because we only want to consider the
+					// edges around them, not the nodes themselves.
+					return false
+				default:
+					return true
+				}
+			},
+		},
 	}
 
 	// Go through all the nodes being destroyed and create a graph.

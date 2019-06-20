@@ -151,7 +151,14 @@ func (b *RefreshGraphBuilder) Steps() []GraphTransformer {
 		&LocalTransformer{Config: b.Config},
 
 		// Add the outputs
-		&OutputTransformer{Config: b.Config},
+		&OutputTransformer{
+			Config: b.Config,
+			Concrete: func(abstract *NodeAbstractOutput) dag.Vertex {
+				return &NodeRefreshableOutput{
+					NodeAbstractOutput: abstract,
+				}
+			},
+		},
 
 		// Add module variables
 		&ModuleVariableTransformer{Config: b.Config},

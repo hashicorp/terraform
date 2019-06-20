@@ -13,10 +13,18 @@ type NodeRootVariable struct {
 }
 
 var (
+	_ NodeVariable           = (*NodeRootVariable)(nil)
 	_ GraphNodeSubPath       = (*NodeRootVariable)(nil)
 	_ GraphNodeReferenceable = (*NodeRootVariable)(nil)
 	_ dag.GraphNodeDotter    = (*NodeApplyableModuleVariable)(nil)
 )
+
+func (n *NodeRootVariable) variableAddr() addrs.AbsInputVariableInstance {
+	return addrs.AbsInputVariableInstance{
+		Module:   addrs.RootModuleInstance, // by definition
+		Variable: n.Addr,
+	}
+}
 
 func (n *NodeRootVariable) Name() string {
 	return n.Addr.String()

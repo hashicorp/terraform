@@ -20,6 +20,7 @@ type NodeApplyableModuleVariable struct {
 // Ensure that we are implementing all of the interfaces we think we are
 // implementing.
 var (
+	_ NodeVariable              = (*NodeApplyableModuleVariable)(nil)
 	_ GraphNodeSubPath          = (*NodeApplyableModuleVariable)(nil)
 	_ RemovableIfNotTargeted    = (*NodeApplyableModuleVariable)(nil)
 	_ GraphNodeReferenceOutside = (*NodeApplyableModuleVariable)(nil)
@@ -28,6 +29,10 @@ var (
 	_ GraphNodeEvalable         = (*NodeApplyableModuleVariable)(nil)
 	_ dag.GraphNodeDotter       = (*NodeApplyableModuleVariable)(nil)
 )
+
+func (n *NodeApplyableModuleVariable) variableAddr() addrs.AbsInputVariableInstance {
+	return n.Addr
+}
 
 func (n *NodeApplyableModuleVariable) Name() string {
 	return n.Addr.String()

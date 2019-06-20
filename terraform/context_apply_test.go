@@ -3695,7 +3695,11 @@ func TestContext2Apply_multiVar(t *testing.T) {
 	actual := state.RootModule().OutputValues["output"]
 	expected := cty.StringVal("bar0,bar1,bar2")
 	if actual == nil || actual.Value != expected {
-		t.Fatalf("wrong value\ngot:  %#v\nwant: %#v", actual.Value, expected)
+		var val cty.Value
+		if actual != nil {
+			val = actual.Value
+		}
+		t.Fatalf("wrong value\ngot:  %#v\nwant: %#v", val, expected)
 	}
 
 	t.Logf("Initial state: %s", state.String())
@@ -3987,7 +3991,11 @@ func TestContext2Apply_multiVarOrder(t *testing.T) {
 	actual := state.RootModule().OutputValues["should-be-11"]
 	expected := cty.StringVal("index-11")
 	if actual == nil || actual.Value != expected {
-		t.Fatalf("wrong value\ngot:  %#v\nwant: %#v", actual.Value, expected)
+		var val cty.Value
+		if actual != nil {
+			val = actual.Value
+		}
+		t.Fatalf("wrong value\ngot:  %#v\nwant: %#v", val, expected)
 	}
 }
 
@@ -4023,7 +4031,11 @@ func TestContext2Apply_multiVarOrderInterp(t *testing.T) {
 	actual := state.RootModule().OutputValues["should-be-11"]
 	expected := cty.StringVal("baz-index-11")
 	if actual == nil || actual.Value != expected {
-		t.Fatalf("wrong value\ngot:  %#v\nwant: %#v", actual.Value, expected)
+		var val cty.Value
+		if actual != nil {
+			val = actual.Value
+		}
+		t.Fatalf("wrong value\ngot:  %#v\nwant: %#v", val, expected)
 	}
 }
 
@@ -4338,81 +4350,6 @@ func TestContext2Apply_outputOrphan(t *testing.T) {
 	expected := strings.TrimSpace(testTerraformApplyOutputOrphanStr)
 	if actual != expected {
 		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
-	}
-}
-
-func TestContext2Apply_outputOrphanModule(t *testing.T) {
-	m := testModule(t, "apply-output-orphan-module")
-	p := testProvider("aws")
-	p.ApplyFn = testApplyFn
-	p.DiffFn = testDiffFn
-
-	state := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: []string{"root", "child"},
-				Outputs: map[string]*OutputState{
-					"foo": &OutputState{
-						Type:  "string",
-						Value: "bar",
-					},
-					"bar": &OutputState{
-						Type:  "string",
-						Value: "baz",
-					},
-				},
-			},
-		},
-	})
-
-	ctx := testContext2(t, &ContextOpts{
-		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: state.DeepCopy(),
-	})
-
-	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("plan errors: %s", diags.Err())
-	}
-
-	state, diags := ctx.Apply()
-	if diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
-	}
-
-	actual := strings.TrimSpace(state.String())
-	expected := strings.TrimSpace(testTerraformApplyOutputOrphanModuleStr)
-	if actual != expected {
-		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
-	}
-
-	// now apply with no module in the config, which should remove the
-	// remaining output
-	ctx = testContext2(t, &ContextOpts{
-		Config: configs.NewEmptyConfig(),
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: state.DeepCopy(),
-	})
-
-	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("plan errors: %s", diags.Err())
-	}
-
-	state, diags = ctx.Apply()
-	if diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
-	}
-
-	if !state.Empty() {
-		t.Fatalf("wrong final state %s\nwant empty state", spew.Sdump(state))
 	}
 }
 
@@ -9650,7 +9587,11 @@ func TestContext2Apply_terraformWorkspace(t *testing.T) {
 	actual := state.RootModule().OutputValues["output"]
 	expected := cty.StringVal("foo")
 	if actual == nil || actual.Value != expected {
-		t.Fatalf("wrong value\ngot:  %#v\nwant: %#v", actual.Value, expected)
+		var val cty.Value
+		if actual != nil {
+			val = actual.Value
+		}
+		t.Fatalf("wrong value\ngot:  %#v\nwant: %#v", val, expected)
 	}
 }
 

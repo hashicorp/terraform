@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 )
@@ -37,4 +38,12 @@ func (n *NodeDestroyableDataResourceInstance) EvalTree() EvalNode {
 			},
 		},
 	}
+}
+
+func (n *NodeDestroyableDataResourceInstance) References() []*addrs.Reference {
+	// We don't evaluate configuration when destroying a data resource,
+	// so any references in the configuration are irrelevant. Omitting
+	// these simplifies the graph slightly and can permit greater
+	// concurrency of graph operations.
+	return nil
 }

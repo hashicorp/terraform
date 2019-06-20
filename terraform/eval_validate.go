@@ -542,3 +542,38 @@ func (n *EvalValidateResource) validateCount(ctx EvalContext, expr hcl.Expressio
 
 	return diags
 }
+
+// EvalValidateOutput is an EvalNode implementation that validates
+// the configuration of an output value.
+type EvalValidateOutput struct {
+	Addr   addrs.OutputValue
+	Config *configs.Output
+
+	// Value, if non-nil, will be updated with the value obtained when
+	// evaluating the output value's expression. Since validation is performed
+	// very early, this value is likely to be unknown or contain unknown
+	// values, but if those unknown values have type information then
+	// the caller may optionally perform type checking on the result.
+	Value *cty.Value
+}
+
+func (n *EvalValidateOutput) Eval(ctx EvalContext) (interface{}, error) {
+	if n.Config == nil {
+		// Should never happen.
+		panic("EvalValidateOutput called with no configuration")
+	}
+
+	val, diags := ctx.EvaluateExpr(n.Config.Expr, cty.DynamicPseudoType, nil)
+	if val == cty.NilVal {
+		// EvaluateExpr should always return some sort of error, but in case
+		// of bugs where it doesn't we'll replace it with a totally-unknown
+		// value to prevent downstream crashes.
+		log.Printf("[WARN] ctx.EvaluateExpr for %s returned cty.NilVal", n.Addr.Absolute(ctx.Path()))
+		val = cty.DynamicVal
+	}
+	if n.Value != nil {
+		*n.Value = val
+	}
+
+	return nil, diags.ErrWithWarnings()
+}

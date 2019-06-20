@@ -188,7 +188,14 @@ func (t *TargetsTransformer) addDependencies(targetedNodes *dag.Set, g *Graph) (
 // is required.
 func filterPartialOutputs(v interface{}, targetedNodes *dag.Set, g *Graph) bool {
 	// should this just be done with TargetDownstream?
-	if _, ok := v.(*NodeApplyableOutput); !ok {
+	ov, ok := v.(*NodeApplyableOutput)
+	if !ok {
+		return true
+	}
+	if ov.Addr.Module.IsRoot() {
+		// We never filter out root outputs, because they are a public
+		// interface and so users of them (terraform_remote_state elsewhere, etc)
+		// will not be represented in our graph.
 		return true
 	}
 

@@ -72,6 +72,25 @@ func (b *DestroyPlanGraphBuilder) Steps() []GraphTransformer {
 			State:           b.State,
 		},
 
+		// Add both present and orphaned outputs.
+		&OutputTransformer{
+			Config: b.Config,
+			State:  b.State,
+
+			Concrete: func(abstract *NodeAbstractOutput) dag.Vertex {
+				return &NodePlannableOutput{
+					NodeAbstractOutput: abstract,
+					ForceDestroy:       true,
+				}
+			},
+			ConcreteOrphan: func(abstract *NodeAbstractOutput) dag.Vertex {
+				return &NodePlannableOutput{
+					NodeAbstractOutput: abstract,
+					ForceDestroy:       true,
+				}
+			},
+		},
+
 		// Attach the configuration to any resources
 		&AttachResourceConfigTransformer{Config: b.Config},
 
