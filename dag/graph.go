@@ -130,6 +130,38 @@ func (g *Graph) Remove(v Vertex) Vertex {
 	return nil
 }
 
+// RemovePreservingConnectivity is a variant of Remove that replaces all
+// edges A -> B -> C with corresponding edges A -> C, where B is the
+// given Vertex, A are all vertices that depend on B, and C are all
+// vertices that C depends on.
+//
+// This ensures that the nodes that interact with the given node retain
+// their relative connectivity, but do so via direct dependencies rather
+// than transitive dependencies where necessary.
+//
+// However, in the worst cases this can result in the graph having a lot
+// more edges than before if the vertex being deleted is an aggregation
+// point with lots of edges in or out, because every combination of in and
+// out connections must be retained.
+//
+// This function is safe to use only with graphs where all edges are created
+// using function BasicEdge, because it cannot preserve any other edge types
+// that might begin or end at the given vertex.
+func (g *Graph) RemovePreservingConnectivity(v Vertex) Vertex {
+	// We'll add all the new edges we need first, and then we'll
+	// just delegate to g.Remove to do the final cleanup.
+
+	defer g.debug.BeginOperation("RemovePreservingConnectivity", "").End("")
+
+	for _, from := range g.UpEdges(v).List() {
+		for _, to := range g.DownEdges(v).List() {
+			g.Connect(BasicEdge(from, to))
+		}
+	}
+
+	return g.Remove(v)
+}
+
 // Replace replaces the original Vertex with replacement. If the original
 // does not exist within the graph, then false is returned. Otherwise, true
 // is returned.

@@ -48,6 +48,41 @@ func TestGraph_remove(t *testing.T) {
 	}
 }
 
+func TestGraph_removePreservingConnectivity(t *testing.T) {
+	var g Graph
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Add(4)
+	g.Add(5)
+	g.Add(6)
+	g.Connect(BasicEdge(1, 3))
+	g.Connect(BasicEdge(2, 3))
+	g.Connect(BasicEdge(3, 4))
+	g.Connect(BasicEdge(3, 5))
+	g.Connect(BasicEdge(4, 5)) // This edge is not affected by the operation
+	g.Connect(BasicEdge(5, 6)) // This edge is not affected by the operation
+	g.RemovePreservingConnectivity(3)
+
+	got := strings.TrimSpace(g.String())
+	want := strings.TrimSpace(`
+1
+  4
+  5
+2
+  4
+  5
+4
+  5
+5
+  6
+6
+`)
+	if got != want {
+		t.Fatalf("wrong final graph\n\ngot:\n%s\n\nwant:\n%s", got, want)
+	}
+}
+
 func TestGraph_replace(t *testing.T) {
 	var g Graph
 	g.Add(1)
