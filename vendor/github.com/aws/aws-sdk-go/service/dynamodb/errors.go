@@ -124,8 +124,8 @@ const (
 	// "RequestLimitExceeded".
 	//
 	// Throughput exceeds the current throughput limit for your account. Please
-	// contact AWS Support at AWS Support (https://docs.aws.amazon.com/https:/aws.amazon.com/support)
-	// to request a limit increase.
+	// contact AWS Support at AWS Support (https://aws.amazon.com/support) to request
+	// a limit increase.
 	ErrCodeRequestLimitExceeded = "RequestLimitExceeded"
 
 	// ErrCodeResourceInUseException for service response error code
@@ -165,9 +165,9 @@ const (
 	// ErrCodeTransactionCanceledException for service response error code
 	// "TransactionCanceledException".
 	//
-	// The entire transaction request was rejected.
+	// The entire transaction request was canceled.
 	//
-	// DynamoDB rejects a TransactWriteItems request under the following circumstances:
+	// DynamoDB cancels a TransactWriteItems request under the following circumstances:
 	//
 	//    * A condition in one of the condition expressions is not met.
 	//
@@ -186,7 +186,7 @@ const (
 	//
 	//    * There is a user error, such as an invalid data format.
 	//
-	// DynamoDB rejects a TransactGetItems request under the following circumstances:
+	// DynamoDB cancels a TransactGetItems request under the following circumstances:
 	//
 	//    * There is an ongoing TransactGetItems operation that conflicts with a
 	//    concurrent PutItem, UpdateItem, DeleteItem or TransactWriteItems request.
@@ -199,6 +199,57 @@ const (
 	//    completed.
 	//
 	//    * There is a user error, such as an invalid data format.
+	//
+	// If using Java, DynamoDB lists the cancellation reasons on the CancellationReasons
+	// property. This property is not set for other languages. Transaction cancellation
+	// reasons are ordered in the order of requested items, if an item has no error
+	// it will have NONE code and Null message.
+	//
+	// Cancellation reason codes and possible error messages:
+	//
+	//    * No Errors: Code: NONE Message: null
+	//
+	//    * Conditional Check Failed: Code: ConditionalCheckFailed Message: The
+	//    conditional request failed.
+	//
+	//    * Item Collection Size Limit Exceeded: Code: ItemCollectionSizeLimitExceeded
+	//    Message: Collection size exceeded.
+	//
+	//    * Transaction Conflict: Code: TransactionConflict Message: Transaction
+	//    is ongoing for the item.
+	//
+	//    * Provisioned Throughput Exceeded: Code: ProvisionedThroughputExceeded
+	//    Messages: The level of configured provisioned throughput for the table
+	//    was exceeded. Consider increasing your provisioning level with the UpdateTable
+	//    API. This Message is received when provisioned throughput is exceeded
+	//    is on a provisioned DynamoDB table. The level of configured provisioned
+	//    throughput for one or more global secondary indexes of the table was exceeded.
+	//    Consider increasing your provisioning level for the under-provisioned
+	//    global secondary indexes with the UpdateTable API. This message is returned
+	//    when provisioned throughput is exceeded is on a provisioned GSI.
+	//
+	//    * Throttling Error: Code: ThrottlingError Messages: Throughput exceeds
+	//    the current capacity of your table or index. DynamoDB is automatically
+	//    scaling your table or index so please try again shortly. If exceptions
+	//    persist, check if you have a hot key: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-partition-key-design.html.
+	//    This message is returned when writes get throttled on an On-Demand table
+	//    as DynamoDB is automatically scaling the table. Throughput exceeds the
+	//    current capacity for one or more global secondary indexes. DynamoDB is
+	//    automatically scaling your index so please try again shortly. This message
+	//    is returned when when writes get throttled on an On-Demand GSI as DynamoDB
+	//    is automatically scaling the GSI.
+	//
+	//    * Validation Error: Code: ValidationError Messages: One or more parameter
+	//    values were invalid. The update expression attempted to update the secondary
+	//    index key beyond allowed size limits. The update expression attempted
+	//    to update the secondary index key to unsupported type. An operand in the
+	//    update expression has an incorrect data type. Item size to update has
+	//    exceeded the maximum allowed size. Number overflow. Attempting to store
+	//    a number with magnitude larger than supported range. Type mismatch for
+	//    attribute to update. Nesting Levels have exceeded supported limits. The
+	//    document path provided in the update expression is invalid for update.
+	//    The provided expression refers to an attribute that does not exist in
+	//    the item.
 	ErrCodeTransactionCanceledException = "TransactionCanceledException"
 
 	// ErrCodeTransactionConflictException for service response error code
