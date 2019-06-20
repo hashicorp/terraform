@@ -492,7 +492,12 @@ func (s *GRPCProviderServer) Configure(_ context.Context, req *proto.Configure_R
 }
 
 func (s *GRPCProviderServer) ReadResource(_ context.Context, req *proto.ReadResource_Request) (*proto.ReadResource_Response, error) {
-	resp := &proto.ReadResource_Response{}
+	resp := &proto.ReadResource_Response{
+		// helper/schema did previously handle private data during refresh, but
+		// core is now going to expect this to be maintained in order to
+		// persist it in the state.
+		Private: req.Private,
+	}
 
 	res := s.provider.ResourcesMap[req.TypeName]
 	schemaBlock := s.getResourceSchemaBlock(req.TypeName)
@@ -508,6 +513,15 @@ func (s *GRPCProviderServer) ReadResource(_ context.Context, req *proto.ReadReso
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
+
+	private := make(map[string]interface{})
+	if len(req.Private) > 0 {
+		if err := json.Unmarshal(req.Private, &private); err != nil {
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+			return resp, nil
+		}
+	}
+	instanceState.Meta = private
 
 	newInstanceState, err := res.RefreshWithoutUpgrade(instanceState, s.provider.Meta())
 	if err != nil {
@@ -550,11 +564,6 @@ func (s *GRPCProviderServer) ReadResource(_ context.Context, req *proto.ReadReso
 	resp.NewState = &proto.DynamicValue{
 		Msgpack: newStateMP,
 	}
-
-	// helper/schema did previously handle private data during refresh, but
-	// core is now going to expect this to be maintained in order to
-	// persist it in the state.
-	resp.Private = req.Private
 
 	return resp, nil
 }
@@ -645,6 +654,7 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 		// description that _shows_ there are no changes. This is always the
 		// prior state, because we force a diff above if this is a new instance.
 		resp.PlannedState = req.PriorState
+		resp.PlannedPrivate = req.PriorPrivate
 		return resp, nil
 	}
 
@@ -703,6 +713,18 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 	}
 	resp.PlannedState = &proto.DynamicValue{
 		Msgpack: plannedMP,
+	}
+
+	// encode any timeouts into the diff Meta
+	t := &schema.ResourceTimeout{}
+	if err := t.ConfigDecode(res, cfg); err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
+
+	if err := t.DiffEncode(diff); err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
 	}
 
 	// Now we need to store any NewExtra values, which are where any actual
