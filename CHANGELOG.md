@@ -7,7 +7,8 @@ ENHANCEMENTS:
 
 BUG FIXES:
 
-* lang/funcs: Fix `merge` panic on null values. Now will give an error if null used [GH-21695] 
+* lang/funcs: Fix `merge` panic on null values. Now will give an error if null used [GH-21695]
+* backend/remote: Fix "Conflict" error if the first state snapshot written after a Terraform CLI upgrade has the same content as the prior state. [GH-21811]
 
 ## 0.12.2 (June 12, 2019)
 
