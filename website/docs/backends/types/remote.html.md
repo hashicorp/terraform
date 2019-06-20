@@ -128,8 +128,11 @@ terraform {
 
   backend "remote" {}
 }
+```
 
-# backend.file
+Backend file configuration;
+```hcl
+# backend.hcl
 workspaces { name = "workspace" }
 hostname     = "app.terraform.io"
 organization = "company"
@@ -137,7 +140,7 @@ organization = "company"
 
 ```sh
 # initilise backend
-terraform init -backend-config=backend.file
+terraform init -backend-config=backend.hcl
 ```
 
 ## Configuration variables
