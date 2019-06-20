@@ -99,6 +99,33 @@ func TestValidationIntBetween(t *testing.T) {
 	})
 }
 
+func TestValidationTypeStringNullableIntBetween(t *testing.T) {
+	runTestCases(t, []testCase{
+		{
+			val: "1",
+			f:   TypeStringNullableIntBetween(1, 1),
+		},
+		{
+			val: "1",
+			f:   TypeStringNullableIntBetween(0, 2),
+		},
+		{
+			val:         "1",
+			f:           TypeStringNullableIntBetween(2, 3),
+			expectedErr: regexp.MustCompile("expected [\\w]+ to be in the range \\(2 - 3\\), got 1"),
+		},
+		{
+			val: "",
+			f:   TypeStringNullableIntBetween(2, 3),
+		},
+		{
+			val:         1,
+			f:           TypeStringNullableIntBetween(2, 3),
+			expectedErr: regexp.MustCompile("expected type of [\\w]+ to be string"),
+		},
+	})
+}
+
 func TestValidationIntAtLeast(t *testing.T) {
 	runTestCases(t, []testCase{
 		{

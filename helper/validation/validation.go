@@ -6,6 +6,7 @@ import (
 	"net"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -58,6 +59,35 @@ func IntBetween(min, max int) schema.SchemaValidateFunc {
 
 		if v < min || v > max {
 			es = append(es, fmt.Errorf("expected %s to be in the range (%d - %d), got %d", k, min, max, v))
+			return
+		}
+
+		return
+	}
+}
+
+// TypeStringNullableIntBetween returns a SchemaValidateFunc which tests if the provided value
+// is an empty string, or converts to an int and is between min and max (inclusive)
+func TypeStringNullableIntBetween(min, max int64) schema.SchemaValidateFunc {
+	return func(i interface{}, k string) (s []string, es []error) {
+		v, ok := i.(string)
+		if !ok {
+			es = append(es, fmt.Errorf("expected type of %s to be string", k))
+			return
+		}
+
+		if v == "" {
+			return
+		}
+
+		vInt, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			es = append(es, fmt.Errorf("%s: cannot parse '%s' as integer: %s", k, v, err))
+			return
+		}
+
+		if vInt < min || vInt > max {
+			es = append(es, fmt.Errorf("expected %s to be in the range (%d - %d), got %d", k, min, max, vInt))
 			return
 		}
 
