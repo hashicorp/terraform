@@ -329,21 +329,13 @@ func (r *Resource) simpleDiff(
 	c *terraform.ResourceConfig,
 	meta interface{}) (*terraform.InstanceDiff, error) {
 
-	t := &ResourceTimeout{}
-	err := t.ConfigDecode(r, c)
-
-	if err != nil {
-		return nil, fmt.Errorf("[ERR] Error decoding timeout: %s", err)
-	}
-
 	instanceDiff, err := schemaMap(r.Schema).Diff(s, c, r.CustomizeDiff, meta, false)
 	if err != nil {
 		return instanceDiff, err
 	}
 
 	if instanceDiff == nil {
-		log.Printf("[DEBUG] Instance Diff is nil in SimpleDiff()")
-		return nil, err
+		instanceDiff = terraform.NewInstanceDiff()
 	}
 
 	// Make sure the old value is set in each of the instance diffs.
@@ -357,10 +349,7 @@ func (r *Resource) simpleDiff(
 		}
 	}
 
-	if err := t.DiffEncode(instanceDiff); err != nil {
-		log.Printf("[ERR] Error encoding timeout to instance diff: %s", err)
-	}
-	return instanceDiff, err
+	return instanceDiff, nil
 }
 
 // Validate validates the resource configuration against the schema.
