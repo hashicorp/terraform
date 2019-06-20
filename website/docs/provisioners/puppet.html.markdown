@@ -64,13 +64,11 @@ The following arguments are supported:
   will have their privileges elevated with sudo (defaults to `true` when the OS
   type is `linux` and `false` when the OS type is `windows`).
 
-* `autosign (boolean)` - (Optional) Set to `true` if the Puppet master is using
+* `autosign (boolean)` - (Optional) Set to `true` if the Puppet master is using an autosigner such as
   [Daniel Dreier's policy-based autosigning
-  tool](https://danieldreier.github.io/autosign) (defaults to `true`).
+  tool](https://danieldreier.github.io/autosign). If `false` new agent certificate requests will have to be signed manually (defaults to `true`).
 
-* `open_source (boolean)` - (Optional) If `true` the open source Puppet agent
-  will be installed on the resource, otherwise the Puppet Enterprise agent will
-  be installed (defaults to `true`).
+* `open_source (boolean)` - (Optional) If `true` the provisioner uses an open source Puppet compatible agent install method (push via the Bolt agent install task). If `false` the simplified Puppet Enterprise installer will pull the agent from the Puppet master (defaults to `true`).
 
 * `certname (string)` - (Optional) The Subject CN used when requesting
   a certificate from the Puppet master CA (defaults to the FQDN of the
@@ -80,14 +78,14 @@ The following arguments are supported:
   requests](https://puppet.com/docs/puppet/latest/ssl_attributes_extensions.html#concept-932)
   to be embedded in the certificate signing request before it is sent to the
   Puppet master CA and then transferred to the final certificate when the CSR
-  is signed.
+  is signed. These become available during Puppet agent runs as [trusted facts](https://puppet.com/docs/puppet/latest/lang_facts_and_builtin_vars.html#trusted-facts). Friendly names for common extensions such as pp_role and pp_environment have [been predefined](https://puppet.com/docs/puppet/latest/lang_facts_and_builtin_vars.html#trusted-facts).
 
 * `custom_attributes (map)` - (Optional) A map of [custom
   attributes](https://puppet.com/docs/puppet/latest/ssl_attributes_extensions.html#concept-5488)
   to be embedded in the certificate signing request before it is sent to the
   Puppet master CA.
 
-* `environment (string)` - (Optional) The name of the environment which the
+* `environment (string)` - (Optional) The name of the Puppet environment that the
   Puppet agent will be running in (defaults to `production`).
 
 * `bolt_timeout (string)` - (Optional) The timeout to wait for Bolt tasks to
