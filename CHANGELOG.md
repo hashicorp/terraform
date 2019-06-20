@@ -7,6 +7,7 @@ ENHANCEMENTS:
 
 BUG FIXES:
 
+* config: Can now use references like `tags["foo"]` in `ignore_changes` to ignore in-place updates to specific keys in a map [GH-21788]
 * lang/funcs: Fix `merge` panic on null values. Now will give an error if null used [GH-21695]
 * backend/remote: Fix "Conflict" error if the first state snapshot written after a Terraform CLI upgrade has the same content as the prior state. [GH-21811]
 
