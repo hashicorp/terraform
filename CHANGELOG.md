@@ -4,12 +4,14 @@ ENHANCEMENTS:
 
 * config: add GCS source support for modules [GH-21254]
 * command/format: Reduce extra whitespaces & new lines [GH-21334]
+* backend/s3: Support for chaining assume IAM role from AWS shared configuration files [GH-21815]
 
 BUG FIXES:
 
 * config: Can now use references like `tags["foo"]` in `ignore_changes` to ignore in-place updates to specific keys in a map [GH-21788]
 * lang/funcs: Fix `merge` panic on null values. Now will give an error if null used [GH-21695]
 * backend/remote: Fix "Conflict" error if the first state snapshot written after a Terraform CLI upgrade has the same content as the prior state. [GH-21811]
+* backend/s3: Fix AWS shared configuration file credential source not assuming a role with environment and ECS credentials [GH-21815]
 
 ## 0.12.2 (June 12, 2019)
 
