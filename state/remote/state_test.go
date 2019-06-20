@@ -4,15 +4,15 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/hashicorp/terraform/state"
+	"github.com/hashicorp/terraform/states/statemgr"
 )
 
 func TestState_impl(t *testing.T) {
-	var _ state.StateReader = new(State)
-	var _ state.StateWriter = new(State)
-	var _ state.StatePersister = new(State)
-	var _ state.StateRefresher = new(State)
-	var _ state.Locker = new(State)
+	var _ statemgr.Reader = new(State)
+	var _ statemgr.Writer = new(State)
+	var _ statemgr.Persister = new(State)
+	var _ statemgr.Refresher = new(State)
+	var _ statemgr.Locker = new(State)
 }
 
 func TestStateRace(t *testing.T) {
