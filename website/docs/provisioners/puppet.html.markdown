@@ -22,7 +22,7 @@ The `puppet` provisioner has some prerequisites for specific connection types:
 Without these prerequisites, your provisioning execution will fail.
 
 Additionally, the `puppet` provisioner requires
-[Bolt](https://puppet.com/products/bolt) to be installed on your workstation
+[Bolt](https://puppet.com/docs/bolt/latest/bolt.html) to be installed on your workstation
 with the following [modules
 installed](https://puppet.com/docs/bolt/latest/bolt_installing_modules.html#install-modules)
 
@@ -78,7 +78,7 @@ The following arguments are supported:
   requests](https://puppet.com/docs/puppet/latest/ssl_attributes_extensions.html#concept-932)
   to be embedded in the certificate signing request before it is sent to the
   Puppet master CA and then transferred to the final certificate when the CSR
-  is signed. These become available during Puppet agent runs as [trusted facts](https://puppet.com/docs/puppet/latest/lang_facts_and_builtin_vars.html#trusted-facts). Friendly names for common extensions such as pp_role and pp_environment have [been predefined](https://puppet.com/docs/puppet/latest/lang_facts_and_builtin_vars.html#trusted-facts).
+  is signed. These become available during Puppet agent runs as [trusted facts](https://puppet.com/docs/puppet/latest/lang_facts_and_builtin_vars.html#trusted-facts). Friendly names for common extensions such as pp_role and pp_environment have [been predefined](https://puppet.com/docs/puppet/latest/ssl_attributes_extensions.html#recommended-oids-for-extensions).
 
 * `custom_attributes (map)` - (Optional) A map of [custom
   attributes](https://puppet.com/docs/puppet/latest/ssl_attributes_extensions.html#concept-5488)
