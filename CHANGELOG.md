@@ -1,18 +1,18 @@
-## 0.12.3 (Unreleased)
+## 0.12.3 (June 24, 2019)
 
 ENHANCEMENTS:
 
-* config: add GCS source support for modules [GH-21254]
-* command/format: Reduce extra whitespaces & new lines [GH-21334]
-* backend/s3: Support for chaining assume IAM role from AWS shared configuration files [GH-21815]
+* config: add GCS source support for modules ([#21254](https://github.com/hashicorp/terraform/issues/21254))
+* command/format: Reduce extra whitespaces & new lines ([#21334](https://github.com/hashicorp/terraform/issues/21334))
+* backend/s3: Support for chaining assume IAM role from AWS shared configuration files ([#21815](https://github.com/hashicorp/terraform/issues/21815))
 
 BUG FIXES:
 
-* configs: Can now use references like `tags["foo"]` in `ignore_changes` to ignore in-place updates to specific keys in a map [GH-21788]
-* configs: Fix panic on missing value for `version` attribute in `provider` blocks. [GH-21825]
-* lang/funcs: Fix `merge` panic on null values. Now will give an error if null used [GH-21695]
-* backend/remote: Fix "Conflict" error if the first state snapshot written after a Terraform CLI upgrade has the same content as the prior state. [GH-21811]
-* backend/s3: Fix AWS shared configuration file credential source not assuming a role with environment and ECS credentials [GH-21815]
+* configs: Can now use references like `tags["foo"]` in `ignore_changes` to ignore in-place updates to specific keys in a map ([#21788](https://github.com/hashicorp/terraform/issues/21788))
+* configs: Fix panic on missing value for `version` attribute in `provider` blocks. ([#21825](https://github.com/hashicorp/terraform/issues/21825))
+* lang/funcs: Fix `merge` panic on null values. Now will give an error if null used ([#21695](https://github.com/hashicorp/terraform/issues/21695))
+* backend/remote: Fix "Conflict" error if the first state snapshot written after a Terraform CLI upgrade has the same content as the prior state. ([#21811](https://github.com/hashicorp/terraform/issues/21811))
+* backend/s3: Fix AWS shared configuration file credential source not assuming a role with environment and ECS credentials ([#21815](https://github.com/hashicorp/terraform/issues/21815))
 
 ## 0.12.2 (June 12, 2019)
 
