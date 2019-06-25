@@ -1352,6 +1352,17 @@ func TestValidateNulls(t *testing.T) {
 			}),
 			Err: true,
 		},
+		{
+			Cfg: cty.ObjectVal(map[string]cty.Value{
+				"object": cty.ObjectVal(map[string]cty.Value{
+					"list": cty.SetVal([]cty.Value{
+						cty.StringVal("string"),
+						cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+			Err: true,
+		},
 	} {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			d := validateConfigNulls(tc.Cfg, nil)
