@@ -84,7 +84,7 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 			// whether there are dynamically-typed attributes inside. However,
 			// both support a similar-enough API that we can treat them the
 			// same for our purposes here.
-			if !plannedV.IsKnown() || plannedV.IsNull() || actualV.IsNull() {
+			if !plannedV.IsKnown() || !actualV.IsKnown() || plannedV.IsNull() || actualV.IsNull() {
 				continue
 			}
 

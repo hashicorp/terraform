@@ -1135,6 +1135,32 @@ func TestAssertObjectCompatible(t *testing.T) {
 			}),
 			nil,
 		},
+		{
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"block": {
+						Nesting: configschema.NestingList,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"foo": {
+									Type:     cty.String,
+									Required: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"block": cty.EmptyObjectVal,
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"block": cty.UnknownVal(cty.List(cty.Object(map[string]cty.Type{
+					"foo": cty.String,
+				}))),
+			}),
+			nil,
+		},
 	}
 
 	for i, test := range tests {
