@@ -174,3 +174,22 @@ resource "test_resource_defaults" "foo" {
 		},
 	})
 }
+
+func TestDefaults_emptyString(t *testing.T) {
+	config := `
+resource "test_resource_defaults" "test" {
+  default_string = ""
+}
+`
+	resource.UnitTest(t, resource.TestCase{
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("test_resource_defaults.test", "default_string", ""),
+				),
+			},
+		},
+	})
+}

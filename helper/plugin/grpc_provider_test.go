@@ -985,14 +985,39 @@ func TestNormalizeNullValues(t *testing.T) {
 		{
 			// Plan primitives are kept
 			Src: cty.ObjectVal(map[string]cty.Value{
+				"string": cty.NumberIntVal(0),
+			}),
+			Dst: cty.ObjectVal(map[string]cty.Value{
+				"string": cty.NullVal(cty.Number),
+			}),
+			Expect: cty.ObjectVal(map[string]cty.Value{
+				"string": cty.NullVal(cty.Number),
+			}),
+		},
+		{
+			// Neither plan nor apply should remove empty strings
+			Src: cty.ObjectVal(map[string]cty.Value{
 				"string": cty.StringVal(""),
 			}),
 			Dst: cty.ObjectVal(map[string]cty.Value{
 				"string": cty.NullVal(cty.String),
 			}),
 			Expect: cty.ObjectVal(map[string]cty.Value{
+				"string": cty.StringVal(""),
+			}),
+		},
+		{
+			// Neither plan nor apply should remove empty strings
+			Src: cty.ObjectVal(map[string]cty.Value{
+				"string": cty.StringVal(""),
+			}),
+			Dst: cty.ObjectVal(map[string]cty.Value{
 				"string": cty.NullVal(cty.String),
 			}),
+			Expect: cty.ObjectVal(map[string]cty.Value{
+				"string": cty.StringVal(""),
+			}),
+			Apply: true,
 		},
 		{
 			// The null map is retained, because the src was unknown

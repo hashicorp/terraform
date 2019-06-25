@@ -1223,6 +1223,8 @@ func normalizeNullValues(dst, src cty.Value, apply bool) cty.Value {
 		}
 	}
 
+	// check the invariants that we need below, to ensure we are working with
+	// non-null and known values.
 	if src.IsNull() || !src.IsKnown() || !dst.IsKnown() {
 		return dst
 	}
@@ -1341,8 +1343,12 @@ func normalizeNullValues(dst, src cty.Value, apply bool) cty.Value {
 			return cty.ListVal(dsts)
 		}
 
-	case ty.IsPrimitiveType():
-		if dst.IsNull() && src.IsWhollyKnown() && apply {
+	case ty == cty.String:
+		// The legacy SDK should not be able to remove a value during plan or
+		// apply, however we are only going to overwrite this if the source was
+		// an empty string, since that is what is often equated with unset and
+		// lost in the diff process.
+		if dst.IsNull() && src.AsString() == "" {
 			return src
 		}
 	}
