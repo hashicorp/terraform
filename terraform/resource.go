@@ -438,7 +438,7 @@ func (c *ResourceConfig) get(
 	var current interface{} = raw
 	var previous interface{} = nil
 	for i, part := range parts {
-		if current == nil {
+		if reallyNil(current) {
 			return nil, false
 		}
 
@@ -500,7 +500,25 @@ func (c *ResourceConfig) get(
 		}
 	}
 
+	if reallyNil(current) {
+		return nil, false
+	}
 	return current, true
+}
+
+func reallyNil(i interface{}) bool {
+	if i == nil {
+		return true
+	}
+
+	v := reflect.ValueOf(i)
+	switch v.Kind() {
+	case reflect.Map, reflect.Slice, reflect.Ptr:
+		if v.IsNil() {
+			return true
+		}
+	}
+	return false
 }
 
 // interpolateForce is a temporary thing. We want to get rid of interpolate
