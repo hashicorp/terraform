@@ -1,5 +1,10 @@
 ## 0.12.4 (Unreleased)
 
+BUG FIXES:
+
+* plugin/sdk: Prevent empty strings from being replaces with default values: [GH-21806]
+* plugin/sdk: Ensure resource timeouts are not lost when there is an empty plan [GH-21814]
+
 ## 0.12.3 (June 24, 2019)
 
 ENHANCEMENTS:
