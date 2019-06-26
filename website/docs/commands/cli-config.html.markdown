@@ -81,8 +81,10 @@ The following settings can be set in the CLI configuration file:
     ```
 
     ~> **Important:** The token provided here must be a
-    [user API token](/docs/enterprise/users-teams-organizations/users.html#api-tokens),
-    and not a team or organization token.
+    [user token](/docs/enterprise/users-teams-organizations/users.html#api-tokens)
+    or a
+    [team token](/docs/enterprise/users-teams-organizations/service-accounts.html#team-service-accounts);
+    organization tokens cannot be used for command-line Terraform actions.
 
     -> **Note:** The credentials hostname must match the hostname in your module
     sources and/or backend configuration. If your Terraform Enterprise instance
