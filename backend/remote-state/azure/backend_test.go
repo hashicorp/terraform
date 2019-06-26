@@ -56,7 +56,6 @@ func TestBackendAccessKeyBasic(t *testing.T) {
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"storage_account_name": res.storageAccountName,
 		"container_name":       res.storageContainerName,
-		"versioning":           res.storageVersioning,
 		"key":                  res.storageKeyName,
 		"access_key":           res.storageAccountAccessKey,
 		"environment":          os.Getenv("ARM_ENVIRONMENT"),
@@ -82,7 +81,6 @@ func TestBackendManagedServiceIdentityBasic(t *testing.T) {
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"storage_account_name": res.storageAccountName,
 		"container_name":       res.storageContainerName,
-		"versioning":           res.storageVersioning,
 		"key":                  res.storageKeyName,
 		"resource_group_name":  res.resourceGroup,
 		"use_msi":              true,
@@ -116,7 +114,6 @@ func TestBackendSASTokenBasic(t *testing.T) {
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"storage_account_name": res.storageAccountName,
 		"container_name":       res.storageContainerName,
-		"versioning":           res.storageVersioning,
 		"key":                  res.storageKeyName,
 		"sas_token":            *sasToken,
 		"environment":          os.Getenv("ARM_ENVIRONMENT"),
@@ -142,7 +139,6 @@ func TestBackendServicePrincipalBasic(t *testing.T) {
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"storage_account_name": res.storageAccountName,
 		"container_name":       res.storageContainerName,
-		"versioning":           res.storageVersioning,
 		"key":                  res.storageKeyName,
 		"resource_group_name":  res.resourceGroup,
 		"subscription_id":      os.Getenv("ARM_SUBSCRIPTION_ID"),
@@ -179,7 +175,6 @@ func TestBackendServicePrincipalCustomEndpoint(t *testing.T) {
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"storage_account_name": res.storageAccountName,
 		"container_name":       res.storageContainerName,
-		"versioning":           res.storageVersioning,
 		"key":                  res.storageKeyName,
 		"resource_group_name":  res.resourceGroup,
 		"subscription_id":      os.Getenv("ARM_SUBSCRIPTION_ID"),
@@ -209,7 +204,6 @@ func TestBackendAccessKeyLocked(t *testing.T) {
 	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"storage_account_name": res.storageAccountName,
 		"container_name":       res.storageContainerName,
-		"versioning":           res.storageVersioning,
 		"key":                  res.storageKeyName,
 		"access_key":           res.storageAccountAccessKey,
 		"environment":          os.Getenv("ARM_ENVIRONMENT"),
@@ -219,7 +213,6 @@ func TestBackendAccessKeyLocked(t *testing.T) {
 	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"storage_account_name": res.storageAccountName,
 		"container_name":       res.storageContainerName,
-		"versioning":           res.storageVersioning,
 		"key":                  res.storageKeyName,
 		"access_key":           res.storageAccountAccessKey,
 		"environment":          os.Getenv("ARM_ENVIRONMENT"),
@@ -246,7 +239,6 @@ func TestBackendServicePrincipalLocked(t *testing.T) {
 	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"storage_account_name": res.storageAccountName,
 		"container_name":       res.storageContainerName,
-		"versioning":           res.storageVersioning,
 		"key":                  res.storageKeyName,
 		"access_key":           res.storageAccountAccessKey,
 		"subscription_id":      os.Getenv("ARM_SUBSCRIPTION_ID"),
@@ -260,7 +252,6 @@ func TestBackendServicePrincipalLocked(t *testing.T) {
 	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"storage_account_name": res.storageAccountName,
 		"container_name":       res.storageContainerName,
-		"versioning":           res.storageVersioning,
 		"key":                  res.storageKeyName,
 		"access_key":           res.storageAccountAccessKey,
 		"subscription_id":      os.Getenv("ARM_SUBSCRIPTION_ID"),
