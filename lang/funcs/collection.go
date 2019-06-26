@@ -689,8 +689,10 @@ var LookupFunc = function.New(&function.Spec{
 					return cty.StringVal(v.AsString()), nil
 				case ty.Equals(cty.Number):
 					return cty.NumberVal(v.AsBigFloat()), nil
+				case ty.Equals(cty.Bool):
+					return cty.BoolVal(v.True()), nil
 				default:
-					return cty.NilVal, errors.New("lookup() can only be used with flat lists")
+					return cty.NilVal, errors.New("lookup() can only be used with maps of primitive types")
 				}
 			}
 		}
