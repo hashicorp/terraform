@@ -51,6 +51,13 @@ func New() backend.Backend {
 				DefaultFunc: schema.EnvDefaultFunc("ARM_SAS_TOKEN", ""),
 			},
 
+			"versioning": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Enable/Disable automatic blob snapshotting",
+				DefaultFunc: schema.EnvDefaultFunc("ARM_VERSIONING", false),
+			},
+
 			"resource_group_name": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -149,6 +156,7 @@ type Backend struct {
 	armClient     *ArmClient
 	containerName string
 	keyName       string
+	versioning    bool
 }
 
 type BackendConfig struct {
@@ -178,6 +186,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	data := schema.FromContextBackendConfig(ctx)
 	b.containerName = data.Get("container_name").(string)
 	b.keyName = data.Get("key").(string)
+	b.versioning = data.Get("versioning").(bool)
 
 	// support for previously deprecated fields
 	clientId := valueFromDeprecatedField(data, "client_id", "arm_client_id")
