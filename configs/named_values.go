@@ -14,7 +14,7 @@ import (
 )
 
 // A consistent detail message for all "not a valid identifier" diagnostics.
-const badIdentifierDetail = "A name must start with a letter and may contain only letters, digits, underscores, and dashes."
+const badIdentifierDetail = "A name must start with a letter or underscore and may contain only letters, digits, underscores, and dashes."
 
 // Variable represents a "variable" block in a module or file.
 type Variable struct {
