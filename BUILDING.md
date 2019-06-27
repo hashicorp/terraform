@@ -22,24 +22,11 @@ The guide below outlines the steps HashiCorp takes to build the official release
 binaries for Terraform. This process will generate a set of binaries for each supported
 platform, using the [gox](https://github.com/mitchellh/gox) tool.
 
-A Vagrant virtual machine is used to provide a consistent environment with
-the pre-requisite tools in place. The specifics of this VM are defined in the 
-[Vagrantfile](Vagrantfile).
-
 
 ```sh
 # clone the repository if needed
 git clone https://github.com/hashicorp/terraform.git
 cd terraform
-
-# Spin up a fresh build VM
-vagrant destroy -f
-vagrant up
-vagrant ssh
-
-# The Vagrantfile installs Go and configures the $GOPATH at /opt/gopath
-# The current "terraform" directory is then sync'd into the gopath
-cd /opt/gopath/src/github.com/hashicorp/terraform/
 
 # Verify unit tests pass
 make test
