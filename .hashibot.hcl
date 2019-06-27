@@ -32,5 +32,5 @@ poll "label_issue_migrater" "provider_migrater" {
     <hr>
     
     EOF
-    migrated_comment = "This issue has been automatically migrated to ${var.repository}#${var.number} because it looks like an issue with that provider. If you believe this is _not_ an issue with the provider, please reply to ${var.repository}#${var.issue_number}."
+    migrated_comment = "This issue has been automatically migrated to ${var.repository}#${var.issue_number} because it looks like an issue with that provider. If you believe this is _not_ an issue with the provider, please reply to ${var.repository}#${var.issue_number}."
 }
