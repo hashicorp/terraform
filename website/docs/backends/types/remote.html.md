@@ -119,6 +119,32 @@ data "terraform_remote_state" "foo" {
 }
 ```
 
+## Example configuration using CLI input
+
+```hcl
+# main.tf 
+terraform {
+  required_version = "~> 0.12.0"
+
+  backend "remote" {}
+}
+```
+
+Backend configuration file:
+
+```hcl
+# backend.hcl
+workspaces { name = "workspace" }
+hostname     = "app.terraform.io"
+organization = "company"
+```
+
+Running `terraform init` with the backend file:
+
+```sh
+terraform init -backend-config=backend.hcl
+```
+
 ## Configuration variables
 
 The following configuration options are supported:
