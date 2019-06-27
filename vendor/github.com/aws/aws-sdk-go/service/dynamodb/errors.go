@@ -184,6 +184,8 @@ const (
 	//    index (LSI) becomes too large, or a similar validation error occurs because
 	//    of changes made by the transaction.
 	//
+	//    * The aggregate size of the items in the transaction exceeds 4 MBs.
+	//
 	//    * There is a user error, such as an invalid data format.
 	//
 	// DynamoDB cancels a TransactGetItems request under the following circumstances:
@@ -197,6 +199,8 @@ const (
 	//
 	//    * There is insufficient provisioned capacity for the transaction to be
 	//    completed.
+	//
+	//    * The aggregate size of the items in the transaction exceeds 4 MBs.
 	//
 	//    * There is a user error, such as an invalid data format.
 	//
