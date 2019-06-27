@@ -130,7 +130,8 @@ terraform {
 }
 ```
 
-Backend file configuration;
+Backend configuration file:
+
 ```hcl
 # backend.hcl
 workspaces { name = "workspace" }
