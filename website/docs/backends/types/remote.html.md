@@ -139,6 +139,8 @@ hostname     = "app.terraform.io"
 organization = "company"
 ```
 
+Running `terraform init` with the backend file:
+
 ```sh
 # initilise backend
 terraform init -backend-config=backend.hcl
