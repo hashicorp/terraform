@@ -202,13 +202,16 @@ func testResourceRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("set", []interface{}{})
 	}
 
-	_, ok := d.GetOk("optional_computed")
-	if !ok {
-		d.Set("optional_computed", "computed")
+	// This mimics many providers always setting a *string value.
+	// The existing behavior is that this will appear in the state as an empty
+	// string, which we have to maintain.
+	o := d.Get("optional")
+	if o == "" {
+		d.Set("optional", nil)
 	}
 
 	// This should not show as set unless it's set in the config
-	_, ok = d.GetOkExists("get_ok_exists_false")
+	_, ok := d.GetOkExists("get_ok_exists_false")
 	if ok {
 		return errors.New("get_ok_exists_false should not be set")
 	}
