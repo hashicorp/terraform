@@ -198,7 +198,7 @@ func (b *Remote) plan(stopCtx, cancelCtx context.Context, op *backend.Operation,
 		ConfigurationVersion: cv,
 		Workspace:            w,
 	}
-	
+
 	//Incident 16886: similar message (as TFE) when destroy is done via CLI
 	if *tfe.Bool(op.Destroy) {
 		rco := &runOptions
