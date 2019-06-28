@@ -10,7 +10,7 @@ behavior "regexp_issue_notifier" "panic_notify" {
 }
 
 behavior "remove_labels_on_reply" "remove_stale" {
-    labels = ["waiting-reponse", "stale"]
+    labels = ["waiting-response", "stale"]
     only_non_maintainers = true
 }
 
