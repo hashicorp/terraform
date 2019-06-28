@@ -36,55 +36,6 @@ resource "test_resource" "foo" {
 	})
 }
 
-func TestResource_removedOptional(t *testing.T) {
-	resource.UnitTest(t, resource.TestCase{
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckResourceDestroy,
-		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: strings.TrimSpace(`
-resource "test_resource" "foo" {
-	required = "yep"
-	required_map = {
-	    key = "value"
-	}
-	int = 1
-	optional = "string"
-	optional_computed = "not computed"
-	optional_bool = true
-}
-				`),
-			},
-			resource.TestStep{
-				Config: strings.TrimSpace(`
-resource "test_resource" "foo" {
-	required = "yep"
-	required_map = {
-	    key = "value"
-	}
-}
-				`),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckNoResourceAttr(
-						"test_resource.foo", "int",
-					),
-					resource.TestCheckNoResourceAttr(
-						"test_resource.foo", "string",
-					),
-					resource.TestCheckNoResourceAttr(
-						"test_resource.foo", "optional_bool",
-					),
-					// while this isn't optimal, the prior config value being
-					// left for optional+computed is expected
-					resource.TestCheckResourceAttr(
-						"test_resource.foo", "optional_computed", "not computed",
-					),
-				),
-			},
-		},
-	})
-}
-
 func TestResource_changedList(t *testing.T) {
 	resource.UnitTest(t, resource.TestCase{
 		Providers:    testAccProviders,
