@@ -186,21 +186,21 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The role to be assumed",
-				DefaultFunc: schema.EnvDefaultFunc("AWS_ROLE_ARN", ""),
+				DefaultFunc: schema.EnvDefaultFunc("TF_AWS_ASSUME_ROLE_ARN", ""),
 			},
 
 			"session_name": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The session name to use when assuming the role.",
-				DefaultFunc: schema.EnvDefaultFunc("AWS_SESSION_NAME", ""),
+				DefaultFunc: schema.EnvDefaultFunc("TF_AWS_ASSUME_ROLE_SESSION_NAME", ""),
 			},
 
 			"external_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The external ID to use when assuming the role",
-				DefaultFunc: schema.EnvDefaultFunc("AWS_EXTERNAL_ID", ""),
+				DefaultFunc: schema.EnvDefaultFunc("TF_AWS_ASSUME_ROLE_EXTERNAL_ID", ""),
 			},
 
 			"assume_role_policy": {
