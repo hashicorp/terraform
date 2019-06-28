@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"strconv"
-	"strings"
 
 	"github.com/zclconf/go-cty/cty"
 	ctyconvert "github.com/zclconf/go-cty/cty/convert"
@@ -868,7 +867,6 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 		diff.Meta = private
 	}
 
-	var newRemoved []string
 	for k, d := range diff.Attributes {
 		// We need to turn off any RequiresNew. There could be attributes
 		// without changes in here inserted by helper/schema, but if they have
@@ -876,10 +874,8 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 		d.RequiresNew = false
 
 		// Check that any "removed" attributes that don't actually exist in the
-		// prior state, or helper/schema will confuse itself, and record them
-		// to make sure they are actually removed from the state.
+		// prior state, or helper/schema will confuse itself
 		if d.NewRemoved {
-			newRemoved = append(newRemoved, k)
 			if _, ok := priorState.Attributes[k]; !ok {
 				delete(diff.Attributes, k)
 			}
@@ -906,19 +902,6 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 			Msgpack: newStateMP,
 		}
 		return resp, nil
-	}
-
-	// Now remove any primitive zero values that were left from NewRemoved
-	// attributes. Any attempt to reconcile more complex structures to the best
-	// of our abilities happens in normalizeNullValues.
-	for _, r := range newRemoved {
-		if strings.HasSuffix(r, ".#") || strings.HasSuffix(r, ".%") {
-			continue
-		}
-		switch newInstanceState.Attributes[r] {
-		case "", "0", "false":
-			delete(newInstanceState.Attributes, r)
-		}
 	}
 
 	// We keep the null val if we destroyed the resource, otherwise build the
