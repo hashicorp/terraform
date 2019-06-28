@@ -72,7 +72,7 @@ The command-line flags are all optional. The list of available flags are:
   Address](/docs/internals/resource-addressing.html) to target. This flag can
   be used multiple times. See below for more information.
 
-* `-var='foo=bar'` - Set a variable in the Terraform configuration. This flag
+* `-var=foo=bar` - Set a variable in the Terraform configuration. This flag
   can be set multiple times. Variable values are interpreted as
   [HCL](/docs/configuration/syntax.html#HCL), so list and map values can be
   specified via this flag.
