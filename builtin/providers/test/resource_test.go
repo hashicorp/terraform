@@ -1050,3 +1050,39 @@ resource "test_resource" "foo" {
 		},
 	})
 }
+
+func TestResource_unsetNil(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+	required = "yep"
+	required_map = {
+	    key = "value"
+	}
+	optional = "a"
+}
+				`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("test_resource.foo", "optional", "a"),
+				),
+			},
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+	required = "yep"
+	required_map = {
+	    key = "value"
+	}
+}
+				`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("test_resource.foo", "optional", ""),
+				),
+			},
+		},
+	})
+}
