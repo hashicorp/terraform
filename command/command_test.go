@@ -43,7 +43,7 @@ import (
 
 // These are the directories for our test data and fixtures.
 var (
-	fixtureDir  = "./test-fixtures"
+	fixtureDir  = "./testdata"
 	testDataDir = "./testdata"
 )
 

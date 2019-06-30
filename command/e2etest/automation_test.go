@@ -24,7 +24,7 @@ func TestPlanApplyInAutomation(t *testing.T) {
 	// allowed.
 	skipIfCannotAccessNetwork(t)
 
-	fixturePath := filepath.Join("test-fixtures", "full-workflow-null")
+	fixturePath := filepath.Join("testdata", "full-workflow-null")
 	tf := e2e.NewBinary(terraformBin, fixturePath)
 	defer tf.Close()
 
@@ -119,7 +119,7 @@ func TestAutoApplyInAutomation(t *testing.T) {
 	// allowed.
 	skipIfCannotAccessNetwork(t)
 
-	fixturePath := filepath.Join("test-fixtures", "full-workflow-null")
+	fixturePath := filepath.Join("testdata", "full-workflow-null")
 	tf := e2e.NewBinary(terraformBin, fixturePath)
 	defer tf.Close()
 
@@ -186,7 +186,7 @@ func TestPlanOnlyInAutomation(t *testing.T) {
 	// allowed.
 	skipIfCannotAccessNetwork(t)
 
-	fixturePath := filepath.Join("test-fixtures", "full-workflow-null")
+	fixturePath := filepath.Join("testdata", "full-workflow-null")
 	tf := e2e.NewBinary(terraformBin, fixturePath)
 	defer tf.Close()
 
