@@ -77,7 +77,7 @@ var testMods = map[string][]testMod{
 		version:  "1.10.0",
 	}},
 	"registry/local/sub": {{
-		location: "test-fixtures/registry-tar-subdir/foo.tgz//*?archive=tar.gz",
+		location: "testdata/registry-tar-subdir/foo.tgz//*?archive=tar.gz",
 		version:  "0.1.2",
 	}},
 	"exists-in-registry/identifier/provider": {{

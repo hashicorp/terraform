@@ -16,7 +16,7 @@ import (
 
 func TestBuildConfig(t *testing.T) {
 	parser := NewParser(nil)
-	mod, diags := parser.LoadConfigDir("test-fixtures/config-build")
+	mod, diags := parser.LoadConfigDir("testdata/config-build")
 	assertNoDiagnostics(t, diags)
 	if mod == nil {
 		t.Fatal("got nil root module; want non-nil")
@@ -29,7 +29,7 @@ func TestBuildConfig(t *testing.T) {
 			// SourceAddr as a path relative to our fixture directory.
 			// A "real" implementation of ModuleWalker should accept the
 			// various different source address syntaxes Terraform supports.
-			sourcePath := filepath.Join("test-fixtures/config-build", req.SourceAddr)
+			sourcePath := filepath.Join("testdata/config-build", req.SourceAddr)
 
 			mod, diags := parser.LoadConfigDir(sourcePath)
 			version, _ := version.NewVersion(fmt.Sprintf("1.0.%d", versionI))

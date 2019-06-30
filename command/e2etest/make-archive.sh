@@ -31,7 +31,7 @@ OUTFILE="terraform-e2etest_${GOOS}_${GOARCH}.zip"
 mkdir -p "$OUTDIR"
 
 # We need the test fixtures available when we run the tests.
-cp -r test-fixtures "$OUTDIR/test-fixtures"
+cp -r testdata "$OUTDIR/testdata"
 
 # Bundle a copy of our binary so the target system doesn't need the go
 # compiler installed.

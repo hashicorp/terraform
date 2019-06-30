@@ -14,7 +14,7 @@ import (
 )
 
 func TestLoaderLoadConfig_okay(t *testing.T) {
-	fixtureDir := filepath.Clean("test-fixtures/already-installed")
+	fixtureDir := filepath.Clean("testdata/already-installed")
 	loader, err := NewLoader(&Config{
 		ModulesDir: filepath.Join(fixtureDir, ".terraform/modules"),
 	})
@@ -62,7 +62,7 @@ func TestLoaderLoadConfig_okay(t *testing.T) {
 func TestLoaderLoadConfig_addVersion(t *testing.T) {
 	// This test is for what happens when there is a version constraint added
 	// to a module that previously didn't have one.
-	fixtureDir := filepath.Clean("test-fixtures/add-version-constraint")
+	fixtureDir := filepath.Clean("testdata/add-version-constraint")
 	loader, err := NewLoader(&Config{
 		ModulesDir: filepath.Join(fixtureDir, ".terraform/modules"),
 	})

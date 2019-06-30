@@ -10,7 +10,7 @@ import (
 )
 
 // This is the directory where our test fixtures are.
-const fixtureDir = "./test-fixtures"
+const fixtureDir = "./testdata"
 
 func TestLoadConfig(t *testing.T) {
 	c, err := loadConfigFile(filepath.Join(fixtureDir, "config"))

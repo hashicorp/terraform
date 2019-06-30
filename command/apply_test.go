@@ -1588,7 +1588,7 @@ func testHttpHandlerHeader(w http.ResponseWriter, r *http.Request) {
 }
 
 // applyFixtureSchema returns a schema suitable for processing the
-// configuration in test-fixtures/apply . This schema should be
+// configuration in testdata/apply . This schema should be
 // assigned to a mock provider named "test".
 func applyFixtureSchema() *terraform.ProviderSchema {
 	return &terraform.ProviderSchema{
@@ -1604,7 +1604,7 @@ func applyFixtureSchema() *terraform.ProviderSchema {
 }
 
 // applyFixtureProvider returns a mock provider that is configured for basic
-// operation with the configuration in test-fixtures/apply. This mock has
+// operation with the configuration in testdata/apply. This mock has
 // GetSchemaReturn, PlanResourceChangeFn, and ApplyResourceChangeFn populated,
 // with the plan/apply steps just passing through the data determined by
 // Terraform Core.

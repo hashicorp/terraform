@@ -25,7 +25,7 @@ func TestLocal_planBasic(t *testing.T) {
 	defer cleanup()
 	p := TestLocalProvider(t, b, "test", planFixtureSchema())
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
 	op.PlanRefresh = true
 
@@ -59,7 +59,7 @@ func TestLocal_planInAutomation(t *testing.T) {
 	b.RunningInAutomation = false
 	b.CLI = cli.NewMockUi()
 	{
-		op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
+		op, configCleanup := testOperationPlan(t, "./testdata/plan")
 		defer configCleanup()
 		op.PlanRefresh = true
 
@@ -83,7 +83,7 @@ func TestLocal_planInAutomation(t *testing.T) {
 	b.RunningInAutomation = true
 	b.CLI = cli.NewMockUi()
 	{
-		op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
+		op, configCleanup := testOperationPlan(t, "./testdata/plan")
 		defer configCleanup()
 		op.PlanRefresh = true
 
@@ -111,7 +111,7 @@ func TestLocal_planNoConfig(t *testing.T) {
 
 	b.CLI = cli.NewMockUi()
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/empty")
+	op, configCleanup := testOperationPlan(t, "./testdata/empty")
 	defer configCleanup()
 	op.PlanRefresh = true
 
@@ -139,7 +139,7 @@ func TestLocal_planTainted(t *testing.T) {
 	outDir := testTempDir(t)
 	defer os.RemoveAll(outDir)
 	planPath := filepath.Join(outDir, "plan.tfplan")
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
 	op.PlanRefresh = true
 	op.PlanOutPath = planPath
@@ -224,7 +224,7 @@ func TestLocal_planDeposedOnly(t *testing.T) {
 	outDir := testTempDir(t)
 	defer os.RemoveAll(outDir)
 	planPath := filepath.Join(outDir, "plan.tfplan")
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
 	op.PlanRefresh = true
 	op.PlanOutPath = planPath
@@ -317,7 +317,7 @@ func TestLocal_planTainted_createBeforeDestroy(t *testing.T) {
 	outDir := testTempDir(t)
 	defer os.RemoveAll(outDir)
 	planPath := filepath.Join(outDir, "plan.tfplan")
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan-cbd")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan-cbd")
 	defer configCleanup()
 	op.PlanRefresh = true
 	op.PlanOutPath = planPath
@@ -378,7 +378,7 @@ func TestLocal_planRefreshFalse(t *testing.T) {
 	p := TestLocalProvider(t, b, "test", planFixtureSchema())
 	testStateFile(t, b.StatePath, testPlanState())
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
@@ -410,7 +410,7 @@ func TestLocal_planDestroy(t *testing.T) {
 	defer os.RemoveAll(outDir)
 	planPath := filepath.Join(outDir, "plan.tfplan")
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
 	op.Destroy = true
 	op.PlanRefresh = true
@@ -466,7 +466,7 @@ func TestLocal_planDestroy_withDataSources(t *testing.T) {
 	defer os.RemoveAll(outDir)
 	planPath := filepath.Join(outDir, "plan.tfplan")
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/destroy-with-ds")
+	op, configCleanup := testOperationPlan(t, "./testdata/destroy-with-ds")
 	defer configCleanup()
 	op.Destroy = true
 	op.PlanRefresh = true
@@ -551,7 +551,7 @@ func TestLocal_planOutPathNoChange(t *testing.T) {
 	defer os.RemoveAll(outDir)
 	planPath := filepath.Join(outDir, "plan.tfplan")
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
 	op.PlanOutPath = planPath
 	cfg := cty.ObjectVal(map[string]cty.Value{
@@ -601,7 +601,7 @@ func TestLocal_planScaleOutNoDupeCount(t *testing.T) {
 	outDir := testTempDir(t)
 	defer os.RemoveAll(outDir)
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan-scaleout")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan-scaleout")
 	defer configCleanup()
 	op.PlanRefresh = true
 
@@ -751,7 +751,7 @@ func testReadPlan(t *testing.T, path string) *plans.Plan {
 }
 
 // planFixtureSchema returns a schema suitable for processing the
-// configuration in test-fixtures/plan . This schema should be
+// configuration in testdata/plan . This schema should be
 // assigned to a mock provider named "test".
 func planFixtureSchema() *terraform.ProviderSchema {
 	return &terraform.ProviderSchema{

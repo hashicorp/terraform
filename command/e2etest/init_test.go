@@ -22,7 +22,7 @@ func TestInitProviders(t *testing.T) {
 	// is to test the interaction with the real repository.
 	skipIfCannotAccessNetwork(t)
 
-	fixturePath := filepath.Join("test-fixtures", "template-provider")
+	fixturePath := filepath.Join("testdata", "template-provider")
 	tf := e2e.NewBinary(terraformBin, fixturePath)
 	defer tf.Close()
 
@@ -56,7 +56,7 @@ func TestInitProvidersInternal(t *testing.T) {
 	// This test should _not_ reach out anywhere because the "terraform"
 	// provider is internal to the core terraform binary.
 
-	fixturePath := filepath.Join("test-fixtures", "terraform-provider")
+	fixturePath := filepath.Join("testdata", "terraform-provider")
 	tf := e2e.NewBinary(terraformBin, fixturePath)
 	defer tf.Close()
 
@@ -89,7 +89,7 @@ func TestInitProviders_pluginCache(t *testing.T) {
 	// should come from local cache.
 	skipIfCannotAccessNetwork(t)
 
-	fixturePath := filepath.Join("test-fixtures", "plugin-cache")
+	fixturePath := filepath.Join("testdata", "plugin-cache")
 	tf := e2e.NewBinary(terraformBin, fixturePath)
 	defer tf.Close()
 
@@ -140,7 +140,7 @@ func TestInit_fromModule(t *testing.T) {
 	// and fetch a module.
 	skipIfCannotAccessNetwork(t)
 
-	fixturePath := filepath.Join("test-fixtures", "empty")
+	fixturePath := filepath.Join("testdata", "empty")
 	tf := e2e.NewBinary(terraformBin, fixturePath)
 	defer tf.Close()
 

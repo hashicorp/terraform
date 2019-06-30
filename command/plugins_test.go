@@ -19,7 +19,7 @@ func TestMultiVersionProviderResolver(t *testing.T) {
 	available.Add(discovery.PluginMeta{
 		Name:    "plugin",
 		Version: "1.0.0",
-		Path:    "test-fixtures/empty-file",
+		Path:    "testdata/empty-file",
 	})
 
 	resolver := &multiVersionProviderResolver{

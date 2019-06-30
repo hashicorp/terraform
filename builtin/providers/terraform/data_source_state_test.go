@@ -25,13 +25,13 @@ func TestState_basic(t *testing.T) {
 			cty.ObjectVal(map[string]cty.Value{
 				"backend": cty.StringVal("local"),
 				"config": cty.ObjectVal(map[string]cty.Value{
-					"path": cty.StringVal("./test-fixtures/basic.tfstate"),
+					"path": cty.StringVal("./testdata/basic.tfstate"),
 				}),
 			}),
 			cty.ObjectVal(map[string]cty.Value{
 				"backend": cty.StringVal("local"),
 				"config": cty.ObjectVal(map[string]cty.Value{
-					"path": cty.StringVal("./test-fixtures/basic.tfstate"),
+					"path": cty.StringVal("./testdata/basic.tfstate"),
 				}),
 				"outputs": cty.ObjectVal(map[string]cty.Value{
 					"foo": cty.StringVal("bar"),
@@ -45,13 +45,13 @@ func TestState_basic(t *testing.T) {
 			cty.ObjectVal(map[string]cty.Value{
 				"backend": cty.StringVal("local"),
 				"config": cty.ObjectVal(map[string]cty.Value{
-					"path": cty.StringVal("./test-fixtures/complex_outputs.tfstate"),
+					"path": cty.StringVal("./testdata/complex_outputs.tfstate"),
 				}),
 			}),
 			cty.ObjectVal(map[string]cty.Value{
 				"backend": cty.StringVal("local"),
 				"config": cty.ObjectVal(map[string]cty.Value{
-					"path": cty.StringVal("./test-fixtures/complex_outputs.tfstate"),
+					"path": cty.StringVal("./testdata/complex_outputs.tfstate"),
 				}),
 				"outputs": cty.ObjectVal(map[string]cty.Value{
 					"computed_map": cty.MapVal(map[string]cty.Value{
@@ -79,13 +79,13 @@ func TestState_basic(t *testing.T) {
 			cty.ObjectVal(map[string]cty.Value{
 				"backend": cty.StringVal("local"),
 				"config": cty.ObjectVal(map[string]cty.Value{
-					"path": cty.StringVal("./test-fixtures/null_outputs.tfstate"),
+					"path": cty.StringVal("./testdata/null_outputs.tfstate"),
 				}),
 			}),
 			cty.ObjectVal(map[string]cty.Value{
 				"backend": cty.StringVal("local"),
 				"config": cty.ObjectVal(map[string]cty.Value{
-					"path": cty.StringVal("./test-fixtures/null_outputs.tfstate"),
+					"path": cty.StringVal("./testdata/null_outputs.tfstate"),
 				}),
 				"outputs": cty.ObjectVal(map[string]cty.Value{
 					"map":  cty.NullVal(cty.DynamicPseudoType),
@@ -100,7 +100,7 @@ func TestState_basic(t *testing.T) {
 			cty.ObjectVal(map[string]cty.Value{
 				"backend": cty.StringVal("local"),
 				"config": cty.ObjectVal(map[string]cty.Value{
-					"path": cty.StringVal("./test-fixtures/empty.tfstate"),
+					"path": cty.StringVal("./testdata/empty.tfstate"),
 				}),
 				"defaults": cty.ObjectVal(map[string]cty.Value{
 					"foo": cty.StringVal("bar"),
@@ -109,7 +109,7 @@ func TestState_basic(t *testing.T) {
 			cty.ObjectVal(map[string]cty.Value{
 				"backend": cty.StringVal("local"),
 				"config": cty.ObjectVal(map[string]cty.Value{
-					"path": cty.StringVal("./test-fixtures/empty.tfstate"),
+					"path": cty.StringVal("./testdata/empty.tfstate"),
 				}),
 				"defaults": cty.ObjectVal(map[string]cty.Value{
 					"foo": cty.StringVal("bar"),
@@ -125,13 +125,13 @@ func TestState_basic(t *testing.T) {
 			cty.ObjectVal(map[string]cty.Value{
 				"backend": cty.StringVal("local"),
 				"config": cty.ObjectVal(map[string]cty.Value{
-					"path": cty.StringVal("./test-fixtures/missing.tfstate"), // intentionally not present on disk
+					"path": cty.StringVal("./testdata/missing.tfstate"), // intentionally not present on disk
 				}),
 			}),
 			cty.ObjectVal(map[string]cty.Value{
 				"backend": cty.StringVal("local"),
 				"config": cty.ObjectVal(map[string]cty.Value{
-					"path": cty.StringVal("./test-fixtures/missing.tfstate"),
+					"path": cty.StringVal("./testdata/missing.tfstate"),
 				}),
 				"defaults":  cty.NullVal(cty.DynamicPseudoType),
 				"outputs":   cty.EmptyObjectVal,
@@ -167,7 +167,7 @@ func TestState_basic(t *testing.T) {
 			cty.ObjectVal(map[string]cty.Value{
 				"backend": cty.StringVal("local"),
 				"config": cty.ObjectVal(map[string]cty.Value{
-					"path": cty.StringVal("./test-fixtures/basic.tfstate"),
+					"path": cty.StringVal("./testdata/basic.tfstate"),
 				}),
 				"defaults": cty.StringVal("nope"),
 			}),
@@ -178,13 +178,13 @@ func TestState_basic(t *testing.T) {
 			cty.ObjectVal(map[string]cty.Value{
 				"backend": cty.StringVal("local"),
 				"config": cty.MapVal(map[string]cty.Value{
-					"path": cty.StringVal("./test-fixtures/empty.tfstate"),
+					"path": cty.StringVal("./testdata/empty.tfstate"),
 				}),
 			}),
 			cty.ObjectVal(map[string]cty.Value{
 				"backend": cty.StringVal("local"),
 				"config": cty.MapVal(map[string]cty.Value{
-					"path": cty.StringVal("./test-fixtures/empty.tfstate"),
+					"path": cty.StringVal("./testdata/empty.tfstate"),
 				}),
 				"defaults":  cty.NullVal(cty.DynamicPseudoType),
 				"outputs":   cty.EmptyObjectVal,
@@ -196,14 +196,14 @@ func TestState_basic(t *testing.T) {
 			cty.ObjectVal(map[string]cty.Value{
 				"backend": cty.StringVal("local"),
 				"config": cty.ObjectVal(map[string]cty.Value{
-					"path": cty.StringVal("./test-fixtures/basic.tfstate"),
+					"path": cty.StringVal("./testdata/basic.tfstate"),
 				}),
 				"defaults": cty.MapValEmpty(cty.String),
 			}),
 			cty.ObjectVal(map[string]cty.Value{
 				"backend": cty.StringVal("local"),
 				"config": cty.ObjectVal(map[string]cty.Value{
-					"path": cty.StringVal("./test-fixtures/basic.tfstate"),
+					"path": cty.StringVal("./testdata/basic.tfstate"),
 				}),
 				"defaults": cty.MapValEmpty(cty.String),
 				"outputs": cty.ObjectVal(map[string]cty.Value{
