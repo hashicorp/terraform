@@ -14,7 +14,7 @@ func TestHelperProgramCredentialsSource(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	program := filepath.Join(wd, "test-helper/test-helper")
+	program := filepath.Join(wd, "testdata/test-helper")
 	t.Logf("testing with helper at %s", program)
 
 	src := HelperProgramCredentialsSource(program)

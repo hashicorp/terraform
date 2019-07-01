@@ -32,7 +32,7 @@ func TestProvidersSchema_error(t *testing.T) {
 func TestProvidersSchema_output(t *testing.T) {
 	// there's only one test at this time. This can be refactored to have
 	// multiple test cases in individual directories as needed.
-	fixtureDir := "test-fixtures/providers-schema"
+	fixtureDir := "testdata/providers-schema"
 	testDirs, err := ioutil.ReadDir(fixtureDir)
 	if err != nil {
 		t.Fatal(err)

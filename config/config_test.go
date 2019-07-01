@@ -16,7 +16,7 @@ import (
 )
 
 // This is the directory where our test fixtures are.
-const fixtureDir = "./test-fixtures"
+const fixtureDir = "./testdata"
 
 func TestMain(m *testing.M) {
 	flag.Parse()

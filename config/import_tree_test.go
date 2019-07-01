@@ -15,7 +15,7 @@ func TestImportTreeHCL2Experiment(t *testing.T) {
 
 	t.Run("HCL not opted in", func(t *testing.T) {
 		// .tf file without opt-in should use the old HCL parser
-		imp, err := loadTree("test-fixtures/hcl2-experiment-switch/not-opted-in.tf")
+		imp, err := loadTree("testdata/hcl2-experiment-switch/not-opted-in.tf")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -37,7 +37,7 @@ func TestImportTreeHCL2Experiment(t *testing.T) {
 
 	t.Run("HCL opted in", func(t *testing.T) {
 		// .tf file with opt-in should use the new HCL2 parser
-		imp, err := loadTree("test-fixtures/hcl2-experiment-switch/opted-in.tf")
+		imp, err := loadTree("testdata/hcl2-experiment-switch/opted-in.tf")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -59,7 +59,7 @@ func TestImportTreeHCL2Experiment(t *testing.T) {
 
 	t.Run("JSON ineligible", func(t *testing.T) {
 		// .tf.json file should always use the old HCL parser
-		imp, err := loadTree("test-fixtures/hcl2-experiment-switch/not-eligible.tf.json")
+		imp, err := loadTree("testdata/hcl2-experiment-switch/not-eligible.tf.json")
 		if err != nil {
 			t.Fatal(err)
 		}

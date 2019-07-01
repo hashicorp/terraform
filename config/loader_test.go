@@ -79,7 +79,7 @@ func TestLoadFile_resourceArityMistake(t *testing.T) {
 	if err == nil {
 		t.Fatal("should have error")
 	}
-	expected := "Error loading test-fixtures/resource-arity-mistake.tf: position 2:10: resource must be followed by exactly two strings, a type and a name"
+	expected := "Error loading testdata/resource-arity-mistake.tf: position 2:10: resource must be followed by exactly two strings, a type and a name"
 	if err.Error() != expected {
 		t.Fatalf("expected:\n%s\ngot:\n%s", expected, err)
 	}
@@ -97,7 +97,7 @@ func TestLoadFile_dataSourceArityMistake(t *testing.T) {
 	if err == nil {
 		t.Fatal("should have error")
 	}
-	expected := "Error loading test-fixtures/data-source-arity-mistake.tf: position 2:6: 'data' must be followed by exactly two strings: a type and a name"
+	expected := "Error loading testdata/data-source-arity-mistake.tf: position 2:6: 'data' must be followed by exactly two strings: a type and a name"
 	if err.Error() != expected {
 		t.Fatalf("expected:\n%s\ngot:\n%s", expected, err)
 	}
