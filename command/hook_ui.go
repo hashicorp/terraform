@@ -319,7 +319,7 @@ func (h *UiHook) PostImportState(addr addrs.AbsResourceInstance, imported []prov
 		"[reset][bold][green]%s: Import prepared!", addr)))
 	for _, s := range imported {
 		h.ui.Output(h.Colorize.Color(fmt.Sprintf(
-			"[reset][green]  Prepared %s",
+			"[reset][green]  Prepared %s for import",
 			s.TypeName,
 		)))
 	}
