@@ -382,7 +382,7 @@ as results:
 
 * `a + b` returns the result of adding `a` and `b` together.
 * `a - b` returns the result of subtracting `b` from `a`.
-* `a * b` returns the result of multiplying `b` and `b`.
+* `a * b` returns the result of multiplying `a` and `b`.
 * `a / b` returns the result of dividing `a` by `b`.
 * `a % b` returns the remainder of dividing `a` by `b`. This operator is
   generally useful only when used with whole numbers.
