@@ -7,7 +7,7 @@ import (
 )
 
 func TestConfigProviderTypes(t *testing.T) {
-	mod, diags := testModuleFromFile("test-fixtures/valid-files/providers-explicit-implied.tf")
+	mod, diags := testModuleFromFile("testdata/valid-files/providers-explicit-implied.tf")
 	if diags.HasErrors() {
 		t.Fatal(diags.Error())
 	}

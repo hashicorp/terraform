@@ -29,7 +29,7 @@ import (
 )
 
 // This is the directory where our test fixtures are.
-const fixtureDir = "./test-fixtures"
+const fixtureDir = "./testdata"
 
 func TestMain(m *testing.M) {
 	// We want to shadow on tests just to make sure the shadow graph works

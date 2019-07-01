@@ -7,7 +7,7 @@ import (
 
 func TestMetaSHA256(t *testing.T) {
 	m := PluginMeta{
-		Path: "test-fixtures/current-style-plugins/mockos_mockarch/terraform-foo-bar_v0.0.1",
+		Path: "testdata/current-style-plugins/mockos_mockarch/terraform-foo-bar_v0.0.1",
 	}
 	hash, err := m.SHA256()
 	if err != nil {

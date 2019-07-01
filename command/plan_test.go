@@ -848,7 +848,7 @@ func TestPlan_shutdown(t *testing.T) {
 }
 
 // planFixtureSchema returns a schema suitable for processing the
-// configuration in test-fixtures/plan . This schema should be
+// configuration in testdata/plan . This schema should be
 // assigned to a mock provider named "test".
 func planFixtureSchema() *terraform.ProviderSchema {
 	return &terraform.ProviderSchema{
@@ -875,7 +875,7 @@ func planFixtureSchema() *terraform.ProviderSchema {
 }
 
 // planFixtureProvider returns a mock provider that is configured for basic
-// operation with the configuration in test-fixtures/plan. This mock has
+// operation with the configuration in testdata/plan. This mock has
 // GetSchemaReturn and PlanResourceChangeFn populated, with the plan
 // step just passing through the new object proposed by Terraform Core.
 func planFixtureProvider() *terraform.MockProvider {
@@ -890,7 +890,7 @@ func planFixtureProvider() *terraform.MockProvider {
 }
 
 // planVarsFixtureSchema returns a schema suitable for processing the
-// configuration in test-fixtures/plan-vars . This schema should be
+// configuration in testdata/plan-vars . This schema should be
 // assigned to a mock provider named "test".
 func planVarsFixtureSchema() *terraform.ProviderSchema {
 	return &terraform.ProviderSchema{
@@ -906,7 +906,7 @@ func planVarsFixtureSchema() *terraform.ProviderSchema {
 }
 
 // planVarsFixtureProvider returns a mock provider that is configured for basic
-// operation with the configuration in test-fixtures/plan-vars. This mock has
+// operation with the configuration in testdata/plan-vars. This mock has
 // GetSchemaReturn and PlanResourceChangeFn populated, with the plan
 // step just passing through the new object proposed by Terraform Core.
 func planVarsFixtureProvider() *terraform.MockProvider {

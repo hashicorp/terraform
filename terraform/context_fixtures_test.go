@@ -31,7 +31,7 @@ func (f *contextTestFixture) ContextOpts() *ContextOpts {
 
 // contextFixtureApplyVars builds and returns a test fixture for testing
 // input variables, primarily during the apply phase. The configuration is
-// loaded from test-fixtures/apply-vars, and the provider resolver is
+// loaded from testdata/apply-vars, and the provider resolver is
 // configured with a resource type schema for aws_instance that matches
 // what's used in that configuration.
 func contextFixtureApplyVars(t *testing.T) *contextTestFixture {
@@ -61,7 +61,7 @@ func contextFixtureApplyVars(t *testing.T) *contextTestFixture {
 
 // contextFixtureApplyVarsEnv builds and returns a test fixture for testing
 // input variables set from the environment. The configuration is
-// loaded from test-fixtures/apply-vars-env, and the provider resolver is
+// loaded from testdata/apply-vars-env, and the provider resolver is
 // configured with a resource type schema for aws_instance that matches
 // what's used in that configuration.
 func contextFixtureApplyVarsEnv(t *testing.T) *contextTestFixture {

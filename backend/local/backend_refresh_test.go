@@ -26,7 +26,7 @@ func TestLocal_refresh(t *testing.T) {
 		"id": cty.StringVal("yes"),
 	})}
 
-	op, configCleanup := testOperationRefresh(t, "./test-fixtures/refresh")
+	op, configCleanup := testOperationRefresh(t, "./testdata/refresh")
 	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
@@ -56,7 +56,7 @@ func TestLocal_refreshNoConfig(t *testing.T) {
 		"id": cty.StringVal("yes"),
 	})}
 
-	op, configCleanup := testOperationRefresh(t, "./test-fixtures/empty")
+	op, configCleanup := testOperationRefresh(t, "./testdata/empty")
 	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
@@ -89,7 +89,7 @@ func TestLocal_refreshNilModuleWithInput(t *testing.T) {
 
 	b.OpInput = true
 
-	op, configCleanup := testOperationRefresh(t, "./test-fixtures/empty")
+	op, configCleanup := testOperationRefresh(t, "./testdata/empty")
 	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
@@ -146,7 +146,7 @@ func TestLocal_refreshInput(t *testing.T) {
 	b.OpInput = true
 	b.ContextOpts.UIInput = &terraform.MockUIInput{InputReturnString: "bar"}
 
-	op, configCleanup := testOperationRefresh(t, "./test-fixtures/refresh-var-unset")
+	op, configCleanup := testOperationRefresh(t, "./testdata/refresh-var-unset")
 	defer configCleanup()
 	op.UIIn = b.ContextOpts.UIInput
 
@@ -180,7 +180,7 @@ func TestLocal_refreshValidate(t *testing.T) {
 	// Enable validation
 	b.OpValidation = true
 
-	op, configCleanup := testOperationRefresh(t, "./test-fixtures/refresh")
+	op, configCleanup := testOperationRefresh(t, "./testdata/refresh")
 	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
@@ -234,7 +234,7 @@ func testRefreshState() *terraform.State {
 }
 
 // refreshFixtureSchema returns a schema suitable for processing the
-// configuration in test-fixtures/refresh . This schema should be
+// configuration in testdata/refresh . This schema should be
 // assigned to a mock provider named "test".
 func refreshFixtureSchema() *terraform.ProviderSchema {
 	return &terraform.ProviderSchema{

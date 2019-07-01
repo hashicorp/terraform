@@ -18,7 +18,7 @@ func TestVersion(t *testing.T) {
 
 	t.Parallel()
 
-	fixturePath := filepath.Join("test-fixtures", "empty")
+	fixturePath := filepath.Join("testdata", "empty")
 	tf := e2e.NewBinary(terraformBin, fixturePath)
 	defer tf.Close()
 
@@ -47,7 +47,7 @@ func TestVersionWithProvider(t *testing.T) {
 	// allowed.
 	skipIfCannotAccessNetwork(t)
 
-	fixturePath := filepath.Join("test-fixtures", "template-provider")
+	fixturePath := filepath.Join("testdata", "template-provider")
 	tf := e2e.NewBinary(terraformBin, fixturePath)
 	defer tf.Close()
 

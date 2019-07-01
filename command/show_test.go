@@ -135,7 +135,7 @@ func TestShow_state(t *testing.T) {
 }
 
 func TestShow_json_output(t *testing.T) {
-	fixtureDir := "test-fixtures/show-json"
+	fixtureDir := "testdata/show-json"
 	testDirs, err := ioutil.ReadDir(fixtureDir)
 	if err != nil {
 		t.Fatal(err)
@@ -230,7 +230,7 @@ func TestShow_json_output(t *testing.T) {
 
 // similar test as above, without the plan
 func TestShow_json_output_state(t *testing.T) {
-	fixtureDir := "test-fixtures/show-json-state"
+	fixtureDir := "testdata/show-json-state"
 	testDirs, err := ioutil.ReadDir(fixtureDir)
 	if err != nil {
 		t.Fatal(err)
@@ -311,7 +311,7 @@ func TestShow_json_output_state(t *testing.T) {
 }
 
 // showFixtureSchema returns a schema suitable for processing the configuration
-// in test-fixtures/show. This schema should be assigned to a mock provider
+// in testdata/show. This schema should be assigned to a mock provider
 // named "test".
 func showFixtureSchema() *terraform.ProviderSchema {
 	return &terraform.ProviderSchema{
@@ -327,7 +327,7 @@ func showFixtureSchema() *terraform.ProviderSchema {
 }
 
 // showFixtureProvider returns a mock provider that is configured for basic
-// operation with the configuration in test-fixtures/show. This mock has
+// operation with the configuration in testdata/show. This mock has
 // GetSchemaReturn, PlanResourceChangeFn, and ApplyResourceChangeFn populated,
 // with the plan/apply steps just passing through the data determined by
 // Terraform Core.
