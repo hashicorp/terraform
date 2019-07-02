@@ -3,11 +3,13 @@
 NEW FEATURES: 
 
 * lang/funcs: new `abspath` function returns the absolute path to a given file [GH-21409]
+
 BUG FIXES:
 
 * plugin/sdk: Prevent empty strings from being replaced with default values [GH-21806]
 * plugin/sdk: Ensure resource timeouts are not lost when there is an empty plan [GH-21814]
 * lang/funcs: Add missing map of bool support for `lookup` [GH-21863]
+* config: Fix issue with downloading BitBucket modules from deprecated V1 API by updating go-getter dependency [GH-21948]
 
 ## 0.12.3 (June 24, 2019)
 
