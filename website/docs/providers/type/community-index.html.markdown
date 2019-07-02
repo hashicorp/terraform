@@ -99,7 +99,7 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
 - [OpenvCloud](https://github.com/gig-tech/terraform-provider-ovc)
 - [oVirt](https://github.com/imjoey/terraform-provider-ovirt)
 - [Pass](https://github.com/camptocamp/terraform-provider-pass)
-- [Pingdom](https://bitbucket.org/devops_sysops/pingdom-provider)
+- [Pingdom](https://github.com/russellcardullo/terraform-provider-pingdom)
 - [Pivotal Tracker](https://github.com/xchapter7x/terraform-provider-pivotaltracker)
 - [Proxmox](https://github.com/Telmate/terraform-provider-proxmox)
 - [Puppet CA](https://github.com/camptocamp/terraform-provider-puppetca)
