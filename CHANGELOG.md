@@ -1,8 +1,11 @@
 ## 0.12.4 (Unreleased)
 
+NEW FEATURES: 
+
+* lang/funcs: new `abspath` function returns the absolute path to a given file [GH-21409]
 BUG FIXES:
 
-* plugin/sdk: Prevent empty strings from being replaces with default values: [GH-21806]
+* plugin/sdk: Prevent empty strings from being replaced with default values [GH-21806]
 * plugin/sdk: Ensure resource timeouts are not lost when there is an empty plan [GH-21814]
 * lang/funcs: Add missing map of bool support for `lookup` [GH-21863]
 
