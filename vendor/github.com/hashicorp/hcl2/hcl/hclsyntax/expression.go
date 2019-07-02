@@ -473,8 +473,26 @@ func (e *ConditionalExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostic
 	falseResult, falseDiags := e.FalseResult.Value(ctx)
 	var diags hcl.Diagnostics
 
-	// Try to find a type that both results can be converted to.
-	resultType, convs := convert.UnifyUnsafe([]cty.Type{trueResult.Type(), falseResult.Type()})
+	var resultType cty.Type
+	convs := make([]convert.Conversion, 2)
+
+	switch {
+	// If either case is a dynamic null value (which would result from a
+	// literal null in the config), we know that it can convert to the expected
+	// type of the opposite case, and we don't need to speculatively reduce the
+	// final result type to DynamicPseudoType.
+	case trueResult.RawEquals(cty.NullVal(cty.DynamicPseudoType)):
+		resultType = falseResult.Type()
+		convs[0] = convert.GetConversionUnsafe(cty.DynamicPseudoType, resultType)
+	case falseResult.RawEquals(cty.NullVal(cty.DynamicPseudoType)):
+		resultType = trueResult.Type()
+		convs[1] = convert.GetConversionUnsafe(cty.DynamicPseudoType, resultType)
+
+	default:
+		// Try to find a type that both results can be converted to.
+		resultType, convs = convert.UnifyUnsafe([]cty.Type{trueResult.Type(), falseResult.Type()})
+	}
+
 	if resultType == cty.NilType {
 		return cty.DynamicVal, hcl.Diagnostics{
 			{
