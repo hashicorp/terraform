@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/hcl2/hcl/hclsyntax"
@@ -44,6 +45,15 @@ func (m *Meta) normalizePath(path string) string {
 
 	ret, err := filepath.Rel(cwd, path)
 	if err != nil {
+		return path
+	}
+
+	// Do not use the relative path if it starts with "../". Reason is that
+	// ".." can easily become ambiguous in the presence of symlinks. More
+	// logic would be required here to ensure that the relative path works
+	// from both the logical and the physical working directory. Until
+	// then, play save and do not use the relative path.
+	if strings.HasPrefix(ret, "../") {
 		return path
 	}
 
