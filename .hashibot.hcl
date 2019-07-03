@@ -27,7 +27,7 @@ poll "label_issue_migrater" "provider_migrater" {
         "provider/vcloud" = "provider/vcd"
     }
     issue_header = <<-EOF
-    _This issue was originally opened by ${var.user} as ${var.repository}#${var.issue_number}. It was migrated here as a result of the [provider split](https://www.hashicorp.com/blog/upcoming-provider-changes-in-terraform-0-10/). The original body of the issue is below._
+    _This issue was originally opened by @${var.user} as ${var.repository}#${var.issue_number}. It was migrated here as a result of the [provider split](https://www.hashicorp.com/blog/upcoming-provider-changes-in-terraform-0-10/). The original body of the issue is below._
     
     <hr>
     
