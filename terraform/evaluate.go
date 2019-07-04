@@ -696,7 +696,7 @@ func (d *evaluationStateData) getResourceInstancesAll(addr addrs.Resource, rng t
 			ty := schema.ImpliedType()
 			key := addrs.IntKey(i)
 			is, exists := rs.Instances[key]
-			if exists {
+			if exists && is.Current != nil {
 				instAddr := addr.Instance(key).Absolute(d.ModulePath)
 
 				// Prefer pending value in plan if present. See getResourceInstanceSingle
