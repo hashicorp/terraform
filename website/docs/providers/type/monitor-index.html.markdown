@@ -31,4 +31,5 @@ HashiCorp, and are tested by HashiCorp.
 - [OpsGenie](/docs/providers/opsgenie/index.html)
 - [PagerDuty](/docs/providers/pagerduty/index.html)
 - [Runscope](/docs/providers/runscope/index.html)
+- [SignalFX)(/docs/providers/signalfx/index.html)
 - [StatusCake](/docs/providers/statuscake/index.html)
