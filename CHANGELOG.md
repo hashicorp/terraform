@@ -6,6 +6,7 @@ NEW FEATURES:
 
 BUG FIXES:
 
+* core: Prevent crash when a resource has no current valid instance [GH-21979]
 * plugin/sdk: Prevent empty strings from being replaced with default values [GH-21806]
 * plugin/sdk: Ensure resource timeouts are not lost when there is an empty plan [GH-21814]
 * plugin/sdk: Don't add null elements to diagnostic paths when validating config [GH-21884]
