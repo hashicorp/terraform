@@ -108,6 +108,7 @@ down to see all providers.
 - [RunScope](/docs/providers/runscope/index.html)
 - [Scaleway](/docs/providers/scaleway/index.html)
 - [Selectel](/docs/providers/selectel/index.html)
+- [SignalFX](/docs/providers/signalfx/index.html)
 - [Skytap](/docs/providers/skytap/index.html)
 - [SoftLayer](/docs/providers/softlayer/index.html)
 - [Spotinst](/docs/providers/spotinst/index.html)
