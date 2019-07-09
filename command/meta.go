@@ -61,6 +61,14 @@ type Meta struct {
 	// the specific commands being run.
 	RunningInAutomation bool
 
+	// CLIConfigDir is the directory from which CLI configuration files were
+	// read by the caller and the directory where any changes to CLI
+	// configuration files by commands should be made.
+	//
+	// If this is empty then no configuration directory is available and
+	// commands which require one cannot proceed.
+	CLIConfigDir string
+
 	// PluginCacheDir, if non-empty, enables caching of downloaded plugins
 	// into the given directory.
 	PluginCacheDir string
