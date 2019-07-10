@@ -237,6 +237,13 @@ func New() backend.Backend {
 				Description: "Lock state access",
 				Default:     true,
 			},
+
+			"state_name": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: descriptions["state_name"],
+				Default:     "tfstate.tf",
+			},
 		},
 	}
 
@@ -308,6 +315,8 @@ func init() {
 		"archive_container": "Swift container to archive state to.",
 
 		"expire_after": "Archive object expiry duration.",
+
+		"state_name": "Name of state object in container",
 	}
 }
 
@@ -321,6 +330,7 @@ type Backend struct {
 	expireSecs       int
 	container        string
 	lock             bool
+	stateName        string
 }
 
 func (b *Backend) configure(ctx context.Context) error {
@@ -363,6 +373,9 @@ func (b *Backend) configure(ctx context.Context) error {
 	if err := config.LoadAndValidate(); err != nil {
 		return err
 	}
+
+	// Assign state name
+	b.stateName = data.Get("state_name").(string)
 
 	// Assign Container
 	b.container = data.Get("container").(string)
