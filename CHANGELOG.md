@@ -3,6 +3,7 @@
 NEW FEATURES: 
 
 * lang/funcs: new `abspath` function returns the absolute path to a given file [GH-21409]
+* backend/swift: support for user configured state object names in swift containers [GH-17465]
 
 BUG FIXES:
 
