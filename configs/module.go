@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/experiments"
 )
 
 // Module is a container for a set of configuration constructs that are
@@ -24,6 +25,8 @@ type Module struct {
 	SourceDir string
 
 	CoreVersionConstraints []VersionConstraint
+
+	ActiveExperiments experiments.Set
 
 	Backend              *Backend
 	ProviderConfigs      map[string]*Provider
@@ -52,6 +55,8 @@ type Module struct {
 // duplicate declarations.
 type File struct {
 	CoreVersionConstraints []VersionConstraint
+
+	ActiveExperiments experiments.Set
 
 	Backends             []*Backend
 	ProviderConfigs      []*Provider
@@ -98,6 +103,8 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 		diags = append(diags, fileDiags...)
 	}
 
+	diags = append(diags, checkModuleExperiments(mod)...)
+
 	return mod, diags
 }
 
@@ -123,6 +130,8 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 		// when we actually check these constraints.
 		m.CoreVersionConstraints = append(m.CoreVersionConstraints, constraint)
 	}
+
+	m.ActiveExperiments = experiments.SetUnion(m.ActiveExperiments, file.ActiveExperiments)
 
 	for _, b := range file.Backends {
 		if m.Backend != nil {
