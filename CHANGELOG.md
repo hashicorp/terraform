@@ -1,19 +1,19 @@
-## 0.12.4 (Unreleased)
+## 0.12.4 (July 11, 2019)
 
 NEW FEATURES: 
 
-* lang/funcs: new `abspath` function returns the absolute path to a given file [GH-21409]
-* backend/swift: support for user configured state object names in swift containers [GH-17465]
+* lang/funcs: new `abspath` function returns the absolute path to a given file ([#21409](https://github.com/hashicorp/terraform/issues/21409))
+* backend/swift: support for user configured state object names in swift containers ([#17465](https://github.com/hashicorp/terraform/issues/17465))
 
 BUG FIXES:
 
-* core: Prevent crash when a resource has no current valid instance [GH-21979]
-* plugin/sdk: Prevent empty strings from being replaced with default values [GH-21806]
-* plugin/sdk: Ensure resource timeouts are not lost when there is an empty plan [GH-21814]
-* plugin/sdk: Don't add null elements to diagnostic paths when validating config [GH-21884]
-* lang/funcs: Add missing map of bool support for `lookup` [GH-21863]
-* config: Fix issue with downloading BitBucket modules from deprecated V1 API by updating go-getter dependency [GH-21948]
-* config: Fix conditionals to evaluate to the correct type when using null [GH-21957]
+* core: Prevent crash when a resource has no current valid instance ([#21979](https://github.com/hashicorp/terraform/issues/21979))
+* plugin/sdk: Prevent empty strings from being replaced with default values ([#21806](https://github.com/hashicorp/terraform/issues/21806))
+* plugin/sdk: Ensure resource timeouts are not lost when there is an empty plan ([#21814](https://github.com/hashicorp/terraform/issues/21814))
+* plugin/sdk: Don't add null elements to diagnostic paths when validating config ([#21884](https://github.com/hashicorp/terraform/issues/21884))
+* lang/funcs: Add missing map of bool support for `lookup` ([#21863](https://github.com/hashicorp/terraform/issues/21863))
+* config: Fix issue with downloading BitBucket modules from deprecated V1 API by updating go-getter dependency ([#21948](https://github.com/hashicorp/terraform/issues/21948))
+* config: Fix conditionals to evaluate to the correct type when using null ([#21957](https://github.com/hashicorp/terraform/issues/21957))
 
 ## 0.12.3 (June 24, 2019)
 
