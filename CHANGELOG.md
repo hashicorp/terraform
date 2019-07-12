@@ -1,4 +1,8 @@
 ## 0.12.5 (Unreleased)
+
+ENHANCEMENTS:
+* command/format: No longer show no-ops in `terraform show`, since nothing will change [GH-21907]
+
 ## 0.12.4 (July 11, 2019)
 
 NEW FEATURES: 
