@@ -3,6 +3,7 @@ package session
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -104,7 +105,15 @@ func New(cfgs ...*aws.Config) *Session {
 
 	s := deprecatedNewSession(cfgs...)
 	if envCfg.CSMEnabled {
-		enableCSM(&s.Handlers, envCfg.CSMClientID, envCfg.CSMPort, s.Config.Logger)
+		err := enableCSM(&s.Handlers, envCfg.CSMClientID,
+			envCfg.CSMHost, envCfg.CSMPort, s.Config.Logger)
+		if err != nil {
+			err = fmt.Errorf("failed to enable CSM, %v", err)
+			s.Config.Logger.Log("ERROR:", err.Error())
+			s.Handlers.Validate.PushBack(func(r *request.Request) {
+				r.Error = err
+			})
+		}
 	}
 
 	return s
@@ -338,17 +347,21 @@ func deprecatedNewSession(cfgs ...*aws.Config) *Session {
 	return s
 }
 
-func enableCSM(handlers *request.Handlers, clientID string, port string, logger aws.Logger) {
-	logger.Log("Enabling CSM")
-	if len(port) == 0 {
-		port = csm.DefaultPort
+func enableCSM(handlers *request.Handlers,
+	clientID, host, port string,
+	logger aws.Logger,
+) error {
+	if logger != nil {
+		logger.Log("Enabling CSM")
 	}
 
-	r, err := csm.Start(clientID, "127.0.0.1:"+port)
+	r, err := csm.Start(clientID, csm.AddressWithDefaults(host, port))
 	if err != nil {
-		return
+		return err
 	}
 	r.InjectHandlers(handlers)
+
+	return nil
 }
 
 func newSession(opts Options, envCfg envConfig, cfgs ...*aws.Config) (*Session, error) {
@@ -395,7 +408,11 @@ func newSession(opts Options, envCfg envConfig, cfgs ...*aws.Config) (*Session, 
 
 	initHandlers(s)
 	if envCfg.CSMEnabled {
-		enableCSM(&s.Handlers, envCfg.CSMClientID, envCfg.CSMPort, s.Config.Logger)
+		err := enableCSM(&s.Handlers, envCfg.CSMClientID,
+			envCfg.CSMHost, envCfg.CSMPort, s.Config.Logger)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Setup HTTP client with custom cert bundle if enabled
