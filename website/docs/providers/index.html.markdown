@@ -28,6 +28,7 @@ down to see all providers.
 - [Alicloud](/docs/providers/alicloud/index.html)
 - [Archive](/docs/providers/archive/index.html)
 - [Arukas](/docs/providers/arukas/index.html)
+- [Avi Vantage](/docs/providers/avi/index.html)
 - [AWS](/docs/providers/aws/index.html)
 - [Azure](/docs/providers/azurerm/index.html)
 - [Azure Active Directory](/docs/providers/azuread/index.html)
