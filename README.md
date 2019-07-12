@@ -61,7 +61,7 @@ $ bin/terraform
 ...
 ```
 
-If you're developing a specific package, you can run tests for just that package by specifying the `TEST` variable. For example below, only`terraform` package tests will be run.
+If you're developing a specific package, you can run tests for just that package by specifying the `TEST` variable. For example below, only `terraform` package tests will be run.
 
 ```sh
 $ make test TEST=./terraform
