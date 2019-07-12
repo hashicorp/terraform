@@ -91,5 +91,5 @@ The following configuration options or environment variables are supported:
    ACL](https://www.alibabacloud.com/help/doc-detail/52284.htm)
    to be applied to the state file.
 
--> **Note:** If you want to store state in the custom OSS endpoint, you can specify a enviornment variable `OSS_ENDPOINT`, like "oss-cn-beijing-internal.aliyuncs.com"
+-> **Note:** If you want to store state in the custom OSS endpoint, you can specify a environment variable `OSS_ENDPOINT`, like "oss-cn-beijing-internal.aliyuncs.com"
 
