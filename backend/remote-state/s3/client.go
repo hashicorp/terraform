@@ -270,7 +270,7 @@ func (c *RemoteClient) getMD5() ([]byte, error) {
 	return sum, nil
 }
 
-// store the hash of the state to that clients can check for stale state files.
+// store the hash of the state so that clients can check for stale state files.
 func (c *RemoteClient) putMD5(sum []byte) error {
 	if c.ddbTable == "" {
 		return nil
