@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -484,7 +485,7 @@ func (r *Request) Send() error {
 
 		if err := r.sendRequest(); err == nil {
 			return nil
-		} else if !shouldRetryCancel(r.Error) {
+		} else if !shouldRetryError(r.Error) {
 			return err
 		} else {
 			r.Handlers.Retry.Run(r)
@@ -576,13 +577,13 @@ type temporary interface {
 	Temporary() bool
 }
 
-func shouldRetryCancel(origErr error) bool {
+func shouldRetryError(origErr error) bool {
 	switch err := origErr.(type) {
 	case awserr.Error:
 		if err.Code() == CanceledErrorCode {
 			return false
 		}
-		return shouldRetryCancel(err.OrigErr())
+		return shouldRetryError(err.OrigErr())
 	case *url.Error:
 		if strings.Contains(err.Error(), "connection refused") {
 			// Refused connections should be retried as the service may not yet
@@ -592,8 +593,11 @@ func shouldRetryCancel(origErr error) bool {
 		}
 		// *url.Error only implements Temporary after golang 1.6 but since
 		// url.Error only wraps the error:
-		return shouldRetryCancel(err.Err)
+		return shouldRetryError(err.Err)
 	case temporary:
+		if netErr, ok := err.(*net.OpError); ok && netErr.Op == "dial" {
+			return true
+		}
 		// If the error is temporary, we want to allow continuation of the
 		// retry process
 		return err.Temporary() || isErrConnectionReset(origErr)
