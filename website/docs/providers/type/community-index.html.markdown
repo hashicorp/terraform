@@ -97,7 +97,7 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
 - [OpenAPI](https://github.com/dikhan/terraform-provider-openapi)
 - [OpenFaaS](https://github.com/ewilde/terraform-provider-openfaas)
 - [OpenvCloud](https://github.com/gig-tech/terraform-provider-ovc)
-- [oVirt](https://github.com/imjoey/terraform-provider-ovirt)
+- [oVirt](https://github.com/oVirt/terraform-provider-ovirt)
 - [Pass](https://github.com/camptocamp/terraform-provider-pass)
 - [Pingdom](https://bitbucket.org/devops_sysops/pingdom-provider)
 - [Pivotal Tracker](https://github.com/xchapter7x/terraform-provider-pivotaltracker)
