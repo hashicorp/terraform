@@ -64,11 +64,15 @@ func resolveCredsFromProfile(cfg *aws.Config,
 		), nil
 
 	} else if len(sharedCfg.CredentialProcess) > 0 {
-		// Credential Process credentials from Shared Config/Credentials file.
-		return processcreds.NewCredentials(
-			sharedCfg.CredentialProcess,
-		), nil
-
+		// Get credentials from CredentialProcess
+		cred := processcreds.NewCredentials(sharedCfg.CredentialProcess)
+		// if RoleARN is provided, so the obtained cred from the Credential Process to assume the role using RoleARN
+		if len(sharedCfg.AssumeRole.RoleARN) > 0 {
+			cfgCp := *cfg
+			cfgCp.Credentials = cred
+			return credsFromAssumeRole(cfgCp, handlers, sharedCfg, sessOpts)
+		}
+		return cred, nil
 	} else if envCfg.EnableSharedConfig && len(sharedCfg.AssumeRole.CredentialSource) > 0 {
 		// Assume IAM Role with specific credential source.
 		return resolveCredsFromSource(cfg, envCfg, sharedCfg, handlers, sessOpts)
