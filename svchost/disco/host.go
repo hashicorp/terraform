@@ -111,9 +111,132 @@ func (h *Host) ServiceURL(id string) (*url.URL, error) {
 		return nil, &ErrServiceNotProvided{hostname: h.hostname, service: svc}
 	}
 
-	u, err := url.Parse(urlStr)
+	u, err := h.parseURL(urlStr)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to parse service URL: %v", err)
+	}
+
+	return u, nil
+}
+
+// ServiceOAuthClient returns the OAuth client configuration associated with the
+// given service identifier, which should be of the form "servicename.vN".
+//
+// This is an alternative to ServiceURL for unusual services that require
+// a full OAuth2 client definition rather than just a URL. Use this only
+// for services whose specification calls for this sort of definition.
+func (h *Host) ServiceOAuthClient(id string) (*OAuthClient, error) {
+	svc, ver, err := parseServiceID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	// No services supported for an empty Host.
+	if h == nil || h.services == nil {
+		return nil, &ErrServiceNotProvided{service: svc}
+	}
+
+	if _, ok := h.services[id]; !ok {
+		// See if we have a matching service as that would indicate
+		// the service is supported, but not the requested version.
+		for serviceID := range h.services {
+			if strings.HasPrefix(serviceID, svc+".") {
+				return nil, &ErrVersionNotSupported{
+					hostname: h.hostname,
+					service:  svc,
+					version:  ver.Original(),
+				}
+			}
+		}
+
+		// No discovered services match the requested service.
+		return nil, &ErrServiceNotProvided{hostname: h.hostname, service: svc}
+	}
+
+	var raw map[string]interface{}
+	switch v := h.services[id].(type) {
+	case map[string]interface{}:
+		raw = v // Great!
+	case []map[string]interface{}:
+		// An absolutely infuriating legacy HCL ambiguity.
+		raw = v[0]
+	default:
+		// Debug message because raw Go types don't belong in our UI.
+		log.Printf("[DEBUG] The definition for %s has Go type %T", id, h.services[id])
+		return nil, fmt.Errorf("Service %s must be declared with an object value in the service discovery document", id)
+	}
+
+	ret := &OAuthClient{}
+	if clientIDStr, ok := raw["client"].(string); ok {
+		ret.ID = clientIDStr
+	} else {
+		return nil, fmt.Errorf("Service %s definition is missing required property \"client\"", id)
+	}
+	if urlStr, ok := raw["authz"].(string); ok {
+		u, err := h.parseURL(urlStr)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to parse authorization URL: %v", err)
+		}
+		ret.AuthorizationURL = u
+	} else {
+		return nil, fmt.Errorf("Service %s definition is missing required property \"authz\"", id)
+	}
+	if urlStr, ok := raw["token"].(string); ok {
+		u, err := h.parseURL(urlStr)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to parse token URL: %v", err)
+		}
+		ret.TokenURL = u
+	} else {
+		return nil, fmt.Errorf("Service %s definition is missing required property \"token\"", id)
+	}
+	if portsRaw, ok := raw["ports"].([]interface{}); ok {
+		if len(portsRaw) != 2 {
+			return nil, fmt.Errorf("Invalid \"ports\" definition for service %s: must be a two-element array", id)
+		}
+		invalidPortsErr := fmt.Errorf("Invalid \"ports\" definition for service %s: both ports must be whole numbers between 1024 and 65535", id)
+		ports := make([]uint16, 2)
+		for i := range ports {
+			switch v := portsRaw[i].(type) {
+			case float64:
+				// JSON unmarshaling always produces float64. HCL 2 might, if
+				// an invalid fractional number were given.
+				if float64(uint16(v)) != v || v < 1024 {
+					return nil, invalidPortsErr
+				}
+				ports[i] = uint16(v)
+			case int:
+				// Legacy HCL produces int. HCL 2 will too, if the given number
+				// is a whole number.
+				if v < 1024 || v > 65535 {
+					return nil, invalidPortsErr
+				}
+				ports[i] = uint16(v)
+			default:
+				// Debug message because raw Go types don't belong in our UI.
+				log.Printf("[DEBUG] Port value %d has Go type %T", i, portsRaw[i])
+				return nil, invalidPortsErr
+			}
+		}
+		if ports[1] < ports[0] {
+			return nil, fmt.Errorf("Invalid \"ports\" definition for service %s: minimum port cannot be greater than maximum port", id)
+		}
+		ret.MinPort = ports[0]
+		ret.MaxPort = ports[1]
+	} else {
+		// Default is to accept any port in the range, for a client that is
+		// able to call back to any localhost port.
+		ret.MinPort = 1024
+		ret.MaxPort = 65535
+	}
+
+	return ret, nil
+}
+
+func (h *Host) parseURL(urlStr string) (*url.URL, error) {
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return nil, err
 	}
 
 	// Make relative URLs absolute using our discovery URL.
@@ -122,16 +245,16 @@ func (h *Host) ServiceURL(id string) (*url.URL, error) {
 	}
 
 	if u.Scheme != "https" && u.Scheme != "http" {
-		return nil, fmt.Errorf("Service URL is using an unsupported scheme: %s", u.Scheme)
+		return nil, fmt.Errorf("unsupported scheme %s", u.Scheme)
 	}
 	if u.User != nil {
-		return nil, fmt.Errorf("Embedded username/password information is not permitted")
+		return nil, fmt.Errorf("embedded username/password information is not permitted")
 	}
 
 	// Fragment part is irrelevant, since we're not a browser.
 	u.Fragment = ""
 
-	return h.discoURL.ResolveReference(u), nil
+	return u, nil
 }
 
 // VersionConstraints returns the contraints for a given service identifier
