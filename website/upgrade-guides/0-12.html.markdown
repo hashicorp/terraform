@@ -248,6 +248,17 @@ configurations to Terraform v0.11.14 first you can then perform v0.12 upgrades
 of individual configurations in any order, without breaking
 `terraform_remote_state` usage.
 
+Note that the `config` block should now be in the form of an assignment with the `=` sign:
+
+```hcl
+data "terraform_remote_state" "default" {
+  backend = "gcs"
+  config = {
+    bucket = "..."
+  }
+}
+```
+
 ### Attributes vs. blocks
 
 Terraform resource configurations consist of both arguments that set
