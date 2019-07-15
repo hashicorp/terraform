@@ -257,7 +257,7 @@ func (m *Meta) StdinPiped() bool {
 }
 
 // RunOperation executes the given operation on the given backend, blocking
-// until that operation completes or is inteerrupted, and then returns
+// until that operation completes or is interrupted, and then returns
 // the RunningOperation object representing the completed or
 // aborted operation that is, despite the name, no longer running.
 //
