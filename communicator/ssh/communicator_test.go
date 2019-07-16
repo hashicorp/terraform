@@ -100,15 +100,18 @@ func newMockLineServer(t *testing.T, signer ssh.Signer, pubKey string) string {
 
 			go func(in <-chan *ssh.Request) {
 				for req := range in {
+					// since this channel's requests are serviced serially,
+					// this will block keepalive probes, and can simulate a
+					// hung connection.
+					if bytes.Contains(req.Payload, []byte("sleep")) {
+						time.Sleep(time.Second)
+					}
+
 					if req.WantReply {
 						req.Reply(true, nil)
 					}
 				}
 			}(requests)
-
-			go func(newChannel ssh.NewChannel) {
-				conn.OpenChannel(newChannel.ChannelType(), nil)
-			}(newChannel)
 
 			defer channel.Close()
 		}
@@ -182,6 +185,10 @@ func TestStart(t *testing.T) {
 // TestKeepAlives verifies that the keepalive messages don't interfere with
 // normal operation of the client.
 func TestKeepAlives(t *testing.T) {
+	ivl := keepAliveInterval
+	keepAliveInterval = 250 * time.Millisecond
+	defer func() { keepAliveInterval = ivl }()
+
 	address := newMockLineServer(t, nil, testClientPublicKey)
 	parts := strings.Split(address, ":")
 
@@ -193,7 +200,6 @@ func TestKeepAlives(t *testing.T) {
 				"password": "pass",
 				"host":     parts[0],
 				"port":     parts[1],
-				"timeout":  "30s",
 			},
 		},
 	}
@@ -209,15 +215,61 @@ func TestKeepAlives(t *testing.T) {
 
 	var cmd remote.Cmd
 	stdout := new(bytes.Buffer)
-	cmd.Command = "echo foo"
+	cmd.Command = "sleep"
 	cmd.Stdout = stdout
 
 	// wait a bit before executing the command, so that at least 1 keepalive is sent
-	time.Sleep(3 * time.Second)
+	time.Sleep(500 * time.Millisecond)
 
 	err = c.Start(&cmd)
 	if err != nil {
 		t.Fatalf("error executing remote command: %s", err)
+	}
+}
+
+// TestDeadConnection verifies that failed keepalive messages will eventually
+// kill the connection.
+func TestFailedKeepAlives(t *testing.T) {
+	ivl := keepAliveInterval
+	del := maxKeepAliveDelay
+	maxKeepAliveDelay = 500 * time.Millisecond
+	keepAliveInterval = 250 * time.Millisecond
+	defer func() {
+		keepAliveInterval = ivl
+		maxKeepAliveDelay = del
+	}()
+
+	address := newMockLineServer(t, nil, testClientPublicKey)
+	parts := strings.Split(address, ":")
+
+	r := &terraform.InstanceState{
+		Ephemeral: terraform.EphemeralState{
+			ConnInfo: map[string]string{
+				"type":     "ssh",
+				"user":     "user",
+				"password": "pass",
+				"host":     parts[0],
+				"port":     parts[1],
+			},
+		},
+	}
+
+	c, err := New(r)
+	if err != nil {
+		t.Fatalf("error creating communicator: %s", err)
+	}
+
+	if err := c.Connect(nil); err != nil {
+		t.Fatal(err)
+	}
+	var cmd remote.Cmd
+	stdout := new(bytes.Buffer)
+	cmd.Command = "sleep"
+	cmd.Stdout = stdout
+
+	err = c.Start(&cmd)
+	if err == nil {
+		t.Fatal("expected connection error")
 	}
 }
 

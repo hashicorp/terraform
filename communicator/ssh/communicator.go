@@ -27,17 +27,23 @@ import (
 const (
 	// DefaultShebang is added at the top of a SSH script file
 	DefaultShebang = "#!/bin/sh\n"
+)
+
+var (
+	// randShared is a global random generator object that is shared.  This must be
+	// shared since it is seeded by the current time and creating multiple can
+	// result in the same values. By using a shared RNG we assure different numbers
+	// per call.
+	randLock   sync.Mutex
+	randShared *rand.Rand
 
 	// enable ssh keeplive probes by default
 	keepAliveInterval = 2 * time.Second
-)
 
-// randShared is a global random generator object that is shared.
-// This must be shared since it is seeded by the current time and
-// creating multiple can result in the same values. By using a shared
-// RNG we assure different numbers per call.
-var randLock sync.Mutex
-var randShared *rand.Rand
+	// max time to wait for for a KeepAlive response before considering the
+	// connection to be dead.
+	maxKeepAliveDelay = 120 * time.Second
+)
 
 // Communicator represents the SSH communicator
 type Communicator struct {
@@ -225,20 +231,50 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 	// long-running commands.
 	log.Printf("[DEBUG] starting ssh KeepAlives")
 	go func() {
-		t := time.NewTicker(keepAliveInterval)
-		defer t.Stop()
-		for {
-			select {
-			case <-t.C:
-				// there's no useful response to these, just abort when there's
-				// an error.
-				_, _, err := c.client.SendRequest("keepalive@terraform.io", true, nil)
-				if err != nil {
+		defer cancelKeepAlive()
+		// Along with the KeepAlives generating packets to keep the tcp
+		// connection open, we will use the replies to verify liveness of the
+		// connection. This will prevent dead connections from blocking the
+		// provisioner indefinitely.
+		respCh := make(chan error, 1)
+
+		go func() {
+			t := time.NewTicker(keepAliveInterval)
+			defer t.Stop()
+			for {
+				select {
+				case <-t.C:
+					_, _, err := c.client.SendRequest("keepalive@terraform.io", true, nil)
+					respCh <- err
+				case <-ctx.Done():
 					return
 				}
+			}
+		}()
+
+		after := time.NewTimer(maxKeepAliveDelay)
+		defer after.Stop()
+
+		for {
+			select {
+			case err := <-respCh:
+				if err != nil {
+					log.Printf("[ERROR] ssh keepalive: %s", err)
+					sshConn.Close()
+					return
+				}
+			case <-after.C:
+				// abort after too many missed keepalives
+				log.Println("[ERROR] no reply from ssh server")
+				sshConn.Close()
+				return
 			case <-ctx.Done():
 				return
 			}
+			if !after.Stop() {
+				<-after.C
+			}
+			after.Reset(maxKeepAliveDelay)
 		}
 	}()
 
