@@ -18,12 +18,12 @@ import (
 	"fmt"
 	"time"
 
-	"go.opencensus.io"
+	opencensus "go.opencensus.io"
 )
 
 // UserAgent is the user agent to be added to the outgoing
 // requests from the exporters.
-var UserAgent = fmt.Sprintf("opencensus-go [%s]", opencensus.Version())
+var UserAgent = fmt.Sprintf("opencensus-go/%s", opencensus.Version())
 
 // MonotonicEndTime returns the end time at present
 // but offset from start, monotonically.

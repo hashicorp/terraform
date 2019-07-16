@@ -21,14 +21,19 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/agl/ed25519"
 	"github.com/keybase/go-crypto/brainpool"
+	"github.com/keybase/go-crypto/curve25519"
+	"github.com/keybase/go-crypto/ed25519"
+	"github.com/keybase/go-crypto/openpgp/ecdh"
 	"github.com/keybase/go-crypto/openpgp/elgamal"
 	"github.com/keybase/go-crypto/openpgp/errors"
+	"github.com/keybase/go-crypto/openpgp/s2k"
 	"github.com/keybase/go-crypto/rsa"
 )
 
 var (
+	// NIST curve P-224
+	oidCurveP224 []byte = []byte{0x2B, 0x81, 0x04, 0x00, 0x21}
 	// NIST curve P-256
 	oidCurveP256 []byte = []byte{0x2A, 0x86, 0x48, 0xCE, 0x3D, 0x03, 0x01, 0x07}
 	// NIST curve P-384
@@ -43,6 +48,8 @@ var (
 	oidCurveP512r1 []byte = []byte{0x2B, 0x24, 0x03, 0x03, 0x02, 0x08, 0x01, 0x01, 0x0D}
 	// EdDSA
 	oidEdDSA []byte = []byte{0x2B, 0x06, 0x01, 0x04, 0x01, 0xDA, 0x47, 0x0F, 0x01}
+	// cv25519
+	oidCurve25519 []byte = []byte{0x2B, 0x06, 0x01, 0x04, 0x01, 0x97, 0x55, 0x01, 0x05, 0x01}
 )
 
 const maxOIDLength = 10
@@ -60,16 +67,32 @@ type edDSAkey struct {
 	ecdsaKey
 }
 
+func copyFrontFill(dst, src []byte, length int) int {
+	if srcLen := len(src); srcLen < length {
+		return copy(dst[length-srcLen:], src[:])
+	} else {
+		return copy(dst[:], src[:])
+	}
+}
+
 func (e *edDSAkey) Verify(payload []byte, r parsedMPI, s parsedMPI) bool {
-	var key [ed25519.PublicKeySize]byte
+	const halfSigSize = ed25519.SignatureSize / 2
 	var sig [ed25519.SignatureSize]byte
 
-	// NOTE(maxtaco): I'm not entirely sure why we need to ignore the first byte.
-	copy(key[:], e.p.bytes[1:])
-	n := copy(sig[:], r.bytes)
-	copy(sig[n:], s.bytes)
+	// NOTE: The first byte is 0x40 - MPI header
+	// TODO: Maybe clean the code up and use 0x40 as a header when
+	// reading and keep only actual number in p field. Find out how
+	// other MPIs are stored.
+	key := e.p.bytes[1:]
 
-	return ed25519.Verify(&key, payload, &sig)
+	// Note: it may happen that R + S do not form 64-byte signature buffer that
+	// ed25519 expects, but because we copy it over to an array of exact size,
+	// we will always pass correctly sized slice to Verify. Slice too short
+	// would make ed25519 panic().
+	copyFrontFill(sig[:halfSigSize], r.bytes, halfSigSize)
+	copyFrontFill(sig[halfSigSize:], s.bytes, halfSigSize)
+
+	return ed25519.Verify(key, payload, sig[:])
 }
 
 // parseOID reads the OID for the curve as defined in RFC 6637, Section 9.
@@ -93,7 +116,7 @@ func (f *ecdsaKey) parse(r io.Reader) (err error) {
 		return err
 	}
 	f.p.bytes, f.p.bitLength, err = readMPI(r)
-	return
+	return err
 }
 
 func (f *ecdsaKey) serialize(w io.Writer) (err error) {
@@ -106,28 +129,55 @@ func (f *ecdsaKey) serialize(w io.Writer) (err error) {
 	return writeMPIs(w, f.p)
 }
 
+func getCurveByOid(oid []byte) elliptic.Curve {
+	switch {
+	case bytes.Equal(oid, oidCurveP224):
+		return elliptic.P224()
+	case bytes.Equal(oid, oidCurveP256):
+		return elliptic.P256()
+	case bytes.Equal(oid, oidCurveP384):
+		return elliptic.P384()
+	case bytes.Equal(oid, oidCurveP521):
+		return elliptic.P521()
+	case bytes.Equal(oid, oidCurveP256r1):
+		return brainpool.P256r1()
+	case bytes.Equal(oid, oidCurveP384r1):
+		return brainpool.P384r1()
+	case bytes.Equal(oid, oidCurveP512r1):
+		return brainpool.P512r1()
+	case bytes.Equal(oid, oidCurve25519):
+		return curve25519.Cv25519()
+	default:
+		return nil
+	}
+}
+
 func (f *ecdsaKey) newECDSA() (*ecdsa.PublicKey, error) {
-	var c elliptic.Curve
-	if bytes.Equal(f.oid, oidCurveP256) {
-		c = elliptic.P256()
-	} else if bytes.Equal(f.oid, oidCurveP384) {
-		c = elliptic.P384()
-	} else if bytes.Equal(f.oid, oidCurveP521) {
-		c = elliptic.P521()
-	} else if bytes.Equal(f.oid, oidCurveP256r1) {
-		c = brainpool.P256r1()
-	} else if bytes.Equal(f.oid, oidCurveP384r1) {
-		c = brainpool.P384r1()
-	} else if bytes.Equal(f.oid, oidCurveP512r1) {
-		c = brainpool.P512r1()
-	} else {
+	var c = getCurveByOid(f.oid)
+	// Curve25519 should not be used in ECDSA.
+	if c == nil || bytes.Equal(f.oid, oidCurve25519) {
 		return nil, errors.UnsupportedError(fmt.Sprintf("unsupported oid: %x", f.oid))
 	}
+	// Note: Unmarshal already checks if point is on curve.
 	x, y := elliptic.Unmarshal(c, f.p.bytes)
 	if x == nil {
 		return nil, errors.UnsupportedError("failed to parse EC point")
 	}
 	return &ecdsa.PublicKey{Curve: c, X: x, Y: y}, nil
+}
+
+func (f *ecdsaKey) newECDH() (*ecdh.PublicKey, error) {
+	var c = getCurveByOid(f.oid)
+	if c == nil {
+		return nil, errors.UnsupportedError(fmt.Sprintf("unsupported oid: %x", f.oid))
+	}
+	// ecdh.Unmarshal handles unmarshaling for all curve types. It
+	// also checks if point is on curve.
+	x, y := ecdh.Unmarshal(c, f.p.bytes)
+	if x == nil {
+		return nil, errors.UnsupportedError("failed to parse EC point")
+	}
+	return &ecdh.PublicKey{Curve: c, X: x, Y: y}, nil
 }
 
 func (f *ecdsaKey) byteLen() int {
@@ -258,6 +308,9 @@ func (e *edDSAkey) check() error {
 	if !bytes.Equal(e.oid, oidEdDSA) {
 		return errors.UnsupportedError(fmt.Sprintf("Bad OID for EdDSA key: %v", e.oid))
 	}
+	if bLen := len(e.p.bytes); bLen != 33 { // 32 bytes for ed25519 key and 1 byte for 0x40 header
+		return errors.UnsupportedError(fmt.Sprintf("Unexpected EdDSA public key length: %d", bLen))
+	}
 	return nil
 }
 
@@ -276,6 +329,30 @@ func NewElGamalPublicKey(creationTime time.Time, pub *elgamal.PublicKey) *Public
 	return pk
 }
 
+func getCurveOid(curve elliptic.Curve) (res []byte, err error) {
+	switch curve {
+	case elliptic.P224():
+		res = oidCurveP224
+	case elliptic.P256():
+		res = oidCurveP256
+	case elliptic.P384():
+		res = oidCurveP384
+	case elliptic.P521():
+		res = oidCurveP521
+	case brainpool.P256r1():
+		res = oidCurveP256r1
+	case brainpool.P384r1():
+		res = oidCurveP384r1
+	case brainpool.P512r1():
+		res = oidCurveP512r1
+	case curve25519.Cv25519():
+		res = oidCurve25519
+	default:
+		err = errors.UnsupportedError("unknown curve")
+	}
+	return
+}
+
 func NewECDSAPublicKey(creationTime time.Time, pub *ecdsa.PublicKey) *PublicKey {
 	pk := &PublicKey{
 		CreationTime: creationTime,
@@ -283,22 +360,34 @@ func NewECDSAPublicKey(creationTime time.Time, pub *ecdsa.PublicKey) *PublicKey 
 		PublicKey:    pub,
 		ec:           new(ecdsaKey),
 	}
-	switch pub.Curve {
-	case elliptic.P256():
-		pk.ec.oid = oidCurveP256
-	case elliptic.P384():
-		pk.ec.oid = oidCurveP384
-	case elliptic.P521():
-		pk.ec.oid = oidCurveP521
-	case brainpool.P256r1():
-		pk.ec.oid = oidCurveP256r1
-	case brainpool.P384r1():
-		pk.ec.oid = oidCurveP384r1
-	case brainpool.P512r1():
-		pk.ec.oid = oidCurveP512r1
+	oid, _ := getCurveOid(pub.Curve)
+	pk.ec.oid = oid
+	bs, bitLen := ecdh.Marshal(pub.Curve, pub.X, pub.Y)
+	pk.ec.p.bytes = bs
+	pk.ec.p.bitLength = uint16(bitLen)
+
+	pk.setFingerPrintAndKeyId()
+	return pk
+}
+
+func NewECDHPublicKey(creationTime time.Time, pub *ecdh.PublicKey) *PublicKey {
+	pk := &PublicKey{
+		CreationTime: creationTime,
+		PubKeyAlgo:   PubKeyAlgoECDH,
+		PublicKey:    pub,
+		ec:           new(ecdsaKey),
 	}
-	pk.ec.p.bytes = elliptic.Marshal(pub.Curve, pub.X, pub.Y)
-	pk.ec.p.bitLength = uint16(8 * len(pk.ec.p.bytes))
+	oid, _ := getCurveOid(pub.Curve)
+	pk.ec.oid = oid
+	bs, bitLen := ecdh.Marshal(pub.Curve, pub.X, pub.Y)
+	pk.ec.p.bytes = bs
+	pk.ec.p.bitLength = uint16(bitLen)
+
+	hashbyte, _ := s2k.HashToHashId(crypto.SHA512)
+	pk.ecdh = &ecdhKdf{
+		KdfHash: kdfHashFunction(hashbyte),
+		KdfAlgo: kdfAlgorithm(CipherAES256),
+	}
 
 	pk.setFingerPrintAndKeyId()
 	return pk
@@ -324,11 +413,14 @@ func (pk *PublicKey) parse(r io.Reader) (err error) {
 	case PubKeyAlgoElGamal:
 		err = pk.parseElGamal(r)
 	case PubKeyAlgoEdDSA:
-		pk.edk = &edDSAkey{}
+		pk.edk = new(edDSAkey)
 		if err = pk.edk.parse(r); err != nil {
 			return err
 		}
 		err = pk.edk.check()
+		if err == nil {
+			pk.PublicKey = ed25519.PublicKey(pk.edk.p.bytes[1:])
+		}
 	case PubKeyAlgoECDSA:
 		pk.ec = new(ecdsaKey)
 		if err = pk.ec.parse(r); err != nil {
@@ -344,8 +436,15 @@ func (pk *PublicKey) parse(r io.Reader) (err error) {
 		if err = pk.ecdh.parse(r); err != nil {
 			return
 		}
-		// The ECDH key is stored in an ecdsa.PublicKey for convenience.
-		pk.PublicKey, err = pk.ec.newECDSA()
+		pk.PublicKey, err = pk.ec.newECDH()
+	case PubKeyAlgoBadElGamal:
+		// Key has ElGamal format but nil-implementation - it will
+		// load but it's not possible to do any operations using this
+		// key.
+		err = pk.parseElGamal(r)
+		if err != nil {
+			pk.PublicKey = nil
+		}
 	default:
 		err = errors.UnsupportedError("public key type: " + strconv.Itoa(int(pk.PubKeyAlgo)))
 	}
@@ -386,6 +485,8 @@ func (pk *PublicKey) parseRSA(r io.Reader) (err error) {
 		N: new(big.Int).SetBytes(pk.n.bytes),
 		E: 0,
 	}
+	// Warning: incompatibility with crypto/rsa: keybase fork uses
+	// int64 public exponents instead of int32.
 	for i := 0; i < len(pk.e.bytes); i++ {
 		rsa.E <<= 8
 		rsa.E |= int64(pk.e.bytes[i])
@@ -461,7 +562,7 @@ func (pk *PublicKey) SerializeSignaturePrefix(h io.Writer) {
 		pLength += 2 + uint16(len(pk.q.bytes))
 		pLength += 2 + uint16(len(pk.g.bytes))
 		pLength += 2 + uint16(len(pk.y.bytes))
-	case PubKeyAlgoElGamal:
+	case PubKeyAlgoElGamal, PubKeyAlgoBadElGamal:
 		pLength += 2 + uint16(len(pk.p.bytes))
 		pLength += 2 + uint16(len(pk.g.bytes))
 		pLength += 2 + uint16(len(pk.y.bytes))
@@ -492,7 +593,7 @@ func (pk *PublicKey) Serialize(w io.Writer) (err error) {
 		length += 2 + len(pk.q.bytes)
 		length += 2 + len(pk.g.bytes)
 		length += 2 + len(pk.y.bytes)
-	case PubKeyAlgoElGamal:
+	case PubKeyAlgoElGamal, PubKeyAlgoBadElGamal:
 		length += 2 + len(pk.p.bytes)
 		length += 2 + len(pk.g.bytes)
 		length += 2 + len(pk.y.bytes)
@@ -540,7 +641,7 @@ func (pk *PublicKey) serializeWithoutHeaders(w io.Writer) (err error) {
 		return writeMPIs(w, pk.n, pk.e)
 	case PubKeyAlgoDSA:
 		return writeMPIs(w, pk.p, pk.q, pk.g, pk.y)
-	case PubKeyAlgoElGamal:
+	case PubKeyAlgoElGamal, PubKeyAlgoBadElGamal:
 		return writeMPIs(w, pk.p, pk.g, pk.y)
 	case PubKeyAlgoECDSA:
 		return pk.ec.serialize(w)
@@ -590,7 +691,7 @@ func (pk *PublicKey) VerifySignature(signed hash.Hash, sig *Signature) (err erro
 	switch pk.PubKeyAlgo {
 	case PubKeyAlgoRSA, PubKeyAlgoRSASignOnly:
 		rsaPublicKey, _ := pk.PublicKey.(*rsa.PublicKey)
-		err = rsa.VerifyPKCS1v15(rsaPublicKey, sig.Hash, hashBytes, sig.RSASignature.bytes)
+		err = rsa.VerifyPKCS1v15(rsaPublicKey, sig.Hash, hashBytes, padToKeySize(rsaPublicKey, sig.RSASignature.bytes))
 		if err != nil {
 			return errors.SignatureError("RSA verification failure")
 		}
@@ -647,7 +748,7 @@ func (pk *PublicKey) VerifySignatureV3(signed hash.Hash, sig *SignatureV3) (err 
 	switch pk.PubKeyAlgo {
 	case PubKeyAlgoRSA, PubKeyAlgoRSASignOnly:
 		rsaPublicKey := pk.PublicKey.(*rsa.PublicKey)
-		if err = rsa.VerifyPKCS1v15(rsaPublicKey, sig.Hash, hashBytes, sig.RSASignature.bytes); err != nil {
+		if err = rsa.VerifyPKCS1v15(rsaPublicKey, sig.Hash, hashBytes, padToKeySize(rsaPublicKey, sig.RSASignature.bytes)); err != nil {
 			return errors.SignatureError("RSA verification failure")
 		}
 		return
@@ -749,8 +850,8 @@ func keyRevocationHash(pk signingKey, hashFunc crypto.Hash) (h hash.Hash, err er
 
 // VerifyRevocationSignature returns nil iff sig is a valid signature, made by this
 // public key.
-func (pk *PublicKey) VerifyRevocationSignature(sig *Signature) (err error) {
-	h, err := keyRevocationHash(pk, sig.Hash)
+func (pk *PublicKey) VerifyRevocationSignature(revokedKey *PublicKey, sig *Signature) (err error) {
+	h, err := keyRevocationHash(revokedKey, sig.Hash)
 	if err != nil {
 		return err
 	}
@@ -854,17 +955,39 @@ func writeMPIs(w io.Writer, mpis ...parsedMPI) (err error) {
 	return
 }
 
-// BitLength returns the bit length for the given public key.
+// BitLength returns the bit length for the given public key. Used for
+// displaying key information, actual buffers and BigInts inside may
+// have non-matching different size if the key is invalid.
 func (pk *PublicKey) BitLength() (bitLength uint16, err error) {
 	switch pk.PubKeyAlgo {
 	case PubKeyAlgoRSA, PubKeyAlgoRSAEncryptOnly, PubKeyAlgoRSASignOnly:
 		bitLength = pk.n.bitLength
 	case PubKeyAlgoDSA:
 		bitLength = pk.p.bitLength
-	case PubKeyAlgoElGamal:
+	case PubKeyAlgoElGamal, PubKeyAlgoBadElGamal:
 		bitLength = pk.p.bitLength
+	case PubKeyAlgoECDH:
+		ecdhPublicKey := pk.PublicKey.(*ecdh.PublicKey)
+		bitLength = uint16(ecdhPublicKey.Curve.Params().BitSize)
+	case PubKeyAlgoECDSA:
+		ecdsaPublicKey := pk.PublicKey.(*ecdsa.PublicKey)
+		bitLength = uint16(ecdsaPublicKey.Curve.Params().BitSize)
+	case PubKeyAlgoEdDSA:
+		// EdDSA only support ed25519 curves right now, just return
+		// the length. Also, we don't have any PublicKey.Curve object
+		// to look the size up from.
+		bitLength = 256
 	default:
 		err = errors.InvalidArgumentError("bad public-key algorithm")
 	}
 	return
+}
+
+func (pk *PublicKey) ErrorIfDeprecated() error {
+	switch pk.PubKeyAlgo {
+	case PubKeyAlgoBadElGamal:
+		return errors.DeprecatedKeyError("ElGamal Encrypt or Sign (algo 20) is deprecated")
+	default:
+		return nil
+	}
 }

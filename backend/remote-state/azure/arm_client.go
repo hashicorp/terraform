@@ -14,9 +14,10 @@ import (
 	"github.com/Azure/azure-sdk-for-go/storage"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/adal"
-	"github.com/Azure/go-autorest/autorest/azure"
+	az "github.com/Azure/go-autorest/autorest/azure"
 	"github.com/hashicorp/go-azure-helpers/authentication"
 	"github.com/hashicorp/terraform/httpclient"
+	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/helpers/azure"
 )
 
 type ArmClient struct {
@@ -25,7 +26,7 @@ type ArmClient struct {
 	storageAccountsClient *armStorage.AccountsClient
 
 	accessKey          string
-	environment        azure.Environment
+	environment        az.Environment
 	resourceGroupName  string
 	storageAccountName string
 	sasToken           string
@@ -80,7 +81,9 @@ func buildArmClient(config BackendConfig) (*ArmClient, error) {
 		return nil, err
 	}
 
-	auth, err := armConfig.GetAuthorizationToken(oauthConfig, env.TokenAudience)
+	sender := azure.BuildSender()
+
+	auth, err := armConfig.GetAuthorizationToken(sender, oauthConfig, env.TokenAudience)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +99,7 @@ func buildArmClient(config BackendConfig) (*ArmClient, error) {
 	return &client, nil
 }
 
-func buildArmEnvironment(config BackendConfig) (*azure.Environment, error) {
+func buildArmEnvironment(config BackendConfig) (*az.Environment, error) {
 	if config.CustomResourceManagerEndpoint != "" {
 		log.Printf("[DEBUG] Loading Environment from Endpoint %q", config.CustomResourceManagerEndpoint)
 		return authentication.LoadEnvironmentFromUrl(config.CustomResourceManagerEndpoint)

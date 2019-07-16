@@ -10,6 +10,7 @@ import (
 	"math/big"
 	"strconv"
 
+	"github.com/keybase/go-crypto/openpgp/ecdh"
 	"github.com/keybase/go-crypto/openpgp/elgamal"
 	"github.com/keybase/go-crypto/openpgp/errors"
 	"github.com/keybase/go-crypto/rsa"
@@ -26,6 +27,7 @@ type EncryptedKey struct {
 	Key        []byte         // only valid after a successful Decrypt
 
 	encryptedMPI1, encryptedMPI2 parsedMPI
+	ecdh_C                       []byte
 }
 
 func (e *EncryptedKey) parse(r io.Reader) (err error) {
@@ -48,9 +50,25 @@ func (e *EncryptedKey) parse(r io.Reader) (err error) {
 			return
 		}
 		e.encryptedMPI2.bytes, e.encryptedMPI2.bitLength, err = readMPI(r)
+	case PubKeyAlgoECDH:
+		e.encryptedMPI1.bytes, e.encryptedMPI1.bitLength, err = readMPI(r)
+		if err != nil {
+			return err
+		}
+		_, err = readFull(r, buf[:1]) // read C len (1 byte)
+		if err != nil {
+			return err
+		}
+		e.ecdh_C = make([]byte, int(buf[0]))
+		_, err = readFull(r, e.ecdh_C)
 	}
+
+	if err != nil {
+		return err
+	}
+
 	_, err = consumeAll(r)
-	return
+	return err
 }
 
 func checksumKeyMaterial(key []byte) uint16 {
@@ -65,6 +83,10 @@ func checksumKeyMaterial(key []byte) uint16 {
 // private key must have been decrypted first.
 // If config is nil, sensible defaults will be used.
 func (e *EncryptedKey) Decrypt(priv *PrivateKey, config *Config) error {
+	if priv == nil || priv.PrivateKey == nil {
+		return errors.InvalidArgumentError("attempting to decrypt with nil PrivateKey")
+	}
+
 	var err error
 	var b []byte
 
@@ -72,17 +94,19 @@ func (e *EncryptedKey) Decrypt(priv *PrivateKey, config *Config) error {
 	// padding oracle attacks.
 	switch priv.PubKeyAlgo {
 	case PubKeyAlgoRSA, PubKeyAlgoRSAEncryptOnly:
-		b, err = rsa.DecryptPKCS1v15(config.Random(), priv.PrivateKey.(*rsa.PrivateKey), e.encryptedMPI1.bytes)
+		k := priv.PrivateKey.(*rsa.PrivateKey)
+		b, err = rsa.DecryptPKCS1v15(config.Random(), k, padToKeySize(&k.PublicKey, e.encryptedMPI1.bytes))
 	case PubKeyAlgoElGamal:
 		c1 := new(big.Int).SetBytes(e.encryptedMPI1.bytes)
 		c2 := new(big.Int).SetBytes(e.encryptedMPI2.bytes)
 		b, err = elgamal.Decrypt(priv.PrivateKey.(*elgamal.PrivateKey), c1, c2)
 	case PubKeyAlgoECDH:
-		ecdh, ok := priv.PrivateKey.(*ecdhPrivateKey)
-		if !ok {
-			return errors.InvalidArgumentError("bad internal ECDH key")
+		// Note: Unmarshal checks if point is on the curve.
+		c1, c2 := ecdh.Unmarshal(priv.PrivateKey.(*ecdh.PrivateKey).Curve, e.encryptedMPI1.bytes)
+		if c1 == nil {
+			return errors.InvalidArgumentError("failed to parse EC point for encryption key")
 		}
-		b, err = ecdh.Decrypt(e.encryptedMPI1.bytes)
+		b, err = decryptKeyECDH(priv, c1, c2, e.ecdh_C)
 	default:
 		err = errors.InvalidArgumentError("cannot decrypted encrypted session key with private key of type " + strconv.Itoa(int(priv.PubKeyAlgo)))
 	}
@@ -153,6 +177,8 @@ func SerializeEncryptedKey(w io.Writer, pub *PublicKey, cipherFunc CipherFunctio
 		return serializeEncryptedKeyRSA(w, config.Random(), buf, pub.PublicKey.(*rsa.PublicKey), keyBlock)
 	case PubKeyAlgoElGamal:
 		return serializeEncryptedKeyElGamal(w, config.Random(), buf, pub.PublicKey.(*elgamal.PublicKey), keyBlock)
+	case PubKeyAlgoECDH:
+		return serializeEncryptedKeyECDH(w, config.Random(), buf, pub, keyBlock)
 	case PubKeyAlgoDSA, PubKeyAlgoRSASignOnly:
 		return errors.InvalidArgumentError("cannot encrypt to public key of type " + strconv.Itoa(int(pub.PubKeyAlgo)))
 	}

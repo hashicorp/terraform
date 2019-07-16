@@ -5,12 +5,15 @@
 package openpgp
 
 import (
+	"crypto/hmac"
+	"encoding/binary"
+	"io"
+	"time"
+
 	"github.com/keybase/go-crypto/openpgp/armor"
 	"github.com/keybase/go-crypto/openpgp/errors"
 	"github.com/keybase/go-crypto/openpgp/packet"
 	"github.com/keybase/go-crypto/rsa"
-	"io"
-	"time"
 )
 
 // PublicKeyType is the armor type for a PGP public key.
@@ -27,8 +30,13 @@ type Entity struct {
 	PrivateKey  *packet.PrivateKey
 	Identities  map[string]*Identity // indexed by Identity.Name
 	Revocations []*packet.Signature
-	Subkeys     []Subkey
-	BadSubkeys  []BadSubkey
+	// Revocations that are signed by designated revokers. Reading keys
+	// will not verify these revocations, because it won't have access to
+	// issuers' public keys, API consumers should do this instead (or
+	// not, and just assume that the key is probably revoked).
+	UnverifiedRevocations []*packet.Signature
+	Subkeys               []Subkey
+	BadSubkeys            []BadSubkey
 }
 
 // An Identity represents an identity claimed by an Entity and zero or more
@@ -38,6 +46,7 @@ type Identity struct {
 	UserId        *packet.UserId
 	SelfSignature *packet.Signature
 	Signatures    []*packet.Signature
+	Revocation    *packet.Signature
 }
 
 // A Subkey is an additional public key in an Entity. Subkeys can be used for
@@ -63,17 +72,27 @@ type Key struct {
 	PublicKey     *packet.PublicKey
 	PrivateKey    *packet.PrivateKey
 	SelfSignature *packet.Signature
+	KeyFlags      packet.KeyFlagBits
 }
 
 // A KeyRing provides access to public and private keys.
 type KeyRing interface {
+
 	// KeysById returns the set of keys that have the given key id.
-	KeysById(id uint64) []Key
+	// fp can be optionally supplied, which is the full key fingerprint.
+	// If it's provided, then it must match. This comes up in the case
+	// of GPG subpacket 33.
+	KeysById(id uint64, fp []byte) []Key
+
 	// KeysByIdAndUsage returns the set of keys with the given id
 	// that also meet the key usage given by requiredUsage.
 	// The requiredUsage is expressed as the bitwise-OR of
 	// packet.KeyFlag* values.
-	KeysByIdUsage(id uint64, requiredUsage byte) []Key
+	// fp can be optionally supplied, which is the full key fingerprint.
+	// If it's provided, then it must match. This comes up in the case
+	// of GPG subpacket 33.
+	KeysByIdUsage(id uint64, fp []byte, requiredUsage byte) []Key
+
 	// DecryptionKeys returns all private keys that are valid for
 	// decryption.
 	DecryptionKeys() []Key
@@ -99,7 +118,8 @@ func (e *Entity) primaryIdentity() *Identity {
 func (e *Entity) encryptionKey(now time.Time) (Key, bool) {
 	candidateSubkey := -1
 
-	// Iterate the keys to find the newest key
+	// Iterate the keys to find the newest, non-revoked key that can
+	// encrypt.
 	var maxTime time.Time
 	for i, subkey := range e.Subkeys {
 
@@ -127,7 +147,7 @@ func (e *Entity) encryptionKey(now time.Time) (Key, bool) {
 
 	if candidateSubkey != -1 {
 		subkey := e.Subkeys[candidateSubkey]
-		return Key{e, subkey.PublicKey, subkey.PrivateKey, subkey.Sig}, true
+		return Key{e, subkey.PublicKey, subkey.PrivateKey, subkey.Sig, subkey.Sig.GetKeyFlags()}, true
 	}
 
 	// If we don't have any candidate subkeys for encryption and
@@ -141,7 +161,7 @@ func (e *Entity) encryptionKey(now time.Time) (Key, bool) {
 	if (!i.SelfSignature.FlagsValid || i.SelfSignature.FlagEncryptCommunications) &&
 		e.PrimaryKey.PubKeyAlgo.CanEncrypt() &&
 		!i.SelfSignature.KeyExpired(now) {
-		return Key{e, e.PrimaryKey, e.PrivateKey, i.SelfSignature}, true
+		return Key{e, e.PrimaryKey, e.PrivateKey, i.SelfSignature, i.SelfSignature.GetKeyFlags()}, true
 	}
 
 	// This Entity appears to be signing only.
@@ -153,20 +173,25 @@ func (e *Entity) encryptionKey(now time.Time) (Key, bool) {
 func (e *Entity) signingKey(now time.Time) (Key, bool) {
 	candidateSubkey := -1
 
+	// Iterate the keys to find the newest, non-revoked key that can
+	// sign.
+	var maxTime time.Time
 	for i, subkey := range e.Subkeys {
 		if (!subkey.Sig.FlagsValid || subkey.Sig.FlagSign) &&
 			subkey.PrivateKey.PrivateKey != nil &&
 			subkey.PublicKey.PubKeyAlgo.CanSign() &&
+			!subkey.Sig.KeyExpired(now) &&
 			subkey.Revocation == nil &&
-			!subkey.Sig.KeyExpired(now) {
+			(maxTime.IsZero() || subkey.Sig.CreationTime.After(maxTime)) {
 			candidateSubkey = i
+			maxTime = subkey.Sig.CreationTime
 			break
 		}
 	}
 
 	if candidateSubkey != -1 {
 		subkey := e.Subkeys[candidateSubkey]
-		return Key{e, subkey.PublicKey, subkey.PrivateKey, subkey.Sig}, true
+		return Key{e, subkey.PublicKey, subkey.PrivateKey, subkey.Sig, subkey.Sig.GetKeyFlags()}, true
 	}
 
 	// If we have no candidate subkey then we assume that it's ok to sign
@@ -176,7 +201,7 @@ func (e *Entity) signingKey(now time.Time) (Key, bool) {
 		e.PrimaryKey.PubKeyAlgo.CanSign() &&
 		!i.SelfSignature.KeyExpired(now) &&
 		e.PrivateKey.PrivateKey != nil {
-		return Key{e, e.PrimaryKey, e.PrivateKey, i.SelfSignature}, true
+		return Key{e, e.PrimaryKey, e.PrivateKey, i.SelfSignature, i.SelfSignature.GetKeyFlags()}, true
 	}
 
 	return Key{}, false
@@ -185,10 +210,23 @@ func (e *Entity) signingKey(now time.Time) (Key, bool) {
 // An EntityList contains one or more Entities.
 type EntityList []*Entity
 
+func keyMatchesIdAndFingerprint(key *packet.PublicKey, id uint64, fp []byte) bool {
+	if key.KeyId != id {
+		return false
+	}
+	if fp == nil {
+		return true
+	}
+	return hmac.Equal(fp, key.Fingerprint[:])
+}
+
 // KeysById returns the set of keys that have the given key id.
-func (el EntityList) KeysById(id uint64) (keys []Key) {
+// fp can be optionally supplied, which is the full key fingerprint.
+// If it's provided, then it must match. This comes up in the case
+// of GPG subpacket 33.
+func (el EntityList) KeysById(id uint64, fp []byte) (keys []Key) {
 	for _, e := range el {
-		if e.PrimaryKey.KeyId == id {
+		if keyMatchesIdAndFingerprint(e.PrimaryKey, id, fp) {
 			var selfSig *packet.Signature
 			for _, ident := range e.Identities {
 				if selfSig == nil {
@@ -198,11 +236,17 @@ func (el EntityList) KeysById(id uint64) (keys []Key) {
 					break
 				}
 			}
-			keys = append(keys, Key{e, e.PrimaryKey, e.PrivateKey, selfSig})
+
+			var keyFlags packet.KeyFlagBits
+			for _, ident := range e.Identities {
+				keyFlags.Merge(ident.SelfSignature.GetKeyFlags())
+			}
+
+			keys = append(keys, Key{e, e.PrimaryKey, e.PrivateKey, selfSig, keyFlags})
 		}
 
 		for _, subKey := range e.Subkeys {
-			if subKey.PublicKey.KeyId == id {
+			if keyMatchesIdAndFingerprint(subKey.PublicKey, id, fp) {
 
 				// If there's both a a revocation and a sig, then take the
 				// revocation. Otherwise, we can proceed with the sig.
@@ -211,7 +255,7 @@ func (el EntityList) KeysById(id uint64) (keys []Key) {
 					sig = subKey.Sig
 				}
 
-				keys = append(keys, Key{e, subKey.PublicKey, subKey.PrivateKey, sig})
+				keys = append(keys, Key{e, subKey.PublicKey, subKey.PrivateKey, sig, sig.GetKeyFlags()})
 			}
 		}
 	}
@@ -221,8 +265,11 @@ func (el EntityList) KeysById(id uint64) (keys []Key) {
 // KeysByIdAndUsage returns the set of keys with the given id that also meet
 // the key usage given by requiredUsage.  The requiredUsage is expressed as
 // the bitwise-OR of packet.KeyFlag* values.
-func (el EntityList) KeysByIdUsage(id uint64, requiredUsage byte) (keys []Key) {
-	for _, key := range el.KeysById(id) {
+// fp can be optionally supplied, which is the full key fingerprint.
+// If it's provided, then it must match. This comes up in the case
+// of GPG subpacket 33.
+func (el EntityList) KeysByIdUsage(id uint64, fp []byte, requiredUsage byte) (keys []Key) {
+	for _, key := range el.KeysById(id, fp) {
 		if len(key.Entity.Revocations) > 0 {
 			continue
 		}
@@ -235,19 +282,8 @@ func (el EntityList) KeysByIdUsage(id uint64, requiredUsage byte) (keys []Key) {
 			var usage byte
 
 			switch {
-			case key.SelfSignature.FlagsValid:
-				if key.SelfSignature.FlagCertify {
-					usage |= packet.KeyFlagCertify
-				}
-				if key.SelfSignature.FlagSign {
-					usage |= packet.KeyFlagSign
-				}
-				if key.SelfSignature.FlagEncryptCommunications {
-					usage |= packet.KeyFlagEncryptCommunications
-				}
-				if key.SelfSignature.FlagEncryptStorage {
-					usage |= packet.KeyFlagEncryptStorage
-				}
+			case key.KeyFlags.Valid:
+				usage = key.KeyFlags.BitField
 
 			case key.PublicKey.PubKeyAlgo == packet.PubKeyAlgoElGamal:
 				// We also need to handle the case where, although the sig's
@@ -257,13 +293,15 @@ func (el EntityList) KeysByIdUsage(id uint64, requiredUsage byte) (keys []Key) {
 				usage |= packet.KeyFlagEncryptCommunications
 				usage |= packet.KeyFlagEncryptStorage
 
-			case key.PublicKey.PubKeyAlgo == packet.PubKeyAlgoDSA:
+			case key.PublicKey.PubKeyAlgo == packet.PubKeyAlgoDSA ||
+				key.PublicKey.PubKeyAlgo == packet.PubKeyAlgoECDSA ||
+				key.PublicKey.PubKeyAlgo == packet.PubKeyAlgoEdDSA:
 				usage |= packet.KeyFlagSign
 
 			// For a primary RSA key without any key flags, be as permissiable
 			// as possible.
 			case key.PublicKey.PubKeyAlgo == packet.PubKeyAlgoRSA &&
-				key.Entity.PrimaryKey.KeyId == id:
+				keyMatchesIdAndFingerprint(key.Entity.PrimaryKey, id, fp):
 				usage = (packet.KeyFlagCertify | packet.KeyFlagSign |
 					packet.KeyFlagEncryptCommunications | packet.KeyFlagEncryptStorage)
 			}
@@ -283,7 +321,7 @@ func (el EntityList) DecryptionKeys() (keys []Key) {
 	for _, e := range el {
 		for _, subKey := range e.Subkeys {
 			if subKey.PrivateKey != nil && subKey.PrivateKey.PrivateKey != nil && (!subKey.Sig.FlagsValid || subKey.Sig.FlagEncryptStorage || subKey.Sig.FlagEncryptCommunications) {
-				keys = append(keys, Key{e, subKey.PublicKey, subKey.PrivateKey, subKey.Sig})
+				keys = append(keys, Key{e, subKey.PublicKey, subKey.PrivateKey, subKey.Sig, subKey.Sig.GetKeyFlags()})
 			}
 		}
 	}
@@ -396,6 +434,8 @@ func ReadEntity(packets *packet.Reader) (*Entity, error) {
 
 	var current *Identity
 	var revocations []*packet.Signature
+
+	designatedRevokers := make(map[uint64]bool)
 EachPacket:
 	for {
 		p, err := packets.Next()
@@ -414,6 +454,14 @@ EachPacket:
 			current.Name = pkt.Id
 			current.UserId = pkt
 		case *packet.Signature:
+			if pkt.SigType == packet.SigTypeKeyRevocation {
+				// These revocations won't revoke UIDs (see
+				// SigTypeIdentityRevocation). Handle these first,
+				// because key might have revocation coming from
+				// another key (designated revoke).
+				revocations = append(revocations, pkt)
+				continue
+			}
 
 			// These are signatures by other people on this key. Let's just ignore them
 			// from the beginning, since they shouldn't affect our key decoding one way
@@ -462,7 +510,7 @@ EachPacket:
 					// Only register an identity once we've gotten a valid self-signature.
 					// It's possible therefore for us to throw away `current` in the case
 					// no valid self-signatures were found. That's OK as long as there are
-					// other identies that make sense.
+					// other identities that make sense.
 					//
 					// NOTE! We might later see a revocation for this very same UID, and it
 					// won't be undone. We've preserved this feature from the original
@@ -472,13 +520,24 @@ EachPacket:
 					// We really should warn that there was a failure here. Not raise an error
 					// since this really shouldn't be a fail-stop error.
 				}
-			} else if pkt.SigType == packet.SigTypeKeyRevocation {
-				// These revocations won't revoke UIDs as handled above, so lookout!
-				revocations = append(revocations, pkt)
+			} else if current != nil && pkt.SigType == packet.SigTypeIdentityRevocation {
+				if err = e.PrimaryKey.VerifyUserIdSignature(current.Name, e.PrimaryKey, pkt); err == nil {
+					// Note: we are not removing the identity from
+					// e.Identities. Caller can always filter by Revocation
+					// field to ignore revoked identities.
+					current.Revocation = pkt
+				}
 			} else if pkt.SigType == packet.SigTypeDirectSignature {
-				// TODO: RFC4880 5.2.1 permits signatures
-				// directly on keys (eg. to bind additional
-				// revocation keys).
+				if err = e.PrimaryKey.VerifyRevocationSignature(e.PrimaryKey, pkt); err == nil {
+					if desig := pkt.DesignatedRevoker; desig != nil {
+						// If it's a designated revoker signature, take last 8 octects
+						// of fingerprint as Key ID and save it to designatedRevokers
+						// map. We consult this map later to see if a foreign
+						// revocation should be added to UnverifiedRevocations.
+						keyID := binary.BigEndian.Uint64(desig.Fingerprint[len(desig.Fingerprint)-8:])
+						designatedRevokers[keyID] = true
+					}
+				}
 			} else if current == nil {
 				// NOTE(maxtaco)
 				//
@@ -522,12 +581,20 @@ EachPacket:
 	}
 
 	for _, revocation := range revocations {
-		err = e.PrimaryKey.VerifyRevocationSignature(revocation)
-		if err == nil {
-			e.Revocations = append(e.Revocations, revocation)
-		} else {
-			// TODO: RFC 4880 5.2.3.15 defines revocation keys.
-			return nil, errors.StructuralError("revocation signature signed by alternate key")
+		if revocation.IssuerKeyId == nil || *revocation.IssuerKeyId == e.PrimaryKey.KeyId {
+			// Key revokes itself, something that we can verify.
+			err = e.PrimaryKey.VerifyRevocationSignature(e.PrimaryKey, revocation)
+			if err == nil {
+				e.Revocations = append(e.Revocations, revocation)
+			} else {
+				return nil, errors.StructuralError("revocation signature signed by alternate key")
+			}
+		} else if revocation.IssuerKeyId != nil {
+			if _, ok := designatedRevokers[*revocation.IssuerKeyId]; ok {
+				// Revocation is done by certified designated revoker,
+				// but we can't verify the revocation.
+				e.UnverifiedRevocations = append(e.UnverifiedRevocations, revocation)
+			}
 		}
 	}
 
@@ -572,8 +639,9 @@ func addSubkey(e *Entity, packets *packet.Reader, pub *packet.PublicKey, priv *p
 		}
 		switch sig.SigType {
 		case packet.SigTypeSubkeyBinding:
-			// First writer wins
-			if subKey.Sig == nil {
+			// Does the "new" sig set expiration to later date than
+			// "previous" sig?
+			if subKey.Sig == nil || subKey.Sig.ExpiresBeforeOther(sig) {
 				subKey.Sig = sig
 			}
 		case packet.SigTypeSubkeyRevocation:
@@ -583,6 +651,15 @@ func addSubkey(e *Entity, packets *packet.Reader, pub *packet.PublicKey, priv *p
 			}
 		}
 	}
+
+	if subKey.Sig != nil {
+		if err := subKey.PublicKey.ErrorIfDeprecated(); err != nil {
+			// Key passed signature check but is deprecated.
+			subKey.Sig = nil
+			lastErr = err
+		}
+	}
+
 	if subKey.Sig != nil {
 		e.Subkeys = append(e.Subkeys, subKey)
 	} else {
@@ -628,7 +705,7 @@ func NewEntity(name, comment, email string, config *packet.Config) (*Entity, err
 	}
 	isPrimaryId := true
 	e.Identities[uid.Id] = &Identity{
-		Name:   uid.Name,
+		Name:   uid.Id,
 		UserId: uid,
 		SelfSignature: &packet.Signature{
 			CreationTime: currentTime,
@@ -641,6 +718,17 @@ func NewEntity(name, comment, email string, config *packet.Config) (*Entity, err
 			FlagCertify:  true,
 			IssuerKeyId:  &e.PrimaryKey.KeyId,
 		},
+	}
+
+	// If the user passes in a DefaultHash via packet.Config, set the
+	// PreferredHash for the SelfSignature.
+	if config != nil && config.DefaultHash != 0 {
+		e.Identities[uid.Id].SelfSignature.PreferredHash = []uint8{hashToHashId(config.DefaultHash)}
+	}
+
+	// Likewise for DefaultCipher.
+	if config != nil && config.DefaultCipher != 0 {
+		e.Identities[uid.Id].SelfSignature.PreferredSymmetric = []uint8{uint8(config.DefaultCipher)}
 	}
 
 	e.Subkeys = make([]Subkey, 1)
@@ -694,10 +782,16 @@ func (e *Entity) SerializePrivate(w io.Writer, config *packet.Config) (err error
 		if err != nil {
 			return
 		}
-		// Workaround shortcoming of SignKey(), which doesn't work to reverse-sign
-		// sub-signing keys. So if requested, just reuse the signatures already
-		// available to us (if we read this key from a keyring).
 		if e.PrivateKey.PrivateKey != nil && !config.ReuseSignatures() {
+			// If not reusing existing signatures, sign subkey using private key
+			// (subkey binding), but also sign primary key using subkey (primary
+			// key binding) if subkey is used for signing.
+			if subkey.Sig.FlagSign {
+				err = subkey.Sig.CrossSignKey(e.PrimaryKey, subkey.PrivateKey, config)
+				if err != nil {
+					return err
+				}
+			}
 			err = subkey.Sig.SignKey(subkey.PublicKey, e.PrivateKey, config)
 			if err != nil {
 				return
@@ -809,4 +903,32 @@ func (e *Entity) CopySubkeyRevocations(src *Entity) {
 			e.Subkeys[i].Revocation = r
 		}
 	}
+}
+
+// CheckDesignatedRevokers will try to confirm any of designated
+// revocation of entity. For this function to work, revocation
+// issuer's key should be found in keyring. First successfully
+// verified designated revocation is returned along with the key that
+// verified it.
+func FindVerifiedDesignatedRevoke(keyring KeyRing, entity *Entity) (*packet.Signature, *Key) {
+	for _, sig := range entity.UnverifiedRevocations {
+		if sig.IssuerKeyId == nil {
+			continue
+		}
+
+		issuerKeyId := *sig.IssuerKeyId
+		issuerFingerprint := sig.IssuerFingerprint
+		keys := keyring.KeysByIdUsage(issuerKeyId, issuerFingerprint, packet.KeyFlagSign)
+		if len(keys) == 0 {
+			continue
+		}
+		for _, key := range keys {
+			err := key.PublicKey.VerifyRevocationSignature(entity.PrimaryKey, sig)
+			if err == nil {
+				return sig, &key
+			}
+		}
+	}
+
+	return nil, nil
 }

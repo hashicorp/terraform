@@ -11,11 +11,13 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/des"
+	"crypto/elliptic"
 	"io"
 	"math/big"
 
 	"github.com/keybase/go-crypto/cast5"
 	"github.com/keybase/go-crypto/openpgp/errors"
+	"github.com/keybase/go-crypto/rsa"
 )
 
 // readFull is the same as io.ReadFull except that reading zero bytes returns
@@ -386,17 +388,18 @@ func Read(r io.Reader) (p Packet, err error) {
 type SignatureType uint8
 
 const (
-	SigTypeBinary            SignatureType = 0
-	SigTypeText                            = 1
-	SigTypeGenericCert                     = 0x10
-	SigTypePersonaCert                     = 0x11
-	SigTypeCasualCert                      = 0x12
-	SigTypePositiveCert                    = 0x13
-	SigTypeSubkeyBinding                   = 0x18
-	SigTypePrimaryKeyBinding               = 0x19
-	SigTypeDirectSignature                 = 0x1F
-	SigTypeKeyRevocation                   = 0x20
-	SigTypeSubkeyRevocation                = 0x28
+	SigTypeBinary             SignatureType = 0
+	SigTypeText                             = 1
+	SigTypeGenericCert                      = 0x10
+	SigTypePersonaCert                      = 0x11
+	SigTypeCasualCert                       = 0x12
+	SigTypePositiveCert                     = 0x13
+	SigTypeSubkeyBinding                    = 0x18
+	SigTypePrimaryKeyBinding                = 0x19
+	SigTypeDirectSignature                  = 0x1F
+	SigTypeKeyRevocation                    = 0x20
+	SigTypeSubkeyRevocation                 = 0x28
+	SigTypeIdentityRevocation               = 0x30
 )
 
 // PublicKeyAlgorithm represents the different public key system specified for
@@ -411,17 +414,19 @@ const (
 	PubKeyAlgoElGamal        PublicKeyAlgorithm = 16
 	PubKeyAlgoDSA            PublicKeyAlgorithm = 17
 	// RFC 6637, Section 5.
-	PubKeyAlgoECDH  PublicKeyAlgorithm = 18
-	PubKeyAlgoECDSA PublicKeyAlgorithm = 19
+	PubKeyAlgoECDH           PublicKeyAlgorithm = 18
+	PubKeyAlgoECDSA          PublicKeyAlgorithm = 19
+
+	PubKeyAlgoBadElGamal     PublicKeyAlgorithm = 20 // Reserved (deprecated, formerly ElGamal Encrypt or Sign)
 	// RFC -1
-	PubKeyAlgoEdDSA PublicKeyAlgorithm = 22
+	PubKeyAlgoEdDSA          PublicKeyAlgorithm = 22
 )
 
 // CanEncrypt returns true if it's possible to encrypt a message to a public
 // key of the given type.
 func (pka PublicKeyAlgorithm) CanEncrypt() bool {
 	switch pka {
-	case PubKeyAlgoRSA, PubKeyAlgoRSAEncryptOnly, PubKeyAlgoElGamal:
+	case PubKeyAlgoRSA, PubKeyAlgoRSAEncryptOnly, PubKeyAlgoElGamal, PubKeyAlgoECDH:
 		return true
 	}
 	return false
@@ -505,19 +510,17 @@ func readMPI(r io.Reader) (mpi []byte, bitLength uint16, err error) {
 	numBytes := (int(bitLength) + 7) / 8
 	mpi = make([]byte, numBytes)
 	_, err = readFull(r, mpi)
-	return
-}
-
-// mpiLength returns the length of the given *big.Int when serialized as an
-// MPI.
-func mpiLength(n *big.Int) (mpiLengthInBytes int) {
-	mpiLengthInBytes = 2 /* MPI length */
-	mpiLengthInBytes += (n.BitLen() + 7) / 8
+	// According to RFC 4880 3.2. we should check that the MPI has no leading
+	// zeroes (at least when not an encrypted MPI?), but this implementation
+	// does generate leading zeroes, so we keep accepting them.
 	return
 }
 
 // writeMPI serializes a big integer to w.
 func writeMPI(w io.Writer, bitLength uint16, mpiBytes []byte) (err error) {
+	// Note that we can produce leading zeroes, in violation of RFC 4880 3.2.
+	// Implementations seem to be tolerant of them, and stripping them would
+	// make it complex to guarantee matching re-serialization.
 	_, err = w.Write([]byte{byte(bitLength >> 8), byte(bitLength)})
 	if err == nil {
 		_, err = w.Write(mpiBytes)
@@ -525,9 +528,40 @@ func writeMPI(w io.Writer, bitLength uint16, mpiBytes []byte) (err error) {
 	return
 }
 
+func WritePaddedBigInt(w io.Writer, length int, X *big.Int) (n int, err error) {
+	bytes := X.Bytes()
+	n1, err := w.Write(make([]byte, length-len(bytes)))
+	if err != nil {
+		return n1, err
+	}
+	n2, err := w.Write(bytes)
+	if err != nil {
+		return n2, err
+	}
+	return (n1 + n2), err
+}
+
+// Minimum number of bytes to fit the curve coordinates. All
+// coordinates have to be 0-padded to this length.
+func mpiPointByteLength(curve elliptic.Curve) int {
+	return (curve.Params().P.BitLen() + 7) / 8
+}
+
 // writeBig serializes a *big.Int to w.
 func writeBig(w io.Writer, i *big.Int) error {
 	return writeMPI(w, uint16(i.BitLen()), i.Bytes())
+}
+
+// padToKeySize left-pads a MPI with zeroes to match the length of the
+// specified RSA public.
+func padToKeySize(pub *rsa.PublicKey, b []byte) []byte {
+	k := (pub.N.BitLen() + 7) / 8
+	if len(b) >= k {
+		return b
+	}
+	bb := make([]byte, k)
+	copy(bb[len(bb)-len(b):], b)
+	return bb
 }
 
 // CompressionAlgo Represents the different compression algorithms

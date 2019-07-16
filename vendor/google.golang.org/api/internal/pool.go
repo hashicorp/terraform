@@ -38,7 +38,7 @@ func NewPoolResolver(size int, o *DialSettings) *PoolResolver {
 // provided to NewPoolResolver.
 func (r *PoolResolver) Resolve(target string) (naming.Watcher, error) {
 	if r.dialOpt.Endpoint == "" {
-		return nil, errors.New("No endpoint configured")
+		return nil, errors.New("no endpoint configured")
 	}
 	addrs := make([]*naming.Update, 0, r.poolSize)
 	for i := 0; i < r.poolSize; i++ {

@@ -1,6 +1,8 @@
 package authentication
 
 import (
+	"strings"
+
 	"github.com/Azure/go-autorest/autorest/azure/cli"
 )
 
@@ -32,4 +34,19 @@ func (a *azureCLIProfile) populateFields() error {
 
 	// always pull the environment from the Azure CLI, since the Access Token's associated with it
 	return a.populateEnvironment()
+}
+
+func (a *azureCLIProfile) verifyAuthenticatedAsAUser() bool {
+	for _, subscription := range a.profile.Subscriptions {
+		if subscription.User == nil {
+			continue
+		}
+
+		authenticatedAsAUser := strings.EqualFold(subscription.User.Type, "user")
+		if authenticatedAsAUser {
+			return true
+		}
+	}
+
+	return false
 }

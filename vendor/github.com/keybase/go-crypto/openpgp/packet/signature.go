@@ -10,6 +10,7 @@ import (
 	"crypto/dsa"
 	"crypto/ecdsa"
 	"encoding/binary"
+	"fmt"
 	"hash"
 	"io"
 	"strconv"
@@ -34,6 +35,21 @@ type Signer interface {
 	Sign(sig *Signature) error
 	KeyId() uint64
 	PublicKeyAlgo() PublicKeyAlgorithm
+}
+
+// RevocationKey represents designated revoker packet. See RFC 4880
+// section 5.2.3.15 for details.
+type RevocationKey struct {
+	Class         byte
+	PublicKeyAlgo PublicKeyAlgorithm
+	Fingerprint   []byte
+}
+
+// KeyFlagBits holds boolean whether any usage flags were provided in
+// the signature and BitField with KeyFlag* flags.
+type KeyFlagBits struct {
+	Valid    bool
+	BitField byte
 }
 
 // Signature represents a signature. See RFC 4880, section 5.2.
@@ -65,6 +81,7 @@ type Signature struct {
 	PreferredKeyServer                                      string
 	IssuerKeyId                                             *uint64
 	IsPrimaryId                                             *bool
+	IssuerFingerprint                                       []byte
 
 	// FlagsValid is set if any flags were given. See RFC 4880, section
 	// 5.2.3.21 for details.
@@ -95,6 +112,11 @@ type Signature struct {
 	// when appearing in WoT-style cross signatures. But it should prevent a signature
 	// from being applied to a primary or subkey.
 	StubbedOutCriticalError error
+
+	// DesignaterRevoker will be present if this signature certifies a
+	// designated revoking key id (3rd party key that can sign
+	// revocation for this key).
+	DesignatedRevoker *RevocationKey
 
 	outSubpackets []outputSubpacket
 }
@@ -223,6 +245,7 @@ const (
 	regularExpressionSubpacket   signatureSubpacketType = 6
 	keyExpirationSubpacket       signatureSubpacketType = 9
 	prefSymmetricAlgosSubpacket  signatureSubpacketType = 11
+	revocationKey                signatureSubpacketType = 12
 	issuerSubpacket              signatureSubpacketType = 16
 	prefHashAlgosSubpacket       signatureSubpacketType = 21
 	prefCompressionSubpacket     signatureSubpacketType = 22
@@ -233,6 +256,7 @@ const (
 	reasonForRevocationSubpacket signatureSubpacketType = 29
 	featuresSubpacket            signatureSubpacketType = 30
 	embeddedSignatureSubpacket   signatureSubpacketType = 32
+	issuerFingerprint            signatureSubpacketType = 33
 )
 
 // parseSignatureSubpacket parses a single subpacket. len(subpacket) is >= 1.
@@ -361,18 +385,20 @@ func parseSignatureSubpacket(sig *Signature, subpacket []byte, isHashed bool) (r
 			err = errors.StructuralError("empty key flags subpacket")
 			return
 		}
-		sig.FlagsValid = true
-		if subpacket[0]&KeyFlagCertify != 0 {
-			sig.FlagCertify = true
-		}
-		if subpacket[0]&KeyFlagSign != 0 {
-			sig.FlagSign = true
-		}
-		if subpacket[0]&KeyFlagEncryptCommunications != 0 {
-			sig.FlagEncryptCommunications = true
-		}
-		if subpacket[0]&KeyFlagEncryptStorage != 0 {
-			sig.FlagEncryptStorage = true
+		if subpacket[0] != 0 {
+			sig.FlagsValid = true
+			if subpacket[0]&KeyFlagCertify != 0 {
+				sig.FlagCertify = true
+			}
+			if subpacket[0]&KeyFlagSign != 0 {
+				sig.FlagSign = true
+			}
+			if subpacket[0]&KeyFlagEncryptCommunications != 0 {
+				sig.FlagEncryptCommunications = true
+			}
+			if subpacket[0]&KeyFlagEncryptStorage != 0 {
+				sig.FlagEncryptStorage = true
+			}
 		}
 	case reasonForRevocationSubpacket:
 		// Reason For Revocation, section 5.2.3.23
@@ -420,6 +446,22 @@ func parseSignatureSubpacket(sig *Signature, subpacket []byte, isHashed bool) (r
 		}
 	case prefKeyServerSubpacket:
 		sig.PreferredKeyServer = string(subpacket[:])
+	case issuerFingerprint:
+		// The first byte is how many bytes the fingerprint is, but we'll just
+		// read until the end of the subpacket, so we'll ignore it.
+		sig.IssuerFingerprint = append([]byte{}, subpacket[1:]...)
+	case revocationKey:
+		// Authorizes the specified key to issue revocation signatures
+		// for a key.
+
+		// TODO: Class octet must have bit 0x80 set. If the bit 0x40
+		// is set, then this means that the revocation information is
+		// sensitive.
+		sig.DesignatedRevoker = &RevocationKey{
+			Class:         subpacket[0],
+			PublicKeyAlgo: PublicKeyAlgorithm(subpacket[1]),
+			Fingerprint:   append([]byte{}, subpacket[2:]...),
+		}
 	default:
 		if isCritical {
 			err = errors.UnsupportedError("unknown critical signature subpacket type " + strconv.Itoa(int(packetType)))
@@ -502,6 +544,26 @@ func (sig *Signature) KeyExpired(currentTime time.Time) bool {
 	return currentTime.After(expiry)
 }
 
+// ExpiresBeforeOther checks if other signature has expiration at
+// later date than sig.
+func (sig *Signature) ExpiresBeforeOther(other *Signature) bool {
+	if sig.KeyLifetimeSecs == nil {
+		// This sig never expires, or has infinitely long expiration
+		// time.
+		return false
+	} else if other.KeyLifetimeSecs == nil {
+		// This sig expires at some non-infinite point, but the other
+		// sig never expires.
+		return true
+	}
+
+	getExpiryDate := func(s *Signature) time.Time {
+		return s.CreationTime.Add(time.Duration(*s.KeyLifetimeSecs) * time.Second)
+	}
+
+	return getExpiryDate(other).After(getExpiryDate(sig))
+}
+
 // buildHashSuffix constructs the HashSuffix member of sig in preparation for signing.
 func (sig *Signature) buildHashSuffix() (err error) {
 	hashedSubpacketsLen := subpacketsLength(sig.outSubpackets, true)
@@ -565,6 +627,13 @@ func (sig *Signature) Sign(h hash.Hash, priv *PrivateKey, config *Config) (err e
 		return
 	}
 
+	// Parameter check, if this is wrong we will make a signature but
+	// not serialize it later.
+	if sig.PubKeyAlgo != priv.PubKeyAlgo {
+		err = errors.InvalidArgumentError("signature pub key algo does not match priv key")
+		return
+	}
+
 	switch priv.PubKeyAlgo {
 	case PubKeyAlgoRSA, PubKeyAlgoRSASignOnly:
 		sig.RSASignature.bytes, err = rsa.SignPKCS1v15(config.Random(), priv.PrivateKey.(*rsa.PrivateKey), sig.Hash, digest)
@@ -578,20 +647,29 @@ func (sig *Signature) Sign(h hash.Hash, priv *PrivateKey, config *Config) (err e
 			digest = digest[:subgroupSize]
 		}
 		r, s, err := dsa.Sign(config.Random(), dsaPriv, digest)
-		if err == nil {
-			sig.DSASigR.bytes = r.Bytes()
-			sig.DSASigR.bitLength = uint16(8 * len(sig.DSASigR.bytes))
-			sig.DSASigS.bytes = s.Bytes()
-			sig.DSASigS.bitLength = uint16(8 * len(sig.DSASigS.bytes))
+		if err != nil {
+			return err
 		}
+		sig.DSASigR.bytes = r.Bytes()
+		sig.DSASigR.bitLength = uint16(8 * len(sig.DSASigR.bytes))
+		sig.DSASigS.bytes = s.Bytes()
+		sig.DSASigS.bitLength = uint16(8 * len(sig.DSASigS.bytes))
 	case PubKeyAlgoECDSA:
 		r, s, err := ecdsa.Sign(config.Random(), priv.PrivateKey.(*ecdsa.PrivateKey), digest)
-		if err == nil {
-			sig.ECDSASigR = FromBig(r)
-			sig.ECDSASigS = FromBig(s)
+		if err != nil {
+			return err
 		}
+		sig.ECDSASigR = FromBig(r)
+		sig.ECDSASigS = FromBig(s)
+	case PubKeyAlgoEdDSA:
+		r, s, err := priv.PrivateKey.(*EdDSAPrivateKey).Sign(digest)
+		if err != nil {
+			return err
+		}
+		sig.EdDSASigR = FromBytes(r)
+		sig.EdDSASigS = FromBytes(s)
 	default:
-		err = errors.UnsupportedError("public key algorithm: " + strconv.Itoa(int(sig.PubKeyAlgo)))
+		err = errors.UnsupportedError("public key algorithm for signing: " + strconv.Itoa(int(priv.PubKeyAlgo)))
 	}
 
 	return
@@ -604,7 +682,7 @@ func (sig *Signature) Sign(h hash.Hash, priv *PrivateKey, config *Config) (err e
 func (sig *Signature) SignUserId(id string, pub *PublicKey, priv *PrivateKey, config *Config) error {
 	h, err := userIdSignatureHash(id, pub, sig.Hash)
 	if err != nil {
-		return nil
+		return err
 	}
 	return sig.Sign(h, priv, config)
 }
@@ -639,13 +717,38 @@ func (sig *Signature) SignKeyWithSigner(signeePubKey *PublicKey, signerPubKey *P
 	return sig.Sign(s, nil, config)
 }
 
+// CrossSignKey creates PrimaryKeyBinding signature in sig.EmbeddedSignature by
+// signing `primary` key's hash using `priv` subkey private key. Primary public
+// key is the `signee` here.
+func (sig *Signature) CrossSignKey(primary *PublicKey, priv *PrivateKey, config *Config) error {
+	if len(sig.outSubpackets) > 0 {
+		return fmt.Errorf("outSubpackets already exists, looks like CrossSignKey was called after Sign")
+	}
+
+	sig.EmbeddedSignature = &Signature{
+		CreationTime: sig.CreationTime,
+		SigType:      SigTypePrimaryKeyBinding,
+		PubKeyAlgo:   priv.PubKeyAlgo,
+		Hash:         sig.Hash,
+	}
+
+	h, err := keySignatureHash(primary, &priv.PublicKey, sig.Hash)
+	if err != nil {
+		return err
+	}
+	return sig.EmbeddedSignature.Sign(h, priv, config)
+}
+
 // Serialize marshals sig to w. Sign, SignUserId or SignKey must have been
 // called first.
 func (sig *Signature) Serialize(w io.Writer) (err error) {
 	if len(sig.outSubpackets) == 0 {
 		sig.outSubpackets = sig.rawSubpackets
 	}
-	if sig.RSASignature.bytes == nil && sig.DSASigR.bytes == nil && sig.ECDSASigR.bytes == nil {
+	if sig.RSASignature.bytes == nil &&
+		sig.DSASigR.bytes == nil &&
+		sig.ECDSASigR.bytes == nil &&
+		sig.EdDSASigR.bytes == nil {
 		return errors.InvalidArgumentError("Signature: need to call Sign, SignUserId or SignKey before Serialize")
 	}
 
@@ -737,20 +840,7 @@ func (sig *Signature) buildSubpackets() (subpackets []outputSubpacket) {
 	// Key flags may only appear in self-signatures or certification signatures.
 
 	if sig.FlagsValid {
-		var flags byte
-		if sig.FlagCertify {
-			flags |= KeyFlagCertify
-		}
-		if sig.FlagSign {
-			flags |= KeyFlagSign
-		}
-		if sig.FlagEncryptCommunications {
-			flags |= KeyFlagEncryptCommunications
-		}
-		if sig.FlagEncryptStorage {
-			flags |= KeyFlagEncryptStorage
-		}
-		subpackets = append(subpackets, outputSubpacket{true, keyFlagsSubpacket, false, []byte{flags}})
+		subpackets = append(subpackets, outputSubpacket{true, keyFlagsSubpacket, false, []byte{sig.GetKeyFlags().BitField}})
 	}
 
 	// The following subpackets may only appear in self-signatures
@@ -777,5 +867,57 @@ func (sig *Signature) buildSubpackets() (subpackets []outputSubpacket) {
 		subpackets = append(subpackets, outputSubpacket{true, prefCompressionSubpacket, false, sig.PreferredCompression})
 	}
 
+	if sig.EmbeddedSignature != nil {
+		buf := bytes.NewBuffer(nil)
+		if err := sig.EmbeddedSignature.Serialize(buf); err == nil {
+			byteContent := buf.Bytes()[2:] // skip 2-byte length header
+			subpackets = append(subpackets, outputSubpacket{false, embeddedSignatureSubpacket, true, byteContent})
+		}
+	}
+
 	return
+}
+
+func (sig *Signature) GetKeyFlags() (ret KeyFlagBits) {
+	if !sig.FlagsValid {
+		return ret
+	}
+
+	ret.Valid = true
+	if sig.FlagCertify {
+		ret.BitField |= KeyFlagCertify
+	}
+	if sig.FlagSign {
+		ret.BitField |= KeyFlagSign
+	}
+	if sig.FlagEncryptCommunications {
+		ret.BitField |= KeyFlagEncryptCommunications
+	}
+	if sig.FlagEncryptStorage {
+		ret.BitField |= KeyFlagEncryptStorage
+	}
+	return ret
+}
+
+func (f *KeyFlagBits) HasFlagCertify() bool {
+	return f.BitField&KeyFlagCertify != 0
+}
+
+func (f *KeyFlagBits) HasFlagSign() bool {
+	return f.BitField&KeyFlagSign != 0
+}
+
+func (f *KeyFlagBits) HasFlagEncryptCommunications() bool {
+	return f.BitField&KeyFlagEncryptCommunications != 0
+}
+
+func (f *KeyFlagBits) HasFlagEncryptStorage() bool {
+	return f.BitField&KeyFlagEncryptStorage != 0
+}
+
+func (f *KeyFlagBits) Merge(other KeyFlagBits) {
+	if other.Valid {
+		f.Valid = true
+		f.BitField |= other.BitField
+	}
 }

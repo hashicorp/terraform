@@ -47,6 +47,8 @@ const (
 	defaultFreq       = time.Minute * 30
 	defaultDNSSvrPort = "53"
 	golang            = "GO"
+	// txtPrefix is the prefix string to be prepended to the host name for txt record lookup.
+	txtPrefix = "_grpc_config."
 	// In DNS, service config is encoded in a TXT record via the mechanism
 	// described in RFC-1464 using the attribute name grpc_config.
 	txtAttribute = "grpc_config="
@@ -282,7 +284,7 @@ func (d *dnsResolver) lookupSRV() []resolver.Address {
 }
 
 func (d *dnsResolver) lookupTXT() string {
-	ss, err := d.resolver.LookupTXT(d.ctx, d.host)
+	ss, err := d.resolver.LookupTXT(d.ctx, txtPrefix+d.host)
 	if err != nil {
 		grpclog.Infof("grpc: failed dns TXT record lookup due to %v.\n", err)
 		return ""
@@ -346,8 +348,8 @@ func formatIP(addr string) (addrIP string, ok bool) {
 
 // parseTarget takes the user input target string and default port, returns formatted host and port info.
 // If target doesn't specify a port, set the port to be the defaultPort.
-// If target is in IPv6 format and host-name is enclosed in sqarue brackets, brackets
-// are strippd when setting the host.
+// If target is in IPv6 format and host-name is enclosed in square brackets, brackets
+// are stripped when setting the host.
 // examples:
 // target: "www.google.com" defaultPort: "443" returns host: "www.google.com", port: "443"
 // target: "ipv4-host:80" defaultPort: "443" returns host: "ipv4-host", port: "80"

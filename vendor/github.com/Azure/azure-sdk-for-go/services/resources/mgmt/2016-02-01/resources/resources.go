@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -48,11 +49,21 @@ func NewClientWithBaseURI(baseURI string, subscriptionID string) Client {
 // resourceType - resource identity.
 // resourceName - resource identity.
 func (client Client) CheckExistence(ctx context.Context, resourceGroupName string, resourceProviderNamespace string, parentResourcePath string, resourceType string, resourceName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/Client.CheckExistence")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\p{L}\._\(\)\w]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("resources.Client", "CheckExistence", err.Error())
 	}
 
@@ -129,11 +140,21 @@ func (client Client) CheckExistenceResponder(resp *http.Response) (result autore
 // resourceName - resource identity.
 // parameters - create or update resource parameters.
 func (client Client) CreateOrUpdate(ctx context.Context, resourceGroupName string, resourceProviderNamespace string, parentResourcePath string, resourceType string, resourceName string, parameters GenericResource) (result GenericResource, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/Client.CreateOrUpdate")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\p{L}\._\(\)\w]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("resources.Client", "CreateOrUpdate", err.Error())
 	}
 
@@ -212,11 +233,21 @@ func (client Client) CreateOrUpdateResponder(resp *http.Response) (result Generi
 // resourceType - resource identity.
 // resourceName - resource identity.
 func (client Client) Delete(ctx context.Context, resourceGroupName string, resourceProviderNamespace string, parentResourcePath string, resourceType string, resourceName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/Client.Delete")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\p{L}\._\(\)\w]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("resources.Client", "Delete", err.Error())
 	}
 
@@ -292,11 +323,21 @@ func (client Client) DeleteResponder(resp *http.Response) (result autorest.Respo
 // resourceType - resource identity.
 // resourceName - resource identity.
 func (client Client) Get(ctx context.Context, resourceGroupName string, resourceProviderNamespace string, parentResourcePath string, resourceType string, resourceName string) (result GenericResource, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/Client.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\p{L}\._\(\)\w]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("resources.Client", "Get", err.Error())
 	}
 
@@ -371,6 +412,16 @@ func (client Client) GetResponder(resp *http.Response) (result GenericResource, 
 // expand - the $expand query parameter.
 // top - query parameters. If null is passed returns all resource groups.
 func (client Client) List(ctx context.Context, filter string, expand string, top *int32) (result ListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/Client.List")
+		defer func() {
+			sc := -1
+			if result.lr.Response.Response != nil {
+				sc = result.lr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, filter, expand, top)
 	if err != nil {
@@ -442,8 +493,8 @@ func (client Client) ListResponder(resp *http.Response) (result ListResult, err 
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client Client) listNextResults(lastResults ListResult) (result ListResult, err error) {
-	req, err := lastResults.listResultPreparer()
+func (client Client) listNextResults(ctx context.Context, lastResults ListResult) (result ListResult, err error) {
+	req, err := lastResults.listResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "resources.Client", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -464,6 +515,16 @@ func (client Client) listNextResults(lastResults ListResult) (result ListResult,
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client Client) ListComplete(ctx context.Context, filter string, expand string, top *int32) (result ListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/Client.List")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.List(ctx, filter, expand, top)
 	return
 }
@@ -474,11 +535,21 @@ func (client Client) ListComplete(ctx context.Context, filter string, expand str
 // sourceResourceGroupName - source resource group name.
 // parameters - move resources' parameters.
 func (client Client) MoveResources(ctx context.Context, sourceResourceGroupName string, parameters MoveInfo) (result MoveResourcesFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/Client.MoveResources")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: sourceResourceGroupName,
 			Constraints: []validation.Constraint{{Target: "sourceResourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
 				{Target: "sourceResourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "sourceResourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
+				{Target: "sourceResourceGroupName", Name: validation.Pattern, Rule: `^[-\p{L}\._\(\)\w]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("resources.Client", "MoveResources", err.Error())
 	}
 
@@ -553,11 +624,21 @@ func (client Client) MoveResourcesResponder(resp *http.Response) (result autores
 // resourceName - the name of the resource to update.
 // parameters - parameters for updating the resource.
 func (client Client) Update(ctx context.Context, resourceGroupName string, resourceProviderNamespace string, parentResourcePath string, resourceType string, resourceName string, parameters GenericResource) (result UpdateFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/Client.Update")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\p{L}\._\(\)\w]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("resources.Client", "Update", err.Error())
 	}
 

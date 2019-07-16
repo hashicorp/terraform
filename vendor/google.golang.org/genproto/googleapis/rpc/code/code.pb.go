@@ -209,16 +209,16 @@ func (x Code) String() string {
 	return proto.EnumName(Code_name, int32(x))
 }
 func (Code) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_code_932ba152e0df0902, []int{0}
+	return fileDescriptor_code_8ba741a7091890dd, []int{0}
 }
 
 func init() {
 	proto.RegisterEnum("google.rpc.Code", Code_name, Code_value)
 }
 
-func init() { proto.RegisterFile("google/rpc/code.proto", fileDescriptor_code_932ba152e0df0902) }
+func init() { proto.RegisterFile("google/rpc/code.proto", fileDescriptor_code_8ba741a7091890dd) }
 
-var fileDescriptor_code_932ba152e0df0902 = []byte{
+var fileDescriptor_code_8ba741a7091890dd = []byte{
 	// 362 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x44, 0x51, 0xcd, 0x6e, 0x93, 0x31,
 	0x10, 0xa4, 0x69, 0x49, 0x9b, 0xcd, 0xdf, 0xd6, 0xa5, 0xf0, 0x0e, 0x1c, 0x92, 0x43, 0x8f, 0x9c,

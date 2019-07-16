@@ -3,5 +3,5 @@
 set -eu
 
 cd "$( dirname "${BASH_SOURCE[0]}" )"
-[ -x main ] || go build -o main .
+[ -x main ] || go build -mod=vendor -o main .
 exec ./main "$@"

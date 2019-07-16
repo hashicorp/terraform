@@ -39,11 +39,14 @@ func (a managedServiceIdentityAuth) name() string {
 	return "Managed Service Identity"
 }
 
-func (a managedServiceIdentityAuth) getAuthorizationToken(oauthConfig *adal.OAuthConfig, endpoint string) (*autorest.BearerAuthorizer, error) {
+func (a managedServiceIdentityAuth) getAuthorizationToken(sender autorest.Sender, oauthConfig *adal.OAuthConfig, endpoint string) (*autorest.BearerAuthorizer, error) {
 	spt, err := adal.NewServicePrincipalTokenFromMSI(a.endpoint, endpoint)
 	if err != nil {
 		return nil, err
 	}
+
+	spt.SetSender(sender)
+
 	auth := autorest.NewBearerAuthorizer(spt)
 	return auth, nil
 }
