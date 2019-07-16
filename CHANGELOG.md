@@ -3,6 +3,8 @@
 ENHANCEMENTS:
 * command/format: No longer show no-ops in `terraform show`, since nothing will change [GH-21907]
 * backend/s3: Support for assuming role using credential process from the shared AWS configuration file (support profile containing both `credential_process` and `role_arn` configurations) [GH-21908]
+* connection/ssh: Abort ssh connections when the server is no longer responding [GH-22037]
+* connection/ssh: Support ssh diffie-hellman-group-exchange-sha256 key exchange [GH-22037]
 
 BUG FIXES:
 * core: Prevent inconsistent final plan error when using dynamic in a set-type block [GH-22057]
