@@ -133,7 +133,7 @@ func (c *FmtCommand) fmt(paths []string, stdin io.Reader, stdout io.Writer) tfdi
 			diags = diags.Append(dirDiags)
 		} else {
 			switch filepath.Ext(path) {
-			case ".tf", ".tfvars":
+			case ".tf", ".tfvars", ".hcl":
 				f, err := os.Open(path)
 				if err != nil {
 					// Open does not produce error messages that are end-user-appropriate,
@@ -146,7 +146,7 @@ func (c *FmtCommand) fmt(paths []string, stdin io.Reader, stdout io.Writer) tfdi
 				diags = diags.Append(fileDiags)
 				f.Close()
 			default:
-				diags = diags.Append(fmt.Errorf("Only .tf and .tfvars files can be processed with terraform fmt"))
+				diags = diags.Append(fmt.Errorf("Only .tf, .tfvars and .hcl files can be processed with terraform fmt"))
 				continue
 			}
 		}
@@ -247,7 +247,7 @@ func (c *FmtCommand) processDir(path string, stdout io.Writer) tfdiags.Diagnosti
 
 		ext := filepath.Ext(name)
 		switch ext {
-		case ".tf", ".tfvars":
+		case ".tf", ".tfvars", ".hcl":
 			f, err := os.Open(subPath)
 			if err != nil {
 				// Open does not produce error messages that are end-user-appropriate,
