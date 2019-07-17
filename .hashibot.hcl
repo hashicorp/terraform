@@ -15,7 +15,7 @@ behavior "remove_labels_on_reply" "remove_stale" {
 }
 
 poll "label_issue_migrater" "provider_migrater" {
-    schedule = "0 50 11 * * *"
+    schedule = "0 20 * * * *"
     new_owner = env.PROVIDERS_OWNER
     repo_prefix = "terraform-provider-"
     label_prefix = "provider/"
