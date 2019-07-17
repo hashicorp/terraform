@@ -181,7 +181,7 @@ module "example" {
 ```
 
 This is consistent with Terraform's declarative style: rather than creating
-modules with complex conditional branches, we we directly describe what
+modules with complex conditional branches, we directly describe what
 should already exist and what we want Terraform to manage itself.
 
 By following this pattern, we can be explicit about in which situations we
