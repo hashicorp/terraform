@@ -138,8 +138,13 @@ func (b *Remote) plan(stopCtx, cancelCtx context.Context, op *backend.Operation,
 
 	var configDir string
 	if op.ConfigDir != "" {
-		// de-normalize the config path
+		// De-normalize the configuration directory path.
 		configDir, err = filepath.Abs(op.ConfigDir)
+		if err != nil {
+			return nil, generalError(
+				"Failed to get absolute path of the configuration directory: %v", err)
+		}
+
 		// Make sure to take the working directory into account by removing
 		// the working directory from the current path. This will result in
 		// a path that points to the expected root of the workspace.
