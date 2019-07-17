@@ -7,6 +7,7 @@ ENHANCEMENTS:
 * connection/ssh: Support ssh diffie-hellman-group-exchange-sha256 key exchange [GH-22037]
 
 BUG FIXES:
+* backend/remote: fix conflict with normalized config dir and vcs root working directory [GH-22096]
 * core: Prevent inconsistent final plan error when using dynamic in a set-type block [GH-22057]
 
 ## 0.12.4 (July 11, 2019)
