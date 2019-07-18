@@ -108,9 +108,9 @@ func TestShimResourcePlan_destroyCreate(t *testing.T) {
 	}
 
 	expected := &terraform.InstanceState{
-		ID: config.UnknownVariableValue,
+		ID: hcl2shim.UnknownVariableValue,
 		Attributes: map[string]string{
-			"id":  config.UnknownVariableValue,
+			"id":  hcl2shim.UnknownVariableValue,
 			"foo": "42",
 		},
 		Meta: map[string]interface{}{
@@ -815,7 +815,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError(config.UnknownVariableValue),
+				"var.foo": interfaceToVariableSwallowError(hcl2shim.UnknownVariableValue),
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -1048,7 +1048,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 
 			ConfigVariables: map[string]ast.Variable{
 				"var.foo": interfaceToVariableSwallowError([]interface{}{
-					config.UnknownVariableValue, "5"}),
+					hcl2shim.UnknownVariableValue, "5"}),
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -1431,7 +1431,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 
 			ConfigVariables: map[string]ast.Variable{
 				"var.foo": interfaceToVariableSwallowError([]interface{}{
-					config.UnknownVariableValue, "5"}),
+					hcl2shim.UnknownVariableValue, "5"}),
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -2060,7 +2060,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError(config.UnknownVariableValue),
+				"var.foo": interfaceToVariableSwallowError(hcl2shim.UnknownVariableValue),
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -2112,7 +2112,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError(config.UnknownVariableValue),
+				"var.foo": interfaceToVariableSwallowError(hcl2shim.UnknownVariableValue),
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -2180,7 +2180,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError(config.UnknownVariableValue),
+				"var.foo": interfaceToVariableSwallowError(hcl2shim.UnknownVariableValue),
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -2250,7 +2250,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError(config.UnknownVariableValue),
+				"var.foo": interfaceToVariableSwallowError(hcl2shim.UnknownVariableValue),
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -2617,7 +2617,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError(config.UnknownVariableValue),
+				"var.foo": interfaceToVariableSwallowError(hcl2shim.UnknownVariableValue),
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -3009,7 +3009,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 
 			ConfigVariables: map[string]ast.Variable{
 				"var.foo": interfaceToVariableSwallowError(
-					config.UnknownVariableValue),
+					hcl2shim.UnknownVariableValue),
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -3055,7 +3055,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError(config.UnknownVariableValue),
+				"var.foo": interfaceToVariableSwallowError(hcl2shim.UnknownVariableValue),
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -3096,9 +3096,9 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 
 			ConfigVariables: map[string]ast.Variable{
 				"var.a": interfaceToVariableSwallowError(
-					config.UnknownVariableValue),
+					hcl2shim.UnknownVariableValue),
 				"var.b": interfaceToVariableSwallowError(
-					config.UnknownVariableValue),
+					hcl2shim.UnknownVariableValue),
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -3593,7 +3593,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			// there would be no unknown config variables during apply, so
 			// return early here.
 			for _, v := range tc.ConfigVariables {
-				if s, ok := v.Value.(string); ok && s == config.UnknownVariableValue {
+				if s, ok := v.Value.(string); ok && s == hcl2shim.UnknownVariableValue {
 					return
 				}
 			}

@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -64,7 +65,7 @@ func TestResourceProvider_Validate_computedValues(t *testing.T) {
 		"server_url":      "https://chef.local",
 		"user_name":       "bob",
 		"user_key":        "USER-KEY",
-		"attributes_json": config.UnknownVariableValue,
+		"attributes_json": hcl2shim.UnknownVariableValue,
 	})
 
 	warn, errs := Provisioner().Validate(c)

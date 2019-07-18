@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -446,7 +447,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			},
 
 			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError(config.UnknownVariableValue),
+				"var.foo": interfaceToVariableSwallowError(hcl2shim.UnknownVariableValue),
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -711,7 +712,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			ConfigVariables: map[string]ast.Variable{
 				"var.foo": interfaceToVariableSwallowError([]interface{}{
-					config.UnknownVariableValue, "5"}),
+					hcl2shim.UnknownVariableValue, "5"}),
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -1091,7 +1092,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			ConfigVariables: map[string]ast.Variable{
 				"var.foo": interfaceToVariableSwallowError([]interface{}{
-					config.UnknownVariableValue, "5"}),
+					hcl2shim.UnknownVariableValue, "5"}),
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -1777,7 +1778,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			},
 
 			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError(config.UnknownVariableValue),
+				"var.foo": interfaceToVariableSwallowError(hcl2shim.UnknownVariableValue),
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -1829,7 +1830,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			},
 
 			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError(config.UnknownVariableValue),
+				"var.foo": interfaceToVariableSwallowError(hcl2shim.UnknownVariableValue),
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -1897,7 +1898,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			},
 
 			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError(config.UnknownVariableValue),
+				"var.foo": interfaceToVariableSwallowError(hcl2shim.UnknownVariableValue),
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -1966,7 +1967,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			},
 
 			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError(config.UnknownVariableValue),
+				"var.foo": interfaceToVariableSwallowError(hcl2shim.UnknownVariableValue),
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -2326,7 +2327,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			},
 
 			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError(config.UnknownVariableValue),
+				"var.foo": interfaceToVariableSwallowError(hcl2shim.UnknownVariableValue),
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -2720,7 +2721,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			ConfigVariables: map[string]ast.Variable{
 				"var.foo": interfaceToVariableSwallowError(
-					config.UnknownVariableValue),
+					hcl2shim.UnknownVariableValue),
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -2765,7 +2766,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			},
 
 			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError(config.UnknownVariableValue),
+				"var.foo": interfaceToVariableSwallowError(hcl2shim.UnknownVariableValue),
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -2807,9 +2808,9 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			ConfigVariables: map[string]ast.Variable{
 				"var.a": interfaceToVariableSwallowError(
-					config.UnknownVariableValue),
+					hcl2shim.UnknownVariableValue),
 				"var.b": interfaceToVariableSwallowError(
-					config.UnknownVariableValue),
+					hcl2shim.UnknownVariableValue),
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -4101,7 +4102,7 @@ func TestSchemaMap_DiffSuppress(t *testing.T) {
 			},
 
 			ConfigVariables: map[string]ast.Variable{
-				"var.bar": interfaceToVariableSwallowError(config.UnknownVariableValue),
+				"var.bar": interfaceToVariableSwallowError(hcl2shim.UnknownVariableValue),
 			},
 
 			ExpectedDiff: &terraform.InstanceDiff{
@@ -4176,7 +4177,7 @@ func TestSchemaMap_DiffSuppress(t *testing.T) {
 			},
 
 			ConfigVariables: map[string]ast.Variable{
-				"var.bar": interfaceToVariableSwallowError(config.UnknownVariableValue),
+				"var.bar": interfaceToVariableSwallowError(hcl2shim.UnknownVariableValue),
 			},
 
 			ExpectedDiff: &terraform.InstanceDiff{
@@ -4267,7 +4268,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			},
 
 			Vars: map[string]string{
-				"var.foo": config.UnknownVariableValue,
+				"var.foo": hcl2shim.UnknownVariableValue,
 			},
 		},
 
@@ -4503,7 +4504,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			},
 
 			Config: map[string]interface{}{
-				"strings": config.UnknownVariableValue,
+				"strings": hcl2shim.UnknownVariableValue,
 			},
 
 			Err: false,
@@ -4610,7 +4611,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			},
 
 			Vars: map[string]string{
-				"var.port": config.UnknownVariableValue,
+				"var.port": hcl2shim.UnknownVariableValue,
 			},
 
 			Err: false,
@@ -4648,7 +4649,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			},
 
 			Vars: map[string]string{
-				"var.foo": config.UnknownVariableValue,
+				"var.foo": hcl2shim.UnknownVariableValue,
 			},
 
 			Err: true,
@@ -5016,7 +5017,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 
 			Config: map[string]interface{}{
 				"whitelist": "white-val",
-				"blacklist": config.UnknownVariableValue,
+				"blacklist": hcl2shim.UnknownVariableValue,
 			},
 
 			Err: false,
@@ -5036,7 +5037,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			},
 
 			Config: map[string]interface{}{
-				"whitelist": config.UnknownVariableValue,
+				"whitelist": hcl2shim.UnknownVariableValue,
 				"blacklist": "black-val",
 			},
 
@@ -5063,7 +5064,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			},
 
 			Config: map[string]interface{}{
-				"whitelist": config.UnknownVariableValue,
+				"whitelist": hcl2shim.UnknownVariableValue,
 				"blacklist": "black-val",
 				"greenlist": "green-val",
 			},
@@ -5277,7 +5278,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 				"validate_me": "${var.foo}",
 			},
 			Vars: map[string]string{
-				"var.foo": config.UnknownVariableValue,
+				"var.foo": hcl2shim.UnknownVariableValue,
 			},
 
 			Err: false,
@@ -5460,7 +5461,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			},
 			Vars: map[string]string{
 				"var.a": "A",
-				"var.b": config.UnknownVariableValue,
+				"var.b": hcl2shim.UnknownVariableValue,
 			},
 			Err: false,
 		},
