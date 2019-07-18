@@ -47,19 +47,20 @@ github.com/agext/levenshtein
 # github.com/agl/ed25519 v0.0.0-20150830182803-278e1ec8e8a6
 github.com/agl/ed25519
 github.com/agl/ed25519/edwards25519
-# github.com/aliyun/alibaba-cloud-sdk-go v0.0.0-20190329064014-6e358769c32a
+# github.com/aliyun/alibaba-cloud-sdk-go v0.0.0-20190718020602-338ecd96b8d3
 github.com/aliyun/alibaba-cloud-sdk-go/sdk
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/credentials
+github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests
 github.com/aliyun/alibaba-cloud-sdk-go/services/location
+github.com/aliyun/alibaba-cloud-sdk-go/services/sts
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/credentials/provider
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/endpoints
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/errors
-github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/responses
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/utils
 github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/signers
-# github.com/aliyun/aliyun-oss-go-sdk v0.0.0-20190103054945-8205d1f41e70
+# github.com/aliyun/aliyun-oss-go-sdk v0.0.0-20190307165228-86c17b95fcd5
 github.com/aliyun/aliyun-oss-go-sdk/oss
 # github.com/aliyun/aliyun-tablestore-go-sdk v4.1.2+incompatible
 github.com/aliyun/aliyun-tablestore-go-sdk/tablestore

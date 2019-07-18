@@ -23,7 +23,6 @@ import (
 	"strings"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/errors"
-	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/utils"
 )
 
 type AcsResponse interface {
@@ -36,11 +35,6 @@ type AcsResponse interface {
 	parseFromHttpResponse(httpResponse *http.Response) error
 }
 
-var debug utils.Debug
-
-func init() {
-	debug = utils.Init("sdk")
-}
 // Unmarshal object from http response body to target Response
 func Unmarshal(response AcsResponse, httpResponse *http.Response, format string) (err error) {
 	err = response.parseFromHttpResponse(httpResponse)
@@ -62,7 +56,6 @@ func Unmarshal(response AcsResponse, httpResponse *http.Response, format string)
 	}
 
 	if strings.ToUpper(format) == "JSON" {
-		initJsonParserOnce()
 		err = jsonParser.Unmarshal(response.GetHttpContentBytes(), response)
 		if err != nil {
 			err = errors.NewClientError(errors.JsonUnmarshalErrorCode, errors.JsonUnmarshalErrorMessage, err)
@@ -115,7 +108,6 @@ func (baseResponse *BaseResponse) parseFromHttpResponse(httpResponse *http.Respo
 	if err != nil {
 		return
 	}
-	debug("%s", string(body))
 	baseResponse.httpStatus = httpResponse.StatusCode
 	baseResponse.httpHeaders = httpResponse.Header
 	baseResponse.httpContentBytes = body

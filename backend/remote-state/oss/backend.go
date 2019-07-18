@@ -3,10 +3,13 @@ package oss
 import (
 	"context"
 	"fmt"
+	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/sts"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/schema"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk"
@@ -129,12 +132,86 @@ func New() backend.Backend {
 					return nil, nil
 				},
 			},
+
+			"assume_role": assumeRoleSchema(),
 		},
 	}
 
 	result := &Backend{Backend: s}
 	result.Backend.ConfigureFunc = result.configure
 	return result
+}
+
+func assumeRoleSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:     schema.TypeSet,
+		Optional: true,
+		MaxItems: 1,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"role_arn": {
+					Type:        schema.TypeString,
+					Required:    true,
+					Description: "The ARN of a RAM role to assume prior to making API calls.",
+				},
+				"session_name": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Default:     "terraform",
+					Description: "The session name to use when assuming the role. If omitted, `terraform` is passed to the AssumeRole call as session name.",
+					ValidateFunc: stringMatch(regexp.MustCompile(`^[a-zA-Z0-9\. @\-_]{2,32}$`),
+						"Field can contain only A-Z, a-z, ., @, -, _ and valid length is [2-32]"),
+				},
+				"policy": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: "The permissions applied when assuming a role. You cannot use, this policy to grant further permissions that are in excess to those of the, role that is being assumed.",
+				},
+				"session_expiration": {
+					Type:         schema.TypeInt,
+					Optional:     true,
+					Default:      3600,
+					Description:  "The time after which the established session for assuming role expires. Valid value range: [900-3600] seconds. Default to 0 (in this case Alicloud use own default value).",
+					ValidateFunc: intBetween(900, 3600),
+				},
+			},
+		},
+	}
+}
+
+func stringMatch(r *regexp.Regexp, message string) schema.SchemaValidateFunc {
+	return func(i interface{}, k string) ([]string, []error) {
+		v, ok := i.(string)
+		if !ok {
+			return nil, []error{fmt.Errorf("expected type of %s to be string", k)}
+		}
+
+		if ok := r.MatchString(v); !ok {
+			if message != "" {
+				return nil, []error{fmt.Errorf("invalid value for %s (%s)", k, message)}
+
+			}
+			return nil, []error{fmt.Errorf("expected value of %s to match regular expression %q", k, r)}
+		}
+		return nil, nil
+	}
+}
+
+func intBetween(min, max int) schema.SchemaValidateFunc {
+	return func(i interface{}, k string) (s []string, es []error) {
+		v, ok := i.(int)
+		if !ok {
+			es = append(es, fmt.Errorf("expected type of %s to be int", k))
+			return
+		}
+
+		if v < min || v > max {
+			es = append(es, fmt.Errorf("expected %s to be in the range (%d - %d), got %d", k, min, max, v))
+			return
+		}
+
+		return
+	}
 }
 
 type Backend struct {
@@ -174,6 +251,21 @@ func (b *Backend) configure(ctx context.Context) error {
 	region := d.Get("region").(string)
 	endpoint := d.Get("endpoint").(string)
 	schma := "https"
+
+	if v, ok := d.GetOk("assume_role"); ok {
+		for _, v := range v.(*schema.Set).List() {
+			assumeRole := v.(map[string]interface{})
+			role_arn := assumeRole["role_arn"].(string)
+			session_name := assumeRole["session_name"].(string)
+			policy := assumeRole["policy"].(string)
+			session_expiration := assumeRole["session_expiration"].(int)
+			subaccesskeyid, subaccesskeysecret, e := getAssumeRoleAK(accessKey, secretKey, region, role_arn, session_name, policy, session_expiration)
+			if e != nil {
+				return e
+			}
+			accessKey, secretKey = subaccesskeyid, subaccesskeysecret
+		}
+	}
 
 	if endpoint == "" {
 		endpointItem, _ := b.getOSSEndpointByRegion(accessKey, secretKey, securityToken, region)
@@ -236,6 +328,25 @@ func (b *Backend) getOSSEndpointByRegion(access_key, secret_key, security_token,
 		return nil, fmt.Errorf("Describe oss endpoint using region: %#v got an error: %#v.", region, err)
 	}
 	return endpointsResponse, nil
+}
+
+func getAssumeRoleAK(access_key, secret_key, region, role_arn, session_name, policy string, session_expiration int) (string, string, error) {
+	request := sts.CreateAssumeRoleRequest()
+	request.RoleArn = role_arn
+	request.RoleSessionName = session_name
+	request.DurationSeconds = requests.NewInteger(session_expiration)
+	request.Policy = policy
+	request.Scheme = "https"
+
+	client, err := sts.NewClientWithAccessKey(region, access_key, secret_key)
+	if err != nil {
+		return "", "", err
+	}
+	response, err := client.AssumeRole(request)
+	if err != nil {
+		return "", "", err
+	}
+	return response.Credentials.AccessKeyId, response.Credentials.AccessKeySecret, nil
 }
 
 func getSdkConfig() *sdk.Config {

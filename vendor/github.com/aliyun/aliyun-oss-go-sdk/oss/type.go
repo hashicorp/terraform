@@ -466,3 +466,101 @@ type createBucketConfiguration struct {
 	XMLName      xml.Name         `xml:"CreateBucketConfiguration"`
 	StorageClass StorageClassType `xml:"StorageClass,omitempty"`
 }
+
+// LiveChannelConfiguration defines the configuration for live-channel
+type LiveChannelConfiguration struct {
+	XMLName     xml.Name          `xml:"LiveChannelConfiguration"`
+	Description string            `xml:"Description,omitempty"` //Description of live-channel, up to 128 bytes
+	Status      string            `xml:"Status,omitempty"`      //Specify the status of livechannel
+	Target      LiveChannelTarget `xml:"Target"`                //target configuration of live-channel
+	// use point instead of struct to avoid omit empty snapshot
+	Snapshot *LiveChannelSnapshot `xml:"Snapshot,omitempty"` //snapshot configuration of live-channel
+}
+
+// LiveChannelTarget target configuration of live-channel
+type LiveChannelTarget struct {
+	XMLName      xml.Name `xml:"Target"`
+	Type         string   `xml:"Type"`                   //the type of object, only supports HLS
+	FragDuration int      `xml:"FragDuration,omitempty"` //the length of each ts object (in seconds), in the range [1,100]
+	FragCount    int      `xml:"FragCount,omitempty"`    //the number of ts objects in the m3u8 object, in the range of [1,100]
+	PlaylistName string   `xml:"PlaylistName,omitempty"` //the name of m3u8 object, which must end with ".m3u8" and the length range is [6,128]
+}
+
+// LiveChannelSnapshot snapshot configuration of live-channel
+type LiveChannelSnapshot struct {
+	XMLName     xml.Name `xml:"Snapshot"`
+	RoleName    string   `xml:"RoleName,omitempty"`    //The role of snapshot operations, it sholud has write permission of DestBucket and the permission to send messages to the NotifyTopic.
+	DestBucket  string   `xml:"DestBucket,omitempty"`  //Bucket the snapshots will be written to. should be the same owner as the source bucket.
+	NotifyTopic string   `xml:"NotifyTopic,omitempty"` //Topics of MNS for notifying users of high frequency screenshot operation results
+	Interval    int      `xml:"Interval,omitempty"`    //interval of snapshots, threre is no snapshot if no I-frame during the interval time
+}
+
+// CreateLiveChannelResult the result of crete live-channel
+type CreateLiveChannelResult struct {
+	XMLName     xml.Name `xml:"CreateLiveChannelResult"`
+	PublishUrls []string `xml:"PublishUrls>Url"` //push urls list
+	PlayUrls    []string `xml:"PlayUrls>Url"`    //play urls list
+}
+
+// LiveChannelStat the result of get live-channel state
+type LiveChannelStat struct {
+	XMLName       xml.Name         `xml:"LiveChannelStat"`
+	Status        string           `xml:"Status"`        //Current push status of live-channel: Disabled,Live,Idle
+	ConnectedTime time.Time        `xml:"ConnectedTime"` //The time when the client starts pushing, format: ISO8601
+	RemoteAddr    string           `xml:"RemoteAddr"`    //The ip address of the client
+	Video         LiveChannelVideo `xml:"Video"`         //Video stream information
+	Audio         LiveChannelAudio `xml:"Audio"`         //Audio stream information
+}
+
+// LiveChannelVideo video stream information
+type LiveChannelVideo struct {
+	XMLName   xml.Name `xml:"Video"`
+	Width     int      `xml:"Width"`     //Width (unit: pixels)
+	Height    int      `xml:"Height"`    //Height (unit: pixels)
+	FrameRate int      `xml:"FrameRate"` //FramRate
+	Bandwidth int      `xml:"Bandwidth"` //Bandwidth (unit: B/s)
+}
+
+// LiveChannelAudio audio stream information
+type LiveChannelAudio struct {
+	XMLName    xml.Name `xml:"Audio"`
+	SampleRate int      `xml:"SampleRate"` //SampleRate
+	Bandwidth  int      `xml:"Bandwidth"`  //Bandwidth (unit: B/s)
+	Codec      string   `xml:"Codec"`      //Encoding forma
+}
+
+// LiveChannelHistory the result of GetLiveChannelHistory, at most return up to lastest 10 push records
+type LiveChannelHistory struct {
+	XMLName xml.Name     `xml:"LiveChannelHistory"`
+	Record  []LiveRecord `xml:"LiveRecord"` //push records list
+}
+
+// LiveRecord push recode
+type LiveRecord struct {
+	XMLName    xml.Name  `xml:"LiveRecord"`
+	StartTime  time.Time `xml:"StartTime"`  //StartTime, format: ISO8601
+	EndTime    time.Time `xml:"EndTime"`    //EndTime, format: ISO8601
+	RemoteAddr string    `xml:"RemoteAddr"` //The ip address of remote client
+}
+
+// ListLiveChannelResult the result of ListLiveChannel
+type ListLiveChannelResult struct {
+	XMLName     xml.Name          `xml:"ListLiveChannelResult"`
+	Prefix      string            `xml:"Prefix"`      //Filter by the name start with the value of "Prefix"
+	Marker      string            `xml:"Marker"`      //cursor from which starting list
+	MaxKeys     int               `xml:"MaxKeys"`     //The maximum count returned. the default value is 100. it cannot be greater than 1000.
+	IsTruncated bool              `xml:"IsTruncated"` //Indicates whether all results have been returned, "true" indicates partial results returned while "false" indicates all results have been returned
+	NextMarker  string            `xml:"NextMarker"`  //NextMarker indicate the Marker value of the next request
+	LiveChannel []LiveChannelInfo `xml:"LiveChannel"` //The infomation of live-channel
+}
+
+// LiveChannelInfo the infomation of live-channel
+type LiveChannelInfo struct {
+	XMLName      xml.Name  `xml:"LiveChannel"`
+	Name         string    `xml:"Name"`            //The name of live-channel
+	Description  string    `xml:"Description"`     //Description of live-channel
+	Status       string    `xml:"Status"`          //Status: disabled or enabled
+	LastModified time.Time `xml:"LastModified"`    //Last modification time, format: ISO8601
+	PublishUrls  []string  `xml:"PublishUrls>Url"` //push urls list
+	PlayUrls     []string  `xml:"PlayUrls>Url"`    //play urls list
+}

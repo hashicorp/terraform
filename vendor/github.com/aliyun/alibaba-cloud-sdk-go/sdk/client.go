@@ -28,10 +28,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/credentials/provider"
-
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/credentials"
+	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/credentials/provider"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/endpoints"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/errors"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
@@ -64,12 +63,16 @@ type Client struct {
 	httpProxy      string
 	httpsProxy     string
 	noProxy        string
+	logger         *Logger
 	userAgent      map[string]string
 	signer         auth.Signer
 	httpClient     *http.Client
 	asyncTaskQueue chan func()
 	readTimeout    time.Duration
 	connectTimeout time.Duration
+	EndpointMap    map[string]string
+	EndpointType   string
+	Network        string
 
 	debug     bool
 	isRunning bool
@@ -79,6 +82,12 @@ type Client struct {
 
 func (client *Client) Init() (err error) {
 	panic("not support yet")
+}
+
+func (client *Client) SetEndpointRules(endpointMap map[string]string, endpointType string, netWork string) {
+	client.EndpointMap = endpointMap
+	client.Network = netWork
+	client.EndpointType = endpointType
 }
 
 func (client *Client) SetHTTPSInsecure(isInsecure bool) {
@@ -298,6 +307,21 @@ func (client *Client) DoAction(request requests.AcsRequest, response responses.A
 	return client.DoActionWithSigner(request, response, nil)
 }
 
+func (client *Client) GetEndpointRules(regionId string, product string) (endpointRaw string) {
+	if client.EndpointType == "regional" {
+		endpointRaw = strings.Replace("<product><network>.<region_id>.aliyuncs.com", "<region_id>", regionId, 1)
+	} else {
+		endpointRaw = "<product><network>.aliyuncs.com"
+	}
+	endpointRaw = strings.Replace(endpointRaw, "<product>", strings.ToLower(product), 1)
+	if client.Network == "" || client.Network == "public" {
+		endpointRaw = strings.Replace(endpointRaw, "<network>", "", 1)
+	} else {
+		endpointRaw = strings.Replace(endpointRaw, "<network>", "-"+client.Network, 1)
+	}
+	return endpointRaw
+}
+
 func (client *Client) buildRequestWithSigner(request requests.AcsRequest, signer auth.Signer) (httpRequest *http.Request, err error) {
 	// add clientVersion
 	request.GetHeaders()["x-sdk-core-version"] = Version
@@ -308,18 +332,32 @@ func (client *Client) buildRequestWithSigner(request requests.AcsRequest, signer
 	}
 
 	// resolve endpoint
-	resolveParam := &endpoints.ResolveParam{
-		Domain:               request.GetDomain(),
-		Product:              request.GetProduct(),
-		RegionId:             regionId,
-		LocationProduct:      request.GetLocationServiceCode(),
-		LocationEndpointType: request.GetLocationEndpointType(),
-		CommonApi:            client.ProcessCommonRequest,
+	endpoint := request.GetDomain()
+	if endpoint == "" && client.EndpointType != "" {
+		if client.EndpointMap != nil && client.Network == "" || client.Network == "public" {
+			endpoint = client.EndpointMap[regionId]
+		}
+
+		if endpoint == "" {
+			endpoint = client.GetEndpointRules(regionId, request.GetProduct())
+		}
 	}
-	endpoint, err := endpoints.Resolve(resolveParam)
-	if err != nil {
-		return
+
+	if endpoint == "" {
+		resolveParam := &endpoints.ResolveParam{
+			Domain:               request.GetDomain(),
+			Product:              request.GetProduct(),
+			RegionId:             regionId,
+			LocationProduct:      request.GetLocationServiceCode(),
+			LocationEndpointType: request.GetLocationEndpointType(),
+			CommonApi:            client.ProcessCommonRequest,
+		}
+		endpoint, err = endpoints.Resolve(resolveParam)
+		if err != nil {
+			return
+		}
 	}
+
 	request.SetDomain(endpoint)
 	if request.GetScheme() == "" {
 		request.SetScheme(client.config.Scheme)
@@ -402,6 +440,10 @@ func (client *Client) getTimeout(request requests.AcsRequest) (time.Duration, ti
 		readTimeout = reqReadTimeout
 	} else if client.readTimeout != 0*time.Millisecond {
 		readTimeout = client.readTimeout
+	} else if client.httpClient.Timeout != 0 {
+		readTimeout = client.httpClient.Timeout
+	} else if timeout, ok := getAPIMaxTimeout(request.GetProduct(), request.GetActionName()); ok {
+		readTimeout = timeout
 	}
 
 	if reqConnectTimeout != 0*time.Millisecond {
@@ -412,30 +454,24 @@ func (client *Client) getTimeout(request requests.AcsRequest) (time.Duration, ti
 	return readTimeout, connectTimeout
 }
 
-func Timeout(connectTimeout, readTimeout time.Duration) func(cxt context.Context, net, addr string) (c net.Conn, err error) {
+func Timeout(connectTimeout time.Duration) func(cxt context.Context, net, addr string) (c net.Conn, err error) {
 	return func(ctx context.Context, network, address string) (net.Conn, error) {
-		conn, err := (&net.Dialer{
+		return (&net.Dialer{
 			Timeout:   connectTimeout,
-			KeepAlive: 0 * time.Second,
 			DualStack: true,
 		}).DialContext(ctx, network, address)
-
-		if err == nil {
-			conn.SetDeadline(time.Now().Add(readTimeout))
-		}
-
-		return conn, err
 	}
 }
 
 func (client *Client) setTimeout(request requests.AcsRequest) {
 	readTimeout, connectTimeout := client.getTimeout(request)
+	client.httpClient.Timeout = readTimeout
 	if trans, ok := client.httpClient.Transport.(*http.Transport); ok && trans != nil {
-		trans.DialContext = Timeout(connectTimeout, readTimeout)
+		trans.DialContext = Timeout(connectTimeout)
 		client.httpClient.Transport = trans
 	} else {
 		client.httpClient.Transport = &http.Transport{
-			DialContext: Timeout(connectTimeout, readTimeout),
+			DialContext: Timeout(connectTimeout),
 		}
 	}
 }
@@ -450,10 +486,17 @@ func (client *Client) getHTTPSInsecure(request requests.AcsRequest) (insecure bo
 }
 
 func (client *Client) DoActionWithSigner(request requests.AcsRequest, response responses.AcsResponse, signer auth.Signer) (err error) {
+
+	fieldMap := make(map[string]string)
+	initLogMsg(fieldMap)
+	defer func() {
+		client.printLog(fieldMap, err)
+	}()
 	httpRequest, err := client.buildRequestWithSigner(request, signer)
 	if err != nil {
 		return
 	}
+
 	client.setTimeout(request)
 	proxy, err := client.getHttpProxy(httpRequest.URL.Scheme)
 	if err != nil {
@@ -484,19 +527,31 @@ func (client *Client) DoActionWithSigner(request requests.AcsRequest, response r
 
 	var httpResponse *http.Response
 	for retryTimes := 0; retryTimes <= client.config.MaxRetryTime; retryTimes++ {
-		if proxy != nil && proxy.User != nil{
+		if proxy != nil && proxy.User != nil {
 			if password, passwordSet := proxy.User.Password(); passwordSet {
 				httpRequest.SetBasicAuth(proxy.User.Username(), password)
 			}
 		}
+		if retryTimes > 0 {
+			client.printLog(fieldMap, err)
+			initLogMsg(fieldMap)
+		}
+		putMsgToMap(fieldMap, httpRequest)
 		debug("> %s %s %s", httpRequest.Method, httpRequest.URL.RequestURI(), httpRequest.Proto)
 		debug("> Host: %s", httpRequest.Host)
 		for key, value := range httpRequest.Header {
 			debug("> %s: %v", key, strings.Join(value, ""))
 		}
 		debug(">")
+		debug(" Retry Times: %d.", retryTimes)
+
+		startTime := time.Now()
+		fieldMap["{start_time}"] = startTime.Format("2006-01-02 15:04:05")
 		httpResponse, err = hookDo(client.httpClient.Do)(httpRequest)
+		fieldMap["{cost}"] = time.Now().Sub(startTime).String()
 		if err == nil {
+			fieldMap["{code}"] = strconv.Itoa(httpResponse.StatusCode)
+			fieldMap["{res_headers}"] = TransToString(httpResponse.Header)
 			debug("< %s %s", httpResponse.Proto, httpResponse.Status)
 			for key, value := range httpResponse.Header {
 				debug("< %s: %v", key, strings.Join(value, ""))
@@ -505,15 +560,17 @@ func (client *Client) DoActionWithSigner(request requests.AcsRequest, response r
 		debug("<")
 		// receive error
 		if err != nil {
+			debug(" Error: %s.", err.Error())
 			if !client.config.AutoRetry {
 				return
 			} else if retryTimes >= client.config.MaxRetryTime {
 				// timeout but reached the max retry times, return
-				var timeoutErrorMsg string
-				if strings.Contains(err.Error(), "read tcp") {
-					timeoutErrorMsg = fmt.Sprintf(errors.TimeoutErrorMessage, strconv.Itoa(retryTimes+1), strconv.Itoa(retryTimes+1)) + " Read timeout. Please set a valid ReadTimeout."
+				times := strconv.Itoa(retryTimes + 1)
+				timeoutErrorMsg := fmt.Sprintf(errors.TimeoutErrorMessage, times, times)
+				if strings.Contains(err.Error(), "Client.Timeout") {
+					timeoutErrorMsg += " Read timeout. Please set a valid ReadTimeout."
 				} else {
-					timeoutErrorMsg = fmt.Sprintf(errors.TimeoutErrorMessage, strconv.Itoa(retryTimes+1), strconv.Itoa(retryTimes+1)) + " Connect timeout. Please set a valid ConnectTimeout."
+					timeoutErrorMsg += " Connect timeout. Please set a valid ConnectTimeout."
 				}
 				err = errors.NewClientError(errors.TimeoutErrorCode, timeoutErrorMsg, err)
 				return
@@ -534,6 +591,8 @@ func (client *Client) DoActionWithSigner(request requests.AcsRequest, response r
 	}
 
 	err = responses.Unmarshal(response, httpResponse, request.GetAcceptFormat())
+	fieldMap["{res_body}"] = response.GetHttpContentString()
+	debug("%s", response.GetHttpContentString())
 	// wrap server errors
 	if serverErr, ok := err.(*errors.ServerError); ok {
 		var wrapInfo = map[string]string{}
@@ -541,6 +600,18 @@ func (client *Client) DoActionWithSigner(request requests.AcsRequest, response r
 		err = errors.WrapServerError(serverErr, wrapInfo)
 	}
 	return
+}
+
+func putMsgToMap(fieldMap map[string]string, request *http.Request) {
+	fieldMap["{host}"] = request.Host
+	fieldMap["{method}"] = request.Method
+	fieldMap["{uri}"] = request.URL.RequestURI()
+	fieldMap["{pid}"] = strconv.Itoa(os.Getpid())
+	fieldMap["{version}"] = strings.Split(request.Proto, "/")[1]
+	hostname, _ := os.Hostname()
+	fieldMap["{hostname}"] = hostname
+	fieldMap["{req_headers}"] = TransToString(request.Header)
+	fieldMap["{target}"] = request.URL.Path + request.URL.RawQuery
 }
 
 func buildHttpRequest(request requests.AcsRequest, singer auth.Signer, regionId string) (httpRequest *http.Request, err error) {

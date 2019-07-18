@@ -26,12 +26,12 @@ type Config struct {
 	MaxRetryTime      int             `default:"3"`
 	UserAgent         string          `default:""`
 	Debug             bool            `default:"false"`
-	Timeout           time.Duration   `default:"10000000000"`
 	HttpTransport     *http.Transport `default:""`
 	EnableAsync       bool            `default:"false"`
 	MaxTaskQueueSize  int             `default:"1000"`
 	GoRoutinePoolSize int             `default:"5"`
 	Scheme            string          `default:"HTTP"`
+	Timeout           time.Duration
 }
 
 func NewConfig() (config *Config) {

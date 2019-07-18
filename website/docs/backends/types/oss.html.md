@@ -90,6 +90,7 @@ The following configuration options or environment variables are supported:
  * `acl` - (Optional) [Object
    ACL](https://www.alibabacloud.com/help/doc-detail/52284.htm)
    to be applied to the state file.
+ * `assume_role` - (Optional) If provided with a role ARN, will attempt to assume this role using the supplied credentials.
 
 -> **Note:** If you want to store state in the custom OSS endpoint, you can specify a environment variable `OSS_ENDPOINT`, like "oss-cn-beijing-internal.aliyuncs.com"
 

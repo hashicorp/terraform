@@ -111,12 +111,21 @@ func (conn Conn) DoURL(method HTTPMethod, signedURL string, headers map[string]s
 	event := newProgressEvent(TransferStartedEvent, 0, req.ContentLength)
 	publishProgress(listener, event)
 
+	if conn.config.LogLevel >= Debug {
+		conn.LoggerHttpReq(req)
+	}
+
 	resp, err := conn.client.Do(req)
 	if err != nil {
 		// Transfer failed
 		event = newProgressEvent(TransferFailedEvent, tracker.completedBytes, req.ContentLength)
 		publishProgress(listener, event)
 		return nil, err
+	}
+
+	if conn.config.LogLevel >= Debug {
+		//print out http resp
+		conn.LoggerHttpResp(req, resp)
 	}
 
 	// Transfer completed
@@ -231,12 +240,22 @@ func (conn Conn) doRequest(method string, uri *url.URL, canonicalizedResource st
 	event := newProgressEvent(TransferStartedEvent, 0, req.ContentLength)
 	publishProgress(listener, event)
 
+	if conn.config.LogLevel >= Debug {
+		conn.LoggerHttpReq(req)
+	}
+
 	resp, err := conn.client.Do(req)
+
 	if err != nil {
 		// Transfer failed
 		event = newProgressEvent(TransferFailedEvent, tracker.completedBytes, req.ContentLength)
 		publishProgress(listener, event)
 		return nil, err
+	}
+
+	if conn.config.LogLevel >= Debug {
+		//print out http resp
+		conn.LoggerHttpResp(req, resp)
 	}
 
 	// Transfer completed
@@ -285,6 +304,27 @@ func (conn Conn) signURL(method HTTPMethod, bucketName, objectName string, expir
 	return conn.url.getSignURL(bucketName, objectName, urlParams)
 }
 
+func (conn Conn) signRtmpURL(bucketName, channelName, playlistName string, expiration int64) string {
+	params := map[string]interface{}{}
+	if playlistName != "" {
+		params[HTTPParamPlaylistName] = playlistName
+	}
+	expireStr := strconv.FormatInt(expiration, 10)
+	params[HTTPParamExpires] = expireStr
+
+	if conn.config.AccessKeyID != "" {
+		params[HTTPParamAccessKeyID] = conn.config.AccessKeyID
+		if conn.config.SecurityToken != "" {
+			params[HTTPParamSecurityToken] = conn.config.SecurityToken
+		}
+		signedStr := conn.getRtmpSignedStr(bucketName, channelName, playlistName, expiration, params)
+		params[HTTPParamSignature] = signedStr
+	}
+
+	urlParams := conn.getURLParams(params)
+	return conn.url.getSignRtmpURL(bucketName, channelName, urlParams)
+}
+
 // handleBody handles request body
 func (conn Conn) handleBody(req *http.Request, body io.Reader, initCRC uint64,
 	listener ProgressListener, tracker *readerTracker) (*os.File, hash.Hash64) {
@@ -325,9 +365,31 @@ func (conn Conn) handleBody(req *http.Request, body io.Reader, initCRC uint64,
 	if !ok && reader != nil {
 		rc = ioutil.NopCloser(reader)
 	}
-	req.Body = rc
 
+	if conn.isUploadLimitReq(req) {
+		limitReader := &LimitSpeedReader{
+			reader:     rc,
+			ossLimiter: conn.config.UploadLimiter,
+		}
+		req.Body = limitReader
+	} else {
+		req.Body = rc
+	}
 	return file, crc
+}
+
+// isUploadLimitReq: judge limit upload speed or not
+func (conn Conn) isUploadLimitReq(req *http.Request) bool {
+	if conn.config.UploadLimitSpeed == 0 || conn.config.UploadLimiter == nil {
+		return false
+	}
+
+	if req.Method != "GET" && req.Method != "DELETE" && req.Method != "HEAD" {
+		if req.ContentLength > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func tryGetFileSize(f *os.File) int64 {
@@ -393,6 +455,44 @@ func (conn Conn) handleResponse(resp *http.Response, crc hash.Hash64) (*Response
 		ClientCRC:  cliCRC,
 		ServerCRC:  srvCRC,
 	}, nil
+}
+
+func (conn Conn) LoggerHttpReq(req *http.Request) {
+	var logBuffer bytes.Buffer
+	logBuffer.WriteString(fmt.Sprintf("[Req:%p]Method:%s\t", req, req.Method))
+	logBuffer.WriteString(fmt.Sprintf("Host:%s\t", req.URL.Host))
+	logBuffer.WriteString(fmt.Sprintf("Path:%s\t", req.URL.Path))
+	logBuffer.WriteString(fmt.Sprintf("Query:%s\t", req.URL.RawQuery))
+	logBuffer.WriteString(fmt.Sprintf("Header info:"))
+
+	for k, v := range req.Header {
+		var valueBuffer bytes.Buffer
+		for j := 0; j < len(v); j++ {
+			if j > 0 {
+				valueBuffer.WriteString(" ")
+			}
+			valueBuffer.WriteString(v[j])
+		}
+		logBuffer.WriteString(fmt.Sprintf("\t%s:%s", k, valueBuffer.String()))
+	}
+	conn.config.WriteLog(Debug, "%s\n", logBuffer.String())
+}
+
+func (conn Conn) LoggerHttpResp(req *http.Request, resp *http.Response) {
+	var logBuffer bytes.Buffer
+	logBuffer.WriteString(fmt.Sprintf("[Resp:%p]StatusCode:%d\t", req, resp.StatusCode))
+	logBuffer.WriteString(fmt.Sprintf("Header info:"))
+	for k, v := range resp.Header {
+		var valueBuffer bytes.Buffer
+		for j := 0; j < len(v); j++ {
+			if j > 0 {
+				valueBuffer.WriteString(" ")
+			}
+			valueBuffer.WriteString(v[j])
+		}
+		logBuffer.WriteString(fmt.Sprintf("\t%s:%s", k, valueBuffer.String()))
+	}
+	conn.config.WriteLog(Debug, "%s\n", logBuffer.String())
 }
 
 func calcMD5(body io.Reader, contentLen, md5Threshold int64) (reader io.Reader, b64 string, tempFile *os.File, err error) {
@@ -574,6 +674,16 @@ func (um urlMaker) getURL(bucket, object, params string) *url.URL {
 func (um urlMaker) getSignURL(bucket, object, params string) string {
 	host, path := um.buildURL(bucket, object)
 	return fmt.Sprintf("%s://%s%s?%s", um.Scheme, host, path, params)
+}
+
+// getSignRtmpURL Build Sign Rtmp URL
+func (um urlMaker) getSignRtmpURL(bucket, channelName, params string) string {
+	host, path := um.buildURL(bucket, "live")
+
+	channelName = url.QueryEscape(channelName)
+	channelName = strings.Replace(channelName, "+", "%20", -1)
+
+	return fmt.Sprintf("rtmp://%s%s/%s?%s", host, path, channelName, params)
 }
 
 // buildURL builds URL

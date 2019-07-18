@@ -37,12 +37,12 @@ func signRoaRequest(request requests.AcsRequest, signer Signer, regionId string)
 	completeROASignParams(request, signer, regionId)
 	stringToSign := buildRoaStringToSign(request)
 	request.SetStringToSign(stringToSign)
-	signature := signer.Sign(stringToSign, "")
 	accessKeyId, err := signer.GetAccessKeyId()
 	if err != nil {
-		return nil
+		return err
 	}
 
+	signature := signer.Sign(stringToSign, "")
 	request.GetHeaders()["Authorization"] = "acs " + accessKeyId + ":" + signature
 
 	return

@@ -5,10 +5,12 @@ import (
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/base64"
+	"fmt"
 	"hash"
 	"io"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -54,10 +56,41 @@ func (conn Conn) getSignedStr(req *http.Request, canonicalizedResource string) s
 	contentMd5 := req.Header.Get(HTTPHeaderContentMD5)
 
 	signStr := req.Method + "\n" + contentMd5 + "\n" + contentType + "\n" + date + "\n" + canonicalizedOSSHeaders + canonicalizedResource
+
+	conn.config.WriteLog(Debug, "[Req:%p]signStr:%s.\n", req, signStr)
+
 	h := hmac.New(func() hash.Hash { return sha1.New() }, []byte(conn.config.AccessKeySecret))
 	io.WriteString(h, signStr)
 	signedStr := base64.StdEncoding.EncodeToString(h.Sum(nil))
 
+	return signedStr
+}
+
+func (conn Conn) getRtmpSignedStr(bucketName, channelName, playlistName string, expiration int64, params map[string]interface{}) string {
+	if params[HTTPParamAccessKeyID] == nil {
+		return ""
+	}
+
+	canonResource := fmt.Sprintf("/%s/%s", bucketName, channelName)
+	canonParamsKeys := []string{}
+	for key := range params {
+		if key != HTTPParamAccessKeyID && key != HTTPParamSignature && key != HTTPParamExpires && key != HTTPParamSecurityToken {
+			canonParamsKeys = append(canonParamsKeys, key)
+		}
+	}
+
+	sort.Strings(canonParamsKeys)
+	canonParamsStr := ""
+	for _, key := range canonParamsKeys {
+		canonParamsStr = fmt.Sprintf("%s%s:%s\n", canonParamsStr, key, params[key].(string))
+	}
+
+	expireStr := strconv.FormatInt(expiration, 10)
+	signStr := expireStr + "\n" + canonParamsStr + canonResource
+
+	h := hmac.New(func() hash.Hash { return sha1.New() }, []byte(conn.config.AccessKeySecret))
+	io.WriteString(h, signStr)
+	signedStr := base64.StdEncoding.EncodeToString(h.Sum(nil))
 	return signedStr
 }
 

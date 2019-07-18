@@ -136,7 +136,7 @@ func (request *RoaRequest) InitWithApiInfo(product, version, action, uriPattern,
 	request.locationEndpointType = endpointType
 	request.product = product
 	//request.version = version
-	//request.actionName = action
+	request.actionName = action
 }
 
 func (request *RoaRequest) initWithCommonRequest(commonRequest *CommonRequest) {
@@ -145,8 +145,8 @@ func (request *RoaRequest) initWithCommonRequest(commonRequest *CommonRequest) {
 	request.product = commonRequest.Product
 	//request.version = commonRequest.Version
 	request.Headers["x-acs-version"] = commonRequest.Version
-	//request.actionName = commonRequest.ApiName
+	request.actionName = commonRequest.ApiName
 	request.pathPattern = commonRequest.PathPattern
-	request.locationServiceCode = ""
+	request.locationServiceCode = commonRequest.ServiceCode
 	request.locationEndpointType = ""
 }

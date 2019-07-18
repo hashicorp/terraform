@@ -5,7 +5,9 @@ package oss
 import (
 	"bytes"
 	"encoding/xml"
+	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -648,6 +650,16 @@ func (client Client) GetBucketInfo(bucketName string) (GetBucketInfoResult, erro
 	return out, err
 }
 
+// LimitUploadSpeed: set upload bandwidth limit speed,default is 0,unlimited
+// upSpeed: KB/s, 0 is unlimited,default is 0
+// error:it's nil if success, otherwise failure
+func (client Client) LimitUploadSpeed(upSpeed int) error {
+	if client.Config == nil {
+		return fmt.Errorf("client config is nil")
+	}
+	return client.Config.LimitUploadSpeed(upSpeed)
+}
+
 // UseCname sets the flag of using CName. By default it's false.
 //
 // isUseCname    true: the endpoint has the CName, false: the endpoint does not have cname. Default is false.
@@ -764,6 +776,24 @@ func AuthProxy(proxyHost, proxyUser, proxyPassword string) ClientOption {
 func HTTPClient(HTTPClient *http.Client) ClientOption {
 	return func(client *Client) {
 		client.HTTPClient = HTTPClient
+	}
+}
+
+//
+// SetLogLevel sets the oss sdk log level
+//
+func SetLogLevel(LogLevel int) ClientOption {
+	return func(client *Client) {
+		client.Config.LogLevel = LogLevel
+	}
+}
+
+//
+// SetLogLevel sets the oss sdk log level
+//
+func SetLogger(Logger *log.Logger) ClientOption {
+	return func(client *Client) {
+		client.Config.Logger = Logger
 	}
 }
 
