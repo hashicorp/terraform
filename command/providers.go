@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/moduledeps"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -46,7 +46,7 @@ func (c *ProvidersCommand) Run(args []string) int {
 
 	var diags tfdiags.Diagnostics
 
-	empty, err := config.IsEmptyDir(configPath)
+	empty, err := configs.IsEmptyDir(configPath)
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,

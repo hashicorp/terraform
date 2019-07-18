@@ -12,36 +12,6 @@ func TestErrNoConfigsFound_impl(t *testing.T) {
 	var _ error = new(ErrNoConfigsFound)
 }
 
-func TestIsEmptyDir(t *testing.T) {
-	val, err := IsEmptyDir(fixtureDir)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if val {
-		t.Fatal("should not be empty")
-	}
-}
-
-func TestIsEmptyDir_noExist(t *testing.T) {
-	val, err := IsEmptyDir(filepath.Join(fixtureDir, "nopenopenope"))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if !val {
-		t.Fatal("should be empty")
-	}
-}
-
-func TestIsEmptyDir_noConfigs(t *testing.T) {
-	val, err := IsEmptyDir(filepath.Join(fixtureDir, "dir-empty"))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if !val {
-		t.Fatal("should be empty")
-	}
-}
-
 func TestLoadFile_badType(t *testing.T) {
 	_, err := LoadFile(filepath.Join(fixtureDir, "bad_type.tf.nope"))
 	if err == nil {
