@@ -392,6 +392,10 @@ var ChunklistFunc = function.New(&function.Spec{
 			return cty.UnknownVal(retType), nil
 		}
 
+		if listVal.LengthInt() == 0 {
+			return cty.ListValEmpty(listVal.Type()), nil
+		}
+
 		var size int
 		err = gocty.FromCtyValue(args[1], &size)
 		if err != nil {
