@@ -1201,7 +1201,7 @@ func (m *ModuleState) prune() {
 	}
 
 	for k, v := range m.Outputs {
-		if v.Value == config.UnknownVariableValue {
+		if v.Value == hcl2shim.UnknownVariableValue {
 			delete(m.Outputs, k)
 		}
 	}
@@ -1827,7 +1827,7 @@ func (s *InstanceState) MergeDiff(d *InstanceDiff) *InstanceState {
 				continue
 			}
 			if diff.NewComputed {
-				result.Attributes[k] = config.UnknownVariableValue
+				result.Attributes[k] = hcl2shim.UnknownVariableValue
 				continue
 			}
 
