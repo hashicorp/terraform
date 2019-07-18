@@ -152,6 +152,25 @@ func (b *Remote) plan(stopCtx, cancelCtx context.Context, op *backend.Operation,
 			filepath.Clean(configDir),
 			filepath.Clean(w.WorkingDirectory),
 		))
+
+		// If the workspace has a subdirectory as its working directory then
+		// our configDir will be some parent directory of the current working
+		// directory. Users are likely to find that surprising, so we'll
+		// produce an explicit message about it to be transparent about what
+		// we are doing and why.
+		if w.WorkingDirectory != "" && filepath.Base(configDir) != w.WorkingDirectory {
+			if b.CLI != nil {
+				b.CLI.Output(fmt.Sprintf(strings.TrimSpace(`
+The remote workspace is configured to work with configuration at
+%s relative to the target repository.
+
+Therefore Terraform will upload the full contents of the following directory
+to capture the filesystem context the remote workspace expects:
+    %s
+`), w.WorkingDirectory, configDir) + "\n")
+			}
+		}
+
 	} else {
 		// We did a check earlier to make sure we either have a config dir,
 		// or the plan is run with -destroy. So this else clause will only
