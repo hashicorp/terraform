@@ -246,7 +246,7 @@ var CompactFunc = function.New(&function.Spec{
 
 		for it := listVal.ElementIterator(); it.Next(); {
 			_, v := it.Element()
-			if v.AsString() == "" {
+			if v.IsNull() || v.AsString() == "" {
 				continue
 			}
 			outputList = append(outputList, v)

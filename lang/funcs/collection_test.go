@@ -572,6 +572,7 @@ func TestCompact(t *testing.T) {
 				cty.StringVal("test"),
 				cty.StringVal(""),
 				cty.StringVal("test"),
+				cty.NullVal(cty.String),
 			}),
 			cty.ListVal([]cty.Value{
 				cty.StringVal("test"),
@@ -584,6 +585,14 @@ func TestCompact(t *testing.T) {
 				cty.StringVal(""),
 				cty.StringVal(""),
 				cty.StringVal(""),
+			}),
+			cty.ListValEmpty(cty.String),
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{
+				cty.NullVal(cty.String),
+				cty.NullVal(cty.String),
 			}),
 			cty.ListValEmpty(cty.String),
 			false,
@@ -610,6 +619,7 @@ func TestCompact(t *testing.T) {
 				cty.StringVal("test"),
 				cty.UnknownVal(cty.String),
 				cty.StringVal(""),
+				cty.NullVal(cty.String),
 			}),
 			cty.UnknownVal(cty.List(cty.String)),
 			false,
