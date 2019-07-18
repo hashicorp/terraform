@@ -647,6 +647,9 @@ func TestRemote_planWithWorkingDirectory(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if !strings.Contains(output, "The remote workspace is configured to work with configuration") {
+		t.Fatalf("expected working directory warning: %s", output)
+	}
 	if !strings.Contains(output, "Running plan in the remote backend") {
 		t.Fatalf("expected remote backend header in output: %s", output)
 	}
