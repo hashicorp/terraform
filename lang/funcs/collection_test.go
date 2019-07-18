@@ -1087,6 +1087,12 @@ func TestChunklist(t *testing.T) {
 			cty.UnknownVal(cty.List(cty.List(cty.String))),
 			false,
 		},
+		{
+			cty.ListValEmpty(cty.String),
+			cty.NumberIntVal(3),
+			cty.ListValEmpty(cty.List(cty.String)),
+			false,
+		},
 	}
 
 	for i, test := range tests {
