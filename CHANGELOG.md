@@ -1,17 +1,17 @@
-## 0.12.5 (Unreleased)
+## 0.12.5 (July 18, 2019)
 
 ENHANCEMENTS:
-* command/format: No longer show no-ops in `terraform show`, since nothing will change [GH-21907]
-* backend/s3: Support for assuming role using credential process from the shared AWS configuration file (support profile containing both `credential_process` and `role_arn` configurations) [GH-21908]
-* connection/ssh: Abort ssh connections when the server is no longer responding [GH-22037]
-* connection/ssh: Support ssh diffie-hellman-group-exchange-sha256 key exchange [GH-22037]
+* command/format: No longer show no-ops in `terraform show`, since nothing will change ([#21907](https://github.com/hashicorp/terraform/issues/21907))
+* backend/s3: Support for assuming role using credential process from the shared AWS configuration file (support profile containing both `credential_process` and `role_arn` configurations) ([#21908](https://github.com/hashicorp/terraform/issues/21908))
+* connection/ssh: Abort ssh connections when the server is no longer responding ([#22037](https://github.com/hashicorp/terraform/issues/22037))
+* connection/ssh: Support ssh diffie-hellman-group-exchange-sha256 key exchange ([#22037](https://github.com/hashicorp/terraform/issues/22037))
 
 BUG FIXES:
-* backend/remote: fix conflict with normalized config dir and vcs root working directory [GH-22096]
-* backend/remote: be transparent about what filesystem prefix Terraform is uploading to the remote system, and why it's doing that [GH-22121]
-* configs: Ensure diagnostics are properly recorded from nested modules [GH-22098]
-* core: Prevent inconsistent final plan error when using dynamic in a set-type block [GH-22057]
-* lang/funcs: Allow null values in `compact` function [GH-22044]
+* backend/remote: fix conflict with normalized config dir and vcs root working directory ([#22096](https://github.com/hashicorp/terraform/issues/22096))
+* backend/remote: be transparent about what filesystem prefix Terraform is uploading to the remote system, and why it's doing that ([#22121](https://github.com/hashicorp/terraform/issues/22121))
+* configs: Ensure diagnostics are properly recorded from nested modules ([#22098](https://github.com/hashicorp/terraform/issues/22098))
+* core: Prevent inconsistent final plan error when using dynamic in a set-type block ([#22057](https://github.com/hashicorp/terraform/issues/22057))
+* lang/funcs: Allow null values in `compact` function ([#22044](https://github.com/hashicorp/terraform/issues/22044))
 
 ## 0.12.4 (July 11, 2019)
 
