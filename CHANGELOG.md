@@ -8,6 +8,7 @@ ENHANCEMENTS:
 
 BUG FIXES:
 * backend/remote: fix conflict with normalized config dir and vcs root working directory [GH-22096]
+* backend/remote: be transparent about what filesystem prefix Terraform is uploading to the remote system, and why it's doing that [GH-22121]
 * configs: Ensure diagnostics are properly recorded from nested modules [GH-22098]
 * core: Prevent inconsistent final plan error when using dynamic in a set-type block [GH-22057]
 * lang/funcs: Allow null values in `compact` function [GH-22044]
