@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/flatmap"
 )
@@ -71,7 +72,7 @@ func (i *Interpolater) valueCountVar(
 func unknownVariable() ast.Variable {
 	return ast.Variable{
 		Type:  ast.TypeUnknown,
-		Value: config.UnknownVariableValue,
+		Value: hcl2shim.UnknownVariableValue,
 	}
 }
 
@@ -659,7 +660,7 @@ func (i *Interpolater) interpolateComplexTypeAttribute(
 		// ".#" count field is marked as unknown to indicate "this whole list is
 		// unknown". We must honor that meaning here so computed references can be
 		// treated properly during the plan phase.
-		if lengthAttr == config.UnknownVariableValue {
+		if lengthAttr == hcl2shim.UnknownVariableValue {
 			return unknownVariable(), nil
 		}
 
@@ -675,7 +676,7 @@ func (i *Interpolater) interpolateComplexTypeAttribute(
 		// ".%" count field is marked as unknown to indicate "this whole list is
 		// unknown". We must honor that meaning here so computed references can be
 		// treated properly during the plan phase.
-		if lengthAttr == config.UnknownVariableValue {
+		if lengthAttr == hcl2shim.UnknownVariableValue {
 			return unknownVariable(), nil
 		}
 

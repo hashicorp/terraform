@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -103,7 +104,7 @@ func TestConfigFieldReader_custom(t *testing.T) {
 				"bool": "${var.foo}",
 			}, map[string]ast.Variable{
 				"var.foo": ast.Variable{
-					Value: config.UnknownVariableValue,
+					Value: hcl2shim.UnknownVariableValue,
 					Type:  ast.TypeString,
 				},
 			}),
@@ -273,7 +274,7 @@ func TestConfigFieldReader_ComputedMap(t *testing.T) {
 				},
 			}, map[string]ast.Variable{
 				"var.foo": ast.Variable{
-					Value: config.UnknownVariableValue,
+					Value: hcl2shim.UnknownVariableValue,
 					Type:  ast.TypeString,
 				},
 			}),
@@ -495,7 +496,7 @@ func TestConfigFieldReader_ComputedSet(t *testing.T) {
 				"strSet": []interface{}{"${var.foo}"},
 			}, map[string]ast.Variable{
 				"var.foo": ast.Variable{
-					Value: config.UnknownVariableValue,
+					Value: hcl2shim.UnknownVariableValue,
 					Type:  ast.TypeUnknown,
 				},
 			}),
@@ -513,7 +514,7 @@ func TestConfigFieldReader_ComputedSet(t *testing.T) {
 				"strSet": []interface{}{"${var.foo}/32"},
 			}, map[string]ast.Variable{
 				"var.foo": ast.Variable{
-					Value: config.UnknownVariableValue,
+					Value: hcl2shim.UnknownVariableValue,
 					Type:  ast.TypeUnknown,
 				},
 			}),
@@ -622,7 +623,7 @@ func TestConfigFieldReader_computedComplexSet(t *testing.T) {
 				},
 			}, map[string]ast.Variable{
 				"var.foo": ast.Variable{
-					Value: config.UnknownVariableValue,
+					Value: hcl2shim.UnknownVariableValue,
 					Type:  ast.TypeUnknown,
 				},
 			}),
@@ -645,7 +646,7 @@ func TestConfigFieldReader_computedComplexSet(t *testing.T) {
 				},
 			}, map[string]ast.Variable{
 				"var.foo": ast.Variable{
-					Value: config.UnknownVariableValue,
+					Value: hcl2shim.UnknownVariableValue,
 					Type:  ast.TypeUnknown,
 				},
 			}),

@@ -8,7 +8,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/hil/ast"
-	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -1907,7 +1907,7 @@ func TestResourceDiffNewValueKnown(t *testing.T) {
 				},
 				map[string]ast.Variable{
 					"var.foo": ast.Variable{
-						Value: config.UnknownVariableValue,
+						Value: hcl2shim.UnknownVariableValue,
 						Type:  ast.TypeString,
 					},
 				},
@@ -1938,7 +1938,7 @@ func TestResourceDiffNewValueKnown(t *testing.T) {
 				},
 				map[string]ast.Variable{
 					"var.foo": ast.Variable{
-						Value: config.UnknownVariableValue,
+						Value: hcl2shim.UnknownVariableValue,
 						Type:  ast.TypeString,
 					},
 				},
@@ -1998,7 +1998,7 @@ func TestResourceDiffNewValueKnownSetNew(t *testing.T) {
 			},
 			map[string]ast.Variable{
 				"var.foo": ast.Variable{
-					Value: config.UnknownVariableValue,
+					Value: hcl2shim.UnknownVariableValue,
 					Type:  ast.TypeString,
 				},
 			},

@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/hcl2shim"
 )
 
 func TestStateValidate(t *testing.T) {
@@ -1416,7 +1417,7 @@ func TestInstanceState_MergeDiff(t *testing.T) {
 	expected := map[string]string{
 		"foo": "baz",
 		"bar": "foo",
-		"baz": config.UnknownVariableValue,
+		"baz": hcl2shim.UnknownVariableValue,
 	}
 
 	if !reflect.DeepEqual(expected, is2.Attributes) {
@@ -1455,7 +1456,7 @@ func TestInstanceState_MergeDiff_computedSet(t *testing.T) {
 	expected := map[string]string{
 		"config.#":         "1",
 		"config.0.name":    "hello",
-		"config.0.rules.#": config.UnknownVariableValue,
+		"config.0.rules.#": hcl2shim.UnknownVariableValue,
 	}
 
 	if !reflect.DeepEqual(expected, is2.Attributes) {

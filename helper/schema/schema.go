@@ -22,7 +22,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/copystructure"
 	"github.com/mitchellh/mapstructure"
@@ -1386,7 +1386,7 @@ func (m schemaMap) validate(
 func isWhollyKnown(raw interface{}) bool {
 	switch raw := raw.(type) {
 	case string:
-		if raw == config.UnknownVariableValue {
+		if raw == hcl2shim.UnknownVariableValue {
 			return false
 		}
 	case []interface{}:
@@ -1415,7 +1415,7 @@ func (m schemaMap) validateConflictingAttributes(
 
 	for _, conflictingKey := range schema.ConflictsWith {
 		if raw, ok := c.Get(conflictingKey); ok {
-			if raw == config.UnknownVariableValue {
+			if raw == hcl2shim.UnknownVariableValue {
 				// An unknown value might become unset (null) once known, so
 				// we must defer validation until it's known.
 				continue
@@ -1435,7 +1435,7 @@ func (m schemaMap) validateList(
 	c *terraform.ResourceConfig) ([]string, []error) {
 	// first check if the list is wholly unknown
 	if s, ok := raw.(string); ok {
-		if s == config.UnknownVariableValue {
+		if s == hcl2shim.UnknownVariableValue {
 			return nil, nil
 		}
 	}
@@ -1513,7 +1513,7 @@ func (m schemaMap) validateMap(
 	c *terraform.ResourceConfig) ([]string, []error) {
 	// first check if the list is wholly unknown
 	if s, ok := raw.(string); ok {
-		if s == config.UnknownVariableValue {
+		if s == hcl2shim.UnknownVariableValue {
 			return nil, nil
 		}
 	}
