@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -50,7 +51,7 @@ func TestResourceProvider_Validate_good_content(t *testing.T) {
 
 func TestResourceProvider_Validate_good_unknown_variable_value(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{
-		"content":     config.UnknownVariableValue,
+		"content":     hcl2shim.UnknownVariableValue,
 		"destination": "/tmp/bar",
 	})
 

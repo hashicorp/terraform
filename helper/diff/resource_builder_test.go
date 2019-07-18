@@ -3,7 +3,7 @@ package diff
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -287,7 +287,7 @@ func TestResourceBuilder_preProcessUnknown(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{
 		"foo": "${var.unknown}",
 	}, map[string]string{
-		"var.unknown": config.UnknownVariableValue,
+		"var.unknown": hcl2shim.UnknownVariableValue,
 	})
 
 	diff, err := rb.Diff(state, c)
@@ -378,7 +378,7 @@ func TestResourceBuilder_unknown(t *testing.T) {
 		"foo": "${var.unknown}",
 	}, map[string]string{
 		"var.foo":     "bar",
-		"var.unknown": config.UnknownVariableValue,
+		"var.unknown": hcl2shim.UnknownVariableValue,
 	})
 
 	diff, err := rb.Diff(state, c)

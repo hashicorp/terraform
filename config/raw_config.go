@@ -17,12 +17,6 @@ import (
 	"github.com/mitchellh/reflectwalk"
 )
 
-// UnknownVariableValue is a sentinel value that can be used
-// to denote that the value of a variable is unknown at this time.
-// RawConfig uses this information to build up data about
-// unknown keys.
-const UnknownVariableValue = "74D93920-ED26-11E3-AC10-0800200C9A66"
-
 // RawConfig is a structure that holds a piece of configuration
 // where the overall structure is unknown since it will be used
 // to configure a plugin or some other similar external component.

@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/mitchellh/reflectwalk"
 )
 
@@ -840,10 +841,10 @@ func TestNewResourceConfigShimmed(t *testing.T) {
 			Expected: &ResourceConfig{
 				ComputedKeys: []string{"foo"},
 				Raw: map[string]interface{}{
-					"foo": config.UnknownVariableValue,
+					"foo": hcl2shim.UnknownVariableValue,
 				},
 				Config: map[string]interface{}{
-					"foo": config.UnknownVariableValue,
+					"foo": hcl2shim.UnknownVariableValue,
 				},
 			},
 		},
@@ -868,12 +869,12 @@ func TestNewResourceConfigShimmed(t *testing.T) {
 			Expected: &ResourceConfig{
 				ComputedKeys: []string{"bar", "baz"},
 				Raw: map[string]interface{}{
-					"bar": config.UnknownVariableValue,
-					"baz": config.UnknownVariableValue,
+					"bar": hcl2shim.UnknownVariableValue,
+					"baz": hcl2shim.UnknownVariableValue,
 				},
 				Config: map[string]interface{}{
-					"bar": config.UnknownVariableValue,
-					"baz": config.UnknownVariableValue,
+					"bar": hcl2shim.UnknownVariableValue,
+					"baz": hcl2shim.UnknownVariableValue,
 				},
 			},
 		},
@@ -921,12 +922,12 @@ func TestNewResourceConfigShimmed(t *testing.T) {
 			Expected: &ResourceConfig{
 				ComputedKeys: []string{"bar", "baz"},
 				Raw: map[string]interface{}{
-					"bar": config.UnknownVariableValue,
-					"baz": config.UnknownVariableValue,
+					"bar": hcl2shim.UnknownVariableValue,
+					"baz": hcl2shim.UnknownVariableValue,
 				},
 				Config: map[string]interface{}{
-					"bar": config.UnknownVariableValue,
-					"baz": config.UnknownVariableValue,
+					"bar": hcl2shim.UnknownVariableValue,
+					"baz": hcl2shim.UnknownVariableValue,
 				},
 			},
 		},

@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/copystructure"
 )
@@ -70,7 +70,7 @@ func (t *ResourceTimeout) ConfigDecode(s *Resource, c *terraform.ResourceConfig)
 		case []map[string]interface{}:
 			rawTimeouts = raw
 		case string:
-			if raw == config.UnknownVariableValue {
+			if raw == hcl2shim.UnknownVariableValue {
 				// Timeout is not defined in the config
 				// Defaults will be used instead
 				return nil

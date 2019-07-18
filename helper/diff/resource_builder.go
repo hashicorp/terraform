@@ -3,7 +3,7 @@ package diff
 import (
 	"strings"
 
-	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/flatmap"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -95,7 +95,7 @@ func (b *ResourceBuilder) Diff(
 
 			// If this key is in the cleaned config, then use that value
 			// because it'll have its variables properly interpolated
-			if cleanV, ok := flatConfig[k]; ok && cleanV != config.UnknownVariableValue {
+			if cleanV, ok := flatConfig[k]; ok && cleanV != hcl2shim.UnknownVariableValue {
 				v = cleanV
 				originalV = v
 
