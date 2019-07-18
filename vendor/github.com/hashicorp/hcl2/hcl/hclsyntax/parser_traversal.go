@@ -53,10 +53,19 @@ func (p *parser) ParseTraversalAbs() (hcl.Traversal, hcl.Diagnostics) {
 						Context:  hcl.RangeBetween(varTok.Range, nameTok.Range).Ptr(),
 					})
 				} else {
+					diagnosticDetail := "Dot must be followed by attribute name (found: \"" + string(nameTok.Bytes)
+
+					nextTok := p.Peek()
+					if nextTok.Type != TokenEOF {
+						diagnosticDetail += string(nextTok.Bytes)
+					}
+
+					diagnosticDetail += "\")."
+
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Attribute name required",
-						Detail:   "Dot must be followed by attribute name.",
+						Detail:   diagnosticDetail,
 						Subject:  &nameTok.Range,
 						Context:  hcl.RangeBetween(varTok.Range, nameTok.Range).Ptr(),
 					})

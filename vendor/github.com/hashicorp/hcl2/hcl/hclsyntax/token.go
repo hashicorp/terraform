@@ -297,7 +297,7 @@ func checkInvalidTokens(tokens Tokens) hcl.Diagnostics {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid character",
-				Detail:   "This character is not used within the language.",
+				Detail:   "The character \"" + string(tok.Bytes) + "\" is not used within the language.",
 				Subject:  &tok.Range,
 			})
 		}
