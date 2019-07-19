@@ -473,7 +473,7 @@ func (e *ConditionalExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostic
 	falseResult, falseDiags := e.FalseResult.Value(ctx)
 	var diags hcl.Diagnostics
 
-	var resultType cty.Type
+	resultType := cty.DynamicPseudoType
 	convs := make([]convert.Conversion, 2)
 
 	switch {
@@ -481,12 +481,21 @@ func (e *ConditionalExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostic
 	// literal null in the config), we know that it can convert to the expected
 	// type of the opposite case, and we don't need to speculatively reduce the
 	// final result type to DynamicPseudoType.
+
+	// If we know that either Type is a DynamicPseudoType, we can be certain
+	// that the other value can convert since it's a pass-through, and we don't
+	// need to unify the types. If the final evaluation results in the dynamic
+	// value being returned, there's no conversion we can do, so we return the
+	// value directly.
 	case trueResult.RawEquals(cty.NullVal(cty.DynamicPseudoType)):
 		resultType = falseResult.Type()
 		convs[0] = convert.GetConversionUnsafe(cty.DynamicPseudoType, resultType)
 	case falseResult.RawEquals(cty.NullVal(cty.DynamicPseudoType)):
 		resultType = trueResult.Type()
 		convs[1] = convert.GetConversionUnsafe(cty.DynamicPseudoType, resultType)
+	case trueResult.Type() == cty.DynamicPseudoType, falseResult.Type() == cty.DynamicPseudoType:
+		// the final resultType type is still unknown
+		// we don't need to get the conversion, because both are a noop.
 
 	default:
 		// Try to find a type that both results can be converted to.
