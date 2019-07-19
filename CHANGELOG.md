@@ -13,6 +13,7 @@ BUG FIXES:
 * configs: Ensure diagnostics are properly recorded from nested modules ([#22098](https://github.com/hashicorp/terraform/issues/22098))
 * core: Prevent inconsistent final plan error when using dynamic in a set-type block ([#22057](https://github.com/hashicorp/terraform/issues/22057))
 * lang/funcs: Allow null values in `compact` function ([#22044](https://github.com/hashicorp/terraform/issues/22044))
+* lang/funcs: Pass through empty list in `chunklist` ([#22119](https://github.com/hashicorp/terraform/issues/22119))
 
 ## 0.12.4 (July 11, 2019)
 
