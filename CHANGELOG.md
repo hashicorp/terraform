@@ -1,4 +1,8 @@
 ## 0.12.6 (Unreleased)
+
+BUG FIXES:
+* config: Improve conditionals to returns the correct type when dynamic values are present but unevaluated [GH-22137]
+
 ## 0.12.5 (July 18, 2019)
 
 ENHANCEMENTS:
