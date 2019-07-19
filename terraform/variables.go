@@ -244,7 +244,7 @@ func checkInputVariables(vcs map[string]*configs.Variable, vs InputValues) tfdia
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Unassigned variable",
-				fmt.Sprintf("The input variable %q has not been assigned a value. This is a bug in Terraform; please report it in a GitHub issue.", name),
+				fmt.Sprintf("The input variable %q has not been assigned a value.", name),
 			))
 			continue
 		}
