@@ -18,6 +18,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/communicator/remote"
 	"github.com/hashicorp/terraform/terraform"
 	"golang.org/x/crypto/ssh"
@@ -165,7 +166,8 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 		}
 	}
 
-	log.Printf("[DEBUG] connecting to TCP connection for SSH")
+	hostAndPort := fmt.Sprintf("%s:%d", c.connInfo.Host, c.connInfo.Port)
+	log.Printf("[DEBUG] Connecting to %s for SSH", hostAndPort)
 	c.conn, err = c.config.connection()
 	if err != nil {
 		// Explicitly set this to the REAL nil. Connection() can return
@@ -180,10 +182,11 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 		return err
 	}
 
-	log.Printf("[DEBUG] handshaking with SSH")
-	host := fmt.Sprintf("%s:%d", c.connInfo.Host, c.connInfo.Port)
-	sshConn, sshChan, req, err := ssh.NewClientConn(c.conn, host, c.config.config)
+	log.Printf("[DEBUG] Connection established. Handshaking for user %v", c.connInfo.User)
+	sshConn, sshChan, req, err := ssh.NewClientConn(c.conn, hostAndPort, c.config.config)
 	if err != nil {
+		err = errwrap.Wrapf(fmt.Sprintf("SSH authentication failed (%s@%s): {{err}}", c.connInfo.User, hostAndPort), err)
+
 		// While in theory this should be a fatal error, some hosts may start
 		// the ssh service before it is properly configured, or before user
 		// authentication data is available.
