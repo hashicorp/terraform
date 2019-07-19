@@ -5,6 +5,7 @@ ENHANCEMENTS:
 
 BUG FIXES:
 * config: Improve conditionals to returns the correct type when dynamic values are present but unevaluated [GH-22137]
+* cli: Fix crash with reset connection during init [GH-22146]
 
 ## 0.12.5 (July 18, 2019)
 
