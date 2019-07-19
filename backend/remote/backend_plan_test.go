@@ -855,3 +855,23 @@ func TestRemote_planWithRemoteError(t *testing.T) {
 		t.Fatalf("expected plan error in output: %s", output)
 	}
 }
+
+func TestRemote_planOtherError(t *testing.T) {
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
+
+	op, configCleanup := testOperationPlan(t, "./testdata/plan")
+	defer configCleanup()
+
+	op.Workspace = "network-error" // custom error response in backend_mock.go
+
+	_, err := b.Operation(context.Background(), op)
+	if err == nil {
+		t.Errorf("expected error, got success")
+	}
+
+	if !strings.Contains(err.Error(),
+		"The configured \"remote\" backend encountered an unexpected error:\n\nI'm a little teacup") {
+		t.Fatalf("expected error message, got: %s", err.Error())
+	}
+}
