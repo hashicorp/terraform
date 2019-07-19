@@ -79,7 +79,7 @@ func upgradeStateV3ToV4(old *stateV3) (*stateV4, error) {
 				case addrs.DataResourceMode:
 					modeStr = "data"
 				default:
-					return nil, fmt.Errorf("state contains resource %s with an unsupported resource mode", resAddr)
+					return nil, fmt.Errorf("state contains resource %s with an unsupported resource mode %#v", resAddr, resAddr.Mode)
 				}
 
 				// In state versions prior to 4 we allowed each instance of a
@@ -98,7 +98,7 @@ func upgradeStateV3ToV4(old *stateV3) (*stateV4, error) {
 					var diags tfdiags.Diagnostics
 					providerAddr, diags = addrs.ParseAbsProviderConfigStr(oldProviderAddr)
 					if diags.HasErrors() {
-						return nil, diags.Err()
+						return nil, fmt.Errorf("invalid provider config reference %q for %s: %s", oldProviderAddr, instAddr, diags.Err())
 					}
 				} else {
 					// Smells like an old-style module-local provider address,
@@ -109,7 +109,7 @@ func upgradeStateV3ToV4(old *stateV3) (*stateV4, error) {
 					if oldProviderAddr != "" {
 						localAddr, diags := addrs.ParseProviderConfigCompactStr(oldProviderAddr)
 						if diags.HasErrors() {
-							return nil, diags.Err()
+							return nil, fmt.Errorf("invalid legacy provider config reference %q for %s: %s", oldProviderAddr, instAddr, diags.Err())
 						}
 						providerAddr = localAddr.Absolute(moduleAddr)
 					} else {
@@ -272,7 +272,7 @@ func upgradeInstanceObjectV3ToV4(rsOld *resourceStateV2, isOld *instanceStateV2,
 		instKeyRaw = string(tk)
 	default:
 		if instKeyRaw != nil {
-			return nil, fmt.Errorf("insupported instance key: %#v", instKey)
+			return nil, fmt.Errorf("unsupported instance key: %#v", instKey)
 		}
 	}
 
@@ -301,7 +301,11 @@ func upgradeInstanceObjectV3ToV4(rsOld *resourceStateV2, isOld *instanceStateV2,
 
 	dependencies := make([]string, len(rsOld.Dependencies))
 	for i, v := range rsOld.Dependencies {
-		dependencies[i] = parseLegacyDependency(v)
+		depStr, err := parseLegacyDependency(v)
+		if err != nil {
+			return nil, fmt.Errorf("invalid dependency reference %q: %s", v, err)
+		}
+		dependencies[i] = depStr
 	}
 
 	return &instanceObjectStateV4{
@@ -414,7 +418,7 @@ func simplifyImpliedValueType(ty cty.Type) cty.Type {
 	}
 }
 
-func parseLegacyDependency(s string) string {
+func parseLegacyDependency(s string) (string, error) {
 	parts := strings.Split(s, ".")
 	ret := parts[0]
 	for _, part := range parts[1:] {
@@ -427,5 +431,14 @@ func parseLegacyDependency(s string) string {
 		}
 		ret = ret + "." + part
 	}
-	return ret
+
+	// The result must parse as a reference, or else we'll create an invalid
+	// state file.
+	var diags tfdiags.Diagnostics
+	_, diags = addrs.ParseRefStr(ret)
+	if diags.HasErrors() {
+		return "", diags.Err()
+	}
+
+	return ret, nil
 }
