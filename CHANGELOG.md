@@ -1,5 +1,8 @@
 ## 0.12.6 (Unreleased)
 
+ENHANCEMENTS:
+* connection/ssh: Improve connection debug messages [GH-22097]
+
 BUG FIXES:
 * config: Improve conditionals to returns the correct type when dynamic values are present but unevaluated [GH-22137]
 
