@@ -155,11 +155,13 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 					"  User: %s\n"+
 					"  Password: %t\n"+
 					"  Private key: %t\n"+
+					"  Certificate: %t\n"+
 					"  SSH Agent: %t\n"+
 					"  Checking Host Key: %t",
 				c.connInfo.BastionHost, c.connInfo.BastionUser,
 				c.connInfo.BastionPassword != "",
 				c.connInfo.BastionPrivateKey != "",
+				c.connInfo.BastionCertificate != "",
 				c.connInfo.Agent,
 				c.connInfo.BastionHostKey != "",
 			))
