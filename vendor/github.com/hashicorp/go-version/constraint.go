@@ -59,7 +59,6 @@ func NewConstraint(v string) (Constraints, error) {
 		if err != nil {
 			return nil, err
 		}
-
 		result[i] = c
 	}
 
