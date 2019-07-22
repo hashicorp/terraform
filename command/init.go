@@ -444,7 +444,7 @@ func (c *InitCommand) initBackend(root *configs.Module, extraConfig rawFlags) (b
 		if !extraConfig.Empty() {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  "missing backend block",
+				Summary:  "Missing backend block",
 				Detail: fmt.Sprintf(`
 -backend-config was used without a "backend" block in the configuration.
 
@@ -453,7 +453,7 @@ add an explicit backend block to your configuration first:
 
 terraform {
 	backend "local" {}
-  }
+}
 `,
 				),
 			})
