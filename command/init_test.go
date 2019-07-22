@@ -539,7 +539,7 @@ func TestInit_backendCli_no_config_block(t *testing.T) {
 	}
 
 	errMsg := ui.ErrorWriter.String()
-	if !strings.Contains(errMsg, "Error: missing backend block") {
+	if !strings.Contains(errMsg, "Error: Missing backend block") {
 		t.Fatal("expected missing backend block error, got", errMsg)
 	}
 }
