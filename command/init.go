@@ -440,24 +440,26 @@ func (c *InitCommand) initBackend(root *configs.Module, extraConfig rawFlags) (b
 		}
 	} else {
 		// If the user supplied a -backend-config on the CLI but no backend
-		// block was found in the configuration, return an error.
+		// block was found in the configuration, it's likely - but not
+		// necessarily - a mistake. Return a warning.
 		if !extraConfig.Empty() {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Missing backend block",
-				Detail: fmt.Sprintf(`
--backend-config was used without a "backend" block in the configuration.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				"Missing backend configuration",
+				`-backend-config was used without a "backend" block in the configuration.
 
 If you intended to override the default local backend configuration,
-add an explicit backend block to your configuration first:
+no action is required, but you may add an explicit backend block to your
+configuration to clear this warning:
 
 terraform {
-	backend "local" {}
+  backend "local" {}
 }
+
+However, if you intended to override a defined backend, please verify that
+the backend configuration is present and valid.
 `,
-				),
-			})
-			return nil, true, diags
+			))
 		}
 	}
 

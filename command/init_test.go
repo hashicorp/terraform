@@ -534,13 +534,13 @@ func TestInit_backendCli_no_config_block(t *testing.T) {
 	}
 
 	args := []string{"-backend-config", "path=test"}
-	if code := c.Run(args); code != 1 {
-		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, ui.ErrorWriter.String(), ui.OutputWriter.String())
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("got exit status %d; want 0\nstderr:\n%s\n\nstdout:\n%s", code, ui.ErrorWriter.String(), ui.OutputWriter.String())
 	}
 
 	errMsg := ui.ErrorWriter.String()
-	if !strings.Contains(errMsg, "Error: Missing backend block") {
-		t.Fatal("expected missing backend block error, got", errMsg)
+	if !strings.Contains(errMsg, "Warning: Missing backend configuration") {
+		t.Fatal("expected missing backend block warning, got", errMsg)
 	}
 }
 
