@@ -438,6 +438,27 @@ func (c *InitCommand) initBackend(root *configs.Module, extraConfig rawFlags) (b
 		if overrideDiags.HasErrors() {
 			return nil, true, diags
 		}
+	} else {
+		// If the user supplied a -backend-config on the CLI but no backend
+		// block was found in the configuration, return an error.
+		if !extraConfig.Empty() {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "missing backend block",
+				Detail: fmt.Sprintf(`
+-backend-config was used without a "backend" block in the configuration.
+
+If you intended to override the default local backend configuration,
+add an explicit backend block to your configuration first:
+
+terraform {
+	backend "local" {}
+  }
+`,
+				),
+			})
+			return nil, true, diags
+		}
 	}
 
 	opts := &BackendOpts{

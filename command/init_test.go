@@ -518,6 +518,32 @@ func TestInit_backendConfigKVReInitWithConfigDiff(t *testing.T) {
 	}
 }
 
+func TestInit_backendCli_no_config_block(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{"-backend-config", "path=test"}
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, ui.ErrorWriter.String(), ui.OutputWriter.String())
+	}
+
+	errMsg := ui.ErrorWriter.String()
+	if !strings.Contains(errMsg, "Error: missing backend block") {
+		t.Fatal("expected missing backend block error, got", errMsg)
+	}
+}
+
 func TestInit_targetSubdir(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
