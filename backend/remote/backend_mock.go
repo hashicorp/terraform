@@ -948,6 +948,11 @@ func (m *mockWorkspaces) Create(ctx context.Context, organization string, option
 }
 
 func (m *mockWorkspaces) Read(ctx context.Context, organization, workspace string) (*tfe.Workspace, error) {
+	// custom error for TestRemote_plan500 in backend_plan_test.go
+	if workspace == "network-error" {
+		return nil, errors.New("I'm a little teacup")
+	}
+
 	w, ok := m.workspaceNames[workspace]
 	if !ok {
 		return nil, tfe.ErrResourceNotFound
