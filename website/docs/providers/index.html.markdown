@@ -39,6 +39,7 @@ down to see all providers.
 - [Chef](/docs/providers/chef/index.html)
 - [Circonus](/docs/providers/circonus/index.html)
 - [Cisco ASA](/docs/providers/ciscoasa/index.html)
+- [Cisco ACI](/docs/providers/aci/index.html)
 - [Cloudflare](/docs/providers/cloudflare/index.html)
 - [CloudScale.ch](/docs/providers/cloudscale/index.html)
 - [CloudStack](/docs/providers/cloudstack/index.html)
