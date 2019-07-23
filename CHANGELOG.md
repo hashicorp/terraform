@@ -7,6 +7,7 @@ BUG FIXES:
 * backend/remote: remove misleading contents from error message [GH-22148]
 * config: Improve conditionals to returns the correct type when dynamic values are present but unevaluated [GH-22137]
 * cli: Fix crash with reset connection during init [GH-22146]
+* configs/configupgrade: Fix crash with nil hilNode [GH-22181]
 
 ## 0.12.5 (July 18, 2019)
 
