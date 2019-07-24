@@ -12,7 +12,7 @@ With Terraform installed, let's dive right into it and start creating
 some infrastructure.
 
 We'll build infrastructure on
-[AWS](https://aws.amazon.com) for the getting started guide
+[AWS](https://aws.amazon.com) for this Getting Started guide
 since it is popular and generally understood, but Terraform
 can [manage many providers](/docs/providers/index.html),
 including multiple providers in a single configuration.
@@ -25,9 +25,6 @@ For the getting started guide, we'll only be using resources
 which qualify under the AWS
 [free-tier](https://aws.amazon.com/free/),
 meaning it will be free.
-If you already have an AWS account, you may be charged some
-amount of money, but it shouldn't be more than a few dollars
-at most.
 
 ~> **Warning!** If you're not using an account that qualifies under the AWS
 [free-tier](https://aws.amazon.com/free/), you may be charged to run these
@@ -91,9 +88,8 @@ The general structure should be intuitive and straightforward.
 
 The `provider` block is used to configure the named provider, in
 our case "aws". A provider is responsible for creating and
-managing resources. Multiple provider blocks can exist if a
-Terraform configuration is composed of multiple providers,
-which is a common situation.
+managing resources. Multiple provider blocks can exist in a
+Terraform configuration if the infrastructure needs them.
 
 The `resource` block defines a resource that exists within
 the infrastructure. A resource might be a physical component such
@@ -239,7 +235,7 @@ Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
 # ...
 ```
 
-After this, Terraform is all done! You can go to the EC2 console to see the
+After this, Terraform is all done! You can go to the EC2 console to see the newly
 created EC2 instance. (Make sure you're looking at the same region that was
 configured in the provider configuration!)
 
