@@ -143,7 +143,8 @@ Terraform CLI defines the following meta-arguments, which can be used with
 any resource type to change the behavior of resources:
 
 - [`depends_on`, for specifying hidden dependencies][inpage-depend]
-- [`count`, for creating multiple resource instances][inpage-count]
+- [`count`, for creating multiple resource instances according to a count][inpage-count]
+- [`for_each`, to create multiple instances according to a map, or set of strings][inpage-for_each]
 - [`provider`, for selecting a non-default provider configuration][inpage-provider]
 - [`lifecycle`, for lifecycle customizations][inpage-lifecycle]
 - [`provisioner` and `connection`, for taking extra actions after resource creation][inpage-provisioner]
@@ -221,9 +222,9 @@ The `depends_on` argument should be used only as a last resort. When using it,
 always include a comment explaining why it is being used, to help future
 maintainers understand the purpose of the additional dependency.
 
-### `count`: Multiple Resource Instances
+### `count`: Multiple Resource Instances By Count
 
-[inpage-count]: #count-multiple-resource-instances
+[inpage-count]: #count-multiple-resource-instances-by-count
 
 By default, a single `resource` block corresponds to only one real
 infrastructure object. Sometimes it is desirable to instead manage a set
@@ -298,6 +299,57 @@ change, which will cause more remote object changes than were probably
 intended. The practice of generating multiple instances from lists should
 be used sparingly, and with due care given to what will happen if the list is
 changed later.
+
+### `for_each`: Multiple Resource Instances Defined By a Map, or Set of Strings
+
+[inpage-for_each]: #for_each-multiple-resource-instances-defined-by-a-map-or-set-of-strings
+
+When the `for_each` meta-argument is present, Terraform will create instances
+based on the keys and values present in a provided map, or set of strings, and expose the values
+of the map to the resource for its configuration.
+
+The keys and values of the map, or strings in the case of a set, are exposed via the `each` attribute,
+which can only be used in blocks with a `for_each` argument set.
+
+```hcl
+resource "azurerm_resource_group" "rg" {
+  for_each = {
+    a_group = "eastus"
+    another_group = "westus2"
+  }
+  name     = each.key
+  location = each.value
+}
+```
+
+Resources created by `for_each` are identified by the key associated with the instance -
+that is, if we have `azurerm_resource_group.rg` as above, the instances will be `azurerm_resource_group.rg["a_group"]`
+and `azurerm_resource_group.rg["another_group"]`, as those are the keys in the map provided
+to the `for_each` argument.
+
+The `for_each` argument also supports a set of strings in addition to maps; convert a list
+to a set using the `toset` function. As such, we can take the example
+in `count` and make it safer to use, as we can change items in our set
+and because the string keys are used to identify the instances,
+we will only change the items we intend to:
+
+```hcl
+variable "subnet_ids" {
+  type = list(string)
+}
+
+resource "aws_instance" "server" {
+  for_each = toset(var.subnet_ids)
+
+  ami           = "ami-a1b2c3d4"
+  instance_type = "t2.micro"
+  subnet_id     = each.key # note, each.key and each.value will be the same on a set
+
+  tags {
+    Name = "Server ${each.key}"
+  }
+}
+```
 
 ### `provider`: Selecting a Non-default Provider Configuration
 

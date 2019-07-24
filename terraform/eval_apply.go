@@ -61,7 +61,8 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	configVal := cty.NullVal(cty.DynamicPseudoType)
 	if n.Config != nil {
 		var configDiags tfdiags.Diagnostics
-		keyData := EvalDataForInstanceKey(n.Addr.Key)
+		forEach, _ := evaluateResourceForEachExpression(n.Config.ForEach, ctx)
+		keyData := EvalDataForInstanceKey(n.Addr.Key, forEach)
 		configVal, _, configDiags = ctx.EvaluateBlock(n.Config.Config, schema, nil, keyData)
 		diags = diags.Append(configDiags)
 		if configDiags.HasErrors() {
@@ -548,7 +549,8 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*configs.Provisio
 		provisioner := ctx.Provisioner(prov.Type)
 		schema := ctx.ProvisionerSchema(prov.Type)
 
-		keyData := EvalDataForInstanceKey(instanceAddr.Key)
+		// TODO the for_each val is not added here, which might causes issues with provisioners
+		keyData := EvalDataForInstanceKey(instanceAddr.Key, nil)
 
 		// Evaluate the main provisioner configuration.
 		config, _, configDiags := ctx.EvaluateBlock(prov.Config, schema, instanceAddr, keyData)
