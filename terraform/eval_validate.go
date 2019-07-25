@@ -377,7 +377,7 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 		}
 
 		// Evaluate the for_each expression here so we can expose the diagnostics
-		_, forEachDiags := evaluateResourceForEachExpression(n.Config.ForEach, ctx)
+		forEachDiags := n.validateForEach(ctx, n.Config.ForEach)
 		diags = diags.Append(forEachDiags)
 	}
 
@@ -549,6 +549,21 @@ func (n *EvalValidateResource) validateCount(ctx EvalContext, expr hcl.Expressio
 			Subject:  expr.Range().Ptr(),
 		})
 		return diags
+	}
+
+	return diags
+}
+
+func (n *EvalValidateResource) validateForEach(ctx EvalContext, expr hcl.Expression) (diags tfdiags.Diagnostics) {
+	_, known, forEachDiags := evaluateResourceForEachExpressionKnown(expr, ctx)
+	// If the value isn't known then that's the best we can do for now, but
+	// we'll check more thoroughly during the plan walk
+	if !known {
+		return diags
+	}
+
+	if forEachDiags.HasErrors() {
+		diags = diags.Append(forEachDiags)
 	}
 
 	return diags
