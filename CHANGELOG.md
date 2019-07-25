@@ -8,6 +8,7 @@ BUG FIXES:
 * config: Improve conditionals to returns the correct type when dynamic values are present but unevaluated [GH-22137]
 * cli: Fix crash with reset connection during init [GH-22146]
 * configs/configupgrade: Fix crash with nil hilNode [GH-22181]
+* command/fmt: now formats correctly in presence of here-docs [GH-21434]
 
 ## 0.12.5 (July 18, 2019)
 
