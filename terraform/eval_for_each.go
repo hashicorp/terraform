@@ -16,18 +16,12 @@ import (
 func evaluateResourceForEachExpression(expr hcl.Expression, ctx EvalContext) (forEach map[string]cty.Value, diags tfdiags.Diagnostics) {
 	forEachMap, known, diags := evaluateResourceForEachExpressionKnown(expr, ctx)
 	if !known {
-		// Currently this is a rather bad outcome from a UX standpoint, since we have
-		// no real mechanism to deal with this situation and all we can do is produce
-		// an error message.
-		// FIXME: In future, implement a built-in mechanism for deferring changes that
-		// can't yet be predicted, and use it to guide the user through several
-		// plan/apply steps until the desired configuration is eventually reached.
+		// Attach a diag as we do with count, with the same downsides
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Invalid forEach argument",
 			Detail:   `The "for_each" value depends on resource attributes that cannot be determined until apply, so Terraform cannot predict how many instances will be created. To work around this, use the -target argument to first apply only the resources that the for_each depends on.`,
 		})
-		panic("uh-oh")
 	}
 	return forEachMap, diags
 }

@@ -6,3 +6,8 @@ version_info {
 
 version_exec = false
 disable_provider_requirements = true
+
+platform {
+    os = "darwin"
+    arch = "amd64"
+}
