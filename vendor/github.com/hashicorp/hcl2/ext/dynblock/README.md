@@ -95,7 +95,7 @@ schema model provides a description of only one level of nested blocks at
 a time, and thus a new schema must be provided for each additional level of
 nesting.
 
-To make this arduous process as convenient as possbile, this package provides
+To make this arduous process as convenient as possible, this package provides
 a helper function `WalkForEachVariables`, which returns a `WalkVariablesNode`
 instance that can be used to find variables directly in a given body and also
 determine which nested blocks require recursive calls. Using this mechanism

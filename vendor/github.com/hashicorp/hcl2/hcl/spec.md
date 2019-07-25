@@ -66,7 +66,7 @@ _block header schemata_:
 Within a schema, it is an error to request the same attribute name twice or
 to request a block type whose name is also an attribute name. While this can
 in principle be supported in some syntaxes, in other syntaxes the attribute
-and block namespaces are combined and so an an attribute cannot coexist with
+and block namespaces are combined and so an attribute cannot coexist with
 a block whose type name is identical to the attribute name.
 
 The result of applying a body schema to a body is _body content_, which
@@ -497,7 +497,7 @@ producing an unknown value of the target type.
 
 Conversion of any value _to_ the dynamic pseudo-type is a no-op. The result
 is the input value, verbatim. This is the only situation where the conversion
-result value is not of the the given target type.
+result value is not of the given target type.
 
 ### Primitive Type Conversions
 
