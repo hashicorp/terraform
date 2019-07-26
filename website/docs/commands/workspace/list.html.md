@@ -15,7 +15,8 @@ The `terraform workspace list` command is used to list all existing workspaces.
 Usage: `terraform workspace list`
 
 The command will list all existing workspaces. The current workspace is
-indicated using an asterisk (`*`) marker.
+indicated using an asterisk (`*`) marker. Workspaces with empty states
+are indicated by `(empty)` markers. 
 
 ## Example
 
@@ -23,5 +24,5 @@ indicated using an asterisk (`*`) marker.
 $ terraform workspace list
   default
 * development
-  jsmith-test
+  jsmith-test (empty)
 ```
