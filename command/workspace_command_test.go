@@ -101,7 +101,7 @@ func TestWorkspace_createAndList(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(ui.OutputWriter.String())
-	expected := "default\n  test_a\n  test_b\n* test_c"
+	expected := "default (empty)\n  test_a (empty)\n  test_b (empty)\n* test_c (empty)"
 
 	if actual != expected {
 		t.Fatalf("\nexpected: %q\nactual:  %q", expected, actual)
@@ -207,7 +207,7 @@ func TestWorkspace_createInvalid(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(ui.OutputWriter.String())
-	expected := "* default"
+	expected := "* default (empty)"
 
 	if actual != expected {
 		t.Fatalf("\nexpected: %q\nactual:  %q", expected, actual)

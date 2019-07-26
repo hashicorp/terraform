@@ -68,7 +68,26 @@ func (c *WorkspaceListCommand) Run(args []string) int {
 		} else {
 			out.WriteString("  ")
 		}
-		out.WriteString(s + "\n")
+
+		m, err := b.StateMgr(s)
+		if err != nil {
+			c.Ui.Error(err.Error())
+			return 1
+		}
+
+		err = m.RefreshState()
+		if err != nil {
+			c.Ui.Error(err.Error())
+			return 1
+		}
+
+		state := m.State()
+
+		out.WriteString(s)
+		if state.Empty() {
+			out.WriteString(" (empty)")
+		}
+		out.WriteString("\n")
 	}
 
 	c.Ui.Output(out.String())
