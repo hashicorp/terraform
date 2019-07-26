@@ -167,7 +167,13 @@ func ConfigValueFromHCL2(v cty.Value) interface{} {
 		it := v.ElementIterator()
 		for it.Next() {
 			_, ev := it.Element()
-			l = append(l, ConfigValueFromHCL2(ev))
+			cv := ConfigValueFromHCL2(ev)
+			// hcl could not have nils here, but we may see them from hcl2.
+			// Since we generally want to associate a null value as unset, it's
+			// safest here to drop nil values from the list.
+			if cv != nil {
+				l = append(l, cv)
+			}
 		}
 		return l
 	}

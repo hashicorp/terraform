@@ -292,6 +292,16 @@ func TestConfigValueFromHCL2(t *testing.T) {
 			},
 		},
 		{
+			cty.ObjectVal(map[string]cty.Value{
+				"strings": cty.ListVal([]cty.Value{
+					cty.NullVal(cty.String),
+				}),
+			}),
+			map[string]interface{}{
+				"strings": []interface{}{},
+			},
+		},
+		{
 			cty.MapVal(map[string]cty.Value{
 				"foo": cty.StringVal("bar"),
 				"bar": cty.StringVal("baz"),
@@ -321,8 +331,8 @@ func TestConfigValueFromHCL2(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(fmt.Sprintf("%#v", test.Input), func(t *testing.T) {
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("%d-%#v", i, test.Input), func(t *testing.T) {
 			got := ConfigValueFromHCL2(test.Input)
 			if !reflect.DeepEqual(got, test.Want) {
 				t.Errorf("wrong result\ninput: %#v\ngot:   %#v\nwant:  %#v", test.Input, got, test.Want)
