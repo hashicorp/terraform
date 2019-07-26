@@ -110,6 +110,16 @@ func TestParserLoadConfigFileFailureMessages(t *testing.T) {
 			"Unsupported block type",
 		},
 		{
+			"invalid-files/resource-count-and-for_each.tf",
+			hcl.DiagError,
+			`Invalid combination of "count" and "for_each"`,
+		},
+		{
+			"invalid-files/data-count-and-for_each.tf",
+			hcl.DiagError,
+			`Invalid combination of "count" and "for_each"`,
+		},
+		{
 			"invalid-files/resource-lifecycle-badbool.tf",
 			hcl.DiagError,
 			"Unsuitable value type",
