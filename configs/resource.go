@@ -111,13 +111,15 @@ func decodeResourceBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 
 	if attr, exists := content.Attributes["for_each"]; exists {
 		r.ForEach = attr.Expr
-		// We currently parse this, but don't yet do anything with it.
-		diags = append(diags, &hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Reserved argument name in resource block",
-			Detail:   fmt.Sprintf("The name %q is reserved for use in a future version of Terraform.", attr.Name),
-			Subject:  &attr.NameRange,
-		})
+		// Cannot have count and for_each on the same resource block
+		if r.Count != nil {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  `Invalid combination of "count" and "for_each"`,
+				Detail:   `The "count" and "for_each" meta-arguments are mutually-exclusive, only one should be used to be explicit about the number of resources to be created.`,
+				Subject:  &attr.NameRange,
+			})
+		}
 	}
 
 	if attr, exists := content.Attributes["provider"]; exists {
@@ -300,13 +302,15 @@ func decodeDataBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 
 	if attr, exists := content.Attributes["for_each"]; exists {
 		r.ForEach = attr.Expr
-		// We currently parse this, but don't yet do anything with it.
-		diags = append(diags, &hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Reserved argument name in module block",
-			Detail:   fmt.Sprintf("The name %q is reserved for use in a future version of Terraform.", attr.Name),
-			Subject:  &attr.NameRange,
-		})
+		// Cannot have count and for_each on the same data block
+		if r.Count != nil {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  `Invalid combination of "count" and "for_each"`,
+				Detail:   `The "count" and "for_each" meta-arguments are mutually-exclusive, only one should be used to be explicit about the number of resources to be created.`,
+				Subject:  &attr.NameRange,
+			})
+		}
 	}
 
 	if attr, exists := content.Attributes["provider"]; exists {

@@ -275,7 +275,7 @@ for use in references, as follows:
   `[for k, device in aws_instance.example.device : k => device.size]`.
 
 When a particular resource has the special
-[`count`](https://www.terraform.io/docs/configuration/resources.html#count-multiple-resource-instances)
+[`count`](https://www.terraform.io/docs/configuration/resources.html#count-multiple-resource-instances-by-count)
 argument set, the resource itself becomes a list of instance objects rather than
 a single object. In that case, access the attributes of the instances using
 either [splat expressions](#splat-expressions) or index syntax:

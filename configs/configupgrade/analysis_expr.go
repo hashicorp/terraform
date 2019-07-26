@@ -71,6 +71,10 @@ func (d analysisData) GetCountAttr(addr addrs.CountAttr, rng tfdiags.SourceRange
 	return cty.UnknownVal(cty.Number), nil
 }
 
+func (d analysisData) GetForEachAttr(addr addrs.ForEachAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	return cty.DynamicVal, nil
+}
+
 func (d analysisData) GetResourceInstance(instAddr addrs.ResourceInstance, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	log.Printf("[TRACE] configupgrade: Determining type for %s", instAddr)
 	addr := instAddr.Resource
