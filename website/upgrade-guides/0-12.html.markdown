@@ -674,6 +674,51 @@ expression where possible, since you will often know better than Terraform does
 which of the instance IP addresses are likely to be accessible from the host
 where Terraform is running.
 
+### Comparisons must be valid on value and type
+
+In 0.11, `"1"` would compare truthfully against `1`, however, in 0.12,
+values must be equal on both value and type in order to be true. That is, in 0.11
+you would see:
+
+```
+> "1" == 1
+true
+```
+
+and in 0.12:
+
+```
+> "1" == 1
+false
+```
+
+This means special care should be taken if you have any conditionals comparing to say,
+`count.index` where you were previously expecting it to be a string, when it is now a number.
+
+This is a scenario where you would need to update existing 0.11 code to work as you expect in 0.12:
+
+```
+resource "server_instance" "app" {
+    server_status = "${count.index == local.prod_index ? "production" : "standby"}"
+  }
+}
+
+locals {
+  # when migrating to 0.12, be sure to change this value to a number
+  # to ensure expected behavior
+  prod_index = "0"
+}
+```
+
+Also take care that if you have a variable that is a number, but defined as a string,
+the upgrade tool will not change it to a number, so take care to inspect your code:
+
+```
+locals {
+  some_count = "3" # will not be changed to a number after config upgrade
+}
+
+
 ## Upgrades for reusable modules
 
 If you are making upgrades to a reusable module that is consumed by many
