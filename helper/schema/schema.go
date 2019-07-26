@@ -1456,6 +1456,15 @@ func (m schemaMap) validateList(
 			"%s: should be a list", k)}
 	}
 
+	// We can't validate list length if this came from a dynamic block.
+	// Since there's no way to determine if something was from a dynamic block
+	// at this point, we're going to skip validation in the new protocol if
+	// there are any unknowns. Validate will eventually be called again once
+	// all values are known.
+	if isProto5() && !isWhollyKnown(raw) {
+		return nil, nil
+	}
+
 	// Validate length
 	if schema.MaxItems > 0 && rawV.Len() > schema.MaxItems {
 		return nil, []error{fmt.Errorf(
