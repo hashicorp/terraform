@@ -113,7 +113,10 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 					return cty.UnknownVal(b.ImpliedType()), path.NewErrorf("must be a list")
 				}
 				l := coll.LengthInt()
-				if l < blockS.MinItems {
+
+				// Assume that if there are unknowns this could have come from
+				// a dynamic block, and we can't validate MinItems yet.
+				if l < blockS.MinItems && coll.IsWhollyKnown() {
 					return cty.UnknownVal(b.ImpliedType()), path.NewErrorf("insufficient items for attribute %q; must have at least %d", typeName, blockS.MinItems)
 				}
 				if l > blockS.MaxItems && blockS.MaxItems > 0 {
@@ -161,7 +164,10 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 					return cty.UnknownVal(b.ImpliedType()), path.NewErrorf("must be a set")
 				}
 				l := coll.LengthInt()
-				if l < blockS.MinItems {
+
+				// Assume that if there are unknowns this could have come from
+				// a dynamic block, and we can't validate MinItems yet.
+				if l < blockS.MinItems && coll.IsWhollyKnown() {
 					return cty.UnknownVal(b.ImpliedType()), path.NewErrorf("insufficient items for attribute %q; must have at least %d", typeName, blockS.MinItems)
 				}
 				if l > blockS.MaxItems && blockS.MaxItems > 0 {
