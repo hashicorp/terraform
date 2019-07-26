@@ -1,5 +1,8 @@
 ## 0.12.6 (Unreleased)
 
+NEW FEATURES:
+* config: Resources can now use a for_each meta-argument [GH-17179]
+
 ENHANCEMENTS:
 * connection/ssh: Improve connection debug messages [GH-22097]
 
