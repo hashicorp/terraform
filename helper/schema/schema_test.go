@@ -5465,6 +5465,39 @@ func TestSchemaMap_Validate(t *testing.T) {
 			},
 			Err: false,
 		},
+
+		"unexpected nils values": {
+			Schema: map[string]*Schema{
+				"strings": &Schema{
+					Type:     TypeList,
+					Optional: true,
+					Elem: &Schema{
+						Type: TypeString,
+					},
+				},
+				"block": &Schema{
+					Type:     TypeList,
+					Optional: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"int": &Schema{
+								Type:     TypeInt,
+								Required: true,
+							},
+						},
+					},
+				},
+			},
+
+			Config: map[string]interface{}{
+				"strings": []interface{}{"1", nil},
+				"block": []interface{}{map[string]interface{}{
+					"int": nil,
+				},
+					nil,
+				},
+			},
+		},
 	}
 
 	for tn, tc := range cases {

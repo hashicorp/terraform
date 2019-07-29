@@ -1440,6 +1440,11 @@ func (m schemaMap) validateList(
 		}
 	}
 
+	// schemaMap can't validate nil
+	if raw == nil {
+		return nil, nil
+	}
+
 	// We use reflection to verify the slice because you can't
 	// case to []interface{} unless the slice is exactly that type.
 	rawV := reflect.ValueOf(raw)
@@ -1527,6 +1532,10 @@ func (m schemaMap) validateMap(
 		}
 	}
 
+	// schemaMap can't validate nil
+	if raw == nil {
+		return nil, nil
+	}
 	// We use reflection to verify the slice because you can't
 	// case to []interface{} unless the slice is exactly that type.
 	rawV := reflect.ValueOf(raw)
@@ -1653,6 +1662,12 @@ func (m schemaMap) validateObject(
 	schema map[string]*Schema,
 	c *terraform.ResourceConfig) ([]string, []error) {
 	raw, _ := c.Get(k)
+
+	// schemaMap can't validate nil
+	if raw == nil {
+		return nil, nil
+	}
+
 	if _, ok := raw.(map[string]interface{}); !ok && !c.IsComputed(k) {
 		return nil, []error{fmt.Errorf(
 			"%s: expected object, got %s",
@@ -1697,6 +1712,14 @@ func (m schemaMap) validatePrimitive(
 	raw interface{},
 	schema *Schema,
 	c *terraform.ResourceConfig) ([]string, []error) {
+
+	// a nil value shouldn't happen in the old protocol, and in the new
+	// protocol the types have already been validated. Either way, we can't
+	// reflect on nil, so don't panic.
+	if raw == nil {
+		return nil, nil
+	}
+
 	// Catch if the user gave a complex type where a primitive was
 	// expected, so we can return a friendly error message that
 	// doesn't contain Go type system terminology.
