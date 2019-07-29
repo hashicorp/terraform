@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -45,6 +46,16 @@ func NewProvidersClientWithBaseURI(baseURI string, subscriptionID string) Provid
 // expand - the $expand query parameter. e.g. To include property aliases in response, use
 // $expand=resourceTypes/aliases.
 func (client ProvidersClient) Get(ctx context.Context, resourceProviderNamespace string, expand string) (result Provider, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ProvidersClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, resourceProviderNamespace, expand)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "resources.ProvidersClient", "Get", nil, "Failure preparing request")
@@ -115,6 +126,16 @@ func (client ProvidersClient) GetResponder(resp *http.Response) (result Provider
 // expand - the $expand query parameter. e.g. To include property aliases in response, use
 // $expand=resourceTypes/aliases.
 func (client ProvidersClient) List(ctx context.Context, top *int32, expand string) (result ProviderListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ProvidersClient.List")
+		defer func() {
+			sc := -1
+			if result.plr.Response.Response != nil {
+				sc = result.plr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, top, expand)
 	if err != nil {
@@ -183,8 +204,8 @@ func (client ProvidersClient) ListResponder(resp *http.Response) (result Provide
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client ProvidersClient) listNextResults(lastResults ProviderListResult) (result ProviderListResult, err error) {
-	req, err := lastResults.providerListResultPreparer()
+func (client ProvidersClient) listNextResults(ctx context.Context, lastResults ProviderListResult) (result ProviderListResult, err error) {
+	req, err := lastResults.providerListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "resources.ProvidersClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -205,6 +226,16 @@ func (client ProvidersClient) listNextResults(lastResults ProviderListResult) (r
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client ProvidersClient) ListComplete(ctx context.Context, top *int32, expand string) (result ProviderListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ProvidersClient.List")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.List(ctx, top, expand)
 	return
 }
@@ -213,6 +244,16 @@ func (client ProvidersClient) ListComplete(ctx context.Context, top *int32, expa
 // Parameters:
 // resourceProviderNamespace - namespace of the resource provider.
 func (client ProvidersClient) Register(ctx context.Context, resourceProviderNamespace string) (result Provider, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ProvidersClient.Register")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.RegisterPreparer(ctx, resourceProviderNamespace)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "resources.ProvidersClient", "Register", nil, "Failure preparing request")
@@ -278,6 +319,16 @@ func (client ProvidersClient) RegisterResponder(resp *http.Response) (result Pro
 // Parameters:
 // resourceProviderNamespace - namespace of the resource provider.
 func (client ProvidersClient) Unregister(ctx context.Context, resourceProviderNamespace string) (result Provider, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/ProvidersClient.Unregister")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.UnregisterPreparer(ctx, resourceProviderNamespace)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "resources.ProvidersClient", "Unregister", nil, "Failure preparing request")

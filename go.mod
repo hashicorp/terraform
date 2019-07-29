@@ -2,8 +2,12 @@ module github.com/hashicorp/terraform
 
 require (
 	cloud.google.com/go v0.36.0
-	github.com/Azure/azure-sdk-for-go v21.3.0+incompatible
-	github.com/Azure/go-autorest v10.15.4+incompatible
+	github.com/Azure/azure-sdk-for-go v31.2.0+incompatible
+	github.com/Azure/go-autorest/autorest v0.5.0
+	github.com/Azure/go-autorest/autorest/adal v0.2.0
+	github.com/Azure/go-autorest/autorest/azure/cli v0.1.0 // indirect
+	github.com/Azure/go-autorest/autorest/to v0.2.0 // indirect
+	github.com/Azure/go-autorest/autorest/validation v0.1.0 // indirect
 	github.com/Unknwon/com v0.0.0-20151008135407-28b053d5a292 // indirect
 	github.com/abdullin/seq v0.0.0-20160510034733-d5467c17e7af // indirect
 	github.com/agext/levenshtein v1.2.2
@@ -32,18 +36,15 @@ require (
 	github.com/dylanmei/iso8601 v0.1.0 // indirect
 	github.com/dylanmei/winrmtest v0.0.0-20190225150635-99b7fe2fddf1
 	github.com/go-test/deep v1.0.1
-	github.com/gogo/protobuf v1.2.0 // indirect
 	github.com/golang/groupcache v0.0.0-20180513044358-24b0969c4cb7 // indirect
 	github.com/golang/mock v1.3.1
-	github.com/golang/protobuf v1.3.0
-	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
+	github.com/golang/protobuf v1.3.1
 	github.com/google/go-cmp v0.3.0
 	github.com/gophercloud/gophercloud v0.0.0-20190208042652-bc37892e1968
 	github.com/gophercloud/utils v0.0.0-20190128072930-fbb6ab446f01 // indirect
 	github.com/gorilla/websocket v1.4.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
-	github.com/grpc-ecosystem/grpc-gateway v1.5.1 // indirect
 	github.com/hashicorp/aws-sdk-go-base v0.2.0
 	github.com/hashicorp/consul v0.0.0-20171026175957-610f3c86a089
 	github.com/hashicorp/errwrap v1.0.0
@@ -62,7 +63,6 @@ require (
 	github.com/hashicorp/go-tfe v0.3.16
 	github.com/hashicorp/go-uuid v1.0.1
 	github.com/hashicorp/go-version v1.1.0
-	github.com/hashicorp/golang-lru v0.5.0 // indirect
 	github.com/hashicorp/hcl v0.0.0-20170504190234-a4b07c25de5f
 	github.com/hashicorp/hcl2 v0.0.0-20190725010614-0c3fe388e450
 	github.com/hashicorp/hil v0.0.0-20190212112733-ab17b08d6590
@@ -79,7 +79,6 @@ require (
 	github.com/keybase/go-crypto v0.0.0-20161004153544-93f5b35093ba // indirect
 	github.com/lib/pq v1.0.0
 	github.com/lusis/go-artifactory v0.0.0-20160115162124-7e4ce345df82
-	github.com/marstr/guid v1.1.0 // indirect
 	github.com/masterzen/winrm v0.0.0-20190223112901-5e5c9a7fe54b
 	github.com/mattn/go-colorable v0.1.1
 	github.com/mattn/go-shellwords v1.0.4
@@ -87,7 +86,7 @@ require (
 	github.com/mitchellh/cli v1.0.0
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db
 	github.com/mitchellh/copystructure v1.0.0
-	github.com/mitchellh/go-homedir v1.0.0
+	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/go-linereader v0.0.0-20190213213312-1b945b3263eb
 	github.com/mitchellh/go-wordwrap v1.0.0
 	github.com/mitchellh/hashstructure v1.0.0
@@ -99,11 +98,10 @@ require (
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/packer-community/winrmcp v0.0.0-20180102160824-81144009af58
 	github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c // indirect
-	github.com/pkg/errors v0.0.0-20170505043639-c605e284fe17
+	github.com/pkg/errors v0.8.0
 	github.com/posener/complete v1.2.1
 	github.com/satori/go.uuid v1.2.0
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
-	github.com/sirupsen/logrus v1.1.1 // indirect
 	github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d // indirect
 	github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a // indirect
 	github.com/soheilhy/cmux v0.1.4 // indirect
@@ -122,9 +120,11 @@ require (
 	go.uber.org/zap v1.9.1 // indirect
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
 	golang.org/x/net v0.0.0-20190502183928-7f726cade0ab
-	golang.org/x/oauth2 v0.0.0-20190220154721-9b3c75971fc9
-	google.golang.org/api v0.1.0
-	google.golang.org/grpc v1.18.0
+	golang.org/x/oauth2 v0.0.0-20190226205417-e64efc72b421
+	google.golang.org/api v0.3.1
+	google.golang.org/grpc v1.19.1
 	gopkg.in/ini.v1 v1.42.0 // indirect
 	gopkg.in/yaml.v2 v2.2.2
 )
+
+replace github.com/Azure/go-autorest => github.com/Azure/go-autorest v12.3.0+incompatible
