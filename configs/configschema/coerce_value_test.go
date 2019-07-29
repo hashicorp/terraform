@@ -331,7 +331,7 @@ func TestCoerceValue(t *testing.T) {
 					"foo": {
 						Block:    Block{},
 						Nesting:  NestingList,
-						MinItems: 1,
+						MinItems: 2,
 					},
 				},
 			},
@@ -342,6 +342,39 @@ func TestCoerceValue(t *testing.T) {
 			cty.ObjectVal(map[string]cty.Value{
 				"attr": cty.StringVal("test"),
 				"foo":  cty.UnknownVal(cty.List(cty.EmptyObject)),
+			}),
+			"",
+		},
+		"unknowns in nested list": {
+			&Block{
+				BlockTypes: map[string]*NestedBlock{
+					"foo": {
+						Block: Block{
+							Attributes: map[string]*Attribute{
+								"attr": {
+									Type:     cty.String,
+									Required: true,
+								},
+							},
+						},
+						Nesting:  NestingList,
+						MinItems: 2,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.UnknownVal(cty.String),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.UnknownVal(cty.String),
+					}),
+				}),
 			}),
 			"",
 		},
