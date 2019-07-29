@@ -112,11 +112,12 @@ func (n *EvalValidateProvider) Eval(ctx EvalContext) (interface{}, error) {
 // the configuration of a provisioner belonging to a resource. The provisioner
 // config is expected to contain the merged connection configurations.
 type EvalValidateProvisioner struct {
-	ResourceAddr     addrs.Resource
-	Provisioner      *provisioners.Interface
-	Schema           **configschema.Block
-	Config           *configs.Provisioner
-	ResourceHasCount bool
+	ResourceAddr       addrs.Resource
+	Provisioner        *provisioners.Interface
+	Schema             **configschema.Block
+	Config             *configs.Provisioner
+	ResourceHasCount   bool
+	ResourceHasForEach bool
 }
 
 func (n *EvalValidateProvisioner) Eval(ctx EvalContext) (interface{}, error) {
@@ -198,6 +199,19 @@ func (n *EvalValidateProvisioner) evaluateBlock(ctx EvalContext, body hcl.Body, 
 		// expected type since none of these elements are known at this
 		// point anyway.
 		selfAddr = n.ResourceAddr.Instance(addrs.IntKey(0))
+	} else if n.ResourceHasForEach {
+		// For a resource that has for_each, we allow each.value and each.key
+		// but don't know at this stage what it will return.
+		keyData = InstanceKeyEvalData{
+			EachKey:   cty.UnknownVal(cty.String),
+			EachValue: cty.DynamicVal,
+		}
+
+		// "self" can't point to an unknown key, but we'll force it to be
+		// key "" here, which should return an unknown value of the
+		// expected type since none of these elements are known at
+		// this point anyway.
+		selfAddr = n.ResourceAddr.Instance(addrs.StringKey(""))
 	}
 
 	return ctx.EvaluateBlock(body, schema, selfAddr, keyData)
