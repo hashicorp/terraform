@@ -1,6 +1,7 @@
 ## 0.12.6 (Unreleased)
 
 NEW FEATURES:
+* backend/oss: added support for assume role config [GH-22186]
 * config: Resources can now use a for_each meta-argument [GH-17179]
 
 ENHANCEMENTS:
