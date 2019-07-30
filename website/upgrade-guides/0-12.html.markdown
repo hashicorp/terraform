@@ -674,7 +674,7 @@ expression where possible, since you will often know better than Terraform does
 which of the instance IP addresses are likely to be accessible from the host
 where Terraform is running.
 
-### Comparisons must be valid on value and type
+### Equality operations must be valid on value and type
 
 In 0.11, `"1"` would compare truthfully against `1`, however, in 0.12,
 values must be equal on both value and type in order to be true. That is, in 0.11
