@@ -97,7 +97,7 @@ type Resource struct {
 	// exists. If this returns false, then this will affect the diff
 	// accordingly. If this function isn't set, it will not be called. You
 	// can also signal existence in the Read method by calling d.SetId("")
-	// if the Resource is not longer present and should be removed from state.
+	// if the Resource is no longer present and should be removed from state.
 	// The *ResourceData passed to Exists should _not_ be modified.
 	Create CreateFunc
 	Read   ReadFunc
