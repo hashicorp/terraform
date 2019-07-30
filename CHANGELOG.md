@@ -20,6 +20,7 @@ BUG FIXES:
 * cli: Fix crash with reset connection during init [GH-22146]
 * configs/configupgrade: Fix crash with nil hilNode [GH-22181]
 * command/fmt: now formats correctly in presence of here-docs [GH-21434]
+* helper/schema: don't skip deprecation check during validation when attribute value is unknown [GH-22262]
 
 ## 0.12.5 (July 18, 2019)
 
