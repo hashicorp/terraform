@@ -78,3 +78,11 @@ func (s *helperProgramCredentialsSource) ForHost(host svchost.Hostname) (HostCre
 
 	return HostCredentialsFromMap(m), nil
 }
+
+func (s *helperProgramCredentialsSource) StoreForHost(host svchost.Hostname, credentials HostCredentialsWritable) error {
+	return fmt.Errorf("credentials helper cannot currently store new credentials")
+}
+
+func (s *helperProgramCredentialsSource) ForgetForHost(host svchost.Hostname) error {
+	return fmt.Errorf("credentials helper cannot currently forget existing credentials")
+}
