@@ -43,3 +43,19 @@ func (s *cachingCredentialsSource) ForHost(host svchost.Hostname) (HostCredentia
 	s.cache[host] = result
 	return result, nil
 }
+
+func (s *cachingCredentialsSource) StoreForHost(host svchost.Hostname, credentials HostCredentialsWritable) error {
+	// We'll delete the cache entry even if the store fails, since that just
+	// means that the next read will go to the real store and get a chance to
+	// see which object (old or new) is actually present.
+	delete(s.cache, host)
+	return s.source.StoreForHost(host, credentials)
+}
+
+func (s *cachingCredentialsSource) ForgetForHost(host svchost.Hostname) error {
+	// We'll delete the cache entry even if the store fails, since that just
+	// means that the next read will go to the real store and get a chance to
+	// see if the object is still present.
+	delete(s.cache, host)
+	return s.source.ForgetForHost(host)
+}

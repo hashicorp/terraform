@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/terraform/svchost"
 )
 
@@ -25,4 +27,12 @@ func (s staticCredentialsSource) ForHost(host svchost.Hostname) (HostCredentials
 	}
 
 	return nil, nil
+}
+
+func (s staticCredentialsSource) StoreForHost(host svchost.Hostname, credentials HostCredentialsWritable) error {
+	return fmt.Errorf("can't store new credentials in a static credentials source")
+}
+
+func (s staticCredentialsSource) ForgetForHost(host svchost.Hostname) error {
+	return fmt.Errorf("can't discard credentials from a static credentials source")
 }
