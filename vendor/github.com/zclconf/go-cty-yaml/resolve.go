@@ -84,7 +84,7 @@ func resolvableTag(tag string) bool {
 
 var yamlStyleFloat = regexp.MustCompile(`^[-+]?(\.[0-9]+|[0-9]+(\.[0-9]*)?)([eE][-+]?[0-9]+)?$`)
 
-func (c *Converter) resolveScalar(tag string, src string) (cty.Value, error) {
+func (c *Converter) resolveScalar(tag string, src string, style yaml_scalar_style_t) (cty.Value, error) {
 	if !resolvableTag(tag) {
 		return cty.NilVal, fmt.Errorf("unsupported tag %q", tag)
 	}
@@ -96,6 +96,10 @@ func (c *Converter) resolveScalar(tag string, src string) (cty.Value, error) {
 		hint = resolveTable[src[0]]
 	}
 	if hint != 0 && tag != yaml_STR_TAG && tag != yaml_BINARY_TAG {
+		if style == yaml_SINGLE_QUOTED_SCALAR_STYLE || style == yaml_DOUBLE_QUOTED_SCALAR_STYLE {
+			return cty.StringVal(src), nil
+		}
+
 		// Handle things we can lookup in a map.
 		if item, ok := resolveMap[src]; ok {
 			return item.value, nil
