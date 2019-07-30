@@ -4510,6 +4510,24 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: false,
 		},
 
+		"Unknown + Deprecation": {
+			Schema: map[string]*Schema{
+				"old_news": &Schema{
+					Type:       TypeString,
+					Optional:   true,
+					Deprecated: "please use 'new_news' instead",
+				},
+			},
+
+			Config: map[string]interface{}{
+				"old_news": hcl2shim.UnknownVariableValue,
+			},
+
+			Warnings: []string{
+				"\"old_news\": [DEPRECATED] please use 'new_news' instead",
+			},
+		},
+
 		"Required sub-resource field": {
 			Schema: map[string]*Schema{
 				"ingress": &Schema{
