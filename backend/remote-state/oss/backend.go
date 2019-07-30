@@ -3,9 +3,12 @@ package oss
 import (
 	"context"
 	"fmt"
+	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/sts"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 	"os"
 	"strings"
 
@@ -129,12 +132,50 @@ func New() backend.Backend {
 					return nil, nil
 				},
 			},
+
+			"assume_role": assumeRoleSchema(),
 		},
 	}
 
 	result := &Backend{Backend: s}
 	result.Backend.ConfigureFunc = result.configure
 	return result
+}
+
+func assumeRoleSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:     schema.TypeSet,
+		Optional: true,
+		MaxItems: 1,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"role_arn": {
+					Type:        schema.TypeString,
+					Required:    true,
+					Description: "The ARN of a RAM role to assume prior to making API calls.",
+					DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_ASSUME_ROLE_ARN", ""),
+				},
+				"session_name": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: "The session name to use when assuming the role.",
+					DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_ASSUME_ROLE_SESSION_NAME", "terraform"),
+				},
+				"policy": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: "The permissions applied when assuming a role. You cannot use this policy to grant permissions which exceed those of the role that is being assumed.",
+				},
+				"session_expiration": {
+					Type:         schema.TypeInt,
+					Optional:     true,
+					Description:  "The time after which the established session for assuming role expires.",
+					ValidateFunc: validation.IntBetween(900, 3600),
+					DefaultFunc:  schema.EnvDefaultFunc("ALICLOUD_ASSUME_ROLE_SESSION_EXPIRATION", 3600),
+				},
+			},
+		},
+	}
 }
 
 type Backend struct {
@@ -174,6 +215,21 @@ func (b *Backend) configure(ctx context.Context) error {
 	region := d.Get("region").(string)
 	endpoint := d.Get("endpoint").(string)
 	schma := "https"
+
+	if v, ok := d.GetOk("assume_role"); ok {
+		for _, v := range v.(*schema.Set).List() {
+			assumeRole := v.(map[string]interface{})
+			roleArn := assumeRole["role_arn"].(string)
+			sessionName := assumeRole["session_name"].(string)
+			policy := assumeRole["policy"].(string)
+			sessionExpiration := assumeRole["session_expiration"].(int)
+			subAccessKeyId, subAccessKeySecret, subSecurityToken, err := getAssumeRoleAK(accessKey, secretKey, region, roleArn, sessionName, policy, sessionExpiration)
+			if err != nil {
+				return err
+			}
+			accessKey, secretKey, securityToken = subAccessKeyId, subAccessKeySecret, subSecurityToken
+		}
+	}
 
 	if endpoint == "" {
 		endpointItem, _ := b.getOSSEndpointByRegion(accessKey, secretKey, securityToken, region)
@@ -236,6 +292,25 @@ func (b *Backend) getOSSEndpointByRegion(access_key, secret_key, security_token,
 		return nil, fmt.Errorf("Describe oss endpoint using region: %#v got an error: %#v.", region, err)
 	}
 	return endpointsResponse, nil
+}
+
+func getAssumeRoleAK(accessKey, secretKey, region, roleArn, sessionName, policy string, sessionExpiration int) (string, string, string, error) {
+	request := sts.CreateAssumeRoleRequest()
+	request.RoleArn = roleArn
+	request.RoleSessionName = sessionName
+	request.DurationSeconds = requests.NewInteger(sessionExpiration)
+	request.Policy = policy
+	request.Scheme = "https"
+
+	client, err := sts.NewClientWithAccessKey(region, accessKey, secretKey)
+	if err != nil {
+		return "", "", "", err
+	}
+	response, err := client.AssumeRole(request)
+	if err != nil {
+		return "", "", "", err
+	}
+	return response.Credentials.AccessKeyId, response.Credentials.AccessKeySecret, response.Credentials.SecurityToken, nil
 }
 
 func getSdkConfig() *sdk.Config {

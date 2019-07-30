@@ -112,7 +112,7 @@ func createOSSBucket(t *testing.T, ossClient *oss.Client, bucketName string) {
 }
 
 func deleteOSSBucket(t *testing.T, ossClient *oss.Client, bucketName string) {
-	warning := "WARNING: Failed to delete the test OSS bucket. It may have been left in your Alicloud account and may incur storage charges. (error was %s)"
+	warning := "WARNING: Failed to delete the test OSS bucket. It may have been left in your Alibaba Cloud account and may incur storage charges. (error was %s)"
 
 	// first we have to get rid of the env objects, or we can't delete the bucket
 	bucket, err := ossClient.Bucket(bucketName)
