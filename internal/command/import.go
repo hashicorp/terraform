@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"strings"
@@ -35,6 +36,7 @@ func (c *ImportCommand) Run(args []string) int {
 	}
 
 	var configPath string
+	var bulkPath string
 	args = c.Meta.process(args)
 
 	cmdFlags := c.Meta.extendedFlagSet("import")
@@ -46,27 +48,43 @@ func (c *ImportCommand) Run(args []string) int {
 	cmdFlags.StringVar(&configPath, "config", pwd, "path")
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
 	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
+	cmdFlags.StringVar(&bulkPath, "bulk", "", "import resources in bulk from file")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
 	}
 
 	args = cmdFlags.Args()
-	switch len(args) {
-	case 0:
-		return c.importBulk(configPath)
-	case 2:
-		return c.importSingle(configPath, args)
-	default:
-		c.Ui.Error("The import command expects either zero or two arguments.")
+	if bulkPath != "" {
+		if len(args) != 0 {
+			c.Ui.Error("The import command doesn't accept arguments when -bulk option is given")
+			cmdFlags.Usage()
+			return 1
+		}
+		return c.importBulk(configPath, bulkPath)
+	}
+	if len(args) != 2 {
+		c.Ui.Error("The import command expects two arguments.")
 		cmdFlags.Usage()
 		return 1
 	}
+	return c.importSingle(configPath, args)
 }
 
-func (c *ImportCommand) importBulk(configPath string) int {
+func (c *ImportCommand) importBulk(configPath string, importFile string) int {
+	var err error
+	var input io.Reader
+	if importFile == "-" {
+		input = os.Stdin
+	} else {
+		input, err = os.Open(importFile)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Unable to open file %s: %s", importFile, err))
+			return 1
+		}
+	}
 	var targets []*terraform.ImportTarget
-	scanner := bufio.NewScanner(os.Stdin)
+	scanner := bufio.NewScanner(input)
 	for scanner.Scan() {
 		line := strings.Trim(scanner.Text(), " ")
 		// This assumes that there aren't any spaces in the ID. But as far
@@ -82,7 +100,7 @@ func (c *ImportCommand) importBulk(configPath string) int {
 		}
 		targets = append(targets, target)
 	}
-	if err := scanner.Err(); err != nil {
+	if err = scanner.Err(); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error reading input: %s.", err))
 		return 1
 	}
@@ -348,10 +366,6 @@ Usage: terraform [global options] import [options] [ADDR ID]
   determine the ID syntax to use. It typically matches directly to the ID
   that the provider uses.
 
-  If the address and id are not provided on the command line, terraform will
-  read the resources from stdin. Each line should have a single resource pair
-  containing the resource address and id seperated by a space.
-
   The current implementation of Terraform import can only import resources
   into the state. It does not generate configuration. A future version of
   Terraform will also generate configuration.
@@ -370,6 +384,13 @@ Options:
                           to use to configure the provider. Defaults to pwd.
                           If no config files are present, they must be provided
                           via the input prompts or env vars.
+
+  -bulk=path              Import resources in bulk from a file. If this option is
+                          supplied, then ADDR and ID should not be given on the
+                          command line. Instead, the file at the path should
+                          contain lines with addresses and ids seperated by a
+                          space on each line. A path of "-" will cause it to
+                          read from stdin.
 
   -input=false            Disable interactive input prompts.
 
