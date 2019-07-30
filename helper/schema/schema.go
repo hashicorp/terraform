@@ -1371,6 +1371,9 @@ func (m schemaMap) validate(
 	// The SDK has to allow the unknown value through initially, so that
 	// Required fields set via an interpolated value are accepted.
 	if !isWhollyKnown(raw) {
+		if schema.Deprecated != "" {
+			return []string{fmt.Sprintf("%q: [DEPRECATED] %s", k, schema.Deprecated)}, nil
+		}
 		return nil, nil
 	}
 
