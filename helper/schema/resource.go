@@ -95,9 +95,10 @@ type Resource struct {
 	//
 	// Exists is a function that is called to check if a resource still
 	// exists. If this returns false, then this will affect the diff
-	// accordingly. If this function isn't set, it will not be called. It
-	// is highly recommended to set it. The *ResourceData passed to Exists
-	// should _not_ be modified.
+	// accordingly. If this function isn't set, it will not be called. You
+	// can also signal existence in the Read method by calling d.SetId("")
+	// if the Resource is not longer present and should be removed from state.
+	// The *ResourceData passed to Exists should _not_ be modified.
 	Create CreateFunc
 	Read   ReadFunc
 	Update UpdateFunc
