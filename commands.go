@@ -25,6 +25,11 @@ var PlumbingCommands map[string]struct{}
 // Ui is the cli.Ui used for communicating to the outside world.
 var Ui cli.Ui
 
+// PluginOverrides is set from wrappedMain during configuration processing
+// and then eventually passed to the "command" package to specify alternative
+// plugin locations via the legacy configuration file mechanism.
+var PluginOverrides command.PluginOverrides
+
 const (
 	ErrorPrefix  = "e:"
 	OutputPrefix = "o:"
