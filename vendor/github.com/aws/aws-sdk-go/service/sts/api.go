@@ -702,6 +702,102 @@ func (c *STS) DecodeAuthorizationMessageWithContext(ctx aws.Context, input *Deco
 	return out, req.Send()
 }
 
+const opGetAccessKeyInfo = "GetAccessKeyInfo"
+
+// GetAccessKeyInfoRequest generates a "aws/request.Request" representing the
+// client's request for the GetAccessKeyInfo operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetAccessKeyInfo for more information on using the GetAccessKeyInfo
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetAccessKeyInfoRequest method.
+//    req, resp := client.GetAccessKeyInfoRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/sts-2011-06-15/GetAccessKeyInfo
+func (c *STS) GetAccessKeyInfoRequest(input *GetAccessKeyInfoInput) (req *request.Request, output *GetAccessKeyInfoOutput) {
+	op := &request.Operation{
+		Name:       opGetAccessKeyInfo,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetAccessKeyInfoInput{}
+	}
+
+	output = &GetAccessKeyInfoOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetAccessKeyInfo API operation for AWS Security Token Service.
+//
+// Returns the account identifier for the specified access key ID.
+//
+// Access keys consist of two parts: an access key ID (for example, AKIAIOSFODNN7EXAMPLE)
+// and a secret access key (for example, wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY).
+// For more information about access keys, see Managing Access Keys for IAM
+// Users (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html)
+// in the IAM User Guide.
+//
+// When you pass an access key ID to this operation, it returns the ID of the
+// AWS account to which the keys belong. Access key IDs beginning with AKIA
+// are long-term credentials for an IAM user or the AWS account root user. Access
+// key IDs beginning with ASIA are temporary credentials that are created using
+// STS operations. If the account in the response belongs to you, you can sign
+// in as the root user and review your root user access keys. Then, you can
+// pull a credentials report (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_getting-report)
+// to learn which IAM user owns the keys. To learn who requested the temporary
+// credentials for an ASIA access key, view the STS events in your CloudTrail
+// logs (https://docs.aws.amazon.com/IAM/latest/UserGuide/cloudtrail-integration).
+//
+// This operation does not indicate the state of the access key. The key might
+// be active, inactive, or deleted. Active keys might not have permissions to
+// perform an operation. Providing a deleted keys might return an error that
+// the key doesn't exist.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Security Token Service's
+// API operation GetAccessKeyInfo for usage and error information.
+// See also, https://docs.aws.amazon.com/goto/WebAPI/sts-2011-06-15/GetAccessKeyInfo
+func (c *STS) GetAccessKeyInfo(input *GetAccessKeyInfoInput) (*GetAccessKeyInfoOutput, error) {
+	req, out := c.GetAccessKeyInfoRequest(input)
+	return out, req.Send()
+}
+
+// GetAccessKeyInfoWithContext is the same as GetAccessKeyInfo with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetAccessKeyInfo for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *STS) GetAccessKeyInfoWithContext(ctx aws.Context, input *GetAccessKeyInfoInput, opts ...request.Option) (*GetAccessKeyInfoOutput, error) {
+	req, out := c.GetAccessKeyInfoRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opGetCallerIdentity = "GetCallerIdentity"
 
 // GetCallerIdentityRequest generates a "aws/request.Request" representing the
@@ -1129,7 +1225,7 @@ type AssumeRoleInput struct {
 	// This parameter is optional. You can provide up to 10 managed policy ARNs.
 	// However, the plain text that you use for both inline and managed session
 	// policies shouldn't exceed 2048 characters. For more information about ARNs,
-	// see Amazon Resource Names (ARNs) and AWS Service Namespaces (general/latest/gr/aws-arns-and-namespaces.html)
+	// see Amazon Resource Names (ARNs) and AWS Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
 	//
 	// The characters in this parameter count towards the 2048 character session
@@ -1407,7 +1503,7 @@ type AssumeRoleWithSAMLInput struct {
 	// This parameter is optional. You can provide up to 10 managed policy ARNs.
 	// However, the plain text that you use for both inline and managed session
 	// policies shouldn't exceed 2048 characters. For more information about ARNs,
-	// see Amazon Resource Names (ARNs) and AWS Service Namespaces (general/latest/gr/aws-arns-and-namespaces.html)
+	// see Amazon Resource Names (ARNs) and AWS Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
 	//
 	// The characters in this parameter count towards the 2048 character session
@@ -1702,7 +1798,7 @@ type AssumeRoleWithWebIdentityInput struct {
 	// This parameter is optional. You can provide up to 10 managed policy ARNs.
 	// However, the plain text that you use for both inline and managed session
 	// policies shouldn't exceed 2048 characters. For more information about ARNs,
-	// see Amazon Resource Names (ARNs) and AWS Service Namespaces (general/latest/gr/aws-arns-and-namespaces.html)
+	// see Amazon Resource Names (ARNs) and AWS Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
 	//
 	// The characters in this parameter count towards the 2048 character session
@@ -2156,6 +2252,73 @@ func (s *FederatedUser) SetFederatedUserId(v string) *FederatedUser {
 	return s
 }
 
+type GetAccessKeyInfoInput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier of an access key.
+	//
+	// This parameter allows (through its regex pattern) a string of characters
+	// that can consist of any upper- or lowercased letter or digit.
+	//
+	// AccessKeyId is a required field
+	AccessKeyId *string `min:"16" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetAccessKeyInfoInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetAccessKeyInfoInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetAccessKeyInfoInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetAccessKeyInfoInput"}
+	if s.AccessKeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccessKeyId"))
+	}
+	if s.AccessKeyId != nil && len(*s.AccessKeyId) < 16 {
+		invalidParams.Add(request.NewErrParamMinLen("AccessKeyId", 16))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAccessKeyId sets the AccessKeyId field's value.
+func (s *GetAccessKeyInfoInput) SetAccessKeyId(v string) *GetAccessKeyInfoInput {
+	s.AccessKeyId = &v
+	return s
+}
+
+type GetAccessKeyInfoOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The number used to identify the AWS account.
+	Account *string `type:"string"`
+}
+
+// String returns the string representation
+func (s GetAccessKeyInfoOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetAccessKeyInfoOutput) GoString() string {
+	return s.String()
+}
+
+// SetAccount sets the Account field's value.
+func (s *GetAccessKeyInfoOutput) SetAccount(v string) *GetAccessKeyInfoOutput {
+	s.Account = &v
+	return s
+}
+
 type GetCallerIdentityInput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2545,7 +2708,7 @@ type PolicyDescriptorType struct {
 
 	// The Amazon Resource Name (ARN) of the IAM managed policy to use as a session
 	// policy for the role. For more information about ARNs, see Amazon Resource
-	// Names (ARNs) and AWS Service Namespaces (general/latest/gr/aws-arns-and-namespaces.html)
+	// Names (ARNs) and AWS Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
 	Arn *string `locationName:"arn" min:"20" type:"string"`
 }

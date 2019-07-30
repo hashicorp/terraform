@@ -118,7 +118,7 @@ func (rep *Reporter) sendAPICallMetric(r *request.Request) {
 		Type:               aws.String("ApiCall"),
 		AttemptCount:       aws.Int(r.RetryCount + 1),
 		Region:             r.Config.Region,
-		Latency:            aws.Int(int(time.Now().Sub(r.Time) / time.Millisecond)),
+		Latency:            aws.Int(int(time.Since(r.Time) / time.Millisecond)),
 		XAmzRequestID:      aws.String(r.RequestID),
 		MaxRetriesExceeded: aws.Int(boolIntValue(r.RetryCount >= r.MaxRetries())),
 	}
