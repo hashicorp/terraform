@@ -229,41 +229,6 @@ func wrappedMain() int {
 	return exitCode
 }
 
-func cliConfigFile() (string, error) {
-	mustExist := true
-
-	configFilePath := os.Getenv("TF_CLI_CONFIG_FILE")
-	if configFilePath == "" {
-		configFilePath = os.Getenv("TERRAFORM_CONFIG")
-	}
-
-	if configFilePath == "" {
-		var err error
-		configFilePath, err = ConfigFile()
-		mustExist = false
-
-		if err != nil {
-			log.Printf(
-				"[ERROR] Error detecting default CLI config file path: %s",
-				err)
-		}
-	}
-
-	log.Printf("[DEBUG] Attempting to open CLI config file: %s", configFilePath)
-	f, err := os.Open(configFilePath)
-	if err == nil {
-		f.Close()
-		return configFilePath, nil
-	}
-
-	if mustExist || !os.IsNotExist(err) {
-		return "", err
-	}
-
-	log.Println("[DEBUG] File doesn't exist, but doesn't need to. Ignoring.")
-	return "", nil
-}
-
 // copyOutput uses output prefixes to determine whether data on stdout
 // should go to stdout or stderr. This is due to panicwrap using stderr
 // as the log and error channel.
