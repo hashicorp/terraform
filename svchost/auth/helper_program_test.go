@@ -56,4 +56,28 @@ func TestHelperProgramCredentialsSource(t *testing.T) {
 			t.Error("completed successfully; want error")
 		}
 	})
+	t.Run("store happy path", func(t *testing.T) {
+		err := src.StoreForHost(svchost.Hostname("example.com"), HostCredentialsToken("example-token"))
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
+	t.Run("store error", func(t *testing.T) {
+		err := src.StoreForHost(svchost.Hostname("fail.example.com"), HostCredentialsToken("example-token"))
+		if err == nil {
+			t.Error("completed successfully; want error")
+		}
+	})
+	t.Run("forget happy path", func(t *testing.T) {
+		err := src.ForgetForHost(svchost.Hostname("example.com"))
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
+	t.Run("forget error", func(t *testing.T) {
+		err := src.ForgetForHost(svchost.Hostname("fail.example.com"))
+		if err == nil {
+			t.Error("completed successfully; want error")
+		}
+	})
 }
