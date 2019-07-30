@@ -41,7 +41,7 @@ func (a servicePrincipalClientCertificateAuth) name() string {
 	return "Service Principal / Client Certificate"
 }
 
-func (a servicePrincipalClientCertificateAuth) getAuthorizationToken(oauthConfig *adal.OAuthConfig, endpoint string) (*autorest.BearerAuthorizer, error) {
+func (a servicePrincipalClientCertificateAuth) getAuthorizationToken(sender autorest.Sender, oauthConfig *adal.OAuthConfig, endpoint string) (*autorest.BearerAuthorizer, error) {
 	certificateData, err := ioutil.ReadFile(a.clientCertPath)
 	if err != nil {
 		return nil, fmt.Errorf("Error reading Client Certificate %q: %v", a.clientCertPath, err)
@@ -57,6 +57,8 @@ func (a servicePrincipalClientCertificateAuth) getAuthorizationToken(oauthConfig
 	if err != nil {
 		return nil, err
 	}
+
+	spt.SetSender(sender)
 
 	err = spt.Refresh()
 	if err != nil {
