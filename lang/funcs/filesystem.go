@@ -201,6 +201,10 @@ func MakeFileExistsFunc(baseDir string) function.Function {
 				return cty.True, nil
 			}
 
+			if fi.Mode().IsDir() {
+				return cty.False, nil
+			}
+
 			return cty.False, fmt.Errorf("%s is not a regular file, but %q",
 				path, fi.Mode().String())
 		},

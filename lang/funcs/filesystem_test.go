@@ -193,9 +193,9 @@ func TestFileExists(t *testing.T) {
 			false,
 		},
 		{
-			cty.StringVal(""), // empty path
+			cty.StringVal(""), // empty path is the local directory
 			cty.BoolVal(false),
-			true,
+			false,
 		},
 		{
 			cty.StringVal("testdata/missing"),
