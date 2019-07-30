@@ -1,14 +1,21 @@
 ## 0.12.6 (Unreleased)
 
+NOTES:
+
+* backend/s3: After this update, the AWS Go SDK will prefer credentials found via the `AWS_PROFILE` environment variable when both the `AWS_PROFILE` environment variable and the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables are statically defined. Previously the SDK would ignore the `AWS_PROFILE` environment variable, if static environment credentials were also specified. This is listed as a bug fix in the AWS Go SDK release notes. [GH-22253]
+
 NEW FEATURES:
 * backend/oss: added support for assume role config [GH-22186]
 * config: Resources can now use a for_each meta-argument [GH-17179]
 
 ENHANCEMENTS:
+* backend/s3: Add support for assuming role via web identity token via the `AWS_WEB_IDENTITY_TOKEN_FILE` and `AWS_ROLE_ARN` environment variables [GH-22253]
+* backend/s3: Support automatic region validation for `me-south-1`. For AWS operations to work in the new region, the region must be explicitly enabled as outlined in the [AWS Documentation](https://docs.aws.amazon.com/general/latest/gr/rande-manage.html#rande-manage-enable) [GH-22253]
 * connection/ssh: Improve connection debug messages [GH-22097]
 
 BUG FIXES:
 * backend/remote: remove misleading contents from error message [GH-22148]
+* backend/s3: Load credentials via the `AWS_PROFILE` environment variable (if available) when `AWS_PROFILE` is defined along with `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` [GH-22253]
 * config: Improve conditionals to returns the correct type when dynamic values are present but unevaluated [GH-22137]
 * cli: Fix crash with reset connection during init [GH-22146]
 * configs/configupgrade: Fix crash with nil hilNode [GH-22181]
