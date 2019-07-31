@@ -144,7 +144,7 @@ func TestInit_fromModule(t *testing.T) {
 	tf := e2e.NewBinary(terraformBin, fixturePath)
 	defer tf.Close()
 
-	cmd := tf.Cmd("init", "-from-module=hashicorp/vault/aws")
+	cmd := tf.Cmd("init", "-from-module=./init-from-module")
 	cmd.Stdin = nil
 	cmd.Stderr = &bytes.Buffer{}
 
@@ -162,7 +162,7 @@ func TestInit_fromModule(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to read main.tf: %s", err)
 	}
-	if !bytes.Contains(content, []byte("vault")) {
-		t.Fatalf("main.tf doesn't appear to be a vault configuration: \n%s", content)
+	if !bytes.Contains(content, []byte("null_resource")) {
+		t.Fatalf("main.tf doesn't appear to be a null_resource configuration: \n%s", content)
 	}
 }
