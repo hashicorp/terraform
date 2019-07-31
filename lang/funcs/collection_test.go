@@ -1469,6 +1469,22 @@ func TestLookup(t *testing.T) {
 			cty.StringVal("baz"),
 		}),
 	})
+	mapOfMaps := cty.MapVal(map[string]cty.Value{
+		"foo": cty.MapVal(map[string]cty.Value{
+			"a": cty.StringVal("bar"),
+		}),
+		"baz": cty.MapVal(map[string]cty.Value{
+			"b": cty.StringVal("bat"),
+		}),
+	})
+	mapOfObjects := cty.ObjectVal(map[string]cty.Value{
+		"foo": cty.MapVal(map[string]cty.Value{
+			"a": cty.StringVal("bar"),
+		}),
+		"baz": cty.MapVal(map[string]cty.Value{
+			"b": cty.StringVal("bat"),
+		}),
+	})
 	mapWithUnknowns := cty.MapVal(map[string]cty.Value{
 		"foo": cty.StringVal("bar"),
 		"baz": cty.UnknownVal(cty.String),
@@ -1505,6 +1521,26 @@ func TestLookup(t *testing.T) {
 				cty.StringVal("foo"),
 			},
 			cty.NumberIntVal(42),
+			false,
+		},
+		{
+			[]cty.Value{
+				mapOfMaps,
+				cty.StringVal("foo"),
+			},
+			cty.MapVal(map[string]cty.Value{
+				"a": cty.StringVal("bar"),
+			}),
+			false,
+		},
+		{
+			[]cty.Value{
+				mapOfObjects,
+				cty.StringVal("foo"),
+			},
+			cty.MapVal(map[string]cty.Value{
+				"a": cty.StringVal("bar"),
+			}),
 			false,
 		},
 		{ // Invalid key
