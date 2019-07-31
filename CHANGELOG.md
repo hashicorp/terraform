@@ -1,30 +1,30 @@
-## 0.12.6 (Unreleased)
+## 0.12.6 (July 31, 2019)
 
 NOTES:
 
-* backend/s3: After this update, the AWS Go SDK will prefer credentials found via the `AWS_PROFILE` environment variable when both the `AWS_PROFILE` environment variable and the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables are statically defined. Previously the SDK would ignore the `AWS_PROFILE` environment variable, if static environment credentials were also specified. This is listed as a bug fix in the AWS Go SDK release notes. [GH-22253]
+* backend/s3: After this update, the AWS Go SDK will prefer credentials found via the `AWS_PROFILE` environment variable when both the `AWS_PROFILE` environment variable and the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables are statically defined. Previously the SDK would ignore the `AWS_PROFILE` environment variable, if static environment credentials were also specified. This is listed as a bug fix in the AWS Go SDK release notes. ([#22253](https://github.com/hashicorp/terraform/issues/22253))
 
 NEW FEATURES:
-* backend/oss: added support for assume role config [GH-22186]
-* config: Resources can now use a for_each meta-argument [GH-17179]
+* backend/oss: added support for assume role config ([#22186](https://github.com/hashicorp/terraform/issues/22186))
+* config: Resources can now use a for_each meta-argument ([#17179](https://github.com/hashicorp/terraform/issues/17179))
 
 ENHANCEMENTS:
-* backend/s3: Add support for assuming role via web identity token via the `AWS_WEB_IDENTITY_TOKEN_FILE` and `AWS_ROLE_ARN` environment variables [GH-22253]
-* backend/s3: Support automatic region validation for `me-south-1`. For AWS operations to work in the new region, the region must be explicitly enabled as outlined in the [AWS Documentation](https://docs.aws.amazon.com/general/latest/gr/rande-manage.html#rande-manage-enable) [GH-22253]
-* connection/ssh: Improve connection debug messages [GH-22097]
+* backend/s3: Add support for assuming role via web identity token via the `AWS_WEB_IDENTITY_TOKEN_FILE` and `AWS_ROLE_ARN` environment variables ([#22253](https://github.com/hashicorp/terraform/issues/22253))
+* backend/s3: Support automatic region validation for `me-south-1`. For AWS operations to work in the new region, the region must be explicitly enabled as outlined in the [AWS Documentation](https://docs.aws.amazon.com/general/latest/gr/rande-manage.html#rande-manage-enable) ([#22253](https://github.com/hashicorp/terraform/issues/22253))
+* connection/ssh: Improve connection debug messages ([#22097](https://github.com/hashicorp/terraform/issues/22097))
 
 BUG FIXES:
-* backend/remote: remove misleading contents from error message [GH-22148]
-* backend/s3: Load credentials via the `AWS_PROFILE` environment variable (if available) when `AWS_PROFILE` is defined along with `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` [GH-22253]
-* config: Improve conditionals to returns the correct type when dynamic values are present but unevaluated [GH-22137]
-* config: Fix panic when mistakingly using `dynamic` on an attribute [GH-22169]
-* cli: Fix crash with reset connection during init [GH-22146]
-* cli: show all deposed instances and prevent crash in `show` command [GH-22149]
-* configs/configupgrade: Fix crash with nil hilNode [GH-22181]
-* command/fmt: now formats correctly in presence of here-docs [GH-21434]
-* helper/schema: don't skip deprecation check during validation when attribute value is unknown [GH-22262]
-* plugin/sdk: allow MinItems > 1 when dynamic blocks [GH-22221]
-* plugin/sdk: fix reflect panics in helper/schema validation [GH-22236]
+* backend/remote: remove misleading contents from error message ([#22148](https://github.com/hashicorp/terraform/issues/22148))
+* backend/s3: Load credentials via the `AWS_PROFILE` environment variable (if available) when `AWS_PROFILE` is defined along with `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` ([#22253](https://github.com/hashicorp/terraform/issues/22253))
+* config: Improve conditionals to returns the correct type when dynamic values are present but unevaluated ([#22137](https://github.com/hashicorp/terraform/issues/22137))
+* config: Fix panic when mistakingly using `dynamic` on an attribute ([#22169](https://github.com/hashicorp/terraform/issues/22169))
+* cli: Fix crash with reset connection during init ([#22146](https://github.com/hashicorp/terraform/issues/22146))
+* cli: show all deposed instances and prevent crash in `show` command ([#22149](https://github.com/hashicorp/terraform/issues/22149))
+* configs/configupgrade: Fix crash with nil hilNode ([#22181](https://github.com/hashicorp/terraform/issues/22181))
+* command/fmt: now formats correctly in presence of here-docs ([#21434](https://github.com/hashicorp/terraform/issues/21434))
+* helper/schema: don't skip deprecation check during validation when attribute value is unknown ([#22262](https://github.com/hashicorp/terraform/issues/22262))
+* plugin/sdk: allow MinItems > 1 when dynamic blocks ([#22221](https://github.com/hashicorp/terraform/issues/22221))
+* plugin/sdk: fix reflect panics in helper/schema validation ([#22236](https://github.com/hashicorp/terraform/issues/22236))
 
 ## 0.12.5 (July 18, 2019)
 
