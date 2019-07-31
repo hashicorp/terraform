@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -81,7 +80,7 @@ func TestValidator_complex(t *testing.T) {
 	// Valid
 	c = testConfig(t, map[string]interface{}{
 		"foo": "bar",
-		"nested": []map[string]interface{}{
+		"nested": []interface{}{
 			map[string]interface{}{"foo": "bar"},
 		},
 	})
@@ -111,7 +110,7 @@ func TestValidator_complexNested(t *testing.T) {
 
 	// Valid
 	c = testConfig(t, map[string]interface{}{
-		"ingress": []map[string]interface{}{
+		"ingress": []interface{}{
 			map[string]interface{}{
 				"from_port": "80",
 			},
@@ -121,7 +120,7 @@ func TestValidator_complexNested(t *testing.T) {
 
 	// Valid
 	c = testConfig(t, map[string]interface{}{
-		"ingress": []map[string]interface{}{
+		"ingress": []interface{}{
 			map[string]interface{}{
 				"from_port":   "80",
 				"cidr_blocks": []interface{}{"foo"},
@@ -144,7 +143,7 @@ func TestValidator_complexDeepRequired(t *testing.T) {
 	// Valid
 	c = testConfig(t, map[string]interface{}{
 		"foo": "bar",
-		"nested": []map[string]interface{}{
+		"nested": []interface{}{
 			map[string]interface{}{"foo": "bar"},
 		},
 	})
@@ -164,15 +163,8 @@ func TestValidator_complexDeepRequired(t *testing.T) {
 	testInvalid(v, c)
 }
 
-func testConfig(
-	t *testing.T,
-	c map[string]interface{}) *terraform.ResourceConfig {
-	r, err := config.NewRawConfig(c)
-	if err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-
-	return terraform.NewResourceConfig(r)
+func testConfig(t *testing.T, c map[string]interface{}) *terraform.ResourceConfig {
+	return terraform.NewResourceConfigRaw(c)
 }
 
 func testInvalid(v *Validator, c *terraform.ResourceConfig) {
