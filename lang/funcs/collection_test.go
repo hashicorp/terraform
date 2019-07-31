@@ -1577,6 +1577,15 @@ func TestLookup(t *testing.T) {
 			cty.StringVal("bar"),
 			false,
 		},
+		{ // Supplied default with valid (int) key
+			[]cty.Value{
+				simpleMap,
+				cty.StringVal("foobar"),
+				cty.NumberIntVal(-1),
+			},
+			cty.StringVal("-1"),
+			false,
+		},
 		{ // Supplied default with valid key
 			[]cty.Value{
 				mapWithObjects,
@@ -1594,6 +1603,15 @@ func TestLookup(t *testing.T) {
 			},
 			cty.StringVal(""),
 			false,
+		},
+		{ // Supplied default with type mismatch: expects a map return
+			[]cty.Value{
+				mapOfMaps,
+				cty.StringVal("foo"),
+				cty.StringVal(""),
+			},
+			cty.NilVal,
+			true,
 		},
 		{ // Supplied non-empty default with invalid key
 			[]cty.Value{

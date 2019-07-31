@@ -660,6 +660,12 @@ var LookupFunc = function.New(&function.Spec{
 			}
 			return cty.DynamicPseudoType, function.NewArgErrorf(0, "the given object has no attribute %q", key)
 		case ty.IsMapType():
+			if len(args) == 3 {
+				_, err = convert.Convert(args[2], ty.ElementType())
+				if err != nil {
+					return cty.NilType, function.NewArgErrorf(0, "the default value and map elements must have the same type")
+				}
+			}
 			return ty.ElementType(), nil
 		default:
 			return cty.NilType, function.NewArgErrorf(0, "lookup() requires a map as the first argument")
