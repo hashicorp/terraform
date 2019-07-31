@@ -17,10 +17,14 @@ BUG FIXES:
 * backend/remote: remove misleading contents from error message [GH-22148]
 * backend/s3: Load credentials via the `AWS_PROFILE` environment variable (if available) when `AWS_PROFILE` is defined along with `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` [GH-22253]
 * config: Improve conditionals to returns the correct type when dynamic values are present but unevaluated [GH-22137]
+* config: Fix panic when mistakingly using `dynamic` on an attribute [GH-22169]
 * cli: Fix crash with reset connection during init [GH-22146]
+* cli: show all deposed instances and prevent crash in `show` command [GH-22149]
 * configs/configupgrade: Fix crash with nil hilNode [GH-22181]
 * command/fmt: now formats correctly in presence of here-docs [GH-21434]
 * helper/schema: don't skip deprecation check during validation when attribute value is unknown [GH-22262]
+* plugin/sdk: allow MinItems > 1 when dynamic blocks [GH-22221]
+* plugin/sdk: fix reflect panics in helper/schema validation [GH-22236]
 
 ## 0.12.5 (July 18, 2019)
 
