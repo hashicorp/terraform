@@ -199,7 +199,7 @@ func NewResourceConfigRaw(raw map[string]interface{}) *ResourceConfig {
 	// package here for two reasons: firstly, because that reduces the risk
 	// of it including something unlike what NewResourceConfigShimmed would
 	// produce, and secondly because it creates a copy of "raw" just in case
-	// something is relying on the fact that in the old world thw raw and
+	// something is relying on the fact that in the old world the raw and
 	// config maps were always distinct, and thus you could in principle mutate
 	// one without affecting the other. (I sure hope nobody was doing that, though!)
 	cfg := hcl2shim.ConfigValueFromHCL2(v).(map[string]interface{})
