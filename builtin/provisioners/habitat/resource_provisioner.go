@@ -293,7 +293,8 @@ func validateFn(c *terraform.ResourceConfig) (ws []string, es []error) {
 	// Validate service level configs
 	services, ok := c.Get("service")
 	if ok {
-		for _, service := range services.([]map[string]interface{}) {
+		for _, svc := range services.([]interface{}) {
+			service := svc.(map[string]interface{})
 			strategy, ok := service["strategy"].(string)
 			if ok && !updateStrategies[strategy] {
 				es = append(es, errors.New(strategy+" is not a valid update strategy."))

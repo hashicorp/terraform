@@ -47,7 +47,6 @@ func TestResourceProvisioner_Validate_bad(t *testing.T) {
 	}
 }
 
-/* FIXME panic: interface conversion: interface {} is []interface {}, not []map[string]interface {}
 func TestResourceProvisioner_Validate_bad_service_config(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{
 		"service": []interface{}{
@@ -68,7 +67,6 @@ func TestResourceProvisioner_Validate_bad_service_config(t *testing.T) {
 		t.Fatalf("Should have three errors")
 	}
 }
-*/
 
 func testConfig(t *testing.T, c map[string]interface{}) *terraform.ResourceConfig {
 	return terraform.NewResourceConfigRaw(c)
