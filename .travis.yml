@@ -36,7 +36,6 @@ script:
 - make test
 - make e2etest
 - GOOS=windows go build
-- make website-test
 
 branches:
   only:
