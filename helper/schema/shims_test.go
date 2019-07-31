@@ -11,8 +11,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/hashicorp/hil/ast"
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/helper/hashcode"
@@ -283,19 +281,13 @@ func TestShimResourceDiff_Timeout_diff(t *testing.T) {
 		return nil
 	}
 
-	raw, err := config.NewRawConfig(
-		map[string]interface{}{
-			"foo": 42,
-			TimeoutsConfigKey: map[string]interface{}{
-				"create": "2h",
-			},
-		})
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	var s *terraform.InstanceState = nil
-	conf := terraform.NewResourceConfig(raw)
+	conf := terraform.NewResourceConfigRaw(map[string]interface{}{
+		"foo": 42,
+		TimeoutsConfigKey: map[string]interface{}{
+			"create": "2h",
+		},
+	})
+	var s *terraform.InstanceState
 
 	actual, err := r.Diff(s, conf, nil)
 	if err != nil {
@@ -499,14 +491,13 @@ func TestShimResourceApply_destroyCreate(t *testing.T) {
 
 func TestShimSchemaMap_Diff(t *testing.T) {
 	cases := []struct {
-		Name            string
-		Schema          map[string]*Schema
-		State           *terraform.InstanceState
-		Config          map[string]interface{}
-		ConfigVariables map[string]ast.Variable
-		CustomizeDiff   CustomizeDiffFunc
-		Diff            *terraform.InstanceDiff
-		Err             bool
+		Name          string
+		Schema        map[string]*Schema
+		State         *terraform.InstanceState
+		Config        map[string]interface{}
+		CustomizeDiff CustomizeDiffFunc
+		Diff          *terraform.InstanceDiff
+		Err           bool
 	}{
 		{
 			Name: "diff-1",
@@ -769,37 +760,6 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 		},
 
 		{
-			Name: "Variable (just checking)",
-			Schema: map[string]*Schema{
-				"availability_zone": &Schema{
-					Type:     TypeString,
-					Optional: true,
-				},
-			},
-
-			State: nil,
-
-			Config: map[string]interface{}{
-				"availability_zone": "${var.foo}",
-			},
-
-			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError("bar"),
-			},
-
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"availability_zone": &terraform.ResourceAttrDiff{
-						Old: "",
-						New: "bar",
-					},
-				},
-			},
-
-			Err: false,
-		},
-
-		{
 			Name: "Variable computed",
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
@@ -811,18 +771,14 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			State: nil,
 
 			Config: map[string]interface{}{
-				"availability_zone": "${var.foo}",
-			},
-
-			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError(hcl2shim.UnknownVariableValue),
+				"availability_zone": hcl2shim.UnknownVariableValue,
 			},
 
 			Diff: &terraform.InstanceDiff{
 				Attributes: map[string]*terraform.ResourceAttrDiff{
 					"availability_zone": &terraform.ResourceAttrDiff{
 						Old:         "",
-						New:         "${var.foo}",
+						New:         hcl2shim.UnknownVariableValue,
 						NewComputed: true,
 					},
 				},
@@ -1000,11 +956,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			State: nil,
 
 			Config: map[string]interface{}{
-				"ports": []interface{}{1, "${var.foo}"},
-			},
-
-			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError([]interface{}{"2", "5"}),
+				"ports": []interface{}{1, 2, 5},
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -1043,12 +995,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			State: nil,
 
 			Config: map[string]interface{}{
-				"ports": []interface{}{1, "${var.foo}"},
-			},
-
-			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError([]interface{}{
-					hcl2shim.UnknownVariableValue, "5"}),
+				"ports": []interface{}{1, hcl2shim.UnknownVariableValue, "5"},
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -1379,11 +1326,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			State: nil,
 
 			Config: map[string]interface{}{
-				"ports": []interface{}{"${var.foo}", 1},
-			},
-
-			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError([]interface{}{"2", "5"}),
+				"ports": []interface{}{"2", "5", 1},
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -1426,12 +1369,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			State: nil,
 
 			Config: map[string]interface{}{
-				"ports": []interface{}{1, "${var.foo}"},
-			},
-
-			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError([]interface{}{
-					hcl2shim.UnknownVariableValue, "5"}),
+				"ports": []interface{}{1, hcl2shim.UnknownVariableValue, 5},
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -2056,11 +1994,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			Config: map[string]interface{}{
-				"instances": []interface{}{"${var.foo}"},
-			},
-
-			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError(hcl2shim.UnknownVariableValue),
+				"instances": []interface{}{hcl2shim.UnknownVariableValue},
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -2106,13 +2040,9 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 				"route": []interface{}{
 					map[string]interface{}{
 						"index":   "1",
-						"gateway": "${var.foo}",
+						"gateway": hcl2shim.UnknownVariableValue,
 					},
 				},
-			},
-
-			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError(hcl2shim.UnknownVariableValue),
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -2127,7 +2057,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 					},
 					"route.~1.gateway": &terraform.ResourceAttrDiff{
 						Old:         "",
-						New:         "${var.foo}",
+						New:         hcl2shim.UnknownVariableValue,
 						NewComputed: true,
 					},
 				},
@@ -2173,14 +2103,10 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 					map[string]interface{}{
 						"index": "1",
 						"gateway": []interface{}{
-							"${var.foo}",
+							hcl2shim.UnknownVariableValue,
 						},
 					},
 				},
-			},
-
-			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError(hcl2shim.UnknownVariableValue),
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -2245,12 +2171,8 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 
 			Config: map[string]interface{}{
 				"vars": map[string]interface{}{
-					"bar": "${var.foo}",
+					"bar": hcl2shim.UnknownVariableValue,
 				},
-			},
-
-			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError(hcl2shim.UnknownVariableValue),
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -2593,42 +2515,6 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			Config: map[string]interface{}{},
 
 			Diff: nil,
-
-			Err: false,
-		},
-
-		{
-			Name: "Set element computed substring",
-			Schema: map[string]*Schema{
-				"ports": &Schema{
-					Type:     TypeSet,
-					Required: true,
-					Elem:     &Schema{Type: TypeInt},
-					Set: func(a interface{}) int {
-						return a.(int)
-					},
-				},
-			},
-
-			State: nil,
-
-			Config: map[string]interface{}{
-				"ports": []interface{}{1, "${var.foo}32"},
-			},
-
-			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError(hcl2shim.UnknownVariableValue),
-			},
-
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"ports.#": &terraform.ResourceAttrDiff{
-						Old:         "",
-						New:         "",
-						NewComputed: true,
-					},
-				},
-			},
 
 			Err: false,
 		},
@@ -3004,12 +2890,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			Config: map[string]interface{}{
-				"foo": "${var.foo}",
-			},
-
-			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError(
-					hcl2shim.UnknownVariableValue),
+				"foo": hcl2shim.UnknownVariableValue,
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -3051,11 +2932,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			Config: map[string]interface{}{
-				"ports": []interface{}{"${var.foo}", 2, 1},
-			},
-
-			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError(hcl2shim.UnknownVariableValue),
+				"ports": []interface{}{hcl2shim.UnknownVariableValue, 2, 1},
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -3091,14 +2968,7 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			},
 
 			Config: map[string]interface{}{
-				"config": []interface{}{"${var.a}", "${var.b}"},
-			},
-
-			ConfigVariables: map[string]ast.Variable{
-				"var.a": interfaceToVariableSwallowError(
-					hcl2shim.UnknownVariableValue),
-				"var.b": interfaceToVariableSwallowError(
-					hcl2shim.UnknownVariableValue),
+				"config": []interface{}{hcl2shim.UnknownVariableValue, hcl2shim.UnknownVariableValue},
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -3461,15 +3331,8 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 				},
 			},
 
-			// this does necessarily depend on an interpolated value, but this
-			// is often how it comes about in a configuration, otherwise the
-			// value would be unset.
 			Config: map[string]interface{}{
-				"attr": "${var.foo}",
-			},
-
-			ConfigVariables: map[string]ast.Variable{
-				"var.foo": interfaceToVariableSwallowError(""),
+				"attr": "",
 			},
 		},
 
@@ -3524,18 +3387,10 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
-			c, err := config.NewRawConfig(tc.Config)
-			if err != nil {
-				t.Fatalf("err: %s", err)
-			}
-			if len(tc.ConfigVariables) > 0 {
-				if err := c.Interpolate(tc.ConfigVariables); err != nil {
-					t.Fatalf("err: %s", err)
-				}
-			}
+			c := terraform.NewResourceConfigRaw(tc.Config)
 
 			{
-				d, err := schemaMap(tc.Schema).Diff(tc.State, terraform.NewResourceConfig(c), tc.CustomizeDiff, nil, false)
+				d, err := schemaMap(tc.Schema).Diff(tc.State, c, tc.CustomizeDiff, nil, false)
 				if err != nil != tc.Err {
 					t.Fatalf("err: %s", err)
 				}
@@ -3556,12 +3411,12 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 			}
 
 			// this is the desired cty.Value from the configuration
-			configVal := hcl2shim.HCL2ValueFromConfigValue(c.Config())
+			configVal := hcl2shim.HCL2ValueFromConfigValue(c.Config)
 
 			// verify that we can round-trip the config
 			origConfig := hcl2shim.ConfigValueFromHCL2(configVal)
-			if !cmp.Equal(c.Config(), origConfig, equateEmpty) {
-				t.Fatal(cmp.Diff(c.Config(), origConfig, equateEmpty))
+			if !cmp.Equal(c.Config, origConfig, equateEmpty) {
+				t.Fatal(cmp.Diff(c.Config, origConfig, equateEmpty))
 			}
 
 			// make sure our config conforms precisely to the schema
@@ -3590,12 +3445,11 @@ func TestShimSchemaMap_Diff(t *testing.T) {
 				}
 			}
 
-			// there would be no unknown config variables during apply, so
-			// return early here.
-			for _, v := range tc.ConfigVariables {
-				if s, ok := v.Value.(string); ok && s == hcl2shim.UnknownVariableValue {
-					return
-				}
+			// In a real "apply" operation there would be no unknown values,
+			// so for tests containing unknowns we'll stop here: the steps
+			// after this point apply only to the apply phase.
+			if !configVal.IsWhollyKnown() {
+				return
 			}
 
 			// our diff function can't set DestroyTainted, but match the
