@@ -17,7 +17,6 @@ func TestBackend_impl(t *testing.T) {
 }
 
 func TestBackend(t *testing.T) {
-	t.Skip()
 	td, err := ioutil.TempDir("", "tf")
 	if err != nil {
 		t.Fatalf("err: %s", err)
