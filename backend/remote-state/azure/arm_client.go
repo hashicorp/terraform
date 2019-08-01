@@ -80,17 +80,19 @@ func buildArmClient(config BackendConfig) (*ArmClient, error) {
 		return nil, err
 	}
 
-	auth, err := armConfig.GetAuthorizationToken(oauthConfig, env.TokenAudience)
+	sender := buildSender()
+
+	auth, err := armConfig.GetAuthorizationToken(sender, oauthConfig, env.TokenAudience)
 	if err != nil {
 		return nil, err
 	}
 
 	accountsClient := armStorage.NewAccountsClientWithBaseURI(env.ResourceManagerEndpoint, armConfig.SubscriptionID)
-	client.configureClient(&accountsClient.Client, auth)
+	client.configureClient(&accountsClient.Client, sender, auth)
 	client.storageAccountsClient = &accountsClient
 
 	groupsClient := resources.NewGroupsClientWithBaseURI(env.ResourceManagerEndpoint, armConfig.SubscriptionID)
-	client.configureClient(&groupsClient.Client, auth)
+	client.configureClient(&groupsClient.Client, sender, auth)
 	client.groupsClient = &groupsClient
 
 	return &client, nil
@@ -151,10 +153,10 @@ func (c ArmClient) getBlobClient(ctx context.Context) (*storage.BlobStorageClien
 	return &client, nil
 }
 
-func (c *ArmClient) configureClient(client *autorest.Client, auth autorest.Authorizer) {
+func (c *ArmClient) configureClient(client *autorest.Client, sender autorest.Sender, auth autorest.Authorizer) {
 	client.UserAgent = buildUserAgent()
 	client.Authorizer = auth
-	client.Sender = buildSender()
+	client.Sender = sender
 	client.SkipResourceProviderRegistration = false
 	client.PollingDuration = 60 * time.Minute
 }
