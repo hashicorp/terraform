@@ -118,10 +118,11 @@ func (c *StateRmCommand) Run(args []string) int {
 
 	if isCount == 0 {
 		c.Ui.Output("No matching resource instances found.")
+		return 1
 	} else {
 		c.Ui.Output(fmt.Sprintf("Successfully removed %d resource instance(s).", isCount))
+		return 0
 	}
-	return 0
 }
 
 func (c *StateRmCommand) Help() string {

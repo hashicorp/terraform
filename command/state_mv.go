@@ -357,10 +357,11 @@ func (c *StateMvCommand) Run(args []string) int {
 
 	if moved == 0 {
 		c.Ui.Output("No matching objects found.")
+		return 1
 	} else {
 		c.Ui.Output(fmt.Sprintf("Successfully moved %d object(s).", moved))
+		return 0
 	}
-	return 0
 }
 
 // sourceObjectAddrs takes a single source object address and expands it to
