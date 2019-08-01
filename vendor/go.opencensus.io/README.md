@@ -29,7 +29,7 @@ integration with your RPC framework:
 
 * [net/http](https://godoc.org/go.opencensus.io/plugin/ochttp)
 * [gRPC](https://godoc.org/go.opencensus.io/plugin/ocgrpc)
-* [database/sql](https://godoc.org/github.com/basvanbeek/ocsql)
+* [database/sql](https://godoc.org/github.com/opencensus-integrations/ocsql)
 * [Go kit](https://godoc.org/github.com/go-kit/kit/tracing/opencensus)
 * [Groupcache](https://godoc.org/github.com/orijtech/groupcache)
 * [Caddy webserver](https://godoc.org/github.com/orijtech/caddy)
@@ -123,7 +123,7 @@ Currently three types of aggregations are supported:
 
 [embedmd]:# (internal/readme/stats.go aggs)
 ```go
-distAgg := view.Distribution(0, 1<<32, 2<<32, 3<<32)
+distAgg := view.Distribution(1<<32, 2<<32, 3<<32)
 countAgg := view.Count()
 sumAgg := view.Sum()
 ```
@@ -136,7 +136,7 @@ if err := view.Register(&view.View{
 	Name:        "example.com/video_size_distribution",
 	Description: "distribution of processed video size over time",
 	Measure:     videoSize,
-	Aggregation: view.Distribution(0, 1<<32, 2<<32, 3<<32),
+	Aggregation: view.Distribution(1<<32, 2<<32, 3<<32),
 }); err != nil {
 	log.Fatalf("Failed to register view: %v", err)
 }
