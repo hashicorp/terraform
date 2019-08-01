@@ -972,8 +972,89 @@ func TestImport_targetIsModule(t *testing.T) {
 	}
 }
 
+// Test bulk import
+func TestImport_bulk(t *testing.T) {
+	defer testChdir(t, testFixturePath("import-bulk"))()
+
+	statePath := testTempFile(t)
+	bulkPath := testBulkImportFile(t, map[string]string{
+		"test_instance.test1": "abc",
+		"test_instance.test2": "123",
+		"test_instance.test3": "alpha",
+	})
+	defer os.Remove(bulkPath)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ImportCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+	p.ImportResourceStateFn = func(req providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
+		return providers.ImportResourceStateResponse{
+			ImportedResources: []providers.ImportedResource{
+				{
+					TypeName: "test_instance",
+					State: cty.ObjectVal(map[string]cty.Value{
+						"id": cty.StringVal(req.ID),
+					}),
+				},
+			},
+		}
+	}
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Optional: true, Computed: true},
+				},
+			},
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"-bulk", bulkPath,
+	}
+
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	testStateOutput(t, statePath, testBulkImportStr)
+}
+
+func testBulkImportFile(t *testing.T, imports map[string]string) string {
+	t.Helper()
+	f, err := ioutil.TempFile(testingDir, "import")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer f.Close()
+
+	for name, id := range imports {
+		fmt.Fprintf(f, "%s %s\n", name, id)
+	}
+
+	return f.Name()
+}
+
 const testImportStr = `
 test_instance.foo:
   ID = yay
   provider = provider["registry.terraform.io/hashicorp/test"]
+`
+
+const testBulkImportStr = `
+test_instance.test1:
+  ID = abc
+  provider = provider.test
+test_instance.test2:
+  ID = 123
+  provider = provider.test
+test_instance.test3:
+  ID = alpha
+  provider = provider.test
 `
