@@ -3763,9 +3763,10 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 					ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
 						return
 					},
+					Elem: &Schema{Type: TypeString},
 				},
 			},
-			true,
+			false,
 		},
 
 		"computed-only field with validateFunc": {

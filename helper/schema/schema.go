@@ -828,13 +828,6 @@ func (m schemaMap) internalValidate(topSchemaMap schemaMap, attrsOnly bool) erro
 			}
 		}
 
-		if v.ValidateFunc != nil {
-			switch v.Type {
-			case TypeList, TypeSet:
-				return fmt.Errorf("%s: ValidateFunc is not yet supported on lists or sets.", k)
-			}
-		}
-
 		if v.Deprecated == "" && v.Removed == "" {
 			if !isValidFieldName(k) {
 				return fmt.Errorf("%s: Field name may only contain lowercase alphanumeric characters & underscores.", k)
