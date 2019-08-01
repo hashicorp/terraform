@@ -22,8 +22,8 @@ type Config struct {
 }
 
 // GetAuthorizationToken returns an authorization token for the authentication method defined in the Config
-func (c Config) GetAuthorizationToken(oauthConfig *adal.OAuthConfig, endpoint string) (*autorest.BearerAuthorizer, error) {
-	return c.authMethod.getAuthorizationToken(oauthConfig, endpoint)
+func (c Config) GetAuthorizationToken(sender autorest.Sender, oauthConfig *adal.OAuthConfig, endpoint string) (*autorest.BearerAuthorizer, error) {
+	return c.authMethod.getAuthorizationToken(sender, oauthConfig, endpoint)
 }
 
 func (c Config) validate() (*Config, error) {
