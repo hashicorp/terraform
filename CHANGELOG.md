@@ -1,4 +1,8 @@
 ## 0.12.7 (Unreleased)
+
+BUG FIXES:
+* config: fix panic on tuples with for_each [GH-22279]
+
 ## 0.12.6 (July 31, 2019)
 
 NOTES:
