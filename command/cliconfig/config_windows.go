@@ -3,9 +3,12 @@
 package cliconfig
 
 import (
+	"os"
 	"path/filepath"
 	"syscall"
 	"unsafe"
+
+	"golang.org/x/sys/windows"
 )
 
 var (
@@ -43,4 +46,26 @@ func homeDir() (string, error) {
 	}
 
 	return syscall.UTF16ToString(b), nil
+}
+
+func replaceFileAtomic(source, destination string) error {
+	// On Windows, renaming one file over another is not atomic and certain
+	// error conditions can result in having only the source file and nothing
+	// at the destination file. Instead, we need to call into the MoveFileEx
+	// Windows API function.
+	srcPtr, err := syscall.UTF16PtrFromString(source)
+	if err != nil {
+		return &os.LinkError{"replace", source, destination, err}
+	}
+	destPtr, err := syscall.UTF16PtrFromString(destination)
+	if err != nil {
+		return &os.LinkError{"replace", source, destination, err}
+	}
+
+	flags := uint32(windows.MOVEFILE_REPLACE_EXISTING | windows.MOVEFILE_WRITE_THROUGH)
+	err = windows.MoveFileEx(srcPtr, destPtr, flags)
+	if err != nil {
+		return &os.LinkError{"replace", source, destination, err}
+	}
+	return nil
 }
