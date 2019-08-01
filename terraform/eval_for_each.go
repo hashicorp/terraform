@@ -54,7 +54,7 @@ func evaluateResourceForEachExpressionKnown(expr hcl.Expression, ctx EvalContext
 		return map[string]cty.Value{}, false, diags
 	}
 
-	if !forEachVal.Type().IsMapType() && !forEachVal.Type().IsSetType() {
+	if !forEachVal.CanIterateElements() || forEachVal.Type().IsListType() || forEachVal.Type().IsTupleType() {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Invalid for_each argument",
