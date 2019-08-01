@@ -1,7 +1,8 @@
 ## 0.12.7 (Unreleased)
 
 BUG FIXES:
-* config: fix panic on tuples with for_each [GH-22279]
+* config: fix panic on tuples with `for_each` [GH-22279]
+* config: fix references to `each` of `for_each` in provisioners [GH-22289]
 
 ## 0.12.6 (July 31, 2019)
 
