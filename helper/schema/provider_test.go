@@ -269,7 +269,6 @@ func TestProviderValidate(t *testing.T) {
 	}
 }
 
-/* FIXME Invalid timeout structure: []interface {}{map[string]interface {}{"create":"40m"}}
 func TestProviderDiff_legacyTimeoutType(t *testing.T) {
 	p := &Provider{
 		ResourcesMap: map[string]*Resource{
@@ -307,7 +306,6 @@ func TestProviderDiff_legacyTimeoutType(t *testing.T) {
 		t.Fatal(err)
 	}
 }
-*/
 
 func TestProviderDiff_timeoutInvalidValue(t *testing.T) {
 	p := &Provider{

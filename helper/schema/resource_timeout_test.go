@@ -122,7 +122,6 @@ func TestResourceTimeout_ConfigDecode(t *testing.T) {
 	}
 }
 
-/* FIXME Expected good timeout returned:, Invalid Timeout structure found
 func TestResourceTimeout_legacyConfigDecode(t *testing.T) {
 	r := &Resource{
 		Timeouts: &ResourceTimeout{
@@ -158,7 +157,6 @@ func TestResourceTimeout_legacyConfigDecode(t *testing.T) {
 		t.Fatalf("bad timeout decode.\nExpected:\n%#v\nGot:\n%#v\n", expected, timeout)
 	}
 }
-*/
 
 func TestResourceTimeout_DiffEncode_basic(t *testing.T) {
 	cases := []struct {

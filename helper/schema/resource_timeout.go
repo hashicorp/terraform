@@ -78,6 +78,16 @@ func (t *ResourceTimeout) ConfigDecode(s *Resource, c *terraform.ResourceConfig)
 				log.Printf("[ERROR] Invalid timeout value: %q", raw)
 				return fmt.Errorf("Invalid Timeout value found")
 			}
+		case []interface{}:
+			for _, r := range raw {
+				if rMap, ok := r.(map[string]interface{}); ok {
+					rawTimeouts = append(rawTimeouts, rMap)
+				} else {
+					// Go will not allow a fallthrough
+					log.Printf("[ERROR] Invalid timeout structure: %#v", raw)
+					return fmt.Errorf("Invalid Timeout structure found")
+				}
+			}
 		default:
 			log.Printf("[ERROR] Invalid timeout structure: %#v", raw)
 			return fmt.Errorf("Invalid Timeout structure found")
