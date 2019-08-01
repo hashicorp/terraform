@@ -1477,7 +1477,11 @@ func TestLookup(t *testing.T) {
 			"b": cty.StringVal("bat"),
 		}),
 	})
-	mapOfObjects := cty.ObjectVal(map[string]cty.Value{
+	mapOfTuples := cty.MapVal(map[string]cty.Value{
+		"foo": cty.TupleVal([]cty.Value{cty.StringVal("bar")}),
+		"baz": cty.TupleVal([]cty.Value{cty.StringVal("bat")}),
+	})
+	objectOfMaps := cty.ObjectVal(map[string]cty.Value{
 		"foo": cty.MapVal(map[string]cty.Value{
 			"a": cty.StringVal("bar"),
 		}),
@@ -1535,12 +1539,20 @@ func TestLookup(t *testing.T) {
 		},
 		{
 			[]cty.Value{
-				mapOfObjects,
+				objectOfMaps,
 				cty.StringVal("foo"),
 			},
 			cty.MapVal(map[string]cty.Value{
 				"a": cty.StringVal("bar"),
 			}),
+			false,
+		},
+		{
+			[]cty.Value{
+				mapOfTuples,
+				cty.StringVal("foo"),
+			},
+			cty.TupleVal([]cty.Value{cty.StringVal("bar")}),
 			false,
 		},
 		{ // Invalid key
