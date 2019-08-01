@@ -1469,6 +1469,26 @@ func TestLookup(t *testing.T) {
 			cty.StringVal("baz"),
 		}),
 	})
+	mapOfMaps := cty.MapVal(map[string]cty.Value{
+		"foo": cty.MapVal(map[string]cty.Value{
+			"a": cty.StringVal("bar"),
+		}),
+		"baz": cty.MapVal(map[string]cty.Value{
+			"b": cty.StringVal("bat"),
+		}),
+	})
+	mapOfTuples := cty.MapVal(map[string]cty.Value{
+		"foo": cty.TupleVal([]cty.Value{cty.StringVal("bar")}),
+		"baz": cty.TupleVal([]cty.Value{cty.StringVal("bat")}),
+	})
+	objectOfMaps := cty.ObjectVal(map[string]cty.Value{
+		"foo": cty.MapVal(map[string]cty.Value{
+			"a": cty.StringVal("bar"),
+		}),
+		"baz": cty.MapVal(map[string]cty.Value{
+			"b": cty.StringVal("bat"),
+		}),
+	})
 	mapWithUnknowns := cty.MapVal(map[string]cty.Value{
 		"foo": cty.StringVal("bar"),
 		"baz": cty.UnknownVal(cty.String),
@@ -1507,6 +1527,34 @@ func TestLookup(t *testing.T) {
 			cty.NumberIntVal(42),
 			false,
 		},
+		{
+			[]cty.Value{
+				mapOfMaps,
+				cty.StringVal("foo"),
+			},
+			cty.MapVal(map[string]cty.Value{
+				"a": cty.StringVal("bar"),
+			}),
+			false,
+		},
+		{
+			[]cty.Value{
+				objectOfMaps,
+				cty.StringVal("foo"),
+			},
+			cty.MapVal(map[string]cty.Value{
+				"a": cty.StringVal("bar"),
+			}),
+			false,
+		},
+		{
+			[]cty.Value{
+				mapOfTuples,
+				cty.StringVal("foo"),
+			},
+			cty.TupleVal([]cty.Value{cty.StringVal("bar")}),
+			false,
+		},
 		{ // Invalid key
 			[]cty.Value{
 				simpleMap,
@@ -1541,6 +1589,15 @@ func TestLookup(t *testing.T) {
 			cty.StringVal("bar"),
 			false,
 		},
+		{ // Supplied default with valid (int) key
+			[]cty.Value{
+				simpleMap,
+				cty.StringVal("foobar"),
+				cty.NumberIntVal(-1),
+			},
+			cty.StringVal("-1"),
+			false,
+		},
 		{ // Supplied default with valid key
 			[]cty.Value{
 				mapWithObjects,
@@ -1558,6 +1615,15 @@ func TestLookup(t *testing.T) {
 			},
 			cty.StringVal(""),
 			false,
+		},
+		{ // Supplied default with type mismatch: expects a map return
+			[]cty.Value{
+				mapOfMaps,
+				cty.StringVal("foo"),
+				cty.StringVal(""),
+			},
+			cty.NilVal,
+			true,
 		},
 		{ // Supplied non-empty default with invalid key
 			[]cty.Value{
