@@ -53,16 +53,56 @@ The command-line flags are all optional. The list of available flags are:
 
 ## Example: Remove a Resource
 
-The example below removes a single resource in a module:
+The example below removes the `packet_device` resource named `worker`:
 
-```
-$ terraform state rm module.foo.packet_device.worker[0]
+```shell
+$ terraform state rm 'packet_device.worker'
 ```
 
 ## Example: Remove a Module
 
-The example below removes an entire module:
+The example below removes the entire module named `foo`:
 
+```shell
+$ terraform state rm 'module.foo'
 ```
-$ terraform state rm module.foo
+
+## Example: Remove a Module Resource
+
+The example below removes the `packet_device` resource named `worker` inside a module named `foo`:
+
+```shell
+$ terraform state rm 'module.foo.packet_device.worker'
+```
+
+## Example: Remove a Resource using count
+
+The example below removes the first instance of a `packet_device` resource named `worker` using
+[`count`](/docs/configuration/resources.html#count-multiple-resource-instances-by-count):
+
+```shell
+$ terraform state rm 'packet_device.worker[0]'
+```
+
+## Example: Remove a Resource using for_each
+
+The example below removes the `"example"` instance of a `packet_device` resource named `worker` using
+[`for_each`](/docs/configuration/resources.html#for_each-multiple-resource-instances-defined-by-a-map-or-set-of-strings):
+
+Linux, Mac OS, and UNIX:
+
+```shell
+$ terraform state rm 'packet_device.worker["example"]'
+```
+
+PowerShell:
+
+```shell
+$ terraform state rm 'packet_device.worker[\"example\"]'
+```
+
+Windows `cmd.exe`:
+
+```shell
+$ terraform state rm packet_device.worker[\"example\"]
 ```
