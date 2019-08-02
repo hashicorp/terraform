@@ -4,6 +4,7 @@ ENHANCEMENTS:
 * lang/funcs: `lookup()` can work with maps of lists, maps and objects [GH-22269]
 
 BUG FIXES:
+* command/0.12upgrade: use user-supplied plugin-dir [GH-22306]
 * config: fix panic on tuples with `for_each` [GH-22279]
 * config: fix references to `each` of `for_each` in provisioners [GH-22289]
 * plugin/sdk: Azure SDK components used by the `azure` remote state backend have been updated to recent versions. This should help prevent dependency conflicts when using Terraform components or the plugin SDK in other projects that have their own Azure dependencies. [GH-22247], [GH-22248]
