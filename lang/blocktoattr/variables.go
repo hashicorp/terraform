@@ -34,6 +34,8 @@ func walkVariables(node dynblock.WalkVariablesNode, body hcl.Body, schema *confi
 		if blockS, exists := schema.BlockTypes[child.BlockTypeName]; exists {
 			vars = append(vars, walkVariables(child.Node, child.Body(), &blockS.Block)...)
 		} else if attrS, exists := schema.Attributes[child.BlockTypeName]; exists && attrS.Type.IsCollectionType() && attrS.Type.ElementType().IsObjectType() {
+			// ☝️Check for collection type before element type, because if this is a mis-placed reference,
+			// a panic here will prevent other useful diags from being elevated to show the user what to fix
 			synthSchema := SchemaForCtyElementType(attrS.Type.ElementType())
 			vars = append(vars, walkVariables(child.Node, child.Body(), synthSchema)...)
 		}
