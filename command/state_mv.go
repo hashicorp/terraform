@@ -194,11 +194,8 @@ func (c *StateMvCommand) Run(args []string) int {
 			}
 			diags = diags.Append(c.validateResourceMove(addrFrom, addrTo))
 			if stateTo.Module(addrTo.Module) == nil {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					msgInvalidTarget,
-					fmt.Sprintf("Cannot move to %s: %s does not exist in the current state.", addrTo, addrTo.Module),
-				))
+				// moving something to a mew module, so we need to ensure it exists
+				stateTo.EnsureModule(addrTo.Module)
 			}
 			if stateTo.Resource(addrTo) != nil {
 				diags = diags.Append(tfdiags.Sourceless(
@@ -251,11 +248,8 @@ func (c *StateMvCommand) Run(args []string) int {
 			diags = diags.Append(c.validateResourceMove(addrFrom.ContainingResource(), addrTo.ContainingResource()))
 
 			if stateTo.Module(addrTo.Module) == nil {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					msgInvalidTarget,
-					fmt.Sprintf("Cannot move to %s: %s does not exist in the current state.", addrTo, addrTo.Module),
-				))
+				// moving something to a mew module, so we need to ensure it exists
+				stateTo.EnsureModule(addrTo.Module)
 			}
 			if stateTo.ResourceInstance(addrTo) != nil {
 				diags = diags.Append(tfdiags.Sourceless(
