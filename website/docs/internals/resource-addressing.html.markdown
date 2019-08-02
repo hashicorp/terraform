@@ -33,22 +33,31 @@ __Resource spec__:
 A resource spec addresses a specific resource in the config. It takes the form:
 
 ```
-resource_type.resource_name[N]
+resource_type.resource_name[resource index]
 ```
 
  * `resource_type` - Type of the resource being addressed.
  * `resource_name` - User-defined name of the resource.
- * `[N]` - where `N` is a `0`-based index into a resource with multiple
-   instances specified by the `count` meta-parameter. Omitting an index when
-   addressing a resource where `count > 1` means that the address references
-   all instances.
+ * `[resource index]` - an optional index into a resource with multiple
+   instances, surrounded by square brace characters (`[` and `]`).
 
 -> In Terraform v0.12 and later, a resource spec without a module path prefix
 matches only resources in the root module. In earlier versions, a resource spec
 without a module path prefix will match resources with the same type and name
 in any descendent module.
 
+__Resource index__:
+
+ * `[N]` where `N` is a `0`-based numerical index into a resource with multiple
+   instances specified by the `count` meta-parameter. Omitting an index when
+   addressing a resource where `count > 1` means that the address references
+   all instances.
+ * `["INDEX"]` where `INDEX` is a alphanumerical key index into a resource with
+   multiple instances specified by the `for_each` meta-parameter.
+
 ## Examples
+
+### count Example
 
 Given a Terraform config that includes:
 
@@ -69,6 +78,36 @@ Refers to only the last instance in the config, and an address like this:
 
 ```
 aws_instance.web
+```
+
+Refers to all four "web" instances.
+
+### for_each Example
+
+Given a Terraform config that includes:
+
+```hcl
+resource "aws_instance" "web" {
+  # ...
+  for_each = {
+    "terraform": "value1",
+    "resource":  "value2",
+    "indexing":  "value3",
+    "example":   "value4",
+  }
+}
+```
+
+An address like this:
+
+```
+aws_instance.web["example"]
+```
+
+Refers to only the "example" instance in the config, and an address like this:
+
+```
+aws_instance.web[*]
 ```
 
 Refers to all four "web" instances.
