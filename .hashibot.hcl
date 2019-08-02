@@ -3,12 +3,6 @@ behavior "regexp_issue_labeler" "panic_label" {
     labels = ["crash", "bug"]
 }
 
-behavior "regexp_issue_notifier" "panic_notify" {
-    regexp = "panic:"
-    slack_channel = env.TERRAFORM_SLACK_CHANNEL
-    message = "Panic report! https://github.com/${var.repository}/issues/${var.issue_number} has a panic in it."
-}
-
 behavior "remove_labels_on_reply" "remove_stale" {
     labels = ["waiting-response", "stale"]
     only_non_maintainers = true
