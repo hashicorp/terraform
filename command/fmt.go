@@ -290,6 +290,8 @@ Options:
   -check         Check if the input is formatted. Exit status will be 0 if all
                  input is properly formatted and non-zero otherwise.
 
+  -no-color      If specified, output won't contain any color.
+
   -recursive     Also process files in subdirectories. By default, only the
                  given directory (or current directory) is processed.
 `
