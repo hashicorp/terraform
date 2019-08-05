@@ -11,7 +11,6 @@ import (
 	"strings"
 	"text/template"
 
-	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/communicator/remote"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -61,7 +60,6 @@ type provisioner struct {
 	Organization     string
 	BuilderAuthToken string
 	SupOptions       string
-	AcceptLicense    bool
 }
 
 func Provisioner() terraform.ResourceProvisioner {
@@ -89,10 +87,6 @@ func Provisioner() terraform.ResourceProvisioner {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
-			},
-			"accept_license": &schema.Schema{
-				Type:     schema.TypeBool,
-				Required: true,
 			},
 			"permanent_peer": &schema.Schema{
 				Type:     schema.TypeBool,
@@ -296,26 +290,6 @@ func validateFn(c *terraform.ResourceConfig) (ws []string, es []error) {
 		}
 	}
 
-	v, ok := c.Get("version")
-	if ok && v != nil && strings.TrimSpace(v.(string)) != "" {
-		if _, err := version.NewVersion(v.(string)); err != nil {
-			es = append(es, errors.New(v.(string)+" is not a valid version."))
-		}
-	}
-
-	acceptLicense, ok := c.Get("accept_license")
-	if ok && !acceptLicense.(bool) {
-		if v != nil && strings.TrimSpace(v.(string)) != "" {
-			versionOld, _ := version.NewVersion("0.79.0")
-			versionRequired, _ := version.NewVersion(v.(string))
-			if versionRequired.GreaterThan(versionOld) {
-				es = append(es, errors.New("Habitat end user license agreement needs to be accepted, set the accept_license argument to true to accept"))
-			}
-		} else { // blank means latest version
-			es = append(es, errors.New("Habitat end user license agreement needs to be accepted, set the accept_license argument to true to accept"))
-		}
-	}
-
 	// Validate service level configs
 	services, ok := c.Get("service")
 	if ok {
@@ -377,7 +351,6 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 		Peer:             d.Get("peer").(string),
 		Services:         getServices(d.Get("service").(*schema.Set).List()),
 		UseSudo:          d.Get("use_sudo").(bool),
-		AcceptLicense:    d.Get("accept_license").(bool),
 		ServiceType:      d.Get("service_type").(string),
 		ServiceName:      d.Get("service_name").(string),
 		RingKey:          d.Get("ring_key").(string),
@@ -486,17 +459,6 @@ func (p *provisioner) installHab(o terraform.UIOutput, comm communicator.Communi
 
 	if err := p.runCommand(o, comm, command); err != nil {
 		return err
-	}
-
-	// Accept the license
-	if p.AcceptLicense {
-		command = fmt.Sprintf("export HAB_LICENSE=accept; hab -V")
-		if p.UseSudo {
-			command = fmt.Sprintf("sudo HAB_LICENSE=accept hab -V")
-		}
-		if err := p.runCommand(o, comm, command); err != nil {
-			return err
-		}
 	}
 
 	if err := p.createHabUser(o, comm); err != nil {
@@ -640,7 +602,6 @@ func (p *provisioner) createHabUser(o terraform.UIOutput, comm communicator.Comm
 	if p.UseSudo {
 		command = fmt.Sprintf("sudo %s", command)
 	}
-
 	if err := p.runCommand(o, comm, command); err != nil {
 		return err
 	}
