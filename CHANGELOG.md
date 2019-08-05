@@ -2,6 +2,7 @@
 
 ENHANCEMENTS:
 * lang/funcs: `lookup()` can work with maps of lists, maps and objects [GH-22269]
+* provisioners/chef: New option to accept the (required) Habitat EULA [GH-21345]
 
 BUG FIXES:
 * command/0.12upgrade: use user-supplied plugin-dir [GH-22306]
