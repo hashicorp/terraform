@@ -47,7 +47,7 @@ There are 2 configuration levels, `supervisor` and `service`.  Configuration pla
 
 ### Supervisor Arguments
 * `version (string)` - (Optional) The Habitat version to install on the remote machine.  If not specified, the latest available version is used.
-* `license (string)` - (Optional) Sets the acceptance of Chef licensing: https://www.chef.io/end-user-license-agreement/
+* `license (string)` - (Optional) Sets the acceptance of Chef licensing (one of `accept-no-persist` or `accept`): https://www.chef.io/end-user-license-agreement/
 * `auto_update (bool)` - (Optional) If set to `true`, the supervisor will auto-update itself as soon as new releases are available on the specified `channel`.
 * `http_disable (bool)` - (Optional) If set to `true`, disables the supervisor HTTP listener entirely.
 * `peers (array)` - (Optional) A list of IP or FQDN's of other supervisor instance(s) to peer with. (Defaults to none)
