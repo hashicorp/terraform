@@ -12,6 +12,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/configs/configschema"
 )
@@ -184,6 +185,15 @@ type ResourceConfig struct {
 	ComputedKeys []string
 	Raw          map[string]interface{}
 	Config       map[string]interface{}
+
+	raw *config.RawConfig
+}
+
+// NewResourceConfig creates a new ResourceConfig from a config.RawConfig.
+func NewResourceConfig(c *config.RawConfig) *ResourceConfig {
+	result := &ResourceConfig{raw: c}
+	result.interpolateForce()
+	return result
 }
 
 // NewResourceConfigRaw constructs a ResourceConfig whose content is exactly
@@ -500,6 +510,31 @@ func (c *ResourceConfig) get(
 	}
 
 	return current, true
+}
+
+// interpolateForce is a temporary thing. We want to get rid of interpolate
+// above and likewise this, but it can only be done after the f-ast-graph
+// refactor is complete.
+func (c *ResourceConfig) interpolateForce() {
+	if c.raw == nil {
+		// If we don't have a lowercase "raw" but we _do_ have the uppercase
+		// Raw populated then this indicates that we're recieving a shim
+		// ResourceConfig created by NewResourceConfigShimmed, which is already
+		// fully evaluated and thus this function doesn't need to do anything.
+		if c.Raw != nil {
+			return
+		}
+
+		var err error
+		c.raw, err = config.NewRawConfig(make(map[string]interface{}))
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	c.ComputedKeys = c.raw.UnknownKeys()
+	c.Raw = c.raw.RawMap()
+	c.Config = c.raw.Config()
 }
 
 // unknownCheckWalker
