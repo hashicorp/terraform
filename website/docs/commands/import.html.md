@@ -126,18 +126,18 @@ The example below will import an AWS instance into the `aws_instance` resource n
 $ terraform import module.foo.aws_instance.bar i-abcd1234
 ```
 
-## Example: Import into Resource using count
+## Example: Import into Resource configured with count
 
-The example below will import an AWS instance into the first instance of the `aws_instance` resource named `baz` using
+The example below will import an AWS instance into the first instance of the `aws_instance` resource named `baz` configured with
 [`count`](/docs/configuration/resources.html#count-multiple-resource-instances-by-count):
 
 ```shell
 $ terraform import 'aws_instance.baz[0]' i-abcd1234
 ```
 
-## Example: Import into Resource using for_each
+## Example: Import into Resource configured with for_each
 
-The example below will import an AWS instance into the `"example"` instance of the `aws_instance` resource named `baz` using
+The example below will import an AWS instance into the `"example"` instance of the `aws_instance` resource named `baz` configured with
 [`for_each`](/docs/configuration/resources.html#for_each-multiple-resource-instances-defined-by-a-map-or-set-of-strings):
 
 Linux, Mac OS, and UNIX:
