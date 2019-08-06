@@ -88,6 +88,8 @@ func (s *Scope) Functions() map[string]function.Function {
 			"pathexpand":       funcs.PathExpandFunc,
 			"pow":              funcs.PowFunc,
 			"range":            stdlib.RangeFunc,
+			"regex":            stdlib.RegexFunc,
+			"regexall":         stdlib.RegexAllFunc,
 			"replace":          funcs.ReplaceFunc,
 			"reverse":          funcs.ReverseFunc,
 			"rsadecrypt":       funcs.RsaDecryptFunc,

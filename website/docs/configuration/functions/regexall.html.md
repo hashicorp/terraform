@@ -1,0 +1,62 @@
+---
+layout: "functions"
+page_title: "regexall - Functions - Configuration Language"
+sidebar_current: "docs-funcs-string-regexall"
+description: |-
+  The regex function applies a regular expression to a string and returns a list of all matches.
+---
+
+# `regexall` Function
+
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
+
+`regexall` applies a
+[regular expression](https://en.wikipedia.org/wiki/Regular_expression)
+to a string and returns a list of all matches.
+
+```hcl
+regexall(pattern, string)
+```
+
+`regexall` is a variant of [`regex`](./regex.html) and uses the same pattern
+syntax. For any given input to `regex`, `regexall` returns a list of whatever
+type `regex` would've returned, with one element per match. That is:
+
+- If the pattern has no capture groups at all, the result is a list of
+  strings.
+- If the pattern has one or more _unnamed_ capture groups, the result is a
+  list of lists.
+- If the pattern has one or more _named_ capture groups, the result is a
+  list of maps.
+
+`regexall` can also be used to test whether a particular string matches a
+given pattern, by testing whether the length of the resulting list of matches
+is greater than zero.
+
+## Examples
+
+```
+> regexall("[a-z]+", "1234abcd5678efgh9")
+[
+  "abcd",
+  "efgh",
+]
+
+> length(regexall("[a-z]+", "1234abcd5678efgh9"))
+2
+
+> length(regexall("[a-z]+", "123456789")) > 0
+false
+```
+
+## Related Functions
+
+- [`regex`](./regex.html) searches for a single match of a given pattern, and
+  returns an error if no match is found.
+
+If Terraform already has a more specialized function to parse the syntax you
+are trying to match, prefer to use that function instead. Regular expressions
+can be hard to read and can obscure your intent, making a configuration harder
+to read and understand.
