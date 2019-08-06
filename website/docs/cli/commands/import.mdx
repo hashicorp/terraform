@@ -35,16 +35,16 @@ If you import the same object multiple times, Terraform may exhibit unwanted
 behavior. For more information on this assumption, see
 [the State section](/language/state).
 
-When importing numerous resources, it is more efficient ot use the `-bulk` option
+When importing numerous resources, it is more efficient to use the `-bulk` option
 to import many resources at once, rather than needing to modify the state for each
 resource individually.
 
 The command-line flags are all optional. The following flags are available:
 
-- `-bulk=path` -  Import resources in bulk from a file. If this option is
+- `-bulk=path` - Import resources in bulk from a file. If this option is
   supplied, then ADDR and ID should not be given on the command line. Instead,
-  the file at the path should contain lines with addresses and ids seperated by a
-  space on each line.
+  the file at the path should be a JSON file with a single object mapping the
+  resource name to the id to import.
 
 - `-config=path` - Path to directory of Terraform configuration files that
   configure the provider for import. This defaults to your working directory.

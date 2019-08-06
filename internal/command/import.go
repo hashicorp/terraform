@@ -1,7 +1,7 @@
 package command
 
 import (
-	"bufio"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -83,26 +83,21 @@ func (c *ImportCommand) importBulk(configPath string, importFile string) int {
 			return 1
 		}
 	}
+	decoder := json.NewDecoder(input)
+	var mapping map[string]string
+	err = decoder.Decode(&mapping)
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Unable to parse JSON: %s", err))
+		return 1
+	}
+
 	var targets []*terraform.ImportTarget
-	scanner := bufio.NewScanner(input)
-	for scanner.Scan() {
-		line := strings.Trim(scanner.Text(), " ")
-		// This assumes that there aren't any spaces in the ID. But as far
-		// as I know, that is a good assumption.
-		splitIdx := strings.LastIndex(line, " ")
-		if splitIdx < 0 {
-			c.Ui.Error("Each line of input must be a resource and id seperated by a space.")
-			return 1
-		}
-		target, ok := c.getTarget(line[:splitIdx], line[splitIdx+1:])
+	for addr, id := range mapping {
+		target, ok := c.getTarget(addr, id)
 		if !ok {
 			return 1
 		}
 		targets = append(targets, target)
-	}
-	if err = scanner.Err(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error reading input: %s.", err))
-		return 1
 	}
 
 	return c.importTargets(configPath, targets)
@@ -387,9 +382,9 @@ Options:
 
   -bulk=path              Import resources in bulk from a file. If this option is
                           supplied, then ADDR and ID should not be given on the
-                          command line. Instead, the file at the path should
-                          contain lines with addresses and ids seperated by a
-                          space on each line. A path of "-" will cause it to
+                          command line. Instead, the file at the path should be a
+                          JSON file with a single object mapping the resource name
+                          to the id to import. A path of "-" will cause it to
                           read from stdin.
 
   -input=false            Disable interactive input prompts.
