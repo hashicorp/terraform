@@ -5,7 +5,7 @@ sidebar_current: "guides-core-workflow"
 description: |-
   This guide provides an overview of the core Terraform workflow and how it
   applies in individual, team, and organization contexts across Terraform open
-  source and Terraform Enterprise.
+  source and Terraform Cloud.
 ---
 
 # The Core Terraform Workflow
@@ -18,11 +18,11 @@ The core Terraform workflow has three steps:
 
 This guide walks through how each of these three steps plays out in the context
 of working as an individual practitioner, how they evolve when a team is
-collaborating on infrastructure, and how Terraform Enterprise enables this
+collaborating on infrastructure, and how Terraform Cloud enables this
 workflow to run smoothly for entire organizations.
 
 ## Working as an Individual Practitioner
- 
+
 Let's first walk through how these parts fit together as an individual working
 on infrastructure as code.
 
@@ -220,22 +220,22 @@ Just like the workflow for individuals, the core workflow for teams is a loop
 that plays out for each change. For some teams this loop happens a few times a
 week, for others, many times a day.
 
-## The Core Workflow Enhanced by Terraform Enterprise
+## The Core Workflow Enhanced by Terraform Cloud
 
 While the above described workflows enable the safe, predictable, and
 reproducible creating or changing of infrastructure, there are multiple
 collaboration points that can be streamlined, especially as teams and
-organizations scale.  We designed Terraform Enterprise to support and enhance
+organizations scale.  We designed Terraform Cloud to support and enhance
 the core Terraform workflow for anyone collaborating on infrastructure, from
-small teams to large organizations. Let's look at how Terraform Enterprise makes
+small teams to large organizations. Let's look at how Terraform Cloud makes
 for a better experience at each step.
 
 ### Write
 
-Terraform Enterprise provides a centralized and secure location for storing
+Terraform Cloud provides a centralized and secure location for storing
 input variables and state while also bringing back a tight feedback loop for
 speculative plans for config authors. Terraform configuration interacts with
-Terraform Enterprise via the ["remote" backend](/docs/backends/types/remote.html).
+Terraform Cloud via the ["remote" backend](/docs/backends/types/remote.html).
 
 ```
 terraform {
@@ -248,7 +248,7 @@ terraform {
 }
 ```
 
-Once the backend is wired up, a Terraform Enterprise API key is all that's
+Once the backend is wired up, a Terraform Cloud API key is all that's
 needed by team members to be able to edit config and run speculative plans
 against the latest version of the state file using all the remotely stored
 input variables.
@@ -277,7 +277,7 @@ authoring config until it is ready to propose as a change via a pull request.
 
 ### Plan
 
-Once a pull request is ready for review, Terraform Enterprise makes the process
+Once a pull request is ready for review, Terraform Cloud makes the process
 of reviewing a speculative plan easier for team members. First, the plan is
 automatically run when the pull request is created. Status updates to the pull
 request indicate while the plan is in progress.
@@ -289,17 +289,17 @@ changes in the speculative plan, right from the pull request view.
 
 For certain types of changes, this information is all that's needed for a team
 member to be able to approve the pull request. When a teammate needs to do a
-full review of the plan, clicking the link to Terraform Enterprise brings up a
+full review of the plan, clicking the link to Terraform Cloud brings up a
 view that allows them to quickly analyze the full plan details.
 
-![Screenshot of Pull Request run in Terraform Enterprise](guides/core-workflow/pr-plan.png)
+![Screenshot of Pull Request run in Terraform Cloud](guides/core-workflow/pr-plan.png)
 
 This page allows the reviewer to quickly determine if the plan is matching the
 config author's intent and evaluate the risk of the change.
 
 ### Apply
 
-After merge, Terraform Enterprise presents the concrete plan to the team for
+After merge, Terraform Cloud presents the concrete plan to the team for
 review and approval.
 
 ![Screenshot of concrete plan](guides/core-workflow/concrete-plan.png)
@@ -307,9 +307,9 @@ review and approval.
 The team can discuss any outstanding questions about the plan before the change
 is made.
 
-![Screenshot of back-and-forth in TFE comments](guides/core-workflow/plan-comments.png)
+![Screenshot of back-and-forth in Terraform Cloud comments](guides/core-workflow/plan-comments.png)
 
-Once the Apply is confirmed, Terraform Enterprise displays the progress live
+Once the Apply is confirmed, Terraform Cloud displays the progress live
 to anyone who'd like to watch.
 
 ![Screenshot of in-progress Apply](guides/core-workflow/in-progress-apply.png)
@@ -331,5 +331,5 @@ There are many different ways to use Terraform: as an individual user, a single
 team, or an entire organization at scale. Choosing the best approach for the
 density of collaboration needed will provide the most return on your investment
 in the core Terraform workflow. For organizations using Terraform at scale,
-Terraform Enterprise introduces new layers that build on this core workflow to
+Terraform Cloud introduces new layers that build on this core workflow to
 solve problems unique to teams and organizations.

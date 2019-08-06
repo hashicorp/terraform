@@ -130,7 +130,7 @@ or if there is a well-defined release process that avoids unwanted updates.
 
 Version constraints are supported only for modules installed from a module
 registry, such as the [Terraform Registry](https://registry.terraform.io/) or
-[Terraform Enterprise's private module registry](/docs/enterprise/registry/index.html).
+[Terraform Cloud's private module registry](/docs/cloud/registry/index.html).
 Other module sources can provide their own versioning mechanisms within the
 source string itself, or might not support versions at all. In particular,
 modules sourced from local file paths do not support `version`; since

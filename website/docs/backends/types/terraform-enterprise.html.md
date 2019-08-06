@@ -3,17 +3,18 @@ layout: "backend-types"
 page_title: "Backend Type: terraform enterprise"
 sidebar_current: "docs-backends-types-standard-terraform-enterprise"
 description: |-
-  Terraform can store the state in Terraform Enterprise
+  Terraform can store its state in Terraform Enterprise
 ---
 
 # terraform enterprise
 
--> **Deprecated** Please use the new enhanced [remote](/docs/backends/types/remote.html)
-backend for storing state and running remote operations in Terraform Enterprise.
+!> **The `atlas` backend is deprecated.** Please use the new enhanced
+[remote](/docs/backends/types/remote.html) backend for storing state and running
+remote operations in Terraform Cloud.
 
 **Kind: Standard (with no locking)**
 
-Reads and writes state from a [Terraform Enterprise](/docs/enterprise/index.html)
+Reads and writes state from a [Terraform Enterprise](/docs/cloud/index.html)
 workspace.
 
 -> **Why is this called "atlas"?** Before it was a standalone offering,
@@ -21,14 +22,11 @@ Terraform Enterprise was part of an integrated suite of enterprise products
 called Atlas. This backend predates the current version Terraform Enterprise, so
 it uses the old name.
 
-This backend is useful for uncommon tasks like migrating state into a Terraform
-Enterprise workspace, but we no longer recommend using it as part of your
-day-to-day Terraform workflow. Since it performs runs outside of Terraform
-Enterprise and updates state directly, it does not support Terraform
-Enterprise's collaborative features like [workspace
-locking](/docs/enterprise/run/index.html). To perform Terraform Enterprise runs
-from the command line, use [Terraform Enterprise's CLI-driven
-workflow](/docs/enterprise/run/cli.html) instead.
+We no longer recommend using this backend, as it does not support collaboration
+features like [workspace
+locking](/docs/cloud/run/index.html). Please use the new enhanced
+[remote](/docs/backends/types/remote.html) backend for storing state and running
+remote operations in Terraform Cloud.
 
 ## Example Configuration
 
@@ -61,7 +59,7 @@ The following configuration options / environment variables are supported:
 
 * `name` - (Required) Full name of the workspace (`<ORGANIZATION>/<WORKSPACE>`).
 * `ATLAS_TOKEN`/ `access_token`  - (Optional) A Terraform Enterprise [user API
-  token](/docs/enterprise/users-teams-organizations/users.html#api-tokens). We
+  token](/docs/cloud/users-teams-organizations/users.html#api-tokens). We
   recommend using the `ATLAS_TOKEN` environment variable rather than setting
   `access_token` in the configuration. If not set, the token will be requested
   during a `terraform init` and saved locally.
