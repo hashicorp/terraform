@@ -1,5 +1,8 @@
 ## 0.12.7 (Unreleased)
 
+NEW FEATURES:
+* New functions `regex` and `regexall` allow applying a regular expression pattern to a string and retrieving any matching substring(s) [GH-22353]
+
 ENHANCEMENTS:
 * lang/funcs: `lookup()` can work with maps of lists, maps and objects [GH-22269]
 
