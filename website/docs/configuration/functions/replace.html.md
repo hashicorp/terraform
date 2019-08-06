@@ -21,11 +21,11 @@ replace(string, substring, replacement)
 ```
 
 If `substring` is wrapped in forward slashes, it is treated as a regular
-expression; the syntax conforms to the [re2 regular expression
-syntax](https://github.com/google/re2/wiki/Syntax) syntax. If using a regular
-expression for the substring argument, the `replacement` string can incorporate
-captured strings from the input by using an `$n` sequence, where `n` is the
-index or name of a capture group.
+expression, using the same pattern syntax as
+[`regex`](./regex.html). If using a regular expression for the substring
+argument, the `replacement` string can incorporate captured strings from
+the input by using an `$n` sequence, where `n` is the index or name of a
+capture group.
 
 ## Examples
 
@@ -36,3 +36,8 @@ index or name of a capture group.
 > replace("hello world", "/w.*d/", "everybody")
 hello everybody
 ```
+
+## Related Functions
+
+- [`regex`](./regex.html) searches a given string for a substring matching a
+  given regular expression pattern.
