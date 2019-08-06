@@ -14,7 +14,7 @@ infrastructure type can be represented as a resource in Terraform.
 
 A provider is responsible for understanding API interactions and exposing
 resources. Providers generally are an IaaS (e.g. AWS, GCP, Microsoft Azure,
-OpenStack), PaaS (e.g. Heroku), or SaaS services (e.g. Terraform Enterprise,
+OpenStack), PaaS (e.g. Heroku), or SaaS services (e.g. Terraform Cloud,
 DNSimple, CloudFlare).
 
 Use the navigation to the left to find available providers by type or scroll
@@ -121,7 +121,7 @@ down to see all providers.
 - [Template](/docs/providers/template/index.html)
 - [TencentCloud](/docs/providers/tencentcloud/index.html)
 - [Terraform](/docs/providers/terraform/index.html)
-- [Terraform Enterprise](/docs/providers/tfe/index.html)
+- [Terraform Cloud](/docs/providers/tfe/index.html)
 - [TLS](/docs/providers/tls/index.html)
 - [Triton](/docs/providers/triton/index.html)
 - [UCloud](/docs/providers/ucloud/index.html)
