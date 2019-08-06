@@ -2,6 +2,7 @@ package oss
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/sts"
@@ -9,7 +10,9 @@ import (
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
+	"io/ioutil"
 	"os"
+	"runtime"
 	"strings"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk"
@@ -134,6 +137,17 @@ func New() backend.Backend {
 			},
 
 			"assume_role": assumeRoleSchema(),
+			"shared_credentials_file": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "This is the path to the shared credentials file. If this is not set and a profile is specified, `~/.aliyun/config.json` will be used.",
+			},
+			"profile": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "This is the Alibaba Cloud profile name as set in the shared credentials file. It can also be sourced from the `ALICLOUD_PROFILE` environment variable.",
+				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_PROFILE", ""),
+			},
 		},
 	}
 
@@ -159,7 +173,7 @@ func assumeRoleSchema() *schema.Schema {
 					Type:        schema.TypeString,
 					Optional:    true,
 					Description: "The session name to use when assuming the role.",
-					DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_ASSUME_ROLE_SESSION_NAME", "terraform"),
+					DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_ASSUME_ROLE_SESSION_NAME", ""),
 				},
 				"policy": {
 					Type:        schema.TypeString,
@@ -171,7 +185,6 @@ func assumeRoleSchema() *schema.Schema {
 					Optional:     true,
 					Description:  "The time after which the established session for assuming role expires.",
 					ValidateFunc: validation.IntBetween(900, 3600),
-					DefaultFunc:  schema.EnvDefaultFunc("ALICLOUD_ASSUME_ROLE_SESSION_EXPIRATION", 3600),
 				},
 			},
 		},
@@ -209,26 +222,66 @@ func (b *Backend) configure(ctx context.Context) error {
 	b.serverSideEncryption = d.Get("encrypt").(bool)
 	b.acl = d.Get("acl").(string)
 
-	accessKey := d.Get("access_key").(string)
-	secretKey := d.Get("secret_key").(string)
-	securityToken := d.Get("security_token").(string)
-	region := d.Get("region").(string)
+	var getBackendConfig = func(str string, key string) string {
+		if str == "" {
+			value, err := getConfigFromProfile(d, key)
+			if err == nil && value != nil {
+				str = value.(string)
+			}
+		}
+		return str
+	}
+
+	accessKey := getBackendConfig(d.Get("access_key").(string), "access_key_id")
+	secretKey := getBackendConfig(d.Get("secret_key").(string), "access_key_secret")
+	securityToken := getBackendConfig(d.Get("security_token").(string), "sts_token")
+	region := getBackendConfig(d.Get("region").(string), "region_id")
+
 	endpoint := d.Get("endpoint").(string)
 	schma := "https"
+
+	roleArn := getBackendConfig("", "ram_role_arn")
+	sessionName := getBackendConfig("", "ram_session_name")
+	var policy string
+	var sessionExpiration int
+	expiredSeconds, err := getConfigFromProfile(d, "expired_seconds")
+	if err == nil && expiredSeconds != nil {
+		sessionExpiration = (int)(expiredSeconds.(float64))
+	}
 
 	if v, ok := d.GetOk("assume_role"); ok {
 		for _, v := range v.(*schema.Set).List() {
 			assumeRole := v.(map[string]interface{})
-			roleArn := assumeRole["role_arn"].(string)
-			sessionName := assumeRole["session_name"].(string)
-			policy := assumeRole["policy"].(string)
-			sessionExpiration := assumeRole["session_expiration"].(int)
-			subAccessKeyId, subAccessKeySecret, subSecurityToken, err := getAssumeRoleAK(accessKey, secretKey, region, roleArn, sessionName, policy, sessionExpiration)
-			if err != nil {
-				return err
+			if assumeRole["role_arn"].(string) != "" {
+				roleArn = assumeRole["role_arn"].(string)
 			}
-			accessKey, secretKey, securityToken = subAccessKeyId, subAccessKeySecret, subSecurityToken
+			if assumeRole["session_name"].(string) != "" {
+				sessionName = assumeRole["session_name"].(string)
+			}
+			if sessionName == "" {
+				sessionName = "terraform"
+			}
+			policy = assumeRole["policy"].(string)
+			sessionExpiration = assumeRole["session_expiration"].(int)
+			if sessionExpiration == 0 {
+				if v := os.Getenv("ALICLOUD_ASSUME_ROLE_SESSION_EXPIRATION"); v != "" {
+					if expiredSeconds, err := strconv.Atoi(v); err == nil {
+						sessionExpiration = expiredSeconds
+					}
+				}
+				if sessionExpiration == 0 {
+					sessionExpiration = 3600
+				}
+			}
 		}
+	}
+
+	if roleArn != "" {
+		subAccessKeyId, subAccessKeySecret, subSecurityToken, err := getAssumeRoleAK(accessKey, secretKey, region, roleArn, sessionName, policy, sessionExpiration)
+		if err != nil {
+			return err
+		}
+		accessKey, secretKey, securityToken = subAccessKeyId, subAccessKeySecret, subSecurityToken
 	}
 
 	if endpoint == "" {
@@ -381,4 +434,72 @@ func (a *Invoker) Run(f func() error) error {
 		}
 	}
 	return err
+}
+
+var providerConfig map[string]interface{}
+
+func getConfigFromProfile(d *schema.ResourceData, ProfileKey string) (interface{}, error) {
+
+	if providerConfig == nil {
+		if v, ok := d.GetOk("profile"); !ok || v.(string) == "" {
+			return nil, nil
+		}
+		current := d.Get("profile").(string)
+		profilePath := d.Get("shared_credentials_file").(string)
+		if profilePath == "" {
+			profilePath = fmt.Sprintf("%s/.aliyun/config.json", os.Getenv("HOME"))
+			if runtime.GOOS == "windows" {
+				profilePath = fmt.Sprintf("%s/.aliyun/config.json", os.Getenv("USERPROFILE"))
+			}
+		}
+		providerConfig = make(map[string]interface{})
+		_, err := os.Stat(profilePath)
+		if !os.IsNotExist(err) {
+			data, err := ioutil.ReadFile(profilePath)
+			if err != nil {
+				return nil, err
+			}
+			config := map[string]interface{}{}
+			err = json.Unmarshal(data, &config)
+			if err != nil {
+				return nil, err
+			}
+			for _, v := range config["profiles"].([]interface{}) {
+				if current == v.(map[string]interface{})["name"] {
+					providerConfig = v.(map[string]interface{})
+				}
+			}
+		}
+	}
+
+	mode := ""
+	if v, ok := providerConfig["mode"]; ok {
+		mode = v.(string)
+	} else {
+		return v, nil
+	}
+	switch ProfileKey {
+	case "access_key_id", "access_key_secret":
+		if mode == "EcsRamRole" {
+			return "", nil
+		}
+	case "ram_role_name":
+		if mode != "EcsRamRole" {
+			return "", nil
+		}
+	case "sts_token":
+		if mode != "StsToken" {
+			return "", nil
+		}
+	case "ram_role_arn", "ram_session_name":
+		if mode != "RamRoleArn" {
+			return "", nil
+		}
+	case "expired_seconds":
+		if mode != "RamRoleArn" {
+			return float64(0), nil
+		}
+	}
+
+	return providerConfig[ProfileKey], nil
 }

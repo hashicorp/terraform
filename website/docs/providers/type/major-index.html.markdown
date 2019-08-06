@@ -19,7 +19,7 @@ tested by HashiCorp.
 ---
 
 
-- [AliCloud](/docs/providers/alicloud/index.html)
+- [Alibaba Cloud](/docs/providers/alicloud/index.html)
 - [AWS](/docs/providers/aws/index.html)
 - [Azure](/docs/providers/azurerm/index.html)
 - [Azure Stack](/docs/providers/azurestack/index.html)
