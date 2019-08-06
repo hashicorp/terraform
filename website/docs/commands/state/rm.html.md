@@ -75,18 +75,18 @@ The example below removes the `packet_device` resource named `worker` inside a m
 $ terraform state rm 'module.foo.packet_device.worker'
 ```
 
-## Example: Remove a Resource using count
+## Example: Remove a Resource configured with count
 
-The example below removes the first instance of a `packet_device` resource named `worker` using
+The example below removes the first instance of a `packet_device` resource named `worker` configured with
 [`count`](/docs/configuration/resources.html#count-multiple-resource-instances-by-count):
 
 ```shell
 $ terraform state rm 'packet_device.worker[0]'
 ```
 
-## Example: Remove a Resource using for_each
+## Example: Remove a Resource configured with for_each
 
-The example below removes the `"example"` instance of a `packet_device` resource named `worker` using
+The example below removes the `"example"` instance of a `packet_device` resource named `worker` configured with
 [`for_each`](/docs/configuration/resources.html#for_each-multiple-resource-instances-defined-by-a-map-or-set-of-strings):
 
 Linux, Mac OS, and UNIX:
