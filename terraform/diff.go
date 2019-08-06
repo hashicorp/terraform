@@ -13,8 +13,8 @@ import (
 	"sync"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/mitchellh/copystructure"

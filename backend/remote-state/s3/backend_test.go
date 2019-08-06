@@ -11,7 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/states"
 )
