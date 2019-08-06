@@ -116,8 +116,8 @@ func ObjectValueName(obj cty.Value) (k, v string) {
 func ObjectValueIDOrName(obj cty.Value) (k, v string) {
 	k, v = ObjectValueID(obj)
 	if k != "" {
-		return
+		return k, v
 	}
 	k, v = ObjectValueName(obj)
-	return
+	return k, v
 }
