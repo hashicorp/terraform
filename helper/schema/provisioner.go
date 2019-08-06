@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -146,13 +145,9 @@ func (p *Provisioner) Apply(
 			}
 		}
 
-		c, err := config.NewRawConfig(raw)
-		if err != nil {
-			return err
-		}
-
+		c := terraform.NewResourceConfigRaw(raw)
 		sm := schemaMap(p.ConnSchema)
-		diff, err := sm.Diff(nil, terraform.NewResourceConfig(c), nil, nil, true)
+		diff, err := sm.Diff(nil, c, nil, nil, true)
 		if err != nil {
 			return err
 		}
