@@ -281,7 +281,7 @@ func NewSessionWithOptions(opts Options) (*Session, error) {
 		envCfg = loadEnvConfig()
 	}
 
-	if len(opts.Profile) > 0 {
+	if len(opts.Profile) != 0 {
 		envCfg.Profile = opts.Profile
 	}
 
