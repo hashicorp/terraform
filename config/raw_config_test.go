@@ -7,7 +7,7 @@ import (
 
 	hcl2 "github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/hil/ast"
-	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 )
 
 func TestNewRawConfig(t *testing.T) {
