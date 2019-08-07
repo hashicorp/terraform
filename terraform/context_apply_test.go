@@ -18,8 +18,6 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/go-test/deep"
 	"github.com/google/go-cmp/cmp"
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
@@ -29,6 +27,7 @@ import (
 	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestContext2Apply_basic(t *testing.T) {
@@ -3849,33 +3848,33 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 	}
 
 	checkConfig("multi_count_var.0", map[string]interface{}{
-		"source_id":   unknownValue(),
+		"source_id":   hcl2shim.UnknownVariableValue,
 		"source_name": "source.0",
 	})
 	checkConfig("multi_count_var.2", map[string]interface{}{
-		"source_id":   unknownValue(),
+		"source_id":   hcl2shim.UnknownVariableValue,
 		"source_name": "source.2",
 	})
 	checkConfig("multi_count_derived.0", map[string]interface{}{
-		"source_id":   unknownValue(),
+		"source_id":   hcl2shim.UnknownVariableValue,
 		"source_name": "source.0",
 	})
 	checkConfig("multi_count_derived.2", map[string]interface{}{
-		"source_id":   unknownValue(),
+		"source_id":   hcl2shim.UnknownVariableValue,
 		"source_name": "source.2",
 	})
 	checkConfig("whole_splat", map[string]interface{}{
 		"source_ids": []interface{}{
-			unknownValue(),
-			unknownValue(),
-			unknownValue(),
+			hcl2shim.UnknownVariableValue,
+			hcl2shim.UnknownVariableValue,
+			hcl2shim.UnknownVariableValue,
 		},
 		"source_names": []interface{}{
 			"source.0",
 			"source.1",
 			"source.2",
 		},
-		"source_ids_from_func": unknownValue(),
+		"source_ids_from_func": hcl2shim.UnknownVariableValue,
 		"source_names_from_func": []interface{}{
 			"source.0",
 			"source.1",
@@ -3884,9 +3883,9 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 
 		"source_ids_wrapped": []interface{}{
 			[]interface{}{
-				unknownValue(),
-				unknownValue(),
-				unknownValue(),
+				hcl2shim.UnknownVariableValue,
+				hcl2shim.UnknownVariableValue,
+				hcl2shim.UnknownVariableValue,
 			},
 		},
 		"source_names_wrapped": []interface{}{
@@ -3897,14 +3896,14 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 			},
 		},
 
-		"first_source_id":   unknownValue(),
+		"first_source_id":   hcl2shim.UnknownVariableValue,
 		"first_source_name": "source.0",
 	})
 	checkConfig("child.whole_splat", map[string]interface{}{
 		"source_ids": []interface{}{
-			unknownValue(),
-			unknownValue(),
-			unknownValue(),
+			hcl2shim.UnknownVariableValue,
+			hcl2shim.UnknownVariableValue,
+			hcl2shim.UnknownVariableValue,
 		},
 		"source_names": []interface{}{
 			"source.0",
@@ -3914,9 +3913,9 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 
 		"source_ids_wrapped": []interface{}{
 			[]interface{}{
-				unknownValue(),
-				unknownValue(),
-				unknownValue(),
+				hcl2shim.UnknownVariableValue,
+				hcl2shim.UnknownVariableValue,
+				hcl2shim.UnknownVariableValue,
 			},
 		},
 		"source_names_wrapped": []interface{}{
@@ -4938,7 +4937,7 @@ func TestContext2Apply_multiDepose_createBeforeDestroy(t *testing.T) {
 		return &InstanceDiff{
 			Attributes: map[string]*ResourceAttrDiff{
 				"id": {
-					New:         unknownValue(),
+					New:         hcl2shim.UnknownVariableValue,
 					NewComputed: true,
 					RequiresNew: true,
 				},
