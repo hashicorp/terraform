@@ -166,7 +166,30 @@ func (h *Host) ServiceOAuthClient(id string) (*OAuthClient, error) {
 		return nil, fmt.Errorf("Service %s must be declared with an object value in the service discovery document", id)
 	}
 
-	ret := &OAuthClient{}
+	var grantTypes OAuthGrantTypeSet
+	if rawGTs, ok := raw["grant_types"]; ok {
+		if gts, ok := rawGTs.([]interface{}); ok {
+			var kws []string
+			for _, gtI := range gts {
+				gt, ok := gtI.(string)
+				if !ok {
+					// We'll ignore this so that we can potentially introduce
+					// other types into this array later if we need to.
+					continue
+				}
+				kws = append(kws, gt)
+			}
+			grantTypes = NewOAuthGrantTypeSet(kws...)
+		} else {
+			return nil, fmt.Errorf("Service %s is defined with invalid grant_types property: must be an array of grant type strings", id)
+		}
+	} else {
+		grantTypes = NewOAuthGrantTypeSet("authz_code")
+	}
+
+	ret := &OAuthClient{
+		SupportedGrantTypes: grantTypes,
+	}
 	if clientIDStr, ok := raw["client"].(string); ok {
 		ret.ID = clientIDStr
 	} else {
@@ -179,7 +202,9 @@ func (h *Host) ServiceOAuthClient(id string) (*OAuthClient, error) {
 		}
 		ret.AuthorizationURL = u
 	} else {
-		return nil, fmt.Errorf("Service %s definition is missing required property \"authz\"", id)
+		if grantTypes.RequiresAuthorizationEndpoint() {
+			return nil, fmt.Errorf("Service %s definition is missing required property \"authz\"", id)
+		}
 	}
 	if urlStr, ok := raw["token"].(string); ok {
 		u, err := h.parseURL(urlStr)
@@ -188,7 +213,9 @@ func (h *Host) ServiceOAuthClient(id string) (*OAuthClient, error) {
 		}
 		ret.TokenURL = u
 	} else {
-		return nil, fmt.Errorf("Service %s definition is missing required property \"token\"", id)
+		if grantTypes.RequiresTokenEndpoint() {
+			return nil, fmt.Errorf("Service %s definition is missing required property \"token\"", id)
+		}
 	}
 	if portsRaw, ok := raw["ports"].([]interface{}); ok {
 		if len(portsRaw) != 2 {
