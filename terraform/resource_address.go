@@ -8,8 +8,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/addrs"
-
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/configs"
 )
 
@@ -27,7 +25,7 @@ type ResourceAddress struct {
 	InstanceTypeSet bool
 	Name            string
 	Type            string
-	Mode            config.ResourceMode // significant only if InstanceTypeSet
+	Mode            ResourceMode // significant only if InstanceTypeSet
 }
 
 // Copy returns a copy of this ResourceAddress
@@ -58,9 +56,9 @@ func (r *ResourceAddress) String() string {
 	}
 
 	switch r.Mode {
-	case config.ManagedResourceMode:
+	case ManagedResourceMode:
 		// nothing to do
-	case config.DataResourceMode:
+	case DataResourceMode:
 		result = append(result, "data")
 	default:
 		panic(fmt.Errorf("unsupported resource mode %s", r.Mode))
@@ -127,11 +125,11 @@ func (r *ResourceAddress) MatchesResourceConfig(path addrs.Module, rc *configs.R
 		// completely, but for now we'll need to translate to the old
 		// way of representing resource modes.
 		switch r.Mode {
-		case config.ManagedResourceMode:
+		case ManagedResourceMode:
 			if rc.Mode != addrs.ManagedResourceMode {
 				return false
 			}
-		case config.DataResourceMode:
+		case DataResourceMode:
 			if rc.Mode != addrs.DataResourceMode {
 				return false
 			}
@@ -160,9 +158,9 @@ func (r *ResourceAddress) MatchesResourceConfig(path addrs.Module, rc *configs.R
 func (r *ResourceAddress) stateId() string {
 	result := fmt.Sprintf("%s.%s", r.Type, r.Name)
 	switch r.Mode {
-	case config.ManagedResourceMode:
+	case ManagedResourceMode:
 		// Done
-	case config.DataResourceMode:
+	case DataResourceMode:
 		result = fmt.Sprintf("data.%s", result)
 	default:
 		panic(fmt.Errorf("unknown resource mode: %s", r.Mode))
@@ -172,17 +170,6 @@ func (r *ResourceAddress) stateId() string {
 	}
 
 	return result
-}
-
-// parseResourceAddressConfig creates a resource address from a config.Resource
-func parseResourceAddressConfig(r *config.Resource) (*ResourceAddress, error) {
-	return &ResourceAddress{
-		Type:         r.Type,
-		Name:         r.Name,
-		Index:        -1,
-		InstanceType: TypePrimary,
-		Mode:         r.Mode,
-	}, nil
 }
 
 // parseResourceAddressInternal parses the somewhat bespoke resource
@@ -196,14 +183,14 @@ func parseResourceAddressInternal(s string) (*ResourceAddress, error) {
 	}
 
 	// Data resource if we have at least 3 parts and the first one is data
-	mode := config.ManagedResourceMode
+	mode := ManagedResourceMode
 	if len(parts) > 2 && parts[0] == "data" {
-		mode = config.DataResourceMode
+		mode = DataResourceMode
 		parts = parts[1:]
 	}
 
 	// If we're not a data resource and we have more than 3, then it is an error
-	if len(parts) > 3 && mode != config.DataResourceMode {
+	if len(parts) > 3 && mode != DataResourceMode {
 		return nil, fmt.Errorf("Invalid internal resource address format: %s", s)
 	}
 
@@ -234,9 +221,9 @@ func ParseResourceAddress(s string) (*ResourceAddress, error) {
 	if err != nil {
 		return nil, err
 	}
-	mode := config.ManagedResourceMode
+	mode := ManagedResourceMode
 	if matches["data_prefix"] != "" {
-		mode = config.DataResourceMode
+		mode = DataResourceMode
 	}
 	resourceIndex, err := ParseResourceIndex(matches["index"])
 	if err != nil {
@@ -249,7 +236,7 @@ func ParseResourceAddress(s string) (*ResourceAddress, error) {
 	path := ParseResourcePath(matches["path"])
 
 	// not allowed to say "data." without a type following
-	if mode == config.DataResourceMode && matches["type"] == "" {
+	if mode == DataResourceMode && matches["type"] == "" {
 		return nil, fmt.Errorf(
 			"invalid resource address %q: must target specific data instance",
 			s,
@@ -302,11 +289,11 @@ func NewLegacyResourceAddress(addr addrs.AbsResource) *ResourceAddress {
 
 	switch addr.Resource.Mode {
 	case addrs.ManagedResourceMode:
-		ret.Mode = config.ManagedResourceMode
+		ret.Mode = ManagedResourceMode
 	case addrs.DataResourceMode:
-		ret.Mode = config.DataResourceMode
+		ret.Mode = DataResourceMode
 	default:
-		panic(fmt.Errorf("cannot shim %s to legacy config.ResourceMode value", addr.Resource.Mode))
+		panic(fmt.Errorf("cannot shim %s to legacy ResourceMode value", addr.Resource.Mode))
 	}
 
 	path := make([]string, len(addr.Module))
@@ -340,11 +327,11 @@ func NewLegacyResourceInstanceAddress(addr addrs.AbsResourceInstance) *ResourceA
 
 	switch addr.Resource.Resource.Mode {
 	case addrs.ManagedResourceMode:
-		ret.Mode = config.ManagedResourceMode
+		ret.Mode = ManagedResourceMode
 	case addrs.DataResourceMode:
-		ret.Mode = config.DataResourceMode
+		ret.Mode = DataResourceMode
 	default:
-		panic(fmt.Errorf("cannot shim %s to legacy config.ResourceMode value", addr.Resource.Resource.Mode))
+		panic(fmt.Errorf("cannot shim %s to legacy ResourceMode value", addr.Resource.Resource.Mode))
 	}
 
 	path := make([]string, len(addr.Module))
@@ -404,9 +391,9 @@ func (addr *ResourceAddress) AbsResourceInstanceAddr() addrs.AbsResourceInstance
 	}
 
 	switch addr.Mode {
-	case config.ManagedResourceMode:
+	case ManagedResourceMode:
 		ret.Resource.Resource.Mode = addrs.ManagedResourceMode
-	case config.DataResourceMode:
+	case DataResourceMode:
 		ret.Resource.Resource.Mode = addrs.DataResourceMode
 	default:
 		panic(fmt.Errorf("cannot shim %s to addrs.ResourceMode value", addr.Mode))
@@ -534,7 +521,7 @@ func (addr *ResourceAddress) Less(other *ResourceAddress) bool {
 		return addrStr < otherStr
 
 	case addr.Mode != other.Mode:
-		return addr.Mode == config.DataResourceMode
+		return addr.Mode == DataResourceMode
 
 	case addr.Type != other.Type:
 		return addr.Type < other.Type

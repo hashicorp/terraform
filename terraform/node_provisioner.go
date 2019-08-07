@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/config"
 )
 
 // NodeProvisioner represents a provider that has no associated operations.
@@ -12,12 +11,6 @@ import (
 type NodeProvisioner struct {
 	NameValue string
 	PathValue addrs.ModuleInstance
-
-	// The fields below will be automatically set using the Attach
-	// interfaces if you're running those transforms, but also be explicitly
-	// set if you already have that information.
-
-	Config *config.ProviderConfig
 }
 
 var (
