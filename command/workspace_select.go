@@ -31,7 +31,7 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 	// counting on the flag package's output writer.
 	cmdFlags.SetOutput(ioutil.Discard)
 	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+		c.Ui.Error(fmt.Sprintf("Error parsing command line flags: %s\n", err.Error()))
 		return 1
 	}
 
