@@ -1,3 +1,9 @@
+# v0.3.0 (February 26, 2019)
+
+BUG FIXES
+
+* session: Return error instead of logging with AWS Account ID lookup failure [GH-3]
+
 # v0.2.0 (February 20, 2019)
 
 ENHANCEMENTS
