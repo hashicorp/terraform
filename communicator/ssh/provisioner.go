@@ -3,6 +3,7 @@ package ssh
 import (
 	"bytes"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -40,16 +41,17 @@ const (
 // only keys we look at. If a PrivateKey is given, that is used instead
 // of a password.
 type connectionInfo struct {
-	User       string
-	Password   string
-	PrivateKey string `mapstructure:"private_key"`
-	Host       string
-	HostKey    string `mapstructure:"host_key"`
-	Port       int
-	Agent      bool
-	Timeout    string
-	ScriptPath string        `mapstructure:"script_path"`
-	TimeoutVal time.Duration `mapstructure:"-"`
+	User        string
+	Password    string
+	PrivateKey  string `mapstructure:"private_key"`
+	Certificate string `mapstructure:"certificate"`
+	Host        string
+	HostKey     string `mapstructure:"host_key"`
+	Port        int
+	Agent       bool
+	Timeout     string
+	ScriptPath  string        `mapstructure:"script_path"`
+	TimeoutVal  time.Duration `mapstructure:"-"`
 
 	BastionUser       string `mapstructure:"bastion_user"`
 	BastionPassword   string `mapstructure:"bastion_password"`
@@ -150,12 +152,13 @@ func prepareSSHConfig(connInfo *connectionInfo) (*sshConfig, error) {
 	host := fmt.Sprintf("%s:%d", connInfo.Host, connInfo.Port)
 
 	sshConf, err := buildSSHClientConfig(sshClientConfigOpts{
-		user:       connInfo.User,
-		host:       host,
-		privateKey: connInfo.PrivateKey,
-		password:   connInfo.Password,
-		hostKey:    connInfo.HostKey,
-		sshAgent:   sshAgent,
+		user:        connInfo.User,
+		host:        host,
+		privateKey:  connInfo.PrivateKey,
+		password:    connInfo.Password,
+		hostKey:     connInfo.HostKey,
+		certificate: connInfo.Certificate,
+		sshAgent:    sshAgent,
 	})
 	if err != nil {
 		return nil, err
@@ -191,12 +194,13 @@ func prepareSSHConfig(connInfo *connectionInfo) (*sshConfig, error) {
 }
 
 type sshClientConfigOpts struct {
-	privateKey string
-	password   string
-	sshAgent   *sshAgent
-	user       string
-	host       string
-	hostKey    string
+	privateKey  string
+	password    string
+	sshAgent    *sshAgent
+	certificate string
+	user        string
+	host        string
+	hostKey     string
 }
 
 func buildSSHClientConfig(opts sshClientConfigOpts) (*ssh.ClientConfig, error) {
@@ -234,11 +238,23 @@ func buildSSHClientConfig(opts sshClientConfigOpts) (*ssh.ClientConfig, error) {
 	}
 
 	if opts.privateKey != "" {
-		pubKeyAuth, err := readPrivateKey(opts.privateKey)
-		if err != nil {
-			return nil, err
+		if opts.certificate != "" {
+			log.Println("using client certificate for authentication")
+
+			certSigner, err := signCertWithPrivateKey(opts.privateKey, opts.certificate)
+			if err != nil {
+				return nil, err
+			}
+			conf.Auth = append(conf.Auth, certSigner)
+		} else {
+			log.Println("using private key for authentication")
+
+			pubKeyAuth, err := readPrivateKey(opts.privateKey)
+			if err != nil {
+				return nil, err
+			}
+			conf.Auth = append(conf.Auth, pubKeyAuth)
 		}
-		conf.Auth = append(conf.Auth, pubKeyAuth)
 	}
 
 	if opts.password != "" {
@@ -254,22 +270,47 @@ func buildSSHClientConfig(opts sshClientConfigOpts) (*ssh.ClientConfig, error) {
 	return conf, nil
 }
 
+// Create a Cert Signer and return ssh.AuthMethod
+func signCertWithPrivateKey(pk string, certificate string) (ssh.AuthMethod, error) {
+	rawPk, err := ssh.ParseRawPrivateKey([]byte(pk))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse private key %q: %s", pk, err)
+	}
+
+	pcert, _, _, _, err := ssh.ParseAuthorizedKey([]byte(certificate))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse certificate %q: %s", certificate, err)
+	}
+
+	usigner, err := ssh.NewSignerFromKey(rawPk)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create signer from raw private key %q: %s", rawPk, err)
+	}
+
+	ucertSigner, err := ssh.NewCertSigner(pcert.(*ssh.Certificate), usigner)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create cert signer %q: %s", usigner, err)
+	}
+
+	return ssh.PublicKeys(ucertSigner), nil
+}
+
 func readPrivateKey(pk string) (ssh.AuthMethod, error) {
 	// We parse the private key on our own first so that we can
 	// show a nicer error if the private key has a password.
 	block, _ := pem.Decode([]byte(pk))
 	if block == nil {
-		return nil, fmt.Errorf("Failed to read key %q: no key found", pk)
+		return nil, errors.New("Failed to read ssh private key: no key found")
 	}
 	if block.Headers["Proc-Type"] == "4,ENCRYPTED" {
-		return nil, fmt.Errorf(
-			"Failed to read key %q: password protected keys are\n"+
-				"not supported. Please decrypt the key prior to use.", pk)
+		return nil, errors.New(
+			"Failed to read ssh private key: password protected keys are\n" +
+				"not supported. Please decrypt the key prior to use.")
 	}
 
 	signer, err := ssh.ParsePrivateKey([]byte(pk))
 	if err != nil {
-		return nil, fmt.Errorf("Failed to parse key file %q: %s", pk, err)
+		return nil, fmt.Errorf("Failed to parse ssh private key: %s", err)
 	}
 
 	return ssh.PublicKeys(signer), nil
