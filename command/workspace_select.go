@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"io/ioutil"
 	"strings"
 
 	"github.com/hashicorp/terraform/tfdiags"
@@ -24,7 +25,13 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 
 	cmdFlags := c.Meta.defaultFlagSet("workspace select")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
+
+	// TODO: This change should be applied to meta.defaultFlagSet and other
+	// commands refactored to print the error from the flags package, instead of
+	// counting on the flag package's output writer.
+	cmdFlags.SetOutput(ioutil.Discard)
 	if err := cmdFlags.Parse(args); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
 		return 1
 	}
 

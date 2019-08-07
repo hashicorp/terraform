@@ -354,6 +354,11 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 func (m *Meta) defaultFlagSet(n string) *flag.FlagSet {
 	f := flag.NewFlagSet(n, flag.ContinueOnError)
 
+	// TODO: we should instead discard the flag package's output and print any
+	// errors ourselves. Sporadically the commands exited before the output got
+	// written. See the 'workspace select' command for an example - this should
+	// be copied to all other commands using the defaultFlagSet.
+
 	// Create an io.Writer that writes to our Ui properly for errors.
 	// This is kind of a hack, but it does the job. Basically: create
 	// a pipe, use a scanner to break it into lines, and output each line
