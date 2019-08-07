@@ -75,6 +75,18 @@ func (d *Disco) SetCredentialsSource(src auth.CredentialsSource) {
 	d.credsSrc = src
 }
 
+// CredentialsSource returns the credentials source associated with the receiver,
+// or an empty credentials source if none is associated.
+func (d *Disco) CredentialsSource() auth.CredentialsSource {
+	if d.credsSrc == nil {
+		// We'll return an empty one just to save the caller from having to
+		// protect against the nil case, since this interface already allows
+		// for the possibility of there being no credentials at all.
+		return auth.StaticCredentialsSource(nil)
+	}
+	return d.credsSrc
+}
+
 // CredentialsForHost returns a non-nil HostCredentials if the embedded source has
 // credentials available for the host, and a nil HostCredentials if it does not.
 func (d *Disco) CredentialsForHost(hostname svchost.Hostname) (auth.HostCredentials, error) {
