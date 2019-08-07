@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 
 	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 )
 
 func TestStateValidate(t *testing.T) {

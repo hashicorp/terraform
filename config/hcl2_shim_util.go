@@ -6,7 +6,7 @@ import (
 	"github.com/zclconf/go-cty/cty/function/stdlib"
 
 	"github.com/hashicorp/hil/ast"
-	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 
 	hcl2 "github.com/hashicorp/hcl2/hcl"
 	"github.com/zclconf/go-cty/cty"
