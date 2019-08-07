@@ -11,7 +11,7 @@ const linuxDefaultSystemdUnitFileContents = `[Unit]
 Description=Habitat Supervisor
 
 [Service]
-ExecStart=/bin/hab sup run --peer 1.2.3.4 --auto-update
+ExecStart=/bin/hab sup run --peer host1 --peer 1.2.3.4 --auto-update
 Restart=on-failure
 [Install]
 WantedBy=default.target`
@@ -20,7 +20,7 @@ const linuxCustomSystemdUnitFileContents = `[Unit]
 Description=Habitat Supervisor
 
 [Service]
-ExecStart=/bin/hab sup run --listen-ctl 192.168.0.1:8443 --listen-gossip 192.168.10.1:9443 --listen-http 192.168.20.1:8080 --peer 1.2.3.4 --peer 5.6.7.8 --peer foo.example.com
+ExecStart=/bin/hab sup run --listen-ctl 192.168.0.1:8443 --listen-gossip 192.168.10.1:9443 --listen-http 192.168.20.1:8080 --peer host1 --peer host2 --peer 1.2.3.4 --peer 5.6.7.8 --peer foo.example.com
 Restart=on-failure
 Environment="HAB_SUP_GATEWAY_AUTH_TOKEN=ea7-beef"
 Environment="HAB_AUTH_TOKEN=dead-beef"
@@ -37,7 +37,6 @@ func TestLinuxProvisioner_linuxInstallHabitat(t *testing.T) {
 				"version":     "0.79.1",
 				"auto_update": true,
 				"use_sudo":    true,
-				"peers":       []string{"1.2.3.4"},
 			},
 
 			Commands: map[string]bool{
@@ -53,7 +52,6 @@ func TestLinuxProvisioner_linuxInstallHabitat(t *testing.T) {
 				"version":     "0.79.1",
 				"auto_update": true,
 				"use_sudo":    false,
-				"peers":       []string{"1.2.3.4"},
 			},
 
 			Commands: map[string]bool{
@@ -70,7 +68,6 @@ func TestLinuxProvisioner_linuxInstallHabitat(t *testing.T) {
 				"license":     "accept-no-persist",
 				"auto_update": true,
 				"use_sudo":    true,
-				"peers":       []string{"1.2.3.4"},
 			},
 
 			Commands: map[string]bool{
@@ -115,6 +112,7 @@ func TestLinuxProvisioner_linuxStartHabitat(t *testing.T) {
 				"auto_update":  true,
 				"use_sudo":     true,
 				"service_name": "hab-sup",
+				"peer":         "--peer host1",
 				"peers":        []string{"1.2.3.4"},
 			},
 
@@ -134,6 +132,7 @@ func TestLinuxProvisioner_linuxStartHabitat(t *testing.T) {
 				"auto_update":  true,
 				"use_sudo":     false,
 				"service_name": "hab-sup",
+				"peer":         "--peer host1",
 				"peers":        []string{"1.2.3.4"},
 			},
 
@@ -153,13 +152,14 @@ func TestLinuxProvisioner_linuxStartHabitat(t *testing.T) {
 				"auto_update":  true,
 				"use_sudo":     true,
 				"service_type": "unmanaged",
+				"peer":         "--peer host1",
 				"peers":        []string{"1.2.3.4"},
 			},
 
 			Commands: map[string]bool{
 				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true HAB_LICENSE=accept-no-persist sudo -E /bin/bash -c 'hab install core/hab-sup/0.81.0'":                                                                                                      true,
 				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true HAB_LICENSE=accept-no-persist sudo -E /bin/bash -c 'mkdir -p /hab/sup/default && chmod o+w /hab/sup/default'":                                                                              true,
-				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true HAB_LICENSE=accept-no-persist sudo -E /bin/bash -c '(env HAB_LICENSE=accept-no-persist  setsid hab sup run --peer 1.2.3.4 --auto-update > /hab/sup/default/sup.log 2>&1 <&1 &) ; sleep 1'": true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true HAB_LICENSE=accept-no-persist sudo -E /bin/bash -c '(env HAB_LICENSE=accept-no-persist  setsid hab sup run --peer host1 --peer 1.2.3.4 --auto-update > /hab/sup/default/sup.log 2>&1 <&1 &) ; sleep 1'": true,
 			},
 
 			Uploads: map[string]string{
@@ -172,6 +172,7 @@ func TestLinuxProvisioner_linuxStartHabitat(t *testing.T) {
 				"auto_update":        false,
 				"use_sudo":           true,
 				"service_name":       "hab-sup",
+				"peer":               "--peer host1 --peer host2",
 				"peers":              []string{"1.2.3.4", "5.6.7.8", "foo.example.com"},
 				"listen_ctl":         "192.168.0.1:8443",
 				"listen_gossip":      "192.168.10.1:9443",

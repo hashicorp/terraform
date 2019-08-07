@@ -27,6 +27,7 @@ type provisioner struct {
 	ListenCtl        string
 	ListenGossip     string
 	ListenHTTP       string
+	Peer             string
 	Peers            []string
 	RingKey          string
 	RingKeyContent   string
@@ -75,6 +76,10 @@ func Provisioner() terraform.ResourceProvisioner {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
+			},
+			"peer": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 			"peers": &schema.Schema{
 				Type:     schema.TypeList,
@@ -396,6 +401,7 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 		License:          d.Get("license").(string),
 		AutoUpdate:       d.Get("auto_update").(bool),
 		HttpDisable:      d.Get("http_disable").(bool),
+		Peer:             d.Get("peer").(string),
 		Peers:            getPeers(d.Get("peers").([]interface{})),
 		Services:         getServices(d.Get("service").(*schema.Set).List()),
 		UseSudo:          d.Get("use_sudo").(bool),

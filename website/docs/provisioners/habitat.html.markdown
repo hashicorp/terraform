@@ -50,6 +50,7 @@ There are 2 configuration levels, `supervisor` and `service`.  Configuration pla
 * `license (string)` - (Optional) Sets the acceptance of Chef licensing (one of `accept-no-persist` or `accept`): https://www.chef.io/end-user-license-agreement/
 * `auto_update (bool)` - (Optional) If set to `true`, the supervisor will auto-update itself as soon as new releases are available on the specified `channel`.
 * `http_disable (bool)` - (Optional) If set to `true`, disables the supervisor HTTP listener entirely.
+* `peer (string)` - (Optional, deprecated) IP addresses or FQDN's for other Habitat supervisors to peer with, like: `--peer 1.2.3.4 --peer 5.6.7.8`. (Defaults to none)
 * `peers (array)` - (Optional) A list of IP or FQDN's of other supervisor instance(s) to peer with. (Defaults to none)
 * `service_type (string)` - (Optional) Method used to run the Habitat supervisor.  Valid options are `unmanaged` and `systemd`.  (Defaults to `systemd`)
 * `service_name (string)` - (Optional) The name of the Habitat supervisor service, if using an init system such as `systemd`. (Defaults to `hab-supervisor`)

@@ -112,6 +112,10 @@ func (p *provisioner) linuxStartHabitat(o terraform.UIOutput, comm communicator.
 		options += fmt.Sprintf(" --listen-http %s", p.ListenHTTP)
 	}
 
+	if p.Peer != "" {
+		options += fmt.Sprintf(" %s", p.Peer)
+	}
+
 	if len(p.Peers) > 0 {
 		if len(p.Peers) == 1 {
 			options += fmt.Sprintf(" --peer %s", p.Peers[0])
