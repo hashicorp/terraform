@@ -34,7 +34,7 @@ To avoid excessive repetition, we've split the complete format into several disc
 The JSON output format consists of the following objects and sub-objects:
 
 - [Providers Schema Representation](#providers-schema-representation) - the top-level object returned by `terraform providers schema -json`
-- [Schema Representation](#schema-representation) - a sub-object of providers, resources ,and data sources that describes the schema
+- [Schema Representation](#schema-representation) - a sub-object of providers, resources, and data sources that describes their schema
 - [Block Representation](#block-representation) - a sub-object of schemas that describes attributes and nested blocks
 
 ## Providers Schema Representation  
