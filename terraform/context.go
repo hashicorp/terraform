@@ -5,14 +5,9 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strings"
 	"sync"
 
-	"github.com/hashicorp/hcl"
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/lang"
 	"github.com/hashicorp/terraform/plans"
@@ -21,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // InputMode defines what sort of input will be asked for when Input
@@ -413,14 +409,6 @@ func (c *Context) Eval(path addrs.ModuleInstance) (*lang.Scope, tfdiags.Diagnost
 	// previously used for evaluation here, unless we skipped walking.
 	evalCtx := walker.EnterPath(path)
 	return evalCtx.EvaluationScope(nil, EvalDataForNoInstanceKey), diags
-}
-
-// Interpolater is no longer used. Use Evaluator instead.
-//
-// The interpolator returned from this function will return an error on any use.
-func (c *Context) Interpolater() *Interpolater {
-	// FIXME: Remove this once all callers are updated to no longer use it.
-	return &Interpolater{}
 }
 
 // Apply applies the changes represented by this context and returns
@@ -848,59 +836,6 @@ func (c *Context) watchStop(walker *ContextGraphWalker) (chan struct{}, <-chan s
 	}()
 
 	return stop, wait
-}
-
-// parseVariableAsHCL parses the value of a single variable as would have been specified
-// on the command line via -var or in an environment variable named TF_VAR_x, where x is
-// the name of the variable. In order to get around the restriction of HCL requiring a
-// top level object, we prepend a sentinel key, decode the user-specified value as its
-// value and pull the value back out of the resulting map.
-func parseVariableAsHCL(name string, input string, targetType config.VariableType) (interface{}, error) {
-	// expecting a string so don't decode anything, just strip quotes
-	if targetType == config.VariableTypeString {
-		return strings.Trim(input, `"`), nil
-	}
-
-	// return empty types
-	if strings.TrimSpace(input) == "" {
-		switch targetType {
-		case config.VariableTypeList:
-			return []interface{}{}, nil
-		case config.VariableTypeMap:
-			return make(map[string]interface{}), nil
-		}
-	}
-
-	const sentinelValue = "SENTINEL_TERRAFORM_VAR_OVERRIDE_KEY"
-	inputWithSentinal := fmt.Sprintf("%s = %s", sentinelValue, input)
-
-	var decoded map[string]interface{}
-	err := hcl.Decode(&decoded, inputWithSentinal)
-	if err != nil {
-		return nil, fmt.Errorf("Cannot parse value for variable %s (%q) as valid HCL: %s", name, input, err)
-	}
-
-	if len(decoded) != 1 {
-		return nil, fmt.Errorf("Cannot parse value for variable %s (%q) as valid HCL. Only one value may be specified.", name, input)
-	}
-
-	parsedValue, ok := decoded[sentinelValue]
-	if !ok {
-		return nil, fmt.Errorf("Cannot parse value for variable %s (%q) as valid HCL. One value must be specified.", name, input)
-	}
-
-	switch targetType {
-	case config.VariableTypeList:
-		return parsedValue, nil
-	case config.VariableTypeMap:
-		if list, ok := parsedValue.([]map[string]interface{}); ok {
-			return list[0], nil
-		}
-
-		return nil, fmt.Errorf("Cannot parse value for variable %s (%q) as valid HCL. One value must be specified.", name, input)
-	default:
-		panic(fmt.Errorf("unknown type %s", targetType.Printable()))
-	}
 }
 
 // ShimLegacyState is a helper that takes the legacy state type and

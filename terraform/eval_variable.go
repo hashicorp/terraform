@@ -4,100 +4,13 @@ import (
 	"fmt"
 	"log"
 	"reflect"
-	"strings"
 
 	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/terraform/configs"
-
 	"github.com/hashicorp/terraform/addrs"
-
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/configs/hcl2shim"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 )
-
-// EvalTypeCheckVariable is an EvalNode which ensures that the variable
-// values which are assigned as inputs to a module (including the root)
-// match the types which are either declared for the variables explicitly
-// or inferred from the default values.
-//
-// In order to achieve this three things are required:
-//     - a map of the proposed variable values
-//     - the configuration tree of the module in which the variable is
-//       declared
-//     - the path to the module (so we know which part of the tree to
-//       compare the values against).
-type EvalTypeCheckVariable struct {
-	Variables  map[string]interface{}
-	ModulePath []string
-	ModuleTree *module.Tree
-}
-
-func (n *EvalTypeCheckVariable) Eval(ctx EvalContext) (interface{}, error) {
-	currentTree := n.ModuleTree
-	for _, pathComponent := range n.ModulePath[1:] {
-		currentTree = currentTree.Children()[pathComponent]
-	}
-	targetConfig := currentTree.Config()
-
-	prototypes := make(map[string]config.VariableType)
-	for _, variable := range targetConfig.Variables {
-		prototypes[variable.Name] = variable.Type()
-	}
-
-	// Only display a module in an error message if we are not in the root module
-	modulePathDescription := fmt.Sprintf(" in module %s", strings.Join(n.ModulePath[1:], "."))
-	if len(n.ModulePath) == 1 {
-		modulePathDescription = ""
-	}
-
-	for name, declaredType := range prototypes {
-		proposedValue, ok := n.Variables[name]
-		if !ok {
-			// This means the default value should be used as no overriding value
-			// has been set. Therefore we should continue as no check is necessary.
-			continue
-		}
-
-		if proposedValue == hcl2shim.UnknownVariableValue {
-			continue
-		}
-
-		switch declaredType {
-		case config.VariableTypeString:
-			switch proposedValue.(type) {
-			case string:
-				continue
-			default:
-				return nil, fmt.Errorf("variable %s%s should be type %s, got %s",
-					name, modulePathDescription, declaredType.Printable(), hclTypeName(proposedValue))
-			}
-		case config.VariableTypeMap:
-			switch proposedValue.(type) {
-			case map[string]interface{}:
-				continue
-			default:
-				return nil, fmt.Errorf("variable %s%s should be type %s, got %s",
-					name, modulePathDescription, declaredType.Printable(), hclTypeName(proposedValue))
-			}
-		case config.VariableTypeList:
-			switch proposedValue.(type) {
-			case []interface{}:
-				continue
-			default:
-				return nil, fmt.Errorf("variable %s%s should be type %s, got %s",
-					name, modulePathDescription, declaredType.Printable(), hclTypeName(proposedValue))
-			}
-		default:
-			return nil, fmt.Errorf("variable %s%s should be type %s, got type string",
-				name, modulePathDescription, declaredType.Printable())
-		}
-	}
-
-	return nil, nil
-}
 
 // EvalSetModuleCallArguments is an EvalNode implementation that sets values
 // for arguments of a child module call, for later retrieval during

@@ -12,8 +12,6 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/addrs"
-
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/configs/hcl2shim"
 )
 
@@ -1704,7 +1702,7 @@ func TestParseResourceStateKey(t *testing.T) {
 		{
 			Input: "aws_instance.foo.3",
 			Expected: &ResourceStateKey{
-				Mode:  config.ManagedResourceMode,
+				Mode:  ManagedResourceMode,
 				Type:  "aws_instance",
 				Name:  "foo",
 				Index: 3,
@@ -1713,7 +1711,7 @@ func TestParseResourceStateKey(t *testing.T) {
 		{
 			Input: "aws_instance.foo.0",
 			Expected: &ResourceStateKey{
-				Mode:  config.ManagedResourceMode,
+				Mode:  ManagedResourceMode,
 				Type:  "aws_instance",
 				Name:  "foo",
 				Index: 0,
@@ -1722,7 +1720,7 @@ func TestParseResourceStateKey(t *testing.T) {
 		{
 			Input: "aws_instance.foo",
 			Expected: &ResourceStateKey{
-				Mode:  config.ManagedResourceMode,
+				Mode:  ManagedResourceMode,
 				Type:  "aws_instance",
 				Name:  "foo",
 				Index: -1,
@@ -1731,7 +1729,7 @@ func TestParseResourceStateKey(t *testing.T) {
 		{
 			Input: "data.aws_ami.foo",
 			Expected: &ResourceStateKey{
-				Mode:  config.DataResourceMode,
+				Mode:  DataResourceMode,
 				Type:  "aws_ami",
 				Name:  "foo",
 				Index: -1,
