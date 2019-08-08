@@ -104,10 +104,4 @@ An address like this:
 aws_instance.web["example"]
 ```
 
-Refers to only the "example" instance in the config, and an address like this:
-
-```
-aws_instance.web[*]
-```
-
-Refers to all four "web" instances.
+Refers to only the "example" instance in the config.
