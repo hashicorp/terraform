@@ -68,7 +68,7 @@ The JSON output format consists of the following objects and sub-objects:
 
 ## Schema Representation
 
-"schema" pairs a provider or resource schema (in a "block") with that schema's version.
+A schema representation pairs a provider or resource schema (in a "block") with that schema's version.
 
 ```javascript
 {
