@@ -171,7 +171,7 @@ type Schema struct {
 	// TypeInt, or TypeFloat. Otherwise it may be either a *Schema or a
 	// *Resource. If it is *Schema, the element type is just a simple value.
 	// If it is *Resource, the element type is a complex structure,
-	// potentially with its own lifecycle.
+	// potentially managed via its own CRUD actions on the API.
 	Elem interface{}
 
 	// The following fields are only set for a TypeList or TypeSet.
