@@ -5,6 +5,7 @@ NEW FEATURES:
 
 ENHANCEMENTS:
 * lang/funcs: `lookup()` can work with maps of lists, maps and objects [GH-22269]
+* helper/acctest: Add function to return random IP address [GH-22312]
 
 BUG FIXES:
 * command/0.12upgrade: use user-supplied plugin-dir [GH-22306]
