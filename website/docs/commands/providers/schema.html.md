@@ -79,6 +79,7 @@ A schema representation pairs a provider or resource schema (in a "block") with 
 ```
 
 ## Block Representation
+
 A block representation contains "attributes" and "block_types" (which represent nested blocks).
 
 ```javascript
