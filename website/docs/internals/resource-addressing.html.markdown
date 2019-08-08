@@ -49,11 +49,11 @@ in any descendent module.
 __Resource index__:
 
  * `[N]` where `N` is a `0`-based numerical index into a resource with multiple
-   instances specified by the `count` meta-parameter. Omitting an index when
+   instances specified by the `count` meta-argument. Omitting an index when
    addressing a resource where `count > 1` means that the address references
    all instances.
  * `["INDEX"]` where `INDEX` is a alphanumerical key index into a resource with
-   multiple instances specified by the `for_each` meta-parameter.
+   multiple instances specified by the `for_each` meta-argument.
 
 ## Examples
 
