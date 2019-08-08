@@ -66,6 +66,168 @@ func TestStateShow(t *testing.T) {
 	}
 }
 
+func TestStateShow_CountResource(t *testing.T) {
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+		)
+	})
+	statePath := testStateFile(t, state)
+
+	p := testProvider()
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Optional: true, Computed: true},
+					"foo": {Type: cty.String, Optional: true},
+					"bar": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
+
+	ui := new(cli.MockUi)
+	c := &StateShowCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"test_instance.foo[0]",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// Test that outputs were displayed
+	expected := strings.TrimSpace(testStateShowOutputCountResource) + "\n"
+	actual := ui.OutputWriter.String()
+	if actual != expected {
+		t.Fatalf("Expected:\n%q\n\nTo equal:\n%q", actual, expected)
+	}
+}
+
+func TestStateShow_ForEachResource_Quoted(t *testing.T) {
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.StringKey("bar")).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+		)
+	})
+	statePath := testStateFile(t, state)
+
+	p := testProvider()
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Optional: true, Computed: true},
+					"foo": {Type: cty.String, Optional: true},
+					"bar": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
+
+	ui := new(cli.MockUi)
+	c := &StateShowCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"test_instance.foo[\"bar\"]",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// Test that outputs were displayed
+	expected := strings.TrimSpace(testStateShowOutputForEachResource) + "\n"
+	actual := ui.OutputWriter.String()
+	if actual != expected {
+		t.Fatalf("Expected:\n%q\n\nTo equal:\n%q", actual, expected)
+	}
+}
+
+func TestStateShow_ForEachResource_Unquoted(t *testing.T) {
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.StringKey("bar")).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+		)
+	})
+	statePath := testStateFile(t, state)
+
+	p := testProvider()
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Optional: true, Computed: true},
+					"foo": {Type: cty.String, Optional: true},
+					"bar": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
+
+	ui := new(cli.MockUi)
+	c := &StateShowCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"test_instance.foo[bar]",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// Test that outputs were displayed
+	expected := strings.TrimSpace(testStateShowOutputForEachResource) + "\n"
+	actual := ui.OutputWriter.String()
+	if actual != expected {
+		t.Fatalf("Expected:\n%q\n\nTo equal:\n%q", actual, expected)
+	}
+}
+
 func TestStateShow_multi(t *testing.T) {
 	submod, _ := addrs.ParseModuleInstanceStr("module.sub")
 	state := states.BuildState(func(s *states.SyncState) {
@@ -184,6 +346,24 @@ func TestStateShow_emptyState(t *testing.T) {
 
 const testStateShowOutput = `
 # test_instance.foo:
+resource "test_instance" "foo" {
+    bar = "value"
+    foo = "value"
+    id  = "bar"
+}
+`
+
+const testStateShowOutputCountResource = `
+# test_instance.foo[0]:
+resource "test_instance" "foo" {
+    bar = "value"
+    foo = "value"
+    id  = "bar"
+}
+`
+
+const testStateShowOutputForEachResource = `
+# test_instance.foo["bar"]:
 resource "test_instance" "foo" {
     bar = "value"
     foo = "value"

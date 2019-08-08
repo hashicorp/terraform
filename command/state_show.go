@@ -56,7 +56,7 @@ func (c *StateShowCommand) Run(args []string) int {
 	}
 
 	// Check if the address can be parsed
-	addr, addrDiags := addrs.ParseAbsResourceInstanceStr(args[0])
+	addr, addrDiags := addrs.InferAbsResourceInstanceStr(args[0])
 	if addrDiags.HasErrors() {
 		c.Ui.Error(fmt.Sprintf(errParsingAddress, args[0]))
 		return 1
