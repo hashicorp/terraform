@@ -37,7 +37,8 @@ The JSON output format consists of the following objects and sub-objects:
 - [Schema Representation](#schema-representation) - a sub-object of providers, resources, and data sources that describes their schema
 - [Block Representation](#block-representation) - a sub-object of schemas that describes attributes and nested blocks
 
-## Providers Schema Representation  
+## Providers Schema Representation 
+
 ```javascript
 {
   "format_version": "0.1",
