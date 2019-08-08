@@ -29,7 +29,7 @@ Please note that, at this time, the `-json` flag is a _required_ option. In futu
 
 The following sections describe the JSON output format by example, using a pseudo-JSON notation.
 Important elements are described with comments, which are prefixed with //.
-To avoid excessive repetition, we've split the complete format into several discrete sub-objects, described under separate headers. References wrapped in angle brackets (like <block-representation> are placeholders which, in the real output, would be replaced by an instance of the specified sub-object.
+To avoid excessive repetition, we've split the complete format into several discrete sub-objects, described under separate headers. References wrapped in angle brackets (like `<block-representation>`) are placeholders which, in the real output, would be replaced by an instance of the specified sub-object.
 
 The JSON output format consists of the following objects and sub-objects:
 
