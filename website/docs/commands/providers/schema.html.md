@@ -50,7 +50,7 @@ The JSON output format consists of the following objects and sub-objects:
       // "provider" is the schema for the provider configuration
       "provider": <schema-representation>,
     
-      // "resource_schema"s map the resource type name to the resource's schema
+      // "resource_schemas" map the resource type name to the resource's schema
       "resource_schemas": {
         "example_resource_name": <schema-representation>
       },
