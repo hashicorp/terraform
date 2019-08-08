@@ -79,7 +79,7 @@ The JSON output format consists of the following objects and sub-objects:
 ```
 
 ## Block Representation
-Any given "block" contains "attributes" and "block_types" (which represent nested blocks).
+A block representation contains "attributes" and "block_types" (which represent nested blocks).
 
 ```javascript
 {
