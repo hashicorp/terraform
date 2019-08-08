@@ -26,6 +26,7 @@ Please note that, at this time, the `-json` flag is a _required_ option. In futu
 -> **Note:** The output includes a `format_version` key, which currently has major version zero to indicate that the format is experimental and subject to change. A future version will assign a non-zero major version and make stronger promises about compatibility. We do not anticipate any significant breaking changes to the format before its first major version, however.
 
 ## Format Summary
+
 The following sections describe the JSON output format by example, using a pseudo-JSON notation.
 Important elements are described with comments, which are prefixed with //.
 To avoid excessive repetition, we've split the complete format into several discrete sub-objects, described under separate headers. References wrapped in angle brackets (like <block-representation> are placeholders which, in the real output, would be replaced by an instance of the specified sub-object.
