@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"log"
 	"math/rand"
@@ -12,9 +13,11 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/hashicorp/terraform/command/cliconfig"
 	"github.com/hashicorp/terraform/httpclient"
 	"github.com/hashicorp/terraform/svchost"
 	"github.com/hashicorp/terraform/svchost/disco"
+	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 
 	uuid "github.com/hashicorp/go-uuid"
@@ -36,7 +39,7 @@ func (c *LoginCommand) Run(args []string) int {
 		return 1
 	}
 
-	cmdFlags := c.Meta.defaultFlagSet("login")
+	cmdFlags := c.Meta.extendedFlagSet("login")
 	var intoFile string
 	cmdFlags.StringVar(&intoFile, "into-file", "", "set the file that the credentials will be appended to")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
@@ -54,6 +57,16 @@ func (c *LoginCommand) Run(args []string) int {
 
 	var diags tfdiags.Diagnostics
 
+	if !c.input {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Login is an interactive command",
+			"The \"terraform login\" command uses interactive prompts to obtain and record credentials, so it can't be run with input disabled.\n\nTo configure credentials in a non-interactive context, write existing credentials directly to a CLI configuration file.",
+		))
+		c.showDiagnostics(diags)
+		return 1
+	}
+
 	givenHostname := "app.terraform.io"
 	if len(args) != 0 {
 		givenHostname = args[0]
@@ -66,6 +79,8 @@ func (c *LoginCommand) Run(args []string) int {
 			"Invalid hostname",
 			fmt.Sprintf("The given hostname %q is not valid: %s.", givenHostname, err.Error()),
 		))
+		c.showDiagnostics(diags)
+		return 1
 	}
 
 	// From now on, since we've validated the given hostname, we should use
@@ -87,6 +102,25 @@ func (c *LoginCommand) Run(args []string) int {
 			// with our usual error reporting standards.
 			err.Error()+".",
 		))
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	creds := c.Services.CredentialsSource()
+
+	// In normal use (i.e. without test mocks/fakes) creds will be an instance
+	// of the command/cliconfig.CredentialsSource type, which has some extra
+	// methods we can use to give the user better feedback about what we're
+	// going to do. credsCtx will be nil if it's any other implementation,
+	// though.
+	var credsCtx *loginCredentialsContext
+	if c, ok := creds.(*cliconfig.CredentialsSource); ok {
+		filename, _ := c.CredentialsFilePath()
+		credsCtx = &loginCredentialsContext{
+			Location:      c.HostCredentialsLocation(hostname),
+			LocalFilename: filename, // empty in the very unlikely event that we can't select a config directory for this user
+			HelperType:    c.CredentialsHelperType(),
+		}
 	}
 
 	clientConfig, err := host.ServiceOAuthClient("login.v1")
@@ -113,14 +147,45 @@ func (c *LoginCommand) Run(args []string) int {
 		))
 	}
 
+	if credsCtx.Location == cliconfig.CredentialsInOtherFile {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			fmt.Sprintf("Credentials for %s are manually configured", dispHostname),
+			"The \"terraform login\" command cannot log in because credentials for this host are already configured in a CLI configuration file.\n\nTo log in, first revoke the existing credentials and remove that block from the CLI configuration.",
+		))
+	}
+
 	if diags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1
 	}
 
-	token, tokenDiags := c.interactiveGetToken(hostname, clientConfig)
-	diags = diags.Append(tokenDiags)
-	if tokenDiags.HasErrors() {
+	var token *oauth2.Token
+	switch {
+	case clientConfig.SupportedGrantTypes.Has(disco.OAuthAuthzCodeGrant):
+		// We prefer an OAuth code grant if the server supports it.
+		var tokenDiags tfdiags.Diagnostics
+		token, tokenDiags = c.interactiveGetTokenByCode(hostname, credsCtx, clientConfig)
+		diags = diags.Append(tokenDiags)
+		if tokenDiags.HasErrors() {
+			c.showDiagnostics(diags)
+			return 1
+		}
+	case clientConfig.SupportedGrantTypes.Has(disco.OAuthOwnerPasswordGrant) && hostname == svchost.Hostname("app.terraform.io"):
+		// The password grant type is allowed only for Terraform Cloud SaaS.
+		var tokenDiags tfdiags.Diagnostics
+		token, tokenDiags = c.interactiveGetTokenByPassword(hostname, credsCtx, clientConfig)
+		diags = diags.Append(tokenDiags)
+		if tokenDiags.HasErrors() {
+			c.showDiagnostics(diags)
+			return 1
+		}
+	default:
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Host does not support Terraform login",
+			fmt.Sprintf("The given hostname %q does not allow any OAuth grant types that are supported by this version of Terraform.", dispHostname),
+		))
 		c.showDiagnostics(diags)
 		return 1
 	}
@@ -183,8 +248,15 @@ func (c *LoginCommand) defaultOutputFile() string {
 	return filepath.Join(c.CLIConfigDir, "credentials.tfrc")
 }
 
-func (c *LoginCommand) interactiveGetToken(hostname svchost.Hostname, clientConfig *disco.OAuthClient) (*oauth2.Token, tfdiags.Diagnostics) {
+func (c *LoginCommand) interactiveGetTokenByCode(hostname svchost.Hostname, credsCtx *loginCredentialsContext, clientConfig *disco.OAuthClient) (*oauth2.Token, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+
+	confirm, confirmDiags := c.interactiveContextConsent(hostname, disco.OAuthAuthzCodeGrant, credsCtx)
+	diags = diags.Append(confirmDiags)
+	if !confirm {
+		diags = diags.Append(errors.New("Login cancelled"))
+		return nil, diags
+	}
 
 	// We'll use an entirely pseudo-random UUID for our temporary request
 	// state. The OAuth server must echo this back to us in the callback
@@ -327,6 +399,61 @@ func (c *LoginCommand) interactiveGetToken(hostname svchost.Hostname, clientConf
 	return token, diags
 }
 
+func (c *LoginCommand) interactiveGetTokenByPassword(hostname svchost.Hostname, credsCtx *loginCredentialsContext, clientConfig *disco.OAuthClient) (*oauth2.Token, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	confirm, confirmDiags := c.interactiveContextConsent(hostname, disco.OAuthOwnerPasswordGrant, credsCtx)
+	diags = diags.Append(confirmDiags)
+	if !confirm {
+		diags = diags.Append(errors.New("Login cancelled"))
+		return nil, diags
+	}
+
+	return nil, diags
+}
+
+func (c *LoginCommand) interactiveContextConsent(hostname svchost.Hostname, grantType disco.OAuthGrantType, credsCtx *loginCredentialsContext) (bool, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	c.Ui.Output(fmt.Sprintf("Terraform will request an API token for %s using OAuth.\n", hostname.ForDisplay()))
+
+	if grantType.UsesAuthorizationEndpoint() {
+		c.Ui.Output(
+			"This will work only if you are able to use a web browser on this computer to\ncomplete a login process. If not, you must obtain an API token by another\nmeans and configure it in the CLI configuration manually.\n",
+		)
+	}
+
+	// credsCtx might not be set if we're using a mock credentials source
+	// in a test, but it should always be set in normal use.
+	if credsCtx != nil {
+		switch credsCtx.Location {
+		case cliconfig.CredentialsViaHelper:
+			c.Ui.Output(fmt.Sprintf("If login is successful, Terraform will store the token in the configured\n%q credentials helper for use by subsequent commands.\n", credsCtx.HelperType))
+		case cliconfig.CredentialsInPrimaryFile, cliconfig.CredentialsNotAvailable:
+			c.Ui.Output(fmt.Sprintf("If login is successful, Terraform will store the token in plain text in\nthe following file for use by subsequent commands:\n    %s\n", credsCtx.LocalFilename))
+		}
+	}
+
+	v, err := c.UIInput().Input(context.Background(), &terraform.InputOpts{
+		Id:          "confirm",
+		Query:       "Do you want to proceed with login and store the new credentials?",
+		Description: "Enter 'y' or 'yes' to confirm.",
+	})
+	if err != nil {
+		// Should not happen because this command checks that input is enabled
+		// before we get to this point.
+		diags = diags.Append(err)
+		return false, diags
+	}
+
+	switch strings.ToLower(v) {
+	case "y", "yes":
+		return true, diags
+	default:
+		return false, diags
+	}
+}
+
 func (c *LoginCommand) listenerForCallback(minPort, maxPort uint16) (net.Listener, string, error) {
 	if minPort < 1024 || maxPort < 1024 {
 		// This should never happen because it should've been checked by
@@ -385,6 +512,12 @@ func (c *LoginCommand) proofKey() (key, challenge string, err error) {
 	challenge = base64.RawURLEncoding.EncodeToString(h.Sum(nil))
 
 	return key, challenge, nil
+}
+
+type loginCredentialsContext struct {
+	Location      cliconfig.CredentialsLocation
+	LocalFilename string
+	HelperType    string
 }
 
 const callbackSuccessMessage = `
