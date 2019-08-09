@@ -13,8 +13,8 @@ import (
 	"fmt"
 	"hash"
 
+	uuidv5 "github.com/google/uuid"
 	uuid "github.com/hashicorp/go-uuid"
-	uuidv5 "github.com/satori/go.uuid"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 	"github.com/zclconf/go-cty/cty/gocty"
@@ -49,20 +49,20 @@ var UUIDV5Func = function.New(&function.Spec{
 		var namespace uuidv5.UUID
 		switch {
 		case args[0].AsString() == "dns":
-			namespace = uuidv5.NamespaceDNS
+			namespace = uuidv5.NameSpaceDNS
 		case args[0].AsString() == "url":
-			namespace = uuidv5.NamespaceURL
+			namespace = uuidv5.NameSpaceURL
 		case args[0].AsString() == "oid":
-			namespace = uuidv5.NamespaceOID
+			namespace = uuidv5.NameSpaceOID
 		case args[0].AsString() == "x500":
-			namespace = uuidv5.NamespaceX500
+			namespace = uuidv5.NameSpaceX500
 		default:
-			if namespace, err = uuidv5.FromString(args[0].AsString()); err != nil {
+			if namespace, err = uuidv5.Parse(args[0].AsString()); err != nil {
 				return cty.UnknownVal(cty.String), fmt.Errorf("uuidv5() doesn't support namespace %s (%v)", args[0].AsString(), err)
 			}
 		}
 		val := args[1].AsString()
-		return cty.StringVal(uuidv5.NewV5(namespace, val).String()), nil
+		return cty.StringVal(uuidv5.NewSHA1(namespace, []byte(val)).String()), nil
 	},
 })
 
