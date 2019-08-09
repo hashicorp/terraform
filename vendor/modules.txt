@@ -128,7 +128,7 @@ github.com/bgentry/go-netrc/netrc
 github.com/bgentry/speakeasy
 # github.com/blang/semver v3.5.1+incompatible
 github.com/blang/semver
-# github.com/chzyer/readline v0.0.0-20161106042343-c914be64f07d
+# github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
 github.com/chzyer/readline
 # github.com/coreos/etcd v3.3.10+incompatible
 github.com/coreos/etcd/client
