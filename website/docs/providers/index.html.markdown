@@ -52,6 +52,7 @@ down to see all providers.
 - [DNSMadeEasy](/docs/providers/dme/index.html)
 - [Docker](/docs/providers/docker/index.html)
 - [Dyn](/docs/providers/dyn/index.html)
+- [Exoscale](/docs/providers/exoscale/index.html)
 - [External](/docs/providers/external/index.html)
 - [F5 BIG-IP](/docs/providers/bigip/index.html)
 - [Fastly](/docs/providers/fastly/index.html)
