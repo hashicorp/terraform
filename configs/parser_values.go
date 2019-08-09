@@ -26,6 +26,21 @@ func (p *Parser) LoadValuesFile(path string) (map[string]cty.Value, hcl.Diagnost
 		return nil, diags
 	}
 
+	vals, buildDiags := buildValuesFile(body)
+	diags = append(diags, buildDiags...)
+
+	return vals, diags
+}
+
+// BuildValuesFile builds the cty.Value's key-value pairs from the given hcl.Body.
+// The difference with LoadValuesFile is whether to read the file directly.
+// It is useful when the code can be obtained other than reading files, such as LSP.
+func BuildValuesFile(body hcl.Body) (map[string]cty.Value, hcl.Diagnostics) {
+	return buildValuesFile(body)
+}
+
+func buildValuesFile(body hcl.Body) (map[string]cty.Value, hcl.Diagnostics) {
+	var diags hcl.Diagnostics
 	vals := make(map[string]cty.Value)
 	attrs, attrDiags := body.JustAttributes()
 	diags = append(diags, attrDiags...)

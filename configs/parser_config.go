@@ -29,6 +29,18 @@ func (p *Parser) LoadConfigFileOverride(path string) (*File, hcl.Diagnostics) {
 	return p.loadConfigFile(path, true)
 }
 
+// BuildConfigFile builds a configs.File from the given hcl.Body.
+// The difference with LoadConfigFile is whether to read the file directly.
+// It is useful when the code can be obtained other than reading files, such as LSP.
+func BuildConfigFile(body hcl.Body) (*File, hcl.Diagnostics) {
+	return buildConfigFile(body, false)
+}
+
+// BuildConfigFileOverride is the same as BuildConfigFile except for the override flag.
+func BuildConfigFileOverride(body hcl.Body) (*File, hcl.Diagnostics) {
+	return buildConfigFile(body, true)
+}
+
 func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnostics) {
 
 	body, diags := p.LoadHCLFile(path)
@@ -36,7 +48,15 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 		return nil, diags
 	}
 
+	file, buildDiags := buildConfigFile(body, override)
+	diags = append(diags, buildDiags...)
+
+	return file, diags
+}
+
+func buildConfigFile(body hcl.Body, override bool) (*File, hcl.Diagnostics) {
 	file := &File{}
+	var diags hcl.Diagnostics
 
 	var reqDiags hcl.Diagnostics
 	file.CoreVersionConstraints, reqDiags = sniffCoreVersionRequirements(body)

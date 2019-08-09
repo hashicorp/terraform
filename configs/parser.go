@@ -59,6 +59,16 @@ func (p *Parser) LoadHCLFile(path string) (hcl.Body, hcl.Diagnostics) {
 		}
 	}
 
+	return p.parseHCLFile(src, path)
+}
+
+// ParseHCLFile is a low-level method that parses the given code without reading the file.
+// It is useful when the code can be obtained other than reading files, such as LSP.
+func (p *Parser) ParseHCLFile(src []byte, path string) (hcl.Body, hcl.Diagnostics) {
+	return p.parseHCLFile(src, path)
+}
+
+func (p *Parser) parseHCLFile(src []byte, path string) (hcl.Body, hcl.Diagnostics) {
 	var file *hcl.File
 	var diags hcl.Diagnostics
 	switch {
