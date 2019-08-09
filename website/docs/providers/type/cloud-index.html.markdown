@@ -24,6 +24,7 @@ vendor in close collaboration with HashiCorp, and are tested by HashiCorp.
 - [CloudScale.ch](/docs/providers/cloudscale/index.html)
 - [CloudStack](/docs/providers/cloudstack/index.html)
 - [DigitalOcean](/docs/providers/do/index.html)
+- [Exoscale](/docs/providers/exoscale/index.html)
 - [Fastly](/docs/providers/fastly/index.html)
 - [FlexibleEngine](/docs/providers/flexibleengine/index.html)
 - [Gridscale](/docs/providers/gridscale/index.html)
