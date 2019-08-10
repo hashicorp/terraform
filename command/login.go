@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/terraform/httpclient"
 	"github.com/hashicorp/terraform/svchost"
 	"github.com/hashicorp/terraform/svchost/disco"
-	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 
 	uuid "github.com/hashicorp/go-uuid"
@@ -434,11 +433,7 @@ func (c *LoginCommand) interactiveContextConsent(hostname svchost.Hostname, gran
 		}
 	}
 
-	v, err := c.UIInput().Input(context.Background(), &terraform.InputOpts{
-		Id:          "confirm",
-		Query:       "Do you want to proceed with login and store the new credentials?",
-		Description: "Enter 'y' or 'yes' to confirm.",
-	})
+	v, err := c.prompt("Do you want to proceed? (y/n)", false)
 	if err != nil {
 		// Should not happen because this command checks that input is enabled
 		// before we get to this point.
