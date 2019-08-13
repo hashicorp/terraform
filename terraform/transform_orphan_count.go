@@ -56,8 +56,14 @@ func (t *OrphanResourceCountTransformer) transformForEach(haveKeys map[addrs.Ins
 	// so if this (non-deterministically) happens to end up as the last one,
 	// that will change the resource's EachMode and our addressing for our instances
 	// will not work as expected
-	noKeyNode, hasNoKeyNode := haveKeys[addrs.NoKey]
+	_, hasNoKeyNode := haveKeys[addrs.NoKey]
+	var noKeyNode dag.Vertex
 	if hasNoKeyNode {
+		abstract := NewNodeAbstractResourceInstance(t.Addr.Instance(addrs.NoKey))
+		noKeyNode = abstract
+		if f := t.Concrete; f != nil {
+			noKeyNode = f(abstract)
+		}
 		g.Add(noKeyNode)
 	}
 
