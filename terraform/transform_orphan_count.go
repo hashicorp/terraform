@@ -50,7 +50,29 @@ func (t *OrphanResourceCountTransformer) Transform(g *Graph) error {
 }
 
 func (t *OrphanResourceCountTransformer) transformForEach(haveKeys map[addrs.InstanceKey]struct{}, g *Graph) error {
+	// If there is a NoKey node, add this to the graph first,
+	// so that we can create edges to it in subsequent (StringKey) nodes.
+	// This is because the last item determines the resource mode for the whole resource,
+	// (see SetResourceInstanceCurrent for more information) and we need to evaluate
+	// an orphaned (NoKey) resource before the in-memory state is updated
+	// to deal with a new for_each resource
+	_, hasNoKeyNode := haveKeys[addrs.NoKey]
+	var noKeyNode dag.Vertex
+	if hasNoKeyNode {
+		abstract := NewNodeAbstractResourceInstance(t.Addr.Instance(addrs.NoKey))
+		noKeyNode = abstract
+		if f := t.Concrete; f != nil {
+			noKeyNode = f(abstract)
+		}
+		g.Add(noKeyNode)
+	}
+
 	for key := range haveKeys {
+		// If the key is no-key, we have already added it, so skip
+		if key == addrs.NoKey {
+			continue
+		}
+
 		s, _ := key.(addrs.StringKey)
 		// If the key is present in our current for_each, carry on
 		if _, ok := t.ForEach[string(s)]; ok {
@@ -64,6 +86,11 @@ func (t *OrphanResourceCountTransformer) transformForEach(haveKeys map[addrs.Ins
 		}
 		log.Printf("[TRACE] OrphanResourceCount(non-zero): adding %s as %T", t.Addr, node)
 		g.Add(node)
+
+		// Add edge to noKeyNode if it exists
+		if hasNoKeyNode {
+			g.Connect(dag.BasicEdge(node, noKeyNode))
+		}
 	}
 	return nil
 }
