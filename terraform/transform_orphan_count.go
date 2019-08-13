@@ -50,10 +50,25 @@ func (t *OrphanResourceCountTransformer) Transform(g *Graph) error {
 }
 
 func (t *OrphanResourceCountTransformer) transformForEach(haveKeys map[addrs.InstanceKey]struct{}, g *Graph) error {
+	// If there is a no-key node, add this to the graph first,
+	// because the last item determines the resource mode for the whole resource,
+	// so if this (non-deterministically) happens to end up as the last one,
+	// that will change the resource's EachMode and our addressing for our instances
+	// will not work as expected
+	noKeyNode, hasNoKeyNode := haveKeys[addrs.NoKey]
+	if hasNoKeyNode {
+		g.Add(noKeyNode)
+	}
+
 	for key := range haveKeys {
 		s, _ := key.(addrs.StringKey)
 		// If the key is present in our current for_each, carry on
 		if _, ok := t.ForEach[string(s)]; ok {
+			continue
+		}
+
+		// If the key is no-key, we have already added it, so skip
+		if key == addrs.NoKey {
 			continue
 		}
 
