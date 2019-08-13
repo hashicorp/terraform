@@ -50,12 +50,12 @@ func (t *OrphanResourceCountTransformer) Transform(g *Graph) error {
 }
 
 func (t *OrphanResourceCountTransformer) transformForEach(haveKeys map[addrs.InstanceKey]struct{}, g *Graph) error {
-	// If there is a no-key node, add this to the graph first,
+	// If there is a NoKey node, add this to the graph first,
 	// so that we can create edges to it in subsequent (StringKey) nodes.
 	// This is because the last item determines the resource mode for the whole resource,
-	// so if this (non-deterministically) happens to end up as the last one,
-	// that will change the resource's EachMode and our addressing for our instances
-	// will not work as expected
+	// (see SetResourceInstanceCurrent for more information) and we need to evaluate
+	// an orphaned (NoKey) resource before the in-memory state is updated
+	// to deal with a new for_each resource
 	_, hasNoKeyNode := haveKeys[addrs.NoKey]
 	var noKeyNode dag.Vertex
 	if hasNoKeyNode {
@@ -68,14 +68,14 @@ func (t *OrphanResourceCountTransformer) transformForEach(haveKeys map[addrs.Ins
 	}
 
 	for key := range haveKeys {
-		s, _ := key.(addrs.StringKey)
-		// If the key is present in our current for_each, carry on
-		if _, ok := t.ForEach[string(s)]; ok {
+		// If the key is no-key, we have already added it, so skip
+		if key == addrs.NoKey {
 			continue
 		}
 
-		// If the key is no-key, we have already added it, so skip
-		if key == addrs.NoKey {
+		s, _ := key.(addrs.StringKey)
+		// If the key is present in our current for_each, carry on
+		if _, ok := t.ForEach[string(s)]; ok {
 			continue
 		}
 
