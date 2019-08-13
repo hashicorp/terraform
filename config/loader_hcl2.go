@@ -184,7 +184,7 @@ func (t *hcl2Configurable) Config() (*Config, error) {
 		// caller than then type-assert if desired to recover the individual
 		// diagnostics.
 		// FIXME: The current API gives us no way to return warnings in the
-		// absense of any errors.
+		// absence of any errors.
 		return config, diags
 	}
 
@@ -463,7 +463,7 @@ func (t *hcl2Configurable) Config() (*Config, error) {
 	}
 
 	// FIXME: The current API gives us no way to return warnings in the
-	// absense of any errors.
+	// absence of any errors.
 	var err error
 	if diags.HasErrors() {
 		err = diags
