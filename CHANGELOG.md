@@ -14,6 +14,7 @@ BUG FIXES:
 * config: fix references to `each` of `for_each` in provisioners [GH-22289]
 * plugin/sdk: Azure SDK components used by the `azure` remote state backend have been updated to recent versions. This should help prevent dependency conflicts when using Terraform components or the plugin SDK in other projects that have their own Azure dependencies. [GH-22247], [GH-22248]
 * command/hook_ui: Truncate the ID considering multibyte characters [GH-18823]
+* command/fmt: Terraform fmt no longer inserts spaces after % [GH-22356]
 
 
 ## 0.12.6 (July 31, 2019)
