@@ -410,6 +410,13 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"jsonpath": {
+			{
+				`jsonpath({hello=1, goodbye=42}, "$.hello")`,
+				cty.NumberIntVal(1),
+			},
+		},
+
 		"keys": {
 			{
 				`keys({"hello"=1, "goodbye"=42})`,
