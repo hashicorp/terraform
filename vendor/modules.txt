@@ -49,6 +49,10 @@ github.com/ChrisTrenkamp/goxpath/lexer
 github.com/ChrisTrenkamp/goxpath/parser/pathexpr
 github.com/ChrisTrenkamp/goxpath/xconst
 github.com/ChrisTrenkamp/goxpath/tree/xmltree/xmlnode
+# github.com/PaesslerAG/gval v1.0.0
+github.com/PaesslerAG/gval
+# github.com/PaesslerAG/jsonpath v0.1.1
+github.com/PaesslerAG/jsonpath
 # github.com/Unknwon/com v0.0.0-20151008135407-28b053d5a292
 github.com/Unknwon/com
 # github.com/agext/levenshtein v1.2.2
