@@ -240,6 +240,48 @@ func TestTaint_defaultState(t *testing.T) {
 	testStateOutput(t, path, testTaintStr)
 }
 
+func TestTaint_defaultWorkspaceState(t *testing.T) {
+	// Get a temp cwd
+	tmp, cwd := testCwd(t)
+	defer testFixCwd(t, tmp, cwd)
+
+	// Write the temp state
+	state := &terraform.State{
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path: []string{"root"},
+				Resources: map[string]*terraform.ResourceState{
+					"test_instance.foo": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	testWorkspace := "development"
+	path := testStateFileWorkspaceDefault(t, testWorkspace, state)
+
+	ui := new(cli.MockUi)
+	meta := Meta{Ui: ui}
+	meta.SetWorkspace(testWorkspace)
+	c := &TaintCommand{
+		Meta: meta,
+	}
+
+	args := []string{
+		"test_instance.foo",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	testStateOutput(t, path, testTaintStr)
+}
+
 func TestTaint_missing(t *testing.T) {
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(

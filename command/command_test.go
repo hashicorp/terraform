@@ -42,6 +42,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	backendInit "github.com/hashicorp/terraform/backend/init"
+	backendLocal "github.com/hashicorp/terraform/backend/local"
 )
 
 // These are the directories for our test data and fixtures.
@@ -386,6 +387,31 @@ func testStateFileDefault(t *testing.T, s *terraform.State) string {
 	}
 
 	return DefaultStateFilename
+}
+
+// testStateFileWorkspaceDefault writes the state out to the default workspace statefile
+// in the cwd. Use `testCwd` to change into a temp cwd.
+func testStateFileWorkspaceDefault(t *testing.T, workspace string, s *terraform.State) string {
+	t.Helper()
+
+	workspaceDir := filepath.Join(backendLocal.DefaultWorkspaceDir, workspace)
+	err := os.MkdirAll(workspaceDir, os.ModePerm)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	workspaceDefault := filepath.Join(workspaceDir, DefaultStateFilename)
+	f, err := os.Create(workspaceDefault)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer f.Close()
+
+	if err := terraform.WriteState(s, f); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	return workspaceDefault
 }
 
 // testStateFileRemote writes the state out to the remote statefile
