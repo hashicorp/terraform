@@ -1,10 +1,13 @@
 package funcs
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sort"
 
+	"github.com/PaesslerAG/jsonpath"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 	"github.com/zclconf/go-cty/cty/function"
@@ -615,6 +618,93 @@ var ListFunc = function.New(&function.Spec{
 		}
 
 		return cty.ListVal(newList), nil
+	},
+})
+
+var JSONPathFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "input",
+			Type: cty.DynamicPseudoType,
+		},
+		{
+			Name: "path",
+			Type: cty.String,
+		},
+	},
+	VarParam: &function.Parameter{
+		Name:             "default",
+		Type:             cty.DynamicPseudoType,
+		AllowUnknown:     true,
+		AllowDynamicType: true,
+		AllowNull:        true,
+	},
+	Type: func(args []cty.Value) (ret cty.Type, err error) {
+		if len(args) < 1 || len(args) > 3 {
+			return cty.NilType, fmt.Errorf("jsonpath() takes two or three arguments, got %d", len(args))
+		}
+
+		ty := args[0].Type()
+
+		switch {
+		case ty.IsObjectType(), ty.IsMapType(), ty.IsTupleType():
+			return cty.DynamicPseudoType, nil
+		default:
+			return cty.NilType, function.NewArgErrorf(0, "jsonpath() requires a collection as the first argument")
+		}
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		var defaultVal cty.Value
+		defaultValueSet := false
+
+		if len(args) == 3 {
+			defaultVal = args[2]
+			defaultValueSet = true
+		}
+
+		inputVar := args[0]
+		lookupPath := args[1].AsString()
+
+		if !inputVar.IsWhollyKnown() {
+			return cty.UnknownVal(retType), nil
+		}
+
+		jsonVal, err := stdlib.JSONEncode(inputVar)
+		if err != nil {
+			return cty.NilVal, err
+		}
+
+		var jsonObj interface{}
+		err = json.Unmarshal([]byte(jsonVal.AsString()), &jsonObj)
+		if err != nil {
+			return cty.NilVal, err
+		}
+
+		path, err := jsonpath.New(lookupPath)
+		if err != nil {
+			return cty.NilVal, err
+		}
+
+		retVal, err := path(context.Background(), jsonObj)
+		if err == nil {
+			jsonData, err := json.Marshal(retVal)
+			if err != nil {
+				return cty.NilVal, err
+			}
+
+			return stdlib.JSONDecode(cty.StringVal(string(jsonData)))
+		}
+
+		if defaultValueSet {
+			defaultVal, err = convert.Convert(defaultVal, retType)
+			if err != nil {
+				return cty.NilVal, err
+			}
+			return defaultVal, nil
+		}
+
+		return cty.UnknownVal(cty.DynamicPseudoType), fmt.Errorf(
+			"jsonpath failed to find '%s'", lookupPath)
 	},
 })
 
