@@ -165,7 +165,7 @@ func (b *Local) opPlan(
 			return
 		}
 
-		b.renderPlan(plan, baseState, schemas)
+		b.renderPlan(plan, baseState, schemas, op.Concise)
 
 		// If we've accumulated any warnings along the way then we'll show them
 		// here just before we show the summary and next steps. If we encountered
@@ -192,8 +192,8 @@ func (b *Local) opPlan(
 	}
 }
 
-func (b *Local) renderPlan(plan *plans.Plan, state *states.State, schemas *terraform.Schemas) {
-	RenderPlan(plan, state, schemas, b.CLI, b.Colorize())
+func (b *Local) renderPlan(plan *plans.Plan, state *states.State, schemas *terraform.Schemas, concise bool) {
+	RenderPlan(plan, state, schemas, b.CLI, b.Colorize(), concise)
 }
 
 // RenderPlan renders the given plan to the given UI.
@@ -207,7 +207,7 @@ func (b *Local) renderPlan(plan *plans.Plan, state *states.State, schemas *terra
 // please consider whether it's time to do the more disruptive refactoring
 // so that something other than the local backend package is offering this
 // functionality.
-func RenderPlan(plan *plans.Plan, state *states.State, schemas *terraform.Schemas, ui cli.Ui, colorize *colorstring.Colorize) {
+func RenderPlan(plan *plans.Plan, state *states.State, schemas *terraform.Schemas, ui cli.Ui, colorize *colorstring.Colorize, concise bool) {
 	counts := map[plans.Action]int{}
 	var rChanges []*plans.ResourceInstanceChangeSrc
 	for _, change := range plan.Changes.Resources {
@@ -293,6 +293,7 @@ func RenderPlan(plan *plans.Plan, state *states.State, schemas *terraform.Schema
 			tainted,
 			rSchema,
 			colorize,
+			concise,
 		))
 	}
 

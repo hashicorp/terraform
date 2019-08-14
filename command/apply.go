@@ -27,7 +27,7 @@ type ApplyCommand struct {
 }
 
 func (c *ApplyCommand) Run(args []string) int {
-	var destroyForce, refresh, autoApprove bool
+	var destroyForce, refresh, autoApprove, concise bool
 	args, err := c.Meta.process(args, true)
 	if err != nil {
 		return 1
@@ -50,6 +50,7 @@ func (c *ApplyCommand) Run(args []string) int {
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
 	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
+	cmdFlags.BoolVar(&concise, "concise", false, "concise")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -182,6 +183,7 @@ func (c *ApplyCommand) Run(args []string) int {
 	opReq.DestroyForce = destroyForce
 	opReq.PlanFile = planFile
 	opReq.PlanRefresh = refresh
+	opReq.Concise = concise
 	opReq.Type = backend.OperationTypeApply
 
 	opReq.ConfigLoader, err = c.initConfigLoader()
@@ -257,6 +259,9 @@ Options:
   -compact-warnings      If Terraform produces any warnings that are not
                          accompanied by errors, show them in a more compact
                          form that includes only the summary messages.
+
+  -concise               If set, a concise diff of only the changed attributes
+                         will be generated.
 
   -lock=true             Lock the state file when locking is supported.
 

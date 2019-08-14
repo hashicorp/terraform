@@ -32,6 +32,7 @@ func ResourceChange(
 	tainted bool,
 	schema *configschema.Block,
 	color *colorstring.Colorize,
+	concise bool,
 ) string {
 	addr := change.Addr
 	var buf bytes.Buffer
@@ -97,6 +98,7 @@ func ResourceChange(
 		color:           color,
 		action:          change.Action,
 		requiredReplace: change.RequiredReplace,
+		concise:         concise,
 	}
 
 	// Most commonly-used resources have nested blocks that result in us
@@ -137,6 +139,7 @@ type blockBodyDiffPrinter struct {
 	color           *colorstring.Colorize
 	action          plans.Action
 	requiredReplace cty.PathSet
+	concise         bool
 }
 
 const forcesNewResourceCaption = " [red]# forces replacement[reset]"
@@ -207,8 +210,6 @@ func (p *blockBodyDiffPrinter) writeBlockBodyDiff(schema *configschema.Block, ol
 
 func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.Attribute, old, new cty.Value, nameLen, indent int, path cty.Path) {
 	path = append(path, cty.GetAttrStep{Name: name})
-	p.buf.WriteString("\n")
-	p.buf.WriteString(strings.Repeat(" ", indent))
 	showJustNew := false
 	var action plans.Action
 	switch {
@@ -224,6 +225,12 @@ func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.At
 		action = plans.Update
 	}
 
+	if action == plans.NoOp && p.concise {
+		return
+	}
+
+	p.buf.WriteString("\n")
+	p.buf.WriteString(strings.Repeat(" ", indent))
 	p.writeActionSymbol(action)
 
 	p.buf.WriteString(p.color.Color("[bold]"))
@@ -254,6 +261,10 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 	path = append(path, cty.GetAttrStep{Name: name})
 	if old.IsNull() && new.IsNull() {
 		// Nothing to do if both old and new is null
+		return
+	}
+
+	if ctyEqualWithUnknown(old, new) && p.concise {
 		return
 	}
 
@@ -443,6 +454,10 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 }
 
 func (p *blockBodyDiffPrinter) writeNestedBlockDiff(name string, label *string, blockS *configschema.Block, action plans.Action, old, new cty.Value, indent int, path cty.Path) {
+	if action == plans.NoOp && p.concise {
+		return
+	}
+
 	p.buf.WriteString("\n")
 	p.buf.WriteString(strings.Repeat(" ", indent))
 	p.writeActionSymbol(action)
@@ -770,8 +785,6 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 			for it := all.ElementIterator(); it.Next(); {
 				_, val := it.Element()
 
-				p.buf.WriteString(strings.Repeat(" ", indent+2))
-
 				var action plans.Action
 				switch {
 				case !val.IsKnown():
@@ -784,6 +797,11 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 					action = plans.NoOp
 				}
 
+				if action == plans.NoOp && p.concise {
+					continue
+				}
+
+				p.buf.WriteString(strings.Repeat(" ", indent+2))
 				p.writeActionSymbol(action)
 				p.writeValue(val, action, indent+4)
 				p.buf.WriteString(",\n")
@@ -801,6 +819,10 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 
 			elemDiffs := ctySequenceDiff(old.AsValueSlice(), new.AsValueSlice())
 			for _, elemDiff := range elemDiffs {
+				if elemDiff.Action == plans.NoOp && p.concise {
+					continue
+				}
+
 				p.buf.WriteString(strings.Repeat(" ", indent+2))
 				p.writeActionSymbol(elemDiff.Action)
 				switch elemDiff.Action {
@@ -858,7 +880,6 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 				}
 				lastK = k
 
-				p.buf.WriteString(strings.Repeat(" ", indent+2))
 				kV := cty.StringVal(k)
 				var action plans.Action
 				if old.HasIndex(kV).False() {
@@ -871,8 +892,13 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 					action = plans.Update
 				}
 
+				if action == plans.NoOp && p.concise {
+					continue
+				}
+
 				path := append(path, cty.IndexStep{Key: kV})
 
+				p.buf.WriteString(strings.Repeat(" ", indent+2))
 				p.writeActionSymbol(action)
 				p.writeValue(kV, action, indent+4)
 				p.buf.WriteString(strings.Repeat(" ", keyLen-len(k)))
@@ -931,7 +957,6 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 				}
 				lastK = k
 
-				p.buf.WriteString(strings.Repeat(" ", indent+2))
 				kV := k
 				var action plans.Action
 				if !old.Type().HasAttribute(kV) {
@@ -944,8 +969,13 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 					action = plans.Update
 				}
 
+				if action == plans.NoOp && p.concise {
+					continue
+				}
+
 				path := append(path, cty.GetAttrStep{Name: kV})
 
+				p.buf.WriteString(strings.Repeat(" ", indent+2))
 				p.writeActionSymbol(action)
 				p.buf.WriteString(k)
 				p.buf.WriteString(strings.Repeat(" ", keyLen-len(k)))

@@ -17,7 +17,7 @@ type PlanCommand struct {
 }
 
 func (c *PlanCommand) Run(args []string) int {
-	var destroy, refresh, detailed bool
+	var destroy, refresh, detailed, concise bool
 	var outPath string
 
 	args, err := c.Meta.process(args, true)
@@ -34,6 +34,7 @@ func (c *PlanCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&detailed, "detailed-exitcode", false, "detailed-exitcode")
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
 	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
+	cmdFlags.BoolVar(&concise, "concise", false, "concise")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -98,6 +99,7 @@ func (c *PlanCommand) Run(args []string) int {
 	opReq.Destroy = destroy
 	opReq.PlanOutPath = outPath
 	opReq.PlanRefresh = refresh
+	opReq.Concise = concise
 	opReq.Type = backend.OperationTypePlan
 
 	opReq.ConfigLoader, err = c.initConfigLoader()
@@ -204,6 +206,9 @@ Options:
   -compact-warnings   If Terraform produces any warnings that are not
                       accompanied by errors, show them in a more compact form
                       that includes only the summary messages.
+
+  -concise            If set, a concise diff of only the changed attributes
+                      will be generated.
 
   -destroy            If set, a plan will be generated to destroy all resources
                       managed by the given configuration and state.

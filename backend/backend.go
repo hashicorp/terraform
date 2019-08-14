@@ -224,6 +224,10 @@ type Operation struct {
 	// Workspace is the name of the workspace that this operation should run
 	// in, which controls which named state is used.
 	Workspace string
+
+	// If Concise is true, then only the modified attributes (ie. NoOp's are ignored)
+	// are rendered in plan diff.
+	Concise bool
 }
 
 // HasConfig returns true if and only if the operation has a ConfigDir value
