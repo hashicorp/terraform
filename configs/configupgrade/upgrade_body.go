@@ -236,7 +236,7 @@ func attributeRule(filename string, wantTy cty.Type, an *analysis, exprRule func
 							buf.WriteString(
 								"# TF-UPGRADE-TODO: In Terraform v0.10 and earlier, it was sometimes necessary to\n" +
 									"# force an interpolation expression to be interpreted as a list by wrapping it\n" +
-									"# in an extra set of list brackets. That form was supported for compatibilty in\n" +
+									"# in an extra set of list brackets. That form was supported for compatibility in\n" +
 									"# v0.11, but is no longer supported in Terraform v0.12.\n" +
 									"#\n" +
 									"# If the expression in the following list itself returns a list, remove the\n" +
