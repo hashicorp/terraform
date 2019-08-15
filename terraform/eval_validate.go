@@ -305,6 +305,10 @@ var connectionBlockSupersetSchema = &configschema.Block{
 			Type:     cty.String,
 			Optional: true,
 		},
+		"bastion_certificate": {
+			Type:     cty.String,
+			Optional: true,
+		},
 
 		// For type=winrm only (enforced in winrm communicator)
 		"https": {

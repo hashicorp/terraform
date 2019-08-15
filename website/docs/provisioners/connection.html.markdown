@@ -126,3 +126,7 @@ The `ssh` connection also supports the following fields to facilitate connnectio
   host. These can be loaded from a file on disk using
   [the `file` function](/docs/configuration/functions/file.html).
   Defaults to the value of the `private_key` field.
+
+* `bastion_certificate` - The contents of a signed CA Certificate. The certificate argument
+  must be used in conjunction with a `bastion_private_key`. These can be loaded from
+  a file on disk using the [the `file` function](/docs/configuration/functions/file.html).
