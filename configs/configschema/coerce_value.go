@@ -114,14 +114,6 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 				}
 				l := coll.LengthInt()
 
-				// Assume that if there are unknowns this could have come from
-				// a dynamic block, and we can't validate MinItems yet.
-				if l < blockS.MinItems && coll.IsWhollyKnown() {
-					return cty.UnknownVal(b.ImpliedType()), path.NewErrorf("insufficient items for attribute %q; must have at least %d", typeName, blockS.MinItems)
-				}
-				if l > blockS.MaxItems && blockS.MaxItems > 0 {
-					return cty.UnknownVal(b.ImpliedType()), path.NewErrorf("too many items for attribute %q; cannot have more than %d", typeName, blockS.MaxItems)
-				}
 				if l == 0 {
 					attrs[typeName] = cty.ListValEmpty(blockS.ImpliedType())
 					continue
@@ -140,10 +132,8 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 					}
 				}
 				attrs[typeName] = cty.ListVal(elems)
-			case blockS.MinItems == 0:
-				attrs[typeName] = cty.ListValEmpty(blockS.ImpliedType())
 			default:
-				return cty.UnknownVal(b.ImpliedType()), path.NewErrorf("attribute %q is required", typeName)
+				attrs[typeName] = cty.ListValEmpty(blockS.ImpliedType())
 			}
 
 		case NestingSet:
@@ -165,14 +155,6 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 				}
 				l := coll.LengthInt()
 
-				// Assume that if there are unknowns this could have come from
-				// a dynamic block, and we can't validate MinItems yet.
-				if l < blockS.MinItems && coll.IsWhollyKnown() {
-					return cty.UnknownVal(b.ImpliedType()), path.NewErrorf("insufficient items for attribute %q; must have at least %d", typeName, blockS.MinItems)
-				}
-				if l > blockS.MaxItems && blockS.MaxItems > 0 {
-					return cty.UnknownVal(b.ImpliedType()), path.NewErrorf("too many items for attribute %q; cannot have more than %d", typeName, blockS.MaxItems)
-				}
 				if l == 0 {
 					attrs[typeName] = cty.SetValEmpty(blockS.ImpliedType())
 					continue
@@ -191,10 +173,8 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 					}
 				}
 				attrs[typeName] = cty.SetVal(elems)
-			case blockS.MinItems == 0:
-				attrs[typeName] = cty.SetValEmpty(blockS.ImpliedType())
 			default:
-				return cty.UnknownVal(b.ImpliedType()), path.NewErrorf("attribute %q is required", typeName)
+				attrs[typeName] = cty.SetValEmpty(blockS.ImpliedType())
 			}
 
 		case NestingMap:
