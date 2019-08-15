@@ -175,6 +175,17 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	log.Printf("[TRACE] Re-validating config for %q", n.Addr.Absolute(ctx.Path()))
+	// Statically validate the new value against the schema once it's complete.
+	// Doing this just before PlanResourceChange allows us to get the most
+	// recently evaluated value.
+	if err := schema.Validate(proposedNewVal); err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"invalid proposed value",
+			fmt.Sprintf("The final configuration for %s contains errors.\n\n%s", absAddr.String(), err),
+		))
+	}
+
 	// Allow the provider to validate the final set of values.
 	// The config was statically validated early on, but there may have been
 	// unknown values which the provider could not validate at the time.

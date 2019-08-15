@@ -1771,7 +1771,7 @@ func TestContext2Plan_blockNestingGroup(t *testing.T) {
 						Nesting: configschema.NestingGroup,
 						Block: configschema.Block{
 							Attributes: map[string]*configschema.Attribute{
-								"baz": {Type: cty.String, Required: true},
+								"baz": {Type: cty.String, Optional: true},
 							},
 						},
 					},
