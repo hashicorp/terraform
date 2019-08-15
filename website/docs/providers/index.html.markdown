@@ -80,6 +80,7 @@ down to see all providers.
 - [Logentries](/docs/providers/logentries/index.html)
 - [LogicMonitor](/docs/providers/logicmonitor/index.html)
 - [Mailgun](/docs/providers/mailgun/index.html)
+- [MongoDB Atlas](/docs/providers/mongodbatlas/index.html)
 - [MySQL](/docs/providers/mysql/index.html)
 - [Naver Cloud](/docs/providers/ncloud/index.html)
 - [Netlify](/docs/providers/netlify/index.html)
