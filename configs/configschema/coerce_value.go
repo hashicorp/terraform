@@ -8,9 +8,7 @@ import (
 )
 
 // CoerceValue attempts to force the given value to conform to the type
-// implied by the receiever, while also applying the same validation and
-// transformation rules that would be applied by the decoder specification
-// returned by method DecoderSpec.
+// implied by the receiever.
 //
 // This is useful in situations where a configuration must be derived from
 // an already-decoded value. It is always better to decode directly from
@@ -83,16 +81,6 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 				if err != nil {
 					return cty.UnknownVal(b.ImpliedType()), err
 				}
-			case blockS.MinItems != 1 && blockS.MaxItems != 1:
-				if blockS.Nesting == NestingGroup {
-					attrs[typeName] = blockS.EmptyValue()
-				} else {
-					attrs[typeName] = cty.NullVal(blockS.ImpliedType())
-				}
-			default:
-				// We use the word "attribute" here because we're talking about
-				// the cty sense of that word rather than the HCL sense.
-				return cty.UnknownVal(b.ImpliedType()), path.NewErrorf("attribute %q is required", typeName)
 			}
 
 		case NestingList:
@@ -132,8 +120,6 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 					}
 				}
 				attrs[typeName] = cty.ListVal(elems)
-			default:
-				attrs[typeName] = cty.ListValEmpty(blockS.ImpliedType())
 			}
 
 		case NestingSet:
@@ -173,8 +159,6 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 					}
 				}
 				attrs[typeName] = cty.SetVal(elems)
-			default:
-				attrs[typeName] = cty.SetValEmpty(blockS.ImpliedType())
 			}
 
 		case NestingMap:
@@ -238,8 +222,6 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 				} else {
 					attrs[typeName] = cty.MapVal(elems)
 				}
-			default:
-				attrs[typeName] = cty.MapValEmpty(blockS.ImpliedType())
 			}
 
 		default:

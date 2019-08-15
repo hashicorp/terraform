@@ -23,6 +23,13 @@ func (b *Block) DecoderSpec() hcldec.Spec {
 	}
 
 	for name, blockS := range b.BlockTypes {
+		// Note that MinItems and MaxItems are not assigned in the spec for
+		// blocks. The "dynamic" block feature of terraform means that the
+		// number of blocks in the literal configuration may not validate
+		// correctly during decoding, though the final value may still conform
+		// to the schema. We skip this part of the validation here, and later
+		// assert the value against the schema once the final value is known.
+
 		if _, exists := ret[name]; exists {
 			// This indicates an invalid schema, since it's not valid to
 			// define both an attribute and a block type of the same name.
@@ -32,14 +39,6 @@ func (b *Block) DecoderSpec() hcldec.Spec {
 		}
 
 		childSpec := blockS.Block.DecoderSpec()
-
-		// We can only validate 0 or 1 for MinItems, because a dynamic block
-		// may satisfy any number of min items while only having a single
-		// block in the config.
-		minItems := 0
-		if blockS.MinItems > 1 {
-			minItems = 1
-		}
 
 		switch blockS.Nesting {
 		case NestingSingle, NestingGroup:
@@ -65,15 +64,11 @@ func (b *Block) DecoderSpec() hcldec.Spec {
 				ret[name] = &hcldec.BlockTupleSpec{
 					TypeName: name,
 					Nested:   childSpec,
-					MinItems: minItems,
-					MaxItems: blockS.MaxItems,
 				}
 			} else {
 				ret[name] = &hcldec.BlockListSpec{
 					TypeName: name,
 					Nested:   childSpec,
-					MinItems: minItems,
-					MaxItems: blockS.MaxItems,
 				}
 			}
 		case NestingSet:
@@ -85,8 +80,6 @@ func (b *Block) DecoderSpec() hcldec.Spec {
 			ret[name] = &hcldec.BlockSetSpec{
 				TypeName: name,
 				Nested:   childSpec,
-				MinItems: minItems,
-				MaxItems: blockS.MaxItems,
 			}
 		case NestingMap:
 			// We prefer to use a list where possible, since it makes our
