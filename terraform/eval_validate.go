@@ -84,6 +84,34 @@ func (n *EvalValidateProvider) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, diags.NonFatalErr()
 	}
 
+	// Check that the schema is valid, warning the user for now to prevent
+	// breaking existing providers.
+	if err := resp.Provider.Block.InternalValidate(); err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"schema validation error",
+			fmt.Sprintf("The schema for provider %s failed validation with %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.\n", n.Addr, err),
+		))
+	}
+	for name, schema := range resp.ResourceTypes {
+		if err := schema.Block.InternalValidate(); err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				"schema validation error",
+				fmt.Sprintf("The schema for resource %s in provider %s failed validation with %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.\n", name, n.Addr, err),
+			))
+		}
+	}
+	for name, schema := range resp.DataSources {
+		if err := schema.Block.InternalValidate(); err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				"schema validation error",
+				fmt.Sprintf("The schema for data source %s in provider %s failed validation with %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.\n", name, n.Addr, err),
+			))
+		}
+	}
+
 	configSchema := resp.Provider.Block
 	if configSchema == nil {
 		// Should never happen in real code, but often comes up in tests where
