@@ -73,9 +73,24 @@ func (b *Block) internalValidate(prefix string, err error) error {
 				err = multierror.Append(err, fmt.Errorf("%s%s: MinItems and MaxItems must be set to either 0 or 1 in NestingSingle mode", prefix, name))
 			}
 		case NestingGroup:
-			if blockS.MinItems != 0 || blockS.MaxItems != 0 {
-				err = multierror.Append(err, fmt.Errorf("%s%s: MinItems and MaxItems cannot be used in NestingGroup mode", prefix, name))
+			if blockS.MaxItems != 0 {
+				err = multierror.Append(err, fmt.Errorf("%s%s: MaxItems cannot be used in NestingGroup mode", prefix, name))
 			}
+
+			if blockS.MinItems > 1 {
+				err = multierror.Append(err, fmt.Errorf("%s%s: MinItems cannot be > 1 in NestingGroup mode", prefix, name))
+			}
+
+			// If the block has any required fields, it must be required itself.
+			if blockS.MinItems == 0 {
+				for _, attr := range blockS.Attributes {
+					if attr.Required {
+						err = multierror.Append(err, fmt.Errorf("%s%s: MinItems must be 1 when the block has required attributes", prefix, name))
+					}
+					break
+				}
+			}
+
 		case NestingList, NestingSet:
 			if blockS.MinItems > blockS.MaxItems && blockS.MaxItems != 0 {
 				err = multierror.Append(err, fmt.Errorf("%s%s: MinItems must be less than or equal to MaxItems in %s mode", prefix, name, blockS.Nesting))

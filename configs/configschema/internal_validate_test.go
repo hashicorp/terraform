@@ -243,6 +243,43 @@ func TestBlockInternalValidate(t *testing.T) {
 			},
 			1, // block schema is nil
 		},
+		"required nesting group": {
+			&Block{
+				BlockTypes: map[string]*NestedBlock{
+					"bad": &NestedBlock{
+						Nesting: NestingGroup,
+						Block: Block{
+							Attributes: map[string]*Attribute{
+								"nested_bad": &Attribute{
+									Type:     cty.DynamicPseudoType,
+									Required: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			1,
+		},
+		"required nesting group min items": {
+			&Block{
+				BlockTypes: map[string]*NestedBlock{
+					"good": &NestedBlock{
+						Nesting:  NestingGroup,
+						MinItems: 1,
+						Block: Block{
+							Attributes: map[string]*Attribute{
+								"nested_bad": &Attribute{
+									Type:     cty.DynamicPseudoType,
+									Required: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			0,
+		},
 	}
 
 	for name, test := range tests {
