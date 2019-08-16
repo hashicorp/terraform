@@ -51,22 +51,22 @@ provisioner "file" {
 
 **The following arguments are supported by all connection types:**
 
-* `type` - The connection type that should be used. Valid types are `ssh` and `winrm`
-  Defaults to `ssh`.
+* `type` - The connection type that should be used. Valid types are `ssh` and `winrm`.  
+           Defaults to `ssh`.
 
-* `user` - The user that we should use for the connection. Defaults to `root` when
-  using type `ssh` and defaults to `Administrator` when using type `winrm`.
+* `user` - The user that we should use for the connection.  
+           Defaults to `root` when using type `ssh` and defaults to `Administrator` when using type `winrm`.
 
 * `password` - The password we should use for the connection. In some cases this is
   specified by the provider.
 
 * `host` - The address of the resource to connect to. This is usually specified by the provider.
 
-* `port` - The port to connect to. Defaults to `22` when using type `ssh` and defaults
-  to `5985` when using type `winrm`.
+* `port` - The port to connect to.  
+           Defaults to `22` when using type `ssh` and defaults to `5985` when using type `winrm`.
 
-* `timeout` - The timeout to wait for the connection to become available. This defaults
-  to 5 minutes. Should be provided as a string like `30s` or `5m`.
+* `timeout` - The timeout to wait for the connection to become available. Should be provided as a string like `30s` or `5m`.   
+              Defaults to 5 minutes.
 
 * `script_path` - The path used to copy scripts meant for remote execution.
 
