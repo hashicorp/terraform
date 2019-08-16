@@ -18,6 +18,7 @@ BUG FIXES:
 * command/fmt: Terraform fmt no longer inserts spaces after % [GH-22356]
 * config: ensure consistent evaluation when moving between single resources and `for_each` in addressing [GH-22454]
 * backend/google: Now using the OAuth2 token endpoint on `googleapis.com` instead of `google.com`. These endpoints are equivalent in functionality but `googleapis.com` hosts are resolvable from private Google Cloud Platform VPCs where other connectivity is restricted. [GH-22451]
+* command: fix issue where commands occasionally exited before the error message printed [GH-22373]
 
 ## 0.12.6 (July 31, 2019)
 
