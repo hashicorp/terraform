@@ -97,10 +97,11 @@ const (
 	// single instance of a given block type with no labels, but it additonally
 	// guarantees that its result will never be null, even if the block is
 	// absent, and instead the nested attributes and blocks will be treated
-	// as absent in that case. (Any required attributes or blocks within the
-	// nested block are not enforced unless the block is explicitly present
-	// in the configuration, so they are all effectively optional when the
-	// block is not present.)
+	// as absent in that case. (Due to the automatic instantiation of a missing
+	// NestingGroup block, any required attributes or blocks within the nested
+	// block effectively make the block itself required. Setting MinItems of 1
+	// is required to be set in this case to better communicate this
+	// requirement.)
 	//
 	// This is useful for the situation where a remote API has a feature that
 	// is always enabled but has a group of settings related to that feature
