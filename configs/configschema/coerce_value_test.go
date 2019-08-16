@@ -291,34 +291,6 @@ func TestCoerceValue(t *testing.T) {
 			cty.DynamicVal,
 			`attribute "foo" is required`,
 		},
-		"missing required list block": {
-			&Block{
-				BlockTypes: map[string]*NestedBlock{
-					"foo": {
-						Block:    Block{},
-						Nesting:  NestingList,
-						MinItems: 1,
-					},
-				},
-			},
-			cty.EmptyObjectVal,
-			cty.DynamicVal,
-			`attribute "foo" is required`,
-		},
-		"missing required set block": {
-			&Block{
-				BlockTypes: map[string]*NestedBlock{
-					"foo": {
-						Block:    Block{},
-						Nesting:  NestingList,
-						MinItems: 1,
-					},
-				},
-			},
-			cty.EmptyObjectVal,
-			cty.DynamicVal,
-			`attribute "foo" is required`,
-		},
 		"unknown nested list": {
 			&Block{
 				Attributes: map[string]*Attribute{
