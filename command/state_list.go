@@ -28,6 +28,7 @@ func (c *StateListCommand) Run(args []string) int {
 	cmdFlags.StringVar(&statePath, "state", "", "path")
 	lookupId := cmdFlags.String("id", "", "Restrict output to paths with a resource having the specified ID.")
 	if err := cmdFlags.Parse(args); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
 		return cli.RunResultHelp
 	}
 	args = cmdFlags.Args()
