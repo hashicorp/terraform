@@ -1,13 +1,11 @@
 package command
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"errors"
 	"flag"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -353,26 +351,7 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 // defaultFlagSet creates a default flag set for commands.
 func (m *Meta) defaultFlagSet(n string) *flag.FlagSet {
 	f := flag.NewFlagSet(n, flag.ContinueOnError)
-
-	// Create an io.Writer that writes to our Ui properly for errors.
-	// This is kind of a hack, but it does the job. Basically: create
-	// a pipe, use a scanner to break it into lines, and output each line
-	// to the UI. Do this forever.
-	errR, errW := io.Pipe()
-	errScanner := bufio.NewScanner(errR)
-	go func() {
-		// This only needs to be alive long enough to write the help info if
-		// there is a flag error. Kill the scanner after a short duriation to
-		// prevent these from accumulating during tests, and cluttering up the
-		// stack traces.
-		time.AfterFunc(2*time.Second, func() {
-			errW.Close()
-		})
-		for errScanner.Scan() {
-			m.Ui.Error(errScanner.Text())
-		}
-	}()
-	f.SetOutput(errW)
+	f.SetOutput(ioutil.Discard)
 
 	// Set the default Usage to empty
 	f.Usage = func() {}
