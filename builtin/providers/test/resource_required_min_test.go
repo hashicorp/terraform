@@ -18,7 +18,7 @@ func TestResource_dynamicRequiredMinItems(t *testing.T) {
 resource "test_resource_required_min" "a" {
 }
 `,
-				ExpectError: regexp.MustCompile(`"required_min_items" blocks are required`),
+				ExpectError: regexp.MustCompile(`"required_min_items": required field is not set`),
 			},
 			resource.TestStep{
 				Config: strings.TrimSpace(`
@@ -37,7 +37,7 @@ resource "test_resource_required_min" "b" {
 	}
 }
 				`),
-				ExpectError: regexp.MustCompile(`required_min_items: attribute supports 2 item as a minimum`),
+				ExpectError: regexp.MustCompile(`attribute supports 2 item as a minimum, config has 1 declared`),
 			},
 			resource.TestStep{
 				Config: strings.TrimSpace(`
