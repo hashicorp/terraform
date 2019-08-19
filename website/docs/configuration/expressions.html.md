@@ -201,6 +201,25 @@ you cannot use square-bracket notation to replace the dot-separated paths, and
 you cannot iterate over the "parent object" of a named entity (for example, you
 cannot use `aws_instance` in a `for` expression).
 
+### Local Named Values
+
+Within the bodies of certain expressions, or in some other specific contexts,
+there are other named values available beyond the global values listed above.
+These local names are described in the documentation for the specific contexts
+where they appear. Some of most common local names are:
+
+- `count.index`, in resources that use
+  [the `count` meta-argument](./resources.html#count-multiple-resource-instances-by-count).
+- `each.key` / `each.value`, in resources that use
+  [the `for_each` meta-argument](./resources.html#for_each-multiple-resource-instances-defined-by-a-map-or-set-of-strings).
+- `self`, in [provisioner](../provisioners/index.html) and
+  [connection](../provisioners/connection.html) blocks.
+
+-> **Note:** Local names are often referred to as _variables_ or
+_temporary variables_ in their documentation. These are not [input
+variables](./variables.html); they are just arbitrary names
+that temporarily represent a value.
+
 ### Named Values and Dependencies
 
 Constructs like resources and module calls often use references to named values
@@ -283,19 +302,6 @@ either [splat expressions](#splat-expressions) or index syntax:
 * `aws_instance.example[*].id` returns a list of all of the ids of each of the
   instances.
 * `aws_instance.example[0].id` returns just the id of the first instance.
-
-### Local Named Values
-
-Within the bodies of certain expressions, or in some other specific contexts,
-there are other named values available beyond the global values listed above.
-(For example, the body of a resource block where `count` is set can use a
-special `count.index` value.) These local names are described in the
-documentation for the specific contexts where they appear.
-
--> **Note:** Local named values are often referred to as _variables_ or
-_temporary variables_ in their documentation. These are not [input
-variables](./variables.html); they are just arbitrary names
-that temporarily represent a value.
 
 ### Values Not Yet Known
 

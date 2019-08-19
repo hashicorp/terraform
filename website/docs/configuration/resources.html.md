@@ -274,6 +274,10 @@ identified by an index number, starting with `0`.
 This is different from resources without `count` or `for_each`, which can be
 referenced without an index or key.
 
+-> **Note:** Within nested `provisioner` or `connection` blocks, the special
+`self` object refers to the current _resource instance,_ not the resource block
+as a whole.
+
 #### Using Expressions in `count`
 
 The `count` meta-argument accepts numeric [expressions](./expressions.html).
@@ -369,6 +373,10 @@ identified by a map key (or set member) from the value provided to `for_each`.
 
 This is different from resources without `count` or `for_each`, which can be
 referenced without an index or key.
+
+-> **Note:** Within nested `provisioner` or `connection` blocks, the special
+`self` object refers to the current _resource instance,_ not the resource block
+as a whole.
 
 #### Using Sets
 
