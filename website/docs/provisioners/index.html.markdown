@@ -142,7 +142,7 @@ the sections above.
 
 If you are certain that provisioners are the best way to solve your problem
 after considering the advice in the sections above, you can add a
-`provisioner` block inside the `resource` block for your compute instance.
+`provisioner` block inside the `resource` block of a compute instance.
 
 ```hcl
 resource "aws_instance" "web" {
@@ -156,8 +156,29 @@ resource "aws_instance" "web" {
 
 The `local-exec` provisioner requires no other configuration, but most other
 provisioners must connect to the remote system using SSH or WinRM.
-You must write [a `connection` block](./connection.html) so that Terraform
+You must include [a `connection` block](./connection.html) so that Terraform
 will know how to communicate with the server.
+
+Terraform includes several built-in provisioners; use the navigation sidebar to
+view their documentation. You can also install third-party provisioners in
+[the user plugins directory](../configuration/providers.html#third-party-plugins).
+
+All provisioners support the `when` and `on_failure` meta-arguments, which
+are described below (see [Destroy-Time Provisioners](#destroy-time-provisioners)
+and [Failure Behavior](#failure-behavior)).
+
+### The `self` Object
+
+Expressions in `provisioner` blocks cannot refer to their parent resource by
+name. Instead, they can use the special `self` object.
+
+The `self` object represents the provisioner's parent resource, and has all of
+that resource's attributes. For example, use `self.public_ip` to reference an
+`aws_instance`'s `public_ip` attribute.
+
+-> **Technical note:** Resource references are restricted here because
+references create dependencies. Referring to a resource by name within its own
+block would create a dependency cycle.
 
 ## Creation-Time Provisioners
 
@@ -243,12 +264,12 @@ resource "aws_instance" "web" {
 ## Failure Behavior
 
 By default, provisioners that fail will also cause the Terraform apply
-itself to error. The `on_failure` setting can be used to change this. The
+itself to fail. The `on_failure` setting can be used to change this. The
 allowed values are:
 
 - `"continue"` - Ignore the error and continue with creation or destruction.
 
-- `"fail"` - Error (the default behavior). If this is a creation provisioner,
+- `"fail"` - Raise an error and stop applying (the default behavior). If this is a creation provisioner,
     taint the resource.
 
 Example:
