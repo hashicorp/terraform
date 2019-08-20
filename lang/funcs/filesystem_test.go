@@ -224,6 +224,120 @@ func TestFileExists(t *testing.T) {
 	}
 }
 
+func TestFileSet(t *testing.T) {
+	tests := []struct {
+		Pattern cty.Value
+		Want    cty.Value
+		Err     bool
+	}{
+		{
+			cty.StringVal("testdata/missing"),
+			cty.SetValEmpty(cty.String),
+			false,
+		},
+		{
+			cty.StringVal("testdata/missing*"),
+			cty.SetValEmpty(cty.String),
+			false,
+		},
+		{
+			cty.StringVal("*/missing"),
+			cty.SetValEmpty(cty.String),
+			false,
+		},
+		{
+			cty.StringVal("testdata"),
+			cty.SetValEmpty(cty.String),
+			false,
+		},
+		{
+			cty.StringVal("testdata*"),
+			cty.SetValEmpty(cty.String),
+			false,
+		},
+		{
+			cty.StringVal("testdata/*.txt"),
+			cty.SetVal([]cty.Value{
+				cty.StringVal("testdata/hello.txt"),
+			}),
+			false,
+		},
+		{
+			cty.StringVal("testdata/hello.txt"),
+			cty.SetVal([]cty.Value{
+				cty.StringVal("testdata/hello.txt"),
+			}),
+			false,
+		},
+		{
+			cty.StringVal("testdata/hello.???"),
+			cty.SetVal([]cty.Value{
+				cty.StringVal("testdata/hello.txt"),
+			}),
+			false,
+		},
+		{
+			cty.StringVal("testdata/hello*"),
+			cty.SetVal([]cty.Value{
+				cty.StringVal("testdata/hello.tmpl"),
+				cty.StringVal("testdata/hello.txt"),
+			}),
+			false,
+		},
+		{
+			cty.StringVal("*/hello.txt"),
+			cty.SetVal([]cty.Value{
+				cty.StringVal("testdata/hello.txt"),
+			}),
+			false,
+		},
+		{
+			cty.StringVal("*/*.txt"),
+			cty.SetVal([]cty.Value{
+				cty.StringVal("testdata/hello.txt"),
+			}),
+			false,
+		},
+		{
+			cty.StringVal("*/hello*"),
+			cty.SetVal([]cty.Value{
+				cty.StringVal("testdata/hello.tmpl"),
+				cty.StringVal("testdata/hello.txt"),
+			}),
+			false,
+		},
+		{
+			cty.StringVal("["),
+			cty.SetValEmpty(cty.String),
+			true,
+		},
+		{
+			cty.StringVal("\\"),
+			cty.SetValEmpty(cty.String),
+			true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("FileSet(\".\", %#v)", test.Pattern), func(t *testing.T) {
+			got, err := FileSet(".", test.Pattern)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
 func TestFileBase64(t *testing.T) {
 	tests := []struct {
 		Path cty.Value

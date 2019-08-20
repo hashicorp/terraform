@@ -279,6 +279,16 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"fileset": {
+			{
+				`fileset("hello.*")`,
+				cty.SetVal([]cty.Value{
+					cty.StringVal("testdata/functions-test/hello.tmpl"),
+					cty.StringVal("testdata/functions-test/hello.txt"),
+				}),
+			},
+		},
+
 		"filebase64": {
 			{
 				`filebase64("hello.txt")`,
