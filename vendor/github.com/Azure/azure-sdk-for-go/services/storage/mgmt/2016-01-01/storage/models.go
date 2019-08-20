@@ -18,16 +18,12 @@ package storage
 // Changes may cause incorrect behavior and will be lost if the code is regenerated.
 
 import (
-	"context"
 	"encoding/json"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/date"
 	"net/http"
 )
-
-// The package's fully qualified name.
-const fqdn = "github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2016-01-01/storage"
 
 // AccessTier enumerates the values for access tier.
 type AccessTier string
@@ -183,16 +179,16 @@ func PossibleUsageUnitValues() []UsageUnit {
 // Account the storage account.
 type Account struct {
 	autorest.Response `json:"-"`
-	// Sku - READ-ONLY; Gets the SKU.
+	// Sku - Gets the SKU.
 	Sku *Sku `json:"sku,omitempty"`
-	// Kind - READ-ONLY; Gets the Kind. Possible values include: 'Storage', 'BlobStorage'
+	// Kind - Gets the Kind. Possible values include: 'Storage', 'BlobStorage'
 	Kind               Kind `json:"kind,omitempty"`
 	*AccountProperties `json:"properties,omitempty"`
-	// ID - READ-ONLY; Resource Id
+	// ID - Resource Id
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name
+	// Name - Resource name
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type
+	// Type - Resource type
 	Type *string `json:"type,omitempty"`
 	// Location - Resource location
 	Location *string `json:"location,omitempty"`
@@ -203,8 +199,23 @@ type Account struct {
 // MarshalJSON is the custom marshaler for Account.
 func (a Account) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if a.Sku != nil {
+		objectMap["sku"] = a.Sku
+	}
+	if a.Kind != "" {
+		objectMap["kind"] = a.Kind
+	}
 	if a.AccountProperties != nil {
 		objectMap["properties"] = a.AccountProperties
+	}
+	if a.ID != nil {
+		objectMap["id"] = a.ID
+	}
+	if a.Name != nil {
+		objectMap["name"] = a.Name
+	}
+	if a.Type != nil {
+		objectMap["type"] = a.Type
 	}
 	if a.Location != nil {
 		objectMap["location"] = a.Location
@@ -404,53 +415,53 @@ func (acp *AccountCreateParameters) UnmarshalJSON(body []byte) error {
 
 // AccountKey an access key for the storage account.
 type AccountKey struct {
-	// KeyName - READ-ONLY; Name of the key.
+	// KeyName - Name of the key.
 	KeyName *string `json:"keyName,omitempty"`
-	// Value - READ-ONLY; Base 64-encoded value of the key.
+	// Value - Base 64-encoded value of the key.
 	Value *string `json:"value,omitempty"`
-	// Permissions - READ-ONLY; Permissions for the key -- read-only or full permissions. Possible values include: 'READ', 'FULL'
+	// Permissions - Permissions for the key -- read-only or full permissions. Possible values include: 'READ', 'FULL'
 	Permissions KeyPermission `json:"permissions,omitempty"`
 }
 
 // AccountListKeysResult the response from the ListKeys operation.
 type AccountListKeysResult struct {
 	autorest.Response `json:"-"`
-	// Keys - READ-ONLY; Gets the list of storage account keys and their properties for the specified storage account.
+	// Keys - Gets the list of storage account keys and their properties for the specified storage account.
 	Keys *[]AccountKey `json:"keys,omitempty"`
 }
 
 // AccountListResult the response from the List Storage Accounts operation.
 type AccountListResult struct {
 	autorest.Response `json:"-"`
-	// Value - READ-ONLY; Gets the list of storage accounts and their properties.
+	// Value - Gets the list of storage accounts and their properties.
 	Value *[]Account `json:"value,omitempty"`
 }
 
 // AccountProperties ...
 type AccountProperties struct {
-	// ProvisioningState - READ-ONLY; Gets the status of the storage account at the time the operation was called. Possible values include: 'Creating', 'ResolvingDNS', 'Succeeded'
+	// ProvisioningState - Gets the status of the storage account at the time the operation was called. Possible values include: 'Creating', 'ResolvingDNS', 'Succeeded'
 	ProvisioningState ProvisioningState `json:"provisioningState,omitempty"`
-	// PrimaryEndpoints - READ-ONLY; Gets the URLs that are used to perform a retrieval of a public blob, queue, or table object. Note that Standard_ZRS and Premium_LRS accounts only return the blob endpoint.
+	// PrimaryEndpoints - Gets the URLs that are used to perform a retrieval of a public blob, queue, or table object. Note that Standard_ZRS and Premium_LRS accounts only return the blob endpoint.
 	PrimaryEndpoints *Endpoints `json:"primaryEndpoints,omitempty"`
-	// PrimaryLocation - READ-ONLY; Gets the location of the primary data center for the storage account.
+	// PrimaryLocation - Gets the location of the primary data center for the storage account.
 	PrimaryLocation *string `json:"primaryLocation,omitempty"`
-	// StatusOfPrimary - READ-ONLY; Gets the status indicating whether the primary location of the storage account is available or unavailable. Possible values include: 'Available', 'Unavailable'
+	// StatusOfPrimary - Gets the status indicating whether the primary location of the storage account is available or unavailable. Possible values include: 'Available', 'Unavailable'
 	StatusOfPrimary AccountStatus `json:"statusOfPrimary,omitempty"`
-	// LastGeoFailoverTime - READ-ONLY; Gets the timestamp of the most recent instance of a failover to the secondary location. Only the most recent timestamp is retained. This element is not returned if there has never been a failover instance. Only available if the accountType is Standard_GRS or Standard_RAGRS.
+	// LastGeoFailoverTime - Gets the timestamp of the most recent instance of a failover to the secondary location. Only the most recent timestamp is retained. This element is not returned if there has never been a failover instance. Only available if the accountType is Standard_GRS or Standard_RAGRS.
 	LastGeoFailoverTime *date.Time `json:"lastGeoFailoverTime,omitempty"`
-	// SecondaryLocation - READ-ONLY; Gets the location of the geo-replicated secondary for the storage account. Only available if the accountType is Standard_GRS or Standard_RAGRS.
+	// SecondaryLocation - Gets the location of the geo-replicated secondary for the storage account. Only available if the accountType is Standard_GRS or Standard_RAGRS.
 	SecondaryLocation *string `json:"secondaryLocation,omitempty"`
-	// StatusOfSecondary - READ-ONLY; Gets the status indicating whether the secondary location of the storage account is available or unavailable. Only available if the SKU name is Standard_GRS or Standard_RAGRS. Possible values include: 'Available', 'Unavailable'
+	// StatusOfSecondary - Gets the status indicating whether the secondary location of the storage account is available or unavailable. Only available if the SKU name is Standard_GRS or Standard_RAGRS. Possible values include: 'Available', 'Unavailable'
 	StatusOfSecondary AccountStatus `json:"statusOfSecondary,omitempty"`
-	// CreationTime - READ-ONLY; Gets the creation date and time of the storage account in UTC.
+	// CreationTime - Gets the creation date and time of the storage account in UTC.
 	CreationTime *date.Time `json:"creationTime,omitempty"`
-	// CustomDomain - READ-ONLY; Gets the custom domain the user assigned to this storage account.
+	// CustomDomain - Gets the custom domain the user assigned to this storage account.
 	CustomDomain *CustomDomain `json:"customDomain,omitempty"`
-	// SecondaryEndpoints - READ-ONLY; Gets the URLs that are used to perform a retrieval of a public blob, queue, or table object from the secondary location of the storage account. Only available if the SKU name is Standard_RAGRS.
+	// SecondaryEndpoints - Gets the URLs that are used to perform a retrieval of a public blob, queue, or table object from the secondary location of the storage account. Only available if the SKU name is Standard_RAGRS.
 	SecondaryEndpoints *Endpoints `json:"secondaryEndpoints,omitempty"`
-	// Encryption - READ-ONLY; Gets the encryption settings on the account. If unspecified, the account is unencrypted.
+	// Encryption - Gets the encryption settings on the account. If unspecified, the account is unencrypted.
 	Encryption *Encryption `json:"encryption,omitempty"`
-	// AccessTier - READ-ONLY; Required for storage accounts where kind = BlobStorage. The access tier used for billing. Possible values include: 'Hot', 'Cool'
+	// AccessTier - Required for storage accounts where kind = BlobStorage. The access tier used for billing. Possible values include: 'Hot', 'Cool'
 	AccessTier AccessTier `json:"accessTier,omitempty"`
 }
 
@@ -479,8 +490,7 @@ type AccountRegenerateKeyParameters struct {
 	KeyName *string `json:"keyName,omitempty"`
 }
 
-// AccountsCreateFuture an abstraction for monitoring and retrieving the results of a long-running
-// operation.
+// AccountsCreateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type AccountsCreateFuture struct {
 	azure.Future
 }
@@ -489,7 +499,7 @@ type AccountsCreateFuture struct {
 // If the operation has not completed it will return an error.
 func (future *AccountsCreateFuture) Result(client AccountsClient) (a Account, err error) {
 	var done bool
-	done, err = future.DoneWithContext(context.Background(), client)
+	done, err = future.Done(client)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "storage.AccountsCreateFuture", "Result", future.Response(), "Polling failure")
 		return
@@ -508,8 +518,7 @@ func (future *AccountsCreateFuture) Result(client AccountsClient) (a Account, er
 	return
 }
 
-// AccountUpdateParameters the parameters that can be provided when updating the storage account
-// properties.
+// AccountUpdateParameters the parameters that can be provided when updating the storage account properties.
 type AccountUpdateParameters struct {
 	// Sku - Gets or sets the SKU name. Note that the SKU name cannot be updated to Standard_ZRS or Premium_LRS, nor can accounts of those sku names be updated to any other value.
 	Sku *Sku `json:"sku,omitempty"`
@@ -578,11 +587,11 @@ func (aup *AccountUpdateParameters) UnmarshalJSON(body []byte) error {
 // CheckNameAvailabilityResult the CheckNameAvailability operation response.
 type CheckNameAvailabilityResult struct {
 	autorest.Response `json:"-"`
-	// NameAvailable - READ-ONLY; Gets a boolean value that indicates whether the name is available for you to use. If true, the name is available. If false, the name has already been taken or is invalid and cannot be used.
+	// NameAvailable - Gets a boolean value that indicates whether the name is available for you to use. If true, the name is available. If false, the name has already been taken or is invalid and cannot be used.
 	NameAvailable *bool `json:"nameAvailable,omitempty"`
-	// Reason - READ-ONLY; Gets the reason that a storage account name could not be used. The Reason element is only returned if NameAvailable is false. Possible values include: 'AccountNameInvalid', 'AlreadyExists'
+	// Reason - Gets the reason that a storage account name could not be used. The Reason element is only returned if NameAvailable is false. Possible values include: 'AccountNameInvalid', 'AlreadyExists'
 	Reason Reason `json:"reason,omitempty"`
-	// Message - READ-ONLY; Gets an error message explaining the Reason value in more detail.
+	// Message - Gets an error message explaining the Reason value in more detail.
 	Message *string `json:"message,omitempty"`
 }
 
@@ -590,8 +599,8 @@ type CheckNameAvailabilityResult struct {
 type CustomDomain struct {
 	// Name - Gets or sets the custom domain name assigned to the storage account. Name is the CNAME source.
 	Name *string `json:"name,omitempty"`
-	// UseSubDomainName - Indicates whether indirect CName validation is enabled. Default value is false. This should only be set on updates.
-	UseSubDomainName *bool `json:"useSubDomainName,omitempty"`
+	// UseSubDomain - Indicates whether indirect CName validation is enabled. Default value is false. This should only be set on updates.
+	UseSubDomain *bool `json:"useSubDomain,omitempty"`
 }
 
 // Encryption the encryption settings on the storage account.
@@ -606,7 +615,7 @@ type Encryption struct {
 type EncryptionService struct {
 	// Enabled - A boolean indicating whether or not the service encrypts the data as it is stored.
 	Enabled *bool `json:"enabled,omitempty"`
-	// LastEnabledTime - READ-ONLY; Gets a rough estimate of the date/time when the encryption was last enabled by the user. Only returned when encryption is enabled. There might be some unencrypted blobs which were written after this time, as it is just a rough estimate.
+	// LastEnabledTime - Gets a rough estimate of the date/time when the encryption was last enabled by the user. Only returned when encryption is enabled. There might be some unencrypted blobs which were written after this time, as it is just a rough estimate.
 	LastEnabledTime *date.Time `json:"lastEnabledTime,omitempty"`
 }
 
@@ -618,23 +627,23 @@ type EncryptionServices struct {
 
 // Endpoints the URIs that are used to perform a retrieval of a public blob, queue, or table object.
 type Endpoints struct {
-	// Blob - READ-ONLY; Gets the blob endpoint.
+	// Blob - Gets the blob endpoint.
 	Blob *string `json:"blob,omitempty"`
-	// Queue - READ-ONLY; Gets the queue endpoint.
+	// Queue - Gets the queue endpoint.
 	Queue *string `json:"queue,omitempty"`
-	// Table - READ-ONLY; Gets the table endpoint.
+	// Table - Gets the table endpoint.
 	Table *string `json:"table,omitempty"`
-	// File - READ-ONLY; Gets the file endpoint.
+	// File - Gets the file endpoint.
 	File *string `json:"file,omitempty"`
 }
 
 // Resource ...
 type Resource struct {
-	// ID - READ-ONLY; Resource Id
+	// ID - Resource Id
 	ID *string `json:"id,omitempty"`
-	// Name - READ-ONLY; Resource name
+	// Name - Resource name
 	Name *string `json:"name,omitempty"`
-	// Type - READ-ONLY; Resource type
+	// Type - Resource type
 	Type *string `json:"type,omitempty"`
 	// Location - Resource location
 	Location *string `json:"location,omitempty"`
@@ -645,6 +654,15 @@ type Resource struct {
 // MarshalJSON is the custom marshaler for Resource.
 func (r Resource) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
+	if r.ID != nil {
+		objectMap["id"] = r.ID
+	}
+	if r.Name != nil {
+		objectMap["name"] = r.Name
+	}
+	if r.Type != nil {
+		objectMap["type"] = r.Type
+	}
 	if r.Location != nil {
 		objectMap["location"] = r.Location
 	}
@@ -658,19 +676,19 @@ func (r Resource) MarshalJSON() ([]byte, error) {
 type Sku struct {
 	// Name - Gets or sets the sku name. Required for account creation; optional for update. Note that in older versions, sku name was called accountType. Possible values include: 'StandardLRS', 'StandardGRS', 'StandardRAGRS', 'StandardZRS', 'PremiumLRS'
 	Name SkuName `json:"name,omitempty"`
-	// Tier - READ-ONLY; Gets the sku tier. This is based on the SKU name. Possible values include: 'Standard', 'Premium'
+	// Tier - Gets the sku tier. This is based on the SKU name. Possible values include: 'Standard', 'Premium'
 	Tier SkuTier `json:"tier,omitempty"`
 }
 
 // Usage describes Storage Resource Usage.
 type Usage struct {
-	// Unit - READ-ONLY; Gets the unit of measurement. Possible values include: 'Count', 'Bytes', 'Seconds', 'Percent', 'CountsPerSecond', 'BytesPerSecond'
+	// Unit - Gets the unit of measurement. Possible values include: 'Count', 'Bytes', 'Seconds', 'Percent', 'CountsPerSecond', 'BytesPerSecond'
 	Unit UsageUnit `json:"unit,omitempty"`
-	// CurrentValue - READ-ONLY; Gets the current count of the allocated resources in the subscription.
+	// CurrentValue - Gets the current count of the allocated resources in the subscription.
 	CurrentValue *int32 `json:"currentValue,omitempty"`
-	// Limit - READ-ONLY; Gets the maximum count of the resources that can be allocated in the subscription.
+	// Limit - Gets the maximum count of the resources that can be allocated in the subscription.
 	Limit *int32 `json:"limit,omitempty"`
-	// Name - READ-ONLY; Gets the name of the type of usage.
+	// Name - Gets the name of the type of usage.
 	Name *UsageName `json:"name,omitempty"`
 }
 
@@ -683,8 +701,8 @@ type UsageListResult struct {
 
 // UsageName the usage names that can be used; currently limited to StorageAccount.
 type UsageName struct {
-	// Value - READ-ONLY; Gets a string describing the resource name.
+	// Value - Gets a string describing the resource name.
 	Value *string `json:"value,omitempty"`
-	// LocalizedValue - READ-ONLY; Gets a localized string describing the resource name.
+	// LocalizedValue - Gets a localized string describing the resource name.
 	LocalizedValue *string `json:"localizedValue,omitempty"`
 }
