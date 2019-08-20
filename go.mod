@@ -4,7 +4,6 @@ require (
 	cloud.google.com/go v0.36.0
 	github.com/Azure/azure-sdk-for-go v32.5.0+incompatible
 	github.com/Azure/go-autorest/autorest v0.9.0
-	github.com/Azure/go-autorest/autorest/adal v0.6.0
 	github.com/Unknwon/com v0.0.0-20151008135407-28b053d5a292 // indirect
 	github.com/abdullin/seq v0.0.0-20160510034733-d5467c17e7af // indirect
 	github.com/agext/levenshtein v1.2.2
@@ -125,5 +124,3 @@ require (
 	gopkg.in/ini.v1 v1.42.0 // indirect
 	gopkg.in/yaml.v2 v2.2.2
 )
-
-replace github.com/Azure/go-autorest => github.com/Azure/go-autorest v12.3.0+incompatible
