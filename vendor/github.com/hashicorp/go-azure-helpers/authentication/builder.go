@@ -14,6 +14,10 @@ type Builder struct {
 	TenantID       string
 	Environment    string
 
+	// Auxiliary tenant IDs used for multi tenant auth
+	SupportsAuxiliaryTenants bool
+	AuxiliaryTenantIDs       []string
+
 	// The custom Resource Manager Endpoint which should be used
 	// only applicable for Azure Stack at this time.
 	CustomResourceManagerEndpoint string
@@ -43,6 +47,7 @@ func (b Builder) Build() (*Config, error) {
 		ClientID:                      b.ClientID,
 		SubscriptionID:                b.SubscriptionID,
 		TenantID:                      b.TenantID,
+		AuxiliaryTenantIDs:            b.AuxiliaryTenantIDs,
 		Environment:                   b.Environment,
 		CustomResourceManagerEndpoint: b.CustomResourceManagerEndpoint,
 	}
@@ -51,6 +56,7 @@ func (b Builder) Build() (*Config, error) {
 	// since the Azure CLI Parsing should always be the last thing checked
 	supportedAuthenticationMethods := []authMethod{
 		servicePrincipalClientCertificateAuth{},
+		servicePrincipalClientSecretMultiTenantAuth{},
 		servicePrincipalClientSecretAuth{},
 		managedServiceIdentityAuth{},
 		azureCliTokenAuth{},
@@ -59,23 +65,28 @@ func (b Builder) Build() (*Config, error) {
 	for _, method := range supportedAuthenticationMethods {
 		name := method.name()
 		log.Printf("Testing if %s is applicable for Authentication..", name)
-		if method.isApplicable(b) {
-			log.Printf("Using %s for Authentication", name)
-			auth, err := method.build(b)
-			if err != nil {
-				return nil, err
-			}
 
-			// populate authentication specific fields on the Config
-			// (e.g. is service principal, fields parsed from the azure cli)
-			err = auth.populateConfig(&config)
-			if err != nil {
-				return nil, err
-			}
-
-			config.authMethod = auth
-			return config.validate()
+		// does not support it via validate?
+		if !method.isApplicable(b) {
+			continue
 		}
+		
+		log.Printf("Using %s for Authentication", name)
+		auth, err := method.build(b)
+		if err != nil {
+			return nil, err
+		}
+	
+		// populate authentication specific fields on the Config
+		// (e.g. is service principal, fields parsed from the azure cli)
+		err = auth.populateConfig(&config)
+		if err != nil {
+			return nil, err
+		}
+		
+		config.authMethod = auth
+		return &config, config.authMethod.validate()
+		
 	}
 
 	return nil, fmt.Errorf("No supported authentication methods were found!")
