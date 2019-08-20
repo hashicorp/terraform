@@ -38,6 +38,7 @@ Usage: `terraform taint [options] address`
 The `address` argument is the address of the resource to mark as tainted.
 The address is in the usual resource address syntax, as shown in
 the output from other commands, such as:
+
  * `aws_instance.foo`
  * `aws_instance.bar[1]`
  * `module.foo.module.bar.aws_instance.baz`
