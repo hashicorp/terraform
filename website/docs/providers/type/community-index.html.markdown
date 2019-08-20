@@ -90,6 +90,7 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
 - [Manifold](https://github.com/manifoldco/terraform-provider-manifold)
 - [Matchbox](https://github.com/coreos/terraform-provider-matchbox)
 - [MongoDB Atlas](https://github.com/akshaykarle/terraform-provider-mongodbatlas)
+- [Name.com](https://github.com/mhumeSF/terraform-provider-namedotcom)
 - [NetApp](https://github.com/miechus/terraform-provider-netapp)
 - [NSX-V](https://github.com/GSLabDev/terraform-provider-nsxv)
 - [Okta](https://github.com/articulate/terraform-provider-okta)
