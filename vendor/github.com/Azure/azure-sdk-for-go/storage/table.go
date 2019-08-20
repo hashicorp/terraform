@@ -355,12 +355,8 @@ func (t *Table) queryEntities(uri string, headers map[string]string, ml Metadata
 			return nil, err
 		}
 		v := originalURI.Query()
-		if contToken.NextPartitionKey != "" {
-			v.Set(nextPartitionKeyQueryParameter, contToken.NextPartitionKey)
-		}
-		if contToken.NextRowKey != "" {
-			v.Set(nextRowKeyQueryParameter, contToken.NextRowKey)
-		}
+		v.Set(nextPartitionKeyQueryParameter, contToken.NextPartitionKey)
+		v.Set(nextRowKeyQueryParameter, contToken.NextRowKey)
 		newURI := t.tsc.client.getEndpoint(tableServiceName, t.buildPath(), v)
 		entities.NextLink = &newURI
 		entities.ml = ml
@@ -375,7 +371,7 @@ func extractContinuationTokenFromHeaders(h http.Header) *continuationToken {
 		NextRowKey:       h.Get(headerNextRowKey),
 	}
 
-	if ct.NextPartitionKey != "" || ct.NextRowKey != "" {
+	if ct.NextPartitionKey != "" && ct.NextRowKey != "" {
 		return &ct
 	}
 	return nil
