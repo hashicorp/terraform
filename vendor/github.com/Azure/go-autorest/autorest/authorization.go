@@ -15,6 +15,7 @@ package autorest
 //  limitations under the License.
 
 import (
+	"crypto/tls"
 	"encoding/base64"
 	"fmt"
 	"net/http"
@@ -22,7 +23,6 @@ import (
 	"strings"
 
 	"github.com/Azure/go-autorest/autorest/adal"
-	"github.com/Azure/go-autorest/tracing"
 )
 
 const (
@@ -149,11 +149,11 @@ type BearerAuthorizerCallback struct {
 
 // NewBearerAuthorizerCallback creates a bearer authorization callback.  The callback
 // is invoked when the HTTP request is submitted.
-func NewBearerAuthorizerCallback(sender Sender, callback BearerAuthorizerCallbackFunc) *BearerAuthorizerCallback {
-	if sender == nil {
-		sender = &http.Client{Transport: tracing.Transport}
+func NewBearerAuthorizerCallback(s Sender, callback BearerAuthorizerCallbackFunc) *BearerAuthorizerCallback {
+	if s == nil {
+		s = sender(tls.RenegotiateNever)
 	}
-	return &BearerAuthorizerCallback{sender: sender, callback: callback}
+	return &BearerAuthorizerCallback{sender: s, callback: callback}
 }
 
 // WithAuthorization returns a PrepareDecorator that adds an HTTP Authorization header whose value
