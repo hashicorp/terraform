@@ -354,7 +354,7 @@ func TestBlockDecoderSpec(t *testing.T) {
 					cty.EmptyObjectVal,
 				}),
 			}),
-			1, // too many "foo" blocks
+			0, // max items cannot be validated during decode
 		},
 		// dynamic blocks may fulfill MinItems, but there is only one block to
 		// decode.

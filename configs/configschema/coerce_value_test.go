@@ -288,8 +288,10 @@ func TestCoerceValue(t *testing.T) {
 				},
 			},
 			cty.EmptyObjectVal,
-			cty.DynamicVal,
-			`attribute "foo" is required`,
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.NullVal(cty.EmptyObject),
+			}),
+			``,
 		},
 		"unknown nested list": {
 			&Block{
