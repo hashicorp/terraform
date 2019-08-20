@@ -35,7 +35,8 @@ func (b *Block) DecoderSpec() hcldec.Spec {
 
 		// We can only validate 0 or 1 for MinItems, because a dynamic block
 		// may satisfy any number of min items while only having a single
-		// block in the config.
+		// block in the config. We cannot validate MaxItems because a
+		// configuration may have any number of dynamic blocks
 		minItems := 0
 		if blockS.MinItems > 1 {
 			minItems = 1
@@ -46,7 +47,7 @@ func (b *Block) DecoderSpec() hcldec.Spec {
 			ret[name] = &hcldec.BlockSpec{
 				TypeName: name,
 				Nested:   childSpec,
-				Required: blockS.MinItems == 1 && blockS.MaxItems >= 1,
+				Required: blockS.MinItems == 1,
 			}
 			if blockS.Nesting == NestingGroup {
 				ret[name] = &hcldec.DefaultSpec{
@@ -66,14 +67,12 @@ func (b *Block) DecoderSpec() hcldec.Spec {
 					TypeName: name,
 					Nested:   childSpec,
 					MinItems: minItems,
-					MaxItems: blockS.MaxItems,
 				}
 			} else {
 				ret[name] = &hcldec.BlockListSpec{
 					TypeName: name,
 					Nested:   childSpec,
 					MinItems: minItems,
-					MaxItems: blockS.MaxItems,
 				}
 			}
 		case NestingSet:
@@ -86,7 +85,6 @@ func (b *Block) DecoderSpec() hcldec.Spec {
 				TypeName: name,
 				Nested:   childSpec,
 				MinItems: minItems,
-				MaxItems: blockS.MaxItems,
 			}
 		case NestingMap:
 			// We prefer to use a list where possible, since it makes our
