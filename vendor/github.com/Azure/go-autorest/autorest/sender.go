@@ -16,10 +16,12 @@ package autorest
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"log"
 	"math"
 	"net/http"
+	"net/http/cookiejar"
 	"strconv"
 	"time"
 
@@ -30,7 +32,11 @@ import (
 type ctxSendDecorators struct{}
 
 // WithSendDecorators adds the specified SendDecorators to the provided context.
+// If no SendDecorators are provided the context is unchanged.
 func WithSendDecorators(ctx context.Context, sendDecorator []SendDecorator) context.Context {
+	if len(sendDecorator) == 0 {
+		return ctx
+	}
 	return context.WithValue(ctx, ctxSendDecorators{}, sendDecorator)
 }
 
@@ -65,7 +71,7 @@ type SendDecorator func(Sender) Sender
 
 // CreateSender creates, decorates, and returns, as a Sender, the default http.Client.
 func CreateSender(decorators ...SendDecorator) Sender {
-	return DecorateSender(&http.Client{}, decorators...)
+	return DecorateSender(sender(tls.RenegotiateNever), decorators...)
 }
 
 // DecorateSender accepts a Sender and a, possibly empty, set of SendDecorators, which is applies to
@@ -88,7 +94,7 @@ func DecorateSender(s Sender, decorators ...SendDecorator) Sender {
 //
 // Send will not poll or retry requests.
 func Send(r *http.Request, decorators ...SendDecorator) (*http.Response, error) {
-	return SendWithSender(&http.Client{Transport: tracing.Transport}, r, decorators...)
+	return SendWithSender(sender(tls.RenegotiateNever), r, decorators...)
 }
 
 // SendWithSender sends the passed http.Request, through the provided Sender, returning the
@@ -98,6 +104,29 @@ func Send(r *http.Request, decorators ...SendDecorator) (*http.Response, error) 
 // SendWithSender will not poll or retry requests.
 func SendWithSender(s Sender, r *http.Request, decorators ...SendDecorator) (*http.Response, error) {
 	return DecorateSender(s, decorators...).Do(r)
+}
+
+func sender(renengotiation tls.RenegotiationSupport) Sender {
+	// Use behaviour compatible with DefaultTransport, but require TLS minimum version.
+	defaultTransport := http.DefaultTransport.(*http.Transport)
+	transport := &http.Transport{
+		Proxy:                 defaultTransport.Proxy,
+		DialContext:           defaultTransport.DialContext,
+		MaxIdleConns:          defaultTransport.MaxIdleConns,
+		IdleConnTimeout:       defaultTransport.IdleConnTimeout,
+		TLSHandshakeTimeout:   defaultTransport.TLSHandshakeTimeout,
+		ExpectContinueTimeout: defaultTransport.ExpectContinueTimeout,
+		TLSClientConfig: &tls.Config{
+			MinVersion:    tls.VersionTLS12,
+			Renegotiation: renengotiation,
+		},
+	}
+	var roundTripper http.RoundTripper = transport
+	if tracing.IsEnabled() {
+		roundTripper = tracing.NewTransport(transport)
+	}
+	j, _ := cookiejar.New(nil)
+	return &http.Client{Jar: j, Transport: roundTripper}
 }
 
 // AfterDelay returns a SendDecorator that delays for the passed time.Duration before

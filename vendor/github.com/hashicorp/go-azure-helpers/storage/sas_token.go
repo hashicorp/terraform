@@ -10,8 +10,9 @@ import (
 )
 
 const (
-	connStringAccountKeyKey  = "AccountKey"
-	connStringAccountNameKey = "AccountName"
+	connStringAccountKeyKey    = "AccountKey"
+	connStringAccountNameKey   = "AccountName"
+	blobContainerSignedVersion = "2018-11-09"
 )
 
 // ComputeAccountSASToken computes the SAS Token for a Storage Account based on the
@@ -60,6 +61,95 @@ func ComputeAccountSASToken(accountName string,
 	// this is consistent with how the Azure portal builds these.
 	if len(signedIp) > 0 {
 		sasToken += "&sip=" + signedIp
+	}
+
+	sasToken += "&sig=" + url.QueryEscape(base64.StdEncoding.EncodeToString(signature))
+
+	return sasToken, nil
+}
+
+func ComputeContainerSASToken(signedPermissions string,
+	signedStart string,
+	signedExpiry string,
+	accountName string,
+	accountKey string,
+	containerName string,
+	signedIdentifier string,
+	signedIp string,
+	signedProtocol string,
+	signedSnapshotTime string,
+	cacheControl string,
+	contentDisposition string,
+	contentEncoding string,
+	contentLanguage string,
+	contentType string,
+) (string, error) {
+
+	canonicalizedResource := "/blob/" + accountName + "/" + containerName
+	signedVersion := blobContainerSignedVersion
+	signedResource := "c" // c for container
+
+	// UTF-8 by default...
+	stringToSign := signedPermissions + "\n"
+	stringToSign += signedStart + "\n"
+	stringToSign += signedExpiry + "\n"
+	stringToSign += canonicalizedResource + "\n"
+	stringToSign += signedIdentifier + "\n"
+	stringToSign += signedIp + "\n"
+	stringToSign += signedProtocol + "\n"
+	stringToSign += signedVersion + "\n"
+	stringToSign += signedResource + "\n"
+	stringToSign += signedSnapshotTime + "\n"
+	stringToSign += cacheControl + "\n"
+	stringToSign += contentDisposition + "\n"
+	stringToSign += contentEncoding + "\n"
+	stringToSign += contentLanguage + "\n"
+	stringToSign += contentType
+
+	binaryKey, err := base64.StdEncoding.DecodeString(accountKey)
+	if err != nil {
+		return "", err
+	}
+	hasher := hmac.New(sha256.New, binaryKey)
+	hasher.Write([]byte(stringToSign))
+	signature := hasher.Sum(nil)
+
+	sasToken := "?sv=" + signedVersion
+	sasToken += "&sr=" + signedResource
+	sasToken += "&st=" + url.QueryEscape(signedStart)
+	sasToken += "&se=" + url.QueryEscape(signedExpiry)
+	sasToken += "&sp=" + signedPermissions
+
+	if len(signedIp) > 0 {
+		sasToken += "&sip=" + signedIp
+	}
+
+	if len(signedProtocol) > 0 {
+		sasToken += "&spr=" + signedProtocol
+	}
+
+	if len(signedIdentifier) > 0 {
+		sasToken += "&si=" + signedIdentifier
+	}
+
+	if len(cacheControl) > 0 {
+		sasToken += "&rscc=" + url.QueryEscape(cacheControl)
+	}
+
+	if len(contentDisposition) > 0 {
+		sasToken += "&rscd=" + url.QueryEscape(contentDisposition)
+	}
+
+	if len(contentEncoding) > 0 {
+		sasToken += "&rsce=" + url.QueryEscape(contentEncoding)
+	}
+
+	if len(contentLanguage) > 0 {
+		sasToken += "&rscl=" + url.QueryEscape(contentLanguage)
+	}
+
+	if len(contentType) > 0 {
+		sasToken += "&rsct=" + url.QueryEscape(contentType)
 	}
 
 	sasToken += "&sig=" + url.QueryEscape(base64.StdEncoding.EncodeToString(signature))

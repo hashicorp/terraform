@@ -39,7 +39,11 @@ func (a managedServiceIdentityAuth) name() string {
 	return "Managed Service Identity"
 }
 
-func (a managedServiceIdentityAuth) getAuthorizationToken(sender autorest.Sender, oauthConfig *adal.OAuthConfig, endpoint string) (*autorest.BearerAuthorizer, error) {
+func (a managedServiceIdentityAuth) getAuthorizationToken(sender autorest.Sender, oauth *OAuthConfig, endpoint string) (autorest.Authorizer, error) {
+	if oauth.OAuth == nil {
+		return nil, fmt.Errorf("Error getting Authorization Token for MSI auth: an OAuth token wasn't configured correctly; please file a bug with more details")
+	}
+
 	spt, err := adal.NewServicePrincipalTokenFromMSI(a.endpoint, endpoint)
 	if err != nil {
 		return nil, err
