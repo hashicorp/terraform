@@ -68,6 +68,13 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 		if configDiags.HasErrors() {
 			return nil, diags.Err()
 		}
+
+		if !configVal.IsWhollyKnown() {
+			return nil, fmt.Errorf(
+				"configuration for %s still contains unknown values during apply (this is a bug in Terraform; please report it!)",
+				absAddr,
+			)
+		}
 	}
 
 	log.Printf("[DEBUG] %s: applying the planned %s change", n.Addr.Absolute(ctx.Path()), change.Action)

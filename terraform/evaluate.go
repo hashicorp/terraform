@@ -619,6 +619,17 @@ func (d *evaluationStateData) GetResourceInstance(addr addrs.ResourceInstance, r
 		log.Printf("[TRACE] GetResourceInstance: %s is a single instance", addr)
 		is := rs.Instance(key)
 		if is == nil {
+			// FIXME: this should always result in an error, but we can't be
+			// certain at the moment that all plan-time evaluations have all
+			// instances available, so this is delayed until Apply.
+			if d.Operation == walkApply {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid resource index",
+					Detail:   fmt.Sprintf("Resource %s has no index %v.", addr.ContainingResource(), key),
+					Subject:  rng.ToHCL().Ptr(),
+				})
+			}
 			return cty.UnknownVal(schema.ImpliedType()), diags
 		}
 		return d.getResourceInstanceSingle(addr, rng, is, config, rs.ProviderConfig)
