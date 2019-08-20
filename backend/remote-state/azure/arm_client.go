@@ -13,6 +13,7 @@ import (
 	armStorage "github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/storage/mgmt/storage"
 	"github.com/Azure/azure-sdk-for-go/storage"
 	"github.com/Azure/go-autorest/autorest"
+	"github.com/Azure/go-autorest/autorest/adal"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/hashicorp/go-azure-helpers/authentication"
 	"github.com/hashicorp/terraform/httpclient"
@@ -74,24 +75,22 @@ func buildArmClient(config BackendConfig) (*ArmClient, error) {
 		return nil, fmt.Errorf("Error building ARM Config: %+v", err)
 	}
 
-	oauthConfig, err := armConfig.BuildOAuthConfig(env.ActiveDirectoryEndpoint)
+	oauthConfig, err := adal.NewOAuthConfig(env.ActiveDirectoryEndpoint, armConfig.TenantID)
 	if err != nil {
 		return nil, err
 	}
 
-	sender := buildSender()
-
-	auth, err := armConfig.GetAuthorizationToken(sender, oauthConfig, env.TokenAudience)
+	auth, err := armConfig.GetAuthorizationToken(oauthConfig, env.TokenAudience)
 	if err != nil {
 		return nil, err
 	}
 
 	accountsClient := armStorage.NewAccountsClientWithBaseURI(env.ResourceManagerEndpoint, armConfig.SubscriptionID)
-	client.configureClient(&accountsClient.Client, sender, auth)
+	client.configureClient(&accountsClient.Client, auth)
 	client.storageAccountsClient = &accountsClient
 
 	groupsClient := resources.NewGroupsClientWithBaseURI(env.ResourceManagerEndpoint, armConfig.SubscriptionID)
-	client.configureClient(&groupsClient.Client, sender, auth)
+	client.configureClient(&groupsClient.Client, auth)
 	client.groupsClient = &groupsClient
 
 	return &client, nil
@@ -152,10 +151,10 @@ func (c ArmClient) getBlobClient(ctx context.Context) (*storage.BlobStorageClien
 	return &client, nil
 }
 
-func (c *ArmClient) configureClient(client *autorest.Client, sender autorest.Sender, auth autorest.Authorizer) {
+func (c *ArmClient) configureClient(client *autorest.Client, auth autorest.Authorizer) {
 	client.UserAgent = buildUserAgent()
 	client.Authorizer = auth
-	client.Sender = sender
+	client.Sender = buildSender()
 	client.SkipResourceProviderRegistration = false
 	client.PollingDuration = 60 * time.Minute
 }

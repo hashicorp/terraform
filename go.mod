@@ -2,8 +2,8 @@ module github.com/hashicorp/terraform
 
 require (
 	cloud.google.com/go v0.36.0
-	github.com/Azure/azure-sdk-for-go v32.5.0+incompatible
-	github.com/Azure/go-autorest/autorest v0.9.0
+	github.com/Azure/azure-sdk-for-go v21.3.0+incompatible
+	github.com/Azure/go-autorest v10.15.4+incompatible
 	github.com/Unknwon/com v0.0.0-20151008135407-28b053d5a292 // indirect
 	github.com/abdullin/seq v0.0.0-20160510034733-d5467c17e7af // indirect
 	github.com/agext/levenshtein v1.2.2
@@ -46,7 +46,7 @@ require (
 	github.com/hashicorp/aws-sdk-go-base v0.3.0
 	github.com/hashicorp/consul v0.0.0-20171026175957-610f3c86a089
 	github.com/hashicorp/errwrap v1.0.0
-	github.com/hashicorp/go-azure-helpers v0.7.0
+	github.com/hashicorp/go-azure-helpers v0.0.0-20190129193224-166dfd221bb2
 	github.com/hashicorp/go-checkpoint v0.5.0
 	github.com/hashicorp/go-cleanhttp v0.5.0
 	github.com/hashicorp/go-getter v1.3.1-0.20190627223108-da0323b9545e
@@ -77,6 +77,7 @@ require (
 	github.com/keybase/go-crypto v0.0.0-20161004153544-93f5b35093ba // indirect
 	github.com/lib/pq v1.0.0
 	github.com/lusis/go-artifactory v0.0.0-20160115162124-7e4ce345df82
+	github.com/marstr/guid v1.1.0 // indirect
 	github.com/masterzen/winrm v0.0.0-20190223112901-5e5c9a7fe54b
 	github.com/mattn/go-colorable v0.1.1
 	github.com/mattn/go-shellwords v1.0.4

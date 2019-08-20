@@ -10,8 +10,8 @@ import (
 )
 
 type azureCliAccessToken struct {
-	ClientID    string
-	AccessToken *adal.Token
+	ClientID     string
+	AccessToken  *adal.Token
 }
 
 func findValidAccessTokenForTenant(tokens []cli.Token, tenantId string) (*azureCliAccessToken, error) {
@@ -32,8 +32,8 @@ func findValidAccessTokenForTenant(tokens []cli.Token, tenantId string) (*azureC
 		}
 
 		validAccessToken := azureCliAccessToken{
-			ClientID:    accessToken.ClientID,
-			AccessToken: &token,
+			ClientID:     accessToken.ClientID,
+			AccessToken:  &token,
 		}
 		return &validAccessToken, nil
 	}

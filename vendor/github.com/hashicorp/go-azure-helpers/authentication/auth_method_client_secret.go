@@ -33,18 +33,14 @@ func (a servicePrincipalClientSecretAuth) name() string {
 	return "Service Principal / Client Secret"
 }
 
-func (a servicePrincipalClientSecretAuth) getAuthorizationToken(sender autorest.Sender, oauth *OAuthConfig, endpoint string) (autorest.Authorizer, error) {
-	if oauth.OAuth == nil {
-		return nil, fmt.Errorf("Error getting Authorization Token for client secret auth: an OAuth token wasn't configured correctly; please file a bug with more details")
-	}
-
-	spt, err := adal.NewServicePrincipalToken(*oauth.OAuth, a.clientId, a.clientSecret, endpoint)
+func (a servicePrincipalClientSecretAuth) getAuthorizationToken(oauthConfig *adal.OAuthConfig, endpoint string) (*autorest.BearerAuthorizer, error) {
+	spt, err := adal.NewServicePrincipalToken(*oauthConfig, a.clientId, a.clientSecret, endpoint)
 	if err != nil {
 		return nil, err
 	}
-	spt.SetSender(sender)
 
-	return autorest.NewBearerAuthorizer(spt), nil
+	auth := autorest.NewBearerAuthorizer(spt)
+	return auth, nil
 }
 
 func (a servicePrincipalClientSecretAuth) populateConfig(c *Config) error {

@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
-	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -46,21 +45,11 @@ func NewDeploymentsClientWithBaseURI(baseURI string, subscriptionID string) Depl
 // resourceGroupName - the name of the resource group. The name is case insensitive.
 // deploymentName - the name of the deployment.
 func (client DeploymentsClient) Cancel(ctx context.Context, resourceGroupName string, deploymentName string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DeploymentsClient.Cancel")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\p{L}\._\(\)\w]+$`, Chain: nil}}}}); err != nil {
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("resources.DeploymentsClient", "Cancel", err.Error())
 	}
 
@@ -109,8 +98,8 @@ func (client DeploymentsClient) CancelPreparer(ctx context.Context, resourceGrou
 // CancelSender sends the Cancel request. The method will close the
 // http.Response Body if it receives an error.
 func (client DeploymentsClient) CancelSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // CancelResponder handles the response to the Cancel request. The method always
@@ -130,21 +119,11 @@ func (client DeploymentsClient) CancelResponder(resp *http.Response) (result aut
 // resourceGroupName - the name of the resource group to check. The name is case insensitive.
 // deploymentName - the name of the deployment.
 func (client DeploymentsClient) CheckExistence(ctx context.Context, resourceGroupName string, deploymentName string) (result autorest.Response, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DeploymentsClient.CheckExistence")
-		defer func() {
-			sc := -1
-			if result.Response != nil {
-				sc = result.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\p{L}\._\(\)\w]+$`, Chain: nil}}}}); err != nil {
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("resources.DeploymentsClient", "CheckExistence", err.Error())
 	}
 
@@ -193,8 +172,8 @@ func (client DeploymentsClient) CheckExistencePreparer(ctx context.Context, reso
 // CheckExistenceSender sends the CheckExistence request. The method will close the
 // http.Response Body if it receives an error.
 func (client DeploymentsClient) CheckExistenceSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // CheckExistenceResponder handles the response to the CheckExistence request. The method always
@@ -215,21 +194,11 @@ func (client DeploymentsClient) CheckExistenceResponder(resp *http.Response) (re
 // deploymentName - the name of the deployment.
 // parameters - additional parameters supplied to the operation.
 func (client DeploymentsClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, deploymentName string, parameters Deployment) (result DeploymentsCreateOrUpdateFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DeploymentsClient.CreateOrUpdate")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\p{L}\._\(\)\w]+$`, Chain: nil}}},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.Properties", Name: validation.Null, Rule: false,
 				Chain: []validation.Constraint{{Target: "parameters.Properties.TemplateLink", Name: validation.Null, Rule: false,
@@ -281,9 +250,9 @@ func (client DeploymentsClient) CreateOrUpdatePreparer(ctx context.Context, reso
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client DeploymentsClient) CreateOrUpdateSender(req *http.Request) (future DeploymentsCreateOrUpdateFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
@@ -309,21 +278,11 @@ func (client DeploymentsClient) CreateOrUpdateResponder(resp *http.Response) (re
 // resourceGroupName - the name of the resource group. The name is case insensitive.
 // deploymentName - the name of the deployment to be deleted.
 func (client DeploymentsClient) Delete(ctx context.Context, resourceGroupName string, deploymentName string) (result DeploymentsDeleteFuture, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DeploymentsClient.Delete")
-		defer func() {
-			sc := -1
-			if result.Response() != nil {
-				sc = result.Response().StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\p{L}\._\(\)\w]+$`, Chain: nil}}}}); err != nil {
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("resources.DeploymentsClient", "Delete", err.Error())
 	}
 
@@ -366,9 +325,9 @@ func (client DeploymentsClient) DeletePreparer(ctx context.Context, resourceGrou
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client DeploymentsClient) DeleteSender(req *http.Request) (future DeploymentsDeleteFuture, err error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req, sd...)
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
@@ -393,21 +352,11 @@ func (client DeploymentsClient) DeleteResponder(resp *http.Response) (result aut
 // resourceGroupName - the name of the resource group. The name is case insensitive.
 // deploymentName - the name of the deployment.
 func (client DeploymentsClient) ExportTemplate(ctx context.Context, resourceGroupName string, deploymentName string) (result DeploymentExportResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DeploymentsClient.ExportTemplate")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\p{L}\._\(\)\w]+$`, Chain: nil}}}}); err != nil {
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("resources.DeploymentsClient", "ExportTemplate", err.Error())
 	}
 
@@ -456,8 +405,8 @@ func (client DeploymentsClient) ExportTemplatePreparer(ctx context.Context, reso
 // ExportTemplateSender sends the ExportTemplate request. The method will close the
 // http.Response Body if it receives an error.
 func (client DeploymentsClient) ExportTemplateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ExportTemplateResponder handles the response to the ExportTemplate request. The method always
@@ -478,21 +427,11 @@ func (client DeploymentsClient) ExportTemplateResponder(resp *http.Response) (re
 // resourceGroupName - the name of the resource group to get. The name is case insensitive.
 // deploymentName - the name of the deployment.
 func (client DeploymentsClient) Get(ctx context.Context, resourceGroupName string, deploymentName string) (result DeploymentExtended, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DeploymentsClient.Get")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\p{L}\._\(\)\w]+$`, Chain: nil}}}}); err != nil {
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("resources.DeploymentsClient", "Get", err.Error())
 	}
 
@@ -541,8 +480,8 @@ func (client DeploymentsClient) GetPreparer(ctx context.Context, resourceGroupNa
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client DeploymentsClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -564,21 +503,11 @@ func (client DeploymentsClient) GetResponder(resp *http.Response) (result Deploy
 // filter - the filter to apply on the operation.
 // top - query parameters. If null is passed returns all deployments.
 func (client DeploymentsClient) List(ctx context.Context, resourceGroupName string, filter string, top *int32) (result DeploymentListResultPage, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DeploymentsClient.List")
-		defer func() {
-			sc := -1
-			if result.dlr.Response.Response != nil {
-				sc = result.dlr.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\p{L}\._\(\)\w]+$`, Chain: nil}}}}); err != nil {
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("resources.DeploymentsClient", "List", err.Error())
 	}
 
@@ -633,8 +562,8 @@ func (client DeploymentsClient) ListPreparer(ctx context.Context, resourceGroupN
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client DeploymentsClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -651,8 +580,8 @@ func (client DeploymentsClient) ListResponder(resp *http.Response) (result Deplo
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client DeploymentsClient) listNextResults(ctx context.Context, lastResults DeploymentListResult) (result DeploymentListResult, err error) {
-	req, err := lastResults.deploymentListResultPreparer(ctx)
+func (client DeploymentsClient) listNextResults(lastResults DeploymentListResult) (result DeploymentListResult, err error) {
+	req, err := lastResults.deploymentListResultPreparer()
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "resources.DeploymentsClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -673,16 +602,6 @@ func (client DeploymentsClient) listNextResults(ctx context.Context, lastResults
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client DeploymentsClient) ListComplete(ctx context.Context, resourceGroupName string, filter string, top *int32) (result DeploymentListResultIterator, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DeploymentsClient.List")
-		defer func() {
-			sc := -1
-			if result.Response().Response.Response != nil {
-				sc = result.page.Response().Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	result.page, err = client.List(ctx, resourceGroupName, filter, top)
 	return
 }
@@ -693,21 +612,11 @@ func (client DeploymentsClient) ListComplete(ctx context.Context, resourceGroupN
 // deploymentName - the name of the deployment.
 // parameters - deployment to validate.
 func (client DeploymentsClient) Validate(ctx context.Context, resourceGroupName string, deploymentName string, parameters Deployment) (result DeploymentValidateResult, err error) {
-	if tracing.IsEnabled() {
-		ctx = tracing.StartSpan(ctx, fqdn+"/DeploymentsClient.Validate")
-		defer func() {
-			sc := -1
-			if result.Response.Response != nil {
-				sc = result.Response.Response.StatusCode
-			}
-			tracing.EndSpan(ctx, sc, err)
-		}()
-	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\p{L}\._\(\)\w]+$`, Chain: nil}}},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.Properties", Name: validation.Null, Rule: false,
 				Chain: []validation.Constraint{{Target: "parameters.Properties.TemplateLink", Name: validation.Null, Rule: false,
@@ -765,8 +674,8 @@ func (client DeploymentsClient) ValidatePreparer(ctx context.Context, resourceGr
 // ValidateSender sends the Validate request. The method will close the
 // http.Response Body if it receives an error.
 func (client DeploymentsClient) ValidateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), azure.DoRetryWithRegistration(client.Client))
-	return autorest.SendWithSender(client, req, sd...)
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // ValidateResponder handles the response to the Validate request. The method always
