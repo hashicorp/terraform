@@ -29,11 +29,13 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/Azure/go-autorest/autorest/date"
+	"github.com/Azure/go-autorest/version"
 	"github.com/dgrijalva/jwt-go"
 )
 
@@ -70,12 +72,6 @@ type OAuthTokenProvider interface {
 	OAuthToken() string
 }
 
-// MultitenantOAuthTokenProvider provides tokens used for multi-tenant authorization.
-type MultitenantOAuthTokenProvider interface {
-	PrimaryOAuthToken() string
-	AuxiliaryOAuthTokens() []string
-}
-
 // TokenRefreshError is an interface used by errors returned during token refresh.
 type TokenRefreshError interface {
 	error
@@ -101,25 +97,16 @@ type RefresherWithContext interface {
 type TokenRefreshCallback func(Token) error
 
 // Token encapsulates the access token used to authorize Azure requests.
-// https://docs.microsoft.com/en-us/azure/active-directory/develop/v1-oauth2-client-creds-grant-flow#service-to-service-access-token-response
 type Token struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
 
-	ExpiresIn json.Number `json:"expires_in"`
-	ExpiresOn json.Number `json:"expires_on"`
-	NotBefore json.Number `json:"not_before"`
+	ExpiresIn string `json:"expires_in"`
+	ExpiresOn string `json:"expires_on"`
+	NotBefore string `json:"not_before"`
 
 	Resource string `json:"resource"`
 	Type     string `json:"token_type"`
-}
-
-func newToken() Token {
-	return Token{
-		ExpiresIn: "0",
-		ExpiresOn: "0",
-		NotBefore: "0",
-	}
 }
 
 // IsZero returns true if the token object is zero-initialized.
@@ -129,12 +116,12 @@ func (t Token) IsZero() bool {
 
 // Expires returns the time.Time when the Token expires.
 func (t Token) Expires() time.Time {
-	s, err := t.ExpiresOn.Float64()
+	s, err := strconv.Atoi(t.ExpiresOn)
 	if err != nil {
 		s = -3600
 	}
 
-	expiration := date.NewUnixTimeFromSeconds(s)
+	expiration := date.NewUnixTimeFromSeconds(float64(s))
 
 	return time.Time(expiration).UTC()
 }
@@ -231,8 +218,6 @@ func (secret *ServicePrincipalCertificateSecret) SignJwt(spt *ServicePrincipalTo
 
 	token := jwt.New(jwt.SigningMethodRS256)
 	token.Header["x5t"] = thumbprint
-	x5c := []string{base64.StdEncoding.EncodeToString(secret.Certificate.Raw)}
-	token.Header["x5c"] = x5c
 	token.Claims = jwt.MapClaims{
 		"aud": spt.inner.OauthConfig.TokenEndpoint.String(),
 		"iss": spt.inner.ClientID,
@@ -390,13 +375,8 @@ func (spt *ServicePrincipalToken) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	// Don't override the refreshLock or the sender if those have been already set.
-	if spt.refreshLock == nil {
-		spt.refreshLock = &sync.RWMutex{}
-	}
-	if spt.sender == nil {
-		spt.sender = sender()
-	}
+	spt.refreshLock = &sync.RWMutex{}
+	spt.sender = &http.Client{}
 	return nil
 }
 
@@ -434,7 +414,6 @@ func NewServicePrincipalTokenWithSecret(oauthConfig OAuthConfig, id string, reso
 	}
 	spt := &ServicePrincipalToken{
 		inner: servicePrincipalToken{
-			Token:         newToken(),
 			OauthConfig:   oauthConfig,
 			Secret:        secret,
 			ClientID:      id,
@@ -443,7 +422,7 @@ func NewServicePrincipalTokenWithSecret(oauthConfig OAuthConfig, id string, reso
 			RefreshWithin: defaultRefresh,
 		},
 		refreshLock:      &sync.RWMutex{},
-		sender:           sender(),
+		sender:           &http.Client{},
 		refreshCallbacks: callbacks,
 	}
 	return spt, nil
@@ -674,7 +653,6 @@ func newServicePrincipalTokenFromMSI(msiEndpoint, resource string, userAssignedI
 
 	spt := &ServicePrincipalToken{
 		inner: servicePrincipalToken{
-			Token: newToken(),
 			OauthConfig: OAuthConfig{
 				TokenEndpoint: *msiEndpointURL,
 			},
@@ -684,7 +662,7 @@ func newServicePrincipalTokenFromMSI(msiEndpoint, resource string, userAssignedI
 			RefreshWithin: defaultRefresh,
 		},
 		refreshLock:           &sync.RWMutex{},
-		sender:                sender(),
+		sender:                &http.Client{},
 		refreshCallbacks:      callbacks,
 		MaxMSIRefreshAttempts: defaultMaxMSIRefreshAttempts,
 	}
@@ -801,7 +779,7 @@ func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource 
 	if err != nil {
 		return fmt.Errorf("adal: Failed to build the refresh request. Error = '%v'", err)
 	}
-	req.Header.Add("User-Agent", UserAgent())
+	req.Header.Add("User-Agent", version.UserAgent())
 	req = req.WithContext(ctx)
 	if !isIMDS(spt.inner.OauthConfig.TokenEndpoint) {
 		v := url.Values{}
@@ -987,94 +965,4 @@ func (spt *ServicePrincipalToken) Token() Token {
 	spt.refreshLock.RLock()
 	defer spt.refreshLock.RUnlock()
 	return spt.inner.Token
-}
-
-// MultiTenantServicePrincipalToken contains tokens for multi-tenant authorization.
-type MultiTenantServicePrincipalToken struct {
-	PrimaryToken    *ServicePrincipalToken
-	AuxiliaryTokens []*ServicePrincipalToken
-}
-
-// PrimaryOAuthToken returns the primary authorization token.
-func (mt *MultiTenantServicePrincipalToken) PrimaryOAuthToken() string {
-	return mt.PrimaryToken.OAuthToken()
-}
-
-// AuxiliaryOAuthTokens returns one to three auxiliary authorization tokens.
-func (mt *MultiTenantServicePrincipalToken) AuxiliaryOAuthTokens() []string {
-	tokens := make([]string, len(mt.AuxiliaryTokens))
-	for i := range mt.AuxiliaryTokens {
-		tokens[i] = mt.AuxiliaryTokens[i].OAuthToken()
-	}
-	return tokens
-}
-
-// EnsureFreshWithContext will refresh the token if it will expire within the refresh window (as set by
-// RefreshWithin) and autoRefresh flag is on.  This method is safe for concurrent use.
-func (mt *MultiTenantServicePrincipalToken) EnsureFreshWithContext(ctx context.Context) error {
-	if err := mt.PrimaryToken.EnsureFreshWithContext(ctx); err != nil {
-		return fmt.Errorf("failed to refresh primary token: %v", err)
-	}
-	for _, aux := range mt.AuxiliaryTokens {
-		if err := aux.EnsureFreshWithContext(ctx); err != nil {
-			return fmt.Errorf("failed to refresh auxiliary token: %v", err)
-		}
-	}
-	return nil
-}
-
-// RefreshWithContext obtains a fresh token for the Service Principal.
-func (mt *MultiTenantServicePrincipalToken) RefreshWithContext(ctx context.Context) error {
-	if err := mt.PrimaryToken.RefreshWithContext(ctx); err != nil {
-		return fmt.Errorf("failed to refresh primary token: %v", err)
-	}
-	for _, aux := range mt.AuxiliaryTokens {
-		if err := aux.RefreshWithContext(ctx); err != nil {
-			return fmt.Errorf("failed to refresh auxiliary token: %v", err)
-		}
-	}
-	return nil
-}
-
-// RefreshExchangeWithContext refreshes the token, but for a different resource.
-func (mt *MultiTenantServicePrincipalToken) RefreshExchangeWithContext(ctx context.Context, resource string) error {
-	if err := mt.PrimaryToken.RefreshExchangeWithContext(ctx, resource); err != nil {
-		return fmt.Errorf("failed to refresh primary token: %v", err)
-	}
-	for _, aux := range mt.AuxiliaryTokens {
-		if err := aux.RefreshExchangeWithContext(ctx, resource); err != nil {
-			return fmt.Errorf("failed to refresh auxiliary token: %v", err)
-		}
-	}
-	return nil
-}
-
-// NewMultiTenantServicePrincipalToken creates a new MultiTenantServicePrincipalToken with the specified credentials and resource.
-func NewMultiTenantServicePrincipalToken(multiTenantCfg MultiTenantOAuthConfig, clientID string, secret string, resource string) (*MultiTenantServicePrincipalToken, error) {
-	if err := validateStringParam(clientID, "clientID"); err != nil {
-		return nil, err
-	}
-	if err := validateStringParam(secret, "secret"); err != nil {
-		return nil, err
-	}
-	if err := validateStringParam(resource, "resource"); err != nil {
-		return nil, err
-	}
-	auxTenants := multiTenantCfg.AuxiliaryTenants()
-	m := MultiTenantServicePrincipalToken{
-		AuxiliaryTokens: make([]*ServicePrincipalToken, len(auxTenants)),
-	}
-	primary, err := NewServicePrincipalToken(*multiTenantCfg.PrimaryTenant(), clientID, secret, resource)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create SPT for primary tenant: %v", err)
-	}
-	m.PrimaryToken = primary
-	for i := range auxTenants {
-		aux, err := NewServicePrincipalToken(*auxTenants[i], clientID, secret, resource)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create SPT for auxiliary tenant: %v", err)
-		}
-		m.AuxiliaryTokens[i] = aux
-	}
-	return &m, nil
 }

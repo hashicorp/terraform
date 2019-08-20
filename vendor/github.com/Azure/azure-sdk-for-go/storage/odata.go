@@ -26,7 +26,6 @@ const (
 
 	OdataBinary   = "Edm.Binary"
 	OdataDateTime = "Edm.DateTime"
-	OdataDouble   = "Edm.Double"
 	OdataGUID     = "Edm.Guid"
 	OdataInt64    = "Edm.Int64"
 
