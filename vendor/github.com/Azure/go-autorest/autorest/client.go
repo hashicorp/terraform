@@ -22,12 +22,10 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"net/http/cookiejar"
 	"strings"
 	"time"
 
 	"github.com/Azure/go-autorest/logger"
-	"github.com/Azure/go-autorest/tracing"
 )
 
 const (
@@ -264,30 +262,8 @@ func (c Client) Do(r *http.Request) (*http.Response, error) {
 // sender returns the Sender to which to send requests.
 func (c Client) sender(renengotiation tls.RenegotiationSupport) Sender {
 	if c.Sender == nil {
-		// Use behaviour compatible with DefaultTransport, but require TLS minimum version.
-		var defaultTransport = http.DefaultTransport.(*http.Transport)
-		transport := tracing.Transport
-		// for non-default values of TLS renegotiation create a new tracing transport.
-		// updating tracing.Transport affects all clients which is not what we want.
-		if renengotiation != tls.RenegotiateNever {
-			transport = tracing.NewTransport()
-		}
-		transport.Base = &http.Transport{
-			Proxy:                 defaultTransport.Proxy,
-			DialContext:           defaultTransport.DialContext,
-			MaxIdleConns:          defaultTransport.MaxIdleConns,
-			IdleConnTimeout:       defaultTransport.IdleConnTimeout,
-			TLSHandshakeTimeout:   defaultTransport.TLSHandshakeTimeout,
-			ExpectContinueTimeout: defaultTransport.ExpectContinueTimeout,
-			TLSClientConfig: &tls.Config{
-				MinVersion:    tls.VersionTLS12,
-				Renegotiation: renengotiation,
-			},
-		}
-		j, _ := cookiejar.New(nil)
-		return &http.Client{Jar: j, Transport: transport}
+		return sender(renengotiation)
 	}
-
 	return c.Sender
 }
 

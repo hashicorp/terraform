@@ -34,7 +34,6 @@ import (
 	"time"
 
 	"github.com/Azure/go-autorest/autorest/date"
-	"github.com/Azure/go-autorest/tracing"
 	"github.com/dgrijalva/jwt-go"
 )
 
@@ -396,7 +395,7 @@ func (spt *ServicePrincipalToken) UnmarshalJSON(data []byte) error {
 		spt.refreshLock = &sync.RWMutex{}
 	}
 	if spt.sender == nil {
-		spt.sender = &http.Client{Transport: tracing.Transport}
+		spt.sender = sender()
 	}
 	return nil
 }
@@ -444,7 +443,7 @@ func NewServicePrincipalTokenWithSecret(oauthConfig OAuthConfig, id string, reso
 			RefreshWithin: defaultRefresh,
 		},
 		refreshLock:      &sync.RWMutex{},
-		sender:           &http.Client{Transport: tracing.Transport},
+		sender:           sender(),
 		refreshCallbacks: callbacks,
 	}
 	return spt, nil
@@ -685,7 +684,7 @@ func newServicePrincipalTokenFromMSI(msiEndpoint, resource string, userAssignedI
 			RefreshWithin: defaultRefresh,
 		},
 		refreshLock:           &sync.RWMutex{},
-		sender:                &http.Client{Transport: tracing.Transport},
+		sender:                sender(),
 		refreshCallbacks:      callbacks,
 		MaxMSIRefreshAttempts: defaultMaxMSIRefreshAttempts,
 	}
@@ -1018,6 +1017,32 @@ func (mt *MultiTenantServicePrincipalToken) EnsureFreshWithContext(ctx context.C
 	}
 	for _, aux := range mt.AuxiliaryTokens {
 		if err := aux.EnsureFreshWithContext(ctx); err != nil {
+			return fmt.Errorf("failed to refresh auxiliary token: %v", err)
+		}
+	}
+	return nil
+}
+
+// RefreshWithContext obtains a fresh token for the Service Principal.
+func (mt *MultiTenantServicePrincipalToken) RefreshWithContext(ctx context.Context) error {
+	if err := mt.PrimaryToken.RefreshWithContext(ctx); err != nil {
+		return fmt.Errorf("failed to refresh primary token: %v", err)
+	}
+	for _, aux := range mt.AuxiliaryTokens {
+		if err := aux.RefreshWithContext(ctx); err != nil {
+			return fmt.Errorf("failed to refresh auxiliary token: %v", err)
+		}
+	}
+	return nil
+}
+
+// RefreshExchangeWithContext refreshes the token, but for a different resource.
+func (mt *MultiTenantServicePrincipalToken) RefreshExchangeWithContext(ctx context.Context, resource string) error {
+	if err := mt.PrimaryToken.RefreshExchangeWithContext(ctx, resource); err != nil {
+		return fmt.Errorf("failed to refresh primary token: %v", err)
+	}
+	for _, aux := range mt.AuxiliaryTokens {
+		if err := aux.RefreshExchangeWithContext(ctx, resource); err != nil {
 			return fmt.Errorf("failed to refresh auxiliary token: %v", err)
 		}
 	}
