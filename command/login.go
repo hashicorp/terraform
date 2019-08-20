@@ -408,7 +408,37 @@ func (c *LoginCommand) interactiveGetTokenByPassword(hostname svchost.Hostname, 
 		return nil, diags
 	}
 
-	return nil, diags
+	c.Ui.Output(fmt.Sprintf("Terraform will use your %s login temporarily to request an API token.\n", hostname.ForDisplay()))
+
+	username, err := c.Ui.Ask(fmt.Sprintf("Username for %s:", hostname.ForDisplay()))
+	if err != nil {
+		diags = diags.Append(fmt.Errorf("Failed to request username: %s", err))
+		return nil, diags
+	}
+	password, err := c.Ui.AskSecret(fmt.Sprintf("Password for %s:", username))
+	if err != nil {
+		diags = diags.Append(fmt.Errorf("Failed to request password: %s", err))
+		return nil, diags
+	}
+
+	oauthConfig := &oauth2.Config{
+		ClientID: clientConfig.ID,
+		Endpoint: clientConfig.Endpoint(),
+	}
+	token, err := oauthConfig.PasswordCredentialsToken(context.Background(), username, password)
+	if err != nil {
+		// FIXME: The OAuth2 library generates errors that are not appropriate
+		// for a Terraform end-user audience, so once we have more experience
+		// with which errors are most common we should try to recognize them
+		// here and produce better error messages for them.
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to retrieve API token",
+			fmt.Sprintf("The remote host did not issue an API token: %s.", err),
+		))
+	}
+
+	return token, diags
 }
 
 func (c *LoginCommand) interactiveContextConsent(hostname svchost.Hostname, grantType disco.OAuthGrantType, credsCtx *loginCredentialsContext) (bool, tfdiags.Diagnostics) {
@@ -433,7 +463,7 @@ func (c *LoginCommand) interactiveContextConsent(hostname svchost.Hostname, gran
 		}
 	}
 
-	v, err := c.prompt("Do you want to proceed? (y/n)", false)
+	v, err := c.Ui.Ask("Do you want to proceed? (y/n)")
 	if err != nil {
 		// Should not happen because this command checks that input is enabled
 		// before we get to this point.
