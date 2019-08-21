@@ -2,3 +2,4 @@
 /backend/remote-state/azure   @terraform-azure
 /backend/remote-state/gcs     @terraform-google
 /backend/remote-state/s3      @terraform-aws
+/backend/remote-state/cos     @terraform-tencentcloud
