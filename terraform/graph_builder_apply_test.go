@@ -478,12 +478,11 @@ const testApplyGraphBuilderStr = `
 meta.count-boundary (EachMode fixup)
   module.child.test_object.other
   test_object.other
-module.child.provisioner.test
 module.child.test_object.create
   module.child.test_object.create (prepare state)
 module.child.test_object.create (prepare state)
-  module.child.provisioner.test
   provider.test
+  provisioner.test
 module.child.test_object.other
   module.child.test_object.create
   module.child.test_object.other (prepare state)
@@ -493,6 +492,7 @@ provider.test
 provider.test (close)
   module.child.test_object.other
   test_object.other
+provisioner.test
 provisioner.test (close)
   module.child.test_object.create
 root
