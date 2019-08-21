@@ -158,7 +158,7 @@ github.com/dylanmei/iso8601
 github.com/dylanmei/winrmtest
 # github.com/fatih/color v1.7.0
 github.com/fatih/color
-# github.com/go-test/deep v1.0.1
+# github.com/go-test/deep v1.0.3
 github.com/go-test/deep
 # github.com/gogo/protobuf v1.2.0
 github.com/gogo/protobuf/gogoproto
