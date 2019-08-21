@@ -204,8 +204,9 @@ func (c *LoginCommand) Run(args []string) int {
 		return 1
 	}
 
+	c.Ui.Output("\n---------------------------------------------------------------------------------\n")
 	c.Ui.Output(
-		"\n" + fmt.Sprintf(
+		fmt.Sprintf(
 			c.Colorize().Color(strings.TrimSpace(`
 [green][bold]Success![reset] [bold]Terraform has obtained and saved an API token.[reset]
 
@@ -426,7 +427,8 @@ func (c *LoginCommand) interactiveGetTokenByPassword(hostname svchost.Hostname, 
 		return nil, diags
 	}
 
-	c.Ui.Output(fmt.Sprintf("Terraform will use your %s login temporarily to request an API token.\n", hostname.ForDisplay()))
+	c.Ui.Output("\n---------------------------------------------------------------------------------\n")
+	c.Ui.Output("Terraform must temporarily use your password to request an API token.\nThis password will NOT be saved locally.\n")
 
 	username, err := c.Ui.Ask(fmt.Sprintf("Username for %s:", hostname.ForDisplay()))
 	if err != nil {
