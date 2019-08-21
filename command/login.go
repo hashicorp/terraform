@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/command/cliconfig"
 	"github.com/hashicorp/terraform/httpclient"
 	"github.com/hashicorp/terraform/svchost"
+	svcauth "github.com/hashicorp/terraform/svchost/auth"
 	"github.com/hashicorp/terraform/svchost/disco"
 	"github.com/hashicorp/terraform/tfdiags"
 
@@ -189,15 +190,32 @@ func (c *LoginCommand) Run(args []string) int {
 		return 1
 	}
 
-	// TODO: Save the token in the CLI config.
-	// Also, if the token has an expiration time associated with it, prompt
-	// the user that they will need to log in again after that time.
-	fmt.Printf("Token is %#v\n", token)
+	err = creds.StoreForHost(hostname, svcauth.HostCredentialsToken(token.AccessToken))
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to save API token",
+			fmt.Sprintf("The given host returned an API token, but Terraform failed to save it: %s.", err),
+		))
+	}
 
 	c.showDiagnostics(diags)
 	if diags.HasErrors() {
 		return 1
 	}
+
+	c.Ui.Output(
+		"\n" + fmt.Sprintf(
+			c.Colorize().Color(strings.TrimSpace(`
+[green][bold]Success![reset] [bold]Terraform has obtained and saved an API token.[reset]
+
+The new API token will be used for any future Terraform command that must make
+authenticated requests to %s.
+`)),
+			dispHostname,
+		) + "\n",
+	)
+
 	return 0
 }
 
