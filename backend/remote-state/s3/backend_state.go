@@ -108,14 +108,15 @@ func (b *Backend) remoteClient(name string) (*RemoteClient, error) {
 	}
 
 	client := &RemoteClient{
-		s3Client:             b.s3Client,
-		dynClient:            b.dynClient,
-		bucketName:           b.bucketName,
-		path:                 b.path(name),
-		serverSideEncryption: b.serverSideEncryption,
-		acl:                  b.acl,
-		kmsKeyID:             b.kmsKeyID,
-		ddbTable:             b.ddbTable,
+		s3Client:              b.s3Client,
+		dynClient:             b.dynClient,
+		bucketName:            b.bucketName,
+		path:                  b.path(name),
+		serverSideEncryption:  b.serverSideEncryption,
+		customerEncryptionKey: b.customerEncryptionKey,
+		acl:                   b.acl,
+		kmsKeyID:              b.kmsKeyID,
+		ddbTable:              b.ddbTable,
 	}
 
 	return client, nil
