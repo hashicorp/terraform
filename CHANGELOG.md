@@ -16,6 +16,7 @@ BUG FIXES:
 * config: fix references to `each` of `for_each` in provisioners [GH-22289]
 * config: fix panic when using nested dynamic blocks [GH-22314]
 * config: ensure consistent evaluation when moving between single resources and `for_each` in addressing [GH-22454]
+* core: only start a single instance of each required provisioner [GH-22553]
 * command: fix issue where commands occasionally exited before the error message printed [GH-22373]
 * command/0.12upgrade: use user-supplied plugin-dir [GH-22306]
 * command/hook_ui: Truncate the ID considering multibyte characters [GH-18823]
