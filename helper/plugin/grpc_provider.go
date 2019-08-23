@@ -55,6 +55,10 @@ func (s *GRPCProviderServer) GetSchema(_ context.Context, req *proto.GetProvider
 		Block: convert.ConfigSchemaToProto(s.getProviderSchemaBlock()),
 	}
 
+	resp.ProviderMeta = &proto.Schema{
+		Block: convert.ConfigSchemaToProto(s.getProviderMetaSchemaBlock()),
+	}
+
 	for typ, res := range s.provider.ResourcesMap {
 		resp.ResourceSchemas[typ] = &proto.Schema{
 			Version: int64(res.SchemaVersion),
@@ -74,6 +78,10 @@ func (s *GRPCProviderServer) GetSchema(_ context.Context, req *proto.GetProvider
 
 func (s *GRPCProviderServer) getProviderSchemaBlock() *configschema.Block {
 	return schema.InternalMap(s.provider.Schema).CoreConfigSchema()
+}
+
+func (s *GRPCProviderServer) getProviderMetaSchemaBlock() *configschema.Block {
+	return schema.InternalMap(s.provider.ProviderMetaSchema).CoreConfigSchema()
 }
 
 func (s *GRPCProviderServer) getResourceSchemaBlock(name string) *configschema.Block {

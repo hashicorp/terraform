@@ -105,6 +105,13 @@ func (p *GRPCProvider) getDatasourceSchema(name string) providers.Schema {
 	return dataSchema
 }
 
+// getProviderMetaSchema is a helper to extract the schema for the meta info
+// defined for a provider,
+func (p *GRPCProvider) getProviderMetaSchema() providers.Schema {
+	schema := p.getSchema()
+	return schema.ProviderMeta
+}
+
 func (p *GRPCProvider) GetSchema() (resp providers.GetSchemaResponse) {
 	log.Printf("[TRACE] GRPCProvider: GetSchema")
 	p.mu.Lock()
@@ -137,6 +144,11 @@ func (p *GRPCProvider) GetSchema() (resp providers.GetSchemaResponse) {
 	}
 
 	resp.Provider = convert.ProtoToProviderSchema(protoResp.Provider)
+	if protoResp.ProviderMeta == nil {
+		log.Printf("[TRACE] No provider meta schema returned")
+	} else {
+		resp.ProviderMeta = convert.ProtoToProviderSchema(protoResp.ProviderMeta)
+	}
 
 	for name, res := range protoResp.ResourceSchemas {
 		resp.ResourceTypes[name] = convert.ProtoToProviderSchema(res)
@@ -416,6 +428,7 @@ func (p *GRPCProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 	log.Printf("[TRACE] GRPCProvider: ApplyResourceChange")
 
 	resSchema := p.getResourceSchema(r.TypeName)
+	metaSchema := p.getProviderMetaSchema()
 
 	priorMP, err := msgpack.Marshal(r.PriorState, resSchema.Block.ImpliedType())
 	if err != nil {
@@ -439,6 +452,15 @@ func (p *GRPCProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 		PlannedState:   &proto.DynamicValue{Msgpack: plannedMP},
 		Config:         &proto.DynamicValue{Msgpack: configMP},
 		PlannedPrivate: r.PlannedPrivate,
+	}
+
+	if metaSchema.Block != nil {
+		metaMP, err := msgpack.Marshal(r.ProviderMeta, metaSchema.Block.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
+		}
+		protoReq.ProviderMeta = &proto.DynamicValue{Msgpack: metaMP}
 	}
 
 	protoResp, err := p.client.ApplyResourceChange(p.ctx, protoReq)
