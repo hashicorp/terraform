@@ -57,6 +57,9 @@ type NodeAbstractResource struct {
 	SchemaVersion uint64              // Schema version of "Schema", as decided by the provider
 	Config        *configs.Resource   // Config is the resource in the config
 
+	// ProviderMeta is the provider_meta config for this resource
+	ProviderMeta *configs.ProviderMeta
+
 	ProvisionerSchemas map[string]*configschema.Block
 
 	Targets []addrs.Targetable // Set from GraphNodeTargetable
@@ -66,17 +69,18 @@ type NodeAbstractResource struct {
 }
 
 var (
-	_ GraphNodeSubPath                 = (*NodeAbstractResource)(nil)
-	_ GraphNodeReferenceable           = (*NodeAbstractResource)(nil)
-	_ GraphNodeReferencer              = (*NodeAbstractResource)(nil)
-	_ GraphNodeProviderConsumer        = (*NodeAbstractResource)(nil)
-	_ GraphNodeProvisionerConsumer     = (*NodeAbstractResource)(nil)
-	_ GraphNodeResource                = (*NodeAbstractResource)(nil)
-	_ GraphNodeAttachResourceConfig    = (*NodeAbstractResource)(nil)
-	_ GraphNodeAttachResourceSchema    = (*NodeAbstractResource)(nil)
-	_ GraphNodeAttachProvisionerSchema = (*NodeAbstractResource)(nil)
-	_ GraphNodeTargetable              = (*NodeAbstractResource)(nil)
-	_ dag.GraphNodeDotter              = (*NodeAbstractResource)(nil)
+	_ GraphNodeSubPath                   = (*NodeAbstractResource)(nil)
+	_ GraphNodeReferenceable             = (*NodeAbstractResource)(nil)
+	_ GraphNodeReferencer                = (*NodeAbstractResource)(nil)
+	_ GraphNodeProviderConsumer          = (*NodeAbstractResource)(nil)
+	_ GraphNodeProvisionerConsumer       = (*NodeAbstractResource)(nil)
+	_ GraphNodeResource                  = (*NodeAbstractResource)(nil)
+	_ GraphNodeAttachResourceConfig      = (*NodeAbstractResource)(nil)
+	_ GraphNodeAttachResourceSchema      = (*NodeAbstractResource)(nil)
+	_ GraphNodeAttachProvisionerSchema   = (*NodeAbstractResource)(nil)
+	_ GraphNodeAttachProviderMetaConfigs = (*NodeAbstractResource)(nil)
+	_ GraphNodeTargetable                = (*NodeAbstractResource)(nil)
+	_ dag.GraphNodeDotter                = (*NodeAbstractResource)(nil)
 )
 
 // NewNodeAbstractResource creates an abstract resource graph node for
@@ -402,6 +406,11 @@ func (n *NodeAbstractResource) AttachResourceConfig(c *configs.Resource) {
 func (n *NodeAbstractResource) AttachResourceSchema(schema *configschema.Block, version uint64) {
 	n.Schema = schema
 	n.SchemaVersion = version
+}
+
+// GraphNodeAttachProviderMetaConfigs impl
+func (n *NodeAbstractResource) AttachProviderMetaConfigs(c *configs.ProviderMeta) {
+	n.ProviderMeta = c
 }
 
 // GraphNodeDotter impl.

@@ -246,6 +246,7 @@ func loadProvisionerSchemas(schemas map[string]*configschema.Block, config *conf
 // resource types and data sources used by that configuration.
 type ProviderSchema struct {
 	Provider      *configschema.Block
+	ProviderMeta  *configschema.Block
 	ResourceTypes map[string]*configschema.Block
 	DataSources   map[string]*configschema.Block
 

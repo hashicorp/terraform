@@ -32,6 +32,7 @@ type Module struct {
 	ProviderConfigs      map[string]*Provider
 	ProviderRequirements map[string]ProviderRequirements
 	ProviderLocalNames   map[addrs.Provider]string
+	ProviderMetas        map[string]*ProviderMeta
 
 	Variables map[string]*Variable
 	Locals    map[string]*Local
@@ -61,6 +62,7 @@ type File struct {
 
 	Backends          []*Backend
 	ProviderConfigs   []*Provider
+	ProviderMetas     []*ProviderMeta
 	RequiredProviders []*RequiredProvider
 
 	Variables []*Variable
@@ -193,6 +195,18 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 		} else {
 			m.ProviderRequirements[reqd.Name] = ProviderRequirements{Type: fqn, VersionConstraints: []VersionConstraint{reqd.Requirement}}
 		}
+	}
+
+	for _, pm := range file.ProviderMetas {
+		if existing, exists := m.ProviderMetas[pm.Provider]; exists {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Duplicate provider_meta block",
+				Detail:   fmt.Sprintf("A provider_meta block for provider %q was already declared at %s. Providers may only have one provider_meta block per module.", existing.Provider, existing.DeclRange),
+				Subject:  &pm.DeclRange,
+			})
+		}
+		m.ProviderMetas[pm.Provider] = pm
 	}
 
 	for _, v := range file.Variables {

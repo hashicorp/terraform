@@ -73,6 +73,9 @@ type GetSchemaResponse struct {
 	// Provider is the schema for the provider itself.
 	Provider Schema
 
+	// ProviderMeta is the schema for the provider's meta info in a module
+	ProviderMeta Schema
+
 	// ResourceTypes map the resource type name to that type's schema.
 	ResourceTypes map[string]Schema
 
@@ -262,6 +265,12 @@ type ApplyResourceChangeRequest struct {
 
 	// PlannedPrivate is the same value as returned by PlanResourceChange.
 	PlannedPrivate []byte
+
+	// ProviderMeta is the configuration for the provider_meta block for the
+	// module and provider this resource belongs to. Its use is defined by
+	// each provider, and it should not be used without coordination with
+	// HashiCorp. It is considered experimental and subject to change.
+	ProviderMeta cty.Value
 }
 
 type ApplyResourceChangeResponse struct {
