@@ -14,7 +14,7 @@ describe your infrastructure in terms of its architecture, rather than
 directly in terms of physical objects.
 
 The `.tf` files in your working directory when you run [`terraform plan`](/docs/commands/plan.html)
-or [`terraform apply`](/docs/commands/apply.html) together form the _root_
+or [`terraform apply`](/docs/commands/apply.html) together from the _root_
 module. That module may [call other modules](/docs/configuration/modules.html#calling-a-child-module)
 and connect them together by passing output values from one to input values
 of another.
