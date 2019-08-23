@@ -194,8 +194,8 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 	// it, since that allows us to gather a full set of any errors and
 	// warnings, but once we've gathered all the data we'll then skip anything
 	// that's redundant in the process of populating our values map.
-	dataResources := map[string]map[string]map[addrs.InstanceKey]cty.Value{}
-	managedResources := map[string]map[string]map[addrs.InstanceKey]cty.Value{}
+	dataResources := map[string]map[string]cty.Value{}
+	managedResources := map[string]map[string]cty.Value{}
 	wholeModules := map[string]map[addrs.InstanceKey]cty.Value{}
 	moduleOutputs := map[string]map[addrs.InstanceKey]map[string]cty.Value{}
 	inputVariables := map[string]cty.Value{}
@@ -241,7 +241,7 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 		switch subj := rawSubj.(type) {
 
 		case addrs.ResourceInstance:
-			var into map[string]map[string]map[addrs.InstanceKey]cty.Value
+			var into map[string]map[string]cty.Value
 			switch subj.Resource.Mode {
 			case addrs.ManagedResourceMode:
 				into = managedResources
@@ -251,17 +251,14 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 				panic(fmt.Errorf("unsupported ResourceMode %s", subj.Resource.Mode))
 			}
 
-			val, valDiags := normalizeRefValue(s.Data.GetResourceInstance(subj, rng))
+			val, valDiags := normalizeRefValue(s.Data.GetResource(subj.ContainingResource(), rng))
 			diags = diags.Append(valDiags)
 
 			r := subj.Resource
 			if into[r.Type] == nil {
-				into[r.Type] = make(map[string]map[addrs.InstanceKey]cty.Value)
+				into[r.Type] = make(map[string]cty.Value)
 			}
-			if into[r.Type][r.Name] == nil {
-				into[r.Type][r.Name] = make(map[addrs.InstanceKey]cty.Value)
-			}
-			into[r.Type][r.Name][subj.Key] = val
+			into[r.Type][r.Name] = val
 			if isSelf {
 				self = val
 			}
@@ -367,13 +364,9 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 	return ctx, diags
 }
 
-func buildResourceObjects(resources map[string]map[string]map[addrs.InstanceKey]cty.Value) map[string]cty.Value {
+func buildResourceObjects(resources map[string]map[string]cty.Value) map[string]cty.Value {
 	vals := make(map[string]cty.Value)
-	for typeName, names := range resources {
-		nameVals := make(map[string]cty.Value)
-		for name, keys := range names {
-			nameVals[name] = buildInstanceObjects(keys)
-		}
+	for typeName, nameVals := range resources {
 		vals[typeName] = cty.ObjectVal(nameVals)
 	}
 	return vals
