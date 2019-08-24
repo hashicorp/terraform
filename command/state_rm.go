@@ -112,17 +112,22 @@ func (c *StateRmCommand) Run(args []string) int {
 		return 1
 	}
 
-	if len(diags) > 0 {
+	if len(diags) > 0 && isCount != 0 {
 		c.showDiagnostics(diags)
 	}
 
 	if isCount == 0 {
-		c.Ui.Output("No matching resource instances found.")
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid target address",
+			"No matching objects found. To view the available instances, use "terraform state list". Please modify the address to reference a specific instance.",
+		))
+		c.showDiagnostics(diags)
 		return 1
-	} else {
-		c.Ui.Output(fmt.Sprintf("Successfully removed %d resource instance(s).", isCount))
-		return 0
 	}
+
+	c.Ui.Output(fmt.Sprintf("Successfully removed %d resource instance(s).", isCount))
+	return 0
 }
 
 func (c *StateRmCommand) Help() string {
