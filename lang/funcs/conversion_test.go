@@ -15,6 +15,12 @@ func TestTo(t *testing.T) {
 		Err      string
 	}{
 		{
+			cty.StringVal("0x99"),
+			cty.Number,
+			cty.NumberIntVal(153),
+			``,
+		},
+		{
 			cty.StringVal("a"),
 			cty.String,
 			cty.StringVal("a"),

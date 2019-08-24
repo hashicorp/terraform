@@ -6,6 +6,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 	"github.com/zclconf/go-cty/cty/function"
+	"github.com/zclconf/go-cty/cty/gocty"
 )
 
 // MakeToFunc constructs a "to..." function, like "tostring", which converts
@@ -54,6 +55,17 @@ func MakeToFunc(wantTy cty.Type) function.Function {
 			return wantTy, nil
 		},
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+
+			// handle 0x prefixed hex strings for tonumber()
+			gotTy := args[0].Type()
+			if gotTy == cty.String && wantTy == cty.Number && !args[0].IsNull() &&
+				len(args[0].AsString()) > 2 && args[0].AsString()[:2] == "0x" {
+				hexInt, err := strconv.ParseInt(args[0].AsString()[2:], 16, 64)
+				if err == nil {
+					// instead of failing up here, allow conversion attempt to proceed and errors are caught below.
+					args[0], _ = gocty.ToCtyValue(hexInt, cty.Number)
+				}
+			}
 			// We didn't set "AllowUnknown" on our argument, so it is guaranteed
 			// to be known here but may still be null.
 			ret, err := convert.Convert(args[0], retType)
@@ -63,7 +75,6 @@ func MakeToFunc(wantTy cty.Type) function.Function {
 				// asks to convert the string "a" to bool then we'll
 				// optimistically permit it during type checking but fail here
 				// once we note that the value isn't either "true" or "false".
-				gotTy := args[0].Type()
 				switch {
 				case gotTy == cty.String && wantTy == cty.Bool:
 					what := "string"
