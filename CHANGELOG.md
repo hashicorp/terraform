@@ -1,4 +1,8 @@
 ## 0.12.8 (Unreleased)
+
+NEW FEATURES:
+* lang/funcs: Add fileset function [GH-22523]
+
 ## 0.12.7 (August 22, 2019)
 
 NEW FEATURES:
