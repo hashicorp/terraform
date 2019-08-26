@@ -145,7 +145,16 @@ func wrappedMain() int {
 
 	// Get any configured credentials from the config and initialize
 	// a service discovery object.
-	credsSrc := credentialsSource(config)
+	credsSrc, err := credentialsSource(config)
+	if err != nil {
+		// Most commands don't actually need credentials, and most situations
+		// that would get us here would already have been reported by the config
+		// loading above, so we'll just log this one as an aid to debugging
+		// in the unlikely event that it _does_ arise.
+		log.Printf("[WARN] Cannot initialize remote host credentials manager: %s", err)
+		// credsSrc may be nil in this case, but that's okay because the disco
+		// object checks that and just acts as though no credentials are present.
+	}
 	services := disco.NewWithCredentialsSource(credsSrc)
 
 	// Initialize the backends.

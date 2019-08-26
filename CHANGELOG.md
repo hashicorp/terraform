@@ -1,27 +1,29 @@
-## 0.12.7 (Unreleased)
+## 0.12.8 (Unreleased)
+## 0.12.7 (August 22, 2019)
 
 NEW FEATURES:
-* New functions `regex` and `regexall` allow applying a regular expression pattern to a string and retrieving any matching substring(s) [GH-22353]
+* New functions `regex` and `regexall` allow applying a regular expression pattern to a string and retrieving any matching substring(s) ([#22353](https://github.com/hashicorp/terraform/issues/22353))
 
 ENHANCEMENTS:
-* lang/funcs: `lookup()` can work with maps of lists, maps and objects [GH-22269]
-* SDK: helper/acctest: Add function to return random IP address [GH-22312]
-* SDK: httpclient: Introduce composable `UserAgent(version)` [GH-22272]
-* connection/ssh: Support certificate authentication [GH-22156]
+* lang/funcs: `lookup()` can work with maps of lists, maps and objects ([#22269](https://github.com/hashicorp/terraform/issues/22269))
+* SDK: helper/acctest: Add function to return random IP address ([#22312](https://github.com/hashicorp/terraform/issues/22312))
+* SDK: httpclient: Introduce composable `UserAgent(version)` ([#22272](https://github.com/hashicorp/terraform/issues/22272))
+* connection/ssh: Support certificate authentication ([#22156](https://github.com/hashicorp/terraform/issues/22156))
 
 BUG FIXES:
-* config: reduce MinItems and MaxItems  validation during decoding, to allow for use of dynamic blocks [GH-22530]
-* config: don't validate MinItems and MaxItems in CoerceValue, allowing providers to set incomplete values [GH-22478]
-* config: fix panic on tuples with `for_each` [GH-22279]
-* config: fix references to `each` of `for_each` in provisioners [GH-22289]
-* config: fix panic when using nested dynamic blocks [GH-22314]
-* config: ensure consistent evaluation when moving between single resources and `for_each` in addressing [GH-22454]
-* command: fix issue where commands occasionally exited before the error message printed [GH-22373]
-* command/0.12upgrade: use user-supplied plugin-dir [GH-22306]
-* command/hook_ui: Truncate the ID considering multibyte characters [GH-18823]
-* command/fmt: Terraform fmt no longer inserts spaces after % [GH-22356]
-* command/state: Allow moving resources to modules not yet in state [GH-22299]
-* backend/google: Now using the OAuth2 token endpoint on `googleapis.com` instead of `google.com`. These endpoints are equivalent in functionality but `googleapis.com` hosts are resolvable from private Google Cloud Platform VPCs where other connectivity is restricted. [GH-22451]
+* config: reduce MinItems and MaxItems  validation during decoding, to allow for use of dynamic blocks ([#22530](https://github.com/hashicorp/terraform/issues/22530))
+* config: don't validate MinItems and MaxItems in CoerceValue, allowing providers to set incomplete values ([#22478](https://github.com/hashicorp/terraform/issues/22478))
+* config: fix panic on tuples with `for_each` ([#22279](https://github.com/hashicorp/terraform/issues/22279))
+* config: fix references to `each` of `for_each` in provisioners ([#22289](https://github.com/hashicorp/terraform/issues/22289))
+* config: fix panic when using nested dynamic blocks ([#22314](https://github.com/hashicorp/terraform/issues/22314))
+* config: ensure consistent evaluation when moving between single resources and `for_each` in addressing ([#22454](https://github.com/hashicorp/terraform/issues/22454))
+* core: only start a single instance of each required provisioner ([#22553](https://github.com/hashicorp/terraform/issues/22553))
+* command: fix issue where commands occasionally exited before the error message printed ([#22373](https://github.com/hashicorp/terraform/issues/22373))
+* command/0.12upgrade: use user-supplied plugin-dir ([#22306](https://github.com/hashicorp/terraform/issues/22306))
+* command/hook_ui: Truncate the ID considering multibyte characters ([#18823](https://github.com/hashicorp/terraform/issues/18823))
+* command/fmt: Terraform fmt no longer inserts spaces after % ([#22356](https://github.com/hashicorp/terraform/issues/22356))
+* command/state: Allow moving resources to modules not yet in state ([#22299](https://github.com/hashicorp/terraform/issues/22299))
+* backend/google: Now using the OAuth2 token endpoint on `googleapis.com` instead of `google.com`. These endpoints are equivalent in functionality but `googleapis.com` hosts are resolvable from private Google Cloud Platform VPCs where other connectivity is restricted. ([#22451](https://github.com/hashicorp/terraform/issues/22451))
 
 ## 0.12.6 (July 31, 2019)
 

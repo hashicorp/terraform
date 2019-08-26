@@ -90,9 +90,12 @@ The following configuration options or environment variables are supported:
  * `acl` - (Optional) [Object
    ACL](https://www.alibabacloud.com/help/doc-detail/52284.htm)
    to be applied to the state file.
- * `assume_role` - (Optional) If provided with a role ARN, will attempt to assume this role using the supplied credentials.
- 
+ * `shared_credentials_file` - (Optional, Available in 0.12.8+) This is the path to the shared credentials file. If this is not set and a profile is specified, `~/.aliyun/config.json` will be used.
+ * `profile` - (Optional, Available in 0.12.8+)  This is the Alibaba Cloud profile name as set in the shared credentials file. It can also be sourced from the `ALICLOUD_PROFILE` environment variable.
+ * `assume_role` - (Optional, Available in 0.12.6+) If provided with a role ARN, will attempt to assume this role using the supplied credentials.
+
 The nested `assume_role` block supports the following:
+
 * `role_arn` - (Required) The ARN of the role to assume. If ARN is set to an empty string, it does not perform role switching. It supports environment variable `ALICLOUD_ASSUME_ROLE_ARN`.
   Terraform executes configuration on account with provided credentials.
 
