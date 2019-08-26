@@ -81,13 +81,12 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	if n.ProviderMeta != nil {
 		// if the provider doesn't support this feature, throw an error
 		if (*n.ProviderSchema).ProviderMeta == nil {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Provider doesn't support provider_meta",
-				fmt.Sprintf(
-					"Provider %s does not support meta information in the terraform block, but a provider_meta block was specified for it.", n.ProviderAddr.ProviderConfig.Type,
-				),
-			))
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", (*n.Config).ProviderConfigAddr()),
+				Detail:   fmt.Sprintf("The resource %s belongs to a provider that doesn't support provider_meta blocks", n.Addr),
+				Subject:  &n.ProviderMeta.ProviderRange,
+			})
 		} else {
 
 			var configDiags tfdiags.Diagnostics
