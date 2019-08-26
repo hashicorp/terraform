@@ -75,6 +75,11 @@ func ConfigDir() (string, error) {
 	return configDir()
 }
 
+// CacheDir returns the cache directory for Terraform.
+func CacheDir() (string, error) {
+	return cacheDir()
+}
+
 // LoadConfig reads the CLI configuration from the various filesystem locations
 // and from the environment, returning a merged configuration along with any
 // diagnostics (errors and warnings) encountered along the way.

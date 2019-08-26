@@ -64,6 +64,28 @@ func legacyConfigDir() (string, error) {
 	return filepath.Join(home, ".terraform.d"), nil
 }
 
+func cacheDir() (string, error) {
+	// First prefer the XDG_CACHE_HOME environmental variable
+	cacheDirPath := os.Getenv("XDG_CACHE_HOME")
+	if cacheDirPath != "" {
+		return filepath.Join(cacheDirPath, "terraform"), nil
+	}
+
+	// If legacy ~/.terraform.d dir exists already, prefer that
+	cacheDirPath, err := legacyConfigDir()
+	if err == nil {
+		if _, err := os.Stat(cacheDirPath); !os.IsNotExist(err) {
+			return cacheDirPath, nil
+		}
+	}
+	// Else fall back to XDG_CACHE_HOME's standard location $HOME/.cache
+	home, err := homeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, ".cache", "terraform"), nil
+}
+
 func homeDir() (string, error) {
 	// First prefer the HOME environmental variable
 	if home := os.Getenv("HOME"); home != "" {
