@@ -2562,7 +2562,7 @@ func TestContext2Apply_provisionerInterpCount(t *testing.T) {
 	}
 }
 
-func TestContext2Apply_foreachUnknownValue(t *testing.T) {
+func TestContext2Apply_foreachVariable(t *testing.T) {
 	m := testModule(t, "plan-for-each-unknown-value")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
