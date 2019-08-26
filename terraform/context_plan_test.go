@@ -3389,7 +3389,7 @@ func TestContext2Plan_forEach(t *testing.T) {
 
 func TestContext2Plan_forEachUnknownValue(t *testing.T) {
 	// This module has a variable defined, but it is not provided
-	// in the context and we expect the plan to error, but not panic
+	// in the context below and we expect the plan to error, but not panic
 	m := testModule(t, "plan-for-each-unknown-value")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
@@ -3404,7 +3404,15 @@ func TestContext2Plan_forEachUnknownValue(t *testing.T) {
 
 	_, diags := ctx.Plan()
 	if !diags.HasErrors() {
-		t.Fatalf("Expected invalid error")
+		// Should get this error:
+		// Invalid for_each argument: The "for_each" value depends on resource attributes that cannot be determined until apply...
+		t.Fatal("succeeded; want errors")
+	}
+
+	gotErrStr := diags.Err().Error()
+	wantErrStr := "Invalid for_each argument"
+	if !strings.Contains(gotErrStr, wantErrStr) {
+		t.Fatalf("missing expected error\ngot: %s\n\nwant: error containing %q", gotErrStr, wantErrStr)
 	}
 }
 
