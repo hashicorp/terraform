@@ -23,12 +23,19 @@ func configFile() (string, error) {
 		return file, nil
 	}
 
-	// else use configDir()'s result /.terraformrc
+	// else use configDir()'s result and attach terraformrc
 	dir, err := configDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(dir, ".terraformrc"), nil
+
+	// With the legacy dir still keep the dot infront of terraformrc
+	legacyDir, err := legacyConfigDir()
+	if dir == legacyDir {
+		return filepath.Join(dir, ".terraformrc"), nil
+	}
+
+	return filepath.Join(dir, "terraformrc"), nil
 }
 
 func configDir() (string, error) {
