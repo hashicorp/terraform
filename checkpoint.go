@@ -25,7 +25,7 @@ func runCheckpoint(c *Config) {
 		return
 	}
 
-	configDir, err := ConfigDir()
+	cacheDir, err := CacheDir()
 	if err != nil {
 		log.Printf("[ERR] Checkpoint setup error: %s", err)
 		checkpointResult <- nil
@@ -37,7 +37,7 @@ func runCheckpoint(c *Config) {
 		version += fmt.Sprintf("-%s", VersionPrerelease)
 	}
 
-	signaturePath := filepath.Join(configDir, "checkpoint_signature")
+	signaturePath := filepath.Join(cacheDir, "checkpoint_signature")
 	if c.DisableCheckpointSignature {
 		log.Printf("[INFO] Checkpoint signature disabled")
 		signaturePath = ""
@@ -47,7 +47,7 @@ func runCheckpoint(c *Config) {
 		Product:       "terraform",
 		Version:       version,
 		SignatureFile: signaturePath,
-		CacheFile:     filepath.Join(configDir, "checkpoint_cache"),
+		CacheFile:     filepath.Join(cacheDir, "checkpoint_cache"),
 	})
 	if err != nil {
 		log.Printf("[ERR] Checkpoint error: %s", err)
