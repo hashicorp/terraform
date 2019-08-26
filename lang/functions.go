@@ -56,6 +56,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"chunklist":        funcs.ChunklistFunc,
 			"file":             funcs.MakeFileFunc(s.BaseDir, false),
 			"fileexists":       funcs.MakeFileExistsFunc(s.BaseDir),
+			"fileset":          funcs.MakeFileSetFunc(s.BaseDir),
 			"filebase64":       funcs.MakeFileFunc(s.BaseDir, true),
 			"filebase64sha256": funcs.MakeFileBase64Sha256Func(s.BaseDir),
 			"filebase64sha512": funcs.MakeFileBase64Sha512Func(s.BaseDir),
