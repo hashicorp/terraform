@@ -50,7 +50,7 @@ func evaluateResourceForEachExpressionKnown(expr hcl.Expression, ctx EvalContext
 			Subject:  expr.Range().Ptr(),
 		})
 		return nil, true, diags
-	case !forEachVal.IsKnown():
+	case !forEachVal.IsWhollyKnown():
 		return map[string]cty.Value{}, false, diags
 	}
 
