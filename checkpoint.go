@@ -27,7 +27,8 @@ func runCheckpoint(c *Config) {
 
 	cacheDir, err := CacheDir()
 	if err != nil {
-		log.Printf("[ERR] Checkpoint setup error: %s", err)
+		log.Printf("[ERROR] Error finding global cache directory: %s", err)
+		log.Printf("[ERROR] Checkpoint setup error")
 		checkpointResult <- nil
 		return
 	}
@@ -50,7 +51,7 @@ func runCheckpoint(c *Config) {
 		CacheFile:     filepath.Join(cacheDir, "checkpoint_cache"),
 	})
 	if err != nil {
-		log.Printf("[ERR] Checkpoint error: %s", err)
+		log.Printf("[ERROR] Checkpoint error: %s", err)
 		resp = nil
 	}
 
