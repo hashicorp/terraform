@@ -3387,8 +3387,10 @@ func TestContext2Plan_forEach(t *testing.T) {
 	}
 }
 
-func TestContext2Plan_forEachExpression(t *testing.T) {
-	m := testModule(t, "plan-for-each-expression")
+func TestContext2Plan_forEachUnknownValue(t *testing.T) {
+	// This module has a variable defined, but it is not provided
+	// in the context and we expect the plan to error, but not panic
+	m := testModule(t, "plan-for-each-unknown-value")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
@@ -3400,26 +3402,9 @@ func TestContext2Plan_forEachExpression(t *testing.T) {
 		),
 	})
 
-	plan, diags := ctx.Plan()
-	if diags.HasErrors() {
-		t.Fatalf("unexpected errors: %s", diags.Err())
-	}
-
-	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
-	ty := schema.ImpliedType()
-
-	if len(plan.Changes.Resources) != 3 {
-		t.Fatal("expected 3 changes, got", len(plan.Changes.Resources))
-	}
-
-	for _, res := range plan.Changes.Resources {
-		if res.Action != plans.Create {
-			t.Fatalf("expected resource creation, got %s", res.Action)
-		}
-		_, err := res.Decode(ty)
-		if err != nil {
-			t.Fatal(err)
-		}
+	_, diags := ctx.Plan()
+	if !diags.HasErrors() {
+		t.Fatalf("Expected invalid error")
 	}
 }
 
