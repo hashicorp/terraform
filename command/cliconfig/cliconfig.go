@@ -17,7 +17,6 @@ import (
 
 	"github.com/hashicorp/hcl"
 
-	"github.com/hashicorp/terraform/command"
 	"github.com/hashicorp/terraform/svchost"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -61,10 +60,6 @@ type ConfigCredentialsHelper struct {
 // BuiltinConfig is the built-in defaults for the configuration. These
 // can be overridden by user configurations.
 var BuiltinConfig Config
-
-// PluginOverrides are paths that override discovered plugins, set from
-// the config file.
-var PluginOverrides command.PluginOverrides
 
 // ConfigFile returns the default path to the configuration file.
 //
