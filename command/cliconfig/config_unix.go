@@ -4,27 +4,64 @@ package cliconfig
 
 import (
 	"errors"
+	"log"
 	"os"
 	"os/user"
 	"path/filepath"
 )
 
 func configFile() (string, error) {
-	dir, err := homeDir()
+	home, err := homeDir()
 	if err != nil {
 		return "", err
 	}
 
+	// If legacy ~/.terraformrc dir exists already, prefer that
+	file := filepath.Join(home, ".terraformrc")
+	if _, err := os.Stat(file); !os.IsNotExist(err) {
+		log.Printf("[DEBUG] Found .terraformrc in legacy location, continuing")
+		return file, nil
+	}
+
+	// else use configDir()'s result /.terraformrc
+	dir, err := configDir()
+	if err != nil {
+		return "", err
+	}
 	return filepath.Join(dir, ".terraformrc"), nil
 }
 
 func configDir() (string, error) {
-	dir, err := homeDir()
+	// First prefer the XDG_CONFIG_HOME environmental variable
+	configDirPath := os.Getenv("XDG_CONFIG_HOME")
+	if configDirPath != "" {
+		return filepath.Join(configDirPath, "terraform"), nil
+	}
+
+	// If legacy ~/.terraform.d dir exists already, prefer that
+	configDirPath, err := legacyConfigDir()
+	if err == nil {
+		if _, err := os.Stat(configDirPath); !os.IsNotExist(err) {
+			log.Printf("[DEBUG] Found .terraform.d directory in legacy location, continuing")
+			return configDirPath, nil
+		}
+	}
+	// Else fall back to XDG_CONFIG_HOME's standard location $HOME/.config
+	home, err := homeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, ".config", "terraform"), nil
+
+}
+
+func legacyConfigDir() (string, error) {
+	home, err := homeDir()
 	if err != nil {
 		return "", err
 	}
 
-	return filepath.Join(dir, ".terraform.d"), nil
+	return filepath.Join(home, ".terraform.d"), nil
 }
 
 func homeDir() (string, error) {
