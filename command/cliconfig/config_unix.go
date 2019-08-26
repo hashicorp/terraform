@@ -32,9 +32,12 @@ func configFile() (string, error) {
 }
 
 func configDir() (string, error) {
+	log.Printf("[DEBUG] Getting config dir")
+
 	// First prefer the XDG_CONFIG_HOME environmental variable
 	configDirPath := os.Getenv("XDG_CONFIG_HOME")
 	if configDirPath != "" {
+		log.Printf("[DEBUG] Prefering XDG_CONFIG_HOME env variable")
 		return filepath.Join(configDirPath, "terraform"), nil
 	}
 
@@ -51,6 +54,7 @@ func configDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
+	log.Printf("[DEBUG] Falling back to XDG_CONFIG_HOME standard location $HOME/.config")
 	return filepath.Join(home, ".config", "terraform"), nil
 
 }
@@ -65,9 +69,12 @@ func legacyConfigDir() (string, error) {
 }
 
 func cacheDir() (string, error) {
+	log.Printf("[DEBUG] Getting cache dir")
+
 	// First prefer the XDG_CACHE_HOME environmental variable
 	cacheDirPath := os.Getenv("XDG_CACHE_HOME")
 	if cacheDirPath != "" {
+		log.Printf("[DEBUG] Prefering XDG_CACHE_HOME env variable")
 		return filepath.Join(cacheDirPath, "terraform"), nil
 	}
 
@@ -75,6 +82,7 @@ func cacheDir() (string, error) {
 	cacheDirPath, err := legacyConfigDir()
 	if err == nil {
 		if _, err := os.Stat(cacheDirPath); !os.IsNotExist(err) {
+			log.Printf("[DEBUG] Found .terraform.d directory in legacy location, continuing")
 			return cacheDirPath, nil
 		}
 	}
@@ -83,6 +91,7 @@ func cacheDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
+	log.Printf("[DEBUG] Falling back to XDG_CACHE_HOME standard location $HOME/.cache")
 	return filepath.Join(home, ".cache", "terraform"), nil
 }
 
