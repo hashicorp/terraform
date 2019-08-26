@@ -88,13 +88,14 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 					"Provider %s does not support meta information in the terraform block, but a provider_meta block was specified for it.", n.ProviderAddr.ProviderConfig.Type,
 				),
 			))
-		}
+		} else {
 
-		var configDiags tfdiags.Diagnostics
-		metaConfigVal, _, configDiags = ctx.EvaluateBlock(n.ProviderMeta.Config, (*n.ProviderSchema).ProviderMeta, nil, EvalDataForNoInstanceKey)
-		diags = diags.Append(configDiags)
-		if configDiags.HasErrors() {
-			return nil, diags.Err()
+			var configDiags tfdiags.Diagnostics
+			metaConfigVal, _, configDiags = ctx.EvaluateBlock(n.ProviderMeta.Config, (*n.ProviderSchema).ProviderMeta, nil, EvalDataForNoInstanceKey)
+			diags = diags.Append(configDiags)
+			if configDiags.HasErrors() {
+				return nil, diags.Err()
+			}
 		}
 	}
 
