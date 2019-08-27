@@ -8,8 +8,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -391,7 +390,7 @@ func (p *MockProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 			for k, new := range plannedMap {
 				old := priorMap[k]
 				newComputed := false
-				if new == config.UnknownVariableValue {
+				if new == hcl2shim.UnknownVariableValue {
 					new = ""
 					newComputed = true
 				}

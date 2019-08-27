@@ -376,11 +376,12 @@ type TestStep struct {
 
 	// ImportStateVerify, if true, will also check that the state values
 	// that are finally put into the state after import match for all the
-	// IDs returned by the Import.
+	// IDs returned by the Import.  Note that this checks for strict equality
+	// and does not respect DiffSuppressFunc or CustomizeDiff.
 	//
-	// ImportStateVerifyIgnore are fields that should not be verified to
-	// be equal. These can be set to ephemeral fields or fields that can't
-	// be refreshed and don't matter.
+	// ImportStateVerifyIgnore is a list of prefixes of fields that should
+	// not be verified to be equal. These can be set to ephemeral fields or
+	// fields that can't be refreshed and don't matter.
 	ImportStateVerify       bool
 	ImportStateVerifyIgnore []string
 

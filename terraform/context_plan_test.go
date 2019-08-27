@@ -16,8 +16,8 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
@@ -3349,6 +3349,43 @@ func TestContext2Plan_countIncreaseWithSplatReference(t *testing.T) {
 			t.Fatal("unknown instance:", i)
 		}
 	}
+}
+
+func TestContext2Plan_forEach(t *testing.T) {
+	m := testModule(t, "plan-for-each")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
+
+	if len(plan.Changes.Resources) != 8 {
+		t.Fatal("expected 8 changes, got", len(plan.Changes.Resources))
+	}
+
+	for _, res := range plan.Changes.Resources {
+		if res.Action != plans.Create {
+			t.Fatalf("expected resource creation, got %s", res.Action)
+		}
+		_, err := res.Decode(ty)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
 }
 
 func TestContext2Plan_destroy(t *testing.T) {

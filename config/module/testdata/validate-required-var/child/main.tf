@@ -1,2 +1,0 @@
-variable "memory" {}
-variable "feature" {}

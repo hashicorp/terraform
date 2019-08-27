@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/states"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestOrphanResourceCountTransformer(t *testing.T) {
@@ -331,6 +333,74 @@ func TestOrphanResourceCountTransformer_zeroAndNoneCount(t *testing.T) {
 	}
 }
 
+// When converting from a NoEach mode to an EachMap via a switch to for_each,
+// an edge is necessary to ensure that the map-key'd instances
+// are evaluated after the NoKey resource, because the final instance evaluated
+// sets the whole resource's EachMode.
+func TestOrphanResourceCountTransformer_ForEachEdgesAdded(t *testing.T) {
+	state := states.BuildState(func(s *states.SyncState) {
+		// "bar" key'd resource
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "aws_instance",
+				Name: "foo",
+			}.Instance(addrs.StringKey("bar")).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsFlat: map[string]string{
+					"id": "foo",
+				},
+				Status: states.ObjectReady,
+			},
+			addrs.ProviderConfig{
+				Type: "aws",
+			}.Absolute(addrs.RootModuleInstance),
+		)
+
+		// NoKey'd resource
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "aws_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsFlat: map[string]string{
+					"id": "foo",
+				},
+				Status: states.ObjectReady,
+			},
+			addrs.ProviderConfig{
+				Type: "aws",
+			}.Absolute(addrs.RootModuleInstance),
+		)
+	})
+
+	g := Graph{Path: addrs.RootModuleInstance}
+
+	{
+		tf := &OrphanResourceCountTransformer{
+			Concrete: testOrphanResourceConcreteFunc,
+			// No keys in this ForEach ensure both our resources end
+			// up orphaned in this test
+			ForEach: map[string]cty.Value{},
+			Addr: addrs.RootModuleInstance.Resource(
+				addrs.ManagedResourceMode, "aws_instance", "foo",
+			),
+			State: state,
+		}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTransformOrphanResourceForEachStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
 const testTransformOrphanResourceCountBasicStr = `
 aws_instance.foo[2] (orphan)
 `
@@ -354,4 +424,10 @@ aws_instance.foo[0] (orphan)
 
 const testTransformOrphanResourceCountZeroAndNoneCountStr = `
 aws_instance.foo (orphan)
+`
+
+const testTransformOrphanResourceForEachStr = `
+aws_instance.foo (orphan)
+aws_instance.foo["bar"] (orphan)
+  aws_instance.foo (orphan)
 `

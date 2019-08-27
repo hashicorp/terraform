@@ -1,6 +1,7 @@
 package command
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/posener/complete"
@@ -19,6 +20,7 @@ func (c *WorkspaceShowCommand) Run(args []string) int {
 	cmdFlags := c.Meta.extendedFlagSet("workspace show")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
 		return 1
 	}
 

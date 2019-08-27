@@ -110,18 +110,50 @@ specifying `-config=""` (empty string). This is useful in situations where
 you want to manually configure the provider because your configuration
 may not be valid.
 
-## Example: AWS Instance
+## Example: Import into Resource
 
-This example will import an AWS instance:
+This example will import an AWS instance into the `aws_instance` resource named `foo`:
 
 ```shell
 $ terraform import aws_instance.foo i-abcd1234
 ```
 
-## Example: Import to Module
+## Example: Import into Module
 
-The example below will import an AWS instance into a module:
+The example below will import an AWS instance into the `aws_instance` resource named `bar` into a module named `foo`:
 
 ```shell
 $ terraform import module.foo.aws_instance.bar i-abcd1234
+```
+
+## Example: Import into Resource configured with count
+
+The example below will import an AWS instance into the first instance of the `aws_instance` resource named `baz` configured with
+[`count`](/docs/configuration/resources.html#count-multiple-resource-instances-by-count):
+
+```shell
+$ terraform import 'aws_instance.baz[0]' i-abcd1234
+```
+
+## Example: Import into Resource configured with for_each
+
+The example below will import an AWS instance into the `"example"` instance of the `aws_instance` resource named `baz` configured with
+[`for_each`](/docs/configuration/resources.html#for_each-multiple-resource-instances-defined-by-a-map-or-set-of-strings):
+
+Linux, Mac OS, and UNIX:
+
+```shell
+$ terraform import 'aws_instance.baz["example"]' i-abcd1234
+```
+
+PowerShell:
+
+```shell
+$ terraform import 'aws_instance.baz[\"example\"]' i-abcd1234
+```
+
+Windows `cmd.exe`:
+
+```shell
+$ terraform import aws_instance.baz[\"example\"] i-abcd1234
 ```

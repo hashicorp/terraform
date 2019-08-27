@@ -100,7 +100,7 @@ func (c *Converter) unmarshalScalar(an *valueAnalysis, evt *yaml_event_t, p *yam
 		an.beginAnchor(anchor)
 	}
 
-	val, err := c.resolveScalar(tag, string(src))
+	val, err := c.resolveScalar(tag, string(src), yaml_scalar_style_t(evt.style))
 	if err != nil {
 		return cty.NilVal, parseEventErrorWrap(evt, err)
 	}
@@ -145,7 +145,7 @@ func (c *Converter) unmarshalMapping(an *valueAnalysis, evt *yaml_event_t, p *ya
 		if nextEvt.typ != yaml_SCALAR_EVENT {
 			return cty.NilVal, parseEventErrorf(&nextEvt, "only strings are allowed as mapping keys")
 		}
-		keyVal, err := c.resolveScalar(string(nextEvt.tag), string(nextEvt.value))
+		keyVal, err := c.resolveScalar(string(nextEvt.tag), string(nextEvt.value), yaml_scalar_style_t(nextEvt.style))
 		if err != nil {
 			return cty.NilVal, err
 		}

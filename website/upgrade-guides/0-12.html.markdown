@@ -179,7 +179,7 @@ Terraform v0.12.
 
 We recommend using this command in a clean version control work tree, so that
 you can easily see the proposed changes as a diff against the latest commit.
-If you have uncommited changes already present, we recommend aborting this
+If you have uncommitted changes already present, we recommend aborting this
 command and dealing with them before running this command again.
 
 Would you like to upgrade the module in the current directory?
@@ -247,6 +247,17 @@ outputs from the Terraform v0.12 state format, so if you upgrade all of your
 configurations to Terraform v0.11.14 first you can then perform v0.12 upgrades
 of individual configurations in any order, without breaking
 `terraform_remote_state` usage.
+
+Note that the `config` block should now be in the form of an assignment with the `=` sign:
+
+```hcl
+data "terraform_remote_state" "default" {
+  backend = "gcs"
+  config = {
+    bucket = "..."
+  }
+}
+```
 
 ### Attributes vs. blocks
 
@@ -405,7 +416,7 @@ rewrite automatically to just refer to the list directly:
   example = var.any_list
 ```
 
-However, an unintended side-effect of this compatiblity mechanism was to
+However, an unintended side-effect of this compatibility mechanism was to
 also flatten mixed lists of single-value and list expressions into a single
 list automatically. We didn't intend for this to be a part of the language, but
 in retrospect it was an obvious consequence of how the compatibility mechanism
@@ -663,6 +674,51 @@ expression where possible, since you will often know better than Terraform does
 which of the instance IP addresses are likely to be accessible from the host
 where Terraform is running.
 
+### Equality operations must be valid on value and type
+
+In 0.11, `"1"` would compare truthfully against `1`, however, in 0.12,
+values must be equal on both value and type in order to be true. That is, in 0.11
+you would see:
+
+```
+> "1" == 1
+true
+```
+
+and in 0.12:
+
+```
+> "1" == 1
+false
+```
+
+This means special care should be taken if you have any conditionals comparing to say,
+`count.index` where you were previously expecting it to be a string, when it is now a number.
+
+This is a scenario where you would need to update existing 0.11 code to work as you expect in 0.12:
+
+```
+resource "server_instance" "app" {
+    server_status = "${count.index == local.prod_index ? "production" : "standby"}"
+  }
+}
+
+locals {
+  # when migrating to 0.12, be sure to change this value to a number
+  # to ensure expected behavior
+  prod_index = "0"
+}
+```
+
+Also take care that if you have a variable that is a number, but defined as a string,
+the upgrade tool will not change it to a number, so take care to inspect your code:
+
+```
+locals {
+  some_count = "3" # will not be changed to a number after config upgrade
+}
+```
+
 ## Upgrades for reusable modules
 
 If you are making upgrades to a reusable module that is consumed by many
@@ -725,8 +781,8 @@ entirely overridden by any explicitly-set value.
 
 ## Upgrading `remote` Backend Configuration
 
-Terraform Enterprise users, and users of the Terraform SAAS free tier, will need
-to run `terraform init -reconfigure` to upgrade to Terraform 0.12. 
+Terraform Cloud and Terraform Enterprise users will need
+to run `terraform init -reconfigure` to upgrade to Terraform 0.12.
 
 Terraform provides a message stating that `terraform init` is required; while
 there is no harm in running this command, the next error message will clarify
@@ -740,13 +796,13 @@ possible and most policies will continue to work without modification. However,
 there are some important changes and certain policies will need to modified.
 
 More information on the changes can be found in our page on [using Sentinel with
-Terraform 0.12](/docs/enterprise/sentinel/sentinel-tf-012.html).
+Terraform 0.12](/docs/cloud/sentinel/sentinel-tf-012.html).
 
 It's strongly advised that you test your Sentinel policies after upgrading to
 Terraform 0.12 to ensure they continue to work as expected. [Mock
-generation](/docs/enterprise/sentinel/mock.html) has also been updated to
+generation](/docs/cloud/sentinel/mock.html) has also been updated to
 produce mock data for the Sentinel imports as they appear in Terraform 0.12.
 
 For more information on testing a policy with 0.11 and 0.12 at the same time,
 see the section on [testing a policy with 0.11 and 0.12
-simultaneously](/docs/enterprise/sentinel/sentinel-tf-012.html#testing-a-policy-with-0-11-and-0-12-simultaneously).
+simultaneously](/docs/cloud/sentinel/sentinel-tf-012.html#testing-a-policy-with-0-11-and-0-12-simultaneously).

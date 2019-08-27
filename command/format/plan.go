@@ -83,6 +83,10 @@ func NewPlan(changes *plans.Changes) *Plan {
 			continue
 		}
 
+		if rc.Action == plans.NoOp {
+			continue
+		}
+
 		// For now we'll shim this to work with our old types.
 		// TODO: Update for the new plan types, ideally also switching over to
 		// a structural diff renderer instead of a flat renderer.

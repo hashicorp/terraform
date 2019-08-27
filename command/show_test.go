@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -153,6 +154,8 @@ func TestShow_json_output(t *testing.T) {
 			defer os.RemoveAll(td)
 			defer testChdir(t, td)()
 
+			expectError := strings.Contains(entry.Name(), "error")
+
 			p := showFixtureProvider()
 			ui := new(cli.MockUi)
 			m := Meta{
@@ -171,6 +174,10 @@ func TestShow_json_output(t *testing.T) {
 				},
 			}
 			if code := ic.Run([]string{}); code != 0 {
+				if expectError {
+					// this should error, but not panic.
+					return
+				}
 				t.Fatalf("init failed\n%s", ui.ErrorWriter)
 			}
 

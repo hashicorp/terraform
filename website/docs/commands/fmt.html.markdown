@@ -38,3 +38,4 @@ The command-line flags are all optional. The list of available flags are:
 * `-diff` - Display diffs of formatting changes
 * `-check` - Check if the input is formatted. Exit status will be 0 if
     all input is properly formatted and non-zero otherwise.
+* `-recursive` - Also process files in subdirectories. By default, only the given directory (or current directory) is processed.

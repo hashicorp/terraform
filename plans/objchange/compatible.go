@@ -169,6 +169,16 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 			})
 			errs = append(errs, setErrs...)
 
+			if maybeUnknownBlocks {
+				// When unknown blocks are present the final number of blocks
+				// may be different, either because the unknown set values
+				// become equal and are collapsed, or the count is unknown due
+				// a dynamic block. Unfortunately this means we can't do our
+				// usual checks in this case without generating false
+				// negatives.
+				continue
+			}
+
 			// There can be fewer elements in a set after its elements are all
 			// known (values that turn out to be equal will coalesce) but the
 			// number of elements must never get larger.

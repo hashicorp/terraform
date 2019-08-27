@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"os"
 	"os/signal"
 
@@ -24,6 +23,11 @@ var PlumbingCommands map[string]struct{}
 
 // Ui is the cli.Ui used for communicating to the outside world.
 var Ui cli.Ui
+
+// PluginOverrides is set from wrappedMain during configuration processing
+// and then eventually passed to the "command" package to specify alternative
+// plugin locations via the legacy configuration file mechanism.
+var PluginOverrides command.PluginOverrides
 
 const (
 	ErrorPrefix  = "e:"
@@ -366,44 +370,7 @@ func makeShutdownCh() <-chan struct{} {
 	return resultCh
 }
 
-func credentialsSource(config *Config) auth.CredentialsSource {
-	creds := auth.NoCredentials
-	if len(config.Credentials) > 0 {
-		staticTable := map[svchost.Hostname]map[string]interface{}{}
-		for userHost, creds := range config.Credentials {
-			host, err := svchost.ForComparison(userHost)
-			if err != nil {
-				// We expect the config was already validated by the time we get
-				// here, so we'll just ignore invalid hostnames.
-				continue
-			}
-			staticTable[host] = creds
-		}
-		creds = auth.StaticCredentialsSource(staticTable)
-	}
-
-	for helperType, helperConfig := range config.CredentialsHelpers {
-		log.Printf("[DEBUG] Searching for credentials helper named %q", helperType)
-		available := pluginDiscovery.FindPlugins("credentials", globalPluginDirs())
-		available = available.WithName(helperType)
-		if available.Count() == 0 {
-			log.Printf("[ERROR] Unable to find credentials helper %q; ignoring", helperType)
-			break
-		}
-
-		selected := available.Newest()
-
-		helperSource := auth.HelperProgramCredentialsSource(selected.Path, helperConfig.Args...)
-		creds = auth.Credentials{
-			creds,
-			auth.CachingCredentialsSource(helperSource), // cached because external operation may be slow/expensive
-		}
-
-		// There should only be zero or one "credentials_helper" blocks. We
-		// assume that the config was validated earlier and so we don't check
-		// for extras here.
-		break
-	}
-
-	return creds
+func credentialsSource(config *Config) (auth.CredentialsSource, error) {
+	helperPlugins := pluginDiscovery.FindPlugins("credentials", globalPluginDirs())
+	return config.CredentialsSource(helperPlugins)
 }

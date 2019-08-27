@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -263,7 +264,18 @@ func (r *Request) SetStringBody(s string) {
 // SetReaderBody will set the request's body reader.
 func (r *Request) SetReaderBody(reader io.ReadSeeker) {
 	r.Body = reader
-	r.BodyStart, _ = reader.Seek(0, sdkio.SeekCurrent) // Get the Bodies current offset.
+
+	if aws.IsReaderSeekable(reader) {
+		var err error
+		// Get the Bodies current offset so retries will start from the same
+		// initial position.
+		r.BodyStart, err = reader.Seek(0, sdkio.SeekCurrent)
+		if err != nil {
+			r.Error = awserr.New(ErrCodeSerialization,
+				"failed to determine start of request body", err)
+			return
+		}
+	}
 	r.ResetBody()
 }
 
@@ -335,9 +347,7 @@ func getPresignedURL(r *Request, expire time.Duration) (string, http.Header, err
 }
 
 const (
-	willRetry   = "will retry"
 	notRetrying = "not retrying"
-	retryCount  = "retry %v/%v"
 )
 
 func debugLogReqError(r *Request, stage, retryStr string, err error) {
@@ -392,12 +402,16 @@ func (r *Request) Sign() error {
 	return r.Error
 }
 
-func (r *Request) getNextRequestBody() (io.ReadCloser, error) {
+func (r *Request) getNextRequestBody() (body io.ReadCloser, err error) {
 	if r.safeBody != nil {
 		r.safeBody.Close()
 	}
 
-	r.safeBody = newOffsetReader(r.Body, r.BodyStart)
+	r.safeBody, err = newOffsetReader(r.Body, r.BodyStart)
+	if err != nil {
+		return nil, awserr.New(ErrCodeSerialization,
+			"failed to get next request body reader", err)
+	}
 
 	// Go 1.8 tightened and clarified the rules code needs to use when building
 	// requests with the http package. Go 1.8 removed the automatic detection
@@ -414,10 +428,10 @@ func (r *Request) getNextRequestBody() (io.ReadCloser, error) {
 	// Related golang/go#18257
 	l, err := aws.SeekerLen(r.Body)
 	if err != nil {
-		return nil, awserr.New(ErrCodeSerialization, "failed to compute request body size", err)
+		return nil, awserr.New(ErrCodeSerialization,
+			"failed to compute request body size", err)
 	}
 
-	var body io.ReadCloser
 	if l == 0 {
 		body = NoBody
 	} else if l > 0 {
@@ -484,7 +498,7 @@ func (r *Request) Send() error {
 
 		if err := r.sendRequest(); err == nil {
 			return nil
-		} else if !shouldRetryCancel(r.Error) {
+		} else if !shouldRetryError(r.Error) {
 			return err
 		} else {
 			r.Handlers.Retry.Run(r)
@@ -494,13 +508,16 @@ func (r *Request) Send() error {
 				return r.Error
 			}
 
-			r.prepareRetry()
+			if err := r.prepareRetry(); err != nil {
+				r.Error = err
+				return err
+			}
 			continue
 		}
 	}
 }
 
-func (r *Request) prepareRetry() {
+func (r *Request) prepareRetry() error {
 	if r.Config.LogLevel.Matches(aws.LogDebugWithRequestRetries) {
 		r.Config.Logger.Log(fmt.Sprintf("DEBUG: Retrying Request %s/%s, attempt %d",
 			r.ClientInfo.ServiceName, r.Operation.Name, r.RetryCount))
@@ -511,12 +528,19 @@ func (r *Request) prepareRetry() {
 	// the request's body even though the Client's Do returned.
 	r.HTTPRequest = copyHTTPRequest(r.HTTPRequest, nil)
 	r.ResetBody()
+	if err := r.Error; err != nil {
+		return awserr.New(ErrCodeSerialization,
+			"failed to prepare body for retry", err)
+
+	}
 
 	// Closing response body to ensure that no response body is leaked
 	// between retry attempts.
 	if r.HTTPResponse != nil && r.HTTPResponse.Body != nil {
 		r.HTTPResponse.Body.Close()
 	}
+
+	return nil
 }
 
 func (r *Request) sendRequest() (sendErr error) {
@@ -576,13 +600,13 @@ type temporary interface {
 	Temporary() bool
 }
 
-func shouldRetryCancel(origErr error) bool {
+func shouldRetryError(origErr error) bool {
 	switch err := origErr.(type) {
 	case awserr.Error:
 		if err.Code() == CanceledErrorCode {
 			return false
 		}
-		return shouldRetryCancel(err.OrigErr())
+		return shouldRetryError(err.OrigErr())
 	case *url.Error:
 		if strings.Contains(err.Error(), "connection refused") {
 			// Refused connections should be retried as the service may not yet
@@ -592,8 +616,11 @@ func shouldRetryCancel(origErr error) bool {
 		}
 		// *url.Error only implements Temporary after golang 1.6 but since
 		// url.Error only wraps the error:
-		return shouldRetryCancel(err.Err)
+		return shouldRetryError(err.Err)
 	case temporary:
+		if netErr, ok := err.(*net.OpError); ok && netErr.Op == "dial" {
+			return true
+		}
 		// If the error is temporary, we want to allow continuation of the
 		// retry process
 		return err.Temporary() || isErrConnectionReset(origErr)

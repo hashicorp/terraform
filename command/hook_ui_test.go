@@ -252,6 +252,51 @@ func TestTruncateId(t *testing.T) {
 			Expected: "Hello world",
 			MaxLen:   12,
 		},
+		{
+			Input:    "あいうえおかきくけこさ",
+			Expected: "あ...さ",
+			MaxLen:   3,
+		},
+		{
+			Input:    "あいうえおかきくけこさ",
+			Expected: "あ...さ",
+			MaxLen:   5,
+		},
+		{
+			Input:    "あいうえおかきくけこさ",
+			Expected: "あい...さ",
+			MaxLen:   6,
+		},
+		{
+			Input:    "あいうえおかきくけこさ",
+			Expected: "あい...こさ",
+			MaxLen:   7,
+		},
+		{
+			Input:    "あいうえおかきくけこさ",
+			Expected: "あいう...こさ",
+			MaxLen:   8,
+		},
+		{
+			Input:    "あいうえおかきくけこさ",
+			Expected: "あいう...けこさ",
+			MaxLen:   9,
+		},
+		{
+			Input:    "あいうえおかきくけこさ",
+			Expected: "あいうえ...けこさ",
+			MaxLen:   10,
+		},
+		{
+			Input:    "あいうえおかきくけこさ",
+			Expected: "あいうえおかきくけこさ",
+			MaxLen:   11,
+		},
+		{
+			Input:    "あいうえおかきくけこさ",
+			Expected: "あいうえおかきくけこさ",
+			MaxLen:   12,
+		},
 	}
 	for i, tc := range testCases {
 		testName := fmt.Sprintf("%d", i)

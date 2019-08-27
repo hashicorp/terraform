@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/states"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // OrphanResourceCountTransformer is a GraphTransformer that adds orphans
@@ -18,9 +19,10 @@ import (
 type OrphanResourceCountTransformer struct {
 	Concrete ConcreteResourceInstanceNodeFunc
 
-	Count int               // Actual count of the resource, or -1 if count is not set at all
-	Addr  addrs.AbsResource // Addr of the resource to look for orphans
-	State *states.State     // Full global state
+	Count   int                  // Actual count of the resource, or -1 if count is not set at all
+	ForEach map[string]cty.Value // The ForEach map on the resource
+	Addr    addrs.AbsResource    // Addr of the resource to look for orphans
+	State   *states.State        // Full global state
 }
 
 func (t *OrphanResourceCountTransformer) Transform(g *Graph) error {
@@ -34,6 +36,10 @@ func (t *OrphanResourceCountTransformer) Transform(g *Graph) error {
 		haveKeys[key] = struct{}{}
 	}
 
+	// if for_each is set, use that transformer
+	if t.ForEach != nil {
+		return t.transformForEach(haveKeys, g)
+	}
 	if t.Count < 0 {
 		return t.transformNoCount(haveKeys, g)
 	}
@@ -41,6 +47,52 @@ func (t *OrphanResourceCountTransformer) Transform(g *Graph) error {
 		return t.transformZeroCount(haveKeys, g)
 	}
 	return t.transformCount(haveKeys, g)
+}
+
+func (t *OrphanResourceCountTransformer) transformForEach(haveKeys map[addrs.InstanceKey]struct{}, g *Graph) error {
+	// If there is a NoKey node, add this to the graph first,
+	// so that we can create edges to it in subsequent (StringKey) nodes.
+	// This is because the last item determines the resource mode for the whole resource,
+	// (see SetResourceInstanceCurrent for more information) and we need to evaluate
+	// an orphaned (NoKey) resource before the in-memory state is updated
+	// to deal with a new for_each resource
+	_, hasNoKeyNode := haveKeys[addrs.NoKey]
+	var noKeyNode dag.Vertex
+	if hasNoKeyNode {
+		abstract := NewNodeAbstractResourceInstance(t.Addr.Instance(addrs.NoKey))
+		noKeyNode = abstract
+		if f := t.Concrete; f != nil {
+			noKeyNode = f(abstract)
+		}
+		g.Add(noKeyNode)
+	}
+
+	for key := range haveKeys {
+		// If the key is no-key, we have already added it, so skip
+		if key == addrs.NoKey {
+			continue
+		}
+
+		s, _ := key.(addrs.StringKey)
+		// If the key is present in our current for_each, carry on
+		if _, ok := t.ForEach[string(s)]; ok {
+			continue
+		}
+
+		abstract := NewNodeAbstractResourceInstance(t.Addr.Instance(key))
+		var node dag.Vertex = abstract
+		if f := t.Concrete; f != nil {
+			node = f(abstract)
+		}
+		log.Printf("[TRACE] OrphanResourceCount(non-zero): adding %s as %T", t.Addr, node)
+		g.Add(node)
+
+		// Add edge to noKeyNode if it exists
+		if hasNoKeyNode {
+			g.Connect(dag.BasicEdge(node, noKeyNode))
+		}
+	}
+	return nil
 }
 
 func (t *OrphanResourceCountTransformer) transformCount(haveKeys map[addrs.InstanceKey]struct{}, g *Graph) error {

@@ -15,7 +15,6 @@ import (
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/backend"
 	backendInit "github.com/hashicorp/terraform/backend/init"
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/configs/configupgrade"
@@ -125,7 +124,7 @@ func (c *InitCommand) Run(args []string) int {
 	if flagFromModule != "" {
 		src := flagFromModule
 
-		empty, err := config.IsEmptyDir(path)
+		empty, err := configs.IsEmptyDir(path)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error validating destination directory: %s", err))
 			return 1
@@ -157,7 +156,7 @@ func (c *InitCommand) Run(args []string) int {
 
 	// If our directory is empty, then we're done. We can't get or setup
 	// the backend with an empty directory.
-	empty, err := config.IsEmptyDir(path)
+	empty, err := configs.IsEmptyDir(path)
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("Error checking configuration: %s", err))
 		return 1
@@ -438,6 +437,29 @@ func (c *InitCommand) initBackend(root *configs.Module, extraConfig rawFlags) (b
 		diags = diags.Append(overrideDiags)
 		if overrideDiags.HasErrors() {
 			return nil, true, diags
+		}
+	} else {
+		// If the user supplied a -backend-config on the CLI but no backend
+		// block was found in the configuration, it's likely - but not
+		// necessarily - a mistake. Return a warning.
+		if !extraConfig.Empty() {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				"Missing backend configuration",
+				`-backend-config was used without a "backend" block in the configuration.
+
+If you intended to override the default local backend configuration,
+no action is required, but you may add an explicit backend block to your
+configuration to clear this warning:
+
+terraform {
+  backend "local" {}
+}
+
+However, if you intended to override a defined backend, please verify that
+the backend configuration is present and valid.
+`,
+			))
 		}
 	}
 

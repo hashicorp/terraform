@@ -1,17 +1,97 @@
-## 0.12.4 (Unreleased)
+## 0.12.8 (Unreleased)
+
+NEW FEATURES:
+* lang/funcs: Add fileset function [GH-22523]
+
+ENHANCEMENTS:
+* remote-state/pg: add option to skip schema creation [GH-21607]
+
+## 0.12.7 (August 22, 2019)
+
+NEW FEATURES:
+* New functions `regex` and `regexall` allow applying a regular expression pattern to a string and retrieving any matching substring(s) ([#22353](https://github.com/hashicorp/terraform/issues/22353))
+
+ENHANCEMENTS:
+* lang/funcs: `lookup()` can work with maps of lists, maps and objects ([#22269](https://github.com/hashicorp/terraform/issues/22269))
+* SDK: helper/acctest: Add function to return random IP address ([#22312](https://github.com/hashicorp/terraform/issues/22312))
+* SDK: httpclient: Introduce composable `UserAgent(version)` ([#22272](https://github.com/hashicorp/terraform/issues/22272))
+* connection/ssh: Support certificate authentication ([#22156](https://github.com/hashicorp/terraform/issues/22156))
+
+BUG FIXES:
+* config: reduce MinItems and MaxItems  validation during decoding, to allow for use of dynamic blocks ([#22530](https://github.com/hashicorp/terraform/issues/22530))
+* config: don't validate MinItems and MaxItems in CoerceValue, allowing providers to set incomplete values ([#22478](https://github.com/hashicorp/terraform/issues/22478))
+* config: fix panic on tuples with `for_each` ([#22279](https://github.com/hashicorp/terraform/issues/22279))
+* config: fix references to `each` of `for_each` in provisioners ([#22289](https://github.com/hashicorp/terraform/issues/22289))
+* config: fix panic when using nested dynamic blocks ([#22314](https://github.com/hashicorp/terraform/issues/22314))
+* config: ensure consistent evaluation when moving between single resources and `for_each` in addressing ([#22454](https://github.com/hashicorp/terraform/issues/22454))
+* core: only start a single instance of each required provisioner ([#22553](https://github.com/hashicorp/terraform/issues/22553))
+* command: fix issue where commands occasionally exited before the error message printed ([#22373](https://github.com/hashicorp/terraform/issues/22373))
+* command/0.12upgrade: use user-supplied plugin-dir ([#22306](https://github.com/hashicorp/terraform/issues/22306))
+* command/hook_ui: Truncate the ID considering multibyte characters ([#18823](https://github.com/hashicorp/terraform/issues/18823))
+* command/fmt: Terraform fmt no longer inserts spaces after % ([#22356](https://github.com/hashicorp/terraform/issues/22356))
+* command/state: Allow moving resources to modules not yet in state ([#22299](https://github.com/hashicorp/terraform/issues/22299))
+* backend/google: Now using the OAuth2 token endpoint on `googleapis.com` instead of `google.com`. These endpoints are equivalent in functionality but `googleapis.com` hosts are resolvable from private Google Cloud Platform VPCs where other connectivity is restricted. ([#22451](https://github.com/hashicorp/terraform/issues/22451))
+
+## 0.12.6 (July 31, 2019)
+
+NOTES:
+
+* backend/s3: After this update, the AWS Go SDK will prefer credentials found via the `AWS_PROFILE` environment variable when both the `AWS_PROFILE` environment variable and the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables are statically defined. Previously the SDK would ignore the `AWS_PROFILE` environment variable, if static environment credentials were also specified. This is listed as a bug fix in the AWS Go SDK release notes. ([#22253](https://github.com/hashicorp/terraform/issues/22253))
+
+NEW FEATURES:
+* backend/oss: added support for assume role config ([#22186](https://github.com/hashicorp/terraform/issues/22186))
+* config: Resources can now use a for_each meta-argument ([#17179](https://github.com/hashicorp/terraform/issues/17179))
+
+ENHANCEMENTS:
+* backend/s3: Add support for assuming role via web identity token via the `AWS_WEB_IDENTITY_TOKEN_FILE` and `AWS_ROLE_ARN` environment variables ([#22253](https://github.com/hashicorp/terraform/issues/22253))
+* backend/s3: Support automatic region validation for `me-south-1`. For AWS operations to work in the new region, the region must be explicitly enabled as outlined in the [AWS Documentation](https://docs.aws.amazon.com/general/latest/gr/rande-manage.html#rande-manage-enable) ([#22253](https://github.com/hashicorp/terraform/issues/22253))
+* connection/ssh: Improve connection debug messages ([#22097](https://github.com/hashicorp/terraform/issues/22097))
+
+BUG FIXES:
+* backend/remote: remove misleading contents from error message ([#22148](https://github.com/hashicorp/terraform/issues/22148))
+* backend/s3: Load credentials via the `AWS_PROFILE` environment variable (if available) when `AWS_PROFILE` is defined along with `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` ([#22253](https://github.com/hashicorp/terraform/issues/22253))
+* config: Improve conditionals to returns the correct type when dynamic values are present but unevaluated ([#22137](https://github.com/hashicorp/terraform/issues/22137))
+* config: Fix panic when mistakingly using `dynamic` on an attribute ([#22169](https://github.com/hashicorp/terraform/issues/22169))
+* cli: Fix crash with reset connection during init ([#22146](https://github.com/hashicorp/terraform/issues/22146))
+* cli: show all deposed instances and prevent crash in `show` command ([#22149](https://github.com/hashicorp/terraform/issues/22149))
+* configs/configupgrade: Fix crash with nil hilNode ([#22181](https://github.com/hashicorp/terraform/issues/22181))
+* command/fmt: now formats correctly in presence of here-docs ([#21434](https://github.com/hashicorp/terraform/issues/21434))
+* helper/schema: don't skip deprecation check during validation when attribute value is unknown ([#22262](https://github.com/hashicorp/terraform/issues/22262))
+* plugin/sdk: allow MinItems > 1 when dynamic blocks ([#22221](https://github.com/hashicorp/terraform/issues/22221))
+* plugin/sdk: fix reflect panics in helper/schema validation ([#22236](https://github.com/hashicorp/terraform/issues/22236))
+
+## 0.12.5 (July 18, 2019)
+
+ENHANCEMENTS:
+* command/format: No longer show no-ops in `terraform show`, since nothing will change ([#21907](https://github.com/hashicorp/terraform/issues/21907))
+* backend/s3: Support for assuming role using credential process from the shared AWS configuration file (support profile containing both `credential_process` and `role_arn` configurations) ([#21908](https://github.com/hashicorp/terraform/issues/21908))
+* connection/ssh: Abort ssh connections when the server is no longer responding ([#22037](https://github.com/hashicorp/terraform/issues/22037))
+* connection/ssh: Support ssh diffie-hellman-group-exchange-sha256 key exchange ([#22037](https://github.com/hashicorp/terraform/issues/22037))
+
+BUG FIXES:
+* backend/remote: fix conflict with normalized config dir and vcs root working directory ([#22096](https://github.com/hashicorp/terraform/issues/22096))
+* backend/remote: be transparent about what filesystem prefix Terraform is uploading to the remote system, and why it's doing that ([#22121](https://github.com/hashicorp/terraform/issues/22121))
+* configs: Ensure diagnostics are properly recorded from nested modules ([#22098](https://github.com/hashicorp/terraform/issues/22098))
+* core: Prevent inconsistent final plan error when using dynamic in a set-type block ([#22057](https://github.com/hashicorp/terraform/issues/22057))
+* lang/funcs: Allow null values in `compact` function ([#22044](https://github.com/hashicorp/terraform/issues/22044))
+* lang/funcs: Pass through empty list in `chunklist` ([#22119](https://github.com/hashicorp/terraform/issues/22119))
+
+## 0.12.4 (July 11, 2019)
 
 NEW FEATURES: 
 
-* lang/funcs: new `abspath` function returns the absolute path to a given file [GH-21409]
+* lang/funcs: new `abspath` function returns the absolute path to a given file ([#21409](https://github.com/hashicorp/terraform/issues/21409))
+* backend/swift: support for user configured state object names in swift containers ([#17465](https://github.com/hashicorp/terraform/issues/17465))
 
 BUG FIXES:
 
-* plugin/sdk: Prevent empty strings from being replaced with default values [GH-21806]
-* plugin/sdk: Ensure resource timeouts are not lost when there is an empty plan [GH-21814]
-* plugin/sdk: Don't add null elements to diagnostic paths when validating config [GH-21884]
-* lang/funcs: Add missing map of bool support for `lookup` [GH-21863]
-* config: Fix issue with downloading BitBucket modules from deprecated V1 API by updating go-getter dependency [GH-21948]
-* config: Fix conditionals to evaluate to the correct type when using null [GH-21957]
+* core: Prevent crash when a resource has no current valid instance ([#21979](https://github.com/hashicorp/terraform/issues/21979))
+* plugin/sdk: Prevent empty strings from being replaced with default values ([#21806](https://github.com/hashicorp/terraform/issues/21806))
+* plugin/sdk: Ensure resource timeouts are not lost when there is an empty plan ([#21814](https://github.com/hashicorp/terraform/issues/21814))
+* plugin/sdk: Don't add null elements to diagnostic paths when validating config ([#21884](https://github.com/hashicorp/terraform/issues/21884))
+* lang/funcs: Add missing map of bool support for `lookup` ([#21863](https://github.com/hashicorp/terraform/issues/21863))
+* config: Fix issue with downloading BitBucket modules from deprecated V1 API by updating go-getter dependency ([#21948](https://github.com/hashicorp/terraform/issues/21948))
+* config: Fix conditionals to evaluate to the correct type when using null ([#21957](https://github.com/hashicorp/terraform/issues/21957))
 
 ## 0.12.3 (June 24, 2019)
 
