@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"reflect"
 	"strings"
 
 	"github.com/hashicorp/hcl2/hcl"
@@ -134,7 +133,8 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		// Should be caught during validation, so we don't bother with a pretty error here
 		return nil, fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Type)
 	}
-	keyData := EvalDataForInstanceKey(n.Addr.Key)
+	forEach, _ := evaluateResourceForEachExpression(n.Config.ForEach, ctx)
+	keyData := EvalDataForInstanceKey(n.Addr.Key, forEach)
 	configVal, _, configDiags := ctx.EvaluateBlock(config.Config, schema, nil, keyData)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
@@ -532,7 +532,7 @@ func processIgnoreChangesIndividual(prior, proposed cty.Value, ignoreChanges []h
 		// away any deeper values we already produced at that point.
 		var ignoreTraversal hcl.Traversal
 		for i, candidate := range ignoreChangesPath {
-			if reflect.DeepEqual(path, candidate) {
+			if path.Equals(candidate) {
 				ignoreTraversal = ignoreChanges[i]
 			}
 		}

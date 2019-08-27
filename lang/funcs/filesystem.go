@@ -207,6 +207,60 @@ func MakeFileExistsFunc(baseDir string) function.Function {
 	})
 }
 
+// MakeFileSetFunc constructs a function that takes a glob pattern
+// and enumerates a file set from that pattern
+func MakeFileSetFunc(baseDir string) function.Function {
+	return function.New(&function.Spec{
+		Params: []function.Parameter{
+			{
+				Name: "pattern",
+				Type: cty.String,
+			},
+		},
+		Type: function.StaticReturnType(cty.Set(cty.String)),
+		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+			pattern := args[0].AsString()
+			pattern, err := homedir.Expand(pattern)
+			if err != nil {
+				return cty.UnknownVal(cty.Set(cty.String)), fmt.Errorf("failed to expand ~: %s", err)
+			}
+
+			if !filepath.IsAbs(pattern) {
+				pattern = filepath.Join(baseDir, pattern)
+			}
+
+			// Ensure that the path is canonical for the host OS
+			pattern = filepath.Clean(pattern)
+
+			matches, err := filepath.Glob(pattern)
+			if err != nil {
+				return cty.UnknownVal(cty.Set(cty.String)), fmt.Errorf("failed to glob pattern (%s): %s", pattern, err)
+			}
+
+			var matchVals []cty.Value
+			for _, match := range matches {
+				fi, err := os.Stat(match)
+
+				if err != nil {
+					return cty.UnknownVal(cty.Set(cty.String)), fmt.Errorf("failed to stat (%s): %s", match, err)
+				}
+
+				if !fi.Mode().IsRegular() {
+					continue
+				}
+
+				matchVals = append(matchVals, cty.StringVal(match))
+			}
+
+			if len(matchVals) == 0 {
+				return cty.SetValEmpty(cty.String), nil
+			}
+
+			return cty.SetVal(matchVals), nil
+		},
+	})
+}
+
 // BasenameFunc constructs a function that takes a string containing a filesystem path
 // and removes all except the last portion from it.
 var BasenameFunc = function.New(&function.Spec{
@@ -314,6 +368,16 @@ func File(baseDir string, path cty.Value) (cty.Value, error) {
 func FileExists(baseDir string, path cty.Value) (cty.Value, error) {
 	fn := MakeFileExistsFunc(baseDir)
 	return fn.Call([]cty.Value{path})
+}
+
+// FileSet enumerates a set of files given a glob pattern
+//
+// The underlying function implementation works relative to a particular base
+// directory, so this wrapper takes a base directory string and uses it to
+// construct the underlying function before calling it.
+func FileSet(baseDir string, pattern cty.Value) (cty.Value, error) {
+	fn := MakeFileSetFunc(baseDir)
+	return fn.Call([]cty.Value{pattern})
 }
 
 // FileBase64 reads the contents of the file at the given path.

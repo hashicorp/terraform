@@ -33,9 +33,9 @@ type Blocks []*Block
 type Attributes map[string]*Attribute
 
 // Body is a container for attributes and blocks. It serves as the primary
-// unit of heirarchical structure within configuration.
+// unit of hierarchical structure within configuration.
 //
-// The content of a body cannot be meaningfully intepreted without a schema,
+// The content of a body cannot be meaningfully interpreted without a schema,
 // so Body represents the raw body content and has methods that allow the
 // content to be extracted in terms of a given schema.
 type Body interface {

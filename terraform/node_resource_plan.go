@@ -77,6 +77,11 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 		return nil, diags.Err()
 	}
 
+	forEachMap, forEachDiags := evaluateResourceForEachExpression(n.Config.ForEach, ctx)
+	if forEachDiags.HasErrors() {
+		return nil, diags.Err()
+	}
+
 	// Next we need to potentially rename an instance address in the state
 	// if we're transitioning whether "count" is set at all.
 	fixResourceCountSetTransition(ctx, n.ResourceAddr(), count != -1)
@@ -119,18 +124,20 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 
 	// Start creating the steps
 	steps := []GraphTransformer{
-		// Expand the count.
+		// Expand the count or for_each (if present)
 		&ResourceCountTransformer{
 			Concrete: concreteResource,
 			Schema:   n.Schema,
 			Count:    count,
+			ForEach:  forEachMap,
 			Addr:     n.ResourceAddr(),
 		},
 
-		// Add the count orphans
+		// Add the count/for_each orphans
 		&OrphanResourceCountTransformer{
 			Concrete: concreteResourceOrphan,
 			Count:    count,
+			ForEach:  forEachMap,
 			Addr:     n.ResourceAddr(),
 			State:    state,
 		},

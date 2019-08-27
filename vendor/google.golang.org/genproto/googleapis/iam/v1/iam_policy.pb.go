@@ -44,7 +44,7 @@ func (m *SetIamPolicyRequest) Reset()         { *m = SetIamPolicyRequest{} }
 func (m *SetIamPolicyRequest) String() string { return proto.CompactTextString(m) }
 func (*SetIamPolicyRequest) ProtoMessage()    {}
 func (*SetIamPolicyRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_iam_policy_58547b5cf2e9d67a, []int{0}
+	return fileDescriptor_iam_policy_364532d533b79e88, []int{0}
 }
 func (m *SetIamPolicyRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SetIamPolicyRequest.Unmarshal(m, b)
@@ -93,7 +93,7 @@ func (m *GetIamPolicyRequest) Reset()         { *m = GetIamPolicyRequest{} }
 func (m *GetIamPolicyRequest) String() string { return proto.CompactTextString(m) }
 func (*GetIamPolicyRequest) ProtoMessage()    {}
 func (*GetIamPolicyRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_iam_policy_58547b5cf2e9d67a, []int{1}
+	return fileDescriptor_iam_policy_364532d533b79e88, []int{1}
 }
 func (m *GetIamPolicyRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetIamPolicyRequest.Unmarshal(m, b)
@@ -140,7 +140,7 @@ func (m *TestIamPermissionsRequest) Reset()         { *m = TestIamPermissionsReq
 func (m *TestIamPermissionsRequest) String() string { return proto.CompactTextString(m) }
 func (*TestIamPermissionsRequest) ProtoMessage()    {}
 func (*TestIamPermissionsRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_iam_policy_58547b5cf2e9d67a, []int{2}
+	return fileDescriptor_iam_policy_364532d533b79e88, []int{2}
 }
 func (m *TestIamPermissionsRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_TestIamPermissionsRequest.Unmarshal(m, b)
@@ -188,7 +188,7 @@ func (m *TestIamPermissionsResponse) Reset()         { *m = TestIamPermissionsRe
 func (m *TestIamPermissionsResponse) String() string { return proto.CompactTextString(m) }
 func (*TestIamPermissionsResponse) ProtoMessage()    {}
 func (*TestIamPermissionsResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_iam_policy_58547b5cf2e9d67a, []int{3}
+	return fileDescriptor_iam_policy_364532d533b79e88, []int{3}
 }
 func (m *TestIamPermissionsResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_TestIamPermissionsResponse.Unmarshal(m, b)
@@ -377,10 +377,10 @@ var _IAMPolicy_serviceDesc = grpc.ServiceDesc{
 }
 
 func init() {
-	proto.RegisterFile("google/iam/v1/iam_policy.proto", fileDescriptor_iam_policy_58547b5cf2e9d67a)
+	proto.RegisterFile("google/iam/v1/iam_policy.proto", fileDescriptor_iam_policy_364532d533b79e88)
 }
 
-var fileDescriptor_iam_policy_58547b5cf2e9d67a = []byte{
+var fileDescriptor_iam_policy_364532d533b79e88 = []byte{
 	// 411 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x92, 0x4b, 0xcf, 0xcf, 0x4f,
 	0xcf, 0x49, 0xd5, 0xcf, 0x4c, 0xcc, 0xd5, 0x2f, 0x33, 0x04, 0x51, 0xf1, 0x05, 0xf9, 0x39, 0x99,

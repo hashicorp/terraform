@@ -34,10 +34,10 @@ The command-line flags are all optional. The list of available flags are:
 
 ## Example: Show a Resource
 
-The example below shows a resource:
+The example below shows a `packet_device` resource named `worker`:
 
 ```
-$ terraform state show module.foo.packet_device.worker[0]
+$ terraform state show 'packet_device.worker'
 id                = 6015bg2b-b8c4-4925-aad2-f0671d5d3b13
 billing_cycle     = hourly
 created           = 2015-12-17T00:06:56Z
@@ -45,4 +45,44 @@ facility          = ewr1
 hostname          = prod-xyz01
 locked            = false
 ...
+```
+
+## Example: Show a Module Resource
+
+The example below shows a `packet_device` resource named `worker` inside a module named `foo`:
+
+```shell
+$ terraform state show 'module.foo.packet_device.worker'
+```
+
+## Example: Show a Resource configured with count
+
+The example below shows the first instance of a `packet_device` resource named `worker` configured with
+[`count`](/docs/configuration/resources.html#count-multiple-resource-instances-by-count):
+
+```shell
+$ terraform state show 'packet_device.worker[0]'
+```
+
+## Example: Show a Resource configured with for_each
+
+The example below shows the `"example"` instance of a `packet_device` resource named `worker` configured with
+[`for_each`](/docs/configuration/resources.html#for_each-multiple-resource-instances-defined-by-a-map-or-set-of-strings):
+
+Linux, Mac OS, and UNIX:
+
+```shell
+$ terraform state show 'packet_device.worker["example"]'
+```
+
+PowerShell:
+
+```shell
+$ terraform state show 'packet_device.worker[\"example\"]'
+```
+
+Windows `cmd.exe`:
+
+```shell
+$ terraform state show packet_device.worker[\"example\"]
 ```

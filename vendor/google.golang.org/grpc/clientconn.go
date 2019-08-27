@@ -86,7 +86,7 @@ var (
 	// with other individual Transport Credentials.
 	errTransportCredsAndBundle = errors.New("grpc: credentials.Bundle may not be used with individual TransportCredentials")
 	// errTransportCredentialsMissing indicates that users want to transmit security
-	// information (e.g., oauth2 token) which requires secure connection on an insecure
+	// information (e.g., OAuth2 token) which requires secure connection on an insecure
 	// connection.
 	errTransportCredentialsMissing = errors.New("grpc: the credentials require transport level security (use grpc.WithTransportCredentials() to set)")
 	// errCredentialsConflict indicates that grpc.WithTransportCredentials()
@@ -237,9 +237,9 @@ func DialContext(ctx context.Context, target string, opts ...DialOption) (conn *
 		grpclog.Infof("parsed scheme: %q", cc.parsedTarget.Scheme)
 		cc.dopts.resolverBuilder = resolver.Get(cc.parsedTarget.Scheme)
 		if cc.dopts.resolverBuilder == nil {
-			// If resolver builder is still nil, the parse target's scheme is
+			// If resolver builder is still nil, the parsed target's scheme is
 			// not registered. Fallback to default resolver and set Endpoint to
-			// the original unparsed target.
+			// the original target.
 			grpclog.Infof("scheme %q not registered, fallback to default scheme", cc.parsedTarget.Scheme)
 			cc.parsedTarget = resolver.Target{
 				Scheme:   resolver.GetDefaultScheme(),
@@ -436,7 +436,7 @@ func (cc *ClientConn) scWatcher() {
 			}
 			cc.mu.Lock()
 			// TODO: load balance policy runtime change is ignored.
-			// We may revist this decision in the future.
+			// We may revisit this decision in the future.
 			cc.sc = sc
 			cc.scRaw = ""
 			cc.mu.Unlock()
@@ -926,9 +926,8 @@ type addrConn struct {
 	backoffIdx   int // Needs to be stateful for resetConnectBackoff.
 	resetBackoff chan struct{}
 
-	channelzID         int64 // channelz unique identification number.
-	czData             *channelzData
-	healthCheckEnabled bool
+	channelzID int64 // channelz unique identification number.
+	czData     *channelzData
 }
 
 // Note: this requires a lock on ac.mu.
@@ -938,7 +937,6 @@ func (ac *addrConn) updateConnectivityState(s connectivity.State) {
 	}
 
 	updateMsg := fmt.Sprintf("Subchannel Connectivity change to %v", s)
-	grpclog.Infof(updateMsg)
 	ac.state = s
 	if channelz.IsOn() {
 		channelz.AddTraceEvent(ac.channelzID, &channelz.TraceEventDesc{
@@ -973,6 +971,14 @@ func (ac *addrConn) resetTransport() {
 		}
 		addrs := ac.addrs
 		backoffFor := ac.dopts.bs.Backoff(ac.backoffIdx)
+
+		// This will be the duration that dial gets to finish.
+		dialDuration := getMinConnectTimeout()
+		if dialDuration < backoffFor {
+			// Give dial more time as we keep failing to connect.
+			dialDuration = backoffFor
+		}
+		connectDeadline := time.Now().Add(dialDuration)
 		ac.mu.Unlock()
 
 	addrLoop:
@@ -985,17 +991,7 @@ func (ac *addrConn) resetTransport() {
 			}
 			ac.updateConnectivityState(connectivity.Connecting)
 			ac.transport = nil
-			ac.mu.Unlock()
 
-			// This will be the duration that dial gets to finish.
-			dialDuration := getMinConnectTimeout()
-			if dialDuration < backoffFor {
-				// Give dial more time as we keep failing to connect.
-				dialDuration = backoffFor
-			}
-			connectDeadline := time.Now().Add(dialDuration)
-
-			ac.mu.Lock()
 			ac.cc.mu.RLock()
 			ac.dopts.copts.KeepaliveParams = ac.cc.mkp
 			ac.cc.mu.RUnlock()
@@ -1063,6 +1059,7 @@ func (ac *addrConn) resetTransport() {
 				continue
 			}
 
+			backoffFor = 0
 			ac.mu.Lock()
 			reqHandshake := ac.dopts.reqHandshake
 			ac.mu.Unlock()
@@ -1158,7 +1155,7 @@ func (ac *addrConn) createTransport(addr resolver.Address, copts transport.Conne
 		Authority: ac.cc.authority,
 	}
 
-	prefaceTimer := time.NewTimer(connectDeadline.Sub(time.Now()))
+	prefaceTimer := time.NewTimer(time.Until(connectDeadline))
 
 	onGoAway := func(r transport.GoAwayReason) {
 		ac.mu.Lock()

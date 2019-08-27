@@ -620,3 +620,39 @@ resource "test_resource_nested_set" "bar" {
 		},
 	})
 }
+
+func TestResourceNestedSet_dynamicSetBlock(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "a" {
+	required = "ok"
+	required_map = {
+		a = "b"
+	}
+}
+
+resource "test_resource_nested_set" "foo" {
+  dynamic "with_list" {
+    iterator = thing
+	for_each = test_resource.a.computed_list
+    content {
+      required = thing.value
+	  list = [thing.key]
+    }
+  }
+}
+				`),
+				Check: resource.ComposeTestCheckFunc(
+					func(s *terraform.State) error {
+						fmt.Println(s)
+						return nil
+					},
+				),
+			},
+		},
+	})
+}

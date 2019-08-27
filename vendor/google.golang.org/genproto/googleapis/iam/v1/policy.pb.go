@@ -46,7 +46,7 @@ func (x BindingDelta_Action) String() string {
 	return proto.EnumName(BindingDelta_Action_name, int32(x))
 }
 func (BindingDelta_Action) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_policy_6ba2a3dcbcdd909c, []int{3, 0}
+	return fileDescriptor_policy_76d1e02555c18b4a, []int{3, 0}
 }
 
 // Defines an Identity and Access Management (IAM) policy. It is used to
@@ -107,7 +107,7 @@ func (m *Policy) Reset()         { *m = Policy{} }
 func (m *Policy) String() string { return proto.CompactTextString(m) }
 func (*Policy) ProtoMessage()    {}
 func (*Policy) Descriptor() ([]byte, []int) {
-	return fileDescriptor_policy_6ba2a3dcbcdd909c, []int{0}
+	return fileDescriptor_policy_76d1e02555c18b4a, []int{0}
 }
 func (m *Policy) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Policy.Unmarshal(m, b)
@@ -187,7 +187,7 @@ func (m *Binding) Reset()         { *m = Binding{} }
 func (m *Binding) String() string { return proto.CompactTextString(m) }
 func (*Binding) ProtoMessage()    {}
 func (*Binding) Descriptor() ([]byte, []int) {
-	return fileDescriptor_policy_6ba2a3dcbcdd909c, []int{1}
+	return fileDescriptor_policy_76d1e02555c18b4a, []int{1}
 }
 func (m *Binding) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Binding.Unmarshal(m, b)
@@ -234,7 +234,7 @@ func (m *PolicyDelta) Reset()         { *m = PolicyDelta{} }
 func (m *PolicyDelta) String() string { return proto.CompactTextString(m) }
 func (*PolicyDelta) ProtoMessage()    {}
 func (*PolicyDelta) Descriptor() ([]byte, []int) {
-	return fileDescriptor_policy_6ba2a3dcbcdd909c, []int{2}
+	return fileDescriptor_policy_76d1e02555c18b4a, []int{2}
 }
 func (m *PolicyDelta) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PolicyDelta.Unmarshal(m, b)
@@ -284,7 +284,7 @@ func (m *BindingDelta) Reset()         { *m = BindingDelta{} }
 func (m *BindingDelta) String() string { return proto.CompactTextString(m) }
 func (*BindingDelta) ProtoMessage()    {}
 func (*BindingDelta) Descriptor() ([]byte, []int) {
-	return fileDescriptor_policy_6ba2a3dcbcdd909c, []int{3}
+	return fileDescriptor_policy_76d1e02555c18b4a, []int{3}
 }
 func (m *BindingDelta) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BindingDelta.Unmarshal(m, b)
@@ -333,9 +333,9 @@ func init() {
 	proto.RegisterEnum("google.iam.v1.BindingDelta_Action", BindingDelta_Action_name, BindingDelta_Action_value)
 }
 
-func init() { proto.RegisterFile("google/iam/v1/policy.proto", fileDescriptor_policy_6ba2a3dcbcdd909c) }
+func init() { proto.RegisterFile("google/iam/v1/policy.proto", fileDescriptor_policy_76d1e02555c18b4a) }
 
-var fileDescriptor_policy_6ba2a3dcbcdd909c = []byte{
+var fileDescriptor_policy_76d1e02555c18b4a = []byte{
 	// 403 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0x52, 0x4d, 0xab, 0x13, 0x31,
 	0x14, 0x35, 0xed, 0x73, 0x6a, 0xef, 0xfb, 0xa0, 0x46, 0x28, 0xc3, 0xd3, 0x45, 0x99, 0x55, 0x57,

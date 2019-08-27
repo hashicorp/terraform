@@ -16,7 +16,7 @@ require (
 	github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2
 	github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
-	github.com/aws/aws-sdk-go v1.20.4
+	github.com/aws/aws-sdk-go v1.22.0
 	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/boltdb/bolt v1.3.1 // indirect
@@ -31,20 +31,19 @@ require (
 	github.com/dnaeon/go-vcr v0.0.0-20180920040454-5637cf3d8a31 // indirect
 	github.com/dylanmei/iso8601 v0.1.0 // indirect
 	github.com/dylanmei/winrmtest v0.0.0-20190225150635-99b7fe2fddf1
-	github.com/go-test/deep v1.0.1
-	github.com/gogo/protobuf v1.2.0 // indirect
+	github.com/go-test/deep v1.0.3
 	github.com/golang/groupcache v0.0.0-20180513044358-24b0969c4cb7 // indirect
 	github.com/golang/mock v1.3.1
-	github.com/golang/protobuf v1.3.0
-	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
+	github.com/golang/protobuf v1.3.1
 	github.com/google/go-cmp v0.3.0
+	github.com/google/uuid v1.1.1
 	github.com/gophercloud/gophercloud v0.0.0-20190208042652-bc37892e1968
 	github.com/gophercloud/utils v0.0.0-20190128072930-fbb6ab446f01 // indirect
 	github.com/gorilla/websocket v1.4.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
-	github.com/grpc-ecosystem/grpc-gateway v1.5.1 // indirect
-	github.com/hashicorp/aws-sdk-go-base v0.2.0
+	github.com/grpc-ecosystem/grpc-gateway v1.8.5 // indirect
+	github.com/hashicorp/aws-sdk-go-base v0.3.0
 	github.com/hashicorp/consul v0.0.0-20171026175957-610f3c86a089
 	github.com/hashicorp/errwrap v1.0.0
 	github.com/hashicorp/go-azure-helpers v0.0.0-20190129193224-166dfd221bb2
@@ -62,14 +61,13 @@ require (
 	github.com/hashicorp/go-tfe v0.3.16
 	github.com/hashicorp/go-uuid v1.0.1
 	github.com/hashicorp/go-version v1.1.0
-	github.com/hashicorp/golang-lru v0.5.0 // indirect
 	github.com/hashicorp/hcl v0.0.0-20170504190234-a4b07c25de5f
-	github.com/hashicorp/hcl2 v0.0.0-20190702185634-5b39d9ff3a9a
+	github.com/hashicorp/hcl2 v0.0.0-20190821123243-0c888d1241f6
 	github.com/hashicorp/hil v0.0.0-20190212112733-ab17b08d6590
 	github.com/hashicorp/logutils v1.0.0
 	github.com/hashicorp/memberlist v0.1.0 // indirect
 	github.com/hashicorp/serf v0.0.0-20160124182025-e4ec8cc423bb // indirect
-	github.com/hashicorp/terraform-config-inspect v0.0.0-20190327195015-8022a2663a70
+	github.com/hashicorp/terraform-config-inspect v0.0.0-20190821133035-82a99dc22ef4
 	github.com/hashicorp/vault v0.10.4
 	github.com/jonboulle/clockwork v0.1.0 // indirect
 	github.com/joyent/triton-go v0.0.0-20180313100802-d8f9c0314926
@@ -87,7 +85,7 @@ require (
 	github.com/mitchellh/cli v1.0.0
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db
 	github.com/mitchellh/copystructure v1.0.0
-	github.com/mitchellh/go-homedir v1.0.0
+	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/go-linereader v0.0.0-20190213213312-1b945b3263eb
 	github.com/mitchellh/go-wordwrap v1.0.0
 	github.com/mitchellh/hashstructure v1.0.0
@@ -99,11 +97,9 @@ require (
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/packer-community/winrmcp v0.0.0-20180102160824-81144009af58
 	github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c // indirect
-	github.com/pkg/errors v0.0.0-20170505043639-c605e284fe17
+	github.com/pkg/errors v0.8.0
 	github.com/posener/complete v1.2.1
-	github.com/satori/go.uuid v1.2.0
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
-	github.com/sirupsen/logrus v1.1.1 // indirect
 	github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d // indirect
 	github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a // indirect
 	github.com/soheilhy/cmux v0.1.4 // indirect
@@ -115,16 +111,18 @@ require (
 	github.com/xanzy/ssh-agent v0.2.1
 	github.com/xiang90/probing v0.0.0-20160813154853-07dd2e8dfe18 // indirect
 	github.com/xlab/treeprint v0.0.0-20161029104018-1d6e34225557
-	github.com/zclconf/go-cty v1.0.0
-	github.com/zclconf/go-cty-yaml v0.1.0
+	github.com/zclconf/go-cty v1.0.1-0.20190708163926-19588f92a98f
+	github.com/zclconf/go-cty-yaml v1.0.1
+	go.opencensus.io v0.20.2 // indirect
 	go.uber.org/atomic v1.3.2 // indirect
 	go.uber.org/multierr v1.1.0 // indirect
 	go.uber.org/zap v1.9.1 // indirect
-	golang.org/x/crypto v0.0.0-20190426145343-a29dc8fdc734
+	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
 	golang.org/x/net v0.0.0-20190502183928-7f726cade0ab
-	golang.org/x/oauth2 v0.0.0-20190220154721-9b3c75971fc9
-	google.golang.org/api v0.1.0
-	google.golang.org/grpc v1.18.0
+	golang.org/x/oauth2 v0.0.0-20190226205417-e64efc72b421
+	golang.org/x/sys v0.0.0-20190804053845-51ab0e2deafa
+	google.golang.org/api v0.3.1
+	google.golang.org/grpc v1.19.1
 	gopkg.in/ini.v1 v1.42.0 // indirect
 	gopkg.in/yaml.v2 v2.2.2
 )

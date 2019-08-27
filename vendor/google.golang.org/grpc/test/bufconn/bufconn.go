@@ -37,7 +37,7 @@ type Listener struct {
 	done chan struct{}
 }
 
-var errClosed = fmt.Errorf("Closed")
+var errClosed = fmt.Errorf("closed")
 
 // Listen returns a Listener that can only be contacted by its own Dialers and
 // creates buffered connections between the two.

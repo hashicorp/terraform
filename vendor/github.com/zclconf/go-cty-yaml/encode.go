@@ -97,12 +97,6 @@ func (c *Converter) marshalPrimitive(v cty.Value, e *yaml_emitter_t) error {
 		)
 	case cty.Number:
 		str := v.AsBigFloat().Text('f', -1)
-		switch v {
-		case cty.PositiveInfinity:
-			str = "+.Inf"
-		case cty.NegativeInfinity:
-			str = "-.Inf"
-		}
 		yaml_scalar_event_initialize(
 			&evt,
 			nil,

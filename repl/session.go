@@ -9,7 +9,7 @@ import (
 
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/hcl2/hcl/hclsyntax"
-	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/lang"
 	"github.com/hashicorp/terraform/tfdiags"
 )

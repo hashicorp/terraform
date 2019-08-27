@@ -3,7 +3,10 @@
 package auth
 
 import (
+	"fmt"
 	"net/http"
+
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/svchost"
 )
@@ -14,6 +17,9 @@ import (
 // A Credentials is itself a CredentialsSource, wrapping its members.
 // In principle one CredentialsSource can be nested inside another, though
 // there is no good reason to do so.
+//
+// The write operations on a Credentials are tried only on the first object,
+// under the assumption that it is the primary store.
 type Credentials []CredentialsSource
 
 // NoCredentials is an empty CredentialsSource that always returns nil
@@ -33,6 +39,19 @@ type CredentialsSource interface {
 	// If an error is returned, progress through a list of CredentialsSources
 	// is halted and the error is returned to the user.
 	ForHost(host svchost.Hostname) (HostCredentials, error)
+
+	// StoreForHost takes a HostCredentialsWritable and saves it as the
+	// credentials for the given host.
+	//
+	// If credentials are already stored for the given host, it will try to
+	// replace those credentials but may produce an error if such replacement
+	// is not possible.
+	StoreForHost(host svchost.Hostname, credentials HostCredentialsWritable) error
+
+	// ForgetForHost discards any stored credentials for the given host. It
+	// does nothing and returns successfully if no credentials are saved
+	// for that host.
+	ForgetForHost(host svchost.Hostname) error
 }
 
 // HostCredentials represents a single set of credentials for a particular
@@ -45,6 +64,22 @@ type HostCredentials interface {
 
 	// Token returns the authentication token.
 	Token() string
+}
+
+// HostCredentialsWritable is an extension of HostCredentials for credentials
+// objects that can be serialized as a JSON-compatible object value for
+// storage.
+type HostCredentialsWritable interface {
+	HostCredentials
+
+	// ToStore returns a cty.Value, always of an object type,
+	// representing data that can be serialized to represent this object
+	// in persistent storage.
+	//
+	// The resulting value may uses only cty values that can be accepted
+	// by the cty JSON encoder, though the caller may elect to instead store
+	// it in some other format that has a JSON-compatible type system.
+	ToStore() cty.Value
 }
 
 // ForHost iterates over the contained CredentialsSource objects and
@@ -60,4 +95,24 @@ func (c Credentials) ForHost(host svchost.Hostname) (HostCredentials, error) {
 		}
 	}
 	return nil, nil
+}
+
+// StoreForHost passes the given arguments to the same operation on the
+// first CredentialsSource in the receiver.
+func (c Credentials) StoreForHost(host svchost.Hostname, credentials HostCredentialsWritable) error {
+	if len(c) == 0 {
+		return fmt.Errorf("no credentials store is available")
+	}
+
+	return c[0].StoreForHost(host, credentials)
+}
+
+// ForgetForHost passes the given arguments to the same operation on the
+// first CredentialsSource in the receiver.
+func (c Credentials) ForgetForHost(host svchost.Hostname) error {
+	if len(c) == 0 {
+		return fmt.Errorf("no credentials store is available")
+	}
+
+	return c[0].ForgetForHost(host)
 }

@@ -13,9 +13,8 @@ import (
 	"sync"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/mitchellh/copystructure"
@@ -665,7 +664,7 @@ func (d *InstanceDiff) applySingleAttrDiff(path []string, attrs map[string]strin
 	old, exists := attrs[currentKey]
 
 	if diff != nil && diff.NewComputed {
-		result[attr] = config.UnknownVariableValue
+		result[attr] = hcl2shim.UnknownVariableValue
 		return result, nil
 	}
 
@@ -673,7 +672,7 @@ func (d *InstanceDiff) applySingleAttrDiff(path []string, attrs map[string]strin
 	// This only applied to top-level "id" fields.
 	if attr == "id" && len(path) == 1 {
 		if old == "" {
-			result[attr] = config.UnknownVariableValue
+			result[attr] = hcl2shim.UnknownVariableValue
 		} else {
 			result[attr] = old
 		}
@@ -704,8 +703,8 @@ func (d *InstanceDiff) applySingleAttrDiff(path []string, attrs map[string]strin
 	// check for missmatched diff values
 	if exists &&
 		old != diff.Old &&
-		old != config.UnknownVariableValue &&
-		diff.Old != config.UnknownVariableValue {
+		old != hcl2shim.UnknownVariableValue &&
+		diff.Old != hcl2shim.UnknownVariableValue {
 		return result, fmt.Errorf("diff apply conflict for %s: diff expects %q, but prior value has %q", attr, diff.Old, old)
 	}
 
@@ -723,7 +722,7 @@ func (d *InstanceDiff) applySingleAttrDiff(path []string, attrs map[string]strin
 	}
 
 	if attrSchema.Computed && diff.NewComputed {
-		result[attr] = config.UnknownVariableValue
+		result[attr] = hcl2shim.UnknownVariableValue
 		return result, nil
 	}
 
@@ -756,7 +755,7 @@ func (d *InstanceDiff) applyCollectionDiff(path []string, attrs map[string]strin
 			}
 
 			if diff.NewComputed {
-				result[k[len(prefix):]] = config.UnknownVariableValue
+				result[k[len(prefix):]] = hcl2shim.UnknownVariableValue
 				return result, nil
 			}
 

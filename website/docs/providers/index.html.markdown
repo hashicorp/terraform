@@ -13,8 +13,8 @@ as physical machines, VMs, network switches, containers, and more. Almost any
 infrastructure type can be represented as a resource in Terraform.
 
 A provider is responsible for understanding API interactions and exposing
-resources. Providers generally are an IaaS (e.g. AWS, GCP, Microsoft Azure,
-OpenStack), PaaS (e.g. Heroku), or SaaS services (e.g. Terraform Enterprise,
+resources. Providers generally are an IaaS (e.g. Alibaba Cloud, AWS, GCP, Microsoft Azure,
+OpenStack), PaaS (e.g. Heroku), or SaaS services (e.g. Terraform Cloud,
 DNSimple, CloudFlare).
 
 Use the navigation to the left to find available providers by type or scroll
@@ -25,9 +25,10 @@ down to see all providers.
 
 - [ACME](/docs/providers/acme/index.html)
 - [Akamai](/docs/providers/akamai/index.html)
-- [Alicloud](/docs/providers/alicloud/index.html)
+- [Alibaba Cloud](/docs/providers/alicloud/index.html)
 - [Archive](/docs/providers/archive/index.html)
 - [Arukas](/docs/providers/arukas/index.html)
+- [Avi Vantage](/docs/providers/avi/index.html)
 - [AWS](/docs/providers/aws/index.html)
 - [Azure](/docs/providers/azurerm/index.html)
 - [Azure Active Directory](/docs/providers/azuread/index.html)
@@ -38,6 +39,7 @@ down to see all providers.
 - [Chef](/docs/providers/chef/index.html)
 - [Circonus](/docs/providers/circonus/index.html)
 - [Cisco ASA](/docs/providers/ciscoasa/index.html)
+- [Cisco ACI](/docs/providers/aci/index.html)
 - [Cloudflare](/docs/providers/cloudflare/index.html)
 - [CloudScale.ch](/docs/providers/cloudscale/index.html)
 - [CloudStack](/docs/providers/cloudstack/index.html)
@@ -50,6 +52,7 @@ down to see all providers.
 - [DNSMadeEasy](/docs/providers/dme/index.html)
 - [Docker](/docs/providers/docker/index.html)
 - [Dyn](/docs/providers/dyn/index.html)
+- [Exoscale](/docs/providers/exoscale/index.html)
 - [External](/docs/providers/external/index.html)
 - [F5 BIG-IP](/docs/providers/bigip/index.html)
 - [Fastly](/docs/providers/fastly/index.html)
@@ -77,6 +80,7 @@ down to see all providers.
 - [Logentries](/docs/providers/logentries/index.html)
 - [LogicMonitor](/docs/providers/logicmonitor/index.html)
 - [Mailgun](/docs/providers/mailgun/index.html)
+- [MongoDB Atlas](/docs/providers/mongodbatlas/index.html)
 - [MySQL](/docs/providers/mysql/index.html)
 - [Naver Cloud](/docs/providers/ncloud/index.html)
 - [Netlify](/docs/providers/netlify/index.html)
@@ -108,6 +112,7 @@ down to see all providers.
 - [RunScope](/docs/providers/runscope/index.html)
 - [Scaleway](/docs/providers/scaleway/index.html)
 - [Selectel](/docs/providers/selectel/index.html)
+- [SignalFx](/docs/providers/signalfx/index.html)
 - [Skytap](/docs/providers/skytap/index.html)
 - [SoftLayer](/docs/providers/softlayer/index.html)
 - [Spotinst](/docs/providers/spotinst/index.html)
@@ -116,7 +121,7 @@ down to see all providers.
 - [Template](/docs/providers/template/index.html)
 - [TencentCloud](/docs/providers/tencentcloud/index.html)
 - [Terraform](/docs/providers/terraform/index.html)
-- [Terraform Enterprise](/docs/providers/tfe/index.html)
+- [Terraform Cloud](/docs/providers/tfe/index.html)
 - [TLS](/docs/providers/tls/index.html)
 - [Triton](/docs/providers/triton/index.html)
 - [UCloud](/docs/providers/ucloud/index.html)

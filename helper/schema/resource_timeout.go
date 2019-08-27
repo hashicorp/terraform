@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/copystructure"
 )
@@ -70,13 +70,23 @@ func (t *ResourceTimeout) ConfigDecode(s *Resource, c *terraform.ResourceConfig)
 		case []map[string]interface{}:
 			rawTimeouts = raw
 		case string:
-			if raw == config.UnknownVariableValue {
+			if raw == hcl2shim.UnknownVariableValue {
 				// Timeout is not defined in the config
 				// Defaults will be used instead
 				return nil
 			} else {
 				log.Printf("[ERROR] Invalid timeout value: %q", raw)
 				return fmt.Errorf("Invalid Timeout value found")
+			}
+		case []interface{}:
+			for _, r := range raw {
+				if rMap, ok := r.(map[string]interface{}); ok {
+					rawTimeouts = append(rawTimeouts, rMap)
+				} else {
+					// Go will not allow a fallthrough
+					log.Printf("[ERROR] Invalid timeout structure: %#v", raw)
+					return fmt.Errorf("Invalid Timeout structure found")
+				}
 			}
 		default:
 			log.Printf("[ERROR] Invalid timeout structure: %#v", raw)

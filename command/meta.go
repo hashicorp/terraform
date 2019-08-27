@@ -1,13 +1,11 @@
 package command
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"errors"
 	"flag"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -20,7 +18,6 @@ import (
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/backend/local"
 	"github.com/hashicorp/terraform/command/format"
-	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/helper/experiment"
 	"github.com/hashicorp/terraform/helper/wrappedstreams"
@@ -257,7 +254,7 @@ func (m *Meta) StdinPiped() bool {
 }
 
 // RunOperation executes the given operation on the given backend, blocking
-// until that operation completes or is inteerrupted, and then returns
+// until that operation completes or is interrupted, and then returns
 // the RunningOperation object representing the completed or
 // aborted operation that is, despite the name, no longer running.
 //
@@ -354,26 +351,7 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 // defaultFlagSet creates a default flag set for commands.
 func (m *Meta) defaultFlagSet(n string) *flag.FlagSet {
 	f := flag.NewFlagSet(n, flag.ContinueOnError)
-
-	// Create an io.Writer that writes to our Ui properly for errors.
-	// This is kind of a hack, but it does the job. Basically: create
-	// a pipe, use a scanner to break it into lines, and output each line
-	// to the UI. Do this forever.
-	errR, errW := io.Pipe()
-	errScanner := bufio.NewScanner(errR)
-	go func() {
-		// This only needs to be alive long enough to write the help info if
-		// there is a flag error. Kill the scanner after a short duriation to
-		// prevent these from accumulating during tests, and cluttering up the
-		// stack traces.
-		time.AfterFunc(2*time.Second, func() {
-			errW.Close()
-		})
-		for errScanner.Scan() {
-			m.Ui.Error(errScanner.Text())
-		}
-	}()
-	f.SetOutput(errW)
+	f.SetOutput(ioutil.Discard)
 
 	// Set the default Usage to empty
 	f.Usage = func() {}
@@ -405,15 +383,6 @@ func (m *Meta) extendedFlagSet(n string) *flag.FlagSet {
 	m.stateLock = true
 
 	return f
-}
-
-// moduleStorage returns the module.Storage implementation used to store
-// modules for commands.
-func (m *Meta) moduleStorage(root string, mode module.GetMode) *module.Storage {
-	s := module.NewStorage(filepath.Join(root, "modules"), m.Services)
-	s.Ui = m.Ui
-	s.Mode = mode
-	return s
 }
 
 // process will process the meta-parameters out of the arguments. This

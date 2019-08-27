@@ -247,6 +247,51 @@ func TestPlanGraphBuilder_targetModule(t *testing.T) {
 	testGraphNotContains(t, g, "module.child1.test_object.foo")
 }
 
+func TestPlanGraphBuilder_forEach(t *testing.T) {
+	awsProvider := &MockProvider{
+		GetSchemaReturn: &ProviderSchema{
+			Provider: simpleTestSchema(),
+			ResourceTypes: map[string]*configschema.Block{
+				"aws_instance": simpleTestSchema(),
+			},
+		},
+	}
+
+	components := &basicComponentFactory{
+		providers: map[string]providers.Factory{
+			"aws": providers.FactoryFixed(awsProvider),
+		},
+	}
+
+	b := &PlanGraphBuilder{
+		Config:     testModule(t, "plan-for-each"),
+		Components: components,
+		Schemas: &Schemas{
+			Providers: map[string]*ProviderSchema{
+				"aws": awsProvider.GetSchemaReturn,
+			},
+		},
+		DisableReduce: true,
+	}
+
+	g, err := b.Build(addrs.RootModuleInstance)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if g.Path.String() != addrs.RootModuleInstance.String() {
+		t.Fatalf("wrong module path %q", g.Path)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	// We're especially looking for the edge here, where aws_instance.bat
+	// has a dependency on aws_instance.boo
+	expected := strings.TrimSpace(testPlanGraphBuilderForEachStr)
+	if actual != expected {
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	}
+}
+
 const testPlanGraphBuilderStr = `
 aws_instance.web
   aws_security_group.firewall
@@ -289,4 +334,35 @@ root
   provider.aws (close)
   provider.openstack (close)
 var.foo
+`
+const testPlanGraphBuilderForEachStr = `
+aws_instance.bar
+  provider.aws
+aws_instance.bat
+  aws_instance.boo
+  provider.aws
+aws_instance.baz
+  provider.aws
+aws_instance.boo
+  provider.aws
+aws_instance.foo
+  provider.aws
+meta.count-boundary (EachMode fixup)
+  aws_instance.bar
+  aws_instance.bat
+  aws_instance.baz
+  aws_instance.boo
+  aws_instance.foo
+  provider.aws
+provider.aws
+provider.aws (close)
+  aws_instance.bar
+  aws_instance.bat
+  aws_instance.baz
+  aws_instance.boo
+  aws_instance.foo
+  provider.aws
+root
+  meta.count-boundary (EachMode fixup)
+  provider.aws (close)
 `

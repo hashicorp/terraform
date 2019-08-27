@@ -5,12 +5,10 @@ import (
 	"log"
 
 	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/lang"
-
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/lang"
 )
 
 // GraphNodeReferenceable must be implemented by any node that represents
@@ -422,39 +420,6 @@ func ReferencesFromConfig(body hcl.Body, schema *configschema.Block) []*addrs.Re
 	}
 	refs, _ := lang.ReferencesInBlock(body, schema)
 	return refs
-}
-
-// ReferenceFromInterpolatedVar returns the reference from this variable,
-// or an empty string if there is no reference.
-func ReferenceFromInterpolatedVar(v config.InterpolatedVariable) []string {
-	switch v := v.(type) {
-	case *config.ModuleVariable:
-		return []string{fmt.Sprintf("module.%s.output.%s", v.Name, v.Field)}
-	case *config.ResourceVariable:
-		id := v.ResourceId()
-
-		// If we have a multi-reference (splat), then we depend on ALL
-		// resources with this type/name.
-		if v.Multi && v.Index == -1 {
-			return []string{fmt.Sprintf("%s.*", id)}
-		}
-
-		// Otherwise, we depend on a specific index.
-		idx := v.Index
-		if !v.Multi || v.Index == -1 {
-			idx = 0
-		}
-
-		// Depend on the index, as well as "N" which represents the
-		// un-expanded set of resources.
-		return []string{fmt.Sprintf("%s.%d/%s.N", id, idx, id)}
-	case *config.UserVariable:
-		return []string{fmt.Sprintf("var.%s", v.Name)}
-	case *config.LocalVariable:
-		return []string{fmt.Sprintf("local.%s", v.Name)}
-	default:
-		return nil
-	}
 }
 
 // appendResourceDestroyReferences identifies resource and resource instance

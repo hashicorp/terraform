@@ -11,20 +11,20 @@ description: |-
 **Kind: Enhanced**
 
 -> **Note:** We recommend using Terraform v0.11.13 or newer with this
-backend. This backend requires either a Terraform Enterprise account on
-[app.terraform.io](https://app.terraform.io) or a private instance of
-Terraform Enterprise (version v201809-1 or newer).
+backend. This backend requires either a Terraform Cloud account on
+[app.terraform.io](https://app.terraform.io) or a Terraform Enterprise instance
+(version v201809-1 or newer).
 
-The remote backend stores state and runs operations in Terraform Enterprise.
+The remote backend stores state and runs operations in Terraform Cloud.
 
-When used with a Pro or Premium tier Terraform Enterprise account, operations
+When used with a Pro or Premium tier Terraform Cloud account, operations
 like `terraform plan` or `terraform apply` are executed in Terraform
-Enterprise's run environment, with log output streaming to the local terminal.
+Cloud's run environment, with log output streaming to the local terminal.
 Remote plans and applies use variable values from the associated Terraform
-Enterprise workspace.
+Cloud workspace.
 
-When used with a free Terraform Enterprise account, operations are executed on
-the local machine and state is stored in Terraform Enterprise.
+When used with a free Terraform Cloud account, operations are executed on
+the local machine and state is stored in Terraform Cloud.
 
 ## Command Support
 
@@ -42,6 +42,7 @@ Currently the remote backend supports the following Terraform commands:
 - `plan`
 - `providers`
 - `show`
+- `state` (supports all sub-commands: list, mv, pull, push, rm, show)
 - `taint`
 - `untaint`
 - `validate`
@@ -122,7 +123,7 @@ data "terraform_remote_state" "foo" {
 ## Example configuration using CLI input
 
 ```hcl
-# main.tf 
+# main.tf
 terraform {
   required_version = "~> 0.12.0"
 
@@ -164,6 +165,6 @@ The following configuration options are supported:
     only the default workspace can be used. This option conflicts with `prefix`.
   * `prefix` - (Optional) A prefix used in the names of one or more remote
     workspaces, all of which can be used with this configuration. The full
-    workspace names are used in Terraform Enterprise, and the short names
+    workspace names are used in Terraform Cloud, and the short names
     (minus the prefix) are used on the command line. If omitted, only the
     default workspace can be used. This option conflicts with `name`.

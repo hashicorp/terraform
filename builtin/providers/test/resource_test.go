@@ -1086,3 +1086,86 @@ resource "test_resource" "foo" {
 		},
 	})
 }
+
+// Verify we can use use numeric indices in `ignore_changes` paths.
+func TestResource_ignoreChangesIndex(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+	required = "yep"
+	required_map = {
+	    key = "value"
+	}
+	list_of_map = [
+		{
+			a = "b"
+		}
+	]
+
+	lifecycle {
+		ignore_changes = [list_of_map[0]["a"]]
+	}
+}
+				`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"test_resource.foo", "list_of_map.0.a", "b",
+					),
+				),
+			},
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+	required = "yep"
+	required_map = {
+	    key = "value"
+	}
+	list_of_map = [
+		{
+			a = "c"
+		}
+	]
+
+	lifecycle {
+		ignore_changes = [list_of_map[0]["a"]]
+	}
+}
+				`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"test_resource.foo", "list_of_map.0.a", "b",
+					),
+				),
+			},
+			// set ignore_changes to a prefix of the changed value
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+	required = "yep"
+	required_map = {
+	    key = "value"
+	}
+	list_of_map = [
+		{
+			a = "d"
+		}
+	]
+
+	lifecycle {
+		ignore_changes = [list_of_map[0]]
+	}
+}
+				`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"test_resource.foo", "list_of_map.0.a", "b",
+					),
+				),
+			},
+		},
+	})
+}
