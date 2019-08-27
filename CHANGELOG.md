@@ -3,6 +3,9 @@
 NEW FEATURES:
 * lang/funcs: Add fileset function [GH-22523]
 
+ENHANCEMENTS:
+* remote-state/pg: add option to skip schema creation [GH-21607]
+
 ## 0.12.7 (August 22, 2019)
 
 NEW FEATURES:
