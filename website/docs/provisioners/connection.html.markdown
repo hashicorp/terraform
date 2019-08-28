@@ -31,6 +31,7 @@ provisioner "file" {
     type     = "ssh"
     user     = "root"
     password = "${var.root_password}"
+    host     = "${var.host}"
   }
 }
 
@@ -43,6 +44,7 @@ provisioner "file" {
     type     = "winrm"
     user     = "Administrator"
     password = "${var.admin_password}"
+    host     = "${var.host}"
   }
 }
 ```
@@ -60,7 +62,7 @@ provisioner "file" {
 * `password` - The password we should use for the connection. In some cases this is
   specified by the provider.
 
-* `host` - The address of the resource to connect to. This is usually specified by the provider.
+* `host` - (Required) The address of the resource to connect to. This is usually specified by the provider.
 
 * `port` - The port to connect to.  
            Defaults to `22` when using type `ssh` and defaults to `5985` when using type `winrm`.
