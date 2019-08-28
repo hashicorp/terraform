@@ -105,11 +105,6 @@ provider "aws" {
 }
 ```
 
-You can force Terraform to explicitly not load your configuration by
-specifying `-config=""` (empty string). This is useful in situations where
-you want to manually configure the provider because your configuration
-may not be valid.
-
 ## Example: Import into Resource
 
 This example will import an AWS instance into the `aws_instance` resource named `foo`:
