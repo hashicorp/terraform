@@ -676,7 +676,7 @@ collection.
 The iterator object (`ingress` in the example above) has two attributes:
 
 * `key` is the map key or list element index for the current element. If the
-  `for_each` exression produces a _set_ value then `key` is identical to
+  `for_each` expression produces a _set_ value then `key` is identical to
   `value` and should not be used.
 * `value` is the value of the current element.
 
