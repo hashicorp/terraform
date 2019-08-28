@@ -271,7 +271,8 @@ recommend always setting complex variable values via variable definitions files.
 
 The above mechanisms for setting variables can be used together in any
 combination. If the same variable is assigned multiple values, Terraform uses
-the _last_ value it finds, overriding any previous values.
+the _last_ value it finds, overriding any previous values. Note that the same
+variable cannot be assigned multiple values within a single source.
 
 Terraform loads variables in the following order, with later sources taking
 precedence over earlier ones:
