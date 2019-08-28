@@ -261,8 +261,8 @@ func MakeFileSetFunc(baseDir string) function.Function {
 				// Remove the path and file separator from matches.
 				match = strings.TrimPrefix(match, path+string(filepath.Separator))
 
-				// Return matches with the Terraform canonical pattern
-				// of forward slashes for cross-system compatibility.
+				// Replace any remaining file separators with forward slash (/)
+				// separators for cross-system compatibility.
 				match = filepath.ToSlash(match)
 
 				matchVals = append(matchVals, cty.StringVal(match))
