@@ -50,7 +50,7 @@ func evaluateResourceForEachExpressionKnown(expr hcl.Expression, ctx EvalContext
 			Subject:  expr.Range().Ptr(),
 		})
 		return nil, true, diags
-	case !forEachVal.IsWhollyKnown():
+	case !forEachVal.IsKnown():
 		return map[string]cty.Value{}, false, diags
 	}
 
@@ -73,6 +73,11 @@ func evaluateResourceForEachExpressionKnown(expr hcl.Expression, ctx EvalContext
 				Subject:  expr.Range().Ptr(),
 			})
 			return nil, true, diags
+		}
+
+		// For sets, we need to recursively check ...and add reasoning why this works here
+		if !forEachVal.IsWhollyKnown() {
+			return map[string]cty.Value{}, false, diags
 		}
 	}
 

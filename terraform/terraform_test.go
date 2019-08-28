@@ -553,7 +553,25 @@ aws_instance.foo["e30a7edcc42a846684f2a4eea5f3cd261d33c46d"]:
   ID = foo
   provider = provider.aws
   foo = foo
-  type = aws_instance`
+  type = aws_instance
+aws_instance.one["a"]:
+  ID = foo
+  provider = provider.aws
+aws_instance.one["b"]:
+  ID = foo
+  provider = provider.aws
+aws_instance.two["a"]:
+  ID = foo
+  provider = provider.aws
+
+  Dependencies:
+    aws_instance.one
+aws_instance.two["b"]:
+  ID = foo
+  provider = provider.aws
+
+  Dependencies:
+    aws_instance.one`
 const testTerraformApplyMinimalStr = `
 aws_instance.bar:
   ID = foo
