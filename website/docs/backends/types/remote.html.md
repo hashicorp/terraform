@@ -107,16 +107,41 @@ terraform {
 ## Example Reference
 
 ```hcl
+# Terraform <= 0.11
 data "terraform_remote_state" "foo" {
   backend = "remote"
 
   config = {
+    hostname     = "app.terraform.io"
     organization = "company"
 
     workspaces {
       name = "workspace"
     }
   }
+}
+
+resource "aws_instance" "foo" {
+  # ...
+  subnet_id = "${data.terraform_remote_state.foo.subnet_id}"
+}
+
+# Terraform >= 0.12
+data "terraform_remote_state" "foo" {
+  backend = "remote"
+
+  config = {
+    organization = "company"
+
+    workspaces = {
+      name = "workspace"
+    }
+  }
+}
+
+resource "aws_instance" "foo" {
+  # ...
+  subnet_id = data.terraform_remote_state.foo.outputs.subnet_id
 }
 ```
 
