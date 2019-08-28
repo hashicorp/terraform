@@ -75,7 +75,10 @@ func evaluateResourceForEachExpressionKnown(expr hcl.Expression, ctx EvalContext
 			return nil, true, diags
 		}
 
-		// For sets, we need to recursively check ...and add reasoning why this works here
+		// A set may contain unknown values that must be
+		// discovered by checking with IsWhollyKnown (which iterates through the
+		// structure), while for maps in cty, keys can never be unknown or null,
+		// thus the earlier IsKnown check suffices for maps
 		if !forEachVal.IsWhollyKnown() {
 			return map[string]cty.Value{}, false, diags
 		}
