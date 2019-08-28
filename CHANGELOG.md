@@ -6,6 +6,9 @@ NEW FEATURES:
 ENHANCEMENTS:
 * remote-state/pg: add option to skip schema creation [GH-21607]
 
+BUG FIXES:
+* command/console: use user-supplied `-plugin-dir` [GH-22616]
+
 ## 0.12.7 (August 22, 2019)
 
 NEW FEATURES:
