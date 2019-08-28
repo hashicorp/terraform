@@ -226,36 +226,43 @@ func TestFileExists(t *testing.T) {
 
 func TestFileSet(t *testing.T) {
 	tests := []struct {
+		Path    cty.Value
 		Pattern cty.Value
 		Want    cty.Value
 		Err     bool
 	}{
 		{
-			cty.StringVal("testdata/missing"),
-			cty.SetValEmpty(cty.String),
-			false,
-		},
-		{
-			cty.StringVal("testdata/missing*"),
-			cty.SetValEmpty(cty.String),
-			false,
-		},
-		{
-			cty.StringVal("*/missing"),
-			cty.SetValEmpty(cty.String),
-			false,
-		},
-		{
-			cty.StringVal("testdata"),
-			cty.SetValEmpty(cty.String),
-			false,
-		},
-		{
+			cty.StringVal("."),
 			cty.StringVal("testdata*"),
 			cty.SetValEmpty(cty.String),
 			false,
 		},
 		{
+			cty.StringVal("."),
+			cty.StringVal("testdata"),
+			cty.SetValEmpty(cty.String),
+			false,
+		},
+		{
+			cty.StringVal("."),
+			cty.StringVal("testdata/missing"),
+			cty.SetValEmpty(cty.String),
+			false,
+		},
+		{
+			cty.StringVal("."),
+			cty.StringVal("testdata/missing*"),
+			cty.SetValEmpty(cty.String),
+			false,
+		},
+		{
+			cty.StringVal("."),
+			cty.StringVal("*/missing"),
+			cty.SetValEmpty(cty.String),
+			false,
+		},
+		{
+			cty.StringVal("."),
 			cty.StringVal("testdata/*.txt"),
 			cty.SetVal([]cty.Value{
 				cty.StringVal("testdata/hello.txt"),
@@ -263,6 +270,7 @@ func TestFileSet(t *testing.T) {
 			false,
 		},
 		{
+			cty.StringVal("."),
 			cty.StringVal("testdata/hello.txt"),
 			cty.SetVal([]cty.Value{
 				cty.StringVal("testdata/hello.txt"),
@@ -270,6 +278,7 @@ func TestFileSet(t *testing.T) {
 			false,
 		},
 		{
+			cty.StringVal("."),
 			cty.StringVal("testdata/hello.???"),
 			cty.SetVal([]cty.Value{
 				cty.StringVal("testdata/hello.txt"),
@@ -277,6 +286,7 @@ func TestFileSet(t *testing.T) {
 			false,
 		},
 		{
+			cty.StringVal("."),
 			cty.StringVal("testdata/hello*"),
 			cty.SetVal([]cty.Value{
 				cty.StringVal("testdata/hello.tmpl"),
@@ -285,6 +295,7 @@ func TestFileSet(t *testing.T) {
 			false,
 		},
 		{
+			cty.StringVal("."),
 			cty.StringVal("*/hello.txt"),
 			cty.SetVal([]cty.Value{
 				cty.StringVal("testdata/hello.txt"),
@@ -292,6 +303,7 @@ func TestFileSet(t *testing.T) {
 			false,
 		},
 		{
+			cty.StringVal("."),
 			cty.StringVal("*/*.txt"),
 			cty.SetVal([]cty.Value{
 				cty.StringVal("testdata/hello.txt"),
@@ -299,6 +311,7 @@ func TestFileSet(t *testing.T) {
 			false,
 		},
 		{
+			cty.StringVal("."),
 			cty.StringVal("*/hello*"),
 			cty.SetVal([]cty.Value{
 				cty.StringVal("testdata/hello.tmpl"),
@@ -307,20 +320,67 @@ func TestFileSet(t *testing.T) {
 			false,
 		},
 		{
+			cty.StringVal("."),
 			cty.StringVal("["),
 			cty.SetValEmpty(cty.String),
 			true,
 		},
 		{
+			cty.StringVal("."),
 			cty.StringVal("\\"),
 			cty.SetValEmpty(cty.String),
 			true,
 		},
+		{
+			cty.StringVal("testdata"),
+			cty.StringVal("missing"),
+			cty.SetValEmpty(cty.String),
+			false,
+		},
+		{
+			cty.StringVal("testdata"),
+			cty.StringVal("missing*"),
+			cty.SetValEmpty(cty.String),
+			false,
+		},
+		{
+			cty.StringVal("testdata"),
+			cty.StringVal("*.txt"),
+			cty.SetVal([]cty.Value{
+				cty.StringVal("hello.txt"),
+			}),
+			false,
+		},
+		{
+			cty.StringVal("testdata"),
+			cty.StringVal("hello.txt"),
+			cty.SetVal([]cty.Value{
+				cty.StringVal("hello.txt"),
+			}),
+			false,
+		},
+		{
+			cty.StringVal("testdata"),
+			cty.StringVal("hello.???"),
+			cty.SetVal([]cty.Value{
+				cty.StringVal("hello.txt"),
+			}),
+			false,
+		},
+		{
+			cty.StringVal("testdata"),
+			cty.StringVal("hello*"),
+			cty.SetVal([]cty.Value{
+				cty.StringVal("hello.tmpl"),
+				cty.StringVal("hello.txt"),
+			}),
+			false,
+		},
 	}
 
 	for _, test := range tests {
-		t.Run(fmt.Sprintf("FileSet(\".\", %#v)", test.Pattern), func(t *testing.T) {
-			got, err := FileSet(".", test.Pattern)
+		t.Run(fmt.Sprintf("FileSet(\".\", %#v, %#v)", test.Path, test.Pattern), func(t *testing.T) {
+			got, err := FileSet(".", test.Path, test.Pattern)
 
 			if test.Err {
 				if err == nil {
