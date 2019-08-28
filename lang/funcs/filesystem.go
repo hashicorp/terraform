@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/hashicorp/hcl2/hcl"
@@ -213,24 +214,32 @@ func MakeFileSetFunc(baseDir string) function.Function {
 	return function.New(&function.Spec{
 		Params: []function.Parameter{
 			{
+				Name: "path",
+				Type: cty.String,
+			},
+			{
 				Name: "pattern",
 				Type: cty.String,
 			},
 		},
 		Type: function.StaticReturnType(cty.Set(cty.String)),
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
-			pattern := args[0].AsString()
-			pattern, err := homedir.Expand(pattern)
+			path := args[0].AsString()
+			pattern := args[1].AsString()
+
+			path, err := homedir.Expand(path)
 			if err != nil {
 				return cty.UnknownVal(cty.Set(cty.String)), fmt.Errorf("failed to expand ~: %s", err)
 			}
 
-			if !filepath.IsAbs(pattern) {
-				pattern = filepath.Join(baseDir, pattern)
+			if !filepath.IsAbs(path) {
+				path = filepath.Join(baseDir, path)
 			}
 
-			// Ensure that the path is canonical for the host OS
-			pattern = filepath.Clean(pattern)
+			// Join the path to the glob pattern, while ensuring the full
+			// pattern is canonical for the host OS. The joined path is
+			// automatically cleaned during this operation.
+			pattern = filepath.Join(path, pattern)
 
 			matches, err := filepath.Glob(pattern)
 			if err != nil {
@@ -248,6 +257,13 @@ func MakeFileSetFunc(baseDir string) function.Function {
 				if !fi.Mode().IsRegular() {
 					continue
 				}
+
+				// Remove the path and file separator from matches.
+				match = strings.TrimPrefix(match, path+string(filepath.Separator))
+
+				// Return matches with the Terraform canonical pattern
+				// of forward slashes for cross-system compatibility.
+				match = filepath.ToSlash(match)
 
 				matchVals = append(matchVals, cty.StringVal(match))
 			}
@@ -375,9 +391,9 @@ func FileExists(baseDir string, path cty.Value) (cty.Value, error) {
 // The underlying function implementation works relative to a particular base
 // directory, so this wrapper takes a base directory string and uses it to
 // construct the underlying function before calling it.
-func FileSet(baseDir string, pattern cty.Value) (cty.Value, error) {
+func FileSet(baseDir string, path, pattern cty.Value) (cty.Value, error) {
 	fn := MakeFileSetFunc(baseDir)
-	return fn.Call([]cty.Value{pattern})
+	return fn.Call([]cty.Value{path, pattern})
 }
 
 // FileBase64 reads the contents of the file at the given path.
