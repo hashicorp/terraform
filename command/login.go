@@ -21,7 +21,6 @@ import (
 	"github.com/hashicorp/terraform/tfdiags"
 
 	uuid "github.com/hashicorp/go-uuid"
-	"github.com/pkg/browser"
 	"golang.org/x/oauth2"
 )
 
@@ -375,12 +374,22 @@ func (c *LoginCommand) interactiveGetTokenByCode(hostname svchost.Hostname, cred
 		oauth2.SetAuthURLParam("code_challenge", proofKeyChallenge),
 		oauth2.SetAuthURLParam("code_challenge_method", "S256"),
 	)
-	err = browser.OpenURL(authCodeURL)
-	if err == nil {
-		c.Ui.Output(fmt.Sprintf("Terraform must now open a web browser to the login page for %s.\n", hostname.ForDisplay()))
-		c.Ui.Output(fmt.Sprintf("If a browser does not open this automatically, open the following URL to proceed:\n    %s\n", authCodeURL))
+
+	launchBrowserManually := false
+	if c.BrowserLauncher != nil {
+		err = c.BrowserLauncher.OpenURL(authCodeURL)
+		if err == nil {
+			c.Ui.Output(fmt.Sprintf("Terraform must now open a web browser to the login page for %s.\n", hostname.ForDisplay()))
+			c.Ui.Output(fmt.Sprintf("If a browser does not open this automatically, open the following URL to proceed:\n    %s\n", authCodeURL))
+		} else {
+			// Assume we're on a platform where opening a browser isn't possible.
+			launchBrowserManually = true
+		}
 	} else {
-		// Assume we're on a platform where opening a browser isn't possible.
+		launchBrowserManually = true
+	}
+
+	if launchBrowserManually {
 		c.Ui.Output(fmt.Sprintf("Open the following URL to access the login page for %s:\n    %s\n", hostname.ForDisplay(), authCodeURL))
 	}
 

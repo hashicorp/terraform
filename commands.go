@@ -5,6 +5,7 @@ import (
 	"os/signal"
 
 	"github.com/hashicorp/terraform/command"
+	"github.com/hashicorp/terraform/command/webbrowser"
 	pluginDiscovery "github.com/hashicorp/terraform/plugin/discovery"
 	"github.com/hashicorp/terraform/svchost"
 	"github.com/hashicorp/terraform/svchost/auth"
@@ -63,7 +64,8 @@ func initCommands(config *Config, services *disco.Disco) {
 		PluginOverrides:  &PluginOverrides,
 		Ui:               Ui,
 
-		Services: services,
+		Services:        services,
+		BrowserLauncher: webbrowser.NewNativeLauncher(),
 
 		RunningInAutomation: inAutomation,
 		CLIConfigDir:        configDir,
