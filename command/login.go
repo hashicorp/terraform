@@ -39,8 +39,6 @@ func (c *LoginCommand) Run(args []string) int {
 	}
 
 	cmdFlags := c.Meta.extendedFlagSet("login")
-	var intoFile string
-	cmdFlags.StringVar(&intoFile, "into-file", "", "set the file that the credentials will be appended to")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -229,11 +227,11 @@ func (c *LoginCommand) Help() string {
 		// more complex behavior for this case. This result is not correct
 		// on all platforms, but given how unlikely we are to hit this case
 		// that seems okay.
-		defaultFile = "~/.terraform/credentials.tfrc"
+		defaultFile = "~/.terraform/credentials.tfrc.json"
 	}
 
 	helpText := fmt.Sprintf(`
-Usage: terraform login [options] [hostname]
+Usage: terraform login [hostname]
 
   Retrieves an authentication token for the given hostname, if it supports
   automatic login, and saves it in a credentials file in your home directory.
@@ -241,14 +239,9 @@ Usage: terraform login [options] [hostname]
   If no hostname is provided, the default hostname is app.terraform.io, to
   log in to Terraform Cloud.
 
-  If not overridden by the -into-file option, the output file is:
+  If not overridden by credentials helper settings in the CLI configuration,
+  the credentials will be written to the following local file:
       %s
-
-Options:
-
-  -into-file=....     Override which file the credentials block will be written
-                      to. If this file already exists then it must have valid
-                      HCL syntax and Terraform will update it in-place.
 `, defaultFile)
 	return strings.TrimSpace(helpText)
 }
@@ -262,7 +255,7 @@ func (c *LoginCommand) defaultOutputFile() string {
 	if c.CLIConfigDir == "" {
 		return "" // no default available
 	}
-	return filepath.Join(c.CLIConfigDir, "credentials.tfrc")
+	return filepath.Join(c.CLIConfigDir, "credentials.tfrc.json")
 }
 
 func (c *LoginCommand) interactiveGetTokenByCode(hostname svchost.Hostname, credsCtx *loginCredentialsContext, clientConfig *disco.OAuthClient) (*oauth2.Token, tfdiags.Diagnostics) {
