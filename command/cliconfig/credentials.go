@@ -64,6 +64,17 @@ func (c *Config) CredentialsSource(helperPlugins pluginDiscovery.PluginMetaSet) 
 	return c.credentialsSource(helperType, helper, credentialsFilePath), nil
 }
 
+// EmptyCredentialsSourceForTests constructs a CredentialsSource with
+// no credentials pre-loaded and which writes new credentials to a file
+// at the given path.
+//
+// As the name suggests, this function is here only for testing and should not
+// be used in normal application code.
+func EmptyCredentialsSourceForTests(credentialsFilePath string) *CredentialsSource {
+	cfg := &Config{}
+	return cfg.credentialsSource("", nil, credentialsFilePath)
+}
+
 // credentialsSource is an internal factory for the credentials source which
 // allows overriding the credentials file path, which allows setting it to
 // a temporary file location when testing.
