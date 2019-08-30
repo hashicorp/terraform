@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 	"unicode/utf8"
 
 	"github.com/hashicorp/hcl2/hcl"
@@ -227,11 +226,6 @@ func MakeFileSetFunc(baseDir string) function.Function {
 			path := args[0].AsString()
 			pattern := args[1].AsString()
 
-			path, err := homedir.Expand(path)
-			if err != nil {
-				return cty.UnknownVal(cty.Set(cty.String)), fmt.Errorf("failed to expand ~: %s", err)
-			}
-
 			if !filepath.IsAbs(path) {
 				path = filepath.Join(baseDir, path)
 			}
@@ -259,7 +253,11 @@ func MakeFileSetFunc(baseDir string) function.Function {
 				}
 
 				// Remove the path and file separator from matches.
-				match = strings.TrimPrefix(match, path+string(filepath.Separator))
+				match, err = filepath.Rel(path, match)
+
+				if err != nil {
+					return cty.UnknownVal(cty.Set(cty.String)), fmt.Errorf("failed to trim path of match (%s): %s", match, err)
+				}
 
 				// Replace any remaining file separators with forward slash (/)
 				// separators for cross-system compatibility.
