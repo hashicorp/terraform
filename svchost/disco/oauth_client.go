@@ -51,15 +51,21 @@ type OAuthClient struct {
 // Endpoint returns an oauth2.Endpoint value ready to be used with the oauth2
 // library, representing the URLs from the receiver.
 func (c *OAuthClient) Endpoint() oauth2.Endpoint {
-	return oauth2.Endpoint{
-		AuthURL:  c.AuthorizationURL.String(),
-		TokenURL: c.TokenURL.String(),
-
+	ep := oauth2.Endpoint{
 		// We don't actually auth because we're not a server-based OAuth client,
 		// so this instead just means that we include client_id as an argument
 		// in our requests.
 		AuthStyle: oauth2.AuthStyleInParams,
 	}
+
+	if c.AuthorizationURL != nil {
+		ep.AuthURL = c.AuthorizationURL.String()
+	}
+	if c.TokenURL != nil {
+		ep.TokenURL = c.TokenURL.String()
+	}
+
+	return ep
 }
 
 // OAuthGrantType is an enumeration of grant type strings that a host can
