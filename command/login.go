@@ -92,7 +92,7 @@ func (c *LoginCommand) Run(args []string) int {
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Service discovery failed for"+dispHostname,
+			"Service discovery failed for "+dispHostname,
 
 			// Contrary to usual Go idiom, the Discover function returns
 			// full sentences with initial capitalization in its error messages,
@@ -319,6 +319,7 @@ func (c *LoginCommand) interactiveGetTokenByCode(hostname svchost.Hostname, cred
 	codeCh := make(chan string)
 	server := &http.Server{
 		Handler: http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			log.Printf("[TRACE] login: request to callback server")
 			err := req.ParseForm()
 			if err != nil {
 				log.Printf("[ERROR] login: cannot ParseForm on callback request: %s", err)
@@ -338,10 +339,14 @@ func (c *LoginCommand) interactiveGetTokenByCode(hostname svchost.Hostname, cred
 				return
 			}
 
+			log.Printf("[TRACE] login: request contains an authorization code")
+
 			// Send the code to our blocking wait below, so that the token
 			// fetching process can continue.
 			codeCh <- gotCode
 			close(codeCh)
+
+			log.Printf("[TRACE] login: returning response from callback server")
 
 			resp.Header().Add("Content-Type", "text/html")
 			resp.WriteHeader(200)
@@ -563,7 +568,7 @@ func (c *LoginCommand) proofKey() (key, challenge string, err error) {
 
 	h := sha256.New()
 	h.Write([]byte(key))
-	challenge = base64.RawURLEncoding.EncodeToString(h.Sum(nil))
+	challenge = base64.URLEncoding.EncodeToString(h.Sum(nil))
 
 	return key, challenge, nil
 }
