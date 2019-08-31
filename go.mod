@@ -19,6 +19,7 @@ require (
 	github.com/aws/aws-sdk-go v1.22.0
 	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
 	github.com/blang/semver v3.5.1+incompatible
+	github.com/bmatcuk/doublestar v1.1.5
 	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/chzyer/logex v1.1.10 // indirect
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e

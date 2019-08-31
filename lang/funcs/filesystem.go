@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"unicode/utf8"
 
+	"github.com/bmatcuk/doublestar"
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/hcl2/hcl/hclsyntax"
 	homedir "github.com/mitchellh/go-homedir"
@@ -235,7 +236,7 @@ func MakeFileSetFunc(baseDir string) function.Function {
 			// automatically cleaned during this operation.
 			pattern = filepath.Join(path, pattern)
 
-			matches, err := filepath.Glob(pattern)
+			matches, err := doublestar.Glob(pattern)
 			if err != nil {
 				return cty.UnknownVal(cty.Set(cty.String)), fmt.Errorf("failed to glob pattern (%s): %s", pattern, err)
 			}
