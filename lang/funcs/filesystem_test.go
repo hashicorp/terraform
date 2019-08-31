@@ -245,6 +245,12 @@ func TestFileSet(t *testing.T) {
 		},
 		{
 			cty.StringVal("."),
+			cty.StringVal("{testdata,missing}"),
+			cty.SetValEmpty(cty.String),
+			false,
+		},
+		{
+			cty.StringVal("."),
 			cty.StringVal("testdata/missing"),
 			cty.SetValEmpty(cty.String),
 			false,
@@ -258,6 +264,12 @@ func TestFileSet(t *testing.T) {
 		{
 			cty.StringVal("."),
 			cty.StringVal("*/missing"),
+			cty.SetValEmpty(cty.String),
+			false,
+		},
+		{
+			cty.StringVal("."),
+			cty.StringVal("**/missing"),
 			cty.SetValEmpty(cty.String),
 			false,
 		},
@@ -296,6 +308,15 @@ func TestFileSet(t *testing.T) {
 		},
 		{
 			cty.StringVal("."),
+			cty.StringVal("testdata/hello.{tmpl,txt}"),
+			cty.SetVal([]cty.Value{
+				cty.StringVal("testdata/hello.tmpl"),
+				cty.StringVal("testdata/hello.txt"),
+			}),
+			false,
+		},
+		{
+			cty.StringVal("."),
 			cty.StringVal("*/hello.txt"),
 			cty.SetVal([]cty.Value{
 				cty.StringVal("testdata/hello.txt"),
@@ -313,6 +334,24 @@ func TestFileSet(t *testing.T) {
 		{
 			cty.StringVal("."),
 			cty.StringVal("*/hello*"),
+			cty.SetVal([]cty.Value{
+				cty.StringVal("testdata/hello.tmpl"),
+				cty.StringVal("testdata/hello.txt"),
+			}),
+			false,
+		},
+		{
+			cty.StringVal("."),
+			cty.StringVal("**/hello*"),
+			cty.SetVal([]cty.Value{
+				cty.StringVal("testdata/hello.tmpl"),
+				cty.StringVal("testdata/hello.txt"),
+			}),
+			false,
+		},
+		{
+			cty.StringVal("."),
+			cty.StringVal("**/hello.{tmpl,txt}"),
 			cty.SetVal([]cty.Value{
 				cty.StringVal("testdata/hello.tmpl"),
 				cty.StringVal("testdata/hello.txt"),
