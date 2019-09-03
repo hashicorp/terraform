@@ -538,7 +538,40 @@ aws_instance.foo.1:
   ID = foo
   provider = provider.aws
 `
+const testTerraformApplyForEachVariableStr = `
+aws_instance.foo["b15c6d616d6143248c575900dff57325eb1de498"]:
+  ID = foo
+  provider = provider.aws
+  foo = foo
+  type = aws_instance
+aws_instance.foo["c3de47d34b0a9f13918dd705c141d579dd6555fd"]:
+  ID = foo
+  provider = provider.aws
+  foo = foo
+  type = aws_instance
+aws_instance.foo["e30a7edcc42a846684f2a4eea5f3cd261d33c46d"]:
+  ID = foo
+  provider = provider.aws
+  foo = foo
+  type = aws_instance
+aws_instance.one["a"]:
+  ID = foo
+  provider = provider.aws
+aws_instance.one["b"]:
+  ID = foo
+  provider = provider.aws
+aws_instance.two["a"]:
+  ID = foo
+  provider = provider.aws
 
+  Dependencies:
+    aws_instance.one
+aws_instance.two["b"]:
+  ID = foo
+  provider = provider.aws
+
+  Dependencies:
+    aws_instance.one`
 const testTerraformApplyMinimalStr = `
 aws_instance.bar:
   ID = foo
