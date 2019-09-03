@@ -8,6 +8,7 @@ ENHANCEMENTS:
 
 BUG FIXES:
 * command/console: use user-supplied `-plugin-dir` [GH-22616]
+* config: ensure sets are appropriately known for `for_each` [GH-22597]
 
 ## 0.12.7 (August 22, 2019)
 
