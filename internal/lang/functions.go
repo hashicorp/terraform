@@ -115,6 +115,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"signum":           stdlib.SignumFunc,
 			"slice":            stdlib.SliceFunc,
 			"sort":             stdlib.SortFunc,
+			"sortsemver":       funcs.SortSemVerFunc,
 			"split":            stdlib.SplitFunc,
 			"strrev":           stdlib.ReverseFunc,
 			"substr":           stdlib.SubstrFunc,
