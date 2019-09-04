@@ -1,14 +1,14 @@
-## 0.12.8 (Unreleased)
+## 0.12.8 (September 04, 2019)
 
 NEW FEATURES:
-* lang/funcs: New `fileset` function, for finding static local files that match a glob pattern. [GH-22523]
+* lang/funcs: New `fileset` function, for finding static local files that match a glob pattern. ([#22523](https://github.com/hashicorp/terraform/issues/22523))
 
 ENHANCEMENTS:
-* remote-state/pg: add option to skip schema creation [GH-21607]
+* remote-state/pg: add option to skip schema creation ([#21607](https://github.com/hashicorp/terraform/issues/21607))
 
 BUG FIXES:
-* command/console: use user-supplied `-plugin-dir` [GH-22616]
-* config: ensure sets are appropriately known for `for_each` [GH-22597]
+* command/console: use user-supplied `-plugin-dir` ([#22616](https://github.com/hashicorp/terraform/issues/22616))
+* config: ensure sets are appropriately known for `for_each` ([#22597](https://github.com/hashicorp/terraform/issues/22597))
 
 ## 0.12.7 (August 22, 2019)
 
