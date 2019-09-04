@@ -1,7 +1,7 @@
 ## 0.12.8 (Unreleased)
 
 NEW FEATURES:
-* lang/funcs: Add fileset function [GH-22523]
+* lang/funcs: New `fileset` function, for finding static local files that match a glob pattern. [GH-22523]
 
 ENHANCEMENTS:
 * remote-state/pg: add option to skip schema creation [GH-21607]
