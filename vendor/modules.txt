@@ -128,6 +128,8 @@ github.com/bgentry/go-netrc/netrc
 github.com/bgentry/speakeasy
 # github.com/blang/semver v3.5.1+incompatible
 github.com/blang/semver
+# github.com/bmatcuk/doublestar v1.1.5
+github.com/bmatcuk/doublestar
 # github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
 github.com/chzyer/readline
 # github.com/coreos/etcd v3.3.10+incompatible
@@ -332,7 +334,7 @@ github.com/hashicorp/hcl/hcl/scanner
 github.com/hashicorp/hcl/hcl/strconv
 github.com/hashicorp/hcl/json/scanner
 github.com/hashicorp/hcl/json/token
-# github.com/hashicorp/hcl2 v0.0.0-20190809210004-72d32879a5c5
+# github.com/hashicorp/hcl2 v0.0.0-20190821123243-0c888d1241f6
 github.com/hashicorp/hcl2/hcl
 github.com/hashicorp/hcl2/hcl/hclsyntax
 github.com/hashicorp/hcl2/hcldec
@@ -353,7 +355,7 @@ github.com/hashicorp/hil/scanner
 github.com/hashicorp/logutils
 # github.com/hashicorp/serf v0.0.0-20160124182025-e4ec8cc423bb
 github.com/hashicorp/serf/coordinate
-# github.com/hashicorp/terraform-config-inspect v0.0.0-20190327195015-8022a2663a70
+# github.com/hashicorp/terraform-config-inspect v0.0.0-20190821133035-82a99dc22ef4
 github.com/hashicorp/terraform-config-inspect/tfconfig
 # github.com/hashicorp/vault v0.10.4
 github.com/hashicorp/vault/helper/pgpkeys
