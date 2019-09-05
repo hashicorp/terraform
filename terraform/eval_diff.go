@@ -214,12 +214,6 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	plannedNewVal := resp.PlannedState
 	plannedPrivate := resp.PlannedPrivate
 
-	plannedNewVal, ignoreChangeDiags = n.processIgnoreChanges(priorVal, plannedNewVal)
-	diags = diags.Append(ignoreChangeDiags)
-	if ignoreChangeDiags.HasErrors() {
-		return nil, diags.Err()
-	}
-
 	if plannedNewVal == cty.NilVal {
 		// Should never happen. Since real-world providers return via RPC a nil
 		// is always a bug in the client-side stub. This is more likely caused
@@ -271,6 +265,12 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 			}
 			return nil, diags.Err()
 		}
+	}
+
+	plannedNewVal, ignoreChangeDiags = n.processIgnoreChanges(priorVal, plannedNewVal)
+	diags = diags.Append(ignoreChangeDiags)
+	if ignoreChangeDiags.HasErrors() {
+		return nil, diags.Err()
 	}
 
 	// The provider produces a list of paths to attributes whose changes mean
