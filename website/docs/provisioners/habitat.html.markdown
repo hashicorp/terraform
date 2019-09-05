@@ -9,6 +9,11 @@ description: |-
 # Habitat Provisioner
 
 The `habitat` provisioner installs the [Habitat](https://habitat.sh) supervisor and loads configured services. This provisioner only supports Linux targets using the `ssh` connection type at this time.
+
+-> **Note:** Provisioners should only be used as a last resort. For most
+common situations there are better alternatives. For more information, see
+[the main Provisioners page](./).
+
 ## Requirements
 
 The `habitat` provisioner has some prerequisites for specific connection types:
