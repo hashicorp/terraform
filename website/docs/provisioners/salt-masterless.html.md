@@ -13,6 +13,10 @@ Type: `salt-masterless`
 The `salt-masterless` Terraform provisioner provisions machines built by Terraform
 using [Salt](http://saltstack.com/) states, without connecting to a Salt master. The `salt-masterless` provisioner supports `ssh` [connections](/docs/provisioners/connection.html).
 
+-> **Note:** Provisioners should only be used as a last resort. For most
+common situations there are better alternatives. For more information, see
+[the main Provisioners page](./).
+
 ## Requirements
 
 The `salt-masterless` provisioner has some prerequisites. `cURL` must be available on the remote host.
