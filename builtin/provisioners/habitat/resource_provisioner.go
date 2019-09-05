@@ -368,17 +368,6 @@ func validateFn(c *terraform.ResourceConfig) (ws []string, es []error) {
 			es = append(es, fmt.Errorf("service '%v': must be a block", data))
 		}
 	}
-	//Validate service level configs
-	//services, ok := c.Get("service")
-	//if ok {
-	//	for i, svc := range services.([]interface{}) {
-	//		_, ok := svc.(map[string]interface{})
-	//		if !ok {
-	//			es = append(es, fmt.Errorf("service %d: must be a block", i))
-	//			continue
-	//		}
-	//	}
-	//}
 
 	return ws, es
 }
