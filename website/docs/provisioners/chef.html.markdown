@@ -12,6 +12,10 @@ The `chef` provisioner installs, configures and runs the Chef Client on a remote
 resource. The `chef` provisioner supports both `ssh` and `winrm` type
 [connections](/docs/provisioners/connection.html).
 
+-> **Note:** Provisioners should only be used as a last resort. For most
+common situations there are better alternatives. For more information, see
+[the main Provisioners page](./).
+
 ## Requirements
 
 The `chef` provisioner has some prerequisites for specific connection types:
