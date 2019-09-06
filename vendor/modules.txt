@@ -168,7 +168,7 @@ github.com/gogo/protobuf/proto
 github.com/gogo/protobuf/protoc-gen-gogo/descriptor
 # github.com/golang/mock v1.3.1
 github.com/golang/mock/gomock
-# github.com/golang/protobuf v1.3.1
+# github.com/golang/protobuf v1.3.2
 github.com/golang/protobuf/proto
 github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
@@ -593,14 +593,14 @@ google.golang.org/genproto/googleapis/api/annotations
 # google.golang.org/grpc v1.19.1
 google.golang.org/grpc
 google.golang.org/grpc/test/bufconn
+google.golang.org/grpc/codes
+google.golang.org/grpc/status
 google.golang.org/grpc/metadata
 google.golang.org/grpc/credentials
 google.golang.org/grpc/health
 google.golang.org/grpc/health/grpc_health_v1
-google.golang.org/grpc/codes
 google.golang.org/grpc/grpclog
 google.golang.org/grpc/keepalive
-google.golang.org/grpc/status
 google.golang.org/grpc/balancer
 google.golang.org/grpc/balancer/roundrobin
 google.golang.org/grpc/connectivity
