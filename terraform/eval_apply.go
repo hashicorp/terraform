@@ -557,6 +557,11 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*configs.Provisio
 		config, _, configDiags := ctx.EvaluateBlock(prov.Config, schema, instanceAddr, keyData)
 		diags = diags.Append(configDiags)
 
+		// we can't apply the provisioner if the config has errors
+		if diags.HasErrors() {
+			return diags.Err()
+		}
+
 		// If the provisioner block contains a connection block of its own then
 		// it can override the base connection configuration, if any.
 		var localConn hcl.Body
