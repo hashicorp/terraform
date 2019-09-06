@@ -56,7 +56,7 @@ constraints specified, Terraform will show an error and exit.
 
 When [modules](./modules.html) are used, all Terraform
 version requirements specified by the complete module tree must be
-satisified. This means that the `required_version` setting can be used
+satisfied. This means that the `required_version` setting can be used
 by a module to require that all consumers of a module also use a specific
 version.
 
