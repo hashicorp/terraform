@@ -26,7 +26,7 @@ func (c *ConsoleCommand) Run(args []string) int {
 		return 1
 	}
 
-	cmdFlags := c.Meta.defaultFlagSet("console")
+	cmdFlags := c.Meta.extendedFlagSet("console")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
