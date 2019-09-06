@@ -217,6 +217,26 @@ func TestSerializeForHash(t *testing.T) {
 			},
 			Expected: "outer:{[baz:foo;foo:bar;];};",
 		},
+
+		testCase{
+			Schema: &Resource{
+				Schema: map[string]*Schema{
+					"attr1": &Schema{
+						Type:     TypeString,
+						Computed: true,
+					},
+					"attr2": &Schema{
+						Type:     TypeString,
+						Computed: true,
+					},
+				},
+			},
+			Value: map[string]interface{}{
+				"attr1": "value1",
+				"attr2": "value2",
+			},
+			Expected: "attr1:value1;attr2:value2;",
+		},
 	}
 
 	for _, test := range tests {
