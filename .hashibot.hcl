@@ -1,3 +1,35 @@
+behavior "pull_request_path_labeler" "sdk_cherrypicker" {
+  label_map = {
+    "sdkv1" = [
+      # 1-1 package mapping between core and sdk
+      "helper/**",
+      "httpclient/**",
+      "plugin/**",
+      "terraform/**",
+      "internal/earlyconfig/**",
+      "internal/initwd/**",
+      "internal/modsdir/**",
+      "internal/tfplugin5/**",
+      # these packages have been moved under internal/ in the sdk
+      "addrs/**",
+      "command/format/**",
+      "configs/**",
+      "dag/**",
+      "flatmap/**",
+      "lang/**",
+      "moduledeps/**",
+      "plans/**",
+      "providers/**",
+      "provisioners/**",
+      "registry/**",
+      "states/**",
+      "svchost/**",
+      "tfdiags/**",
+      "version/**"
+    ]
+  }
+}
+
 behavior "regexp_issue_labeler" "panic_label" {
     regexp = "panic:"
     labels = ["crash", "bug"]
