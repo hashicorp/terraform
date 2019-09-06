@@ -1,4 +1,8 @@
 ## 0.12.9 (Unreleased)
+
+BUG FIXES:
+* command/console: support -var and -var-file flags [GH-22145]
+
 ## 0.12.8 (September 04, 2019)
 
 NEW FEATURES:
