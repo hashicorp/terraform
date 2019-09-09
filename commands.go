@@ -4,13 +4,15 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/mitchellh/cli"
+
 	"github.com/hashicorp/terraform/command"
+	"github.com/hashicorp/terraform/command/cliconfig"
 	"github.com/hashicorp/terraform/command/webbrowser"
 	pluginDiscovery "github.com/hashicorp/terraform/plugin/discovery"
 	"github.com/hashicorp/terraform/svchost"
 	"github.com/hashicorp/terraform/svchost/auth"
 	"github.com/hashicorp/terraform/svchost/disco"
-	"github.com/mitchellh/cli"
 )
 
 // runningInAutomationEnvName gives the name of an environment variable that
@@ -51,7 +53,7 @@ func initCommands(config *Config, services *disco.Disco) {
 		services.ForceHostServices(host, hostConfig.Services)
 	}
 
-	configDir, err := ConfigDir()
+	configDir, err := cliconfig.ConfigDir()
 	if err != nil {
 		configDir = "" // No config dir available (e.g. looking up a home directory failed)
 	}
