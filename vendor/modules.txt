@@ -70,7 +70,7 @@ github.com/aliyun/aliyun-tablestore-go-sdk/tablestore/search
 github.com/antchfx/xpath
 # github.com/antchfx/xquery v0.0.0-20180515051857-ad5b8c7a47b0
 github.com/antchfx/xquery/xml
-# github.com/apparentlymart/go-cidr v1.0.0
+# github.com/apparentlymart/go-cidr v1.0.1
 github.com/apparentlymart/go-cidr/cidr
 # github.com/apparentlymart/go-dump v0.0.0-20190214190832-042adf3cf4a0
 github.com/apparentlymart/go-dump/dump
