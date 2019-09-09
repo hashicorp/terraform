@@ -437,6 +437,8 @@ github.com/nu7hatch/gouuid
 github.com/oklog/run
 # github.com/packer-community/winrmcp v0.0.0-20180102160824-81144009af58
 github.com/packer-community/winrmcp/winrmcp
+# github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4
+github.com/pkg/browser
 # github.com/pkg/errors v0.8.0
 github.com/pkg/errors
 # github.com/posener/complete v1.2.1

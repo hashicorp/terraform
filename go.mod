@@ -103,6 +103,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/packer-community/winrmcp v0.0.0-20180102160824-81144009af58
 	github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c // indirect
+	github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4
 	github.com/pkg/errors v0.8.0
 	github.com/posener/complete v1.2.1
 	github.com/prometheus/client_golang v0.9.3-0.20190127221311-3c4408c8b829 // indirect
