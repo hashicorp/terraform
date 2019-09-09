@@ -1,11 +1,11 @@
 ## 0.12.9 (Unreleased)
 
 ENHANCEMENTS:
-* plugin/discovery: use new addrs.ProviderType in place of a provider typeName string [GH-22724]
 * provisioners/habitat: `accept_license` argument available to automate accepting the EULA, now required by this client
 
 BUG FIXES:
 * command/console: support -var and -var-file flags [GH-22145]
+* config: The `cidrhost`, `cidrsubnet`, and `cidrnetmask` functions now behave correctly with IPv6 prefixes that are short enough for the host portion to be greater than 64-bit or 32-bit (depending on the target architecture). [GH-22505]
 
 ## 0.12.8 (September 04, 2019)
 
