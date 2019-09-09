@@ -44,7 +44,7 @@ func Subnet(base *net.IPNet, newBits int, num int) (*net.IPNet, error) {
 	}
 
 	return &net.IPNet{
-		IP:   insertNumIntoIP(ip, num, newPrefixLen),
+		IP:   insertNumIntoIP(ip, big.NewInt(int64(num)), newPrefixLen),
 		Mask: net.CIDRMask(newPrefixLen, addrLen),
 	}, nil
 }
@@ -56,19 +56,23 @@ func Subnet(base *net.IPNet, newBits int, num int) (*net.IPNet, error) {
 func Host(base *net.IPNet, num int) (net.IP, error) {
 	ip := base.IP
 	mask := base.Mask
+	bigNum := big.NewInt(int64(num))
 
 	parentLen, addrLen := mask.Size()
 	hostLen := addrLen - parentLen
 
-	maxHostNum := uint64(1<<uint64(hostLen)) - 1
+	maxHostNum := big.NewInt(int64(1))
+	maxHostNum.Lsh(maxHostNum, uint(hostLen))
+	maxHostNum.Sub(maxHostNum, big.NewInt(1))
 
-	numUint64 := uint64(num)
-	if num < 0 {
-		numUint64 = uint64(-num) - 1
-		num = int(maxHostNum - numUint64)
+	numUint64 := big.NewInt(int64(bigNum.Uint64()))
+	if bigNum.Cmp(big.NewInt(0)) == -1 {
+		numUint64.Neg(bigNum)
+		numUint64.Sub(numUint64, big.NewInt(int64(1)))
+		bigNum.Sub(maxHostNum, numUint64)
 	}
 
-	if numUint64 > maxHostNum {
+	if numUint64.Cmp(maxHostNum) == 1 {
 		return nil, fmt.Errorf("prefix of %d does not accommodate a host numbered %d", parentLen, num)
 	}
 	var bitlength int
@@ -77,7 +81,7 @@ func Host(base *net.IPNet, num int) (net.IP, error) {
 	} else {
 		bitlength = 128
 	}
-	return insertNumIntoIP(ip, num, bitlength), nil
+	return insertNumIntoIP(ip, bigNum, bitlength), nil
 }
 
 // AddressRange returns the first and last addresses in the given CIDR range.
@@ -129,7 +133,11 @@ func VerifyNoOverlap(subnets []*net.IPNet, CIDRBlock *net.IPNet) error {
 		if !CIDRBlock.Contains(firstLastIP[i][0]) || !CIDRBlock.Contains(firstLastIP[i][1]) {
 			return fmt.Errorf("%s does not fully contain %s", CIDRBlock.String(), s.String())
 		}
-		for j := i + 1; j < len(subnets); j++ {
+		for j := 0; j < len(subnets); j++ {
+			if i == j {
+				continue
+			}
+
 			first := firstLastIP[j][0]
 			last := firstLastIP[j][1]
 			if s.Contains(first) || s.Contains(last) {
