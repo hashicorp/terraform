@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl/v2"
 )
 
 // TestParseLoadConfigFileSuccess is a simple test that just verifies that

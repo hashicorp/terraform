@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform-config-inspect/tfconfig"
 	"github.com/posener/complete"
 	"github.com/zclconf/go-cty/cty"
