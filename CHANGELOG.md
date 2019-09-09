@@ -1,6 +1,7 @@
 ## 0.12.9 (Unreleased)
 
 ENHANCEMENTS:
+* plugin/discovery: use new addrs.ProviderType in place of a provider typeName string [GH-22724]
 * provisioners/habitat: `accept_license` argument available to automate accepting the EULA, now required by this client
 
 BUG FIXES:
