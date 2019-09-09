@@ -334,18 +334,25 @@ github.com/hashicorp/hcl/hcl/scanner
 github.com/hashicorp/hcl/hcl/strconv
 github.com/hashicorp/hcl/json/scanner
 github.com/hashicorp/hcl/json/token
+# github.com/hashicorp/hcl/v2 v2.0.0
+github.com/hashicorp/hcl/v2
+github.com/hashicorp/hcl/v2/hclsyntax
+github.com/hashicorp/hcl/v2/hcldec
+github.com/hashicorp/hcl/v2/hclwrite
+github.com/hashicorp/hcl/v2/json
+github.com/hashicorp/hcl/v2/hcled
+github.com/hashicorp/hcl/v2/hclparse
+github.com/hashicorp/hcl/v2/gohcl
+github.com/hashicorp/hcl/v2/ext/typeexpr
+github.com/hashicorp/hcl/v2/ext/dynblock
+github.com/hashicorp/hcl/v2/hcltest
 # github.com/hashicorp/hcl2 v0.0.0-20190821123243-0c888d1241f6
+github.com/hashicorp/hcl2/gohcl
 github.com/hashicorp/hcl2/hcl
 github.com/hashicorp/hcl2/hcl/hclsyntax
-github.com/hashicorp/hcl2/hcldec
-github.com/hashicorp/hcl2/hcl/json
-github.com/hashicorp/hcl2/hclwrite
-github.com/hashicorp/hcl2/hcled
 github.com/hashicorp/hcl2/hclparse
-github.com/hashicorp/hcl2/gohcl
-github.com/hashicorp/hcl2/ext/typeexpr
-github.com/hashicorp/hcl2/ext/dynblock
-github.com/hashicorp/hcl2/hcltest
+github.com/hashicorp/hcl2/hclwrite
+github.com/hashicorp/hcl2/hcl/json
 # github.com/hashicorp/hil v0.0.0-20190212112733-ab17b08d6590
 github.com/hashicorp/hil
 github.com/hashicorp/hil/ast
@@ -469,7 +476,7 @@ github.com/vmihailenco/msgpack/codes
 github.com/xanzy/ssh-agent
 # github.com/xlab/treeprint v0.0.0-20161029104018-1d6e34225557
 github.com/xlab/treeprint
-# github.com/zclconf/go-cty v1.0.1-0.20190708163926-19588f92a98f
+# github.com/zclconf/go-cty v1.1.0
 github.com/zclconf/go-cty/cty
 github.com/zclconf/go-cty/cty/gocty
 github.com/zclconf/go-cty/cty/convert
@@ -532,8 +539,8 @@ golang.org/x/net/html
 golang.org/x/net/http/httpguts
 golang.org/x/net/html/atom
 # golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
-golang.org/x/oauth2/jwt
 golang.org/x/oauth2
+golang.org/x/oauth2/jwt
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/google

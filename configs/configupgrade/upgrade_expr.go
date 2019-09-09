@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	hcl2 "github.com/hashicorp/hcl2/hcl"
-	hcl2syntax "github.com/hashicorp/hcl2/hcl/hclsyntax"
+	hcl2 "github.com/hashicorp/hcl/v2"
+	hcl2syntax "github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 
 	hcl1ast "github.com/hashicorp/hcl/hcl/ast"

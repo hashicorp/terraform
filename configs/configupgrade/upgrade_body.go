@@ -11,8 +11,8 @@ import (
 
 	hcl1ast "github.com/hashicorp/hcl/hcl/ast"
 	hcl1token "github.com/hashicorp/hcl/hcl/token"
-	hcl2 "github.com/hashicorp/hcl2/hcl"
-	hcl2syntax "github.com/hashicorp/hcl2/hcl/hclsyntax"
+	hcl2 "github.com/hashicorp/hcl/v2"
+	hcl2syntax "github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/lang/blocktoattr"
 	"github.com/hashicorp/terraform/registry/regsrc"

@@ -7,8 +7,8 @@ import (
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/tfdiags"
 
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcltest"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hcltest"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/zclconf/go-cty/cty"
 )

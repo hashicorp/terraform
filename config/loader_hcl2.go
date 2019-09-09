@@ -5,9 +5,9 @@ import (
 	"sort"
 	"strings"
 
-	gohcl2 "github.com/hashicorp/hcl2/gohcl"
-	hcl2 "github.com/hashicorp/hcl2/hcl"
-	hcl2parse "github.com/hashicorp/hcl2/hclparse"
+	hcl2 "github.com/hashicorp/hcl/v2"
+	gohcl2 "github.com/hashicorp/hcl/v2/gohcl"
+	hcl2parse "github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/zclconf/go-cty/cty"
 )

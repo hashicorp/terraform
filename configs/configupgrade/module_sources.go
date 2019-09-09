@@ -11,8 +11,8 @@ import (
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/tfdiags"
 
-	"github.com/hashicorp/hcl2/hcl"
-	hcl2syntax "github.com/hashicorp/hcl2/hcl/hclsyntax"
+	"github.com/hashicorp/hcl/v2"
+	hcl2syntax "github.com/hashicorp/hcl/v2/hclsyntax"
 
 	version "github.com/hashicorp/go-version"
 )

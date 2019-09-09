@@ -5,8 +5,8 @@ import (
 
 	"github.com/hashicorp/terraform/tfdiags"
 
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 )
 
 // ProviderConfig is the address of a provider configuration.
