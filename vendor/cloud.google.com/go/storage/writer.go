@@ -117,10 +117,14 @@ func (w *Writer) open() error {
 		if w.MD5 != nil {
 			rawObj.Md5Hash = base64.StdEncoding.EncodeToString(w.MD5)
 		}
+		if w.o.c.envHost != "" {
+			w.o.c.raw.BasePath = fmt.Sprintf("%s://%s", w.o.c.scheme, w.o.c.envHost)
+		}
 		call := w.o.c.raw.Objects.Insert(w.o.bucket, rawObj).
 			Media(pr, mediaOpts...).
 			Projection("full").
 			Context(w.ctx)
+
 		if w.ProgressFunc != nil {
 			call.ProgressUpdater(func(n, _ int64) { w.ProgressFunc(n) })
 		}
@@ -144,21 +148,16 @@ func (w *Writer) open() error {
 				call.UserProject(w.o.userProject)
 			}
 			setClientHeader(call.Header())
-			// If the chunk size is zero, then no chunking is done on the Reader,
-			// which means we cannot retry: the first call will read the data, and if
-			// it fails, there is no way to re-read.
-			if w.ChunkSize == 0 {
-				resp, err = call.Do()
-			} else {
-				// We will only retry here if the initial POST, which obtains a URI for
-				// the resumable upload, fails with a retryable error. The upload itself
-				// has its own retry logic.
-				err = runWithRetry(w.ctx, func() error {
-					var err2 error
-					resp, err2 = call.Do()
-					return err2
-				})
-			}
+
+			// The internals that perform call.Do automatically retry
+			// uploading chunks, hence no need to add retries here.
+			// See issue https://github.com/googleapis/google-cloud-go/issues/1507.
+			//
+			// However, since this whole call's internals involve making the initial
+			// resumable upload session, the first HTTP request is not retried.
+			// TODO: Follow-up with google.golang.org/gensupport to solve
+			// https://github.com/googleapis/google-api-go-client/issues/392.
+			resp, err = call.Do()
 		}
 		if err != nil {
 			w.mu.Lock()
@@ -227,7 +226,7 @@ func (w *Writer) Close() error {
 }
 
 // monitorCancel is intended to be used as a background goroutine. It monitors the
-// the context, and when it observes that the context has been canceled, it manually
+// context, and when it observes that the context has been canceled, it manually
 // closes things that do not take a context.
 func (w *Writer) monitorCancel() {
 	select {
