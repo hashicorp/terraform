@@ -64,6 +64,12 @@ func evaluateResourceForEachExpressionKnown(expr hcl.Expression, ctx EvalContext
 		return nil, true, diags
 	}
 
+	// If the map is empty ({}), return an empty map, because cty will return nil when representing {} AsValueMap
+	// This also covers an empty set (toset([]))
+	if forEachVal.LengthInt() == 0 {
+		return map[string]cty.Value{}, true, diags
+	}
+
 	if forEachVal.Type().IsSetType() {
 		if forEachVal.Type().ElementType() != cty.String {
 			diags = diags.Append(&hcl.Diagnostic{
@@ -82,11 +88,6 @@ func evaluateResourceForEachExpressionKnown(expr hcl.Expression, ctx EvalContext
 		if !forEachVal.IsWhollyKnown() {
 			return map[string]cty.Value{}, false, diags
 		}
-	}
-
-	// If the map is empty ({}), return an empty map, because cty will return nil when representing {} AsValueMap
-	if forEachVal.LengthInt() == 0 {
-		return map[string]cty.Value{}, true, diags
 	}
 
 	return forEachVal.AsValueMap(), true, nil
