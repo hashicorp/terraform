@@ -10,7 +10,7 @@ type authMethod interface {
 
 	isApplicable(b Builder) bool
 
-	getAuthorizationToken(sender autorest.Sender, oauthConfig *adal.OAuthConfig, endpoint string) (*autorest.BearerAuthorizer, error)
+	getAuthorizationToken(oauthConfig *adal.OAuthConfig, endpoint string) (*autorest.BearerAuthorizer, error)
 
 	name() string
 

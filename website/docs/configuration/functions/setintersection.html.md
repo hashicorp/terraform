@@ -38,7 +38,7 @@ the ordering of the given elements is not preserved.
 
 * [`contains`](./contains.html) tests whether a given list or set contains
   a given element value.
-* [`setproduct`](./setproduct.html) computes the _cartesian product_ of multiple
+* [`setproduct`](./setproduct.html) computes the _Cartesian product_ of multiple
   sets.
 * [`setunion`](./setunion.html) computes the _union_ of
   multiple sets.

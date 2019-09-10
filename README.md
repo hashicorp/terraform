@@ -157,10 +157,10 @@ _Note: Cross-compilation uses [gox](https://github.com/mitchellh/gox), which req
 
 When using docker you don't need to have any of the Go development tools installed and you can clone terraform to any location on disk (doesn't have to be in your $GOPATH).  This is useful for users who want to build `master` or a specific branch for testing without setting up a proper Go environment.
 
-For example, run the following command to build terraform in a linux-based container for macOS.
+For example, run the following command to install the required tools and build terraform in a linux-based container for macOS.
 
 ```sh
-docker run --rm -v $(pwd):/go/src/github.com/hashicorp/terraform -w /go/src/github.com/hashicorp/terraform -e XC_OS=darwin -e XC_ARCH=amd64 golang:latest bash -c "apt-get update && apt-get install -y zip && make bin"
+docker run --rm -v $(pwd):/go/src/github.com/hashicorp/terraform -w /go/src/github.com/hashicorp/terraform -e XC_OS=darwin -e XC_ARCH=amd64 golang:latest bash -c "apt-get update && apt-get install -y zip && make tools bin"
 ```
 
 

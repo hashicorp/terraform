@@ -33,7 +33,6 @@ type Builder struct {
 	// Service Principal (Client Secret) Auth
 	SupportsClientSecretAuth bool
 	ClientSecret             string
-	ClientSecretDocsLink     string
 }
 
 // Build takes the configuration from the Builder and builds up a validated Config

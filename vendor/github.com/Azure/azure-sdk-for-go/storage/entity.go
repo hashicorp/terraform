@@ -27,7 +27,7 @@ import (
 	"strings"
 	"time"
 
-	uuid "github.com/satori/go.uuid"
+	"github.com/satori/go.uuid"
 )
 
 // Annotating as secure for gas scanning
@@ -257,9 +257,6 @@ func (e *Entity) MarshalJSON() ([]byte, error) {
 		case int64:
 			completeMap[typeKey] = OdataInt64
 			completeMap[k] = fmt.Sprintf("%v", v)
-		case float32, float64:
-			completeMap[typeKey] = OdataDouble
-			completeMap[k] = fmt.Sprintf("%v", v)
 		default:
 			completeMap[k] = v
 		}
@@ -267,8 +264,7 @@ func (e *Entity) MarshalJSON() ([]byte, error) {
 			if !(completeMap[k] == OdataBinary ||
 				completeMap[k] == OdataDateTime ||
 				completeMap[k] == OdataGUID ||
-				completeMap[k] == OdataInt64 ||
-				completeMap[k] == OdataDouble) {
+				completeMap[k] == OdataInt64) {
 				return nil, fmt.Errorf("Odata.type annotation %v value is not valid", k)
 			}
 			valueKey := strings.TrimSuffix(k, OdataTypeSuffix)
@@ -343,12 +339,6 @@ func (e *Entity) UnmarshalJSON(data []byte) error {
 					return fmt.Errorf(errorTemplate, err)
 				}
 				props[valueKey] = i
-			case OdataDouble:
-				f, err := strconv.ParseFloat(str, 64)
-				if err != nil {
-					return fmt.Errorf(errorTemplate, err)
-				}
-				props[valueKey] = f
 			default:
 				return fmt.Errorf(errorTemplate, fmt.Sprintf("%v is not supported", v))
 			}

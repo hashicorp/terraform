@@ -50,3 +50,8 @@ func homeDir() (string, error) {
 
 	return user.HomeDir, nil
 }
+
+func replaceFileAtomic(source, destination string) error {
+	// On Unix systems, a rename is sufficiently atomic.
+	return os.Rename(source, destination)
+}

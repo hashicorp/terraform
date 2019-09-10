@@ -19,7 +19,7 @@ func evaluateResourceForEachExpression(expr hcl.Expression, ctx EvalContext) (fo
 		// Attach a diag as we do with count, with the same downsides
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Invalid forEach argument",
+			Summary:  "Invalid for_each argument",
 			Detail:   `The "for_each" value depends on resource attributes that cannot be determined until apply, so Terraform cannot predict how many instances will be created. To work around this, use the -target argument to first apply only the resources that the for_each depends on.`,
 		})
 	}
@@ -73,6 +73,14 @@ func evaluateResourceForEachExpressionKnown(expr hcl.Expression, ctx EvalContext
 				Subject:  expr.Range().Ptr(),
 			})
 			return nil, true, diags
+		}
+
+		// A set may contain unknown values that must be
+		// discovered by checking with IsWhollyKnown (which iterates through the
+		// structure), while for maps in cty, keys can never be unknown or null,
+		// thus the earlier IsKnown check suffices for maps
+		if !forEachVal.IsWhollyKnown() {
+			return map[string]cty.Value{}, false, diags
 		}
 	}
 

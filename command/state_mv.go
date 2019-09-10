@@ -36,7 +36,8 @@ func (c *StateMvCommand) Run(args []string) int {
 	cmdFlags.StringVar(&c.statePath, "state", "", "path")
 	cmdFlags.StringVar(&statePathOut, "state-out", "", "path")
 	if err := cmdFlags.Parse(args); err != nil {
-		return cli.RunResultHelp
+		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+		return 1
 	}
 	args = cmdFlags.Args()
 	if len(args) != 2 {

@@ -154,7 +154,7 @@ commentary for module maintainers, use comments.
 When variables are declared in the root module of your configuration, they
 can be set in a number of ways:
 
-* [In a Terraform Enterprise workspace](/docs/enterprise/workspaces/variables.html).
+* [In a Terraform Cloud workspace](/docs/cloud/workspaces/variables.html).
 * Individually, with the `-var` command line option.
 * In variable definitions (`.tfvars`) files, either specified on the command line
   or automatically loaded.
@@ -189,8 +189,8 @@ or `.tfvars.json`) and then specify that file on the command line with
 terraform apply -var-file="testing.tfvars"
 ```
 
--> **Note:** This is how Terraform Enterprise passes
-[workspace variables](/docs/enterprise/workspaces/variables.html) to Terraform.
+-> **Note:** This is how Terraform Cloud passes
+[workspace variables](/docs/cloud/workspaces/variables.html) to Terraform.
 
 A variable definitions file uses the same basic syntax as Terraform language
 files, but consists only of variable name assignments:
@@ -271,7 +271,8 @@ recommend always setting complex variable values via variable definitions files.
 
 The above mechanisms for setting variables can be used together in any
 combination. If the same variable is assigned multiple values, Terraform uses
-the _last_ value it finds, overriding any previous values.
+the _last_ value it finds, overriding any previous values. Note that the same
+variable cannot be assigned multiple values within a single source.
 
 Terraform loads variables in the following order, with later sources taking
 precedence over earlier ones:
@@ -282,7 +283,7 @@ precedence over earlier ones:
 * Any `*.auto.tfvars` or `*.auto.tfvars.json` files, processed in lexical order
   of their filenames.
 * Any `-var` and `-var-file` options on the command line, in the order they
-  are provided. (This includes variables set by a Terraform Enterprise
+  are provided. (This includes variables set by a Terraform Cloud
   workspace.)
 
 ~> **Important:** In Terraform 0.12 and later, variables with map and object

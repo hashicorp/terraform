@@ -85,7 +85,7 @@ community.
 
 You can also use a
 [private registry](/docs/registry/private.html), either
-via the built-in feature from Terraform Enterprise, or by running a custom
+via the built-in feature from Terraform Cloud, or by running a custom
 service that implements
 [the module registry protocol](/docs/registry/api.html).
 
@@ -115,10 +115,10 @@ module "consul" {
 }
 ```
 
-If you are using the managed version of Terraform Enterprise, its private
-registry hostname is `app.terraform.io`. If you are using Terraform Enterprise
-on-premises, its private registry hostname is the same hostname you use to
-access your Terraform Enterprise instance.
+If you are using the SaaS version of Terraform Cloud, its private
+registry hostname is `app.terraform.io`. If you are using a Terraform Enterprise
+instance, its private registry hostname is the same hostname you use to
+access the Terraform Cloud application.
 
 Registry modules support versioning. You can provide a specific version as shown
 in the above examples, or use flexible
@@ -130,7 +130,7 @@ You can learn more about the registry at the
 To access modules from a private registry, you may need to configure an access
 token [in the CLI config](/docs/commands/cli-config.html#credentials). Use the
 same hostname as used in the module source string. For a private registry
-within Terraform Enterprise, use the same authentication token as you would
+within Terraform Cloud, use the same authentication token as you would
 use with the Enterprise API or command-line clients.
 
 ## GitHub
@@ -213,9 +213,9 @@ username/password credentials, configure
 [Git Credentials Storage](https://git-scm.com/book/en/v2/Git-Tools-Credential-Storage)
 to select a suitable source of credentials for your environment.
 
-If your Terraform configuration will be used within [Terraform Enterprise](https://www.hashicorp.com/products/terraform),
+If your Terraform configuration will be used within [Terraform Cloud](https://www.hashicorp.com/products/terraform),
 only SSH key authentication is supported, and
-[keys can be configured on a per-workspace basis](/docs/enterprise/workspaces/ssh-keys.html).
+[keys can be configured on a per-workspace basis](/docs/cloud/workspaces/ssh-keys.html).
 
 ### Selecting a Revision
 
@@ -275,9 +275,9 @@ automatically. This is the most common way to access non-public Mercurial
 repositories from automated systems because it is easy to configure
 and allows access to private repositories without interactive prompts.
 
-If your Terraform configuration will be used within [Terraform Enterprise](https://www.hashicorp.com/products/terraform),
+If your Terraform configuration will be used within [Terraform Cloud](https://www.hashicorp.com/products/terraform),
 only SSH key authentication is supported, and
-[keys can be configured on a per-workspace basis](/docs/enterprise/workspaces/ssh-keys.html).
+[keys can be configured on a per-workspace basis](/docs/cloud/workspaces/ssh-keys.html).
 
 ### Selecting a Revision
 

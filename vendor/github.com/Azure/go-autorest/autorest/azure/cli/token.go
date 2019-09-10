@@ -15,13 +15,9 @@ package cli
 //  limitations under the License.
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
-	"regexp"
-	"runtime"
 	"strconv"
 	"time"
 
@@ -58,7 +54,7 @@ func (t Token) ToADALToken() (converted adal.Token, err error) {
 		AccessToken:  t.AccessToken,
 		Type:         t.TokenType,
 		ExpiresIn:    "3600",
-		ExpiresOn:    json.Number(strconv.Itoa(int(difference.Seconds()))),
+		ExpiresOn:    strconv.Itoa(int(difference.Seconds())),
 		RefreshToken: t.RefreshToken,
 		Resource:     t.Resource,
 	}
@@ -115,56 +111,4 @@ func LoadTokens(path string) ([]Token, error) {
 	}
 
 	return tokens, nil
-}
-
-// GetTokenFromCLI gets a token using Azure CLI 2.0 for local development scenarios.
-func GetTokenFromCLI(resource string) (*Token, error) {
-	// This is the path that a developer can set to tell this class what the install path for Azure CLI is.
-	const azureCLIPath = "AzureCLIPath"
-
-	// The default install paths are used to find Azure CLI. This is for security, so that any path in the calling program's Path environment is not used to execute Azure CLI.
-	azureCLIDefaultPathWindows := fmt.Sprintf("%s\\Microsoft SDKs\\Azure\\CLI2\\wbin; %s\\Microsoft SDKs\\Azure\\CLI2\\wbin", os.Getenv("ProgramFiles(x86)"), os.Getenv("ProgramFiles"))
-
-	// Default path for non-Windows.
-	const azureCLIDefaultPath = "/bin:/sbin:/usr/bin:/usr/local/bin"
-
-	// Validate resource, since it gets sent as a command line argument to Azure CLI
-	const invalidResourceErrorTemplate = "Resource %s is not in expected format. Only alphanumeric characters, [dot], [colon], [hyphen], and [forward slash] are allowed."
-	match, err := regexp.MatchString("^[0-9a-zA-Z-.:/]+$", resource)
-	if err != nil {
-		return nil, err
-	}
-	if !match {
-		return nil, fmt.Errorf(invalidResourceErrorTemplate, resource)
-	}
-
-	// Execute Azure CLI to get token
-	var cliCmd *exec.Cmd
-	if runtime.GOOS == "windows" {
-		cliCmd = exec.Command(fmt.Sprintf("%s\\system32\\cmd.exe", os.Getenv("windir")))
-		cliCmd.Env = os.Environ()
-		cliCmd.Env = append(cliCmd.Env, fmt.Sprintf("PATH=%s;%s", os.Getenv(azureCLIPath), azureCLIDefaultPathWindows))
-		cliCmd.Args = append(cliCmd.Args, "/c", "az")
-	} else {
-		cliCmd = exec.Command("az")
-		cliCmd.Env = os.Environ()
-		cliCmd.Env = append(cliCmd.Env, fmt.Sprintf("PATH=%s:%s", os.Getenv(azureCLIPath), azureCLIDefaultPath))
-	}
-	cliCmd.Args = append(cliCmd.Args, "account", "get-access-token", "-o", "json", "--resource", resource)
-
-	var stderr bytes.Buffer
-	cliCmd.Stderr = &stderr
-
-	output, err := cliCmd.Output()
-	if err != nil {
-		return nil, fmt.Errorf("Invoking Azure CLI failed with the following error: %s", stderr.String())
-	}
-
-	tokenResponse := Token{}
-	err = json.Unmarshal(output, &tokenResponse)
-	if err != nil {
-		return nil, err
-	}
-
-	return &tokenResponse, err
 }

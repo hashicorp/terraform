@@ -13,8 +13,8 @@ as physical machines, VMs, network switches, containers, and more. Almost any
 infrastructure type can be represented as a resource in Terraform.
 
 A provider is responsible for understanding API interactions and exposing
-resources. Providers generally are an IaaS (e.g. AWS, GCP, Microsoft Azure,
-OpenStack), PaaS (e.g. Heroku), or SaaS services (e.g. Terraform Enterprise,
+resources. Providers generally are an IaaS (e.g. Alibaba Cloud, AWS, GCP, Microsoft Azure,
+OpenStack), PaaS (e.g. Heroku), or SaaS services (e.g. Terraform Cloud,
 DNSimple, CloudFlare).
 
 Use the navigation to the left to find available providers by type or scroll
@@ -29,6 +29,7 @@ down to see all providers.
 - [Archive](/docs/providers/archive/index.html)
 - [Arukas](/docs/providers/arukas/index.html)
 - [Avi Vantage](/docs/providers/avi/index.html)
+- [Aviatrix](/docs/providers/aviatrix/index.html)
 - [AWS](/docs/providers/aws/index.html)
 - [Azure](/docs/providers/azurerm/index.html)
 - [Azure Active Directory](/docs/providers/azuread/index.html)
@@ -80,6 +81,7 @@ down to see all providers.
 - [Logentries](/docs/providers/logentries/index.html)
 - [LogicMonitor](/docs/providers/logicmonitor/index.html)
 - [Mailgun](/docs/providers/mailgun/index.html)
+- [MongoDB Atlas](/docs/providers/mongodbatlas/index.html)
 - [MySQL](/docs/providers/mysql/index.html)
 - [Naver Cloud](/docs/providers/ncloud/index.html)
 - [Netlify](/docs/providers/netlify/index.html)
@@ -120,7 +122,7 @@ down to see all providers.
 - [Template](/docs/providers/template/index.html)
 - [TencentCloud](/docs/providers/tencentcloud/index.html)
 - [Terraform](/docs/providers/terraform/index.html)
-- [Terraform Enterprise](/docs/providers/tfe/index.html)
+- [Terraform Cloud](/docs/providers/tfe/index.html)
 - [TLS](/docs/providers/tls/index.html)
 - [Triton](/docs/providers/triton/index.html)
 - [UCloud](/docs/providers/ucloud/index.html)

@@ -31,5 +31,5 @@ and are tested by HashiCorp.
 - [Rundeck](/docs/providers/rundeck/index.html)
 - [Spotinst](/docs/providers/spotinst/index.html)
 - [Terraform](/docs/providers/terraform/index.html)
-- [Terraform Enterprise](/docs/providers/tfe/index.html)
+- [Terraform Cloud](/docs/providers/tfe/index.html)
 - [Vault](/docs/providers/vault/index.html)

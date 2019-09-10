@@ -279,6 +279,37 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"fileset": {
+			{
+				`fileset(".", "*/hello.*")`,
+				cty.SetVal([]cty.Value{
+					cty.StringVal("subdirectory/hello.tmpl"),
+					cty.StringVal("subdirectory/hello.txt"),
+				}),
+			},
+			{
+				`fileset(".", "subdirectory/hello.*")`,
+				cty.SetVal([]cty.Value{
+					cty.StringVal("subdirectory/hello.tmpl"),
+					cty.StringVal("subdirectory/hello.txt"),
+				}),
+			},
+			{
+				`fileset(".", "hello.*")`,
+				cty.SetVal([]cty.Value{
+					cty.StringVal("hello.tmpl"),
+					cty.StringVal("hello.txt"),
+				}),
+			},
+			{
+				`fileset("subdirectory", "hello.*")`,
+				cty.SetVal([]cty.Value{
+					cty.StringVal("hello.tmpl"),
+					cty.StringVal("hello.txt"),
+				}),
+			},
+		},
+
 		"filebase64": {
 			{
 				`filebase64("hello.txt")`,

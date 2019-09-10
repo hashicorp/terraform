@@ -10,6 +10,7 @@ import (
 )
 
 type Terminal struct {
+	m         sync.Mutex
 	cfg       *Config
 	outchan   chan rune
 	closed    int32
@@ -62,6 +63,12 @@ func (t *Terminal) ExitRawMode() (err error) {
 
 func (t *Terminal) Write(b []byte) (int, error) {
 	return t.cfg.Stdout.Write(b)
+}
+
+// WriteStdin prefill the next Stdin fetch
+// Next time you call ReadLine() this value will be writen before the user input
+func (t *Terminal) WriteStdin(b []byte) (int, error) {
+	return t.cfg.StdinWriter.Write(b)
 }
 
 type termSize struct {
@@ -121,7 +128,7 @@ func (t *Terminal) ioloop() {
 		expectNextChar bool
 	)
 
-	buf := bufio.NewReader(t.cfg.Stdin)
+	buf := bufio.NewReader(t.getStdin())
 	for {
 		if !expectNextChar {
 			atomic.StoreInt32(&t.isReading, 0)
@@ -206,10 +213,26 @@ func (t *Terminal) Close() error {
 	return t.ExitRawMode()
 }
 
+func (t *Terminal) GetConfig() *Config {
+	t.m.Lock()
+	cfg := *t.cfg
+	t.m.Unlock()
+	return &cfg
+}
+
+func (t *Terminal) getStdin() io.Reader {
+	t.m.Lock()
+	r := t.cfg.Stdin
+	t.m.Unlock()
+	return r
+}
+
 func (t *Terminal) SetConfig(c *Config) error {
 	if err := c.Init(); err != nil {
 		return err
 	}
+	t.m.Lock()
 	t.cfg = c
+	t.m.Unlock()
 	return nil
 }
