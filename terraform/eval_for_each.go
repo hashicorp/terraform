@@ -21,6 +21,7 @@ func evaluateResourceForEachExpression(expr hcl.Expression, ctx EvalContext) (fo
 			Severity: hcl.DiagError,
 			Summary:  "Invalid for_each argument",
 			Detail:   `The "for_each" value depends on resource attributes that cannot be determined until apply, so Terraform cannot predict how many instances will be created. To work around this, use the -target argument to first apply only the resources that the for_each depends on.`,
+			Subject:  expr.Range().Ptr(),
 		})
 	}
 	return forEachMap, diags
