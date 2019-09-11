@@ -1,5 +1,8 @@
 ## 0.12.9 (Unreleased)
 
+NOTES:
+* core: `ignore_changes` is now processed (in addition to existing behaviors) before the provider plan is run. This means that if users may see fewer changes when using this setting, as before this change, changes to ignored attributes were still being sent to CustomizeDiff in providers. Users who see unexpected non-changes should examine their `ignore_changes` settings to ensure they are as they expect. [GH-22520]
+
 ENHANCEMENTS:
 * provisioners/habitat: `accept_license` argument available to automate accepting the EULA, now required by this client [GH-22745]
 * config: add source addressing to unknown value errors in `for_each` [GH-22760]
