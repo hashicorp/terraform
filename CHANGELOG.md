@@ -1,7 +1,7 @@
 ## 0.12.9 (Unreleased)
 
 ENHANCEMENTS:
-* provisioners/habitat: `accept_license` argument available to automate accepting the EULA, now required by this client
+* provisioners/habitat: `accept_license` argument available to automate accepting the EULA, now required by this client [GH-22745]
 * config: add source addressing to unknown value errors in `for_each` [GH-22760]
 
 BUG FIXES:
