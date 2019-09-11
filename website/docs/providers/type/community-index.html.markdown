@@ -83,6 +83,7 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
 - [Keycloak](https://github.com/mrparkers/terraform-provider-keycloak)
 - [Kibana](https://github.com/ewilde/terraform-provider-kibana)
 - [Kong](https://github.com/kevholditch/terraform-provider-kong)
+- [Ksyun](https://github.com/KscSDK/terraform-provider-ksyun)
 - [libvirt](https://github.com/dmacvicar/terraform-provider-libvirt)
 - [Logentries](https://github.com/dikhan/terraform-provider-logentries)
 - [Logz.io](https://github.com/jonboydell/logzio_terraform_provider)
