@@ -76,9 +76,9 @@ func (b *Local) opApply(
 
 		// Perform the plan
 		log.Printf("[INFO] backend/local: apply calling Plan")
-		plan, err := tfCtx.Plan()
-		if err != nil {
-			diags = diags.Append(err)
+		plan, planDiags := tfCtx.Plan()
+		diags = diags.Append(planDiags)
+		if planDiags.HasErrors() {
 			b.ReportResult(runningOp, diags)
 			return
 		}
@@ -110,6 +110,13 @@ func (b *Local) opApply(
 				// Display the plan of what we are going to apply/destroy.
 				b.renderPlan(plan, runningOp.State, tfCtx.Schemas())
 				b.CLI.Output("")
+			}
+
+			// We'll show any accumulated warnings before we display the prompt,
+			// so the user can consider them when deciding how to answer.
+			if len(diags) > 0 {
+				b.ShowDiagnostics(diags)
+				diags = nil // reset so we won't show the same diagnostics again later
 			}
 
 			v, err := op.UIIn.Input(stopCtx, &terraform.InputOpts{

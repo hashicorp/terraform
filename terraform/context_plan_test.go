@@ -4690,9 +4690,18 @@ func TestContext2Plan_outputContainsTargetedResource(t *testing.T) {
 		},
 	})
 
-	_, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("err: %s", diags)
+	}
+	if len(diags) != 1 {
+		t.Fatalf("got %d diagnostics; want 1", diags)
+	}
+	if got, want := diags[0].Severity(), tfdiags.Warning; got != want {
+		t.Errorf("wrong diagnostic severity %#v; want %#v", got, want)
+	}
+	if got, want := diags[0].Description().Summary, "Resource targeting is in effect"; got != want {
+		t.Errorf("wrong diagnostic summary %#v; want %#v", got, want)
 	}
 }
 
