@@ -15,6 +15,7 @@ import (
 	backendRemote "github.com/hashicorp/terraform/backend/remote"
 	backendArtifactory "github.com/hashicorp/terraform/backend/remote-state/artifactory"
 	backendAzure "github.com/hashicorp/terraform/backend/remote-state/azure"
+	backendCmd "github.com/hashicorp/terraform/backend/remote-state/cmd"
 	backendConsul "github.com/hashicorp/terraform/backend/remote-state/consul"
 	backendEtcdv2 "github.com/hashicorp/terraform/backend/remote-state/etcdv2"
 	backendEtcdv3 "github.com/hashicorp/terraform/backend/remote-state/etcdv3"
@@ -67,6 +68,7 @@ func Init(services *disco.Disco) {
 		"pg":          func() backend.Backend { return backendPg.New() },
 		"s3":          func() backend.Backend { return backendS3.New() },
 		"swift":       func() backend.Backend { return backendSwift.New() },
+		"cmd":         func() backend.Backend { return backendCmd.New() },
 
 		// Deprecated backends.
 		"azure": func() backend.Backend {
