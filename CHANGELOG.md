@@ -9,6 +9,7 @@ ENHANCEMENTS:
 
 BUG FIXES:
 * command/console: support -var and -var-file flags [GH-22145]
+* command/show: Fixed bug with wrong errors being returned or swallowed. [GH-22772]
 * config: The `cidrhost`, `cidrsubnet`, and `cidrnetmask` functions now behave correctly with IPv6 prefixes that are short enough for the host portion to be greater than 64-bit or 32-bit (depending on the target architecture). [GH-22505]
 * config: Fixed bug on empty sets with `for_each` [GH-22281]
 
