@@ -351,7 +351,7 @@ func (c *StateMvCommand) Run(args []string) int {
 	if moved == 0 {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Invalid target address",
+			msgInvalidTarget,
 			"No matching objects found. To view the available instances, use \"terraform state list\". Please modify the address to reference a specific instance.",
 		))
 		c.showDiagnostics(diags)
