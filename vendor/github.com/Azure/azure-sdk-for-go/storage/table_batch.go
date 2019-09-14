@@ -25,6 +25,8 @@ import (
 	"net/textproto"
 	"sort"
 	"strings"
+
+	"github.com/marstr/guid"
 )
 
 // Operation type. Insert, Delete, Replace etc.
@@ -130,7 +132,8 @@ func (t *TableBatch) MergeEntity(entity *Entity) {
 // As per document https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/performing-entity-group-transactions
 func (t *TableBatch) ExecuteBatch() error {
 
-	id, err := newUUID()
+	// Using `github.com/marstr/guid` is in response to issue #947 (https://github.com/Azure/azure-sdk-for-go/issues/947).
+	id, err := guid.NewGUIDs(guid.CreationStrategyVersion1)
 	if err != nil {
 		return err
 	}
@@ -142,7 +145,7 @@ func (t *TableBatch) ExecuteBatch() error {
 		return err
 	}
 
-	id, err = newUUID()
+	id, err = guid.NewGUIDs(guid.CreationStrategyVersion1)
 	if err != nil {
 		return err
 	}

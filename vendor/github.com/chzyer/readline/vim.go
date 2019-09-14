@@ -72,6 +72,8 @@ func (o *opVim) handleVimNormalMovement(r rune, readNext func() rune) (t rune, h
 		case 'l':
 			rb.Delete()
 		}
+	case 'p':
+		rb.Yank()
 	case 'b', 'B':
 		rb.MoveToPrevWord()
 	case 'w', 'W':

@@ -1,12 +1,38 @@
+behavior "pull_request_path_labeler" "sdk_cherrypicker" {
+  label_map = {
+    "sdkv1" = [
+      # 1-1 package mapping between core and sdk
+      "helper/**",
+      "httpclient/**",
+      "plugin/**",
+      "terraform/**",
+      "internal/earlyconfig/**",
+      "internal/initwd/**",
+      "internal/modsdir/**",
+      "internal/tfplugin5/**",
+      # these packages have been moved under internal/ in the sdk
+      "addrs/**",
+      "command/format/**",
+      "configs/**",
+      "dag/**",
+      "flatmap/**",
+      "lang/**",
+      "moduledeps/**",
+      "plans/**",
+      "providers/**",
+      "provisioners/**",
+      "registry/**",
+      "states/**",
+      "svchost/**",
+      "tfdiags/**",
+      "version/**"
+    ]
+  }
+}
+
 behavior "regexp_issue_labeler" "panic_label" {
     regexp = "panic:"
     labels = ["crash", "bug"]
-}
-
-behavior "regexp_issue_notifier" "panic_notify" {
-    regexp = "panic:"
-    slack_channel = env.TERRAFORM_SLACK_CHANNEL
-    message = "Panic report! https://github.com/${var.repository}/issues/${var.issue_number} has a panic in it."
 }
 
 behavior "remove_labels_on_reply" "remove_stale" {

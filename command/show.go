@@ -33,6 +33,7 @@ func (c *ShowCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&jsonOutput, "json", false, "produce JSON output")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
 		return 1
 	}
 
@@ -132,8 +133,8 @@ func (c *ShowCommand) Run(args []string) int {
 	} else {
 		env := c.Workspace()
 		stateFile, stateErr = getStateFromEnv(b, env)
-		if err != nil {
-			c.Ui.Error(err.Error())
+		if stateErr != nil {
+			c.Ui.Error(stateErr.Error())
 			return 1
 		}
 	}
@@ -214,7 +215,7 @@ func getPlanFromPath(path string) (*plans.Plan, *statefile.File, error) {
 	}
 
 	stateFile, err := pr.ReadStateFile()
-	return plan, stateFile, nil
+	return plan, stateFile, err
 }
 
 // getStateFromPath returns a statefile if the user-supplied path points to a statefile.

@@ -22,7 +22,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/copystructure"
 	"github.com/mitchellh/mapstructure"
@@ -171,7 +171,7 @@ type Schema struct {
 	// TypeInt, or TypeFloat. Otherwise it may be either a *Schema or a
 	// *Resource. If it is *Schema, the element type is just a simple value.
 	// If it is *Resource, the element type is a complex structure,
-	// potentially with its own lifecycle.
+	// potentially managed via its own CRUD actions on the API.
 	Elem interface{}
 
 	// The following fields are only set for a TypeList or TypeSet.
@@ -762,7 +762,7 @@ func (m schemaMap) internalValidate(topSchemaMap schemaMap, attrsOnly bool) erro
 
 					var ok bool
 					if target, ok = sm[part]; !ok {
-						return fmt.Errorf("%s: ConflictsWith references unknown attribute (%s)", k, key)
+						return fmt.Errorf("%s: ConflictsWith references unknown attribute (%s) at part (%s)", k, key, part)
 					}
 
 					if subResource, ok := target.Elem.(*Resource); ok {

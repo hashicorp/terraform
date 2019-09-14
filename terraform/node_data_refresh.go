@@ -39,6 +39,7 @@ func (n *NodeRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, er
 	}
 
 	forEachMap, forEachKnown, forEachDiags := evaluateResourceForEachExpressionKnown(n.Config.ForEach, ctx)
+	diags = diags.Append(forEachDiags)
 	if forEachDiags.HasErrors() {
 		return nil, diags.Err()
 	}

@@ -18,17 +18,16 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/go-test/deep"
 	"github.com/google/go-cmp/cmp"
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestContext2Apply_basic(t *testing.T) {
@@ -2019,6 +2018,72 @@ aws_instance.foo:
 	`)
 }
 
+// for_each values cannot be used in the provisioner during destroy.
+// There may be a way to handle this, but for now make sure we print an error
+// rather than crashing with an invalid config.
+func TestContext2Apply_provisionerDestroyForEach(t *testing.T) {
+	m := testModule(t, "apply-provisioner-each")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	p.DiffFn = testDiffFn
+	p.ApplyFn = testApplyFn
+
+	s := &states.State{
+		Modules: map[string]*states.Module{
+			"": &states.Module{
+				Resources: map[string]*states.Resource{
+					"aws_instance.bar": &states.Resource{
+						Addr:     addrs.Resource{Mode: 77, Type: "aws_instance", Name: "bar"},
+						EachMode: states.EachMap,
+						Instances: map[addrs.InstanceKey]*states.ResourceInstance{
+							addrs.StringKey("a"): &states.ResourceInstance{
+								Current: &states.ResourceInstanceObjectSrc{
+									AttrsJSON: []byte(`{"foo":"bar","id":"foo"}`),
+								},
+							},
+							addrs.StringKey("b"): &states.ResourceInstance{
+								Current: &states.ResourceInstanceObjectSrc{
+									AttrsJSON: []byte(`{"foo":"bar","id":"foo"}`),
+								},
+							},
+						},
+						ProviderConfig: addrs.AbsProviderConfig{
+							Module:         addrs.ModuleInstance(nil),
+							ProviderConfig: addrs.ProviderConfig{Type: "aws", Alias: ""},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		Provisioners: map[string]ProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+		State:   s,
+		Destroy: true,
+	})
+
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
+	}
+
+	_, diags := ctx.Apply()
+	if diags == nil {
+		t.Fatal("should error")
+	}
+	if !strings.Contains(diags.Err().Error(), `Reference to "each" in context without for_each`) {
+		t.Fatal("unexpected error:", diags.Err())
+	}
+}
+
 func TestContext2Apply_cancelProvisioner(t *testing.T) {
 	m := testModule(t, "apply-cancel-provisioner")
 	p := testProvider("aws")
@@ -2560,6 +2625,41 @@ func TestContext2Apply_provisionerInterpCount(t *testing.T) {
 	// Verify apply was invoked
 	if !pr.ProvisionResourceCalled {
 		t.Fatalf("provisioner was not called")
+	}
+}
+
+func TestContext2Apply_foreachVariable(t *testing.T) {
+	m := testModule(t, "plan-for-each-unknown-value")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		Variables: InputValues{
+			"foo": &InputValue{
+				Value: cty.StringVal("hello"),
+			},
+		},
+	})
+
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
+	}
+
+	state, diags := ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatalf("diags: %s", diags.Err())
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyForEachVariableStr)
+	if actual != expected {
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -3849,33 +3949,33 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 	}
 
 	checkConfig("multi_count_var.0", map[string]interface{}{
-		"source_id":   unknownValue(),
+		"source_id":   hcl2shim.UnknownVariableValue,
 		"source_name": "source.0",
 	})
 	checkConfig("multi_count_var.2", map[string]interface{}{
-		"source_id":   unknownValue(),
+		"source_id":   hcl2shim.UnknownVariableValue,
 		"source_name": "source.2",
 	})
 	checkConfig("multi_count_derived.0", map[string]interface{}{
-		"source_id":   unknownValue(),
+		"source_id":   hcl2shim.UnknownVariableValue,
 		"source_name": "source.0",
 	})
 	checkConfig("multi_count_derived.2", map[string]interface{}{
-		"source_id":   unknownValue(),
+		"source_id":   hcl2shim.UnknownVariableValue,
 		"source_name": "source.2",
 	})
 	checkConfig("whole_splat", map[string]interface{}{
 		"source_ids": []interface{}{
-			unknownValue(),
-			unknownValue(),
-			unknownValue(),
+			hcl2shim.UnknownVariableValue,
+			hcl2shim.UnknownVariableValue,
+			hcl2shim.UnknownVariableValue,
 		},
 		"source_names": []interface{}{
 			"source.0",
 			"source.1",
 			"source.2",
 		},
-		"source_ids_from_func": unknownValue(),
+		"source_ids_from_func": hcl2shim.UnknownVariableValue,
 		"source_names_from_func": []interface{}{
 			"source.0",
 			"source.1",
@@ -3884,9 +3984,9 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 
 		"source_ids_wrapped": []interface{}{
 			[]interface{}{
-				unknownValue(),
-				unknownValue(),
-				unknownValue(),
+				hcl2shim.UnknownVariableValue,
+				hcl2shim.UnknownVariableValue,
+				hcl2shim.UnknownVariableValue,
 			},
 		},
 		"source_names_wrapped": []interface{}{
@@ -3897,14 +3997,14 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 			},
 		},
 
-		"first_source_id":   unknownValue(),
+		"first_source_id":   hcl2shim.UnknownVariableValue,
 		"first_source_name": "source.0",
 	})
 	checkConfig("child.whole_splat", map[string]interface{}{
 		"source_ids": []interface{}{
-			unknownValue(),
-			unknownValue(),
-			unknownValue(),
+			hcl2shim.UnknownVariableValue,
+			hcl2shim.UnknownVariableValue,
+			hcl2shim.UnknownVariableValue,
 		},
 		"source_names": []interface{}{
 			"source.0",
@@ -3914,9 +4014,9 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 
 		"source_ids_wrapped": []interface{}{
 			[]interface{}{
-				unknownValue(),
-				unknownValue(),
-				unknownValue(),
+				hcl2shim.UnknownVariableValue,
+				hcl2shim.UnknownVariableValue,
+				hcl2shim.UnknownVariableValue,
 			},
 		},
 		"source_names_wrapped": []interface{}{
@@ -4938,7 +5038,7 @@ func TestContext2Apply_multiDepose_createBeforeDestroy(t *testing.T) {
 		return &InstanceDiff{
 			Attributes: map[string]*ResourceAttrDiff{
 				"id": {
-					New:         unknownValue(),
+					New:         hcl2shim.UnknownVariableValue,
 					NewComputed: true,
 					RequiresNew: true,
 				},

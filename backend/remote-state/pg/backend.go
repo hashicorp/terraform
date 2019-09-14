@@ -31,6 +31,13 @@ func New() backend.Backend {
 				Description: "Name of the automatically managed Postgres schema to store state",
 				Default:     "terraform_remote_state",
 			},
+
+			"skip_schema_creation": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "If set to `true`, Terraform won't try to create the Postgres schema",
+				Default:     false,
+			},
 		},
 	}
 
@@ -64,9 +71,25 @@ func (b *Backend) configure(ctx context.Context) error {
 
 	// Prepare database schema, tables, & indexes.
 	var query string
-	query = `CREATE SCHEMA IF NOT EXISTS %s`
-	if _, err := db.Exec(fmt.Sprintf(query, b.schemaName)); err != nil {
-		return err
+
+	if !data.Get("skip_schema_creation").(bool) {
+		// list all schemas to see if it exists
+		var count int
+		query = `select count(1) from information_schema.schemata where lower(schema_name) = lower('%s')`
+		if err := db.QueryRow(fmt.Sprintf(query, b.schemaName)).Scan(&count); err != nil {
+			return err
+		}
+
+		// skip schema creation if schema already exists
+		// `CREATE SCHEMA IF NOT EXISTS` is to be avoided if ever
+		// a user hasn't been granted the `CREATE SCHEMA` privilege
+		if count < 1 {
+			// tries to create the schema
+			query = `CREATE SCHEMA IF NOT EXISTS %s`
+			if _, err := db.Exec(fmt.Sprintf(query, b.schemaName)); err != nil {
+				return err
+			}
+		}
 	}
 	query = `CREATE TABLE IF NOT EXISTS %s.%s (
 		id SERIAL PRIMARY KEY,

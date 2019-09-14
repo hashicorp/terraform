@@ -11,6 +11,10 @@ description: |-
 Many provisioners require access to the remote resource. For example,
 a provisioner may need to use SSH or WinRM to connect to the resource.
 
+-> **Note:** Provisioners should only be used as a last resort. For most
+common situations there are better alternatives. For more information, see
+[the main Provisioners page](./).
+
 Terraform uses a number of defaults when connecting to a resource, but these can
 be overridden using a `connection` block in either a `resource` or
 `provisioner`. Any `connection` information provided in a `resource` will apply
@@ -31,6 +35,7 @@ provisioner "file" {
     type     = "ssh"
     user     = "root"
     password = "${var.root_password}"
+    host     = "${var.host}"
   }
 }
 
@@ -43,6 +48,7 @@ provisioner "file" {
     type     = "winrm"
     user     = "Administrator"
     password = "${var.admin_password}"
+    host     = "${var.host}"
   }
 }
 ```
@@ -51,22 +57,22 @@ provisioner "file" {
 
 **The following arguments are supported by all connection types:**
 
-* `type` - The connection type that should be used. Valid types are `ssh` and `winrm`
-  Defaults to `ssh`.
+* `type` - The connection type that should be used. Valid types are `ssh` and `winrm`.  
+           Defaults to `ssh`.
 
-* `user` - The user that we should use for the connection. Defaults to `root` when
-  using type `ssh` and defaults to `Administrator` when using type `winrm`.
+* `user` - The user that we should use for the connection.  
+           Defaults to `root` when using type `ssh` and defaults to `Administrator` when using type `winrm`.
 
 * `password` - The password we should use for the connection. In some cases this is
   specified by the provider.
 
-* `host` - The address of the resource to connect to. This is usually specified by the provider.
+* `host` - (Required) The address of the resource to connect to.
 
-* `port` - The port to connect to. Defaults to `22` when using type `ssh` and defaults
-  to `5985` when using type `winrm`.
+* `port` - The port to connect to.  
+           Defaults to `22` when using type `ssh` and defaults to `5985` when using type `winrm`.
 
-* `timeout` - The timeout to wait for the connection to become available. This defaults
-  to 5 minutes. Should be provided as a string like `30s` or `5m`.
+* `timeout` - The timeout to wait for the connection to become available. Should be provided as a string like `30s` or `5m`.   
+              Defaults to 5 minutes.
 
 * `script_path` - The path used to copy scripts meant for remote execution.
 
@@ -126,3 +132,7 @@ The `ssh` connection also supports the following fields to facilitate connnectio
   host. These can be loaded from a file on disk using
   [the `file` function](/docs/configuration/functions/file.html).
   Defaults to the value of the `private_key` field.
+
+* `bastion_certificate` - The contents of a signed CA Certificate. The certificate argument
+  must be used in conjunction with a `bastion_private_key`. These can be loaded from
+  a file on disk using the [the `file` function](/docs/configuration/functions/file.html).

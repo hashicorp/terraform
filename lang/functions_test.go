@@ -279,6 +279,37 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"fileset": {
+			{
+				`fileset(".", "*/hello.*")`,
+				cty.SetVal([]cty.Value{
+					cty.StringVal("subdirectory/hello.tmpl"),
+					cty.StringVal("subdirectory/hello.txt"),
+				}),
+			},
+			{
+				`fileset(".", "subdirectory/hello.*")`,
+				cty.SetVal([]cty.Value{
+					cty.StringVal("subdirectory/hello.tmpl"),
+					cty.StringVal("subdirectory/hello.txt"),
+				}),
+			},
+			{
+				`fileset(".", "hello.*")`,
+				cty.SetVal([]cty.Value{
+					cty.StringVal("hello.tmpl"),
+					cty.StringVal("hello.txt"),
+				}),
+			},
+			{
+				`fileset("subdirectory", "hello.*")`,
+				cty.SetVal([]cty.Value{
+					cty.StringVal("hello.tmpl"),
+					cty.StringVal("hello.txt"),
+				}),
+			},
+		},
+
 		"filebase64": {
 			{
 				`filebase64("hello.txt")`,
@@ -551,6 +582,23 @@ func TestFunctions(t *testing.T) {
 					cty.NumberIntVal(3),
 					cty.NumberIntVal(5),
 					cty.NumberIntVal(7),
+				}),
+			},
+		},
+
+		"regex": {
+			{
+				`regex("(\\d+)([a-z]+)", "aaa111bbb222")`,
+				cty.TupleVal([]cty.Value{cty.StringVal("111"), cty.StringVal("bbb")}),
+			},
+		},
+
+		"regexall": {
+			{
+				`regexall("(\\d+)([a-z]+)", "...111aaa222bbb...")`,
+				cty.ListVal([]cty.Value{
+					cty.TupleVal([]cty.Value{cty.StringVal("111"), cty.StringVal("aaa")}),
+					cty.TupleVal([]cty.Value{cty.StringVal("222"), cty.StringVal("bbb")}),
 				}),
 			},
 		},

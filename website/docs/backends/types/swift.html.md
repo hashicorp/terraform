@@ -48,6 +48,12 @@ The following configuration options are supported:
  * `auth_url` - (Required) The Identity authentication URL. If omitted, the
    `OS_AUTH_URL` environment variable is used.
 
+* `cloud` - (Optional; required if `auth_url` is not specified) An entry in a
+  `clouds.yaml` file. See the OpenStack `os-client-config`
+  [documentation](https://docs.openstack.org/os-client-config/latest/user/configuration.html)
+  for more information about `clouds.yaml` files. If omitted, the `OS_CLOUD`
+  environment variable is used.
+
  * `container` - (Required) The name of the container to create for storing
    the Terraform state file.
 
@@ -101,6 +107,24 @@ The following configuration options are supported:
    If omitted, the following environment variables are checked (in this order):
    `OS_USER_DOMAIN_NAME`, `OS_PROJECT_DOMAIN_NAME`, `OS_DOMAIN_NAME`,
    `DEFAULT_DOMAIN`.
+
+* `user_domain_name` - (Optional) The domain name where the user is located. If
+  omitted, the `OS_USER_DOMAIN_NAME` environment variable is checked.
+
+* `user_domain_id` - (Optional) The domain ID where the user is located. If
+  omitted, the `OS_USER_DOMAIN_ID` environment variable is checked.
+
+* `project_domain_name` - (Optional) The domain name where the project is
+  located. If omitted, the `OS_PROJECT_DOMAIN_NAME` environment variable is
+  checked.
+
+* `project_domain_id` - (Optional) The domain ID where the project is located
+  If omitted, the `OS_PROJECT_DOMAIN_ID` environment variable is checked.
+
+* `default_domain` - (Optional) The ID of the Domain to scope to if no other
+  domain is specified (Identity v3). If omitted, the environment variable
+  `OS_DEFAULT_DOMAIN` is checked or a default value of "default" will be
+  used.
 
  * `insecure` - (Optional) Trust self-signed SSL certificates. If omitted, the
    `OS_INSECURE` environment variable is used.

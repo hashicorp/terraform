@@ -12,7 +12,6 @@ import (
 	proto "github.com/hashicorp/terraform/internal/tfplugin5"
 	"github.com/hashicorp/terraform/plugin/convert"
 	"github.com/hashicorp/terraform/providers"
-	"github.com/hashicorp/terraform/version"
 	"github.com/zclconf/go-cty/cty/msgpack"
 	"google.golang.org/grpc"
 )
@@ -287,7 +286,7 @@ func (p *GRPCProvider) Configure(r providers.ConfigureRequest) (resp providers.C
 	}
 
 	protoReq := &proto.Configure_Request{
-		TerraformVersion: version.Version,
+		TerraformVersion: r.TerraformVersion,
 		Config: &proto.DynamicValue{
 			Msgpack: mp,
 		},

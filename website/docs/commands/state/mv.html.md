@@ -59,36 +59,69 @@ The command-line flags are all optional. The list of available flags are:
 
 ## Example: Rename a Resource
 
-The example below renames a single resource:
+The example below renames the `packet_device` resource named `worker` to `helper`:
 
-```
-$ terraform state mv aws_instance.foo aws_instance.bar
+```shell
+$ terraform state mv 'packet_device.worker' 'packet_device.helper'
 ```
 
 ## Example: Move a Resource Into a Module
 
-The example below moves a resource into a module. The module will be
-created if it doesn't exist.
+The example below moves the `packet_device` resource named `worker` into a module
+named `app`. The module will be created if it doesn't exist.
 
-```
-$ terraform state mv aws_instance.foo module.web
+```shell
+$ terraform state mv 'packet_device.worker' 'module.app'
 ```
 
 ## Example: Move a Module Into a Module
 
-The example below moves a module into another module.
+The example below moves the module named `app` under the module named `parent`.
 
-```
-$ terraform state mv module.foo module.parent.module.foo
+```shell
+$ terraform state mv 'module.app' 'module.parent.module.app'
 ```
 
 ## Example: Move a Module to Another State
 
-The example below moves a module into another state file. This removes
+The example below moves the module named `app` into another state file. This removes
 the module from the original state file and adds it to the destination.
 The source and destination are the same meaning we're keeping the same name.
 
+```shell
+$ terraform state mv -state-out=other.tfstate 'module.app' 'module.app'
 ```
-$ terraform state mv -state-out=other.tfstate \
-    module.web module.web
+
+## Example: Move a Resource configured with count
+
+The example below moves the first instance of a `packet_device` resource named `worker` configured with
+[`count`](/docs/configuration/resources.html#count-multiple-resource-instances-by-count) to
+the first instance of a resource named `helper` also configured with `count`:
+
+```shell
+$ terraform state mv 'packet_device.worker[0]' 'packet_device.helper[0]'
+```
+
+## Example: Move a Resource configured with for_each
+
+The example below moves the `"example123"` instance of a `packet_device` resource named `worker` configured with
+[`for_each`](/docs/configuration/resources.html#for_each-multiple-resource-instances-defined-by-a-map-or-set-of-strings)
+to the `"example456"` instance of a resource named `helper` also configuring `for_each`:
+
+Linux, Mac OS, and UNIX:
+
+```shell
+$ terraform state mv 'packet_device.worker["example123"]' 'packet_device.helper["example456"]'
+```
+
+PowerShell:
+
+```shell
+$ terraform state mv 'packet_device.worker[\"example123\"]' 'packet_device.helper[\"example456\"]'
+```
+
+Windows `cmd.exe`:
+
+```shell
+$ terraform state mv packet_device.worker[\"example123\"] packet_device.helper[\"example456\"]
 ```

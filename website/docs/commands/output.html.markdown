@@ -40,12 +40,23 @@ output "lb_address" {
 output "instance_ips" {
   value = ["${aws_instance.web.*.public_ip}"]
 }
+
+output "password" {
+  sensitive = true
+  value = ["${var.secret_password}"]
+}
 ```
 
 To list all outputs:
 
 ```shell
 $ terraform output
+```
+
+Note that outputs with the `sensitive` attribute will be redacted:
+```shell
+$ terraform output password
+password = <sensitive>
 ```
 
 To query for the DNS address of the load balancer:

@@ -9,6 +9,11 @@ description: |-
 # Habitat Provisioner
 
 The `habitat` provisioner installs the [Habitat](https://habitat.sh) supervisor and loads configured services. This provisioner only supports Linux targets using the `ssh` connection type at this time.
+
+-> **Note:** Provisioners should only be used as a last resort. For most
+common situations there are better alternatives. For more information, see
+[the main Provisioners page](./).
+
 ## Requirements
 
 The `habitat` provisioner has some prerequisites for specific connection types:
@@ -30,6 +35,7 @@ resource "aws_instance" "redis" {
     peer = "${aws_instance.redis.0.private_ip}"
     use_sudo = true
     service_type = "systemd"
+    accept_license = true
 
     service {
       name = "core/redis"
@@ -46,6 +52,7 @@ resource "aws_instance" "redis" {
 There are 2 configuration levels, `supervisor` and `service`.  Configuration placed directly within the `provisioner` block are supervisor configurations, and a provisioner can define zero or more services to run, and each service will have a `service` block within the `provisioner`.  A `service` block can also contain zero or more `bind` blocks to create service group bindings.
 
 ### Supervisor Arguments
+* `accept_license (bool)` - (Required) Set to true to accept [Habitat end user license agreement](https://www.chef.io/end-user-license-agreement/)
 * `version (string)` - (Optional) The Habitat version to install on the remote machine.  If not specified, the latest available version is used.
 * `use_sudo (bool)` - (Optional) Use `sudo` when executing remote commands.  Required when the user specified in the `connection` block is not `root`.  (Defaults to `true`)
 * `service_type (string)` - (Optional) Method used to run the Habitat supervisor.  Valid options are `unmanaged` and `systemd`.  (Defaults to `systemd`)

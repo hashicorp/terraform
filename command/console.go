@@ -2,6 +2,7 @@ package command
 
 import (
 	"bufio"
+	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -25,16 +26,23 @@ func (c *ConsoleCommand) Run(args []string) int {
 		return 1
 	}
 
-	cmdFlags := c.Meta.defaultFlagSet("console")
+	cmdFlags := c.Meta.extendedFlagSet("console")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error parsing command line flags: %s\n", err.Error()))
 		return 1
 	}
 
 	configPath, err := ModulePath(cmdFlags.Args())
 	if err != nil {
 		c.Ui.Error(err.Error())
+		return 1
+	}
+
+	// Check for user-supplied plugin path
+	if c.pluginPath, err = c.loadPluginPath(); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
 		return 1
 	}
 

@@ -317,7 +317,7 @@ func spaceAfterToken(subject, before, after *Token) bool {
 		return true
 
 	// Don't add spaces between interpolated items
-	case subject.Type == hclsyntax.TokenTemplateSeqEnd && after.Type == hclsyntax.TokenTemplateInterp:
+	case subject.Type == hclsyntax.TokenTemplateSeqEnd && (after.Type == hclsyntax.TokenTemplateInterp || after.Type == hclsyntax.TokenTemplateControl):
 		return false
 
 	case tokenBracketChange(subject) > 0:
