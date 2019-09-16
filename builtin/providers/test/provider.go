@@ -37,6 +37,7 @@ func Provider() terraform.ResourceProvider {
 			"test_resource_config_mode":      testResourceConfigMode(),
 			"test_resource_nested_id":        testResourceNestedId(),
 			"test_undeleteable":              testResourceUndeleteable(),
+			"test_resource_required_min":     testResourceRequiredMin(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"test_data_source":    testDataSource(),

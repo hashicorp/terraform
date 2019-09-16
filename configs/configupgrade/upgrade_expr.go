@@ -110,17 +110,21 @@ Value:
 						Subject:  hcl1PosRange(filename, tv.Pos).Ptr(),
 					})
 				}
-				if _, ok := hilNode.(*hilast.Output); !ok {
-					// hil.Parse usually produces an output, but it can sometimes
-					// produce an isolated expression if the input is entirely
-					// a single interpolation.
-					hilNode = &hilast.Output{
-						Exprs: []hilast.Node{hilNode},
-						Posx:  hilNode.Pos(),
+				if hilNode != nil {
+					if _, ok := hilNode.(*hilast.Output); !ok {
+						// hil.Parse usually produces an output, but it can sometimes
+						// produce an isolated expression if the input is entirely
+						// a single interpolation.
+						if hilNode != nil {
+							hilNode = &hilast.Output{
+								Exprs: []hilast.Node{hilNode},
+								Posx:  hilNode.Pos(),
+							}
+						}
 					}
+					interpDiags := upgradeHeredocBody(&buf, hilNode.(*hilast.Output), filename, an)
+					diags = diags.Append(interpDiags)
 				}
-				interpDiags := upgradeHeredocBody(&buf, hilNode.(*hilast.Output), filename, an)
-				diags = diags.Append(interpDiags)
 			}
 			if !strings.HasSuffix(body, "\n") {
 				// The versions of HCL1 vendored into Terraform <=0.11

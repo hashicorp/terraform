@@ -12,7 +12,7 @@ import (
 
 func TestModuleTreeDependencies(t *testing.T) {
 	tests := map[string]struct {
-		ConfigDir string // directory name from test-fixtures dir
+		ConfigDir string // directory name from testdata dir
 		State     *State
 		Want      *moduledeps.Module
 	}{

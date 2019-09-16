@@ -91,12 +91,7 @@ func Marshal(
 	p *plans.Plan,
 	sf *statefile.File,
 	schemas *terraform.Schemas,
-	stateSchemas *terraform.Schemas,
 ) ([]byte, error) {
-	if stateSchemas == nil {
-		stateSchemas = schemas
-	}
-
 	output := newPlan()
 	output.TerraformVersion = version.String()
 
@@ -125,7 +120,7 @@ func Marshal(
 
 	// output.PriorState
 	if sf != nil && !sf.State.Empty() {
-		output.PriorState, err = jsonstate.Marshal(sf, stateSchemas)
+		output.PriorState, err = jsonstate.Marshal(sf, schemas)
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling prior state: %s", err)
 		}
@@ -210,21 +205,7 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 				if err != nil {
 					return err
 				}
-				afterUnknown, _ = cty.Transform(changeV.After, func(path cty.Path, val cty.Value) (cty.Value, error) {
-					if val.IsNull() {
-						return cty.False, nil
-					}
-
-					if !val.Type().IsPrimitiveType() {
-						return val, nil // just pass through non-primitives; they already contain our transform results
-					}
-
-					if val.IsKnown() {
-						return cty.False, nil
-					}
-
-					return cty.True, nil
-				})
+				afterUnknown = cty.EmptyObjectVal
 			} else {
 				filteredAfter := omitUnknowns(changeV.After)
 				if filteredAfter.IsNull() {
@@ -351,22 +332,21 @@ func (p *plan) marshalPlannedValues(changes *plans.Changes, schemas *terraform.S
 
 // omitUnknowns recursively walks the src cty.Value and returns a new cty.Value,
 // omitting any unknowns.
+//
+// The result also normalizes some types: all sequence types are turned into
+// tuple types and all mapping types are converted to object types, since we
+// assume the result of this is just going to be serialized as JSON (and thus
+// lose those distinctions) anyway.
 func omitUnknowns(val cty.Value) cty.Value {
-	if val.IsWhollyKnown() {
-		return val
-	}
-
 	ty := val.Type()
 	switch {
 	case val.IsNull():
 		return val
 	case !val.IsKnown():
 		return cty.NilVal
+	case ty.IsPrimitiveType():
+		return val
 	case ty.IsListType() || ty.IsTupleType() || ty.IsSetType():
-		if val.LengthInt() == 0 {
-			return val
-		}
-
 		var vals []cty.Value
 		it := val.ElementIterator()
 		for it.Next() {
@@ -379,29 +359,12 @@ func omitUnknowns(val cty.Value) cty.Value {
 				vals = append(vals, cty.NullVal(v.Type()))
 			}
 		}
-		if len(vals) == 0 {
-			return cty.NilVal
-		}
-		switch {
-		case ty.IsListType():
-			return cty.ListVal(vals)
-		case ty.IsTupleType():
-			return cty.TupleVal(vals)
-		default:
-			return cty.SetVal(vals)
-		}
+		// We use tuple types always here, because the work we did above
+		// may have caused the individual elements to have different types,
+		// and we're doing this work to produce JSON anyway and JSON marshalling
+		// represents all of these sequence types as an array.
+		return cty.TupleVal(vals)
 	case ty.IsMapType() || ty.IsObjectType():
-		var length int
-		switch {
-		case ty.IsMapType():
-			length = val.LengthInt()
-		default:
-			length = len(val.Type().AttributeTypes())
-		}
-		if length == 0 {
-			// If there are no elements then we can't have unknowns
-			return val
-		}
 		vals := make(map[string]cty.Value)
 		it := val.ElementIterator()
 		for it.Next() {
@@ -411,29 +374,24 @@ func omitUnknowns(val cty.Value) cty.Value {
 				vals[k.AsString()] = newVal
 			}
 		}
-
-		if len(vals) == 0 {
-			return cty.NilVal
-		}
-
-		switch {
-		case ty.IsMapType():
-			return cty.MapVal(vals)
-		default:
-			return cty.ObjectVal(vals)
-		}
+		// We use object types always here, because the work we did above
+		// may have caused the individual elements to have different types,
+		// and we're doing this work to produce JSON anyway and JSON marshalling
+		// represents both of these mapping types as an object.
+		return cty.ObjectVal(vals)
+	default:
+		// Should never happen, since the above should cover all types
+		panic(fmt.Sprintf("omitUnknowns cannot handle %#v", val))
 	}
-
-	return val
 }
 
-// recursively iterate through a cty.Value, replacing known values (including
-// null) with cty.True and unknown values with cty.False.
+// recursively iterate through a cty.Value, replacing unknown values (including
+// null) with cty.True and known values with cty.False.
 //
-// TODO:
-// In the future, we may choose to only return unknown values. At that point,
-// this will need to convert lists/sets into tuples and maps into objects, so
-// that the result will have a valid type.
+// The result also normalizes some types: all sequence types are turned into
+// tuple types and all mapping types are converted to object types, since we
+// assume the result of this is just going to be serialized as JSON (and thus
+// lose those distinctions) anyway.
 func unknownAsBool(val cty.Value) cty.Value {
 	ty := val.Type()
 	switch {
@@ -450,7 +408,7 @@ func unknownAsBool(val cty.Value) cty.Value {
 		length := val.LengthInt()
 		if length == 0 {
 			// If there are no elements then we can't have unknowns
-			return cty.False
+			return cty.EmptyTupleVal
 		}
 		vals := make([]cty.Value, 0, length)
 		it := val.ElementIterator()
@@ -458,14 +416,12 @@ func unknownAsBool(val cty.Value) cty.Value {
 			_, v := it.Element()
 			vals = append(vals, unknownAsBool(v))
 		}
-		switch {
-		case ty.IsListType():
-			return cty.ListVal(vals)
-		case ty.IsTupleType():
-			return cty.TupleVal(vals)
-		default:
-			return cty.SetVal(vals)
-		}
+		// The above transform may have changed the types of some of the
+		// elements, so we'll always use a tuple here in case we've now made
+		// different elements have different types. Our ultimate goal is to
+		// marshal to JSON anyway, and all of these sequence types are
+		// indistinguishable in JSON.
+		return cty.TupleVal(vals)
 	case ty.IsMapType() || ty.IsObjectType():
 		var length int
 		switch {
@@ -476,23 +432,27 @@ func unknownAsBool(val cty.Value) cty.Value {
 		}
 		if length == 0 {
 			// If there are no elements then we can't have unknowns
-			return cty.False
+			return cty.EmptyObjectVal
 		}
 		vals := make(map[string]cty.Value)
 		it := val.ElementIterator()
 		for it.Next() {
 			k, v := it.Element()
-			vals[k.AsString()] = unknownAsBool(v)
+			vAsBool := unknownAsBool(v)
+			if !vAsBool.RawEquals(cty.False) { // all of the "false"s for known values for more compact serialization
+				vals[k.AsString()] = unknownAsBool(v)
+			}
 		}
-		switch {
-		case ty.IsMapType():
-			return cty.MapVal(vals)
-		default:
-			return cty.ObjectVal(vals)
-		}
+		// The above transform may have changed the types of some of the
+		// elements, so we'll always use an object here in case we've now made
+		// different elements have different types. Our ultimate goal is to
+		// marshal to JSON anyway, and all of these mapping types are
+		// indistinguishable in JSON.
+		return cty.ObjectVal(vals)
+	default:
+		// Should never happen, since the above should cover all types
+		panic(fmt.Sprintf("unknownAsBool cannot handle %#v", val))
 	}
-
-	return val
 }
 
 func actionString(action string) []string {

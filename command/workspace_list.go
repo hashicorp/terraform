@@ -2,6 +2,7 @@ package command
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform/tfdiags"
@@ -24,6 +25,7 @@ func (c *WorkspaceListCommand) Run(args []string) int {
 	cmdFlags := c.Meta.defaultFlagSet("workspace list")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
 		return 1
 	}
 

@@ -106,7 +106,10 @@ func init() {
 		OutputPrefix: OutputPrefix,
 		InfoPrefix:   OutputPrefix,
 		ErrorPrefix:  ErrorPrefix,
-		Ui:           &cli.BasicUi{Writer: os.Stdout},
+		Ui: &cli.BasicUi{
+			Writer: os.Stdout,
+			Reader: os.Stdin,
+		},
 	}
 }
 
@@ -145,7 +148,16 @@ func wrappedMain() int {
 
 	// Get any configured credentials from the config and initialize
 	// a service discovery object.
-	credsSrc := credentialsSource(config)
+	credsSrc, err := credentialsSource(config)
+	if err != nil {
+		// Most commands don't actually need credentials, and most situations
+		// that would get us here would already have been reported by the config
+		// loading above, so we'll just log this one as an aid to debugging
+		// in the unlikely event that it _does_ arise.
+		log.Printf("[WARN] Cannot initialize remote host credentials manager: %s", err)
+		// credsSrc may be nil in this case, but that's okay because the disco
+		// object checks that and just acts as though no credentials are present.
+	}
 	services := disco.NewWithCredentialsSource(credsSrc)
 
 	// Initialize the backends.
@@ -227,41 +239,6 @@ func wrappedMain() int {
 	}
 
 	return exitCode
-}
-
-func cliConfigFile() (string, error) {
-	mustExist := true
-
-	configFilePath := os.Getenv("TF_CLI_CONFIG_FILE")
-	if configFilePath == "" {
-		configFilePath = os.Getenv("TERRAFORM_CONFIG")
-	}
-
-	if configFilePath == "" {
-		var err error
-		configFilePath, err = ConfigFile()
-		mustExist = false
-
-		if err != nil {
-			log.Printf(
-				"[ERROR] Error detecting default CLI config file path: %s",
-				err)
-		}
-	}
-
-	log.Printf("[DEBUG] Attempting to open CLI config file: %s", configFilePath)
-	f, err := os.Open(configFilePath)
-	if err == nil {
-		f.Close()
-		return configFilePath, nil
-	}
-
-	if mustExist || !os.IsNotExist(err) {
-		return "", err
-	}
-
-	log.Println("[DEBUG] File doesn't exist, but doesn't need to. Ignoring.")
-	return "", nil
 }
 
 // copyOutput uses output prefixes to determine whether data on stdout

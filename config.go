@@ -1,63 +1,36 @@
-//go:generate go run ./scripts/generate-plugins.go
 package main
 
+// This file has some compatibility aliases/wrappers for functionality that
+// has now moved into command/cliconfig .
+//
+// Don't add anything new here! If new functionality is needed, better to just
+// add it in command/cliconfig and then call there directly.
+
 import (
-	"fmt"
-	"io/ioutil"
-	"log"
-	"os"
-	"path/filepath"
-
-	"github.com/hashicorp/hcl"
-
-	"github.com/hashicorp/terraform/command"
-	"github.com/hashicorp/terraform/svchost"
+	"github.com/hashicorp/terraform/command/cliconfig"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
-const pluginCacheDirEnvVar = "TF_PLUGIN_CACHE_DIR"
+//go:generate go run ./scripts/generate-plugins.go
 
 // Config is the structure of the configuration for the Terraform CLI.
 //
 // This is not the configuration for Terraform itself. That is in the
-// "config" package.
-type Config struct {
-	Providers    map[string]string
-	Provisioners map[string]string
-
-	DisableCheckpoint          bool `hcl:"disable_checkpoint"`
-	DisableCheckpointSignature bool `hcl:"disable_checkpoint_signature"`
-
-	// If set, enables local caching of plugins in this directory to
-	// avoid repeatedly re-downloading over the Internet.
-	PluginCacheDir string `hcl:"plugin_cache_dir"`
-
-	Hosts map[string]*ConfigHost `hcl:"host"`
-
-	Credentials        map[string]map[string]interface{}   `hcl:"credentials"`
-	CredentialsHelpers map[string]*ConfigCredentialsHelper `hcl:"credentials_helper"`
-}
+// "configs" package.
+type Config = cliconfig.Config
 
 // ConfigHost is the structure of the "host" nested block within the CLI
 // configuration, which can be used to override the default service host
 // discovery behavior for a particular hostname.
-type ConfigHost struct {
-	Services map[string]interface{} `hcl:"services"`
-}
+type ConfigHost = cliconfig.ConfigHost
 
 // ConfigCredentialsHelper is the structure of the "credentials_helper"
 // nested block within the CLI configuration.
-type ConfigCredentialsHelper struct {
-	Args []string `hcl:"args"`
-}
+type ConfigCredentialsHelper = cliconfig.ConfigCredentialsHelper
 
 // BuiltinConfig is the built-in defaults for the configuration. These
 // can be overridden by user configurations.
-var BuiltinConfig Config
-
-// PluginOverrides are paths that override discovered plugins, set from
-// the config file.
-var PluginOverrides command.PluginOverrides
+var BuiltinConfig = cliconfig.BuiltinConfig
 
 // ConfigFile returns the default path to the configuration file.
 //
@@ -65,117 +38,19 @@ var PluginOverrides command.PluginOverrides
 // On Windows, this is the "terraform.rc" file in the application data
 // directory.
 func ConfigFile() (string, error) {
-	return configFile()
+	return cliconfig.ConfigFile()
 }
 
 // ConfigDir returns the configuration directory for Terraform.
 func ConfigDir() (string, error) {
-	return configDir()
+	return cliconfig.ConfigDir()
 }
 
 // LoadConfig reads the CLI configuration from the various filesystem locations
 // and from the environment, returning a merged configuration along with any
 // diagnostics (errors and warnings) encountered along the way.
 func LoadConfig() (*Config, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-	configVal := BuiltinConfig // copy
-	config := &configVal
-
-	if mainFilename, err := cliConfigFile(); err == nil {
-		if _, err := os.Stat(mainFilename); err == nil {
-			mainConfig, mainDiags := loadConfigFile(mainFilename)
-			diags = diags.Append(mainDiags)
-			config = config.Merge(mainConfig)
-		}
-	}
-
-	if configDir, err := ConfigDir(); err == nil {
-		if info, err := os.Stat(configDir); err == nil && info.IsDir() {
-			dirConfig, dirDiags := loadConfigDir(configDir)
-			diags = diags.Append(dirDiags)
-			config = config.Merge(dirConfig)
-		}
-	}
-
-	if envConfig := EnvConfig(); envConfig != nil {
-		// envConfig takes precedence
-		config = envConfig.Merge(config)
-	}
-
-	diags = diags.Append(config.Validate())
-
-	return config, diags
-}
-
-// loadConfigFile loads the CLI configuration from ".terraformrc" files.
-func loadConfigFile(path string) (*Config, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-	result := &Config{}
-
-	log.Printf("Loading CLI configuration from %s", path)
-
-	// Read the HCL file and prepare for parsing
-	d, err := ioutil.ReadFile(path)
-	if err != nil {
-		diags = diags.Append(fmt.Errorf("Error reading %s: %s", path, err))
-		return result, diags
-	}
-
-	// Parse it
-	obj, err := hcl.Parse(string(d))
-	if err != nil {
-		diags = diags.Append(fmt.Errorf("Error parsing %s: %s", path, err))
-		return result, diags
-	}
-
-	// Build up the result
-	if err := hcl.DecodeObject(&result, obj); err != nil {
-		diags = diags.Append(fmt.Errorf("Error parsing %s: %s", path, err))
-		return result, diags
-	}
-
-	// Replace all env vars
-	for k, v := range result.Providers {
-		result.Providers[k] = os.ExpandEnv(v)
-	}
-	for k, v := range result.Provisioners {
-		result.Provisioners[k] = os.ExpandEnv(v)
-	}
-
-	if result.PluginCacheDir != "" {
-		result.PluginCacheDir = os.ExpandEnv(result.PluginCacheDir)
-	}
-
-	return result, diags
-}
-
-func loadConfigDir(path string) (*Config, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-	result := &Config{}
-
-	entries, err := ioutil.ReadDir(path)
-	if err != nil {
-		diags = diags.Append(fmt.Errorf("Error reading %s: %s", path, err))
-		return result, diags
-	}
-
-	for _, entry := range entries {
-		name := entry.Name()
-		// Ignoring errors here because it is used only to indicate pattern
-		// syntax errors, and our patterns are hard-coded here.
-		hclMatched, _ := filepath.Match("*.tfrc", name)
-		jsonMatched, _ := filepath.Match("*.tfrc.json", name)
-		if !(hclMatched || jsonMatched) {
-			continue
-		}
-
-		filePath := filepath.Join(path, name)
-		fileConfig, fileDiags := loadConfigFile(filePath)
-		diags = diags.Append(fileDiags)
-		result = result.Merge(fileConfig)
-	}
-
-	return result, diags
+	return cliconfig.LoadConfig()
 }
 
 // EnvConfig returns a Config populated from environment variables.
@@ -183,130 +58,5 @@ func loadConfigDir(path string) (*Config, tfdiags.Diagnostics) {
 // Any values specified in this config should override those set in the
 // configuration file.
 func EnvConfig() *Config {
-	config := &Config{}
-
-	if envPluginCacheDir := os.Getenv(pluginCacheDirEnvVar); envPluginCacheDir != "" {
-		// No Expandenv here, because expanding environment variables inside
-		// an environment variable would be strange and seems unnecessary.
-		// (User can expand variables into the value while setting it using
-		// standard shell features.)
-		config.PluginCacheDir = envPluginCacheDir
-	}
-
-	return config
-}
-
-// Validate checks for errors in the configuration that cannot be detected
-// just by HCL decoding, returning any problems as diagnostics.
-//
-// On success, the returned diagnostics will return false from the HasErrors
-// method. A non-nil diagnostics is not necessarily an error, since it may
-// contain just warnings.
-func (c *Config) Validate() tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
-
-	if c == nil {
-		return diags
-	}
-
-	// FIXME: Right now our config parsing doesn't retain enough information
-	// to give proper source references to any errors. We should improve
-	// on this when we change the CLI config parser to use HCL2.
-
-	// Check that all "host" blocks have valid hostnames.
-	for givenHost := range c.Hosts {
-		_, err := svchost.ForComparison(givenHost)
-		if err != nil {
-			diags = diags.Append(
-				fmt.Errorf("The host %q block has an invalid hostname: %s", givenHost, err),
-			)
-		}
-	}
-
-	// Check that all "credentials" blocks have valid hostnames.
-	for givenHost := range c.Credentials {
-		_, err := svchost.ForComparison(givenHost)
-		if err != nil {
-			diags = diags.Append(
-				fmt.Errorf("The credentials %q block has an invalid hostname: %s", givenHost, err),
-			)
-		}
-	}
-
-	// Should have zero or one "credentials_helper" blocks
-	if len(c.CredentialsHelpers) > 1 {
-		diags = diags.Append(
-			fmt.Errorf("No more than one credentials_helper block may be specified"),
-		)
-	}
-
-	return diags
-}
-
-// Merge merges two configurations and returns a third entirely
-// new configuration with the two merged.
-func (c1 *Config) Merge(c2 *Config) *Config {
-	var result Config
-	result.Providers = make(map[string]string)
-	result.Provisioners = make(map[string]string)
-	for k, v := range c1.Providers {
-		result.Providers[k] = v
-	}
-	for k, v := range c2.Providers {
-		if v1, ok := c1.Providers[k]; ok {
-			log.Printf("[INFO] Local %s provider configuration '%s' overrides '%s'", k, v, v1)
-		}
-		result.Providers[k] = v
-	}
-	for k, v := range c1.Provisioners {
-		result.Provisioners[k] = v
-	}
-	for k, v := range c2.Provisioners {
-		if v1, ok := c1.Provisioners[k]; ok {
-			log.Printf("[INFO] Local %s provisioner configuration '%s' overrides '%s'", k, v, v1)
-		}
-		result.Provisioners[k] = v
-	}
-	result.DisableCheckpoint = c1.DisableCheckpoint || c2.DisableCheckpoint
-	result.DisableCheckpointSignature = c1.DisableCheckpointSignature || c2.DisableCheckpointSignature
-
-	result.PluginCacheDir = c1.PluginCacheDir
-	if result.PluginCacheDir == "" {
-		result.PluginCacheDir = c2.PluginCacheDir
-	}
-
-	if (len(c1.Hosts) + len(c2.Hosts)) > 0 {
-		result.Hosts = make(map[string]*ConfigHost)
-		for name, host := range c1.Hosts {
-			result.Hosts[name] = host
-		}
-		for name, host := range c2.Hosts {
-			result.Hosts[name] = host
-		}
-	}
-
-	if (len(c1.Credentials) + len(c2.Credentials)) > 0 {
-		result.Credentials = make(map[string]map[string]interface{})
-		for host, creds := range c1.Credentials {
-			result.Credentials[host] = creds
-		}
-		for host, creds := range c2.Credentials {
-			// We just clobber an entry from the other file right now. Will
-			// improve on this later using the more-robust merging behavior
-			// built in to HCL2.
-			result.Credentials[host] = creds
-		}
-	}
-
-	if (len(c1.CredentialsHelpers) + len(c2.CredentialsHelpers)) > 0 {
-		result.CredentialsHelpers = make(map[string]*ConfigCredentialsHelper)
-		for name, helper := range c1.CredentialsHelpers {
-			result.CredentialsHelpers[name] = helper
-		}
-		for name, helper := range c2.CredentialsHelpers {
-			result.CredentialsHelpers[name] = helper
-		}
-	}
-
-	return &result
+	return cliconfig.EnvConfig()
 }

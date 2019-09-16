@@ -95,7 +95,8 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 	objTy := schema.ImpliedType()
 	priorVal := cty.NullVal(objTy) // for data resources, prior is always null because we start fresh every time
 
-	keyData := EvalDataForInstanceKey(n.Addr.Key)
+	forEach, _ := evaluateResourceForEachExpression(n.Config.ForEach, ctx)
+	keyData := EvalDataForInstanceKey(n.Addr.Key, forEach)
 
 	var configDiags tfdiags.Diagnostics
 	configVal, _, configDiags = ctx.EvaluateBlock(config.Config, schema, nil, keyData)
@@ -177,6 +178,17 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 			"invalid action %s for %s: only Read is supported (this is a bug in Terraform; please report it!)",
 			(*n.Planned).Action, absAddr,
 		)
+	}
+
+	log.Printf("[TRACE] Re-validating config for %s", absAddr)
+	validateResp := provider.ValidateDataSourceConfig(
+		providers.ValidateDataSourceConfigRequest{
+			TypeName: n.Addr.Resource.Type,
+			Config:   configVal,
+		},
+	)
+	if validateResp.Diagnostics.HasErrors() {
+		return nil, validateResp.Diagnostics.InConfigBody(n.Config.Config).Err()
 	}
 
 	// If we get down here then our configuration is complete and we're read

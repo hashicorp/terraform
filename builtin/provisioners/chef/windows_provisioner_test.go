@@ -125,7 +125,7 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 	}{
 		"Default": {
 			Config: map[string]interface{}{
-				"ohai_hints": []interface{}{"test-fixtures/ohaihint.json"},
+				"ohai_hints": []interface{}{"testdata/ohaihint.json"},
 				"node_name":  "nodename1",
 				"run_list":   []interface{}{"cookbook::recipe"},
 				"secret_key": "SECRET-KEY",

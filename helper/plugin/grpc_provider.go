@@ -2,7 +2,6 @@ package plugin
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -12,10 +11,11 @@ import (
 	"github.com/zclconf/go-cty/cty/msgpack"
 	context "golang.org/x/net/context"
 
-	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/helper/schema"
 	proto "github.com/hashicorp/terraform/internal/tfplugin5"
+	"github.com/hashicorp/terraform/plans/objchange"
 	"github.com/hashicorp/terraform/plugin/convert"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -284,6 +284,17 @@ func (s *GRPCProviderServer) UpgradeResourceState(_ context.Context, req *proto.
 		return resp, nil
 	}
 
+	// Now we need to make sure blocks are represented correctly, which means
+	// that missing blocks are empty collections, rather than null.
+	// First we need to CoerceValue to ensure that all object types match.
+	val, err = schemaBlock.CoerceValue(val)
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
+	// Normalize the value and fill in any missing blocks.
+	val = objchange.NormalizeObjectFromLegacySDK(val, schemaBlock)
+
 	// encode the final state to the expected msgpack format
 	newStateMP, err := msgpack.Marshal(val, schemaBlock.ImpliedType())
 	if err != nil {
@@ -316,11 +327,15 @@ func (s *GRPCProviderServer) upgradeFlatmapState(version int, m map[string]strin
 		requiresMigrate = version < res.StateUpgraders[0].Version
 	}
 
-	if requiresMigrate {
-		if res.MigrateState == nil {
-			return nil, 0, errors.New("cannot upgrade state, missing MigrateState function")
+	if requiresMigrate && res.MigrateState == nil {
+		// Providers were previously allowed to bump the version
+		// without declaring MigrateState.
+		// If there are further upgraders, then we've only updated that far.
+		if len(res.StateUpgraders) > 0 {
+			schemaType = res.StateUpgraders[0].Type
+			upgradedVersion = res.StateUpgraders[0].Version
 		}
-
+	} else if requiresMigrate {
 		is := &terraform.InstanceState{
 			ID:         m["id"],
 			Attributes: m,
@@ -476,7 +491,12 @@ func (s *GRPCProviderServer) Configure(_ context.Context, req *proto.Configure_R
 }
 
 func (s *GRPCProviderServer) ReadResource(_ context.Context, req *proto.ReadResource_Request) (*proto.ReadResource_Response, error) {
-	resp := &proto.ReadResource_Response{}
+	resp := &proto.ReadResource_Response{
+		// helper/schema did previously handle private data during refresh, but
+		// core is now going to expect this to be maintained in order to
+		// persist it in the state.
+		Private: req.Private,
+	}
 
 	res := s.provider.ResourcesMap[req.TypeName]
 	schemaBlock := s.getResourceSchemaBlock(req.TypeName)
@@ -492,6 +512,15 @@ func (s *GRPCProviderServer) ReadResource(_ context.Context, req *proto.ReadReso
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
+
+	private := make(map[string]interface{})
+	if len(req.Private) > 0 {
+		if err := json.Unmarshal(req.Private, &private); err != nil {
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+			return resp, nil
+		}
+	}
+	instanceState.Meta = private
 
 	newInstanceState, err := res.RefreshWithoutUpgrade(instanceState, s.provider.Meta())
 	if err != nil {
@@ -569,6 +598,7 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 	// We don't usually plan destroys, but this can return early in any case.
 	if proposedNewStateVal.IsNull() {
 		resp.PlannedState = req.ProposedNewState
+		resp.PlannedPrivate = req.PriorPrivate
 		return resp, nil
 	}
 
@@ -623,6 +653,7 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 		// description that _shows_ there are no changes. This is always the
 		// prior state, because we force a diff above if this is a new instance.
 		resp.PlannedState = req.PriorState
+		resp.PlannedPrivate = req.PriorPrivate
 		return resp, nil
 	}
 
@@ -681,6 +712,18 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 	}
 	resp.PlannedState = &proto.DynamicValue{
 		Msgpack: plannedMP,
+	}
+
+	// encode any timeouts into the diff Meta
+	t := &schema.ResourceTimeout{}
+	if err := t.ConfigDecode(res, cfg); err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
+
+	if err := t.DiffEncode(diff); err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
 	}
 
 	// Now we need to store any NewExtra values, which are where any actual
@@ -929,6 +972,9 @@ func (s *GRPCProviderServer) ImportResourceState(_ context.Context, req *proto.I
 			return resp, nil
 		}
 
+		// Normalize the value and fill in any missing blocks.
+		newStateVal = objchange.NormalizeObjectFromLegacySDK(newStateVal, schemaBlock)
+
 		newStateMP, err := msgpack.Marshal(newStateVal, schemaBlock.ImpliedType())
 		if err != nil {
 			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
@@ -1160,6 +1206,8 @@ func normalizeNullValues(dst, src cty.Value, apply bool) cty.Value {
 		}
 	}
 
+	// check the invariants that we need below, to ensure we are working with
+	// non-null and known values.
 	if src.IsNull() || !src.IsKnown() || !dst.IsKnown() {
 		return dst
 	}
@@ -1278,8 +1326,12 @@ func normalizeNullValues(dst, src cty.Value, apply bool) cty.Value {
 			return cty.ListVal(dsts)
 		}
 
-	case ty.IsPrimitiveType():
-		if dst.IsNull() && src.IsWhollyKnown() && apply {
+	case ty == cty.String:
+		// The legacy SDK should not be able to remove a value during plan or
+		// apply, however we are only going to overwrite this if the source was
+		// an empty string, since that is what is often equated with unset and
+		// lost in the diff process.
+		if dst.IsNull() && src.AsString() == "" {
 			return src
 		}
 	}
@@ -1305,11 +1357,19 @@ func validateConfigNulls(v cty.Value, path cty.Path) []*proto.Diagnostic {
 		for it.Next() {
 			kv, ev := it.Element()
 			if ev.IsNull() {
+				// if this is a set, the kv is also going to be null which
+				// isn't a valid path element, so we can't append it to the
+				// diagnostic.
+				p := path
+				if !kv.IsNull() {
+					p = append(p, cty.IndexStep{Key: kv})
+				}
+
 				diags = append(diags, &proto.Diagnostic{
 					Severity:  proto.Diagnostic_ERROR,
 					Summary:   "Null value found in list",
 					Detail:    "Null values are not allowed for this attribute value.",
-					Attribute: convert.PathToAttributePath(append(path, cty.IndexStep{Key: kv})),
+					Attribute: convert.PathToAttributePath(p),
 				})
 				continue
 			}

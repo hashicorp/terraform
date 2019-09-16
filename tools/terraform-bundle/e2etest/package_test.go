@@ -18,7 +18,7 @@ func TestPackage_empty(t *testing.T) {
 	// is to test the interaction with the real repository.
 	skipIfCannotAccessNetwork(t)
 
-	fixturePath := filepath.Join("test-fixtures", "empty")
+	fixturePath := filepath.Join("testdata", "empty")
 	tfBundle := e2e.NewBinary(bundleBin, fixturePath)
 	defer tfBundle.Close()
 
@@ -52,7 +52,7 @@ func TestPackage_manyProviders(t *testing.T) {
 	// is to test the interaction with the real repository.
 	skipIfCannotAccessNetwork(t)
 
-	fixturePath := filepath.Join("test-fixtures", "many-providers")
+	fixturePath := filepath.Join("testdata", "many-providers")
 	tfBundle := e2e.NewBinary(bundleBin, fixturePath)
 	defer tfBundle.Close()
 

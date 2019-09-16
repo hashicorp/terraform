@@ -354,7 +354,34 @@ func TestBlockDecoderSpec(t *testing.T) {
 					cty.EmptyObjectVal,
 				}),
 			}),
-			1, // too many "foo" blocks
+			0, // max items cannot be validated during decode
+		},
+		// dynamic blocks may fulfill MinItems, but there is only one block to
+		// decode.
+		"required MinItems": {
+			&Block{
+				BlockTypes: map[string]*NestedBlock{
+					"foo": {
+						Nesting:  NestingList,
+						Block:    Block{},
+						MinItems: 2,
+					},
+				},
+			},
+			hcltest.MockBody(&hcl.BodyContent{
+				Blocks: hcl.Blocks{
+					&hcl.Block{
+						Type: "foo",
+						Body: hcl.EmptyBody(),
+					},
+				},
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.ListVal([]cty.Value{
+					cty.EmptyObjectVal,
+				}),
+			}),
+			0,
 		},
 		"extraneous attribute": {
 			&Block{},

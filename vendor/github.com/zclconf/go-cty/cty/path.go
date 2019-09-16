@@ -71,6 +71,48 @@ func (p Path) GetAttr(name string) Path {
 	return ret
 }
 
+// Equals compares 2 Paths for exact equality.
+func (p Path) Equals(other Path) bool {
+	if len(p) != len(other) {
+		return false
+	}
+
+	for i := range p {
+		pv := p[i]
+		switch pv := pv.(type) {
+		case GetAttrStep:
+			ov, ok := other[i].(GetAttrStep)
+			if !ok || pv != ov {
+				return false
+			}
+		case IndexStep:
+			ov, ok := other[i].(IndexStep)
+			if !ok {
+				return false
+			}
+
+			if !pv.Key.RawEquals(ov.Key) {
+				return false
+			}
+		default:
+			// Any invalid steps default to evaluating false.
+			return false
+		}
+	}
+
+	return true
+
+}
+
+// HasPrefix determines if the path p contains the provided prefix.
+func (p Path) HasPrefix(prefix Path) bool {
+	if len(prefix) > len(p) {
+		return false
+	}
+
+	return p[:len(prefix)].Equals(prefix)
+}
+
 // GetAttrPath is a convenience method to start a new Path with a GetAttrStep.
 func GetAttrPath(name string) Path {
 	return Path{}.GetAttr(name)

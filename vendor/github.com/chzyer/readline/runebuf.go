@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"io"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -29,7 +30,13 @@ type RuneBuffer struct {
 
 	offset string
 
+	lastKill []rune
+
 	sync.Mutex
+}
+
+func (r* RuneBuffer) pushKill(text []rune) {
+	r.lastKill = append([]rune{}, text...)
 }
 
 func (r *RuneBuffer) OnWidthChange(newWidth int) {
@@ -187,6 +194,7 @@ func (r *RuneBuffer) Replace(ch rune) {
 func (r *RuneBuffer) Erase() {
 	r.Refresh(func() {
 		r.idx = 0
+		r.pushKill(r.buf[:])
 		r.buf = r.buf[:0]
 	})
 }
@@ -196,6 +204,7 @@ func (r *RuneBuffer) Delete() (success bool) {
 		if r.idx == len(r.buf) {
 			return
 		}
+		r.pushKill(r.buf[r.idx : r.idx+1])
 		r.buf = append(r.buf[:r.idx], r.buf[r.idx+1:]...)
 		success = true
 	})
@@ -212,6 +221,7 @@ func (r *RuneBuffer) DeleteWord() {
 	}
 	for i := init + 1; i < len(r.buf); i++ {
 		if !IsWordBreak(r.buf[i]) && IsWordBreak(r.buf[i-1]) {
+			r.pushKill(r.buf[r.idx:i-1])
 			r.Refresh(func() {
 				r.buf = append(r.buf[:r.idx], r.buf[i-1:]...)
 			})
@@ -247,6 +257,7 @@ func (r *RuneBuffer) KillFront() {
 		}
 
 		length := len(r.buf) - r.idx
+		r.pushKill(r.buf[:r.idx])
 		copy(r.buf[:length], r.buf[r.idx:])
 		r.idx = 0
 		r.buf = r.buf[:length]
@@ -255,6 +266,7 @@ func (r *RuneBuffer) KillFront() {
 
 func (r *RuneBuffer) Kill() {
 	r.Refresh(func() {
+		r.pushKill(r.buf[r.idx:])
 		r.buf = r.buf[:r.idx]
 	})
 }
@@ -321,6 +333,7 @@ func (r *RuneBuffer) BackEscapeWord() {
 		}
 		for i := r.idx - 1; i > 0; i-- {
 			if !IsWordBreak(r.buf[i]) && IsWordBreak(r.buf[i-1]) {
+				r.pushKill(r.buf[i:r.idx])
 				r.buf = append(r.buf[:i], r.buf[r.idx:]...)
 				r.idx = i
 				return
@@ -329,6 +342,20 @@ func (r *RuneBuffer) BackEscapeWord() {
 
 		r.buf = r.buf[:0]
 		r.idx = 0
+	})
+}
+
+func (r *RuneBuffer) Yank() {
+	if len(r.lastKill) == 0 {
+		return
+	}
+	r.Refresh(func() {
+		buf := make([]rune, 0, len(r.buf) + len(r.lastKill))
+		buf = append(buf, r.buf[:r.idx]...)
+		buf = append(buf, r.lastKill...)
+		buf = append(buf, r.buf[r.idx:]...)
+		r.buf = buf
+		r.idx += len(r.lastKill)
 	})
 }
 
@@ -460,26 +487,56 @@ func (r *RuneBuffer) output() []byte {
 			buf.Write([]byte(string(r.cfg.MaskRune)))
 		}
 		if len(r.buf) > r.idx {
-			buf.Write(runes.Backspace(r.buf[r.idx:]))
+			buf.Write(r.getBackspaceSequence())
 		}
 
 	} else {
-		for idx := range r.buf {
-			if r.buf[idx] == '\t' {
+		for _, e := range r.cfg.Painter.Paint(r.buf, r.idx) {
+			if e == '\t' {
 				buf.WriteString(strings.Repeat(" ", TabWidth))
 			} else {
-				buf.WriteRune(r.buf[idx])
+				buf.WriteRune(e)
 			}
 		}
 		if r.isInLineEdge() {
 			buf.Write([]byte(" \b"))
 		}
 	}
-
+	// cursor position
 	if len(r.buf) > r.idx {
-		buf.Write(runes.Backspace(r.buf[r.idx:]))
+		buf.Write(r.getBackspaceSequence())
 	}
 	return buf.Bytes()
+}
+
+func (r *RuneBuffer) getBackspaceSequence() []byte {
+	var sep = map[int]bool{}
+
+	var i int
+	for {
+		if i >= runes.WidthAll(r.buf) {
+			break
+		}
+
+		if i == 0 {
+			i -= r.promptLen()
+		}
+		i += r.width
+
+		sep[i] = true
+	}
+	var buf []byte
+	for i := len(r.buf); i > r.idx; i-- {
+		// move input to the left of one
+		buf = append(buf, '\b')
+		if sep[i] {
+			// up one line, go to the start of the line and move cursor right to the end (r.width)
+			buf = append(buf, "\033[A\r"+"\033["+strconv.Itoa(r.width)+"C"...)
+		}
+	}
+
+	return buf
+
 }
 
 func (r *RuneBuffer) Reset() []rune {

@@ -7,8 +7,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/hashicorp/terraform/internal/initwd"
-	"github.com/hashicorp/terraform/registry"
 	"io"
 	"io/ioutil"
 	"log"
@@ -20,6 +18,9 @@ import (
 	"strings"
 	"syscall"
 	"testing"
+
+	"github.com/hashicorp/terraform/internal/initwd"
+	"github.com/hashicorp/terraform/registry"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
@@ -42,7 +43,7 @@ import (
 
 // These are the directories for our test data and fixtures.
 var (
-	fixtureDir  = "./test-fixtures"
+	fixtureDir  = "./testdata"
 	testDataDir = "./testdata"
 )
 
@@ -266,7 +267,10 @@ func testState() *states.State {
 				Type: "test",
 			}.Absolute(addrs.RootModuleInstance),
 		)
-	})
+		// DeepCopy is used here to ensure our synthetic state matches exactly
+		// with a state that will have been copied during the command
+		// operation, and all fields have been copied correctly.
+	}).DeepCopy()
 }
 
 // writeStateForTesting is a helper that writes the given naked state to the

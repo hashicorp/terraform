@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"unicode/utf8"
 
+	"github.com/bmatcuk/doublestar"
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/hcl2/hcl/hclsyntax"
 	homedir "github.com/mitchellh/go-homedir"
@@ -207,6 +208,74 @@ func MakeFileExistsFunc(baseDir string) function.Function {
 	})
 }
 
+// MakeFileSetFunc constructs a function that takes a glob pattern
+// and enumerates a file set from that pattern
+func MakeFileSetFunc(baseDir string) function.Function {
+	return function.New(&function.Spec{
+		Params: []function.Parameter{
+			{
+				Name: "path",
+				Type: cty.String,
+			},
+			{
+				Name: "pattern",
+				Type: cty.String,
+			},
+		},
+		Type: function.StaticReturnType(cty.Set(cty.String)),
+		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+			path := args[0].AsString()
+			pattern := args[1].AsString()
+
+			if !filepath.IsAbs(path) {
+				path = filepath.Join(baseDir, path)
+			}
+
+			// Join the path to the glob pattern, while ensuring the full
+			// pattern is canonical for the host OS. The joined path is
+			// automatically cleaned during this operation.
+			pattern = filepath.Join(path, pattern)
+
+			matches, err := doublestar.Glob(pattern)
+			if err != nil {
+				return cty.UnknownVal(cty.Set(cty.String)), fmt.Errorf("failed to glob pattern (%s): %s", pattern, err)
+			}
+
+			var matchVals []cty.Value
+			for _, match := range matches {
+				fi, err := os.Stat(match)
+
+				if err != nil {
+					return cty.UnknownVal(cty.Set(cty.String)), fmt.Errorf("failed to stat (%s): %s", match, err)
+				}
+
+				if !fi.Mode().IsRegular() {
+					continue
+				}
+
+				// Remove the path and file separator from matches.
+				match, err = filepath.Rel(path, match)
+
+				if err != nil {
+					return cty.UnknownVal(cty.Set(cty.String)), fmt.Errorf("failed to trim path of match (%s): %s", match, err)
+				}
+
+				// Replace any remaining file separators with forward slash (/)
+				// separators for cross-system compatibility.
+				match = filepath.ToSlash(match)
+
+				matchVals = append(matchVals, cty.StringVal(match))
+			}
+
+			if len(matchVals) == 0 {
+				return cty.SetValEmpty(cty.String), nil
+			}
+
+			return cty.SetVal(matchVals), nil
+		},
+	})
+}
+
 // BasenameFunc constructs a function that takes a string containing a filesystem path
 // and removes all except the last portion from it.
 var BasenameFunc = function.New(&function.Spec{
@@ -234,6 +303,21 @@ var DirnameFunc = function.New(&function.Spec{
 	Type: function.StaticReturnType(cty.String),
 	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 		return cty.StringVal(filepath.Dir(args[0].AsString())), nil
+	},
+})
+
+// AbsPathFunc constructs a function that converts a filesystem path to an absolute path
+var AbsPathFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "path",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.String),
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		absPath, err := filepath.Abs(args[0].AsString())
+		return cty.StringVal(filepath.ToSlash(absPath)), err
 	},
 })
 
@@ -299,6 +383,16 @@ func File(baseDir string, path cty.Value) (cty.Value, error) {
 func FileExists(baseDir string, path cty.Value) (cty.Value, error) {
 	fn := MakeFileExistsFunc(baseDir)
 	return fn.Call([]cty.Value{path})
+}
+
+// FileSet enumerates a set of files given a glob pattern
+//
+// The underlying function implementation works relative to a particular base
+// directory, so this wrapper takes a base directory string and uses it to
+// construct the underlying function before calling it.
+func FileSet(baseDir string, path, pattern cty.Value) (cty.Value, error) {
+	fn := MakeFileSetFunc(baseDir)
+	return fn.Call([]cty.Value{path, pattern})
 }
 
 // FileBase64 reads the contents of the file at the given path.

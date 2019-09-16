@@ -572,6 +572,7 @@ func TestCompact(t *testing.T) {
 				cty.StringVal("test"),
 				cty.StringVal(""),
 				cty.StringVal("test"),
+				cty.NullVal(cty.String),
 			}),
 			cty.ListVal([]cty.Value{
 				cty.StringVal("test"),
@@ -584,6 +585,14 @@ func TestCompact(t *testing.T) {
 				cty.StringVal(""),
 				cty.StringVal(""),
 				cty.StringVal(""),
+			}),
+			cty.ListValEmpty(cty.String),
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{
+				cty.NullVal(cty.String),
+				cty.NullVal(cty.String),
 			}),
 			cty.ListValEmpty(cty.String),
 			false,
@@ -610,6 +619,7 @@ func TestCompact(t *testing.T) {
 				cty.StringVal("test"),
 				cty.UnknownVal(cty.String),
 				cty.StringVal(""),
+				cty.NullVal(cty.String),
 			}),
 			cty.UnknownVal(cty.List(cty.String)),
 			false,
@@ -902,6 +912,11 @@ func TestDistinct(t *testing.T) {
 			false,
 		},
 		{
+			cty.ListValEmpty(cty.String),
+			cty.ListValEmpty(cty.String),
+			false,
+		},
+		{
 			cty.ListVal([]cty.Value{
 				cty.StringVal("a"),
 				cty.StringVal("b"),
@@ -1080,6 +1095,12 @@ func TestChunklist(t *testing.T) {
 			cty.UnknownVal(cty.List(cty.String)),
 			cty.NumberIntVal(1),
 			cty.UnknownVal(cty.List(cty.List(cty.String))),
+			false,
+		},
+		{
+			cty.ListValEmpty(cty.String),
+			cty.NumberIntVal(3),
+			cty.ListValEmpty(cty.List(cty.String)),
 			false,
 		},
 	}
@@ -1448,6 +1469,26 @@ func TestLookup(t *testing.T) {
 			cty.StringVal("baz"),
 		}),
 	})
+	mapOfMaps := cty.MapVal(map[string]cty.Value{
+		"foo": cty.MapVal(map[string]cty.Value{
+			"a": cty.StringVal("bar"),
+		}),
+		"baz": cty.MapVal(map[string]cty.Value{
+			"b": cty.StringVal("bat"),
+		}),
+	})
+	mapOfTuples := cty.MapVal(map[string]cty.Value{
+		"foo": cty.TupleVal([]cty.Value{cty.StringVal("bar")}),
+		"baz": cty.TupleVal([]cty.Value{cty.StringVal("bat")}),
+	})
+	objectOfMaps := cty.ObjectVal(map[string]cty.Value{
+		"foo": cty.MapVal(map[string]cty.Value{
+			"a": cty.StringVal("bar"),
+		}),
+		"baz": cty.MapVal(map[string]cty.Value{
+			"b": cty.StringVal("bat"),
+		}),
+	})
 	mapWithUnknowns := cty.MapVal(map[string]cty.Value{
 		"foo": cty.StringVal("bar"),
 		"baz": cty.UnknownVal(cty.String),
@@ -1486,6 +1527,34 @@ func TestLookup(t *testing.T) {
 			cty.NumberIntVal(42),
 			false,
 		},
+		{
+			[]cty.Value{
+				mapOfMaps,
+				cty.StringVal("foo"),
+			},
+			cty.MapVal(map[string]cty.Value{
+				"a": cty.StringVal("bar"),
+			}),
+			false,
+		},
+		{
+			[]cty.Value{
+				objectOfMaps,
+				cty.StringVal("foo"),
+			},
+			cty.MapVal(map[string]cty.Value{
+				"a": cty.StringVal("bar"),
+			}),
+			false,
+		},
+		{
+			[]cty.Value{
+				mapOfTuples,
+				cty.StringVal("foo"),
+			},
+			cty.TupleVal([]cty.Value{cty.StringVal("bar")}),
+			false,
+		},
 		{ // Invalid key
 			[]cty.Value{
 				simpleMap,
@@ -1520,6 +1589,15 @@ func TestLookup(t *testing.T) {
 			cty.StringVal("bar"),
 			false,
 		},
+		{ // Supplied default with valid (int) key
+			[]cty.Value{
+				simpleMap,
+				cty.StringVal("foobar"),
+				cty.NumberIntVal(-1),
+			},
+			cty.StringVal("-1"),
+			false,
+		},
 		{ // Supplied default with valid key
 			[]cty.Value{
 				mapWithObjects,
@@ -1537,6 +1615,15 @@ func TestLookup(t *testing.T) {
 			},
 			cty.StringVal(""),
 			false,
+		},
+		{ // Supplied default with type mismatch: expects a map return
+			[]cty.Value{
+				mapOfMaps,
+				cty.StringVal("foo"),
+				cty.StringVal(""),
+			},
+			cty.NilVal,
+			true,
 		},
 		{ // Supplied non-empty default with invalid key
 			[]cty.Value{
@@ -1878,8 +1965,7 @@ func TestMatchkeys(t *testing.T) {
 			cty.UnknownVal(cty.List(cty.String)),
 			false,
 		},
-		// errors
-		{ // different types
+		{ // different types that can be unified
 			cty.ListVal([]cty.Value{
 				cty.StringVal("a"),
 			}),
@@ -1889,9 +1975,41 @@ func TestMatchkeys(t *testing.T) {
 			cty.ListVal([]cty.Value{
 				cty.StringVal("a"),
 			}),
-			cty.NilVal,
-			true,
+			cty.ListValEmpty(cty.String),
+			false,
 		},
+		{ // complex values: values is a different type from keys and searchset
+			cty.ListVal([]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"foo": cty.StringVal("bar"),
+				}),
+				cty.MapVal(map[string]cty.Value{
+					"foo": cty.StringVal("baz"),
+				}),
+				cty.MapVal(map[string]cty.Value{
+					"foo": cty.StringVal("beep"),
+				}),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("b"),
+				cty.StringVal("c"),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("c"),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"foo": cty.StringVal("bar"),
+				}),
+				cty.MapVal(map[string]cty.Value{
+					"foo": cty.StringVal("beep"),
+				}),
+			}),
+			false,
+		},
+		// errors
 		{ // different types
 			cty.ListVal([]cty.Value{
 				cty.StringVal("a"),
@@ -2005,6 +2123,17 @@ func TestMerge(t *testing.T) {
 					cty.StringVal("a"),
 					cty.StringVal("x"),
 				}),
+			},
+			cty.NilVal,
+			true,
+		},
+
+		{ // argument error, for a null type
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("b"),
+				}),
+				cty.NullVal(cty.String),
 			},
 			cty.NilVal,
 			true,
@@ -2595,6 +2724,16 @@ func TestSlice(t *testing.T) {
 			}),
 			false,
 		},
+		{ // unknown tuple slice
+			cty.UnknownVal(tuple.Type()),
+			cty.NumberIntVal(1),
+			cty.NumberIntVal(3),
+			cty.UnknownVal(cty.Tuple([]cty.Type{
+				cty.Number,
+				cty.List(cty.String),
+			})),
+			false,
+		},
 		{ // empty list slice
 			listOfStrings,
 			cty.NumberIntVal(2),
@@ -2608,6 +2747,90 @@ func TestSlice(t *testing.T) {
 			cty.NumberIntVal(3),
 			cty.EmptyTupleVal,
 			false,
+		},
+		{ // list with unknown start offset
+			listOfStrings,
+			cty.UnknownVal(cty.Number),
+			cty.NumberIntVal(2),
+			cty.UnknownVal(cty.List(cty.String)),
+			false,
+		},
+		{ // list with unknown start offset but end out of bounds
+			listOfStrings,
+			cty.UnknownVal(cty.Number),
+			cty.NumberIntVal(200),
+			cty.UnknownVal(cty.List(cty.String)),
+			true,
+		},
+		{ // list with unknown start offset but end < 0
+			listOfStrings,
+			cty.UnknownVal(cty.Number),
+			cty.NumberIntVal(-4),
+			cty.UnknownVal(cty.List(cty.String)),
+			true,
+		},
+		{ // list with unknown end offset
+			listOfStrings,
+			cty.UnknownVal(cty.Number),
+			cty.NumberIntVal(0),
+			cty.UnknownVal(cty.List(cty.String)),
+			false,
+		},
+		{ // list with unknown end offset but start out of bounds
+			listOfStrings,
+			cty.UnknownVal(cty.Number),
+			cty.NumberIntVal(200),
+			cty.UnknownVal(cty.List(cty.String)),
+			true,
+		},
+		{ // list with unknown end offset but start < 0
+			listOfStrings,
+			cty.UnknownVal(cty.Number),
+			cty.NumberIntVal(-3),
+			cty.UnknownVal(cty.List(cty.String)),
+			true,
+		},
+		{ // tuple slice with unknown start offset
+			tuple,
+			cty.UnknownVal(cty.Number),
+			cty.NumberIntVal(3),
+			cty.DynamicVal,
+			false,
+		},
+		{ // tuple slice with unknown start offset but end out of bounds
+			tuple,
+			cty.UnknownVal(cty.Number),
+			cty.NumberIntVal(200),
+			cty.DynamicVal,
+			true,
+		},
+		{ // tuple slice with unknown start offset but end < 0
+			tuple,
+			cty.UnknownVal(cty.Number),
+			cty.NumberIntVal(-20),
+			cty.DynamicVal,
+			true,
+		},
+		{ // tuple slice with unknown end offset
+			tuple,
+			cty.NumberIntVal(0),
+			cty.UnknownVal(cty.Number),
+			cty.DynamicVal,
+			false,
+		},
+		{ // tuple slice with unknown end offset but start < 0
+			tuple,
+			cty.NumberIntVal(-2),
+			cty.UnknownVal(cty.Number),
+			cty.DynamicVal,
+			true,
+		},
+		{ // tuple slice with unknown end offset but start out of bounds
+			tuple,
+			cty.NumberIntVal(200),
+			cty.UnknownVal(cty.Number),
+			cty.DynamicVal,
+			true,
 		},
 	}
 

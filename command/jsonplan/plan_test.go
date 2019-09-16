@@ -26,30 +26,30 @@ func TestOmitUnknowns(t *testing.T) {
 		},
 		{
 			cty.ListValEmpty(cty.String),
-			cty.ListValEmpty(cty.String),
+			cty.EmptyTupleVal,
 		},
 		{
 			cty.ListVal([]cty.Value{cty.StringVal("hello")}),
-			cty.ListVal([]cty.Value{cty.StringVal("hello")}),
+			cty.TupleVal([]cty.Value{cty.StringVal("hello")}),
 		},
 		{
 			cty.ListVal([]cty.Value{cty.NullVal(cty.String)}),
-			cty.ListVal([]cty.Value{cty.NullVal(cty.String)}),
+			cty.TupleVal([]cty.Value{cty.NullVal(cty.String)}),
 		},
 		{
 			cty.ListVal([]cty.Value{cty.UnknownVal(cty.String)}),
-			cty.ListVal([]cty.Value{cty.NullVal(cty.String)}),
+			cty.TupleVal([]cty.Value{cty.NullVal(cty.String)}),
 		},
 		{
 			cty.ListVal([]cty.Value{cty.StringVal("hello")}),
-			cty.ListVal([]cty.Value{cty.StringVal("hello")}),
+			cty.TupleVal([]cty.Value{cty.StringVal("hello")}),
 		},
 		//
 		{
 			cty.ListVal([]cty.Value{
 				cty.StringVal("hello"),
 				cty.UnknownVal(cty.String)}),
-			cty.ListVal([]cty.Value{
+			cty.TupleVal([]cty.Value{
 				cty.StringVal("hello"),
 				cty.NullVal(cty.String),
 			}),
@@ -59,7 +59,7 @@ func TestOmitUnknowns(t *testing.T) {
 				"hello": cty.True,
 				"world": cty.UnknownVal(cty.Bool),
 			}),
-			cty.MapVal(map[string]cty.Value{
+			cty.ObjectVal(map[string]cty.Value{
 				"hello": cty.True,
 			}),
 		},
@@ -70,10 +70,26 @@ func TestOmitUnknowns(t *testing.T) {
 				cty.StringVal("stg"),
 				cty.UnknownVal(cty.String),
 			}),
-			cty.SetVal([]cty.Value{
+			cty.TupleVal([]cty.Value{
 				cty.StringVal("dev"),
 				cty.StringVal("foo"),
 				cty.StringVal("stg"),
+			}),
+		},
+		{
+			cty.SetVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"a": cty.UnknownVal(cty.String),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"a": cty.StringVal("known"),
+				}),
+			}),
+			cty.TupleVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"a": cty.StringVal("known"),
+				}),
+				cty.EmptyObjectVal,
 			}),
 		},
 	}
@@ -122,39 +138,39 @@ func TestUnknownAsBool(t *testing.T) {
 
 		{
 			cty.ListValEmpty(cty.String),
-			cty.False,
+			cty.EmptyTupleVal,
 		},
 		{
 			cty.ListVal([]cty.Value{cty.StringVal("hello")}),
-			cty.ListVal([]cty.Value{cty.False}),
+			cty.TupleVal([]cty.Value{cty.False}),
 		},
 		{
 			cty.ListVal([]cty.Value{cty.NullVal(cty.String)}),
-			cty.ListVal([]cty.Value{cty.False}),
+			cty.TupleVal([]cty.Value{cty.False}),
 		},
 		{
 			cty.ListVal([]cty.Value{cty.UnknownVal(cty.String)}),
-			cty.ListVal([]cty.Value{cty.True}),
+			cty.TupleVal([]cty.Value{cty.True}),
 		},
 		{
 			cty.SetValEmpty(cty.String),
-			cty.False,
+			cty.EmptyTupleVal,
 		},
 		{
 			cty.SetVal([]cty.Value{cty.StringVal("hello")}),
-			cty.SetVal([]cty.Value{cty.False}),
+			cty.TupleVal([]cty.Value{cty.False}),
 		},
 		{
 			cty.SetVal([]cty.Value{cty.NullVal(cty.String)}),
-			cty.SetVal([]cty.Value{cty.False}),
+			cty.TupleVal([]cty.Value{cty.False}),
 		},
 		{
 			cty.SetVal([]cty.Value{cty.UnknownVal(cty.String)}),
-			cty.SetVal([]cty.Value{cty.True}),
+			cty.TupleVal([]cty.Value{cty.True}),
 		},
 		{
 			cty.EmptyTupleVal,
-			cty.False,
+			cty.EmptyTupleVal,
 		},
 		{
 			cty.TupleVal([]cty.Value{cty.StringVal("hello")}),
@@ -170,35 +186,69 @@ func TestUnknownAsBool(t *testing.T) {
 		},
 		{
 			cty.MapValEmpty(cty.String),
-			cty.False,
+			cty.EmptyObjectVal,
 		},
 		{
 			cty.MapVal(map[string]cty.Value{"greeting": cty.StringVal("hello")}),
-			cty.MapVal(map[string]cty.Value{"greeting": cty.False}),
+			cty.EmptyObjectVal,
 		},
 		{
 			cty.MapVal(map[string]cty.Value{"greeting": cty.NullVal(cty.String)}),
-			cty.MapVal(map[string]cty.Value{"greeting": cty.False}),
+			cty.EmptyObjectVal,
 		},
 		{
 			cty.MapVal(map[string]cty.Value{"greeting": cty.UnknownVal(cty.String)}),
-			cty.MapVal(map[string]cty.Value{"greeting": cty.True}),
+			cty.ObjectVal(map[string]cty.Value{"greeting": cty.True}),
 		},
 		{
 			cty.EmptyObjectVal,
-			cty.False,
+			cty.EmptyObjectVal,
 		},
 		{
 			cty.ObjectVal(map[string]cty.Value{"greeting": cty.StringVal("hello")}),
-			cty.ObjectVal(map[string]cty.Value{"greeting": cty.False}),
+			cty.EmptyObjectVal,
 		},
 		{
 			cty.ObjectVal(map[string]cty.Value{"greeting": cty.NullVal(cty.String)}),
-			cty.ObjectVal(map[string]cty.Value{"greeting": cty.False}),
+			cty.EmptyObjectVal,
 		},
 		{
 			cty.ObjectVal(map[string]cty.Value{"greeting": cty.UnknownVal(cty.String)}),
 			cty.ObjectVal(map[string]cty.Value{"greeting": cty.True}),
+		},
+		{
+			cty.SetVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"a": cty.UnknownVal(cty.String),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"a": cty.StringVal("known"),
+				}),
+			}),
+			cty.TupleVal([]cty.Value{
+				cty.EmptyObjectVal,
+				cty.ObjectVal(map[string]cty.Value{
+					"a": cty.True,
+				}),
+			}),
+		},
+		{
+			cty.SetVal([]cty.Value{
+				cty.MapValEmpty(cty.String),
+				cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("known"),
+				}),
+				cty.MapVal(map[string]cty.Value{
+					"a": cty.UnknownVal(cty.String),
+				}),
+			}),
+			cty.TupleVal([]cty.Value{
+				cty.EmptyObjectVal,
+				cty.ObjectVal(map[string]cty.Value{
+					"a": cty.True,
+				}),
+				cty.EmptyObjectVal,
+			}),
 		},
 	}
 

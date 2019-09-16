@@ -64,6 +64,52 @@ func TestParseRef(t *testing.T) {
 			`The "count" object does not support this operation.`,
 		},
 
+		// each
+		{
+			`each.key`,
+			&Reference{
+				Subject: ForEachAttr{
+					Name: "key",
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 9, Byte: 8},
+				},
+			},
+			``,
+		},
+		{
+			`each.value.blah`,
+			&Reference{
+				Subject: ForEachAttr{
+					Name: "value",
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 11, Byte: 10},
+				},
+				Remaining: hcl.Traversal{
+					hcl.TraverseAttr{
+						Name: "blah",
+						SrcRange: hcl.Range{
+							Start: hcl.Pos{Line: 1, Column: 11, Byte: 10},
+							End:   hcl.Pos{Line: 1, Column: 16, Byte: 15},
+						},
+					},
+				},
+			},
+			``,
+		},
+		{
+			`each`,
+			nil,
+			`The "each" object cannot be accessed directly. Instead, access one of its attributes.`,
+		},
+		{
+			`each["hello"]`,
+			nil,
+			`The "each" object does not support this operation.`,
+		},
 		// data
 		{
 			`data.external.foo`,

@@ -59,10 +59,10 @@ func TestStateShow(t *testing.T) {
 	}
 
 	// Test that outputs were displayed
-	expected := strings.TrimSpace(testStateShowOutput) + "\n\n\n"
+	expected := strings.TrimSpace(testStateShowOutput) + "\n"
 	actual := ui.OutputWriter.String()
 	if actual != expected {
-		t.Fatalf("Expected:\n%q\n\nTo equal: %q", actual, expected)
+		t.Fatalf("Expected:\n%q\n\nTo equal:\n%q", actual, expected)
 	}
 }
 
@@ -126,10 +126,10 @@ func TestStateShow_multi(t *testing.T) {
 	}
 
 	// Test that outputs were displayed
-	expected := strings.TrimSpace(testStateShowOutput) + "\n\n\n"
+	expected := strings.TrimSpace(testStateShowOutput) + "\n"
 	actual := ui.OutputWriter.String()
 	if actual != expected {
-		t.Fatalf("Expected:\n%q\n\nTo equal: %q", actual, expected)
+		t.Fatalf("Expected:\n%q\n\nTo equal:\n%q", actual, expected)
 	}
 }
 
@@ -183,7 +183,7 @@ func TestStateShow_emptyState(t *testing.T) {
 }
 
 const testStateShowOutput = `
-# test_instance.foo: 
+# test_instance.foo:
 resource "test_instance" "foo" {
     bar = "value"
     foo = "value"

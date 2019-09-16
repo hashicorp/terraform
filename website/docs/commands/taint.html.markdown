@@ -33,10 +33,15 @@ the case.
 
 ## Usage
 
-Usage: `terraform taint [options] name`
+Usage: `terraform taint [options] address`
 
-The `name` argument is the name of the resource to mark as tainted.
-The format of this argument is `TYPE.NAME`, such as `aws_instance.foo`.
+The `address` argument is the address of the resource to mark as tainted.
+The address is in the usual resource address syntax, as shown in
+the output from other commands, such as:
+
+ * `aws_instance.foo`
+ * `aws_instance.bar[1]`
+ * `module.foo.module.bar.aws_instance.baz`
 
 The command-line flags are all optional. The list of available flags are:
 
@@ -50,14 +55,6 @@ The command-line flags are all optional. The list of available flags are:
 * `-lock=true` - Lock the state file when locking is supported.
 
 * `-lock-timeout=0s` - Duration to retry a state lock.
-
-* `-module=path` - The module path where the resource to taint exists.
-    By default this is the root path. Other modules can be specified by
-    a period-separated list. Example: "foo" would reference the module
-    "foo" but "foo.bar" would reference the "bar" module in the "foo"
-    module.
-
-* `-no-color` - Disables output with coloring
 
 * `-state=path` - Path to read and write the state file to. Defaults to "terraform.tfstate".
   Ignored when [remote state](/docs/state/remote.html) is used.
@@ -80,6 +77,6 @@ The resource aws_security_group.allow_all in the module root has been marked as 
 This example will only taint a resource within a module:
 
 ```
-$ terraform taint -module=couchbase aws_instance.cb_node.9
-The resource aws_instance.cb_node.9 in the module root.couchbase has been marked as tainted!
+$ terraform taint "module.couchbase.aws_instance.cb_node[9]"
+Resource instance module.couchbase.aws_instance.cb_node[9] has been marked as tainted!
 ```

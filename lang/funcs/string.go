@@ -71,7 +71,7 @@ var SortFunc = function.New(&function.Spec{
 
 		if !listVal.IsWhollyKnown() {
 			// If some of the element values aren't known yet then we
-			// can't yet preduct the order of the result.
+			// can't yet predict the order of the result.
 			return cty.UnknownVal(retType), nil
 		}
 		if listVal.LengthInt() == 0 { // Easy path

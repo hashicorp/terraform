@@ -4,14 +4,14 @@ services:
   - docker
 language: go
 go:
-- "1.12.4"
+- "1.12.9"
 
 # add TF_CONSUL_TEST=1 to run consul tests
 # they were causing timouts in travis
 # add TF_ETCDV3_TEST=1 to run etcdv3 tests
 # if added, TF_ETCDV3_ENDPOINTS must be set to a comma-separated list of (insecure) etcd endpoints against which to test
 env:
-  - CONSUL_VERSION=0.7.5 GOMAXPROCS=4 GO111MODULE=on
+  - CONSUL_VERSION=0.7.5 GOMAXPROCS=4 GO111MODULE=on GOPROXY=https://proxy.golang.org/
 
 # Fetch consul for the backend and provider tests
 before_install:

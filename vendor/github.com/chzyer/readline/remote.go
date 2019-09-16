@@ -189,11 +189,12 @@ loop:
 	}
 }
 
-func (r *RemoteSvr) Close() {
+func (r *RemoteSvr) Close() error {
 	if atomic.CompareAndSwapInt32(&r.closed, 0, 1) {
 		close(r.stopChan)
 		r.conn.Close()
 	}
+	return nil
 }
 
 func (r *RemoteSvr) readLoop(buf *bufio.Reader) {

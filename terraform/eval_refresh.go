@@ -55,6 +55,7 @@ func (n *EvalRefresh) Eval(ctx EvalContext) (interface{}, error) {
 	req := providers.ReadResourceRequest{
 		TypeName:   n.Addr.Resource.Type,
 		PriorState: priorVal,
+		Private:    state.Private,
 	}
 
 	provider := *n.Provider
@@ -87,6 +88,7 @@ func (n *EvalRefresh) Eval(ctx EvalContext) (interface{}, error) {
 
 	newState := state.DeepCopy()
 	newState.Value = resp.NewState
+	newState.Private = resp.Private
 
 	// Call post-refresh hook
 	err = ctx.Hook(func(h Hook) (HookAction, error) {

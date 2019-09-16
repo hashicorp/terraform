@@ -15,7 +15,7 @@ earlier, see
 
 The `setproduct` function finds all of the possible combinations of elements
 from all of the given sets by computing the
-[cartesian product](https://en.wikipedia.org/wiki/Cartesian_product).
+[Cartesian product](https://en.wikipedia.org/wiki/Cartesian_product).
 
 ```hcl
 setproduct(sets...)

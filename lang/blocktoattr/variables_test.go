@@ -21,6 +21,10 @@ func TestExpandedVariables(t *testing.T) {
 				})),
 				Optional: true,
 			},
+			"bar": {
+				Type:     cty.Map(cty.String),
+				Optional: true,
+			},
 		},
 	}
 
@@ -138,6 +142,29 @@ dynamic "foo" {
 							Filename: "test.tf",
 							Start:    hcl.Pos{Line: 5, Column: 11, Byte: 57},
 							End:      hcl.Pos{Line: 5, Column: 14, Byte: 60},
+						},
+					},
+				},
+			},
+		},
+		"misplaced dynamic block": {
+			src: `
+dynamic "bar" {
+  for_each = beep
+  content {
+    key = val
+  }
+}
+`,
+			schema: fooSchema,
+			want: []hcl.Traversal{
+				{
+					hcl.TraverseRoot{
+						Name: "beep",
+						SrcRange: hcl.Range{
+							Filename: "test.tf",
+							Start:    hcl.Pos{Line: 3, Column: 14, Byte: 30},
+							End:      hcl.Pos{Line: 3, Column: 18, Byte: 34},
 						},
 					},
 				},

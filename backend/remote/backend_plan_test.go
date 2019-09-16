@@ -36,7 +36,7 @@ func TestRemote_planBasic(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
 
 	op.Workspace = backend.DefaultStateName
@@ -67,7 +67,7 @@ func TestRemote_planCanceled(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
 
 	op.Workspace = backend.DefaultStateName
@@ -90,7 +90,7 @@ func TestRemote_planLongLine(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan-long-line")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan-long-line")
 	defer configCleanup()
 
 	op.Workspace = backend.DefaultStateName
@@ -134,7 +134,7 @@ func TestRemote_planWithoutPermissions(t *testing.T) {
 	}
 	w.Permissions.CanQueueRun = false
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
 
 	op.Workspace = "prod"
@@ -159,7 +159,7 @@ func TestRemote_planWithParallelism(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
 
 	op.Parallelism = 3
@@ -185,7 +185,7 @@ func TestRemote_planWithPlan(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
 
 	op.PlanFile = &planfile.Reader{}
@@ -214,10 +214,10 @@ func TestRemote_planWithPath(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
 
-	op.PlanOutPath = "./test-fixtures/plan"
+	op.PlanOutPath = "./testdata/plan"
 	op.Workspace = backend.DefaultStateName
 
 	run, err := b.Operation(context.Background(), op)
@@ -243,7 +243,7 @@ func TestRemote_planWithoutRefresh(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
 
 	op.PlanRefresh = false
@@ -269,7 +269,7 @@ func TestRemote_planWithTarget(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
 
 	addr, _ := addrs.ParseAbsResourceStr("null_resource.foo")
@@ -300,7 +300,7 @@ func TestRemote_planWithVariables(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan-variables")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan-variables")
 	defer configCleanup()
 
 	op.Variables = testVariables(terraform.ValueFromCLIArg, "foo", "bar")
@@ -326,7 +326,7 @@ func TestRemote_planNoConfig(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/empty")
+	op, configCleanup := testOperationPlan(t, "./testdata/empty")
 	defer configCleanup()
 
 	op.Workspace = backend.DefaultStateName
@@ -354,7 +354,7 @@ func TestRemote_planNoChanges(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan-no-changes")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan-no-changes")
 	defer configCleanup()
 
 	op.Workspace = backend.DefaultStateName
@@ -392,7 +392,7 @@ func TestRemote_planForceLocal(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
 
 	op.Workspace = backend.DefaultStateName
@@ -423,7 +423,7 @@ func TestRemote_planWithoutOperationsEntitlement(t *testing.T) {
 	b, bCleanup := testBackendNoOperations(t)
 	defer bCleanup()
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
 
 	op.Workspace = backend.DefaultStateName
@@ -468,7 +468,7 @@ func TestRemote_planWorkspaceWithoutOperations(t *testing.T) {
 		t.Fatalf("error creating named workspace: %v", err)
 	}
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
 
 	op.Workspace = "no-operations"
@@ -522,7 +522,7 @@ func TestRemote_planLockTimeout(t *testing.T) {
 		t.Fatalf("error creating pending run: %v", err)
 	}
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
 
 	input := testInput(t, map[string]string{
@@ -570,7 +570,7 @@ func TestRemote_planDestroy(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
 
 	op.Destroy = true
@@ -594,7 +594,7 @@ func TestRemote_planDestroyNoConfig(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/empty")
+	op, configCleanup := testOperationPlan(t, "./testdata/empty")
 	defer configCleanup()
 
 	op.Destroy = true
@@ -622,13 +622,71 @@ func TestRemote_planWithWorkingDirectory(t *testing.T) {
 		WorkingDirectory: tfe.String("terraform"),
 	}
 
-	// Configure the workspace to use a custom working direcrtory.
+	// Configure the workspace to use a custom working directory.
 	_, err := b.client.Workspaces.Update(context.Background(), b.organization, b.workspace, options)
 	if err != nil {
 		t.Fatalf("error configuring working directory: %v", err)
 	}
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan-with-working-directory/terraform")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan-with-working-directory/terraform")
+	defer configCleanup()
+
+	op.Workspace = backend.DefaultStateName
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Result != backend.OperationSuccess {
+		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
+	}
+	if run.PlanEmpty {
+		t.Fatalf("expected a non-empty plan")
+	}
+
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if !strings.Contains(output, "The remote workspace is configured to work with configuration") {
+		t.Fatalf("expected working directory warning: %s", output)
+	}
+	if !strings.Contains(output, "Running plan in the remote backend") {
+		t.Fatalf("expected remote backend header in output: %s", output)
+	}
+	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+		t.Fatalf("expected plan summery in output: %s", output)
+	}
+}
+
+func TestRemote_planWithWorkingDirectoryFromCurrentPath(t *testing.T) {
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
+
+	options := tfe.WorkspaceUpdateOptions{
+		WorkingDirectory: tfe.String("terraform"),
+	}
+
+	// Configure the workspace to use a custom working directory.
+	_, err := b.client.Workspaces.Update(context.Background(), b.organization, b.workspace, options)
+	if err != nil {
+		t.Fatalf("error configuring working directory: %v", err)
+	}
+
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("error getting current working directory: %v", err)
+	}
+
+	// We need to change into the configuration directory to make sure
+	// the logic to upload the correct slug is working as expected.
+	if err := os.Chdir("./testdata/plan-with-working-directory/terraform"); err != nil {
+		t.Fatalf("error changing directory: %v", err)
+	}
+	defer os.Chdir(wd) // Make sure we change back again when were done.
+
+	// For this test we need to give our current directory instead of the
+	// full path to the configuration as we already changed directories.
+	op, configCleanup := testOperationPlan(t, ".")
 	defer configCleanup()
 
 	op.Workspace = backend.DefaultStateName
@@ -655,45 +713,11 @@ func TestRemote_planWithWorkingDirectory(t *testing.T) {
 	}
 }
 
-func TestRemote_costEstimation(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
-	defer bCleanup()
-
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan-cost-estimation")
-	defer configCleanup()
-
-	op.Workspace = backend.DefaultStateName
-
-	run, err := b.Operation(context.Background(), op)
-	if err != nil {
-		t.Fatalf("error starting operation: %v", err)
-	}
-
-	<-run.Done()
-	if run.Result != backend.OperationSuccess {
-		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
-	}
-	if run.PlanEmpty {
-		t.Fatalf("expected a non-empty plan")
-	}
-
-	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if !strings.Contains(output, "Running plan in the remote backend") {
-		t.Fatalf("expected remote backend header in output: %s", output)
-	}
-	if !strings.Contains(output, "SKU") {
-		t.Fatalf("expected cost estimation result in output: %s", output)
-	}
-	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
-		t.Fatalf("expected plan summary in output: %s", output)
-	}
-}
-
 func TestRemote_planPolicyPass(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan-policy-passed")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan-policy-passed")
 	defer configCleanup()
 
 	op.Workspace = backend.DefaultStateName
@@ -727,7 +751,7 @@ func TestRemote_planPolicyHardFail(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan-policy-hard-failed")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan-policy-hard-failed")
 	defer configCleanup()
 
 	op.Workspace = backend.DefaultStateName
@@ -766,7 +790,7 @@ func TestRemote_planPolicySoftFail(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan-policy-soft-failed")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan-policy-soft-failed")
 	defer configCleanup()
 
 	op.Workspace = backend.DefaultStateName
@@ -805,7 +829,7 @@ func TestRemote_planWithRemoteError(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan-with-error")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan-with-error")
 	defer configCleanup()
 
 	op.Workspace = backend.DefaultStateName
@@ -829,5 +853,25 @@ func TestRemote_planWithRemoteError(t *testing.T) {
 	}
 	if !strings.Contains(output, "null_resource.foo: 1 error") {
 		t.Fatalf("expected plan error in output: %s", output)
+	}
+}
+
+func TestRemote_planOtherError(t *testing.T) {
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
+
+	op, configCleanup := testOperationPlan(t, "./testdata/plan")
+	defer configCleanup()
+
+	op.Workspace = "network-error" // custom error response in backend_mock.go
+
+	_, err := b.Operation(context.Background(), op)
+	if err == nil {
+		t.Errorf("expected error, got success")
+	}
+
+	if !strings.Contains(err.Error(),
+		"The configured \"remote\" backend encountered an unexpected error:\n\nI'm a little teacup") {
+		t.Fatalf("expected error message, got: %s", err.Error())
 	}
 }

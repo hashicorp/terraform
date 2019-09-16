@@ -187,7 +187,7 @@ for later evaluation by the calling application.
 ### Blocks
 
 A _block_ creates a child body that is annotated with a block _type_ and
-zero or more block _labels_. Blocks create a structural hierachy which can be
+zero or more block _labels_. Blocks create a structural hierarchy which can be
 interpreted by the calling application.
 
 Block labels can either be quoted literal strings or naked identifiers.

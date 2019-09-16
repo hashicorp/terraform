@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"reflect"
@@ -15,8 +16,8 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
@@ -3350,6 +3351,71 @@ func TestContext2Plan_countIncreaseWithSplatReference(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_forEach(t *testing.T) {
+	m := testModule(t, "plan-for-each")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
+
+	if len(plan.Changes.Resources) != 8 {
+		t.Fatal("expected 8 changes, got", len(plan.Changes.Resources))
+	}
+
+	for _, res := range plan.Changes.Resources {
+		if res.Action != plans.Create {
+			t.Fatalf("expected resource creation, got %s", res.Action)
+		}
+		_, err := res.Decode(ty)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+func TestContext2Plan_forEachUnknownValue(t *testing.T) {
+	// This module has a variable defined, but it is not provided
+	// in the context below and we expect the plan to error, but not panic
+	m := testModule(t, "plan-for-each-unknown-value")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	_, diags := ctx.Plan()
+	if !diags.HasErrors() {
+		// Should get this error:
+		// Invalid for_each argument: The "for_each" value depends on resource attributes that cannot be determined until apply...
+		t.Fatal("succeeded; want errors")
+	}
+
+	gotErrStr := diags.Err().Error()
+	wantErrStr := "Invalid for_each argument"
+	if !strings.Contains(gotErrStr, wantErrStr) {
+		t.Fatalf("missing expected error\ngot: %s\n\nwant: error containing %q", gotErrStr, wantErrStr)
+	}
+}
+
 func TestContext2Plan_destroy(t *testing.T) {
 	m := testModule(t, "plan-destroy")
 	p := testProvider("aws")
@@ -4869,6 +4935,87 @@ func TestContext2Plan_ignoreChangesWildcard(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_ignoreChangesInMap(t *testing.T) {
+	p := testProvider("test")
+
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_ignore_changes_map": {
+				Attributes: map[string]*configschema.Attribute{
+					"tags": {Type: cty.Map(cty.String), Optional: true},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
+	}
+
+	p.DiffFn = testDiffFn
+
+	s := states.BuildState(func(ss *states.SyncState) {
+		ss.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_ignore_changes_map",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				Status:    states.ObjectReady,
+				AttrsJSON: []byte(`{"tags":{"ignored":"from state","other":"from state"}}`),
+			},
+			addrs.ProviderConfig{
+				Type: "test",
+			}.Absolute(addrs.RootModuleInstance),
+		)
+	})
+	m := testModule(t, "plan-ignore-changes-in-map")
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+		State: s,
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+
+	schema := p.GetSchemaReturn.ResourceTypes["test_ignore_changes_map"]
+	ty := schema.ImpliedType()
+
+	if got, want := len(plan.Changes.Resources), 1; got != want {
+		t.Fatalf("wrong number of changes %d; want %d", got, want)
+	}
+
+	res := plan.Changes.Resources[0]
+	ric, err := res.Decode(ty)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Action != plans.Update {
+		t.Fatalf("resource %s should be updated, got %s", ric.Addr, res.Action)
+	}
+
+	if got, want := ric.Addr.String(), "test_ignore_changes_map.foo"; got != want {
+		t.Fatalf("unexpected resource address %s; want %s", got, want)
+	}
+
+	checkVals(t, objectVal(t, schema, map[string]cty.Value{
+		"tags": cty.MapVal(map[string]cty.Value{
+			"ignored": cty.StringVal("from state"),
+			"other":   cty.StringVal("from config"),
+		}),
+	}), ric.After)
+}
+
 func TestContext2Plan_moduleMapLiteral(t *testing.T) {
 	m := testModule(t, "plan-module-map-literal")
 	p := testProvider("aws")
@@ -5721,6 +5868,49 @@ resource "aws_instance" "foo" {
 	wantErrStr := "Unsupported attribute"
 	if !strings.Contains(gotErrStr, wantErrStr) {
 		t.Fatalf("missing expected error\ngot: %s\n\nwant: error containing %q", gotErrStr, wantErrStr)
+	}
+}
+
+func TestContext2Plan_variableValidation(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "x" {
+  default = "bar"
+}
+
+resource "aws_instance" "foo" {
+  foo = var.x
+}`,
+	})
+
+	p := testProvider("aws")
+	p.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) (resp providers.ValidateResourceTypeConfigResponse) {
+		foo := req.Config.GetAttr("foo").AsString()
+		if foo == "bar" {
+			resp.Diagnostics = resp.Diagnostics.Append(errors.New("foo cannot be bar"))
+		}
+		return
+	}
+
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		resp.PlannedState = req.ProposedNewState
+		return
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	_, diags := ctx.Plan()
+	if !diags.HasErrors() {
+		// Should get this error:
+		// Unsupported attribute: This object does not have an attribute named "missing"
+		t.Fatal("succeeded; want errors")
 	}
 }
 

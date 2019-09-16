@@ -242,7 +242,7 @@ func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operati
 
 const applyDefaultHeader = `
 [reset][yellow]Running apply in the remote backend. Output will stream here. Pressing Ctrl-C
-will cancel the remote apply if its still pending. If the apply started it
+will cancel the remote apply if it's still pending. If the apply started it
 will stop streaming the logs, but will not stop the apply running remotely.[reset]
 
 Preparing the remote apply...

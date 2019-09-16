@@ -53,12 +53,13 @@ type connectionInfo struct {
 	ScriptPath  string        `mapstructure:"script_path"`
 	TimeoutVal  time.Duration `mapstructure:"-"`
 
-	BastionUser       string `mapstructure:"bastion_user"`
-	BastionPassword   string `mapstructure:"bastion_password"`
-	BastionPrivateKey string `mapstructure:"bastion_private_key"`
-	BastionHost       string `mapstructure:"bastion_host"`
-	BastionHostKey    string `mapstructure:"bastion_host_key"`
-	BastionPort       int    `mapstructure:"bastion_port"`
+	BastionUser        string `mapstructure:"bastion_user"`
+	BastionPassword    string `mapstructure:"bastion_password"`
+	BastionPrivateKey  string `mapstructure:"bastion_private_key"`
+	BastionCertificate string `mapstructure:"bastion_certificate"`
+	BastionHost        string `mapstructure:"bastion_host"`
+	BastionHostKey     string `mapstructure:"bastion_host_key"`
+	BastionPort        int    `mapstructure:"bastion_port"`
 
 	AgentIdentity string `mapstructure:"agent_identity"`
 }
@@ -123,6 +124,9 @@ func parseConnectionInfo(s *terraform.InstanceState) (*connectionInfo, error) {
 		if connInfo.BastionPrivateKey == "" {
 			connInfo.BastionPrivateKey = connInfo.PrivateKey
 		}
+		if connInfo.BastionCertificate == "" {
+			connInfo.BastionCertificate = connInfo.Certificate
+		}
 		if connInfo.BastionPort == 0 {
 			connInfo.BastionPort = connInfo.Port
 		}
@@ -171,12 +175,13 @@ func prepareSSHConfig(connInfo *connectionInfo) (*sshConfig, error) {
 		bastionHost := fmt.Sprintf("%s:%d", connInfo.BastionHost, connInfo.BastionPort)
 
 		bastionConf, err = buildSSHClientConfig(sshClientConfigOpts{
-			user:       connInfo.BastionUser,
-			host:       bastionHost,
-			privateKey: connInfo.BastionPrivateKey,
-			password:   connInfo.BastionPassword,
-			hostKey:    connInfo.HostKey,
-			sshAgent:   sshAgent,
+			user:        connInfo.BastionUser,
+			host:        bastionHost,
+			privateKey:  connInfo.BastionPrivateKey,
+			password:    connInfo.BastionPassword,
+			hostKey:     connInfo.HostKey,
+			certificate: connInfo.BastionCertificate,
+			sshAgent:    sshAgent,
 		})
 		if err != nil {
 			return nil, err

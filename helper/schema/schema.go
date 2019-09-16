@@ -22,7 +22,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/copystructure"
 	"github.com/mitchellh/mapstructure"
@@ -171,7 +171,7 @@ type Schema struct {
 	// TypeInt, or TypeFloat. Otherwise it may be either a *Schema or a
 	// *Resource. If it is *Schema, the element type is just a simple value.
 	// If it is *Resource, the element type is a complex structure,
-	// potentially with its own lifecycle.
+	// potentially managed via its own CRUD actions on the API.
 	Elem interface{}
 
 	// The following fields are only set for a TypeList or TypeSet.
@@ -762,7 +762,7 @@ func (m schemaMap) internalValidate(topSchemaMap schemaMap, attrsOnly bool) erro
 
 					var ok bool
 					if target, ok = sm[part]; !ok {
-						return fmt.Errorf("%s: ConflictsWith references unknown attribute (%s)", k, key)
+						return fmt.Errorf("%s: ConflictsWith references unknown attribute (%s) at part (%s)", k, key, part)
 					}
 
 					if subResource, ok := target.Elem.(*Resource); ok {
@@ -1365,10 +1365,15 @@ func (m schemaMap) validate(
 			"%q: this field cannot be set", k)}
 	}
 
-	if raw == config.UnknownVariableValue {
-		// If the value is unknown then we can't validate it yet.
-		// In particular, this avoids spurious type errors where downstream
-		// validation code sees UnknownVariableValue as being just a string.
+	// If the value is unknown then we can't validate it yet.
+	// In particular, this avoids spurious type errors where downstream
+	// validation code sees UnknownVariableValue as being just a string.
+	// The SDK has to allow the unknown value through initially, so that
+	// Required fields set via an interpolated value are accepted.
+	if !isWhollyKnown(raw) {
+		if schema.Deprecated != "" {
+			return []string{fmt.Sprintf("%q: [DEPRECATED] %s", k, schema.Deprecated)}, nil
+		}
 		return nil, nil
 	}
 
@@ -1380,6 +1385,28 @@ func (m schemaMap) validate(
 	return m.validateType(k, raw, schema, c)
 }
 
+// isWhollyKnown returns false if the argument contains an UnknownVariableValue
+func isWhollyKnown(raw interface{}) bool {
+	switch raw := raw.(type) {
+	case string:
+		if raw == hcl2shim.UnknownVariableValue {
+			return false
+		}
+	case []interface{}:
+		for _, v := range raw {
+			if !isWhollyKnown(v) {
+				return false
+			}
+		}
+	case map[string]interface{}:
+		for _, v := range raw {
+			if !isWhollyKnown(v) {
+				return false
+			}
+		}
+	}
+	return true
+}
 func (m schemaMap) validateConflictingAttributes(
 	k string,
 	schema *Schema,
@@ -1391,7 +1418,7 @@ func (m schemaMap) validateConflictingAttributes(
 
 	for _, conflictingKey := range schema.ConflictsWith {
 		if raw, ok := c.Get(conflictingKey); ok {
-			if raw == config.UnknownVariableValue {
+			if raw == hcl2shim.UnknownVariableValue {
 				// An unknown value might become unset (null) once known, so
 				// we must defer validation until it's known.
 				continue
@@ -1411,9 +1438,14 @@ func (m schemaMap) validateList(
 	c *terraform.ResourceConfig) ([]string, []error) {
 	// first check if the list is wholly unknown
 	if s, ok := raw.(string); ok {
-		if s == config.UnknownVariableValue {
+		if s == hcl2shim.UnknownVariableValue {
 			return nil, nil
 		}
+	}
+
+	// schemaMap can't validate nil
+	if raw == nil {
+		return nil, nil
 	}
 
 	// We use reflection to verify the slice because you can't
@@ -1430,6 +1462,15 @@ func (m schemaMap) validateList(
 	if rawV.Kind() != reflect.Slice {
 		return nil, []error{fmt.Errorf(
 			"%s: should be a list", k)}
+	}
+
+	// We can't validate list length if this came from a dynamic block.
+	// Since there's no way to determine if something was from a dynamic block
+	// at this point, we're going to skip validation in the new protocol if
+	// there are any unknowns. Validate will eventually be called again once
+	// all values are known.
+	if isProto5() && !isWhollyKnown(raw) {
+		return nil, nil
 	}
 
 	// Validate length
@@ -1489,11 +1530,15 @@ func (m schemaMap) validateMap(
 	c *terraform.ResourceConfig) ([]string, []error) {
 	// first check if the list is wholly unknown
 	if s, ok := raw.(string); ok {
-		if s == config.UnknownVariableValue {
+		if s == hcl2shim.UnknownVariableValue {
 			return nil, nil
 		}
 	}
 
+	// schemaMap can't validate nil
+	if raw == nil {
+		return nil, nil
+	}
 	// We use reflection to verify the slice because you can't
 	// case to []interface{} unless the slice is exactly that type.
 	rawV := reflect.ValueOf(raw)
@@ -1620,6 +1665,12 @@ func (m schemaMap) validateObject(
 	schema map[string]*Schema,
 	c *terraform.ResourceConfig) ([]string, []error) {
 	raw, _ := c.Get(k)
+
+	// schemaMap can't validate nil
+	if raw == nil {
+		return nil, nil
+	}
+
 	if _, ok := raw.(map[string]interface{}); !ok && !c.IsComputed(k) {
 		return nil, []error{fmt.Errorf(
 			"%s: expected object, got %s",
@@ -1664,6 +1715,14 @@ func (m schemaMap) validatePrimitive(
 	raw interface{},
 	schema *Schema,
 	c *terraform.ResourceConfig) ([]string, []error) {
+
+	// a nil value shouldn't happen in the old protocol, and in the new
+	// protocol the types have already been validated. Either way, we can't
+	// reflect on nil, so don't panic.
+	if raw == nil {
+		return nil, nil
+	}
+
 	// Catch if the user gave a complex type where a primitive was
 	// expected, so we can return a friendly error message that
 	// doesn't contain Go type system terminology.

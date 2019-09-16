@@ -31,6 +31,35 @@ resource "test_resource_map" "foobar" {
 	})
 }
 
+func TestResourceMap_basicWithVars(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+variable "a" {
+  default = "a"
+}
+
+variable "b" {
+  default = "b"
+}
+
+resource "test_resource_map" "foobar" {
+	name = "test"
+	map_of_three = {
+		one   = var.a
+		two   = var.b
+		empty = ""
+	}
+}`,
+				Check: resource.ComposeTestCheckFunc(),
+			},
+		},
+	})
+}
+
 func TestResourceMap_computedMap(t *testing.T) {
 	resource.UnitTest(t, resource.TestCase{
 		Providers:    testAccProviders,

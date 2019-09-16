@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/plugin/discovery"
 	"github.com/hashicorp/terraform/providers"
@@ -19,7 +20,7 @@ func TestMultiVersionProviderResolver(t *testing.T) {
 	available.Add(discovery.PluginMeta{
 		Name:    "plugin",
 		Version: "1.0.0",
-		Path:    "test-fixtures/empty-file",
+		Path:    "testdata/empty-file",
 	})
 
 	resolver := &multiVersionProviderResolver{
@@ -147,10 +148,10 @@ func (i *mockProviderInstaller) FileName(provider, version string) string {
 	return fmt.Sprintf("terraform-provider-%s_v%s_x4", provider, version)
 }
 
-func (i *mockProviderInstaller) Get(provider string, req discovery.Constraints) (discovery.PluginMeta, tfdiags.Diagnostics, error) {
+func (i *mockProviderInstaller) Get(provider addrs.ProviderType, req discovery.Constraints) (discovery.PluginMeta, tfdiags.Diagnostics, error) {
 	var diags tfdiags.Diagnostics
 	noMeta := discovery.PluginMeta{}
-	versions := i.Providers[provider]
+	versions := i.Providers[provider.Name]
 	if len(versions) == 0 {
 		return noMeta, diags, fmt.Errorf("provider %q not found", provider)
 	}
@@ -168,7 +169,7 @@ func (i *mockProviderInstaller) Get(provider string, req discovery.Constraints) 
 
 		if req.Allows(version) {
 			// provider filename
-			name := i.FileName(provider, v)
+			name := i.FileName(provider.Name, v)
 			path := filepath.Join(i.Dir, name)
 			f, err := os.Create(path)
 			if err != nil {
@@ -176,7 +177,7 @@ func (i *mockProviderInstaller) Get(provider string, req discovery.Constraints) 
 			}
 			f.Close()
 			return discovery.PluginMeta{
-				Name:    provider,
+				Name:    provider.Name,
 				Version: discovery.VersionStr(v),
 				Path:    path,
 			}, diags, nil
@@ -199,8 +200,8 @@ func (i *mockProviderInstaller) PurgeUnused(map[string]discovery.PluginMeta) (di
 
 type callbackPluginInstaller func(provider string, req discovery.Constraints) (discovery.PluginMeta, tfdiags.Diagnostics, error)
 
-func (cb callbackPluginInstaller) Get(provider string, req discovery.Constraints) (discovery.PluginMeta, tfdiags.Diagnostics, error) {
-	return cb(provider, req)
+func (cb callbackPluginInstaller) Get(provider addrs.ProviderType, req discovery.Constraints) (discovery.PluginMeta, tfdiags.Diagnostics, error) {
+	return cb(provider.Name, req)
 }
 
 func (cb callbackPluginInstaller) PurgeUnused(map[string]discovery.PluginMeta) (discovery.PluginMetaSet, error) {

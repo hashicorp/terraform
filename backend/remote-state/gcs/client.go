@@ -110,7 +110,7 @@ func (c *remoteClient) Lock(info *state.LockInfo) (string, error) {
 func (c *remoteClient) Unlock(id string) error {
 	gen, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
-		return err
+		return fmt.Errorf("Lock ID should be numerical value, got '%s'", id)
 	}
 
 	if err := c.lockFile().If(storage.Conditions{GenerationMatch: gen}).Delete(c.storageContext); err != nil {

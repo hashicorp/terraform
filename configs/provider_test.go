@@ -6,7 +6,7 @@ import (
 )
 
 func TestProviderReservedNames(t *testing.T) {
-	src, err := ioutil.ReadFile("test-fixtures/invalid-files/provider-reserved.tf")
+	src, err := ioutil.ReadFile("testdata/invalid-files/provider-reserved.tf")
 	if err != nil {
 		t.Fatal(err)
 	}

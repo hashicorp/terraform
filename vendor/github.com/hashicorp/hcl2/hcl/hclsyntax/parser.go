@@ -853,6 +853,14 @@ Traversal:
 						SrcRange: rng,
 					}
 					ret = makeRelativeTraversal(ret, step, rng)
+				} else if tmpl, isTmpl := keyExpr.(*TemplateExpr); isTmpl && tmpl.IsStringLiteral() {
+					litKey, _ := tmpl.Value(nil)
+					rng := hcl.RangeBetween(open.Range, close.Range)
+					step := hcl.TraverseIndex{
+						Key:      litKey,
+						SrcRange: rng,
+					}
+					ret = makeRelativeTraversal(ret, step, rng)
 				} else {
 					rng := hcl.RangeBetween(open.Range, close.Range)
 					ret = &IndexExpr{

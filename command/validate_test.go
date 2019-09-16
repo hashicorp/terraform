@@ -184,7 +184,7 @@ func TestWronglyUsedInterpolationShouldFail(t *testing.T) {
 	if !strings.Contains(ui.ErrorWriter.String(), wantError) {
 		t.Fatalf("Missing error string %q\n\n'%s'", wantError, ui.ErrorWriter.String())
 	}
-	wantError = `A static variable reference is required.`
+	wantError = `A single static variable reference is required`
 	if !strings.Contains(ui.ErrorWriter.String(), wantError) {
 		t.Fatalf("Missing error string %q\n\n'%s'", wantError, ui.ErrorWriter.String())
 	}
