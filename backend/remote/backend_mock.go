@@ -33,6 +33,7 @@ func newMockClient() *mockClient {
 	c := &mockClient{}
 	c.Applies = newMockApplies(c)
 	c.ConfigurationVersions = newMockConfigurationVersions(c)
+	c.CostEstimates = newMockCostEstimates(c)
 	c.Organizations = newMockOrganizations(c)
 	c.Plans = newMockPlans(c)
 	c.PolicyChecks = newMockPolicyChecks(c)
