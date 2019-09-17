@@ -1,17 +1,17 @@
-## 0.12.9 (Unreleased)
+## 0.12.9 (September 17, 2019)
 
 NOTES:
-* core: `ignore_changes` is now processed (in addition to existing behaviors) before the provider plan is run. This means that users may see fewer planned changes when using `ignore_changes`, as before this change, changes to ignored attributes were still being sent to CustomizeDiff in providers (which could mean cascading changes for some resources). This should be indicative that providers are no longer getting changes that were marked as ignored, but if unexpected plans are seen while using `ignore_changes`, investigate the settings in the `ignore_changes` block to ensure the appropriate attributes are set. [GH-22520]
+* core: `ignore_changes` is now processed (in addition to existing behaviors) before the provider plan is run. This means that users may see fewer planned changes when using `ignore_changes`, as before this change, changes to ignored attributes were still being sent to CustomizeDiff in providers (which could mean cascading changes for some resources). This should be indicative that providers are no longer getting changes that were marked as ignored, but if unexpected plans are seen while using `ignore_changes`, investigate the settings in the `ignore_changes` block to ensure the appropriate attributes are set. ([#22520](https://github.com/hashicorp/terraform/issues/22520))
 
 ENHANCEMENTS:
-* provisioners/habitat: `accept_license` argument available to automate accepting the EULA, now required by this client [GH-22745]
-* config: add source addressing to unknown value errors in `for_each` [GH-22760]
+* provisioners/habitat: `accept_license` argument available to automate accepting the EULA, now required by this client ([#22745](https://github.com/hashicorp/terraform/issues/22745))
+* config: add source addressing to unknown value errors in `for_each` ([#22760](https://github.com/hashicorp/terraform/issues/22760))
 
 BUG FIXES:
-* command/console: support -var and -var-file flags [GH-22145]
-* command/show: Fixed bug with wrong errors being returned or swallowed. [GH-22772]
-* config: The `cidrhost`, `cidrsubnet`, and `cidrnetmask` functions now behave correctly with IPv6 prefixes that are short enough for the host portion to be greater than 64-bit or 32-bit (depending on the target architecture). [GH-22505]
-* config: Fixed bug on empty sets with `for_each` [GH-22281]
+* command/console: support -var and -var-file flags ([#22145](https://github.com/hashicorp/terraform/issues/22145))
+* command/show: Fixed bug with wrong errors being returned or swallowed. ([#22772](https://github.com/hashicorp/terraform/issues/22772))
+* config: The `cidrhost`, `cidrsubnet`, and `cidrnetmask` functions now behave correctly with IPv6 prefixes that are short enough for the host portion to be greater than 64-bit or 32-bit (depending on the target architecture). ([#22505](https://github.com/hashicorp/terraform/issues/22505))
+* config: Fixed bug on empty sets with `for_each` ([#22281](https://github.com/hashicorp/terraform/issues/22281))
 
 ## 0.12.8 (September 04, 2019)
 
