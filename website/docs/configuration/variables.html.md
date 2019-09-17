@@ -182,7 +182,7 @@ assigned in the configuration of their parent module, as described in
 
 ### Variables on the Command Line
 
-To specify individual modules on the command line, use the `-var` option
+To specify individual variables on the command line, use the `-var` option
 when running the `terraform plan` and `terraform apply` commands:
 
 ```
