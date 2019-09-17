@@ -657,11 +657,7 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 			)
 		default:
 			return nil, fmt.Errorf(
-				"%s\n\n"+
-					"The configured \"remote\" backend encountered an unexpected error. Sometimes\n"+
-					"this is caused by network connection problems, in which case you could retr\n"+
-					"the command. If the issue persists please open a support ticket to get help\n"+
-					"resolving the problem.",
+				"The configured \"remote\" backend encountered an unexpected error:\n\n%s",
 				err,
 			)
 		}

@@ -238,6 +238,11 @@ func marshalModuleCalls(c *configs.Config, schemas *terraform.Schemas) map[strin
 }
 
 func marshalModuleCall(c *configs.Config, mc *configs.ModuleCall, schemas *terraform.Schemas) moduleCall {
+	// It is possible to have a module call with a nil config.
+	if c == nil {
+		return moduleCall{}
+	}
+
 	ret := moduleCall{
 		Source:            mc.SourceAddr,
 		VersionConstraint: mc.Version.Required.String(),

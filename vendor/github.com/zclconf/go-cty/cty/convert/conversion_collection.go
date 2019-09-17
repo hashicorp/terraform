@@ -138,7 +138,7 @@ func conversionTupleToSet(tupleType cty.Type, listEty cty.Type, unsafe bool) con
 	if len(tupleEtys) == 0 {
 		// Empty tuple short-circuit
 		return func(val cty.Value, path cty.Path) (cty.Value, error) {
-			return cty.ListValEmpty(listEty), nil
+			return cty.SetValEmpty(listEty), nil
 		}
 	}
 

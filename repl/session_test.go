@@ -270,7 +270,7 @@ func testSession(t *testing.T, test testSessionTest) {
 
 type testSessionTest struct {
 	State  *states.State // State to use
-	Module string        // Module name in test-fixtures to load
+	Module string        // Module name in testdata to load
 
 	// Inputs are the list of test inputs that are run in order.
 	// Each input can test the output of each step.

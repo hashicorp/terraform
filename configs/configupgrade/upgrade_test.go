@@ -23,11 +23,11 @@ import (
 )
 
 func TestUpgradeValid(t *testing.T) {
-	// This test uses the contents of the test-fixtures/valid directory as
+	// This test uses the contents of the testdata/valid directory as
 	// a table of tests. Every directory there must have both "input" and
 	// "want" subdirectories, where "input" is the configuration to be
 	// upgraded and "want" is the expected result.
-	fixtureDir := "test-fixtures/valid"
+	fixtureDir := "testdata/valid"
 	testDirs, err := ioutil.ReadDir(fixtureDir)
 	if err != nil {
 		t.Fatal(err)
@@ -93,7 +93,7 @@ func TestUpgradeValid(t *testing.T) {
 }
 
 func TestUpgradeRenameJSON(t *testing.T) {
-	inputDir := filepath.Join("test-fixtures/valid/rename-json/input")
+	inputDir := filepath.Join("testdata/valid/rename-json/input")
 	inputSrc, err := LoadModule(inputDir)
 	if err != nil {
 		t.Fatal(err)

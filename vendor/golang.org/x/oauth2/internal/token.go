@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math"
 	"mime"
 	"net/http"
 	"net/url"
@@ -62,14 +63,10 @@ type tokenJSON struct {
 	TokenType    string         `json:"token_type"`
 	RefreshToken string         `json:"refresh_token"`
 	ExpiresIn    expirationTime `json:"expires_in"` // at least PayPal returns string, while most return number
-	Expires      expirationTime `json:"expires"`    // broken Facebook spelling of expires_in
 }
 
 func (e *tokenJSON) expiry() (t time.Time) {
 	if v := e.ExpiresIn; v != 0 {
-		return time.Now().Add(time.Duration(v) * time.Second)
-	}
-	if v := e.Expires; v != 0 {
 		return time.Now().Add(time.Duration(v) * time.Second)
 	}
 	return
@@ -89,6 +86,9 @@ func (e *expirationTime) UnmarshalJSON(b []byte) error {
 	i, err := n.Int64()
 	if err != nil {
 		return err
+	}
+	if i > math.MaxInt32 {
+		i = math.MaxInt32
 	}
 	*e = expirationTime(i)
 	return nil
@@ -260,12 +260,6 @@ func doTokenRoundTrip(ctx context.Context, req *http.Request) (*Token, error) {
 			Raw:          vals,
 		}
 		e := vals.Get("expires_in")
-		if e == "" || e == "null" {
-			// TODO(jbd): Facebook's OAuth2 implementation is broken and
-			// returns expires_in field in expires. Remove the fallback to expires,
-			// when Facebook fixes their implementation.
-			e = vals.Get("expires")
-		}
 		expires, _ := strconv.Atoi(e)
 		if expires != 0 {
 			token.Expiry = time.Now().Add(time.Duration(expires) * time.Second)

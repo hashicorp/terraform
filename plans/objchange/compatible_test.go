@@ -1068,9 +1068,9 @@ func TestAssertObjectCompatible(t *testing.T) {
 					}),
 				}),
 			}),
-			[]string{
-				`.block: block set length changed from 2 to 3`,
-			},
+			// there is no error here, because the presence of unknowns
+			// indicates this may be a dynamic block, and the length is unknown
+			nil,
 		},
 		{
 			&configschema.Block{
@@ -1130,6 +1130,60 @@ func TestAssertObjectCompatible(t *testing.T) {
 			}),
 			cty.ObjectVal(map[string]cty.Value{
 				"block": cty.UnknownVal(cty.Set(cty.Object(map[string]cty.Type{
+					"foo": cty.String,
+				}))),
+			}),
+			nil,
+		},
+		{
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"block": {
+						Nesting: configschema.NestingSet,
+						Block:   schemaWithFoo,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"block": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.UnknownVal(cty.String),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"block": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.StringVal("a"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.StringVal("b"),
+					}),
+				}),
+			}),
+			nil,
+		},
+		{
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"block": {
+						Nesting: configschema.NestingList,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"foo": {
+									Type:     cty.String,
+									Required: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"block": cty.EmptyObjectVal,
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"block": cty.UnknownVal(cty.List(cty.Object(map[string]cty.Type{
 					"foo": cty.String,
 				}))),
 			}),

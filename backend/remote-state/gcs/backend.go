@@ -138,7 +138,7 @@ func (b *Backend) configure(ctx context.Context) error {
 			Email:      account.ClientEmail,
 			PrivateKey: []byte(account.PrivateKey),
 			Scopes:     []string{storage.ScopeReadWrite},
-			TokenURL:   "https://accounts.google.com/o/oauth2/token",
+			TokenURL:   "https://oauth2.googleapis.com/token",
 		}
 
 		opts = append(opts, option.WithHTTPClient(conf.Client(ctx)))

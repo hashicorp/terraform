@@ -149,9 +149,9 @@ that is used for auto-installed plugins, using Hashicorp's release key. At
 this time, the core Terraform archive itself is _not_ verified in this way;
 that may change in a future version of this tool.
 
-## Installing a Bundle in On-premises Terraform Enterprise
+## Installing a Bundle in Terraform Enterprise
 
-If using a private install of Terraform Enterprise in an "air-gapped"
+If using a Terraform Enterprise instance in an "air-gapped"
 environment, this tool can produce a custom Terraform version package, which
 includes a set of provider plugins along with core Terraform.
 
@@ -159,7 +159,7 @@ To create a suitable bundle, use the `-os` and `-arch` options as described
 above to produce a bundle targeting `linux_amd64`. You can then place this
 archive on an HTTP server reachable by the Terraform Enterprise hosts and
 install it as per
-[Administration: Managing Terraform Versions](https://www.terraform.io/docs/enterprise/private/admin/resources.html#managing-terraform-versions).
+[Administration: Managing Terraform Versions](https://www.terraform.io/docs/enterprise/admin/resources.html#managing-terraform-versions).
 
 After clicking the "Add Terraform Version" button:
 

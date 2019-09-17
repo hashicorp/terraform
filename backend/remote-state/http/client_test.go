@@ -10,7 +10,7 @@ import (
 	"reflect"
 	"testing"
 
-	cleanhttp "github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/hashicorp/terraform/state/remote"
 )
 
@@ -30,14 +30,14 @@ func TestHTTPClient(t *testing.T) {
 	}
 
 	// Test basic get/update
-	client := &httpClient{URL: url, Client: cleanhttp.DefaultClient()}
+	client := &httpClient{URL: url, Client: retryablehttp.NewClient()}
 	remote.TestClient(t, client)
 
 	// test just a single PUT
 	p := &httpClient{
 		URL:          url,
 		UpdateMethod: "PUT",
-		Client:       cleanhttp.DefaultClient(),
+		Client:       retryablehttp.NewClient(),
 	}
 	remote.TestClient(t, p)
 
@@ -49,7 +49,7 @@ func TestHTTPClient(t *testing.T) {
 		LockMethod:   "LOCK",
 		UnlockURL:    url,
 		UnlockMethod: "UNLOCK",
-		Client:       cleanhttp.DefaultClient(),
+		Client:       retryablehttp.NewClient(),
 	}
 	b := &httpClient{
 		URL:          url,
@@ -58,7 +58,7 @@ func TestHTTPClient(t *testing.T) {
 		LockMethod:   "LOCK",
 		UnlockURL:    url,
 		UnlockMethod: "UNLOCK",
-		Client:       cleanhttp.DefaultClient(),
+		Client:       retryablehttp.NewClient(),
 	}
 	remote.TestRemoteLocks(t, a, b)
 
@@ -68,13 +68,23 @@ func TestHTTPClient(t *testing.T) {
 	defer ts.Close()
 
 	url, err = url.Parse(ts.URL)
-	c := &httpClient{
+	client = &httpClient{
 		URL:          url,
 		UpdateMethod: "PUT",
-		Client:       cleanhttp.DefaultClient(),
+		Client:       retryablehttp.NewClient(),
 	}
-	remote.TestClient(t, c) // first time through: 201
-	remote.TestClient(t, c) // second time, with identical data: 204
+	remote.TestClient(t, client) // first time through: 201
+	remote.TestClient(t, client) // second time, with identical data: 204
+
+	// test a broken backend
+	brokenHandler := new(testBrokenHTTPHandler)
+	brokenHandler.handler = new(testHTTPHandler)
+	ts = httptest.NewServer(http.HandlerFunc(brokenHandler.Handle))
+	defer ts.Close()
+
+	url, err = url.Parse(ts.URL)
+	client = &httpClient{URL: url, Client: retryablehttp.NewClient()}
+	remote.TestClient(t, client)
 }
 
 func assertError(t *testing.T, err error, expected string) {
@@ -147,5 +157,20 @@ func (h *testHTTPHandler) HandleWebDAV(w http.ResponseWriter, r *http.Request) {
 	default:
 		w.WriteHeader(500)
 		w.Write([]byte(fmt.Sprintf("Unknown method: %s", r.Method)))
+	}
+}
+
+type testBrokenHTTPHandler struct {
+	lastRequestWasBroken bool
+	handler              *testHTTPHandler
+}
+
+func (h *testBrokenHTTPHandler) Handle(w http.ResponseWriter, r *http.Request) {
+	if h.lastRequestWasBroken {
+		h.lastRequestWasBroken = false
+		h.handler.Handle(w, r)
+	} else {
+		h.lastRequestWasBroken = true
+		w.WriteHeader(500)
 	}
 }

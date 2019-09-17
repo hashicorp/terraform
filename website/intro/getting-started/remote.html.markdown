@@ -24,9 +24,9 @@ backend options. You could use Consul for state storage, locking, and
 environments. This is a free and open source option. You can use S3 which
 only supports state storage, for a low cost and minimally featured solution.
 
-[Terraform Enterprise](https://www.hashicorp.com/products/terraform/?utm_source=oss&utm_medium=getting-started&utm_campaign=terraform)
+[Terraform Cloud](https://www.hashicorp.com/products/terraform/?utm_source=oss&utm_medium=getting-started&utm_campaign=terraform)
 is HashiCorp's commercial solution and also acts as a remote backend.
-Terraform Enterprise allows teams to easily version, audit, and collaborate
+Terraform Cloud allows teams to easily version, audit, and collaborate
 on infrastructure changes. Each proposed change generates
 a Terraform plan which can be reviewed and collaborated on as a team.
 When a proposed change is accepted, the Terraform logs are stored,
@@ -91,16 +91,16 @@ If you want to move back to local state, you can remove the backend configuratio
 block from your configuration and run `terraform init` again. Terraform will
 once again ask if you want to migrate your state back to local.
 
-## Terraform Enterprise
+## Terraform Cloud
 
-[Terraform Enterprise](https://www.hashicorp.com/products/terraform/?utm_source=oss&utm_medium=getting-started&utm_campaign=terraform) is a commercial solution which combines a predictable and reliable shared run environment with tools to help you work together on Terraform configurations and modules.
+[Terraform Cloud](https://www.hashicorp.com/products/terraform/?utm_source=oss&utm_medium=getting-started&utm_campaign=terraform) is a commercial solution which combines a predictable and reliable shared run environment with tools to help you work together on Terraform configurations and modules.
 
-Although Terraform Enterprise can act as a standard remote backend to support Terraform runs on local machines, it works even better as a remote run environment. It supports two main workflows for performing Terraform runs:
+Although Terraform Cloud can act as a standard remote backend to support Terraform runs on local machines, it works even better as a remote run environment. It supports two main workflows for performing Terraform runs:
 
 - A VCS-driven workflow, in which it automatically queues plans whenever changes are committed to your configuration's VCS repo.
 - An API-driven workflow, in which a CI pipeline or other automated tool can upload configurations directly.
 
-For a hands-on introduction to Terraform Enterprise, [follow the Terraform Enterprise getting started guide](/docs/enterprise/getting-started/index.html).
+For a hands-on introduction to Terraform Cloud, [follow the Terraform Cloud getting started guide](/docs/cloud/getting-started/index.html).
 
 
 ## Next

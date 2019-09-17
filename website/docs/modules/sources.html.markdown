@@ -31,6 +31,8 @@ types, as listed below.
 
   * [S3 buckets](#s3-bucket)
 
+  * [GCS buckets](#gcs-bucket)
+
 Each of these is described in the following sections. Module source addresses
 use a _URL-like_ syntax, but with extensions to support unambiguous selection
 of sources and additional features.
@@ -83,7 +85,7 @@ community.
 
 You can also use a
 [private registry](/docs/registry/private.html), either
-via the built-in feature from Terraform Enterprise, or by running a custom
+via the built-in feature from Terraform Cloud, or by running a custom
 service that implements
 [the module registry protocol](/docs/registry/api.html).
 
@@ -113,10 +115,10 @@ module "consul" {
 }
 ```
 
-If you are using the managed version of Terraform Enterprise, its private
-registry hostname is `app.terraform.io`. If you are using Terraform Enterprise
-on-premises, its private registry hostname is the same hostname you use to
-access your Terraform Enterprise instance.
+If you are using the SaaS version of Terraform Cloud, its private
+registry hostname is `app.terraform.io`. If you are using a Terraform Enterprise
+instance, its private registry hostname is the same hostname you use to
+access the Terraform Cloud application.
 
 Registry modules support versioning. You can provide a specific version as shown
 in the above examples, or use flexible
@@ -128,7 +130,7 @@ You can learn more about the registry at the
 To access modules from a private registry, you may need to configure an access
 token [in the CLI config](/docs/commands/cli-config.html#credentials). Use the
 same hostname as used in the module source string. For a private registry
-within Terraform Enterprise, use the same authentication token as you would
+within Terraform Cloud, use the same authentication token as you would
 use with the Enterprise API or command-line clients.
 
 ## GitHub
@@ -211,9 +213,9 @@ username/password credentials, configure
 [Git Credentials Storage](https://git-scm.com/book/en/v2/Git-Tools-Credential-Storage)
 to select a suitable source of credentials for your environment.
 
-If your Terraform configuration will be used within [Terraform Enterprise](https://www.hashicorp.com/products/terraform),
+If your Terraform configuration will be used within [Terraform Cloud](https://www.hashicorp.com/products/terraform),
 only SSH key authentication is supported, and
-[keys can be configured on a per-workspace basis](/docs/enterprise/workspaces/ssh-keys.html).
+[keys can be configured on a per-workspace basis](/docs/cloud/workspaces/ssh-keys.html).
 
 ### Selecting a Revision
 
@@ -273,9 +275,9 @@ automatically. This is the most common way to access non-public Mercurial
 repositories from automated systems because it is easy to configure
 and allows access to private repositories without interactive prompts.
 
-If your Terraform configuration will be used within [Terraform Enterprise](https://www.hashicorp.com/products/terraform),
+If your Terraform configuration will be used within [Terraform Cloud](https://www.hashicorp.com/products/terraform),
 only SSH key authentication is supported, and
-[keys can be configured on a per-workspace basis](/docs/enterprise/workspaces/ssh-keys.html).
+[keys can be configured on a per-workspace basis](/docs/cloud/workspaces/ssh-keys.html).
 
 ### Selecting a Revision
 
@@ -374,6 +376,30 @@ preferring those earlier in the list when multiple are available:
 * The default profile in the `.aws/credentials` file in your home directory.
 * If running on an EC2 instance, temporary credentials associated with the
   instance's IAM Instance Profile.
+
+## GCS Bucket
+
+You can use archives stored in Google Cloud Storage as module sources using the special `gcs::`
+prefix, followed by
+[a GCS bucket object URL](https://cloud.google.com/storage/docs/request-endpoints#typical).
+
+For example
+
+* `gcs::https://www.googleapis.com/storage/v1/BUCKET_NAME/PATH_TO_MODULE`
+* `gcs::https://www.googleapis.com/storage/v1/BUCKET_NAME/PATH/TO/module.zip`
+
+```hcl
+module "consul" {
+  source = "gcs::https://www.googleapis.com/storage/v1/modules/foomodule.zip"
+}
+```
+
+The module installer uses Google Cloud SDK to authenticate with GCS. To set credentials you can:
+
+* Enter the path of your service account key file in the GOOGLE_APPLICATION_CREDENTIALS environment variable, or;
+* If you're running Terraform from a GCE instance, default credentials are automatically available. See [Creating and Enabling Service Accounts](https://cloud.google.com/compute/docs/authentication) for Instances for more details
+* On your computer, you can make your Google identity available by running `gcloud auth application-default login`.
+
 
 ## Modules in Package Sub-directories
 

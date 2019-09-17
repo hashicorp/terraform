@@ -1,1 +1,0 @@
-module "root" { source = "./child" }

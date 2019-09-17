@@ -9,7 +9,7 @@ import (
 
 func TestMaybeAlreadyUpgraded(t *testing.T) {
 	t.Run("already upgraded", func(t *testing.T) {
-		sources, err := LoadModule("test-fixtures/already-upgraded")
+		sources, err := LoadModule("testdata/already-upgraded")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -29,7 +29,7 @@ func TestMaybeAlreadyUpgraded(t *testing.T) {
 		}
 	})
 	t.Run("not yet upgraded", func(t *testing.T) {
-		sources, err := LoadModule("test-fixtures/valid/noop/input")
+		sources, err := LoadModule("testdata/valid/noop/input")
 		if err != nil {
 			t.Fatal(err)
 		}

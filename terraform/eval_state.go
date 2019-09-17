@@ -424,13 +424,19 @@ func (n *EvalWriteResourceState) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, diags.Err()
 	}
 
-	// Currently we ony support NoEach and EachList, because for_each support
-	// is not fully wired up across Terraform. Once for_each support is added,
-	// we'll need to handle that here too, setting states.EachMap if the
-	// assigned expression is a map.
 	eachMode := states.NoEach
 	if count >= 0 { // -1 signals "count not set"
 		eachMode = states.EachList
+	}
+
+	forEach, forEachDiags := evaluateResourceForEachExpression(n.Config.ForEach, ctx)
+	diags = diags.Append(forEachDiags)
+	if forEachDiags.HasErrors() {
+		return nil, diags.Err()
+	}
+
+	if forEach != nil {
+		eachMode = states.EachMap
 	}
 
 	// This method takes care of all of the business logic of updating this

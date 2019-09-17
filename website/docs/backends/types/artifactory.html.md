@@ -28,7 +28,7 @@ terraform {
     password = "AmyFarrahFowler"
     url      = "https://custom.artifactoryonline.com/artifactory"
     repo     = "foo"
-    subpath  = "teraraform-bar"
+    subpath  = "terraform-bar"
   }
 }
 ```

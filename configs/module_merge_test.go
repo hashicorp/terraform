@@ -9,7 +9,7 @@ import (
 )
 
 func TestModuleOverrideVariable(t *testing.T) {
-	mod, diags := testModuleFromDir("test-fixtures/valid-modules/override-variable")
+	mod, diags := testModuleFromDir("testdata/valid-modules/override-variable")
 	assertNoDiagnostics(t, diags)
 	if mod == nil {
 		t.Fatalf("module is nil")
@@ -25,7 +25,7 @@ func TestModuleOverrideVariable(t *testing.T) {
 			Type:           cty.String,
 			ParsingMode:    VariableParseLiteral,
 			DeclRange: hcl.Range{
-				Filename: "test-fixtures/valid-modules/override-variable/primary.tf",
+				Filename: "testdata/valid-modules/override-variable/primary.tf",
 				Start: hcl.Pos{
 					Line:   1,
 					Column: 1,
@@ -46,7 +46,7 @@ func TestModuleOverrideVariable(t *testing.T) {
 			Type:           cty.String,
 			ParsingMode:    VariableParseLiteral,
 			DeclRange: hcl.Range{
-				Filename: "test-fixtures/valid-modules/override-variable/primary.tf",
+				Filename: "testdata/valid-modules/override-variable/primary.tf",
 				Start: hcl.Pos{
 					Line:   7,
 					Column: 1,
@@ -64,7 +64,7 @@ func TestModuleOverrideVariable(t *testing.T) {
 }
 
 func TestModuleOverrideModule(t *testing.T) {
-	mod, diags := testModuleFromDir("test-fixtures/valid-modules/override-module")
+	mod, diags := testModuleFromDir("testdata/valid-modules/override-module")
 	assertNoDiagnostics(t, diags)
 	if mod == nil {
 		t.Fatalf("module is nil")
@@ -82,7 +82,7 @@ func TestModuleOverrideModule(t *testing.T) {
 		Name:       "example",
 		SourceAddr: "./example2-a_override",
 		SourceAddrRange: hcl.Range{
-			Filename: "test-fixtures/valid-modules/override-module/a_override.tf",
+			Filename: "testdata/valid-modules/override-module/a_override.tf",
 			Start: hcl.Pos{
 				Line:   3,
 				Column: 12,
@@ -96,7 +96,7 @@ func TestModuleOverrideModule(t *testing.T) {
 		},
 		SourceSet: true,
 		DeclRange: hcl.Range{
-			Filename: "test-fixtures/valid-modules/override-module/primary.tf",
+			Filename: "testdata/valid-modules/override-module/primary.tf",
 			Start: hcl.Pos{
 				Line:   2,
 				Column: 1,
@@ -146,7 +146,7 @@ func TestModuleOverrideDynamic(t *testing.T) {
 	}
 
 	t.Run("base is dynamic", func(t *testing.T) {
-		mod, diags := testModuleFromDir("test-fixtures/valid-modules/override-dynamic-block-base")
+		mod, diags := testModuleFromDir("testdata/valid-modules/override-dynamic-block-base")
 		assertNoDiagnostics(t, diags)
 		if mod == nil {
 			t.Fatalf("module is nil")
@@ -171,7 +171,7 @@ func TestModuleOverrideDynamic(t *testing.T) {
 		}
 	})
 	t.Run("override is dynamic", func(t *testing.T) {
-		mod, diags := testModuleFromDir("test-fixtures/valid-modules/override-dynamic-block-override")
+		mod, diags := testModuleFromDir("testdata/valid-modules/override-dynamic-block-override")
 		assertNoDiagnostics(t, diags)
 		if mod == nil {
 			t.Fatalf("module is nil")

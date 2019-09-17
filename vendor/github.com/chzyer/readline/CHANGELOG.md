@@ -11,7 +11,7 @@
 
 * [#38][38] add SetChildren for prefix completer interface
 * [#42][42] improve multiple lines compatibility
-* [#43][43] remove sub-package(runes) for gopkg compatiblity
+* [#43][43] remove sub-package(runes) for gopkg compatibility
 * [#46][46] Auto complete with space prefixed line
 * [#48][48]	support suspend process (ctrl+Z)
 * [#49][49] fix bug that check equals with previous command

@@ -38,6 +38,17 @@ func (n *NodeRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, er
 		return nil, nil
 	}
 
+	forEachMap, forEachKnown, forEachDiags := evaluateResourceForEachExpressionKnown(n.Config.ForEach, ctx)
+	diags = diags.Append(forEachDiags)
+	if forEachDiags.HasErrors() {
+		return nil, diags.Err()
+	}
+	if !forEachKnown {
+		// If the for_each isn't known yet, we'll skip refreshing and try expansion
+		// again during the plan walk.
+		return nil, nil
+	}
+
 	// Next we need to potentially rename an instance address in the state
 	// if we're transitioning whether "count" is set at all.
 	fixResourceCountSetTransition(ctx, n.ResourceAddr(), count != -1)
@@ -77,6 +88,7 @@ func (n *NodeRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, er
 			Concrete: concreteResource,
 			Schema:   n.Schema,
 			Count:    count,
+			ForEach:  forEachMap,
 			Addr:     n.ResourceAddr(),
 		},
 
@@ -85,6 +97,7 @@ func (n *NodeRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, er
 		&OrphanResourceCountTransformer{
 			Concrete: concreteResourceDestroyable,
 			Count:    count,
+			ForEach:  forEachMap,
 			Addr:     n.ResourceAddr(),
 			State:    state,
 		},

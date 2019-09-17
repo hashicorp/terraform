@@ -262,6 +262,18 @@ func TestUpgradeState_flatmapState(t *testing.T) {
 				Type:     schema.TypeInt,
 				Required: true,
 			},
+			"block": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"attr": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
+			},
 		},
 		// this MigrateState will take the state to version 2
 		MigrateState: func(v int, is *terraform.InstanceState, _ interface{}) (*terraform.InstanceState, error) {
@@ -426,8 +438,89 @@ func TestUpgradeState_flatmapState(t *testing.T) {
 			}
 
 			expected := cty.ObjectVal(map[string]cty.Value{
-				"id":   cty.StringVal("bar"),
-				"four": cty.NumberIntVal(4),
+				"block": cty.ListValEmpty(cty.Object(map[string]cty.Type{"attr": cty.String})),
+				"id":    cty.StringVal("bar"),
+				"four":  cty.NumberIntVal(4),
+			})
+
+			if !cmp.Equal(expected, val, valueComparer, equateEmpty) {
+				t.Fatal(cmp.Diff(expected, val, valueComparer, equateEmpty))
+			}
+		})
+	}
+}
+
+func TestUpgradeState_flatmapStateMissingMigrateState(t *testing.T) {
+	r := &schema.Resource{
+		SchemaVersion: 1,
+		Schema: map[string]*schema.Schema{
+			"one": {
+				Type:     schema.TypeInt,
+				Required: true,
+			},
+		},
+	}
+
+	server := &GRPCProviderServer{
+		provider: &schema.Provider{
+			ResourcesMap: map[string]*schema.Resource{
+				"test": r,
+			},
+		},
+	}
+
+	testReqs := []*proto.UpgradeResourceState_Request{
+		{
+			TypeName: "test",
+			Version:  0,
+			RawState: &proto.RawState{
+				Flatmap: map[string]string{
+					"id":  "bar",
+					"one": "1",
+				},
+			},
+		},
+		{
+			TypeName: "test",
+			Version:  1,
+			RawState: &proto.RawState{
+				Flatmap: map[string]string{
+					"id":  "bar",
+					"one": "1",
+				},
+			},
+		},
+		{
+			TypeName: "test",
+			Version:  1,
+			RawState: &proto.RawState{
+				Json: []byte(`{"id":"bar","one":1}`),
+			},
+		},
+	}
+
+	for i, req := range testReqs {
+		t.Run(fmt.Sprintf("%d-%d", i, req.Version), func(t *testing.T) {
+			resp, err := server.UpgradeResourceState(nil, req)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if len(resp.Diagnostics) > 0 {
+				for _, d := range resp.Diagnostics {
+					t.Errorf("%#v", d)
+				}
+				t.Fatal("error")
+			}
+
+			val, err := msgpack.Unmarshal(resp.UpgradedState.Msgpack, r.CoreConfigSchema().ImpliedType())
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			expected := cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("bar"),
+				"one": cty.NumberIntVal(1),
 			})
 
 			if !cmp.Equal(expected, val, valueComparer, equateEmpty) {
@@ -892,14 +985,39 @@ func TestNormalizeNullValues(t *testing.T) {
 		{
 			// Plan primitives are kept
 			Src: cty.ObjectVal(map[string]cty.Value{
+				"string": cty.NumberIntVal(0),
+			}),
+			Dst: cty.ObjectVal(map[string]cty.Value{
+				"string": cty.NullVal(cty.Number),
+			}),
+			Expect: cty.ObjectVal(map[string]cty.Value{
+				"string": cty.NullVal(cty.Number),
+			}),
+		},
+		{
+			// Neither plan nor apply should remove empty strings
+			Src: cty.ObjectVal(map[string]cty.Value{
 				"string": cty.StringVal(""),
 			}),
 			Dst: cty.ObjectVal(map[string]cty.Value{
 				"string": cty.NullVal(cty.String),
 			}),
 			Expect: cty.ObjectVal(map[string]cty.Value{
+				"string": cty.StringVal(""),
+			}),
+		},
+		{
+			// Neither plan nor apply should remove empty strings
+			Src: cty.ObjectVal(map[string]cty.Value{
+				"string": cty.StringVal(""),
+			}),
+			Dst: cty.ObjectVal(map[string]cty.Value{
 				"string": cty.NullVal(cty.String),
 			}),
+			Expect: cty.ObjectVal(map[string]cty.Value{
+				"string": cty.StringVal(""),
+			}),
+			Apply: true,
 		},
 		{
 			// The null map is retained, because the src was unknown
@@ -1227,6 +1345,17 @@ func TestValidateNulls(t *testing.T) {
 						cty.NullVal(cty.String),
 					}),
 					"list2": cty.ListVal([]cty.Value{
+						cty.StringVal("string"),
+						cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+			Err: true,
+		},
+		{
+			Cfg: cty.ObjectVal(map[string]cty.Value{
+				"object": cty.ObjectVal(map[string]cty.Value{
+					"list": cty.SetVal([]cty.Value{
 						cty.StringVal("string"),
 						cty.NullVal(cty.String),
 					}),

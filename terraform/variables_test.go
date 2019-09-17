@@ -24,7 +24,7 @@ func TestVariables(t *testing.T) {
 					Value:      cty.StringVal("foo"),
 					SourceType: ValueFromConfig,
 					SourceRange: tfdiags.SourceRange{
-						Filename: "test-fixtures/vars-basic/main.tf",
+						Filename: "testdata/vars-basic/main.tf",
 						Start:    tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
 						End:      tfdiags.SourcePos{Line: 1, Column: 13, Byte: 12},
 					},
@@ -33,7 +33,7 @@ func TestVariables(t *testing.T) {
 					Value:      cty.ListValEmpty(cty.DynamicPseudoType),
 					SourceType: ValueFromConfig,
 					SourceRange: tfdiags.SourceRange{
-						Filename: "test-fixtures/vars-basic/main.tf",
+						Filename: "testdata/vars-basic/main.tf",
 						Start:    tfdiags.SourcePos{Line: 6, Column: 1, Byte: 58},
 						End:      tfdiags.SourcePos{Line: 6, Column: 13, Byte: 70},
 					},
@@ -42,7 +42,7 @@ func TestVariables(t *testing.T) {
 					Value:      cty.MapValEmpty(cty.DynamicPseudoType),
 					SourceType: ValueFromConfig,
 					SourceRange: tfdiags.SourceRange{
-						Filename: "test-fixtures/vars-basic/main.tf",
+						Filename: "testdata/vars-basic/main.tf",
 						Start:    tfdiags.SourcePos{Line: 11, Column: 1, Byte: 111},
 						End:      tfdiags.SourcePos{Line: 11, Column: 13, Byte: 123},
 					},
@@ -91,7 +91,7 @@ func TestVariables(t *testing.T) {
 					Value:      cty.True,
 					SourceType: ValueFromConfig,
 					SourceRange: tfdiags.SourceRange{
-						Filename: "test-fixtures/vars-basic-bool/main.tf",
+						Filename: "testdata/vars-basic-bool/main.tf",
 						Start:    tfdiags.SourcePos{Line: 4, Column: 1, Byte: 177},
 						End:      tfdiags.SourcePos{Line: 4, Column: 13, Byte: 189},
 					},
@@ -100,7 +100,7 @@ func TestVariables(t *testing.T) {
 					Value:      cty.False,
 					SourceType: ValueFromConfig,
 					SourceRange: tfdiags.SourceRange{
-						Filename: "test-fixtures/vars-basic-bool/main.tf",
+						Filename: "testdata/vars-basic-bool/main.tf",
 						Start:    tfdiags.SourcePos{Line: 8, Column: 1, Byte: 214},
 						End:      tfdiags.SourcePos{Line: 8, Column: 13, Byte: 226},
 					},

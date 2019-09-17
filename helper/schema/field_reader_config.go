@@ -219,6 +219,9 @@ func (r *ConfigFieldReader) readMap(k string, schema *Schema) (FieldReadResult, 
 			v, _ := r.Config.Get(key)
 			result[ik] = v
 		}
+	case nil:
+		// the map may have been empty on the configuration, so we leave the
+		// empty result
 	default:
 		panic(fmt.Sprintf("unknown type: %#v", mraw))
 	}

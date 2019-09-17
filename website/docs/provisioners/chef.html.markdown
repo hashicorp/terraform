@@ -12,12 +12,18 @@ The `chef` provisioner installs, configures and runs the Chef Client on a remote
 resource. The `chef` provisioner supports both `ssh` and `winrm` type
 [connections](/docs/provisioners/connection.html).
 
+-> **Note:** Provisioners should only be used as a last resort. For most
+common situations there are better alternatives. For more information, see
+[the main Provisioners page](./).
+
 ## Requirements
 
 The `chef` provisioner has some prerequisites for specific connection types:
 
 * For `ssh` type connections, `cURL` must be available on the remote host.
 * For `winrm` connections, `PowerShell 2.0` must be available on the remote host.
+
+[Chef end user license agreement](https://www.chef.io/end-user-license-agreement/) must be accepted by setting `chef_license` to `accept` in `client_options` argument unless you are installing an old version of Chef client.
 
 Without these prerequisites, your provisioning execution will fail.
 
@@ -43,6 +49,7 @@ resource "aws_instance" "web" {
     EOF
 
     environment     = "_default"
+    client_options  = ["chef_license 'accept'"]
     run_list        = ["cookbook::recipe"]
     node_name       = "webserver1"
     secret_key      = "${file("../encrypted_data_bag_secret")}"

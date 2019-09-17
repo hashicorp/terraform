@@ -1,0 +1,178 @@
+{
+    "format_version": "0.1",
+    "variables": {
+        "test_var": {
+            "value": "bar"
+        }
+    },
+    "planned_values": {
+        "outputs": {
+            "test": {
+                "sensitive": false,
+                "value": "bar"
+            }
+        },
+        "root_module": {
+            "resources": [
+                {
+                    "address": "test_instance.test[0]",
+                    "index": 0,
+                    "mode": "managed",
+                    "type": "test_instance",
+                    "name": "test",
+                    "provider_name": "test",
+                    "schema_version": 0,
+                    "values": {
+                        "ami": "bar"
+                    }
+                },
+                {
+                    "address": "test_instance.test[1]",
+                    "index": 1,
+                    "mode": "managed",
+                    "type": "test_instance",
+                    "name": "test",
+                    "provider_name": "test",
+                    "schema_version": 0,
+                    "values": {
+                        "ami": "bar"
+                    }
+                },
+                {
+                    "address": "test_instance.test[2]",
+                    "index": 2,
+                    "mode": "managed",
+                    "type": "test_instance",
+                    "name": "test",
+                    "provider_name": "test",
+                    "schema_version": 0,
+                    "values": {
+                        "ami": "bar"
+                    }
+                }
+            ]
+        }
+    },
+    "prior_state": {
+        "format_version": "0.1",
+        "values": {
+            "outputs": {
+                "test": {
+                    "sensitive": false,
+                    "value": "bar"
+                }
+            },
+            "root_module": {}
+        }
+    },
+    "resource_changes": [
+        {
+            "address": "test_instance.test[0]",
+            "index": 0,
+            "mode": "managed",
+            "type": "test_instance",
+            "provider_name": "test",
+            "name": "test",
+            "change": {
+                "actions": [
+                    "create"
+                ],
+                "before": null,
+                "after_unknown": {
+                    "id": true
+                },
+                "after": {
+                    "ami": "bar"
+                }
+            }
+        },
+        {
+            "address": "test_instance.test[1]",
+            "index": 1,
+            "mode": "managed",
+            "type": "test_instance",
+            "provider_name": "test",
+            "name": "test",
+            "change": {
+                "actions": [
+                    "create"
+                ],
+                "before": null,
+                "after_unknown": {
+                    "id": true
+                },
+                "after": {
+                    "ami": "bar"
+                }
+            }
+        },
+        {
+            "address": "test_instance.test[2]",
+            "index": 2,
+            "mode": "managed",
+            "type": "test_instance",
+            "provider_name": "test",
+            "name": "test",
+            "change": {
+                "actions": [
+                    "create"
+                ],
+                "before": null,
+                "after_unknown": {
+                    "id": true
+                },
+                "after": {
+                    "ami": "bar"
+                }
+            }
+        }
+    ],
+    "output_changes": {
+        "test": {
+            "actions": [
+                "create"
+            ],
+            "before": null,
+            "after": "bar",
+            "after_unknown": false
+        }
+    },
+    "configuration": {
+        "root_module": {
+            "outputs": {
+                "test": {
+                    "expression": {
+                        "references": [
+                            "var.test_var"
+                        ]
+                    }
+                }
+            },
+            "resources": [
+                {
+                    "address": "test_instance.test",
+                    "mode": "managed",
+                    "type": "test_instance",
+                    "name": "test",
+                    "provider_config_key": "test",
+                    "schema_version": 0,
+                    "expressions": {
+                        "ami": {
+                            "references": [
+                                "var.test_var"
+                            ]
+                        }
+                    },
+                    "count_expression": {
+                        "constant_value": 3
+                    }
+                }
+            ],
+            "variables": {
+                "test_var": {
+                    "default": "bar"
+                }
+            }
+        }
+    }
+}

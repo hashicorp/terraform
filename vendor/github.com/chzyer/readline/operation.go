@@ -3,6 +3,7 @@ package readline
 import (
 	"errors"
 	"io"
+	"sync"
 )
 
 var (
@@ -18,6 +19,7 @@ func (*InterruptError) Error() string {
 }
 
 type Operation struct {
+	m       sync.Mutex
 	cfg     *Config
 	t       *Terminal
 	buf     *RuneBuffer
@@ -30,6 +32,10 @@ type Operation struct {
 	*opCompleter
 	*opPassword
 	*opVim
+}
+
+func (o *Operation) SetBuffer(what string) {
+	o.buf.Set([]rune(what))
 }
 
 type wrapWriter struct {
@@ -66,7 +72,7 @@ func NewOperation(t *Terminal, cfg *Config) *Operation {
 		t:       t,
 		buf:     NewRuneBuffer(t, cfg.Prompt, cfg, width),
 		outchan: make(chan []rune),
-		errchan: make(chan error),
+		errchan: make(chan error, 1),
 	}
 	op.w = op.buf.w
 	op.SetConfig(cfg)
@@ -91,11 +97,27 @@ func (o *Operation) SetMaskRune(r rune) {
 	o.buf.SetMask(r)
 }
 
+func (o *Operation) GetConfig() *Config {
+	o.m.Lock()
+	cfg := *o.cfg
+	o.m.Unlock()
+	return &cfg
+}
+
 func (o *Operation) ioloop() {
 	for {
 		keepInSearchMode := false
 		keepInCompleteMode := false
 		r := o.t.ReadRune()
+		if o.GetConfig().FuncFilterInputRune != nil {
+			var process bool
+			r, process = o.GetConfig().FuncFilterInputRune(r)
+			if !process {
+				o.buf.Refresh(nil) // to refresh the line
+				continue           // ignore this rune
+			}
+		}
+
 		if r == 0 { // io.EOF
 			if o.buf.Len() == 0 {
 				o.buf.Clean()
@@ -149,7 +171,7 @@ func (o *Operation) ioloop() {
 				o.buf.Refresh(nil)
 			}
 		case CharTab:
-			if o.cfg.AutoComplete == nil {
+			if o.GetConfig().AutoComplete == nil {
 				o.t.Bell()
 				break
 			}
@@ -213,13 +235,15 @@ func (o *Operation) ioloop() {
 			o.Refresh()
 		case MetaBackspace, CharCtrlW:
 			o.buf.BackEscapeWord()
+		case CharCtrlY:
+			o.buf.Yank()
 		case CharEnter, CharCtrlJ:
 			if o.IsSearchMode() {
 				o.ExitSearchMode(false)
 			}
 			o.buf.MoveToLineEnd()
 			var data []rune
-			if !o.cfg.UniqueEditLine {
+			if !o.GetConfig().UniqueEditLine {
 				o.buf.WriteRune('\n')
 				data = o.buf.Reset()
 				data = data[:len(data)-1] // trim \n
@@ -228,7 +252,7 @@ func (o *Operation) ioloop() {
 				data = o.buf.Reset()
 			}
 			o.outchan <- data
-			if !o.cfg.DisableAutoSaveHistory {
+			if !o.GetConfig().DisableAutoSaveHistory {
 				// ignore IO error
 				_ = o.history.New(data)
 			} else {
@@ -262,14 +286,14 @@ func (o *Operation) ioloop() {
 			}
 
 			// treat as EOF
-			if !o.cfg.UniqueEditLine {
-				o.buf.WriteString(o.cfg.EOFPrompt + "\n")
+			if !o.GetConfig().UniqueEditLine {
+				o.buf.WriteString(o.GetConfig().EOFPrompt + "\n")
 			}
 			o.buf.Reset()
 			isUpdateHistory = false
 			o.history.Revert()
 			o.errchan <- io.EOF
-			if o.cfg.UniqueEditLine {
+			if o.GetConfig().UniqueEditLine {
 				o.buf.Clean()
 			}
 		case CharInterrupt:
@@ -286,12 +310,12 @@ func (o *Operation) ioloop() {
 			}
 			o.buf.MoveToLineEnd()
 			o.buf.Refresh(nil)
-			hint := o.cfg.InterruptPrompt + "\n"
-			if !o.cfg.UniqueEditLine {
+			hint := o.GetConfig().InterruptPrompt + "\n"
+			if !o.GetConfig().UniqueEditLine {
 				o.buf.WriteString(hint)
 			}
 			remain := o.buf.Reset()
-			if !o.cfg.UniqueEditLine {
+			if !o.GetConfig().UniqueEditLine {
 				remain = remain[:len(remain)-len([]rune(hint))]
 			}
 			isUpdateHistory = false
@@ -310,13 +334,15 @@ func (o *Operation) ioloop() {
 			}
 		}
 
-		if o.cfg.Listener != nil {
-			newLine, newPos, ok := o.cfg.Listener.OnChange(o.buf.Runes(), o.buf.Pos(), r)
+		listener := o.GetConfig().Listener
+		if listener != nil {
+			newLine, newPos, ok := listener.OnChange(o.buf.Runes(), o.buf.Pos(), r)
 			if ok {
 				o.buf.SetWithIdx(newPos, newLine)
 			}
 		}
 
+		o.m.Lock()
 		if !keepInSearchMode && o.IsSearchMode() {
 			o.ExitSearchMode(false)
 			o.buf.Refresh(nil)
@@ -333,15 +359,16 @@ func (o *Operation) ioloop() {
 			// it will cause null history
 			o.history.Update(o.buf.Runes(), false)
 		}
+		o.m.Unlock()
 	}
 }
 
 func (o *Operation) Stderr() io.Writer {
-	return &wrapWriter{target: o.cfg.Stderr, r: o, t: o.t}
+	return &wrapWriter{target: o.GetConfig().Stderr, r: o, t: o.t}
 }
 
 func (o *Operation) Stdout() io.Writer {
-	return &wrapWriter{target: o.cfg.Stdout, r: o, t: o.t}
+	return &wrapWriter{target: o.GetConfig().Stdout, r: o, t: o.t}
 }
 
 func (o *Operation) String() (string, error) {
@@ -353,8 +380,9 @@ func (o *Operation) Runes() ([]rune, error) {
 	o.t.EnterRawMode()
 	defer o.t.ExitRawMode()
 
-	if o.cfg.Listener != nil {
-		o.cfg.Listener.OnChange(nil, 0, 0)
+	listener := o.GetConfig().Listener
+	if listener != nil {
+		listener.OnChange(nil, 0, 0)
 	}
 
 	o.buf.Refresh(nil) // print prompt
@@ -422,6 +450,8 @@ func (o *Operation) IsNormalMode() bool {
 }
 
 func (op *Operation) SetConfig(cfg *Config) (*Config, error) {
+	op.m.Lock()
+	defer op.m.Unlock()
 	if op.cfg == cfg {
 		return op.cfg, nil
 	}
@@ -488,4 +518,14 @@ func (d *DumpListener) OnChange(line []rune, pos int, key rune) (newLine []rune,
 
 type Listener interface {
 	OnChange(line []rune, pos int, key rune) (newLine []rune, newPos int, ok bool)
+}
+
+type Painter interface {
+	Paint(line []rune, pos int) []rune
+}
+
+type defaultPainter struct{}
+
+func (p *defaultPainter) Paint(line []rune, _ int) []rune {
+	return line
 }

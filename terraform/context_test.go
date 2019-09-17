@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"io/ioutil"
 	"log"
 	"os"
@@ -15,17 +14,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/go-version"
-	"github.com/hashicorp/hil"
-	"github.com/zclconf/go-cty/cty"
-
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/flatmap"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/planfile"
@@ -35,6 +31,7 @@ import (
 	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/tfdiags"
 	tfversion "github.com/hashicorp/terraform/version"
+	"github.com/zclconf/go-cty/cty"
 )
 
 var (
@@ -165,7 +162,7 @@ func testApplyFn(
 		id = idAttr.New
 	}
 
-	if id == "" || id == config.UnknownVariableValue {
+	if id == "" || id == hcl2shim.UnknownVariableValue {
 		id = "foo"
 	}
 
@@ -218,7 +215,7 @@ func testDiffFn(
 			default:
 				new = fmt.Sprintf("%#v", v)
 			}
-			if new == hil.UnknownValue {
+			if new == hcl2shim.UnknownVariableValue {
 				diff.Attributes[k] = &ResourceAttrDiff{
 					Old:         old,
 					New:         "",
@@ -258,7 +255,7 @@ func testDiffFn(
 				}
 			}
 
-			if v == hil.UnknownValue || v == "unknown" {
+			if v == hcl2shim.UnknownVariableValue || v == "unknown" {
 				// compute wasn't set in the config, so don't use these
 				// computed values from the schema.
 				delete(c.Raw, k)
@@ -978,7 +975,7 @@ func legacyDiffComparisonString(changes *plans.Changes) string {
 				v := newAttrs[attrK]
 				u := oldAttrs[attrK]
 
-				if v == config.UnknownVariableValue {
+				if v == hcl2shim.UnknownVariableValue {
 					v = "<computed>"
 				}
 				// NOTE: we don't support <sensitive> here because we would

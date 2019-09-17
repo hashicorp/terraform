@@ -5,7 +5,7 @@ import (
 )
 
 func TestLocalPluginCache(t *testing.T) {
-	cache := NewLocalPluginCache("test-fixtures/plugin-cache")
+	cache := NewLocalPluginCache("testdata/plugin-cache")
 
 	foo1Path := cache.CachedPluginPath("provider", "foo", VersionStr("v0.0.1").MustParse())
 	if foo1Path == "" {

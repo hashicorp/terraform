@@ -188,8 +188,7 @@ const testTransformMissingProvisionerModuleStr = `
 aws_instance.foo
   provisioner.shell
 module.child.aws_instance.foo
-  module.child.provisioner.shell
-module.child.provisioner.shell
+  provisioner.shell
 provisioner.shell
 `
 

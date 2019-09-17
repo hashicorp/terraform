@@ -9,14 +9,14 @@ import (
 )
 
 // TestParseLoadConfigFileSuccess is a simple test that just verifies that
-// a number of test configuration files (in test-fixtures/valid-files) can
+// a number of test configuration files (in testdata/valid-files) can
 // be parsed without raising any diagnostics.
 //
 // This test does not verify that reading these files produces the correct
 // file element contents. More detailed assertions may be made on some subset
 // of these configuration files in other tests.
 func TestParserLoadConfigFileSuccess(t *testing.T) {
-	files, err := ioutil.ReadDir("test-fixtures/valid-files")
+	files, err := ioutil.ReadDir("testdata/valid-files")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -24,7 +24,7 @@ func TestParserLoadConfigFileSuccess(t *testing.T) {
 	for _, info := range files {
 		name := info.Name()
 		t.Run(name, func(t *testing.T) {
-			src, err := ioutil.ReadFile(filepath.Join("test-fixtures/valid-files", name))
+			src, err := ioutil.ReadFile(filepath.Join("testdata/valid-files", name))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -45,14 +45,14 @@ func TestParserLoadConfigFileSuccess(t *testing.T) {
 }
 
 // TestParseLoadConfigFileFailure is a simple test that just verifies that
-// a number of test configuration files (in test-fixtures/invalid-files)
+// a number of test configuration files (in testdata/invalid-files)
 // produce errors as expected.
 //
 // This test does not verify specific error messages, so more detailed
 // assertions should be made on some subset of these configuration files in
 // other tests.
 func TestParserLoadConfigFileFailure(t *testing.T) {
-	files, err := ioutil.ReadDir("test-fixtures/invalid-files")
+	files, err := ioutil.ReadDir("testdata/invalid-files")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +60,7 @@ func TestParserLoadConfigFileFailure(t *testing.T) {
 	for _, info := range files {
 		name := info.Name()
 		t.Run(name, func(t *testing.T) {
-			src, err := ioutil.ReadFile(filepath.Join("test-fixtures/invalid-files", name))
+			src, err := ioutil.ReadFile(filepath.Join("testdata/invalid-files", name))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -110,6 +110,16 @@ func TestParserLoadConfigFileFailureMessages(t *testing.T) {
 			"Unsupported block type",
 		},
 		{
+			"invalid-files/resource-count-and-for_each.tf",
+			hcl.DiagError,
+			`Invalid combination of "count" and "for_each"`,
+		},
+		{
+			"invalid-files/data-count-and-for_each.tf",
+			hcl.DiagError,
+			`Invalid combination of "count" and "for_each"`,
+		},
+		{
 			"invalid-files/resource-lifecycle-badbool.tf",
 			hcl.DiagError,
 			"Unsuitable value type",
@@ -128,7 +138,7 @@ func TestParserLoadConfigFileFailureMessages(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Filename, func(t *testing.T) {
-			src, err := ioutil.ReadFile(filepath.Join("test-fixtures", test.Filename))
+			src, err := ioutil.ReadFile(filepath.Join("testdata", test.Filename))
 			if err != nil {
 				t.Fatal(err)
 			}

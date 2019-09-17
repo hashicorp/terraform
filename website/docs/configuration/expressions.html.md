@@ -275,7 +275,7 @@ for use in references, as follows:
   `[for k, device in aws_instance.example.device : k => device.size]`.
 
 When a particular resource has the special
-[`count`](https://www.terraform.io/docs/configuration/resources.html#count-multiple-resource-instances)
+[`count`](https://www.terraform.io/docs/configuration/resources.html#count-multiple-resource-instances-by-count)
 argument set, the resource itself becomes a list of instance objects rather than
 a single object. In that case, access the attributes of the instances using
 either [splat expressions](#splat-expressions) or index syntax:
@@ -382,7 +382,7 @@ as results:
 
 * `a + b` returns the result of adding `a` and `b` together.
 * `a - b` returns the result of subtracting `b` from `a`.
-* `a * b` returns the result of multiplying `b` and `b`.
+* `a * b` returns the result of multiplying `a` and `b`.
 * `a / b` returns the result of dividing `a` by `b`.
 * `a % b` returns the remainder of dividing `a` by `b`. This operator is
   generally useful only when used with whole numbers.
@@ -673,11 +673,22 @@ Since the `for_each` argument accepts any collection or structural value,
 you can use a `for` expression or splat expression to transform an existing
 collection.
 
+The iterator object (`ingress` in the example above) has two attributes:
+
+* `key` is the map key or list element index for the current element. If the
+  `for_each` expression produces a _set_ value then `key` is identical to
+  `value` and should not be used.
+* `value` is the value of the current element.
+
 A `dynamic` block can only generate arguments that belong to the resource type,
 data source, provider or provisioner being configured. It is _not_ possible
 to generate meta-argument blocks such as `lifecycle` and `provisioner`
 blocks, since Terraform must process these before it is safe to evaluate
 expressions.
+
+If you need to iterate over combinations of values from multiple collections,
+use [`setproduct`](./functions/setproduct.html) to create a single collection
+containing all of the combinations.
 
 ### Best Practices for `dynamic` Blocks
 
