@@ -2,6 +2,7 @@
 
 ENHANCEMENTS:
 * `terraform plan` and `terraform apply` will now warn when the `-target` option is used, to draw attention to the fact that the result of applying this the plan is likely to be incomplete, and to remind to re-run `terraform plan` with no targets afterwards to ensure that the configuration has converged. [GH-22783]
+* config: New function `parseint` for parsing strings containing digits as integers in various bases. [GH-22747]
 
 ## 0.12.9 (September 17, 2019)
 
