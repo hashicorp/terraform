@@ -2,24 +2,28 @@ package etcd
 
 import (
 	"context"
+	"fmt"
 
 	etcdv3 "github.com/coreos/etcd/clientv3"
+	"github.com/coreos/etcd/pkg/srv"
 	"github.com/coreos/etcd/pkg/transport"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
 const (
-	endpointsKey       = "endpoints"
-	usernameKey        = "username"
-	usernameEnvVarName = "ETCDV3_USERNAME"
-	passwordKey        = "password"
-	passwordEnvVarName = "ETCDV3_PASSWORD"
-	prefixKey          = "prefix"
-	lockKey            = "lock"
-	cacertPathKey      = "cacert_path"
-	certPathKey        = "cert_path"
-	keyPathKey         = "key_path"
+	endpointsKey           = "endpoints"
+	discoverySrvKey        = "discovery_srv"
+	discoverySrvEnvVarName = "ETCD_DISCOVERY_SRV"
+	usernameKey            = "username"
+	usernameEnvVarName     = "ETCDV3_USERNAME"
+	passwordKey            = "password"
+	passwordEnvVarName     = "ETCDV3_PASSWORD"
+	prefixKey              = "prefix"
+	lockKey                = "lock"
+	cacertPathKey          = "cacert_path"
+	certPathKey            = "cert_path"
+	keyPathKey             = "key_path"
 )
 
 func New() backend.Backend {
@@ -31,8 +35,15 @@ func New() backend.Backend {
 					Type: schema.TypeString,
 				},
 				MinItems:    1,
-				Required:    true,
+				Optional:    true,
 				Description: "Endpoints for the etcd cluster.",
+			},
+
+			discoverySrvKey: &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Specifies the domain name to query for SRV records describing cluster endpoints.",
+				DefaultFunc: schema.EnvDefaultFunc(discoverySrvEnvVarName, ""),
 			},
 
 			usernameKey: &schema.Schema{
@@ -119,9 +130,26 @@ func (b *Backend) rawClient() (*etcdv3.Client, error) {
 	config := etcdv3.Config{}
 	tlsInfo := transport.TLSInfo{}
 
-	if v, ok := b.data.GetOk(endpointsKey); ok {
-		config.Endpoints = retrieveEndpoints(v)
+	endpoints, useStaticEndpoints := b.data.GetOk(endpointsKey)
+	srvDomain, useSrvDiscovery := b.data.GetOk(discoverySrvKey)
+
+	if useStaticEndpoints && useSrvDiscovery {
+		return nil, fmt.Errorf("%s and %s configuration variables are mutually exclusive", endpointsKey, discoverySrvKey)
 	}
+	if !useStaticEndpoints && !useSrvDiscovery {
+		return nil, fmt.Errorf("One of %s or %s is required", endpointsKey, discoverySrvKey)
+	}
+	if useStaticEndpoints {
+		config.Endpoints = retrieveEndpoints(endpoints)
+	}
+	if useSrvDiscovery {
+		endpoints, err := srvDiscovery(srvDomain.(string))
+		if err != nil {
+			return nil, fmt.Errorf("Failed to discover etcd endpoints via SRV discovery: %v", err)
+		}
+		config.Endpoints = endpoints
+	}
+
 	if v, ok := b.data.GetOk(usernameKey); ok && v.(string) != "" {
 		config.Username = v.(string)
 	}
@@ -154,4 +182,12 @@ func retrieveEndpoints(v interface{}) []string {
 		endpoints = append(endpoints, ep.(string))
 	}
 	return endpoints
+}
+
+func srvDiscovery(domain string) ([]string, error) {
+	srvs, err := srv.GetClient("etcd-client", domain)
+	if err != nil {
+		return nil, err
+	}
+	return srvs.Endpoints, nil
 }
