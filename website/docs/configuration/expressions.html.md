@@ -730,7 +730,7 @@ The `<<` marker followed by any identifier at the end of a line introduces the
 sequence. Terraform then processes the following lines until it finds one that
 consists entirely of the identifier given in the introducer. In the above
 example, `EOT` is the identifier selected. Any identifier is allowed, but
-conventionally this identifier is in all-uppercase and beings with `EO`, meaning
+conventionally this identifier is in all-uppercase and begins with `EO`, meaning
 "end of". `EOT` in this case stands for "end of text".
 
 The "heredoc" form shown above requires that the lines following be flush with
