@@ -9,7 +9,7 @@ import (
 )
 
 func TestLoadModuleCall(t *testing.T) {
-	src, err := ioutil.ReadFile("test-fixtures/invalid-files/module-calls.tf")
+	src, err := ioutil.ReadFile("testdata/invalid-files/module-calls.tf")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/hashicorp/hil"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 )
 
 func TestExpand(t *testing.T) {
@@ -171,13 +171,13 @@ func TestExpand(t *testing.T) {
 			Map: map[string]string{
 				"struct.#":         "1",
 				"struct.0.name":    "hello",
-				"struct.0.rules.#": hil.UnknownValue,
+				"struct.0.rules.#": hcl2shim.UnknownVariableValue,
 			},
 			Key: "struct",
 			Output: []interface{}{
 				map[string]interface{}{
 					"name":  "hello",
-					"rules": hil.UnknownValue,
+					"rules": hcl2shim.UnknownVariableValue,
 				},
 			},
 		},

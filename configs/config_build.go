@@ -76,6 +76,7 @@ func buildChildModules(parent *Config, walker ModuleWalker) (map[string]*Config,
 		}
 
 		child.Children, modDiags = buildChildModules(child, walker)
+		diags = append(diags, modDiags...)
 
 		ret[call.Name] = child
 	}

@@ -129,10 +129,11 @@ resources.
 
 ## Multiple Resource Instances
 
-Data resources support [the `count` meta-argument](./resources.html#count-multiple-resource-instances)
-as defined for managed resources, with the same syntax and behavior.
+Data resources support [`count`](./resources.html#count-multiple-resource-instances-by-count)
+and [`for_each`](./resources.html#for_each-multiple-resource-instances-defined-by-a-map-or-set-of-strings)
+meta-arguments as defined for managed resources, with the same syntax and behavior.
 
-As with managed resources, when `count` is present it is important to
+As with managed resources, when `count` or `for_each` is present it is important to
 distinguish the resource itself from the multiple resource _instances_ it
 creates. Each instance will separately read from its data source with its
 own variant of the constraint arguments, producing an indexed result.

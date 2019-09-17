@@ -8,6 +8,7 @@ import (
 
 type dataForTests struct {
 	CountAttrs        map[string]cty.Value
+	ForEachAttrs      map[string]cty.Value
 	ResourceInstances map[string]cty.Value
 	LocalValues       map[string]cty.Value
 	Modules           map[string]cty.Value
@@ -24,6 +25,10 @@ func (d *dataForTests) StaticValidateReferences(refs []*addrs.Reference, self ad
 
 func (d *dataForTests) GetCountAttr(addr addrs.CountAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	return d.CountAttrs[addr.Name], nil
+}
+
+func (d *dataForTests) GetForEachAttr(addr addrs.ForEachAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	return d.ForEachAttrs[addr.Name], nil
 }
 
 func (d *dataForTests) GetResourceInstance(addr addrs.ResourceInstance, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {

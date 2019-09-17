@@ -27,12 +27,14 @@ type opHistory struct {
 	current    *list.Element
 	fd         *os.File
 	fdLock     sync.Mutex
+	enable     bool
 }
 
 func newOpHistory(cfg *Config) (o *opHistory) {
 	o = &opHistory{
 		cfg:     cfg,
 		history: list.New(),
+		enable:  true,
 	}
 	return o
 }
@@ -117,7 +119,7 @@ func (o *opHistory) rewriteLocked() {
 
 	buf := bufio.NewWriter(fd)
 	for elem := o.history.Front(); elem != nil; elem = elem.Next() {
-		buf.WriteString(string(elem.Value.(*hisItem).Source))
+		buf.WriteString(string(elem.Value.(*hisItem).Source) + "\n")
 	}
 	buf.Flush()
 
@@ -223,6 +225,16 @@ func (o *opHistory) Next() ([]rune, bool) {
 	return runes.Copy(o.showItem(current.Value)), true
 }
 
+// Disable the current history
+func (o *opHistory) Disable() {
+	o.enable = false
+}
+
+// Enable the current history
+func (o *opHistory) Enable() {
+	o.enable = true
+}
+
 func (o *opHistory) debug() {
 	Debug("-------")
 	for item := o.history.Front(); item != nil; item = item.Next() {
@@ -232,6 +244,12 @@ func (o *opHistory) debug() {
 
 // save history
 func (o *opHistory) New(current []rune) (err error) {
+
+	// history deactivated
+	if !o.enable {
+		return nil
+	}
+
 	current = runes.Copy(current)
 
 	// if just use last command without modify

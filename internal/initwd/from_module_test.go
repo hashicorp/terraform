@@ -18,7 +18,7 @@ func TestDirFromModule_registry(t *testing.T) {
 		t.Skip("this test accesses registry.terraform.io and github.com; set TF_ACC=1 to run it")
 	}
 
-	fixtureDir := filepath.Clean("test-fixtures/empty")
+	fixtureDir := filepath.Clean("testdata/empty")
 	dir, done := tempChdir(t, fixtureDir)
 	modsDir := filepath.Join(dir, ".terraform/modules")
 	defer done()

@@ -316,10 +316,10 @@ func (h *UiHook) PostImportState(addr addrs.AbsResourceInstance, imported []prov
 	h.once.Do(h.init)
 
 	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
-		"[reset][bold][green]%s: Import complete!", addr)))
+		"[reset][bold][green]%s: Import prepared!", addr)))
 	for _, s := range imported {
 		h.ui.Output(h.Colorize.Color(fmt.Sprintf(
-			"[reset][green]  Imported %s",
+			"[reset][green]  Prepared %s for import",
 			s.TypeName,
 		)))
 	}
@@ -373,7 +373,10 @@ func dropCR(data []byte) []byte {
 }
 
 func truncateId(id string, maxLen int) string {
-	totalLength := len(id)
+	// Note that the id may contain multibyte characters.
+	// We need to truncate it to maxLen characters, not maxLen bytes.
+	rid := []rune(id)
+	totalLength := len(rid)
 	if totalLength <= maxLen {
 		return id
 	}
@@ -383,11 +386,11 @@ func truncateId(id string, maxLen int) string {
 		maxLen = 5
 	}
 
-	dots := "..."
+	dots := []rune("...")
 	partLen := maxLen / 2
 
 	leftIdx := partLen - 1
-	leftPart := id[0:leftIdx]
+	leftPart := rid[0:leftIdx]
 
 	rightIdx := totalLength - partLen - 1
 
@@ -396,7 +399,7 @@ func truncateId(id string, maxLen int) string {
 		rightIdx -= overlap
 	}
 
-	rightPart := id[rightIdx:]
+	rightPart := rid[rightIdx:]
 
-	return leftPart + dots + rightPart
+	return string(leftPart) + string(dots) + string(rightPart)
 }

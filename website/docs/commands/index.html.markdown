@@ -21,7 +21,7 @@ To view a list of the available commands at any time, just run terraform with no
 
 ```text
 $ terraform
-Usage: terraform [--version] [--help] <command> [args]
+Usage: terraform [-version] [-help] <command> [args]
 
 The available commands for execution are listed below.
 The most common, useful commands are shown first, followed by
@@ -33,15 +33,15 @@ Common commands:
     apply              Builds or changes infrastructure
     console            Interactive console for Terraform interpolations
     destroy            Destroy Terraform-managed infrastructure
+    env                Workspace management
     fmt                Rewrites config files to canonical format
     get                Download and install modules for the configuration
     graph              Create a visual graph of Terraform resources
     import             Import existing infrastructure into Terraform
-    init               Initialize a new or existing Terraform configuration
+    init               Initialize a Terraform working directory
     output             Read an output from a state file
     plan               Generate and show an execution plan
     providers          Prints a tree of the providers used in the configuration
-    push               Upload this Terraform module to Terraform Enterprise to run
     refresh            Update local state file against real resources
     show               Inspect Terraform state or plan
     taint              Manually mark a resource for recreation
@@ -51,8 +51,10 @@ Common commands:
     workspace          Workspace management
 
 All other commands:
+    0.12upgrade        Rewrites pre-0.12 module source code for v0.12
     debug              Debug output management (experimental)
     force-unlock       Manually unlock the terraform state
+    push               Obsolete command for Terraform Enterprise legacy (v1)
     state              Advanced state management
 ```
 

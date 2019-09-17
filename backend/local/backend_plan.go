@@ -260,9 +260,10 @@ func (b *Local) renderPlan(plan *plans.Plan, state *states.State, schemas *terra
 		// check if the change is due to a tainted resource
 		tainted := false
 		if !state.Empty() {
-			rs := state.ResourceInstance(rcs.Addr)
-			if rs != nil {
-				tainted = rs.Current.Status == states.ObjectTainted
+			if is := state.ResourceInstance(rcs.Addr); is != nil {
+				if obj := is.GetGeneration(rcs.DeposedKey.Generation()); obj != nil {
+					tainted = obj.Status == states.ObjectTainted
+				}
 			}
 		}
 

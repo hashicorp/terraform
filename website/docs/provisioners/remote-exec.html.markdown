@@ -14,6 +14,9 @@ into a cluster, etc. To invoke a local process, see the `local-exec`
 [provisioner](/docs/provisioners/local-exec.html) instead. The `remote-exec`
 provisioner supports both `ssh` and `winrm` type [connections](/docs/provisioners/connection.html).
 
+-> **Note:** Provisioners should only be used as a last resort. For most
+common situations there are better alternatives. For more information, see
+[the main Provisioners page](./).
 
 ## Example usage
 

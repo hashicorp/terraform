@@ -20,6 +20,10 @@ func TestScopeEvalContext(t *testing.T) {
 		CountAttrs: map[string]cty.Value{
 			"index": cty.NumberIntVal(0),
 		},
+		ForEachAttrs: map[string]cty.Value{
+			"key":   cty.StringVal("a"),
+			"value": cty.NumberIntVal(1),
+		},
 		ResourceInstances: map[string]cty.Value{
 			"null_resource.foo": cty.ObjectVal(map[string]cty.Value{
 				"attr": cty.StringVal("bar"),
@@ -72,6 +76,22 @@ func TestScopeEvalContext(t *testing.T) {
 			map[string]cty.Value{
 				"count": cty.ObjectVal(map[string]cty.Value{
 					"index": cty.NumberIntVal(0),
+				}),
+			},
+		},
+		{
+			`each.key`,
+			map[string]cty.Value{
+				"each": cty.ObjectVal(map[string]cty.Value{
+					"key": cty.StringVal("a"),
+				}),
+			},
+		},
+		{
+			`each.value`,
+			map[string]cty.Value{
+				"each": cty.ObjectVal(map[string]cty.Value{
+					"value": cty.NumberIntVal(1),
 				}),
 			},
 		},

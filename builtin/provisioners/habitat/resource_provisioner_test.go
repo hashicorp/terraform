@@ -3,7 +3,6 @@ package habitat
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -20,9 +19,10 @@ func TestProvisioner(t *testing.T) {
 
 func TestResourceProvisioner_Validate_good(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{
-		"peer":         "1.2.3.4",
-		"version":      "0.32.0",
-		"service_type": "systemd",
+		"peer":           "1.2.3.4",
+		"version":        "0.32.0",
+		"service_type":   "systemd",
+		"accept_license": false,
 	})
 
 	warn, errs := Provisioner().Validate(c)
@@ -43,15 +43,22 @@ func TestResourceProvisioner_Validate_bad(t *testing.T) {
 	if len(warn) > 0 {
 		t.Fatalf("Warnings: %v", warn)
 	}
-	if len(errs) != 1 {
-		t.Fatalf("Should have one error")
+	//Two errors, one for service_type, other for missing required accept_license argument
+	if len(errs) != 2 {
+		t.Fatalf("Should have one errors, got %d", len(errs))
 	}
 }
 
 func TestResourceProvisioner_Validate_bad_service_config(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{
-		"service": []map[string]interface{}{
-			map[string]interface{}{"name": "core/foo", "strategy": "bar", "topology": "baz", "url": "badurl"},
+		"accept_license": true,
+		"service": []interface{}{
+			map[string]interface{}{
+				"name":     "core/foo",
+				"strategy": "bar",
+				"topology": "baz",
+				"url":      "badurl",
+			},
 		},
 	})
 
@@ -65,10 +72,5 @@ func TestResourceProvisioner_Validate_bad_service_config(t *testing.T) {
 }
 
 func testConfig(t *testing.T, c map[string]interface{}) *terraform.ResourceConfig {
-	r, err := config.NewRawConfig(c)
-	if err != nil {
-		t.Fatalf("config error: %s", err)
-	}
-
-	return terraform.NewResourceConfig(r)
+	return terraform.NewResourceConfigRaw(c)
 }

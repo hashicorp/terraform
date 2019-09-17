@@ -166,14 +166,14 @@ func TestMarshalPlannedOutputs(t *testing.T) {
 }
 
 func TestMarshalPlanResources(t *testing.T) {
-	tests := []struct {
+	tests := map[string]struct {
 		Action plans.Action
 		Before cty.Value
 		After  cty.Value
 		Want   []resource
 		Err    bool
 	}{
-		{
+		"create with unknowns": {
 			Action: plans.Create,
 			Before: cty.NullVal(cty.EmptyObject),
 			After: cty.ObjectVal(map[string]cty.Value{
@@ -188,18 +188,18 @@ func TestMarshalPlanResources(t *testing.T) {
 				Index:           addrs.InstanceKey(nil),
 				ProviderName:    "test",
 				SchemaVersion:   1,
-				AttributeValues: attributeValues(nil),
+				AttributeValues: attributeValues{},
 			}},
 			Err: false,
 		},
-		{
+		"delete": {
 			Action: plans.Delete,
 			Before: cty.NullVal(cty.EmptyObject),
 			After:  cty.NilVal,
 			Want:   nil,
 			Err:    false,
 		},
-		{
+		"update without unknowns": {
 			Action: plans.Update,
 			Before: cty.ObjectVal(map[string]cty.Value{
 				"woozles": cty.StringVal("foo"),
@@ -227,50 +227,52 @@ func TestMarshalPlanResources(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		before, err := plans.NewDynamicValue(test.Before, test.Before.Type())
-		if err != nil {
-			t.Fatal(err)
-		}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			before, err := plans.NewDynamicValue(test.Before, test.Before.Type())
+			if err != nil {
+				t.Fatal(err)
+			}
 
-		after, err := plans.NewDynamicValue(test.After, test.After.Type())
-		if err != nil {
-			t.Fatal(err)
-		}
-		testChange := &plans.Changes{
-			Resources: []*plans.ResourceInstanceChangeSrc{
-				{
-					Addr: addrs.Resource{
-						Mode: addrs.ManagedResourceMode,
-						Type: "test_thing",
-						Name: "example",
-					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-					ProviderAddr: addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
-					ChangeSrc: plans.ChangeSrc{
-						Action: test.Action,
-						Before: before,
-						After:  after,
+			after, err := plans.NewDynamicValue(test.After, test.After.Type())
+			if err != nil {
+				t.Fatal(err)
+			}
+			testChange := &plans.Changes{
+				Resources: []*plans.ResourceInstanceChangeSrc{
+					{
+						Addr: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "test_thing",
+							Name: "example",
+						}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+						ProviderAddr: addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+						ChangeSrc: plans.ChangeSrc{
+							Action: test.Action,
+							Before: before,
+							After:  after,
+						},
 					},
 				},
-			},
-		}
-
-		ris := testResourceAddrs()
-
-		got, err := marshalPlanResources(testChange, ris, testSchemas())
-		if test.Err {
-			if err == nil {
-				t.Fatal("succeeded; want error")
 			}
-			return
-		} else if err != nil {
-			t.Fatalf("unexpected error: %s", err)
-		}
 
-		eq := reflect.DeepEqual(got, test.Want)
-		if !eq {
-			t.Fatalf("wrong result:\nGot: %#v\nWant: %#v\n", got, test.Want)
-		}
+			ris := testResourceAddrs()
+
+			got, err := marshalPlanResources(testChange, ris, testSchemas())
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			eq := reflect.DeepEqual(got, test.Want)
+			if !eq {
+				t.Fatalf("wrong result:\nGot: %#v\nWant: %#v\n", got, test.Want)
+			}
+		})
 	}
 }
 

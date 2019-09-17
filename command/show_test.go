@@ -2,10 +2,10 @@ package command
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -136,7 +136,7 @@ func TestShow_state(t *testing.T) {
 }
 
 func TestShow_json_output(t *testing.T) {
-	fixtureDir := "test-fixtures/show-json"
+	fixtureDir := "testdata/show-json"
 	testDirs, err := ioutil.ReadDir(fixtureDir)
 	if err != nil {
 		t.Fatal(err)
@@ -153,6 +153,8 @@ func TestShow_json_output(t *testing.T) {
 			copy.CopyDir(inputDir, td)
 			defer os.RemoveAll(td)
 			defer testChdir(t, td)()
+
+			expectError := strings.Contains(entry.Name(), "error")
 
 			p := showFixtureProvider()
 			ui := new(cli.MockUi)
@@ -172,6 +174,10 @@ func TestShow_json_output(t *testing.T) {
 				},
 			}
 			if code := ic.Run([]string{}); code != 0 {
+				if expectError {
+					// this should error, but not panic.
+					return
+				}
 				t.Fatalf("init failed\n%s", ui.ErrorWriter)
 			}
 
@@ -221,7 +227,6 @@ func TestShow_json_output(t *testing.T) {
 			json.Unmarshal([]byte(byteValue), &want)
 
 			if !cmp.Equal(got, want) {
-				fmt.Println(ui.OutputWriter.String())
 				t.Fatalf("wrong result:\n %v\n", cmp.Diff(got, want))
 			}
 
@@ -232,7 +237,7 @@ func TestShow_json_output(t *testing.T) {
 
 // similar test as above, without the plan
 func TestShow_json_output_state(t *testing.T) {
-	fixtureDir := "test-fixtures/show-json-state"
+	fixtureDir := "testdata/show-json-state"
 	testDirs, err := ioutil.ReadDir(fixtureDir)
 	if err != nil {
 		t.Fatal(err)
@@ -313,7 +318,7 @@ func TestShow_json_output_state(t *testing.T) {
 }
 
 // showFixtureSchema returns a schema suitable for processing the configuration
-// in test-fixtures/show. This schema should be assigned to a mock provider
+// in testdata/show. This schema should be assigned to a mock provider
 // named "test".
 func showFixtureSchema() *terraform.ProviderSchema {
 	return &terraform.ProviderSchema{
@@ -329,7 +334,7 @@ func showFixtureSchema() *terraform.ProviderSchema {
 }
 
 // showFixtureProvider returns a mock provider that is configured for basic
-// operation with the configuration in test-fixtures/show. This mock has
+// operation with the configuration in testdata/show. This mock has
 // GetSchemaReturn, PlanResourceChangeFn, and ApplyResourceChangeFn populated,
 // with the plan/apply steps just passing through the data determined by
 // Terraform Core.
@@ -414,6 +419,11 @@ type plan struct {
 	PlannedValues   map[string]interface{} `json:"planned_values,omitempty"`
 	ResourceChanges []interface{}          `json:"resource_changes,omitempty"`
 	OutputChanges   map[string]interface{} `json:"output_changes,omitempty"`
-	PriorState      map[string]interface{} `json:"prior_state,omitempty"`
+	PriorState      priorState             `json:"prior_state,omitempty"`
 	Config          map[string]interface{} `json:"configuration,omitempty"`
+}
+
+type priorState struct {
+	FormatVersion string                 `json:"format_version,omitempty"`
+	Values        map[string]interface{} `json:"values,omitempty"`
 }

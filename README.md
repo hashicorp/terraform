@@ -34,7 +34,7 @@ All documentation is available on the [Terraform website](http://www.terraform.i
 Developing Terraform
 --------------------
 
-If you wish to work on Terraform itself or any of its built-in providers, you'll first need [Go](http://www.golang.org) installed on your machine (version 1.11+ is *required*). Alternatively, you can use the Vagrantfile in the root of this repo to stand up a virtual machine with the appropriate dev tooling already set up for you.
+If you wish to work on Terraform itself or any of its built-in providers, you'll first need [Go](http://www.golang.org) installed on your machine (version 1.11+ is *required*).
 
 This repository contains only Terraform core, which includes the command line interface and the main graph engine. Providers are implemented as plugins that each have their own repository in [the `terraform-providers` organization](https://github.com/terraform-providers) on GitHub. Instructions for developing each provider are in the associated README file. For more information, see [the provider development overview](https://www.terraform.io/docs/plugins/provider.html).
 
@@ -61,7 +61,7 @@ $ bin/terraform
 ...
 ```
 
-If you're developing a specific package, you can run tests for just that package by specifying the `TEST` variable. For example below, only`terraform` package tests will be run.
+If you're developing a specific package, you can run tests for just that package by specifying the `TEST` variable. For example below, only `terraform` package tests will be run.
 
 ```sh
 $ make test TEST=./terraform
@@ -157,12 +157,12 @@ _Note: Cross-compilation uses [gox](https://github.com/mitchellh/gox), which req
 
 When using docker you don't need to have any of the Go development tools installed and you can clone terraform to any location on disk (doesn't have to be in your $GOPATH).  This is useful for users who want to build `master` or a specific branch for testing without setting up a proper Go environment.
 
-For example, run the following command to build terraform in a linux-based container for macOS.
+For example, run the following command to install the required tools and build terraform in a linux-based container for macOS.
 
 ```sh
-docker run --rm -v $(pwd):/go/src/github.com/hashicorp/terraform -w /go/src/github.com/hashicorp/terraform -e XC_OS=darwin -e XC_ARCH=amd64 golang:latest bash -c "apt-get update && apt-get install -y zip && make bin"
+docker run --rm -v $(pwd):/go/src/github.com/hashicorp/terraform -w /go/src/github.com/hashicorp/terraform -e XC_OS=darwin -e XC_ARCH=amd64 golang:latest bash -c "apt-get update && apt-get install -y zip && make tools bin"
 ```
 
 
 ## License
-[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bhttps%3A%2F%2Fgithub.com%2Fhashicorp%2Fterraform.svg?type=large)](https://app.fossa.io/projects/git%2Bhttps%3A%2F%2Fgithub.com%2Fhashicorp%2Fterraform?ref=badge_large)
+[Mozilla Public License v2.0](https://github.com/hashicorp/terraform/blob/master/LICENSE)

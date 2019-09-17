@@ -12,6 +12,8 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 
@@ -557,8 +559,8 @@ func TestRefresh_backup(t *testing.T) {
 	}
 
 	newState := testStateRead(t, statePath)
-	if !reflect.DeepEqual(newState, state) {
-		t.Fatalf("bad: %#v", newState)
+	if !cmp.Equal(newState, state, cmpopts.EquateEmpty()) {
+		t.Fatalf("got:\n%s\nexpected:\n%s\n", newState, state)
 	}
 
 	newState = testStateRead(t, outPath)
@@ -705,7 +707,7 @@ func newInstanceState(id string) *states.ResourceInstanceObjectSrc {
 }
 
 // refreshFixtureSchema returns a schema suitable for processing the
-// configuration in test-fixtures/refresh . This schema should be
+// configuration in testdata/refresh . This schema should be
 // assigned to a mock provider named "test".
 func refreshFixtureSchema() *terraform.ProviderSchema {
 	return &terraform.ProviderSchema{
@@ -721,7 +723,7 @@ func refreshFixtureSchema() *terraform.ProviderSchema {
 }
 
 // refreshVarFixtureSchema returns a schema suitable for processing the
-// configuration in test-fixtures/refresh-var . This schema should be
+// configuration in testdata/refresh-var . This schema should be
 // assigned to a mock provider named "test".
 func refreshVarFixtureSchema() *terraform.ProviderSchema {
 	return &terraform.ProviderSchema{

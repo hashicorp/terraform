@@ -54,6 +54,7 @@ func (c *FmtCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&c.recursive, "recursive", false, "recursive")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
 		return 1
 	}
 
@@ -289,6 +290,8 @@ Options:
 
   -check         Check if the input is formatted. Exit status will be 0 if all
                  input is properly formatted and non-zero otherwise.
+
+  -no-color      If specified, output won't contain any color.
 
   -recursive     Also process files in subdirectories. By default, only the
                  given directory (or current directory) is processed.

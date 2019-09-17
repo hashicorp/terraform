@@ -3,6 +3,7 @@ package s3
 import (
 	"bytes"
 	"crypto/md5"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -23,19 +24,21 @@ import (
 
 // Store the last saved serial in dynamo with this suffix for consistency checks.
 const (
+	s3EncryptionAlgorithm  = "AES256"
 	stateIDSuffix          = "-md5"
 	s3ErrCodeInternalError = "InternalError"
 )
 
 type RemoteClient struct {
-	s3Client             *s3.S3
-	dynClient            *dynamodb.DynamoDB
-	bucketName           string
-	path                 string
-	serverSideEncryption bool
-	acl                  string
-	kmsKeyID             string
-	ddbTable             string
+	s3Client              *s3.S3
+	dynClient             *dynamodb.DynamoDB
+	bucketName            string
+	path                  string
+	serverSideEncryption  bool
+	customerEncryptionKey []byte
+	acl                   string
+	kmsKeyID              string
+	ddbTable              string
 }
 
 var (
@@ -98,10 +101,18 @@ func (c *RemoteClient) get() (*remote.Payload, error) {
 	var output *s3.GetObjectOutput
 	var err error
 
-	output, err = c.s3Client.GetObject(&s3.GetObjectInput{
+	input := &s3.GetObjectInput{
 		Bucket: &c.bucketName,
 		Key:    &c.path,
-	})
+	}
+
+	if c.serverSideEncryption && c.customerEncryptionKey != nil {
+		input.SetSSECustomerKey(string(c.customerEncryptionKey))
+		input.SetSSECustomerAlgorithm(s3EncryptionAlgorithm)
+		input.SetSSECustomerKeyMD5(c.getSSECustomerKeyMD5())
+	}
+
+	output, err = c.s3Client.GetObject(input)
 
 	if err != nil {
 		if awserr, ok := err.(awserr.Error); ok {
@@ -152,8 +163,12 @@ func (c *RemoteClient) Put(data []byte) error {
 		if c.kmsKeyID != "" {
 			i.SSEKMSKeyId = &c.kmsKeyID
 			i.ServerSideEncryption = aws.String("aws:kms")
+		} else if c.customerEncryptionKey != nil {
+			i.SetSSECustomerKey(string(c.customerEncryptionKey))
+			i.SetSSECustomerAlgorithm(s3EncryptionAlgorithm)
+			i.SetSSECustomerKeyMD5(c.getSSECustomerKeyMD5())
 		} else {
-			i.ServerSideEncryption = aws.String("AES256")
+			i.ServerSideEncryption = aws.String(s3EncryptionAlgorithm)
 		}
 	}
 
@@ -270,7 +285,7 @@ func (c *RemoteClient) getMD5() ([]byte, error) {
 	return sum, nil
 }
 
-// store the hash of the state to that clients can check for stale state files.
+// store the hash of the state so that clients can check for stale state files.
 func (c *RemoteClient) putMD5(sum []byte) error {
 	if c.ddbTable == "" {
 		return nil
@@ -381,6 +396,11 @@ func (c *RemoteClient) Unlock(id string) error {
 
 func (c *RemoteClient) lockPath() string {
 	return fmt.Sprintf("%s/%s", c.bucketName, c.path)
+}
+
+func (c *RemoteClient) getSSECustomerKeyMD5() string {
+	b := md5.Sum(c.customerEncryptionKey)
+	return base64.StdEncoding.EncodeToString(b[:])
 }
 
 const errBadChecksumFmt = `state data in S3 does not have the expected content.

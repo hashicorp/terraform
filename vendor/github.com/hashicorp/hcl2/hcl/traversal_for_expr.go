@@ -36,7 +36,7 @@ func AbsTraversalForExpr(expr Expression) (Traversal, Diagnostics) {
 		&Diagnostic{
 			Severity: DiagError,
 			Summary:  "Invalid expression",
-			Detail:   "A static variable reference is required.",
+			Detail:   "A single static variable reference is required: only attribute access and indexing with constant keys. No calculations, function calls, template expressions, etc are allowed here.",
 			Subject:  expr.Range().Ptr(),
 		},
 	}

@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform/addrs"
-
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/dag"
 )
@@ -43,16 +41,15 @@ func (t *ProvisionerTransformer) Transform(g *Graph) error {
 	for _, v := range g.Vertices() {
 		if pv, ok := v.(GraphNodeProvisionerConsumer); ok {
 			for _, p := range pv.ProvisionedBy() {
-				key := provisionerMapKey(p, pv)
-				if m[key] == nil {
+				if m[p] == nil {
 					err = multierror.Append(err, fmt.Errorf(
 						"%s: provisioner %s couldn't be found",
 						dag.VertexName(v), p))
 					continue
 				}
 
-				log.Printf("[TRACE] ProvisionerTransformer: %s is provisioned by %s (%q)", dag.VertexName(v), key, dag.VertexName(m[key]))
-				g.Connect(dag.BasicEdge(v, m[key]))
+				log.Printf("[TRACE] ProvisionerTransformer: %s is provisioned by %s (%q)", dag.VertexName(v), p, dag.VertexName(m[p]))
+				g.Connect(dag.BasicEdge(v, m[p]))
 			}
 		}
 	}
@@ -85,18 +82,8 @@ func (t *MissingProvisionerTransformer) Transform(g *Graph) error {
 			continue
 		}
 
-		// If this node has a subpath, then we use that as a prefix
-		// into our map to check for an existing provider.
-		path := addrs.RootModuleInstance
-		if sp, ok := pv.(GraphNodeSubPath); ok {
-			path = sp.Path()
-		}
-
 		for _, p := range pv.ProvisionedBy() {
-			// Build the key for storing in the map
-			key := provisionerMapKey(p, pv)
-
-			if _, ok := m[key]; ok {
+			if _, ok := m[p]; ok {
 				// This provisioner already exists as a configure node
 				continue
 			}
@@ -110,12 +97,11 @@ func (t *MissingProvisionerTransformer) Transform(g *Graph) error {
 			// Build the vertex
 			var newV dag.Vertex = &NodeProvisioner{
 				NameValue: p,
-				PathValue: path,
 			}
 
 			// Add the missing provisioner node to the graph
-			m[key] = g.Add(newV)
-			log.Printf("[TRACE] MissingProviderTransformer: added implicit provisioner %s, first implied by %s", key, dag.VertexName(v))
+			m[p] = g.Add(newV)
+			log.Printf("[TRACE] MissingProviderTransformer: added implicit provisioner %s, first implied by %s", p, dag.VertexName(v))
 		}
 	}
 
@@ -153,23 +139,11 @@ func (t *CloseProvisionerTransformer) Transform(g *Graph) error {
 	return nil
 }
 
-// provisionerMapKey is a helper that gives us the key to use for the
-// maps returned by things such as provisionerVertexMap.
-func provisionerMapKey(k string, v dag.Vertex) string {
-	pathPrefix := ""
-	if sp, ok := v.(GraphNodeSubPath); ok {
-		pathPrefix = sp.Path().String() + "."
-	}
-
-	return pathPrefix + k
-}
-
 func provisionerVertexMap(g *Graph) map[string]dag.Vertex {
 	m := make(map[string]dag.Vertex)
 	for _, v := range g.Vertices() {
 		if pv, ok := v.(GraphNodeProvisioner); ok {
-			key := provisionerMapKey(pv.ProvisionerName(), v)
-			m[key] = v
+			m[pv.ProvisionerName()] = v
 		}
 	}
 

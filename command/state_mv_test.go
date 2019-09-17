@@ -765,6 +765,70 @@ func TestStateMv_stateOutNew_nestedModule(t *testing.T) {
 	testStateOutput(t, backups[0], testStateMvNestedModule_stateOutOriginal)
 }
 
+func TestStateMv_toNewModule(t *testing.T) {
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "bar",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+		)
+	})
+
+	statePath := testStateFile(t, state)
+	stateOutPath1 := statePath + ".out1"
+	stateOutPath2 := statePath + ".out2"
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &StateMvCommand{
+		StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+			},
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"-state-out", stateOutPath1,
+		"test_instance.bar",
+		"module.bar.test_instance.bar",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// Test it is correct
+	testStateOutput(t, stateOutPath1, testStateMvNewModule_stateOut)
+	testStateOutput(t, statePath, testStateMvNestedModule_stateOutSrc)
+
+	// Test we have backups
+	backups := testStateBackups(t, filepath.Dir(statePath))
+	if len(backups) != 1 {
+		t.Fatalf("bad: %#v", backups)
+	}
+	testStateOutput(t, backups[0], testStateMvNewModule_stateOutOriginal)
+
+	// now verify we can move the module itself
+	args = []string{
+		"-state", stateOutPath1,
+		"-state-out", stateOutPath2,
+		"module.bar",
+		"module.foo",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+	testStateOutput(t, stateOutPath2, testStateMvModuleNewModule_stateOut)
+}
 func TestStateMv_withinBackend(t *testing.T) {
 	td := tempDir(t)
 	copy.CopyDir(testFixturePath("backend-unchanged"), td)
@@ -1127,6 +1191,34 @@ module.bar.child2:
     provider = provider.test
     bar = value
     foo = value
+`
+
+const testStateMvNewModule_stateOut = `
+<no state>
+module.bar:
+  test_instance.bar:
+    ID = bar
+    provider = provider.test
+    bar = value
+    foo = value
+`
+
+const testStateMvModuleNewModule_stateOut = `
+<no state>
+module.foo:
+  test_instance.bar:
+    ID = bar
+    provider = provider.test
+    bar = value
+    foo = value
+`
+
+const testStateMvNewModule_stateOutOriginal = `
+test_instance.bar:
+  ID = bar
+  provider = provider.test
+  bar = value
+  foo = value
 `
 
 const testStateMvNestedModule_stateOutSrc = `

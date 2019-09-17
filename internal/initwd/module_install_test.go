@@ -33,7 +33,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestModuleInstaller(t *testing.T) {
-	fixtureDir := filepath.Clean("test-fixtures/local-modules")
+	fixtureDir := filepath.Clean("testdata/local-modules")
 	dir, done := tempChdir(t, fixtureDir)
 	defer done()
 
@@ -94,7 +94,7 @@ func TestModuleInstaller(t *testing.T) {
 }
 
 func TestModuleInstaller_error(t *testing.T) {
-	fixtureDir := filepath.Clean("test-fixtures/local-module-error")
+	fixtureDir := filepath.Clean("testdata/local-module-error")
 	dir, done := tempChdir(t, fixtureDir)
 	defer done()
 
@@ -111,8 +111,62 @@ func TestModuleInstaller_error(t *testing.T) {
 	}
 }
 
+func TestModuleInstaller_invalid_version_constraint_error(t *testing.T) {
+	fixtureDir := filepath.Clean("testdata/invalid-version-constraint")
+	dir, done := tempChdir(t, fixtureDir)
+	defer done()
+
+	hooks := &testInstallHooks{}
+
+	modulesDir := filepath.Join(dir, ".terraform/modules")
+	inst := NewModuleInstaller(modulesDir, nil)
+	_, diags := inst.InstallModules(".", false, hooks)
+
+	if !diags.HasErrors() {
+		t.Fatal("expected error")
+	} else {
+		assertDiagnosticSummary(t, diags, "Invalid version constraint")
+	}
+}
+
+func TestModuleInstaller_invalidVersionConstraintGetter(t *testing.T) {
+	fixtureDir := filepath.Clean("testdata/invalid-version-constraint")
+	dir, done := tempChdir(t, fixtureDir)
+	defer done()
+
+	hooks := &testInstallHooks{}
+
+	modulesDir := filepath.Join(dir, ".terraform/modules")
+	inst := NewModuleInstaller(modulesDir, nil)
+	_, diags := inst.InstallModules(".", false, hooks)
+
+	if !diags.HasErrors() {
+		t.Fatal("expected error")
+	} else {
+		assertDiagnosticSummary(t, diags, "Invalid version constraint")
+	}
+}
+
+func TestModuleInstaller_invalidVersionConstraintLocal(t *testing.T) {
+	fixtureDir := filepath.Clean("testdata/invalid-version-constraint-local")
+	dir, done := tempChdir(t, fixtureDir)
+	defer done()
+
+	hooks := &testInstallHooks{}
+
+	modulesDir := filepath.Join(dir, ".terraform/modules")
+	inst := NewModuleInstaller(modulesDir, nil)
+	_, diags := inst.InstallModules(".", false, hooks)
+
+	if !diags.HasErrors() {
+		t.Fatal("expected error")
+	} else {
+		assertDiagnosticSummary(t, diags, "Invalid version constraint")
+	}
+}
+
 func TestModuleInstaller_symlink(t *testing.T) {
-	fixtureDir := filepath.Clean("test-fixtures/local-module-symlink")
+	fixtureDir := filepath.Clean("testdata/local-module-symlink")
 	dir, done := tempChdir(t, fixtureDir)
 	defer done()
 
@@ -177,7 +231,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 		t.Skip("this test accesses registry.terraform.io and github.com; set TF_ACC=1 to run it")
 	}
 
-	fixtureDir := filepath.Clean("test-fixtures/registry-modules")
+	fixtureDir := filepath.Clean("testdata/registry-modules")
 	dir, done := tempChdir(t, fixtureDir)
 	defer done()
 
@@ -304,7 +358,7 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 		t.Skip("this test accesses github.com; set TF_ACC=1 to run it")
 	}
 
-	fixtureDir := filepath.Clean("test-fixtures/go-getter-modules")
+	fixtureDir := filepath.Clean("testdata/go-getter-modules")
 	dir, done := tempChdir(t, fixtureDir)
 	defer done()
 

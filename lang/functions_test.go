@@ -2,6 +2,7 @@ package lang
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -50,6 +51,19 @@ func TestFunctions(t *testing.T) {
 			{
 				`abs(-1)`,
 				cty.NumberIntVal(1),
+			},
+		},
+
+		"abspath": {
+			{
+				`abspath(".")`,
+				cty.StringVal((func() string {
+					cwd, err := os.Getwd()
+					if err != nil {
+						panic(err)
+					}
+					return cwd
+				})()),
 			},
 		},
 
@@ -265,6 +279,37 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"fileset": {
+			{
+				`fileset(".", "*/hello.*")`,
+				cty.SetVal([]cty.Value{
+					cty.StringVal("subdirectory/hello.tmpl"),
+					cty.StringVal("subdirectory/hello.txt"),
+				}),
+			},
+			{
+				`fileset(".", "subdirectory/hello.*")`,
+				cty.SetVal([]cty.Value{
+					cty.StringVal("subdirectory/hello.tmpl"),
+					cty.StringVal("subdirectory/hello.txt"),
+				}),
+			},
+			{
+				`fileset(".", "hello.*")`,
+				cty.SetVal([]cty.Value{
+					cty.StringVal("hello.tmpl"),
+					cty.StringVal("hello.txt"),
+				}),
+			},
+			{
+				`fileset("subdirectory", "hello.*")`,
+				cty.SetVal([]cty.Value{
+					cty.StringVal("hello.tmpl"),
+					cty.StringVal("hello.txt"),
+				}),
+			},
+		},
+
 		"filebase64": {
 			{
 				`filebase64("hello.txt")`,
@@ -459,6 +504,13 @@ func TestFunctions(t *testing.T) {
 					cty.StringVal("a"),
 				}),
 			},
+			{ // mixing types in searchset
+				`matchkeys(["a", "b", "c"], [1, 2, 3], [1, "3"])`,
+				cty.ListVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.StringVal("c"),
+				}),
+			},
 		},
 
 		"max": {
@@ -503,6 +555,51 @@ func TestFunctions(t *testing.T) {
 			{
 				`pow(1,0)`,
 				cty.NumberFloatVal(1),
+			},
+		},
+
+		"range": {
+			{
+				`range(3)`,
+				cty.ListVal([]cty.Value{
+					cty.NumberIntVal(0),
+					cty.NumberIntVal(1),
+					cty.NumberIntVal(2),
+				}),
+			},
+			{
+				`range(1, 4)`,
+				cty.ListVal([]cty.Value{
+					cty.NumberIntVal(1),
+					cty.NumberIntVal(2),
+					cty.NumberIntVal(3),
+				}),
+			},
+			{
+				`range(1, 8, 2)`,
+				cty.ListVal([]cty.Value{
+					cty.NumberIntVal(1),
+					cty.NumberIntVal(3),
+					cty.NumberIntVal(5),
+					cty.NumberIntVal(7),
+				}),
+			},
+		},
+
+		"regex": {
+			{
+				`regex("(\\d+)([a-z]+)", "aaa111bbb222")`,
+				cty.TupleVal([]cty.Value{cty.StringVal("111"), cty.StringVal("bbb")}),
+			},
+		},
+
+		"regexall": {
+			{
+				`regexall("(\\d+)([a-z]+)", "...111aaa222bbb...")`,
+				cty.ListVal([]cty.Value{
+					cty.TupleVal([]cty.Value{cty.StringVal("111"), cty.StringVal("aaa")}),
+					cty.TupleVal([]cty.Value{cty.StringVal("222"), cty.StringVal("bbb")}),
+				}),
 			},
 		},
 
@@ -742,6 +839,29 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"uuidv5": {
+			{
+				`uuidv5("dns", "tada")`,
+				cty.StringVal("faa898db-9b9d-5b75-86a9-149e7bb8e3b8"),
+			},
+			{
+				`uuidv5("url", "tada")`,
+				cty.StringVal("2c1ff6b4-211f-577e-94de-d978b0caa16e"),
+			},
+			{
+				`uuidv5("oid", "tada")`,
+				cty.StringVal("61eeea26-5176-5288-87fc-232d6ed30d2f"),
+			},
+			{
+				`uuidv5("x500", "tada")`,
+				cty.StringVal("7e12415e-f7c9-57c3-9e43-52dc9950d264"),
+			},
+			{
+				`uuidv5("6ba7b810-9dad-11d1-80b4-00c04fd430c8", "tada")`,
+				cty.StringVal("faa898db-9b9d-5b75-86a9-149e7bb8e3b8"),
+			},
+		},
+
 		"values": {
 			{
 				`values({"hello"="world", "what's"="up"})`,
@@ -749,6 +869,29 @@ func TestFunctions(t *testing.T) {
 					cty.StringVal("world"),
 					cty.StringVal("up"),
 				}),
+			},
+		},
+
+		"yamldecode": {
+			{
+				`yamldecode("true")`,
+				cty.True,
+			},
+		},
+
+		"yamlencode": {
+			{
+				`yamlencode(["foo", "bar", true])`,
+				cty.StringVal("- \"foo\"\n- \"bar\"\n- true\n"),
+			},
+			{
+				`yamlencode({a = "b", c = "d"})`,
+				cty.StringVal("\"a\": \"b\"\n\"c\": \"d\"\n"),
+			},
+			{
+				`yamlencode(true)`,
+				// the ... here is an "end of document" marker, produced for implied primitive types only
+				cty.StringVal("true\n...\n"),
 			},
 		},
 
