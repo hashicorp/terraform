@@ -60,23 +60,13 @@ func TestLockWithContext(t *testing.T) {
 		t.Fatal("lock should have failed immediately")
 	}
 
-	// block until LockwithContext has made a first attempt
-	attempted := make(chan struct{})
-	postLockHook = func() {
-		close(attempted)
-		postLockHook = nil
-	}
-
 	// testing.T does not do much inside a goroutine
 	// create an error channel to collect error condition
 	errCh := make(chan error)
 	defer close(errCh)
 
 	// unlock the state during LockWithContext
-	unlocked := make(chan struct{})
 	go func() {
-		defer close(unlocked)
-		<-attempted
 		errCh <- s.Unlock(id)
 	}()
 
@@ -93,9 +83,6 @@ func TestLockWithContext(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	// ensure the goruotine completes
-	<-unlocked
 }
 
 func TestMain(m *testing.M) {
