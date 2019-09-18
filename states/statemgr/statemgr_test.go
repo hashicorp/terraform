@@ -67,14 +67,17 @@ func TestLockWithContext(t *testing.T) {
 		postLockHook = nil
 	}
 
+	// testing.T does not do much inside a goroutine
+	// create an error channel to collect error condition
+	errCh := make(chan error)
+	defer close(errCh)
+
 	// unlock the state during LockWithContext
 	unlocked := make(chan struct{})
 	go func() {
 		defer close(unlocked)
 		<-attempted
-		if err := s.Unlock(id); err != nil {
-			t.Fatal(err)
-		}
+		errCh <- s.Unlock(id)
 	}()
 
 	ctx, cancel = context.WithTimeout(context.Background(), 2*time.Second)
@@ -83,6 +86,12 @@ func TestLockWithContext(t *testing.T) {
 	id, err = LockWithContext(ctx, s, info)
 	if err != nil {
 		t.Fatal("lock should have completed within 2s:", err)
+	}
+
+	// check the error from the anonymous goroutine
+	err = <-errCh
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	// ensure the goruotine completes
