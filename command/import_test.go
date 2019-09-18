@@ -536,6 +536,116 @@ func TestImport_customProvider(t *testing.T) {
 	testStateOutput(t, statePath, testImportCustomProviderStr)
 }
 
+// This tests behavior when the provider name does not match the implied
+// provider name
+func TestImport_providerNameMismatch(t *testing.T) {
+	defer testChdir(t, testFixturePath("import-provider-mismatch"))()
+
+	statePath := testTempFile(t)
+
+	p := testProvider()
+	q := testProvider()
+	ui := new(cli.MockUi)
+	c := &ImportCommand{
+		Meta: Meta{
+			testingOverrides: &testingOverrides{
+				ProviderResolver: providers.ResolverFixed(
+					map[string]providers.Factory{
+						"test":      providers.FactoryFixed(p),
+						"test-beta": providers.FactoryFixed(q),
+					},
+				),
+			},
+			Ui: ui,
+		},
+	}
+
+	configured := false
+	q.ConfigureNewFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
+		configured = true
+
+		cfg := req.Config
+		if !cfg.Type().HasAttribute("foo") {
+			return providers.ConfigureResponse{
+				Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("configuration has no foo argument")),
+			}
+		}
+		if got, want := cfg.GetAttr("foo"), cty.StringVal("baz"); !want.RawEquals(got) {
+			return providers.ConfigureResponse{
+				Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("foo argument is %#v, but want %#v", got, want)),
+			}
+		}
+
+		return providers.ConfigureResponse{}
+	}
+
+	q.ImportResourceStateFn = nil
+	q.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_instance",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("yay"),
+				}),
+			},
+		},
+	}
+	q.GetSchemaReturn = &terraform.ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"foo": {Type: cty.String, Optional: true},
+			},
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Optional: true, Computed: true},
+				},
+			},
+		},
+	}
+
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"foo": {Type: cty.String, Optional: true},
+			},
+		},
+	}
+
+	args := []string{
+		"-provider", "test-beta",
+		"-state", statePath,
+		"test_instance.foo",
+		"bar",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// Verify that the test-beta provider was configured
+	if !configured {
+		t.Fatal("Configure should be called")
+	}
+
+	if p.ImportResourceStateCalled {
+		t.Fatal("ImportResourceState (provider 'test') should not be called")
+	}
+
+	if p.ReadResourceCalled {
+		t.Fatal("ReadResource (provider 'test') should not be called")
+	}
+
+	if !q.ImportResourceStateCalled {
+		t.Fatal("ImportResourceState (provider 'test-beta') should be called")
+	}
+
+	if !q.ReadResourceCalled {
+		t.Fatal("ReadResource (provider 'test-beta' should be called")
+	}
+
+	testStateOutput(t, statePath, testImportProviderMismatchStr)
+}
 func TestImport_allowMissingResourceConfig(t *testing.T) {
 	defer testChdir(t, testFixturePath("import-missing-resource-config"))()
 
@@ -844,4 +954,10 @@ const testImportCustomProviderStr = `
 test_instance.foo:
   ID = yay
   provider = provider.test.alias
+`
+
+const testImportProviderMismatchStr = `
+test_instance.foo:
+  ID = yay
+  provider = provider.test-beta
 `

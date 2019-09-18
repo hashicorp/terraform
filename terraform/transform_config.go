@@ -120,7 +120,15 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 			continue
 		}
 
-		abstract := &NodeAbstractResource{Addr: addr}
+		abstract := &NodeAbstractResource{
+			Addr: addr,
+		}
+		provider := r.ProviderConfigAddr()
+		absProvider := provider.Absolute(instPath)
+		if absProvider.String() != "" {
+			abstract.ResolvedProvider = absProvider
+		}
+
 		var node dag.Vertex = abstract
 		if f := t.Concrete; f != nil {
 			node = f(abstract)

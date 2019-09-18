@@ -363,6 +363,10 @@ func (n *NodeAbstractResource) ProvidedBy() (addrs.AbsProviderConfig, bool) {
 		return relAddr.Absolute(n.Path()), false
 	}
 
+	if n.ResolvedProvider.ProviderConfig.Type != "" {
+		return n.ResolvedProvider.ProviderConfig.Absolute(n.Path()), false
+	}
+
 	// Use our type and containing module path to guess a provider configuration address
 	return n.Addr.Resource.DefaultProviderConfig().Absolute(n.Addr.Module), false
 }
