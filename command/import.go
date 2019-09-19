@@ -178,6 +178,9 @@ func (c *ImportCommand) Run(args []string) int {
 		// We assume the same module as the resource address here, which
 		// may get resolved to an inherited provider when we construct the
 		// import graph inside ctx.Import, called below.
+		if rc != nil && rc.ProviderConfigRef != nil {
+			providerAddr = rc.ProviderConfigAddr().Absolute(addr.Module)
+		}
 		providerAddr = resourceRelAddr.DefaultProviderConfig().Absolute(addr.Module)
 	}
 
