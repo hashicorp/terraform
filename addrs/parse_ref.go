@@ -290,7 +290,7 @@ func parseResourceRef(mode ResourceMode, startRange hcl.Range, traversal hcl.Tra
 		// of the resource, but we don't have enough context here to decide
 		// so we'll let the caller resolve that ambiguity.
 		return &Reference{
-			Subject:     resourceInstAddr,
+			Subject:     resourceAddr,
 			SourceRange: tfdiags.SourceRangeFromHCL(rng),
 		}, diags
 	}
