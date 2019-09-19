@@ -261,8 +261,6 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 		// in package addrs.
 		switch subj := rawSubj.(type) {
 		case addrs.Resource:
-			panic("RESOURCE REFERENCES DON'T HIT THIS")
-
 			var into map[string]map[string]cty.Value
 			switch subj.Mode {
 			case addrs.ManagedResourceMode:
