@@ -544,15 +544,13 @@ func TestImport_providerNameMismatch(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
-	q := testProvider()
 	ui := new(cli.MockUi)
 	c := &ImportCommand{
 		Meta: Meta{
 			testingOverrides: &testingOverrides{
 				ProviderResolver: providers.ResolverFixed(
 					map[string]providers.Factory{
-						"test":      providers.FactoryFixed(p),
-						"test-beta": providers.FactoryFixed(q),
+						"test-beta": providers.FactoryFixed(p),
 					},
 				),
 			},
@@ -561,7 +559,7 @@ func TestImport_providerNameMismatch(t *testing.T) {
 	}
 
 	configured := false
-	q.ConfigureNewFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
+	p.ConfigureNewFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
 		configured = true
 
 		cfg := req.Config
@@ -579,8 +577,8 @@ func TestImport_providerNameMismatch(t *testing.T) {
 		return providers.ConfigureResponse{}
 	}
 
-	q.ImportResourceStateFn = nil
-	q.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateFn = nil
+	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "test_instance",
@@ -590,7 +588,7 @@ func TestImport_providerNameMismatch(t *testing.T) {
 			},
 		},
 	}
-	q.GetSchemaReturn = &terraform.ProviderSchema{
+	p.GetSchemaReturn = &terraform.ProviderSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"foo": {Type: cty.String, Optional: true},
@@ -605,20 +603,13 @@ func TestImport_providerNameMismatch(t *testing.T) {
 		},
 	}
 
-	p.GetSchemaReturn = &terraform.ProviderSchema{
-		Provider: &configschema.Block{
-			Attributes: map[string]*configschema.Attribute{
-				"foo": {Type: cty.String, Optional: true},
-			},
-		},
-	}
-
 	args := []string{
 		"-provider", "test-beta",
 		"-state", statePath,
 		"test_instance.foo",
 		"bar",
 	}
+
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
@@ -628,19 +619,11 @@ func TestImport_providerNameMismatch(t *testing.T) {
 		t.Fatal("Configure should be called")
 	}
 
-	if p.ImportResourceStateCalled {
-		t.Fatal("ImportResourceState (provider 'test') should not be called")
-	}
-
-	if p.ReadResourceCalled {
-		t.Fatal("ReadResource (provider 'test') should not be called")
-	}
-
-	if !q.ImportResourceStateCalled {
+	if !p.ImportResourceStateCalled {
 		t.Fatal("ImportResourceState (provider 'test-beta') should be called")
 	}
 
-	if !q.ReadResourceCalled {
+	if !p.ReadResourceCalled {
 		t.Fatal("ReadResource (provider 'test-beta' should be called")
 	}
 
