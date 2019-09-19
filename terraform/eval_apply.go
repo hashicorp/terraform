@@ -70,6 +70,13 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 		}
 	}
 
+	if !configVal.IsWhollyKnown() {
+		return nil, fmt.Errorf(
+			"configuration for %s still contains unknown values during apply (this is a bug in Terraform; please report it!)",
+			absAddr,
+		)
+	}
+
 	log.Printf("[DEBUG] %s: applying the planned %s change", n.Addr.Absolute(ctx.Path()), change.Action)
 	resp := provider.ApplyResourceChange(providers.ApplyResourceChangeRequest{
 		TypeName:       n.Addr.Resource.Type,
