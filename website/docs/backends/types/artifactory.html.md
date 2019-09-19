@@ -13,6 +13,8 @@ description: |-
 Stores the state as an artifact in a given repository in
 [Artifactory](https://www.jfrog.com/artifactory/).
 
+Optionally stores the lock as another artifact in a repository in Artifactory.
+
 Generic HTTP repositories are supported, and state from different
 configurations may be kept at different subpaths within the repository.
 
@@ -29,14 +31,14 @@ terraform {
     url             = "https://custom.artifactoryonline.com/artifactory"
     repo            = "foo"
     subpath         = "terraform-bar"
-    # add the following to enable locking
+    # optionally add the followings to enable locking
     lock_username   = "LockUser"
     lock_password   = "LockPass"
     unlock_username = "UnlockUser"
     unlock_password = "UnlockPass"
     lock_url        = "https://custom.artifactoryonline.com/artifactory"
     lock_repo       = "foo-lock"
-    lock_subpath    = "erraform-bar-lock"
+    lock_subpath    = "terraform-bar-lock"
   }
 }
 ```
@@ -58,7 +60,7 @@ data "terraform_remote_state" "foo" {
     unlock_password = "UnlockPass"
     lock_url        = "https://custom.artifactoryonline.com/artifactory"
     lock_repo       = "foo-lock"
-    lock_subpath    = "erraform-bar-lock"
+    lock_subpath    = "terraform-bar-lock"
   }
 }
 ```
@@ -72,13 +74,13 @@ The following configuration options / environment variables are supported:
  * `url` / `ARTIFACTORY_URL` (Required) - The URL. Note that this is the base url to artifactory not the full repo and subpath.
  * `repo` (Required) - The repository name
  * `subpath` (Required) - Path within the repository
- * `lock_username` / `LOCK_ARTIFACTORY_USERNAME` (Optional) - The username to create the lock file with
- * `lock_password` / `LOCK_ARTIFACTORY_PASSWORD` (Optional) - The password to create the lock file with
- * `unlock_username` / `UNLOCK_ARTIFACTORY_USERNAME` (Optional) - The username to remove the lock file with
- * `unlock_password` / `UNLOCK_ARTIFACTORY_PASSWORD` (Optional) - The password to remove the lock file with
- * `lock_url` / `LOCK_ARTIFACTORY_URL` (Optional) - The base url for lock file access. `lock_url` and `url` should be the same when the state and lock files are stored on the same artifactory server
- * `lock_repo` (Optional) - The repository name for lock file access
- * `lock_subpath` (Optional) - Path within `lock_repo` for lock file access
+ * `lock_username` / `LOCK_ARTIFACTORY_USERNAME` (Optional) - The username to create the lock artifact with
+ * `lock_password` / `LOCK_ARTIFACTORY_PASSWORD` (Optional) - The password to create the lock artifact with
+ * `unlock_username` / `UNLOCK_ARTIFACTORY_USERNAME` (Optional) - The username to remove the lock artifact with
+ * `unlock_password` / `UNLOCK_ARTIFACTORY_PASSWORD` (Optional) - The password to remove the lock artifact with
+ * `lock_url` / `LOCK_ARTIFACTORY_URL` (Optional) - The base url for lock artifact access. `lock_url` and `url` should be the same when the state and lock artifact are stored on the same artifactory server
+ * `lock_repo` (Optional) - The repository name for lock artifact access
+ * `lock_subpath` (Optional) - Path within `lock_repo` for lock artifact access
 
 ## Repo configuration
 
@@ -88,10 +90,10 @@ Repo configuration might be different, depending on the storage server type.
 * `username` should have `Delete/Overwrite` and `Deploy/Cache` permission on `repo`
 * `lock_username` should have `Deploy/Cache` permission, but not `Delete/Overwrite` permission on `lock_repo`
 * `unlock_username` should have `Delete/Overwrite` permission on `lock_repo`
-* [reference ] (https://www.jfrog.com/confluence/display/RTF/Managing+Permissions)
+* [reference](https://www.jfrog.com/confluence/display/RTF/Managing+Permissions)
 
 ### Sonatype Nexus:
-* the "Deployment Policy" of `repo` should "Allow Redeploy"
-* the "Deployment Policy" of `lock_repo` should "Disable Redeploy" 
+* `repo`'s "Deployment Policy" should "Allow Redeploy"
+* `lock_repo`'s "Deployment Policy" should "Disable Redeploy" 
 * `unlock_username` and `unlock_password` should be omitted
-* [reference] (https://help.sonatype.com/repomanager2/configuration/managing-repositories)
+* [reference](https://help.sonatype.com/repomanager2/configuration/managing-repositories)
