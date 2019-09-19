@@ -208,7 +208,6 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 
 	for _, ref := range refs {
 		rng := ref.SourceRange
-		isSelf := false
 
 		rawSubj := ref.Subject
 		if rawSubj == addrs.Self {
@@ -226,19 +225,62 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 				continue
 			}
 
-			// Treat "self" as an alias for the configured self address.
-			rawSubj = selfAddr
-			isSelf = true
+			// self can only be used within a resource instance
+			subj := selfAddr.(addrs.ResourceInstance)
 
-			if rawSubj == addrs.Self {
+			if selfAddr == addrs.Self {
 				// Programming error: the self address cannot alias itself.
 				panic("scope SelfAddr attempting to alias itself")
 			}
+
+			val, valDiags := normalizeRefValue(s.Data.GetResource(subj.ContainingResource(), rng))
+
+			diags = diags.Append(valDiags)
+
+			// Self is an exception in that it must always resolve to a
+			// particular instance. We will still insert the full resource into
+			// the context below.
+			switch k := subj.Key.(type) {
+			case addrs.IntKey:
+				self = val.Index(cty.NumberIntVal(int64(k)))
+			case addrs.StringKey:
+				self = val.Index(cty.StringVal(string(k)))
+			default:
+				self = val
+			}
+
+			r := subj.Resource
+			if managedResources[r.Type] == nil {
+				managedResources[r.Type] = make(map[string]cty.Value)
+			}
+			managedResources[r.Type][r.Name] = val
+			continue
 		}
 
 		// This type switch must cover all of the "Referenceable" implementations
 		// in package addrs.
 		switch subj := rawSubj.(type) {
+		case addrs.Resource:
+			panic("RESOURCE REFERENCES DON'T HIT THIS")
+
+			var into map[string]map[string]cty.Value
+			switch subj.Mode {
+			case addrs.ManagedResourceMode:
+				into = managedResources
+			case addrs.DataResourceMode:
+				into = dataResources
+			default:
+				panic(fmt.Errorf("unsupported ResourceMode %s", subj.Mode))
+			}
+
+			val, valDiags := normalizeRefValue(s.Data.GetResource(subj, rng))
+			diags = diags.Append(valDiags)
+
+			r := subj
+			if into[r.Type] == nil {
+				into[r.Type] = make(map[string]cty.Value)
+			}
+			into[r.Type][r.Name] = val
 
 		case addrs.ResourceInstance:
 			var into map[string]map[string]cty.Value
@@ -252,6 +294,7 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 			}
 
 			val, valDiags := normalizeRefValue(s.Data.GetResource(subj.ContainingResource(), rng))
+
 			diags = diags.Append(valDiags)
 
 			r := subj.Resource
@@ -259,9 +302,6 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 				into[r.Type] = make(map[string]cty.Value)
 			}
 			into[r.Type][r.Name] = val
-			if isSelf {
-				self = val
-			}
 
 		case addrs.ModuleCallInstance:
 			val, valDiags := normalizeRefValue(s.Data.GetModuleInstance(subj, rng))
@@ -271,9 +311,6 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 				wholeModules[subj.Call.Name] = make(map[addrs.InstanceKey]cty.Value)
 			}
 			wholeModules[subj.Call.Name][subj.Key] = val
-			if isSelf {
-				self = val
-			}
 
 		case addrs.ModuleCallOutput:
 			val, valDiags := normalizeRefValue(s.Data.GetModuleInstanceOutput(subj, rng))
@@ -288,57 +325,36 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 				moduleOutputs[callName][callKey] = make(map[string]cty.Value)
 			}
 			moduleOutputs[callName][callKey][subj.Name] = val
-			if isSelf {
-				self = val
-			}
 
 		case addrs.InputVariable:
 			val, valDiags := normalizeRefValue(s.Data.GetInputVariable(subj, rng))
 			diags = diags.Append(valDiags)
 			inputVariables[subj.Name] = val
-			if isSelf {
-				self = val
-			}
 
 		case addrs.LocalValue:
 			val, valDiags := normalizeRefValue(s.Data.GetLocalValue(subj, rng))
 			diags = diags.Append(valDiags)
 			localValues[subj.Name] = val
-			if isSelf {
-				self = val
-			}
 
 		case addrs.PathAttr:
 			val, valDiags := normalizeRefValue(s.Data.GetPathAttr(subj, rng))
 			diags = diags.Append(valDiags)
 			pathAttrs[subj.Name] = val
-			if isSelf {
-				self = val
-			}
 
 		case addrs.TerraformAttr:
 			val, valDiags := normalizeRefValue(s.Data.GetTerraformAttr(subj, rng))
 			diags = diags.Append(valDiags)
 			terraformAttrs[subj.Name] = val
-			if isSelf {
-				self = val
-			}
 
 		case addrs.CountAttr:
 			val, valDiags := normalizeRefValue(s.Data.GetCountAttr(subj, rng))
 			diags = diags.Append(valDiags)
 			countAttrs[subj.Name] = val
-			if isSelf {
-				self = val
-			}
 
 		case addrs.ForEachAttr:
 			val, valDiags := normalizeRefValue(s.Data.GetForEachAttr(subj, rng))
 			diags = diags.Append(valDiags)
 			forEachAttrs[subj.Name] = val
-			if isSelf {
-				self = val
-			}
 
 		default:
 			// Should never happen
