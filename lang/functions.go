@@ -44,6 +44,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"cidrhost":         funcs.CidrHostFunc,
 			"cidrnetmask":      funcs.CidrNetmaskFunc,
 			"cidrsubnet":       funcs.CidrSubnetFunc,
+			"cidrsubnets":      funcs.CidrSubnetsFunc,
 			"coalesce":         funcs.CoalesceFunc,
 			"coalescelist":     funcs.CoalesceListFunc,
 			"compact":          funcs.CompactFunc,
