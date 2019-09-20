@@ -33,6 +33,11 @@ additional bits added to the prefix.
 This function accepts both IPv6 and IPv4 prefixes, and the result always uses
 the same addressing scheme as the given prefix.
 
+Unlike the related function [`cidrsubnets`](./cidrsubnets.html), `cidrsubnet`
+allows you to give a specific network number to use. `cidrsubnets` can allocate
+multiple network addresses at once, but numbers them automatically starting
+with zero.
+
 ## Examples
 
 ```
@@ -163,3 +168,5 @@ For more information on CIDR notation and subnetting, see
   within a given network address prefix.
 * [`cidrnetmask`](./cidrnetmask.html) converts an IPv4 network prefix in CIDR
   notation into netmask notation.
+* [`cidrsubnets`](./cidrsubnets.html) can allocate multiple consecutive
+  addresses under a prefix at once, numbering them automatically.
