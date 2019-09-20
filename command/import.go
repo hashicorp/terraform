@@ -180,8 +180,9 @@ func (c *ImportCommand) Run(args []string) int {
 		// import graph inside ctx.Import, called below.
 		if rc != nil && rc.ProviderConfigRef != nil {
 			providerAddr = rc.ProviderConfigAddr().Absolute(addr.Module)
+		} else {
+			providerAddr = resourceRelAddr.DefaultProviderConfig().Absolute(addr.Module)
 		}
-		providerAddr = resourceRelAddr.DefaultProviderConfig().Absolute(addr.Module)
 	}
 
 	// Check for user-supplied plugin path
@@ -339,9 +340,10 @@ Options:
 
   -no-color               If specified, output won't contain any color.
 
-  -provider=provider      Specific provider to use for import. This is used for
-                          specifying aliases, such as "aws.eu". Defaults to the
-                          normal provider prefix of the resource being imported.
+  -provider=provider      Deprecated: Override the provider configuration to use
+                          when importing the object. By default, Terraform uses the
+                          provider specified in the configuration for the target
+                          resource, and that is the best behavior in most cases.
 
   -state=PATH             Path to the source state file. Defaults to the configured
                           backend, or "terraform.tfstate"
