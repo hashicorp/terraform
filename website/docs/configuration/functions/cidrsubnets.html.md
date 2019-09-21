@@ -43,6 +43,12 @@ existing calls safely, as long as there is sufficient address space available.
 This function accepts both IPv6 and IPv4 prefixes, and the result always uses
 the same addressing scheme as the given prefix.
 
+-> **Note:** [The Terraform module `hashicorp/subnets/cidr`](https://registry.terraform.io/modules/hashicorp/subnets/cidr)
+wraps `cidrsubnets` to provide additional functionality for assigning symbolic
+names to your networks and skipping prefixes for obsolete allocations. Its
+documentation includes usage examples for several popular cloud virtual network
+platforms.
+
 ## Examples
 
 ```
