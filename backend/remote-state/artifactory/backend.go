@@ -82,6 +82,11 @@ func New() backend.Backend {
 				Optional:    true,
 				Description: "path within the repository for lock file access",
 			},
+			"lock_readback_wait": &schema.Schema{
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "milliseconds to wait before lock readback. default 0, means no readback",
+			},
 		},
 	}
 
@@ -127,6 +132,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	lockUrl := data.Get("lock_url").(string)
 	lockRepo := data.Get("lock_repo").(string)
 	lockSubpath := data.Get("lock_subpath").(string)
+	lockReadbackWait := data.Get("lock_readback_wait").(int)
 	if unlockUserName == "" && lockUserName != "" {
 		unlockUserName = lockUserName
 	}
@@ -190,6 +196,7 @@ func (b *Backend) configure(ctx context.Context) error {
 		lockUrl:            lockUrl,
 		lockRepo:           lockRepo,
 		lockSubpath:        lockSubpath,
+		lockReadbackWait:   lockReadbackWait,
 	}
 	return nil
 }

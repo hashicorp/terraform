@@ -39,6 +39,7 @@ terraform {
     lock_url        = "https://custom.artifactoryonline.com/artifactory"
     lock_repo       = "foo-lock"
     lock_subpath    = "terraform-bar-lock"
+    lock_readback_wait = 200
   }
 }
 ```
@@ -61,6 +62,8 @@ data "terraform_remote_state" "foo" {
     lock_url        = "https://custom.artifactoryonline.com/artifactory"
     lock_repo       = "foo-lock"
     lock_subpath    = "terraform-bar-lock"
+    lock_readback_wait = 200
+
   }
 }
 ```
@@ -81,14 +84,15 @@ The following configuration options / environment variables are supported:
  * `lock_url` / `LOCK_ARTIFACTORY_URL` (Optional) - The base url for lock artifact access. `lock_url` and `url` should be the same when the state and lock artifact are stored on the same artifactory server
  * `lock_repo` (Optional) - The repository name for lock artifact access
  * `lock_subpath` (Optional) - Path within `lock_repo` for lock artifact access
+ * `lock_readback_wait` (Optional) - After a lock file is put into artifactory, it can be optionally readback after `lock_readback_wait` milliseconds from artifactory to compare with the orignal lock file. This is to make sure that the lock is properly created in artifactory. When value <=0 or not specified, no readback is performed. Empirical recommandation: >=200.
 
 ## Repo configuration
 
 Repo configuration might be different, depending on the storage server type.
 
 ### Jfrog Artifactory
-* `username` should have `Delete/Overwrite` and `Deploy/Cache` permission on `repo`
-* `lock_username` should have `Deploy/Cache` permission, but not `Delete/Overwrite` permission on `lock_repo`
+* `username` should have `Delete/Overwrite`, `Deploy/Cache` and `Read` permission on `repo`
+* `lock_username` should have `Deploy/Cache` and `Read` permission, but not `Delete/Overwrite` permission on `lock_repo`
 * `unlock_username` should have `Delete/Overwrite` permission on `lock_repo`
 * [reference](https://www.jfrog.com/confluence/display/RTF/Managing+Permissions)
 
