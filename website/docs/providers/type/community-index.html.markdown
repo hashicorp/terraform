@@ -32,6 +32,7 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
 - [Aviatrix](https://github.com/AviatrixSystems/terraform-provider-aviatrix)
 - [AWX](https://github.com/mauromedda/terraform-provider-awx)
 - [Azure Devops](https://github.com/agarciamiravet/terraform-provider-azuredevops)
+- [CDA](https://github.com/Automic/terraform-provider-cda)
 - [Cherry Servers](https://github.com/cherryservers/terraform-provider-cherryservers)
 - [Cloud Foundry](https://github.com/cloudfoundry-community/terraform-provider-cf)
 - [CloudAMQP](https://github.com/cloudamqp/terraform-provider)
