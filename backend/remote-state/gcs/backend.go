@@ -4,17 +4,21 @@ package gcs
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"strings"
+	"time"
 
-	"cloud.google.com/go/storage"
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/helper/pathorcontents"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/httpclient"
-	"golang.org/x/oauth2/jwt"
+
+	"cloud.google.com/go/storage"
+	"golang.org/x/oauth2"
+	googleoauth "golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
 )
 
@@ -24,12 +28,15 @@ import (
 type Backend struct {
 	*schema.Backend
 
+	tokenSource    oauth2.TokenSource
 	storageClient  *storage.Client
 	storageContext context.Context
 
 	bucketName       string
 	prefix           string
 	defaultStateFile string
+	credentials      string
+	accessToken      string
 
 	encryptionKey []byte
 }
@@ -62,7 +69,13 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Google Cloud JSON Account Key",
-				Default:     "",
+			},
+
+			"access_token": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Description:   "A temporary Google Cloud OAuth 2.0 access token obtained from the Google Authorization server.",
+				ConflictsWith: []string{"credentials"},
 			},
 
 			"encryption_key": {
@@ -116,36 +129,34 @@ func (b *Backend) configure(ctx context.Context) error {
 
 	var opts []option.ClientOption
 
-	creds := data.Get("credentials").(string)
-	if creds == "" {
-		creds = os.Getenv("GOOGLE_CREDENTIALS")
+	if creds := data.Get("credentials"); creds != nil {
+		b.credentials = creds.(string)
+	}
+	if b.credentials == "" {
+		b.credentials = os.Getenv("GOOGLE_CREDENTIALS")
 	}
 
-	if creds != "" {
-		var account accountFile
-
-		// to mirror how the provider works, we accept the file path or the contents
-		contents, _, err := pathorcontents.Read(creds)
-		if err != nil {
-			return fmt.Errorf("Error loading credentials: %s", err)
-		}
-
-		if err := json.Unmarshal([]byte(contents), &account); err != nil {
-			return fmt.Errorf("Error parsing credentials '%s': %s", contents, err)
-		}
-
-		conf := jwt.Config{
-			Email:      account.ClientEmail,
-			PrivateKey: []byte(account.PrivateKey),
-			Scopes:     []string{storage.ScopeReadWrite},
-			TokenURL:   "https://oauth2.googleapis.com/token",
-		}
-
-		opts = append(opts, option.WithHTTPClient(conf.Client(ctx)))
-	} else {
-		opts = append(opts, option.WithScopes(storage.ScopeReadWrite))
+	if token := data.Get("access_token"); token != nil {
+		b.accessToken = token.(string)
+	}
+	if b.accessToken == "" {
+		b.accessToken = os.Getenv("GOOGLE_OAUTH_ACCESS_TOKEN")
 	}
 
+	tokenSource, err := b.getTokenSource([]string{storage.ScopeReadWrite})
+	if err != nil {
+		return err
+	}
+	b.tokenSource = tokenSource
+
+	oauthClient := oauth2.NewClient(context.Background(), tokenSource)
+	oauthClient.Transport = logging.NewTransport("Google", oauthClient.Transport)
+	// Each individual request should return within 30s - timeouts will be retried.
+	// This is a timeout for, e.g. a single GET request of an operation - not a
+	// timeout for the maximum amount of time a logical request can take.
+	oauthClient.Timeout, _ = time.ParseDuration("30s")
+
+	opts = append(opts, option.WithHTTPClient(oauthClient))
 	opts = append(opts, option.WithUserAgent(httpclient.UserAgentString()))
 	client, err := storage.NewClient(b.storageContext, opts...)
 	if err != nil {
@@ -179,6 +190,40 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (b *Backend) getTokenSource(clientScopes []string) (oauth2.TokenSource, error) {
+	if b.accessToken != "" {
+		contents, _, err := pathorcontents.Read(b.accessToken)
+		if err != nil {
+			return nil, fmt.Errorf("Error loading access token: %s", err)
+		}
+
+		log.Printf("[INFO] Authenticating using configured Google JSON 'access_token'...")
+		log.Printf("[INFO]   -- Scopes: %s", clientScopes)
+		token := &oauth2.Token{AccessToken: contents}
+		return oauth2.StaticTokenSource(token), nil
+	}
+
+	if b.credentials != "" {
+		contents, _, err := pathorcontents.Read(b.credentials)
+		if err != nil {
+			return nil, fmt.Errorf("Error loading credentials: %s", err)
+		}
+
+		creds, err := googleoauth.CredentialsFromJSON(context.Background(), []byte(contents), clientScopes...)
+		if err != nil {
+			return nil, fmt.Errorf("Unable to parse credentials from '%s': %s", contents, err)
+		}
+
+		log.Printf("[INFO] Authenticating using configured Google JSON 'credentials'...")
+		log.Printf("[INFO]   -- Scopes: %s", clientScopes)
+		return creds.TokenSource, nil
+	}
+
+	log.Printf("[INFO] Authenticating using DefaultClient...")
+	log.Printf("[INFO]   -- Scopes: %s", clientScopes)
+	return googleoauth.DefaultTokenSource(context.Background(), clientScopes...)
 }
 
 // accountFile represents the structure of the account file JSON file.

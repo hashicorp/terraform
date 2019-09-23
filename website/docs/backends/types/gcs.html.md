@@ -52,6 +52,16 @@ resource "template_file" "bar" {
 
 The following configuration options are supported:
 
+ *  `access_token` - (Optional) A temporary [OAuth 2.0 access token](https://developers.google.com/identity/protocols/OAuth2)
+    obtained from the Google Authorization server, i.e. the `Authorization: Bearer` token used to authenticate HTTP requests to
+    GCP APIs. If both are specified, `access_token` will be used over the `credentials` field. Alternatively, this can be specified
+    using the `GOOGLE_OAUTH_ACCESS_TOKEN` environment variable.
+
+        -> These access tokens cannot be renewed by Terraform and thus will only
+        work until they expire. If you anticipate Terraform needing access for
+        longer than a token's lifetime (default `1 hour`), please use a service
+        account key with `credentials` instead.
+
  *  `bucket` - (Required) The name of the GCS bucket.
     This name must be globally unique.
     For more information, see [Bucket Naming Guidelines](https://cloud.google.com/storage/docs/bucketnaming.html#requirements).
