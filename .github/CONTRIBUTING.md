@@ -89,11 +89,11 @@ guidelines for well-formed issues of each type.
 
 Please do not use GitHub to ask questions! Instead:
 
- - [ ] __Search for answers in Terraform documentation__
+ * __Search for answers in Terraform documentation__
 
- - [ ] __Ask in the Community Forum__: Use [the community forum](https://discuss.hashicorp.com/c/terraform-core) for questions not answered by the documentation.
+ * __Ask in the Community Forum__: Use [the community forum](https://discuss.hashicorp.com/c/terraform-core) for questions not answered by the documentation.
 
- - [ ] __Request an update to the documentation__: If you find that the
+ * __Request an update to the documentation__: If you find that the
  documentation is confusing or incorrect, open an issue (or a pull request) and
  let us know.
 
