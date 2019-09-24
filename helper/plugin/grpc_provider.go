@@ -890,6 +890,14 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 		}
 	}
 
+	pmSchemaBlock := s.getProviderMetaSchemaBlock()
+	providerSchemaVal, err := msgpack.Unmarshal(req.ProviderMeta.Msgpack, pmSchemaBlock.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
+	priorState.ProviderMeta = providerSchemaVal
+
 	newInstanceState, err := s.provider.Apply(info, priorState, diff)
 	// we record the error here, but continue processing any returned state.
 	if err != nil {
