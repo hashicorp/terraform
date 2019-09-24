@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/md5"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 
@@ -29,8 +30,23 @@ func (c *CmdClient) execCommand(arg string) error {
 	return err
 }
 
+func logStart(action string) {
+	log.Printf("[TRACE] backend/remote-state/artifactory: starting %s operation", action)
+}
+
+func logResult(action string, err *error) {
+	if *err == nil {
+		log.Printf("[TRACE] backend/remote-state/artifactory: exiting %s operation with success", action)
+	} else {
+		log.Printf("[TRACE] backend/remote-state/artifactory: exiting %s operation with failure", action)
+	}
+}
+
 func (c *CmdClient) Get() (*remote.Payload, error) {
-	if err := c.execCommand("GET"); err != nil {
+	var err error
+	logStart("Get")
+	defer logResult("Get", &err)
+	if err = c.execCommand("GET"); err != nil {
 		return nil, err
 	}
 
@@ -59,7 +75,10 @@ func (c *CmdClient) Get() (*remote.Payload, error) {
 }
 
 func (c *CmdClient) Put(data []byte) error {
-	err := ioutil.WriteFile(c.statesTransferFile, data, 0644)
+	var err error
+	logStart("Put")
+	defer logResult("Put", &err)
+	err = ioutil.WriteFile(c.statesTransferFile, data, 0644)
 	if err != nil {
 		return err
 	}
@@ -68,26 +87,35 @@ func (c *CmdClient) Put(data []byte) error {
 }
 
 func (c *CmdClient) Delete() error {
-	err := c.execCommand("DELETE")
+	var err error
+	logStart("Delete")
+	defer logResult("Delete", &err)
+	err = c.execCommand("DELETE")
 	return err
 }
 
 func (c *CmdClient) Unlock(id string) error {
+	var err error
+	logStart("Unlock")
+	defer logResult("Unlock", &err)
 	if c.lockTransferFile == "" {
 		return nil
 	}
-	err := c.execCommand("UNLOCK")
+	err = c.execCommand("UNLOCK")
 	return err
 }
 
 func (c *CmdClient) Lock(info *state.LockInfo) (string, error) {
+	var err error
+	logStart("Lock")
+	defer logResult("Lock", &err)
 	if c.lockTransferFile == "" {
 		return "", nil
 	}
 	c.lockID = ""
 
 	jsonLockInfo := info.Marshal()
-	err := ioutil.WriteFile(c.lockTransferFile, jsonLockInfo, 0644)
+	err = ioutil.WriteFile(c.lockTransferFile, jsonLockInfo, 0644)
 	if err != nil {
 		return "", err
 	}
