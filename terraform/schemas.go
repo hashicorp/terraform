@@ -160,6 +160,10 @@ func loadProviderSchemas(schemas map[string]*ProviderSchema, config *configs.Con
 			}
 		}
 
+		if resp.ProviderMeta.Block != nil {
+			s.ProviderMeta = resp.ProviderMeta.Block
+		}
+
 		schemas[typeName] = s
 	}
 

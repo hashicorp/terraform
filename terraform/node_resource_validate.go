@@ -15,12 +15,13 @@ type NodeValidatableResource struct {
 }
 
 var (
-	_ GraphNodeSubPath              = (*NodeValidatableResource)(nil)
-	_ GraphNodeEvalable             = (*NodeValidatableResource)(nil)
-	_ GraphNodeReferenceable        = (*NodeValidatableResource)(nil)
-	_ GraphNodeReferencer           = (*NodeValidatableResource)(nil)
-	_ GraphNodeResource             = (*NodeValidatableResource)(nil)
-	_ GraphNodeAttachResourceConfig = (*NodeValidatableResource)(nil)
+	_ GraphNodeSubPath                   = (*NodeValidatableResource)(nil)
+	_ GraphNodeEvalable                  = (*NodeValidatableResource)(nil)
+	_ GraphNodeReferenceable             = (*NodeValidatableResource)(nil)
+	_ GraphNodeReferencer                = (*NodeValidatableResource)(nil)
+	_ GraphNodeResource                  = (*NodeValidatableResource)(nil)
+	_ GraphNodeAttachResourceConfig      = (*NodeValidatableResource)(nil)
+	_ GraphNodeAttachProviderMetaConfigs = (*NodeValidatableResource)(nil)
 )
 
 // GraphNodeEvalable
