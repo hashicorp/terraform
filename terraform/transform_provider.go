@@ -140,7 +140,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 					log.Printf("[TRACE] ProviderTransformer: no provider metas defined for %s", dag.VertexName(v))
 					continue
 				}
-				if meta, ok := t.Config.Module.ProviderMetas[p.String()]; ok {
+				if meta, ok := t.Config.Module.ProviderMetas[p.ProviderConfig.Type]; ok {
 					gnapmc.AttachProviderMetaConfigs(meta)
 				}
 			}

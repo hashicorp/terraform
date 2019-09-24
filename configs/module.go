@@ -93,6 +93,7 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 		ModuleCalls:          map[string]*ModuleCall{},
 		ManagedResources:     map[string]*Resource{},
 		DataResources:        map[string]*Resource{},
+		ProviderMetas:        map[string]*ProviderMeta{},
 	}
 
 	for _, file := range primaryFiles {
