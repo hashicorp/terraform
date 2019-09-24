@@ -163,22 +163,6 @@ func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
 				ProviderSchema: &providerSchema,
 			},
 
-			&EvalIf{
-				If: func(ctx EvalContext) (bool, error) {
-					// If the config explicitly has a depends_on for this
-					// data source, assume the intention is to prevent
-					// refreshing ahead of that dependency, and therefore
-					// we need to deal with this resource during the apply
-					// phase..
-					if len(n.Config.DependsOn) > 0 {
-						return true, EvalEarlyExitError{}
-					}
-
-					return true, nil
-				},
-				Then: EvalNoop{},
-			},
-
 			// EvalReadData will _attempt_ to read the data source, but may
 			// generate an incomplete planned object if the configuration
 			// includes values that won't be known until apply.
@@ -192,6 +176,12 @@ func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
 				OutputChange:      &change,
 				OutputConfigValue: &configVal,
 				OutputState:       &state,
+				// If the config explicitly has a depends_on for this data
+				// source, assume the intention is to prevent refreshing ahead
+				// of that dependency, and therefore we need to deal with this
+				// resource during the apply phase. We do that by forcing this
+				// read to result in a plan.
+				ForcePlanRead: len(n.Config.DependsOn) > 0,
 			},
 
 			&EvalIf{
