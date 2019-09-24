@@ -59,6 +59,7 @@ down to see all providers.
 - [Fastly](/docs/providers/fastly/index.html)
 - [FlexibleEngine](/docs/providers/flexibleengine/index.html)
 - [FortiOS](/docs/providers/fortios/index.html)
+- [Genymotion](/docs/providers/genymotion/index.html)
 - [GitHub](/docs/providers/github/index.html)
 - [GitLab](/docs/providers/gitlab/index.html)
 - [Google Cloud Platform](/docs/providers/google/index.html)
