@@ -27,18 +27,19 @@ func (c *CmdClient) execCommand(arg string) error {
 	cmd.Stdout = &out
 	cmd.Stderr = &out
 	err := cmd.Run()
+	log.Printf("[TRACE] backend/remote-state/cmd execCommand: %s\n%s", arg, out.String())
 	return err
 }
 
 func logStart(action string) {
-	log.Printf("[TRACE] backend/remote-state/artifactory: starting %s operation", action)
+	log.Printf("[TRACE] backend/remote-state/cmd: starting %s operation", action)
 }
 
 func logResult(action string, err *error) {
 	if *err == nil {
-		log.Printf("[TRACE] backend/remote-state/artifactory: exiting %s operation with success", action)
+		log.Printf("[TRACE] backend/remote-state/cmd: exiting %s operation with success", action)
 	} else {
-		log.Printf("[TRACE] backend/remote-state/artifactory: exiting %s operation with failure", action)
+		log.Printf("[TRACE] backend/remote-state/cmd: exiting %s operation with failure", action)
 	}
 }
 
