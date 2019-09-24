@@ -164,6 +164,10 @@ func loadProviderSchemas(schemas map[addrs.Provider]*ProviderSchema, config *con
 		}
 
 		schemas[fqn] = s
+
+		if resp.ProviderMeta.Block != nil {
+			s.ProviderMeta = resp.ProviderMeta.Block
+		}
 	}
 
 	if config != nil {

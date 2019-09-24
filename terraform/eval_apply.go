@@ -88,7 +88,6 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 				Subject:  &n.ProviderMeta.ProviderRange,
 			})
 		} else {
-
 			var configDiags tfdiags.Diagnostics
 			metaConfigVal, _, configDiags = ctx.EvaluateBlock(n.ProviderMeta.Config, (*n.ProviderSchema).ProviderMeta, nil, EvalDataForNoInstanceKey)
 			diags = diags.Append(configDiags)
