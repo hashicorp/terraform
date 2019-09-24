@@ -83,7 +83,7 @@ The following settings can be set in the CLI configuration file:
     ~> **Important:** The token provided here must be a
     [user token](/docs/cloud/users-teams-organizations/users.html#api-tokens)
     or a
-    [team token](/docs/cloud/users-teams-organizations/service-accounts.html#team-service-accounts);
+    [team token](/docs/cloud/users-teams-organizations/api-tokens.html#team-api-tokens);
     organization tokens cannot be used for command-line Terraform actions.
 
     -> **Note:** The credentials hostname must match the hostname in your module
