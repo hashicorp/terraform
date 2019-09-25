@@ -117,7 +117,7 @@ reasons, certain infrastructure may be shared across multiple development
 environments, while in production the infrastructure is unique and managed
 directly by the production configuration.
 
-Rather than trying to write a module that itself tries detect whether something
+Rather than trying to write a module that itself tries to detect whether something
 exists and create it if not, we recommend applying the dependency inversion
 approach: making the module accept the object it needs as an argument, via
 an input variable.
