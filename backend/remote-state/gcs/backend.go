@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/helper/pathorcontents"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/httpclient"
+	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/jwt"
 	"google.golang.org/api/option"
 )
@@ -63,6 +64,15 @@ func New() backend.Backend {
 				Optional:    true,
 				Description: "Google Cloud JSON Account Key",
 				Default:     "",
+			},
+
+			"access_token": {
+				Type:     schema.TypeString,
+				Optional: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"GOOGLE_OAUTH_ACCESS_TOKEN",
+				}, nil),
+				Description: "An OAuth2 token used for GCP authentication",
 			},
 
 			"encryption_key": {
@@ -116,12 +126,23 @@ func (b *Backend) configure(ctx context.Context) error {
 
 	var opts []option.ClientOption
 
-	creds := data.Get("credentials").(string)
-	if creds == "" {
+	// Add credential source
+	var creds string
+	var tokenSource oauth2.TokenSource
+
+	if v, ok := data.GetOk("access_token"); ok {
+		tokenSource = oauth2.StaticTokenSource(&oauth2.Token{
+			AccessToken: v.(string),
+		})
+	} else if v, ok := data.GetOk("credentials"); ok {
+		creds = v.(string)
+	} else {
 		creds = os.Getenv("GOOGLE_CREDENTIALS")
 	}
 
-	if creds != "" {
+	if tokenSource != nil {
+		opts = append(opts, option.WithTokenSource(tokenSource))
+	} else if creds != "" {
 		var account accountFile
 
 		// to mirror how the provider works, we accept the file path or the contents
