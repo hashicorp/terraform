@@ -15,7 +15,7 @@ Specifically, we have provided checklists below for each type of issue and pull
 request that can happen on the project. These checklists represent everything
 we need to be able to review and respond quickly.
 
-## HashiCorp, Offical, and Community Providers
+## HashiCorp, Official, and Community Providers
 
 We separate providers out into what we call "HashiCorp Providers", "Partner Providers" and "Community Providers".
 
