@@ -19,7 +19,11 @@ func TestDirFromModule_registry(t *testing.T) {
 	}
 
 	fixtureDir := filepath.Clean("testdata/empty")
-	dir, done := tempChdir(t, fixtureDir)
+	tmpDir, done := tempChdir(t, fixtureDir)
+	dir, err := filepath.EvalSymlinks(tmpDir)
+	if err != nil {
+		t.Error(err)
+	}
 	modsDir := filepath.Join(dir, ".terraform/modules")
 	defer done()
 
