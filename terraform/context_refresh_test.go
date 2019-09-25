@@ -1906,3 +1906,61 @@ data "aws_data_source" "foo" {
 		t.Fatal("ValidateDataSourceConfig not called during plan")
 	}
 }
+
+func TestContext2Refresh_dataResourceDependsOn(t *testing.T) {
+	m := testModule(t, "plan-data-depends-on")
+	p := testProvider("test")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Computed: true},
+					"foo": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+		DataSources: map[string]*configschema.Block{
+			"test_data": {
+				Attributes: map[string]*configschema.Attribute{
+					"compute": {Type: cty.String, Computed: true},
+				},
+			},
+		},
+	}
+	p.DiffFn = testDiffFn
+
+	s := MustShimLegacyState(&State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"test_resource.a": &ResourceState{
+						Type:     "test_resource",
+						Provider: "provider.test",
+						Primary: &InstanceState{
+							ID: "a",
+							Attributes: map[string]string{
+								"id": "a",
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+		State: s,
+	})
+
+	_, diags := ctx.Refresh()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+}
