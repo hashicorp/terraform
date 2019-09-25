@@ -1,5 +1,8 @@
 ## 0.12.10 (Unreleased)
 
+NOTES:
+* The Terraform Plugin SDK is now a standalone Go module: https://github.com/hashicorp/terraform-plugin-sdk. The unofficial plugin SDK in the present repository is now deprecated. Terraform providers should import the new Go module. For more information please see the documentation: https://www.terraform.io/docs/extend/plugin-sdk.html
+
 ENHANCEMENTS:
 * `terraform plan` and `terraform apply` will now warn when the `-target` option is used, to draw attention to the fact that the result of applying the plan is likely to be incomplete, and to remind to re-run `terraform plan` with no targets afterwards to ensure that the configuration has converged. [GH-22783]
 * config: New function `parseint` for parsing strings containing digits as integers in various bases. [GH-22747]
