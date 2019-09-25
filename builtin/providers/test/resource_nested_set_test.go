@@ -646,12 +646,7 @@ resource "test_resource_nested_set" "foo" {
   }
 }
 				`),
-				Check: resource.ComposeTestCheckFunc(
-					func(s *terraform.State) error {
-						fmt.Println(s)
-						return nil
-					},
-				),
+				Check: resource.ComposeTestCheckFunc(),
 			},
 		},
 	})
