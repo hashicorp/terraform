@@ -232,7 +232,12 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 	}
 
 	fixtureDir := filepath.Clean("testdata/registry-modules")
-	dir, done := tempChdir(t, fixtureDir)
+	tmpDir, done := tempChdir(t, fixtureDir)
+	dir, err := filepath.EvalSymlinks(tmpDir)
+	if err != nil {
+		t.Error(err)
+	}
+
 	defer done()
 
 	hooks := &testInstallHooks{}
@@ -359,7 +364,11 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 	}
 
 	fixtureDir := filepath.Clean("testdata/go-getter-modules")
-	dir, done := tempChdir(t, fixtureDir)
+	tmpDir, done := tempChdir(t, fixtureDir)
+	dir, err := filepath.EvalSymlinks(tmpDir)
+	if err != nil {
+		t.Error(err)
+	}
 	defer done()
 
 	hooks := &testInstallHooks{}
