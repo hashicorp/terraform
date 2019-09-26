@@ -53,7 +53,7 @@ func New() backend.Backend {
 			"insecure_skip_tls_verify": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("TRITON_SKIP_TLS_VERIFY", ""),
+				DefaultFunc: schema.EnvDefaultFunc("TRITON_SKIP_TLS_VERIFY", false),
 			},
 
 			"path": {
@@ -127,6 +127,9 @@ func (b *Backend) configure(ctx context.Context) error {
 
 	if data.Get("account").(string) == "" {
 		validationError = multierror.Append(validationError, errors.New("`Account` must be configured for the Triton provider"))
+	}
+	if data.Get("key_id").(string) == "" {
+		validationError = multierror.Append(validationError, errors.New("`Key ID` must be configured for the Triton provider"))
 	}
 	if data.Get("key_id").(string) == "" {
 		validationError = multierror.Append(validationError, errors.New("`Key ID` must be configured for the Triton provider"))
