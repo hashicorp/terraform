@@ -91,19 +91,23 @@ func (b *Local) opApply(
 			if op.Destroy {
 				if op.Workspace != "default" {
 					query = "Do you really want to destroy all resources in workspace \"" + op.Workspace + "\"?"
+					desc = "Terraform will destroy all your managed infrastructure, as shown above.\n" +
+						"There is no undo. Only 'yes' or '" + op.Workspace + "' will be accepted to confirm."
 				} else {
 					query = "Do you really want to destroy all resources?"
+					desc = "Terraform will destroy all your managed infrastructure, as shown above.\n" +
+						"There is no undo. Only 'yes' will be accepted to confirm."
 				}
-				desc = "Terraform will destroy all your managed infrastructure, as shown above.\n" +
-					"There is no undo. Only 'yes' will be accepted to confirm."
 			} else {
 				if op.Workspace != "default" {
 					query = "Do you want to perform these actions in workspace \"" + op.Workspace + "\"?"
+					desc = "Terraform will perform the actions described above.\n" +
+						"Only 'yes' or '" + op.Workspace + "' will be accepted to approve."
 				} else {
 					query = "Do you want to perform these actions?"
+					desc = "Terraform will perform the actions described above.\n" +
+						"Only 'yes' will be accepted to approve."
 				}
-				desc = "Terraform will perform the actions described above.\n" +
-					"Only 'yes' will be accepted to approve."
 			}
 
 			if !trivialPlan {
