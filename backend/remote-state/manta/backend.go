@@ -131,9 +131,6 @@ func (b *Backend) configure(ctx context.Context) error {
 	if data.Get("key_id").(string) == "" {
 		validationError = multierror.Append(validationError, errors.New("`Key ID` must be configured for the Triton provider"))
 	}
-	if data.Get("key_id").(string) == "" {
-		validationError = multierror.Append(validationError, errors.New("`Key ID` must be configured for the Triton provider"))
-	}
 	if b.path == "" {
 		validationError = multierror.Append(validationError, errors.New("`Path` must be configured for the Triton provider"))
 	}
