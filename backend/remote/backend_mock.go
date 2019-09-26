@@ -213,6 +213,88 @@ func (m *mockConfigurationVersions) Upload(ctx context.Context, url, path string
 	return nil
 }
 
+type mockCostEstimates struct {
+	client      *mockClient
+	estimations map[string]*tfe.CostEstimate
+	logs        map[string]string
+}
+
+func newMockCostEstimates(client *mockClient) *mockCostEstimates {
+	return &mockCostEstimates{
+		client:      client,
+		estimations: make(map[string]*tfe.CostEstimate),
+		logs:        make(map[string]string),
+	}
+}
+
+// create is a helper function to create a mock cost estimation that uses the
+// configured working directory to find the logfile.
+func (m *mockCostEstimates) create(cvID, workspaceID string) (*tfe.CostEstimate, error) {
+	id := generateID("ce-")
+
+	ce := &tfe.CostEstimate{
+		ID:                    id,
+		MatchedResourcesCount: 1,
+		ResourcesCount:        1,
+		DeltaMonthlyCost:      "0.00",
+		ProposedMonthlyCost:   "0.00",
+		Status:                tfe.CostEstimateFinished,
+	}
+
+	w, ok := m.client.Workspaces.workspaceIDs[workspaceID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+
+	logfile := filepath.Join(
+		m.client.ConfigurationVersions.uploadPaths[cvID],
+		w.WorkingDirectory,
+		"cost-estimate.log",
+	)
+
+	if _, err := os.Stat(logfile); os.IsNotExist(err) {
+		return nil, nil
+	}
+
+	m.logs[ce.ID] = logfile
+	m.estimations[ce.ID] = ce
+
+	return ce, nil
+}
+
+func (m *mockCostEstimates) Read(ctx context.Context, costEstimateID string) (*tfe.CostEstimate, error) {
+	ce, ok := m.estimations[costEstimateID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+	return ce, nil
+}
+
+func (m *mockCostEstimates) Logs(ctx context.Context, costEstimateID string) (io.Reader, error) {
+	ce, ok := m.estimations[costEstimateID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+
+	logfile, ok := m.logs[ce.ID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+
+	if _, err := os.Stat(logfile); os.IsNotExist(err) {
+		return bytes.NewBufferString("logfile does not exist"), nil
+	}
+
+	logs, err := ioutil.ReadFile(logfile)
+	if err != nil {
+		return nil, err
+	}
+
+	ce.Status = tfe.CostEstimateFinished
+
+	return bytes.NewBuffer(logs), nil
+}
+
 // mockInput is a mock implementation of terraform.UIInput.
 type mockInput struct {
 	answers map[string]string
