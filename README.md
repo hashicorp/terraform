@@ -82,6 +82,18 @@ have not yet been updated for full Go Modules support.
 
 If you're developing Terraform, there are a few tasks you might need to perform.
 
+#### Configure GO111MODULE environment variable
+
+If you haven't already configured the `GO111MODULE` environment variable, set
+it to `on`. Terraform will not compile without this default in the environment.
+See [Modules](https://github.com/golang/go/wiki/Modules) for more details.
+
+```sh
+$ export GO111MODULE=on
+```
+
+Note that Go 1.13 adds support for `auto`.
+
 #### Adding a dependency
 
 If you're adding a dependency, you'll need to vendor it in the same Pull Request as the code that depends on it. You should do this in a separate commit from your code, as makes PR review easier and Git history simpler to read in the future.
