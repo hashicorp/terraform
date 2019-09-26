@@ -129,7 +129,7 @@ func (b *Local) opApply(
 				b.ReportResult(runningOp, diags)
 				return
 			}
-			if v != "yes" {
+			if v != "yes" && v != op.Workspace {
 				if op.Destroy {
 					b.CLI.Info("Destroy cancelled.")
 				} else {
