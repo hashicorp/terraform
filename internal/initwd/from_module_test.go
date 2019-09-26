@@ -20,6 +20,11 @@ func TestDirFromModule_registry(t *testing.T) {
 
 	fixtureDir := filepath.Clean("testdata/empty")
 	tmpDir, done := tempChdir(t, fixtureDir)
+
+	// the module installer runs filepath.EvalSymlinks() on the destination
+	// directory before copying files, and the resultant directory is what is
+	// returned by the install hooks. Without this, tests could fail on machines
+	// where the default temp dir was a symlink.
 	dir, err := filepath.EvalSymlinks(tmpDir)
 	if err != nil {
 		t.Error(err)
