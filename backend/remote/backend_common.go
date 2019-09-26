@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"strconv"
+	"strings"
 	"time"
 
 	tfe "github.com/hashicorp/go-tfe"
@@ -225,6 +227,88 @@ func (b *Remote) parseVariableValues(op *backend.Operation) (terraform.InputValu
 	}
 
 	return result, diags
+}
+
+func (b *Remote) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Operation, r *tfe.Run) error {
+	if r.CostEstimate == nil {
+		return nil
+	}
+
+	if b.CLI != nil {
+		b.CLI.Output("\n------------------------------------------------------------------------\n")
+	}
+
+	msgPrefix := "Cost estimation"
+	if b.CLI != nil {
+		b.CLI.Output(b.Colorize().Color(msgPrefix + ":\n"))
+	}
+
+	started := time.Now()
+	updated := started
+	for i := 0; ; i++ {
+		select {
+		case <-stopCtx.Done():
+			return stopCtx.Err()
+		case <-cancelCtx.Done():
+			return cancelCtx.Err()
+		case <-time.After(500 * time.Millisecond):
+		}
+
+		// Retrieve the cost estimation to get its current status.
+		ce, err := b.client.CostEstimates.Read(stopCtx, r.CostEstimate.ID)
+		if err != nil {
+			return generalError("Failed to retrieve cost estimation", err)
+		}
+
+		switch ce.Status {
+		case tfe.CostEstimateFinished:
+			delta, err := strconv.ParseFloat(ce.DeltaMonthlyCost, 64)
+			if err != nil {
+				return generalError("Unexpected error", err)
+			}
+
+			sign := "+"
+			if delta < 0 {
+				sign = "-"
+			}
+
+			deltaRepr := strings.Replace(ce.DeltaMonthlyCost, "-", "", 1)
+
+			if b.CLI != nil {
+				b.CLI.Output(b.Colorize().Color(fmt.Sprintf("Resources: %s of %s estimated", ce.MatchedResourcesCount, ce.ResourcesCount)))
+				b.CLI.Output(b.Colorize().Color(fmt.Sprintf("\t$%s/mo %s$%s", ce.ProposedMonthlyCost, sign, deltaRepr)))
+
+				if len(r.PolicyChecks) == 0 && r.HasChanges && op.Type == backend.OperationTypeApply {
+					b.CLI.Output("\n------------------------------------------------------------------------")
+				}
+			}
+
+			return nil
+		case tfe.CostEstimatePending:
+		case tfe.CostEstimateQueued:
+			// Check if 30 seconds have passed since the last update.
+			current := time.Now()
+			if b.CLI != nil && (i == 0 || current.Sub(updated).Seconds() > 30) {
+				updated = current
+				elapsed := ""
+
+				// Calculate and set the elapsed time.
+				if i > 0 {
+					elapsed = fmt.Sprintf(
+						" (%s elapsed)", current.Sub(started).Truncate(30*time.Second))
+				}
+				b.CLI.Output(b.Colorize().Color("Waiting for cost estimation to complete..." + elapsed))
+			}
+			continue
+		case tfe.CostEstimateErrored:
+			return fmt.Errorf(msgPrefix + " errored.")
+		case tfe.CostEstimateCanceled:
+			return fmt.Errorf(msgPrefix + " canceled.")
+		default:
+			return fmt.Errorf("Unknown or unexpected cost estimation state: %s", ce.Status)
+		}
+	}
+	return nil
 }
 
 func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Operation, r *tfe.Run) error {
