@@ -72,7 +72,7 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
 - [Google G Suite](https://github.com/DeviaVir/terraform-provider-gsuite)
 - [GorillaStack](https://github.com/GorillaStack/terraform-provider-gorillastack)
 - [Hiera](https://github.com/ribbybibby/terraform-provider-hiera)
-- [HP OneView](https://github.com/HewlettPackard/terraform-provider-oneview)
+- [HPE OneView](https://github.com/HewlettPackard/terraform-provider-oneview)
 - [HTTP File Upload](https://github.com/GSLabDev/terraform-provider-httpfileupload)
 - [IBM Cloud](https://github.com/IBM-Cloud/terraform-provider-ibm)
 - [IIJ GIO](https://github.com/iij/terraform-provider-p2pub)
