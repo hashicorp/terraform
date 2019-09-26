@@ -246,6 +246,7 @@ func (n *NodeDestroyResourceInstance) EvalTree() EvalNode {
 						Change:         &changeApply,
 						Provider:       &provider,
 						ProviderAddr:   n.ResolvedProvider,
+						ProviderMeta:   n.ProviderMeta,
 						ProviderSchema: &providerSchema,
 						Output:         &state,
 						Error:          &err,
