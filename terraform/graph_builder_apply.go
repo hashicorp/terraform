@@ -162,14 +162,13 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 			State:   b.State,
 			Schemas: b.Schemas,
 		},
-		GraphTransformIf(
-			func() bool { return !b.Destroy },
-			&CBDEdgeTransformer{
-				Config:  b.Config,
-				State:   b.State,
-				Schemas: b.Schemas,
-			},
-		),
+
+		&CBDEdgeTransformer{
+			Config:  b.Config,
+			State:   b.State,
+			Schemas: b.Schemas,
+			Destroy: b.Destroy,
+		},
 
 		// Handle destroy time transformations for output and local values.
 		// Reverse the edges from outputs and locals, so that

@@ -134,9 +134,16 @@ type CBDEdgeTransformer struct {
 	// obtain schema information from providers and provisioners so we can
 	// properly resolve implicit dependencies.
 	Schemas *Schemas
+
+	// If the operation is a simple destroy, no transformation is done.
+	Destroy bool
 }
 
 func (t *CBDEdgeTransformer) Transform(g *Graph) error {
+	if t.Destroy {
+		return nil
+	}
+
 	// Go through and reverse any destroy edges
 	destroyMap := make(map[string][]dag.Vertex)
 	for _, v := range g.Vertices() {
