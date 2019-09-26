@@ -47,13 +47,13 @@ type CostEstimate struct {
 	ID                      string                        `jsonapi:"primary,cost-estimates"`
 	DeltaMonthlyCost        string                        `jsonapi:"attr,delta-monthly-cost"`
 	ErrorMessage            string                        `jsonapi:"attr,error-message"`
-	MatchedResourcesCount   string                        `jsonapi:"attr,matched-resources-count"`
+	MatchedResourcesCount   int                           `jsonapi:"attr,matched-resources-count"`
 	PriorMonthlyCost        string                        `jsonapi:"attr,prior-monthly-cost"`
 	ProposedMonthlyCost     string                        `jsonapi:"attr,proposed-monthly-cost"`
-	ResourcesCount          string                        `jsonapi:"attr,resources-count"`
+	ResourcesCount          int                           `jsonapi:"attr,resources-count"`
 	Status                  CostEstimateStatus            `jsonapi:"attr,status"`
 	StatusTimestamps        *CostEstimateStatusTimestamps `jsonapi:"attr,status-timestamps"`
-	UnmatchedResourcesCount string                        `jsonapi:"attr,unmatched-resources-count"`
+	UnmatchedResourcesCount int                           `jsonapi:"attr,unmatched-resources-count"`
 }
 
 // CostEstimateStatusTimestamps holds the timestamps for individual costEstimate statuses.
