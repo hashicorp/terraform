@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/hcl2/hcl/hclsyntax"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -135,6 +136,165 @@ func TestLoad(t *testing.T) {
 			want, got,
 			cmp.Comparer(cty.Type.Equals),
 			cmp.Comparer(cty.Value.RawEquals),
+		)
+		if diff != "" {
+			t.Errorf("unexpected result\n%s", diff)
+		}
+	})
+	t.Run("workspaces", func(t *testing.T) {
+		cfg, diags := Load("testdata/workspaces")
+		if diags.HasErrors() {
+			t.Fatalf("Unexpected problems: %s", diags.Err().Error())
+		}
+
+		got := cfg.Workspaces
+		want := map[string]*Workspace{
+			"local": {
+				Name: "local",
+				ForEach: &hclsyntax.ObjectConsExpr{
+					SrcRange: hcl.Range{
+						Filename: "testdata/workspaces/.terraform-project.hcl",
+						Start:    hcl.Pos{Line: 2, Column: 14, Byte: 33},
+						End:      hcl.Pos{Line: 2, Column: 16, Byte: 35},
+					},
+					OpenRange: hcl.Range{
+						Filename: "testdata/workspaces/.terraform-project.hcl",
+						Start:    hcl.Pos{Line: 2, Column: 14, Byte: 33},
+						End:      hcl.Pos{Line: 2, Column: 15, Byte: 34},
+					},
+				},
+				Variables: &hclsyntax.ObjectConsExpr{
+					SrcRange: hcl.Range{
+						Filename: "testdata/workspaces/.terraform-project.hcl",
+						Start:    hcl.Pos{Line: 5, Column: 15, Byte: 73},
+						End:      hcl.Pos{Line: 5, Column: 17, Byte: 75},
+					},
+					OpenRange: hcl.Range{
+						Filename: "testdata/workspaces/.terraform-project.hcl",
+						Start:    hcl.Pos{Line: 5, Column: 15, Byte: 73},
+						End:      hcl.Pos{Line: 5, Column: 16, Byte: 74},
+					},
+				},
+				ConfigSource: &hclsyntax.TemplateExpr{
+					Parts: []hclsyntax.Expression{
+						&hclsyntax.LiteralValueExpr{
+							Val: cty.StringVal("./foo"),
+							SrcRange: hcl.Range{
+								Filename: "testdata/workspaces/.terraform-project.hcl",
+								Start:    hcl.Pos{Line: 4, Column: 16, Byte: 52},
+								End:      hcl.Pos{Line: 4, Column: 21, Byte: 57},
+							},
+						},
+					},
+					SrcRange: hcl.Range{
+						Filename: "testdata/workspaces/.terraform-project.hcl",
+						Start:    hcl.Pos{Line: 4, Column: 15, Byte: 51},
+						End:      hcl.Pos{Line: 4, Column: 22, Byte: 58},
+					},
+				},
+				StateStorage: &StateStorage{
+					TypeName: "local",
+					Config: &hclsyntax.Body{
+						Attributes: hclsyntax.Attributes{},
+						Blocks:     hclsyntax.Blocks{},
+						SrcRange: hcl.Range{
+							Filename: "testdata/workspaces/.terraform-project.hcl",
+							Start:    hcl.Pos{Line: 7, Column: 25, Byte: 101},
+							End:      hcl.Pos{Line: 8, Column: 4, Byte: 106},
+						},
+						EndRange: hcl.Range{
+							Filename: "testdata/workspaces/.terraform-project.hcl",
+							Start:    hcl.Pos{Line: 8, Column: 4, Byte: 106},
+							End:      hcl.Pos{Line: 8, Column: 4, Byte: 106},
+						},
+					},
+					DeclRange: tfdiags.SourceRange{
+						Filename: "testdata/workspaces/.terraform-project.hcl",
+						Start:    tfdiags.SourcePos{Line: 7, Column: 3, Byte: 79},
+						End:      tfdiags.SourcePos{Line: 7, Column: 24, Byte: 100},
+					},
+					TypeNameRange: tfdiags.SourceRange{
+						Filename: "testdata/workspaces/.terraform-project.hcl",
+						Start:    tfdiags.SourcePos{Line: 7, Column: 17, Byte: 93},
+						End:      tfdiags.SourcePos{Line: 7, Column: 24, Byte: 100},
+					},
+				},
+				DeclRange: tfdiags.SourceRange{
+					Filename: "testdata/workspaces/.terraform-project.hcl",
+					Start:    tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:      tfdiags.SourcePos{Line: 1, Column: 18, Byte: 17},
+				},
+				NameRange: tfdiags.SourceRange{
+					Filename: "testdata/workspaces/.terraform-project.hcl",
+					Start:    tfdiags.SourcePos{Line: 1, Column: 11, Byte: 10},
+					End:      tfdiags.SourcePos{Line: 1, Column: 18, Byte: 17},
+				},
+			},
+			"remote": {
+				Name: "remote",
+				Variables: &hclsyntax.ObjectConsExpr{
+					SrcRange: hcl.Range{
+						Filename: "testdata/workspaces/.terraform-project.hcl",
+						Start:    hcl.Pos{Line: 14, Column: 15, Byte: 206},
+						End:      hcl.Pos{Line: 14, Column: 17, Byte: 208},
+					},
+					OpenRange: hcl.Range{
+						Filename: "testdata/workspaces/.terraform-project.hcl",
+						Start:    hcl.Pos{Line: 14, Column: 15, Byte: 206},
+						End:      hcl.Pos{Line: 14, Column: 16, Byte: 207},
+					},
+				},
+				ConfigSource: &hclsyntax.TemplateExpr{
+					Parts: []hclsyntax.Expression{
+						&hclsyntax.LiteralValueExpr{
+							Val: cty.StringVal("./foo"),
+							SrcRange: hcl.Range{
+								Filename: "testdata/workspaces/.terraform-project.hcl",
+								Start:    hcl.Pos{Line: 13, Column: 16, Byte: 185},
+								End:      hcl.Pos{Line: 13, Column: 21, Byte: 190},
+							},
+						},
+					},
+					SrcRange: hcl.Range{
+						Filename: "testdata/workspaces/.terraform-project.hcl",
+						Start:    hcl.Pos{Line: 13, Column: 15, Byte: 184},
+						End:      hcl.Pos{Line: 13, Column: 22, Byte: 191},
+					},
+				},
+				Remote: &hclsyntax.TemplateExpr{
+					Parts: []hclsyntax.Expression{
+						&hclsyntax.LiteralValueExpr{
+							Val: cty.StringVal("tf.example.com/foo/bar"),
+							SrcRange: hcl.Range{
+								Filename: "testdata/workspaces/.terraform-project.hcl",
+								Start:    hcl.Pos{Line: 12, Column: 16, Byte: 146},
+								End:      hcl.Pos{Line: 12, Column: 38, Byte: 168},
+							},
+						},
+					},
+					SrcRange: hcl.Range{
+						Filename: "testdata/workspaces/.terraform-project.hcl",
+						Start:    hcl.Pos{Line: 12, Column: 15, Byte: 145},
+						End:      hcl.Pos{Line: 12, Column: 39, Byte: 169},
+					},
+				},
+				DeclRange: tfdiags.SourceRange{
+					Filename: "testdata/workspaces/.terraform-project.hcl",
+					Start:    tfdiags.SourcePos{Line: 11, Column: 1, Byte: 110},
+					End:      tfdiags.SourcePos{Line: 11, Column: 19, Byte: 128},
+				},
+				NameRange: tfdiags.SourceRange{
+					Filename: "testdata/workspaces/.terraform-project.hcl",
+					Start:    tfdiags.SourcePos{Line: 11, Column: 11, Byte: 120},
+					End:      tfdiags.SourcePos{Line: 11, Column: 19, Byte: 128},
+				},
+			},
+		}
+		diff := cmp.Diff(
+			want, got,
+			cmp.Comparer(cty.Type.Equals),
+			cmp.Comparer(cty.Value.RawEquals),
+			cmpopts.IgnoreUnexported(hclsyntax.Body{}),
 		)
 		if diff != "" {
 			t.Errorf("unexpected result\n%s", diff)
