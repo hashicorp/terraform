@@ -80,6 +80,67 @@ func TestLoad(t *testing.T) {
 			t.Errorf("unexpected result\n%s", diff)
 		}
 	})
+	t.Run("locals", func(t *testing.T) {
+		cfg, diags := Load("testdata/locals")
+		if diags.HasErrors() {
+			t.Fatalf("Unexpected problems: %s", diags.Err().Error())
+		}
+
+		got := cfg.Locals
+		want := map[string]*LocalValue{
+			"foo": {
+				Name: "foo",
+				Value: &hclsyntax.LiteralValueExpr{
+					Val: cty.NullVal(cty.DynamicPseudoType),
+					SrcRange: hcl.Range{
+						Filename: "testdata/locals/.terraform-project.hcl",
+						Start:    hcl.Pos{Line: 2, Column: 9, Byte: 17},
+						End:      hcl.Pos{Line: 2, Column: 13, Byte: 21},
+					},
+				},
+				SrcRange: tfdiags.SourceRange{
+					Filename: "testdata/locals/.terraform-project.hcl",
+					Start:    tfdiags.SourcePos{Line: 2, Column: 3, Byte: 11},
+					End:      tfdiags.SourcePos{Line: 2, Column: 13, Byte: 21},
+				},
+				NameRange: tfdiags.SourceRange{
+					Filename: "testdata/locals/.terraform-project.hcl",
+					Start:    tfdiags.SourcePos{Line: 2, Column: 3, Byte: 11},
+					End:      tfdiags.SourcePos{Line: 2, Column: 6, Byte: 14},
+				},
+			},
+			"bar": {
+				Name: "bar",
+				Value: &hclsyntax.LiteralValueExpr{
+					Val: cty.NullVal(cty.DynamicPseudoType),
+					SrcRange: hcl.Range{
+						Filename: "testdata/locals/.terraform-project.hcl",
+						Start:    hcl.Pos{Line: 3, Column: 9, Byte: 30},
+						End:      hcl.Pos{Line: 3, Column: 13, Byte: 34},
+					},
+				},
+				SrcRange: tfdiags.SourceRange{
+					Filename: "testdata/locals/.terraform-project.hcl",
+					Start:    tfdiags.SourcePos{Line: 3, Column: 3, Byte: 24},
+					End:      tfdiags.SourcePos{Line: 3, Column: 13, Byte: 34},
+				},
+				NameRange: tfdiags.SourceRange{
+					Filename: "testdata/locals/.terraform-project.hcl",
+					Start:    tfdiags.SourcePos{Line: 3, Column: 3, Byte: 24},
+					End:      tfdiags.SourcePos{Line: 3, Column: 6, Byte: 27},
+				},
+			},
+		}
+		diff := cmp.Diff(
+			want, got,
+			cmp.Comparer(cty.Type.Equals),
+			cmp.Comparer(cty.Value.RawEquals),
+		)
+		if diff != "" {
+			t.Errorf("unexpected result\n%s", diff)
+		}
+	})
+
 }
 
 func TestFindProjectRoot(t *testing.T) {
