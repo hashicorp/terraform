@@ -17,7 +17,7 @@ backend. This backend requires either a Terraform Cloud account on
 
 The remote backend stores Terraform state and may be used to run operations in Terraform Cloud.
 
-When using full Remote Operations, operations like `terraform plan` or `terraform apply` can be executed in Terraform
+When using full remote operations, operations like `terraform plan` or `terraform apply` can be executed in Terraform
 Cloud's run environment, with log output streaming to the local terminal. Remote plans and applies use variable values from the associated Terraform Cloud workspace. 
 
 Terraform Cloud can also be used with local operations, in which case only state is stored in the Terraform Cloud backend.
