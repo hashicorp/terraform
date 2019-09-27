@@ -33,6 +33,7 @@ type Config struct {
 	Context    map[string]*ContextValue
 	Locals     map[string]*LocalValue
 	Workspaces map[string]*Workspace
+	Upstreams  map[string]*Upstream
 }
 
 func loadConfigDir(rootDir string) (*Config, tfdiags.Diagnostics) {
@@ -187,6 +188,25 @@ func loadConfig(rootDir, filename string, src []byte, body hcl.Body) (*Config, t
 
 				config.Workspaces[ws.Name] = ws
 			}
+
+		case "upstream":
+			u, moreDiags := decodeUpstreamBlock(block)
+			diags = diags.Append(moreDiags)
+			if u != nil {
+				if existing, exists := config.Upstreams[u.Name]; exists {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Duplicate \"upstream\" block",
+						Detail:   fmt.Sprintf("An upstream %q block was already declared at %s.", u.Name, existing.DeclRange.StartString()),
+						Subject:  u.NameRange.ToHCL().Ptr(),
+						Context:  u.DeclRange.ToHCL().Ptr(),
+					})
+					continue
+				}
+
+				config.Upstreams[u.Name] = u
+			}
+
 		default:
 			// No other block types in our schema, so anything else is a bug.
 			panic(fmt.Sprintf("unexpected block type %q", block.Type))
@@ -201,5 +221,6 @@ var rootSchema = &hcl.BodySchema{
 		{Type: "context", LabelNames: []string{"name"}},
 		{Type: "locals"},
 		{Type: "workspace", LabelNames: []string{"name"}},
+		{Type: "upstream", LabelNames: []string{"name"}},
 	},
 }
