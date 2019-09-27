@@ -1,10 +1,15 @@
 ## 0.12.10 (Unreleased)
 
 ENHANCEMENTS:
+
 * `terraform plan` and `terraform apply` will now warn when the `-target` option is used, to draw attention to the fact that the result of applying the plan is likely to be incomplete, and to remind to re-run `terraform plan` with no targets afterwards to ensure that the configuration has converged. [GH-22783]
 * config: New function `parseint` for parsing strings containing digits as integers in various bases. [GH-22747]
 * config: New function `cidrsubnets`, which is a companion to the existing function `cidrsubnet` which can allocate multiple consecutive subnet prefixes (possibly of different prefix lengths) in a single call. [GH-22858]
 * backend/google: The GCS backend now supports OAuth2 token authentication. [GH-21772]
+
+BUG FIXES:
+
+* backend/manta: fix panic when `insecure_skip_tls_verify` was not set [GH-22918]
 
 ## 0.12.9 (September 17, 2019)
 
