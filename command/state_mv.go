@@ -348,19 +348,13 @@ func (c *StateMvCommand) Run(args []string) int {
 		}
 	}
 
-	if moved == 0 {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			msgInvalidTarget,
-			"No matching objects found. To view the available instances, use \"terraform state list\". Please modify the address to reference a specific instance.",
-		))
-		c.showDiagnostics(diags)
-		return 1
-	}
-
 	c.showDiagnostics(diags)
 
-	c.Ui.Output(fmt.Sprintf("Successfully moved %d object(s).", moved))
+	if moved == 0 {
+		c.Ui.Output("No matching objects found.")
+	} else {
+		c.Ui.Output(fmt.Sprintf("Successfully moved %d object(s).", moved))
+	}
 	return 0
 }
 
