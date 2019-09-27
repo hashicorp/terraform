@@ -940,7 +940,7 @@ var ReverseFunc = function.New(&function.Spec{
 	},
 })
 
-// SetProductFunc calculates the cartesian product of two or more sets or
+// SetProductFunc calculates the Cartesian product of two or more sets or
 // sequences. If the arguments are all lists then the result is a list of tuples,
 // preserving the ordering of all of the input lists. Otherwise the result is a
 // set of tuples.
@@ -1491,7 +1491,7 @@ func Reverse(list cty.Value) (cty.Value, error) {
 	return ReverseFunc.Call([]cty.Value{list})
 }
 
-// SetProduct computes the cartesian product of sets or sequences.
+// SetProduct computes the Cartesian product of sets or sequences.
 func SetProduct(sets ...cty.Value) (cty.Value, error) {
 	return SetProductFunc.Call(sets)
 }

@@ -28,7 +28,7 @@ but in rare cases it can be used in conjunction with
 to take the timestamp only on initial creation of the resource.
 
 Due to the constantly changing return value, the result of this function cannot
-be preducted during Terraform's planning phase, and so the timestamp will be
+be predicted during Terraform's planning phase, and so the timestamp will be
 taken only once the plan is being applied.
 
 ## Examples

@@ -76,7 +76,7 @@ ede1a974-df7e-5f17-84b9-76208818b2c8
 ```
 
 When using raw UUID namespaces, consider including a comment alongside the
-expression that indicates which namespace this repressents in a
+expression that indicates which namespace this represents in a
 human-significant manner, such as by reference to the standard that
 defined it.
 

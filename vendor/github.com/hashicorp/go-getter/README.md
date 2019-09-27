@@ -128,14 +128,14 @@ go-getter will first download the URL specified _before_ the double-slash
 path after the double slash into the target directory.
 
 For example, if you're downloading this GitHub repository, but you only
-want to download the `test-fixtures` directory, you can do the following:
+want to download the `testdata` directory, you can do the following:
 
 ```
-https://github.com/hashicorp/go-getter.git//test-fixtures
+https://github.com/hashicorp/go-getter.git//testdata
 ```
 
 If you downloaded this to the `/tmp` directory, then the file
-`/tmp/archive.gz` would exist. Notice that this file is in the `test-fixtures`
+`/tmp/archive.gz` would exist. Notice that this file is in the `testdata`
 directory in this repository, but because we specified a subdirectory,
 go-getter automatically copied only that directory contents.
 

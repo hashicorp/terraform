@@ -254,6 +254,10 @@ func DecodeKey(encoded string) (*Key, error) {
 
 	ref := new(pb.Reference)
 	if err := proto.Unmarshal(b, ref); err != nil {
+		// Couldn't decode it as an App Engine key, try decoding it as a key encoded by cloud.google.com/go/datastore.
+		if k := decodeCloudKey(encoded); k != nil {
+			return k, nil
+		}
 		return nil, err
 	}
 

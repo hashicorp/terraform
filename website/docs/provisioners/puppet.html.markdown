@@ -12,6 +12,10 @@ The `puppet` provisioner installs, configures and runs the Puppet agent on a
 remote resource. The `puppet` provisioner supports both `ssh` and `winrm` type
 [connections](/docs/provisioners/connection.html).
 
+-> **Note:** Provisioners should only be used as a last resort. For most
+common situations there are better alternatives. For more information, see
+[the main Provisioners page](./).
+
 ## Requirements
 
 The `puppet` provisioner has some prerequisites for specific connection types:

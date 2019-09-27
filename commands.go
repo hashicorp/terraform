@@ -4,12 +4,15 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/mitchellh/cli"
+
 	"github.com/hashicorp/terraform/command"
+	"github.com/hashicorp/terraform/command/cliconfig"
+	"github.com/hashicorp/terraform/command/webbrowser"
 	pluginDiscovery "github.com/hashicorp/terraform/plugin/discovery"
 	"github.com/hashicorp/terraform/svchost"
 	"github.com/hashicorp/terraform/svchost/auth"
 	"github.com/hashicorp/terraform/svchost/disco"
-	"github.com/mitchellh/cli"
 )
 
 // runningInAutomationEnvName gives the name of an environment variable that
@@ -50,6 +53,11 @@ func initCommands(config *Config, services *disco.Disco) {
 		services.ForceHostServices(host, hostConfig.Services)
 	}
 
+	configDir, err := cliconfig.ConfigDir()
+	if err != nil {
+		configDir = "" // No config dir available (e.g. looking up a home directory failed)
+	}
+
 	dataDir := os.Getenv("TF_DATA_DIR")
 
 	meta := command.Meta{
@@ -58,9 +66,11 @@ func initCommands(config *Config, services *disco.Disco) {
 		PluginOverrides:  &PluginOverrides,
 		Ui:               Ui,
 
-		Services: services,
+		Services:        services,
+		BrowserLauncher: webbrowser.NewNativeLauncher(),
 
 		RunningInAutomation: inAutomation,
+		CLIConfigDir:        configDir,
 		PluginCacheDir:      config.PluginCacheDir,
 		OverrideDataDir:     dataDir,
 
@@ -171,6 +181,16 @@ func initCommands(config *Config, services *disco.Disco) {
 				Meta: meta,
 			}, nil
 		},
+
+		// "terraform login" is disabled until Terraform Cloud is ready to
+		// support it.
+		/*
+			"login": func() (cli.Command, error) {
+				return &command.LoginCommand{
+					Meta: meta,
+				}, nil
+			},
+		*/
 
 		"output": func() (cli.Command, error) {
 			return &command.OutputCommand{

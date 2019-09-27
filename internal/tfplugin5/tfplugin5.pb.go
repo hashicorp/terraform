@@ -4,10 +4,12 @@
 package tfplugin5
 
 import (
+	context "context"
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
-	context "golang.org/x/net/context"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -20,7 +22,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 type Diagnostic_Severity int32
 
@@ -324,84 +326,13 @@ func (m *AttributePath_Step) GetElementKeyInt() int64 {
 	return 0
 }
 
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*AttributePath_Step) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
-	return _AttributePath_Step_OneofMarshaler, _AttributePath_Step_OneofUnmarshaler, _AttributePath_Step_OneofSizer, []interface{}{
+// XXX_OneofWrappers is for the internal use of the proto package.
+func (*AttributePath_Step) XXX_OneofWrappers() []interface{} {
+	return []interface{}{
 		(*AttributePath_Step_AttributeName)(nil),
 		(*AttributePath_Step_ElementKeyString)(nil),
 		(*AttributePath_Step_ElementKeyInt)(nil),
 	}
-}
-
-func _AttributePath_Step_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*AttributePath_Step)
-	// selector
-	switch x := m.Selector.(type) {
-	case *AttributePath_Step_AttributeName:
-		b.EncodeVarint(1<<3 | proto.WireBytes)
-		b.EncodeStringBytes(x.AttributeName)
-	case *AttributePath_Step_ElementKeyString:
-		b.EncodeVarint(2<<3 | proto.WireBytes)
-		b.EncodeStringBytes(x.ElementKeyString)
-	case *AttributePath_Step_ElementKeyInt:
-		b.EncodeVarint(3<<3 | proto.WireVarint)
-		b.EncodeVarint(uint64(x.ElementKeyInt))
-	case nil:
-	default:
-		return fmt.Errorf("AttributePath_Step.Selector has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _AttributePath_Step_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*AttributePath_Step)
-	switch tag {
-	case 1: // selector.attribute_name
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeStringBytes()
-		m.Selector = &AttributePath_Step_AttributeName{x}
-		return true, err
-	case 2: // selector.element_key_string
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeStringBytes()
-		m.Selector = &AttributePath_Step_ElementKeyString{x}
-		return true, err
-	case 3: // selector.element_key_int
-		if wire != proto.WireVarint {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeVarint()
-		m.Selector = &AttributePath_Step_ElementKeyInt{int64(x)}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
-func _AttributePath_Step_OneofSizer(msg proto.Message) (n int) {
-	m := msg.(*AttributePath_Step)
-	// selector
-	switch x := m.Selector.(type) {
-	case *AttributePath_Step_AttributeName:
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(len(x.AttributeName)))
-		n += len(x.AttributeName)
-	case *AttributePath_Step_ElementKeyString:
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(len(x.ElementKeyString)))
-		n += len(x.ElementKeyString)
-	case *AttributePath_Step_ElementKeyInt:
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(x.ElementKeyInt))
-	case nil:
-	default:
-		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
-	}
-	return n
 }
 
 type Stop struct {
@@ -2906,21 +2837,21 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type ProviderClient interface {
-	// ////// Information about what a provider supports/expects
+	//////// Information about what a provider supports/expects
 	GetSchema(ctx context.Context, in *GetProviderSchema_Request, opts ...grpc.CallOption) (*GetProviderSchema_Response, error)
 	PrepareProviderConfig(ctx context.Context, in *PrepareProviderConfig_Request, opts ...grpc.CallOption) (*PrepareProviderConfig_Response, error)
 	ValidateResourceTypeConfig(ctx context.Context, in *ValidateResourceTypeConfig_Request, opts ...grpc.CallOption) (*ValidateResourceTypeConfig_Response, error)
 	ValidateDataSourceConfig(ctx context.Context, in *ValidateDataSourceConfig_Request, opts ...grpc.CallOption) (*ValidateDataSourceConfig_Response, error)
 	UpgradeResourceState(ctx context.Context, in *UpgradeResourceState_Request, opts ...grpc.CallOption) (*UpgradeResourceState_Response, error)
-	// ////// One-time initialization, called before other functions below
+	//////// One-time initialization, called before other functions below
 	Configure(ctx context.Context, in *Configure_Request, opts ...grpc.CallOption) (*Configure_Response, error)
-	// ////// Managed Resource Lifecycle
+	//////// Managed Resource Lifecycle
 	ReadResource(ctx context.Context, in *ReadResource_Request, opts ...grpc.CallOption) (*ReadResource_Response, error)
 	PlanResourceChange(ctx context.Context, in *PlanResourceChange_Request, opts ...grpc.CallOption) (*PlanResourceChange_Response, error)
 	ApplyResourceChange(ctx context.Context, in *ApplyResourceChange_Request, opts ...grpc.CallOption) (*ApplyResourceChange_Response, error)
 	ImportResourceState(ctx context.Context, in *ImportResourceState_Request, opts ...grpc.CallOption) (*ImportResourceState_Response, error)
 	ReadDataSource(ctx context.Context, in *ReadDataSource_Request, opts ...grpc.CallOption) (*ReadDataSource_Response, error)
-	// ////// Graceful Shutdown
+	//////// Graceful Shutdown
 	Stop(ctx context.Context, in *Stop_Request, opts ...grpc.CallOption) (*Stop_Response, error)
 }
 
@@ -3042,22 +2973,63 @@ func (c *providerClient) Stop(ctx context.Context, in *Stop_Request, opts ...grp
 
 // ProviderServer is the server API for Provider service.
 type ProviderServer interface {
-	// ////// Information about what a provider supports/expects
+	//////// Information about what a provider supports/expects
 	GetSchema(context.Context, *GetProviderSchema_Request) (*GetProviderSchema_Response, error)
 	PrepareProviderConfig(context.Context, *PrepareProviderConfig_Request) (*PrepareProviderConfig_Response, error)
 	ValidateResourceTypeConfig(context.Context, *ValidateResourceTypeConfig_Request) (*ValidateResourceTypeConfig_Response, error)
 	ValidateDataSourceConfig(context.Context, *ValidateDataSourceConfig_Request) (*ValidateDataSourceConfig_Response, error)
 	UpgradeResourceState(context.Context, *UpgradeResourceState_Request) (*UpgradeResourceState_Response, error)
-	// ////// One-time initialization, called before other functions below
+	//////// One-time initialization, called before other functions below
 	Configure(context.Context, *Configure_Request) (*Configure_Response, error)
-	// ////// Managed Resource Lifecycle
+	//////// Managed Resource Lifecycle
 	ReadResource(context.Context, *ReadResource_Request) (*ReadResource_Response, error)
 	PlanResourceChange(context.Context, *PlanResourceChange_Request) (*PlanResourceChange_Response, error)
 	ApplyResourceChange(context.Context, *ApplyResourceChange_Request) (*ApplyResourceChange_Response, error)
 	ImportResourceState(context.Context, *ImportResourceState_Request) (*ImportResourceState_Response, error)
 	ReadDataSource(context.Context, *ReadDataSource_Request) (*ReadDataSource_Response, error)
-	// ////// Graceful Shutdown
+	//////// Graceful Shutdown
 	Stop(context.Context, *Stop_Request) (*Stop_Response, error)
+}
+
+// UnimplementedProviderServer can be embedded to have forward compatible implementations.
+type UnimplementedProviderServer struct {
+}
+
+func (*UnimplementedProviderServer) GetSchema(ctx context.Context, req *GetProviderSchema_Request) (*GetProviderSchema_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetSchema not implemented")
+}
+func (*UnimplementedProviderServer) PrepareProviderConfig(ctx context.Context, req *PrepareProviderConfig_Request) (*PrepareProviderConfig_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PrepareProviderConfig not implemented")
+}
+func (*UnimplementedProviderServer) ValidateResourceTypeConfig(ctx context.Context, req *ValidateResourceTypeConfig_Request) (*ValidateResourceTypeConfig_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ValidateResourceTypeConfig not implemented")
+}
+func (*UnimplementedProviderServer) ValidateDataSourceConfig(ctx context.Context, req *ValidateDataSourceConfig_Request) (*ValidateDataSourceConfig_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ValidateDataSourceConfig not implemented")
+}
+func (*UnimplementedProviderServer) UpgradeResourceState(ctx context.Context, req *UpgradeResourceState_Request) (*UpgradeResourceState_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpgradeResourceState not implemented")
+}
+func (*UnimplementedProviderServer) Configure(ctx context.Context, req *Configure_Request) (*Configure_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Configure not implemented")
+}
+func (*UnimplementedProviderServer) ReadResource(ctx context.Context, req *ReadResource_Request) (*ReadResource_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReadResource not implemented")
+}
+func (*UnimplementedProviderServer) PlanResourceChange(ctx context.Context, req *PlanResourceChange_Request) (*PlanResourceChange_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PlanResourceChange not implemented")
+}
+func (*UnimplementedProviderServer) ApplyResourceChange(ctx context.Context, req *ApplyResourceChange_Request) (*ApplyResourceChange_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ApplyResourceChange not implemented")
+}
+func (*UnimplementedProviderServer) ImportResourceState(ctx context.Context, req *ImportResourceState_Request) (*ImportResourceState_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ImportResourceState not implemented")
+}
+func (*UnimplementedProviderServer) ReadDataSource(ctx context.Context, req *ReadDataSource_Request) (*ReadDataSource_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReadDataSource not implemented")
+}
+func (*UnimplementedProviderServer) Stop(ctx context.Context, req *Stop_Request) (*Stop_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Stop not implemented")
 }
 
 func RegisterProviderServer(s *grpc.Server, srv ProviderServer) {
@@ -3420,6 +3392,23 @@ type ProvisionerServer interface {
 	ValidateProvisionerConfig(context.Context, *ValidateProvisionerConfig_Request) (*ValidateProvisionerConfig_Response, error)
 	ProvisionResource(*ProvisionResource_Request, Provisioner_ProvisionResourceServer) error
 	Stop(context.Context, *Stop_Request) (*Stop_Response, error)
+}
+
+// UnimplementedProvisionerServer can be embedded to have forward compatible implementations.
+type UnimplementedProvisionerServer struct {
+}
+
+func (*UnimplementedProvisionerServer) GetSchema(ctx context.Context, req *GetProvisionerSchema_Request) (*GetProvisionerSchema_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetSchema not implemented")
+}
+func (*UnimplementedProvisionerServer) ValidateProvisionerConfig(ctx context.Context, req *ValidateProvisionerConfig_Request) (*ValidateProvisionerConfig_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ValidateProvisionerConfig not implemented")
+}
+func (*UnimplementedProvisionerServer) ProvisionResource(req *ProvisionResource_Request, srv Provisioner_ProvisionResourceServer) error {
+	return status.Errorf(codes.Unimplemented, "method ProvisionResource not implemented")
+}
+func (*UnimplementedProvisionerServer) Stop(ctx context.Context, req *Stop_Request) (*Stop_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Stop not implemented")
 }
 
 func RegisterProvisionerServer(s *grpc.Server, srv ProvisionerServer) {
