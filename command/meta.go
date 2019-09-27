@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/backend/local"
 	"github.com/hashicorp/terraform/command/format"
+	"github.com/hashicorp/terraform/command/webbrowser"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/helper/experiment"
 	"github.com/hashicorp/terraform/helper/wrappedstreams"
@@ -61,6 +62,14 @@ type Meta struct {
 	// the specific commands being run.
 	RunningInAutomation bool
 
+	// CLIConfigDir is the directory from which CLI configuration files were
+	// read by the caller and the directory where any changes to CLI
+	// configuration files by commands should be made.
+	//
+	// If this is empty then no configuration directory is available and
+	// commands which require one cannot proceed.
+	CLIConfigDir string
+
 	// PluginCacheDir, if non-empty, enables caching of downloaded plugins
 	// into the given directory.
 	PluginCacheDir string
@@ -69,6 +78,10 @@ type Meta struct {
 	// DataDir method for situations where the local .terraform/ directory
 	// is not suitable, e.g. because of a read-only filesystem.
 	OverrideDataDir string
+
+	// BrowserLauncher is used by commands that need to open a URL in a
+	// web browser.
+	BrowserLauncher webbrowser.Launcher
 
 	// When this channel is closed, the command will be cancelled.
 	ShutdownCh <-chan struct{}

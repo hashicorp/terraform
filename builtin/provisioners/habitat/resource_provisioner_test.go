@@ -22,6 +22,7 @@ func TestResourceProvisioner_Validate_good(t *testing.T) {
 		"peers":        []interface{}{"1.2.3.4"},
 		"version":      "0.32.0",
 		"service_type": "systemd",
+        "accept_license": false,
 	})
 
 	warn, errs := Provisioner().Validate(c)
@@ -43,15 +44,22 @@ func TestResourceProvisioner_Validate_bad(t *testing.T) {
 	if len(warn) > 0 {
 		t.Fatalf("Warnings: %v", warn)
 	}
-	if len(errs) != 2 {
-		t.Fatalf("Should have two errors")
+	// 3 errors, bad service_type, bad url, missing accept_license
+	if len(errs) != 3 {
+		t.Fatalf("Should have three errors, got %d", len(errs))
 	}
 }
 
 func TestResourceProvisioner_Validate_bad_service_config(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{
+		"accept_license": true,
 		"service": []interface{}{
-			map[string]interface{}{"name": "core/foo", "strategy": "bar", "topology": "baz", "url": "badurl"},
+			map[string]interface{}{
+				"name":     "core/foo",
+				"strategy": "bar",
+				"topology": "baz",
+				"url":      "badurl",
+			},
 		},
 	})
 
@@ -60,7 +68,7 @@ func TestResourceProvisioner_Validate_bad_service_config(t *testing.T) {
 		t.Fatalf("Warnings: %v", warn)
 	}
 	if len(errs) != 3 {
-		t.Fatalf("Should have three errors: %v", errs)
+        t.Fatalf("Should have three errors, got %d", len(errs))
 	}
 }
 
@@ -74,7 +82,7 @@ func TestResourceProvisioner_Validate_bad_service_definition(t *testing.T) {
 		t.Fatalf("Warnings: %v", warn)
 	}
 	if len(errs) != 2 {
-		t.Fatalf("Should have three errors: %v", errs)
+        t.Fatalf("Should have three errors, got %d", len(errs))
 	}
 }
 

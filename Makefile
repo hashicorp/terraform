@@ -1,6 +1,6 @@
 VERSION?="0.3.32"
 TEST?=./...
-GOFMT_FILES?=$$(find . -name '*.go' | grep -v vendor)
+GOFMT_FILES?=$$(find . -not -path "./vendor/*" -type f -name '*.go')
 WEBSITE_REPO=github.com/hashicorp/terraform-website
 
 default: test
@@ -88,6 +88,7 @@ generate: tools
 # If you are working on changes to protobuf interfaces you may either use
 # this target or run the individual scripts below directly.
 protobuf:
+	bash scripts/protobuf-check.sh
 	bash internal/tfplugin5/generate.sh
 	bash plans/internal/planproto/generate.sh
 

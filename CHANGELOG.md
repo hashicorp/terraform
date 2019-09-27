@@ -1,4 +1,14 @@
 ## 0.12.9 (Unreleased)
+
+ENHANCEMENTS:
+* provisioners/habitat: `accept_license` argument available to automate accepting the EULA, now required by this client [GH-22745]
+* config: add source addressing to unknown value errors in `for_each` [GH-22760]
+
+BUG FIXES:
+* command/console: support -var and -var-file flags [GH-22145]
+* config: The `cidrhost`, `cidrsubnet`, and `cidrnetmask` functions now behave correctly with IPv6 prefixes that are short enough for the host portion to be greater than 64-bit or 32-bit (depending on the target architecture). [GH-22505]
+* config: Fixed bug on empty sets with `for_each` [GH-22281]
+
 ## 0.12.8 (September 04, 2019)
 
 NEW FEATURES:
@@ -26,7 +36,8 @@ BUG FIXES:
 * config: reduce MinItems and MaxItems  validation during decoding, to allow for use of dynamic blocks ([#22530](https://github.com/hashicorp/terraform/issues/22530))
 * config: don't validate MinItems and MaxItems in CoerceValue, allowing providers to set incomplete values ([#22478](https://github.com/hashicorp/terraform/issues/22478))
 * config: fix panic on tuples with `for_each` ([#22279](https://github.com/hashicorp/terraform/issues/22279))
-* config: fix references to `each` of `for_each` in provisioners ([#22289](https://github.com/hashicorp/terraform/issues/22289))
+* config: fix references to `each` of `for_each` in 
+s ([#22289](https://github.com/hashicorp/terraform/issues/22289))
 * config: fix panic when using nested dynamic blocks ([#22314](https://github.com/hashicorp/terraform/issues/22314))
 * config: ensure consistent evaluation when moving between single resources and `for_each` in addressing ([#22454](https://github.com/hashicorp/terraform/issues/22454))
 * core: only start a single instance of each required provisioner ([#22553](https://github.com/hashicorp/terraform/issues/22553))

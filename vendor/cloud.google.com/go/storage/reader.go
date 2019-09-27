@@ -43,6 +43,11 @@ type ReaderObjectAttrs struct {
 	// Size is the length of the object's content.
 	Size int64
 
+	// StartOffset is the byte offset within the object
+	// from which reading begins.
+	// This value is only non-zero for range requests.
+	StartOffset int64
+
 	// ContentType is the MIME type of the object's content.
 	ContentType string
 
@@ -78,7 +83,9 @@ func (o *ObjectHandle) NewReader(ctx context.Context) (*Reader, error) {
 
 // NewRangeReader reads part of an object, reading at most length bytes
 // starting at the given offset. If length is negative, the object is read
-// until the end.
+// until the end. If offset is negative, the object is read abs(offset) bytes
+// from the end, and length must also be negative to indicate all remaining
+// bytes will be read.
 func (o *ObjectHandle) NewRangeReader(ctx context.Context, offset, length int64) (r *Reader, err error) {
 	ctx = trace.StartSpan(ctx, "cloud.google.com/go/storage.Object.NewRangeReader")
 	defer func() { trace.EndSpan(ctx, err) }()
@@ -86,8 +93,8 @@ func (o *ObjectHandle) NewRangeReader(ctx context.Context, offset, length int64)
 	if err := o.validate(); err != nil {
 		return nil, err
 	}
-	if offset < 0 {
-		return nil, fmt.Errorf("storage: invalid offset %d < 0", offset)
+	if offset < 0 && length >= 0 {
+		return nil, fmt.Errorf("storage: invalid offset %d < 0 requires negative length", offset)
 	}
 	if o.conds != nil {
 		if err := o.conds.validate("NewRangeReader"); err != nil {
@@ -95,8 +102,8 @@ func (o *ObjectHandle) NewRangeReader(ctx context.Context, offset, length int64)
 		}
 	}
 	u := &url.URL{
-		Scheme: "https",
-		Host:   "storage.googleapis.com",
+		Scheme: o.c.scheme,
+		Host:   o.c.readHost,
 		Path:   fmt.Sprintf("/%s/%s", o.bucket, o.object),
 	}
 	verb := "GET"
@@ -124,7 +131,9 @@ func (o *ObjectHandle) NewRangeReader(ctx context.Context, offset, length int64)
 	// have already read seen bytes.
 	reopen := func(seen int64) (*http.Response, error) {
 		start := offset + seen
-		if length < 0 && start > 0 {
+		if length < 0 && start < 0 {
+			req.Header.Set("Range", fmt.Sprintf("bytes=%d", start))
+		} else if length < 0 && start > 0 {
 			req.Header.Set("Range", fmt.Sprintf("bytes=%d-", start))
 		} else if length > 0 {
 			// The end character isn't affected by how many bytes we've seen.
@@ -177,19 +186,27 @@ func (o *ObjectHandle) NewRangeReader(ctx context.Context, offset, length int64)
 		return nil, err
 	}
 	var (
-		size     int64 // total size of object, even if a range was requested.
-		checkCRC bool
-		crc      uint32
+		size        int64 // total size of object, even if a range was requested.
+		checkCRC    bool
+		crc         uint32
+		startOffset int64 // non-zero if range request.
 	)
 	if res.StatusCode == http.StatusPartialContent {
 		cr := strings.TrimSpace(res.Header.Get("Content-Range"))
 		if !strings.HasPrefix(cr, "bytes ") || !strings.Contains(cr, "/") {
-
 			return nil, fmt.Errorf("storage: invalid Content-Range %q", cr)
 		}
 		size, err = strconv.ParseInt(cr[strings.LastIndex(cr, "/")+1:], 10, 64)
 		if err != nil {
 			return nil, fmt.Errorf("storage: invalid Content-Range %q", cr)
+		}
+
+		dashIndex := strings.Index(cr, "-")
+		if dashIndex >= 0 {
+			startOffset, err = strconv.ParseInt(cr[len("bytes="):dashIndex], 10, 64)
+			if err != nil {
+				return nil, fmt.Errorf("storage: invalid Content-Range %q: %v", cr, err)
+			}
 		}
 	} else {
 		size = res.ContentLength
@@ -236,6 +253,7 @@ func (o *ObjectHandle) NewRangeReader(ctx context.Context, offset, length int64)
 		ContentEncoding: res.Header.Get("Content-Encoding"),
 		CacheControl:    res.Header.Get("Cache-Control"),
 		LastModified:    lm,
+		StartOffset:     startOffset,
 		Generation:      gen,
 		Metageneration:  metaGen,
 	}

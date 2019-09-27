@@ -513,6 +513,12 @@ func (d *InstanceDiff) applyBlockDiff(path []string, attrs map[string]string, sc
 		}
 
 		for k, diff := range d.Attributes {
+			// helper/schema should not insert nil diff values, but don't panic
+			// if it does.
+			if diff == nil {
+				continue
+			}
+
 			if strings.HasPrefix(k, blockKey) {
 				nextDot := strings.Index(k[len(blockKey):], ".")
 				if nextDot < 0 {
@@ -539,6 +545,12 @@ func (d *InstanceDiff) applyBlockDiff(path []string, attrs map[string]string, sc
 				// that we're dropping. Since we're only applying the "New"
 				// portion of the set, we can ignore diffs that only contain "Old"
 				for attr, diff := range d.Attributes {
+					// helper/schema should not insert nil diff values, but don't panic
+					// if it does.
+					if diff == nil {
+						continue
+					}
+
 					if !strings.HasPrefix(attr, indexPrefix) {
 						continue
 					}

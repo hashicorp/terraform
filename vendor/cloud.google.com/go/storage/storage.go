@@ -23,11 +23,13 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/pem"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"reflect"
 	"regexp"
 	"sort"
@@ -81,6 +83,12 @@ func setClientHeader(headers http.Header) {
 type Client struct {
 	hc  *http.Client
 	raw *raw.Service
+	// Scheme describes the scheme under the current host.
+	scheme string
+	// EnvHost is the host set on the STORAGE_EMULATOR_HOST variable.
+	envHost string
+	// ReadHost is the default host used on the reader.
+	readHost string
 }
 
 // NewClient creates a new Google Cloud Storage client.
@@ -102,9 +110,20 @@ func NewClient(ctx context.Context, opts ...option.ClientOption) (*Client, error
 	if ep != "" {
 		rawService.BasePath = ep
 	}
+	scheme := "https"
+	var host, readHost string
+	if host = os.Getenv("STORAGE_EMULATOR_HOST"); host != "" {
+		scheme = "http"
+		readHost = host
+	} else {
+		readHost = "storage.googleapis.com"
+	}
 	return &Client{
-		hc:  hc,
-		raw: rawService,
+		hc:       hc,
+		raw:      rawService,
+		scheme:   scheme,
+		envHost:  host,
+		readHost: readHost,
 	}, nil
 }
 
@@ -117,6 +136,20 @@ func (c *Client) Close() error {
 	c.raw = nil
 	return nil
 }
+
+// SigningScheme determines the API version to use when signing URLs.
+type SigningScheme int
+
+const (
+	// SigningSchemeDefault is presently V2 and will change to V4 in the future.
+	SigningSchemeDefault SigningScheme = iota
+
+	// SigningSchemeV2 uses the V2 scheme to sign URLs.
+	SigningSchemeV2
+
+	// SigningSchemeV4 uses the V4 scheme to sign URLs.
+	SigningSchemeV4
+)
 
 // SignedURLOptions allows you to restrict the access to the signed URL.
 type SignedURLOptions struct {
@@ -140,8 +173,9 @@ type SignedURLOptions struct {
 	// Exactly one of PrivateKey or SignBytes must be non-nil.
 	PrivateKey []byte
 
-	// SignBytes is a function for implementing custom signing.
-	// If your application is running on Google App Engine, you can use appengine's internal signing function:
+	// SignBytes is a function for implementing custom signing. For example, if
+	// your application is running on Google App Engine, you can use
+	// appengine's internal signing function:
 	//     ctx := appengine.NewContext(request)
 	//     acc, _ := appengine.ServiceAccount(ctx)
 	//     url, err := SignedURL("bucket", "object", &SignedURLOptions{
@@ -162,7 +196,8 @@ type SignedURLOptions struct {
 	Method string
 
 	// Expires is the expiration time on the signed URL. It must be
-	// a datetime in the future.
+	// a datetime in the future. For SigningSchemeV4, the expiration may be no
+	// more than seven days in the future.
 	// Required.
 	Expires time.Time
 
@@ -181,9 +216,17 @@ type SignedURLOptions struct {
 	// header in order to use the signed URL.
 	// Optional.
 	MD5 string
+
+	// Scheme determines the version of URL signing to use. Default is
+	// SigningSchemeV2.
+	Scheme SigningScheme
 }
 
 var (
+	tabRegex = regexp.MustCompile(`[\t]+`)
+	// I was tempted to call this spacex. :)
+	spaceRegex = regexp.MustCompile(` +`)
+
 	canonicalHeaderRegexp    = regexp.MustCompile(`(?i)^(x-goog-[^:]+):(.*)?$`)
 	excludedCanonicalHeaders = map[string]bool{
 		"x-goog-encryption-key":        true,
@@ -191,26 +234,31 @@ var (
 	}
 )
 
-// sanitizeHeaders applies the specifications for canonical extension headers at
+// v2SanitizeHeaders applies the specifications for canonical extension headers at
 // https://cloud.google.com/storage/docs/access-control/signed-urls#about-canonical-extension-headers.
-func sanitizeHeaders(hdrs []string) []string {
+func v2SanitizeHeaders(hdrs []string) []string {
 	headerMap := map[string][]string{}
 	for _, hdr := range hdrs {
 		// No leading or trailing whitespaces.
 		sanitizedHeader := strings.TrimSpace(hdr)
 
+		var header, value string
 		// Only keep canonical headers, discard any others.
 		headerMatches := canonicalHeaderRegexp.FindStringSubmatch(sanitizedHeader)
 		if len(headerMatches) == 0 {
 			continue
 		}
+		header = headerMatches[1]
+		value = headerMatches[2]
 
-		header := strings.ToLower(strings.TrimSpace(headerMatches[1]))
-		if excludedCanonicalHeaders[headerMatches[1]] {
+		header = strings.ToLower(strings.TrimSpace(header))
+		value = strings.TrimSpace(value)
+
+		if excludedCanonicalHeaders[header] {
 			// Do not keep any deliberately excluded canonical headers when signing.
 			continue
 		}
-		value := strings.TrimSpace(headerMatches[2])
+
 		if len(value) > 0 {
 			// Remove duplicate headers by appending the values of duplicates
 			// in their order of appearance.
@@ -220,20 +268,70 @@ func sanitizeHeaders(hdrs []string) []string {
 
 	var sanitizedHeaders []string
 	for header, values := range headerMap {
-		// There should be no spaces around the colon separating the
-		// header name from the header value or around the values
-		// themselves. The values should be separated by commas.
+		// There should be no spaces around the colon separating the header name
+		// from the header value or around the values themselves. The values
+		// should be separated by commas.
+		//
 		// NOTE: The semantics for headers without a value are not clear.
-		//       However from specifications these should be edge-cases
-		//       anyway and we should assume that there will be no
-		//       canonical headers using empty values. Any such headers
-		//       are discarded at the regexp stage above.
-		sanitizedHeaders = append(
-			sanitizedHeaders,
-			fmt.Sprintf("%s:%s", header, strings.Join(values, ",")),
-		)
+		// However from specifications these should be edge-cases anyway and we
+		// should assume that there will be no canonical headers using empty
+		// values. Any such headers are discarded at the regexp stage above.
+		sanitizedHeaders = append(sanitizedHeaders, fmt.Sprintf("%s:%s", header, strings.Join(values, ",")))
 	}
 	sort.Strings(sanitizedHeaders)
+	return sanitizedHeaders
+}
+
+// v4SanitizeHeaders applies the specifications for canonical extension headers
+// at https://cloud.google.com/storage/docs/access-control/signed-urls#about-canonical-extension-headers.
+//
+// V4 does a couple things differently from V2:
+// - Headers get sorted by key, instead of by key:value. We do this in
+//   signedURLV4.
+// - There's no canonical regexp: we simply split headers on :.
+// - We don't exclude canonical headers.
+// - We replace leading and trailing spaces in header values, like v2, but also
+//   all intermediate space duplicates get stripped. That is, there's only ever
+//   a single consecutive space.
+func v4SanitizeHeaders(hdrs []string) []string {
+	headerMap := map[string][]string{}
+	for _, hdr := range hdrs {
+		// No leading or trailing whitespaces.
+		sanitizedHeader := strings.TrimSpace(hdr)
+
+		var key, value string
+		headerMatches := strings.Split(sanitizedHeader, ":")
+		if len(headerMatches) < 2 {
+			continue
+		}
+
+		key = headerMatches[0]
+		value = headerMatches[1]
+
+		key = strings.ToLower(strings.TrimSpace(key))
+		value = strings.TrimSpace(value)
+		value = string(spaceRegex.ReplaceAll([]byte(value), []byte(" ")))
+		value = string(tabRegex.ReplaceAll([]byte(value), []byte("\t")))
+
+		if len(value) > 0 {
+			// Remove duplicate headers by appending the values of duplicates
+			// in their order of appearance.
+			headerMap[key] = append(headerMap[key], value)
+		}
+	}
+
+	var sanitizedHeaders []string
+	for header, values := range headerMap {
+		// There should be no spaces around the colon separating the header name
+		// from the header value or around the values themselves. The values
+		// should be separated by commas.
+		//
+		// NOTE: The semantics for headers without a value are not clear.
+		// However from specifications these should be edge-cases anyway and we
+		// should assume that there will be no canonical headers using empty
+		// values. Any such headers are discarded at the regexp stage above.
+		sanitizedHeaders = append(sanitizedHeaders, fmt.Sprintf("%s:%s", header, strings.Join(values, ",")))
+	}
 	return sanitizedHeaders
 }
 
@@ -242,29 +340,184 @@ func sanitizeHeaders(hdrs []string) []string {
 // Google account or signing in. For more information about the signed
 // URLs, see https://cloud.google.com/storage/docs/accesscontrol#Signed-URLs.
 func SignedURL(bucket, name string, opts *SignedURLOptions) (string, error) {
+	now := utcNow()
+	if err := validateOptions(opts, now); err != nil {
+		return "", err
+	}
+
+	switch opts.Scheme {
+	case SigningSchemeV2:
+		opts.Headers = v2SanitizeHeaders(opts.Headers)
+		return signedURLV2(bucket, name, opts)
+	case SigningSchemeV4:
+		opts.Headers = v4SanitizeHeaders(opts.Headers)
+		return signedURLV4(bucket, name, opts, now)
+	default: // SigningSchemeDefault
+		opts.Headers = v2SanitizeHeaders(opts.Headers)
+		return signedURLV2(bucket, name, opts)
+	}
+}
+
+func validateOptions(opts *SignedURLOptions, now time.Time) error {
 	if opts == nil {
-		return "", errors.New("storage: missing required SignedURLOptions")
+		return errors.New("storage: missing required SignedURLOptions")
 	}
 	if opts.GoogleAccessID == "" {
-		return "", errors.New("storage: missing required GoogleAccessID")
+		return errors.New("storage: missing required GoogleAccessID")
 	}
 	if (opts.PrivateKey == nil) == (opts.SignBytes == nil) {
-		return "", errors.New("storage: exactly one of PrivateKey or SignedBytes must be set")
+		return errors.New("storage: exactly one of PrivateKey or SignedBytes must be set")
 	}
 	if opts.Method == "" {
-		return "", errors.New("storage: missing required method option")
+		return errors.New("storage: missing required method option")
 	}
 	if opts.Expires.IsZero() {
-		return "", errors.New("storage: missing required expires option")
+		return errors.New("storage: missing required expires option")
 	}
 	if opts.MD5 != "" {
 		md5, err := base64.StdEncoding.DecodeString(opts.MD5)
 		if err != nil || len(md5) != 16 {
-			return "", errors.New("storage: invalid MD5 checksum")
+			return errors.New("storage: invalid MD5 checksum")
 		}
 	}
-	opts.Headers = sanitizeHeaders(opts.Headers)
+	if opts.Scheme == SigningSchemeV4 {
+		cutoff := now.Add(604801 * time.Second) // 7 days + 1 second
+		if !opts.Expires.Before(cutoff) {
+			return errors.New("storage: expires must be within seven days from now")
+		}
+	}
+	return nil
+}
 
+const (
+	iso8601      = "20060102T150405Z"
+	yearMonthDay = "20060102"
+)
+
+// utcNow returns the current time in UTC and is a variable to allow for
+// reassignment in tests to provide deterministic signed URL values.
+var utcNow = func() time.Time {
+	return time.Now().UTC()
+}
+
+// extractHeaderNames takes in a series of key:value headers and returns the
+// header names only.
+func extractHeaderNames(kvs []string) []string {
+	var res []string
+	for _, header := range kvs {
+		nameValue := strings.Split(header, ":")
+		res = append(res, nameValue[0])
+	}
+	return res
+}
+
+// signedURLV4 creates a signed URL using the sigV4 algorithm.
+func signedURLV4(bucket, name string, opts *SignedURLOptions, now time.Time) (string, error) {
+	buf := &bytes.Buffer{}
+	fmt.Fprintf(buf, "%s\n", opts.Method)
+	u := &url.URL{Path: bucket}
+	if name != "" {
+		u.Path += "/" + name
+	}
+
+	// Note: we have to add a / here because GCS does so auto-magically, despite
+	// Go's EscapedPath not doing so (and we have to exactly match their
+	// canonical query).
+	fmt.Fprintf(buf, "/%s\n", u.EscapedPath())
+
+	headerNames := append(extractHeaderNames(opts.Headers), "host")
+	if opts.ContentType != "" {
+		headerNames = append(headerNames, "content-type")
+	}
+	if opts.MD5 != "" {
+		headerNames = append(headerNames, "content-md5")
+	}
+	sort.Strings(headerNames)
+	signedHeaders := strings.Join(headerNames, ";")
+	timestamp := now.Format(iso8601)
+	credentialScope := fmt.Sprintf("%s/auto/storage/goog4_request", now.Format(yearMonthDay))
+	canonicalQueryString := url.Values{
+		"X-Goog-Algorithm":     {"GOOG4-RSA-SHA256"},
+		"X-Goog-Credential":    {fmt.Sprintf("%s/%s", opts.GoogleAccessID, credentialScope)},
+		"X-Goog-Date":          {timestamp},
+		"X-Goog-Expires":       {fmt.Sprintf("%d", int(opts.Expires.Sub(now).Seconds()))},
+		"X-Goog-SignedHeaders": {signedHeaders},
+	}
+	fmt.Fprintf(buf, "%s\n", canonicalQueryString.Encode())
+
+	u.Host = "storage.googleapis.com"
+
+	var headersWithValue []string
+	headersWithValue = append(headersWithValue, "host:"+u.Host)
+	headersWithValue = append(headersWithValue, opts.Headers...)
+	if opts.ContentType != "" {
+		headersWithValue = append(headersWithValue, "content-type:"+strings.TrimSpace(opts.ContentType))
+	}
+	if opts.MD5 != "" {
+		headersWithValue = append(headersWithValue, "content-md5:"+strings.TrimSpace(opts.MD5))
+	}
+	canonicalHeaders := strings.Join(sortHeadersByKey(headersWithValue), "\n")
+	fmt.Fprintf(buf, "%s\n\n", canonicalHeaders)
+	fmt.Fprintf(buf, "%s\n", signedHeaders)
+	fmt.Fprint(buf, "UNSIGNED-PAYLOAD")
+
+	sum := sha256.Sum256(buf.Bytes())
+	hexDigest := hex.EncodeToString(sum[:])
+	signBuf := &bytes.Buffer{}
+	fmt.Fprint(signBuf, "GOOG4-RSA-SHA256\n")
+	fmt.Fprintf(signBuf, "%s\n", timestamp)
+	fmt.Fprintf(signBuf, "%s\n", credentialScope)
+	fmt.Fprintf(signBuf, "%s", hexDigest)
+
+	signBytes := opts.SignBytes
+	if opts.PrivateKey != nil {
+		key, err := parseKey(opts.PrivateKey)
+		if err != nil {
+			return "", err
+		}
+		signBytes = func(b []byte) ([]byte, error) {
+			sum := sha256.Sum256(b)
+			return rsa.SignPKCS1v15(
+				rand.Reader,
+				key,
+				crypto.SHA256,
+				sum[:],
+			)
+		}
+	}
+	b, err := signBytes(signBuf.Bytes())
+	if err != nil {
+		return "", err
+	}
+	signature := hex.EncodeToString(b)
+	canonicalQueryString.Set("X-Goog-Signature", string(signature))
+	u.Scheme = "https"
+	u.RawQuery = canonicalQueryString.Encode()
+	return u.String(), nil
+}
+
+// takes a list of headerKey:headervalue1,headervalue2,etc and sorts by header
+// key.
+func sortHeadersByKey(hdrs []string) []string {
+	headersMap := map[string]string{}
+	var headersKeys []string
+	for _, h := range hdrs {
+		parts := strings.Split(h, ":")
+		k := parts[0]
+		v := parts[1]
+		headersMap[k] = v
+		headersKeys = append(headersKeys, k)
+	}
+	sort.Strings(headersKeys)
+	var sorted []string
+	for _, k := range headersKeys {
+		v := headersMap[k]
+		sorted = append(sorted, fmt.Sprintf("%s:%s", k, v))
+	}
+	return sorted
+}
+
+func signedURLV2(bucket, name string, opts *SignedURLOptions) (string, error) {
 	signBytes := opts.SignBytes
 	if opts.PrivateKey != nil {
 		key, err := parseKey(opts.PrivateKey)
@@ -777,6 +1030,10 @@ type ObjectAttrs struct {
 	// ObjectIterator.Next. When set, no other fields in ObjectAttrs will be
 	// populated.
 	Prefix string
+
+	// Etag is the HTTP/1.1 Entity tag for the object.
+	// This field is read-only.
+	Etag string
 }
 
 // convertTime converts a time in RFC3339 format to time.Time.
@@ -829,6 +1086,7 @@ func newObject(o *raw.Object) *ObjectAttrs {
 		Created:                 convertTime(o.TimeCreated),
 		Deleted:                 convertTime(o.TimeDeleted),
 		Updated:                 convertTime(o.Updated),
+		Etag:                    o.Etag,
 	}
 }
 

@@ -37,6 +37,9 @@ func (g *GitGetter) Get(dst string, u *url.URL) error {
 	// The port number must be parseable as an integer. If not, the user
 	// was probably trying to use a scp-style address, in which case the
 	// ssh:// prefix must be removed to indicate that.
+	//
+	// This is not necessary in versions of Go which have patched
+	// CVE-2019-14809 (e.g. Go 1.12.8+)
 	if portStr := u.Port(); portStr != "" {
 		if _, err := strconv.ParseUint(portStr, 10, 16); err != nil {
 			return fmt.Errorf("invalid port number %q; if using the \"scp-like\" git address scheme where a colon introduces the path instead, remove the ssh:// portion and use just the git:: prefix", portStr)

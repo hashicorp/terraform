@@ -11,6 +11,10 @@ description: |-
 Many provisioners require access to the remote resource. For example,
 a provisioner may need to use SSH or WinRM to connect to the resource.
 
+-> **Note:** Provisioners should only be used as a last resort. For most
+common situations there are better alternatives. For more information, see
+[the main Provisioners page](./).
+
 Terraform uses a number of defaults when connecting to a resource, but these can
 be overridden using a `connection` block in either a `resource` or
 `provisioner`. Any `connection` information provided in a `resource` will apply
@@ -62,7 +66,7 @@ provisioner "file" {
 * `password` - The password we should use for the connection. In some cases this is
   specified by the provider.
 
-* `host` - (Required) The address of the resource to connect to. This is usually specified by the provider.
+* `host` - (Required) The address of the resource to connect to.
 
 * `port` - The port to connect to.  
            Defaults to `22` when using type `ssh` and defaults to `5985` when using type `winrm`.

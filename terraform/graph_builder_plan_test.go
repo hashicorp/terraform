@@ -338,6 +338,8 @@ var.foo
 const testPlanGraphBuilderForEachStr = `
 aws_instance.bar
   provider.aws
+aws_instance.bar2
+  provider.aws
 aws_instance.bat
   aws_instance.boo
   provider.aws
@@ -349,6 +351,7 @@ aws_instance.foo
   provider.aws
 meta.count-boundary (EachMode fixup)
   aws_instance.bar
+  aws_instance.bar2
   aws_instance.bat
   aws_instance.baz
   aws_instance.boo
@@ -357,6 +360,7 @@ meta.count-boundary (EachMode fixup)
 provider.aws
 provider.aws (close)
   aws_instance.bar
+  aws_instance.bar2
   aws_instance.bat
   aws_instance.baz
   aws_instance.boo
