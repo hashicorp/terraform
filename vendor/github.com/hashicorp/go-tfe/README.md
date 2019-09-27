@@ -136,6 +136,7 @@ tests:
 $ export TFE_ADDRESS=https://tfe.local
 $ export TFE_TOKEN=xxxxxxxxxxxxxxxxxxx
 $ export GITHUB_TOKEN=xxxxxxxxxxxxxxxx
+$ export GITHUB_IDENTIFIER=xxxxxxxxxxx
 ```
 
 In order for the tests relating to queuing and capacity to pass, FRQ should be
