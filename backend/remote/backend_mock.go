@@ -21,6 +21,7 @@ import (
 type mockClient struct {
 	Applies               *mockApplies
 	ConfigurationVersions *mockConfigurationVersions
+	CostEstimates         *mockCostEstimates
 	Organizations         *mockOrganizations
 	Plans                 *mockPlans
 	PolicyChecks          *mockPolicyChecks
@@ -730,6 +731,11 @@ func (m *mockRuns) Create(ctx context.Context, options tfe.RunCreateOptions) (*t
 		return nil, err
 	}
 
+	ce, err := m.client.CostEstimates.create(options.ConfigurationVersion.ID, options.Workspace.ID)
+	if err != nil {
+		return nil, err
+	}
+
 	p, err := m.client.Plans.create(options.ConfigurationVersion.ID, options.Workspace.ID)
 	if err != nil {
 		return nil, err
@@ -741,13 +747,14 @@ func (m *mockRuns) Create(ctx context.Context, options tfe.RunCreateOptions) (*t
 	}
 
 	r := &tfe.Run{
-		ID:          generateID("run-"),
-		Actions:     &tfe.RunActions{IsCancelable: true},
-		Apply:       a,
-		HasChanges:  false,
-		Permissions: &tfe.RunPermissions{},
-		Plan:        p,
-		Status:      tfe.RunPending,
+		ID:           generateID("run-"),
+		Actions:      &tfe.RunActions{IsCancelable: true},
+		Apply:        a,
+		CostEstimate: ce,
+		HasChanges:   false,
+		Permissions:  &tfe.RunPermissions{},
+		Plan:         p,
+		Status:       tfe.RunPending,
 	}
 
 	if pc != nil {
@@ -1043,6 +1050,14 @@ func (m *mockWorkspaces) Read(ctx context.Context, organization, workspace strin
 	return w, nil
 }
 
+func (m *mockWorkspaces) ReadByID(ctx context.Context, workspaceID string) (*tfe.Workspace, error) {
+	w, ok := m.workspaceIDs[workspaceID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+	return w, nil
+}
+
 func (m *mockWorkspaces) Update(ctx context.Context, organization, workspace string, options tfe.WorkspaceUpdateOptions) (*tfe.Workspace, error) {
 	w, ok := m.workspaceNames[workspace]
 	if !ok {
@@ -1065,6 +1080,28 @@ func (m *mockWorkspaces) Update(ctx context.Context, organization, workspace str
 	return w, nil
 }
 
+func (m *mockWorkspaces) UpdateByID(ctx context.Context, workspaceID string, options tfe.WorkspaceUpdateOptions) (*tfe.Workspace, error) {
+	w, ok := m.workspaceIDs[workspaceID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+
+	if options.Name != nil {
+		w.Name = *options.Name
+	}
+	if options.TerraformVersion != nil {
+		w.TerraformVersion = *options.TerraformVersion
+	}
+	if options.WorkingDirectory != nil {
+		w.WorkingDirectory = *options.WorkingDirectory
+	}
+
+	delete(m.workspaceNames, w.Name)
+	m.workspaceNames[w.Name] = w
+
+	return w, nil
+}
+
 func (m *mockWorkspaces) Delete(ctx context.Context, organization, workspace string) error {
 	if w, ok := m.workspaceNames[workspace]; ok {
 		delete(m.workspaceIDs, w.ID)
@@ -1073,8 +1110,25 @@ func (m *mockWorkspaces) Delete(ctx context.Context, organization, workspace str
 	return nil
 }
 
+func (m *mockWorkspaces) DeleteByID(ctx context.Context, workspaceID string) error {
+	if w, ok := m.workspaceIDs[workspaceID]; ok {
+		delete(m.workspaceIDs, w.Name)
+	}
+	delete(m.workspaceIDs, workspaceID)
+	return nil
+}
+
 func (m *mockWorkspaces) RemoveVCSConnection(ctx context.Context, organization, workspace string) (*tfe.Workspace, error) {
 	w, ok := m.workspaceNames[workspace]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+	w.VCSRepo = nil
+	return w, nil
+}
+
+func (m *mockWorkspaces) RemoveVCSConnectionByID(ctx context.Context, workspaceID string) (*tfe.Workspace, error) {
+	w, ok := m.workspaceIDs[workspaceID]
 	if !ok {
 		return nil, tfe.ErrResourceNotFound
 	}
