@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 const (
@@ -17,6 +19,18 @@ const (
 	// project configuration in HCL JSON.
 	ProjectConfigFilenameJSON = ".terraform-project.hcl.json"
 )
+
+// Load attempts to read a project configuration from the given directory.
+//
+// The given directory must be a project root directory. To find the project
+// root for an arbitrary working directory, use FindProjectRoot first.
+//
+// If the returned diagnostics contains errors then the returned config may
+// be incomplete and/or invalid, but callers may cautiously analyze it for
+// diagnostic/tooling purposes.
+func Load(rootDir string) (*Config, tfdiags.Diagnostics) {
+	return loadConfigDir(rootDir)
+}
 
 // FindProjectRoot looks in the given directory and all of the parent
 // directories of it in turn until it finds one that is a Terraform

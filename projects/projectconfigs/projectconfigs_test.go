@@ -3,7 +3,30 @@ package projectconfigs
 import (
 	"path/filepath"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
+
+func TestLoad(t *testing.T) {
+	t.Run("empty", func(t *testing.T) {
+		got, diags := Load("testdata/empty")
+		if diags.HasErrors() {
+			t.Fatalf("Unexpected problems: %s", diags.Err().Error())
+		}
+
+		want := &Config{
+			ProjectRoot: "testdata/empty",
+			ConfigFile:  "testdata/empty/.terraform-project.hcl",
+			Source:      []byte{},
+			Context:     map[string]*ContextValue{},
+			Locals:      map[string]*LocalValue{},
+			Workspaces:  map[string]*Workspace{},
+		}
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Errorf("unexpected result\n%s", diff)
+		}
+	})
+}
 
 func TestFindProjectRoot(t *testing.T) {
 	tests := []struct {
