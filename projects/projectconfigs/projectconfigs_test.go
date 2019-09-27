@@ -5,6 +5,10 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestLoad(t *testing.T) {
@@ -23,6 +27,56 @@ func TestLoad(t *testing.T) {
 			Workspaces:  map[string]*Workspace{},
 		}
 		if diff := cmp.Diff(want, got); diff != "" {
+			t.Errorf("unexpected result\n%s", diff)
+		}
+	})
+	t.Run("context", func(t *testing.T) {
+		cfg, diags := Load("testdata/context")
+		if diags.HasErrors() {
+			t.Fatalf("Unexpected problems: %s", diags.Err().Error())
+		}
+
+		got := cfg.Context
+		want := map[string]*ContextValue{
+			"foo": {
+				Name:        "foo",
+				Type:        cty.String,
+				Description: "The foo thing.",
+				Default: &hclsyntax.TemplateExpr{
+					Parts: []hclsyntax.Expression{
+						&hclsyntax.LiteralValueExpr{
+							Val: cty.StringVal("bar"),
+							SrcRange: hcl.Range{
+								Filename: "testdata/context/.terraform-project.hcl",
+								Start:    hcl.Pos{Line: 3, Column: 18, Byte: 56},
+								End:      hcl.Pos{Line: 3, Column: 21, Byte: 59},
+							},
+						},
+					},
+					SrcRange: hcl.Range{
+						Filename: "testdata/context/.terraform-project.hcl",
+						Start:    hcl.Pos{Line: 3, Column: 17, Byte: 55},
+						End:      hcl.Pos{Line: 3, Column: 22, Byte: 60},
+					},
+				},
+				DeclRange: tfdiags.SourceRange{
+					Filename: "testdata/context/.terraform-project.hcl",
+					Start:    tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:      tfdiags.SourcePos{Line: 1, Column: 14, Byte: 13},
+				},
+				NameRange: tfdiags.SourceRange{
+					Filename: "testdata/context/.terraform-project.hcl",
+					Start:    tfdiags.SourcePos{Line: 1, Column: 9, Byte: 8},
+					End:      tfdiags.SourcePos{Line: 1, Column: 14, Byte: 13},
+				},
+			},
+		}
+		diff := cmp.Diff(
+			want, got,
+			cmp.Comparer(cty.Type.Equals),
+			cmp.Comparer(cty.Value.RawEquals),
+		)
+		if diff != "" {
 			t.Errorf("unexpected result\n%s", diff)
 		}
 	})

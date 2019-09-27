@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl2/ext/typeexpr"
 	"github.com/hashicorp/hcl2/hcl/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 
@@ -34,6 +35,10 @@ type ContextValue struct {
 	// this is a required context value.
 	Default hcl.Expression
 
+	// Description is a human-oriented description of the purpose of this
+	// context value, written in full sentences in a natural language.
+	Description string
+
 	// DeclRange is the source range of the block header of this block,
 	// for use in diagnostic messages. NameRange is the range of the
 	// Name string specifically.
@@ -57,5 +62,50 @@ func decodeContextBlock(block *hcl.Block) (*ContextValue, tfdiags.Diagnostics) {
 		})
 	}
 
+	content, hclDiags := block.Body.Content(contextSchema)
+	diags = diags.Append(hclDiags)
+
+	if attr, ok := content.Attributes["type"]; ok {
+		ty, hclDiags := typeexpr.TypeConstraint(attr.Expr)
+		diags = diags.Append(hclDiags)
+		cv.Type = ty
+	} else {
+		cv.Type = cty.DynamicPseudoType
+	}
+
+	if attr, ok := content.Attributes["default"]; ok {
+		cv.Default = attr.Expr
+	}
+
+	if attr, ok := content.Attributes["description"]; ok {
+		// We don't allow variables/functions in the description because
+		// we want to be able to display it in a UI that might be prompting
+		// for data that would be needed to evaluate expressions, so we'll
+		// just evaluate this right now and HCL will generate "variables cannot
+		// be used here" errors in case a user tries.
+		val, hclDiags := attr.Expr.Value(nil)
+		diags = diags.Append(hclDiags)
+		if !diags.HasErrors() {
+			if val.Type().Equals(cty.String) && !val.IsNull() {
+				cv.Description = val.AsString()
+			} else {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid description for context value",
+					Detail:   "The description of a context value must be a string and should contain a natural language description of the meaning of this context value using full sentences.",
+					Subject:  attr.Expr.StartRange().Ptr(),
+				})
+			}
+		}
+	}
+
 	return cv, diags
+}
+
+var contextSchema = &hcl.BodySchema{
+	Attributes: []hcl.AttributeSchema{
+		{Name: "type"},
+		{Name: "default"},
+		{Name: "description"},
+	},
 }
