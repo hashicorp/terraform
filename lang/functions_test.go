@@ -161,6 +161,18 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"cidrsubnets": {
+			{
+				`cidrsubnets("10.0.0.0/8", 8, 8, 16, 8)`,
+				cty.ListVal([]cty.Value{
+					cty.StringVal("10.0.0.0/16"),
+					cty.StringVal("10.1.0.0/16"),
+					cty.StringVal("10.2.0.0/24"),
+					cty.StringVal("10.3.0.0/16"),
+				}),
+			},
+		},
+
 		"coalesce": {
 			{
 				`coalesce("first", "second", "third")`,
@@ -541,6 +553,13 @@ func TestFunctions(t *testing.T) {
 			{
 				`min(12, 54, 3)`,
 				cty.NumberIntVal(3),
+			},
+		},
+
+		"parseint": {
+			{
+				`parseint("100", 10)`,
+				cty.NumberIntVal(100),
 			},
 		},
 
