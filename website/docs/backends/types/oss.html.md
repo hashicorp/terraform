@@ -34,7 +34,7 @@ terraform {
 This assumes we have a [OSS Bucket](https://www.terraform.io/docs/providers/alicloud/r/oss_bucket.html) created called `bucket-for-terraform-state`,
 a [OTS Instance](https://www.terraform.io/docs/providers/alicloud/r/ots_instance.html) called `terraform-remote` and
 a [OTS TableStore](https://www.terraform.io/docs/providers/alicloud/r/ots_table.html) called `statelock`. The
-Terraform state will be written into the file `path/mystate/version-1.tfstate`.
+Terraform state will be written into the file `path/mystate/version-1.tfstate`. The `TableStore` must have a primary key of type `string`.
 
 
 ## Using the OSS remote state

@@ -46,6 +46,21 @@ variable "availability_zone_names" {
   type    = list(string)
   default = ["us-west-1a"]
 }
+
+variable "docker_ports" {
+  type = list(object({
+    internal = number
+    external = number
+    protocol = string
+  }))
+  default = [
+    {
+      internal = 8300
+      external = 8300
+      protocol = "tcp"
+    }
+  ]
+}
 ```
 
 The label after the `variable` keyword is a name for the variable, which must
@@ -167,7 +182,7 @@ assigned in the configuration of their parent module, as described in
 
 ### Variables on the Command Line
 
-To specify individual modules on the command line, use the `-var` option
+To specify individual variables on the command line, use the `-var` option
 when running the `terraform plan` and `terraform apply` commands:
 
 ```
@@ -271,7 +286,8 @@ recommend always setting complex variable values via variable definitions files.
 
 The above mechanisms for setting variables can be used together in any
 combination. If the same variable is assigned multiple values, Terraform uses
-the _last_ value it finds, overriding any previous values.
+the _last_ value it finds, overriding any previous values. Note that the same
+variable cannot be assigned multiple values within a single source.
 
 Terraform loads variables in the following order, with later sources taking
 precedence over earlier ones:

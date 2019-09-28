@@ -432,6 +432,55 @@ resource "test_resource" "foo" {
 	})
 }
 
+func TestResource_ignoreChangesCustomizeDiff(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+  required     = "yep"
+  required_map = {
+    key = "value"
+  }
+  optional      = "a"
+  lifecycle {
+    ignore_changes = [optional]
+  }
+}
+				`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"test_resource.foo", "planned_computed", "a",
+					),
+				),
+			},
+			// On this step, `optional` changes, but `planned_computed`
+			// should remain as "a" because we have set `ignore_changes`
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+  required     = "yep"
+  required_map = {
+    key = "value"
+  }
+  optional      = "b"
+  lifecycle {
+    ignore_changes = [optional]
+  }
+}
+				`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"test_resource.foo", "planned_computed", "a",
+					),
+				),
+			},
+		},
+	})
+}
+
 // Reproduces plan-time panic when the wrong type is interpolated in a list of
 // maps.
 // TODO: this should return a type error, rather than silently setting an empty

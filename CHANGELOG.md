@@ -1,4 +1,43 @@
-## 0.12.8 (Unreleased)
+## 0.12.10 (Unreleased)
+
+ENHANCEMENTS:
+
+* `terraform plan` and `terraform apply` will now warn when the `-target` option is used, to draw attention to the fact that the result of applying the plan is likely to be incomplete, and to remind to re-run `terraform plan` with no targets afterwards to ensure that the configuration has converged. [GH-22783]
+* config: New function `parseint` for parsing strings containing digits as integers in various bases. [GH-22747]
+* config: New function `cidrsubnets`, which is a companion to the existing function `cidrsubnet` which can allocate multiple consecutive subnet prefixes (possibly of different prefix lengths) in a single call. [GH-22858]
+* backend/google: The GCS backend now supports OAuth2 token authentication. [GH-21772]
+
+BUG FIXES:
+
+* backend/manta: fix panic when `insecure_skip_tls_verify` was not set [GH-22918]
+
+## 0.12.9 (September 17, 2019)
+
+NOTES:
+* core: `ignore_changes` is now processed (in addition to existing behaviors) before the provider plan is run. This means that users may see fewer planned changes when using `ignore_changes`, as before this change, changes to ignored attributes were still being sent to CustomizeDiff in providers (which could mean cascading changes for some resources). This should be indicative that providers are no longer getting changes that were marked as ignored, but if unexpected plans are seen while using `ignore_changes`, investigate the settings in the `ignore_changes` block to ensure the appropriate attributes are set. ([#22520](https://github.com/hashicorp/terraform/issues/22520))
+
+ENHANCEMENTS:
+* provisioners/habitat: `accept_license` argument available to automate accepting the EULA, now required by this client ([#22745](https://github.com/hashicorp/terraform/issues/22745))
+* config: add source addressing to unknown value errors in `for_each` ([#22760](https://github.com/hashicorp/terraform/issues/22760))
+
+BUG FIXES:
+* command/console: support -var and -var-file flags ([#22145](https://github.com/hashicorp/terraform/issues/22145))
+* command/show: Fixed bug with wrong errors being returned or swallowed. ([#22772](https://github.com/hashicorp/terraform/issues/22772))
+* config: The `cidrhost`, `cidrsubnet`, and `cidrnetmask` functions now behave correctly with IPv6 prefixes that are short enough for the host portion to be greater than 64-bit or 32-bit (depending on the target architecture). ([#22505](https://github.com/hashicorp/terraform/issues/22505))
+* config: Fixed bug on empty sets with `for_each` ([#22281](https://github.com/hashicorp/terraform/issues/22281))
+
+## 0.12.8 (September 04, 2019)
+
+NEW FEATURES:
+* lang/funcs: New `fileset` function, for finding static local files that match a glob pattern. ([#22523](https://github.com/hashicorp/terraform/issues/22523))
+
+ENHANCEMENTS:
+* remote-state/pg: add option to skip schema creation ([#21607](https://github.com/hashicorp/terraform/issues/21607))
+
+BUG FIXES:
+* command/console: use user-supplied `-plugin-dir` ([#22616](https://github.com/hashicorp/terraform/issues/22616))
+* config: ensure sets are appropriately known for `for_each` ([#22597](https://github.com/hashicorp/terraform/issues/22597))
+
 ## 0.12.7 (August 22, 2019)
 
 NEW FEATURES:
@@ -11,10 +50,11 @@ ENHANCEMENTS:
 * connection/ssh: Support certificate authentication ([#22156](https://github.com/hashicorp/terraform/issues/22156))
 
 BUG FIXES:
-* config: reduce MinIems and MaxItems  validation during decoding, to allow for use of dynamic blocks ([#22530](https://github.com/hashicorp/terraform/issues/22530))
+* config: reduce MinItems and MaxItems  validation during decoding, to allow for use of dynamic blocks ([#22530](https://github.com/hashicorp/terraform/issues/22530))
 * config: don't validate MinItems and MaxItems in CoerceValue, allowing providers to set incomplete values ([#22478](https://github.com/hashicorp/terraform/issues/22478))
 * config: fix panic on tuples with `for_each` ([#22279](https://github.com/hashicorp/terraform/issues/22279))
-* config: fix references to `each` of `for_each` in provisioners ([#22289](https://github.com/hashicorp/terraform/issues/22289))
+* config: fix references to `each` of `for_each` in 
+s ([#22289](https://github.com/hashicorp/terraform/issues/22289))
 * config: fix panic when using nested dynamic blocks ([#22314](https://github.com/hashicorp/terraform/issues/22314))
 * config: ensure consistent evaluation when moving between single resources and `for_each` in addressing ([#22454](https://github.com/hashicorp/terraform/issues/22454))
 * core: only start a single instance of each required provisioner ([#22553](https://github.com/hashicorp/terraform/issues/22553))

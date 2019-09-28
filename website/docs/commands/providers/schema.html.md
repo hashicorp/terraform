@@ -19,9 +19,9 @@ Usage: `terraform providers schema [options]`
 
 The list of available flags are:
 
-* `-json` - Displays the schemas in a machine-readble, JSON format.
+* `-json` - Displays the schemas in a machine-readable, JSON format.
 
-Please note that, at this time, the `-json` flag is a _required_ option. In future releases, this command will be extended to allow for additional options. 
+Please note that, at this time, the `-json` flag is a _required_ option. In future releases, this command will be extended to allow for additional options.
 
 -> **Note:** The output includes a `format_version` key, which currently has major version zero to indicate that the format is experimental and subject to change. A future version will assign a non-zero major version and make stronger promises about compatibility. We do not anticipate any significant breaking changes to the format before its first major version, however.
 
@@ -37,20 +37,20 @@ The JSON output format consists of the following objects and sub-objects:
 - [Schema Representation](#schema-representation) - a sub-object of providers, resources, and data sources that describes their schema
 - [Block Representation](#block-representation) - a sub-object of schemas that describes attributes and nested blocks
 
-## Providers Schema Representation 
+## Providers Schema Representation
 
 ```javascript
 {
   "format_version": "0.1",
-  
-  // "provider_schemas" describes the provider schemas for all 
-  // providers throughout the configuration tree. 
+
+  // "provider_schemas" describes the provider schemas for all
+  // providers throughout the configuration tree.
   "provider_schemas": {
     // keys in this map are the provider type, such as "random"
     "example_provider_name": {
       // "provider" is the schema for the provider configuration
       "provider": <schema-representation>,
-    
+
       // "resource_schemas" map the resource type name to the resource's schema
       "resource_schemas": {
         "example_resource_name": <schema-representation>
@@ -85,7 +85,7 @@ A block representation contains "attributes" and "block_types" (which represent 
 
 ```javascript
 {
-  // "attributes" describes any attributes that appear directly inside the 
+  // "attributes" describes any attributes that appear directly inside the
   // block. Keys in this map are the attribute names.
   "attributes":  {
     "example_attribute_name": {
@@ -93,20 +93,20 @@ A block representation contains "attributes" and "block_types" (which represent 
       // that the attribute's value must conform to.
       "type": "string",
 
-      // "description" is an English-language description of 
+      // "description" is an English-language description of
       // the purpose and usage of the attribute.
       "description": "string",
 
-      // "required", if set to true, specifies that an 
+      // "required", if set to true, specifies that an
       // omitted or null value is not permitted.
       "required": bool,
 
-      // "optional", if set to true, specifies that an 
-      // omitted or null value is permitted.  
+      // "optional", if set to true, specifies that an
+      // omitted or null value is permitted.
       "optional": bool,
 
-      // "computed", if set to true, indicates that the 
-      // value comes from the provider rather than the 
+      // "computed", if set to true, indicates that the
+      // value comes from the provider rather than the
       // configuration.
       "computed": bool,
 
@@ -118,9 +118,9 @@ A block representation contains "attributes" and "block_types" (which represent 
   // "block_types" describes any nested blocks that appear directly
   // inside the block.
   // Keys in this map are the names of the block_type.
-  "block_types": { 
-    "example_block_name": {	
-      // "nesting_mode" describes the nesting mode for the 
+  "block_types": {
+    "example_block_name": {
+      // "nesting_mode" describes the nesting mode for the
       // child block, and can be one of the following:
       // 	single
       // 	list
@@ -129,10 +129,10 @@ A block representation contains "attributes" and "block_types" (which represent 
     "nesting_mode": "list",
     "block": <block-representation>,
 
-    // "min_items" and "max_items" set lower and upper 
-    // limits on the number of child blocks allowed for 
-    // the list and set modes. These are 
-    // omitted for other modes. 
+    // "min_items" and "max_items" set lower and upper
+    // limits on the number of child blocks allowed for
+    // the list and set modes. These are
+    // omitted for other modes.
     "min_items": 1,
     "max_items": 3
   }

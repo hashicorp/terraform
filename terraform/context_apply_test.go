@@ -2018,6 +2018,72 @@ aws_instance.foo:
 	`)
 }
 
+// for_each values cannot be used in the provisioner during destroy.
+// There may be a way to handle this, but for now make sure we print an error
+// rather than crashing with an invalid config.
+func TestContext2Apply_provisionerDestroyForEach(t *testing.T) {
+	m := testModule(t, "apply-provisioner-each")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	p.DiffFn = testDiffFn
+	p.ApplyFn = testApplyFn
+
+	s := &states.State{
+		Modules: map[string]*states.Module{
+			"": &states.Module{
+				Resources: map[string]*states.Resource{
+					"aws_instance.bar": &states.Resource{
+						Addr:     addrs.Resource{Mode: 77, Type: "aws_instance", Name: "bar"},
+						EachMode: states.EachMap,
+						Instances: map[addrs.InstanceKey]*states.ResourceInstance{
+							addrs.StringKey("a"): &states.ResourceInstance{
+								Current: &states.ResourceInstanceObjectSrc{
+									AttrsJSON: []byte(`{"foo":"bar","id":"foo"}`),
+								},
+							},
+							addrs.StringKey("b"): &states.ResourceInstance{
+								Current: &states.ResourceInstanceObjectSrc{
+									AttrsJSON: []byte(`{"foo":"bar","id":"foo"}`),
+								},
+							},
+						},
+						ProviderConfig: addrs.AbsProviderConfig{
+							Module:         addrs.ModuleInstance(nil),
+							ProviderConfig: addrs.ProviderConfig{Type: "aws", Alias: ""},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		Provisioners: map[string]ProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+		State:   s,
+		Destroy: true,
+	})
+
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
+	}
+
+	_, diags := ctx.Apply()
+	if diags == nil {
+		t.Fatal("should error")
+	}
+	if !strings.Contains(diags.Err().Error(), `Reference to "each" in context without for_each`) {
+		t.Fatal("unexpected error:", diags.Err())
+	}
+}
+
 func TestContext2Apply_cancelProvisioner(t *testing.T) {
 	m := testModule(t, "apply-cancel-provisioner")
 	p := testProvider("aws")
@@ -2559,6 +2625,41 @@ func TestContext2Apply_provisionerInterpCount(t *testing.T) {
 	// Verify apply was invoked
 	if !pr.ProvisionResourceCalled {
 		t.Fatalf("provisioner was not called")
+	}
+}
+
+func TestContext2Apply_foreachVariable(t *testing.T) {
+	m := testModule(t, "plan-for-each-unknown-value")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		Variables: InputValues{
+			"foo": &InputValue{
+				Value: cty.StringVal("hello"),
+			},
+		},
+	})
+
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
+	}
+
+	state, diags := ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatalf("diags: %s", diags.Err())
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyForEachVariableStr)
+	if actual != expected {
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -6723,15 +6824,34 @@ func TestContext2Apply_destroyTargetWithModuleVariableAndCount(t *testing.T) {
 			},
 		})
 
-		_, err := ctx.Plan()
-		if err != nil {
-			t.Fatalf("plan err: %s", err)
+		_, diags := ctx.Plan()
+		if diags.HasErrors() {
+			t.Fatalf("plan err: %s", diags)
+		}
+		if len(diags) != 1 {
+			// Should have one warning that -target is in effect.
+			t.Fatalf("got %d diagnostics in plan; want 1", len(diags))
+		}
+		if got, want := diags[0].Severity(), tfdiags.Warning; got != want {
+			t.Errorf("wrong diagnostic severity %#v; want %#v", got, want)
+		}
+		if got, want := diags[0].Description().Summary, "Resource targeting is in effect"; got != want {
+			t.Errorf("wrong diagnostic summary %#v; want %#v", got, want)
 		}
 
 		// Destroy, targeting the module explicitly
-		state, err = ctx.Apply()
-		if err != nil {
-			t.Fatalf("destroy apply err: %s", err)
+		state, diags = ctx.Apply()
+		if diags.HasErrors() {
+			t.Fatalf("destroy apply err: %s", diags)
+		}
+		if len(diags) != 1 {
+			t.Fatalf("got %d diagnostics; want 1", len(diags))
+		}
+		if got, want := diags[0].Severity(), tfdiags.Warning; got != want {
+			t.Errorf("wrong diagnostic severity %#v; want %#v", got, want)
+		}
+		if got, want := diags[0].Description().Summary, "Applied changes may be incomplete"; got != want {
+			t.Errorf("wrong diagnostic summary %#v; want %#v", got, want)
 		}
 	}
 

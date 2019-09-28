@@ -82,14 +82,15 @@ type Query struct {
 	order      []order
 	projection []string
 
-	distinct bool
-	keysOnly bool
-	eventual bool
-	limit    int32
-	offset   int32
-	count    int32
-	start    *pb.CompiledCursor
-	end      *pb.CompiledCursor
+	distinct   bool
+	distinctOn []string
+	keysOnly   bool
+	eventual   bool
+	limit      int32
+	offset     int32
+	count      int32
+	start      *pb.CompiledCursor
+	end        *pb.CompiledCursor
 
 	err error
 }
@@ -199,10 +200,20 @@ func (q *Query) Project(fieldNames ...string) *Query {
 
 // Distinct returns a derivative query that yields de-duplicated entities with
 // respect to the set of projected fields. It is only used for projection
-// queries.
+// queries. Distinct cannot be used with DistinctOn.
 func (q *Query) Distinct() *Query {
 	q = q.clone()
 	q.distinct = true
+	return q
+}
+
+// DistinctOn returns a derivative query that yields de-duplicated entities with
+// respect to the set of the specified fields. It is only used for projection
+// queries. The field list should be a subset of the projected field list.
+// DistinctOn cannot be used with Distinct.
+func (q *Query) DistinctOn(fieldNames ...string) *Query {
+	q = q.clone()
+	q.distinctOn = fieldNames
 	return q
 }
 
@@ -282,6 +293,9 @@ func (q *Query) toProto(dst *pb.Query, appID string) error {
 	if len(q.projection) != 0 && q.keysOnly {
 		return errors.New("datastore: query cannot both project and be keys-only")
 	}
+	if len(q.distinctOn) != 0 && q.distinct {
+		return errors.New("datastore: query cannot be both distinct and distinct-on")
+	}
 	dst.Reset()
 	dst.App = proto.String(appID)
 	if q.kind != "" {
@@ -295,6 +309,9 @@ func (q *Query) toProto(dst *pb.Query, appID string) error {
 	}
 	if q.projection != nil {
 		dst.PropertyName = q.projection
+		if len(q.distinctOn) != 0 {
+			dst.GroupByPropertyName = q.distinctOn
+		}
 		if q.distinct {
 			dst.GroupByPropertyName = q.projection
 		}

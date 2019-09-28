@@ -3385,7 +3385,35 @@ func TestContext2Plan_forEach(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+}
 
+func TestContext2Plan_forEachUnknownValue(t *testing.T) {
+	// This module has a variable defined, but it is not provided
+	// in the context below and we expect the plan to error, but not panic
+	m := testModule(t, "plan-for-each-unknown-value")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	_, diags := ctx.Plan()
+	if !diags.HasErrors() {
+		// Should get this error:
+		// Invalid for_each argument: The "for_each" value depends on resource attributes that cannot be determined until apply...
+		t.Fatal("succeeded; want errors")
+	}
+
+	gotErrStr := diags.Err().Error()
+	wantErrStr := "Invalid for_each argument"
+	if !strings.Contains(gotErrStr, wantErrStr) {
+		t.Fatalf("missing expected error\ngot: %s\n\nwant: error containing %q", gotErrStr, wantErrStr)
+	}
 }
 
 func TestContext2Plan_destroy(t *testing.T) {
@@ -4662,9 +4690,18 @@ func TestContext2Plan_outputContainsTargetedResource(t *testing.T) {
 		},
 	})
 
-	_, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("err: %s", diags)
+	}
+	if len(diags) != 1 {
+		t.Fatalf("got %d diagnostics; want 1", diags)
+	}
+	if got, want := diags[0].Severity(), tfdiags.Warning; got != want {
+		t.Errorf("wrong diagnostic severity %#v; want %#v", got, want)
+	}
+	if got, want := diags[0].Description().Summary, "Resource targeting is in effect"; got != want {
+		t.Errorf("wrong diagnostic summary %#v; want %#v", got, want)
 	}
 }
 

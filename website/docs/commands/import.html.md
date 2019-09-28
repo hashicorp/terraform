@@ -52,10 +52,9 @@ The command-line flags are all optional. The list of available flags are:
   [walks the graph](/docs/internals/graph.html#walking-the-graph). Defaults
   to 10.
 
-* `-provider=provider` - Specified provider to use for import. The value should be a provider
-  alias in the form `TYPE.ALIAS`, such as "aws.eu". This defaults to the normal
-  provider based on the prefix of the resource being imported. You usually
-  don't need to specify this.
+* `-provider=provider` - **Deprecated** Override the provider configuration to
+use when importing the object. By default, Terraform uses the provider specified
+in the configuration for the target resource, and that is the best behavior in most cases.
 
 * `-state=path` - Path to the source state file to read from. Defaults to the
   configured backend, or "terraform.tfstate".
@@ -104,11 +103,6 @@ provider "aws" {
   secret_key = "${var.secret_key}"
 }
 ```
-
-You can force Terraform to explicitly not load your configuration by
-specifying `-config=""` (empty string). This is useful in situations where
-you want to manually configure the provider because your configuration
-may not be valid.
 
 ## Example: Import into Resource
 

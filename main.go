@@ -106,7 +106,10 @@ func init() {
 		OutputPrefix: OutputPrefix,
 		InfoPrefix:   OutputPrefix,
 		ErrorPrefix:  ErrorPrefix,
-		Ui:           &cli.BasicUi{Writer: os.Stdout},
+		Ui: &cli.BasicUi{
+			Writer: os.Stdout,
+			Reader: os.Stdin,
+		},
 	}
 }
 

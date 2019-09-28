@@ -14,6 +14,11 @@ func testResourceTimeout() *schema.Resource {
 		Update: testResourceTimeoutUpdate,
 		Delete: testResourceTimeoutDelete,
 
+		// Due to the schema version also being stashed in the private/meta
+		// data, we need to ensure that it does not overwrite the map
+		// containing the timeouts.
+		SchemaVersion: 1,
+
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(time.Second),
 			Update: schema.DefaultTimeout(time.Second),
