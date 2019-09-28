@@ -80,7 +80,7 @@ github.com/apparentlymart/go-textseg/textseg
 github.com/armon/circbuf
 # github.com/armon/go-radix v1.0.0
 github.com/armon/go-radix
-# github.com/aws/aws-sdk-go v1.23.8
+# github.com/aws/aws-sdk-go v1.25.1
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/awserr
 github.com/aws/aws-sdk-go/service/dynamodb
@@ -113,6 +113,7 @@ github.com/aws/aws-sdk-go/service/sts
 github.com/aws/aws-sdk-go/internal/ini
 github.com/aws/aws-sdk-go/internal/shareddefaults
 github.com/aws/aws-sdk-go/internal/sdkrand
+github.com/aws/aws-sdk-go/internal/sdkmath
 github.com/aws/aws-sdk-go/private/protocol/json/jsonutil
 github.com/aws/aws-sdk-go/private/protocol/query
 github.com/aws/aws-sdk-go/internal/sdkuri
@@ -532,8 +533,8 @@ golang.org/x/net/html
 golang.org/x/net/http/httpguts
 golang.org/x/net/html/atom
 # golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
-golang.org/x/oauth2/jwt
 golang.org/x/oauth2
+golang.org/x/oauth2/jwt
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/google

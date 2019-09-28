@@ -136,7 +136,7 @@ func New(cfgs ...*aws.Config) *Session {
 // to be built with retrieving credentials with AssumeRole set in the config.
 //
 // See the NewSessionWithOptions func for information on how to override or
-// control through code how the Session will be created. Such as specifying the
+// control through code how the Session will be created, such as specifying the
 // config profile, and controlling if shared config is enabled or not.
 func NewSession(cfgs ...*aws.Config) (*Session, error) {
 	opts := Options{}
@@ -571,7 +571,7 @@ func initHandlers(s *Session) {
 	}
 }
 
-// Copy creates and returns a copy of the current Session, coping the config
+// Copy creates and returns a copy of the current Session, copying the config
 // and handlers. If any additional configs are provided they will be merged
 // on top of the Session's copied config.
 //

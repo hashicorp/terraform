@@ -94,10 +94,6 @@ var validParentCodes = map[string]struct{}{
 	ErrCodeRead:          {},
 }
 
-type temporaryError interface {
-	Temporary() bool
-}
-
 func isNestedErrorRetryable(parentErr awserr.Error) bool {
 	if parentErr == nil {
 		return false
@@ -116,7 +112,7 @@ func isNestedErrorRetryable(parentErr awserr.Error) bool {
 		return isCodeRetryable(aerr.Code())
 	}
 
-	if t, ok := err.(temporaryError); ok {
+	if t, ok := err.(temporary); ok {
 		return t.Temporary() || isErrConnectionReset(err)
 	}
 
@@ -223,6 +219,16 @@ func (r *Request) IsErrorRetryable() bool {
 		return true
 	}
 
+	// HTTP response status code 501 should not be retried.
+	// 501 represents Not Implemented which means the request method is not
+	// supported by the server and cannot be handled.
+	if r.HTTPResponse != nil {
+		// HTTP response status code 500 represents internal server error and
+		// should be retried without any throttle.
+		if r.HTTPResponse.StatusCode == 500 {
+			return true
+		}
+	}
 	return IsErrorRetryable(r.Error)
 }
 
@@ -237,7 +243,11 @@ func (r *Request) IsErrorThrottle() bool {
 
 	if r.HTTPResponse != nil {
 		switch r.HTTPResponse.StatusCode {
-		case 429, 502, 503, 504:
+		case
+			429, // error caused due to too many requests
+			502, // Bad Gateway error should be throttled
+			503, // caused when service is unavailable
+			504: // error occurred due to gateway timeout
 			return true
 		}
 	}
