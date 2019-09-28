@@ -59,6 +59,9 @@ The following arguments are supported:
 * `server_user (string)` - (Optional) The user that Bolt should connect to the
   server as (defaults to `root`).
 
+* `private_key (string)` - (Required) The private key that Bolt should use to
+  connect to the server.
+
 * `os_type (string)` - (Optional) The OS type of the resource. Valid options
   are: `linux` and `windows`. If not supplied, the connection type will be used
   to determine the OS type (`ssh` will assume `linux` and `winrm` will assume

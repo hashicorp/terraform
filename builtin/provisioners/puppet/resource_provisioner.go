@@ -21,6 +21,7 @@ import (
 type provisioner struct {
 	Server            string
 	ServerUser        string
+	PrivateKey        string
 	OSType            string
 	Certname          string
 	Environment       string
@@ -58,6 +59,10 @@ func Provisioner() terraform.ResourceProvisioner {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "root",
+			},
+			"private_key": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: false,
 			},
 			"os_type": &schema.Schema{
 				Type:         schema.TypeString,
@@ -231,9 +236,10 @@ func (p *provisioner) generateAutosignToken(certname string) (string, error) {
 	task := "autosign::generate_token"
 
 	masterConnInfo := map[string]string{
-		"type": "ssh",
-		"host": p.Server,
-		"user": p.ServerUser,
+		"type":        "ssh",
+		"host":        p.Server,
+		"user":        p.ServerUser,
+		"private_key": p.PrivateKey,
 	}
 
 	result, err := bolt.Task(
@@ -318,6 +324,7 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 		UseSudo:           d.Get("use_sudo").(bool),
 		Server:            d.Get("server").(string),
 		ServerUser:        d.Get("server_user").(string),
+		PrivateKey:        d.Get("private_key").(string), // FIXME. See note below.
 		OSType:            strings.ToLower(d.Get("os_type").(string)),
 		Autosign:          d.Get("autosign").(bool),
 		OpenSource:        d.Get("open_source").(bool),
@@ -327,6 +334,49 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 		Environment:       d.Get("environment").(string),
 	}
 	p.BoltTimeout, _ = time.ParseDuration(d.Get("bolt_timeout").(string))
+
+	// This private_key feature does not work. I can't for the life of me understand
+	// why. At this point I'm giving up, and documenting here what I observed.
+
+	// If I replace "d.Get("private_key").(string)" above with something hardcoded
+	// it works fine, proving that the private key hasn't been passed in here
+	// to the decodeConfig function.
+
+	// The decodeConfig function is called above (line 126) in the applyFn function.
+	// Some magic is going on there that requires me to more deeply understand
+	// the Terraform internals than I have time to get my head around.
+
+	// Puzzlingly, the "context" seems to have the private_key data from the
+	// Terraform "connection" block that I define - not from the Puppet provisioner!
+
+	// That is I had this TF code:
+
+	// resource "aws_instance" "agent" {
+	//   ami           = local.ami_id
+	//   instance_type = "t2.micro"
+	//   key_name      = "default"
+	//
+	//   connection {
+	//     host        = self.public_ip
+	//     user        = "ec2-user"
+	//     private_key = file("~/.ssh/default.pem")
+	//   }
+	//
+	//   provisioner "puppet" {
+	//     use_sudo    = true
+	//     server      = aws_instance.master.public_dns
+	//     server_user = "ec2-user"
+	//     private_key = "~/.ssh/default.pem"
+	//   }
+	// }
+
+	// What I observed is the private_key in the "connection" block being passed
+	// to my own private_key feature in the provisioner block.
+
+	// I give up at this point for lack of time, Go knowledge & Terraform internals
+	// knowledge.
+
+	// But really hoping someone might tell me why this doesn't work.
 
 	return p, nil
 }
