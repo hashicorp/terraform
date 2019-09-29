@@ -54,7 +54,6 @@ There are 2 configuration levels, `supervisor` and `service`.  Configuration pla
 ### Supervisor Arguments
 * `accept_license (bool)` - (Required) Set to true to accept [Habitat end user license agreement](https://www.chef.io/end-user-license-agreement/)
 * `version (string)` - (Optional) The Habitat version to install on the remote machine.  If not specified, the latest available version is used.
-* `license (string)` - (Optional) Sets the acceptance of Chef licensing (one of `accept-no-persist` or `accept`): https://www.chef.io/end-user-license-agreement/
 * `auto_update (bool)` - (Optional) If set to `true`, the supervisor will auto-update itself as soon as new releases are available on the specified `channel`.
 * `http_disable (bool)` - (Optional) If set to `true`, disables the supervisor HTTP listener entirely.
 * `peer (string)` - (Optional, deprecated) IP addresses or FQDN's for other Habitat supervisors to peer with, like: `--peer 1.2.3.4 --peer 5.6.7.8`. (Defaults to none)
@@ -90,7 +89,7 @@ bind {
 ```
 * `topology (string)` - (Optional) Topology to start service in. Possible values `standalone` or `leader`.  (Defaults to `standalone`)
 * `strategy (string)` - (Optional) Update strategy to use. Possible values `at-once`, `rolling` or `none`.  (Defaults to `none`)
-* `user_toml (string)` - (Optional) TOML formatted user configuration for the service. Easiest to source from a file (eg `user_toml = "${file("conf/redis.toml")}")`.  (Defaults to none)
+* `user_toml (string)` - (Optional) TOML formatted user configuration for the service. Easiest to source from a file (eg `user_toml = "${file("conf/redis.toml")}"`).  (Defaults to none)
 * `channel (string)` - (Optional) The release channel in the Builder service to use. (Defaults to `stable`)
 * `group (string)` - (Optional) The service group to join.  (Defaults to `default`)
 * `url (string)` - (Optional) The URL of a Builder service to download packages and receive updates from.  (Defaults to https://bldr.habitat.sh)

@@ -25,9 +25,6 @@ Environment="HAB_SUP_GATEWAY_AUTH_TOKEN={{ .GatewayAuthToken }}"
 {{ if .BuilderAuthToken -}}
 Environment="HAB_AUTH_TOKEN={{ .BuilderAuthToken }}"
 {{ end -}}
-{{ if .License -}}
-Environment="HAB_LICENSE={{ .License }}"
-{{ end -}}
 
 [Install]
 WantedBy=default.target
@@ -39,16 +36,31 @@ func (p *provisioner) linuxInstallHabitat(o terraform.UIOutput, comm communicato
 		return err
 	}
 
-	// Run the hab install script
+	// Run the install script
 	var command string
 	if p.Version == "" {
-		command = p.linuxGetCommand(fmt.Sprintf("bash ./install.sh "))
+		command = fmt.Sprintf("bash ./install.sh ")
 	} else {
-		command = p.linuxGetCommand(fmt.Sprintf("bash ./install.sh -v %s", p.Version))
+		command = fmt.Sprintf("bash ./install.sh -v %s", p.Version)
 	}
 
-	if err := p.runCommand(o, comm, command); err != nil {
+	if err := p.runCommand(o, comm, p.linuxGetCommand(command)); err != nil {
 		return err
+	}
+
+	// Accept the license
+	if p.AcceptLicense {
+		var cmd string
+
+		if p.UseSudo == true {
+			cmd = "env HAB_LICENSE=accept sudo -E /bin/bash -c 'hab -V'"
+		} else {
+			cmd = "env HAB_LICENSE=accept /bin/bash -c 'hab -V'"
+		}
+
+		if err := p.runCommand(o, comm, cmd); err != nil {
+			return err
+		}
 	}
 
 	// Create the hab user
@@ -165,11 +177,10 @@ func (p *provisioner) linuxStartHabitat(o terraform.UIOutput, comm communicator.
 	}
 }
 
-// This func is a little different than the others since we need to expose HAB_AUTH_TOKEN and HAB_LICENSE to a shell
+// This func is a little different than the others since we need to expose HAB_AUTH_TOKEN to a shell
 // sub-process that's actually running the supervisor.
 func (p *provisioner) linuxStartHabitatUnmanaged(o terraform.UIOutput, comm communicator.Communicator, options string) error {
 	var token string
-	var license string
 
 	// Create the sup directory for the log file
 	if err := p.runCommand(o, comm, p.linuxGetCommand("mkdir -p /hab/sup/default && chmod o+w /hab/sup/default")); err != nil {
@@ -178,15 +189,10 @@ func (p *provisioner) linuxStartHabitatUnmanaged(o terraform.UIOutput, comm comm
 
 	// Set HAB_AUTH_TOKEN if provided
 	if p.BuilderAuthToken != "" {
-		token = fmt.Sprintf("HAB_AUTH_TOKEN=%s ", p.BuilderAuthToken)
+		token = fmt.Sprintf("env HAB_AUTH_TOKEN=%s ", p.BuilderAuthToken)
 	}
 
-	// Set HAB_LICENSE if provided
-	if p.License != "" {
-		license = fmt.Sprintf("HAB_LICENSE=%s ", p.License)
-	}
-
-	return p.runCommand(o, comm, p.linuxGetCommand(fmt.Sprintf("(env %s%s setsid hab sup run%s > /hab/sup/default/sup.log 2>&1 <&1 &) ; sleep 1", token, license, options)))
+	return p.runCommand(o, comm, p.linuxGetCommand(fmt.Sprintf("(%ssetsid hab sup run%s > /hab/sup/default/sup.log 2>&1 <&1 &) ; sleep 1", token, options)))
 }
 
 func (p *provisioner) linuxStartHabitatSystemd(o terraform.UIOutput, comm communicator.Communicator, options string) error {
@@ -354,11 +360,6 @@ func (p *provisioner) uploadUserTOML(o terraform.UIOutput, comm communicator.Com
 func (p *provisioner) linuxGetCommand(command string) string {
 	// Always set HAB_NONINTERACTIVE & HAB_NOCOLORING
 	env := fmt.Sprintf("env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true")
-
-	// Set license acceptance
-	if p.License != "" {
-		env += fmt.Sprintf(" HAB_LICENSE=%s", p.License)
-	}
 
 	// Set builder auth token
 	if p.BuilderAuthToken != "" {

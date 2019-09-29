@@ -64,18 +64,19 @@ func TestLinuxProvisioner_linuxInstallHabitat(t *testing.T) {
 		},
 		"Installation with Habitat license acceptance": {
 			Config: map[string]interface{}{
-				"version":     "0.81.0",
-				"license":     "accept-no-persist",
-				"auto_update": true,
-				"use_sudo":    true,
+				"version":        "0.81.0",
+				"accept_license": true,
+				"auto_update":    true,
+				"use_sudo":       true,
 			},
 
 			Commands: map[string]bool{
-				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true HAB_LICENSE=accept-no-persist sudo -E /bin/bash -c 'curl --silent -L0 https://raw.githubusercontent.com/habitat-sh/habitat/master/components/hab/install.sh > install.sh'": true,
-				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true HAB_LICENSE=accept-no-persist sudo -E /bin/bash -c 'bash ./install.sh -v 0.81.0'":                                                                                          true,
-				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true HAB_LICENSE=accept-no-persist sudo -E /bin/bash -c 'hab install core/busybox'":                                                                                             true,
-				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true HAB_LICENSE=accept-no-persist sudo -E /bin/bash -c 'hab pkg exec core/busybox adduser -D -g \"\" hab'":                                                                     true,
-				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true HAB_LICENSE=accept-no-persist sudo -E /bin/bash -c 'rm -f install.sh'":                                                                                                     true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'curl --silent -L0 https://raw.githubusercontent.com/habitat-sh/habitat/master/components/hab/install.sh > install.sh'": true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'bash ./install.sh -v 0.81.0'":                                                                                          true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'hab install core/busybox'":                                                                                             true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'hab pkg exec core/busybox adduser -D -g \"\" hab'":                                                                     true,
+				"env HAB_LICENSE=accept sudo -E /bin/bash -c 'hab -V'":                                                                                                                                        true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'rm -f install.sh'":                                                                                                     true,
 			},
 		},
 	}
@@ -157,9 +158,9 @@ func TestLinuxProvisioner_linuxStartHabitat(t *testing.T) {
 			},
 
 			Commands: map[string]bool{
-				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true HAB_LICENSE=accept-no-persist sudo -E /bin/bash -c 'hab install core/hab-sup/0.81.0'":                                                                                                                   true,
-				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true HAB_LICENSE=accept-no-persist sudo -E /bin/bash -c 'mkdir -p /hab/sup/default && chmod o+w /hab/sup/default'":                                                                                           true,
-				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true HAB_LICENSE=accept-no-persist sudo -E /bin/bash -c '(env HAB_LICENSE=accept-no-persist  setsid hab sup run --peer host1 --peer 1.2.3.4 --auto-update > /hab/sup/default/sup.log 2>&1 <&1 &) ; sleep 1'": true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'hab install core/hab-sup/0.81.0'":                                                                                true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'mkdir -p /hab/sup/default && chmod o+w /hab/sup/default'":                                                        true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c '(setsid hab sup run --peer host1 --peer 1.2.3.4 --auto-update > /hab/sup/default/sup.log 2>&1 <&1 &) ; sleep 1'": true,
 			},
 
 			Uploads: map[string]string{
