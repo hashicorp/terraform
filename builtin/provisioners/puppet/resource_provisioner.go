@@ -62,7 +62,8 @@ func Provisioner() terraform.ResourceProvisioner {
 			},
 			"private_key": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: false,
+				Optional: true,
+				Default:  "~/.ssh/id_rsa",
 			},
 			"os_type": &schema.Schema{
 				Type:         schema.TypeString,
