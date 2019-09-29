@@ -21,7 +21,6 @@ import (
 
 type provisioner struct {
 	Version          string
-	License          string
 	AutoUpdate       bool
 	HttpDisable      bool
 	Services         []Service
@@ -47,13 +46,13 @@ type provisioner struct {
 	SupOptions       string
 	AcceptLicense    bool
 
-    installHabitat      provisionFn
-    startHabitat        provisionFn
-    uploadRingKey       provisionFn
-    uploadCtlSecret     provisionFn
-    startHabitatService provisionServiceFn
+	installHabitat      provisionFn
+	startHabitat        provisionFn
+	uploadRingKey       provisionFn
+	uploadCtlSecret     provisionFn
+	startHabitatService provisionServiceFn
 
-    osType string
+	osType string
 }
 
 type provisionFn func(terraform.UIOutput, communicator.Communicator) error
@@ -63,10 +62,6 @@ func Provisioner() terraform.ResourceProvisioner {
 	return &schema.Provisioner{
 		Schema: map[string]*schema.Schema{
 			"version": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"license": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 			},
@@ -434,7 +429,6 @@ func (b *Bind) toBindString() string {
 func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 	p := &provisioner{
 		Version:          d.Get("version").(string),
-		License:          d.Get("license").(string),
 		AutoUpdate:       d.Get("auto_update").(bool),
 		HttpDisable:      d.Get("http_disable").(bool),
 		Peer:             d.Get("peer").(string),
