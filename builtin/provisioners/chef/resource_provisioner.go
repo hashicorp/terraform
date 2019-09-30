@@ -15,6 +15,7 @@ import (
 	"strings"
 	"sync"
 	"text/template"
+	"unicode/utf8"
 
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/communicator/remote"
@@ -710,9 +711,16 @@ func (p *provisioner) runCommand(o terraform.UIOutput, comm communicator.Communi
 }
 
 func (p *provisioner) copyOutput(o terraform.UIOutput, r io.Reader) {
+	utf8mapF := func(r rune) rune {
+		if r == utf8.RuneError {
+			return -1
+		}
+		return r
+	}
 	lr := linereader.New(r)
 	for line := range lr.Ch {
-		o.Output(strings.ToValidUTF8(line, ""))
+		// o.Output(strings.ToValidUTF8(line, "")) // with golang 1.13
+		o.Output(strings.Map(utf8mapF, line))
 	}
 }
 
