@@ -712,7 +712,7 @@ func (p *provisioner) runCommand(o terraform.UIOutput, comm communicator.Communi
 func (p *provisioner) copyOutput(o terraform.UIOutput, r io.Reader) {
 	lr := linereader.New(r)
 	for line := range lr.Ch {
-		o.Output(line)
+		o.Output(strings.ToValidUTF8(line, ""))
 	}
 }
 
