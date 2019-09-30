@@ -25,14 +25,26 @@ type Workspaces interface {
 	// Read a workspace by its name.
 	Read(ctx context.Context, organization string, workspace string) (*Workspace, error)
 
+	// ReadByID reads a workspace by its ID.
+	ReadByID(ctx context.Context, workspaceID string) (*Workspace, error)
+
 	// Update settings of an existing workspace.
 	Update(ctx context.Context, organization string, workspace string, options WorkspaceUpdateOptions) (*Workspace, error)
+
+	// UpdateByID updates the settings of an existing workspace.
+	UpdateByID(ctx context.Context, workspaceID string, options WorkspaceUpdateOptions) (*Workspace, error)
 
 	// Delete a workspace by its name.
 	Delete(ctx context.Context, organization string, workspace string) error
 
+	// DeleteByID deletes a workspace by its ID.
+	DeleteByID(ctx context.Context, workspaceID string) error
+
 	// RemoveVCSConnection from a workspace.
 	RemoveVCSConnection(ctx context.Context, organization, workspace string) (*Workspace, error)
+
+	// RemoveVCSConnectionByID removes a VCS connection from a workspace.
+	RemoveVCSConnectionByID(ctx context.Context, workspaceID string) (*Workspace, error)
 
 	// Lock a workspace by its ID.
 	Lock(ctx context.Context, workspaceID string, options WorkspaceLockOptions) (*Workspace, error)
@@ -69,6 +81,7 @@ type Workspace struct {
 	CanQueueDestroyPlan  bool                  `jsonapi:"attr,can-queue-destroy-plan"`
 	CreatedAt            time.Time             `jsonapi:"attr,created-at,iso8601"`
 	Environment          string                `jsonapi:"attr,environment"`
+	FileTriggersEnabled  bool                  `jsonapi:"attr,file-triggers-enabled"`
 	Locked               bool                  `jsonapi:"attr,locked"`
 	MigrationEnvironment string                `jsonapi:"attr,migration-environment"`
 	Name                 string                `jsonapi:"attr,name"`
@@ -76,6 +89,7 @@ type Workspace struct {
 	Permissions          *WorkspacePermissions `jsonapi:"attr,permissions"`
 	QueueAllRuns         bool                  `jsonapi:"attr,queue-all-runs"`
 	TerraformVersion     string                `jsonapi:"attr,terraform-version"`
+	TriggerPrefixes      []string              `jsonapi:"attr,trigger-prefixes"`
 	VCSRepo              *VCSRepo              `jsonapi:"attr,vcs-repo"`
 	WorkingDirectory     string                `jsonapi:"attr,working-directory"`
 
@@ -149,6 +163,12 @@ type WorkspaceCreateOptions struct {
 	// Whether to automatically apply changes when a Terraform plan is successful.
 	AutoApply *bool `jsonapi:"attr,auto-apply,omitempty"`
 
+	// Whether to filter runs based on the changed files in a VCS push. If
+	// enabled, the working directory and trigger prefixes describe a set of
+	// paths which must contain changes for a VCS push to trigger a run. If
+	// disabled, any push will trigger a run.
+	FileTriggersEnabled *bool `jsonapi:"attr,file-triggers-enabled,omitempty"`
+
 	// The legacy TFE environment to use as the source of the migration, in the
 	// form organization/environment. Omit this unless you are migrating a legacy
 	// environment.
@@ -166,6 +186,10 @@ type WorkspaceCreateOptions struct {
 	// The version of Terraform to use for this workspace. Upon creating a
 	// workspace, the latest version is selected unless otherwise specified.
 	TerraformVersion *string `jsonapi:"attr,terraform-version,omitempty"`
+
+	// List of repository-root-relative paths which list all locations to be
+	// tracked for changes. See FileTriggersEnabled above for more details.
+	TriggerPrefixes []string `jsonapi:"attr,trigger-prefixes,omitempty"`
 
 	// Settings for the workspace's VCS repository. If omitted, the workspace is
 	// created without a VCS repo. If included, you must specify at least the
@@ -251,6 +275,27 @@ func (s *workspaces) Read(ctx context.Context, organization, workspace string) (
 	return w, nil
 }
 
+// ReadByID reads a workspace by its ID.
+func (s *workspaces) ReadByID(ctx context.Context, workspaceID string) (*Workspace, error) {
+	if !validStringID(&workspaceID) {
+		return nil, errors.New("invalid value for workspace ID")
+	}
+
+	u := fmt.Sprintf("workspaces/%s", url.QueryEscape(workspaceID))
+	req, err := s.client.newRequest("GET", u, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	w := &Workspace{}
+	err = s.client.do(ctx, req, w)
+	if err != nil {
+		return nil, err
+	}
+
+	return w, nil
+}
+
 // WorkspaceUpdateOptions represents the options for updating a workspace.
 type WorkspaceUpdateOptions struct {
 	// For internal use only!
@@ -265,12 +310,22 @@ type WorkspaceUpdateOptions struct {
 	// API and UI.
 	Name *string `jsonapi:"attr,name,omitempty"`
 
+	// Whether to filter runs based on the changed files in a VCS push. If
+	// enabled, the working directory and trigger prefixes describe a set of
+	// paths which must contain changes for a VCS push to trigger a run. If
+	// disabled, any push will trigger a run.
+	FileTriggersEnabled *bool `jsonapi:"attr,file-triggers-enabled,omitempty"`
+
 	// Whether to queue all runs. Unless this is set to true, runs triggered by
 	// a webhook will not be queued until at least one run is manually queued.
 	QueueAllRuns *bool `jsonapi:"attr,queue-all-runs,omitempty"`
 
 	// The version of Terraform to use for this workspace.
 	TerraformVersion *string `jsonapi:"attr,terraform-version,omitempty"`
+
+	// List of repository-root-relative paths which list all locations to be
+	// tracked for changes. See FileTriggersEnabled above for more details.
+	TriggerPrefixes []string `jsonapi:"attr,trigger-prefixes,omitempty"`
 
 	// To delete a workspace's existing VCS repo, specify null instead of an
 	// object. To modify a workspace's existing VCS repo, include whichever of
@@ -317,6 +372,30 @@ func (s *workspaces) Update(ctx context.Context, organization, workspace string,
 	return w, nil
 }
 
+// UpdateByID updates the settings of an existing workspace.
+func (s *workspaces) UpdateByID(ctx context.Context, workspaceID string, options WorkspaceUpdateOptions) (*Workspace, error) {
+	if !validStringID(&workspaceID) {
+		return nil, errors.New("invalid value for workspace ID")
+	}
+
+	// Make sure we don't send a user provided ID.
+	options.ID = ""
+
+	u := fmt.Sprintf("workspaces/%s", url.QueryEscape(workspaceID))
+	req, err := s.client.newRequest("PATCH", u, &options)
+	if err != nil {
+		return nil, err
+	}
+
+	w := &Workspace{}
+	err = s.client.do(ctx, req, w)
+	if err != nil {
+		return nil, err
+	}
+
+	return w, nil
+}
+
 // Delete a workspace by its name.
 func (s *workspaces) Delete(ctx context.Context, organization, workspace string) error {
 	if !validStringID(&organization) {
@@ -331,6 +410,21 @@ func (s *workspaces) Delete(ctx context.Context, organization, workspace string)
 		url.QueryEscape(organization),
 		url.QueryEscape(workspace),
 	)
+	req, err := s.client.newRequest("DELETE", u, nil)
+	if err != nil {
+		return err
+	}
+
+	return s.client.do(ctx, req, nil)
+}
+
+// DeleteByID deletes a workspace by its ID.
+func (s *workspaces) DeleteByID(ctx context.Context, workspaceID string) error {
+	if !validStringID(&workspaceID) {
+		return errors.New("invalid value for workspace ID")
+	}
+
+	u := fmt.Sprintf("workspaces/%s", url.QueryEscape(workspaceID))
 	req, err := s.client.newRequest("DELETE", u, nil)
 	if err != nil {
 		return err
@@ -359,6 +453,28 @@ func (s *workspaces) RemoveVCSConnection(ctx context.Context, organization, work
 		url.QueryEscape(organization),
 		url.QueryEscape(workspace),
 	)
+
+	req, err := s.client.newRequest("PATCH", u, &workspaceRemoveVCSConnectionOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	w := &Workspace{}
+	err = s.client.do(ctx, req, w)
+	if err != nil {
+		return nil, err
+	}
+
+	return w, nil
+}
+
+// RemoveVCSConnectionByID removes a VCS connection from a workspace.
+func (s *workspaces) RemoveVCSConnectionByID(ctx context.Context, workspaceID string) (*Workspace, error) {
+	if !validStringID(&workspaceID) {
+		return nil, errors.New("invalid value for workspace ID")
+	}
+
+	u := fmt.Sprintf("workspaces/%s", url.QueryEscape(workspaceID))
 
 	req, err := s.client.newRequest("PATCH", u, &workspaceRemoveVCSConnectionOptions{})
 	if err != nil {
