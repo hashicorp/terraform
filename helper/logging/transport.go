@@ -10,8 +10,8 @@ import (
 )
 
 type transport struct {
-	name      string
-	transport http.RoundTripper
+	http.RoundTripper
+	name string
 }
 
 func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -24,7 +24,7 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 		}
 	}
 
-	resp, err := t.transport.RoundTrip(req)
+	resp, err := t.RoundTripper.RoundTrip(req)
 	if err != nil {
 		return resp, err
 	}
@@ -42,7 +42,7 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func NewTransport(name string, t http.RoundTripper) *transport {
-	return &transport{name, t}
+	return &transport{t, name}
 }
 
 // prettyPrintJsonLines iterates through a []byte line-by-line,
