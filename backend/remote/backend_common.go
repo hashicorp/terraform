@@ -254,10 +254,10 @@ func (b *Remote) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Op
 		case <-time.After(500 * time.Millisecond):
 		}
 
-		// Retrieve the cost estimation to get its current status.
+		// Retrieve the cost estimate to get its current status.
 		ce, err := b.client.CostEstimates.Read(stopCtx, r.CostEstimate.ID)
 		if err != nil {
-			return generalError("Failed to retrieve cost estimation", err)
+			return generalError("Failed to retrieve cost estimate", err)
 		}
 
 		switch ce.Status {
@@ -284,8 +284,7 @@ func (b *Remote) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Op
 			}
 
 			return nil
-		case tfe.CostEstimatePending:
-		case tfe.CostEstimateQueued:
+		case tfe.CostEstimatePending, tfe.CostEstimateQueued:
 			// Check if 30 seconds have passed since the last update.
 			current := time.Now()
 			if b.CLI != nil && (i == 0 || current.Sub(updated).Seconds() > 30) {
@@ -297,7 +296,7 @@ func (b *Remote) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Op
 					elapsed = fmt.Sprintf(
 						" (%s elapsed)", current.Sub(started).Truncate(30*time.Second))
 				}
-				b.CLI.Output(b.Colorize().Color("Waiting for cost estimation to complete..." + elapsed + "\n"))
+				b.CLI.Output(b.Colorize().Color("Waiting for cost estimate to complete..." + elapsed + "\n"))
 			}
 			continue
 		case tfe.CostEstimateErrored:
@@ -305,7 +304,7 @@ func (b *Remote) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Op
 		case tfe.CostEstimateCanceled:
 			return fmt.Errorf(msgPrefix + " canceled.")
 		default:
-			return fmt.Errorf("Unknown or unexpected cost estimation state: %s", ce.Status)
+			return fmt.Errorf("Unknown or unexpected cost estimate state: %s", ce.Status)
 		}
 	}
 	return nil
