@@ -115,6 +115,7 @@ func testBackend(t *testing.T, obj cty.Value) (*Remote, func()) {
 	b.CLI = cli.NewMockUi()
 	b.client.Applies = mc.Applies
 	b.client.ConfigurationVersions = mc.ConfigurationVersions
+	b.client.CostEstimates = mc.CostEstimates
 	b.client.Organizations = mc.Organizations
 	b.client.Plans = mc.Plans
 	b.client.PolicyChecks = mc.PolicyChecks
