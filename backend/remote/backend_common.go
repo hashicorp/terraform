@@ -251,7 +251,7 @@ func (b *Remote) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Op
 			return stopCtx.Err()
 		case <-cancelCtx.Done():
 			return cancelCtx.Err()
-		case <-time.After(500 * time.Millisecond):
+		case <-time.After(1 * time.Second):
 		}
 
 		// Retrieve the cost estimate to get its current status.
