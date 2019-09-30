@@ -37,9 +37,6 @@ for the configurations.
 
 The command-line flags are all optional. The available flags are:
 
-* `-check-variables=true` - If set to true (default), the command will check
-  whether all required variables have been specified.
-
 * `-no-color` - Disables output with coloring.
 
 * `-var 'foo=bar'` - Set a variable in the Terraform configuration. This flag
