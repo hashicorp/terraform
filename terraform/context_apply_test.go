@@ -10839,3 +10839,55 @@ func TestContext2Apply_ProviderMeta_plan_set(t *testing.T) {
 		t.Fatalf("Expected meta.Baz to be \"quux\", got %q", meta.Baz)
 	}
 }
+
+func TestContext2Apply_ProviderMeta_refresh_set(t *testing.T) {
+	m := testModule(t, "provider-meta-set")
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	schema := p.GetSchemaReturn
+	schema.ProviderMeta = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"baz": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+	p.GetSchemaReturn = schema
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	_, diags := ctx.Plan()
+	assertNoErrors(t, diags)
+
+	_, diags = ctx.Apply()
+	assertNoErrors(t, diags)
+
+	_, diags = ctx.Refresh()
+	assertNoErrors(t, diags)
+
+	if !p.ReadResourceCalled {
+		t.Fatalf("ReadResource not called")
+	}
+	if p.ReadResourceRequest.ProviderMeta.IsNull() {
+		t.Fatalf("null ProviderMeta in ReadResource")
+	}
+	type metaStruct struct {
+		Baz string `cty:"baz"`
+	}
+	var meta metaStruct
+	err := gocty.FromCtyValue(p.ReadResourceRequest.ProviderMeta, &meta)
+	if err != nil {
+		t.Fatalf("Error parsing cty value: %s", err)
+	}
+	if meta.Baz != "quux" {
+		t.Fatalf("Expected meta.Baz to be \"quux\", got %q", meta.Baz)
+	}
+}
