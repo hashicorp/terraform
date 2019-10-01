@@ -63,6 +63,7 @@ func (n *NodeRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, er
 		// Add the config and state since we don't do that via transforms
 		a.Config = n.Config
 		a.ResolvedProvider = n.ResolvedProvider
+		a.ProviderMeta = n.ProviderMeta
 
 		return &NodeRefreshableDataResourceInstance{
 			NodeAbstractResourceInstance: a,
@@ -171,6 +172,7 @@ func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
 				Config:            n.Config,
 				Provider:          &provider,
 				ProviderAddr:      n.ResolvedProvider,
+				ProviderMeta:      n.ProviderMeta,
 				ProviderSchema:    &providerSchema,
 				OutputChange:      &change,
 				OutputConfigValue: &configVal,
