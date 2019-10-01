@@ -6,6 +6,7 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/plans"
@@ -24,6 +25,7 @@ type EvalReadData struct {
 	Dependencies   []addrs.Referenceable
 	Provider       *providers.Interface
 	ProviderAddr   addrs.AbsProviderConfig
+	ProviderMeta   *configs.ProviderMeta
 	ProviderSchema **ProviderSchema
 
 	// Planned is set when dealing with data resources that were deferred to
@@ -103,6 +105,26 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
 		return nil, diags.Err()
+	}
+
+	metaConfigVal := cty.NullVal(cty.DynamicPseudoType)
+	if n.ProviderMeta != nil {
+		// if the provider doesn't support this feature, throw an error
+		if (*n.ProviderSchema).ProviderMeta == nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", (*n.Config).ProviderConfigAddr()),
+				Detail:   fmt.Sprintf("The resource %s belongs to a provider that doesn't support provider_meta blocks", n.Addr),
+				Subject:  &n.ProviderMeta.ProviderRange,
+			})
+		} else {
+			var configDiags tfdiags.Diagnostics
+			metaConfigVal, _, configDiags = ctx.EvaluateBlock(n.ProviderMeta.Config, (*n.ProviderSchema).ProviderMeta, nil, EvalDataForNoInstanceKey)
+			diags = diags.Append(configDiags)
+			if configDiags.HasErrors() {
+				return nil, diags.Err()
+			}
+		}
 	}
 
 	proposedNewVal := objchange.PlannedDataResourceObject(schema, configVal)
@@ -205,8 +227,9 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	resp := provider.ReadDataSource(providers.ReadDataSourceRequest{
-		TypeName: n.Addr.Resource.Type,
-		Config:   configVal,
+		TypeName:     n.Addr.Resource.Type,
+		Config:       configVal,
+		ProviderMeta: metaConfigVal,
 	})
 	diags = diags.Append(resp.Diagnostics.InConfigBody(n.Config.Config))
 	if diags.HasErrors() {
@@ -309,6 +332,7 @@ type EvalReadDataApply struct {
 	Addr            addrs.ResourceInstance
 	Provider        *providers.Interface
 	ProviderAddr    addrs.AbsProviderConfig
+	ProviderMeta    *configs.ProviderMeta
 	ProviderSchema  **ProviderSchema
 	Output          **states.ResourceInstanceObject
 	Config          *configs.Resource
@@ -334,6 +358,26 @@ func (n *EvalReadDataApply) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, nil
 	}
 
+	metaConfigVal := cty.NullVal(cty.DynamicPseudoType)
+	if n.ProviderMeta != nil {
+		// if the provider doesn't support this feature, throw an error
+		if (*n.ProviderSchema).ProviderMeta == nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", (*n.Config).ProviderConfigAddr()),
+				Detail:   fmt.Sprintf("The resource %s belongs to a provider that doesn't support provider_meta blocks", n.Addr),
+				Subject:  &n.ProviderMeta.ProviderRange,
+			})
+		} else {
+			var configDiags tfdiags.Diagnostics
+			metaConfigVal, _, configDiags = ctx.EvaluateBlock(n.ProviderMeta.Config, (*n.ProviderSchema).ProviderMeta, nil, EvalDataForNoInstanceKey)
+			diags = diags.Append(configDiags)
+			if configDiags.HasErrors() {
+				return nil, diags.Err()
+			}
+		}
+	}
+
 	// For the purpose of external hooks we present a data apply as a
 	// "Refresh" rather than an "Apply" because creating a data source
 	// is presented to users/callers as a "read" operation.
@@ -347,8 +391,9 @@ func (n *EvalReadDataApply) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	resp := provider.ReadDataSource(providers.ReadDataSourceRequest{
-		TypeName: n.Addr.Resource.Type,
-		Config:   change.After,
+		TypeName:     n.Addr.Resource.Type,
+		Config:       change.After,
+		ProviderMeta: metaConfigVal,
 	})
 	diags = diags.Append(resp.Diagnostics.InConfigBody(n.Config.Config))
 	if diags.HasErrors() {
