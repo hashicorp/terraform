@@ -10742,7 +10742,7 @@ func TestContext2Apply_cbdCycle(t *testing.T) {
 	}
 }
 
-func TestContext2Apply_ProviderMeta_set(t *testing.T) {
+func TestContext2Apply_ProviderMeta_apply_set(t *testing.T) {
 	m := testModule(t, "provider-meta-set")
 	p := testProvider("test")
 	p.ApplyFn = testApplyFn
@@ -10785,6 +10785,53 @@ func TestContext2Apply_ProviderMeta_set(t *testing.T) {
 	}
 	var meta metaStruct
 	err := gocty.FromCtyValue(p.ApplyResourceChangeRequest.ProviderMeta, &meta)
+	if err != nil {
+		t.Fatalf("Error parsing cty value: %s", err)
+	}
+	if meta.Baz != "quux" {
+		t.Fatalf("Expected meta.Baz to be \"quux\", got %q", meta.Baz)
+	}
+}
+
+func TestContext2Apply_ProviderMeta_plan_set(t *testing.T) {
+	m := testModule(t, "provider-meta-set")
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	schema := p.GetSchemaReturn
+	schema.ProviderMeta = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"baz": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+	p.GetSchemaReturn = schema
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
+	}
+
+	if !p.PlanResourceChangeCalled {
+		t.Fatalf("PlanResourceChange not called")
+	}
+	if p.PlanResourceChangeRequest.ProviderMeta.IsNull() {
+		t.Fatalf("null ProviderMeta in PlanResourceChange")
+	}
+	type metaStruct struct {
+		Baz string `cty:"baz"`
+	}
+	var meta metaStruct
+	err := gocty.FromCtyValue(p.PlanResourceChangeRequest.ProviderMeta, &meta)
 	if err != nil {
 		t.Fatalf("Error parsing cty value: %s", err)
 	}
