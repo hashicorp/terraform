@@ -180,6 +180,7 @@ func (n *NodeApplyableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 				Planned:        &change, // setting this indicates that the result must be complete
 				Provider:       &provider,
 				ProviderAddr:   n.ResolvedProvider,
+				ProviderMeta:   n.ProviderMeta,
 				ProviderSchema: &providerSchema,
 				OutputState:    &state,
 			},

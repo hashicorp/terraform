@@ -116,6 +116,7 @@ func (n *NodePlannableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 				Config:         n.Config,
 				Provider:       &provider,
 				ProviderAddr:   n.ResolvedProvider,
+				ProviderMeta:   n.ProviderMeta,
 				ProviderSchema: &providerSchema,
 				ForcePlanRead:  true, // _always_ produce a Read change, even if the config seems ready
 				OutputChange:   &change,
