@@ -6,6 +6,7 @@ ENHANCEMENTS:
 * config: New function `parseint` for parsing strings containing digits as integers in various bases. [GH-22747]
 * config: New function `cidrsubnets`, which is a companion to the existing function `cidrsubnet` which can allocate multiple consecutive subnet prefixes (possibly of different prefix lengths) in a single call. [GH-22858]
 * backend/google: The GCS backend now supports OAuth2 token authentication. [GH-21772]
+* provisioner/habitat: Multiple updates and fixes, see PR for details [GH-22705]
 
 BUG FIXES:
 
