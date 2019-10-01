@@ -6,7 +6,9 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -18,6 +20,7 @@ type EvalRefresh struct {
 	Addr           addrs.ResourceInstance
 	ProviderAddr   addrs.AbsProviderConfig
 	Provider       *providers.Interface
+	ProviderMeta   *configs.ProviderMeta
 	ProviderSchema **ProviderSchema
 	State          **states.ResourceInstanceObject
 	Output         **states.ResourceInstanceObject
@@ -42,6 +45,26 @@ func (n *EvalRefresh) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Type)
 	}
 
+	metaConfigVal := cty.NullVal(cty.DynamicPseudoType)
+	if n.ProviderMeta != nil {
+		// if the provider doesn't support this feature, throw an error
+		if (*n.ProviderSchema).ProviderMeta == nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", n.ProviderAddr),
+				Detail:   fmt.Sprintf("The resource %s belongs to a provider that doesn't support provider_meta blocks", n.Addr),
+				Subject:  &n.ProviderMeta.ProviderRange,
+			})
+		} else {
+			var configDiags tfdiags.Diagnostics
+			metaConfigVal, _, configDiags = ctx.EvaluateBlock(n.ProviderMeta.Config, (*n.ProviderSchema).ProviderMeta, nil, EvalDataForNoInstanceKey)
+			diags = diags.Append(configDiags)
+			if configDiags.HasErrors() {
+				return nil, diags.Err()
+			}
+		}
+	}
+
 	// Call pre-refresh hook
 	err := ctx.Hook(func(h Hook) (HookAction, error) {
 		return h.PreRefresh(absAddr, states.CurrentGen, state.Value)
@@ -53,9 +76,10 @@ func (n *EvalRefresh) Eval(ctx EvalContext) (interface{}, error) {
 	// Refresh!
 	priorVal := state.Value
 	req := providers.ReadResourceRequest{
-		TypeName:   n.Addr.Resource.Type,
-		PriorState: priorVal,
-		Private:    state.Private,
+		TypeName:     n.Addr.Resource.Type,
+		PriorState:   priorVal,
+		Private:      state.Private,
+		ProviderMeta: metaConfigVal,
 	}
 
 	provider := *n.Provider
