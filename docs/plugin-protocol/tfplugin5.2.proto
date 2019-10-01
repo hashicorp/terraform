@@ -221,6 +221,7 @@ message ReadResource {
         string type_name = 1;
         DynamicValue current_state = 2;
         bytes private = 3;
+	DynamicValue provider_meta = 4;
     }
     message Response {
         DynamicValue new_state = 1;
@@ -236,6 +237,7 @@ message PlanResourceChange {
         DynamicValue proposed_new_state = 3;
         DynamicValue config = 4;
         bytes prior_private = 5; 
+	DynamicValue provider_meta = 6;
     }
 
     message Response {
@@ -311,6 +313,7 @@ message ReadDataSource {
     message Request {
         string type_name = 1;
         DynamicValue config = 2;
+	DynamicValue provider_meta = 3;
     }
     message Response {
         DynamicValue state = 1;
