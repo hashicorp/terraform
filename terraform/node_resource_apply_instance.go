@@ -287,6 +287,7 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 				Config:         n.Config,
 				Provider:       &provider,
 				ProviderAddr:   n.ResolvedProvider,
+				ProviderMeta:   n.ProviderMeta,
 				ProviderSchema: &providerSchema,
 				State:          &state,
 				PreviousDiff:   &diff,
