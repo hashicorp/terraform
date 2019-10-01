@@ -22,8 +22,8 @@ and a number of built-in functions.
 Expressions can be used in a number of places in the Terraform language,
 but some contexts limit which expression constructs are allowed,
 such as requiring a literal value of a particular type or forbidding
-references to resource attributes. Each language feature's documentation
-describes any restrictions it places on expressions.
+[references to resource attributes](/docs/configuration/expressions.html#references-to-resource-attributes).
+Each language feature's documentation describes any restrictions it places on expressions.
 
 You can experiment with the behavior of Terraform's expressions from
 the Terraform expression console, by running
@@ -171,6 +171,9 @@ The following named values are available:
     If the resource has the `count` argument set, the value of this expression
     is a _list_ of objects representing its instances.
 
+    If the resource has the `for_each` argument set, the value of this expression
+    is a _map_ of objects representing its instances.
+
     For more information, see
     [references to resource attributes](#references-to-resource-attributes) below.
 * `var.<NAME>` is the value of the
@@ -183,7 +186,8 @@ The following named values are available:
 * `data.<DATA TYPE>.<NAME>` is an object representing a
   [data resource](./data-sources.html) of the given data
   source type and name. If the resource has the `count` argument set, the value
-  is a list of objects representing its instances.
+  is a list of objects representing its instances. If the resource has the `for_each`
+  argument set, the value is a map of objects representing its instances.
 * `path.module` is the filesystem path of the module where the expression
   is placed.
 * `path.root` is the filesystem path of the root module of the configuration.
@@ -581,11 +585,14 @@ The above expression is equivalent to the following `for` expression:
 [for o in var.list : o.interfaces[0].name]
 ```
 
-Splat expressions also have another useful effect: if they are applied to
-a value that is _not_ a list or tuple then the value is automatically wrapped
-in a single-element list before processing. That is, `var.single_object[*].id`
-is equivalent to `[var.single_object][*].id`, or effectively
-`[var.single_object.id]`. This behavior is not interesting in most cases,
+Splat expressions are for lists only (and thus cannot be used [to reference resources
+created with `for_each`](/docs/configuration/resources.html#referring-to-instances-1),
+which are represented as maps in Terraform). However, if a splat expression is applied 
+to a value that is _not_ a list or tuple then the value is automatically wrapped in 
+a single-element list before processing.
+
+For example, `var.single_object[*].id` is equivalent to `[var.single_object][*].id`, 
+or effectively `[var.single_object.id]`. This behavior is not interesting in most cases,
 but it is particularly useful when referring to resources that may or may
 not have `count` set, and thus may or may not produce a tuple value:
 

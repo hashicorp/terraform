@@ -370,6 +370,8 @@ identified by a map key (or set member) from the value provided to `for_each`.
 - `<TYPE>.<NAME>` (for example, `azurerm_resource_group.rg`) refers to the resource block.
 - `<TYPE>.<NAME>[<KEY>]` (for example, `azurerm_resource_group.rg["a_group"]`,
   `azurerm_resource_group.rg["another_group"]`, etc.) refers to individual instances.
+- `{ for key, value in <TYPE>.<NAME> : key => value.public_ip }`, an expression referring to instances
+  in a resource managed with `for_each`
 
 This is different from resources without `count` or `for_each`, which can be
 referenced without an index or key.
