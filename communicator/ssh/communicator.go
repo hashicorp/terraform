@@ -236,7 +236,7 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 	// long-running commands.
 	log.Printf("[DEBUG] starting ssh KeepAlives")
 
-	// We wont a local copy of the ssh client pointer, so that a reconnect
+	// We want a local copy of the ssh client pointer, so that a reconnect
 	// doesn't race with the running keep-alive loop.
 	sshClient := c.client
 	go func() {
