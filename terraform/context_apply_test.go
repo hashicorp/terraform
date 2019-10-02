@@ -10747,3 +10747,80 @@ func TestContext2Apply_moduleReplaceCycle(t *testing.T) {
 		})
 	}
 }
+
+func TestContext2Apply_destroyDataCycle(t *testing.T) {
+	m, snap := testModuleWithSnapshot(t, "apply-destroy-data-cycle")
+	p := testProvider("null")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "null_resource",
+			Name: "a",
+		}.Instance(addrs.IntKey(0)),
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"a"}`),
+		},
+		addrs.ProviderConfig{
+			Type: "null",
+		}.Absolute(addrs.RootModuleInstance),
+	)
+	root.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.DataResourceMode,
+			Type: "null_data_source",
+			Name: "d",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"data"}`),
+		},
+		addrs.ProviderConfig{
+			Type: "null",
+		}.Absolute(addrs.RootModuleInstance),
+	)
+
+	providerResolver := providers.ResolverFixed(
+		map[string]providers.Factory{
+			"null": testProviderFuncFixed(p),
+		},
+	)
+
+	hook := &testHook{}
+	ctx := testContext2(t, &ContextOpts{
+		Config:           m,
+		ProviderResolver: providerResolver,
+		State:            state,
+		Destroy:          true,
+		Hooks:            []Hook{hook},
+	})
+
+	plan, diags := ctx.Plan()
+	diags.HasErrors()
+	if diags.HasErrors() {
+		t.Fatalf("diags: %s", diags.Err())
+	}
+
+	// We'll marshal and unmarshal the plan here, to ensure that we have
+	// a clean new context as would be created if we separately ran
+	// terraform plan -out=tfplan && terraform apply tfplan
+	ctxOpts, err := contextOptsForPlanViaFile(snap, state, plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctxOpts.ProviderResolver = providerResolver
+	ctx, diags = NewContext(ctxOpts)
+	if diags.HasErrors() {
+		t.Fatalf("failed to create context for plan: %s", diags.Err())
+	}
+
+	_, diags = ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatalf("diags: %s", diags.Err())
+	}
+}
