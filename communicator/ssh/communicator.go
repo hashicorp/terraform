@@ -235,6 +235,10 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 	// Start a keepalive goroutine to help maintain the connection for
 	// long-running commands.
 	log.Printf("[DEBUG] starting ssh KeepAlives")
+
+	// We wont a local copy of the ssh client pointer, so that a reconnect
+	// doesn't race with the running keep-alive loop.
+	sshClient := c.client
 	go func() {
 		defer cancelKeepAlive()
 		// Along with the KeepAlives generating packets to keep the tcp
@@ -249,7 +253,7 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 			for {
 				select {
 				case <-t.C:
-					_, _, err := c.client.SendRequest("keepalive@terraform.io", true, nil)
+					_, _, err := sshClient.SendRequest("keepalive@terraform.io", true, nil)
 					respCh <- err
 				case <-ctx.Done():
 					return
