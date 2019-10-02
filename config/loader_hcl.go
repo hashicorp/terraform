@@ -41,10 +41,32 @@ var ReservedProviderFields = []string{
 	"version",
 }
 
+func (t *hclConfigurable) FolderIncludes() ([]string, error) {
+	var folders []string
+
+	// Top-level item should be the object list
+	list, ok := t.Root.Node.(*ast.ObjectList)
+	if !ok {
+		return nil, fmt.Errorf("error parsing: file doesn't contain a root object")
+	}
+
+	// Build the folder references
+	if folderList := list.Filter("folder"); len(folderList.Items) > 0 {
+		var err error
+		folders, err = loadFoldersHcl(folderList)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return folders, nil
+}
+
 func (t *hclConfigurable) Config() (*Config, error) {
 	validKeys := map[string]struct{}{
 		"atlas":     struct{}{},
 		"data":      struct{}{},
+		"folder":    struct{}{},
 		"locals":    struct{}{},
 		"module":    struct{}{},
 		"output":    struct{}{},
@@ -352,6 +374,46 @@ func loadAtlasHcl(list *ast.ObjectList) (*AtlasConfig, error) {
 	}
 
 	return &config, nil
+}
+
+// Given a handle to a HCL object, this recurses into the structure
+// and pulls out all referenced folders.
+//
+// If folders are referenced more than once, object collision will
+// occur and it is a user error. Not handled here as it can occur
+// in many different ways and this code could only handle a small
+// subset. Will ultimately be caught during Config merge.
+func loadFoldersHcl(list *ast.ObjectList) ([]string, error) {
+	result := make([]string, 0, len(list.Items))
+
+	for _, block := range list.Items {
+		if len(block.Keys) > 0 {
+			return nil, fmt.Errorf(
+				"folder block at %s should not have label %q",
+				block.Pos(), block.Keys[0].Token.Value(),
+			)
+		}
+
+		blockObj, ok := block.Val.(*ast.ObjectType)
+		if !ok {
+			return nil, fmt.Errorf("folder value at %s should be a block", block.Val.Pos())
+		}
+
+		var source string
+		if o := blockObj.List.Filter("source"); len(o.Items) > 0 {
+			err := hcl.DecodeObject(&source, o.Items[0].Val)
+			if err != nil {
+				return nil, fmt.Errorf(
+					"Error parsing source at %s: %s",
+					o.Items[0].Val.Pos(),
+					err)
+			}
+		}
+
+		result = append(result, source)
+	}
+
+	return result, nil
 }
 
 // Given a handle to a HCL object, this recurses into the structure

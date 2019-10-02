@@ -24,6 +24,19 @@ func (e ErrNoConfigsFound) Error() string {
 		e.Dir)
 }
 
+// ErrFolderNotSupported is the error returned by LoadFile if
+// a Terraform include declaration was found as this is only supported
+// when using directory enumeration
+type ErrFolderNotSupported struct {
+	Path string
+}
+
+func (e ErrFolderNotSupported) Error() string {
+	return fmt.Sprintf(
+		"'folder' is not supported when loading configuration with LoadFile, in: %s",
+		e.Path)
+}
+
 // LoadJSON loads a single Terraform configuration from a given JSON document.
 //
 // The document must be a complete Terraform configuration. This function will
@@ -47,10 +60,28 @@ func LoadJSON(raw json.RawMessage) (*Config, error) {
 //
 // This file can be any format that Terraform recognizes, and import any
 // other format that Terraform recognizes.
+//
+// It does not support the 'folder' directive
 func LoadFile(path string) (*Config, error) {
-	importTree, err := loadTree(path)
+
+	config, imports, err := loadFileInternal(path)
+
 	if err != nil {
 		return nil, err
+	}
+
+	if imports != nil {
+		return nil, &ErrFolderNotSupported{Path: path}
+	}
+
+	return config, nil
+}
+
+func loadFileInternal(path string) (*Config, []string, error) {
+
+	importTree, err := loadTree(path)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	configTree, err := importTree.ConfigTree()
@@ -60,10 +91,22 @@ func LoadFile(path string) (*Config, error) {
 	importTree.Close()
 
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return configTree.Flatten()
+	folders, err := importTree.FolderIncludes()
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	c, err := configTree.Flatten()
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return c, folders, nil
 }
 
 // LoadDir loads all the Terraform configuration files in a single
@@ -76,21 +119,40 @@ func LoadFile(path string) (*Config, error) {
 //
 // Files are loaded in lexical order.
 func LoadDir(root string) (*Config, error) {
-	files, overrides, err := dirFiles(root)
+	result, err := loadDirInternal(root, nil)
 	if err != nil {
 		return nil, err
 	}
-	if len(files) == 0 && len(overrides) == 0 {
-		return nil, &ErrNoConfigsFound{Dir: root}
-	}
 
-	// Determine the absolute path to the directory.
 	rootAbs, err := filepath.Abs(root)
 	if err != nil {
 		return nil, err
 	}
 
-	var result *Config
+	// Mark the directory
+	fmt.Printf("%v", result)
+	result.Dir = rootAbs
+
+	return result, nil
+}
+
+// loadDirInternal loads all the Terraform configuration files in a single
+// directory and appends them together.
+//
+// Special files known as "override files" can also be present, which
+// are merged into the loaded configuration. That is, the non-override
+// files are loaded first to create the configuration. Then, the overrides
+// are merged into the configuration to create the final configuration.
+//
+// Files are loaded in lexical order.
+func loadDirInternal(folder string, result *Config) (*Config, error) {
+	files, overrides, err := dirFiles(folder)
+	if err != nil {
+		return nil, err
+	}
+	if len(files) == 0 && len(overrides) == 0 {
+		return nil, &ErrNoConfigsFound{Dir: folder}
+	}
 
 	// Sort the files and overrides so we have a deterministic order
 	sort.Strings(files)
@@ -98,7 +160,7 @@ func LoadDir(root string) (*Config, error) {
 
 	// Load all the regular files, append them to each other.
 	for _, f := range files {
-		c, err := LoadFile(f)
+		c, folders, err := loadFileInternal(f)
 		if err != nil {
 			return nil, err
 		}
@@ -111,8 +173,19 @@ func LoadDir(root string) (*Config, error) {
 		} else {
 			result = c
 		}
+		for _, dir := range folders {
+			if !filepath.IsAbs(dir) {
+				dir = filepath.Join(folder, dir)
+			}
+
+			result, err = loadDirInternal(dir, result)
+
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
-	if len(files) == 0 {
+	if len(files) == 0 && result == nil {
 		result = &Config{}
 	}
 
@@ -128,9 +201,6 @@ func LoadDir(root string) (*Config, error) {
 			return nil, err
 		}
 	}
-
-	// Mark the directory
-	result.Dir = rootAbs
 
 	return result, nil
 }

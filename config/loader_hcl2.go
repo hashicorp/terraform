@@ -65,6 +65,10 @@ func (l hcl2Loader) loadFile(filename string) (configurable, []string, error) {
 	}, nil, nil
 }
 
+func (t *hcl2Configurable) FolderIncludes() ([]string, error) {
+	return nil, fmt.Errorf("Not implemented")
+}
+
 func (t *hcl2Configurable) Config() (*Config, error) {
 	config := &Config{}
 

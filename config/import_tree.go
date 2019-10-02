@@ -13,6 +13,7 @@ import (
 // formats of Terraform in order to return a *Config.
 type configurable interface {
 	Config() (*Config, error)
+	FolderIncludes() ([]string, error)
 }
 
 // importTree is the result of the first-pass load of the configuration
@@ -148,4 +149,10 @@ func (t *importTree) ConfigTree() (*configTree, error) {
 	}
 
 	return result, nil
+}
+
+// FolderIncludes returns the folders referenced for inclusion
+// within a configuration
+func (t *importTree) FolderIncludes() ([]string, error) {
+	return t.Raw.FolderIncludes()
 }

@@ -155,16 +155,18 @@ func TestConfig_emptyCollections(t *testing.T) {
 // there mostly historically. They should be converted at some point.
 func TestConfigValidate_table(t *testing.T) {
 	cases := []struct {
-		Name      string
-		Fixture   string
-		Err       bool
-		ErrString string
+		Name             string
+		Fixture          string
+		Err              bool
+		ErrString        string
+		UseDirectoryLoad bool
 	}{
 		{
 			"basic good",
 			"validate-good",
 			false,
 			"",
+			false,
 		},
 
 		{
@@ -172,6 +174,7 @@ func TestConfigValidate_table(t *testing.T) {
 			"validate-depends-on-module",
 			false,
 			"",
+			false,
 		},
 
 		{
@@ -179,6 +182,7 @@ func TestConfigValidate_table(t *testing.T) {
 			"validate-depends-on-bad-module",
 			true,
 			"non-existent module 'foo'",
+			false,
 		},
 
 		{
@@ -186,6 +190,7 @@ func TestConfigValidate_table(t *testing.T) {
 			"validate-data-provisioner",
 			true,
 			"data sources cannot have",
+			false,
 		},
 
 		{
@@ -193,6 +198,7 @@ func TestConfigValidate_table(t *testing.T) {
 			"validate-basic-provisioners",
 			false,
 			"",
+			false,
 		},
 
 		{
@@ -200,36 +206,61 @@ func TestConfigValidate_table(t *testing.T) {
 			"validate-backend-interpolate",
 			true,
 			"cannot contain interp",
+			false,
 		},
 		{
 			"nested types in variable default",
 			"validate-var-nested",
 			false,
 			"",
+			false,
 		},
 		{
 			"provider with valid version constraint",
 			"provider-version",
 			false,
 			"",
+			false,
 		},
 		{
 			"provider with invalid version constraint",
 			"provider-version-invalid",
 			true,
 			"not a valid version constraint",
+			false,
 		},
 		{
 			"invalid provider name in module block",
 			"validate-missing-provider",
 			true,
 			"cannot pass non-existent provider",
+			false,
+		},
+		{
+			"multiple folder includes",
+			"folder-include-basic",
+			false,
+			"",
+			true,
+		},
+		{
+			"multiple folder includes with specification collision",
+			"folder-include-collision",
+			true,
+			"Variable 'a': duplicate found. Variable names must be unique.",
+			true,
 		},
 	}
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
-			c := testConfig(t, tc.Fixture)
+			var c *Config
+			if tc.UseDirectoryLoad {
+				c = testConfigDir(t, tc.Fixture)
+			} else {
+				c = testConfig(t, tc.Fixture)
+			}
+
 			diags := c.Validate()
 			if diags.HasErrors() != tc.Err {
 				t.Fatalf("err: %s", diags.Err().Error())
@@ -735,6 +766,15 @@ func testConfig(t *testing.T, name string) *Config {
 	c, err := LoadFile(filepath.Join(fixtureDir, name, "main.tf"))
 	if err != nil {
 		t.Fatalf("file: %s\n\nerr: %s", name, err)
+	}
+
+	return c
+}
+
+func testConfigDir(t *testing.T, name string) *Config {
+	c, err := LoadDir(filepath.Join(fixtureDir, name))
+	if err != nil {
+		t.Fatalf("folder: %s\n\nerr: %s", name, err)
 	}
 
 	return c
