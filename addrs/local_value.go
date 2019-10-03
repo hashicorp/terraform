@@ -7,6 +7,7 @@ import (
 // LocalValue is the address of a local value.
 type LocalValue struct {
 	referenceable
+	projectReferenceable
 	Name string
 }
 

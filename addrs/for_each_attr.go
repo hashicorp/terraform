@@ -4,6 +4,7 @@ package addrs
 // the interpolation scope, addressed using the "each" keyword, ex. "each.key" and "each.value"
 type ForEachAttr struct {
 	referenceable
+	projectReferenceable
 	Name string
 }
 
