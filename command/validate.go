@@ -25,17 +25,9 @@ func (c *ValidateCommand) Run(args []string) int {
 		return 1
 	}
 
-	if c.Meta.variableArgs.items == nil {
-		c.Meta.variableArgs = newRawFlags("-var")
-	}
-	varValues := c.Meta.variableArgs.Alias("-var")
-	varFiles := c.Meta.variableArgs.Alias("-var-file")
-
 	var jsonOutput bool
 	cmdFlags := c.Meta.defaultFlagSet("validate")
 	cmdFlags.BoolVar(&jsonOutput, "json", false, "produce JSON output")
-	cmdFlags.Var(varValues, "var", "variables")
-	cmdFlags.Var(varFiles, "var-file", "variable file")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
