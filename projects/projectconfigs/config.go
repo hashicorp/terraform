@@ -213,6 +213,9 @@ func loadConfig(rootDir, filename string, src []byte, body hcl.Body) (*Config, t
 		}
 	}
 
+	moreDiags := config.staticValidate()
+	diags = diags.Append(moreDiags)
+
 	return config, diags
 }
 

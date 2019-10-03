@@ -75,6 +75,15 @@ func decodeContextBlock(block *hcl.Block) (*ContextValue, tfdiags.Diagnostics) {
 
 	if attr, ok := content.Attributes["default"]; ok {
 		cv.Default = attr.Expr
+		if traversals := attr.Expr.Variables(); len(traversals) > 0 {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid context default value",
+				Detail:   "A default value must be a constant, and so cannot refer to any other objects.",
+				Subject:  traversals[0].SourceRange().Ptr(),
+				Context:  attr.Range.Ptr(),
+			})
+		}
 	}
 
 	if attr, ok := content.Attributes["description"]; ok {
