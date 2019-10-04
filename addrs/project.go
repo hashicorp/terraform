@@ -7,7 +7,26 @@ import (
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
-// ProjectWorkspace represents a single workspace within the current project.
+// ProjectWorkspaceConfig refers to a workspace configuration block within
+// the current project.
+//
+// Each configuration block produces zero or more workspaces, whose references
+// are represented by ProjectWorkspace.
+type ProjectWorkspaceConfig struct {
+	Name string
+}
+
+// Instance returns the address of a single workspace represented by this
+// configuration block.
+func (wc ProjectWorkspaceConfig) Instance(key InstanceKey) ProjectWorkspace {
+	return ProjectWorkspace{Name: wc.Name, Key: key}
+}
+
+func (wc ProjectWorkspaceConfig) String() string {
+	return "workspace." + wc.Name
+}
+
+// ProjectWorkspace refers to single workspace within the current project.
 type ProjectWorkspace struct {
 	Name string
 	Key  InstanceKey
@@ -28,7 +47,26 @@ func (w ProjectWorkspace) String() string {
 	}
 }
 
-// ProjectUpstreamWorkspace represents a workspace in some other project whose
+// ProjectUpstreamWorkspaceConfig refers to an "upstream" configuration block
+// within the current project.
+//
+// Each configuration block produces zero or more upstream workspaces, whose
+// references are represented by ProjectUpstreamWorkspace.
+type ProjectUpstreamWorkspaceConfig struct {
+	Name string
+}
+
+// Instance returns the address of a single workspace represented by this
+// configuration block.
+func (wc ProjectUpstreamWorkspaceConfig) Instance(key InstanceKey) ProjectUpstreamWorkspace {
+	return ProjectUpstreamWorkspace{Name: wc.Name, Key: key}
+}
+
+func (wc ProjectUpstreamWorkspaceConfig) String() string {
+	return "upstream." + wc.Name
+}
+
+// ProjectUpstreamWorkspace refers to a workspace in some other project whose
 // outputs are being imported into the current project.
 type ProjectUpstreamWorkspace struct {
 	Name string
@@ -50,7 +88,7 @@ func (w ProjectUpstreamWorkspace) String() string {
 	}
 }
 
-// ProjectContextValue represents a named context value within a project
+// ProjectContextValue refers to a named context value within a project
 // configuration. This is similar to InputVariable, but within the definition
 // of a project rather than within a module.
 type ProjectContextValue struct {

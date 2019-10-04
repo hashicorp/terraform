@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -109,6 +110,11 @@ func decodeContextBlock(block *hcl.Block) (*ContextValue, tfdiags.Diagnostics) {
 	}
 
 	return cv, diags
+}
+
+// Addr returns the address that would refer to this context value.
+func (cv *ContextValue) Addr() addrs.ProjectContextValue {
+	return addrs.ProjectContextValue{Name: cv.Name}
 }
 
 var contextSchema = &hcl.BodySchema{

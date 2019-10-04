@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -48,4 +49,9 @@ func decodeLocalValueAttr(attr *hcl.Attribute) (*LocalValue, tfdiags.Diagnostics
 	}
 
 	return lv, diags
+}
+
+// Addr returns the address that would refer to this local value.
+func (lv *LocalValue) Addr() addrs.LocalValue {
+	return addrs.LocalValue{Name: lv.Name}
 }

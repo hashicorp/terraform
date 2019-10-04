@@ -35,7 +35,7 @@ func (c *Config) staticValidateAllReferences() tfdiags.Diagnostics {
 	localRefs := map[string]map[string]struct{}{}
 	isDynamicAddr := func(addr addrs.ProjectReferenceable) bool {
 		switch addr := addr.(type) {
-		case addrs.ProjectWorkspace, addrs.ProjectUpstreamWorkspace:
+		case addrs.ProjectWorkspace, addrs.ProjectUpstreamWorkspace, addrs.ProjectContextValue:
 			return true
 		case addrs.LocalValue:
 			return dynamicLocals[addr.Name] != nil
@@ -50,7 +50,7 @@ func (c *Config) staticValidateAllReferences() tfdiags.Diagnostics {
 		dynamicLocals[name] = nil
 		for _, ref := range refs {
 			switch addr := ref.Subject.(type) {
-			case addrs.ProjectWorkspace, addrs.ProjectUpstreamWorkspace:
+			case addrs.ProjectWorkspace, addrs.ProjectUpstreamWorkspace, addrs.ProjectContextValue:
 				dynamicLocals[name] = ref
 			case addrs.LocalValue:
 				if _, ok := localRefs[name]; !ok {
@@ -90,9 +90,6 @@ func (c *Config) staticValidateAllReferences() tfdiags.Diagnostics {
 
 	// We can now rely on isDynamicAddr to give accurate results for all
 	// valid addresses.
-	// TODO: Specialized error messages for dynamic local vs.
-	// direct references to workspaces that gives the user a
-	// stronger hint as to where the problem is.
 
 	for _, ws := range c.Workspaces {
 		forEachRefs, moreDiags := c.getValidExprReferences(ws.ForEach)
@@ -102,7 +99,9 @@ func (c *Config) staticValidateAllReferences() tfdiags.Diagnostics {
 				diags = diags.Append(hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid for_each reference",
-					Detail:   fmt.Sprintf("Terraform must be able to determine the full set of workspaces prior to fetching any workspace outputs, so a for_each expression cannot be derived from a workspace or upstream output value."),
+					Detail:   fmt.Sprintf("Terraform must be able to determine the full set of workspaces prior to fetching any workspace outputs or processing context values, so the for_each value cannot be derived from %s.", ref.Subject.String()),
+					Subject:  ref.SourceRange.ToHCL().Ptr(),
+					Context:  ws.ForEach.Range().Ptr(),
 				})
 			}
 		}

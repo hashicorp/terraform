@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -59,6 +60,17 @@ func decodeUpstreamBlock(block *hcl.Block) (*Upstream, tfdiags.Diagnostics) {
 	}
 
 	return u, diags
+}
+
+// Addr returns the address of this upstream workspace configuration.
+func (us *Upstream) Addr() addrs.ProjectUpstreamWorkspaceConfig {
+	return addrs.ProjectUpstreamWorkspaceConfig{Name: us.Name}
+}
+
+// InstanceAddr returns an address that would refer to an instance of
+// this upstream block with the given key.
+func (us *Upstream) InstanceAddr(key addrs.InstanceKey) addrs.ProjectUpstreamWorkspace {
+	return addrs.ProjectUpstreamWorkspace{Name: us.Name, Key: key}
 }
 
 var upstreamSchema = &hcl.BodySchema{
