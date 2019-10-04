@@ -259,9 +259,9 @@ func (c *PackageCommand) Run(args []string) int {
 func (c *PackageCommand) bundleFilename(version discovery.VersionStr, time time.Time, osName, archName string) string {
 	time = time.UTC()
 	return fmt.Sprintf(
-		"terraform_%s-bundle%04d%02d%02d%02d_%s_%s.zip",
+		"terraform_%s-bundle%04d%02d%02d%02d%02d_%s_%s.zip",
 		version,
-		time.Year(), time.Month(), time.Day(), time.Hour(),
+		time.Year(), time.Month(), time.Day(), time.Hour(), time.Minute(),
 		osName, archName,
 	)
 }
