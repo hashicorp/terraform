@@ -63,14 +63,21 @@ func decodeUpstreamBlock(block *hcl.Block) (*Upstream, tfdiags.Diagnostics) {
 }
 
 // Addr returns the address of this upstream workspace configuration.
-func (us *Upstream) Addr() addrs.ProjectUpstreamWorkspaceConfig {
-	return addrs.ProjectUpstreamWorkspaceConfig{Name: us.Name}
+func (us *Upstream) Addr() addrs.ProjectWorkspaceConfig {
+	return addrs.ProjectWorkspaceConfig{
+		Rel:  addrs.ProjectWorkspaceUpstream,
+		Name: us.Name,
+	}
 }
 
 // InstanceAddr returns an address that would refer to an instance of
 // this upstream block with the given key.
-func (us *Upstream) InstanceAddr(key addrs.InstanceKey) addrs.ProjectUpstreamWorkspace {
-	return addrs.ProjectUpstreamWorkspace{Name: us.Name, Key: key}
+func (us *Upstream) InstanceAddr(key addrs.InstanceKey) addrs.ProjectWorkspace {
+	return addrs.ProjectWorkspace{
+		Rel:  addrs.ProjectWorkspaceUpstream,
+		Name: us.Name,
+		Key:  key,
+	}
 }
 
 var upstreamSchema = &hcl.BodySchema{

@@ -35,7 +35,7 @@ func (c *Config) staticValidateAllReferences() tfdiags.Diagnostics {
 	localRefs := map[string]map[string]struct{}{}
 	isDynamicAddr := func(addr addrs.ProjectReferenceable) bool {
 		switch addr := addr.(type) {
-		case addrs.ProjectWorkspace, addrs.ProjectUpstreamWorkspace, addrs.ProjectContextValue:
+		case addrs.ProjectWorkspaceConfig, addrs.ProjectContextValue:
 			return true
 		case addrs.LocalValue:
 			return dynamicLocals[addr.Name] != nil
@@ -50,7 +50,7 @@ func (c *Config) staticValidateAllReferences() tfdiags.Diagnostics {
 		dynamicLocals[name] = nil
 		for _, ref := range refs {
 			switch addr := ref.Subject.(type) {
-			case addrs.ProjectWorkspace, addrs.ProjectUpstreamWorkspace, addrs.ProjectContextValue:
+			case addrs.ProjectWorkspaceConfig, addrs.ProjectContextValue:
 				dynamicLocals[name] = ref
 			case addrs.LocalValue:
 				if _, ok := localRefs[name]; !ok {
@@ -182,22 +182,12 @@ func (c *Config) getValidExprReferences(expr hcl.Expression) ([]*addrs.ProjectCo
 				})
 				continue
 			}
-		case addrs.ProjectWorkspace:
+		case addrs.ProjectWorkspaceConfig:
 			if _, ok := c.Workspaces[addr.Name]; !ok {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Reference to undeclared workspace block",
 					Detail:   fmt.Sprintf("There is no workspace %q block in this project configuration.", addr.Name),
-					Subject:  ref.SourceRange.ToHCL().Ptr(),
-				})
-				continue
-			}
-		case addrs.ProjectUpstreamWorkspace:
-			if _, ok := c.Upstreams[addr.Name]; !ok {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Reference to undeclared upstream workspace block",
-					Detail:   fmt.Sprintf("There is no upstream %q block in this project configuration.", addr.Name),
 					Subject:  ref.SourceRange.ToHCL().Ptr(),
 				})
 				continue

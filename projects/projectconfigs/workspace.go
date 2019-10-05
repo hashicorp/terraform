@@ -114,13 +114,20 @@ func decodeWorkspaceBlock(block *hcl.Block) (*Workspace, tfdiags.Diagnostics) {
 
 // Addr returns the address of this workspace configuration.
 func (ws *Workspace) Addr() addrs.ProjectWorkspaceConfig {
-	return addrs.ProjectWorkspaceConfig{Name: ws.Name}
+	return addrs.ProjectWorkspaceConfig{
+		Rel:  addrs.ProjectWorkspaceCurrent,
+		Name: ws.Name,
+	}
 }
 
 // InstanceAddr returns an address that would refer to an instance of
 // this workspace block with the given key.
 func (ws *Workspace) InstanceAddr(key addrs.InstanceKey) addrs.ProjectWorkspace {
-	return addrs.ProjectWorkspace{Name: ws.Name, Key: key}
+	return addrs.ProjectWorkspace{
+		Rel:  addrs.ProjectWorkspaceCurrent,
+		Name: ws.Name,
+		Key:  key,
+	}
 }
 
 // StateStorage represents a state_storage block inside a workspace

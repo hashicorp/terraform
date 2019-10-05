@@ -12,81 +12,91 @@ import (
 //
 // Each configuration block produces zero or more workspaces, whose references
 // are represented by ProjectWorkspace.
+//
+// This could be either a workspace in the current configuration or an imported
+// workspace from an upstream project.
 type ProjectWorkspaceConfig struct {
+	Rel  ProjectWorkspaceRelationship
 	Name string
+
+	projectReferenceable
 }
 
 // Instance returns the address of a single workspace represented by this
 // configuration block.
 func (wc ProjectWorkspaceConfig) Instance(key InstanceKey) ProjectWorkspace {
-	return ProjectWorkspace{Name: wc.Name, Key: key}
+	return ProjectWorkspace{
+		Rel:  wc.Rel,
+		Name: wc.Name,
+		Key:  key,
+	}
 }
 
 func (wc ProjectWorkspaceConfig) String() string {
-	return "workspace." + wc.Name
+	switch wc.Rel {
+	case ProjectWorkspaceCurrent:
+		return "workspace." + wc.Name
+	case ProjectWorkspaceUpstream:
+		return "upstream." + wc.Name
+	default:
+		// Indicates that the address value is invalid
+		return "<invalid>." + wc.Name
+	}
 }
 
 // ProjectWorkspace refers to single workspace within the current project.
 type ProjectWorkspace struct {
+	Rel  ProjectWorkspaceRelationship
 	Name string
 	Key  InstanceKey
+}
 
-	projectReferenceable
+// Config returns the address of the workspace configuration this instance
+// belongs to.
+func (w ProjectWorkspace) Config() ProjectWorkspaceConfig {
+	return ProjectWorkspaceConfig{
+		Rel:  w.Rel,
+		Name: w.Name,
+	}
 }
 
 func (w ProjectWorkspace) String() string {
+	var prefix string
+	switch w.Rel {
+	case ProjectWorkspaceCurrent:
+		prefix = "workspace."
+	case ProjectWorkspaceUpstream:
+		prefix = "workspace."
+	default:
+		// Indicates that the address value is invalid
+		prefix = "<invalid>."
+	}
+
 	switch key := w.Key.(type) {
 	case nil:
-		return "workspace." + w.Name
+		return prefix + w.Name
 	case StringKey:
-		return fmt.Sprintf("workspace.%s.%s", w.Name, key)
+		return fmt.Sprintf(prefix+"%s.%s", w.Name, string(key))
 	default:
 		// No other key types are valid for project workspaces, but we'll
 		// tolerate this anyway for robustness.
-		return fmt.Sprintf("workspace.%s%s", w.Name, key.String())
+		return fmt.Sprintf(prefix+"%s%s", w.Name, key.String())
 	}
 }
 
-// ProjectUpstreamWorkspaceConfig refers to an "upstream" configuration block
-// within the current project.
-//
-// Each configuration block produces zero or more upstream workspaces, whose
-// references are represented by ProjectUpstreamWorkspace.
-type ProjectUpstreamWorkspaceConfig struct {
-	Name string
-}
+// ProjectWorkspaceRelationship defines the relationship between the current
+// workspace and the referenced workspace.
+type ProjectWorkspaceRelationship int
 
-// Instance returns the address of a single workspace represented by this
-// configuration block.
-func (wc ProjectUpstreamWorkspaceConfig) Instance(key InstanceKey) ProjectUpstreamWorkspace {
-	return ProjectUpstreamWorkspace{Name: wc.Name, Key: key}
-}
+const (
+	// ProjectWorkspaceCurrent represents a workspace defined within the
+	// current project.
+	ProjectWorkspaceCurrent ProjectWorkspaceRelationship = 1
 
-func (wc ProjectUpstreamWorkspaceConfig) String() string {
-	return "upstream." + wc.Name
-}
-
-// ProjectUpstreamWorkspace refers to a workspace in some other project whose
-// outputs are being imported into the current project.
-type ProjectUpstreamWorkspace struct {
-	Name string
-	Key  InstanceKey
-
-	projectReferenceable
-}
-
-func (w ProjectUpstreamWorkspace) String() string {
-	switch key := w.Key.(type) {
-	case nil:
-		return "upstream." + w.Name
-	case StringKey:
-		return fmt.Sprintf("upstream.%s.%s", w.Name, key)
-	default:
-		// No other key types are valid for project workspaces, but we'll
-		// tolerate this anyway for robustness.
-		return fmt.Sprintf("upstream.%s%s", w.Name, key.String())
-	}
-}
+	// ProjectWorkspaceUpstream represents a workspace from another project
+	// which the current project can consume.
+	ProjectWorkspaceUpstream ProjectWorkspaceRelationship = 2
+)
 
 // ProjectContextValue refers to a named context value within a project
 // configuration. This is similar to InputVariable, but within the definition
@@ -190,7 +200,7 @@ func parseProjectConfigRef(traversal hcl.Traversal) (*ProjectConfigReference, tf
 	case "workspace":
 		name, rng, remain, diags := parseSingleAttrRef(traversal)
 		return &ProjectConfigReference{
-			Subject:     ProjectWorkspace{Name: name},
+			Subject:     ProjectWorkspaceConfig{Rel: ProjectWorkspaceCurrent, Name: name},
 			SourceRange: tfdiags.SourceRangeFromHCL(rng),
 			Remaining:   remain,
 		}, diags
@@ -198,7 +208,7 @@ func parseProjectConfigRef(traversal hcl.Traversal) (*ProjectConfigReference, tf
 	case "upstream":
 		name, rng, remain, diags := parseSingleAttrRef(traversal)
 		return &ProjectConfigReference{
-			Subject:     ProjectUpstreamWorkspace{Name: name},
+			Subject:     ProjectWorkspaceConfig{Rel: ProjectWorkspaceUpstream, Name: name},
 			SourceRange: tfdiags.SourceRangeFromHCL(rng),
 			Remaining:   remain,
 		}, diags
