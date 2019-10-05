@@ -96,7 +96,7 @@ func (c *Config) staticValidateAllReferences() tfdiags.Diagnostics {
 		diags = diags.Append(moreDiags)
 		for _, ref := range forEachRefs {
 			if isDynamicAddr(ref.Subject) {
-				diags = diags.Append(hcl.Diagnostic{
+				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid for_each reference",
 					Detail:   fmt.Sprintf("Terraform must be able to determine the full set of workspaces prior to fetching any workspace outputs or processing context values, so the for_each value cannot be derived from %s.", ref.Subject.String()),
