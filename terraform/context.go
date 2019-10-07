@@ -210,6 +210,18 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 
 	log.Printf("[TRACE] terraform.NewContext: complete")
 
+	// By the time we get here, we should have values defined for all of
+	// the root module variables, even if some of them are "unknown". It's the
+	// caller's responsibility to have already handled the decoding of these
+	// from the various ways the CLI allows them to be set and to produce
+	// user-friendly error messages if they are not all present, and so
+	// the error message from checkInputVariables should never be seen and
+	// includes language asking the user to report a bug.
+	if config != nil {
+		varDiags := checkInputVariables(config.Module.Variables, variables)
+		diags = diags.Append(varDiags)
+	}
+
 	return &Context{
 		components: components,
 		schemas:    schemas,
@@ -227,7 +239,7 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 		providerInputConfig: make(map[string]map[string]cty.Value),
 		providerSHA256s:     opts.ProviderSHA256s,
 		sh:                  sh,
-	}, nil
+	}, diags
 }
 
 func (c *Context) Schemas() *Schemas {
@@ -657,14 +669,6 @@ func (c *Context) Validate() tfdiags.Diagnostics {
 	defer c.acquireRun("validate")()
 
 	var diags tfdiags.Diagnostics
-
-	// Validate input variables. We do this only for the values supplied
-	// by the root module, since child module calls are validated when we
-	// visit their graph nodes.
-	if c.config != nil {
-		varDiags := checkInputVariables(c.config.Module.Variables, c.variables)
-		diags = diags.Append(varDiags)
-	}
 
 	// If we have errors at this point then we probably won't be able to
 	// construct a graph without producing redundant errors, so we'll halt early.
