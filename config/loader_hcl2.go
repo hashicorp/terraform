@@ -92,6 +92,7 @@ func (t *hcl2Configurable) Config() (*Config, error) {
 		CreateBeforeDestroy *bool     `hcl:"create_before_destroy,attr"`
 		PreventDestroy      *bool     `hcl:"prevent_destroy,attr"`
 		IgnoreChanges       *[]string `hcl:"ignore_changes,attr"`
+		AbandonOnDestroy    *bool     `hcl:"abandon_on_destroy,attr"`
 	}
 	type connection struct {
 		Config hcl2.Body `hcl:",remain"`
@@ -320,6 +321,14 @@ func (t *hcl2Configurable) Config() (*Config, error) {
 			}
 			if rawR.Lifecycle.IgnoreChanges != nil {
 				l.IgnoreChanges = *rawR.Lifecycle.IgnoreChanges
+			}
+			if rawR.Lifecycle.AbandonOnDestroy != nil {
+				diags = append(diags, &hcl2.Diagnostic{
+					Severity: hcl2.DiagWarning,
+					Summary:  "Ooooh, enabled abandon_on_destroy have we?",
+					Detail:   "Nice one",
+				})
+				l.AbandonOnDestroy = *rawR.Lifecycle.AbandonOnDestroy
 			}
 			r.Lifecycle = l
 		}

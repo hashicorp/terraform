@@ -536,6 +536,7 @@ func lifecycleBlockBodyRules(filename string, an *analysis) bodyContentRules {
 	return bodyContentRules{
 		"create_before_destroy": noInterpAttributeRule(filename, cty.Bool, an),
 		"prevent_destroy":       noInterpAttributeRule(filename, cty.Bool, an),
+		"abandon_on_destroy":    noInterpAttributeRule(filename, cty.Bool, an),
 		"ignore_changes": func(buf *bytes.Buffer, blockAddr string, item *hcl1ast.ObjectItem) tfdiags.Diagnostics {
 			var diags tfdiags.Diagnostics
 			val, ok := item.Val.(*hcl1ast.ListType)

@@ -260,15 +260,16 @@ func (n *NodeRefreshableManagedResourceInstance) evalTreeManagedResourceNoState(
 			},
 
 			&EvalDiff{
-				Addr:           addr.Resource,
-				Config:         n.Config,
-				Provider:       &provider,
-				ProviderAddr:   n.ResolvedProvider,
-				ProviderSchema: &providerSchema,
-				State:          &state,
-				OutputChange:   &change,
-				OutputState:    &state,
-				Stub:           true,
+				Addr:             addr.Resource,
+				Config:           n.Config,
+				AbandonOnDestroy: n.Config.Managed.AbandonOnDestroy,
+				Provider:         &provider,
+				ProviderAddr:     n.ResolvedProvider,
+				ProviderSchema:   &providerSchema,
+				State:            &state,
+				OutputChange:     &change,
+				OutputState:      &state,
+				Stub:             true,
 			},
 
 			&EvalWriteState{

@@ -225,6 +225,10 @@ func (r *Resource) merge(or *Resource) hcl.Diagnostics {
 			r.Managed.PreventDestroy = or.Managed.PreventDestroy
 			r.Managed.PreventDestroySet = or.Managed.PreventDestroySet
 		}
+		if or.Managed.AbandonOnDestroySet {
+			r.Managed.AbandonOnDestroy = or.Managed.AbandonOnDestroy
+			r.Managed.AbandonOnDestroySet = or.Managed.AbandonOnDestroySet
+		}
 		if len(or.Managed.Provisioners) != 0 {
 			r.Managed.Provisioners = or.Managed.Provisioners
 		}

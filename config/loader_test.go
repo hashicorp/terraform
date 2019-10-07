@@ -894,6 +894,43 @@ func TestLoad_preventDestroyString(t *testing.T) {
 	}
 }
 
+func TestLoad_abandonOnDestroy(t *testing.T) {
+	c, err := LoadFile(filepath.Join(fixtureDir, "abandon-on-destroy.tf"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	actual := resourcesStr(c.Resources)
+	if actual != strings.TrimSpace(abandonOnDestroyResourcesStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+
+	// Check for the flag value
+	r := c.Resources[0]
+	if r.Name != "abandon" && r.Type != "aws_instance" {
+		t.Fatalf("Bad: %#v", r)
+	}
+
+	// Should enable abandon on destroy
+	if !r.Lifecycle.AbandonOnDestroy {
+		t.Fatalf("Bad: %#v", r)
+	}
+
+	r = c.Resources[1]
+	if r.Name != "no_lifecycle" && r.Type != "aws_instance" {
+		t.Fatalf("Bad: %#v", r)
+	}
+
+	// Should not enable create before destroy
+	if r.Lifecycle.AbandonOnDestroy {
+		t.Fatalf("Bad: %#v", r)
+	}
+}
+
 func TestLoad_temporary_files(t *testing.T) {
 	_, err := LoadDir(filepath.Join(fixtureDir, "dir-temporary-files"))
 	if err == nil {
@@ -1303,6 +1340,13 @@ const createBeforeDestroyResourcesStr = `
 aws_instance.bar (x1)
   ami
 aws_instance.web (x1)
+  ami
+`
+
+const abandonOnDestroyResourcesStr = `
+aws_instance.abandon (x1)
+  ami
+aws_instance.no_lifecycle (x1)
   ami
 `
 

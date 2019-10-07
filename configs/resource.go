@@ -41,9 +41,11 @@ type ManagedResource struct {
 	PreventDestroy      bool
 	IgnoreChanges       []hcl.Traversal
 	IgnoreAllChanges    bool
+	AbandonOnDestroy    bool
 
 	CreateBeforeDestroySet bool
 	PreventDestroySet      bool
+	AbandonOnDestroySet    bool
 }
 
 func (r *Resource) moduleUniqueKey() string {
@@ -163,6 +165,12 @@ func decodeResourceBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 				valDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.Managed.PreventDestroy)
 				diags = append(diags, valDiags...)
 				r.Managed.PreventDestroySet = true
+			}
+
+			if attr, exists := lcContent.Attributes["abandon_on_destroy"]; exists {
+				valDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.Managed.AbandonOnDestroy)
+				diags = append(diags, valDiags...)
+				r.Managed.AbandonOnDestroySet = true
 			}
 
 			if attr, exists := lcContent.Attributes["ignore_changes"]; exists {
@@ -485,6 +493,9 @@ var resourceLifecycleBlockSchema = &hcl.BodySchema{
 		},
 		{
 			Name: "ignore_changes",
+		},
+		{
+			Name: "abandon_on_destroy",
 		},
 	},
 }

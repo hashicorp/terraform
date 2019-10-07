@@ -278,16 +278,17 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 			// Make a new diff, in case we've learned new values in the state
 			// during apply which we can now incorporate.
 			&EvalDiff{
-				Addr:           addr.Resource,
-				Config:         n.Config,
-				Provider:       &provider,
-				ProviderAddr:   n.ResolvedProvider,
-				ProviderSchema: &providerSchema,
-				State:          &state,
-				PreviousDiff:   &diff,
-				OutputChange:   &diffApply,
-				OutputValue:    &configVal,
-				OutputState:    &state,
+				Addr:             addr.Resource,
+				Config:           n.Config,
+				AbandonOnDestroy: n.Config.Managed.AbandonOnDestroy,
+				Provider:         &provider,
+				ProviderAddr:     n.ResolvedProvider,
+				ProviderSchema:   &providerSchema,
+				State:            &state,
+				PreviousDiff:     &diff,
+				OutputChange:     &diffApply,
+				OutputValue:      &configVal,
+				OutputState:      &state,
 			},
 
 			// Compare the diffs

@@ -116,6 +116,7 @@ type ResourceLifecycle struct {
 	CreateBeforeDestroy bool     `mapstructure:"create_before_destroy"`
 	PreventDestroy      bool     `mapstructure:"prevent_destroy"`
 	IgnoreChanges       []string `mapstructure:"ignore_changes"`
+	AbandonOnDestroy    bool     `mapstructure:"abandon_on_destroy"`
 }
 
 // Copy returns a copy of this ResourceLifecycle
@@ -124,6 +125,7 @@ func (r *ResourceLifecycle) Copy() *ResourceLifecycle {
 		CreateBeforeDestroy: r.CreateBeforeDestroy,
 		PreventDestroy:      r.PreventDestroy,
 		IgnoreChanges:       make([]string, len(r.IgnoreChanges)),
+		AbandonOnDestroy:    r.AbandonOnDestroy,
 	}
 	copy(n.IgnoreChanges, r.IgnoreChanges)
 	return n

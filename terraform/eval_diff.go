@@ -103,6 +103,9 @@ type EvalDiff struct {
 	// resource to be handled as create_before_destroy in order to avoid
 	// a dependency cycle.
 	CreateBeforeDestroy bool
+	// AbandonOnDestroy is set if the abandon_on_destroy lifecycle rule
+	// has been explictly set on the resource
+	AbandonOnDestroy bool
 
 	OutputChange **plans.ResourceInstanceChange
 	OutputValue  *cty.Value
@@ -334,6 +337,13 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		}
 	}
 
+	// TODO: This deals with an update case but how do
+	// we handle the delete case?
+	replaceRequired := !reqRep.Empty()
+	if n.AbandonOnDestroy && replaceRequired {
+		priorVal = cty.NullVal(schema.ImpliedType())
+	}
+
 	eqV := plannedNewVal.Equals(priorVal)
 	eq := eqV.IsKnown() && eqV.True()
 
@@ -343,7 +353,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		action = plans.Create
 	case eq:
 		action = plans.NoOp
-	case !reqRep.Empty():
+	case replaceRequired:
 		// If there are any "requires replace" paths left _after our filtering
 		// above_ then this is a replace action.
 		if n.CreateBeforeDestroy {
@@ -458,6 +468,13 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 			RequiredReplace: reqRep,
 		}
 	}
+	log.Printf("[TRACE] plans.Change: %+v", plans.Change{
+		Action: action,
+		Before: priorVal,
+		After:  plannedNewVal,
+	})
+
+	log.Printf("[TRACE] RequiredReplace: %+v", reqRep)
 
 	if n.OutputValue != nil {
 		*n.OutputValue = configVal
