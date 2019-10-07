@@ -87,35 +87,28 @@ func TestContext2Validate_varMapOverrideOld(t *testing.T) {
 		},
 	}
 
-	c := testContext2(t, &ContextOpts{
+	_, diags := NewContext(&ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		Variables: InputValues{
-			"foo.foo": &InputValue{
-				Value:      cty.StringVal("bar"),
-				SourceType: ValueFromCaller,
-			},
-		},
+		Variables: InputValues{},
 	})
-
-	diags := c.Validate()
 	if !diags.HasErrors() {
+		// Error should be: The input variable "provider_var" has not been assigned a value.
 		t.Fatalf("succeeded; want error")
 	}
 }
 
 func TestContext2Validate_varNoDefaultExplicitType(t *testing.T) {
 	m := testModule(t, "validate-var-no-default-explicit-type")
-	c := testContext2(t, &ContextOpts{
+	_, diags := NewContext(&ContextOpts{
 		Config: m,
 	})
-
-	diags := c.Validate()
 	if !diags.HasErrors() {
+		// Error should be: The input variable "maybe_a_map" has not been assigned a value.
 		t.Fatalf("succeeded; want error")
 	}
 }
@@ -314,7 +307,7 @@ func TestContext2Validate_countVariableNoDefault(t *testing.T) {
 		},
 	}
 
-	c := testContext2(t, &ContextOpts{
+	_, diags := NewContext(&ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
@@ -322,9 +315,8 @@ func TestContext2Validate_countVariableNoDefault(t *testing.T) {
 			},
 		),
 	})
-
-	diags := c.Validate()
 	if !diags.HasErrors() {
+		// Error should be: The input variable "foo" has not been assigned a value.
 		t.Fatalf("succeeded; want error")
 	}
 }
@@ -847,7 +839,7 @@ func TestContext2Validate_requiredVar(t *testing.T) {
 		},
 	}
 
-	c := testContext2(t, &ContextOpts{
+	_, diags := NewContext(&ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
@@ -855,9 +847,8 @@ func TestContext2Validate_requiredVar(t *testing.T) {
 			},
 		),
 	})
-
-	diags := c.Validate()
 	if !diags.HasErrors() {
+		// Error should be: The input variable "foo" has not been assigned a value.
 		t.Fatalf("succeeded; want error")
 	}
 }
