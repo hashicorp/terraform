@@ -237,19 +237,6 @@ func TestScopeEvalContext(t *testing.T) {
 		{
 			`self.baz`,
 			map[string]cty.Value{
-				// In the test function below we set "SelfAddr" to be
-				// one of the resources in our dataset, causing it to get
-				// expanded here and then copied into "self".
-				"null_resource": cty.ObjectVal(map[string]cty.Value{
-					"multi": cty.TupleVal([]cty.Value{
-						cty.ObjectVal(map[string]cty.Value{
-							"attr": cty.StringVal("multi0"),
-						}),
-						cty.ObjectVal(map[string]cty.Value{
-							"attr": cty.StringVal("multi1"),
-						}),
-					}),
-				}),
 				"self": cty.ObjectVal(map[string]cty.Value{
 					"attr": cty.StringVal("multi1"),
 				}),
