@@ -225,13 +225,13 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 				continue
 			}
 
-			// self can only be used within a resource instance
-			subj := selfAddr.(addrs.ResourceInstance)
-
 			if selfAddr == addrs.Self {
 				// Programming error: the self address cannot alias itself.
 				panic("scope SelfAddr attempting to alias itself")
 			}
+
+			// self can only be used within a resource instance
+			subj := selfAddr.(addrs.ResourceInstance)
 
 			val, valDiags := normalizeRefValue(s.Data.GetResource(subj.ContainingResource(), rng))
 
@@ -249,16 +249,16 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 				self = val
 			}
 
-			r := subj.Resource
-			if managedResources[r.Type] == nil {
-				managedResources[r.Type] = make(map[string]cty.Value)
-			}
-			managedResources[r.Type][r.Name] = val
 			continue
 		}
 
 		// This type switch must cover all of the "Referenceable" implementations
-		// in package addrs.
+		// in package addrs, however we are removing the possibility of
+		// ResourceInstance beforehand.
+		if addr, ok := rawSubj.(addrs.ResourceInstance); ok {
+			rawSubj = addr.ContainingResource()
+		}
+
 		switch subj := rawSubj.(type) {
 		case addrs.Resource:
 			var into map[string]map[string]cty.Value
@@ -275,27 +275,6 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 			diags = diags.Append(valDiags)
 
 			r := subj
-			if into[r.Type] == nil {
-				into[r.Type] = make(map[string]cty.Value)
-			}
-			into[r.Type][r.Name] = val
-
-		case addrs.ResourceInstance:
-			var into map[string]map[string]cty.Value
-			switch subj.Resource.Mode {
-			case addrs.ManagedResourceMode:
-				into = managedResources
-			case addrs.DataResourceMode:
-				into = dataResources
-			default:
-				panic(fmt.Errorf("unsupported ResourceMode %s", subj.Resource.Mode))
-			}
-
-			val, valDiags := normalizeRefValue(s.Data.GetResource(subj.ContainingResource(), rng))
-
-			diags = diags.Append(valDiags)
-
-			r := subj.Resource
 			if into[r.Type] == nil {
 				into[r.Type] = make(map[string]cty.Value)
 			}
