@@ -4803,12 +4803,6 @@ func TestContext2Apply_provisionerFail(t *testing.T) {
 		Provisioners: map[string]ProvisionerFactory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
-		Variables: InputValues{
-			"value": &InputValue{
-				Value:      cty.NumberIntVal(1),
-				SourceType: ValueFromCaller,
-			},
-		},
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
@@ -6650,12 +6644,6 @@ func TestContext2Apply_destroyModuleWithAttrsReferencingResource(t *testing.T) {
 					"aws": testProviderFuncFixed(p),
 				},
 			),
-			Variables: InputValues{
-				"key_name": &InputValue{
-					Value:      cty.StringVal("foobarkey"),
-					SourceType: ValueFromCaller,
-				},
-			},
 		})
 
 		// First plan and apply a create operation
