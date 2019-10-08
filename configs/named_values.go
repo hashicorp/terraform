@@ -179,6 +179,12 @@ func decodeVariableType(expr hcl.Expression) (cty.Type, VariableParsingMode, hcl
 	}
 }
 
+// Required returns true if this variable is required to be set by the caller,
+// or false if there is a default value that will be used when it isn't set.
+func (v *Variable) Required() bool {
+	return v.Default == cty.NilVal
+}
+
 // VariableParsingMode defines how values of a particular variable given by
 // text-only mechanisms (command line arguments and environment variables)
 // should be parsed to produce the final value.

@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sort"
 
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/clistate"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/plans/planfile"
 	"github.com/hashicorp/terraform/states/statemgr"
@@ -103,8 +105,6 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, *configload.
 		// If input asking is enabled, then do that
 		if op.PlanFile == nil && b.OpInput {
 			mode := terraform.InputModeProvider
-			mode |= terraform.InputModeVar
-			mode |= terraform.InputModeVarUnset
 
 			log.Printf("[TRACE] backend/local: requesting interactive input, if necessary")
 			inputDiags := tfCtx.Input(mode)
@@ -136,14 +136,18 @@ func (b *Local) contextDirect(op *backend.Operation, opts terraform.ContextOpts)
 	}
 	opts.Config = config
 
-	variables, varDiags := backend.ParseVariableValues(op.Variables, config.Module.Variables)
+	// If interactive input is enabled, we might gather some more variable
+	// values through interactive prompts.
+	// TODO: Need to route the operation context through into here, so that
+	// the interactive prompts can be sensitive to its timeouts/etc.
+	rawVariables := b.interactiveCollectVariables(context.TODO(), op.Variables, config.Module.Variables, opts.UIInput)
+
+	variables, varDiags := backend.ParseVariableValues(rawVariables, config.Module.Variables)
 	diags = diags.Append(varDiags)
 	if diags.HasErrors() {
 		return nil, nil, diags
 	}
-	if op.Variables != nil {
-		opts.Variables = variables
-	}
+	opts.Variables = variables
 
 	tfCtx, ctxDiags := terraform.NewContext(&opts)
 	diags = diags.Append(ctxDiags)
@@ -243,6 +247,91 @@ func (b *Local) contextFromPlanFile(pf *planfile.Reader, opts terraform.ContextO
 	tfCtx, ctxDiags := terraform.NewContext(&opts)
 	diags = diags.Append(ctxDiags)
 	return tfCtx, snap, diags
+}
+
+// interactiveCollectVariables attempts to complete the given existing
+// map of variables by interactively prompting for any variables that are
+// declared as required but not yet present.
+//
+// If interactive input is disabled for this backend instance then this is
+// a no-op. If input is enabled but fails for some reason, the resulting
+// map will be incomplete. For these reasons, the caller must still validate
+// that the result is complete and valid.
+//
+// This function does not modify the map given in "existing", but may return
+// it unchanged if no modifications are required. If modifications are required,
+// the result is a new map with all of the elements from "existing" plus
+// additional elements as appropriate.
+//
+// Interactive prompting is a "best effort" thing for first-time user UX and
+// not something we expect folks to be relying on for routine use. Terraform
+// is primarily a non-interactive tool and so we prefer to report in error
+// messages that variables are not set rather than reporting that input failed:
+// the primary resolution to missing variables is to provide them by some other
+// means.
+func (b *Local) interactiveCollectVariables(ctx context.Context, existing map[string]backend.UnparsedVariableValue, vcs map[string]*configs.Variable, uiInput terraform.UIInput) map[string]backend.UnparsedVariableValue {
+	var needed []string
+	if b.OpInput && uiInput != nil {
+		for name, vc := range vcs {
+			if !vc.Required() {
+				continue // We only prompt for required variables
+			}
+			if _, exists := existing[name]; !exists {
+				needed = append(needed, name)
+			}
+		}
+	} else {
+		log.Print("[DEBUG] backend/local: Skipping interactive prompts for variables because input is disabled")
+	}
+	if len(needed) == 0 {
+		return existing
+	}
+
+	log.Printf("[DEBUG] backend/local: will prompt for input of unset required variables %s", needed)
+
+	// If we get here then we're planning to prompt for at least one additional
+	// variable's value.
+	sort.Strings(needed) // prompt in lexical order
+	ret := make(map[string]backend.UnparsedVariableValue, len(vcs))
+	for k, v := range existing {
+		ret[k] = v
+	}
+	for _, name := range needed {
+		vc := vcs[name]
+		rawValue, err := uiInput.Input(ctx, &terraform.InputOpts{
+			Id:          fmt.Sprintf("var.%s", name),
+			Query:       fmt.Sprintf("var.%s", name),
+			Description: vc.Description,
+		})
+		if err != nil {
+			// Since interactive prompts are best-effort, we'll just continue
+			// here and let subsequent validation report this as a variable
+			// not specified.
+			log.Printf("[WARN] backend/local: Failed to request user input for variable %q: %s", name, err)
+			continue
+		}
+		ret[name] = unparsedInteractiveVariableValue{Name: name, RawValue: rawValue}
+	}
+	return ret
+}
+
+type unparsedInteractiveVariableValue struct {
+	Name, RawValue string
+}
+
+var _ backend.UnparsedVariableValue = unparsedInteractiveVariableValue{}
+
+func (v unparsedInteractiveVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	val, valDiags := mode.Parse(v.Name, v.RawValue)
+	diags = diags.Append(valDiags)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+	return &terraform.InputValue{
+		Value:      val,
+		SourceType: terraform.ValueFromInput,
+	}, diags
 }
 
 const validateWarnHeader = `

@@ -242,8 +242,6 @@ func (m *Meta) InputMode() terraform.InputMode {
 
 	var mode terraform.InputMode
 	mode |= terraform.InputModeProvider
-	mode |= terraform.InputModeVar
-	mode |= terraform.InputModeVarUnset
 
 	return mode
 }
