@@ -423,7 +423,11 @@ func TestApply_input(t *testing.T) {
 	test = false
 	defer func() { test = true }()
 
-	// Set some default reader/writers for the inputs
+	// The configuration for this test includes a declaration of variable
+	// "foo" with no default, and we don't set it on the command line below,
+	// so the apply command will produce an interactive prompt for the
+	// value of var.foo. We'll answer "foo" here, and we expect the output
+	// value "result" to echo that back to us below.
 	defaultInputReader = bytes.NewBufferString("foo\n")
 	defaultInputWriter = new(bytes.Buffer)
 
