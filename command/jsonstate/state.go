@@ -306,43 +306,39 @@ func marshalResources(resources map[string]*states.Resource, schemas *terraform.
 				ret = append(ret, current)
 			}
 
-			if ri.Deposed != nil {
-				for deposedKey, rios := range ri.Deposed {
-					// copy the base fields from the current instance
-					deposed := resource{
-						Address:      current.Address,
-						Type:         current.Type,
-						Name:         current.Name,
-						ProviderName: current.ProviderName,
-						Mode:         current.Mode,
-						Index:        current.Index,
-					}
-
-					riObj, err := rios.Decode(schema.ImpliedType())
-					if err != nil {
-						return nil, err
-					}
-
-					deposed.AttributeValues = marshalAttributeValues(riObj.Value, schema)
-
-					if len(riObj.Dependencies) > 0 {
-						dependencies := make([]string, len(riObj.Dependencies))
-						for i, v := range riObj.Dependencies {
-							dependencies[i] = v.String()
-						}
-						deposed.DependsOn = dependencies
-					}
-
-					if riObj.Status == states.ObjectTainted {
-						deposed.Tainted = true
-					}
-					deposed.DeposedKey = deposedKey.String()
-					ret = append(ret, deposed)
+			for deposedKey, rios := range ri.Deposed {
+				// copy the base fields from the current instance
+				deposed := resource{
+					Address:      current.Address,
+					Type:         current.Type,
+					Name:         current.Name,
+					ProviderName: current.ProviderName,
+					Mode:         current.Mode,
+					Index:        current.Index,
 				}
+
+				riObj, err := rios.Decode(schema.ImpliedType())
+				if err != nil {
+					return nil, err
+				}
+
+				deposed.AttributeValues = marshalAttributeValues(riObj.Value, schema)
+
+				if len(riObj.Dependencies) > 0 {
+					dependencies := make([]string, len(riObj.Dependencies))
+					for i, v := range riObj.Dependencies {
+						dependencies[i] = v.String()
+					}
+					deposed.DependsOn = dependencies
+				}
+
+				if riObj.Status == states.ObjectTainted {
+					deposed.Tainted = true
+				}
+				deposed.DeposedKey = deposedKey.String()
+				ret = append(ret, deposed)
 			}
-
 		}
-
 	}
 
 	sort.Slice(ret, func(i, j int) bool {
