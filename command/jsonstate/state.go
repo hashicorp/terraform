@@ -91,6 +91,9 @@ type resource struct {
 
 	// Tainted is true if the resource is tainted in terraform state.
 	Tainted bool `json:"tainted,omitempty"`
+
+	// Deposed is set if the resource is deposed in terraform state.
+	DeposedKey string `json:"deposed_key,omitempty"`
 }
 
 // attributeValues is the JSON representation of the attribute values of the
@@ -246,7 +249,7 @@ func marshalResources(resources map[string]*states.Resource, schemas *terraform.
 	for _, r := range resources {
 		for k, ri := range r.Instances {
 
-			resource := resource{
+			current := resource{
 				Address:      r.Addr.String(),
 				Type:         r.Addr.Type,
 				Name:         r.Addr.Name,
@@ -255,9 +258,9 @@ func marshalResources(resources map[string]*states.Resource, schemas *terraform.
 
 			switch r.Addr.Mode {
 			case addrs.ManagedResourceMode:
-				resource.Mode = "managed"
+				current.Mode = "managed"
 			case addrs.DataResourceMode:
-				resource.Mode = "data"
+				current.Mode = "data"
 			default:
 				return ret, fmt.Errorf("resource %s has an unsupported mode %s",
 					r.Addr.String(),
@@ -266,7 +269,7 @@ func marshalResources(resources map[string]*states.Resource, schemas *terraform.
 			}
 
 			if r.EachMode != states.NoEach {
-				resource.Index = k
+				current.Index = k
 			}
 
 			schema, _ := schemas.ResourceTypeConfig(
@@ -274,33 +277,68 @@ func marshalResources(resources map[string]*states.Resource, schemas *terraform.
 				r.Addr.Mode,
 				r.Addr.Type,
 			)
-			resource.SchemaVersion = ri.Current.SchemaVersion
 
-			if schema == nil {
-				return nil, fmt.Errorf("no schema found for %s", r.Addr.String())
-			}
-			riObj, err := ri.Current.Decode(schema.ImpliedType())
-			if err != nil {
-				return nil, err
-			}
+			// It is possible that the only instance is deposed
+			if ri.Current != nil {
+				current.SchemaVersion = ri.Current.SchemaVersion
 
-			resource.AttributeValues = marshalAttributeValues(riObj.Value, schema)
-
-			if len(riObj.Dependencies) > 0 {
-				dependencies := make([]string, len(riObj.Dependencies))
-				for i, v := range riObj.Dependencies {
-					dependencies[i] = v.String()
+				if schema == nil {
+					return nil, fmt.Errorf("no schema found for %s", r.Addr.String())
 				}
-				resource.DependsOn = dependencies
+				riObj, err := ri.Current.Decode(schema.ImpliedType())
+				if err != nil {
+					return nil, err
+				}
+
+				current.AttributeValues = marshalAttributeValues(riObj.Value, schema)
+
+				if len(riObj.Dependencies) > 0 {
+					dependencies := make([]string, len(riObj.Dependencies))
+					for i, v := range riObj.Dependencies {
+						dependencies[i] = v.String()
+					}
+					current.DependsOn = dependencies
+				}
+
+				if riObj.Status == states.ObjectTainted {
+					current.Tainted = true
+				}
+				ret = append(ret, current)
 			}
 
-			if riObj.Status == states.ObjectTainted {
-				resource.Tainted = true
-			}
+			for deposedKey, rios := range ri.Deposed {
+				// copy the base fields from the current instance
+				deposed := resource{
+					Address:      current.Address,
+					Type:         current.Type,
+					Name:         current.Name,
+					ProviderName: current.ProviderName,
+					Mode:         current.Mode,
+					Index:        current.Index,
+				}
 
-			ret = append(ret, resource)
+				riObj, err := rios.Decode(schema.ImpliedType())
+				if err != nil {
+					return nil, err
+				}
+
+				deposed.AttributeValues = marshalAttributeValues(riObj.Value, schema)
+
+				if len(riObj.Dependencies) > 0 {
+					dependencies := make([]string, len(riObj.Dependencies))
+					for i, v := range riObj.Dependencies {
+						dependencies[i] = v.String()
+					}
+					deposed.DependsOn = dependencies
+				}
+
+				if riObj.Status == states.ObjectTainted {
+					deposed.Tainted = true
+				}
+				deposed.DeposedKey = deposedKey.String()
+				ret = append(ret, deposed)
+			}
 		}
-
 	}
 
 	sort.Slice(ret, func(i, j int) bool {
