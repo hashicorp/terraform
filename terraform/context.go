@@ -24,19 +24,12 @@ import (
 type InputMode byte
 
 const (
-	// InputModeVar asks for all variables
-	InputModeVar InputMode = 1 << iota
-
-	// InputModeVarUnset asks for variables which are not set yet.
-	// InputModeVar must be set for this to have an effect.
-	InputModeVarUnset
-
 	// InputModeProvider asks for provider variables
-	InputModeProvider
+	InputModeProvider InputMode = 1 << iota
 
 	// InputModeStd is the standard operating mode and asks for both variables
 	// and providers.
-	InputModeStd = InputModeVar | InputModeProvider
+	InputModeStd = InputModeProvider
 )
 
 var (

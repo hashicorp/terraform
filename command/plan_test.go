@@ -575,6 +575,10 @@ func TestPlan_varsUnset(t *testing.T) {
 	test = false
 	defer func() { test = true }()
 
+	// The plan command will prompt for interactive input of var.foo.
+	// We'll answer "bar" to that prompt, which should then allow this
+	// configuration to apply even though var.foo doesn't have a
+	// default value and there are no -var arguments on our command line.
 	defaultInputReader = bytes.NewBufferString("bar\n")
 
 	p := planVarsFixtureProvider()
