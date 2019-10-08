@@ -139,7 +139,7 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
 - [Transloadit](https://github.com/bocodigitalmedia/terraform-provider-transloadit)
 - [Trello](https://github.com/jtsaito/terraform-provider-trello)
 - [Updown.io](https://github.com/mvisonneau/terraform-provider-updown)
-- [Uptimerobot](https://github.com/SpamapS/terraform-provider-uptimerobot)
+- [Uptimerobot](https://github.com/louy/terraform-provider-uptimerobot)
 - [Vaulted](https://github.com/sumup-oss/terraform-provider-vaulted)
 - [Venafi](https://github.com/Venafi/terraform-provider-venafi)
 - [vRealize Automation](https://github.com/GSLabDev/terraform-provider-vra)
