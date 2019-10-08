@@ -22,8 +22,8 @@ and a number of built-in functions.
 Expressions can be used in a number of places in the Terraform language,
 but some contexts limit which expression constructs are allowed,
 such as requiring a literal value of a particular type or forbidding
-references to resource attributes. Each language feature's documentation
-describes any restrictions it places on expressions.
+[references to resource attributes](/docs/configuration/expressions.html#references-to-resource-attributes).
+Each language feature's documentation describes any restrictions it places on expressions.
 
 You can experiment with the behavior of Terraform's expressions from
 the Terraform expression console, by running
@@ -171,6 +171,9 @@ The following named values are available:
     If the resource has the `count` argument set, the value of this expression
     is a _list_ of objects representing its instances.
 
+    If the resource has the `for_each` argument set, the value of this expression
+    is a _map_ of objects representing its instances.
+
     For more information, see
     [references to resource attributes](#references-to-resource-attributes) below.
 * `var.<NAME>` is the value of the
@@ -183,7 +186,8 @@ The following named values are available:
 * `data.<DATA TYPE>.<NAME>` is an object representing a
   [data resource](./data-sources.html) of the given data
   source type and name. If the resource has the `count` argument set, the value
-  is a list of objects representing its instances.
+  is a list of objects representing its instances. If the resource has the `for_each`
+  argument set, the value is a map of objects representing its instances.
 * `path.module` is the filesystem path of the module where the expression
   is placed.
 * `path.root` is the filesystem path of the root module of the configuration.
@@ -291,17 +295,40 @@ for use in references, as follows:
 
   To obtain a map of values of a particular argument for _labelled_ nested
   block types, use a [`for` expression](#for-expressions):
-  `[for k, device in aws_instance.example.device : k => device.size]`.
+  `{for k, device in aws_instance.example.device : k => device.size}`.
 
-When a particular resource has the special
+When a resource has the
 [`count`](https://www.terraform.io/docs/configuration/resources.html#count-multiple-resource-instances-by-count)
-argument set, the resource itself becomes a list of instance objects rather than
+argument set, the resource itself becomes a _list_ of instance objects rather than
 a single object. In that case, access the attributes of the instances using
 either [splat expressions](#splat-expressions) or index syntax:
 
 * `aws_instance.example[*].id` returns a list of all of the ids of each of the
   instances.
 * `aws_instance.example[0].id` returns just the id of the first instance.
+
+When a resource has the
+[`for_each`](/docs/configuration/resources.html#for_each-multiple-resource-instances-defined-by-a-map-or-set-of-strings)
+argument set, the resource itself becomes a _map_ of instance objects rather than
+a single object, and attributes of instances must be specified by key, or can
+be accessed using a [`for` expression](#for-expressions).
+
+* `aws_instance.example["a"].id` returns the id of the "a"-keyed resource.
+* `[for value in aws_instance.example: value.id]` returns a list of all of the ids
+  of each of the instances.
+
+### Local Named Values
+
+Within the bodies of certain expressions, or in some other specific contexts,
+there are other named values available beyond the global values listed above.
+(For example, the body of a resource block where `count` is set can use a
+special `count.index` value.) These local names are described in the
+documentation for the specific contexts where they appear.
+
+-> **Note:** Local named values are often referred to as _variables_ or
+_temporary variables_ in their documentation. These are not [input
+variables](./variables.html); they are just arbitrary names
+that temporarily represent a value.
 
 ### Values Not Yet Known
 
@@ -581,11 +608,14 @@ The above expression is equivalent to the following `for` expression:
 [for o in var.list : o.interfaces[0].name]
 ```
 
-Splat expressions also have another useful effect: if they are applied to
-a value that is _not_ a list or tuple then the value is automatically wrapped
-in a single-element list before processing. That is, `var.single_object[*].id`
-is equivalent to `[var.single_object][*].id`, or effectively
-`[var.single_object.id]`. This behavior is not interesting in most cases,
+Splat expressions are for lists only (and thus cannot be used [to reference resources
+created with `for_each`](/docs/configuration/resources.html#referring-to-instances-1),
+which are represented as maps in Terraform). However, if a splat expression is applied 
+to a value that is _not_ a list or tuple then the value is automatically wrapped in 
+a single-element list before processing.
+
+For example, `var.single_object[*].id` is equivalent to `[var.single_object][*].id`, 
+or effectively `[var.single_object.id]`. This behavior is not interesting in most cases,
 but it is particularly useful when referring to resources that may or may
 not have `count` set, and thus may or may not produce a tuple value:
 
