@@ -96,7 +96,6 @@ func (c *PlanCommand) Run(args []string) int {
 	opReq := c.Operation(b)
 	opReq.ConfigDir = configPath
 	opReq.Destroy = destroy
-	opReq.PlanRefresh = refresh
 	opReq.PlanOutPath = outPath
 	opReq.PlanRefresh = refresh
 	opReq.Type = backend.OperationTypePlan
