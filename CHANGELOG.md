@@ -3,6 +3,7 @@
 BUG FIXES:
 
 * config: Clean up orphan modules in the presence of -target [GH-21313]
+* command/show: Fix panic when the only resource instance is deposed [GH-23027]
 
 ## 0.12.10 (October 07, 2019)
 
