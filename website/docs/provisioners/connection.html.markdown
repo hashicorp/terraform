@@ -1,27 +1,36 @@
 ---
 layout: "docs"
-page_title: "Provisioner Connections"
+page_title: "Provisioner Connection Settings"
 sidebar_current: "docs-provisioners-connection"
 description: |-
   Managing connection defaults for SSH and WinRM using the `connection` block.
 ---
 
-# Provisioner Connections
+# Provisioner Connection Settings
 
-Many provisioners require access to the remote resource. For example,
-a provisioner may need to use SSH or WinRM to connect to the resource.
+Most provisioners require access to the remote resource via SSH or WinRM, and
+expect a nested `connection` block with details about how to connect.
 
 -> **Note:** Provisioners should only be used as a last resort. For most
 common situations there are better alternatives. For more information, see
 [the main Provisioners page](./).
 
-Terraform uses a number of defaults when connecting to a resource, but these can
-be overridden using a `connection` block in either a `resource` or
-`provisioner`. Any `connection` information provided in a `resource` will apply
-to all the provisioners, but it can be scoped to a single provisioner as well.
-One use case is to have an initial provisioner connect as the `root` user to
-setup user accounts, and have subsequent provisioners connect as a user with
-more limited permissions.
+-> **Note:** In Terraform 0.11 and earlier, providers could set default values
+for some connection settings, so that `connection` blocks could sometimes be
+omitted. This feature was removed in 0.12 in order to make Terraform's behavior
+more predictable.
+
+Connection blocks don't take a block label, and can be nested within either a
+`resource` or a `provisioner`.
+
+- A `connection` block nested directly within a `resource` affects all of
+  that resource's provisioners.
+- A `connection` block nested in a `provisioner` block only affects that
+  provisioner, and overrides any resource-level connection settings.
+
+One use case for providing multiple connections is to have an initial
+provisioner connect as the `root` user to set up user accounts, and have
+subsequent provisioners connect as a user with more limited permissions.
 
 ## Example usage
 
@@ -53,14 +62,27 @@ provisioner "file" {
 }
 ```
 
+## The `self` Object
+
+Expressions in `connection` blocks cannot refer to their parent resource by
+name. Instead, they can use the special `self` object.
+
+The `self` object represents the connection's parent resource, and has all of
+that resource's attributes. For example, use `self.public_ip` to reference an
+`aws_instance`'s `public_ip` attribute.
+
+-> **Technical note:** Resource references are restricted here because
+references create dependencies. Referring to a resource by name within its own
+block would create a dependency cycle.
+
 ## Argument Reference
 
 **The following arguments are supported by all connection types:**
 
-* `type` - The connection type that should be used. Valid types are `ssh` and `winrm`.  
+* `type` - The connection type that should be used. Valid types are `ssh` and `winrm`.
            Defaults to `ssh`.
 
-* `user` - The user that we should use for the connection.  
+* `user` - The user that we should use for the connection.
            Defaults to `root` when using type `ssh` and defaults to `Administrator` when using type `winrm`.
 
 * `password` - The password we should use for the connection. In some cases this is
@@ -68,10 +90,10 @@ provisioner "file" {
 
 * `host` - (Required) The address of the resource to connect to.
 
-* `port` - The port to connect to.  
+* `port` - The port to connect to.
            Defaults to `22` when using type `ssh` and defaults to `5985` when using type `winrm`.
 
-* `timeout` - The timeout to wait for the connection to become available. Should be provided as a string like `30s` or `5m`.   
+* `timeout` - The timeout to wait for the connection to become available. Should be provided as a string like `30s` or `5m`.
               Defaults to 5 minutes.
 
 * `script_path` - The path used to copy scripts meant for remote execution.

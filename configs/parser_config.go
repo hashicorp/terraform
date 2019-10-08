@@ -1,7 +1,7 @@
 package configs
 
 import (
-	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl/v2"
 )
 
 // LoadConfigFile reads the file at the given path and parses it as a config

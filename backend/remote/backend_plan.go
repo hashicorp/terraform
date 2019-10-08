@@ -316,6 +316,14 @@ to capture the filesystem context the remote workspace expects:
 		return r, nil
 	}
 
+	// Show any cost estimation output.
+	if r.CostEstimate != nil {
+		err = b.costEstimate(stopCtx, cancelCtx, op, r)
+		if err != nil {
+			return r, err
+		}
+	}
+
 	// Check any configured sentinel policies.
 	if len(r.PolicyChecks) > 0 {
 		err = b.checkPolicy(stopCtx, cancelCtx, op, r)

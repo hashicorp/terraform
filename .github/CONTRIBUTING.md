@@ -15,35 +15,35 @@ Specifically, we have provided checklists below for each type of issue and pull
 request that can happen on the project. These checklists represent everything
 we need to be able to review and respond quickly.
 
-## HashiCorp vs. Community Providers
+## HashiCorp, Official, and Community Providers
 
-We separate providers out into what we call "HashiCorp Providers" and
-"Community Providers".
+We separate providers out into what we call "HashiCorp Providers", "Partner Providers" and "Community Providers".
 
-HashiCorp providers are providers that we'll dedicate full time resources to
+HashiCorp providers are providers that we dedicate full time engineers to
 improving, supporting the latest features, and fixing bugs. These are providers
 we understand deeply and are confident we have the resources to manage
 ourselves.
 
-Community providers are providers where we depend on the community to
+Partner providers are providers where we depend on our partners to
 contribute fixes and enhancements to improve. HashiCorp will run automated
 tests and ensure these providers continue to work, but will not dedicate full
-time resources to add new features to these providers. These providers are
+time engineers to add new features to these providers. These providers are
 available in official Terraform releases, but the functionality is primarily
 contributed.
 
-The current list of HashiCorp Providers is as follows:
+All HashiCorp and Partner providers can be found in the (terraform-providers github organization)[https://github.com/terraform-providers].
+Any provider issues should be opened in the provider's repository.
 
- * `aws`
- * `azurerm`
- * `google`
- * `opc`
-
-Our testing standards are the same for both HashiCorp and Community providers,
+Our testing standards are the same for both HashiCorp and Official providers,
 and HashiCorp runs full acceptance test suites for every provider nightly to
 ensure Terraform remains stable.
 
-We make the distinction between these two types of providers to help
+Community Providers are providers that are neither maintained nor tested by
+HashiCorp. We can make no promises that these providers will work with any given
+version of Terraform. These providers are not automatically installed by
+`terraform init` and instead require manual installation.
+
+We make the distinction between these types of providers to help
 highlight the vast amounts of community effort that goes in to making Terraform
 great, and to help contributors better understand the role HashiCorp employees
 play in the various areas of the code base.
@@ -52,9 +52,8 @@ play in the various areas of the code base.
 
 ### Issue Reporting Checklists
 
-We welcome issues of all kinds including feature requests, bug reports, and
-general questions. Below you'll find checklists with guidelines for well-formed
-issues of each type.
+We welcome feature requests and bug reports. Below you'll find checklists with
+guidelines for well-formed issues of each type.
 
 #### Bug Reports
 
@@ -88,12 +87,15 @@ issues of each type.
 
 #### Questions
 
- - [ ] __Search for answers in Terraform documentation__: We're happy to answer
-   questions in GitHub Issues, but it helps reduce issue churn and maintainer
-   workload if you work to find answers to common questions in the
-   documentation. Often times Question issues result in documentation updates
-   to help future users, so if you don't find an answer, you can give us
-   pointers for where you'd expect to see it in the docs.
+Please do not use GitHub to ask questions! Instead:
+
+ * __Search for answers in Terraform documentation__
+
+ * __Ask in the Community Forum__: Use [the community forum](https://discuss.hashicorp.com/c/terraform-core) for questions not answered by the documentation.
+
+ * __Request an update to the documentation__: If you find that the
+ documentation is confusing or incorrect, open an issue (or a pull request) and
+ let us know.
 
 ### Issue Lifecycle
 
@@ -121,8 +123,6 @@ issues of each type.
 Thank you for contributing! Here you'll find information on what to include in
 your Pull Request to ensure it is accepted quickly.
 
- * For pull requests that follow the guidelines, we expect to be able to review
-   and merge very quickly.
  * Pull requests that don't follow the guidelines will be annotated with what
    they're missing. A community or core team member may be able to swing around
    and help finish up the work, but these PRs will generally hang out much
@@ -170,82 +170,15 @@ easy for anybody to help us improve our docs.
    site immediately, or is it referencing an upcoming version of Terraform and
    should get pushed out with the next release?
 
-#### Enhancement/Bugfix to a Resource
-
-Working on existing resources is a great way to get started as a Terraform
-contributor because you can work within existing code and tests to get a feel
-for what to do.
-
- - [ ] __Acceptance test coverage of new behavior__: Existing resources each
-   have a set of [acceptance tests][acctests] covering their functionality.
-   These tests should exercise all the behavior of the resource. Whether you are
-   adding something or fixing a bug, the idea is to have an acceptance test that
-   fails if your code were to be removed. Sometimes it is sufficient to
-   "enhance" an existing test by adding an assertion or tweaking the config
-   that is used, but often a new test is better to add. You can copy/paste an
-   existing test and follow the conventions you see there, modifying the test
-   to exercise the behavior of your code.
- - [ ] __Documentation updates__: If your code makes any changes that need to
-   be documented, you should include those doc updates in the same PR. The
-   [Terraform website][website] source is in this repo and includes
-   instructions for getting a local copy of the site up and running if you'd
-   like to preview your changes.
- - [ ] __Well-formed Code__: Do your best to follow existing conventions you
-   see in the codebase, and ensure your code is formatted with `go fmt`. (The
-   Travis CI build will fail if `go fmt` has not been run on incoming code.)
-   The PR reviewers can help out on this front, and may provide comments with
-   suggestions on how to improve the code.
-
-#### New Resource
-
-Implementing a new resource is a good way to learn more about how Terraform
-interacts with upstream APIs. There are plenty of examples to draw from in the
-existing resources, but you still get to implement something completely new.
-
- - [ ] __Minimal LOC__: It can be inefficient for both the reviewer
-   and author to go through long feedback cycles on a big PR with many
-   resources. We therefore encourage you to only submit **1 resource at a time**.
- - [ ] __Acceptance tests__: New resources should include acceptance tests
-   covering their behavior. See [Writing Acceptance
-   Tests](#writing-acceptance-tests) below for a detailed guide on how to
-   approach these.
- - [ ] __Documentation__: Each resource gets a page in the Terraform
-   documentation. The [Terraform website][website] source is in this
-   repo and includes instructions for getting a local copy of the site up and
-   running if you'd like to preview your changes. For a resource, you'll want
-   to add a new file in the appropriate place and add a link to the sidebar for
-   that page.
- - [ ] __Well-formed Code__: Do your best to follow existing conventions you
-   see in the codebase, and ensure your code is formatted with `go fmt`. (The
-   Travis CI build will fail if `go fmt` has not been run on incoming code.)
-   The PR reviewers can help out on this front, and may provide comments with
-   suggestions on how to improve the code.
-
 #### New Provider
 
 Implementing a new provider gives Terraform the ability to manage resources in
 a whole new API. It's a larger undertaking, but brings major new functionality
 into Terraform.
 
- - [ ] __Minimal initial LOC__: Some providers may be big and it can be
-   inefficient for both reviewer & author to go through long feedback cycles
-   on a big PR with many resources. We encourage you to only submit
-   the necessary minimum in a single PR, ideally **just the first resource**
-   of the provider.
- - [ ] __Acceptance tests__: Each provider should include an acceptance test
-   suite with tests for each resource should include acceptance tests covering
-   its behavior. See [Writing Acceptance Tests](#writing-acceptance-tests) below
-   for a detailed guide on how to approach these.
- - [ ] __Documentation__: Each provider has a section in the Terraform
-   documentation. The [Terraform website][website] source is in this repo and
-   includes instructions for getting a local copy of the site up and running if
-   you'd like to preview your changes. For a provider, you'll want to add new
-   index file and individual pages for each resource.
- - [ ] __Well-formed Code__: Do your best to follow existing conventions you
-   see in the codebase, and ensure your code is formatted with `go fmt`. (The
-   Travis CI build will fail if `go fmt` has not been run on incoming code.)
-   The PR reviewers can help out on this front, and may provide comments with
-   suggestions on how to improve the code.
+Terraform Providers are external plugins, not in the Terraform codebase. Please
+see the [Provider Development Program](https://www.terraform.io/guides/terraform-provider-development-program.html) documentation if you are interested in
+submitting a new provider.
 
 #### Core Bugfix/Enhancement
 
@@ -281,7 +214,9 @@ get feedback early and often on the effort.
    is complicated enough that there are often several ways to implement
    something, each of which has different implications and tradeoffs. Working
    through a plan of attack with the team before you dive into implementation
-   will help ensure that you're working in the right direction.
+   will help ensure that you're working in the right direction. Opening a GitHub
+   issue, or commenting on an existing issue, is a great way to get these
+   conversations started.
  - [ ] __Unit tests__: Terraform's core is covered by hundreds of unit tests at
    several different layers of abstraction. Generally the best place to start
    is with a "Context Test". These are higher level test that interact
@@ -304,9 +239,6 @@ get feedback early and often on the effort.
 
 ### Writing Acceptance Tests
 
-Terraform includes an acceptance test harness that does most of the repetitive
-work involved in testing a resource.
-
 #### Acceptance Tests Often Cost Money to Run
 
 Because acceptance tests create real resources, they often cost money to run.
@@ -326,199 +258,8 @@ Acceptance tests can be run using the `testacc` target in the Terraform
 expression. Prior to running the tests provider configuration details such as
 access keys must be made available as environment variables.
 
-For example, to run an acceptance test against the Azure Resource Manager
-provider, the following environment variables must be set:
-
-```sh
-export ARM_SUBSCRIPTION_ID=...
-export ARM_CLIENT_ID=...
-export ARM_CLIENT_SECRET=...
-export ARM_TENANT_ID=...
-```
-
-Tests can then be run by specifying the target provider and a regular
-expression defining the tests to run:
-
-```sh
-$ make testacc TEST=./builtin/providers/azurerm TESTARGS='-run=TestAccAzureRMPublicIpStatic_update'
-==> Checking that code complies with gofmt requirements...
-go generate ./...
-TF_ACC=1 go test ./builtin/providers/azurerm -v -run=TestAccAzureRMPublicIpStatic_update -timeout 120m
-=== RUN   TestAccAzureRMPublicIpStatic_update
---- PASS: TestAccAzureRMPublicIpStatic_update (177.48s)
-PASS
-ok      github.com/hashicorp/terraform/builtin/providers/azurerm    177.504s
-```
-
-Entire resource test suites can be targeted by using the naming convention to
-write the regular expression. For example, to run all tests of the
-`azurerm_public_ip` resource rather than just the update test, you can start
-testing like this:
-
-```sh
-$ make testacc TEST=./builtin/providers/azurerm TESTARGS='-run=TestAccAzureRMPublicIpStatic'
-==> Checking that code complies with gofmt requirements...
-go generate ./...
-TF_ACC=1 go test ./builtin/providers/azurerm -v -run=TestAccAzureRMPublicIpStatic -timeout 120m
-=== RUN   TestAccAzureRMPublicIpStatic_basic
---- PASS: TestAccAzureRMPublicIpStatic_basic (137.74s)
-=== RUN   TestAccAzureRMPublicIpStatic_update
---- PASS: TestAccAzureRMPublicIpStatic_update (180.63s)
-PASS
-ok      github.com/hashicorp/terraform/builtin/providers/azurerm    318.392s
-```
-
-#### Writing an Acceptance Test
-
-Terraform has a framework for writing acceptance tests which minimises the
-amount of boilerplate code necessary to use common testing patterns. The entry
-point to the framework is the `resource.Test()` function.
-
-Tests are divided into `TestStep`s. Each `TestStep` proceeds by applying some
-Terraform configuration using the provider under test, and then verifying that
-results are as expected by making assertions using the provider API. It is
-common for a single test function to exercise both the creation of and updates
-to a single resource. Most tests follow a similar structure.
-
-1. Pre-flight checks are made to ensure that sufficient provider configuration
-   is available to be able to proceed - for example in an acceptance test
-   targeting AWS, `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` must be set prior
-   to running acceptance tests. This is common to all tests exercising a single
-   provider.
-
-Each `TestStep` is defined in the call to `resource.Test()`. Most assertion
-functions are defined out of band with the tests. This keeps the tests
-readable, and allows reuse of assertion functions across different tests of the
-same type of resource. The definition of a complete test looks like this:
-
-```go
-func TestAccAzureRMPublicIpStatic_update(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMPublicIpDestroy,
-		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccAzureRMVPublicIpStatic_basic,
-				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMPublicIpExists("azurerm_public_ip.test"),
-				),
-			},
-        },
-    })
-}
-```
-
-When executing the test, the following steps are taken for each `TestStep`:
-
-1. The Terraform configuration required for the test is applied. This is
-   responsible for configuring the resource under test, and any dependencies it
-   may have. For example, to test the `azurerm_public_ip` resource, an
-   `azurerm_resource_group` is required. This results in configuration which
-   looks like this:
-
-    ```hcl
-    resource "azurerm_resource_group" "test" {
-        name = "acceptanceTestResourceGroup1"
-        location = "West US"
-    }
-
-    resource "azurerm_public_ip" "test" {
-        name = "acceptanceTestPublicIp1"
-        location = "West US"
-        resource_group_name = "${azurerm_resource_group.test.name}"
-        public_ip_address_allocation = "static"
-    }
-    ```
-
-1. Assertions are run using the provider API. These use the provider API
-   directly rather than asserting against the resource state. For example, to
-   verify that the `azurerm_public_ip` described above was created
-   successfully, a test function like this is used:
-
-    ```go
-    func testCheckAzureRMPublicIpExists(name string) resource.TestCheckFunc {
-        return func(s *terraform.State) error {
-            // Ensure we have enough information in state to look up in API
-            rs, ok := s.RootModule().Resources[name]
-            if !ok {
-                return fmt.Errorf("Not found: %s", name)
-            }
-
-            publicIPName := rs.Primary.Attributes["name"]
-            resourceGroup, hasResourceGroup := rs.Primary.Attributes["resource_group_name"]
-            if !hasResourceGroup {
-                return fmt.Errorf("Bad: no resource group found in state for public ip: %s", availSetName)
-            }
-
-            conn := testAccProvider.Meta().(*ArmClient).publicIPClient
-
-            resp, err := conn.Get(resourceGroup, publicIPName, "")
-            if err != nil {
-                return fmt.Errorf("Bad: Get on publicIPClient: %s", err)
-            }
-
-            if resp.StatusCode == http.StatusNotFound {
-                return fmt.Errorf("Bad: Public IP %q (resource group: %q) does not exist", name, resourceGroup)
-            }
-
-            return nil
-        }
-    }
-    ```
-
-   Notice that the only information used from the Terraform state is the ID of
-   the resource - though in this case it is necessary to split the ID into
-   constituent parts in order to use the provider API. For computed properties,
-   we instead assert that the value saved in the Terraform state was the
-   expected value if possible. The testing framework provides helper functions
-   for several common types of check - for example:
-
-    ```go
-    resource.TestCheckResourceAttr("azurerm_public_ip.test", "domain_name_label", "mylabel01"),
-    ```
-
-1. The resources created by the test are destroyed. This step happens
-   automatically, and is the equivalent of calling `terraform destroy`.
-
-1. Assertions are made against the provider API to verify that the resources
-   have indeed been removed. If these checks fail, the test fails and reports
-   "dangling resources". The code to ensure that the `azurerm_public_ip` shown
-   above looks like this:
-
-    ```go
-    func testCheckAzureRMPublicIpDestroy(s *terraform.State) error {
-        conn := testAccProvider.Meta().(*ArmClient).publicIPClient
-
-        for _, rs := range s.RootModule().Resources {
-            if rs.Type != "azurerm_public_ip" {
-                continue
-            }
-
-            name := rs.Primary.Attributes["name"]
-            resourceGroup := rs.Primary.Attributes["resource_group_name"]
-
-            resp, err := conn.Get(resourceGroup, name, "")
-
-            if err != nil {
-                return nil
-            }
-
-            if resp.StatusCode != http.StatusNotFound {
-                return fmt.Errorf("Public IP still exists:\n%#v", resp.Properties)
-            }
-        }
-
-        return nil
-    }
-    ```
-
-   These functions usually test only for the resource directly under test: we
-   skip the check that the `azurerm_resource_group` has been destroyed when
-   testing `azurerm_resource_group`, under the assumption that
-   `azurerm_resource_group` is tested independently in its own acceptance
-   tests.
 
 [website]: https://github.com/hashicorp/terraform/tree/master/website
 [acctests]: https://github.com/hashicorp/terraform#acceptance-tests
+[community forum]: https://discuss.hashicorp.com/c/terraform-core
 [ml]: https://groups.google.com/group/terraform-tool

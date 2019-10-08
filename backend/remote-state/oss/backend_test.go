@@ -6,11 +6,12 @@ import (
 	"testing"
 	"time"
 
+	"strings"
+
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/aliyun/aliyun-tablestore-go-sdk/tablestore"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/configs/hcl2shim"
-	"strings"
 )
 
 // verify that we are doing ACC tests or the OSS tests specifically
@@ -19,6 +20,9 @@ func testACC(t *testing.T) {
 	if skip {
 		t.Log("oss backend tests require setting TF_ACC or TF_OSS_TEST")
 		t.Skip()
+	}
+	if skip {
+		t.Fatal("oss backend tests require setting ALICLOUD_ACCESS_KEY or ALICLOUD_ACCESS_KEY_ID")
 	}
 	if os.Getenv("ALICLOUD_REGION") == "" {
 		os.Setenv("ALICLOUD_REGION", "cn-beijing")

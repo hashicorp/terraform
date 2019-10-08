@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/configs/hcl2shim"
 
-	hcl2 "github.com/hashicorp/hcl2/hcl"
+	hcl2 "github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 	"github.com/zclconf/go-cty/cty/function"

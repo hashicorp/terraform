@@ -1,17 +1,37 @@
-## 0.12.9 (Unreleased)
-
-NOTES:
-* core: `ignore_changes` is now processed (in addition to existing behaviors) before the provider plan is run. This means that users may see fewer planned changes when using `ignore_changes`, as before this change, changes to ignored attributes were still being sent to CustomizeDiff in providers (which could mean cascading changes for some resources). This should be indicative that providers are no longer getting changes that were marked as ignored, but if unexpected plans are seen while using `ignore_changes`, investigate the settings in the `ignore_changes` block to ensure the appropriate attributes are set. [GH-22520]
-
-ENHANCEMENTS:
-* provisioners/habitat: `accept_license` argument available to automate accepting the EULA, now required by this client [GH-22745]
-* config: add source addressing to unknown value errors in `for_each` [GH-22760]
+## 0.12.11 (Unreleased)
 
 BUG FIXES:
-* command/console: support -var and -var-file flags [GH-22145]
-* command/show: Fixed bug with wrong errors being returned or swallowed. [GH-22772]
-* config: The `cidrhost`, `cidrsubnet`, and `cidrnetmask` functions now behave correctly with IPv6 prefixes that are short enough for the host portion to be greater than 64-bit or 32-bit (depending on the target architecture). [GH-22505]
-* config: Fixed bug on empty sets with `for_each` [GH-22281]
+
+* config: Clean up orphan modules in the presence of -target [GH-21313]
+
+## 0.12.10 (October 07, 2019)
+
+ENHANCEMENTS:
+
+* `terraform plan` and `terraform apply` will now warn when the `-target` option is used, to draw attention to the fact that the result of applying the plan is likely to be incomplete, and to remind to re-run `terraform plan` with no targets afterwards to ensure that the configuration has converged. ([#22783](https://github.com/hashicorp/terraform/issues/22783))
+* config: New function `parseint` for parsing strings containing digits as integers in various bases. ([#22747](https://github.com/hashicorp/terraform/issues/22747))
+* config: New function `cidrsubnets`, which is a companion to the existing function `cidrsubnet` which can allocate multiple consecutive subnet prefixes (possibly of different prefix lengths) in a single call. ([#22858](https://github.com/hashicorp/terraform/issues/22858))
+* backend/google: The GCS backend now supports OAuth2 token authentication. ([#21772](https://github.com/hashicorp/terraform/issues/21772))
+* provisioner/habitat: Multiple updates and fixes, see PR for details ([#22705](https://github.com/hashicorp/terraform/issues/22705))
+
+BUG FIXES:
+
+* backend/manta: fix panic when `insecure_skip_tls_verify` was not set ([#22918](https://github.com/hashicorp/terraform/issues/22918))
+
+## 0.12.9 (September 17, 2019)
+
+NOTES:
+* core: `ignore_changes` is now processed (in addition to existing behaviors) before the provider plan is run. This means that users may see fewer planned changes when using `ignore_changes`, as before this change, changes to ignored attributes were still being sent to CustomizeDiff in providers (which could mean cascading changes for some resources). This should be indicative that providers are no longer getting changes that were marked as ignored, but if unexpected plans are seen while using `ignore_changes`, investigate the settings in the `ignore_changes` block to ensure the appropriate attributes are set. ([#22520](https://github.com/hashicorp/terraform/issues/22520))
+
+ENHANCEMENTS:
+* provisioners/habitat: `accept_license` argument available to automate accepting the EULA, now required by this client ([#22745](https://github.com/hashicorp/terraform/issues/22745))
+* config: add source addressing to unknown value errors in `for_each` ([#22760](https://github.com/hashicorp/terraform/issues/22760))
+
+BUG FIXES:
+* command/console: support -var and -var-file flags ([#22145](https://github.com/hashicorp/terraform/issues/22145))
+* command/show: Fixed bug with wrong errors being returned or swallowed. ([#22772](https://github.com/hashicorp/terraform/issues/22772))
+* config: The `cidrhost`, `cidrsubnet`, and `cidrnetmask` functions now behave correctly with IPv6 prefixes that are short enough for the host portion to be greater than 64-bit or 32-bit (depending on the target architecture). ([#22505](https://github.com/hashicorp/terraform/issues/22505))
+* config: Fixed bug on empty sets with `for_each` ([#22281](https://github.com/hashicorp/terraform/issues/22281))
 
 ## 0.12.8 (September 04, 2019)
 

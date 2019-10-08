@@ -3,8 +3,8 @@ package configupgrade
 import (
 	"log"
 
-	hcl2 "github.com/hashicorp/hcl2/hcl"
-	hcl2syntax "github.com/hashicorp/hcl2/hcl/hclsyntax"
+	hcl2 "github.com/hashicorp/hcl/v2"
+	hcl2syntax "github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -75,28 +75,27 @@ func (d analysisData) GetForEachAttr(addr addrs.ForEachAttr, rng tfdiags.SourceR
 	return cty.DynamicVal, nil
 }
 
-func (d analysisData) GetResourceInstance(instAddr addrs.ResourceInstance, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
-	log.Printf("[TRACE] configupgrade: Determining type for %s", instAddr)
-	addr := instAddr.Resource
+func (d analysisData) GetResource(addr addrs.Resource, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	log.Printf("[TRACE] configupgrade: Determining type for %s", addr)
 
 	// Our analysis pass should've found a suitable schema for every resource
 	// type in the module.
 	providerType, ok := d.an.ResourceProviderType[addr]
 	if !ok {
 		// Should not be possible, since analysis visits every resource block.
-		log.Printf("[TRACE] configupgrade: analysis.GetResourceInstance doesn't have a provider type for %s", addr)
+		log.Printf("[TRACE] configupgrade: analysis.GetResource doesn't have a provider type for %s", addr)
 		return cty.DynamicVal, nil
 	}
 	providerSchema, ok := d.an.ProviderSchemas[providerType]
 	if !ok {
 		// Should not be possible, since analysis loads schema for every provider.
-		log.Printf("[TRACE] configupgrade: analysis.GetResourceInstance doesn't have a provider schema for for %q", providerType)
+		log.Printf("[TRACE] configupgrade: analysis.GetResource doesn't have a provider schema for for %q", providerType)
 		return cty.DynamicVal, nil
 	}
 	schema, _ := providerSchema.SchemaForResourceAddr(addr)
 	if schema == nil {
 		// Should not be possible, since analysis loads schema for every provider.
-		log.Printf("[TRACE] configupgrade: analysis.GetResourceInstance doesn't have a schema for for %s", addr)
+		log.Printf("[TRACE] configupgrade: analysis.GetResource doesn't have a schema for for %s", addr)
 		return cty.DynamicVal, nil
 	}
 
@@ -106,19 +105,11 @@ func (d analysisData) GetResourceInstance(instAddr addrs.ResourceInstance, rng t
 	// return a list or a single object type depending on whether count is
 	// set and whether an instance key is given in the address.
 	if d.an.ResourceHasCount[addr] {
-		if instAddr.Key == addrs.NoKey {
-			log.Printf("[TRACE] configupgrade: %s refers to counted instance without a key, so result is a list of %#v", instAddr, objTy)
-			return cty.UnknownVal(cty.List(objTy)), nil
-		}
-		log.Printf("[TRACE] configupgrade: %s refers to counted instance with a key, so result is single object", instAddr)
-		return cty.UnknownVal(objTy), nil
+		log.Printf("[TRACE] configupgrade: %s refers to counted instance, so result is a list of %#v", addr, objTy)
+		return cty.UnknownVal(cty.List(objTy)), nil
 	}
 
-	if instAddr.Key != addrs.NoKey {
-		log.Printf("[TRACE] configupgrade: %s refers to non-counted instance with a key, which is invalid", instAddr)
-		return cty.DynamicVal, nil
-	}
-	log.Printf("[TRACE] configupgrade: %s refers to non-counted instance without a key, so result is single object", instAddr)
+	log.Printf("[TRACE] configupgrade: %s refers to non-counted instance, so result is single object", addr)
 	return cty.UnknownVal(objTy), nil
 }
 
