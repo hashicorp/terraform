@@ -2885,8 +2885,9 @@ func TestContext2Apply_orphanResource(t *testing.T) {
 		s.SetResourceMeta(zeroAddr, states.EachList, providerAddr)
 		s.SetResourceMeta(oneAddr, states.EachList, providerAddr)
 		s.SetResourceInstanceCurrent(oneAddr.Instance(addrs.IntKey(0)), &states.ResourceInstanceObjectSrc{
-			Status:    states.ObjectReady,
-			AttrsJSON: []byte(`{}`),
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{}`),
+			Dependencies: []addrs.AbsResource{},
 		}, providerAddr)
 	})
 	if !cmp.Equal(state, want) {

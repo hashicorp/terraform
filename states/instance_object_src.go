@@ -53,7 +53,9 @@ type ResourceInstanceObjectSrc struct {
 	// ResourceInstanceObject.
 	Private      []byte
 	Status       ObjectStatus
-	Dependencies []addrs.Referenceable
+	Dependencies []addrs.AbsResource
+	// deprecated
+	DependsOn []addrs.Referenceable
 }
 
 // Decode unmarshals the raw representation of the object attributes. Pass the
