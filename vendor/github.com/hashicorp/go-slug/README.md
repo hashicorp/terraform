@@ -44,7 +44,7 @@ func main() {
 
 	// Then call the Pack function with a directory path containing the
 	// configuration files and an io.Writer to write the slug to.
-	if _, err := Pack("test-fixtures/archive-dir", slug); err != nil {
+	if _, err := Pack("testdata/archive-dir", slug); err != nil {
 		log.Fatal(err)
 	}
 
