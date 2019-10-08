@@ -275,7 +275,8 @@ func TestRefresh_defaultState(t *testing.T) {
 	expected := &states.ResourceInstanceObjectSrc{
 		Status:       states.ObjectReady,
 		AttrsJSON:    []byte("{\n            \"ami\": null,\n            \"id\": \"yes\"\n          }"),
-		Dependencies: []addrs.Referenceable{},
+		Dependencies: []addrs.AbsResource{},
+		DependsOn:    []addrs.Referenceable{},
 	}
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("wrong new object\ngot:  %swant: %s", spew.Sdump(actual), spew.Sdump(expected))
@@ -339,7 +340,8 @@ func TestRefresh_outPath(t *testing.T) {
 	expected := &states.ResourceInstanceObjectSrc{
 		Status:       states.ObjectReady,
 		AttrsJSON:    []byte("{\n            \"ami\": null,\n            \"id\": \"yes\"\n          }"),
-		Dependencies: []addrs.Referenceable{},
+		Dependencies: []addrs.AbsResource{},
+		DependsOn:    []addrs.Referenceable{},
 	}
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("wrong new object\ngot:  %swant: %s", spew.Sdump(actual), spew.Sdump(expected))
@@ -568,7 +570,8 @@ func TestRefresh_backup(t *testing.T) {
 	expected := &states.ResourceInstanceObjectSrc{
 		Status:       states.ObjectReady,
 		AttrsJSON:    []byte("{\n            \"ami\": null,\n            \"id\": \"changed\"\n          }"),
-		Dependencies: []addrs.Referenceable{},
+		Dependencies: []addrs.AbsResource{},
+		DependsOn:    []addrs.Referenceable{},
 	}
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("wrong new object\ngot:  %swant: %s", spew.Sdump(actual), spew.Sdump(expected))
@@ -632,7 +635,8 @@ func TestRefresh_disableBackup(t *testing.T) {
 	expected := &states.ResourceInstanceObjectSrc{
 		Status:       states.ObjectReady,
 		AttrsJSON:    []byte("{\n            \"ami\": null,\n            \"id\": \"yes\"\n          }"),
-		Dependencies: []addrs.Referenceable{},
+		Dependencies: []addrs.AbsResource{},
+		DependsOn:    []addrs.Referenceable{},
 	}
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("wrong new object\ngot:  %swant: %s", spew.Sdump(actual), spew.Sdump(expected))
