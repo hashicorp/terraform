@@ -4,7 +4,7 @@ import (
 	"sort"
 
 	version "github.com/hashicorp/go-version"
-	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
 )
 

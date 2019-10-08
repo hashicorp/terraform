@@ -55,6 +55,9 @@ func (b *ImportGraphBuilder) Steps() []GraphTransformer {
 		// Create all our resources from the configuration and state
 		&ConfigTransformer{Config: config},
 
+		// Attach the configuration to any resources
+		&AttachResourceConfigTransformer{Config: b.Config},
+
 		// Add the import steps
 		&ImportStateTransformer{Targets: b.ImportTargets},
 

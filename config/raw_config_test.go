@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	hcl2 "github.com/hashicorp/hcl2/hcl"
+	hcl2 "github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/configs/hcl2shim"
 )

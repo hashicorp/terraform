@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -158,6 +158,18 @@ func TestFunctions(t *testing.T) {
 			{
 				`cidrsubnet("192.168.2.0/20", 4, 6)`,
 				cty.StringVal("192.168.6.0/24"),
+			},
+		},
+
+		"cidrsubnets": {
+			{
+				`cidrsubnets("10.0.0.0/8", 8, 8, 16, 8)`,
+				cty.ListVal([]cty.Value{
+					cty.StringVal("10.0.0.0/16"),
+					cty.StringVal("10.1.0.0/16"),
+					cty.StringVal("10.2.0.0/24"),
+					cty.StringVal("10.3.0.0/16"),
+				}),
 			},
 		},
 
@@ -541,6 +553,13 @@ func TestFunctions(t *testing.T) {
 			{
 				`min(12, 54, 3)`,
 				cty.NumberIntVal(3),
+			},
+		},
+
+		"parseint": {
+			{
+				`parseint("100", 10)`,
+				cty.NumberIntVal(100),
 			},
 		},
 

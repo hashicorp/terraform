@@ -64,11 +64,11 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.5.2
 	github.com/hashicorp/go-rootcerts v1.0.0
 	github.com/hashicorp/go-sockaddr v0.0.0-20180320115054-6d291a969b86 // indirect
-	github.com/hashicorp/go-tfe v0.3.16
+	github.com/hashicorp/go-tfe v0.3.23
 	github.com/hashicorp/go-uuid v1.0.1
 	github.com/hashicorp/go-version v1.1.0
 	github.com/hashicorp/hcl v0.0.0-20170504190234-a4b07c25de5f
-	github.com/hashicorp/hcl2 v0.0.0-20190821123243-0c888d1241f6
+	github.com/hashicorp/hcl/v2 v2.0.0
 	github.com/hashicorp/hil v0.0.0-20190212112733-ab17b08d6590
 	github.com/hashicorp/logutils v1.0.0
 	github.com/hashicorp/memberlist v0.1.0 // indirect
@@ -119,7 +119,7 @@ require (
 	github.com/xanzy/ssh-agent v0.2.1
 	github.com/xiang90/probing v0.0.0-20160813154853-07dd2e8dfe18 // indirect
 	github.com/xlab/treeprint v0.0.0-20161029104018-1d6e34225557
-	github.com/zclconf/go-cty v1.0.1-0.20190708163926-19588f92a98f
+	github.com/zclconf/go-cty v1.1.0
 	github.com/zclconf/go-cty-yaml v1.0.1
 	go.uber.org/atomic v1.3.2 // indirect
 	go.uber.org/multierr v1.1.0 // indirect

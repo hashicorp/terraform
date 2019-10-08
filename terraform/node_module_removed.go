@@ -14,6 +14,7 @@ type NodeModuleRemoved struct {
 
 var (
 	_ GraphNodeSubPath          = (*NodeModuleRemoved)(nil)
+	_ RemovableIfNotTargeted    = (*NodeModuleRemoved)(nil)
 	_ GraphNodeEvalable         = (*NodeModuleRemoved)(nil)
 	_ GraphNodeReferencer       = (*NodeModuleRemoved)(nil)
 	_ GraphNodeReferenceOutside = (*NodeModuleRemoved)(nil)
@@ -61,6 +62,13 @@ func (n *NodeModuleRemoved) References() []*addrs.Reference {
 			// us to return.
 		},
 	}
+}
+
+// RemovableIfNotTargeted
+func (n *NodeModuleRemoved) RemoveIfNotTargeted() bool {
+	// We need to add this so that this node will be removed if
+	// it isn't targeted or a dependency of a target.
+	return true
 }
 
 // EvalCheckModuleRemoved is an EvalNode implementation that verifies that

@@ -7,14 +7,14 @@ import (
 )
 
 type dataForTests struct {
-	CountAttrs        map[string]cty.Value
-	ForEachAttrs      map[string]cty.Value
-	ResourceInstances map[string]cty.Value
-	LocalValues       map[string]cty.Value
-	Modules           map[string]cty.Value
-	PathAttrs         map[string]cty.Value
-	TerraformAttrs    map[string]cty.Value
-	InputVariables    map[string]cty.Value
+	CountAttrs     map[string]cty.Value
+	ForEachAttrs   map[string]cty.Value
+	Resources      map[string]cty.Value
+	LocalValues    map[string]cty.Value
+	Modules        map[string]cty.Value
+	PathAttrs      map[string]cty.Value
+	TerraformAttrs map[string]cty.Value
+	InputVariables map[string]cty.Value
 }
 
 var _ Data = &dataForTests{}
@@ -31,8 +31,8 @@ func (d *dataForTests) GetForEachAttr(addr addrs.ForEachAttr, rng tfdiags.Source
 	return d.ForEachAttrs[addr.Name], nil
 }
 
-func (d *dataForTests) GetResourceInstance(addr addrs.ResourceInstance, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
-	return d.ResourceInstances[addr.String()], nil
+func (d *dataForTests) GetResource(addr addrs.Resource, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	return d.Resources[addr.String()], nil
 }
 
 func (d *dataForTests) GetInputVariable(addr addrs.InputVariable, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {

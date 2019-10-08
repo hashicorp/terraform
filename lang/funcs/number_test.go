@@ -257,3 +257,164 @@ func TestSignum(t *testing.T) {
 		})
 	}
 }
+
+func TestParseInt(t *testing.T) {
+	tests := []struct {
+		Num  cty.Value
+		Base cty.Value
+		Want cty.Value
+		Err  bool
+	}{
+		{
+			cty.StringVal("128"),
+			cty.NumberIntVal(10),
+			cty.NumberIntVal(128),
+			false,
+		},
+		{
+			cty.StringVal("-128"),
+			cty.NumberIntVal(10),
+			cty.NumberIntVal(-128),
+			false,
+		},
+		{
+			cty.StringVal("00128"),
+			cty.NumberIntVal(10),
+			cty.NumberIntVal(128),
+			false,
+		},
+		{
+			cty.StringVal("-00128"),
+			cty.NumberIntVal(10),
+			cty.NumberIntVal(-128),
+			false,
+		},
+		{
+			cty.StringVal("FF00"),
+			cty.NumberIntVal(16),
+			cty.NumberIntVal(65280),
+			false,
+		},
+		{
+			cty.StringVal("ff00"),
+			cty.NumberIntVal(16),
+			cty.NumberIntVal(65280),
+			false,
+		},
+		{
+			cty.StringVal("-FF00"),
+			cty.NumberIntVal(16),
+			cty.NumberIntVal(-65280),
+			false,
+		},
+		{
+			cty.StringVal("00FF00"),
+			cty.NumberIntVal(16),
+			cty.NumberIntVal(65280),
+			false,
+		},
+		{
+			cty.StringVal("-00FF00"),
+			cty.NumberIntVal(16),
+			cty.NumberIntVal(-65280),
+			false,
+		},
+		{
+			cty.StringVal("1011111011101111"),
+			cty.NumberIntVal(2),
+			cty.NumberIntVal(48879),
+			false,
+		},
+		{
+			cty.StringVal("aA"),
+			cty.NumberIntVal(62),
+			cty.NumberIntVal(656),
+			false,
+		},
+		{
+			cty.StringVal("Aa"),
+			cty.NumberIntVal(62),
+			cty.NumberIntVal(2242),
+			false,
+		},
+		{
+			cty.StringVal("999999999999999999999999999999999999999999999999999999999999"),
+			cty.NumberIntVal(10),
+			cty.MustParseNumberVal("999999999999999999999999999999999999999999999999999999999999"),
+			false,
+		},
+		{
+			cty.StringVal("FF"),
+			cty.NumberIntVal(10),
+			cty.UnknownVal(cty.Number),
+			true,
+		},
+		{
+			cty.StringVal("00FF"),
+			cty.NumberIntVal(10),
+			cty.UnknownVal(cty.Number),
+			true,
+		},
+		{
+			cty.StringVal("-00FF"),
+			cty.NumberIntVal(10),
+			cty.UnknownVal(cty.Number),
+			true,
+		},
+		{
+			cty.NumberIntVal(2),
+			cty.NumberIntVal(10),
+			cty.UnknownVal(cty.Number),
+			true,
+		},
+		{
+			cty.StringVal("1"),
+			cty.NumberIntVal(63),
+			cty.UnknownVal(cty.Number),
+			true,
+		},
+		{
+			cty.StringVal("1"),
+			cty.NumberIntVal(-1),
+			cty.UnknownVal(cty.Number),
+			true,
+		},
+		{
+			cty.StringVal("1"),
+			cty.NumberIntVal(1),
+			cty.UnknownVal(cty.Number),
+			true,
+		},
+		{
+			cty.StringVal("1"),
+			cty.NumberIntVal(0),
+			cty.UnknownVal(cty.Number),
+			true,
+		},
+		{
+			cty.StringVal("1.2"),
+			cty.NumberIntVal(10),
+			cty.UnknownVal(cty.Number),
+			true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("parseint(%#v, %#v)", test.Num, test.Base), func(t *testing.T) {
+			got, err := ParseInt(test.Num, test.Base)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}

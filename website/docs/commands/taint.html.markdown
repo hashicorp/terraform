@@ -41,7 +41,8 @@ the output from other commands, such as:
 
  * `aws_instance.foo`
  * `aws_instance.bar[1]`
- * `module.foo.module.bar.aws_instance.baz`
+ * `aws_instance.baz[\"key\"]` (quotes in resource addresses must be escaped on the command line, so that they are not interpreted by your shell)
+ * `module.foo.module.bar.aws_instance.qux`
 
 The command-line flags are all optional. The list of available flags are:
 

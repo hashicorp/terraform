@@ -112,8 +112,7 @@ To update a dependency:
 
 Terraform has a comprehensive [acceptance
 test](http://en.wikipedia.org/wiki/Acceptance_testing) suite covering the
-built-in providers. Our [Contributing Guide](https://github.com/hashicorp/terraform/blob/master/.github/CONTRIBUTING.md) includes details about how and when to write and run acceptance tests in order to help contributions get accepted quickly.
-
+built-in providers.
 
 ### Cross Compilation and Building for Distribution
 
