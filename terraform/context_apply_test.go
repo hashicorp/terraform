@@ -10573,3 +10573,44 @@ func TestContext2Apply_issue19908(t *testing.T) {
 		t.Errorf("test.foo attributes JSON doesn't contain %s after apply\ngot: %s", want, got)
 	}
 }
+
+func TestContext2Apply_invalidIndexRef(t *testing.T) {
+	p := testProvider("test")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"value": {Type: cty.String, Optional: true, Computed: true},
+				},
+			},
+		},
+	}
+	p.DiffFn = testDiffFn
+
+	m := testModule(t, "apply-invalid-index")
+	c := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	diags := c.Validate()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected validation failure: %s", diags.Err())
+	}
+
+	wantErr := `The given key does not identify an element in this collection value`
+	_, diags = c.Plan()
+
+	if !diags.HasErrors() {
+		t.Fatalf("plan succeeded; want error")
+	}
+	gotErr := diags.Err().Error()
+
+	if !strings.Contains(gotErr, wantErr) {
+		t.Fatalf("missing expected error\ngot: %s\n\nwant: error containing %q", gotErr, wantErr)
+	}
+}

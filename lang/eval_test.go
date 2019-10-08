@@ -24,7 +24,7 @@ func TestScopeEvalContext(t *testing.T) {
 			"key":   cty.StringVal("a"),
 			"value": cty.NumberIntVal(1),
 		},
-		ResourceInstances: map[string]cty.Value{
+		Resources: map[string]cty.Value{
 			"null_resource.foo": cty.ObjectVal(map[string]cty.Value{
 				"attr": cty.StringVal("bar"),
 			}),
@@ -37,6 +37,14 @@ func TestScopeEvalContext(t *testing.T) {
 				}),
 				cty.ObjectVal(map[string]cty.Value{
 					"attr": cty.StringVal("multi1"),
+				}),
+			}),
+			"null_resource.each": cty.ObjectVal(map[string]cty.Value{
+				"each0": cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("each0"),
+				}),
+				"each1": cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("each1"),
 				}),
 			}),
 			"null_resource.multi[1]": cty.ObjectVal(map[string]cty.Value{
@@ -139,13 +147,32 @@ func TestScopeEvalContext(t *testing.T) {
 			},
 		},
 		{
+			// at this level, all instance references return the entire resource
 			`null_resource.multi[1]`,
 			map[string]cty.Value{
 				"null_resource": cty.ObjectVal(map[string]cty.Value{
 					"multi": cty.TupleVal([]cty.Value{
-						cty.DynamicVal,
+						cty.ObjectVal(map[string]cty.Value{
+							"attr": cty.StringVal("multi0"),
+						}),
 						cty.ObjectVal(map[string]cty.Value{
 							"attr": cty.StringVal("multi1"),
+						}),
+					}),
+				}),
+			},
+		},
+		{
+			// at this level, all instance references return the entire resource
+			`null_resource.each["each1"]`,
+			map[string]cty.Value{
+				"null_resource": cty.ObjectVal(map[string]cty.Value{
+					"each": cty.ObjectVal(map[string]cty.Value{
+						"each0": cty.ObjectVal(map[string]cty.Value{
+							"attr": cty.StringVal("each0"),
+						}),
+						"each1": cty.ObjectVal(map[string]cty.Value{
+							"attr": cty.StringVal("each1"),
 						}),
 					}),
 				}),
@@ -210,17 +237,6 @@ func TestScopeEvalContext(t *testing.T) {
 		{
 			`self.baz`,
 			map[string]cty.Value{
-				// In the test function below we set "SelfAddr" to be
-				// one of the resources in our dataset, causing it to get
-				// expanded here and then copied into "self".
-				"null_resource": cty.ObjectVal(map[string]cty.Value{
-					"multi": cty.TupleVal([]cty.Value{
-						cty.DynamicVal,
-						cty.ObjectVal(map[string]cty.Value{
-							"attr": cty.StringVal("multi1"),
-						}),
-					}),
-				}),
 				"self": cty.ObjectVal(map[string]cty.Value{
 					"attr": cty.StringVal("multi1"),
 				}),
