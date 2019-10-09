@@ -164,6 +164,7 @@ For a configuration such as the following:
 ```hcl
 variable "active" {
   default = false
+  type    = bool
 }
 ```
 
