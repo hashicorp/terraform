@@ -1,14 +1,13 @@
 package schema
 
 import (
-	"testing"
-
 	"github.com/hashicorp/terraform/terraform"
+	testing "github.com/mitchellh/go-testing-interface"
 )
 
 // TestResourceDataRaw creates a ResourceData from a raw configuration map.
 func TestResourceDataRaw(
-	t *testing.T, schema map[string]*Schema, raw map[string]interface{}) *ResourceData {
+	t testing.T, schema map[string]*Schema, raw map[string]interface{}) *ResourceData {
 	t.Helper()
 
 	c := terraform.NewResourceConfigRaw(raw)
