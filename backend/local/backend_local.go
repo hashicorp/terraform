@@ -136,11 +136,20 @@ func (b *Local) contextDirect(op *backend.Operation, opts terraform.ContextOpts)
 	}
 	opts.Config = config
 
-	// If interactive input is enabled, we might gather some more variable
-	// values through interactive prompts.
-	// TODO: Need to route the operation context through into here, so that
-	// the interactive prompts can be sensitive to its timeouts/etc.
-	rawVariables := b.interactiveCollectVariables(context.TODO(), op.Variables, config.Module.Variables, opts.UIInput)
+	var rawVariables map[string]backend.UnparsedVariableValue
+	if op.AllowUnsetVariables {
+		// Rather than prompting for input, we'll just stub out the required
+		// but unset variables with unknown values to represent that they are
+		// placeholders for values the user would need to provide for other
+		// operations.
+		rawVariables = b.stubUnsetRequiredVariables(op.Variables, config.Module.Variables)
+	} else {
+		// If interactive input is enabled, we might gather some more variable
+		// values through interactive prompts.
+		// TODO: Need to route the operation context through into here, so that
+		// the interactive prompts can be sensitive to its timeouts/etc.
+		rawVariables = b.interactiveCollectVariables(context.TODO(), op.Variables, config.Module.Variables, opts.UIInput)
+	}
 
 	variables, varDiags := backend.ParseVariableValues(rawVariables, config.Module.Variables)
 	diags = diags.Append(varDiags)
@@ -315,6 +324,60 @@ func (b *Local) interactiveCollectVariables(ctx context.Context, existing map[st
 	return ret
 }
 
+// stubUnsetVariables ensures that all required variables defined in the
+// configuration exist in the resulting map, by adding new elements as necessary.
+//
+// The stubbed value of any additions will be an unknown variable conforming
+// to the variable's configured type constraint, meaning that no particular
+// value is known and that one must be provided by the user in order to get
+// a complete result.
+//
+// Unset optional attributes (those with default values) will not be populated
+// by this function, under the assumption that a later step will handle those.
+// In this sense, stubUnsetRequiredVariables is essentially a non-interactive,
+// non-error-producing variant of interactiveCollectVariables that creates
+// placeholders for values the user would be prompted for interactively on
+// other operations.
+//
+// This function should be used only in situations where variables values
+// will not be directly used and the variables map is being constructed only
+// to produce a complete Terraform context for some ancillary functionality
+// like "terraform console", "terraform state ...", etc.
+//
+// This function is guaranteed not to modify the given map, but it may return
+// the given map unchanged if no additions are required. If additions are
+// required then the result will be a new map containing everything in the
+// given map plus additional elements.
+func (b *Local) stubUnsetRequiredVariables(existing map[string]backend.UnparsedVariableValue, vcs map[string]*configs.Variable) map[string]backend.UnparsedVariableValue {
+	var missing bool // Do we need to add anything?
+	for name, vc := range vcs {
+		if !vc.Required() {
+			continue // We only stub required variables
+		}
+		if _, exists := existing[name]; !exists {
+			missing = true
+		}
+	}
+	if !missing {
+		return existing
+	}
+
+	// If we get down here then there's at least one variable value to add.
+	ret := make(map[string]backend.UnparsedVariableValue, len(vcs))
+	for k, v := range existing {
+		ret[k] = v
+	}
+	for name, vc := range vcs {
+		if !vc.Required() {
+			continue
+		}
+		if _, exists := existing[name]; !exists {
+			ret[name] = unparsedUnknownVariableValue{Name: name, WantType: vc.Type}
+		}
+	}
+	return ret
+}
+
 type unparsedInteractiveVariableValue struct {
 	Name, RawValue string
 }
@@ -332,6 +395,20 @@ func (v unparsedInteractiveVariableValue) ParseVariableValue(mode configs.Variab
 		Value:      val,
 		SourceType: terraform.ValueFromInput,
 	}, diags
+}
+
+type unparsedUnknownVariableValue struct {
+	Name     string
+	WantType cty.Type
+}
+
+var _ backend.UnparsedVariableValue = unparsedUnknownVariableValue{}
+
+func (v unparsedUnknownVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
+	return &terraform.InputValue{
+		Value:      cty.UnknownVal(v.WantType),
+		SourceType: terraform.ValueFromInput,
+	}, nil
 }
 
 const validateWarnHeader = `

@@ -77,6 +77,7 @@ func (c *ConsoleCommand) Run(args []string) int {
 	opReq := c.Operation(b)
 	opReq.ConfigDir = configPath
 	opReq.ConfigLoader, err = c.initConfigLoader()
+	opReq.AllowUnsetVariables = true // we'll just evaluate them as unknown
 	if err != nil {
 		diags = diags.Append(err)
 		c.showDiagnostics(diags)
