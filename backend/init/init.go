@@ -12,19 +12,6 @@ import (
 
 	backendLocal "github.com/hashicorp/terraform/backend/local"
 	backendRemote "github.com/hashicorp/terraform/backend/remote"
-	backendArtifactory "github.com/hashicorp/terraform/backend/remote-state/artifactory"
-	backendAzure "github.com/hashicorp/terraform/backend/remote-state/azure"
-	backendConsul "github.com/hashicorp/terraform/backend/remote-state/consul"
-	backendEtcdv2 "github.com/hashicorp/terraform/backend/remote-state/etcdv2"
-	backendEtcdv3 "github.com/hashicorp/terraform/backend/remote-state/etcdv3"
-	backendGCS "github.com/hashicorp/terraform/backend/remote-state/gcs"
-	backendHTTP "github.com/hashicorp/terraform/backend/remote-state/http"
-	backendInmem "github.com/hashicorp/terraform/backend/remote-state/inmem"
-	backendManta "github.com/hashicorp/terraform/backend/remote-state/manta"
-	backendOSS "github.com/hashicorp/terraform/backend/remote-state/oss"
-	backendPg "github.com/hashicorp/terraform/backend/remote-state/pg"
-	backendS3 "github.com/hashicorp/terraform/backend/remote-state/s3"
-	backendSwift "github.com/hashicorp/terraform/backend/remote-state/swift"
 )
 
 // backends is the list of available backends. This is a global variable
@@ -50,29 +37,6 @@ func Init(services *disco.Disco) {
 		// Enhanced backends.
 		"local":  func() backend.Backend { return backendLocal.New() },
 		"remote": func() backend.Backend { return backendRemote.New(services) },
-
-		// Remote State backends.
-		"artifactory": func() backend.Backend { return backendArtifactory.New() },
-		"azurerm":     func() backend.Backend { return backendAzure.New() },
-		"consul":      func() backend.Backend { return backendConsul.New() },
-		"etcd":        func() backend.Backend { return backendEtcdv2.New() },
-		"etcdv3":      func() backend.Backend { return backendEtcdv3.New() },
-		"gcs":         func() backend.Backend { return backendGCS.New() },
-		"http":        func() backend.Backend { return backendHTTP.New() },
-		"inmem":       func() backend.Backend { return backendInmem.New() },
-		"manta":       func() backend.Backend { return backendManta.New() },
-		"oss":         func() backend.Backend { return backendOSS.New() },
-		"pg":          func() backend.Backend { return backendPg.New() },
-		"s3":          func() backend.Backend { return backendS3.New() },
-		"swift":       func() backend.Backend { return backendSwift.New() },
-
-		// Deprecated backends.
-		"azure": func() backend.Backend {
-			return deprecateBackend(
-				backendAzure.New(),
-				`Warning: "azure" name is deprecated, please use "azurerm"`,
-			)
-		},
 	}
 }
 
