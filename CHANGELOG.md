@@ -4,6 +4,7 @@ BUG FIXES:
 
 * config: Clean up orphan modules in the presence of -target [GH-21313]
 * command/show: Fix panic when the only resource instance is deposed [GH-23027]
+* commands: When required root module variables are not provided and interactive input is disabled (`-input=false`), produce a proper "variable not defined" error rather than falling through to an internal assertion failure. [GH-23040]
 
 ## 0.12.10 (October 07, 2019)
 
