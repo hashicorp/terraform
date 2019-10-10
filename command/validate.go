@@ -25,13 +25,34 @@ func (c *ValidateCommand) Run(args []string) int {
 		return 1
 	}
 
+	// TODO: The `var` and `var-file` options are not actually used, and should
+	// be removed in the next major release.
+	if c.Meta.variableArgs.items == nil {
+		c.Meta.variableArgs = newRawFlags("-var")
+	}
+	varValues := c.Meta.variableArgs.Alias("-var")
+	varFiles := c.Meta.variableArgs.Alias("-var-file")
+
 	var jsonOutput bool
 	cmdFlags := c.Meta.defaultFlagSet("validate")
 	cmdFlags.BoolVar(&jsonOutput, "json", false, "produce JSON output")
+	cmdFlags.Var(varValues, "var", "variables")
+	cmdFlags.Var(varFiles, "var-file", "variable file")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
 		return 1
+	}
+
+	var diags tfdiags.Diagnostics
+
+	// If set, output a warning indicating that these values are not used.
+	if !varValues.Empty() || !varFiles.Empty() {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"The -var and -var-file flags are not used in validate. Setting them has no effect.",
+			"These flags will be removed in a future version of Terraform.",
+		))
 	}
 
 	// After this point, we must only produce JSON output if JSON mode is
@@ -39,7 +60,6 @@ func (c *ValidateCommand) Run(args []string) int {
 	// print out a suitable result at the end, depending on the format
 	// selection. All returns from this point on must be tail-calls into
 	// c.showResults in order to produce the expected output.
-	var diags tfdiags.Diagnostics
 	args = cmdFlags.Args()
 
 	var dirPath string
