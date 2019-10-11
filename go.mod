@@ -39,7 +39,8 @@ require (
 	github.com/golang/mock v1.3.1
 	github.com/golang/protobuf v1.3.2
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
-	github.com/google/go-cmp v0.3.0
+	github.com/google/btree v1.0.0 // indirect
+	github.com/google/go-cmp v0.3.1
 	github.com/google/uuid v1.1.1
 	github.com/gophercloud/gophercloud v0.0.0-20190208042652-bc37892e1968
 	github.com/gophercloud/utils v0.0.0-20190128072930-fbb6ab446f01 // indirect
@@ -53,7 +54,7 @@ require (
 	github.com/hashicorp/errwrap v1.0.0
 	github.com/hashicorp/go-azure-helpers v0.0.0-20190129193224-166dfd221bb2
 	github.com/hashicorp/go-checkpoint v0.5.0
-	github.com/hashicorp/go-cleanhttp v0.5.0
+	github.com/hashicorp/go-cleanhttp v0.5.1
 	github.com/hashicorp/go-getter v1.4.0
 	github.com/hashicorp/go-hclog v0.0.0-20181001195459-61d530d6c27f
 	github.com/hashicorp/go-immutable-radix v0.0.0-20180129170900-7f3cd4390caa // indirect
@@ -65,7 +66,7 @@ require (
 	github.com/hashicorp/go-sockaddr v0.0.0-20180320115054-6d291a969b86 // indirect
 	github.com/hashicorp/go-tfe v0.3.23
 	github.com/hashicorp/go-uuid v1.0.1
-	github.com/hashicorp/go-version v1.1.0
+	github.com/hashicorp/go-version v1.2.0
 	github.com/hashicorp/hcl v0.0.0-20170504190234-a4b07c25de5f
 	github.com/hashicorp/hcl/v2 v2.0.0
 	github.com/hashicorp/hil v0.0.0-20190212112733-ab17b08d6590
@@ -73,6 +74,7 @@ require (
 	github.com/hashicorp/memberlist v0.1.0 // indirect
 	github.com/hashicorp/serf v0.0.0-20160124182025-e4ec8cc423bb // indirect
 	github.com/hashicorp/terraform-config-inspect v0.0.0-20190821133035-82a99dc22ef4
+	github.com/hashicorp/terraform-svchost v0.0.0-20191011084731-65d371908596
 	github.com/hashicorp/vault v0.10.4
 	github.com/jonboulle/clockwork v0.1.0 // indirect
 	github.com/joyent/triton-go v0.0.0-20180313100802-d8f9c0314926
@@ -124,7 +126,7 @@ require (
 	go.uber.org/multierr v1.1.0 // indirect
 	go.uber.org/zap v1.9.1 // indirect
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
-	golang.org/x/net v0.0.0-20190620200207-3b0461eec859
+	golang.org/x/net v0.0.0-20191009170851-d66e71096ffb
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/sys v0.0.0-20190804053845-51ab0e2deafa
 	google.golang.org/api v0.9.0
