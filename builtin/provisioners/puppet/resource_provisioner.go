@@ -259,8 +259,21 @@ func (p *provisioner) generateAutosignToken(certname string) (string, error) {
 }
 
 func (p *provisioner) installPuppetAgentOpenSource() error {
+
+	connType := p.instanceState.Ephemeral.ConnInfo["type"]
+	if connType == "" {
+		connType = "ssh"
+	}
+
+	agentConnInfo := map[string]string{
+		"type":     connType,
+		"host":     p.instanceState.Ephemeral.ConnInfo["host"],
+		"user":     p.instanceState.Ephemeral.ConnInfo["user"],
+		"password": p.instanceState.Ephemeral.ConnInfo["password"], // Required on Windows only
+	}
+
 	result, err := bolt.Task(
-		p.instanceState.Ephemeral.ConnInfo,
+		agentConnInfo,
 		p.BoltTimeout,
 		p.UseSudo,
 		"puppet_agent::install",
