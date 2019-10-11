@@ -1,5 +1,9 @@
 ## 0.12.11 (Unreleased)
 
+ENHANCEMENTS:
+
+* backend/s3: Support `role_arn` in AWS configuration files [GH-22994]
+
 BUG FIXES:
 
 * config: Clean up orphan modules in the presence of -target [GH-21313]
