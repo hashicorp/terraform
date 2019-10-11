@@ -11,11 +11,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform-svchost"
+	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/httpclient"
 	"github.com/hashicorp/terraform/registry/regsrc"
 	"github.com/hashicorp/terraform/registry/response"
-	"github.com/hashicorp/terraform/svchost"
-	"github.com/hashicorp/terraform/svchost/disco"
 	"github.com/hashicorp/terraform/version"
 )
 
@@ -51,6 +51,8 @@ func NewClient(services *disco.Disco, client *http.Client) *Client {
 	}
 
 	services.Transport = client.Transport
+
+	services.SetUserAgent(httpclient.TerraformUserAgent(version.String()))
 
 	return &Client{
 		client:   client,

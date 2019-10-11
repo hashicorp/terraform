@@ -12,11 +12,13 @@ import (
 
 	"github.com/mitchellh/cli"
 
+	"github.com/hashicorp/terraform-svchost"
+	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/command/cliconfig"
 	oauthserver "github.com/hashicorp/terraform/command/testdata/login-oauth-server"
 	"github.com/hashicorp/terraform/command/webbrowser"
-	"github.com/hashicorp/terraform/svchost"
-	"github.com/hashicorp/terraform/svchost/disco"
+	"github.com/hashicorp/terraform/httpclient"
+	"github.com/hashicorp/terraform/version"
 )
 
 func TestLogin(t *testing.T) {
@@ -43,6 +45,7 @@ func TestLogin(t *testing.T) {
 			browserLauncher := webbrowser.NewMockLauncher(ctx)
 			creds := cliconfig.EmptyCredentialsSourceForTests(filepath.Join(workDir, "credentials.tfrc.json"))
 			svcs := disco.NewWithCredentialsSource(creds)
+			svcs.SetUserAgent(httpclient.TerraformUserAgent(version.String()))
 
 			inputBuf := &bytes.Buffer{}
 			ui.InputReader = inputBuf
