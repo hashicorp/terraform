@@ -146,12 +146,12 @@ func (b *TestLocalSingleState) DeleteWorkspace(string) error {
 	return backend.ErrWorkspacesNotSupported
 }
 
-func (b *TestLocalSingleState) StateMgr(name string) (statemgr.Full, error) {
-	if name != backend.DefaultStateName {
+func (b *TestLocalSingleState) StateMgr(workspace addrs.ProjectWorkspace) (statemgr.Full, error) {
+	if workspace != backend.DefaultWorkspaceAddr {
 		return nil, backend.ErrWorkspacesNotSupported
 	}
 
-	return b.Local.StateMgr(name)
+	return b.Local.StateMgr(workspace)
 }
 
 // TestLocalNoDefaultState is a backend implementation that wraps
@@ -191,11 +191,11 @@ func (b *TestLocalNoDefaultState) DeleteWorkspace(name string) error {
 	return b.Local.DeleteWorkspace(name)
 }
 
-func (b *TestLocalNoDefaultState) StateMgr(name string) (statemgr.Full, error) {
-	if name == backend.DefaultStateName {
+func (b *TestLocalNoDefaultState) StateMgr(workspace addrs.ProjectWorkspace) (statemgr.Full, error) {
+	if workspace == backend.DefaultWorkspaceAddr {
 		return nil, backend.ErrDefaultWorkspaceNotSupported
 	}
-	return b.Local.StateMgr(name)
+	return b.Local.StateMgr(workspace)
 }
 
 func testTempDir(t *testing.T) string {

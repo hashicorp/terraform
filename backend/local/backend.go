@@ -11,6 +11,7 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/configs/configschema"
@@ -256,12 +257,17 @@ func (b *Local) DeleteWorkspace(name string) error {
 	return os.RemoveAll(filepath.Join(b.stateWorkspaceDir(), name))
 }
 
-func (b *Local) StateMgr(name string) (statemgr.Full, error) {
+func (b *Local) StateMgr(workspace addrs.ProjectWorkspace) (statemgr.Full, error) {
 	// If we have a backend handling state, delegate to that.
 	if b.Backend != nil {
-		return b.Backend.StateMgr(name)
+		return b.Backend.StateMgr(workspace)
 	}
 
+	if workspace.Key != addrs.NoKey {
+		return nil, fmt.Errorf("local backend does not yet support workspace instance keys")
+	}
+
+	name := workspace.Name
 	if s, ok := b.states[name]; ok {
 		return s, nil
 	}

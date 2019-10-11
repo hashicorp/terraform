@@ -23,8 +23,18 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-// DefaultStateName is the name of the default, initial state that every
-// backend must have. This state cannot be deleted.
+// DefaultWorkspaceAddr is the address of the "default" workspace, which is
+// conventionally what we call the only workspace in a project that isn't
+// using multiple workspaces. The default workspace might be selected or
+// created by default in some situations, but is otherwise just a workspace
+// like any other.
+var DefaultWorkspaceAddr = addrs.ProjectWorkspace{
+	Rel:  addrs.ProjectWorkspaceCurrent,
+	Name: "default",
+}
+
+// DefaultStateName is a legacy variant of DefaultWorkspaceAddr. It should not
+// be used in new code.
 const DefaultStateName = "default"
 
 var (
@@ -101,7 +111,7 @@ type Backend interface {
 	// If the named workspace doesn't exist, or if it has no state, it will
 	// be created either immediately on this call or the first time
 	// PersistState is called, depending on the state manager implementation.
-	StateMgr(workspace string) (statemgr.Full, error)
+	StateMgr(workspace addrs.ProjectWorkspace) (statemgr.Full, error)
 
 	// DeleteWorkspace removes the workspace with the given name if it exists.
 	//
@@ -221,9 +231,9 @@ type Operation struct {
 	// The duration to retry obtaining a State lock.
 	StateLockTimeout time.Duration
 
-	// Workspace is the name of the workspace that this operation should run
-	// in, which controls which named state is used.
-	Workspace string
+	// Workspace is the address of the workspace that this operation should run
+	// in, which must identify a workspace in the current project.
+	Workspace addrs.ProjectWorkspace
 }
 
 // HasConfig returns true if and only if the operation has a ConfigDir value

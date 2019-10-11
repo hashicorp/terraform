@@ -29,48 +29,26 @@ func (c *WorkspaceListCommand) Run(args []string) int {
 		return 1
 	}
 
-	args = cmdFlags.Args()
-	configPath, err := ModulePath(args)
-	if err != nil {
-		c.Ui.Error(err.Error())
-		return 1
-	}
-
 	var diags tfdiags.Diagnostics
 
-	backendConfig, backendDiags := c.loadBackendConfig(configPath)
-	diags = diags.Append(backendDiags)
-	if diags.HasErrors() {
+	project, moreDiags := c.findCurrentProject()
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1
 	}
 
-	// Load the backend
-	b, backendDiags := c.Backend(&BackendOpts{
-		Config: backendConfig,
-	})
-	diags = diags.Append(backendDiags)
-	if backendDiags.HasErrors() {
-		c.showDiagnostics(diags)
-		return 1
-	}
-
-	states, err := b.Workspaces()
-	if err != nil {
-		c.Ui.Error(err.Error())
-		return 1
-	}
-
-	env, isOverridden := c.WorkspaceOverridden()
+	workspaces := project.AllWorkspaceAddrs()
+	currentWorkspace, isOverridden := c.WorkspaceOverridden()
 
 	var out bytes.Buffer
-	for _, s := range states {
-		if s == env {
+	for _, addr := range workspaces {
+		if addr == currentWorkspace {
 			out.WriteString("* ")
 		} else {
 			out.WriteString("  ")
 		}
-		out.WriteString(s + "\n")
+		out.WriteString(addr.StringCompact() + "\n")
 	}
 
 	c.Ui.Output(out.String())

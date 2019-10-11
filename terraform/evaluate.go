@@ -826,7 +826,7 @@ func (d *evaluationStateData) GetTerraformAttr(addr addrs.TerraformAttr, rng tfd
 	switch addr.Name {
 
 	case "workspace":
-		workspaceName := d.Evaluator.Meta.Env
+		workspaceName := d.Evaluator.Meta.Workspace.StringCompact()
 		return cty.StringVal(workspaceName), diags
 
 	case "env":

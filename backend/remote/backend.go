@@ -16,6 +16,7 @@ import (
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/disco"
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/state"
@@ -580,7 +581,11 @@ func (b *Remote) DeleteWorkspace(name string) error {
 }
 
 // StateMgr implements backend.Enhanced.
-func (b *Remote) StateMgr(name string) (state.State, error) {
+func (b *Remote) StateMgr(workspaceAddr addrs.ProjectWorkspace) (state.State, error) {
+	if workspaceAddr.Key != addrs.NoKey {
+		return nil, fmt.Errorf("remote backend doesn't yet support workspace instance keys")
+	}
+	name := workspaceAddr.Name
 	if b.workspace == "" && name == backend.DefaultStateName {
 		return nil, backend.ErrDefaultWorkspaceNotSupported
 	}
@@ -632,122 +637,125 @@ func (b *Remote) StateMgr(name string) (state.State, error) {
 
 // Operation implements backend.Enhanced.
 func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend.RunningOperation, error) {
-	// Get the remote workspace name.
-	name := op.Workspace
-	switch {
-	case op.Workspace == backend.DefaultStateName:
-		name = b.workspace
-	case b.prefix != "" && !strings.HasPrefix(op.Workspace, b.prefix):
-		name = b.prefix + op.Workspace
-	}
+	return nil, fmt.Errorf("remote backend is not yet updated for workspaces2 prototype")
+	/*
+		// Get the remote workspace name.
+		name := op.Workspace
+		switch {
+		case op.Workspace == backend.DefaultWorkspaceAddr:
+			name = b.workspace
+		case b.prefix != "" && !strings.HasPrefix(op.Workspace, b.prefix):
+			name = b.prefix + op.Workspace
+		}
 
-	// Retrieve the workspace for this operation.
-	w, err := b.client.Workspaces.Read(ctx, b.organization, name)
-	if err != nil {
-		switch err {
-		case context.Canceled:
-			return nil, err
-		case tfe.ErrResourceNotFound:
-			return nil, fmt.Errorf(
-				"workspace %s not found\n\n"+
-					"The configured \"remote\" backend returns '404 Not Found' errors for resources\n"+
-					"that do not exist, as well as for resources that a user doesn't have access\n"+
-					"to. When the resource does exists, please check the rights for the used token.",
-				name,
-			)
+		// Retrieve the workspace for this operation.
+		w, err := b.client.Workspaces.Read(ctx, b.organization, name)
+		if err != nil {
+			switch err {
+			case context.Canceled:
+				return nil, err
+			case tfe.ErrResourceNotFound:
+				return nil, fmt.Errorf(
+					"workspace %s not found\n\n"+
+						"The configured \"remote\" backend returns '404 Not Found' errors for resources\n"+
+						"that do not exist, as well as for resources that a user doesn't have access\n"+
+						"to. When the resource does exists, please check the rights for the used token.",
+					name,
+				)
+			default:
+				return nil, fmt.Errorf(
+					"The configured \"remote\" backend encountered an unexpected error:\n\n%s",
+					err,
+				)
+			}
+		}
+
+		// Check if we need to use the local backend to run the operation.
+		if b.forceLocal || !w.Operations {
+			return b.local.Operation(ctx, op)
+		}
+
+		// Set the remote workspace name.
+		op.Workspace = w.Name
+
+		// Determine the function to call for our operation
+		var f func(context.Context, context.Context, *backend.Operation, *tfe.Workspace) (*tfe.Run, error)
+		switch op.Type {
+		case backend.OperationTypePlan:
+			f = b.opPlan
+		case backend.OperationTypeApply:
+			f = b.opApply
 		default:
 			return nil, fmt.Errorf(
-				"The configured \"remote\" backend encountered an unexpected error:\n\n%s",
-				err,
-			)
-		}
-	}
-
-	// Check if we need to use the local backend to run the operation.
-	if b.forceLocal || !w.Operations {
-		return b.local.Operation(ctx, op)
-	}
-
-	// Set the remote workspace name.
-	op.Workspace = w.Name
-
-	// Determine the function to call for our operation
-	var f func(context.Context, context.Context, *backend.Operation, *tfe.Workspace) (*tfe.Run, error)
-	switch op.Type {
-	case backend.OperationTypePlan:
-		f = b.opPlan
-	case backend.OperationTypeApply:
-		f = b.opApply
-	default:
-		return nil, fmt.Errorf(
-			"\n\nThe \"remote\" backend does not support the %q operation.", op.Type)
-	}
-
-	// Lock
-	b.opLock.Lock()
-
-	// Build our running operation
-	// the runninCtx is only used to block until the operation returns.
-	runningCtx, done := context.WithCancel(context.Background())
-	runningOp := &backend.RunningOperation{
-		Context:   runningCtx,
-		PlanEmpty: true,
-	}
-
-	// stopCtx wraps the context passed in, and is used to signal a graceful Stop.
-	stopCtx, stop := context.WithCancel(ctx)
-	runningOp.Stop = stop
-
-	// cancelCtx is used to cancel the operation immediately, usually
-	// indicating that the process is exiting.
-	cancelCtx, cancel := context.WithCancel(context.Background())
-	runningOp.Cancel = cancel
-
-	// Do it.
-	go func() {
-		defer done()
-		defer stop()
-		defer cancel()
-
-		defer b.opLock.Unlock()
-
-		r, opErr := f(stopCtx, cancelCtx, op, w)
-		if opErr != nil && opErr != context.Canceled {
-			b.ReportResult(runningOp, opErr)
-			return
+				"\n\nThe \"remote\" backend does not support the %q operation.", op.Type)
 		}
 
-		if r == nil && opErr == context.Canceled {
-			runningOp.Result = backend.OperationFailure
-			return
+		// Lock
+		b.opLock.Lock()
+
+		// Build our running operation
+		// the runninCtx is only used to block until the operation returns.
+		runningCtx, done := context.WithCancel(context.Background())
+		runningOp := &backend.RunningOperation{
+			Context:   runningCtx,
+			PlanEmpty: true,
 		}
 
-		if r != nil {
-			// Retrieve the run to get its current status.
-			r, err := b.client.Runs.Read(cancelCtx, r.ID)
-			if err != nil {
-				b.ReportResult(runningOp, generalError("Failed to retrieve run", err))
+		// stopCtx wraps the context passed in, and is used to signal a graceful Stop.
+		stopCtx, stop := context.WithCancel(ctx)
+		runningOp.Stop = stop
+
+		// cancelCtx is used to cancel the operation immediately, usually
+		// indicating that the process is exiting.
+		cancelCtx, cancel := context.WithCancel(context.Background())
+		runningOp.Cancel = cancel
+
+		// Do it.
+		go func() {
+			defer done()
+			defer stop()
+			defer cancel()
+
+			defer b.opLock.Unlock()
+
+			r, opErr := f(stopCtx, cancelCtx, op, w)
+			if opErr != nil && opErr != context.Canceled {
+				b.ReportResult(runningOp, opErr)
 				return
 			}
 
-			// Record if there are any changes.
-			runningOp.PlanEmpty = !r.HasChanges
+			if r == nil && opErr == context.Canceled {
+				runningOp.Result = backend.OperationFailure
+				return
+			}
 
-			if opErr == context.Canceled {
-				if err := b.cancel(cancelCtx, op, r); err != nil {
+			if r != nil {
+				// Retrieve the run to get its current status.
+				r, err := b.client.Runs.Read(cancelCtx, r.ID)
+				if err != nil {
 					b.ReportResult(runningOp, generalError("Failed to retrieve run", err))
 					return
 				}
-			}
 
-			if r.Status == tfe.RunCanceled || r.Status == tfe.RunErrored {
-				runningOp.Result = backend.OperationFailure
-			}
-		}
-	}()
+				// Record if there are any changes.
+				runningOp.PlanEmpty = !r.HasChanges
 
-	// Return the running operation.
-	return runningOp, nil
+				if opErr == context.Canceled {
+					if err := b.cancel(cancelCtx, op, r); err != nil {
+						b.ReportResult(runningOp, generalError("Failed to retrieve run", err))
+						return
+					}
+				}
+
+				if r.Status == tfe.RunCanceled || r.Status == tfe.RunErrored {
+					runningOp.Result = backend.OperationFailure
+				}
+			}
+		}()
+
+		// Return the running operation.
+		return runningOp, nil
+	*/
 }
 
 func (b *Remote) cancel(cancelCtx context.Context, op *backend.Operation, r *tfe.Run) error {

@@ -139,7 +139,7 @@ func (c *PlanCommand) Run(args []string) int {
 		}
 		var backendForPlan plans.Backend
 		backendForPlan.Type = backendPseudoState.Type
-		backendForPlan.Workspace = c.Workspace()
+		backendForPlan.Workspace = c.Workspace().Name
 
 		// Configuration is a little more awkward to handle here because it's
 		// stored in state as raw JSON but we need it as a plans.DynamicValue

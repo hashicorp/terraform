@@ -353,7 +353,7 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 	}
 
 	opts.Meta = &terraform.ContextMeta{
-		Env: m.Workspace(),
+		Workspace: m.Workspace(),
 	}
 
 	return &opts
@@ -548,17 +548,38 @@ func (m *Meta) outputShadowError(err error, output bool) bool {
 // and `terraform workspace delete`.
 const WorkspaceNameEnvVar = "TF_WORKSPACE"
 
-// Workspace returns the name of the currently configured workspace, corresponding
-// to the desired named state.
-func (m *Meta) Workspace() string {
+// Workspace returns the address of the currently-selected workspace.
+func (m *Meta) Workspace() addrs.ProjectWorkspace {
 	current, _ := m.WorkspaceOverridden()
 	return current
 }
 
-// WorkspaceOverridden returns the name of the currently configured workspace,
-// corresponding to the desired named state, as well as a bool saying whether
-// this was set via the TF_WORKSPACE environment variable.
-func (m *Meta) WorkspaceOverridden() (string, bool) {
+// WorkspaceOverridden returns the address of the currently-selected workspace,
+// as well as a flag indicating whether this setting is overriding the "ambient"
+// current workspace selection recorded in the .terraform directory, e.g.
+// via the TF_WORKSPACE environment variable.
+func (m *Meta) WorkspaceOverridden() (addrs.ProjectWorkspace, bool) {
+	rawStr, overridden := m.workspaceAddrStringOverridden()
+
+	addr, diags := addrs.ParseProjectWorkspaceCompactStr(rawStr)
+	if diags.HasErrors() {
+		// We return the default workspace if the given workspace is invalid
+		// somehow.
+		// FIXME: This doesn't seem right. This was preserving the existing
+		// behavior of treating errors as implicitly default, but it seems
+		// better for us to return an error here so that the user doesn't
+		// inadvertently apply changes to the default namespace.
+		log.Printf("[ERROR] failed to parse selected workspace address: %s", diags.Err().Error())
+		return addrs.ProjectWorkspace{
+			Rel:  addrs.ProjectWorkspaceCurrent,
+			Name: backend.DefaultStateName,
+		}, overridden
+	}
+
+	return addr, overridden
+}
+
+func (m *Meta) workspaceAddrStringOverridden() (string, bool) {
 	if envVar := os.Getenv(WorkspaceNameEnvVar); envVar != "" {
 		return envVar, true
 	}

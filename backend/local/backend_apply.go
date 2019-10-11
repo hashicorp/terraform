@@ -89,16 +89,16 @@ func (b *Local) opApply(
 		if mustConfirm {
 			var desc, query string
 			if op.Destroy {
-				if op.Workspace != "default" {
-					query = "Do you really want to destroy all resources in workspace \"" + op.Workspace + "\"?"
+				if op.Workspace != backend.DefaultWorkspaceAddr {
+					query = "Do you really want to destroy all resources in workspace \"" + op.Workspace.StringCompact() + "\"?"
 				} else {
 					query = "Do you really want to destroy all resources?"
 				}
 				desc = "Terraform will destroy all your managed infrastructure, as shown above.\n" +
 					"There is no undo. Only 'yes' will be accepted to confirm."
 			} else {
-				if op.Workspace != "default" {
-					query = "Do you want to perform these actions in workspace \"" + op.Workspace + "\"?"
+				if op.Workspace != backend.DefaultWorkspaceAddr {
+					query = "Do you want to perform these actions in workspace \"" + op.Workspace.StringCompact() + "\"?"
 				} else {
 					query = "Do you want to perform these actions?"
 				}

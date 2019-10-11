@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/command/jsonplan"
@@ -133,7 +134,7 @@ func (c *ShowCommand) Run(args []string) int {
 		}
 	} else {
 		env := c.Workspace()
-		stateFile, stateErr = getStateFromEnv(b, env)
+		stateFile, stateErr = getStateFromEnv(b, env.Name)
 		if stateErr != nil {
 			c.Ui.Error(stateErr.Error())
 			return 1
@@ -238,7 +239,7 @@ func getStateFromPath(path string) (*statefile.File, error) {
 // getStateFromEnv returns the State for the current workspace, if available.
 func getStateFromEnv(b backend.Backend, env string) (*statefile.File, error) {
 	// Get the state
-	stateStore, err := b.StateMgr(env)
+	stateStore, err := b.StateMgr(addrs.MakeProjectWorkspace(env, addrs.NoKey))
 	if err != nil {
 		return nil, fmt.Errorf("Failed to load state manager: %s", err)
 	}

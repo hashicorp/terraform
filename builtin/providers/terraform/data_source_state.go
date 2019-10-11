@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/providers"
@@ -100,7 +101,7 @@ func dataSourceRemoteStateRead(d cty.Value) (cty.Value, tfdiags.Diagnostics) {
 
 	newState["workspace"] = cty.StringVal(workspaceName)
 
-	state, err := b.StateMgr(workspaceName)
+	state, err := b.StateMgr(addrs.MakeProjectWorkspace(workspaceName, addrs.NoKey))
 	if err != nil {
 		diags = diags.Append(tfdiags.AttributeValue(
 			tfdiags.Error,

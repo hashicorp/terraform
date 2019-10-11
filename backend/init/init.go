@@ -11,7 +11,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	backendLocal "github.com/hashicorp/terraform/backend/local"
-	backendRemote "github.com/hashicorp/terraform/backend/remote"
+	//backendRemote "github.com/hashicorp/terraform/backend/remote"
 )
 
 // backends is the list of available backends. This is a global variable
@@ -35,8 +35,8 @@ func Init(services *disco.Disco) {
 
 	backends = map[string]backend.InitFn{
 		// Enhanced backends.
-		"local":  func() backend.Backend { return backendLocal.New() },
-		"remote": func() backend.Backend { return backendRemote.New(services) },
+		"local": func() backend.Backend { return backendLocal.New() },
+		//"remote": func() backend.Backend { return backendRemote.New(services) },
 	}
 }
 

@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"log"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/hashicorp/errwrap"
@@ -168,50 +167,53 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, tfdiags.Diagnostics
 // if the currently selected workspace is valid. If not, it will ask
 // the user to select a workspace from the list.
 func (m *Meta) selectWorkspace(b backend.Backend) error {
-	workspaces, err := b.Workspaces()
-	if err == backend.ErrWorkspacesNotSupported {
-		return nil
-	}
-	if err != nil {
-		return fmt.Errorf("Failed to get existing workspaces: %s", err)
-	}
-	if len(workspaces) == 0 {
-		return fmt.Errorf(strings.TrimSpace(errBackendNoExistingWorkspaces))
-	}
-
-	// Get the currently selected workspace.
-	workspace := m.Workspace()
-
-	// Check if any of the existing workspaces matches the selected
-	// workspace and create a numbered list of existing workspaces.
-	var list strings.Builder
-	for i, w := range workspaces {
-		if w == workspace {
+	return fmt.Errorf("Meta.selectWorkspace is not yet compatible with the workspaces2 prototype")
+	/*
+		workspaces, err := b.Workspaces()
+		if err == backend.ErrWorkspacesNotSupported {
 			return nil
 		}
-		fmt.Fprintf(&list, "%d. %s\n", i+1, w)
-	}
+		if err != nil {
+			return fmt.Errorf("Failed to get existing workspaces: %s", err)
+		}
+		if len(workspaces) == 0 {
+			return fmt.Errorf(strings.TrimSpace(errBackendNoExistingWorkspaces))
+		}
 
-	// If the selected workspace doesn't exist, ask the user to select
-	// a workspace from the list of existing workspaces.
-	v, err := m.UIInput().Input(context.Background(), &terraform.InputOpts{
-		Id: "select-workspace",
-		Query: fmt.Sprintf(
-			"\n[reset][bold][yellow]The currently selected workspace (%s) does not exist.[reset]",
-			workspace),
-		Description: fmt.Sprintf(
-			strings.TrimSpace(inputBackendSelectWorkspace), list.String()),
-	})
-	if err != nil {
-		return fmt.Errorf("Failed to select workspace: %s", err)
-	}
+		// Get the currently selected workspace.
+		workspace := m.Workspace()
 
-	idx, err := strconv.Atoi(v)
-	if err != nil || (idx < 1 || idx > len(workspaces)) {
-		return fmt.Errorf("Failed to select workspace: input not a valid number")
-	}
+		// Check if any of the existing workspaces matches the selected
+		// workspace and create a numbered list of existing workspaces.
+		var list strings.Builder
+		for i, w := range workspaces {
+			if w == workspace {
+				return nil
+			}
+			fmt.Fprintf(&list, "%d. %s\n", i+1, w)
+		}
 
-	return m.SetWorkspace(workspaces[idx-1])
+		// If the selected workspace doesn't exist, ask the user to select
+		// a workspace from the list of existing workspaces.
+		v, err := m.UIInput().Input(context.Background(), &terraform.InputOpts{
+			Id: "select-workspace",
+			Query: fmt.Sprintf(
+				"\n[reset][bold][yellow]The currently selected workspace (%s) does not exist.[reset]",
+				workspace),
+			Description: fmt.Sprintf(
+				strings.TrimSpace(inputBackendSelectWorkspace), list.String()),
+		})
+		if err != nil {
+			return fmt.Errorf("Failed to select workspace: %s", err)
+		}
+
+		idx, err := strconv.Atoi(v)
+		if err != nil || (idx < 1 || idx > len(workspaces)) {
+			return fmt.Errorf("Failed to select workspace: input not a valid number")
+		}
+
+		return m.SetWorkspace(workspaces[idx-1])
+	*/
 }
 
 // BackendForPlan is similar to Backend, but uses backend settings that were
@@ -672,81 +674,85 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *state.LocalSta
 	}
 
 	// Grab a purely local backend to get the local state if it exists
-	localB, localBDiags := m.Backend(&BackendOpts{ForceLocal: true})
-	if localBDiags.HasErrors() {
-		diags = diags.Append(localBDiags)
-		return nil, diags
-	}
+	//localB, localBDiags := m.Backend(&BackendOpts{ForceLocal: true})
+	//if localBDiags.HasErrors() {
+	//	diags = diags.Append(localBDiags)
+	//	return nil, diags
+	//}
 
-	workspaces, err := localB.Workspaces()
-	if err != nil {
-		diags = diags.Append(fmt.Errorf(errBackendLocalRead, err))
-		return nil, diags
-	}
-
-	var localStates []state.State
-	for _, workspace := range workspaces {
-		localState, err := localB.StateMgr(workspace)
+	// TODO: Update this to be compatible with workspaces2, though that will
+	// probably just mean removing this whole file.
+	/*
+		workspaces, err := localB.Workspaces()
 		if err != nil {
 			diags = diags.Append(fmt.Errorf(errBackendLocalRead, err))
 			return nil, diags
 		}
-		if err := localState.RefreshState(); err != nil {
-			diags = diags.Append(fmt.Errorf(errBackendLocalRead, err))
-			return nil, diags
-		}
 
-		// We only care about non-empty states.
-		if localS := localState.State(); !localS.Empty() {
-			log.Printf("[TRACE] Meta.Backend: will need to migrate workspace states because of existing %q workspace", workspace)
-			localStates = append(localStates, localState)
-		} else {
-			log.Printf("[TRACE] Meta.Backend: ignoring local %q workspace because its state is empty", workspace)
-		}
-	}
+		var localStates []state.State
+		for _, workspace := range workspaces {
+			localState, err := localB.StateMgr(addrs. workspace)
+			if err != nil {
+				diags = diags.Append(fmt.Errorf(errBackendLocalRead, err))
+				return nil, diags
+			}
+			if err := localState.RefreshState(); err != nil {
+				diags = diags.Append(fmt.Errorf(errBackendLocalRead, err))
+				return nil, diags
+			}
 
-	if len(localStates) > 0 {
-		// Perform the migration
-		err = m.backendMigrateState(&backendMigrateOpts{
-			OneType: "local",
-			TwoType: c.Type,
-			One:     localB,
-			Two:     b,
-		})
-		if err != nil {
-			diags = diags.Append(err)
-			return nil, diags
-		}
-
-		// we usually remove the local state after migration to prevent
-		// confusion, but adding a default local backend block to the config
-		// can get us here too. Don't delete our state if the old and new paths
-		// are the same.
-		erase := true
-		if newLocalB, ok := b.(*backendLocal.Local); ok {
-			if localB, ok := localB.(*backendLocal.Local); ok {
-				if newLocalB.PathsConflictWith(localB) {
-					erase = false
-					log.Printf("[TRACE] Meta.Backend: both old and new backends share the same local state paths, so not erasing old state")
-				}
+			// We only care about non-empty states.
+			if localS := localState.State(); !localS.Empty() {
+				log.Printf("[TRACE] Meta.Backend: will need to migrate workspace states because of existing %q workspace", workspace)
+				localStates = append(localStates, localState)
+			} else {
+				log.Printf("[TRACE] Meta.Backend: ignoring local %q workspace because its state is empty", workspace)
 			}
 		}
 
-		if erase {
-			log.Printf("[TRACE] Meta.Backend: removing old state snapshots from old backend")
-			for _, localState := range localStates {
-				// We always delete the local state, unless that was our new state too.
-				if err := localState.WriteState(nil); err != nil {
-					diags = diags.Append(fmt.Errorf(errBackendMigrateLocalDelete, err))
-					return nil, diags
+		if len(localStates) > 0 {
+			// Perform the migration
+			err = m.backendMigrateState(&backendMigrateOpts{
+				OneType: "local",
+				TwoType: c.Type,
+				One:     localB,
+				Two:     b,
+			})
+			if err != nil {
+				diags = diags.Append(err)
+				return nil, diags
+			}
+
+			// we usually remove the local state after migration to prevent
+			// confusion, but adding a default local backend block to the config
+			// can get us here too. Don't delete our state if the old and new paths
+			// are the same.
+			erase := true
+			if newLocalB, ok := b.(*backendLocal.Local); ok {
+				if localB, ok := localB.(*backendLocal.Local); ok {
+					if newLocalB.PathsConflictWith(localB) {
+						erase = false
+						log.Printf("[TRACE] Meta.Backend: both old and new backends share the same local state paths, so not erasing old state")
+					}
 				}
-				if err := localState.PersistState(); err != nil {
-					diags = diags.Append(fmt.Errorf(errBackendMigrateLocalDelete, err))
-					return nil, diags
+			}
+
+			if erase {
+				log.Printf("[TRACE] Meta.Backend: removing old state snapshots from old backend")
+				for _, localState := range localStates {
+					// We always delete the local state, unless that was our new state too.
+					if err := localState.WriteState(nil); err != nil {
+						diags = diags.Append(fmt.Errorf(errBackendMigrateLocalDelete, err))
+						return nil, diags
+					}
+					if err := localState.PersistState(); err != nil {
+						diags = diags.Append(fmt.Errorf(errBackendMigrateLocalDelete, err))
+						return nil, diags
+					}
 				}
 			}
 		}
-	}
+	*/
 
 	if m.stateLock {
 		stateLocker := clistate.NewLocker(context.Background(), m.stateLockTimeout, m.Ui, m.Colorize())

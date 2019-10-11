@@ -1,7 +1,6 @@
 package command
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/posener/complete"
@@ -12,22 +11,26 @@ type WorkspaceShowCommand struct {
 }
 
 func (c *WorkspaceShowCommand) Run(args []string) int {
-	args, err := c.Meta.process(args, true)
-	if err != nil {
-		return 1
-	}
+	c.Ui.Error("not yet updated for workspaces2 prototype")
+	return 1
+	/*
+		args, err := c.Meta.process(args, true)
+		if err != nil {
+			return 1
+		}
 
-	cmdFlags := c.Meta.extendedFlagSet("workspace show")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
-		return 1
-	}
+		cmdFlags := c.Meta.extendedFlagSet("workspace show")
+		cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
+		if err := cmdFlags.Parse(args); err != nil {
+			c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+			return 1
+		}
 
-	workspace := c.Workspace()
-	c.Ui.Output(workspace)
+		workspace := c.Workspace()
+		c.Ui.Output(workspace)
 
-	return 0
+		return 0
+	*/
 }
 
 func (c *WorkspaceShowCommand) AutocompleteArgs() complete.Predictor {

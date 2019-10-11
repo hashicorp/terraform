@@ -52,7 +52,7 @@ func (c *StateMeta) State() (state.State, error) {
 			panic(backendDiags.Err())
 		}
 		localB := localRaw.(*backendLocal.Local)
-		_, stateOutPath, _ = localB.StatePaths(workspace)
+		_, stateOutPath, _ = localB.StatePaths(workspace.StringCompact())
 		if err != nil {
 			return nil, err
 		}

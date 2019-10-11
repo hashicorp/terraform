@@ -815,16 +815,20 @@ func (s *BackendState) SetConfig(val cty.Value, schema *configschema.Block) erro
 //
 // The backend configuration schema is required in order to properly
 // encode the backend-specific configuration settings.
-func (s *BackendState) ForPlan(schema *configschema.Block, workspaceName string) (*plans.Backend, error) {
+func (s *BackendState) ForPlan(schema *configschema.Block, workspaceAddr addrs.ProjectWorkspace) (*plans.Backend, error) {
 	if s == nil {
 		return nil, nil
+	}
+
+	if workspaceAddr.Key != addrs.NoKey {
+		return nil, fmt.Errorf("BackendState.ForPlan does not yet support workspace instance keys")
 	}
 
 	configVal, err := s.Config(schema)
 	if err != nil {
 		return nil, errwrap.Wrapf("failed to decode backend config: {{err}}", err)
 	}
-	return plans.NewBackend(s.Type, configVal, schema, workspaceName)
+	return plans.NewBackend(s.Type, configVal, schema, workspaceAddr.Name)
 }
 
 // RemoteState is used to track the information about a remote

@@ -72,7 +72,7 @@ type ContextOpts struct {
 // into Terraform in various ways. This must be provided by the Context
 // initializer.
 type ContextMeta struct {
-	Env string // Env is the state environment
+	Workspace addrs.ProjectWorkspace
 }
 
 // Context represents all the context that Terraform needs in order to
