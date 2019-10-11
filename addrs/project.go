@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -51,6 +52,103 @@ type ProjectWorkspace struct {
 	Key  InstanceKey
 }
 
+// MakeProjectWorkspace is a helper to compactly construct a project workspace
+// address for a workspace in the current project.
+func MakeProjectWorkspace(name string, key InstanceKey) ProjectWorkspace {
+	return ProjectWorkspace{
+		Rel:  ProjectWorkspaceCurrent,
+		Name: name,
+		Key:  key,
+	}
+}
+
+// MakeProjectWorkspaceUpstream is a helper to compactly construct a project
+// workspace address for an upstream workspace.
+func MakeProjectWorkspaceUpstream(name string, key InstanceKey) ProjectWorkspace {
+	return ProjectWorkspace{
+		Rel:  ProjectWorkspaceUpstream,
+		Name: name,
+		Key:  key,
+	}
+}
+
+// ParseProjectWorkspaceCompact parses a project workspace address as it
+// appears in workspace-specific scenarios such as on the command line and
+// in environment variables.
+//
+// The result is always a workspace in the current project, and never an
+// upstream workspace or any other relationship.
+//
+// This notation is different than the addresses used within the project
+// configuration file, exploiting the fact that it's implied that we're
+// talking about workspaces in order to achieve a more compact representation.
+//
+// The returned address is invalid and should not be used if the returned
+// diags contains errors.
+func ParseProjectWorkspaceCompact(traversal hcl.Traversal) (ProjectWorkspace, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	if len(traversal) > 2 || len(traversal) < 1 {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid workspace address",
+			Detail:   "A workspace address must be a workspace configuration name, optionally followed by a dot and then a workspace configuration instance key.",
+			Subject:  traversal.SourceRange().Ptr(),
+		})
+		return ProjectWorkspace{}, diags
+	}
+
+	ret := ProjectWorkspace{
+		Rel:  ProjectWorkspaceCurrent,
+		Name: traversal.RootName(),
+	}
+
+	if len(traversal) == 2 {
+		keyStep, ok := traversal[1].(hcl.TraverseAttr)
+		if !ok {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid workspace address",
+				Detail:   "If a workspace instance key is provided, it must be given as an attribute name introduced with a dot.",
+				Subject:  keyStep.SourceRange().Ptr(),
+			})
+			return ProjectWorkspace{}, diags
+		}
+
+		ret.Key = StringKey(keyStep.Name)
+	}
+
+	return ret, diags
+}
+
+// ParseProjectWorkspaceCompactStr is a wrapper around
+// ParseProjectWorkspaceCompact that first parses the given string as an HCL
+// traversal.
+//
+// This should be used only in specialized situations since it will cause the
+// created references to not have any meaningful source location information.
+// If a reference string is coming from a source that should be identified in
+// error messages then the caller should instead parse it directly using a
+// suitable function from the HCL API and pass the traversal itself to
+// ParseRef.
+//
+// Error diagnostics are returned if either the parsing fails or the analysis
+// of the traversal fails. There is no way for the caller to distinguish the
+// two kinds of diagnostics programmatically. If error diagnostics are returned
+// the returned reference may be nil or incomplete.
+func ParseProjectWorkspaceCompactStr(str string) (ProjectWorkspace, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	traversal, parseDiags := hclsyntax.ParseTraversalAbs([]byte(str), "", hcl.Pos{Line: 1, Column: 1})
+	diags = diags.Append(parseDiags)
+	if parseDiags.HasErrors() {
+		return ProjectWorkspace{}, diags
+	}
+
+	addr, targetDiags := ParseProjectWorkspaceCompact(traversal)
+	diags = diags.Append(targetDiags)
+	return addr, diags
+}
+
 // Config returns the address of the workspace configuration this instance
 // belongs to.
 func (w ProjectWorkspace) Config() ProjectWorkspaceConfig {
@@ -81,6 +179,34 @@ func (w ProjectWorkspace) String() string {
 		// No other key types are valid for project workspaces, but we'll
 		// tolerate this anyway for robustness.
 		return fmt.Sprintf(prefix+"%s%s", w.Name, key.String())
+	}
+}
+
+// StringCompact returns the compact string representation of a workspace in
+// the current project. This is the same format that
+// ParseProjectWorkspaceCompact consumes.
+//
+// This should be used only in sitautions where it is clear from context that
+// the result is a workspace address. This is not the form used within the
+// project configuration language.
+//
+// StringCompact is valid to use only for workspaces in the current project.
+// This method will panic if used with an upstream workspace or any other
+// workspace relationship.
+func (w ProjectWorkspace) StringCompact() string {
+	if w.Rel != ProjectWorkspaceCurrent {
+		panic("StringCompact on workspace address not in the current project")
+	}
+
+	switch key := w.Key.(type) {
+	case nil:
+		return w.Name
+	case StringKey:
+		return fmt.Sprintf("%s.%s", w.Name, string(key))
+	default:
+		// No other key types are valid for project workspaces, but we'll
+		// tolerate this anyway for robustness.
+		return fmt.Sprintf("%s%s", w.Name, key.String())
 	}
 }
 
