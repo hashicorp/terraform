@@ -6,7 +6,7 @@ An opinionated [AWS Go SDK](https://github.com/aws/aws-sdk-go) library for consi
 
 ## Requirements
 
-- [Go](https://golang.org/doc/install) 1.11.4+
+- [Go](https://golang.org/doc/install) 1.12
 
 ## Development
 

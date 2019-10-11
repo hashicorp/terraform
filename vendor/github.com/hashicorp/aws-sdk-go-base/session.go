@@ -2,7 +2,6 @@ package awsbase
 
 import (
 	"crypto/tls"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -28,45 +27,14 @@ func GetSessionOptions(c *Config) (*session.Options, error) {
 		},
 	}
 
+	// get and validate credentials
 	creds, err := GetCredentials(c)
 	if err != nil {
 		return nil, err
 	}
 
-	// Call Get to check for credential provider. If nothing found, we'll get an
-	// error, and we can present it nicely to the user
-	cp, err := creds.Get()
-	if err != nil {
-		if IsAWSErr(err, "NoCredentialProviders", "") {
-			// If a profile wasn't specified, the session may still be able to resolve credentials from shared config.
-			if c.Profile == "" {
-				sess, err := session.NewSession()
-				if err != nil {
-					return nil, errors.New(`No valid credential sources found for AWS Provider.
-	Please see https://terraform.io/docs/providers/aws/index.html for more information on
-	providing credentials for the AWS Provider`)
-				}
-				_, err = sess.Config.Credentials.Get()
-				if err != nil {
-					return nil, errors.New(`No valid credential sources found for AWS Provider.
-	Please see https://terraform.io/docs/providers/aws/index.html for more information on
-	providing credentials for the AWS Provider`)
-				}
-				log.Printf("[INFO] Using session-derived AWS Auth")
-				options.Config.Credentials = sess.Config.Credentials
-			} else {
-				log.Printf("[INFO] AWS Auth using Profile: %q", c.Profile)
-				options.Profile = c.Profile
-				options.SharedConfigState = session.SharedConfigEnable
-			}
-		} else {
-			return nil, fmt.Errorf("Error loading credentials for AWS Provider: %s", err)
-		}
-	} else {
-		// add the validated credentials to the session options
-		log.Printf("[INFO] AWS Auth provider used: %q", cp.ProviderName)
-		options.Config.Credentials = creds
-	}
+	// add the validated credentials to the session options
+	options.Config.Credentials = creds
 
 	if c.Insecure {
 		transport := options.Config.HTTPClient.Transport.(*http.Transport)
@@ -83,7 +51,7 @@ func GetSessionOptions(c *Config) (*session.Options, error) {
 	return options, nil
 }
 
-// GetSession attempts to return valid AWS Go SDK session
+// GetSession attempts to return valid AWS Go SDK session.
 func GetSession(c *Config) (*session.Session, error) {
 	options, err := GetSessionOptions(c)
 
@@ -94,9 +62,7 @@ func GetSession(c *Config) (*session.Session, error) {
 	sess, err := session.NewSessionWithOptions(*options)
 	if err != nil {
 		if IsAWSErr(err, "NoCredentialProviders", "") {
-			return nil, errors.New(`No valid credential sources found for AWS Provider.
-  Please see https://terraform.io/docs/providers/aws/index.html for more information on
-  providing credentials for the AWS Provider`)
+			return nil, ErrNoValidCredentialSources
 		}
 		return nil, fmt.Errorf("Error creating AWS session: %s", err)
 	}
@@ -138,7 +104,7 @@ func GetSession(c *Config) (*session.Session, error) {
 	if !c.SkipCredsValidation {
 		stsClient := sts.New(sess.Copy(&aws.Config{Endpoint: aws.String(c.StsEndpoint)}))
 		if _, _, err := GetAccountIDAndPartitionFromSTSGetCallerIdentity(stsClient); err != nil {
-			return nil, fmt.Errorf("error validating provider credentials: %s", err)
+			return nil, fmt.Errorf("error using credentials to get account ID: %s", err)
 		}
 	}
 
