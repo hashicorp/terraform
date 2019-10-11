@@ -17,7 +17,7 @@ import (
 
 	"github.com/hashicorp/hcl"
 
-	"github.com/hashicorp/terraform/svchost"
+	"github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 

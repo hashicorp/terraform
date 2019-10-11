@@ -7,9 +7,11 @@ import (
 	"testing"
 
 	version "github.com/hashicorp/go-version"
+	"github.com/hashicorp/terraform-svchost/disco"
+	"github.com/hashicorp/terraform/httpclient"
 	"github.com/hashicorp/terraform/registry/regsrc"
 	"github.com/hashicorp/terraform/registry/test"
-	"github.com/hashicorp/terraform/svchost/disco"
+	tfversion "github.com/hashicorp/terraform/version"
 )
 
 func TestLookupModuleVersions(t *testing.T) {
@@ -136,6 +138,7 @@ func TestAccLookupModuleVersions(t *testing.T) {
 		t.Skip()
 	}
 	regDisco := disco.New()
+	regDisco.SetUserAgent(httpclient.TerraformUserAgent(tfversion.String()))
 
 	// test with and without a hostname
 	for _, src := range []string{
