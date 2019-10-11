@@ -118,8 +118,9 @@ type Meta struct {
 	backendState *terraform.BackendState
 
 	// Variables for the context (private)
-	variableArgs rawFlags
-	input        bool
+	variableArgs         rawFlags
+	input                bool
+	workspaceCLIOverride string // set when -workspace CLI argument is used
 
 	// Targets for this context (private)
 	targets []addrs.Targetable
@@ -386,6 +387,8 @@ func (m *Meta) extendedFlagSet(n string) *flag.FlagSet {
 	f.Var(varValues, "var", "variables")
 	f.Var(varFiles, "var-file", "variable file")
 
+	f.StringVar(&m.workspaceCLIOverride, "workspace", "", "override current workspace selection")
+
 	// Experimental features
 	experiment.Flag(f)
 
@@ -580,6 +583,10 @@ func (m *Meta) WorkspaceOverridden() (addrs.ProjectWorkspace, bool) {
 }
 
 func (m *Meta) workspaceAddrStringOverridden() (string, bool) {
+	if cliArg := m.workspaceCLIOverride; cliArg != "" {
+		return cliArg, true
+	}
+
 	if envVar := os.Getenv(WorkspaceNameEnvVar); envVar != "" {
 		return envVar, true
 	}
