@@ -259,6 +259,7 @@ func (p *provisioner) generateAutosignToken(certname string) (string, error) {
 }
 
 func (p *provisioner) installPuppetAgentOpenSource() error {
+	task := "puppet_agent::install"
 
 	connType := p.instanceState.Ephemeral.ConnInfo["type"]
 	if connType == "" {
@@ -276,12 +277,12 @@ func (p *provisioner) installPuppetAgentOpenSource() error {
 		agentConnInfo,
 		p.BoltTimeout,
 		p.UseSudo,
-		"puppet_agent::install",
+		task,
 		nil,
 	)
 
 	if err != nil || result.Items[0].Status != "success" {
-		return fmt.Errorf("puppet_agent::install failed: %s\n%+v", err, result)
+		return fmt.Errorf("%s failed: %s\n%+v", task, err, result)
 	}
 
 	return nil
