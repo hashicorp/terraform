@@ -128,7 +128,7 @@ func applyFn(ctx context.Context) error {
 
 	if p.OSType == "" {
 		switch connType := state.Ephemeral.ConnInfo["type"]; connType {
-		case "ssh", "":
+		case "ssh", "": // The default connection type is ssh, so if the type is empty assume ssh
 			p.OSType = "linux"
 		case "winrm":
 			p.OSType = "windows"
