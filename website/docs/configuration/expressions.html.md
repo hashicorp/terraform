@@ -722,9 +722,15 @@ to generate meta-argument blocks such as `lifecycle` and `provisioner`
 blocks, since Terraform must process these before it is safe to evaluate
 expressions.
 
-If you need to iterate over combinations of values from multiple collections,
-use [`setproduct`](./functions/setproduct.html) to create a single collection
-containing all of the combinations.
+The `for_each` value must be a map or set with one element per desired
+nested block. If you need to declare resource instances based on a nested
+data structure or combinations of elements from multiple data structures you
+can use Terraform expressions and functions to derive a suitable value.
+For some common examples of such situations, see the
+[`flatten`](/docs/configuration/functions/flatten.html)
+and
+[`setproduct`](/docs/configuration/functions/setproduct.html)
+functions.
 
 ### Best Practices for `dynamic` Blocks
 
