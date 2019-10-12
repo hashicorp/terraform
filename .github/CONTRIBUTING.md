@@ -1,265 +1,281 @@
 # Contributing to Terraform
 
-**First:** if you're unsure or afraid of _anything_, just ask
-or submit the issue or pull request anyways. You won't be yelled at for
-giving your best effort. The worst that can happen is that you'll be
-politely asked to change something. We appreciate any sort of contributions,
-and don't want a wall of rules to get in the way of that.
+---
 
-However, for those individuals who want a bit more guidance on the
-best way to contribute to the project, read on. This document will cover
-what we're looking for. By addressing all the points we're looking for,
-it raises the chances we can quickly merge or address your contributions.
+This repository contains only Terraform core, which includes the command line
+interface and the main graph engine. Providers are implemented as plugins that
+each have their own repository in
+[the `terraform-providers` organization](https://github.com/terraform-providers)
+on GitHub. Instructions for developing each provider are in the associated
+README file. For more information, see
+[the provider development overview](https://www.terraform.io/docs/plugins/provider.html).
 
-Specifically, we have provided checklists below for each type of issue and pull
-request that can happen on the project. These checklists represent everything
-we need to be able to review and respond quickly.
+---
 
-## HashiCorp, Official, and Community Providers
+Terraform is an open source project and we appreciate contributions of various
+kinds, including bug reports and fixes, enhancement proposals, documentation
+updates, and user experience feedback.
 
-We separate providers out into what we call "HashiCorp Providers", "Partner Providers" and "Community Providers".
+To record a bug report, enhancement proposal, or give any other product
+feedback, please [open a GitHub issue](https://github.com/hashicorp/terraform/issues/new/choose)
+using the most appropriate issue template. Please do fill in all of the
+information the issue templates request, because we've seen from experience that
+this will maximize the chance that we'll be able to act on your feedback.
 
-HashiCorp providers are providers that we dedicate full time engineers to
-improving, supporting the latest features, and fixing bugs. These are providers
-we understand deeply and are confident we have the resources to manage
-ourselves.
+Please not that we _don't_ use GitHub issues for usage questions. If you have
+a question about how to use Terraform in general or how to solve a specific
+problem with Terraform, please start a topic in
+[the Terraform community forum](https://discuss.hashicorp.com/c/terraform-core),
+where both Terraform team members and community members participate in
+discussions.
 
-Partner providers are providers where we depend on our partners to
-contribute fixes and enhancements to improve. HashiCorp will run automated
-tests and ensure these providers continue to work, but will not dedicate full
-time engineers to add new features to these providers. These providers are
-available in official Terraform releases, but the functionality is primarily
-contributed.
+**All communication on GitHub, the community forum, and other HashiCorp-provided
+communication channels is subject to
+[the HashiCorp community guidelines](https://www.hashicorp.com/community-guidelines).**
 
-All HashiCorp and Partner providers can be found in the (terraform-providers github organization)[https://github.com/terraform-providers].
-Any provider issues should be opened in the provider's repository.
+## Terraform CLI/Core Development Environment
 
-Our testing standards are the same for both HashiCorp and Official providers,
-and HashiCorp runs full acceptance test suites for every provider nightly to
-ensure Terraform remains stable.
+This repository contains the source code for Terraform CLI, which is the main
+component of Terraform that contains the core Terraform engine.
 
-Community Providers are providers that are neither maintained nor tested by
-HashiCorp. We can make no promises that these providers will work with any given
-version of Terraform. These providers are not automatically installed by
-`terraform init` and instead require manual installation.
+The HashiCorp-maintained Terraform providers are also open source but are not
+in this repository; instead, they are each in their own repository in
+[the `terraform-providers` organization](https://github.com/terraform-providers)
+on GitHub.
 
-We make the distinction between these types of providers to help
-highlight the vast amounts of community effort that goes in to making Terraform
-great, and to help contributors better understand the role HashiCorp employees
-play in the various areas of the code base.
+This repository also does not include the source code for some other parts of
+the Terraform product including Terraform Cloud, Terraform Enterprise, and the
+Terraform Registry. Those components are not open source, though if you have
+feedback about them (including bug reports) please do feel free to
+[open a GitHub issue on this repository](https://github.com/hashicorp/terraform/issues/new/choose).
 
-## Issues
+---
 
-### Issue Reporting Checklists
+If you wish to work on the Terraform CLI source code, you'll first need to
+install the [Go](https://golang.org/) compiler and the version control system
+[Git](https://git-scm.com/).
 
-We welcome feature requests and bug reports. Below you'll find checklists with
-guidelines for well-formed issues of each type.
+At this time the Terraform development environment is targeting only Linux and
+Mac OS X systems. While Terraform itself is compatible with Windows,
+unfortunately the unit test suite currently contains Unix-specific assumptions
+around maximum path lengths, path separators, etc.
 
-#### Bug Reports
+Refer to the file [`.go-version`](.go-version) to see which version of Go
+Terraform is currently built with. Other versions will often work, but if you
+run into any build or testing problems please try with the specific Go version
+indicated. You can optionally simplify the installation of multiple specific
+versions of Go on your system by installing
+[`goenv`](https://github.com/syndbg/goenv), which reads `.go-version` and
+automatically selects the correct Go version.
 
- - [ ] __Test against latest release__: Make sure you test against the latest
-   released version. It is possible we already fixed the bug you're experiencing.
+Use Git to clone this repository into a location of your choice. Terraform is
+using [Go Modules](https://blog.golang.org/using-go-modules), and so you
+should _not_ clone it inside your `GOPATH`.
 
- - [ ] __Search for possible duplicate reports__: It's helpful to keep bug
-   reports consolidated to one thread, so do a quick search on existing bug
-   reports to check if anybody else has reported the same thing. You can scope
-   searches by the label "bug" to help narrow things down.
+Switch into the root directory of the cloned repository and build Terraform
+using the Go toolchain in the standard way:
 
- - [ ] __Include steps to reproduce__: Provide steps to reproduce the issue,
-   along with your `.tf` files, with secrets removed, so we can try to
-   reproduce it. Without this, it makes it much harder to fix the issue.
+```
+cd terraform
+go install .
+```
 
- - [ ] __For panics, include `crash.log`__: If you experienced a panic, please
-   create a [gist](https://gist.github.com) of the *entire* generated crash log
-   for us to look at. Double check no sensitive items were in the log.
+The first time you run the `go install` command, the Go toolchain will download
+any library dependencies that you don't already have in your Go modules cache.
+Subsequent builds will be faster because these dependencies will already be
+available on your local disk.
 
-#### Feature Requests
+Once the compilation process succeeds, you can find a `terraform` executable in
+the Go executable directory. If you haven't overridden it with the `GOBIN`
+environment variable, the executable directory is the `bin` directory inside
+the directory returned by the following command:
 
- - [ ] __Search for possible duplicate requests__: It's helpful to keep requests
-   consolidated to one thread, so do a quick search on existing requests to
-   check if anybody else has reported the same thing. You can scope searches by
-   the label "enhancement" to help narrow things down.
+```
+go env GOPATH
+```
 
- - [ ] __Include a use case description__: In addition to describing the
-   behavior of the feature you'd like to see added, it's helpful to also lay
-   out the reason why the feature would be important and how it would benefit
-   Terraform users.
+If you are planning to make changes to the Terraform source code, you should
+run the unit test suite before you start to make sure everything is initially
+passing:
 
-#### Questions
+```
+go test ./...
+```
 
-Please do not use GitHub to ask questions! Instead:
+As you make your changes, you can re-run the above command to ensure that the
+tests are _still_ passing. If you are working only on a specific Go package,
+you can speed up your testing cycle by testing only that single package, or
+packages under a particular package prefix:
 
- * __Search for answers in Terraform documentation__
+```
+go test ./command/...
+go test ./addrs
+```
 
- * __Ask in the Community Forum__: Use [the community forum](https://discuss.hashicorp.com/c/terraform-core) for questions not answered by the documentation.
+## Acceptance Tests: Testing interactions with external services
 
- * __Request an update to the documentation__: If you find that the
- documentation is confusing or incorrect, open an issue (or a pull request) and
- let us know.
+Terraform's unit test suite is self-contained, using mocks and local files
+to help ensure that it can run offline and is unlikely to be broken by changes
+to outside systems.
 
-### Issue Lifecycle
+However, several Terraform components interact with external services, such
+as the automatic provider installation mechanism, the Terraform Registry,
+Terraform Cloud, etc.
 
-1. The issue is reported.
+There are some optional tests in the Terraform CLI codebase that _do_ interact
+with external services, which we collectively refer to as "acceptance tests".
+You can enable these by setting the environment variable `TF_ACC=1` when
+running the tests. We recommend focusing only on the specific package you
+are working on when enabling acceptance tests, both because it can help the
+test run to complete faster and because you are less likely to encounter
+failures due to drift in systems unrelated to your current goal:
 
-2. The issue is verified and categorized by a Terraform collaborator.
-   Categorization is done via GitHub labels. We generally use a two-label
-   system of (1) issue/PR type, and (2) section of the codebase. Type is
-   usually "bug", "enhancement", "documentation", or "question", and section
-   can be any of the providers or provisioners or "core".
+```
+TF_ACC=1 go test ./internal/initwd
+```
 
-3. Unless it is critical, the issue is left for a period of time (sometimes
-   many weeks), giving outside contributors a chance to address the issue.
+Because the acceptance tests depend on services outside of the Terraform
+codebase, and because the acceptance tests are usually used only when making
+changes to the systems they cover, it is common and expected that drift in
+those external systems will cause test failures. Because of this, prior to
+working on a system covered by acceptance tests it's important to run the
+existing tests for that system in an _unchanged_ work tree first and respond
+to any test failures that preexist, to avoid misinterpreting such failures as
+bugs in your new changes.
 
-4. The issue is addressed in a pull request or commit. The issue will be
-   referenced in the commit message so that the code that fixes it is clearly
-   linked.
+## Generated Code
 
-5. The issue is closed. Sometimes, valid issues will be closed to keep
-   the issue tracker clean. The issue is still indexed and available for
-   future viewers, or can be re-opened if necessary.
+Some files in the Terraform CLI codebase are generated. In most cases, we
+update these using `go generate`, which is the standard way to encapsulate
+code generation steps in a Go codebase.
 
-## Pull Requests
+However, code generation often relies on external tools which must be correctly
+installed before running `go generate`. Terraform's `Makefile` includes
+a target to install the tools needed for `go generate`:
 
-Thank you for contributing! Here you'll find information on what to include in
-your Pull Request to ensure it is accepted quickly.
+```
+make tools
+```
 
- * Pull requests that don't follow the guidelines will be annotated with what
-   they're missing. A community or core team member may be able to swing around
-   and help finish up the work, but these PRs will generally hang out much
-   longer until they can be completed and merged.
+After the tools are installed successfully, you can run code generation for
+all packages:
 
-### Pull Request Lifecycle
+```
+go generate ./...
+```
 
-1. You are welcome to submit your pull request for commentary or review before
-   it is fully completed. Please prefix the title of your pull request with
-   "[WIP]" to indicate this. It's also a good idea to include specific
-   questions or items you'd like feedback on.
+Use `git diff` afterwards to inspect the changes and ensure that they are what
+you expected.
 
-2. Once you believe your pull request is ready to be merged, you can remove any
-   "[WIP]" prefix from the title and a core team member will review. Follow
-   [the checklists below](#checklists-for-contribution) to help ensure that
-   your contribution will be merged quickly.
+Terraform includes generated Go stub code for the Terraform provider plugin
+protocol, which is defined using Protocol Buffers. Because the Protocol Buffers
+tools are not written in Go and thus cannot be automatically installed using
+`go get`, we follow a different process for generating these, which requires
+that you've already installed a suitable version of `protoc`:
 
-3. One of Terraform's core team members will look over your contribution and
-   either provide comments letting you know if there is anything left to do. We
-   do our best to provide feedback in a timely manner, but it may take some
-   time for us to respond.
+```
+make protobuf
+```
 
-4. Once all outstanding comments and checklist items have been addressed, your
-   contribution will be merged! Merged PRs will be included in the next
-   Terraform release. The core team takes care of updating the CHANGELOG as
-   they merge.
+## External Dependencies
 
-5. In rare cases, we might decide that a PR should be closed. We'll make sure
-   to provide clear reasoning when this happens.
+Terraform uses Go Modules for dependency management, but currently uses
+"vendoring" to include copies of all of the external library dependencies
+in the Terraform repository to allow builds to complete even if third-party
+dependency sources are unavailable.
 
-### Checklists for Contribution
+Our dependency licensing policy for Terraform excludes proprietary licenses
+and "copyleft"-style licenses. We accept the common Mozilla Public License v2,
+MIT License, and BSD licenses. We will consider other open source licenses
+in similar spirit to those three, but if you plan to include such a dependency
+in a contribution we'd recommend opening a GitHub issue first to discuss what
+you intend to implement and what dependencies it will require so that the
+Terraform team can review the relevant licenses to for whether they meet our
+licensing needs.
 
-There are several different kinds of contribution, each of which has its own
-standards for a speedy review. The following sections describe guidelines for
-each type of contribution.
+If you need to add a new dependency to Terraform or update the selected version
+for an existing one, use `go get` from the root of the Terraform repository
+as follows:
 
-#### Documentation Update
+```
+go get github.com/hashicorp/hcl/v2@2.0.0
+```
 
-Because [Terraform's website][website] is in the same repo as the code, it's
-easy for anybody to help us improve our docs.
+This command will download the requested version (2.0.0 in the above example)
+and record that version selection in the `go.mod` file. It will also record
+checksums for the module in the `go.sum`.
 
- - [ ] __Reasoning for docs update__: Including a quick explanation for why the
-   update needed is helpful for reviewers.
- - [ ] __Relevant Terraform version__: Is this update worth deploying to the
-   site immediately, or is it referencing an upcoming version of Terraform and
-   should get pushed out with the next release?
+To complete the dependency change, clean up any redundancy in the module
+metadata files and resynchronize the `vendor` directory with the new package
+selections by running the following commands:
 
-#### New Provider
+```
+go mod tidy
+go mod vendor
+```
 
-Implementing a new provider gives Terraform the ability to manage resources in
-a whole new API. It's a larger undertaking, but brings major new functionality
-into Terraform.
+To ensure that the vendoring has worked correctly, be sure to run the unit
+test suite at least once in _vendoring_ mode, where Go will use the vendored
+dependencies to build the test programs:
 
-Terraform Providers are external plugins, not in the Terraform codebase. Please
-see the [Provider Development Program](https://www.terraform.io/guides/terraform-provider-development-program.html) documentation if you are interested in
-submitting a new provider.
+```
+go test -mod=vendor ./...
+```
 
-#### Core Bugfix/Enhancement
+Because dependency changes affect a shared, top-level file, they are more likely
+than some other change types to become conflicted with other proposed changes
+during the code review process. For that reason, and to make dependency changes
+more visible in the change history, we prefer to record dependency changes as
+separate commits that include only the results of the above commands and the
+minimal set of changes to Terraform's own code for compatibility with the
+new version:
 
-We are always happy when any developer is interested in diving into Terraform's
-core to help out! Here's what we look for in smaller Core PRs.
+```
+git add go.mod go.sum vendor
+git commit -m "vendor: go get github.com/hashicorp/hcl/v2@2.0.0"
+```
 
- - [ ] __Unit tests__: Terraform's core is covered by hundreds of unit tests at
-   several different layers of abstraction. Generally the best place to start
-   is with a "Context Test". These are higher level test that interact
-   end-to-end with most of Terraform's core. They are divided into test files
-   for each major action (plan, apply, etc.). Getting a failing test is a great
-   way to prove out a bug report or a new enhancement. With a context test in
-   place, you can work on implementation and lower level unit tests. Lower
-   level tests are largely context dependent, but the Context Tests are almost
-   always part of core work.
- - [ ] __Documentation updates__: If the core change involves anything that
-   needs to be reflected in our documentation, you can make those changes in
-   the same PR. The [Terraform website][website] source is in this repo and
-   includes instructions for getting a local copy of the site up and running if
-   you'd like to preview your changes.
- - [ ] __Well-formed Code__: Do your best to follow existing conventions you
-   see in the codebase, and ensure your code is formatted with `go fmt`. (The
-   Travis CI build will fail if `go fmt` has not been run on incoming code.)
-   The PR reviewers can help out on this front, and may provide comments with
-   suggestions on how to improve the code.
+You can then make use of the new or updated dependency in new code added in
+subsequent commits.
 
-#### Core Feature
+## Proposing a Change
 
-If you're interested in taking on a larger core feature, it's a good idea to
-get feedback early and often on the effort.
+If you'd like to contribute a code change to Terraform, we'd love to review
+a GitHub pull request.
 
- - [ ] __Early validation of idea and implementation plan__: Terraform's core
-   is complicated enough that there are often several ways to implement
-   something, each of which has different implications and tradeoffs. Working
-   through a plan of attack with the team before you dive into implementation
-   will help ensure that you're working in the right direction. Opening a GitHub
-   issue, or commenting on an existing issue, is a great way to get these
-   conversations started.
- - [ ] __Unit tests__: Terraform's core is covered by hundreds of unit tests at
-   several different layers of abstraction. Generally the best place to start
-   is with a "Context Test". These are higher level test that interact
-   end-to-end with most of Terraform's core. They are divided into test files
-   for each major action (plan, apply, etc.). Getting a failing test is a great
-   way to prove out a bug report or a new enhancement. With a context test in
-   place, you can work on implementation and lower level unit tests. Lower
-   level tests are largely context dependent, but the Context Tests are almost
-   always part of core work.
- - [ ] __Documentation updates__: If the core change involves anything that
-   needs to be reflected in our documentation, you can make those changes in
-   the same PR. The [Terraform website][website] source is in this repo and
-   includes instructions for getting a local copy of the site up and running if
-   you'd like to preview your changes.
- - [ ] __Well-formed Code__: Do your best to follow existing conventions you
-   see in the codebase, and ensure your code is formatted with `go fmt`. (The
-   Travis CI build will fail if `go fmt` has not been run on incoming code.)
-   The PR reviewers can help out on this front, and may provide comments with
-   suggestions on how to improve the code.
+In order to be respectful of the time of community contributors, we prefer to
+discuss potential changes in GitHub issues prior to implementation. That will
+allow us to give design feedback up front and set expectations about the scope
+of the change, and, for larger changes, how best to approach the work such that
+the Terraform team can review it and merge it along with other concurrent work.
 
-### Writing Acceptance Tests
+If the bug you wish to fix or enhancement you wish to implement isn't already
+covered by a GitHub issue that contains feedback from the Terraform team,
+please do start a discussion (either in
+[a new GitHub issue](https://github.com/hashicorp/terraform/issues/new/choose)
+or an existing one, as appropriate) before you invest significant development
+time. If you mention your intent to implement the change described in your
+issue, the Terraform team can prioritize including implementation-related
+feedback in the subsequent discussion.
 
-#### Acceptance Tests Often Cost Money to Run
+At this time, we do not have a formal process for reviewing outside proposals
+that significantly change Terraform's workflow, its primary usage patterns,
+and its language. While we do hope to put such a thing in place in the future,
+we wish to be up front with potential contributors that unfortunately we are
+unlikely to be able to give prompt feedback for large proposals that could
+entail a significant design phase, though we are still interested to hear about
+your use-cases so that we can consider ways to meet them as part of other
+larger projects.
 
-Because acceptance tests create real resources, they often cost money to run.
-Because the resources only exist for a short period of time, the total amount
-of money required is usually a relatively small. Nevertheless, we don't want
-financial limitations to be a barrier to contribution, so if you are unable to
-pay to run acceptance tests for your contribution, simply mention this in your
-pull request. We will happily accept "best effort" implementations of
-acceptance tests and run them for you on our side. This might mean that your PR
-takes a bit longer to merge, but it most definitely is not a blocker for
-contributions.
+Most changes will involve updates to the test suite, and changes to Terraform's
+documentation. The Terraform team can advise on different testing strategies
+for specific scenarios, and may ask you to revise the specific phrasing of
+your proposed documentation prose to match better with the standard "voice" of
+Terraform's documentation.
 
-#### Running an Acceptance Test
-
-Acceptance tests can be run using the `testacc` target in the Terraform
-`Makefile`. The individual tests to run can be controlled using a regular
-expression. Prior to running the tests provider configuration details such as
-access keys must be made available as environment variables.
-
-
-[website]: https://github.com/hashicorp/terraform/tree/master/website
-[acctests]: https://github.com/hashicorp/terraform#acceptance-tests
-[community forum]: https://discuss.hashicorp.com/c/terraform-core
-[ml]: https://groups.google.com/group/terraform-tool
+This repository is primarily maintained by a small team at HashiCorp along with
+their other responsibilities, so unfortunately we cannot always respond
+promptly to pull requests, particularly if they do not relate to an existing
+GitHub issue where the Terraform team has already participated. We _are_
+grateful for all contributions however, and will give feedback on pull requests
+as soon as we're able.
