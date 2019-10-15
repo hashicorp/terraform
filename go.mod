@@ -1,5 +1,7 @@
 module github.com/hashicorp/terraform
 
+go 1.13
+
 require (
 	cloud.google.com/go v0.45.1
 	github.com/Azure/azure-sdk-for-go v21.3.0+incompatible
@@ -132,5 +134,3 @@ require (
 	gopkg.in/ini.v1 v1.42.0 // indirect
 	gopkg.in/yaml.v2 v2.2.2
 )
-
-go 1.13
