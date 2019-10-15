@@ -88,6 +88,7 @@ func (os *ResourceInstanceObjectSrc) Decode(ty cty.Type) (*ResourceInstanceObjec
 		Value:        val,
 		Status:       os.Status,
 		Dependencies: os.Dependencies,
+		DependsOn:    os.DependsOn,
 		Private:      os.Private,
 	}, nil
 }

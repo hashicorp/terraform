@@ -172,6 +172,7 @@ func (obj *ResourceInstanceObjectSrc) DeepCopy() *ResourceInstanceObjectSrc {
 		AttrsFlat:     attrsFlat,
 		AttrsJSON:     attrsJSON,
 		Dependencies:  dependencies,
+		DependsOn:     dependsOn,
 	}
 }
 

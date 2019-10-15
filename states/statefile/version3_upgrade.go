@@ -313,7 +313,7 @@ func upgradeInstanceObjectV3ToV4(rsOld *resourceStateV2, isOld *instanceStateV2,
 		Status:         status,
 		Deposed:        string(deposedKey),
 		AttributesFlat: attributes,
-		Dependencies:   dependencies,
+		DependsOn:      dependencies,
 		SchemaVersion:  schemaVersion,
 		PrivateRaw:     privateJSON,
 	}, nil
