@@ -116,6 +116,7 @@ func loadConfig(rootDir, filename string, src []byte, body hcl.Body) (*Config, t
 		Context:    make(map[string]*ContextValue),
 		Locals:     make(map[string]*LocalValue),
 		Workspaces: make(map[string]*Workspace),
+		Upstreams:  make(map[string]*Upstream),
 	}
 
 	content, hclDiags := body.Content(rootSchema)

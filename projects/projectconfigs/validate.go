@@ -183,11 +183,32 @@ func (c *Config) getValidExprReferences(expr hcl.Expression) ([]*addrs.ProjectCo
 				continue
 			}
 		case addrs.ProjectWorkspaceConfig:
-			if _, ok := c.Workspaces[addr.Name]; !ok {
+			switch addr.Rel {
+			case addrs.ProjectWorkspaceCurrent:
+				if _, ok := c.Workspaces[addr.Name]; !ok {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Reference to undeclared workspace block",
+						Detail:   fmt.Sprintf("There is no workspace %q block in this project configuration.", addr.Name),
+						Subject:  ref.SourceRange.ToHCL().Ptr(),
+					})
+					continue
+				}
+			case addrs.ProjectWorkspaceUpstream:
+				if _, ok := c.Upstreams[addr.Name]; !ok {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Reference to undeclared upstream block",
+						Detail:   fmt.Sprintf("There is no upstream %q block in this project configuration.", addr.Name),
+						Subject:  ref.SourceRange.ToHCL().Ptr(),
+					})
+					continue
+				}
+			default:
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  "Reference to undeclared workspace block",
-					Detail:   fmt.Sprintf("There is no workspace %q block in this project configuration.", addr.Name),
+					Summary:  "Unsupported workspace reference",
+					Detail:   "This workspace address type is not supported by the project configuration validation rules. This is a bug in Terraform; please report it on GitHub.",
 					Subject:  ref.SourceRange.ToHCL().Ptr(),
 				})
 				continue

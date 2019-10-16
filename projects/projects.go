@@ -170,3 +170,72 @@ func (p *Project) AllWorkspaceAddrs() []addrs.ProjectWorkspace {
 	sort.Stable(sortWorkspaceAddrs(ret))
 	return ret
 }
+
+// WorkspaceConfigDependencies returns the addresses of the workspace
+// configurations that the workspace with the given address depends on.
+//
+// This is intended to support callers that want to calculate a dependency
+// graph of workspaces e.g. to automate applying them all in a particular
+// sequence. If a workspace is applied without first applying its dependencies
+// then the apply could either fail or operate based on stale information.
+//
+// Note that dependencies are between workspace configurations, not individual
+// workspaces. This is because we allow workspace instance keys to be selected
+// dynamically, but the references between workspace configurations themselves
+// are required to be static.
+func (p *Project) WorkspaceConfigDependencies(ws addrs.ProjectWorkspaceConfig) []addrs.ProjectWorkspaceConfig {
+	var exprs []hcl.Expression
+	if ws.Rel != addrs.ProjectWorkspaceCurrent {
+		// Only workspaces in the current project can have dependencies in
+		// the context of this project. (Upstream workspaces might have
+		// dependencies too, but you'd need to ask the upstream project
+		// configuration what they are.)
+		return nil
+	}
+	cfg := p.config.Workspaces[ws.Name]
+	if cfg == nil {
+		return nil
+	}
+
+	if cfg.Variables != nil {
+		exprs = append(exprs, cfg.Variables)
+	}
+	if cfg.ConfigSource != nil {
+		exprs = append(exprs, cfg.ConfigSource)
+	}
+	if cfg.Remote != nil {
+		exprs = append(exprs, cfg.Remote)
+	}
+	// TODO: Also cfg.StateStorage, but that requires a schema for the state storage implementation
+
+	evalData := newStaticEvalData(p.config)
+	return projectlang.RequiredWorkspaceConfigsForExprs(exprs, evalData)
+}
+
+// WorkspaceDependencies is a helper wrapper around WorkspaceConfigDependencies
+// that adapts it to work with individual workspaces rather than workspace
+// configurations.
+//
+// Because dependencies are derived from configuration, they are always between
+// workspace configurations rather than individual workspaces. However, since
+// we know the full set of workspaces we can indirectly determine the full set
+// of workspaces that are needed for another workspace by just listing out
+// all of the workspace instances belonging to the required workspace
+// configurations.
+//
+// BUG(ma): This currently only includes current-project workspaces in the
+// result, because we don't yet have any function to get a list of
+// resolved upstream workspace instances.
+func (p *Project) WorkspaceDependencies(ws addrs.ProjectWorkspace) []addrs.ProjectWorkspace {
+	cfgAddrs := p.WorkspaceConfigDependencies(ws.Config())
+	wsAddrs := p.AllWorkspaceAddrs() // FIXME: This doesn't include upstreams
+	var ret []addrs.ProjectWorkspace
+	for _, cfgAddr := range cfgAddrs {
+		for _, wsAddr := range wsAddrs {
+			if wsAddr.Config() == cfgAddr {
+				ret = append(ret, wsAddr)
+			}
+		}
+	}
+	return ret
+}
