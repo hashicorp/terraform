@@ -200,6 +200,10 @@ type EvalWriteState struct {
 	// ProviderAddr is the address of the provider configuration that
 	// produced the given object.
 	ProviderAddr addrs.AbsProviderConfig
+
+	// Dependencies are the inter-resource dependencies to be stored in the
+	// state.
+	Dependencies []addrs.AbsResource
 }
 
 func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
@@ -215,7 +219,6 @@ func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
 	if n.ProviderAddr.ProviderConfig.Type == "" {
 		return nil, fmt.Errorf("failed to write state for %s, missing provider type", absAddr)
 	}
-
 	obj := *n.State
 	if obj == nil || obj.Value.IsNull() {
 		// No need to encode anything: we'll just write it directly.
@@ -223,6 +226,10 @@ func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
 		log.Printf("[TRACE] EvalWriteState: removing state object for %s", absAddr)
 		return nil, nil
 	}
+
+	// store the new deps in the state
+	obj.Dependencies = n.Dependencies
+
 	if n.ProviderSchema == nil || *n.ProviderSchema == nil {
 		// Should never happen, unless our state object is nil
 		panic("EvalWriteState used with pointer to nil ProviderSchema object")
