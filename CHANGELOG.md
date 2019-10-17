@@ -1,18 +1,18 @@
-## 0.12.11 (Unreleased)
+## 0.12.11 (October 17, 2019)
 
 ENHANCEMENTS:
 
-* backend/s3: Support `role_arn` in AWS configuration files [GH-22994]
-* backend/remote: Remote backend will now ignore all .terraform/ (exclusive of .terraform/modules) and .git/ directories for uploads during remote plans/applies. You can exclude files from upload to TFC by adding a .terraformignore file to your configuration directory, more details at https://www.terraform.io/docs/backends/types/remote.html [GH-23105]
+* backend/s3: Support `role_arn` in AWS configuration files ([#22994](https://github.com/hashicorp/terraform/issues/22994))
+* backend/remote: Remote backend will now ignore all .terraform/ (exclusive of .terraform/modules) and .git/ directories for uploads during remote plans/applies. You can exclude files from upload to TFC by adding a .terraformignore file to your configuration directory, more details at https://www.terraform.io/docs/backends/types/remote.html ([#23105](https://github.com/hashicorp/terraform/issues/23105))
 
 BUG FIXES:
 
-* config: Clean up orphan modules in the presence of -target [GH-21313]
-* config: Always evaluate whole resources rather than instances in expressions, so that invalid instance indexes can return a useful error rather than unknown [GH-22846]
-* command/jsonplan: fix bug with missing nested modules `planned_values` output [GH-23092]
-* command/show: Fix panic when the only resource instance is deposed [GH-23027]
-* commands: When required root module variables are not provided and interactive input is disabled (`-input=false`), produce a proper "variable not defined" error rather than falling through to an internal assertion failure. [GH-23040]
-* provisioner/puppet: fix bug when connection type was not set in config [GH-23057]
+* config: Clean up orphan modules in the presence of -target ([#21313](https://github.com/hashicorp/terraform/issues/21313))
+* config: Always evaluate whole resources rather than instances in expressions, so that invalid instance indexes can return a useful error rather than unknown ([#22846](https://github.com/hashicorp/terraform/issues/22846))
+* command/jsonplan: fix bug with missing nested modules `planned_values` output ([#23092](https://github.com/hashicorp/terraform/issues/23092))
+* command/show: Fix panic when the only resource instance is deposed ([#23027](https://github.com/hashicorp/terraform/issues/23027))
+* commands: When required root module variables are not provided and interactive input is disabled (`-input=false`), produce a proper "variable not defined" error rather than falling through to an internal assertion failure. ([#23040](https://github.com/hashicorp/terraform/issues/23040))
+* provisioner/puppet: fix bug when connection type was not set in config ([#23057](https://github.com/hashicorp/terraform/issues/23057))
 
 ## 0.12.10 (October 07, 2019)
 
