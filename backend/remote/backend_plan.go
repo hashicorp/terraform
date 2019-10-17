@@ -164,10 +164,12 @@ func (b *Remote) plan(stopCtx, cancelCtx context.Context, op *backend.Operation,
 The remote workspace is configured to work with configuration at
 %s relative to the target repository.
 
-Therefore Terraform will upload the full contents of the following directory
-to capture the filesystem context the remote workspace expects:
+Terraform will upload the contents of the following directory,
+excluding files or directories as defined by a .terraformignore file
+at %s/.terraformignore (if it is present),
+in order to capture the filesystem context the remote workspace expects:
     %s
-`), w.WorkingDirectory, configDir) + "\n")
+`), w.WorkingDirectory, configDir, configDir) + "\n")
 			}
 		}
 
