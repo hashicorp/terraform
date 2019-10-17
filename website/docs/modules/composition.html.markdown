@@ -89,7 +89,7 @@ pass those values into the module from data sources instead:
 
 ```hcl
 data "aws_vpc" "main" {
-  tags {
+  tags = {
     Environment = "production"
   }
 }

@@ -89,7 +89,7 @@ tagging behavior:
 
 ```hcl
 resource "aws_instance" "example" {
-  tags {
+  tags = {
     Name = "web - ${terraform.workspace}"
   }
 
