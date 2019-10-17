@@ -1328,19 +1328,7 @@ func testContext2Apply_destroyDependsOn(t *testing.T) {
 // Test that destroy ordering is correct with dependencies only
 // in the state.
 func TestContext2Apply_destroyDependsOnStateOnly(t *testing.T) {
-	// It is possible for this to be racy, so we loop a number of times
-	// just to check.
-	for i := 0; i < 10; i++ {
-		testContext2Apply_destroyDependsOnStateOnly(t)
-	}
-}
-
-func testContext2Apply_destroyDependsOnStateOnly(t *testing.T) {
-	m := testModule(t, "empty")
-	p := testProvider("aws")
-	p.ApplyFn = testApplyFn
-	p.DiffFn = testDiffFn
-	state := MustShimLegacyState(&State{
+	legacyState := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -1368,6 +1356,65 @@ func testContext2Apply_destroyDependsOnStateOnly(t *testing.T) {
 		},
 	})
 
+	newState := states.NewState()
+	root := newState.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "aws_instance",
+			Name: "foo",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"foo"}`),
+			Dependencies: []addrs.AbsResource{},
+		},
+		addrs.ProviderConfig{
+			Type: "aws",
+		}.Absolute(addrs.RootModuleInstance),
+	)
+	root.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "aws_instance",
+			Name: "bar",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar"}`),
+			Dependencies: []addrs.AbsResource{
+				addrs.AbsResource{
+					Resource: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "aws_instance",
+						Name: "foo",
+					},
+					Module: root.Addr,
+				},
+			},
+		},
+		addrs.ProviderConfig{
+			Type: "aws",
+		}.Absolute(addrs.RootModuleInstance),
+	)
+
+	// It is possible for this to be racy, so we loop a number of times
+	// just to check.
+	for i := 0; i < 10; i++ {
+		t.Run("legacy", func(t *testing.T) {
+			testContext2Apply_destroyDependsOnStateOnly(t, legacyState)
+		})
+		t.Run("new", func(t *testing.T) {
+			testContext2Apply_destroyDependsOnStateOnly(t, newState)
+		})
+	}
+}
+
+func testContext2Apply_destroyDependsOnStateOnly(t *testing.T, state *states.State) {
+	m := testModule(t, "empty")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
 	// Record the order we see Apply
 	var actual []string
 	var actualLock sync.Mutex
@@ -1408,19 +1455,7 @@ func testContext2Apply_destroyDependsOnStateOnly(t *testing.T) {
 // Test that destroy ordering is correct with dependencies only
 // in the state within a module (GH-11749)
 func TestContext2Apply_destroyDependsOnStateOnlyModule(t *testing.T) {
-	// It is possible for this to be racy, so we loop a number of times
-	// just to check.
-	for i := 0; i < 10; i++ {
-		testContext2Apply_destroyDependsOnStateOnlyModule(t)
-	}
-}
-
-func testContext2Apply_destroyDependsOnStateOnlyModule(t *testing.T) {
-	m := testModule(t, "empty")
-	p := testProvider("aws")
-	p.ApplyFn = testApplyFn
-	p.DiffFn = testDiffFn
-	state := MustShimLegacyState(&State{
+	legacyState := MustShimLegacyState(&State{
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: []string{"root", "child"},
@@ -1447,6 +1482,66 @@ func testContext2Apply_destroyDependsOnStateOnlyModule(t *testing.T) {
 			},
 		},
 	})
+
+	newState := states.NewState()
+	child := newState.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
+	child.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "aws_instance",
+			Name: "foo",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"foo"}`),
+			Dependencies: []addrs.AbsResource{},
+		},
+		addrs.ProviderConfig{
+			Type: "aws",
+		}.Absolute(addrs.RootModuleInstance),
+	)
+	child.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "aws_instance",
+			Name: "bar",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar"}`),
+			Dependencies: []addrs.AbsResource{
+				addrs.AbsResource{
+					Resource: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "aws_instance",
+						Name: "foo",
+					},
+					Module: child.Addr,
+				},
+			},
+		},
+		addrs.ProviderConfig{
+			Type: "aws",
+		}.Absolute(addrs.RootModuleInstance),
+	)
+
+	// It is possible for this to be racy, so we loop a number of times
+	// just to check.
+	for i := 0; i < 10; i++ {
+		t.Run("legacy", func(t *testing.T) {
+			testContext2Apply_destroyDependsOnStateOnlyModule(t, legacyState)
+		})
+		t.Run("new", func(t *testing.T) {
+			testContext2Apply_destroyDependsOnStateOnlyModule(t, newState)
+		})
+	}
+}
+
+func testContext2Apply_destroyDependsOnStateOnlyModule(t *testing.T, state *states.State) {
+	m := testModule(t, "empty")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
 
 	// Record the order we see Apply
 	var actual []string
@@ -3466,6 +3561,9 @@ module.B:
     provider = provider.aws
     foo = foo
     type = aws_instance
+
+    Dependencies:
+      module.A.aws_instance.foo
 	`)
 }
 
@@ -8706,7 +8804,7 @@ aws_instance.foo:
   type = aws_instance
 
   Dependencies:
-    module.child
+    module.child.aws_instance.mod
 
 module.child:
   aws_instance.mod:

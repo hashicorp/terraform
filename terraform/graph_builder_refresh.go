@@ -165,6 +165,7 @@ func (b *RefreshGraphBuilder) Steps() []GraphTransformer {
 		// Connect so that the references are ready for targeting. We'll
 		// have to connect again later for providers and so on.
 		&ReferenceTransformer{},
+		&AttachDependenciesTransformer{},
 
 		// Target
 		&TargetsTransformer{
