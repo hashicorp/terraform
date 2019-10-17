@@ -10,6 +10,7 @@ BUG FIXES:
 * command/jsonplan: fix bug with missing nested modules `planned_values` output [GH-23092]
 * command/show: Fix panic when the only resource instance is deposed [GH-23027]
 * commands: When required root module variables are not provided and interactive input is disabled (`-input=false`), produce a proper "variable not defined" error rather than falling through to an internal assertion failure. [GH-23040]
+* provisioner/puppet: fix bug when connection type was not set in config [GH-23057]
 
 ## 0.12.10 (October 07, 2019)
 
