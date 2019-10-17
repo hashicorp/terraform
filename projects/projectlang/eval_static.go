@@ -185,7 +185,7 @@ func StaticEvaluateExprs(exprs []hcl.Expression, data StaticEvaluateData) ([]cty
 func staticEvalContext(baseDir string, localValues map[string]cty.Value) *hcl.EvalContext {
 	return &hcl.EvalContext{
 		Variables: map[string]cty.Value{
-			"local": cty.MapVal(localValues),
+			"local": cty.ObjectVal(localValues),
 
 			// All of the other top-level objects are just placeholders here
 			// so we can still do partial type checking of derived expressions.
@@ -193,6 +193,6 @@ func staticEvalContext(baseDir string, localValues map[string]cty.Value) *hcl.Ev
 			"upstream":  cty.DynamicVal,
 			"context":   cty.DynamicVal,
 		},
-		Functions: lang.Functions(true, "."),
+		Functions: lang.Functions(true, baseDir),
 	}
 }

@@ -2,6 +2,8 @@ package projects
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"sort"
 
 	"github.com/hashicorp/hcl/v2"
@@ -151,6 +153,33 @@ Vals:
 		config:            config,
 		workspaceEachVals: eachVals,
 	}, diags
+}
+
+// Config returns te configuration that was used to define this project.
+//
+// Callers must treat this value as immutable, even though the Go type system
+// cannot enforce that.
+func (p *Project) Config() *projectconfigs.Config {
+	return p.config
+}
+
+// ConfigSources returns a map from filenames to source buffers for the
+// configuration files that were used in the definition of this project.
+//
+// This is exposed so that callers can register the source buffers in a
+// source registry for use to create snippets in future diagnostics messages.
+func (p *Project) ConfigSources() map[string][]byte {
+	fn := p.config.ConfigFile
+	// Config sources are conventionally given relative to the current working
+	// directory, so we'll make a best-effort attempt to transform it as such.
+	if cwd, err := os.Getwd(); err == nil {
+		if relFn, err := filepath.Rel(cwd, fn); err == nil {
+			fn = relFn
+		}
+	}
+	return map[string][]byte{
+		fn: p.config.Source,
+	}
 }
 
 // AllWorkspaceAddrs returns the addresses of all of the workspaces defined

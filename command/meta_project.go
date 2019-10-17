@@ -12,7 +12,13 @@ import (
 // belongs to, or an error if the given directory does not seem to belong to
 // a project.
 func (m *Meta) findProjectForDir(dir string) (*projects.Project, tfdiags.Diagnostics) {
-	return projects.FindProject(dir)
+	project, diags := projects.FindProject(dir)
+	if project != nil {
+		// Make project configuration source code available for diagnostic
+		// messages, in case diags contains any configuration errors/warnings.
+		m.configLoader.ImportSources(project.ConfigSources())
+	}
+	return project, diags
 }
 
 // findCurrentProject finds the project that the current working directory
@@ -34,4 +40,18 @@ func (m *Meta) findCurrentProject() (*projects.Project, tfdiags.Diagnostics) {
 		return nil, diags
 	}
 	return projects.FindProject(dir)
+}
+
+// findCurrentProjectManager wraps findCurrentProject and annotates the
+// resulting project with the current set of project context variables to
+// produce a ProjectManager object.
+func (m *Meta) findCurrentProjectManager() (*projects.ProjectManager, tfdiags.Diagnostics) {
+	project, diags := m.findCurrentProject()
+	if project == nil {
+		return nil, diags
+	}
+	// TODO: Once we have updated "terraform init" to be able to accept
+	// context values and stash them somewhere, we'll load them here and
+	// pass them in to NewManager. For now we just assume no context values.
+	return project.NewManager(nil), diags
 }
