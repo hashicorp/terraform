@@ -40,7 +40,7 @@ type ResourceInstanceObject struct {
 // ObjectStatus represents the status of a RemoteObject.
 type ObjectStatus rune
 
-//go:generate stringer -type ObjectStatus
+//go:generate go run golang.org/x/tools/cmd/stringer -type ObjectStatus
 
 const (
 	// ObjectReady is an object status for an object that is ready to use.

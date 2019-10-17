@@ -149,17 +149,6 @@ Some files in the Terraform CLI codebase are generated. In most cases, we
 update these using `go generate`, which is the standard way to encapsulate
 code generation steps in a Go codebase.
 
-However, code generation often relies on external tools which must be correctly
-installed before running `go generate`. Terraform's `Makefile` includes
-a target to install the tools needed for `go generate`:
-
-```
-make tools
-```
-
-After the tools are installed successfully, you can run code generation for
-all packages:
-
 ```
 go generate ./...
 ```
