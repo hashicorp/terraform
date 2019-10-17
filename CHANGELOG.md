@@ -3,6 +3,7 @@
 ENHANCEMENTS:
 
 * backend/s3: Support `role_arn` in AWS configuration files [GH-22994]
+* backend/remote: Remote backend will now ignore all .terraform/ (exclusive of .terraform/modules) and .git/ directories for uploads during remote plans/applies. You can exclude files from upload to TFC by adding a .terraformignore file to your configuration directory, more details at https://www.terraform.io/docs/backends/types/remote.html
 
 BUG FIXES:
 
