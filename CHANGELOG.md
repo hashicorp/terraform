@@ -8,6 +8,7 @@ ENHANCEMENTS:
 BUG FIXES:
 
 * config: Clean up orphan modules in the presence of -target [GH-21313]
+* config: Always evaluate whole resources rather than instances in expressions, so that invalid instance indexes can return a useful error rather than unknown [GH-22846]
 * command/jsonplan: fix bug with missing nested modules `planned_values` output [GH-23092]
 * command/show: Fix panic when the only resource instance is deposed [GH-23027]
 * commands: When required root module variables are not provided and interactive input is disabled (`-input=false`), produce a proper "variable not defined" error rather than falling through to an internal assertion failure. [GH-23040]
