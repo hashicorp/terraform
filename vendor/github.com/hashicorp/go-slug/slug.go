@@ -154,7 +154,6 @@ func packWalkFn(root, src, dst string, tarW *tar.Writer, meta *Meta, dereference
 			// If the target is a directory we can recurse into the target
 			// directory by calling the packWalkFn with updated arguments.
 			if info.IsDir() {
-				// I'm wondering if this section is unnecessary?
 				return filepath.Walk(target, packWalkFn(root, target, path, tarW, meta, dereference, ignoreRules))
 			}
 

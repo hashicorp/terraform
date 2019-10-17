@@ -314,9 +314,9 @@ github.com/hashicorp/go-retryablehttp
 github.com/hashicorp/go-rootcerts
 # github.com/hashicorp/go-safetemp v1.0.0
 github.com/hashicorp/go-safetemp
-# github.com/hashicorp/go-slug v0.3.1-0.20191014160156-9121920affb1
+# github.com/hashicorp/go-slug v0.4.0
 github.com/hashicorp/go-slug
-# github.com/hashicorp/go-tfe v0.3.25-0.20191014160435-c612f0723085
+# github.com/hashicorp/go-tfe v0.3.25
 github.com/hashicorp/go-tfe
 # github.com/hashicorp/go-uuid v1.0.1
 github.com/hashicorp/go-uuid
