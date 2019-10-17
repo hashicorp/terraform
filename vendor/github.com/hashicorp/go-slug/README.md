@@ -31,7 +31,7 @@ package main
 
 import (
 	"bytes"
-	"ioutil"
+	"io/ioutil"
 	"log"
 	"os"
 
@@ -40,11 +40,11 @@ import (
 
 func main() {
 	// First create a buffer for storing the slug.
-	slug := bytes.NewBuffer(nil)
+	buf := bytes.NewBuffer(nil)
 
 	// Then call the Pack function with a directory path containing the
 	// configuration files and an io.Writer to write the slug to.
-	if _, err := Pack("testdata/archive-dir", slug); err != nil {
+	if _, err := slug.Pack("testdata/archive-dir", buf, false); err != nil {
 		log.Fatal(err)
 	}
 
@@ -58,7 +58,7 @@ func main() {
 	// Unpacking a slug is done by calling the Unpack function with an
 	// io.Reader to read the slug from and a directory path of an existing
 	// directory to store the unpacked configuration files.
-	if err := Unpack(slug, dst); err != nil {
+	if err := slug.Unpack(buf, dst); err != nil {
 		log.Fatal(err)
 	}
 }
