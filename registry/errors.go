@@ -3,8 +3,8 @@ package registry
 import (
 	"fmt"
 
+	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/registry/regsrc"
-	"github.com/hashicorp/terraform/svchost/disco"
 )
 
 type errModuleNotFound struct {
