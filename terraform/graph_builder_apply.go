@@ -155,6 +155,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 
 		// Connect references so ordering is correct
 		&ReferenceTransformer{},
+		&AttachDependenciesTransformer{},
 
 		// Destruction ordering
 		&DestroyEdgeTransformer{

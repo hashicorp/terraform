@@ -18,6 +18,10 @@ import (
 // NodeRefreshableManagedResourceInstance. Resource count orphans are also added.
 type NodeRefreshableManagedResource struct {
 	*NodeAbstractResource
+
+	// We attach dependencies to the Resource during refresh, since the
+	// instances are instantiated during DynamicExpand.
+	Dependencies []addrs.AbsResource
 }
 
 var (
@@ -27,7 +31,13 @@ var (
 	_ GraphNodeReferencer           = (*NodeRefreshableManagedResource)(nil)
 	_ GraphNodeResource             = (*NodeRefreshableManagedResource)(nil)
 	_ GraphNodeAttachResourceConfig = (*NodeRefreshableManagedResource)(nil)
+	_ GraphNodeAttachDependencies   = (*NodeRefreshableManagedResource)(nil)
 )
+
+// GraphNodeAttachDependencies
+func (n *NodeRefreshableManagedResource) AttachDependencies(deps []addrs.AbsResource) {
+	n.Dependencies = deps
+}
 
 // GraphNodeDynamicExpandable
 func (n *NodeRefreshableManagedResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
@@ -58,6 +68,7 @@ func (n *NodeRefreshableManagedResource) DynamicExpand(ctx EvalContext) (*Graph,
 		// Add the config and state since we don't do that via transforms
 		a.Config = n.Config
 		a.ResolvedProvider = n.ResolvedProvider
+		a.Dependencies = n.Dependencies
 
 		return &NodeRefreshableManagedResourceInstance{
 			NodeAbstractResourceInstance: a,

@@ -3,7 +3,6 @@ package terraform
 import (
 	"fmt"
 	"log"
-	"sort"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
@@ -93,8 +92,8 @@ type NodeAbstractResourceInstance struct {
 	// The fields below will be automatically set using the Attach
 	// interfaces if you're running those transforms, but also be explicitly
 	// set if you already have that information.
-
 	ResourceState *states.Resource
+	Dependencies  []addrs.AbsResource
 }
 
 var (
@@ -220,7 +219,8 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 func (n *NodeAbstractResourceInstance) References() []*addrs.Reference {
 	// If we have a configuration attached then we'll delegate to our
 	// embedded abstract resource, which knows how to extract dependencies
-	// from configuration.
+	// from configuration. If there is no config, then the dependencies will
+	// be connected during destroy from those stored in the state.
 	if n.Config != nil {
 		if n.Schema == nil {
 			// We'll produce a log message about this out here so that
@@ -232,8 +232,10 @@ func (n *NodeAbstractResourceInstance) References() []*addrs.Reference {
 		return n.NodeAbstractResource.References()
 	}
 
-	// Otherwise, if we have state then we'll use the values stored in state
-	// as a fallback.
+	// FIXME: remove once the deprecated DependsOn values have been removed from state
+	// The state dependencies are now connected in a separate transformation as
+	// absolute addresses, but we need to keep this here until we can be sure
+	// that no state will need to use the old depends_on references.
 	if rs := n.ResourceState; rs != nil {
 		if s := rs.Instance(n.InstanceKey); s != nil {
 			// State is still storing dependencies as old-style strings, so we'll
@@ -248,23 +250,23 @@ func (n *NodeAbstractResourceInstance) References() []*addrs.Reference {
 			// https://github.com/hashicorp/terraform/issues/21407
 			if s.Current == nil {
 				log.Printf("[WARN] no current state found for %s", n.Name())
-			} else {
-				for _, addr := range s.Current.Dependencies {
-					if addr == nil {
-						// Should never happen; indicates a bug in the state loader
-						panic(fmt.Sprintf("dependencies for current object on %s contains nil address", n.ResourceInstanceAddr()))
-					}
-
-					// This is a little weird: we need to manufacture an addrs.Reference
-					// with a fake range here because the state isn't something we can
-					// make source references into.
-					result = append(result, &addrs.Reference{
-						Subject: addr,
-						SourceRange: tfdiags.SourceRange{
-							Filename: "(state file)",
-						},
-					})
+				return nil
+			}
+			for _, addr := range s.Current.DependsOn {
+				if addr == nil {
+					// Should never happen; indicates a bug in the state loader
+					panic(fmt.Sprintf("dependencies for current object on %s contains nil address", n.ResourceInstanceAddr()))
 				}
+
+				// This is a little weird: we need to manufacture an addrs.Reference
+				// with a fake range here because the state isn't something we can
+				// make source references into.
+				result = append(result, &addrs.Reference{
+					Subject: addr,
+					SourceRange: tfdiags.SourceRange{
+						Filename: "(state file)",
+					},
+				})
 			}
 			return result
 		}
@@ -288,67 +290,17 @@ func dottedInstanceAddr(tr addrs.ResourceInstance) string {
 	return tr.Resource.String() + suffix
 }
 
-// StateReferences returns the dependencies to put into the state for
-// this resource.
-func (n *NodeAbstractResourceInstance) StateReferences() []addrs.Referenceable {
-	selfAddrs := n.ReferenceableAddrs()
-
-	// Since we don't include the source location references in our
-	// results from this method, we'll also filter out duplicates:
-	// there's no point in listing the same object twice without
-	// that additional context.
-	seen := map[string]struct{}{}
-
-	// Pretend that we've already "seen" all of our own addresses so that we
-	// won't record self-references in the state. This can arise if, for
-	// example, a provisioner for a resource refers to the resource itself,
-	// which is valid (since provisioners always run after apply) but should
-	// not create an explicit dependency edge.
-	for _, selfAddr := range selfAddrs {
-		seen[selfAddr.String()] = struct{}{}
-		if riAddr, ok := selfAddr.(addrs.ResourceInstance); ok {
-			seen[riAddr.ContainingResource().String()] = struct{}{}
+// StateDependencies returns the dependencies saved in the state.
+func (n *NodeAbstractResourceInstance) StateDependencies() []addrs.AbsResource {
+	if rs := n.ResourceState; rs != nil {
+		if s := rs.Instance(n.InstanceKey); s != nil {
+			if s.Current != nil {
+				return s.Current.Dependencies
+			}
 		}
 	}
 
-	depsRaw := n.References()
-	deps := make([]addrs.Referenceable, 0, len(depsRaw))
-	for _, d := range depsRaw {
-		subj := d.Subject
-		if mco, isOutput := subj.(addrs.ModuleCallOutput); isOutput {
-			// For state dependencies, we simplify outputs to just refer
-			// to the module as a whole. It's not really clear why we do this,
-			// but this logic is preserved from before the 0.12 rewrite of
-			// this function.
-			subj = mco.Call
-		}
-
-		k := subj.String()
-		if _, exists := seen[k]; exists {
-			continue
-		}
-		seen[k] = struct{}{}
-		switch tr := subj.(type) {
-		case addrs.ResourceInstance:
-			deps = append(deps, tr)
-		case addrs.Resource:
-			deps = append(deps, tr)
-		case addrs.ModuleCallInstance:
-			deps = append(deps, tr)
-		default:
-			// No other reference types are recorded in the state.
-		}
-	}
-
-	// We'll also sort them, since that'll avoid creating changes in the
-	// serialized state that make no semantic difference.
-	sort.Slice(deps, func(i, j int) bool {
-		// Simple string-based sort because we just care about consistency,
-		// not user-friendliness.
-		return deps[i].String() < deps[j].String()
-	})
-
-	return deps
+	return nil
 }
 
 func (n *NodeAbstractResource) SetProvider(p addrs.AbsProviderConfig) {
