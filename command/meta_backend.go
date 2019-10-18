@@ -320,8 +320,13 @@ func (m *Meta) IsLocalBackend(b backend.Backend) bool {
 // be called.
 func (m *Meta) Operation(b backend.Backend) *backend.Operation {
 	schema := b.ConfigSchema()
-	workspace := m.Workspace()
-	planOutBackend, err := m.backendState.ForPlan(schema, workspace)
+	workspace, diags := m.currentWorkspace()
+	if diags.HasErrors() {
+		// FIXME: This is not an appropriate way to handle this problem. We
+		// need to refactor in here so that Operation can fail properly.
+		panic(diags.Err().Error())
+	}
+	planOutBackend, err := m.backendState.ForPlan(schema, workspace.Addr())
 	if err != nil {
 		// Always indicates an implementation error in practice, because
 		// errors here indicate invalid encoding of the backend configuration

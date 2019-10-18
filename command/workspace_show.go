@@ -34,7 +34,7 @@ func (c *WorkspaceShowCommand) Run(args []string) int {
 		return 1
 	}
 
-	workspaceAddr := c.Workspace()
+	workspaceAddr := c.WorkspaceAddr()
 	workspace, moreDiags := projectMgr.LoadWorkspace(workspaceAddr)
 	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {

@@ -316,7 +316,7 @@ func (c *InitCommand) Run(args []string) int {
 	// on a previous run) we'll use the current state as a potential source
 	// of provider dependencies.
 	if back != nil {
-		sMgr, err := back.StateMgr(c.Workspace())
+		sMgr, err := back.StateMgr(c.WorkspaceAddr())
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error loading state: %s", err))
 			return 1

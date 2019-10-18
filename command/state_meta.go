@@ -38,7 +38,7 @@ func (c *StateMeta) State() (state.State, error) {
 			return nil, backendDiags.Err()
 		}
 
-		workspace := c.Workspace()
+		workspace := c.WorkspaceAddr()
 		// Get the state
 		s, err := b.StateMgr(workspace)
 		if err != nil {

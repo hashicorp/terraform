@@ -55,3 +55,23 @@ func (m *Meta) findCurrentProjectManager() (*projects.ProjectManager, tfdiags.Di
 	// pass them in to NewManager. For now we just assume no context values.
 	return project.NewManager(nil), diags
 }
+
+// currentWorkspace loads the currently-selected workspace from the current
+// project, or returns error diagnostics explaining why it can't.
+func (m *Meta) currentWorkspace() (*projects.Workspace, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	projectMgr, moreDiags := m.findCurrentProjectManager()
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return nil, diags
+	}
+
+	ws, moreDiags := projectMgr.LoadWorkspace(m.WorkspaceAddr())
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return nil, diags
+	}
+
+	return ws, diags
+}

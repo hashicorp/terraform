@@ -28,8 +28,8 @@ func TestWorkspace_createAndChange(t *testing.T) {
 
 	newCmd := &WorkspaceNewCommand{}
 
-	current := newCmd.Workspace()
-	if current != backend.DefaultStateName {
+	current := newCmd.WorkspaceAddr()
+	if current != backend.DefaultWorkspaceAddr {
 		t.Fatal("current workspace should be 'default'")
 	}
 
@@ -40,8 +40,8 @@ func TestWorkspace_createAndChange(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
 
-	current = newCmd.Workspace()
-	if current != "test" {
+	current = newCmd.WorkspaceAddr()
+	if current.Name != "test" {
 		t.Fatalf("current workspace should be 'test', got %q", current)
 	}
 
@@ -53,8 +53,8 @@ func TestWorkspace_createAndChange(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
 
-	current = newCmd.Workspace()
-	if current != backend.DefaultStateName {
+	current = newCmd.WorkspaceAddr()
+	if current != backend.DefaultWorkspaceAddr {
 		t.Fatal("current workspace should be 'default'")
 	}
 
@@ -250,9 +250,9 @@ func TestWorkspace_createWithState(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	workspace := "test_workspace"
+	workspace := addrs.ProjectWorkspace{Rel: addrs.ProjectWorkspaceCurrent, Name: "test_workspace"}
 
-	args := []string{"-state", "test.tfstate", workspace}
+	args := []string{"-state", "test.tfstate", workspace.StringCompact()}
 	ui = new(cli.MockUi)
 	newCmd := &WorkspaceNewCommand{
 		Meta: Meta{Ui: ui},
@@ -305,8 +305,8 @@ func TestWorkspace_delete(t *testing.T) {
 		Meta: Meta{Ui: ui},
 	}
 
-	current := delCmd.Workspace()
-	if current != "test" {
+	current := delCmd.WorkspaceAddr()
+	if current.Name != "test" {
 		t.Fatal("wrong workspace:", current)
 	}
 
@@ -328,8 +328,8 @@ func TestWorkspace_delete(t *testing.T) {
 		t.Fatalf("error deleting workspace: %s", ui.ErrorWriter)
 	}
 
-	current = delCmd.Workspace()
-	if current != backend.DefaultStateName {
+	current = delCmd.WorkspaceAddr()
+	if current != backend.DefaultWorkspaceAddr {
 		t.Fatalf("wrong workspace: %q", current)
 	}
 }

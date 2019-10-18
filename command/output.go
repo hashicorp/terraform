@@ -68,7 +68,7 @@ func (c *OutputCommand) Run(args []string) int {
 		return 1
 	}
 
-	env := c.Workspace()
+	env := c.WorkspaceAddr()
 
 	// Get the state
 	stateStore, err := b.StateMgr(env)

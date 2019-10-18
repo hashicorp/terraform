@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/planfile"
+	"github.com/hashicorp/terraform/projects"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
@@ -231,9 +232,8 @@ type Operation struct {
 	// The duration to retry obtaining a State lock.
 	StateLockTimeout time.Duration
 
-	// Workspace is the address of the workspace that this operation should run
-	// in, which must identify a workspace in the current project.
-	Workspace addrs.ProjectWorkspace
+	// Workspace is the workspace that this operation should run in.
+	Workspace *projects.Workspace
 }
 
 // HasConfig returns true if and only if the operation has a ConfigDir value

@@ -39,7 +39,7 @@ func (c *WorkspaceListCommand) Run(args []string) int {
 	}
 
 	workspaces := project.AllWorkspaceAddrs()
-	currentWorkspace, isOverridden := c.WorkspaceOverridden()
+	currentWorkspace, isOverridden := c.WorkspaceAddrOverridden()
 
 	var out bytes.Buffer
 	for _, addr := range workspaces {

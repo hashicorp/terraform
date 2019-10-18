@@ -179,9 +179,9 @@ func TestMeta_Env(t *testing.T) {
 
 	m := new(Meta)
 
-	env := m.Workspace()
+	env := m.WorkspaceAddr()
 
-	if env != backend.DefaultStateName {
+	if env != backend.DefaultWorkspaceAddr {
 		t.Fatalf("expected env %q, got env %q", backend.DefaultStateName, env)
 	}
 
@@ -190,8 +190,8 @@ func TestMeta_Env(t *testing.T) {
 		t.Fatal("error setting env:", err)
 	}
 
-	env = m.Workspace()
-	if env != testEnv {
+	env = m.WorkspaceAddr()
+	if env.Name != testEnv {
 		t.Fatalf("expected env %q, got env %q", testEnv, env)
 	}
 
@@ -199,8 +199,8 @@ func TestMeta_Env(t *testing.T) {
 		t.Fatal("error setting env:", err)
 	}
 
-	env = m.Workspace()
-	if env != backend.DefaultStateName {
+	env = m.WorkspaceAddr()
+	if env != backend.DefaultWorkspaceAddr {
 		t.Fatalf("expected env %q, got env %q", backend.DefaultStateName, env)
 	}
 }

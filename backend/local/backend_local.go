@@ -39,7 +39,7 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, *configload.
 
 	// Get the latest state.
 	log.Printf("[TRACE] backend/local: requesting state manager for workspace %q", op.Workspace)
-	s, err := b.StateMgr(op.Workspace)
+	s, err := b.StateMgr(op.Workspace.Addr())
 	if err != nil {
 		diags = diags.Append(errwrap.Wrapf("Error loading state: {{err}}", err))
 		return nil, nil, nil, diags

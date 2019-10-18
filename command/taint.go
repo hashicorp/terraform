@@ -75,7 +75,7 @@ func (c *TaintCommand) Run(args []string) int {
 	}
 
 	// Get the state
-	env := c.Workspace()
+	env := c.WorkspaceAddr()
 	stateMgr, err := b.StateMgr(env)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))

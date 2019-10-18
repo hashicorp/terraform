@@ -133,7 +133,7 @@ func (c *ShowCommand) Run(args []string) int {
 			}
 		}
 	} else {
-		env := c.Workspace()
+		env := c.WorkspaceAddr()
 		stateFile, stateErr = getStateFromEnv(b, env.Name)
 		if stateErr != nil {
 			c.Ui.Error(stateErr.Error())

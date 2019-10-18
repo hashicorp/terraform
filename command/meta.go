@@ -354,7 +354,7 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 	}
 
 	opts.Meta = &terraform.ContextMeta{
-		Workspace: m.Workspace(),
+		Workspace: m.WorkspaceAddr(),
 	}
 
 	return &opts
@@ -551,17 +551,17 @@ func (m *Meta) outputShadowError(err error, output bool) bool {
 // and `terraform workspace delete`.
 const WorkspaceNameEnvVar = "TF_WORKSPACE"
 
-// Workspace returns the address of the currently-selected workspace.
-func (m *Meta) Workspace() addrs.ProjectWorkspace {
-	current, _ := m.WorkspaceOverridden()
+// WorkspaceAddr returns the address of the currently-selected workspace.
+func (m *Meta) WorkspaceAddr() addrs.ProjectWorkspace {
+	current, _ := m.WorkspaceAddrOverridden()
 	return current
 }
 
-// WorkspaceOverridden returns the address of the currently-selected workspace,
+// WorkspaceAddrOverridden returns the address of the currently-selected workspace,
 // as well as a flag indicating whether this setting is overriding the "ambient"
 // current workspace selection recorded in the .terraform directory, e.g.
 // via the TF_WORKSPACE environment variable.
-func (m *Meta) WorkspaceOverridden() (addrs.ProjectWorkspace, bool) {
+func (m *Meta) WorkspaceAddrOverridden() (addrs.ProjectWorkspace, bool) {
 	rawStr, overridden := m.workspaceAddrStringOverridden()
 
 	addr, diags := addrs.ParseProjectWorkspaceCompactStr(rawStr)
