@@ -64,7 +64,7 @@ func ParseInput(value string) (interface{}, error) {
 	}
 
 	var decoded map[string]interface{}
-	if hcl.DecodeObject(&decoded, parsed); err != nil {
+	if err := hcl.DecodeObject(&decoded, parsed); err != nil {
 		return nil, fmt.Errorf(
 			"Cannot parse value for variable (%q) as valid HCL: %s",
 			value, err)
