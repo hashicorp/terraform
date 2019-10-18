@@ -9,9 +9,11 @@ import (
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/clistate"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // Context implements backend.Enhanced.
@@ -88,28 +90,36 @@ func (b *Remote) Context(op *backend.Operation) (*terraform.Context, statemgr.Fu
 		return nil, nil, diags
 	}
 
-	if tfeVariables != nil {
-		if op.Variables == nil {
-			op.Variables = make(map[string]backend.UnparsedVariableValue)
-		}
-		for _, v := range tfeVariables.Items {
-			if v.Sensitive {
-				v.Value = "<sensitive>"
+	if op.AllowUnsetVariables {
+		// If we're not going to use the variables in an operation we'll be
+		// more lax about them, stubbing out any unset ones as unknown.
+		// This gives us enough information to produce a consistent context,
+		// but not enough information to run a real operation (plan, apply, etc)
+		opts.Variables = stubAllVariables(op.Variables, config.Module.Variables)
+	} else {
+		if tfeVariables != nil {
+			if op.Variables == nil {
+				op.Variables = make(map[string]backend.UnparsedVariableValue)
 			}
-			op.Variables[v.Key] = &unparsedVariableValue{
-				value:  v.Value,
-				source: terraform.ValueFromEnvVar,
+			for _, v := range tfeVariables.Items {
+				if v.Sensitive {
+					v.Value = "<sensitive>"
+				}
+				op.Variables[v.Key] = &unparsedVariableValue{
+					value:  v.Value,
+					source: terraform.ValueFromEnvVar,
+				}
 			}
 		}
-	}
 
-	if op.Variables != nil {
-		variables, varDiags := backend.ParseVariableValues(op.Variables, config.Module.Variables)
-		diags = diags.Append(varDiags)
-		if diags.HasErrors() {
-			return nil, nil, diags
+		if op.Variables != nil {
+			variables, varDiags := backend.ParseVariableValues(op.Variables, config.Module.Variables)
+			diags = diags.Append(varDiags)
+			if diags.HasErrors() {
+				return nil, nil, diags
+			}
+			opts.Variables = variables
 		}
-		opts.Variables = variables
 	}
 
 	tfCtx, ctxDiags := terraform.NewContext(&opts)
@@ -118,4 +128,31 @@ func (b *Remote) Context(op *backend.Operation) (*terraform.Context, statemgr.Fu
 	log.Printf("[TRACE] backend/remote: finished building terraform.Context")
 
 	return tfCtx, stateMgr, diags
+}
+
+func stubAllVariables(vv map[string]backend.UnparsedVariableValue, decls map[string]*configs.Variable) terraform.InputValues {
+	ret := make(terraform.InputValues, len(decls))
+
+	for name, cfg := range decls {
+		raw, exists := vv[name]
+		if !exists {
+			ret[name] = &terraform.InputValue{
+				Value:      cty.UnknownVal(cfg.Type),
+				SourceType: terraform.ValueFromConfig,
+			}
+			continue
+		}
+
+		val, diags := raw.ParseVariableValue(cfg.ParsingMode)
+		if diags.HasErrors() {
+			ret[name] = &terraform.InputValue{
+				Value:      cty.UnknownVal(cfg.Type),
+				SourceType: terraform.ValueFromConfig,
+			}
+			continue
+		}
+		ret[name] = val
+	}
+
+	return ret
 }
