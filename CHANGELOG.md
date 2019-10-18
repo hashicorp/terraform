@@ -1,4 +1,9 @@
 ## 0.12.12 (Unreleased)
+
+BUG FIXES:
+
+* backend/remote: Don't do local validation of whether variables are set prior to submitting, because only the remote system knows the full set of configured stored variables and environment variables that might contribute. This avoids erroneous error messages about unset required variables for remote runs when those variables will be set by stored variables in the remote workspace. [GH-23122]
+
 ## 0.12.11 (October 17, 2019)
 
 ENHANCEMENTS:
