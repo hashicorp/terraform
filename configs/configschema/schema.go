@@ -83,7 +83,7 @@ type NestedBlock struct {
 // blocks.
 type NestingMode int
 
-//go:generate stringer -type=NestingMode
+//go:generate go run golang.org/x/tools/cmd/stringer -type=NestingMode
 
 const (
 	nestingModeInvalid NestingMode = iota
