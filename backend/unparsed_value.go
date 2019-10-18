@@ -37,7 +37,10 @@ type UnparsedVariableValue interface {
 //
 // If this function returns without any errors in the diagnostics, the
 // resulting input values map is guaranteed to be valid and ready to pass
-// to terraform.NewContext.
+// to terraform.NewContext. If the diagnostics contains errors, the returned
+// InputValues may be incomplete but will include the subset of variables
+// that were successfully processed, allowing for careful analysis of the
+// partial result.
 func ParseVariableValues(vv map[string]UnparsedVariableValue, decls map[string]*configs.Variable) (terraform.InputValues, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	ret := make(terraform.InputValues, len(vv))

@@ -70,7 +70,7 @@ This example will taint a single resource:
 
 ```
 $ terraform taint aws_security_group.allow_all
-The resource aws_security_group.allow_all in the module root has been marked as tainted!
+The resource aws_security_group.allow_all in the module root has been marked as tainted.
 ```
 
 ## Example: Tainting a Resource within a Module
@@ -79,5 +79,5 @@ This example will only taint a resource within a module:
 
 ```
 $ terraform taint "module.couchbase.aws_instance.cb_node[9]"
-Resource instance module.couchbase.aws_instance.cb_node[9] has been marked as tainted!
+Resource instance module.couchbase.aws_instance.cb_node[9] has been marked as tainted.
 ```
