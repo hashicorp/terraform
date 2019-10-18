@@ -14,7 +14,6 @@ import (
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/hashicorp/terraform/tfdiags"
 )
 
 var (
@@ -201,32 +200,42 @@ func (b *Remote) waitForRun(stopCtx, cancelCtx context.Context, op *backend.Oper
 	}
 }
 
-func (b *Remote) parseVariableValues(op *backend.Operation) (terraform.InputValues, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-	result := make(terraform.InputValues)
-
+// hasExplicitVariableValues is a best-effort check to determine whether the
+// user has provided -var or -var-file arguments to a remote operation.
+//
+// The results may be inaccurate if the configuration is invalid or if
+// individual variable values are invalid. That's okay because we only use this
+// result to hint the user to set variables a different way. It's always the
+// remote system's responsibility to do final validation of the input.
+func (b *Remote) hasExplicitVariableValues(op *backend.Operation) bool {
 	// Load the configuration using the caller-provided configuration loader.
 	config, _, configDiags := op.ConfigLoader.LoadConfigWithSnapshot(op.ConfigDir)
-	diags = diags.Append(configDiags)
-	if diags.HasErrors() {
-		return nil, diags
+	if configDiags.HasErrors() {
+		// If we can't load the configuration then we'll assume no explicit
+		// variable values just to let the remote operation start and let
+		// the remote system return the same set of configuration errors.
+		return false
 	}
 
-	variables, varDiags := backend.ParseVariableValues(op.Variables, config.Module.Variables)
-	diags = diags.Append(varDiags)
-	if diags.HasErrors() {
-		return nil, diags
-	}
+	// We're intentionally ignoring the diagnostics here because validation
+	// of the variable values is the responsibilty of the remote system. Our
+	// goal here is just to make a best effort count of how many variable
+	// values are coming from -var or -var-file CLI arguments so that we can
+	// hint the user that those are not supported for remote operations.
+	variables, _ := backend.ParseVariableValues(op.Variables, config.Module.Variables)
 
-	// Save only the explicitly defined variables.
-	for k, v := range variables {
+	// Check for explicitly-defined (-var and -var-file) variables, which the
+	// remote backend does not support. All other source types are okay,
+	// because they are implicit from the execution context anyway and so
+	// their final values will come from the _remote_ execution context.
+	for _, v := range variables {
 		switch v.SourceType {
 		case terraform.ValueFromCLIArg, terraform.ValueFromNamedFile:
-			result[k] = v
+			return true
 		}
 	}
 
-	return result, diags
+	return false
 }
 
 func (b *Remote) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Operation, r *tfe.Run) error {
