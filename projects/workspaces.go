@@ -3,6 +3,8 @@ package projects
 import (
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 	"sort"
 
 	"github.com/hashicorp/hcl/v2"
@@ -293,12 +295,25 @@ func (w *Workspace) InputVariables() map[addrs.InputVariable]cty.Value {
 // server identified in the configuration.
 func (w *Workspace) StateMgr() (statemgr.Full, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	diags = diags.Append(tfdiags.Sourceless(
-		tfdiags.Error,
-		"StateMgr not yet implemented",
-		"Workspace.StateMgr isn't implemented yet",
-	))
-	return nil, diags
+
+	// FIXME: For initial prototyping we're forcing local state at fixed
+	// paths on disk. Eventually this should respect the "remote" or
+	// "state_storage" settings in the workspace configuration.
+
+	stateDir := filepath.Join(w.project.config.ProjectRoot, ".terraform", "workspaces2-prototype-state")
+	stateFilePath := filepath.Join(stateDir, w.addr.StringCompact()+".tfstate")
+
+	err := os.MkdirAll(stateDir, os.ModePerm)
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Can't create local state directory",
+			fmt.Sprintf("Error creating %s: %s.", stateDir, err),
+		))
+		return nil, diags
+	}
+
+	return statemgr.NewFilesystem(stateFilePath), nil
 }
 
 // LatestOutputValues returns the output values recorded at the end of the
@@ -331,6 +346,15 @@ func (w *Workspace) LatestOutputValues() (map[addrs.OutputValue]cty.Value, tfdia
 	}
 
 	state := stateMgr.State()
+	if state == nil {
+		// FIXME: In order to produce an error message when workspaces are
+		// established in the wrong order, the caller will need some way to
+		// distinguish between no snapshots yet at all (state == nil) and
+		// a snapshot without any outputs. For now these are indistinguishable,
+		// so a reference to a workspace not yet established will just produce
+		// a useless downstream error about the output not being present.
+		return nil, diags
+	}
 	raw := state.RootModule().OutputValues
 	ret := make(map[addrs.OutputValue]cty.Value, len(raw))
 	for k, v := range raw {
