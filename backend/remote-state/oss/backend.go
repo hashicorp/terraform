@@ -277,7 +277,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 
 	if roleArn != "" {
-		subAccessKeyId, subAccessKeySecret, subSecurityToken, err := getAssumeRoleAK(accessKey, secretKey, region, roleArn, sessionName, policy, sessionExpiration)
+		subAccessKeyId, subAccessKeySecret, subSecurityToken, err := getAssumeRoleAK(accessKey, secretKey, securityToken, region, roleArn, sessionName, policy, sessionExpiration)
 		if err != nil {
 			return err
 		}
@@ -347,7 +347,7 @@ func (b *Backend) getOSSEndpointByRegion(access_key, secret_key, security_token,
 	return endpointsResponse, nil
 }
 
-func getAssumeRoleAK(accessKey, secretKey, region, roleArn, sessionName, policy string, sessionExpiration int) (string, string, string, error) {
+func getAssumeRoleAK(accessKey, secretKey, stsToken, region, roleArn, sessionName, policy string, sessionExpiration int) (string, string, string, error) {
 	request := sts.CreateAssumeRoleRequest()
 	request.RoleArn = roleArn
 	request.RoleSessionName = sessionName
@@ -355,14 +355,23 @@ func getAssumeRoleAK(accessKey, secretKey, region, roleArn, sessionName, policy 
 	request.Policy = policy
 	request.Scheme = "https"
 
-	client, err := sts.NewClientWithAccessKey(region, accessKey, secretKey)
+	var client *sts.Client
+	var err error
+	if stsToken == "" {
+		client, err = sts.NewClientWithAccessKey(region, accessKey, secretKey)
+	} else {
+		client, err = sts.NewClientWithStsToken(region, accessKey, secretKey, stsToken)
+	}
+
 	if err != nil {
 		return "", "", "", err
 	}
+
 	response, err := client.AssumeRole(request)
 	if err != nil {
 		return "", "", "", err
 	}
+
 	return response.Credentials.AccessKeyId, response.Credentials.AccessKeySecret, response.Credentials.SecurityToken, nil
 }
 

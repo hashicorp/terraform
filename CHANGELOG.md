@@ -1,4 +1,9 @@
 ## 0.12.13 (Unreleased)
+
+ENHANCEMENTS:
+
+* backend/oss: Support `role_arn` in combination with a set of credentials issued from the Aliyun STS service.
+
 ## 0.12.12 (October 18, 2019)
 
 BUG FIXES:
