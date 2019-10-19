@@ -7,6 +7,7 @@ import (
 	"sort"
 
 	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/configs"
@@ -39,9 +40,9 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, *configload.
 
 	// Get the latest state.
 	log.Printf("[TRACE] backend/local: requesting state manager for workspace %q", op.Workspace)
-	s, err := b.StateMgr(op.Workspace.Addr())
-	if err != nil {
-		diags = diags.Append(errwrap.Wrapf("Error loading state: {{err}}", err))
+	s, moreDiags := op.Workspace.StateMgr()
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
 		return nil, nil, nil, diags
 	}
 	log.Printf("[TRACE] backend/local: requesting state lock for workspace %q", op.Workspace)
@@ -129,7 +130,7 @@ func (b *Local) contextDirect(op *backend.Operation, opts terraform.ContextOpts)
 	var diags tfdiags.Diagnostics
 
 	// Load the configuration using the caller-provided configuration loader.
-	config, configSnap, configDiags := op.ConfigLoader.LoadConfigWithSnapshot(op.ConfigDir)
+	config, configSnap, configDiags := op.ConfigLoader.LoadConfigWithSnapshot(op.Workspace.ConfigDir())
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
 		return nil, nil, diags
@@ -151,6 +152,17 @@ func (b *Local) contextDirect(op *backend.Operation, opts terraform.ContextOpts)
 		rawVariables = b.interactiveCollectVariables(context.TODO(), op.Variables, config.Module.Variables, opts.UIInput)
 	}
 
+	// TEMP: Copy in the variables from the workspace configuration in the
+	// project configuration file. This is weird because we're working within
+	// the existing backend design where variables arrive here in an unparsed
+	// form; if we move forward with something like the workspaces2 prototype
+	// then we'll need to decide how to evolve this architecture.
+	for name, val := range b.inputVariableUnparsedValues(op.Workspace.InputVariables()) {
+		if _, exists := rawVariables[name]; !exists {
+			rawVariables[name] = val
+		}
+	}
+
 	variables, varDiags := backend.ParseVariableValues(rawVariables, config.Module.Variables)
 	diags = diags.Append(varDiags)
 	if diags.HasErrors() {
@@ -161,6 +173,25 @@ func (b *Local) contextDirect(op *backend.Operation, opts terraform.ContextOpts)
 	tfCtx, ctxDiags := terraform.NewContext(&opts)
 	diags = diags.Append(ctxDiags)
 	return tfCtx, configSnap, diags
+}
+
+// inputVariableUnparsedValues transforms the input variables from a project
+// workspace into the UnparsedVariableValue form currently used by our
+// beckend API.
+//
+// This is a bit of an abstraction inversion since these variables have
+// already been parsed, but while we're prototyping this new projects mechanism
+// it's helpful to be able to retain some facets of our existing architecture
+// to avoid the prototype becoming a massive refactoring project.
+func (b *Local) inputVariableUnparsedValues(vv map[addrs.InputVariable]cty.Value) map[string]backend.UnparsedVariableValue {
+	ret := make(map[string]backend.UnparsedVariableValue, len(vv))
+	for addr, val := range vv {
+		ret[addr.Name] = unparsedWorkspaceConfigVariableValue{
+			Name:  addr.Name,
+			Value: val,
+		}
+	}
+	return ret
 }
 
 func (b *Local) contextFromPlanFile(pf *planfile.Reader, opts terraform.ContextOpts, currentStateMeta *statemgr.SnapshotMeta) (*terraform.Context, *configload.Snapshot, tfdiags.Diagnostics) {
@@ -408,6 +439,20 @@ func (v unparsedUnknownVariableValue) ParseVariableValue(mode configs.VariablePa
 	return &terraform.InputValue{
 		Value:      cty.UnknownVal(v.WantType),
 		SourceType: terraform.ValueFromInput,
+	}, nil
+}
+
+type unparsedWorkspaceConfigVariableValue struct {
+	Name  string
+	Value cty.Value
+}
+
+var _ backend.UnparsedVariableValue = unparsedWorkspaceConfigVariableValue{}
+
+func (v unparsedWorkspaceConfigVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
+	return &terraform.InputValue{
+		Value:      v.Value,
+		SourceType: terraform.ValueFromWorkspaceConfig,
 	}, nil
 }
 

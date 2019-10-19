@@ -820,15 +820,11 @@ func (s *BackendState) ForPlan(schema *configschema.Block, workspaceAddr addrs.P
 		return nil, nil
 	}
 
-	if workspaceAddr.Key != addrs.NoKey {
-		return nil, fmt.Errorf("BackendState.ForPlan does not yet support workspace instance keys")
-	}
-
 	configVal, err := s.Config(schema)
 	if err != nil {
 		return nil, errwrap.Wrapf("failed to decode backend config: {{err}}", err)
 	}
-	return plans.NewBackend(s.Type, configVal, schema, workspaceAddr.Name)
+	return plans.NewBackend(s.Type, configVal, schema, workspaceAddr.StringCompact())
 }
 
 // RemoteState is used to track the information about a remote

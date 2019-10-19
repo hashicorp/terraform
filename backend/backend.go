@@ -186,8 +186,11 @@ type Operation struct {
 	PlanOutPath    string // PlanOutPath is the path to save the plan
 	PlanOutBackend *plans.Backend
 
-	// ConfigDir is the path to the directory containing the configuration's
-	// root module.
+	// ConfigDir used to be the path to the directory containing the
+	// configuration's root module, but it's no longer used. Instead, use
+	// Workspace.ConfigDir()
+	// FIXME: Remove this once all of the commands in the command package
+	// are updated to no longer try to set it.
 	ConfigDir string
 
 	// ConfigLoader is a configuration loader that can be used to load
@@ -240,14 +243,14 @@ type Operation struct {
 // that refers to a directory containing at least one Terraform configuration
 // file.
 func (o *Operation) HasConfig() bool {
-	return o.ConfigLoader.IsConfigDir(o.ConfigDir)
+	return o.ConfigLoader.IsConfigDir(o.Workspace.ConfigDir())
 }
 
 // Config loads the configuration that the operation applies to, using the
 // ConfigDir and ConfigLoader fields within the receiving operation.
 func (o *Operation) Config() (*configs.Config, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	config, hclDiags := o.ConfigLoader.LoadConfig(o.ConfigDir)
+	config, hclDiags := o.ConfigLoader.LoadConfig(o.Workspace.ConfigDir())
 	diags = diags.Append(hclDiags)
 	return config, diags
 }

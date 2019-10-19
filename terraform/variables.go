@@ -35,6 +35,10 @@ const (
 	// e.g. the default value defined for a variable.
 	ValueFromConfig ValueSourceType = 'C'
 
+	// ValueFromWorkspaceConfig indicates that a value came from the workspace
+	// configuration in the project configuration file.
+	ValueFromWorkspaceConfig ValueSourceType = 'W'
+
 	// ValueFromAutoFile indicates that a value came from a "values file", like
 	// a .tfvars file, that was implicitly loaded by naming convention.
 	ValueFromAutoFile ValueSourceType = 'F'

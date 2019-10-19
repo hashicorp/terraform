@@ -258,6 +258,7 @@ func (b *Local) DeleteWorkspace(name string) error {
 }
 
 func (b *Local) StateMgr(workspace addrs.ProjectWorkspace) (statemgr.Full, error) {
+	return nil, fmt.Errorf("Don't use Backend.StateMgr anymore; use Workspace.StateMgr instead")
 	// If we have a backend handling state, delegate to that.
 	if b.Backend != nil {
 		return b.Backend.StateMgr(workspace)
