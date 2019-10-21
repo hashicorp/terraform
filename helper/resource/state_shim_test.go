@@ -31,7 +31,7 @@ func TestStateShim(t *testing.T) {
 			Status:        states.ObjectReady,
 			AttrsFlat:     map[string]string{"id": "foo", "bazzle": "dazzle"},
 			SchemaVersion: 7,
-			Dependencies: []addrs.Referenceable{
+			DependsOn: []addrs.Referenceable{
 				addrs.ResourceInstance{
 					Resource: addrs.Resource{
 						Mode: 'M',
@@ -52,9 +52,9 @@ func TestStateShim(t *testing.T) {
 			Name: "baz",
 		}.Instance(addrs.NoKey),
 		&states.ResourceInstanceObjectSrc{
-			Status:       states.ObjectReady,
-			AttrsFlat:    map[string]string{"id": "baz", "bazzle": "dazzle"},
-			Dependencies: []addrs.Referenceable{},
+			Status:    states.ObjectReady,
+			AttrsFlat: map[string]string{"id": "baz", "bazzle": "dazzle"},
+			DependsOn: []addrs.Referenceable{},
 		},
 		addrs.ProviderConfig{
 			Type: "test",
@@ -70,9 +70,9 @@ func TestStateShim(t *testing.T) {
 			Name: "foo",
 		}.Instance(addrs.NoKey),
 		&states.ResourceInstanceObjectSrc{
-			Status:       states.ObjectReady,
-			AttrsJSON:    []byte(`{"id": "bar", "fuzzle":"wuzzle"}`),
-			Dependencies: []addrs.Referenceable{},
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id": "bar", "fuzzle":"wuzzle"}`),
+			DependsOn: []addrs.Referenceable{},
 		},
 		addrs.ProviderConfig{
 			Type: "test",
@@ -87,7 +87,7 @@ func TestStateShim(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id": "bar", "fizzle":"wizzle"}`),
-			Dependencies: []addrs.Referenceable{
+			DependsOn: []addrs.Referenceable{
 				addrs.ResourceInstance{
 					Resource: addrs.Resource{
 						Mode: 'D',
@@ -112,7 +112,7 @@ func TestStateShim(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
 			AttrsFlat: map[string]string{"id": "old", "fizzle": "wizzle"},
-			Dependencies: []addrs.Referenceable{
+			DependsOn: []addrs.Referenceable{
 				addrs.ResourceInstance{
 					Resource: addrs.Resource{
 						Mode: 'D',
@@ -134,9 +134,9 @@ func TestStateShim(t *testing.T) {
 			Name: "lots",
 		}.Instance(addrs.IntKey(0)),
 		&states.ResourceInstanceObjectSrc{
-			Status:       states.ObjectReady,
-			AttrsFlat:    map[string]string{"id": "0", "bazzle": "dazzle"},
-			Dependencies: []addrs.Referenceable{},
+			Status:    states.ObjectReady,
+			AttrsFlat: map[string]string{"id": "0", "bazzle": "dazzle"},
+			DependsOn: []addrs.Referenceable{},
 		},
 		addrs.ProviderConfig{
 			Type: "test",
@@ -149,9 +149,9 @@ func TestStateShim(t *testing.T) {
 			Name: "lots",
 		}.Instance(addrs.IntKey(1)),
 		&states.ResourceInstanceObjectSrc{
-			Status:       states.ObjectTainted,
-			AttrsFlat:    map[string]string{"id": "1", "bazzle": "dazzle"},
-			Dependencies: []addrs.Referenceable{},
+			Status:    states.ObjectTainted,
+			AttrsFlat: map[string]string{"id": "1", "bazzle": "dazzle"},
+			DependsOn: []addrs.Referenceable{},
 		},
 		addrs.ProviderConfig{
 			Type: "test",
@@ -165,9 +165,9 @@ func TestStateShim(t *testing.T) {
 			Name: "single_count",
 		}.Instance(addrs.IntKey(0)),
 		&states.ResourceInstanceObjectSrc{
-			Status:       states.ObjectReady,
-			AttrsJSON:    []byte(`{"id": "single", "bazzle":"dazzle"}`),
-			Dependencies: []addrs.Referenceable{},
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id": "single", "bazzle":"dazzle"}`),
+			DependsOn: []addrs.Referenceable{},
 		},
 		addrs.ProviderConfig{
 			Type: "test",

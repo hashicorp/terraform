@@ -87,7 +87,7 @@ func shimNewState(newState *states.State, providers map[string]terraform.Resourc
 						resState.Primary.Meta["schema_version"] = i.Current.SchemaVersion
 					}
 
-					for _, dep := range i.Current.Dependencies {
+					for _, dep := range i.Current.DependsOn {
 						resState.Dependencies = append(resState.Dependencies, dep.String())
 					}
 
