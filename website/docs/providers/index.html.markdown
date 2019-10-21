@@ -76,6 +76,7 @@ down to see all providers.
 - [InfluxDB](/docs/providers/influxdb/index.html)
 - [JDCloud](/docs/providers/jdcloud/index.html)
 - [Kubernetes](/docs/providers/kubernetes/index.html)
+- [LaunchDarkly](/docs/providers/launchdarkly/index.html)
 - [Librato](/docs/providers/librato/index.html)
 - [Linode](/docs/providers/linode/index.html)
 - [Local](/docs/providers/local/index.html)
