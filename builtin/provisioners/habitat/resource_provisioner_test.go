@@ -3,7 +3,6 @@ package habitat
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -20,9 +19,10 @@ func TestProvisioner(t *testing.T) {
 
 func TestResourceProvisioner_Validate_good(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{
-		"peer":         "1.2.3.4",
-		"version":      "0.32.0",
-		"service_type": "systemd",
+		"peers":          []interface{}{"1.2.3.4"},
+		"version":        "0.32.0",
+		"service_type":   "systemd",
+		"accept_license": false,
 	})
 
 	warn, errs := Provisioner().Validate(c)
@@ -37,21 +37,29 @@ func TestResourceProvisioner_Validate_good(t *testing.T) {
 func TestResourceProvisioner_Validate_bad(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{
 		"service_type": "invalidtype",
+		"url":          "badurl",
 	})
 
 	warn, errs := Provisioner().Validate(c)
 	if len(warn) > 0 {
 		t.Fatalf("Warnings: %v", warn)
 	}
-	if len(errs) != 1 {
-		t.Fatalf("Should have one error")
+	// 3 errors, bad service_type, bad url, missing accept_license
+	if len(errs) != 3 {
+		t.Fatalf("Should have three errors, got %d", len(errs))
 	}
 }
 
 func TestResourceProvisioner_Validate_bad_service_config(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{
-		"service": []map[string]interface{}{
-			map[string]interface{}{"name": "core/foo", "strategy": "bar", "topology": "baz", "url": "badurl"},
+		"accept_license": true,
+		"service": []interface{}{
+			map[string]interface{}{
+				"name":     "core/foo",
+				"strategy": "bar",
+				"topology": "baz",
+				"url":      "badurl",
+			},
 		},
 	})
 
@@ -60,15 +68,24 @@ func TestResourceProvisioner_Validate_bad_service_config(t *testing.T) {
 		t.Fatalf("Warnings: %v", warn)
 	}
 	if len(errs) != 3 {
-		t.Fatalf("Should have three errors")
+		t.Fatalf("Should have three errors, got %d", len(errs))
+	}
+}
+
+func TestResourceProvisioner_Validate_bad_service_definition(t *testing.T) {
+	c := testConfig(t, map[string]interface{}{
+		"service": "core/vault",
+	})
+
+	warn, errs := Provisioner().Validate(c)
+	if len(warn) > 0 {
+		t.Fatalf("Warnings: %v", warn)
+	}
+	if len(errs) != 3 {
+		t.Fatalf("Should have three errors, got %d", len(errs))
 	}
 }
 
 func testConfig(t *testing.T, c map[string]interface{}) *terraform.ResourceConfig {
-	r, err := config.NewRawConfig(c)
-	if err != nil {
-		t.Fatalf("config error: %s", err)
-	}
-
-	return terraform.NewResourceConfig(r)
+	return terraform.NewResourceConfigRaw(c)
 }

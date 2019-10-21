@@ -19,14 +19,12 @@ import (
 // If any errors occur during upgrade, error diagnostics are returned. In that
 // case it is not safe to proceed with using the original state object.
 func UpgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Interface, src *states.ResourceInstanceObjectSrc, currentSchema *configschema.Block, currentVersion uint64) (*states.ResourceInstanceObjectSrc, tfdiags.Diagnostics) {
-	if src.SchemaVersion == currentVersion {
-		// No upgrading required, then.
-		return src, nil
-	}
 	if addr.Resource.Resource.Mode != addrs.ManagedResourceMode {
 		// We only do state upgrading for managed resources.
 		return src, nil
 	}
+
+	stateIsFlatmap := len(src.AttrsJSON) == 0
 
 	providerType := addr.Resource.Resource.DefaultProviderConfig().Type
 	if src.SchemaVersion > currentVersion {
@@ -49,7 +47,11 @@ func UpgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Int
 	// v0.12, this also includes translating from legacy flatmap to new-style
 	// representation, since only the provider has enough information to
 	// understand a flatmap built against an older schema.
-	log.Printf("[TRACE] UpgradeResourceState: upgrading state for %s from version %d to %d using provider %q", addr, src.SchemaVersion, currentVersion, providerType)
+	if src.SchemaVersion != currentVersion {
+		log.Printf("[TRACE] UpgradeResourceState: upgrading state for %s from version %d to %d using provider %q", addr, src.SchemaVersion, currentVersion, providerType)
+	} else {
+		log.Printf("[TRACE] UpgradeResourceState: schema version of %s is still %d; calling provider %q for any other minor fixups", addr, currentVersion, providerType)
+	}
 
 	req := providers.UpgradeResourceStateRequest{
 		TypeName: addr.Resource.Resource.Type,
@@ -62,10 +64,10 @@ func UpgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Int
 		Version: int64(src.SchemaVersion),
 	}
 
-	if len(src.AttrsJSON) != 0 {
-		req.RawStateJSON = src.AttrsJSON
-	} else {
+	if stateIsFlatmap {
 		req.RawStateFlatmap = src.AttrsFlat
+	} else {
+		req.RawStateJSON = src.AttrsJSON
 	}
 
 	resp := provider.UpgradeResourceState(req)

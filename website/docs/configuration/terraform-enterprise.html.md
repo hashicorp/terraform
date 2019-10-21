@@ -8,6 +8,10 @@ description: |-
 
 # Terraform Push Configuration
 
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Configuring Terraform Push](../configuration-0-11/terraform-enterprise.html).
+
 Prior to v0.12, Terraform included mechanisms to interact with a legacy version
 of Terraform Enterprise, formerly known as "Atlas".
 
@@ -23,6 +27,5 @@ These features are no longer available on Terraform Enterprise and so the
 corresponding configuration elements and commands have been removed in
 Terraform v0.12.
 
-To migrate to the current version of Terraform Enterprise, refer to
-[the upgrade guide](/docs/enterprise/upgrade/index.html). After upgrading,
+After upgrading to the current version of Terraform Enterprise,
 any `atlas` blocks in your configuration can be safely removed.

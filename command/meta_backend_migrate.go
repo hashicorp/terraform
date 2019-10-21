@@ -242,7 +242,7 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 		// for a new name and migrate the default state to the given named state.
 		stateTwo, err = func() (statemgr.Full, error) {
 			log.Print("[TRACE] backendMigrateState: target doesn't support a default workspace, so we must prompt for a new name")
-			name, err := m.UIInput().Input(&terraform.InputOpts{
+			name, err := m.UIInput().Input(context.Background(), &terraform.InputOpts{
 				Id: "new-state-name",
 				Query: fmt.Sprintf(
 					"[reset][bold][yellow]The %q backend configuration only allows "+

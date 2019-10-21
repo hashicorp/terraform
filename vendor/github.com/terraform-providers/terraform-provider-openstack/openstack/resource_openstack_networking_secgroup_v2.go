@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/attributestags"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/security/groups"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/security/rules"
 )
@@ -28,31 +29,41 @@ func resourceNetworkingSecGroupV2() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"region": &schema.Schema{
+			"region": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"tenant_id": &schema.Schema{
+			"tenant_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
 			},
-			"delete_default_rules": &schema.Schema{
+			"delete_default_rules": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
+			},
+			"tags": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"all_tags": {
+				Type:     schema.TypeSet,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 		},
 	}
@@ -82,6 +93,10 @@ func resourceNetworkingSecGroupV2Create(d *schema.ResourceData, meta interface{}
 	// Delete the default security group rules if it has been requested.
 	deleteDefaultRules := d.Get("delete_default_rules").(bool)
 	if deleteDefaultRules {
+		security_group, err := groups.Get(networkingClient, security_group.ID).Extract()
+		if err != nil {
+			return err
+		}
 		for _, rule := range security_group.Rules {
 			if err := rules.Delete(networkingClient, rule.ID).ExtractErr(); err != nil {
 				return fmt.Errorf(
@@ -93,6 +108,16 @@ func resourceNetworkingSecGroupV2Create(d *schema.ResourceData, meta interface{}
 	log.Printf("[DEBUG] OpenStack Neutron Security Group created: %#v", security_group)
 
 	d.SetId(security_group.ID)
+
+	tags := networkV2AttributesTags(d)
+	if len(tags) > 0 {
+		tagOpts := attributestags.ReplaceAllOpts{Tags: tags}
+		tags, err := attributestags.ReplaceAll(networkingClient, "security-groups", security_group.ID, tagOpts).Extract()
+		if err != nil {
+			return fmt.Errorf("Error creating Tags on SecurityGroup: %s", err)
+		}
+		log.Printf("[DEBUG] Set Tags = %+v on SecurityGroup %+v", tags, security_group.ID)
+	}
 
 	return resourceNetworkingSecGroupV2Read(d, meta)
 }
@@ -117,6 +142,8 @@ func resourceNetworkingSecGroupV2Read(d *schema.ResourceData, meta interface{}) 
 	d.Set("name", security_group.Name)
 	d.Set("region", GetRegion(d, config))
 
+	networkV2ReadAttributesTags(d, security_group.Tags)
+
 	return nil
 }
 
@@ -137,7 +164,8 @@ func resourceNetworkingSecGroupV2Update(d *schema.ResourceData, meta interface{}
 
 	if d.HasChange("description") {
 		update = true
-		updateOpts.Name = d.Get("description").(string)
+		description := d.Get("description").(string)
+		updateOpts.Description = &description
 	}
 
 	if update {
@@ -146,6 +174,16 @@ func resourceNetworkingSecGroupV2Update(d *schema.ResourceData, meta interface{}
 		if err != nil {
 			return fmt.Errorf("Error updating OpenStack SecGroup: %s", err)
 		}
+	}
+
+	if d.HasChange("tags") {
+		tags := networkV2UpdateAttributesTags(d)
+		tagOpts := attributestags.ReplaceAllOpts{Tags: tags}
+		tags, err := attributestags.ReplaceAll(networkingClient, "security-groups", d.Id(), tagOpts).Extract()
+		if err != nil {
+			return fmt.Errorf("Error updating Tags on SecurityGroup: %s", err)
+		}
+		log.Printf("[DEBUG] Updated Tags = %+v on SecurityGroup %+v", tags, d.Id())
 	}
 
 	return resourceNetworkingSecGroupV2Read(d, meta)

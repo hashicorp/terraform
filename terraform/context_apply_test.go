@@ -18,17 +18,16 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/go-test/deep"
 	"github.com/google/go-cmp/cmp"
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestContext2Apply_basic(t *testing.T) {
@@ -1878,14 +1877,21 @@ func TestContext2Apply_cancel(t *testing.T) {
 			},
 		}, nil
 	}
-	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error) {
-		return &InstanceDiff{
-			Attributes: map[string]*ResourceAttrDiff{
-				"value": &ResourceAttrDiff{
-					New: "bar",
-				},
-			},
-		}, nil
+	p.DiffFn = func(info *InstanceInfo, s *InstanceState, rc *ResourceConfig) (*InstanceDiff, error) {
+		d := &InstanceDiff{
+			Attributes: map[string]*ResourceAttrDiff{},
+		}
+		if new, ok := rc.Get("value"); ok {
+			d.Attributes["value"] = &ResourceAttrDiff{
+				New: new.(string),
+			}
+		}
+		if new, ok := rc.Get("foo"); ok {
+			d.Attributes["foo"] = &ResourceAttrDiff{
+				New: new.(string),
+			}
+		}
+		return d, nil
 	}
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
@@ -1931,7 +1937,18 @@ func TestContext2Apply_cancelBlock(t *testing.T) {
 	})
 
 	applyCh := make(chan struct{})
-	p.DiffFn = testDiffFn
+	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error) {
+		return &InstanceDiff{
+			Attributes: map[string]*ResourceAttrDiff{
+				"id": &ResourceAttrDiff{
+					New: "foo",
+				},
+				"num": &ResourceAttrDiff{
+					New: "2",
+				},
+			},
+		}, nil
+	}
 	p.ApplyFn = func(*InstanceInfo, *InstanceState, *InstanceDiff) (*InstanceState, error) {
 		close(applyCh)
 
@@ -1946,6 +1963,9 @@ func TestContext2Apply_cancelBlock(t *testing.T) {
 
 		return &InstanceState{
 			ID: "foo",
+			Attributes: map[string]string{
+				"num": "2",
+			},
 		}, nil
 	}
 
@@ -1994,7 +2014,74 @@ func TestContext2Apply_cancelBlock(t *testing.T) {
 aws_instance.foo:
   ID = foo
   provider = provider.aws
+  num = 2
 	`)
+}
+
+// for_each values cannot be used in the provisioner during destroy.
+// There may be a way to handle this, but for now make sure we print an error
+// rather than crashing with an invalid config.
+func TestContext2Apply_provisionerDestroyForEach(t *testing.T) {
+	m := testModule(t, "apply-provisioner-each")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	p.DiffFn = testDiffFn
+	p.ApplyFn = testApplyFn
+
+	s := &states.State{
+		Modules: map[string]*states.Module{
+			"": &states.Module{
+				Resources: map[string]*states.Resource{
+					"aws_instance.bar": &states.Resource{
+						Addr:     addrs.Resource{Mode: 77, Type: "aws_instance", Name: "bar"},
+						EachMode: states.EachMap,
+						Instances: map[addrs.InstanceKey]*states.ResourceInstance{
+							addrs.StringKey("a"): &states.ResourceInstance{
+								Current: &states.ResourceInstanceObjectSrc{
+									AttrsJSON: []byte(`{"foo":"bar","id":"foo"}`),
+								},
+							},
+							addrs.StringKey("b"): &states.ResourceInstance{
+								Current: &states.ResourceInstanceObjectSrc{
+									AttrsJSON: []byte(`{"foo":"bar","id":"foo"}`),
+								},
+							},
+						},
+						ProviderConfig: addrs.AbsProviderConfig{
+							Module:         addrs.ModuleInstance(nil),
+							ProviderConfig: addrs.ProviderConfig{Type: "aws", Alias: ""},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		Provisioners: map[string]ProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+		State:   s,
+		Destroy: true,
+	})
+
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
+	}
+
+	_, diags := ctx.Apply()
+	if diags == nil {
+		t.Fatal("should error")
+	}
+	if !strings.Contains(diags.Err().Error(), `Reference to "each" in context without for_each`) {
+		t.Fatal("unexpected error:", diags.Err())
+	}
 }
 
 func TestContext2Apply_cancelProvisioner(t *testing.T) {
@@ -2122,15 +2209,15 @@ func TestContext2Apply_compute(t *testing.T) {
 		),
 	})
 
-	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("plan errors: %s", diags.Err())
-	}
-
 	ctx.variables = InputValues{
 		"value": &InputValue{
 			Value:      cty.NumberIntVal(1),
 			SourceType: ValueFromCaller,
 		},
+	}
+
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
 	state, diags := ctx.Apply()
@@ -2538,6 +2625,41 @@ func TestContext2Apply_provisionerInterpCount(t *testing.T) {
 	// Verify apply was invoked
 	if !pr.ProvisionResourceCalled {
 		t.Fatalf("provisioner was not called")
+	}
+}
+
+func TestContext2Apply_foreachVariable(t *testing.T) {
+	m := testModule(t, "plan-for-each-unknown-value")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		Variables: InputValues{
+			"foo": &InputValue{
+				Value: cty.StringVal("hello"),
+			},
+		},
+	})
+
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
+	}
+
+	state, diags := ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatalf("diags: %s", diags.Err())
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyForEachVariableStr)
+	if actual != expected {
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 
@@ -3733,25 +3855,35 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 
 	p.ApplyFn = testApplyFn
 
-	p.DiffFn = func(info *InstanceInfo, s *InstanceState, c *ResourceConfig) (*InstanceDiff, error) {
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		proposed := req.ProposedNewState
 		configsLock.Lock()
 		defer configsLock.Unlock()
-		key := c.Config["key"].(string)
-		configs[key] = c
+		key := proposed.GetAttr("key").AsString()
+		// This test was originally written using the legacy p.DiffFn interface,
+		// and so the assertions below expect an old-style ResourceConfig, which
+		// we'll construct via our shim for now to avoid rewriting all of the
+		// assertions.
+		configs[key] = NewResourceConfigShimmed(req.Config, p.GetSchemaReturn.ResourceTypes["test_thing"])
 
-		// Return a minimal diff to make sure this resource gets included in
-		// the apply graph and thus the final state, but otherwise we're just
-		// gathering data for assertions.
-		return &InstanceDiff{
-			Attributes: map[string]*ResourceAttrDiff{
-				"id": &ResourceAttrDiff{
-					NewComputed: true,
-				},
-				"name": &ResourceAttrDiff{
-					New: key,
-				},
-			},
-		}, nil
+		retVals := make(map[string]cty.Value)
+		for it := proposed.ElementIterator(); it.Next(); {
+			idxVal, val := it.Element()
+			idx := idxVal.AsString()
+
+			switch idx {
+			case "id":
+				retVals[idx] = cty.UnknownVal(cty.String)
+			case "name":
+				retVals[idx] = cty.StringVal(key)
+			default:
+				retVals[idx] = val
+			}
+		}
+
+		return providers.PlanResourceChangeResponse{
+			PlannedState: cty.ObjectVal(retVals),
+		}
 	}
 
 	p.GetSchemaReturn = &ProviderSchema{
@@ -3817,33 +3949,33 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 	}
 
 	checkConfig("multi_count_var.0", map[string]interface{}{
-		"source_id":   unknownValue(),
+		"source_id":   hcl2shim.UnknownVariableValue,
 		"source_name": "source.0",
 	})
 	checkConfig("multi_count_var.2", map[string]interface{}{
-		"source_id":   unknownValue(),
+		"source_id":   hcl2shim.UnknownVariableValue,
 		"source_name": "source.2",
 	})
 	checkConfig("multi_count_derived.0", map[string]interface{}{
-		"source_id":   unknownValue(),
+		"source_id":   hcl2shim.UnknownVariableValue,
 		"source_name": "source.0",
 	})
 	checkConfig("multi_count_derived.2", map[string]interface{}{
-		"source_id":   unknownValue(),
+		"source_id":   hcl2shim.UnknownVariableValue,
 		"source_name": "source.2",
 	})
 	checkConfig("whole_splat", map[string]interface{}{
 		"source_ids": []interface{}{
-			unknownValue(),
-			unknownValue(),
-			unknownValue(),
+			hcl2shim.UnknownVariableValue,
+			hcl2shim.UnknownVariableValue,
+			hcl2shim.UnknownVariableValue,
 		},
 		"source_names": []interface{}{
 			"source.0",
 			"source.1",
 			"source.2",
 		},
-		"source_ids_from_func": unknownValue(),
+		"source_ids_from_func": hcl2shim.UnknownVariableValue,
 		"source_names_from_func": []interface{}{
 			"source.0",
 			"source.1",
@@ -3852,9 +3984,9 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 
 		"source_ids_wrapped": []interface{}{
 			[]interface{}{
-				unknownValue(),
-				unknownValue(),
-				unknownValue(),
+				hcl2shim.UnknownVariableValue,
+				hcl2shim.UnknownVariableValue,
+				hcl2shim.UnknownVariableValue,
 			},
 		},
 		"source_names_wrapped": []interface{}{
@@ -3865,14 +3997,14 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 			},
 		},
 
-		"first_source_id":   unknownValue(),
+		"first_source_id":   hcl2shim.UnknownVariableValue,
 		"first_source_name": "source.0",
 	})
 	checkConfig("child.whole_splat", map[string]interface{}{
 		"source_ids": []interface{}{
-			unknownValue(),
-			unknownValue(),
-			unknownValue(),
+			hcl2shim.UnknownVariableValue,
+			hcl2shim.UnknownVariableValue,
+			hcl2shim.UnknownVariableValue,
 		},
 		"source_names": []interface{}{
 			"source.0",
@@ -3882,9 +4014,9 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 
 		"source_ids_wrapped": []interface{}{
 			[]interface{}{
-				unknownValue(),
-				unknownValue(),
-				unknownValue(),
+				hcl2shim.UnknownVariableValue,
+				hcl2shim.UnknownVariableValue,
+				hcl2shim.UnknownVariableValue,
 			},
 		},
 		"source_names_wrapped": []interface{}{
@@ -4671,12 +4803,6 @@ func TestContext2Apply_provisionerFail(t *testing.T) {
 		Provisioners: map[string]ProvisionerFactory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
-		Variables: InputValues{
-			"value": &InputValue{
-				Value:      cty.NumberIntVal(1),
-				SourceType: ValueFromCaller,
-			},
-		},
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
@@ -4842,6 +4968,10 @@ func TestContext2Apply_errorDestroy_createBeforeDestroy(t *testing.T) {
 		// Create should work
 		is = &InstanceState{
 			ID: "foo",
+			Attributes: map[string]string{
+				"type":        "aws_instance",
+				"require_new": "xyz",
+			},
 		}
 		return is, nil
 	}
@@ -4866,7 +4996,6 @@ func TestContext2Apply_errorDestroy_createBeforeDestroy(t *testing.T) {
 func TestContext2Apply_multiDepose_createBeforeDestroy(t *testing.T) {
 	m := testModule(t, "apply-multi-depose-create-before-destroy")
 	p := testProvider("aws")
-	p.DiffFn = testDiffFn
 	p.GetSchemaReturn = &ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
@@ -4892,6 +5021,30 @@ func TestContext2Apply_multiDepose_createBeforeDestroy(t *testing.T) {
 		},
 	})
 
+	p.DiffFn = func(info *InstanceInfo, s *InstanceState, rc *ResourceConfig) (*InstanceDiff, error) {
+		if rc == nil {
+			return &InstanceDiff{
+				Destroy: true,
+			}, nil
+		}
+
+		rn, _ := rc.Get("require_new")
+		return &InstanceDiff{
+			Attributes: map[string]*ResourceAttrDiff{
+				"id": {
+					New:         hcl2shim.UnknownVariableValue,
+					NewComputed: true,
+					RequiresNew: true,
+				},
+				"require_new": {
+					Old:         s.Attributes["require_new"],
+					New:         rn.(string),
+					RequiresNew: true,
+				},
+			},
+		}, nil
+	}
+
 	ctx := testContext2(t, &ContextOpts{
 		Config:           m,
 		ProviderResolver: providers.ResolverFixed(ps),
@@ -4899,8 +5052,13 @@ func TestContext2Apply_multiDepose_createBeforeDestroy(t *testing.T) {
 	})
 	createdInstanceId := "bar"
 	// Create works
-	createFunc := func(is *InstanceState) (*InstanceState, error) {
-		return &InstanceState{ID: createdInstanceId}, nil
+	createFunc := func(is *InstanceState, id *InstanceDiff) (*InstanceState, error) {
+		return &InstanceState{
+			ID: createdInstanceId,
+			Attributes: map[string]string{
+				"require_new": id.Attributes["require_new"].New,
+			},
+		}, nil
 	}
 	// Destroy starts broken
 	destroyFunc := func(is *InstanceState) (*InstanceState, error) {
@@ -4910,7 +5068,7 @@ func TestContext2Apply_multiDepose_createBeforeDestroy(t *testing.T) {
 		if id.Destroy {
 			return destroyFunc(is)
 		} else {
-			return createFunc(is)
+			return createFunc(is, id)
 		}
 	}
 
@@ -4929,6 +5087,7 @@ func TestContext2Apply_multiDepose_createBeforeDestroy(t *testing.T) {
 aws_instance.web: (1 deposed)
   ID = bar
   provider = provider.aws
+  require_new = yes
   Deposed ID 1 = foo
 	`)
 
@@ -5011,6 +5170,7 @@ aws_instance.web: (1 deposed)
 aws_instance.web: (1 deposed)
   ID = qux
   provider = provider.aws
+  require_new = yes
   Deposed ID 1 = bar
 	`)
 
@@ -5038,6 +5198,7 @@ aws_instance.web: (1 deposed)
 aws_instance.web:
   ID = quux
   provider = provider.aws
+  require_new = yes
 	`)
 }
 
@@ -5675,11 +5836,8 @@ func TestContext2Apply_provisionerDestroyRefInvalid(t *testing.T) {
 		},
 	})
 
-	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("plan errors: %s", diags.Err())
-	}
-
-	if _, diags := ctx.Apply(); diags == nil {
+	// this was an apply test, but this is now caught in Validation
+	if diags := ctx.Validate(); !diags.HasErrors() {
 		t.Fatal("expected error")
 	}
 }
@@ -6109,21 +6267,33 @@ func TestContext2Apply_outputDiffVars(t *testing.T) {
 
 		result := s.MergeDiff(d)
 		result.ID = "foo"
-		result.Attributes["foo"] = "bar"
 		return result, nil
 	}
-	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error) {
-		return &InstanceDiff{
-			Attributes: map[string]*ResourceAttrDiff{
-				"foo": &ResourceAttrDiff{
-					NewComputed: true,
-					Type:        DiffAttrOutput,
-				},
-				"bar": &ResourceAttrDiff{
-					New: "baz",
-				},
-			},
-		}, nil
+	p.DiffFn = func(info *InstanceInfo, s *InstanceState, rc *ResourceConfig) (*InstanceDiff, error) {
+		d := &InstanceDiff{
+			Attributes: map[string]*ResourceAttrDiff{},
+		}
+		if new, ok := rc.Get("value"); ok {
+			d.Attributes["value"] = &ResourceAttrDiff{
+				New: new.(string),
+			}
+		}
+		if new, ok := rc.Get("foo"); ok {
+			d.Attributes["foo"] = &ResourceAttrDiff{
+				New: new.(string),
+			}
+		} else if rc.IsComputed("foo") {
+			d.Attributes["foo"] = &ResourceAttrDiff{
+				NewComputed: true,
+				Type:        DiffAttrOutput, // This doesn't actually really do anything anymore, but this test originally set it.
+			}
+		}
+		if new, ok := rc.Get("num"); ok {
+			d.Attributes["num"] = &ResourceAttrDiff{
+				New: fmt.Sprintf("%#v", new),
+			}
+		}
+		return d, nil
 	}
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
@@ -6474,12 +6644,6 @@ func TestContext2Apply_destroyModuleWithAttrsReferencingResource(t *testing.T) {
 					"aws": testProviderFuncFixed(p),
 				},
 			),
-			Variables: InputValues{
-				"key_name": &InputValue{
-					Value:      cty.StringVal("foobarkey"),
-					SourceType: ValueFromCaller,
-				},
-			},
 		})
 
 		// First plan and apply a create operation
@@ -6648,15 +6812,34 @@ func TestContext2Apply_destroyTargetWithModuleVariableAndCount(t *testing.T) {
 			},
 		})
 
-		_, err := ctx.Plan()
-		if err != nil {
-			t.Fatalf("plan err: %s", err)
+		_, diags := ctx.Plan()
+		if diags.HasErrors() {
+			t.Fatalf("plan err: %s", diags)
+		}
+		if len(diags) != 1 {
+			// Should have one warning that -target is in effect.
+			t.Fatalf("got %d diagnostics in plan; want 1", len(diags))
+		}
+		if got, want := diags[0].Severity(), tfdiags.Warning; got != want {
+			t.Errorf("wrong diagnostic severity %#v; want %#v", got, want)
+		}
+		if got, want := diags[0].Description().Summary, "Resource targeting is in effect"; got != want {
+			t.Errorf("wrong diagnostic summary %#v; want %#v", got, want)
 		}
 
 		// Destroy, targeting the module explicitly
-		state, err = ctx.Apply()
-		if err != nil {
-			t.Fatalf("destroy apply err: %s", err)
+		state, diags = ctx.Apply()
+		if diags.HasErrors() {
+			t.Fatalf("destroy apply err: %s", diags)
+		}
+		if len(diags) != 1 {
+			t.Fatalf("got %d diagnostics; want 1", len(diags))
+		}
+		if got, want := diags[0].Severity(), tfdiags.Warning; got != want {
+			t.Errorf("wrong diagnostic severity %#v; want %#v", got, want)
+		}
+		if got, want := diags[0].Description().Summary, "Applied changes may be incomplete"; got != want {
+			t.Errorf("wrong diagnostic summary %#v; want %#v", got, want)
 		}
 	}
 
@@ -6859,14 +7042,21 @@ func TestContext2Apply_destroyOrphan(t *testing.T) {
 		result.ID = "foo"
 		return result, nil
 	}
-	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error) {
-		return &InstanceDiff{
-			Attributes: map[string]*ResourceAttrDiff{
-				"value": &ResourceAttrDiff{
-					New: "bar",
-				},
-			},
-		}, nil
+	p.DiffFn = func(info *InstanceInfo, s *InstanceState, rc *ResourceConfig) (*InstanceDiff, error) {
+		d := &InstanceDiff{
+			Attributes: map[string]*ResourceAttrDiff{},
+		}
+		if new, ok := rc.Get("value"); ok {
+			d.Attributes["value"] = &ResourceAttrDiff{
+				New: new.(string),
+			}
+		}
+		if new, ok := rc.Get("foo"); ok {
+			d.Attributes["foo"] = &ResourceAttrDiff{
+				New: new.(string),
+			}
+		}
+		return d, nil
 	}
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
@@ -6981,14 +7171,21 @@ func TestContext2Apply_error(t *testing.T) {
 			},
 		}, nil
 	}
-	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error) {
-		return &InstanceDiff{
-			Attributes: map[string]*ResourceAttrDiff{
-				"value": &ResourceAttrDiff{
-					New: "bar",
-				},
-			},
-		}, nil
+	p.DiffFn = func(info *InstanceInfo, s *InstanceState, rc *ResourceConfig) (*InstanceDiff, error) {
+		d := &InstanceDiff{
+			Attributes: map[string]*ResourceAttrDiff{},
+		}
+		if new, ok := rc.Get("value"); ok {
+			d.Attributes["value"] = &ResourceAttrDiff{
+				New: new.(string),
+			}
+		}
+		if new, ok := rc.Get("foo"); ok {
+			d.Attributes["foo"] = &ResourceAttrDiff{
+				New: new.(string),
+			}
+		}
+		return d, nil
 	}
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
@@ -7004,6 +7201,233 @@ func TestContext2Apply_error(t *testing.T) {
 	expected := strings.TrimSpace(testTerraformApplyErrorStr)
 	if actual != expected {
 		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	}
+}
+
+func TestContext2Apply_errorDestroy(t *testing.T) {
+	m := testModule(t, "empty")
+	p := testProvider("test")
+
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_thing": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		// Should actually be called for this test, because Terraform Core
+		// constructs the plan for a destroy operation itself.
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
+	}
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+		// The apply (in this case, a destroy) always fails, so we can verify
+		// that the object stays in the state after a destroy fails even though
+		// we aren't returning a new state object here.
+		return providers.ApplyResourceChangeResponse{
+			Diagnostics: tfdiags.Diagnostics(nil).Append(fmt.Errorf("failed")),
+		}
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		State: states.BuildState(func(ss *states.SyncState) {
+			ss.SetResourceInstanceCurrent(
+				addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "test_thing",
+					Name: "foo",
+				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+				&states.ResourceInstanceObjectSrc{
+					Status:    states.ObjectReady,
+					AttrsJSON: []byte(`{"id":"baz"}`),
+				},
+				addrs.ProviderConfig{
+					Type: "test",
+				}.Absolute(addrs.RootModuleInstance),
+			)
+		}),
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
+	}
+
+	state, diags := ctx.Apply()
+	if diags == nil {
+		t.Fatal("should have error")
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(`
+test_thing.foo:
+  ID = baz
+  provider = provider.test
+`) // test_thing.foo is still here, even though provider returned no new state along with its error
+	if actual != expected {
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	}
+}
+
+func TestContext2Apply_errorCreateInvalidNew(t *testing.T) {
+	m := testModule(t, "apply-error")
+
+	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"value": {Type: cty.String, Optional: true},
+					"foo":   {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
+	}
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+		// We're intentionally returning an inconsistent new state here
+		// because we want to test that Terraform ignores the inconsistency
+		// when accompanied by another error.
+		return providers.ApplyResourceChangeResponse{
+			NewState: cty.ObjectVal(map[string]cty.Value{
+				"value": cty.StringVal("wrong wrong wrong wrong"),
+				"foo":   cty.StringVal("absolutely brimming over with wrongability"),
+			}),
+			Diagnostics: tfdiags.Diagnostics(nil).Append(fmt.Errorf("forced error")),
+		}
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
+	}
+
+	state, diags := ctx.Apply()
+	if diags == nil {
+		t.Fatal("should have error")
+	}
+	if got, want := len(diags), 1; got != want {
+		// There should be no additional diagnostics generated by Terraform's own eval logic,
+		// because the provider's own error supersedes them.
+		t.Errorf("wrong number of diagnostics %d; want %d\n%s", got, want, diags.Err())
+	}
+	if got, want := diags.Err().Error(), "forced error"; !strings.Contains(got, want) {
+		t.Errorf("returned error does not contain %q, but it should\n%s", want, diags.Err())
+	}
+	if got, want := len(state.RootModule().Resources), 2; got != want {
+		t.Errorf("%d resources in state before prune; should have %d\n%s", got, want, spew.Sdump(state))
+	}
+	state.PruneResourceHusks() // aws_instance.bar with no instances gets left behind when we bail out, but that's okay
+	if got, want := len(state.RootModule().Resources), 1; got != want {
+		t.Errorf("%d resources in state after prune; should have only one (aws_instance.foo, tainted)\n%s", got, spew.Sdump(state))
+	}
+}
+
+func TestContext2Apply_errorUpdateNullNew(t *testing.T) {
+	m := testModule(t, "apply-error")
+
+	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"value": {Type: cty.String, Optional: true},
+					"foo":   {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
+	}
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+		// We're intentionally returning no NewState here because we want to
+		// test that Terraform retains the prior state, rather than treating
+		// the returned null as "no state" (object deleted).
+		return providers.ApplyResourceChangeResponse{
+			Diagnostics: tfdiags.Diagnostics(nil).Append(fmt.Errorf("forced error")),
+		}
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		State: states.BuildState(func(ss *states.SyncState) {
+			ss.SetResourceInstanceCurrent(
+				addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "aws_instance",
+					Name: "foo",
+				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+				&states.ResourceInstanceObjectSrc{
+					Status:    states.ObjectReady,
+					AttrsJSON: []byte(`{"value":"old"}`),
+				},
+				addrs.ProviderConfig{
+					Type: "aws",
+				}.Absolute(addrs.RootModuleInstance),
+			)
+		}),
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
+	}
+
+	state, diags := ctx.Apply()
+	if diags == nil {
+		t.Fatal("should have error")
+	}
+	if got, want := len(diags), 1; got != want {
+		// There should be no additional diagnostics generated by Terraform's own eval logic,
+		// because the provider's own error supersedes them.
+		t.Errorf("wrong number of diagnostics %d; want %d\n%s", got, want, diags.Err())
+	}
+	if got, want := diags.Err().Error(), "forced error"; !strings.Contains(got, want) {
+		t.Errorf("returned error does not contain %q, but it should\n%s", want, diags.Err())
+	}
+	state.PruneResourceHusks()
+	if got, want := len(state.RootModule().Resources), 1; got != want {
+		t.Fatalf("%d resources in state; should have only one (aws_instance.foo, unmodified)\n%s", got, spew.Sdump(state))
+	}
+
+	is := state.ResourceInstance(addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: "aws_instance",
+		Name: "foo",
+	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance))
+	if is == nil {
+		t.Fatalf("aws_instance.foo is not in the state after apply")
+	}
+	if got, want := is.Current.AttrsJSON, []byte(`"old"`); !bytes.Contains(got, want) {
+		t.Fatalf("incorrect attributes for aws_instance.foo\ngot: %s\nwant: JSON containing %s\n\n%s", got, want, spew.Sdump(is))
 	}
 }
 
@@ -7050,14 +7474,21 @@ func TestContext2Apply_errorPartial(t *testing.T) {
 			},
 		}, nil
 	}
-	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error) {
-		return &InstanceDiff{
-			Attributes: map[string]*ResourceAttrDiff{
-				"value": &ResourceAttrDiff{
-					New: "bar",
-				},
-			},
-		}, nil
+	p.DiffFn = func(info *InstanceInfo, s *InstanceState, rc *ResourceConfig) (*InstanceDiff, error) {
+		d := &InstanceDiff{
+			Attributes: map[string]*ResourceAttrDiff{},
+		}
+		if new, ok := rc.Get("value"); ok {
+			d.Attributes["value"] = &ResourceAttrDiff{
+				New: new.(string),
+			}
+		}
+		if new, ok := rc.Get("foo"); ok {
+			d.Attributes["foo"] = &ResourceAttrDiff{
+				New: new.(string),
+			}
+		}
+		return d, nil
 	}
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
@@ -7186,7 +7617,8 @@ func TestContext2Apply_idAttr(t *testing.T) {
 		result := s.MergeDiff(d)
 		result.ID = "foo"
 		result.Attributes = map[string]string{
-			"id": "bar",
+			"id":  "bar",
+			"num": "42",
 		}
 
 		return result, nil
@@ -7207,7 +7639,7 @@ func TestContext2Apply_idAttr(t *testing.T) {
 
 	state, diags := ctx.Apply()
 	if diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
+		t.Fatalf("apply errors: %s", diags.Err())
 	}
 
 	mod := state.RootModule()
@@ -8403,6 +8835,52 @@ module.child:
 	`)
 }
 
+func TestContext2Apply_targetedResourceOrphanModule(t *testing.T) {
+	m := testModule(t, "apply-targeted-resource-orphan-module")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	// Create a state with an orphan module
+	state := MustShimLegacyState(&State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: []string{"root", "child"},
+				Resources: map[string]*ResourceState{
+					"aws_instance.bar": &ResourceState{
+						Type:     "aws_instance",
+						Primary:  &InstanceState{},
+						Provider: "provider.aws",
+					},
+				},
+			},
+		},
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		State: state,
+		Targets: []addrs.Targetable{
+			addrs.RootModuleInstance.Resource(
+				addrs.ManagedResourceMode, "aws_instance", "foo",
+			),
+		},
+	})
+
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
+	}
+
+	if _, diags := ctx.Apply(); diags.HasErrors() {
+		t.Fatalf("apply errors: %s", diags.Err())
+	}
+}
+
 func TestContext2Apply_unknownAttribute(t *testing.T) {
 	m := testModule(t, "apply-unknown")
 	p := testProvider("aws")
@@ -8866,6 +9344,7 @@ func TestContext2Apply_issue5254(t *testing.T) {
 template_file.child:
   ID = foo
   provider = provider.template
+  __template_requires_new = true
   template = Hi
   type = template_file
 
@@ -9943,4 +10422,183 @@ func TestContext2Apply_scaleInMultivarRef(t *testing.T) {
 	// Applying the plan should now succeed
 	_, diags = ctx.Apply()
 	assertNoErrors(t, diags)
+}
+
+func TestContext2Apply_inconsistentWithPlan(t *testing.T) {
+	m := testModule(t, "apply-inconsistent-with-plan")
+	p := testProvider("test")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Computed: true},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			PlannedState: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("before"),
+			}),
+		}
+	}
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+		return providers.ApplyResourceChangeResponse{
+			NewState: cty.ObjectVal(map[string]cty.Value{
+				// This is intentionally incorrect: because id was fixed at "before"
+				// during plan, it must not change during apply.
+				"id": cty.StringVal("after"),
+			}),
+		}
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
+	}
+
+	_, diags := ctx.Apply()
+	if !diags.HasErrors() {
+		t.Fatalf("apply succeeded; want error")
+	}
+	if got, want := diags.Err().Error(), "Provider produced inconsistent result after apply"; !strings.Contains(got, want) {
+		t.Fatalf("wrong error\ngot: %s\nshould contain: %s", got, want)
+	}
+}
+
+// Issue 19908 was about retaining an existing object in the state when an
+// update to it fails and the provider does not return a partially-updated
+// value for it. Previously we were incorrectly removing it from the state
+// in that case, but instead it should be retained so the update can be
+// retried.
+func TestContext2Apply_issue19908(t *testing.T) {
+	m := testModule(t, "apply-issue19908")
+	p := testProvider("test")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test": {
+				Attributes: map[string]*configschema.Attribute{
+					"baz": {Type: cty.String, Required: true},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
+	}
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+		var diags tfdiags.Diagnostics
+		diags = diags.Append(fmt.Errorf("update failed"))
+		return providers.ApplyResourceChangeResponse{
+			Diagnostics: diags,
+		}
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		State: states.BuildState(func(s *states.SyncState) {
+			s.SetResourceInstanceCurrent(
+				addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "test",
+					Name: "foo",
+				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+				&states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"baz":"old"}`),
+					Status:    states.ObjectReady,
+				},
+				addrs.ProviderConfig{
+					Type: "test",
+				}.Absolute(addrs.RootModuleInstance),
+			)
+		}),
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
+	}
+
+	state, diags := ctx.Apply()
+	if !diags.HasErrors() {
+		t.Fatalf("apply succeeded; want error")
+	}
+	if got, want := diags.Err().Error(), "update failed"; !strings.Contains(got, want) {
+		t.Fatalf("wrong error\ngot: %s\nshould contain: %s", got, want)
+	}
+
+	mod := state.RootModule()
+	rs := mod.Resources["test.foo"]
+	if rs == nil {
+		t.Fatalf("test.foo not in state after apply, but should be")
+	}
+	is := rs.Instances[addrs.NoKey]
+	if is == nil {
+		t.Fatalf("test.foo not in state after apply, but should be")
+	}
+	obj := is.Current
+	if obj == nil {
+		t.Fatalf("test.foo has no current object in state after apply, but should do")
+	}
+
+	if got, want := obj.Status, states.ObjectReady; got != want {
+		t.Errorf("test.foo has wrong status %s after apply; want %s", got, want)
+	}
+	if got, want := obj.AttrsJSON, []byte(`"old"`); !bytes.Contains(got, want) {
+		t.Errorf("test.foo attributes JSON doesn't contain %s after apply\ngot: %s", want, got)
+	}
+}
+
+func TestContext2Apply_invalidIndexRef(t *testing.T) {
+	p := testProvider("test")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"value": {Type: cty.String, Optional: true, Computed: true},
+				},
+			},
+		},
+	}
+	p.DiffFn = testDiffFn
+
+	m := testModule(t, "apply-invalid-index")
+	c := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	diags := c.Validate()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected validation failure: %s", diags.Err())
+	}
+
+	wantErr := `The given key does not identify an element in this collection value`
+	_, diags = c.Plan()
+
+	if !diags.HasErrors() {
+		t.Fatalf("plan succeeded; want error")
+	}
+	gotErr := diags.Err().Error()
+
+	if !strings.Contains(gotErr, wantErr) {
+		t.Fatalf("missing expected error\ngot: %s\n\nwant: error containing %q", gotErr, wantErr)
+	}
 }

@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/e2e"
 )
 
@@ -25,7 +24,7 @@ func TestPlanApplyInAutomation(t *testing.T) {
 	// allowed.
 	skipIfCannotAccessNetwork(t)
 
-	fixturePath := filepath.Join("test-fixtures", "full-workflow-null")
+	fixturePath := filepath.Join("testdata", "full-workflow-null")
 	tf := e2e.NewBinary(terraformBin, fixturePath)
 	defer tf.Close()
 
@@ -41,11 +40,11 @@ func TestPlanApplyInAutomation(t *testing.T) {
 
 	// Make sure we actually downloaded the plugins, rather than picking up
 	// copies that might be already installed globally on the system.
-	if !strings.Contains(stdout, "- Downloading plugin for provider \"template\"") {
+	if !strings.Contains(stdout, "- Downloading plugin for provider \"template") {
 		t.Errorf("template provider download message is missing from init output:\n%s", stdout)
 		t.Logf("(this can happen if you have a copy of the plugin in one of the global plugin search dirs)")
 	}
-	if !strings.Contains(stdout, "- Downloading plugin for provider \"null\"") {
+	if !strings.Contains(stdout, "- Downloading plugin for provider \"null") {
 		t.Errorf("null provider download message is missing from init output:\n%s", stdout)
 		t.Logf("(this can happen if you have a copy of the plugin in one of the global plugin search dirs)")
 	}
@@ -71,14 +70,11 @@ func TestPlanApplyInAutomation(t *testing.T) {
 		t.Fatalf("failed to read plan file: %s", err)
 	}
 
-	stateResources := plan.State.RootModule().Resources
-	diffResources := plan.Diff.RootModule().Resources
+	// stateResources := plan.Changes.Resources
+	diffResources := plan.Changes.Resources
 
-	if len(stateResources) != 1 || stateResources["data.template_file.test"] == nil {
-		t.Errorf("incorrect state in plan; want just data.template_file.test to have been rendered, but have:\n%s", spew.Sdump(stateResources))
-	}
-	if len(diffResources) != 1 || diffResources["null_resource.test"] == nil {
-		t.Errorf("incorrect diff in plan; want just null_resource.test to have been rendered, but have:\n%s", spew.Sdump(diffResources))
+	if len(diffResources) != 1 || diffResources[0].Addr.String() != "null_resource.test" {
+		t.Errorf("incorrect number of resources in plan")
 	}
 
 	//// APPLY
@@ -96,9 +92,9 @@ func TestPlanApplyInAutomation(t *testing.T) {
 		t.Fatalf("failed to read state file: %s", err)
 	}
 
-	stateResources = state.RootModule().Resources
+	stateResources := state.RootModule().Resources
 	var gotResources []string
-	for n := range stateResources {
+	for n, _ := range stateResources {
 		gotResources = append(gotResources, n)
 	}
 	sort.Strings(gotResources)
@@ -123,7 +119,7 @@ func TestAutoApplyInAutomation(t *testing.T) {
 	// allowed.
 	skipIfCannotAccessNetwork(t)
 
-	fixturePath := filepath.Join("test-fixtures", "full-workflow-null")
+	fixturePath := filepath.Join("testdata", "full-workflow-null")
 	tf := e2e.NewBinary(terraformBin, fixturePath)
 	defer tf.Close()
 
@@ -139,11 +135,11 @@ func TestAutoApplyInAutomation(t *testing.T) {
 
 	// Make sure we actually downloaded the plugins, rather than picking up
 	// copies that might be already installed globally on the system.
-	if !strings.Contains(stdout, "- Downloading plugin for provider \"template\"") {
+	if !strings.Contains(stdout, "- Downloading plugin for provider \"template") {
 		t.Errorf("template provider download message is missing from init output:\n%s", stdout)
 		t.Logf("(this can happen if you have a copy of the plugin in one of the global plugin search dirs)")
 	}
-	if !strings.Contains(stdout, "- Downloading plugin for provider \"null\"") {
+	if !strings.Contains(stdout, "- Downloading plugin for provider \"null") {
 		t.Errorf("null provider download message is missing from init output:\n%s", stdout)
 		t.Logf("(this can happen if you have a copy of the plugin in one of the global plugin search dirs)")
 	}
@@ -190,7 +186,7 @@ func TestPlanOnlyInAutomation(t *testing.T) {
 	// allowed.
 	skipIfCannotAccessNetwork(t)
 
-	fixturePath := filepath.Join("test-fixtures", "full-workflow-null")
+	fixturePath := filepath.Join("testdata", "full-workflow-null")
 	tf := e2e.NewBinary(terraformBin, fixturePath)
 	defer tf.Close()
 
@@ -206,11 +202,11 @@ func TestPlanOnlyInAutomation(t *testing.T) {
 
 	// Make sure we actually downloaded the plugins, rather than picking up
 	// copies that might be already installed globally on the system.
-	if !strings.Contains(stdout, "- Downloading plugin for provider \"template\"") {
+	if !strings.Contains(stdout, "- Downloading plugin for provider \"template") {
 		t.Errorf("template provider download message is missing from init output:\n%s", stdout)
 		t.Logf("(this can happen if you have a copy of the plugin in one of the global plugin search dirs)")
 	}
-	if !strings.Contains(stdout, "- Downloading plugin for provider \"null\"") {
+	if !strings.Contains(stdout, "- Downloading plugin for provider \"null") {
 		t.Errorf("null provider download message is missing from init output:\n%s", stdout)
 		t.Logf("(this can happen if you have a copy of the plugin in one of the global plugin search dirs)")
 	}

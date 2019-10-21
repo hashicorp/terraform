@@ -11,9 +11,10 @@ import (
 	"unicode/utf8"
 
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/function"
 )
 
-// line 20 "format_fsm.go"
+// line 21 "format_fsm.go"
 var _formatfsm_actions []byte = []byte{
 	0, 1, 0, 1, 1, 1, 2, 1, 4,
 	1, 5, 1, 6, 1, 7, 1, 8,
@@ -86,15 +87,16 @@ const formatfsm_error int = 0
 
 const formatfsm_en_main int = 8
 
-// line 19 "format_fsm.rl"
+// line 20 "format_fsm.rl"
 
 func formatFSM(format string, a []cty.Value) (string, error) {
 	var buf bytes.Buffer
 	data := format
 	nextArg := 1 // arg numbers are 1-based
 	var verb formatVerb
+	highestArgIdx := 0 // zero means "none", since arg numbers are 1-based
 
-	// line 153 "format_fsm.rl"
+	// line 159 "format_fsm.rl"
 
 	// Ragel state
 	p := 0          // "Pointer" into data
@@ -109,12 +111,12 @@ func formatFSM(format string, a []cty.Value) (string, error) {
 	_ = te
 	_ = eof
 
-	// line 121 "format_fsm.go"
+	// line 123 "format_fsm.go"
 	{
 		cs = formatfsm_start
 	}
 
-	// line 126 "format_fsm.go"
+	// line 128 "format_fsm.go"
 	{
 		var _klen int
 		var _trans int
@@ -195,7 +197,7 @@ func formatFSM(format string, a []cty.Value) (string, error) {
 			_acts++
 			switch _formatfsm_actions[_acts-1] {
 			case 0:
-				// line 29 "format_fsm.rl"
+				// line 31 "format_fsm.rl"
 
 				verb = formatVerb{
 					ArgNum: nextArg,
@@ -205,12 +207,12 @@ func formatFSM(format string, a []cty.Value) (string, error) {
 				ts = p
 
 			case 1:
-				// line 38 "format_fsm.rl"
+				// line 40 "format_fsm.rl"
 
 				buf.WriteByte(data[p])
 
 			case 4:
-				// line 49 "format_fsm.rl"
+				// line 51 "format_fsm.rl"
 
 				// We'll try to slurp a whole UTF-8 sequence here, to give the user
 				// better feedback.
@@ -218,77 +220,81 @@ func formatFSM(format string, a []cty.Value) (string, error) {
 				return buf.String(), fmt.Errorf("unrecognized format character %q at offset %d", r, p)
 
 			case 5:
-				// line 56 "format_fsm.rl"
+				// line 58 "format_fsm.rl"
 
 				verb.Sharp = true
 
 			case 6:
-				// line 59 "format_fsm.rl"
+				// line 61 "format_fsm.rl"
 
 				verb.Zero = true
 
 			case 7:
-				// line 62 "format_fsm.rl"
+				// line 64 "format_fsm.rl"
 
 				verb.Minus = true
 
 			case 8:
-				// line 65 "format_fsm.rl"
+				// line 67 "format_fsm.rl"
 
 				verb.Plus = true
 
 			case 9:
-				// line 68 "format_fsm.rl"
+				// line 70 "format_fsm.rl"
 
 				verb.Space = true
 
 			case 10:
-				// line 72 "format_fsm.rl"
+				// line 74 "format_fsm.rl"
 
 				verb.ArgNum = 0
 
 			case 11:
-				// line 75 "format_fsm.rl"
+				// line 77 "format_fsm.rl"
 
 				verb.ArgNum = (10 * verb.ArgNum) + (int(data[p]) - '0')
 
 			case 12:
-				// line 79 "format_fsm.rl"
+				// line 81 "format_fsm.rl"
 
 				verb.HasWidth = true
 
 			case 13:
-				// line 82 "format_fsm.rl"
+				// line 84 "format_fsm.rl"
 
 				verb.Width = 0
 
 			case 14:
-				// line 85 "format_fsm.rl"
+				// line 87 "format_fsm.rl"
 
 				verb.Width = (10 * verb.Width) + (int(data[p]) - '0')
 
 			case 15:
-				// line 89 "format_fsm.rl"
+				// line 91 "format_fsm.rl"
 
 				verb.HasPrec = true
 
 			case 16:
-				// line 92 "format_fsm.rl"
+				// line 94 "format_fsm.rl"
 
 				verb.Prec = 0
 
 			case 17:
-				// line 95 "format_fsm.rl"
+				// line 97 "format_fsm.rl"
 
 				verb.Prec = (10 * verb.Prec) + (int(data[p]) - '0')
 
 			case 18:
-				// line 99 "format_fsm.rl"
+				// line 101 "format_fsm.rl"
 
 				verb.Mode = rune(data[p])
 				te = p + 1
 				verb.Raw = data[ts:te]
 				verb.Offset = ts
+
+				if verb.ArgNum > highestArgIdx {
+					highestArgIdx = verb.ArgNum
+				}
 
 				err := formatAppend(&verb, &buf, a)
 				if err != nil {
@@ -296,7 +302,7 @@ func formatFSM(format string, a []cty.Value) (string, error) {
 				}
 				nextArg = verb.ArgNum + 1
 
-				// line 324 "format_fsm.go"
+				// line 330 "format_fsm.go"
 			}
 		}
 
@@ -319,22 +325,22 @@ func formatFSM(format string, a []cty.Value) (string, error) {
 				__acts++
 				switch _formatfsm_actions[__acts-1] {
 				case 2:
-					// line 42 "format_fsm.rl"
+					// line 44 "format_fsm.rl"
 
 				case 3:
-					// line 45 "format_fsm.rl"
+					// line 47 "format_fsm.rl"
 
 					return buf.String(), fmt.Errorf("invalid format string starting at offset %d", p)
 
 				case 4:
-					// line 49 "format_fsm.rl"
+					// line 51 "format_fsm.rl"
 
 					// We'll try to slurp a whole UTF-8 sequence here, to give the user
 					// better feedback.
 					r, _ := utf8.DecodeRuneInString(data[p:])
 					return buf.String(), fmt.Errorf("unrecognized format character %q at offset %d", r, p)
 
-					// line 363 "format_fsm.go"
+					// line 369 "format_fsm.go"
 				}
 			}
 		}
@@ -344,7 +350,7 @@ func formatFSM(format string, a []cty.Value) (string, error) {
 		}
 	}
 
-	// line 171 "format_fsm.rl"
+	// line 177 "format_fsm.rl"
 
 	// If we fall out here without being in a final state then we've
 	// encountered something that the scanner can't match, which should
@@ -352,6 +358,16 @@ func formatFSM(format string, a []cty.Value) (string, error) {
 	// flag it anyway rather than just losing data from the end.
 	if cs < formatfsm_first_final {
 		return buf.String(), fmt.Errorf("extraneous characters beginning at offset %d", p)
+	}
+
+	if highestArgIdx < len(a) {
+		// Extraneous args are an error, to more easily detect mistakes
+		firstBad := highestArgIdx + 1
+		if highestArgIdx == 0 {
+			// Custom error message for this case
+			return buf.String(), function.NewArgErrorf(firstBad, "too many arguments; no verbs in format string")
+		}
+		return buf.String(), function.NewArgErrorf(firstBad, "too many arguments; only %d used by format string", highestArgIdx)
 	}
 
 	return buf.String(), nil

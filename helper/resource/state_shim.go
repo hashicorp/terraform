@@ -1,28 +1,21 @@
 package resource
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
+	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func mustShimNewState(newState *states.State, schemas *terraform.Schemas) *terraform.State {
-	s, err := shimNewState(newState, schemas)
-	if err != nil {
-		panic(err)
-	}
-	return s
-}
-
 // shimState takes a new *states.State and reverts it to a legacy state for the provider ACC tests
-func shimNewState(newState *states.State, schemas *terraform.Schemas) (*terraform.State, error) {
+func shimNewState(newState *states.State, providers map[string]terraform.ResourceProvider) (*terraform.State, error) {
 	state := terraform.NewState()
 
 	// in the odd case of a nil state, let the helper packages handle it
@@ -57,67 +50,87 @@ func shimNewState(newState *states.State, schemas *terraform.Schemas) (*terrafor
 			resType := res.Addr.Type
 			providerType := res.ProviderConfig.ProviderConfig.Type
 
-			providerSchema := schemas.Providers[providerType]
-			if providerSchema == nil {
-				return nil, fmt.Errorf("missing schema for %q", providerType)
-			}
-
-			var resSchema *configschema.Block
-			switch res.Addr.Mode {
-			case addrs.ManagedResourceMode:
-				resSchema = providerSchema.ResourceTypes[resType]
-			case addrs.DataResourceMode:
-				resSchema = providerSchema.DataSources[resType]
-			}
-
-			if resSchema == nil {
-				return nil, fmt.Errorf("missing resource schema for %q in %q", resType, providerType)
-			}
+			resource := getResource(providers, providerType, res.Addr)
 
 			for key, i := range res.Instances {
-				flatmap, err := shimmedAttributes(i.Current, resSchema.ImpliedType())
-				if err != nil {
-					return nil, fmt.Errorf("error decoding state for %q: %s", resType, err)
+				resState := &terraform.ResourceState{
+					Type:     resType,
+					Provider: res.ProviderConfig.String(),
 				}
 
-				resState := &terraform.ResourceState{
-					Type: resType,
-					Primary: &terraform.InstanceState{
+				// We should always have a Current instance here, but be safe about checking.
+				if i.Current != nil {
+					flatmap, err := shimmedAttributes(i.Current, resource)
+					if err != nil {
+						return nil, fmt.Errorf("error decoding state for %q: %s", resType, err)
+					}
+
+					var meta map[string]interface{}
+					if i.Current.Private != nil {
+						err := json.Unmarshal(i.Current.Private, &meta)
+						if err != nil {
+							return nil, err
+						}
+					}
+
+					resState.Primary = &terraform.InstanceState{
 						ID:         flatmap["id"],
 						Attributes: flatmap,
 						Tainted:    i.Current.Status == states.ObjectTainted,
-					},
-				}
-
-				for _, dep := range i.Current.Dependencies {
-					resState.Dependencies = append(resState.Dependencies, dep.String())
-				}
-
-				// convert the indexes to the old style flapmap indexes
-				idx := ""
-				switch key.(type) {
-				case addrs.IntKey:
-					// don't add numeric index values to resources with a count of 0
-					if len(res.Instances) > 1 {
-						idx = fmt.Sprintf(".%d", key)
+						Meta:       meta,
 					}
-				case addrs.StringKey:
-					idx = "." + key.String()
-				}
 
-				mod.Resources[res.Addr.String()+idx] = resState
+					if i.Current.SchemaVersion != 0 {
+						if resState.Primary.Meta == nil {
+							resState.Primary.Meta = map[string]interface{}{}
+						}
+						resState.Primary.Meta["schema_version"] = i.Current.SchemaVersion
+					}
+
+					for _, dep := range i.Current.Dependencies {
+						resState.Dependencies = append(resState.Dependencies, dep.String())
+					}
+
+					// convert the indexes to the old style flapmap indexes
+					idx := ""
+					switch key.(type) {
+					case addrs.IntKey:
+						// don't add numeric index values to resources with a count of 0
+						if len(res.Instances) > 1 {
+							idx = fmt.Sprintf(".%d", key)
+						}
+					case addrs.StringKey:
+						idx = "." + key.String()
+					}
+
+					mod.Resources[res.Addr.String()+idx] = resState
+				}
 
 				// add any deposed instances
 				for _, dep := range i.Deposed {
-					flatmap, err := shimmedAttributes(dep, resSchema.ImpliedType())
+					flatmap, err := shimmedAttributes(dep, resource)
 					if err != nil {
 						return nil, fmt.Errorf("error decoding deposed state for %q: %s", resType, err)
+					}
+
+					var meta map[string]interface{}
+					if dep.Private != nil {
+						err := json.Unmarshal(dep.Private, &meta)
+						if err != nil {
+							return nil, err
+						}
 					}
 
 					deposed := &terraform.InstanceState{
 						ID:         flatmap["id"],
 						Attributes: flatmap,
 						Tainted:    dep.Status == states.ObjectTainted,
+						Meta:       meta,
+					}
+					if dep.SchemaVersion != 0 {
+						deposed.Meta = map[string]interface{}{
+							"schema_version": dep.SchemaVersion,
+						}
 					}
 
 					resState.Deposed = append(resState.Deposed, deposed)
@@ -129,17 +142,47 @@ func shimNewState(newState *states.State, schemas *terraform.Schemas) (*terrafor
 	return state, nil
 }
 
-func shimmedAttributes(instance *states.ResourceInstanceObjectSrc, ty cty.Type) (map[string]string, error) {
+func getResource(providers map[string]terraform.ResourceProvider, providerName string, addr addrs.Resource) *schema.Resource {
+	p := providers[providerName]
+	if p == nil {
+		panic(fmt.Sprintf("provider %q not found in test step", providerName))
+	}
+
+	// this is only for tests, so should only see schema.Providers
+	provider := p.(*schema.Provider)
+
+	switch addr.Mode {
+	case addrs.ManagedResourceMode:
+		resource := provider.ResourcesMap[addr.Type]
+		if resource != nil {
+			return resource
+		}
+	case addrs.DataResourceMode:
+		resource := provider.DataSourcesMap[addr.Type]
+		if resource != nil {
+			return resource
+		}
+	}
+
+	panic(fmt.Sprintf("resource %s not found in test step", addr.Type))
+}
+
+func shimmedAttributes(instance *states.ResourceInstanceObjectSrc, res *schema.Resource) (map[string]string, error) {
 	flatmap := instance.AttrsFlat
+	if flatmap != nil {
+		return flatmap, nil
+	}
 
 	// if we have json attrs, they need to be decoded
-	if flatmap == nil {
-		rio, err := instance.Decode(ty)
-		if err != nil {
-			return nil, err
-		}
-
-		flatmap = hcl2shim.FlatmapValueFromHCL2(rio.Value)
+	rio, err := instance.Decode(res.CoreConfigSchema().ImpliedType())
+	if err != nil {
+		return nil, err
 	}
-	return flatmap, nil
+
+	instanceState, err := res.ShimInstanceStateFromValue(rio.Value)
+	if err != nil {
+		return nil, err
+	}
+
+	return instanceState.Attributes, nil
 }

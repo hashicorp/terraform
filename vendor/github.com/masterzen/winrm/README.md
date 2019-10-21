@@ -18,6 +18,8 @@ _Note_: this library doesn't support domain users (it doesn't support GSSAPI nor
 ## Getting Started
 WinRM is available on Windows Server 2008 and up. This project natively supports basic authentication for local accounts, see the steps in the next section on how to prepare the remote Windows machine for this scenario. The authentication model is pluggable, see below for an example on using Negotiate/NTLM authentication (e.g. for connecting to vanilla Azure VMs).
 
+_Note_: This library only supports Golang 1.7+
+
 ### Preparing the remote Windows machine for Basic authentication
 This project supports only basic authentication for local accounts (domain users are not supported). The remote windows system must be prepared for winrm:
 
@@ -131,6 +133,44 @@ if err != nil {
 }
 
 ```
+
+By passing a Dial in the Parameters struct it is possible to use different dialer (e.g. tunnel through SSH)
+
+```go
+package main
+     
+ import (
+    "github.com/masterzen/winrm"
+    "golang.org/x/crypto/ssh"
+    "os"
+ )
+ 
+ func main() {
+ 
+    sshClient, err := ssh.Dial("tcp","localhost:22", &ssh.ClientConfig{
+        User:"ubuntu",
+        Auth: []ssh.AuthMethod{ssh.Password("ubuntu")},
+        HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+    })
+ 
+    endpoint := winrm.NewEndpoint("other-host", 5985, false, false, nil, nil, nil, 0)
+ 
+    params := winrm.DefaultParameters
+    params.Dial = sshClient.Dial
+ 
+    client, err := winrm.NewClientWithParameters(endpoint, "test", "test", params)
+    if err != nil {
+        panic(err)
+    }
+ 
+    _, err = client.RunWithInput("ipconfig", os.Stdout, os.Stderr, os.Stdin)
+    if err != nil {
+        panic(err)
+    }
+ }
+
+```
+
 
 For a more complex example, it is possible to call the various functions directly:
 

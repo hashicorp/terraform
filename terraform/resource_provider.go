@@ -3,7 +3,8 @@ package terraform
 import (
 	"fmt"
 
-	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/terraform/tfdiags"
+
 	"github.com/hashicorp/terraform/plugin/discovery"
 	"github.com/hashicorp/terraform/providers"
 )
@@ -170,18 +171,6 @@ type ResourceProvider interface {
 	ReadDataApply(*InstanceInfo, *InstanceDiff) (*InstanceState, error)
 }
 
-// ResourceProviderError may be returned when creating a Context if the
-// required providers cannot be satisfied. This error can then be used to
-// format a more useful message for the user.
-type ResourceProviderError struct {
-	Errors []error
-}
-
-func (e *ResourceProviderError) Error() string {
-	// use multierror to format the default output
-	return multierror.Append(nil, e.Errors...).Error()
-}
-
 // ResourceProviderCloser is an interface that providers that can close
 // connections that aren't needed anymore must implement.
 type ResourceProviderCloser interface {
@@ -296,13 +285,35 @@ func ProviderHasDataSource(p ResourceProvider, n string) bool {
 // This should be called only with configurations that have passed calls
 // to config.Validate(), which ensures that all of the given version
 // constraints are valid. It will panic if any invalid constraints are present.
-func resourceProviderFactories(resolver providers.Resolver, reqd discovery.PluginRequirements) (map[string]providers.Factory, error) {
+func resourceProviderFactories(resolver providers.Resolver, reqd discovery.PluginRequirements) (map[string]providers.Factory, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	ret, errs := resolver.ResolveProviders(reqd)
 	if errs != nil {
-		return nil, &ResourceProviderError{
-			Errors: errs,
+		diags = diags.Append(
+			tfdiags.Sourceless(tfdiags.Error,
+				"Could not satisfy plugin requirements",
+				errPluginInit,
+			),
+		)
+
+		for _, err := range errs {
+			diags = diags.Append(err)
 		}
+
+		return nil, diags
 	}
 
 	return ret, nil
 }
+
+const errPluginInit = `
+Plugin reinitialization required. Please run "terraform init".
+
+Plugins are external binaries that Terraform uses to access and manipulate
+resources. The configuration provided requires plugins which can't be located,
+don't satisfy the version constraints, or are otherwise incompatible.
+
+Terraform automatically discovers provider requirements from your
+configuration, including providers used in child modules. To see the
+requirements and constraints from each module, run "terraform providers".
+`

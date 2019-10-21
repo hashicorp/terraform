@@ -39,10 +39,18 @@ var JoinFunc = function.New(&function.Spec{
 		}
 
 		items := make([]string, 0, l)
-		for _, list := range listVals {
+		for ai, list := range listVals {
+			ei := 0
 			for it := list.ElementIterator(); it.Next(); {
 				_, val := it.Element()
+				if val.IsNull() {
+					if len(listVals) > 1 {
+						return cty.UnknownVal(cty.String), function.NewArgErrorf(ai+1, "element %d of list %d is null; cannot concatenate null values", ei, ai+1)
+					}
+					return cty.UnknownVal(cty.String), function.NewArgErrorf(ai+1, "element %d is null; cannot concatenate null values", ei)
+				}
 				items = append(items, val.AsString())
+				ei++
 			}
 		}
 
@@ -63,7 +71,7 @@ var SortFunc = function.New(&function.Spec{
 
 		if !listVal.IsWhollyKnown() {
 			// If some of the element values aren't known yet then we
-			// can't yet preduct the order of the result.
+			// can't yet predict the order of the result.
 			return cty.UnknownVal(retType), nil
 		}
 		if listVal.LengthInt() == 0 { // Easy path

@@ -3,8 +3,8 @@ package registry
 import (
 	"fmt"
 
+	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/registry/regsrc"
-	"github.com/hashicorp/terraform/svchost/disco"
 )
 
 type errModuleNotFound struct {
@@ -44,5 +44,20 @@ func IsProviderNotFound(err error) bool {
 // as distinct from operational errors such as poor network connectivity.
 func IsServiceNotProvided(err error) bool {
 	_, ok := err.(*disco.ErrServiceNotProvided)
+	return ok
+}
+
+// ServiceUnreachableError Registry service is unreachable
+type ServiceUnreachableError struct {
+	err error
+}
+
+func (e *ServiceUnreachableError) Error() string {
+	return e.err.Error()
+}
+
+// IsServiceUnreachable returns true if the registry/discovery service was unreachable
+func IsServiceUnreachable(err error) bool {
+	_, ok := err.(*ServiceUnreachableError)
 	return ok
 }

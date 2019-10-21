@@ -257,3 +257,79 @@ func TestCountHookPostDiff_DataSource(t *testing.T) {
 			expected, h)
 	}
 }
+
+func TestCountHookApply_ChangeOnly(t *testing.T) {
+	h := new(CountHook)
+
+	resources := map[string]*terraform.InstanceDiff{
+		"foo": &terraform.InstanceDiff{
+			Destroy: false,
+			Attributes: map[string]*terraform.ResourceAttrDiff{
+				"foo": &terraform.ResourceAttrDiff{},
+			},
+		},
+		"bar": &terraform.InstanceDiff{
+			Destroy: false,
+			Attributes: map[string]*terraform.ResourceAttrDiff{
+				"foo": &terraform.ResourceAttrDiff{},
+			},
+		},
+		"lorem": &terraform.InstanceDiff{
+			Destroy: false,
+			Attributes: map[string]*terraform.ResourceAttrDiff{
+				"foo": &terraform.ResourceAttrDiff{},
+			},
+		},
+	}
+
+	for k := range resources {
+		addr := addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_instance",
+			Name: k,
+		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+
+		h.PreApply(addr, states.CurrentGen, plans.Update, cty.DynamicVal, cty.DynamicVal)
+		h.PostApply(addr, states.CurrentGen, cty.DynamicVal, nil)
+	}
+
+	expected := &CountHook{pending: make(map[string]plans.Action)}
+	expected.Added = 0
+	expected.Changed = 3
+	expected.Removed = 0
+
+	if !reflect.DeepEqual(expected, h) {
+		t.Fatalf("Expected:\n%#v\nGot:\n%#v\n", expected, h)
+	}
+}
+
+func TestCountHookApply_DestroyOnly(t *testing.T) {
+	h := new(CountHook)
+
+	resources := map[string]*terraform.InstanceDiff{
+		"foo":   &terraform.InstanceDiff{Destroy: true},
+		"bar":   &terraform.InstanceDiff{Destroy: true},
+		"lorem": &terraform.InstanceDiff{Destroy: true},
+		"ipsum": &terraform.InstanceDiff{Destroy: true},
+	}
+
+	for k := range resources {
+		addr := addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_instance",
+			Name: k,
+		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+
+		h.PreApply(addr, states.CurrentGen, plans.Delete, cty.DynamicVal, cty.DynamicVal)
+		h.PostApply(addr, states.CurrentGen, cty.DynamicVal, nil)
+	}
+
+	expected := &CountHook{pending: make(map[string]plans.Action)}
+	expected.Added = 0
+	expected.Changed = 0
+	expected.Removed = 4
+
+	if !reflect.DeepEqual(expected, h) {
+		t.Fatalf("Expected:\n%#v\nGot:\n%#v\n", expected, h)
+	}
+}

@@ -10,18 +10,12 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 
-	hcl2 "github.com/hashicorp/hcl2/hcl"
+	hcl2 "github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
 	"github.com/mitchellh/copystructure"
 	"github.com/mitchellh/reflectwalk"
 )
-
-// UnknownVariableValue is a sentinel value that can be used
-// to denote that the value of a variable is unknown at this time.
-// RawConfig uses this information to build up data about
-// unknown keys.
-const UnknownVariableValue = "74D93920-ED26-11E3-AC10-0800200C9A66"
 
 // RawConfig is a structure that holds a piece of configuration
 // where the overall structure is unknown since it will be used

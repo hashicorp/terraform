@@ -7,9 +7,9 @@ import (
 	"net"
 	"net/rpc"
 
-	hclog "github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-plugin/internal/proto"
 	"github.com/mitchellh/go-testing-interface"
+	hclog "github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-plugin/internal/plugin"
 	"google.golang.org/grpc"
 )
 
@@ -173,7 +173,7 @@ func TestPluginGRPCConn(t testing.T, ps map[string]Plugin) (*GRPCClient, *GRPCSe
 		Plugins:    ps,
 		broker:     broker,
 		doneCtx:    context.Background(),
-		controller: proto.NewGRPCControllerClient(conn),
+		controller: plugin.NewGRPCControllerClient(conn),
 	}
 
 	return client, server

@@ -3,6 +3,7 @@ package command
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -11,6 +12,7 @@ import (
 	"os/signal"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"unicode"
 
 	"github.com/hashicorp/terraform/terraform"
@@ -29,16 +31,19 @@ type UIInput struct {
 	Colorize *colorstring.Colorize
 
 	// Reader and Writer for IO. If these aren't set, they will default to
-	// Stdout and Stderr respectively.
+	// Stdin and Stdout respectively.
 	Reader io.Reader
 	Writer io.Writer
+
+	listening int32
+	result    chan string
 
 	interrupted bool
 	l           sync.Mutex
 	once        sync.Once
 }
 
-func (i *UIInput) Input(opts *terraform.InputOpts) (string, error) {
+func (i *UIInput) Input(ctx context.Context, opts *terraform.InputOpts) (string, error) {
 	i.once.Do(i.init)
 
 	r := i.Reader
@@ -116,20 +121,24 @@ func (i *UIInput) Input(opts *terraform.InputOpts) (string, error) {
 	}
 
 	// Listen for the input in a goroutine. This will allow us to
-	// interrupt this if we are interrupted (SIGINT)
-	result := make(chan string, 1)
+	// interrupt this if we are interrupted (SIGINT).
 	go func() {
+		if !atomic.CompareAndSwapInt32(&i.listening, 0, 1) {
+			return // We are already listening for input.
+		}
+		defer atomic.CompareAndSwapInt32(&i.listening, 1, 0)
+
 		buf := bufio.NewReader(r)
 		line, err := buf.ReadString('\n')
 		if err != nil {
 			log.Printf("[ERR] UIInput scan err: %s", err)
 		}
 
-		result <- strings.TrimRightFunc(line, unicode.IsSpace)
+		i.result <- strings.TrimRightFunc(line, unicode.IsSpace)
 	}()
 
 	select {
-	case line := <-result:
+	case line := <-i.result:
 		fmt.Fprint(w, "\n")
 
 		if line == "" {
@@ -137,6 +146,12 @@ func (i *UIInput) Input(opts *terraform.InputOpts) (string, error) {
 		}
 
 		return line, nil
+	case <-ctx.Done():
+		// Print a newline so that any further output starts properly
+		// on a new line.
+		fmt.Fprintln(w)
+
+		return "", ctx.Err()
 	case <-sigCh:
 		// Print a newline so that any further output starts properly
 		// on a new line.
@@ -150,6 +165,8 @@ func (i *UIInput) Input(opts *terraform.InputOpts) (string, error) {
 }
 
 func (i *UIInput) init() {
+	i.result = make(chan string)
+
 	if i.Colorize == nil {
 		i.Colorize = &colorstring.Colorize{
 			Colors:  colorstring.DefaultColors,

@@ -21,13 +21,17 @@ func isSpace(r rune) bool {
 	return false
 }
 
-func replaceEnv(s string) string {
+func replaceEnv(getenv func(string) string, s string) string {
+	if getenv == nil {
+		getenv = os.Getenv
+	}
+
 	return envRe.ReplaceAllStringFunc(s, func(s string) string {
 		s = s[1:]
 		if s[0] == '{' {
 			s = s[1 : len(s)-1]
 		}
-		return os.Getenv(s)
+		return getenv(s)
 	})
 }
 
@@ -35,19 +39,28 @@ type Parser struct {
 	ParseEnv      bool
 	ParseBacktick bool
 	Position      int
+
+	// If ParseEnv is true, use this for getenv.
+	// If nil, use os.Getenv.
+	Getenv func(string) string
 }
 
 func NewParser() *Parser {
-	return &Parser{ParseEnv, ParseBacktick, 0}
+	return &Parser{
+		ParseEnv:      ParseEnv,
+		ParseBacktick: ParseBacktick,
+		Position:      0,
+	}
 }
 
 func (p *Parser) Parse(line string) ([]string, error) {
 	args := []string{}
 	buf := ""
-	var escaped, doubleQuoted, singleQuoted, backQuote bool
+	var escaped, doubleQuoted, singleQuoted, backQuote, dollarQuote bool
 	backtick := ""
 
 	pos := -1
+	got := false
 
 loop:
 	for i, r := range line {
@@ -67,22 +80,23 @@ loop:
 		}
 
 		if isSpace(r) {
-			if singleQuoted || doubleQuoted || backQuote {
+			if singleQuoted || doubleQuoted || backQuote || dollarQuote {
 				buf += string(r)
 				backtick += string(r)
-			} else if buf != "" {
+			} else if got {
 				if p.ParseEnv {
-					buf = replaceEnv(buf)
+					buf = replaceEnv(p.Getenv, buf)
 				}
 				args = append(args, buf)
 				buf = ""
+				got = false
 			}
 			continue
 		}
 
 		switch r {
 		case '`':
-			if !singleQuoted && !doubleQuoted {
+			if !singleQuoted && !doubleQuoted && !dollarQuote {
 				if p.ParseBacktick {
 					if backQuote {
 						out, err := shellRun(backtick)
@@ -98,37 +112,71 @@ loop:
 				backtick = ""
 				backQuote = !backQuote
 			}
+		case ')':
+			if !singleQuoted && !doubleQuoted && !backQuote {
+				if p.ParseBacktick {
+					if dollarQuote {
+						out, err := shellRun(backtick)
+						if err != nil {
+							return nil, err
+						}
+						buf = out
+					}
+					backtick = ""
+					dollarQuote = !dollarQuote
+					continue
+				}
+				backtick = ""
+				dollarQuote = !dollarQuote
+			}
+		case '(':
+			if !singleQuoted && !doubleQuoted && !backQuote {
+				if !dollarQuote && len(buf) > 0 && buf == "$" {
+					dollarQuote = true
+					buf += "("
+					continue
+				} else {
+					return nil, errors.New("invalid command line string")
+				}
+			}
 		case '"':
-			if !singleQuoted {
+			if !singleQuoted && !dollarQuote {
 				doubleQuoted = !doubleQuoted
 				continue
 			}
 		case '\'':
-			if !doubleQuoted {
+			if !doubleQuoted && !dollarQuote {
 				singleQuoted = !singleQuoted
 				continue
 			}
 		case ';', '&', '|', '<', '>':
 			if !(escaped || singleQuoted || doubleQuoted || backQuote) {
+				if r == '>' && len(buf) > 0 {
+					if c := buf[0]; '0' <= c && c <= '9' {
+						i -= 1
+						got = false
+					}
+				}
 				pos = i
 				break loop
 			}
 		}
 
+		got = true
 		buf += string(r)
-		if backQuote {
+		if backQuote || dollarQuote {
 			backtick += string(r)
 		}
 	}
 
-	if buf != "" {
+	if got {
 		if p.ParseEnv {
-			buf = replaceEnv(buf)
+			buf = replaceEnv(p.Getenv, buf)
 		}
 		args = append(args, buf)
 	}
 
-	if escaped || singleQuoted || doubleQuoted || backQuote {
+	if escaped || singleQuoted || doubleQuoted || backQuote || dollarQuote {
 		return nil, errors.New("invalid command line string")
 	}
 

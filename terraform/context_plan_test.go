@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"reflect"
@@ -15,8 +16,8 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
@@ -212,12 +213,6 @@ func TestContext2Plan_createBefore_maintainRoot(t *testing.T) {
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		Variables: InputValues{
-			"in": &InputValue{
-				Value:      cty.StringVal("a,b,c"),
-				SourceType: ValueFromCaller,
-			},
-		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -445,7 +440,7 @@ func TestContext2Plan_moduleCycle(t *testing.T) {
 				Attributes: map[string]*configschema.Attribute{
 					"id":         {Type: cty.String, Computed: true},
 					"some_input": {Type: cty.String, Optional: true},
-					"type":       {Type: cty.String, Optional: true},
+					"type":       {Type: cty.String, Computed: true},
 				},
 			},
 		},
@@ -644,9 +639,10 @@ func TestContext2Plan_moduleInputComputed(t *testing.T) {
 		switch i := ric.Addr.String(); i {
 		case "aws_instance.bar":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"id":   cty.UnknownVal(cty.String),
-				"foo":  cty.UnknownVal(cty.String),
-				"type": cty.StringVal("aws_instance"),
+				"id":      cty.UnknownVal(cty.String),
+				"foo":     cty.UnknownVal(cty.String),
+				"type":    cty.StringVal("aws_instance"),
+				"compute": cty.StringVal("foo"),
 			}), ric.After)
 		case "module.child.aws_instance.foo":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
@@ -1401,9 +1397,10 @@ func TestContext2Plan_moduleVarComputed(t *testing.T) {
 			}), ric.After)
 		case "module.child.aws_instance.foo":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"id":   cty.UnknownVal(cty.String),
-				"foo":  cty.UnknownVal(cty.String),
-				"type": cty.StringVal("aws_instance"),
+				"id":      cty.UnknownVal(cty.String),
+				"foo":     cty.UnknownVal(cty.String),
+				"type":    cty.StringVal("aws_instance"),
+				"compute": cty.StringVal("foo"),
 			}), ric.After)
 		default:
 			t.Fatal("unknown instance:", i)
@@ -1745,14 +1742,89 @@ func TestContext2Plan_computed(t *testing.T) {
 			}), ric.After)
 		case "aws_instance.foo":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"id":   cty.UnknownVal(cty.String),
-				"foo":  cty.UnknownVal(cty.String),
-				"num":  cty.NumberIntVal(2),
-				"type": cty.StringVal("aws_instance"),
+				"id":      cty.UnknownVal(cty.String),
+				"foo":     cty.UnknownVal(cty.String),
+				"num":     cty.NumberIntVal(2),
+				"type":    cty.StringVal("aws_instance"),
+				"compute": cty.StringVal("foo"),
 			}), ric.After)
 		default:
 			t.Fatal("unknown instance:", i)
 		}
+	}
+}
+
+func TestContext2Plan_blockNestingGroup(t *testing.T) {
+	m := testModule(t, "plan-block-nesting-group")
+	p := testProvider("test")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test": {
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"blah": {
+						Nesting: configschema.NestingGroup,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"baz": {Type: cty.String, Required: true},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+
+	if got, want := 1, len(plan.Changes.Resources); got != want {
+		t.Fatalf("wrong number of planned resource changes %d; want %d\n%s", got, want, spew.Sdump(plan.Changes.Resources))
+	}
+
+	if !p.PlanResourceChangeCalled {
+		t.Fatalf("PlanResourceChange was not called at all")
+	}
+
+	got := p.PlanResourceChangeRequest
+	want := providers.PlanResourceChangeRequest{
+		TypeName: "test",
+
+		// Because block type "blah" is defined as NestingGroup, we get a non-null
+		// value for it with null nested attributes, rather than the "blah" object
+		// itself being null, when there's no "blah" block in the config at all.
+		//
+		// This represents the situation where the remote service _always_ creates
+		// a single "blah", regardless of whether the block is present, but when
+		// the block _is_ present the user can override some aspects of it. The
+		// absense of the block means "use the defaults", in that case.
+		Config: cty.ObjectVal(map[string]cty.Value{
+			"blah": cty.ObjectVal(map[string]cty.Value{
+				"baz": cty.NullVal(cty.String),
+			}),
+		}),
+		ProposedNewState: cty.ObjectVal(map[string]cty.Value{
+			"blah": cty.ObjectVal(map[string]cty.Value{
+				"baz": cty.NullVal(cty.String),
+			}),
+		}),
+	}
+	if !cmp.Equal(got, want, valueTrans) {
+		t.Errorf("wrong PlanResourceChange request\n%s", cmp.Diff(got, want, valueTrans))
 	}
 }
 
@@ -1985,8 +2057,12 @@ func TestContext2Plan_dataResourceBecomesComputed(t *testing.T) {
 	}
 
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		fooVal := req.ProposedNewState.GetAttr("foo")
 		return providers.PlanResourceChangeResponse{
-			PlannedState:   req.ProposedNewState,
+			PlannedState: cty.ObjectVal(map[string]cty.Value{
+				"foo":      fooVal,
+				"computed": cty.UnknownVal(cty.String),
+			}),
 			PlannedPrivate: req.PriorPrivate,
 		}
 	}
@@ -1995,9 +2071,9 @@ func TestContext2Plan_dataResourceBecomesComputed(t *testing.T) {
 	ty := schema.ImpliedType()
 
 	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
-		State: cty.ObjectVal(map[string]cty.Value{
-			"foo": cty.UnknownVal(cty.String),
-		}),
+		// This should not be called, because the configuration for the
+		// data resource contains an unknown value for "foo".
+		Diagnostics: tfdiags.Diagnostics(nil).Append(fmt.Errorf("ReadDataSource called, but should not have been")),
 	}
 
 	ctx := testContext2(t, &ContextOpts{
@@ -2092,6 +2168,10 @@ func TestContext2Plan_computedList(t *testing.T) {
 				New:         "",
 				NewComputed: true,
 			}
+			diff.Attributes["compute"] = &ResourceAttrDiff{
+				Old: "",
+				New: compute,
+			}
 		}
 
 		fooOld := s.Attributes["foo"]
@@ -2164,8 +2244,9 @@ func TestContext2Plan_computedList(t *testing.T) {
 			}), ric.After)
 		case "aws_instance.foo":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"list": cty.UnknownVal(cty.List(cty.String)),
-				"num":  cty.NumberIntVal(2),
+				"list":    cty.UnknownVal(cty.List(cty.String)),
+				"num":     cty.NumberIntVal(2),
+				"compute": cty.StringVal("list.#"),
 			}), ric.After)
 		default:
 			t.Fatal("unknown instance:", i)
@@ -2203,6 +2284,10 @@ func TestContext2Plan_computedMultiIndex(t *testing.T) {
 				Old:         "",
 				New:         "",
 				NewComputed: true,
+			}
+			diff.Attributes["compute"] = &ResourceAttrDiff{
+				Old: "",
+				New: compute,
 			}
 		}
 
@@ -2266,13 +2351,15 @@ func TestContext2Plan_computedMultiIndex(t *testing.T) {
 		switch i := ric.Addr.String(); i {
 		case "aws_instance.foo[0]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"ip":  cty.UnknownVal(cty.List(cty.String)),
-				"foo": cty.ListValEmpty(cty.String),
+				"ip":      cty.UnknownVal(cty.List(cty.String)),
+				"foo":     cty.NullVal(cty.List(cty.String)),
+				"compute": cty.StringVal("ip.#"),
 			}), ric.After)
 		case "aws_instance.foo[1]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"ip":  cty.UnknownVal(cty.List(cty.String)),
-				"foo": cty.ListValEmpty(cty.String),
+				"ip":      cty.UnknownVal(cty.List(cty.String)),
+				"foo":     cty.NullVal(cty.List(cty.String)),
+				"compute": cty.StringVal("ip.#"),
 			}), ric.After)
 		case "aws_instance.bar[0]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
@@ -3255,6 +3342,77 @@ func TestContext2Plan_countIncreaseWithSplatReference(t *testing.T) {
 		default:
 			t.Fatal("unknown instance:", i)
 		}
+	}
+}
+
+func TestContext2Plan_forEach(t *testing.T) {
+	m := testModule(t, "plan-for-each")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
+
+	if len(plan.Changes.Resources) != 8 {
+		t.Fatal("expected 8 changes, got", len(plan.Changes.Resources))
+	}
+
+	for _, res := range plan.Changes.Resources {
+		if res.Action != plans.Create {
+			t.Fatalf("expected resource creation, got %s", res.Action)
+		}
+		_, err := res.Decode(ty)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+func TestContext2Plan_forEachUnknownValue(t *testing.T) {
+	// This module has a variable defined, but it's value is unknown. We
+	// expect this to produce an error, but not to panic.
+	m := testModule(t, "plan-for-each-unknown-value")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		Variables: InputValues{
+			"foo": {
+				Value:      cty.UnknownVal(cty.String),
+				SourceType: ValueFromCLIArg,
+			},
+		},
+	})
+
+	_, diags := ctx.Plan()
+	if !diags.HasErrors() {
+		// Should get this error:
+		// Invalid for_each argument: The "for_each" value depends on resource attributes that cannot be determined until apply...
+		t.Fatal("succeeded; want errors")
+	}
+
+	gotErrStr := diags.Err().Error()
+	wantErrStr := "Invalid for_each argument"
+	if !strings.Contains(gotErrStr, wantErrStr) {
+		t.Fatalf("missing expected error\ngot: %s\n\nwant: error containing %q", gotErrStr, wantErrStr)
 	}
 }
 
@@ -4532,9 +4690,18 @@ func TestContext2Plan_outputContainsTargetedResource(t *testing.T) {
 		},
 	})
 
-	_, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("err: %s", diags)
+	}
+	if len(diags) != 1 {
+		t.Fatalf("got %d diagnostics; want 1", diags)
+	}
+	if got, want := diags[0].Severity(), tfdiags.Warning; got != want {
+		t.Errorf("wrong diagnostic severity %#v; want %#v", got, want)
+	}
+	if got, want := diags[0].Description().Summary, "Resource targeting is in effect"; got != want {
+		t.Errorf("wrong diagnostic summary %#v; want %#v", got, want)
 	}
 }
 
@@ -4777,6 +4944,87 @@ func TestContext2Plan_ignoreChangesWildcard(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_ignoreChangesInMap(t *testing.T) {
+	p := testProvider("test")
+
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_ignore_changes_map": {
+				Attributes: map[string]*configschema.Attribute{
+					"tags": {Type: cty.Map(cty.String), Optional: true},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
+	}
+
+	p.DiffFn = testDiffFn
+
+	s := states.BuildState(func(ss *states.SyncState) {
+		ss.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_ignore_changes_map",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				Status:    states.ObjectReady,
+				AttrsJSON: []byte(`{"tags":{"ignored":"from state","other":"from state"}}`),
+			},
+			addrs.ProviderConfig{
+				Type: "test",
+			}.Absolute(addrs.RootModuleInstance),
+		)
+	})
+	m := testModule(t, "plan-ignore-changes-in-map")
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+		State: s,
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+
+	schema := p.GetSchemaReturn.ResourceTypes["test_ignore_changes_map"]
+	ty := schema.ImpliedType()
+
+	if got, want := len(plan.Changes.Resources), 1; got != want {
+		t.Fatalf("wrong number of changes %d; want %d", got, want)
+	}
+
+	res := plan.Changes.Resources[0]
+	ric, err := res.Decode(ty)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Action != plans.Update {
+		t.Fatalf("resource %s should be updated, got %s", ric.Addr, res.Action)
+	}
+
+	if got, want := ric.Addr.String(), "test_ignore_changes_map.foo"; got != want {
+		t.Fatalf("unexpected resource address %s; want %s", got, want)
+	}
+
+	checkVals(t, objectVal(t, schema, map[string]cty.Value{
+		"tags": cty.MapVal(map[string]cty.Value{
+			"ignored": cty.StringVal("from state"),
+			"other":   cty.StringVal("from config"),
+		}),
+	}), ric.After)
+}
+
 func TestContext2Plan_moduleMapLiteral(t *testing.T) {
 	m := testModule(t, "plan-module-map-literal")
 	p := testProvider("aws")
@@ -4986,8 +5234,20 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 		},
 	}
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		computedVal := req.ProposedNewState.GetAttr("computed")
+		if computedVal.IsNull() {
+			computedVal = cty.UnknownVal(cty.String)
+		}
 		return providers.PlanResourceChangeResponse{
-			PlannedState: req.ProposedNewState,
+			PlannedState: cty.ObjectVal(map[string]cty.Value{
+				"num":      req.ProposedNewState.GetAttr("num"),
+				"computed": computedVal,
+			}),
+		}
+	}
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+		return providers.ReadDataSourceResponse{
+			Diagnostics: tfdiags.Diagnostics(nil).Append(fmt.Errorf("ReadDataSource called, but should not have been")),
 		}
 	}
 
@@ -5000,11 +5260,20 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 		),
 	})
 
+	// We're skipping ctx.Refresh here, which simulates what happens when
+	// running "terraform plan -refresh=false". As a result, we don't get our
+	// usual opportunity to read the data source during the refresh step and
+	// thus the plan call below is forced to produce a deferred read action.
+
 	plan, diags := ctx.Plan()
+	if p.ReadDataSourceCalled {
+		t.Errorf("ReadDataSource was called on the provider, but should not have been because we didn't refresh")
+	}
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
+	seenAddrs := make(map[string]struct{})
 	for _, res := range plan.Changes.Resources {
 		var schema *configschema.Block
 		switch res.Addr.Resource.Resource.Mode {
@@ -5018,6 +5287,8 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+
+		seenAddrs[ric.Addr.String()] = struct{}{}
 
 		t.Run(ric.Addr.String(), func(t *testing.T) {
 			switch i := ric.Addr.String(); i {
@@ -5042,6 +5313,10 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 					t.Fatalf("resource %s should be read, got %s", ric.Addr, ric.Action)
 				}
 				checkVals(t, objectVal(t, schema, map[string]cty.Value{
+					// In a normal flow we would've read an exact value in
+					// ReadDataSource, but because this test doesn't run
+					// cty.Refresh we have no opportunity to do that lookup
+					// and a deferred read is forced.
 					"id":  cty.UnknownVal(cty.String),
 					"foo": cty.StringVal("0"),
 				}), ric.After)
@@ -5050,6 +5325,10 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 					t.Fatalf("resource %s should be read, got %s", ric.Addr, ric.Action)
 				}
 				checkVals(t, objectVal(t, schema, map[string]cty.Value{
+					// In a normal flow we would've read an exact value in
+					// ReadDataSource, but because this test doesn't run
+					// cty.Refresh we have no opportunity to do that lookup
+					// and a deferred read is forced.
 					"id":  cty.UnknownVal(cty.String),
 					"foo": cty.StringVal("1"),
 				}), ric.After)
@@ -5057,6 +5336,16 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 				t.Fatal("unknown instance:", i)
 			}
 		})
+	}
+
+	wantAddrs := map[string]struct{}{
+		"aws_instance.foo[0]": struct{}{},
+		"aws_instance.foo[1]": struct{}{},
+		"data.aws_vpc.bar[0]": struct{}{},
+		"data.aws_vpc.bar[1]": struct{}{},
+	}
+	if !cmp.Equal(seenAddrs, wantAddrs) {
+		t.Errorf("incorrect addresses in changeset:\n%s", cmp.Diff(wantAddrs, seenAddrs))
 	}
 }
 
@@ -5588,6 +5877,49 @@ resource "aws_instance" "foo" {
 	wantErrStr := "Unsupported attribute"
 	if !strings.Contains(gotErrStr, wantErrStr) {
 		t.Fatalf("missing expected error\ngot: %s\n\nwant: error containing %q", gotErrStr, wantErrStr)
+	}
+}
+
+func TestContext2Plan_variableValidation(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "x" {
+  default = "bar"
+}
+
+resource "aws_instance" "foo" {
+  foo = var.x
+}`,
+	})
+
+	p := testProvider("aws")
+	p.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) (resp providers.ValidateResourceTypeConfigResponse) {
+		foo := req.Config.GetAttr("foo").AsString()
+		if foo == "bar" {
+			resp.Diagnostics = resp.Diagnostics.Append(errors.New("foo cannot be bar"))
+		}
+		return
+	}
+
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		resp.PlannedState = req.ProposedNewState
+		return
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	_, diags := ctx.Plan()
+	if !diags.HasErrors() {
+		// Should get this error:
+		// Unsupported attribute: This object does not have an attribute named "missing"
+		t.Fatal("succeeded; want errors")
 	}
 }
 

@@ -10,7 +10,7 @@ import (
 )
 
 func TestLoadConfigWithSnapshot(t *testing.T) {
-	fixtureDir := filepath.Clean("test-fixtures/already-installed")
+	fixtureDir := filepath.Clean("testdata/already-installed")
 	loader, err := NewLoader(&Config{
 		ModulesDir: filepath.Join(fixtureDir, ".terraform/modules"),
 	})
@@ -32,11 +32,11 @@ func TestLoadConfigWithSnapshot(t *testing.T) {
 			gotModuleDirs[k] = m.Dir
 		}
 		wantModuleDirs := map[string]string{
-			"":                "test-fixtures/already-installed",
-			"child_a":         "test-fixtures/already-installed/.terraform/modules/child_a",
-			"child_a.child_c": "test-fixtures/already-installed/.terraform/modules/child_a/child_c",
-			"child_b":         "test-fixtures/already-installed/.terraform/modules/child_b",
-			"child_b.child_d": "test-fixtures/already-installed/.terraform/modules/child_b.child_d",
+			"":                "testdata/already-installed",
+			"child_a":         "testdata/already-installed/.terraform/modules/child_a",
+			"child_a.child_c": "testdata/already-installed/.terraform/modules/child_a/child_c",
+			"child_b":         "testdata/already-installed/.terraform/modules/child_b",
+			"child_b.child_d": "testdata/already-installed/.terraform/modules/child_b.child_d",
 		}
 
 		problems := deep.Equal(wantModuleDirs, gotModuleDirs)
@@ -50,7 +50,7 @@ func TestLoadConfigWithSnapshot(t *testing.T) {
 
 	gotRoot := got.Modules[""]
 	wantRoot := &SnapshotModule{
-		Dir: "test-fixtures/already-installed",
+		Dir: "testdata/already-installed",
 		Files: map[string][]byte{
 			"root.tf": []byte(`
 module "child_a" {
@@ -72,7 +72,7 @@ module "child_b" {
 }
 
 func TestSnapshotRoundtrip(t *testing.T) {
-	fixtureDir := filepath.Clean("test-fixtures/already-installed")
+	fixtureDir := filepath.Clean("testdata/already-installed")
 	loader, err := NewLoader(&Config{
 		ModulesDir: filepath.Join(fixtureDir, ".terraform/modules"),
 	})
@@ -99,7 +99,7 @@ func TestSnapshotRoundtrip(t *testing.T) {
 	if config.Module == nil {
 		t.Fatalf("config has no root module")
 	}
-	if got, want := config.Module.SourceDir, "test-fixtures/already-installed"; got != want {
+	if got, want := config.Module.SourceDir, "testdata/already-installed"; got != want {
 		t.Errorf("wrong root module sourcedir %q; want %q", got, want)
 	}
 	if got, want := len(config.Module.ModuleCalls), 2; got != want {
@@ -112,7 +112,7 @@ func TestSnapshotRoundtrip(t *testing.T) {
 	if childA.Module == nil {
 		t.Fatalf("child_a config has no module")
 	}
-	if got, want := childA.Module.SourceDir, "test-fixtures/already-installed/.terraform/modules/child_a"; got != want {
+	if got, want := childA.Module.SourceDir, "testdata/already-installed/.terraform/modules/child_a"; got != want {
 		t.Errorf("wrong child_a sourcedir %q; want %q", got, want)
 	}
 	if got, want := len(childA.Module.ModuleCalls), 1; got != want {

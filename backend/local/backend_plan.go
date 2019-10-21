@@ -8,10 +8,12 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/planfile"
+	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -160,7 +162,7 @@ func (b *Local) opPlan(
 			return
 		}
 
-		b.renderPlan(plan, schemas)
+		b.renderPlan(plan, baseState, schemas)
 
 		// If we've accumulated any warnings along the way then we'll show them
 		// here just before we show the summary and next steps. If we encountered
@@ -187,34 +189,38 @@ func (b *Local) opPlan(
 	}
 }
 
-func (b *Local) renderPlan(plan *plans.Plan, schemas *terraform.Schemas) {
+func (b *Local) renderPlan(plan *plans.Plan, state *states.State, schemas *terraform.Schemas) {
 	counts := map[plans.Action]int{}
+	var rChanges []*plans.ResourceInstanceChangeSrc
 	for _, change := range plan.Changes.Resources {
+		if change.Action == plans.Delete && change.Addr.Resource.Resource.Mode == addrs.DataResourceMode {
+			// Avoid rendering data sources on deletion
+			continue
+		}
+
+		rChanges = append(rChanges, change)
 		counts[change.Action]++
 	}
 
 	headerBuf := &bytes.Buffer{}
 	fmt.Fprintf(headerBuf, "\n%s\n", strings.TrimSpace(planHeaderIntro))
 	if counts[plans.Create] > 0 {
-		fmt.Fprintf(headerBuf, "%s create\n", format.DiffActionSymbol(terraform.DiffCreate))
+		fmt.Fprintf(headerBuf, "%s create\n", format.DiffActionSymbol(plans.Create))
 	}
 	if counts[plans.Update] > 0 {
-		fmt.Fprintf(headerBuf, "%s update in-place\n", format.DiffActionSymbol(terraform.DiffUpdate))
+		fmt.Fprintf(headerBuf, "%s update in-place\n", format.DiffActionSymbol(plans.Update))
 	}
 	if counts[plans.Delete] > 0 {
-		fmt.Fprintf(headerBuf, "%s destroy\n", format.DiffActionSymbol(terraform.DiffDestroy))
+		fmt.Fprintf(headerBuf, "%s destroy\n", format.DiffActionSymbol(plans.Delete))
 	}
 	if counts[plans.DeleteThenCreate] > 0 {
-		fmt.Fprintf(headerBuf, "%s destroy and then create replacement\n", format.DiffActionSymbol(terraform.DiffDestroyCreate))
+		fmt.Fprintf(headerBuf, "%s destroy and then create replacement\n", format.DiffActionSymbol(plans.DeleteThenCreate))
 	}
 	if counts[plans.CreateThenDelete] > 0 {
-		// FIXME: This shows the wrong symbol, because our old diff action
-		// type can't represent CreateThenDelete. We should switch
-		// format.DiffActionSymbol over to using plans.Action instead.
-		fmt.Fprintf(headerBuf, "%s create replacement and then destroy prior\n", format.DiffActionSymbol(terraform.DiffDestroyCreate))
+		fmt.Fprintf(headerBuf, "%s create replacement and then destroy\n", format.DiffActionSymbol(plans.CreateThenDelete))
 	}
 	if counts[plans.Read] > 0 {
-		fmt.Fprintf(headerBuf, "%s read (data resources)\n", format.DiffActionSymbol(terraform.DiffRefresh))
+		fmt.Fprintf(headerBuf, "%s read (data resources)\n", format.DiffActionSymbol(plans.Read))
 	}
 
 	b.CLI.Output(b.Colorize().Color(headerBuf.String()))
@@ -225,7 +231,6 @@ func (b *Local) renderPlan(plan *plans.Plan, schemas *terraform.Schemas) {
 	// here. The ordering of resource changes in a plan is not significant,
 	// but we can only do this safely here because we can assume that nobody
 	// is concurrently modifying our changes while we're trying to print it.
-	rChanges := plan.Changes.Resources
 	sort.Slice(rChanges, func(i, j int) bool {
 		iA := rChanges[i].Addr
 		jA := rChanges[j].Addr
@@ -251,8 +256,20 @@ func (b *Local) renderPlan(plan *plans.Plan, schemas *terraform.Schemas) {
 			b.CLI.Output(fmt.Sprintf("(schema missing for %s)\n", rcs.Addr))
 			continue
 		}
+
+		// check if the change is due to a tainted resource
+		tainted := false
+		if !state.Empty() {
+			if is := state.ResourceInstance(rcs.Addr); is != nil {
+				if obj := is.GetGeneration(rcs.DeposedKey.Generation()); obj != nil {
+					tainted = obj.Status == states.ObjectTainted
+				}
+			}
+		}
+
 		b.CLI.Output(format.ResourceChange(
 			rcs,
+			tainted,
 			rSchema,
 			b.CLIColor,
 		))

@@ -31,6 +31,17 @@ func testDataSource() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"input_map": {
+				Type:     schema.TypeMap,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Optional: true,
+			},
+			"output_map": {
+				Type:     schema.TypeMap,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Computed: true,
+			},
 		},
 	}
 }
@@ -45,5 +56,8 @@ func testDataSourceRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("output", "some output")
 	}
 
+	if inputMap, hasInput := d.GetOk("input_map"); hasInput {
+		d.Set("output_map", inputMap)
+	}
 	return nil
 }

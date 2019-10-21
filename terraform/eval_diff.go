@@ -4,10 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"reflect"
 	"strings"
 
-	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -134,7 +133,8 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		// Should be caught during validation, so we don't bother with a pretty error here
 		return nil, fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Type)
 	}
-	keyData := EvalDataForInstanceKey(n.Addr.Key)
+	forEach, _ := evaluateResourceForEachExpression(n.Config.ForEach, ctx)
+	keyData := EvalDataForInstanceKey(n.Addr.Key, forEach)
 	configVal, _, configDiags := ctx.EvaluateBlock(config.Config, schema, nil, keyData)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
@@ -174,8 +174,31 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		}
 	}
 
+	log.Printf("[TRACE] Re-validating config for %q", n.Addr.Absolute(ctx.Path()))
+	// Allow the provider to validate the final set of values.
+	// The config was statically validated early on, but there may have been
+	// unknown values which the provider could not validate at the time.
+	validateResp := provider.ValidateResourceTypeConfig(
+		providers.ValidateResourceTypeConfigRequest{
+			TypeName: n.Addr.Resource.Type,
+			Config:   configVal,
+		},
+	)
+	if validateResp.Diagnostics.HasErrors() {
+		return nil, validateResp.Diagnostics.InConfigBody(config.Config).Err()
+	}
+
 	// The provider gets an opportunity to customize the proposed new value,
-	// which in turn produces the _planned_ new value.
+	// which in turn produces the _planned_ new value. But before
+	// we send back this information, we need to process ignore_changes
+	// so that CustomizeDiff will not act on them
+	var ignoreChangeDiags tfdiags.Diagnostics
+	proposedNewVal, ignoreChangeDiags = n.processIgnoreChanges(priorVal, proposedNewVal)
+	diags = diags.Append(ignoreChangeDiags)
+	if ignoreChangeDiags.HasErrors() {
+		return nil, diags.Err()
+	}
+
 	resp := provider.PlanResourceChange(providers.PlanResourceChangeRequest{
 		TypeName:         n.Addr.Resource.Type,
 		Config:           configVal,
@@ -216,13 +239,42 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, diags.Err()
 	}
 
-	{
-		var moreDiags tfdiags.Diagnostics
-		plannedNewVal, moreDiags = n.processIgnoreChanges(priorVal, plannedNewVal)
-		diags = diags.Append(moreDiags)
-		if moreDiags.HasErrors() {
+	if errs := objchange.AssertPlanValid(schema, priorVal, configVal, plannedNewVal); len(errs) > 0 {
+		if resp.LegacyTypeSystem {
+			// The shimming of the old type system in the legacy SDK is not precise
+			// enough to pass this consistency check, so we'll give it a pass here,
+			// but we will generate a warning about it so that we are more likely
+			// to notice in the logs if an inconsistency beyond the type system
+			// leads to a downstream provider failure.
+			var buf strings.Builder
+			fmt.Fprintf(&buf, "[WARN] Provider %q produced an invalid plan for %s, but we are tolerating it because it is using the legacy plugin SDK.\n    The following problems may be the cause of any confusing errors from downstream operations:", n.ProviderAddr.ProviderConfig.Type, absAddr)
+			for _, err := range errs {
+				fmt.Fprintf(&buf, "\n      - %s", tfdiags.FormatError(err))
+			}
+			log.Print(buf.String())
+		} else {
+			for _, err := range errs {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Provider produced invalid plan",
+					fmt.Sprintf(
+						"Provider %q planned an invalid value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+						n.ProviderAddr.ProviderConfig.Type, tfdiags.FormatErrorPrefixed(err, absAddr.String()),
+					),
+				))
+			}
 			return nil, diags.Err()
 		}
+	}
+
+	// TODO: We should be able to remove this repeat of processing ignored changes
+	// after the plan, which helps providers relying on old behavior "just work"
+	// in the next major version, such that we can be stricter about ignore_changes
+	// values
+	plannedNewVal, ignoreChangeDiags = n.processIgnoreChanges(priorVal, plannedNewVal)
+	diags = diags.Append(ignoreChangeDiags)
+	if ignoreChangeDiags.HasErrors() {
+		return nil, diags.Err()
 	}
 
 	// The provider produces a list of paths to attributes whose changes mean
@@ -236,16 +288,15 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		for _, path := range resp.RequiresReplace {
 			if priorVal.IsNull() {
 				// If prior is null then we don't expect any RequiresReplace at all,
-				// because this is a Create action. (This is just to avoid errors
-				// when we use this value below, if the provider misbehaves.)
+				// because this is a Create action.
 				continue
 			}
-			plannedChangedVal, err := path.Apply(plannedNewVal)
-			if err != nil {
-				// This always indicates a provider bug, since RequiresReplace
-				// should always refer only to whole attributes (and not into
-				// attribute values themselves) and these should always be
-				// present, even though they might be null or unknown.
+
+			priorChangedVal, priorPathDiags := hcl.ApplyPath(priorVal, path, nil)
+			plannedChangedVal, plannedPathDiags := hcl.ApplyPath(plannedNewVal, path, nil)
+			if plannedPathDiags.HasErrors() && priorPathDiags.HasErrors() {
+				// This means the path was invalid in both the prior and new
+				// values, which is an error with the provider itself.
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Provider produced invalid plan",
@@ -256,17 +307,26 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 				))
 				continue
 			}
-			priorChangedVal, err := path.Apply(priorVal)
-			if err != nil {
-				// Should never happen since prior and changed should be of
-				// the same type, but we'll allow it for robustness.
-				reqRep.Add(path)
+
+			// Make sure we have valid Values for both values.
+			// Note: if the opposing value was of the type
+			// cty.DynamicPseudoType, the type assigned here may not exactly
+			// match the schema. This is fine here, since we're only going to
+			// check for equality, but if the NullVal is to be used, we need to
+			// check the schema for th true type.
+			switch {
+			case priorChangedVal == cty.NilVal && plannedChangedVal == cty.NilVal:
+				// this should never happen without ApplyPath errors above
+				panic("requires replace path returned 2 nil values")
+			case priorChangedVal == cty.NilVal:
+				priorChangedVal = cty.NullVal(plannedChangedVal.Type())
+			case plannedChangedVal == cty.NilVal:
+				plannedChangedVal = cty.NullVal(priorChangedVal.Type())
 			}
-			if priorChangedVal != cty.NilVal {
-				eqV := plannedChangedVal.Equals(priorChangedVal)
-				if !eqV.IsKnown() || eqV.False() {
-					reqRep.Add(path)
-				}
+
+			eqV := plannedChangedVal.Equals(priorChangedVal)
+			if !eqV.IsKnown() || eqV.False() {
+				reqRep.Add(path)
 			}
 		}
 		if diags.HasErrors() {
@@ -332,7 +392,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		}
 		plannedNewVal = resp.PlannedState
 		plannedPrivate = resp.PlannedPrivate
-		for _, err := range schema.ImpliedType().TestConformance(plannedNewVal.Type()) {
+		for _, err := range plannedNewVal.Type().TestConformance(schema.ImpliedType()) {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Provider produced invalid plan",
@@ -412,8 +472,9 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 			// must _also_ record the returned change in the active plan,
 			// which the expression evaluator will use in preference to this
 			// incomplete value recorded in the state.
-			Status: states.ObjectPlanned,
-			Value:  plannedNewVal,
+			Status:  states.ObjectPlanned,
+			Value:   plannedNewVal,
+			Private: plannedPrivate,
 		}
 	}
 
@@ -481,7 +542,7 @@ func processIgnoreChangesIndividual(prior, proposed cty.Value, ignoreChanges []h
 		// away any deeper values we already produced at that point.
 		var ignoreTraversal hcl.Traversal
 		for i, candidate := range ignoreChangesPath {
-			if reflect.DeepEqual(path, candidate) {
+			if path.Equals(candidate) {
 				ignoreTraversal = ignoreChanges[i]
 			}
 		}
@@ -492,9 +553,9 @@ func processIgnoreChangesIndividual(prior, proposed cty.Value, ignoreChanges []h
 		// If we're able to follow the same path through the prior value,
 		// we'll take the value there instead, effectively undoing the
 		// change that was planned.
-		priorV, err := path.Apply(prior)
-		if err != nil {
-			// We just ignore the error and move on here, since we assume it's
+		priorV, diags := hcl.ApplyPath(prior, path, nil)
+		if diags.HasErrors() {
+			// We just ignore the errors and move on here, since we assume it's
 			// just because the prior value was a slightly-different shape.
 			// It could potentially also be that the traversal doesn't match
 			// the schema, but we should've caught that during the validate
@@ -504,110 +565,6 @@ func processIgnoreChangesIndividual(prior, proposed cty.Value, ignoreChanges []h
 		return priorV, nil
 	})
 	return ret, diags
-}
-
-func (n *EvalDiff) processIgnoreChangesOld(diff *InstanceDiff) error {
-	if diff == nil || n.Config == nil || n.Config.Managed == nil {
-		return nil
-	}
-	ignoreChanges := n.Config.Managed.IgnoreChanges
-	ignoreAll := n.Config.Managed.IgnoreAllChanges
-
-	if len(ignoreChanges) == 0 && !ignoreAll {
-		return nil
-	}
-
-	// If we're just creating the resource, we shouldn't alter the
-	// Diff at all
-	if diff.ChangeType() == DiffCreate {
-		return nil
-	}
-
-	// If the resource has been tainted then we don't process ignore changes
-	// since we MUST recreate the entire resource.
-	if diff.GetDestroyTainted() {
-		return nil
-	}
-
-	attrs := diff.CopyAttributes()
-
-	// get the complete set of keys we want to ignore
-	ignorableAttrKeys := make(map[string]bool)
-	for k := range attrs {
-		if ignoreAll {
-			ignorableAttrKeys[k] = true
-			continue
-		}
-		for _, ignoredTraversal := range ignoreChanges {
-			ignoredKey := legacyFlatmapKeyForTraversal(ignoredTraversal)
-			if k == ignoredKey || strings.HasPrefix(k, ignoredKey+".") {
-				ignorableAttrKeys[k] = true
-			}
-		}
-	}
-
-	// If the resource was being destroyed, check to see if we can ignore the
-	// reason for it being destroyed.
-	if diff.GetDestroy() {
-		for k, v := range attrs {
-			if k == "id" {
-				// id will always be changed if we intended to replace this instance
-				continue
-			}
-			if v.Empty() || v.NewComputed {
-				continue
-			}
-
-			// If any RequiresNew attribute isn't ignored, we need to keep the diff
-			// as-is to be able to replace the resource.
-			if v.RequiresNew && !ignorableAttrKeys[k] {
-				return nil
-			}
-		}
-
-		// Now that we know that we aren't replacing the instance, we can filter
-		// out all the empty and computed attributes. There may be a bunch of
-		// extraneous attribute diffs for the other non-requires-new attributes
-		// going from "" -> "configval" or "" -> "<computed>".
-		// We must make sure any flatmapped containers are filterred (or not) as a
-		// whole.
-		containers := groupContainers(diff)
-		keep := map[string]bool{}
-		for _, v := range containers {
-			if v.keepDiff(ignorableAttrKeys) {
-				// At least one key has changes, so list all the sibling keys
-				// to keep in the diff
-				for k := range v {
-					keep[k] = true
-					// this key may have been added by the user to ignore, but
-					// if it's a subkey in a container, we need to un-ignore it
-					// to keep the complete containter.
-					delete(ignorableAttrKeys, k)
-				}
-			}
-		}
-
-		for k, v := range attrs {
-			if (v.Empty() || v.NewComputed) && !keep[k] {
-				ignorableAttrKeys[k] = true
-			}
-		}
-	}
-
-	// Here we undo the two reactions to RequireNew in EvalDiff - the "id"
-	// attribute diff and the Destroy boolean field
-	log.Printf("[DEBUG] Removing 'id' diff and setting Destroy to false " +
-		"because after ignore_changes, this diff no longer requires replacement")
-	diff.DelAttribute("id")
-	diff.SetDestroy(false)
-
-	// If we didn't hit any of our early exit conditions, we can filter the diff.
-	for k := range ignorableAttrKeys {
-		log.Printf("[DEBUG] [EvalIgnoreChanges] %s: Ignoring diff attribute: %s", n.Addr.String(), k)
-		diff.DelAttribute(k)
-	}
-
-	return nil
 }
 
 // legacyFlagmapKeyForTraversal constructs a key string compatible with what
@@ -754,6 +711,7 @@ func (n *EvalDiffDestroy) Eval(ctx EvalContext) (interface{}, error) {
 			Before: state.Value,
 			After:  cty.NullVal(cty.DynamicPseudoType),
 		},
+		Private:      state.Private,
 		ProviderAddr: n.ProviderAddr,
 	}
 

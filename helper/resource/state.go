@@ -38,7 +38,7 @@ type StateChangeConf struct {
 // specified in the configuration using the specified Refresh() func,
 // waiting the number of seconds specified in the timeout configuration.
 //
-// If the Refresh function returns a error, exit immediately with that error.
+// If the Refresh function returns an error, exit immediately with that error.
 //
 // If the Refresh function returns a state other than the Target state or one
 // listed in Pending, return immediately with an error.

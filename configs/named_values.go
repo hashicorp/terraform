@@ -3,10 +3,10 @@ package configs
 import (
 	"fmt"
 
-	"github.com/hashicorp/hcl2/ext/typeexpr"
-	"github.com/hashicorp/hcl2/gohcl"
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/ext/typeexpr"
+	"github.com/hashicorp/hcl/v2/gohcl"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 
@@ -177,6 +177,12 @@ func decodeVariableType(expr hcl.Expression) (cty.Type, VariableParsingMode, hcl
 		// Everything else uses HCL parsing
 		return ty, VariableParseHCL, diags
 	}
+}
+
+// Required returns true if this variable is required to be set by the caller,
+// or false if there is a default value that will be used when it isn't set.
+func (v *Variable) Required() bool {
+	return v.Default == cty.NilVal
 }
 
 // VariableParsingMode defines how values of a particular variable given by

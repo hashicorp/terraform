@@ -31,7 +31,7 @@ type Migrator interface {
 	// the given file and the current file and complete the update only if
 	// that function returns nil. If force is set this may override such
 	// checks, but some backends do not support forcing and so will act
-	// as if force is always true.
+	// as if force is always false.
 	WriteStateForMigration(f *statefile.File, force bool) error
 }
 
@@ -129,7 +129,7 @@ func Export(mgr Reader) *statefile.File {
 // is the receiver of that method and the "second" is the given argument.
 type SnapshotMetaRel rune
 
-//go:generate stringer -type=SnapshotMetaRel
+//go:generate go run golang.org/x/tools/cmd/stringer -type=SnapshotMetaRel
 
 const (
 	// SnapshotOlder indicates that two snapshots have a common lineage and

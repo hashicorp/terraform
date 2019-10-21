@@ -77,10 +77,11 @@ type OrganizationList struct {
 type Organization struct {
 	Name                   string                   `jsonapi:"primary,organizations"`
 	CollaboratorAuthPolicy AuthPolicyType           `jsonapi:"attr,collaborator-auth-policy"`
+	CostEstimationEnabled  bool                     `jsonapi:"attr,cost-estimation-enabled"`
 	CreatedAt              time.Time                `jsonapi:"attr,created-at,iso8601"`
 	Email                  string                   `jsonapi:"attr,email"`
 	EnterprisePlan         EnterprisePlanType       `jsonapi:"attr,enterprise-plan"`
-	OwnersTeamSamlRoleID   string                   `jsonapi:"attr,owners-team-saml-role-id"`
+	OwnersTeamSAMLRoleID   string                   `jsonapi:"attr,owners-team-saml-role-id"`
 	Permissions            *OrganizationPermissions `jsonapi:"attr,permissions"`
 	SAMLEnabled            bool                     `jsonapi:"attr,saml-enabled"`
 	SessionRemember        int                      `jsonapi:"attr,session-remember"`
@@ -99,12 +100,12 @@ type Capacity struct {
 // Entitlements represents the entitlements of an organization.
 type Entitlements struct {
 	ID                    string `jsonapi:"primary,entitlement-sets"`
-	StateStorage          bool   `jsonapi:"attr,state-storage"`
 	Operations            bool   `jsonapi:"attr,operations"`
-	VCSIntegrations       bool   `jsonapi:"attr,vcs-integrations"`
-	Sentinel              bool   `jsonapi:"attr,sentinel"`
 	PrivateModuleRegistry bool   `jsonapi:"attr,private-module-registry"`
+	Sentinel              bool   `jsonapi:"attr,sentinel"`
+	StateStorage          bool   `jsonapi:"attr,state-storage"`
 	Teams                 bool   `jsonapi:"attr,teams"`
+	VCSIntegrations       bool   `jsonapi:"attr,vcs-integrations"`
 }
 
 // RunQueue represents the current run queue of an organization.
@@ -157,6 +158,21 @@ type OrganizationCreateOptions struct {
 
 	// Admin email address.
 	Email *string `jsonapi:"attr,email"`
+
+	// Session expiration (minutes).
+	SessionRemember *int `jsonapi:"attr,session-remember,omitempty"`
+
+	// Session timeout after inactivity (minutes).
+	SessionTimeout *int `jsonapi:"attr,session-timeout,omitempty"`
+
+	// Authentication policy.
+	CollaboratorAuthPolicy *AuthPolicyType `jsonapi:"attr,collaborator-auth-policy,omitempty"`
+
+	// Enable Cost Estimation
+	CostEstimationEnabled *bool `jsonapi:"attr,cost-estimation-enabled,omitempty"`
+
+	// The name of the "owners" team
+	OwnersTeamSAMLRoleID *string `jsonapi:"attr,owners-team-saml-role-id,omitempty"`
 }
 
 func (o OrganizationCreateOptions) valid() error {
@@ -235,6 +251,12 @@ type OrganizationUpdateOptions struct {
 
 	// Authentication policy.
 	CollaboratorAuthPolicy *AuthPolicyType `jsonapi:"attr,collaborator-auth-policy,omitempty"`
+
+	// Enable Cost Estimation
+	CostEstimationEnabled *bool `jsonapi:"attr,cost-estimation-enabled,omitempty"`
+
+	// The name of the "owners" team
+	OwnersTeamSAMLRoleID *string `jsonapi:"attr,owners-team-saml-role-id,omitempty"`
 }
 
 // Update attributes of an existing organization.

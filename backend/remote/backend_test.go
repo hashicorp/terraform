@@ -5,7 +5,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/version"
 	"github.com/zclconf/go-cty/cty"
 
 	backendLocal "github.com/hashicorp/terraform/backend/local"
@@ -17,14 +19,18 @@ func TestRemote(t *testing.T) {
 }
 
 func TestRemote_backendDefault(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
+
 	backend.TestBackendStates(t, b)
 	backend.TestBackendStateLocks(t, b, b)
 	backend.TestBackendStateForceUnlock(t, b, b)
 }
 
 func TestRemote_backendNoDefault(t *testing.T) {
-	b := testBackendNoDefault(t)
+	b, bCleanup := testBackendNoDefault(t)
+	defer bCleanup()
+
 	backend.TestBackendStates(t, b)
 }
 
@@ -111,7 +117,7 @@ func TestRemote_config(t *testing.T) {
 		b := New(testDisco(s))
 
 		// Validate
-		valDiags := b.ValidateConfig(tc.config)
+		_, valDiags := b.PrepareConfig(tc.config)
 		if (valDiags.Err() != nil || tc.valErr != "") &&
 			(valDiags.Err() == nil || !strings.Contains(valDiags.Err().Error(), tc.valErr)) {
 			t.Fatalf("%s: unexpected validation result: %v", name, valDiags.Err())
@@ -119,15 +125,94 @@ func TestRemote_config(t *testing.T) {
 
 		// Configure
 		confDiags := b.Configure(tc.config)
-		if (confDiags.Err() == nil && tc.confErr != "") ||
-			(confDiags.Err() != nil && !strings.Contains(confDiags.Err().Error(), tc.confErr)) {
+		if (confDiags.Err() != nil || tc.confErr != "") &&
+			(confDiags.Err() == nil || !strings.Contains(confDiags.Err().Error(), tc.confErr)) {
+			t.Fatalf("%s: unexpected configure result: %v", name, confDiags.Err())
+		}
+	}
+}
+
+func TestRemote_versionConstraints(t *testing.T) {
+	cases := map[string]struct {
+		config     cty.Value
+		prerelease string
+		version    string
+		result     string
+	}{
+		"compatible version": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"hostname":     cty.NullVal(cty.String),
+				"organization": cty.StringVal("hashicorp"),
+				"token":        cty.NullVal(cty.String),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name":   cty.StringVal("prod"),
+					"prefix": cty.NullVal(cty.String),
+				}),
+			}),
+			version: "0.11.1",
+		},
+		"version too old": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"hostname":     cty.NullVal(cty.String),
+				"organization": cty.StringVal("hashicorp"),
+				"token":        cty.NullVal(cty.String),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name":   cty.StringVal("prod"),
+					"prefix": cty.NullVal(cty.String),
+				}),
+			}),
+			version: "0.0.1",
+			result:  "upgrade Terraform to >= 0.1.0",
+		},
+		"version too new": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"hostname":     cty.NullVal(cty.String),
+				"organization": cty.StringVal("hashicorp"),
+				"token":        cty.NullVal(cty.String),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name":   cty.StringVal("prod"),
+					"prefix": cty.NullVal(cty.String),
+				}),
+			}),
+			version: "10.0.1",
+			result:  "downgrade Terraform to <= 10.0.0",
+		},
+	}
+
+	// Save and restore the actual version.
+	p := version.Prerelease
+	v := version.Version
+	defer func() {
+		version.Prerelease = p
+		version.Version = v
+	}()
+
+	for name, tc := range cases {
+		s := testServer(t)
+		b := New(testDisco(s))
+
+		// Set the version for this test.
+		version.Prerelease = tc.prerelease
+		version.Version = tc.version
+
+		// Validate
+		_, valDiags := b.PrepareConfig(tc.config)
+		if valDiags.HasErrors() {
+			t.Fatalf("%s: unexpected validation result: %v", name, valDiags.Err())
+		}
+
+		// Configure
+		confDiags := b.Configure(tc.config)
+		if (confDiags.Err() != nil || tc.result != "") &&
+			(confDiags.Err() == nil || !strings.Contains(confDiags.Err().Error(), tc.result)) {
 			t.Fatalf("%s: unexpected configure result: %v", name, confDiags.Err())
 		}
 	}
 }
 
 func TestRemote_localBackend(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	local, ok := b.local.(*backendLocal.Local)
 	if !ok {
@@ -141,7 +226,9 @@ func TestRemote_localBackend(t *testing.T) {
 }
 
 func TestRemote_addAndRemoveWorkspacesDefault(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
+
 	if _, err := b.Workspaces(); err != backend.ErrWorkspacesNotSupported {
 		t.Fatalf("expected error %v, got %v", backend.ErrWorkspacesNotSupported, err)
 	}
@@ -164,7 +251,9 @@ func TestRemote_addAndRemoveWorkspacesDefault(t *testing.T) {
 }
 
 func TestRemote_addAndRemoveWorkspacesNoDefault(t *testing.T) {
-	b := testBackendNoDefault(t)
+	b, bCleanup := testBackendNoDefault(t)
+	defer bCleanup()
+
 	states, err := b.Workspaces()
 	if err != nil {
 		t.Fatal(err)
@@ -239,5 +328,107 @@ func TestRemote_addAndRemoveWorkspacesNoDefault(t *testing.T) {
 	expectedWorkspaces = []string(nil)
 	if !reflect.DeepEqual(states, expectedWorkspaces) {
 		t.Fatalf("expected %#+v, got %#+v", expectedWorkspaces, states)
+	}
+}
+
+func TestRemote_checkConstraints(t *testing.T) {
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
+
+	cases := map[string]struct {
+		constraints *disco.Constraints
+		prerelease  string
+		version     string
+		result      string
+	}{
+		"compatible version": {
+			constraints: &disco.Constraints{
+				Minimum: "0.11.0",
+				Maximum: "0.11.11",
+			},
+			version: "0.11.1",
+			result:  "",
+		},
+		"version too old": {
+			constraints: &disco.Constraints{
+				Minimum: "0.11.0",
+				Maximum: "0.11.11",
+			},
+			version: "0.10.1",
+			result:  "upgrade Terraform to >= 0.11.0",
+		},
+		"version too new": {
+			constraints: &disco.Constraints{
+				Minimum: "0.11.0",
+				Maximum: "0.11.11",
+			},
+			version: "0.12.0",
+			result:  "downgrade Terraform to <= 0.11.11",
+		},
+		"version excluded - ordered": {
+			constraints: &disco.Constraints{
+				Minimum:   "0.11.0",
+				Excluding: []string{"0.11.7", "0.11.8"},
+				Maximum:   "0.11.11",
+			},
+			version: "0.11.7",
+			result:  "upgrade Terraform to > 0.11.8",
+		},
+		"version excluded - unordered": {
+			constraints: &disco.Constraints{
+				Minimum:   "0.11.0",
+				Excluding: []string{"0.11.8", "0.11.6"},
+				Maximum:   "0.11.11",
+			},
+			version: "0.11.6",
+			result:  "upgrade Terraform to > 0.11.8",
+		},
+		"list versions": {
+			constraints: &disco.Constraints{
+				Minimum: "0.11.0",
+				Maximum: "0.11.11",
+			},
+			version: "0.10.1",
+			result:  "versions >= 0.11.0, <= 0.11.11.",
+		},
+		"list exclusion": {
+			constraints: &disco.Constraints{
+				Minimum:   "0.11.0",
+				Excluding: []string{"0.11.6"},
+				Maximum:   "0.11.11",
+			},
+			version: "0.11.6",
+			result:  "excluding version 0.11.6.",
+		},
+		"list exclusions": {
+			constraints: &disco.Constraints{
+				Minimum:   "0.11.0",
+				Excluding: []string{"0.11.8", "0.11.6"},
+				Maximum:   "0.11.11",
+			},
+			version: "0.11.6",
+			result:  "excluding versions 0.11.6, 0.11.8.",
+		},
+	}
+
+	// Save and restore the actual version.
+	p := version.Prerelease
+	v := version.Version
+	defer func() {
+		version.Prerelease = p
+		version.Version = v
+	}()
+
+	for name, tc := range cases {
+		// Set the version for this test.
+		version.Prerelease = tc.prerelease
+		version.Version = tc.version
+
+		// Check the constraints.
+		diags := b.checkConstraints(tc.constraints)
+		if (diags.Err() != nil || tc.result != "") &&
+			(diags.Err() == nil || !strings.Contains(diags.Err().Error(), tc.result)) {
+			t.Fatalf("%s: unexpected constraints result: %v", name, diags.Err())
+		}
 	}
 }

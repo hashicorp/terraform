@@ -1,12 +1,16 @@
 ---
 layout: "functions"
-page_title: "urlencode function"
+page_title: "urlencode - Functions - Configuration Language"
 sidebar_current: "docs-funcs-encoding-urlencode"
 description: |-
   The urlencode function applies URL encoding to a given string.
 ---
 
 # `urlencode` Function
+
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
 
 `urlencode` applies URL encoding to a given string.
 

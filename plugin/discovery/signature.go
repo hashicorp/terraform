@@ -2,7 +2,6 @@ package discovery
 
 import (
 	"bytes"
-	"log"
 	"strings"
 
 	"golang.org/x/crypto/openpgp"
@@ -13,7 +12,7 @@ import (
 func verifySig(data, sig []byte, armor string) (*openpgp.Entity, error) {
 	el, err := openpgp.ReadArmoredKeyRing(strings.NewReader(armor))
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	return openpgp.CheckDetachedSignature(el, bytes.NewReader(data), bytes.NewReader(sig))

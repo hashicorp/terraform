@@ -26,7 +26,7 @@ func TestTFPlanRoundTrip(t *testing.T) {
 					Addr: addrs.OutputValue{Name: "bar"}.Absolute(addrs.RootModuleInstance),
 					ChangeSrc: plans.ChangeSrc{
 						Action: plans.Create,
-						After:  mustNewDynamicValueStr("bar value"),
+						After:  mustDynamicOutputValue("bar value"),
 					},
 					Sensitive: false,
 				},
@@ -34,8 +34,8 @@ func TestTFPlanRoundTrip(t *testing.T) {
 					Addr: addrs.OutputValue{Name: "baz"}.Absolute(addrs.RootModuleInstance),
 					ChangeSrc: plans.ChangeSrc{
 						Action: plans.NoOp,
-						Before: mustNewDynamicValueStr("baz value"),
-						After:  mustNewDynamicValueStr("baz value"),
+						Before: mustDynamicOutputValue("baz value"),
+						After:  mustDynamicOutputValue("baz value"),
 					},
 					Sensitive: false,
 				},
@@ -43,8 +43,8 @@ func TestTFPlanRoundTrip(t *testing.T) {
 					Addr: addrs.OutputValue{Name: "secret"}.Absolute(addrs.RootModuleInstance),
 					ChangeSrc: plans.ChangeSrc{
 						Action: plans.Update,
-						Before: mustNewDynamicValueStr("old secret value"),
-						After:  mustNewDynamicValueStr("new secret value"),
+						Before: mustDynamicOutputValue("old secret value"),
+						After:  mustDynamicOutputValue("new secret value"),
 					},
 					Sensitive: true,
 				},
@@ -143,6 +143,14 @@ func TestTFPlanRoundTrip(t *testing.T) {
 	}
 }
 
+func mustDynamicOutputValue(val string) plans.DynamicValue {
+	ret, err := plans.NewDynamicValue(cty.StringVal(val), cty.DynamicPseudoType)
+	if err != nil {
+		panic(err)
+	}
+	return ret
+}
+
 func mustNewDynamicValue(val cty.Value, ty cty.Type) plans.DynamicValue {
 	ret, err := plans.NewDynamicValue(val, ty)
 	if err != nil {
@@ -158,4 +166,97 @@ func mustNewDynamicValueStr(val string) plans.DynamicValue {
 		panic(err)
 	}
 	return ret
+}
+
+// TestTFPlanRoundTripDestroy ensures that encoding and decoding null values for
+// destroy doesn't leave us with any nil values.
+func TestTFPlanRoundTripDestroy(t *testing.T) {
+	objTy := cty.Object(map[string]cty.Type{
+		"id": cty.String,
+	})
+
+	plan := &plans.Plan{
+		Changes: &plans.Changes{
+			Outputs: []*plans.OutputChangeSrc{
+				{
+					Addr: addrs.OutputValue{Name: "bar"}.Absolute(addrs.RootModuleInstance),
+					ChangeSrc: plans.ChangeSrc{
+						Action: plans.Delete,
+						Before: mustDynamicOutputValue("output"),
+						After:  mustNewDynamicValue(cty.NullVal(cty.String), cty.String),
+					},
+				},
+			},
+			Resources: []*plans.ResourceInstanceChangeSrc{
+				{
+					Addr: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_thing",
+						Name: "woot",
+					}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+					ProviderAddr: addrs.ProviderConfig{
+						Type: "test",
+					}.Absolute(addrs.RootModuleInstance),
+					ChangeSrc: plans.ChangeSrc{
+						Action: plans.Delete,
+						Before: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{
+							"id": cty.StringVal("foo-bar-baz"),
+						}), objTy),
+						After: mustNewDynamicValue(cty.NullVal(objTy), objTy),
+					},
+				},
+			},
+		},
+		TargetAddrs: []addrs.Targetable{
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_thing",
+				Name: "woot",
+			}.Absolute(addrs.RootModuleInstance),
+		},
+		Backend: plans.Backend{
+			Type: "local",
+			Config: mustNewDynamicValue(
+				cty.ObjectVal(map[string]cty.Value{
+					"foo": cty.StringVal("bar"),
+				}),
+				cty.Object(map[string]cty.Type{
+					"foo": cty.String,
+				}),
+			),
+			Workspace: "default",
+		},
+	}
+
+	var buf bytes.Buffer
+	err := writeTfplan(plan, &buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	newPlan, err := readTfplan(&buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, rics := range newPlan.Changes.Resources {
+		ric, err := rics.Decode(objTy)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if ric.After == cty.NilVal {
+			t.Fatalf("unexpected nil After value: %#v\n", ric)
+		}
+	}
+	for _, ocs := range newPlan.Changes.Outputs {
+		oc, err := ocs.Decode()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if oc.After == cty.NilVal {
+			t.Fatalf("unexpected nil After value: %#v\n", ocs)
+		}
+	}
 }

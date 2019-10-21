@@ -11,9 +11,9 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/helper/logging"
+	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
@@ -202,17 +202,10 @@ func testSession(t *testing.T, test testSessionTest) {
 		},
 	}
 
-	loader, cleanup := configload.NewLoaderForTests(t)
+	config, _, cleanup, configDiags := initwd.LoadConfigForTests(t, "testdata/config-fixture")
 	defer cleanup()
-
-	configDiags := loader.InstallModules("testdata/config-fixture", false, nil)
 	if configDiags.HasErrors() {
-		t.Fatalf("unexpected problems initializing test config: %s", configDiags.Error())
-	}
-
-	config, configDiags := loader.LoadConfig("testdata/config-fixture")
-	if configDiags.HasErrors() {
-		t.Fatalf("unexpected problems loading config: %s", configDiags.Error())
+		t.Fatalf("unexpected problems loading config: %s", configDiags.Err())
 	}
 
 	// Build the TF context
@@ -277,7 +270,7 @@ func testSession(t *testing.T, test testSessionTest) {
 
 type testSessionTest struct {
 	State  *states.State // State to use
-	Module string        // Module name in test-fixtures to load
+	Module string        // Module name in testdata to load
 
 	// Inputs are the list of test inputs that are run in order.
 	// Each input can test the output of each step.

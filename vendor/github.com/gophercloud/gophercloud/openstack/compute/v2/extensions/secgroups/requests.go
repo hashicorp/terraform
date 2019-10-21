@@ -23,25 +23,21 @@ func ListByServer(client *gophercloud.ServiceClient, serverID string) pagination
 	return commonList(client, listByServerURL(client, serverID))
 }
 
-// GroupOpts is the underlying struct responsible for creating or updating
-// security groups. It therefore represents the mutable attributes of a
-// security group.
-type GroupOpts struct {
+// CreateOpts is the struct responsible for creating a security group.
+type CreateOpts struct {
 	// the name of your security group.
 	Name string `json:"name" required:"true"`
 	// the description of your security group.
-	Description string `json:"description" required:"true"`
+	Description string `json:"description,omitempty"`
 }
 
-// CreateOpts is the struct responsible for creating a security group.
-type CreateOpts GroupOpts
-
-// CreateOptsBuilder builds the create options into a serializable format.
+// CreateOptsBuilder allows extensions to add additional parameters to the
+// Create request.
 type CreateOptsBuilder interface {
 	ToSecGroupCreateMap() (map[string]interface{}, error)
 }
 
-// ToSecGroupCreateMap builds the create options into a serializable format.
+// ToSecGroupCreateMap builds a request body from CreateOpts.
 func (opts CreateOpts) ToSecGroupCreateMap() (map[string]interface{}, error) {
 	return gophercloud.BuildRequestBody(opts, "security_group")
 }
@@ -60,14 +56,20 @@ func Create(client *gophercloud.ServiceClient, opts CreateOptsBuilder) (r Create
 }
 
 // UpdateOpts is the struct responsible for updating an existing security group.
-type UpdateOpts GroupOpts
+type UpdateOpts struct {
+	// the name of your security group.
+	Name string `json:"name,omitempty"`
+	// the description of your security group.
+	Description *string `json:"description,omitempty"`
+}
 
-// UpdateOptsBuilder builds the update options into a serializable format.
+// UpdateOptsBuilder allows extensions to add additional parameters to the
+// Update request.
 type UpdateOptsBuilder interface {
 	ToSecGroupUpdateMap() (map[string]interface{}, error)
 }
 
-// ToSecGroupUpdateMap builds the update options into a serializable format.
+// ToSecGroupUpdateMap builds a request body from UpdateOpts.
 func (opts UpdateOpts) ToSecGroupUpdateMap() (map[string]interface{}, error) {
 	return gophercloud.BuildRequestBody(opts, "security_group")
 }
@@ -93,7 +95,7 @@ func Get(client *gophercloud.ServiceClient, id string) (r GetResult) {
 }
 
 // Delete will permanently delete a security group from the project.
-func Delete(client *gophercloud.ServiceClient, id string) (r gophercloud.ErrResult) {
+func Delete(client *gophercloud.ServiceClient, id string) (r DeleteResult) {
 	_, r.Err = client.Delete(resourceURL(client, id), nil)
 	return
 }
@@ -101,31 +103,41 @@ func Delete(client *gophercloud.ServiceClient, id string) (r gophercloud.ErrResu
 // CreateRuleOpts represents the configuration for adding a new rule to an
 // existing security group.
 type CreateRuleOpts struct {
-	// the ID of the group that this rule will be added to.
+	// ID is the ID of the group that this rule will be added to.
 	ParentGroupID string `json:"parent_group_id" required:"true"`
-	// the lower bound of the port range that will be opened.
+
+	// FromPort is the lower bound of the port range that will be opened.
+	// Use -1 to allow all ICMP traffic.
 	FromPort int `json:"from_port"`
-	// the upper bound of the port range that will be opened.
+
+	// ToPort is the upper bound of the port range that will be opened.
+	// Use -1 to allow all ICMP traffic.
 	ToPort int `json:"to_port"`
-	// the protocol type that will be allowed, e.g. TCP.
+
+	// IPProtocol the protocol type that will be allowed, e.g. TCP.
 	IPProtocol string `json:"ip_protocol" required:"true"`
-	// ONLY required if FromGroupID is blank. This represents the IP range that
-	// will be the source of network traffic to your security group. Use
-	// 0.0.0.0/0 to allow all IP addresses.
+
+	// CIDR is the network CIDR to allow traffic from.
+	// This is ONLY required if FromGroupID is blank. This represents the IP
+	// range that will be the source of network traffic to your security group.
+	// Use 0.0.0.0/0 to allow all IP addresses.
 	CIDR string `json:"cidr,omitempty" or:"FromGroupID"`
-	// ONLY required if CIDR is blank. This value represents the ID of a group
-	// that forwards traffic to the parent group. So, instead of accepting
+
+	// FromGroupID represents another security group to allow access.
+	// This is ONLY required if CIDR is blank. This value represents the ID of a
+	// group that forwards traffic to the parent group. So, instead of accepting
 	// network traffic from an entire IP range, you can instead refine the
 	// inbound source by an existing security group.
 	FromGroupID string `json:"group_id,omitempty" or:"CIDR"`
 }
 
-// CreateRuleOptsBuilder builds the create rule options into a serializable format.
+// CreateRuleOptsBuilder allows extensions to add additional parameters to the
+// CreateRule request.
 type CreateRuleOptsBuilder interface {
 	ToRuleCreateMap() (map[string]interface{}, error)
 }
 
-// ToRuleCreateMap builds the create rule options into a serializable format.
+// ToRuleCreateMap builds a request body from CreateRuleOpts.
 func (opts CreateRuleOpts) ToRuleCreateMap() (map[string]interface{}, error) {
 	return gophercloud.BuildRequestBody(opts, "security_group_rule")
 }
@@ -146,7 +158,7 @@ func CreateRule(client *gophercloud.ServiceClient, opts CreateRuleOptsBuilder) (
 }
 
 // DeleteRule will permanently delete a rule from a security group.
-func DeleteRule(client *gophercloud.ServiceClient, id string) (r gophercloud.ErrResult) {
+func DeleteRule(client *gophercloud.ServiceClient, id string) (r DeleteRuleResult) {
 	_, r.Err = client.Delete(resourceRuleURL(client, id), nil)
 	return
 }
@@ -159,13 +171,13 @@ func actionMap(prefix, groupName string) map[string]map[string]string {
 
 // AddServer will associate a server and a security group, enforcing the
 // rules of the group on the server.
-func AddServer(client *gophercloud.ServiceClient, serverID, groupName string) (r gophercloud.ErrResult) {
-	_, r.Err = client.Post(serverActionURL(client, serverID), actionMap("add", groupName), &r.Body, nil)
+func AddServer(client *gophercloud.ServiceClient, serverID, groupName string) (r AddServerResult) {
+	_, r.Err = client.Post(serverActionURL(client, serverID), actionMap("add", groupName), nil, nil)
 	return
 }
 
 // RemoveServer will disassociate a server from a security group.
-func RemoveServer(client *gophercloud.ServiceClient, serverID, groupName string) (r gophercloud.ErrResult) {
-	_, r.Err = client.Post(serverActionURL(client, serverID), actionMap("remove", groupName), &r.Body, nil)
+func RemoveServer(client *gophercloud.ServiceClient, serverID, groupName string) (r RemoveServerResult) {
+	_, r.Err = client.Post(serverActionURL(client, serverID), actionMap("remove", groupName), nil, nil)
 	return
 }

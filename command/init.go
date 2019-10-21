@@ -7,21 +7,24 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform-config-inspect/tfconfig"
 	"github.com/posener/complete"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/config"
+	backendInit "github.com/hashicorp/terraform/backend/init"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/plugin"
+	"github.com/hashicorp/terraform/configs/configupgrade"
+	"github.com/hashicorp/terraform/internal/earlyconfig"
+	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/plugin/discovery"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
-
-	backendInit "github.com/hashicorp/terraform/backend/init"
 )
 
 // InitCommand is a Command implementation that takes a Terraform
@@ -81,7 +84,7 @@ func (c *InitCommand) Run(args []string) int {
 		c.providerInstaller = &discovery.ProviderInstaller{
 			Dir:                   c.pluginDir(),
 			Cache:                 c.pluginCache(),
-			PluginProtocolVersion: plugin.Handshake.ProtocolVersion,
+			PluginProtocolVersion: discovery.PluginInstallProtocolVersion,
 			SkipVerify:            !flagVerifyPlugins,
 			Ui:                    c.Ui,
 			Services:              c.Services,
@@ -122,7 +125,7 @@ func (c *InitCommand) Run(args []string) int {
 	if flagFromModule != "" {
 		src := flagFromModule
 
-		empty, err := config.IsEmptyDir(path)
+		empty, err := configs.IsEmptyDir(path)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error validating destination directory: %s", err))
 			return 1
@@ -154,7 +157,7 @@ func (c *InitCommand) Run(args []string) int {
 
 	// If our directory is empty, then we're done. We can't get or setup
 	// the backend with an empty directory.
-	empty, err := config.IsEmptyDir(path)
+	empty, err := configs.IsEmptyDir(path)
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("Error checking configuration: %s", err))
 		return 1
@@ -164,120 +167,139 @@ func (c *InitCommand) Run(args []string) int {
 		return 0
 	}
 
-	var back backend.Backend
-
-	// If we're performing a get or loading the backend, then we perform
-	// some extra tasks.
-	if flagGet || flagBackend {
-		config, confDiags := c.loadSingleModule(path)
-		diags = diags.Append(confDiags)
-		if confDiags.HasErrors() {
+	// Before we do anything else, we'll try loading configuration with both
+	// our "normal" and "early" configuration codepaths. If early succeeds
+	// while normal fails, that strongly suggests that the configuration is
+	// using syntax that worked in 0.11 but no longer in 0.12, which requires
+	// some special behavior here to get the directory initialized just enough
+	// to run "terraform 0.12upgrade".
+	//
+	// FIXME: Once we reach 0.13 and remove 0.12upgrade, we should rework this
+	// so that we first use the early config to do a general compatibility
+	// check with dependencies, producing version-oriented error messages if
+	// dependencies aren't right, and only then use the real loader to deal
+	// with the backend configuration.
+	rootMod, confDiags := c.loadSingleModule(path)
+	rootModEarly, earlyConfDiags := c.loadSingleModuleEarly(path)
+	configUpgradeProbablyNeeded := false
+	if confDiags.HasErrors() {
+		if earlyConfDiags.HasErrors() {
+			// If both parsers produced errors then we'll assume the config
+			// is _truly_ invalid and produce error messages as normal.
 			// Since this may be the user's first ever interaction with Terraform,
 			// we'll provide some additional context in this case.
 			c.Ui.Error(strings.TrimSpace(errInitConfigError))
+			diags = diags.Append(confDiags)
 			c.showDiagnostics(diags)
 			return 1
 		}
 
-		// If we requested downloading modules and have modules in the config
-		if flagGet && len(config.ModuleCalls) > 0 {
-			header = true
-
-			if flagUpgrade {
-				c.Ui.Output(c.Colorize().Color(fmt.Sprintf("[reset][bold]Upgrading modules...")))
-			} else {
-				c.Ui.Output(c.Colorize().Color(fmt.Sprintf("[reset][bold]Initializing modules...")))
-			}
-
-			hooks := uiModuleInstallHooks{
-				Ui:             c.Ui,
-				ShowLocalPaths: true,
-			}
-			instDiags := c.installModules(path, flagUpgrade, hooks)
-			diags = diags.Append(instDiags)
-			if instDiags.HasErrors() {
+		// If _only_ the main loader produced errors then that suggests an
+		// upgrade may help. To give us more certainty here, we'll use the
+		// same heuristic that "terraform 0.12upgrade" uses to guess if a
+		// configuration has already been upgraded, to reduce the risk that
+		// we'll produce a misleading message if the problem is just a regular
+		// syntax error that the early loader just didn't catch.
+		sources, err := configupgrade.LoadModule(path)
+		if err == nil {
+			if already, _ := sources.MaybeAlreadyUpgraded(); already {
+				// Just report the errors as normal, then.
+				c.Ui.Error(strings.TrimSpace(errInitConfigError))
+				diags = diags.Append(confDiags)
 				c.showDiagnostics(diags)
 				return 1
 			}
 		}
-
-		// If we're requesting backend configuration or looking for required
-		// plugins, load the backend
-		if flagBackend {
-			header = true
-
-			var backendSchema *configschema.Block
-
-			// Only output that we're initializing a backend if we have
-			// something in the config. We can be UNSETTING a backend as well
-			// in which case we choose not to show this.
-			if config.Backend != nil {
-				c.Ui.Output(c.Colorize().Color(fmt.Sprintf("\n[reset][bold]Initializing the backend...")))
-
-				backendType := config.Backend.Type
-				bf := backendInit.Backend(backendType)
-				if bf == nil {
-					diags = diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Unsupported backend type",
-						Detail:   fmt.Sprintf("There is no backend type named %q.", backendType),
-						Subject:  &config.Backend.TypeRange,
-					})
-					c.showDiagnostics()
-					return 1
-				}
-
-				b := bf()
-				backendSchema = b.ConfigSchema()
-			}
-
-			var backendConfigOverride hcl.Body
-			if backendSchema != nil {
-				var overrideDiags tfdiags.Diagnostics
-				backendConfigOverride, overrideDiags = c.backendConfigOverrideBody(flagConfigExtra, backendSchema)
-				diags = diags.Append(overrideDiags)
-				if overrideDiags.HasErrors() {
-					c.showDiagnostics()
-					return 1
-				}
-			}
-
-			opts := &BackendOpts{
-				Config:         config.Backend,
-				ConfigOverride: backendConfigOverride,
-				Init:           true,
-			}
-			var backDiags tfdiags.Diagnostics
-			back, backDiags = c.Backend(opts)
-			diags = diags.Append(backDiags)
-			if backDiags.HasErrors() {
-				c.showDiagnostics(diags)
-				return 1
-			}
-		}
+		configUpgradeProbablyNeeded = true
 	}
-
-	// With modules now installed, we should be able to load the whole
-	// configuration and check the core version constraints.
-	config, confDiags := c.loadConfig(path)
-	diags = diags.Append(confDiags)
-	if confDiags.HasErrors() {
-		// Since this may be the user's first ever interaction with Terraform,
-		// we'll provide some additional context in this case.
+	if earlyConfDiags.HasErrors() {
+		// If _only_ the early loader encountered errors then that's unusual
+		// (it should generally be a superset of the normal loader) but we'll
+		// return those errors anyway since otherwise we'll probably get
+		// some weird behavior downstream. Errors from the early loader are
+		// generally not as high-quality since it has less context to work with.
 		c.Ui.Error(strings.TrimSpace(errInitConfigError))
+		diags = diags.Append(earlyConfDiags)
 		c.showDiagnostics(diags)
 		return 1
 	}
-	confDiags = terraform.CheckCoreVersionRequirements(config)
-	diags = diags.Append(confDiags)
-	if confDiags.HasErrors() {
+
+	if flagGet {
+		modsOutput, modsDiags := c.getModules(path, rootModEarly, flagUpgrade)
+		diags = diags.Append(modsDiags)
+		if modsDiags.HasErrors() {
+			c.showDiagnostics(diags)
+			return 1
+		}
+		if modsOutput {
+			header = true
+		}
+	}
+
+	// With all of the modules (hopefully) installed, we can now try to load
+	// the whole configuration tree.
+	//
+	// Just as above, we'll try loading both with the early and normal config
+	// loaders here. Subsequent work will only use the early config, but
+	// loading both gives us an opportunity to prefer the better error messages
+	// from the normal loader if both fail.
+	_, confDiags = c.loadConfig(path)
+	earlyConfig, earlyConfDiags := c.loadConfigEarly(path)
+	if confDiags.HasErrors() && !configUpgradeProbablyNeeded {
+		c.Ui.Error(strings.TrimSpace(errInitConfigError))
+		diags = diags.Append(confDiags)
 		c.showDiagnostics(diags)
 		return 1
+	}
+	if earlyConfDiags.HasErrors() {
+		c.Ui.Error(strings.TrimSpace(errInitConfigError))
+		diags = diags.Append(earlyConfDiags)
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	{
+		// Before we go further, we'll check to make sure none of the modules
+		// in the configuration declare that they don't support this Terraform
+		// version, so we can produce a version-related error message rather
+		// than potentially-confusing downstream errors.
+		versionDiags := initwd.CheckCoreVersionRequirements(earlyConfig)
+		diags = diags.Append(versionDiags)
+		if versionDiags.HasErrors() {
+			c.showDiagnostics(diags)
+			return 1
+		}
+	}
+
+	var back backend.Backend
+	if flagBackend {
+		switch {
+		case configUpgradeProbablyNeeded:
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				"Skipping backend initialization pending configuration upgrade",
+				// The "below" in this message is referring to the special
+				// note about running "terraform 0.12upgrade" that we'll
+				// print out at the end when configUpgradeProbablyNeeded is set.
+				"The root module configuration contains errors that may be fixed by running the configuration upgrade tool, so Terraform is skipping backend initialization. See below for more information.",
+			))
+		default:
+			be, backendOutput, backendDiags := c.initBackend(rootMod, flagConfigExtra)
+			diags = diags.Append(backendDiags)
+			if backendDiags.HasErrors() {
+				c.showDiagnostics(diags)
+				return 1
+			}
+			if backendOutput {
+				header = true
+			}
+			back = be
+		}
 	}
 
 	if back == nil {
 		// If we didn't initialize a backend then we'll try to at least
-		// instantiate one. This might fail if it wasn't already initalized
+		// instantiate one. This might fail if it wasn't already initialized
 		// by a previous run, so we must still expect that "back" may be nil
 		// in code that follows.
 		var backDiags tfdiags.Diagnostics
@@ -313,11 +335,14 @@ func (c *InitCommand) Run(args []string) int {
 	}
 
 	// Now that we have loaded all modules, check the module tree for missing providers.
-	providerDiags := c.getProviders(path, state, flagUpgrade)
+	providersOutput, providerDiags := c.getProviders(earlyConfig, state, flagUpgrade)
 	diags = diags.Append(providerDiags)
 	if providerDiags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1
+	}
+	if providersOutput {
+		header = true
 	}
 
 	// If we outputted information, then we need to output a newline
@@ -331,6 +356,15 @@ func (c *InitCommand) Run(args []string) int {
 	// still the final thing shown.
 	c.showDiagnostics(diags)
 
+	if configUpgradeProbablyNeeded {
+		switch {
+		case c.RunningInAutomation:
+			c.Ui.Output(c.Colorize().Color(strings.TrimSpace(outputInitSuccessConfigUpgrade)))
+		default:
+			c.Ui.Output(c.Colorize().Color(strings.TrimSpace(outputInitSuccessConfigUpgradeCLI)))
+		}
+		return 0
+	}
 	c.Ui.Output(c.Colorize().Color(strings.TrimSpace(outputInitSuccess)))
 	if !c.RunningInAutomation {
 		// If we're not running in an automation wrapper, give the user
@@ -342,83 +376,108 @@ func (c *InitCommand) Run(args []string) int {
 	return 0
 }
 
-// backendConfigOverrideBody interprets the raw values of -backend-config
-// arguments into a hcl Body that should override the backend settings given
-// in the configuration.
-//
-// If the result is nil then no override needs to be provided.
-//
-// If the returned diagnostics contains errors then the returned body may be
-// incomplete or invalid.
-func (c *InitCommand) backendConfigOverrideBody(flags rawFlags, schema *configschema.Block) (hcl.Body, tfdiags.Diagnostics) {
-	items := flags.AllItems()
-	if len(items) == 0 {
-		return nil, nil
+func (c *InitCommand) getModules(path string, earlyRoot *tfconfig.Module, upgrade bool) (output bool, diags tfdiags.Diagnostics) {
+	if len(earlyRoot.ModuleCalls) == 0 {
+		// Nothing to do
+		return false, nil
 	}
 
-	var ret hcl.Body
-	var diags tfdiags.Diagnostics
-	synthVals := make(map[string]cty.Value)
-
-	mergeBody := func(newBody hcl.Body) {
-		if ret == nil {
-			ret = newBody
-		} else {
-			ret = configs.MergeBodies(ret, newBody)
-		}
-	}
-	flushVals := func() {
-		if len(synthVals) == 0 {
-			return
-		}
-		newBody := configs.SynthBody("-backend-config=...", synthVals)
-		mergeBody(newBody)
-		synthVals = make(map[string]cty.Value)
+	if upgrade {
+		c.Ui.Output(c.Colorize().Color(fmt.Sprintf("[reset][bold]Upgrading modules...")))
+	} else {
+		c.Ui.Output(c.Colorize().Color(fmt.Sprintf("[reset][bold]Initializing modules...")))
 	}
 
-	for _, item := range items {
-		eq := strings.Index(item.Value, "=")
+	hooks := uiModuleInstallHooks{
+		Ui:             c.Ui,
+		ShowLocalPaths: true,
+	}
+	instDiags := c.installModules(path, upgrade, hooks)
+	diags = diags.Append(instDiags)
 
-		if eq == -1 {
-			// The value is interpreted as a filename.
-			newBody, fileDiags := c.loadHCLFile(item.Value)
-			diags = diags.Append(fileDiags)
-			flushVals() // deal with any accumulated individual values first
-			mergeBody(newBody)
-		} else {
-			name := item.Value[:eq]
-			rawValue := item.Value[eq+1:]
-			attrS := schema.Attributes[name]
-			if attrS == nil {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Invalid backend configuration argument",
-					fmt.Sprintf("The backend configuration argument %q given on the command line is not expected for the selected backend type.", name),
-				))
-				continue
-			}
-			value, valueDiags := configValueFromCLI(item.String(), rawValue, attrS.Type)
-			diags = diags.Append(valueDiags)
-			if valueDiags.HasErrors() {
-				continue
-			}
-			synthVals[name] = value
+	// Since module installer has modified the module manifest on disk, we need
+	// to refresh the cache of it in the loader.
+	if c.configLoader != nil {
+		if err := c.configLoader.RefreshModules(); err != nil {
+			// Should never happen
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to read module manifest",
+				fmt.Sprintf("After installing modules, Terraform could not re-read the manifest of installed modules. This is a bug in Terraform. %s.", err),
+			))
 		}
 	}
 
-	flushVals()
+	return true, diags
+}
 
-	return ret, diags
+func (c *InitCommand) initBackend(root *configs.Module, extraConfig rawFlags) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
+	c.Ui.Output(c.Colorize().Color(fmt.Sprintf("\n[reset][bold]Initializing the backend...")))
+
+	var backendConfig *configs.Backend
+	var backendConfigOverride hcl.Body
+	if root.Backend != nil {
+		backendType := root.Backend.Type
+		bf := backendInit.Backend(backendType)
+		if bf == nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Unsupported backend type",
+				Detail:   fmt.Sprintf("There is no backend type named %q.", backendType),
+				Subject:  &root.Backend.TypeRange,
+			})
+			return nil, true, diags
+		}
+
+		b := bf()
+		backendSchema := b.ConfigSchema()
+		backendConfig = root.Backend
+
+		var overrideDiags tfdiags.Diagnostics
+		backendConfigOverride, overrideDiags = c.backendConfigOverrideBody(extraConfig, backendSchema)
+		diags = diags.Append(overrideDiags)
+		if overrideDiags.HasErrors() {
+			return nil, true, diags
+		}
+	} else {
+		// If the user supplied a -backend-config on the CLI but no backend
+		// block was found in the configuration, it's likely - but not
+		// necessarily - a mistake. Return a warning.
+		if !extraConfig.Empty() {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				"Missing backend configuration",
+				`-backend-config was used without a "backend" block in the configuration.
+
+If you intended to override the default local backend configuration,
+no action is required, but you may add an explicit backend block to your
+configuration to clear this warning:
+
+terraform {
+  backend "local" {}
+}
+
+However, if you intended to override a defined backend, please verify that
+the backend configuration is present and valid.
+`,
+			))
+		}
+	}
+
+	opts := &BackendOpts{
+		Config:         backendConfig,
+		ConfigOverride: backendConfigOverride,
+		Init:           true,
+	}
+
+	back, backDiags := c.Backend(opts)
+	diags = diags.Append(backDiags)
+	return back, true, diags
 }
 
 // Load the complete module tree, and fetch any missing providers.
 // This method outputs its own Ui.
-func (c *InitCommand) getProviders(path string, state *states.State, upgrade bool) tfdiags.Diagnostics {
-	config, diags := c.loadConfig(path)
-	if diags.HasErrors() {
-		return diags
-	}
-
+func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *states.State, upgrade bool) (output bool, diags tfdiags.Diagnostics) {
 	var available discovery.PluginMetaSet
 	if upgrade {
 		// If we're in upgrade mode, we ignore any auto-installed plugins
@@ -428,10 +487,22 @@ func (c *InitCommand) getProviders(path string, state *states.State, upgrade boo
 		available = c.providerPluginSet()
 	}
 
-	requirements := terraform.ConfigTreeDependencies(config, state).AllPluginRequirements()
+	configDeps, depsDiags := earlyConfig.ProviderDependencies()
+	diags = diags.Append(depsDiags)
+	if depsDiags.HasErrors() {
+		return false, diags
+	}
+
+	configReqs := configDeps.AllPluginRequirements()
+	// FIXME: This is weird because ConfigTreeDependencies was written before
+	// we switched over to using earlyConfig as the main source of dependencies.
+	// In future we should clean this up to be a more reasoable API.
+	stateReqs := terraform.ConfigTreeDependencies(nil, state).AllPluginRequirements()
+
+	requirements := configReqs.Merge(stateReqs)
 	if len(requirements) == 0 {
 		// nothing to initialize
-		return nil
+		return false, nil
 	}
 
 	c.Ui.Output(c.Colorize().Color(
@@ -446,13 +517,22 @@ func (c *InitCommand) getProviders(path string, state *states.State, upgrade boo
 		}
 
 		for provider, reqd := range missing {
-			_, err := c.providerInstaller.Get(provider, reqd.Versions)
+			pty := addrs.ProviderType{Name: provider}
+			_, providerDiags, err := c.providerInstaller.Get(pty, reqd.Versions)
+			diags = diags.Append(providerDiags)
 
 			if err != nil {
-				switch err {
-				case discovery.ErrorNoSuchProvider:
+				constraint := reqd.Versions.String()
+				if constraint == "" {
+					constraint = "(any version)"
+				}
+
+				switch {
+				case err == discovery.ErrorServiceUnreachable, err == discovery.ErrorPublicRegistryUnreachable:
+					c.Ui.Error(errDiscoveryServiceUnreachable)
+				case err == discovery.ErrorNoSuchProvider:
 					c.Ui.Error(fmt.Sprintf(errProviderNotFound, provider, DefaultPluginVendorDir))
-				case discovery.ErrorNoSuitableVersion:
+				case err == discovery.ErrorNoSuitableVersion:
 					if reqd.Versions.Unconstrained() {
 						// This should never happen, but might crop up if we catch
 						// the releases server in a weird state where the provider's
@@ -462,15 +542,27 @@ func (c *InitCommand) getProviders(path string, state *states.State, upgrade boo
 					} else {
 						c.Ui.Error(fmt.Sprintf(errProviderVersionsUnsuitable, provider, reqd.Versions))
 					}
-				case discovery.ErrorNoVersionCompatible:
-					// FIXME: This error message is sub-awesome because we don't
-					// have enough information here to tell the user which versions
-					// we considered and which versions might be compatible.
-					constraint := reqd.Versions.String()
-					if constraint == "" {
-						constraint = "(any version)"
+				case errwrap.Contains(err, discovery.ErrorVersionIncompatible.Error()):
+					// Attempt to fetch nested error to display to the user which versions
+					// we considered and which versions might be compatible. Otherwise,
+					// we'll just display a generic version incompatible msg
+					incompatErr := errwrap.GetType(err, fmt.Errorf(""))
+					if incompatErr != nil {
+						c.Ui.Error(incompatErr.Error())
+					} else {
+						// Generic version incompatible msg
+						c.Ui.Error(fmt.Sprintf(errProviderIncompatible, provider, constraint))
 					}
+					// Reset nested errors
+					err = discovery.ErrorVersionIncompatible
+				case err == discovery.ErrorNoVersionCompatible:
+					// Generic version incompatible msg
 					c.Ui.Error(fmt.Sprintf(errProviderIncompatible, provider, constraint))
+				case err == discovery.ErrorSignatureVerification:
+					c.Ui.Error(fmt.Sprintf(errSignatureVerification, provider))
+				case err == discovery.ErrorChecksumVerification,
+					err == discovery.ErrorMissingChecksumVerification:
+					c.Ui.Error(fmt.Sprintf(errChecksumVerification, provider))
 				default:
 					c.Ui.Error(fmt.Sprintf(errProviderInstallError, provider, err.Error(), DefaultPluginVendorDir))
 				}
@@ -480,7 +572,7 @@ func (c *InitCommand) getProviders(path string, state *states.State, upgrade boo
 		}
 
 		if diags.HasErrors() {
-			return diags
+			return true, diags
 		}
 	} else if len(missing) > 0 {
 		// we have missing providers, but aren't going to try and download them
@@ -495,7 +587,7 @@ func (c *InitCommand) getProviders(path string, state *states.State, upgrade boo
 		}
 		sort.Strings(lines)
 		c.Ui.Error(fmt.Sprintf(errMissingProvidersNoInstall, strings.Join(lines, ""), DefaultPluginVendorDir))
-		return diags
+		return true, diags
 	}
 
 	// With all the providers downloaded, we'll generate our lock file
@@ -512,7 +604,7 @@ func (c *InitCommand) getProviders(path string, state *states.State, upgrade boo
 		digest, err := meta.SHA256()
 		if err != nil {
 			diags = diags.Append(fmt.Errorf("Failed to read provider plugin %s: %s", meta.Path, err))
-			return diags
+			return true, diags
 		}
 		digests[name] = digest
 		if c.ignorePluginChecksum {
@@ -522,7 +614,7 @@ func (c *InitCommand) getProviders(path string, state *states.State, upgrade boo
 	err := c.providerPluginsLock().Write(digests)
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("failed to save provider manifest: %s", err))
-		return diags
+		return true, diags
 	}
 
 	{
@@ -570,7 +662,82 @@ func (c *InitCommand) getProviders(path string, state *states.State, upgrade boo
 		}
 	}
 
-	return diags
+	return true, diags
+}
+
+// backendConfigOverrideBody interprets the raw values of -backend-config
+// arguments into a hcl Body that should override the backend settings given
+// in the configuration.
+//
+// If the result is nil then no override needs to be provided.
+//
+// If the returned diagnostics contains errors then the returned body may be
+// incomplete or invalid.
+func (c *InitCommand) backendConfigOverrideBody(flags rawFlags, schema *configschema.Block) (hcl.Body, tfdiags.Diagnostics) {
+	items := flags.AllItems()
+	if len(items) == 0 {
+		return nil, nil
+	}
+
+	var ret hcl.Body
+	var diags tfdiags.Diagnostics
+	synthVals := make(map[string]cty.Value)
+
+	mergeBody := func(newBody hcl.Body) {
+		if ret == nil {
+			ret = newBody
+		} else {
+			ret = configs.MergeBodies(ret, newBody)
+		}
+	}
+	flushVals := func() {
+		if len(synthVals) == 0 {
+			return
+		}
+		newBody := configs.SynthBody("-backend-config=...", synthVals)
+		mergeBody(newBody)
+		synthVals = make(map[string]cty.Value)
+	}
+
+	if len(items) == 1 && items[0].Value == "" {
+		// Explicitly remove all -backend-config options.
+		// We do this by setting an empty but non-nil ConfigOverrides.
+		return configs.SynthBody("-backend-config=''", synthVals), diags
+	}
+
+	for _, item := range items {
+		eq := strings.Index(item.Value, "=")
+
+		if eq == -1 {
+			// The value is interpreted as a filename.
+			newBody, fileDiags := c.loadHCLFile(item.Value)
+			diags = diags.Append(fileDiags)
+			flushVals() // deal with any accumulated individual values first
+			mergeBody(newBody)
+		} else {
+			name := item.Value[:eq]
+			rawValue := item.Value[eq+1:]
+			attrS := schema.Attributes[name]
+			if attrS == nil {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Invalid backend configuration argument",
+					fmt.Sprintf("The backend configuration argument %q given on the command line is not expected for the selected backend type.", name),
+				))
+				continue
+			}
+			value, valueDiags := configValueFromCLI(item.String(), rawValue, attrS.Type)
+			diags = diags.Append(valueDiags)
+			if valueDiags.HasErrors() {
+				continue
+			}
+			synthVals[name] = value
+		}
+	}
+
+	flushVals()
+
+	return ret, diags
 }
 
 func (c *InitCommand) AutocompleteArgs() complete.Predictor {
@@ -705,6 +872,34 @@ rerun this command to reinitialize your working directory. If you forget, other
 commands will detect it and remind you to do so if necessary.
 `
 
+const outputInitSuccessConfigUpgrade = `
+[reset][bold]Terraform has initialized, but configuration upgrades may be needed.[reset]
+
+Terraform found syntax errors in the configuration that prevented full
+initialization. If you've recently upgraded to Terraform v0.12, this may be
+because your configuration uses syntax constructs that are no longer valid,
+and so must be updated before full initialization is possible.
+
+Run terraform init for this configuration at a shell prompt for more information
+on how to update it for Terraform v0.12 compatibility.
+`
+
+const outputInitSuccessConfigUpgradeCLI = `[reset][green]
+[reset][bold]Terraform has initialized, but configuration upgrades may be needed.[reset]
+
+Terraform found syntax errors in the configuration that prevented full
+initialization. If you've recently upgraded to Terraform v0.12, this may be
+because your configuration uses syntax constructs that are no longer valid,
+and so must be updated before full initialization is possible.
+
+Terraform has installed the required providers to support the configuration
+upgrade process. To begin upgrading your configuration, run the following:
+    terraform 0.12upgrade
+
+To see the full set of errors that led to this message, run:
+    terraform validate
+`
+
 const outputInitProvidersUnconstrained = `
 The following providers do not have any version constraints in configuration,
 so the latest version was installed.
@@ -713,6 +908,12 @@ To prevent automatic upgrades to new major versions that may contain breaking
 changes, it is recommended to add version = "..." constraints to the
 corresponding provider blocks in configuration, with the constraint strings
 suggested below.
+`
+
+const errDiscoveryServiceUnreachable = `
+[reset][bold][red]Registry service unreachable.[reset][red]
+
+This may indicate a network issue, or an issue with the requested Terraform Registry.
 `
 
 const errProviderNotFound = `
@@ -770,7 +971,7 @@ const errProviderInstallError = `
 
 Terraform analyses the configuration and state and automatically downloads
 plugins for the providers used. However, when attempting to download this
-plugin an unexpected error occured.
+plugin an unexpected error occurred.
 
 This may be caused if for some reason Terraform is unable to reach the
 plugin repository. The repository may be unreachable if access is blocked
@@ -800,4 +1001,19 @@ and placing the plugin's executable file in one of the directories given in
 by -plugin-dir on the command line, or in the following directory if custom
 plugin directories are not set:
     %[2]s
+`
+
+const errChecksumVerification = `
+[reset][bold][red]Error verifying checksum for provider %[1]q[reset][red]
+The checksum for provider distribution from the Terraform Registry
+did not match the source. This may mean that the distributed files
+were changed after this version was released to the Registry.
+`
+
+const errSignatureVerification = `
+[reset][bold][red]Error verifying GPG signature for provider %[1]q[reset][red]
+Terraform was unable to verify the GPG signature of the downloaded provider
+files using the keys downloaded from the Terraform Registry. This may mean that
+the publisher of the provider removed the key it was signed with, or that the
+distributed files were changed after this version was released.
 `

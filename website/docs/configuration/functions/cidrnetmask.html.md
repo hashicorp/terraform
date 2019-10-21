@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "cidrnetmask function"
+page_title: "cidrnetmask - Functions - Configuration Language"
 sidebar_current: "docs-funcs-ipnet-cidrnetmask"
 description: |-
   The cidrnetmask function converts an IPv4 address prefix given in CIDR
@@ -8,6 +8,10 @@ description: |-
 ---
 
 # `cidrnetmask` Function
+
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
 
 `cidrnetmask` converts an IPv4 address prefix given in CIDR notation into
 a subnet mask address.

@@ -45,7 +45,7 @@ to populate the short description of the module. This should be a simple
 one sentence description of the module.
 
 - **Standard module structure.** The module must adhere to the
-[standard module structure](/docs/modules/create.html#standard-module-structure).
+[standard module structure](/docs/modules/index.html#standard-module-structure).
 This allows the registry to inspect your module and generate documentation,
 track resource usage, parse submodules and examples, and more.
 

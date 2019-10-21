@@ -1,8 +1,10 @@
 package command
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -23,6 +25,7 @@ import (
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 func TestInit_empty(t *testing.T) {
@@ -84,7 +87,8 @@ func TestInit_fromModule_explicitDest(t *testing.T) {
 		// is causing a terraform.tfstate to get left behind in our directory
 		// here, which can interfere with our init process in a way that
 		// isn't relevant to this test.
-		t.Fatalf("some other test has left terraform.tfstate behind")
+		fullPath, _ := filepath.Abs(DefaultStateFilename)
+		t.Fatalf("some other test has left terraform.tfstate behind:\n%s", fullPath)
 	}
 
 	args := []string{
@@ -266,7 +270,9 @@ func TestInit_backendUnset(t *testing.T) {
 	defer testChdir(t, td)()
 
 	{
-		ui := new(cli.MockUi)
+		log.Printf("[TRACE] TestInit_backendUnset: beginning first init")
+
+		ui := cli.NewMockUi()
 		c := &InitCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
@@ -279,6 +285,9 @@ func TestInit_backendUnset(t *testing.T) {
 		if code := c.Run(args); code != 0 {
 			t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 		}
+		log.Printf("[TRACE] TestInit_backendUnset: first init complete")
+		t.Logf("First run output:\n%s", ui.OutputWriter.String())
+		t.Logf("First run errors:\n%s", ui.ErrorWriter.String())
 
 		if _, err := os.Stat(filepath.Join(DefaultDataDir, DefaultStateFilename)); err != nil {
 			t.Fatalf("err: %s", err)
@@ -286,12 +295,14 @@ func TestInit_backendUnset(t *testing.T) {
 	}
 
 	{
+		log.Printf("[TRACE] TestInit_backendUnset: beginning second init")
+
 		// Unset
 		if err := ioutil.WriteFile("main.tf", []byte(""), 0644); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 
-		ui := new(cli.MockUi)
+		ui := cli.NewMockUi()
 		c := &InitCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
@@ -303,6 +314,9 @@ func TestInit_backendUnset(t *testing.T) {
 		if code := c.Run(args); code != 0 {
 			t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 		}
+		log.Printf("[TRACE] TestInit_backendUnset: second init complete")
+		t.Logf("Second run output:\n%s", ui.OutputWriter.String())
+		t.Logf("Second run errors:\n%s", ui.ErrorWriter.String())
 
 		s := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
 		if !s.Backend.Empty() {
@@ -397,6 +411,139 @@ func TestInit_backendConfigKV(t *testing.T) {
 	}
 }
 
+func TestInit_backendConfigKVReInit(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-backend-config-kv"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{"-backend-config", "path=test"}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	ui = new(cli.MockUi)
+	c = &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	// a second init should require no changes, nor should it change the backend.
+	args = []string{"-input=false"}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	// make sure the backend is configured how we expect
+	configState := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
+	cfg := map[string]interface{}{}
+	if err := json.Unmarshal(configState.Backend.ConfigRaw, &cfg); err != nil {
+		t.Fatal(err)
+	}
+	if cfg["path"] != "test" {
+		t.Fatalf(`expected backend path="test", got path="%v"`, cfg["path"])
+	}
+
+	// override the -backend-config options by settings
+	args = []string{"-input=false", "-backend-config", ""}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	// make sure the backend is configured how we expect
+	configState = testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
+	cfg = map[string]interface{}{}
+	if err := json.Unmarshal(configState.Backend.ConfigRaw, &cfg); err != nil {
+		t.Fatal(err)
+	}
+	if cfg["path"] != nil {
+		t.Fatalf(`expected backend path="<nil>", got path="%v"`, cfg["path"])
+	}
+}
+
+func TestInit_backendConfigKVReInitWithConfigDiff(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-backend"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{"-input=false"}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	ui = new(cli.MockUi)
+	c = &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	// a second init with identical config should require no changes, nor
+	// should it change the backend.
+	args = []string{"-input=false", "-backend-config", "path=foo"}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	// make sure the backend is configured how we expect
+	configState := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
+	cfg := map[string]interface{}{}
+	if err := json.Unmarshal(configState.Backend.ConfigRaw, &cfg); err != nil {
+		t.Fatal(err)
+	}
+	if cfg["path"] != "foo" {
+		t.Fatalf(`expected backend path="foo", got path="%v"`, cfg["foo"])
+	}
+}
+
+func TestInit_backendCli_no_config_block(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{"-backend-config", "path=test"}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("got exit status %d; want 0\nstderr:\n%s\n\nstdout:\n%s", code, ui.ErrorWriter.String(), ui.OutputWriter.String())
+	}
+
+	errMsg := ui.ErrorWriter.String()
+	if !strings.Contains(errMsg, "Warning: Missing backend configuration") {
+		t.Fatal("expected missing backend block warning, got", errMsg)
+	}
+}
+
 func TestInit_targetSubdir(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
@@ -470,7 +617,7 @@ func TestInit_backendReinitWithExtra(t *testing.T) {
 		t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
 	}
 
-	if state.Backend.Hash != cHash {
+	if state.Backend.Hash != uint64(cHash) {
 		t.Fatal("mismatched state and config backend hashes")
 	}
 
@@ -482,7 +629,7 @@ func TestInit_backendReinitWithExtra(t *testing.T) {
 	if got, want := normalizeJSON(t, state.Backend.ConfigRaw), `{"path":"hello","workspace_dir":null}`; got != want {
 		t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
 	}
-	if state.Backend.Hash != cHash {
+	if state.Backend.Hash != uint64(cHash) {
 		t.Fatal("mismatched state and config backend hashes")
 	}
 }
@@ -612,7 +759,7 @@ func TestInit_inputFalse(t *testing.T) {
 	}
 
 	// A missing input=false should abort rather than loop infinitely
-	args = []string{"-backend-config=path=bar"}
+	args = []string{"-backend-config=path=baz"}
 	if code := c.Run(args); code == 0 {
 		t.Fatal("init should have failed", ui.OutputWriter)
 	}
@@ -952,8 +1099,8 @@ func TestInit_getProviderHaveLegacyVersion(t *testing.T) {
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
 		},
-		providerInstaller: callbackPluginInstaller(func(provider string, req discovery.Constraints) (discovery.PluginMeta, error) {
-			return discovery.PluginMeta{}, fmt.Errorf("EXPECTED PROVIDER ERROR %s", provider)
+		providerInstaller: callbackPluginInstaller(func(provider string, req discovery.Constraints) (discovery.PluginMeta, tfdiags.Diagnostics, error) {
+			return discovery.PluginMeta{}, tfdiags.Diagnostics{}, fmt.Errorf("EXPECTED PROVIDER ERROR %s", provider)
 		}),
 	}
 
@@ -1162,9 +1309,9 @@ func TestInit_pluginDirProvidersDoesNotGet(t *testing.T) {
 
 	c := &InitCommand{
 		Meta: m,
-		providerInstaller: callbackPluginInstaller(func(provider string, req discovery.Constraints) (discovery.PluginMeta, error) {
+		providerInstaller: callbackPluginInstaller(func(provider string, req discovery.Constraints) (discovery.PluginMeta, tfdiags.Diagnostics, error) {
 			t.Fatalf("plugin installer should not have been called for %q", provider)
-			return discovery.PluginMeta{}, nil
+			return discovery.PluginMeta{}, tfdiags.Diagnostics{}, nil
 		}),
 	}
 
@@ -1218,5 +1365,112 @@ func TestInit_pluginWithInternal(t *testing.T) {
 	//args := []string{}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("error: %s", ui.ErrorWriter)
+	}
+}
+
+func TestInit_012UpgradeNeeded(t *testing.T) {
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-012upgrade"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := cli.NewMockUi()
+	m := Meta{
+		testingOverrides: metaOverridesForProvider(testProvider()),
+		Ui:               ui,
+	}
+
+	installer := &mockProviderInstaller{
+		Providers: map[string][]string{
+			"null": []string{"1.0.0"},
+		},
+		Dir: m.pluginDir(),
+	}
+
+	c := &InitCommand{
+		Meta:              m,
+		providerInstaller: installer,
+	}
+
+	args := []string{}
+	if code := c.Run(args); code != 0 {
+		t.Errorf("wrong exit status %d; want 0\nerror output:\n%s", code, ui.ErrorWriter.String())
+	}
+
+	output := ui.OutputWriter.String()
+	if !strings.Contains(output, "terraform 0.12upgrade") {
+		t.Errorf("doesn't look like we detected the need for config upgrade:\n%s", output)
+	}
+}
+
+func TestInit_012UpgradeNeededInAutomation(t *testing.T) {
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-012upgrade"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := cli.NewMockUi()
+	m := Meta{
+		testingOverrides:    metaOverridesForProvider(testProvider()),
+		Ui:                  ui,
+		RunningInAutomation: true,
+	}
+
+	installer := &mockProviderInstaller{
+		Providers: map[string][]string{
+			"null": []string{"1.0.0"},
+		},
+		Dir: m.pluginDir(),
+	}
+
+	c := &InitCommand{
+		Meta:              m,
+		providerInstaller: installer,
+	}
+
+	args := []string{}
+	if code := c.Run(args); code != 0 {
+		t.Errorf("wrong exit status %d; want 0\nerror output:\n%s", code, ui.ErrorWriter.String())
+	}
+
+	output := ui.OutputWriter.String()
+	if !strings.Contains(output, "Run terraform init for this configuration at a shell prompt") {
+		t.Errorf("doesn't look like we instructed to run Terraform locally:\n%s", output)
+	}
+	if strings.Contains(output, "terraform 0.12upgrade") {
+		// We don't prompt with an exact command in automation mode, since
+		// the upgrade process is interactive and so it cannot be run in
+		// automation.
+		t.Errorf("looks like we incorrectly gave an upgrade command to run:\n%s", output)
+	}
+}
+
+func TestInit_syntaxErrorVersionSniff(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-sniff-version-error"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	// Check output.
+	// Currently, this lands in the "upgrade may be needed" codepath, because
+	// the intentional syntax error in our test fixture is something that
+	// "terraform 0.12upgrade" could fix.
+	output := ui.OutputWriter.String()
+	if got, want := output, "Terraform has initialized, but configuration upgrades may be needed"; !strings.Contains(got, want) {
+		t.Fatalf("wrong output\ngot:\n%s\n\nwant: message containing %q", got, want)
 	}
 }

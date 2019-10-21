@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "pathexpand function"
+page_title: "pathexpand - Functions - Configuration Language"
 sidebar_current: "docs-funcs-file-pathexpand"
 description: |-
   The pathexpand function expands a leading ~ character to the current user's
@@ -8,6 +8,10 @@ description: |-
 ---
 
 # `pathexpand` Function
+
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
 
 `pathexpand` takes a filesystem path that might begin with a `~` segment,
 and if so it replaces that segment with the current user's home directory

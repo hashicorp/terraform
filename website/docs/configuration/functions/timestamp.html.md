@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "timestamp function"
+page_title: "timestamp - Functions - Configuration Language"
 sidebar_current: "docs-funcs-datetime-timestamp"
 description: |-
   The timestamp function returns a string representation of the current date
@@ -8,6 +8,10 @@ description: |-
 ---
 
 # `timestamp` Function
+
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
 
 `timestamp` returns the current date and time.
 
@@ -20,11 +24,11 @@ The result of this function will change every second, so using this function
 directly with resource attributes will cause a diff to be detected on every
 Terraform run. We do not recommend using this function in resource attributes,
 but in rare cases it can be used in conjunction with
-[the `ignore_changes` lifecycle meta-argument](/docs/configuration/resources.html#ignore_changes)
+[the `ignore_changes` lifecycle meta-argument](../resources.html#ignore_changes)
 to take the timestamp only on initial creation of the resource.
 
 Due to the constantly changing return value, the result of this function cannot
-be preducted during Terraform's planning phase, and so the timestamp will be
+be predicted during Terraform's planning phase, and so the timestamp will be
 taken only once the plan is being applied.
 
 ## Examples
@@ -33,3 +37,8 @@ taken only once the plan is being applied.
 > timestamp()
 2018-05-13T07:44:12Z
 ```
+
+## Related Functions
+
+* [`formatdate`](./formatdate.html) can convert the resulting timestamp to
+  other date and time formats.

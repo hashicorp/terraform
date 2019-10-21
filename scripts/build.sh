@@ -26,9 +26,12 @@ rm -rf pkg/*
 mkdir -p bin/
 
 # If its dev mode, only build for ourself
-if [ "${TF_DEV}x" != "x" ]; then
+if [[ -n "${TF_DEV}" ]]; then
     XC_OS=$(go env GOOS)
     XC_ARCH=$(go env GOARCH)
+
+    # Allow LD_FLAGS to be appended during development compilations
+    LD_FLAGS="-X main.GitCommit=${GIT_COMMIT}${GIT_DIRTY} $LD_FLAGS"
 fi
 
 if ! which gox > /dev/null; then
@@ -36,15 +39,12 @@ if ! which gox > /dev/null; then
     go get -u github.com/mitchellh/gox
 fi
 
-# instruct gox to build statically linked binaries
+# Instruct gox to build statically linked binaries
 export CGO_ENABLED=0
-
-# Allow LD_FLAGS to be appended during development compilations
-LD_FLAGS="-X main.GitCommit=${GIT_COMMIT}${GIT_DIRTY} $LD_FLAGS"
 
 # In release mode we don't want debug information in the binary
 if [[ -n "${TF_RELEASE}" ]]; then
-    LD_FLAGS="-X main.GitCommit=${GIT_COMMIT}${GIT_DIRTY} -X github.com/hashicorp/terraform/version.Prerelease= -s -w"
+    LD_FLAGS="-s -w"
 fi
 
 # Ensure all remote modules are downloaded and cached before build so that

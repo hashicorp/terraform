@@ -1,17 +1,21 @@
 package command
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
 
-	"github.com/hashicorp/hcl2/hcl/hclsyntax"
-
-	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/hashicorp/terraform-config-inspect/tfconfig"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/internal/earlyconfig"
+	"github.com/hashicorp/terraform/internal/initwd"
+	"github.com/hashicorp/terraform/registry"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -64,6 +68,30 @@ func (m *Meta) loadConfig(rootDir string) (*configs.Config, tfdiags.Diagnostics)
 	return config, diags
 }
 
+// loadConfigEarly is a variant of loadConfig that uses the special
+// "early config" loader that is more forgiving of unexpected constructs and
+// legacy syntax.
+//
+// Early-loaded config is not registered in the source code cache, so
+// diagnostics produced from it may render without source code snippets. In
+// practice this is not a big concern because the early config loader also
+// cannot generate detailed source locations, so it prefers to produce
+// diagnostics without explicit source location information and instead includes
+// approximate locations in the message text.
+//
+// Most callers should use loadConfig. This method exists to support early
+// initialization use-cases where the root module must be inspected in order
+// to determine what else needs to be installed before the full configuration
+// can be used
+func (m *Meta) loadConfigEarly(rootDir string) (*earlyconfig.Config, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	rootDir = m.normalizePath(rootDir)
+
+	config, hclDiags := initwd.LoadConfig(rootDir, m.modulesDir())
+	diags = diags.Append(hclDiags)
+	return config, diags
+}
+
 // loadSingleModule reads configuration from the given directory and returns
 // a description of that module only, without attempting to assemble a module
 // tree for referenced child modules.
@@ -84,6 +112,31 @@ func (m *Meta) loadSingleModule(dir string) (*configs.Module, tfdiags.Diagnostic
 
 	module, hclDiags := loader.Parser().LoadConfigDir(dir)
 	diags = diags.Append(hclDiags)
+	return module, diags
+}
+
+// loadSingleModuleEarly is a variant of loadSingleModule that uses the special
+// "early config" loader that is more forgiving of unexpected constructs and
+// legacy syntax.
+//
+// Early-loaded config is not registered in the source code cache, so
+// diagnostics produced from it may render without source code snippets. In
+// practice this is not a big concern because the early config loader also
+// cannot generate detailed source locations, so it prefers to produce
+// diagnostics without explicit source location information and instead includes
+// approximate locations in the message text.
+//
+// Most callers should use loadConfig. This method exists to support early
+// initialization use-cases where the root module must be inspected in order
+// to determine what else needs to be installed before the full configuration
+// can be used.
+func (m *Meta) loadSingleModuleEarly(dir string) (*tfconfig.Module, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	dir = m.normalizePath(dir)
+
+	module, moreDiags := earlyconfig.LoadModule(dir)
+	diags = diags.Append(moreDiags)
+
 	return module, diags
 }
 
@@ -120,6 +173,9 @@ func (m *Meta) dirIsConfigPath(dir string) bool {
 // directory even if loadBackendConfig succeeded.)
 func (m *Meta) loadBackendConfig(rootDir string) (*configs.Backend, tfdiags.Diagnostics) {
 	mod, diags := m.loadSingleModule(rootDir)
+	if diags.HasErrors() {
+		return nil, diags
+	}
 	return mod.Backend, diags
 }
 
@@ -165,7 +221,7 @@ func (m *Meta) loadHCLFile(filename string) (hcl.Body, tfdiags.Diagnostics) {
 // can then be relayed to the end-user. The moduleUiInstallHooks type in
 // this package has a reasonable implementation for displaying notifications
 // via a provided cli.Ui.
-func (m *Meta) installModules(rootDir string, upgrade bool, hooks configload.InstallHooks) tfdiags.Diagnostics {
+func (m *Meta) installModules(rootDir string, upgrade bool, hooks initwd.ModuleInstallHooks) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	rootDir = m.normalizePath(rootDir)
 
@@ -175,14 +231,9 @@ func (m *Meta) installModules(rootDir string, upgrade bool, hooks configload.Ins
 		return diags
 	}
 
-	loader, err := m.initConfigLoader()
-	if err != nil {
-		diags = diags.Append(err)
-		return diags
-	}
-
-	hclDiags := loader.InstallModules(rootDir, upgrade, hooks)
-	diags = diags.Append(hclDiags)
+	inst := m.moduleInstaller()
+	_, moreDiags := inst.InstallModules(rootDir, upgrade, hooks)
+	diags = diags.Append(moreDiags)
 	return diags
 }
 
@@ -195,18 +246,11 @@ func (m *Meta) installModules(rootDir string, upgrade bool, hooks configload.Ins
 // can then be relayed to the end-user. The moduleUiInstallHooks type in
 // this package has a reasonable implementation for displaying notifications
 // via a provided cli.Ui.
-func (m *Meta) initDirFromModule(targetDir string, addr string, hooks configload.InstallHooks) tfdiags.Diagnostics {
+func (m *Meta) initDirFromModule(targetDir string, addr string, hooks initwd.ModuleInstallHooks) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	targetDir = m.normalizePath(targetDir)
-
-	loader, err := m.initConfigLoader()
-	if err != nil {
-		diags = diags.Append(err)
-		return diags
-	}
-
-	hclDiags := loader.InitDirFromModule(targetDir, addr, hooks)
-	diags = diags.Append(hclDiags)
+	moreDiags := initwd.DirFromModule(targetDir, m.modulesDir(), addr, m.registryClient(), hooks)
+	diags = diags.Append(moreDiags)
 	return diags
 }
 
@@ -245,7 +289,7 @@ func (m *Meta) inputForSchema(given cty.Value, schema *configschema.Block) (cty.
 		attrS := schema.Attributes[name]
 
 		for {
-			strVal, err := input.Input(&terraform.InputOpts{
+			strVal, err := input.Input(context.Background(), &terraform.InputOpts{
 				Id:          name,
 				Query:       name,
 				Description: attrS.Description,
@@ -325,6 +369,18 @@ func (m *Meta) initConfigLoader() (*configload.Loader, error) {
 		m.configLoader = loader
 	}
 	return m.configLoader, nil
+}
+
+// moduleInstaller instantiates and returns a module installer for use by
+// "terraform init" (directly or indirectly).
+func (m *Meta) moduleInstaller() *initwd.ModuleInstaller {
+	reg := m.registryClient()
+	return initwd.NewModuleInstaller(m.modulesDir(), reg)
+}
+
+// registryClient instantiates and returns a new Terraform Registry client.
+func (m *Meta) registryClient() *registry.Client {
+	return registry.NewClient(m.Services, nil)
 }
 
 // configValueFromCLI parses a configuration value that was provided in a

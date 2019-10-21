@@ -6,8 +6,8 @@ import (
 
 	"github.com/hashicorp/terraform/tfdiags"
 
-	hcl2 "github.com/hashicorp/hcl2/hcl"
-	hcl2write "github.com/hashicorp/hcl2/hclwrite"
+	hcl2 "github.com/hashicorp/hcl/v2"
+	hcl2write "github.com/hashicorp/hcl/v2/hclwrite"
 )
 
 // Upgrade takes some input module sources and produces a new ModuleSources
@@ -30,7 +30,7 @@ import (
 // warnings are also represented as "TF-UPGRADE-TODO:" comments in the
 // generated source files so that users can visit them all and decide what to
 // do with them.
-func (u *Upgrader) Upgrade(input ModuleSources) (ModuleSources, tfdiags.Diagnostics) {
+func (u *Upgrader) Upgrade(input ModuleSources, dir string) (ModuleSources, tfdiags.Diagnostics) {
 	ret := make(ModuleSources)
 	var diags tfdiags.Diagnostics
 
@@ -39,6 +39,7 @@ func (u *Upgrader) Upgrade(input ModuleSources) (ModuleSources, tfdiags.Diagnost
 		diags = diags.Append(err)
 		return ret, diags
 	}
+	an.ModuleDir = dir
 
 	for name, src := range input {
 		ext := fileExt(name)

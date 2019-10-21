@@ -5,6 +5,7 @@ import (
 	"github.com/gophercloud/gophercloud/pagination"
 )
 
+// ListOptsBuilder allows extensions to add parameters to the List request.
 type ListOptsBuilder interface {
 	ToZoneListQuery() (string, error)
 }
@@ -31,11 +32,13 @@ type ListOpts struct {
 	Type        string `q:"type"`
 }
 
+// ToZoneListQuery formats a ListOpts into a query string.
 func (opts ListOpts) ToZoneListQuery() (string, error) {
 	q, err := gophercloud.BuildQueryString(opts)
 	return q.String(), err
 }
 
+// List implements a zone List request.
 func List(client *gophercloud.ServiceClient, opts ListOptsBuilder) pagination.Pager {
 	url := baseURL(client)
 	if opts != nil {
@@ -50,18 +53,19 @@ func List(client *gophercloud.ServiceClient, opts ListOptsBuilder) pagination.Pa
 	})
 }
 
-// Get returns additional information about a zone, given its ID.
+// Get returns information about a zone, given its ID.
 func Get(client *gophercloud.ServiceClient, zoneID string) (r GetResult) {
 	_, r.Err = client.Get(zoneURL(client, zoneID), &r.Body, nil)
 	return
 }
 
-// CreateOptsBuilder allows extensions to add additional attributes to the Update request.
+// CreateOptsBuilder allows extensions to add additional attributes to the
+// Create request.
 type CreateOptsBuilder interface {
 	ToZoneCreateMap() (map[string]interface{}, error)
 }
 
-// CreateOpts specifies the base attributes used to create a zone.
+// CreateOpts specifies the attributes used to create a zone.
 type CreateOpts struct {
 	// Attributes are settings that supply hints and filters for the zone.
 	Attributes map[string]string `json:"attributes,omitempty"`
@@ -73,7 +77,7 @@ type CreateOpts struct {
 	Description string `json:"description,omitempty"`
 
 	// Name of the zone.
-	Name string `json:"name,required"`
+	Name string `json:"name" required:"true"`
 
 	// Masters specifies zone masters if this is a secondary zone.
 	Masters []string `json:"masters,omitempty"`
@@ -99,7 +103,7 @@ func (opts CreateOpts) ToZoneCreateMap() (map[string]interface{}, error) {
 	return b, nil
 }
 
-// Create a zone
+// Create implements a zone create request.
 func Create(client *gophercloud.ServiceClient, opts CreateOptsBuilder) (r CreateResult) {
 	b, err := opts.ToZoneCreateMap()
 	if err != nil {
@@ -112,17 +116,25 @@ func Create(client *gophercloud.ServiceClient, opts CreateOptsBuilder) (r Create
 	return
 }
 
-// UpdateOptsBuilder allows extensions to add additional attributes to the Update request.
+// UpdateOptsBuilder allows extensions to add additional attributes to the
+// Update request.
 type UpdateOptsBuilder interface {
 	ToZoneUpdateMap() (map[string]interface{}, error)
 }
 
-// UpdateOpts specifies the base attributes to update a zone.
+// UpdateOpts specifies the attributes to update a zone.
 type UpdateOpts struct {
-	Email       string   `json:"email,omitempty"`
-	TTL         int      `json:"-"`
-	Masters     []string `json:"masters,omitempty"`
-	Description string   `json:"description,omitempty"`
+	// Email contact of the zone.
+	Email string `json:"email,omitempty"`
+
+	// TTL is the time to live of the zone.
+	TTL int `json:"-"`
+
+	// Masters specifies zone masters if this is a secondary zone.
+	Masters []string `json:"masters,omitempty"`
+
+	// Description of the zone.
+	Description *string `json:"description,omitempty"`
 }
 
 // ToZoneUpdateMap formats an UpdateOpts structure into a request body.
@@ -139,7 +151,7 @@ func (opts UpdateOpts) ToZoneUpdateMap() (map[string]interface{}, error) {
 	return b, nil
 }
 
-// Update a zone.
+// Update implements a zone update request.
 func Update(client *gophercloud.ServiceClient, zoneID string, opts UpdateOptsBuilder) (r UpdateResult) {
 	b, err := opts.ToZoneUpdateMap()
 	if err != nil {
@@ -152,7 +164,7 @@ func Update(client *gophercloud.ServiceClient, zoneID string, opts UpdateOptsBui
 	return
 }
 
-// Delete a zone.
+// Delete implements a zone delete request.
 func Delete(client *gophercloud.ServiceClient, zoneID string) (r DeleteResult) {
 	_, r.Err = client.Delete(zoneURL(client, zoneID), &gophercloud.RequestOpts{
 		OkCodes:      []int{202},

@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcltest"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hcltest"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -328,8 +328,8 @@ func TestEvalValidateResource_invalidDependsOn(t *testing.T) {
 		t.Fatalf("error for supposedly-valid config: %s", err)
 	}
 
-	// No we'll make it invalid, but adding additional traversal steps
-	// on the end of what we're referencing. This is intended to catch the
+	// Now we'll make it invalid by adding additional traversal steps at
+	// the end of what we're referencing. This is intended to catch the
 	// situation where the user tries to depend on e.g. a specific resource
 	// attribute, rather than the whole resource, like aws_instance.foo.id.
 	rc.DependsOn = append(rc.DependsOn, hcl.Traversal{
@@ -341,6 +341,22 @@ func TestEvalValidateResource_invalidDependsOn(t *testing.T) {
 		},
 		hcl.TraverseAttr{
 			Name: "extra",
+		},
+	})
+
+	_, err = node.Eval(ctx)
+	if err == nil {
+		t.Fatal("no error for invalid depends_on")
+	}
+	if got, want := err.Error(), "Invalid depends_on reference"; !strings.Contains(got, want) {
+		t.Fatalf("wrong error\ngot:  %s\nwant: Message containing %q", got, want)
+	}
+
+	// Test for handling an unknown root without attribute, like a
+	// typo that omits the dot inbetween "path.module".
+	rc.DependsOn = append(rc.DependsOn, hcl.Traversal{
+		hcl.TraverseRoot{
+			Name: "pathmodule",
 		},
 	})
 
@@ -372,10 +388,12 @@ func TestEvalValidateProvisioner_valid(t *testing.T) {
 		Config: &configs.Provisioner{
 			Type:   "baz",
 			Config: hcl.EmptyBody(),
-		},
-		ConnConfig: &configs.Connection{
-			//Type:   "ssh",
-			Config: hcl.EmptyBody(),
+			Connection: &configs.Connection{
+				Config: configs.SynthBody("", map[string]cty.Value{
+					"host": cty.StringVal("localhost"),
+					"type": cty.StringVal("ssh"),
+				}),
+			},
 		},
 	}
 
@@ -418,11 +436,12 @@ func TestEvalValidateProvisioner_warning(t *testing.T) {
 		Config: &configs.Provisioner{
 			Type:   "baz",
 			Config: hcl.EmptyBody(),
-		},
-		ConnConfig: &configs.Connection{
-			Config: configs.SynthBody("", map[string]cty.Value{
-				"type": cty.StringVal("ssh"),
-			}),
+			Connection: &configs.Connection{
+				Config: configs.SynthBody("", map[string]cty.Value{
+					"host": cty.StringVal("localhost"),
+					"type": cty.StringVal("ssh"),
+				}),
+			},
 		},
 	}
 
@@ -442,7 +461,7 @@ func TestEvalValidateProvisioner_warning(t *testing.T) {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(err)
 	if len(diags) != 1 {
-		t.Fatalf("wrong number of diagsnostics in %#v; want one warning", diags)
+		t.Fatalf("wrong number of diagnostics in %s; want one warning", diags.ErrWithWarnings())
 	}
 
 	if got, want := diags[0].Description().Summary, mp.ValidateProvisionerConfigResponse.Diagnostics[0].Description().Summary; got != want {
@@ -475,13 +494,13 @@ func TestEvalValidateProvisioner_connectionInvalid(t *testing.T) {
 		Config: &configs.Provisioner{
 			Type:   "baz",
 			Config: hcl.EmptyBody(),
-		},
-		ConnConfig: &configs.Connection{
-			Config: configs.SynthBody("", map[string]cty.Value{
-				"type":             cty.StringVal("ssh"),
-				"bananananananana": cty.StringVal("foo"),
-				"bazaz":            cty.StringVal("bar"),
-			}),
+			Connection: &configs.Connection{
+				Config: configs.SynthBody("", map[string]cty.Value{
+					"type":             cty.StringVal("ssh"),
+					"bananananananana": cty.StringVal("foo"),
+					"bazaz":            cty.StringVal("bar"),
+				}),
+			},
 		},
 	}
 
@@ -492,7 +511,7 @@ func TestEvalValidateProvisioner_connectionInvalid(t *testing.T) {
 
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(err)
-	if len(diags) != 2 {
+	if len(diags) != 3 {
 		t.Fatalf("wrong number of diagnostics; want two errors\n\n%s", diags.Err())
 	}
 

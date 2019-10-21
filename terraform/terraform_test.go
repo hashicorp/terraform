@@ -20,14 +20,16 @@ import (
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/helper/experiment"
 	"github.com/hashicorp/terraform/helper/logging"
+	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/provisioners"
+	"github.com/hashicorp/terraform/registry"
 	"github.com/hashicorp/terraform/states"
 )
 
 // This is the directory where our test fixtures are.
-const fixtureDir = "./test-fixtures"
+const fixtureDir = "./testdata"
 
 func TestMain(m *testing.M) {
 	// We want to shadow on tests just to make sure the shadow graph works
@@ -102,7 +104,6 @@ func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *config
 	t.Helper()
 
 	dir := filepath.Join(fixtureDir, name)
-
 	// FIXME: We're not dealing with the cleanup function here because
 	// this testModule function is used all over and so we don't want to
 	// change its interface at this late stage.
@@ -111,9 +112,16 @@ func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *config
 	// Test modules usually do not refer to remote sources, and for local
 	// sources only this ultimately just records all of the module paths
 	// in a JSON file so that we can load them below.
-	diags := loader.InstallModules(dir, true, configload.InstallHooksImpl{})
-	if diags.HasErrors() {
-		t.Fatal(diags.Error())
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), registry.NewClient(nil, nil))
+	_, instDiags := inst.InstallModules(dir, true, initwd.ModuleInstallHooksImpl{})
+	if instDiags.HasErrors() {
+		t.Fatal(instDiags.Err())
+	}
+
+	// Since module installer has modified the module manifest on disk, we need
+	// to refresh the cache of it in the loader.
+	if err := loader.RefreshModules(); err != nil {
+		t.Fatalf("failed to refresh modules after installation: %s", err)
 	}
 
 	config, snap, diags := loader.LoadConfigWithSnapshot(dir)
@@ -162,9 +170,16 @@ func testModuleInline(t *testing.T, sources map[string]string) *configs.Config {
 	// Test modules usually do not refer to remote sources, and for local
 	// sources only this ultimately just records all of the module paths
 	// in a JSON file so that we can load them below.
-	diags := loader.InstallModules(cfgPath, true, configload.InstallHooksImpl{})
-	if diags.HasErrors() {
-		t.Fatal(diags.Error())
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), registry.NewClient(nil, nil))
+	_, instDiags := inst.InstallModules(cfgPath, true, initwd.ModuleInstallHooksImpl{})
+	if instDiags.HasErrors() {
+		t.Fatal(instDiags.Err())
+	}
+
+	// Since module installer has modified the module manifest on disk, we need
+	// to refresh the cache of it in the loader.
+	if err := loader.RefreshModules(); err != nil {
+		t.Fatalf("failed to refresh modules after installation: %s", err)
 	}
 
 	config, diags := loader.LoadConfig(cfgPath)
@@ -431,6 +446,8 @@ aws_instance.bar:
 aws_instance.foo:
   ID = foo
   provider = provider.aws
+  compute = value
+  compute_value = 1
   num = 2
   type = aws_instance
   value = computed_value
@@ -521,7 +538,40 @@ aws_instance.foo.1:
   ID = foo
   provider = provider.aws
 `
+const testTerraformApplyForEachVariableStr = `
+aws_instance.foo["b15c6d616d6143248c575900dff57325eb1de498"]:
+  ID = foo
+  provider = provider.aws
+  foo = foo
+  type = aws_instance
+aws_instance.foo["c3de47d34b0a9f13918dd705c141d579dd6555fd"]:
+  ID = foo
+  provider = provider.aws
+  foo = foo
+  type = aws_instance
+aws_instance.foo["e30a7edcc42a846684f2a4eea5f3cd261d33c46d"]:
+  ID = foo
+  provider = provider.aws
+  foo = foo
+  type = aws_instance
+aws_instance.one["a"]:
+  ID = foo
+  provider = provider.aws
+aws_instance.one["b"]:
+  ID = foo
+  provider = provider.aws
+aws_instance.two["a"]:
+  ID = foo
+  provider = provider.aws
 
+  Dependencies:
+    aws_instance.one
+aws_instance.two["b"]:
+  ID = foo
+  provider = provider.aws
+
+  Dependencies:
+    aws_instance.one`
 const testTerraformApplyMinimalStr = `
 aws_instance.bar:
   ID = foo
@@ -644,6 +694,8 @@ aws_instance.bar:
 aws_instance.foo:
   ID = foo
   provider = provider.aws
+  compute = value
+  compute_value = 1
   num = 2
   type = aws_instance
   value = computed_value
@@ -781,6 +833,8 @@ const testTerraformApplyErrorDestroyCreateBeforeDestroyStr = `
 aws_instance.bar: (1 deposed)
   ID = foo
   provider = provider.aws
+  require_new = xyz
+  type = aws_instance
   Deposed ID 1 = bar
 `
 
@@ -1014,6 +1068,7 @@ const testTerraformApplyUnknownAttrStr = `
 aws_instance.foo: (tainted)
   ID = foo
   provider = provider.aws
+  compute = unknown
   num = 2
   type = aws_instance
 `

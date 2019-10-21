@@ -17,22 +17,19 @@ in close collaboration with HashiCorp, and are tested by HashiCorp.
 ---
 
 
-[Cloudflare](/docs/providers/cloudflare/index.html)
-
-[DNS](/docs/providers/dns/index.html)
-
-[DNSimple](/docs/providers/dnsimple/index.html)
-
-[DNSMadeEasy](/docs/providers/dme/index.html)
-
-[F5 BIG-IP](/docs/providers/bigip/index.html)
-
-[HTTP](/docs/providers/http/index.html)
-
-[NS1](/docs/providers/ns1/index.html)
-
-[Palo Alto Networks](/docs/providers/panos/index.html)
-
-[PowerDNS](/docs/providers/powerdns/index.html)
-
-[UltraDNS](/docs/providers/ultradns/index.html)
+- [Akamai](/docs/providers/akamai/index.html)
+- [Avi Vantage](/docs/providers/avi/index.html)
+- [Aviatrix](/docs/providers/aviatrix/index.html)
+- [Cloudflare](/docs/providers/cloudflare/index.html)
+- [Cisco ASA](/docs/providers/ciscoasa/index.html)
+- [DNS](/docs/providers/dns/index.html)
+- [DNSimple](/docs/providers/dnsimple/index.html)
+- [DNSMadeEasy](/docs/providers/dme/index.html)
+- [F5 BIG-IP](/docs/providers/bigip/index.html)
+- [FortiOS](/docs/providers/fortios/index.html)
+- [HTTP](/docs/providers/http/index.html)
+- [NS1](/docs/providers/ns1/index.html)
+- [Palo Alto Networks](/docs/providers/panos/index.html)
+- [PowerDNS](/docs/providers/powerdns/index.html)
+- [Pureport](/docs/providers/pureport/index.html)
+- [UltraDNS](/docs/providers/ultradns/index.html)

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
@@ -109,14 +109,15 @@ func (n *EvalValidateProvider) Eval(ctx EvalContext) (interface{}, error) {
 }
 
 // EvalValidateProvisioner is an EvalNode implementation that validates
-// the configuration of a provisioner belonging to a resource.
+// the configuration of a provisioner belonging to a resource. The provisioner
+// config is expected to contain the merged connection configurations.
 type EvalValidateProvisioner struct {
-	ResourceAddr     addrs.Resource
-	Provisioner      *provisioners.Interface
-	Schema           **configschema.Block
-	Config           *configs.Provisioner
-	ConnConfig       *configs.Connection
-	ResourceHasCount bool
+	ResourceAddr       addrs.Resource
+	Provisioner        *provisioners.Interface
+	Schema             **configschema.Block
+	Config             *configs.Provisioner
+	ResourceHasCount   bool
+	ResourceHasForEach bool
 }
 
 func (n *EvalValidateProvisioner) Eval(ctx EvalContext) (interface{}, error) {
@@ -149,10 +150,9 @@ func (n *EvalValidateProvisioner) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	{
-		// Now validate the connection config, which might either be from
-		// the provisioner block itself or inherited from the resource's
-		// shared connection info.
-		connDiags := n.validateConnConfig(ctx, n.ConnConfig, n.ResourceAddr)
+		// Now validate the connection config, which contains the merged bodies
+		// of the resource and provisioner connection blocks.
+		connDiags := n.validateConnConfig(ctx, config.Connection, n.ResourceAddr)
 		diags = diags.Append(connDiags)
 	}
 
@@ -199,6 +199,19 @@ func (n *EvalValidateProvisioner) evaluateBlock(ctx EvalContext, body hcl.Body, 
 		// expected type since none of these elements are known at this
 		// point anyway.
 		selfAddr = n.ResourceAddr.Instance(addrs.IntKey(0))
+	} else if n.ResourceHasForEach {
+		// For a resource that has for_each, we allow each.value and each.key
+		// but don't know at this stage what it will return.
+		keyData = InstanceKeyEvalData{
+			EachKey:   cty.UnknownVal(cty.String),
+			EachValue: cty.DynamicVal,
+		}
+
+		// "self" can't point to an unknown key, but we'll force it to be
+		// key "" here, which should return an unknown value of the
+		// expected type since none of these elements are known at
+		// this point anyway.
+		selfAddr = n.ResourceAddr.Instance(addrs.StringKey(""))
 	}
 
 	return ctx.EvaluateBlock(body, schema, selfAddr, keyData)
@@ -218,6 +231,10 @@ var connectionBlockSupersetSchema = &configschema.Block{
 		// by the config loader and stored away in a separate field.
 
 		// Common attributes for both connection types
+		"host": {
+			Type:     cty.String,
+			Required: true,
+		},
 		"type": {
 			Type:     cty.String,
 			Optional: true,
@@ -227,10 +244,6 @@ var connectionBlockSupersetSchema = &configschema.Block{
 			Optional: true,
 		},
 		"password": {
-			Type:     cty.String,
-			Optional: true,
-		},
-		"host": {
 			Type:     cty.String,
 			Optional: true,
 		},
@@ -249,6 +262,10 @@ var connectionBlockSupersetSchema = &configschema.Block{
 
 		// For type=ssh only (enforced in ssh communicator)
 		"private_key": {
+			Type:     cty.String,
+			Optional: true,
+		},
+		"certificate": {
 			Type:     cty.String,
 			Optional: true,
 		},
@@ -288,6 +305,10 @@ var connectionBlockSupersetSchema = &configschema.Block{
 			Type:     cty.String,
 			Optional: true,
 		},
+		"bastion_certificate": {
+			Type:     cty.String,
+			Optional: true,
+		},
 
 		// For type=winrm only (enforced in winrm communicator)
 		"https": {
@@ -307,6 +328,18 @@ var connectionBlockSupersetSchema = &configschema.Block{
 			Optional: true,
 		},
 	},
+}
+
+// connectionBlockSupersetSchema is a schema representing the superset of all
+// possible arguments for "connection" blocks across all supported connection
+// types.
+//
+// This currently lives here because we've not yet updated our communicator
+// subsystem to be aware of schema itself. It's exported only for use in the
+// configs/configupgrade package and should not be used from anywhere else.
+// The caller may not modify any part of the returned schema data structure.
+func ConnectionBlockSupersetSchema() *configschema.Block {
+	return connectionBlockSupersetSchema
 }
 
 // EvalValidateResource is an EvalNode implementation that validates
@@ -355,16 +388,38 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 		diags = diags.Append(countDiags)
 	}
 
+	if n.Config.ForEach != nil {
+		keyData = InstanceKeyEvalData{
+			EachKey:   cty.UnknownVal(cty.String),
+			EachValue: cty.UnknownVal(cty.DynamicPseudoType),
+		}
+
+		// Evaluate the for_each expression here so we can expose the diagnostics
+		forEachDiags := n.validateForEach(ctx, n.Config.ForEach)
+		diags = diags.Append(forEachDiags)
+	}
+
 	for _, traversal := range n.Config.DependsOn {
 		ref, refDiags := addrs.ParseRef(traversal)
 		diags = diags.Append(refDiags)
-		if len(ref.Remaining) != 0 {
+		if !refDiags.HasErrors() && len(ref.Remaining) != 0 {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid depends_on reference",
 				Detail:   "References in depends_on must be to a whole object (resource, etc), not to an attribute of an object.",
 				Subject:  ref.Remaining.SourceRange().Ptr(),
 			})
+		}
+
+		// The ref must also refer to something that exists. To test that,
+		// we'll just eval it and count on the fact that our evaluator will
+		// detect references to non-existent objects.
+		if !diags.HasErrors() {
+			scope := ctx.EvaluationScope(nil, EvalDataForNoInstanceKey)
+			if scope != nil { // sometimes nil in tests, due to incomplete mocks
+				_, refDiags = scope.EvalReference(ref, cty.DynamicPseudoType)
+				diags = diags.Append(refDiags)
+			}
 		}
 	}
 
@@ -388,6 +443,13 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 		diags = diags.Append(valDiags)
 		if valDiags.HasErrors() {
 			return nil, diags.Err()
+		}
+
+		if cfg.Managed != nil { // can be nil only in tests with poorly-configured mocks
+			for _, traversal := range cfg.Managed.IgnoreChanges {
+				moreDiags := schema.StaticValidateTraversal(traversal)
+				diags = diags.Append(moreDiags)
+			}
 		}
 
 		req := providers.ValidateResourceTypeConfigRequest{
@@ -505,6 +567,21 @@ func (n *EvalValidateResource) validateCount(ctx EvalContext, expr hcl.Expressio
 			Subject:  expr.Range().Ptr(),
 		})
 		return diags
+	}
+
+	return diags
+}
+
+func (n *EvalValidateResource) validateForEach(ctx EvalContext, expr hcl.Expression) (diags tfdiags.Diagnostics) {
+	_, known, forEachDiags := evaluateResourceForEachExpressionKnown(expr, ctx)
+	// If the value isn't known then that's the best we can do for now, but
+	// we'll check more thoroughly during the plan walk
+	if !known {
+		return diags
+	}
+
+	if forEachDiags.HasErrors() {
+		diags = diags.Append(forEachDiags)
 	}
 
 	return diags

@@ -32,12 +32,11 @@ const (
 	DefaultAddress = "https://app.terraform.io"
 	// DefaultBasePath on which the API is served.
 	DefaultBasePath = "/api/v2/"
+	// No-op API endpoint used to configure the rate limiter
+	PingEndpoint = "ping"
 )
 
 var (
-	// random is used to generate pseudo-random numbers.
-	random = rand.New(rand.NewSource(time.Now().UnixNano()))
-
 	// ErrWorkspaceLocked is returned when trying to lock a
 	// locked workspace.
 	ErrWorkspaceLocked = errors.New("workspace already locked")
@@ -50,6 +49,9 @@ var (
 	// ErrResourceNotFound is returned when a receiving a 404.
 	ErrResourceNotFound = errors.New("resource not found")
 )
+
+// RetryLogHook allows a function to run before each retry.
+type RetryLogHook func(attemptNum int, resp *http.Response)
 
 // Config provides configuration details to the API client.
 type Config struct {
@@ -67,6 +69,9 @@ type Config struct {
 
 	// A custom HTTP client to use.
 	HTTPClient *http.Client
+
+	// RetryLogHook is invoked each time a request is retried.
+	RetryLogHook RetryLogHook
 }
 
 // DefaultConfig returns a default config structure.
@@ -93,32 +98,37 @@ func DefaultConfig() *Config {
 // Client is the Terraform Enterprise API client. It provides the basic
 // connectivity and configuration for accessing the TFE API.
 type Client struct {
-	baseURL *url.URL
-	token   string
-	headers http.Header
-	http    *retryablehttp.Client
-	limiter *rate.Limiter
+	baseURL           *url.URL
+	token             string
+	headers           http.Header
+	http              *retryablehttp.Client
+	limiter           *rate.Limiter
+	retryLogHook      RetryLogHook
+	retryServerErrors bool
 
-	Applies               Applies
-	ConfigurationVersions ConfigurationVersions
-	OAuthClients          OAuthClients
-	OAuthTokens           OAuthTokens
-	Organizations         Organizations
-	OrganizationTokens    OrganizationTokens
-	Plans                 Plans
-	Policies              Policies
-	PolicyChecks          PolicyChecks
-	PolicySets            PolicySets
-	Runs                  Runs
-	SSHKeys               SSHKeys
-	StateVersions         StateVersions
-	Teams                 Teams
-	TeamAccess            TeamAccesses
-	TeamMembers           TeamMembers
-	TeamTokens            TeamTokens
-	Users                 Users
-	Variables             Variables
-	Workspaces            Workspaces
+	Applies                    Applies
+	ConfigurationVersions      ConfigurationVersions
+	CostEstimates              CostEstimates
+	NotificationConfigurations NotificationConfigurations
+	OAuthClients               OAuthClients
+	OAuthTokens                OAuthTokens
+	Organizations              Organizations
+	OrganizationTokens         OrganizationTokens
+	Plans                      Plans
+	PlanExports                PlanExports
+	Policies                   Policies
+	PolicyChecks               PolicyChecks
+	PolicySets                 PolicySets
+	Runs                       Runs
+	SSHKeys                    SSHKeys
+	StateVersions              StateVersions
+	Teams                      Teams
+	TeamAccess                 TeamAccesses
+	TeamMembers                TeamMembers
+	TeamTokens                 TeamTokens
+	Users                      Users
+	Variables                  Variables
+	Workspaces                 Workspaces
 }
 
 // NewClient creates a new Terraform Enterprise API client.
@@ -142,6 +152,9 @@ func NewClient(cfg *Config) (*Client, error) {
 		if cfg.HTTPClient != nil {
 			config.HTTPClient = cfg.HTTPClient
 		}
+		if cfg.RetryLogHook != nil {
+			config.RetryLogHook = cfg.RetryLogHook
+		}
 	}
 
 	// Parse the address to make sure its a valid URL.
@@ -162,18 +175,20 @@ func NewClient(cfg *Config) (*Client, error) {
 
 	// Create the client.
 	client := &Client{
-		baseURL: baseURL,
-		token:   config.Token,
-		headers: config.Headers,
-		http: &retryablehttp.Client{
-			Backoff:      rateLimitBackoff,
-			CheckRetry:   rateLimitRetry,
-			ErrorHandler: retryablehttp.PassthroughErrorHandler,
-			HTTPClient:   config.HTTPClient,
-			RetryWaitMin: 100 * time.Millisecond,
-			RetryWaitMax: 400 * time.Millisecond,
-			RetryMax:     30,
-		},
+		baseURL:      baseURL,
+		token:        config.Token,
+		headers:      config.Headers,
+		retryLogHook: config.RetryLogHook,
+	}
+
+	client.http = &retryablehttp.Client{
+		Backoff:      client.retryHTTPBackoff,
+		CheckRetry:   client.retryHTTPCheck,
+		ErrorHandler: retryablehttp.PassthroughErrorHandler,
+		HTTPClient:   config.HTTPClient,
+		RetryWaitMin: 100 * time.Millisecond,
+		RetryWaitMax: 400 * time.Millisecond,
+		RetryMax:     30,
 	}
 
 	// Configure the rate limiter.
@@ -184,11 +199,14 @@ func NewClient(cfg *Config) (*Client, error) {
 	// Create the services.
 	client.Applies = &applies{client: client}
 	client.ConfigurationVersions = &configurationVersions{client: client}
+	client.CostEstimates = &costEstimates{client: client}
+	client.NotificationConfigurations = &notificationConfigurations{client: client}
 	client.OAuthClients = &oAuthClients{client: client}
 	client.OAuthTokens = &oAuthTokens{client: client}
 	client.Organizations = &organizations{client: client}
 	client.OrganizationTokens = &organizationTokens{client: client}
 	client.Plans = &plans{client: client}
+	client.PlanExports = &planExports{client: client}
 	client.Policies = &policies{client: client}
 	client.PolicyChecks = &policyChecks{client: client}
 	client.PolicySets = &policySets{client: client}
@@ -206,22 +224,44 @@ func NewClient(cfg *Config) (*Client, error) {
 	return client, nil
 }
 
-// rateLimitRetry provides a callback for Client.CheckRetry, which will only
-// retry when receiving a 429 response which indicates being rate limited.
-func rateLimitRetry(ctx context.Context, resp *http.Response, err error) (bool, error) {
-	// Do not retry on context.Canceled or context.DeadlineExceeded.
+// RetryServerErrors configures the retry HTTP check to also retry
+// unexpected errors or requests that failed with a server error.
+func (c *Client) RetryServerErrors(retry bool) {
+	c.retryServerErrors = retry
+}
+
+// retryHTTPCheck provides a callback for Client.CheckRetry which
+// will retry both rate limit (429) and server (>= 500) errors.
+func (c *Client) retryHTTPCheck(ctx context.Context, resp *http.Response, err error) (bool, error) {
 	if ctx.Err() != nil {
 		return false, ctx.Err()
 	}
-	// Do not retry on any unexpected errors.
 	if err != nil {
-		return false, err
+		return c.retryServerErrors, err
 	}
-	// Only retry when we are rate limited.
-	if resp.StatusCode == 429 {
+	if resp.StatusCode == 429 || (c.retryServerErrors && resp.StatusCode >= 500) {
 		return true, nil
 	}
 	return false, nil
+}
+
+// retryHTTPBackoff provides a generic callback for Client.Backoff which
+// will pass through all calls based on the status code of the response.
+func (c *Client) retryHTTPBackoff(min, max time.Duration, attemptNum int, resp *http.Response) time.Duration {
+	if c.retryLogHook != nil {
+		c.retryLogHook(attemptNum, resp)
+	}
+
+	// Use the rate limit backoff function when we are rate limited.
+	if resp != nil && resp.StatusCode == 429 {
+		return rateLimitBackoff(min, max, attemptNum, resp)
+	}
+
+	// Set custom duration's when we experience a service interruption.
+	min = 700 * time.Millisecond
+	max = 900 * time.Millisecond
+
+	return retryablehttp.LinearJitterBackoff(min, max, attemptNum, resp)
 }
 
 // rateLimitBackoff provides a callback for Client.Backoff which will use the
@@ -232,8 +272,11 @@ func rateLimitRetry(ctx context.Context, resp *http.Response, err error) (bool, 
 // the reset time retrieved from the headers. But if the final wait time is
 // less then min, min will be used instead.
 func rateLimitBackoff(min, max time.Duration, attemptNum int, resp *http.Response) time.Duration {
+	// rnd is used to generate pseudo-random numbers.
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+
 	// First create some jitter bounded by the min and max durations.
-	jitter := time.Duration(rand.Float64() * float64(max-min))
+	jitter := time.Duration(rnd.Float64() * float64(max-min))
 
 	if resp != nil {
 		if v := resp.Header.Get(headerRateReset); v != "" {
@@ -251,12 +294,11 @@ func rateLimitBackoff(min, max time.Duration, attemptNum int, resp *http.Respons
 
 // configureLimiter configures the rate limiter.
 func (c *Client) configureLimiter() error {
-	u, err := c.baseURL.Parse("/")
+	// Create a new request.
+	u, err := c.baseURL.Parse(PingEndpoint)
 	if err != nil {
 		return err
 	}
-
-	// Create a new request.
 	req, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
 		return err
@@ -266,6 +308,8 @@ func (c *Client) configureLimiter() error {
 	for k, v := range c.headers {
 		req.Header[k] = v
 	}
+	req.Header.Set("Accept", "application/vnd.api+json")
+	req.Header.Set("Authorization", "Bearer "+c.token)
 
 	// Make a single request to retrieve the rate limit headers.
 	resp, err := c.http.HTTPClient.Do(req)
@@ -536,7 +580,7 @@ func checkResponseCode(r *http.Response) error {
 		if e.Detail == "" {
 			errs = append(errs, e.Title)
 		} else {
-			errs = append(errs, fmt.Sprintf("%s %s", e.Title, e.Detail))
+			errs = append(errs, fmt.Sprintf("%s\n\n%s", e.Title, e.Detail))
 		}
 	}
 

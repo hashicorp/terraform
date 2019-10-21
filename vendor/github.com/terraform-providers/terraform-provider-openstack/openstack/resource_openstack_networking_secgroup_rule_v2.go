@@ -28,47 +28,53 @@ func resourceNetworkingSecGroupRuleV2() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"region": &schema.Schema{
+			"region": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
-			"direction": &schema.Schema{
+			"description": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: false,
+				ForceNew: true,
+			},
+			"direction": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"ethertype": &schema.Schema{
+			"ethertype": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"port_range_min": &schema.Schema{
+			"port_range_min": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
 			},
-			"port_range_max": &schema.Schema{
+			"port_range_max": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
 			},
-			"protocol": &schema.Schema{
+			"protocol": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
 			},
-			"remote_group_id": &schema.Schema{
+			"remote_group_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
 			},
-			"remote_ip_prefix": &schema.Schema{
+			"remote_ip_prefix": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -77,12 +83,12 @@ func resourceNetworkingSecGroupRuleV2() *schema.Resource {
 					return strings.ToLower(v.(string))
 				},
 			},
-			"security_group_id": &schema.Schema{
+			"security_group_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"tenant_id": &schema.Schema{
+			"tenant_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -111,12 +117,13 @@ func resourceNetworkingSecGroupRuleV2Create(d *schema.ResourceData, meta interfa
 	}
 
 	opts := rules.CreateOpts{
+		Description:    d.Get("description").(string),
 		SecGroupID:     d.Get("security_group_id").(string),
 		PortRangeMin:   d.Get("port_range_min").(int),
 		PortRangeMax:   d.Get("port_range_max").(int),
 		RemoteGroupID:  d.Get("remote_group_id").(string),
 		RemoteIPPrefix: d.Get("remote_ip_prefix").(string),
-		TenantID:       d.Get("tenant_id").(string),
+		ProjectID:      d.Get("tenant_id").(string),
 	}
 
 	if v, ok := d.GetOk("direction"); ok {
@@ -133,7 +140,6 @@ func resourceNetworkingSecGroupRuleV2Create(d *schema.ResourceData, meta interfa
 		protocol := resourceNetworkingSecGroupRuleV2DetermineProtocol(v.(string))
 		opts.Protocol = protocol
 	}
-
 	log.Printf("[DEBUG] Create OpenStack Neutron security group: %#v", opts)
 
 	security_group_rule, err := rules.Create(networkingClient, opts).Extract()
@@ -162,7 +168,7 @@ func resourceNetworkingSecGroupRuleV2Read(d *schema.ResourceData, meta interface
 	if err != nil {
 		return CheckDeleted(d, err, "OpenStack Security Group Rule")
 	}
-
+	d.Set("description", security_group_rule.Description)
 	d.Set("direction", security_group_rule.Direction)
 	d.Set("ethertype", security_group_rule.EtherType)
 	d.Set("protocol", security_group_rule.Protocol)

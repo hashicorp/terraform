@@ -6,9 +6,9 @@ import (
 	"sync"
 
 	"github.com/zclconf/go-cty/cty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -191,6 +191,10 @@ func (p *MockProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequ
 	p.Lock()
 	defer p.Unlock()
 
+	schemas := p.getSchema()
+	schema := schemas.ResourceTypes[r.TypeName]
+	schemaType := schema.Block.ImpliedType()
+
 	p.UpgradeResourceStateCalled = true
 	p.UpgradeResourceStateRequest = r
 
@@ -198,7 +202,28 @@ func (p *MockProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequ
 		return p.UpgradeResourceStateFn(r)
 	}
 
-	return p.UpgradeResourceStateResponse
+	resp := p.UpgradeResourceStateResponse
+
+	if resp.UpgradedState == cty.NilVal {
+		switch {
+		case r.RawStateFlatmap != nil:
+			v, err := hcl2shim.HCL2ValueFromFlatmap(r.RawStateFlatmap, schemaType)
+			if err != nil {
+				resp.Diagnostics = resp.Diagnostics.Append(err)
+				return resp
+			}
+			resp.UpgradedState = v
+		case len(r.RawStateJSON) > 0:
+			v, err := ctyjson.Unmarshal(r.RawStateJSON, schemaType)
+
+			if err != nil {
+				resp.Diagnostics = resp.Diagnostics.Append(err)
+				return resp
+			}
+			resp.UpgradedState = v
+		}
+	}
+	return resp
 }
 
 func (p *MockProvider) Configure(r providers.ConfigureRequest) providers.ConfigureResponse {
@@ -365,7 +390,7 @@ func (p *MockProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 			for k, new := range plannedMap {
 				old := priorMap[k]
 				newComputed := false
-				if new == config.UnknownVariableValue {
+				if new == hcl2shim.UnknownVariableValue {
 					new = ""
 					newComputed = true
 				}

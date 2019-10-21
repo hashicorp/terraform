@@ -4,7 +4,7 @@ import (
 	"sort"
 
 	version "github.com/hashicorp/go-version"
-	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
 )
 
@@ -32,7 +32,7 @@ type Config struct {
 	//
 	// This should only be used to display paths to the end-user in rare cases
 	// where we are talking about the static module tree, before module calls
-	// have been resolved. In most cases, a addrs.ModuleInstance describing
+	// have been resolved. In most cases, an addrs.ModuleInstance describing
 	// a node in the dynamic module tree is better, since it will then include
 	// any keys resulting from evaluating "count" and "for_each" arguments.
 	Path addrs.Module

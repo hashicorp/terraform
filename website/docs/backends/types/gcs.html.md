@@ -10,7 +10,12 @@ description: |-
 
 **Kind: Standard (with locking)**
 
-Stores the state as an object in a configurable prefix and bucket on [Google Cloud Storage](https://cloud.google.com/storage/) (GCS).
+Stores the state as an object in a configurable prefix in a given bucket on [Google Cloud Storage](https://cloud.google.com/storage/) (GCS).
+This backend also supports [state locking](/docs/state/locking.html).
+
+~> **Warning!** It is highly recommended that you enable
+[Object Versioning](https://cloud.google.com/storage/docs/object-versioning)
+on the GCS bucket to allow for state recovery in the case of accidental deletions and human error.
 
 ## Example Configuration
 
@@ -53,10 +58,9 @@ The following configuration options are supported:
  *  `credentials` / `GOOGLE_CREDENTIALS` - (Optional) Local path to Google Cloud Platform account credentials in JSON format.
     If unset, [Google Application Default Credentials](https://developers.google.com/identity/protocols/application-default-credentials) are used.
     The provided credentials need to have the `devstorage.read_write` scope and `WRITER` permissions on the bucket.
+ * `access_token` - (Optional) A temporary [OAuth 2.0 access token] obtained from
+    the Google Authorization server, i.e. the `Authorization: Bearer` token used to
+    authenticate HTTP requests to GCP APIs. This is an alternative to `credentials`. If both are specified, `access_token` will be used over the `credentials` field.
  *  `prefix` - (Optional) GCS prefix inside the bucket. Named states for workspaces are stored in an object called `<prefix>/<name>.tfstate`.
  *  `path` - (Deprecated) GCS path to the state file of the default state. For backwards compatibility only, use `prefix` instead.
- *  `project` / `GOOGLE_PROJECT` - (Optional) The project ID to which the bucket belongs. This is only used when creating a new bucket during initialization.
-    Since buckets have globally unique names, the project ID is not required to access the bucket during normal operation.
- *  `region` / `GOOGLE_REGION` - (Optional) The region in which a new bucket is created.
-    For more information, see [Bucket Locations](https://cloud.google.com/storage/docs/bucket-locations).
  *  `encryption_key` / `GOOGLE_ENCRYPTION_KEY` - (Optional) A 32 byte base64 encoded 'customer supplied encryption key' used to encrypt all state. For more information see [Customer Supplied Encryption Keys](https://cloud.google.com/storage/docs/encryption#customer-supplied).

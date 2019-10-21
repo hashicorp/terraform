@@ -255,9 +255,9 @@ func (b *Body) JustAttributes() (hcl.Attributes, hcl.Diagnostics) {
 		example := b.Blocks[0]
 		diags = append(diags, &hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  fmt.Sprintf("Unexpected %s block", example.Type),
+			Summary:  fmt.Sprintf("Unexpected %q block", example.Type),
 			Detail:   "Blocks are not allowed here.",
-			Context:  &example.TypeRange,
+			Subject:  &example.TypeRange,
 		})
 		// we will continue processing anyway, and return the attributes
 		// we are able to find so that certain analyses can still be done
@@ -279,7 +279,11 @@ func (b *Body) JustAttributes() (hcl.Attributes, hcl.Diagnostics) {
 }
 
 func (b *Body) MissingItemRange() hcl.Range {
-	return b.EndRange
+	return hcl.Range{
+		Filename: b.SrcRange.Filename,
+		Start:    b.SrcRange.Start,
+		End:      b.SrcRange.Start,
+	}
 }
 
 // Attributes is the collection of attribute definitions within a body.

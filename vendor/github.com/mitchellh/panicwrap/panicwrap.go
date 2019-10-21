@@ -178,7 +178,7 @@ func Wrap(c *WrapConfig) (int, error) {
 		c.IgnoreSignals = []os.Signal{os.Interrupt}
 	}
 	signal.Notify(sigCh, c.IgnoreSignals...)
-	signal.Notify(sigCh, c.ForwardSignals...)
+	signal.Notify(fwdSigCh, c.ForwardSignals...)
 	go func() {
 		defer signal.Stop(sigCh)
 		defer signal.Stop(fwdSigCh)

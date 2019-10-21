@@ -29,54 +29,54 @@ func resourceLBMonitorV1() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"region": &schema.Schema{
+			"region": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
-			"tenant_id": &schema.Schema{
+			"tenant_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
 			},
-			"type": &schema.Schema{
+			"type": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"delay": &schema.Schema{
+			"delay": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: false,
 			},
-			"timeout": &schema.Schema{
+			"timeout": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: false,
 			},
-			"max_retries": &schema.Schema{
+			"max_retries": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: false,
 			},
-			"url_path": &schema.Schema{
+			"url_path": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: false,
 			},
-			"http_method": &schema.Schema{
+			"http_method": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: false,
 			},
-			"expected_codes": &schema.Schema{
+			"expected_codes": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: false,
 			},
-			"admin_state_up": &schema.Schema{
+			"admin_state_up": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: false,

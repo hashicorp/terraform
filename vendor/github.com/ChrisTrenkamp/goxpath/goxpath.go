@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/ChrisTrenkamp/goxpath/internal/execxp"
-	"github.com/ChrisTrenkamp/goxpath/internal/parser"
+	"github.com/ChrisTrenkamp/goxpath/parser"
 	"github.com/ChrisTrenkamp/goxpath/tree"
 )
 

@@ -16,6 +16,7 @@ package internal
 
 import (
 	"errors"
+
 	"google.golang.org/grpc/naming"
 )
 
@@ -37,7 +38,7 @@ func NewPoolResolver(size int, o *DialSettings) *PoolResolver {
 // provided to NewPoolResolver.
 func (r *PoolResolver) Resolve(target string) (naming.Watcher, error) {
 	if r.dialOpt.Endpoint == "" {
-		return nil, errors.New("No endpoint configured")
+		return nil, errors.New("no endpoint configured")
 	}
 	addrs := make([]*naming.Update, 0, r.poolSize)
 	for i := 0; i < r.poolSize; i++ {
@@ -54,6 +55,7 @@ func (r *PoolResolver) Next() ([]*naming.Update, error) {
 	return <-r.ch, nil
 }
 
+// Close releases resources associated with the pool and causes Next to unblock.
 func (r *PoolResolver) Close() {
 	close(r.ch)
 }

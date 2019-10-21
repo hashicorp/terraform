@@ -1,5 +1,7 @@
 package terraform
 
+import "context"
+
 // MockUIInput is an implementation of UIInput that can be used for tests.
 type MockUIInput struct {
 	InputCalled       bool
@@ -10,7 +12,7 @@ type MockUIInput struct {
 	InputFn           func(*InputOpts) (string, error)
 }
 
-func (i *MockUIInput) Input(opts *InputOpts) (string, error) {
+func (i *MockUIInput) Input(ctx context.Context, opts *InputOpts) (string, error) {
 	i.InputCalled = true
 	i.InputOpts = opts
 	if i.InputFn != nil {

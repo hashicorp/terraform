@@ -87,7 +87,7 @@ type CLI struct {
 	// should be set exactly to the binary name that is autocompleted.
 	//
 	// Autocompletion is supported via the github.com/posener/complete
-	// library. This library supports both bash and zsh. To add support
+	// library. This library supports bash, zsh and fish. To add support
 	// for other shells, please see that library.
 	//
 	// AutocompleteInstall and AutocompleteUninstall are the global flag
@@ -419,6 +419,11 @@ func (c *CLI) initAutocomplete() {
 func (c *CLI) initAutocompleteSub(prefix string) complete.Command {
 	var cmd complete.Command
 	walkFn := func(k string, raw interface{}) bool {
+		// Ignore the empty key which can be present for default commands.
+		if k == "" {
+			return false
+		}
+
 		// Keep track of the full key so that we can nest further if necessary
 		fullKey := k
 

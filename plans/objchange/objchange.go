@@ -25,12 +25,46 @@ import (
 // produce strange results with more "extreme" cases, such as a nested set
 // block where _all_ attributes are computed.
 func ProposedNewObject(schema *configschema.Block, prior, config cty.Value) cty.Value {
-	if prior.IsNull() {
-		// In this case, we will treat the prior value as unknown so that
-		// any computed attributes not overridden in config will show as
-		// unknown values, rather than null values.
-		prior = cty.UnknownVal(schema.ImpliedType())
+	// If the config and prior are both null, return early here before
+	// populating the prior block. The prevents non-null blocks from appearing
+	// the proposed state value.
+	if config.IsNull() && prior.IsNull() {
+		return prior
 	}
+
+	if prior.IsNull() {
+		// In this case, we will construct a synthetic prior value that is
+		// similar to the result of decoding an empty configuration block,
+		// which simplifies our handling of the top-level attributes/blocks
+		// below by giving us one non-null level of object to pull values from.
+		prior = AllAttributesNull(schema)
+	}
+	return proposedNewObject(schema, prior, config)
+}
+
+// PlannedDataResourceObject is similar to ProposedNewObject but tailored for
+// planning data resources in particular. Specifically, it replaces the values
+// of any Computed attributes not set in the configuration with an unknown
+// value, which serves as a placeholder for a value to be filled in by the
+// provider when the data resource is finally read.
+//
+// Data resources are different because the planning of them is handled
+// entirely within Terraform Core and not subject to customization by the
+// provider. This function is, in effect, producing an equivalent result to
+// passing the ProposedNewObject result into a provider's PlanResourceChange
+// function, assuming a fixed implementation of PlanResourceChange that just
+// fills in unknown values as needed.
+func PlannedDataResourceObject(schema *configschema.Block, config cty.Value) cty.Value {
+	// Our trick here is to run the ProposedNewObject logic with an
+	// entirely-unknown prior value. Because of cty's unknown short-circuit
+	// behavior, any operation on prior returns another unknown, and so
+	// unknown values propagate into all of the parts of the resulting value
+	// that would normally be filled in by preserving the prior state.
+	prior := cty.UnknownVal(schema.ImpliedType())
+	return proposedNewObject(schema, prior, config)
+}
+
+func proposedNewObject(schema *configschema.Block, prior, config cty.Value) cty.Value {
 	if config.IsNull() || !config.IsKnown() {
 		// This is a weird situation, but we'll allow it anyway to free
 		// callers from needing to specifically check for these cases.
@@ -87,7 +121,7 @@ func ProposedNewObject(schema *configschema.Block, prior, config cty.Value) cty.
 		var newV cty.Value
 		switch blockType.Nesting {
 
-		case configschema.NestingSingle:
+		case configschema.NestingSingle, configschema.NestingGroup:
 			newV = ProposedNewObject(&blockType.Block, priorV, configV)
 
 		case configschema.NestingList:
@@ -143,7 +177,7 @@ func ProposedNewObject(schema *configschema.Block, prior, config cty.Value) cty.
 					atys := configV.Type().AttributeTypes()
 					for name := range atys {
 						configEV := configV.GetAttr(name)
-						if !priorV.Type().HasAttribute(name) {
+						if !priorV.IsKnown() || priorV.IsNull() || !priorV.Type().HasAttribute(name) {
 							// If there is no corresponding prior element then
 							// we just take the config value as-is.
 							newVals[name] = configEV
@@ -301,7 +335,7 @@ func setElementCompareValue(schema *configschema.Block, v cty.Value, isConfig bo
 	for name, blockType := range schema.BlockTypes {
 		switch blockType.Nesting {
 
-		case configschema.NestingSingle:
+		case configschema.NestingSingle, configschema.NestingGroup:
 			attrs[name] = setElementCompareValue(&blockType.Block, v.GetAttr(name), isConfig)
 
 		case configschema.NestingList, configschema.NestingSet:

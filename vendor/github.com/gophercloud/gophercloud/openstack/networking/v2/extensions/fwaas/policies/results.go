@@ -11,6 +11,7 @@ type Policy struct {
 	Name        string   `json:"name"`
 	Description string   `json:"description"`
 	TenantID    string   `json:"tenant_id"`
+	ProjectID   string   `json:"project_id"`
 	Audited     bool     `json:"audited"`
 	Shared      bool     `json:"shared"`
 	Rules       []string `json:"firewall_rules,omitempty"`
@@ -55,8 +56,8 @@ func (r PolicyPage) IsEmpty() (bool, error) {
 	return len(is) == 0, err
 }
 
-// ExtractPolicies accepts a Page struct, specifically a RouterPage struct,
-// and extracts the elements into a slice of Router structs. In other words,
+// ExtractPolicies accepts a Page struct, specifically a Policy struct,
+// and extracts the elements into a slice of Policy structs. In other words,
 // a generic collection is mapped into a relevant slice.
 func ExtractPolicies(r pagination.Page) ([]Policy, error) {
 	var s struct {
@@ -66,32 +67,38 @@ func ExtractPolicies(r pagination.Page) ([]Policy, error) {
 	return s.Policies, err
 }
 
-// GetResult represents the result of a get operation.
+// GetResult represents the result of a get operation. Call its Extract
+// method to interpret it as a Policy.
 type GetResult struct {
 	commonResult
 }
 
-// UpdateResult represents the result of an update operation.
+// UpdateResult represents the result of an update operation. Call its
+// Extract method to interpret it as a Policy.
 type UpdateResult struct {
 	commonResult
 }
 
-// DeleteResult represents the result of a delete operation.
+// DeleteResult represents the result of a delete operation. Call its
+// ExtractErr method to determine if the operation succeeded or failed.
 type DeleteResult struct {
 	gophercloud.ErrResult
 }
 
-// CreateResult represents the result of a create operation.
+// CreateResult represents the result of a create operation. Call its Extract
+// method to interpret it as a Policy.
 type CreateResult struct {
 	commonResult
 }
 
-// InsertRuleResult represents the result of an InsertRule operation.
+// InsertRuleResult represents the result of an InsertRule operation. Call its
+// Extract method to interpret it as a Policy.
 type InsertRuleResult struct {
 	commonResult
 }
 
-// RemoveRuleResult represents the result of a RemoveRule operation.
+// RemoveRuleResult represents the result of a RemoveRule operation. Call its
+// Extract method to interpret it as a Policy.
 type RemoveRuleResult struct {
 	commonResult
 }

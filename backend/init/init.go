@@ -5,8 +5,8 @@ package init
 import (
 	"sync"
 
+	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/svchost/disco"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 
@@ -22,6 +22,8 @@ import (
 	backendHTTP "github.com/hashicorp/terraform/backend/remote-state/http"
 	backendInmem "github.com/hashicorp/terraform/backend/remote-state/inmem"
 	backendManta "github.com/hashicorp/terraform/backend/remote-state/manta"
+	backendOSS "github.com/hashicorp/terraform/backend/remote-state/oss"
+	backendPg "github.com/hashicorp/terraform/backend/remote-state/pg"
 	backendS3 "github.com/hashicorp/terraform/backend/remote-state/s3"
 	backendSwift "github.com/hashicorp/terraform/backend/remote-state/swift"
 )
@@ -61,6 +63,8 @@ func Init(services *disco.Disco) {
 		"http":        func() backend.Backend { return backendHTTP.New() },
 		"inmem":       func() backend.Backend { return backendInmem.New() },
 		"manta":       func() backend.Backend { return backendManta.New() },
+		"oss":         func() backend.Backend { return backendOSS.New() },
+		"pg":          func() backend.Backend { return backendPg.New() },
 		"s3":          func() backend.Backend { return backendS3.New() },
 		"swift":       func() backend.Backend { return backendSwift.New() },
 
@@ -108,11 +112,11 @@ type deprecatedBackendShim struct {
 	Message string
 }
 
-// ValidateConfig delegates to the wrapped backend to validate its config
+// PrepareConfig delegates to the wrapped backend to validate its config
 // and then appends shim's deprecation warning.
-func (b deprecatedBackendShim) ValidateConfig(obj cty.Value) tfdiags.Diagnostics {
-	diags := b.Backend.ValidateConfig(obj)
-	return diags.Append(tfdiags.SimpleWarning(b.Message))
+func (b deprecatedBackendShim) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
+	newObj, diags := b.Backend.PrepareConfig(obj)
+	return newObj, diags.Append(tfdiags.SimpleWarning(b.Message))
 }
 
 // DeprecateBackend can be used to wrap a backend to retrun a deprecation

@@ -77,7 +77,8 @@ When constructing a new provider from scratch, it's recommended to follow
 a similar repository structure as for the existing providers, with the main
 package in the repository root and a library package in a subdirectory named
 after the provider. For more information, see
-[the custom providers guide](/guides/writing-custom-terraform-providers.html).
+[Writing Custom Providers](/docs/extend/writing-custom-providers.html) in the
+[Extending Terraform section](/docs/extend/index.html).
 
 When making changes only to files within the provider repository, it is _not_
 necessary to re-build the main Terraform executable. Note that some packages

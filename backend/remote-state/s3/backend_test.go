@@ -11,7 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/states"
 )
@@ -76,9 +76,61 @@ func TestBackendConfig_invalidKey(t *testing.T) {
 		"dynamodb_table": "dynamoTable",
 	})
 
-	diags := New().ValidateConfig(cfg)
+	_, diags := New().PrepareConfig(cfg)
 	if !diags.HasErrors() {
 		t.Fatal("expected config validation error")
+	}
+}
+
+func TestBackendConfig_invalidSSECustomerKeyLength(t *testing.T) {
+	testACC(t)
+	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{
+		"region":           "us-west-1",
+		"bucket":           "tf-test",
+		"encrypt":          true,
+		"key":              "state",
+		"dynamodb_table":   "dynamoTable",
+		"sse_customer_key": "key",
+	})
+
+	_, diags := New().PrepareConfig(cfg)
+	if !diags.HasErrors() {
+		t.Fatal("expected error for invalid sse_customer_key length")
+	}
+}
+
+func TestBackendConfig_invalidSSECustomerKeyEncoding(t *testing.T) {
+	testACC(t)
+	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{
+		"region":           "us-west-1",
+		"bucket":           "tf-test",
+		"encrypt":          true,
+		"key":              "state",
+		"dynamodb_table":   "dynamoTable",
+		"sse_customer_key": "====CT70aTYB2JGff7AjQtwbiLkwH4npICay1PWtmdka",
+	})
+
+	diags := New().Configure(cfg)
+	if !diags.HasErrors() {
+		t.Fatal("expected error for failing to decode sse_customer_key")
+	}
+}
+
+func TestBackendConfig_conflictingEncryptionSchema(t *testing.T) {
+	testACC(t)
+	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{
+		"region":           "us-west-1",
+		"bucket":           "tf-test",
+		"key":              "state",
+		"encrypt":          true,
+		"dynamodb_table":   "dynamoTable",
+		"sse_customer_key": "1hwbcNPGWL+AwDiyGmRidTWAEVmCWMKbEHA+Es8w75o=",
+		"kms_key_id":       "arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab",
+	})
+
+	diags := New().Configure(cfg)
+	if !diags.HasErrors() {
+		t.Fatal("expected error for simultaneous usage of kms_key_id and sse_customer_key")
 	}
 }
 
@@ -127,6 +179,23 @@ func TestBackendLocked(t *testing.T) {
 
 	backend.TestBackendStateLocks(t, b1, b2)
 	backend.TestBackendStateForceUnlock(t, b1, b2)
+}
+
+func TestBackendSSECustomerKey(t *testing.T) {
+	testACC(t)
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":           bucketName,
+		"encrypt":          true,
+		"key":              "test-SSE-C",
+		"sse_customer_key": "4Dm1n4rphuFgawxuzY/bEfvLf6rYK0gIjfaDSLlfXNk=",
+	})).(*Backend)
+
+	createS3Bucket(t, b.s3Client, bucketName)
+	defer deleteS3Bucket(t, b.s3Client, bucketName)
+
+	backend.TestBackendStates(t, b)
 }
 
 // add some extra junk in S3 to try and confuse the env listing.
@@ -199,6 +268,11 @@ func TestBackendExtraPaths(t *testing.T) {
 	}
 
 	// remove the state with extra subkey
+	if err := client.Delete(); err != nil {
+		t.Fatal(err)
+	}
+
+	// delete the real workspace
 	if err := b.DeleteWorkspace("s2"); err != nil {
 		t.Fatal(err)
 	}
@@ -216,7 +290,7 @@ func TestBackendExtraPaths(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if stateMgr.StateSnapshotMeta().Lineage == s2Lineage {
+	if s2Mgr.(*remote.State).StateSnapshotMeta().Lineage == s2Lineage {
 		t.Fatal("state s2 was not deleted")
 	}
 	s2 = s2Mgr.State()

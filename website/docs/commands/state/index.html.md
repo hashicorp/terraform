@@ -1,7 +1,7 @@
 ---
 layout: "commands-state"
 page_title: "Command: state"
-sidebar_current: "docs-state-index"
+sidebar_current: "docs-commands-state-index"
 description: |-
   The `terraform state` command is used for advanced state management.
 ---

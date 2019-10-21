@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/copystructure"
 )
@@ -63,7 +63,37 @@ func (t *ResourceTimeout) ConfigDecode(s *Resource, c *terraform.ResourceConfig)
 	}
 
 	if raw, ok := c.Config[TimeoutsConfigKey]; ok {
-		if timeoutValues, ok := raw.(map[string]interface{}); ok {
+		var rawTimeouts []map[string]interface{}
+		switch raw := raw.(type) {
+		case map[string]interface{}:
+			rawTimeouts = append(rawTimeouts, raw)
+		case []map[string]interface{}:
+			rawTimeouts = raw
+		case string:
+			if raw == hcl2shim.UnknownVariableValue {
+				// Timeout is not defined in the config
+				// Defaults will be used instead
+				return nil
+			} else {
+				log.Printf("[ERROR] Invalid timeout value: %q", raw)
+				return fmt.Errorf("Invalid Timeout value found")
+			}
+		case []interface{}:
+			for _, r := range raw {
+				if rMap, ok := r.(map[string]interface{}); ok {
+					rawTimeouts = append(rawTimeouts, rMap)
+				} else {
+					// Go will not allow a fallthrough
+					log.Printf("[ERROR] Invalid timeout structure: %#v", raw)
+					return fmt.Errorf("Invalid Timeout structure found")
+				}
+			}
+		default:
+			log.Printf("[ERROR] Invalid timeout structure: %#v", raw)
+			return fmt.Errorf("Invalid Timeout structure found")
+		}
+
+		for _, timeoutValues := range rawTimeouts {
 			for timeKey, timeValue := range timeoutValues {
 				// validate that we're dealing with the normal CRUD actions
 				var found bool
@@ -108,14 +138,6 @@ func (t *ResourceTimeout) ConfigDecode(s *Resource, c *terraform.ResourceConfig)
 			}
 			return nil
 		}
-		if v, ok := raw.(string); ok && v == config.UnknownVariableValue {
-			// Timeout is not defined in the config
-			// Defaults will be used instead
-			return nil
-		}
-
-		log.Printf("[ERROR] Invalid timeout structure: %T", raw)
-		return fmt.Errorf("Invalid Timeout structure found")
 	}
 
 	return nil

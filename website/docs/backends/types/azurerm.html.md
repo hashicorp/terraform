@@ -20,6 +20,7 @@ When authenticating using the Azure CLI or a Service Principal (either with a Cl
 ```hcl
 terraform {
   backend "azurerm" {
+    resource_group_name  = "StorageAccount-ResourceGroup"
     storage_account_name = "abcd1234"
     container_name       = "tfstate"
     key                  = "prod.terraform.tfstate"
@@ -122,6 +123,7 @@ data "terraform_remote_state" "foo" {
     access_key = "abcdefghijklmnopqrstuvwxyz0123456789..."
   }
 }
+```
 
 When authenticating using a SAS Token associated with the Storage Account:
 

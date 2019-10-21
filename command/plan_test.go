@@ -575,6 +575,10 @@ func TestPlan_varsUnset(t *testing.T) {
 	test = false
 	defer func() { test = true }()
 
+	// The plan command will prompt for interactive input of var.foo.
+	// We'll answer "bar" to that prompt, which should then allow this
+	// configuration to apply even though var.foo doesn't have a
+	// default value and there are no -var arguments on our command line.
 	defaultInputReader = bytes.NewBufferString("bar\n")
 
 	p := planVarsFixtureProvider()
@@ -683,6 +687,38 @@ func TestPlan_varFileDefault(t *testing.T) {
 
 	if actual != "bar" {
 		t.Fatal("didn't work")
+	}
+}
+
+func TestPlan_varFileWithDecls(t *testing.T) {
+	tmp, cwd := testCwd(t)
+	defer testFixCwd(t, tmp, cwd)
+
+	varFilePath := testTempFile(t)
+	if err := ioutil.WriteFile(varFilePath, []byte(planVarFileWithDecl), 0644); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	p := planVarsFixtureProvider()
+	ui := cli.NewMockUi()
+	c := &PlanCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"-var-file", varFilePath,
+		testFixturePath("plan-vars"),
+	}
+	if code := c.Run(args); code == 0 {
+		t.Fatalf("succeeded; want failure\n\n%s", ui.OutputWriter.String())
+	}
+
+	msg := ui.ErrorWriter.String()
+	if got, want := msg, "Variable declaration in .tfvars file"; !strings.Contains(got, want) {
+		t.Fatalf("missing expected error message\nwant message containing %q\ngot:\n%s", want, got)
 	}
 }
 
@@ -816,7 +852,7 @@ func TestPlan_shutdown(t *testing.T) {
 }
 
 // planFixtureSchema returns a schema suitable for processing the
-// configuration in test-fixtures/plan . This schema should be
+// configuration in testdata/plan . This schema should be
 // assigned to a mock provider named "test".
 func planFixtureSchema() *terraform.ProviderSchema {
 	return &terraform.ProviderSchema{
@@ -843,7 +879,7 @@ func planFixtureSchema() *terraform.ProviderSchema {
 }
 
 // planFixtureProvider returns a mock provider that is configured for basic
-// operation with the configuration in test-fixtures/plan. This mock has
+// operation with the configuration in testdata/plan. This mock has
 // GetSchemaReturn and PlanResourceChangeFn populated, with the plan
 // step just passing through the new object proposed by Terraform Core.
 func planFixtureProvider() *terraform.MockProvider {
@@ -858,7 +894,7 @@ func planFixtureProvider() *terraform.MockProvider {
 }
 
 // planVarsFixtureSchema returns a schema suitable for processing the
-// configuration in test-fixtures/plan-vars . This schema should be
+// configuration in testdata/plan-vars . This schema should be
 // assigned to a mock provider named "test".
 func planVarsFixtureSchema() *terraform.ProviderSchema {
 	return &terraform.ProviderSchema{
@@ -874,7 +910,7 @@ func planVarsFixtureSchema() *terraform.ProviderSchema {
 }
 
 // planVarsFixtureProvider returns a mock provider that is configured for basic
-// operation with the configuration in test-fixtures/plan-vars. This mock has
+// operation with the configuration in testdata/plan-vars. This mock has
 // GetSchemaReturn and PlanResourceChangeFn populated, with the plan
 // step just passing through the new object proposed by Terraform Core.
 func planVarsFixtureProvider() *terraform.MockProvider {
@@ -890,6 +926,13 @@ func planVarsFixtureProvider() *terraform.MockProvider {
 
 const planVarFile = `
 foo = "bar"
+`
+
+const planVarFileWithDecl = `
+foo = "bar"
+
+variable "nope" {
+}
 `
 
 const testPlanNoStateStr = `

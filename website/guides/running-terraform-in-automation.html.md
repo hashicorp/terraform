@@ -309,23 +309,23 @@ Plugins can also be provided along with the configuration by creating a
 automatically downloading additional plugins. The `-get-plugins=false` flag can
 be used to prevent Terraform from automatically downloading additional plugins.
 
-## Terraform Enterprise
+## Terraform Cloud
 
 As an alternative to home-grown automation solutions, Hashicorp offers
-[Terraform Enterprise](https://www.hashicorp.com/products/terraform/).
+[Terraform Cloud](https://www.hashicorp.com/products/terraform/).
 
-Internally, Terraform Enterprise runs the same Terraform CLI commands
+Internally, Terraform Cloud runs the same Terraform CLI commands
 described above, using the same release binaries offered for download on this
 site.
 
-Terraform Enterprise builds on the core Terraform CLI functionality to add
+Terraform Cloud builds on the core Terraform CLI functionality to add
 additional features such as role-based access control, orchestration of the
 plan and apply lifecycle, a user interface for reviewing and approving plans,
 and much more.
 
 It will always be possible to run Terraform via in-house automation, to
-allow for usage in situations where Terraform Enterprise is not appropriate.
-It is recommended to consider Terraform Enterprise as an alternative to
+allow for usage in situations where Terraform Cloud is not appropriate.
+It is recommended to consider Terraform Cloud as an alternative to
 in-house solutions, since it provides an out-of-the-box solution that
 already incorporates the best practices described in this guide and can thus
 reduce time spent developing and maintaining an in-house alternative.

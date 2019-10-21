@@ -1,12 +1,16 @@
 ---
 layout: "functions"
-page_title: "length function"
+page_title: "length - Functions - Configuration Language"
 sidebar_current: "docs-funcs-collection-length"
 description: |-
   The length function determines the length of a collection or string.
 ---
 
 # `length` Function
+
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
 
 `length` determines the length of a given list, map, or string.
 

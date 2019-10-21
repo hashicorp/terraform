@@ -3,7 +3,7 @@ package execxp
 import (
 	"encoding/xml"
 
-	"github.com/ChrisTrenkamp/goxpath/internal/parser"
+	"github.com/ChrisTrenkamp/goxpath/parser"
 	"github.com/ChrisTrenkamp/goxpath/tree"
 )
 

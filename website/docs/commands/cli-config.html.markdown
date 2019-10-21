@@ -32,6 +32,9 @@ CLI configuration file, even though Windows Explorer may _display_ its name
 as just `terraform.rc`. Use `dir` from PowerShell or Command Prompt to
 confirm the filename.
 
+The location of the Terraform CLI configuration file can also be specified
+using the `TF_CLI_CONFIG_FILE` [environment variable](/docs/commands/environment-variables.html).
+
 ## Configuration File Syntax
 
 The configuration file uses the same _HCL_ syntax as `.tf` files, but with
@@ -60,13 +63,13 @@ The following settings can be set in the CLI configuration file:
   [plugin caching](/docs/configuration/providers.html#provider-plugin-cache)
   and specifies, as a string, the location of the plugin cache directory.
 
-- `credentials` — provides credentials for use with Terraform Enterprise.
+- `credentials` — provides credentials for use with Terraform Cloud.
     Terraform uses this when performing remote operations or state access with
     the [remote backend](../backends/types/remote.html) and when accessing
-    Terraform Enterprise's [private module registry.](/docs/enterprise/registry/index.html)
+    Terraform Cloud's [private module registry.](/docs/cloud/registry/index.html)
 
     This setting is a repeatable block, where the block label is a hostname
-    (either `app.terraform.io` or the hostname of your private install) and
+    (either `app.terraform.io` or the hostname of a Terraform Enterprise instance) and
     the block body contains a `token` attribute. Whenever Terraform accesses
     state, modules, or remote operations from that hostname, it will
     authenticate with that API token.
@@ -78,13 +81,15 @@ The following settings can be set in the CLI configuration file:
     ```
 
     ~> **Important:** The token provided here must be a
-    [user API token](/docs/enterprise/users-teams-organizations/users.html#api-tokens),
-    and not a team or organization token.
+    [user token](/docs/cloud/users-teams-organizations/users.html#api-tokens)
+    or a
+    [team token](/docs/cloud/users-teams-organizations/api-tokens.html#team-api-tokens);
+    organization tokens cannot be used for command-line Terraform actions.
 
     -> **Note:** The credentials hostname must match the hostname in your module
     sources and/or backend configuration. If your Terraform Enterprise instance
     is available at multiple hostnames, use one of them consistently. (The SaaS
-    version of Terraform Enterprise responds to API calls at both its newer
+    version of Terraform Cloud responds to API calls at both its current
     hostname, app.terraform.io, and its historical hostname,
     atlas.hashicorp.com.)
 
@@ -96,6 +101,6 @@ longer recommended for use:
 * `providers` - a configuration block that allows specifying the locations of
   specific plugins for each named provider. This mechanism is deprecated
   because it is unable to specify a version number for each plugin, and thus
-  it does not co-operate with the plugin versioning mechansim. Instead,
+  it does not co-operate with the plugin versioning mechanism. Instead,
   place the plugin executable files in
   [the third-party plugins directory](/docs/configuration/providers.html#third-party-plugins).

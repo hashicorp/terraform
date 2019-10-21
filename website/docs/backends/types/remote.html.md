@@ -10,31 +10,37 @@ description: |-
 
 **Kind: Enhanced**
 
-The remote backend stores state and runs operations remotely. When running
-`terraform plan` or `terraform apply` with this backend, the actual execution
-occurs in Terraform Enterprise, with log output streaming to the local terminal.
+-> **Note:** We recommend using Terraform v0.11.13 or newer with this
+backend. This backend requires either a Terraform Cloud account on
+[app.terraform.io](https://app.terraform.io) or a Terraform Enterprise instance
+(version v201809-1 or newer).
 
-To use this backend you need a Terraform Enterprise account on
-[app.terraform.io](https://app.terraform.io) or have a private instance of
-Terraform Enterprise (version v201809-1 or newer).
+The remote backend stores Terraform state and may be used to run operations in Terraform Cloud.
 
--> **Preview Release**: As of Terraform 0.11.8, the remote backend is a preview
-   release and we do not recommend using it with production workloads. Please
-   continue to use the existing [Terraform
-   Enterprise](terraform-enterprise.html) backend for production workspaces.
+When using full remote operations, operations like `terraform plan` or `terraform apply` can be executed in Terraform
+Cloud's run environment, with log output streaming to the local terminal. Remote plans and applies use variable values from the associated Terraform Cloud workspace. 
+
+Terraform Cloud can also be used with local operations, in which case only state is stored in the Terraform Cloud backend.
+
+
 
 ## Command Support
 
 Currently the remote backend supports the following Terraform commands:
 
 - `apply`
+- `console` (supported in Terraform >= v0.11.12)
+- `destroy` (requires manually setting `CONFIRM_DESTROY=1` on the workspace)
 - `fmt`
 - `get`
+- `graph` (supported in Terraform >= v0.11.12)
+- `import` (supported in Terraform >= v0.11.12)
 - `init`
 - `output`
 - `plan`
 - `providers`
 - `show`
+- `state` (supports all sub-commands: list, mv, pull, push, rm, show)
 - `taint`
 - `untaint`
 - `validate`
@@ -112,6 +118,32 @@ data "terraform_remote_state" "foo" {
 }
 ```
 
+## Example configuration using CLI input
+
+```hcl
+# main.tf
+terraform {
+  required_version = "~> 0.12.0"
+
+  backend "remote" {}
+}
+```
+
+Backend configuration file:
+
+```hcl
+# backend.hcl
+workspaces { name = "workspace" }
+hostname     = "app.terraform.io"
+organization = "company"
+```
+
+Running `terraform init` with the backend file:
+
+```sh
+terraform init -backend-config=backend.hcl
+```
+
 ## Configuration variables
 
 The following configuration options are supported:
@@ -131,6 +163,28 @@ The following configuration options are supported:
     only the default workspace can be used. This option conflicts with `prefix`.
   * `prefix` - (Optional) A prefix used in the names of one or more remote
     workspaces, all of which can be used with this configuration. The full
-    workspace names are used in Terraform Enterprise, and the short names
+    workspace names are used in Terraform Cloud, and the short names
     (minus the prefix) are used on the command line. If omitted, only the
     default workspace can be used. This option conflicts with `name`.
+
+## Excluding Files from Upload with .terraformignore
+
+-> **Version note:** `.terraformignore` support was added in Terraform 0.12.11.
+
+When executing a remote `plan` or `apply` in a [CLI-driven run](/docs/cloud/run/cli.html),
+an archive of your configuration directory is uploaded to Terraform Cloud. You can define
+paths to ignore from upload via a `.terraformignore` file at the root of your configuration directory. If this file is not present, the archive will exclude the following by default:
+
+* .git/ directories
+* .terraform/ directories (exclusive of .terraform/modules)
+
+The `.terraformignore` file can include rules as one would include in a
+[.gitignore file](https://git-scm.com/book/en/v2/Git-Basics-Recording-Changes-to-the-Repository#Ignoring-Files)
+
+
+* Comments (starting with `#`) or blank lines are ignored
+* End a pattern with aforward slash / to specify a directory
+* Negate a pattern by starting it with an exclamation point `!`
+
+Note that unlike `.gitignore`, only the `.terraformignore` at the root of the configuration
+directory is considered.

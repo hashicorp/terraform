@@ -4,6 +4,12 @@ import (
 	"bytes"
 )
 
+// PluginInstallProtocolVersion is the protocol version TF-core
+// supports to communicate with servers, and is used to resolve
+// plugin discovery with terraform registry, in addition to
+// any specified plugin version constraints
+const PluginInstallProtocolVersion = 5
+
 // PluginRequirements describes a set of plugins (assumed to be of a consistent
 // kind) that are required to exist and have versions within the given
 // corresponding sets.

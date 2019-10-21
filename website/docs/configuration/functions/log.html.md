@@ -1,12 +1,16 @@
 ---
 layout: "functions"
-page_title: "log function"
+page_title: "log - Functions - Configuration Language"
 sidebar_current: "docs-funcs-numeric-log"
 description: |-
   The log function returns the logarithm of a given number in a given base.
 ---
 
 # `log` Function
+
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
 
 `log` returns the logarithm of a given number in a given base.
 

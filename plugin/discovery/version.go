@@ -55,6 +55,11 @@ func (v Version) Equal(other Version) bool {
 	return v.raw.Equal(other.raw)
 }
 
+// IsPrerelease determines if version is a prerelease
+func (v Version) IsPrerelease() bool {
+	return v.raw.Prerelease() != ""
+}
+
 // MinorUpgradeConstraintStr returns a ConstraintStr that would permit
 // minor upgrades relative to the receiving version.
 func (v Version) MinorUpgradeConstraintStr() ConstraintStr {

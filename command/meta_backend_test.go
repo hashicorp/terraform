@@ -1556,7 +1556,7 @@ func TestMetaBackend_planLocalStatePath(t *testing.T) {
 	// Create an alternate output path
 	statePath := "foo.tfstate"
 
-	// put a initial state there that needs to be backed up
+	// put an initial state there that needs to be backed up
 	err = (statemgr.NewFilesystem(statePath)).WriteState(original)
 	if err != nil {
 		t.Fatal(err)
@@ -1750,7 +1750,7 @@ func TestMetaBackend_configureWithExtra(t *testing.T) {
 
 	// Check the state
 	s := testDataStateRead(t, filepath.Join(DefaultDataDir, backendLocal.DefaultStateFilename))
-	if s.Backend.Hash != cHash {
+	if s.Backend.Hash != uint64(cHash) {
 		t.Fatal("mismatched state and config backend hashes")
 	}
 
@@ -1766,7 +1766,7 @@ func TestMetaBackend_configureWithExtra(t *testing.T) {
 
 	// Check the state
 	s = testDataStateRead(t, filepath.Join(DefaultDataDir, backendLocal.DefaultStateFilename))
-	if s.Backend.Hash != cHash {
+	if s.Backend.Hash != uint64(cHash) {
 		t.Fatal("mismatched state and config backend hashes")
 	}
 }

@@ -27,12 +27,19 @@ func (c *StateShowCommand) Run(args []string) int {
 	cmdFlags := c.Meta.defaultFlagSet("state show")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
 	if err := cmdFlags.Parse(args); err != nil {
-		return cli.RunResultHelp
+		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+		return 1
 	}
 	args = cmdFlags.Args()
 	if len(args) != 1 {
 		c.Ui.Error("Exactly one argument expected.\n")
 		return cli.RunResultHelp
+	}
+
+	// Check for user-supplied plugin path
+	if c.pluginPath, err = c.loadPluginPath(); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
+		return 1
 	}
 
 	// Load the backend
@@ -65,6 +72,7 @@ func (c *StateShowCommand) Run(args []string) int {
 
 	// Build the operation (required to get the schemas)
 	opReq := c.Operation(b)
+	opReq.AllowUnsetVariables = true
 	opReq.ConfigDir = cwd
 
 	opReq.ConfigLoader, err = c.initConfigLoader()

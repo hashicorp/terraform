@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	hcl2 "github.com/hashicorp/hcl2/hcl"
+	hcl2 "github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/helper/hilmapstructure"
 	"github.com/hashicorp/terraform/plugin/discovery"
@@ -250,35 +250,6 @@ func (r *Resource) Id() string {
 	default:
 		panic(fmt.Errorf("unknown resource mode %s", r.Mode))
 	}
-}
-
-// ProviderFullName returns the full name of the provider for this resource,
-// which may either be specified explicitly using the "provider" meta-argument
-// or implied by the prefix on the resource type name.
-func (r *Resource) ProviderFullName() string {
-	return ResourceProviderFullName(r.Type, r.Provider)
-}
-
-// ResourceProviderFullName returns the full (dependable) name of the
-// provider for a hypothetical resource with the given resource type and
-// explicit provider string. If the explicit provider string is empty then
-// the provider name is inferred from the resource type name.
-func ResourceProviderFullName(resourceType, explicitProvider string) string {
-	if explicitProvider != "" {
-		// check for an explicit provider name, or return the original
-		parts := strings.SplitAfter(explicitProvider, "provider.")
-		return parts[len(parts)-1]
-	}
-
-	idx := strings.IndexRune(resourceType, '_')
-	if idx == -1 {
-		// If no underscores, the resource name is assumed to be
-		// also the provider name, e.g. if the provider exposes
-		// only a single resource of each type.
-		return resourceType
-	}
-
-	return resourceType[:idx]
 }
 
 // Validate does some basic semantic checking of the configuration.

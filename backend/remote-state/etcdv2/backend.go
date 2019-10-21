@@ -24,7 +24,7 @@ func New() backend.Backend {
 			"endpoints": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "A space-separated list of the etcd endpoints<Paste>",
+				Description: "A space-separated list of the etcd endpoints",
 			},
 			"username": &schema.Schema{
 				Type:        schema.TypeString,

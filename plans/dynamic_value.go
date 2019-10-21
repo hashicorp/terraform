@@ -86,7 +86,7 @@ func (v DynamicValue) ImpliedType() (cty.Type, error) {
 
 // Copy produces a copy of the receiver with a distinct backing array.
 func (v DynamicValue) Copy() DynamicValue {
-	if len(v) == 0 {
+	if v == nil {
 		return nil
 	}
 

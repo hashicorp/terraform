@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/zclconf/go-cty/cty"
@@ -79,21 +80,29 @@ func (p *MockProvisioner) ProvisionResource(r provisioners.ProvisionResourceRequ
 	p.ProvisionResourceCalled = true
 	p.ProvisionResourceRequest = r
 	if p.ApplyFn != nil {
+		if !r.Config.IsKnown() {
+			panic(fmt.Sprintf("cannot provision with unknown value: %#v", r.Config))
+		}
+
 		schema := p.getSchema()
 		rc := NewResourceConfigShimmed(r.Config, schema.Provisioner)
 		connVal := r.Connection
 		connMap := map[string]string{}
-		for it := connVal.ElementIterator(); it.Next(); {
-			ak, av := it.Element()
-			name := ak.AsString()
 
-			if !av.IsKnown() || av.IsNull() {
-				continue
+		if !connVal.IsNull() && connVal.IsKnown() {
+			for it := connVal.ElementIterator(); it.Next(); {
+				ak, av := it.Element()
+				name := ak.AsString()
+
+				if !av.IsKnown() || av.IsNull() {
+					continue
+				}
+
+				av, _ = convert.Convert(av, cty.String)
+				connMap[name] = av.AsString()
 			}
-
-			av, _ = convert.Convert(av, cty.String)
-			connMap[name] = av.AsString()
 		}
+
 		// We no longer pass the full instance state to a provisioner, so we'll
 		// construct a partial one that should be good enough for what existing
 		// test mocks need.

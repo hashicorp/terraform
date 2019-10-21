@@ -1,6 +1,6 @@
 ---
 layout: "docs"
-page_title: "Override Files"
+page_title: "Override Files - Configuration Language"
 sidebar_current: "docs-config-override"
 description: |-
   Override files allow additional settings to be merged into existing
@@ -8,6 +8,10 @@ description: |-
 ---
 
 # Override Files
+
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Override Files](../configuration-0-11/override.html).
 
 Terraform normally loads all of the `.tf` and `.tf.json` files within a
 directory and expects each one to define a distinct set of configuration

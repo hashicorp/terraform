@@ -153,7 +153,7 @@ func byteCanStartKeyword(b byte) bool {
 	// in the parser, where we can generate better diagnostics.
 	// So e.g. we want to be able to say:
 	//   unrecognized keyword "True". Did you mean "true"?
-	case b >= 'a' || b <= 'z' || b >= 'A' || b <= 'Z':
+	case isAlphabetical(b):
 		return true
 	default:
 		return false
@@ -167,7 +167,7 @@ Byte:
 	for i = 0; i < len(buf); i++ {
 		b := buf[i]
 		switch {
-		case (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || b == '_':
+		case isAlphabetical(b) || b == '_':
 			p.Pos.Byte++
 			p.Pos.Column++
 		default:
@@ -290,4 +290,8 @@ func posRange(start, end pos) hcl.Range {
 
 func (t token) GoString() string {
 	return fmt.Sprintf("json.token{json.%s, []byte(%q), %#v}", t.Type, t.Bytes, t.Range)
+}
+
+func isAlphabetical(b byte) bool {
+	return (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z')
 }

@@ -17,10 +17,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform-svchost"
+	"github.com/hashicorp/terraform-svchost/disco"
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/httpclient"
 	"github.com/hashicorp/terraform/registry"
 	"github.com/hashicorp/terraform/registry/response"
-	"github.com/hashicorp/terraform/svchost"
-	"github.com/hashicorp/terraform/svchost/disco"
+	"github.com/hashicorp/terraform/version"
 	"github.com/mitchellh/cli"
 )
 
@@ -149,7 +152,7 @@ func TestVersionListing(t *testing.T) {
 
 	i := newProviderInstaller(server)
 
-	allVersions, err := i.listProviderVersions("test")
+	allVersions, err := i.listProviderVersions(addrs.ProviderType{Name: "test"})
 
 	if err != nil {
 		t.Fatal(err)
@@ -170,12 +173,12 @@ func TestVersionListing(t *testing.T) {
 	}
 
 	if len(versions) != len(expected) {
-		t.Fatalf("Received wrong number of versions. expected: %q, got: %q", expected, versions)
+		t.Fatalf("Received wrong number of versions. expected: %#v, got: %#v", expected, versions)
 	}
 
 	for i, v := range versions {
 		if v.Version != expected[i].Version {
-			t.Fatalf("incorrect version: %q, expected %q", v, expected[i])
+			t.Fatalf("incorrect version: %#v, expected %#v", v, expected[i])
 		}
 	}
 }
@@ -203,6 +206,18 @@ func TestCheckProtocolVersions(t *testing.T) {
 			},
 			false,
 		},
+		{
+			&response.TerraformProviderVersion{
+				Protocols: []string{"4.0", "5.2"},
+			},
+			false,
+		},
+		{
+			&response.TerraformProviderVersion{
+				Protocols: []string{"5.0", "6.1"},
+			},
+			true,
+		},
 	}
 
 	server := testReleaseServer()
@@ -216,10 +231,170 @@ func TestCheckProtocolVersions(t *testing.T) {
 			if err == nil {
 				t.Fatal("succeeded; want error")
 			}
-			return
 		} else if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
+	}
+}
+
+func TestFindClosestProtocolCompatibleVersion(t *testing.T) {
+	testCases := []struct {
+		Name                  string
+		PluginProtocolVersion uint
+		ProviderVersions      []*response.TerraformProviderVersion
+		ExpectedVersion       string
+		Err                   bool
+	}{
+		{
+			"no compatible version",
+			5,
+			[]*response.TerraformProviderVersion{
+				&response.TerraformProviderVersion{
+					Version:   "1.0.0",
+					Protocols: []string{"4.0"},
+				},
+			},
+			"",
+			true,
+		}, {
+			"equal, suggests latest",
+			4,
+			[]*response.TerraformProviderVersion{
+				&response.TerraformProviderVersion{
+					Version:   "1.0.0",
+					Protocols: []string{"4.0"},
+				},
+				&response.TerraformProviderVersion{
+					Version:   "1.5.0",
+					Protocols: []string{"4.0"},
+				},
+			},
+			"1.5.0",
+			false,
+		}, {
+			"provider protocol too old, suggests earliest",
+			5,
+			[]*response.TerraformProviderVersion{
+				&response.TerraformProviderVersion{
+					Version:   "1.0.0",
+					Protocols: []string{"4.0"},
+				},
+				&response.TerraformProviderVersion{
+					Version:   "2.0.0",
+					Protocols: []string{"4.0", "5.0"},
+				},
+				&response.TerraformProviderVersion{
+					Version:   "2.5.0",
+					Protocols: []string{"4.0", "5.0"},
+				},
+				&response.TerraformProviderVersion{
+					Version:   "3.0.0",
+					Protocols: []string{"5.0"},
+				},
+			},
+			"2.0.0",
+			false,
+		}, {
+			"provider protocol too new, suggests latest",
+			4,
+			[]*response.TerraformProviderVersion{
+				&response.TerraformProviderVersion{
+					Version:   "1.0.0",
+					Protocols: []string{"4.0"},
+				},
+				&response.TerraformProviderVersion{
+					Version:   "2.0.0",
+					Protocols: []string{"4.0", "5.0"},
+				},
+				&response.TerraformProviderVersion{
+					Version:   "2.5.0",
+					Protocols: []string{"4.0", "5.0"},
+				},
+				&response.TerraformProviderVersion{
+					Version:   "3.0.0",
+					Protocols: []string{"5.0"},
+				},
+			},
+			"2.5.0",
+			false,
+		}, {
+			"compatible prereleses are filtered",
+			5,
+			[]*response.TerraformProviderVersion{
+				&response.TerraformProviderVersion{
+					Version:   "2.0.0-alpha",
+					Protocols: []string{"4.0", "5.0"},
+				},
+			},
+			"",
+			true,
+		}, {
+			"suggests latest non-prerelease",
+			4,
+			[]*response.TerraformProviderVersion{
+				&response.TerraformProviderVersion{
+					Version:   "2.0.0-alpha",
+					Protocols: []string{"4.0", "5.0"},
+				},
+				&response.TerraformProviderVersion{
+					Version:   "2.0.0",
+					Protocols: []string{"4.0", "5.0"},
+				},
+				&response.TerraformProviderVersion{
+					Version:   "2.5.0-pre",
+					Protocols: []string{"4.0", "5.0"},
+				},
+				&response.TerraformProviderVersion{
+					Version:   "2.5.0",
+					Protocols: []string{"4.0", "5.0"},
+				},
+			},
+			"2.5.0",
+			false,
+		}, {
+			"suggests earliest non-prerelease",
+			5,
+			[]*response.TerraformProviderVersion{
+				&response.TerraformProviderVersion{
+					Version:   "2.0.0-alpha",
+					Protocols: []string{"4.0", "5.0"},
+				},
+				&response.TerraformProviderVersion{
+					Version:   "2.0.0",
+					Protocols: []string{"4.0", "5.0"},
+				},
+				&response.TerraformProviderVersion{
+					Version:   "2.6.0",
+					Protocols: []string{"4.0", "5.0"},
+				},
+				&response.TerraformProviderVersion{
+					Version:   "3.0.0",
+					Protocols: []string{"5.0"},
+				},
+			},
+			"2.0.0",
+			false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.Name, func(t *testing.T) {
+			i := ProviderInstaller{
+				Ui:                    cli.NewMockUi(),
+				PluginProtocolVersion: tc.PluginProtocolVersion,
+			}
+
+			closestMatch, err := i.findClosestProtocolCompatibleVersion(tc.ProviderVersions)
+			if err != nil {
+				if !tc.Err {
+					t.Fatalf("unexpected error: %q", err)
+				}
+				return
+			}
+			if tc.ExpectedVersion != closestMatch.Version {
+				t.Errorf("Expected %q, got %q", tc.ExpectedVersion, closestMatch.Version)
+			}
+		})
 	}
 }
 
@@ -243,7 +418,8 @@ func TestProviderInstallerGet(t *testing.T) {
 		Ui:                    cli.NewMockUi(),
 		registry:              registry.NewClient(Disco(server), nil),
 	}
-	_, err = i.Get("test", AllVersions)
+
+	_, _, err = i.Get(addrs.ProviderType{Name: "test"}, AllVersions)
 
 	if err != ErrorNoVersionCompatibleWithPlatform {
 		t.Fatal("want error for incompatible version")
@@ -260,20 +436,21 @@ func TestProviderInstallerGet(t *testing.T) {
 	}
 
 	{
-		_, err := i.Get("test", ConstraintStr(">9.0.0").MustParse())
+		_, _, err := i.Get(addrs.ProviderType{Name: "test"}, ConstraintStr(">9.0.0").MustParse())
 		if err != ErrorNoSuitableVersion {
 			t.Fatal("want error for mismatching constraints")
 		}
 	}
 
 	{
-		_, err := i.Get("nonexist", AllVersions)
+		provider := addrs.ProviderType{Name: "nonexist"}
+		_, _, err := i.Get(provider, AllVersions)
 		if err != ErrorNoSuchProvider {
 			t.Fatal("want error for no such provider")
 		}
 	}
 
-	gotMeta, err := i.Get("test", AllVersions)
+	gotMeta, _, err := i.Get(addrs.ProviderType{Name: "test"}, AllVersions)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -300,6 +477,63 @@ func TestProviderInstallerGet(t *testing.T) {
 		t.Fatalf("test provider contains: %q", f)
 	}
 
+}
+
+// test that the provider installer can install plugins from a plugin cache dir
+// into a target directory that does not exist.
+//  https://github.com/hashicorp/terraform/issues/20532
+func TestProviderInstallerGet_cache(t *testing.T) {
+	server := testReleaseServer()
+	server.Start()
+	defer server.Close()
+
+	tmpDir, err := ioutil.TempDir("", "tf-plugin")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cache := NewLocalPluginCache(filepath.Join(tmpDir, "cache"))
+	targetDir := filepath.Join(tmpDir, "non-existant-dir")
+
+	defer os.RemoveAll(tmpDir)
+
+	i := &ProviderInstaller{
+		Dir:                   targetDir,
+		Cache:                 cache,
+		PluginProtocolVersion: 4,
+		SkipVerify:            true,
+		Ui:                    cli.NewMockUi(),
+		registry:              registry.NewClient(Disco(server), nil),
+		OS:                    "mockos",
+		Arch:                  "mockarch",
+	}
+
+	gotMeta, _, err := i.Get(addrs.ProviderType{Name: "test"}, AllVersions)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// we should have version 1.2.4
+	dest := filepath.Join(targetDir, "terraform-provider-test_v1.2.4")
+
+	wantMeta := PluginMeta{
+		Name:    "test",
+		Version: VersionStr("1.2.4"),
+		Path:    dest,
+	}
+	if !reflect.DeepEqual(gotMeta, wantMeta) {
+		t.Errorf("wrong result meta\ngot:  %#v\nwant: %#v", gotMeta, wantMeta)
+	}
+
+	f, err := ioutil.ReadFile(dest)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// provider should have been unzipped
+	if string(f) != testProviderFile {
+		t.Fatalf("test provider contains: %q", f)
+	}
 }
 
 func TestProviderInstallerPurgeUnused(t *testing.T) {
@@ -377,13 +611,14 @@ func TestProviderChecksum(t *testing.T) {
 
 	tests := []struct {
 		Name string
-		URLs *response.TerraformProviderPlatformLocation
+		Resp *response.TerraformProviderPlatformLocation
 		Err  bool
 	}{
 		{
 			"good",
 			&response.TerraformProviderPlatformLocation{
 				Filename:            "terraform-provider-template_0.1.0_darwin_amd64.zip",
+				Shasum:              "3c3e7df78b1f0161a3f941c271d5501f7b5e5f2c53738e7a371459712f5d4726",
 				ShasumsURL:          "http://127.0.0.1:8080/terraform-provider-template/0.1.0/terraform-provider-template_0.1.0_SHA256SUMS",
 				ShasumsSignatureURL: "http://127.0.0.1:8080/terraform-provider-template/0.1.0/terraform-provider-template_0.1.0_SHA256SUMS.sig",
 				SigningKeys: response.SigningKeyList{
@@ -424,41 +659,78 @@ func TestProviderChecksum(t *testing.T) {
 			},
 			true,
 		},
+		{
+			"mismatch checksum",
+			&response.TerraformProviderPlatformLocation{
+				Filename:            "terraform-provider-template_0.1.0_darwin_amd64.zip",
+				Shasum:              "force mismatch",
+				ShasumsURL:          "http://127.0.0.1:8080/terraform-provider-template/0.1.0/terraform-provider-template_0.1.0_SHA256SUMS",
+				ShasumsSignatureURL: "http://127.0.0.1:8080/terraform-provider-template/0.1.0/terraform-provider-template_0.1.0_SHA256SUMS.sig",
+				SigningKeys: response.SigningKeyList{
+					GPGKeys: []*response.GPGKey{
+						&response.GPGKey{
+							ASCIIArmor: string(hashicorpKey),
+						},
+					},
+				},
+			},
+			true,
+		},
+		{
+			"missing checksum for file",
+			&response.TerraformProviderPlatformLocation{
+				Filename:            "terraform-provider-template_0.1.0_darwin_amd64_missing_checksum.zip",
+				Shasum:              "checksum",
+				ShasumsURL:          "http://127.0.0.1:8080/terraform-provider-template/0.1.0/terraform-provider-template_0.1.0_SHA256SUMS",
+				ShasumsSignatureURL: "http://127.0.0.1:8080/terraform-provider-template/0.1.0/terraform-provider-template_0.1.0_SHA256SUMS.sig",
+				SigningKeys: response.SigningKeyList{
+					GPGKeys: []*response.GPGKey{
+						&response.GPGKey{
+							ASCIIArmor: string(hashicorpKey),
+						},
+					},
+				},
+			},
+			true,
+		},
 	}
 
 	i := ProviderInstaller{}
 
 	for _, test := range tests {
-		sha256sum, err := i.getProviderChecksum(test.URLs)
-		if test.Err {
-			if err == nil {
-				t.Fatal("succeeded; want error")
+		t.Run(test.Name, func(t *testing.T) {
+			sha256sum, err := i.getProviderChecksum(test.Resp)
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
 			}
-			return
-		} else if err != nil {
-			t.Fatalf("unexpected error: %s", err)
-		}
 
-		// get the expected checksum for our os/arch
-		sumData, err := ioutil.ReadFile("testdata/terraform-provider-template_0.1.0_SHA256SUMS")
-		if err != nil {
-			t.Fatal(err)
-		}
+			// get the expected checksum for our os/arch
+			sumData, err := ioutil.ReadFile("testdata/terraform-provider-template_0.1.0_SHA256SUMS")
+			if err != nil {
+				t.Fatal(err)
+			}
 
-		expected := checksumForFile(sumData, test.URLs.Filename)
+			expected := checksumForFile(sumData, test.Resp.Filename)
 
-		if sha256sum != expected {
-			t.Fatalf("expected: %s\ngot %s\n", sha256sum, expected)
-		}
+			if sha256sum != expected {
+				t.Fatalf("expected: %s\ngot %s\n", sha256sum, expected)
+			}
+		})
 	}
 }
 
 // newProviderInstaller returns a minimally-initialized ProviderInstaller
 func newProviderInstaller(s *httptest.Server) ProviderInstaller {
 	return ProviderInstaller{
-		registry: registry.NewClient(Disco(s), nil),
-		OS:       runtime.GOOS,
-		Arch:     runtime.GOARCH,
+		registry:              registry.NewClient(Disco(s), nil),
+		OS:                    runtime.GOOS,
+		Arch:                  runtime.GOARCH,
+		PluginProtocolVersion: 4,
 	}
 }
 
@@ -471,6 +743,7 @@ func Disco(s *httptest.Server) *disco.Disco {
 		"providers.v1": fmt.Sprintf("%s/v1/providers", s.URL),
 	}
 	d := disco.New()
+	d.SetUserAgent(httpclient.TerraformUserAgent(version.String()))
 
 	d.ForceHostServices(svchost.Hostname("registry.terraform.io"), services)
 	d.ForceHostServices(svchost.Hostname("localhost"), services)

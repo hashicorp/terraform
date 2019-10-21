@@ -33,11 +33,15 @@ func Pack(src string, w io.Writer, dereference bool) (*Meta, error) {
 	// Tar the file contents.
 	tarW := tar.NewWriter(gzipW)
 
+	// Load the ignore rule configuration, which will use
+	// defaults if no .terraformignore is configured
+	ignoreRules := parseIgnoreFile(src)
+
 	// Track the metadata details as we go.
 	meta := &Meta{}
 
 	// Walk the tree of files.
-	err := filepath.Walk(src, packWalkFn(src, src, src, tarW, meta, dereference))
+	err := filepath.Walk(src, packWalkFn(src, src, src, tarW, meta, dereference, ignoreRules))
 	if err != nil {
 		return nil, err
 	}
@@ -55,15 +59,10 @@ func Pack(src string, w io.Writer, dereference bool) (*Meta, error) {
 	return meta, nil
 }
 
-func packWalkFn(root, src, dst string, tarW *tar.Writer, meta *Meta, dereference bool) filepath.WalkFunc {
+func packWalkFn(root, src, dst string, tarW *tar.Writer, meta *Meta, dereference bool, ignoreRules []rule) filepath.WalkFunc {
 	return func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
-		}
-
-		// Skip the .git directory.
-		if info.IsDir() && info.Name() == ".git" {
-			return filepath.SkipDir
 		}
 
 		// Get the relative path from the current src directory.
@@ -75,10 +74,15 @@ func packWalkFn(root, src, dst string, tarW *tar.Writer, meta *Meta, dereference
 			return nil
 		}
 
-		// Skip the .terraform directory, except for the modules subdirectory.
-		if strings.Contains(subpath, ".terraform") && info.Name() != ".terraform" {
-			if !strings.Contains(subpath, filepath.Clean(".terraform/modules")) {
-				return filepath.SkipDir
+		if m := matchIgnoreRule(subpath, ignoreRules); m {
+			return nil
+		}
+
+		// Catch directories so we don't end up with empty directories,
+		// the files are ignored correctly
+		if info.IsDir() {
+			if m := matchIgnoreRule(subpath+string(os.PathSeparator), ignoreRules); m {
+				return nil
 			}
 		}
 
@@ -150,7 +154,7 @@ func packWalkFn(root, src, dst string, tarW *tar.Writer, meta *Meta, dereference
 			// If the target is a directory we can recurse into the target
 			// directory by calling the packWalkFn with updated arguments.
 			if info.IsDir() {
-				return filepath.Walk(target, packWalkFn(root, target, path, tarW, meta, dereference))
+				return filepath.Walk(target, packWalkFn(root, target, path, tarW, meta, dereference, ignoreRules))
 			}
 
 			// Dereference this symlink by updating the header with the target file

@@ -4,7 +4,7 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/firewalls"
 )
 
-// CreateOptsExt adds a RouterIDs option to the base CreateOpts.
+// CreateOptsExt adds the RouterIDs option to the base CreateOpts.
 type CreateOptsExt struct {
 	firewalls.CreateOptsBuilder
 	RouterIDs []string `json:"router_ids"`
@@ -23,7 +23,7 @@ func (opts CreateOptsExt) ToFirewallCreateMap() (map[string]interface{}, error) 
 	return base, nil
 }
 
-// UpdateOptsExt updates a RouterIDs option to the base UpdateOpts.
+// UpdateOptsExt adds the RouterIDs option to the base UpdateOpts.
 type UpdateOptsExt struct {
 	firewalls.UpdateOptsBuilder
 	RouterIDs []string `json:"router_ids"`

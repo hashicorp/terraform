@@ -3,8 +3,8 @@ package addrs
 import (
 	"fmt"
 
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -81,6 +81,14 @@ func parseRef(traversal hcl.Traversal) (*Reference, tfdiags.Diagnostics) {
 		name, rng, remain, diags := parseSingleAttrRef(traversal)
 		return &Reference{
 			Subject:     CountAttr{Name: name},
+			SourceRange: tfdiags.SourceRangeFromHCL(rng),
+			Remaining:   remain,
+		}, diags
+
+	case "each":
+		name, rng, remain, diags := parseSingleAttrRef(traversal)
+		return &Reference{
+			Subject:     ForEachAttr{Name: name},
 			SourceRange: tfdiags.SourceRangeFromHCL(rng),
 			Remaining:   remain,
 		}, diags
@@ -282,7 +290,7 @@ func parseResourceRef(mode ResourceMode, startRange hcl.Range, traversal hcl.Tra
 		// of the resource, but we don't have enough context here to decide
 		// so we'll let the caller resolve that ambiguity.
 		return &Reference{
-			Subject:     resourceInstAddr,
+			Subject:     resourceAddr,
 			SourceRange: tfdiags.SourceRangeFromHCL(rng),
 		}, diags
 	}

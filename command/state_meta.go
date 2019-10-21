@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
+	"github.com/hashicorp/terraform/tfdiags"
 
 	backendLocal "github.com/hashicorp/terraform/backend/local"
 )
@@ -80,57 +81,118 @@ func (c *StateMeta) State() (state.State, error) {
 	return realState, nil
 }
 
-func (c *StateMeta) filter(state *states.State, args []string) ([]*states.FilterResult, error) {
-	var results []*states.FilterResult
-
-	filter := &states.Filter{State: state}
-	for _, arg := range args {
-		filtered, err := filter.Filter(arg)
-		if err != nil {
-			return nil, err
-		}
-
-	filtered:
-		for _, result := range filtered {
-			switch result.Address.(type) {
-			case addrs.ModuleInstance:
-				for _, result := range filtered {
-					if _, ok := result.Address.(addrs.ModuleInstance); ok {
-						results = append(results, result)
-					}
-				}
-				break filtered
-			case addrs.AbsResource:
-				for _, result := range filtered {
-					if _, ok := result.Address.(addrs.AbsResource); ok {
-						results = append(results, result)
-					}
-				}
-				break filtered
-			case addrs.AbsResourceInstance:
-				results = append(results, result)
-			}
-		}
+func (c *StateMeta) lookupResourceInstanceAddr(state *states.State, allowMissing bool, addrStr string) ([]addrs.AbsResourceInstance, tfdiags.Diagnostics) {
+	target, diags := addrs.ParseTargetStr(addrStr)
+	if diags.HasErrors() {
+		return nil, diags
 	}
 
-	// Sort the results
-	sort.Slice(results, func(i, j int) bool {
-		a, b := results[i], results[j]
-
-		// If the length is different, sort on the length so that the
-		// best match is the first result.
-		if len(a.Address.String()) != len(b.Address.String()) {
-			return len(a.Address.String()) < len(b.Address.String())
+	targetAddr := target.Subject
+	var ret []addrs.AbsResourceInstance
+	switch addr := targetAddr.(type) {
+	case addrs.ModuleInstance:
+		// Matches all instances within the indicated module and all of its
+		// descendent modules.
+		ms := state.Module(addr)
+		if ms == nil {
+			if !allowMissing {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Unknown module",
+					fmt.Sprintf(`The current state contains no module at %s. If you've just added this module to the configuration, you must run "terraform apply" first to create the module's entry in the state.`, addr),
+				))
+			}
+			break
 		}
-
-		// If the addresses are different it is just lexographic sorting
-		if a.Address.String() != b.Address.String() {
-			return a.Address.String() < b.Address.String()
+		ret = append(ret, c.collectModuleResourceInstances(ms)...)
+		for _, cms := range state.Modules {
+			candidateAddr := ms.Addr
+			if len(candidateAddr) > len(addr) && candidateAddr[:len(addr)].Equal(addr) {
+				ret = append(ret, c.collectModuleResourceInstances(cms)...)
+			}
 		}
-
-		// Addresses are the same, which means it matters on the type
-		return a.SortedType() < b.SortedType()
+	case addrs.AbsResource:
+		// Matches all instances of the specific selected resource.
+		rs := state.Resource(addr)
+		if rs == nil {
+			if !allowMissing {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Unknown resource",
+					fmt.Sprintf(`The current state contains no resource %s. If you've just added this resource to the configuration, you must run "terraform apply" first to create the resource's entry in the state.`, addr),
+				))
+			}
+			break
+		}
+		ret = append(ret, c.collectResourceInstances(addr.Module, rs)...)
+	case addrs.AbsResourceInstance:
+		is := state.ResourceInstance(addr)
+		if is == nil {
+			if !allowMissing {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Unknown resource instance",
+					fmt.Sprintf(`The current state contains no resource instance %s. If you've just added its resource to the configuration or have changed the count or for_each arguments, you must run "terraform apply" first to update the resource's entry in the state.`, addr),
+				))
+			}
+			break
+		}
+		ret = append(ret, addr)
+	}
+	sort.Slice(ret, func(i, j int) bool {
+		return ret[i].Less(ret[j])
 	})
 
-	return results, nil
+	return ret, diags
+}
+
+func (c *StateMeta) lookupSingleResourceInstanceAddr(state *states.State, addrStr string) (addrs.AbsResourceInstance, tfdiags.Diagnostics) {
+	return addrs.ParseAbsResourceInstanceStr(addrStr)
+}
+
+func (c *StateMeta) lookupSingleStateObjectAddr(state *states.State, addrStr string) (addrs.Targetable, tfdiags.Diagnostics) {
+	target, diags := addrs.ParseTargetStr(addrStr)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+	return target.Subject, diags
+}
+
+func (c *StateMeta) lookupResourceInstanceAddrs(state *states.State, addrStrs ...string) ([]addrs.AbsResourceInstance, tfdiags.Diagnostics) {
+	var ret []addrs.AbsResourceInstance
+	var diags tfdiags.Diagnostics
+	for _, addrStr := range addrStrs {
+		moreAddrs, moreDiags := c.lookupResourceInstanceAddr(state, false, addrStr)
+		ret = append(ret, moreAddrs...)
+		diags = diags.Append(moreDiags)
+	}
+	return ret, diags
+}
+
+func (c *StateMeta) lookupAllResourceInstanceAddrs(state *states.State) ([]addrs.AbsResourceInstance, tfdiags.Diagnostics) {
+	var ret []addrs.AbsResourceInstance
+	var diags tfdiags.Diagnostics
+	for _, ms := range state.Modules {
+		ret = append(ret, c.collectModuleResourceInstances(ms)...)
+	}
+	sort.Slice(ret, func(i, j int) bool {
+		return ret[i].Less(ret[j])
+	})
+	return ret, diags
+}
+
+func (c *StateMeta) collectModuleResourceInstances(ms *states.Module) []addrs.AbsResourceInstance {
+	var ret []addrs.AbsResourceInstance
+	for _, rs := range ms.Resources {
+		ret = append(ret, c.collectResourceInstances(ms.Addr, rs)...)
+	}
+	return ret
+}
+
+func (c *StateMeta) collectResourceInstances(moduleAddr addrs.ModuleInstance, rs *states.Resource) []addrs.AbsResourceInstance {
+	var ret []addrs.AbsResourceInstance
+	for key := range rs.Instances {
+		ret = append(ret, rs.Addr.Instance(key).Absolute(moduleAddr))
+	}
+	return ret
 }

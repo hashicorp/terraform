@@ -51,6 +51,11 @@ func (p Path) Index(v Value) Path {
 	return ret
 }
 
+// IndexPath is a convenience method to start a new Path with an IndexStep.
+func IndexPath(v Value) Path {
+	return Path{}.Index(v)
+}
+
 // GetAttr returns a new Path that is the reciever with a GetAttrStep appended
 // to the end.
 //
@@ -64,6 +69,53 @@ func (p Path) GetAttr(name string) Path {
 		Name: name,
 	}
 	return ret
+}
+
+// Equals compares 2 Paths for exact equality.
+func (p Path) Equals(other Path) bool {
+	if len(p) != len(other) {
+		return false
+	}
+
+	for i := range p {
+		pv := p[i]
+		switch pv := pv.(type) {
+		case GetAttrStep:
+			ov, ok := other[i].(GetAttrStep)
+			if !ok || pv != ov {
+				return false
+			}
+		case IndexStep:
+			ov, ok := other[i].(IndexStep)
+			if !ok {
+				return false
+			}
+
+			if !pv.Key.RawEquals(ov.Key) {
+				return false
+			}
+		default:
+			// Any invalid steps default to evaluating false.
+			return false
+		}
+	}
+
+	return true
+
+}
+
+// HasPrefix determines if the path p contains the provided prefix.
+func (p Path) HasPrefix(prefix Path) bool {
+	if len(prefix) > len(p) {
+		return false
+	}
+
+	return p[:len(prefix)].Equals(prefix)
+}
+
+// GetAttrPath is a convenience method to start a new Path with a GetAttrStep.
+func GetAttrPath(name string) Path {
+	return Path{}.GetAttr(name)
 }
 
 // Apply applies each of the steps in turn to successive values starting with
@@ -136,9 +188,13 @@ type IndexStep struct {
 // Apply returns the value resulting from indexing the given value with
 // our key value.
 func (s IndexStep) Apply(val Value) (Value, error) {
+	if val == NilVal || val.IsNull() {
+		return NilVal, errors.New("cannot index a null value")
+	}
+
 	switch s.Key.Type() {
 	case Number:
-		if !val.Type().IsListType() {
+		if !(val.Type().IsListType() || val.Type().IsTupleType()) {
 			return NilVal, errors.New("not a list type")
 		}
 	case String:
@@ -174,6 +230,10 @@ type GetAttrStep struct {
 // Apply returns the value of our named attribute from the given value, which
 // must be of an object type that has a value of that name.
 func (s GetAttrStep) Apply(val Value) (Value, error) {
+	if val == NilVal || val.IsNull() {
+		return NilVal, errors.New("cannot access attributes on a null value")
+	}
+
 	if !val.Type().IsObjectType() {
 		return NilVal, errors.New("not an object type")
 	}

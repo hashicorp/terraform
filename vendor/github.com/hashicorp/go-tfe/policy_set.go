@@ -28,10 +28,12 @@ type PolicySets interface {
 	// Update an existing policy set.
 	Update(ctx context.Context, policySetID string, options PolicySetUpdateOptions) (*PolicySet, error)
 
-	// Add policies to a policy set.
+	// Add policies to a policy set. This function can only be used when
+	// there is no VCS repository associated with the policy set.
 	AddPolicies(ctx context.Context, policySetID string, options PolicySetAddPoliciesOptions) error
 
-	// Remove policies from a policy set.
+	// Remove policies from a policy set. This function can only be used
+	// when there is no VCS repository associated with the policy set.
 	RemovePolicies(ctx context.Context, policySetID string, options PolicySetRemovePoliciesOptions) error
 
 	// Add workspaces to a policy set.
@@ -61,7 +63,9 @@ type PolicySet struct {
 	Name           string    `jsonapi:"attr,name"`
 	Description    string    `jsonapi:"attr,description"`
 	Global         bool      `jsonapi:"attr,global"`
+	PoliciesPath   string    `jsonapi:"attr,policies-path"`
 	PolicyCount    int       `jsonapi:"attr,policy-count"`
+	VCSRepo        *VCSRepo  `jsonapi:"attr,vcs-repo"`
 	WorkspaceCount int       `jsonapi:"attr,workspace-count"`
 	CreatedAt      time.Time `jsonapi:"attr,created-at,iso8601"`
 	UpdatedAt      time.Time `jsonapi:"attr,updated-at,iso8601"`
@@ -115,8 +119,20 @@ type PolicySetCreateOptions struct {
 	// Whether or not the policy set is global.
 	Global *bool `jsonapi:"attr,global,omitempty"`
 
+	// The sub-path within the attached VCS repository to ingress. All
+	// files and directories outside of this sub-path will be ignored.
+	// This option may only be specified when a VCS repo is present.
+	PoliciesPath *string `jsonapi:"attr,policies-path,omitempty"`
+
 	// The initial members of the policy set.
 	Policies []*Policy `jsonapi:"relation,policies,omitempty"`
+
+	// VCS repository information. When present, the policies and
+	// configuration will be sourced from the specified VCS repository
+	// instead of being defined within the policy set itself. Note that
+	// this option is mutually exclusive with the Policies option and
+	// both cannot be used at the same time.
+	VCSRepo *VCSRepoOptions `jsonapi:"attr,vcs-repo,omitempty"`
 
 	// The initial list of workspaces for which the policy set should be enforced.
 	Workspaces []*Workspace `jsonapi:"relation,workspaces,omitempty"`

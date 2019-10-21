@@ -3,6 +3,10 @@
 Are you a core maintainer of Terraform? Great! Here's a few notes
 to help you get comfortable when working on the project.
 
+This documentation is somewhat outdated since it still includes provider-related
+information even though providers are now developed in their own separate
+codebases, but the general information is still valid.
+
 ## Expectations
 
 We value the time you spend on the project and as such your maintainer status

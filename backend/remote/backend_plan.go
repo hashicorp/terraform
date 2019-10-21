@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -77,10 +78,7 @@ func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operatio
 		))
 	}
 
-	variables, parseDiags := b.parseVariableValues(op)
-	diags = diags.Append(parseDiags)
-
-	if len(variables) > 0 {
+	if b.hasExplicitVariableValues(op) {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Run variables are currently not supported",
@@ -117,6 +115,14 @@ func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operatio
 }
 
 func (b *Remote) plan(stopCtx, cancelCtx context.Context, op *backend.Operation, w *tfe.Workspace) (*tfe.Run, error) {
+	if b.CLI != nil {
+		header := planDefaultHeader
+		if op.Type == backend.OperationTypeApply {
+			header = applyDefaultHeader
+		}
+		b.CLI.Output(b.Colorize().Color(strings.TrimSpace(header) + "\n"))
+	}
+
 	configOptions := tfe.ConfigurationVersionCreateOptions{
 		AutoQueueRuns: tfe.Bool(false),
 		Speculative:   tfe.Bool(op.Type == backend.OperationTypePlan),
@@ -129,13 +135,41 @@ func (b *Remote) plan(stopCtx, cancelCtx context.Context, op *backend.Operation,
 
 	var configDir string
 	if op.ConfigDir != "" {
+		// De-normalize the configuration directory path.
+		configDir, err = filepath.Abs(op.ConfigDir)
+		if err != nil {
+			return nil, generalError(
+				"Failed to get absolute path of the configuration directory: %v", err)
+		}
+
 		// Make sure to take the working directory into account by removing
 		// the working directory from the current path. This will result in
 		// a path that points to the expected root of the workspace.
 		configDir = filepath.Clean(strings.TrimSuffix(
-			filepath.Clean(op.ConfigDir),
+			filepath.Clean(configDir),
 			filepath.Clean(w.WorkingDirectory),
 		))
+
+		// If the workspace has a subdirectory as its working directory then
+		// our configDir will be some parent directory of the current working
+		// directory. Users are likely to find that surprising, so we'll
+		// produce an explicit message about it to be transparent about what
+		// we are doing and why.
+		if w.WorkingDirectory != "" && filepath.Base(configDir) != w.WorkingDirectory {
+			if b.CLI != nil {
+				b.CLI.Output(fmt.Sprintf(strings.TrimSpace(`
+The remote workspace is configured to work with configuration at
+%s relative to the target repository.
+
+Terraform will upload the contents of the following directory,
+excluding files or directories as defined by a .terraformignore file
+at %s/.terraformignore (if it is present),
+in order to capture the filesystem context the remote workspace expects:
+    %s
+`), w.WorkingDirectory, configDir, configDir) + "\n")
+			}
+		}
+
 	} else {
 		// We did a check earlier to make sure we either have a config dir,
 		// or the plan is run with -destroy. So this else clause will only
@@ -232,12 +266,8 @@ func (b *Remote) plan(stopCtx, cancelCtx context.Context, op *backend.Operation,
 	}
 
 	if b.CLI != nil {
-		header := planDefaultHeader
-		if op.Type == backend.OperationTypeApply {
-			header = applyDefaultHeader
-		}
 		b.CLI.Output(b.Colorize().Color(strings.TrimSpace(fmt.Sprintf(
-			header, b.hostname, b.organization, op.Workspace, r.ID)) + "\n"))
+			runHeader, b.hostname, b.organization, op.Workspace, r.ID)) + "\n"))
 	}
 
 	r, err = b.waitForRun(stopCtx, cancelCtx, op, "plan", r, w)
@@ -249,15 +279,27 @@ func (b *Remote) plan(stopCtx, cancelCtx context.Context, op *backend.Operation,
 	if err != nil {
 		return r, generalError("Failed to retrieve logs", err)
 	}
-	scanner := bufio.NewScanner(logs)
+	reader := bufio.NewReaderSize(logs, 64*1024)
 
-	for scanner.Scan() {
-		if b.CLI != nil {
-			b.CLI.Output(b.Colorize().Color(scanner.Text()))
+	if b.CLI != nil {
+		for next := true; next; {
+			var l, line []byte
+
+			for isPrefix := true; isPrefix; {
+				l, isPrefix, err = reader.ReadLine()
+				if err != nil {
+					if err != io.EOF {
+						return r, generalError("Failed to read logs", err)
+					}
+					next = false
+				}
+				line = append(line, l...)
+			}
+
+			if next || len(line) > 0 {
+				b.CLI.Output(b.Colorize().Color(string(line)))
+			}
 		}
-	}
-	if err := scanner.Err(); err != nil {
-		return r, generalError("Failed to read logs", err)
 	}
 
 	// Retrieve the run to get its current status.
@@ -266,11 +308,19 @@ func (b *Remote) plan(stopCtx, cancelCtx context.Context, op *backend.Operation,
 		return r, generalError("Failed to retrieve run", err)
 	}
 
-	// Return if the run errored. We return without an error, even
-	// if the run errored, as the error is already displayed by the
-	// output of the remote run.
-	if r.Status == tfe.RunErrored {
+	// Return if the run is canceled or errored. We return without
+	// an error, even if the run errored, as the error is already
+	// displayed by the output of the remote run.
+	if r.Status == tfe.RunCanceled || r.Status == tfe.RunErrored {
 		return r, nil
+	}
+
+	// Show any cost estimation output.
+	if r.CostEstimate != nil {
+		err = b.costEstimate(stopCtx, cancelCtx, op, r)
+		if err != nil {
+			return r, err
+		}
 	}
 
 	// Check any configured sentinel policies.
@@ -286,8 +336,13 @@ func (b *Remote) plan(stopCtx, cancelCtx context.Context, op *backend.Operation,
 
 const planDefaultHeader = `
 [reset][yellow]Running plan in the remote backend. Output will stream here. Pressing Ctrl-C
-will stop streaming the logs, but will not stop the plan running remotely.
-To view this run in a browser, visit:
+will stop streaming the logs, but will not stop the plan running remotely.[reset]
+
+Preparing the remote plan...
+`
+
+const runHeader = `
+[reset][yellow]To view this run in a browser, visit:
 https://%s/app/%s/%s/runs/%s[reset]
 `
 

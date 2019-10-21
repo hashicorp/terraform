@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "title function"
+page_title: "title - Functions - Configuration Language"
 sidebar_current: "docs-funcs-string-title"
 description: |-
   The title function converts the first letter of each word in a given string
@@ -8,6 +8,10 @@ description: |-
 ---
 
 # `title` Function
+
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
 
 `title` converts the first letter of each word in the given string to uppercase.
 

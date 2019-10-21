@@ -1,12 +1,16 @@
 ---
 layout: "functions"
-page_title: "element function"
+page_title: "element - Functions - Configuration Language"
 sidebar_current: "docs-funcs-collection-element"
 description: |-
   The element function retrieves a single element from a list.
 ---
 
 # `element` Function
+
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
 
 `element` retrieves a single element from a list.
 

@@ -51,6 +51,7 @@ type PolicyStatus string
 
 //List all available policy check statuses.
 const (
+	PolicyCanceled    PolicyStatus = "canceled"
 	PolicyErrored     PolicyStatus = "errored"
 	PolicyHardFailed  PolicyStatus = "hard_failed"
 	PolicyOverridden  PolicyStatus = "overridden"

@@ -1,12 +1,16 @@
 ---
 layout: "functions"
-page_title: "base64encode function"
+page_title: "base64encode - Functions - Configuration Language"
 sidebar_current: "docs-funcs-encoding-base64encode"
 description: |-
   The base64encode function applies Base64 encoding to a string.
 ---
 
 # `base64encode` Function
+
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
 
 `base64encode` applies Base64 encoding to a string.
 

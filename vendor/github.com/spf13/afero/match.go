@@ -33,8 +33,8 @@ import (
 // built-ins from that package.
 func Glob(fs Fs, pattern string) (matches []string, err error) {
 	if !hasMeta(pattern) {
-		// afero does not support Lstat directly.
-		if _, err = lstatIfOs(fs, pattern); err != nil {
+		// Lstat not supported by a ll filesystems.
+		if _, err = lstatIfPossible(fs, pattern); err != nil {
 			return nil, nil
 		}
 		return []string{pattern}, nil

@@ -1,6 +1,6 @@
 ---
 layout: "docs"
-page_title: "Configuring Output Values"
+page_title: "Output Values - Configuration Language"
 sidebar_current: "docs-config-outputs"
 description: |-
   Output values are the return values of a Terraform module.
@@ -8,14 +8,27 @@ description: |-
 
 # Output Values
 
-Output values are like the return values of a Terraform module, allowing
-a subset of the resource attributes within a child module to be exposed to
-a parent module, or making certain values from a root module visible in the
-CLI output after running `terraform apply`.
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Output Values](../configuration-0-11/outputs.html).
+
+Output values are like the return values of a Terraform module, and have several
+uses:
+
+- A child module can use outputs to expose a subset of its resource attributes
+  to a parent module.
+- A root module can use outputs to print certain values in the CLI output after
+  running `terraform apply`.
+- When using [remote state](/docs/state/remote.html), root module outputs can be
+  accessed by other configurations via a
+  [`terraform_remote_state` data source](/docs/providers/terraform/d/remote_state.html).
 
 Resource instances managed by Terraform each export attributes whose values
 can be used elsewhere in configuration. Output values are a way to expose some
 of that information to the user of your module.
+
+-> **Note:** For brevity, output values are often referred to as just "outputs"
+when the meaning is clear from context.
 
 ## Declaring an Output Value
 
@@ -28,27 +41,33 @@ output "instance_ip_addr" {
 }
 ```
 
-The label immediately after the `output` keyword is the name that can be used
-to access this output in the parent module, if any, or the name that will be
-displayed to the user for output values in the root module.
+The label immediately after the `output` keyword is the name, which must be a
+valid [identifier](./syntax.html#identifiers). In a root module, this name is
+displayed to the user; in a child module, it can be used to access the output's
+value.
 
-For brevity, output values are often referred to simply as "outputs", where
-the meaning is clear from context.
-
-The `value` argument takes an [expression](/docs/configuration/expressions.html)
+The `value` argument takes an [expression](./expressions.html)
 whose result is to be returned to the user. In this example, the expression
 refers to the `private_ip` attribute exposed by an `aws_instance` resource
 defined elsewhere in this module (not shown). Any valid expression is allowed
 as an output value.
 
-Several other optional arguments are allowed within `output` blocks. These
-will be described in the following sections.
+## Accessing Child Module Outputs
 
-## Output Value Documentation
+In a parent module, outputs of child modules are available in expressions as
+`module.<MODULE NAME>.<OUTPUT NAME>`. For example, if a child module named
+`web_server` declared an output named `instance_ip_addr`, you could access that
+value as `module.web_server.instance_ip_addr`.
 
-Because the output values of a module are part of the user interface of
-the module, you may specify a short description of the purpose of each
-value using the optional `description` argument:
+## Optional Arguments
+
+`output` blocks can optionally include `description`, `sensitive`, and `depends_on` arguments, which are described in the following sections.
+
+### `description` — Output Value Documentation
+
+Because the output values of a module are part of its user interface, you can
+briefly describe the purpose of each value using the optional `description`
+argument:
 
 ```hcl
 output "instance_ip_addr" {
@@ -57,13 +76,13 @@ output "instance_ip_addr" {
 }
 ```
 
-The description for an output value should be a concise description of the
-purpose of the variable and what kind of value is expected. This description
-string may be included in documentation about the module, and so it should be
+The description should concisely explain the
+purpose of the output and what kind of value is expected. This description
+string might be included in documentation about the module, and so it should be
 written from the perspective of the user of the module rather than its
 maintainer. For commentary for module maintainers, use comments.
 
-## Sensitive Output Values
+### `sensitive` — Suppressing Values in CLI Output
 
 An output can be marked as containing sensitive material using the optional
 `sensitive` argument:
@@ -77,16 +96,16 @@ output "db_password" {
 ```
 
 Setting an output value in the root module as sensitive prevents Terraform
-from showing its value at the end of `terraform apply`. It may still be shown
-in the CLI output for other reasons, such as if the value is referenced in
-an expression for a resource argument.
+from showing its value in the list of outputs at the end of `terraform apply`.
+It might still be shown in the CLI output for other reasons, like if the
+value is referenced in an expression for a resource argument.
 
 Sensitive output values are still recorded in the
 [state](/docs/state/index.html), and so will be visible to anyone who is able
 to access the state data. For more information, see
 [_Sensitive Data in State_](/docs/state/sensitive-data.html).
 
-## Output Dependencies
+### `depends_on` — Explicit Output Dependencies
 
 Since output values are just a means for passing data out of a module, it is
 usually not necessary to worry about their relationships with other nodes in
@@ -98,8 +117,8 @@ correctly determine the dependencies between resources defined in different
 modules.
 
 Just as with
-[resource dependencies](/docs/configuration/resources.html#resource-dependencies),
-Terraform analyzes the `value` expression for an output value and autmatically
+[resource dependencies](./resources.html#resource-dependencies),
+Terraform analyzes the `value` expression for an output value and automatically
 determines a set of dependencies, but in less-common cases there are
 dependencies that cannot be recognized implicitly. In these rare cases, the
 `depends_on` argument can be used to create additional explicit dependencies:

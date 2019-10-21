@@ -2,22 +2,11 @@ package swift
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/gophercloud/gophercloud"
-	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/containers"
-	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/objects"
-	"github.com/gophercloud/gophercloud/pagination"
-	"github.com/zclconf/go-cty/cty"
-
-	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/state/remote"
-	"github.com/hashicorp/terraform/states"
-	"github.com/hashicorp/terraform/states/statefile"
 )
 
 // verify that we are doing ACC tests or the Swift tests specifically
@@ -45,198 +34,82 @@ func TestBackendConfig(t *testing.T) {
 	testACC(t)
 
 	// Build config
+	container := fmt.Sprintf("terraform-state-swift-testconfig-%x", time.Now().Unix())
+	archiveContainer := fmt.Sprintf("%s_archive", container)
+
 	config := map[string]interface{}{
-		"archive_container": "test-tfstate-archive",
-		"container":         "test-tfstate",
+		"archive_container": archiveContainer,
+		"container":         container,
 	}
 
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
 
-	if b.container != "test-tfstate" {
-		t.Fatal("Incorrect path was provided.")
+	if b.container != container {
+		t.Fatal("Incorrect container was provided.")
 	}
-	if b.archiveContainer != "test-tfstate-archive" {
-		t.Fatal("Incorrect archivepath was provided.")
+	if b.archiveContainer != archiveContainer {
+		t.Fatal("Incorrect archive_container was provided.")
 	}
 }
 
 func TestBackend(t *testing.T) {
 	testACC(t)
 
-	container := fmt.Sprintf("terraform-state-swift-test-%x", time.Now().Unix())
+	container := fmt.Sprintf("terraform-state-swift-testbackend-%x", time.Now().Unix())
 
-	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+	be0 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"container": container,
 	})).(*Backend)
 
-	defer deleteSwiftContainer(t, b.client, container)
-
-	backend.TestBackendStates(t, b)
-}
-
-func TestBackendPath(t *testing.T) {
-	testACC(t)
-
-	path := fmt.Sprintf("terraform-state-swift-test-%x", time.Now().Unix())
-	t.Logf("[DEBUG] Generating backend config")
-	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"path": path,
+	be1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"container": container,
 	})).(*Backend)
-	t.Logf("[DEBUG] Backend configured")
 
-	defer deleteSwiftContainer(t, b.client, path)
-
-	t.Logf("[DEBUG] Testing Backend")
-
-	// Generate some state
-	state1 := states.NewState()
-
-	// RemoteClient to test with
 	client := &RemoteClient{
-		client:           b.client,
-		archive:          b.archive,
-		archiveContainer: b.archiveContainer,
-		container:        b.container,
+		client:    be0.client,
+		container: be0.container,
 	}
 
-	stateMgr := &remote.State{Client: client}
-	stateMgr.WriteState(state1)
-	if err := stateMgr.PersistState(); err != nil {
-		t.Fatal(err)
-	}
+	defer client.deleteContainer()
 
-	if err := stateMgr.RefreshState(); err != nil {
-		t.Fatal(err)
-	}
-
-	// Add some state
-	mod := state1.EnsureModule(addrs.RootModuleInstance)
-	mod.SetOutputValue("bar", cty.StringVal("baz"), false)
-	stateMgr.WriteState(state1)
-	if err := stateMgr.PersistState(); err != nil {
-		t.Fatal(err)
-	}
-
+	backend.TestBackendStates(t, be0)
+	backend.TestBackendStateLocks(t, be0, be1)
+	backend.TestBackendStateForceUnlock(t, be0, be1)
 }
 
 func TestBackendArchive(t *testing.T) {
 	testACC(t)
 
-	container := fmt.Sprintf("terraform-state-swift-test-%x", time.Now().Unix())
+	container := fmt.Sprintf("terraform-state-swift-testarchive-%x", time.Now().Unix())
 	archiveContainer := fmt.Sprintf("%s_archive", container)
 
-	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+	be0 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"archive_container": archiveContainer,
 		"container":         container,
 	})).(*Backend)
 
-	defer deleteSwiftContainer(t, b.client, container)
-	defer deleteSwiftContainer(t, b.client, archiveContainer)
+	be1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"archive_container": archiveContainer,
+		"container":         container,
+	})).(*Backend)
 
-	// Generate some state
-	state1 := states.NewState()
-
-	// RemoteClient to test with
-	client := &RemoteClient{
-		client:           b.client,
-		archive:          b.archive,
-		archiveContainer: b.archiveContainer,
-		container:        b.container,
-	}
-
-	stateMgr := &remote.State{Client: client}
-	stateMgr.WriteState(state1)
-	if err := stateMgr.PersistState(); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := stateMgr.RefreshState(); err != nil {
-		t.Fatal(err)
-	}
-
-	// Add some state
-	mod := state1.EnsureModule(addrs.RootModuleInstance)
-	mod.SetOutputValue("bar", cty.StringVal("baz"), false)
-	stateMgr.WriteState(state1)
-	if err := stateMgr.PersistState(); err != nil {
-		t.Fatal(err)
-	}
-
-	archiveObjects := getSwiftObjectNames(t, b.client, archiveContainer)
-	t.Logf("archiveObjects len = %d. Contents = %+v", len(archiveObjects), archiveObjects)
-	if len(archiveObjects) != 1 {
-		t.Fatalf("Invalid number of archive objects. Expected 1, got %d", len(archiveObjects))
-	}
-
-	// Download archive state to validate
-	archiveData := downloadSwiftObject(t, b.client, archiveContainer, archiveObjects[0])
-	t.Logf("Archive data downloaded... Looks like: %+v", archiveData)
-	archiveStateFile, err := statefile.Read(archiveData)
-	if err != nil {
-		t.Fatalf("Error Reading State: %s", err)
-	}
-
-	t.Logf("Archive state lineage = %s, serial = %d", archiveStateFile.Lineage, archiveStateFile.Serial)
-	if stateMgr.StateSnapshotMeta().Lineage != archiveStateFile.Lineage {
-		t.Fatal("Got a different lineage")
-	}
-
-}
-
-// Helper function to download an object in a Swift container
-func downloadSwiftObject(t *testing.T, osClient *gophercloud.ServiceClient, container, object string) (data io.Reader) {
-	t.Logf("Attempting to download object %s from container %s", object, container)
-	res := objects.Download(osClient, container, object, nil)
-	if res.Err != nil {
-		t.Fatalf("Error downloading object: %s", res.Err)
-	}
-	data = res.Body
-	return
-}
-
-// Helper function to get a list of objects in a Swift container
-func getSwiftObjectNames(t *testing.T, osClient *gophercloud.ServiceClient, container string) (objectNames []string) {
-	_ = objects.List(osClient, container, nil).EachPage(func(page pagination.Page) (bool, error) {
-		// Get a slice of object names
-		names, err := objects.ExtractNames(page)
-		if err != nil {
-			t.Fatalf("Error extracting object names from page: %s", err)
-		}
-		for _, object := range names {
-			objectNames = append(objectNames, object)
+	defer func() {
+		client := &RemoteClient{
+			client:    be0.client,
+			container: be0.container,
 		}
 
-		return true, nil
-	})
-	return
-}
-
-// Helper function to delete Swift container
-func deleteSwiftContainer(t *testing.T, osClient *gophercloud.ServiceClient, container string) {
-	warning := "WARNING: Failed to delete the test Swift container. It may have been left in your Openstack account and may incur storage charges. (error was %s)"
-
-	// Remove any objects
-	deleteSwiftObjects(t, osClient, container)
-
-	// Delete the container
-	deleteResult := containers.Delete(osClient, container)
-	if deleteResult.Err != nil {
-		if _, ok := deleteResult.Err.(gophercloud.ErrDefault404); !ok {
-			t.Fatalf(warning, deleteResult.Err)
+		aclient := &RemoteClient{
+			client:    be0.client,
+			container: be0.archiveContainer,
 		}
-	}
-}
 
-// Helper function to delete Swift objects within a container
-func deleteSwiftObjects(t *testing.T, osClient *gophercloud.ServiceClient, container string) {
-	// Get a slice of object names
-	objectNames := getSwiftObjectNames(t, osClient, container)
+		defer client.deleteContainer()
+		client.deleteContainer()
+		aclient.deleteContainer()
+	}()
 
-	for _, object := range objectNames {
-		result := objects.Delete(osClient, container, object, nil)
-		if result.Err != nil {
-			t.Fatalf("Error deleting object %s from container %s: %s", object, container, result.Err)
-		}
-	}
-
+	backend.TestBackendStates(t, be0)
+	backend.TestBackendStateLocks(t, be0, be1)
+	backend.TestBackendStateForceUnlock(t, be0, be1)
 }

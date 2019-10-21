@@ -6,6 +6,8 @@ import (
 	"hash/crc32"
 	"math/big"
 	"sort"
+
+	"github.com/zclconf/go-cty/cty/set"
 )
 
 // setRules provides a Rules implementation for the ./set package that
@@ -18,6 +20,8 @@ import (
 type setRules struct {
 	Type Type
 }
+
+var _ set.OrderedRules = setRules{}
 
 // Hash returns a hash value for the receiver that can be used for equality
 // checks where some inaccuracy is tolerable.
@@ -56,6 +60,60 @@ func (r setRules) Equivalent(v1 interface{}, v2 interface{}) bool {
 	// as non-equivalent. Two unknown values are not equivalent for the
 	// sake of set membership.
 	return eqv.v == true
+}
+
+// Less is an implementation of set.OrderedRules so that we can iterate over
+// set elements in a consistent order, where such an order is possible.
+func (r setRules) Less(v1, v2 interface{}) bool {
+	v1v := Value{
+		ty: r.Type,
+		v:  v1,
+	}
+	v2v := Value{
+		ty: r.Type,
+		v:  v2,
+	}
+
+	if v1v.RawEquals(v2v) { // Easy case: if they are equal then v1 can't be less
+		return false
+	}
+
+	// Null values always sort after non-null values
+	if v2v.IsNull() && !v1v.IsNull() {
+		return true
+	} else if v1v.IsNull() {
+		return false
+	}
+	// Unknown values always sort after known values
+	if v1v.IsKnown() && !v2v.IsKnown() {
+		return true
+	} else if !v1v.IsKnown() {
+		return false
+	}
+
+	switch r.Type {
+	case String:
+		// String values sort lexicographically
+		return v1v.AsString() < v2v.AsString()
+	case Bool:
+		// Weird to have a set of bools, but if we do then false sorts before true.
+		if v2v.True() || !v1v.True() {
+			return true
+		}
+		return false
+	case Number:
+		v1f := v1v.AsBigFloat()
+		v2f := v2v.AsBigFloat()
+		return v1f.Cmp(v2f) < 0
+	default:
+		// No other types have a well-defined ordering, so we just produce a
+		// default consistent-but-undefined ordering then. This situation is
+		// not considered a compatibility constraint; callers should rely only
+		// on the ordering rules for primitive values.
+		v1h := makeSetHashBytes(v1v)
+		v2h := makeSetHashBytes(v2v)
+		return bytes.Compare(v1h, v2h) < 0
+	}
 }
 
 func makeSetHashBytes(val Value) []byte {

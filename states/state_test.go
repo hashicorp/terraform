@@ -115,3 +115,62 @@ func TestState(t *testing.T) {
 		t.Error(problem)
 	}
 }
+
+func TestStateDeepCopy(t *testing.T) {
+	state := NewState()
+
+	rootModule := state.RootModule()
+	if rootModule == nil {
+		t.Errorf("root module is nil; want valid object")
+	}
+
+	rootModule.SetLocalValue("foo", cty.StringVal("foo value"))
+	rootModule.SetOutputValue("bar", cty.StringVal("bar value"), false)
+	rootModule.SetOutputValue("secret", cty.StringVal("secret value"), true)
+	rootModule.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_thing",
+			Name: "baz",
+		}.Instance(addrs.IntKey(0)),
+		&ResourceInstanceObjectSrc{
+			Status:        ObjectReady,
+			SchemaVersion: 1,
+			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
+			Private:       []byte("private data"),
+			Dependencies:  []addrs.Referenceable{},
+		},
+		addrs.ProviderConfig{
+			Type: "test",
+		}.Absolute(addrs.RootModuleInstance),
+	)
+	rootModule.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_thing",
+			Name: "bar",
+		}.Instance(addrs.IntKey(0)),
+		&ResourceInstanceObjectSrc{
+			Status:        ObjectReady,
+			SchemaVersion: 1,
+			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
+			Private:       []byte("private data"),
+			Dependencies: []addrs.Referenceable{addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_thing",
+				Name: "baz",
+			}},
+		},
+		addrs.ProviderConfig{
+			Type: "test",
+		}.Absolute(addrs.RootModuleInstance),
+	)
+
+	childModule := state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
+	childModule.SetOutputValue("pizza", cty.StringVal("hawaiian"), false)
+
+	stateCopy := state.DeepCopy()
+	if !state.Equal(stateCopy) {
+		t.Fatalf("\nexpected:\n%q\ngot:\n%q\n", state, stateCopy)
+	}
+}

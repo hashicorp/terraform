@@ -21,6 +21,7 @@ import (
 type mockClient struct {
 	Applies               *mockApplies
 	ConfigurationVersions *mockConfigurationVersions
+	CostEstimates         *mockCostEstimates
 	Organizations         *mockOrganizations
 	Plans                 *mockPlans
 	PolicyChecks          *mockPolicyChecks
@@ -33,6 +34,7 @@ func newMockClient() *mockClient {
 	c := &mockClient{}
 	c.Applies = newMockApplies(c)
 	c.ConfigurationVersions = newMockConfigurationVersions(c)
+	c.CostEstimates = newMockCostEstimates(c)
 	c.Organizations = newMockOrganizations(c)
 	c.Plans = newMockPlans(c)
 	c.PolicyChecks = newMockPolicyChecks(c)
@@ -212,15 +214,103 @@ func (m *mockConfigurationVersions) Upload(ctx context.Context, url, path string
 	return nil
 }
 
+type mockCostEstimates struct {
+	client      *mockClient
+	estimations map[string]*tfe.CostEstimate
+	logs        map[string]string
+}
+
+func newMockCostEstimates(client *mockClient) *mockCostEstimates {
+	return &mockCostEstimates{
+		client:      client,
+		estimations: make(map[string]*tfe.CostEstimate),
+		logs:        make(map[string]string),
+	}
+}
+
+// create is a helper function to create a mock cost estimation that uses the
+// configured working directory to find the logfile.
+func (m *mockCostEstimates) create(cvID, workspaceID string) (*tfe.CostEstimate, error) {
+	id := generateID("ce-")
+
+	ce := &tfe.CostEstimate{
+		ID:                    id,
+		MatchedResourcesCount: 1,
+		ResourcesCount:        1,
+		DeltaMonthlyCost:      "0.00",
+		ProposedMonthlyCost:   "0.00",
+		Status:                tfe.CostEstimateFinished,
+	}
+
+	w, ok := m.client.Workspaces.workspaceIDs[workspaceID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+
+	logfile := filepath.Join(
+		m.client.ConfigurationVersions.uploadPaths[cvID],
+		w.WorkingDirectory,
+		"cost-estimate.log",
+	)
+
+	if _, err := os.Stat(logfile); os.IsNotExist(err) {
+		return nil, nil
+	}
+
+	m.logs[ce.ID] = logfile
+	m.estimations[ce.ID] = ce
+
+	return ce, nil
+}
+
+func (m *mockCostEstimates) Read(ctx context.Context, costEstimateID string) (*tfe.CostEstimate, error) {
+	ce, ok := m.estimations[costEstimateID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+	return ce, nil
+}
+
+func (m *mockCostEstimates) Logs(ctx context.Context, costEstimateID string) (io.Reader, error) {
+	ce, ok := m.estimations[costEstimateID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+
+	logfile, ok := m.logs[ce.ID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+
+	if _, err := os.Stat(logfile); os.IsNotExist(err) {
+		return bytes.NewBufferString("logfile does not exist"), nil
+	}
+
+	logs, err := ioutil.ReadFile(logfile)
+	if err != nil {
+		return nil, err
+	}
+
+	ce.Status = tfe.CostEstimateFinished
+
+	return bytes.NewBuffer(logs), nil
+}
+
 // mockInput is a mock implementation of terraform.UIInput.
 type mockInput struct {
 	answers map[string]string
 }
 
-func (m *mockInput) Input(opts *terraform.InputOpts) (string, error) {
+func (m *mockInput) Input(ctx context.Context, opts *terraform.InputOpts) (string, error) {
 	v, ok := m.answers[opts.Id]
 	if !ok {
 		return "", fmt.Errorf("unexpected input request in test: %s", opts.Id)
+	}
+	if v == "wait-for-external-update" {
+		select {
+		case <-ctx.Done():
+		case <-time.After(time.Minute):
+		}
 	}
 	delete(m.answers, opts.Id)
 	return v, nil
@@ -620,9 +710,8 @@ func (m *mockRuns) List(ctx context.Context, workspaceID string, options tfe.Run
 		return nil, tfe.ErrResourceNotFound
 	}
 
-	rl := &tfe.RunList{}
-	for _, r := range m.workspaces[w.ID] {
-		rl.Items = append(rl.Items, r)
+	rl := &tfe.RunList{
+		Items: m.workspaces[w.ID],
 	}
 
 	rl.Pagination = &tfe.Pagination{
@@ -642,6 +731,11 @@ func (m *mockRuns) Create(ctx context.Context, options tfe.RunCreateOptions) (*t
 		return nil, err
 	}
 
+	ce, err := m.client.CostEstimates.create(options.ConfigurationVersion.ID, options.Workspace.ID)
+	if err != nil {
+		return nil, err
+	}
+
 	p, err := m.client.Plans.create(options.ConfigurationVersion.ID, options.Workspace.ID)
 	if err != nil {
 		return nil, err
@@ -653,13 +747,14 @@ func (m *mockRuns) Create(ctx context.Context, options tfe.RunCreateOptions) (*t
 	}
 
 	r := &tfe.Run{
-		ID:          generateID("run-"),
-		Actions:     &tfe.RunActions{IsCancelable: true},
-		Apply:       a,
-		HasChanges:  false,
-		Permissions: &tfe.RunPermissions{},
-		Plan:        p,
-		Status:      tfe.RunPending,
+		ID:           generateID("run-"),
+		Actions:      &tfe.RunActions{IsCancelable: true},
+		Apply:        a,
+		CostEstimate: ce,
+		HasChanges:   false,
+		Permissions:  &tfe.RunPermissions{},
+		Plan:         p,
+		Status:       tfe.RunPending,
 	}
 
 	if pc != nil {
@@ -705,7 +800,7 @@ func (m *mockRuns) Read(ctx context.Context, runID string) (*tfe.Run, error) {
 	}
 
 	logs, _ := ioutil.ReadFile(m.client.Plans.logs[r.Plan.LogReadURL])
-	if r.Plan.Status == tfe.PlanFinished {
+	if r.Status == tfe.RunPlanning && r.Plan.Status == tfe.PlanFinished {
 		if r.IsDestroy || bytes.Contains(logs, []byte("1 to add, 0 to change, 0 to destroy")) {
 			r.Actions.IsCancelable = false
 			r.Actions.IsConfirmable = true
@@ -731,6 +826,7 @@ func (m *mockRuns) Apply(ctx context.Context, runID string, options tfe.RunApply
 	if r.Status != tfe.RunPending {
 		// Only update the status if the run is not pending anymore.
 		r.Status = tfe.RunApplying
+		r.Actions.IsConfirmable = false
 		r.Apply.Status = tfe.ApplyRunning
 	}
 	return nil
@@ -745,7 +841,13 @@ func (m *mockRuns) ForceCancel(ctx context.Context, runID string, options tfe.Ru
 }
 
 func (m *mockRuns) Discard(ctx context.Context, runID string, options tfe.RunDiscardOptions) error {
-	panic("not implemented")
+	r, ok := m.runs[runID]
+	if !ok {
+		return tfe.ErrResourceNotFound
+	}
+	r.Status = tfe.RunDiscarded
+	r.Actions.IsConfirmable = false
+	return nil
 }
 
 type mockStateVersions struct {
@@ -920,8 +1022,8 @@ func (m *mockWorkspaces) Create(ctx context.Context, organization string, option
 		Name:       *options.Name,
 		Operations: !strings.HasSuffix(*options.Name, "no-operations"),
 		Permissions: &tfe.WorkspacePermissions{
-			CanQueueRun: true,
-			CanUpdate:   true,
+			CanQueueApply: true,
+			CanQueueRun:   true,
 		},
 	}
 	if options.AutoApply != nil {
@@ -936,7 +1038,20 @@ func (m *mockWorkspaces) Create(ctx context.Context, organization string, option
 }
 
 func (m *mockWorkspaces) Read(ctx context.Context, organization, workspace string) (*tfe.Workspace, error) {
+	// custom error for TestRemote_plan500 in backend_plan_test.go
+	if workspace == "network-error" {
+		return nil, errors.New("I'm a little teacup")
+	}
+
 	w, ok := m.workspaceNames[workspace]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+	return w, nil
+}
+
+func (m *mockWorkspaces) ReadByID(ctx context.Context, workspaceID string) (*tfe.Workspace, error) {
+	w, ok := m.workspaceIDs[workspaceID]
 	if !ok {
 		return nil, tfe.ErrResourceNotFound
 	}
@@ -965,12 +1080,60 @@ func (m *mockWorkspaces) Update(ctx context.Context, organization, workspace str
 	return w, nil
 }
 
+func (m *mockWorkspaces) UpdateByID(ctx context.Context, workspaceID string, options tfe.WorkspaceUpdateOptions) (*tfe.Workspace, error) {
+	w, ok := m.workspaceIDs[workspaceID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+
+	if options.Name != nil {
+		w.Name = *options.Name
+	}
+	if options.TerraformVersion != nil {
+		w.TerraformVersion = *options.TerraformVersion
+	}
+	if options.WorkingDirectory != nil {
+		w.WorkingDirectory = *options.WorkingDirectory
+	}
+
+	delete(m.workspaceNames, w.Name)
+	m.workspaceNames[w.Name] = w
+
+	return w, nil
+}
+
 func (m *mockWorkspaces) Delete(ctx context.Context, organization, workspace string) error {
 	if w, ok := m.workspaceNames[workspace]; ok {
 		delete(m.workspaceIDs, w.ID)
 	}
 	delete(m.workspaceNames, workspace)
 	return nil
+}
+
+func (m *mockWorkspaces) DeleteByID(ctx context.Context, workspaceID string) error {
+	if w, ok := m.workspaceIDs[workspaceID]; ok {
+		delete(m.workspaceIDs, w.Name)
+	}
+	delete(m.workspaceIDs, workspaceID)
+	return nil
+}
+
+func (m *mockWorkspaces) RemoveVCSConnection(ctx context.Context, organization, workspace string) (*tfe.Workspace, error) {
+	w, ok := m.workspaceNames[workspace]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+	w.VCSRepo = nil
+	return w, nil
+}
+
+func (m *mockWorkspaces) RemoveVCSConnectionByID(ctx context.Context, workspaceID string) (*tfe.Workspace, error) {
+	w, ok := m.workspaceIDs[workspaceID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+	w.VCSRepo = nil
+	return w, nil
 }
 
 func (m *mockWorkspaces) Lock(ctx context.Context, workspaceID string, options tfe.WorkspaceLockOptions) (*tfe.Workspace, error) {

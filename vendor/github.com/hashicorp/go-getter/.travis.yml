@@ -9,15 +9,16 @@ addons:
 
 language: go
 
+os:
+  - linux
+  - osx
+
 go:
-  - 1.8.x
-  - 1.9.x
-  - master
+  - "1.11.x"
+
+before_script:
+  - go build ./cmd/go-getter
 
 branches:
   only:
     - master
-
-matrix:
-  allow_failures:
-    - go: master

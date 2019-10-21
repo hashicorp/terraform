@@ -1,12 +1,16 @@
 ---
 layout: "functions"
-page_title: "lookup function"
+page_title: "lookup - Functions - Configuration Language"
 sidebar_current: "docs-funcs-collection-lookup"
 description: |-
   The lookup function retrieves an element value from a map given its key.
 ---
 
 # `lookup` Function
+
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
 
 `lookup` retrieves the value of a single element from a map, given its key.
 If the given key does not exist, a the given default value is returned instead.

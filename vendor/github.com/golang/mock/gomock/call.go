@@ -23,7 +23,7 @@ import (
 
 // Call represents an expected call to a mock.
 type Call struct {
-	t TestReporter // for triggering test failures on invalid call setup
+	t TestHelper // for triggering test failures on invalid call setup
 
 	receiver   interface{}  // the receiver of the method call
 	method     string       // the name of the method
@@ -46,10 +46,8 @@ type Call struct {
 
 // newCall creates a *Call. It requires the method type in order to support
 // unexported methods.
-func newCall(t TestReporter, receiver interface{}, method string, methodType reflect.Type, args ...interface{}) *Call {
-	if h, ok := t.(testHelper); ok {
-		h.Helper()
-	}
+func newCall(t TestHelper, receiver interface{}, method string, methodType reflect.Type, args ...interface{}) *Call {
+	t.Helper()
 
 	// TODO: check arity, types.
 	margs := make([]Matcher, len(args))
@@ -159,9 +157,7 @@ func (c *Call) Do(f interface{}) *Call {
 
 // Return declares the values to be returned by the mocked function call.
 func (c *Call) Return(rets ...interface{}) *Call {
-	if h, ok := c.t.(testHelper); ok {
-		h.Helper()
-	}
+	c.t.Helper()
 
 	mt := c.methodType
 	if len(rets) != mt.NumOut() {
@@ -209,9 +205,7 @@ func (c *Call) Times(n int) *Call {
 // indirected through a pointer. Or, in the case of a slice, SetArg
 // will copy value's elements into the nth argument.
 func (c *Call) SetArg(n int, value interface{}) *Call {
-	if h, ok := c.t.(testHelper); ok {
-		h.Helper()
-	}
+	c.t.Helper()
 
 	mt := c.methodType
 	// TODO: This will break on variadic methods.
@@ -264,9 +258,7 @@ func (c *Call) isPreReq(other *Call) bool {
 
 // After declares that the call may only match after preReq has been exhausted.
 func (c *Call) After(preReq *Call) *Call {
-	if h, ok := c.t.(testHelper); ok {
-		h.Helper()
-	}
+	c.t.Helper()
 
 	if c == preReq {
 		c.t.Fatalf("A call isn't allowed to be its own prerequisite")

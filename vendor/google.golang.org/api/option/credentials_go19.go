@@ -27,6 +27,7 @@ func (w *withCreds) Apply(o *internal.DialSettings) {
 	o.Credentials = (*google.Credentials)(w)
 }
 
+// WithCredentials returns a ClientOption that authenticates API calls.
 func WithCredentials(creds *google.Credentials) ClientOption {
 	return (*withCreds)(creds)
 }

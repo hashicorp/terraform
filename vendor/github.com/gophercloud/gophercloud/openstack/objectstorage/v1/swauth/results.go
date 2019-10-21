@@ -4,8 +4,8 @@ import (
 	"github.com/gophercloud/gophercloud"
 )
 
-// GetAuthResult temporarily contains the response from a Swauth
-// authentication call.
+// GetAuthResult contains the response from the Auth request. Call its Extract
+// method to interpret it as an AuthResult.
 type GetAuthResult struct {
 	gophercloud.HeaderResult
 }

@@ -29,6 +29,8 @@ type spanAnnotator struct {
 
 // TODO: Remove NewSpanAnnotator at the next release.
 
+// NewSpanAnnotator returns a httptrace.ClientTrace which annotates
+// all emitted httptrace events on the provided Span.
 // Deprecated: Use NewSpanAnnotatingClientTrace instead
 func NewSpanAnnotator(r *http.Request, s *trace.Span) *httptrace.ClientTrace {
 	return NewSpanAnnotatingClientTrace(r, s)

@@ -12,11 +12,13 @@ import (
 	"strings"
 
 	version "github.com/hashicorp/go-version"
+	"github.com/hashicorp/terraform-svchost"
+	"github.com/hashicorp/terraform-svchost/auth"
+	"github.com/hashicorp/terraform-svchost/disco"
+	"github.com/hashicorp/terraform/httpclient"
 	"github.com/hashicorp/terraform/registry/regsrc"
 	"github.com/hashicorp/terraform/registry/response"
-	"github.com/hashicorp/terraform/svchost"
-	"github.com/hashicorp/terraform/svchost/auth"
-	"github.com/hashicorp/terraform/svchost/disco"
+	tfversion "github.com/hashicorp/terraform/version"
 )
 
 // Disco return a *disco.Disco mapping registry.terraform.io, localhost,
@@ -29,6 +31,7 @@ func Disco(s *httptest.Server) *disco.Disco {
 		"providers.v1": fmt.Sprintf("%s/v1/providers", s.URL),
 	}
 	d := disco.NewWithCredentialsSource(credsSrc)
+	d.SetUserAgent(httpclient.TerraformUserAgent(tfversion.String()))
 
 	d.ForceHostServices(svchost.Hostname("registry.terraform.io"), services)
 	d.ForceHostServices(svchost.Hostname("localhost"), services)
@@ -77,7 +80,7 @@ var testMods = map[string][]testMod{
 		version:  "1.10.0",
 	}},
 	"registry/local/sub": {{
-		location: "test-fixtures/registry-tar-subdir/foo.tgz//*?archive=tar.gz",
+		location: "testdata/registry-tar-subdir/foo.tgz//*?archive=tar.gz",
 		version:  "0.1.2",
 	}},
 	"exists-in-registry/identifier/provider": {{

@@ -103,7 +103,7 @@ func (f *CLI) AddFlags(flags *flag.FlagSet) {
 			fmt.Sprintf("Uninstall completion for %s command", f.Name))
 	}
 	if flags.Lookup("y") == nil {
-		flags.BoolVar(&f.yes, "y", false, "Don't prompt user for typing 'yes'")
+		flags.BoolVar(&f.yes, "y", false, "Don't prompt user for typing 'yes' when installing completion")
 	}
 }
 

@@ -123,9 +123,11 @@ func (s *State) PersistState() error {
 	defer s.mu.Unlock()
 
 	if s.readState != nil {
-		if !statefile.StatesMarshalEqual(s.state, s.readState) {
-			s.serial++
+		if statefile.StatesMarshalEqual(s.state, s.readState) {
+			// If the state hasn't changed at all then we have nothing to do.
+			return nil
 		}
+		s.serial++
 	} else {
 		// We might be writing a new state altogether, but before we do that
 		// we'll check to make sure there isn't already a snapshot present

@@ -75,8 +75,12 @@ func (s Set) Copy() Set {
 	return ret
 }
 
-// Iterator returns an iterator over values in the set, in an undefined order
-// that callers should not depend on.
+// Iterator returns an iterator over values in the set. If the set's rules
+// implement OrderedRules then the result is ordered per those rules. If
+// no order is provided, or if it is not a total order, then the iteration
+// order is undefined but consistent for a particular version of cty. Do not
+// rely on specific ordering between cty releases unless the rules order is a
+// total order.
 //
 // The pattern for using the returned iterator is:
 //
@@ -89,18 +93,11 @@ func (s Set) Copy() Set {
 // Once an iterator has been created for a set, the set *must not* be mutated
 // until the iterator is no longer in use.
 func (s Set) Iterator() *Iterator {
-	// Sort the bucketIds to ensure that we always traverse in a
-	// consistent order.
-	bucketIds := make([]int, 0, len(s.vals))
-	for id := range s.vals {
-		bucketIds = append(bucketIds, id)
-	}
-	sort.Ints(bucketIds)
+	vals := s.Values()
 
 	return &Iterator{
-		bucketIds: bucketIds,
-		vals:      s.vals,
-		bucketIdx: -1,
+		vals: vals,
+		idx:  -1,
 	}
 }
 
@@ -113,16 +110,30 @@ func (s Set) EachValue(cb func(interface{})) {
 	}
 }
 
-// Values returns a slice of all of the values in the set in no particular
-// order. This is just a wrapper around EachValue that accumulates the results
-// in a slice for caller convenience.
-//
-// The returned slice will be nil if there are no values in the set.
+// Values returns a slice of all the values in the set. If the set rules have
+// an order then the result is in that order. If no order is provided or if
+// it is not a total order then the result order is undefined, but consistent
+// for a particular set value within a specific release of cty.
 func (s Set) Values() []interface{} {
 	var ret []interface{}
-	s.EachValue(func(v interface{}) {
-		ret = append(ret, v)
-	})
+	// Sort the bucketIds to ensure that we always traverse in a
+	// consistent order.
+	bucketIDs := make([]int, 0, len(s.vals))
+	for id := range s.vals {
+		bucketIDs = append(bucketIDs, id)
+	}
+	sort.Ints(bucketIDs)
+
+	for _, bucketID := range bucketIDs {
+		ret = append(ret, s.vals[bucketID]...)
+	}
+
+	if orderRules, ok := s.rules.(OrderedRules); ok {
+		sort.SliceStable(ret, func(i, j int) bool {
+			return orderRules.Less(ret[i], ret[j])
+		})
+	}
+
 	return ret
 }
 

@@ -3499,14 +3499,27 @@ func TestResourceDataSetMeta_Timeouts(t *testing.T) {
 }
 
 func TestResourceDataSetId(t *testing.T) {
-	d := &ResourceData{}
+	d := &ResourceData{
+		state: &terraform.InstanceState{
+			ID: "test",
+			Attributes: map[string]string{
+				"id": "test",
+			},
+		},
+	}
 	d.SetId("foo")
 
 	actual := d.State()
 
 	// SetId should set both the ID field as well as the attribute, to aid in
 	// transitioning to the new type system.
-	if actual.ID != "foo" && actual.Attributes["id"] != "foo" {
+	if actual.ID != "foo" || actual.Attributes["id"] != "foo" {
+		t.Fatalf("bad: %#v", actual)
+	}
+
+	d.SetId("")
+	actual = d.State()
+	if actual != nil {
 		t.Fatalf("bad: %#v", actual)
 	}
 }

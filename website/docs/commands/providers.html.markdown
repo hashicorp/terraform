@@ -1,9 +1,9 @@
 ---
-layout: "docs"
+layout: "commands-providers"
 page_title: "Command: providers"
 sidebar_current: "docs-commands-providers"
 description: |-
-  The "providers" sub-command prints information about the providers used
+  The `terraform providers` command prints information about the providers used
   in the current configuration.
 ---
 
@@ -28,9 +28,14 @@ Provider dependencies are created in several different ways:
 This command gives an overview of all of the current dependencies, as an aid
 to understanding why a particular provider is needed.
 
+This command is a nested subcommand, meaning that it has further subcommands.
+These subcommands are listed to the left.
+
 ## Usage
 
 Usage: `terraform providers [config-path]`
 
 Pass an explicit configuration path to override the default of using the
 current working directory.
+
+Please refer to the subcommands to the left for additional usages.

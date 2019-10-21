@@ -108,7 +108,7 @@ func buildSasToken(accountName, accessKey string) (*string, error) {
 	startDate := utcNow.Add(time.Minute * -5).Format(time.RFC3339)
 	endDate := utcNow.Add(time.Hour * 24).Format(time.RFC3339)
 
-	sasToken, err := sasStorage.ComputeSASToken(accountName, accessKey, permissions, services, resourceTypes,
+	sasToken, err := sasStorage.ComputeAccountSASToken(accountName, accessKey, permissions, services, resourceTypes,
 		startDate, endDate, signedProtocol, signedIp, signedVersion)
 	if err != nil {
 		return nil, fmt.Errorf("Error computing SAS Token: %+v", err)

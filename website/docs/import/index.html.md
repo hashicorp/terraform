@@ -26,7 +26,7 @@ version of Terraform will also generate configuration.
 
 Because of this, prior to running `terraform import` it is necessary to write
 manually a `resource` configuration block for the resource, to which the
-imported object will be attached.
+imported object will be mapped.
 
 While this may seem tedious, it still gives Terraform users an avenue for
 importing existing resources. A future version of Terraform will fully generate

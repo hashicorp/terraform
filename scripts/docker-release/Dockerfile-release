@@ -7,8 +7,8 @@
 # tree, without any dependency on there being an existing release on
 # releases.hashicorp.com.
 
-FROM alpine:latest
-MAINTAINER "HashiCorp Terraform Team <terraform@hashicorp.com>"
+FROM alpine:3.9.2 as build
+LABEL maintainer="HashiCorp Terraform Team <terraform@hashicorp.com>"
 
 # This is intended to be run from the hooks/build script, which sets this
 # appropriately based on git tags.
@@ -22,11 +22,10 @@ COPY releases_public_key .
 # - Verify that the zip file matches the expected checksum
 # - Extract the zip file so it can be run
 
-RUN echo Building image for Terraform ${TERRAFORM_VERSION} && \
-    apk add --update git curl openssh gnupg && \
-    curl https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip > terraform_${TERRAFORM_VERSION}_linux_amd64.zip && \
-    curl https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_SHA256SUMS.sig > terraform_${TERRAFORM_VERSION}_SHA256SUMS.sig && \
-    curl https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_SHA256SUMS > terraform_${TERRAFORM_VERSION}_SHA256SUMS && \
+RUN apk add --no-cache git curl openssh gnupg && \
+    curl -O https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip && \
+    curl -O https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_SHA256SUMS.sig && \
+    curl -O https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_SHA256SUMS && \
     gpg --import releases_public_key && \
     gpg --verify terraform_${TERRAFORM_VERSION}_SHA256SUMS.sig terraform_${TERRAFORM_VERSION}_SHA256SUMS && \
     grep linux_amd64 terraform_${TERRAFORM_VERSION}_SHA256SUMS >terraform_${TERRAFORM_VERSION}_SHA256SUMS_linux_amd64 && \
@@ -34,6 +33,12 @@ RUN echo Building image for Terraform ${TERRAFORM_VERSION} && \
     unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip -d /bin && \
     rm -f terraform_${TERRAFORM_VERSION}_linux_amd64.zip terraform_${TERRAFORM_VERSION}_SHA256SUMS*
 
+FROM alpine:3.9.2 as final
+
 LABEL "com.hashicorp.terraform.version"="${TERRAFORM_VERSION}"
+
+RUN apk add --no-cache git openssh
+
+COPY --from=build ["/bin/terraform", "/bin/terraform"]
 
 ENTRYPOINT ["/bin/terraform"]

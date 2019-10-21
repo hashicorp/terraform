@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "pow function"
+page_title: "pow - Functions - Configuration Language"
 sidebar_current: "docs-funcs-numeric-pow"
 description: |-
   The pow function raises a number to a power.
@@ -8,7 +8,11 @@ description: |-
 
 # `pow` Function
 
-`pow` raises a number to a given power. That is, it calcluates the exponent.
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
+
+`pow` calculates an exponent, by raising its first argument to the power of the second argument.
 
 ## Examples
 

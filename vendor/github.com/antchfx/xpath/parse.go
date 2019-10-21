@@ -42,7 +42,7 @@ const (
 	itemString                     // Quoted string constant
 	itemNumber                     // Number constant
 	itemAxe                        // Axe (like child::)
-	itemEof                        // END
+	itemEOF                        // END
 )
 
 // A node is an XPath node in the parse tree.
@@ -389,7 +389,7 @@ Loop:
 }
 
 // Step	::= AxisSpecifier NodeTest Predicate* | AbbreviatedStep
-func (p *parser) parseStep(n node) node {
+func (p *parser) parseStep(n node) (opnd node) {
 	axeTyp := "child" // default axes value.
 	if p.r.typ == itemDot || p.r.typ == itemDotDot {
 		if p.r.typ == itemDot {
@@ -398,20 +398,42 @@ func (p *parser) parseStep(n node) node {
 			axeTyp = "parent"
 		}
 		p.next()
-		return newAxisNode(axeTyp, "", "", "", n)
+		opnd = newAxisNode(axeTyp, "", "", "", n)
+		if p.r.typ != itemLBracket {
+			return opnd
+		}
+	} else {
+		switch p.r.typ {
+		case itemAt:
+			p.next()
+			axeTyp = "attribute"
+		case itemAxe:
+			axeTyp = p.r.name
+			p.next()
+		case itemLParens:
+			return p.parseSequence(n)
+		}
+		opnd = p.parseNodeTest(n, axeTyp)
 	}
-	switch p.r.typ {
-	case itemAt:
-		p.next()
-		axeTyp = "attribute"
-	case itemAxe:
-		axeTyp = p.r.name
-		p.next()
-	}
-	opnd := p.parseNodeTest(n, axeTyp)
 	for p.r.typ == itemLBracket {
 		opnd = newFilterNode(opnd, p.parsePredicate(opnd))
 	}
+	return opnd
+}
+
+// Expr ::= '(' Step ("," Step)* ')'
+func (p *parser) parseSequence(n node) (opnd node) {
+	p.skipItem(itemLParens)
+	opnd = p.parseStep(n)
+	for {
+		if p.r.typ != itemComma {
+			break
+		}
+		p.next()
+		opnd2 := p.parseStep(n)
+		opnd = newOperatorNode("|", opnd, opnd2)
+	}
+	p.skipItem(itemRParens)
 	return opnd
 }
 
@@ -628,7 +650,7 @@ func (s *scanner) nextChar() bool {
 		return false
 	}
 	s.curr = rune(s.text[s.pos])
-	s.pos += 1
+	s.pos++
 	return true
 }
 
@@ -636,7 +658,7 @@ func (s *scanner) nextItem() bool {
 	s.skipSpace()
 	switch s.curr {
 	case 0:
-		s.typ = itemEof
+		s.typ = itemEOF
 		return false
 	case ',', '@', '(', ')', '|', '*', '[', ']', '+', '-', '=', '#', '$':
 		s.typ = asItemType(s.curr)

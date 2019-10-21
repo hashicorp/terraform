@@ -44,13 +44,13 @@ func (n *node) addEdge(e edge) {
 	n.edges.Sort()
 }
 
-func (n *node) replaceEdge(e edge) {
+func (n *node) updateEdge(label byte, node *node) {
 	num := len(n.edges)
 	idx := sort.Search(num, func(i int) bool {
-		return n.edges[i].label >= e.label
+		return n.edges[i].label >= label
 	})
-	if idx < num && n.edges[idx].label == e.label {
-		n.edges[idx].node = e.node
+	if idx < num && n.edges[idx].label == label {
+		n.edges[idx].node = node
 		return
 	}
 	panic("replacing missing edge")
@@ -198,10 +198,7 @@ func (t *Tree) Insert(s string, v interface{}) (interface{}, bool) {
 		child := &node{
 			prefix: search[:commonPrefix],
 		}
-		parent.replaceEdge(edge{
-			label: search[0],
-			node:  child,
-		})
+		parent.updateEdge(search[0], child)
 
 		// Restore the existing node
 		child.addEdge(edge{
@@ -290,6 +287,53 @@ DELETE:
 	}
 
 	return leaf.val, true
+}
+
+// DeletePrefix is used to delete the subtree under a prefix
+// Returns how many nodes were deleted
+// Use this to delete large subtrees efficiently
+func (t *Tree) DeletePrefix(s string) int {
+	return t.deletePrefix(nil, t.root, s)
+}
+
+// delete does a recursive deletion
+func (t *Tree) deletePrefix(parent, n *node, prefix string) int {
+	// Check for key exhaustion
+	if len(prefix) == 0 {
+		// Remove the leaf node
+		subTreeSize := 0
+		//recursively walk from all edges of the node to be deleted
+		recursiveWalk(n, func(s string, v interface{}) bool {
+			subTreeSize++
+			return false
+		})
+		if n.isLeaf() {
+			n.leaf = nil
+		}
+		n.edges = nil // deletes the entire subtree
+
+		// Check if we should merge the parent's other child
+		if parent != nil && parent != t.root && len(parent.edges) == 1 && !parent.isLeaf() {
+			parent.mergeChild()
+		}
+		t.size -= subTreeSize
+		return subTreeSize
+	}
+
+	// Look for an edge
+	label := prefix[0]
+	child := n.getEdge(label)
+	if child == nil || (!strings.HasPrefix(child.prefix, prefix) && !strings.HasPrefix(prefix, child.prefix)) {
+		return 0
+	}
+
+	// Consume the search prefix
+	if len(child.prefix) > len(prefix) {
+		prefix = prefix[len(prefix):]
+	} else {
+		prefix = prefix[len(child.prefix):]
+	}
+	return t.deletePrefix(n, child, prefix)
 }
 
 func (n *node) mergeChild() {

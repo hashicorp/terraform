@@ -1,7 +1,7 @@
 ---
 layout: "commands-workspace"
 page_title: "Command: workspace select"
-sidebar_current: "docs-workspace-sub-select"
+sidebar_current: "docs-commands-workspace-sub-select"
 description: |-
   The terraform workspace select command is used to choose a workspace.
 ---

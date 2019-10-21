@@ -4,12 +4,15 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
+
+	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/floatingips"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 	nfloatingips "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
-	"github.com/hashicorp/terraform/helper/schema"
 )
 
 func resourceComputeFloatingIPAssociateV2() *schema.Resource {
@@ -21,26 +24,38 @@ func resourceComputeFloatingIPAssociateV2() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(10 * time.Minute),
+		},
+
 		Schema: map[string]*schema.Schema{
-			"region": &schema.Schema{
+			"region": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
 
-			"floating_ip": &schema.Schema{
+			"floating_ip": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"instance_id": &schema.Schema{
+
+			"instance_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"fixed_ip": &schema.Schema{
+
+			"fixed_ip": {
 				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"wait_until_associated": {
+				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
 			},
@@ -70,14 +85,38 @@ func resourceComputeFloatingIPAssociateV2Create(d *schema.ResourceData, meta int
 		return fmt.Errorf("Error associating Floating IP: %s", err)
 	}
 
+	// This API call should be synchronous, but we've had reports where it isn't.
+	// If the user opted in to wait for association, then poll here.
+	var waitUntilAssociated bool
+	if v, ok := d.GetOkExists("wait_until_associated"); ok {
+		if wua, ok := v.(bool); ok {
+			waitUntilAssociated = wua
+		}
+	}
+
+	if waitUntilAssociated {
+		log.Printf("[DEBUG] Waiting until %s is associated with %s", instanceId, floatingIP)
+
+		stateConf := &resource.StateChangeConf{
+			Pending:    []string{"NOT_ASSOCIATED"},
+			Target:     []string{"ASSOCIATED"},
+			Refresh:    resourceComputeFloatingIPAssociateV2CheckAssociation(computeClient, instanceId, floatingIP),
+			Timeout:    d.Timeout(schema.TimeoutCreate),
+			Delay:      0,
+			MinTimeout: 3 * time.Second,
+		}
+
+		_, err := stateConf.WaitForState()
+		if err != nil {
+			return err
+		}
+	}
+
 	// There's an API call to get this information, but it has been
 	// deprecated. The Neutron API could be used, but I'm trying not
 	// to mix service APIs. Therefore, a faux ID will be used.
 	id := fmt.Sprintf("%s/%s/%s", floatingIP, instanceId, fixedIP)
 	d.SetId(id)
-
-	// This API call is synchronous, so Create won't return until the IP
-	// is attached. No need to wait for a state.
 
 	return resourceComputeFloatingIPAssociateV2Read(d, meta)
 }
@@ -232,4 +271,31 @@ func resourceComputeFloatingIPAssociateV2ComputeExists(computeClient *gopherclou
 	}
 
 	return false, nil
+}
+
+func resourceComputeFloatingIPAssociateV2CheckAssociation(
+	computeClient *gophercloud.ServiceClient, instanceId, floatingIP string) resource.StateRefreshFunc {
+
+	return func() (interface{}, string, error) {
+		instance, err := servers.Get(computeClient, instanceId).Extract()
+		if err != nil {
+			return instance, "", err
+		}
+
+		var associated bool
+		for _, networkAddresses := range instance.Addresses {
+			for _, element := range networkAddresses.([]interface{}) {
+				address := element.(map[string]interface{})
+				if address["OS-EXT-IPS:type"] == "floating" && address["addr"] == floatingIP {
+					associated = true
+				}
+			}
+		}
+
+		if associated {
+			return instance, "ASSOCIATED", nil
+		}
+
+		return instance, "NOT_ASSOCIATED", nil
+	}
 }

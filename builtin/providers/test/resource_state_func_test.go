@@ -58,3 +58,28 @@ resource "test_resource_state_func" "foo" {
 		},
 	})
 }
+
+func TestResourceStateFunc_getOkSetElem(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_state_func" "foo" {
+}
+
+resource "test_resource_state_func" "bar" {
+	set_block {
+		required = "foo"
+		optional = test_resource_state_func.foo.id
+	}
+	set_block {
+		required = test_resource_state_func.foo.id
+	}
+}
+				`),
+			},
+		},
+	})
+}

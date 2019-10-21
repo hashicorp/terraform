@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "jsonencode function"
+page_title: "jsonencode - Functions - Configuration Language"
 sidebar_current: "docs-funcs-encoding-jsonencode"
 description: |-
   The jsonencode function encodes a given value as a JSON string.
@@ -8,12 +8,16 @@ description: |-
 
 # `jsonencode` Function
 
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
+
 `jsonencode` encodes a given value to a string using JSON syntax.
 
 The JSON encoding is defined in [RFC 7159](https://tools.ietf.org/html/rfc7159).
 
-This fucntion maps
-[Terraform language values](/docs/configuration/expressions.html#types-and-values)
+This function maps
+[Terraform language values](../expressions.html#types-and-values)
 to JSON values in the following way:
 
 | Terraform type | JSON type |

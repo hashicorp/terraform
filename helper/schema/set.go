@@ -198,6 +198,16 @@ func (s *Set) add(item interface{}, computed bool) string {
 	code := s.hash(item)
 	if computed {
 		code = "~" + code
+
+		if isProto5() {
+			tmpCode := code
+			count := 0
+			for _, exists := s.m[tmpCode]; exists; _, exists = s.m[tmpCode] {
+				count++
+				tmpCode = fmt.Sprintf("%s%d", code, count)
+			}
+			code = tmpCode
+		}
 	}
 
 	if _, ok := s.m[code]; !ok {

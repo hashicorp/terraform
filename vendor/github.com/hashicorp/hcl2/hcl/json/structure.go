@@ -266,6 +266,9 @@ func (b *body) unpackBlock(v node, typeName string, typeRange *hcl.Range, labels
 	copy(labelR, labelRanges)
 
 	switch tv := v.(type) {
+	case *nullVal:
+		// There is no block content, e.g the value is null.
+		return
 	case *objectVal:
 		// Single instance of the block
 		*blocks = append(*blocks, &hcl.Block{
@@ -324,6 +327,8 @@ func (b *body) collectDeepAttrs(v node, labelName *string) ([]*objectAttr, hcl.D
 	var attrs []*objectAttr
 
 	switch tv := v.(type) {
+	case *nullVal:
+		// If a value is null, then we don't return any attributes or return an error.
 
 	case *objectVal:
 		attrs = append(attrs, tv.Attrs...)
@@ -411,12 +416,14 @@ func (e *expression) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
 	case *booleanVal:
 		return cty.BoolVal(v.Value), nil
 	case *arrayVal:
+		var diags hcl.Diagnostics
 		vals := []cty.Value{}
 		for _, jsonVal := range v.Values {
-			val, _ := (&expression{src: jsonVal}).Value(ctx)
+			val, valDiags := (&expression{src: jsonVal}).Value(ctx)
 			vals = append(vals, val)
+			diags = append(diags, valDiags...)
 		}
-		return cty.TupleVal(vals), nil
+		return cty.TupleVal(vals), diags
 	case *objectVal:
 		var diags hcl.Diagnostics
 		attrs := map[string]cty.Value{}
@@ -424,7 +431,7 @@ func (e *expression) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
 		known := true
 		for _, jsonAttr := range v.Attrs {
 			// In this one context we allow keys to contain interpolation
-			// experessions too, assuming we're evaluating in interpolation
+			// expressions too, assuming we're evaluating in interpolation
 			// mode. This achieves parity with the native syntax where
 			// object expressions can have dynamic keys, while block contents
 			// may not.
@@ -494,6 +501,8 @@ func (e *expression) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
 			return cty.DynamicVal, diags
 		}
 		return cty.ObjectVal(attrs), diags
+	case *nullVal:
+		return cty.NullVal(cty.DynamicPseudoType), nil
 	default:
 		// Default to DynamicVal so that ASTs containing invalid nodes can
 		// still be partially-evaluated.
@@ -533,6 +542,11 @@ func (e *expression) Variables() []hcl.Traversal {
 		}
 	case *objectVal:
 		for _, jsonAttr := range v.Attrs {
+			keyExpr := &stringVal{ // we're going to treat key as an expression in this context
+				Value:    jsonAttr.Name,
+				SrcRange: jsonAttr.NameRange,
+			}
+			vars = append(vars, (&expression{src: keyExpr}).Variables()...)
 			vars = append(vars, (&expression{src: jsonAttr.Value}).Variables()...)
 		}
 	}

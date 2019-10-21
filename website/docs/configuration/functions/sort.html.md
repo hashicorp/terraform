@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "sort function"
+page_title: "sort - Functions - Configuration Language"
 sidebar_current: "docs-funcs-collection-sort"
 description: |-
   The sort function takes a list of strings and returns a new list with those
@@ -8,6 +8,10 @@ description: |-
 ---
 
 # `sort` Function
+
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
 
 `sort` takes a list of strings and returns a new list with those strings
 sorted lexicographically.

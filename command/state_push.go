@@ -31,7 +31,8 @@ func (c *StatePushCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
 	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
 	if err := cmdFlags.Parse(args); err != nil {
-		return cli.RunResultHelp
+		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+		return 1
 	}
 	args = cmdFlags.Args()
 
@@ -84,7 +85,7 @@ func (c *StatePushCommand) Run(args []string) int {
 
 	if c.stateLock {
 		stateLocker := clistate.NewLocker(context.Background(), c.stateLockTimeout, c.Ui, c.Colorize())
-		if err := stateLocker.Lock(stateMgr, "taint"); err != nil {
+		if err := stateLocker.Lock(stateMgr, "state-push"); err != nil {
 			c.Ui.Error(fmt.Sprintf("Error locking state: %s", err))
 			return 1
 		}

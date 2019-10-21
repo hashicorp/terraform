@@ -1,12 +1,16 @@
 ---
 layout: "functions"
-page_title: "list function"
+page_title: "list - Functions - Configuration Language"
 sidebar_current: "docs-funcs-collection-list"
 description: |-
   The list function constructs a list from some given elements.
 ---
 
 # `list` Function
+
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
 
 ~> **This function is deprecated.** From Terraform v0.12, the Terraform
 language has built-in syntax for creating lists using the `[` and `]`
@@ -38,3 +42,7 @@ built-in list construction syntax, which achieves the same result:
   "c",
 ]
 ```
+
+## Related Functions
+
+* [`tolist`](./tolist.html) converts a set value to a list.

@@ -25,6 +25,7 @@ type analysis struct {
 	ResourceProviderType map[addrs.Resource]string
 	ResourceHasCount     map[addrs.Resource]bool
 	VariableTypes        map[string]string
+	ModuleDir            string
 }
 
 // analyze processes the configuration files included inside the receiver
@@ -231,9 +232,13 @@ func (u *Upgrader) analyze(ms ModuleSources) (*analysis, error) {
 		}
 	}
 
-	providerFactories, err := u.Providers.ResolveProviders(m.PluginRequirements())
-	if err != nil {
-		return nil, fmt.Errorf("error resolving providers: %s", err)
+	providerFactories, errs := u.Providers.ResolveProviders(m.PluginRequirements())
+	if len(errs) > 0 {
+		var errorsMsg string
+		for _, err := range errs {
+			errorsMsg += fmt.Sprintf("\n- %s", err)
+		}
+		return nil, fmt.Errorf("error resolving providers:\n%s", errorsMsg)
 	}
 
 	for name, fn := range providerFactories {
@@ -262,7 +267,20 @@ func (u *Upgrader) analyze(ms ModuleSources) (*analysis, error) {
 		ret.ProviderSchemas[name] = schema
 	}
 
-	// TODO: Also ProvisionerSchemas
+	for name, fn := range u.Provisioners {
+		log.Printf("[TRACE] Fetching schema from provisioner %q", name)
+		provisioner, err := fn()
+		if err != nil {
+			return nil, fmt.Errorf("failed to load provisioner %q: %s", name, err)
+		}
+
+		resp := provisioner.GetSchema()
+		if resp.Diagnostics.HasErrors() {
+			return nil, resp.Diagnostics.Err()
+		}
+
+		ret.ProvisionerSchemas[name] = resp.Provisioner
+	}
 
 	return ret, nil
 }

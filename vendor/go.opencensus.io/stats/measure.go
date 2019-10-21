@@ -93,8 +93,9 @@ func registerMeasureHandle(name, desc, unit string) *measureDescriptor {
 // provides methods to create measurements of their kind. For example, Int64Measure
 // provides M to convert an int64 into a measurement.
 type Measurement struct {
-	v float64
-	m Measure
+	v    float64
+	m    Measure
+	desc *measureDescriptor
 }
 
 // Value returns the value of the Measurement as a float64.

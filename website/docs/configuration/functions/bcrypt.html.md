@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "bcrypt function"
+page_title: "bcrypt - Functions - Configuration Language"
 sidebar_current: "docs-funcs-crypto-bcrypt"
 description: |-
   The bcrypt function computes a hash of the given string using the Blowfish
@@ -8,6 +8,10 @@ description: |-
 ---
 
 # `bcrypt` Function
+
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
 
 `bcrypt` computes a hash of the given string using the Blowfish cipher,
 returning a string in

@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 
@@ -341,10 +342,7 @@ func TestApply_error(t *testing.T) {
 
 	var lock sync.Mutex
 	errored := false
-	p.ApplyFn = func(
-		info *terraform.InstanceInfo,
-		s *terraform.InstanceState,
-		d *terraform.InstanceDiff) (*terraform.InstanceState, error) {
+	p.ApplyFn = func(info *terraform.InstanceInfo, s *terraform.InstanceState, d *terraform.InstanceDiff) (*terraform.InstanceState, error) {
 		lock.Lock()
 		defer lock.Unlock()
 
@@ -353,19 +351,34 @@ func TestApply_error(t *testing.T) {
 			return nil, fmt.Errorf("error")
 		}
 
-		return &terraform.InstanceState{ID: "foo"}, nil
+		newState := &terraform.InstanceState{
+			ID:         "foo",
+			Attributes: map[string]string{},
+		}
+		newState.Attributes["id"] = newState.ID
+		if ad, ok := d.Attributes["ami"]; ok {
+			newState.Attributes["ami"] = ad.New
+		}
+		if ad, ok := d.Attributes["error"]; ok {
+			newState.Attributes["error"] = ad.New
+		}
+		return newState, nil
 	}
-	p.DiffFn = func(
-		*terraform.InstanceInfo,
-		*terraform.InstanceState,
-		*terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
-		return &terraform.InstanceDiff{
-			Attributes: map[string]*terraform.ResourceAttrDiff{
-				"ami": &terraform.ResourceAttrDiff{
-					New: "bar",
-				},
-			},
-		}, nil
+	p.DiffFn = func(info *terraform.InstanceInfo, s *terraform.InstanceState, rc *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
+		ret := &terraform.InstanceDiff{
+			Attributes: map[string]*terraform.ResourceAttrDiff{},
+		}
+		if new, ok := rc.Get("ami"); ok {
+			ret.Attributes["ami"] = &terraform.ResourceAttrDiff{
+				New: new.(string),
+			}
+		}
+		if new, ok := rc.Get("error"); ok {
+			ret.Attributes["error"] = &terraform.ResourceAttrDiff{
+				New: fmt.Sprintf("%t", new.(bool)),
+			}
+		}
+		return ret, nil
 	}
 	p.GetSchemaReturn = &terraform.ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
@@ -410,7 +423,11 @@ func TestApply_input(t *testing.T) {
 	test = false
 	defer func() { test = true }()
 
-	// Set some default reader/writers for the inputs
+	// The configuration for this test includes a declaration of variable
+	// "foo" with no default, and we don't set it on the command line below,
+	// so the apply command will produce an interactive prompt for the
+	// value of var.foo. We'll answer "foo" here, and we expect the output
+	// value "result" to echo that back to us below.
 	defaultInputReader = bytes.NewBufferString("foo\n")
 	defaultInputWriter = new(bytes.Buffer)
 
@@ -665,6 +682,9 @@ func TestApply_plan_remoteState(t *testing.T) {
 		"username":               cty.NullVal(cty.String),
 		"password":               cty.NullVal(cty.String),
 		"skip_cert_verification": cty.NullVal(cty.Bool),
+		"retry_max":              cty.NullVal(cty.String),
+		"retry_wait_min":         cty.NullVal(cty.String),
+		"retry_wait_max":         cty.NullVal(cty.String),
 	})
 	backendConfigRaw, err := plans.NewDynamicValue(backendConfig, backendConfig.Type())
 	if err != nil {
@@ -1102,6 +1122,7 @@ func TestApply_vars(t *testing.T) {
 		},
 	}
 
+	actual := ""
 	p.GetSchemaReturn = &terraform.ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"test_instance": {
@@ -1116,17 +1137,11 @@ func TestApply_vars(t *testing.T) {
 			NewState: req.PlannedState,
 		}
 	}
-
-	actual := ""
-	p.DiffFn = func(
-		info *terraform.InstanceInfo,
-		s *terraform.InstanceState,
-		c *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
-		if v, ok := c.Config["value"]; ok {
-			actual = v.(string)
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		actual = req.ProposedNewState.GetAttr("value").AsString()
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
 		}
-
-		return &terraform.InstanceDiff{}, nil
 	}
 
 	args := []string{
@@ -1161,6 +1176,7 @@ func TestApply_varFile(t *testing.T) {
 		},
 	}
 
+	actual := ""
 	p.GetSchemaReturn = &terraform.ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"test_instance": {
@@ -1175,17 +1191,11 @@ func TestApply_varFile(t *testing.T) {
 			NewState: req.PlannedState,
 		}
 	}
-
-	actual := ""
-	p.DiffFn = func(
-		info *terraform.InstanceInfo,
-		s *terraform.InstanceState,
-		c *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
-		if v, ok := c.Config["value"]; ok {
-			actual = v.(string)
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		actual = req.ProposedNewState.GetAttr("value").AsString()
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
 		}
-
-		return &terraform.InstanceDiff{}, nil
 	}
 
 	args := []string{
@@ -1230,6 +1240,7 @@ func TestApply_varFileDefault(t *testing.T) {
 		},
 	}
 
+	actual := ""
 	p.GetSchemaReturn = &terraform.ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"test_instance": {
@@ -1244,17 +1255,11 @@ func TestApply_varFileDefault(t *testing.T) {
 			NewState: req.PlannedState,
 		}
 	}
-
-	actual := ""
-	p.DiffFn = func(
-		info *terraform.InstanceInfo,
-		s *terraform.InstanceState,
-		c *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
-		if v, ok := c.Config["value"]; ok {
-			actual = v.(string)
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		actual = req.ProposedNewState.GetAttr("value").AsString()
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
 		}
-
-		return &terraform.InstanceDiff{}, nil
 	}
 
 	args := []string{
@@ -1298,6 +1303,7 @@ func TestApply_varFileDefaultJSON(t *testing.T) {
 		},
 	}
 
+	actual := ""
 	p.GetSchemaReturn = &terraform.ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"test_instance": {
@@ -1312,17 +1318,11 @@ func TestApply_varFileDefaultJSON(t *testing.T) {
 			NewState: req.PlannedState,
 		}
 	}
-
-	actual := ""
-	p.DiffFn = func(
-		info *terraform.InstanceInfo,
-		s *terraform.InstanceState,
-		c *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
-		if v, ok := c.Config["value"]; ok {
-			actual = v.(string)
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		actual = req.ProposedNewState.GetAttr("value").AsString()
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
 		}
-
-		return &terraform.InstanceDiff{}, nil
 	}
 
 	args := []string{
@@ -1397,7 +1397,7 @@ func TestApply_backup(t *testing.T) {
 
 	actual := backupState.RootModule().Resources["test_instance.foo"]
 	expected := originalState.RootModule().Resources["test_instance.foo"]
-	if !cmp.Equal(actual, expected) {
+	if !cmp.Equal(actual, expected, cmpopts.EquateEmpty()) {
 		t.Fatalf(
 			"wrong aws_instance.foo state\n%s",
 			cmp.Diff(expected, actual, cmp.Transformer("bytesAsString", func(b []byte) string {
@@ -1592,7 +1592,7 @@ func testHttpHandlerHeader(w http.ResponseWriter, r *http.Request) {
 }
 
 // applyFixtureSchema returns a schema suitable for processing the
-// configuration in test-fixtures/apply . This schema should be
+// configuration in testdata/apply . This schema should be
 // assigned to a mock provider named "test".
 func applyFixtureSchema() *terraform.ProviderSchema {
 	return &terraform.ProviderSchema{
@@ -1608,7 +1608,7 @@ func applyFixtureSchema() *terraform.ProviderSchema {
 }
 
 // applyFixtureProvider returns a mock provider that is configured for basic
-// operation with the configuration in test-fixtures/apply. This mock has
+// operation with the configuration in testdata/apply. This mock has
 // GetSchemaReturn, PlanResourceChangeFn, and ApplyResourceChangeFn populated,
 // with the plan/apply steps just passing through the data determined by
 // Terraform Core.

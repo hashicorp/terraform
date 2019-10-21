@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "base64gzip function"
+page_title: "base64gzip - Functions - Configuration Language"
 sidebar_current: "docs-funcs-encoding-base64gzip"
 description: |-
   The base64encode function compresses the given string with gzip and then
@@ -8,6 +8,10 @@ description: |-
 ---
 
 # `base64gzip` Function
+
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
 
 `base64gzip` compresses a string with gzip and then encodes the result in
 Base64 encoding.

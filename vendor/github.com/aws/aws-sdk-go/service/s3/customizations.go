@@ -17,7 +17,8 @@ func defaultInitClientFn(c *client.Client) {
 
 	// Require SSL when using SSE keys
 	c.Handlers.Validate.PushBack(validateSSERequiresSSL)
-	c.Handlers.Build.PushBack(computeSSEKeys)
+	c.Handlers.Build.PushBack(computeSSEKeyMD5)
+	c.Handlers.Build.PushBack(computeCopySourceSSEKeyMD5)
 
 	// S3 uses custom error unmarshaling logic
 	c.Handlers.UnmarshalError.Clear()
@@ -33,6 +34,7 @@ func defaultInitRequestFn(r *request.Request) {
 	switch r.Operation.Name {
 	case opPutBucketCors, opPutBucketLifecycle, opPutBucketPolicy,
 		opPutBucketTagging, opDeleteObjects, opPutBucketLifecycleConfiguration,
+		opPutObjectLegalHold, opPutObjectRetention, opPutObjectLockConfiguration,
 		opPutBucketReplication:
 		// These S3 operations require Content-MD5 to be set
 		r.Handlers.Build.PushBack(contentMD5)

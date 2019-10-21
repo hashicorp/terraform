@@ -6,12 +6,12 @@ import (
 	"testing"
 
 	uuid "github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcldec"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hcldec"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
@@ -39,12 +39,14 @@ func TestBackendConfig(t *testing.T, b Backend, c hcl.Body) Backend {
 	obj, decDiags := hcldec.Decode(c, spec, nil)
 	diags = diags.Append(decDiags)
 
-	valDiags := b.ValidateConfig(obj)
+	newObj, valDiags := b.PrepareConfig(obj)
 	diags = diags.Append(valDiags.InConfigBody(c))
 
 	if len(diags) != 0 {
 		t.Fatal(diags.ErrWithWarnings())
 	}
+
+	obj = newObj
 
 	confDiags := b.Configure(obj)
 	if len(confDiags) != 0 {

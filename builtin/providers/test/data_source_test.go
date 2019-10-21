@@ -3,6 +3,7 @@ package test
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -185,6 +186,105 @@ data "test_data_source" "x" {
 data "test_data_source" "y" {
   input = data.test_data_source.x.nil == "something" ? "something" : "else"
 }`,
+			},
+		},
+	})
+}
+
+// referencing test_data_source.one.output_map["a"] should produce an error when
+// there's a count.
+func TestDataSource_indexedCountOfOne(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: strings.TrimSpace(`
+data "test_data_source" "one" {
+	count = 1
+  input_map = {
+		"a" = "b"
+	}
+}
+
+data "test_data_source" "two" {
+	input_map = {
+		"x" = data.test_data_source.one.output_map["a"]
+	}
+}
+				`),
+				ExpectError: regexp.MustCompile("Because data.test_data_source.one has \"count\" set, its attributes must be accessed on specific instances"),
+			},
+		},
+	})
+}
+
+// Verify that we can destroy when a data source references something with a
+// count of 1.
+func TestDataSource_countRefDestroyError(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: strings.TrimSpace(`
+data "test_data_source" "one" {
+  count = 1
+  input = "a"
+}
+
+data "test_data_source" "two" {
+  input = data.test_data_source.one[0].output
+}
+				`),
+			},
+		},
+	})
+}
+
+func TestDataSource_planUpdate(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: strings.TrimSpace(`
+resource "test_resource" "a" {
+	required = "first"
+	required_map = {
+	    key = "1"
+	}
+	optional_force_new = "first"
+}
+
+data "test_data_source" "a" {
+  input = "${test_resource.a.computed_from_required}"
+}
+
+output "out" {
+  value = "${data.test_data_source.a.output}"
+}
+				`),
+			},
+			{
+				Config: strings.TrimSpace(`
+resource "test_resource" "a" {
+	required = "second"
+	required_map = {
+	    key = "1"
+	}
+	optional_force_new = "second"
+}
+
+data "test_data_source" "a" {
+  input = "${test_resource.a.computed_from_required}"
+}
+
+output "out" {
+  value = "${data.test_data_source.a.output}"
+}
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.test_data_source.a", "output", "second"),
+					resource.TestCheckOutput("out", "second"),
+				),
 			},
 		},
 	})

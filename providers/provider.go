@@ -176,6 +176,10 @@ type ReadResourceRequest struct {
 
 	// PriorState contains the previously saved state value for this resource.
 	PriorState cty.Value
+
+	// Private is an opaque blob that will be stored in state along with the
+	// resource. It is intended only for interpretation by the provider itself.
+	Private []byte
 }
 
 type ReadResourceResponse struct {
@@ -184,6 +188,10 @@ type ReadResourceResponse struct {
 
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
+
+	// Private is an opaque blob that will be stored in state along with the
+	// resource. It is intended only for interpretation by the provider itself.
+	Private []byte
 }
 
 type PlanResourceChangeRequest struct {
@@ -226,6 +234,13 @@ type PlanResourceChangeResponse struct {
 
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
+
+	// LegacyTypeSystem is set only if the provider is using the legacy SDK
+	// whose type system cannot be precisely mapped into the Terraform type
+	// system. We use this to bypass certain consistency checks that would
+	// otherwise fail due to this imprecise mapping. No other provider or SDK
+	// implementation is permitted to set this.
+	LegacyTypeSystem bool
 }
 
 type ApplyResourceChangeRequest struct {
@@ -261,6 +276,13 @@ type ApplyResourceChangeResponse struct {
 
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
+
+	// LegacyTypeSystem is set only if the provider is using the legacy SDK
+	// whose type system cannot be precisely mapped into the Terraform type
+	// system. We use this to bypass certain consistency checks that would
+	// otherwise fail due to this imprecise mapping. No other provider or SDK
+	// implementation is permitted to set this.
+	LegacyTypeSystem bool
 }
 
 type ImportResourceStateRequest struct {

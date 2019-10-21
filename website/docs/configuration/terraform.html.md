@@ -1,6 +1,6 @@
 ---
 layout: "docs"
-page_title: "Configuring Terraform Settings"
+page_title: "Terraform Settings - Configuration Language"
 sidebar_current: "docs-config-terraform"
 description: |-
   The "terraform" configuration section is used to configure some behaviors
@@ -8,6 +8,10 @@ description: |-
 ---
 
 # Terraform Settings
+
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Terraform Settings](../configuration-0-11/terraform.html).
 
 The special `terraform` configuration block type is used to configure some
 behaviors of Terraform itself, such as requiring a minimum Terraform version to
@@ -56,22 +60,22 @@ More information on backend configuration can be found in
 ## Specifying a Required Terraform Version
 
 The `required_version` setting can be used to constrain which versions of
-Terraform Core can be used with your configuration. If the running version of
+the Terraform CLI can be used with your configuration. If the running version of
 Terraform doesn't match the constraints specified, Terraform will produce
 an error and exit without taking any further actions.
 
-When you use [child modules](/docs/configuration/modules.html), each module
+When you use [child modules](./modules.html), each module
 can specify its own version requirements. The requirements of all modules
 in the tree must be satisfied.
 
-Use Terraform Core version constraints in a collaborative environment to
-ensure that everyone is using a spceific Terraform version, or using at least
+Use Terraform version constraints in a collaborative environment to
+ensure that everyone is using a specific Terraform version, or using at least
 a minimum Terraform version that has behavior expected by the configuration.
 
-The `required_version` setting applies only to the version of Terraform Core.
+The `required_version` setting applies only to the version of Terraform CLI.
 Various behaviors of Terraform are actually implemented by Terraform Providers,
-which are released on a cycle independent to Terraform Core and to each other.
-Use [provider version constraints](/docs/configuration/providers.html#provider-versions)
+which are released on a cycle independent of Terraform CLI and of each other.
+Use [provider version constraints](./providers.html#provider-versions)
 to make similar constraints on which provider versions may be used.
 
 The value for `required_version` is a string containing a comma-separated
@@ -100,15 +104,15 @@ The `required_providers` setting is a map specifying a version constraint for
 each provider required by your configuration.
 
 This is one of several ways to define
-[provider version constraints](/docs/configuration/providers.html#provider-versions),
+[provider version constraints](./providers.html#provider-versions),
 and is particularly suited to re-usable modules that expect a provider
 configuration to be provided by their caller but still need to impose a
 minimum version for that provider.
 
 ```hcl
 terraform {
-  required_providers = {
-    aws = ">= 1.0.0"
+  required_providers {
+    aws = ">= 2.7.0"
   }
 }
 ```

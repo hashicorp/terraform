@@ -19,7 +19,7 @@ type ResourceInstanceObject struct {
 	// Terraform.
 	Value cty.Value
 
-	// Internal is an opaque value set by the provider when this object was
+	// Private is an opaque value set by the provider when this object was
 	// last created or updated. Terraform Core does not use this value in
 	// any way and it is not exposed anywhere in the user interface, so
 	// a provider can use it for retaining any necessary private state.
@@ -40,7 +40,7 @@ type ResourceInstanceObject struct {
 // ObjectStatus represents the status of a RemoteObject.
 type ObjectStatus rune
 
-//go:generate stringer -type ObjectStatus
+//go:generate go run golang.org/x/tools/cmd/stringer -type ObjectStatus
 
 const (
 	// ObjectReady is an object status for an object that is ready to use.

@@ -3,14 +3,16 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/plans/objchange"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/states"
@@ -59,12 +61,20 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	configVal := cty.NullVal(cty.DynamicPseudoType)
 	if n.Config != nil {
 		var configDiags tfdiags.Diagnostics
-		keyData := EvalDataForInstanceKey(n.Addr.Key)
+		forEach, _ := evaluateResourceForEachExpression(n.Config.ForEach, ctx)
+		keyData := EvalDataForInstanceKey(n.Addr.Key, forEach)
 		configVal, _, configDiags = ctx.EvaluateBlock(n.Config.Config, schema, nil, keyData)
 		diags = diags.Append(configDiags)
 		if configDiags.HasErrors() {
 			return nil, diags.Err()
 		}
+	}
+
+	if !configVal.IsWhollyKnown() {
+		return nil, fmt.Errorf(
+			"configuration for %s still contains unknown values during apply (this is a bug in Terraform; please report it!)",
+			absAddr,
+		)
 	}
 
 	log.Printf("[DEBUG] %s: applying the planned %s change", n.Addr.Absolute(ctx.Path()), change.Action)
@@ -88,11 +98,28 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	// incomplete.
 	newVal := resp.NewState
 
-	// newVal should never be cty.NilVal in a real case, but it can happen
-	// sometimes in sloppy mocks in tests where error diagnostics are returned
-	// and the mock implementation doesn't populate the value at all.
 	if newVal == cty.NilVal {
-		newVal = cty.NullVal(schema.ImpliedType())
+		// Providers are supposed to return a partial new value even when errors
+		// occur, but sometimes they don't and so in that case we'll patch that up
+		// by just using the prior state, so we'll at least keep track of the
+		// object for the user to retry.
+		newVal = change.Before
+
+		// As a special case, we'll set the new value to null if it looks like
+		// we were trying to execute a delete, because the provider in this case
+		// probably left the newVal unset intending it to be interpreted as "null".
+		if change.After.IsNull() {
+			newVal = cty.NullVal(schema.ImpliedType())
+		}
+
+		// Ideally we'd produce an error or warning here if newVal is nil and
+		// there are no errors in diags, because that indicates a buggy
+		// provider not properly reporting its result, but unfortunately many
+		// of our historical test mocks behave in this way and so producing
+		// a diagnostic here fails hundreds of tests. Instead, we must just
+		// silently retain the old value for now. Returning a nil value with
+		// no errors is still always considered a bug in the provider though,
+		// and should be fixed for any "real" providers that do it.
 	}
 
 	var conformDiags tfdiags.Diagnostics
@@ -101,7 +128,7 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 			tfdiags.Error,
 			"Provider produced invalid object",
 			fmt.Sprintf(
-				"Provider %q planned an invalid value after apply for %s. The result cannot not be saved in the Terraform state.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				"Provider %q produced an invalid value after apply for %s. The result cannot not be saved in the Terraform state.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
 				n.ProviderAddr.ProviderConfig.Type, tfdiags.FormatErrorPrefixed(err, absAddr.String()),
 			),
 		))
@@ -154,11 +181,57 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 		newVal = cty.UnknownAsNull(newVal)
 	}
 
+	if change.Action != plans.Delete && !diags.HasErrors() {
+		// Only values that were marked as unknown in the planned value are allowed
+		// to change during the apply operation. (We do this after the unknown-ness
+		// check above so that we also catch anything that became unknown after
+		// being known during plan.)
+		//
+		// If we are returning other errors anyway then we'll give this
+		// a pass since the other errors are usually the explanation for
+		// this one and so it's more helpful to let the user focus on the
+		// root cause rather than distract with this extra problem.
+		if errs := objchange.AssertObjectCompatible(schema, change.After, newVal); len(errs) > 0 {
+			if resp.LegacyTypeSystem {
+				// The shimming of the old type system in the legacy SDK is not precise
+				// enough to pass this consistency check, so we'll give it a pass here,
+				// but we will generate a warning about it so that we are more likely
+				// to notice in the logs if an inconsistency beyond the type system
+				// leads to a downstream provider failure.
+				var buf strings.Builder
+				fmt.Fprintf(&buf, "[WARN] Provider %q produced an unexpected new value for %s, but we are tolerating it because it is using the legacy plugin SDK.\n    The following problems may be the cause of any confusing errors from downstream operations:", n.ProviderAddr.ProviderConfig.Type, absAddr)
+				for _, err := range errs {
+					fmt.Fprintf(&buf, "\n      - %s", tfdiags.FormatError(err))
+				}
+				log.Print(buf.String())
+
+				// The sort of inconsistency we won't catch here is if a known value
+				// in the plan is changed during apply. That can cause downstream
+				// problems because a dependent resource would make its own plan based
+				// on the planned value, and thus get a different result during the
+				// apply phase. This will usually lead to a "Provider produced invalid plan"
+				// error that incorrectly blames the downstream resource for the change.
+
+			} else {
+				for _, err := range errs {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Provider produced inconsistent result after apply",
+						fmt.Sprintf(
+							"When applying changes to %s, provider %q produced an unexpected new value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+							absAddr, n.ProviderAddr.ProviderConfig.Type, tfdiags.FormatError(err),
+						),
+					))
+				}
+			}
+		}
+	}
+
 	// If a provider returns a null or non-null object at the wrong time then
 	// we still want to save that but it often causes some confusing behaviors
 	// where it seems like Terraform is failing to take any action at all,
 	// so we'll generate some errors to draw attention to it.
-	if !applyDiags.HasErrors() {
+	if !diags.HasErrors() {
 		if change.Action == plans.Delete && !newVal.IsNull() {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -179,6 +252,20 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 				),
 			))
 		}
+	}
+
+	// Sometimes providers return a null value when an operation fails for some
+	// reason, but we'd rather keep the prior state so that the error can be
+	// corrected on a subsequent run. We must only do this for null new value
+	// though, or else we may discard partial updates the provider was able to
+	// complete.
+	if diags.HasErrors() && newVal.IsNull() {
+		// Otherwise, we'll continue but using the prior state as the new value,
+		// making this effectively a no-op. If the item really _has_ been
+		// deleted then our next refresh will detect that and fix it up.
+		// If change.Action is Create then change.Before will also be null,
+		// which is fine.
+		newVal = change.Before
 	}
 
 	var newState *states.ResourceInstanceObject
@@ -469,11 +556,18 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*configs.Provisio
 		provisioner := ctx.Provisioner(prov.Type)
 		schema := ctx.ProvisionerSchema(prov.Type)
 
-		keyData := EvalDataForInstanceKey(instanceAddr.Key)
+		forEach, forEachDiags := evaluateResourceForEachExpression(n.ResourceConfig.ForEach, ctx)
+		diags = diags.Append(forEachDiags)
+		keyData := EvalDataForInstanceKey(instanceAddr.Key, forEach)
 
 		// Evaluate the main provisioner configuration.
 		config, _, configDiags := ctx.EvaluateBlock(prov.Config, schema, instanceAddr, keyData)
 		diags = diags.Append(configDiags)
+
+		// we can't apply the provisioner if the config has errors
+		if diags.HasErrors() {
+			return diags.Err()
+		}
 
 		// If the provisioner block contains a connection block of its own then
 		// it can override the base connection configuration, if any.
@@ -494,16 +588,20 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*configs.Provisio
 			connBody = baseConn
 		case localConn != nil:
 			connBody = localConn
-		default: // both are nil, by elimination
-			connBody = hcl.EmptyBody()
 		}
 
-		connInfo, _, connInfoDiags := ctx.EvaluateBlock(connBody, connectionBlockSupersetSchema, instanceAddr, keyData)
-		diags = diags.Append(connInfoDiags)
-		if diags.HasErrors() {
-			// "on failure continue" setting only applies to failures of the
-			// provisioner itself, not to invalid configuration.
-			return diags.Err()
+		// start with an empty connInfo
+		connInfo := cty.NullVal(connectionBlockSupersetSchema.ImpliedType())
+
+		if connBody != nil {
+			var connInfoDiags tfdiags.Diagnostics
+			connInfo, _, connInfoDiags = ctx.EvaluateBlock(connBody, connectionBlockSupersetSchema, instanceAddr, keyData)
+			diags = diags.Append(connInfoDiags)
+			if diags.HasErrors() {
+				// "on failure continue" setting only applies to failures of the
+				// provisioner itself, not to invalid configuration.
+				return diags.Err()
+			}
 		}
 
 		{

@@ -30,6 +30,44 @@ func NumberVal(v *big.Float) Value {
 	}
 }
 
+// ParseNumberVal returns a Value of type number produced by parsing the given
+// string as a decimal real number. To ensure that two identical strings will
+// always produce an equal number, always use this function to derive a number
+// from a string; it will ensure that the precision and rounding mode for the
+// internal big decimal is configured in a consistent way.
+//
+// If the given string cannot be parsed as a number, the returned error has
+// the message "a number is required", making it suitable to return to an
+// end-user to signal a type conversion error.
+//
+// If the given string contains a number that becomes a recurring fraction
+// when expressed in binary then it will be truncated to have a 512-bit
+// mantissa. Note that this is a higher precision than that of a float64,
+// so coverting the same decimal number first to float64 and then calling
+// NumberFloatVal will not produce an equal result; the conversion first
+// to float64 will round the mantissa to fewer than 512 bits.
+func ParseNumberVal(s string) (Value, error) {
+	// Base 10, precision 512, and rounding to nearest even is the standard
+	// way to handle numbers arriving as strings.
+	f, _, err := big.ParseFloat(s, 10, 512, big.ToNearestEven)
+	if err != nil {
+		return NilVal, fmt.Errorf("a number is required")
+	}
+	return NumberVal(f), nil
+}
+
+// MustParseNumberVal is like ParseNumberVal but it will panic in case of any
+// error. It can be used during initialization or any other situation where
+// the given string is a constant or otherwise known to be correct by the
+// caller.
+func MustParseNumberVal(s string) Value {
+	ret, err := ParseNumberVal(s)
+	if err != nil {
+		panic(err)
+	}
+	return ret
+}
+
 // NumberIntVal returns a Value of type Number whose internal value is equal
 // to the given integer.
 func NumberIntVal(v int64) Value {

@@ -3,7 +3,6 @@ package plugin
 import (
 	"context"
 	"errors"
-	"io"
 	"log"
 	"sync"
 
@@ -13,7 +12,6 @@ import (
 	proto "github.com/hashicorp/terraform/internal/tfplugin5"
 	"github.com/hashicorp/terraform/plugin/convert"
 	"github.com/hashicorp/terraform/providers"
-	"github.com/hashicorp/terraform/version"
 	"github.com/zclconf/go-cty/cty/msgpack"
 	"google.golang.org/grpc"
 )
@@ -45,9 +43,9 @@ type GRPCProvider struct {
 	// This allows the GRPCProvider a way to shutdown the plugin process.
 	PluginClient *plugin.Client
 
-	// TestListener contains a net.Conn to close when the GRPCProvider is being
+	// TestServer contains a grpc.Server to close when the GRPCProvider is being
 	// used in an end to end test of a provider.
-	TestListener io.Closer
+	TestServer *grpc.Server
 
 	// Proto client use to make the grpc service calls.
 	client proto.ProviderClient
@@ -119,7 +117,13 @@ func (p *GRPCProvider) GetSchema() (resp providers.GetSchemaResponse) {
 	resp.ResourceTypes = make(map[string]providers.Schema)
 	resp.DataSources = make(map[string]providers.Schema)
 
-	protoResp, err := p.client.GetSchema(p.ctx, new(proto.GetProviderSchema_Request))
+	// Some providers may generate quite large schemas, and the internal default
+	// grpc response size limit is 4MB. 64MB should cover most any use case, and
+	// if we get providers nearing that we may want to consider a finer-grained
+	// API to fetch individual resource schemas.
+	// Note: this option is marked as EXPERIMENTAL in the grpc API.
+	const maxRecvSize = 64 << 20
+	protoResp, err := p.client.GetSchema(p.ctx, new(proto.GetProviderSchema_Request), grpc.MaxRecvMsgSizeCallOption{MaxRecvMsgSize: maxRecvSize})
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -185,7 +189,6 @@ func (p *GRPCProvider) PrepareProviderConfig(r providers.PrepareProviderConfigRe
 
 func (p *GRPCProvider) ValidateResourceTypeConfig(r providers.ValidateResourceTypeConfigRequest) (resp providers.ValidateResourceTypeConfigResponse) {
 	log.Printf("[TRACE] GRPCProvider: ValidateResourceTypeConfig")
-
 	resourceSchema := p.getResourceSchema(r.TypeName)
 
 	mp, err := msgpack.Marshal(r.Config, resourceSchema.Block.ImpliedType())
@@ -283,7 +286,7 @@ func (p *GRPCProvider) Configure(r providers.ConfigureRequest) (resp providers.C
 	}
 
 	protoReq := &proto.Configure_Request{
-		TerraformVersion: version.Version,
+		TerraformVersion: r.TerraformVersion,
 		Config: &proto.DynamicValue{
 			Msgpack: mp,
 		},
@@ -326,6 +329,7 @@ func (p *GRPCProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 	protoReq := &proto.ReadResource_Request{
 		TypeName:     r.TypeName,
 		CurrentState: &proto.DynamicValue{Msgpack: mp},
+		Private:      r.Private,
 	}
 
 	protoResp, err := p.client.ReadResource(p.ctx, protoReq)
@@ -344,6 +348,7 @@ func (p *GRPCProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 		}
 	}
 	resp.NewState = state
+	resp.Private = protoResp.Private
 
 	return resp
 }
@@ -402,6 +407,8 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 
 	resp.PlannedPrivate = protoResp.PlannedPrivate
 
+	resp.LegacyTypeSystem = protoResp.LegacyTypeSystem
+
 	return resp
 }
 
@@ -420,11 +427,17 @@ func (p *GRPCProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
 	}
+	configMP, err := msgpack.Marshal(r.Config, resSchema.Block.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
 
 	protoReq := &proto.ApplyResourceChange_Request{
 		TypeName:       r.TypeName,
 		PriorState:     &proto.DynamicValue{Msgpack: priorMP},
 		PlannedState:   &proto.DynamicValue{Msgpack: plannedMP},
+		Config:         &proto.DynamicValue{Msgpack: configMP},
 		PlannedPrivate: r.PlannedPrivate,
 	}
 
@@ -447,13 +460,13 @@ func (p *GRPCProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 	}
 	resp.NewState = state
 
+	resp.LegacyTypeSystem = protoResp.LegacyTypeSystem
+
 	return resp
 }
 
 func (p *GRPCProvider) ImportResourceState(r providers.ImportResourceStateRequest) (resp providers.ImportResourceStateResponse) {
 	log.Printf("[TRACE] GRPCProvider: ImportResourceState")
-
-	resSchema := p.getResourceSchema(r.TypeName)
 
 	protoReq := &proto.ImportResourceState_Request{
 		TypeName: r.TypeName,
@@ -473,6 +486,7 @@ func (p *GRPCProvider) ImportResourceState(r providers.ImportResourceStateReques
 			Private:  imported.Private,
 		}
 
+		resSchema := p.getResourceSchema(resource.TypeName)
 		state := cty.NullVal(resSchema.Block.ImpliedType())
 		if imported.State != nil {
 			state, err = msgpack.Unmarshal(imported.State.Msgpack, resSchema.Block.ImpliedType())
@@ -530,9 +544,9 @@ func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 func (p *GRPCProvider) Close() error {
 	log.Printf("[TRACE] GRPCProvider: Close")
 
-	// close the remote listener if we're running within a test
-	if p.TestListener != nil {
-		p.TestListener.Close()
+	// Make sure to stop the server if we're not running within go-plugin.
+	if p.TestServer != nil {
+		p.TestServer.Stop()
 	}
 
 	// Check this since it's not automatically inserted during plugin creation.

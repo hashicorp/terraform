@@ -13,7 +13,7 @@ and your definition of "sensitive." The state contains resource IDs and all
 resource attributes. For resources such as databases, this may contain initial
 passwords.
 
-Some resources (such as RDS databases) have options for PGP encrypting the
+Some resources (such as AWS IAM Access Keys) have options for PGP encrypting the
 values within the state. This is implemented on a per-resource basis and
 you should assume the value is plaintext unless otherwise documented.
 
@@ -37,9 +37,9 @@ For example, encryption at rest can be enabled with the S3 backend and IAM
 policies and logging can be used to identify any invalid access. Requests for
 the state go over a TLS connection.
 
-[Terraform Enterprise](https://www.hashicorp.com/products/terraform/) is
+[Terraform Cloud](https://www.hashicorp.com/products/terraform/) is
 a commercial product from HashiCorp that also acts as a [backend](/docs/backends)
-and provides encryption at rest for state. Terraform Enterprise also knows
+and provides encryption at rest for state. Terraform Cloud also knows
 the identity of the user requesting state and maintains a history of state
 changes. This can be used to provide access control and detect any breaches.
 

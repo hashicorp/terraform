@@ -7,7 +7,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -24,6 +24,7 @@ func mockProviderClient(t *testing.T) *mockproto.MockProviderClient {
 
 	// we always need a GetSchema method
 	client.EXPECT().GetSchema(
+		gomock.Any(),
 		gomock.Any(),
 		gomock.Any(),
 	).Return(providerProtoSchema(), nil)

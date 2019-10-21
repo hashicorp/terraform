@@ -3,9 +3,8 @@ package resource
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform/configs/configschema"
-
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/zclconf/go-cty/cty"
@@ -29,8 +28,9 @@ func TestStateShim(t *testing.T) {
 			Name: "foo",
 		}.Instance(addrs.NoKey),
 		&states.ResourceInstanceObjectSrc{
-			Status:    states.ObjectReady,
-			AttrsFlat: map[string]string{"id": "foo", "bazzle": "dazzle"},
+			Status:        states.ObjectReady,
+			AttrsFlat:     map[string]string{"id": "foo", "bazzle": "dazzle"},
+			SchemaVersion: 7,
 			Dependencies: []addrs.Referenceable{
 				addrs.ResourceInstance{
 					Resource: addrs.Resource{
@@ -192,7 +192,8 @@ func TestStateShim(t *testing.T) {
 				},
 				Resources: map[string]*terraform.ResourceState{
 					"test_thing.baz": &terraform.ResourceState{
-						Type: "test_thing",
+						Type:     "test_thing",
+						Provider: "provider.test",
 						Primary: &terraform.InstanceState{
 							ID: "baz",
 							Attributes: map[string]string{
@@ -202,12 +203,16 @@ func TestStateShim(t *testing.T) {
 						},
 					},
 					"test_thing.foo": &terraform.ResourceState{
-						Type: "test_thing",
+						Type:     "test_thing",
+						Provider: "provider.test",
 						Primary: &terraform.InstanceState{
 							ID: "foo",
 							Attributes: map[string]string{
 								"id":     "foo",
 								"bazzle": "dazzle",
+							},
+							Meta: map[string]interface{}{
+								"schema_version": 7,
 							},
 						},
 						Dependencies: []string{"test_thing.baz"},
@@ -218,7 +223,8 @@ func TestStateShim(t *testing.T) {
 				Path: []string{"root", "child"},
 				Resources: map[string]*terraform.ResourceState{
 					"test_thing.baz": &terraform.ResourceState{
-						Type: "test_thing",
+						Type:     "test_thing",
+						Provider: "module.child.provider.test",
 						Primary: &terraform.InstanceState{
 							ID: "bar",
 							Attributes: map[string]string{
@@ -238,7 +244,8 @@ func TestStateShim(t *testing.T) {
 						Dependencies: []string{"data.test_data_thing.foo"},
 					},
 					"data.test_data_thing.foo": &terraform.ResourceState{
-						Type: "test_data_thing",
+						Type:     "test_data_thing",
+						Provider: "module.child.provider.test",
 						Primary: &terraform.InstanceState{
 							ID: "bar",
 							Attributes: map[string]string{
@@ -248,7 +255,8 @@ func TestStateShim(t *testing.T) {
 						},
 					},
 					"test_thing.lots.0": &terraform.ResourceState{
-						Type: "test_thing",
+						Type:     "test_thing",
+						Provider: "module.child.provider.test",
 						Primary: &terraform.InstanceState{
 							ID: "0",
 							Attributes: map[string]string{
@@ -258,7 +266,8 @@ func TestStateShim(t *testing.T) {
 						},
 					},
 					"test_thing.lots.1": &terraform.ResourceState{
-						Type: "test_thing",
+						Type:     "test_thing",
+						Provider: "module.child.provider.test",
 						Primary: &terraform.InstanceState{
 							ID: "1",
 							Attributes: map[string]string{
@@ -269,7 +278,8 @@ func TestStateShim(t *testing.T) {
 						},
 					},
 					"test_thing.single_count": &terraform.ResourceState{
-						Type: "test_thing",
+						Type:     "test_thing",
+						Provider: "module.child.provider.test",
 						Primary: &terraform.InstanceState{
 							ID: "single",
 							Attributes: map[string]string{
@@ -283,51 +293,34 @@ func TestStateShim(t *testing.T) {
 		},
 	}
 
-	schemas := &terraform.Schemas{
-		Providers: map[string]*terraform.ProviderSchema{
-			"test": {
-				ResourceTypes: map[string]*configschema.Block{
-					"test_thing": &configschema.Block{
-						Attributes: map[string]*configschema.Attribute{
-							"id": {
-								Type:     cty.String,
-								Computed: true,
-							},
-							"fizzle": {
-								Type:     cty.String,
-								Optional: true,
-							},
-							"bazzle": {
-								Type:     cty.String,
-								Optional: true,
-							},
-						},
+	providers := map[string]terraform.ResourceProvider{
+		"test": &schema.Provider{
+			ResourcesMap: map[string]*schema.Resource{
+				"test_thing": &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"id":     {Type: schema.TypeString, Computed: true},
+						"fizzle": {Type: schema.TypeString, Optional: true},
+						"bazzle": {Type: schema.TypeString, Optional: true},
 					},
 				},
-				DataSources: map[string]*configschema.Block{
-					"test_data_thing": &configschema.Block{
-						Attributes: map[string]*configschema.Attribute{
-							"id": {
-								Type:     cty.String,
-								Computed: true,
-							},
-							"fuzzle": {
-								Type:     cty.String,
-								Optional: true,
-							},
-						},
+			},
+			DataSourcesMap: map[string]*schema.Resource{
+				"test_data_thing": &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"id":     {Type: schema.TypeString, Computed: true},
+						"fuzzle": {Type: schema.TypeString, Optional: true},
 					},
 				},
 			},
 		},
 	}
 
-	shimmed, err := shimNewState(state, schemas)
+	shimmed, err := shimNewState(state, providers)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	if !expected.Equal(shimmed) {
-		t.Fatalf("\nexpected state:\n%s\n\ngot state:\n%s", expected, shimmed)
+		t.Fatalf("wrong result state\ngot:\n%s\n\nwant:\n%s", expected, shimmed)
 	}
 }

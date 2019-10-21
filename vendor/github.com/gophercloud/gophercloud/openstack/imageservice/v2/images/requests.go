@@ -1,6 +1,10 @@
 package images
 
 import (
+	"fmt"
+	"net/url"
+	"time"
+
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/pagination"
 )
@@ -15,33 +19,106 @@ type ListOptsBuilder interface {
 // the API. Filtering is achieved by passing in struct field values that map to
 // the server attributes you want to see returned. Marker and Limit are used
 // for pagination.
-//http://developer.openstack.org/api-ref-image-v2.html
+//
+// http://developer.openstack.org/api-ref-image-v2.html
 type ListOpts struct {
+	// ID is the ID of the image.
+	// Multiple IDs can be specified by constructing a string
+	// such as "in:uuid1,uuid2,uuid3".
+	ID string `q:"id"`
+
 	// Integer value for the limit of values to return.
 	Limit int `q:"limit"`
 
 	// UUID of the server at which you want to set a marker.
 	Marker string `q:"marker"`
 
-	Name         string            `q:"name"`
-	Visibility   ImageVisibility   `q:"visibility"`
+	// Name filters on the name of the image.
+	// Multiple names can be specified by constructing a string
+	// such as "in:name1,name2,name3".
+	Name string `q:"name"`
+
+	// Visibility filters on the visibility of the image.
+	Visibility ImageVisibility `q:"visibility"`
+
+	// MemberStatus filters on the member status of the image.
 	MemberStatus ImageMemberStatus `q:"member_status"`
-	Owner        string            `q:"owner"`
-	Status       ImageStatus       `q:"status"`
-	SizeMin      int64             `q:"size_min"`
-	SizeMax      int64             `q:"size_max"`
-	SortKey      string            `q:"sort_key"`
-	SortDir      string            `q:"sort_dir"`
-	Tag          string            `q:"tag"`
+
+	// Owner filters on the project ID of the image.
+	Owner string `q:"owner"`
+
+	// Status filters on the status of the image.
+	// Multiple statuses can be specified by constructing a string
+	// such as "in:saving,queued".
+	Status ImageStatus `q:"status"`
+
+	// SizeMin filters on the size_min image property.
+	SizeMin int64 `q:"size_min"`
+
+	// SizeMax filters on the size_max image property.
+	SizeMax int64 `q:"size_max"`
+
+	// Sort sorts the results using the new style of sorting. See the OpenStack
+	// Image API reference for the exact syntax.
+	//
+	// Sort cannot be used with the classic sort options (sort_key and sort_dir).
+	Sort string `q:"sort"`
+
+	// SortKey will sort the results based on a specified image property.
+	SortKey string `q:"sort_key"`
+
+	// SortDir will sort the list results either ascending or decending.
+	SortDir string `q:"sort_dir"`
+
+	// Tags filters on specific image tags.
+	Tags []string `q:"tag"`
+
+	// CreatedAtQuery filters images based on their creation date.
+	CreatedAtQuery *ImageDateQuery
+
+	// UpdatedAtQuery filters images based on their updated date.
+	UpdatedAtQuery *ImageDateQuery
+
+	// ContainerFormat filters images based on the container_format.
+	// Multiple container formats can be specified by constructing a
+	// string such as "in:bare,ami".
+	ContainerFormat string `q:"container_format"`
+
+	// DiskFormat filters images based on the disk_format.
+	// Multiple disk formats can be specified by constructing a string
+	// such as "in:qcow2,iso".
+	DiskFormat string `q:"disk_format"`
 }
 
 // ToImageListQuery formats a ListOpts into a query string.
 func (opts ListOpts) ToImageListQuery() (string, error) {
 	q, err := gophercloud.BuildQueryString(opts)
+	params := q.Query()
+
+	if opts.CreatedAtQuery != nil {
+		createdAt := opts.CreatedAtQuery.Date.Format(time.RFC3339)
+		if v := opts.CreatedAtQuery.Filter; v != "" {
+			createdAt = fmt.Sprintf("%s:%s", v, createdAt)
+		}
+
+		params.Add("created_at", createdAt)
+	}
+
+	if opts.UpdatedAtQuery != nil {
+		updatedAt := opts.UpdatedAtQuery.Date.Format(time.RFC3339)
+		if v := opts.UpdatedAtQuery.Filter; v != "" {
+			updatedAt = fmt.Sprintf("%s:%s", v, updatedAt)
+		}
+
+		params.Add("updated_at", updatedAt)
+	}
+
+	q = &url.URL{RawQuery: params.Encode()}
+
 	return q.String(), err
 }
 
-// List implements image list request
+// List implements image list request.
 func List(c *gophercloud.ServiceClient, opts ListOptsBuilder) pagination.Pager {
 	url := listURL(c)
 	if opts != nil {
@@ -52,18 +129,22 @@ func List(c *gophercloud.ServiceClient, opts ListOptsBuilder) pagination.Pager {
 		url += query
 	}
 	return pagination.NewPager(c, url, func(r pagination.PageResult) pagination.Page {
-		return ImagePage{pagination.LinkedPageBase{PageResult: r}}
+		imagePage := ImagePage{
+			serviceURL:     c.ServiceURL(),
+			LinkedPageBase: pagination.LinkedPageBase{PageResult: r},
+		}
+
+		return imagePage
 	})
 }
 
-// CreateOptsBuilder describes struct types that can be accepted by the Create call.
-// The CreateOpts struct in this package does.
+// CreateOptsBuilder allows extensions to add parameters to the Create request.
 type CreateOptsBuilder interface {
 	// Returns value that can be passed to json.Marshal
 	ToImageCreateMap() (map[string]interface{}, error)
 }
 
-// CreateOpts implements CreateOptsBuilder
+// CreateOpts represents options used to create an image.
 type CreateOpts struct {
 	// Name is the name of the new image.
 	Name string `json:"name" required:"true"`
@@ -118,7 +199,7 @@ func (opts CreateOpts) ToImageCreateMap() (map[string]interface{}, error) {
 	return b, nil
 }
 
-// Create implements create image request
+// Create implements create image request.
 func Create(client *gophercloud.ServiceClient, opts CreateOptsBuilder) (r CreateResult) {
 	b, err := opts.ToImageCreateMap()
 	if err != nil {
@@ -129,19 +210,19 @@ func Create(client *gophercloud.ServiceClient, opts CreateOptsBuilder) (r Create
 	return
 }
 
-// Delete implements image delete request
+// Delete implements image delete request.
 func Delete(client *gophercloud.ServiceClient, id string) (r DeleteResult) {
 	_, r.Err = client.Delete(deleteURL(client, id), nil)
 	return
 }
 
-// Get implements image get request
+// Get implements image get request.
 func Get(client *gophercloud.ServiceClient, id string) (r GetResult) {
 	_, r.Err = client.Get(getURL(client, id), &r.Body, nil)
 	return
 }
 
-// Update implements image updated request
+// Update implements image updated request.
 func Update(client *gophercloud.ServiceClient, id string, opts UpdateOptsBuilder) (r UpdateResult) {
 	b, err := opts.ToImageUpdateMap()
 	if err != nil {
@@ -155,9 +236,11 @@ func Update(client *gophercloud.ServiceClient, id string, opts UpdateOptsBuilder
 	return
 }
 
-// UpdateOptsBuilder implements UpdateOptsBuilder
+// UpdateOptsBuilder allows extensions to add additional parameters to the
+// Update request.
 type UpdateOptsBuilder interface {
-	// returns value implementing json.Marshaler which when marshaled matches the patch schema:
+	// returns value implementing json.Marshaler which when marshaled matches
+	// the patch schema:
 	// http://specs.openstack.org/openstack/glance-specs/specs/api/v2/http-patch-image-api-v2.html
 	ToImageUpdateMap() ([]interface{}, error)
 }
@@ -165,7 +248,8 @@ type UpdateOptsBuilder interface {
 // UpdateOpts implements UpdateOpts
 type UpdateOpts []Patch
 
-// ToImageUpdateMap builder
+// ToImageUpdateMap assembles a request body based on the contents of
+// UpdateOpts.
 func (opts UpdateOpts) ToImageUpdateMap() ([]interface{}, error) {
 	m := make([]interface{}, len(opts))
 	for i, patch := range opts {
@@ -175,32 +259,32 @@ func (opts UpdateOpts) ToImageUpdateMap() ([]interface{}, error) {
 	return m, nil
 }
 
-// Patch represents a single update to an existing image. Multiple updates to an image can be
-// submitted at the same time.
+// Patch represents a single update to an existing image. Multiple updates
+// to an image can be submitted at the same time.
 type Patch interface {
 	ToImagePatchMap() map[string]interface{}
 }
 
-// UpdateVisibility updated visibility
+// UpdateVisibility represents an updated visibility property request.
 type UpdateVisibility struct {
 	Visibility ImageVisibility
 }
 
-// ToImagePatchMap builder
-func (u UpdateVisibility) ToImagePatchMap() map[string]interface{} {
+// ToImagePatchMap assembles a request body based on UpdateVisibility.
+func (r UpdateVisibility) ToImagePatchMap() map[string]interface{} {
 	return map[string]interface{}{
 		"op":    "replace",
 		"path":  "/visibility",
-		"value": u.Visibility,
+		"value": r.Visibility,
 	}
 }
 
-// ReplaceImageName implements Patch
+// ReplaceImageName represents an updated image_name property request.
 type ReplaceImageName struct {
 	NewName string
 }
 
-// ToImagePatchMap builder
+// ToImagePatchMap assembles a request body based on ReplaceImageName.
 func (r ReplaceImageName) ToImagePatchMap() map[string]interface{} {
 	return map[string]interface{}{
 		"op":    "replace",
@@ -209,30 +293,74 @@ func (r ReplaceImageName) ToImagePatchMap() map[string]interface{} {
 	}
 }
 
-// ReplaceImageChecksum implements Patch
+// ReplaceImageChecksum represents an updated checksum property request.
 type ReplaceImageChecksum struct {
 	Checksum string
 }
 
-// ReplaceImageChecksum builder
-func (rc ReplaceImageChecksum) ToImagePatchMap() map[string]interface{} {
+// ReplaceImageChecksum assembles a request body based on ReplaceImageChecksum.
+func (r ReplaceImageChecksum) ToImagePatchMap() map[string]interface{} {
 	return map[string]interface{}{
 		"op":    "replace",
 		"path":  "/checksum",
-		"value": rc.Checksum,
+		"value": r.Checksum,
 	}
 }
 
-// ReplaceImageTags implements Patch
+// ReplaceImageTags represents an updated tags property request.
 type ReplaceImageTags struct {
 	NewTags []string
 }
 
-// ToImagePatchMap builder
+// ToImagePatchMap assembles a request body based on ReplaceImageTags.
 func (r ReplaceImageTags) ToImagePatchMap() map[string]interface{} {
 	return map[string]interface{}{
 		"op":    "replace",
 		"path":  "/tags",
 		"value": r.NewTags,
 	}
+}
+
+// ReplaceImageMinDisk represents an updated min_disk property request.
+type ReplaceImageMinDisk struct {
+	NewMinDisk int
+}
+
+// ToImagePatchMap assembles a request body based on ReplaceImageTags.
+func (r ReplaceImageMinDisk) ToImagePatchMap() map[string]interface{} {
+	return map[string]interface{}{
+		"op":    "replace",
+		"path":  "/min_disk",
+		"value": r.NewMinDisk,
+	}
+}
+
+// UpdateOp represents a valid update operation.
+type UpdateOp string
+
+const (
+	AddOp     UpdateOp = "add"
+	ReplaceOp UpdateOp = "replace"
+	RemoveOp  UpdateOp = "remove"
+)
+
+// UpdateImageProperty represents an update property request.
+type UpdateImageProperty struct {
+	Op    UpdateOp
+	Name  string
+	Value string
+}
+
+// ToImagePatchMap assembles a request body based on UpdateImageProperty.
+func (r UpdateImageProperty) ToImagePatchMap() map[string]interface{} {
+	updateMap := map[string]interface{}{
+		"op":   r.Op,
+		"path": fmt.Sprintf("/%s", r.Name),
+	}
+
+	if r.Value != "" {
+		updateMap["value"] = r.Value
+	}
+
+	return updateMap
 }

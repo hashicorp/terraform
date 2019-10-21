@@ -100,3 +100,24 @@ The data directory is used to retain data that must persist from one command
 to the next, so it's important to have this variable set consistently throughout
 all of the Terraform workflow commands (starting with `terraform init`) or else
 Terraform may be unable to find providers, modules, and other artifacts.
+
+## TF_IN_AUTOMATION
+
+If `TF_IN_AUTOMATION` is set to any non-empty value, Terraform adjusts its
+output to avoid suggesting specific commands to run next. This can make the
+output more consistent and less confusing in workflows where users don't
+directly execute Terraform commands, like in CI systems or other wrapping
+applications.
+
+This is a purely cosmetic change to Terraform's human-readable output, and the
+exact output differences can change between minor Terraform versions.
+
+For more details see [Running Terraform in Automation](https://learn.hashicorp.com/terraform/development/running-terraform-in-automation).
+
+## TF_CLI_CONFIG_FILE
+
+The location of the [Terraform CLI configuration file](/docs/commands/cli-config.html).
+
+```shell
+export TF_CLI_CONFIG_FILE="$HOME/.terraformrc-custom"
+```

@@ -135,21 +135,6 @@ func LoadDir(root string) (*Config, error) {
 	return result, nil
 }
 
-// IsEmptyDir returns true if the directory given has no Terraform
-// configuration files.
-func IsEmptyDir(root string) (bool, error) {
-	if _, err := os.Stat(root); err != nil && os.IsNotExist(err) {
-		return true, nil
-	}
-
-	fs, os, err := dirFiles(root)
-	if err != nil {
-		return false, err
-	}
-
-	return len(fs) == 0 && len(os) == 0, nil
-}
-
 // Ext returns the Terraform configuration extension of the given
 // path, or a blank string if it is an invalid function.
 func ext(path string) string {

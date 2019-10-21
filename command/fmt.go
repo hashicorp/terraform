@@ -11,11 +11,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/hashicorp/terraform/configs"
-
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/mitchellh/cli"
 
-	"github.com/hashicorp/hcl2/hclwrite"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -53,6 +54,7 @@ func (c *FmtCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&c.recursive, "recursive", false, "recursive")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
 		return 1
 	}
 
@@ -63,14 +65,14 @@ func (c *FmtCommand) Run(args []string) int {
 		return 1
 	}
 
-	var dirs []string
+	var paths []string
 	if len(args) == 0 {
-		dirs = []string{"."}
+		paths = []string{"."}
 	} else if args[0] == stdinArg {
 		c.list = false
 		c.write = false
 	} else {
-		dirs = []string{args[0]}
+		paths = []string{args[0]}
 	}
 
 	var output io.Writer
@@ -85,7 +87,7 @@ func (c *FmtCommand) Run(args []string) int {
 		output = &cli.UiWriter{Ui: c.Ui}
 	}
 
-	diags := c.fmt(dirs, c.input, output)
+	diags := c.fmt(paths, c.input, output)
 	c.showDiagnostics(diags)
 	if diags.HasErrors() {
 		return 2
@@ -122,8 +124,33 @@ func (c *FmtCommand) fmt(paths []string, stdin io.Reader, stdout io.Writer) tfdi
 
 	for _, path := range paths {
 		path = c.normalizePath(path)
-		dirDiags := c.processDir(path, stdout)
-		diags = diags.Append(dirDiags)
+		info, err := os.Stat(path)
+		if err != nil {
+			diags = diags.Append(fmt.Errorf("No file or directory at %s", path))
+			return diags
+		}
+		if info.IsDir() {
+			dirDiags := c.processDir(path, stdout)
+			diags = diags.Append(dirDiags)
+		} else {
+			switch filepath.Ext(path) {
+			case ".tf", ".tfvars":
+				f, err := os.Open(path)
+				if err != nil {
+					// Open does not produce error messages that are end-user-appropriate,
+					// so we'll need to simplify here.
+					diags = diags.Append(fmt.Errorf("Failed to read file %s", path))
+					continue
+				}
+
+				fileDiags := c.processFile(c.normalizePath(path), f, stdout, false)
+				diags = diags.Append(fileDiags)
+				f.Close()
+			default:
+				diags = diags.Append(fmt.Errorf("Only .tf and .tfvars files can be processed with terraform fmt"))
+				continue
+			}
+		}
 	}
 
 	return diags
@@ -137,6 +164,15 @@ func (c *FmtCommand) processFile(path string, r io.Reader, w io.Writer, isStdout
 	src, err := ioutil.ReadAll(r)
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("Failed to read %s", path))
+		return diags
+	}
+
+	// File must be parseable as HCL native syntax before we'll try to format
+	// it. If not, the formatter is likely to make drastic changes that would
+	// be hard for the user to undo.
+	_, syntaxDiags := hclsyntax.ParseConfig(src, path, hcl.Pos{Line: 1, Column: 1})
+	if syntaxDiags.HasErrors() {
+		diags = diags.Append(syntaxDiags)
 		return diags
 	}
 
@@ -254,6 +290,8 @@ Options:
 
   -check         Check if the input is formatted. Exit status will be 0 if all
                  input is properly formatted and non-zero otherwise.
+
+  -no-color      If specified, output won't contain any color.
 
   -recursive     Also process files in subdirectories. By default, only the
                  given directory (or current directory) is processed.

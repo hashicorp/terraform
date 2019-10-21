@@ -1,9 +1,11 @@
 package terraform
 
 import (
+	"github.com/hashicorp/terraform/tfdiags"
 	"testing"
 
 	"github.com/apparentlymart/go-dump/dump"
+	"github.com/hashicorp/terraform/backend"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -23,18 +25,18 @@ func TestState_basic(t *testing.T) {
 			cty.ObjectVal(map[string]cty.Value{
 				"backend": cty.StringVal("local"),
 				"config": cty.ObjectVal(map[string]cty.Value{
-					"path": cty.StringVal("./test-fixtures/basic.tfstate"),
+					"path": cty.StringVal("./testdata/basic.tfstate"),
 				}),
 			}),
 			cty.ObjectVal(map[string]cty.Value{
 				"backend": cty.StringVal("local"),
 				"config": cty.ObjectVal(map[string]cty.Value{
-					"path": cty.StringVal("./test-fixtures/basic.tfstate"),
+					"path": cty.StringVal("./testdata/basic.tfstate"),
 				}),
 				"outputs": cty.ObjectVal(map[string]cty.Value{
 					"foo": cty.StringVal("bar"),
 				}),
-				"workspace": cty.NullVal(cty.String),
+				"workspace": cty.StringVal(backend.DefaultStateName),
 				"defaults":  cty.NullVal(cty.DynamicPseudoType),
 			}),
 			false,
@@ -43,13 +45,13 @@ func TestState_basic(t *testing.T) {
 			cty.ObjectVal(map[string]cty.Value{
 				"backend": cty.StringVal("local"),
 				"config": cty.ObjectVal(map[string]cty.Value{
-					"path": cty.StringVal("./test-fixtures/complex_outputs.tfstate"),
+					"path": cty.StringVal("./testdata/complex_outputs.tfstate"),
 				}),
 			}),
 			cty.ObjectVal(map[string]cty.Value{
 				"backend": cty.StringVal("local"),
 				"config": cty.ObjectVal(map[string]cty.Value{
-					"path": cty.StringVal("./test-fixtures/complex_outputs.tfstate"),
+					"path": cty.StringVal("./testdata/complex_outputs.tfstate"),
 				}),
 				"outputs": cty.ObjectVal(map[string]cty.Value{
 					"computed_map": cty.MapVal(map[string]cty.Value{
@@ -68,7 +70,7 @@ func TestState_basic(t *testing.T) {
 						cty.StringVal("test2"),
 					}),
 				}),
-				"workspace": cty.NullVal(cty.String),
+				"workspace": cty.StringVal(backend.DefaultStateName),
 				"defaults":  cty.NullVal(cty.DynamicPseudoType),
 			}),
 			false,
@@ -77,19 +79,19 @@ func TestState_basic(t *testing.T) {
 			cty.ObjectVal(map[string]cty.Value{
 				"backend": cty.StringVal("local"),
 				"config": cty.ObjectVal(map[string]cty.Value{
-					"path": cty.StringVal("./test-fixtures/null_outputs.tfstate"),
+					"path": cty.StringVal("./testdata/null_outputs.tfstate"),
 				}),
 			}),
 			cty.ObjectVal(map[string]cty.Value{
 				"backend": cty.StringVal("local"),
 				"config": cty.ObjectVal(map[string]cty.Value{
-					"path": cty.StringVal("./test-fixtures/null_outputs.tfstate"),
+					"path": cty.StringVal("./testdata/null_outputs.tfstate"),
 				}),
 				"outputs": cty.ObjectVal(map[string]cty.Value{
 					"map":  cty.NullVal(cty.DynamicPseudoType),
 					"list": cty.NullVal(cty.DynamicPseudoType),
 				}),
-				"workspace": cty.NullVal(cty.String),
+				"workspace": cty.StringVal(backend.DefaultStateName),
 				"defaults":  cty.NullVal(cty.DynamicPseudoType),
 			}),
 			false,
@@ -98,7 +100,7 @@ func TestState_basic(t *testing.T) {
 			cty.ObjectVal(map[string]cty.Value{
 				"backend": cty.StringVal("local"),
 				"config": cty.ObjectVal(map[string]cty.Value{
-					"path": cty.StringVal("./test-fixtures/empty.tfstate"),
+					"path": cty.StringVal("./testdata/empty.tfstate"),
 				}),
 				"defaults": cty.ObjectVal(map[string]cty.Value{
 					"foo": cty.StringVal("bar"),
@@ -107,7 +109,7 @@ func TestState_basic(t *testing.T) {
 			cty.ObjectVal(map[string]cty.Value{
 				"backend": cty.StringVal("local"),
 				"config": cty.ObjectVal(map[string]cty.Value{
-					"path": cty.StringVal("./test-fixtures/empty.tfstate"),
+					"path": cty.StringVal("./testdata/empty.tfstate"),
 				}),
 				"defaults": cty.ObjectVal(map[string]cty.Value{
 					"foo": cty.StringVal("bar"),
@@ -115,7 +117,7 @@ func TestState_basic(t *testing.T) {
 				"outputs": cty.ObjectVal(map[string]cty.Value{
 					"foo": cty.StringVal("bar"),
 				}),
-				"workspace": cty.NullVal(cty.String),
+				"workspace": cty.StringVal(backend.DefaultStateName),
 			}),
 			false,
 		},
@@ -123,19 +125,93 @@ func TestState_basic(t *testing.T) {
 			cty.ObjectVal(map[string]cty.Value{
 				"backend": cty.StringVal("local"),
 				"config": cty.ObjectVal(map[string]cty.Value{
-					"path": cty.StringVal("./test-fixtures/missing.tfstate"), // intentionally not present on disk
+					"path": cty.StringVal("./testdata/missing.tfstate"), // intentionally not present on disk
 				}),
 			}),
 			cty.ObjectVal(map[string]cty.Value{
 				"backend": cty.StringVal("local"),
 				"config": cty.ObjectVal(map[string]cty.Value{
-					"path": cty.StringVal("./test-fixtures/missing.tfstate"),
+					"path": cty.StringVal("./testdata/missing.tfstate"),
 				}),
 				"defaults":  cty.NullVal(cty.DynamicPseudoType),
 				"outputs":   cty.EmptyObjectVal,
-				"workspace": cty.NullVal(cty.String),
+				"workspace": cty.StringVal(backend.DefaultStateName),
 			}),
 			true,
+		},
+		"wrong type for config": {
+			cty.ObjectVal(map[string]cty.Value{
+				"backend": cty.StringVal("local"),
+				"config":  cty.StringVal("nope"),
+			}),
+			cty.NilVal,
+			true,
+		},
+		"wrong type for config with unknown backend": {
+			cty.ObjectVal(map[string]cty.Value{
+				"backend": cty.UnknownVal(cty.String),
+				"config":  cty.StringVal("nope"),
+			}),
+			cty.NilVal,
+			true,
+		},
+		"wrong type for config with unknown config": {
+			cty.ObjectVal(map[string]cty.Value{
+				"backend": cty.StringVal("local"),
+				"config":  cty.UnknownVal(cty.String),
+			}),
+			cty.NilVal,
+			true,
+		},
+		"wrong type for defaults": {
+			cty.ObjectVal(map[string]cty.Value{
+				"backend": cty.StringVal("local"),
+				"config": cty.ObjectVal(map[string]cty.Value{
+					"path": cty.StringVal("./testdata/basic.tfstate"),
+				}),
+				"defaults": cty.StringVal("nope"),
+			}),
+			cty.NilVal,
+			true,
+		},
+		"config as map": {
+			cty.ObjectVal(map[string]cty.Value{
+				"backend": cty.StringVal("local"),
+				"config": cty.MapVal(map[string]cty.Value{
+					"path": cty.StringVal("./testdata/empty.tfstate"),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"backend": cty.StringVal("local"),
+				"config": cty.MapVal(map[string]cty.Value{
+					"path": cty.StringVal("./testdata/empty.tfstate"),
+				}),
+				"defaults":  cty.NullVal(cty.DynamicPseudoType),
+				"outputs":   cty.EmptyObjectVal,
+				"workspace": cty.StringVal(backend.DefaultStateName),
+			}),
+			false,
+		},
+		"defaults as map": {
+			cty.ObjectVal(map[string]cty.Value{
+				"backend": cty.StringVal("local"),
+				"config": cty.ObjectVal(map[string]cty.Value{
+					"path": cty.StringVal("./testdata/basic.tfstate"),
+				}),
+				"defaults": cty.MapValEmpty(cty.String),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"backend": cty.StringVal("local"),
+				"config": cty.ObjectVal(map[string]cty.Value{
+					"path": cty.StringVal("./testdata/basic.tfstate"),
+				}),
+				"defaults": cty.MapValEmpty(cty.String),
+				"outputs": cty.ObjectVal(map[string]cty.Value{
+					"foo": cty.StringVal("bar"),
+				}),
+				"workspace": cty.StringVal(backend.DefaultStateName),
+			}),
+			false,
 		},
 	}
 	for name, test := range tests {
@@ -145,7 +221,15 @@ func TestState_basic(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error: %s", err)
 			}
-			got, diags := dataSourceRemoteStateRead(&config)
+
+			diags := dataSourceRemoteStateValidate(config)
+
+			var got cty.Value
+			if !diags.HasErrors() && config.IsWhollyKnown() {
+				var moreDiags tfdiags.Diagnostics
+				got, moreDiags = dataSourceRemoteStateRead(config)
+				diags = diags.Append(moreDiags)
+			}
 
 			if test.Err {
 				if !diags.HasErrors() {
@@ -155,8 +239,8 @@ func TestState_basic(t *testing.T) {
 				t.Fatalf("unexpected errors: %s", diags.Err())
 			}
 
-			if !test.Want.RawEquals(got) {
-				t.Errorf("wrong result\nconfig: %sgot: %swant: %s", dump.Value(config), dump.Value(got), dump.Value(test.Want))
+			if test.Want != cty.NilVal && !test.Want.RawEquals(got) {
+				t.Errorf("wrong result\nconfig: %sgot:    %swant:   %s", dump.Value(config), dump.Value(got), dump.Value(test.Want))
 			}
 		})
 	}

@@ -1,7 +1,7 @@
 ---
 layout: "commands-state"
 page_title: "Command: state pull"
-sidebar_current: "docs-state-sub-pull"
+sidebar_current: "docs-commands-state-sub-pull"
 description: |-
   The `terraform state pull` command is used to manually download and output the state from remote state.
 ---

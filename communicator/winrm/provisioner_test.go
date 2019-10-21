@@ -6,6 +6,31 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+func TestProvisioner_defaultHTTPSPort(t *testing.T) {
+	r := &terraform.InstanceState{
+		Ephemeral: terraform.EphemeralState{
+			ConnInfo: map[string]string{
+				"type":     "winrm",
+				"user":     "Administrator",
+				"password": "supersecret",
+				"host":     "127.0.0.1",
+				"https":    "true",
+			},
+		},
+	}
+
+	conf, err := parseConnectionInfo(r)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if conf.Port != 5986 {
+		t.Fatalf("expected: %v: got: %v", 5986, conf)
+	}
+	if conf.HTTPS != true {
+		t.Fatalf("expected: %v: got: %v", true, conf)
+	}
+}
+
 func TestProvisioner_connInfo(t *testing.T) {
 	r := &terraform.InstanceState{
 		Ephemeral: terraform.EphemeralState{

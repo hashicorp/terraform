@@ -1,12 +1,16 @@
 ---
 layout: "functions"
-page_title: "base64decode function"
+page_title: "base64decode - Functions - Configuration Language"
 sidebar_current: "docs-funcs-encoding-base64decode"
 description: |-
   The base64decode function decodes a string containing a base64 sequence.
 ---
 
 # `base64decode` Function
+
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
 
 `base64decode` takes a string containing a Base64 character sequence and
 returns the original string.

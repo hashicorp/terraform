@@ -4,7 +4,7 @@ import (
 	"sort"
 
 	version "github.com/hashicorp/go-version"
-	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
 )
 
@@ -76,6 +76,7 @@ func buildChildModules(parent *Config, walker ModuleWalker) (map[string]*Config,
 		}
 
 		child.Children, modDiags = buildChildModules(child, walker)
+		diags = append(diags, modDiags...)
 
 		ret[call.Name] = child
 	}

@@ -5,12 +5,12 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/states"
 )
 
@@ -33,6 +33,11 @@ func TestEvalLocal(t *testing.T) {
 			"",
 			"",
 			false,
+		},
+		{
+			"Hello, ${local.foo}",
+			nil,
+			true, // self-referencing
 		},
 	}
 
@@ -64,8 +69,9 @@ func TestEvalLocal(t *testing.T) {
 
 			ms := ctx.StateState.Module(addrs.RootModuleInstance)
 			gotLocals := ms.LocalValues
-			wantLocals := map[string]cty.Value{
-				"foo": hcl2shim.HCL2ValueFromConfigValue(test.Want),
+			wantLocals := map[string]cty.Value{}
+			if test.Want != nil {
+				wantLocals["foo"] = hcl2shim.HCL2ValueFromConfigValue(test.Want)
 			}
 
 			if !reflect.DeepEqual(gotLocals, wantLocals) {

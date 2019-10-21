@@ -22,6 +22,9 @@ const (
 
 	// CommentNode is a comment node, such as <!-- my comment -->
 	CommentNode
+
+	// allNode is any types of node, used by xpath package only to predicate match.
+	allNode
 )
 
 // NodeNavigator provides cursor model for navigating XML data.

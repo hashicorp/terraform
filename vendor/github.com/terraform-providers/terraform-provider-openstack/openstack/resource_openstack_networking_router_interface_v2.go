@@ -18,6 +18,9 @@ func resourceNetworkingRouterInterfaceV2() *schema.Resource {
 		Create: resourceNetworkingRouterInterfaceV2Create,
 		Read:   resourceNetworkingRouterInterfaceV2Read,
 		Delete: resourceNetworkingRouterInterfaceV2Delete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(10 * time.Minute),
@@ -25,25 +28,30 @@ func resourceNetworkingRouterInterfaceV2() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"region": &schema.Schema{
+			"region": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
-			"router_id": &schema.Schema{
+
+			"router_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"subnet_id": &schema.Schema{
+
+			"subnet_id": {
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
-			"port_id": &schema.Schema{
+
+			"port_id": {
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 		},
@@ -62,28 +70,31 @@ func resourceNetworkingRouterInterfaceV2Create(d *schema.ResourceData, meta inte
 		PortID:   d.Get("port_id").(string),
 	}
 
-	log.Printf("[DEBUG] Create Options: %#v", createOpts)
-	n, err := routers.AddInterface(networkingClient, d.Get("router_id").(string), createOpts).Extract()
+	log.Printf("[DEBUG] openstack_networking_router_interface_v2 create options: %#v", createOpts)
+	r, err := routers.AddInterface(networkingClient, d.Get("router_id").(string), createOpts).Extract()
 	if err != nil {
-		return fmt.Errorf("Error creating OpenStack Neutron router interface: %s", err)
+		return fmt.Errorf("Error creating openstack_networking_router_interface_v2: %s", err)
 	}
-	log.Printf("[INFO] Router interface Port ID: %s", n.PortID)
 
-	log.Printf("[DEBUG] Waiting for Router Interface (%s) to become available", n.PortID)
+	log.Printf("[DEBUG] Waiting for openstack_networking_router_interface_v2 %s to become available", r.PortID)
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"BUILD", "PENDING_CREATE", "PENDING_UPDATE"},
-		Target:     []string{"ACTIVE"},
-		Refresh:    waitForRouterInterfaceActive(networkingClient, n.PortID),
+		Target:     []string{"ACTIVE", "DOWN"},
+		Refresh:    resourceNetworkingRouterInterfaceV2StateRefreshFunc(networkingClient, r.PortID),
 		Timeout:    d.Timeout(schema.TimeoutCreate),
 		Delay:      5 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
 
 	_, err = stateConf.WaitForState()
+	if err != nil {
+		return fmt.Errorf("Error waiting for openstack_networking_router_interface_v2 %s to become available: %s", r.ID, err)
+	}
 
-	d.SetId(n.PortID)
+	d.SetId(r.PortID)
 
+	log.Printf("[DEBUG] Created openstack_networking_router_interface_v2 %s: %#v", r.ID, r)
 	return resourceNetworkingRouterInterfaceV2Read(d, meta)
 }
 
@@ -94,19 +105,32 @@ func resourceNetworkingRouterInterfaceV2Read(d *schema.ResourceData, meta interf
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
-	n, err := ports.Get(networkingClient, d.Id()).Extract()
+	r, err := ports.Get(networkingClient, d.Id()).Extract()
 	if err != nil {
 		if _, ok := err.(gophercloud.ErrDefault404); ok {
 			d.SetId("")
 			return nil
 		}
 
-		return fmt.Errorf("Error retrieving OpenStack Neutron Router Interface: %s", err)
+		return fmt.Errorf("Error retrieving openstack_networking_router_interface_v2: %s", err)
 	}
 
-	log.Printf("[DEBUG] Retrieved Router Interface %s: %+v", d.Id(), n)
+	log.Printf("[DEBUG] Retrieved openstack_networking_router_interface_v2 %s: %#v", d.Id(), r)
 
+	d.Set("router_id", r.DeviceID)
+	d.Set("port_id", r.ID)
 	d.Set("region", GetRegion(d, config))
+
+	// Set the subnet ID by looking at the port's FixedIPs.
+	// If there's more than one FixedIP, do not set the subnet
+	// as it's not possible to confidently determine which subnet
+	// belongs to this interface. However, that situation should
+	// not happen.
+	if len(r.FixedIPs) != 1 {
+		log.Printf("[DEBUG] Unable to set openstack_networking_router_interface_v2 %s subnet_id", d.Id())
+	} else {
+		d.Set("subnet_id", r.FixedIPs[0].SubnetID)
+	}
 
 	return nil
 }
@@ -121,7 +145,7 @@ func resourceNetworkingRouterInterfaceV2Delete(d *schema.ResourceData, meta inte
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"ACTIVE"},
 		Target:     []string{"DELETED"},
-		Refresh:    waitForRouterInterfaceDelete(networkingClient, d),
+		Refresh:    resourceNetworkingRouterInterfaceV2DeleteRefreshFunc(networkingClient, d),
 		Timeout:    d.Timeout(schema.TimeoutDelete),
 		Delay:      5 * time.Second,
 		MinTimeout: 3 * time.Second,
@@ -129,63 +153,9 @@ func resourceNetworkingRouterInterfaceV2Delete(d *schema.ResourceData, meta inte
 
 	_, err = stateConf.WaitForState()
 	if err != nil {
-		return fmt.Errorf("Error deleting OpenStack Neutron Router Interface: %s", err)
+		return fmt.Errorf("Error waiting for openstack_networking_router_interface_v2 %s to delete: %s", d.Id(), err)
 	}
 
 	d.SetId("")
 	return nil
-}
-
-func waitForRouterInterfaceActive(networkingClient *gophercloud.ServiceClient, rId string) resource.StateRefreshFunc {
-	return func() (interface{}, string, error) {
-		r, err := ports.Get(networkingClient, rId).Extract()
-		if err != nil {
-			return nil, "", err
-		}
-
-		log.Printf("[DEBUG] OpenStack Neutron Router Interface: %+v", r)
-		return r, r.Status, nil
-	}
-}
-
-func waitForRouterInterfaceDelete(networkingClient *gophercloud.ServiceClient, d *schema.ResourceData) resource.StateRefreshFunc {
-	return func() (interface{}, string, error) {
-		routerId := d.Get("router_id").(string)
-		routerInterfaceId := d.Id()
-
-		log.Printf("[DEBUG] Attempting to delete OpenStack Router Interface %s.", routerInterfaceId)
-
-		removeOpts := routers.RemoveInterfaceOpts{
-			SubnetID: d.Get("subnet_id").(string),
-			PortID:   d.Get("port_id").(string),
-		}
-
-		r, err := ports.Get(networkingClient, routerInterfaceId).Extract()
-		if err != nil {
-			if _, ok := err.(gophercloud.ErrDefault404); ok {
-				log.Printf("[DEBUG] Successfully deleted OpenStack Router Interface %s", routerInterfaceId)
-				return r, "DELETED", nil
-			}
-			return r, "ACTIVE", err
-		}
-
-		_, err = routers.RemoveInterface(networkingClient, routerId, removeOpts).Extract()
-		if err != nil {
-			if _, ok := err.(gophercloud.ErrDefault404); ok {
-				log.Printf("[DEBUG] Successfully deleted OpenStack Router Interface %s.", routerInterfaceId)
-				return r, "DELETED", nil
-			}
-			if errCode, ok := err.(gophercloud.ErrUnexpectedResponseCode); ok {
-				if errCode.Actual == 409 {
-					log.Printf("[DEBUG] Router Interface %s is still in use.", routerInterfaceId)
-					return r, "ACTIVE", nil
-				}
-			}
-
-			return r, "ACTIVE", err
-		}
-
-		log.Printf("[DEBUG] OpenStack Router Interface %s is still active.", routerInterfaceId)
-		return r, "ACTIVE", nil
-	}
 }

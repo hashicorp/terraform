@@ -84,6 +84,11 @@ var FormatListFunc = function.New(&function.Spec{
 			argTy := arg.Type()
 			switch {
 			case (argTy.IsListType() || argTy.IsSetType() || argTy.IsTupleType()) && !arg.IsNull():
+				if !argTy.IsTupleType() && !arg.IsKnown() {
+					// We can't iterate this one at all yet then, so we can't
+					// yet produce a result.
+					return cty.UnknownVal(retType), nil
+				}
 				thisLen := arg.LengthInt()
 				if iterLen == -1 {
 					iterLen = thisLen

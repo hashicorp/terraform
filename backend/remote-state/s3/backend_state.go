@@ -3,10 +3,12 @@ package s3
 import (
 	"errors"
 	"fmt"
+	"path"
 	"sort"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
 
 	"github.com/hashicorp/terraform/backend"
@@ -16,12 +18,12 @@ import (
 )
 
 func (b *Backend) Workspaces() ([]string, error) {
-	prefix := b.workspaceKeyPrefix + "/"
+	prefix := ""
 
-	// List bucket root if there is no workspaceKeyPrefix
-	if b.workspaceKeyPrefix == "" {
-		prefix = ""
+	if b.workspaceKeyPrefix != "" {
+		prefix = b.workspaceKeyPrefix + "/"
 	}
+
 	params := &s3.ListObjectsInput{
 		Bucket: &b.bucketName,
 		Prefix: aws.String(prefix),
@@ -29,6 +31,9 @@ func (b *Backend) Workspaces() ([]string, error) {
 
 	resp, err := b.s3Client.ListObjects(params)
 	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == s3.ErrCodeNoSuchBucket {
+			return nil, fmt.Errorf(errS3NoSuchBucket, err)
+		}
 		return nil, err
 	}
 
@@ -45,7 +50,9 @@ func (b *Backend) Workspaces() ([]string, error) {
 }
 
 func (b *Backend) keyEnv(key string) string {
-	if b.workspaceKeyPrefix == "" {
+	prefix := b.workspaceKeyPrefix
+
+	if prefix == "" {
 		parts := strings.SplitN(key, "/", 2)
 		if len(parts) > 1 && parts[1] == b.keyName {
 			return parts[0]
@@ -54,29 +61,31 @@ func (b *Backend) keyEnv(key string) string {
 		}
 	}
 
-	parts := strings.SplitAfterN(key, b.workspaceKeyPrefix, 2)
+	// add a slash to treat this as a directory
+	prefix += "/"
 
+	parts := strings.SplitAfterN(key, prefix, 2)
 	if len(parts) < 2 {
 		return ""
 	}
 
 	// shouldn't happen since we listed by prefix
-	if parts[0] != b.workspaceKeyPrefix {
+	if parts[0] != prefix {
 		return ""
 	}
 
-	parts = strings.SplitN(parts[1], "/", 3)
+	parts = strings.SplitN(parts[1], "/", 2)
 
-	if len(parts) < 3 {
+	if len(parts) < 2 {
 		return ""
 	}
 
 	// not our key, so don't include it in our listing
-	if parts[2] != b.keyName {
+	if parts[1] != b.keyName {
 		return ""
 	}
 
-	return parts[1]
+	return parts[0]
 }
 
 func (b *Backend) DeleteWorkspace(name string) error {
@@ -99,14 +108,15 @@ func (b *Backend) remoteClient(name string) (*RemoteClient, error) {
 	}
 
 	client := &RemoteClient{
-		s3Client:             b.s3Client,
-		dynClient:            b.dynClient,
-		bucketName:           b.bucketName,
-		path:                 b.path(name),
-		serverSideEncryption: b.serverSideEncryption,
-		acl:                  b.acl,
-		kmsKeyID:             b.kmsKeyID,
-		ddbTable:             b.ddbTable,
+		s3Client:              b.s3Client,
+		dynClient:             b.dynClient,
+		bucketName:            b.bucketName,
+		path:                  b.path(name),
+		serverSideEncryption:  b.serverSideEncryption,
+		customerEncryptionKey: b.customerEncryptionKey,
+		acl:                   b.acl,
+		kmsKeyID:              b.kmsKeyID,
+		ddbTable:              b.ddbTable,
 	}
 
 	return client, nil
@@ -197,12 +207,7 @@ func (b *Backend) path(name string) string {
 		return b.keyName
 	}
 
-	if b.workspaceKeyPrefix != "" {
-		return strings.Join([]string{b.workspaceKeyPrefix, name, b.keyName}, "/")
-	} else {
-		// Trim the leading / for no workspace prefix
-		return strings.Join([]string{b.workspaceKeyPrefix, name, b.keyName}, "/")[1:]
-	}
+	return path.Join(b.workspaceKeyPrefix, name, b.keyName)
 }
 
 const errStateUnlock = `

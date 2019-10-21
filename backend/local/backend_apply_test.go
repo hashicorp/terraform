@@ -13,8 +13,8 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
@@ -32,7 +32,7 @@ func TestLocal_applyBasic(t *testing.T) {
 		"ami": cty.StringVal("bar"),
 	})}
 
-	op, configCleanup := testOperationApply(t, "./test-fixtures/apply")
+	op, configCleanup := testOperationApply(t, "./testdata/apply")
 	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
@@ -71,7 +71,7 @@ func TestLocal_applyEmptyDir(t *testing.T) {
 	p := TestLocalProvider(t, b, "test", &terraform.ProviderSchema{})
 	p.ApplyResourceChangeResponse = providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("yes")})}
 
-	op, configCleanup := testOperationApply(t, "./test-fixtures/empty")
+	op, configCleanup := testOperationApply(t, "./testdata/empty")
 	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
@@ -99,7 +99,7 @@ func TestLocal_applyEmptyDirDestroy(t *testing.T) {
 	p := TestLocalProvider(t, b, "test", &terraform.ProviderSchema{})
 	p.ApplyResourceChangeResponse = providers.ApplyResourceChangeResponse{}
 
-	op, configCleanup := testOperationApply(t, "./test-fixtures/empty")
+	op, configCleanup := testOperationApply(t, "./testdata/empty")
 	defer configCleanup()
 	op.Destroy = true
 
@@ -123,8 +123,7 @@ func TestLocal_applyError(t *testing.T) {
 	b, cleanup := TestLocal(t)
 	defer cleanup()
 
-	p := TestLocalProvider(t, b, "test", nil)
-	p.GetSchemaReturn = &terraform.ProviderSchema{
+	schema := &terraform.ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"test_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -134,6 +133,7 @@ func TestLocal_applyError(t *testing.T) {
 			},
 		},
 	}
+	p := TestLocalProvider(t, b, "test", schema)
 
 	var lock sync.Mutex
 	errored := false
@@ -161,7 +161,7 @@ func TestLocal_applyError(t *testing.T) {
 		}
 	}
 
-	op, configCleanup := testOperationApply(t, "./test-fixtures/apply-error")
+	op, configCleanup := testOperationApply(t, "./testdata/apply-error")
 	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
@@ -201,7 +201,7 @@ func TestLocal_applyBackendFail(t *testing.T) {
 	}
 	defer os.Chdir(wd)
 
-	op, configCleanup := testOperationApply(t, wd+"/test-fixtures/apply")
+	op, configCleanup := testOperationApply(t, wd+"/testdata/apply")
 	defer configCleanup()
 
 	b.Backend = &backendWithFailingState{}
@@ -252,7 +252,7 @@ func (s failingState) WriteState(state *states.State) error {
 func testOperationApply(t *testing.T, configDir string) (*backend.Operation, func()) {
 	t.Helper()
 
-	_, configLoader, configCleanup := configload.MustLoadConfigForTests(t, configDir)
+	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
 
 	return &backend.Operation{
 		Type:         backend.OperationTypeApply,
@@ -282,7 +282,7 @@ func testApplyState() *terraform.State {
 }
 
 // applyFixtureSchema returns a schema suitable for processing the
-// configuration in test-fixtures/apply . This schema should be
+// configuration in testdata/apply . This schema should be
 // assigned to a mock provider named "test".
 func applyFixtureSchema() *terraform.ProviderSchema {
 	return &terraform.ProviderSchema{

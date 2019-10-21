@@ -17,23 +17,21 @@ import (
 	"sync"
 
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/go-version"
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcl/hclsyntax"
-	"github.com/mitchellh/copystructure"
-	"github.com/zclconf/go-cty/cty"
-	ctyjson "github.com/zclconf/go-cty/cty/json"
-
+	multierror "github.com/hashicorp/go-multierror"
+	uuid "github.com/hashicorp/go-uuid"
+	version "github.com/hashicorp/go-version"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/tfdiags"
 	tfversion "github.com/hashicorp/terraform/version"
+	"github.com/mitchellh/copystructure"
+	"github.com/zclconf/go-cty/cty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
 const (
@@ -326,6 +324,125 @@ func (s *State) Validate() error {
 	}
 
 	return result
+}
+
+// Remove removes the item in the state at the given address, returning
+// any errors that may have occurred.
+//
+// If the address references a module state or resource, it will delete
+// all children as well. To check what will be deleted, use a StateFilter
+// first.
+func (s *State) Remove(addr ...string) error {
+	s.Lock()
+	defer s.Unlock()
+
+	// Filter out what we need to delete
+	filter := &StateFilter{State: s}
+	results, err := filter.Filter(addr...)
+	if err != nil {
+		return err
+	}
+
+	// If we have no results, just exit early, we're not going to do anything.
+	// While what happens below is fairly fast, this is an important early
+	// exit since the prune below might modify the state more and we don't
+	// want to modify the state if we don't have to.
+	if len(results) == 0 {
+		return nil
+	}
+
+	// Go through each result and grab what we need
+	removed := make(map[interface{}]struct{})
+	for _, r := range results {
+		// Convert the path to our own type
+		path := append([]string{"root"}, r.Path...)
+
+		// If we removed this already, then ignore
+		if _, ok := removed[r.Value]; ok {
+			continue
+		}
+
+		// If we removed the parent already, then ignore
+		if r.Parent != nil {
+			if _, ok := removed[r.Parent.Value]; ok {
+				continue
+			}
+		}
+
+		// Add this to the removed list
+		removed[r.Value] = struct{}{}
+
+		switch v := r.Value.(type) {
+		case *ModuleState:
+			s.removeModule(path, v)
+		case *ResourceState:
+			s.removeResource(path, v)
+		case *InstanceState:
+			s.removeInstance(path, r.Parent.Value.(*ResourceState), v)
+		default:
+			return fmt.Errorf("unknown type to delete: %T", r.Value)
+		}
+	}
+
+	// Prune since the removal functions often do the bare minimum to
+	// remove a thing and may leave around dangling empty modules, resources,
+	// etc. Prune will clean that all up.
+	s.prune()
+
+	return nil
+}
+
+func (s *State) removeModule(path []string, v *ModuleState) {
+	for i, m := range s.Modules {
+		if m == v {
+			s.Modules, s.Modules[len(s.Modules)-1] = append(s.Modules[:i], s.Modules[i+1:]...), nil
+			return
+		}
+	}
+}
+
+func (s *State) removeResource(path []string, v *ResourceState) {
+	// Get the module this resource lives in. If it doesn't exist, we're done.
+	mod := s.moduleByPath(normalizeModulePath(path))
+	if mod == nil {
+		return
+	}
+
+	// Find this resource. This is a O(N) lookup when if we had the key
+	// it could be O(1) but even with thousands of resources this shouldn't
+	// matter right now. We can easily up performance here when the time comes.
+	for k, r := range mod.Resources {
+		if r == v {
+			// Found it
+			delete(mod.Resources, k)
+			return
+		}
+	}
+}
+
+func (s *State) removeInstance(path []string, r *ResourceState, v *InstanceState) {
+	// Go through the resource and find the instance that matches this
+	// (if any) and remove it.
+
+	// Check primary
+	if r.Primary == v {
+		r.Primary = nil
+		return
+	}
+
+	// Check lists
+	lists := [][]*InstanceState{r.Deposed}
+	for _, is := range lists {
+		for i, instance := range is {
+			if instance == v {
+				// Found it, remove it
+				is, is[len(is)-1] = append(is[:i], is[i+1:]...), nil
+
+				// Done
+				return
+			}
+		}
+	}
 }
 
 // RootModule returns the ModuleState for the root module
@@ -656,7 +773,7 @@ func (s *State) String() string {
 type BackendState struct {
 	Type      string          `json:"type"`   // Backend type
 	ConfigRaw json.RawMessage `json:"config"` // Backend raw config
-	Hash      int             `json:"hash"`   // Hash of portion of configuration from config files
+	Hash      uint64          `json:"hash"`   // Hash of portion of configuration from config files
 }
 
 // Empty returns true if BackendState has no state.
@@ -1082,7 +1199,7 @@ func (m *ModuleState) prune() {
 	}
 
 	for k, v := range m.Outputs {
-		if v.Value == config.UnknownVariableValue {
+		if v.Value == hcl2shim.UnknownVariableValue {
 			delete(m.Outputs, k)
 		}
 	}
@@ -1223,7 +1340,7 @@ func (m *ModuleState) Empty() bool {
 type ResourceStateKey struct {
 	Name  string
 	Type  string
-	Mode  config.ResourceMode
+	Mode  ResourceMode
 	Index int
 }
 
@@ -1253,9 +1370,9 @@ func (rsk *ResourceStateKey) String() string {
 	}
 	var prefix string
 	switch rsk.Mode {
-	case config.ManagedResourceMode:
+	case ManagedResourceMode:
 		prefix = ""
-	case config.DataResourceMode:
+	case DataResourceMode:
 		prefix = "data."
 	default:
 		panic(fmt.Errorf("unknown resource mode %s", rsk.Mode))
@@ -1272,9 +1389,9 @@ func (rsk *ResourceStateKey) String() string {
 // latter case, the index is returned as -1.
 func ParseResourceStateKey(k string) (*ResourceStateKey, error) {
 	parts := strings.Split(k, ".")
-	mode := config.ManagedResourceMode
+	mode := ManagedResourceMode
 	if len(parts) > 0 && parts[0] == "data" {
-		mode = config.DataResourceMode
+		mode = DataResourceMode
 		// Don't need the constant "data" prefix for parsing
 		// now that we've figured out the mode.
 		parts = parts[1:]
@@ -1708,7 +1825,7 @@ func (s *InstanceState) MergeDiff(d *InstanceDiff) *InstanceState {
 				continue
 			}
 			if diff.NewComputed {
-				result.Attributes[k] = config.UnknownVariableValue
+				result.Attributes[k] = hcl2shim.UnknownVariableValue
 				continue
 			}
 

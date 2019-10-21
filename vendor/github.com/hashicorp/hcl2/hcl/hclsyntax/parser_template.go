@@ -5,16 +5,17 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/apparentlymart/go-textseg/textseg"
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/zclconf/go-cty/cty"
 )
 
 func (p *parser) ParseTemplate() (Expression, hcl.Diagnostics) {
-	return p.parseTemplate(TokenEOF)
+	return p.parseTemplate(TokenEOF, false)
 }
 
-func (p *parser) parseTemplate(end TokenType) (Expression, hcl.Diagnostics) {
-	exprs, passthru, rng, diags := p.parseTemplateInner(end)
+func (p *parser) parseTemplate(end TokenType, flushHeredoc bool) (Expression, hcl.Diagnostics) {
+	exprs, passthru, rng, diags := p.parseTemplateInner(end, flushHeredoc)
 
 	if passthru {
 		if len(exprs) != 1 {
@@ -32,8 +33,11 @@ func (p *parser) parseTemplate(end TokenType) (Expression, hcl.Diagnostics) {
 	}, diags
 }
 
-func (p *parser) parseTemplateInner(end TokenType) ([]Expression, bool, hcl.Range, hcl.Diagnostics) {
+func (p *parser) parseTemplateInner(end TokenType, flushHeredoc bool) ([]Expression, bool, hcl.Range, hcl.Diagnostics) {
 	parts, diags := p.parseTemplateParts(end)
+	if flushHeredoc {
+		flushHeredocTemplateParts(parts) // Trim off leading spaces on lines per the flush heredoc spec
+	}
 	tp := templateParser{
 		Tokens:   parts.Tokens,
 		SrcRange: parts.SrcRange,
@@ -647,6 +651,73 @@ Token:
 	}
 
 	return ret, diags
+}
+
+// flushHeredocTemplateParts modifies in-place the line-leading literal strings
+// to apply the flush heredoc processing rule: find the line with the smallest
+// number of whitespace characters as prefix and then trim that number of
+// characters from all of the lines.
+//
+// This rule is applied to static tokens rather than to the rendered result,
+// so interpolating a string with leading whitespace cannot affect the chosen
+// prefix length.
+func flushHeredocTemplateParts(parts *templateParts) {
+	if len(parts.Tokens) == 0 {
+		// Nothing to do
+		return
+	}
+
+	const maxInt = int((^uint(0)) >> 1)
+
+	minSpaces := maxInt
+	newline := true
+	var adjust []*templateLiteralToken
+	for _, ttok := range parts.Tokens {
+		if newline {
+			newline = false
+			var spaces int
+			if lit, ok := ttok.(*templateLiteralToken); ok {
+				orig := lit.Val
+				trimmed := strings.TrimLeftFunc(orig, unicode.IsSpace)
+				// If a token is entirely spaces and ends with a newline
+				// then it's a "blank line" and thus not considered for
+				// space-prefix-counting purposes.
+				if len(trimmed) == 0 && strings.HasSuffix(orig, "\n") {
+					spaces = maxInt
+				} else {
+					spaceBytes := len(lit.Val) - len(trimmed)
+					spaces, _ = textseg.TokenCount([]byte(orig[:spaceBytes]), textseg.ScanGraphemeClusters)
+					adjust = append(adjust, lit)
+				}
+			} else if _, ok := ttok.(*templateEndToken); ok {
+				break // don't process the end token since it never has spaces before it
+			}
+			if spaces < minSpaces {
+				minSpaces = spaces
+			}
+		}
+		if lit, ok := ttok.(*templateLiteralToken); ok {
+			if strings.HasSuffix(lit.Val, "\n") {
+				newline = true // The following token, if any, begins a new line
+			}
+		}
+	}
+
+	for _, lit := range adjust {
+		// Since we want to count space _characters_ rather than space _bytes_,
+		// we can't just do a straightforward slice operation here and instead
+		// need to hunt for the split point with a scanner.
+		valBytes := []byte(lit.Val)
+		spaceByteCount := 0
+		for i := 0; i < minSpaces; i++ {
+			adv, _, _ := textseg.ScanGraphemeClusters(valBytes, true)
+			spaceByteCount += adv
+			valBytes = valBytes[adv:]
+		}
+		lit.Val = lit.Val[spaceByteCount:]
+		lit.SrcRange.Start.Column += minSpaces
+		lit.SrcRange.Start.Byte += spaceByteCount
+	}
 }
 
 type templateParts struct {

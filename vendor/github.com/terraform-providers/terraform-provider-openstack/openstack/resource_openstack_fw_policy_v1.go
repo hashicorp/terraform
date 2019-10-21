@@ -26,41 +26,41 @@ func resourceFWPolicyV1() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"region": &schema.Schema{
+			"region": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"audited": &schema.Schema{
+			"audited": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
-			"shared": &schema.Schema{
+			"shared": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"tenant_id": &schema.Schema{
+			"tenant_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
 			},
-			"rules": &schema.Schema{
+			"rules": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
-			"value_specs": &schema.Schema{
+			"value_specs": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				ForceNew: true,
@@ -155,11 +155,13 @@ func resourceFWPolicyV1Update(d *schema.ResourceData, meta interface{}) error {
 	opts := policies.UpdateOpts{}
 
 	if d.HasChange("name") {
-		opts.Name = d.Get("name").(string)
+		name := d.Get("name").(string)
+		opts.Name = &name
 	}
 
 	if d.HasChange("description") {
-		opts.Description = d.Get("description").(string)
+		description := d.Get("description").(string)
+		opts.Description = &description
 	}
 
 	if d.HasChange("rules") {

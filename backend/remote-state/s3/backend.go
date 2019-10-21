@@ -2,15 +2,19 @@ package s3
 
 import (
 	"context"
+	"encoding/base64"
+	"errors"
 	"fmt"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/s3"
+	awsbase "github.com/hashicorp/aws-sdk-go-base"
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/helper/schema"
-
-	terraformAWS "github.com/terraform-providers/terraform-provider-aws/aws"
+	"github.com/hashicorp/terraform/version"
 )
 
 // New creates a new backend for S3 remote state.
@@ -31,7 +35,7 @@ func New() backend.Backend {
 					// s3 will strip leading slashes from an object, so while this will
 					// technically be accepted by s3, it will break our workspace hierarchy.
 					if strings.HasPrefix(v.(string), "/") {
-						return nil, []error{fmt.Errorf("key must not start with '/'")}
+						return nil, []error{errors.New("key must not start with '/'")}
 					}
 					return nil, nil
 				},
@@ -41,7 +45,17 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The region of the S3 bucket.",
-				DefaultFunc: schema.EnvDefaultFunc("AWS_DEFAULT_REGION", nil),
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"AWS_REGION",
+					"AWS_DEFAULT_REGION",
+				}, nil),
+			},
+
+			"dynamodb_endpoint": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A custom endpoint for the DynamoDB API",
+				DefaultFunc: schema.EnvDefaultFunc("AWS_DYNAMODB_ENDPOINT", ""),
 			},
 
 			"endpoint": {
@@ -49,6 +63,20 @@ func New() backend.Backend {
 				Optional:    true,
 				Description: "A custom endpoint for the S3 API",
 				DefaultFunc: schema.EnvDefaultFunc("AWS_S3_ENDPOINT", ""),
+			},
+
+			"iam_endpoint": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A custom endpoint for the IAM API",
+				DefaultFunc: schema.EnvDefaultFunc("AWS_IAM_ENDPOINT", ""),
+			},
+
+			"sts_endpoint": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A custom endpoint for the STS API",
+				DefaultFunc: schema.EnvDefaultFunc("AWS_STS_ENDPOINT", ""),
 			},
 
 			"encrypt": {
@@ -134,6 +162,7 @@ func New() backend.Backend {
 				Optional:    true,
 				Description: "Skip getting the supported EC2 platforms.",
 				Default:     false,
+				Deprecated:  "The S3 Backend does not require EC2 functionality and this attribute is no longer used.",
 			},
 
 			"skip_region_validation": {
@@ -148,6 +177,7 @@ func New() backend.Backend {
 				Optional:    true,
 				Description: "Skip requesting the account ID.",
 				Default:     false,
+				Deprecated:  "The S3 Backend no longer automatically looks up the AWS Account ID and this attribute is no longer used.",
 			},
 
 			"skip_metadata_api_check": {
@@ -155,6 +185,21 @@ func New() backend.Backend {
 				Optional:    true,
 				Description: "Skip the AWS Metadata API check.",
 				Default:     false,
+			},
+
+			"sse_customer_key": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The base64-encoded encryption key to use for server-side encryption with customer-provided keys (SSE-C).",
+				DefaultFunc: schema.EnvDefaultFunc("AWS_SSE_CUSTOMER_KEY", ""),
+				Sensitive:   true,
+				ValidateFunc: func(v interface{}, s string) ([]string, []error) {
+					key := v.(string)
+					if key != "" && len(key) != 44 {
+						return nil, []error{errors.New("sse_customer_key must be 44 characters in length (256 bits, base64 encoded)")}
+					}
+					return nil, nil
+				},
 			},
 
 			"role_arn": {
@@ -188,8 +233,15 @@ func New() backend.Backend {
 			"workspace_key_prefix": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The prefix applied to the non-default state path inside the bucket",
+				Description: "The prefix applied to the non-default state path inside the bucket.",
 				Default:     "env:",
+				ValidateFunc: func(v interface{}, s string) ([]string, []error) {
+					prefix := v.(string)
+					if strings.HasPrefix(prefix, "/") || strings.HasSuffix(prefix, "/") {
+						return nil, []error{errors.New("workspace_key_prefix must not start or end with '/'")}
+					}
+					return nil, nil
+				},
 			},
 
 			"force_path_style": {
@@ -197,6 +249,13 @@ func New() backend.Backend {
 				Optional:    true,
 				Description: "Force s3 to use path style api.",
 				Default:     false,
+			},
+
+			"max_retries": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "The maximum number of times an AWS API request is retried on retryable failure.",
+				Default:     5,
 			},
 		},
 	}
@@ -213,13 +272,14 @@ type Backend struct {
 	s3Client  *s3.S3
 	dynClient *dynamodb.DynamoDB
 
-	bucketName           string
-	keyName              string
-	serverSideEncryption bool
-	acl                  string
-	kmsKeyID             string
-	ddbTable             string
-	workspaceKeyPrefix   string
+	bucketName            string
+	keyName               string
+	serverSideEncryption  bool
+	customerEncryptionKey []byte
+	acl                   string
+	kmsKeyID              string
+	ddbTable              string
+	workspaceKeyPrefix    string
 }
 
 func (b *Backend) configure(ctx context.Context) error {
@@ -230,12 +290,31 @@ func (b *Backend) configure(ctx context.Context) error {
 	// Grab the resource data
 	data := schema.FromContextBackendConfig(ctx)
 
+	if !data.Get("skip_region_validation").(bool) {
+		if err := awsbase.ValidateRegion(data.Get("region").(string)); err != nil {
+			return err
+		}
+	}
+
 	b.bucketName = data.Get("bucket").(string)
 	b.keyName = data.Get("key").(string)
-	b.serverSideEncryption = data.Get("encrypt").(bool)
 	b.acl = data.Get("acl").(string)
-	b.kmsKeyID = data.Get("kms_key_id").(string)
 	b.workspaceKeyPrefix = data.Get("workspace_key_prefix").(string)
+	b.serverSideEncryption = data.Get("encrypt").(bool)
+	b.kmsKeyID = data.Get("kms_key_id").(string)
+
+	customerKeyString := data.Get("sse_customer_key").(string)
+	if customerKeyString != "" {
+		if b.kmsKeyID != "" {
+			return errors.New(encryptionKeyConflictError)
+		}
+
+		var err error
+		b.customerEncryptionKey, err = base64.StdEncoding.DecodeString(customerKeyString)
+		if err != nil {
+			return fmt.Errorf("Failed to decode sse_customer_key: %s", err.Error())
+		}
+	}
 
 	b.ddbTable = data.Get("dynamodb_table").(string)
 	if b.ddbTable == "" {
@@ -243,33 +322,48 @@ func (b *Backend) configure(ctx context.Context) error {
 		b.ddbTable = data.Get("lock_table").(string)
 	}
 
-	cfg := &terraformAWS.Config{
-		AccessKey:               data.Get("access_key").(string),
-		AssumeRoleARN:           data.Get("role_arn").(string),
-		AssumeRoleExternalID:    data.Get("external_id").(string),
-		AssumeRolePolicy:        data.Get("assume_role_policy").(string),
-		AssumeRoleSessionName:   data.Get("session_name").(string),
-		CredsFilename:           data.Get("shared_credentials_file").(string),
-		Profile:                 data.Get("profile").(string),
-		Region:                  data.Get("region").(string),
-		S3Endpoint:              data.Get("endpoint").(string),
-		SecretKey:               data.Get("secret_key").(string),
-		Token:                   data.Get("token").(string),
-		SkipCredsValidation:     data.Get("skip_credentials_validation").(bool),
-		SkipGetEC2Platforms:     data.Get("skip_get_ec2_platforms").(bool),
-		SkipRegionValidation:    data.Get("skip_region_validation").(bool),
-		SkipRequestingAccountId: data.Get("skip_requesting_account_id").(bool),
-		SkipMetadataApiCheck:    data.Get("skip_metadata_api_check").(bool),
-		S3ForcePathStyle:        data.Get("force_path_style").(bool),
+	cfg := &awsbase.Config{
+		AccessKey:             data.Get("access_key").(string),
+		AssumeRoleARN:         data.Get("role_arn").(string),
+		AssumeRoleExternalID:  data.Get("external_id").(string),
+		AssumeRolePolicy:      data.Get("assume_role_policy").(string),
+		AssumeRoleSessionName: data.Get("session_name").(string),
+		CredsFilename:         data.Get("shared_credentials_file").(string),
+		DebugLogging:          logging.IsDebugOrHigher(),
+		IamEndpoint:           data.Get("iam_endpoint").(string),
+		MaxRetries:            data.Get("max_retries").(int),
+		Profile:               data.Get("profile").(string),
+		Region:                data.Get("region").(string),
+		SecretKey:             data.Get("secret_key").(string),
+		SkipCredsValidation:   data.Get("skip_credentials_validation").(bool),
+		SkipMetadataApiCheck:  data.Get("skip_metadata_api_check").(bool),
+		StsEndpoint:           data.Get("sts_endpoint").(string),
+		Token:                 data.Get("token").(string),
+		UserAgentProducts: []*awsbase.UserAgentProduct{
+			{Name: "APN", Version: "1.0"},
+			{Name: "HashiCorp", Version: "1.0"},
+			{Name: "Terraform", Version: version.String()},
+		},
 	}
 
-	client, err := cfg.Client()
+	sess, err := awsbase.GetSession(cfg)
 	if err != nil {
 		return err
 	}
 
-	b.s3Client = client.(*terraformAWS.AWSClient).S3()
-	b.dynClient = client.(*terraformAWS.AWSClient).DynamoDB()
+	b.dynClient = dynamodb.New(sess.Copy(&aws.Config{
+		Endpoint: aws.String(data.Get("dynamodb_endpoint").(string)),
+	}))
+	b.s3Client = s3.New(sess.Copy(&aws.Config{
+		Endpoint:         aws.String(data.Get("endpoint").(string)),
+		S3ForcePathStyle: aws.Bool(data.Get("force_path_style").(bool)),
+	}))
 
 	return nil
 }
+
+const encryptionKeyConflictError = `Cannot have both kms_key_id and sse_customer_key set.
+
+The kms_key_id is used for encryption with KMS-Managed Keys (SSE-KMS)
+while sse_customer_key is used for encryption with customer-managed keys (SSE-C).
+Please choose one or the other.`

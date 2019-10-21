@@ -2,6 +2,7 @@ package http
 
 import (
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform/configs"
 	"github.com/zclconf/go-cty/cty"
@@ -51,6 +52,9 @@ func TestHTTPClientFactory(t *testing.T) {
 		"unlock_method":  cty.StringVal("BLOOP"),
 		"username":       cty.StringVal("user"),
 		"password":       cty.StringVal("pass"),
+		"retry_max":      cty.StringVal("999"),
+		"retry_wait_min": cty.StringVal("15"),
+		"retry_wait_max": cty.StringVal("150"),
 	}
 
 	b = backend.TestBackendConfig(t, New(), configs.SynthBody("synth", conf)).(*Backend)
@@ -73,5 +77,14 @@ func TestHTTPClientFactory(t *testing.T) {
 	if client.Username != "user" || client.Password != "pass" {
 		t.Fatalf("Unexpected username \"%s\" vs \"%s\" or password \"%s\" vs \"%s\"", client.Username, conf["username"],
 			client.Password, conf["password"])
+	}
+	if client.Client.RetryMax != 999 {
+		t.Fatalf("Expected retry_max \"%d\", got \"%d\"", 999, client.Client.RetryMax)
+	}
+	if client.Client.RetryWaitMin != 15*time.Second {
+		t.Fatalf("Expected retry_wait_min \"%s\", got \"%s\"", 15*time.Second, client.Client.RetryWaitMin)
+	}
+	if client.Client.RetryWaitMax != 150*time.Second {
+		t.Fatalf("Expected retry_wait_max \"%s\", got \"%s\"", 150*time.Second, client.Client.RetryWaitMax)
 	}
 }

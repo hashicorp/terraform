@@ -3,10 +3,8 @@ package openstack
 import (
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
-	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/volumeattach"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -28,29 +26,35 @@ func resourceComputeVolumeAttachV2() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"region": &schema.Schema{
+			"region": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
 
-			"instance_id": &schema.Schema{
+			"instance_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"volume_id": &schema.Schema{
+			"volume_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"device": &schema.Schema{
+			"device": {
 				Type:     schema.TypeString,
 				Computed: true,
 				Optional: true,
+			},
+
+			"multiattach": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
 			},
 		},
 	}
@@ -76,27 +80,29 @@ func resourceComputeVolumeAttachV2Create(d *schema.ResourceData, meta interface{
 		VolumeID: volumeId,
 	}
 
-	log.Printf("[DEBUG] Creating volume attachment: %#v", attachOpts)
+	log.Printf("[DEBUG] openstack_compute_volume_attach_v2 attach options %s: %#v", instanceId, attachOpts)
+
+	if v := d.Get("multiattach").(bool); v {
+		computeClient.Microversion = "2.60"
+	}
 
 	attachment, err := volumeattach.Create(computeClient, instanceId, attachOpts).Extract()
 	if err != nil {
-		return err
+		return fmt.Errorf("Error creating openstack_compute_volume_attach_v2 %s: %s", instanceId, err)
 	}
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"ATTACHING"},
 		Target:     []string{"ATTACHED"},
-		Refresh:    resourceComputeVolumeAttachV2AttachFunc(computeClient, instanceId, attachment.ID),
+		Refresh:    computeVolumeAttachV2AttachFunc(computeClient, instanceId, attachment.ID),
 		Timeout:    d.Timeout(schema.TimeoutCreate),
-		Delay:      30 * time.Second,
-		MinTimeout: 15 * time.Second,
+		Delay:      5 * time.Second,
+		MinTimeout: 3 * time.Second,
 	}
 
 	if _, err = stateConf.WaitForState(); err != nil {
-		return fmt.Errorf("Error attaching OpenStack volume: %s", err)
+		return fmt.Errorf("Error attaching openstack_compute_volume_attach_v2 %s: %s", instanceId, err)
 	}
-
-	log.Printf("[DEBUG] Created volume attachment: %#v", attachment)
 
 	// Use the instance ID and attachment ID as the resource ID.
 	// This is because an attachment cannot be retrieved just by its ID alone.
@@ -114,17 +120,17 @@ func resourceComputeVolumeAttachV2Read(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
 
-	instanceId, attachmentId, err := parseComputeVolumeAttachmentId(d.Id())
+	instanceId, attachmentId, err := computeVolumeAttachV2ParseID(d.Id())
 	if err != nil {
 		return err
 	}
 
 	attachment, err := volumeattach.Get(computeClient, instanceId, attachmentId).Extract()
 	if err != nil {
-		return CheckDeleted(d, err, "compute_volume_attach")
+		return CheckDeleted(d, err, "Error retrieving openstack_compute_volume_attach_v2")
 	}
 
-	log.Printf("[DEBUG] Retrieved volume attachment: %#v", attachment)
+	log.Printf("[DEBUG] Retrieved openstack_compute_volume_attach_v2 %s: %#v", d.Id(), attachment)
 
 	d.Set("instance_id", attachment.ServerID)
 	d.Set("volume_id", attachment.VolumeID)
@@ -141,7 +147,7 @@ func resourceComputeVolumeAttachV2Delete(d *schema.ResourceData, meta interface{
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
 
-	instanceId, attachmentId, err := parseComputeVolumeAttachmentId(d.Id())
+	instanceId, attachmentId, err := computeVolumeAttachV2ParseID(d.Id())
 	if err != nil {
 		return err
 	}
@@ -149,74 +155,15 @@ func resourceComputeVolumeAttachV2Delete(d *schema.ResourceData, meta interface{
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{""},
 		Target:     []string{"DETACHED"},
-		Refresh:    resourceComputeVolumeAttachV2DetachFunc(computeClient, instanceId, attachmentId),
+		Refresh:    computeVolumeAttachV2DetachFunc(computeClient, instanceId, attachmentId),
 		Timeout:    d.Timeout(schema.TimeoutDelete),
-		Delay:      15 * time.Second,
-		MinTimeout: 15 * time.Second,
+		Delay:      5 * time.Second,
+		MinTimeout: 3 * time.Second,
 	}
 
 	if _, err = stateConf.WaitForState(); err != nil {
-		return fmt.Errorf("Error detaching OpenStack volume: %s", err)
+		return CheckDeleted(d, err, "Error detaching openstack_compute_volume_attach_v2")
 	}
 
 	return nil
-}
-
-func resourceComputeVolumeAttachV2AttachFunc(
-	computeClient *gophercloud.ServiceClient, instanceId, attachmentId string) resource.StateRefreshFunc {
-	return func() (interface{}, string, error) {
-		va, err := volumeattach.Get(computeClient, instanceId, attachmentId).Extract()
-		if err != nil {
-			if _, ok := err.(gophercloud.ErrDefault404); ok {
-				return va, "ATTACHING", nil
-			}
-			return va, "", err
-		}
-
-		return va, "ATTACHED", nil
-	}
-}
-
-func resourceComputeVolumeAttachV2DetachFunc(
-	computeClient *gophercloud.ServiceClient, instanceId, attachmentId string) resource.StateRefreshFunc {
-	return func() (interface{}, string, error) {
-		log.Printf("[DEBUG] Attempting to detach OpenStack volume %s from instance %s",
-			attachmentId, instanceId)
-
-		va, err := volumeattach.Get(computeClient, instanceId, attachmentId).Extract()
-		if err != nil {
-			if _, ok := err.(gophercloud.ErrDefault404); ok {
-				return va, "DETACHED", nil
-			}
-			return va, "", err
-		}
-
-		err = volumeattach.Delete(computeClient, instanceId, attachmentId).ExtractErr()
-		if err != nil {
-			if _, ok := err.(gophercloud.ErrDefault404); ok {
-				return va, "DETACHED", nil
-			}
-
-			if _, ok := err.(gophercloud.ErrDefault400); ok {
-				return nil, "", nil
-			}
-
-			return nil, "", err
-		}
-
-		log.Printf("[DEBUG] OpenStack Volume Attachment (%s) is still active.", attachmentId)
-		return nil, "", nil
-	}
-}
-
-func parseComputeVolumeAttachmentId(id string) (string, string, error) {
-	idParts := strings.Split(id, "/")
-	if len(idParts) < 2 {
-		return "", "", fmt.Errorf("Unable to determine volume attachment ID")
-	}
-
-	instanceId := idParts[0]
-	attachmentId := idParts[1]
-
-	return instanceId, attachmentId, nil
 }

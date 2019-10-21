@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
@@ -32,7 +33,7 @@ func TestUIInput_input(t *testing.T) {
 		Id: "foo",
 	}
 
-	v, err := input.Input(opts)
+	v, err := input.Input(context.Background(), opts)
 	if !i.InputCalled {
 		t.Fatal("input should be called")
 	}

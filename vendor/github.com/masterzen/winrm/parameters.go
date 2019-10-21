@@ -1,5 +1,7 @@
 package winrm
 
+import "net"
+
 // Parameters struct defines
 // metadata information and http transport config
 type Parameters struct {
@@ -7,6 +9,7 @@ type Parameters struct {
 	Locale             string
 	EnvelopeSize       int
 	TransportDecorator func() Transporter
+	Dial               func(network, addr string) (net.Conn, error)
 }
 
 // DefaultParameters return constant config

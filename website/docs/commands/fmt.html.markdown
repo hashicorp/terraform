@@ -9,7 +9,18 @@ description: |-
 # Command: fmt
 
 The `terraform fmt` command is used to rewrite Terraform configuration files
-to a canonical format and style.
+to a canonical format and style. This command applies a subset of
+the [Terraform language style conventions](/docs/configuration/style.html),
+along with other minor adjustments for readability.
+
+Other Terraform commands that generate Terraform configuration will produce
+configuration files that conform to the style imposed by `terraform fmt`, so
+using this style in your own files will ensure consistency.
+
+The canonical format may change in minor ways between Terraform versions, so
+after upgrading Terraform we recommend to proactively run `terraform fmt`
+on your modules along with any other changes you are making to adopt the new
+version.
 
 ## Usage
 
@@ -22,9 +33,9 @@ input (STDIN).
 
 The command-line flags are all optional. The list of available flags are:
 
-* `-list=true` - List files whose formatting differs (disabled if using STDIN)
-* `-write=true` - Write result to source file instead of STDOUT (disabled if
-    using STDIN or -check)
-* `-diff=false` - Display diffs of formatting changes
-* `-check=false` - Check if the input is formatted. Exit status will be 0 if
+* `-list=false` - Don't list the files containing formatting inconsistencies.
+* `-write=false` - Don't overwrite the input files. (This is implied by `-check` or when the input is STDIN.)
+* `-diff` - Display diffs of formatting changes
+* `-check` - Check if the input is formatted. Exit status will be 0 if
     all input is properly formatted and non-zero otherwise.
+* `-recursive` - Also process files in subdirectories. By default, only the given directory (or current directory) is processed.

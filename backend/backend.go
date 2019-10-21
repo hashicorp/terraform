@@ -59,9 +59,10 @@ type Backend interface {
 	// be safely used before configuring.
 	ConfigSchema() *configschema.Block
 
-	// ValidateConfig checks the validity of the values in the given
-	// configuration, assuming that its structure has already been validated
-	// per the schema returned by ConfigSchema.
+	// PrepareConfig checks the validity of the values in the given
+	// configuration, and inserts any missing defaults, assuming that its
+	// structure has already been validated per the schema returned by
+	// ConfigSchema.
 	//
 	// This method does not have any side-effects for the backend and can
 	// be safely used before configuring. It also does not consult any
@@ -76,14 +77,14 @@ type Backend interface {
 	// as tfdiags.AttributeValue, and so the caller should provide the
 	// necessary context via the diags.InConfigBody method before returning
 	// diagnostics to the user.
-	ValidateConfig(cty.Value) tfdiags.Diagnostics
+	PrepareConfig(cty.Value) (cty.Value, tfdiags.Diagnostics)
 
 	// Configure uses the provided configuration to set configuration fields
 	// within the backend.
 	//
 	// The given configuration is assumed to have already been validated
 	// against the schema returned by ConfigSchema and passed validation
-	// via ValidateConfig.
+	// via PrepareConfig.
 	//
 	// This method may be called only once per backend instance, and must be
 	// called before all other methods except where otherwise stated.
@@ -194,6 +195,16 @@ type Operation struct {
 	Parallelism  int
 	Targets      []addrs.Targetable
 	Variables    map[string]UnparsedVariableValue
+
+	// Some operations use root module variables only opportunistically or
+	// don't need them at all. If this flag is set, the backend must treat
+	// all variables as optional and provide an unknown value for any required
+	// variables that aren't set in order to allow partial evaluation against
+	// the resulting incomplete context.
+	//
+	// This flag is honored only if PlanFile isn't set. If PlanFile is set then
+	// the variables set in the plan are used instead, and they must be valid.
+	AllowUnsetVariables bool
 
 	// Input/output/control options.
 	UIIn  terraform.UIInput

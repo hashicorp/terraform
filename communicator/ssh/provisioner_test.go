@@ -14,6 +14,7 @@ func TestProvisioner_connInfo(t *testing.T) {
 				"user":        "root",
 				"password":    "supersecret",
 				"private_key": "someprivatekeycontents",
+				"certificate": "somecertificate",
 				"host":        "127.0.0.1",
 				"port":        "22",
 				"timeout":     "30s",
@@ -35,6 +36,9 @@ func TestProvisioner_connInfo(t *testing.T) {
 		t.Fatalf("bad: %v", conf)
 	}
 	if conf.PrivateKey != "someprivatekeycontents" {
+		t.Fatalf("bad: %v", conf)
+	}
+	if conf.Certificate != "somecertificate" {
 		t.Fatalf("bad: %v", conf)
 	}
 	if conf.Host != "127.0.0.1" {
@@ -74,6 +78,7 @@ func TestProvisioner_connInfoIpv6(t *testing.T) {
 				"user":        "root",
 				"password":    "supersecret",
 				"private_key": "someprivatekeycontents",
+				"certificate": "somecertificate",
 				"host":        "::1",
 				"port":        "22",
 				"timeout":     "30s",
@@ -101,14 +106,13 @@ func TestProvisioner_connInfoHostname(t *testing.T) {
 	r := &terraform.InstanceState{
 		Ephemeral: terraform.EphemeralState{
 			ConnInfo: map[string]string{
-				"type":        "ssh",
-				"user":        "root",
-				"password":    "supersecret",
-				"private_key": "someprivatekeycontents",
-				"host":        "example.com",
-				"port":        "22",
-				"timeout":     "30s",
-
+				"type":         "ssh",
+				"user":         "root",
+				"password":     "supersecret",
+				"private_key":  "someprivatekeycontents",
+				"host":         "example.com",
+				"port":         "22",
+				"timeout":      "30s",
 				"bastion_host": "example.com",
 			},
 		},

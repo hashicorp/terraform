@@ -4,6 +4,21 @@ package terraform
 
 import "strconv"
 
+func _() {
+	// An "invalid array index" compiler error signifies that the constant values have changed.
+	// Re-run the stringer command to generate them again.
+	var x [1]struct{}
+	_ = x[ValueFromUnknown-0]
+	_ = x[ValueFromConfig-67]
+	_ = x[ValueFromAutoFile-70]
+	_ = x[ValueFromNamedFile-78]
+	_ = x[ValueFromCLIArg-65]
+	_ = x[ValueFromEnvVar-69]
+	_ = x[ValueFromInput-73]
+	_ = x[ValueFromPlan-80]
+	_ = x[ValueFromCaller-83]
+}
+
 const (
 	_ValueSourceType_name_0 = "ValueFromUnknown"
 	_ValueSourceType_name_1 = "ValueFromCLIArg"

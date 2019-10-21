@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // NodeApplyableResourceInstance represents a resource instance that is
@@ -100,25 +101,39 @@ func (n *NodeApplyableResourceInstance) References() []*addrs.Reference {
 func (n *NodeApplyableResourceInstance) EvalTree() EvalNode {
 	addr := n.ResourceInstanceAddr()
 
-	// State still uses legacy-style internal ids, so we need to shim to get
-	// a suitable key to use.
-	stateId := NewLegacyResourceInstanceAddress(addr).stateId()
-
-	// Determine the dependencies for the state.
-	stateDeps := n.StateReferences()
+	if n.Config == nil {
+		// This should not be possible, but we've got here in at least one
+		// case as discussed in the following issue:
+		//    https://github.com/hashicorp/terraform/issues/21258
+		// To avoid an outright crash here, we'll instead return an explicit
+		// error.
+		var diags tfdiags.Diagnostics
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Resource node has no configuration attached",
+			fmt.Sprintf(
+				"The graph node for %s has no configuration attached to it. This suggests a bug in Terraform's apply graph builder; please report it!",
+				addr,
+			),
+		))
+		err := diags.Err()
+		return &EvalReturnError{
+			Error: &err,
+		}
+	}
 
 	// Eval info is different depending on what kind of resource this is
 	switch n.Config.Mode {
 	case addrs.ManagedResourceMode:
-		return n.evalTreeManagedResource(addr, stateId, stateDeps)
+		return n.evalTreeManagedResource(addr)
 	case addrs.DataResourceMode:
-		return n.evalTreeDataResource(addr, stateId, stateDeps)
+		return n.evalTreeDataResource(addr)
 	default:
 		panic(fmt.Errorf("unsupported resource mode %s", n.Config.Mode))
 	}
 }
 
-func (n *NodeApplyableResourceInstance) evalTreeDataResource(addr addrs.AbsResourceInstance, stateId string, stateDeps []addrs.Referenceable) EvalNode {
+func (n *NodeApplyableResourceInstance) evalTreeDataResource(addr addrs.AbsResourceInstance) EvalNode {
 	var provider providers.Interface
 	var providerSchema *ProviderSchema
 	var change *plans.ResourceInstanceChange
@@ -184,7 +199,7 @@ func (n *NodeApplyableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 	}
 }
 
-func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsResourceInstance, stateId string, stateDeps []addrs.Referenceable) EvalNode {
+func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsResourceInstance) EvalNode {
 	// Declare a bunch of variables that are used for state during
 	// evaluation. Most of this are written to by-address below.
 	var provider providers.Interface

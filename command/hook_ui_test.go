@@ -188,7 +188,7 @@ func TestUiHookPostApply_emptyState(t *testing.T) {
 		t.Fatalf("Expected hook to continue, given: %#v", action)
 	}
 
-	expectedRegexp := "^data.google_compute_zones.available: Destruction complete after -?[a-z0-9.]+\n$"
+	expectedRegexp := "^data.google_compute_zones.available: Destruction complete after -?[a-z0-9µ.]+\n$"
 	output := ui.OutputWriter.String()
 	if matched, _ := regexp.MatchString(expectedRegexp, output); !matched {
 		t.Fatalf("Output didn't match regexp.\nExpected: %q\nGiven: %q", expectedRegexp, output)
@@ -250,6 +250,51 @@ func TestTruncateId(t *testing.T) {
 		{
 			Input:    "Hello world",
 			Expected: "Hello world",
+			MaxLen:   12,
+		},
+		{
+			Input:    "あいうえおかきくけこさ",
+			Expected: "あ...さ",
+			MaxLen:   3,
+		},
+		{
+			Input:    "あいうえおかきくけこさ",
+			Expected: "あ...さ",
+			MaxLen:   5,
+		},
+		{
+			Input:    "あいうえおかきくけこさ",
+			Expected: "あい...さ",
+			MaxLen:   6,
+		},
+		{
+			Input:    "あいうえおかきくけこさ",
+			Expected: "あい...こさ",
+			MaxLen:   7,
+		},
+		{
+			Input:    "あいうえおかきくけこさ",
+			Expected: "あいう...こさ",
+			MaxLen:   8,
+		},
+		{
+			Input:    "あいうえおかきくけこさ",
+			Expected: "あいう...けこさ",
+			MaxLen:   9,
+		},
+		{
+			Input:    "あいうえおかきくけこさ",
+			Expected: "あいうえ...けこさ",
+			MaxLen:   10,
+		},
+		{
+			Input:    "あいうえおかきくけこさ",
+			Expected: "あいうえおかきくけこさ",
+			MaxLen:   11,
+		},
+		{
+			Input:    "あいうえおかきくけこさ",
+			Expected: "あいうえおかきくけこさ",
 			MaxLen:   12,
 		},
 	}

@@ -4,6 +4,16 @@ package configs
 
 import "strconv"
 
+func _() {
+	// An "invalid array index" compiler error signifies that the constant values have changed.
+	// Re-run the stringer command to generate them again.
+	var x [1]struct{}
+	_ = x[TypeHintNone-0]
+	_ = x[TypeHintString-83]
+	_ = x[TypeHintList-76]
+	_ = x[TypeHintMap-77]
+}
+
 const (
 	_VariableTypeHint_name_0 = "TypeHintNone"
 	_VariableTypeHint_name_1 = "TypeHintListTypeHintMap"

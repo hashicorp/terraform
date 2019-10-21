@@ -22,6 +22,11 @@ const ErrorNoSuitableVersion = Error("no suitable version is available")
 // version of Terraform.
 const ErrorNoVersionCompatible = Error("no available version is compatible with this version of Terraform")
 
+// ErrorVersionIncompatible indicates that all of the versions within the
+// constraints are not compatible with the current version of Terrafrom, though
+// there does exist a version outside of the constaints that is compatible.
+const ErrorVersionIncompatible = Error("incompatible provider version")
+
 // ErrorNoSuchProvider indicates that no provider exists with a name given
 const ErrorNoSuchProvider = Error("no provider exists with the given name")
 
@@ -29,6 +34,30 @@ const ErrorNoSuchProvider = Error("no provider exists with the given name")
 // versions that otherwise met constraints are not compatible with the
 // requested platform
 const ErrorNoVersionCompatibleWithPlatform = Error("no available version is compatible for the requested platform")
+
+// ErrorMissingChecksumVerification indicates that either the provider
+// distribution is missing the SHA256SUMS file or the checksum file does
+// not contain a checksum for the binary plugin
+const ErrorMissingChecksumVerification = Error("unable to verify checksum")
+
+// ErrorChecksumVerification indicates that the current checksum of the
+// provider plugin has changed since the initial release and is not trusted
+// to download
+const ErrorChecksumVerification = Error("unexpected plugin checksum")
+
+// ErrorSignatureVerification indicates that the digital signature for a
+// provider distribution could not be verified for one of the following
+// reasons: missing signature file, missing public key, or the signature
+// was not signed by any known key for the publisher
+const ErrorSignatureVerification = Error("unable to verify signature")
+
+// ErrorServiceUnreachable indicates that the network was unable to connect
+// to the registry service
+const ErrorServiceUnreachable = Error("registry service is unreachable")
+
+// ErrorPublicRegistryUnreachable indicates that the network was unable to connect
+// to the public registry in particular, so we can show a link to the statuspage
+const ErrorPublicRegistryUnreachable = Error("registry service is unreachable, check https://status.hashicorp.com/ for status updates")
 
 func (err Error) Error() string {
 	return string(err)

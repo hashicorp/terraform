@@ -4,6 +4,8 @@ import (
 	"github.com/hashicorp/hcl2/hcl/hclsyntax"
 )
 
+var inKeyword = hclsyntax.Keyword([]byte{'i', 'n'})
+
 // placeholder token used when we don't have a token but we don't want
 // to pass a real "nil" and complicate things with nil pointer checks
 var nilToken = &Token{
@@ -53,13 +55,11 @@ func formatIndent(lines []formatLine) {
 	indents := make([]int, 0, 10)
 
 	for i := range lines {
-		// TODO: need to track when we're inside a multi-line template and
-		// suspend indentation processing.
-
 		line := &lines[i]
 		if len(line.lead) == 0 {
 			continue
 		}
+
 		if line.lead[0].Type == hclsyntax.TokenNewline {
 			// Never place spaces before a newline
 			line.lead[0].SpacesBefore = 0
@@ -69,7 +69,11 @@ func formatIndent(lines []formatLine) {
 		netBrackets := 0
 		for _, token := range line.lead {
 			netBrackets += tokenBracketChange(token)
+			if token.Type == hclsyntax.TokenOHeredoc {
+				break
+			}
 		}
+
 		for _, token := range line.assign {
 			netBrackets += tokenBracketChange(token)
 		}
@@ -235,8 +239,8 @@ func spaceAfterToken(subject, before, after *Token) bool {
 		// Don't use spaces around attribute access dots
 		return false
 
-	case after.Type == hclsyntax.TokenComma:
-		// No space right before a comma in an argument list
+	case after.Type == hclsyntax.TokenComma || after.Type == hclsyntax.TokenEllipsis:
+		// No space right before a comma or ... in an argument list
 		return false
 
 	case subject.Type == hclsyntax.TokenComma:
@@ -246,6 +250,15 @@ func spaceAfterToken(subject, before, after *Token) bool {
 	case subject.Type == hclsyntax.TokenQuotedLit || subject.Type == hclsyntax.TokenStringLit || subject.Type == hclsyntax.TokenOQuote || subject.Type == hclsyntax.TokenOHeredoc || after.Type == hclsyntax.TokenQuotedLit || after.Type == hclsyntax.TokenStringLit || after.Type == hclsyntax.TokenCQuote || after.Type == hclsyntax.TokenCHeredoc:
 		// No extra spaces within templates
 		return false
+
+	case inKeyword.TokenMatches(subject.asHCLSyntax()) && before.Type == hclsyntax.TokenIdent:
+		// This is a special case for inside for expressions where a user
+		// might want to use a literal tuple constructor:
+		// [for x in [foo]: x]
+		// ... in that case, we would normally produce in[foo] thinking that
+		// in is a reference, but we'll recognize it as a keyword here instead
+		// to make the result less confusing.
+		return true
 
 	case after.Type == hclsyntax.TokenOBrack && (subject.Type == hclsyntax.TokenIdent || subject.Type == hclsyntax.TokenNumberLit || tokenBracketChange(subject) < 0):
 		return false
@@ -282,6 +295,30 @@ func spaceAfterToken(subject, before, after *Token) bool {
 		default:
 			return true
 		}
+
+	case subject.Type == hclsyntax.TokenOBrace || after.Type == hclsyntax.TokenCBrace:
+		// Unlike other bracket types, braces have spaces on both sides of them,
+		// both in single-line nested blocks foo { bar = baz } and in object
+		// constructor expressions foo = { bar = baz }.
+		if subject.Type == hclsyntax.TokenOBrace && after.Type == hclsyntax.TokenCBrace {
+			// An open brace followed by a close brace is an exception, however.
+			// e.g. foo {} rather than foo { }
+			return false
+		}
+		return true
+
+	// In the unlikely event that an interpolation expression is just
+	// a single object constructor, we'll put a space between the ${ and
+	// the following { to make this more obvious, and then the same
+	// thing for the two braces at the end.
+	case (subject.Type == hclsyntax.TokenTemplateInterp || subject.Type == hclsyntax.TokenTemplateControl) && after.Type == hclsyntax.TokenOBrace:
+		return true
+	case subject.Type == hclsyntax.TokenCBrace && after.Type == hclsyntax.TokenTemplateSeqEnd:
+		return true
+
+	// Don't add spaces between interpolated items
+	case subject.Type == hclsyntax.TokenTemplateSeqEnd && (after.Type == hclsyntax.TokenTemplateInterp || after.Type == hclsyntax.TokenTemplateControl):
+		return false
 
 	case tokenBracketChange(subject) > 0:
 		// No spaces after open brackets
@@ -347,6 +384,7 @@ func linesForFormat(tokens Tokens) []formatLine {
 	// to shuffle off into the "comment" and "assign" cells.
 	for i := range lines {
 		line := &lines[i]
+
 		if len(line.lead) == 0 {
 			// if the line is empty then there's nothing for us to do
 			// (this should happen only for the final line, because all other

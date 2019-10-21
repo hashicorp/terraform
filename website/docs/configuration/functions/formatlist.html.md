@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "formatlist function"
+page_title: "formatlist - Functions - Configuration Language"
 sidebar_current: "docs-funcs-string-formatlist"
 description: |-
   The formatlist function produces a list of strings by formatting a number of
@@ -8,6 +8,10 @@ description: |-
 ---
 
 # `formatlist` Function
+
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
 
 `formatlist` produces a list of strings by formatting a number of other
 values according to a specification string.

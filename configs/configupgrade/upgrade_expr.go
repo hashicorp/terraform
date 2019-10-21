@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	hcl2 "github.com/hashicorp/hcl2/hcl"
-	hcl2syntax "github.com/hashicorp/hcl2/hcl/hclsyntax"
+	hcl2 "github.com/hashicorp/hcl/v2"
+	hcl2syntax "github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 
 	hcl1ast "github.com/hashicorp/hcl/hcl/ast"
@@ -55,6 +55,7 @@ Value:
 					Detail:   fmt.Sprintf("Interpolation parsing failed: %s", err),
 					Subject:  hcl1PosRange(filename, tv.Pos).Ptr(),
 				})
+				return nil, diags
 			}
 
 			interpSrc, interpDiags := upgradeExpr(hilNode, filename, interp, an)
@@ -62,8 +63,82 @@ Value:
 			diags = diags.Append(interpDiags)
 
 		case hcl1token.HEREDOC:
-			// TODO: Implement
-			panic("HEREDOC not supported yet")
+			// HCL1's "Value" method for tokens pulls out the body and removes
+			// any indents in the source for a flush heredoc, which throws away
+			// information we need to upgrade. Therefore we're going to
+			// re-implement a subset of that logic here where we want to retain
+			// the whitespace verbatim even in flush mode.
+
+			firstNewlineIdx := strings.IndexByte(tv.Text, '\n')
+			if firstNewlineIdx < 0 {
+				// Should never happen, because tv.Value would already have
+				// panicked above in this case.
+				panic("heredoc doesn't contain newline")
+			}
+			introducer := tv.Text[:firstNewlineIdx+1]
+			marker := introducer[2:] // trim off << prefix
+			if marker[0] == '-' {
+				marker = marker[1:] // also trim of - prefix for flush heredoc
+			}
+			body := tv.Text[len(introducer) : len(tv.Text)-len(marker)]
+			flush := introducer[2] == '-'
+			if flush {
+				// HCL1 treats flush heredocs differently, trimming off any
+				// spare whitespace that might appear after the trailing
+				// newline, and so we must replicate that here to avoid
+				// introducing additional whitespace in the output.
+				body = strings.TrimRight(body, " \t")
+			}
+
+			// Now we have:
+			//  - introducer is the first line, like "<<-FOO\n"
+			//  - marker is the end marker, like "FOO\n"
+			//  - body is the raw data between the introducer and the marker,
+			//    which we need to do recursive upgrading for.
+
+			buf.WriteString(introducer)
+			if !interp {
+				// Easy case: escape all interpolation-looking sequences.
+				printHeredocLiteralFromHILOutput(&buf, body)
+			} else {
+				hilNode, err := hil.Parse(body)
+				if err != nil {
+					diags = diags.Append(&hcl2.Diagnostic{
+						Severity: hcl2.DiagError,
+						Summary:  "Invalid interpolated string",
+						Detail:   fmt.Sprintf("Interpolation parsing failed: %s", err),
+						Subject:  hcl1PosRange(filename, tv.Pos).Ptr(),
+					})
+				}
+				if hilNode != nil {
+					if _, ok := hilNode.(*hilast.Output); !ok {
+						// hil.Parse usually produces an output, but it can sometimes
+						// produce an isolated expression if the input is entirely
+						// a single interpolation.
+						if hilNode != nil {
+							hilNode = &hilast.Output{
+								Exprs: []hilast.Node{hilNode},
+								Posx:  hilNode.Pos(),
+							}
+						}
+					}
+					interpDiags := upgradeHeredocBody(&buf, hilNode.(*hilast.Output), filename, an)
+					diags = diags.Append(interpDiags)
+				}
+			}
+			if !strings.HasSuffix(body, "\n") {
+				// The versions of HCL1 vendored into Terraform <=0.11
+				// incorrectly allowed the end marker to appear at the end of
+				// the final line of the body, rather than on a line of its own.
+				// That is no longer valid in HCL2, so we need to fix it up.
+				buf.WriteByte('\n')
+			}
+			// NOTE: Marker intentionally contains an extra newline here because
+			// we need to ensure that any follow-on expression bits end up on
+			// a separate line, or else the HCL2 parser won't be able to
+			// recognize the heredoc marker. This causes an extra empty line
+			// in some cases, which we accept for simplicity's sake.
+			buf.WriteString(marker)
 
 		case hcl1token.BOOL:
 			if litVal.(bool) {
@@ -72,8 +147,17 @@ Value:
 				buf.WriteString("false")
 			}
 
+		case hcl1token.NUMBER:
+			num := tv.Value()
+			buf.WriteString(strconv.FormatInt(num.(int64), 10))
+
+		case hcl1token.FLOAT:
+			num := tv.Value()
+			buf.WriteString(strconv.FormatFloat(num.(float64), 'f', -1, 64))
+
 		default:
-			// For everything else (NUMBER, FLOAT) we'll just pass through the given bytes verbatim.
+			// For everything else we'll just pass through the given bytes verbatim,
+			// but we should't get here because the above is intended to be exhaustive.
 			buf.WriteString(tv.Text)
 
 		}
@@ -88,15 +172,26 @@ Value:
 			src, moreDiags := upgradeExpr(node, filename, interp, an)
 			diags = diags.Append(moreDiags)
 			buf.Write(src)
-			if multiline {
-				buf.WriteString(",\n")
-			} else if i < len(tv.List)-1 {
-				buf.WriteString(", ")
+			if lit, ok := node.(*hcl1ast.LiteralType); ok && lit.LineComment != nil {
+				for _, comment := range lit.LineComment.List {
+					buf.WriteString(", " + comment.Text)
+					buf.WriteString("\n")
+				}
+			} else {
+				if multiline {
+					buf.WriteString(",\n")
+				} else if i < len(tv.List)-1 {
+					buf.WriteString(", ")
+				}
 			}
 		}
 		buf.WriteString("]")
 
 	case *hcl1ast.ObjectType:
+		if len(tv.List.Items) == 0 {
+			buf.WriteString("{}")
+			break
+		}
 		buf.WriteString("{\n")
 		for _, item := range tv.List.Items {
 			if len(item.Keys) != 1 {
@@ -112,9 +207,22 @@ Value:
 			diags = diags.Append(moreDiags)
 			valueSrc, moreDiags := upgradeExpr(item.Val, filename, interp, an)
 			diags = diags.Append(moreDiags)
+			if item.LeadComment != nil {
+				for _, c := range item.LeadComment.List {
+					buf.WriteString(c.Text)
+					buf.WriteByte('\n')
+				}
+			}
+
 			buf.Write(keySrc)
 			buf.WriteString(" = ")
 			buf.Write(valueSrc)
+			if item.LineComment != nil {
+				for _, c := range item.LineComment.List {
+					buf.WriteByte(' ')
+					buf.WriteString(c.Text)
+				}
+			}
 			buf.WriteString("\n")
 		}
 		buf.WriteString("}")
@@ -137,7 +245,7 @@ Value:
 		case int:
 			buf.WriteString(strconv.Itoa(tl))
 		case float64:
-			buf.WriteString(strconv.FormatFloat(tl, 'f', 64, 64))
+			buf.WriteString(strconv.FormatFloat(tl, 'f', -1, 64))
 		case bool:
 			if tl {
 				buf.WriteString("true")
@@ -154,43 +262,21 @@ Value:
 		// here so we can normalize and introduce some newer syntax where it's
 		// safe to do so.
 		parts := strings.Split(tv.Name, ".")
-		parts = upgradeTraversalParts(parts, an) // might add/remove/change parts
-		first, remain := parts[0], parts[1:]
-		buf.WriteString(first)
-		seenSplat := false
-		for _, part := range remain {
-			if part == "*" {
-				seenSplat = true
-				buf.WriteString(".*")
-				continue
-			}
 
-			// Other special cases apply only if we've not previously
-			// seen a splat expression marker, since attribute vs. index
-			// syntax have different interpretations after a simple splat.
-			if !seenSplat {
-				if v, err := strconv.Atoi(part); err == nil {
-					// Looks like it's old-style index traversal syntax foo.0.bar
-					// so we'll replace with canonical index syntax foo[0].bar.
-					fmt.Fprintf(&buf, "[%d]", v)
-					continue
-				}
-				if !hcl2syntax.ValidIdentifier(part) {
-					// This should be rare since HIL's identifier syntax is _close_
-					// to HCL2's, but we'll get here if one of the intervening
-					// parts is not a valid identifier in isolation, since HIL
-					// did not consider these to be separate identifiers.
-					// e.g. foo.1bar would be invalid in HCL2; must instead be foo["1bar"].
-					buf.WriteByte('[')
-					printQuotedString(&buf, part)
-					buf.WriteByte(']')
-					continue
-				}
-			}
-
-			buf.WriteByte('.')
-			buf.WriteString(part)
+		transformed := transformCountPseudoAttribute(&buf, parts, an)
+		if transformed {
+			break Value
 		}
+
+		parts = upgradeTraversalParts(parts, an) // might add/remove/change parts
+
+		vDiags := validateHilAddress(tv.Name, filename)
+		if len(vDiags) > 0 {
+			diags = diags.Append(vDiags)
+			break
+		}
+
+		printHilTraversalPartsAsHcl2(&buf, parts)
 
 	case *hilast.Arithmetic:
 		op, exists := hilArithmeticOpSyms[tv.Op]
@@ -220,6 +306,36 @@ Value:
 	case *hilast.Call:
 		name := tv.Func
 		args := tv.Args
+
+		// Some adaptations must happen prior to upgrading the arguments,
+		// because they depend on the original argument AST nodes.
+		switch name {
+		case "base64sha256", "base64sha512", "md5", "sha1", "sha256", "sha512":
+			// These functions were sometimes used in conjunction with the
+			// file() function to take the hash of the contents of a file.
+			// Prior to Terraform 0.11 there was a chance of silent corruption
+			// of strings containing non-UTF8 byte sequences, and so we have
+			// made it illegal to use file() with non-text files in 0.12 even
+			// though in this _particular_ situation (passing the function
+			// result directly to another function) there would not be any
+			// corruption; the general rule keeps things consistent.
+			// However, to still meet those use-cases we now have variants of
+			// the hashing functions that have a "file" prefix on their names
+			// and read the contents of a given file, rather than hashing
+			// directly the given string.
+			if len(args) > 0 {
+				if subCall, ok := args[0].(*hilast.Call); ok && subCall.Func == "file" {
+					// We're going to flatten this down into a single call, so
+					// we actually want the arguments of the sub-call here.
+					name = "file" + name
+					args = subCall.Args
+
+					// For this one, we'll fall through to the normal upgrade
+					// handling now that we've fixed up the name and args...
+				}
+			}
+
+		}
 
 		argExprs := make([][]byte, len(args))
 		multiline := false
@@ -298,6 +414,66 @@ Value:
 				buf.WriteByte(']')
 				break Value
 			}
+		case "element":
+			// We cannot replace element with index syntax safely in general
+			// because users may be relying on its special modulo wraparound
+			// behavior that the index syntax doesn't do. However, if it seems
+			// like the user is trying to use element with a set, we'll insert
+			// an explicit conversion to list to mimic the implicit conversion
+			// that we used to do as an unintended side-effect of how functions
+			// work in HIL.
+			if len(argExprs) > 0 {
+				argTy := an.InferExpressionType(argExprs[0], nil)
+				if argTy.IsSetType() {
+					newExpr := []byte(`tolist(`)
+					newExpr = append(newExpr, argExprs[0]...)
+					newExpr = append(newExpr, ')')
+					argExprs[0] = newExpr
+				}
+			}
+
+			// HIL used some undocumented special functions to implement certain
+			// operations, but since those were actually callable in real expressions
+			// some users inevitably depended on them, so we'll fix them up here.
+			// These each become two function calls to preserve the old behavior
+			// of implicitly converting to the source type first. Usage of these
+			// is relatively rare, so the result doesn't need to be too pretty.
+		case "__builtin_BoolToString":
+			buf.WriteString("tostring(tobool(")
+			buf.Write(argExprs[0])
+			buf.WriteString("))")
+			break Value
+		case "__builtin_FloatToString":
+			buf.WriteString("tostring(tonumber(")
+			buf.Write(argExprs[0])
+			buf.WriteString("))")
+			break Value
+		case "__builtin_IntToString":
+			buf.WriteString("tostring(floor(")
+			buf.Write(argExprs[0])
+			buf.WriteString("))")
+			break Value
+		case "__builtin_StringToInt":
+			buf.WriteString("floor(tostring(")
+			buf.Write(argExprs[0])
+			buf.WriteString("))")
+			break Value
+		case "__builtin_StringToFloat":
+			buf.WriteString("tonumber(tostring(")
+			buf.Write(argExprs[0])
+			buf.WriteString("))")
+			break Value
+		case "__builtin_StringToBool":
+			buf.WriteString("tobool(tostring(")
+			buf.Write(argExprs[0])
+			buf.WriteString("))")
+			break Value
+		case "__builtin_FloatToInt", "__builtin_IntToFloat":
+			// Since "floor" already has an implicit conversion of its argument
+			// to number, and the result is a whole number in either case,
+			// these ones are easier. (We no longer distinguish int and float
+			// as types in HCL2, even though HIL did.)
+			name = "floor"
 		}
 
 		buf.WriteString(name)
@@ -332,14 +508,74 @@ Value:
 		buf.Write(falseSrc)
 
 	case *hilast.Index:
-		targetSrc, exprDiags := upgradeExpr(tv.Target, filename, true, an)
-		diags = diags.Append(exprDiags)
+		target, ok := tv.Target.(*hilast.VariableAccess)
+		if !ok {
+			panic(fmt.Sprintf("Index node with unsupported target type (%T)", tv.Target))
+		}
+		parts := strings.Split(target.Name, ".")
+
 		keySrc, exprDiags := upgradeExpr(tv.Key, filename, true, an)
 		diags = diags.Append(exprDiags)
-		buf.Write(targetSrc)
-		buf.WriteString("[")
-		buf.Write(keySrc)
-		buf.WriteString("]")
+
+		transformed := transformCountPseudoAttribute(&buf, parts, an)
+		if transformed {
+			break Value
+		}
+
+		parts = upgradeTraversalParts(parts, an) // might add/remove/change parts
+
+		vDiags := validateHilAddress(target.Name, filename)
+		if len(vDiags) > 0 {
+			diags = diags.Append(vDiags)
+			break
+		}
+
+		first, remain := parts[0], parts[1:]
+
+		var rAddr addrs.Resource
+		switch parts[0] {
+		case "data":
+			if len(parts) == 5 && parts[3] == "*" {
+				rAddr.Mode = addrs.DataResourceMode
+				rAddr.Type = parts[1]
+				rAddr.Name = parts[2]
+			}
+		default:
+			if len(parts) == 4 && parts[2] == "*" {
+				rAddr.Mode = addrs.ManagedResourceMode
+				rAddr.Type = parts[0]
+				rAddr.Name = parts[1]
+			}
+		}
+
+		// We need to check if the thing being referenced has count
+		// to retain backward compatibility
+		hasCount := false
+		if v, exists := an.ResourceHasCount[rAddr]; exists {
+			hasCount = v
+		}
+
+		hasSplat := false
+
+		buf.WriteString(first)
+		for _, part := range remain {
+			// Attempt to convert old-style splat indexing to new one
+			// e.g. res.label.*.attr[idx] to res.label[idx].attr
+			if part == "*" && hasCount {
+				hasSplat = true
+				buf.WriteString(fmt.Sprintf("[%s]", keySrc))
+				continue
+			}
+
+			buf.WriteByte('.')
+			buf.WriteString(part)
+		}
+
+		if !hasSplat {
+			buf.WriteString("[")
+			buf.Write(keySrc)
+			buf.WriteString("]")
+		}
 
 	case *hilast.Output:
 		if len(tv.Exprs) == 1 {
@@ -393,9 +629,154 @@ Value:
 	return buf.Bytes(), diags
 }
 
+func validateHilAddress(address, filename string) tfdiags.Diagnostics {
+	parts := strings.Split(address, ".")
+	var diags tfdiags.Diagnostics
+
+	label, ok := getResourceLabel(parts)
+	if ok && !hcl2syntax.ValidIdentifier(label) {
+		// We can't get any useful source location out of HIL unfortunately
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			fmt.Sprintf("Invalid address (%s) in ./%s", address, filename),
+			// The label could be invalid for another reason
+			// but this is the most likely, so we add it as hint
+			"Names of objects (resources, modules, etc) may no longer start with digits."))
+	}
+
+	return diags
+}
+
+func getResourceLabel(parts []string) (string, bool) {
+	if len(parts) < 1 {
+		return "", false
+	}
+
+	if parts[0] == "data" {
+		if len(parts) < 3 {
+			return "", false
+		}
+		return parts[2], true
+	}
+
+	if len(parts) < 2 {
+		return "", false
+	}
+
+	return parts[1], true
+}
+
+// transformCountPseudoAttribute deals with the .count pseudo-attributes
+// that 0.11 and prior allowed for resources. These no longer exist,
+// because they don't do anything we can't do with the length(...) function.
+func transformCountPseudoAttribute(buf *bytes.Buffer, parts []string, an *analysis) (transformed bool) {
+	if len(parts) > 0 {
+		var rAddr addrs.Resource
+		switch parts[0] {
+		case "data":
+			if len(parts) == 4 && parts[3] == "count" {
+				rAddr.Mode = addrs.DataResourceMode
+				rAddr.Type = parts[1]
+				rAddr.Name = parts[2]
+			}
+		default:
+			if len(parts) == 3 && parts[2] == "count" {
+				rAddr.Mode = addrs.ManagedResourceMode
+				rAddr.Type = parts[0]
+				rAddr.Name = parts[1]
+			}
+		}
+		// We need to check if the thing being referenced is actually an
+		// existing resource, because other three-part traversals might
+		// coincidentally end with "count".
+		if hasCount, exists := an.ResourceHasCount[rAddr]; exists {
+			if hasCount {
+				buf.WriteString("length(")
+				buf.WriteString(rAddr.String())
+				buf.WriteString(")")
+			} else {
+				// If the resource does not have count, the .count
+				// attr would've always returned 1 before.
+				buf.WriteString("1")
+			}
+			transformed = true
+			return
+		}
+	}
+	return
+}
+
+func printHilTraversalPartsAsHcl2(buf *bytes.Buffer, parts []string) {
+	first, remain := parts[0], parts[1:]
+	buf.WriteString(first)
+	seenSplat := false
+	for _, part := range remain {
+		if part == "*" {
+			seenSplat = true
+			buf.WriteString(".*")
+			continue
+		}
+
+		// Other special cases apply only if we've not previously
+		// seen a splat expression marker, since attribute vs. index
+		// syntax have different interpretations after a simple splat.
+		if !seenSplat {
+			if v, err := strconv.Atoi(part); err == nil {
+				// Looks like it's old-style index traversal syntax foo.0.bar
+				// so we'll replace with canonical index syntax foo[0].bar.
+				fmt.Fprintf(buf, "[%d]", v)
+				continue
+			}
+			if !hcl2syntax.ValidIdentifier(part) {
+				// This should be rare since HIL's identifier syntax is _close_
+				// to HCL2's, but we'll get here if one of the intervening
+				// parts is not a valid identifier in isolation, since HIL
+				// did not consider these to be separate identifiers.
+				// e.g. foo.1bar would be invalid in HCL2; must instead be foo["1bar"].
+				buf.WriteByte('[')
+				printQuotedString(buf, part)
+				buf.WriteByte(']')
+				continue
+			}
+		}
+
+		buf.WriteByte('.')
+		buf.WriteString(part)
+	}
+}
+
+func upgradeHeredocBody(buf *bytes.Buffer, val *hilast.Output, filename string, an *analysis) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	for _, item := range val.Exprs {
+		if lit, ok := item.(*hilast.LiteralNode); ok {
+			if litStr, ok := lit.Value.(string); ok {
+				printHeredocLiteralFromHILOutput(buf, litStr)
+				continue
+			}
+		}
+		interped, interpDiags := upgradeExpr(item, filename, true, an)
+		diags = diags.Append(interpDiags)
+
+		buf.WriteString("${")
+		buf.Write(interped)
+		buf.WriteString("}")
+	}
+
+	return diags
+}
+
 func upgradeTraversalExpr(val interface{}, filename string, an *analysis) ([]byte, tfdiags.Diagnostics) {
 	if lit, ok := val.(*hcl1ast.LiteralType); ok && lit.Token.Type == hcl1token.STRING {
 		trStr := lit.Token.Value().(string)
+		if strings.HasSuffix(trStr, ".%") || strings.HasSuffix(trStr, ".#") {
+			// Terraform 0.11 would often not validate traversals given in
+			// strings and so users would get away with this sort of
+			// flatmap-implementation-detail reference, particularly inside
+			// ignore_changes. We'll just trim these off to tolerate it,
+			// rather than failing below in ParseTraversalAbs.
+			trStr = trStr[:len(trStr)-2]
+		}
 		trSrc := []byte(trStr)
 		_, trDiags := hcl2syntax.ParseTraversalAbs(trSrc, "", hcl2.Pos{})
 		if !trDiags.HasErrors() {

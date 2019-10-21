@@ -17,8 +17,6 @@ vendor in close collaboration with HashiCorp, and are tested by HashiCorp.
 ---
 
 
-[Bitbucket](/docs/providers/bitbucket/index.html)
-
-[GitHub](/docs/providers/github/index.html)
-
-[GitLab](/docs/providers/gitlab/index.html)
+- [Bitbucket](/docs/providers/bitbucket/index.html)
+- [GitHub](/docs/providers/github/index.html)
+- [GitLab](/docs/providers/gitlab/index.html)

@@ -72,6 +72,89 @@ func TestStateRm(t *testing.T) {
 	testStateOutput(t, backups[0], testStateRmOutputOriginal)
 }
 
+func TestStateRmNotChildModule(t *testing.T) {
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+		)
+		// This second instance has the same local address as the first but
+		// is in a child module. Older versions of Terraform would incorrectly
+		// remove this one too, since they failed to check the module address.
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance.Child("child", addrs.NoKey)),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+		)
+	})
+	statePath := testStateFile(t, state)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &StateRmCommand{
+		StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+			},
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"test_instance.foo",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// Test it is correct
+	testStateOutput(t, statePath, `
+<no state>
+module.child:
+  test_instance.foo:
+    ID = foo
+    provider = provider.test
+    bar = value
+    foo = value
+`)
+
+	// Test we have backups
+	backups := testStateBackups(t, filepath.Dir(statePath))
+	if len(backups) != 1 {
+		t.Fatalf("bad: %#v", backups)
+	}
+	testStateOutput(t, backups[0], `
+test_instance.foo:
+  ID = bar
+  provider = provider.test
+  bar = value
+  foo = value
+
+module.child:
+  test_instance.foo:
+    ID = foo
+    provider = provider.test
+    bar = value
+    foo = value
+`)
+}
+
 func TestStateRmNoArgs(t *testing.T) {
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
@@ -173,7 +256,7 @@ func TestStateRmNonExist(t *testing.T) {
 		t.Fatalf("expected exit status %d, got: %d", 0, code)
 	}
 
-	if msg := ui.OutputWriter.String(); !strings.Contains(msg, "No matching resources found") {
+	if msg := ui.OutputWriter.String(); !strings.Contains(msg, "No matching resource instances found") {
 		t.Fatalf("unexpected output:\n%s", msg)
 	}
 

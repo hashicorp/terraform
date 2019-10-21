@@ -128,6 +128,11 @@ func TestNodeRefreshableDataResourceDynamicExpand_scaleIn(t *testing.T) {
 				"foo",
 			),
 			Config: m.Module.DataResources["data.aws_instance.foo"],
+			ResolvedProvider: addrs.AbsProviderConfig{
+				ProviderConfig: addrs.ProviderConfig{
+					Type: "aws",
+				},
+			},
 		},
 	}
 
@@ -147,14 +152,29 @@ func TestNodeRefreshableDataResourceDynamicExpand_scaleIn(t *testing.T) {
 	expected := `data.aws_instance.foo[0] - *terraform.NodeRefreshableDataResourceInstance
 data.aws_instance.foo[1] - *terraform.NodeRefreshableDataResourceInstance
 data.aws_instance.foo[2] - *terraform.NodeRefreshableDataResourceInstance
-data.aws_instance.foo[3] - *terraform.NodeDestroyableDataResource
+data.aws_instance.foo[3] - *terraform.NodeDestroyableDataResourceInstance
 root - terraform.graphNodeRoot
   data.aws_instance.foo[0] - *terraform.NodeRefreshableDataResourceInstance
   data.aws_instance.foo[1] - *terraform.NodeRefreshableDataResourceInstance
   data.aws_instance.foo[2] - *terraform.NodeRefreshableDataResourceInstance
-  data.aws_instance.foo[3] - *terraform.NodeDestroyableDataResource
+  data.aws_instance.foo[3] - *terraform.NodeDestroyableDataResourceInstance
 `
 	if expected != actual {
 		t.Fatalf("Expected:\n%s\nGot:\n%s", expected, actual)
+	}
+
+	var destroyableDataResource *NodeDestroyableDataResourceInstance
+	for _, v := range g.Vertices() {
+		if r, ok := v.(*NodeDestroyableDataResourceInstance); ok {
+			destroyableDataResource = r
+		}
+	}
+
+	if destroyableDataResource == nil {
+		t.Fatal("failed to find a destroyableDataResource")
+	}
+
+	if destroyableDataResource.ResolvedProvider.ProviderConfig.Type == "" {
+		t.Fatal("NodeDestroyableDataResourceInstance missing provider config")
 	}
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/client/metadata"
+	"github.com/aws/aws-sdk-go/aws/crr"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/signer/v4"
 	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
@@ -19,6 +20,7 @@ import (
 // modify mutate any of the struct's properties though.
 type DynamoDB struct {
 	*client.Client
+	endpointCache *crr.EndpointCache
 }
 
 // Used for custom client initialization logic
@@ -67,6 +69,7 @@ func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegio
 			handlers,
 		),
 	}
+	svc.endpointCache = crr.NewEndpointCache(10)
 
 	// Handlers
 	svc.Handlers.Sign.PushBackNamed(v4.SignRequestHandler)

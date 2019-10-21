@@ -4,6 +4,16 @@ package backend
 
 import "strconv"
 
+func _() {
+	// An "invalid array index" compiler error signifies that the constant values have changed.
+	// Re-run the stringer command to generate them again.
+	var x [1]struct{}
+	_ = x[OperationTypeInvalid-0]
+	_ = x[OperationTypeRefresh-1]
+	_ = x[OperationTypePlan-2]
+	_ = x[OperationTypeApply-3]
+}
+
 const _OperationType_name = "OperationTypeInvalidOperationTypeRefreshOperationTypePlanOperationTypeApply"
 
 var _OperationType_index = [...]uint8{0, 20, 40, 57, 75}

@@ -34,25 +34,18 @@ var (
 func (n *NodePlannableResourceInstance) EvalTree() EvalNode {
 	addr := n.ResourceInstanceAddr()
 
-	// State still uses legacy-style internal ids, so we need to shim to get
-	// a suitable key to use.
-	stateId := NewLegacyResourceInstanceAddress(addr).stateId()
-
-	// Determine the dependencies for the state.
-	stateDeps := n.StateReferences()
-
 	// Eval info is different depending on what kind of resource this is
 	switch addr.Resource.Resource.Mode {
 	case addrs.ManagedResourceMode:
-		return n.evalTreeManagedResource(addr, stateId, stateDeps)
+		return n.evalTreeManagedResource(addr)
 	case addrs.DataResourceMode:
-		return n.evalTreeDataResource(addr, stateId, stateDeps)
+		return n.evalTreeDataResource(addr)
 	default:
 		panic(fmt.Errorf("unsupported resource mode %s", n.Config.Mode))
 	}
 }
 
-func (n *NodePlannableResourceInstance) evalTreeDataResource(addr addrs.AbsResourceInstance, stateId string, stateDeps []addrs.Referenceable) EvalNode {
+func (n *NodePlannableResourceInstance) evalTreeDataResource(addr addrs.AbsResourceInstance) EvalNode {
 	config := n.Config
 	var provider providers.Interface
 	var providerSchema *ProviderSchema
@@ -81,8 +74,31 @@ func (n *NodePlannableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 			// here.
 			&EvalIf{
 				If: func(ctx EvalContext) (bool, error) {
-					if state != nil && state.Status != states.ObjectPlanned {
-						return true, EvalEarlyExitError{}
+					depChanges := false
+
+					// Check and see if any of our dependencies have changes.
+					changes := ctx.Changes()
+					for _, d := range n.StateReferences() {
+						ri, ok := d.(addrs.ResourceInstance)
+						if !ok {
+							continue
+						}
+						change := changes.GetResourceInstanceChange(ri.Absolute(ctx.Path()), states.CurrentGen)
+						if change != nil && change.Action != plans.NoOp {
+							depChanges = true
+							break
+						}
+					}
+
+					refreshed := state != nil && state.Status != states.ObjectPlanned
+
+					// If there are no dependency changes, and it's not a forced
+					// read because we there was no Refresh, then we don't need
+					// to re-read. If any dependencies have changes, it means
+					// our config may also have changes and we need to Read the
+					// data source again.
+					if !depChanges && refreshed {
+						return false, EvalEarlyExitError{}
 					}
 					return true, nil
 				},
@@ -124,7 +140,7 @@ func (n *NodePlannableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 	}
 }
 
-func (n *NodePlannableResourceInstance) evalTreeManagedResource(addr addrs.AbsResourceInstance, stateId string, stateDeps []addrs.Referenceable) EvalNode {
+func (n *NodePlannableResourceInstance) evalTreeManagedResource(addr addrs.AbsResourceInstance) EvalNode {
 	config := n.Config
 	var provider providers.Interface
 	var providerSchema *ProviderSchema

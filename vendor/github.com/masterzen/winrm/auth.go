@@ -1,20 +1,20 @@
 package winrm
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"net"
+	"net/http"
 	"strings"
 	"time"
-
-	"github.com/masterzen/azure-sdk-for-go/core/http"
-	"github.com/masterzen/azure-sdk-for-go/core/tls"
 
 	"github.com/masterzen/winrm/soap"
 )
 
 type ClientAuthRequest struct {
 	transport http.RoundTripper
+	dial func(network, addr string) (net.Conn, error)
 }
 
 func (c *ClientAuthRequest) Transport(endpoint *Endpoint) error {
@@ -23,16 +23,22 @@ func (c *ClientAuthRequest) Transport(endpoint *Endpoint) error {
 		return err
 	}
 
+	dial := (&net.Dialer{
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}).Dial
+
+	if c.dial != nil {
+		dial = c.dial
+	}
+
 	transport := &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: endpoint.Insecure,
 			Certificates:       []tls.Certificate{cert},
 		},
-		Dial: (&net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).Dial,
+		Dial: dial,
 		ResponseHeaderTimeout: endpoint.Timeout,
 	}
 
@@ -103,4 +109,10 @@ func (c ClientAuthRequest) Post(client *Client, request *soap.SoapMessage) (stri
 	}()
 
 	return body, err
+}
+
+func NewClientAuthRequestWithDial(dial func(network, addr string) (net.Conn, error)) *ClientAuthRequest {
+	return &ClientAuthRequest{
+		dial:dial,
+	}
 }

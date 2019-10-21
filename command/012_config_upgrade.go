@@ -1,13 +1,14 @@
 package command
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/configs/configupgrade"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -52,6 +53,12 @@ func (c *ZeroTwelveUpgradeCommand) Run(args []string) int {
 			"The command 0.12upgrade expects only a single argument, giving the directory containing the module to upgrade.",
 		))
 		c.showDiagnostics(diags)
+		return 1
+	}
+
+	// Check for user-supplied plugin path
+	if c.pluginPath, err = c.loadPluginPath(); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
 		return 1
 	}
 
@@ -127,7 +134,7 @@ command and dealing with them before running this command again.
 		if dir != "." {
 			query = fmt.Sprintf("Would you like to upgrade the module in %s?", dir)
 		}
-		v, err := c.UIInput().Input(&terraform.InputOpts{
+		v, err := c.UIInput().Input(context.Background(), &terraform.InputOpts{
 			Id:          "approve",
 			Query:       query,
 			Description: `Only 'yes' will be accepted to confirm.`,
@@ -149,7 +156,7 @@ command and dealing with them before running this command again.
 		Providers:    c.providerResolver(),
 		Provisioners: c.provisionerFactories(),
 	}
-	newSources, upgradeDiags := upgrader.Upgrade(sources)
+	newSources, upgradeDiags := upgrader.Upgrade(sources, dir)
 	diags = diags.Append(upgradeDiags)
 	if upgradeDiags.HasErrors() {
 		c.showDiagnostics(diags)

@@ -28,7 +28,7 @@ been removed from the configuration.
 $ terraform destroy
 # ...
 
-- aws_instance.example
+  - aws_instance.example
 ```
 
 The `-` prefix indicates that the instance will be destroyed. As with apply,
@@ -41,7 +41,7 @@ Answer `yes` to execute this plan and destroy the infrastructure:
 # ...
 aws_instance.example: Destroying...
 
-Apply complete! Resources: 0 added, 0 changed, 1 destroyed.
+Destroy complete! Resources: 1 destroyed.
 
 # ...
 ```

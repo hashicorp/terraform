@@ -4,6 +4,21 @@ package terraform
 
 import "strconv"
 
+func _() {
+	// An "invalid array index" compiler error signifies that the constant values have changed.
+	// Re-run the stringer command to generate them again.
+	var x [1]struct{}
+	_ = x[walkInvalid-0]
+	_ = x[walkApply-1]
+	_ = x[walkPlan-2]
+	_ = x[walkPlanDestroy-3]
+	_ = x[walkRefresh-4]
+	_ = x[walkValidate-5]
+	_ = x[walkDestroy-6]
+	_ = x[walkImport-7]
+	_ = x[walkEval-8]
+}
+
 const _walkOperation_name = "walkInvalidwalkApplywalkPlanwalkPlanDestroywalkRefreshwalkValidatewalkDestroywalkImportwalkEval"
 
 var _walkOperation_index = [...]uint8{0, 11, 20, 28, 43, 54, 66, 77, 87, 95}

@@ -5,11 +5,11 @@ import (
 	"testing"
 
 	"github.com/go-test/deep"
-	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl/v2"
 )
 
 func TestLoadModuleCall(t *testing.T) {
-	src, err := ioutil.ReadFile("test-fixtures/invalid-files/module-calls.tf")
+	src, err := ioutil.ReadFile("testdata/invalid-files/module-calls.tf")
 	if err != nil {
 		t.Fatal(err)
 	}

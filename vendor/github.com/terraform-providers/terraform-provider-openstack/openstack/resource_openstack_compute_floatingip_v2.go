@@ -12,38 +12,38 @@ func resourceComputeFloatingIPV2() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceComputeFloatingIPV2Create,
 		Read:   resourceComputeFloatingIPV2Read,
-		Update: nil,
 		Delete: resourceComputeFloatingIPV2Delete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
 
 		Schema: map[string]*schema.Schema{
-			"region": &schema.Schema{
+			"region": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
 
-			"pool": &schema.Schema{
+			"pool": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_POOL_NAME", nil),
 			},
 
-			"address": &schema.Schema{
+			// computed-only
+			"address": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"fixed_ip": &schema.Schema{
+			"fixed_ip": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"instance_id": &schema.Schema{
+			"instance_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -61,10 +61,12 @@ func resourceComputeFloatingIPV2Create(d *schema.ResourceData, meta interface{})
 	createOpts := &floatingips.CreateOpts{
 		Pool: d.Get("pool").(string),
 	}
-	log.Printf("[DEBUG] Create Options: %#v", createOpts)
+
+	log.Printf("[DEBUG] openstack_compute_floatingip_v2 Create Options: %#v", createOpts)
+
 	newFip, err := floatingips.Create(computeClient, createOpts).Extract()
 	if err != nil {
-		return fmt.Errorf("Error creating Floating IP: %s", err)
+		return fmt.Errorf("Error creating openstack_compute_floatingip_v2: %s", err)
 	}
 
 	d.SetId(newFip.ID)
@@ -81,10 +83,10 @@ func resourceComputeFloatingIPV2Read(d *schema.ResourceData, meta interface{}) e
 
 	fip, err := floatingips.Get(computeClient, d.Id()).Extract()
 	if err != nil {
-		return CheckDeleted(d, err, "floating ip")
+		return CheckDeleted(d, err, "Error retrieving openstack_compute_floatingip_v2")
 	}
 
-	log.Printf("[DEBUG] Retrieved Floating IP %s: %+v", d.Id(), fip)
+	log.Printf("[DEBUG] Retrieved openstack_compute_floatingip_v2 %s: %#v", d.Id(), fip)
 
 	d.Set("pool", fip.Pool)
 	d.Set("instance_id", fip.InstanceID)
@@ -102,9 +104,8 @@ func resourceComputeFloatingIPV2Delete(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
 
-	log.Printf("[DEBUG] Deleting Floating IP %s", d.Id())
 	if err := floatingips.Delete(computeClient, d.Id()).ExtractErr(); err != nil {
-		return fmt.Errorf("Error deleting Floating IP: %s", err)
+		return CheckDeleted(d, err, "Error deleting openstack_compute_floatingip_v2")
 	}
 
 	return nil

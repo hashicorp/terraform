@@ -7,6 +7,7 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"strings"
 	"time"
 
@@ -24,9 +25,9 @@ type ListOptsBuilder interface {
 // ListOpts is a structure that holds parameters for listing objects.
 type ListOpts struct {
 	// Full is a true/false value that represents the amount of object information
-	// returned. If Full is set to true, then the content-type, number of bytes, hash
-	// date last modified, and name are returned. If set to false or not set, then
-	// only the object names are returned.
+	// returned. If Full is set to true, then the content-type, number of bytes,
+	// hash date last modified, and name are returned. If set to false or not set,
+	// then only the object names are returned.
 	Full      bool
 	Limit     int    `q:"limit"`
 	Marker    string `q:"marker"`
@@ -44,9 +45,10 @@ func (opts ListOpts) ToObjectListParams() (bool, string, error) {
 	return opts.Full, q.String(), err
 }
 
-// List is a function that retrieves all objects in a container. It also returns the details
-// for the container. To extract only the object information or names, pass the ListResult
-// response to the ExtractInfo or ExtractNames function, respectively.
+// List is a function that retrieves all objects in a container. It also returns
+// the details for the container. To extract only the object information or names,
+// pass the ListResult response to the ExtractInfo or ExtractNames function,
+// respectively.
 func List(c *gophercloud.ServiceClient, containerName string, opts ListOptsBuilder) pagination.Pager {
 	headers := map[string]string{"Accept": "text/plain", "Content-Type": "text/plain"}
 
@@ -84,6 +86,7 @@ type DownloadOpts struct {
 	IfModifiedSince   time.Time `h:"If-Modified-Since"`
 	IfNoneMatch       string    `h:"If-None-Match"`
 	IfUnmodifiedSince time.Time `h:"If-Unmodified-Since"`
+	Newest            bool      `h:"X-Newest"`
 	Range             string    `h:"Range"`
 	Expires           string    `q:"expires"`
 	MultipartManifest string    `q:"multipart-manifest"`
@@ -124,7 +127,7 @@ func Download(c *gophercloud.ServiceClient, containerName, objectName string, op
 
 	resp, err := c.Get(url, nil, &gophercloud.RequestOpts{
 		MoreHeaders: h,
-		OkCodes:     []int{200, 304},
+		OkCodes:     []int{200, 206, 304},
 	})
 	if resp != nil {
 		r.Header = resp.Header
@@ -144,6 +147,7 @@ type CreateOptsBuilder interface {
 type CreateOpts struct {
 	Content            io.Reader
 	Metadata           map[string]string
+	NoETag             bool
 	CacheControl       string `h:"Cache-Control"`
 	ContentDisposition string `h:"Content-Disposition"`
 	ContentEncoding    string `h:"Content-Encoding"`
@@ -178,20 +182,43 @@ func (opts CreateOpts) ToObjectCreateParams() (io.Reader, map[string]string, str
 		h["X-Object-Meta-"+k] = v
 	}
 
+	if opts.NoETag {
+		delete(h, "etag")
+		return opts.Content, h, q.String(), nil
+	}
+
+	if h["ETag"] != "" {
+		return opts.Content, h, q.String(), nil
+	}
+
+	// When we're dealing with big files an io.ReadSeeker allows us to efficiently calculate
+	// the md5 sum. An io.Reader is only readable once which means we have to copy the entire
+	// file content into memory first.
+	readSeeker, isReadSeeker := opts.Content.(io.ReadSeeker)
+	if !isReadSeeker {
+		data, err := ioutil.ReadAll(opts.Content)
+		if err != nil {
+			return nil, nil, "", err
+		}
+		readSeeker = bytes.NewReader(data)
+	}
+
 	hash := md5.New()
-	buf := bytes.NewBuffer([]byte{})
-	_, err = io.Copy(io.MultiWriter(hash, buf), opts.Content)
-	if err != nil {
+	// io.Copy into md5 is very efficient as it's done in small chunks.
+	if _, err := io.Copy(hash, readSeeker); err != nil {
 		return nil, nil, "", err
 	}
-	localChecksum := fmt.Sprintf("%x", hash.Sum(nil))
-	h["ETag"] = localChecksum
+	readSeeker.Seek(0, io.SeekStart)
 
-	return buf, h, q.String(), nil
+	h["ETag"] = fmt.Sprintf("%x", hash.Sum(nil))
+
+	return readSeeker, h, q.String(), nil
 }
 
-// Create is a function that creates a new object or replaces an existing object. If the returned response's ETag
-// header fails to match the local checksum, the failed request will automatically be retried up to a maximum of 3 times.
+// Create is a function that creates a new object or replaces an existing
+// object. If the returned response's ETag header fails to match the local
+// checksum, the failed request will automatically be retried up to a maximum
+// of 3 times.
 func Create(c *gophercloud.ServiceClient, containerName, objectName string, opts CreateOptsBuilder) (r CreateResult) {
 	url := createURL(c, containerName, objectName)
 	h := make(map[string]string)
@@ -312,35 +339,51 @@ func Delete(c *gophercloud.ServiceClient, containerName, objectName string, opts
 // GetOptsBuilder allows extensions to add additional parameters to the
 // Get request.
 type GetOptsBuilder interface {
-	ToObjectGetQuery() (string, error)
+	ToObjectGetParams() (map[string]string, string, error)
 }
 
-// GetOpts is a structure that holds parameters for getting an object's metadata.
+// GetOpts is a structure that holds parameters for getting an object's
+// metadata.
 type GetOpts struct {
+	Newest    bool   `h:"X-Newest"`
 	Expires   string `q:"expires"`
 	Signature string `q:"signature"`
 }
 
-// ToObjectGetQuery formats a GetOpts into a query string.
-func (opts GetOpts) ToObjectGetQuery() (string, error) {
+// ToObjectGetParams formats a GetOpts into a query string and a map of headers.
+func (opts GetOpts) ToObjectGetParams() (map[string]string, string, error) {
 	q, err := gophercloud.BuildQueryString(opts)
-	return q.String(), err
+	if err != nil {
+		return nil, "", err
+	}
+	h, err := gophercloud.BuildHeaders(opts)
+	if err != nil {
+		return nil, q.String(), err
+	}
+	return h, q.String(), nil
 }
 
-// Get is a function that retrieves the metadata of an object. To extract just the custom
-// metadata, pass the GetResult response to the ExtractMetadata function.
+// Get is a function that retrieves the metadata of an object. To extract just
+// the custom metadata, pass the GetResult response to the ExtractMetadata
+// function.
 func Get(c *gophercloud.ServiceClient, containerName, objectName string, opts GetOptsBuilder) (r GetResult) {
 	url := getURL(c, containerName, objectName)
+	h := make(map[string]string)
 	if opts != nil {
-		query, err := opts.ToObjectGetQuery()
+		headers, query, err := opts.ToObjectGetParams()
 		if err != nil {
 			r.Err = err
 			return
 		}
+		for k, v := range headers {
+			h[k] = v
+		}
 		url += query
 	}
-	resp, err := c.Request("HEAD", url, &gophercloud.RequestOpts{
-		OkCodes: []int{200, 204},
+
+	resp, err := c.Head(url, &gophercloud.RequestOpts{
+		MoreHeaders: h,
+		OkCodes:     []int{200, 204},
 	})
 	if resp != nil {
 		r.Header = resp.Header
@@ -355,8 +398,8 @@ type UpdateOptsBuilder interface {
 	ToObjectUpdateMap() (map[string]string, error)
 }
 
-// UpdateOpts is a structure that holds parameters for updating, creating, or deleting an
-// object's metadata.
+// UpdateOpts is a structure that holds parameters for updating, creating, or
+// deleting an object's metadata.
 type UpdateOpts struct {
 	Metadata           map[string]string
 	ContentDisposition string `h:"Content-Disposition"`
@@ -410,17 +453,20 @@ type HTTPMethod string
 var (
 	// GET represents an HTTP "GET" method.
 	GET HTTPMethod = "GET"
+
 	// POST represents an HTTP "POST" method.
 	POST HTTPMethod = "POST"
 )
 
 // CreateTempURLOpts are options for creating a temporary URL for an object.
 type CreateTempURLOpts struct {
-	// (REQUIRED) Method is the HTTP method to allow for users of the temp URL. Valid values
-	// are "GET" and "POST".
+	// (REQUIRED) Method is the HTTP method to allow for users of the temp URL.
+	// Valid values are "GET" and "POST".
 	Method HTTPMethod
+
 	// (REQUIRED) TTL is the number of seconds the temp URL should be active.
 	TTL int
+
 	// (Optional) Split is the string on which to split the object URL. Since only
 	// the object path is used in the hash, the object URL needs to be parsed. If
 	// empty, the default OpenStack URL split point will be used ("/v1/").

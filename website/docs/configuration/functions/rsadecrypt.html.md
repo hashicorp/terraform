@@ -1,12 +1,16 @@
 ---
 layout: "functions"
-page_title: "rsadecrypt function"
+page_title: "rsadecrypt - Functions - Configuration Language"
 sidebar_current: "docs-funcs-crypto-rsadecrypt"
 description: |-
   The rsadecrypt function decrypts an RSA-encrypted message.
 ---
 
 # `rsadecrypt` Function
+
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
 
 `rsadecrypt` decrypts an RSA-encrypted ciphertext, returning the corresponding
 cleartext.

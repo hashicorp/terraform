@@ -473,8 +473,35 @@ func (e *ConditionalExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostic
 	falseResult, falseDiags := e.FalseResult.Value(ctx)
 	var diags hcl.Diagnostics
 
-	// Try to find a type that both results can be converted to.
-	resultType, convs := convert.UnifyUnsafe([]cty.Type{trueResult.Type(), falseResult.Type()})
+	resultType := cty.DynamicPseudoType
+	convs := make([]convert.Conversion, 2)
+
+	switch {
+	// If either case is a dynamic null value (which would result from a
+	// literal null in the config), we know that it can convert to the expected
+	// type of the opposite case, and we don't need to speculatively reduce the
+	// final result type to DynamicPseudoType.
+
+	// If we know that either Type is a DynamicPseudoType, we can be certain
+	// that the other value can convert since it's a pass-through, and we don't
+	// need to unify the types. If the final evaluation results in the dynamic
+	// value being returned, there's no conversion we can do, so we return the
+	// value directly.
+	case trueResult.RawEquals(cty.NullVal(cty.DynamicPseudoType)):
+		resultType = falseResult.Type()
+		convs[0] = convert.GetConversionUnsafe(cty.DynamicPseudoType, resultType)
+	case falseResult.RawEquals(cty.NullVal(cty.DynamicPseudoType)):
+		resultType = trueResult.Type()
+		convs[1] = convert.GetConversionUnsafe(cty.DynamicPseudoType, resultType)
+	case trueResult.Type() == cty.DynamicPseudoType, falseResult.Type() == cty.DynamicPseudoType:
+		// the final resultType type is still unknown
+		// we don't need to get the conversion, because both are a noop.
+
+	default:
+		// Try to find a type that both results can be converted to.
+		resultType, convs = convert.UnifyUnsafe([]cty.Type{trueResult.Type(), falseResult.Type()})
+	}
+
 	if resultType == cty.NilType {
 		return cty.DynamicVal, hcl.Diagnostics{
 			{
@@ -604,8 +631,9 @@ func (e *IndexExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
 	diags = append(diags, collDiags...)
 	diags = append(diags, keyDiags...)
 
-	val, diags := hcl.Index(coll, key, &e.SrcRange)
-	setDiagEvalContext(diags, e, ctx)
+	val, indexDiags := hcl.Index(coll, key, &e.SrcRange)
+	setDiagEvalContext(indexDiags, e, ctx)
+	diags = append(diags, indexDiags...)
 	return val, diags
 }
 
@@ -727,8 +755,8 @@ func (e *ObjectConsExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics
 				Severity:    hcl.DiagError,
 				Summary:     "Incorrect key type",
 				Detail:      fmt.Sprintf("Can't use this value as a key: %s.", err.Error()),
-				Subject:     item.ValueExpr.Range().Ptr(),
-				Expression:  item.ValueExpr,
+				Subject:     item.KeyExpr.Range().Ptr(),
+				Expression:  item.KeyExpr,
 				EvalContext: ctx,
 			})
 			known = false
@@ -797,6 +825,26 @@ func (e *ObjectConsKeyExpr) walkChildNodes(w internalWalkFunc) {
 }
 
 func (e *ObjectConsKeyExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
+	// Because we accept a naked identifier as a literal key rather than a
+	// reference, it's confusing to accept a traversal containing periods
+	// here since we can't tell if the user intends to create a key with
+	// periods or actually reference something. To avoid confusing downstream
+	// errors we'll just prohibit a naked multi-step traversal here and
+	// require the user to state their intent more clearly.
+	// (This is handled at evaluation time rather than parse time because
+	// an application using static analysis _can_ accept a naked multi-step
+	// traversal here, if desired.)
+	if travExpr, isTraversal := e.Wrapped.(*ScopeTraversalExpr); isTraversal && len(travExpr.Traversal) > 1 {
+		var diags hcl.Diagnostics
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Ambiguous attribute key",
+			Detail:   "If this expression is intended to be a reference, wrap it in parentheses. If it's instead intended as a literal name containing periods, wrap it in quotes to create a string literal.",
+			Subject:  e.Range().Ptr(),
+		})
+		return cty.DynamicVal, diags
+	}
+
 	if ln := e.literalName(); ln != "" {
 		return cty.StringVal(ln), nil
 	}
@@ -1214,19 +1262,6 @@ func (e *SplatExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
 		return cty.DynamicVal, diags
 	}
 
-	if sourceVal.IsNull() {
-		diags = append(diags, &hcl.Diagnostic{
-			Severity:    hcl.DiagError,
-			Summary:     "Splat of null value",
-			Detail:      "Splat expressions (with the * symbol) cannot be applied to null values.",
-			Subject:     e.Source.Range().Ptr(),
-			Context:     hcl.RangeBetween(e.Source.Range(), e.MarkerRange).Ptr(),
-			Expression:  e.Source,
-			EvalContext: ctx,
-		})
-		return cty.DynamicVal, diags
-	}
-
 	sourceTy := sourceVal.Type()
 	if sourceTy == cty.DynamicPseudoType {
 		// If we don't even know the _type_ of our source value yet then
@@ -1237,9 +1272,27 @@ func (e *SplatExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
 
 	// A "special power" of splat expressions is that they can be applied
 	// both to tuples/lists and to other values, and in the latter case
-	// the value will be treated as an implicit single-value tuple. We'll
-	// deal with that here first.
-	if !(sourceTy.IsTupleType() || sourceTy.IsListType() || sourceTy.IsSetType()) {
+	// the value will be treated as an implicit single-item tuple, or as
+	// an empty tuple if the value is null.
+	autoUpgrade := !(sourceTy.IsTupleType() || sourceTy.IsListType() || sourceTy.IsSetType())
+
+	if sourceVal.IsNull() {
+		if autoUpgrade {
+			return cty.EmptyTupleVal, diags
+		}
+		diags = append(diags, &hcl.Diagnostic{
+			Severity:    hcl.DiagError,
+			Summary:     "Splat of null value",
+			Detail:      "Splat expressions (with the * symbol) cannot be applied to null sequences.",
+			Subject:     e.Source.Range().Ptr(),
+			Context:     hcl.RangeBetween(e.Source.Range(), e.MarkerRange).Ptr(),
+			Expression:  e.Source,
+			EvalContext: ctx,
+		})
+		return cty.DynamicVal, diags
+	}
+
+	if autoUpgrade {
 		sourceVal = cty.TupleVal([]cty.Value{sourceVal})
 		sourceTy = sourceVal.Type()
 	}

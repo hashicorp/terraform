@@ -16,7 +16,7 @@ evaluating [expressions](/docs/configuration/expressions.html).
 
 Usage: `terraform console [options] [dir]`
 
-This command provides an interative command-line console for evaluating and
+This command provides an interactive command-line console for evaluating and
 experimenting with [expressions](/docs/configuration/expressions.html).
 This is useful for testing interpolations before using them in configurations,
 and for interacting with any values currently saved in

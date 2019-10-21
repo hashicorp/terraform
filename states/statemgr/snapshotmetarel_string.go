@@ -4,6 +4,17 @@ package statemgr
 
 import "strconv"
 
+func _() {
+	// An "invalid array index" compiler error signifies that the constant values have changed.
+	// Re-run the stringer command to generate them again.
+	var x [1]struct{}
+	_ = x[SnapshotOlder-60]
+	_ = x[SnapshotNewer-62]
+	_ = x[SnapshotEqual-61]
+	_ = x[SnapshotUnrelated-33]
+	_ = x[SnapshotLegacy-63]
+}
+
 const (
 	_SnapshotMetaRel_name_0 = "SnapshotUnrelated"
 	_SnapshotMetaRel_name_1 = "SnapshotOlderSnapshotEqualSnapshotNewerSnapshotLegacy"

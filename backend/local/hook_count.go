@@ -71,9 +71,9 @@ func (h *CountHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generat
 				case plans.Create:
 					h.Added++
 				case plans.Delete:
-					h.Changed++
-				case plans.Update:
 					h.Removed++
+				case plans.Update:
+					h.Changed++
 				}
 			}
 		}

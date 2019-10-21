@@ -26,6 +26,7 @@ import (
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/helper/logging"
+	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
@@ -375,13 +376,18 @@ type TestStep struct {
 
 	// ImportStateVerify, if true, will also check that the state values
 	// that are finally put into the state after import match for all the
-	// IDs returned by the Import.
+	// IDs returned by the Import.  Note that this checks for strict equality
+	// and does not respect DiffSuppressFunc or CustomizeDiff.
 	//
-	// ImportStateVerifyIgnore are fields that should not be verified to
-	// be equal. These can be set to ephemeral fields or fields that can't
-	// be refreshed and don't matter.
+	// ImportStateVerifyIgnore is a list of prefixes of fields that should
+	// not be verified to be equal. These can be set to ephemeral fields or
+	// fields that can't be refreshed and don't matter.
 	ImportStateVerify       bool
 	ImportStateVerifyIgnore []string
+
+	// provider s is used internally to maintain a reference to the
+	// underlying providers during the tests
+	providers map[string]terraform.ResourceProvider
 }
 
 // Set to a file mask in sprintf format where %s is test name
@@ -476,6 +482,17 @@ func Test(t TestT, c TestCase) {
 		c.PreCheck()
 	}
 
+	// get instances of all providers, so we can use the individual
+	// resources to shim the state during the tests.
+	providers := make(map[string]terraform.ResourceProvider)
+	for name, pf := range testProviderFactories(c) {
+		p, err := pf()
+		if err != nil {
+			t.Fatal(err)
+		}
+		providers[name] = p
+	}
+
 	providerResolver, err := testProviderResolver(c)
 	if err != nil {
 		t.Fatal(err)
@@ -491,6 +508,10 @@ func Test(t TestT, c TestCase) {
 	idRefresh := c.IDRefreshName != ""
 	errored := false
 	for i, step := range c.Steps {
+		// insert the providers into the step so we can get the resources for
+		// shimming the state
+		step.providers = providers
+
 		var err error
 		log.Printf("[DEBUG] Test: Executing step %d", i)
 
@@ -600,6 +621,7 @@ func Test(t TestT, c TestCase) {
 			Destroy:                   true,
 			PreventDiskCleanup:        lastStep.PreventDiskCleanup,
 			PreventPostDestroyRefresh: c.PreventPostDestroyRefresh,
+			providers:                 providers,
 		}
 
 		log.Printf("[WARN] Test: Executing destroy step")
@@ -629,29 +651,38 @@ func testProviderConfig(c TestCase) string {
 	return strings.Join(lines, "")
 }
 
-// testProviderResolver is a helper to build a ResourceProviderResolver
-// with pre instantiated ResourceProviders, so that we can reset them for the
-// test, while only calling the factory function once.
-// Any errors are stored so that they can be returned by the factory in
-// terraform to match non-test behavior.
-func testProviderResolver(c TestCase) (providers.Resolver, error) {
-	ctxProviders := c.ProviderFactories
-	if ctxProviders == nil {
-		ctxProviders = make(map[string]terraform.ResourceProviderFactory)
+// testProviderFactories combines the fixed Providers and
+// ResourceProviderFactory functions into a single map of
+// ResourceProviderFactory functions.
+func testProviderFactories(c TestCase) map[string]terraform.ResourceProviderFactory {
+	ctxProviders := make(map[string]terraform.ResourceProviderFactory)
+	for k, pf := range c.ProviderFactories {
+		ctxProviders[k] = pf
 	}
 
 	// add any fixed providers
 	for k, p := range c.Providers {
 		ctxProviders[k] = terraform.ResourceProviderFactoryFixed(p)
 	}
+	return ctxProviders
+}
+
+// testProviderResolver is a helper to build a ResourceProviderResolver
+// with pre instantiated ResourceProviders, so that we can reset them for the
+// test, while only calling the factory function once.
+// Any errors are stored so that they can be returned by the factory in
+// terraform to match non-test behavior.
+func testProviderResolver(c TestCase) (providers.Resolver, error) {
+	ctxProviders := testProviderFactories(c)
 
 	// wrap the old provider factories in the test grpc server so they can be
 	// called from terraform.
 	newProviders := make(map[string]providers.Factory)
 
 	for k, pf := range ctxProviders {
+		factory := pf // must copy to ensure each closure sees its own value
 		newProviders[k] = func() (providers.Interface, error) {
-			p, err := pf()
+			p, err := factory()
 			if err != nil {
 				return nil, err
 			}
@@ -664,32 +695,6 @@ func testProviderResolver(c TestCase) (providers.Resolver, error) {
 	}
 
 	return providers.ResolverFixed(newProviders), nil
-}
-
-// testProviderFactores returns a fixed and reset factories for creating a resolver
-func testProviderFactories(c TestCase) (map[string]providers.Factory, error) {
-	factories := c.ProviderFactories
-	if factories == nil {
-		factories = make(map[string]terraform.ResourceProviderFactory)
-	}
-
-	// add any fixed providers
-	for k, p := range c.Providers {
-		factories[k] = terraform.ResourceProviderFactoryFixed(p)
-	}
-
-	// wrap the providers to be GRPC mocks rather than legacy terraform.ResourceProvider
-	newFactories := make(map[string]providers.Factory)
-	for k, pf := range factories {
-		newFactories[k] = func() (providers.Interface, error) {
-			p, err := pf()
-			if err != nil {
-				return nil, err
-			}
-			return GRPCTestProvider(p), nil
-		}
-	}
-	return newFactories, nil
 }
 
 // UnitTest is a helper to force the acceptance testing harness to run in the
@@ -829,16 +834,17 @@ func testConfig(opts terraform.ContextOpts, step TestStep) (*configs.Config, err
 		return nil, fmt.Errorf("Error creating child modules directory: %s", err)
 	}
 
+	inst := initwd.NewModuleInstaller(modulesDir, nil)
+	_, installDiags := inst.InstallModules(cfgPath, true, initwd.ModuleInstallHooksImpl{})
+	if installDiags.HasErrors() {
+		return nil, installDiags.Err()
+	}
+
 	loader, err := configload.NewLoader(&configload.Config{
 		ModulesDir: modulesDir,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create config loader: %s", err)
-	}
-
-	installDiags := loader.InstallModules(cfgPath, true, configload.InstallHooksImpl{})
-	if installDiags.HasErrors() {
-		return nil, installDiags
 	}
 
 	config, configDiags := loader.LoadConfig(cfgPath)
@@ -970,7 +976,19 @@ func TestCheckModuleResourceAttr(mp []string, name string, key string, value str
 }
 
 func testCheckResourceAttr(is *terraform.InstanceState, name string, key string, value string) error {
+	// Empty containers may be elided from the state.
+	// If the intent here is to check for an empty container, allow the key to
+	// also be non-existent.
+	emptyCheck := false
+	if value == "0" && (strings.HasSuffix(key, ".#") || strings.HasSuffix(key, ".%")) {
+		emptyCheck = true
+	}
+
 	if v, ok := is.Attributes[key]; !ok || v != value {
+		if emptyCheck && !ok {
+			return nil
+		}
+
 		if !ok {
 			return fmt.Errorf("%s: Attribute '%s' not found", name, key)
 		}
@@ -1013,7 +1031,20 @@ func TestCheckModuleNoResourceAttr(mp []string, name string, key string) TestChe
 }
 
 func testCheckNoResourceAttr(is *terraform.InstanceState, name string, key string) error {
-	if _, ok := is.Attributes[key]; ok {
+	// Empty containers may sometimes be included in the state.
+	// If the intent here is to check for an empty container, allow the value to
+	// also be "0".
+	emptyCheck := false
+	if strings.HasSuffix(key, ".#") || strings.HasSuffix(key, ".%") {
+		emptyCheck = true
+	}
+
+	val, exists := is.Attributes[key]
+	if emptyCheck && val == "0" {
+		return nil
+	}
+
+	if exists {
 		return fmt.Errorf("%s: Attribute '%s' found when not expected", name, key)
 	}
 
@@ -1116,14 +1147,32 @@ func TestCheckModuleResourceAttrPair(mpFirst []string, nameFirst string, keyFirs
 }
 
 func testCheckResourceAttrPair(isFirst *terraform.InstanceState, nameFirst string, keyFirst string, isSecond *terraform.InstanceState, nameSecond string, keySecond string) error {
-	vFirst, ok := isFirst.Attributes[keyFirst]
-	if !ok {
-		return fmt.Errorf("%s: Attribute '%s' not found", nameFirst, keyFirst)
+	vFirst, okFirst := isFirst.Attributes[keyFirst]
+	vSecond, okSecond := isSecond.Attributes[keySecond]
+
+	// Container count values of 0 should not be relied upon, and not reliably
+	// maintained by helper/schema. For the purpose of tests, consider unset and
+	// 0 to be equal.
+	if len(keyFirst) > 2 && len(keySecond) > 2 && keyFirst[len(keyFirst)-2:] == keySecond[len(keySecond)-2:] &&
+		(strings.HasSuffix(keyFirst, ".#") || strings.HasSuffix(keyFirst, ".%")) {
+		// they have the same suffix, and it is a collection count key.
+		if vFirst == "0" || vFirst == "" {
+			okFirst = false
+		}
+		if vSecond == "0" || vSecond == "" {
+			okSecond = false
+		}
 	}
 
-	vSecond, ok := isSecond.Attributes[keySecond]
-	if !ok {
-		return fmt.Errorf("%s: Attribute '%s' not found", nameSecond, keySecond)
+	if okFirst != okSecond {
+		if !okFirst {
+			return fmt.Errorf("%s: Attribute %q not set, but %q is set in %s as %q", nameFirst, keyFirst, keySecond, nameSecond, vSecond)
+		}
+		return fmt.Errorf("%s: Attribute %q is %q, but %q is not set in %s", nameFirst, keyFirst, vFirst, keySecond, nameSecond)
+	}
+	if !(okFirst || okSecond) {
+		// If they both don't exist then they are equally unset, so that's okay.
+		return nil
 	}
 
 	if vFirst != vSecond {

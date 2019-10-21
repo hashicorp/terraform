@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "trimspace function"
+page_title: "trimspace - Functions - Configuration Language"
 sidebar_current: "docs-funcs-string-trimspace"
 description: |-
   The trimspace function removes space characters from the start and end of
@@ -8,6 +8,10 @@ description: |-
 ---
 
 # `trimspace` Function
+
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
 
 `trimspace` removes any space characters from the start and end of the given
 string.
