@@ -24,7 +24,6 @@ and are tested by HashiCorp.
 - [Kubernetes](/docs/providers/kubernetes/index.html)
 - [Mailgun](/docs/providers/mailgun/index.html)
 - [Nomad](/docs/providers/nomad/index.html)
-- [Okta](/docs/providers/okta/index.html)
 - [RabbitMQ](/docs/providers/rabbitmq/index.html)
 - [Rancher](/docs/providers/rancher/index.html)
 - [Rancher2](/docs/providers/rancher2/index.html)
