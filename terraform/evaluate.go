@@ -185,6 +185,16 @@ func (d *evaluationStateData) GetForEachAttr(addr addrs.ForEachAttr, rng tfdiags
 		returnVal = d.InstanceKeyData.EachKey
 	case "value":
 		returnVal = d.InstanceKeyData.EachValue
+
+		if returnVal == cty.NilVal {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  `each.value is unknown and cannot be used in this context`,
+				Detail:   fmt.Sprintf(`A reference to "each.value" has been used in a context in which it unavailable, such as after the config no longer contains the value in its "for_each" expression. Remove this reference to each.value in your config to work around this error.`),
+				Subject:  rng.ToHCL().Ptr(),
+			})
+			return cty.UnknownVal(cty.DynamicPseudoType), diags
+		}
 	default:
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
