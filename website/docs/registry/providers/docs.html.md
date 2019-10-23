@@ -14,40 +14,40 @@ This describes the expected document structure for publishing providers to the [
 
 ~> Publishing is currently in a closed beta. Although we do not expect this document to change significantly before opening provider publishing to the community, this reference currently only applies to providers already appearing on the [Terraform Registry providers list][terraform-registry-providers].
 
-### Versioning
+The Terraform Registry publishes providers from their Git repositories, creating a version for each Git tag that matches the [Semver](https://semver.org/) versioning format. Provider documentation is published automatically as part of the provider release process.
 
-Docs are imported to the Terraform Registry for each Git tag matching the Semver versioning format. Updates will not be visible in the Terraform Registry until a new provider version is released.
+Provider documentation is always tied to a provider version. A given version always displays the documentation from that version's Git commit, and the only way to publish updated documentation is to release a new version of the provider.
 
 ### Storage Limits
 
-The maximum number of documents for a single provider version allowed is 1000.
+The maximum number of documents allowed for a single provider version is 1000.
 
 Each document can contain no more than 500KB of data. Documents which exceed this limit will be truncated, and a note will be displayed in the Terraform Registry.
 
 ## Format
 
-Provider documentation is expected to be a folder in the provider repo, containing a Markdown document for the provider overview, and for each resource, data source, and (optionally) guides.
+Provider documentation should be a directory of Markdown documents in the provider repository. Each Markdown document is rendered as a separate page. The directory should include a document for the provider overview, a document for each resource and data source, and optional documents for any guides.
 
-### Folder Structure
+### Directory Structure
 
 | Location | Filename | Description |
 |-|-|-|
 | `docs/` | `index.md` | Overview page for the provider|
 | `docs/guides/` | `<guide>.md` | Additional documentation for guides |
-| `docs/resources/` | `<resource>.md` | Information on a provider resource |
+| `docs/resources/` | `<resource>.md` | Information for a resource. Filename should not include a `<PROVIDER NAME>_` prefix. |
 | `docs/data-sources/` | `<data_source>.md` | Information on a provider data source |
 
--> In order to support provider docs which have already been formatted for publishing to [terraform.io](terraform-io-providers), the Terraform Registry also supports docs in a `website/docs/` legacy directory with file extensions of `.html.markdown` or `.html.md`.
+-> **Note:** In order to support provider docs which have already been formatted for publishing to [terraform.io][terraform-io-providers], the Terraform Registry also supports docs in a `website/docs/` legacy directory with file extensions of `.html.markdown` or `.html.md`.
 
 ### Headers
 
-We strongly suggest that provider docs include the following sections to help users understand how to use the provider. Additional sections should also be created if they would enhance usability of the resource (for example “Imports” or “Customizable Timeouts”).
+We strongly suggest that provider docs include the following sections to help users understand how to use the provider. Create additional sections if they would enhance usability of the resource (for example, “Imports” or “Customizable Timeouts”).
 
 #### Overview
 
     # <provider> Provider
 
-    Summary of what the providers is for, including use cases and links to app/service documentation
+    Summary of what the provider is for, including use cases and links to app/service documentation.
 
     ## Example Usage
 
@@ -99,7 +99,7 @@ subcategory: "Authentication"
 The following frontmatter attributes are supported by the Terraform Registry:
 
 * **page_title** - The title of this document, which will display in the docs navigation. This is only required for documents in the `guides/` folder.
-* **subcategory** - An optional additional layer of grouping for the docs navigation. Resources and Data Sources should be organized into subcategories if the number of resources would be difficult to quickly scan for a user. Guides should be separated into subcategories if there are multiple guides which fit into 2 or more distinct groupings.
+* **subcategory** - An optional additional layer of grouping that affects the display of the docs navigation; [see Subcategories below](#subcategories) for more details. Resources and data sources should be organized into subcategories if the number of resources would be difficult to quickly scan for a user. Guides should be separated into subcategories if there are multiple guides which fit into 2 or more distinct groupings.
 
 ### Callouts
 
@@ -113,7 +113,7 @@ Sigil | Start text with   | Color
 
 ## Navigation Hierarchy
 
-Provider docs will be organized by categories, which are derived from expected subdirectory names. At a minimum, a provider must contain an Overview (`docs/index.md`, and at least one resource or data source.
+Provider docs are organized by category: resources, data sources, and guides. At a minimum, a provider must contain an Overview (`docs/index.md`) and at least one resource or data source.
 
 ### Typical Structure
 
@@ -128,7 +128,7 @@ docs/
         cloud.md
 ```
 
-After publishing this provider version, viewing the documentation for this provider on the Terraform Registry would display a navigation which resembles this hierarchy:
+After publishing this provider version, its page on the Terraform Registry would display a navigation which resembles this hierarchy:
 
 * example Provider
 * Resources
@@ -190,11 +190,11 @@ The `page_title` is used (instead of the filename) for rendering the link to thi
 * Data Sources
     * example_cloud
 
-Guides are always rendered before Resources, Data Sources, and any subcategories.
+Guides are always rendered before resources, data sources, and any subcategories.
 
 ### Guides Subcategories
 
-If a provider has many guides, it can be useful to group them into separate top-level folders. These also use the `subcategory` attribute in the YAML frontmatter:
+If a provider has many guides, you can use subcategories to group them into separate top-level sections. For example, given the following directory structure:
 
 ```
 docs/
@@ -209,7 +209,7 @@ docs/
         cloud.md
 ```
 
-Given these 3 guides have titles similar to their filename, and `subcategory: "Authentication"` has been added for the first two, the Terraform Registry would display this navigation structure:
+Assuming that these three guides have titles similar to their filenames, and the first two include `subcategory: "Authentication"` in their frontmatter, the Terraform Registry would display this navigation structure:
 
 * example Provider
 * Guides
@@ -222,18 +222,18 @@ Given these 3 guides have titles similar to their filename, and `subcategory: "A
 * Data Sources
     * example_cloud
 
-Guides without a subcategory are always rendered before guides with subcategories. Both are always rendered before Resources and Data Sources.
+Guides without a subcategory are always rendered before guides with subcategories. Both are always rendered before resources and data sources.
 
 ## Migrating Legacy Providers Docs
 
 For most provider docs already published to [terraform.io][terraform-io-providers], no changes are required to publish them to the Terraform Registry.
 
-~> The only exception is any providers which organize resources, data sources, or guides into subcategories. See the [Subcategories](#subcategories) section above for more information.
+~> **Important:** The only exceptions are providers which organize resources, data sources, or guides into subcategories. See the [Subcategories](#subcategories) section above for more information.
 
-For provider docs which are not being published to terraform.io, but wish to be published to the Terraform Registry, take the following steps to migrate to the newer format:
+If you want to publish docs on the Terraform Registry that are not currently published to terraform.io, take the following steps to migrate to the newer format:
 
 1. Move the `website/docs/` folder to `docs/`
-2. Expand the folder names to be more explicit:
+2. Expand the folder names to match the Terraform Registry's expected format:
     * Rename `docs/d/` to `docs/data-sources/`
     * Rename `docs/r/` to `docs/resources/`
 3. Change file suffixes from `.html.markdown` or `.html.md` to `.md`.
