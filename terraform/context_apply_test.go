@@ -2079,7 +2079,7 @@ func TestContext2Apply_provisionerDestroyForEach(t *testing.T) {
 	if diags == nil {
 		t.Fatal("should error")
 	}
-	if !strings.Contains(diags.Err().Error(), "each.value is unknown and cannot be used in this context") {
+	if !strings.Contains(diags.Err().Error(), "each.value cannot be used in this context") {
 		t.Fatal("unexpected error:", diags.Err())
 	}
 }
