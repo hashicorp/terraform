@@ -1,4 +1,8 @@
 ## 0.12.13 (Unreleased)
+BUG FIXES:
+
+* config: dotfiles are no longer excluded when copying existing modules; previously, any dotfile/dir was excluded in this copy, but this change makes the local copy behavior match go-getter behavior [GH-22946]
+
 ## 0.12.12 (October 18, 2019)
 
 BUG FIXES:
