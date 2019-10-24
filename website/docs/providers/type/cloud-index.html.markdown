@@ -49,5 +49,6 @@ vendor in close collaboration with HashiCorp, and are tested by HashiCorp.
 - [TencentCloud](/docs/providers/tencentcloud/index.html)
 - [Triton](/docs/providers/triton/index.html)
 - [UCloud](/docs/providers/ucloud/index.html)
+- [Vultr](/docs/providers/vultr/index.html)
 - [Yandex](/docs/providers/yandex/index.html)
 - [1&1](/docs/providers/oneandone/index.html)
