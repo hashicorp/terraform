@@ -277,5 +277,47 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 		}
 	}
 
+	return t.pruneResources(g)
+}
+
+// If there are only destroy instances for a particular resource, there's no
+// reason for the resource node to prepare the state. Remove Resource nodes so
+// that they don't fail by trying to evaluate a resource that is only being
+// destroyed along with its dependencies.
+func (t *DestroyEdgeTransformer) pruneResources(g *Graph) error {
+	for _, v := range g.Vertices() {
+		n, ok := v.(*NodeApplyableResource)
+		if !ok {
+			continue
+		}
+
+		// if there are only destroy dependencies, we don't need this node
+		des, err := g.Descendents(n)
+		if err != nil {
+			return err
+		}
+
+		descendents := des.List()
+		nonDestroyInstanceFound := false
+		for _, v := range descendents {
+			if _, ok := v.(*NodeApplyableResourceInstance); ok {
+				nonDestroyInstanceFound = true
+				break
+			}
+		}
+
+		if nonDestroyInstanceFound {
+			continue
+		}
+
+		// connect all the through-edges, then delete the node
+		for _, d := range g.DownEdges(n).List() {
+			for _, u := range g.UpEdges(n).List() {
+				g.Connect(dag.BasicEdge(u, d))
+			}
+		}
+		log.Printf("DestroyEdgeTransformer: pruning unused resource node %s", dag.VertexName(n))
+		g.Remove(n)
+	}
 	return nil
 }
