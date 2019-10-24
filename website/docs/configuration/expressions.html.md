@@ -317,6 +317,10 @@ be accessed using a [`for` expression](#for-expressions).
 * `[for value in aws_instance.example: value.id]` returns a list of all of the ids
   of each of the instances.
 
+Note that unlike `count`, splat expressions are _not_ directly applicable to resources managed with `for_each`, as splat expressions are for lists only. You may apply a splat expression to values in a map like so:
+
+* `values(aws_instance.example)[*].id`
+
 ### Local Named Values
 
 Within the bodies of certain expressions, or in some other specific contexts,
