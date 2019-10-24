@@ -522,8 +522,9 @@ root
 test_object.A (prepare state)
   provider.test
 test_object.A[1] (destroy)
-  test_object.A (prepare state)
+  provider.test
 test_object.B
+  test_object.A (prepare state)
   test_object.A[1] (destroy)
   test_object.B (prepare state)
 test_object.B (prepare state)
