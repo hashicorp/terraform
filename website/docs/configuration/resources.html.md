@@ -246,7 +246,7 @@ resource "aws_instance" "server" {
   ami           = "ami-a1b2c3d4"
   instance_type = "t2.micro"
 
-  tags {
+  tags = {
     Name = "Server ${count.index}"
   }
 }
@@ -309,7 +309,7 @@ resource "aws_instance" "server" {
   instance_type = "t2.micro"
   subnet_id     = var.subnet_ids[count.index]
 
-  tags {
+  tags = {
     Name = "Server ${count.index}"
   }
 }
@@ -396,7 +396,7 @@ resource "aws_instance" "server" {
   instance_type = "t2.micro"
   subnet_id     = each.key # note: each.key and each.value are the same for a set
 
-  tags {
+  tags = {
     Name = "Server ${each.key}"
   }
 }
