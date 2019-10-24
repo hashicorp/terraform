@@ -73,6 +73,17 @@ $ terraform taint aws_security_group.allow_all
 The resource aws_security_group.allow_all in the module root has been marked as tainted.
 ```
 
+## Example: Tainting a single resource created with for_each
+
+It is necessary to wrap the resource in single quotes and escape the quotes.
+This example will taint a single resource created with for_each:
+
+```
+$ terraform taint 'module.route_tables.azurerm_route_table.rt[\"DefaultSubnet\"]'
+The resource module.route_tables.azurerm_route_table.rt["DefaultSubnet"] in the module root has been marked as tainted.
+```
+
+
 ## Example: Tainting a Resource within a Module
 
 This example will only taint a resource within a module:
