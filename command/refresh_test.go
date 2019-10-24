@@ -27,6 +27,8 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+var equateEmpty = cmpopts.EquateEmpty()
+
 func TestRefresh(t *testing.T) {
 	state := testState()
 	statePath := testStateFile(t, state)
@@ -626,8 +628,10 @@ func TestRefresh_disableBackup(t *testing.T) {
 	}
 
 	newState := testStateRead(t, statePath)
-	if !reflect.DeepEqual(newState, state) {
-		t.Fatalf("bad: %#v", newState)
+	if !cmp.Equal(state, newState, equateEmpty) {
+		spew.Config.DisableMethods = true
+		fmt.Println(cmp.Diff(state, newState, equateEmpty))
+		t.Fatalf("bad: %s", newState)
 	}
 
 	newState = testStateRead(t, outPath)
