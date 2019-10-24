@@ -137,7 +137,7 @@ down to see all providers.
 - [VMware vCloud Director](/docs/providers/vcd/index.html)
 - [VMware vRA7](/docs/providers/vra7/index.html)
 - [VMware vSphere](/docs/providers/vsphere/index.html)
-- [Vultr](/docs/providers/vultr/index/html)
+- [Vultr](/docs/providers/vultr/index.html)
 - [Yandex](/docs/providers/yandex/index.html)
 
 
