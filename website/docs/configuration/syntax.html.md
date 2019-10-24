@@ -32,7 +32,7 @@ It is not necessary to know all of the details of HCL syntax in
 order to use Terraform, and so this page summarizes the most important
 details. If you are interested, you can find a full definition of HCL
 syntax in
-[the HCL native syntax specification](https://github.com/hashicorp/hcl/blob/hcl2/hcl/hclsyntax/spec.md).
+[the HCL native syntax specification](https://github.com/hashicorp/hcl/blob/hcl2/hclsyntax/spec.md).
 
 ## Arguments and Blocks
 
