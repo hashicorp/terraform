@@ -107,9 +107,9 @@ If you start a paragraph with a special arrow-like sigil, it will become a color
 
 Sigil | Text prefix       | Color
 ------|-------------------|-------
-`->`  | `**Note:**`       | blue
-`~>`  | `**Important:**`  | yellow
-`!>`  | `**Warning:**`    | red
+`->`  | `**Note**`       | blue
+`~>`  | `**Note**`       | yellow
+`!>`  | `**Warning**`    | red
 
 ## Navigation Hierarchy
 
