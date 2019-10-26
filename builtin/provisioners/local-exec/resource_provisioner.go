@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strings"
 
 	"github.com/armon/circbuf"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -41,6 +42,10 @@ func Provisioner() terraform.ResourceProvisioner {
 				Type:     schema.TypeMap,
 				Optional: true,
 			},
+			"system_environment": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
 		},
 
 		ApplyFunc: applyFn,
@@ -57,7 +62,18 @@ func applyFn(ctx context.Context) error {
 	}
 
 	// Execute the command with env
-	environment := data.Get("environment").(map[string]interface{})
+	environment := make(map[string]interface{})
+	// Start with the system env (if desired)
+	if data.Get("system_environment").(bool) {
+		for _, e := range os.Environ() {
+			pair := strings.SplitN(e, "=", 2)
+			environment[pair[0]] = pair[1]
+		}
+	}
+	// Apply the explicitly specified environment
+	for k, v := range data.Get("environment").(map[string]interface{}) {
+		environment[k] = v
+	}
 
 	var env []string
 	for k := range environment {

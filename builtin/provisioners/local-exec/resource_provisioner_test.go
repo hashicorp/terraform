@@ -192,3 +192,37 @@ func TestResourceProvider_ApplyCustomEnv(t *testing.T) {
 		t.Errorf("wrong output\ngot:  %s\nwant: %s", got, want)
 	}
 }
+
+func TestResourceProvider_ApplySystemEnv(t *testing.T) {
+	// Preserve original system env values (if any)
+	origFoo := os.Getenv("FOO")
+	defer os.Setenv("FOO", origFoo)
+	origBam := os.Getenv("BAM")
+	defer os.Setenv("FOO", origBam)
+
+	os.Setenv("FOO", "SystemFOO")
+	os.Setenv("BAM", "SystemBAM")
+
+	c := testConfig(t, map[string]interface{}{
+		"command": "echo $FOO $BAR $BAZ $BAM",
+		"system_env": true,
+		"environment": map[string]interface{}{
+			"FOO": "BAR",
+			"BAR": 1,
+			"BAZ": "true",
+		},
+	})
+
+	output := new(terraform.MockUIOutput)
+	p := Provisioner()
+
+	if err := p.Apply(output, nil, c); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	got := strings.TrimSpace(output.OutputMessage)
+	want := "BAR 1 true SystemBAM"
+	if got != want {
+		t.Errorf("wrong output\ngot:  %s\nwant: %s", got, want)
+	}
+}

@@ -58,6 +58,11 @@ The following arguments are supported:
 * `environment` - (Optional) block of key value pairs representing the
   environment of the executed command. inherits the current process environment.
 
+* `system_environment` - (Optional) If true, the environment of the terraform 
+   process will be passed through to the executed command. Variables explicitly specified
+   in `environment` will take precedence over any variables inherited from the system
+   environment. 
+   
 ### Interpreter Examples
 
 ```hcl
