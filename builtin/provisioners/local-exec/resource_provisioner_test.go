@@ -204,7 +204,7 @@ func TestResourceProvider_ApplySystemEnv(t *testing.T) {
 	os.Setenv("BAM", "SystemBAM")
 
 	c := testConfig(t, map[string]interface{}{
-		"command": "echo $FOO $BAR $BAZ $BAM",
+		"command":    "echo $FOO $BAR $BAZ $BAM",
 		"system_env": true,
 		"environment": map[string]interface{}{
 			"FOO": "BAR",
