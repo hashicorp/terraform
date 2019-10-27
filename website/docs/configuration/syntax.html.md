@@ -30,9 +30,8 @@ syntax called _HCL_, which is also used by configuration languages in
 other applications, and in particular other HashiCorp products.
 It is not necessary to know all of the details of HCL syntax in
 order to use Terraform, and so this page summarizes the most important
-details. If you are interested, you can find a full definition of HCL
-syntax in
-[the HCL native syntax specification](https://github.com/hashicorp/hcl/blob/hcl2/hclsyntax/spec.md).
+details. If you are interested, you can find a high-level overview of the syntax and grammar in
+[the HCL native syntax specification](https://github.com/hashicorp/hcl#syntax).
 
 ## Arguments and Blocks
 
