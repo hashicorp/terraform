@@ -430,6 +430,113 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"isbool": {
+			{
+				`isbool(true)`,
+				cty.True,
+			},
+			{
+				`isbool(false)`,
+				cty.True,
+			},
+			{
+				`isbool(0)`,
+				cty.False,
+			},
+			{
+				`isbool(42)`,
+				cty.False,
+			},
+		},
+
+		"islist": {
+			{
+				`islist(list(1, 2, 3))`,
+				cty.True,
+			},
+			{
+				`islist([1, 2, 3])`,
+				cty.False,
+			},
+		},
+
+		"ismap": {
+			{
+				`ismap(map("foo", "bar"))`,
+				cty.True,
+			},
+			{
+				`ismap({ foo : "bar" })`,
+				cty.False,
+			},
+		},
+
+		"isnull": {
+			{
+				`isnull(null)`,
+				cty.True,
+			},
+			{
+				`isnull(false)`,
+				cty.False,
+			},
+		},
+
+		"isnumber": {
+			{
+				`isnumber(42)`,
+				cty.True,
+			},
+			{
+				`isnumber("42")`,
+				cty.False,
+			},
+		},
+
+		"isobject": {
+			{
+				`isobject({ foo : "bar" })`,
+				cty.True,
+			},
+			{
+				`isobject(map("foo", "bar"))`,
+				cty.False,
+			},
+		},
+
+		"isset": {
+			{
+				`isset(toset([1, 2, 3]))`,
+				cty.True,
+			},
+			{
+				`isset([1, 2, 3])`,
+				cty.False,
+			},
+		},
+
+		"isstring": {
+			{
+				`isstring("foo")`,
+				cty.True,
+			},
+			{
+				`isstring(42)`,
+				cty.False,
+			},
+		},
+
+		"istuple": {
+			{
+				`istuple([1, 2, 3])`,
+				cty.True,
+			},
+			{
+				`istuple(list(1, 2, 3))`,
+				cty.False,
+			},
+		},
+
 		"join": {
 			{
 				`join(" ", ["Hello", "World"])`,
@@ -841,6 +948,49 @@ func TestFunctions(t *testing.T) {
 			{
 				`trimspace(" hello ")`,
 				cty.StringVal("hello"),
+			},
+		},
+
+		"type": {
+			{
+				`type(true)`,
+				cty.StringVal("bool"),
+			},
+			{
+				`type(false)`,
+				cty.StringVal("bool"),
+			},
+			{
+				`type(list(1, 2, 3))`,
+				cty.StringVal("list"),
+			},
+			{
+				`type(map("foo", "bar"))`,
+				cty.StringVal("map"),
+			},
+			{
+				`type(null)`,
+				cty.StringVal("null"),
+			},
+			{
+				`type(42)`,
+				cty.StringVal("number"),
+			},
+			{
+				`type({ foo : "bar" })`,
+				cty.StringVal("object"),
+			},
+			{
+				`type(toset([1, 2, 3]))`,
+				cty.StringVal("set"),
+			},
+			{
+				`type("42")`,
+				cty.StringVal("string"),
+			},
+			{
+				`type([1, 2, 3])`,
+				cty.StringVal("tuple"),
 			},
 		},
 
