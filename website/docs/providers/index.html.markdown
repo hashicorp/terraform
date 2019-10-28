@@ -52,6 +52,7 @@ down to see all providers.
 - [DNSimple](/docs/providers/dnsimple/index.html)
 - [DNSMadeEasy](/docs/providers/dme/index.html)
 - [Docker](/docs/providers/docker/index.html)
+- [Dome9](/docs/providers/dome9/index.html)
 - [Dyn](/docs/providers/dyn/index.html)
 - [Exoscale](/docs/providers/exoscale/index.html)
 - [External](/docs/providers/external/index.html)
