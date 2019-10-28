@@ -26,22 +26,22 @@ Each document can contain no more than 500KB of data. Documents which exceed thi
 
 ## Format
 
-Provider documentation should be a directory of Markdown documents in the provider repository. Each Markdown document is rendered as a separate page. The directory should include a document for the provider index, a document for each Resource and Data Source, and optional documents for any Guides.
+Provider documentation should be a directory of Markdown documents in the provider repository. Each Markdown document is rendered as a separate page. The directory should include a document for the provider index, a document for each resource and data source, and optional documents for any guides.
 
 ### Directory Structure
 
 | Location | Filename | Description |
 |-|-|-|
 | `docs/` | `index.md` | Index page for the provider. |
-| `docs/guides/` | `<guide>.md` | Additional documentation for Guides. |
+| `docs/guides/` | `<guide>.md` | Additional documentation for guides. |
 | `docs/resources/` | `<resource>.md` | Information for a Resource. Filename should not include a `<PROVIDER NAME>_` prefix. |
-| `docs/data-sources/` | `<data_source>.md` | Information on a provider Data Source. |
+| `docs/data-sources/` | `<data_source>.md` | Information on a provider data source. |
 
 -> **Note:** In order to support provider docs which have already been formatted for publishing to [terraform.io][terraform-io-providers], the Terraform Registry also supports docs in a `website/docs/` legacy directory with file extensions of `.html.markdown` or `.html.md`.
 
 ### Headers
 
-We strongly suggest that provider docs include the following sections to help users understand how to use the provider. Create additional sections if they would enhance usability of the Resource (for example, “Imports” or “Customizable Timeouts”).
+We strongly suggest that provider docs include the following sections to help users understand how to use the provider. Create additional sections if they would enhance usability of the resource (for example, “Imports” or “Customizable Timeouts”).
 
 #### Index
 
@@ -51,37 +51,37 @@ We strongly suggest that provider docs include the following sections to help us
 
     ## Example Usage
 
-    ```terraform
+    ```hcl
     // Code block with an example of how to use this provider.
     ```
-    
+
     ## Argument Reference
-    
+
     * List any arguments for the provider block.
 
 #### Resources/Data Sources
 
     # <resource name> Resource/Data Source
 
-    Description of what this Resource does, with links to official app/service documentation.
-    
+    Description of what this resource does, with links to official app/service documentation.
+
     ## Example Usage
-    
-    ```terraform
-    // Code block with an example of how to use this Resource.
+
+    ```hcl
+    // Code block with an example of how to use this resource.
     ```
-    
+
     ## Argument Reference
-    
-    * `attribute_name` - (Optional/Required) List arguments this Resource takes.
-    
+
+    * `attribute_name` - (Optional/Required) List arguments this resource takes.
+
     ## Attribute Reference
-    
-    * `attribute_name` - List attributes that this Resource exports.
+
+    * `attribute_name` - List attributes that this resource exports.
 
 ### YAML Frontmatter
 
-Markdown source files may contain YAML frontmatter, which provides information to the Registry for organization and display of providers.
+Markdown source files may contain YAML frontmatter, which provides organizational information and display hints. Frontmatter can be omitted for resources and data sources that don't require a subcategory. 
 
 Frontmatter is not rendered in the Terraform Registry web UI.
 
@@ -99,7 +99,7 @@ subcategory: "Authentication"
 The following frontmatter attributes are supported by the Terraform Registry:
 
 * **page_title** - The title of this document, which will display in the docs navigation. This is only required for documents in the `guides/` folder.
-* **subcategory** - An optional additional layer of grouping that affects the display of the docs navigation; [see Subcategories below](#subcategories) for more details. Resources and Data Sources should be organized into subcategories if the number of Resources would be difficult to quickly scan for a user. Guides should be separated into subcategories if there are multiple Guides which fit into 2 or more distinct groupings.
+* **subcategory** - An optional additional layer of grouping that affects the display of the docs navigation; [see Subcategories below](#subcategories) for more details. Resources and data sources should be organized into subcategories if the number of resources would be difficult to quickly scan for a user. Guides should be separated into subcategories if there are multiple guides which fit into 2 or more distinct groupings.
 
 ### Callouts
 
@@ -113,66 +113,66 @@ Sigil | Text prefix       | Color
 
 ## Navigation Hierarchy
 
-Provider docs are organized by category: Resources, Data Sources, and Guides. At a minimum, a provider must contain an index (`docs/index.md`) and at least one Resource or Data Source.
+Provider docs are organized by category: resources, data sources, and guides. At a minimum, a provider must contain an index (`docs/index.md`) and at least one resource or data source.
 
 ### Typical Structure
 
-A provider named `example` with a Resource and Data Source for `cloud` would have these 3 files:
+A provider named `example` with a resource and data source for `instance` would have these 3 files:
 
 ```
 docs/
     index.md
     data-sources/
-        cloud.md
-    Resources/
-        cloud.md
+        instance.md
+    resources/
+        instance.md
 ```
 
 After publishing this provider version, its page on the Terraform Registry would display a navigation which resembles this hierarchy:
 
 * example Provider
 * Resources
-    * example_cloud
+    * example_instance
 * Data Sources
-    * example_cloud
+    * example_instance
 
 ### Subcategories
 
-If we wanted to group these Resources by a service or other dimension, we could add a `subcategory` field to the YAML frontmatter of the Resource and Data Source:
+To group these resources by a service or other dimension, add the optional `subcategory` field to the YAML frontmatter of the resource and data source:
 
 ```markdown
 ---
-subcategory: "Cloud"
+subcategory: "Compute"
 ---
 ```
 
 This would change the navigation hierarchy to the following:
 
 * example Provider
-* Cloud
+* Compute
     * Resources
-        * example_cloud
+        * example_instance
     * Data Sources
-        * example_cloud
+        * example_instance
 
-Resources and Data Sources without a subcategory will be rendered before any subcategories.
+Resources and data sources without a subcategory will be rendered before any subcategories.
 
 ### Guides
 
-Providers can optionally include 1 or more Guides. These can assist users in using the provider for certain scenarios.
+Providers can optionally include 1 or more guides. These can assist users in using the provider for certain scenarios.
 
 ```
 docs/
     index.md
-    Guides/
+    guides/
         authenticating.md
     data-sources/
-        cloud.md
-    Resources/
-        cloud.md
+        instance.md
+    resources/
+        instance.md
 ```
 
-The title for Guides is controlled with the `page_title` attribute in the YAML frontmatter:
+The title for guides is controlled with the `page_title` attribute in the YAML frontmatter:
 
 ```markdown
 ---
@@ -186,32 +186,32 @@ The `page_title` is used (instead of the filename) for rendering the link to thi
 * Guides
     * Authenticating with Example Cloud
 * Resources
-    * example_cloud
+    * example_instance
 * Data Sources
-    * example_cloud
+    * example_instance
 
-Guides are always rendered before Resources, Data Sources, and any subcategories.
+Guides are always rendered before resources, data sources, and any subcategories.
 
 If a `page_title` attribute is not found, the title will default to the filename without the extension.
 
 ### Guides Subcategories
 
-If a provider has many Guides, you can use subcategories to group them into separate top-level sections. For example, given the following directory structure:
+If a provider has many guides, you can use subcategories to group them into separate top-level sections. For example, given the following directory structure:
 
 ```
 docs/
     index.md
-    Guides/
+    guides/
         authenticating-basic.md
         authenticating-oauth.md
         setup.md
     data-sources/
-        cloud.md
-    Resources/
-        cloud.md
+        instance.md
+    resources/
+        instance.md
 ```
 
-Assuming that these three Guides have titles similar to their filenames, and the first two include `subcategory: "Authentication"` in their frontmatter, the Terraform Registry would display this navigation structure:
+Assuming that these three guides have titles similar to their filenames, and the first two include `subcategory: "Authentication"` in their frontmatter, the Terraform Registry would display this navigation structure:
 
 * example Provider
 * Guides
@@ -220,17 +220,17 @@ Assuming that these three Guides have titles similar to their filenames, and the
     * Authenticating with Basic Authentication
     * Authenticating with OAuth
 * Resources
-    * example_cloud
+    * example_instance
 * Data Sources
-    * example_cloud
+    * example_instance
 
-Guides without a subcategory are always rendered before Guides with subcategories. Both are always rendered before Resources and Data Sources.
+Guides without a subcategory are always rendered before guides with subcategories. Both are always rendered before resources and data sources.
 
 ## Migrating Legacy Providers Docs
 
 For most provider docs already published to [terraform.io][terraform-io-providers], no changes are required to publish them to the Terraform Registry.
 
-~> **Important:** The only exceptions are providers which organize Resources, Data Sources, or Guides into subcategories. See the [Subcategories](#subcategories) section above for more information.
+~> **Important:** The only exceptions are providers which organize resources, data sources, or guides into subcategories. See the [Subcategories](#subcategories) section above for more information.
 
 If you want to publish docs on the Terraform Registry that are not currently published to terraform.io, take the following steps to migrate to the newer format:
 
