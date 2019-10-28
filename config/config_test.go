@@ -282,13 +282,6 @@ func TestConfigValidate_countInt(t *testing.T) {
 	}
 }
 
-func TestConfigValidate_countInt_HCL2(t *testing.T) {
-	c := testConfigHCL2(t, "validate-count-int")
-	if err := c.Validate(); err != nil {
-		t.Fatalf("unexpected error: %s", err)
-	}
-}
-
 func TestConfigValidate_countBadContext(t *testing.T) {
 	c := testConfig(t, "validate-count-bad-context")
 
@@ -320,34 +313,8 @@ func TestConfigValidate_countNotInt(t *testing.T) {
 	}
 }
 
-func TestConfigValidate_countNotInt_HCL2(t *testing.T) {
-	c := testConfigHCL2(t, "validate-count-not-int-const")
-	if err := c.Validate(); err == nil {
-		t.Fatal("should not be valid")
-	}
-}
-
-func TestConfigValidate_countNotIntUnknown_HCL2(t *testing.T) {
-	c := testConfigHCL2(t, "validate-count-not-int")
-	// In HCL2 this is not an error because the unknown variable interpolates
-	// to produce an unknown string, which we assume (incorrectly, it turns out)
-	// will become a string containing only digits. This is okay because
-	// the config validation is only a "best effort" and we'll get a definitive
-	// result during the validation graph walk.
-	if err := c.Validate(); err != nil {
-		t.Fatalf("unexpected error: %s", err)
-	}
-}
-
 func TestConfigValidate_countUserVar(t *testing.T) {
 	c := testConfig(t, "validate-count-user-var")
-	if err := c.Validate(); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-}
-
-func TestConfigValidate_countUserVar_HCL2(t *testing.T) {
-	c := testConfigHCL2(t, "validate-count-user-var")
 	if err := c.Validate(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -738,23 +705,6 @@ func testConfig(t *testing.T, name string) *Config {
 	}
 
 	return c
-}
-
-// testConfigHCL loads a config, forcing it to be processed with the HCL2
-// loader even if it doesn't explicitly opt in to the HCL2 experiment.
-func testConfigHCL2(t *testing.T, name string) *Config {
-	t.Helper()
-	cer, _, err := globalHCL2Loader.loadFile(filepath.Join(fixtureDir, name, "main.tf"))
-	if err != nil {
-		t.Fatalf("failed to load %s: %s", name, err)
-	}
-
-	cfg, err := cer.Config()
-	if err != nil {
-		t.Fatalf("failed to decode %s: %s", name, err)
-	}
-
-	return cfg
 }
 
 func TestConfigDataCount(t *testing.T) {

@@ -7,9 +7,6 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/convert"
-
 	hcl2 "github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
@@ -349,37 +346,9 @@ func (r *RawConfig) couldBeInteger() bool {
 		_, err := strconv.ParseInt(r.Value().(string), 0, 0)
 		return err == nil
 	} else {
-		// HCL2 experiment path: using the HCL2 API via shims
-		//
-		// This path catches fewer situations because we have to assume all
-		// variables are entirely unknown in HCL2, rather than the assumption
-		// above that all variables can be numbers because names like "var.foo"
-		// are considered a single variable rather than an attribute access.
-		// This is fine in practice, because we get a definitive answer
-		// during the graph walk when we have real values to work with.
-		attrs, diags := r.Body.JustAttributes()
-		if diags.HasErrors() {
-			// This body is not just a single attribute with a value, so
-			// this can't be a number.
-			return false
-		}
-		attr, hasAttr := attrs[r.Key]
-		if !hasAttr {
-			return false
-		}
-		result, diags := hcl2EvalWithUnknownVars(attr.Expr)
-		if diags.HasErrors() {
-			// We'll conservatively assume that this error is a result of
-			// us not being ready to fully-populate the scope, and catch
-			// any further problems during the main graph walk.
-			return true
-		}
-
-		// If the result is convertable to number then we'll allow it.
-		// We do this because an unknown string is optimistically convertable
-		// to number (might be "5") but a _known_ string "hello" is not.
-		_, err := convert.Convert(result, cty.Number)
-		return err == nil
+		// We briefly tried to gradually implement HCL2 support by adding a
+		// branch here, but that experiment was not successful.
+		panic("HCL2 experimental path no longer supported")
 	}
 }
 
@@ -432,14 +401,14 @@ type gobRawConfig struct {
 }
 
 // langEvalConfig returns the evaluation configuration we use to execute.
+//
+// The interpolation functions are no longer available here, because this
+// codepath is no longer used. Instead, see ../lang/functions.go .
 func langEvalConfig(vs map[string]ast.Variable) *hil.EvalConfig {
 	funcMap := make(map[string]ast.Function)
 	for k, v := range Funcs() {
 		funcMap[k] = v
 	}
-	funcMap["lookup"] = interpolationFuncLookup(vs)
-	funcMap["keys"] = interpolationFuncKeys(vs)
-	funcMap["values"] = interpolationFuncValues(vs)
 
 	return &hil.EvalConfig{
 		GlobalScope: &ast.BasicScope{
