@@ -203,8 +203,8 @@ provider configuration first.
 ### Provider Version Constraints in Modules
 
 To declare that a module requires particular versions of a specific provider,
-use the [`required_providers`](/docs/configuration/terraform.html#specifying-required-provider-versions)
-setting inside a `terraform` block:
+use a [`required_providers`](terraform.html#specifying-required-provider-versions)
+block inside a `terraform` block:
 
 ```hcl
 terraform {
