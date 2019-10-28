@@ -8,11 +8,11 @@ description: |-
 
 # Provider Documentation
 
-This describes the expected document structure for publishing providers to the [Terraform Registry][terraform-registry].
+The [Terraform Registry][terraform-registry] displays documentation for the providers it hosts. This page describes the expected format for provider documentation.
 
 ## Publishing
 
-~> Publishing is currently in a closed beta. Although we do not expect this document to change significantly before opening provider publishing to the community, this reference currently only applies to providers already appearing on the [Terraform Registry providers list][terraform-registry-providers].
+-> **Note:** Publishing is currently in a closed beta. Although we do not expect this document to change significantly before opening provider publishing to the community, this reference currently only applies to providers already appearing on the [Terraform Registry providers list][terraform-registry-providers].
 
 The Terraform Registry publishes providers from their Git repositories, creating a version for each Git tag that matches the [Semver](https://semver.org/) versioning format. Provider documentation is published automatically as part of the provider release process.
 
@@ -43,11 +43,12 @@ Provider documentation should be a directory of Markdown documents in the provid
 
 We strongly suggest that provider docs include the following sections to help users understand how to use the provider. Create additional sections if they would enhance usability of the resource (for example, “Imports” or “Customizable Timeouts”).
 
-#### Index
+#### Index Headers
 
     # <provider> Provider
 
-    Summary of what the provider is for, including use cases and links to app/service documentation.
+    Summary of what the provider is for, including use cases and links to
+    app/service documentation.
 
     ## Example Usage
 
@@ -59,11 +60,12 @@ We strongly suggest that provider docs include the following sections to help us
 
     * List any arguments for the provider block.
 
-#### Resources/Data Sources
+#### Resource/Data Source Headers
 
     # <resource name> Resource/Data Source
 
-    Description of what this resource does, with links to official app/service documentation.
+    Description of what this resource does, with links to official
+    app/service documentation.
 
     ## Example Usage
 
@@ -81,7 +83,7 @@ We strongly suggest that provider docs include the following sections to help us
 
 ### YAML Frontmatter
 
-Markdown source files may contain YAML frontmatter, which provides organizational information and display hints. Frontmatter can be omitted for resources and data sources that don't require a subcategory. 
+Markdown source files may contain YAML frontmatter, which provides organizational information and display hints. Frontmatter can be omitted for resources and data sources that don't require a subcategory.
 
 Frontmatter is not rendered in the Terraform Registry web UI.
 
