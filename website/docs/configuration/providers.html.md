@@ -93,9 +93,9 @@ for installation instructions.
 For more information, see
 [the `terraform init` command](/docs/commands/init.html).
 
-## `version`: Provider Versions
+## Provider Versions
 
-[inpage-versions]: #version-provider-versions
+[inpage-versions]: #provider-versions
 
 Providers are plugins released on a separate rhythm from Terraform itself, and
 so they have their own version numbers. For production use, you should
@@ -118,31 +118,23 @@ suggested below.
 * provider.aws: version = "~> 1.0"
 ```
 
-To constrain the provider version as suggested, add the `version` meta-argument
-to the provider configuration block:
+To constrain the provider version as suggested, add a `required_providers`
+block inside a `terraform` block:
 
 ```hcl
-provider "aws" {
-  version = "~> 1.0"
-
-  region = "us-east-1"
+terraform {
+  required_providers {
+    aws = "~> 1.0"
+  }
 }
 ```
 
-This meta-argument applies to all providers.
-[The `terraform providers` command](/docs/commands/providers.html) can be used
+Use [the `terraform providers` command](/docs/commands/providers.html)
 to view the specified version constraints for all providers used in the
 current configuration.
 
-The `version` argument value may either be a single explicit version or
-a version constraint string. Constraint strings use the following syntax to
-specify a _range_ of versions that are acceptable:
-
-* `>= 1.2.0`: version 1.2.0 or newer
-* `<= 1.2.0`: version 1.2.0 or older
-* `~> 1.2.0`: any non-beta version `>= 1.2.0` and `< 1.3.0`, e.g. `1.2.X`
-* `~> 1.2`: any non-beta version `>= 1.2.0` and `< 2.0.0`, e.g. `1.X.Y`
-* `>= 1.0.0, <= 2.0.0`: any version between 1.0.0 and 2.0.0 inclusive
+For more information on the `required_providers` block, see
+[Specifying Required Provider Versions](https://www.terraform.io/docs/configuration/terraform.html#specifying-required-provider-versions).
 
 When `terraform init` is re-run with providers already installed, it will
 use an already-installed provider that meets the constraints in preference
@@ -150,10 +142,12 @@ to downloading a new version. To upgrade to the latest acceptable version
 of each provider, run `terraform init -upgrade`. This command also upgrades
 to the latest versions of all Terraform modules.
 
-Additional provider version requirements can be specified in the 
-[`required_providers`](/docs/configuration/terraform.html#specifying-required-provider-versions)
-block inside the `terraform` configuration. Constraints are combined together
-using logical AND.
+Provider version constraints can also be specified using a `version` argument
+within a `provider` block, but that simultaneously declares a new provider
+configuration that may cause problems particularly when writing shared modules.
+For that reason, we recommend using the `required_providers` block as described
+above, and _not_ using the `version` argument within `provider` blocks.
+`version` is still supported for compatibility with older Terraform versions.
 
 ## `alias`: Multiple Provider Instances
 

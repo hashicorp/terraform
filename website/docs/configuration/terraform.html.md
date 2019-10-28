@@ -103,12 +103,6 @@ to newer versions of Terraform without altering the module.
 The `required_providers` setting is a map specifying a version constraint for
 each provider required by your configuration.
 
-This is one of several ways to define
-[provider version constraints](./providers.html#provider-versions),
-and is particularly suited to re-usable modules that expect a provider
-configuration to be provided by their caller but still need to impose a
-minimum version for that provider.
-
 ```hcl
 terraform {
   required_providers {
@@ -117,7 +111,21 @@ terraform {
 }
 ```
 
+Version constraint strings within the `required_providers` block use the
+same version constraint syntax as for
+[the `required_version` argument](#specifying-a-required-terraform-version)
+described above.
+
+When a configuration contains multiple version constraints for a single
+provider -- for example, if you're using multiple modules and each one has
+its own constraint -- _all_ of the constraints must hold to select a single
+provider version for the whole configuration.
+
 Re-usable modules should constrain only the minimum allowed version, such
 as `>= 1.0.0`. This specifies the earliest version that the module is
 compatible with while leaving the user of the module flexibility to upgrade
 to newer versions of the provider without altering the module.
+
+Root modules should use a `~>` constraint to set both a lower and upper bound
+on versions for each provider they depend on, as described in
+[Provider Versions](providers.html#provider-versions).
