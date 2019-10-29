@@ -78,7 +78,7 @@ The following arguments are supported:
   a certificate from the Puppet master CA (defaults to the FQDN of the
   resource).
 
-* `extension_request (map)` - (Optional) A map of [extension 
+* `extension_requests (map)` - (Optional) A map of [extension 
   requests](https://puppet.com/docs/puppet/latest/ssl_attributes_extensions.html#concept-932)
   to be embedded in the certificate signing request before it is sent to the
   Puppet master CA and then transferred to the final certificate when the CSR
