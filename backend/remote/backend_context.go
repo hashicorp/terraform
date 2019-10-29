@@ -49,6 +49,17 @@ func (b *Remote) Context(op *backend.Operation) (*terraform.Context, statemgr.Fu
 		return nil, nil, diags
 	}
 
+	defer func() {
+		// If we're returning with errors, and thus not producing a valid
+		// context, we'll want to avoid leaving the remote workspace locked.
+		if diags.HasErrors() {
+			err := op.StateLocker.Unlock(nil)
+			if err != nil {
+				diags = diags.Append(errwrap.Wrapf("Error unlocking state: {{err}}", err))
+			}
+		}
+	}()
+
 	log.Printf("[TRACE] backend/remote: reading remote state for workspace %q", workspace)
 	if err := stateMgr.RefreshState(); err != nil {
 		diags = diags.Append(errwrap.Wrapf("Error loading state: {{err}}", err))
