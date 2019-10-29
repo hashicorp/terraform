@@ -214,6 +214,11 @@ func (n *NodeRefreshableManagedResourceInstance) evalTreeManagedResource() EvalN
 				Output: &state,
 			},
 
+			&EvalRefreshDependencies{
+				State:        &state,
+				Dependencies: &n.Dependencies,
+			},
+
 			&EvalRefresh{
 				Addr:           addr.Resource,
 				ProviderAddr:   n.ResolvedProvider,
@@ -228,6 +233,7 @@ func (n *NodeRefreshableManagedResourceInstance) evalTreeManagedResource() EvalN
 				ProviderAddr:   n.ResolvedProvider,
 				ProviderSchema: &providerSchema,
 				State:          &state,
+				Dependencies:   &n.Dependencies,
 			},
 		},
 	}
@@ -287,6 +293,7 @@ func (n *NodeRefreshableManagedResourceInstance) evalTreeManagedResourceNoState(
 				ProviderAddr:   n.ResolvedProvider,
 				ProviderSchema: &providerSchema,
 				State:          &state,
+				Dependencies:   &n.Dependencies,
 			},
 
 			// We must also save the planned change, so that expressions in
