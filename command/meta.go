@@ -607,13 +607,13 @@ func (m *Meta) workspaceAddrStringOverridden() (string, bool) {
 
 // SetWorkspace saves the given name as the current workspace in the local
 // filesystem.
-func (m *Meta) SetWorkspace(name string) error {
+func (m *Meta) SetWorkspace(addr addrs.ProjectWorkspace) error {
 	err := os.MkdirAll(m.DataDir(), 0755)
 	if err != nil {
 		return err
 	}
 
-	err = ioutil.WriteFile(filepath.Join(m.DataDir(), local.DefaultWorkspaceFile), []byte(name), 0644)
+	err = ioutil.WriteFile(filepath.Join(m.DataDir(), local.DefaultWorkspaceFile), []byte(addr.StringCompact()), 0644)
 	if err != nil {
 		return err
 	}

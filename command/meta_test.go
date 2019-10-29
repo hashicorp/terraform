@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -185,17 +186,17 @@ func TestMeta_Env(t *testing.T) {
 		t.Fatalf("expected env %q, got env %q", backend.DefaultStateName, env)
 	}
 
-	testEnv := "test_env"
+	testEnv := addrs.MakeProjectWorkspace("test_env", addrs.NoKey)
 	if err := m.SetWorkspace(testEnv); err != nil {
 		t.Fatal("error setting env:", err)
 	}
 
 	env = m.WorkspaceAddr()
-	if env.Name != testEnv {
+	if env != testEnv {
 		t.Fatalf("expected env %q, got env %q", testEnv, env)
 	}
 
-	if err := m.SetWorkspace(backend.DefaultStateName); err != nil {
+	if err := m.SetWorkspace(backend.DefaultWorkspaceAddr); err != nil {
 		t.Fatal("error setting env:", err)
 	}
 

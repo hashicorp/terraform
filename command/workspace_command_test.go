@@ -317,7 +317,7 @@ func TestWorkspace_delete(t *testing.T) {
 	}
 
 	// change back to default
-	if err := delCmd.SetWorkspace(backend.DefaultStateName); err != nil {
+	if err := delCmd.SetWorkspace(backend.DefaultWorkspaceAddr); err != nil {
 		t.Fatal(err)
 	}
 
