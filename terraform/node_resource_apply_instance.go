@@ -367,7 +367,7 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 				ProviderAddr:   n.ResolvedProvider,
 				ProviderSchema: &providerSchema,
 				State:          &state,
-				Dependencies:   n.Dependencies,
+				Dependencies:   &n.Dependencies,
 			},
 			&EvalApplyProvisioners{
 				Addr:           addr.Resource,
@@ -389,7 +389,7 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 				ProviderAddr:   n.ResolvedProvider,
 				ProviderSchema: &providerSchema,
 				State:          &state,
-				Dependencies:   n.Dependencies,
+				Dependencies:   &n.Dependencies,
 			},
 			&EvalIf{
 				If: func(ctx EvalContext) (bool, error) {

@@ -89,6 +89,7 @@ func (n *EvalRefresh) Eval(ctx EvalContext) (interface{}, error) {
 	newState := state.DeepCopy()
 	newState.Value = resp.NewState
 	newState.Private = resp.Private
+	newState.Dependencies = state.Dependencies
 
 	// Call post-refresh hook
 	err = ctx.Hook(func(h Hook) (HookAction, error) {
