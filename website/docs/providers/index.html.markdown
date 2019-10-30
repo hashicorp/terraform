@@ -38,6 +38,7 @@ down to see all providers.
 - [Brightbox](/docs/providers/brightbox/index.html)
 - [CenturyLinkCloud](/docs/providers/clc/index.html)
 - [Chef](/docs/providers/chef/index.html)
+- [CherryServers](/docs/providers/cherryservers/index.html)
 - [Circonus](/docs/providers/circonus/index.html)
 - [Cisco ASA](/docs/providers/ciscoasa/index.html)
 - [Cisco ACI](/docs/providers/aci/index.html)
