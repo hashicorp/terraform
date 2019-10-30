@@ -20,6 +20,7 @@ vendor in close collaboration with HashiCorp, and are tested by HashiCorp.
 - [Arukas](/docs/providers/arukas/index.html)
 - [Brightbox](/docs/providers/brightbox/index.html)
 - [CenturyLinkCloud](/docs/providers/clc/index.html)
+- [CherryServers](/docs/providers/cherryservers/index.html)
 - [Cisco ACI](/docs/providers/aci/index.html)
 - [CloudScale.ch](/docs/providers/cloudscale/index.html)
 - [CloudStack](/docs/providers/cloudstack/index.html)
