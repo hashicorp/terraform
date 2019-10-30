@@ -10766,14 +10766,12 @@ func TestContext2Apply_ProviderMeta_apply_set(t *testing.T) {
 		),
 	})
 
-	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("plan errors: %s", diags.Err())
-	}
+	_, diags := ctx.Plan()
+	assertNoErrors(t, diags)
 
-	_, diags := ctx.Apply()
-	if diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
-	}
+	_, diags = ctx.Apply()
+	assertNoErrors(t, diags)
+
 	if !p.ApplyResourceChangeCalled {
 		t.Fatalf("ApplyResourceChange not called")
 	}
@@ -10790,6 +10788,110 @@ func TestContext2Apply_ProviderMeta_apply_set(t *testing.T) {
 	}
 	if meta.Baz != "quux" {
 		t.Fatalf("Expected meta.Baz to be \"quux\", got %q", meta.Baz)
+	}
+}
+
+func TestContext2Apply_ProviderMeta_apply_setNoSchema(t *testing.T) {
+	m := testModule(t, "provider-meta-set")
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	if _, diags := ctx.Plan(); !diags.HasErrors() {
+		t.Fatalf("plan supposed to error, has no errors")
+	}
+
+	// TODO: check we get the errors we want
+
+	_, diags := ctx.Apply()
+	if !diags.HasErrors() {
+		t.Fatalf("apply supposed to error, has no errors")
+	}
+
+	// TODO: check we get the errors we want
+}
+
+func TestContext2Apply_ProviderMeta_apply_setInvalid(t *testing.T) {
+	m := testModule(t, "provider-meta-set")
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	schema := p.GetSchemaReturn
+	schema.ProviderMeta = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"quux": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+	p.GetSchemaReturn = schema
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	if _, diags := ctx.Plan(); !diags.HasErrors() {
+		t.Fatalf("plan supposed to error, has no errors")
+	}
+
+	// TODO: check we get the errors we want
+
+	_, diags := ctx.Apply()
+	if !diags.HasErrors() {
+		t.Fatalf("apply supposed to error, has no errors")
+	}
+
+	// TODO: check we get the errors we want
+}
+
+func TestContext2Apply_ProviderMeta_apply_unset(t *testing.T) {
+	m := testModule(t, "provider-meta-unset")
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	schema := p.GetSchemaReturn
+	schema.ProviderMeta = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"baz": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+	p.GetSchemaReturn = schema
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	_, diags := ctx.Plan()
+	assertNoErrors(t, diags)
+
+	_, diags = ctx.Apply()
+	assertNoErrors(t, diags)
+
+	if !p.ApplyResourceChangeCalled {
+		t.Fatalf("ApplyResourceChange not called")
+	}
+	if !p.ApplyResourceChangeRequest.ProviderMeta.IsNull() {
+		t.Fatalf("Expected ProviderMeta in ApplyResourceChange to be null, got %v", p.ApplyResourceChangeRequest.ProviderMeta)
 	}
 }
 
@@ -10817,9 +10919,8 @@ func TestContext2Apply_ProviderMeta_plan_set(t *testing.T) {
 		),
 	})
 
-	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("plan errors: %s", diags.Err())
-	}
+	_, diags := ctx.Plan()
+	assertNoErrors(t, diags)
 
 	if !p.PlanResourceChangeCalled {
 		t.Fatalf("PlanResourceChange not called")
@@ -10838,6 +10939,93 @@ func TestContext2Apply_ProviderMeta_plan_set(t *testing.T) {
 	if meta.Baz != "quux" {
 		t.Fatalf("Expected meta.Baz to be \"quux\", got %q", meta.Baz)
 	}
+}
+
+func TestContext2Apply_ProviderMeta_plan_unset(t *testing.T) {
+	m := testModule(t, "provider-meta-unset")
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	schema := p.GetSchemaReturn
+	schema.ProviderMeta = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"baz": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+	p.GetSchemaReturn = schema
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	_, diags := ctx.Plan()
+	assertNoErrors(t, diags)
+
+	if !p.PlanResourceChangeCalled {
+		t.Fatalf("PlanResourceChange not called")
+	}
+	if !p.PlanResourceChangeRequest.ProviderMeta.IsNull() {
+		t.Fatalf("Expected ProviderMeta in PlanResourceChange to be null, got %v", p.PlanResourceChangeRequest.ProviderMeta)
+	}
+}
+
+func TestContext2Apply_ProviderMeta_plan_setNoSchema(t *testing.T) {
+	m := testModule(t, "provider-meta-set")
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	if _, diags := ctx.Plan(); !diags.HasErrors() {
+		t.Fatalf("plan supposed to error, has no errors")
+	}
+
+	// TODO: check we get the errors we want
+}
+
+func TestContext2Apply_ProviderMeta_plan_setInvalid(t *testing.T) {
+	m := testModule(t, "provider-meta-set")
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	schema := p.GetSchemaReturn
+	schema.ProviderMeta = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"quux": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+	p.GetSchemaReturn = schema
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	if _, diags := ctx.Plan(); !diags.HasErrors() {
+		t.Fatalf("plan supposed to error, has no errors")
+	}
+
+	// TODO: check we get the errors we want
 }
 
 func TestContext2Apply_ProviderMeta_refresh_set(t *testing.T) {
@@ -10890,6 +11078,160 @@ func TestContext2Apply_ProviderMeta_refresh_set(t *testing.T) {
 	if meta.Baz != "quux" {
 		t.Fatalf("Expected meta.Baz to be \"quux\", got %q", meta.Baz)
 	}
+}
+
+func TestContext2Apply_ProviderMeta_refresh_unset(t *testing.T) {
+	m := testModule(t, "provider-meta-unset")
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	schema := p.GetSchemaReturn
+	schema.ProviderMeta = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"baz": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+	p.GetSchemaReturn = schema
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	_, diags := ctx.Plan()
+	assertNoErrors(t, diags)
+
+	_, diags = ctx.Apply()
+	assertNoErrors(t, diags)
+
+	_, diags = ctx.Refresh()
+	assertNoErrors(t, diags)
+
+	if !p.ReadResourceCalled {
+		t.Fatalf("ReadResource not called")
+	}
+	if !p.ReadResourceRequest.ProviderMeta.IsNull() {
+		t.Fatalf("Expected null ProviderMeta in ReadResource, got %v", p.ReadResourceRequest.ProviderMeta)
+	}
+}
+
+func TestContext2Apply_ProviderMeta_refresh_setNoSchema(t *testing.T) {
+	m := testModule(t, "provider-meta-set")
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	// we need a schema for plan/apply so they don't error
+	schema := p.GetSchemaReturn
+	schema.ProviderMeta = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"baz": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+	p.GetSchemaReturn = schema
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	_, diags := ctx.Plan()
+	assertNoErrors(t, diags)
+
+	_, diags = ctx.Apply()
+	assertNoErrors(t, diags)
+
+	// drop the schema before refresh, to test that it errors
+	schema.ProviderMeta = nil
+	p.GetSchemaReturn = schema
+	ctx = testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+		State: ctx.State(),
+	})
+
+	_, diags = ctx.Refresh()
+	if !diags.HasErrors() {
+		t.Fatalf("refresh supposed to error, has no errors")
+	}
+
+	// TODO: check we get the errors we want
+}
+
+func TestContext2Apply_ProviderMeta_refresh_setInvalid(t *testing.T) {
+	m := testModule(t, "provider-meta-set")
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	// we need a matching schema for plan/apply so they don't error
+	schema := p.GetSchemaReturn
+	schema.ProviderMeta = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"baz": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+	p.GetSchemaReturn = schema
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	_, diags := ctx.Plan()
+	assertNoErrors(t, diags)
+
+	_, diags = ctx.Apply()
+	assertNoErrors(t, diags)
+
+	// change the schema before refresh, to test that it errors
+	schema.ProviderMeta = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"quux": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+	p.GetSchemaReturn = schema
+	ctx = testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+		State: ctx.State(),
+	})
+
+	_, diags = ctx.Refresh()
+	if !diags.HasErrors() {
+		t.Fatalf("refresh supposed to error, has no errors")
+	}
+
+	// TODO: check we get the errors we want
 }
 
 func TestContext2Apply_ProviderMeta_destroy_set(t *testing.T) {
@@ -10963,6 +11305,221 @@ func TestContext2Apply_ProviderMeta_destroy_set(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_ProviderMeta_destroy_unset(t *testing.T) {
+	m := testModule(t, "provider-meta-unset")
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	schema := p.GetSchemaReturn
+	schema.ProviderMeta = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"baz": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+	p.GetSchemaReturn = schema
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	_, diags := ctx.Plan()
+	assertNoErrors(t, diags)
+
+	state, diags := ctx.Apply()
+	assertNoErrors(t, diags)
+
+	// reset our mocks
+	// we don't care about the first apply, it's just to set up state
+	p.ApplyResourceChangeCalled = false
+	p.ApplyResourceChangeRequest = providers.ApplyResourceChangeRequest{}
+
+	ctx = testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+		State:   state,
+		Destroy: true,
+	})
+
+	_, diags = ctx.Plan()
+	assertNoErrors(t, diags)
+
+	_, diags = ctx.Apply()
+	assertNoErrors(t, diags)
+
+	if !p.ApplyResourceChangeCalled {
+		t.Fatalf("ApplyResourceChange not called")
+	}
+	if !p.ApplyResourceChangeRequest.ProviderMeta.IsNull() {
+		t.Fatalf("Expected null ProviderMeta in ApplyResourceChange, got %v", p.ApplyResourceChangeRequest.ProviderMeta)
+	}
+}
+
+func TestContext2Apply_ProviderMeta_destroy_setNoSchema(t *testing.T) {
+	m := testModule(t, "provider-meta-set")
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	// we need a schema so the first apply succeeds
+	// that way there's something to destroy
+	schema := p.GetSchemaReturn
+	schema.ProviderMeta = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"baz": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+	p.GetSchemaReturn = schema
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	_, diags := ctx.Plan()
+	assertNoErrors(t, diags)
+
+	state, diags := ctx.Apply()
+	assertNoErrors(t, diags)
+
+	// reset our mocks
+	// we don't care about the first apply, it's just to set up state
+	p.ApplyResourceChangeCalled = false
+	p.ApplyResourceChangeRequest = providers.ApplyResourceChangeRequest{}
+
+	// we also need to remove the schema to test the errors now
+	schema.ProviderMeta = nil
+	p.GetSchemaReturn = schema
+	ctx = testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+		State: ctx.State(),
+	})
+	ctx = testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+		State:   state,
+		Destroy: true,
+	})
+
+	if _, diags := ctx.Plan(); !diags.HasErrors() {
+		t.Fatalf("plan supposed to error, has no errors")
+	}
+
+	// TODO: check we get the errors we want
+
+	_, diags = ctx.Apply()
+	if !diags.HasErrors() {
+		t.Fatalf("apply supposed to error, has no errors")
+	}
+
+	// TODO: check we get the errors we want
+}
+
+func TestContext2Apply_ProviderMeta_destroy_setInvalid(t *testing.T) {
+	m := testModule(t, "provider-meta-set")
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	// we need a valid schema to set up state
+	schema := p.GetSchemaReturn
+	schema.ProviderMeta = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"baz": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+	p.GetSchemaReturn = schema
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	_, diags := ctx.Plan()
+	assertNoErrors(t, diags)
+
+	state, diags := ctx.Apply()
+	assertNoErrors(t, diags)
+
+	// reset our mocks
+	// we don't care about the first apply, it's just to set up state
+	p.ApplyResourceChangeCalled = false
+	p.ApplyResourceChangeRequest = providers.ApplyResourceChangeRequest{}
+
+	// change our schema so our config is now invalid
+	schema.ProviderMeta = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"quux": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+	p.GetSchemaReturn = schema
+	ctx = testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+		State: ctx.State(),
+	})
+
+	ctx = testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+		State:   state,
+		Destroy: true,
+	})
+
+	if _, diags := ctx.Plan(); !diags.HasErrors() {
+		t.Fatalf("plan supposed to error, has no errors")
+	}
+
+	// TODO: check we get the errors we want
+
+	_, diags = ctx.Apply()
+	if !diags.HasErrors() {
+		t.Fatalf("apply supposed to error, has no errors")
+	}
+
+	// TODO: check we get the errors we want
+}
+
 func TestContext2Apply_ProviderMeta_refreshdata_set(t *testing.T) {
 	m := testModule(t, "provider-meta-data-set")
 	p := testProvider("test")
@@ -11019,4 +11576,117 @@ func TestContext2Apply_ProviderMeta_refreshdata_set(t *testing.T) {
 	if meta.Baz != "quux" {
 		t.Fatalf("Expected meta.Baz to be \"quux\", got %q", meta.Baz)
 	}
+}
+
+func TestContext2Apply_ProviderMeta_refreshdata_unset(t *testing.T) {
+	m := testModule(t, "provider-meta-data-unset")
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	schema := p.GetSchemaReturn
+	schema.ProviderMeta = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"baz": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+	p.GetSchemaReturn = schema
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+	})
+	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
+		State: cty.ObjectVal(map[string]cty.Value{
+			"id":  cty.StringVal("yo"),
+			"foo": cty.StringVal("bar"),
+		}),
+	}
+
+	_, diags := ctx.Refresh()
+	assertNoErrors(t, diags)
+
+	_, diags = ctx.Plan()
+	assertNoErrors(t, diags)
+
+	_, diags = ctx.Apply()
+	assertNoErrors(t, diags)
+
+	if !p.ReadDataSourceCalled {
+		t.Fatalf("ReadDataSource not called")
+	}
+	if !p.ReadDataSourceRequest.ProviderMeta.IsNull() {
+		t.Fatalf("Expected null ProviderMeta in ReadDataSource, got %v", p.ReadDataSourceRequest.ProviderMeta)
+	}
+}
+
+func TestContext2Apply_ProviderMeta_refreshdata_setNoSchema(t *testing.T) {
+	m := testModule(t, "provider-meta-data-set")
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+	})
+	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
+		State: cty.ObjectVal(map[string]cty.Value{
+			"id":  cty.StringVal("yo"),
+			"foo": cty.StringVal("bar"),
+		}),
+	}
+
+	_, diags := ctx.Refresh()
+	if !diags.HasErrors() {
+		t.Fatalf("refresh supposed to error, has no errors")
+	}
+
+	// TODO: check we get the errors we want
+}
+
+func TestContext2Apply_ProviderMeta_refreshdata_setInvalid(t *testing.T) {
+	m := testModule(t, "provider-meta-data-set")
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	schema := p.GetSchemaReturn
+	schema.ProviderMeta = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"quux": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+	p.GetSchemaReturn = schema
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+	})
+	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
+		State: cty.ObjectVal(map[string]cty.Value{
+			"id":  cty.StringVal("yo"),
+			"foo": cty.StringVal("bar"),
+		}),
+	}
+
+	_, diags := ctx.Refresh()
+	if !diags.HasErrors() {
+		t.Fatalf("refresh supposed to error, has no errors")
+	}
+
+	// TODO: check we get the errors we want
 }
