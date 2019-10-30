@@ -34,6 +34,10 @@ type ConcreteResourceInstanceNodeFunc func(*NodeAbstractResourceInstance) dag.Ve
 // configuration.
 type GraphNodeResourceInstance interface {
 	ResourceInstanceAddr() addrs.AbsResourceInstance
+
+	// StateDependencies returns any inter-instance dependencies that will be
+	// stored in the state.
+	StateDependencies() []addrs.AbsResource
 }
 
 // NodeAbstractResource represents a resource that has no associated
