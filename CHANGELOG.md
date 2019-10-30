@@ -1,7 +1,10 @@
 ## 0.12.13 (Unreleased)
 BUG FIXES:
 
+* config: Fix regression where self wasn't properly evaluated when using for_each [GH-23215]
 * config: dotfiles are no longer excluded when copying existing modules; previously, any dotfile/dir was excluded in this copy, but this change makes the local copy behavior match go-getter behavior [GH-22946]
+* core: Ensure create_before_destroy ordering is enforced with dependencies between modules [GH-22937]
+* core: Fix some destroy-time cycles due to unnecessary edges in the graph, and remove unused resource nodes [GH-22976]
 
 ## 0.12.12 (October 18, 2019)
 
