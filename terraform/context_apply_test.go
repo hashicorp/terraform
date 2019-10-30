@@ -26,6 +26,7 @@ import (
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -2984,7 +2985,9 @@ func TestContext2Apply_orphanResource(t *testing.T) {
 			AttrsJSON: []byte(`{}`),
 		}, providerAddr)
 	})
-	if !cmp.Equal(state, want) {
+
+	// compare the marshaled form to easily remove empty and nil slices
+	if !statefile.StatesMarshalEqual(state, want) {
 		t.Fatalf("wrong state after step 1\n%s", cmp.Diff(want, state))
 	}
 

@@ -58,30 +58,35 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 	destroyers := make(map[string][]GraphNodeDestroyer)
 	destroyerAddrs := make(map[string]addrs.AbsResourceInstance)
 
+	// Record the creators, which will need to depend on the destroyers if they
+	// are only being updated.
+	creators := make(map[string]GraphNodeCreator)
+
 	// destroyersByResource records each destroyer by the AbsResourceAddress.
 	// We use this because dependencies are only referenced as resources, but we
 	// will want to connect all the individual instances for correct ordering.
 	destroyersByResource := make(map[string][]GraphNodeDestroyer)
 	for _, v := range g.Vertices() {
-		dn, ok := v.(GraphNodeDestroyer)
-		if !ok {
-			continue
+		switch n := v.(type) {
+		case GraphNodeDestroyer:
+			addrP := n.DestroyAddr()
+			if addrP == nil {
+				log.Printf("[WARN] DestroyEdgeTransformer: %q (%T) has no destroy address", dag.VertexName(n), v)
+				continue
+			}
+			addr := *addrP
+
+			key := addr.String()
+			log.Printf("[TRACE] DestroyEdgeTransformer: %q (%T) destroys %s", dag.VertexName(n), v, key)
+			destroyers[key] = append(destroyers[key], n)
+			destroyerAddrs[key] = addr
+
+			resAddr := addr.Resource.Absolute(addr.Module).String()
+			destroyersByResource[resAddr] = append(destroyersByResource[resAddr], n)
+		case GraphNodeCreator:
+			addr := n.CreateAddr()
+			creators[addr.String()] = n
 		}
-
-		addrP := dn.DestroyAddr()
-		if addrP == nil {
-			log.Printf("[WARN] DestroyEdgeTransformer: %q (%T) has no destroy address", dag.VertexName(dn), v)
-			continue
-		}
-		addr := *addrP
-
-		key := addr.String()
-		log.Printf("[TRACE] DestroyEdgeTransformer: %q (%T) destroys %s", dag.VertexName(dn), v, key)
-		destroyers[key] = append(destroyers[key], dn)
-		destroyerAddrs[key] = addr
-
-		resAddr := addr.Resource.Absolute(addr.Module).String()
-		destroyersByResource[resAddr] = append(destroyersByResource[resAddr], dn)
 	}
 
 	// If we aren't destroying anything, there will be no edges to make
@@ -90,25 +95,36 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 		return nil
 	}
 
-	type withDeps interface {
-		StateDependencies() []addrs.AbsResource
-	}
-
-	// Connect destroy dependencies directly as stored in the state in case
-	// there's no configuration to create the edges otherwise.
+	// Connect destroy despendencies as stored in the state
 	for _, ds := range destroyers {
 		for _, des := range ds {
-			ri, ok := des.(withDeps)
+			ri, ok := des.(GraphNodeResourceInstance)
 			if !ok {
 				continue
 			}
 
 			for _, resAddr := range ri.StateDependencies() {
 				for _, desDep := range destroyersByResource[resAddr.String()] {
-					log.Printf("[TRACE] DestroyEdgeTransformer: %s depends on %s\n", dag.VertexName(des), dag.VertexName(desDep))
+					log.Printf("[TRACE] DestroyEdgeTransformer: %s has stored dependency of %s\n", dag.VertexName(desDep), dag.VertexName(des))
 					g.Connect(dag.BasicEdge(desDep, des))
 
 				}
+			}
+		}
+	}
+
+	// connect creators to any destroyers on which they may depend
+	for _, c := range creators {
+		ri, ok := c.(GraphNodeResourceInstance)
+		if !ok {
+			continue
+		}
+
+		for _, resAddr := range ri.StateDependencies() {
+			for _, desDep := range destroyersByResource[resAddr.String()] {
+				log.Printf("[TRACE] DestroyEdgeTransformer: %s has stored dependency of %s\n", dag.VertexName(c), dag.VertexName(desDep))
+				g.Connect(dag.BasicEdge(c, desDep))
+
 			}
 		}
 	}
@@ -148,8 +164,6 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 			}
 		}
 	}
-
-	// FIXME: connect StateDependencies in here somewhere
 
 	// This is strange but is the easiest way to get the dependencies
 	// of a node that is being destroyed. We use another graph to make sure
