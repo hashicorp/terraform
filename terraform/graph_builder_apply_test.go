@@ -572,8 +572,10 @@ test_object.b
 `)
 
 	instanceGraph := filterInstances(g)
-	if instanceGraph.String() != expected {
-		t.Fatalf("expected:\n%s\ngot:\n%s", expected, instanceGraph)
+	got := strings.TrimSpace(instanceGraph.String())
+
+	if got != expected {
+		t.Fatalf("expected:\n%s\ngot:\n%s", expected, got)
 	}
 }
 

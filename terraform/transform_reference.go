@@ -3,6 +3,7 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"sort"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
@@ -158,11 +159,14 @@ func (t AttachDependenciesTransformer) Transform(g *Graph) error {
 		for _, d := range depMap {
 			deps = append(deps, d)
 		}
+		sort.Slice(deps, func(i, j int) bool {
+			return deps[i].String() < deps[j].String()
+		})
 
 		log.Printf("[TRACE] AttachDependenciesTransformer: %s depends on %s", attacher.ResourceAddr(), deps)
 		attacher.AttachDependencies(deps)
-
 	}
+
 	return nil
 }
 
