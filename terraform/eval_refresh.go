@@ -47,8 +47,10 @@ func (n *EvalRefresh) Eval(ctx EvalContext) (interface{}, error) {
 
 	metaConfigVal := cty.NullVal(cty.DynamicPseudoType)
 	if n.ProviderMeta != nil {
+		log.Printf("[DEBUG] EvalRefresh: ProviderMeta config value set")
 		// if the provider doesn't support this feature, throw an error
 		if (*n.ProviderSchema).ProviderMeta == nil {
+			log.Printf("[DEBUG] EvalRefresh: no ProviderMeta schema")
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", n.ProviderAddr),
@@ -56,6 +58,7 @@ func (n *EvalRefresh) Eval(ctx EvalContext) (interface{}, error) {
 				Subject:  &n.ProviderMeta.ProviderRange,
 			})
 		} else {
+			log.Printf("[DEBUG] EvalRefresh: ProviderMeta schema found: %+v", (*n.ProviderSchema).ProviderMeta)
 			var configDiags tfdiags.Diagnostics
 			metaConfigVal, _, configDiags = ctx.EvaluateBlock(n.ProviderMeta.Config, (*n.ProviderSchema).ProviderMeta, nil, EvalDataForNoInstanceKey)
 			diags = diags.Append(configDiags)
