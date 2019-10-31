@@ -1,4 +1,4 @@
-## 0.12.13 (Unreleased)
+## 0.12.13 (October 31, 2019)
 
 UPGRADE NOTES:
 
@@ -10,11 +10,11 @@ UPGRADE NOTES:
 
 BUG FIXES:
 
-* config: Fix regression where self wasn't properly evaluated when using for_each [GH-23215]
-* config: dotfiles are no longer excluded when copying existing modules; previously, any dotfile/dir was excluded in this copy, but this change makes the local copy behavior match go-getter behavior [GH-22946]
-* core: Ensure create_before_destroy ordering is enforced with dependencies between modules [GH-22937]
-* core: Fix some destroy-time cycles due to unnecessary edges in the graph, and remove unused resource nodes [GH-22976]
-* backend/remote: Correctly handle remotely-stored variables that are marked as "HCL" when running local-only operations like `terraform import`. Previously they would produce a type mismatch error, due to misinterpreting them as literal strings. [GH-23229]
+* config: Fix regression where self wasn't properly evaluated when using for_each ([#23215](https://github.com/hashicorp/terraform/issues/23215))
+* config: dotfiles are no longer excluded when copying existing modules; previously, any dotfile/dir was excluded in this copy, but this change makes the local copy behavior match go-getter behavior ([#22946](https://github.com/hashicorp/terraform/issues/22946))
+* core: Ensure create_before_destroy ordering is enforced with dependencies between modules ([#22937](https://github.com/hashicorp/terraform/issues/22937))
+* core: Fix some destroy-time cycles due to unnecessary edges in the graph, and remove unused resource nodes ([#22976](https://github.com/hashicorp/terraform/issues/22976))
+* backend/remote: Correctly handle remotely-stored variables that are marked as "HCL" when running local-only operations like `terraform import`. Previously they would produce a type mismatch error, due to misinterpreting them as literal strings. ([#23229](https://github.com/hashicorp/terraform/issues/23229))
 
 ## 0.12.12 (October 18, 2019)
 
