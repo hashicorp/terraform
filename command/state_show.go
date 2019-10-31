@@ -75,7 +75,7 @@ func (c *StateShowCommand) Run(args []string) int {
 	opReq.AllowUnsetVariables = true
 	opReq.ConfigDir = cwd
 
-	opReq.ConfigLoader, err = c.initConfigLoader()
+	opReq.ConfigLoader, err = c.initConfigLoader(opReq.Workspace.ConfigDir())
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error initializing config loader: %s", err))
 		return 1

@@ -91,7 +91,7 @@ func (c *ShowCommand) Run(args []string) int {
 	opReq := c.Operation(b)
 	opReq.ConfigDir = cwd
 	opReq.PlanFile = planFile
-	opReq.ConfigLoader, err = c.initConfigLoader()
+	opReq.ConfigLoader, err = c.initConfigLoader(opReq.Workspace.ConfigDir())
 	opReq.AllowUnsetVariables = true
 	if err != nil {
 		diags = diags.Append(err)

@@ -184,7 +184,7 @@ func (c *ApplyCommand) Run(args []string) int {
 	opReq.PlanRefresh = refresh
 	opReq.Type = backend.OperationTypeApply
 
-	opReq.ConfigLoader, err = c.initConfigLoader()
+	opReq.ConfigLoader, err = c.initConfigLoader(opReq.Workspace.ConfigDir())
 	if err != nil {
 		c.showDiagnostics(err)
 		return 1

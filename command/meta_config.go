@@ -57,7 +57,7 @@ func (m *Meta) loadConfig(rootDir string) (*configs.Config, tfdiags.Diagnostics)
 	var diags tfdiags.Diagnostics
 	rootDir = m.normalizePath(rootDir)
 
-	loader, err := m.initConfigLoader()
+	loader, err := m.initConfigLoader(rootDir)
 	if err != nil {
 		diags = diags.Append(err)
 		return nil, diags
@@ -87,7 +87,7 @@ func (m *Meta) loadConfigEarly(rootDir string) (*earlyconfig.Config, tfdiags.Dia
 	var diags tfdiags.Diagnostics
 	rootDir = m.normalizePath(rootDir)
 
-	config, hclDiags := initwd.LoadConfig(rootDir, m.modulesDir())
+	config, hclDiags := initwd.LoadConfig(rootDir, m.modulesDir(rootDir))
 	diags = diags.Append(hclDiags)
 	return config, diags
 }
@@ -104,7 +104,7 @@ func (m *Meta) loadSingleModule(dir string) (*configs.Module, tfdiags.Diagnostic
 	var diags tfdiags.Diagnostics
 	dir = m.normalizePath(dir)
 
-	loader, err := m.initConfigLoader()
+	loader, err := m.initConfigLoader(dir)
 	if err != nil {
 		diags = diags.Append(err)
 		return nil, diags
@@ -149,7 +149,7 @@ func (m *Meta) loadSingleModuleEarly(dir string) (*tfconfig.Module, tfdiags.Diag
 // then do some other operation that requires the config loader and get an
 // error at that point.
 func (m *Meta) dirIsConfigPath(dir string) bool {
-	loader, err := m.initConfigLoader()
+	loader, err := m.initConfigLoader(dir)
 	if err != nil {
 		return true
 	}
@@ -179,41 +179,6 @@ func (m *Meta) loadBackendConfig(rootDir string) (*configs.Backend, tfdiags.Diag
 	return mod.Backend, diags
 }
 
-// loadValuesFile loads a file that defines a single map of key/value pairs.
-// This is the format used for "tfvars" files.
-func (m *Meta) loadValuesFile(filename string) (map[string]cty.Value, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-	filename = m.normalizePath(filename)
-
-	loader, err := m.initConfigLoader()
-	if err != nil {
-		diags = diags.Append(err)
-		return nil, diags
-	}
-
-	vals, hclDiags := loader.Parser().LoadValuesFile(filename)
-	diags = diags.Append(hclDiags)
-	return vals, diags
-}
-
-// loadHCLFile reads an arbitrary HCL file and returns the unprocessed body
-// representing its toplevel. Most callers should use one of the more
-// specialized "load..." methods to get a higher-level representation.
-func (m *Meta) loadHCLFile(filename string) (hcl.Body, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-	filename = m.normalizePath(filename)
-
-	loader, err := m.initConfigLoader()
-	if err != nil {
-		diags = diags.Append(err)
-		return nil, diags
-	}
-
-	body, hclDiags := loader.Parser().LoadHCLFile(filename)
-	diags = diags.Append(hclDiags)
-	return body, diags
-}
-
 // installModules reads a root module from the given directory and attempts
 // recursively install all of its descendent modules.
 //
@@ -225,13 +190,13 @@ func (m *Meta) installModules(rootDir string, upgrade bool, hooks initwd.ModuleI
 	var diags tfdiags.Diagnostics
 	rootDir = m.normalizePath(rootDir)
 
-	err := os.MkdirAll(m.modulesDir(), os.ModePerm)
+	err := os.MkdirAll(m.modulesDir(rootDir), os.ModePerm)
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("failed to create local modules directory: %s", err))
 		return diags
 	}
 
-	inst := m.moduleInstaller()
+	inst := m.moduleInstaller(rootDir)
 	_, moreDiags := inst.InstallModules(rootDir, upgrade, hooks)
 	diags = diags.Append(moreDiags)
 	return diags
@@ -249,7 +214,7 @@ func (m *Meta) installModules(rootDir string, upgrade bool, hooks initwd.ModuleI
 func (m *Meta) initDirFromModule(targetDir string, addr string, hooks initwd.ModuleInstallHooks) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	targetDir = m.normalizePath(targetDir)
-	moreDiags := initwd.DirFromModule(targetDir, m.modulesDir(), addr, m.registryClient(), hooks)
+	moreDiags := initwd.DirFromModule(targetDir, m.modulesDir(targetDir), addr, m.registryClient(), hooks)
 	diags = diags.Append(moreDiags)
 	return diags
 }
@@ -326,8 +291,8 @@ func (m *Meta) configSources() map[string][]byte {
 	return m.configLoader.Sources()
 }
 
-func (m *Meta) modulesDir() string {
-	return filepath.Join(m.DataDir(), "modules")
+func (m *Meta) modulesDir(configDir string) string {
+	return filepath.Join(configDir, DefaultDataDir, "modules")
 }
 
 // registerSynthConfigSource allows commands to add synthetic additional source
@@ -342,11 +307,15 @@ func (m *Meta) modulesDir() string {
 // function that also initializes the config loader as a side effect, at which
 // point those errors can be returned.)
 func (m *Meta) registerSynthConfigSource(filename string, src []byte) {
-	loader, err := m.initConfigLoader()
-	if err != nil || loader == nil {
-		return // treated as no-op, since this is best-effort
-	}
-	loader.Parser().ForceFileSource(filename, src)
+	// FIXME: Make this work in a world without a singleton config loader.
+	// See the comment in initConfigLoader for more information.
+	/*
+		loader, err := m.initConfigLoader()
+		if err != nil || loader == nil {
+			return // treated as no-op, since this is best-effort
+		}
+		loader.Parser().ForceFileSource(filename, src)
+	*/
 }
 
 // initConfigLoader initializes the shared configuration loader if it isn't
@@ -357,25 +326,25 @@ func (m *Meta) registerSynthConfigSource(filename string, src []byte) {
 // error. Loader initialization errors will tend to prevent any further use
 // of most Terraform features, so callers should report any error and safely
 // terminate.
-func (m *Meta) initConfigLoader() (*configload.Loader, error) {
-	if m.configLoader == nil {
-		loader, err := configload.NewLoader(&configload.Config{
-			ModulesDir: m.modulesDir(),
-			Services:   m.Services,
-		})
-		if err != nil {
-			return nil, err
-		}
-		m.configLoader = loader
-	}
-	return m.configLoader, nil
+func (m *Meta) initConfigLoader(rootDir string) (*configload.Loader, error) {
+	// FIXME: Prior to workspaces2 there was a singleton config loader
+	// because there was a singleton config. This is no longer true, so
+	// initConfigLoader is for now returning a separate config loader on
+	// each call. That's not an appropriate long-term answer because it
+	// means we have no shared place to store our source code buffers for
+	// use in diagnostic messages, but this is just a stop-gap to make
+	// the workspaces2 prototype work.
+	return configload.NewLoader(&configload.Config{
+		ModulesDir: m.modulesDir(rootDir),
+		Services:   m.Services,
+	})
 }
 
 // moduleInstaller instantiates and returns a module installer for use by
 // "terraform init" (directly or indirectly).
-func (m *Meta) moduleInstaller() *initwd.ModuleInstaller {
+func (m *Meta) moduleInstaller(rootDir string) *initwd.ModuleInstaller {
 	reg := m.registryClient()
-	return initwd.NewModuleInstaller(m.modulesDir(), reg)
+	return initwd.NewModuleInstaller(m.modulesDir(rootDir), reg)
 }
 
 // registryClient instantiates and returns a new Terraform Registry client.

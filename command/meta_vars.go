@@ -143,14 +143,18 @@ func (m *Meta) addVarsFromFile(filename string, sourceType terraform.ValueSource
 		return diags
 	}
 
-	loader, err := m.initConfigLoader()
-	if err != nil {
-		diags = diags.Append(err)
-		return diags
-	}
+	// FIXME: Source buffer tracking is disabled for workspaces2 prototype
+	// because there's no longer a single config loader for all workspaces.
+	/*
+		loader, err := m.initConfigLoader()
+		if err != nil {
+			diags = diags.Append(err)
+			return diags
+		}
 
-	// Record the file source code for snippets in diagnostic messages.
-	loader.Parser().ForceFileSource(filename, src)
+		// Record the file source code for snippets in diagnostic messages.
+		loader.Parser().ForceFileSource(filename, src)
+	*/
 
 	var f *hcl.File
 	if strings.HasSuffix(filename, ".json") {

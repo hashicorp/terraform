@@ -2,26 +2,22 @@ package command
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 
-	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform-config-inspect/tfconfig"
 	"github.com/posener/complete"
-	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/backend"
-	backendInit "github.com/hashicorp/terraform/backend/init"
-	"github.com/hashicorp/terraform/configs"
-	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/configs/configupgrade"
 	"github.com/hashicorp/terraform/internal/earlyconfig"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/plugin/discovery"
+	"github.com/hashicorp/terraform/projects"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -104,161 +100,127 @@ func (c *InitCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Get our pwd. We don't always need it but always getting it is easier
-	// than the logic to determine if it is or isn't needed.
-	pwd, err := os.Getwd()
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error getting pwd: %s", err))
-		return 1
-	}
-
-	// If an argument is provided then it overrides our working directory.
-	path := pwd
-	if len(args) == 1 {
-		path = args[0]
-	}
-
-	// This will track whether we outputted anything so that we know whether
-	// to output a newline before the success message
-	var header bool
-
 	if flagFromModule != "" {
-		src := flagFromModule
-
-		empty, err := configs.IsEmptyDir(path)
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error validating destination directory: %s", err))
-			return 1
-		}
-		if !empty {
-			c.Ui.Error(strings.TrimSpace(errInitCopyNotEmpty))
-			return 1
-		}
-
-		c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
-			"[reset][bold]Copying configuration[reset] from %q...", src,
-		)))
-		header = true
-
-		hooks := uiModuleInstallHooks{
-			Ui:             c.Ui,
-			ShowLocalPaths: false, // since they are in a weird location for init
-		}
-
-		initDiags := c.initDirFromModule(path, src, hooks)
-		diags = diags.Append(initDiags)
-		if initDiags.HasErrors() {
-			c.showDiagnostics(diags)
-			return 1
-		}
-
-		c.Ui.Output("")
-	}
-
-	// If our directory is empty, then we're done. We can't get or setup
-	// the backend with an empty directory.
-	empty, err := configs.IsEmptyDir(path)
-	if err != nil {
-		diags = diags.Append(fmt.Errorf("Error checking configuration: %s", err))
+		// -from-module doesn't make sense in a world where we're initalizing
+		// whole projects rather than individual configuration directories.
+		// TODO: Find a suitable replacement for this functionality that
+		// still meets the use-case of allowing folks to publish example
+		// projects/configurations for others to derive their repositories from.
+		c.Ui.Error("The -from-module argument is no longer supported")
 		return 1
 	}
-	if empty {
-		c.Ui.Output(c.Colorize().Color(strings.TrimSpace(outputInitEmpty)))
-		return 0
-	}
 
-	// Before we do anything else, we'll try loading configuration with both
-	// our "normal" and "early" configuration codepaths. If early succeeds
-	// while normal fails, that strongly suggests that the configuration is
-	// using syntax that worked in 0.11 but no longer in 0.12, which requires
-	// some special behavior here to get the directory initialized just enough
-	// to run "terraform 0.12upgrade".
-	//
-	// FIXME: Once we reach 0.13 and remove 0.12upgrade, we should rework this
-	// so that we first use the early config to do a general compatibility
-	// check with dependencies, producing version-oriented error messages if
-	// dependencies aren't right, and only then use the real loader to deal
-	// with the backend configuration.
-	rootMod, confDiags := c.loadSingleModule(path)
-	rootModEarly, earlyConfDiags := c.loadSingleModuleEarly(path)
-	configUpgradeProbablyNeeded := false
-	if confDiags.HasErrors() {
-		if earlyConfDiags.HasErrors() {
-			// If both parsers produced errors then we'll assume the config
-			// is _truly_ invalid and produce error messages as normal.
-			// Since this may be the user's first ever interaction with Terraform,
-			// we'll provide some additional context in this case.
-			c.Ui.Error(strings.TrimSpace(errInitConfigError))
-			diags = diags.Append(confDiags)
+	if _, err := c.findCurrentProjectRoot(); err != nil {
+		// Try to initialize a new project
+		_, moreDiags := c.initNewProject()
+		diags = diags.Append(moreDiags)
+		if moreDiags.HasErrors() {
 			c.showDiagnostics(diags)
 			return 1
 		}
-
-		// If _only_ the main loader produced errors then that suggests an
-		// upgrade may help. To give us more certainty here, we'll use the
-		// same heuristic that "terraform 0.12upgrade" uses to guess if a
-		// configuration has already been upgraded, to reduce the risk that
-		// we'll produce a misleading message if the problem is just a regular
-		// syntax error that the early loader just didn't catch.
-		sources, err := configupgrade.LoadModule(path)
-		if err == nil {
-			if already, _ := sources.MaybeAlreadyUpgraded(); already {
-				// Just report the errors as normal, then.
-				c.Ui.Error(strings.TrimSpace(errInitConfigError))
-				diags = diags.Append(confDiags)
-				c.showDiagnostics(diags)
-				return 1
-			}
-		}
-		configUpgradeProbablyNeeded = true
 	}
-	if earlyConfDiags.HasErrors() {
-		// If _only_ the early loader encountered errors then that's unusual
-		// (it should generally be a superset of the normal loader) but we'll
-		// return those errors anyway since otherwise we'll probably get
-		// some weird behavior downstream. Errors from the early loader are
-		// generally not as high-quality since it has less context to work with.
-		c.Ui.Error(strings.TrimSpace(errInitConfigError))
-		diags = diags.Append(earlyConfDiags)
+
+	// FIXME: We need to do something special here, rather than just calling
+	// findCurrentProjectManager, because "terraform init" is supposed to be
+	// the command that will establish the context values that the project
+	// manager will use for evaluation, and we will need to pass those in here.
+	projectMgr, moreDiags := c.findCurrentProjectManager()
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1
 	}
 
-	if flagGet {
-		modsOutput, modsDiags := c.getModules(path, rootModEarly, flagUpgrade)
+	projectRoot := projectMgr.Project().Config().ProjectRoot
+	projectRootDisp, err := filepath.Abs(projectRoot)
+	if err != nil {
+		// If we can't build an absolute path then we'll just accept the
+		// relative one, rather than failing. (This is unlikely)
+		projectRootDisp = projectRoot
+	}
+	c.Ui.Output(fmt.Sprintf("Initializing project in %s...", projectRootDisp))
+
+	workspaceAddrs := projectMgr.Project().AllWorkspaceAddrs()
+
+	// To fully initialize, we need to load and analyze all of the configuration
+	// directories, but we only need to load each distinct directory once, so
+	// we'll collect them up from all the workspaces but dedupe them.
+	// We need to evaluate each of the workspaces separately here because
+	// if there are dependencies between them then we might not yet have enough
+	// information to fully instantiate the downstream ones.
+	workspacesByConfigDir := make(map[string][]*projects.Workspace)
+	for _, addr := range workspaceAddrs {
+		// FIXME: Loading the workspaces individually here is required to
+		// allow for the fact that some of them may depend on upstream data
+		// not yet available, but has the downside that we can end up
+		// re-evaluating the same local value expressions multiple times and
+		// reporting any errors from them more than once as a result.
+		ws, moreDiags := projectMgr.LoadWorkspace(addr)
+		if moreDiags.HasErrors() {
+			// FIXME: This approach is problematic because when bootstrapping
+			// a new project this warning will appear and the project will
+			// only be partially initialized, but yet once it's fully initialized
+			// we'll also mis-report this on any other error in the workspace
+			// configuration. Need to think some more about how to model this
+			// better so we can handle the config directory not yet being
+			// determined for some workspaces, and hopefully also to separate
+			// that from whether other expressions in the workspace
+			// configuration can be determined.
+			// This also obscures any _actual_ errors in the configuration.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				"Workspace configuration error",
+				fmt.Sprintf("Workspace %s cannot be initialized because its configuration has errors. This might be caused by dependencies on other workspaces that have not yet been applied for the first time. If so, apply those dependent workspaces first, and then run init again to complete initialization.", addr),
+			))
+			continue
+		}
+		dir := c.normalizePath(filepath.Join(projectRoot, ws.ConfigDir()))
+		workspacesByConfigDir[dir] = append(workspacesByConfigDir[dir], ws)
+	}
+	for dir, workspaces := range workspacesByConfigDir {
+		fmt.Printf("Directory %s has %d workspaces associated\n", dir, len(workspaces))
+
+		// The descendent modules might not be initialized yet, so we'll start
+		// be loading only the root module, then do our module installation,
+		// before finally loading the full configuration for this directory.
+		rootModEarly, earlyConfDiags := c.loadSingleModuleEarly(dir)
+		if earlyConfDiags.HasErrors() {
+			// Proceed with other directories too, so we can make as much
+			// progress as possible before exiting.
+			// Note that we only append the diags when errors are present
+			// here because we're going to reload the root module as part
+			// of loading the full configuration below and we don't want to
+			// double up any warnings coming from loadSingleModuleEarly.
+			diags = diags.Append(earlyConfDiags)
+			continue
+		}
+
+		_, modsDiags := c.getModules(dir, rootModEarly, flagUpgrade)
 		diags = diags.Append(modsDiags)
 		if modsDiags.HasErrors() {
 			c.showDiagnostics(diags)
 			return 1
 		}
-		if modsOutput {
-			header = true
-		}
-	}
 
-	// With all of the modules (hopefully) installed, we can now try to load
-	// the whole configuration tree.
-	//
-	// Just as above, we'll try loading both with the early and normal config
-	// loaders here. Subsequent work will only use the early config, but
-	// loading both gives us an opportunity to prefer the better error messages
-	// from the normal loader if both fail.
-	_, confDiags = c.loadConfig(path)
-	earlyConfig, earlyConfDiags := c.loadConfigEarly(path)
-	if confDiags.HasErrors() && !configUpgradeProbablyNeeded {
-		c.Ui.Error(strings.TrimSpace(errInitConfigError))
-		diags = diags.Append(confDiags)
-		c.showDiagnostics(diags)
-		return 1
-	}
-	if earlyConfDiags.HasErrors() {
-		c.Ui.Error(strings.TrimSpace(errInitConfigError))
+		// With all of the modules (hopefully) installed, we can now try to load
+		// the whole configuration tree. We're using the early config loader
+		// here just because it's pervasively used in the rest of "terraform init"
+		// and thus avoids significant rework here while we're exploring the
+		// workspaces2 prototype.
+		// FIXME: Can we remove the early config loader altogether once we
+		// eliminate the 0.12upgrade command in 0.13? It might still be useful
+		// in allowing us to do CheckCoreVersionRequirements below, cause it
+		// has more chance of reading version constraints from a 0.11-or-prior
+		// config.
+		earlyConfig, earlyConfDiags := c.loadConfigEarly(dir)
 		diags = diags.Append(earlyConfDiags)
-		c.showDiagnostics(diags)
-		return 1
-	}
+		if earlyConfDiags.HasErrors() {
+			// Proceed with other directories too, so we can make as much
+			// progress as possible before exiting.
+			diags = diags.Append(earlyConfDiags)
+			continue
+		}
 
-	{
 		// Before we go further, we'll check to make sure none of the modules
 		// in the configuration declare that they don't support this Terraform
 		// version, so we can produce a version-related error message rather
@@ -266,105 +228,37 @@ func (c *InitCommand) Run(args []string) int {
 		versionDiags := initwd.CheckCoreVersionRequirements(earlyConfig)
 		diags = diags.Append(versionDiags)
 		if versionDiags.HasErrors() {
+			continue
+		}
+
+		// Now that we have loaded all modules, check the module tree for missing providers.
+		// FIXME: We should also iterate over all the workspaces that use
+		// this config, fetch their latest state snapshots, and try to install
+		// providers that are only used for "orphan" resources too.
+		// FIXME: This behavior isn't totally correct because it's trying
+		// to install all of the providers across all configurations into a
+		// single directory, but it's not taking any steps to ensure that
+		// the plugins installed for one can't impact the selection of providers
+		// for another. However, we're forcing the upgrade flag to true here
+		// to mostly mitigate the problem by effectively asking the installer
+		// to ignore anything already installed and always try to find the
+		// newest available version meeting the constraints. We'll need to
+		// think through what the best behavior is if we move forward with this
+		// design: should we continue to pool providers in a single directory,
+		// or have a separate directory per config root, or something else?
+		_, providerDiags := c.getProviders(earlyConfig, nil, true)
+		diags = diags.Append(providerDiags)
+		if providerDiags.HasErrors() {
 			c.showDiagnostics(diags)
 			return 1
 		}
 	}
 
-	var back backend.Backend
-	if flagBackend {
-		switch {
-		case configUpgradeProbablyNeeded:
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Warning,
-				"Skipping backend initialization pending configuration upgrade",
-				// The "below" in this message is referring to the special
-				// note about running "terraform 0.12upgrade" that we'll
-				// print out at the end when configUpgradeProbablyNeeded is set.
-				"The root module configuration contains errors that may be fixed by running the configuration upgrade tool, so Terraform is skipping backend initialization. See below for more information.",
-			))
-		default:
-			be, backendOutput, backendDiags := c.initBackend(rootMod, flagConfigExtra)
-			diags = diags.Append(backendDiags)
-			if backendDiags.HasErrors() {
-				c.showDiagnostics(diags)
-				return 1
-			}
-			if backendOutput {
-				header = true
-			}
-			back = be
-		}
-	}
-
-	if back == nil {
-		// If we didn't initialize a backend then we'll try to at least
-		// instantiate one. This might fail if it wasn't already initialized
-		// by a previous run, so we must still expect that "back" may be nil
-		// in code that follows.
-		var backDiags tfdiags.Diagnostics
-		back, backDiags = c.Backend(nil)
-		if backDiags.HasErrors() {
-			// This is fine. We'll proceed with no backend, then.
-			back = nil
-		}
-	}
-
-	var state *states.State
-
-	// If we have a functional backend (either just initialized or initialized
-	// on a previous run) we'll use the current state as a potential source
-	// of provider dependencies.
-	if back != nil {
-		sMgr, err := back.StateMgr(c.WorkspaceAddr())
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error loading state: %s", err))
-			return 1
-		}
-
-		if err := sMgr.RefreshState(); err != nil {
-			c.Ui.Error(fmt.Sprintf("Error refreshing state: %s", err))
-			return 1
-		}
-
-		state = sMgr.State()
-	}
-
-	if v := os.Getenv(ProviderSkipVerifyEnvVar); v != "" {
-		c.ignorePluginChecksum = true
-	}
-
-	// Now that we have loaded all modules, check the module tree for missing providers.
-	providersOutput, providerDiags := c.getProviders(earlyConfig, state, flagUpgrade)
-	diags = diags.Append(providerDiags)
-	if providerDiags.HasErrors() {
-		c.showDiagnostics(diags)
+	c.showDiagnostics(diags)
+	if diags.HasErrors() {
 		return 1
 	}
-	if providersOutput {
-		header = true
-	}
 
-	// If we outputted information, then we need to output a newline
-	// so that our success message is nicely spaced out from prior text.
-	if header {
-		c.Ui.Output("")
-	}
-
-	// If we accumulated any warnings along the way that weren't accompanied
-	// by errors then we'll output them here so that the success message is
-	// still the final thing shown.
-	c.showDiagnostics(diags)
-
-	if configUpgradeProbablyNeeded {
-		switch {
-		case c.RunningInAutomation:
-			c.Ui.Output(c.Colorize().Color(strings.TrimSpace(outputInitSuccessConfigUpgrade)))
-		default:
-			c.Ui.Output(c.Colorize().Color(strings.TrimSpace(outputInitSuccessConfigUpgradeCLI)))
-		}
-		return 0
-	}
 	c.Ui.Output(c.Colorize().Color(strings.TrimSpace(outputInitSuccess)))
 	if !c.RunningInAutomation {
 		// If we're not running in an automation wrapper, give the user
@@ -409,70 +303,6 @@ func (c *InitCommand) getModules(path string, earlyRoot *tfconfig.Module, upgrad
 	}
 
 	return true, diags
-}
-
-func (c *InitCommand) initBackend(root *configs.Module, extraConfig rawFlags) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
-	c.Ui.Output(c.Colorize().Color(fmt.Sprintf("\n[reset][bold]Initializing the backend...")))
-
-	var backendConfig *configs.Backend
-	var backendConfigOverride hcl.Body
-	if root.Backend != nil {
-		backendType := root.Backend.Type
-		bf := backendInit.Backend(backendType)
-		if bf == nil {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Unsupported backend type",
-				Detail:   fmt.Sprintf("There is no backend type named %q.", backendType),
-				Subject:  &root.Backend.TypeRange,
-			})
-			return nil, true, diags
-		}
-
-		b := bf()
-		backendSchema := b.ConfigSchema()
-		backendConfig = root.Backend
-
-		var overrideDiags tfdiags.Diagnostics
-		backendConfigOverride, overrideDiags = c.backendConfigOverrideBody(extraConfig, backendSchema)
-		diags = diags.Append(overrideDiags)
-		if overrideDiags.HasErrors() {
-			return nil, true, diags
-		}
-	} else {
-		// If the user supplied a -backend-config on the CLI but no backend
-		// block was found in the configuration, it's likely - but not
-		// necessarily - a mistake. Return a warning.
-		if !extraConfig.Empty() {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Warning,
-				"Missing backend configuration",
-				`-backend-config was used without a "backend" block in the configuration.
-
-If you intended to override the default local backend configuration,
-no action is required, but you may add an explicit backend block to your
-configuration to clear this warning:
-
-terraform {
-  backend "local" {}
-}
-
-However, if you intended to override a defined backend, please verify that
-the backend configuration is present and valid.
-`,
-			))
-		}
-	}
-
-	opts := &BackendOpts{
-		Config:         backendConfig,
-		ConfigOverride: backendConfigOverride,
-		Init:           true,
-	}
-
-	back, backDiags := c.Backend(opts)
-	diags = diags.Append(backDiags)
-	return back, true, diags
 }
 
 // Load the complete module tree, and fetch any missing providers.
@@ -665,81 +495,6 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 	return true, diags
 }
 
-// backendConfigOverrideBody interprets the raw values of -backend-config
-// arguments into a hcl Body that should override the backend settings given
-// in the configuration.
-//
-// If the result is nil then no override needs to be provided.
-//
-// If the returned diagnostics contains errors then the returned body may be
-// incomplete or invalid.
-func (c *InitCommand) backendConfigOverrideBody(flags rawFlags, schema *configschema.Block) (hcl.Body, tfdiags.Diagnostics) {
-	items := flags.AllItems()
-	if len(items) == 0 {
-		return nil, nil
-	}
-
-	var ret hcl.Body
-	var diags tfdiags.Diagnostics
-	synthVals := make(map[string]cty.Value)
-
-	mergeBody := func(newBody hcl.Body) {
-		if ret == nil {
-			ret = newBody
-		} else {
-			ret = configs.MergeBodies(ret, newBody)
-		}
-	}
-	flushVals := func() {
-		if len(synthVals) == 0 {
-			return
-		}
-		newBody := configs.SynthBody("-backend-config=...", synthVals)
-		mergeBody(newBody)
-		synthVals = make(map[string]cty.Value)
-	}
-
-	if len(items) == 1 && items[0].Value == "" {
-		// Explicitly remove all -backend-config options.
-		// We do this by setting an empty but non-nil ConfigOverrides.
-		return configs.SynthBody("-backend-config=''", synthVals), diags
-	}
-
-	for _, item := range items {
-		eq := strings.Index(item.Value, "=")
-
-		if eq == -1 {
-			// The value is interpreted as a filename.
-			newBody, fileDiags := c.loadHCLFile(item.Value)
-			diags = diags.Append(fileDiags)
-			flushVals() // deal with any accumulated individual values first
-			mergeBody(newBody)
-		} else {
-			name := item.Value[:eq]
-			rawValue := item.Value[eq+1:]
-			attrS := schema.Attributes[name]
-			if attrS == nil {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Invalid backend configuration argument",
-					fmt.Sprintf("The backend configuration argument %q given on the command line is not expected for the selected backend type.", name),
-				))
-				continue
-			}
-			value, valueDiags := configValueFromCLI(item.String(), rawValue, attrS.Type)
-			diags = diags.Append(valueDiags)
-			if valueDiags.HasErrors() {
-				continue
-			}
-			synthVals[name] = value
-		}
-	}
-
-	flushVals()
-
-	return ret, diags
-}
-
 func (c *InitCommand) AutocompleteArgs() complete.Predictor {
 	return complete.PredictDirs("")
 }
@@ -761,6 +516,32 @@ func (c *InitCommand) AutocompleteFlags() complete.Flags {
 		"-upgrade":        completePredictBoolean,
 		"-verify-plugins": completePredictBoolean,
 	}
+}
+
+// initNewProject creates an initial project configuration file in the given
+// directory and then returns the project object that results from it.
+//
+// TODO: This should also recognize when it's initializing a working directory
+// previously used with older versions of Terraform and migrate the existing
+// backend configuration and workspace into the project configuration file.
+func (c *InitCommand) initNewProject() (*projects.Project, tfdiags.Diagnostics) {
+	err := ioutil.WriteFile(projects.ProjectConfigFilenameNative, []byte(`
+workspace "default" {
+  config = "."
+}
+`), os.ModePerm)
+
+	var diags tfdiags.Diagnostics
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to initialize project",
+			fmt.Sprintf("Could not create project configuration file: %s.", err),
+		))
+		return nil, diags
+	}
+
+	return c.findCurrentProject()
 }
 
 func (c *InitCommand) Help() string {

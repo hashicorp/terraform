@@ -80,7 +80,7 @@ func (c *ProvidersSchemaCommand) Run(args []string) int {
 	// Build the operation
 	opReq := c.Operation(b)
 	opReq.ConfigDir = cwd
-	opReq.ConfigLoader, err = c.initConfigLoader()
+	opReq.ConfigLoader, err = c.initConfigLoader(opReq.Workspace.ConfigDir())
 	opReq.AllowUnsetVariables = true
 	if err != nil {
 		diags = diags.Append(err)

@@ -149,7 +149,11 @@ func (b *Local) contextDirect(op *backend.Operation, opts terraform.ContextOpts)
 		// values through interactive prompts.
 		// TODO: Need to route the operation context through into here, so that
 		// the interactive prompts can be sensitive to its timeouts/etc.
-		rawVariables = b.interactiveCollectVariables(context.TODO(), op.Variables, config.Module.Variables, opts.UIInput)
+		// TODO: Do we want to continue to have these interactive prompts under
+		// workspaces2? Ideally variable values should live only in the
+		// project configuration file.
+		//rawVariables = b.interactiveCollectVariables(context.TODO(), op.Variables, config.Module.Variables, opts.UIInput)
+		rawVariables = op.Variables
 	}
 
 	// TEMP: Copy in the variables from the workspace configuration in the

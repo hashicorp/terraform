@@ -89,17 +89,21 @@ func (c *ZeroTwelveUpgradeCommand) Run(args []string) int {
 		return 1
 	}
 
-	// The config loader doesn't naturally populate our sources
-	// map, so we'll do it manually so our diagnostics can have
-	// source code snippets inside them.
-	// This is weird, but this whole upgrade codepath is pretty
-	// weird and temporary, so we'll accept it.
-	if loader, err := c.initConfigLoader(); err == nil {
-		parser := loader.Parser()
-		for name, src := range sources {
-			parser.ForceFileSource(filepath.Join(dir, name), src)
+	// Source buffer tracking is disabled for the workspaces2 prototype, because
+	// it assumes a single configuration directory for all workspaces.
+	/*
+		// The config loader doesn't naturally populate our sources
+		// map, so we'll do it manually so our diagnostics can have
+		// source code snippets inside them.
+		// This is weird, but this whole upgrade codepath is pretty
+		// weird and temporary, so we'll accept it.
+		if loader, err := c.initConfigLoader(); err == nil {
+			parser := loader.Parser()
+			for name, src := range sources {
+				parser.ForceFileSource(filepath.Join(dir, name), src)
+			}
 		}
-	}
+	*/
 
 	if !force {
 		// We'll check first if this directory already looks upgraded, so we

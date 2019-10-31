@@ -75,7 +75,7 @@ func (c *RefreshCommand) Run(args []string) int {
 	opReq.ConfigDir = configPath
 	opReq.Type = backend.OperationTypeRefresh
 
-	opReq.ConfigLoader, err = c.initConfigLoader()
+	opReq.ConfigLoader, err = c.initConfigLoader(opReq.Workspace.ConfigDir())
 	if err != nil {
 		c.showDiagnostics(err)
 		return 1

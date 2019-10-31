@@ -42,6 +42,17 @@ func (m *Meta) findCurrentProject() (*projects.Project, tfdiags.Diagnostics) {
 	return projects.FindProject(dir)
 }
 
+// findCurrentProjectRoot finds the root directory for the project that the
+// current working directory belongs to, or an error if the current working
+// directory doesn't seem to belong to a project.
+func (m *Meta) findCurrentProjectRoot() (string, error) {
+	dir, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+	return projects.FindProjectRoot(dir)
+}
+
 // findCurrentProjectManager wraps findCurrentProject and annotates the
 // resulting project with the current set of project context variables to
 // produce a ProjectManager object.

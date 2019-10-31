@@ -215,7 +215,7 @@ func (c *ImportCommand) Run(args []string) int {
 	// Build the operation
 	opReq := c.Operation(b)
 	opReq.ConfigDir = configPath
-	opReq.ConfigLoader, err = c.initConfigLoader()
+	opReq.ConfigLoader, err = c.initConfigLoader(opReq.Workspace.ConfigDir())
 	if err != nil {
 		diags = diags.Append(err)
 		c.showDiagnostics(diags)

@@ -16,12 +16,29 @@ import (
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
+const (
+	// ProjectConfigFilenameNative is the name of the configuration file expressing
+	// project configuration in HCL native syntax.
+	ProjectConfigFilenameNative = projectconfigs.ProjectConfigFilenameNative
+
+	// ProjectConfigFilenameJSON is the name of the configuration file expressing
+	// project configuration in HCL JSON.
+	ProjectConfigFilenameJSON = projectconfigs.ProjectConfigFilenameJSON
+)
+
 // Project represents a single Terraform project, which is a container for
 // zero or more workspaces.
 type Project struct {
 	config *projectconfigs.Config
 
 	workspaceEachVals map[addrs.ProjectWorkspace]cty.Value
+}
+
+// FindProjectRoot finds the root directory for the project that contains the
+// given start directory, or an error if the start directory does not seem
+// to be inside a project root.
+func FindProjectRoot(startDir string) (string, error) {
+	return projectconfigs.FindProjectRoot(startDir)
 }
 
 // FindProject finds the project that contains the given start directory, if
