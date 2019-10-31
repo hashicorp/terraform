@@ -147,7 +147,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		if (*n.ProviderSchema).ProviderMeta == nil {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", (*n.Config).ProviderConfigAddr()),
+				Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", (*n.Config).ProviderConfigAddr().StringCompact()),
 				Detail:   fmt.Sprintf("The resource %s belongs to a provider that doesn't support provider_meta blocks", n.Addr),
 				Subject:  &n.ProviderMeta.ProviderRange,
 			})
