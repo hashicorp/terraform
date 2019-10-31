@@ -3,6 +3,7 @@ package azure
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/go-azure-helpers/sender"
 	"log"
 	"net/url"
 	"os"
@@ -75,12 +76,16 @@ func buildArmClient(config BackendConfig) (*ArmClient, error) {
 		return nil, fmt.Errorf("Error building ARM Config: %+v", err)
 	}
 
-	oauthConfig, err := adal.NewOAuthConfig(env.ActiveDirectoryEndpoint, armConfig.TenantID)
+	adalOauthConfig, err := adal.NewOAuthConfig(env.ActiveDirectoryEndpoint, armConfig.TenantID)
 	if err != nil {
 		return nil, err
 	}
 
-	auth, err := armConfig.GetAuthorizationToken(oauthConfig, env.TokenAudience)
+	sender := sender.BuildSender("AzureRM")
+	oauthConfig := &authentication.OAuthConfig{
+		OAuth: adalOauthConfig,
+	}
+	auth, err := armConfig.GetAuthorizationToken(sender, oauthConfig, env.TokenAudience)
 	if err != nil {
 		return nil, err
 	}
