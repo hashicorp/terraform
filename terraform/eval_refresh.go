@@ -53,7 +53,7 @@ func (n *EvalRefresh) Eval(ctx EvalContext) (interface{}, error) {
 			log.Printf("[DEBUG] EvalRefresh: no ProviderMeta schema")
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", n.ProviderAddr),
+				Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", n.ProviderAddr.ProviderConfig.StringCompact()),
 				Detail:   fmt.Sprintf("The resource %s belongs to a provider that doesn't support provider_meta blocks", n.Addr),
 				Subject:  &n.ProviderMeta.ProviderRange,
 			})
