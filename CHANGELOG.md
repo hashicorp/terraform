@@ -1,10 +1,20 @@
 ## 0.12.13 (Unreleased)
+
+UPGRADE NOTES:
+
+* **Remote backend local-only operations:** Previously the remote backend was not correctly handling variables marked as "HCL" in the remote workspace when running local-only operations like `terraform import`, instead interpreting them as literal strings as described in [#23228](https://github.com/hashicorp/terraform/issues/23228).
+
+    That behavior is now corrected in this release, but in the unlikely event that an existing remote workspace contains a variable marked as "HCL" whose value is not valid HCL syntax these local-only commands will now fail with a syntax error where previously the value would not have been parsed at all and so an operation not relying on that value may have succeeded in spite of the problem. If you see an error like "Invalid expression for var.example" on local-only commands after upgrading, ensure that the remotely-stored value for the given variable uses correct HCL value syntax.
+    
+    This _does not_ affect true remote operations like `terraform plan` and `terraform apply`, because the processing of variables for those always happens in the remote system.
+
 BUG FIXES:
 
 * config: Fix regression where self wasn't properly evaluated when using for_each [GH-23215]
 * config: dotfiles are no longer excluded when copying existing modules; previously, any dotfile/dir was excluded in this copy, but this change makes the local copy behavior match go-getter behavior [GH-22946]
 * core: Ensure create_before_destroy ordering is enforced with dependencies between modules [GH-22937]
 * core: Fix some destroy-time cycles due to unnecessary edges in the graph, and remove unused resource nodes [GH-22976]
+* backend/remote: Correctly handle remotely-stored variables that are marked as "HCL" when running local-only operations like `terraform import`. Previously they would produce a type mismatch error, due to misinterpreting them as literal strings. [GH-23229]
 
 ## 0.12.12 (October 18, 2019)
 
