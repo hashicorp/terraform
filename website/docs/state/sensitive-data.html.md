@@ -13,10 +13,6 @@ and your definition of "sensitive." The state contains resource IDs and all
 resource attributes. For resources such as databases, this may contain initial
 passwords.
 
-Some resources (such as AWS IAM Access Keys) have options for PGP encrypting the
-values within the state. This is implemented on a per-resource basis and
-you should assume the value is plaintext unless otherwise documented.
-
 When using local state, state is stored in plain-text JSON files. When
 using [remote state](/docs/state/remote.html), state is only ever held in memory when used by Terraform.
 It may be encrypted at rest but this depends on the specific remote state
