@@ -129,3 +129,11 @@ to newer versions of the provider without altering the module.
 Root modules should use a `~>` constraint to set both a lower and upper bound
 on versions for each provider they depend on, as described in
 [Provider Versions](providers.html#provider-versions).
+
+## Passing Metadata to Providers
+
+The `terraform` block can have a nested `provider_meta` block for each
+provider a module is using, if the provider defines a schema for it. This
+allows the provider to receive module-specific information. No interpolations
+are performed on this block. For more information, see the
+[`provider_meta` page](/docs/internals/provider-meta.html).
