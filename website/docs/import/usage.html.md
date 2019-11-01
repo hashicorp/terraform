@@ -39,12 +39,14 @@ resource configuration:
 $ terraform import aws_instance.example i-abcd1234
 ```
 
-This command locates the AWS instance with ID `i-abcd1234` and attaches
-its existing settings, as described by the EC2 API, to the name
-`aws_instance.example` in the Terraform state.
+This command locates the AWS instance with ID `i-abcd1234`. Then it attaches
+the existing settings of the instance, as described by the EC2 API, to the
+name `aws_instance.example` of a module. In this example the module path
+implies that the root module is used. Finally, the mapping is saved in the
+Terraform state.
 
-It is also possible to import to resources in child modules and to single
-instances of a resource with `count` set. See
+It is also possible to import to resources in child modules, using their paths,
+and to single instances of a resource with `count` or `for_each` set. See
 [_Resource Addressing_](/docs/internals/resource-addressing.html) for more
 details on how to specify a target resource.
 
