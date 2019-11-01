@@ -247,7 +247,9 @@ func (r *Resource) Apply(
 	if err != nil {
 		return s, err
 	}
-	data.providerMeta = s.ProviderMeta
+	if s != nil && data != nil {
+		data.providerMeta = s.ProviderMeta
+	}
 
 	// Instance Diff shoould have the timeout info, need to copy it over to the
 	// ResourceData meta
