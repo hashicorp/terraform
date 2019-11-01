@@ -32,21 +32,21 @@ remains constant.
 If desired, you can leave the body of the resource block blank for now and
 return to fill it in once the instance is imported.
 
-Now `terraform import` can be run to map an existing instance to this
+Now `terraform import` can be run to attach an existing instance to this
 resource configuration:
 
 ```shell
 $ terraform import aws_instance.example i-abcd1234
 ```
 
-This command locates the AWS instance with ID `i-abcd1234`. Then it maps
+This command locates the AWS instance with ID `i-abcd1234`. Then it attaches
 the existing settings of the instance, as described by the EC2 API, to the
 name `aws_instance.example` of a module. In this example the module path
 implies that the root module is used. Finally, the mapping is saved in the
 Terraform state.
 
 It is also possible to import to resources in child modules, using their paths,
-and to single instances of a resource with `count` set. See
+and to single instances of a resource with `count` or `for_each` set. See
 [_Resource Addressing_](/docs/internals/resource-addressing.html) for more
 details on how to specify a target resource.
 
