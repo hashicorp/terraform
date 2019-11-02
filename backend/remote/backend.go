@@ -265,13 +265,20 @@ func (b *Remote) Configure(obj cty.Value) tfdiags.Diagnostics {
 		}
 	}
 
+	// Get the token from the environment if no token is provided
+	// via the config or the credentials section of the CLI Config File.
+	if token == "" {
+		token = os.Getenv("TF_REMOTE_BACKEND_TOKEN")
+	}
+
 	// Return an error if we still don't have a token at this point.
 	if token == "" {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Required token could not be found",
 			fmt.Sprintf(
-				"Make sure you configured a credentials block for %s in your CLI Config File.",
+				"Make sure you configured a credentials block for %s in your CLI Config File,"+
+					" or set the TF_REMOTE_BACKEND_TOKEN environment variable.",
 				b.hostname,
 			),
 		))
