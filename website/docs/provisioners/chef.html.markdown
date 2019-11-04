@@ -144,6 +144,9 @@ The following arguments are supported:
 * `server_url (string)` - (Required) The URL to the Chef server. This includes the path to
   the organization. See the example.
 
+* `skip_client_run (boolean)` - (Optional) Skip the initial `chef-client` run of Chef Client on the remote
+  machine. 
+
 * `skip_install (boolean)` - (Optional) Skip the installation of Chef Client on the remote
   machine. This assumes Chef Client is already installed when you run the `chef`
   provisioner.
