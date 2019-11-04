@@ -107,6 +107,7 @@ type provisioner struct {
 	RunList               []string
 	SecretKey             string
 	ServerURL             string
+	SkipClientRun         bool
 	SkipInstall           bool
 	SkipRegister          bool
 	SSLVerifyMode         string
@@ -230,6 +231,10 @@ func Provisioner() terraform.ResourceProvisioner {
 			},
 			"secret_key": &schema.Schema{
 				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"skip_client_run": &schema.Schema{
+				Type:     schema.TypeBool,
 				Optional: true,
 			},
 			"skip_install": &schema.Schema{
@@ -370,9 +375,11 @@ func applyFn(ctx context.Context) error {
 	// with rights caused by changing settings during the run.
 	once.Do(cleanupUserKey)
 
-	o.Output("Starting initial Chef-Client run...")
-	if err := p.runChefClient(o, comm); err != nil {
-		return err
+	if !p.SkipClientRun {
+		o.Output("Starting initial Chef-Client run...")
+		if err := p.runChefClient(o, comm); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -739,6 +746,7 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 		RunList:               getStringList(d.Get("run_list")),
 		SecretKey:             d.Get("secret_key").(string),
 		ServerURL:             d.Get("server_url").(string),
+		SkipClientRun:         d.Get("skip_client_run").(bool),
 		SkipInstall:           d.Get("skip_install").(bool),
 		SkipRegister:          d.Get("skip_register").(bool),
 		SSLVerifyMode:         d.Get("ssl_verify_mode").(string),
