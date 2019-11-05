@@ -76,6 +76,7 @@ require (
 	github.com/hashicorp/terraform-config-inspect v0.0.0-20190821133035-82a99dc22ef4
 	github.com/hashicorp/terraform-svchost v0.0.0-20191011084731-65d371908596
 	github.com/hashicorp/vault v0.10.4
+	github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af
 	github.com/jonboulle/clockwork v0.1.0 // indirect
 	github.com/joyent/triton-go v0.0.0-20180313100802-d8f9c0314926
 	github.com/json-iterator/go v1.1.5 // indirect
@@ -97,7 +98,7 @@ require (
 	github.com/mitchellh/go-wordwrap v1.0.0
 	github.com/mitchellh/hashstructure v1.0.0
 	github.com/mitchellh/mapstructure v1.1.2
-	github.com/mitchellh/panicwrap v0.0.0-20190213213626-17011010aaa4
+	github.com/mitchellh/panicwrap v1.0.0
 	github.com/mitchellh/prefixedio v0.0.0-20190213213902-5733675afd51
 	github.com/mitchellh/reflectwalk v1.0.0
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
