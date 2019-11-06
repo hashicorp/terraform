@@ -8,6 +8,9 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/mitchellh/cli"
+	"github.com/mitchellh/colorstring"
+
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/format"
@@ -190,6 +193,21 @@ func (b *Local) opPlan(
 }
 
 func (b *Local) renderPlan(plan *plans.Plan, state *states.State, schemas *terraform.Schemas) {
+	RenderPlan(plan, state, schemas, b.CLI, b.Colorize())
+}
+
+// RenderPlan renders the given plan to the given UI.
+//
+// This is exported only so that the "terraform show" command can re-use it.
+// Ideally it would be somewhere outside of this backend code so that both
+// can call into it, but we're leaving it here for now in order to avoid
+// disruptive refactoring.
+//
+// If you find yourself wanting to call this function from a third callsite,
+// please consider whether it's time to do the more disruptive refactoring
+// so that something other than the local backend package is offering this
+// functionality.
+func RenderPlan(plan *plans.Plan, state *states.State, schemas *terraform.Schemas, ui cli.Ui, colorize *colorstring.Colorize) {
 	counts := map[plans.Action]int{}
 	var rChanges []*plans.ResourceInstanceChangeSrc
 	for _, change := range plan.Changes.Resources {
@@ -223,9 +241,9 @@ func (b *Local) renderPlan(plan *plans.Plan, state *states.State, schemas *terra
 		fmt.Fprintf(headerBuf, "%s read (data resources)\n", format.DiffActionSymbol(plans.Read))
 	}
 
-	b.CLI.Output(b.Colorize().Color(headerBuf.String()))
+	ui.Output(colorize.Color(headerBuf.String()))
 
-	b.CLI.Output("Terraform will perform the following actions:\n")
+	ui.Output("Terraform will perform the following actions:\n")
 
 	// Note: we're modifying the backing slice of this plan object in-place
 	// here. The ordering of resource changes in a plan is not significant,
@@ -247,13 +265,13 @@ func (b *Local) renderPlan(plan *plans.Plan, state *states.State, schemas *terra
 		providerSchema := schemas.ProviderSchema(rcs.ProviderAddr.ProviderConfig.Type)
 		if providerSchema == nil {
 			// Should never happen
-			b.CLI.Output(fmt.Sprintf("(schema missing for %s)\n", rcs.ProviderAddr))
+			ui.Output(fmt.Sprintf("(schema missing for %s)\n", rcs.ProviderAddr))
 			continue
 		}
 		rSchema, _ := providerSchema.SchemaForResourceAddr(rcs.Addr.Resource.Resource)
 		if rSchema == nil {
 			// Should never happen
-			b.CLI.Output(fmt.Sprintf("(schema missing for %s)\n", rcs.Addr))
+			ui.Output(fmt.Sprintf("(schema missing for %s)\n", rcs.Addr))
 			continue
 		}
 
@@ -267,11 +285,11 @@ func (b *Local) renderPlan(plan *plans.Plan, state *states.State, schemas *terra
 			}
 		}
 
-		b.CLI.Output(format.ResourceChange(
+		ui.Output(format.ResourceChange(
 			rcs,
 			tainted,
 			rSchema,
-			b.CLIColor,
+			colorize,
 		))
 	}
 
@@ -288,7 +306,7 @@ func (b *Local) renderPlan(plan *plans.Plan, state *states.State, schemas *terra
 			stats[change.Action]++
 		}
 	}
-	b.CLI.Output(b.Colorize().Color(fmt.Sprintf(
+	ui.Output(colorize.Color(fmt.Sprintf(
 		"[reset][bold]Plan:[reset] "+
 			"%d to add, %d to change, %d to destroy.",
 		stats[plans.Create], stats[plans.Update], stats[plans.Delete],
