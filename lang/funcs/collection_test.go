@@ -2251,6 +2251,51 @@ func TestMerge(t *testing.T) {
 	}
 }
 
+func TestPrefixItemList(t *testing.T) {
+	tests := []struct {
+		List   cty.Value
+		Prefix cty.Value
+		Want   cty.Value
+		Err    string
+	}{
+		{
+			cty.ListVal([]cty.Value{cty.StringVal("a"), cty.StringVal("b"), cty.StringVal("c")}),
+			cty.StringVal("."),
+			cty.ListVal([]cty.Value{cty.StringVal(".a"), cty.StringVal(".b"), cty.StringVal(".c")}),
+			"",
+		},
+		{
+			cty.ListVal([]cty.Value{cty.StringVal("a"), cty.StringVal("b"), cty.StringVal("c")}),
+			cty.StringVal(""),
+			cty.ListVal([]cty.Value{cty.StringVal("a"), cty.StringVal("b"), cty.StringVal("c")}),
+			"",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("prefixitemlist(%s, %#v)", test.List, test.Prefix), func(t *testing.T) {
+			got, err := PrefixItemList(test.List, test.Prefix)
+
+			if test.Err != "" {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				if got, want := err.Error(), test.Err; got != want {
+					t.Fatalf("wrong error\ngot:  %s\nwant: %s", got, want)
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+
+}
+
 func TestReverse(t *testing.T) {
 	tests := []struct {
 		List cty.Value
@@ -2852,6 +2897,51 @@ func TestSlice(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSuffixItemList(t *testing.T) {
+	tests := []struct {
+		List   cty.Value
+		Suffix cty.Value
+		Want   cty.Value
+		Err    string
+	}{
+		{
+			cty.ListVal([]cty.Value{cty.StringVal("a"), cty.StringVal("b"), cty.StringVal("c")}),
+			cty.StringVal("."),
+			cty.ListVal([]cty.Value{cty.StringVal("a."), cty.StringVal("b."), cty.StringVal("c.")}),
+			"",
+		},
+		{
+			cty.ListVal([]cty.Value{cty.StringVal("a"), cty.StringVal("b"), cty.StringVal("c")}),
+			cty.StringVal(""),
+			cty.ListVal([]cty.Value{cty.StringVal("a"), cty.StringVal("b"), cty.StringVal("c")}),
+			"",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("prefixitemlist(%s, %#v)", test.List, test.Suffix), func(t *testing.T) {
+			got, err := SuffixItemList(test.List, test.Suffix)
+
+			if test.Err != "" {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				if got, want := err.Error(), test.Err; got != want {
+					t.Fatalf("wrong error\ngot:  %s\nwant: %s", got, want)
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+
 }
 
 func TestTranspose(t *testing.T) {

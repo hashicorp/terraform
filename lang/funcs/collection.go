@@ -897,6 +897,37 @@ var MergeFunc = function.New(&function.Spec{
 	},
 })
 
+// SuffixItemListFunc takes a suffix item and produces a new sequence of the same length
+// with all of the elements suffixed.
+var SuffixItemListFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "list",
+			Type: cty.DynamicPseudoType,
+		},
+		{
+			Name: "suffix",
+			Type: cty.String,
+		},
+	},
+	Type: func(args []cty.Value) (cty.Type, error) {
+		argTy := args[0].Type()
+		if !argTy.IsListType() {
+			return cty.NilType, function.NewArgErrorf(1, "must be a list")
+		}
+		return cty.List(argTy.ElementType()), nil
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		list := args[0].AsValueSlice()
+		suffix := args[1].AsString()
+		outVals := make([]cty.Value, len(list))
+		for i, v := range list {
+			outVals[i] = cty.StringVal(fmt.Sprintf("%s%s", v.AsString(), suffix))
+		}
+		return cty.ListVal(outVals), nil
+	},
+})
+
 // ReverseFunc takes a sequence and produces a new sequence of the same length
 // with all of the same elements as the given sequence but in reverse order.
 var ReverseFunc = function.New(&function.Spec{
@@ -1178,6 +1209,37 @@ func sliceIndexes(args []cty.Value) (int, int, bool, error) {
 	}
 	return startIndex, endIndex, startKnown && endKnown, nil
 }
+
+// PrefixItemListFunc takes a prefix item and produces a new sequence of the same length
+// with all of the elements prefixed.
+var PrefixItemListFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "list",
+			Type: cty.DynamicPseudoType,
+		},
+		{
+			Name: "prefix",
+			Type: cty.String,
+		},
+	},
+	Type: func(args []cty.Value) (cty.Type, error) {
+		argTy := args[0].Type()
+		if !argTy.IsListType() {
+			return cty.NilType, function.NewArgErrorf(1, "must be a list")
+		}
+		return cty.List(argTy.ElementType()), nil
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		list := args[0].AsValueSlice()
+		prefix := args[1].AsString()
+		outVals := make([]cty.Value, len(list))
+		for i, v := range list {
+			outVals[i] = cty.StringVal(fmt.Sprintf("%s%s", prefix, v.AsString()))
+		}
+		return cty.ListVal(outVals), nil
+	},
+})
 
 // TransposeFunc contructs a function that takes a map of lists of strings and
 // TransposeFunc constructs a function that takes a map of lists of strings and
@@ -1485,6 +1547,12 @@ func Merge(maps ...cty.Value) (cty.Value, error) {
 	return MergeFunc.Call(maps)
 }
 
+// PrefixItemList takes a prefix item and produces a new sequence of the same length
+// with all of the elements prefixed.
+func PrefixItemList(list cty.Value, prefix cty.Value) (cty.Value, error) {
+	return PrefixItemListFunc.Call([]cty.Value{list, prefix})
+}
+
 // Reverse takes a sequence and produces a new sequence of the same length
 // with all of the same elements as the given sequence but in reverse order.
 func Reverse(list cty.Value) (cty.Value, error) {
@@ -1499,6 +1567,12 @@ func SetProduct(sets ...cty.Value) (cty.Value, error) {
 // Slice extracts some consecutive elements from within a list.
 func Slice(list, start, end cty.Value) (cty.Value, error) {
 	return SliceFunc.Call([]cty.Value{list, start, end})
+}
+
+// SuffixItemList takes a suffix item and produces a new sequence of the same length
+// with all of the elements suffixed.
+func SuffixItemList(list cty.Value, suffix cty.Value) (cty.Value, error) {
+	return SuffixItemListFunc.Call([]cty.Value{list, suffix})
 }
 
 // Transpose takes a map of lists of strings and swaps the keys and values to
