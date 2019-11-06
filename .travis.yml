@@ -4,7 +4,7 @@ services:
   - docker
 language: go
 go:
-- "1.12.9"
+- "1.12.13"
 
 # add TF_CONSUL_TEST=1 to run consul tests
 # they were causing timouts in travis
