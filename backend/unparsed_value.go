@@ -80,12 +80,11 @@ func ParseVariableValues(vv map[string]UnparsedVariableValue, decls map[string]*
 				// should migrate to using environment variables instead before
 				// this becomes an error in a future major release.
 				if seenUndeclaredInFile < 3 {
-					diags = diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagWarning,
-						Summary:  "Value for undeclared variable",
-						Detail:   fmt.Sprintf("The root module does not declare a variable named %q. To use this value, add a \"variable\" block to the configuration.\n\nUsing a variables file to set an undeclared variable is deprecated and will become an error in a future release. If you wish to provide certain \"global\" settings to all configurations in your organization, use TF_VAR_... environment variables to set these instead.", name),
-						Subject:  val.SourceRange.ToHCL().Ptr(),
-					})
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Warning,
+						"Value for undeclared variable",
+						fmt.Sprintf("The root module does not declare a variable named %q but a value was found in file %q. To use this value, add a \"variable\" block to the configuration.\n\nUsing a variables file to set an undeclared variable is deprecated and will become an error in a future release. If you wish to provide certain \"global\" settings to all configurations in your organization, use TF_VAR_... environment variables to set these instead.", name, val.SourceRange.Filename),
+					))
 				}
 				seenUndeclaredInFile++
 
