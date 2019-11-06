@@ -520,6 +520,21 @@ func (p *blockBodyDiffPrinter) writeValue(val cty.Value, action plans.Action, in
 					}
 				}
 			}
+
+			if strings.Contains(val.AsString(), "\n") {
+				// It's a multi-line string, so we want to use the multi-line
+				// rendering so it'll be readable. Rather than re-implement
+				// that here, we'll just re-use the multi-line string diff
+				// printer with no changes, which ends up producing the
+				// result we want here.
+				// The path argument is nil because we don't track path
+				// information into strings and we know that a string can't
+				// have any indices or attributes that might need to be marked
+				// as (requires replacement), which is what that argument is for.
+				p.writeValueDiff(val, val, indent, nil)
+				break
+			}
+
 			fmt.Fprintf(p.buf, "%q", val.AsString())
 		case cty.Bool:
 			if val.True() {

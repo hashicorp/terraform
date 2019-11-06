@@ -209,6 +209,37 @@ new line
     }
 `,
 		},
+		"addition of multi-line string field": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":         cty.StringVal("i-02ae66f368e8518a9"),
+				"more_lines": cty.NullVal(cty.String),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.UnknownVal(cty.String),
+				"more_lines": cty.StringVal(`original
+new line
+`),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":         {Type: cty.String, Optional: true, Computed: true},
+					"more_lines": {Type: cty.String, Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
+      + more_lines = <<~EOT
+            original
+            new line
+        EOT
+    }
+`,
+		},
 		"force-new update of multi-line string field": {
 			Action: plans.DeleteThenCreate,
 			Mode:   addrs.ManagedResourceMode,
