@@ -1,5 +1,9 @@
 ## 0.12.14 (Unreleased)
 
+ENHANCEMENTS:
+
+* backend/artifactory: Will now honor the `HTTP_PROXY` and `HTTPS_PROXY` environment variables when appropriate, to allow sending requests to the Artifactory endpoints via a proxy. [GH-18629]
+
 BUG FIXES:
 
 * command/show: When showing a saved plan file not in JSON mode, use the same presentation as `terraform plan` itself would've used. [GH-23292]
