@@ -187,7 +187,7 @@ The following configuration options are supported:
     If omitted, only the default workspace can be used. This option conflicts with `name`.
     
 ->  **Note** You must use the `name` key when configuring a `terraform_remote_state`
-data source that retrieves state from another Terraform Cloud workspace. It is only
+data source that retrieves state from another Terraform Cloud workspace. The `prefix` key is only
 intended for use when configuring an instance of the remote backend.
 
 ## Excluding Files from Upload with .terraformignore
