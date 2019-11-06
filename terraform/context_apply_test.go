@@ -10963,3 +10963,139 @@ func TestContext2Apply_destroyDataCycle(t *testing.T) {
 		t.Fatalf("diags: %s", diags.Err())
 	}
 }
+
+func TestContext2Apply_taintedDestroyFailure(t *testing.T) {
+	m := testModule(t, "apply-destroy-tainted")
+	p := testProvider("test")
+	p.DiffFn = testDiffFn
+	p.ApplyFn = func(info *InstanceInfo, s *InstanceState, d *InstanceDiff) (*InstanceState, error) {
+		// All destroys fail.
+		// c will also fail to create, meaning the existing tainted instance
+		// becomes deposed, ans is then promoted back to current.
+		// only C has a foo attribute
+		attr := d.Attributes["foo"]
+		if d.Destroy || (attr != nil && attr.New == "c") {
+			return nil, errors.New("failure")
+		}
+
+		return testApplyFn(info, s, d)
+	}
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_instance",
+			Name: "a",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectTainted,
+			AttrsJSON: []byte(`{"id":"a","foo":"a"}`),
+		},
+		addrs.ProviderConfig{
+			Type: "test",
+		}.Absolute(addrs.RootModuleInstance),
+	)
+	root.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_instance",
+			Name: "b",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectTainted,
+			AttrsJSON: []byte(`{"id":"b","foo":"b"}`),
+		},
+		addrs.ProviderConfig{
+			Type: "test",
+		}.Absolute(addrs.RootModuleInstance),
+	)
+	root.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_instance",
+			Name: "c",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectTainted,
+			AttrsJSON: []byte(`{"id":"c","foo":"old"}`),
+		},
+		addrs.ProviderConfig{
+			Type: "test",
+		}.Absolute(addrs.RootModuleInstance),
+	)
+
+	providerResolver := providers.ResolverFixed(
+		map[string]providers.Factory{
+			"test": testProviderFuncFixed(p),
+		},
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Config:           m,
+		ProviderResolver: providerResolver,
+		State:            state,
+		Hooks:            []Hook{&testHook{}},
+	})
+
+	_, diags := ctx.Plan()
+	diags.HasErrors()
+	if diags.HasErrors() {
+		t.Fatalf("diags: %s", diags.Err())
+	}
+
+	state, diags = ctx.Apply()
+	if !diags.HasErrors() {
+		t.Fatal("expected error")
+	}
+
+	root = state.Module(addrs.RootModuleInstance)
+
+	// the instance that failed to destroy should remain tainted
+	a := root.ResourceInstance(addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: "test_instance",
+		Name: "a",
+	}.Instance(addrs.NoKey))
+
+	if a.Current.Status != states.ObjectTainted {
+		t.Fatal("test_instance.a should be tainted")
+	}
+
+	// b is create_before_destroy, and the destroy failed, so there should be 1
+	// deposed instance.
+	b := root.ResourceInstance(addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: "test_instance",
+		Name: "b",
+	}.Instance(addrs.NoKey))
+
+	if b.Current.Status != states.ObjectReady {
+		t.Fatal("test_instance.b should be Ready")
+	}
+
+	if len(b.Deposed) != 1 {
+		t.Fatal("test_instance.b failed to keep deposed instance")
+	}
+
+	// the desposed c instance should be promoted back to Current, and remain
+	// tainted
+	c := root.ResourceInstance(addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: "test_instance",
+		Name: "c",
+	}.Instance(addrs.NoKey))
+
+	if c.Current.Status != states.ObjectTainted {
+		t.Fatal("test_instance.c should be tainted")
+	}
+
+	if len(c.Deposed) != 0 {
+		t.Fatal("test_instance.c should have no deposed instances")
+	}
+
+	if string(c.Current.AttrsJSON) != `{"id":"c","foo":"old"}` {
+		t.Fatalf("unexpected attrs for c: %q\n", c.Current.AttrsJSON)
+	}
+}
