@@ -41,7 +41,7 @@ organizations that use Terraform.
 
 -> **Note**: The Terraform CLI workspace concept described in this document is
 different from but related to the Terraform Cloud
-[workspace](https://www.terraform.io/docs/cloud/workspaces/index.html) concept.
+[workspace](/docs/cloud/workspaces/index.html) concept.
 If you use multiple Terraform CLI workspaces in a single Terraform configuration
 and are migrating that configuration to Terraform Cloud, see this [migration
 document](https://www.terraform.io/docs/cloud/migrate/workspaces.html).
