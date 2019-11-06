@@ -77,7 +77,7 @@ interpolation sequence should be removed from Terraform configurations that run
 remote operations against Terraform Cloud workspaces. The reason for this is that
 each Terraform Cloud workspace currently only uses the single `default` Terraform
 CLI workspace internally. In other words, if your Terraform configuration
-used `${terraform.workspace}` to return `dev` or `prod`, your Terraform code in the
+used `${terraform.workspace}` to return `dev` or `prod`, remote runs in Terraform Cloud
 associated Terraform Cloud workspaces would always return `default` regardless of
 which workspace you had set with the `terraform workspace select` command. That
 would most likely not be what you wanted. (It is ok to use `${terraform.workspace}`
