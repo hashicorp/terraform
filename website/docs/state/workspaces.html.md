@@ -39,6 +39,13 @@ It was renamed in 0.10 based on feedback about confusion caused by the
 overloading of the word "environment" both within Terraform itself and within
 organizations that use Terraform.
 
+-> **Note**: The Terraform CLI workspace concept described in this document is
+different from but related to the Terraform Cloud
+[workspace](/docs/cloud/workspaces/index.html) concept.
+If you use multiple Terraform CLI workspaces in a single Terraform configuration
+and are migrating that configuration to Terraform Cloud, see this [migration
+document](/docs/cloud/migrate/workspaces.html).
+
 ## Using Workspaces
 
 Terraform starts with a single workspace named "default". This
@@ -70,7 +77,10 @@ Terraform workspace.
 
 Within your Terraform configuration, you may include the name of the current
 workspace using the `${terraform.workspace}` interpolation sequence. This can
-be used anywhere interpolations are allowed.
+be used anywhere interpolations are allowed. However, it should **not** be
+used in remote operations against Terraform Cloud workspaces. For an
+explanation, see the [remote backend](../backends/types/remote.html#workspaces)
+document.
 
 Referencing the current workspace is useful for changing behavior based
 on the workspace. For example, for non-default workspaces, it may be useful
@@ -195,4 +205,6 @@ meant to be a shared resource. They aren't a private, local-only notion
 
 The "current workspace" name is stored only locally in the ignored
 `.terraform` directory. This allows multiple team members to work on
-different workspaces concurrently.
+different workspaces concurrently. The "current workspace" name is **not**
+currently meaningful in Terraform Cloud workspaces since it will always
+have the value `default`.
