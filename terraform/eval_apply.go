@@ -253,6 +253,8 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 		}
 	}
 
+	newStatus := states.ObjectReady
+
 	// Sometimes providers return a null value when an operation fails for some
 	// reason, but we'd rather keep the prior state so that the error can be
 	// corrected on a subsequent run. We must only do this for null new value
@@ -265,12 +267,18 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 		// If change.Action is Create then change.Before will also be null,
 		// which is fine.
 		newVal = change.Before
+
+		// If we're recovering the previous state, we also want to restore the
+		// the tainted status of the object.
+		if state.Status == states.ObjectTainted {
+			newStatus = states.ObjectTainted
+		}
 	}
 
 	var newState *states.ResourceInstanceObject
 	if !newVal.IsNull() { // null value indicates that the object is deleted, so we won't set a new state in that case
 		newState = &states.ResourceInstanceObject{
-			Status:  states.ObjectReady,
+			Status:  newStatus,
 			Value:   newVal,
 			Private: resp.Private,
 		}
