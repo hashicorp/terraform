@@ -30,12 +30,10 @@ func (c *OutputCommand) Run(args []string) int {
 
 	var module, statePath string
 	var jsonOutput bool
-	var flagIgnoreEmptyOutput bool
 	cmdFlags := c.Meta.defaultFlagSet("output")
 	cmdFlags.BoolVar(&jsonOutput, "json", false, "json")
 	cmdFlags.StringVar(&statePath, "state", "", "path")
 	cmdFlags.StringVar(&module, "module", "", "module")
-	cmdFlags.BoolVar(&flagIgnoreEmptyOutput, "ignore-empty-output", false, "ignore empty output")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
@@ -115,19 +113,14 @@ func (c *OutputCommand) Run(args []string) int {
 	}
 
 	if !jsonOutput && (state.Empty() || len(mod.OutputValues) == 0) {
-		emptyOutputString := "The state file either has no outputs defined, or all the defined\n" +
-			"outputs are empty. Please define an output in your configuration\n" +
-			"with the `output` keyword and run `terraform refresh` for it to\n" +
-			"become available. If you are using interpolation, please verify\n" +
-			"the interpolated value is not empty. You can use the \n" +
-			"`terraform console` command to assist."
-		if flagIgnoreEmptyOutput {
-			c.Ui.Output(emptyOutputString)
-			return 0
-		} else {
-			c.Ui.Error(emptyOutputString)
-			return 1
-		}
+		c.Ui.Error(
+			"The state file either has no outputs defined, or all the defined\n" +
+				"outputs are empty. Please define an output in your configuration\n" +
+				"with the `output` keyword and run `terraform refresh` for it to\n" +
+				"become available. If you are using interpolation, please verify\n" +
+				"the interpolated value is not empty. You can use the \n" +
+				"`terraform console` command to assist.")
+		return 0
 	}
 
 	if name == "" {
@@ -338,16 +331,13 @@ Usage: terraform output [options] [NAME]
 
 Options:
 
-  -state=path        Path to the state file to read. Defaults to
-                     "terraform.tfstate".
+  -state=path      Path to the state file to read. Defaults to
+                   "terraform.tfstate".
 
-  -no-color          If specified, output won't contain any color.
+  -no-color        If specified, output won't contain any color.
 
-  -json              If specified, machine readable output will be
-                     printed in JSON format
-
-  -ignore-no-output  If specified, empty or no output will still
-                     result in a sucessful command.
+  -json            If specified, machine readable output will be
+                   printed in JSON format
 
 `
 	return strings.TrimSpace(helpText)
