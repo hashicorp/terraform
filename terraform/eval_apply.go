@@ -253,6 +253,8 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 		}
 	}
 
+	newStatus := states.ObjectReady
+
 	// Sometimes providers return a null value when an operation fails for some
 	// reason, but we'd rather keep the prior state so that the error can be
 	// corrected on a subsequent run. We must only do this for null new value
@@ -265,12 +267,18 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 		// If change.Action is Create then change.Before will also be null,
 		// which is fine.
 		newVal = change.Before
+
+		// If we're recovering the previous state, we also want to restore the
+		// the tainted status of the object.
+		if state.Status == states.ObjectTainted {
+			newStatus = states.ObjectTainted
+		}
 	}
 
 	var newState *states.ResourceInstanceObject
 	if !newVal.IsNull() { // null value indicates that the object is deleted, so we won't set a new state in that case
 		newState = &states.ResourceInstanceObject{
-			Status:  states.ObjectReady,
+			Status:  newStatus,
 			Value:   newVal,
 			Private: resp.Private,
 		}
@@ -376,40 +384,39 @@ type EvalMaybeTainted struct {
 	Change **plans.ResourceInstanceChange
 	State  **states.ResourceInstanceObject
 	Error  *error
-
-	// If StateOutput is not nil, its referent will be assigned either the same
-	// pointer as State or a new object with its status set as Tainted,
-	// depending on whether an error is given and if this was a create action.
-	StateOutput **states.ResourceInstanceObject
 }
 
-// TODO: test
 func (n *EvalMaybeTainted) Eval(ctx EvalContext) (interface{}, error) {
+	if n.State == nil || n.Change == nil || n.Error == nil {
+		return nil, nil
+	}
+
 	state := *n.State
 	change := *n.Change
 	err := *n.Error
+
+	// nothing to do if everything went as planned
+	if err == nil {
+		return nil, nil
+	}
 
 	if state != nil && state.Status == states.ObjectTainted {
 		log.Printf("[TRACE] EvalMaybeTainted: %s was already tainted, so nothing to do", n.Addr.Absolute(ctx.Path()))
 		return nil, nil
 	}
 
-	if n.StateOutput != nil {
-		if err != nil && change.Action == plans.Create {
-			// If there are errors during a _create_ then the object is
-			// in an undefined state, and so we'll mark it as tainted so
-			// we can try again on the next run.
-			//
-			// We don't do this for other change actions because errors
-			// during updates will often not change the remote object at all.
-			// If there _were_ changes prior to the error, it's the provider's
-			// responsibility to record the effect of those changes in the
-			// object value it returned.
-			log.Printf("[TRACE] EvalMaybeTainted: %s encountered an error during creation, so it is now marked as tainted", n.Addr.Absolute(ctx.Path()))
-			*n.StateOutput = state.AsTainted()
-		} else {
-			*n.StateOutput = state
-		}
+	if change.Action == plans.Create {
+		// If there are errors during a _create_ then the object is
+		// in an undefined state, and so we'll mark it as tainted so
+		// we can try again on the next run.
+		//
+		// We don't do this for other change actions because errors
+		// during updates will often not change the remote object at all.
+		// If there _were_ changes prior to the error, it's the provider's
+		// responsibility to record the effect of those changes in the
+		// object value it returned.
+		log.Printf("[TRACE] EvalMaybeTainted: %s encountered an error during creation, so it is now marked as tainted", n.Addr.Absolute(ctx.Path()))
+		*n.State = state.AsTainted()
 	}
 
 	return nil, nil
