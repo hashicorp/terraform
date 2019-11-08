@@ -34,6 +34,7 @@ down to see all providers.
 - [Azure](/docs/providers/azurerm/index.html)
 - [Azure Active Directory](/docs/providers/azuread/index.html)
 - [Azure Stack](/docs/providers/azurestack/index.html)
+- [A10 Networks](/docs/providers/vthunder/index.html)
 - [Bitbucket](/docs/providers/bitbucket/index.html)
 - [Brightbox](/docs/providers/brightbox/index.html)
 - [CenturyLinkCloud](/docs/providers/clc/index.html)
@@ -138,7 +139,6 @@ down to see all providers.
 - [VMware vCloud Director](/docs/providers/vcd/index.html)
 - [VMware vRA7](/docs/providers/vra7/index.html)
 - [VMware vSphere](/docs/providers/vsphere/index.html)
-- [vThunder](/docs/providers/vthunder/index.html)
 - [Vultr](/docs/providers/vultr/index.html)
 - [Yandex](/docs/providers/yandex/index.html)
 
