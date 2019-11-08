@@ -33,3 +33,4 @@ in close collaboration with HashiCorp, and are tested by HashiCorp.
 - [PowerDNS](/docs/providers/powerdns/index.html)
 - [Pureport](/docs/providers/pureport/index.html)
 - [UltraDNS](/docs/providers/ultradns/index.html)
+- [vThunder](/docs/providers/vthunder/index.html)
