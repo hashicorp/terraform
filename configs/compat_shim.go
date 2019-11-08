@@ -69,28 +69,21 @@ func shimTraversalInString(expr hcl.Expression, wantKeyword bool) (hcl.Expressio
 	)
 	diags = append(diags, tDiags...)
 
-	// For initial release our deprecation warnings are disabled to allow
-	// a period where modules can be compatible with both old and new
-	// conventions.
-	// FIXME: Re-enable these deprecation warnings in a release prior to
-	// Terraform 0.13 and then remove the shims altogether for 0.13.
-	/*
-		if wantKeyword {
-			diags = append(diags, &hcl.Diagnostic{
-				Severity: hcl.DiagWarning,
-				Summary:  "Quoted keywords are deprecated",
-				Detail:   "In this context, keywords are expected literally rather than in quotes. Previous versions of Terraform required quotes, but that usage is now deprecated. Remove the quotes surrounding this keyword to silence this warning.",
-				Subject:  &srcRange,
-			})
-		} else {
-			diags = append(diags, &hcl.Diagnostic{
-				Severity: hcl.DiagWarning,
-				Summary:  "Quoted references are deprecated",
-				Detail:   "In this context, references are expected literally rather than in quotes. Previous versions of Terraform required quotes, but that usage is now deprecated. Remove the quotes surrounding this reference to silence this warning.",
-				Subject:  &srcRange,
-			})
-		}
-	*/
+	if wantKeyword {
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Quoted keywords are deprecated",
+			Detail:   "In this context, keywords are expected literally rather than in quotes. Terraform 0.11 and earlier required quotes, but quoted keywords are now deprecated and will be removed in a future version of Terraform. Remove the quotes surrounding this keyword to silence this warning.",
+			Subject:  &srcRange,
+		})
+	} else {
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Quoted references are deprecated",
+			Detail:   "In this context, references are expected literally rather than in quotes. Terraform 0.11 and earlier required quotes, but quoted references are now deprecated and will be removed in a future version of Terraform. Remove the quotes surrounding this reference to silence this warning.",
+			Subject:  &srcRange,
+		})
+	}
 
 	return &hclsyntax.ScopeTraversalExpr{
 		Traversal: traversal,
