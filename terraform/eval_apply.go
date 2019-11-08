@@ -24,7 +24,6 @@ import (
 type EvalApply struct {
 	Addr           addrs.ResourceInstance
 	Config         *configs.Resource
-	Dependencies   []addrs.Referenceable
 	State          **states.ResourceInstanceObject
 	Change         **plans.ResourceInstanceChange
 	ProviderAddr   addrs.AbsProviderConfig
@@ -271,10 +270,9 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	var newState *states.ResourceInstanceObject
 	if !newVal.IsNull() { // null value indicates that the object is deleted, so we won't set a new state in that case
 		newState = &states.ResourceInstanceObject{
-			Status:       states.ObjectReady,
-			Value:        newVal,
-			Private:      resp.Private,
-			Dependencies: n.Dependencies, // Should be populated by the caller from the StateDependencies method on the resource instance node
+			Status:  states.ObjectReady,
+			Value:   newVal,
+			Private: resp.Private,
 		}
 	}
 
