@@ -14,8 +14,9 @@ BUG FIXES:
 * command/show: When showing a saved plan file not in JSON mode, use the same presentation as `terraform plan` itself would've used. [GH-23292]
 * core: Store absolute instance dependencies in state to allow for proper destroy ordering [GH-23252]
 * core: Ensure tainted status is maintained when a destroy operation fails [GH-23304]
+* config: `transpose` function will no longer panic when it should produce an empty map as its result. [GH-23321]
 * cli: When running Terraform as a sub-process of itself, we will no longer produce errant prefixes on the console output. While we don't generally recommend using Terraform recursively like this, it was behaving in this strange way due to an implementation detail of how Terraform captures "panic" crashes from the Go runtime, and that subsystem is now updated to avoid that strange behavior. [GH-23281]
-* plugin/sdk: Sanitize provisioner output to prevent invalid utf8 sequences [GH-23302]
+* provisioners: Sanitize output to filter invalid utf8 sequences [GH-23302]
 
 ## 0.12.13 (October 31, 2019)
 
