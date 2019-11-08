@@ -54,32 +54,79 @@ type DestroyEdgeTransformer struct {
 
 func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 	// Build a map of what is being destroyed (by address string) to
-	// the list of destroyers. Usually there will be at most one destroyer
-	// per node, but we allow multiple if present for completeness.
+	// the list of destroyers.
 	destroyers := make(map[string][]GraphNodeDestroyer)
 	destroyerAddrs := make(map[string]addrs.AbsResourceInstance)
+
+	// Record the creators, which will need to depend on the destroyers if they
+	// are only being updated.
+	creators := make(map[string]GraphNodeCreator)
+
+	// destroyersByResource records each destroyer by the AbsResourceAddress.
+	// We use this because dependencies are only referenced as resources, but we
+	// will want to connect all the individual instances for correct ordering.
+	destroyersByResource := make(map[string][]GraphNodeDestroyer)
 	for _, v := range g.Vertices() {
-		dn, ok := v.(GraphNodeDestroyer)
-		if !ok {
-			continue
-		}
+		switch n := v.(type) {
+		case GraphNodeDestroyer:
+			addrP := n.DestroyAddr()
+			if addrP == nil {
+				log.Printf("[WARN] DestroyEdgeTransformer: %q (%T) has no destroy address", dag.VertexName(n), v)
+				continue
+			}
+			addr := *addrP
 
-		addrP := dn.DestroyAddr()
-		if addrP == nil {
-			continue
-		}
-		addr := *addrP
+			key := addr.String()
+			log.Printf("[TRACE] DestroyEdgeTransformer: %q (%T) destroys %s", dag.VertexName(n), v, key)
+			destroyers[key] = append(destroyers[key], n)
+			destroyerAddrs[key] = addr
 
-		key := addr.String()
-		log.Printf("[TRACE] DestroyEdgeTransformer: %q (%T) destroys %s", dag.VertexName(dn), v, key)
-		destroyers[key] = append(destroyers[key], dn)
-		destroyerAddrs[key] = addr
+			resAddr := addr.Resource.Absolute(addr.Module).String()
+			destroyersByResource[resAddr] = append(destroyersByResource[resAddr], n)
+		case GraphNodeCreator:
+			addr := n.CreateAddr()
+			creators[addr.String()] = n
+		}
 	}
 
 	// If we aren't destroying anything, there will be no edges to make
 	// so just exit early and avoid future work.
 	if len(destroyers) == 0 {
 		return nil
+	}
+
+	// Connect destroy despendencies as stored in the state
+	for _, ds := range destroyers {
+		for _, des := range ds {
+			ri, ok := des.(GraphNodeResourceInstance)
+			if !ok {
+				continue
+			}
+
+			for _, resAddr := range ri.StateDependencies() {
+				for _, desDep := range destroyersByResource[resAddr.String()] {
+					log.Printf("[TRACE] DestroyEdgeTransformer: %s has stored dependency of %s\n", dag.VertexName(desDep), dag.VertexName(des))
+					g.Connect(dag.BasicEdge(desDep, des))
+
+				}
+			}
+		}
+	}
+
+	// connect creators to any destroyers on which they may depend
+	for _, c := range creators {
+		ri, ok := c.(GraphNodeResourceInstance)
+		if !ok {
+			continue
+		}
+
+		for _, resAddr := range ri.StateDependencies() {
+			for _, desDep := range destroyersByResource[resAddr.String()] {
+				log.Printf("[TRACE] DestroyEdgeTransformer: %s has stored dependency of %s\n", dag.VertexName(c), dag.VertexName(desDep))
+				g.Connect(dag.BasicEdge(c, desDep))
+
+			}
+		}
 	}
 
 	// Go through and connect creators to destroyers. Going along with
@@ -95,13 +142,7 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 			continue
 		}
 
-		key := addr.String()
-		ds := destroyers[key]
-		if len(ds) == 0 {
-			continue
-		}
-
-		for _, d := range ds {
+		for _, d := range destroyers[addr.String()] {
 			// For illustrating our example
 			a_d := d.(dag.Vertex)
 			a := v

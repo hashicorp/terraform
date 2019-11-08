@@ -138,7 +138,7 @@ func TestStateDeepCopy(t *testing.T) {
 			SchemaVersion: 1,
 			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 			Private:       []byte("private data"),
-			Dependencies:  []addrs.Referenceable{},
+			Dependencies:  []addrs.AbsResource{},
 		},
 		addrs.ProviderConfig{
 			Type: "test",
@@ -155,11 +155,16 @@ func TestStateDeepCopy(t *testing.T) {
 			SchemaVersion: 1,
 			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 			Private:       []byte("private data"),
-			Dependencies: []addrs.Referenceable{addrs.Resource{
-				Mode: addrs.ManagedResourceMode,
-				Type: "test_thing",
-				Name: "baz",
-			}},
+			Dependencies: []addrs.AbsResource{
+				{
+					Module: addrs.RootModuleInstance,
+					Resource: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_thing",
+						Name: "baz",
+					},
+				},
+			},
 		},
 		addrs.ProviderConfig{
 			Type: "test",
