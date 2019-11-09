@@ -6,7 +6,7 @@ UPGRADE NOTES:
 
 ENHANCEMENTS:
 
-* command/output: Now treats no defined outputs as a success case rather than an error case, returning exit status zero instead of non-zero. [GH-23008]
+* command/output: Now treats no defined outputs as a success case rather than an error case, returning exit status zero instead of non-zero. [GH-23008] [GH-21136]
 * backend/artifactory: Will now honor the `HTTP_PROXY` and `HTTPS_PROXY` environment variables when appropriate, to allow sending requests to the Artifactory endpoints via a proxy. [GH-18629]
 
 BUG FIXES:
