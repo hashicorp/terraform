@@ -11,6 +11,7 @@ ENHANCEMENTS:
 
 BUG FIXES:
 
+* command/plan: Previously certain changes to lists would cause the list diff in the plan output to miss items. Now `terraform plan` will show those items as expected. [GH-22695]
 * command/show: When showing a saved plan file not in JSON mode, use the same presentation as `terraform plan` itself would've used. [GH-23292]
 * core: Store absolute instance dependencies in state to allow for proper destroy ordering [GH-23252]
 * core: Ensure tainted status is maintained when a destroy operation fails [GH-23304]
