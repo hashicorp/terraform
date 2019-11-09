@@ -888,11 +888,11 @@ func TestResourceChange_JSON(t *testing.T) {
 			Mode:   addrs.ManagedResourceMode,
 			Before: cty.ObjectVal(map[string]cty.Value{
 				"id":         cty.StringVal("i-02ae66f368e8518a9"),
-				"json_field": cty.StringVal(`[{"one": "111"}, {"two": "222"}]`),
+				"json_field": cty.StringVal(`[{"one": "111"}, {"two": "222"}, {"three": "333"}]`),
 			}),
 			After: cty.ObjectVal(map[string]cty.Value{
 				"id":         cty.UnknownVal(cty.String),
-				"json_field": cty.StringVal(`[{"one": "111"}]`),
+				"json_field": cty.StringVal(`[{"one": "111"}, {"three": "333"}]`),
 			}),
 			Schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
@@ -912,6 +912,9 @@ func TestResourceChange_JSON(t *testing.T) {
                 },
               - {
                   - two = "222"
+                },
+                {
+                    three = "333"
                 },
             ]
         )
