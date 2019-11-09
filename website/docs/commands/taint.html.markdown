@@ -36,8 +36,9 @@ the case.
 Usage: `terraform taint [options] address`
 
 The `address` argument is the address of the resource to mark as tainted.
-The address is in the usual resource address syntax, as shown in
-the output from other commands, such as:
+The address is in
+[the resource address syntax](/docs/internals/resource-addressing.html) syntax,
+as shown in the output from other commands, such as:
 
  * `aws_instance.foo`
  * `aws_instance.bar[1]`
@@ -91,4 +92,15 @@ This example will only taint a resource within a module:
 ```
 $ terraform taint "module.couchbase.aws_instance.cb_node[9]"
 Resource instance module.couchbase.aws_instance.cb_node[9] has been marked as tainted.
+```
+
+Although we recommend that most configurations use only one level of nesting
+and employ [module composition](/docs/modules/composition.html), it's possible
+to have multiple levels of nested modules. In that case the resource instance
+address must include all of the steps to the target instance, as in the
+following example:
+
+```
+$ terraform taint "module.child.module.grandchild.aws_instance.example[2]"
+Resource instance module.child.module.grandchild.aws_instance.example[2] has been marked as tainted.
 ```
