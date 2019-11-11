@@ -186,7 +186,7 @@ used in other resources as reference expressions of the form
 
 ```hcl
 resource "aws_instance" "web" {
-  ami           = data.aws_ami.web.id
+  ami           = "${data.aws_ami.web.id}"
   instance_type = "t1.micro"
 }
 ```
