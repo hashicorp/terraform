@@ -2,10 +2,19 @@
 
 UPGRADE NOTES:
 
-* The `terraform output` command formerly would treat no outputs at all as an error, exiting with a non-zero status. Since it's expected for some root modules to have no outputs, the command now returns with success status zero in this situation, but still returns the error on stderr as a compromise to provide an explanation for why nothing is being shown.
+* Terraform v0.12.0 changed the standard way to include keywords and references in the meta-arguments `depends_on` and `ignore_changes`, and the provisioner arguments `when` and `on_failure`. In Terraform 0.11 and prior these were required to be in quotes, while Terraform 0.12 expects them to be unquoted for consistency with references elsewhere.
+
+    We have been accepting both forms for backward-compatibility with existing configurations and examples since the inititial v0.12.0 release. Having maintained compatibility for both forms for several versions we are now beginning the deprecation cycle for the old usage by having Terraform emit deprecation warnings for quoted keywords and references in these contexts.
+    
+    Terraform will still accept the quoted forms in spite of these warnings, so no immediate action is required. If your modules are targeting Terraform v0.12.0 and later exclusively, you can silence the warnings by removing the quotes, as directed in the warning message. In a future major version of Terraform, these warnings will be elevated to be errors.
+    
+    The summary of the warning for this situation will be either "Quoted keywords are deprecated" or "Quoted references are deprecated" depending on the context.
+
+* The `terraform output` command would formerly treat no outputs at all as an error, exiting with a non-zero status. Since it's expected for some root modules to have no outputs, the command now returns with success status zero in this situation, but still returns the error on stderr as a compromise to provide an explanation for why nothing is being shown.
 
 ENHANCEMENTS:
 
+* config: Keywords and references in `depends_on`, `ignore_changes`, and in provisioner `when` and `on_failure` will now emit deprecation warnings. [GH-23329]
 * command/output: Now treats no defined outputs as a success case rather than an error case, returning exit status zero instead of non-zero. [GH-23008] [GH-21136]
 * backend/artifactory: Will now honor the `HTTP_PROXY` and `HTTPS_PROXY` environment variables when appropriate, to allow sending requests to the Artifactory endpoints via a proxy. [GH-18629]
 
