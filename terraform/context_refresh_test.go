@@ -1964,3 +1964,93 @@ func TestContext2Refresh_dataResourceDependsOn(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 }
+
+// verify that dependencies are updated in the state during refresh
+func TestRefresh_updateDependencies(t *testing.T) {
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "aws_instance",
+			Name: "foo",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"foo"}`),
+		},
+		addrs.ProviderConfig{
+			Type: "aws",
+		}.Absolute(addrs.RootModuleInstance),
+	)
+	root.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "aws_instance",
+			Name: "bar",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar","foo":"foo"}`),
+			Dependencies: []addrs.AbsResource{
+				// Existing dependencies should not be removed during refresh
+				{
+					Module: addrs.RootModuleInstance,
+					Resource: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "aws_instance",
+						Name: "baz",
+					},
+				},
+			},
+		},
+		addrs.ProviderConfig{
+			Type: "aws",
+		}.Absolute(addrs.RootModuleInstance),
+	)
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "aws_instance" "bar" {
+  foo = aws_instance.foo.id
+}
+
+resource "aws_instance" "foo" {
+}`,
+	})
+
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[string]providers.Factory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		State: state,
+	})
+
+	result, diags := ctx.Refresh()
+	if diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
+	}
+
+	expect := strings.TrimSpace(`
+aws_instance.bar:
+  ID = bar
+  provider = provider.aws
+  foo = foo
+
+  Dependencies:
+    aws_instance.baz
+    aws_instance.foo
+aws_instance.foo:
+  ID = foo
+  provider = provider.aws
+`)
+
+	checkStateString(t, result, expect)
+}

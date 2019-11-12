@@ -34,6 +34,7 @@ down to see all providers.
 - [Azure](/docs/providers/azurerm/index.html)
 - [Azure Active Directory](/docs/providers/azuread/index.html)
 - [Azure Stack](/docs/providers/azurestack/index.html)
+- [A10 Networks](/docs/providers/vthunder/index.html)
 - [Bitbucket](/docs/providers/bitbucket/index.html)
 - [Brightbox](/docs/providers/brightbox/index.html)
 - [CenturyLinkCloud](/docs/providers/clc/index.html)

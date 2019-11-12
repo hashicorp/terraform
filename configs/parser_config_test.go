@@ -1,9 +1,14 @@
 package configs
 
 import (
+	"bufio"
+	"bytes"
 	"io/ioutil"
 	"path/filepath"
+	"strings"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 
 	"github.com/hashicorp/hcl/v2"
 )
@@ -34,8 +39,8 @@ func TestParserLoadConfigFileSuccess(t *testing.T) {
 			})
 
 			_, diags := parser.LoadConfigFile(name)
-			if diags.HasErrors() {
-				t.Errorf("unexpected error diagnostics")
+			if len(diags) != 0 {
+				t.Errorf("unexpected diagnostics")
 				for _, diag := range diags {
 					t.Logf("- %s", diag)
 				}
@@ -124,16 +129,6 @@ func TestParserLoadConfigFileFailureMessages(t *testing.T) {
 			hcl.DiagError,
 			"Unsuitable value type",
 		},
-		{
-			"valid-files/resources-ignorechanges-all-legacy.tf",
-			hcl.DiagWarning,
-			"Deprecated ignore_changes wildcard",
-		},
-		{
-			"valid-files/resources-ignorechanges-all-legacy.tf.json",
-			hcl.DiagWarning,
-			"Deprecated ignore_changes wildcard",
-		},
 	}
 
 	for _, test := range tests {
@@ -160,6 +155,71 @@ func TestParserLoadConfigFileFailureMessages(t *testing.T) {
 			}
 			if diags[0].Summary != test.WantDiag {
 				t.Errorf("Wrong diagnostic summary\ngot:  %s\nwant: %s", diags[0].Summary, test.WantDiag)
+			}
+		})
+	}
+}
+
+// TestParseLoadConfigFileWarning is a test that verifies files from
+// testdata/warning-files produce particular warnings.
+//
+// This test does not verify that reading these files produces the correct
+// file element contents in spite of those warnings. More detailed assertions
+// may be made on some subset of these configuration files in other tests.
+func TestParserLoadConfigFileWarning(t *testing.T) {
+	files, err := ioutil.ReadDir("testdata/warning-files")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, info := range files {
+		name := info.Name()
+		t.Run(name, func(t *testing.T) {
+			src, err := ioutil.ReadFile(filepath.Join("testdata/warning-files", name))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// First we'll scan the file to see what warnings are expected.
+			// That's declared inside the files themselves by using the
+			// string "WARNING: " somewhere on each line that is expected
+			// to produce a warning, followed by the expected warning summary
+			// text. A single-line comment (with #) is the main way to do that.
+			const marker = "WARNING: "
+			sc := bufio.NewScanner(bytes.NewReader(src))
+			wantWarnings := make(map[int]string)
+			lineNum := 1
+			for sc.Scan() {
+				lineText := sc.Text()
+				if idx := strings.Index(lineText, marker); idx != -1 {
+					summaryText := lineText[idx+len(marker):]
+					wantWarnings[lineNum] = summaryText
+				}
+				lineNum++
+			}
+
+			parser := testParser(map[string]string{
+				name: string(src),
+			})
+
+			_, diags := parser.LoadConfigFile(name)
+			if diags.HasErrors() {
+				t.Errorf("unexpected error diagnostics")
+				for _, diag := range diags {
+					t.Logf("- %s", diag)
+				}
+			}
+
+			gotWarnings := make(map[int]string)
+			for _, diag := range diags {
+				if diag.Severity != hcl.DiagWarning || diag.Subject == nil {
+					continue
+				}
+				gotWarnings[diag.Subject.Start.Line] = diag.Summary
+			}
+
+			if diff := cmp.Diff(wantWarnings, gotWarnings); diff != "" {
+				t.Errorf("wrong warnings\n%s", diff)
 			}
 		})
 	}

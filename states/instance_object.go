@@ -29,12 +29,17 @@ type ResourceInstanceObject struct {
 	// it was updated.
 	Status ObjectStatus
 
-	// Dependencies is a set of other addresses in the same module which
-	// this instance depended on when the given attributes were evaluated.
-	// This is used to construct the dependency relationships for an object
-	// whose configuration is no longer available, such as if it has been
-	// removed from configuration altogether, or is now deposed.
-	Dependencies []addrs.Referenceable
+	// Dependencies is a set of absolute address to other resources this
+	// instance dependeded on when it was applied. This is used to construct
+	// the dependency relationships for an object whose configuration is no
+	// longer available, such as if it has been removed from configuration
+	// altogether, or is now deposed.
+	Dependencies []addrs.AbsResource
+
+	// DependsOn corresponds to the deprecated `depends_on` field in the state.
+	// This field contained the configuration `depends_on` values, and some of
+	// the references from within a single module.
+	DependsOn []addrs.Referenceable
 }
 
 // ObjectStatus represents the status of a RemoteObject.
