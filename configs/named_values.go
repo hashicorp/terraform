@@ -138,10 +138,28 @@ func decodeVariableType(expr hcl.Expression) (cty.Type, VariableParsingMode, hcl
 		str := val.AsString()
 		switch str {
 		case "string":
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary:  "Quoted type constraints are deprecated",
+				Detail:   "Terraform 0.11 and earlier required type constraints to be given in quotes, but that form is now deprecated and will be removed in a future version of Terraform. To silence this warning, remove the quotes around \"string\".",
+				Subject:  expr.Range().Ptr(),
+			})
 			return cty.String, VariableParseLiteral, diags
 		case "list":
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary:  "Quoted type constraints are deprecated",
+				Detail:   "Terraform 0.11 and earlier required type constraints to be given in quotes, but that form is now deprecated and will be removed in a future version of Terraform. To silence this warning, remove the quotes around \"list\" and write list(string) instead to explicitly indicate that the list elements are strings.",
+				Subject:  expr.Range().Ptr(),
+			})
 			return cty.List(cty.DynamicPseudoType), VariableParseHCL, diags
 		case "map":
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary:  "Quoted type constraints are deprecated",
+				Detail:   "Terraform 0.11 and earlier required type constraints to be given in quotes, but that form is now deprecated and will be removed in a future version of Terraform. To silence this warning, remove the quotes around \"map\" and write map(string) instead to explicitly indicate that the map elements are strings.",
+				Subject:  expr.Range().Ptr(),
+			})
 			return cty.Map(cty.DynamicPseudoType), VariableParseHCL, diags
 		default:
 			return cty.DynamicPseudoType, VariableParseHCL, hcl.Diagnostics{{
