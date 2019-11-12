@@ -224,5 +224,7 @@ elements in the input variables.
   object types are defined explicitly.
 * [`setintersection`](./setintersection.html) computes the _intersection_ of
   multiple sets.
+* [`setsymmetricdifference`](./setsymmetricdifference.html) computes the
+  _symmetric difference_ of multiple sets.
 * [`setunion`](./setunion.html) computes the _union_ of multiple
   sets.

@@ -678,6 +678,16 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"setsymmetricdifference": {
+			{
+				`setsymmetricdifference(["a", "b"], ["b", "c"])`,
+				cty.SetVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.StringVal("c"),
+				}),
+			},
+		},
+
 		"sha1": {
 			{
 				`sha1("test")`,

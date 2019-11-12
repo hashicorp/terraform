@@ -45,3 +45,5 @@ the ordering of the given elements is not preserved.
   multiple sets.
 * [`setproduct`](./setproduct.html) computes the _Cartesian product_ of multiple
   sets.
+* [`setsymmetricdifference`](./setsymmetricdifference.html) computes the
+  _symmetric difference_ of multiple sets.

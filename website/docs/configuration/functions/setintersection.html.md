@@ -40,5 +40,7 @@ the ordering of the given elements is not preserved.
   a given element value.
 * [`setproduct`](./setproduct.html) computes the _Cartesian product_ of multiple
   sets.
+* [`setsymmetricdifference`](./setsymmetricdifference.html) computes the
+  _symmetric difference_ of multiple sets.
 * [`setunion`](./setunion.html) computes the _union_ of
   multiple sets.
