@@ -1,6 +1,7 @@
 package format
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -3115,6 +3116,93 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 			output := ResourceChange(change, tc.Tainted, tc.Schema, color)
 			if output != tc.ExpectedOutput {
 				t.Fatalf("Unexpected diff.\ngot:\n%s\nwant:\n%s\n", output, tc.ExpectedOutput)
+			}
+		})
+	}
+}
+
+func TestCtySequenceDiff(t *testing.T) {
+	type testCase struct {
+		Old            []cty.Value
+		New            []cty.Value
+		ExpectedOutput []plans.Change
+	}
+
+	testCases := map[string]testCase{
+		"primitive add": {
+			Old: []cty.Value{cty.NumberIntVal(1), cty.NumberIntVal(3)},
+			New: []cty.Value{cty.NumberIntVal(1), cty.NumberIntVal(2), cty.NumberIntVal(3)},
+			ExpectedOutput: []plans.Change{
+				plans.Change{
+					Action: plans.NoOp,
+					Before: cty.NumberIntVal(1),
+					After:  cty.NumberIntVal(1),
+				},
+				plans.Change{
+					Action: plans.Create,
+					Before: cty.NullVal(cty.Number),
+					After:  cty.NumberIntVal(2),
+				},
+				plans.Change{
+					Action: plans.NoOp,
+					Before: cty.NumberIntVal(3),
+					After:  cty.NumberIntVal(3),
+				},
+			},
+		},
+		"primitive remove": {
+			Old: []cty.Value{cty.NumberIntVal(1), cty.NumberIntVal(2), cty.NumberIntVal(3)},
+			New: []cty.Value{cty.NumberIntVal(1), cty.NumberIntVal(3)},
+			ExpectedOutput: []plans.Change{
+				plans.Change{
+					Action: plans.NoOp,
+					Before: cty.NumberIntVal(1),
+					After:  cty.NumberIntVal(1),
+				},
+				plans.Change{
+					Action: plans.Delete,
+					Before: cty.NumberIntVal(2),
+					After:  cty.NullVal(cty.Number),
+				},
+				plans.Change{
+					Action: plans.NoOp,
+					Before: cty.NumberIntVal(3),
+					After:  cty.NumberIntVal(3),
+				},
+			},
+		},
+		"primitive change": {
+			Old: []cty.Value{cty.NumberIntVal(1), cty.NumberIntVal(2), cty.NumberIntVal(3)},
+			New: []cty.Value{cty.NumberIntVal(1), cty.NumberIntVal(4), cty.NumberIntVal(3)},
+			ExpectedOutput: []plans.Change{
+				plans.Change{
+					Action: plans.NoOp,
+					Before: cty.NumberIntVal(1),
+					After:  cty.NumberIntVal(1),
+				},
+				plans.Change{
+					Action: plans.Update,
+					Before: cty.NumberIntVal(2),
+					After:  cty.NumberIntVal(4),
+				},
+				plans.Change{
+					Action: plans.NoOp,
+					Before: cty.NumberIntVal(3),
+					After:  cty.NumberIntVal(3),
+				},
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			output := ctySequenceDiff(tc.Old, tc.New)
+			var derefOutput []plans.Change
+			for _, change := range output {
+				derefOutput = append(derefOutput, *change)
+			}
+			if !reflect.DeepEqual(derefOutput, tc.ExpectedOutput) {
+				t.Fatalf("Unexpected diff.\ngot:\n%#v\nwant:\n%#v\n", derefOutput, tc.ExpectedOutput)
 			}
 		})
 	}
