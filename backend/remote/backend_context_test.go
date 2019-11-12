@@ -4,7 +4,9 @@ import (
 	"testing"
 
 	tfe "github.com/hashicorp/go-tfe"
+	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -136,6 +138,75 @@ func TestRemoteStoredVariableValue(t *testing.T) {
 				got := gotIV.Value
 				if !test.Want.RawEquals(got) {
 					t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+				}
+			}
+		})
+	}
+}
+
+func TestRemoteContextWithVars(t *testing.T) {
+	catTerraform := tfe.CategoryTerraform
+	catEnv := tfe.CategoryEnv
+
+	tests := map[string]struct {
+		Opts      *tfe.VariableCreateOptions
+		WantError string
+	}{
+		"Terraform variable": {
+			&tfe.VariableCreateOptions{
+				Category: &catTerraform,
+			},
+			`Value for undeclared variable: A variable named "key" was assigned a value, but the root module does not declare a variable of that name. To use this value, add a "variable" block to the configuration.`,
+		},
+		"environment variable": {
+			&tfe.VariableCreateOptions{
+				Category: &catEnv,
+			},
+			``,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			configDir := "./testdata/empty"
+
+			b, bCleanup := testBackendDefault(t)
+			defer bCleanup()
+
+			_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
+			defer configCleanup()
+
+			op := &backend.Operation{
+				ConfigDir:    configDir,
+				ConfigLoader: configLoader,
+				Workspace:    backend.DefaultStateName,
+			}
+
+			v := test.Opts
+			if v.Key == nil {
+				key := "key"
+				v.Key = &key
+			}
+			if v.Workspace == nil {
+				v.Workspace = &tfe.Workspace{
+					Name: b.workspace,
+				}
+			}
+			b.client.Variables.Create(nil, *v)
+
+			_, _, diags := b.Context(op)
+
+			if test.WantError != "" {
+				if !diags.HasErrors() {
+					t.Fatalf("missing expected error\ngot:  <no error>\nwant: %s", test.WantError)
+				}
+				errStr := diags.Err().Error()
+				if errStr != test.WantError {
+					t.Fatalf("wrong error\ngot:  %s\nwant: %s", errStr, test.WantError)
+				}
+			} else {
+				if diags.HasErrors() {
+					t.Fatalf("unexpected error\ngot:  %s\nwant: <no error>", diags.Err().Error())
 				}
 			}
 		})

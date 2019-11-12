@@ -116,8 +116,10 @@ func (b *Remote) Context(op *backend.Operation) (*terraform.Context, statemgr.Fu
 				op.Variables = make(map[string]backend.UnparsedVariableValue)
 			}
 			for _, v := range tfeVariables.Items {
-				op.Variables[v.Key] = &remoteStoredVariableValue{
-					definition: v,
+				if v.Category == tfe.CategoryTerraform {
+					op.Variables[v.Key] = &remoteStoredVariableValue{
+						definition: v,
+					}
 				}
 			}
 		}
