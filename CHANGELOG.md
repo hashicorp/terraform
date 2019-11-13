@@ -2,18 +2,26 @@
 
 UPGRADE NOTES:
 
-* Terraform v0.12.0 changed the standard way to include keywords and references in the meta-arguments `depends_on` and `ignore_changes`, and the provisioner arguments `when` and `on_failure`. In Terraform 0.11 and prior these were required to be in quotes, while Terraform 0.12 expects them to be unquoted for consistency with references elsewhere.
+* Terraform v0.12.0 included several changes to the Terraform language involving making expressions, type constraints, keywords, and references first-class in the language syntax, removing the need for placing thee items either in quoted strings or in interpolation syntax. Terraform v0.11 required these items to be quoted because the underlying language could not represent them any other way, while Terraform v0.12 expects them to be unquoted in order to improve readability.
 
-    We have been accepting both forms for backward-compatibility with existing configurations and examples since the inititial v0.12.0 release. Having maintained compatibility for both forms for several versions we are now beginning the deprecation cycle for the old usage by having Terraform emit deprecation warnings for quoted keywords and references in these contexts.
+    We have been accepting both forms for backward-compatibility with existing configurations and examples since the inititial v0.12.0 release. Having maintained compatibility for both forms for several versions we are now beginning the deprecation cycle for the old usage by having Terraform emit deprecation warnings.
     
-    Terraform will still accept the quoted forms in spite of these warnings, so no immediate action is required. If your modules are targeting Terraform v0.12.0 and later exclusively, you can silence the warnings by removing the quotes, as directed in the warning message. In a future major version of Terraform, these warnings will be elevated to be errors.
+    Terraform will still accept the older forms in spite of these warnings, so no immediate action is required. If your modules are targeting Terraform v0.12.0 and later exclusively, you can silence the warnings by removing the quotes, as directed in the warning message. In a future major version of Terraform, some of these warnings will be elevated to be errors.
     
-    The summary of the warning for this situation will be either "Quoted keywords are deprecated" or "Quoted references are deprecated" depending on the context.
+    The summary of the warning for these situations will be one of the following:
+    
+    * **Interpolation-only expressions are deprecated:** an expression like `"${foo}"` should be rewritten as just `foo`.
+    * **Quoted type constraints are deprecated:** In a `variable` block, a type constraint `"map"` should be written as `map(string)`, `"list"` as `list(string)`, and `"string"` as just `string`.
+    * **Quoted keywords are deprecated:** In certain contexts that expect special keywords, such as `when` in `provisioner` blocks, the keyword should be unquoted.
+    * **Quoted references are deprecated:** In the `depends_on` and `ignore_changes` meta-arguments, quoted references like `"aws_instance.foo"` should be rewritten without the quotes, e.g. as `aws_instance.foo`.
+    
+    The above changes are made automatically by the upgrade tool for users who are [upgrading from Terraform 0.11](https://www.terraform.io/upgrade-guides/index.html). These warnings are intended to help those who are using Terraform for the first time at Terraform 0.12 but who may have found examples online that are written for older versions of Terraform, in order to guide towards the modern Terraform style.
 
 * The `terraform output` command would formerly treat no outputs at all as an error, exiting with a non-zero status. Since it's expected for some root modules to have no outputs, the command now returns with success status zero in this situation, but still returns the error on stderr as a compromise to provide an explanation for why nothing is being shown.
 
 ENHANCEMENTS:
 
+* config: Redundant interpolation syntax for attribute values and legacy (0.11-style) variable type constrants will now emit deprecation warnings. [GH-23348]
 * config: Keywords and references in `depends_on`, `ignore_changes`, and in provisioner `when` and `on_failure` will now emit deprecation warnings. [GH-23329]
 * command/output: Now treats no defined outputs as a success case rather than an error case, returning exit status zero instead of non-zero. [GH-23008] [GH-21136]
 * backend/artifactory: Will now honor the `HTTP_PROXY` and `HTTPS_PROXY` environment variables when appropriate, to allow sending requests to the Artifactory endpoints via a proxy. [GH-18629]
