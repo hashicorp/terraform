@@ -27,6 +27,7 @@ type mockClient struct {
 	PolicyChecks          *mockPolicyChecks
 	Runs                  *mockRuns
 	StateVersions         *mockStateVersions
+	Variables             *mockVariables
 	Workspaces            *mockWorkspaces
 }
 
@@ -40,6 +41,7 @@ func newMockClient() *mockClient {
 	c.PolicyChecks = newMockPolicyChecks(c)
 	c.Runs = newMockRuns(c)
 	c.StateVersions = newMockStateVersions(c)
+	c.Variables = newMockVariables(c)
 	c.Workspaces = newMockWorkspaces(c)
 	return c
 }
@@ -943,6 +945,63 @@ func (m *mockStateVersions) Download(ctx context.Context, url string) ([]byte, e
 		return nil, tfe.ErrResourceNotFound
 	}
 	return state, nil
+}
+
+type mockVariables struct {
+	client     *mockClient
+	workspaces map[string]*tfe.VariableList
+}
+
+func newMockVariables(client *mockClient) *mockVariables {
+	return &mockVariables{
+		client:     client,
+		workspaces: make(map[string]*tfe.VariableList),
+	}
+}
+
+func (m *mockVariables) List(ctx context.Context, options tfe.VariableListOptions) (*tfe.VariableList, error) {
+	vl := m.workspaces[*options.Workspace]
+	return vl, nil
+}
+
+func (m *mockVariables) Create(ctx context.Context, options tfe.VariableCreateOptions) (*tfe.Variable, error) {
+	v := &tfe.Variable{
+		ID:       generateID("var-"),
+		Key:      *options.Key,
+		Category: *options.Category,
+	}
+	if options.Value != nil {
+		v.Value = *options.Value
+	}
+	if options.HCL != nil {
+		v.HCL = *options.HCL
+	}
+	if options.Sensitive != nil {
+		v.Sensitive = *options.Sensitive
+	}
+
+	workspace := options.Workspace.Name
+
+	if m.workspaces[workspace] == nil {
+		m.workspaces[workspace] = &tfe.VariableList{}
+	}
+
+	vl := m.workspaces[workspace]
+	vl.Items = append(vl.Items, v)
+
+	return v, nil
+}
+
+func (m *mockVariables) Read(ctx context.Context, variableID string) (*tfe.Variable, error) {
+	panic("not implemented")
+}
+
+func (m *mockVariables) Update(ctx context.Context, variableID string, options tfe.VariableUpdateOptions) (*tfe.Variable, error) {
+	panic("not implemented")
+}
+
+func (m *mockVariables) Delete(ctx context.Context, variableID string) error {
+	panic("not implemented")
 }
 
 type mockWorkspaces struct {

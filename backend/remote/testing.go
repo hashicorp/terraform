@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	tfe "github.com/hashicorp/go-tfe"
-	"github.com/hashicorp/terraform-svchost"
+	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/auth"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/backend"
@@ -123,6 +123,7 @@ func testBackend(t *testing.T, obj cty.Value) (*Remote, func()) {
 	b.client.PolicyChecks = mc.PolicyChecks
 	b.client.Runs = mc.Runs
 	b.client.StateVersions = mc.StateVersions
+	b.client.Variables = mc.Variables
 	b.client.Workspaces = mc.Workspaces
 
 	b.ShowDiagnostics = func(vals ...interface{}) {
