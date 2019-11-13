@@ -74,6 +74,7 @@ down to see all providers.
 - [Hetzner Cloud](/docs/providers/hcloud/index.html)
 - [HTTP](/docs/providers/http/index.html)
 - [HuaweiCloud](/docs/providers/huaweicloud/index.html)
+- [HuaweiCloudStack](/docs/providers/huaweicloudstack/index.html)
 - [Icinga2](/docs/providers/icinga2/index.html)
 - [Ignition](/docs/providers/ignition/index.html)
 - [InfluxDB](/docs/providers/influxdb/index.html)
