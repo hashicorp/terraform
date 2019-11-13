@@ -981,7 +981,6 @@ func (m *mockVariables) Create(ctx context.Context, options tfe.VariableCreateOp
 	}
 
 	workspace := options.Workspace.Name
-	fmt.Printf("WS Name: %s\n", workspace)
 
 	if m.workspaces[workspace] == nil {
 		m.workspaces[workspace] = &tfe.VariableList{}
