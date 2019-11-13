@@ -1,4 +1,4 @@
-## 0.12.14 (Unreleased)
+## 0.12.14 (November 13, 2019)
 
 UPGRADE NOTES:
 
@@ -21,22 +21,22 @@ UPGRADE NOTES:
 
 ENHANCEMENTS:
 
-* config: Redundant interpolation syntax for attribute values and legacy (0.11-style) variable type constrants will now emit deprecation warnings. [GH-23348]
-* config: Keywords and references in `depends_on`, `ignore_changes`, and in provisioner `when` and `on_failure` will now emit deprecation warnings. [GH-23329]
-* command/output: Now treats no defined outputs as a success case rather than an error case, returning exit status zero instead of non-zero. [GH-23008] [GH-21136]
-* backend/artifactory: Will now honor the `HTTP_PROXY` and `HTTPS_PROXY` environment variables when appropriate, to allow sending requests to the Artifactory endpoints via a proxy. [GH-18629]
+* config: Redundant interpolation syntax for attribute values and legacy (0.11-style) variable type constrants will now emit deprecation warnings. ([#23348](https://github.com/hashicorp/terraform/issues/23348))
+* config: Keywords and references in `depends_on`, `ignore_changes`, and in provisioner `when` and `on_failure` will now emit deprecation warnings. ([#23329](https://github.com/hashicorp/terraform/issues/23329))
+* command/output: Now treats no defined outputs as a success case rather than an error case, returning exit status zero instead of non-zero. ([#23008](https://github.com/hashicorp/terraform/issues/23008)] [[#21136](https://github.com/hashicorp/terraform/issues/21136))
+* backend/artifactory: Will now honor the `HTTP_PROXY` and `HTTPS_PROXY` environment variables when appropriate, to allow sending requests to the Artifactory endpoints via a proxy. ([#18629](https://github.com/hashicorp/terraform/issues/18629))
 
 BUG FIXES:
 
-* backend/remote: Filter environment variables when loading context for remote backend [GH-23283]
-* command/plan: Previously certain changes to lists would cause the list diff in the plan output to miss items. Now `terraform plan` will show those items as expected. [GH-22695]
-* command/show: When showing a saved plan file not in JSON mode, use the same presentation as `terraform plan` itself would've used. [GH-23292]
-* command/force-unlock: Return an explicit error when the local-filesystem lock implementation receives the wrong lock id. Previously it was possible to see either an incorrect error or no error at all in that case. [GH-23336]
-* core: Store absolute instance dependencies in state to allow for proper destroy ordering [GH-23252]
-* core: Ensure tainted status is maintained when a destroy operation fails [GH-23304]
-* config: `transpose` function will no longer panic when it should produce an empty map as its result. [GH-23321]
-* cli: When running Terraform as a sub-process of itself, we will no longer produce errant prefixes on the console output. While we don't generally recommend using Terraform recursively like this, it was behaving in this strange way due to an implementation detail of how Terraform captures "panic" crashes from the Go runtime, and that subsystem is now updated to avoid that strange behavior. [GH-23281]
-* provisioners: Sanitize output to filter invalid utf8 sequences [GH-23302]
+* backend/remote: Filter environment variables when loading context for remote backend ([#23283](https://github.com/hashicorp/terraform/issues/23283))
+* command/plan: Previously certain changes to lists would cause the list diff in the plan output to miss items. Now `terraform plan` will show those items as expected. ([#22695](https://github.com/hashicorp/terraform/issues/22695))
+* command/show: When showing a saved plan file not in JSON mode, use the same presentation as `terraform plan` itself would've used. ([#23292](https://github.com/hashicorp/terraform/issues/23292))
+* command/force-unlock: Return an explicit error when the local-filesystem lock implementation receives the wrong lock id. Previously it was possible to see either an incorrect error or no error at all in that case. ([#23336](https://github.com/hashicorp/terraform/issues/23336))
+* core: Store absolute instance dependencies in state to allow for proper destroy ordering ([#23252](https://github.com/hashicorp/terraform/issues/23252))
+* core: Ensure tainted status is maintained when a destroy operation fails ([#23304](https://github.com/hashicorp/terraform/issues/23304))
+* config: `transpose` function will no longer panic when it should produce an empty map as its result. ([#23321](https://github.com/hashicorp/terraform/issues/23321))
+* cli: When running Terraform as a sub-process of itself, we will no longer produce errant prefixes on the console output. While we don't generally recommend using Terraform recursively like this, it was behaving in this strange way due to an implementation detail of how Terraform captures "panic" crashes from the Go runtime, and that subsystem is now updated to avoid that strange behavior. ([#23281](https://github.com/hashicorp/terraform/issues/23281))
+* provisioners: Sanitize output to filter invalid utf8 sequences ([#23302](https://github.com/hashicorp/terraform/issues/23302))
 
 ## 0.12.13 (October 31, 2019)
 
