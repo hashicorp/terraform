@@ -28,6 +28,7 @@ ENHANCEMENTS:
 
 BUG FIXES:
 
+* backend/remote: Filter environment variables when loading context for remote backend [GH-23283]
 * command/plan: Previously certain changes to lists would cause the list diff in the plan output to miss items. Now `terraform plan` will show those items as expected. [GH-22695]
 * command/show: When showing a saved plan file not in JSON mode, use the same presentation as `terraform plan` itself would've used. [GH-23292]
 * command/force-unlock: Return an explicit error when the local-filesystem lock implementation receives the wrong lock id. Previously it was possible to see either an incorrect error or no error at all in that case. [GH-23336]
