@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"sort"
+	"strings"
 )
 
 // VersionCommand is a Command implementation prints the version.
@@ -30,13 +31,34 @@ type VersionCheckInfo struct {
 }
 
 func (c *VersionCommand) Help() string {
-	return ""
+	helpText := `
+Usage: terraform version [options]
+
+  Prints the version of the terraform binary and installed plugins.
+  Additionally it will perform an update check and print a warning
+  if the currently installed version is not the latest version.
+
+Options:
+
+  -simple          Only print the version of the terraform binary.
+
+`
+	return strings.TrimSpace(helpText)
 }
 
 func (c *VersionCommand) Run(args []string) int {
 	var versionString bytes.Buffer
 	args, err := c.Meta.process(args, false)
 	if err != nil {
+		return 1
+	}
+
+	var simpleOutput bool
+	cmdFlags := c.Meta.defaultFlagSet("version")
+	cmdFlags.BoolVar(&simpleOutput, "simple", false, "simple")
+	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
+	if err := cmdFlags.Parse(args); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
 		return 1
 	}
 
@@ -50,6 +72,10 @@ func (c *VersionCommand) Run(args []string) int {
 	}
 
 	c.Ui.Output(versionString.String())
+
+	if simpleOutput {
+		return 0
+	}
 
 	// We'll also attempt to print out the selected plugin versions. We can
 	// do this only if "terraform init" was already run and thus we've committed
