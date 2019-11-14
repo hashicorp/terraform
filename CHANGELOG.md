@@ -1,4 +1,11 @@
 ## 0.12.15 (Unreleased)
+
+BUG FIXES:
+
+* various commands: Fixed errant error "Initialization required. Please see the error message above." [GH-23383]
+
+    The error was produced on some of Terraform's subcommands (in particular `terraform show` and `terraform output`, but possibly others) if a warning was emitted during configuration loading and if a `backend` block was present. This issue has been present since v0.12.0 for any configuration that produces configuration-related deprecation warnings, but it became more visible in v0.12.14 due to the addition of several more situations that could produce warnings.
+
 ## 0.12.14 (November 13, 2019)
 
 UPGRADE NOTES:
