@@ -346,9 +346,10 @@ func (m *Meta) backendConfig(opts *BackendOpts) (*configs.Backend, int, tfdiags.
 
 	if opts.Config == nil {
 		// check if the config was missing, or just not required
-		conf, err := m.loadBackendConfig(".")
-		if err != nil {
-			return nil, 0, err
+		conf, moreDiags := m.loadBackendConfig(".")
+		diags = diags.Append(moreDiags)
+		if moreDiags.HasErrors() {
+			return nil, 0, diags
 		}
 
 		if conf == nil {
