@@ -252,37 +252,37 @@ var TrimFunc = function.New(&function.Spec{
 	},
 })
 
-// TrimLeftFunc constructs a function that removes the specified characters from
+// TrimPrefixFunc constructs a function that removes the specified characters from
 // the start the given string.
-var TrimLeftFunc = function.New(&function.Spec{
+var TrimPrefixFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
 			Name: "str",
 			Type: cty.String,
 		},
 		{
-			Name: "cutset",
+			Name: "prefix",
 			Type: cty.String,
 		},
 	},
 	Type: function.StaticReturnType(cty.String),
 	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 		str := args[0].AsString()
-		cutset := args[1].AsString()
-		return cty.StringVal(strings.TrimLeft(str, cutset)), nil
+		prefix := args[1].AsString()
+		return cty.StringVal(strings.TrimPrefix(str, prefix)), nil
 	},
 })
 
-// TrimRightFunc constructs a function that removes the specified characters from
+// TrimSuffixFunc constructs a function that removes the specified characters from
 // the end of the given string.
-var TrimRightFunc = function.New(&function.Spec{
+var TrimSuffixFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
 			Name: "str",
 			Type: cty.String,
 		},
 		{
-			Name: "cutset",
+			Name: "suffix",
 			Type: cty.String,
 		},
 	},
@@ -290,7 +290,7 @@ var TrimRightFunc = function.New(&function.Spec{
 	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 		str := args[0].AsString()
 		cutset := args[1].AsString()
-		return cty.StringVal(strings.TrimRight(str, cutset)), nil
+		return cty.StringVal(strings.TrimSuffix(str, cutset)), nil
 	},
 })
 
@@ -347,12 +347,12 @@ func Trim(str, cutset cty.Value) (cty.Value, error) {
 	return TrimFunc.Call([]cty.Value{str, cutset})
 }
 
-// TrimLeft removes the specified characters from the start of the given string.
-func TrimLeft(str, cutset cty.Value) (cty.Value, error) {
-	return TrimLeftFunc.Call([]cty.Value{str, cutset})
+// TrimPrefix removes the specified prefix from the start of the given string.
+func TrimPrefix(str, prefix cty.Value) (cty.Value, error) {
+	return TrimPrefixFunc.Call([]cty.Value{str, prefix})
 }
 
-// TrimRight removes the specified characters from the end of the given string.
-func TrimRight(str, cutset cty.Value) (cty.Value, error) {
-	return TrimRightFunc.Call([]cty.Value{str, cutset})
+// TrimSuffix removes the specified suffix from the end of the given string.
+func TrimSuffix(str, suffix cty.Value) (cty.Value, error) {
+	return TrimSuffixFunc.Call([]cty.Value{str, suffix})
 }

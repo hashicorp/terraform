@@ -548,30 +548,30 @@ func TestTrim(t *testing.T) {
 	}
 }
 
-func TestTrimLeft(t *testing.T) {
+func TestTrimPrefix(t *testing.T) {
 	tests := []struct {
 		String cty.Value
-		Cutset cty.Value
+		Prefix cty.Value
 		Want   cty.Value
 		Err    bool
 	}{
 		{
-			cty.StringVal("!? test ?!"),
-			cty.StringVal("? !"),
-			cty.StringVal("test ?!"),
+			cty.StringVal("helloworld"),
+			cty.StringVal("hello"),
+			cty.StringVal("world"),
 			false,
 		},
 		{
 			cty.StringVal("...test..."),
 			cty.StringVal("."),
-			cty.StringVal("test..."),
+			cty.StringVal("..test..."),
 			false,
 		},
 	}
 
 	for _, test := range tests {
-		t.Run(fmt.Sprintf("trimleft(%#v, %#v)", test.String, test.Cutset), func(t *testing.T) {
-			got, err := TrimLeft(test.String, test.Cutset)
+		t.Run(fmt.Sprintf("trimprefix(%#v, %#v)", test.String, test.Prefix), func(t *testing.T) {
+			got, err := TrimPrefix(test.String, test.Prefix)
 
 			if test.Err {
 				if err == nil {
@@ -589,30 +589,30 @@ func TestTrimLeft(t *testing.T) {
 	}
 }
 
-func TestTrimRight(t *testing.T) {
+func TestTrimSuffix(t *testing.T) {
 	tests := []struct {
 		String cty.Value
-		Cutset cty.Value
+		Suffix cty.Value
 		Want   cty.Value
 		Err    bool
 	}{
 		{
-			cty.StringVal("!? test ?!"),
-			cty.StringVal("!? "),
-			cty.StringVal("!? test"),
+			cty.StringVal("helloworld"),
+			cty.StringVal("world"),
+			cty.StringVal("hello"),
 			false,
 		},
 		{
 			cty.StringVal("...test..."),
 			cty.StringVal("."),
-			cty.StringVal("...test"),
+			cty.StringVal("...test.."),
 			false,
 		},
 	}
 
 	for _, test := range tests {
-		t.Run(fmt.Sprintf("trimright(%#v, %#v)", test.String, test.Cutset), func(t *testing.T) {
-			got, err := TrimRight(test.String, test.Cutset)
+		t.Run(fmt.Sprintf("trimright(%#v, %#v)", test.String, test.Suffix), func(t *testing.T) {
+			got, err := TrimSuffix(test.String, test.Suffix)
 
 			if test.Err {
 				if err == nil {

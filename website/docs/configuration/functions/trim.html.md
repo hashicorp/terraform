@@ -25,7 +25,7 @@ hello
 
 ## Related Functions
 
-* [`trimleft`](./trimleft.html) removes characters at the start of a string.
-* [`trimright`](./trimright.html) removes characters at the end of a string.
+* [`trimprefix`](./trimprefix.html) removes a word from the start of a string.
+* [`trimsuffix`](./trimsuffix.html) removes a word from the end of a string.
 * [`trimspace`](./trimspace.html) removes all types of whitespace from
   both the start and the end of a string.
