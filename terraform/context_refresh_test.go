@@ -1978,6 +1978,17 @@ func TestRefresh_updateDependencies(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"foo"}`),
+			Dependencies: []addrs.AbsResource{
+				// Existing dependencies should not be removed during refresh
+				{
+					Module: addrs.RootModuleInstance,
+					Resource: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "aws_instance",
+						Name: "baz",
+					},
+				},
+			},
 		},
 		addrs.ProviderConfig{
 			Type: "aws",
@@ -1992,17 +2003,6 @@ func TestRefresh_updateDependencies(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"bar","foo":"foo"}`),
-			Dependencies: []addrs.AbsResource{
-				// Existing dependencies should not be removed during refresh
-				{
-					Module: addrs.RootModuleInstance,
-					Resource: addrs.Resource{
-						Mode: addrs.ManagedResourceMode,
-						Type: "aws_instance",
-						Name: "baz",
-					},
-				},
-			},
 		},
 		addrs.ProviderConfig{
 			Type: "aws",
@@ -2045,11 +2045,13 @@ aws_instance.bar:
   foo = foo
 
   Dependencies:
-    aws_instance.baz
     aws_instance.foo
 aws_instance.foo:
   ID = foo
   provider = provider.aws
+
+  Dependencies:
+    aws_instance.baz
 `)
 
 	checkStateString(t, result, expect)
