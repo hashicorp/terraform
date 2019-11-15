@@ -502,7 +502,7 @@ func (p *blockBodyDiffPrinter) writeValue(val cty.Value, action plans.Action, in
 				ty, err := ctyjson.ImpliedType(src)
 				// check for the special case of "null", which decodes to nil,
 				// and just allow it to be printed out directly
-				if err == nil && !ty.IsPrimitiveType() && val.AsString() != "null" {
+				if err == nil && !ty.IsPrimitiveType() && strings.TrimSpace(val.AsString()) != "null" {
 					jv, err := ctyjson.Unmarshal(src, ty)
 					if err == nil {
 						p.buf.WriteString("jsonencode(")
