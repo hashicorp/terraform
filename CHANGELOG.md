@@ -1,4 +1,9 @@
 ## 0.12.16 (Unreleased)
+
+BUG FIXES:
+
+* command/0.12upgrade: fix panic when int value is out of range [GH-23394]
+
 ## 0.12.15 (November 14, 2019)
 
 BUG FIXES:
