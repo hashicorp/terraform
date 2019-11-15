@@ -3,6 +3,7 @@
 BUG FIXES:
 
 * command/0.12upgrade: fix panic when int value is out of range [GH-23394]
+* backend/remote: default .terraformignore paths will now work on Windows [GH-23311]
 
 ## 0.12.15 (November 14, 2019)
 
