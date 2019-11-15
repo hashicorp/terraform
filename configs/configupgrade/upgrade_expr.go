@@ -38,9 +38,9 @@ Value:
 		return upgradeExpr(tv.Token, filename, interp, an)
 
 	case hcl1token.Token:
-		litVal := tv.Value()
 		switch tv.Type {
 		case hcl1token.STRING:
+			litVal := tv.Value()
 			if !interp {
 				// Easy case, then.
 				printQuotedString(&buf, litVal.(string))
@@ -141,6 +141,7 @@ Value:
 			buf.WriteString(marker)
 
 		case hcl1token.BOOL:
+			litVal := tv.Value()
 			if litVal.(bool) {
 				buf.WriteString("true")
 			} else {
@@ -148,12 +149,28 @@ Value:
 			}
 
 		case hcl1token.NUMBER:
-			num := tv.Value()
-			buf.WriteString(strconv.FormatInt(num.(int64), 10))
+			num, err := strconv.ParseInt(tv.Text, 0, 64)
+			if err != nil {
+				diags = diags.Append(&hcl2.Diagnostic{
+					Severity: hcl2.DiagError,
+					Summary:  "Invalid number value",
+					Detail:   fmt.Sprintf("Parsing failed: %s", err),
+					Subject:  hcl1PosRange(filename, tv.Pos).Ptr(),
+				})
+			}
+			buf.WriteString(strconv.FormatInt(num, 10))
 
 		case hcl1token.FLOAT:
-			num := tv.Value()
-			buf.WriteString(strconv.FormatFloat(num.(float64), 'f', -1, 64))
+			num, err := strconv.ParseFloat(tv.Text, 64)
+			if err != nil {
+				diags = diags.Append(&hcl2.Diagnostic{
+					Severity: hcl2.DiagError,
+					Summary:  "Invalid float value",
+					Detail:   fmt.Sprintf("Parsing failed: %s", err),
+					Subject:  hcl1PosRange(filename, tv.Pos).Ptr(),
+				})
+			}
+			buf.WriteString(strconv.FormatFloat(num, 'f', -1, 64))
 
 		default:
 			// For everything else we'll just pass through the given bytes verbatim,
