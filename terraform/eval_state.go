@@ -508,8 +508,13 @@ func (n *EvalRefreshDependencies) Eval(ctx EvalContext) (interface{}, error) {
 		depMap[d.String()] = d
 	}
 
-	for _, d := range state.Dependencies {
-		depMap[d.String()] = d
+	// We have already dependencies in state, so we need to trust those for
+	// refresh. We can't write out new dependencies until apply time in case
+	// the configuration has been changed in a manner the conflicts with the
+	// stored dependencies.
+	if len(state.Dependencies) > 0 {
+		*n.Dependencies = state.Dependencies
+		return nil, nil
 	}
 
 	deps := make([]addrs.AbsResource, 0, len(depMap))
