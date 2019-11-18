@@ -1,4 +1,4 @@
-## 0.12.16 (Unreleased)
+## 0.12.16 (November 18, 2019)
 
 NEW FEATURES:
 
@@ -6,9 +6,9 @@ NEW FEATURES:
 
 BUG FIXES:
 
-* command/0.12upgrade: fix panic when int value is out of range [GH-23394]
-* core: fix cycle between dependencies with create_before_destroy [GH-23399]
-* backend/remote: default .terraformignore paths will now work on Windows [GH-23311]
+* command/0.12upgrade: fix panic when int value is out of range ([#23394](https://github.com/hashicorp/terraform/issues/23394))
+* core: fix cycle between dependencies with create_before_destroy ([#23399](https://github.com/hashicorp/terraform/issues/23399))
+* backend/remote: default .terraformignore paths will now work on Windows ([#23311](https://github.com/hashicorp/terraform/issues/23311))
 
 ## 0.12.15 (November 14, 2019)
 
