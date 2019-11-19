@@ -89,11 +89,32 @@ func TestApplyGraphBuilder_depCbd(t *testing.T) {
 		},
 	}
 
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.A").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"A"}`),
+		},
+		mustProviderConfig("provider.test"),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.B").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"B","test_list":["x"]}`),
+			Dependencies: []addrs.AbsResource{mustResourceAddr("test_object.A")},
+		},
+		mustProviderConfig("provider.test"),
+	)
+
 	b := &ApplyGraphBuilder{
 		Config:     testModule(t, "graph-builder-apply-dep-cbd"),
 		Changes:    changes,
 		Components: simpleMockComponentFactory(),
 		Schemas:    simpleTestSchemas(),
+		State:      state,
 	}
 
 	g, err := b.Build(addrs.RootModuleInstance)
