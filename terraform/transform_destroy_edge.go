@@ -151,7 +151,7 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 				"[TRACE] DestroyEdgeTransformer: connecting creator %q with destroyer %q",
 				dag.VertexName(a), dag.VertexName(a_d))
 
-			g.Connect(&DestroyEdge{S: a, T: a_d})
+			g.Connect(dag.BasicEdge(a, a_d))
 
 			// Attach the destroy node to the creator
 			// There really shouldn't be more than one destroyer, but even if
