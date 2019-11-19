@@ -205,7 +205,7 @@ func (t *DestroyValueReferenceTransformer) Transform(g *Graph) error {
 			log.Printf("[TRACE] output dep: %s", dag.VertexName(target))
 
 			g.RemoveEdge(e)
-			g.Connect(&DestroyEdge{S: target, T: v})
+			g.Connect(dag.BasicEdge(target, v))
 		}
 	}
 
