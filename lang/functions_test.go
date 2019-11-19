@@ -643,17 +643,6 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
-		"setdifference": {
-			{
-				`setdifference(["a", "b"], ["a", "c"], ["a", "d"])`,
-				cty.SetVal([]cty.Value{
-					cty.StringVal("b"),
-					cty.StringVal("c"),
-					cty.StringVal("d"),
-				}),
-			},
-		},
-
 		"setintersection": {
 			{
 				`setintersection(["a", "b"], ["b", "c"], ["b", "d"])`,
