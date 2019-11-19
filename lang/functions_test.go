@@ -837,9 +837,30 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"trim": {
+			{
+				`trim("?!hello?!", "!?")`,
+				cty.StringVal("hello"),
+			},
+		},
+
+		"trimprefix": {
+			{
+				`trimprefix("helloworld", "hello")`,
+				cty.StringVal("world"),
+			},
+		},
+
 		"trimspace": {
 			{
 				`trimspace(" hello ")`,
+				cty.StringVal("hello"),
+			},
+		},
+
+		"trimsuffix": {
+			{
+				`trimsuffix("helloworld", "world")`,
 				cty.StringVal("hello"),
 			},
 		},
