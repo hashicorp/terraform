@@ -81,7 +81,7 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 			destroyers[key] = append(destroyers[key], n)
 			destroyerAddrs[key] = addr
 
-			resAddr := addr.Resource.Absolute(addr.Module).String()
+			resAddr := addr.Resource.Resource.Absolute(addr.Module).String()
 			destroyersByResource[resAddr] = append(destroyersByResource[resAddr], n)
 		case GraphNodeCreator:
 			addr := n.CreateAddr()
@@ -122,12 +122,6 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 
 		for _, resAddr := range ri.StateDependencies() {
 			for _, desDep := range destroyersByResource[resAddr.String()] {
-				// TODO: don't connect this if c is CreateBeforeDestroy.
-				//       This will require getting the actual change action at
-				//       this point, since the lifecycle may have been forced
-				//       by a dependent. This should prevent needing to prune
-				//       the edge back out in CBDEdgeTransformer, and allow
-				//       non-CBD nodes to depend on CBD destroys directly.
 				log.Printf("[TRACE] DestroyEdgeTransformer: %s has stored dependency of %s\n", dag.VertexName(c), dag.VertexName(desDep))
 				g.Connect(dag.BasicEdge(c, desDep))
 
@@ -157,7 +151,7 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 				"[TRACE] DestroyEdgeTransformer: connecting creator %q with destroyer %q",
 				dag.VertexName(a), dag.VertexName(a_d))
 
-			g.Connect(&DestroyEdge{S: a, T: a_d})
+			g.Connect(dag.BasicEdge(a, a_d))
 
 			// Attach the destroy node to the creator
 			// There really shouldn't be more than one destroyer, but even if
