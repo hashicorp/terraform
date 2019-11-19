@@ -178,7 +178,7 @@ var (
 )
 
 func (n *NodeDestroyDeposedResourceInstanceObject) Name() string {
-	return fmt.Sprintf("%s (destroy deposed %s)", n.Addr.String(), n.DeposedKey)
+	return fmt.Sprintf("%s (destroy deposed %s)", n.ResourceInstanceAddr(), n.DeposedKey)
 }
 
 func (n *NodeDestroyDeposedResourceInstanceObject) DeposedInstanceObjectKey() states.DeposedKey {
