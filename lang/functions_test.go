@@ -643,6 +643,17 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"setdifference": {
+			{
+				`setdifference(["a", "b"], ["a", "c"], ["a", "d"])`,
+				cty.SetVal([]cty.Value{
+					cty.StringVal("b"),
+					cty.StringVal("c"),
+					cty.StringVal("d"),
+				}),
+			},
+		},
+
 		"setintersection": {
 			{
 				`setintersection(["a", "b"], ["b", "c"], ["b", "d"])`,
@@ -662,6 +673,15 @@ func TestFunctions(t *testing.T) {
 					cty.TupleVal([]cty.Value{cty.StringVal("staging"), cty.StringVal("app2")}),
 					cty.TupleVal([]cty.Value{cty.StringVal("production"), cty.StringVal("app1")}),
 					cty.TupleVal([]cty.Value{cty.StringVal("production"), cty.StringVal("app2")}),
+				}),
+			},
+		},
+
+		"setsubtract": {
+			{
+				`setsubtract(["a", "b", "c"], ["a", "c"])`,
+				cty.SetVal([]cty.Value{
+					cty.StringVal("b"),
 				}),
 			},
 		},
