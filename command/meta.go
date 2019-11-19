@@ -480,6 +480,9 @@ func (m *Meta) showDiagnostics(vals ...interface{}) {
 	diags = diags.Append(vals...)
 	diags.Sort()
 
+	// Since warning messages are generally competing
+	diags = diags.ConsolidateWarnings()
+
 	for _, diag := range diags {
 		// TODO: Actually measure the terminal width and pass it here.
 		// For now, we don't have easy access to the writer that
