@@ -14,7 +14,7 @@ import (
 // block is a provider configuration, and there can be zero or more
 // configurations for each actual provider.
 type Provider struct {
-	Name       string
+	Type       string
 	NameRange  hcl.Range
 	Alias      string
 	AliasRange *hcl.Range // nil if no alias set
@@ -40,7 +40,7 @@ func decodeProviderBlock(block *hcl.Block) (*Provider, hcl.Diagnostics) {
 	diags = append(diags, moreDiags...)
 
 	provider := &Provider{
-		Name:      block.Labels[0],
+		Type:      block.Labels[0],
 		NameRange: block.LabelRanges[0],
 		Config:    config,
 		DeclRange: block.DefRange,
@@ -95,16 +95,16 @@ func decodeProviderBlock(block *hcl.Block) (*Provider, hcl.Diagnostics) {
 // to its containing module.
 func (p *Provider) Addr() addrs.ProviderConfig {
 	return addrs.ProviderConfig{
-		Type:  p.Name,
+		Type:  p.Type,
 		Alias: p.Alias,
 	}
 }
 
 func (p *Provider) moduleUniqueKey() string {
 	if p.Alias != "" {
-		return fmt.Sprintf("%s.%s", p.Name, p.Alias)
+		return fmt.Sprintf("%s.%s", p.Type, p.Alias)
 	}
-	return p.Name
+	return p.Type
 }
 
 // ProviderRequirement represents a declaration of a dependency on a particular

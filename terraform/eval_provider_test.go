@@ -29,7 +29,7 @@ func TestBuildProviderConfig(t *testing.T) {
 		},
 	}
 	gotBody := buildProviderConfig(ctx, providerAddr, &configs.Provider{
-		Name:   "foo",
+		Type:   "foo",
 		Config: configBody,
 	})
 
@@ -60,7 +60,7 @@ func TestEvalConfigProvider_impl(t *testing.T) {
 
 func TestEvalConfigProvider(t *testing.T) {
 	config := &configs.Provider{
-		Name: "foo",
+		Type: "foo",
 		Config: configs.SynthBody("", map[string]cty.Value{
 			"test_string": cty.StringVal("hello"),
 		}),

@@ -187,7 +187,7 @@ func (c *Config) gatherProviderTypes(m map[string]struct{}) {
 	}
 
 	for _, pc := range c.Module.ProviderConfigs {
-		m[pc.Name] = struct{}{}
+		m[pc.Type] = struct{}{}
 	}
 	for _, rc := range c.Module.ManagedResources {
 		providerAddr := rc.ProviderConfigAddr()

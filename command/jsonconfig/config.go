@@ -139,9 +139,9 @@ func marshalProviderConfigs(
 	}
 
 	for k, pc := range c.Module.ProviderConfigs {
-		schema := schemas.ProviderConfig(pc.Name)
+		schema := schemas.ProviderConfig(pc.Type)
 		p := providerConfig{
-			Name:              pc.Name,
+			Name:              pc.Type,
 			Alias:             pc.Alias,
 			ModuleAddress:     c.Path.String(),
 			Expressions:       marshalExpressions(pc.Config, schema),
