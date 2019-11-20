@@ -42,7 +42,6 @@ setsubtract(a, b)
 
 ## Related Functions
 
-* [`setdifference`](./setdifference.html) computes the _symmetric difference_ of two sets
 * [`setintersection`](./setintersection.html) computes the _intersection_ of multiple sets
 * [`setproduct`](./setproduct.html) computes the _Cartesian product_ of multiple
   sets.
