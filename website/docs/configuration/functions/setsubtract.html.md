@@ -29,7 +29,7 @@ setsubtract(a, b)
 ]
 ```
 
-### Set Difference
+### Set Difference (Symmetric Difference)
 
 ```
 > setunion(setsubtract(["a", "b", "c"], ["a", "c", "d"]), setsubtract(["a", "c", "d"], ["a", "b", "c"]))
