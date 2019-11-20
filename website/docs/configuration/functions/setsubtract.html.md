@@ -29,6 +29,17 @@ setsubtract(a, b)
 ]
 ```
 
+### Set Difference
+
+```
+> setunion(setsubtract(["a", "b", "c"], ["a", "c", "d"]), setsubtract(["a", "c", "d"], ["a", "b", "c"]))
+[
+  "b",
+  "d",
+]
+```
+
+
 ## Related Functions
 
 * [`setdifference`](./setdifference.html) computes the _symmetric difference_ of two sets
