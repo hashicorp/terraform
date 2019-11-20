@@ -9,9 +9,9 @@ import (
 // PluginMeta is metadata about a plugin, useful for launching the plugin
 // and for understanding which plugins are available.
 type PluginMeta struct {
-	// Name is the name of the plugin, e.g. as inferred from the plugin
+	// Type is the name of the plugin, e.g. as inferred from the plugin
 	// binary's filename, or by explicit configuration.
-	Name string
+	Type string
 
 	// Version is the semver version of the plugin, expressed as a string
 	// that might not be semver-valid.

@@ -180,7 +180,7 @@ func ResolvePluginPaths(paths []string) PluginMetaSet {
 		}
 
 		s.Add(PluginMeta{
-			Name:    name,
+			Type:    name,
 			Version: VersionStr(version),
 			Path:    path,
 		})

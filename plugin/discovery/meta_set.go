@@ -53,7 +53,7 @@ func (s PluginMetaSet) ValidateVersions() (valid, invalid PluginMetaSet) {
 func (s PluginMetaSet) WithName(name string) PluginMetaSet {
 	ns := make(PluginMetaSet)
 	for p := range s {
-		if p.Name == name {
+		if p.Type == name {
 			ns.Add(p)
 		}
 	}
@@ -82,10 +82,10 @@ func (s PluginMetaSet) WithVersion(version Version) PluginMetaSet {
 func (s PluginMetaSet) ByName() map[string]PluginMetaSet {
 	ret := make(map[string]PluginMetaSet)
 	for p := range s {
-		if _, ok := ret[p.Name]; !ok {
-			ret[p.Name] = make(PluginMetaSet)
+		if _, ok := ret[p.Type]; !ok {
+			ret[p.Type] = make(PluginMetaSet)
 		}
-		ret[p.Name].Add(p)
+		ret[p.Type].Add(p)
 	}
 	return ret
 }
@@ -145,20 +145,20 @@ func (s PluginMetaSet) Newest() PluginMeta {
 func (s PluginMetaSet) ConstrainVersions(reqd PluginRequirements) map[string]PluginMetaSet {
 	ret := make(map[string]PluginMetaSet)
 	for p := range s {
-		name := p.Name
+		name := p.Type
 		allowedVersions, ok := reqd[name]
 		if !ok {
 			continue
 		}
-		if _, ok := ret[p.Name]; !ok {
-			ret[p.Name] = make(PluginMetaSet)
+		if _, ok := ret[p.Type]; !ok {
+			ret[p.Type] = make(PluginMetaSet)
 		}
 		version, err := p.Version.Parse()
 		if err != nil {
 			panic(err)
 		}
 		if allowedVersions.Allows(version) {
-			ret[p.Name].Add(p)
+			ret[p.Type].Add(p)
 		}
 	}
 	return ret
@@ -174,7 +174,7 @@ func (s PluginMetaSet) ConstrainVersions(reqd PluginRequirements) map[string]Plu
 func (s PluginMetaSet) OverridePaths(paths map[string]string) PluginMetaSet {
 	ret := make(PluginMetaSet)
 	for p := range s {
-		if _, ok := paths[p.Name]; ok {
+		if _, ok := paths[p.Type]; ok {
 			// Skip plugins that we're overridding
 			continue
 		}
@@ -185,7 +185,7 @@ func (s PluginMetaSet) OverridePaths(paths map[string]string) PluginMetaSet {
 	// Now add the metadata for overriding plugins
 	for name, path := range paths {
 		ret.Add(PluginMeta{
-			Name:    name,
+			Type:    name,
 			Version: VersionZero,
 			Path:    path,
 		})

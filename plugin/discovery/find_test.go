@@ -67,57 +67,57 @@ func TestResolvePluginPaths(t *testing.T) {
 
 	want := []PluginMeta{
 		{
-			Name:    "bar",
+			Type:    "bar",
 			Version: "0.0.1",
 			Path:    "/example/mockos_mockarch/terraform-foo-bar_v0.0.1",
 		},
 		{
-			Name:    "baz",
+			Type:    "baz",
 			Version: "0.0.1",
 			Path:    "/example/mockos_mockarch/terraform-foo-baz_v0.0.1",
 		},
 		{
-			Name:    "baz",
+			Type:    "baz",
 			Version: "1.0.0",
 			Path:    "/example/mockos_mockarch/terraform-foo-baz_v1.0.0",
 		},
 		{
-			Name:    "baz",
+			Type:    "baz",
 			Version: "2.0.0",
 			Path:    "/example/mockos_mockarch/terraform-foo-baz_v2.0.0_x4",
 		},
 		{
-			Name:    "upper",
+			Type:    "upper",
 			Version: "2.0.0",
 			Path:    "/example/mockos_mockarch/terraform-foo-upper_V2.0.0_X4",
 		},
 		{
-			Name:    "bar",
+			Type:    "bar",
 			Version: "0.0.0",
 			Path:    "/example/terraform-foo-bar",
 		},
 		{
-			Name:    "bar",
+			Type:    "bar",
 			Version: "bananas",
 			Path:    "/example/mockos_mockarch/terraform-foo-bar_vbananas",
 		},
 		{
-			Name:    "bar",
+			Type:    "bar",
 			Version: "",
 			Path:    "/example/mockos_mockarch/terraform-foo-bar_v",
 		},
 		{
-			Name:    "windowsthing1",
+			Type:    "windowsthing1",
 			Version: "1.0.0",
 			Path:    "/example/mockos_mockarch/terraform-foo-windowsthing1_v1.0.0.exe",
 		},
 		{
-			Name:    "windowsthing2",
+			Type:    "windowsthing2",
 			Version: "1.0.0",
 			Path:    "/example/mockos_mockarch/terraform-foo-windowsthing2_v1.0.0_x4.exe",
 		},
 		{
-			Name:    "windowsthing3",
+			Type:    "windowsthing3",
 			Version: "0.0.0",
 			Path:    "/example/mockos_mockarch/terraform-foo-windowsthing3.exe",
 		},
