@@ -9175,33 +9175,48 @@ func TestContext2Apply_createBefore_depends(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	state := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.web": &ResourceState{
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "aws_instance",
+			Name: "web",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar","require_new":"ami-old"}`),
+		},
+		addrs.ProviderConfig{
+			Type: "aws",
+		}.Absolute(addrs.RootModuleInstance),
+	)
+
+	root.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "aws_instance",
+			Name: "lb",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"baz","instance":"bar"}`),
+			Dependencies: []addrs.AbsResource{
+				addrs.AbsResource{
+					Resource: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
 						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-							Attributes: map[string]string{
-								"require_new": "ami-old",
-							},
-						},
+						Name: "web",
 					},
-					"aws_instance.lb": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "baz",
-							Attributes: map[string]string{
-								"instance": "bar",
-							},
-						},
-					},
+					Module: addrs.RootModuleInstance,
 				},
 			},
 		},
-	})
+		addrs.ProviderConfig{
+			Type: "aws",
+		}.Absolute(addrs.RootModuleInstance),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Hooks:  []Hook{h},
@@ -9241,17 +9256,18 @@ func TestContext2Apply_createBefore_depends(t *testing.T) {
 
 	// Test that things were managed _in the right order_
 	order := h.States
+
 	diffs := h.Diffs
 	if !order[0].IsNull() || diffs[0].Action == plans.Delete {
 		t.Fatalf("should create new instance first: %#v", order)
 	}
 
 	if order[1].GetAttr("id").AsString() != "baz" {
-		t.Fatalf("update must happen after create: %#v", order)
+		t.Fatalf("update must happen after create: %#v", order[1])
 	}
 
 	if order[2].GetAttr("id").AsString() != "bar" || diffs[2].Action != plans.Delete {
-		t.Fatalf("destroy must happen after update: %#v", order)
+		t.Fatalf("destroy must happen after update: %#v", order[2])
 	}
 }
 
@@ -9290,33 +9306,48 @@ func TestContext2Apply_singleDestroy(t *testing.T) {
 		return testApplyFn(info, s, d)
 	}
 	p.DiffFn = testDiffFn
-	state := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.web": &ResourceState{
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "aws_instance",
+			Name: "web",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar","require_new":"ami-old"}`),
+		},
+		addrs.ProviderConfig{
+			Type: "aws",
+		}.Absolute(addrs.RootModuleInstance),
+	)
+
+	root.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "aws_instance",
+			Name: "lb",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"baz","instance":"bar"}`),
+			Dependencies: []addrs.AbsResource{
+				addrs.AbsResource{
+					Resource: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
 						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-							Attributes: map[string]string{
-								"require_new": "ami-old",
-							},
-						},
+						Name: "web",
 					},
-					"aws_instance.lb": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "baz",
-							Attributes: map[string]string{
-								"instance": "bar",
-							},
-						},
-					},
+					Module: addrs.RootModuleInstance,
 				},
 			},
 		},
-	})
+		addrs.ProviderConfig{
+			Type: "aws",
+		}.Absolute(addrs.RootModuleInstance),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Hooks:  []Hook{h},

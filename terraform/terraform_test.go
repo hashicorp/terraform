@@ -210,6 +210,22 @@ func mustResourceInstanceAddr(s string) addrs.AbsResourceInstance {
 	return addr
 }
 
+func mustResourceAddr(s string) addrs.AbsResource {
+	addr, diags := addrs.ParseAbsResourceStr(s)
+	if diags.HasErrors() {
+		panic(diags.Err())
+	}
+	return addr
+}
+
+func mustProviderConfig(s string) addrs.AbsProviderConfig {
+	p, diags := addrs.ParseAbsProviderConfigStr(s)
+	if diags.HasErrors() {
+		panic(diags.Err())
+	}
+	return p
+}
+
 func instanceObjectIdForTests(obj *states.ResourceInstanceObject) string {
 	v := obj.Value
 	if v.IsNull() || !v.IsKnown() {
