@@ -231,7 +231,7 @@ func (m *Meta) providerPluginSet() discovery.PluginMetaSet {
 	plugins, _ = plugins.ValidateVersions()
 
 	for p := range plugins {
-		log.Printf("[DEBUG] found valid plugin: %q, %q, %q", p.Type, p.Version, p.Path)
+		log.Printf("[DEBUG] found valid plugin: %q, %q, %q", p.Name, p.Version, p.Path)
 	}
 
 	return plugins
@@ -244,7 +244,7 @@ func (m *Meta) providerPluginAutoInstalledSet() discovery.PluginMetaSet {
 	plugins, _ = plugins.ValidateVersions()
 
 	for p := range plugins {
-		log.Printf("[DEBUG] found valid plugin: %q", p.Type)
+		log.Printf("[DEBUG] found valid plugin: %q", p.Name)
 	}
 
 	return plugins
@@ -267,7 +267,7 @@ func (m *Meta) providerPluginManuallyInstalledSet() discovery.PluginMetaSet {
 	plugins, _ = plugins.ValidateVersions()
 
 	for p := range plugins {
-		log.Printf("[DEBUG] found valid plugin: %q, %q, %q", p.Type, p.Version, p.Path)
+		log.Printf("[DEBUG] found valid plugin: %q, %q, %q", p.Name, p.Version, p.Path)
 	}
 
 	return plugins
@@ -326,7 +326,7 @@ func (m *Meta) provisionerFactories() map[string]terraform.ProvisionerFactory {
 	// Wire up the internal provisioners first. These might be overridden
 	// by discovered provisioners below.
 	for name := range InternalProvisioners {
-		factories[name] = internalProvisionerFactory(discovery.PluginMeta{Type: name})
+		factories[name] = internalProvisionerFactory(discovery.PluginMeta{Name: name})
 	}
 
 	byName := plugins.ByName()
@@ -394,9 +394,9 @@ func provisionerFactory(meta discovery.PluginMeta) terraform.ProvisionerFactory 
 
 func internalProvisionerFactory(meta discovery.PluginMeta) terraform.ProvisionerFactory {
 	return func() (provisioners.Interface, error) {
-		client, err := internalPluginClient("provisioner", meta.Type)
+		client, err := internalPluginClient("provisioner", meta.Name)
 		if err != nil {
-			return nil, fmt.Errorf("[WARN] failed to build command line for internal plugin %q: %s", meta.Type, err)
+			return nil, fmt.Errorf("[WARN] failed to build command line for internal plugin %q: %s", meta.Name, err)
 		}
 		return newProvisionerClient(client)
 	}

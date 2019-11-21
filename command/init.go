@@ -517,7 +517,7 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 		}
 
 		for provider, reqd := range missing {
-			pty := addrs.ProviderType{Type: provider}
+			pty := addrs.ProviderType{Name: provider}
 			_, providerDiags, err := c.providerInstaller.Get(pty, reqd.Versions)
 			diags = diags.Append(providerDiags)
 
@@ -626,7 +626,7 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 		}
 		if purged != nil {
 			for meta := range purged {
-				log.Printf("[DEBUG] Purged unused %s plugin %s", meta.Type, meta.Path)
+				log.Printf("[DEBUG] Purged unused %s plugin %s", meta.Name, meta.Path)
 			}
 		}
 	}

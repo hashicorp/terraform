@@ -64,8 +64,8 @@ func (c *VersionCommand) Run(args []string) int {
 	pluginsLock := pluginsLockFile.Read()
 	var pluginVersions []string
 	for meta := range providerPlugins {
-		typeName := meta.Type
-		wantHash, wanted := pluginsLock[typeName]
+		name := meta.Name
+		wantHash, wanted := pluginsLock[name]
 		if !wanted {
 			// Ignore providers that aren't used by the current config at all
 			continue
@@ -83,9 +83,9 @@ func (c *VersionCommand) Run(args []string) int {
 		// If we get here then we've found a selected plugin, so we'll print
 		// out its details.
 		if meta.Version == "0.0.0" {
-			pluginVersions = append(pluginVersions, fmt.Sprintf("+ provider.%s (unversioned)", typeName))
+			pluginVersions = append(pluginVersions, fmt.Sprintf("+ provider.%s (unversioned)", name))
 		} else {
-			pluginVersions = append(pluginVersions, fmt.Sprintf("+ provider.%s v%s", typeName, meta.Version))
+			pluginVersions = append(pluginVersions, fmt.Sprintf("+ provider.%s v%s", name, meta.Version))
 		}
 	}
 	if len(pluginVersions) != 0 {

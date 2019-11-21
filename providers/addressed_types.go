@@ -17,13 +17,13 @@ func AddressedTypes(providerAddrs []addrs.ProviderConfig) []string {
 		m[addr.Type] = struct{}{}
 	}
 
-	types := make([]string, 0, len(m))
+	names := make([]string, 0, len(m))
 	for typeName := range m {
-		types = append(types, typeName)
+		names = append(names, typeName)
 	}
 
-	sort.Strings(types) // Stable result for tests
-	return types
+	sort.Strings(names) // Stable result for tests
+	return names
 }
 
 // AddressedTypesAbs is a helper that extracts all of the distinct provider
@@ -37,11 +37,11 @@ func AddressedTypesAbs(providerAddrs []addrs.AbsProviderConfig) []string {
 		m[addr.ProviderConfig.Type] = struct{}{}
 	}
 
-	types := make([]string, 0, len(m))
+	names := make([]string, 0, len(m))
 	for typeName := range m {
-		types = append(types, typeName)
+		names = append(names, typeName)
 	}
 
-	sort.Strings(types) // Stable result for tests
-	return types
+	sort.Strings(names) // Stable result for tests
+	return names
 }

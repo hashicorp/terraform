@@ -18,7 +18,7 @@ import (
 func TestMultiVersionProviderResolver(t *testing.T) {
 	available := make(discovery.PluginMetaSet)
 	available.Add(discovery.PluginMeta{
-		Type:    "plugin",
+		Name:    "plugin",
 		Version: "1.0.0",
 		Path:    "testdata/empty-file",
 	})
@@ -151,7 +151,7 @@ func (i *mockProviderInstaller) FileName(provider, version string) string {
 func (i *mockProviderInstaller) Get(provider addrs.ProviderType, req discovery.Constraints) (discovery.PluginMeta, tfdiags.Diagnostics, error) {
 	var diags tfdiags.Diagnostics
 	noMeta := discovery.PluginMeta{}
-	versions := i.Providers[provider.Type]
+	versions := i.Providers[provider.Name]
 	if len(versions) == 0 {
 		return noMeta, diags, fmt.Errorf("provider %q not found", provider)
 	}
@@ -169,7 +169,7 @@ func (i *mockProviderInstaller) Get(provider addrs.ProviderType, req discovery.C
 
 		if req.Allows(version) {
 			// provider filename
-			name := i.FileName(provider.Type, v)
+			name := i.FileName(provider.Name, v)
 			path := filepath.Join(i.Dir, name)
 			f, err := os.Create(path)
 			if err != nil {
@@ -177,7 +177,7 @@ func (i *mockProviderInstaller) Get(provider addrs.ProviderType, req discovery.C
 			}
 			f.Close()
 			return discovery.PluginMeta{
-				Type:    provider.Type,
+				Name:    provider.Name,
 				Version: discovery.VersionStr(v),
 				Path:    path,
 			}, diags, nil
@@ -191,7 +191,7 @@ func (i *mockProviderInstaller) PurgeUnused(map[string]discovery.PluginMeta) (di
 	i.PurgeUnusedCalled = true
 	ret := make(discovery.PluginMetaSet)
 	ret.Add(discovery.PluginMeta{
-		Type:    "test",
+		Name:    "test",
 		Version: "0.0.0",
 		Path:    "mock-test",
 	})
@@ -201,7 +201,7 @@ func (i *mockProviderInstaller) PurgeUnused(map[string]discovery.PluginMeta) (di
 type callbackPluginInstaller func(provider string, req discovery.Constraints) (discovery.PluginMeta, tfdiags.Diagnostics, error)
 
 func (cb callbackPluginInstaller) Get(provider addrs.ProviderType, req discovery.Constraints) (discovery.PluginMeta, tfdiags.Diagnostics, error) {
-	return cb(provider.Type, req)
+	return cb(provider.Name, req)
 }
 
 func (cb callbackPluginInstaller) PurgeUnused(map[string]discovery.PluginMeta) (discovery.PluginMetaSet, error) {

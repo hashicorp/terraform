@@ -143,7 +143,7 @@ func (c *PackageCommand) Run(args []string) int {
 	dirs := []string{pluginDir} //FindPlugins requires an array
 	localPlugins := discovery.FindPlugins("provider", dirs)
 	for k, _ := range localPlugins {
-		c.ui.Info(fmt.Sprintf("plugin: %s (%s)", k.Type, k.Version))
+		c.ui.Info(fmt.Sprintf("plugin: %s (%s)", k.Name, k.Version))
 	}
 	installer := &discovery.ProviderInstaller{
 		Dir: workDir,
@@ -171,18 +171,18 @@ func (c *PackageCommand) Run(args []string) int {
 			foundPlugins := discovery.PluginMetaSet{}
 			constraint := constraintStr.MustParse()
 			for plugin, _ := range localPlugins {
-				if plugin.Type == name && constraint.Allows(plugin.Version.MustParse()) {
+				if plugin.Name == name && constraint.Allows(plugin.Version.MustParse()) {
 					foundPlugins.Add(plugin)
 				}
 			}
 
 			if len(foundPlugins) > 0 {
 				plugin := foundPlugins.Newest()
-				CopyFile(plugin.Path, workDir+"/terraform-provider-"+plugin.Type+"_v"+plugin.Version.MustParse().String()) //put into temp dir
+				CopyFile(plugin.Path, workDir+"/terraform-provider-"+plugin.Name+"_v"+plugin.Version.MustParse().String()) //put into temp dir
 			} else { //attempt to get from the public registry if not found locally
 				c.ui.Output(fmt.Sprintf("- Checking for provider plugin on %s...",
 					releaseHost))
-				_, _, err := installer.Get(addrs.ProviderType{Type: name}, constraint)
+				_, _, err := installer.Get(addrs.ProviderType{Name: name}, constraint)
 				if err != nil {
 					c.ui.Error(fmt.Sprintf("- Failed to resolve %s provider %s: %s", name, constraint, err))
 					return 1
