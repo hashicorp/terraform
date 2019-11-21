@@ -95,6 +95,53 @@ test_object.B
 	}
 }
 
+func TestCBDEdgeTransformerMulti(t *testing.T) {
+	changes := &plans.Changes{
+		Resources: []*plans.ResourceInstanceChangeSrc{
+			{
+				Addr: mustResourceInstanceAddr("test_object.A"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.CreateThenDelete,
+				},
+			},
+			{
+				Addr: mustResourceInstanceAddr("test_object.B"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.CreateThenDelete,
+				},
+			},
+			{
+				Addr: mustResourceInstanceAddr("test_object.C"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Update,
+				},
+			},
+		},
+	}
+
+	g := cbdTestGraph(t, "transform-destroy-cbd-edge-multi", changes)
+	g = filterInstances(g)
+
+	actual := strings.TrimSpace(g.String())
+	expected := regexp.MustCompile(strings.TrimSpace(`
+(?m)test_object.A
+test_object.A \(destroy deposed \w+\)
+  test_object.A
+  test_object.C
+test_object.B
+test_object.B \(destroy deposed \w+\)
+  test_object.B
+  test_object.C
+test_object.C
+  test_object.A
+  test_object.B
+`))
+
+	if !expected.MatchString(actual) {
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
+	}
+}
+
 func TestCBDEdgeTransformer_depNonCBDCount(t *testing.T) {
 	changes := &plans.Changes{
 		Resources: []*plans.ResourceInstanceChangeSrc{
