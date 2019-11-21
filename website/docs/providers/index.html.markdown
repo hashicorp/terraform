@@ -97,6 +97,7 @@ down to see all providers.
 - [Null](/docs/providers/null/index.html)
 - [Nutanix](/docs/providers/nutanix/index.html)
 - [1&1](/docs/providers/oneandone/index.html)
+- [OpenNebula](/docs/providers/opennebula/index.html)
 - [OpenStack](/docs/providers/openstack/index.html)
 - [OpenTelekomCloud](/docs/providers/opentelekomcloud/index.html)
 - [OpsGenie](/docs/providers/opsgenie/index.html)
