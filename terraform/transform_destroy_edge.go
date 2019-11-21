@@ -81,7 +81,7 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 			destroyers[key] = append(destroyers[key], n)
 			destroyerAddrs[key] = addr
 
-			resAddr := addr.Resource.Absolute(addr.Module).String()
+			resAddr := addr.Resource.Resource.Absolute(addr.Module).String()
 			destroyersByResource[resAddr] = append(destroyersByResource[resAddr], n)
 		case GraphNodeCreator:
 			addr := n.CreateAddr()
