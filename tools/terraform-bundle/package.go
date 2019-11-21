@@ -182,7 +182,7 @@ func (c *PackageCommand) Run(args []string) int {
 			} else { //attempt to get from the public registry if not found locally
 				c.ui.Output(fmt.Sprintf("- Checking for provider plugin on %s...",
 					releaseHost))
-				_, _, err := installer.Get(addrs.ProviderType{Name: name}, constraint)
+				_, _, err := installer.Get(addrs.ProviderType{Type: name}, constraint)
 				if err != nil {
 					c.ui.Error(fmt.Sprintf("- Failed to resolve %s provider %s: %s", name, constraint, err))
 					return 1

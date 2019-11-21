@@ -232,7 +232,7 @@ func (i *ProviderInstaller) Get(provider addrs.ProviderType, req Constraints) (P
 		}
 	}
 
-	printedProviderName := fmt.Sprintf("%q (%s)", provider.Name, providerSource)
+	printedProviderName := fmt.Sprintf("%q (%s)", provider.Type, providerSource)
 	i.Ui.Info(fmt.Sprintf("- Downloading plugin for provider %s %s...", printedProviderName, versionMeta.Version))
 	log.Printf("[DEBUG] getting provider %s version %q", printedProviderName, versionMeta.Version)
 	err = i.install(provider, v, providerURL)
@@ -244,11 +244,11 @@ func (i *ProviderInstaller) Get(provider addrs.ProviderType, req Constraints) (P
 	// (This is weird, because go-getter doesn't directly return
 	//  information about what was extracted, and we just extracted
 	//  the archive directly into a shared dir here.)
-	log.Printf("[DEBUG] looking for the %s %s plugin we just installed", provider.Name, versionMeta.Version)
+	log.Printf("[DEBUG] looking for the %s %s plugin we just installed", provider.Type, versionMeta.Version)
 	metas := FindPlugins("provider", []string{i.Dir})
 	log.Printf("[DEBUG] all plugins found %#v", metas)
 	metas, _ = metas.ValidateVersions()
-	metas = metas.WithName(provider.Name).WithVersion(v)
+	metas = metas.WithName(provider.Type).WithVersion(v)
 	log.Printf("[DEBUG] filtered plugins %#v", metas)
 	if metas.Count() == 0 {
 		// This should never happen. Suggests that the release archive
@@ -278,16 +278,16 @@ func (i *ProviderInstaller) Get(provider addrs.ProviderType, req Constraints) (P
 
 func (i *ProviderInstaller) install(provider addrs.ProviderType, version Version, url string) error {
 	if i.Cache != nil {
-		log.Printf("[DEBUG] looking for provider %s %s in plugin cache", provider.Name, version)
-		cached := i.Cache.CachedPluginPath("provider", provider.Name, version)
+		log.Printf("[DEBUG] looking for provider %s %s in plugin cache", provider.Type, version)
+		cached := i.Cache.CachedPluginPath("provider", provider.Type, version)
 		if cached == "" {
-			log.Printf("[DEBUG] %s %s not yet in cache, so downloading %s", provider.Name, version, url)
+			log.Printf("[DEBUG] %s %s not yet in cache, so downloading %s", provider.Type, version, url)
 			err := getter.Get(i.Cache.InstallDir(), url)
 			if err != nil {
 				return err
 			}
 			// should now be in cache
-			cached = i.Cache.CachedPluginPath("provider", provider.Name, version)
+			cached = i.Cache.CachedPluginPath("provider", provider.Type, version)
 			if cached == "" {
 				// should never happen if the getter is behaving properly
 				// and the plugins are packaged properly.
@@ -308,7 +308,7 @@ func (i *ProviderInstaller) install(provider addrs.ProviderType, version Version
 			return err
 		}
 
-		log.Printf("[DEBUG] installing %s %s to %s from local cache %s", provider.Name, version, targetPath, cached)
+		log.Printf("[DEBUG] installing %s %s to %s from local cache %s", provider.Type, version, targetPath, cached)
 
 		// Delete if we can. If there's nothing there already then no harm done.
 		// This is important because we can't create a link if there's
@@ -366,7 +366,7 @@ func (i *ProviderInstaller) install(provider addrs.ProviderType, version Version
 		// One way or another, by the time we get here we should have either
 		// a link or a copy of the cached plugin within i.Dir, as expected.
 	} else {
-		log.Printf("[DEBUG] plugin cache is disabled, so downloading %s %s from %s", provider.Name, version, url)
+		log.Printf("[DEBUG] plugin cache is disabled, so downloading %s %s from %s", provider.Type, version, url)
 		err := getter.Get(i.Dir, url)
 		if err != nil {
 			return err
@@ -473,7 +473,7 @@ func (i *ProviderInstaller) hostname() (string, error) {
 
 // list all versions available for the named provider
 func (i *ProviderInstaller) listProviderVersions(provider addrs.ProviderType) (*response.TerraformProviderVersions, error) {
-	req := regsrc.NewTerraformProvider(provider.Name, i.OS, i.Arch)
+	req := regsrc.NewTerraformProvider(provider.Type, i.OS, i.Arch)
 	versions, err := i.registry.TerraformProviderVersions(req)
 	return versions, err
 }
