@@ -4,6 +4,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/instances"
 	"github.com/hashicorp/terraform/lang"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
@@ -152,4 +153,12 @@ type EvalContext interface {
 	// State returns a wrapper object that provides safe concurrent access to
 	// the global state.
 	State() *states.SyncState
+
+	// InstanceExpander returns a helper object for tracking the expansion of
+	// graph nodes during the plan phase in response to "count" and "for_each"
+	// arguments.
+	//
+	// The InstanceExpander is a global object that is shared across all of the
+	// EvalContext objects for a given configuration.
+	InstanceExpander() *instances.Expander
 }
