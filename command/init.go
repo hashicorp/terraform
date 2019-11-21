@@ -517,7 +517,7 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 		}
 
 		for provider, reqd := range missing {
-			pty := addrs.ProviderType{Name: provider}
+			pty := addrs.ProviderType{Type: provider}
 			_, providerDiags, err := c.providerInstaller.Get(pty, reqd.Versions)
 			diags = diags.Append(providerDiags)
 
