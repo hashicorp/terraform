@@ -3,6 +3,7 @@ package statefile
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 
@@ -299,13 +300,33 @@ func upgradeInstanceObjectV3ToV4(rsOld *resourceStateV2, isOld *instanceStateV2,
 		}
 	}
 
-	dependencies := make([]string, len(rsOld.Dependencies))
-	for i, v := range rsOld.Dependencies {
+	dependencies := make([]string, 0, len(rsOld.Dependencies))
+	for _, v := range rsOld.Dependencies {
 		depStr, err := parseLegacyDependency(v)
 		if err != nil {
-			return nil, fmt.Errorf("invalid dependency reference %q: %s", v, err)
+			// We just drop invalid dependencies on the floor here, because
+			// they tend to get left behind in Terraform 0.11 when resources
+			// are renamed or moved between modules and there's no automatic
+			// way to fix them here. In practice it shouldn't hurt to miss
+			// a few dependency edges in the state because a subsequent plan
+			// will run a refresh walk first and re-synchronize the
+			// dependencies with the configuration.
+			//
+			// There is one rough edges where this can cause an incorrect
+			// result, though: If the first command the user runs after
+			// upgrading to Terraform 0.12 uses -refresh=false and thus
+			// prevents the dependency reorganization from occurring _and_
+			// that initial plan discovered "orphaned" resources (not present
+			// in configuration any longer) then when the plan is applied the
+			// destroy ordering will be incorrect for the instances of those
+			// resources. We expect that is a rare enough situation that it
+			// isn't a big deal, and even when it _does_ occur it's common for
+			// the apply to succeed anyway unless many separate resources with
+			// complex inter-dependencies are all orphaned at once.
+			log.Printf("statefile: ignoring invalid dependency address %q while upgrading from state version 3 to version 4: %s", v, err)
+			continue
 		}
-		dependencies[i] = depStr
+		dependencies = append(dependencies, depStr)
 	}
 
 	return &instanceObjectStateV4{
