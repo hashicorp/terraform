@@ -65,9 +65,9 @@ func (b *Local) opApply(
 		// If we're refreshing before apply, perform that
 		if op.PlanRefresh {
 			log.Printf("[INFO] backend/local: apply calling Refresh")
-			_, err := tfCtx.Refresh()
-			if err != nil {
-				diags = diags.Append(err)
+			_, refreshDiags := tfCtx.Refresh()
+			diags = diags.Append(refreshDiags)
+			if diags.HasErrors() {
 				runningOp.Result = backend.OperationFailure
 				b.ShowDiagnostics(diags)
 				return
