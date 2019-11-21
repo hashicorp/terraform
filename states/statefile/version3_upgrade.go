@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
@@ -51,6 +52,13 @@ func upgradeStateV3ToV4(old *stateV3) (*stateV4, error) {
 		// all of the modules are unkeyed.
 		moduleAddr := make(addrs.ModuleInstance, len(msOld.Path)-1)
 		for i, name := range msOld.Path[1:] {
+			if !hclsyntax.ValidIdentifier(name) {
+				// If we don't fail here then we'll produce an invalid state
+				// version 4 which subsequent operations will reject, so we'll
+				// fail early here for safety to make sure we can never
+				// inadvertently commit an invalid snapshot to a backend.
+				return nil, fmt.Errorf("state contains invalid module path %#v: %q is not a valid identifier; rename it in Terraform 0.11 before upgrading to Terraform 0.12", msOld.Path, name)
+			}
 			moduleAddr[i] = addrs.ModuleInstanceStep{
 				Name:        name,
 				InstanceKey: addrs.NoKey,
@@ -99,6 +107,13 @@ func upgradeStateV3ToV4(old *stateV3) (*stateV4, error) {
 					var diags tfdiags.Diagnostics
 					providerAddr, diags = addrs.ParseAbsProviderConfigStr(oldProviderAddr)
 					if diags.HasErrors() {
+						if strings.Contains(oldProviderAddr, "${") {
+							// There seems to be a common misconception that
+							// interpolation was valid in provider aliases
+							// in 0.11, so we'll use a specialized error
+							// message for that case.
+							return nil, fmt.Errorf("invalid provider config reference %q for %s: this alias seems to contain a template interpolation sequence, which was not supported but also not error-checked in Terraform 0.11. To proceed, rename the associated provider alias to a valid identifier and apply the change with Terraform 0.11 before upgrading to Terraform 0.12", oldProviderAddr, instAddr)
+						}
 						return nil, fmt.Errorf("invalid provider config reference %q for %s: %s", oldProviderAddr, instAddr, diags.Err())
 					}
 				} else {
@@ -110,6 +125,13 @@ func upgradeStateV3ToV4(old *stateV3) (*stateV4, error) {
 					if oldProviderAddr != "" {
 						localAddr, diags := addrs.ParseProviderConfigCompactStr(oldProviderAddr)
 						if diags.HasErrors() {
+							if strings.Contains(oldProviderAddr, "${") {
+								// There seems to be a common misconception that
+								// interpolation was valid in provider aliases
+								// in 0.11, so we'll use a specialized error
+								// message for that case.
+								return nil, fmt.Errorf("invalid legacy provider config reference %q for %s: this alias seems to contain a template interpolation sequence, which was not supported but also not error-checked in Terraform 0.11. To proceed, rename the associated provider alias to a valid identifier and apply the change with Terraform 0.11 before upgrading to Terraform 0.12", oldProviderAddr, instAddr)
+							}
 							return nil, fmt.Errorf("invalid legacy provider config reference %q for %s: %s", oldProviderAddr, instAddr, diags.Err())
 						}
 						providerAddr = localAddr.Absolute(moduleAddr)
