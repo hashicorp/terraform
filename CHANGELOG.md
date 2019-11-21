@@ -4,6 +4,10 @@ NEW FEATURES:
 
 *  lang/funcs: Add `trim*` functions
 
+ENHANCEMENTS:
+
+* core: The upgrade logic for moving from the Terraform 0.11 to the Terraform 0.12 state snapshot format (internally, format version 3 to version 4) will now tolerate and ignore dependencies with invalid addresses, which tend to be left behind when following the `terraform 0.11checklist` directive to rename resources whose names start with digits prior to upgrading to Terraform 0.12. This should allow upgrading the state for a configuration that in the past had digit-prefixed resource names, once those names have been fixed in the configuration and state using the instructions given by `terraform 0.11checklist` in Terraform 0.11.14. [GH-23443]
+
 ## 0.12.16 (November 18, 2019)
 
 BUG FIXES:
