@@ -380,7 +380,7 @@ func (i *ProviderInstaller) PurgeUnused(used map[string]PluginMeta) (PluginMetaS
 
 	present := FindPlugins("provider", []string{i.Dir})
 	for meta := range present {
-		chosen, ok := used[meta.Type]
+		chosen, ok := used[meta.Name]
 		if !ok {
 			purge.Add(meta)
 		}

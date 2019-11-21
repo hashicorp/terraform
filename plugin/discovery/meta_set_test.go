@@ -9,17 +9,17 @@ import (
 func TestPluginMetaSetManipulation(t *testing.T) {
 	metas := []PluginMeta{
 		{
-			Type:    "foo",
+			Name:    "foo",
 			Version: "1.0.0",
 			Path:    "test-foo",
 		},
 		{
-			Type:    "bar",
+			Name:    "bar",
 			Version: "2.0.0",
 			Path:    "test-bar",
 		},
 		{
-			Type:    "baz",
+			Name:    "baz",
 			Version: "2.0.0",
 			Path:    "test-bar",
 		},
@@ -34,7 +34,7 @@ func TestPluginMetaSetManipulation(t *testing.T) {
 	for _, p := range metas {
 		s.Add(p)
 		if !s.Has(p) {
-			t.Fatalf("%q not in set after adding it", p.Type)
+			t.Fatalf("%q not in set after adding it", p.Name)
 		}
 	}
 
@@ -45,7 +45,7 @@ func TestPluginMetaSetManipulation(t *testing.T) {
 	// Can we still retrieve earlier ones after we added later ones?
 	for _, p := range metas {
 		if !s.Has(p) {
-			t.Fatalf("%q not in set after all adds", p.Type)
+			t.Fatalf("%q not in set after all adds", p.Name)
 		}
 	}
 
@@ -53,7 +53,7 @@ func TestPluginMetaSetManipulation(t *testing.T) {
 	for _, p := range metas {
 		s.Remove(p)
 		if s.Has(p) {
-			t.Fatalf("%q still in set after removing it", p.Type)
+			t.Fatalf("%q still in set after removing it", p.Name)
 		}
 	}
 
@@ -65,17 +65,17 @@ func TestPluginMetaSetManipulation(t *testing.T) {
 func TestPluginMetaSetValidateVersions(t *testing.T) {
 	metas := []PluginMeta{
 		{
-			Type:    "foo",
+			Name:    "foo",
 			Version: "1.0.0",
 			Path:    "test-foo",
 		},
 		{
-			Type:    "bar",
+			Name:    "bar",
 			Version: "0.0.1",
 			Path:    "test-bar",
 		},
 		{
-			Type:    "baz",
+			Name:    "baz",
 			Version: "bananas",
 			Path:    "test-bar",
 		},
@@ -130,7 +130,7 @@ func TestPluginMetaSetWithName(t *testing.T) {
 		{
 			[]PluginMeta{
 				{
-					Type:    "foo",
+					Name:    "foo",
 					Version: "0.0.1",
 					Path:    "foo",
 				},
@@ -141,7 +141,7 @@ func TestPluginMetaSetWithName(t *testing.T) {
 		{
 			[]PluginMeta{
 				{
-					Type:    "foo",
+					Name:    "foo",
 					Version: "0.0.1",
 					Path:    "foo",
 				},
@@ -168,22 +168,22 @@ func TestPluginMetaSetWithName(t *testing.T) {
 func TestPluginMetaSetByName(t *testing.T) {
 	metas := []PluginMeta{
 		{
-			Type:    "foo",
+			Name:    "foo",
 			Version: "1.0.0",
 			Path:    "test-foo",
 		},
 		{
-			Type:    "foo",
+			Name:    "foo",
 			Version: "2.0.0",
 			Path:    "test-foo-2",
 		},
 		{
-			Type:    "bar",
+			Name:    "bar",
 			Version: "0.0.1",
 			Path:    "test-bar",
 		},
 		{
-			Type:    "baz",
+			Name:    "baz",
 			Version: "1.2.0",
 			Path:    "test-bar",
 		},
@@ -261,7 +261,7 @@ func TestPluginMetaSetNewest(t *testing.T) {
 			s := make(PluginMetaSet)
 			for _, version := range test.versions {
 				s.Add(PluginMeta{
-					Type:    "foo",
+					Name:    "foo",
 					Version: VersionStr(version),
 					Path:    "foo-V" + version,
 				})
@@ -278,27 +278,27 @@ func TestPluginMetaSetNewest(t *testing.T) {
 func TestPluginMetaSetConstrainVersions(t *testing.T) {
 	metas := []PluginMeta{
 		{
-			Type:    "foo",
+			Name:    "foo",
 			Version: "1.0.0",
 			Path:    "test-foo",
 		},
 		{
-			Type:    "foo",
+			Name:    "foo",
 			Version: "2.0.0",
 			Path:    "test-foo-2",
 		},
 		{
-			Type:    "foo",
+			Name:    "foo",
 			Version: "3.0.0",
 			Path:    "test-foo-2",
 		},
 		{
-			Type:    "bar",
+			Name:    "bar",
 			Version: "0.0.5",
 			Path:    "test-bar",
 		},
 		{
-			Type:    "baz",
+			Name:    "baz",
 			Version: "0.0.1",
 			Path:    "test-bar",
 		},
@@ -346,32 +346,32 @@ func TestPluginMetaSetOverridePaths(t *testing.T) {
 
 	metas := []PluginMeta{
 		{
-			Type:    "foo",
+			Name:    "foo",
 			Version: "1.0.0",
 			Path:    "test-foo-1",
 		},
 		{
-			Type:    "foo",
+			Name:    "foo",
 			Version: "2.0.0",
 			Path:    "test-foo-2",
 		},
 		{
-			Type:    "foo",
+			Name:    "foo",
 			Version: "3.0.0",
 			Path:    "test-foo-3",
 		},
 		{
-			Type:    "bar",
+			Name:    "bar",
 			Version: "0.0.5",
 			Path:    "test-bar-5",
 		},
 		{
-			Type:    "bar",
+			Name:    "bar",
 			Version: "0.0.6",
 			Path:    "test-bar-6",
 		},
 		{
-			Type:    "baz",
+			Name:    "baz",
 			Version: "0.0.1",
 			Path:    "test-bar",
 		},
@@ -401,14 +401,14 @@ func TestPluginMetaSetOverridePaths(t *testing.T) {
 		t.Errorf("new set is missing %#v", metas[5])
 	}
 	if !ns.Has(PluginMeta{
-		Type:    "foo",
+		Name:    "foo",
 		Version: VersionZero,
 		Path:    "override-foo",
 	}) {
 		t.Errorf("new set is missing 'foo' override")
 	}
 	if !ns.Has(PluginMeta{
-		Type:    "fun",
+		Name:    "fun",
 		Version: VersionZero,
 		Path:    "override-fun",
 	}) {

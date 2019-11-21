@@ -17,7 +17,7 @@ import (
 	"strings"
 	"testing"
 
-	svchost "github.com/hashicorp/terraform-svchost"
+	"github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/httpclient"
@@ -459,7 +459,7 @@ func TestProviderInstallerGet(t *testing.T) {
 	dest := filepath.Join(tmpDir, "terraform-provider-test_v1.2.4")
 
 	wantMeta := PluginMeta{
-		Type:    "test",
+		Name:    "test",
 		Version: VersionStr("1.2.4"),
 		Path:    dest,
 	}
@@ -517,7 +517,7 @@ func TestProviderInstallerGet_cache(t *testing.T) {
 	dest := filepath.Join(targetDir, "terraform-provider-test_v1.2.4")
 
 	wantMeta := PluginMeta{
-		Type:    "test",
+		Name:    "test",
 		Version: VersionStr("1.2.4"),
 		Path:    dest,
 	}
@@ -570,7 +570,7 @@ func TestProviderInstallerPurgeUnused(t *testing.T) {
 	}
 	purged, err := i.PurgeUnused(map[string]PluginMeta{
 		"test": PluginMeta{
-			Type:    "test",
+			Name:    "test",
 			Version: VersionStr("1.2.3"),
 			Path:    wantedPath,
 		},
