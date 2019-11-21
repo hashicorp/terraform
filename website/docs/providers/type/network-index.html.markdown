@@ -30,6 +30,7 @@ in close collaboration with HashiCorp, and are tested by HashiCorp.
 - [FortiOS](/docs/providers/fortios/index.html)
 - [HTTP](/docs/providers/http/index.html)
 - [NS1](/docs/providers/ns1/index.html)
+- [OpenNebula](/docs/providers/opennebula/index.html)
 - [Palo Alto Networks](/docs/providers/panos/index.html)
 - [PowerDNS](/docs/providers/powerdns/index.html)
 - [Pureport](/docs/providers/pureport/index.html)
