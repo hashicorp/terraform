@@ -7,9 +7,10 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/states"
 )
 
-func cbdTestGraph(t *testing.T, mod string, changes *plans.Changes) *Graph {
+func cbdTestGraph(t *testing.T, mod string, changes *plans.Changes, state *states.State) *Graph {
 	module := testModule(t, mod)
 
 	applyBuilder := &ApplyGraphBuilder{
@@ -17,6 +18,7 @@ func cbdTestGraph(t *testing.T, mod string, changes *plans.Changes) *Graph {
 		Changes:    changes,
 		Components: simpleMockComponentFactory(),
 		Schemas:    simpleTestSchemas(),
+		State:      state,
 	}
 	g, err := (&BasicGraphBuilder{
 		Steps: cbdTestSteps(applyBuilder.Steps()),
@@ -77,7 +79,27 @@ func TestCBDEdgeTransformer(t *testing.T) {
 		},
 	}
 
-	g := cbdTestGraph(t, "transform-destroy-cbd-edge-basic", changes)
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.A").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"A"}`),
+		},
+		mustProviderConfig("provider.test"),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.B").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"B","test_list":["x"]}`),
+			Dependencies: []addrs.AbsResource{mustResourceAddr("test_object.A")},
+		},
+		mustProviderConfig("provider.test"),
+	)
+
+	g := cbdTestGraph(t, "transform-destroy-cbd-edge-basic", changes, state)
 	g = filterInstances(g)
 
 	actual := strings.TrimSpace(g.String())
@@ -119,7 +141,38 @@ func TestCBDEdgeTransformerMulti(t *testing.T) {
 		},
 	}
 
-	g := cbdTestGraph(t, "transform-destroy-cbd-edge-multi", changes)
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.A").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"A"}`),
+		},
+		mustProviderConfig("provider.test"),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.B").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"B"}`),
+		},
+		mustProviderConfig("provider.test"),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.C").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"C","test_list":["x"]}`),
+			Dependencies: []addrs.AbsResource{
+				mustResourceAddr("test_object.A"),
+				mustResourceAddr("test_object.B"),
+			},
+		},
+		mustProviderConfig("provider.test"),
+	)
+
+	g := cbdTestGraph(t, "transform-destroy-cbd-edge-multi", changes, state)
 	g = filterInstances(g)
 
 	actual := strings.TrimSpace(g.String())
@@ -166,7 +219,36 @@ func TestCBDEdgeTransformer_depNonCBDCount(t *testing.T) {
 		},
 	}
 
-	g := cbdTestGraph(t, "transform-cbd-destroy-edge-count", changes)
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.A").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"A"}`),
+		},
+		mustProviderConfig("provider.test"),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.B[0]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"B","test_list":["x"]}`),
+			Dependencies: []addrs.AbsResource{mustResourceAddr("test_object.A")},
+		},
+		mustProviderConfig("provider.test"),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.B[1]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"B","test_list":["x"]}`),
+			Dependencies: []addrs.AbsResource{mustResourceAddr("test_object.A")},
+		},
+		mustProviderConfig("provider.test"),
+	)
+
+	g := cbdTestGraph(t, "transform-cbd-destroy-edge-count", changes, state)
 
 	actual := strings.TrimSpace(g.String())
 	expected := regexp.MustCompile(strings.TrimSpace(`
@@ -215,22 +297,59 @@ func TestCBDEdgeTransformer_depNonCBDCountBoth(t *testing.T) {
 		},
 	}
 
-	g := cbdTestGraph(t, "transform-cbd-destroy-edge-both-count", changes)
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.A[0]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"A"}`),
+		},
+		mustProviderConfig("provider.test"),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.A[1]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"A"}`),
+		},
+		mustProviderConfig("provider.test"),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.B[0]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"B","test_list":["x"]}`),
+			Dependencies: []addrs.AbsResource{mustResourceAddr("test_object.A")},
+		},
+		mustProviderConfig("provider.test"),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.B[1]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"B","test_list":["x"]}`),
+			Dependencies: []addrs.AbsResource{mustResourceAddr("test_object.A")},
+		},
+		mustProviderConfig("provider.test"),
+	)
+
+	g := cbdTestGraph(t, "transform-cbd-destroy-edge-both-count", changes, state)
 
 	actual := strings.TrimSpace(g.String())
 	expected := regexp.MustCompile(strings.TrimSpace(`
-test_object.A \(destroy deposed \w+\)
-  test_object.A\[0\]
-  test_object.A\[1\]
-  test_object.B\[0\]
-  test_object.B\[1\]
-test_object.A \(destroy deposed \w+\)
-  test_object.A\[0\]
-  test_object.A\[1\]
-  test_object.B\[0\]
-  test_object.B\[1\]
 test_object.A\[0\]
+test_object.A\[0\] \(destroy deposed \w+\)
+  test_object.A\[0\]
+  test_object.A\[1\]
+  test_object.B\[0\]
+  test_object.B\[1\]
 test_object.A\[1\]
+test_object.A\[1\] \(destroy deposed \w+\)
+  test_object.A\[0\]
+  test_object.A\[1\]
+  test_object.B\[0\]
+  test_object.B\[1\]
 test_object.B\[0\]
   test_object.A\[0\]
   test_object.A\[1\]
