@@ -106,6 +106,31 @@ After all of the tasks are complete, run `terraform 0.12checklist` one more time
 to verify that everything is complete. If so, continue reading the following
 sections to complete the upgrade!
 
+### Addendum: Invalid module names
+
+There is one additional pre-upgrade checklist item that the Terraform team did
+not become aware of until after the release of Terraform v0.11.14, and thus
+cannot be detected automatically by the checklist tool: renaming modules which
+have names that start with digits.
+
+Terraform 0.11 inadvertently tolerated leading-digit names for modules as a
+result of a validation bug, but Terraform 0.12 has corrected that bug and will
+reject such module names. Unfortunately, module names are also recorded in
+state snapshots and so a state snapshot created for a configuration with an
+invalid module name will itself be invalid as far as Terraform 0.12 is
+concerned.
+
+You can address this in a similar way to what the checklist tool suggests for
+invalid resource names and provider aliases:
+
+* Rename the module in your configuration.
+* Use `terraform state mv module.old module.new` _in Terraform 0.11.14_ to
+  update the state to use the new name instead of the old name.
+
+As with all of the pre-upgrade checklist items, be sure to run `terraform apply`
+once more before upgrading in order to ensure that the latest state snapshot is
+synchronized with the latest configuration.
+
 ## Upgrading to Terraform 0.12
 
 Before switching to Terraform 0.12, we recommend using Terraform v0.11.14 (or
