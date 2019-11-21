@@ -1,9 +1,54 @@
 {
   "format_version": "0.1",
-  "terraform_version": "0.12.1-dev",
   "planned_values": {
-    "root_module": {}
+    "root_module": {
+      "child_modules": [
+        {
+          "address": "module.my_module",
+          "child_modules": [
+            {
+              "resources": [
+                {
+                  "address": "module.my_module.module.more.test_instance.test",
+                  "mode": "managed",
+                  "type": "test_instance",
+                  "name": "test",
+                  "provider_name": "test",
+                  "schema_version": 0,
+                  "values": {
+                    "ami": "bar-var"
+                  }
+                }
+              ],
+              "address": "module.my_module.module.more"
+            }
+          ]
+        }
+      ]
+    }
   },
+  "resource_changes": [
+    {
+      "address": "module.my_module.module.more.test_instance.test",
+      "module_address": "module.my_module.module.more",
+      "mode": "managed",
+      "type": "test_instance",
+      "name": "test",
+      "provider_name": "test",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "ami": "bar-var"
+        },
+        "after_unknown": {
+          "id": true
+        }
+      }
+    }
+  ],
   "configuration": {
     "root_module": {
       "module_calls": {
@@ -12,15 +57,31 @@
           "module": {
             "module_calls": {
               "more": {
+                "source": "./more-modules",
                 "module": {
+                  "resources": [
+                    {
+                      "address": "test_instance.test",
+                      "mode": "managed",
+                      "type": "test_instance",
+                      "name": "test",
+                      "provider_config_key": "more:test",
+                      "expressions": {
+                        "ami": {
+                          "references": [
+                            "var.test_var"
+                          ]
+                        }
+                      },
+                      "schema_version": 0
+                    }
+                  ],
                   "variables": {
-                    "ok": {
-                      "default": "something",
-                      "description": "description"
+                    "test_var": {
+                      "default": "bar-var"
                     }
                   }
-                },
-                "source": "./more-modules"
+                }
               }
             }
           }

@@ -3,9 +3,9 @@ package configs
 import (
 	"fmt"
 
-	"github.com/hashicorp/hcl2/gohcl"
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/gohcl"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 
 	"github.com/hashicorp/terraform/addrs"
 )
@@ -27,7 +27,17 @@ type Provider struct {
 }
 
 func decodeProviderBlock(block *hcl.Block) (*Provider, hcl.Diagnostics) {
-	content, config, diags := block.Body.PartialContent(providerBlockSchema)
+	var diags hcl.Diagnostics
+
+	// Produce deprecation messages for any pre-0.12-style
+	// single-interpolation-only expressions. We do this up front here because
+	// then we can also catch instances inside special blocks like "connection",
+	// before PartialContent extracts them.
+	moreDiags := warnForDeprecatedInterpolationsInBody(block.Body)
+	diags = append(diags, moreDiags...)
+
+	content, config, moreDiags := block.Body.PartialContent(providerBlockSchema)
+	diags = append(diags, moreDiags...)
 
 	provider := &Provider{
 		Name:      block.Labels[0],

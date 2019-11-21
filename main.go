@@ -12,9 +12,11 @@ import (
 	"sync"
 
 	"github.com/hashicorp/go-plugin"
+	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/helper/logging"
-	"github.com/hashicorp/terraform/svchost/disco"
+	"github.com/hashicorp/terraform/httpclient"
+	"github.com/hashicorp/terraform/version"
 	"github.com/mattn/go-colorable"
 	"github.com/mattn/go-shellwords"
 	"github.com/mitchellh/cli"
@@ -159,6 +161,7 @@ func wrappedMain() int {
 		// object checks that and just acts as though no credentials are present.
 	}
 	services := disco.NewWithCredentialsSource(credsSrc)
+	services.SetUserAgent(httpclient.TerraformUserAgent(version.String()))
 
 	// Initialize the backends.
 	backendInit.Init(services)

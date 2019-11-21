@@ -10,6 +10,9 @@ resource "aws_instance" "foo" {
 
 # sets
 resource "aws_instance" "bar" {
+    for_each = toset([])
+}
+resource "aws_instance" "bar2" {
     for_each = toset(list("z", "y", "x"))
 }
 

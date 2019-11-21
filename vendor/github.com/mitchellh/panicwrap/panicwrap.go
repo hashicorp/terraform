@@ -20,8 +20,6 @@ import (
 	"sync/atomic"
 	"syscall"
 	"time"
-
-	"github.com/kardianos/osext"
 )
 
 const (
@@ -118,7 +116,7 @@ func Wrap(c *WrapConfig) (int, error) {
 	}
 
 	// Get the path to our current executable
-	exePath, err := osext.Executable()
+	exePath, err := os.Executable()
 	if err != nil {
 		return -1, err
 	}
@@ -229,6 +227,11 @@ func Wrap(c *WrapConfig) (int, error) {
 // Wrapped checks if we're already wrapped according to the configuration
 // given.
 //
+// It must be only called once with a non-nil configuration as it unsets
+// the environment variable it uses to check if we are already wrapped.
+// This prevents false positive if your program tries to execute itself
+// recursively.
+//
 // Wrapped is very cheap and can be used early to short-circuit some pre-wrap
 // logic your application may have.
 //
@@ -253,6 +256,9 @@ func Wrapped(c *WrapConfig) bool {
 	// If the cookie key/value match our environment, then we are the
 	// child, so just exit now and tell the caller that we're the child
 	result := os.Getenv(c.CookieKey) == c.CookieValue
+	if result {
+		os.Unsetenv(c.CookieKey)
+	}
 	wrapCache.Store(result)
 	return result
 }

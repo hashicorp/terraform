@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/backend/local"
@@ -24,7 +25,6 @@ import (
 	"github.com/hashicorp/terraform/helper/wrappedstreams"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/provisioners"
-	"github.com/hashicorp/terraform/svchost/disco"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/mitchellh/cli"
@@ -242,8 +242,6 @@ func (m *Meta) InputMode() terraform.InputMode {
 
 	var mode terraform.InputMode
 	mode |= terraform.InputModeProvider
-	mode |= terraform.InputModeVar
-	mode |= terraform.InputModeVarUnset
 
 	return mode
 }
@@ -481,6 +479,9 @@ func (m *Meta) showDiagnostics(vals ...interface{}) {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(vals...)
 	diags.Sort()
+
+	// Since warning messages are generally competing
+	diags = diags.ConsolidateWarnings()
 
 	for _, diag := range diags {
 		// TODO: Actually measure the terminal width and pass it here.

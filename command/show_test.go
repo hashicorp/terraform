@@ -79,7 +79,7 @@ func TestShow_noArgsNoState(t *testing.T) {
 func TestShow_plan(t *testing.T) {
 	planPath := testPlanFileNoop(t)
 
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	c := &ShowCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
@@ -92,6 +92,12 @@ func TestShow_plan(t *testing.T) {
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	want := `Terraform will perform the following actions`
+	got := ui.OutputWriter.String()
+	if !strings.Contains(got, want) {
+		t.Errorf("missing expected output\nwant: %s\ngot:\n%s", want, got)
 	}
 }
 

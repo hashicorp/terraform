@@ -8,25 +8,32 @@ description: |-
 
 # Command: validate
 
-The `terraform validate` command is used to validate the syntax of the terraform files.
-Terraform performs a syntax check on all the terraform files in the directory,
-and will display an error if any of the files doesn't validate.
+The `terraform validate` command validates the configuration files in a
+directory, referring only to the configuration and not accessing any remote
+services such as remote state, provider APIs, etc.
 
-This command **does not** check formatting (e.g. tabs vs spaces, newlines, comments etc.).
+Validate runs checks that verify whether a configuration is syntactically
+valid and internally consistent, regardless of any provided variables or
+existing state. It is thus primarily useful for general verification of
+reusable modules, including correctness of attribute names and value types.
 
-The following can be reported:
+It is safe to run this command automatically, for example as a post-save
+check in a text editor or as a test step for a re-usable module in a CI
+system.
 
- * invalid [HCL](https://github.com/hashicorp/hcl) syntax (e.g. missing trailing quote or equal sign)
- * invalid HCL references (e.g. variable name or attribute which doesn't exist)
- * same `provider` declared multiple times
- * same `module` declared multiple times
- * same `resource` declared multiple times
- * invalid `module` name
- * interpolation used in places where it's unsupported
- 	(e.g. `variable`, `depends_on`, `module.source`, `provider`)
- * missing value for a variable (none of `-var foo=...` flag,
-   `-var-file=foo.vars` flag, `TF_VAR_foo` environment variable,
-   `terraform.tfvars`, or default value in the configuration)
+Validation requires an initialized working directory with any referenced
+plugins and modules installed. To initialize a working directory for
+validation without accessing any configured remote backend, use:
+
+```
+$ terraform init -backend=false
+```
+
+If dir is not specified, then the current directory will be used.
+
+To verify configuration in the context of a particular run (a particular
+target workspace, input variable values, etc), use the `terraform plan`
+command instead, which includes an implied validation check.
 
 ## Usage
 
@@ -37,18 +44,8 @@ for the configurations.
 
 The command-line flags are all optional. The available flags are:
 
-* `-check-variables=true` - If set to true (default), the command will check
-  whether all required variables have been specified.
+- `-json` - Produce output in a machine-readable JSON format, suitable for
+  use in text editor integrations and other automated systems. Always disables
+  color.
 
-* `-no-color` - Disables output with coloring.
-
-* `-var 'foo=bar'` - Set a variable in the Terraform configuration. This flag
-  can be set multiple times. Variable values are interpreted as
-  [HCL](/docs/configuration/syntax.html#HCL), so list and map values can be
-  specified via this flag.
-
-* `-var-file=foo` - Set variables in the Terraform configuration from
-   a [variable file](/docs/configuration/variables.html#variable-files). If
-  "terraform.tfvars" is present, it will be automatically loaded first. Any
-  files specified by `-var-file` override any values in a "terraform.tfvars".
-  This flag can be used multiple times.
+- `-no-color` - If specified, output won't contain any color.

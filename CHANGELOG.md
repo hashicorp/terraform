@@ -1,11 +1,133 @@
-## 0.12.9 (Unreleased)
+## 0.12.17 (Unreleased)
 
-ENHANCEMENTS:
-* provisioners/habitat: `accept_license` argument available to automate accepting the EULA, now required by this client
+NEW FEATURES:
+
+*  lang/funcs: Add `trim*` functions
+
+## 0.12.16 (November 18, 2019)
 
 BUG FIXES:
-* command/console: support -var and -var-file flags [GH-22145]
-* config: The `cidrhost`, `cidrsubnet`, and `cidrnetmask` functions now behave correctly with IPv6 prefixes that are short enough for the host portion to be greater than 64-bit or 32-bit (depending on the target architecture). [GH-22505]
+
+* command/0.12upgrade: fix panic when int value is out of range ([#23394](https://github.com/hashicorp/terraform/issues/23394))
+* core: fix cycle between dependencies with create_before_destroy ([#23399](https://github.com/hashicorp/terraform/issues/23399))
+* backend/remote: default .terraformignore paths will now work on Windows ([#23311](https://github.com/hashicorp/terraform/issues/23311))
+
+## 0.12.15 (November 14, 2019)
+
+BUG FIXES:
+
+* various commands: Fixed errant error "Initialization required. Please see the error message above." ([#23383](https://github.com/hashicorp/terraform/issues/23383))
+
+    The error was produced on some of Terraform's subcommands (in particular `terraform show` and `terraform output`, but possibly others) if a warning was emitted during configuration loading and if a `backend` block was present. This issue has been present since v0.12.0 for any configuration that produces configuration-related deprecation warnings, but it became more visible in v0.12.14 due to the addition of several more situations that could produce warnings.
+
+## 0.12.14 (November 13, 2019)
+
+UPGRADE NOTES:
+
+* Terraform v0.12.0 included several changes to the Terraform language involving making expressions, type constraints, keywords, and references first-class in the language syntax, removing the need for placing thee items either in quoted strings or in interpolation syntax. Terraform v0.11 required these items to be quoted because the underlying language could not represent them any other way, while Terraform v0.12 expects them to be unquoted in order to improve readability.
+
+    We have been accepting both forms for backward-compatibility with existing configurations and examples since the inititial v0.12.0 release. Having maintained compatibility for both forms for several versions we are now beginning the deprecation cycle for the old usage by having Terraform emit deprecation warnings.
+    
+    Terraform will still accept the older forms in spite of these warnings, so no immediate action is required. If your modules are targeting Terraform v0.12.0 and later exclusively, you can silence the warnings by removing the quotes, as directed in the warning message. In a future major version of Terraform, some of these warnings will be elevated to be errors.
+    
+    The summary of the warning for these situations will be one of the following:
+    
+    * **Interpolation-only expressions are deprecated:** an expression like `"${foo}"` should be rewritten as just `foo`.
+    * **Quoted type constraints are deprecated:** In a `variable` block, a type constraint `"map"` should be written as `map(string)`, `"list"` as `list(string)`, and `"string"` as just `string`.
+    * **Quoted keywords are deprecated:** In certain contexts that expect special keywords, such as `when` in `provisioner` blocks, the keyword should be unquoted.
+    * **Quoted references are deprecated:** In the `depends_on` and `ignore_changes` meta-arguments, quoted references like `"aws_instance.foo"` should be rewritten without the quotes, e.g. as `aws_instance.foo`.
+    
+    The above changes are made automatically by the upgrade tool for users who are [upgrading from Terraform 0.11](https://www.terraform.io/upgrade-guides/index.html). These warnings are intended to help those who are using Terraform for the first time at Terraform 0.12 but who may have found examples online that are written for older versions of Terraform, in order to guide towards the modern Terraform style.
+
+* The `terraform output` command would formerly treat no outputs at all as an error, exiting with a non-zero status. Since it's expected for some root modules to have no outputs, the command now returns with success status zero in this situation, but still returns the error on stderr as a compromise to provide an explanation for why nothing is being shown.
+
+ENHANCEMENTS:
+
+* config: Redundant interpolation syntax for attribute values and legacy (0.11-style) variable type constrants will now emit deprecation warnings. ([#23348](https://github.com/hashicorp/terraform/issues/23348))
+* config: Keywords and references in `depends_on`, `ignore_changes`, and in provisioner `when` and `on_failure` will now emit deprecation warnings. ([#23329](https://github.com/hashicorp/terraform/issues/23329))
+* command/output: Now treats no defined outputs as a success case rather than an error case, returning exit status zero instead of non-zero. ([#23008](https://github.com/hashicorp/terraform/issues/23008)] [[#21136](https://github.com/hashicorp/terraform/issues/21136))
+* backend/artifactory: Will now honor the `HTTP_PROXY` and `HTTPS_PROXY` environment variables when appropriate, to allow sending requests to the Artifactory endpoints via a proxy. ([#18629](https://github.com/hashicorp/terraform/issues/18629))
+
+BUG FIXES:
+
+* backend/remote: Filter environment variables when loading context for remote backend ([#23283](https://github.com/hashicorp/terraform/issues/23283))
+* command/plan: Previously certain changes to lists would cause the list diff in the plan output to miss items. Now `terraform plan` will show those items as expected. ([#22695](https://github.com/hashicorp/terraform/issues/22695))
+* command/show: When showing a saved plan file not in JSON mode, use the same presentation as `terraform plan` itself would've used. ([#23292](https://github.com/hashicorp/terraform/issues/23292))
+* command/force-unlock: Return an explicit error when the local-filesystem lock implementation receives the wrong lock id. Previously it was possible to see either an incorrect error or no error at all in that case. ([#23336](https://github.com/hashicorp/terraform/issues/23336))
+* core: Store absolute instance dependencies in state to allow for proper destroy ordering ([#23252](https://github.com/hashicorp/terraform/issues/23252))
+* core: Ensure tainted status is maintained when a destroy operation fails ([#23304](https://github.com/hashicorp/terraform/issues/23304))
+* config: `transpose` function will no longer panic when it should produce an empty map as its result. ([#23321](https://github.com/hashicorp/terraform/issues/23321))
+* cli: When running Terraform as a sub-process of itself, we will no longer produce errant prefixes on the console output. While we don't generally recommend using Terraform recursively like this, it was behaving in this strange way due to an implementation detail of how Terraform captures "panic" crashes from the Go runtime, and that subsystem is now updated to avoid that strange behavior. ([#23281](https://github.com/hashicorp/terraform/issues/23281))
+* provisioners: Sanitize output to filter invalid utf8 sequences ([#23302](https://github.com/hashicorp/terraform/issues/23302))
+
+## 0.12.13 (October 31, 2019)
+
+UPGRADE NOTES:
+
+* **Remote backend local-only operations:** Previously the remote backend was not correctly handling variables marked as "HCL" in the remote workspace when running local-only operations like `terraform import`, instead interpreting them as literal strings as described in [#23228](https://github.com/hashicorp/terraform/issues/23228).
+
+    That behavior is now corrected in this release, but in the unlikely event that an existing remote workspace contains a variable marked as "HCL" whose value is not valid HCL syntax these local-only commands will now fail with a syntax error where previously the value would not have been parsed at all and so an operation not relying on that value may have succeeded in spite of the problem. If you see an error like "Invalid expression for var.example" on local-only commands after upgrading, ensure that the remotely-stored value for the given variable uses correct HCL value syntax.
+    
+    This _does not_ affect true remote operations like `terraform plan` and `terraform apply`, because the processing of variables for those always happens in the remote system.
+
+BUG FIXES:
+
+* config: Fix regression where self wasn't properly evaluated when using for_each ([#23215](https://github.com/hashicorp/terraform/issues/23215))
+* config: dotfiles are no longer excluded when copying existing modules; previously, any dotfile/dir was excluded in this copy, but this change makes the local copy behavior match go-getter behavior ([#22946](https://github.com/hashicorp/terraform/issues/22946))
+* core: Ensure create_before_destroy ordering is enforced with dependencies between modules ([#22937](https://github.com/hashicorp/terraform/issues/22937))
+* core: Fix some destroy-time cycles due to unnecessary edges in the graph, and remove unused resource nodes ([#22976](https://github.com/hashicorp/terraform/issues/22976))
+* backend/remote: Correctly handle remotely-stored variables that are marked as "HCL" when running local-only operations like `terraform import`. Previously they would produce a type mismatch error, due to misinterpreting them as literal strings. ([#23229](https://github.com/hashicorp/terraform/issues/23229))
+
+## 0.12.12 (October 18, 2019)
+
+BUG FIXES:
+
+* backend/remote: Don't do local validation of whether variables are set prior to submitting, because only the remote system knows the full set of configured stored variables and environment variables that might contribute. This avoids erroneous error messages about unset required variables for remote runs when those variables will be set by stored variables in the remote workspace. ([#23122](https://github.com/hashicorp/terraform/issues/23122))
+
+## 0.12.11 (October 17, 2019)
+
+ENHANCEMENTS:
+
+* backend/s3: Support `role_arn` in AWS configuration files ([#22994](https://github.com/hashicorp/terraform/issues/22994))
+* backend/remote: Remote backend will now ignore all .terraform/ (exclusive of .terraform/modules) and .git/ directories for uploads during remote plans/applies. You can exclude files from upload to TFC by adding a .terraformignore file to your configuration directory, more details at https://www.terraform.io/docs/backends/types/remote.html ([#23105](https://github.com/hashicorp/terraform/issues/23105))
+
+BUG FIXES:
+
+* config: Clean up orphan modules in the presence of -target ([#21313](https://github.com/hashicorp/terraform/issues/21313))
+* config: Always evaluate whole resources rather than instances in expressions, so that invalid instance indexes can return a useful error rather than unknown ([#22846](https://github.com/hashicorp/terraform/issues/22846))
+* command/jsonplan: fix bug with missing nested modules `planned_values` output ([#23092](https://github.com/hashicorp/terraform/issues/23092))
+* command/show: Fix panic when the only resource instance is deposed ([#23027](https://github.com/hashicorp/terraform/issues/23027))
+* commands: When required root module variables are not provided and interactive input is disabled (`-input=false`), produce a proper "variable not defined" error rather than falling through to an internal assertion failure. ([#23040](https://github.com/hashicorp/terraform/issues/23040))
+* provisioner/puppet: fix bug when connection type was not set in config ([#23057](https://github.com/hashicorp/terraform/issues/23057))
+
+## 0.12.10 (October 07, 2019)
+
+ENHANCEMENTS:
+
+* `terraform plan` and `terraform apply` will now warn when the `-target` option is used, to draw attention to the fact that the result of applying the plan is likely to be incomplete, and to remind to re-run `terraform plan` with no targets afterwards to ensure that the configuration has converged. ([#22783](https://github.com/hashicorp/terraform/issues/22783))
+* config: New function `parseint` for parsing strings containing digits as integers in various bases. ([#22747](https://github.com/hashicorp/terraform/issues/22747))
+* config: New function `cidrsubnets`, which is a companion to the existing function `cidrsubnet` which can allocate multiple consecutive subnet prefixes (possibly of different prefix lengths) in a single call. ([#22858](https://github.com/hashicorp/terraform/issues/22858))
+* backend/google: The GCS backend now supports OAuth2 token authentication. ([#21772](https://github.com/hashicorp/terraform/issues/21772))
+* provisioner/habitat: Multiple updates and fixes, see PR for details ([#22705](https://github.com/hashicorp/terraform/issues/22705))
+
+BUG FIXES:
+
+* backend/manta: fix panic when `insecure_skip_tls_verify` was not set ([#22918](https://github.com/hashicorp/terraform/issues/22918))
+
+## 0.12.9 (September 17, 2019)
+
+NOTES:
+* core: `ignore_changes` is now processed (in addition to existing behaviors) before the provider plan is run. This means that users may see fewer planned changes when using `ignore_changes`, as before this change, changes to ignored attributes were still being sent to CustomizeDiff in providers (which could mean cascading changes for some resources). This should be indicative that providers are no longer getting changes that were marked as ignored, but if unexpected plans are seen while using `ignore_changes`, investigate the settings in the `ignore_changes` block to ensure the appropriate attributes are set. ([#22520](https://github.com/hashicorp/terraform/issues/22520))
+
+ENHANCEMENTS:
+* provisioners/habitat: `accept_license` argument available to automate accepting the EULA, now required by this client ([#22745](https://github.com/hashicorp/terraform/issues/22745))
+* config: add source addressing to unknown value errors in `for_each` ([#22760](https://github.com/hashicorp/terraform/issues/22760))
+
+BUG FIXES:
+* command/console: support -var and -var-file flags ([#22145](https://github.com/hashicorp/terraform/issues/22145))
+* command/show: Fixed bug with wrong errors being returned or swallowed. ([#22772](https://github.com/hashicorp/terraform/issues/22772))
+* config: The `cidrhost`, `cidrsubnet`, and `cidrnetmask` functions now behave correctly with IPv6 prefixes that are short enough for the host portion to be greater than 64-bit or 32-bit (depending on the target architecture). ([#22505](https://github.com/hashicorp/terraform/issues/22505))
+* config: Fixed bug on empty sets with `for_each` ([#22281](https://github.com/hashicorp/terraform/issues/22281))
 
 ## 0.12.8 (September 04, 2019)
 

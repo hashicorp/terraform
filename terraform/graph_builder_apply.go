@@ -127,21 +127,6 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// Attach the state
 		&AttachStateTransformer{State: b.State},
 
-		// Destruction ordering
-		&DestroyEdgeTransformer{
-			Config:  b.Config,
-			State:   b.State,
-			Schemas: b.Schemas,
-		},
-		GraphTransformIf(
-			func() bool { return !b.Destroy },
-			&CBDEdgeTransformer{
-				Config:  b.Config,
-				State:   b.State,
-				Schemas: b.Schemas,
-			},
-		),
-
 		// Provisioner-related transformations
 		&MissingProvisionerTransformer{Provisioners: b.Components.ResourceProvisioners()},
 		&ProvisionerTransformer{},
@@ -170,6 +155,21 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 
 		// Connect references so ordering is correct
 		&ReferenceTransformer{},
+		&AttachDependenciesTransformer{},
+
+		// Destruction ordering
+		&DestroyEdgeTransformer{
+			Config:  b.Config,
+			State:   b.State,
+			Schemas: b.Schemas,
+		},
+
+		&CBDEdgeTransformer{
+			Config:  b.Config,
+			State:   b.State,
+			Schemas: b.Schemas,
+			Destroy: b.Destroy,
+		},
 
 		// Handle destroy time transformations for output and local values.
 		// Reverse the edges from outputs and locals, so that

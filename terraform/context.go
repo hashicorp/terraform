@@ -24,19 +24,12 @@ import (
 type InputMode byte
 
 const (
-	// InputModeVar asks for all variables
-	InputModeVar InputMode = 1 << iota
-
-	// InputModeVarUnset asks for variables which are not set yet.
-	// InputModeVar must be set for this to have an effect.
-	InputModeVarUnset
-
 	// InputModeProvider asks for provider variables
-	InputModeProvider
+	InputModeProvider InputMode = 1 << iota
 
 	// InputModeStd is the standard operating mode and asks for both variables
 	// and providers.
-	InputModeStd = InputModeVar | InputModeProvider
+	InputModeStd = InputModeProvider
 )
 
 var (
@@ -210,6 +203,18 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 
 	log.Printf("[TRACE] terraform.NewContext: complete")
 
+	// By the time we get here, we should have values defined for all of
+	// the root module variables, even if some of them are "unknown". It's the
+	// caller's responsibility to have already handled the decoding of these
+	// from the various ways the CLI allows them to be set and to produce
+	// user-friendly error messages if they are not all present, and so
+	// the error message from checkInputVariables should never be seen and
+	// includes language asking the user to report a bug.
+	if config != nil {
+		varDiags := checkInputVariables(config.Module.Variables, variables)
+		diags = diags.Append(varDiags)
+	}
+
 	return &Context{
 		components: components,
 		schemas:    schemas,
@@ -227,7 +232,7 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 		providerInputConfig: make(map[string]map[string]cty.Value),
 		providerSHA256s:     opts.ProviderSHA256s,
 		sh:                  sh,
-	}, nil
+	}, diags
 }
 
 func (c *Context) Schemas() *Schemas {
@@ -467,6 +472,17 @@ func (c *Context) Apply() (*states.State, tfdiags.Diagnostics) {
 		c.state.PruneResourceHusks()
 	}
 
+	if len(c.targets) > 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Applied changes may be incomplete",
+			`The plan was created with the -target option in effect, so some changes requested in the configuration may have been ignored and the output values may not be fully updated. Run the following command to verify that no other changes are pending:
+    terraform plan
+	
+Note that the -target option is not suitable for routine use, and is provided only for exceptional situations such as recovering from errors or mistakes, or when Terraform specifically suggests to use it as part of an error message.`,
+		))
+	}
+
 	return c.state, diags
 }
 
@@ -482,6 +498,16 @@ func (c *Context) Plan() (*plans.Plan, tfdiags.Diagnostics) {
 	c.changes = plans.NewChanges()
 
 	var diags tfdiags.Diagnostics
+
+	if len(c.targets) > 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Resource targeting is in effect",
+			`You are creating a plan with the -target option, which means that the result of this plan may not represent all of the changes requested by the current configuration.
+		
+The -target option is not for routine use, and is provided only for exceptional situations such as recovering from errors or mistakes, or when Terraform specifically suggests to use it as part of an error message.`,
+		))
+	}
 
 	varVals := make(map[string]plans.DynamicValue, len(c.variables))
 	for k, iv := range c.variables {
@@ -636,14 +662,6 @@ func (c *Context) Validate() tfdiags.Diagnostics {
 	defer c.acquireRun("validate")()
 
 	var diags tfdiags.Diagnostics
-
-	// Validate input variables. We do this only for the values supplied
-	// by the root module, since child module calls are validated when we
-	// visit their graph nodes.
-	if c.config != nil {
-		varDiags := checkInputVariables(c.config.Module.Variables, c.variables)
-		diags = diags.Append(varDiags)
-	}
 
 	// If we have errors at this point then we probably won't be able to
 	// construct a graph without producing redundant errors, so we'll halt early.

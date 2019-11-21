@@ -6,7 +6,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -189,7 +189,16 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	// The provider gets an opportunity to customize the proposed new value,
-	// which in turn produces the _planned_ new value.
+	// which in turn produces the _planned_ new value. But before
+	// we send back this information, we need to process ignore_changes
+	// so that CustomizeDiff will not act on them
+	var ignoreChangeDiags tfdiags.Diagnostics
+	proposedNewVal, ignoreChangeDiags = n.processIgnoreChanges(priorVal, proposedNewVal)
+	diags = diags.Append(ignoreChangeDiags)
+	if ignoreChangeDiags.HasErrors() {
+		return nil, diags.Err()
+	}
+
 	resp := provider.PlanResourceChange(providers.PlanResourceChangeRequest{
 		TypeName:         n.Addr.Resource.Type,
 		Config:           configVal,
@@ -258,13 +267,14 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		}
 	}
 
-	{
-		var moreDiags tfdiags.Diagnostics
-		plannedNewVal, moreDiags = n.processIgnoreChanges(priorVal, plannedNewVal)
-		diags = diags.Append(moreDiags)
-		if moreDiags.HasErrors() {
-			return nil, diags.Err()
-		}
+	// TODO: We should be able to remove this repeat of processing ignored changes
+	// after the plan, which helps providers relying on old behavior "just work"
+	// in the next major version, such that we can be stricter about ignore_changes
+	// values
+	plannedNewVal, ignoreChangeDiags = n.processIgnoreChanges(priorVal, plannedNewVal)
+	diags = diags.Append(ignoreChangeDiags)
+	if ignoreChangeDiags.HasErrors() {
+		return nil, diags.Err()
 	}
 
 	// The provider produces a list of paths to attributes whose changes mean
@@ -555,110 +565,6 @@ func processIgnoreChangesIndividual(prior, proposed cty.Value, ignoreChanges []h
 		return priorV, nil
 	})
 	return ret, diags
-}
-
-func (n *EvalDiff) processIgnoreChangesOld(diff *InstanceDiff) error {
-	if diff == nil || n.Config == nil || n.Config.Managed == nil {
-		return nil
-	}
-	ignoreChanges := n.Config.Managed.IgnoreChanges
-	ignoreAll := n.Config.Managed.IgnoreAllChanges
-
-	if len(ignoreChanges) == 0 && !ignoreAll {
-		return nil
-	}
-
-	// If we're just creating the resource, we shouldn't alter the
-	// Diff at all
-	if diff.ChangeType() == DiffCreate {
-		return nil
-	}
-
-	// If the resource has been tainted then we don't process ignore changes
-	// since we MUST recreate the entire resource.
-	if diff.GetDestroyTainted() {
-		return nil
-	}
-
-	attrs := diff.CopyAttributes()
-
-	// get the complete set of keys we want to ignore
-	ignorableAttrKeys := make(map[string]bool)
-	for k := range attrs {
-		if ignoreAll {
-			ignorableAttrKeys[k] = true
-			continue
-		}
-		for _, ignoredTraversal := range ignoreChanges {
-			ignoredKey := legacyFlatmapKeyForTraversal(ignoredTraversal)
-			if k == ignoredKey || strings.HasPrefix(k, ignoredKey+".") {
-				ignorableAttrKeys[k] = true
-			}
-		}
-	}
-
-	// If the resource was being destroyed, check to see if we can ignore the
-	// reason for it being destroyed.
-	if diff.GetDestroy() {
-		for k, v := range attrs {
-			if k == "id" {
-				// id will always be changed if we intended to replace this instance
-				continue
-			}
-			if v.Empty() || v.NewComputed {
-				continue
-			}
-
-			// If any RequiresNew attribute isn't ignored, we need to keep the diff
-			// as-is to be able to replace the resource.
-			if v.RequiresNew && !ignorableAttrKeys[k] {
-				return nil
-			}
-		}
-
-		// Now that we know that we aren't replacing the instance, we can filter
-		// out all the empty and computed attributes. There may be a bunch of
-		// extraneous attribute diffs for the other non-requires-new attributes
-		// going from "" -> "configval" or "" -> "<computed>".
-		// We must make sure any flatmapped containers are filterred (or not) as a
-		// whole.
-		containers := groupContainers(diff)
-		keep := map[string]bool{}
-		for _, v := range containers {
-			if v.keepDiff(ignorableAttrKeys) {
-				// At least one key has changes, so list all the sibling keys
-				// to keep in the diff
-				for k := range v {
-					keep[k] = true
-					// this key may have been added by the user to ignore, but
-					// if it's a subkey in a container, we need to un-ignore it
-					// to keep the complete containter.
-					delete(ignorableAttrKeys, k)
-				}
-			}
-		}
-
-		for k, v := range attrs {
-			if (v.Empty() || v.NewComputed) && !keep[k] {
-				ignorableAttrKeys[k] = true
-			}
-		}
-	}
-
-	// Here we undo the two reactions to RequireNew in EvalDiff - the "id"
-	// attribute diff and the Destroy boolean field
-	log.Printf("[DEBUG] Removing 'id' diff and setting Destroy to false " +
-		"because after ignore_changes, this diff no longer requires replacement")
-	diff.DelAttribute("id")
-	diff.SetDestroy(false)
-
-	// If we didn't hit any of our early exit conditions, we can filter the diff.
-	for k := range ignorableAttrKeys {
-		log.Printf("[DEBUG] [EvalIgnoreChanges] %s: Ignoring diff attribute: %s", n.Addr.String(), k)
-		diff.DelAttribute(k)
-	}
-
-	return nil
 }
 
 // legacyFlagmapKeyForTraversal constructs a key string compatible with what

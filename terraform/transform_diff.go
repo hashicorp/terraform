@@ -174,14 +174,6 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 				log.Printf("[TRACE] DiffTransformer: %s deposed object %s will be represented for destruction by %s", addr, dk, dag.VertexName(node))
 			}
 			g.Add(node)
-			rsrcAddr := addr.ContainingResource().String()
-			for _, rsrcNode := range resourceNodes[rsrcAddr] {
-				// We connect this edge "forwards" (even though destroy dependencies
-				// are often inverted) because evaluating the resource node
-				// after the destroy node could cause an unnecessary husk of
-				// a resource state to be re-added.
-				g.Connect(dag.BasicEdge(node, rsrcNode))
-			}
 		}
 
 	}

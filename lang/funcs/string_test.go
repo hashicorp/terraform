@@ -506,3 +506,126 @@ func TestTrimSpace(t *testing.T) {
 		})
 	}
 }
+
+func TestTrim(t *testing.T) {
+	tests := []struct {
+		String cty.Value
+		Cutset cty.Value
+		Want   cty.Value
+		Err    bool
+	}{
+		{
+			cty.StringVal("!? test ?!"),
+			cty.StringVal("?!"),
+			cty.StringVal(" test "),
+			false,
+		},
+		{
+			cty.StringVal("...test..."),
+			cty.StringVal("."),
+			cty.StringVal("test"),
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("trim(%#v, %#v)", test.String, test.Cutset), func(t *testing.T) {
+			got, err := Trim(test.String, test.Cutset)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
+func TestTrimPrefix(t *testing.T) {
+	tests := []struct {
+		String cty.Value
+		Prefix cty.Value
+		Want   cty.Value
+		Err    bool
+	}{
+		{
+			cty.StringVal("helloworld"),
+			cty.StringVal("hello"),
+			cty.StringVal("world"),
+			false,
+		},
+		{
+			cty.StringVal("...test..."),
+			cty.StringVal("."),
+			cty.StringVal("..test..."),
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("trimprefix(%#v, %#v)", test.String, test.Prefix), func(t *testing.T) {
+			got, err := TrimPrefix(test.String, test.Prefix)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
+func TestTrimSuffix(t *testing.T) {
+	tests := []struct {
+		String cty.Value
+		Suffix cty.Value
+		Want   cty.Value
+		Err    bool
+	}{
+		{
+			cty.StringVal("helloworld"),
+			cty.StringVal("world"),
+			cty.StringVal("hello"),
+			false,
+		},
+		{
+			cty.StringVal("...test..."),
+			cty.StringVal("."),
+			cty.StringVal("...test.."),
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("trimright(%#v, %#v)", test.String, test.Suffix), func(t *testing.T) {
+			got, err := TrimSuffix(test.String, test.Suffix)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}

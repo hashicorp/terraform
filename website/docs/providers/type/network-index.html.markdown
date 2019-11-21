@@ -20,6 +20,7 @@ in close collaboration with HashiCorp, and are tested by HashiCorp.
 - [Akamai](/docs/providers/akamai/index.html)
 - [Avi Vantage](/docs/providers/avi/index.html)
 - [Aviatrix](/docs/providers/aviatrix/index.html)
+- [A10 Networks](/docs/providers/vthunder/index.html)
 - [Cloudflare](/docs/providers/cloudflare/index.html)
 - [Cisco ASA](/docs/providers/ciscoasa/index.html)
 - [DNS](/docs/providers/dns/index.html)
@@ -31,4 +32,5 @@ in close collaboration with HashiCorp, and are tested by HashiCorp.
 - [NS1](/docs/providers/ns1/index.html)
 - [Palo Alto Networks](/docs/providers/panos/index.html)
 - [PowerDNS](/docs/providers/powerdns/index.html)
+- [Pureport](/docs/providers/pureport/index.html)
 - [UltraDNS](/docs/providers/ultradns/index.html)

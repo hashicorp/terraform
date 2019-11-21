@@ -232,7 +232,16 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 	}
 
 	fixtureDir := filepath.Clean("testdata/registry-modules")
-	dir, done := tempChdir(t, fixtureDir)
+	tmpDir, done := tempChdir(t, fixtureDir)
+	// the module installer runs filepath.EvalSymlinks() on the destination
+	// directory before copying files, and the resultant directory is what is
+	// returned by the install hooks. Without this, tests could fail on machines
+	// where the default temp dir was a symlink.
+	dir, err := filepath.EvalSymlinks(tmpDir)
+	if err != nil {
+		t.Error(err)
+	}
+
 	defer done()
 
 	hooks := &testInstallHooks{}
@@ -359,7 +368,15 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 	}
 
 	fixtureDir := filepath.Clean("testdata/go-getter-modules")
-	dir, done := tempChdir(t, fixtureDir)
+	tmpDir, done := tempChdir(t, fixtureDir)
+	// the module installer runs filepath.EvalSymlinks() on the destination
+	// directory before copying files, and the resultant directory is what is
+	// returned by the install hooks. Without this, tests could fail on machines
+	// where the default temp dir was a symlink.
+	dir, err := filepath.EvalSymlinks(tmpDir)
+	if err != nil {
+		t.Error(err)
+	}
 	defer done()
 
 	hooks := &testInstallHooks{}

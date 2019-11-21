@@ -213,12 +213,6 @@ func TestContext2Plan_createBefore_maintainRoot(t *testing.T) {
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		Variables: InputValues{
-			"in": &InputValue{
-				Value:      cty.StringVal("a,b,c"),
-				SourceType: ValueFromCaller,
-			},
-		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -3388,8 +3382,8 @@ func TestContext2Plan_forEach(t *testing.T) {
 }
 
 func TestContext2Plan_forEachUnknownValue(t *testing.T) {
-	// This module has a variable defined, but it is not provided
-	// in the context below and we expect the plan to error, but not panic
+	// This module has a variable defined, but it's value is unknown. We
+	// expect this to produce an error, but not to panic.
 	m := testModule(t, "plan-for-each-unknown-value")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
@@ -3400,6 +3394,12 @@ func TestContext2Plan_forEachUnknownValue(t *testing.T) {
 				"aws": testProviderFuncFixed(p),
 			},
 		),
+		Variables: InputValues{
+			"foo": {
+				Value:      cty.UnknownVal(cty.String),
+				SourceType: ValueFromCLIArg,
+			},
+		},
 	})
 
 	_, diags := ctx.Plan()
@@ -4690,9 +4690,18 @@ func TestContext2Plan_outputContainsTargetedResource(t *testing.T) {
 		},
 	})
 
-	_, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("err: %s", diags)
+	}
+	if len(diags) != 1 {
+		t.Fatalf("got %d diagnostics; want 1", diags)
+	}
+	if got, want := diags[0].Severity(), tfdiags.Warning; got != want {
+		t.Errorf("wrong diagnostic severity %#v; want %#v", got, want)
+	}
+	if got, want := diags[0].Description().Summary, "Resource targeting is in effect"; got != want {
+		t.Errorf("wrong diagnostic summary %#v; want %#v", got, want)
 	}
 }
 

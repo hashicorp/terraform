@@ -72,6 +72,7 @@ func (c *StateShowCommand) Run(args []string) int {
 
 	// Build the operation (required to get the schemas)
 	opReq := c.Operation(b)
+	opReq.AllowUnsetVariables = true
 	opReq.ConfigDir = cwd
 
 	opReq.ConfigLoader, err = c.initConfigLoader()

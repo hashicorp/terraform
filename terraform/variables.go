@@ -3,7 +3,7 @@ package terraform
 import (
 	"fmt"
 
-	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 
@@ -78,7 +78,7 @@ func (v ValueSourceType) GoString() string {
 	return fmt.Sprintf("terraform.%s", v)
 }
 
-//go:generate stringer -type ValueSourceType
+//go:generate go run golang.org/x/tools/cmd/stringer -type ValueSourceType
 
 // InputValues is a map of InputValue instances.
 type InputValues map[string]*InputValue

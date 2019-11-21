@@ -19,7 +19,7 @@ func TestProvisioner(t *testing.T) {
 
 func TestResourceProvisioner_Validate_good(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{
-		"peer":           "1.2.3.4",
+		"peers":          []interface{}{"1.2.3.4"},
 		"version":        "0.32.0",
 		"service_type":   "systemd",
 		"accept_license": false,
@@ -37,15 +37,16 @@ func TestResourceProvisioner_Validate_good(t *testing.T) {
 func TestResourceProvisioner_Validate_bad(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{
 		"service_type": "invalidtype",
+		"url":          "badurl",
 	})
 
 	warn, errs := Provisioner().Validate(c)
 	if len(warn) > 0 {
 		t.Fatalf("Warnings: %v", warn)
 	}
-	//Two errors, one for service_type, other for missing required accept_license argument
-	if len(errs) != 2 {
-		t.Fatalf("Should have one errors, got %d", len(errs))
+	// 3 errors, bad service_type, bad url, missing accept_license
+	if len(errs) != 3 {
+		t.Fatalf("Should have three errors, got %d", len(errs))
 	}
 }
 
@@ -67,7 +68,21 @@ func TestResourceProvisioner_Validate_bad_service_config(t *testing.T) {
 		t.Fatalf("Warnings: %v", warn)
 	}
 	if len(errs) != 3 {
-		t.Fatalf("Should have three errors")
+		t.Fatalf("Should have three errors, got %d", len(errs))
+	}
+}
+
+func TestResourceProvisioner_Validate_bad_service_definition(t *testing.T) {
+	c := testConfig(t, map[string]interface{}{
+		"service": "core/vault",
+	})
+
+	warn, errs := Provisioner().Validate(c)
+	if len(warn) > 0 {
+		t.Fatalf("Warnings: %v", warn)
+	}
+	if len(errs) != 3 {
+		t.Fatalf("Should have three errors, got %d", len(errs))
 	}
 }
 

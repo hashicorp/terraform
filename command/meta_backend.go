@@ -14,8 +14,8 @@ import (
 	"strings"
 
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcldec"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/configs"
@@ -346,9 +346,10 @@ func (m *Meta) backendConfig(opts *BackendOpts) (*configs.Backend, int, tfdiags.
 
 	if opts.Config == nil {
 		// check if the config was missing, or just not required
-		conf, err := m.loadBackendConfig(".")
-		if err != nil {
-			return nil, 0, err
+		conf, moreDiags := m.loadBackendConfig(".")
+		diags = diags.Append(moreDiags)
+		if moreDiags.HasErrors() {
+			return nil, 0, diags
 		}
 
 		if conf == nil {

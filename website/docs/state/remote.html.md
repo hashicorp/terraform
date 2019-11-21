@@ -17,7 +17,7 @@ Terraform at the same time.
 With _remote_ state, Terraform writes the state data to a remote data store,
 which can then be shared between all members of a team. Terraform supports
 storing state in [Terraform Cloud](https://www.hashicorp.com/products/terraform/),
-[HashiCorp Consul](https://www.consul.io/), Amazon S3, and more.
+[HashiCorp Consul](https://www.consul.io/), Amazon S3, Alibaba Cloud OSS, and more.
 
 Remote state is a feature of [backends](/docs/backends). Configuring and
 using remote backends is easy and you can get started with remote state

@@ -39,27 +39,27 @@ Use the `var.` prefix followed by the variable name. For example,
 
 #### User map variables
 
-The syntax is `var.MAP["KEY"]`. For example, `${var.amis["us-east-1"]}`
+The syntax is `var.<MAP>["<KEY>"]`. For example, `${var.amis["us-east-1"]}`
 would get the value of the `us-east-1` key within the `amis` map
 variable.
 
 #### User list variables
 
-The syntax is `"${var.LIST}"`. For example, `"${var.subnets}"`
+The syntax is `"${var.<LIST>}"`. For example, `"${var.subnets}"`
 would get the value of the `subnets` list, as a list. You can also
 return list elements by index: `${var.subnets[idx]}`.
 
 #### Attributes of your own resource
 
-The syntax is `self.ATTRIBUTE`. For example `${self.private_ip}`
+The syntax is `self.<ATTRIBUTE>`. For example `${self.private_ip}`
 will interpolate that resource's private IP address.
 
--> **Note**: The `self.ATTRIBUTE` syntax is only allowed and valid within
+-> **Note**: The `self.<ATTRIBUTE>` syntax is only allowed and valid within
 provisioners.
 
 #### Attributes of other resources
 
-The syntax is `TYPE.NAME.ATTRIBUTE`. For example,
+The syntax is `<TYPE>.<NAME>.<ATTRIBUTE>`. For example,
 `${aws_instance.web.id}` will interpolate the ID attribute from the
 `aws_instance` resource named `web`. If the resource has a `count`
 attribute set, you can access individual attributes with a zero-based
@@ -68,27 +68,27 @@ syntax to get a list of all the attributes: `${aws_instance.web.*.id}`.
 
 #### Attributes of a data source
 
-The syntax is `data.TYPE.NAME.ATTRIBUTE`. For example. `${data.aws_ami.ubuntu.id}` will interpolate the `id` attribute from the `aws_ami` [data source](./data-sources.html) named `ubuntu`. If the data source has a `count`
+The syntax is `data.<TYPE>.<NAME>.<ATTRIBUTE>`. For example. `${data.aws_ami.ubuntu.id}` will interpolate the `id` attribute from the `aws_ami` [data source](./data-sources.html) named `ubuntu`. If the data source has a `count`
 attribute set, you can access individual attributes with a zero-based
 index, such as `${data.aws_subnet.example.0.cidr_block}`. You can also use the splat
 syntax to get a list of all the attributes: `${data.aws_subnet.example.*.cidr_block}`.
 
 #### Outputs from a module
 
-The syntax is `MODULE.NAME.OUTPUT`. For example `${module.foo.bar}` will
+The syntax is `module.<NAME>.<OUTPUT>`. For example `${module.foo.bar}` will
 interpolate the `bar` output from the `foo`
 [module](/docs/modules/index.html).
 
 #### Count information
 
-The syntax is `count.FIELD`. For example, `${count.index}` will
+The syntax is `count.index`. For example, `${count.index}` will
 interpolate the current index in a multi-count resource. For more
 information on `count`, see the [resource configuration
 page](./resources.html).
 
 #### Path information
 
-The syntax is `path.TYPE`. TYPE can be `cwd`, `module`, or `root`.
+The syntax is `path.<TYPE>`. TYPE can be `cwd`, `module`, or `root`.
 `cwd` will interpolate the current working directory. `module` will
 interpolate the path to the current module. `root` will interpolate the
 path of the root module.  In general, you probably want the
@@ -96,7 +96,7 @@ path of the root module.  In general, you probably want the
 
 #### Terraform meta information
 
-The syntax is `terraform.FIELD`. This variable type contains metadata about
+The syntax is `terraform.<FIELD>`. This variable type contains metadata about
 the currently executing Terraform run. FIELD can currently only be `env` to
 reference the currently active [state environment](/docs/state/environments.html).
 
@@ -146,7 +146,7 @@ Terraform ships with built-in functions. Functions are called with the
 syntax `name(arg, arg2, ...)`. For example, to read a file:
 `${file("path.txt")}`.
 
-~> **NOTE**: Proper escaping is required for JSON field values containing quotes
+~> **Note**: Proper escaping is required for JSON field values containing quotes
 (`"`) such as `environment` values. If directly setting the JSON, they should be
 escaped as `\"` in the JSON,  e.g. `"value": "I \"love\" escaped quotes"`. If
 using a Terraform variable value, they should be escaped as `\\\"` in the
