@@ -413,3 +413,10 @@ func (m ModuleInstance) TargetContains(other Targetable) bool {
 func (m ModuleInstance) targetableSigil() {
 	// ModuleInstance is targetable
 }
+
+func (s ModuleInstanceStep) String() string {
+	if s.InstanceKey != NoKey {
+		return s.Name + s.InstanceKey.String()
+	}
+	return s.Name
+}
