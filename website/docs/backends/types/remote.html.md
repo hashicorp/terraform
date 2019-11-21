@@ -130,7 +130,7 @@ data "terraform_remote_state" "foo" {
   config = {
     organization = "company"
 
-    workspaces {
+    workspaces = {
       name = "workspace"
     }
   }
