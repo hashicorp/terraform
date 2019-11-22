@@ -102,7 +102,7 @@ func (ms *Module) SetResourceInstanceCurrent(addr addrs.ResourceInstance, obj *R
 			return
 		}
 		// check for an existing resource, now that we've ensured that rs.Instances is more than 0/not nil
-		is := rs.Instances[addr.Key]
+		is := rs.Instance(addr.Key)
 		if is == nil {
 			// if there is no instance, but the resource exists and has other instances,
 			// be chill, just return
@@ -130,14 +130,12 @@ func (ms *Module) SetResourceInstanceCurrent(addr addrs.ResourceInstance, obj *R
 		rs = ms.Resource(addr.Resource)
 	}
 	// Get our instance from the resource; it could be there or not at this point
-	is := rs.Instances[addr.Key]
+	is := rs.Instance(addr.Key)
 	if is == nil {
 		// if we don't have a resource, create one and add to the instances
-		is = NewResourceInstance()
-		rs.Instances[addr.Key] = is
+		is = rs.CreateInstance(addr.Key)
 		// update the resource meta because we have a new instance, so EachMode may have changed
 		ms.SetResourceMeta(addr.Resource, eachModeForInstanceKey(addr.Key), provider)
-
 	}
 	is.Current = obj
 }
