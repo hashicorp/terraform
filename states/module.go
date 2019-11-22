@@ -101,9 +101,9 @@ func (ms *Module) SetResourceInstanceCurrent(addr addrs.ResourceInstance, obj *R
 			delete(ms.Resources, addr.Resource.String())
 			return
 		}
-		// check for an existing resource
-		inst := rs.Instances[addr.Key]
-		if inst == nil {
+		// check for an existing resource, now that we've ensured that rs.Instances is more than 0/not nil
+		is := rs.Instances[addr.Key]
+		if is == nil {
 			// if there is no instance, but the resource exists and has other instances,
 			// be chill, just return
 			return
@@ -111,8 +111,8 @@ func (ms *Module) SetResourceInstanceCurrent(addr addrs.ResourceInstance, obj *R
 		// if we have an instance, update the current
 		// TODO: this setting happens below as well, so possibly this can be removed,
 		// but not changing it right now as we might return in the block below
-		inst.Current = obj
-		if !inst.HasObjects() {
+		is.Current = obj
+		if !is.HasObjects() {
 			// If we have no objects at all then we'll clean up.
 			delete(rs.Instances, addr.Key)
 			if len(rs.Instances) == 0 {
@@ -120,6 +120,7 @@ func (ms *Module) SetResourceInstanceCurrent(addr addrs.ResourceInstance, obj *R
 				return
 			}
 		}
+		// Nothing more to do here, so return!
 		return
 	}
 	if rs == nil && obj != nil {
