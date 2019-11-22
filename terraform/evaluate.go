@@ -577,6 +577,8 @@ func (d *evaluationStateData) getResourceInstancesAll(addr addrs.Resource, rng t
 		})
 		return cty.DynamicVal, diags
 	}
+	fmt.Println(addr.String(), "in getResourceAll")
+	fmt.Println(rs.EachMode)
 
 	switch rs.EachMode {
 	case states.NoEach:
