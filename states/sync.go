@@ -1,7 +1,6 @@
 package states
 
 import (
-	"fmt"
 	"log"
 	"sync"
 
@@ -191,7 +190,6 @@ func (s *SyncState) SetResourceMeta(addr addrs.AbsResource, eachMode EachMode, p
 	defer s.lock.Unlock()
 
 	ms := s.state.EnsureModule(addr.Module)
-	fmt.Println("called from syncstate")
 	ms.SetResourceMeta(addr.Resource, eachMode, provider)
 }
 

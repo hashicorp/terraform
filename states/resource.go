@@ -180,13 +180,10 @@ const (
 func eachModeForInstanceKey(key addrs.InstanceKey) EachMode {
 	switch key.(type) {
 	case addrs.IntKey:
-		fmt.Println("is int key")
 		return EachList
 	case addrs.StringKey:
-		fmt.Println("is string key")
 		return EachMap
 	default:
-		fmt.Println(key)
 		if key == addrs.NoKey {
 			return NoEach
 		}
