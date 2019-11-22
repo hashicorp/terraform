@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/instances"
 	"github.com/hashicorp/terraform/lang"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
@@ -97,25 +98,9 @@ type evaluationStateData struct {
 	Operation walkOperation
 }
 
-// InstanceKeyEvalData is used during evaluation to specify which values,
-// if any, should be produced for count.index, each.key, and each.value.
-type InstanceKeyEvalData struct {
-	// CountIndex is the value for count.index, or cty.NilVal if evaluating
-	// in a context where the "count" argument is not active.
-	//
-	// For correct operation, this should always be of type cty.Number if not
-	// nil.
-	CountIndex cty.Value
-
-	// EachKey and EachValue are the values for each.key and each.value
-	// respectively, or cty.NilVal if evaluating in a context where the
-	// "for_each" argument is not active. These must either both be set
-	// or neither set.
-	//
-	// For correct operation, EachKey must always be either of type cty.String
-	// or cty.Number if not nil.
-	EachKey, EachValue cty.Value
-}
+// InstanceKeyEvalData is the old name for instances.RepetitionData, aliased
+// here for compatibility. In new code, use instances.RepetitionData instead.
+type InstanceKeyEvalData = instances.RepetitionData
 
 // EvalDataForInstanceKey constructs a suitable InstanceKeyEvalData for
 // evaluating in a context that has the given instance key.
