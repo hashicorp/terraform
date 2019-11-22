@@ -162,6 +162,11 @@ func (b *RefreshGraphBuilder) Steps() []GraphTransformer {
 		// analyze the configuration to find references.
 		&AttachSchemaTransformer{Schemas: b.Schemas},
 
+		// Create expansion nodes for all of the module calls. This must
+		// come after all other transformers that create nodes representing
+		// objects that can belong to modules.
+		&ModuleExpansionTransformer{Config: b.Config},
+
 		// Connect so that the references are ready for targeting. We'll
 		// have to connect again later for providers and so on.
 		&ReferenceTransformer{},

@@ -488,6 +488,19 @@ func (n *EvalWriteResourceState) Eval(ctx EvalContext) (interface{}, error) {
 	// while ensuring that any existing instances are preserved, etc.
 	state.SetResourceMeta(absAddr, eachMode, n.ProviderAddr)
 
+	// We'll record our expansion decision in the shared "expander" object
+	// so that later operations (i.e. DynamicExpand and expression evaluation)
+	// can refer to it.
+	expander := ctx.InstanceExpander()
+	switch eachMode {
+	case states.EachList:
+		expander.SetResourceCount(ctx.Path(), n.Addr, count)
+	case states.EachMap:
+		expander.SetResourceForEach(ctx.Path(), n.Addr, forEach)
+	default:
+		expander.SetResourceSingle(ctx.Path(), n.Addr)
+	}
+
 	return nil, nil
 }
 
