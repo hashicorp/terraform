@@ -46,7 +46,9 @@ func (rs *Resource) Instance(key addrs.InstanceKey) *ResourceInstance {
 // a write operation.
 func (rs *Resource) EnsureInstance(key addrs.InstanceKey) *ResourceInstance {
 	ret := rs.Instance(key)
+	fmt.Println("in ensure")
 	if ret == nil {
+		fmt.Println("creating an instance")
 		ret = NewResourceInstance()
 		rs.Instances[key] = ret
 	}
@@ -180,10 +182,13 @@ const (
 func eachModeForInstanceKey(key addrs.InstanceKey) EachMode {
 	switch key.(type) {
 	case addrs.IntKey:
+		fmt.Println("is int key")
 		return EachList
 	case addrs.StringKey:
+		fmt.Println("is string key")
 		return EachMap
 	default:
+		fmt.Println(key)
 		if key == addrs.NoKey {
 			return NoEach
 		}

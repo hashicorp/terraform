@@ -1,6 +1,8 @@
 package states
 
 import (
+	"fmt"
+
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -55,7 +57,9 @@ func (ms *Module) ResourceInstance(addr addrs.ResourceInstance) *ResourceInstanc
 // with the given address, creating the resource state for it if it doesn't
 // already exist.
 func (ms *Module) SetResourceMeta(addr addrs.Resource, eachMode EachMode, provider addrs.AbsProviderConfig) {
+	fmt.Printf("%s Set resource meta called with %s \n", addr, eachMode)
 	rs := ms.Resource(addr)
+	fmt.Println(addr)
 	if rs == nil {
 		rs = &Resource{
 			Addr:      addr,
@@ -88,23 +92,56 @@ func (ms *Module) RemoveResource(addr addrs.Resource) {
 // are updated for all other instances of the same resource as a side-effect of
 // this call.
 func (ms *Module) SetResourceInstanceCurrent(addr addrs.ResourceInstance, obj *ResourceInstanceObjectSrc, provider addrs.AbsProviderConfig) {
-	ms.SetResourceMeta(addr.Resource, eachModeForInstanceKey(addr.Key), provider)
-
+	// cases for doing nothing
+	// go get resource:
 	rs := ms.Resource(addr.Resource)
+	// if the resource is nil and the object is nil, don't do anything!
+	if obj == nil && rs == nil {
+		return
+	}
+	if obj == nil && rs != nil {
+		// does the resource have any other objects?
+		// if not then delete the whole resource
+		if len(rs.Instances) == 0 {
+			delete(ms.Resources, addr.Resource.String())
+			return
+		}
+		inst := rs.Instances[addr.Key]
+		if inst == nil {
+			// THERE IS NO INSTANCE Bail, don't change everything for no reason
+			return
+		}
+		// then the obj is nil, and we do have an instance,
+		// set current to nil
+		inst.Current = obj
+		if !inst.HasObjects() {
+			// If we have no objects at all then we'll clean up.
+			delete(rs.Instances, addr.Key)
+			if len(rs.Instances) == 0 {
+				delete(ms.Resources, addr.Resource.String())
+				return
+			}
+		}
+		return
+	}
+	if rs == nil && obj != nil {
+		// make the resource! which happens in setResourceMeta, so okay
+		fmt.Println("Called at the middle", addr.Key)
+		ms.SetResourceMeta(addr.Resource, eachModeForInstanceKey(addr.Key), provider)
+		// now we have a resource!
+		rs = ms.Resource(addr.Resource)
+	}
+	inst := rs.Instances[addr.Key]
+	if inst == nil {
+		rs.EnsureInstance(addr.Key)
+		ms.SetResourceMeta(addr.Resource, eachModeForInstanceKey(addr.Key), provider)
+
+	}
 	is := rs.EnsureInstance(addr.Key)
-
 	is.Current = obj
-
-	if !is.HasObjects() {
-		// If we have no objects at all then we'll clean up.
-		delete(rs.Instances, addr.Key)
-	}
-	if rs.EachMode == NoEach && len(rs.Instances) == 0 {
-		// Also clean up if we only expect to have one instance anyway
-		// and there are none. We leave the resource behind if an each mode
-		// is active because an empty list or map of instances is a valid state.
-		delete(ms.Resources, addr.Resource.String())
-	}
+	fmt.Println("Called at the end", addr.Key)
+	fmt.Printf("%#v\n", obj)
+	// ms.SetResourceMeta(addr.Resource, eachModeForInstanceKey(addr.Key), provider)
 }
 
 // SetResourceInstanceDeposed saves the given instance object as a deposed
@@ -124,6 +161,7 @@ func (ms *Module) SetResourceInstanceCurrent(addr addrs.ResourceInstance, obj *R
 // the instance is left with no objects after this operation then it will
 // be removed from its containing resource altogether.
 func (ms *Module) SetResourceInstanceDeposed(addr addrs.ResourceInstance, key DeposedKey, obj *ResourceInstanceObjectSrc, provider addrs.AbsProviderConfig) {
+	fmt.Println("called with deposed")
 	ms.SetResourceMeta(addr.Resource, eachModeForInstanceKey(addr.Key), provider)
 
 	rs := ms.Resource(addr.Resource)
