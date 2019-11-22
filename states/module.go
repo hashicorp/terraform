@@ -135,9 +135,8 @@ func (ms *Module) SetResourceInstanceCurrent(addr addrs.ResourceInstance, obj *R
 		// update the resource meta because we have a new instance, so EachMode may have changed
 		ms.SetResourceMeta(addr.Resource, eachModeForInstanceKey(addr.Key), provider)
 	}
-	// Call setResourceMeta one last time, with the resource's current EachMode, lest the
-	// provider has updated
-	ms.SetResourceMeta(addr.Resource, rs.EachMode, provider)
+	// Update the resource's ProviderConfig, in case the provider has updated
+	rs.ProviderConfig = provider
 	is.Current = obj
 }
 
