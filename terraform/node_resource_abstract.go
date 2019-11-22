@@ -170,12 +170,12 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 		var result []*addrs.Reference
 
 		for _, traversal := range c.DependsOn {
-			ref, err := addrs.ParseRef(traversal)
-			if err != nil {
+			ref, diags := addrs.ParseRef(traversal)
+			if diags.HasErrors() {
 				// We ignore this here, because this isn't a suitable place to return
 				// errors. This situation should be caught and rejected during
 				// validation.
-				log.Printf("[ERROR] Can't parse %#v from depends_on as reference: %s", traversal, err)
+				log.Printf("[ERROR] Can't parse %#v from depends_on as reference: %s", traversal, diags.Err())
 				continue
 			}
 

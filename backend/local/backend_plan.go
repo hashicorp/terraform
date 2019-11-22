@@ -86,9 +86,9 @@ func (b *Local) opPlan(
 			b.CLI.Output(b.Colorize().Color(strings.TrimSpace(planRefreshing) + "\n"))
 		}
 
-		refreshedState, err := tfCtx.Refresh()
-		if err != nil {
-			diags = diags.Append(err)
+		refreshedState, refreshDiags := tfCtx.Refresh()
+		diags = diags.Append(refreshDiags)
+		if diags.HasErrors() {
 			b.ReportResult(runningOp, diags)
 			return
 		}
