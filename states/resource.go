@@ -46,9 +46,7 @@ func (rs *Resource) Instance(key addrs.InstanceKey) *ResourceInstance {
 // a write operation.
 func (rs *Resource) EnsureInstance(key addrs.InstanceKey) *ResourceInstance {
 	ret := rs.Instance(key)
-	fmt.Println("in ensure")
 	if ret == nil {
-		fmt.Println("creating an instance")
 		ret = NewResourceInstance()
 		rs.Instances[key] = ret
 	}
