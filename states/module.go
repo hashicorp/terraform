@@ -123,22 +123,21 @@ func (ms *Module) SetResourceInstanceCurrent(addr addrs.ResourceInstance, obj *R
 		return
 	}
 	if rs == nil && obj != nil {
-		// We don't have have a resource
-		// make the resource! which happens in setResourceMeta, so okay
+		// We don't have have a resource so make one, which is a side effect of setResourceMeta
 		ms.SetResourceMeta(addr.Resource, eachModeForInstanceKey(addr.Key), provider)
-		// now we have a resource! so update the rs value
+		// now we have a resource! so update the rs value to point to it
 		rs = ms.Resource(addr.Resource)
 	}
 	// Get our instance from the resource; it could be there or not at this point
-	inst := rs.Instances[addr.Key]
-	if inst == nil {
-		// if we don't have a resource, create one
-		rs.Instances[addr.Key] = NewResourceInstance()
+	is := rs.Instances[addr.Key]
+	if is == nil {
+		// if we don't have a resource, create one and add to the instances
+		is = NewResourceInstance()
+		rs.Instances[addr.Key] = is
 		// update the resource meta because we have a new instance, so EachMode may have changed
 		ms.SetResourceMeta(addr.Resource, eachModeForInstanceKey(addr.Key), provider)
 
 	}
-	is := rs.EnsureInstance(addr.Key)
 	is.Current = obj
 }
 
