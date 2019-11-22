@@ -410,6 +410,19 @@ func (m ModuleInstance) TargetContains(other Targetable) bool {
 	}
 }
 
+// Module returns the address of the module that this instance is an instance
+// of.
+func (m ModuleInstance) Module() Module {
+	if len(m) == 0 {
+		return nil
+	}
+	ret := make(Module, len(m))
+	for i, step := range m {
+		ret[i] = step.Name
+	}
+	return ret
+}
+
 func (m ModuleInstance) targetableSigil() {
 	// ModuleInstance is targetable
 }
