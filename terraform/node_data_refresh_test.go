@@ -6,6 +6,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/instances"
 )
 
 func TestNodeRefreshableDataResourceDynamicExpand_scaleOut(t *testing.T) {
@@ -49,8 +50,9 @@ func TestNodeRefreshableDataResourceDynamicExpand_scaleOut(t *testing.T) {
 	}
 
 	g, err := n.DynamicExpand(&MockEvalContext{
-		PathPath:   addrs.RootModuleInstance,
-		StateState: state.SyncWrapper(),
+		PathPath:                 addrs.RootModuleInstance,
+		StateState:               state.SyncWrapper(),
+		InstanceExpanderExpander: instances.NewExpander(),
 
 		// DynamicExpand will call EvaluateExpr to evaluate the "count"
 		// expression, which is just a literal number 3 in the fixture config
@@ -137,8 +139,9 @@ func TestNodeRefreshableDataResourceDynamicExpand_scaleIn(t *testing.T) {
 	}
 
 	g, err := n.DynamicExpand(&MockEvalContext{
-		PathPath:   addrs.RootModuleInstance,
-		StateState: state.SyncWrapper(),
+		PathPath:                 addrs.RootModuleInstance,
+		StateState:               state.SyncWrapper(),
+		InstanceExpanderExpander: instances.NewExpander(),
 
 		// DynamicExpand will call EvaluateExpr to evaluate the "count"
 		// expression, which is just a literal number 3 in the fixture config
