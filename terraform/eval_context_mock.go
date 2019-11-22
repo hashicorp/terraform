@@ -5,6 +5,7 @@ import (
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/instances"
 	"github.com/hashicorp/terraform/lang"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
@@ -124,6 +125,9 @@ type MockEvalContext struct {
 
 	StateCalled bool
 	StateState  *states.SyncState
+
+	InstanceExpanderCalled   bool
+	InstanceExpanderExpander *instances.Expander
 }
 
 // MockEvalContext implements EvalContext
@@ -326,4 +330,9 @@ func (c *MockEvalContext) Changes() *plans.ChangesSync {
 func (c *MockEvalContext) State() *states.SyncState {
 	c.StateCalled = true
 	return c.StateState
+}
+
+func (c *MockEvalContext) InstanceExpander() *instances.Expander {
+	c.InstanceExpanderCalled = true
+	return c.InstanceExpanderExpander
 }

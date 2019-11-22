@@ -6,6 +6,7 @@ import (
 	"log"
 	"sync"
 
+	"github.com/hashicorp/terraform/instances"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/provisioners"
@@ -53,16 +54,17 @@ type BuiltinEvalContext struct {
 	VariableValues     map[string]map[string]cty.Value
 	VariableValuesLock *sync.Mutex
 
-	Components          contextComponentFactory
-	Hooks               []Hook
-	InputValue          UIInput
-	ProviderCache       map[string]providers.Interface
-	ProviderInputConfig map[string]map[string]cty.Value
-	ProviderLock        *sync.Mutex
-	ProvisionerCache    map[string]provisioners.Interface
-	ProvisionerLock     *sync.Mutex
-	ChangesValue        *plans.ChangesSync
-	StateValue          *states.SyncState
+	Components            contextComponentFactory
+	Hooks                 []Hook
+	InputValue            UIInput
+	ProviderCache         map[string]providers.Interface
+	ProviderInputConfig   map[string]map[string]cty.Value
+	ProviderLock          *sync.Mutex
+	ProvisionerCache      map[string]provisioners.Interface
+	ProvisionerLock       *sync.Mutex
+	ChangesValue          *plans.ChangesSync
+	StateValue            *states.SyncState
+	InstanceExpanderValue *instances.Expander
 
 	once sync.Once
 }
@@ -357,6 +359,10 @@ func (ctx *BuiltinEvalContext) Changes() *plans.ChangesSync {
 
 func (ctx *BuiltinEvalContext) State() *states.SyncState {
 	return ctx.StateValue
+}
+
+func (ctx *BuiltinEvalContext) InstanceExpander() *instances.Expander {
+	return ctx.InstanceExpanderValue
 }
 
 func (ctx *BuiltinEvalContext) init() {
