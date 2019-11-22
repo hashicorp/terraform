@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/instances"
 	"github.com/hashicorp/terraform/lang"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
@@ -788,6 +789,7 @@ func (c *Context) graphWalker(operation walkOperation) *ContextGraphWalker {
 		Context:            c,
 		State:              c.state.SyncWrapper(),
 		Changes:            c.changes.SyncWrapper(),
+		InstanceExpander:   instances.NewExpander(),
 		Operation:          operation,
 		StopContext:        c.runContext,
 		RootVariableValues: c.variables,
