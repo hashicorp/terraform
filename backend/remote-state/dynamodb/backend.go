@@ -24,45 +24,38 @@ func New() backend.Backend {
 			"state_table": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "The name of the S3 bucket",
+				Description: "The name of the DynamoDB Table used for state.",
 			},
 
 			"hash": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "The path to the state file inside the bucket",
-				ValidateFunc: func(v interface{}, s string) ([]string, []error) {
-					// s3 will strip leading slashes from an object, so while this will
-					// technically be accepted by s3, it will break our workspace hierarchy.
-					if strings.HasPrefix(v.(string), "/") {
-						return nil, []error{errors.New("key must not start with '/'")}
-					}
-					return nil, nil
-				},
+				Description: "The name of the hashKey of state file inside the dynamodb table.",
+				//ValidateFunc: func(v interface{}, s string) ([]string, []error) {
+				//	// s3 will strip leading slashes from an object, so while this will
+				//	// technically be accepted by s3, it will break our workspace hierarchy.
+				//	if strings.HasPrefix(v.(string), "/") {
+				//		return nil, []error{errors.New("key must not start with '/'")}
+				//	}
+				//	return nil, nil
+				//},
 			},
 
 			"region": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "The region of the S3 bucket.",
+				Description: "The region of the DynamoDB Table.",
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
 					"AWS_REGION",
 					"AWS_DEFAULT_REGION",
 				}, nil),
 			},
 
-			"dynamodb_endpoint": {
+			"endpoint": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "A custom endpoint for the DynamoDB API",
 				DefaultFunc: schema.EnvDefaultFunc("AWS_DYNAMODB_ENDPOINT", ""),
-			},
-
-			"endpoint": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "A custom endpoint for the S3 API",
-				DefaultFunc: schema.EnvDefaultFunc("AWS_S3_ENDPOINT", ""),
 			},
 
 			"iam_endpoint": {
@@ -117,14 +110,6 @@ func New() backend.Backend {
 			"lock_table": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "DynamoDB table for state locking",
-				Default:     "",
-				Deprecated:  "please use the dynamodb_table attribute",
-			},
-
-			"dynamodb_table": {
-				Type:        schema.TypeString,
-				Optional:    true,
 				Description: "DynamoDB table for state locking and consistency",
 				Default:     "",
 			},
@@ -157,27 +142,11 @@ func New() backend.Backend {
 				Default:     false,
 			},
 
-			"skip_get_ec2_platforms": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "Skip getting the supported EC2 platforms.",
-				Default:     false,
-				Deprecated:  "The S3 Backend does not require EC2 functionality and this attribute is no longer used.",
-			},
-
 			"skip_region_validation": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: "Skip static validation of region name.",
 				Default:     false,
-			},
-
-			"skip_requesting_account_id": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "Skip requesting the account ID.",
-				Default:     false,
-				Deprecated:  "The S3 Backend no longer automatically looks up the AWS Account ID and this attribute is no longer used.",
 			},
 
 			"skip_metadata_api_check": {
@@ -283,7 +252,7 @@ type Backend struct {
 }
 
 func (b *Backend) configure(ctx context.Context) error {
-	if b.s3Client != nil {
+	if b.dynClient != nil {
 		return nil
 	}
 
@@ -316,11 +285,7 @@ func (b *Backend) configure(ctx context.Context) error {
 		}
 	}
 
-	b.ddbTable = data.Get("dynamodb_table").(string)
-	if b.ddbTable == "" {
-		// try the deprecated field
-		b.ddbTable = data.Get("lock_table").(string)
-	}
+	b.ddbTable = data.Get("lock_table").(string)
 
 	cfg := &awsbase.Config{
 		AccessKey:             data.Get("access_key").(string),
@@ -352,7 +317,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 
 	b.dynClient = dynamodb.New(sess.Copy(&aws.Config{
-		Endpoint: aws.String(data.Get("dynamodb_endpoint").(string)),
+		Endpoint: aws.String(data.Get("endpoint").(string)),
 	}))
 	b.s3Client = s3.New(sess.Copy(&aws.Config{
 		Endpoint:         aws.String(data.Get("endpoint").(string)),
