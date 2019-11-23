@@ -25,6 +25,7 @@ import (
 	backendOSS "github.com/hashicorp/terraform/backend/remote-state/oss"
 	backendPg "github.com/hashicorp/terraform/backend/remote-state/pg"
 	backendS3 "github.com/hashicorp/terraform/backend/remote-state/s3"
+	backendDynamoDB "github.com/hashicorp/terraform/backend/remote-state/dynamodb"
 	backendSwift "github.com/hashicorp/terraform/backend/remote-state/swift"
 )
 
@@ -66,6 +67,7 @@ func Init(services *disco.Disco) {
 		"oss":         func() backend.Backend { return backendOSS.New() },
 		"pg":          func() backend.Backend { return backendPg.New() },
 		"s3":          func() backend.Backend { return backendS3.New() },
+		"dynamodb":    func() backend.Backend { return backendDynamoDB.New() },
 		"swift":       func() backend.Backend { return backendSwift.New() },
 
 		// Deprecated backends.

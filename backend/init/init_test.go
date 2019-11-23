@@ -24,6 +24,7 @@ func TestInit_backend(t *testing.T) {
 		{"manta", "*manta.Backend"},
 		{"pg", "*pg.Backend"},
 		{"s3", "*s3.Backend"},
+		{"dynamodb", "*dynamodb.Backend"},
 		{"swift", "*swift.Backend"},
 		{"azure", "init.deprecatedBackendShim"},
 	}
