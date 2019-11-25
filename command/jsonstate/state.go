@@ -101,9 +101,10 @@ type resource struct {
 type attributeValues map[string]interface{}
 
 func marshalAttributeValues(value cty.Value, schema *configschema.Block) attributeValues {
-	if value == cty.NilVal {
+	if value == cty.NilVal || value.IsNull() {
 		return nil
 	}
+
 	ret := make(attributeValues)
 
 	it := value.ElementIterator()
