@@ -16,8 +16,12 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/mitchellh/go-linereader"
+	linereader "github.com/mitchellh/go-linereader"
 )
+
+type Params struct {
+	habService Service
+}
 
 type provisioner struct {
 	Version          string
@@ -40,19 +44,19 @@ type provisioner struct {
 	URL              string
 	Channel          string
 	Events           string
+	OverrideName     string
 	Organization     string
 	GatewayAuthToken string
 	BuilderAuthToken string
 	SupOptions       string
 	AcceptLicense    bool
+	osType           string
 
 	installHabitat      provisionFn
 	startHabitat        provisionFn
 	uploadRingKey       provisionFn
 	uploadCtlSecret     provisionFn
 	startHabitatService provisionServiceFn
-
-	osType string
 }
 
 type provisionFn func(terraform.UIOutput, communicator.Communicator) error
@@ -169,6 +173,10 @@ func Provisioner() terraform.ResourceProvisioner {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"override_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"service": &schema.Schema{
 				Type: schema.TypeSet,
 				Elem: &schema.Resource{
@@ -248,6 +256,10 @@ func Provisioner() terraform.ResourceProvisioner {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
+						"override_name": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
 						"service_key": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
@@ -290,9 +302,12 @@ func applyFn(ctx context.Context) error {
 		p.startHabitat = p.linuxStartHabitat
 		p.startHabitatService = p.linuxStartHabitatService
 	case "windows":
-		return fmt.Errorf("windows is not supported yet for the habitat provisioner")
+		p.installHabitat = p.winInstallHabitat
+		p.startHabitatService = p.winStartHabService
+		p.startHabitat = p.winStartHabitat
+
 	default:
-		return fmt.Errorf("unsupported os type: %s", p.osType)
+		return fmt.Errorf("Unsupported os type: %s", p.osType)
 	}
 
 	// Get a new communicator
@@ -317,29 +332,30 @@ func applyFn(ctx context.Context) error {
 	if !p.SkipInstall {
 		o.Output("Installing habitat...")
 		if err := p.installHabitat(o, comm); err != nil {
+			o.Output("Error installing habitat...")
 			return err
 		}
 	}
 
-	if p.RingKeyContent != "" {
-		o.Output("Uploading supervisor ring key...")
-		if err := p.uploadRingKey(o, comm); err != nil {
-			return err
+	if p.osType != "windows" { //ToDo: remove this after adding similar for Win
+
+		if p.RingKeyContent != "" {
+			o.Output("Uploading supervisor ring key...")
+			if err := p.uploadRingKey(o, comm); err != nil {
+				return err
+			}
+		}
+		if p.CtlSecret != "" {
+			o.Output("Uploading ctl secret...")
+			if err := p.uploadCtlSecret(o, comm); err != nil {
+				return err
+			}
 		}
 	}
-
-	if p.CtlSecret != "" {
-		o.Output("Uploading ctl secret...")
-		if err := p.uploadCtlSecret(o, comm); err != nil {
-			return err
-		}
-	}
-
 	o.Output("Starting the habitat supervisor...")
 	if err := p.startHabitat(o, comm); err != nil {
 		return err
 	}
-
 	if p.Services != nil {
 		for _, service := range p.Services {
 			o.Output("Starting service: " + service.Name)
@@ -348,7 +364,6 @@ func applyFn(ctx context.Context) error {
 			}
 		}
 	}
-
 	return nil
 }
 
@@ -405,6 +420,7 @@ type Service struct {
 	UserTOML        string
 	AppName         string
 	Environment     string
+	OverrideName    string
 	ServiceGroupKey string
 }
 
@@ -448,6 +464,7 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 		URL:              d.Get("url").(string),
 		Channel:          d.Get("channel").(string),
 		Events:           d.Get("events").(string),
+		OverrideName:     d.Get("override_name").(string),
 		Organization:     d.Get("organization").(string),
 		BuilderAuthToken: d.Get("builder_auth_token").(string),
 		GatewayAuthToken: d.Get("gateway_auth_token").(string),
@@ -476,6 +493,7 @@ func getServices(v []interface{}) []Service {
 		url := (serviceData["url"].(string))
 		app := (serviceData["application"].(string))
 		env := (serviceData["environment"].(string))
+		override := (serviceData["override_name"].(string))
 		userToml := (serviceData["user_toml"].(string))
 		serviceGroupKey := (serviceData["service_key"].(string))
 		var bindStrings []string
@@ -500,6 +518,7 @@ func getServices(v []interface{}) []Service {
 			Binds:           binds,
 			AppName:         app,
 			Environment:     env,
+			OverrideName:    override,
 			ServiceGroupKey: serviceGroupKey,
 		}
 		services = append(services, service)
@@ -547,7 +566,7 @@ func (p *provisioner) runCommand(o terraform.UIOutput, comm communicator.Communi
 	}
 
 	if err := comm.Start(cmd); err != nil {
-		return fmt.Errorf("error executing command %q: %v", cmd.Command, err)
+		return fmt.Errorf("Error executing command %q: %v", cmd.Command, err)
 	}
 
 	if err := cmd.Wait(); err != nil {
@@ -566,7 +585,7 @@ func getBindFromString(bind string) (Bind, error) {
 		return false
 	})
 	if len(t) != 3 {
-		return Bind{}, errors.New("invalid bind specification: " + bind)
+		return Bind{}, errors.New("Invalid bind specification: " + bind)
 	}
 	return Bind{Alias: t[0], Service: t[1], Group: t[2]}, nil
 }

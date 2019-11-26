@@ -4,16 +4,18 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/terraform/communicator"
-	"github.com/hashicorp/terraform/terraform"
 	"path"
 	"path/filepath"
 	"strings"
 	"text/template"
+
+	"github.com/hashicorp/terraform/communicator"
+	"github.com/hashicorp/terraform/terraform"
 )
 
-const installURL = "https://raw.githubusercontent.com/habitat-sh/habitat/master/components/hab/install.sh"
-const systemdUnit = `[Unit]
+const linuxInstallURL = "https://raw.githubusercontent.com/habitat-sh/habitat/master/components/hab/install.sh"
+const systemdUnit = `
+[Unit]
 Description=Habitat Supervisor
 
 [Service]
@@ -32,7 +34,7 @@ WantedBy=default.target
 
 func (p *provisioner) linuxInstallHabitat(o terraform.UIOutput, comm communicator.Communicator) error {
 	// Download the hab installer
-	if err := p.runCommand(o, comm, p.linuxGetCommand(fmt.Sprintf("curl --silent -L0 %s > install.sh", installURL))); err != nil {
+	if err := p.runCommand(o, comm, p.linuxGetCommand(fmt.Sprintf("curl --silent -L0 %s > install.sh", linuxInstallURL))); err != nil {
 		return err
 	}
 
@@ -152,6 +154,10 @@ func (p *provisioner) linuxStartHabitat(o terraform.UIOutput, comm communicator.
 		options += fmt.Sprintf(" --events %s", p.Events)
 	}
 
+	if p.OverrideName != "" {
+		options += fmt.Sprintf(" --override-name %s", p.OverrideName)
+	}
+
 	if p.Organization != "" {
 		options += fmt.Sprintf(" --org %s", p.Organization)
 	}
@@ -173,7 +179,7 @@ func (p *provisioner) linuxStartHabitat(o terraform.UIOutput, comm communicator.
 	case "systemd":
 		return p.linuxStartHabitatSystemd(o, comm, options)
 	default:
-		return errors.New("unsupported service type")
+		return errors.New("Unsupported service type")
 	}
 }
 
@@ -189,7 +195,7 @@ func (p *provisioner) linuxStartHabitatUnmanaged(o terraform.UIOutput, comm comm
 
 	// Set HAB_AUTH_TOKEN if provided
 	if p.BuilderAuthToken != "" {
-		token = fmt.Sprintf("env HAB_AUTH_TOKEN=%s ", p.BuilderAuthToken)
+		token = fmt.Sprintf("env HAB_AUTH_TOKEN=%s", p.BuilderAuthToken)
 	}
 
 	return p.runCommand(o, comm, p.linuxGetCommand(fmt.Sprintf("(%ssetsid hab sup run%s > /hab/sup/default/sup.log 2>&1 <&1 &) ; sleep 1", token, options)))
@@ -261,7 +267,7 @@ func (p *provisioner) linuxStartHabitatService(o terraform.UIOutput, comm commun
 	if err := p.linuxInstallHabitatPackage(o, comm, service); err != nil {
 		return err
 	}
-	if err := p.uploadUserTOML(o, comm, service); err != nil {
+	if err := p.linuxUploadUserTOML(o, comm, service); err != nil {
 		return err
 	}
 
@@ -335,7 +341,7 @@ func (p *provisioner) uploadServiceGroupKey(o terraform.UIOutput, comm communica
 	return comm.Upload(destPath, keyContent)
 }
 
-func (p *provisioner) uploadUserTOML(o terraform.UIOutput, comm communicator.Communicator, service Service) error {
+func (p *provisioner) linuxUploadUserTOML(o terraform.UIOutput, comm communicator.Communicator, service Service) error {
 	// Create the hab svc directory to lay down the user.toml before loading the service
 	o.Output("Uploading user.toml for service: " + service.Name)
 	destDir := fmt.Sprintf("/hab/user/%s/config", service.getPackageName(service.Name))
@@ -355,6 +361,7 @@ func (p *provisioner) uploadUserTOML(o terraform.UIOutput, comm communicator.Com
 	}
 
 	return comm.Upload(path.Join(destDir, "user.toml"), userToml)
+
 }
 
 func (p *provisioner) linuxGetCommand(command string) string {

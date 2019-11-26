@@ -3,6 +3,7 @@ package habitat
 import (
 	"testing"
 
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -44,6 +45,7 @@ func TestResourceProvisioner_Validate_bad(t *testing.T) {
 	if len(warn) > 0 {
 		t.Fatalf("Warnings: %v", warn)
 	}
+
 	// 3 errors, bad service_type, bad url, missing accept_license
 	if len(errs) != 3 {
 		t.Fatalf("Should have three errors, got %d", len(errs))
@@ -87,5 +89,10 @@ func TestResourceProvisioner_Validate_bad_service_definition(t *testing.T) {
 }
 
 func testConfig(t *testing.T, c map[string]interface{}) *terraform.ResourceConfig {
-	return terraform.NewResourceConfigRaw(c)
+	r, err := config.NewRawConfig(c)
+	if err != nil {
+		t.Fatalf("config error: %s", err)
+	}
+
+	return terraform.NewResourceConfig(r)
 }
