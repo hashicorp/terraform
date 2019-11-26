@@ -44,7 +44,7 @@ func TestContext2Input_provider(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/aws": testProviderFuncFixed(p),
 			},
 		),
 		UIInput: inp,
@@ -115,7 +115,7 @@ func TestContext2Input_providerMulti(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/aws": testProviderFuncFixed(p),
 			},
 		),
 		UIInput: inp,
@@ -160,7 +160,7 @@ func TestContext2Input_providerOnce(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/aws": testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -216,7 +216,7 @@ func TestContext2Input_providerId(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/aws": testProviderFuncFixed(p),
 			},
 		),
 		UIInput: input,
@@ -281,7 +281,7 @@ func TestContext2Input_providerOnly(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/aws": testProviderFuncFixed(p),
 			},
 		),
 		Variables: InputValues{
@@ -337,7 +337,7 @@ func TestContext2Input_providerVars(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/aws": testProviderFuncFixed(p),
 			},
 		),
 		Variables: InputValues{
@@ -390,7 +390,7 @@ func TestContext2Input_providerVarsModuleInherit(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/aws": testProviderFuncFixed(p),
 			},
 		),
 		UIInput: input,
@@ -422,7 +422,7 @@ func TestContext2Input_submoduleTriggersInvalidCount(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/aws": testProviderFuncFixed(p),
 			},
 		),
 		UIInput: input,
@@ -486,7 +486,7 @@ func TestContext2Input_dataSourceRequiresRefresh(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"null": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/null": testProviderFuncFixed(p),
 			},
 		),
 		State:   state,

@@ -236,8 +236,10 @@ func ResourceProviderResolverFixed(factories map[string]ResourceProviderFactory)
 		ret := make(map[string]ResourceProviderFactory, len(reqd))
 		var errs []error
 		for name := range reqd {
-			if factory, exists := factories[name]; exists {
-				ret[name] = factory
+			// Provider Source Readiness!
+			fqn := shimProviderFqn(name)
+			if factory, exists := factories[fqn]; exists {
+				ret[fqn] = factory
 			} else {
 				errs = append(errs, fmt.Errorf("provider %q is not available", name))
 			}
@@ -317,3 +319,7 @@ Terraform automatically discovers provider requirements from your
 configuration, including providers used in child modules. To see the
 requirements and constraints from each module, run "terraform providers".
 `
+
+func shimProviderFqn(typeName string) string {
+	return "registry.terraform.io/hashicorp/" + typeName
+}

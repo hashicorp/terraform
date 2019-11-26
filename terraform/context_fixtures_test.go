@@ -53,7 +53,7 @@ func contextFixtureApplyVars(t *testing.T) *contextTestFixture {
 		Config: c,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/aws": testProviderFuncFixed(p),
 			},
 		),
 	}
@@ -81,7 +81,7 @@ func contextFixtureApplyVarsEnv(t *testing.T) *contextTestFixture {
 		Config: c,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/aws": testProviderFuncFixed(p),
 			},
 		),
 	}

@@ -46,7 +46,7 @@ func TestContext2Refresh(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/aws": testProviderFuncFixed(p),
 			},
 		),
 		State: startingState,
@@ -133,7 +133,7 @@ func TestContext2Refresh_dynamicAttr(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"test": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/test": testProviderFuncFixed(p),
 			},
 		),
 		State: startingState,
@@ -169,7 +169,7 @@ func TestContext2Refresh_dataComputedModuleVar(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/aws": testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -260,7 +260,7 @@ func TestContext2Refresh_targeted(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/aws": testProviderFuncFixed(p),
 			},
 		),
 		State: MustShimLegacyState(&State{
@@ -343,7 +343,7 @@ func TestContext2Refresh_targetedCount(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/aws": testProviderFuncFixed(p),
 			},
 		),
 		State: MustShimLegacyState(&State{
@@ -436,7 +436,7 @@ func TestContext2Refresh_targetedCountIndex(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/aws": testProviderFuncFixed(p),
 			},
 		),
 		State: MustShimLegacyState(&State{
@@ -505,7 +505,7 @@ func TestContext2Refresh_moduleComputedVar(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/aws": testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -524,7 +524,7 @@ func TestContext2Refresh_delete(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/aws": testProviderFuncFixed(p),
 			},
 		),
 		State: MustShimLegacyState(&State{
@@ -567,7 +567,7 @@ func TestContext2Refresh_ignoreUncreated(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/aws": testProviderFuncFixed(p),
 			},
 		),
 		State: nil,
@@ -598,7 +598,7 @@ func TestContext2Refresh_hook(t *testing.T) {
 		Hooks:  []Hook{h},
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/aws": testProviderFuncFixed(p),
 			},
 		),
 		State: MustShimLegacyState(&State{
@@ -664,7 +664,7 @@ func TestContext2Refresh_modules(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/aws": testProviderFuncFixed(p),
 			},
 		),
 		State: state,
@@ -726,7 +726,7 @@ func TestContext2Refresh_moduleInputComputedOutput(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/aws": testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -744,7 +744,7 @@ func TestContext2Refresh_moduleVarModule(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/aws": testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -762,7 +762,7 @@ func TestContext2Refresh_noState(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/aws": testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -804,7 +804,7 @@ func TestContext2Refresh_output(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/aws": testProviderFuncFixed(p),
 			},
 		),
 		State: MustShimLegacyState(&State{
@@ -880,7 +880,7 @@ func TestContext2Refresh_outputPartial(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/aws": testProviderFuncFixed(p),
 			},
 		),
 		State: MustShimLegacyState(&State{
@@ -935,7 +935,7 @@ func TestContext2Refresh_stateBasic(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/aws": testProviderFuncFixed(p),
 			},
 		),
 		State: state,
@@ -1010,7 +1010,7 @@ func TestContext2Refresh_dataCount(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"test": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/test": testProviderFuncFixed(p),
 			},
 		),
 		Config: m,
@@ -1056,7 +1056,7 @@ func TestContext2Refresh_dataOrphan(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"null": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/null": testProviderFuncFixed(p),
 			},
 		),
 		State: state,
@@ -1106,7 +1106,7 @@ func TestContext2Refresh_dataState(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"null": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/null": testProviderFuncFixed(p),
 			},
 		),
 		State: state,
@@ -1213,7 +1213,7 @@ func TestContext2Refresh_dataStateRefData(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"null": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/null": testProviderFuncFixed(p),
 			},
 		),
 		State: state,
@@ -1264,7 +1264,7 @@ func TestContext2Refresh_tainted(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/aws": testProviderFuncFixed(p),
 			},
 		),
 		State: state,
@@ -1361,7 +1361,7 @@ func TestContext2Refresh_vars(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/aws": testProviderFuncFixed(p),
 			},
 		),
 		State: MustShimLegacyState(&State{
@@ -1523,7 +1523,7 @@ func TestContext2Refresh_orphanModule(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/aws": testProviderFuncFixed(p),
 			},
 		),
 		State: state,
@@ -1568,7 +1568,7 @@ func TestContext2Validate(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/aws": testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -1631,7 +1631,7 @@ func TestContext2Refresh_noDiffHookOnScaleOut(t *testing.T) {
 		Hooks:  []Hook{h},
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/aws": testProviderFuncFixed(p),
 			},
 		),
 		State: state,
@@ -1679,7 +1679,7 @@ func TestContext2Refresh_updateProviderInState(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/aws": testProviderFuncFixed(p),
 			},
 		),
 		State: s,
@@ -1747,7 +1747,7 @@ func TestContext2Refresh_schemaUpgradeFlatmap(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"test": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/test": testProviderFuncFixed(p),
 			},
 		),
 		State: s,
@@ -1830,7 +1830,7 @@ func TestContext2Refresh_schemaUpgradeJSON(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"test": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/test": testProviderFuncFixed(p),
 			},
 		),
 		State: s,
@@ -1890,7 +1890,7 @@ data "aws_data_source" "foo" {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/aws": testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -1953,7 +1953,7 @@ func TestContext2Refresh_dataResourceDependsOn(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"test": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/test": testProviderFuncFixed(p),
 			},
 		),
 		State: s,
@@ -2027,7 +2027,7 @@ resource "aws_instance" "foo" {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+				"registry.terraform.io/hashicorp/aws": testProviderFuncFixed(p),
 			},
 		),
 		State: state,

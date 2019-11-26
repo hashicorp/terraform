@@ -50,7 +50,8 @@ func (c *basicComponentFactory) ResourceProvisioners() []string {
 }
 
 func (c *basicComponentFactory) ResourceProvider(typ, uid string) (providers.Interface, error) {
-	f, ok := c.providers[typ]
+	fqn := shimProviderFqn(typ)
+	f, ok := c.providers[fqn]
 	if !ok {
 		return nil, fmt.Errorf("unknown provider %q", typ)
 	}
