@@ -34,7 +34,8 @@ type basicComponentFactory struct {
 func (c *basicComponentFactory) ResourceProviders() []string {
 	result := make([]string, len(c.providers))
 	for k := range c.providers {
-		result = append(result, k)
+		typeName := shimProviderFqn(k)
+		result = append(result, typeName)
 	}
 
 	return result
@@ -50,7 +51,8 @@ func (c *basicComponentFactory) ResourceProvisioners() []string {
 }
 
 func (c *basicComponentFactory) ResourceProvider(typ, uid string) (providers.Interface, error) {
-	f, ok := c.providers[typ]
+	fqn := shimProviderFqn(typ)
+	f, ok := c.providers[fqn]
 	if !ok {
 		return nil, fmt.Errorf("unknown provider %q", typ)
 	}

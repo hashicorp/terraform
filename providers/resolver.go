@@ -39,8 +39,9 @@ func ResolverFixed(factories map[string]Factory) Resolver {
 		ret := make(map[string]Factory, len(reqd))
 		var errs []error
 		for name := range reqd {
-			if factory, exists := factories[name]; exists {
-				ret[name] = factory
+			fqn := shimProviderFqn(name)
+			if factory, exists := factories[fqn]; exists {
+				ret[fqn] = factory
 			} else {
 				errs = append(errs, fmt.Errorf("provider %q is not available", name))
 			}
@@ -109,4 +110,9 @@ func ProviderHasDataSource(provider Interface, dataSourceName string) bool {
 
 	_, exists := resp.DataSources[dataSourceName]
 	return exists
+}
+
+// Provider Source readiness helper function!
+func shimProviderFqn(typeName string) string {
+	return "registry.terraform.io/hashicorp/" + typeName
 }

@@ -167,7 +167,6 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 			reqd.LockExecutables(opts.ProviderSHA256s)
 		}
 		log.Printf("[TRACE] terraform.NewContext: resolving provider version selections")
-
 		var providerDiags tfdiags.Diagnostics
 		providerFactories, providerDiags = resourceProviderFactories(opts.ProviderResolver, reqd)
 		diags = diags.Append(providerDiags)

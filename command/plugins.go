@@ -64,12 +64,13 @@ func (r *multiVersionProviderResolver) ResolveProviders(
 
 	chosen := choosePlugins(r.Available, r.Internal, reqd)
 	for name, req := range reqd {
+		fqn := shimProviderFqn(name)
 		if factory, isInternal := r.Internal[name]; isInternal {
 			if !req.Versions.Unconstrained() {
 				errs = append(errs, fmt.Errorf("provider.%s: this provider is built in to Terraform and so it does not support version constraints", name))
 				continue
 			}
-			factories[name] = factory
+			factories[fqn] = factory
 			continue
 		}
 
@@ -84,7 +85,7 @@ func (r *multiVersionProviderResolver) ResolveProviders(
 				continue
 			}
 
-			factories[name] = providerFactory(newest)
+			factories[fqn] = providerFactory(newest)
 		} else {
 			msg := fmt.Sprintf("provider.%s: no suitable version installed", name)
 
@@ -419,4 +420,9 @@ func newProvisionerClient(client *plugin.Client) (provisioners.Interface, error)
 	p := raw.(*tfplugin.GRPCProvisioner)
 	p.PluginClient = client
 	return p, nil
+}
+
+// Provider Source readiness helper function
+func shimProviderFqn(typeName string) string {
+	return "registry.terraform.io/hashicorp/" + typeName
 }

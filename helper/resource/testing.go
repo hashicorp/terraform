@@ -485,11 +485,12 @@ func Test(t TestT, c TestCase) {
 	// get instances of all providers, so we can use the individual
 	// resources to shim the state during the tests.
 	providers := make(map[string]terraform.ResourceProvider)
-	for name, pf := range testProviderFactories(c) {
+	for fqn, pf := range testProviderFactories(c) {
 		p, err := pf()
 		if err != nil {
 			t.Fatal(err)
 		}
+		name := shimProviderNameFromFqn(fqn)
 		providers[name] = p
 	}
 
@@ -1317,5 +1318,25 @@ func detailedErrorMessage(err error) string {
 		return tErr.ErrorDetail()
 	default:
 		return err.Error()
+	}
+}
+
+// provider source readiness helper function
+// only relevant for tests.
+func shimProviderNameFromFqn(str string) string {
+	if strings.Contains(str, "registry.terraform.io") {
+		parts := strings.Split(str, "/")
+		return parts[len(parts)-1]
+	} else {
+		return str
+	}
+}
+
+// Provider Source readiness helper function!
+func shimProviderFqn(str string) string {
+	if strings.Contains(str, "registry.terraform.io/hashicorp") {
+		return str
+	} else {
+		return "registry.terraform.io/hashicorp/" + str
 	}
 }

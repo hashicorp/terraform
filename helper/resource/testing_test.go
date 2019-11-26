@@ -1049,12 +1049,12 @@ func TestTestProviderResolver(t *testing.T) {
 
 	c := TestCase{
 		ProviderFactories: map[string]terraform.ResourceProviderFactory{
-			"foo": terraform.ResourceProviderFactoryFixed(stubProvider("foo")),
-			"bar": terraform.ResourceProviderFactoryFixed(stubProvider("bar")),
+			"registry.terraform.io/hashicorp/foo": terraform.ResourceProviderFactoryFixed(stubProvider("foo")),
+			"registry.terraform.io/hashicorp/bar": terraform.ResourceProviderFactoryFixed(stubProvider("bar")),
 		},
 		Providers: map[string]terraform.ResourceProvider{
-			"baz": stubProvider("baz"),
-			"bop": stubProvider("bop"),
+			"registry.terraform.io/hashicorp/baz": stubProvider("baz"),
+			"registry.terraform.io/hashicorp/bop": stubProvider("bop"),
 		},
 	}
 
@@ -1080,7 +1080,7 @@ func TestTestProviderResolver(t *testing.T) {
 
 	for name := range reqd {
 		t.Run(name, func(t *testing.T) {
-			pf, ok := factories[name]
+			pf, ok := factories[shimProviderFqn(name)]
 			if !ok {
 				t.Fatalf("no factory for %q", name)
 			}

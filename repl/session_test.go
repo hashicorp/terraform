@@ -212,7 +212,7 @@ func testSession(t *testing.T, test testSessionTest) {
 	ctx, diags := terraform.NewContext(&terraform.ContextOpts{
 		State: test.State,
 		ProviderResolver: providers.ResolverFixed(map[string]providers.Factory{
-			"test": providers.FactoryFixed(p),
+			"registry.terraform.io/hashicorp/test": providers.FactoryFixed(p),
 		}),
 		Config: config,
 	})
