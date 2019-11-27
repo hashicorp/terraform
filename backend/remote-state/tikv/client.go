@@ -121,7 +121,7 @@ func (c *RemoteClient) deleteLockInfo(info *state.LockInfo) error {
 	if err != nil {
 		return &state.LockError{Err: err}
 	}
-	err = tx.Delete([]byte(c.Key+lockInfoSuffix))
+	err = tx.Delete([]byte(c.Key + lockInfoSuffix))
 	if e := tx.Commit(context.TODO()); e != nil {
 		err = multierror.Append(err, e)
 	}
@@ -162,7 +162,7 @@ func (c *RemoteClient) lock() (string, error) {
 	}
 
 	resp, err := tx.Get(context.TODO(), []byte(c.Key+lockInfoSuffix))
-	if err != nil && !kv.IsErrNotFound(err){
+	if err != nil && !kv.IsErrNotFound(err) {
 		return "", &state.LockError{Err: err}
 	}
 	if resp != nil {
