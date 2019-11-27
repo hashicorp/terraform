@@ -59,7 +59,7 @@ _build() {
     cat > gen.generated.go <<EOF
 // +build codecgen.exec
 
-// Copyright (c) 2012-2015 Ugorji Nwoke. All rights reserved.
+// Copyright (c) 2012-2018 Ugorji Nwoke. All rights reserved.
 // Use of this source code is governed by a MIT license found in the LICENSE file.
 
 package codec
@@ -178,7 +178,8 @@ _clean() {
 _usage() {
     cat <<EOF
 primary usage: $0 
-    -[tmpfxnld] for [tests, make, prebuild (force) (external), inlining diagnostics, mid-stack inlining, race detector]
+    -[tmpfxnld]           -> [tests, make, prebuild (force) (external), inlining diagnostics, mid-stack inlining, race detector]
+    -v                    -> verbose
 EOF
     if [[ "$(type -t _usage_run)" = "function" ]]; then _usage_run ; fi
 }
@@ -188,23 +189,26 @@ _main() {
     local x
     unset zforce zexternal
     zargs=()
-    while getopts ":ctbqmnrgupfxlzd" flag
+    zbenchflags=""
+    OPTIND=1
+    while getopts ":ctmnrgupfvxlzdb:" flag
     do
         case "x$flag" in
             'xf') zforce=1 ;;
             'xx') zexternal=1 ;;
+            'xv') zverbose=1 ;;
             'xl') zargs+=("-gcflags"); zargs+=("-l=4") ;;
-            'xn') zargs+=("-gcflags"); zargs+=("-m") ;;
+            'xn') zargs+=("-gcflags"); zargs+=("-m=2") ;;
             'xd') zargs+=("-race") ;;
+            'xb') x='b'; zbenchflags=${OPTARG} ;;
             x\?) _usage; return 1 ;;
             *) x=$flag ;;
         esac
     done
     shift $((OPTIND-1))
+    # echo ">>>> _main: extra args: $@"
     case "x$x" in
         'xt') _tests "$@" ;;
-        'xq') _benchquick "$@" ;;
-        'xb') _bench "$@" ;;
         'xm') _make "$@" ;;
         'xr') _release "$@" ;;
         'xg') _go ;;
@@ -212,6 +216,7 @@ _main() {
         'xp') _prebuild "$@" ;;
         'xc') _clean "$@" ;;
         'xz') _analyze "$@" ;;
+        'xb') _bench "$@" ;;
     esac
     unset zforce zexternal 
 }

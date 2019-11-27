@@ -37,6 +37,7 @@ Rich Feature Set includes:
   - Careful selected use of 'unsafe' for targeted performance gains.
     100% mode exists where 'unsafe' is not used at all.
   - Lock-free (sans mutex) concurrency for scaling to 100's of cores
+  - In-place updates during decode, with option to zero the value in maps and slices prior to decode
   - Coerce types where appropriate
     e.g. decode an int in the stream into a float, decode numbers from formatted strings, etc
   - Corner Cases: 

@@ -1,0 +1,37 @@
+// Copyright 2018 PingCAP, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package codec
+
+import (
+	"github.com/pingcap/kvproto/pkg/metapb"
+)
+
+// DecodeRegionMetaKey translates a region meta from encoded form to unencoded form.
+func DecodeRegionMetaKey(r *metapb.Region) error {
+	if len(r.StartKey) != 0 {
+		_, decoded, err := DecodeBytes(r.StartKey)
+		if err != nil {
+			return err
+		}
+		r.StartKey = decoded
+	}
+	if len(r.EndKey) != 0 {
+		_, decoded, err := DecodeBytes(r.EndKey)
+		if err != nil {
+			return err
+		}
+		r.EndKey = decoded
+	}
+	return nil
+}

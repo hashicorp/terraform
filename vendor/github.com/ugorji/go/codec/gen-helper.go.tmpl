@@ -1,6 +1,6 @@
-/* // +build ignore */
+// comment this out // + build ignore
 
-// Copyright (c) 2012-2015 Ugorji Nwoke. All rights reserved.
+// Copyright (c) 2012-2018 Ugorji Nwoke. All rights reserved.
 // Use of this source code is governed by a MIT license found in the LICENSE file.
 
 // Code generated from gen-helper.go.tmpl - DO NOT EDIT.
@@ -52,7 +52,7 @@ func (x genHelperEncDriver) EncodeBuiltin(rt uintptr, v interface{}) {}
 func (x genHelperEncDriver) EncStructFieldKey(keyType valueType, s string) {
 	var m must
 	if keyType == valueTypeString {
-		x.encDriver.EncodeString(cUTF8, s)
+		x.encDriver.EncodeStringEnc(cUTF8, s)
 	} else if keyType == valueTypeInt {
 		x.encDriver.EncodeInt(m.Int(strconv.ParseInt(s, 10, 64)))
 	} else if keyType == valueTypeUint {
@@ -63,7 +63,7 @@ func (x genHelperEncDriver) EncStructFieldKey(keyType valueType, s string) {
 	// encStructFieldKey(x.encDriver, keyType, s)
 }
 func (x genHelperEncDriver) EncodeSymbol(s string) {
-	x.encDriver.EncodeString(cUTF8, s)
+	x.encDriver.EncodeStringEnc(cUTF8, s)
 }
 
 type genHelperDecDriver struct {
@@ -131,17 +131,17 @@ func (f genHelperEncoder) EncFallback(iv interface{}) {
 // FOR USE BY CODECGEN ONLY. IT *WILL* CHANGE WITHOUT NOTICE. *DO NOT USE*
 func (f genHelperEncoder) EncTextMarshal(iv encoding.TextMarshaler) {
 	bs, fnerr := iv.MarshalText()
-	f.e.marshal(bs, fnerr, false, cUTF8)
+	f.e.marshalUtf8(bs, fnerr)
 }
 // FOR USE BY CODECGEN ONLY. IT *WILL* CHANGE WITHOUT NOTICE. *DO NOT USE*
 func (f genHelperEncoder) EncJSONMarshal(iv jsonMarshaler) {
 	bs, fnerr := iv.MarshalJSON()
-	f.e.marshal(bs, fnerr, true, cUTF8)
+	f.e.marshalAsis(bs, fnerr)
 }
 // FOR USE BY CODECGEN ONLY. IT *WILL* CHANGE WITHOUT NOTICE. *DO NOT USE*
 func (f genHelperEncoder) EncBinaryMarshal(iv encoding.BinaryMarshaler) {
 	bs, fnerr := iv.MarshalBinary()
-	f.e.marshal(bs, fnerr, false, cRAW)
+	f.e.marshalRaw(bs, fnerr)
 }
 // FOR USE BY CODECGEN ONLY. IT *WILL* CHANGE WITHOUT NOTICE. *DO NOT USE*
 func (f genHelperEncoder) EncRaw(iv Raw) { f.e.rawBytes(iv) }

@@ -104,7 +104,7 @@ require (
 	github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a // indirect
 	github.com/spf13/afero v1.2.1
 	github.com/terraform-providers/terraform-provider-openstack v1.15.0
-	github.com/tikv/client-go v0.0.0-20191101034946-a72c652ef3f8 // indirect
+	github.com/tikv/client-go v0.0.0-20191101034946-a72c652ef3f8
 	github.com/vmihailenco/msgpack v4.0.1+incompatible // indirect
 	github.com/xanzy/ssh-agent v0.2.1
 	github.com/xlab/treeprint v0.0.0-20161029104018-1d6e34225557
