@@ -550,6 +550,7 @@ func TestResourceChange_JSON(t *testing.T) {
       ~ json_field = jsonencode(
           ~ {
               + bbb = "new_value"
+                ... = ...
             }
         )
     }
@@ -663,6 +664,7 @@ func TestResourceChange_JSON(t *testing.T) {
                   ~ {
                       ~ foo = "bar" -> "baz"
                     },
+                    ...
                 ]
             }
         )
@@ -707,6 +709,7 @@ func TestResourceChange_JSON(t *testing.T) {
       ~ json_field = jsonencode(
           ~ {
               + bbb = "new_value"
+                ... = ...
             } # forces replacement
         )
     }
@@ -838,6 +841,7 @@ func TestResourceChange_JSON(t *testing.T) {
       ~ json_field = jsonencode(
           ~ [
               - "third",
+                ...
             ]
         )
     }
@@ -880,6 +884,7 @@ func TestResourceChange_JSON(t *testing.T) {
       ~ json_field = jsonencode(
           ~ [
               + "third",
+                ...
             ]
         )
     }
@@ -921,6 +926,7 @@ func TestResourceChange_JSON(t *testing.T) {
       ~ json_field = jsonencode(
           ~ {
               + second = "222"
+                ...    = ...
             }
         )
     }
@@ -969,6 +975,7 @@ func TestResourceChange_JSON(t *testing.T) {
           ~ {
               ~ Statement = [
                   + "second",
+                    ...
                 ]
             }
         )
@@ -1017,6 +1024,7 @@ func TestResourceChange_JSON(t *testing.T) {
               + {
                   + two = "222"
                 },
+                ...
             ]
         )
     }
@@ -1067,6 +1075,7 @@ func TestResourceChange_JSON(t *testing.T) {
               - {
                   - two = "222"
                 },
+                ...
             ]
         )
     }
@@ -1117,6 +1126,7 @@ func TestResourceChange_JSON(t *testing.T) {
                   + {
                       + two = "222"
                     },
+                    ...
                 ]
             }
         )
@@ -1168,6 +1178,7 @@ func TestResourceChange_JSON(t *testing.T) {
                   ~ {
                       ~ another_list = [
                           + "222",
+                            ...
                         ]
                     },
                 ]
@@ -1351,6 +1362,7 @@ func TestResourceChange_primitiveList(t *testing.T) {
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
       ~ list_field = [
           + "bbbb",
+            ...
         ]
     }
 `,
@@ -1402,6 +1414,7 @@ func TestResourceChange_primitiveList(t *testing.T) {
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
       ~ list_field = [ # forces replacement
           + "bbbb",
+            ...
         ]
     }
 `,
@@ -1451,6 +1464,7 @@ func TestResourceChange_primitiveList(t *testing.T) {
       ~ list_field = [
           - "aaaa",
           - "cccc",
+            ...
         ]
     }
 `,
@@ -1613,6 +1627,7 @@ func TestResourceChange_primitiveList(t *testing.T) {
       ~ list_field = [
           - "bbbb",
           + (known after apply),
+            ...
         ]
     }
 `,
@@ -1668,6 +1683,7 @@ func TestResourceChange_primitiveList(t *testing.T) {
           - "bbbb",
           + (known after apply),
           + (known after apply),
+            ...
         ]
     }
 `,
@@ -1807,6 +1823,7 @@ func TestResourceChange_primitiveSet(t *testing.T) {
       ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
       ~ set_field = [
           + "bbbb",
+            ...
         ]
     }
 `,
@@ -1858,6 +1875,7 @@ func TestResourceChange_primitiveSet(t *testing.T) {
       ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
       ~ set_field = [ # forces replacement
           + "bbbb",
+            ...
         ]
     }
 `,
@@ -1907,6 +1925,7 @@ func TestResourceChange_primitiveSet(t *testing.T) {
       ~ set_field = [
           - "aaaa",
           - "cccc",
+            ...
         ]
     }
 `,
@@ -2107,6 +2126,7 @@ func TestResourceChange_primitiveSet(t *testing.T) {
       ~ set_field = [
           - "bbbb",
           ~ (known after apply),
+            ...
         ]
     }
 `,
@@ -2246,6 +2266,7 @@ func TestResourceChange_map(t *testing.T) {
       ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
       ~ map_field = {
           + "b" = "bbbb"
+            ... = ...
         }
     }
 `,
@@ -2297,6 +2318,7 @@ func TestResourceChange_map(t *testing.T) {
       ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
       ~ map_field = { # forces replacement
           + "b" = "bbbb"
+            ... = ...
         }
     }
 `,
@@ -2346,6 +2368,7 @@ func TestResourceChange_map(t *testing.T) {
       ~ map_field = {
           - "a" = "aaaa" -> null
           - "c" = "cccc" -> null
+            ... = ...
         }
     }
 `,
@@ -2422,6 +2445,7 @@ func TestResourceChange_map(t *testing.T) {
       ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
       ~ map_field = {
           ~ "b" = "bbbb" -> (known after apply)
+            ... = ...
         }
     }
 `,
@@ -3611,6 +3635,113 @@ func TestResourceChange_nestedMap(t *testing.T) {
       ~ list {
           ~ attr = "y" -> "z"
         }
+    }
+`,
+		},
+	}
+	runTestCases(t, testCases)
+}
+
+func TestResourceChange_complex(t *testing.T) {
+	testCases := map[string]testCase{
+		"complex diff with suppressed elements": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":         cty.StringVal("i-02ae66f368e8518a9"),
+				"ami":        cty.StringVal("ami-BEFORE"),
+				"json_field": cty.StringVal(`[{"one": "111", "two": "222", "three": "333"}, {"key": "val", "foo": "bar"}, {"letters": ["a", "b", "c"]}, [1, 2, 3], "foo"]`),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":         cty.StringVal("i-02ae66f368e8518a9"),
+				"ami":        cty.StringVal("ami-AFTER"),
+				"json_field": cty.StringVal(`[{"two": "2", "three": "333", "four": "444"}, {"key": "new", "foo": "foobar"}, {"letters": ["a", "c", "d"]}, [4, 5, 6], "foo", "bar"]`),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":         {Type: cty.String, Optional: true},
+					"ami":        {Type: cty.String, Optional: true},
+					"json_field": {Type: cty.String, Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ ami        = "ami-BEFORE" -> "ami-AFTER"
+        id         = "i-02ae66f368e8518a9"
+      ~ json_field = jsonencode(
+          ~ [
+              ~ {
+                  + four  = "444"
+                  - one   = "111" -> null
+                    three = "333"
+                  ~ two   = "222" -> "2"
+                },
+              ~ {
+                  ~ foo = "bar" -> "foobar"
+                  ~ key = "val" -> "new"
+                },
+              ~ {
+                  ~ letters = [
+                        "a",
+                      - "b",
+                        "c",
+                      + "d",
+                    ]
+                },
+              - [
+                  - 1,
+                  - 2,
+                  - 3,
+                ],
+              + [
+                  + 4,
+                  + 5,
+                  + 6,
+                ],
+                "foo",
+              + "bar",
+            ]
+        )
+    }
+`,
+			ExpectedConciseOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ ami        = "ami-BEFORE" -> "ami-AFTER"
+      ~ json_field = jsonencode(
+          ~ [
+              ~ {
+                  + four  = "444"
+                  - one   = "111" -> null
+                  ~ two   = "222" -> "2"
+                    ...   = ...
+                },
+              ~ {
+                  ~ foo = "bar" -> "foobar"
+                  ~ key = "val" -> "new"
+                },
+              ~ {
+                  ~ letters = [
+                      - "b",
+                      + "d",
+                        ...
+                    ]
+                },
+              - [
+                  - 1,
+                  - 2,
+                  - 3,
+                ],
+              + [
+                  + 4,
+                  + 5,
+                  + 6,
+                ],
+              + "bar",
+                ...
+            ]
+        )
     }
 `,
 		},

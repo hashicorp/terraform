@@ -782,6 +782,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 				removed = cty.SetValEmpty(ty.ElementType())
 			}
 
+			hasSuppressedElements := false
 			for it := all.ElementIterator(); it.Next(); {
 				_, val := it.Element()
 
@@ -798,6 +799,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 				}
 
 				if action == plans.NoOp && p.concise {
+					hasSuppressedElements = true
 					continue
 				}
 
@@ -805,6 +807,13 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 				p.writeActionSymbol(action)
 				p.writeValue(val, action, indent+4)
 				p.buf.WriteString(",\n")
+			}
+
+			if hasSuppressedElements {
+				p.writeActionSymbol(plans.NoOp)
+				p.buf.WriteString(strings.Repeat(" ", indent+2))
+				p.buf.WriteString("...")
+				p.buf.WriteString("\n")
 			}
 
 			p.buf.WriteString(strings.Repeat(" ", indent))
@@ -817,9 +826,11 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 			}
 			p.buf.WriteString("\n")
 
+			hasSuppressedElements := false
 			elemDiffs := ctySequenceDiff(old.AsValueSlice(), new.AsValueSlice())
 			for _, elemDiff := range elemDiffs {
 				if elemDiff.Action == plans.NoOp && p.concise {
+					hasSuppressedElements = true
 					continue
 				}
 
@@ -841,8 +852,16 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 				p.buf.WriteString(",\n")
 			}
 
+			if hasSuppressedElements {
+				p.writeActionSymbol(plans.NoOp)
+				p.buf.WriteString(strings.Repeat(" ", indent+2))
+				p.buf.WriteString("...")
+				p.buf.WriteString("\n")
+			}
+
 			p.buf.WriteString(strings.Repeat(" ", indent))
 			p.buf.WriteString("]")
+
 			return
 
 		case ty.IsMapType():
@@ -873,6 +892,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 
 			sort.Strings(allKeys)
 
+			hasSuppressedElements := false
 			lastK := ""
 			for i, k := range allKeys {
 				if i > 0 && lastK == k {
@@ -893,6 +913,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 				}
 
 				if action == plans.NoOp && p.concise {
+					hasSuppressedElements = true
 					continue
 				}
 
@@ -920,8 +941,21 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 				p.buf.WriteByte('\n')
 			}
 
+			if hasSuppressedElements {
+				p.buf.WriteString(strings.Repeat(" ", indent+2))
+				p.writeActionSymbol(plans.NoOp)
+				p.buf.WriteString("...")
+				if keyLen > 3 {
+					p.buf.WriteString(strings.Repeat(" ", keyLen-3))
+				}
+				p.buf.WriteString(" = ")
+				p.buf.WriteString("...")
+				p.buf.WriteString("\n")
+			}
+
 			p.buf.WriteString(strings.Repeat(" ", indent))
 			p.buf.WriteString("}")
+
 			return
 		case ty.IsObjectType():
 			p.buf.WriteString("{")
@@ -950,6 +984,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 
 			sort.Strings(allKeys)
 
+			hasSuppressedElements := false
 			lastK := ""
 			for i, k := range allKeys {
 				if i > 0 && lastK == k {
@@ -970,6 +1005,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 				}
 
 				if action == plans.NoOp && p.concise {
+					hasSuppressedElements = true
 					continue
 				}
 
@@ -995,6 +1031,18 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 					p.writeValueDiff(oldV, newV, indent+4, path)
 				}
 
+				p.buf.WriteString("\n")
+			}
+
+			if hasSuppressedElements {
+				p.buf.WriteString(strings.Repeat(" ", indent+2))
+				p.writeActionSymbol(plans.NoOp)
+				p.buf.WriteString("...")
+				if keyLen > 3 {
+					p.buf.WriteString(strings.Repeat(" ", keyLen-3))
+				}
+				p.buf.WriteString(" = ")
+				p.buf.WriteString("...")
 				p.buf.WriteString("\n")
 			}
 
