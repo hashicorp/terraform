@@ -23,6 +23,7 @@ import (
 	backendHTTP "github.com/hashicorp/terraform/backend/remote-state/http"
 	backendInmem "github.com/hashicorp/terraform/backend/remote-state/inmem"
 	backendManta "github.com/hashicorp/terraform/backend/remote-state/manta"
+	backendMySQL "github.com/hashicorp/terraform/backend/remote-state/mysql"
 	backendOSS "github.com/hashicorp/terraform/backend/remote-state/oss"
 	backendPg "github.com/hashicorp/terraform/backend/remote-state/pg"
 	backendS3 "github.com/hashicorp/terraform/backend/remote-state/s3"
@@ -65,6 +66,7 @@ func Init(services *disco.Disco) {
 		"http":        func() backend.Backend { return backendHTTP.New() },
 		"inmem":       func() backend.Backend { return backendInmem.New() },
 		"manta":       func() backend.Backend { return backendManta.New() },
+		"mysql":       func() backend.Backend { return backendMySQL.New() },
 		"oss":         func() backend.Backend { return backendOSS.New() },
 		"pg":          func() backend.Backend { return backendPg.New() },
 		"s3":          func() backend.Backend { return backendS3.New() },
