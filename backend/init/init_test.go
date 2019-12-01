@@ -23,6 +23,7 @@ func TestInit_backend(t *testing.T) {
 		{"inmem", "*inmem.Backend"},
 		{"manta", "*manta.Backend"},
 		{"pg", "*pg.Backend"},
+		{"mysql", "*mysql.Backend"},
 		{"s3", "*s3.Backend"},
 		{"swift", "*swift.Backend"},
 		{"azure", "init.deprecatedBackendShim"},
