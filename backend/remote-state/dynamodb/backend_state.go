@@ -15,6 +15,10 @@ import (
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/states"
+
+	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
+	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
 )
 
 func (b *Backend) Workspaces() ([]string, error) {
@@ -48,6 +52,55 @@ func (b *Backend) Workspaces() ([]string, error) {
 		}
 	}
 
+/* Dynamo DB */
+
+	type Item struct {
+	    StateID string
+	}
+
+	filt := expression.Name("StateID").Contains(prefix)
+	proj := expression.NamesList(expression.Name("StateID"))
+
+	expr, err := expression.NewBuilder().WithFilter(filt).WithProjection(proj).Build()
+	if err != nil {
+	    fmt.Println("Got error building expression:") // TO REMOVE
+	    fmt.Println(err.Error()) // TO REMOVE
+	    return nil, err
+	}
+
+	dyparams := &dynamodb.ScanInput{
+	    ExpressionAttributeNames:  expr.Names(),
+	    ExpressionAttributeValues: expr.Values(),
+	    FilterExpression:          expr.Filter(),
+	    ProjectionExpression:      expr.Projection(),
+	    TableName:                 aws.String("terraform-global-state"), // USE b.bucketName
+	}
+
+	// Make the DynamoDB Query API call
+	result, err := b.dynClient.Scan(dyparams)
+	if err != nil {
+	    fmt.Println("Query API call failed:")  // TO REMOVE
+	    fmt.Println((err.Error()))  // TO REMOVE
+	    return nil, err
+	}
+
+	for _, i := range result.Items {
+	    item := Item{}
+
+	    err = dynamodbattribute.UnmarshalMap(i, &item)
+
+	    if err != nil {
+	        fmt.Println("Got error unmarshalling:") // TO REMOVE
+	        fmt.Println(err.Error()) // TO REMOVE
+	        return nil, err
+	    }
+
+	    fmt.Println("StateID: ", item.StateID)
+	}
+
+/* Dynamo DB */
+
+
 	sort.Strings(wss[1:])
 	fmt.Println("workspaces in Workspaces function:", wss)
 	return wss, nil
@@ -68,7 +121,7 @@ func (b *Backend) keyEnv(key string) string {
 	}
 
 	// add a slash to treat this as a directory
-	prefix += ":"
+	prefix += "="
 
 	parts := strings.SplitAfterN(key, prefix, 2)
 	if len(parts) < 2 {
@@ -133,6 +186,8 @@ func (b *Backend) remoteClient(name string) (*RemoteClient, error) {
 }
 
 func (b *Backend) StateMgr(name string) (state.State, error) {
+	fmt.Println("name in StateMgr function:", name)
+
 	client, err := b.remoteClient(name)
 	if err != nil {
 		return nil, err
@@ -148,6 +203,7 @@ func (b *Backend) StateMgr(name string) (state.State, error) {
 	// exists, the user will have to use aws tools to manually fix the
 	// situation.
 	existing, err := b.Workspaces()
+	fmt.Println("existing in StateMgr function:", existing)
 	if err != nil {
 		return nil, err
 	}
