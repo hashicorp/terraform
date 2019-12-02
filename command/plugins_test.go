@@ -151,7 +151,7 @@ func (i *mockProviderInstaller) FileName(provider, version string) string {
 func (i *mockProviderInstaller) Get(provider addrs.ProviderType, req discovery.Constraints) (discovery.PluginMeta, tfdiags.Diagnostics, error) {
 	var diags tfdiags.Diagnostics
 	noMeta := discovery.PluginMeta{}
-	versions := i.Providers[provider.Name]
+	versions := i.Providers[provider.Type]
 	if len(versions) == 0 {
 		return noMeta, diags, fmt.Errorf("provider %q not found", provider)
 	}
@@ -169,7 +169,7 @@ func (i *mockProviderInstaller) Get(provider addrs.ProviderType, req discovery.C
 
 		if req.Allows(version) {
 			// provider filename
-			name := i.FileName(provider.Name, v)
+			name := i.FileName(provider.Type, v)
 			path := filepath.Join(i.Dir, name)
 			f, err := os.Create(path)
 			if err != nil {
@@ -177,7 +177,7 @@ func (i *mockProviderInstaller) Get(provider addrs.ProviderType, req discovery.C
 			}
 			f.Close()
 			return discovery.PluginMeta{
-				Name:    provider.Name,
+				Name:    provider.Type,
 				Version: discovery.VersionStr(v),
 				Path:    path,
 			}, diags, nil
@@ -201,7 +201,7 @@ func (i *mockProviderInstaller) PurgeUnused(map[string]discovery.PluginMeta) (di
 type callbackPluginInstaller func(provider string, req discovery.Constraints) (discovery.PluginMeta, tfdiags.Diagnostics, error)
 
 func (cb callbackPluginInstaller) Get(provider addrs.ProviderType, req discovery.Constraints) (discovery.PluginMeta, tfdiags.Diagnostics, error) {
-	return cb(provider.Name, req)
+	return cb(provider.Type, req)
 }
 
 func (cb callbackPluginInstaller) PurgeUnused(map[string]discovery.PluginMeta) (discovery.PluginMetaSet, error) {
