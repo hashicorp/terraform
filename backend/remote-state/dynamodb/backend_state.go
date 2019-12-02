@@ -21,6 +21,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
 )
 
+type Item struct {
+    StateID string
+}
+
 func (b *Backend) Workspaces() ([]string, error) {
 	prefix := ""
 
@@ -53,10 +57,6 @@ func (b *Backend) Workspaces() ([]string, error) {
 	}
 
 /* Dynamo DB */
-
-	type Item struct {
-	    StateID string
-	}
 
 	filt := expression.Name("StateID").Contains(prefix)
 	proj := expression.NamesList(expression.Name("StateID"))
@@ -120,7 +120,7 @@ func (b *Backend) keyEnv(key string) string {
 		}
 	}
 
-	// add a slash to treat this as a directory
+	// add a = (equal) to to follow convention workspace=<name>
 	prefix += "="
 
 	parts := strings.SplitAfterN(key, prefix, 2)
