@@ -550,7 +550,7 @@ func TestImport_providerNameMismatch(t *testing.T) {
 			testingOverrides: &testingOverrides{
 				ProviderResolver: providers.ResolverFixed(
 					map[string]providers.Factory{
-						"test-beta": providers.FactoryFixed(p),
+						"registry.terraform.io/hashicorp/test-beta": providers.FactoryFixed(p),
 					},
 				),
 			},

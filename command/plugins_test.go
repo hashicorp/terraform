@@ -51,7 +51,8 @@ func TestMultiVersionProviderResolver(t *testing.T) {
 		if ct := len(got); ct != 1 {
 			t.Errorf("wrong number of results %d; want 1", ct)
 		}
-		if _, exists := got["plugin"]; !exists {
+		fqn := shimProviderFqn("plugin")
+		if _, exists := got[fqn]; !exists {
 			t.Errorf("provider \"plugin\" not in result")
 		}
 	})
@@ -79,7 +80,8 @@ func TestMultiVersionProviderResolver(t *testing.T) {
 		if ct := len(got); ct != 1 {
 			t.Errorf("wrong number of results %d; want 1", ct)
 		}
-		if _, exists := got["internal"]; !exists {
+		fqn := shimProviderFqn("internal")
+		if _, exists := got[fqn]; !exists {
 			t.Errorf("provider \"internal\" not in result")
 		}
 	})

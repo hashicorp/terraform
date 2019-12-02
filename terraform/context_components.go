@@ -34,7 +34,8 @@ type basicComponentFactory struct {
 func (c *basicComponentFactory) ResourceProviders() []string {
 	result := make([]string, len(c.providers))
 	for k := range c.providers {
-		result = append(result, k)
+		typeName := shimProviderFqn(k)
+		result = append(result, typeName)
 	}
 
 	return result

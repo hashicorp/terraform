@@ -19,6 +19,6 @@ func TestProvider(t *testing.T) {
 func init() {
 	testAccProvider = Provider().(*schema.Provider)
 	testAccProviders = map[string]terraform.ResourceProvider{
-		"test": testAccProvider,
+		"registry.terraform.io/hashicorp/test": testAccProvider,
 	}
 }

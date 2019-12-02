@@ -2,6 +2,7 @@ package configs
 
 import (
 	"sort"
+	"strings"
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
@@ -187,7 +188,8 @@ func (c *Config) gatherProviderTypes(m map[string]struct{}) {
 	}
 
 	for _, pc := range c.Module.ProviderConfigs {
-		m[pc.Name] = struct{}{}
+		typeName := shimProviderNameFromFqn(pc.Name)
+		m[typeName] = struct{}{}
 	}
 	for _, rc := range c.Module.ManagedResources {
 		providerAddr := rc.ProviderConfigAddr()
@@ -201,5 +203,16 @@ func (c *Config) gatherProviderTypes(m map[string]struct{}) {
 	// Must also visit our child modules, recursively.
 	for _, cc := range c.Children {
 		cc.gatherProviderTypes(m)
+	}
+}
+
+// provider source readiness helper function
+// only relevant for tests.
+func shimProviderNameFromFqn(str string) string {
+	if strings.Contains(str, "registry.terraform.io") {
+		parts := strings.Split(str, "/")
+		return parts[len(parts)-1]
+	} else {
+		return str
 	}
 }

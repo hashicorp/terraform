@@ -11,7 +11,12 @@ type ProviderInstance string
 // Type returns the provider type of this instance. For example, for an instance
 // named "aws.foo" the type is "aws".
 func (p ProviderInstance) Type() string {
-	t := string(p)
+
+	// strip FQN
+	parts := strings.Split(string(p), "/")
+	// TODO mid-step: fail if p is not an FQN
+	t := parts[len(parts)-1]
+
 	if dotPos := strings.Index(t, "."); dotPos != -1 {
 		t = t[:dotPos]
 	}
@@ -22,7 +27,11 @@ func (p ProviderInstance) Type() string {
 // has the alias "foo", while an instance named just "docker" has no alias,
 // so the empty string would be returned.
 func (p ProviderInstance) Alias() string {
-	t := string(p)
+	// strip FQN
+	parts := strings.Split(string(p), "/")
+	// TODO mid-step: fail if p is not an FQN
+	t := parts[len(parts)-1]
+
 	if dotPos := strings.Index(t, "."); dotPos != -1 {
 		return t[dotPos+1:]
 	}

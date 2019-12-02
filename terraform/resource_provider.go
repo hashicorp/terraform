@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform/tfdiags"
 
@@ -322,4 +323,9 @@ requirements and constraints from each module, run "terraform providers".
 
 func shimProviderFqn(typeName string) string {
 	return "registry.terraform.io/hashicorp/" + typeName
+}
+
+func shimProviderNameFromFqn(fqn string) string {
+	parts := strings.Split(fqn, "/")
+	return parts[len(parts)-1]
 }
