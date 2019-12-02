@@ -86,7 +86,7 @@ func (d analysisData) GetResource(addr addrs.Resource, rng tfdiags.SourceRange) 
 		log.Printf("[TRACE] configupgrade: analysis.GetResource doesn't have a provider type for %s", addr)
 		return cty.DynamicVal, nil
 	}
-	providerSchema, ok := d.an.ProviderSchemas[providerType]
+	providerSchema, ok := d.an.ProviderSchemas[shimProviderFqn(providerType)]
 	if !ok {
 		// Should not be possible, since analysis loads schema for every provider.
 		log.Printf("[TRACE] configupgrade: analysis.GetResource doesn't have a provider schema for for %q", providerType)

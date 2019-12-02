@@ -923,7 +923,7 @@ func upgradeTerraformRemoteStateTraversalParts(parts []string, an *analysis) []s
 	// the user intended this to be an output, or whether it's one of the real
 	// attributes of this data source.
 	var schema *configschema.Block
-	if providerSchema := an.ProviderSchemas["terraform"]; providerSchema != nil {
+	if providerSchema := an.ProviderSchemas["registry.terraform.io/hashicorp/terraform"]; providerSchema != nil {
 		schema, _ = providerSchema.SchemaForResourceType(addrs.DataResourceMode, "terraform_remote_state")
 	}
 	// Schema should be available in all reasonable cases, but might be nil
