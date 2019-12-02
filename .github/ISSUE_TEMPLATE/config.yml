@@ -9,6 +9,3 @@ contact_links:
   - name: Terraform Language or Workflow Questions
     url: https://discuss.hashicorp.com/c/terraform-core
     about: Please ask and answer language or workflow related questions through the Terraform Core Community Forum.
-  - name: Security Vulnerability
-    url: https://www.hashicorp.com/security.html
-    about: Please report security vulnerabilities responsibly.
