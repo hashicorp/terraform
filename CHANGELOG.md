@@ -1,5 +1,11 @@
 ## 0.12.17 (Unreleased)
 
+SECURITY NOTES:
+
+* If you are using the Azure remote state backend and you are using a SAS Token for authentication, please refer to [the Azure remote state backend security advisory](https://github.com/hashicorp/terraform/security/advisories/GHSA-4rvg-555h-r626).
+
+    Prior versions of the backend may have transmitted your state to the storage service using cleartext HTTP unless you specifically requested HTTPS when generating your SAS Token. This does not affect any other backends, and does not affect the Azure backend when using other authentication mechanisms.
+
 NEW FEATURES:
 
 *  lang/funcs: Add `trim*` functions
@@ -11,6 +17,7 @@ ENHANCEMENTS:
 
 BUG FIXES:
 * command/jsonplan, command/jsonstate: fix panic with null values [GH-23492]
+* backend/azure: Use HTTPS to talk to the storage API, even if using a SAS token that does not require it. [GH-23496]
 
 ## 0.12.16 (November 18, 2019)
 
