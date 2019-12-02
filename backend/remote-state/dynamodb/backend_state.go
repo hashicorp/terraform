@@ -21,7 +21,7 @@ func (b *Backend) Workspaces() ([]string, error) {
 	prefix := ""
 
 	if b.workspaceKeyPrefix != "" {
-		prefix = b.workspaceKeyPrefix + "/"
+		prefix = b.workspaceKeyPrefix + "="
 	}
 
 	params := &s3.ListObjectsInput{
@@ -30,6 +30,9 @@ func (b *Backend) Workspaces() ([]string, error) {
 	}
 
 	resp, err := b.s3Client.ListObjects(params)
+
+	fmt.Println("resp in Workspaces function:", resp.Contents)
+
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == s3.ErrCodeNoSuchBucket {
 			return nil, fmt.Errorf(errS3NoSuchBucket, err)
@@ -46,11 +49,14 @@ func (b *Backend) Workspaces() ([]string, error) {
 	}
 
 	sort.Strings(wss[1:])
+	fmt.Println("workspaces in Workspaces function:", wss)
 	return wss, nil
 }
 
 func (b *Backend) keyEnv(key string) string {
 	prefix := b.workspaceKeyPrefix
+
+	fmt.Println("prefix in keyEnv function:", prefix)
 
 	if prefix == "" {
 		parts := strings.SplitN(key, "/", 2)
@@ -62,7 +68,7 @@ func (b *Backend) keyEnv(key string) string {
 	}
 
 	// add a slash to treat this as a directory
-	prefix += "/"
+	prefix += ":"
 
 	parts := strings.SplitAfterN(key, prefix, 2)
 	if len(parts) < 2 {
@@ -84,7 +90,6 @@ func (b *Backend) keyEnv(key string) string {
 	if parts[1] != b.keyName {
 		return ""
 	}
-
 	return parts[0]
 }
 
@@ -107,6 +112,9 @@ func (b *Backend) remoteClient(name string) (*RemoteClient, error) {
 		return nil, errors.New("missing state name")
 	}
 
+	fmt.Println("name in remoteClient function:", name)
+
+
 	client := &RemoteClient{
 		s3Client:              b.s3Client,
 		dynClient:             b.dynClient,
@@ -118,6 +126,8 @@ func (b *Backend) remoteClient(name string) (*RemoteClient, error) {
 		kmsKeyID:              b.kmsKeyID,
 		ddbTable:              b.ddbTable,
 	}
+
+	fmt.Println("path in remoteClient function:", client.path)
 
 	return client, nil
 }
@@ -207,7 +217,7 @@ func (b *Backend) path(name string) string {
 		return b.keyName
 	}
 
-	return path.Join(b.workspaceKeyPrefix, name, b.keyName)
+	return path.Join(b.workspaceKeyPrefix + "=" + name, b.keyName)
 }
 
 const errStateUnlock = `

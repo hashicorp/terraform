@@ -203,11 +203,11 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The prefix applied to the non-default state path inside the bucket.",
-				Default:     "env:",
+				Default:     "workspace",
 				ValidateFunc: func(v interface{}, s string) ([]string, []error) {
 					prefix := v.(string)
-					if strings.HasPrefix(prefix, "/") || strings.HasSuffix(prefix, "/") {
-						return nil, []error{errors.New("workspace_key_prefix must not start or end with '/'")}
+					if strings.Contains(prefix, ":") {
+						return nil, []error{errors.New("workspace_key_prefix must not contains '='")}
 					}
 					return nil, nil
 				},
