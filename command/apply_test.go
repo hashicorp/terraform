@@ -203,7 +203,7 @@ func TestApply_parallelism(t *testing.T) {
 				NewState: cty.EmptyObjectVal,
 			}
 		}
-		providerFactories[name] = providers.FactoryFixed(provider)
+		providerFactories[shimProviderFqn(name)] = providers.FactoryFixed(provider)
 	}
 	testingOverrides := &testingOverrides{
 		ProviderResolver: providers.ResolverFixed(providerFactories),
