@@ -1,7 +1,9 @@
 package addrs
 
-// ProviderType encapsulates a single provider type. In the future this will be
-// extended to include additional fields including Namespace and SourceHost
+// ProviderType represents a provider type. Each ProviderConfig represents an
+// instance of a provider type by associating a configuration with it.
 type ProviderType struct {
-	Type string
+	Hostname  string
+	Namespace string
+	Type      string
 }
