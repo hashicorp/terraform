@@ -38,6 +38,7 @@ vendor in close collaboration with HashiCorp, and are tested by HashiCorp.
 - [Linode](/docs/providers/linode/index.html)
 - [Naver Cloud](/docs/providers/ncloud/index.html)
 - [Nutanix](/docs/providers/nutanix/index.html)
+- [OpenNebula](/docs/providers/opennebula/index.html)
 - [OpenStack](/docs/providers/openstack/index.html)
 - [OpenTelekomCloud](/docs/providers/opentelekomcloud/index.html)
 - [OVH](/docs/providers/ovh/index.html)
