@@ -31,7 +31,7 @@ const (
 	s3EncryptionAlgorithm  = "AES256"
 	stateIDSuffix          = "-md5"
 	s3ErrCodeInternalError = "InternalError"
-	dynamoDBItemSize = 409600
+	dynamoDBItemSize = 500//409600
 )
 
 type RemoteClient struct {
@@ -250,12 +250,6 @@ func (c *RemoteClient) Put(data []byte) error {
 	}
 
 /** Dynamo DB **/
-	
-	bodyString := string(data[:])
-    for i := 1;  i<=3*409600; i++ {
-    	bodyString = bodyString + "a"
-    }
-
     tableName := "terraform-global-table-sort"
 
 	var queryInput = &dynamodb.QueryInput{
@@ -277,6 +271,7 @@ func (c *RemoteClient) Put(data []byte) error {
 	    return err
 	}
 	var transactionItems = make([]*dynamodb.TransactWriteItem, 0)
+	var segments []int
 	for _, i := range result.Items {
 	    state := State{}
 
@@ -301,14 +296,30 @@ func (c *RemoteClient) Put(data []byte) error {
 			},
 		}
 		transactionItems = append(transactionItems, delete_item)
+		id, err := strconv.Atoi(state.SegmentID)
+		if err != nil {
+	        fmt.Println("Got error unmarshalling:") // TO REMOVE
+	        fmt.Println(err.Error()) // TO REMOVE
+	        return err
+	    }
+		segments = append(segments, id)
 	    fmt.Println("StateID: ", state.StateID)
 	}
-	bodyByte := []byte(bodyString)
-	sequence := make([]int, len(bodyByte))
-	for i := 0; i < len(bodyByte); i++ {
-	      sequence[i] = i
+
+	sequence := make([]int, len(data))
+	position := 0
+	for index := 0; index < len(sequence)+len(segments); index++ {
+		to_use := true
+		for segment := range segments{
+			to_use = !(segment==index) && to_use
+		}
+		if to_use {
+			sequence[position] = index
+			position += 1
+		}
 	}
-	err = c.GeberatePutItems(bodyByte, sequence, &transactionItems)
+
+	err = c.GeberatePutItems(data, sequence, &transactionItems)
 	if err != nil {
 		return fmt.Errorf("Got error calling GeberatePutItems: %s", err)
 	}
