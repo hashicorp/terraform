@@ -80,6 +80,12 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 
 	// Find the things that reference things and connect them
 	for _, v := range vs {
+		if _, ok := v.(GraphNodeDestroyer); ok {
+			// destroy nodes references are not connected, since they can only
+			// use their own state.
+			continue
+		}
+
 		parents, _ := m.References(v)
 		parentsDbg := make([]string, len(parents))
 		for i, v := range parents {
