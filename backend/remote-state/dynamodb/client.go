@@ -29,7 +29,7 @@ import (
 
 // Store the last saved serial in dynamo with this suffix for consistency checks.
 const (
-	s3EncryptionAlgorithm  = "AES256"
+//	s3EncryptionAlgorithm  = "AES256"
 	stateIDSuffix          = "-md5"
 	s3ErrCodeInternalError = "InternalError"
 	dynamoDBItemSize = 409600
@@ -38,19 +38,13 @@ const (
 type RemoteClient struct {
 	s3Client              *s3.S3
 	dynClient             *dynamodb.DynamoDB
-	bucketName            string
+	tableName             string
 	path                  string
-	serverSideEncryption  bool
+//	serverSideEncryption  bool
 	customerEncryptionKey []byte
-	acl                   string
+//	acl                   string
 	kmsKeyID              string
 	ddbTable              string
-}
-
-type State struct {
-    StateID string
-    SegmentID string
-    Body string
 }
 
 var (
@@ -132,15 +126,15 @@ func (c *RemoteClient) get() (*remote.Payload, error) {
 	var err error
 
 	input := &s3.GetObjectInput{
-		Bucket: &c.bucketName,
+		Bucket: &c.tableName,
 		Key:    &c.path,
 	}
 
-	if c.serverSideEncryption && c.customerEncryptionKey != nil {
-		input.SetSSECustomerKey(string(c.customerEncryptionKey))
-		input.SetSSECustomerAlgorithm(s3EncryptionAlgorithm)
-		input.SetSSECustomerKeyMD5(c.getSSECustomerKeyMD5())
-	}
+	//if c.serverSideEncryption && c.customerEncryptionKey != nil {
+	//	input.SetSSECustomerKey(string(c.customerEncryptionKey))
+	//	input.SetSSECustomerAlgorithm(s3EncryptionAlgorithm)
+	//	input.SetSSECustomerKeyMD5(c.getSSECustomerKeyMD5())
+	//}
 
 	output, err = c.s3Client.GetObject(input)
 
@@ -246,7 +240,7 @@ func (c *RemoteClient) GeberatePutItems(data []byte, sequence []int, transaction
 
 	if len(b) < dynamoDBItemSize {
 
-		tableName := "terraform-global-table-sort" // TO CHANGE c.bucketName
+		tableName := "terraform-global-table-sort" // TO CHANGE c.tableName
 
 		av, err := dynamodbattribute.MarshalMap(item)
 		if err != nil {
@@ -302,28 +296,28 @@ func (c *RemoteClient) Put(data []byte) error {
 		ContentType:   &contentType,
 		ContentLength: &contentLength,
 		Body:          bytes.NewReader(data),
-		Bucket:        &c.bucketName,
+		Bucket:        &c.tableName,
 		Key:           &c.path,
 	}
 
-	if c.serverSideEncryption {
-		if c.kmsKeyID != "" {
-			i.SSEKMSKeyId = &c.kmsKeyID
-			i.ServerSideEncryption = aws.String("aws:kms")
-		} else if c.customerEncryptionKey != nil {
-			i.SetSSECustomerKey(string(c.customerEncryptionKey))
-			i.SetSSECustomerAlgorithm(s3EncryptionAlgorithm)
-			i.SetSSECustomerKeyMD5(c.getSSECustomerKeyMD5())
-		} else {
-			i.ServerSideEncryption = aws.String(s3EncryptionAlgorithm)
-		}
-	}
+	//if c.serverSideEncryption {
+	//	if c.kmsKeyID != "" {
+	//		i.SSEKMSKeyId = &c.kmsKeyID
+	//		i.ServerSideEncryption = aws.String("aws:kms")
+	//	} else if c.customerEncryptionKey != nil {
+	//		i.SetSSECustomerKey(string(c.customerEncryptionKey))
+	//		i.SetSSECustomerAlgorithm(s3EncryptionAlgorithm)
+	//		i.SetSSECustomerKeyMD5(c.getSSECustomerKeyMD5())
+	//	} else {
+	//		i.ServerSideEncryption = aws.String(s3EncryptionAlgorithm)
+	//	}
+	//}
 
-	if c.acl != "" {
-		i.ACL = aws.String(c.acl)
-	}
+	//if c.acl != "" {
+	//	i.ACL = aws.String(c.acl)
+	//}
 
-	log.Printf("[DEBUG] Uploading remote state to S3: %#v", i)
+	log.Printf("[DEBUG] Uploading remote state to DynamoDB: %#v", i)
 
 	_, err := c.s3Client.PutObject(i)
 	if err != nil {
@@ -413,7 +407,7 @@ func (c *RemoteClient) Put(data []byte) error {
 
 func (c *RemoteClient) Delete() error {
 	_, err := c.s3Client.DeleteObject(&s3.DeleteObjectInput{
-		Bucket: &c.bucketName,
+		Bucket: &c.tableName,
 		Key:    &c.path,
 	})
 
@@ -612,7 +606,7 @@ func (c *RemoteClient) Unlock(id string) error {
 }
 
 func (c *RemoteClient) lockPath() string {
-	return fmt.Sprintf("%s/%s", c.bucketName, c.path)
+	return fmt.Sprintf("%s/%s", c.tableName, c.path)
 }
 
 func (c *RemoteClient) getSSECustomerKeyMD5() string {

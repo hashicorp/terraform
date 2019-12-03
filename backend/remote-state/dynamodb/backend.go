@@ -2,9 +2,9 @@ package dynamodb
 
 import (
 	"context"
-	"encoding/base64"
+//	"encoding/base64"
 	"errors"
-	"fmt"
+//	"fmt"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -17,17 +17,23 @@ import (
 	"github.com/hashicorp/terraform/version"
 )
 
+type State struct {
+    StateID string
+    SegmentID string
+    Body string
+}
+
 // New creates a new backend for S3 remote state.
 func New() backend.Backend {
 	s := &schema.Backend{
 		Schema: map[string]*schema.Schema{
-			"state_table": {
+			"state_table": { //TODO Validare che la tabella abbia lo schema giusto
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The name of the DynamoDB Table used for state.",
 			},
 
-			"hash": {
+			"hash": { //TODO Validare il valore dell'hash che non contenga simboli
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The name of the hashKey of state file inside the dynamodb table.",
@@ -72,19 +78,18 @@ func New() backend.Backend {
 				DefaultFunc: schema.EnvDefaultFunc("AWS_STS_ENDPOINT", ""),
 			},
 
-			"encrypt": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "Whether to enable server side encryption of the state file",
-				Default:     false,
-			},
-
-			"acl": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Canned ACL to be applied to the state file",
-				Default:     "",
-			},
+			//"encrypt": {
+			//	Type:        schema.TypeBool,
+			//	Optional:    true,
+			//	Description: "Whether to enable server side encryption of the state file",
+			//	Default:     false,
+			//},
+			//"acl": {
+			//	Type:        schema.TypeString,
+			//	Optional:    true,
+			//	Description: "Canned ACL to be applied to the state file",
+			//	Default:     "",
+			//},
 
 			"access_key": {
 				Type:        schema.TypeString,
@@ -100,14 +105,14 @@ func New() backend.Backend {
 				Default:     "",
 			},
 
-			"kms_key_id": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The ARN of a KMS Key to use for encrypting the state",
-				Default:     "",
-			},
+			//"kms_key_id": {
+			//	Type:        schema.TypeString,
+			//	Optional:    true,
+			//	Description: "The ARN of a KMS Key to use for encrypting the state",
+			//	Default:     "",
+			//},
 
-			"lock_table": {
+			"lock_table": { // TODO validare che la tabella abbia lo schema giusto
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "DynamoDB table for state locking and consistency",
@@ -156,20 +161,20 @@ func New() backend.Backend {
 				Default:     false,
 			},
 
-			"sse_customer_key": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The base64-encoded encryption key to use for server-side encryption with customer-provided keys (SSE-C).",
-				DefaultFunc: schema.EnvDefaultFunc("AWS_SSE_CUSTOMER_KEY", ""),
-				Sensitive:   true,
-				ValidateFunc: func(v interface{}, s string) ([]string, []error) {
-					key := v.(string)
-					if key != "" && len(key) != 44 {
-						return nil, []error{errors.New("sse_customer_key must be 44 characters in length (256 bits, base64 encoded)")}
-					}
-					return nil, nil
-				},
-			},
+			//"sse_customer_key": {
+			//	Type:        schema.TypeString,
+			//	Optional:    true,
+			//	Description: "The base64-encoded encryption key to use for server-side encryption with customer-provided keys (SSE-C).",
+			//	DefaultFunc: schema.EnvDefaultFunc("AWS_SSE_CUSTOMER_KEY", ""),
+			//	Sensitive:   true,
+			//	ValidateFunc: func(v interface{}, s string) ([]string, []error) {
+			//		key := v.(string)
+			//		if key != "" && len(key) != 44 {
+			//			return nil, []error{errors.New("sse_customer_key must be 44 characters in length (256 bits, base64 encoded)")}
+			//		}
+			//		return nil, nil
+			//	},
+			//},
 
 			"role_arn": {
 				Type:        schema.TypeString,
@@ -213,12 +218,12 @@ func New() backend.Backend {
 				},
 			},
 
-			"force_path_style": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "Force s3 to use path style api.",
-				Default:     false,
-			},
+			//"force_path_style": {
+			//	Type:        schema.TypeBool,
+			//	Optional:    true,
+			//	Description: "Force s3 to use path style api.",
+			//	Default:     false,
+			//},
 
 			"max_retries": {
 				Type:        schema.TypeInt,
@@ -241,12 +246,12 @@ type Backend struct {
 	s3Client  *s3.S3
 	dynClient *dynamodb.DynamoDB
 
-	bucketName            string
-	keyName               string
-	serverSideEncryption  bool
+	tableName             string
+	hashName              string
+	//serverSideEncryption  bool
 	customerEncryptionKey []byte
-	acl                   string
-	kmsKeyID              string
+	//acl                   string
+	//kmsKeyID              string
 	ddbTable              string
 	workspaceKeyPrefix    string
 }
@@ -265,25 +270,24 @@ func (b *Backend) configure(ctx context.Context) error {
 		}
 	}
 
-	b.bucketName = data.Get("state_table").(string)
-	b.keyName = data.Get("hash").(string)
-	b.acl = data.Get("acl").(string)
+	b.tableName = data.Get("state_table").(string)
+	b.hashName = data.Get("hash").(string)
+	//b.acl = data.Get("acl").(string)
 	b.workspaceKeyPrefix = data.Get("workspace_key_prefix").(string)
-	b.serverSideEncryption = data.Get("encrypt").(bool)
-	b.kmsKeyID = data.Get("kms_key_id").(string)
+	//b.serverSideEncryption = data.Get("encrypt").(bool)
+	//b.kmsKeyID = data.Get("kms_key_id").(string)
 
-	customerKeyString := data.Get("sse_customer_key").(string)
-	if customerKeyString != "" {
-		if b.kmsKeyID != "" {
-			return errors.New(encryptionKeyConflictError)
-		}
-
-		var err error
-		b.customerEncryptionKey, err = base64.StdEncoding.DecodeString(customerKeyString)
-		if err != nil {
-			return fmt.Errorf("Failed to decode sse_customer_key: %s", err.Error())
-		}
-	}
+	//customerKeyString := data.Get("sse_customer_key").(string)
+	//if customerKeyString != "" {
+	//	if b.kmsKeyID != "" {
+	//		return errors.New(encryptionKeyConflictError)
+	//	}
+	//	var err error
+	//	b.customerEncryptionKey, err = base64.StdEncoding.DecodeString(customerKeyString)
+	//	if err != nil {
+	//		return fmt.Errorf("Failed to decode sse_customer_key: %s", err.Error())
+	//	}
+	//}
 
 	b.ddbTable = data.Get("lock_table").(string)
 
@@ -321,14 +325,15 @@ func (b *Backend) configure(ctx context.Context) error {
 	}))
 	b.s3Client = s3.New(sess.Copy(&aws.Config{
 		Endpoint:         aws.String(data.Get("endpoint").(string)),
-		S3ForcePathStyle: aws.Bool(data.Get("force_path_style").(bool)),
+		//S3ForcePathStyle: aws.Bool(data.Get("force_path_style").(bool)),
 	}))
 
 	return nil
 }
 
-const encryptionKeyConflictError = `Cannot have both kms_key_id and sse_customer_key set.
-
-The kms_key_id is used for encryption with KMS-Managed Keys (SSE-KMS)
-while sse_customer_key is used for encryption with customer-managed keys (SSE-C).
-Please choose one or the other.`
+//const encryptionKeyConflictError = `Cannot have both kms_key_id and sse_customer_key set.
+//
+//The kms_key_id is used for encryption with KMS-Managed Keys (SSE-KMS)
+//while sse_customer_key is used for encryption with customer-managed keys (SSE-C).
+//Please choose one or the other.`
+//

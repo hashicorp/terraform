@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/s3"
+//	"github.com/aws/aws-sdk-go/aws/awserr"
+//	"github.com/aws/aws-sdk-go/service/s3"
 
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/state"
@@ -21,8 +21,16 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
 )
 
-type Id struct {
-    StateID string
+func unique(stringSlice []string) []string {
+    keys := make(map[string]bool)
+    list := []string{} 
+    for _, entry := range stringSlice {
+        if _, value := keys[entry]; !value {
+            keys[entry] = true
+            list = append(list, entry)
+        }
+    }    
+    return list
 }
 
 func (b *Backend) Workspaces() ([]string, error) {
@@ -31,75 +39,42 @@ func (b *Backend) Workspaces() ([]string, error) {
 	if b.workspaceKeyPrefix != "" {
 		prefix = b.workspaceKeyPrefix + "="
 	}
-
-	params := &s3.ListObjectsInput{
-		Bucket: &b.bucketName,
-		Prefix: aws.String(prefix),
-	}
-
-	resp, err := b.s3Client.ListObjects(params)
-
-	fmt.Println("resp in Workspaces function:", resp.Contents)
-
-	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == s3.ErrCodeNoSuchBucket {
-			return nil, fmt.Errorf(errS3NoSuchBucket, err)
-		}
-		return nil, err
-	}
-
-	wss := []string{backend.DefaultStateName}
-	for _, obj := range resp.Contents {
-		ws := b.keyEnv(*obj.Key)
-		if ws != "" {
-			wss = append(wss, ws)
-		}
-	}
-
-/* Dynamo DB */
-
+	
+	// Build Query 
 	filt := expression.Name("StateID").Contains(prefix)
 	proj := expression.NamesList(expression.Name("StateID"))
-
 	expr, err := expression.NewBuilder().WithFilter(filt).WithProjection(proj).Build()
 	if err != nil {
-	    fmt.Println("Got error building expression:") // TO REMOVE
-	    fmt.Println(err.Error()) // TO REMOVE
-	    return nil, err
+		return nil, fmt.Errorf("During query build. %s", err)
 	}
-
 	dyparams := &dynamodb.ScanInput{
 	    ExpressionAttributeNames:  expr.Names(),
 	    ExpressionAttributeValues: expr.Values(),
 	    FilterExpression:          expr.Filter(),
 	    ProjectionExpression:      expr.Projection(),
-	    TableName:                 aws.String("terraform-global-state"), // USE b.bucketName
+	    TableName:                 aws.String("terraform-global-table-sort"), //TODO b.tableName
 	}
-
-	// Make the DynamoDB Query API call
-	result, err := b.dynClient.Scan(dyparams)
+	// Execute Query
+	result, err := b.dynClient.Scan(dyparams) // TODO SCAN LIMITS, se c'è un next token continuare la scan
 	if err != nil {
-	    fmt.Println("Query API call failed:")  // TO REMOVE
-	    fmt.Println((err.Error()))  // TO REMOVE
-	    return nil, err
+		return nil, fmt.Errorf("During scan operation on table %s %s.", b.tableName, err)
 	}
-
+	// Extract Workspaces
+	wss := []string{backend.DefaultStateName}
 	for _, i := range result.Items {
-	    id := Id{}
+	    state := State{}
 
-	    err = dynamodbattribute.UnmarshalMap(i, &id)
-
+	    err = dynamodbattribute.UnmarshalMap(i, &state)
 	    if err != nil {
-	        fmt.Println("Got error unmarshalling:") // TO REMOVE
-	        fmt.Println(err.Error()) // TO REMOVE
-	        return nil, err
+	    	return nil, fmt.Errorf("Error while parsing state : %s", err)
 	    }
 
-	    fmt.Println("StateID: ", id.StateID)
+	    ws := b.keyEnv(state.StateID)
+		if ws != "" {
+			wss = append(wss, ws)
+		}
 	}
-
-/* Dynamo DB */
-
+	wss = unique(wss)
 
 	sort.Strings(wss[1:])
 	fmt.Println("workspaces in Workspaces function:", wss)
@@ -113,7 +88,7 @@ func (b *Backend) keyEnv(key string) string {
 
 	if prefix == "" {
 		parts := strings.SplitN(key, "/", 2)
-		if len(parts) > 1 && parts[1] == b.keyName {
+		if len(parts) > 1 && parts[1] == b.hashName {
 			return parts[0]
 		} else {
 			return ""
@@ -140,7 +115,7 @@ func (b *Backend) keyEnv(key string) string {
 	}
 
 	// not our key, so don't include it in our listing
-	if parts[1] != b.keyName {
+	if parts[1] != b.hashName {
 		return ""
 	}
 	return parts[0]
@@ -148,7 +123,7 @@ func (b *Backend) keyEnv(key string) string {
 
 func (b *Backend) DeleteWorkspace(name string) error {
 	if name == backend.DefaultStateName || name == "" {
-		return fmt.Errorf("can't delete default state")
+		return fmt.Errorf("You can't delete default state.")
 	}
 
 	client, err := b.remoteClient(name)
@@ -171,12 +146,12 @@ func (b *Backend) remoteClient(name string) (*RemoteClient, error) {
 	client := &RemoteClient{
 		s3Client:              b.s3Client,
 		dynClient:             b.dynClient,
-		bucketName:            b.bucketName,
+		tableName:             b.tableName,
 		path:                  b.path(name),
-		serverSideEncryption:  b.serverSideEncryption,
+		//serverSideEncryption:  b.serverSideEncryption,
 		customerEncryptionKey: b.customerEncryptionKey,
-		acl:                   b.acl,
-		kmsKeyID:              b.kmsKeyID,
+		//acl:                   b.acl,
+		//kmsKeyID:              b.kmsKeyID,
 		ddbTable:              b.ddbTable,
 	}
 
@@ -223,7 +198,7 @@ func (b *Backend) StateMgr(name string) (state.State, error) {
 		lockInfo.Operation = "init"
 		lockId, err := client.Lock(lockInfo)
 		if err != nil {
-			return nil, fmt.Errorf("failed to lock s3 state: %s", err)
+			return nil, fmt.Errorf("Failed to lock state: %s", err)
 		}
 
 		// Local helper function so we can call it multiple places
@@ -270,14 +245,14 @@ func (b *Backend) client() *RemoteClient {
 
 func (b *Backend) path(name string) string {
 	if name == backend.DefaultStateName {
-		return b.keyName
+		return b.hashName
 	}
 
-	return path.Join(b.workspaceKeyPrefix + "=" + name, b.keyName)
+	return path.Join(b.workspaceKeyPrefix + "=" + name, b.hashName)
 }
 
 const errStateUnlock = `
-Error unlocking S3 state. Lock ID: %s
+Error unlocking state. Lock ID: %s
 
 Error: %s
 
