@@ -11,15 +11,19 @@ import (
 	"io"
 	"log"
 	"time"
+	"strconv"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
+//	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/s3"
 	multierror "github.com/hashicorp/go-multierror"
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
+
+    "github.com/aws/aws-sdk-go/service/dynamodb"
+    "github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
 
 // Store the last saved serial in dynamo with this suffix for consistency checks.
@@ -27,6 +31,7 @@ const (
 	s3EncryptionAlgorithm  = "AES256"
 	stateIDSuffix          = "-md5"
 	s3ErrCodeInternalError = "InternalError"
+	dynamoDBItemSize = 409600
 )
 
 type RemoteClient struct {
@@ -39,6 +44,12 @@ type RemoteClient struct {
 	acl                   string
 	kmsKeyID              string
 	ddbTable              string
+}
+
+type State struct {
+    StateID string
+    SegmentID string
+    Body string
 }
 
 var (
@@ -147,6 +158,54 @@ func (c *RemoteClient) get() (*remote.Payload, error) {
 	return payload, nil
 }
 
+func (c *RemoteClient) GeberatePutItems(data []byte, transactionItems *[]*dynamodb.TransactWriteItem) error {
+	body := string(data[:])
+
+	item := State{
+	    StateID: c.path,
+	    SegmentID: strconv.Itoa(int(time.Now().Unix())),
+	    Body: body,
+	}
+
+	b, err := json.Marshal(item)
+	if err != nil {
+		return fmt.Errorf("Got error marshalling item: %s", err)
+	}
+
+	if len(b) < dynamoDBItemSize {
+
+		tableName := "terraform-global-table-sort" // TO CHANGE c.bucketName
+
+		av, err := dynamodbattribute.MarshalMap(item)
+		if err != nil {
+		    return fmt.Errorf("Got error marshalling state: %s", err)
+		}
+
+		put_item := &dynamodb.TransactWriteItem{
+			Put: &dynamodb.Put{
+				TableName: aws.String(tableName),
+				Item:      av,
+			},
+		}
+
+		*transactionItems = append(*transactionItems, put_item)
+
+	}else {
+		time.Sleep(1 * time.Second)
+		err := c.GeberatePutItems(data[int(len(b)/2):], transactionItems)
+		if err != nil {
+			return err
+		}
+		time.Sleep(1 * time.Second)
+		err = c.GeberatePutItems(data[:int(len(b)/2)], transactionItems)
+		if err != nil {
+			return err
+		}		
+	}
+
+	return nil
+}
+
 func (c *RemoteClient) Put(data []byte) error {
 	contentType := "application/json"
 	contentLength := int64(len(data))
@@ -190,6 +249,72 @@ func (c *RemoteClient) Put(data []byte) error {
 		return fmt.Errorf("failed to store state MD5: %s", err)
 
 	}
+
+/** Dynamo DB **/
+	
+	bodyString := string(data[:])
+    for i := 1;  i<=3*409600; i++ {
+    	bodyString = bodyString + "a"
+    }
+
+    tableName := "terraform-global-table-sort"
+
+	var queryInput = &dynamodb.QueryInput{
+	    TableName: aws.String(tableName),
+	    KeyConditions: map[string]*dynamodb.Condition{
+	        "StateID": {
+	            ComparisonOperator: aws.String("EQ"),
+	            AttributeValueList: []*dynamodb.AttributeValue{
+	                {
+	                    S: aws.String(c.path),
+	                },
+	            },
+	        },
+	    },
+	}
+
+	result, err := c.dynClient.Query(queryInput)
+	if err != nil {
+	    return err
+	}
+	var transactionItems = make([]*dynamodb.TransactWriteItem, 0)
+	for _, i := range result.Items {
+	    state := State{}
+
+	    err = dynamodbattribute.UnmarshalMap(i, &state)
+
+	    if err != nil {
+	        fmt.Println("Got error unmarshalling:") // TO REMOVE
+	        fmt.Println(err.Error()) // TO REMOVE
+	        return err
+	    }
+	    delete_item := &dynamodb.TransactWriteItem{
+			Delete: &dynamodb.Delete{
+				TableName: aws.String(tableName),
+				Key: map[string]*dynamodb.AttributeValue{
+			        "StateID": {
+			            S: aws.String(state.StateID),
+			        },
+			        "SegmentID": {
+			            S: aws.String(state.SegmentID),
+			        },
+		    	},
+			},
+		}
+		transactionItems = append(transactionItems, delete_item)
+	    fmt.Println("StateID: ", state.StateID)
+	}
+	err = c.GeberatePutItems([]byte(bodyString), &transactionItems)
+	if err != nil {
+		return fmt.Errorf("Got error calling GeberatePutItems: %s", err)
+	}
+
+	_, err = c.dynClient.TransactWriteItems(&dynamodb.TransactWriteItemsInput{TransactItems: transactionItems})
+	if err != nil {
+		return fmt.Errorf("Got error calling TransactWriteItems: %s", err)
+	}
+
+/** Dynamo DB **/
 
 	return nil
 }

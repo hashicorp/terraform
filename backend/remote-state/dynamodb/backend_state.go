@@ -21,7 +21,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
 )
 
-type Item struct {
+type Id struct {
     StateID string
 }
 
@@ -85,9 +85,9 @@ func (b *Backend) Workspaces() ([]string, error) {
 	}
 
 	for _, i := range result.Items {
-	    item := Item{}
+	    id := Id{}
 
-	    err = dynamodbattribute.UnmarshalMap(i, &item)
+	    err = dynamodbattribute.UnmarshalMap(i, &id)
 
 	    if err != nil {
 	        fmt.Println("Got error unmarshalling:") // TO REMOVE
@@ -95,7 +95,7 @@ func (b *Backend) Workspaces() ([]string, error) {
 	        return nil, err
 	    }
 
-	    fmt.Println("StateID: ", item.StateID)
+	    fmt.Println("StateID: ", id.StateID)
 	}
 
 /* Dynamo DB */
