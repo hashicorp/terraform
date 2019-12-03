@@ -12,6 +12,7 @@ import (
 	"log"
 	"time"
 	"strconv"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -31,7 +32,7 @@ const (
 	s3EncryptionAlgorithm  = "AES256"
 	stateIDSuffix          = "-md5"
 	s3ErrCodeInternalError = "InternalError"
-	dynamoDBItemSize = 500//409600
+	dynamoDBItemSize = 409600
 )
 
 type RemoteClient struct {
@@ -108,6 +109,24 @@ func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 	return payload, err
 }
 
+func getMaxSegmentId(items []map[string]*dynamodb.AttributeValue) (int, error) {
+	maxSegmentID := 0
+	for _, i := range items {
+	    state := State{}
+	    err := dynamodbattribute.UnmarshalMap(i, &state)
+	    segmentID, err := strconv.Atoi(state.SegmentID)
+		if err != nil {
+	        fmt.Println("Got error unmarshalling:") // TO REMOVE
+	        fmt.Println(err.Error()) // TO REMOVE
+	        return 0, err
+	    }
+	    if segmentID > maxSegmentID{
+	    	maxSegmentID = segmentID
+	    }
+	}
+	return maxSegmentID, nil
+}
+
 func (c *RemoteClient) get() (*remote.Payload, error) {
 	var output *s3.GetObjectOutput
 	var err error
@@ -150,6 +169,59 @@ func (c *RemoteClient) get() (*remote.Payload, error) {
 		MD5:  sum[:],
 	}
 
+/** DynamoDB **/
+    tableName := "terraform-global-table-sort"
+
+	var queryInput = &dynamodb.QueryInput{
+	    TableName: aws.String(tableName),
+	    KeyConditions: map[string]*dynamodb.Condition{
+	        "StateID": {
+	            ComparisonOperator: aws.String("EQ"),
+	            AttributeValueList: []*dynamodb.AttributeValue{
+	                {
+	                    S: aws.String(c.path),
+	                },
+	            },
+	        },
+	    },
+	}
+
+	result, err := c.dynClient.Query(queryInput)
+	if err != nil {
+	    return nil, err
+	}
+
+	maxSegmentID, err := getMaxSegmentId(result.Items)
+
+	fmt.Println("maxSegmentID in get function: %d", maxSegmentID)
+
+	var segmentStrings = make([]string, maxSegmentID+1)
+
+
+	for _, i := range result.Items {
+	    state := State{}
+
+	    err = dynamodbattribute.UnmarshalMap(i, &state)
+
+	   	segmentID, _ := strconv.Atoi(state.SegmentID)
+
+	    segmentStrings[segmentID] = state.Body
+	}
+
+	jsonString := strings.Join(segmentStrings[:], "")
+
+	fmt.Println("segmentStrings in get function: %d", jsonString)
+
+
+
+
+
+
+
+
+
+/** DynamoDB **/
+
 	// If there was no data, then return nil
 	if len(payload.Data) == 0 {
 		return nil, nil
@@ -191,7 +263,7 @@ func (c *RemoteClient) GeberatePutItems(data []byte, sequence []int, transaction
 		*transactionItems = append(*transactionItems, put_item)
 
 	}else {
-		N := int(len(b)/2)
+		N := int(len(data)/2)
 		err := c.GeberatePutItems(data[N:], sequence[N:], transactionItems)
 		if err != nil {
 			return err
@@ -203,6 +275,23 @@ func (c *RemoteClient) GeberatePutItems(data []byte, sequence []int, transaction
 	}
 
 	return nil
+}
+
+func GenerateSequence(seuqneceSize int, currentSegments []int) []int{
+	segmentsSize := len(currentSegments)
+	sequence := make([]int, seuqneceSize)
+	position := 0
+	for index := 0; index < seuqneceSize+segmentsSize; index++ {
+		to_use := true
+		for _,segment := range currentSegments{
+			to_use = !(segment==index) && to_use
+		}
+		if to_use {
+			sequence[position] = index
+			position += 1
+		}
+	}
+	return sequence
 }
 
 func (c *RemoteClient) Put(data []byte) error {
@@ -306,19 +395,7 @@ func (c *RemoteClient) Put(data []byte) error {
 	    fmt.Println("StateID: ", state.StateID)
 	}
 
-	sequence := make([]int, len(data))
-	position := 0
-	for index := 0; index < len(sequence)+len(segments); index++ {
-		to_use := true
-		for segment := range segments{
-			to_use = !(segment==index) && to_use
-		}
-		if to_use {
-			sequence[position] = index
-			position += 1
-		}
-	}
-
+	sequence := GenerateSequence(len(data), segments)
 	err = c.GeberatePutItems(data, sequence, &transactionItems)
 	if err != nil {
 		return fmt.Errorf("Got error calling GeberatePutItems: %s", err)
