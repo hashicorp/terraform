@@ -158,12 +158,12 @@ func (c *RemoteClient) get() (*remote.Payload, error) {
 	return payload, nil
 }
 
-func (c *RemoteClient) GeberatePutItems(data []byte, transactionItems *[]*dynamodb.TransactWriteItem) error {
+func (c *RemoteClient) GeberatePutItems(data []byte, sequence []int, transactionItems *[]*dynamodb.TransactWriteItem) error {
 	body := string(data[:])
 
 	item := State{
 	    StateID: c.path,
-	    SegmentID: strconv.Itoa(int(time.Now().Unix())),
+	    SegmentID: strconv.Itoa(sequence[0]),
 	    Body: body,
 	}
 
@@ -191,13 +191,12 @@ func (c *RemoteClient) GeberatePutItems(data []byte, transactionItems *[]*dynamo
 		*transactionItems = append(*transactionItems, put_item)
 
 	}else {
-		time.Sleep(1 * time.Second)
-		err := c.GeberatePutItems(data[int(len(b)/2):], transactionItems)
+		N := int(len(b)/2)
+		err := c.GeberatePutItems(data[N:], sequence[N:], transactionItems)
 		if err != nil {
 			return err
 		}
-		time.Sleep(1 * time.Second)
-		err = c.GeberatePutItems(data[:int(len(b)/2)], transactionItems)
+		err = c.GeberatePutItems(data[:N], sequence[:N], transactionItems)
 		if err != nil {
 			return err
 		}		
@@ -304,7 +303,12 @@ func (c *RemoteClient) Put(data []byte) error {
 		transactionItems = append(transactionItems, delete_item)
 	    fmt.Println("StateID: ", state.StateID)
 	}
-	err = c.GeberatePutItems([]byte(bodyString), &transactionItems)
+	bodyByte := []byte(bodyString)
+	sequence := make([]int, len(bodyByte))
+	for i := 0; i < len(bodyByte); i++ {
+	      sequence[i] = i
+	}
+	err = c.GeberatePutItems(bodyByte, sequence, &transactionItems)
 	if err != nil {
 		return fmt.Errorf("Got error calling GeberatePutItems: %s", err)
 	}
