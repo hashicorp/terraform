@@ -1080,6 +1080,14 @@ func (s *GRPCProviderServer) UnlockStateStorage(_ context.Context, req *proto.Un
 	return nil, grpcStatus.Error(grpcCodes.Unimplemented, "state storage functions are not yet implemented")
 }
 
+func (s *GRPCProviderServer) ValidateWorkspaceManagementConfig(_ context.Context, req *proto.ValidateWorkspaceManagementConfig_Request) (*proto.ValidateWorkspaceManagementConfig_Response, error) {
+	return nil, grpcStatus.Error(grpcCodes.Unimplemented, "managed workspaces functions are not yet implemented")
+}
+
+func (s *GRPCProviderServer) ListManagedWorkspaces(_ context.Context, req *proto.ListManagedWorkspaces_Request) (*proto.ListManagedWorkspaces_Response, error) {
+	return nil, grpcStatus.Error(grpcCodes.Unimplemented, "managed workspaces functions are not yet implemented")
+}
+
 func pathToAttributePath(path cty.Path) *proto.AttributePath {
 	var steps []*proto.AttributePath_Step
 

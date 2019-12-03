@@ -121,6 +121,7 @@ service Provider {
     rpc ValidateResourceTypeConfig(ValidateResourceTypeConfig.Request) returns (ValidateResourceTypeConfig.Response);
     rpc ValidateDataSourceConfig(ValidateDataSourceConfig.Request) returns (ValidateDataSourceConfig.Response);
     rpc ValidateStateStorageConfig(ValidateStateStorageConfig.Request) returns (ValidateStateStorageConfig.Response);
+    rpc ValidateWorkspaceManagementConfig(ValidateWorkspaceManagementConfig.Request) returns (ValidateWorkspaceManagementConfig.Response);
     rpc UpgradeResourceState(UpgradeResourceState.Request) returns (UpgradeResourceState.Response);
 
     //////// One-time initialization, called before other functions below
@@ -140,6 +141,9 @@ service Provider {
     rpc WriteStateStorage(WriteStateStorage.Request) returns (WriteStateStorage.Response);
     rpc LockStateStorage(LockStateStorage.Request) returns (LockStateStorage.Response);
     rpc UnlockStateStorage(UnlockStateStorage.Request) returns (UnlockStateStorage.Response);
+
+    //////// Workspace Management Lifecycle
+    rpc ListManagedWorkspaces(ListManagedWorkspaces.Request) returns (ListManagedWorkspaces.Response);
 
     //////// Graceful Shutdown
     rpc Stop(Stop.Request) returns (Stop.Response);
@@ -376,6 +380,42 @@ message UnlockStateStorage {
     }
     message Response {
         repeated Diagnostic diagnostics = 1;
+    }
+}
+
+message ValidateWorkspaceManagementConfig {
+    message Request {
+        string workspace_management_type_name = 1;
+        DynamicValue config = 2;
+    }
+    message Response {
+        repeated Diagnostic diagnostics = 1;
+    }
+}
+
+message ListManagedWorkspaces {
+    message Request {
+        string workspace_management_type_name = 1;
+        DynamicValue config = 2;
+    }
+    message Response {
+        repeated Diagnostic diagnostics = 1;
+        repeated ManagedWorkspace workspaces = 2;
+    }
+    message ManagedWorkspace {
+        string name = 1;
+        string state_storage_type_name = 2;
+
+        // state_storage_config is an object conforming to the configuration
+        // schema of the state storage given in state_storage_type_name,
+        // which Terraform should use to access the state for this workspace.
+        //
+        // This unusual indirection of having the provider essentially write a
+        // configuration for a different part of itself is intended to allow
+        // state storages to optionally be used independently of a particular
+        // workspace management implementation, directly configured by the
+        // user.
+        DynamicValue state_storage_config = 3;
     }
 }
 
