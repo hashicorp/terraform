@@ -40,7 +40,7 @@ func ResolverFixed(factories map[addrs.ProviderType]Factory) Resolver {
 		ret := make(map[addrs.ProviderType]Factory, len(reqd))
 		var errs []error
 		for name := range reqd {
-			fqn := addrs.NewDefaultProviderType(name)
+			fqn := addrs.NewLegacyProviderType(name)
 			if factory, exists := factories[fqn]; exists {
 				ret[fqn] = factory
 			} else {

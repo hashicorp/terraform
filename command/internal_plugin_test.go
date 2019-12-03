@@ -1,15 +1,17 @@
 package command
 
-import "testing"
+import (
+	"testing"
 
-import "github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/addrs"
+)
 
 func TestInternalPlugin_InternalProviders(t *testing.T) {
 	m := new(Meta)
 	providers := m.internalProviders()
 	// terraform is the only provider moved back to internal
 	for _, name := range []string{"terraform"} {
-		pf, ok := providers[addrs.NewDefaultProviderType(name)]
+		pf, ok := providers[addrs.NewLegacyProviderType(name)]
 		if !ok {
 			t.Errorf("Expected to find %s in InternalProviders", name)
 		}

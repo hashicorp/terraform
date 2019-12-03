@@ -551,7 +551,7 @@ func TestImport_providerNameMismatch(t *testing.T) {
 			testingOverrides: &testingOverrides{
 				ProviderResolver: providers.ResolverFixed(
 					map[addrs.ProviderType]providers.Factory{
-						addrs.NewDefaultProviderType("test-beta"): providers.FactoryFixed(p),
+						addrs.NewLegacyProviderType("test-beta"): providers.FactoryFixed(p),
 					},
 				),
 			},

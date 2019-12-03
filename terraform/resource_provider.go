@@ -238,7 +238,7 @@ func ResourceProviderResolverFixed(factories map[addrs.ProviderType]ResourceProv
 		var errs []error
 		for name := range reqd {
 			// Provider Source Readiness!
-			fqn := addrs.NewDefaultProviderType(name)
+			fqn := addrs.NewLegacyProviderType(name)
 			if factory, exists := factories[fqn]; exists {
 				ret[fqn] = factory
 			} else {

@@ -54,7 +54,7 @@ func contextFixtureApplyVars(t *testing.T) *contextTestFixture {
 		Config: c,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	}
@@ -82,7 +82,7 @@ func contextFixtureApplyVarsEnv(t *testing.T) *contextTestFixture {
 		Config: c,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	}

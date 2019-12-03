@@ -115,7 +115,7 @@ func metaOverridesForProvider(p providers.Interface) *testingOverrides {
 	return &testingOverrides{
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("test"): providers.FactoryFixed(p),
+				addrs.NewLegacyProviderType("test"): providers.FactoryFixed(p),
 			},
 		),
 	}
@@ -125,7 +125,7 @@ func metaOverridesForProviderAndProvisioner(p providers.Interface, pr provisione
 	return &testingOverrides{
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("test"): providers.FactoryFixed(p),
+				addrs.NewLegacyProviderType("test"): providers.FactoryFixed(p),
 			},
 		),
 		Provisioners: map[string]provisioners.Factory{

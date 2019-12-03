@@ -31,7 +31,7 @@ func TestContext2Validate_badCount(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -60,7 +60,7 @@ func TestContext2Validate_badVar(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -91,7 +91,7 @@ func TestContext2Validate_varMapOverrideOld(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 		Variables: InputValues{},
@@ -143,8 +143,8 @@ func TestContext2Validate_computedVar(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"):  testProviderFuncFixed(p),
-				addrs.NewDefaultProviderType("test"): testProviderFuncFixed(pt),
+				addrs.NewLegacyProviderType("aws"):  testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("test"): testProviderFuncFixed(pt),
 			},
 		),
 	})
@@ -192,7 +192,7 @@ func TestContext2Validate_computedInFunction(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -229,7 +229,7 @@ func TestContext2Validate_countComputed(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -255,7 +255,7 @@ func TestContext2Validate_countNegative(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -283,7 +283,7 @@ func TestContext2Validate_countVariable(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -311,7 +311,7 @@ func TestContext2Validate_countVariableNoDefault(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -338,7 +338,7 @@ func TestContext2Validate_moduleBadOutput(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -366,7 +366,7 @@ func TestContext2Validate_moduleGood(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -392,7 +392,7 @@ func TestContext2Validate_moduleBadResource(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -424,7 +424,7 @@ func TestContext2Validate_moduleDepsShouldNotCycle(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -457,7 +457,7 @@ func TestContext2Validate_moduleProviderVar(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 		Variables: InputValues{
@@ -500,7 +500,7 @@ func TestContext2Validate_moduleProviderInheritUnused(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -548,7 +548,7 @@ func TestContext2Validate_orphans(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 		State: state,
@@ -590,7 +590,7 @@ func TestContext2Validate_providerConfig_bad(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -628,7 +628,7 @@ func TestContext2Validate_providerConfig_badEmpty(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -663,7 +663,7 @@ func TestContext2Validate_providerConfig_good(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -693,7 +693,7 @@ func TestContext2Validate_provisionerConfig_bad(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 		Provisioners: map[string]ProvisionerFactory{
@@ -730,7 +730,7 @@ func TestContext2Validate_badResourceConnection(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 		Provisioners: map[string]ProvisionerFactory{
@@ -764,7 +764,7 @@ func TestContext2Validate_badProvisionerConnection(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 		Provisioners: map[string]ProvisionerFactory{
@@ -812,7 +812,7 @@ func TestContext2Validate_provisionerConfig_good(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 		Provisioners: map[string]ProvisionerFactory{
@@ -843,7 +843,7 @@ func TestContext2Validate_requiredVar(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -870,7 +870,7 @@ func TestContext2Validate_resourceConfig_bad(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -902,7 +902,7 @@ func TestContext2Validate_resourceConfig_good(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -947,7 +947,7 @@ func TestContext2Validate_tainted(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 		State: state,
@@ -990,7 +990,7 @@ func TestContext2Validate_targetedDestroy(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 		Provisioners: map[string]ProvisionerFactory{
@@ -1037,7 +1037,7 @@ func TestContext2Validate_varRefUnknown(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 		Variables: InputValues{
@@ -1087,7 +1087,7 @@ func TestContext2Validate_interpolateVar(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("template"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("template"): testProviderFuncFixed(p),
 			},
 		),
 		UIInput: input,
@@ -1122,7 +1122,7 @@ func TestContext2Validate_interpolateComputedModuleVarDef(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 		UIInput: input,
@@ -1147,7 +1147,7 @@ func TestContext2Validate_interpolateMap(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("template"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("template"): testProviderFuncFixed(p),
 			},
 		),
 		UIInput: input,
@@ -1227,7 +1227,7 @@ output "out" {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -1266,7 +1266,7 @@ resource "aws_instance" "foo" {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -1297,7 +1297,7 @@ output "out" {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -1330,7 +1330,7 @@ output "out" {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -1363,7 +1363,7 @@ output "out" {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -1395,7 +1395,7 @@ resource "test_instance" "bar" {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("test"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("test"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -1430,7 +1430,7 @@ resource "test_instance" "bar" {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("test"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("test"): testProviderFuncFixed(p),
 			},
 		),
 	})

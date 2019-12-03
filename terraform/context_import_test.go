@@ -19,7 +19,7 @@ func TestContextImport_basic(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -58,7 +58,7 @@ func TestContextImport_countIndex(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -98,7 +98,7 @@ func TestContextImport_collision(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 
@@ -165,7 +165,7 @@ func TestContextImport_missingType(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -217,7 +217,7 @@ func TestContextImport_moduleProvider(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -256,7 +256,7 @@ func TestContextImport_providerModule(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -308,7 +308,7 @@ func TestContextImport_providerVarConfig(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 		Variables: InputValues{
@@ -370,7 +370,7 @@ func TestContextImport_providerNonVarConfig(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -405,7 +405,7 @@ func TestContextImport_refresh(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -455,7 +455,7 @@ func TestContextImport_refreshNil(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -502,7 +502,7 @@ func TestContextImport_module(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -543,7 +543,7 @@ func TestContextImport_moduleDepth2(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -584,7 +584,7 @@ func TestContextImport_moduleDiff(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 
@@ -642,7 +642,7 @@ func TestContextImport_moduleExisting(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 
@@ -732,7 +732,7 @@ func TestContextImport_multiState(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -802,7 +802,7 @@ func TestContextImport_multiStateSame(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -837,7 +837,7 @@ func TestContextImport_customProviderMissing(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -872,7 +872,7 @@ func TestContextImport_customProvider(t *testing.T) {
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
 			map[addrs.ProviderType]providers.Factory{
-				addrs.NewDefaultProviderType("aws"): testProviderFuncFixed(p),
+				addrs.NewLegacyProviderType("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})

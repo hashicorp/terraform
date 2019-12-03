@@ -25,7 +25,7 @@ func TestMultiVersionProviderResolver(t *testing.T) {
 
 	resolver := &multiVersionProviderResolver{
 		Internal: map[addrs.ProviderType]providers.Factory{
-			addrs.NewDefaultProviderType("internal"): providers.FactoryFixed(
+			addrs.NewLegacyProviderType("internal"): providers.FactoryFixed(
 				&terraform.MockProvider{
 					GetSchemaReturn: &terraform.ProviderSchema{
 						ResourceTypes: map[string]*configschema.Block{
@@ -51,7 +51,7 @@ func TestMultiVersionProviderResolver(t *testing.T) {
 		if ct := len(got); ct != 1 {
 			t.Errorf("wrong number of results %d; want 1", ct)
 		}
-		if _, exists := got[addrs.NewDefaultProviderType("plugin")]; !exists {
+		if _, exists := got[addrs.NewLegacyProviderType("plugin")]; !exists {
 			t.Errorf("provider \"plugin\" not in result")
 		}
 	})
@@ -79,7 +79,7 @@ func TestMultiVersionProviderResolver(t *testing.T) {
 		if ct := len(got); ct != 1 {
 			t.Errorf("wrong number of results %d; want 1", ct)
 		}
-		if _, exists := got[addrs.NewDefaultProviderType("internal")]; !exists {
+		if _, exists := got[addrs.NewLegacyProviderType("internal")]; !exists {
 			t.Errorf("provider \"internal\" not in result")
 		}
 	})
@@ -121,7 +121,7 @@ func TestPluginPath(t *testing.T) {
 func TestInternalProviders(t *testing.T) {
 	m := Meta{}
 	internal := m.internalProviders()
-	tfProvider, err := internal[addrs.NewDefaultProviderType("terraform")]()
+	tfProvider, err := internal[addrs.NewLegacyProviderType("terraform")]()
 	if err != nil {
 		t.Fatal(err)
 	}

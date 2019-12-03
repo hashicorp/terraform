@@ -35,7 +35,7 @@ type basicComponentFactory struct {
 func (c *basicComponentFactory) ResourceProviders() []string {
 	result := make([]string, len(c.providers))
 	for k := range c.providers {
-		result = append(result, k.Type)
+		result = append(result, k.LegacyString())
 	}
 
 	return result
@@ -51,7 +51,7 @@ func (c *basicComponentFactory) ResourceProvisioners() []string {
 }
 
 func (c *basicComponentFactory) ResourceProvider(typ, uid string) (providers.Interface, error) {
-	f, ok := c.providers[addrs.NewDefaultProviderType(typ)]
+	f, ok := c.providers[addrs.NewLegacyProviderType(typ)]
 	if !ok {
 		return nil, fmt.Errorf("unknown provider %q", typ)
 	}

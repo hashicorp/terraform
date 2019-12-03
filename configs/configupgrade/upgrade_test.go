@@ -188,7 +188,7 @@ func diffSourceFilesFallback(got, want []byte) []byte {
 }
 
 var testProviders = map[addrs.ProviderType]providers.Factory{
-	addrs.NewDefaultProviderType("test"): providers.Factory(func() (providers.Interface, error) {
+	addrs.NewLegacyProviderType("test"): providers.Factory(func() (providers.Interface, error) {
 		p := &terraform.MockProvider{}
 		p.GetSchemaReturn = &terraform.ProviderSchema{
 			ResourceTypes: map[string]*configschema.Block{
@@ -237,7 +237,7 @@ var testProviders = map[addrs.ProviderType]providers.Factory{
 		}
 		return p, nil
 	}),
-	addrs.NewDefaultProviderType("terraform"): providers.Factory(func() (providers.Interface, error) {
+	addrs.NewLegacyProviderType("terraform"): providers.Factory(func() (providers.Interface, error) {
 		p := &terraform.MockProvider{}
 		p.GetSchemaReturn = &terraform.ProviderSchema{
 			DataSources: map[string]*configschema.Block{
@@ -253,7 +253,7 @@ var testProviders = map[addrs.ProviderType]providers.Factory{
 		}
 		return p, nil
 	}),
-	addrs.NewDefaultProviderType("aws"): providers.Factory(func() (providers.Interface, error) {
+	addrs.NewLegacyProviderType("aws"): providers.Factory(func() (providers.Interface, error) {
 		// This is here only so we can test the provisioner connection info
 		// migration behavior, which is resource-type specific. Do not use
 		// it in any other tests.
