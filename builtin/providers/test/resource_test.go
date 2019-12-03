@@ -784,7 +784,7 @@ resource "test_resource" "foo" {
 }
 
 func TestResource_setDrift(t *testing.T) {
-	testProvider := testAccProviders["registry.terraform.io/hashicorp/test"]
+	testProvider := testAccProviders["test"]
 	res := testProvider.(*schema.Provider).ResourcesMap["test_resource"]
 
 	// reset the Read function after the test

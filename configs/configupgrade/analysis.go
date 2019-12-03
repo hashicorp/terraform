@@ -242,11 +242,10 @@ func (u *Upgrader) analyze(ms ModuleSources) (*analysis, error) {
 	}
 
 	for fqn, fn := range providerFactories {
-		name := shimProviderNameFromFqn(fqn)
-		log.Printf("[TRACE] Fetching schema from provider %q", name)
+		log.Printf("[TRACE] Fetching schema from provider %q", fqn.Type)
 		provider, err := fn()
 		if err != nil {
-			return nil, fmt.Errorf("failed to load provider %q: %s", name, err)
+			return nil, fmt.Errorf("failed to load provider %q: %s", fqn.Type, err)
 		}
 
 		resp := provider.GetSchema()
@@ -265,7 +264,7 @@ func (u *Upgrader) analyze(ms ModuleSources) (*analysis, error) {
 		for t, s := range resp.DataSources {
 			schema.DataSources[t] = s.Block
 		}
-		ret.ProviderSchemas[fqn] = schema
+		ret.ProviderSchemas[fqn.Type] = schema
 	}
 
 	for name, fn := range u.Provisioners {

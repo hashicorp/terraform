@@ -305,7 +305,7 @@ func (u *Upgrader) upgradeNativeSyntaxResource(filename string, buf *bytes.Buffe
 		panic(fmt.Sprintf("unknown provider type for %s", addr.String()))
 	}
 
-	providerSchema, ok := an.ProviderSchemas[shimProviderFqn(providerType)]
+	providerSchema, ok := an.ProviderSchemas[providerType]
 	if !ok {
 		panic(fmt.Sprintf("missing schema for provider type %q", providerType))
 	}
@@ -358,7 +358,7 @@ func (u *Upgrader) upgradeNativeSyntaxProvider(filename string, buf *bytes.Buffe
 
 	// We should always have a schema for each provider in our analysis
 	// object. If not, it's a bug in the analyzer.
-	providerSchema, ok := an.ProviderSchemas[shimProviderFqn(typeName)]
+	providerSchema, ok := an.ProviderSchemas[typeName]
 	if !ok {
 		panic(fmt.Sprintf("missing schema for provider type %q", typeName))
 	}
@@ -794,14 +794,4 @@ func printLabelTodo(buf *bytes.Buffer, label string) {
 		"# state. Detailed information on the `state move` command can be found in the\n" +
 		"# documentation online: https://www.terraform.io/docs/commands/state/mv.html\n",
 	)
-}
-
-// provider source helper functions
-func shimProviderFqn(typeName string) string {
-	return "registry.terraform.io/hashicorp/" + typeName
-}
-
-func shimProviderNameFromFqn(fqn string) string {
-	parts := strings.Split(fqn, "/")
-	return parts[len(parts)-1]
 }

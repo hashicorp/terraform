@@ -12,6 +12,7 @@ import (
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/plugin/discovery"
@@ -549,8 +550,8 @@ func TestImport_providerNameMismatch(t *testing.T) {
 		Meta: Meta{
 			testingOverrides: &testingOverrides{
 				ProviderResolver: providers.ResolverFixed(
-					map[string]providers.Factory{
-						"registry.terraform.io/hashicorp/test-beta": providers.FactoryFixed(p),
+					map[addrs.ProviderType]providers.Factory{
+						addrs.NewDefaultProviderType("test-beta"): providers.FactoryFixed(p),
 					},
 				),
 			},

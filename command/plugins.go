@@ -15,6 +15,7 @@ import (
 	plugin "github.com/hashicorp/go-plugin"
 	"github.com/kardianos/osext"
 
+	"github.com/hashicorp/terraform/addrs"
 	terraformProvider "github.com/hashicorp/terraform/builtin/providers/terraform"
 	tfplugin "github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/plugin/discovery"
@@ -35,16 +36,16 @@ type multiVersionProviderResolver struct {
 	// (will produce an error if one is set). This should be used only in
 	// exceptional circumstances since it forces the provider's release
 	// schedule to be tied to that of Terraform Core.
-	Internal map[string]providers.Factory
+	Internal map[addrs.ProviderType]providers.Factory
 }
 
-func choosePlugins(avail discovery.PluginMetaSet, internal map[string]providers.Factory, reqd discovery.PluginRequirements) map[string]discovery.PluginMeta {
+func choosePlugins(avail discovery.PluginMetaSet, internal map[addrs.ProviderType]providers.Factory, reqd discovery.PluginRequirements) map[string]discovery.PluginMeta {
 	candidates := avail.ConstrainVersions(reqd)
 	ret := map[string]discovery.PluginMeta{}
 	for name, metas := range candidates {
 		// If the provider is in our internal map then we ignore any
 		// discovered plugins for it since these are dealt with separately.
-		if _, isInternal := internal[name]; isInternal {
+		if _, isInternal := internal[addrs.NewDefaultProviderType(name)]; isInternal {
 			continue
 		}
 
@@ -58,19 +59,18 @@ func choosePlugins(avail discovery.PluginMetaSet, internal map[string]providers.
 
 func (r *multiVersionProviderResolver) ResolveProviders(
 	reqd discovery.PluginRequirements,
-) (map[string]providers.Factory, []error) {
-	factories := make(map[string]providers.Factory, len(reqd))
+) (map[addrs.ProviderType]providers.Factory, []error) {
+	factories := make(map[addrs.ProviderType]providers.Factory, len(reqd))
 	var errs []error
 
 	chosen := choosePlugins(r.Available, r.Internal, reqd)
 	for name, req := range reqd {
-		fqn := shimProviderFqn(name)
-		if factory, isInternal := r.Internal[name]; isInternal {
+		if factory, isInternal := r.Internal[addrs.NewDefaultProviderType(name)]; isInternal {
 			if !req.Versions.Unconstrained() {
 				errs = append(errs, fmt.Errorf("provider.%s: this provider is built in to Terraform and so it does not support version constraints", name))
 				continue
 			}
-			factories[fqn] = factory
+			factories[addrs.NewDefaultProviderType(name)] = factory
 			continue
 		}
 
@@ -85,7 +85,7 @@ func (r *multiVersionProviderResolver) ResolveProviders(
 				continue
 			}
 
-			factories[fqn] = providerFactory(newest)
+			factories[addrs.NewDefaultProviderType(name)] = providerFactory(newest)
 		} else {
 			msg := fmt.Sprintf("provider.%s: no suitable version installed", name)
 
@@ -281,9 +281,9 @@ func (m *Meta) providerResolver() providers.Resolver {
 	}
 }
 
-func (m *Meta) internalProviders() map[string]providers.Factory {
-	return map[string]providers.Factory{
-		"terraform": func() (providers.Interface, error) {
+func (m *Meta) internalProviders() map[addrs.ProviderType]providers.Factory {
+	return map[addrs.ProviderType]providers.Factory{
+		addrs.NewDefaultProviderType("terraform"): func() (providers.Interface, error) {
 			return terraformProvider.NewProvider(), nil
 		},
 	}
@@ -298,7 +298,7 @@ func (m *Meta) missingPlugins(avail discovery.PluginMetaSet, reqd discovery.Plug
 
 	for name, versionSet := range reqd {
 		// internal providers can't be missing
-		if _, ok := internal[name]; ok {
+		if _, ok := internal[addrs.NewDefaultProviderType(name)]; ok {
 			continue
 		}
 
@@ -420,9 +420,4 @@ func newProvisionerClient(client *plugin.Client) (provisioners.Interface, error)
 	p := raw.(*tfplugin.GRPCProvisioner)
 	p.PluginClient = client
 	return p, nil
-}
-
-// Provider Source readiness helper function
-func shimProviderFqn(typeName string) string {
-	return "registry.terraform.io/hashicorp/" + typeName
 }

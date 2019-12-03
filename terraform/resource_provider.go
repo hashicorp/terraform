@@ -2,8 +2,8 @@ package terraform
 
 import (
 	"fmt"
-	"strings"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/tfdiags"
 
 	"github.com/hashicorp/terraform/plugin/discovery"
@@ -210,18 +210,18 @@ type ResourceProviderResolver interface {
 	// Given a constraint map, return a ResourceProviderFactory for each
 	// requested provider. If some or all of the constraints cannot be
 	// satisfied, return a non-nil slice of errors describing the problems.
-	ResolveProviders(reqd discovery.PluginRequirements) (map[string]ResourceProviderFactory, []error)
+	ResolveProviders(reqd discovery.PluginRequirements) (map[addrs.ProviderType]ResourceProviderFactory, []error)
 }
 
 // ResourceProviderResolverFunc wraps a callback function and turns it into
 // a ResourceProviderResolver implementation, for convenience in situations
 // where a function and its associated closure are sufficient as a resolver
 // implementation.
-type ResourceProviderResolverFunc func(reqd discovery.PluginRequirements) (map[string]ResourceProviderFactory, []error)
+type ResourceProviderResolverFunc func(reqd discovery.PluginRequirements) (map[addrs.ProviderType]ResourceProviderFactory, []error)
 
 // ResolveProviders implements ResourceProviderResolver by calling the
 // wrapped function.
-func (f ResourceProviderResolverFunc) ResolveProviders(reqd discovery.PluginRequirements) (map[string]ResourceProviderFactory, []error) {
+func (f ResourceProviderResolverFunc) ResolveProviders(reqd discovery.PluginRequirements) (map[addrs.ProviderType]ResourceProviderFactory, []error) {
 	return f(reqd)
 }
 
@@ -232,13 +232,13 @@ func (f ResourceProviderResolverFunc) ResolveProviders(reqd discovery.PluginRequ
 //
 // This function is primarily used in tests, to provide mock providers or
 // in-process providers under test.
-func ResourceProviderResolverFixed(factories map[string]ResourceProviderFactory) ResourceProviderResolver {
-	return ResourceProviderResolverFunc(func(reqd discovery.PluginRequirements) (map[string]ResourceProviderFactory, []error) {
-		ret := make(map[string]ResourceProviderFactory, len(reqd))
+func ResourceProviderResolverFixed(factories map[addrs.ProviderType]ResourceProviderFactory) ResourceProviderResolver {
+	return ResourceProviderResolverFunc(func(reqd discovery.PluginRequirements) (map[addrs.ProviderType]ResourceProviderFactory, []error) {
+		ret := make(map[addrs.ProviderType]ResourceProviderFactory, len(reqd))
 		var errs []error
 		for name := range reqd {
 			// Provider Source Readiness!
-			fqn := shimProviderFqn(name)
+			fqn := addrs.NewDefaultProviderType(name)
 			if factory, exists := factories[fqn]; exists {
 				ret[fqn] = factory
 			} else {
@@ -288,7 +288,7 @@ func ProviderHasDataSource(p ResourceProvider, n string) bool {
 // This should be called only with configurations that have passed calls
 // to config.Validate(), which ensures that all of the given version
 // constraints are valid. It will panic if any invalid constraints are present.
-func resourceProviderFactories(resolver providers.Resolver, reqd discovery.PluginRequirements) (map[string]providers.Factory, tfdiags.Diagnostics) {
+func resourceProviderFactories(resolver providers.Resolver, reqd discovery.PluginRequirements) (map[addrs.ProviderType]providers.Factory, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	ret, errs := resolver.ResolveProviders(reqd)
 	if errs != nil {
@@ -320,12 +320,3 @@ Terraform automatically discovers provider requirements from your
 configuration, including providers used in child modules. To see the
 requirements and constraints from each module, run "terraform providers".
 `
-
-func shimProviderFqn(typeName string) string {
-	return "registry.terraform.io/hashicorp/" + typeName
-}
-
-func shimProviderNameFromFqn(fqn string) string {
-	parts := strings.Split(fqn, "/")
-	return parts[len(parts)-1]
-}

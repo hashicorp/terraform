@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/plugin/discovery"
 	"github.com/hashicorp/terraform/terraform"
@@ -1049,12 +1050,12 @@ func TestTestProviderResolver(t *testing.T) {
 
 	c := TestCase{
 		ProviderFactories: map[string]terraform.ResourceProviderFactory{
-			"registry.terraform.io/hashicorp/foo": terraform.ResourceProviderFactoryFixed(stubProvider("foo")),
-			"registry.terraform.io/hashicorp/bar": terraform.ResourceProviderFactoryFixed(stubProvider("bar")),
+			"foo": terraform.ResourceProviderFactoryFixed(stubProvider("foo")),
+			"bar": terraform.ResourceProviderFactoryFixed(stubProvider("bar")),
 		},
 		Providers: map[string]terraform.ResourceProvider{
-			"registry.terraform.io/hashicorp/baz": stubProvider("baz"),
-			"registry.terraform.io/hashicorp/bop": stubProvider("bop"),
+			"baz": stubProvider("baz"),
+			"bop": stubProvider("bop"),
 		},
 	}
 
@@ -1080,7 +1081,7 @@ func TestTestProviderResolver(t *testing.T) {
 
 	for name := range reqd {
 		t.Run(name, func(t *testing.T) {
-			pf, ok := factories[shimProviderFqn(name)]
+			pf, ok := factories[addrs.NewDefaultProviderType(name)]
 			if !ok {
 				t.Fatalf("no factory for %q", name)
 			}

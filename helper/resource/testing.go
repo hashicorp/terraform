@@ -485,12 +485,11 @@ func Test(t TestT, c TestCase) {
 	// get instances of all providers, so we can use the individual
 	// resources to shim the state during the tests.
 	providers := make(map[string]terraform.ResourceProvider)
-	for fqn, pf := range testProviderFactories(c) {
+	for name, pf := range testProviderFactories(c) {
 		p, err := pf()
 		if err != nil {
 			t.Fatal(err)
 		}
-		name := shimProviderNameFromFqn(fqn)
 		providers[name] = p
 	}
 
@@ -678,11 +677,11 @@ func testProviderResolver(c TestCase) (providers.Resolver, error) {
 
 	// wrap the old provider factories in the test grpc server so they can be
 	// called from terraform.
-	newProviders := make(map[string]providers.Factory)
+	newProviders := make(map[addrs.ProviderType]providers.Factory)
 
 	for k, pf := range ctxProviders {
 		factory := pf // must copy to ensure each closure sees its own value
-		newProviders[k] = func() (providers.Interface, error) {
+		newProviders[addrs.NewDefaultProviderType(k)] = func() (providers.Interface, error) {
 			p, err := factory()
 			if err != nil {
 				return nil, err
@@ -1318,25 +1317,5 @@ func detailedErrorMessage(err error) string {
 		return tErr.ErrorDetail()
 	default:
 		return err.Error()
-	}
-}
-
-// provider source readiness helper function
-// only relevant for tests.
-func shimProviderNameFromFqn(str string) string {
-	if strings.Contains(str, "registry.terraform.io") {
-		parts := strings.Split(str, "/")
-		return parts[len(parts)-1]
-	} else {
-		return str
-	}
-}
-
-// Provider Source readiness helper function!
-func shimProviderFqn(str string) string {
-	if strings.Contains(str, "registry.terraform.io/hashicorp") {
-		return str
-	} else {
-		return "registry.terraform.io/hashicorp/" + str
 	}
 }

@@ -211,8 +211,8 @@ func testSession(t *testing.T, test testSessionTest) {
 	// Build the TF context
 	ctx, diags := terraform.NewContext(&terraform.ContextOpts{
 		State: test.State,
-		ProviderResolver: providers.ResolverFixed(map[string]providers.Factory{
-			"registry.terraform.io/hashicorp/test": providers.FactoryFixed(p),
+		ProviderResolver: providers.ResolverFixed(map[addrs.ProviderType]providers.Factory{
+			addrs.NewDefaultProviderType("test"): providers.FactoryFixed(p),
 		}),
 		Config: config,
 	})

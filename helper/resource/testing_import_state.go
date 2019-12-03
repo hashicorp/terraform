@@ -84,7 +84,6 @@ func testStepImportState(
 			},
 		},
 	})
-
 	if stepDiags.HasErrors() {
 		log.Printf("[ERROR] Test: ImportState failure: %s", stepDiags.Err())
 		return state, stepDiags.Err()

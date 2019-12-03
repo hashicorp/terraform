@@ -3,6 +3,7 @@ package providers
 import (
 	"fmt"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/plugin/discovery"
 )
 
@@ -13,17 +14,17 @@ type Resolver interface {
 	// Given a constraint map, return a Factory for each requested provider.
 	// If some or all of the constraints cannot be satisfied, return a non-nil
 	// slice of errors describing the problems.
-	ResolveProviders(reqd discovery.PluginRequirements) (map[string]Factory, []error)
+	ResolveProviders(reqd discovery.PluginRequirements) (map[addrs.ProviderType]Factory, []error)
 }
 
 // ResolverFunc wraps a callback function and turns it into a Resolver
 // implementation, for convenience in situations where a function and its
 // associated closure are sufficient as a resolver implementation.
-type ResolverFunc func(reqd discovery.PluginRequirements) (map[string]Factory, []error)
+type ResolverFunc func(reqd discovery.PluginRequirements) (map[addrs.ProviderType]Factory, []error)
 
 // ResolveProviders implements Resolver by calling the
 // wrapped function.
-func (f ResolverFunc) ResolveProviders(reqd discovery.PluginRequirements) (map[string]Factory, []error) {
+func (f ResolverFunc) ResolveProviders(reqd discovery.PluginRequirements) (map[addrs.ProviderType]Factory, []error) {
 	return f(reqd)
 }
 
@@ -34,12 +35,12 @@ func (f ResolverFunc) ResolveProviders(reqd discovery.PluginRequirements) (map[s
 //
 // This function is primarily used in tests, to provide mock providers or
 // in-process providers under test.
-func ResolverFixed(factories map[string]Factory) Resolver {
-	return ResolverFunc(func(reqd discovery.PluginRequirements) (map[string]Factory, []error) {
-		ret := make(map[string]Factory, len(reqd))
+func ResolverFixed(factories map[addrs.ProviderType]Factory) Resolver {
+	return ResolverFunc(func(reqd discovery.PluginRequirements) (map[addrs.ProviderType]Factory, []error) {
+		ret := make(map[addrs.ProviderType]Factory, len(reqd))
 		var errs []error
 		for name := range reqd {
-			fqn := shimProviderFqn(name)
+			fqn := addrs.NewDefaultProviderType(name)
 			if factory, exists := factories[fqn]; exists {
 				ret[fqn] = factory
 			} else {
@@ -110,9 +111,4 @@ func ProviderHasDataSource(provider Interface, dataSourceName string) bool {
 
 	_, exists := resp.DataSources[dataSourceName]
 	return exists
-}
-
-// Provider Source readiness helper function!
-func shimProviderFqn(typeName string) string {
-	return "registry.terraform.io/hashicorp/" + typeName
 }

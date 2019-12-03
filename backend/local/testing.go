@@ -112,10 +112,9 @@ func TestLocalProvider(t *testing.T, b *Local, name string, schema *terraform.Pr
 	}
 
 	// Setup our provider
-	fqn := shimProviderFqn(name)
 	b.ContextOpts.ProviderResolver = providers.ResolverFixed(
-		map[string]providers.Factory{
-			fqn: providers.FactoryFixed(p),
+		map[addrs.ProviderType]providers.Factory{
+			addrs.NewDefaultProviderType(name): providers.FactoryFixed(p),
 		},
 	)
 
@@ -211,9 +210,4 @@ func testTempDir(t *testing.T) string {
 func testStateFile(t *testing.T, path string, s *states.State) {
 	stateFile := statemgr.NewFilesystem(path)
 	stateFile.WriteState(s)
-}
-
-// Provider Source readiness helper function!
-func shimProviderFqn(typeName string) string {
-	return "registry.terraform.io/hashicorp/" + typeName
 }

@@ -52,8 +52,8 @@ func TestBuildingEvalContextInitProvider(t *testing.T) {
 	ctx.ProviderLock = &lock
 	ctx.ProviderCache = make(map[string]providers.Interface)
 	ctx.Components = &basicComponentFactory{
-		providers: map[string]providers.Factory{
-			"registry.terraform.io/hashicorp/test": providers.FactoryFixed(testP),
+		providers: map[addrs.ProviderType]providers.Factory{
+			addrs.NewDefaultProviderType("test"): providers.FactoryFixed(testP),
 		},
 	}
 

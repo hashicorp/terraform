@@ -17,7 +17,7 @@ func init() {
 
 	testAccProvider = NewProvider()
 	testAccProviders = map[string]*Provider{
-		"registry.terraform.io/hashicorp/terraform": testAccProvider,
+		"terraform": testAccProvider,
 	}
 }
 
