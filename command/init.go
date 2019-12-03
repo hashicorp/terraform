@@ -316,6 +316,13 @@ func (c *InitCommand) Run(args []string) int {
 	// on a previous run) we'll use the current state as a potential source
 	// of provider dependencies.
 	if back != nil {
+		_, instDiags := c.getProvidersForBackend(earlyConfig, back, flagUpgrade)
+		diags = diags.Append(instDiags)
+		if instDiags.HasErrors() {
+			c.showDiagnostics(diags)
+			return 1
+		}
+
 		sMgr, err := back.StateMgr(c.Workspace())
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error loading state: %s", err))
@@ -475,6 +482,83 @@ the backend configuration is present and valid.
 	return back, true, diags
 }
 
+// getProvidersForBackend is a skinnier variant of getProviders that focuses
+// only on installing the providers needed to support the given backend.
+//
+// It takes earlyConfig as well in order to take into account any provider
+// version constraints found in there, but it will only consider version
+// constraints for providers that the backend needs, ignoring all other
+// provider dependency declarations in the configuration.
+func (c *InitCommand) getProvidersForBackend(earlyConfig *earlyconfig.Config, b backend.Backend, upgrade bool) (output bool, diags tfdiags.Diagnostics) {
+	backendReqTypes := backend.RequiredProviders(b)
+	if len(backendReqTypes) == 0 {
+		// If the provider doesn't require any providers then we can just
+		// skip all of this and wait for the main provider installation
+		// step, in getProviders.
+		return false, diags
+	}
+
+	var available discovery.PluginMetaSet
+	if upgrade {
+		// If we're in upgrade mode, we ignore any auto-installed plugins
+		// in "available", causing us to reinstall and possibly upgrade them.
+		available = c.providerPluginManuallyInstalledSet()
+	} else {
+		available = c.providerPluginSet()
+	}
+
+	configDeps, depsDiags := earlyConfig.ProviderDependencies()
+	diags = diags.Append(depsDiags)
+	if depsDiags.HasErrors() {
+		return false, diags
+	}
+
+	configReqs := configDeps.AllPluginRequirements()
+
+	// Now we'll construct a composite PluginRequirements that includes all
+	// of the types needed by the backend, but with the constraints from the
+	// configuration, if any.
+	backendReqs := make(discovery.PluginRequirements)
+	for _, pty := range backendReqTypes {
+		// NOTE: This is currently ignoring the other fields of
+		// addrs.ProviderType because PluginRequirements is not yet updated
+		// to use fully-qualified provider addresses.
+		ptyName := pty.Type
+		if configReq, ok := configReqs[ptyName]; ok {
+			backendReqs[ptyName] = configReq
+			continue
+		}
+		// If the config doesn't mention this one then we'll synthesize
+		// an unconstrained requirement. This is awkward since it means that
+		// the configuration has a dependency on a provider that isn't
+		// mentioned directly anywhere in the configuration, but we'll address
+		// that in a future phase where state storage is discussed explicitly
+		// in the UI, separately from backends.
+		backendReqs[ptyName] = &discovery.PluginConstraints{
+			Versions: discovery.AllVersions,
+		}
+	}
+
+	missing := c.missingPlugins(available, backendReqs)
+	if len(missing) == 0 {
+		// We already have everything the backend needs, so we'll skip the
+		// rest of this and let normal plugin installation take over any other
+		// missing plugins.
+		return false, diags
+	}
+
+	c.Ui.Output(c.Colorize().Color(
+		"\n[reset][bold]Initializing provider plugins for the backend...",
+	))
+	_, instDiags := c.installMissingProviders(missing)
+	diags = diags.Append(instDiags)
+	if instDiags.HasErrors() {
+		return true, diags
+	}
+
+	return true, diags
+}
+
 // Load the complete module tree, and fetch any missing providers.
 // This method outputs its own Ui.
 func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *states.State, upgrade bool) (output bool, diags tfdiags.Diagnostics) {
@@ -510,7 +594,94 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 	))
 
 	missing := c.missingPlugins(available, requirements)
+	_, instDiags := c.installMissingProviders(missing)
+	diags = diags.Append(instDiags)
+	if instDiags.HasErrors() {
+		return true, diags
+	}
 
+	// With all the providers downloaded, we'll generate our lock file
+	// that ensures the provider binaries remain unchanged until we init
+	// again. If anything changes, other commands that use providers will
+	// fail with an error instructing the user to re-run this command.
+	available = c.providerPluginSet() // re-discover to see newly-installed plugins
+
+	// internal providers were already filtered out, since we don't need to get them.
+	chosen := choosePlugins(available, nil, requirements)
+
+	digests := map[string][]byte{}
+	for name, meta := range chosen {
+		digest, err := meta.SHA256()
+		if err != nil {
+			diags = diags.Append(fmt.Errorf("Failed to read provider plugin %s: %s", meta.Path, err))
+			return true, diags
+		}
+		digests[name] = digest
+		if c.ignorePluginChecksum {
+			digests[name] = nil
+		}
+	}
+	err := c.providerPluginsLock().Write(digests)
+	if err != nil {
+		diags = diags.Append(fmt.Errorf("failed to save provider manifest: %s", err))
+		return true, diags
+	}
+
+	{
+		// Purge any auto-installed plugins that aren't being used.
+		purged, err := c.providerInstaller.PurgeUnused(chosen)
+		if err != nil {
+			// Failure to purge old plugins is not a fatal error
+			c.Ui.Warn(fmt.Sprintf("failed to purge unused plugins: %s", err))
+		}
+		if purged != nil {
+			for meta := range purged {
+				log.Printf("[DEBUG] Purged unused %s plugin %s", meta.Name, meta.Path)
+			}
+		}
+	}
+
+	// If any providers have "floating" versions (completely unconstrained)
+	// we'll suggest the user constrain with a pessimistic constraint to
+	// avoid implicitly adopting a later major release.
+	constraintSuggestions := make(map[string]discovery.ConstraintStr)
+	for name, meta := range chosen {
+		req := requirements[name]
+		if req == nil {
+			// should never happen, but we don't want to crash here, so we'll
+			// be cautious.
+			continue
+		}
+
+		if req.Versions.Unconstrained() && meta.Version != discovery.VersionZero {
+			// meta.Version.MustParse is safe here because our "chosen" metas
+			// were already filtered for validity of versions.
+			constraintSuggestions[name] = meta.Version.MustParse().MinorUpgradeConstraintStr()
+		}
+	}
+	if len(constraintSuggestions) != 0 {
+		names := make([]string, 0, len(constraintSuggestions))
+		for name := range constraintSuggestions {
+			names = append(names, name)
+		}
+		sort.Strings(names)
+
+		c.Ui.Output(outputInitProvidersUnconstrained)
+		for _, name := range names {
+			c.Ui.Output(fmt.Sprintf("* provider.%s: version = %q", name, constraintSuggestions[name]))
+		}
+	}
+
+	return true, diags
+}
+
+// installMissingProviders is responsible for actually fetching providers
+// once some other function has determined that they need to be installed.
+//
+// This function does not take into account plugins that are already installed,
+// because it assumes that its caller has already filtered those out to produce
+// the "missing" argument value.
+func (c *InitCommand) installMissingProviders(missing discovery.PluginRequirements) (output bool, diags tfdiags.Diagnostics) {
 	if c.getPlugins {
 		if len(missing) > 0 {
 			c.Ui.Output("- Checking for available provider plugins...")
@@ -588,78 +759,6 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 		sort.Strings(lines)
 		c.Ui.Error(fmt.Sprintf(errMissingProvidersNoInstall, strings.Join(lines, ""), DefaultPluginVendorDir))
 		return true, diags
-	}
-
-	// With all the providers downloaded, we'll generate our lock file
-	// that ensures the provider binaries remain unchanged until we init
-	// again. If anything changes, other commands that use providers will
-	// fail with an error instructing the user to re-run this command.
-	available = c.providerPluginSet() // re-discover to see newly-installed plugins
-
-	// internal providers were already filtered out, since we don't need to get them.
-	chosen := choosePlugins(available, nil, requirements)
-
-	digests := map[string][]byte{}
-	for name, meta := range chosen {
-		digest, err := meta.SHA256()
-		if err != nil {
-			diags = diags.Append(fmt.Errorf("Failed to read provider plugin %s: %s", meta.Path, err))
-			return true, diags
-		}
-		digests[name] = digest
-		if c.ignorePluginChecksum {
-			digests[name] = nil
-		}
-	}
-	err := c.providerPluginsLock().Write(digests)
-	if err != nil {
-		diags = diags.Append(fmt.Errorf("failed to save provider manifest: %s", err))
-		return true, diags
-	}
-
-	{
-		// Purge any auto-installed plugins that aren't being used.
-		purged, err := c.providerInstaller.PurgeUnused(chosen)
-		if err != nil {
-			// Failure to purge old plugins is not a fatal error
-			c.Ui.Warn(fmt.Sprintf("failed to purge unused plugins: %s", err))
-		}
-		if purged != nil {
-			for meta := range purged {
-				log.Printf("[DEBUG] Purged unused %s plugin %s", meta.Name, meta.Path)
-			}
-		}
-	}
-
-	// If any providers have "floating" versions (completely unconstrained)
-	// we'll suggest the user constrain with a pessimistic constraint to
-	// avoid implicitly adopting a later major release.
-	constraintSuggestions := make(map[string]discovery.ConstraintStr)
-	for name, meta := range chosen {
-		req := requirements[name]
-		if req == nil {
-			// should never happen, but we don't want to crash here, so we'll
-			// be cautious.
-			continue
-		}
-
-		if req.Versions.Unconstrained() && meta.Version != discovery.VersionZero {
-			// meta.Version.MustParse is safe here because our "chosen" metas
-			// were already filtered for validity of versions.
-			constraintSuggestions[name] = meta.Version.MustParse().MinorUpgradeConstraintStr()
-		}
-	}
-	if len(constraintSuggestions) != 0 {
-		names := make([]string, 0, len(constraintSuggestions))
-		for name := range constraintSuggestions {
-			names = append(names, name)
-		}
-		sort.Strings(names)
-
-		c.Ui.Output(outputInitProvidersUnconstrained)
-		for _, name := range names {
-			c.Ui.Output(fmt.Sprintf("* provider.%s: version = %q", name, constraintSuggestions[name]))
-		}
 	}
 
 	return true, diags
