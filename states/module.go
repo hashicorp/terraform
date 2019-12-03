@@ -97,7 +97,9 @@ func (ms *Module) SetResourceInstanceCurrent(addr addrs.ResourceInstance, obj *R
 	if obj == nil && rs != nil {
 		// does the resource have any other objects?
 		// if not then delete the whole resource
-		if len(rs.Instances) == 0 {
+		// When deleting the resource, ensure that its EachMode is NoEach,
+		// as a resource with EachList or EachMap can have 0 instances and be valid
+		if rs.EachMode == NoEach && len(rs.Instances) == 0 {
 			delete(ms.Resources, addr.Resource.String())
 			return
 		}
@@ -113,7 +115,8 @@ func (ms *Module) SetResourceInstanceCurrent(addr addrs.ResourceInstance, obj *R
 		if !is.HasObjects() {
 			// If we have no objects at all then we'll clean up.
 			delete(rs.Instances, addr.Key)
-			if len(rs.Instances) == 0 {
+			// Delete the resource if it has no instances, but only if NoEach
+			if rs.EachMode == NoEach && len(rs.Instances) == 0 {
 				delete(ms.Resources, addr.Resource.String())
 				return
 			}
