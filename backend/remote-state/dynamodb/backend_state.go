@@ -52,7 +52,7 @@ func (b *Backend) Workspaces() ([]string, error) {
 	    ExpressionAttributeValues: expr.Values(),
 	    FilterExpression:          expr.Filter(),
 	    ProjectionExpression:      expr.Projection(),
-	    TableName:                 aws.String("terraform-global-table-sort"), //TODO b.tableName
+	    TableName:                 aws.String(b.tableName), //TODO 
 	}
 	// Execute Query
 	result, err := b.dynClient.Scan(dyparams) // TODO SCAN LIMITS, se c'è un next token continuare la scan
@@ -144,7 +144,7 @@ func (b *Backend) remoteClient(name string) (*RemoteClient, error) {
 
 
 	client := &RemoteClient{
-		s3Client:              b.s3Client,
+		//s3Client:              b.s3Client,
 		dynClient:             b.dynClient,
 		tableName:             b.tableName,
 		path:                  b.path(name),

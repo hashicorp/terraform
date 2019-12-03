@@ -15,9 +15,9 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
+//	"github.com/aws/aws-sdk-go/aws/awserr"
 //	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/aws/aws-sdk-go/service/s3"
+//	"github.com/aws/aws-sdk-go/service/s3"
 	multierror "github.com/hashicorp/go-multierror"
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform/state"
@@ -36,14 +36,14 @@ const (
 )
 
 type RemoteClient struct {
-	s3Client              *s3.S3
+	//s3Client              *s3.S3
 	dynClient             *dynamodb.DynamoDB
 	tableName             string
 	path                  string
 //	serverSideEncryption  bool
 	customerEncryptionKey []byte
 //	acl                   string
-	kmsKeyID              string
+//	kmsKeyID              string
 	ddbTable              string
 }
 
@@ -122,52 +122,9 @@ func getMaxSegmentId(items []map[string]*dynamodb.AttributeValue) (int, error) {
 }
 
 func (c *RemoteClient) get() (*remote.Payload, error) {
-	var output *s3.GetObjectOutput
-	var err error
-
-	input := &s3.GetObjectInput{
-		Bucket: &c.tableName,
-		Key:    &c.path,
-	}
-
-	//if c.serverSideEncryption && c.customerEncryptionKey != nil {
-	//	input.SetSSECustomerKey(string(c.customerEncryptionKey))
-	//	input.SetSSECustomerAlgorithm(s3EncryptionAlgorithm)
-	//	input.SetSSECustomerKeyMD5(c.getSSECustomerKeyMD5())
-	//}
-
-	output, err = c.s3Client.GetObject(input)
-
-	if err != nil {
-		if awserr, ok := err.(awserr.Error); ok {
-			switch awserr.Code() {
-			case s3.ErrCodeNoSuchBucket:
-				return nil, fmt.Errorf(errS3NoSuchBucket, err)
-			case s3.ErrCodeNoSuchKey:
-				return nil, nil
-			}
-		}
-		return nil, err
-	}
-
-	defer output.Body.Close()
-
-	buf := bytes.NewBuffer(nil)
-	if _, err := io.Copy(buf, output.Body); err != nil {
-		return nil, fmt.Errorf("Failed to read remote state: %s", err)
-	}
-
-	sum := md5.Sum(buf.Bytes())
-	payload := &remote.Payload{
-		Data: buf.Bytes(),
-		MD5:  sum[:],
-	}
-
-/** DynamoDB **/
-    tableName := "terraform-global-table-sort"
 
 	var queryInput = &dynamodb.QueryInput{
-	    TableName: aws.String(tableName),
+	    TableName: aws.String(c.tableName),
 	    KeyConditions: map[string]*dynamodb.Condition{
 	        "StateID": {
 	            ComparisonOperator: aws.String("EQ"),
@@ -186,35 +143,27 @@ func (c *RemoteClient) get() (*remote.Payload, error) {
 	}
 
 	maxSegmentID, err := getMaxSegmentId(result.Items)
-
-	fmt.Println("maxSegmentID in get function: %d", maxSegmentID)
-
 	var segmentStrings = make([]string, maxSegmentID+1)
-
+	fmt.Println("maxSegmentID in get function: %d", maxSegmentID)
 
 	for _, i := range result.Items {
 	    state := State{}
-
 	    err = dynamodbattribute.UnmarshalMap(i, &state)
-
 	   	segmentID, _ := strconv.Atoi(state.SegmentID)
-
 	    segmentStrings[segmentID] = state.Body
 	}
 
 	jsonString := strings.Join(segmentStrings[:], "")
+	buf := bytes.NewBuffer(nil)
+	if _, err := io.Copy(buf, strings.NewReader(jsonString)); err != nil {
+		return nil, fmt.Errorf("Failed to read remote state: %s", err)
+	}
 
-	fmt.Println("segmentStrings in get function: %d", jsonString)
-
-
-
-
-
-
-
-
-
-/** DynamoDB **/
+	sum := md5.Sum(buf.Bytes())
+	payload := &remote.Payload{
+		Data: buf.Bytes(),
+		MD5:  sum[:],
+	}
 
 	// If there was no data, then return nil
 	if len(payload.Data) == 0 {
@@ -239,9 +188,6 @@ func (c *RemoteClient) GeberatePutItems(data []byte, sequence []int, transaction
 	}
 
 	if len(b) < dynamoDBItemSize {
-
-		tableName := "terraform-global-table-sort" // TO CHANGE c.tableName
-
 		av, err := dynamodbattribute.MarshalMap(item)
 		if err != nil {
 		    return fmt.Errorf("Got error marshalling state: %s", err)
@@ -249,7 +195,7 @@ func (c *RemoteClient) GeberatePutItems(data []byte, sequence []int, transaction
 
 		put_item := &dynamodb.TransactWriteItem{
 			Put: &dynamodb.Put{
-				TableName: aws.String(tableName),
+				TableName: aws.String(c.tableName),
 				Item:      av,
 			},
 		}
@@ -289,54 +235,8 @@ func GenerateSequence(seuqneceSize int, currentSegments []int) []int{
 }
 
 func (c *RemoteClient) Put(data []byte) error {
-	contentType := "application/json"
-	contentLength := int64(len(data))
-
-	i := &s3.PutObjectInput{
-		ContentType:   &contentType,
-		ContentLength: &contentLength,
-		Body:          bytes.NewReader(data),
-		Bucket:        &c.tableName,
-		Key:           &c.path,
-	}
-
-	//if c.serverSideEncryption {
-	//	if c.kmsKeyID != "" {
-	//		i.SSEKMSKeyId = &c.kmsKeyID
-	//		i.ServerSideEncryption = aws.String("aws:kms")
-	//	} else if c.customerEncryptionKey != nil {
-	//		i.SetSSECustomerKey(string(c.customerEncryptionKey))
-	//		i.SetSSECustomerAlgorithm(s3EncryptionAlgorithm)
-	//		i.SetSSECustomerKeyMD5(c.getSSECustomerKeyMD5())
-	//	} else {
-	//		i.ServerSideEncryption = aws.String(s3EncryptionAlgorithm)
-	//	}
-	//}
-
-	//if c.acl != "" {
-	//	i.ACL = aws.String(c.acl)
-	//}
-
-	log.Printf("[DEBUG] Uploading remote state to DynamoDB: %#v", i)
-
-	_, err := c.s3Client.PutObject(i)
-	if err != nil {
-		return fmt.Errorf("failed to upload state: %s", err)
-	}
-
-	sum := md5.Sum(data)
-	if err := c.putMD5(sum[:]); err != nil {
-		// if this errors out, we unfortunately have to error out altogether,
-		// since the next Get will inevitably fail.
-		return fmt.Errorf("failed to store state MD5: %s", err)
-
-	}
-
-/** Dynamo DB **/
-    tableName := "terraform-global-table-sort"
-
 	var queryInput = &dynamodb.QueryInput{
-	    TableName: aws.String(tableName),
+	    TableName: aws.String(c.tableName),
 	    KeyConditions: map[string]*dynamodb.Condition{
 	        "StateID": {
 	            ComparisonOperator: aws.String("EQ"),
@@ -367,7 +267,7 @@ func (c *RemoteClient) Put(data []byte) error {
 	    }
 	    delete_item := &dynamodb.TransactWriteItem{
 			Delete: &dynamodb.Delete{
-				TableName: aws.String(tableName),
+				TableName: aws.String(c.tableName),
 				Key: map[string]*dynamodb.AttributeValue{
 			        "StateID": {
 			            S: aws.String(state.StateID),
@@ -390,6 +290,8 @@ func (c *RemoteClient) Put(data []byte) error {
 	}
 
 	sequence := GenerateSequence(len(data), segments)
+	log.Printf("[DEBUG] Uploading remote state to DynamoDB: %#v", transactionItems)
+
 	err = c.GeberatePutItems(data, sequence, &transactionItems)
 	if err != nil {
 		return fmt.Errorf("Got error calling GeberatePutItems: %s", err)
@@ -400,23 +302,75 @@ func (c *RemoteClient) Put(data []byte) error {
 		return fmt.Errorf("Got error calling TransactWriteItems: %s", err)
 	}
 
-/** Dynamo DB **/
+	sum := md5.Sum(data)
+	if err := c.putMD5(sum[:]); err != nil {
+		// if this errors out, we unfortunately have to error out altogether,
+		// since the next Get will inevitably fail.
+		return fmt.Errorf("Failed to store state MD5: %s", err)
+
+	}
 
 	return nil
 }
 
 func (c *RemoteClient) Delete() error {
-	_, err := c.s3Client.DeleteObject(&s3.DeleteObjectInput{
-		Bucket: &c.tableName,
-		Key:    &c.path,
-	})
+	var queryInput = &dynamodb.QueryInput{
+	    TableName: aws.String(c.tableName),
+	    KeyConditions: map[string]*dynamodb.Condition{
+	        "StateID": {
+	            ComparisonOperator: aws.String("EQ"),
+	            AttributeValueList: []*dynamodb.AttributeValue{
+	                {
+	                    S: aws.String(c.path),
+	                },
+	            },
+	        },
+	    },
+	}
+
+	result, err := c.dynClient.Query(queryInput)
+	if err != nil {
+	    return err
+	}
+	var transactionItems = make([]*dynamodb.TransactWriteItem, 0)
+	for _, i := range result.Items {
+	    state := State{}
+
+	    err = dynamodbattribute.UnmarshalMap(i, &state)
+
+	    if err != nil {
+	        fmt.Println("Got error unmarshalling:") // TO REMOVE
+	        fmt.Println(err.Error()) // TO REMOVE
+	        return err
+	    }
+	    delete_item := &dynamodb.TransactWriteItem{
+			Delete: &dynamodb.Delete{
+				TableName: aws.String(c.tableName),
+				Key: map[string]*dynamodb.AttributeValue{
+			        "StateID": {
+			            S: aws.String(state.StateID),
+			        },
+			        "SegmentID": {
+			            S: aws.String(state.SegmentID),
+			        },
+		    	},
+			},
+		}
+		transactionItems = append(transactionItems, delete_item)
+	    fmt.Println("StateID: ", state.StateID)
+	}
+
+	_, err = c.dynClient.TransactWriteItems(&dynamodb.TransactWriteItemsInput{TransactItems: transactionItems})
+	if err != nil {
+		return fmt.Errorf("Got error calling TransactWriteItems: %s", err)
+	}
 
 	if err != nil {
 		return err
 	}
 
 	if err := c.deleteMD5(); err != nil {
-		log.Printf("error deleting state md5: %s", err)
+		log.Printf("Error deleting state md5: %s", err)
 	}
 
 	return nil

@@ -9,7 +9,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/aws/aws-sdk-go/service/s3"
+//	"github.com/aws/aws-sdk-go/service/s3"
 	awsbase "github.com/hashicorp/aws-sdk-go-base"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/logging"
@@ -243,7 +243,7 @@ type Backend struct {
 	*schema.Backend
 
 	// The fields below are set from configure
-	s3Client  *s3.S3
+	//s3Client  *s3.S3
 	dynClient *dynamodb.DynamoDB
 
 	tableName             string
@@ -323,10 +323,10 @@ func (b *Backend) configure(ctx context.Context) error {
 	b.dynClient = dynamodb.New(sess.Copy(&aws.Config{
 		Endpoint: aws.String(data.Get("endpoint").(string)),
 	}))
-	b.s3Client = s3.New(sess.Copy(&aws.Config{
-		Endpoint:         aws.String(data.Get("endpoint").(string)),
-		//S3ForcePathStyle: aws.Bool(data.Get("force_path_style").(bool)),
-	}))
+	//b.s3Client = s3.New(sess.Copy(&aws.Config{
+	//	Endpoint:         aws.String(data.Get("endpoint").(string)),
+	//	//S3ForcePathStyle: aws.Bool(data.Get("force_path_style").(bool)),
+	//}))
 
 	return nil
 }
