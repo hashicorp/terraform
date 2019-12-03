@@ -10236,29 +10236,16 @@ func TestContext2Apply_destroyWithProviders(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-			},
-			&ModuleState{
-				Path: []string{"root", "child"},
-			},
-			&ModuleState{
-				Path: []string{"root", "mod", "removed"},
-				Resources: map[string]*ResourceState{
-					"aws_instance.child": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-						},
-						// this provider doesn't exist
-						Provider: "provider.aws.baz",
-					},
-				},
-			},
+	state := states.NewState()
+	removed := state.EnsureModule(addrs.RootModuleInstance.Child("mod", addrs.NoKey).Child("removed", addrs.NoKey))
+	removed.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.child").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar"}`),
 		},
-	})
+		mustProviderConfig("provider.aws.baz"),
+	)
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -10267,7 +10254,7 @@ func TestContext2Apply_destroyWithProviders(t *testing.T) {
 				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
-		State:   s,
+		State:   state,
 		Destroy: true,
 	})
 
@@ -10277,12 +10264,10 @@ func TestContext2Apply_destroyWithProviders(t *testing.T) {
 	}
 
 	// correct the state
-	s.Modules["module.mod.module.removed"].Resources["aws_instance.child"].ProviderConfig = addrs.AbsProviderConfig{
-		Provider: addrs.NewLegacyProvider("aws"),
-		Module:   addrs.RootModuleInstance,
-		Alias:    "bar",
-	}
-
+	state.Modules["module.mod.module.removed"].Resources["aws_instance.child"].ProviderConfig = addrs.ProviderConfig{
+		Type:  addrs.NewLegacyProvider("aws"),
+		Alias: "bar",
+	}.Absolute(addrs.RootModuleInstance)
 	if _, diags := ctx.Plan(); diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
