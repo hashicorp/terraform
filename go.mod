@@ -4,7 +4,6 @@ require (
 	cloud.google.com/go v0.45.1
 	github.com/Azure/azure-sdk-for-go v36.2.0+incompatible
 	github.com/Azure/go-autorest/autorest v0.9.2
-	github.com/Azure/go-autorest/autorest/adal v0.8.1-0.20191028180845-3492b2aff503
 	github.com/Unknwon/com v0.0.0-20151008135407-28b053d5a292 // indirect
 	github.com/abdullin/seq v0.0.0-20160510034733-d5467c17e7af // indirect
 	github.com/agext/levenshtein v1.2.2
