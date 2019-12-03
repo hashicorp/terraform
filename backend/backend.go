@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/planfile"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
@@ -144,6 +145,44 @@ type Local interface {
 	// Context returns a runnable terraform Context. The operation parameter
 	// doesn't need a Type set but it needs other options set such as Module.
 	Context(*Operation) (*terraform.Context, statemgr.Full, tfdiags.Diagnostics)
+}
+
+// UsingProviders extends Backend for backends that provide their functionality
+// in terms of one or more provider plugins.
+//
+// For example, a backend might be a wrapper around a state storage
+// implementation defined inside a particular provider.
+type UsingProviders interface {
+	Backend
+
+	// RequiredProviders is called after Configure but before StateMgr in
+	// order to determine the full set of providers that this backend might
+	// potentially use based only on information in the configuration.
+	//
+	// If RequiredProviders returns a at least one provider type then
+	// "terraform init" will attempt to install it during initialization
+	// and the companion method SetProviders will be called before calling
+	// StateMgr or DeleteWorkspace.
+	//
+	// RequiredProviders may consult the configuration previously delivered
+	// to Configure in order to make its decision, but must not access any
+	// external network services or files.
+	RequiredProviders() []addrs.ProviderType
+
+	// If RequiredProviders returns at least one provider type then
+	// SetProviders will be called prior to any calls to StateMgr or
+	// DeleteWorkspace to deliver factory functions for the requested
+	// providers.
+	//
+	// The keys of the map must be exactly the types returned by RequiredProviders,
+	// or this function may panic or otherwise misbehave.
+	//
+	// The provider instances used by backends are distinct from provider
+	// instances used for plan/apply/etc operations, and do not go through
+	// the usual provider configuration lifecycle because backend operations
+	// must generally be performed prior to graph walks in order to contribute
+	// information necessary to build graphs.
+	SetProviders(map[addrs.ProviderType]func() providers.Interface)
 }
 
 // An operation represents an operation for Terraform to execute.

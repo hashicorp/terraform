@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/version"
 )
 
@@ -272,6 +273,8 @@ type Backend struct {
 	s3Client  *s3.S3
 	dynClient *dynamodb.DynamoDB
 
+	awsProviderFactory func() providers.Interface
+
 	bucketName            string
 	keyName               string
 	serverSideEncryption  bool
@@ -281,6 +284,8 @@ type Backend struct {
 	ddbTable              string
 	workspaceKeyPrefix    string
 }
+
+var _ backend.UsingProviders = (*Backend)(nil)
 
 func (b *Backend) configure(ctx context.Context) error {
 	if b.s3Client != nil {

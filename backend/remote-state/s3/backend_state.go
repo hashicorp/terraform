@@ -11,11 +11,27 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/states"
 )
+
+var awsProvider = addrs.ProviderType{
+	Hostname:  "registry.terraform.io",
+	Namespace: "hashicorp",
+	Type:      "aws",
+}
+
+func (b *Backend) RequiredProviders() []addrs.ProviderType {
+	return []addrs.ProviderType{awsProvider}
+}
+
+func (b *Backend) SetProviders(factories map[addrs.ProviderType]func() providers.Interface) {
+	b.awsProviderFactory = factories[awsProvider]
+}
 
 func (b *Backend) Workspaces() ([]string, error) {
 	prefix := ""
