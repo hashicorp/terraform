@@ -10,6 +10,8 @@ import (
 	ctyconvert "github.com/zclconf/go-cty/cty/convert"
 	"github.com/zclconf/go-cty/cty/msgpack"
 	context "golang.org/x/net/context"
+	grpcCodes "google.golang.org/grpc/codes"
+	grpcStatus "google.golang.org/grpc/status"
 
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/configs/hcl2shim"
@@ -1056,6 +1058,26 @@ func (s *GRPCProviderServer) ReadDataSource(_ context.Context, req *proto.ReadDa
 		Msgpack: newStateMP,
 	}
 	return resp, nil
+}
+
+func (s *GRPCProviderServer) ValidateStateStorageConfig(_ context.Context, req *proto.ValidateStateStorageConfig_Request) (*proto.ValidateStateStorageConfig_Response, error) {
+	return nil, grpcStatus.Error(grpcCodes.Unimplemented, "state storage functions are not yet implemented")
+}
+
+func (s *GRPCProviderServer) ReadStateStorage(_ context.Context, req *proto.ReadStateStorage_Request) (*proto.ReadStateStorage_Response, error) {
+	return nil, grpcStatus.Error(grpcCodes.Unimplemented, "state storage functions are not yet implemented")
+}
+
+func (s *GRPCProviderServer) WriteStateStorage(_ context.Context, req *proto.WriteStateStorage_Request) (*proto.WriteStateStorage_Response, error) {
+	return nil, grpcStatus.Error(grpcCodes.Unimplemented, "state storage functions are not yet implemented")
+}
+
+func (s *GRPCProviderServer) LockStateStorage(_ context.Context, req *proto.LockStateStorage_Request) (*proto.LockStateStorage_Response, error) {
+	return nil, grpcStatus.Error(grpcCodes.Unimplemented, "state storage functions are not yet implemented")
+}
+
+func (s *GRPCProviderServer) UnlockStateStorage(_ context.Context, req *proto.UnlockStateStorage_Request) (*proto.UnlockStateStorage_Response, error) {
+	return nil, grpcStatus.Error(grpcCodes.Unimplemented, "state storage functions are not yet implemented")
 }
 
 func pathToAttributePath(path cty.Path) *proto.AttributePath {

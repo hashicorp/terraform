@@ -181,11 +181,16 @@ github.com/golang/mock/mockgen
 github.com/golang/mock/mockgen/model
 # github.com/golang/protobuf v1.3.2
 github.com/golang/protobuf/proto
+github.com/golang/protobuf/protoc-gen-go
+github.com/golang/protobuf/protoc-gen-go/generator
+github.com/golang/protobuf/protoc-gen-go/grpc
 github.com/golang/protobuf/ptypes
+github.com/golang/protobuf/protoc-gen-go/descriptor
+github.com/golang/protobuf/protoc-gen-go/generator/internal/remap
+github.com/golang/protobuf/protoc-gen-go/plugin
 github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
-github.com/golang/protobuf/protoc-gen-go/descriptor
 # github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db
 github.com/golang/snappy
 # github.com/google/go-cmp v0.3.1
@@ -630,14 +635,14 @@ google.golang.org/genproto/googleapis/type/expr
 # google.golang.org/grpc v1.21.1
 google.golang.org/grpc
 google.golang.org/grpc/test/bufconn
-google.golang.org/grpc/codes
-google.golang.org/grpc/status
 google.golang.org/grpc/metadata
 google.golang.org/grpc/credentials
 google.golang.org/grpc/health
 google.golang.org/grpc/health/grpc_health_v1
+google.golang.org/grpc/codes
 google.golang.org/grpc/grpclog
 google.golang.org/grpc/keepalive
+google.golang.org/grpc/status
 google.golang.org/grpc/balancer
 google.golang.org/grpc/balancer/roundrobin
 google.golang.org/grpc/connectivity
