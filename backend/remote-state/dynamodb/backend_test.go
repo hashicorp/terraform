@@ -68,7 +68,7 @@
 			"state_table":    "tf-test",
 			"hash":           "/leading-slash",
 			"region":         "us-west-1",
-			"lock_table": "dynamoTable",
+			"lock_table": 	  "dynamoTable",
 		})
 
 		_, diags := New().PrepareConfig(cfg)
@@ -135,7 +135,7 @@
 			"hash":     	hashName,
 		})).(*Backend)
 
-		createDynamoDBTable(t, b.dynClient, tableName)
+		createDynamoDBTable(t, b.dynClient, tableName, "state")
 		defer deleteDynamoDBTable(t, b.dynClient, tableName)
 
 		backend.TestBackendStates(t, b)
@@ -160,9 +160,9 @@
 			"lock_table":		lockName,
 		})).(*Backend)
 
-		createDynamoDBTable(t, b1.dynClient, tableName)
+		createDynamoDBTable(t, b1.dynClient, tableName, "state")
 		defer deleteDynamoDBTable(t, b1.dynClient, tableName)
-		createDynamoDBTable(t, b1.dynClient, lockName)
+		createDynamoDBTable(t, b1.dynClient, lockName, "lock")
 		defer deleteDynamoDBTable(t, b1.dynClient, lockName)
 
 		backend.TestBackendStateLocks(t, b1, b2)
@@ -195,7 +195,7 @@
 			"hash":     	hashName,
 		})).(*Backend)
 
-		createDynamoDBTable(t, b.dynClient, tableName)
+		createDynamoDBTable(t, b.dynClient, tableName, "state")
 		defer deleteDynamoDBTable(t, b.dynClient, tableName)
 
 		// put multiple states in old env paths.
@@ -315,7 +315,7 @@
 			"workspace_key_prefix":	"env",
 		})).(*Backend)
 
-		createDynamoDBTable(t, b.dynClient, tableName)
+		createDynamoDBTable(t, b.dynClient, tableName, "state")
 		defer deleteDynamoDBTable(t, b.dynClient, tableName)
 
 		// get a state that contains the prefix as a substring
@@ -343,7 +343,7 @@
 			"workspace_key_prefix":	"",
 		})).(*Backend)
 
-		createDynamoDBTable(t, b0.dynClient, table0Name)
+		createDynamoDBTable(t, b0.dynClient, table0Name, "state")
 		defer deleteDynamoDBTable(t, b0.dynClient, table0Name)
 
 		table1Name := fmt.Sprintf("terraform-remote-dynamodb-state-%x-1", time.Now().Unix())
@@ -354,7 +354,7 @@
 			"workspace_key_prefix": "project/env:",
 		})).(*Backend)
 
-		createDynamoDBTable(t, b1.dynClient, table1Name)
+		createDynamoDBTable(t, b1.dynClient, table1Name, "state")
 		defer deleteDynamoDBTable(t, b1.dynClient, table1Name)
 
 		table2Name := fmt.Sprintf("terraform-remote-dynamodb-state-%x-2", time.Now().Unix())
@@ -363,7 +363,7 @@
 			"hash":     			hashName,
 		})).(*Backend)
 
-		createDynamoDBTable(t, b2.dynClient, table2Name)
+		createDynamoDBTable(t, b2.dynClient, table2Name, "state")
 		defer deleteDynamoDBTable(t, b2.dynClient, table2Name)
 
 		if err := testGetWorkspaceForKey(b0, "some/paths/tfstate", ""); err != nil {
@@ -443,26 +443,59 @@
 	//}
 
 	// create the dynamoDB table, and wait until we can query it.
-	func createDynamoDBTable(t *testing.T, dynClient *dynamodb.DynamoDB, tableName string) {
-		createInput := &dynamodb.CreateTableInput{
-			AttributeDefinitions: []*dynamodb.AttributeDefinition{
-				{
-					AttributeName: aws.String("LockID"),
-					AttributeType: aws.String("S"),
+	func createDynamoDBTable(t *testing.T, dynClient *dynamodb.DynamoDB, tableName string, dbtype string) {
+		var createInput *dynamodb.CreateTableInput
+		if dbtype == "lock" {
+			createInput = &dynamodb.CreateTableInput{
+				AttributeDefinitions: []*dynamodb.AttributeDefinition{
+					{
+						AttributeName: aws.String("LockID"),
+						AttributeType: aws.String("S"),
+					},
 				},
-			},
-			KeySchema: []*dynamodb.KeySchemaElement{
-				{
-					AttributeName: aws.String("LockID"),
-					KeyType:       aws.String("HASH"),
+				KeySchema: []*dynamodb.KeySchemaElement{
+					{
+						AttributeName: aws.String("LockID"),
+						KeyType:       aws.String("HASH"),
+					},
 				},
-			},
-			ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
-				ReadCapacityUnits:  aws.Int64(5),
-				WriteCapacityUnits: aws.Int64(5),
-			},
-			TableName: aws.String(tableName),
+				ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
+					ReadCapacityUnits:  aws.Int64(5),
+					WriteCapacityUnits: aws.Int64(5),
+				},
+				TableName: aws.String(tableName),
+			}			
 		}
+
+		if dbtype == "state" {
+			createInput = &dynamodb.CreateTableInput{
+				AttributeDefinitions: []*dynamodb.AttributeDefinition{
+					{
+						AttributeName: aws.String("StateID"),
+						AttributeType: aws.String("S"),
+					},
+					{
+						AttributeName: aws.String("SegmentID"),
+						AttributeType: aws.String("S"),
+					},
+				},
+				KeySchema: []*dynamodb.KeySchemaElement{
+					{
+						AttributeName: aws.String("StateID"),
+						KeyType:       aws.String("HASH"),
+					},
+					{
+						AttributeName: aws.String("SegmentID"),
+						KeyType:       aws.String("RANGE"),
+					},
+				},
+				ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
+					ReadCapacityUnits:  aws.Int64(5),
+					WriteCapacityUnits: aws.Int64(5),
+				},
+				TableName: aws.String(tableName),
+			}			
+		}	
 
 		_, err := dynClient.CreateTable(createInput)
 		if err != nil {

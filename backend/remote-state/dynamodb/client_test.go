@@ -29,7 +29,7 @@ func TestRemoteClient(t *testing.T) {
 		"hash":     	hashName,
 	})).(*Backend)
 
-	createDynamoDBTable(t, b.dynClient, tableName)
+	createDynamoDBTable(t, b.dynClient, tableName, "state")
 	defer deleteDynamoDBTable(t, b.dynClient, tableName)
 
 	state, err := b.StateMgr(backend.DefaultStateName)
@@ -47,20 +47,20 @@ func TestRemoteClientLocks(t *testing.T) {
 	keyName := "testState"
 
 	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"state_table":	bucketName,
+		"state_table":	tableName,
 		"hash":         keyName,
 		"lock_table": 	lockName,
 	})).(*Backend)
 
 	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"state_table":	bucketName,
+		"state_table":	tableName,
 		"hash":         keyName,
 		"lock_table": 	lockName,
 	})).(*Backend)
 
-	createDynamoDBTable(t, b1.dynClient, tableName)
+	createDynamoDBTable(t, b1.dynClient, tableName, "state")
 	defer deleteDynamoDBTable(t, b1.dynClient, tableName)
-	createDynamoDBTable(t, b1.dynClient, lockName)
+	createDynamoDBTable(t, b1.dynClient, lockName, "lock")
 	defer deleteDynamoDBTable(t, b1.dynClient, lockName)
 
 	s1, err := b1.StateMgr(backend.DefaultStateName)
@@ -79,25 +79,25 @@ func TestRemoteClientLocks(t *testing.T) {
 // verify that we can unlock a state with an existing lock
 func TestForceUnlock(t *testing.T) {
 	testACC(t)
-	bucketName := fmt.Sprintf("terraform-remote-s3-test-force-%x", time.Now().Unix())
+	tableName := fmt.Sprintf("terraform-remote-dynamodb-state-force-%x", time.Now().Unix())
 	lockName := fmt.Sprintf("terraform-remote-dynamodb-lock-%x", time.Now().Unix())
 	keyName := "testState"
 
 	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"state_table":	bucketName,
+		"state_table":	tableName,
 		"hash":         keyName,
 		"lock_table": 	lockName,
 	})).(*Backend)
 
 	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"state_table":	bucketName,
+		"state_table":	tableName,
 		"hash":         keyName,
 		"lock_table": 	lockName,
 	})).(*Backend)
 
-	createDynamoDBTable(t, b1.dynClient, tableName)
+	createDynamoDBTable(t, b1.dynClient, tableName, "state")
 	defer deleteDynamoDBTable(t, b1.dynClient, tableName)
-	createDynamoDBTable(t, b1.dynClient, lockName)
+	createDynamoDBTable(t, b1.dynClient, lockName, "lock")
 	defer deleteDynamoDBTable(t, b1.dynClient, lockName)
 
 	// first test with default
@@ -160,14 +160,14 @@ func TestRemoteClient_clientMD5(t *testing.T) {
 	keyName := "testState"
 
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"state_table":	bucketName,
+		"state_table":	tableName,
 		"hash":         keyName,
 		"lock_table": 	lockName,
 	})).(*Backend)
 
-	createDynamoDBTable(t, b.dynClient, tableName)
+	createDynamoDBTable(t, b.dynClient, tableName, "state")
 	defer deleteDynamoDBTable(t, b.dynClient, tableName)
-	createDynamoDBTable(t, b.dynClient, lockName)
+	createDynamoDBTable(t, b.dynClient, lockName, "lock")
 	defer deleteDynamoDBTable(t, b.dynClient, lockName)
 
 	s, err := b.StateMgr(backend.DefaultStateName)
@@ -209,14 +209,14 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 	keyName := "testState"
 
 	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"state_table":	bucketName,
+		"state_table":	tableName,
 		"hash":         keyName,
 		"lock_table": 	lockName,
 	})).(*Backend)
 
-	createDynamoDBTable(t, b1.dynClient, tableName)
+	createDynamoDBTable(t, b1.dynClient, tableName, "state")
 	defer deleteDynamoDBTable(t, b1.dynClient, tableName)
-	createDynamoDBTable(t, b1.dynClient, lockName)
+	createDynamoDBTable(t, b1.dynClient, lockName, "lock")
 	defer deleteDynamoDBTable(t, b1.dynClient, lockName)
 
 	s1, err := b1.StateMgr(backend.DefaultStateName)
@@ -241,7 +241,7 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 	// Use b2 without a dynamodb_table to bypass the lock table to write the state directly.
 	// client2 will write the "incorrect" state, simulating s3 eventually consistency delays
 	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"state_table": bucketName,
+		"state_table": tableName,
 		"hash":    keyName,
 	})).(*Backend)
 	s2, err := b2.StateMgr(backend.DefaultStateName)
