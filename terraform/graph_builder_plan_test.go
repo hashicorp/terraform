@@ -34,9 +34,9 @@ func TestPlanGraphBuilder(t *testing.T) {
 		},
 	}
 	components := &basicComponentFactory{
-		providers: map[string]providers.Factory{
-			"aws":       providers.FactoryFixed(awsProvider),
-			"openstack": providers.FactoryFixed(openstackProvider),
+		providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"):       providers.FactoryFixed(awsProvider),
+			addrs.NewLegacyProvider("openstack"): providers.FactoryFixed(openstackProvider),
 		},
 	}
 
@@ -92,8 +92,8 @@ func TestPlanGraphBuilder_dynamicBlock(t *testing.T) {
 		},
 	}
 	components := &basicComponentFactory{
-		providers: map[string]providers.Factory{
-			"test": providers.FactoryFixed(provider),
+		providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("test"): providers.FactoryFixed(provider),
 		},
 	}
 
@@ -171,8 +171,8 @@ func TestPlanGraphBuilder_attrAsBlocks(t *testing.T) {
 		},
 	}
 	components := &basicComponentFactory{
-		providers: map[string]providers.Factory{
-			"test": providers.FactoryFixed(provider),
+		providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("test"): providers.FactoryFixed(provider),
 		},
 	}
 
@@ -258,8 +258,8 @@ func TestPlanGraphBuilder_forEach(t *testing.T) {
 	}
 
 	components := &basicComponentFactory{
-		providers: map[string]providers.Factory{
-			"aws": providers.FactoryFixed(awsProvider),
+		providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): providers.FactoryFixed(awsProvider),
 		},
 	}
 

@@ -677,11 +677,11 @@ func testProviderResolver(c TestCase) (providers.Resolver, error) {
 
 	// wrap the old provider factories in the test grpc server so they can be
 	// called from terraform.
-	newProviders := make(map[string]providers.Factory)
+	newProviders := make(map[addrs.Provider]providers.Factory)
 
 	for k, pf := range ctxProviders {
 		factory := pf // must copy to ensure each closure sees its own value
-		newProviders[k] = func() (providers.Interface, error) {
+		newProviders[addrs.NewLegacyProvider(k)] = func() (providers.Interface, error) {
 			p, err := factory()
 			if err != nil {
 				return nil, err

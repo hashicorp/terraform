@@ -16,7 +16,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-// testStepImportState runs an imort state test step
+// testStepImportState runs an import state test step
 func testStepImportState(
 	opts terraform.ContextOpts,
 	state *terraform.State,
@@ -96,7 +96,6 @@ func testStepImportState(
 	if err != nil {
 		return nil, err
 	}
-
 	// Go through the new state and verify
 	if step.ImportStateCheck != nil {
 		var states []*terraform.InstanceState

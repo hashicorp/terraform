@@ -23,7 +23,6 @@ resource "test_resource_import_other" "foo" {
 			{
 				ImportState:  true,
 				ResourceName: "test_resource_import_other.foo",
-
 				ImportStateCheck: func(iss []*terraform.InstanceState) error {
 					if got, want := len(iss), 2; got != want {
 						return fmt.Errorf("wrong number of resources %d; want %d", got, want)
