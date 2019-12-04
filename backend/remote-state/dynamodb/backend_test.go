@@ -9,7 +9,6 @@
 
 		"github.com/aws/aws-sdk-go/aws"
 		"github.com/aws/aws-sdk-go/service/dynamodb"
-//		"github.com/aws/aws-sdk-go/service/s3"
 		"github.com/hashicorp/terraform/backend"
 		"github.com/hashicorp/terraform/configs/hcl2shim"
 		"github.com/hashicorp/terraform/state/remote"
@@ -64,65 +63,30 @@
 
 	func TestBackendConfig_invalidKey(t *testing.T) {
 		testACC(t)
-		cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{
+		cfg0 := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{
 			"state_table":    "tf-test",
 			"hash":           "/leading-slash",
 			"region":         "us-west-1",
 			"lock_table": 	  "dynamoTable",
 		})
 
-		_, diags := New().PrepareConfig(cfg)
+		_, diags := New().PrepareConfig(cfg0)
+		if !diags.HasErrors() {
+			t.Fatal("expected config validation error")
+		}
+
+		cfg1 := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{
+			"state_table":    "tf-test",
+			"hash":           "leading-slash=",
+			"region":         "us-west-1",
+			"lock_table": 	  "dynamoTable",
+		})
+
+		_, diags = New().PrepareConfig(cfg1)
 		if !diags.HasErrors() {
 			t.Fatal("expected config validation error")
 		}
 	}
-
-	//func TestBackendConfig_invalidSSECustomerKeyLength(t *testing.T) {
-	//	testACC(t)
-	//	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{
-	//		"region":           "us-west-1",
-	//		"state_table":           "tf-test",
-	//		"encrypt":          true,
-	//		"hash":              "state",
-	//		"lock_table":   "dynamoTable",
-	//		"sse_customer_key": "hash",
-	//	})
-	//	_, diags := New().PrepareConfig(cfg)
-	//	if !diags.HasErrors() {
-	//		t.Fatal("expected error for invalid sse_customer_key length")
-	//	}
-	//}
-	//func TestBackendConfig_invalidSSECustomerKeyEncoding(t *testing.T) {
-	//	testACC(t)
-	//	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{
-	//		"region":           "us-west-1",
-	//		"state_table":           "tf-test",
-	//		"encrypt":          true,
-	//		"hash":              "state",
-	//		"lock_table":   "dynamoTable",
-	//		"sse_customer_key": "====CT70aTYB2JGff7AjQtwbiLkwH4npICay1PWtmdka",
-	//	})
-	//	diags := New().Configure(cfg)
-	//	if !diags.HasErrors() {
-	//		t.Fatal("expected error for failing to decode sse_customer_key")
-	//	}
-	//}
-	//func TestBackendConfig_conflictingEncryptionSchema(t *testing.T) {
-	//	testACC(t)
-	//	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{
-	//		"region":           "us-west-1",
-	//		"state_table":           "tf-test",
-	//		"hash":              "state",
-	//		"encrypt":          true,
-	//		"lock_table":   "dynamoTable",
-	//		"sse_customer_key": "1hwbcNPGWL+AwDiyGmRidTWAEVmCWMKbEHA+Es8w75o=",
-	//		"kms_key_id":       "arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab",
-	//	})
-	//	diags := New().Configure(cfg)
-	//	if !diags.HasErrors() {
-	//		t.Fatal("expected error for simultaneous usage of kms_key_id and sse_customer_key")
-	//	}
-	//}
 
 	func TestBackend(t *testing.T) {
 		testACC(t)
@@ -169,26 +133,12 @@
 		backend.TestBackendStateForceUnlock(t, b1, b2)
 	}
 
-	//func TestBackendSSECustomerKey(t *testing.T) {
-	//	testACC(t)
-	//	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
-	//	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-	//		"state_table":           bucketName,
-	//		"encrypt":          true,
-	//		"hash":              "test-SSE-C",
-	//		"sse_customer_key": "4Dm1n4rphuFgawxuzY/bEfvLf6rYK0gIjfaDSLlfXNk=",
-	//	})).(*Backend)
-	//	createS3Bucket(t, b.s3Client, bucketName)
-	//	defer deleteS3Bucket(t, b.s3Client, bucketName)
-	//	backend.TestBackendStates(t, b)
-	//}
-
 	// add some extra junk in S3 to try and confuse the env listing.
-	func TestBackendExtraPaths(t *testing.T) {
+	func TestBackendWorkspaces(t *testing.T) {
 		testACC(t)
 
 		tableName := fmt.Sprintf("terraform-remote-dynamodb-state-%x", time.Now().Unix())
-		hashName := "test/state/tfstate"
+		hashName := "test_state_tfstate"
 
 		b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 			"state_table":  tableName,
@@ -207,7 +157,6 @@
 			dynClient:		b.dynClient,
 			tableName:		b.tableName,
 			path:			b.path("s1"),
-			lockTable:		b.lockTable,
 		}
 
 		stateMgr := &remote.State{Client: client}
@@ -216,7 +165,13 @@
 			t.Fatal(err)
 		}
 
-		client.path = b.path("s2")
+		client = &RemoteClient{
+			dynClient:		b.dynClient,
+			tableName:		b.tableName,
+			path:			b.path("s2"),
+		}
+
+		stateMgr = &remote.State{Client: client}
 		stateMgr.WriteState(s2)
 		if err := stateMgr.PersistState(); err != nil {
 			t.Fatal(err)
@@ -225,31 +180,6 @@
 		s2Lineage := stateMgr.StateSnapshotMeta().Lineage
 
 		if err := checkStateList(b, []string{"default", "s1", "s2"}); err != nil {
-			t.Fatal(err)
-		}
-
-		// put a state in an env directory name
-		client.path = b.workspaceKeyPrefix + "/error"
-		stateMgr.WriteState(states.NewState())
-		if err := stateMgr.PersistState(); err != nil {
-			t.Fatal(err)
-		}
-		if err := checkStateList(b, []string{"default", "s1", "s2"}); err != nil {
-			t.Fatal(err)
-		}
-
-		// add state with the wrong key for an existing env
-		client.path = b.workspaceKeyPrefix + "/s2/notTestState"
-		stateMgr.WriteState(states.NewState())
-		if err := stateMgr.PersistState(); err != nil {
-			t.Fatal(err)
-		}
-		if err := checkStateList(b, []string{"default", "s1", "s2"}); err != nil {
-			t.Fatal(err)
-		}
-
-		// remove the state with extra subkey
-		if err := client.Delete(); err != nil {
 			t.Fatal(err)
 		}
 
@@ -277,13 +207,6 @@
 		s2 = s2Mgr.State()
 		s2Lineage = stateMgr.StateSnapshotMeta().Lineage
 
-		// add a state with a key that matches an existing environment dir name
-		client.path = b.workspaceKeyPrefix + "/s2/"
-		stateMgr.WriteState(states.NewState())
-		if err := stateMgr.PersistState(); err != nil {
-			t.Fatal(err)
-		}
-
 		// make sure s2 is OK
 		s2Mgr, err = b.StateMgr("s2")
 		if err != nil {
@@ -292,11 +215,9 @@
 		if err := s2Mgr.RefreshState(); err != nil {
 			t.Fatal(err)
 		}
-
 		if stateMgr.StateSnapshotMeta().Lineage != s2Lineage {
 			t.Fatal("we got the wrong state for s2")
 		}
-
 		if err := checkStateList(b, []string{"default", "s1", "s2"}); err != nil {
 			t.Fatal(err)
 		}
@@ -335,7 +256,7 @@
 	func TestKeyEnv(t *testing.T) {
 		testACC(t)		
 		table0Name := fmt.Sprintf("terraform-remote-dynamodb-state-%x-0", time.Now().Unix())
-		hashName := "some/paths/tfstate"
+		hashName := "some_paths_tfstate"
 
 		b0 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 			"state_table":         	table0Name,
@@ -347,11 +268,12 @@
 		defer deleteDynamoDBTable(t, b0.dynClient, table0Name)
 
 		table1Name := fmt.Sprintf("terraform-remote-dynamodb-state-%x-1", time.Now().Unix())
+		workspaceKeyPrefix := "project_env:"
 
 		b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 			"state_table":         	table1Name,
 			"hash":                 hashName,
-			"workspace_key_prefix": "project/env:",
+			"workspace_key_prefix": workspaceKeyPrefix,
 		})).(*Backend)
 
 		createDynamoDBTable(t, b1.dynClient, table1Name, "state")
@@ -366,29 +288,33 @@
 		createDynamoDBTable(t, b2.dynClient, table2Name, "state")
 		defer deleteDynamoDBTable(t, b2.dynClient, table2Name)
 
-		if err := testGetWorkspaceForKey(b0, "some/paths/tfstate", ""); err != nil {
+		if err := testGetWorkspaceForKey(b0, hashName, ""); err != nil {
 			t.Fatal(err)
 		}
 
-		if err := testGetWorkspaceForKey(b0, "ws1/some/paths/tfstate", "ws1"); err != nil {
+		ws1 := "ws1"
+		if err := testGetWorkspaceForKey(b0, ws1 + "/" + hashName, ws1); err != nil {
 			t.Fatal(err)
 		}
 
-		if err := testGetWorkspaceForKey(b1, "project/env:/ws1/some/paths/tfstate", "ws1"); err != nil {
+		if err := testGetWorkspaceForKey(b1, workspaceKeyPrefix + "=" + ws1 + "/" + hashName, ws1); err != nil {
 			t.Fatal(err)
 		}
 
-		if err := testGetWorkspaceForKey(b1, "project/env:/ws2/some/paths/tfstate", "ws2"); err != nil {
+		ws2 := "ws2"
+		if err := testGetWorkspaceForKey(b1, workspaceKeyPrefix + "=" + ws2 + "/" + hashName, ws2); err != nil {
 			t.Fatal(err)
 		}
 
-		if err := testGetWorkspaceForKey(b2, "env:/ws3/some/paths/tfstate", "ws3"); err != nil {
+		defaultWorkspaceKeyPrefix := "workspace"
+		ws3 := "ws3"
+		if err := testGetWorkspaceForKey(b2, defaultWorkspaceKeyPrefix + "=" + ws3 + "/" + hashName, ws3); err != nil {
 			t.Fatal(err)
 		}
 
-		backend.TestBackendStates(t, b0)
 		backend.TestBackendStates(t, b1)
 		backend.TestBackendStates(t, b2)
+		backend.TestBackendStates(t, b0)
 	}
 
 	func testGetWorkspaceForKey(b *Backend, key string, expected string) error {
@@ -497,6 +423,8 @@
 			}			
 		}	
 
+		fmt.Println("Creating dynamodb table", createInput)
+
 		_, err := dynClient.CreateTable(createInput)
 		if err != nil {
 			t.Fatal(err)
@@ -533,6 +461,7 @@
 		params := &dynamodb.DeleteTableInput{
 			TableName: aws.String(tableName),
 		}
+		fmt.Println("Deleting dynamodb table", params)
 		_, err := dynClient.DeleteTable(params)
 		if err != nil {
 			t.Logf("WARNING: Failed to delete the test DynamoDB table %q. It has been left in your AWS account and may incur charges. (error was %s)", tableName, err)

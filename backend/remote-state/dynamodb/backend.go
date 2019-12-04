@@ -24,24 +24,22 @@ type State struct {
 func New() backend.Backend {
 	s := &schema.Backend{
 		Schema: map[string]*schema.Schema{
-			"state_table": { //TODO Validare che la tabella abbia lo schema giusto
+			"state_table": { //TODO Validare che la tabella abbia lo schema giusto, nel nome niente / =
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The name of the DynamoDB Table used for state.",
 			},
 
-			"hash": { //TODO Validare il valore dell'hash che non contenga simboli
+			"hash": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The name of the hashKey of state file inside the dynamodb table.",
-				//ValidateFunc: func(v interface{}, s string) ([]string, []error) {
-				//	// s3 will strip leading slashes from an object, so while this will
-				//	// technically be accepted by s3, it will break our workspace hierarchy.
-				//	if strings.HasPrefix(v.(string), "/") {
-				//		return nil, []error{errors.New("key must not start with '/'")}
-				//	}
-				//	return nil, nil
-				//},
+				ValidateFunc: func(v interface{}, s string) ([]string, []error) {
+					if strings.Contains(v.(string), "/") || strings.Contains(v.(string), "="){
+						return nil, []error{errors.New("Hash must not contain '/' nor '='")}
+					}
+					return nil, nil
+				},
 			},
 
 			"region": {
@@ -89,7 +87,7 @@ func New() backend.Backend {
 				Default:     "",
 			},
 
-			"lock_table": { // TODO validare che la tabella abbia lo schema giusto
+			"lock_table": { //TODO Validare che la tabella abbia lo schema giusto, nel nome niente / =
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "DynamoDB table for state locking and consistency",
@@ -173,8 +171,8 @@ func New() backend.Backend {
 				Default:     "workspace",
 				ValidateFunc: func(v interface{}, s string) ([]string, []error) {
 					prefix := v.(string)
-					if strings.Contains(prefix, ":") {
-						return nil, []error{errors.New("workspace_key_prefix must not contains '='")}
+					if strings.Contains(prefix, "=") || strings.Contains(prefix, "/"){
+						return nil, []error{errors.New("workspace_key_prefix must not contains '=' nor '/'")}
 					}
 					return nil, nil
 				},

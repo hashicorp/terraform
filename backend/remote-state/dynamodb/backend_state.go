@@ -228,7 +228,13 @@ func (b *Backend) path(name string) string {
 		return b.hashName
 	}
 
-	return path.Join(b.workspaceKeyPrefix + "=" + name, b.hashName)
+	if b.workspaceKeyPrefix == "" {
+		return path.Join(name, b.hashName)
+	}else{
+		return path.Join(b.workspaceKeyPrefix + "=" + name, b.hashName)
+	}	
+
+	
 }
 
 const errStateUnlock = `
