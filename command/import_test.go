@@ -928,6 +928,54 @@ func TestImport_pluginDir(t *testing.T) {
 	}
 }
 
+// Test bulk import
+func TestImport_bulk(t *testing.T) {
+	defer testChdir(t, testFixturePath("import-bulk"))()
+
+	statePath := testTempFile(t)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ImportCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+	p.ImportResourceStateFn = func(req providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
+		return providers.ImportResourceStateResponse{
+			ImportedResources: []providers.ImportedResource{
+				{
+					TypeName: "test_instance",
+					State: cty.ObjectVal(map[string]cty.Value{
+						"id": cty.StringVal(req.ID),
+					}),
+				},
+			},
+		}
+	}
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Optional: true, Computed: true},
+				},
+			},
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"-bulk", "import.json",
+	}
+
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	testStateOutput(t, statePath, testBulkImportStr)
+}
+
 const testImportStr = `
 test_instance.foo:
   ID = yay
@@ -944,4 +992,16 @@ const testImportProviderMismatchStr = `
 test_instance.foo:
   ID = yay
   provider = provider.test-beta
+`
+
+const testBulkImportStr = `
+test_instance.test1:
+  ID = abc
+  provider = provider.test
+test_instance.test2:
+  ID = 123
+  provider = provider.test
+test_instance.test3:
+  ID = alpha
+  provider = provider.test
 `

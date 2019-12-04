@@ -29,11 +29,20 @@ it is the zone ID (`Z12ABC4UGMOZ2N`). Please reference the provider documentatio
 on the ID format. If you're unsure, feel free to just try an ID. If the ID
 is invalid, you'll just receive an error message.
 
+When importing a large number of resources, it is more efficient to use the `-bulk` option
+to import many resources at once, rather than needing to modify the state for each
+resource individually.
+
 The command-line flags are all optional. The list of available flags are:
 
 * `-backup=path` - Path to backup the existing state file. Defaults to
   the `-state-out` path with the ".backup" extension. Set to "-" to disable
   backups.
+
+* `-bulk=path` - Import resources in bulk from a file. If this option is
+  supplied, then ADDR and ID should not be given on the command line. Instead,
+  the file at the path should be a JSON file with a single object mapping the
+  resource name to the id to import.
 
 * `-config=path` - Path to directory of Terraform configuration files that
   configure the provider for import. This defaults to your working directory.

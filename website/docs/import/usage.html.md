@@ -60,6 +60,28 @@ You can now run `terraform plan` to see how the configuration compares to
 the imported resource, and make any adjustments to the configuration to
 align with the current (or desired) state of the imported object.
 
+## Bulk Imports
+
+When importing many resources, it is more efficient to import all the
+resources witha single command. This allows the state to be updated just once
+for all resources, rather than once for each resource. To do this create
+a json file that has a map from the resource address to the appropriate id.
+For example:
+
+```json
+{
+    "aws_instance.example1": "i-abcd1234",
+    "aws_instance.example2": "i-1234abcd",
+    "aws_instance.example3": "i-12345abc"
+}
+```
+
+Then you can run `terraform import` with the `-bulk` option:
+
+```shell
+$ terraform import -bulk=import_file
+```
+
 ## Complex Imports
 
 The above import is considered a "simple import": one resource is imported
