@@ -304,7 +304,6 @@ func (u *Upgrader) upgradeNativeSyntaxResource(filename string, buf *bytes.Buffe
 	if !ok {
 		panic(fmt.Sprintf("unknown provider type for %s", addr.String()))
 	}
-
 	providerSchema, ok := an.ProviderSchemas[providerType]
 	if !ok {
 		panic(fmt.Sprintf("missing schema for provider type %q", providerType))

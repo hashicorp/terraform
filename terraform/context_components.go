@@ -28,7 +28,7 @@ type contextComponentFactory interface {
 
 // basicComponentFactory just calls a factory from a map directly.
 type basicComponentFactory struct {
-	providers    map[addrs.ProviderType]providers.Factory
+	providers    map[addrs.Provider]providers.Factory
 	provisioners map[string]ProvisionerFactory
 }
 
@@ -51,7 +51,7 @@ func (c *basicComponentFactory) ResourceProvisioners() []string {
 }
 
 func (c *basicComponentFactory) ResourceProvider(typ, uid string) (providers.Interface, error) {
-	f, ok := c.providers[addrs.NewLegacyProviderType(typ)]
+	f, ok := c.providers[addrs.NewLegacyProvider(typ)]
 	if !ok {
 		return nil, fmt.Errorf("unknown provider %q", typ)
 	}

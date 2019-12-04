@@ -36,16 +36,16 @@ type multiVersionProviderResolver struct {
 	// (will produce an error if one is set). This should be used only in
 	// exceptional circumstances since it forces the provider's release
 	// schedule to be tied to that of Terraform Core.
-	Internal map[addrs.ProviderType]providers.Factory
+	Internal map[addrs.Provider]providers.Factory
 }
 
-func choosePlugins(avail discovery.PluginMetaSet, internal map[addrs.ProviderType]providers.Factory, reqd discovery.PluginRequirements) map[string]discovery.PluginMeta {
+func choosePlugins(avail discovery.PluginMetaSet, internal map[addrs.Provider]providers.Factory, reqd discovery.PluginRequirements) map[string]discovery.PluginMeta {
 	candidates := avail.ConstrainVersions(reqd)
 	ret := map[string]discovery.PluginMeta{}
 	for name, metas := range candidates {
 		// If the provider is in our internal map then we ignore any
 		// discovered plugins for it since these are dealt with separately.
-		if _, isInternal := internal[addrs.NewLegacyProviderType(name)]; isInternal {
+		if _, isInternal := internal[addrs.NewLegacyProvider(name)]; isInternal {
 			continue
 		}
 
@@ -59,18 +59,18 @@ func choosePlugins(avail discovery.PluginMetaSet, internal map[addrs.ProviderTyp
 
 func (r *multiVersionProviderResolver) ResolveProviders(
 	reqd discovery.PluginRequirements,
-) (map[addrs.ProviderType]providers.Factory, []error) {
-	factories := make(map[addrs.ProviderType]providers.Factory, len(reqd))
+) (map[addrs.Provider]providers.Factory, []error) {
+	factories := make(map[addrs.Provider]providers.Factory, len(reqd))
 	var errs []error
 
 	chosen := choosePlugins(r.Available, r.Internal, reqd)
 	for name, req := range reqd {
-		if factory, isInternal := r.Internal[addrs.NewLegacyProviderType(name)]; isInternal {
+		if factory, isInternal := r.Internal[addrs.NewLegacyProvider(name)]; isInternal {
 			if !req.Versions.Unconstrained() {
 				errs = append(errs, fmt.Errorf("provider.%s: this provider is built in to Terraform and so it does not support version constraints", name))
 				continue
 			}
-			factories[addrs.NewLegacyProviderType(name)] = factory
+			factories[addrs.NewLegacyProvider(name)] = factory
 			continue
 		}
 
@@ -85,7 +85,7 @@ func (r *multiVersionProviderResolver) ResolveProviders(
 				continue
 			}
 
-			factories[addrs.NewLegacyProviderType(name)] = providerFactory(newest)
+			factories[addrs.NewLegacyProvider(name)] = providerFactory(newest)
 		} else {
 			msg := fmt.Sprintf("provider.%s: no suitable version installed", name)
 
@@ -281,9 +281,9 @@ func (m *Meta) providerResolver() providers.Resolver {
 	}
 }
 
-func (m *Meta) internalProviders() map[addrs.ProviderType]providers.Factory {
-	return map[addrs.ProviderType]providers.Factory{
-		addrs.NewLegacyProviderType("terraform"): func() (providers.Interface, error) {
+func (m *Meta) internalProviders() map[addrs.Provider]providers.Factory {
+	return map[addrs.Provider]providers.Factory{
+		addrs.NewLegacyProvider("terraform"): func() (providers.Interface, error) {
 			return terraformProvider.NewProvider(), nil
 		},
 	}
@@ -298,7 +298,7 @@ func (m *Meta) missingPlugins(avail discovery.PluginMetaSet, reqd discovery.Plug
 
 	for name, versionSet := range reqd {
 		// internal providers can't be missing
-		if _, ok := internal[addrs.NewLegacyProviderType(name)]; ok {
+		if _, ok := internal[addrs.NewLegacyProvider(name)]; ok {
 			continue
 		}
 

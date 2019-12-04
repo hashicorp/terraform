@@ -50,7 +50,7 @@ func init() {
 // An Installer maintains a local cache of plugins by downloading plugins
 // from an online repository.
 type Installer interface {
-	Get(provider addrs.ProviderType, req Constraints) (PluginMeta, tfdiags.Diagnostics, error)
+	Get(provider addrs.Provider, req Constraints) (PluginMeta, tfdiags.Diagnostics, error)
 	PurgeUnused(used map[string]PluginMeta) (removed PluginMetaSet, err error)
 }
 
@@ -107,7 +107,7 @@ type ProviderInstaller struct {
 // are produced under the assumption that if presented to the user they will
 // be presented alongside context about what is being installed, and thus the
 // error messages do not redundantly include such information.
-func (i *ProviderInstaller) Get(provider addrs.ProviderType, req Constraints) (PluginMeta, tfdiags.Diagnostics, error) {
+func (i *ProviderInstaller) Get(provider addrs.Provider, req Constraints) (PluginMeta, tfdiags.Diagnostics, error) {
 	var diags tfdiags.Diagnostics
 
 	// a little bit of initialization.
@@ -276,7 +276,7 @@ func (i *ProviderInstaller) Get(provider addrs.ProviderType, req Constraints) (P
 	return metas.Newest(), diags, nil
 }
 
-func (i *ProviderInstaller) install(provider addrs.ProviderType, version Version, url string) error {
+func (i *ProviderInstaller) install(provider addrs.Provider, version Version, url string) error {
 	if i.Cache != nil {
 		log.Printf("[DEBUG] looking for provider %s %s in plugin cache", provider.Type, version)
 		cached := i.Cache.CachedPluginPath("provider", provider.Type, version)
@@ -472,7 +472,7 @@ func (i *ProviderInstaller) hostname() (string, error) {
 }
 
 // list all versions available for the named provider
-func (i *ProviderInstaller) listProviderVersions(provider addrs.ProviderType) (*response.TerraformProviderVersions, error) {
+func (i *ProviderInstaller) listProviderVersions(provider addrs.Provider) (*response.TerraformProviderVersions, error) {
 	req := regsrc.NewTerraformProvider(provider.Type, i.OS, i.Arch)
 	versions, err := i.registry.TerraformProviderVersions(req)
 	return versions, err

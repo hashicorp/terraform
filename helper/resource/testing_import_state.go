@@ -54,8 +54,10 @@ func testStepImportState(
 	}
 
 	opts.Config = cfg
+
 	// import tests start with empty state
 	opts.State = states.NewState()
+
 	ctx, stepDiags := terraform.NewContext(&opts)
 	if stepDiags.HasErrors() {
 		return state, stepDiags.Err()
@@ -72,6 +74,7 @@ func testStepImportState(
 	if stepDiags.HasErrors() {
 		return nil, stepDiags.Err()
 	}
+
 	// Do the import
 	importedState, stepDiags := ctx.Import(&terraform.ImportOpts{
 		// Set the module so that any provider config is loaded
@@ -107,6 +110,7 @@ func testStepImportState(
 			return state, err
 		}
 	}
+
 	// Verify that all the states match
 	if step.ImportStateVerify {
 		new := newState.RootModule().Resources

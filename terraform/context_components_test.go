@@ -27,8 +27,8 @@ func simpleMockComponentFactory() *basicComponentFactory {
 	provider := simpleMockProvider()
 	provisioner := simpleMockProvisioner()
 	return &basicComponentFactory{
-		providers: map[addrs.ProviderType]providers.Factory{
-			addrs.NewLegacyProviderType("test"): func() (providers.Interface, error) {
+		providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("test"): func() (providers.Interface, error) {
 				return provider, nil
 			},
 		},
