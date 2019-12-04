@@ -9,7 +9,7 @@
 
 		"github.com/aws/aws-sdk-go/aws"
 		"github.com/aws/aws-sdk-go/service/dynamodb"
-		"github.com/aws/aws-sdk-go/service/s3"
+//		"github.com/aws/aws-sdk-go/service/s3"
 		"github.com/hashicorp/terraform/backend"
 		"github.com/hashicorp/terraform/configs/hcl2shim"
 		"github.com/hashicorp/terraform/state/remote"
@@ -18,9 +18,9 @@
 
 	// verify that we are doing ACC tests or the S3 tests specifically
 	func testACC(t *testing.T) {
-		skip := os.Getenv("TF_ACC") == "" && os.Getenv("TF_S3_TEST") == ""
+		skip := os.Getenv("TF_ACC") == "" && os.Getenv("TF_DYNAMODB_TEST") == ""
 		if skip {
-			t.Log("s3 backend tests require setting TF_ACC or TF_S3_TEST")
+			t.Log("dynamodb backend tests require setting TF_ACC or TF_DYNAMODB_TEST")
 			t.Skip()
 		}
 		if os.Getenv("AWS_DEFAULT_REGION") == "" {
@@ -35,26 +35,22 @@
 	func TestBackendConfig(t *testing.T) {
 		testACC(t)
 		config := map[string]interface{}{
+			"state_table":    "tf-test",
+			"hash":           "state",
 			"region":         "us-west-1",
-			"state_table":         "tf-test",
-			"hash":            "state",
-			"encrypt":        true,
-			"lock_table": "dynamoTable",
+			"lock_table": 	  "dynamoTable",
 		}
 
 		b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
 
-		if *b.s3Client.Config.Region != "us-west-1" {
-			t.Fatalf("Incorrect region was populated")
+		if b.tableName != "tf-test" {
+			t.Fatalf("Incorrect tableName was populated")
 		}
-		if b.bucketName != "tf-test" {
-			t.Fatalf("Incorrect bucketName was populated")
-		}
-		if b.hashKey != "state" {
-			t.Fatalf("Incorrect hashKey was populated")
+		if b.hashName != "state" {
+			t.Fatalf("Incorrect hashName was populated")
 		}
 
-		credentials, err := b.s3Client.Config.Credentials.Get()
+		credentials, err := b.dynClient.Config.Credentials.Get()
 		if err != nil {
 			t.Fatalf("Error when requesting credentials")
 		}
@@ -69,10 +65,9 @@
 	func TestBackendConfig_invalidKey(t *testing.T) {
 		testACC(t)
 		cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{
+			"state_table":    "tf-test",
+			"hash":           "/leading-slash",
 			"region":         "us-west-1",
-			"state_table":         "tf-test",
-			"hash":            "/leading-slash",
-			"encrypt":        true,
 			"lock_table": "dynamoTable",
 		})
 
@@ -82,72 +77,66 @@
 		}
 	}
 
-	func TestBackendConfig_invalidSSECustomerKeyLength(t *testing.T) {
-		testACC(t)
-		cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{
-			"region":           "us-west-1",
-			"state_table":           "tf-test",
-			"encrypt":          true,
-			"hash":              "state",
-			"lock_table":   "dynamoTable",
-			"sse_customer_key": "hash",
-		})
-
-		_, diags := New().PrepareConfig(cfg)
-		if !diags.HasErrors() {
-			t.Fatal("expected error for invalid sse_customer_key length")
-		}
-	}
-
-	func TestBackendConfig_invalidSSECustomerKeyEncoding(t *testing.T) {
-		testACC(t)
-		cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{
-			"region":           "us-west-1",
-			"state_table":           "tf-test",
-			"encrypt":          true,
-			"hash":              "state",
-			"lock_table":   "dynamoTable",
-			"sse_customer_key": "====CT70aTYB2JGff7AjQtwbiLkwH4npICay1PWtmdka",
-		})
-
-		diags := New().Configure(cfg)
-		if !diags.HasErrors() {
-			t.Fatal("expected error for failing to decode sse_customer_key")
-		}
-	}
-
-	func TestBackendConfig_conflictingEncryptionSchema(t *testing.T) {
-		testACC(t)
-		cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{
-			"region":           "us-west-1",
-			"state_table":           "tf-test",
-			"hash":              "state",
-			"encrypt":          true,
-			"lock_table":   "dynamoTable",
-			"sse_customer_key": "1hwbcNPGWL+AwDiyGmRidTWAEVmCWMKbEHA+Es8w75o=",
-			"kms_key_id":       "arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab",
-		})
-
-		diags := New().Configure(cfg)
-		if !diags.HasErrors() {
-			t.Fatal("expected error for simultaneous usage of kms_key_id and sse_customer_key")
-		}
-	}
+	//func TestBackendConfig_invalidSSECustomerKeyLength(t *testing.T) {
+	//	testACC(t)
+	//	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{
+	//		"region":           "us-west-1",
+	//		"state_table":           "tf-test",
+	//		"encrypt":          true,
+	//		"hash":              "state",
+	//		"lock_table":   "dynamoTable",
+	//		"sse_customer_key": "hash",
+	//	})
+	//	_, diags := New().PrepareConfig(cfg)
+	//	if !diags.HasErrors() {
+	//		t.Fatal("expected error for invalid sse_customer_key length")
+	//	}
+	//}
+	//func TestBackendConfig_invalidSSECustomerKeyEncoding(t *testing.T) {
+	//	testACC(t)
+	//	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{
+	//		"region":           "us-west-1",
+	//		"state_table":           "tf-test",
+	//		"encrypt":          true,
+	//		"hash":              "state",
+	//		"lock_table":   "dynamoTable",
+	//		"sse_customer_key": "====CT70aTYB2JGff7AjQtwbiLkwH4npICay1PWtmdka",
+	//	})
+	//	diags := New().Configure(cfg)
+	//	if !diags.HasErrors() {
+	//		t.Fatal("expected error for failing to decode sse_customer_key")
+	//	}
+	//}
+	//func TestBackendConfig_conflictingEncryptionSchema(t *testing.T) {
+	//	testACC(t)
+	//	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{
+	//		"region":           "us-west-1",
+	//		"state_table":           "tf-test",
+	//		"hash":              "state",
+	//		"encrypt":          true,
+	//		"lock_table":   "dynamoTable",
+	//		"sse_customer_key": "1hwbcNPGWL+AwDiyGmRidTWAEVmCWMKbEHA+Es8w75o=",
+	//		"kms_key_id":       "arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab",
+	//	})
+	//	diags := New().Configure(cfg)
+	//	if !diags.HasErrors() {
+	//		t.Fatal("expected error for simultaneous usage of kms_key_id and sse_customer_key")
+	//	}
+	//}
 
 	func TestBackend(t *testing.T) {
 		testACC(t)
 
-		bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
-		hashKey := "testState"
+		tableName := fmt.Sprintf("terraform-remote-dynamodb-state-%x", time.Now().Unix())
+		hashName := "testState"
 
 		b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-			"state_table":  bucketName,
-			"hash":     hashKey,
-			"encrypt": true,
+			"state_table":  tableName,
+			"hash":     	hashName,
 		})).(*Backend)
 
-		createS3Bucket(t, b.s3Client, bucketName)
-		defer deleteS3Bucket(t, b.s3Client, bucketName)
+		createDynamoDBTable(t, b.dynClient, tableName)
+		defer deleteDynamoDBTable(t, b.dynClient, tableName)
 
 		backend.TestBackendStates(t, b)
 	}
@@ -155,63 +144,59 @@
 	func TestBackendLocked(t *testing.T) {
 		testACC(t)
 
-		bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
-		hashKey := "test/state"
+		tableName := fmt.Sprintf("terraform-remote-dynamodb-state-%x", time.Now().Unix())
+		lockName := fmt.Sprintf("terraform-remote-dynamodb-lock-%x", time.Now().Unix())
+		hashName := "testState"
 
 		b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-			"state_table":         bucketName,
-			"hash":            hashKey,
-			"encrypt":        true,
-			"lock_table": bucketName,
+			"state_table":		tableName,
+			"hash":				hashName,
+			"lock_table":		lockName,
 		})).(*Backend)
 
 		b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-			"state_table":         bucketName,
-			"hash":            hashKey,
-			"encrypt":        true,
-			"lock_table": bucketName,
+			"state_table":		tableName,
+			"hash":				hashName,
+			"lock_table":		lockName,
 		})).(*Backend)
 
-		createS3Bucket(t, b1.s3Client, bucketName)
-		defer deleteS3Bucket(t, b1.s3Client, bucketName)
-		createDynamoDBTable(t, b1.dynClient, bucketName)
-		defer deleteDynamoDBTable(t, b1.dynClient, bucketName)
+		createDynamoDBTable(t, b1.dynClient, tableName)
+		defer deleteDynamoDBTable(t, b1.dynClient, tableName)
+		createDynamoDBTable(t, b1.dynClient, lockName)
+		defer deleteDynamoDBTable(t, b1.dynClient, lockName)
 
 		backend.TestBackendStateLocks(t, b1, b2)
 		backend.TestBackendStateForceUnlock(t, b1, b2)
 	}
 
-	func TestBackendSSECustomerKey(t *testing.T) {
-		testACC(t)
-		bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
-
-		b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-			"state_table":           bucketName,
-			"encrypt":          true,
-			"hash":              "test-SSE-C",
-			"sse_customer_key": "4Dm1n4rphuFgawxuzY/bEfvLf6rYK0gIjfaDSLlfXNk=",
-		})).(*Backend)
-
-		createS3Bucket(t, b.s3Client, bucketName)
-		defer deleteS3Bucket(t, b.s3Client, bucketName)
-
-		backend.TestBackendStates(t, b)
-	}
+	//func TestBackendSSECustomerKey(t *testing.T) {
+	//	testACC(t)
+	//	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	//	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+	//		"state_table":           bucketName,
+	//		"encrypt":          true,
+	//		"hash":              "test-SSE-C",
+	//		"sse_customer_key": "4Dm1n4rphuFgawxuzY/bEfvLf6rYK0gIjfaDSLlfXNk=",
+	//	})).(*Backend)
+	//	createS3Bucket(t, b.s3Client, bucketName)
+	//	defer deleteS3Bucket(t, b.s3Client, bucketName)
+	//	backend.TestBackendStates(t, b)
+	//}
 
 	// add some extra junk in S3 to try and confuse the env listing.
 	func TestBackendExtraPaths(t *testing.T) {
 		testACC(t)
-		bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
-		hashKey := "test/state/tfstate"
+
+		tableName := fmt.Sprintf("terraform-remote-dynamodb-state-%x", time.Now().Unix())
+		hashName := "test/state/tfstate"
 
 		b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-			"state_table":  bucketName,
-			"hash":     hashKey,
-			"encrypt": true,
+			"state_table":  tableName,
+			"hash":     	hashName,
 		})).(*Backend)
 
-		createS3Bucket(t, b.s3Client, bucketName)
-		defer deleteS3Bucket(t, b.s3Client, bucketName)
+		createDynamoDBTable(t, b.dynClient, tableName)
+		defer deleteDynamoDBTable(t, b.dynClient, tableName)
 
 		// put multiple states in old env paths.
 		s1 := states.NewState()
@@ -219,14 +204,10 @@
 
 		// RemoteClient to Put things in various paths
 		client := &RemoteClient{
-			s3Client:             b.s3Client,
-			dynClient:            b.dynClient,
-			bucketName:           b.bucketName,
-			path:                 b.path("s1"),
-			serverSideEncryption: b.serverSideEncryption,
-			acl:                  b.acl,
-			kmsKeyID:             b.kmsKeyID,
-			ddbTable:             b.ddbTable,
+			dynClient:		b.dynClient,
+			tableName:		b.tableName,
+			path:			b.path("s1"),
+			lockTable:		b.lockTable,
 		}
 
 		stateMgr := &remote.State{Client: client}
@@ -325,16 +306,17 @@
 	// of the workspace name itself.
 	func TestBackendPrefixInWorkspace(t *testing.T) {
 		testACC(t)
-		bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+		tableName := fmt.Sprintf("terraform-remote-dynamodb-state-%x", time.Now().Unix())
+		hashName := "test-env.tfstate"
 
 		b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-			"state_table":               bucketName,
-			"hash":                  "test-env.tfstate",
-			"workspace_key_prefix": "env",
+			"state_table":			tableName,
+			"hash":                	hashName,
+			"workspace_key_prefix":	"env",
 		})).(*Backend)
 
-		createS3Bucket(t, b.s3Client, bucketName)
-		defer deleteS3Bucket(t, b.s3Client, bucketName)
+		createDynamoDBTable(t, b.dynClient, tableName)
+		defer deleteDynamoDBTable(t, b.dynClient, tableName)
 
 		// get a state that contains the prefix as a substring
 		sMgr, err := b.StateMgr("env-1")
@@ -351,40 +333,38 @@
 	}
 
 	func TestKeyEnv(t *testing.T) {
-		testACC(t)
-		hashKey := "some/paths/tfstate"
+		testACC(t)		
+		table0Name := fmt.Sprintf("terraform-remote-dynamodb-state-%x-0", time.Now().Unix())
+		hashName := "some/paths/tfstate"
 
-		bucket0Name := fmt.Sprintf("terraform-remote-s3-test-%x-0", time.Now().Unix())
 		b0 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-			"state_table":               bucket0Name,
-			"hash":                  hashKey,
-			"encrypt":              true,
-			"workspace_key_prefix": "",
+			"state_table":         	table0Name,
+			"hash":                 hashName,
+			"workspace_key_prefix":	"",
 		})).(*Backend)
 
-		createS3Bucket(t, b0.s3Client, bucket0Name)
-		defer deleteS3Bucket(t, b0.s3Client, bucket0Name)
+		createDynamoDBTable(t, b0.dynClient, table0Name)
+		defer deleteDynamoDBTable(t, b0.dynClient, table0Name)
 
-		bucket1Name := fmt.Sprintf("terraform-remote-s3-test-%x-1", time.Now().Unix())
+		table1Name := fmt.Sprintf("terraform-remote-dynamodb-state-%x-1", time.Now().Unix())
+
 		b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-			"state_table":               bucket1Name,
-			"hash":                  hashKey,
-			"encrypt":              true,
+			"state_table":         	table1Name,
+			"hash":                 hashName,
 			"workspace_key_prefix": "project/env:",
 		})).(*Backend)
 
-		createS3Bucket(t, b1.s3Client, bucket1Name)
-		defer deleteS3Bucket(t, b1.s3Client, bucket1Name)
+		createDynamoDBTable(t, b1.dynClient, table1Name)
+		defer deleteDynamoDBTable(t, b1.dynClient, table1Name)
 
-		bucket2Name := fmt.Sprintf("terraform-remote-s3-test-%x-2", time.Now().Unix())
+		table2Name := fmt.Sprintf("terraform-remote-dynamodb-state-%x-2", time.Now().Unix())
 		b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-			"state_table":  bucket2Name,
-			"hash":     hashKey,
-			"encrypt": true,
+			"state_table":  		table2Name,
+			"hash":     			hashName,
 		})).(*Backend)
 
-		createS3Bucket(t, b2.s3Client, bucket2Name)
-		defer deleteS3Bucket(t, b2.s3Client, bucket2Name)
+		createDynamoDBTable(t, b2.dynClient, table2Name)
+		defer deleteDynamoDBTable(t, b2.dynClient, table2Name)
 
 		if err := testGetWorkspaceForKey(b0, "some/paths/tfstate", ""); err != nil {
 			t.Fatal(err)
@@ -430,41 +410,37 @@
 		return nil
 	}
 
-	func createS3Bucket(t *testing.T, s3Client *s3.S3, bucketName string) {
-		createBucketReq := &s3.CreateBucketInput{
-			Bucket: &bucketName,
-		}
-
-		// Be clear about what we're doing in case the user needs to clean
-		// this up later.
-		t.Logf("creating S3 bucket %s in %s", bucketName, *s3Client.Config.Region)
-		_, err := s3Client.CreateBucket(createBucketReq)
-		if err != nil {
-			t.Fatal("failed to create test S3 bucket:", err)
-		}
-	}
-
-	func deleteS3Bucket(t *testing.T, s3Client *s3.S3, bucketName string) {
-		warning := "WARNING: Failed to delete the test S3 bucket. It may have been left in your AWS account and may incur storage charges. (error was %s)"
-
-		// first we have to get rid of the env objects, or we can't delete the bucket
-		resp, err := s3Client.ListObjects(&s3.ListObjectsInput{Bucket: &bucketName})
-		if err != nil {
-			t.Logf(warning, err)
-			return
-		}
-		for _, obj := range resp.Contents {
-			if _, err := s3Client.DeleteObject(&s3.DeleteObjectInput{Bucket: &bucketName, Key: obj.Key}); err != nil {
-				// this will need cleanup no matter what, so just warn and exit
-				t.Logf(warning, err)
-				return
-			}
-		}
-
-		if _, err := s3Client.DeleteBucket(&s3.DeleteBucketInput{Bucket: &bucketName}); err != nil {
-			t.Logf(warning, err)
-		}
-	}
+	//func createS3Bucket(t *testing.T, s3Client *s3.S3, bucketName string) {
+	//	createBucketReq := &s3.CreateBucketInput{
+	//		Bucket: &bucketName,
+	//	}
+	//	// Be clear about what we're doing in case the user needs to clean
+	//	// this up later.
+	//	t.Logf("creating S3 bucket %s in %s", bucketName, *s3Client.Config.Region)
+	//	_, err := s3Client.CreateBucket(createBucketReq)
+	//	if err != nil {
+	//		t.Fatal("failed to create test S3 bucket:", err)
+	//	}
+	//}
+	//func deleteS3Bucket(t *testing.T, s3Client *s3.S3, bucketName string) {
+	//	warning := "WARNING: Failed to delete the test S3 bucket. It may have been left in your AWS account and may incur storage charges. (error was %s)"
+	//	// first we have to get rid of the env objects, or we can't delete the bucket
+	//	resp, err := s3Client.ListObjects(&s3.ListObjectsInput{Bucket: &bucketName})
+	//	if err != nil {
+	//		t.Logf(warning, err)
+	//		return
+	//	}
+	//	for _, obj := range resp.Contents {
+	//		if _, err := s3Client.DeleteObject(&s3.DeleteObjectInput{Bucket: &bucketName, Key: obj.Key}); err != nil {
+	//			// this will need cleanup no matter what, so just warn and exit
+	//			t.Logf(warning, err)
+	//			return
+	//		}
+	//	}
+	//	if _, err := s3Client.DeleteBucket(&s3.DeleteBucketInput{Bucket: &bucketName}); err != nil {
+	//		t.Logf(warning, err)
+	//	}
+	//}
 
 	// create the dynamoDB table, and wait until we can query it.
 	func createDynamoDBTable(t *testing.T, dynClient *dynamodb.DynamoDB, tableName string) {

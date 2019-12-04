@@ -3,7 +3,6 @@ package dynamodb
 import (
 	"bytes"
 	"crypto/md5"
-//	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -550,11 +549,6 @@ func (c *RemoteClient) Unlock(id string) error {
 func (c *RemoteClient) lockPath() string {
 	return fmt.Sprintf("%s/%s", c.tableName, c.path)
 }
-
-//func (c *RemoteClient) getSSECustomerKeyMD5() string {
-//	b := md5.Sum(c.customerEncryptionKey)
-//	return base64.StdEncoding.EncodeToString(b[:])
-//}
 
 const errBadChecksumFmt = `state data in S3 does not have the expected content.
 
