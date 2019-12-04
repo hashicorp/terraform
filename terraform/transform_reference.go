@@ -176,42 +176,6 @@ func (t AttachDependenciesTransformer) Transform(g *Graph) error {
 	return nil
 }
 
-// DestroyReferenceTransformer is a GraphTransformer that reverses the edges
-// for locals and outputs that depend on other nodes which will be
-// removed during destroy. If a destroy node is evaluated before the local or
-// output value, it will be removed from the state, and the later interpolation
-// will fail.
-type DestroyValueReferenceTransformer struct{}
-
-func (t *DestroyValueReferenceTransformer) Transform(g *Graph) error {
-	vs := g.Vertices()
-	for _, v := range vs {
-		switch v.(type) {
-		case *NodeApplyableOutput, *NodeLocal:
-			// OK
-		default:
-			continue
-		}
-
-		// reverse any outgoing edges so that the value is evaluated first.
-		for _, e := range g.EdgesFrom(v) {
-			target := e.Target()
-
-			// only destroy nodes will be evaluated in reverse
-			if _, ok := target.(GraphNodeDestroyer); !ok {
-				continue
-			}
-
-			log.Printf("[TRACE] output dep: %s", dag.VertexName(target))
-
-			g.RemoveEdge(e)
-			g.Connect(dag.BasicEdge(target, v))
-		}
-	}
-
-	return nil
-}
-
 // PruneUnusedValuesTransformer is a GraphTransformer that removes local,
 // variable, and output values which are not referenced in the graph. If these
 // values reference a resource that is no longer in the state the interpolation
