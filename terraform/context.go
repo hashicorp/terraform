@@ -159,7 +159,7 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 	variables = variables.Override(opts.Variables)
 
 	// Bind available provider plugins to the constraints in config
-	var providerFactories map[string]providers.Factory
+	var providerFactories map[addrs.Provider]providers.Factory
 	if opts.ProviderResolver != nil {
 		deps := ConfigTreeDependencies(opts.Config, state)
 		reqd := deps.AllPluginRequirements()
@@ -167,7 +167,6 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 			reqd.LockExecutables(opts.ProviderSHA256s)
 		}
 		log.Printf("[TRACE] terraform.NewContext: resolving provider version selections")
-
 		var providerDiags tfdiags.Diagnostics
 		providerFactories, providerDiags = resourceProviderFactories(opts.ProviderResolver, reqd)
 		diags = diags.Append(providerDiags)
@@ -176,7 +175,7 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 			return nil, diags
 		}
 	} else {
-		providerFactories = make(map[string]providers.Factory)
+		providerFactories = make(map[addrs.Provider]providers.Factory)
 	}
 
 	components := &basicComponentFactory{

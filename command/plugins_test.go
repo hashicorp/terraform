@@ -24,8 +24,8 @@ func TestMultiVersionProviderResolver(t *testing.T) {
 	})
 
 	resolver := &multiVersionProviderResolver{
-		Internal: map[string]providers.Factory{
-			"internal": providers.FactoryFixed(
+		Internal: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("internal"): providers.FactoryFixed(
 				&terraform.MockProvider{
 					GetSchemaReturn: &terraform.ProviderSchema{
 						ResourceTypes: map[string]*configschema.Block{
@@ -51,7 +51,7 @@ func TestMultiVersionProviderResolver(t *testing.T) {
 		if ct := len(got); ct != 1 {
 			t.Errorf("wrong number of results %d; want 1", ct)
 		}
-		if _, exists := got["plugin"]; !exists {
+		if _, exists := got[addrs.NewLegacyProvider("plugin")]; !exists {
 			t.Errorf("provider \"plugin\" not in result")
 		}
 	})
@@ -79,7 +79,7 @@ func TestMultiVersionProviderResolver(t *testing.T) {
 		if ct := len(got); ct != 1 {
 			t.Errorf("wrong number of results %d; want 1", ct)
 		}
-		if _, exists := got["internal"]; !exists {
+		if _, exists := got[addrs.NewLegacyProvider("internal")]; !exists {
 			t.Errorf("provider \"internal\" not in result")
 		}
 	})
@@ -121,7 +121,7 @@ func TestPluginPath(t *testing.T) {
 func TestInternalProviders(t *testing.T) {
 	m := Meta{}
 	internal := m.internalProviders()
-	tfProvider, err := internal["terraform"]()
+	tfProvider, err := internal[addrs.NewLegacyProvider("terraform")]()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -148,7 +148,7 @@ func (i *mockProviderInstaller) FileName(provider, version string) string {
 	return fmt.Sprintf("terraform-provider-%s_v%s_x4", provider, version)
 }
 
-func (i *mockProviderInstaller) Get(provider addrs.ProviderType, req discovery.Constraints) (discovery.PluginMeta, tfdiags.Diagnostics, error) {
+func (i *mockProviderInstaller) Get(provider addrs.Provider, req discovery.Constraints) (discovery.PluginMeta, tfdiags.Diagnostics, error) {
 	var diags tfdiags.Diagnostics
 	noMeta := discovery.PluginMeta{}
 	versions := i.Providers[provider.Type]
@@ -200,7 +200,7 @@ func (i *mockProviderInstaller) PurgeUnused(map[string]discovery.PluginMeta) (di
 
 type callbackPluginInstaller func(provider string, req discovery.Constraints) (discovery.PluginMeta, tfdiags.Diagnostics, error)
 
-func (cb callbackPluginInstaller) Get(provider addrs.ProviderType, req discovery.Constraints) (discovery.PluginMeta, tfdiags.Diagnostics, error) {
+func (cb callbackPluginInstaller) Get(provider addrs.Provider, req discovery.Constraints) (discovery.PluginMeta, tfdiags.Diagnostics, error) {
 	return cb(provider.Type, req)
 }
 
