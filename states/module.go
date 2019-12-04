@@ -76,7 +76,7 @@ func (ms *Module) RemoveResource(addr addrs.Resource) {
 }
 
 // SetResourceInstanceCurrent saves the given instance object as the current
-// generation of the resource instance with the given address, simulataneously
+// generation of the resource instance with the given address, simultaneously
 // updating the recorded provider configuration address, dependencies, and
 // resource EachMode.
 //
@@ -106,8 +106,7 @@ func (ms *Module) SetResourceInstanceCurrent(addr addrs.ResourceInstance, obj *R
 		// check for an existing resource, now that we've ensured that rs.Instances is more than 0/not nil
 		is := rs.Instance(addr.Key)
 		if is == nil {
-			// if there is no instance, but the resource exists and has other instances,
-			// be chill, just return
+			// if there is no instance on the resource with this address and obj is nil, return and change nothing
 			return
 		}
 		// if we have an instance, update the current
