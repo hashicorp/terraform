@@ -1,4 +1,9 @@
 ## 0.12.18 (Unreleased)
+
+BUG FIXES:
+
+* config: Fixed referencing errors generally involving `for_each` [GH-23475]
+
 ## 0.12.17 (December 02, 2019)
 
 SECURITY NOTES:
@@ -17,6 +22,7 @@ ENHANCEMENTS:
 * core: The upgrade logic for moving from the Terraform 0.11 to the Terraform 0.12 state snapshot format (internally, format version 3 to version 4) will now tolerate and ignore dependencies with invalid addresses, which tend to be left behind when following the `terraform 0.11checklist` directive to rename resources whose names start with digits prior to upgrading to Terraform 0.12. This should allow upgrading the state for a configuration that in the past had digit-prefixed resource names, once those names have been fixed in the configuration and state using the instructions given by `terraform 0.11checklist` in Terraform 0.11.14. ([#23443](https://github.com/hashicorp/terraform/issues/23443))
 
 BUG FIXES:
+
 * command/jsonplan, command/jsonstate: fix panic with null values ([#23492](https://github.com/hashicorp/terraform/issues/23492))
 * backend/azure: Use HTTPS to talk to the storage API, even if using a SAS token that does not require it. ([#23496](https://github.com/hashicorp/terraform/issues/23496))
 
