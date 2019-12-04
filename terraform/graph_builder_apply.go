@@ -171,14 +171,10 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 			Destroy: b.Destroy,
 		},
 
-		// Handle destroy time transformations for output and local values.
-		// Reverse the edges from outputs and locals, so that
-		// interpolations don't fail during destroy.
-		// Create a destroy node for outputs to remove them from the state.
 		GraphTransformIf(
 			func() bool { return b.Destroy },
 			GraphTransformMulti(
-				&DestroyValueReferenceTransformer{},
+				// Create a destroy node for outputs to remove them from the state.
 				&DestroyOutputTransformer{},
 			),
 		),

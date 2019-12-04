@@ -56,7 +56,6 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 	// Build a map of what is being destroyed (by address string) to
 	// the list of destroyers.
 	destroyers := make(map[string][]GraphNodeDestroyer)
-	destroyerAddrs := make(map[string]addrs.AbsResourceInstance)
 
 	// Record the creators, which will need to depend on the destroyers if they
 	// are only being updated.
@@ -79,7 +78,6 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 			key := addr.String()
 			log.Printf("[TRACE] DestroyEdgeTransformer: %q (%T) destroys %s", dag.VertexName(n), v, key)
 			destroyers[key] = append(destroyers[key], n)
-			destroyerAddrs[key] = addr
 
 			resAddr := addr.Resource.Resource.Absolute(addr.Module).String()
 			destroyersByResource[resAddr] = append(destroyersByResource[resAddr], n)
