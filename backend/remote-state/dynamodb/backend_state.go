@@ -36,6 +36,8 @@ func (b *Backend) Workspaces() ([]string, error) {
 
 	if b.workspaceKeyPrefix != "" {
 		prefix = b.workspaceKeyPrefix + "="
+	}else{
+		prefix += "/"
 	}
 	
 	// Build Query 
