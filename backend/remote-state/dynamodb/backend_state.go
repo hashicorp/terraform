@@ -8,8 +8,6 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
-//	"github.com/aws/aws-sdk-go/aws/awserr"
-//	"github.com/aws/aws-sdk-go/service/s3"
 
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/state"
@@ -75,17 +73,12 @@ func (b *Backend) Workspaces() ([]string, error) {
 		}
 	}
 	wss = unique(wss)
-
 	sort.Strings(wss[1:])
-	fmt.Println("workspaces in Workspaces function:", wss)
 	return wss, nil
 }
 
 func (b *Backend) keyEnv(key string) string {
 	prefix := b.workspaceKeyPrefix
-
-	fmt.Println("prefix in keyEnv function:", prefix)
-
 	if prefix == "" {
 		parts := strings.SplitN(key, "/", 2)
 		if len(parts) > 1 && parts[1] == b.hashName {
@@ -140,29 +133,17 @@ func (b *Backend) remoteClient(name string) (*RemoteClient, error) {
 		return nil, errors.New("missing state name")
 	}
 
-	fmt.Println("name in remoteClient function:", name)
-
-
 	client := &RemoteClient{
-		//s3Client:              b.s3Client,
 		dynClient:             b.dynClient,
 		tableName:             b.tableName,
 		path:                  b.path(name),
-		//serverSideEncryption:  b.serverSideEncryption,
-		customerEncryptionKey: b.customerEncryptionKey,
-		//acl:                   b.acl,
-		//kmsKeyID:              b.kmsKeyID,
-		ddbTable:              b.ddbTable,
+		lockTable:             b.lockTable,
 	}
-
-	fmt.Println("path in remoteClient function:", client.path)
 
 	return client, nil
 }
 
 func (b *Backend) StateMgr(name string) (state.State, error) {
-	fmt.Println("name in StateMgr function:", name)
-
 	client, err := b.remoteClient(name)
 	if err != nil {
 		return nil, err
@@ -178,7 +159,6 @@ func (b *Backend) StateMgr(name string) (state.State, error) {
 	// exists, the user will have to use aws tools to manually fix the
 	// situation.
 	existing, err := b.Workspaces()
-	fmt.Println("existing in StateMgr function:", existing)
 	if err != nil {
 		return nil, err
 	}

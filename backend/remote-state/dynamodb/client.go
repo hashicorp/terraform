@@ -3,7 +3,7 @@ package dynamodb
 import (
 	"bytes"
 	"crypto/md5"
-	"encoding/base64"
+//	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -15,9 +15,6 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
-//	"github.com/aws/aws-sdk-go/aws/awserr"
-//	"github.com/aws/aws-sdk-go/service/dynamodb"
-//	"github.com/aws/aws-sdk-go/service/s3"
 	multierror "github.com/hashicorp/go-multierror"
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform/state"
@@ -29,27 +26,19 @@ import (
 
 // Store the last saved serial in dynamo with this suffix for consistency checks.
 const (
-//	s3EncryptionAlgorithm  = "AES256"
-	stateIDSuffix          = "-md5"
-	s3ErrCodeInternalError = "InternalError"
-	dynamoDBItemSize = 409600
+	stateIDSuffix    = "-md5"
+	dynamoDBItemSize = 400000
 )
 
 type RemoteClient struct {
-	//s3Client              *s3.S3
 	dynClient             *dynamodb.DynamoDB
 	tableName             string
 	path                  string
-//	serverSideEncryption  bool
-	customerEncryptionKey []byte
-//	acl                   string
-//	kmsKeyID              string
-	ddbTable              string
+	lockTable             string
 }
 
 var (
-	// The amount of time we will retry a state waiting for it to match the
-	// expected checksum.
+	// The amount of time we will retry a state waiting for it to match the expected checksum.
 	consistencyRetryTimeout = 10 * time.Second
 
 	// delay when polling the state
@@ -108,11 +97,12 @@ func getMaxSegmentId(items []map[string]*dynamodb.AttributeValue) (int, error) {
 	for _, i := range items {
 	    state := State{}
 	    err := dynamodbattribute.UnmarshalMap(i, &state)
+		if err != nil {
+		    return -1, fmt.Errorf("Got error marshalling state: %s", err)
+		}
 	    segmentID, err := strconv.Atoi(state.SegmentID)
 		if err != nil {
-	        fmt.Println("Got error unmarshalling:") // TO REMOVE
-	        fmt.Println(err.Error()) // TO REMOVE
-	        return 0, err
+			return -1, fmt.Errorf("Got error casting: %s", err)
 	    }
 	    if segmentID > maxSegmentID{
 	    	maxSegmentID = segmentID
@@ -122,7 +112,6 @@ func getMaxSegmentId(items []map[string]*dynamodb.AttributeValue) (int, error) {
 }
 
 func (c *RemoteClient) get() (*remote.Payload, error) {
-
 	var queryInput = &dynamodb.QueryInput{
 	    TableName: aws.String(c.tableName),
 	    KeyConditions: map[string]*dynamodb.Condition{
@@ -139,17 +128,25 @@ func (c *RemoteClient) get() (*remote.Payload, error) {
 
 	result, err := c.dynClient.Query(queryInput)
 	if err != nil {
-	    return nil, err
+	    return nil, fmt.Errorf("During query operation on table %s %s.", c.tableName, err)
 	}
 
 	maxSegmentID, err := getMaxSegmentId(result.Items)
+	if err != nil {
+		return nil, err
+	}
 	var segmentStrings = make([]string, maxSegmentID+1)
-	fmt.Println("maxSegmentID in get function: %d", maxSegmentID)
 
 	for _, i := range result.Items {
 	    state := State{}
 	    err = dynamodbattribute.UnmarshalMap(i, &state)
-	   	segmentID, _ := strconv.Atoi(state.SegmentID)
+		if err != nil {
+		    return nil, fmt.Errorf("Got error marshalling state: %s", err)
+		}
+	   	segmentID, err := strconv.Atoi(state.SegmentID)
+	   	if err != nil {
+			return nil, fmt.Errorf("Got error casting: %s", err)
+	    }
 	    segmentStrings[segmentID] = state.Body
 	}
 
@@ -173,7 +170,7 @@ func (c *RemoteClient) get() (*remote.Payload, error) {
 	return payload, nil
 }
 
-func (c *RemoteClient) GeberatePutItems(data []byte, sequence []int, transactionItems *[]*dynamodb.TransactWriteItem) error {
+func (c *RemoteClient) GeneratePutItems(data []byte, sequence []int, transactionItems *[]*dynamodb.TransactWriteItem) error {
 	body := string(data[:])
 
 	item := State{
@@ -204,13 +201,13 @@ func (c *RemoteClient) GeberatePutItems(data []byte, sequence []int, transaction
 
 	}else {
 		N := int(len(data)/2)
-		err := c.GeberatePutItems(data[N:], sequence[N:], transactionItems)
+		err := c.GeneratePutItems(data[N:], sequence[N:], transactionItems)
 		if err != nil {
-			return err
+			return fmt.Errorf("Got error during put generation: %s", err)
 		}
-		err = c.GeberatePutItems(data[:N], sequence[:N], transactionItems)
+		err = c.GeneratePutItems(data[:N], sequence[:N], transactionItems)
 		if err != nil {
-			return err
+			return fmt.Errorf("Got error during put generation: %s", err)
 		}		
 	}
 
@@ -251,7 +248,7 @@ func (c *RemoteClient) Put(data []byte) error {
 
 	result, err := c.dynClient.Query(queryInput)
 	if err != nil {
-	    return err
+	    return fmt.Errorf("During query operation on table %s %s.", c.tableName, err)
 	}
 	var transactionItems = make([]*dynamodb.TransactWriteItem, 0)
 	var segments []int
@@ -259,12 +256,10 @@ func (c *RemoteClient) Put(data []byte) error {
 	    state := State{}
 
 	    err = dynamodbattribute.UnmarshalMap(i, &state)
+		if err != nil {
+		    return fmt.Errorf("Got error marshalling state: %s", err)
+		}
 
-	    if err != nil {
-	        fmt.Println("Got error unmarshalling:") // TO REMOVE
-	        fmt.Println(err.Error()) // TO REMOVE
-	        return err
-	    }
 	    delete_item := &dynamodb.TransactWriteItem{
 			Delete: &dynamodb.Delete{
 				TableName: aws.String(c.tableName),
@@ -281,20 +276,17 @@ func (c *RemoteClient) Put(data []byte) error {
 		transactionItems = append(transactionItems, delete_item)
 		id, err := strconv.Atoi(state.SegmentID)
 		if err != nil {
-	        fmt.Println("Got error unmarshalling:") // TO REMOVE
-	        fmt.Println(err.Error()) // TO REMOVE
-	        return err
+			return fmt.Errorf("Got error casting: %s", err)
 	    }
 		segments = append(segments, id)
-	    fmt.Println("StateID: ", state.StateID)
 	}
 
 	sequence := GenerateSequence(len(data), segments)
 	log.Printf("[DEBUG] Uploading remote state to DynamoDB: %#v", transactionItems)
 
-	err = c.GeberatePutItems(data, sequence, &transactionItems)
+	err = c.GeneratePutItems(data, sequence, &transactionItems)
 	if err != nil {
-		return fmt.Errorf("Got error calling GeberatePutItems: %s", err)
+		return fmt.Errorf("Got error calling GeneratePutItems: %s", err)
 	}
 
 	_, err = c.dynClient.TransactWriteItems(&dynamodb.TransactWriteItemsInput{TransactItems: transactionItems})
@@ -337,12 +329,9 @@ func (c *RemoteClient) Delete() error {
 	    state := State{}
 
 	    err = dynamodbattribute.UnmarshalMap(i, &state)
-
-	    if err != nil {
-	        fmt.Println("Got error unmarshalling:") // TO REMOVE
-	        fmt.Println(err.Error()) // TO REMOVE
-	        return err
-	    }
+		if err != nil {
+		    return fmt.Errorf("Got error marshalling state: %s", err)
+		}
 	    delete_item := &dynamodb.TransactWriteItem{
 			Delete: &dynamodb.Delete{
 				TableName: aws.String(c.tableName),
@@ -357,7 +346,6 @@ func (c *RemoteClient) Delete() error {
 			},
 		}
 		transactionItems = append(transactionItems, delete_item)
-	    fmt.Println("StateID: ", state.StateID)
 	}
 
 	_, err = c.dynClient.TransactWriteItems(&dynamodb.TransactWriteItemsInput{TransactItems: transactionItems})
@@ -377,7 +365,7 @@ func (c *RemoteClient) Delete() error {
 }
 
 func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
-	if c.ddbTable == "" {
+	if c.lockTable == "" {
 		return "", nil
 	}
 
@@ -397,7 +385,7 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 			"LockID": {S: aws.String(c.lockPath())},
 			"Info":   {S: aws.String(string(info.Marshal()))},
 		},
-		TableName:           aws.String(c.ddbTable),
+		TableName:           aws.String(c.lockTable),
 		ConditionExpression: aws.String("attribute_not_exists(LockID)"),
 	}
 	_, err := c.dynClient.PutItem(putParams)
@@ -419,7 +407,7 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 }
 
 func (c *RemoteClient) getMD5() ([]byte, error) {
-	if c.ddbTable == "" {
+	if c.lockTable == "" {
 		return nil, nil
 	}
 
@@ -428,7 +416,7 @@ func (c *RemoteClient) getMD5() ([]byte, error) {
 			"LockID": {S: aws.String(c.lockPath() + stateIDSuffix)},
 		},
 		ProjectionExpression: aws.String("LockID, Digest"),
-		TableName:            aws.String(c.ddbTable),
+		TableName:            aws.String(c.lockTable),
 		ConsistentRead:       aws.Bool(true),
 	}
 
@@ -452,7 +440,7 @@ func (c *RemoteClient) getMD5() ([]byte, error) {
 
 // store the hash of the state so that clients can check for stale state files.
 func (c *RemoteClient) putMD5(sum []byte) error {
-	if c.ddbTable == "" {
+	if c.lockTable == "" {
 		return nil
 	}
 
@@ -465,7 +453,7 @@ func (c *RemoteClient) putMD5(sum []byte) error {
 			"LockID": {S: aws.String(c.lockPath() + stateIDSuffix)},
 			"Digest": {S: aws.String(hex.EncodeToString(sum))},
 		},
-		TableName: aws.String(c.ddbTable),
+		TableName: aws.String(c.lockTable),
 	}
 	_, err := c.dynClient.PutItem(putParams)
 	if err != nil {
@@ -477,7 +465,7 @@ func (c *RemoteClient) putMD5(sum []byte) error {
 
 // remove the hash value for a deleted state
 func (c *RemoteClient) deleteMD5() error {
-	if c.ddbTable == "" {
+	if c.lockTable == "" {
 		return nil
 	}
 
@@ -485,7 +473,7 @@ func (c *RemoteClient) deleteMD5() error {
 		Key: map[string]*dynamodb.AttributeValue{
 			"LockID": {S: aws.String(c.lockPath() + stateIDSuffix)},
 		},
-		TableName: aws.String(c.ddbTable),
+		TableName: aws.String(c.lockTable),
 	}
 	if _, err := c.dynClient.DeleteItem(params); err != nil {
 		return err
@@ -499,7 +487,7 @@ func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
 			"LockID": {S: aws.String(c.lockPath())},
 		},
 		ProjectionExpression: aws.String("LockID, Info"),
-		TableName:            aws.String(c.ddbTable),
+		TableName:            aws.String(c.lockTable),
 		ConsistentRead:       aws.Bool(true),
 	}
 
@@ -523,7 +511,7 @@ func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
 }
 
 func (c *RemoteClient) Unlock(id string) error {
-	if c.ddbTable == "" {
+	if c.lockTable == "" {
 		return nil
 	}
 
@@ -548,7 +536,7 @@ func (c *RemoteClient) Unlock(id string) error {
 		Key: map[string]*dynamodb.AttributeValue{
 			"LockID": {S: aws.String(c.lockPath())},
 		},
-		TableName: aws.String(c.ddbTable),
+		TableName: aws.String(c.lockTable),
 	}
 	_, err = c.dynClient.DeleteItem(params)
 
@@ -563,10 +551,10 @@ func (c *RemoteClient) lockPath() string {
 	return fmt.Sprintf("%s/%s", c.tableName, c.path)
 }
 
-func (c *RemoteClient) getSSECustomerKeyMD5() string {
-	b := md5.Sum(c.customerEncryptionKey)
-	return base64.StdEncoding.EncodeToString(b[:])
-}
+//func (c *RemoteClient) getSSECustomerKeyMD5() string {
+//	b := md5.Sum(c.customerEncryptionKey)
+//	return base64.StdEncoding.EncodeToString(b[:])
+//}
 
 const errBadChecksumFmt = `state data in S3 does not have the expected content.
 
