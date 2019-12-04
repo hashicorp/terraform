@@ -308,7 +308,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 
 	if !lockBool {
-		return fmt.Errorf(errDynamoDBLockTable, b.lockTable)
+		return fmt.Errorf(errDynamoDBLockTable, b.lockTable, b.lockTable, b.lockTable)
 	}
 
 	stateBool := len(stateAttDef) == 2 && len(stateKeyDef) == 2
@@ -325,7 +325,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 
 	if !stateBool {
-		return fmt.Errorf(errDynamoDBStateTable, b.tableName)
+		return fmt.Errorf(errDynamoDBStateTable, b.tableName, b.tableName, b.tableName)
 	}
 
 	return nil
@@ -334,23 +334,27 @@ func (b *Backend) configure(ctx context.Context) error {
 const errDynamoDBStateTable = `DynamoDB state table schema check error.
 
 Please create DynamoDB table using the following command:
-  
-  aws dynamodb create-table 
-    --table-name %s 
-    --attribute-definitions AttributeName=StateID,AttributeType=S AttributeName=SegmentID,AttributeType=S 
-    --key-schema AttributeName=StateID,KeyType=HASH AttributeName=SegmentID,KeyType=RANGE 
-    --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
+
+aws dynamodb delete-table --table-name %s && \
+aws dynamodb wait table-not-exists --table-name %s && \
+aws dynamodb create-table \
+--table-name %s \
+--attribute-definitions AttributeName=StateID,AttributeType=S AttributeName=SegmentID,AttributeType=S \
+--key-schema AttributeName=StateID,KeyType=HASH AttributeName=SegmentID,KeyType=RANGE \
+--provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
 `
 
 const errDynamoDBLockTable = `DynamoDB lock table schema check error.
 
 Please create DynamoDB table using the following command:
-  
-  aws dynamodb create-table 
-    --table-name %s 
-    --attribute-definitions AttributeName=LockID,AttributeType=S
-    --key-schema AttributeName=LockID,KeyType=HASH
-    --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
+
+aws dynamodb delete-table --table-name %s && \
+aws dynamodb wait table-not-exists --table-name %s && \
+aws dynamodb create-table \
+--table-name %s \
+--attribute-definitions AttributeName=LockID,AttributeType=S \
+--key-schema AttributeName=LockID,KeyType=HASH \
+--provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
 `
 
 
