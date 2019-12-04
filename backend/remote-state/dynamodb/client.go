@@ -213,11 +213,15 @@ func (c *RemoteClient) GeneratePutItems(data []byte, sequence []int, transaction
 	return nil
 }
 
-func GenerateSequence(seuqneceSize int, currentSegments []int) []int{
+func GenerateSequence(sequenceSize int, currentSegments []int) []int{
+	if sequenceSize == 0 {
+		return []int{0}
+	}
+
 	segmentsSize := len(currentSegments)
-	sequence := make([]int, seuqneceSize)
+	sequence := make([]int, sequenceSize)
 	position := 0
-	for index := 0; index < seuqneceSize+segmentsSize; index++ {
+	for index := 0; index < sequenceSize+segmentsSize; index++ {
 		to_use := true
 		for _,segment := range currentSegments{
 			to_use = !(segment==index) && to_use
@@ -550,20 +554,19 @@ func (c *RemoteClient) lockPath() string {
 	return fmt.Sprintf("%s/%s", c.tableName, c.path)
 }
 
-const errBadChecksumFmt = `state data in S3 does not have the expected content.
+const errBadChecksumFmt = `State data in DynamoDB does not have the expected content.
 
-This may be caused by unusually long delays in S3 processing a previous state
+This may be caused by unusually long delays in DynamoDB processing a previous state
 update.  Please wait for a minute or two and try again. If this problem
-persists, and neither S3 nor DynamoDB are experiencing an outage, you may need
+persists, and DynamoDB is not experiencing an outage, you may need
 to manually verify the remote state and update the Digest value stored in the
-DynamoDB table to the following value: %x
+DynamoDB lock table to the following value: %x
 `
 
-const errS3NoSuchBucket = `S3 bucket does not exist.
+const errS3NoSuchBucket = `DynamoDB table does not exist.
 
-The referenced S3 bucket must have been previously created. If the S3 bucket
-was created within the last minute, please wait for a minute or two and try
-again.
+The referenced DynamoDB table must have been previously created. If the DynamoDB table
+was created within the last minute, please wait for a minute or two and try again.
 
 Error: %s
 `

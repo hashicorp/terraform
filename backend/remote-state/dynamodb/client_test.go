@@ -244,6 +244,7 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 		"state_table": tableName,
 		"hash":    keyName,
 	})).(*Backend)
+
 	s2, err := b2.StateMgr(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
