@@ -33,16 +33,15 @@ type basicComponentFactory struct {
 }
 
 func (c *basicComponentFactory) ResourceProviders() []string {
-	result := make([]string, len(c.providers))
+	var result []string
 	for k := range c.providers {
 		result = append(result, k.LegacyString())
 	}
-
 	return result
 }
 
 func (c *basicComponentFactory) ResourceProvisioners() []string {
-	result := make([]string, len(c.provisioners))
+	var result []string
 	for k := range c.provisioners {
 		result = append(result, k)
 	}
