@@ -50,6 +50,11 @@ func decodeProvisionerBlock(block *hcl.Block) (*Provisioner, hcl.Diagnostics) {
 		}
 	}
 
+	// destroy provisioners can only refer to self
+	if pv.When == ProvisionerWhenDestroy {
+		diags = append(diags, onlySelfRefs(config)...)
+	}
+
 	if attr, exists := content.Attributes["on_failure"]; exists {
 		expr, shimDiags := shimTraversalInString(attr.Expr, true)
 		diags = append(diags, shimDiags...)
@@ -85,8 +90,11 @@ func decodeProvisionerBlock(block *hcl.Block) (*Provisioner, hcl.Diagnostics) {
 			}
 			seenConnection = block
 
-			//conn, connDiags := decodeConnectionBlock(block)
-			//diags = append(diags, connDiags...)
+			// destroy provisioners can only refer to self
+			if pv.When == ProvisionerWhenDestroy {
+				diags = append(diags, onlySelfRefs(block.Body)...)
+			}
+
 			pv.Connection = &Connection{
 				Config:    block.Body,
 				DeclRange: block.DefRange,
@@ -105,6 +113,49 @@ func decodeProvisionerBlock(block *hcl.Block) (*Provisioner, hcl.Diagnostics) {
 	}
 
 	return pv, diags
+}
+
+func onlySelfRefs(body hcl.Body) hcl.Diagnostics {
+	var diags hcl.Diagnostics
+
+	// Provisioners currently do not use any blocks in their configuration.
+	// Blocks are likely to remain solely for meta parameters, but in the case
+	// that blocks are supported for provisioners, we will want to extend this
+	// to find variables in nested blocks.
+	attrs, _ := body.JustAttributes()
+	for _, attr := range attrs {
+		for _, v := range attr.Expr.Variables() {
+			valid := false
+			switch v.RootName() {
+			case "self":
+				valid = true
+			case "count":
+				// count must use "index"
+				if len(v) == 2 {
+					if t, ok := v[1].(hcl.TraverseAttr); ok && t.Name == "index" {
+						valid = true
+					}
+				}
+
+			case "each":
+				if len(v) == 2 {
+					if t, ok := v[1].(hcl.TraverseAttr); ok && t.Name == "key" {
+						valid = true
+					}
+				}
+			}
+
+			if !valid {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "External references from destroy provisioners are deprecated",
+					Detail:   "Destroy time provisioners and their connections may only reference values stored in the instance state, which include 'self', 'count.index', or 'each.key'.",
+					Subject:  attr.Expr.Range().Ptr(),
+				})
+			}
+		}
+	}
+	return diags
 }
 
 // Connection represents a "connection" block when used within either a
