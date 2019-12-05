@@ -29,6 +29,14 @@ type LogLevel string
 //     line starts with at least one space in which case it is interpreted
 //     as a continuation of the previous line.
 //
+//   - If a log line starts with a non-whitespace character that isn't a digit
+//     then it's recognized as a degenerate continuation, because "real" log
+//     lines should start with a date/time and thus always have a leading
+//     digit. (This also cleans up after some situations where the assumptuion
+//     that messages arrive atomically aren't met, which is sadly sometimes
+//     true for longer messages that trip over some buffering behavior in
+//     panicwrap.)
+//
 // Because logging is a cross-cutting concern and not fully under the control
 // of Terraform itself, there will certainly be cases where the above
 // heuristics will fail. For example, it is likely that LevelFilter will
@@ -56,6 +64,7 @@ type LevelFilter struct {
 	Writer io.Writer
 
 	badLevels map[LogLevel]struct{}
+	show      bool
 	once      sync.Once
 }
 
@@ -93,22 +102,27 @@ func (f *LevelFilter) Check(line []byte) bool {
 // Behavior is undefined if any log line is split across multiple writes or
 // written without a trailing '\n' delimiter.
 func (f *LevelFilter) Write(p []byte) (n int, err error) {
-	show := true
 	for len(p) > 0 {
 		// Split at the first \n, inclusive
 		idx := bytes.IndexByte(p, '\n')
 		if idx == -1 {
-			// Invalid, undelimited write
+			// Invalid, undelimited write. We'll tolerate it assuming that
+			// our assumptions are being violated, but the results may be
+			// non-ideal.
+			idx = len(p) - 1
 			break
 		}
 		var l []byte
 		l, p = p[:idx+1], p[idx+1:]
-		// Lines starting with whitespace are continuations, so they inherit
-		// the result of the check of the previous line.
-		if !(l[0] == ' ' || l[0] == '\t' || l[0] == '\n') {
-			show = f.Check(l)
+		// Lines starting with characters other than decimal digits (including
+		// whitespace) are assumed to be continuations lines. This is an
+		// imprecise heuristic, but experimentally it seems to generate
+		// "good enough" results from Terraform Core's own logging. Its mileage
+		// may vary with output from other systems.
+		if l[0] >= '0' && l[0] <= '9' {
+			f.show = f.Check(l)
 		}
-		if show {
+		if f.show {
 			_, err = f.Writer.Write(l)
 			if err != nil {
 				// Technically it's not correct to say we've written the whole
@@ -141,4 +155,5 @@ func (f *LevelFilter) init() {
 		badLevels[level] = struct{}{}
 	}
 	f.badLevels = badLevels
+	f.show = true
 }
