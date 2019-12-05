@@ -16,6 +16,7 @@ import (
 	backendArtifactory "github.com/hashicorp/terraform/backend/remote-state/artifactory"
 	backendAzure "github.com/hashicorp/terraform/backend/remote-state/azure"
 	backendConsul "github.com/hashicorp/terraform/backend/remote-state/consul"
+	backendDynamoDB "github.com/hashicorp/terraform/backend/remote-state/dynamodb"
 	backendEtcdv2 "github.com/hashicorp/terraform/backend/remote-state/etcdv2"
 	backendEtcdv3 "github.com/hashicorp/terraform/backend/remote-state/etcdv3"
 	backendGCS "github.com/hashicorp/terraform/backend/remote-state/gcs"
@@ -25,7 +26,6 @@ import (
 	backendOSS "github.com/hashicorp/terraform/backend/remote-state/oss"
 	backendPg "github.com/hashicorp/terraform/backend/remote-state/pg"
 	backendS3 "github.com/hashicorp/terraform/backend/remote-state/s3"
-	backendDynamoDB "github.com/hashicorp/terraform/backend/remote-state/dynamodb"
 	backendSwift "github.com/hashicorp/terraform/backend/remote-state/swift"
 )
 
