@@ -5,9 +5,9 @@ import (
 	"log"
 	"strings"
 
-	"github.com/hashicorp/terraform/tfdiags"
-
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/helper/logging"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // GraphBuilder is an interface that can be implemented and used with
@@ -56,7 +56,7 @@ func (b *BasicGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Di
 		debugOp.End(errMsg)
 
 		if thisStepStr := g.StringWithNodeTypes(); thisStepStr != lastStepStr {
-			log.Printf("[TRACE] Completed graph transform %T with new graph:\n%s------", step, thisStepStr)
+			log.Printf("[TRACE] Completed graph transform %T with new graph:\n%s  ------", step, logging.Indent(thisStepStr))
 			lastStepStr = thisStepStr
 		} else {
 			log.Printf("[TRACE] Completed graph transform %T (no changes)", step)
