@@ -46,3 +46,12 @@ func TestInternalPlugin_BuildPluginCommandString(t *testing.T) {
 		t.Errorf("Expected command to end with %s; got:\n%s\n", expected, actual)
 	}
 }
+
+func TestInternalPlugin_StripArgFlags(t *testing.T) {
+	actual := StripArgFlags([]string{"provisioner", "remote-exec", "-var-file=my_vars.tfvars", "-flag"})
+	expected := []string{"provisioner", "remote-exec"}
+	// Must be same length and order.
+	if len(actual) != len(expected) || expected[0] != actual[0] || actual[1] != actual[1] {
+		t.Fatalf("Expected args to be exactly '%s', got '%s'", expected, actual)
+	}
+}
