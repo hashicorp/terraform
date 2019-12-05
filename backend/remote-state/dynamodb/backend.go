@@ -3,8 +3,8 @@ package dynamodb
 import (
 	"context"
 	"errors"
-	"strings"
 	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -17,27 +17,26 @@ import (
 )
 
 type State struct {
-    StateID string
-    SegmentID string
-    Body string
+	StateID   string
+	SegmentID string
+	Body      string
 }
 
 type Table struct {
 	AttributeDefinitions []map[string]string
-	KeySchema []map[string]string
+	KeySchema            []map[string]string
 }
-
 
 // New creates a new backend for S3 remote state.
 func New() backend.Backend {
 	s := &schema.Backend{
 		Schema: map[string]*schema.Schema{
-			"state_table": { //TODO Validare che la tabella abbia lo schema giusto
+			"state_table": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The name of the DynamoDB Table used for state.",
 				ValidateFunc: func(v interface{}, s string) ([]string, []error) {
-					if strings.Contains(v.(string), "/") || strings.Contains(v.(string), "="){
+					if strings.Contains(v.(string), "/") || strings.Contains(v.(string), "=") {
 						return nil, []error{errors.New("State table name must not contain '/' nor '='")}
 					}
 					return nil, nil
@@ -49,7 +48,7 @@ func New() backend.Backend {
 				Required:    true,
 				Description: "The name of the hashKey of state file inside the dynamodb table.",
 				ValidateFunc: func(v interface{}, s string) ([]string, []error) {
-					if strings.Contains(v.(string), "/") || strings.Contains(v.(string), "="){
+					if strings.Contains(v.(string), "/") || strings.Contains(v.(string), "=") {
 						return nil, []error{errors.New("Hash must not contain '/' nor '='")}
 					}
 					return nil, nil
@@ -101,13 +100,13 @@ func New() backend.Backend {
 				Default:     "",
 			},
 
-			"lock_table": { //TODO Validare che la tabella abbia lo schema giusto
+			"lock_table": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "DynamoDB table for state locking and consistency",
 				Default:     "",
 				ValidateFunc: func(v interface{}, s string) ([]string, []error) {
-					if strings.Contains(v.(string), "/") || strings.Contains(v.(string), "="){
+					if strings.Contains(v.(string), "/") || strings.Contains(v.(string), "=") {
 						return nil, []error{errors.New("Lock table name must not contain '/' nor '='")}
 					}
 					return nil, nil
@@ -191,7 +190,7 @@ func New() backend.Backend {
 				Default:     "workspace",
 				ValidateFunc: func(v interface{}, s string) ([]string, []error) {
 					prefix := v.(string)
-					if strings.Contains(prefix, "=") || strings.Contains(prefix, "/"){
+					if strings.Contains(prefix, "=") || strings.Contains(prefix, "/") {
 						return nil, []error{errors.New("Workspace Key Prefix must not contains '=' nor '/'")}
 					}
 					return nil, nil
@@ -218,10 +217,10 @@ type Backend struct {
 	// The fields below are set from configure
 	dynClient *dynamodb.DynamoDB
 
-	tableName             string
-	hashName              string
-	lockTable             string
-	workspaceKeyPrefix    string //TODO Cambiare Key in Name
+	tableName          string
+	hashName           string
+	lockTable          string
+	workspaceKeyPrefix string
 }
 
 func (b *Backend) configure(ctx context.Context) error {
@@ -277,55 +276,55 @@ func (b *Backend) configure(ctx context.Context) error {
 	}))
 
 	// Check Tables
-	lockTableParam := &dynamodb.DescribeTableInput{
-		TableName: aws.String(b.lockTable),
-	}
-	stateTableParam := &dynamodb.DescribeTableInput{
-		TableName: aws.String(b.tableName),
-	}
-	lockTableDes, err := b.dynClient.DescribeTable(lockTableParam)
-	if err != nil {
-		return err
-	}
-	stateTableDes, err := b.dynClient.DescribeTable(stateTableParam)
-	if err != nil {
-		return err
-	}
+	if b.lockTable != "" {
+		lockTableParam := &dynamodb.DescribeTableInput{
+			TableName: aws.String(b.lockTable),
+		}
+		lockTableDes, err := b.dynClient.DescribeTable(lockTableParam)
+		if err != nil {
+			return nil
+		}
+		lockAttDef := lockTableDes.Table.AttributeDefinitions
+		lockKeyDef := lockTableDes.Table.KeySchema
+		lockBool := len(lockAttDef) == 1 && len(lockKeyDef) == 1
+		for _, l := range lockAttDef {
+			lockBool = lockBool && *l.AttributeName == "LockID" && *l.AttributeType == "S"
+		}
+		for _, l := range lockKeyDef {
+			if *l.AttributeName == "LockID" {
+				lockBool = lockBool && *l.KeyType == "HASH"
+			}
+		}
+		if !lockBool {
+			return fmt.Errorf(errDynamoDBLockTable, b.lockTable, b.lockTable, b.lockTable)
+		}
 
-	lockAttDef := lockTableDes.Table.AttributeDefinitions
-	lockKeyDef := lockTableDes.Table.KeySchema
-	stateAttDef := stateTableDes.Table.AttributeDefinitions
-	stateKeyDef := stateTableDes.Table.KeySchema
-
-	lockBool := len(lockAttDef) == 1 && len(lockKeyDef) == 1
-	for _,l := range lockAttDef{
-		lockBool = lockBool && *l.AttributeName == "LockID" && *l.AttributeType == "S"
 	}
-	for _,l := range lockKeyDef{
-		if *l.AttributeName == "LockID" {
-			lockBool = lockBool && *l.KeyType == "HASH"
-		}	
-	}
-
-	if !lockBool {
-		return fmt.Errorf(errDynamoDBLockTable, b.lockTable, b.lockTable, b.lockTable)
-	}
-
-	stateBool := len(stateAttDef) == 2 && len(stateKeyDef) == 2
-	for _,s := range stateAttDef{
-		stateBool = stateBool && (*s.AttributeName == "StateID" || *s.AttributeName == "SegmentID") && *s.AttributeType == "S"
-	}
-	for _,s := range stateKeyDef{
-		switch att := *s.AttributeName; att {
+	if b.tableName != "" {
+		stateTableParam := &dynamodb.DescribeTableInput{
+			TableName: aws.String(b.tableName),
+		}
+		stateTableDes, err := b.dynClient.DescribeTable(stateTableParam)
+		if err != nil {
+			return nil
+		}
+		stateAttDef := stateTableDes.Table.AttributeDefinitions
+		stateKeyDef := stateTableDes.Table.KeySchema
+		stateBool := len(stateAttDef) == 2 && len(stateKeyDef) == 2
+		for _, s := range stateAttDef {
+			stateBool = stateBool && (*s.AttributeName == "StateID" || *s.AttributeName == "SegmentID") && *s.AttributeType == "S"
+		}
+		for _, s := range stateKeyDef {
+			switch att := *s.AttributeName; att {
 			case "StateID":
 				stateBool = stateBool && *s.KeyType == "HASH"
 			case "SegmentID":
 				stateBool = stateBool && *s.KeyType == "RANGE"
+			}
 		}
-	}
-
-	if !stateBool {
-		return fmt.Errorf(errDynamoDBStateTable, b.tableName, b.tableName, b.tableName)
+		if !stateBool {
+			return fmt.Errorf(errDynamoDBStateTable, b.tableName, b.tableName, b.tableName)
+		}
 	}
 
 	return nil
@@ -356,9 +355,3 @@ aws dynamodb create-table \
 --key-schema AttributeName=LockID,KeyType=HASH \
 --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
 `
-
-
-
-
-
-

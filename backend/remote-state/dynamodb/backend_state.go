@@ -20,15 +20,15 @@ import (
 )
 
 func unique(stringSlice []string) []string {
-    keys := make(map[string]bool)
-    list := []string{} 
-    for _, entry := range stringSlice {
-        if _, value := keys[entry]; !value {
-            keys[entry] = true
-            list = append(list, entry)
-        }
-    }    
-    return list
+	keys := make(map[string]bool)
+	list := []string{}
+	for _, entry := range stringSlice {
+		if _, value := keys[entry]; !value {
+			keys[entry] = true
+			list = append(list, entry)
+		}
+	}
+	return list
 }
 
 func (b *Backend) Workspaces() ([]string, error) {
@@ -36,11 +36,11 @@ func (b *Backend) Workspaces() ([]string, error) {
 
 	if b.workspaceKeyPrefix != "" {
 		prefix = b.workspaceKeyPrefix + "="
-	}else{
+	} else {
 		prefix += "/"
 	}
-	
-	// Build Query 
+
+	// Build Query
 	filt := expression.Name("StateID").Contains(prefix)
 	proj := expression.NamesList(expression.Name("StateID"))
 	expr, err := expression.NewBuilder().WithFilter(filt).WithProjection(proj).Build()
@@ -48,11 +48,11 @@ func (b *Backend) Workspaces() ([]string, error) {
 		return nil, fmt.Errorf("During query build. %s", err)
 	}
 	dyparams := &dynamodb.ScanInput{
-	    ExpressionAttributeNames:  expr.Names(),
-	    ExpressionAttributeValues: expr.Values(),
-	    FilterExpression:          expr.Filter(),
-	    ProjectionExpression:      expr.Projection(),
-	    TableName:                 aws.String(b.tableName), //TODO 
+		ExpressionAttributeNames:  expr.Names(),
+		ExpressionAttributeValues: expr.Values(),
+		FilterExpression:          expr.Filter(),
+		ProjectionExpression:      expr.Projection(),
+		TableName:                 aws.String(b.tableName), //TODO
 	}
 	// Execute Query
 	result, err := b.dynClient.Scan(dyparams) // TODO SCAN LIMITS, se c'è un next token continuare la scan
@@ -62,14 +62,14 @@ func (b *Backend) Workspaces() ([]string, error) {
 	// Extract Workspaces
 	wss := []string{backend.DefaultStateName}
 	for _, i := range result.Items {
-	    state := State{}
+		state := State{}
 
-	    err = dynamodbattribute.UnmarshalMap(i, &state)
-	    if err != nil {
-	    	return nil, fmt.Errorf("Error while parsing state : %s", err)
-	    }
+		err = dynamodbattribute.UnmarshalMap(i, &state)
+		if err != nil {
+			return nil, fmt.Errorf("Error while parsing state : %s", err)
+		}
 
-	    ws := b.keyEnv(state.StateID)
+		ws := b.keyEnv(state.StateID)
 		if ws != "" {
 			wss = append(wss, ws)
 		}
@@ -136,10 +136,10 @@ func (b *Backend) remoteClient(name string) (*RemoteClient, error) {
 	}
 
 	client := &RemoteClient{
-		dynClient:             b.dynClient,
-		tableName:             b.tableName,
-		path:                  b.path(name),
-		lockTable:             b.lockTable,
+		dynClient: b.dynClient,
+		tableName: b.tableName,
+		path:      b.path(name),
+		lockTable: b.lockTable,
 	}
 
 	return client, nil
@@ -232,11 +232,10 @@ func (b *Backend) path(name string) string {
 
 	if b.workspaceKeyPrefix == "" {
 		return path.Join(name, b.hashName)
-	}else{
-		return path.Join(b.workspaceKeyPrefix + "=" + name, b.hashName)
-	}	
+	} else {
+		return path.Join(b.workspaceKeyPrefix+"="+name, b.hashName)
+	}
 
-	
 }
 
 const errStateUnlock = `

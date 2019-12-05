@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/md5"
 	"fmt"
+	"math/rand"
 	"strings"
 	"testing"
 	"time"
@@ -25,8 +26,8 @@ func TestRemoteClient(t *testing.T) {
 	hashName := "testState"
 
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"state_table":  tableName,
-		"hash":     	hashName,
+		"state_table": tableName,
+		"hash":        hashName,
 	})).(*Backend)
 
 	createDynamoDBTable(t, b.dynClient, tableName, "state")
@@ -47,15 +48,15 @@ func TestRemoteClientLocks(t *testing.T) {
 	keyName := "testState"
 
 	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"state_table":	tableName,
-		"hash":         keyName,
-		"lock_table": 	lockName,
+		"state_table": tableName,
+		"hash":        keyName,
+		"lock_table":  lockName,
 	})).(*Backend)
 
 	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"state_table":	tableName,
-		"hash":         keyName,
-		"lock_table": 	lockName,
+		"state_table": tableName,
+		"hash":        keyName,
+		"lock_table":  lockName,
 	})).(*Backend)
 
 	createDynamoDBTable(t, b1.dynClient, tableName, "state")
@@ -84,15 +85,15 @@ func TestForceUnlock(t *testing.T) {
 	keyName := "testState"
 
 	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"state_table":	tableName,
-		"hash":         keyName,
-		"lock_table": 	lockName,
+		"state_table": tableName,
+		"hash":        keyName,
+		"lock_table":  lockName,
 	})).(*Backend)
 
 	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"state_table":	tableName,
-		"hash":         keyName,
-		"lock_table": 	lockName,
+		"state_table": tableName,
+		"hash":        keyName,
+		"lock_table":  lockName,
 	})).(*Backend)
 
 	createDynamoDBTable(t, b1.dynClient, tableName, "state")
@@ -160,9 +161,9 @@ func TestRemoteClient_clientMD5(t *testing.T) {
 	keyName := "testState"
 
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"state_table":	tableName,
-		"hash":         keyName,
-		"lock_table": 	lockName,
+		"state_table": tableName,
+		"hash":        keyName,
+		"lock_table":  lockName,
 	})).(*Backend)
 
 	createDynamoDBTable(t, b.dynClient, tableName, "state")
@@ -209,9 +210,9 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 	keyName := "testState"
 
 	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"state_table":	tableName,
-		"hash":         keyName,
-		"lock_table": 	lockName,
+		"state_table": tableName,
+		"hash":        keyName,
+		"lock_table":  lockName,
 	})).(*Backend)
 
 	createDynamoDBTable(t, b1.dynClient, tableName, "state")
@@ -242,7 +243,7 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 	// client2 will write the "incorrect" state, simulating s3 eventually consistency delays
 	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"state_table": tableName,
-		"hash":    keyName,
+		"hash":        keyName,
 	})).(*Backend)
 
 	s2, err := b2.StateMgr(backend.DefaultStateName)
@@ -314,4 +315,50 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 	if _, err := client1.Get(); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestHugeState(t *testing.T) {
+	testACC(t)
+	tableName := fmt.Sprintf("terraform-remote-dynamodb-state-%x", time.Now().Unix())
+	hashName := "test_state_tfstate"
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"state_table": tableName,
+		"hash":        hashName,
+	})).(*Backend)
+
+	createDynamoDBTable(t, b.dynClient, tableName, "state")
+	defer deleteDynamoDBTable(t, b.dynClient, tableName)
+
+	client := &RemoteClient{
+		dynClient: b.dynClient,
+		tableName: b.tableName,
+		path:      b.path("state"),
+	}
+
+	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	dynamoDBItemSize := 1000000
+
+	for i := 1; i <= 2; i++ {
+		payload := make([]byte, dynamoDBItemSize)
+		for i := range payload {
+			payload[i] = letterBytes[rand.Intn(len(letterBytes))]
+		}
+
+		if err := client.Put(payload); err != nil {
+			t.Fatal(err)
+		}
+
+		returned_payload, err := client.Get()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		res := bytes.Compare(returned_payload.Data, payload)
+
+		if res != 0 {
+			t.Fatal(err)
+		}
+	}
+
 }

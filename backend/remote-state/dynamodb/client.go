@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"time"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	multierror "github.com/hashicorp/go-multierror"
@@ -19,8 +19,8 @@ import (
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
 
-    "github.com/aws/aws-sdk-go/service/dynamodb"
-    "github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
 
 // Store the last saved serial in dynamo with this suffix for consistency checks.
@@ -30,10 +30,10 @@ const (
 )
 
 type RemoteClient struct {
-	dynClient             *dynamodb.DynamoDB
-	tableName             string
-	path                  string
-	lockTable             string
+	dynClient *dynamodb.DynamoDB
+	tableName string
+	path      string
+	lockTable string
 }
 
 var (
@@ -94,40 +94,40 @@ func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 func getMaxSegmentId(items []map[string]*dynamodb.AttributeValue) (int, error) {
 	maxSegmentID := 0
 	for _, i := range items {
-	    state := State{}
-	    err := dynamodbattribute.UnmarshalMap(i, &state)
+		state := State{}
+		err := dynamodbattribute.UnmarshalMap(i, &state)
 		if err != nil {
-		    return -1, fmt.Errorf("Got error marshalling state: %s", err)
+			return -1, fmt.Errorf("Got error marshalling state: %s", err)
 		}
-	    segmentID, err := strconv.Atoi(state.SegmentID)
+		segmentID, err := strconv.Atoi(state.SegmentID)
 		if err != nil {
 			return -1, fmt.Errorf("Got error casting: %s", err)
-	    }
-	    if segmentID > maxSegmentID{
-	    	maxSegmentID = segmentID
-	    }
+		}
+		if segmentID > maxSegmentID {
+			maxSegmentID = segmentID
+		}
 	}
 	return maxSegmentID, nil
 }
 
 func (c *RemoteClient) get() (*remote.Payload, error) {
 	var queryInput = &dynamodb.QueryInput{
-	    TableName: aws.String(c.tableName),
-	    KeyConditions: map[string]*dynamodb.Condition{
-	        "StateID": {
-	            ComparisonOperator: aws.String("EQ"),
-	            AttributeValueList: []*dynamodb.AttributeValue{
-	                {
-	                    S: aws.String(c.path),
-	                },
-	            },
-	        },
-	    },
+		TableName: aws.String(c.tableName),
+		KeyConditions: map[string]*dynamodb.Condition{
+			"StateID": {
+				ComparisonOperator: aws.String("EQ"),
+				AttributeValueList: []*dynamodb.AttributeValue{
+					{
+						S: aws.String(c.path),
+					},
+				},
+			},
+		},
 	}
 
 	result, err := c.dynClient.Query(queryInput)
 	if err != nil {
-	    return nil, fmt.Errorf("During query operation on table %s %s.", c.tableName, err)
+		return nil, fmt.Errorf("During query operation on table %s %s.", c.tableName, err)
 	}
 
 	maxSegmentID, err := getMaxSegmentId(result.Items)
@@ -137,16 +137,16 @@ func (c *RemoteClient) get() (*remote.Payload, error) {
 	var segmentStrings = make([]string, maxSegmentID+1)
 
 	for _, i := range result.Items {
-	    state := State{}
-	    err = dynamodbattribute.UnmarshalMap(i, &state)
+		state := State{}
+		err = dynamodbattribute.UnmarshalMap(i, &state)
 		if err != nil {
-		    return nil, fmt.Errorf("Got error marshalling state: %s", err)
+			return nil, fmt.Errorf("Got error marshalling state: %s", err)
 		}
-	   	segmentID, err := strconv.Atoi(state.SegmentID)
-	   	if err != nil {
+		segmentID, err := strconv.Atoi(state.SegmentID)
+		if err != nil {
 			return nil, fmt.Errorf("Got error casting: %s", err)
-	    }
-	    segmentStrings[segmentID] = state.Body
+		}
+		segmentStrings[segmentID] = state.Body
 	}
 
 	jsonString := strings.Join(segmentStrings[:], "")
@@ -173,9 +173,9 @@ func (c *RemoteClient) GeneratePutItems(data []byte, sequence []int, transaction
 	body := string(data[:])
 
 	item := State{
-	    StateID: c.path,
-	    SegmentID: strconv.Itoa(sequence[0]),
-	    Body: body,
+		StateID:   c.path,
+		SegmentID: strconv.Itoa(sequence[0]),
+		Body:      body,
 	}
 
 	b, err := json.Marshal(item)
@@ -186,7 +186,7 @@ func (c *RemoteClient) GeneratePutItems(data []byte, sequence []int, transaction
 	if len(b) < dynamoDBItemSize {
 		av, err := dynamodbattribute.MarshalMap(item)
 		if err != nil {
-		    return fmt.Errorf("Got error marshalling state: %s", err)
+			return fmt.Errorf("Got error marshalling state: %s", err)
 		}
 
 		put_item := &dynamodb.TransactWriteItem{
@@ -198,8 +198,8 @@ func (c *RemoteClient) GeneratePutItems(data []byte, sequence []int, transaction
 
 		*transactionItems = append(*transactionItems, put_item)
 
-	}else {
-		N := int(len(data)/2)
+	} else {
+		N := int(len(data) / 2)
 		err := c.GeneratePutItems(data[N:], sequence[N:], transactionItems)
 		if err != nil {
 			return fmt.Errorf("Got error during put generation: %s", err)
@@ -207,13 +207,13 @@ func (c *RemoteClient) GeneratePutItems(data []byte, sequence []int, transaction
 		err = c.GeneratePutItems(data[:N], sequence[:N], transactionItems)
 		if err != nil {
 			return fmt.Errorf("Got error during put generation: %s", err)
-		}		
+		}
 	}
 
 	return nil
 }
 
-func GenerateSequence(sequenceSize int, currentSegments []int) []int{
+func GenerateSequence(sequenceSize int, currentSegments []int) []int {
 	if sequenceSize == 0 {
 		return []int{0}
 	}
@@ -223,8 +223,8 @@ func GenerateSequence(sequenceSize int, currentSegments []int) []int{
 	position := 0
 	for index := 0; index < sequenceSize+segmentsSize; index++ {
 		to_use := true
-		for _,segment := range currentSegments{
-			to_use = !(segment==index) && to_use
+		for _, segment := range currentSegments {
+			to_use = !(segment == index) && to_use
 		}
 		if to_use {
 			sequence[position] = index
@@ -236,51 +236,51 @@ func GenerateSequence(sequenceSize int, currentSegments []int) []int{
 
 func (c *RemoteClient) Put(data []byte) error {
 	var queryInput = &dynamodb.QueryInput{
-	    TableName: aws.String(c.tableName),
-	    KeyConditions: map[string]*dynamodb.Condition{
-	        "StateID": {
-	            ComparisonOperator: aws.String("EQ"),
-	            AttributeValueList: []*dynamodb.AttributeValue{
-	                {
-	                    S: aws.String(c.path),
-	                },
-	            },
-	        },
-	    },
+		TableName: aws.String(c.tableName),
+		KeyConditions: map[string]*dynamodb.Condition{
+			"StateID": {
+				ComparisonOperator: aws.String("EQ"),
+				AttributeValueList: []*dynamodb.AttributeValue{
+					{
+						S: aws.String(c.path),
+					},
+				},
+			},
+		},
 	}
 
 	result, err := c.dynClient.Query(queryInput)
 	if err != nil {
-	    return fmt.Errorf("During query operation on table %s %s.", c.tableName, err)
+		return fmt.Errorf("During query operation on table %s %s.", c.tableName, err)
 	}
 	var transactionItems = make([]*dynamodb.TransactWriteItem, 0)
 	var segments []int
 	for _, i := range result.Items {
-	    state := State{}
+		state := State{}
 
-	    err = dynamodbattribute.UnmarshalMap(i, &state)
+		err = dynamodbattribute.UnmarshalMap(i, &state)
 		if err != nil {
-		    return fmt.Errorf("Got error marshalling state: %s", err)
+			return fmt.Errorf("Got error marshalling state: %s", err)
 		}
 
-	    delete_item := &dynamodb.TransactWriteItem{
+		delete_item := &dynamodb.TransactWriteItem{
 			Delete: &dynamodb.Delete{
 				TableName: aws.String(c.tableName),
 				Key: map[string]*dynamodb.AttributeValue{
-			        "StateID": {
-			            S: aws.String(state.StateID),
-			        },
-			        "SegmentID": {
-			            S: aws.String(state.SegmentID),
-			        },
-		    	},
+					"StateID": {
+						S: aws.String(state.StateID),
+					},
+					"SegmentID": {
+						S: aws.String(state.SegmentID),
+					},
+				},
 			},
 		}
 		transactionItems = append(transactionItems, delete_item)
 		id, err := strconv.Atoi(state.SegmentID)
 		if err != nil {
 			return fmt.Errorf("Got error casting: %s", err)
-	    }
+		}
 		segments = append(segments, id)
 	}
 
@@ -310,42 +310,42 @@ func (c *RemoteClient) Put(data []byte) error {
 
 func (c *RemoteClient) Delete() error {
 	var queryInput = &dynamodb.QueryInput{
-	    TableName: aws.String(c.tableName),
-	    KeyConditions: map[string]*dynamodb.Condition{
-	        "StateID": {
-	            ComparisonOperator: aws.String("EQ"),
-	            AttributeValueList: []*dynamodb.AttributeValue{
-	                {
-	                    S: aws.String(c.path),
-	                },
-	            },
-	        },
-	    },
+		TableName: aws.String(c.tableName),
+		KeyConditions: map[string]*dynamodb.Condition{
+			"StateID": {
+				ComparisonOperator: aws.String("EQ"),
+				AttributeValueList: []*dynamodb.AttributeValue{
+					{
+						S: aws.String(c.path),
+					},
+				},
+			},
+		},
 	}
 
 	result, err := c.dynClient.Query(queryInput)
 	if err != nil {
-	    return err
+		return err
 	}
 	var transactionItems = make([]*dynamodb.TransactWriteItem, 0)
 	for _, i := range result.Items {
-	    state := State{}
+		state := State{}
 
-	    err = dynamodbattribute.UnmarshalMap(i, &state)
+		err = dynamodbattribute.UnmarshalMap(i, &state)
 		if err != nil {
-		    return fmt.Errorf("Got error marshalling state: %s", err)
+			return fmt.Errorf("Got error marshalling state: %s", err)
 		}
-	    delete_item := &dynamodb.TransactWriteItem{
+		delete_item := &dynamodb.TransactWriteItem{
 			Delete: &dynamodb.Delete{
 				TableName: aws.String(c.tableName),
 				Key: map[string]*dynamodb.AttributeValue{
-			        "StateID": {
-			            S: aws.String(state.StateID),
-			        },
-			        "SegmentID": {
-			            S: aws.String(state.SegmentID),
-			        },
-		    	},
+					"StateID": {
+						S: aws.String(state.StateID),
+					},
+					"SegmentID": {
+						S: aws.String(state.SegmentID),
+					},
+				},
 			},
 		}
 		transactionItems = append(transactionItems, delete_item)
