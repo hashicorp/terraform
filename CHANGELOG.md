@@ -2,7 +2,15 @@
 
 UPGRADE NOTES:
 
-* provisioners: Referencing values outside of a resource's own state is being deprecated for destroy provisioners [GH-23559]
+* Inside `provisioner` blocks that have `when = destroy` set, and inside any `connection` blocks that are used by such provisioner blocks, it is now deprecated to refer to any objects other than `self`, `count`, and `each`.
+
+    Terraform has historically allowed this but doing so tends to cause downstream problems with dependency cycles or incorrect destroy ordering because it causes the destroy phase of one resource to depend on the existing state of another. Although this is currently only a warning, we strongly suggest seeking alternative approaches for existing configurations that are hitting this warning in order to avoid the risk of later problems should you need to replace or destroy the related resources.
+    
+    This deprecation warning will be promoted to an error in a future release.
+
+ENHANCEMENTS:
+
+* provisioners: Warn about the deprecation of non-self references in destroy-time provisioners, both to allow preparation for this later becoming an error and also as an extra hint for the "Cycle" errors that commonly arise when such references are used. [GH-23559]
 
 BUG FIXES:
 
