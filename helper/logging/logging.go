@@ -7,8 +7,6 @@ import (
 	"os"
 	"strings"
 	"syscall"
-
-	"github.com/hashicorp/logutils"
 )
 
 // These are the environmental variables that determine if we log, and if
@@ -18,13 +16,14 @@ const (
 	EnvLogFile = "TF_LOG_PATH" // Set to a file
 )
 
-var ValidLevels = []logutils.LogLevel{"TRACE", "DEBUG", "INFO", "WARN", "ERROR"}
+// ValidLevels are the log level names that Terraform recognizes.
+var ValidLevels = []LogLevel{"TRACE", "DEBUG", "INFO", "WARN", "ERROR"}
 
 // LogOutput determines where we should send logs (if anywhere) and the log level.
 func LogOutput() (logOutput io.Writer, err error) {
 	logOutput = ioutil.Discard
 
-	logLevel := LogLevel()
+	logLevel := CurrentLogLevel()
 	if logLevel == "" {
 		return
 	}
@@ -39,9 +38,9 @@ func LogOutput() (logOutput io.Writer, err error) {
 	}
 
 	// This was the default since the beginning
-	logOutput = &logutils.LevelFilter{
+	logOutput = &LevelFilter{
 		Levels:   ValidLevels,
-		MinLevel: logutils.LogLevel(logLevel),
+		MinLevel: LogLevel(logLevel),
 		Writer:   logOutput,
 	}
 
@@ -64,8 +63,8 @@ func SetOutput() {
 	log.SetOutput(out)
 }
 
-// LogLevel returns the current log level string based the environment vars
-func LogLevel() string {
+// CurrentLogLevel returns the current log level string based the environment vars
+func CurrentLogLevel() string {
 	envLevel := os.Getenv(EnvLog)
 	if envLevel == "" {
 		return ""
@@ -85,7 +84,7 @@ func LogLevel() string {
 
 // IsDebugOrHigher returns whether or not the current log level is debug or trace
 func IsDebugOrHigher() bool {
-	level := string(LogLevel())
+	level := string(CurrentLogLevel())
 	return level == "DEBUG" || level == "TRACE"
 }
 
