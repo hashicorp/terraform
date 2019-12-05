@@ -3,6 +3,7 @@
 BUG FIXES:
 
 * config: Fixed referencing errors generally involving `for_each` [GH-23475]
+* provisioners: The built-in provisioners (`local-exec`, `remote-exec`, `file`, etc) will no longer fail when the `TF_CLI_ARGS` environment variable is set. [GH-17400]
 
 ## 0.12.17 (December 02, 2019)
 
