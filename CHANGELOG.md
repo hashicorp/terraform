@@ -1,5 +1,13 @@
 ## 0.12.18 (Unreleased)
 
+NOTES:
+
+* cli: Our darwin releases for this version and up will be signed and notarized according to Apple's requirements.
+
+    Prior to this release, MacOS 10.15+ users attemping to run our software [reported](https://github.com/hashicorp/terraform/issues/23033) seeing the error: "'terraform' cannot be opened because the developer cannot be verified." This error affected all MacOS 10.15+ users who downloaded our software directly via web browsers, and was caused by [changes to Apple's third-party software requirements](https://developer.apple.com/news/?id=04102019a). 
+
+    MacOS 10.15+ users should plan to upgrade to 0.12.18+.
+
 BUG FIXES:
 
 * config: Fixed referencing errors generally involving `for_each` [GH-23475]
