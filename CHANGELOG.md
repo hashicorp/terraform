@@ -1,7 +1,12 @@
 ## 0.12.18 (Unreleased)
 
+UPGRADE NOTES:
+
+* provisioners: Referencing values outside of a resource's own state is being deprecated for destroy provisioners [GH-23559]
+
 BUG FIXES:
 
+* cli: Allow moving indexed resource instances to new addresses that that don't yet exist in state [GH-23582]
 * config: Fixed referencing errors generally involving `for_each` [GH-23475]
 * provisioners: The built-in provisioners (`local-exec`, `remote-exec`, `file`, etc) will no longer fail when the `TF_CLI_ARGS` environment variable is set. [GH-17400]
 
