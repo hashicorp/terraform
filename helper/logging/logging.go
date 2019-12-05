@@ -37,14 +37,21 @@ func LogOutput() (logOutput io.Writer, err error) {
 		}
 	}
 
-	// This was the default since the beginning
+	if logLevel == "TRACE" {
+		// Just pass through logs directly then, without any level filtering at all.
+		return logOutput, nil
+	}
+
+	// Otherwise we'll use our level filter, which is a heuristic-based
+	// best effort thing that is not totally reliable but helps to reduce
+	// the volume of logs in some cases.
 	logOutput = &LevelFilter{
 		Levels:   ValidLevels,
 		MinLevel: LogLevel(logLevel),
 		Writer:   logOutput,
 	}
 
-	return
+	return logOutput, nil
 }
 
 // SetOutput checks for a log destination with LogOutput, and calls
