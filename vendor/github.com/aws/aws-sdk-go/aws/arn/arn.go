@@ -75,6 +75,12 @@ func Parse(arn string) (ARN, error) {
 	}, nil
 }
 
+// IsARN returns whether the given string is an arn
+// by looking for whether the string starts with arn:
+func IsARN(arn string) bool {
+	return strings.HasPrefix(arn, arnPrefix) && strings.Count(arn, ":") > arnSections-1
+}
+
 // String returns the canonical representation of the ARN
 func (arn ARN) String() string {
 	return arnPrefix +
