@@ -1,6 +1,8 @@
 package addrs
 
-import svchost "github.com/hashicorp/terraform-svchost"
+import (
+	svchost "github.com/hashicorp/terraform-svchost"
+)
 
 // Provider encapsulates a single provider type. In the future this will be
 // extended to include additional fields including Namespace and SourceHost

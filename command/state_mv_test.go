@@ -27,7 +27,7 @@ func TestStateMv(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}.Absolute(addrs.RootModuleInstance),
 		)
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -39,7 +39,7 @@ func TestStateMv(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}.Absolute(addrs.RootModuleInstance),
 		)
 	})
 	statePath := testStateFile(t, state)
@@ -87,7 +87,7 @@ func TestStateMv_resourceToInstance(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}.Absolute(addrs.RootModuleInstance),
 		)
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -99,7 +99,7 @@ func TestStateMv_resourceToInstance(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}.Absolute(addrs.RootModuleInstance),
 		)
 		s.SetResourceMeta(
 			addrs.Resource{
@@ -108,7 +108,7 @@ func TestStateMv_resourceToInstance(t *testing.T) {
 				Name: "bar",
 			}.Absolute(addrs.RootModuleInstance),
 			states.EachList,
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}.Absolute(addrs.RootModuleInstance),
 		)
 	})
 	statePath := testStateFile(t, state)
@@ -167,7 +167,7 @@ func TestStateMv_instanceToResource(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}.Absolute(addrs.RootModuleInstance),
 		)
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -179,7 +179,7 @@ func TestStateMv_instanceToResource(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}.Absolute(addrs.RootModuleInstance),
 		)
 	})
 	statePath := testStateFile(t, state)
@@ -249,7 +249,7 @@ func TestStateMv_differentResourceTypes(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}.Absolute(addrs.RootModuleInstance),
 		)
 	})
 	statePath := testStateFile(t, state)
@@ -299,7 +299,7 @@ func TestStateMv_explicitWithBackend(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}.Absolute(addrs.RootModuleInstance),
 		)
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -311,7 +311,7 @@ func TestStateMv_explicitWithBackend(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}.Absolute(addrs.RootModuleInstance),
 		)
 	})
 	statePath := testStateFile(t, state)
@@ -368,7 +368,7 @@ func TestStateMv_backupExplicit(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}.Absolute(addrs.RootModuleInstance),
 		)
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -380,7 +380,7 @@ func TestStateMv_backupExplicit(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}.Absolute(addrs.RootModuleInstance),
 		)
 	})
 	statePath := testStateFile(t, state)
@@ -426,7 +426,7 @@ func TestStateMv_stateOutNew(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}.Absolute(addrs.RootModuleInstance),
 		)
 	})
 	statePath := testStateFile(t, state)
@@ -477,7 +477,7 @@ func TestStateMv_stateOutExisting(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}.Absolute(addrs.RootModuleInstance),
 		)
 	})
 	statePath := testStateFile(t, stateSrc)
@@ -493,7 +493,7 @@ func TestStateMv_stateOutExisting(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}.Absolute(addrs.RootModuleInstance),
 		)
 	})
 	stateOutPath := testStateFile(t, stateDst)
@@ -570,7 +570,7 @@ func TestStateMv_stateOutNew_count(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}.Absolute(addrs.RootModuleInstance),
 		)
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -582,7 +582,7 @@ func TestStateMv_stateOutNew_count(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}.Absolute(addrs.RootModuleInstance),
 		)
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -594,7 +594,7 @@ func TestStateMv_stateOutNew_count(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}.Absolute(addrs.RootModuleInstance),
 		)
 	})
 	statePath := testStateFile(t, state)
@@ -649,7 +649,7 @@ func TestStateMv_stateOutNew_largeCount(t *testing.T) {
 					AttrsJSON: []byte(fmt.Sprintf(`{"id":"foo%d","foo":"value","bar":"value"}`, i)),
 					Status:    states.ObjectReady,
 				},
-				addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+				addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}.Absolute(addrs.RootModuleInstance),
 			)
 		}
 		s.SetResourceInstanceCurrent(
@@ -662,7 +662,7 @@ func TestStateMv_stateOutNew_largeCount(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}.Absolute(addrs.RootModuleInstance),
 		)
 	})
 	statePath := testStateFile(t, state)
@@ -713,7 +713,7 @@ func TestStateMv_stateOutNew_nestedModule(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}.Absolute(addrs.RootModuleInstance),
 		)
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -725,7 +725,7 @@ func TestStateMv_stateOutNew_nestedModule(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}.Absolute(addrs.RootModuleInstance),
 		)
 	})
 
@@ -777,7 +777,7 @@ func TestStateMv_toNewModule(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}.Absolute(addrs.RootModuleInstance),
 		)
 	})
 

@@ -10,11 +10,11 @@ import (
 
 func TestAddressedTypes(t *testing.T) {
 	providerAddrs := []addrs.ProviderConfig{
-		{Type: "aws"},
-		{Type: "aws", Alias: "foo"},
-		{Type: "azure"},
-		{Type: "null"},
-		{Type: "null"},
+		{Type: addrs.NewLegacyProvider("aws")},
+		{Type: addrs.NewLegacyProvider("aws"), Alias: "foo"},
+		{Type: addrs.NewLegacyProvider("azure")},
+		{Type: addrs.NewLegacyProvider("null")},
+		{Type: addrs.NewLegacyProvider("null")},
 	}
 
 	got := AddressedTypes(providerAddrs)
@@ -30,11 +30,11 @@ func TestAddressedTypes(t *testing.T) {
 
 func TestAddressedTypesAbs(t *testing.T) {
 	providerAddrs := []addrs.AbsProviderConfig{
-		addrs.ProviderConfig{Type: "aws"}.Absolute(addrs.RootModuleInstance),
-		addrs.ProviderConfig{Type: "aws", Alias: "foo"}.Absolute(addrs.RootModuleInstance),
-		addrs.ProviderConfig{Type: "azure"}.Absolute(addrs.RootModuleInstance),
-		addrs.ProviderConfig{Type: "null"}.Absolute(addrs.RootModuleInstance),
-		addrs.ProviderConfig{Type: "null"}.Absolute(addrs.RootModuleInstance),
+		addrs.ProviderConfig{Type: addrs.NewLegacyProvider("aws")}.Absolute(addrs.RootModuleInstance),
+		addrs.ProviderConfig{Type: addrs.NewLegacyProvider("aws"), Alias: "foo"}.Absolute(addrs.RootModuleInstance),
+		addrs.ProviderConfig{Type: addrs.NewLegacyProvider("azure")}.Absolute(addrs.RootModuleInstance),
+		addrs.ProviderConfig{Type: addrs.NewLegacyProvider("null")}.Absolute(addrs.RootModuleInstance),
+		addrs.ProviderConfig{Type: addrs.NewLegacyProvider("null")}.Absolute(addrs.RootModuleInstance),
 	}
 
 	got := AddressedTypesAbs(providerAddrs)

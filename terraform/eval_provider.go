@@ -125,7 +125,7 @@ type EvalGetProvider struct {
 }
 
 func (n *EvalGetProvider) Eval(ctx EvalContext) (interface{}, error) {
-	if n.Addr.ProviderConfig.Type == "" {
+	if n.Addr.ProviderConfig.Type.LegacyString() == "" {
 		// Should never happen
 		panic("EvalGetProvider used with uninitialized provider configuration address")
 	}

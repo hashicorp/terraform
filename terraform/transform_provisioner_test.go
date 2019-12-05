@@ -71,7 +71,7 @@ func TestMissingProvisionerTransformer_module(t *testing.T) {
 					Status: states.ObjectReady,
 				},
 				addrs.ProviderConfig{
-					Type: "aws",
+					Type: addrs.NewLegacyProvider("aws"),
 				}.Absolute(addrs.RootModuleInstance),
 			)
 			s.SetResourceInstanceCurrent(
@@ -87,7 +87,7 @@ func TestMissingProvisionerTransformer_module(t *testing.T) {
 					Status: states.ObjectReady,
 				},
 				addrs.ProviderConfig{
-					Type: "aws",
+					Type: addrs.NewLegacyProvider("aws"),
 				}.Absolute(addrs.RootModuleInstance),
 			)
 		})
