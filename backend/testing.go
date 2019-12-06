@@ -151,7 +151,7 @@ func TestBackendStates(t *testing.T, b Backend) {
 				SchemaVersion: 0,
 			},
 			addrs.ProviderConfig{
-				Type: "test",
+				Type: addrs.NewLegacyProvider("test"),
 			}.Absolute(addrs.RootModuleInstance),
 		)
 

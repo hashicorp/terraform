@@ -295,7 +295,7 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 		// We're going to create an implicit _default_ configuration for the
 		// referenced provider type in the _root_ module, ignoring all other
 		// aspects of the resource's declared provider address.
-		defaultAddr := addrs.RootModuleInstance.ProviderConfigDefault(p.ProviderConfig.Type)
+		defaultAddr := addrs.RootModuleInstance.ProviderConfigDefault(p.ProviderConfig.Type.LegacyString())
 		key := defaultAddr.String()
 		provider := m[key]
 
@@ -705,7 +705,7 @@ func (t *ProviderConfigTransformer) attachProviderConfigs(g *Graph) error {
 
 		// Go through the provider configs to find the matching config
 		for _, p := range mc.Module.ProviderConfigs {
-			if p.Name == addr.ProviderConfig.Type && p.Alias == addr.ProviderConfig.Alias {
+			if p.Name == addr.ProviderConfig.Type.LegacyString() && p.Alias == addr.ProviderConfig.Alias {
 				log.Printf("[TRACE] ProviderConfigTransformer: attaching to %q provider configuration from %s", dag.VertexName(v), p.DeclRange)
 				apn.AttachProvider(p)
 				break

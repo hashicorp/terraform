@@ -779,7 +779,7 @@ func (d *evaluationStateData) getResourceInstancesAll(addr addrs.Resource, rng t
 }
 
 func (d *evaluationStateData) getResourceSchema(addr addrs.Resource, providerAddr addrs.AbsProviderConfig) *configschema.Block {
-	providerType := providerAddr.ProviderConfig.Type
+	providerType := providerAddr.ProviderConfig.Type.LegacyString()
 	schemas := d.Evaluator.Schemas
 	schema, _ := schemas.ResourceTypeConfig(providerType, addr.Mode, addr.Type)
 	return schema

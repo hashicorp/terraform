@@ -47,7 +47,7 @@ func (n *NodePlanDestroyableResourceInstance) EvalTree() EvalNode {
 	var change *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject
 
-	if n.ResolvedProvider.ProviderConfig.Type == "" {
+	if n.ResolvedProvider.ProviderConfig.Type.String() == "" {
 		// Should never happen; indicates that the graph was not constructed
 		// correctly since we didn't get our provider attached.
 		panic(fmt.Sprintf("%T %q was not assigned a resolved provider", n, dag.VertexName(n)))

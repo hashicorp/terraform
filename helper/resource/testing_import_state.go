@@ -137,7 +137,7 @@ func testStepImportState(
 			// this shouldn't happen in any reasonable case.
 			var rsrcSchema *schema.Resource
 			if providerAddr, diags := addrs.ParseAbsProviderConfigStr(r.Provider); !diags.HasErrors() {
-				providerType := providerAddr.ProviderConfig.Type
+				providerType := providerAddr.ProviderConfig.Type.LegacyString()
 				if provider, ok := step.providers[providerType]; ok {
 					if provider, ok := provider.(*schema.Provider); ok {
 						rsrcSchema = provider.ResourcesMap[r.Type]
