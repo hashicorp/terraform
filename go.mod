@@ -4,7 +4,6 @@ require (
 	cloud.google.com/go v0.45.1
 	github.com/Azure/azure-sdk-for-go v36.2.0+incompatible
 	github.com/Azure/go-autorest/autorest v0.9.2
-	github.com/Azure/go-autorest/autorest/adal v0.8.1-0.20191028180845-3492b2aff503
 	github.com/Unknwon/com v0.0.0-20151008135407-28b053d5a292 // indirect
 	github.com/abdullin/seq v0.0.0-20160510034733-d5467c17e7af // indirect
 	github.com/agext/levenshtein v1.2.2
@@ -86,7 +85,6 @@ require (
 	github.com/keybase/go-crypto v0.0.0-20161004153544-93f5b35093ba // indirect
 	github.com/lib/pq v1.0.0
 	github.com/lusis/go-artifactory v0.0.0-20160115162124-7e4ce345df82
-	github.com/marstr/guid v1.1.0 // indirect
 	github.com/masterzen/winrm v0.0.0-20190223112901-5e5c9a7fe54b
 	github.com/mattn/go-colorable v0.1.1
 	github.com/mattn/go-shellwords v1.0.4

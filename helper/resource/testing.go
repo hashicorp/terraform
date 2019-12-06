@@ -18,7 +18,6 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/logutils"
 	"github.com/mitchellh/colorstring"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -396,7 +395,7 @@ const EnvLogPathMask = "TF_LOG_PATH_MASK"
 func LogOutput(t TestT) (logOutput io.Writer, err error) {
 	logOutput = ioutil.Discard
 
-	logLevel := logging.LogLevel()
+	logLevel := logging.CurrentLogLevel()
 	if logLevel == "" {
 		return
 	}
@@ -424,9 +423,9 @@ func LogOutput(t TestT) (logOutput io.Writer, err error) {
 	}
 
 	// This was the default since the beginning
-	logOutput = &logutils.LevelFilter{
+	logOutput = &logging.LevelFilter{
 		Levels:   logging.ValidLevels,
-		MinLevel: logutils.LogLevel(logLevel),
+		MinLevel: logging.LogLevel(logLevel),
 		Writer:   logOutput,
 	}
 
@@ -728,7 +727,7 @@ func testIDOnlyRefresh(c TestCase, opts terraform.ContextOpts, step TestStep, r 
 			AttrsFlat: r.Primary.Attributes,
 			Status:    states.ObjectReady,
 		},
-		addrs.ProviderConfig{Type: "placeholder"}.Absolute(addrs.RootModuleInstance),
+		addrs.ProviderConfig{Type: addrs.NewLegacyProvider("placeholder")}.Absolute(addrs.RootModuleInstance),
 	)
 
 	// Create the config module. We use the full config because Refresh

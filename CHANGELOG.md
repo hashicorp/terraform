@@ -6,13 +6,29 @@ NOTES:
 
     Prior to this release, MacOS 10.15+ users attemping to run our software [reported](https://github.com/hashicorp/terraform/issues/23033) seeing the error: "'terraform' cannot be opened because the developer cannot be verified." This error affected all MacOS 10.15+ users who downloaded our software directly via web browsers, and was caused by [changes to Apple's third-party software requirements](https://developer.apple.com/news/?id=04102019a).
 
-    Users will continue to see an error when attempting to double click on the unzipped binary. This is a bug Apple is working to fix. However, double clicking on the binary is not a recommended way of interacting with our software- users should instead invoke Terraform commands via the command line. [Our recommended approach to install the Terraform CLI can be found here.](https://learn.hashicorp.com/terraform/getting-started/install)
+    [Our recommended approach to install and interact with the Terraform CLI can be found here](https://learn.hashicorp.com/terraform/getting-started/install).
 
     MacOS 10.15+ users should plan to upgrade to 0.12.18+.
 
+UPGRADE NOTES:
+
+* Inside `provisioner` blocks that have `when = destroy` set, and inside any `connection` blocks that are used by such provisioner blocks, it is now deprecated to refer to any objects other than `self`, `count`, and `each`.
+
+    Terraform has historically allowed this but doing so tends to cause downstream problems with dependency cycles or incorrect destroy ordering because it causes the destroy phase of one resource to depend on the existing state of another. Although this is currently only a warning, we strongly suggest seeking alternative approaches for existing configurations that are hitting this warning in order to avoid the risk of later problems should you need to replace or destroy the related resources.
+    
+    This deprecation warning will be promoted to an error in a future release.
+
+ENHANCEMENTS:
+
+* provisioners: Warn about the deprecation of non-self references in destroy-time provisioners, both to allow preparation for this later becoming an error and also as an extra hint for the "Cycle" errors that commonly arise when such references are used. [GH-23559]
+
 BUG FIXES:
 
+* cli: Allow moving indexed resource instances to new addresses that that don't yet exist in state [GH-23582]
+* cli: Improved heuristics for log level filtering with the `TF_LOG` environment variable, although it is still not 100% reliable for levels other than `TRACE` due to limitations of Terraform's internal logging infrastructure. Because of that, levels other than `TRACE` will now cause the logs to begin with a warning about potential filtering inaccuracy. [GH-23577]
+* command/show: Fix panic on show plan [GH-23581]
 * config: Fixed referencing errors generally involving `for_each` [GH-23475]
+* provisioners: The built-in provisioners (`local-exec`, `remote-exec`, `file`, etc) will no longer fail when the `TF_CLI_ARGS` environment variable is set. [GH-17400]
 
 ## 0.12.17 (December 02, 2019)
 
