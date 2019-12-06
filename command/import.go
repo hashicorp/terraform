@@ -166,7 +166,7 @@ func (c *ImportCommand) Run(args []string) int {
 			c.Ui.Info(importCommandInvalidAddressReference)
 			return 1
 		}
-		relAddr, addrDiags := addrs.ParseProviderConfigCompact(traversal)
+		relAddr, addrDiags := configs.ParseProviderConfigCompact(traversal)
 		diags = diags.Append(addrDiags)
 		if addrDiags.HasErrors() {
 			c.showDiagnostics(diags)
