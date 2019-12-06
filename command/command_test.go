@@ -100,6 +100,12 @@ func tempDir(t *testing.T) string {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
+
+	dir, err = filepath.EvalSymlinks(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	if err := os.RemoveAll(dir); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -266,7 +272,7 @@ func testState() *states.State {
 				DependsOn:    []addrs.Referenceable{},
 			},
 			addrs.ProviderConfig{
-				Type: "test",
+				Type: addrs.NewLegacyProvider("test"),
 			}.Absolute(addrs.RootModuleInstance),
 		)
 		// DeepCopy is used here to ensure our synthetic state matches exactly
@@ -484,6 +490,11 @@ func testTempDir(t *testing.T) string {
 	d, err := ioutil.TempDir(testingDir, "tf")
 	if err != nil {
 		t.Fatalf("err: %s", err)
+	}
+
+	d, err = filepath.EvalSymlinks(d)
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	return d

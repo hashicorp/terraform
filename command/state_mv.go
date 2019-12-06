@@ -278,7 +278,9 @@ func (c *StateMvCommand) Run(args []string) int {
 			c.Ui.Output(fmt.Sprintf("%s %q to %q", prefix, addrFrom.String(), args[1]))
 			if !dryRun {
 				fromResourceAddr := addrFrom.ContainingResource()
-				fromProviderAddr := ssFrom.Resource(fromResourceAddr).ProviderConfig
+				fromResource := ssFrom.Resource(fromResourceAddr)
+				fromProviderAddr := fromResource.ProviderConfig
+				fromEachMode := fromResource.EachMode
 				ssFrom.ForgetResourceInstanceAll(addrFrom)
 				ssFrom.RemoveResourceIfEmpty(fromResourceAddr)
 
@@ -287,22 +289,17 @@ func (c *StateMvCommand) Run(args []string) int {
 					// If we're moving to an address without an index then that
 					// suggests the user's intent is to establish both the
 					// resource and the instance at the same time (since the
-					// address covers both), but if there's an index in the
-					// target then the resource must already exist.
+					// address covers both). If there's an index in the
+					// target then allow creating the new instance here,
+					// inferring the mode from how the new address was parsed.
 					if addrTo.Resource.Key != addrs.NoKey {
-						diags = diags.Append(tfdiags.Sourceless(
-							tfdiags.Error,
-							msgInvalidTarget,
-							fmt.Sprintf("Cannot move to %s: %s does not exist in the current state.", addrTo, addrTo.ContainingResource()),
-						))
-						c.showDiagnostics(diags)
-						return 1
+						fromEachMode = eachModeForInstanceKey(addrTo.Resource.Key)
 					}
 
 					resourceAddr := addrTo.ContainingResource()
 					stateTo.SyncWrapper().SetResourceMeta(
 						resourceAddr,
-						states.NoEach,
+						fromEachMode,
 						fromProviderAddr, // in this case, we bring the provider along as if we were moving the whole resource
 					)
 					rs = stateTo.Resource(resourceAddr)
@@ -356,6 +353,20 @@ func (c *StateMvCommand) Run(args []string) int {
 		c.Ui.Output(fmt.Sprintf("Successfully moved %d object(s).", moved))
 	}
 	return 0
+}
+
+func eachModeForInstanceKey(key addrs.InstanceKey) states.EachMode {
+	switch key.(type) {
+	case addrs.IntKey:
+		return states.EachList
+	case addrs.StringKey:
+		return states.EachMap
+	default:
+		if key == addrs.NoKey {
+			return states.NoEach
+		}
+		panic(fmt.Sprintf("don't know an each mode for instance key %#v", key))
+	}
 }
 
 // sourceObjectAddrs takes a single source object address and expands it to

@@ -70,7 +70,7 @@ func (r *Resource) ProviderConfigAddr() addrs.ProviderConfig {
 	}
 
 	return addrs.ProviderConfig{
-		Type:  r.ProviderConfigRef.Name,
+		Type:  addrs.NewLegacyProvider(r.ProviderConfigRef.Name),
 		Alias: r.ProviderConfigRef.Alias,
 	}
 }
@@ -273,6 +273,17 @@ func decodeResourceBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 		}
 	}
 
+	// Now we can validate the connection block references if there are any destroy provisioners.
+	// TODO: should we eliminate standalone connection blocks?
+	if r.Managed.Connection != nil {
+		for _, p := range r.Managed.Provisioners {
+			if p.When == ProvisionerWhenDestroy {
+				diags = append(diags, onlySelfRefs(r.Managed.Connection.Config)...)
+				break
+			}
+		}
+	}
+
 	return r, diags
 }
 
@@ -436,7 +447,7 @@ func decodeProviderConfigRef(expr hcl.Expression, argName string) (*ProviderConf
 // location information and keeping just the addressing information.
 func (r *ProviderConfigRef) Addr() addrs.ProviderConfig {
 	return addrs.ProviderConfig{
-		Type:  r.Name,
+		Type:  addrs.NewLegacyProvider(r.Name),
 		Alias: r.Alias,
 	}
 }

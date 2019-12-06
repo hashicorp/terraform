@@ -59,7 +59,7 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 			mode := addr.Resource.Mode
 			typeName := addr.Resource.Type
 			providerAddr, _ := tv.ProvidedBy()
-			providerType := providerAddr.ProviderConfig.Type
+			providerType := providerAddr.ProviderConfig.Type.LegacyString()
 
 			schema, version := t.Schemas.ResourceTypeConfig(providerType, mode, typeName)
 			if schema == nil {
@@ -72,7 +72,7 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 
 		if tv, ok := v.(GraphNodeAttachProviderConfigSchema); ok {
 			providerAddr := tv.ProviderAddr()
-			schema := t.Schemas.ProviderConfig(providerAddr.ProviderConfig.Type)
+			schema := t.Schemas.ProviderConfig(providerAddr.ProviderConfig.Type.LegacyString())
 			if schema == nil {
 				log.Printf("[ERROR] AttachSchemaTransformer: No provider config schema available for %s", providerAddr)
 				continue

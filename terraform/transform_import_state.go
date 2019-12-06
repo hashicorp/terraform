@@ -20,7 +20,7 @@ func (t *ImportStateTransformer) Transform(g *Graph) error {
 		// This will be populated if the targets come from the cli, but tests
 		// may not specify implied provider addresses.
 		providerAddr := target.ProviderAddr
-		if providerAddr.ProviderConfig.Type == "" {
+		if providerAddr.ProviderConfig.Type.Type == "" {
 			providerAddr = target.Addr.Resource.Resource.DefaultProviderConfig().Absolute(target.Addr.Module)
 		}
 
