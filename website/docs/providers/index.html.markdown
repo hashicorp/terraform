@@ -125,6 +125,7 @@ down to see all providers.
 - [Skytap](/docs/providers/skytap/index.html)
 - [SoftLayer](/docs/providers/softlayer/index.html)
 - [Spotinst](/docs/providers/spotinst/index.html)
+- [StackPath](/docs/providers/stackpath/index.html)
 - [StatusCake](/docs/providers/statuscake/index.html)
 - [TelefonicaOpenCloud](/docs/providers/telefonicaopencloud/index.html)
 - [Template](/docs/providers/template/index.html)

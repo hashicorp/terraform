@@ -48,6 +48,7 @@ vendor in close collaboration with HashiCorp, and are tested by HashiCorp.
 - [Skytap](/docs/providers/skytap/index.html)
 - [Selectel](/docs/providers/selectel/index.html)
 - [SoftLayer](/docs/providers/softlayer/index.html)
+- [StackPath](/docs/providers/stackpath/index.html)
 - [TelefonicaOpenCloud](/docs/providers/telefonicaopencloud/index.html)
 - [TencentCloud](/docs/providers/tencentcloud/index.html)
 - [Triton](/docs/providers/triton/index.html)
