@@ -1371,7 +1371,7 @@ func TestContext2Apply_destroyDependsOnStateOnly(t *testing.T) {
 			Dependencies: []addrs.AbsResource{},
 		},
 		addrs.ProviderConfig{
-			Type: "aws",
+			Type: addrs.NewLegacyProvider("aws"),
 		}.Absolute(addrs.RootModuleInstance),
 	)
 	root.SetResourceInstanceCurrent(
@@ -1395,7 +1395,7 @@ func TestContext2Apply_destroyDependsOnStateOnly(t *testing.T) {
 			},
 		},
 		addrs.ProviderConfig{
-			Type: "aws",
+			Type: addrs.NewLegacyProvider("aws"),
 		}.Absolute(addrs.RootModuleInstance),
 	)
 
@@ -1498,7 +1498,7 @@ func TestContext2Apply_destroyDependsOnStateOnlyModule(t *testing.T) {
 			Dependencies: []addrs.AbsResource{},
 		},
 		addrs.ProviderConfig{
-			Type: "aws",
+			Type: addrs.NewLegacyProvider("aws"),
 		}.Absolute(addrs.RootModuleInstance),
 	)
 	child.SetResourceInstanceCurrent(
@@ -1522,7 +1522,7 @@ func TestContext2Apply_destroyDependsOnStateOnlyModule(t *testing.T) {
 			},
 		},
 		addrs.ProviderConfig{
-			Type: "aws",
+			Type: addrs.NewLegacyProvider("aws"),
 		}.Absolute(addrs.RootModuleInstance),
 	)
 
@@ -2145,7 +2145,7 @@ func TestContext2Apply_provisionerDestroyForEach(t *testing.T) {
 						},
 						ProviderConfig: addrs.AbsProviderConfig{
 							Module:         addrs.ModuleInstance(nil),
-							ProviderConfig: addrs.ProviderConfig{Type: "aws", Alias: ""},
+							ProviderConfig: addrs.ProviderConfig{Type: addrs.NewLegacyProvider("aws"), Alias: ""},
 						},
 					},
 				},
@@ -2966,7 +2966,7 @@ func TestContext2Apply_orphanResource(t *testing.T) {
 	// with the single instance associated with test_thing.one.
 	want := states.BuildState(func(s *states.SyncState) {
 		providerAddr := addrs.ProviderConfig{
-			Type: "test",
+			Type: addrs.NewLegacyProvider("test"),
 		}.Absolute(addrs.RootModuleInstance)
 		zeroAddr := addrs.Resource{
 			Mode: addrs.ManagedResourceMode,
@@ -7386,7 +7386,7 @@ func TestContext2Apply_errorDestroy(t *testing.T) {
 					AttrsJSON: []byte(`{"id":"baz"}`),
 				},
 				addrs.ProviderConfig{
-					Type: "test",
+					Type: addrs.NewLegacyProvider("test"),
 				}.Absolute(addrs.RootModuleInstance),
 			)
 		}),
@@ -7525,7 +7525,7 @@ func TestContext2Apply_errorUpdateNullNew(t *testing.T) {
 					AttrsJSON: []byte(`{"value":"old"}`),
 				},
 				addrs.ProviderConfig{
-					Type: "aws",
+					Type: addrs.NewLegacyProvider("aws"),
 				}.Absolute(addrs.RootModuleInstance),
 			)
 		}),
@@ -9188,7 +9188,7 @@ func TestContext2Apply_createBefore_depends(t *testing.T) {
 			AttrsJSON: []byte(`{"id":"bar","require_new":"ami-old"}`),
 		},
 		addrs.ProviderConfig{
-			Type: "aws",
+			Type: addrs.NewLegacyProvider("aws"),
 		}.Absolute(addrs.RootModuleInstance),
 	)
 
@@ -9213,7 +9213,7 @@ func TestContext2Apply_createBefore_depends(t *testing.T) {
 			},
 		},
 		addrs.ProviderConfig{
-			Type: "aws",
+			Type: addrs.NewLegacyProvider("aws"),
 		}.Absolute(addrs.RootModuleInstance),
 	)
 
@@ -9319,7 +9319,7 @@ func TestContext2Apply_singleDestroy(t *testing.T) {
 			AttrsJSON: []byte(`{"id":"bar","require_new":"ami-old"}`),
 		},
 		addrs.ProviderConfig{
-			Type: "aws",
+			Type: addrs.NewLegacyProvider("aws"),
 		}.Absolute(addrs.RootModuleInstance),
 	)
 
@@ -9344,7 +9344,7 @@ func TestContext2Apply_singleDestroy(t *testing.T) {
 			},
 		},
 		addrs.ProviderConfig{
-			Type: "aws",
+			Type: addrs.NewLegacyProvider("aws"),
 		}.Absolute(addrs.RootModuleInstance),
 	)
 
@@ -10262,7 +10262,7 @@ func TestContext2Apply_destroyWithProviders(t *testing.T) {
 
 	// correct the state
 	s.Modules["module.mod.module.removed"].Resources["aws_instance.child"].ProviderConfig = addrs.ProviderConfig{
-		Type:  "aws",
+		Type:  addrs.NewLegacyProvider("aws"),
 		Alias: "bar",
 	}.Absolute(addrs.RootModuleInstance)
 
@@ -10687,7 +10687,7 @@ func TestContext2Apply_issue19908(t *testing.T) {
 					Status:    states.ObjectReady,
 				},
 				addrs.ProviderConfig{
-					Type: "test",
+					Type: addrs.NewLegacyProvider("test"),
 				}.Absolute(addrs.RootModuleInstance),
 			)
 		}),
@@ -10814,7 +10814,7 @@ func TestContext2Apply_moduleReplaceCycle(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"a","require_new":"old"}`),
 			},
 			addrs.ProviderConfig{
-				Type: "aws",
+				Type: addrs.NewLegacyProvider("aws"),
 			}.Absolute(addrs.RootModuleInstance),
 		)
 
@@ -10830,7 +10830,7 @@ func TestContext2Apply_moduleReplaceCycle(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"b","require_new":"old"}`),
 			},
 			addrs.ProviderConfig{
-				Type: "aws",
+				Type: addrs.NewLegacyProvider("aws"),
 			}.Absolute(addrs.RootModuleInstance),
 		)
 
@@ -10872,7 +10872,7 @@ func TestContext2Apply_moduleReplaceCycle(t *testing.T) {
 						Name: "a",
 					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance.Child("a", addrs.NoKey)),
 					ProviderAddr: addrs.ProviderConfig{
-						Type: "aws",
+						Type: addrs.NewLegacyProvider("aws"),
 					}.Absolute(addrs.RootModuleInstance),
 					ChangeSrc: plans.ChangeSrc{
 						Action: aAction,
@@ -10887,7 +10887,7 @@ func TestContext2Apply_moduleReplaceCycle(t *testing.T) {
 						Name: "b",
 					}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance.Child("b", addrs.NoKey)),
 					ProviderAddr: addrs.ProviderConfig{
-						Type: "aws",
+						Type: addrs.NewLegacyProvider("aws"),
 					}.Absolute(addrs.RootModuleInstance),
 					ChangeSrc: plans.ChangeSrc{
 						Action: plans.DeleteThenCreate,
@@ -10937,7 +10937,7 @@ func TestContext2Apply_destroyDataCycle(t *testing.T) {
 			AttrsJSON: []byte(`{"id":"a"}`),
 		},
 		addrs.ProviderConfig{
-			Type: "null",
+			Type: addrs.NewLegacyProvider("null"),
 		}.Absolute(addrs.RootModuleInstance),
 	)
 	root.SetResourceInstanceCurrent(
@@ -10951,7 +10951,7 @@ func TestContext2Apply_destroyDataCycle(t *testing.T) {
 			AttrsJSON: []byte(`{"id":"data"}`),
 		},
 		addrs.ProviderConfig{
-			Type: "null",
+			Type: addrs.NewLegacyProvider("null"),
 		}.Absolute(addrs.RootModuleInstance),
 	)
 
@@ -11025,7 +11025,7 @@ func TestContext2Apply_taintedDestroyFailure(t *testing.T) {
 			AttrsJSON: []byte(`{"id":"a","foo":"a"}`),
 		},
 		addrs.ProviderConfig{
-			Type: "test",
+			Type: addrs.NewLegacyProvider("test"),
 		}.Absolute(addrs.RootModuleInstance),
 	)
 	root.SetResourceInstanceCurrent(
@@ -11039,7 +11039,7 @@ func TestContext2Apply_taintedDestroyFailure(t *testing.T) {
 			AttrsJSON: []byte(`{"id":"b","foo":"b"}`),
 		},
 		addrs.ProviderConfig{
-			Type: "test",
+			Type: addrs.NewLegacyProvider("test"),
 		}.Absolute(addrs.RootModuleInstance),
 	)
 	root.SetResourceInstanceCurrent(
@@ -11053,7 +11053,7 @@ func TestContext2Apply_taintedDestroyFailure(t *testing.T) {
 			AttrsJSON: []byte(`{"id":"c","foo":"old"}`),
 		},
 		addrs.ProviderConfig{
-			Type: "test",
+			Type: addrs.NewLegacyProvider("test"),
 		}.Absolute(addrs.RootModuleInstance),
 	)
 
@@ -11168,7 +11168,7 @@ func TestContext2Apply_cbdCycle(t *testing.T) {
 			},
 		},
 		addrs.ProviderConfig{
-			Type: "test",
+			Type: addrs.NewLegacyProvider("test"),
 		}.Absolute(addrs.RootModuleInstance),
 	)
 	root.SetResourceInstanceCurrent(
@@ -11192,7 +11192,7 @@ func TestContext2Apply_cbdCycle(t *testing.T) {
 			},
 		},
 		addrs.ProviderConfig{
-			Type: "test",
+			Type: addrs.NewLegacyProvider("test"),
 		}.Absolute(addrs.RootModuleInstance),
 	)
 	root.SetResourceInstanceCurrent(
@@ -11206,7 +11206,7 @@ func TestContext2Apply_cbdCycle(t *testing.T) {
 			AttrsJSON: []byte(`{"id":"c","require_new":"old"}`),
 		},
 		addrs.ProviderConfig{
-			Type: "test",
+			Type: addrs.NewLegacyProvider("test"),
 		}.Absolute(addrs.RootModuleInstance),
 	)
 

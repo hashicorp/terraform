@@ -18,14 +18,14 @@ func TestParseProviderConfigCompact(t *testing.T) {
 		{
 			`aws`,
 			ProviderConfig{
-				Type: "aws",
+				Type: NewLegacyProvider("aws"),
 			},
 			``,
 		},
 		{
 			`aws.foo`,
 			ProviderConfig{
-				Type:  "aws",
+				Type:  NewLegacyProvider("aws"),
 				Alias: "foo",
 			},
 			``,
@@ -82,7 +82,7 @@ func TestParseAbsProviderConfig(t *testing.T) {
 			AbsProviderConfig{
 				Module: RootModuleInstance,
 				ProviderConfig: ProviderConfig{
-					Type: "aws",
+					Type: NewLegacyProvider("aws"),
 				},
 			},
 			``,
@@ -92,7 +92,7 @@ func TestParseAbsProviderConfig(t *testing.T) {
 			AbsProviderConfig{
 				Module: RootModuleInstance,
 				ProviderConfig: ProviderConfig{
-					Type:  "aws",
+					Type:  NewLegacyProvider("aws"),
 					Alias: "foo",
 				},
 			},
@@ -107,7 +107,7 @@ func TestParseAbsProviderConfig(t *testing.T) {
 					},
 				},
 				ProviderConfig: ProviderConfig{
-					Type: "aws",
+					Type: NewLegacyProvider("aws"),
 				},
 			},
 			``,
@@ -121,7 +121,7 @@ func TestParseAbsProviderConfig(t *testing.T) {
 					},
 				},
 				ProviderConfig: ProviderConfig{
-					Type:  "aws",
+					Type:  NewLegacyProvider("aws"),
 					Alias: "foo",
 				},
 			},
@@ -137,7 +137,7 @@ func TestParseAbsProviderConfig(t *testing.T) {
 					},
 				},
 				ProviderConfig: ProviderConfig{
-					Type: "aws",
+					Type: NewLegacyProvider("aws"),
 				},
 			},
 			``,
@@ -152,7 +152,7 @@ func TestParseAbsProviderConfig(t *testing.T) {
 					},
 				},
 				ProviderConfig: ProviderConfig{
-					Type: "aws",
+					Type: NewLegacyProvider("aws"),
 				},
 			},
 			``,
@@ -170,7 +170,7 @@ func TestParseAbsProviderConfig(t *testing.T) {
 					},
 				},
 				ProviderConfig: ProviderConfig{
-					Type: "aws",
+					Type: NewLegacyProvider("aws"),
 				},
 			},
 			``,

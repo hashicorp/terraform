@@ -95,7 +95,7 @@ func decodeProviderBlock(block *hcl.Block) (*Provider, hcl.Diagnostics) {
 // to its containing module.
 func (p *Provider) Addr() addrs.ProviderConfig {
 	return addrs.ProviderConfig{
-		Type:  p.Name,
+		Type:  addrs.NewLegacyProvider(p.Name),
 		Alias: p.Alias,
 	}
 }

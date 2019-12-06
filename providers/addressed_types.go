@@ -14,7 +14,7 @@ func AddressedTypes(providerAddrs []addrs.ProviderConfig) []string {
 	}
 	m := map[string]struct{}{}
 	for _, addr := range providerAddrs {
-		m[addr.Type] = struct{}{}
+		m[addr.Type.LegacyString()] = struct{}{}
 	}
 
 	names := make([]string, 0, len(m))
@@ -34,7 +34,7 @@ func AddressedTypesAbs(providerAddrs []addrs.AbsProviderConfig) []string {
 	}
 	m := map[string]struct{}{}
 	for _, addr := range providerAddrs {
-		m[addr.ProviderConfig.Type] = struct{}{}
+		m[addr.ProviderConfig.Type.LegacyString()] = struct{}{}
 	}
 
 	names := make([]string, 0, len(m))
