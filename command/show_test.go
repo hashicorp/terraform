@@ -101,8 +101,34 @@ func TestShow_plan(t *testing.T) {
 	}
 }
 
+func TestShow_planWithChanges(t *testing.T) {
+	planPathWithChanges := showFixturePlanFile(t, plans.DeleteThenCreate)
+
+	ui := cli.NewMockUi()
+	c := &ShowCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(showFixtureProvider()),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		planPathWithChanges,
+	}
+
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	want := `test_instance.foo must be replaced`
+	got := ui.OutputWriter.String()
+	if !strings.Contains(got, want) {
+		t.Errorf("missing expected output\nwant: %s\ngot:\n%s", want, got)
+	}
+}
+
 func TestShow_plan_json(t *testing.T) {
-	planPath := showFixturePlanFile(t)
+	planPath := showFixturePlanFile(t, plans.Create)
 
 	ui := new(cli.MockUi)
 	c := &ShowCommand{
@@ -377,9 +403,10 @@ func showFixtureProvider() *terraform.MockProvider {
 }
 
 // showFixturePlanFile creates a plan file at a temporary location containing a
-// single change to create the test_instance.foo that is included in the "show"
+// single change to create or update the test_instance.foo that is included in the "show"
 // test fixture, returning the location of that plan file.
-func showFixturePlanFile(t *testing.T) string {
+// `action` is the planned change you would like to elicit
+func showFixturePlanFile(t *testing.T, action plans.Action) string {
 	_, snap := testModuleWithSnapshot(t, "show")
 	plannedVal := cty.ObjectVal(map[string]cty.Value{
 		"id":  cty.UnknownVal(cty.String),
@@ -402,7 +429,7 @@ func showFixturePlanFile(t *testing.T) string {
 		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 		ProviderAddr: addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}.Absolute(addrs.RootModuleInstance),
 		ChangeSrc: plans.ChangeSrc{
-			Action: plans.Create,
+			Action: action,
 			Before: priorValRaw,
 			After:  plannedValRaw,
 		},

@@ -1014,8 +1014,9 @@ func (p *blockBodyDiffPrinter) writeActionSymbol(action plans.Action) {
 }
 
 func (p *blockBodyDiffPrinter) pathForcesNewResource(path cty.Path) bool {
-	if !p.action.IsReplace() {
-		// "requiredReplace" only applies when the instance is being replaced
+	if !p.action.IsReplace() || p.requiredReplace.Empty() {
+		// "requiredReplace" only applies when the instance is being replaced,
+		// and we should only inspect that set if it is not empty
 		return false
 	}
 	return p.requiredReplace.Has(path)
