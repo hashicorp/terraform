@@ -149,8 +149,11 @@ func onlySelfRefs(body hcl.Body) hcl.Diagnostics {
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagWarning,
 					Summary:  "External references from destroy provisioners are deprecated",
-					Detail:   "Destroy time provisioners and their connections may only reference values stored in the instance state, which include 'self', 'count.index', or 'each.key'.",
-					Subject:  attr.Expr.Range().Ptr(),
+					Detail: "Destroy-time provisioners and their connection configurations may only " +
+						"reference attributes of the related resource, via 'self', 'count.index', " +
+						"or 'each.key'.\n\nReferences to other resources during the destroy phase " +
+						"can cause dependency cycles and interact poorly with create_before_destroy.",
+					Subject: attr.Expr.Range().Ptr(),
 				})
 			}
 		}
