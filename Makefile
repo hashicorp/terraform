@@ -82,6 +82,7 @@ generate:
 protobuf:
 	bash scripts/protobuf-check.sh
 	bash internal/tfplugin5/generate.sh
+	bash internal/tfcore1/generate.sh
 	bash plans/internal/planproto/generate.sh
 
 fmt:

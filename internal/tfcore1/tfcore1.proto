@@ -1,0 +1,295 @@
+// Prototype protocol for hypothetical Terraform Core as a distinct component
+// from Terraform CLI.
+syntax = "proto3";
+
+package tfcore1;
+
+service Terraform {
+    // TODO: Do we need to provide a way for Terraform Core to inspect the
+    // configuration and report what it depends on (modules and providers)?
+    // Hopefully having the clients embed terraform-config-inspect is good
+    // enough.
+
+    // Validate tests whether the configuration is semantically valid using
+    // only static checks that can be decided without accessing any external
+    // API endpoints.
+    rpc Validate(Validate.Request) returns (Validate.Response);
+
+    // Plan reads the latest upstream values corresponding to objects in the
+    // given prior state snapshot and compares the result with the given
+    // configuration in order to produce a planned set of actions that would
+    // cause the remote objects to match the desired values given in the
+    // configuration.
+    rpc Plan(Plan.Request) returns (stream Plan.ResponseItem);
+
+    // Apply takes a plan previously produced by Plan (from the same version of
+    // Terraform Core) and runs all of the planned actions against real
+    // remote APIs.
+    rpc Apply(Apply.Request) returns (stream Apply.ResponseItem);
+
+    // EvalExpr takes a state snapshot and an expression in Terraform language
+    // syntax and evaluates the expression against the given state.
+    rpc EvalExpr(EvalExpr.Request) returns (EvalExpr.Response);
+}
+
+message Validate {
+    message Request {
+        Dependencies dependencies = 1;
+    }
+    message Response {
+        repeated Diagnostic diagnostics = 2048;
+
+        // TODO: Maybe we also include some shallow configuration description
+        // in here, to the level of detail used by terraform-config-inspect?
+        // But we'll see if we can solve this by having the frontends depend
+        // on terraform-config-inspect themselves, first.
+    }
+}
+
+message Plan {
+    message Request {
+        Dependencies dependencies = 1;
+        bytes prior_state = 2;
+        map<string, DynamicValue> variable_values = 3;
+    }
+    message ResponseItem {
+        oneof event {
+            // Indices 1 through 15 are reserved for event types that always
+            // appear several times during the course of a Plan operation,
+            // because these have the most compact field number wire encoding.
+
+            OverallProgressEvent progress = 1;
+            BeginResourceInstancePlanEvent begin_resource_instance_plan = 2;
+            EndResourceInstancePlanEvent end_resource_instance_plan = 3;
+
+            // Indices 16 through 2047 are for event types that we expect to
+            // see in a normal, successful Plan operation but that are expected
+            // to appear only a few times.
+
+            FinalPlanEvent final_plan = 16;
+
+            // Indices 2048 through 18999 are for event types that appear only
+            // in exceptional circumstances; these have the longest field
+            // number wire encoding.
+
+            Diagnostic diagnostic = 2048;
+
+            // Do not use indices greater than 18999.
+        }
+        // No other fields can be added outside of the oneof, because the
+        // absense of any recognized field indicates an unsupported event
+        // type that the client might warn the user about.
+    }
+    message OverallProgressEvent {
+        // percent_complete is an estimate of how much of the plan operation
+        // has completed, from 0 to 100 inclusive. Frontends could use this
+        // to show an indicative progress bar. Until an OverallProgressEvent
+        // is received a frontend should use an indefinite progress indicator
+        // to indicate that work is ongoing.
+        int32 percent_complete = 1;
+    }
+    message BeginResourceInstancePlanEvent {
+        ResourceInstanceAddr resource_instance = 1;
+    }
+    message EndResourceInstancePlanEvent {
+        ResourceInstanceAddr resource_instance = 1;
+        // failed is set to true if the planning for this instance was
+        // unsuccessful. Such an event is likely to be closely followed by
+        // one or more DiagnosticEvent messages describing the failure;
+        // this flag is present to allow a frontend to show explicitly which
+        // resource instance(s) failed, alongside the error messages.
+        bool failed = 2048;
+    }
+    message FinalPlanEvent {
+        // TODO: What format shall we use to communicate the plan to the
+        // client?
+        bytes plan = 1;
+    }
+}
+
+message Apply {
+    message Request {
+        Dependencies dependencies = 1;
+        // TODO: Should we just import the existing protobuf plan messages
+        // into here and use them directly? That would turn them into a
+        // compatibility constraint, but it seems unlikely that we could
+        // define any better a representation of plan that wouldn't also
+        // be a compatibility constraint. Perhaps we could abate this concern
+        // by changing the plan format to be more flexible/extensible.
+        bytes plan = 2;
+    }
+    message ResponseItem {
+        oneof event {
+            // Indices 1 through 15 are reserved for event types that always
+            // appear several times during the course of a Apply operation,
+            // because these have the most compact field number wire encoding.
+
+            OverallProgressEvent progress = 1;
+            BeginResourceInstanceActionEvent begin_resource_instance_action = 2;
+            EndResourceInstanceActionEvent end_resource_instance_action = 3;
+            StateSnapshotEvent state_snapshot = 4;
+
+            // Indices 16 through 2047 are for event types that we expect to
+            // see in a normal, successful Plan operation but that are expected
+            // to appear only a few times.
+
+            // Indices 2048 through 18999 are for event types that appear only
+            // in exceptional circumstances; these have the longest field
+            // number wire encoding.
+
+            Diagnostic diagnostic = 2048;
+
+            // Do not use indices greater than 18999.
+        }
+    }
+    message OverallProgressEvent {
+        // percent_complete is an estimate of how much of the plan operation
+        // has completed, from 0 to 100 inclusive. Frontends could use this
+        // to show an indicative progress bar. Until an OverallProgressEvent
+        // is received a frontend should use an indefinite progress indicator
+        // to indicate that work is ongoing.
+        int32 percent_complete = 1;
+    }
+    message BeginResourceInstanceActionEvent {
+        ResourceInstanceAddr resource_instance = 1;
+        // TODO: A representation of the action. If we bring in the protobuf
+        // definition for the plan file format in here then we'll get an enum
+        // for that.
+    }
+    message EndResourceInstanceActionEvent {
+        ResourceInstanceAddr resource_instance = 1;
+        // TODO: A representation of the action. If we bring in the protobuf
+        // definition for the plan file format in here then we'll get an enum
+        // for that.
+
+        // failed is set to true if this action was unsuccessful. Such an
+        // event is likely to be closely followed by one or more
+        // DiagnosticEvent messages describing the failure; this flag is
+        // present to allow a frontend to show explicitly which
+        // resource instance(s) failed, alongside the error messages.
+        bool failed = 2048;
+    }
+    message StateSnapshotEvent {
+        // Terraform Core delivers updated snapshots of the state as it works.
+        // It is guaranteed to produce at least one new snapshot after all
+        // of the changes are complete, but it might emit this event during
+        // an operation to report a partially-updated state too. Callers
+        // should save the most recent state snapshot they received after
+        // an apply operation completes, even if the operation fails. Callers
+        // may also choose to save intermediate state snapshots, but that is
+        // not mandatory; if the caller does save them, they may be saved
+        // in a less persistent way.
+        bytes state = 1;
+    }
+}
+
+message EvalExpr {
+    message Request {
+        Dependencies dependencies = 1;
+        string expression = 2;
+        string module_instance = 3;
+        bytes prior_state = 4;
+        map<string, DynamicValue> variable_values = 5;
+    }
+    message Response {
+        repeated Diagnostic diagnostics = 2048;
+        DynamicValue result = 2;
+    }
+}
+
+message Dependencies {
+    // modules is a map from module addresses (like "foo.bar") to local
+    // filesystem paths to the directory containing each module.
+    //
+    // The root module is the one whose key is an empty string.
+    map<string, string> modules = 1;
+
+    // providers is a map from provider fully-qualified names in the
+    // conventional string format (like "registry.terraform.io/hashicorp/dns")
+    // to executable files suitable for the current platform that Terraform Core
+    // should launch as plugins for each provider needed in this configuration.
+    map<string, string> provider_plugins = 2;
+}
+
+message ModuleInstanceStep {
+    string name = 1;
+    oneof instance_key {
+        string string = 2;
+        int64 int = 3;
+    }
+}
+
+message ResourceInstanceAddr {
+    enum Mode {
+        INVALID = 0;
+        MANAGED = 1;
+        DATA = 2;
+    }
+    repeated ModuleInstanceStep module_instance = 1;
+    Mode mode = 2;
+    string type_name = 3;
+    string name = 4;
+}
+
+// DynamicValue is an opaque encoding of terraform data, with the field name
+// indicating the encoding scheme used.
+message DynamicValue {
+    bytes msgpack = 1;
+    bytes json = 2;
+}
+
+message Diagnostic {
+    enum Severity {
+        INVALID = 0;
+        ERROR = 1;
+        WARNING = 2;
+    }
+    Severity severity = 1;
+    string summary = 2;
+    string detail = 3;
+
+    // Subject and context both describe portions of a specific source file
+    // that this diagnostic relates to. "subject" describes the problematic
+    // element itself, while "context" might describe the bounds of a
+    // containing construct that is relevant to what the diagnostic is
+    // describing.
+    //
+    // Both source ranges may be absent, if a diagnostic message is not
+    // related to a particular source element. "context" may be absent,
+    // in which case its value is implied to be the same as "subject".
+    SourceRange subject = 4;
+    SourceRange context = 5;
+}
+
+message SourceRange {
+    // base_module is the address of the module (from the dependencies of the
+    // related request) that the filename property is relative to.
+    //
+    // (This indirection allows for the fact that the path known by the
+    // frontend might not match the path used by the backend, e.g. if an
+    // operation is being run remotely.)
+    string base_module = 1;
+
+    // filename is a filesystem path relative to the directory of the module
+    // given in base_module referring to the file that the start end end
+    // positions relate to.
+    string filename = 2;
+
+    // start and end describe the characters within the indicated file that
+    // this range delimits. "start" is enclusive, while "end" is exclusive.
+    SourcePos start = 3;
+    SourcePos end = 4;
+}
+
+message SourcePos {
+    // line and column describe this position in a text-editor-oriented way.
+    // Both line and column are 1-based, and column counts Unicode grapheme
+    // clusters within a line.
+    string line = 1;
+    string column = 2;
+
+    // byte is a byte offset that corresponds to the same position given by
+    // the line and column, for consumers that see the source file as an
+    // opaque byte slice.
+    string byte = 3;
+}
