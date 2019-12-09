@@ -22,12 +22,7 @@ type State struct {
 	Body      string
 }
 
-type Table struct {
-	AttributeDefinitions []map[string]string
-	KeySchema            []map[string]string
-}
-
-// New creates a new backend for S3 remote state.
+// New creates a new backend for DynamoDB remote state.
 func New() backend.Backend {
 	s := &schema.Backend{
 		Schema: map[string]*schema.Schema{

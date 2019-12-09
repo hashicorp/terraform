@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"testing"
 	"time"
+	//"strconv"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -13,6 +14,8 @@ import (
 	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/states"
+
+	//"github.com/hashicorp/hcl/v2/hcldec"
 )
 
 // verify that we are doing ACC tests or the S3 tests specifically
@@ -79,12 +82,61 @@ func TestBackendSchema(t *testing.T) {
 	createDynamoDBTable(t, b0.dynClient, "dynamoTable", "lock")
 	defer deleteDynamoDBTable(t, b0.dynClient, "dynamoTable")
 
-	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config0)).(*Backend)
+	b0 = backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config0)).(*Backend)
 
-	if b1 == nil {
-		t.Fatalf("Error schema check")
-	}
+	//config1 := map[string]interface{}{
+	//	"state_table": "dynamoTable",
+	//	"hash":        "state",
+	//	"region":      "eu-west-1",
+	//	"lock_table":  "tf-test",
+	//}
+
+	//b0 = backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config1)).(*Backend)
+	//schema := b0.ConfigSchema()
+	//spec := schema.DecoderSpec()
+	//obj, _ := hcldec.Decode(backend.TestWrapConfig(config1), spec, nil)
+	//diags = diags.Append(decDiags)
+
+	//confDiags := b0.Configure(obj)
+
+
+	//fmt.Println(schema)
 }
+
+func TestBigScan(t *testing.T) {
+	testACC(t)
+
+	config := map[string]interface{}{
+		"state_table": "tf-test",
+		"hash":        "state",
+		"region":      "eu-west-1",
+	}
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
+
+	createDynamoDBTable(t, b.dynClient, "tf-test", "state")
+	defer deleteDynamoDBTable(t, b.dynClient, "tf-test")
+
+	s := states.NewState()
+	fmt.Println(s)
+	//client := &RemoteClient{
+	//	dynClient: b.dynClient,
+	//	tableName: b.tableName,
+	//	path:      b.path("s1"),
+	//}
+	//N := 1000
+	//for i := 0; i < N; i++ {
+	//	client.path = b.path("s"+strconv.Itoa(i))
+	//	stateMgr := &remote.State{Client: client}
+	//	stateMgr.WriteState(s)
+	//	if err := stateMgr.PersistState(); err != nil {
+	//		t.Fatal(err)
+	//	}	
+	//}
+	//b = backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
+	//fmt.Println(b)
+}
+
 
 func TestBackendConfig_invalidKey(t *testing.T) {
 	testACC(t)

@@ -52,16 +52,32 @@ func (b *Backend) Workspaces() ([]string, error) {
 		ExpressionAttributeValues: expr.Values(),
 		FilterExpression:          expr.Filter(),
 		ProjectionExpression:      expr.Projection(),
-		TableName:                 aws.String(b.tableName), //TODO
+		TableName:                 aws.String(b.tableName),
 	}
 	// Execute Query
-	result, err := b.dynClient.Scan(dyparams) // TODO SCAN LIMITS, se c'è un next token continuare la scan
+	result, err := b.dynClient.Scan(dyparams)
 	if err != nil {
 		return nil, fmt.Errorf("During scan operation on table %s %s.", b.tableName, err)
 	}
+	items := result.Items
+	for {
+		if result.LastEvaluatedKey == nil {
+		    break
+		}
+		dyparams.ExclusiveStartKey = result.LastEvaluatedKey
+		result, err := b.dynClient.Scan(dyparams)
+		if err != nil {
+			return nil, fmt.Errorf("During scan operation on table %s %s.", b.tableName, err)
+		}	
+		for _, i := range result.Items {
+			items = append(items, i)
+		}
+		fmt.Println("ok")
+	}
+
 	// Extract Workspaces
 	wss := []string{backend.DefaultStateName}
-	for _, i := range result.Items {
+	for _, i := range items {
 		state := State{}
 
 		err = dynamodbattribute.UnmarshalMap(i, &state)
