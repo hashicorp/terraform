@@ -419,7 +419,7 @@ func TestProviderInstallerGet(t *testing.T) {
 		registry:              registry.NewClient(Disco(server), nil),
 	}
 
-	_, _, err = i.Get(addrs.Provider{Type: "test"}, AllVersions)
+	_, _, err = i.Get(addrs.NewLegacyProvider("test"), AllVersions)
 
 	if err != ErrorNoVersionCompatibleWithPlatform {
 		t.Fatal("want error for incompatible version")
@@ -436,21 +436,21 @@ func TestProviderInstallerGet(t *testing.T) {
 	}
 
 	{
-		_, _, err := i.Get(addrs.Provider{Type: "test"}, ConstraintStr(">9.0.0").MustParse())
+		_, _, err := i.Get(addrs.NewLegacyProvider("test"), ConstraintStr(">9.0.0").MustParse())
 		if err != ErrorNoSuitableVersion {
 			t.Fatal("want error for mismatching constraints")
 		}
 	}
 
 	{
-		provider := addrs.Provider{Type: "nonexist"}
+		provider := addrs.NewLegacyProvider("nonexist")
 		_, _, err := i.Get(provider, AllVersions)
 		if err != ErrorNoSuchProvider {
 			t.Fatal("want error for no such provider")
 		}
 	}
 
-	gotMeta, _, err := i.Get(addrs.Provider{Type: "test"}, AllVersions)
+	gotMeta, _, err := i.Get(addrs.NewLegacyProvider("test"), AllVersions)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -508,7 +508,7 @@ func TestProviderInstallerGet_cache(t *testing.T) {
 		Arch:                  "mockarch",
 	}
 
-	gotMeta, _, err := i.Get(addrs.Provider{Type: "test"}, AllVersions)
+	gotMeta, _, err := i.Get(addrs.NewLegacyProvider("test"), AllVersions)
 	if err != nil {
 		t.Fatal(err)
 	}

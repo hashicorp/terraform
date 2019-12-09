@@ -232,7 +232,7 @@ func (i *ProviderInstaller) Get(provider addrs.Provider, req Constraints) (Plugi
 		}
 	}
 
-	printedProviderName := fmt.Sprintf("%q (%s)", provider.Type, providerSource)
+	printedProviderName := fmt.Sprintf("%q (%s)", provider.LegacyString(), providerSource)
 	i.Ui.Info(fmt.Sprintf("- Downloading plugin for provider %s %s...", printedProviderName, versionMeta.Version))
 	log.Printf("[DEBUG] getting provider %s version %q", printedProviderName, versionMeta.Version)
 	err = i.install(provider, v, providerURL)
@@ -244,7 +244,7 @@ func (i *ProviderInstaller) Get(provider addrs.Provider, req Constraints) (Plugi
 	// (This is weird, because go-getter doesn't directly return
 	//  information about what was extracted, and we just extracted
 	//  the archive directly into a shared dir here.)
-	log.Printf("[DEBUG] looking for the %s %s plugin we just installed", provider.Type, versionMeta.Version)
+	log.Printf("[DEBUG] looking for the %s %s plugin we just installed", provider.LegacyString(), versionMeta.Version)
 	metas := FindPlugins("provider", []string{i.Dir})
 	log.Printf("[DEBUG] all plugins found %#v", metas)
 	metas, _ = metas.ValidateVersions()
@@ -278,10 +278,10 @@ func (i *ProviderInstaller) Get(provider addrs.Provider, req Constraints) (Plugi
 
 func (i *ProviderInstaller) install(provider addrs.Provider, version Version, url string) error {
 	if i.Cache != nil {
-		log.Printf("[DEBUG] looking for provider %s %s in plugin cache", provider.Type, version)
+		log.Printf("[DEBUG] looking for provider %s %s in plugin cache", provider.LegacyString(), version)
 		cached := i.Cache.CachedPluginPath("provider", provider.Type, version)
 		if cached == "" {
-			log.Printf("[DEBUG] %s %s not yet in cache, so downloading %s", provider.Type, version, url)
+			log.Printf("[DEBUG] %s %s not yet in cache, so downloading %s", provider.LegacyString(), version, url)
 			err := getter.Get(i.Cache.InstallDir(), url)
 			if err != nil {
 				return err
@@ -308,7 +308,7 @@ func (i *ProviderInstaller) install(provider addrs.Provider, version Version, ur
 			return err
 		}
 
-		log.Printf("[DEBUG] installing %s %s to %s from local cache %s", provider.Type, version, targetPath, cached)
+		log.Printf("[DEBUG] installing %s %s to %s from local cache %s", provider.LegacyString(), version, targetPath, cached)
 
 		// Delete if we can. If there's nothing there already then no harm done.
 		// This is important because we can't create a link if there's
@@ -366,7 +366,7 @@ func (i *ProviderInstaller) install(provider addrs.Provider, version Version, ur
 		// One way or another, by the time we get here we should have either
 		// a link or a copy of the cached plugin within i.Dir, as expected.
 	} else {
-		log.Printf("[DEBUG] plugin cache is disabled, so downloading %s %s from %s", provider.Type, version, url)
+		log.Printf("[DEBUG] plugin cache is disabled, so downloading %s %s from %s", provider.LegacyString(), version, url)
 		err := getter.Get(i.Dir, url)
 		if err != nil {
 			return err

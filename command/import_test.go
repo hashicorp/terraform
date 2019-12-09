@@ -891,17 +891,18 @@ func TestImport_pluginDir(t *testing.T) {
 
 	// Now we need to go through some plugin init.
 	// This discovers our fake plugin and writes the lock file.
+	initUi := new(cli.MockUi)
 	initCmd := &InitCommand{
 		Meta: Meta{
 			pluginPath: []string{"./plugins"},
-			Ui:         cli.NewMockUi(),
+			Ui:         initUi,
 		},
 		providerInstaller: &discovery.ProviderInstaller{
 			PluginProtocolVersion: discovery.PluginInstallProtocolVersion,
 		},
 	}
 	if code := initCmd.Run(nil); code != 0 {
-		t.Fatal(initCmd.Meta.Ui.(*cli.MockUi).ErrorWriter.String())
+		t.Fatal(initUi.ErrorWriter.String())
 	}
 
 	args := []string{
