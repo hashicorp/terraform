@@ -47,7 +47,7 @@ Terraform state.
 
 It is also possible to import to resources in child modules, using their paths,
 and to single instances of a resource with `count` or `for_each` set. See
-[_Resource Addressing_](/docs/internals/resource-addressing.html) for more
+[_Resource Addressing_](/website/docs/internals/resource-addressing.html.markdown) for more
 details on how to specify a target resource.
 
 The syntax of the given ID is dependent on the resource type being imported.
