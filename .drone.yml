@@ -47,7 +47,6 @@ steps:
 trigger:
   branch:
   - master
+  - drone-testing
   event:
-  - push
   - pull_request
-  - tag
