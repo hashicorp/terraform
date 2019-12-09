@@ -1,0 +1,4 @@
+- remote state compression
+- conditional write 
+- roll back 
+- puntatore al successivo item per ottimizzare partizioni
