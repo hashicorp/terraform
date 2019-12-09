@@ -496,7 +496,7 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 	configReqs := configDeps.AllPluginRequirements()
 	// FIXME: This is weird because ConfigTreeDependencies was written before
 	// we switched over to using earlyConfig as the main source of dependencies.
-	// In future we should clean this up to be a more reasoable API.
+	// In future we should clean this up to be a more reasonable API.
 	stateReqs := terraform.ConfigTreeDependencies(nil, state).AllPluginRequirements()
 
 	requirements := configReqs.Merge(stateReqs)
@@ -597,7 +597,7 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 	available = c.providerPluginSet() // re-discover to see newly-installed plugins
 
 	// internal providers were already filtered out, since we don't need to get them.
-	chosen := choosePlugins(available, nil, requirements)
+	chosen := chooseProviders(available, nil, requirements)
 
 	digests := map[string][]byte{}
 	for name, meta := range chosen {
