@@ -1,0 +1,53 @@
+kind: pipeline
+type: docker
+name: test
+
+steps:
+  - name: test
+    image: leofigy/nanobell:latest
+    environment:
+      GITHUB_TOKEN:
+        from_secret: GITHUB_TOKEN
+  - name: send telegram notification
+    image: appleboy/drone-telegram
+    secrets: [ telegram_token, telegram_to ]
+    when:
+      status: [ success, failure ]
+    settings:
+      token:
+        from_secret: telegram_token
+      to:
+        from_secret: telegram_to
+      message: >
+        {{#success build.status}}
+        😂 Build #{{build.number}} of `{{repo.name}}` succeeded.
+
+
+        📝 Commit by {{commit.author}} on `{{commit.branch}}`:
+
+        ```
+        {{commit.message}}
+        ```
+
+
+        🌐 {{ build.link }}
+        {{else}}
+        ❌ Build #{{build.number}} of `{{repo.name}}` failed.
+
+
+        📝 Commit by {{commit.author}} on `{{commit.branch}}`:
+
+        ```
+        {{commit.message}}
+        ```
+
+
+        🌐 {{ build.link }}
+        {{/success}}
+trigger:
+  branch:
+  - master
+  event:
+  - push
+  - pull_request
+  - tag
