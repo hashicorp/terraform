@@ -53,7 +53,7 @@ func TestConsolidateWarnings(t *testing.T) {
 
 	// We're using ForRPC here to force the diagnostics to be of a consistent
 	// type that we can easily assert against below.
-	got := diags.ConsolidateWarnings().ForRPC()
+	got := diags.ConsolidateWarnings(2).ForRPC()
 	want := Diagnostics{
 		// First set
 		&rpcFriendlyDiag{
