@@ -7,13 +7,13 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	awsbase "github.com/hashicorp/aws-sdk-go-base"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/version"
-	//"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
 
 type State struct {
@@ -216,6 +216,8 @@ type Backend struct {
 	hashName           string
 	lockTable          string
 	workspaceKeyPrefix string
+	endpoint 		   string
+	sess *session.Session
 }
 
 func (b *Backend) configure(ctx context.Context) error {
@@ -262,10 +264,13 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 
 	sess, err := awsbase.GetSession(cfg)
+	b.sess = sess
 	if err != nil {
 		return err
 	}
+	fmt.Println(sess)
 
+	b.endpoint = data.Get("endpoint").(string)
 	b.dynClient = dynamodb.New(sess.Copy(&aws.Config{
 		Endpoint: aws.String(data.Get("endpoint").(string)),
 	}))

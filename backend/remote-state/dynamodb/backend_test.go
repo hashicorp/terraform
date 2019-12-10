@@ -6,7 +6,6 @@ import (
 	"reflect"
 	"testing"
 	"time"
-	//"strconv"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -14,11 +13,9 @@ import (
 	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/states"
-
-	//"github.com/hashicorp/hcl/v2/hcldec"
 )
 
-// verify that we are doing ACC tests or the S3 tests specifically
+// verify that we are doing ACC tests or the DynamoDB tests specifically
 func testACC(t *testing.T) {
 	skip := os.Getenv("TF_ACC") == "" && os.Getenv("TF_DYNAMODB_TEST") == ""
 	if skip {

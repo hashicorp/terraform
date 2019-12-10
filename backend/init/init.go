@@ -58,6 +58,7 @@ func Init(services *disco.Disco) {
 		"atlas":       func() backend.Backend { return backendAtlas.New() },
 		"azurerm":     func() backend.Backend { return backendAzure.New() },
 		"consul":      func() backend.Backend { return backendConsul.New() },
+		"dynamodb":    func() backend.Backend { return backendDynamoDB.New() },
 		"etcd":        func() backend.Backend { return backendEtcdv2.New() },
 		"etcdv3":      func() backend.Backend { return backendEtcdv3.New() },
 		"gcs":         func() backend.Backend { return backendGCS.New() },
@@ -66,8 +67,7 @@ func Init(services *disco.Disco) {
 		"manta":       func() backend.Backend { return backendManta.New() },
 		"oss":         func() backend.Backend { return backendOSS.New() },
 		"pg":          func() backend.Backend { return backendPg.New() },
-		"s3":          func() backend.Backend { return backendS3.New() },
-		"dynamodb":    func() backend.Backend { return backendDynamoDB.New() },
+		"s3":          func() backend.Backend { return backendS3.New() },	
 		"swift":       func() backend.Backend { return backendSwift.New() },
 
 		// Deprecated backends.

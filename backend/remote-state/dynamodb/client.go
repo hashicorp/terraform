@@ -16,6 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	multierror "github.com/hashicorp/go-multierror"
 	uuid "github.com/hashicorp/go-uuid"
+	//awsbase "github.com/hashicorp/aws-sdk-go-base"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
 
@@ -34,6 +35,7 @@ type RemoteClient struct {
 	tableName string
 	path      string
 	lockTable string
+	endpoint  string
 }
 
 var (
@@ -406,7 +408,48 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 		return "", lockErr
 	}
 
+
 	return info.ID, nil
+}
+
+func (c *RemoteClient) getGlobalLockInfo() (*state.LockInfo, error) {
+
+	globalTableParams := &dynamodb.DescribeGlobalTableInput{
+		GlobalTableName: aws.String(c.lockTable),
+	}
+
+	_, err := c.dynClient.DescribeGlobalTable(globalTableParams)
+	if err != nil {
+		return nil, err
+	}
+
+	//regions := res.GlobalTableDescription.ReplicationGroup
+	//dyClients := make(*DynamoDB, len(regions))
+	//for _,region := range regions {
+	//	dyClients = append(dyClients, dynamodb.New(sess.Copy(&aws.Config{
+	//		Endpoint: aws.String(c.endpoint),
+	//		Region: aws.String(*region),
+	//	})))
+	//}
+	//queryInput := &dynamodb.QueryInput{
+	//	TableName: aws.String(c.lockTable),
+	//	KeyConditions: map[string]*dynamodb.Condition{
+	//		"LockID": {
+	//			ComparisonOperator: aws.String("EQ"),
+	//			AttributeValueList: []*dynamodb.AttributeValue{
+	//				{
+	//					S: aws.String(c.lockPath()),
+	//				},
+	//			},
+	//		},
+	//	},
+	//}
+	//for _,client := range dyClients {
+	//	result, err := client.Query(queryInput)
+	//	fmt.Println(result)
+	//}
+
+	return nil, nil
 }
 
 func (c *RemoteClient) getMD5() ([]byte, error) {
