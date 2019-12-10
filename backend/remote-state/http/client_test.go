@@ -87,14 +87,6 @@ func TestHTTPClient(t *testing.T) {
 	remote.TestClient(t, client)
 }
 
-func assertError(t *testing.T, err error, expected string) {
-	if err == nil {
-		t.Fatalf("Expected empty config to err")
-	} else if err.Error() != expected {
-		t.Fatalf("Expected err.Error() to be \"%s\", got \"%s\"", expected, err.Error())
-	}
-}
-
 type testHTTPHandler struct {
 	Data   []byte
 	Locked bool
