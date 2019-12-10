@@ -26,7 +26,7 @@ func TestHTTPClient(t *testing.T) {
 
 	url, err := url.Parse(ts.URL)
 	if err != nil {
-		t.Fatalf("err: %s", err)
+		t.Fatalf("Parse: %s", err)
 	}
 
 	// Test basic get/update
@@ -73,6 +73,10 @@ func TestHTTPClient(t *testing.T) {
 		UpdateMethod: "PUT",
 		Client:       retryablehttp.NewClient(),
 	}
+	if err != nil {
+		t.Fatalf("Parse: %s", err)
+	}
+
 	remote.TestClient(t, client) // first time through: 201
 	remote.TestClient(t, client) // second time, with identical data: 204
 
@@ -83,6 +87,9 @@ func TestHTTPClient(t *testing.T) {
 	defer ts.Close()
 
 	url, err = url.Parse(ts.URL)
+	if err != nil {
+		t.Fatalf("Parse: %s", err)
+	}
 	client = &httpClient{URL: url, Client: retryablehttp.NewClient()}
 	remote.TestClient(t, client)
 }
