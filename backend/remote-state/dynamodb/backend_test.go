@@ -74,12 +74,11 @@ func TestBackendSchema(t *testing.T) {
 
 	b0 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config0)).(*Backend)
 
-	createDynamoDBTable(t, b0.dynClient, "tf-test", "state")
-	defer deleteDynamoDBTable(t, b0.dynClient, "tf-test")
-	createDynamoDBTable(t, b0.dynClient, "dynamoTable", "lock")
-	defer deleteDynamoDBTable(t, b0.dynClient, "dynamoTable")
-
-	b0 = backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config0)).(*Backend)
+	//reateDynamoDBTable(t, b0.dynClient, "tf-test", "state")
+	//efer deleteDynamoDBTable(t, b0.dynClient, "tf-test")
+	//reateDynamoDBTable(t, b0.dynClient, "dynamoTable", "lock")
+	//efer deleteDynamoDBTable(t, b0.dynClient, "dynamoTable")
+	//0 = backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config0)).(*Backend)
 
 	//config1 := map[string]interface{}{
 	//	"state_table": "dynamoTable",
@@ -96,44 +95,42 @@ func TestBackendSchema(t *testing.T) {
 
 	//confDiags := b0.Configure(obj)
 
-
 	//fmt.Println(schema)
 }
 
-func TestBigScan(t *testing.T) {
-	testACC(t)
-
-	config := map[string]interface{}{
-		"state_table": "tf-test",
-		"hash":        "state",
-		"region":      "eu-west-1",
-	}
-
-	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
-
-	createDynamoDBTable(t, b.dynClient, "tf-test", "state")
-	defer deleteDynamoDBTable(t, b.dynClient, "tf-test")
-
-	s := states.NewState()
-	fmt.Println(s)
-	//client := &RemoteClient{
-	//	dynClient: b.dynClient,
-	//	tableName: b.tableName,
-	//	path:      b.path("s1"),
-	//}
-	//N := 1000
-	//for i := 0; i < N; i++ {
-	//	client.path = b.path("s"+strconv.Itoa(i))
-	//	stateMgr := &remote.State{Client: client}
-	//	stateMgr.WriteState(s)
-	//	if err := stateMgr.PersistState(); err != nil {
-	//		t.Fatal(err)
-	//	}	
-	//}
-	//b = backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
-	//fmt.Println(b)
-}
-
+//func TestBigScan(t *testing.T) {
+//	testACC(t)
+//
+//	config := map[string]interface{}{
+//		"state_table": "tf-test",
+//		"hash":        "state",
+//		"region":      "eu-west-1",
+//	}
+//
+//	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
+//
+//	createDynamoDBTable(t, b.dynClient, "tf-test", "state")
+//	defer deleteDynamoDBTable(t, b.dynClient, "tf-test")
+//
+//	s := states.NewState()
+//	fmt.Println(s)
+//	//client := &RemoteClient{
+//	//	dynClient: b.dynClient,
+//	//	tableName: b.tableName,
+//	//	path:      b.path("s1"),
+//	//}
+//	//N := 1000
+//	//for i := 0; i < N; i++ {
+//	//	client.path = b.path("s"+strconv.Itoa(i))
+//	//	stateMgr := &remote.State{Client: client}
+//	//	stateMgr.WriteState(s)
+//	//	if err := stateMgr.PersistState(); err != nil {
+//	//		t.Fatal(err)
+//	//	}
+//	//}
+//	//b = backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
+//	//fmt.Println(b)
+//}
 
 func TestBackendConfig_invalidKey(t *testing.T) {
 	testACC(t)

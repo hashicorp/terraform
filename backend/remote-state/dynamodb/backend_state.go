@@ -62,13 +62,13 @@ func (b *Backend) Workspaces() ([]string, error) {
 	items := result.Items
 	for {
 		if result.LastEvaluatedKey == nil {
-		    break
+			break
 		}
 		dyparams.ExclusiveStartKey = result.LastEvaluatedKey
 		result, err := b.dynClient.Scan(dyparams)
 		if err != nil {
 			return nil, fmt.Errorf("During scan operation on table %s %s.", b.tableName, err)
-		}	
+		}
 		for _, i := range result.Items {
 			items = append(items, i)
 		}

@@ -216,8 +216,8 @@ type Backend struct {
 	hashName           string
 	lockTable          string
 	workspaceKeyPrefix string
-	endpoint 		   string
-	sess *session.Session
+	endpoint           string
+	sess               *session.Session
 }
 
 func (b *Backend) configure(ctx context.Context) error {

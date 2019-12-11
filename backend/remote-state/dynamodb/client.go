@@ -21,7 +21,7 @@ import (
 	"github.com/hashicorp/terraform/state/remote"
 
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	
+
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
 
@@ -37,7 +37,7 @@ type RemoteClient struct {
 	path      string
 	lockTable string
 	endpoint  string
-	sess *session.Session
+	sess      *session.Session
 }
 
 var (
@@ -411,7 +411,6 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 	}
 
 	lockInfo, err := c.getGlobalLockInfo()
-	fmt.Println(lockInfo)
 	if err != nil {
 		err = multierror.Append(err, fmt.Errorf(globalLockError))
 	}
@@ -420,7 +419,7 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 			Err:  err,
 			Info: lockInfo,
 		}
-		return "", lockErr		
+		return "", lockErr
 	}
 
 	return info.ID, nil
@@ -436,14 +435,17 @@ func (c *RemoteClient) getGlobalLockInfo() (*state.LockInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(res)
 
 	regions := res.GlobalTableDescription.ReplicationGroup
-	dyClients := make([]*dynamodb.DynamoDB,0)
-	for _,region := range regions {
+	if len(regions) == 0 {
+		return nil, nil
+	}
+
+	dyClients := make([]*dynamodb.DynamoDB, 0)
+	for _, region := range regions {
 		dyClients = append(dyClients, dynamodb.New(c.sess.Copy(&aws.Config{
 			Endpoint: aws.String(c.endpoint),
-			Region: aws.String(*region.RegionName),
+			Region:   aws.String(*region.RegionName),
 		})))
 	}
 
@@ -460,12 +462,11 @@ func (c *RemoteClient) getGlobalLockInfo() (*state.LockInfo, error) {
 			},
 		},
 	}
-	fmt.Println("ok")
 
 	var results []*dynamodb.QueryOutput
 	for {
-		results = make([]*dynamodb.QueryOutput,0)
-		for _,client := range dyClients {
+		results = make([]*dynamodb.QueryOutput, 0)
+		for _, client := range dyClients {
 			result, err := client.Query(queryInput)
 			if err != nil {
 				return nil, err
@@ -475,28 +476,25 @@ func (c *RemoteClient) getGlobalLockInfo() (*state.LockInfo, error) {
 			}
 			results = append(results, result)
 		}
-		if len(results) == len(dyClients){
-			fmt.Println("==")
-			fmt.Println(results)
-			fmt.Println(dyClients)
+		if len(results) == len(dyClients) {
 			var regions []string
-			for _,result := range results {
+			fmt.Println(results)
+			for _, result := range results {
 				if result.Items[0]["aws:rep:updateregion"] != nil {
 					regions = append(regions, *result.Items[0]["aws:rep:updateregion"].S)
-				}else{
+				} else {
 					regions = append(regions, "")
-				}	
+				}
 			}
-			fmt.Println("for")
 			isLockReplicated := true
 			for i := 1; i < len(regions); i++ {
-		        if regions[i] != regions[0] {
-		            isLockReplicated = false
-		        }
-		    }
-		    if isLockReplicated {
-		    	break
-		    }
+				if regions[i] != regions[0] {
+					isLockReplicated = false
+				}
+			}
+			if isLockReplicated {
+				break
+			}
 		}
 	}
 
