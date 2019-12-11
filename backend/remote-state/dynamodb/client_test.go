@@ -240,7 +240,7 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 	}
 
 	// Use b2 without a dynamodb_table to bypass the lock table to write the state directly.
-	// client2 will write the "incorrect" state, simulating s3 eventually consistency delays
+	// client2 will write the "incorrect" state, simulating dynamodb eventually consistency delays
 	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"state_table": tableName,
 		"hash":        keyName,
