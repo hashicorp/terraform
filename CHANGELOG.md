@@ -1,4 +1,4 @@
-## 0.12.18 (Unreleased)
+## 0.12.18 (December 11, 2019)
 
 NOTES:
 
@@ -20,17 +20,17 @@ UPGRADE NOTES:
 
 ENHANCEMENTS:
 
-* provisioners: Warn about the deprecation of non-self references in destroy-time provisioners, both to allow preparation for this later becoming an error and also as an extra hint for the "Cycle" errors that commonly arise when such references are used. [GH-23559]
-* cli: The `terraform plan` and `terraform apply` commands (and some others) now accept the additional option `-compact-warnings`. If set, and if Terraform produces warnings that are not also accompanied by errors, then the warnings will be presented in the output in a compact form that includes only the summary information, thus providing a compromise to avoid warnings overwhelming the output if you are not yet ready to resolve them. [GH-23632]
+* provisioners: Warn about the deprecation of non-self references in destroy-time provisioners, both to allow preparation for this later becoming an error and also as an extra hint for the "Cycle" errors that commonly arise when such references are used. ([#23559](https://github.com/hashicorp/terraform/issues/23559))
+* cli: The `terraform plan` and `terraform apply` commands (and some others) now accept the additional option `-compact-warnings`. If set, and if Terraform produces warnings that are not also accompanied by errors, then the warnings will be presented in the output in a compact form that includes only the summary information, thus providing a compromise to avoid warnings overwhelming the output if you are not yet ready to resolve them. ([#23632](https://github.com/hashicorp/terraform/issues/23632))
 
 BUG FIXES:
 
-* backend/s3: Fix for users with >1000 workspaces [GH-22963]
-* cli: Allow moving indexed resource instances to new addresses that that don't yet exist in state [GH-23582]
-* cli: Improved heuristics for log level filtering with the `TF_LOG` environment variable, although it is still not 100% reliable for levels other than `TRACE` due to limitations of Terraform's internal logging infrastructure. Because of that, levels other than `TRACE` will now cause the logs to begin with a warning about potential filtering inaccuracy. [GH-23577]
-* command/show: Fix panic on show plan [GH-23581]
-* config: Fixed referencing errors generally involving `for_each` [GH-23475]
-* provisioners: The built-in provisioners (`local-exec`, `remote-exec`, `file`, etc) will no longer fail when the `TF_CLI_ARGS` environment variable is set. [GH-17400]
+* backend/s3: Fix for users with >1000 workspaces ([#22963](https://github.com/hashicorp/terraform/issues/22963))
+* cli: Allow moving indexed resource instances to new addresses that that don't yet exist in state ([#23582](https://github.com/hashicorp/terraform/issues/23582))
+* cli: Improved heuristics for log level filtering with the `TF_LOG` environment variable, although it is still not 100% reliable for levels other than `TRACE` due to limitations of Terraform's internal logging infrastructure. Because of that, levels other than `TRACE` will now cause the logs to begin with a warning about potential filtering inaccuracy. ([#23577](https://github.com/hashicorp/terraform/issues/23577))
+* command/show: Fix panic on show plan ([#23581](https://github.com/hashicorp/terraform/issues/23581))
+* config: Fixed referencing errors generally involving `for_each` ([#23475](https://github.com/hashicorp/terraform/issues/23475))
+* provisioners: The built-in provisioners (`local-exec`, `remote-exec`, `file`, etc) will no longer fail when the `TF_CLI_ARGS` environment variable is set. ([#17400](https://github.com/hashicorp/terraform/issues/17400))
 
 ## 0.12.17 (December 02, 2019)
 
