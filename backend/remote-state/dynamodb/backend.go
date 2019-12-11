@@ -263,15 +263,14 @@ func (b *Backend) configure(ctx context.Context) error {
 		},
 	}
 
-	sess, err := awsbase.GetSession(cfg)
-	b.sess = sess
+	var err error
+	b.sess, err = awsbase.GetSession(cfg)
 	if err != nil {
 		return err
 	}
-	fmt.Println(sess)
 
 	b.endpoint = data.Get("endpoint").(string)
-	b.dynClient = dynamodb.New(sess.Copy(&aws.Config{
+	b.dynClient = dynamodb.New(b.sess.Copy(&aws.Config{
 		Endpoint: aws.String(data.Get("endpoint").(string)),
 	}))
 

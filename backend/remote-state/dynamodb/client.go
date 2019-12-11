@@ -14,13 +14,14 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 	multierror "github.com/hashicorp/go-multierror"
 	uuid "github.com/hashicorp/go-uuid"
-	//awsbase "github.com/hashicorp/aws-sdk-go-base"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
 
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
 
@@ -36,6 +37,7 @@ type RemoteClient struct {
 	path      string
 	lockTable string
 	endpoint  string
+	sess *session.Session
 }
 
 var (
@@ -408,6 +410,18 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 		return "", lockErr
 	}
 
+	lockInfo, err := c.getGlobalLockInfo()
+	fmt.Println(lockInfo)
+	if err != nil {
+		err = multierror.Append(err, fmt.Errorf(globalLockError))
+	}
+	if lockInfo != nil {
+		lockErr := &state.LockError{
+			Err:  err,
+			Info: lockInfo,
+		}
+		return "", lockErr		
+	}
 
 	return info.ID, nil
 }
@@ -418,36 +432,88 @@ func (c *RemoteClient) getGlobalLockInfo() (*state.LockInfo, error) {
 		GlobalTableName: aws.String(c.lockTable),
 	}
 
-	_, err := c.dynClient.DescribeGlobalTable(globalTableParams)
+	res, err := c.dynClient.DescribeGlobalTable(globalTableParams)
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println(res)
 
-	//regions := res.GlobalTableDescription.ReplicationGroup
-	//dyClients := make(*DynamoDB, len(regions))
-	//for _,region := range regions {
-	//	dyClients = append(dyClients, dynamodb.New(sess.Copy(&aws.Config{
-	//		Endpoint: aws.String(c.endpoint),
-	//		Region: aws.String(*region),
-	//	})))
-	//}
-	//queryInput := &dynamodb.QueryInput{
-	//	TableName: aws.String(c.lockTable),
-	//	KeyConditions: map[string]*dynamodb.Condition{
-	//		"LockID": {
-	//			ComparisonOperator: aws.String("EQ"),
-	//			AttributeValueList: []*dynamodb.AttributeValue{
-	//				{
-	//					S: aws.String(c.lockPath()),
-	//				},
-	//			},
-	//		},
-	//	},
-	//}
-	//for _,client := range dyClients {
-	//	result, err := client.Query(queryInput)
-	//	fmt.Println(result)
-	//}
+	regions := res.GlobalTableDescription.ReplicationGroup
+	dyClients := make([]*dynamodb.DynamoDB,0)
+	for _,region := range regions {
+		dyClients = append(dyClients, dynamodb.New(c.sess.Copy(&aws.Config{
+			Endpoint: aws.String(c.endpoint),
+			Region: aws.String(*region.RegionName),
+		})))
+	}
+
+	queryInput := &dynamodb.QueryInput{
+		TableName: aws.String(c.lockTable),
+		KeyConditions: map[string]*dynamodb.Condition{
+			"LockID": {
+				ComparisonOperator: aws.String("EQ"),
+				AttributeValueList: []*dynamodb.AttributeValue{
+					{
+						S: aws.String(c.lockPath()),
+					},
+				},
+			},
+		},
+	}
+	fmt.Println("ok")
+
+	var results []*dynamodb.QueryOutput
+	for {
+		results = make([]*dynamodb.QueryOutput,0)
+		for _,client := range dyClients {
+			result, err := client.Query(queryInput)
+			if err != nil {
+				return nil, err
+			}
+			if *result.Count == 0 {
+				break
+			}
+			results = append(results, result)
+		}
+		if len(results) == len(dyClients){
+			fmt.Println("==")
+			fmt.Println(results)
+			fmt.Println(dyClients)
+			var regions []string
+			for _,result := range results {
+				if result.Items[0]["aws:rep:updateregion"] != nil {
+					regions = append(regions, *result.Items[0]["aws:rep:updateregion"].S)
+				}else{
+					regions = append(regions, "")
+				}	
+			}
+			fmt.Println("for")
+			isLockReplicated := true
+			for i := 1; i < len(regions); i++ {
+		        if regions[i] != regions[0] {
+		            isLockReplicated = false
+		        }
+		    }
+		    if isLockReplicated {
+		    	break
+		    }
+		}
+	}
+
+	clientRegion := *c.dynClient.Client.Config.Region
+	lockRegion := *results[0].Items[0]["aws:rep:updateregion"].S
+	if lockRegion != clientRegion {
+		var infoData string
+		if v, ok := results[0].Items[0]["Info"]; ok && v.S != nil {
+			infoData = *v.S
+		}
+		lockInfo := &state.LockInfo{}
+		err = json.Unmarshal([]byte(infoData), lockInfo)
+		if err != nil {
+			return nil, err
+		}
+		return lockInfo, nil
+	}
 
 	return nil, nil
 }
@@ -613,3 +679,5 @@ was created within the last minute, please wait for a minute or two and try agai
 
 Error: %s
 `
+
+const globalLockError = `Error while trying to lock global table`
