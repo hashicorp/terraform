@@ -358,13 +358,6 @@ github.com/hashicorp/hcl/v2/gohcl
 github.com/hashicorp/hcl/v2/ext/typeexpr
 github.com/hashicorp/hcl/v2/ext/dynblock
 github.com/hashicorp/hcl/v2/hcltest
-# github.com/hashicorp/hcl2 v0.0.0-20190821123243-0c888d1241f6
-github.com/hashicorp/hcl2/gohcl
-github.com/hashicorp/hcl2/hcl
-github.com/hashicorp/hcl2/hcl/hclsyntax
-github.com/hashicorp/hcl2/hclparse
-github.com/hashicorp/hcl2/hclwrite
-github.com/hashicorp/hcl2/hcl/json
 # github.com/hashicorp/hil v0.0.0-20190212112733-ab17b08d6590
 github.com/hashicorp/hil
 github.com/hashicorp/hil/ast
@@ -372,7 +365,7 @@ github.com/hashicorp/hil/parser
 github.com/hashicorp/hil/scanner
 # github.com/hashicorp/serf v0.0.0-20160124182025-e4ec8cc423bb
 github.com/hashicorp/serf/coordinate
-# github.com/hashicorp/terraform-config-inspect v0.0.0-20190821133035-82a99dc22ef4
+# github.com/hashicorp/terraform-config-inspect v0.0.0-20191212124732-c6ae6269b9d7
 github.com/hashicorp/terraform-config-inspect/tfconfig
 # github.com/hashicorp/terraform-svchost v0.0.0-20191011084731-65d371908596
 github.com/hashicorp/terraform-svchost

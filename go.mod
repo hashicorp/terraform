@@ -72,7 +72,7 @@ require (
 	github.com/hashicorp/hil v0.0.0-20190212112733-ab17b08d6590
 	github.com/hashicorp/memberlist v0.1.0 // indirect
 	github.com/hashicorp/serf v0.0.0-20160124182025-e4ec8cc423bb // indirect
-	github.com/hashicorp/terraform-config-inspect v0.0.0-20190821133035-82a99dc22ef4
+	github.com/hashicorp/terraform-config-inspect v0.0.0-20191212124732-c6ae6269b9d7
 	github.com/hashicorp/terraform-svchost v0.0.0-20191011084731-65d371908596
 	github.com/hashicorp/vault v0.10.4
 	github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af
