@@ -62,41 +62,41 @@ func TestBackendConfig(t *testing.T) {
 	}
 }
 
-func TestBackendSchema(t *testing.T) {
-	testACC(t)
-
-	config0 := map[string]interface{}{
-		"state_table": "tf-test",
-		"hash":        "state",
-		"region":      "eu-west-1",
-		"lock_table":  "dynamoTable",
-	}
-
-	b0 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config0)).(*Backend)
-
-	//reateDynamoDBTable(t, b0.dynClient, "tf-test", "state")
-	//efer deleteDynamoDBTable(t, b0.dynClient, "tf-test")
-	//reateDynamoDBTable(t, b0.dynClient, "dynamoTable", "lock")
-	//efer deleteDynamoDBTable(t, b0.dynClient, "dynamoTable")
-	//0 = backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config0)).(*Backend)
-
-	//config1 := map[string]interface{}{
-	//	"state_table": "dynamoTable",
-	//	"hash":        "state",
-	//	"region":      "eu-west-1",
-	//	"lock_table":  "tf-test",
-	//}
-
-	//b0 = backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config1)).(*Backend)
-	//schema := b0.ConfigSchema()
-	//spec := schema.DecoderSpec()
-	//obj, _ := hcldec.Decode(backend.TestWrapConfig(config1), spec, nil)
-	//diags = diags.Append(decDiags)
-
-	//confDiags := b0.Configure(obj)
-
-	//fmt.Println(schema)
-}
+//func TestBackendSchema(t *testing.T) {
+//	testACC(t)
+//
+//	config0 := map[string]interface{}{
+//		"state_table": "tf-test",
+//		"hash":        "state",
+//		"region":      "eu-west-1",
+//		"lock_table":  "dynamoTable",
+//	}
+//
+//	b0 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config0)).(*Backend)
+//
+//	//reateDynamoDBTable(t, b0.dynClient, "tf-test", "state")
+//	//efer deleteDynamoDBTable(t, b0.dynClient, "tf-test")
+//	//reateDynamoDBTable(t, b0.dynClient, "dynamoTable", "lock")
+//	//efer deleteDynamoDBTable(t, b0.dynClient, "dynamoTable")
+//	//0 = backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config0)).(*Backend)
+//
+//	//config1 := map[string]interface{}{
+//	//	"state_table": "dynamoTable",
+//	//	"hash":        "state",
+//	//	"region":      "eu-west-1",
+//	//	"lock_table":  "tf-test",
+//	//}
+//
+//	//b0 = backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config1)).(*Backend)
+//	//schema := b0.ConfigSchema()
+//	//spec := schema.DecoderSpec()
+//	//obj, _ := hcldec.Decode(backend.TestWrapConfig(config1), spec, nil)
+//	//diags = diags.Append(decDiags)
+//
+//	//confDiags := b0.Configure(obj)
+//
+//	//fmt.Println(schema)
+//}
 
 //func TestBigScan(t *testing.T) {
 //	testACC(t)
