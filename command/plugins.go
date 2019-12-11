@@ -39,7 +39,7 @@ type multiVersionProviderResolver struct {
 	Internal map[addrs.Provider]providers.Factory
 }
 
-func choosePlugins(avail discovery.PluginMetaSet, internal map[addrs.Provider]providers.Factory, reqd discovery.PluginRequirements) map[string]discovery.PluginMeta {
+func chooseProviders(avail discovery.PluginMetaSet, internal map[addrs.Provider]providers.Factory, reqd discovery.PluginRequirements) map[string]discovery.PluginMeta {
 	candidates := avail.ConstrainVersions(reqd)
 	ret := map[string]discovery.PluginMeta{}
 	for name, metas := range candidates {
@@ -63,7 +63,7 @@ func (r *multiVersionProviderResolver) ResolveProviders(
 	factories := make(map[addrs.Provider]providers.Factory, len(reqd))
 	var errs []error
 
-	chosen := choosePlugins(r.Available, r.Internal, reqd)
+	chosen := chooseProviders(r.Available, r.Internal, reqd)
 	for name, req := range reqd {
 		if factory, isInternal := r.Internal[addrs.NewLegacyProvider(name)]; isInternal {
 			if !req.Versions.Unconstrained() {

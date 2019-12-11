@@ -12,6 +12,7 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -123,7 +124,7 @@ func upgradeStateV3ToV4(old *stateV3) (*stateV4, error) {
 					// incorrect but it'll get fixed up next time any updates
 					// are made to an instance.
 					if oldProviderAddr != "" {
-						localAddr, diags := addrs.ParseProviderConfigCompactStr(oldProviderAddr)
+						localAddr, diags := configs.ParseProviderConfigCompactStr(oldProviderAddr)
 						if diags.HasErrors() {
 							if strings.Contains(oldProviderAddr, "${") {
 								// There seems to be a common misconception that
