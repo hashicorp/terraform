@@ -67,7 +67,7 @@ func Init(services *disco.Disco) {
 		"manta":       func() backend.Backend { return backendManta.New() },
 		"oss":         func() backend.Backend { return backendOSS.New() },
 		"pg":          func() backend.Backend { return backendPg.New() },
-		"s3":          func() backend.Backend { return backendS3.New() },	
+		"s3":          func() backend.Backend { return backendS3.New() },
 		"swift":       func() backend.Backend { return backendSwift.New() },
 
 		// Deprecated backends.
