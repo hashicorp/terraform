@@ -60,7 +60,7 @@ func (b *Body) Attributes() map[string]*Attribute {
 // Blocks returns a new slice of all the blocks in the body.
 func (b *Body) Blocks() []*Block {
 	ret := make([]*Block, 0, len(b.items))
-	for n := range b.items {
+	for _, n := range b.items.List() {
 		if block, isBlock := n.content.(*Block); isBlock {
 			ret = append(ret, block)
 		}
@@ -132,6 +132,26 @@ func (b *Body) RemoveBlock(block *Block) bool {
 		}
 	}
 	return false
+}
+
+// SetAttributeRaw either replaces the expression of an existing attribute
+// of the given name or adds a new attribute definition to the end of the block,
+// using the given tokens verbatim as the expression.
+//
+// The same caveats apply to this function as for NewExpressionRaw on which
+// it is based. If possible, prefer to use SetAttributeValue or
+// SetAttributeTraversal.
+func (b *Body) SetAttributeRaw(name string, tokens Tokens) *Attribute {
+	attr := b.GetAttribute(name)
+	expr := NewExpressionRaw(tokens)
+	if attr != nil {
+		attr.expr = attr.expr.ReplaceWith(expr)
+	} else {
+		attr := newAttribute()
+		attr.init(name, expr)
+		b.appendItem(attr)
+	}
+	return attr
 }
 
 // SetAttributeValue either replaces the expression of an existing attribute

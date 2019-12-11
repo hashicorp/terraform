@@ -80,6 +80,7 @@ var FormatListFunc = function.New(&function.Spec{
 		lenChooser := -1
 		iterators := make([]cty.ElementIterator, len(args))
 		singleVals := make([]cty.Value, len(args))
+		unknowns := make([]bool, len(args))
 		for i, arg := range args {
 			argTy := arg.Type()
 			switch {
@@ -87,7 +88,8 @@ var FormatListFunc = function.New(&function.Spec{
 				if !argTy.IsTupleType() && !arg.IsKnown() {
 					// We can't iterate this one at all yet then, so we can't
 					// yet produce a result.
-					return cty.UnknownVal(retType), nil
+					unknowns[i] = true
+					continue
 				}
 				thisLen := arg.LengthInt()
 				if iterLen == -1 {
@@ -103,9 +105,23 @@ var FormatListFunc = function.New(&function.Spec{
 						)
 					}
 				}
+				if !arg.IsKnown() {
+					// We allowed an unknown tuple value to fall through in
+					// our initial check above so that we'd be able to run
+					// the above error checks against it, but we still can't
+					// iterate it if the checks pass.
+					unknowns[i] = true
+					continue
+				}
 				iterators[i] = arg.ElementIterator()
 			default:
 				singleVals[i] = arg
+			}
+		}
+
+		for _, isUnk := range unknowns {
+			if isUnk {
+				return cty.UnknownVal(retType), nil
 			}
 		}
 
