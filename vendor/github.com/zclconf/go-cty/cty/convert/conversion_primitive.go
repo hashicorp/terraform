@@ -1,6 +1,8 @@
 package convert
 
 import (
+	"strings"
+
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -41,7 +43,14 @@ var primitiveConversionsUnsafe = map[cty.Type]map[cty.Type]conversion{
 			case "false", "0":
 				return cty.False, nil
 			default:
-				return cty.NilVal, path.NewErrorf("a bool is required")
+				switch strings.ToLower(val.AsString()) {
+				case "true":
+					return cty.NilVal, path.NewErrorf("a bool is required; to convert from string, use lowercase \"true\"")
+				case "false":
+					return cty.NilVal, path.NewErrorf("a bool is required; to convert from string, use lowercase \"false\"")
+				default:
+					return cty.NilVal, path.NewErrorf("a bool is required")
+				}
 			}
 		},
 	},

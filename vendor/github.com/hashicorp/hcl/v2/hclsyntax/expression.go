@@ -615,8 +615,9 @@ type IndexExpr struct {
 	Collection Expression
 	Key        Expression
 
-	SrcRange  hcl.Range
-	OpenRange hcl.Range
+	SrcRange     hcl.Range
+	OpenRange    hcl.Range
+	BracketRange hcl.Range
 }
 
 func (e *IndexExpr) walkChildNodes(w internalWalkFunc) {
@@ -631,7 +632,7 @@ func (e *IndexExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
 	diags = append(diags, collDiags...)
 	diags = append(diags, keyDiags...)
 
-	val, indexDiags := hcl.Index(coll, key, &e.SrcRange)
+	val, indexDiags := hcl.Index(coll, key, &e.BracketRange)
 	setDiagEvalContext(indexDiags, e, ctx)
 	diags = append(diags, indexDiags...)
 	return val, diags

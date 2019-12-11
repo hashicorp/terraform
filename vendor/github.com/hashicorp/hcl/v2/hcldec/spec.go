@@ -204,8 +204,10 @@ func (s *AttrSpec) decode(content *hcl.BodyContent, blockLabels []blockLabel, ct
 				"Inappropriate value for attribute %q: %s.",
 				s.Name, err.Error(),
 			),
-			Subject: attr.Expr.StartRange().Ptr(),
-			Context: hcl.RangeBetween(attr.NameRange, attr.Expr.StartRange()).Ptr(),
+			Subject:     attr.Expr.Range().Ptr(),
+			Context:     hcl.RangeBetween(attr.NameRange, attr.Expr.Range()).Ptr(),
+			Expression:  attr.Expr,
+			EvalContext: ctx,
 		})
 		// We'll return an unknown value of the _correct_ type so that the
 		// incomplete result can still be used for some analysis use-cases.
@@ -1227,10 +1229,13 @@ func (s *BlockAttrsSpec) decode(content *hcl.BodyContent, blockLabels []blockLab
 		attrVal, err := convert.Convert(attrVal, s.ElementType)
 		if err != nil {
 			diags = append(diags, &hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid attribute value",
-				Detail:   fmt.Sprintf("Invalid value for attribute of %q block: %s.", s.TypeName, err),
-				Subject:  attr.Expr.Range().Ptr(),
+				Severity:    hcl.DiagError,
+				Summary:     "Invalid attribute value",
+				Detail:      fmt.Sprintf("Invalid value for attribute of %q block: %s.", s.TypeName, err),
+				Subject:     attr.Expr.Range().Ptr(),
+				Context:     hcl.RangeBetween(attr.NameRange, attr.Expr.Range()).Ptr(),
+				Expression:  attr.Expr,
+				EvalContext: ctx,
 			})
 			attrVal = cty.UnknownVal(s.ElementType)
 		}

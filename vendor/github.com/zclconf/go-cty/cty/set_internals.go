@@ -147,6 +147,17 @@ func appendSetHashBytes(val Value, buf *bytes.Buffer) {
 
 	switch val.ty {
 	case Number:
+		// Due to an unfortunate quirk of gob encoding for big.Float, we end up
+		// with non-pointer values immediately after a gob round-trip, and
+		// we end up in here before we've had a chance to run
+		// gobDecodeFixNumberPtr on the inner values of a gob-encoded set,
+		// and so sadly we must make a special effort to handle that situation
+		// here just so that we can get far enough along to fix it up for
+		// everything else in this package.
+		if bf, ok := val.v.(big.Float); ok {
+			buf.WriteString(bf.String())
+			return
+		}
 		buf.WriteString(val.v.(*big.Float).String())
 		return
 	case Bool:
