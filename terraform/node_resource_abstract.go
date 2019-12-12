@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/lang"
 	"github.com/hashicorp/terraform/states"
-	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // ConcreteResourceNodeFunc is a callback type used to convert an
@@ -239,46 +238,6 @@ func (n *NodeAbstractResourceInstance) References() []*addrs.Reference {
 			return nil
 		}
 		return n.NodeAbstractResource.References()
-	}
-
-	// FIXME: remove once the deprecated DependsOn values have been removed from state
-	// The state dependencies are now connected in a separate transformation as
-	// absolute addresses, but we need to keep this here until we can be sure
-	// that no state will need to use the old depends_on references.
-	if rs := n.ResourceState; rs != nil {
-		if s := rs.Instance(n.InstanceKey); s != nil {
-			// State is still storing dependencies as old-style strings, so we'll
-			// need to do a little work here to massage this to the form we now
-			// want.
-			var result []*addrs.Reference
-
-			// It is (apparently) possible for s.Current to be nil. This proved
-			// difficult to reproduce, so we will fix the symptom here and hope
-			// to find the root cause another time.
-			//
-			// https://github.com/hashicorp/terraform/issues/21407
-			if s.Current == nil {
-				log.Printf("[WARN] no current state found for %s", n.Name())
-				return nil
-			}
-			for _, addr := range s.Current.DependsOn {
-				if addr == nil {
-					// Should never happen; indicates a bug in the state loader
-					panic(fmt.Sprintf("dependencies for current object on %s contains nil address", n.ResourceInstanceAddr()))
-				}
-
-				// This is a little weird: we need to manufacture an addrs.Reference
-				// with a fake range here because the state isn't something we can
-				// make source references into.
-				result = append(result, &addrs.Reference{
-					Subject: addr,
-					SourceRange: tfdiags.SourceRange{
-						Filename: "(state file)",
-					},
-				})
-			}
-			return result
-		}
 	}
 
 	// If we have neither config nor state then we have no references.
