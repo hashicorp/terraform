@@ -331,6 +331,7 @@ func (p *GRPCProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 	log.Printf("[TRACE] GRPCProvider: ReadResource")
 
 	resSchema := p.getResourceSchema(r.TypeName)
+	metaSchema := p.getProviderMetaSchema()
 
 	mp, err := msgpack.Marshal(r.PriorState, resSchema.Block.ImpliedType())
 	if err != nil {
@@ -342,6 +343,15 @@ func (p *GRPCProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 		TypeName:     r.TypeName,
 		CurrentState: &proto.DynamicValue{Msgpack: mp},
 		Private:      r.Private,
+	}
+
+	if metaSchema.Block != nil {
+		metaMP, err := msgpack.Marshal(r.ProviderMeta, metaSchema.Block.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
+		}
+		protoReq.ProviderMeta = &proto.DynamicValue{Msgpack: metaMP}
 	}
 
 	protoResp, err := p.client.ReadResource(p.ctx, protoReq)
