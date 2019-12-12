@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/instances"
+	"github.com/hashicorp/terraform/internal/schemas"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -44,6 +45,7 @@ type action interface {
 // the common case due to graph traversal concurrency.
 type actionData struct {
 	state             *states.SyncState
+	schemas           *schemas.Schemas
 	providerInstances map[string]providers.Interface
 	dependencies      Dependencies
 	expander          *instances.Expander
@@ -51,9 +53,10 @@ type actionData struct {
 	mu sync.RWMutex
 }
 
-func newActionData(deps Dependencies, state *states.State) *actionData {
+func newActionData(deps Dependencies, schemas *schemas.Schemas, state *states.State) *actionData {
 	return &actionData{
 		state:             state.SyncWrapper(),
+		schemas:           schemas,
 		providerInstances: map[string]providers.Interface{},
 		dependencies:      deps,
 		expander:          instances.NewExpander(),

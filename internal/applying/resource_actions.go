@@ -19,7 +19,8 @@ import (
 type resourceActions struct {
 	Addr              addrs.AbsResource
 	SetMeta           *resourceSetMetaAction
-	Instances         map[addrs.InstanceKey]resourceInstanceActions
+	Instances         map[addrs.InstanceKey]*resourceInstanceActions
+	Cleanup           *resourceCleanupAction
 	ProviderConfigRef addrs.AbsProviderConfig
 	Dependencies      []addrs.Referenceable
 }
@@ -28,27 +29,57 @@ type resourceActions struct {
 // particular resource instance and the addresses of objects they depend on.
 type resourceInstanceActions struct {
 	Addr           addrs.AbsResourceInstance
-	CreateUpdate   *resourceInstanceChangeAction
-	Destroy        *resourceInstanceChangeAction
-	DestroyDeposed map[states.DeposedKey]*resourceInstanceChangeAction
+	CreateUpdate   *resourceInstanceNonDestroyChangeAction
+	Destroy        *resourceInstanceDestroyChangeAction
+	DestroyDeposed map[states.DeposedKey]*resourceInstanceDestroyChangeAction
 }
 
-// resourceInstanceAction is an action that handles executing a planned
-// change to a specific resource instance.
-type resourceInstanceChangeAction struct {
+// resourceInstanceNonDestroyChangeAction is an action that handles executing a
+// planned change with any action other than plans.Delete.
+type resourceInstanceNonDestroyChangeAction struct {
 	Addr          addrs.AbsResourceInstance
 	Action        plans.Action
 	Config        *configs.Resource
-	PriorObj      *cty.Value
-	PlannedNewObj *cty.Value
+	PriorObj      cty.Value
+	PlannedNewObj cty.Value
 }
 
-func (a *resourceInstanceChangeAction) Name() string {
-	return fmt.Sprintf("%s change for %s", a.Action, a.Addr)
+func (a *resourceInstanceNonDestroyChangeAction) Name() string {
+	return fmt.Sprintf("%s for %s", a.Action, a.Addr)
 }
 
-func (a *resourceInstanceChangeAction) Execute(ctx context.Context, data *actionData) tfdiags.Diagnostics {
+func (a *resourceInstanceNonDestroyChangeAction) Execute(ctx context.Context, data *actionData) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
+
+	diags = diags.Append(tfdiags.Sourceless(
+		tfdiags.Error,
+		"Resource instance change action not yet implemented",
+		"The prototype apply codepath does not yet support making resource instance changes.",
+	))
+
+	return diags
+}
+
+// resourceInstanceDestroyChangeAction is an action that handles executing a
+// plans.Delete change for a resource instance.
+type resourceInstanceDestroyChangeAction struct {
+	Addr       addrs.AbsResourceInstance
+	DeposedKey states.DeposedKey
+	Action     plans.Action
+	PriorObj   cty.Value
+}
+
+func (a *resourceInstanceDestroyChangeAction) Name() string {
+	return fmt.Sprintf("%s for %s", a.Action, a.Addr)
+}
+
+func (a *resourceInstanceDestroyChangeAction) Execute(ctx context.Context, data *actionData) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	if a.Action != plans.Delete {
+		// Currently this action type is only used for delete.
+		panic(fmt.Sprintf("resourceInstanceDestroyChangeAction with non-Delete action %s", a.Action))
+	}
 
 	diags = diags.Append(tfdiags.Sourceless(
 		tfdiags.Error,
@@ -78,6 +109,33 @@ func (a *resourceSetMetaAction) Execute(ctx context.Context, data *actionData) t
 		tfdiags.Error,
 		"Resource set metadata action not yet implemented",
 		"The prototype apply codepath does not yet support setting resource instance metadata.",
+	))
+
+	return diags
+}
+
+// resourceCleanupAction is an action that will delete the empty shell of a
+// resource from the state, assuming it actually is empty.
+//
+// This action should only be generated when the resource configuration has
+// been removed altogether. If the resource configuration still exists but
+// has count = 0 or for_each = {} then removing the empty resource shell
+// would not be appropriate.
+type resourceCleanupAction struct {
+	Addr addrs.AbsResource
+}
+
+func (a *resourceCleanupAction) Name() string {
+	return fmt.Sprintf("Delete %s from the state", a.Addr)
+}
+
+func (a *resourceCleanupAction) Execute(ctx context.Context, data *actionData) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	diags = diags.Append(tfdiags.Sourceless(
+		tfdiags.Error,
+		"Resource cleanup action not yet implemented",
+		"The prototype apply codepath does not yet support resource cleanup.",
 	))
 
 	return diags

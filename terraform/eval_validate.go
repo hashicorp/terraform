@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/internal/resources"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -225,112 +226,9 @@ func (n *EvalValidateProvisioner) evaluateBlock(ctx EvalContext, body hcl.Body, 
 // subsystem to be aware of schema itself. Once that is done, we can remove
 // this and use a type-specific schema from the communicator to validate
 // exactly what is expected for a given connection type.
-var connectionBlockSupersetSchema = &configschema.Block{
-	Attributes: map[string]*configschema.Attribute{
-		// NOTE: "type" is not included here because it's treated special
-		// by the config loader and stored away in a separate field.
+var connectionBlockSupersetSchema = resources.ConnectionBlockSupersetSchema()
 
-		// Common attributes for both connection types
-		"host": {
-			Type:     cty.String,
-			Required: true,
-		},
-		"type": {
-			Type:     cty.String,
-			Optional: true,
-		},
-		"user": {
-			Type:     cty.String,
-			Optional: true,
-		},
-		"password": {
-			Type:     cty.String,
-			Optional: true,
-		},
-		"port": {
-			Type:     cty.String,
-			Optional: true,
-		},
-		"timeout": {
-			Type:     cty.String,
-			Optional: true,
-		},
-		"script_path": {
-			Type:     cty.String,
-			Optional: true,
-		},
-
-		// For type=ssh only (enforced in ssh communicator)
-		"private_key": {
-			Type:     cty.String,
-			Optional: true,
-		},
-		"certificate": {
-			Type:     cty.String,
-			Optional: true,
-		},
-		"host_key": {
-			Type:     cty.String,
-			Optional: true,
-		},
-		"agent": {
-			Type:     cty.Bool,
-			Optional: true,
-		},
-		"agent_identity": {
-			Type:     cty.String,
-			Optional: true,
-		},
-		"bastion_host": {
-			Type:     cty.String,
-			Optional: true,
-		},
-		"bastion_host_key": {
-			Type:     cty.String,
-			Optional: true,
-		},
-		"bastion_port": {
-			Type:     cty.Number,
-			Optional: true,
-		},
-		"bastion_user": {
-			Type:     cty.String,
-			Optional: true,
-		},
-		"bastion_password": {
-			Type:     cty.String,
-			Optional: true,
-		},
-		"bastion_private_key": {
-			Type:     cty.String,
-			Optional: true,
-		},
-		"bastion_certificate": {
-			Type:     cty.String,
-			Optional: true,
-		},
-
-		// For type=winrm only (enforced in winrm communicator)
-		"https": {
-			Type:     cty.Bool,
-			Optional: true,
-		},
-		"insecure": {
-			Type:     cty.Bool,
-			Optional: true,
-		},
-		"cacert": {
-			Type:     cty.String,
-			Optional: true,
-		},
-		"use_ntlm": {
-			Type:     cty.Bool,
-			Optional: true,
-		},
-	},
-}
-
-// connectionBlockSupersetSchema is a schema representing the superset of all
+// ConnectionBlockSupersetSchema is a schema representing the superset of all
 // possible arguments for "connection" blocks across all supported connection
 // types.
 //

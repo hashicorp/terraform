@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/internal/schemas"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -53,6 +54,10 @@ type Arguments struct {
 	// The caller must ensure that all of the providers and provisioners
 	// required by the planned actions are included.
 	Dependencies Dependencies
+
+	// Schemas contains the collected schemas for all of the providers and
+	// provisioners included in Dependencies.
+	Schemas *schemas.Schemas
 }
 
 // prepare inserts default values, clones certain structures to so we can
@@ -68,6 +73,9 @@ func (args Arguments) prepare() Arguments {
 		// If this is an initial create, the caller must create and pass a
 		// non-nil empty state.
 		panic("nil PriorState in Apply arguments")
+	}
+	if args.Schemas == nil {
+		panic("nil Schemas in Apply arguments")
 	}
 
 	// We'll disconnect our state from the one held by the caller by copying

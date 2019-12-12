@@ -20,6 +20,7 @@ func apply(ctx context.Context, args Arguments) (*states.State, tfdiags.Diagnost
 		args.PriorState,
 		args.Config,
 		args.Plan,
+		args.Schemas,
 	)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
@@ -29,7 +30,7 @@ func apply(ctx context.Context, args Arguments) (*states.State, tfdiags.Diagnost
 	log.Printf("[TRACE] Apply: action dependency graph:\n%s", logging.Indent(graph.StringWithNodeTypes()))
 
 	// Actions will mutate the state via the data object during their work.
-	data := newActionData(args.Dependencies, state)
+	data := newActionData(args.Dependencies, args.Schemas, state)
 
 	moreDiags = graph.Walk(func(v dag.Vertex) tfdiags.Diagnostics {
 		return v.(action).Execute(ctx, data)

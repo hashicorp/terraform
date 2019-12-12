@@ -466,6 +466,7 @@ func (c *Context) Apply() (*states.State, tfdiags.Diagnostics) {
 		WorkspaceName:    workspaceName,
 		ConcurrencyLimit: 10, // FIXME: We've thrown away the original ContextOpts value by now
 		Dependencies:     c.components,
+		Schemas:          c.schemas,
 	})
 
 	// Mimic our old weird API, for compatibility with existing callers.
