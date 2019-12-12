@@ -161,7 +161,6 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 					NodeAbstractResourceInstance: abstract,
 					DeposedKey:                   dk,
 				}
-				node.(*NodeDestroyResourceInstance).ModifyCreateBeforeDestroy(createBeforeDestroy)
 			} else {
 				node = &NodeDestroyDeposedResourceInstanceObject{
 					NodeAbstractResourceInstance: abstract,
