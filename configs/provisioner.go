@@ -147,8 +147,8 @@ func onlySelfRefs(body hcl.Body) hcl.Diagnostics {
 
 			if !valid {
 				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagWarning,
-					Summary:  "External references from destroy provisioners are deprecated",
+					Severity: hcl.DiagError,
+					Summary:  "Invalid reference from destroy provisioner",
 					Detail: "Destroy-time provisioners and their connection configurations may only " +
 						"reference attributes of the related resource, via 'self', 'count.index', " +
 						"or 'each.key'.\n\nReferences to other resources during the destroy phase " +
