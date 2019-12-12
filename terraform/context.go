@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/instances"
+	"github.com/hashicorp/terraform/internal/applying"
 	"github.com/hashicorp/terraform/lang"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
@@ -432,6 +433,52 @@ func (c *Context) Eval(path addrs.ModuleInstance) (*lang.Scope, tfdiags.Diagnost
 //       called, so that will need to be refactored before this can be changed.
 func (c *Context) Apply() (*states.State, tfdiags.Diagnostics) {
 	defer c.acquireRun("apply")()
+
+	// This is an abstraction inversion resulting from implementing this new
+	// API in terms of the old: we need to reconstitute a *plans.Plan structure
+	// from the parts that the caller took apart before calling NewContext.
+	// This is not fully complete, but is enough for prototyping.
+	variableValues := c.Variables().JustValues()
+	variableValuesForPlan := make(map[string]plans.DynamicValue, len(variableValues))
+	for k, v := range variableValues {
+		var err error
+		variableValuesForPlan[k], err = plans.NewDynamicValue(v, v.Type())
+		if err != nil {
+			// Should never happen because these variable values presumably
+			// came from a plans.DynamicValue originally anyway.
+			panic(err)
+		}
+	}
+	plan := &plans.Plan{
+		VariableValues: variableValuesForPlan,
+		Changes:        c.changes,
+		TargetAddrs:    c.targets,
+	}
+
+	workspaceName := "default"
+	if c.meta != nil {
+		workspaceName = c.meta.Env
+	}
+	newState, diags := applying.Apply(c.runContext, applying.Arguments{
+		Plan:             plan,
+		PriorState:       c.state.DeepCopy(),
+		Config:           c.config,
+		WorkspaceName:    workspaceName,
+		ConcurrencyLimit: 10, // FIXME: We've thrown away the original ContextOpts value by now
+		Dependencies:     c.components,
+	})
+
+	// Mimic our old weird API, for compatibility with existing callers.
+	// c.state is always updated, but we only return the state if there are
+	// no errors.
+	c.state = newState
+	if diags.HasErrors() {
+		return nil, diags
+	}
+	return newState, diags
+
+	// The remainder of this is the old implementation, which applying.Apply
+	// is prototypically replacing.
 
 	// Copy our own state
 	c.state = c.state.DeepCopy()

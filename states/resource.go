@@ -198,6 +198,14 @@ func eachModeForInstanceKey(key addrs.InstanceKey) EachMode {
 	}
 }
 
+// EachModeForInstanceKey determines which EachMode corresponds to the given
+// InstanceKey value.
+func EachModeForInstanceKey(key addrs.InstanceKey) EachMode {
+	// This was originally unexported, so for now we're just wrapping the
+	// old name to export it.
+	return eachModeForInstanceKey(key)
+}
+
 // DeposedKey is a 8-character hex string used to uniquely identify deposed
 // instance objects in the state.
 type DeposedKey string
