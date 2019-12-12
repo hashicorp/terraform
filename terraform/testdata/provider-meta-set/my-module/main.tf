@@ -6,6 +6,8 @@ resource "test_instance" "bar" {
   foo = "bar"
 }
 
-module "my_module" {
-  source = "./my-module"
+terraform {
+  provider_meta "test" {
+    baz = "quux-submodule"
+  }
 }

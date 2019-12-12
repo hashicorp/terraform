@@ -11,3 +11,7 @@ terraform {
     baz = "quux"
   }
 }
+
+module "my_module" {
+  source = "./my-module"
+}
