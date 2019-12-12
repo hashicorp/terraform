@@ -4,10 +4,6 @@ data "test_data_source" "foo" {
 
 terraform {
   provider_meta "test" {
-    baz = "quux"
+    baz = "quux-submodule"
   }
-}
-
-module "my_module" {
-  source = "./my-module"
 }
