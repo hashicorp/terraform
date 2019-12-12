@@ -11,13 +11,25 @@ import (
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
+// providerConfigActions gathers together all of the actions for a specific
+// provider configuration.
+type providerConfigActions struct {
+	Addr        addrs.AbsProviderConfig
+	Instantiate *instantiateProviderAction
+	Close       *closeProviderAction
+}
+
 // instantiateProviderAction is an action that creates an instance of a
 // provider and configures it so that it's ready to accept further requests,
 // before registering it in the shared actionData object for use by
 // other downstream actions.
 type instantiateProviderAction struct {
 	Addr   addrs.AbsProviderConfig
-	Config configs.Provider
+	Config *configs.Provider // can be nil if no provider blocks are present
+}
+
+func (a *instantiateProviderAction) Name() string {
+	return "Init " + a.Addr.String()
 }
 
 func (a *instantiateProviderAction) Execute(ctx context.Context, data *actionData) tfdiags.Diagnostics {
@@ -66,7 +78,11 @@ func (a *instantiateProviderAction) Execute(ctx context.Context, data *actionDat
 // previously created by instantiateProviderAction.
 type closeProviderAction struct {
 	Addr   addrs.AbsProviderConfig
-	Config configs.Provider
+	Config *configs.Provider // can be nil if no provider blocks are present
+}
+
+func (a *closeProviderAction) Name() string {
+	return "Close " + a.Addr.String()
 }
 
 func (a *closeProviderAction) Execute(ctx context.Context, data *actionData) tfdiags.Diagnostics {

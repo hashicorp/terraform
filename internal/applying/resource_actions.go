@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -25,6 +26,46 @@ type resourceActions struct {
 	Dependencies      []addrs.Referenceable
 }
 
+func (ra *resourceActions) AllRequire(a action, g *dag.AcyclicGraph) {
+	ra.AllResourceOnlyRequire(a, g)
+	ra.AllInstancesRequire(a, g)
+}
+
+func (ra *resourceActions) AllRequiredBy(a action, g *dag.AcyclicGraph) {
+	ra.AllResourceOnlyRequiredBy(a, g)
+	ra.AllInstancesRequiredBy(a, g)
+}
+
+func (ra *resourceActions) AllResourceOnlyRequire(a action, g *dag.AcyclicGraph) {
+	if ra.SetMeta != nil {
+		g.Connect(dag.BasicEdge(ra.SetMeta, a))
+	}
+	if ra.Cleanup != nil {
+		g.Connect(dag.BasicEdge(ra.Cleanup, a))
+	}
+}
+
+func (ra *resourceActions) AllResourceOnlyRequiredBy(a action, g *dag.AcyclicGraph) {
+	if ra.SetMeta != nil {
+		g.Connect(dag.BasicEdge(a, ra.SetMeta))
+	}
+	if ra.Cleanup != nil {
+		g.Connect(dag.BasicEdge(a, ra.Cleanup))
+	}
+}
+
+func (ra *resourceActions) AllInstancesRequire(a action, g *dag.AcyclicGraph) {
+	for _, riActions := range ra.Instances {
+		riActions.AllRequire(a, g)
+	}
+}
+
+func (ra *resourceActions) AllInstancesRequiredBy(a action, g *dag.AcyclicGraph) {
+	for _, riActions := range ra.Instances {
+		riActions.AllRequiredBy(a, g)
+	}
+}
+
 // resourceInstanceActions gathers together the action instances for a
 // particular resource instance and the addresses of objects they depend on.
 type resourceInstanceActions struct {
@@ -32,6 +73,30 @@ type resourceInstanceActions struct {
 	CreateUpdate   *resourceInstanceNonDestroyChangeAction
 	Destroy        *resourceInstanceDestroyChangeAction
 	DestroyDeposed map[states.DeposedKey]*resourceInstanceDestroyChangeAction
+}
+
+func (ria *resourceInstanceActions) AllRequire(a action, g *dag.AcyclicGraph) {
+	if ria.CreateUpdate != nil {
+		g.Connect(dag.BasicEdge(ria.CreateUpdate, a))
+	}
+	if ria.Destroy != nil {
+		g.Connect(dag.BasicEdge(ria.Destroy, a))
+	}
+	for _, destroyDeposedAction := range ria.DestroyDeposed {
+		g.Connect(dag.BasicEdge(destroyDeposedAction, a))
+	}
+}
+
+func (ria *resourceInstanceActions) AllRequiredBy(a action, g *dag.AcyclicGraph) {
+	if ria.CreateUpdate != nil {
+		g.Connect(dag.BasicEdge(a, ria.CreateUpdate))
+	}
+	if ria.Destroy != nil {
+		g.Connect(dag.BasicEdge(a, ria.Destroy))
+	}
+	for _, destroyDeposedAction := range ria.DestroyDeposed {
+		g.Connect(dag.BasicEdge(a, destroyDeposedAction))
+	}
 }
 
 // resourceInstanceNonDestroyChangeAction is an action that handles executing a
@@ -45,7 +110,7 @@ type resourceInstanceNonDestroyChangeAction struct {
 }
 
 func (a *resourceInstanceNonDestroyChangeAction) Name() string {
-	return fmt.Sprintf("%s for %s", a.Action, a.Addr)
+	return fmt.Sprintf("%s %s", a.Action, a.Addr)
 }
 
 func (a *resourceInstanceNonDestroyChangeAction) Execute(ctx context.Context, data *actionData) tfdiags.Diagnostics {
@@ -70,7 +135,7 @@ type resourceInstanceDestroyChangeAction struct {
 }
 
 func (a *resourceInstanceDestroyChangeAction) Name() string {
-	return fmt.Sprintf("%s for %s", a.Action, a.Addr)
+	return fmt.Sprintf("%s %s", a.Action, a.Addr)
 }
 
 func (a *resourceInstanceDestroyChangeAction) Execute(ctx context.Context, data *actionData) tfdiags.Diagnostics {

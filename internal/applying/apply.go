@@ -33,8 +33,12 @@ func apply(ctx context.Context, args Arguments) (*states.State, tfdiags.Diagnost
 	data := newActionData(args.Dependencies, args.Schemas, state)
 
 	moreDiags = graph.Walk(func(v dag.Vertex) tfdiags.Diagnostics {
-		return v.(action).Execute(ctx, data)
+		log.Printf("[TRACE] Apply: starting %q", dag.VertexName(v))
+		diags := v.(action).Execute(ctx, data)
+		log.Printf("[TRACE] Apply: finished %q", dag.VertexName(v))
+		return diags
 	})
+	diags = diags.Append(moreDiags)
 
 	// The actions mutate our state object directly as they work, so once
 	// we get here "state" represents the result of the apply operation, even

@@ -23,6 +23,7 @@ func buildGraph(
 	var diags tfdiags.Diagnostics
 	const errorSummary = "Failed to construct graph for terraform apply"
 
+	// 🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔
 	// Currently our plan structure throws away a lot of context we learned
 	// during the plan walk, so sadly we need to do a bunch of work here
 	// to recreate that context by inferring things from the configuration
@@ -32,15 +33,23 @@ func buildGraph(
 	// then we'd use the configuration only to find the expressions that we
 	// need to re-evaluate during the apply walk in order to complete our
 	// planned values.
+	// 🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔
 
-	// TODO: Later, when we're talking other actions below, we can use
-	// the result of this to create the necessary dependency edges.
-	_, err := buildGraphResourceActions(graph, priorState, config, plan, schemas)
+	resourceActions, err := buildGraphResourceActions(graph, priorState, config, plan, schemas)
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			errorSummary,
 			fmt.Sprintf("Error while analyzing resource changes: %s.\n\nThis is a bug in Terraform; please report it.", err),
+		))
+	}
+
+	_, err = buildProviderConfigActions(graph, resourceActions, config, schemas)
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			errorSummary,
+			fmt.Sprintf("Error while analyzing provider configurations: %s.\n\nThis is a bug in Terraform; please report it.", err),
 		))
 	}
 
@@ -56,6 +65,11 @@ func buildGraph(
 // all of the resources and resource instances with planned changes,
 // returning a map describing the action nodes it created and the addresses
 // of objects whose actions each one depends on.
+//
+// This function is responsible for creating all of the non-reference-derived
+// dependency edges between the actions it creates, with the exception of
+// edges with provider configurations that must be handled separately by
+// the caller.
 func buildGraphResourceActions(
 	g *dag.AcyclicGraph,
 	priorState *states.State,
@@ -226,11 +240,96 @@ func buildGraphResourceActions(
 		}
 	}
 
-	// TODO: Once we're done with dealing with the individual instances, where
-	// we probably lazy-created some whole-resource actions along the way,
-	// we must walk over one more time and make sure that the whole-resource
-	// actions have the necessary dependency edges with the individual
-	// instances and with each other.
+	for _, rActions := range actions {
+		if rActions.SetMeta != nil {
+			// All of the instance actions must happen after the metadata
+			// has been set.
+			for _, riActions := range rActions.Instances {
+				if riActions.CreateUpdate != nil {
+					g.Connect(dag.BasicEdge(riActions.CreateUpdate, rActions.SetMeta))
+				}
+				if riActions.Destroy != nil {
+					g.Connect(dag.BasicEdge(riActions.Destroy, rActions.SetMeta))
+				}
+				for _, deposedAction := range riActions.DestroyDeposed {
+					g.Connect(dag.BasicEdge(deposedAction, rActions.SetMeta))
+				}
+			}
+		}
+		if rActions.Cleanup != nil {
+			// Cleanup must happen after all other actions related to the
+			// resource.
+			for _, riActions := range rActions.Instances {
+				if riActions.CreateUpdate != nil {
+					g.Connect(dag.BasicEdge(rActions.Cleanup, riActions.CreateUpdate))
+				}
+				if riActions.Destroy != nil {
+					g.Connect(dag.BasicEdge(rActions.Cleanup, riActions.Destroy))
+				}
+				for _, deposedAction := range riActions.DestroyDeposed {
+					g.Connect(dag.BasicEdge(rActions.Cleanup, deposedAction))
+				}
+			}
+		}
+		if rActions.SetMeta != nil && rActions.Cleanup != nil {
+			// Cleanup must also happen after SetMeta. This edge is usually
+			// redundant given the connection with the resource instance
+			// actions we created above, but we'll insert it to ensure
+			// completeness/correctness anyway and then let the caller run
+			// transitive reduction to detect if this really is redundant.
+			g.Connect(dag.BasicEdge(rActions.Cleanup, rActions.SetMeta))
+		}
+	}
+
+	return actions, nil
+}
+
+func buildProviderConfigActions(
+	g *dag.AcyclicGraph,
+	resourceActions map[string]*resourceActions,
+	config *configs.Config,
+	schemas *schemas.Schemas,
+) (map[string]*providerConfigActions, error) {
+	actions := make(map[string]*providerConfigActions)
+
+	// We use our resource actions as the primary driver for creating provider
+	// configuration actions here because that way we will include only the
+	// minimal set of provider configurations we need for this particular
+	// plan, without needing to delete any nodes/edges after the fact.
+	for _, rActions := range resourceActions {
+		providerConfigAddr := rActions.ProviderConfigRef
+		providerConfigKey := providerConfigAddr.String()
+		var providerConfig *configs.Provider
+		if modCfg := config.DescendentForInstance(providerConfigAddr.Module); modCfg != nil {
+			providerConfig = modCfg.Module.ProviderConfigs[providerConfigAddr.ProviderConfig.Type.LegacyString()]
+		}
+		// Note that providerConfig can still be nil here, because Terraform
+		// permits omitting a root module provider configuration block
+		// entirely if it would otherwise have been empty anyway.
+
+		// We'll lazy create the actions for a provider config the first
+		// time we see it, and then just connect it to any subsequent
+		// resource actions that refer to it.
+		if _, exists := actions[providerConfigKey]; !exists {
+			initAction := &instantiateProviderAction{
+				Addr:   providerConfigAddr,
+				Config: providerConfig,
+			}
+			closeAction := &closeProviderAction{
+				Addr:   providerConfigAddr,
+				Config: providerConfig,
+			}
+			actions[providerConfigKey] = &providerConfigActions{
+				Instantiate: initAction,
+				Close:       closeAction,
+			}
+			g.Add(initAction)
+			g.Add(closeAction)
+		}
+
+		rActions.AllRequire(actions[providerConfigKey].Instantiate, g)
+		rActions.AllRequiredBy(actions[providerConfigKey].Close, g)
+	}
 
 	return actions, nil
 }
