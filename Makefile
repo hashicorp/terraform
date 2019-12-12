@@ -39,10 +39,12 @@ testacc: fmtcheck generate
 	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -mod=vendor -timeout 120m
 
 # e2etest runs the end-to-end tests against a generated Terraform binary
+# and a generated terraform-bundle binary.
 # The TF_ACC here allows network access, but does not require any special
-# credentials since the e2etests use local-only providers such as "null".
+# credentials.
 e2etest: generate
 	TF_ACC=1 go test -mod=vendor -v ./command/e2etest
+	TF_ACC=1 go test -mod=vendor -v ./tools/terraform-bundle/e2etest
 
 test-compile: fmtcheck generate
 	@if [ "$(TEST)" = "./..." ]; then \
