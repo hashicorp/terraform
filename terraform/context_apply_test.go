@@ -11131,6 +11131,63 @@ func TestContext2Apply_taintedDestroyFailure(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_plannedConnectionRefs(t *testing.T) {
+	m := testModule(t, "apply-plan-connection-refs")
+	p := testProvider("test")
+	p.DiffFn = testDiffFn
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+		s := req.PlannedState.AsValueMap()
+		// delay "a" slightly, so if the reference edge is missing the "b"
+		// provisioner will see an unknown value.
+		if s["foo"].AsString() == "a" {
+			time.Sleep(500 * time.Millisecond)
+		}
+
+		s["id"] = cty.StringVal("ID")
+		resp.NewState = cty.ObjectVal(s)
+		return resp
+	}
+
+	pr := testProvisioner()
+	pr.ProvisionResourceFn = func(req provisioners.ProvisionResourceRequest) (resp provisioners.ProvisionResourceResponse) {
+		host := req.Connection.GetAttr("host")
+		if host.IsNull() || !host.IsKnown() {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("invalid host value: %#v", host))
+		}
+
+		return resp
+	}
+
+	providerResolver := providers.ResolverFixed(
+		map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("test"): testProviderFuncFixed(p),
+		},
+	)
+
+	provisioners := map[string]ProvisionerFactory{
+		"shell": testProvisionerFuncFixed(pr),
+	}
+
+	hook := &testHook{}
+	ctx := testContext2(t, &ContextOpts{
+		Config:           m,
+		ProviderResolver: providerResolver,
+		Provisioners:     provisioners,
+		Hooks:            []Hook{hook},
+	})
+
+	_, diags := ctx.Plan()
+	diags.HasErrors()
+	if diags.HasErrors() {
+		t.Fatalf("diags: %s", diags.Err())
+	}
+
+	_, diags = ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatalf("diags: %s", diags.Err())
+	}
+}
+
 func TestContext2Apply_cbdCycle(t *testing.T) {
 	m, snap := testModuleWithSnapshot(t, "apply-cbd-cycle")
 	p := testProvider("test")
