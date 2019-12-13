@@ -2,6 +2,7 @@ package applying
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
@@ -94,6 +95,7 @@ func buildGraphResourceActions(
 	// is not sufficient on its own.
 	for _, ricSrc := range plan.Changes.Resources {
 		instanceAddr := ricSrc.Addr
+		log.Printf("[TRACE] Apply: buildGraph: deciding actions for %s", instanceAddr)
 		resourceAddr := instanceAddr.ContainingResource()
 		resourceMapKey := resourceAddr.String()
 		resourceSchema, _ := schemas.ResourceTypeConfig(
@@ -119,6 +121,7 @@ func buildGraphResourceActions(
 				configDeps := resources.ResourceDependencies(resourceConfig, resourceSchema, schemas.Provisioners)
 				deps = append(deps, configDeps...)
 			}
+			// TODO: Take into account dependencies recorded in the state too
 
 			actions[resourceMapKey] = &resourceActions{
 				Addr:              resourceAddr,
@@ -162,6 +165,7 @@ func buildGraphResourceActions(
 			}
 			rActions.SetMeta = action
 			g.Add(action)
+			log.Printf("[TRACE] Apply: buildGraph: will set metadata for %s", resourceAddr)
 		}
 		if needDestroy {
 			// If we have at least one delete action (where replace actions
@@ -182,6 +186,7 @@ func buildGraphResourceActions(
 					}
 					rActions.Cleanup = action
 					g.Add(action)
+					log.Printf("[TRACE] Apply: buildGraph: will attempt state cleanup for %s", resourceAddr)
 				}
 			}
 		}
@@ -211,6 +216,7 @@ func buildGraphResourceActions(
 			}
 			riActions.CreateUpdate = action
 			g.Add(action)
+			log.Printf("[TRACE] Apply: buildGraph: will %s %s", actionType, resourceAddr)
 		}
 		if needDestroy {
 			actionType := ric.Action
@@ -231,6 +237,7 @@ func buildGraphResourceActions(
 				riActions.DestroyDeposed[ric.DeposedKey] = action
 			}
 			g.Add(action)
+			log.Printf("[TRACE] Apply: buildGraph: will %s %s", actionType, resourceAddr)
 		}
 		if ric.Action.IsReplace() {
 			// When we're replacing we have two nodes, which need a dependency
@@ -238,8 +245,10 @@ func buildGraphResourceActions(
 			switch ric.Action {
 			case plans.CreateThenDelete:
 				g.Connect(dag.BasicEdge(riActions.Destroy, riActions.CreateUpdate))
+				log.Printf("[TRACE] Apply: buildGraph: will create a new %s before destroying the current one", resourceAddr)
 			case plans.DeleteThenCreate:
 				g.Connect(dag.BasicEdge(riActions.CreateUpdate, riActions.Destroy))
+				log.Printf("[TRACE] Apply: buildGraph: will destroy the current %s before creating a new one", resourceAddr)
 			}
 		}
 	}
@@ -266,6 +275,11 @@ func buildGraphResourceActions(
 			for _, riActions := range rActions.Instances {
 				if riActions.CreateUpdate != nil {
 					g.Connect(dag.BasicEdge(rActions.Cleanup, riActions.CreateUpdate))
+					for _, deposedAction := range riActions.DestroyDeposed {
+						// Don't Create/Update until all deposed objects have
+						// been destroyed.
+						g.Connect(dag.BasicEdge(riActions.CreateUpdate, deposedAction))
+					}
 				}
 				if riActions.Destroy != nil {
 					g.Connect(dag.BasicEdge(rActions.Cleanup, riActions.Destroy))
@@ -282,6 +296,41 @@ func buildGraphResourceActions(
 			// completeness/correctness anyway and then let the caller run
 			// transitive reduction to detect if this really is redundant.
 			g.Connect(dag.BasicEdge(rActions.Cleanup, rActions.SetMeta))
+		}
+	}
+
+	// The handling of references from resource to resources is a little
+	// special because of how we need to model reverse dependencies for
+	// destroying, so we'll handle those up front here while letting the
+	// caller handle the more straightforward cases of references to/from
+	// named values, etc.
+	for _, rActions := range actions {
+		refs := findConfigReferences(rActions.Addr.Module, rActions.Dependencies)
+		for _, otherResourceAddr := range refs.Resources {
+			log.Printf("[TRACE] Apply: buildGraph: %s refers to %s", rActions.Addr, otherResourceAddr)
+			if rActions.Addr.Equal(otherResourceAddr) {
+				continue // don't create self-references
+			}
+			otherRActions := actions[otherResourceAddr.String()]
+			if otherRActions == nil {
+				continue
+			}
+			// For every combination of instances in the referer and the
+			// referent we'll create dependency edges between the CreateUpdate
+			// actions and between the Destroy actions, where present.
+			for _, riActions := range rActions.Instances {
+				for _, otherRIActions := range otherRActions.Instances {
+					if riActions.CreateUpdate != nil && otherRIActions.CreateUpdate != nil {
+						g.Connect(dag.BasicEdge(riActions.CreateUpdate, otherRIActions.CreateUpdate))
+					}
+					if riActions.Destroy != nil && otherRIActions.Destroy != nil {
+						// The destroy-to-destroy dependencies are inverted,
+						// because if A depends on B then A must be destroyed
+						// before B is destroyed.
+						g.Connect(dag.BasicEdge(otherRIActions.Destroy, riActions.Destroy))
+					}
+				}
+			}
 		}
 	}
 
@@ -336,4 +385,56 @@ func buildProviderConfigActions(
 	}
 
 	return actions, nil
+}
+
+// buildNamedValueActionsAndReferences uses the references from objects already
+// in the graph to detect any additional named value actions that would be
+// needed for a correct traversal and any additional dependency edges that
+// are not already present in the graph. It then creates those missing actions
+// and edges, iterating until no more need to be added.
+func buildNamedValueActionsAndReferences(
+	g *dag.AcyclicGraph,
+	resourceActions map[string]*resourceActions,
+	providerConfigActions map[string]*providerConfigActions,
+	existingNamedValueActions map[string]*namedValueActions,
+) (map[string]*namedValueActions, error) {
+	namedValueActions := make(map[string]*namedValueActions, len(existingNamedValueActions))
+	for k, v := range existingNamedValueActions {
+		namedValueActions[k] = v
+	}
+
+	more := true
+	for more {
+		more = false // will be set back to true if the work below changes anything
+
+		for _, rAction := range resourceActions {
+			refs := findConfigReferences(rAction.Addr.Module, rAction.Dependencies)
+			if changed := addMissingActionsAndEdges(
+				g,
+				resourceActions,
+				providerConfigActions,
+				namedValueActions,
+				refs,
+				func(a action) {
+					rAction.AllRequire(a, g)
+				},
+			); changed {
+				more = true
+			}
+		}
+	}
+
+	return namedValueActions, nil
+}
+
+func addMissingActionsAndEdges(
+	g *dag.AcyclicGraph,
+	resourceActions map[string]*resourceActions,
+	providerConfigActions map[string]*providerConfigActions,
+	namedValueActions map[string]*namedValueActions,
+	refs configReferences,
+	connectTo func(target action),
+) (changed bool) {
+
+	return changed
 }
