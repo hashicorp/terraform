@@ -14,9 +14,10 @@ import (
 // providerConfigActions gathers together all of the actions for a specific
 // provider configuration.
 type providerConfigActions struct {
-	Addr        addrs.AbsProviderConfig
-	Instantiate *instantiateProviderAction
-	Close       *closeProviderAction
+	Addr         addrs.AbsProviderConfig
+	Instantiate  *instantiateProviderAction
+	Close        *closeProviderAction
+	Dependencies []addrs.Referenceable
 }
 
 // instantiateProviderAction is an action that creates an instance of a

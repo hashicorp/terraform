@@ -35,6 +35,9 @@ func buildGraph(
 	// planned values.
 	// 🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔🤔
 
+	// The set of resource instances in the plan are the main decider for
+	// what goes in the graph, so we'll analyze those first and then use
+	// the result to inform all of our later decisions.
 	resourceActions, err := buildGraphResourceActions(graph, priorState, config, plan, schemas)
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
@@ -44,6 +47,10 @@ func buildGraph(
 		))
 	}
 
+	// We'll need actions to initialize and shut down provider instances for
+	// each of the provider configurations our resource actions are referring
+	// to. We include only the providers needed for the resource instances
+	// we're going to take actions against.
 	_, err = buildProviderConfigActions(graph, resourceActions, config, schemas)
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
@@ -53,9 +60,11 @@ func buildGraph(
 		))
 	}
 
-	// Remove as many edges as we can while retaining correctness of edges
-	// overall. For example, if a -> c and a -> b -> c then we can remove
-	// a -> c safely; it's implied by a -> b -> c.
+	// Finally, we'll remove as many edges as we can while retaining
+	// correctness of edges overall. For example, if a -> c and a -> b -> c
+	// then we can remove a -> c safely; it's implied by a -> b -> c.
+	// For the theory behind this, refer to:
+	//     https://en.wikipedia.org/wiki/Transitive_reduction
 	graph.TransitiveReduction()
 
 	return graph, diags
@@ -132,6 +141,11 @@ func buildGraphResourceActions(
 		needCreateUpdate := ric.Action != plans.Delete
 		needDestroy := ric.Action == plans.Delete || ric.Action.IsReplace()
 
+		if needCreateUpdate && resourceConfig == nil {
+			// Configuration can be absent only for destroy.
+			panic(fmt.Sprintf("plan intends to %s an instance of resource %s that is not in the configuration", ric.Action, resourceAddr))
+		}
+
 		// First we'll deal with actions for the resource as a whole. Since
 		// whole resources are not tracked in the plan, we're using the
 		// individual instances to hint which resource-level actions we need,
@@ -143,14 +157,8 @@ func buildGraphResourceActions(
 			action := &resourceSetMetaAction{
 				Addr:           resourceAddr,
 				ProviderConfig: rActions.ProviderConfigRef,
-
-				// We use whatever instance we find first as an example for
-				// the instance key, because our plan format doesn't currently
-				// record this explicitly. This is safe because we're only
-				// doing this for non-delete actions and any instances keys
-				// not consistent with the new each mode would've been planned
-				// for deletion.
-				EachMode: states.EachModeForInstanceKey(instanceAddr.Resource.Key),
+				Count:          resourceConfig.Count,
+				ForEach:        resourceConfig.ForEach,
 			}
 			rActions.SetMeta = action
 			g.Add(action)
@@ -187,10 +195,6 @@ func buildGraphResourceActions(
 				// This should never happen: the only valid action for
 				// a deposed object is to destroy it.
 				panic(fmt.Sprintf("plan intends to %s a deposed object of %s", ric.Action, instanceAddr))
-			}
-			if resourceConfig == nil {
-				// Configuration can be absent only for destroy.
-				panic(fmt.Sprintf("plan intends to %s an instance of resource %s that is not in the configuration", ric.Action, resourceAddr))
 			}
 			actionType := ric.Action
 			if actionType.IsReplace() {

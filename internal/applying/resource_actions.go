@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -159,7 +160,8 @@ func (a *resourceInstanceDestroyChangeAction) Execute(ctx context.Context, data 
 // to a resource itself, rather than to its instances individually.
 type resourceSetMetaAction struct {
 	Addr           addrs.AbsResource
-	EachMode       states.EachMode
+	ForEach        hcl.Expression
+	Count          hcl.Expression
 	ProviderConfig addrs.AbsProviderConfig
 }
 
