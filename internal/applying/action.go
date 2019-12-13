@@ -3,6 +3,7 @@ package applying
 import (
 	"context"
 	"fmt"
+	"log"
 	"sync"
 
 	multierror "github.com/hashicorp/go-multierror"
@@ -120,7 +121,8 @@ func (d *actionData) close() error {
 	// If we have any provider instances still running then we'll try to
 	// clean them all up.
 	var err error
-	for _, inst := range d.providerInstances {
+	for key, inst := range d.providerInstances {
+		log.Printf("[TRACE] Apply: closing leftover provider instance for %s", key)
 		instErr := inst.Close()
 		if instErr != nil {
 			err = multierror.Append(instErr)

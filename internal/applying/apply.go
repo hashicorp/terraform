@@ -44,5 +44,14 @@ func apply(ctx context.Context, args Arguments) (*states.State, tfdiags.Diagnost
 	// we get here "state" represents the result of the apply operation, even
 	// if the walk was aborted early due to errors.
 
+	// If we aborted early due to errors then we may have some dangling
+	// objects to clean up.
+	if err := data.close(); err != nil {
+		// Errors here should be pretty rare and reflective of operational
+		// problems or Terraform bugs, so we won't go to the trouble of
+		// dressing them up as nice diagnostics.
+		diags = diags.Append(err)
+	}
+
 	return state, diags
 }
