@@ -168,16 +168,10 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 			Config:  b.Config,
 			State:   b.State,
 			Schemas: b.Schemas,
-			Destroy: b.Destroy,
 		},
 
-		GraphTransformIf(
-			func() bool { return b.Destroy },
-			GraphTransformMulti(
-				// Create a destroy node for outputs to remove them from the state.
-				&DestroyOutputTransformer{},
-			),
-		),
+		// Create a destroy node for outputs to remove them from the state.
+		&DestroyOutputTransformer{Destroy: b.Destroy},
 
 		// Prune unreferenced values, which may have interpolations that can't
 		// be resolved.
