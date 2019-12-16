@@ -46,7 +46,7 @@ func decodeRequiredProvidersBlock(block *hcl.Block) ([]*ProviderRequirement, hcl
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Invalid version constraint",
-						Detail:   "This string does not use correct version constraint syntax.", // Not very actionable :(
+						Detail:   "This string does not use correct version constraint syntax.",
 						Subject:  attr.Expr.Range().Ptr(),
 					})
 					reqs = append(reqs, &ProviderRequirement{Name: name})
@@ -59,6 +59,14 @@ func decodeRequiredProvidersBlock(block *hcl.Block) ([]*ProviderRequirement, hcl
 			reqs = append(reqs, &ProviderRequirement{Name: name})
 		default:
 			// should not happen
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid provider_requirements syntax",
+				Detail:   "provider_requirements entries must be strings or objects.",
+				Subject:  attr.Expr.Range().Ptr(),
+			})
+			reqs = append(reqs, &ProviderRequirement{Name: name})
+			return reqs, diags
 		}
 	}
 	return reqs, diags
