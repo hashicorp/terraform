@@ -277,36 +277,15 @@ func (n *NodeDestroyResourceInstance) EvalTree() EvalNode {
 // leaving skeleton resource objects in state after their instances have
 // all been destroyed.
 type NodeDestroyResource struct {
-	*NodeAbstractResource
+	NodeAbstractResource *NodeAbstractResource
 }
 
 var (
-	_ GraphNodeResource      = (*NodeDestroyResource)(nil)
-	_ GraphNodeReferenceable = (*NodeDestroyResource)(nil)
-	_ GraphNodeReferencer    = (*NodeDestroyResource)(nil)
-	_ GraphNodeEvalable      = (*NodeDestroyResource)(nil)
+	_ GraphNodeEvalable = (*NodeDestroyResource)(nil)
 )
 
 func (n *NodeDestroyResource) Name() string {
-	return n.ResourceAddr().String() + " (clean up state)"
-}
-
-// GraphNodeReferenceable, overriding NodeAbstractResource
-func (n *NodeDestroyResource) ReferenceableAddrs() []addrs.Referenceable {
-	// NodeDestroyResource doesn't participate in references: the graph
-	// builder that created it should ensure directly that it already depends
-	// on every other node related to its resource, without relying on
-	// references.
-	return nil
-}
-
-// GraphNodeReferencer, overriding NodeAbstractResource
-func (n *NodeDestroyResource) References() []*addrs.Reference {
-	// NodeDestroyResource doesn't participate in references: the graph
-	// builder that created it should ensure directly that it already depends
-	// on every other node related to its resource, without relying on
-	// references.
-	return nil
+	return n.NodeAbstractResource.ResourceAddr().String() + " (clean up state)"
 }
 
 // GraphNodeEvalable
@@ -316,6 +295,6 @@ func (n *NodeDestroyResource) EvalTree() EvalNode {
 	// leftover husk of a resource in state after all of the child instances
 	// and their objects were destroyed.
 	return &EvalForgetResourceState{
-		Addr: n.ResourceAddr().Resource,
+		Addr: n.NodeAbstractResource.ResourceAddr().Resource,
 	}
 }
