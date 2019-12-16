@@ -44,7 +44,8 @@ func (p *provisioner) windowsDefaultCertname() (string, error) {
 
 func (p *provisioner) windowsInstallPuppetAgent() error {
 	_, err := p.runCommand(fmt.Sprintf(
-		`powershell -Command "& {[Net.ServicePointManager]::ServerCertificateValidationCallback = {$true}; `+
+		`powershell -Command "& {[System.Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; `+
+			`[Net.ServicePointManager]::ServerCertificateValidationCallback = {$true}; `+
 			`(New-Object System.Net.WebClient).DownloadFile('https://%s:8140/packages/current/install.ps1', `+
 			`'install.ps1')}"`,
 		p.Server,

@@ -16,7 +16,7 @@ import (
 const (
 	getHostByNameCmd     = `powershell -Command "& {([System.Net.Dns]::GetHostByName(($env:computerName))).Hostname}"`
 	domainQueryCmd       = `powershell -Command "& {(Get-WmiObject -Query 'select DNSDomain from Win32_NetworkAdapterConfiguration where IPEnabled = True').DNSDomain}"`
-	downloadInstallerCmd = `powershell -Command "& {[Net.ServicePointManager]::ServerCertificateValidationCallback = {$true}; (New-Object System.Net.WebClient).DownloadFile('https://puppet.test.com:8140/packages/current/install.ps1', 'install.ps1')}"`
+	downloadInstallerCmd = `powershell -Command "& {[System.Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; [Net.ServicePointManager]::ServerCertificateValidationCallback = {$true}; (New-Object System.Net.WebClient).DownloadFile('https://puppet.test.com:8140/packages/current/install.ps1', 'install.ps1')}"`
 	runInstallerCmd      = `powershell -Command "& .\install.ps1 -PuppetServiceEnsure stopped"`
 	runPuppetCmd         = "puppet agent --test --server puppet.test.com --environment production"
 )
