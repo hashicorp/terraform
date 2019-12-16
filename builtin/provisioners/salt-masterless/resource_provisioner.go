@@ -21,8 +21,6 @@ import (
 	linereader "github.com/mitchellh/go-linereader"
 )
 
-type provisionFn func(terraform.UIOutput, communicator.Communicator) error
-
 type provisioner struct {
 	SkipBootstrap     bool
 	BootstrapArgs     string

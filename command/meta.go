@@ -530,49 +530,6 @@ func (m *Meta) showDiagnostics(vals ...interface{}) {
 	}
 }
 
-// outputShadowError outputs the error from ctx.ShadowError. If the
-// error is nil then nothing happens. If output is false then it isn't
-// outputted to the user (you can define logic to guard against outputting).
-func (m *Meta) outputShadowError(err error, output bool) bool {
-	// Do nothing if no error
-	if err == nil {
-		return false
-	}
-
-	// If not outputting, do nothing
-	if !output {
-		return false
-	}
-
-	// Write the shadow error output to a file
-	path := fmt.Sprintf("terraform-error-%d.log", time.Now().UTC().Unix())
-	if err := ioutil.WriteFile(path, []byte(err.Error()), 0644); err != nil {
-		// If there is an error writing it, just let it go
-		log.Printf("[ERROR] Error writing shadow error: %s", err)
-		return false
-	}
-
-	// Output!
-	m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
-		"[reset][bold][yellow]\nExperimental feature failure! Please report a bug.\n\n"+
-			"This is not an error. Your Terraform operation completed successfully.\n"+
-			"Your real infrastructure is unaffected by this message.\n\n"+
-			"[reset][yellow]While running, Terraform sometimes tests experimental features in the\n"+
-			"background. These features cannot affect real state and never touch\n"+
-			"real infrastructure. If the features work properly, you see nothing.\n"+
-			"If the features fail, this message appears.\n\n"+
-			"You can report an issue at: https://github.com/hashicorp/terraform/issues\n\n"+
-			"The failure was written to %q. Please\n"+
-			"double check this file contains no sensitive information and report\n"+
-			"it with your issue.\n\n"+
-			"This is not an error. Your terraform operation completed successfully\n"+
-			"and your real infrastructure is unaffected by this message.",
-		path,
-	)))
-
-	return true
-}
-
 // WorkspaceNameEnvVar is the name of the environment variable that can be used
 // to set the name of the Terraform workspace, overriding the workspace chosen
 // by `terraform workspace select`.

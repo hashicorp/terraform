@@ -235,10 +235,6 @@ func (s *Set) remove(item interface{}) string {
 	return code
 }
 
-func (s *Set) index(item interface{}) int {
-	return sort.SearchStrings(s.listCode(), s.hash(item))
-}
-
 func (s *Set) listCode() []string {
 	// Sort the hash codes so the order of the list is deterministic
 	keys := make([]string, 0, len(s.m))

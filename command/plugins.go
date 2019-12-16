@@ -238,19 +238,6 @@ func (m *Meta) providerPluginSet() discovery.PluginMetaSet {
 	return plugins
 }
 
-// providerPluginAutoInstalledSet returns the set of providers that exist
-// within the auto-install directory.
-func (m *Meta) providerPluginAutoInstalledSet() discovery.PluginMetaSet {
-	plugins := discovery.FindPlugins("provider", []string{m.pluginDir()})
-	plugins, _ = plugins.ValidateVersions()
-
-	for p := range plugins {
-		log.Printf("[DEBUG] found valid plugin: %q", p.Name)
-	}
-
-	return plugins
-}
-
 // providerPluginManuallyInstalledSet returns the set of providers that exist
 // in all locations *except* the auto-install directory.
 func (m *Meta) providerPluginManuallyInstalledSet() discovery.PluginMetaSet {

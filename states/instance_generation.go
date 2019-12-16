@@ -18,7 +18,3 @@ type Generation interface {
 // CurrentGen is the Generation representing the currently-active object for
 // a resource instance.
 var CurrentGen Generation
-
-type currentGen struct{}
-
-func (g currentGen) generation() {}

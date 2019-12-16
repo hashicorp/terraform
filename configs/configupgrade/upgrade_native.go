@@ -3,7 +3,6 @@ package configupgrade
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"log"
 	"regexp"
 	"sort"
@@ -753,12 +752,6 @@ func hcl1PosRange(filename string, pos hcl1token.Pos) hcl2.Range {
 			Byte:   pos.Offset,
 		},
 	}
-}
-
-func passthruBlockTodo(w io.Writer, node hcl1ast.Node, msg string) {
-	fmt.Fprintf(w, "\n# TF-UPGRADE-TODO: %s\n", msg)
-	hcl1printer.Fprint(w, node)
-	w.Write([]byte{'\n', '\n'})
 }
 
 func schemaHasSettableArguments(schema *configschema.Block) bool {

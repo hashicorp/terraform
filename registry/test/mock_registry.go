@@ -8,11 +8,9 @@ import (
 	"net/http/httptest"
 	"os"
 	"regexp"
-	"sort"
 	"strings"
 
-	version "github.com/hashicorp/go-version"
-	"github.com/hashicorp/terraform-svchost"
+	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/auth"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/httpclient"
@@ -51,8 +49,6 @@ type testMod struct {
 // Only one version for now, as we only lookup latest from the registry.
 type testProvider struct {
 	version string
-	os      string
-	arch    string
 	url     string
 }
 
@@ -133,20 +129,6 @@ func init() {
 		alias := providerAlias(provider)
 		testProviders[alias] = info
 	}
-}
-
-func latestVersion(versions []string) string {
-	var col version.Collection
-	for _, v := range versions {
-		ver, err := version.NewVersion(v)
-		if err != nil {
-			panic(err)
-		}
-		col = append(col, ver)
-	}
-
-	sort.Sort(col)
-	return col[len(col)-1].String()
 }
 
 func mockRegHandler() http.Handler {

@@ -123,10 +123,6 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 	return info.ID, nil
 }
 
-func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
-	return c.info, nil
-}
-
 func (c *RemoteClient) Unlock(id string) error {
 	if c.info != nil && c.info.Path != "" {
 		query := `SELECT pg_advisory_unlock(%s)`

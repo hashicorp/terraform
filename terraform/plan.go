@@ -5,7 +5,6 @@ import (
 	"encoding/gob"
 	"fmt"
 	"io"
-	"sync"
 
 	"github.com/zclconf/go-cty/cty"
 
@@ -73,8 +72,6 @@ type Plan struct {
 
 	// Destroy indicates that this plan was created for a full destroy operation
 	Destroy bool
-
-	once sync.Once
 }
 
 func (p *Plan) String() string {
@@ -85,30 +82,6 @@ func (p *Plan) String() string {
 	buf.WriteString(p.State.String())
 	return buf.String()
 }
-
-func (p *Plan) init() {
-	p.once.Do(func() {
-		if p.Diff == nil {
-			p.Diff = new(Diff)
-			p.Diff.init()
-		}
-
-		if p.State == nil {
-			p.State = new(State)
-			p.State.init()
-		}
-
-		if p.Vars == nil {
-			p.Vars = make(map[string]cty.Value)
-		}
-	})
-}
-
-// The format byte is prefixed into the plan file format so that we have
-// the ability in the future to change the file format if we want for any
-// reason.
-const planFormatMagic = "tfplan"
-const planFormatVersion byte = 2
 
 // ReadPlan reads a plan structure out of a reader in the format that
 // was written by WritePlan.

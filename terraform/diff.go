@@ -218,16 +218,6 @@ func (d *Diff) String() string {
 	return strings.TrimSpace(buf.String())
 }
 
-func (d *Diff) init() {
-	if d.Modules == nil {
-		rootDiff := &ModuleDiff{Path: rootModulePath}
-		d.Modules = []*ModuleDiff{rootDiff}
-	}
-	for _, m := range d.Modules {
-		m.init()
-	}
-}
-
 // ModuleDiff tracks the differences between resources to apply within
 // a single module.
 type ModuleDiff struct {

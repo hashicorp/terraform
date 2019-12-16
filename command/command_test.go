@@ -30,7 +30,6 @@ import (
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/planfile"
 	"github.com/hashicorp/terraform/providers"
-	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/states/statemgr"
@@ -125,25 +124,6 @@ func metaOverridesForProvider(p providers.Interface) *testingOverrides {
 			},
 		),
 	}
-}
-
-func metaOverridesForProviderAndProvisioner(p providers.Interface, pr provisioners.Interface) *testingOverrides {
-	return &testingOverrides{
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("test"): providers.FactoryFixed(p),
-			},
-		),
-		Provisioners: map[string]provisioners.Factory{
-			"shell": provisioners.FactoryFixed(pr),
-		},
-	}
-}
-
-func testModule(t *testing.T, name string) *configs.Config {
-	t.Helper()
-	c, _ := testModuleWithSnapshot(t, name)
-	return c
 }
 
 func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *configload.Snapshot) {
@@ -498,26 +478,6 @@ func testTempDir(t *testing.T) string {
 	}
 
 	return d
-}
-
-// testRename renames the path to new and returns a function to defer to
-// revert the rename.
-func testRename(t *testing.T, base, path, new string) func() {
-	t.Helper()
-
-	if base != "" {
-		path = filepath.Join(base, path)
-		new = filepath.Join(base, new)
-	}
-
-	if err := os.Rename(path, new); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	return func() {
-		// Just re-rename and ignore the return value
-		testRename(t, "", new, path)
-	}
 }
 
 // testChdir changes the directory and returns a function to defer to

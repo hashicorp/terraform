@@ -132,18 +132,6 @@ func testContext2(t *testing.T, opts *ContextOpts) *Context {
 	return ctx
 }
 
-func testDataApplyFn(
-	info *InstanceInfo,
-	d *InstanceDiff) (*InstanceState, error) {
-	return testApplyFn(info, new(InstanceState), d)
-}
-
-func testDataDiffFn(
-	info *InstanceInfo,
-	c *ResourceConfig) (*InstanceDiff, error) {
-	return testDiffFn(info, new(InstanceState), c)
-}
-
 func testApplyFn(
 	info *InstanceInfo,
 	s *InstanceState,
@@ -1070,18 +1058,6 @@ func logDiagnostics(t *testing.T, diags tfdiags.Diagnostics) {
 		}
 	}
 }
-
-const testContextGraph = `
-root: root
-aws_instance.bar
-  aws_instance.bar -> provider.aws
-aws_instance.foo
-  aws_instance.foo -> provider.aws
-provider.aws
-root
-  root -> aws_instance.bar
-  root -> aws_instance.foo
-`
 
 const testContextRefreshModuleStr = `
 aws_instance.web: (tainted)

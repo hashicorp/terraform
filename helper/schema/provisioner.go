@@ -53,8 +53,6 @@ type Provisioner struct {
 // Keys that can be used to access data in the context parameters for
 // Provisioners.
 var (
-	connDataInvalid = contextKey("data invalid")
-
 	// This returns a *ResourceData for the connection information.
 	// Guaranteed to never be nil.
 	ProvConnDataKey = contextKey("provider conn data")

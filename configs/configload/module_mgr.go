@@ -60,17 +60,3 @@ func (m *moduleMgr) readModuleManifestSnapshot() error {
 	m.manifest, err = modsdir.ReadManifestSnapshot(r)
 	return err
 }
-
-// writeModuleManifestSnapshot writes a snapshot of the current manifest
-// to the filesystem.
-//
-// The caller must guarantee no concurrent modifications of the manifest for
-// the duration of a call to this function, or the behavior is undefined.
-func (m *moduleMgr) writeModuleManifestSnapshot() error {
-	w, err := m.FS.Create(m.manifestSnapshotPath())
-	if err != nil {
-		return err
-	}
-
-	return m.manifest.WriteSnapshot(w)
-}

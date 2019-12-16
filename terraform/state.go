@@ -852,20 +852,6 @@ func (r *RemoteState) init() {
 	}
 }
 
-func (r *RemoteState) deepcopy() *RemoteState {
-	r.Lock()
-	defer r.Unlock()
-
-	confCopy := make(map[string]string, len(r.Config))
-	for k, v := range r.Config {
-		confCopy[k] = v
-	}
-	return &RemoteState{
-		Type:   r.Type,
-		Config: confCopy,
-	}
-}
-
 func (r *RemoteState) Empty() bool {
 	if r == nil {
 		return true
@@ -942,19 +928,6 @@ func (s *OutputState) Equal(other *OutputState) bool {
 	}
 
 	return true
-}
-
-func (s *OutputState) deepcopy() *OutputState {
-	if s == nil {
-		return nil
-	}
-
-	stateCopy, err := copystructure.Config{Lock: true}.Copy(s)
-	if err != nil {
-		panic(fmt.Errorf("Error copying output value: %s", err))
-	}
-
-	return stateCopy.(*OutputState)
 }
 
 // ModuleState is used to track all the state relevant to a single
@@ -1564,15 +1537,6 @@ func (s *ResourceState) init() {
 	if s.Deposed == nil {
 		s.Deposed = make([]*InstanceState, 0)
 	}
-}
-
-func (s *ResourceState) deepcopy() *ResourceState {
-	copy, err := copystructure.Config{Lock: true}.Copy(s)
-	if err != nil {
-		panic(err)
-	}
-
-	return copy.(*ResourceState)
 }
 
 // prune is used to remove any instances that are no longer required

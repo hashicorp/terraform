@@ -1,8 +1,6 @@
 package lang
 
 import (
-	"fmt"
-
 	ctyyaml "github.com/zclconf/go-cty-yaml"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
@@ -150,12 +148,3 @@ func (s *Scope) Functions() map[string]function.Function {
 
 	return s.funcs
 }
-
-var unimplFunc = function.New(&function.Spec{
-	Type: func([]cty.Value) (cty.Type, error) {
-		return cty.DynamicPseudoType, fmt.Errorf("function not yet implemented")
-	},
-	Impl: func([]cty.Value, cty.Type) (cty.Value, error) {
-		return cty.DynamicVal, fmt.Errorf("function not yet implemented")
-	},
-})

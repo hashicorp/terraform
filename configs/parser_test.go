@@ -69,22 +69,6 @@ func assertDiagnosticCount(t *testing.T, diags hcl.Diagnostics, want int) bool {
 	return false
 }
 
-func assertDiagnosticSummary(t *testing.T, diags hcl.Diagnostics, want string) bool {
-	t.Helper()
-
-	for _, diag := range diags {
-		if diag.Summary == want {
-			return false
-		}
-	}
-
-	t.Errorf("missing diagnostic summary %q", want)
-	for _, diag := range diags {
-		t.Logf("- %s", diag)
-	}
-	return true
-}
-
 func assertExactDiagnostics(t *testing.T, diags hcl.Diagnostics, want []string) bool {
 	t.Helper()
 

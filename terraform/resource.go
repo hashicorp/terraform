@@ -81,12 +81,6 @@ type InstanceInfo struct {
 
 	// Type is the resource type of this instance
 	Type string
-
-	// uniqueExtra is an internal field that can be populated to supply
-	// extra metadata that is used to identify a unique instance in
-	// the graph walk. This will be appended to HumanID when uniqueId
-	// is called.
-	uniqueExtra string
 }
 
 // NewInstanceInfo constructs an InstanceInfo from an addrs.AbsResourceInstance.

@@ -19,8 +19,6 @@ import (
 )
 
 const (
-	consistencyTimeout = 15
-
 	// Suffix that will be appended to state file paths
 	// when locking
 	lockSuffix = ".lock"

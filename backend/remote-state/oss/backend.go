@@ -214,7 +214,6 @@ type Backend struct {
 	stateKey             string
 	serverSideEncryption bool
 	acl                  string
-	endpoint             string
 	otsEndpoint          string
 	otsTable             string
 }

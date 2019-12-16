@@ -143,19 +143,3 @@ func (*NilHook) PostImportState(addr addrs.AbsResourceInstance, imported []provi
 func (*NilHook) PostStateUpdate(new *states.State) (HookAction, error) {
 	return HookActionContinue, nil
 }
-
-// handleHook turns hook actions into panics. This lets you use the
-// panic/recover mechanism in Go as a flow control mechanism for hook
-// actions.
-func handleHook(a HookAction, err error) {
-	if err != nil {
-		// TODO: handle errors
-	}
-
-	switch a {
-	case HookActionContinue:
-		return
-	case HookActionHalt:
-		panic(HookActionHalt)
-	}
-}

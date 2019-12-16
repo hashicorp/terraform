@@ -68,37 +68,3 @@ func testGraphHappensBefore(t *testing.T, g *Graph, A, B string) {
 		"Expected %q before %q in:\n\n%s",
 		A, B, g.String())
 }
-
-type testGraphSubPath struct {
-	PathFn func() []string
-}
-
-func (v *testGraphSubPath) Path() []string { return v.PathFn() }
-
-type testGraphDependable struct {
-	VertexName      string
-	DependentOnMock []string
-}
-
-func (v *testGraphDependable) Name() string {
-	return v.VertexName
-}
-
-func (v *testGraphDependable) DependableName() []string {
-	return []string{v.VertexName}
-}
-
-func (v *testGraphDependable) DependentOn() []string {
-	return v.DependentOnMock
-}
-
-const testGraphAddStr = `
-42
-84
-`
-
-const testGraphConnectDepsStr = `
-a
-b
-  a
-`

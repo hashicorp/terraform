@@ -5,7 +5,6 @@ import (
 	"net/url"
 	"os"
 	"strings"
-	"sync"
 
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -41,9 +40,6 @@ type Backend struct {
 	//---------------------------------------------------------------
 	// stateClient is the legacy state client, setup in Configure
 	stateClient *stateClient
-
-	// opLock locks operations
-	opLock sync.Mutex
 }
 
 var _ backend.Backend = (*Backend)(nil)

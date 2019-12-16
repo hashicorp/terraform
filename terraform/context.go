@@ -32,17 +32,6 @@ const (
 	InputModeStd = InputModeProvider
 )
 
-var (
-	// contextFailOnShadowError will cause Context operations to return
-	// errors when shadow operations fail. This is only used for testing.
-	contextFailOnShadowError = false
-
-	// contextTestDeepCopyOnPlan will perform a Diff DeepCopy on every
-	// Plan operation, effectively testing the Diff DeepCopy whenever
-	// a Plan occurs. This is enabled for tests.
-	contextTestDeepCopyOnPlan = false
-)
-
 // ContextOpts are the user-configurable options to create a context with
 // NewContext.
 type ContextOpts struct {
@@ -97,7 +86,6 @@ type Context struct {
 	parallelSem         Semaphore
 	providerInputConfig map[string]map[string]cty.Value
 	providerSHA256s     map[string][]byte
-	runLock             sync.Mutex
 	runCond             *sync.Cond
 	runContext          context.Context
 	runContextCancel    context.CancelFunc

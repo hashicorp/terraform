@@ -233,25 +233,6 @@ B
   A
 `
 
-const testTransformRefBackupStr = `
-A
-B
-  A
-`
-
-const testTransformRefBackupPrimaryStr = `
-A
-B
-  C
-C
-`
-
-const testTransformRefModulePathStr = `
-A
-B
-  A
-`
-
 const testTransformRefPathStr = `
 A
 B

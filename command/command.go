@@ -2,11 +2,8 @@ package command
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"runtime"
-
-	"github.com/hashicorp/terraform/terraform"
 )
 
 // Set to true when we're testing
@@ -75,20 +72,4 @@ func ModulePath(args []string) (string, error) {
 	}
 
 	return args[0], nil
-}
-
-func (m *Meta) validateContext(ctx *terraform.Context) bool {
-	log.Println("[INFO] Validating the context...")
-	diags := ctx.Validate()
-	log.Printf("[INFO] Validation result: %d diagnostics", len(diags))
-
-	if len(diags) > 0 {
-		m.Ui.Output(
-			"There are warnings and/or errors related to your configuration. Please\n" +
-				"fix these before continuing.\n")
-
-		m.showDiagnostics(diags)
-	}
-
-	return !diags.HasErrors()
 }

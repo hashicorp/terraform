@@ -9,7 +9,6 @@ import (
 	"log"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/communicator/remote"
@@ -17,10 +16,6 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/go-linereader"
 )
-
-// maxBackoffDealy is the maximum delay between retry attempts
-var maxBackoffDelay = 10 * time.Second
-var initialBackoffDelay = time.Second
 
 func Provisioner() terraform.ResourceProvisioner {
 	return &schema.Provisioner{

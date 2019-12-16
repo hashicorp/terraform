@@ -83,11 +83,3 @@ var currentExperiments = make(Set)
 //
 // Members of this map are registered in the init function above.
 var concludedExperiments = make(map[Experiment]string)
-
-func registerCurrentExperiment(exp Experiment) {
-	currentExperiments.Add(exp)
-}
-
-func registerConcludedExperiment(exp Experiment, message string) {
-	concludedExperiments[exp] = message
-}

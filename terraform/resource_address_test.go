@@ -882,55 +882,6 @@ func TestResourceAddressEquals(t *testing.T) {
 	}
 }
 
-func TestResourceAddressStateId(t *testing.T) {
-	cases := map[string]struct {
-		Input    *ResourceAddress
-		Expected string
-	}{
-		"basic resource": {
-			&ResourceAddress{
-				Mode:         ManagedResourceMode,
-				Type:         "aws_instance",
-				Name:         "foo",
-				InstanceType: TypePrimary,
-				Index:        -1,
-			},
-			"aws_instance.foo",
-		},
-
-		"basic resource with index": {
-			&ResourceAddress{
-				Mode:         ManagedResourceMode,
-				Type:         "aws_instance",
-				Name:         "foo",
-				InstanceType: TypePrimary,
-				Index:        2,
-			},
-			"aws_instance.foo.2",
-		},
-
-		"data resource": {
-			&ResourceAddress{
-				Mode:         DataResourceMode,
-				Type:         "aws_instance",
-				Name:         "foo",
-				InstanceType: TypePrimary,
-				Index:        -1,
-			},
-			"data.aws_instance.foo",
-		},
-	}
-
-	for tn, tc := range cases {
-		t.Run(tn, func(t *testing.T) {
-			actual := tc.Input.stateId()
-			if actual != tc.Expected {
-				t.Fatalf("bad: %q\n\nexpected: %s\n\ngot: %s", tn, tc.Expected, actual)
-			}
-		})
-	}
-}
-
 func TestResourceAddressHasResourceSpec(t *testing.T) {
 	cases := []struct {
 		Input string

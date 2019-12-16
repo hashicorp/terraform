@@ -126,10 +126,6 @@ func (c *StateListCommand) Synopsis() string {
 	return "List resources in the state"
 }
 
-const errStateFilter = `Error filtering state: %[1]s
-
-Please ensure that all your addresses are formatted properly.`
-
 const errStateLoadingState = `Error loading the state: %[1]s
 
 Please ensure that your Terraform state exists and that you've

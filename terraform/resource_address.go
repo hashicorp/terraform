@@ -152,26 +152,6 @@ func (r *ResourceAddress) MatchesResourceConfig(path addrs.Module, rc *configs.R
 	return reflect.DeepEqual(addrPath, rawPath)
 }
 
-// stateId returns the ID that this resource should be entered with
-// in the state. This is also used for diffs. In the future, we'd like to
-// move away from this string field so I don't export this.
-func (r *ResourceAddress) stateId() string {
-	result := fmt.Sprintf("%s.%s", r.Type, r.Name)
-	switch r.Mode {
-	case ManagedResourceMode:
-		// Done
-	case DataResourceMode:
-		result = fmt.Sprintf("data.%s", result)
-	default:
-		panic(fmt.Errorf("unknown resource mode: %s", r.Mode))
-	}
-	if r.Index >= 0 {
-		result += fmt.Sprintf(".%d", r.Index)
-	}
-
-	return result
-}
-
 // parseResourceAddressInternal parses the somewhat bespoke resource
 // identifier used in states and diffs, such as "instance.name.0".
 func parseResourceAddressInternal(s string) (*ResourceAddress, error) {

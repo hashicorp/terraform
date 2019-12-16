@@ -66,20 +66,6 @@ type plugin struct {
 	ImportName string // See deriveImport()     remoteexecprovisioner
 }
 
-// makeProviderMap creates a map of providers like this:
-//
-// var InternalProviders = map[string]plugin.ProviderFunc{
-// 	"aws":        aws.Provider,
-// 	"azurerm":    azurerm.Provider,
-// 	"cloudflare": cloudflare.Provider,
-func makeProviderMap(items []plugin) string {
-	output := ""
-	for _, item := range items {
-		output += fmt.Sprintf("\t\"%s\":   %s.%s,\n", item.PluginName, item.ImportName, item.TypeName)
-	}
-	return output
-}
-
 // makeProvisionerMap creates a map of provisioners like this:
 //
 //	"chef":            chefprovisioner.Provisioner,
@@ -243,13 +229,6 @@ func discoverTypesInPath(path, typeID, typeName string) ([]plugin, error) {
 	}
 
 	return pluginTypes, nil
-}
-
-func discoverProviders() ([]plugin, error) {
-	path := "./builtin/providers"
-	typeID := "terraform.ResourceProvider"
-	typeName := "Provider"
-	return discoverTypesInPath(path, typeID, typeName)
 }
 
 func discoverProvisioners() ([]plugin, error) {

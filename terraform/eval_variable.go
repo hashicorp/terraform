@@ -3,7 +3,6 @@ package terraform
 import (
 	"fmt"
 	"log"
-	"reflect"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
@@ -94,27 +93,4 @@ func (n *EvalModuleCallArgument) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, nil
 	}
 	return nil, diags.ErrWithWarnings()
-}
-
-// hclTypeName returns the name of the type that would represent this value in
-// a config file, or falls back to the Go type name if there's no corresponding
-// HCL type. This is used for formatted output, not for comparing types.
-func hclTypeName(i interface{}) string {
-	switch k := reflect.Indirect(reflect.ValueOf(i)).Kind(); k {
-	case reflect.Bool:
-		return "boolean"
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32,
-		reflect.Uint64, reflect.Uintptr, reflect.Float32, reflect.Float64:
-		return "number"
-	case reflect.Array, reflect.Slice:
-		return "list"
-	case reflect.Map:
-		return "map"
-	case reflect.String:
-		return "string"
-	default:
-		// fall back to the Go type if there's no match
-		return k.String()
-	}
 }

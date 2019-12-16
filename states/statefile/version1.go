@@ -165,10 +165,3 @@ type instanceStateV1 struct {
 	// external client code.
 	Meta map[string]string `json:"meta,omitempty"`
 }
-
-type ephemeralStateV1 struct {
-	// ConnInfo is used for the providers to export information which is
-	// used to connect to the resource for provisioning. For example,
-	// this could contain SSH or WinRM credentials.
-	ConnInfo map[string]string `json:"-"`
-}

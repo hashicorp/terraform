@@ -22,7 +22,6 @@ import (
 var _ proto.ProviderServer = (*GRPCProviderServer)(nil)
 
 var (
-	typeComparer  = cmp.Comparer(cty.Type.Equals)
 	valueComparer = cmp.Comparer(cty.Value.RawEquals)
 	equateEmpty   = cmpopts.EquateEmpty()
 )

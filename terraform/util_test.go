@@ -34,21 +34,6 @@ func TestSemaphore(t *testing.T) {
 	s.Release()
 }
 
-func TestStrSliceContains(t *testing.T) {
-	if strSliceContains(nil, "foo") {
-		t.Fatalf("Bad")
-	}
-	if strSliceContains([]string{}, "foo") {
-		t.Fatalf("Bad")
-	}
-	if strSliceContains([]string{"bar"}, "foo") {
-		t.Fatalf("Bad")
-	}
-	if !strSliceContains([]string{"bar", "foo"}, "foo") {
-		t.Fatalf("Bad")
-	}
-}
-
 func TestUniqueStrings(t *testing.T) {
 	cases := []struct {
 		Input    []string

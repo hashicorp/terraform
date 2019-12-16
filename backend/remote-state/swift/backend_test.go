@@ -23,13 +23,6 @@ func TestBackend_impl(t *testing.T) {
 	var _ backend.Backend = new(Backend)
 }
 
-func testAccPreCheck(t *testing.T) {
-	v := os.Getenv("OS_AUTH_URL")
-	if v == "" {
-		t.Fatal("OS_AUTH_URL must be set for acceptance tests")
-	}
-}
-
 func TestBackendConfig(t *testing.T) {
 	testACC(t)
 

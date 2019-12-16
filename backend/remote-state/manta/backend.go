@@ -76,7 +76,6 @@ func New() backend.Backend {
 
 type Backend struct {
 	*schema.Backend
-	data *schema.ResourceData
 
 	// The fields below are set from configure
 	storageClient *storage.StorageClient

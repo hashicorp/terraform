@@ -397,18 +397,6 @@ func providerVertexMap(g *Graph) map[string]GraphNodeProvider {
 	return m
 }
 
-func closeProviderVertexMap(g *Graph) map[string]GraphNodeCloseProvider {
-	m := make(map[string]GraphNodeCloseProvider)
-	for _, v := range g.Vertices() {
-		if pv, ok := v.(GraphNodeCloseProvider); ok {
-			addr := pv.CloseProviderAddr()
-			m[addr.String()] = pv
-		}
-	}
-
-	return m
-}
-
 type graphNodeCloseProvider struct {
 	Addr addrs.AbsProviderConfig
 }

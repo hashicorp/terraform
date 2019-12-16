@@ -93,10 +93,6 @@ func testResourceNestedCreate(d *schema.ResourceData, meta interface{}) error {
 	return testResourceNestedRead(d, meta)
 }
 
-func testResourceNestedUpdate(d *schema.ResourceData, meta interface{}) error {
-	return testResourceNestedRead(d, meta)
-}
-
 func testResourceNestedRead(d *schema.ResourceData, meta interface{}) error {
 	set := []map[string]interface{}{map[string]interface{}{
 		"sub_list_block": []map[string]interface{}{map[string]interface{}{

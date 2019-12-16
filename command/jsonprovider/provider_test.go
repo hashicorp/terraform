@@ -115,14 +115,6 @@ func TestMarshalProvider(t *testing.T) {
 	}
 }
 
-func testProviders() *terraform.Schemas {
-	return &terraform.Schemas{
-		Providers: map[string]*terraform.ProviderSchema{
-			"test": testProvider(),
-		},
-	}
-}
-
 func testProvider() *terraform.ProviderSchema {
 	return &terraform.ProviderSchema{
 		Provider: &configschema.Block{

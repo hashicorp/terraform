@@ -124,10 +124,6 @@ func (b *Backend) StateMgr(name string) (state.State, error) {
 	return stateMgr, nil
 }
 
-func (b *Backend) client() *RemoteClient {
-	return &RemoteClient{}
-}
-
 func (b *Backend) statePath(name string) string {
 	if name == backend.DefaultStateName {
 		return b.path

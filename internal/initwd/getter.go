@@ -19,14 +19,6 @@ import (
 // any meddling that might be done by other go-getter callers linked into our
 // executable.
 
-var goGetterDetectors = []getter.Detector{
-	new(getter.GitHubDetector),
-	new(getter.BitBucketDetector),
-	new(getter.GCSDetector),
-	new(getter.S3Detector),
-	new(getter.FileDetector),
-}
-
 var goGetterNoDetectors = []getter.Detector{}
 
 var goGetterDecompressors = map[string]getter.Decompressor{

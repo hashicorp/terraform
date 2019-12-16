@@ -24,6 +24,3 @@ func init() {
 func TestProvider_impl(t *testing.T) {
 	var _ providers.Interface = NewProvider()
 }
-
-func testAccPreCheck(t *testing.T) {
-}

@@ -182,23 +182,6 @@ func (m *Meta) loadBackendConfig(rootDir string) (*configs.Backend, tfdiags.Diag
 	return mod.Backend, nil
 }
 
-// loadValuesFile loads a file that defines a single map of key/value pairs.
-// This is the format used for "tfvars" files.
-func (m *Meta) loadValuesFile(filename string) (map[string]cty.Value, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-	filename = m.normalizePath(filename)
-
-	loader, err := m.initConfigLoader()
-	if err != nil {
-		diags = diags.Append(err)
-		return nil, diags
-	}
-
-	vals, hclDiags := loader.Parser().LoadValuesFile(filename)
-	diags = diags.Append(hclDiags)
-	return vals, diags
-}
-
 // loadHCLFile reads an arbitrary HCL file and returns the unprocessed body
 // representing its toplevel. Most callers should use one of the more
 // specialized "load..." methods to get a higher-level representation.

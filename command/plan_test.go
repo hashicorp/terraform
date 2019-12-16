@@ -934,17 +934,3 @@ foo = "bar"
 variable "nope" {
 }
 `
-
-const testPlanNoStateStr = `
-<not created>
-`
-
-const testPlanStateStr = `
-ID = bar
-Tainted = false
-`
-
-const testPlanStateDefaultStr = `
-ID = bar
-Tainted = false
-`

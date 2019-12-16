@@ -25,7 +25,6 @@ type RemoteClient struct {
 	storageClient *storage.StorageClient
 	directoryName string
 	keyName       string
-	statePath     string
 }
 
 func (c *RemoteClient) Get() (*remote.Payload, error) {

@@ -29,11 +29,7 @@ import (
 
 // Releases are located by querying the terraform registry.
 
-const protocolVersionHeader = "x-terraform-protocol-version"
-
 var httpClient *http.Client
-
-var errVersionNotFound = errors.New("version not found")
 
 func init() {
 	httpClient = httpclient.New()
@@ -568,19 +564,6 @@ func (i *ProviderInstaller) checkPluginProtocol(versionMeta *response.TerraformP
 	}
 
 	return ErrorNoVersionCompatible
-}
-
-// REVIEWER QUESTION (again): this ends up swallowing a bunch of errors from
-// checkPluginProtocol. Do they need to be percolated up better, or would
-// debug messages would suffice in these situations?
-func (i *ProviderInstaller) findPlatformCompatibleVersion(versions []*response.TerraformProviderVersion) (*response.TerraformProviderVersion, error) {
-	for _, version := range versions {
-		if err := i.checkPlatformCompatibility(version); err == nil {
-			return version, nil
-		}
-	}
-
-	return nil, ErrorNoVersionCompatibleWithPlatform
 }
 
 // platformCompatibleVersions returns a list of provider versions that are
