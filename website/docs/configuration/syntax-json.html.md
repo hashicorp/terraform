@@ -93,7 +93,7 @@ resource "aws_instance" "example" {
 ```
 
 Within each top-level block type the rules for mapping to JSON are slightly
-different (see [Block-type-specific Exceptions][inpage-exceptions] below), but the following general rules apply in most cases:
+different (see the [block-type-specific exceptions](#block-type-specific-exceptions) below), but the following general rules apply in most cases:
 
 * The JSON object representing the block body contains properties that
   correspond either to argument names or to nested block type names.
