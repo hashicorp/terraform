@@ -15,7 +15,7 @@ import (
 // been walked. If two vertices can be walked at the same time, they will be.
 //
 // Update can be called to update the graph. This can be called even during
-// a walk, cahnging vertices/edges mid-walk. This should be done carefully.
+// a walk, changing vertices/edges mid-walk. This should be done carefully.
 // If a vertex is removed but has already been executed, the result of that
 // execution (any error) is still returned by Wait. Changing or re-adding
 // a vertex that has already executed has no effect. Changing edges of
