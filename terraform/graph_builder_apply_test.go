@@ -600,6 +600,48 @@ test_object.b
 	}
 }
 
+// The orphan clean up node should not be connected to a provider
+func TestApplyGraphBuilder_orphanedWithProvider(t *testing.T) {
+	changes := &plans.Changes{
+		Resources: []*plans.ResourceInstanceChangeSrc{
+			{
+				Addr: mustResourceInstanceAddr("test_object.A"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Delete,
+				},
+			},
+		},
+	}
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.A").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"A"}`),
+		},
+		mustProviderConfig("provider.test.foo"),
+	)
+
+	b := &ApplyGraphBuilder{
+		Config:     testModule(t, "graph-builder-orphan-alias"),
+		Changes:    changes,
+		Components: simpleMockComponentFactory(),
+		Schemas:    simpleTestSchemas(),
+		State:      state,
+	}
+
+	g, err := b.Build(addrs.RootModuleInstance)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The cleanup node has no state or config of its own, so would create a
+	// default provider which we don't want.
+	testGraphNotContains(t, g, "provider.test")
+}
+
 const testApplyGraphBuilderStr = `
 meta.count-boundary (EachMode fixup)
   module.child.test_object.other
