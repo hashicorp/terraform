@@ -52,8 +52,8 @@ refers to the `private_ip` attribute exposed by an `aws_instance` resource
 defined elsewhere in this module (not shown). Any valid expression is allowed
 as an output value.
 
--> **Note:** Outputs are only rendered once terraform applies changes to your
-infrastructure. Issue a `terraform plan` against your code won't render those.
+-> **Note:** Outputs are only rendered once Terraform applies changes to your
+infrastructure. Running a `terraform plan` against your code will not render outputs.
 
 ## Accessing Child Module Outputs
 
