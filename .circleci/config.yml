@@ -1,0 +1,56 @@
+version: 2.1
+
+commands:
+  get_dependencies:
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - go-mod-v1-{{ checksum "go.mod" }}{{ checksum "go.sum" }}
+      - run: go get -v -d ./...
+      - save_cache:
+          key: go-mod-v1-{{ checksum "go.mod" }}{{ checksum "go.sum" }}
+          paths:
+            - "/go/pkg/mod"
+
+jobs:
+  "test":
+    docker:
+      - image: circleci/golang:1.12
+    parameters:
+      test_results:
+        type: string
+        default: /tmp/test-results
+    steps:
+      - get_dependencies
+      - run: mkdir -p << parameters.test_results >>/report
+      - run:
+          command: |
+            gotestsum --junitfile << parameters.test_results >>/report/gotestsum-report.xml -- -coverprofile=cover.out ./...
+            go tool cover -html=cover.out -o coverage.html
+            mv coverage.html << parameters.test_results >>
+      - store_artifacts:
+          path: << parameters.test_results >>
+          destination: raw-test-output
+      - store_test_results:
+          path: << parameters.test_results >>
+  "vet":
+    docker:
+      - image: circleci/golang:1.12
+    steps:
+      - get_dependencies
+      - run: go vet ./...
+  "fmt":
+    docker:
+      - image: circleci/golang:1.12
+    steps:
+      - get_dependencies
+      - run: ./scripts/gofmtcheck.sh
+
+workflows:
+  version: 2
+  pr:
+    jobs:
+      - "test"
+      - "vet"
+      - "gofmt"
