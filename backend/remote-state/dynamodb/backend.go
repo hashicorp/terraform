@@ -211,14 +211,113 @@ type Backend struct {
 
 	// The fields below are set from configure
 	dynClient *dynamodb.DynamoDB
+	dynGlobalClients []*dynamodb.DynamoDB
 
 	tableName          string
 	hashName           string
 	lockTable          string
 	workspaceKeyPrefix string
-	endpoint           string
-	sess               *session.Session
 }
+
+func (b *Backend) validateTablesSchema() error {
+
+	if b.lockTable != "" {
+		lockTableParam := &dynamodb.DescribeTableInput{
+			TableName: aws.String(b.lockTable),
+		}
+		lockTableDes, err := b.dynClient.DescribeTable(lockTableParam)
+		if err != nil {
+			return nil
+		}
+		lockAttDef := lockTableDes.Table.AttributeDefinitions
+		lockKeyDef := lockTableDes.Table.KeySchema
+		lockBool := len(lockAttDef) == 1 && len(lockKeyDef) == 1
+		for _, l := range lockAttDef {
+			lockBool = lockBool && *l.AttributeName == "LockID" && *l.AttributeType == "S"
+		}
+		for _, l := range lockKeyDef {
+			if *l.AttributeName == "LockID" {
+				lockBool = lockBool && *l.KeyType == "HASH"
+			}
+		}
+		if !lockBool {
+			return fmt.Errorf(errDynamoDBLockTable, b.lockTable, b.lockTable, b.lockTable)
+		}
+
+	}
+
+	if b.tableName != "" {
+		stateTableParam := &dynamodb.DescribeTableInput{
+			TableName: aws.String(b.tableName),
+		}
+		stateTableDes, err := b.dynClient.DescribeTable(stateTableParam)
+		if err != nil {
+			return nil
+		}
+		stateAttDef := stateTableDes.Table.AttributeDefinitions
+		stateKeyDef := stateTableDes.Table.KeySchema
+		stateBool := len(stateAttDef) == 2 && len(stateKeyDef) == 2
+		for _, s := range stateAttDef {
+			stateBool = stateBool && (*s.AttributeName == "StateID" || *s.AttributeName == "SegmentID") && *s.AttributeType == "S"
+		}
+		for _, s := range stateKeyDef {
+			switch att := *s.AttributeName; att {
+			case "StateID":
+				stateBool = stateBool && *s.KeyType == "HASH"
+			case "SegmentID":
+				stateBool = stateBool && *s.KeyType == "RANGE"
+			}
+		}
+		if !stateBool {
+			return fmt.Errorf(errDynamoDBStateTable, b.tableName, b.tableName, b.tableName)
+		}
+	}
+
+	return nil
+}
+
+func (b *Backend) getGlobalClients(endpoint string, sess *session.Session) ([]*dynamodb.DynamoDB, error) {
+
+	dyClients := make([]*dynamodb.DynamoDB, 0)
+	if b.tableName != "" {
+		globalTableParams := &dynamodb.DescribeGlobalTableInput{
+			GlobalTableName: aws.String(b.tableName),
+		}
+
+		res, err := b.dynClient.DescribeGlobalTable(globalTableParams)
+		if err != nil {
+			return nil, err
+		}
+
+		regions := res.GlobalTableDescription.ReplicationGroup
+		if len(regions) == 0 {
+			return dyClients, nil
+		}
+
+		for _, region := range regions {
+			dyClients = append(dyClients, dynamodb.New(sess.Copy(&aws.Config{
+				Endpoint: aws.String(endpoint),
+				Region:   aws.String(*region.RegionName),
+			})))
+		}
+	}
+
+	if b.lockTable != "" {
+		lockTableParam := &dynamodb.DescribeTableInput{
+			TableName: aws.String(b.lockTable),
+		}
+
+		for _,dyClient := range dyClients {
+			_, err := dyClient.DescribeTable(lockTableParam)
+			if err != nil {
+				return nil, err
+			}
+		}		
+	}
+
+	return dyClients, nil
+}
+
 
 func (b *Backend) configure(ctx context.Context) error {
 	if b.dynClient != nil {
@@ -263,67 +362,24 @@ func (b *Backend) configure(ctx context.Context) error {
 		},
 	}
 
-	var err error
-	b.sess, err = awsbase.GetSession(cfg)
+
+	sess, err := awsbase.GetSession(cfg)
 	if err != nil {
 		return err
 	}
 
-	b.endpoint = data.Get("endpoint").(string)
-	b.dynClient = dynamodb.New(b.sess.Copy(&aws.Config{
+	b.dynClient = dynamodb.New(sess.Copy(&aws.Config{
 		Endpoint: aws.String(data.Get("endpoint").(string)),
 	}))
 
-	// Check Tables
-	if b.lockTable != "" {
-		lockTableParam := &dynamodb.DescribeTableInput{
-			TableName: aws.String(b.lockTable),
-		}
-		lockTableDes, err := b.dynClient.DescribeTable(lockTableParam)
-		if err != nil {
-			return nil
-		}
-		lockAttDef := lockTableDes.Table.AttributeDefinitions
-		lockKeyDef := lockTableDes.Table.KeySchema
-		lockBool := len(lockAttDef) == 1 && len(lockKeyDef) == 1
-		for _, l := range lockAttDef {
-			lockBool = lockBool && *l.AttributeName == "LockID" && *l.AttributeType == "S"
-		}
-		for _, l := range lockKeyDef {
-			if *l.AttributeName == "LockID" {
-				lockBool = lockBool && *l.KeyType == "HASH"
-			}
-		}
-		if !lockBool {
-			return fmt.Errorf(errDynamoDBLockTable, b.lockTable, b.lockTable, b.lockTable)
-		}
-
+	err = b.validateTablesSchema()
+	if err != nil {
+		return err
 	}
-	if b.tableName != "" {
-		stateTableParam := &dynamodb.DescribeTableInput{
-			TableName: aws.String(b.tableName),
-		}
-		stateTableDes, err := b.dynClient.DescribeTable(stateTableParam)
-		if err != nil {
-			return nil
-		}
-		stateAttDef := stateTableDes.Table.AttributeDefinitions
-		stateKeyDef := stateTableDes.Table.KeySchema
-		stateBool := len(stateAttDef) == 2 && len(stateKeyDef) == 2
-		for _, s := range stateAttDef {
-			stateBool = stateBool && (*s.AttributeName == "StateID" || *s.AttributeName == "SegmentID") && *s.AttributeType == "S"
-		}
-		for _, s := range stateKeyDef {
-			switch att := *s.AttributeName; att {
-			case "StateID":
-				stateBool = stateBool && *s.KeyType == "HASH"
-			case "SegmentID":
-				stateBool = stateBool && *s.KeyType == "RANGE"
-			}
-		}
-		if !stateBool {
-			return fmt.Errorf(errDynamoDBStateTable, b.tableName, b.tableName, b.tableName)
-		}
+
+	b.dynGlobalClients, err = b.getGlobalClients(data.Get("endpoint").(string), sess)
+	if err != nil {
+		return err
 	}
 
 	return nil

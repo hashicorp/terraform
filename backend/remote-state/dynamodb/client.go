@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	multierror "github.com/hashicorp/go-multierror"
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform/state"
@@ -33,11 +32,11 @@ const (
 
 type RemoteClient struct {
 	dynClient *dynamodb.DynamoDB
+	dynGlobalClients []*dynamodb.DynamoDB
+
 	tableName string
 	path      string
 	lockTable string
-	endpoint  string
-	sess      *session.Session
 }
 
 var (
@@ -410,44 +409,25 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 		return "", lockErr
 	}
 
-	lockInfo, err := c.getGlobalLockInfo()
-	if err != nil {
-		err = multierror.Append(err, fmt.Errorf(globalLockError))
-	}
-	if lockInfo != nil {
-		lockErr := &state.LockError{
-			Err:  err,
-			Info: lockInfo,
+	if len(c.dynGlobalClients) > 0 { //isGlobal
+		lockInfo, err := c.getGlobalLockInfo()
+		if err != nil {
+			err = multierror.Append(err, fmt.Errorf(globalLockError))
 		}
-		return "", lockErr
+		if lockInfo != nil {
+			lockErr := &state.LockError{
+				Err:  err,
+				Info: lockInfo,
+			}
+			return "", lockErr
+		}
 	}
 
 	return info.ID, nil
 }
 
+
 func (c *RemoteClient) getGlobalLockInfo() (*state.LockInfo, error) {
-
-	globalTableParams := &dynamodb.DescribeGlobalTableInput{
-		GlobalTableName: aws.String(c.lockTable),
-	}
-
-	res, err := c.dynClient.DescribeGlobalTable(globalTableParams)
-	if err != nil {
-		return nil, err
-	}
-
-	regions := res.GlobalTableDescription.ReplicationGroup
-	if len(regions) == 0 {
-		return nil, nil
-	}
-
-	dyClients := make([]*dynamodb.DynamoDB, 0)
-	for _, region := range regions {
-		dyClients = append(dyClients, dynamodb.New(c.sess.Copy(&aws.Config{
-			Endpoint: aws.String(c.endpoint),
-			Region:   aws.String(*region.RegionName),
-		})))
-	}
 
 	queryInput := &dynamodb.QueryInput{
 		TableName: aws.String(c.lockTable),
@@ -466,7 +446,7 @@ func (c *RemoteClient) getGlobalLockInfo() (*state.LockInfo, error) {
 	var results []*dynamodb.QueryOutput
 	for {
 		results = make([]*dynamodb.QueryOutput, 0)
-		for _, client := range dyClients {
+		for _, client := range c.dynGlobalClients {
 			result, err := client.Query(queryInput)
 			if err != nil {
 				return nil, err
@@ -476,7 +456,7 @@ func (c *RemoteClient) getGlobalLockInfo() (*state.LockInfo, error) {
 			}
 			results = append(results, result)
 		}
-		if len(results) == len(dyClients) {
+		if len(results) == len(c.dynGlobalClients) {
 			var regions []string
 			fmt.Println(results)
 			for _, result := range results {
@@ -506,7 +486,7 @@ func (c *RemoteClient) getGlobalLockInfo() (*state.LockInfo, error) {
 			infoData = *v.S
 		}
 		lockInfo := &state.LockInfo{}
-		err = json.Unmarshal([]byte(infoData), lockInfo)
+		err := json.Unmarshal([]byte(infoData), lockInfo)
 		if err != nil {
 			return nil, err
 		}
