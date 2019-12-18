@@ -443,6 +443,7 @@ func (c *RemoteClient) getGlobalLockInfo() (*state.LockInfo, error) {
 		},
 	}
 
+	//Wait dynamodb propagate lock
 	var results []*dynamodb.QueryOutput
 	for {
 		results = make([]*dynamodb.QueryOutput, 0)
@@ -495,6 +496,11 @@ func (c *RemoteClient) getGlobalLockInfo() (*state.LockInfo, error) {
 
 	return nil, nil
 }
+
+func (c *RemoteClient) getGlobalStateInfo() (*state.LockInfo, error) {
+
+}
+
 
 func (c *RemoteClient) getMD5() ([]byte, error) {
 	if c.lockTable == "" {

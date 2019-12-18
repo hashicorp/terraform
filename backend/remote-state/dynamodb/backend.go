@@ -286,7 +286,7 @@ func (b *Backend) getGlobalClients(endpoint string, sess *session.Session) ([]*d
 
 		res, err := b.dynClient.DescribeGlobalTable(globalTableParams)
 		if err != nil {
-			return nil, err
+			return nil, nil
 		}
 
 		regions := res.GlobalTableDescription.ReplicationGroup
