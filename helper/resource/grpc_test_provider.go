@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/helper/plugin"
-	proto "github.com/hashicorp/terraform/internal/tfplugin5"
 	tfplugin "github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/terraform"
+	proto "github.com/hashicorp/terraform/tfplugin5"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/test/bufconn"
 )

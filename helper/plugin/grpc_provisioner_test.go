@@ -6,9 +6,9 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/hashicorp/terraform/helper/schema"
-	proto "github.com/hashicorp/terraform/internal/tfplugin5"
 	mockproto "github.com/hashicorp/terraform/plugin/mock_proto"
 	"github.com/hashicorp/terraform/terraform"
+	proto "github.com/hashicorp/terraform/tfplugin5"
 	context "golang.org/x/net/context"
 )
 

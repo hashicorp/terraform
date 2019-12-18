@@ -9,7 +9,7 @@ behavior "pull_request_path_labeler" "sdk_cherrypicker" {
       "internal/earlyconfig/**",
       "internal/initwd/**",
       "internal/modsdir/**",
-      "internal/tfplugin5/**",
+      "tfplugin5/**",
       # these packages have been moved under internal/ in the sdk
       "addrs/**",
       "command/format/**",
