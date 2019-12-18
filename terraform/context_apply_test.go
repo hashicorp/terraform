@@ -10521,7 +10521,6 @@ func TestContext2Apply_plannedDestroyInterpolatedCount(t *testing.T) {
 	}
 
 	ctxOpts.ProviderResolver = providerResolver
-	ctxOpts.Destroy = true
 	ctx, diags = NewContext(ctxOpts)
 	if diags.HasErrors() {
 		t.Fatalf("err: %s", diags.Err())
