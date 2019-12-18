@@ -279,9 +279,9 @@ func (b *Backend) validateTablesSchema() error {
 func (b *Backend) getGlobalClients(endpoint string, sess *session.Session) ([]*dynamodb.DynamoDB, error) {
 
 	dyClients := make([]*dynamodb.DynamoDB, 0)
-	if b.tableName != "" {
+	if b.lockTable != "" {
 		globalTableParams := &dynamodb.DescribeGlobalTableInput{
-			GlobalTableName: aws.String(b.tableName),
+			GlobalTableName: aws.String(b.lockTable),
 		}
 
 		res, err := b.dynClient.DescribeGlobalTable(globalTableParams)
@@ -300,11 +300,9 @@ func (b *Backend) getGlobalClients(endpoint string, sess *session.Session) ([]*d
 				Region:   aws.String(*region.RegionName),
 			})))
 		}
-	}
 
-	if b.lockTable != "" {
 		lockTableParam := &dynamodb.DescribeTableInput{
-			TableName: aws.String(b.lockTable),
+			TableName: aws.String(b.tableName),
 		}
 
 		for _,dyClient := range dyClients {
@@ -312,7 +310,7 @@ func (b *Backend) getGlobalClients(endpoint string, sess *session.Session) ([]*d
 			if err != nil {
 				return nil, err
 			}
-		}		
+		}
 	}
 
 	return dyClients, nil

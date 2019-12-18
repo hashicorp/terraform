@@ -426,7 +426,6 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 	return info.ID, nil
 }
 
-
 func (c *RemoteClient) getGlobalLockInfo() (*state.LockInfo, error) {
 
 	queryInput := &dynamodb.QueryInput{
@@ -497,26 +496,8 @@ func (c *RemoteClient) getGlobalLockInfo() (*state.LockInfo, error) {
 	return nil, nil
 }
 
-func (c *RemoteClient) getGlobalStateInfo() (*state.LockInfo, error) {
-
-}
-
-
-func (c *RemoteClient) getMD5() ([]byte, error) {
-	if c.lockTable == "" {
-		return nil, nil
-	}
-
-	getParams := &dynamodb.GetItemInput{
-		Key: map[string]*dynamodb.AttributeValue{
-			"LockID": {S: aws.String(c.lockPath() + stateIDSuffix)},
-		},
-		ProjectionExpression: aws.String("LockID, Digest"),
-		TableName:            aws.String(c.lockTable),
-		ConsistentRead:       aws.Bool(true),
-	}
-
-	resp, err := c.dynClient.GetItem(getParams)
+func getClientMD5(client *dynamodb.DynamoDB, getParams *dynamodb.GetItemInput) ([]byte, error){
+	resp, err := client.GetItem(getParams)
 	if err != nil {
 		return nil, err
 	}
@@ -532,6 +513,53 @@ func (c *RemoteClient) getMD5() ([]byte, error) {
 	}
 
 	return sum, nil
+}
+
+func (c *RemoteClient) getMD5() ([]byte, error) {
+	if c.lockTable == "" {
+		return nil, nil
+	}
+
+	getParams := &dynamodb.GetItemInput{
+		Key: map[string]*dynamodb.AttributeValue{
+			"LockID": {S: aws.String(c.lockPath() + stateIDSuffix)},
+		},
+		ProjectionExpression: aws.String("LockID, Digest"),
+		TableName:            aws.String(c.lockTable),
+		ConsistentRead:       aws.Bool(true),
+	}
+
+	if len(c.dynGlobalClients) > 0 { //isGlobal	
+		var sum []byte
+		for {
+			sums := make([][]byte, 0)
+			var err error	
+			for _, client := range c.dynGlobalClients {
+				sum, err = getClientMD5(client, getParams)
+				if err != nil {
+					return nil, err
+				}
+				sums = append(sums, sum)
+			}
+			isSumReplicated := true
+			for _, s := range sums {
+				res := bytes.Compare(s, sum) 
+				if res != 0 {
+					isSumReplicated = false
+				}
+			}
+			if isSumReplicated {
+				break
+			}
+		}
+		return sum, nil
+	}else{
+		sum, err := getClientMD5(c.dynClient, getParams)
+		if err != nil {
+			return nil, err
+		}
+		return sum, nil
+	}
 }
 
 // store the hash of the state so that clients can check for stale state files.
@@ -556,6 +584,13 @@ func (c *RemoteClient) putMD5(sum []byte) error {
 		log.Printf("[WARN] failed to record state serial in dynamodb: %s", err)
 	}
 
+	if len(c.dynGlobalClients) > 0 { //isGlobal
+		_, err := c.getMD5()
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -571,8 +606,16 @@ func (c *RemoteClient) deleteMD5() error {
 		},
 		TableName: aws.String(c.lockTable),
 	}
-	if _, err := c.dynClient.DeleteItem(params); err != nil {
-		return err
+	if len(c.dynGlobalClients) > 0 { //isGlobal
+		for _, client := range c.dynGlobalClients {
+			if _, err := client.DeleteItem(params); err != nil {
+				return err
+			}	
+		}
+	} else {
+		if _, err := c.dynClient.DeleteItem(params); err != nil {
+			return err
+		}		
 	}
 	return nil
 }
