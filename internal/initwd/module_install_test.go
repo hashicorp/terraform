@@ -327,6 +327,14 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 		return
 	}
 
+	//check that the registry reponses were cached
+	if _, ok := inst.moduleVersions["hashicorp/module-installer-acctest/aws"]; !ok {
+		t.Fatal("module versions cache was not populated")
+	}
+	if _, ok := inst.moduleVersionsUrl[moduleVersion{module: "hashicorp/module-installer-acctest/aws", version: "0.0.1"}]; !ok {
+		t.Fatal("module download url cache was not populated")
+	}
+
 	loader, err := configload.NewLoader(&configload.Config{
 		ModulesDir: modulesDir,
 	})
