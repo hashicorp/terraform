@@ -84,6 +84,9 @@ github.com/apparentlymart/go-cidr/cidr
 github.com/apparentlymart/go-dump/dump
 # github.com/apparentlymart/go-textseg v1.0.0
 github.com/apparentlymart/go-textseg/textseg
+# github.com/apparentlymart/go-versions v0.0.2-0.20180815153302-64b99f7cb171
+github.com/apparentlymart/go-versions/versions
+github.com/apparentlymart/go-versions/versions/constraints
 # github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2
 github.com/armon/circbuf
 # github.com/armon/go-radix v1.0.0
