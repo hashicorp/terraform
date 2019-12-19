@@ -31,7 +31,7 @@ const (
 )
 
 type RemoteClient struct {
-	dynClient *dynamodb.DynamoDB
+	dynClient        *dynamodb.DynamoDB
 	dynGlobalClients []*dynamodb.DynamoDB
 
 	tableName string
@@ -151,6 +151,7 @@ func (c *RemoteClient) get() (*remote.Payload, error) {
 		}
 		segmentStrings[segmentID] = state.Body
 	}
+	fmt.Println(segmentStrings)
 
 	jsonString := strings.Join(segmentStrings[:], "")
 	buf := bytes.NewBuffer(nil)
@@ -496,7 +497,7 @@ func (c *RemoteClient) getGlobalLockInfo() (*state.LockInfo, error) {
 	return nil, nil
 }
 
-func getClientMD5(client *dynamodb.DynamoDB, getParams *dynamodb.GetItemInput) ([]byte, error){
+func getClientMD5(client *dynamodb.DynamoDB, getParams *dynamodb.GetItemInput) ([]byte, error) {
 	resp, err := client.GetItem(getParams)
 	if err != nil {
 		return nil, err
@@ -529,11 +530,12 @@ func (c *RemoteClient) getMD5() ([]byte, error) {
 		ConsistentRead:       aws.Bool(true),
 	}
 
-	if len(c.dynGlobalClients) > 0 { //isGlobal	
+	if len(c.dynGlobalClients) > 0 { //isGlobal
+		log.Println("[INFO] Working with Global Tables.")
 		var sum []byte
 		for {
 			sums := make([][]byte, 0)
-			var err error	
+			var err error
 			for _, client := range c.dynGlobalClients {
 				sum, err = getClientMD5(client, getParams)
 				if err != nil {
@@ -543,7 +545,7 @@ func (c *RemoteClient) getMD5() ([]byte, error) {
 			}
 			isSumReplicated := true
 			for _, s := range sums {
-				res := bytes.Compare(s, sum) 
+				res := bytes.Compare(s, sum)
 				if res != 0 {
 					isSumReplicated = false
 				}
@@ -553,7 +555,7 @@ func (c *RemoteClient) getMD5() ([]byte, error) {
 			}
 		}
 		return sum, nil
-	}else{
+	} else {
 		sum, err := getClientMD5(c.dynClient, getParams)
 		if err != nil {
 			return nil, err
@@ -610,12 +612,12 @@ func (c *RemoteClient) deleteMD5() error {
 		for _, client := range c.dynGlobalClients {
 			if _, err := client.DeleteItem(params); err != nil {
 				return err
-			}	
+			}
 		}
 	} else {
 		if _, err := c.dynClient.DeleteItem(params); err != nil {
 			return err
-		}		
+		}
 	}
 	return nil
 }
@@ -677,12 +679,23 @@ func (c *RemoteClient) Unlock(id string) error {
 		},
 		TableName: aws.String(c.lockTable),
 	}
-	_, err = c.dynClient.DeleteItem(params)
 
-	if err != nil {
-		lockErr.Err = err
-		return lockErr
-	}
+	if len(c.dynGlobalClients) > 0 {
+		for _, client := range c.dynGlobalClients {
+			_, err = client.DeleteItem(params)
+			if err != nil {
+				lockErr.Err = err
+				return lockErr
+			}
+		}	
+	}else{
+		_, err = c.dynClient.DeleteItem(params)
+		if err != nil {
+			lockErr.Err = err
+			return lockErr
+		}
+	}	
+
 	return nil
 }
 

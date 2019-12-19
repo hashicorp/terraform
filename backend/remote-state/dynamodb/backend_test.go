@@ -62,75 +62,110 @@ func TestBackendConfig(t *testing.T) {
 	}
 }
 
-//func TestBackendSchema(t *testing.T) {
-//	testACC(t)
-//
-//	config0 := map[string]interface{}{
-//		"state_table": "tf-test",
-//		"hash":        "state",
-//		"region":      "eu-west-1",
-//		"lock_table":  "dynamoTable",
-//	}
-//
-//	b0 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config0)).(*Backend)
-//
-//	//reateDynamoDBTable(t, b0.dynClient, "tf-test", "state")
-//	//efer deleteDynamoDBTable(t, b0.dynClient, "tf-test")
-//	//reateDynamoDBTable(t, b0.dynClient, "dynamoTable", "lock")
-//	//efer deleteDynamoDBTable(t, b0.dynClient, "dynamoTable")
-//	//0 = backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config0)).(*Backend)
-//
-//	//config1 := map[string]interface{}{
-//	//	"state_table": "dynamoTable",
-//	//	"hash":        "state",
-//	//	"region":      "eu-west-1",
-//	//	"lock_table":  "tf-test",
-//	//}
-//
-//	//b0 = backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config1)).(*Backend)
-//	//schema := b0.ConfigSchema()
-//	//spec := schema.DecoderSpec()
-//	//obj, _ := hcldec.Decode(backend.TestWrapConfig(config1), spec, nil)
-//	//diags = diags.Append(decDiags)
-//
-//	//confDiags := b0.Configure(obj)
-//
-//	//fmt.Println(schema)
-//}
+func TestBackendSchema(t *testing.T) {
+	testACC(t)
 
-//func TestBigScan(t *testing.T) {
-//	testACC(t)
-//
-//	config := map[string]interface{}{
-//		"state_table": "tf-test",
-//		"hash":        "state",
-//		"region":      "eu-west-1",
-//	}
-//
-//	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
-//
-//	createDynamoDBTable(t, b.dynClient, "tf-test", "state")
-//	defer deleteDynamoDBTable(t, b.dynClient, "tf-test")
-//
-//	s := states.NewState()
-//	fmt.Println(s)
-//	//client := &RemoteClient{
-//	//	dynClient: b.dynClient,
-//	//	tableName: b.tableName,
-//	//	path:      b.path("s1"),
-//	//}
-//	//N := 1000
-//	//for i := 0; i < N; i++ {
-//	//	client.path = b.path("s"+strconv.Itoa(i))
-//	//	stateMgr := &remote.State{Client: client}
-//	//	stateMgr.WriteState(s)
-//	//	if err := stateMgr.PersistState(); err != nil {
-//	//		t.Fatal(err)
-//	//	}
-//	//}
-//	//b = backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
-//	//fmt.Println(b)
-//}
+	config0 := map[string]interface{}{
+		"state_table": "tf-test",
+		"hash":        "state",
+		"region":      "eu-west-1",
+		"lock_table":  "dynamoTable",
+	}
+
+	b0 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config0)).(*Backend)
+
+	createDynamoDBTable(t, b0.dynClient, "tf-test", "state")
+	defer deleteDynamoDBTable(t, b0.dynClient, "tf-test")
+	createDynamoDBTable(t, b0.dynClient, "dynamoTable", "lock")
+	defer deleteDynamoDBTable(t, b0.dynClient, "dynamoTable")
+	b0 = backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config0)).(*Backend)
+
+	err := b0.validateTablesSchema()
+	if err != nil{
+		t.Fatal(err)
+	}
+
+	b0.tableName = "dynamoTable"
+	b0.lockTable = "tf-test"
+
+	err = b0.validateTablesSchema()
+	if err == nil{
+		t.Fatal(err)
+	}
+
+	b0.tableName = "tf-test"
+	b0.lockTable = "tf-test"
+
+	err = b0.validateTablesSchema()
+	if err == nil{
+		t.Fatal(err)
+	}
+}
+
+func TestGlobalTableLock(t *testing.T){
+	testACC(t)
+
+	lockTable := "dynamoTable"
+	stateTable := "tf-test"
+	region_eu := "eu-west-1"
+	region_us := "us-east-1"
+	regions := []*dynamodb.Replica{&dynamodb.Replica{RegionName: &region_eu}, &dynamodb.Replica{RegionName: &region_us }}
+
+	config0 := map[string]interface{}{
+		"state_table": stateTable,
+		"hash":        "state",
+		"region":      region_eu,
+		"lock_table":  lockTable,
+	}
+
+	b0 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config0)).(*Backend)
+	createDynamoDBTable(t, b0.dynClient, stateTable, "state")
+	defer deleteDynamoDBTable(t, b0.dynClient, "tf-test")
+	createDynamoDBTable(t, b0.dynClient, lockTable, "lock")
+	defer deleteDynamoDBTable(t, b0.dynClient, "dynamoTable")
+
+	config1 := map[string]interface{}{
+		"state_table": stateTable,
+		"hash":        "state",
+		"region":      region_us,
+		"lock_table":  lockTable,
+	}
+
+	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config1)).(*Backend)
+	createDynamoDBTable(t, b1.dynClient, stateTable, "state")
+	defer deleteDynamoDBTable(t, b1.dynClient, "tf-test")
+	createDynamoDBTable(t, b1.dynClient, lockTable, "lock")
+	defer deleteDynamoDBTable(t, b1.dynClient, "dynamoTable")
+	
+	
+	globalLockTableParams := &dynamodb.CreateGlobalTableInput{
+		GlobalTableName: aws.String(lockTable),
+		ReplicationGroup: regions,
+	}
+
+	globalStateTableParams := &dynamodb.CreateGlobalTableInput{
+		GlobalTableName: aws.String(stateTable),
+		ReplicationGroup: regions,
+	}	
+
+	_, err := b0.dynClient.CreateGlobalTable(globalLockTableParams)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = b0.dynClient.CreateGlobalTable(globalStateTableParams)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	b0 = backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config0)).(*Backend)
+	b1 = backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config1)).(*Backend)
+
+	backend.TestBackendStateLocks(t, b1, b0)
+	backend.TestBackendStateForceUnlock(t, b1, b0)
+	backend.TestBackendStates(t, b0)
+	backend.TestBackendStates(t, b1)
+}
 
 func TestBackendConfig_invalidKey(t *testing.T) {
 	testACC(t)
@@ -467,6 +502,10 @@ func createDynamoDBTable(t *testing.T, dynClient *dynamodb.DynamoDB, tableName s
 				WriteCapacityUnits: aws.Int64(5),
 			},
 			TableName: aws.String(tableName),
+			StreamSpecification: &dynamodb.StreamSpecification{
+				StreamEnabled: aws.Bool(true),
+				StreamViewType: aws.String("NEW_AND_OLD_IMAGES"),
+			},
 		}
 	}
 
@@ -497,6 +536,10 @@ func createDynamoDBTable(t *testing.T, dynClient *dynamodb.DynamoDB, tableName s
 				WriteCapacityUnits: aws.Int64(5),
 			},
 			TableName: aws.String(tableName),
+			StreamSpecification: &dynamodb.StreamSpecification{
+				StreamEnabled: aws.Bool(true),
+				StreamViewType: aws.String("NEW_AND_OLD_IMAGES"),
+			},
 		}
 	}
 
@@ -534,6 +577,7 @@ func createDynamoDBTable(t *testing.T, dynClient *dynamodb.DynamoDB, tableName s
 
 }
 
+
 func deleteDynamoDBTable(t *testing.T, dynClient *dynamodb.DynamoDB, tableName string) {
 	params := &dynamodb.DeleteTableInput{
 		TableName: aws.String(tableName),
@@ -543,4 +587,5 @@ func deleteDynamoDBTable(t *testing.T, dynClient *dynamodb.DynamoDB, tableName s
 	if err != nil {
 		t.Logf("WARNING: Failed to delete the test DynamoDB table %q. It has been left in your AWS account and may incur charges. (error was %s)", tableName, err)
 	}
+
 }

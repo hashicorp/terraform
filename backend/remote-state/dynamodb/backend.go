@@ -210,7 +210,7 @@ type Backend struct {
 	*schema.Backend
 
 	// The fields below are set from configure
-	dynClient *dynamodb.DynamoDB
+	dynClient        *dynamodb.DynamoDB
 	dynGlobalClients []*dynamodb.DynamoDB
 
 	tableName          string
@@ -305,7 +305,7 @@ func (b *Backend) getGlobalClients(endpoint string, sess *session.Session) ([]*d
 			TableName: aws.String(b.tableName),
 		}
 
-		for _,dyClient := range dyClients {
+		for _, dyClient := range dyClients {
 			_, err := dyClient.DescribeTable(lockTableParam)
 			if err != nil {
 				return nil, err
@@ -315,7 +315,6 @@ func (b *Backend) getGlobalClients(endpoint string, sess *session.Session) ([]*d
 
 	return dyClients, nil
 }
-
 
 func (b *Backend) configure(ctx context.Context) error {
 	if b.dynClient != nil {
@@ -359,7 +358,6 @@ func (b *Backend) configure(ctx context.Context) error {
 			{Name: "Terraform", Version: version.String()},
 		},
 	}
-
 
 	sess, err := awsbase.GetSession(cfg)
 	if err != nil {

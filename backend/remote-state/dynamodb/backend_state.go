@@ -152,11 +152,11 @@ func (b *Backend) remoteClient(name string) (*RemoteClient, error) {
 	}
 
 	client := &RemoteClient{
-		dynClient: b.dynClient,
+		dynClient:        b.dynClient,
 		dynGlobalClients: b.dynGlobalClients,
-		tableName: b.tableName,
-		path:      b.path(name),
-		lockTable: b.lockTable,
+		tableName:        b.tableName,
+		path:             b.path(name),
+		lockTable:        b.lockTable,
 	}
 
 	return client, nil

@@ -337,7 +337,7 @@ func TestHugeState(t *testing.T) {
 	}
 
 	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	dynamoDBItemSize := 1000000
+	dynamoDBItemSize := 2097152
 
 	for i := 1; i <= 2; i++ {
 		payload := make([]byte, dynamoDBItemSize)

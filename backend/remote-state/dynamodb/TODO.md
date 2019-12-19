@@ -1,2 +1,3 @@
 - remote state compression
 - puntatore al successivo item per ottimizzare partizioni
+- versioning
