@@ -5010,7 +5010,7 @@ func TestContext2Apply_error_createBeforeDestroy(t *testing.T) {
 		State: state,
 	})
 	p.ApplyFn = func(info *InstanceInfo, is *InstanceState, id *InstanceDiff) (*InstanceState, error) {
-		return nil, fmt.Errorf("error")
+		return nil, fmt.Errorf("placeholder error from ApplyFn")
 	}
 	p.DiffFn = testDiffFn
 
@@ -5021,6 +5021,11 @@ func TestContext2Apply_error_createBeforeDestroy(t *testing.T) {
 	state, diags := ctx.Apply()
 	if diags == nil {
 		t.Fatal("should have error")
+	}
+	if got, want := diags.Err().Error(), "placeholder error from ApplyFn"; got != want {
+		// We're looking for our artificial error from ApplyFn above, whose
+		// message is literally "placeholder error from ApplyFn".
+		t.Fatalf("wrong error\ngot:  %s\nwant: %s", got, want)
 	}
 
 	actual := strings.TrimSpace(state.String())
@@ -11117,6 +11122,10 @@ func TestContext2Apply_taintedDestroyFailure(t *testing.T) {
 		Type: "test_instance",
 		Name: "c",
 	}.Instance(addrs.NoKey))
+
+	if c.Current == nil {
+		t.Fatal("test_instance.c has no current instance, but it should")
+	}
 
 	if c.Current.Status != states.ObjectTainted {
 		t.Fatal("test_instance.c should be tainted")
