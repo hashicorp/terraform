@@ -81,7 +81,7 @@ func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 
 			if time.Now().Before(deadline) {
 				time.Sleep(consistencyRetryPollInterval)
-				log.Println("[INFO] retrying S3 RemoteClient.Get...")
+				log.Println("[INFO] retrying DynamoDB RemoteClient.Get...")
 				continue
 			}
 
@@ -133,13 +133,28 @@ func (c *RemoteClient) get() (*remote.Payload, error) {
 		return nil, fmt.Errorf("During query operation on table %s %s.", c.tableName, err)
 	}
 
-	maxSegmentID, err := getMaxSegmentId(result.Items)
+	items := result.Items
+	for {
+		if result.LastEvaluatedKey == nil {
+			break
+		}
+		queryInput.ExclusiveStartKey = result.LastEvaluatedKey
+		result, err = c.dynClient.Query(queryInput)
+		if err != nil {
+			return nil, fmt.Errorf("During query operation on table %s %s.", c.tableName, err)
+		}
+		for _, i := range result.Items {
+			items = append(items, i)
+		}
+	}
+
+	maxSegmentID, err := getMaxSegmentId(items)
 	if err != nil {
 		return nil, err
 	}
 	var segmentStrings = make([]string, maxSegmentID+1)
 
-	for _, i := range result.Items {
+	for _, i := range items {
 		state := State{}
 		err = dynamodbattribute.UnmarshalMap(i, &state)
 		if err != nil {
@@ -151,7 +166,6 @@ func (c *RemoteClient) get() (*remote.Payload, error) {
 		}
 		segmentStrings[segmentID] = state.Body
 	}
-	fmt.Println(segmentStrings)
 
 	jsonString := strings.Join(segmentStrings[:], "")
 	buf := bytes.NewBuffer(nil)
@@ -459,7 +473,6 @@ func (c *RemoteClient) getGlobalLockInfo() (*state.LockInfo, error) {
 		}
 		if len(results) == len(c.dynGlobalClients) {
 			var regions []string
-			fmt.Println(results)
 			for _, result := range results {
 				if result.Items[0]["aws:rep:updateregion"] != nil {
 					regions = append(regions, *result.Items[0]["aws:rep:updateregion"].S)
@@ -477,6 +490,7 @@ func (c *RemoteClient) getGlobalLockInfo() (*state.LockInfo, error) {
 				break
 			}
 		}
+		time.Sleep(3 * time.Second)
 	}
 
 	clientRegion := *c.dynClient.Client.Config.Region
@@ -535,12 +549,8 @@ func (c *RemoteClient) getMD5() ([]byte, error) {
 		var sum []byte
 		for {
 			sums := make([][]byte, 0)
-			var err error
 			for _, client := range c.dynGlobalClients {
-				sum, err = getClientMD5(client, getParams)
-				if err != nil {
-					return nil, err
-				}
+				sum, _ = getClientMD5(client, getParams)
 				sums = append(sums, sum)
 			}
 			isSumReplicated := true
@@ -586,12 +596,9 @@ func (c *RemoteClient) putMD5(sum []byte) error {
 		log.Printf("[WARN] failed to record state serial in dynamodb: %s", err)
 	}
 
-	if len(c.dynGlobalClients) > 0 { //isGlobal
-		_, err := c.getMD5()
-		if err != nil {
-			return err
-		}
-	}
+	//if len(c.dynGlobalClients) > 0 { //isGlobal
+	//	c.getMD5()
+	//}
 
 	return nil
 }
@@ -608,17 +615,23 @@ func (c *RemoteClient) deleteMD5() error {
 		},
 		TableName: aws.String(c.lockTable),
 	}
-	if len(c.dynGlobalClients) > 0 { //isGlobal
-		for _, client := range c.dynGlobalClients {
-			if _, err := client.DeleteItem(params); err != nil {
-				return err
-			}
-		}
-	} else {
-		if _, err := c.dynClient.DeleteItem(params); err != nil {
-			return err
-		}
+
+	if _, err := c.dynClient.DeleteItem(params); err != nil {
+		return err
 	}
+
+	//if len(c.dynGlobalClients) > 0 { //isGlobal
+	//	for _, client := range c.dynGlobalClients {
+	//		if _, err := client.DeleteItem(params); err != nil {
+	//			return err
+	//		}
+	//	}
+	//} else {
+	//	if _, err := c.dynClient.DeleteItem(params); err != nil {
+	//		return err
+	//	}
+	//}
+
 	return nil
 }
 
@@ -680,21 +693,21 @@ func (c *RemoteClient) Unlock(id string) error {
 		TableName: aws.String(c.lockTable),
 	}
 
-	if len(c.dynGlobalClients) > 0 {
-		for _, client := range c.dynGlobalClients {
-			_, err = client.DeleteItem(params)
-			if err != nil {
-				lockErr.Err = err
-				return lockErr
-			}
-		}	
-	}else{
-		_, err = c.dynClient.DeleteItem(params)
-		if err != nil {
-			lockErr.Err = err
-			return lockErr
-		}
-	}	
+	//if len(c.dynGlobalClients) > 0 {
+	//	for _, client := range c.dynGlobalClients {
+	//		_, err = client.DeleteItem(params)
+	//		if err != nil {
+	//			lockErr.Err = err
+	//			return lockErr
+	//		}
+	//	}
+	//} else {
+	_, err = c.dynClient.DeleteItem(params)
+	if err != nil {
+		lockErr.Err = err
+		return lockErr
+	}
+	//}
 
 	return nil
 }
@@ -710,14 +723,6 @@ update.  Please wait for a minute or two and try again. If this problem
 persists, and DynamoDB is not experiencing an outage, you may need
 to manually verify the remote state and update the Digest value stored in the
 DynamoDB lock table to the following value: %x
-`
-
-const errS3NoSuchBucket = `DynamoDB table does not exist.
-
-The referenced DynamoDB table must have been previously created. If the DynamoDB table
-was created within the last minute, please wait for a minute or two and try again.
-
-Error: %s
 `
 
 const globalLockError = `Error while trying to lock global table`

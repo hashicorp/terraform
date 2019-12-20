@@ -339,26 +339,24 @@ func TestHugeState(t *testing.T) {
 	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	dynamoDBItemSize := 2097152
 
-	for i := 1; i <= 2; i++ {
-		payload := make([]byte, dynamoDBItemSize)
-		for i := range payload {
-			payload[i] = letterBytes[rand.Intn(len(letterBytes))]
-		}
+	payload := make([]byte, dynamoDBItemSize)
+	for i := range payload {
+		payload[i] = letterBytes[rand.Intn(len(letterBytes))]
+	}
 
-		if err := client.Put(payload); err != nil {
-			t.Fatal(err)
-		}
+	if err := client.Put(payload); err != nil {
+		t.Fatal(err)
+	}
 
-		returned_payload, err := client.Get()
-		if err != nil {
-			t.Fatal(err)
-		}
+	returned_payload, err := client.Get()
+	if err != nil {
+		t.Fatal(err)
+	}
 
-		res := bytes.Compare(returned_payload.Data, payload)
+	res := bytes.Compare(returned_payload.Data, payload)
 
-		if res != 0 {
-			t.Fatal(err)
-		}
+	if res != 0 {
+		t.Fatal("Put and Get payload does not match")
 	}
 
 }
