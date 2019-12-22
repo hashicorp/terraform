@@ -54,7 +54,7 @@ func New() backend.Backend {
 
 			"region": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				Description: "The region of the DynamoDB Table.",
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
 					"AWS_REGION",
@@ -340,6 +340,10 @@ func (b *Backend) configure(ctx context.Context) error {
 
 	// Grab the resource data
 	data := schema.FromContextBackendConfig(ctx)
+
+	if data.Get("region").(string) == "" {
+		return fmt.Errorf("Please set env AWS_REGION or AWS_DEFAULT_REGION, otherwise set region in backend configuration.")
+	}
 
 	if !data.Get("skip_region_validation").(bool) {
 		if err := awsbase.ValidateRegion(data.Get("region").(string)); err != nil {

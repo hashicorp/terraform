@@ -133,6 +133,8 @@ func (c *RemoteClient) getChunks() ([]State, error) {
 		} else {
 			queryInput.KeyConditions["StateID"].AttributeValueList[0].S = aws.String(state.NextStateID)
 		}
+
+		time.Sleep(consistencyRetryPollInterval)
 	}
 
 	for i := 0; i < len(states)-1; i += 1 {
@@ -292,11 +294,10 @@ func (c *RemoteClient) Put(data []byte) error {
 	}
 
 	sum := md5.Sum(data)
+	// if this errors out, we unfortunately have to error out altogether,
+	// since the next Get will inevitably fail.
 	if err := c.putMD5(sum[:]); err != nil {
-		// if this errors out, we unfortunately have to error out altogether,
-		// since the next Get will inevitably fail.
 		return fmt.Errorf("Failed to store state MD5: %s", err)
-
 	}
 
 	return nil
@@ -363,6 +364,7 @@ func (c *RemoteClient) Delete() error {
 
 func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 	if c.lockTable == "" {
+		fmt.Println("Lock Table info not provided.")
 		return "", nil
 	}
 
@@ -466,7 +468,8 @@ func (c *RemoteClient) getGlobalLockInfo() (*state.LockInfo, error) {
 				break
 			}
 		}
-		time.Sleep(3 * time.Second)
+
+		time.Sleep(consistencyRetryPollInterval)
 	}
 
 	clientRegion := *c.dynClient.Client.Config.Region
@@ -508,6 +511,7 @@ func getClientMD5(client *dynamodb.DynamoDB, getParams *dynamodb.GetItemInput) (
 
 func (c *RemoteClient) getMD5() ([]byte, error) {
 	if c.lockTable == "" {
+		fmt.Println("Lock Table info not provided.")
 		return nil, nil
 	}
 
@@ -539,6 +543,8 @@ func (c *RemoteClient) getMD5() ([]byte, error) {
 			if isSumReplicated {
 				break
 			}
+
+			time.Sleep(consistencyRetryPollInterval)
 		}
 		return sum, nil
 	} else {
@@ -553,6 +559,7 @@ func (c *RemoteClient) getMD5() ([]byte, error) {
 // store the hash of the state so that clients can check for stale state files.
 func (c *RemoteClient) putMD5(sum []byte) error {
 	if c.lockTable == "" {
+		fmt.Println("Lock Table info not provided.")
 		return nil
 	}
 
@@ -572,16 +579,13 @@ func (c *RemoteClient) putMD5(sum []byte) error {
 		log.Printf("[WARN] failed to record state serial in dynamodb: %s", err)
 	}
 
-	//if len(c.dynGlobalClients) > 0 { //isGlobal
-	//	c.getMD5()
-	//}
-
 	return nil
 }
 
 // remove the hash value for a deleted state
 func (c *RemoteClient) deleteMD5() error {
 	if c.lockTable == "" {
+		fmt.Println("Lock Table info not provided.")
 		return nil
 	}
 
@@ -595,18 +599,6 @@ func (c *RemoteClient) deleteMD5() error {
 	if _, err := c.dynClient.DeleteItem(params); err != nil {
 		return err
 	}
-
-	//if len(c.dynGlobalClients) > 0 { //isGlobal
-	//	for _, client := range c.dynGlobalClients {
-	//		if _, err := client.DeleteItem(params); err != nil {
-	//			return err
-	//		}
-	//	}
-	//} else {
-	//	if _, err := c.dynClient.DeleteItem(params); err != nil {
-	//		return err
-	//	}
-	//}
 
 	return nil
 }
@@ -642,14 +634,12 @@ func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
 
 func (c *RemoteClient) Unlock(id string) error {
 	if c.lockTable == "" {
+		fmt.Println("Lock Table info not provided.")
 		return nil
 	}
 
 	lockErr := &state.LockError{}
 
-	// TODO: store the path and lock ID in separate fields, and have proper
-	// projection expression only delete the lock if both match, rather than
-	// checking the ID from the info field first.
 	lockInfo, err := c.getLockInfo()
 	if err != nil {
 		lockErr.Err = fmt.Errorf("failed to retrieve lock info: %s", err)
@@ -669,21 +659,11 @@ func (c *RemoteClient) Unlock(id string) error {
 		TableName: aws.String(c.lockTable),
 	}
 
-	//if len(c.dynGlobalClients) > 0 {
-	//	for _, client := range c.dynGlobalClients {
-	//		_, err = client.DeleteItem(params)
-	//		if err != nil {
-	//			lockErr.Err = err
-	//			return lockErr
-	//		}
-	//	}
-	//} else {
 	_, err = c.dynClient.DeleteItem(params)
 	if err != nil {
 		lockErr.Err = err
 		return lockErr
 	}
-	//}
 
 	return nil
 }

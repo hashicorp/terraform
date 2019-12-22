@@ -6,6 +6,7 @@ import (
 	"path"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 
@@ -72,6 +73,8 @@ func (b *Backend) Workspaces() ([]string, error) {
 		for _, i := range result.Items {
 			items = append(items, i)
 		}
+
+		time.Sleep(consistencyRetryPollInterval)
 	}
 
 	// Extract Workspaces
