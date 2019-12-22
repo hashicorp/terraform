@@ -156,6 +156,7 @@ func (b *Backend) remoteClient(name string) (*RemoteClient, error) {
 		tableName:        b.tableName,
 		path:             b.path(name),
 		lockTable:        b.lockTable,
+		state_days_ttl:   b.state_days_ttl,
 	}
 
 	return client, nil

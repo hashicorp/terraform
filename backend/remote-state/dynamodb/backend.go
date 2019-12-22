@@ -17,9 +17,11 @@ import (
 )
 
 type State struct {
-	StateID   string
-	SegmentID string
-	Body      string
+	StateID     string
+	SegmentID   int64
+	Body        string
+	NextStateID string
+	TTL         int64
 }
 
 // New creates a new backend for DynamoDB remote state.
@@ -192,6 +194,20 @@ func New() backend.Backend {
 				},
 			},
 
+			"state_days_ttl": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "The Number of days used for old states time to live.",
+				Default:     0,
+				ValidateFunc: func(v interface{}, s string) ([]string, []error) {
+					value := v.(int)
+					if value < 0 {
+						return nil, []error{errors.New("state_days_ttl value must be greater than 0")}
+					}
+					return nil, nil
+				},
+			},
+
 			"max_retries": {
 				Type:        schema.TypeInt,
 				Optional:    true,
@@ -217,6 +233,7 @@ type Backend struct {
 	hashName           string
 	lockTable          string
 	workspaceKeyPrefix string
+	state_days_ttl     int
 }
 
 func (b *Backend) validateTablesSchema() error {
@@ -258,7 +275,7 @@ func (b *Backend) validateTablesSchema() error {
 		stateKeyDef := stateTableDes.Table.KeySchema
 		stateBool := len(stateAttDef) == 2 && len(stateKeyDef) == 2
 		for _, s := range stateAttDef {
-			stateBool = stateBool && (*s.AttributeName == "StateID" || *s.AttributeName == "SegmentID") && *s.AttributeType == "S"
+			stateBool = stateBool && (*s.AttributeName == "StateID" && *s.AttributeType == "S" || *s.AttributeName == "SegmentID" && *s.AttributeType == "N")
 		}
 		for _, s := range stateKeyDef {
 			switch att := *s.AttributeName; att {
@@ -334,6 +351,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	b.hashName = data.Get("hash").(string)
 	b.workspaceKeyPrefix = data.Get("workspace_key_prefix").(string)
 	b.lockTable = data.Get("lock_table").(string)
+	b.state_days_ttl = data.Get("state_days_ttl").(int)
 
 	cfg := &awsbase.Config{
 		AccessKey:             data.Get("access_key").(string),
@@ -389,7 +407,7 @@ aws dynamodb delete-table --table-name %s && \
 aws dynamodb wait table-not-exists --table-name %s && \
 aws dynamodb create-table \
 --table-name %s \
---attribute-definitions AttributeName=StateID,AttributeType=S AttributeName=SegmentID,AttributeType=S \
+--attribute-definitions AttributeName=StateID,AttributeType=S AttributeName=SegmentID,AttributeType=N \
 --key-schema AttributeName=StateID,KeyType=HASH AttributeName=SegmentID,KeyType=RANGE \
 --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
 `

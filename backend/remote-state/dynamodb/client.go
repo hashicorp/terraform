@@ -34,9 +34,10 @@ type RemoteClient struct {
 	dynClient        *dynamodb.DynamoDB
 	dynGlobalClients []*dynamodb.DynamoDB
 
-	tableName string
-	path      string
-	lockTable string
+	tableName      string
+	path           string
+	lockTable      string
+	state_days_ttl int
 }
 
 var (
@@ -94,26 +95,7 @@ func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 	return payload, err
 }
 
-func getMaxSegmentId(items []map[string]*dynamodb.AttributeValue) (int, error) {
-	maxSegmentID := 0
-	for _, i := range items {
-		state := State{}
-		err := dynamodbattribute.UnmarshalMap(i, &state)
-		if err != nil {
-			return -1, fmt.Errorf("Got error marshalling state: %s", err)
-		}
-		segmentID, err := strconv.Atoi(state.SegmentID)
-		if err != nil {
-			return -1, fmt.Errorf("Got error casting: %s", err)
-		}
-		if segmentID > maxSegmentID {
-			maxSegmentID = segmentID
-		}
-	}
-	return maxSegmentID, nil
-}
-
-func (c *RemoteClient) get() (*remote.Payload, error) {
+func (c *RemoteClient) getChunks() ([]State, error) {
 	var queryInput = &dynamodb.QueryInput{
 		TableName: aws.String(c.tableName),
 		KeyConditions: map[string]*dynamodb.Condition{
@@ -126,48 +108,54 @@ func (c *RemoteClient) get() (*remote.Payload, error) {
 				},
 			},
 		},
+		Limit:            aws.Int64(1),
+		ScanIndexForward: aws.Bool(false), // descending order
 	}
 
-	result, err := c.dynClient.Query(queryInput)
-	if err != nil {
-		return nil, fmt.Errorf("During query operation on table %s %s.", c.tableName, err)
-	}
-
-	items := result.Items
+	var states []State
 	for {
-		if result.LastEvaluatedKey == nil {
-			break
-		}
-		queryInput.ExclusiveStartKey = result.LastEvaluatedKey
-		result, err = c.dynClient.Query(queryInput)
+		result, err := c.dynClient.Query(queryInput)
 		if err != nil {
 			return nil, fmt.Errorf("During query operation on table %s %s.", c.tableName, err)
 		}
-		for _, i := range result.Items {
-			items = append(items, i)
+		if len(result.Items) == 0 {
+			break
+		}
+
+		state := State{}
+		if err := dynamodbattribute.UnmarshalMap(result.Items[0], &state); err != nil {
+			return nil, fmt.Errorf("Got error marshalling state: %s", err)
+		}
+		states = append(states, state)
+
+		if state.NextStateID == "none" {
+			break
+		} else {
+			queryInput.KeyConditions["StateID"].AttributeValueList[0].S = aws.String(state.NextStateID)
 		}
 	}
 
-	maxSegmentID, err := getMaxSegmentId(items)
+	for i := 0; i < len(states)-1; i += 1 {
+		if states[i].SegmentID != states[i+1].SegmentID {
+			return nil, fmt.Errorf("Got wrong SegmentID")
+		}
+	}
+	fmt.Println(len(states))
+	return states, nil
+}
+
+func (c *RemoteClient) get() (*remote.Payload, error) {
+	states, err := c.getChunks()
 	if err != nil {
 		return nil, err
 	}
-	var segmentStrings = make([]string, maxSegmentID+1)
 
-	for _, i := range items {
-		state := State{}
-		err = dynamodbattribute.UnmarshalMap(i, &state)
-		if err != nil {
-			return nil, fmt.Errorf("Got error marshalling state: %s", err)
-		}
-		segmentID, err := strconv.Atoi(state.SegmentID)
-		if err != nil {
-			return nil, fmt.Errorf("Got error casting: %s", err)
-		}
-		segmentStrings[segmentID] = state.Body
+	var jsonString string
+	for _, state := range states {
+		fmt.Println(state.SegmentID)
+		jsonString += state.Body
 	}
 
-	jsonString := strings.Join(segmentStrings[:], "")
 	buf := bytes.NewBuffer(nil)
 	if _, err := io.Copy(buf, strings.NewReader(jsonString)); err != nil {
 		return nil, fmt.Errorf("Failed to read remote state: %s", err)
@@ -187,22 +175,99 @@ func (c *RemoteClient) get() (*remote.Payload, error) {
 	return payload, nil
 }
 
-func (c *RemoteClient) GeneratePutItems(data []byte, sequence []int, transactionItems *[]*dynamodb.TransactWriteItem) error {
-	body := string(data[:])
-
-	item := State{
-		StateID:   c.path,
-		SegmentID: strconv.Itoa(sequence[0]),
-		Body:      body,
-	}
-
-	b, err := json.Marshal(item)
+func (c *RemoteClient) Put(data []byte) error {
+	states, err := c.getChunks()
 	if err != nil {
-		return fmt.Errorf("Got error marshalling item: %s", err)
+		return err
 	}
 
-	if len(b) < dynamoDBItemSize {
-		av, err := dynamodbattribute.MarshalMap(item)
+	var segment_id int64
+	if len(states) == 0 {
+		segment_id = -2
+	} else {
+		segment_id = states[0].SegmentID
+	}
+
+	version_date := time.Now().AddDate(0, 0, c.state_days_ttl).Unix()
+	var transactionItems = make([]*dynamodb.TransactWriteItem, 0)
+
+	for _, state := range states {
+
+		delete_item := &dynamodb.TransactWriteItem{
+			Delete: &dynamodb.Delete{
+				TableName: aws.String(c.tableName),
+				Key: map[string]*dynamodb.AttributeValue{
+					"StateID": {
+						S: aws.String(state.StateID),
+					},
+					"SegmentID": {
+						N: aws.String(strconv.FormatInt(state.SegmentID, 10)),
+					},
+				},
+			},
+		}
+
+		transactionItems = append(transactionItems, delete_item)
+
+		if c.state_days_ttl > 0 {
+
+			state.SegmentID = segment_id + 1
+			state.TTL = version_date
+			av, err := dynamodbattribute.MarshalMap(state)
+			if err != nil {
+				return fmt.Errorf("Got error marshalling state: %s", err)
+			}
+			put_item := &dynamodb.TransactWriteItem{
+				Put: &dynamodb.Put{
+					TableName: aws.String(c.tableName),
+					Item:      av,
+				},
+			}
+
+			transactionItems = append(transactionItems, put_item)
+
+		}
+
+	}
+
+	if c.state_days_ttl > 0 && len(transactionItems) > 0 {
+		_, err := c.dynClient.TransactWriteItems(&dynamodb.TransactWriteItemsInput{TransactItems: transactionItems})
+		if err != nil {
+			return fmt.Errorf("Got error calling TransactWriteItems: %s", err)
+		}
+		transactionItems = make([]*dynamodb.TransactWriteItem, 0)
+	}
+
+	var chunks []State
+	for i := 0; i < len(data); i += dynamoDBItemSize {
+		end := i + dynamoDBItemSize
+		if end > len(data) {
+			end = len(data)
+		}
+
+		path := c.path
+		if i > 0 {
+			hex := strconv.FormatInt(time.Now().Unix(), 16) + strconv.FormatInt(int64(i), 16)
+			path = path + "-" + hex
+		}
+
+		state := State{
+			StateID:     path,
+			SegmentID:   segment_id + 2,
+			Body:        string(data[i:end]),
+			NextStateID: "none",
+			TTL:         0,
+		}
+
+		chunks = append(chunks, state)
+	}
+
+	for i := 0; i < len(chunks)-1; i += 1 {
+		chunks[i].NextStateID = chunks[i+1].StateID
+	}
+
+	for i := 0; i < len(chunks); i += 1 {
+		av, err := dynamodbattribute.MarshalMap(chunks[i])
 		if err != nil {
 			return fmt.Errorf("Got error marshalling state: %s", err)
 		}
@@ -214,105 +279,16 @@ func (c *RemoteClient) GeneratePutItems(data []byte, sequence []int, transaction
 			},
 		}
 
-		*transactionItems = append(*transactionItems, put_item)
-
-	} else {
-		N := int(len(data) / 2)
-		err := c.GeneratePutItems(data[N:], sequence[N:], transactionItems)
-		if err != nil {
-			return fmt.Errorf("Got error during put generation: %s", err)
-		}
-		err = c.GeneratePutItems(data[:N], sequence[:N], transactionItems)
-		if err != nil {
-			return fmt.Errorf("Got error during put generation: %s", err)
-		}
+		transactionItems = append(transactionItems, put_item)
 	}
 
-	return nil
-}
-
-func GenerateSequence(sequenceSize int, currentSegments []int) []int {
-	if sequenceSize == 0 {
-		return []int{0}
-	}
-
-	segmentsSize := len(currentSegments)
-	sequence := make([]int, sequenceSize)
-	position := 0
-	for index := 0; index < sequenceSize+segmentsSize; index++ {
-		to_use := true
-		for _, segment := range currentSegments {
-			to_use = !(segment == index) && to_use
-		}
-		if to_use {
-			sequence[position] = index
-			position += 1
-		}
-	}
-	return sequence
-}
-
-func (c *RemoteClient) Put(data []byte) error {
-	var queryInput = &dynamodb.QueryInput{
-		TableName: aws.String(c.tableName),
-		KeyConditions: map[string]*dynamodb.Condition{
-			"StateID": {
-				ComparisonOperator: aws.String("EQ"),
-				AttributeValueList: []*dynamodb.AttributeValue{
-					{
-						S: aws.String(c.path),
-					},
-				},
-			},
-		},
-	}
-
-	result, err := c.dynClient.Query(queryInput)
-	if err != nil {
-		return fmt.Errorf("During query operation on table %s %s.", c.tableName, err)
-	}
-	var transactionItems = make([]*dynamodb.TransactWriteItem, 0)
-	var segments []int
-	for _, i := range result.Items {
-		state := State{}
-
-		err = dynamodbattribute.UnmarshalMap(i, &state)
-		if err != nil {
-			return fmt.Errorf("Got error marshalling state: %s", err)
-		}
-
-		delete_item := &dynamodb.TransactWriteItem{
-			Delete: &dynamodb.Delete{
-				TableName: aws.String(c.tableName),
-				Key: map[string]*dynamodb.AttributeValue{
-					"StateID": {
-						S: aws.String(state.StateID),
-					},
-					"SegmentID": {
-						S: aws.String(state.SegmentID),
-					},
-				},
-			},
-		}
-		transactionItems = append(transactionItems, delete_item)
-		id, err := strconv.Atoi(state.SegmentID)
-		if err != nil {
-			return fmt.Errorf("Got error casting: %s", err)
-		}
-		segments = append(segments, id)
-	}
-
-	sequence := GenerateSequence(len(data), segments)
 	log.Printf("[DEBUG] Uploading remote state to DynamoDB: %#v", transactionItems)
 
-	err = c.GeneratePutItems(data, sequence, &transactionItems)
-	if err != nil {
-		return fmt.Errorf("Got error calling GeneratePutItems: %s", err)
-	}
-
-	_, err = c.dynClient.TransactWriteItems(&dynamodb.TransactWriteItemsInput{TransactItems: transactionItems})
-	if err != nil {
-		return fmt.Errorf("Got error calling TransactWriteItems: %s", err)
+	{
+		_, err := c.dynClient.TransactWriteItems(&dynamodb.TransactWriteItemsInput{TransactItems: transactionItems})
+		if err != nil {
+			return fmt.Errorf("Got error calling TransactWriteItems: %s", err)
+		}
 	}
 
 	sum := md5.Sum(data)
@@ -361,7 +337,7 @@ func (c *RemoteClient) Delete() error {
 						S: aws.String(state.StateID),
 					},
 					"SegmentID": {
-						S: aws.String(state.SegmentID),
+						N: aws.String(strconv.FormatInt(state.SegmentID, 10)),
 					},
 				},
 			},
