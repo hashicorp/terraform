@@ -2,26 +2,26 @@ package dynamodb
 
 import (
 	"bytes"
+	"compress/gzip"
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
+	//	"io"
+	"io/ioutil"
 	"log"
 	"strconv"
-	"strings"
+	//	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	multierror "github.com/hashicorp/go-multierror"
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
-
-	"github.com/aws/aws-sdk-go/service/dynamodb"
-
-	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
 
 // Store the last saved serial in dynamo with this suffix for consistency checks.
@@ -38,6 +38,7 @@ type RemoteClient struct {
 	path           string
 	lockTable      string
 	state_days_ttl int
+	compression    bool
 }
 
 var (
@@ -95,7 +96,7 @@ func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 	return payload, err
 }
 
-func (c *RemoteClient) getChunks() ([]State, error) {
+func (c *RemoteClient) getChunks() ([]State, bool, error) {
 	var queryInput = &dynamodb.QueryInput{
 		TableName: aws.String(c.tableName),
 		KeyConditions: map[string]*dynamodb.Condition{
@@ -113,10 +114,11 @@ func (c *RemoteClient) getChunks() ([]State, error) {
 	}
 
 	var states []State
+	is_compressed := false
 	for {
 		result, err := c.dynClient.Query(queryInput)
 		if err != nil {
-			return nil, fmt.Errorf("During query operation on table %s %s.", c.tableName, err)
+			return nil, is_compressed, fmt.Errorf("During query operation on table %s %s.", c.tableName, err)
 		}
 		if len(result.Items) == 0 {
 			break
@@ -124,8 +126,16 @@ func (c *RemoteClient) getChunks() ([]State, error) {
 
 		state := State{}
 		if err := dynamodbattribute.UnmarshalMap(result.Items[0], &state); err != nil {
-			return nil, fmt.Errorf("Got error marshalling state: %s", err)
+			return nil, is_compressed, fmt.Errorf("Got error marshalling state: %s", err)
 		}
+
+		if result.Items[0]["Body"].S != nil {
+			state.Body = []byte(state.Body.(string))
+		} else {
+			state.Body = state.Body.([]byte)
+			is_compressed = true
+		}
+
 		states = append(states, state)
 
 		if state.NextStateID == "none" {
@@ -139,33 +149,50 @@ func (c *RemoteClient) getChunks() ([]State, error) {
 
 	for i := 0; i < len(states)-1; i += 1 {
 		if states[i].SegmentID != states[i+1].SegmentID {
-			return nil, fmt.Errorf("Got wrong SegmentID")
+			return nil, is_compressed, fmt.Errorf("Got wrong SegmentID")
 		}
 	}
-	fmt.Println(len(states))
-	return states, nil
+
+	return states, is_compressed, nil
+}
+
+func (c *RemoteClient) decompress(data []byte) ([]byte, error) {
+	if len(data) == 0 {
+		return data, nil
+	}
+	gz, err := gzip.NewReader(bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+	defer gz.Close()
+	return ioutil.ReadAll(gz)
 }
 
 func (c *RemoteClient) get() (*remote.Payload, error) {
-	states, err := c.getChunks()
+	states, is_compressed, err := c.getChunks()
 	if err != nil {
 		return nil, err
 	}
 
-	var jsonString string
+	var jsonString []byte
 	for _, state := range states {
-		fmt.Println(state.SegmentID)
-		jsonString += state.Body
+		jsonString = append(jsonString, state.Body.([]byte)...)
 	}
 
-	buf := bytes.NewBuffer(nil)
-	if _, err := io.Copy(buf, strings.NewReader(jsonString)); err != nil {
-		return nil, fmt.Errorf("Failed to read remote state: %s", err)
-	}
+	//buf := bytes.NewBuffer(nil)
+	//if _, err := io.Copy(buf, strings.NewReader(jsonString)); err != nil {
+	//	return nil, fmt.Errorf("Failed to read remote state: %s", err)
+	//}
 
-	sum := md5.Sum(buf.Bytes())
+	//sum := md5.Sum(buf.Bytes())
+	//payload := &remote.Payload{
+	//	Data: buf.Bytes(),
+	//	MD5:  sum[:],
+	//}
+
+	sum := md5.Sum(jsonString)
 	payload := &remote.Payload{
-		Data: buf.Bytes(),
+		Data: jsonString,
 		MD5:  sum[:],
 	}
 
@@ -174,11 +201,26 @@ func (c *RemoteClient) get() (*remote.Payload, error) {
 		return nil, nil
 	}
 
+	if is_compressed {
+		fmt.Println("Decompressing remote state. This may take a few moments...")
+		payload.Data, err = c.decompress(payload.Data)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return payload, nil
 }
 
+func (c *RemoteClient) compress(data []byte) []byte {
+	b := &bytes.Buffer{}
+	gz := gzip.NewWriter(b)
+	gz.Write(data)
+	gz.Close()
+	return b.Bytes()
+}
+
 func (c *RemoteClient) Put(data []byte) error {
-	states, err := c.getChunks()
+	states, is_compressed, err := c.getChunks()
 	if err != nil {
 		return err
 	}
@@ -213,9 +255,22 @@ func (c *RemoteClient) Put(data []byte) error {
 
 		if c.state_days_ttl > 0 {
 
-			state.SegmentID = segment_id + 1
-			state.TTL = version_date
-			av, err := dynamodbattribute.MarshalMap(state)
+			var body interface{}
+			if is_compressed {
+				body = state.Body.([]byte)
+			} else {
+				body = string(state.Body.([]byte))
+			}
+
+			new_state := State{
+				StateID:     state.StateID,
+				SegmentID:   segment_id + 1,
+				Body:        body,
+				NextStateID: "none",
+				TTL:         version_date,
+			}
+
+			av, err := dynamodbattribute.MarshalMap(new_state)
 			if err != nil {
 				return fmt.Errorf("Got error marshalling state: %s", err)
 			}
@@ -240,6 +295,12 @@ func (c *RemoteClient) Put(data []byte) error {
 		transactionItems = make([]*dynamodb.TransactWriteItem, 0)
 	}
 
+	// State GZIP Compression
+	if c.compression {
+		fmt.Println("Compressing remote state. This may take a few moments...")
+		data = c.compress(data)
+	}
+
 	var chunks []State
 	for i := 0; i < len(data); i += dynamoDBItemSize {
 		end := i + dynamoDBItemSize
@@ -253,10 +314,17 @@ func (c *RemoteClient) Put(data []byte) error {
 			path = path + "-" + hex
 		}
 
+		var body interface{}
+		if c.compression {
+			body = data[i:end]
+		} else {
+			body = string(data[i:end])
+		}
+
 		state := State{
 			StateID:     path,
 			SegmentID:   segment_id + 2,
-			Body:        string(data[i:end]),
+			Body:        body,
 			NextStateID: "none",
 			TTL:         0,
 		}
@@ -364,7 +432,7 @@ func (c *RemoteClient) Delete() error {
 
 func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 	if c.lockTable == "" {
-		fmt.Println("Lock Table info not provided.")
+		log.Println("[WARN] Lock Table info not provided.")
 		return "", nil
 	}
 
@@ -511,7 +579,7 @@ func getClientMD5(client *dynamodb.DynamoDB, getParams *dynamodb.GetItemInput) (
 
 func (c *RemoteClient) getMD5() ([]byte, error) {
 	if c.lockTable == "" {
-		fmt.Println("Lock Table info not provided.")
+		log.Println("[WARN] Lock Table info not provided.")
 		return nil, nil
 	}
 
@@ -525,7 +593,7 @@ func (c *RemoteClient) getMD5() ([]byte, error) {
 	}
 
 	if len(c.dynGlobalClients) > 0 { //isGlobal
-		log.Println("[INFO] Working with Global Tables.")
+		log.Println("[WARN] Working with Global Tables.")
 		var sum []byte
 		for {
 			sums := make([][]byte, 0)
@@ -559,7 +627,7 @@ func (c *RemoteClient) getMD5() ([]byte, error) {
 // store the hash of the state so that clients can check for stale state files.
 func (c *RemoteClient) putMD5(sum []byte) error {
 	if c.lockTable == "" {
-		fmt.Println("Lock Table info not provided.")
+		log.Println("[WARN] Lock Table info not provided.")
 		return nil
 	}
 
@@ -585,7 +653,7 @@ func (c *RemoteClient) putMD5(sum []byte) error {
 // remove the hash value for a deleted state
 func (c *RemoteClient) deleteMD5() error {
 	if c.lockTable == "" {
-		fmt.Println("Lock Table info not provided.")
+		log.Println("[WARN] Lock Table info not provided.")
 		return nil
 	}
 
@@ -634,7 +702,7 @@ func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
 
 func (c *RemoteClient) Unlock(id string) error {
 	if c.lockTable == "" {
-		fmt.Println("Lock Table info not provided.")
+		log.Println("[WARN] Lock Table info not provided.")
 		return nil
 	}
 

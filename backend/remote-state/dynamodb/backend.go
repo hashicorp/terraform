@@ -19,7 +19,7 @@ import (
 type State struct {
 	StateID     string
 	SegmentID   int64
-	Body        string
+	Body        interface{}
 	NextStateID string
 	TTL         int64
 }
@@ -194,6 +194,13 @@ func New() backend.Backend {
 				},
 			},
 
+			"compression": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Enable gzip compression before sending sate to DynamoDB",
+				Default:     false,
+			},
+
 			"state_days_ttl": {
 				Type:        schema.TypeInt,
 				Optional:    true,
@@ -234,6 +241,7 @@ type Backend struct {
 	lockTable          string
 	workspaceKeyPrefix string
 	state_days_ttl     int
+	compression        bool
 }
 
 func (b *Backend) validateTablesSchema() error {
@@ -356,6 +364,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	b.workspaceKeyPrefix = data.Get("workspace_key_prefix").(string)
 	b.lockTable = data.Get("lock_table").(string)
 	b.state_days_ttl = data.Get("state_days_ttl").(int)
+	b.compression = data.Get("compression").(bool)
 
 	cfg := &awsbase.Config{
 		AccessKey:             data.Get("access_key").(string),

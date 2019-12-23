@@ -280,7 +280,7 @@ func TestBackendLocked(t *testing.T) {
 	backend.TestBackendStateForceUnlock(t, b1, b2)
 }
 
-// add some extra junk in S3 to try and confuse the env listing.
+// add some extra junk in DynamoDB to try and confuse the env listing.
 func TestBackendWorkspaces(t *testing.T) {
 	testACC(t)
 

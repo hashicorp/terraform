@@ -160,6 +160,7 @@ func (b *Backend) remoteClient(name string) (*RemoteClient, error) {
 		path:             b.path(name),
 		lockTable:        b.lockTable,
 		state_days_ttl:   b.state_days_ttl,
+		compression:      b.compression,
 	}
 
 	return client, nil
