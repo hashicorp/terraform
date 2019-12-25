@@ -4,7 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -22,6 +25,10 @@ type State struct {
 	Body        interface{}
 	NextStateID string
 	TTL         int64
+}
+
+type Lock struct {
+	LockID string
 }
 
 // New creates a new backend for DynamoDB remote state.
@@ -205,11 +212,11 @@ func New() backend.Backend {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Description: "The Number of days used for old states time to live.",
-				Default:     0,
+				Default:     -1,
 				ValidateFunc: func(v interface{}, s string) ([]string, []error) {
 					value := v.(int)
-					if value < 0 {
-						return nil, []error{errors.New("state_days_ttl value must be greater than 0")}
+					if value < -1 {
+						return nil, []error{errors.New("state_days_ttl value must be greater than or equal to 0")}
 					}
 					return nil, nil
 				},
@@ -301,6 +308,39 @@ func (b *Backend) validateTablesSchema() error {
 	return nil
 }
 
+func (b *Backend) healthCheck(dynClient *dynamodb.DynamoDB) bool {
+	if b.lockTable != "" {
+		lockId := strconv.FormatInt(time.Now().Unix(), 16)
+		_, err := dynClient.PutItem(&dynamodb.PutItemInput{
+			TableName: aws.String(b.lockTable),
+			Item: map[string]*dynamodb.AttributeValue{
+				"LockID": {
+					S: aws.String(lockId),
+				},
+			},
+		})
+		if err != nil {
+			return false
+		}
+
+		_, err = dynClient.DeleteItem(&dynamodb.DeleteItemInput{
+			TableName: aws.String(b.lockTable),
+			Key: map[string]*dynamodb.AttributeValue{
+				"LockID": {
+					S: aws.String(lockId),
+				},
+			},
+		})
+		if err != nil {
+			return false
+		}
+
+		return true
+	} else {
+		return true
+	}
+}
+
 func (b *Backend) getGlobalClients(endpoint string, sess *session.Session) ([]*dynamodb.DynamoDB, error) {
 
 	dyClients := make([]*dynamodb.DynamoDB, 0)
@@ -320,10 +360,16 @@ func (b *Backend) getGlobalClients(endpoint string, sess *session.Session) ([]*d
 		}
 
 		for _, region := range regions {
-			dyClients = append(dyClients, dynamodb.New(sess.Copy(&aws.Config{
+			dyClient := dynamodb.New(sess.Copy(&aws.Config{
 				Endpoint: aws.String(endpoint),
 				Region:   aws.String(*region.RegionName),
-			})))
+			}))
+			isHealthy := b.healthCheck(dyClient)
+			if isHealthy {
+				log.Println("[INFO]", *region.RegionName, "is healthy.")
+			} else {
+				log.Println("[WARN]", *region.RegionName, "is not healthy. Skip region lock.")
+			}
 		}
 
 		lockTableParam := &dynamodb.DescribeTableInput{
@@ -341,6 +387,29 @@ func (b *Backend) getGlobalClients(endpoint string, sess *session.Session) ([]*d
 	return dyClients, nil
 }
 
+//func getRegion(region string, profile string) (string, error) {
+//	fmt.Println("profile ", profile)
+//	if region != "" {
+//		fmt.Println("region != ", region)
+//		return region, nil
+//	} else {
+//		cfg := &awsbase.Config{
+//			Profile: profile,
+//		}
+//		metaSession, err := awsbase.GetSession(cfg)
+//		if err != nil {
+//			return region, err
+//		}
+//		metaClient := ec2metadata.New(metaSession)
+//		region, _ = metaClient.Region()
+//		fmt.Println("metaregion != ", region)
+//		if region == "" {
+//			return region, fmt.Errorf("Please set env AWS_REGION or AWS_DEFAULT_REGION, otherwise set region or profile in backend configuration.")
+//		}
+//		return region, nil
+//	}
+//}
+
 func (b *Backend) configure(ctx context.Context) error {
 	if b.dynClient != nil {
 		return nil
@@ -349,12 +418,12 @@ func (b *Backend) configure(ctx context.Context) error {
 	// Grab the resource data
 	data := schema.FromContextBackendConfig(ctx)
 
-	if data.Get("region").(string) == "" {
+	region := data.Get("region").(string)
+	if region == "" {
 		return fmt.Errorf("Please set env AWS_REGION or AWS_DEFAULT_REGION, otherwise set region in backend configuration.")
 	}
-
 	if !data.Get("skip_region_validation").(bool) {
-		if err := awsbase.ValidateRegion(data.Get("region").(string)); err != nil {
+		if err := awsbase.ValidateRegion(region); err != nil {
 			return err
 		}
 	}
@@ -377,7 +446,7 @@ func (b *Backend) configure(ctx context.Context) error {
 		IamEndpoint:           data.Get("iam_endpoint").(string),
 		MaxRetries:            data.Get("max_retries").(int),
 		Profile:               data.Get("profile").(string),
-		Region:                data.Get("region").(string),
+		Region:                region,
 		SecretKey:             data.Get("secret_key").(string),
 		SkipCredsValidation:   data.Get("skip_credentials_validation").(bool),
 		SkipMetadataApiCheck:  data.Get("skip_metadata_api_check").(bool),

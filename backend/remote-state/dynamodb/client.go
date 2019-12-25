@@ -233,6 +233,10 @@ func (c *RemoteClient) Put(data []byte) error {
 	}
 
 	version_date := time.Now().AddDate(0, 0, c.state_days_ttl).Unix()
+	if c.state_days_ttl == 0 {
+		version_date = 0
+	}
+
 	var transactionItems = make([]*dynamodb.TransactWriteItem, 0)
 
 	for _, state := range states {
@@ -253,7 +257,7 @@ func (c *RemoteClient) Put(data []byte) error {
 
 		transactionItems = append(transactionItems, delete_item)
 
-		if c.state_days_ttl > 0 {
+		if c.state_days_ttl >= 0 {
 
 			var body interface{}
 			if is_compressed {
@@ -287,7 +291,7 @@ func (c *RemoteClient) Put(data []byte) error {
 
 	}
 
-	if c.state_days_ttl > 0 && len(transactionItems) > 0 {
+	if c.state_days_ttl >= 0 && len(transactionItems) > 0 {
 		_, err := c.dynClient.TransactWriteItems(&dynamodb.TransactWriteItemsInput{TransactItems: transactionItems})
 		if err != nil {
 			return fmt.Errorf("Got error calling TransactWriteItems: %s", err)
