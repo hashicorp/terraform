@@ -126,64 +126,71 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 	}
 
 	// take the first matching plugin we find
+	fallback_modes := []bool{false, true}
+	if GetReleaseHost(false) == GetReleaseHost(true) {
+		fallback_modes = []bool{true}
+	}
 	for _, v := range versions {
-		url := i.providerURL(provider, v.String())
+		for _, fallback := range fallback_modes {
+			url := i.providerURL(provider, v.String(), fallback)
 
-		if !i.SkipVerify {
-			sha256, err := i.getProviderChecksum(provider, v.String())
-			if err != nil {
-				return PluginMeta{}, err
+			if !i.SkipVerify {
+				sha256, err := i.getProviderChecksum(provider, v.String())
+				if err != nil {
+					log.Printf("[ERROR] fetching provider SHA256 for %s version %s Error: %s", provider, v, err)
+					return PluginMeta{}, err
+				}
+
+				// add the checksum parameter for go-getter to verify the download for us.
+				if sha256 != "" {
+					url = url + "?checksum=sha256:" + sha256
+				}
 			}
 
-			// add the checksum parameter for go-getter to verify the download for us.
-			if sha256 != "" {
-				url = url + "?checksum=sha256:" + sha256
-			}
-		}
+			log.Printf("[DEBUG] fetching provider info for %s version %s from %s", provider, v, url)
+			if checkPlugin(url, i.PluginProtocolVersion) {
+				i.Ui.Info(fmt.Sprintf("- Downloading plugin for provider %q (%s)...", provider, v.String()))
+				log.Printf("[DEBUG] getting provider %q version %q", provider, v)
+				err := i.install(provider, v, url)
+				if err != nil {
+					return PluginMeta{}, err
+				}
 
-		log.Printf("[DEBUG] fetching provider info for %s version %s", provider, v)
-		if checkPlugin(url, i.PluginProtocolVersion) {
-			i.Ui.Info(fmt.Sprintf("- Downloading plugin for provider %q (%s)...", provider, v.String()))
-			log.Printf("[DEBUG] getting provider %q version %q", provider, v)
-			err := i.install(provider, v, url)
-			if err != nil {
-				return PluginMeta{}, err
-			}
+				// Find what we just installed
+				// (This is weird, because go-getter doesn't directly return
+				//  information about what was extracted, and we just extracted
+				//  the archive directly into a shared dir here.)
+				log.Printf("[DEBUG] looking for the %s %s plugin we just installed", provider, v)
+				metas := FindPlugins("provider", []string{i.Dir})
+				log.Printf("[DEBUG] all plugins found %#v", metas)
+				metas, _ = metas.ValidateVersions()
+				metas = metas.WithName(provider).WithVersion(v)
+				log.Printf("[DEBUG] filtered plugins %#v", metas)
+				if metas.Count() == 0 {
+					// This should never happen. Suggests that the release archive
+					// contains an executable file whose name doesn't match the
+					// expected convention.
+					return PluginMeta{}, fmt.Errorf(
+						"failed to find installed plugin version %s; this is a bug in Terraform and should be reported",
+						v,
+					)
+				}
 
-			// Find what we just installed
-			// (This is weird, because go-getter doesn't directly return
-			//  information about what was extracted, and we just extracted
-			//  the archive directly into a shared dir here.)
-			log.Printf("[DEBUG] looking for the %s %s plugin we just installed", provider, v)
-			metas := FindPlugins("provider", []string{i.Dir})
-			log.Printf("[DEBUG] all plugins found %#v", metas)
-			metas, _ = metas.ValidateVersions()
-			metas = metas.WithName(provider).WithVersion(v)
-			log.Printf("[DEBUG] filtered plugins %#v", metas)
-			if metas.Count() == 0 {
-				// This should never happen. Suggests that the release archive
-				// contains an executable file whose name doesn't match the
-				// expected convention.
-				return PluginMeta{}, fmt.Errorf(
-					"failed to find installed plugin version %s; this is a bug in Terraform and should be reported",
-					v,
-				)
-			}
+				if metas.Count() > 1 {
+					// This should also never happen, and suggests that a
+					// particular version was re-released with a different
+					// executable filename. We consider releases as immutable, so
+					// this is an error.
+					return PluginMeta{}, fmt.Errorf(
+						"multiple plugins installed for version %s; this is a bug in Terraform and should be reported",
+						v,
+					)
+				}
 
-			if metas.Count() > 1 {
-				// This should also never happen, and suggests that a
-				// particular version was re-released with a different
-				// executable filename. We consider releases as immutable, so
-				// this is an error.
-				return PluginMeta{}, fmt.Errorf(
-					"multiple plugins installed for version %s; this is a bug in Terraform and should be reported",
-					v,
-				)
+				// By now we know we have exactly one meta, and so "Newest" will
+				// return that one.
+				return metas.Newest(), nil
 			}
-
-			// By now we know we have exactly one meta, and so "Newest" will
-			// return that one.
-			return metas.Newest(), nil
 		}
 
 		log.Printf("[INFO] incompatible ProtocolVersion for %s version %s", provider, v)
@@ -336,27 +343,35 @@ func (i *ProviderInstaller) providerFileName(name, version string) string {
 
 // providerVersionsURL returns the path to the released versions directory for the provider:
 // https://releases.hashicorp.com/terraform-provider-name/
-func (i *ProviderInstaller) providerVersionsURL(name string) string {
-	return releaseHost + "/" + i.providerName(name) + "/"
+func (i *ProviderInstaller) providerVersionsURL(name string, fallback bool) string {
+	return GetReleaseHost(fallback) + "/" + i.providerName(name) + "/"
 }
 
 // providerURL returns the full path to the provider file, using the current OS
 // and ARCH:
 // .../terraform-provider-name_<x.y.z>/terraform-provider-name_<x.y.z>_<os>_<arch>.<ext>
-func (i *ProviderInstaller) providerURL(name, version string) string {
-	return fmt.Sprintf("%s%s/%s", i.providerVersionsURL(name), version, i.providerFileName(name, version))
+func (i *ProviderInstaller) providerURL(name, version string, fallback bool) string {
+	return fmt.Sprintf("%s%s/%s", i.providerVersionsURL(name, fallback), version, i.providerFileName(name, version))
 }
 
-func (i *ProviderInstaller) providerChecksumURL(name, version string) string {
+func (i *ProviderInstaller) providerChecksumURL(name, version string, fallback bool) string {
 	fileName := fmt.Sprintf("%s_%s_SHA256SUMS", i.providerName(name), version)
-	u := fmt.Sprintf("%s%s/%s", i.providerVersionsURL(name), version, fileName)
+	u := fmt.Sprintf("%s%s/%s", i.providerVersionsURL(name, fallback), version, fileName)
 	return u
 }
 
 func (i *ProviderInstaller) getProviderChecksum(name, version string) (string, error) {
-	checksums, err := getPluginSHA256SUMs(i.providerChecksumURL(name, version))
+	url := i.providerChecksumURL(name, version, false)
+	checksums, err := getPluginSHA256SUMs(url)
+
 	if err != nil {
-		return "", err
+		log.Printf("[WARN] Error getting checksum from %s %s", url, err)
+		url = i.providerChecksumURL(name, version, true)
+		checksums, err = getPluginSHA256SUMs(url)
+		if err != nil {
+			log.Printf("[ERROR] Error getting checksum from %s %s", url, err)
+			return "", err
+		}
 	}
 
 	return checksumForFile(checksums, i.providerFileName(name, version)), nil
@@ -396,12 +411,20 @@ func checkPlugin(url string, pluginProtocolVersion uint) bool {
 
 // list the version available for the named plugin
 func (i *ProviderInstaller) listProviderVersions(name string) ([]Version, error) {
-	versions, err := listPluginVersions(i.providerVersionsURL(name))
+	url := i.providerVersionsURL(name, false)
+	versions, err := listPluginVersions(url)
 	if err != nil {
 		// listPluginVersions returns a verbose error message indicating
 		// what was being accessed and what failed
-		return nil, err
+		log.Printf("[WARN] Error listing versions from %s %s", url, err)
+		url = i.providerVersionsURL(name, true)
+		versions, err = listPluginVersions(url)
+		if err != nil {
+			log.Printf("[ERROR] Error listing versions from %s %s", url, err)
+			return nil, err
+		}
 	}
+	log.Printf("[DEBUG] Retrieved %d versions from %s", len(versions), url)
 	return versions, nil
 }
 
@@ -543,6 +566,14 @@ func getFile(url string) ([]byte, error) {
 	return data, nil
 }
 
-func GetReleaseHost() string {
-	return releaseHost
+func GetReleaseHost(fallback bool) string {
+	altReleaseHost := os.Getenv("TF_ALT_RELEASE_HOST")
+	if fallback || len(altReleaseHost) == 0 {
+		return releaseHost
+	}
+	altReleasePath := os.Getenv("TF_ALT_RELEASE_PATH")
+	if len(altReleasePath) == 0 {
+		return altReleaseHost
+	}
+	return fmt.Sprintf("%s/%s", altReleaseHost, altReleasePath)
 }

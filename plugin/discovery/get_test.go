@@ -129,11 +129,11 @@ func TestVersionListing(t *testing.T) {
 
 func TestCheckProtocolVersions(t *testing.T) {
 	i := &ProviderInstaller{}
-	if checkPlugin(i.providerURL("test", VersionStr("1.2.3").MustParse().String()), 4) {
+	if checkPlugin(i.providerURL("test", VersionStr("1.2.3").MustParse().String(), true), 4) {
 		t.Fatal("protocol version 4 is not compatible")
 	}
 
-	if !checkPlugin(i.providerURL("test", VersionStr("1.2.3").MustParse().String()), 3) {
+	if !checkPlugin(i.providerURL("test", VersionStr("1.2.3").MustParse().String(), true), 3) {
 		t.Fatal("protocol version 3 should be compatible")
 	}
 }

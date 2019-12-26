@@ -129,11 +129,18 @@ func (c *PackageCommand) Run(args []string) int {
 
 	c.ui.Info(fmt.Sprintf("Fetching Terraform %s core package...", config.Terraform.Version))
 
-	coreZipURL := c.coreURL(config.Terraform.Version, osName, archName)
+	coreZipURL := c.coreURL(config.Terraform.Version, osName, archName, false)
 	err = getter.Get(workDir, coreZipURL)
 
 	if err != nil {
-		c.ui.Error(fmt.Sprintf("Failed to fetch core package from %s: %s", coreZipURL, err))
+		if discovery.GetReleaseHost(false) != discovery.GetReleaseHost(true) {
+			c.ui.Error(fmt.Sprintf("Failed to fetch core package from %s: %s. Trying fallback", coreZipURL, err))
+			coreZipURL := c.coreURL(config.Terraform.Version, osName, archName, true)
+			err = getter.Get(workDir, coreZipURL)
+		}
+		if err != nil {
+			c.ui.Error(fmt.Sprintf("Failed to fetch core package from %s: %s", coreZipURL, err))
+		}
 	}
 
 	c.ui.Info(fmt.Sprintf("Fetching 3rd party plugins in directory: %s", pluginDir))
@@ -176,8 +183,8 @@ func (c *PackageCommand) Run(args []string) int {
 				plugin := foundPlugins.Newest()
 				CopyFile(plugin.Path, workDir+"/terraform-provider-"+plugin.Name+"_v"+plugin.Version.MustParse().String()) //put into temp dir
 			} else { //attempt to get from the public registry if not found locally
-				c.ui.Output(fmt.Sprintf("- Checking for provider plugin on %s...",
-					discovery.GetReleaseHost()))
+				c.ui.Output(fmt.Sprintf("- Checking for provider plugin on %s... (may fallback to %s)",
+					discovery.GetReleaseHost(false), discovery.GetReleaseHost(true)))
 				_, err := installer.Get(name, constraint)
 				if err != nil {
 					c.ui.Error(fmt.Sprintf("- Failed to resolve %s provider %s: %s", name, constraint, err))
@@ -262,10 +269,10 @@ func (c *PackageCommand) bundleFilename(version discovery.VersionStr, time time.
 	)
 }
 
-func (c *PackageCommand) coreURL(version discovery.VersionStr, osName, archName string) string {
+func (c *PackageCommand) coreURL(version discovery.VersionStr, osName, archName string, fallback bool) string {
 	return fmt.Sprintf(
 		"%s/terraform/%s/terraform_%s_%s_%s.zip",
-		discovery.GetReleaseHost(), version, version, osName, archName,
+		discovery.GetReleaseHost(fallback), version, version, osName, archName,
 	)
 }
 

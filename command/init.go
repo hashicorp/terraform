@@ -314,8 +314,13 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 	var errs error
 	if c.getPlugins {
 		if len(missing) > 0 {
-			c.Ui.Output(fmt.Sprintf("- Checking for available provider plugins on %s...",
-				discovery.GetReleaseHost()))
+			if discovery.GetReleaseHost(false) != discovery.GetReleaseHost(true) {
+				c.Ui.Output(fmt.Sprintf("- Checking for available provider plugins on %s... (may fallback to %s)",
+					discovery.GetReleaseHost(false), discovery.GetReleaseHost(true)))
+			} else {
+				c.Ui.Output(fmt.Sprintf("- Checking for available provider plugins on %s...",
+					discovery.GetReleaseHost(true)))
+			}
 		}
 
 		for provider, reqd := range missing {
