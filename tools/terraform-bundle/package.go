@@ -21,6 +21,18 @@ import (
 
 var releaseHost = "https://releases.hashicorp.com"
 
+func GetReleaseHost(fallback bool) string {
+	altReleaseHost := os.Getenv("TF_ALT_RELEASE_HOST")
+	if fallback || len(altReleaseHost) == 0 {
+		return releaseHost
+	}
+	altReleasePath := os.Getenv("TF_ALT_RELEASE_PATH")
+	if len(altReleasePath) == 0 {
+		return altReleaseHost
+	}
+	return fmt.Sprintf("%s/%s", altReleaseHost, altReleasePath)
+}
+
 type PackageCommand struct {
 	ui cli.Ui
 }
@@ -131,12 +143,19 @@ func (c *PackageCommand) Run(args []string) int {
 
 	c.ui.Info(fmt.Sprintf("Fetching Terraform %s core package...", config.Terraform.Version))
 
-	coreZipURL := c.coreURL(config.Terraform.Version, osName, archName)
+	coreZipURL := c.coreURL(config.Terraform.Version, osName, archName, false)
 	err = getter.Get(workDir, coreZipURL)
 
 	if err != nil {
-		c.ui.Error(fmt.Sprintf("Failed to fetch core package from %s: %s", coreZipURL, err))
-		return 1
+		if GetReleaseHost(false) != GetReleaseHost(true) {
+			c.ui.Error(fmt.Sprintf("Failed to fetch core package from %s: %s", coreZipURL, err))
+			coreZipURL = c.coreURL(config.Terraform.Version, osName, archName, true)
+			err = getter.Get(workDir, coreZipURL)
+		}
+		if err != nil {
+			c.ui.Error(fmt.Sprintf("Failed to fetch core package from %s: %s", coreZipURL, err))
+			return 1
+		}
 	}
 
 	c.ui.Info(fmt.Sprintf("Fetching 3rd party plugins in directory: %s", pluginDir))
@@ -180,8 +199,13 @@ func (c *PackageCommand) Run(args []string) int {
 				plugin := foundPlugins.Newest()
 				CopyFile(plugin.Path, workDir+"/terraform-provider-"+plugin.Name+"_v"+plugin.Version.MustParse().String()) //put into temp dir
 			} else { //attempt to get from the public registry if not found locally
-				c.ui.Output(fmt.Sprintf("- Checking for provider plugin on %s...",
-					releaseHost))
+				if GetReleaseHost(false) != GetReleaseHost(true) {
+					c.ui.Output(fmt.Sprintf("- Checking for provider plugin on %s... (may fallback to %s)",
+						GetReleaseHost(false), GetReleaseHost(true)))
+				} else {
+					c.ui.Output(fmt.Sprintf("- Checking for provider plugin on %s...",
+						GetReleaseHost(true)))
+				}
 				_, _, err := installer.Get(addrs.NewLegacyProvider(name), constraint)
 				if err != nil {
 					c.ui.Error(fmt.Sprintf("- Failed to resolve %s provider %s: %s", name, constraint, err))
@@ -266,10 +290,10 @@ func (c *PackageCommand) bundleFilename(version discovery.VersionStr, time time.
 	)
 }
 
-func (c *PackageCommand) coreURL(version discovery.VersionStr, osName, archName string) string {
+func (c *PackageCommand) coreURL(version discovery.VersionStr, osName, archName string, fallback bool) string {
 	return fmt.Sprintf(
 		"%s/terraform/%s/terraform_%s_%s_%s.zip",
-		releaseHost, version, version, osName, archName,
+		GetReleaseHost(fallback), version, version, osName, archName,
 	)
 }
 
