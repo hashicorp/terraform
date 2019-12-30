@@ -8,7 +8,7 @@ description: |-
 
 # nil
 
-**Kind: Standard**
+**Kind: Nil**
 
 Discards state after every run. Advanced usage for local operations only (e.g.
 using Terraform to scaffold template terraform files).
