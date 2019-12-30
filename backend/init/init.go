@@ -48,6 +48,9 @@ func Init(services *disco.Disco) {
 	defer backendsLock.Unlock()
 
 	backends = map[string]backend.InitFn{
+		// No state storage.
+		"nil": func() backend.Backend { return new(backend.Nil) },
+
 		// Enhanced backends.
 		"local":  func() backend.Backend { return backendLocal.New() },
 		"remote": func() backend.Backend { return backendRemote.New(services) },

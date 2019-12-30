@@ -22,4 +22,7 @@ must implement **standard** functionality. These are defined below:
   * **Enhanced**: Everything in standard plus
     [remote operations](/docs/backends/operations.html).
 
+  * **Nil**: Discard state after each run.
+    [nil](/docs/backends/nil.html).
+
 The backends are separated in the left by standard and enhanced.
