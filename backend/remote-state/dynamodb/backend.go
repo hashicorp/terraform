@@ -208,6 +208,13 @@ func New() backend.Backend {
 				Default:     false,
 			},
 
+			"global_table_health_check" :{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Check DynamoDB service availability in all global table regions.",
+				Default:     true,
+			},
+
 			"state_days_ttl": {
 				Type:        schema.TypeInt,
 				Optional:    true,
@@ -273,7 +280,7 @@ func (b *Backend) validateTablesSchema() error {
 			}
 		}
 		if !lockBool {
-			return fmt.Errorf(errDynamoDBLockTable, b.lockTable, b.lockTable, b.lockTable)
+			return fmt.Errorf(errDynamoDBLockTable, b.lockTable)
 		}
 
 	}
@@ -301,7 +308,7 @@ func (b *Backend) validateTablesSchema() error {
 			}
 		}
 		if !stateBool {
-			return fmt.Errorf(errDynamoDBStateTable, b.tableName, b.tableName, b.tableName)
+			return fmt.Errorf(errDynamoDBStateTable, b.tableName)
 		}
 	}
 
@@ -341,7 +348,7 @@ func (b *Backend) healthCheck(dynClient *dynamodb.DynamoDB) bool {
 	}
 }
 
-func (b *Backend) getGlobalClients(endpoint string, sess *session.Session) ([]*dynamodb.DynamoDB, error) {
+func (b *Backend) getGlobalClients(endpoint string, sess *session.Session, global_table_health_check bool) ([]*dynamodb.DynamoDB, error) {
 
 	dyClients := make([]*dynamodb.DynamoDB, 0)
 	if b.lockTable != "" {
@@ -364,16 +371,21 @@ func (b *Backend) getGlobalClients(endpoint string, sess *session.Session) ([]*d
 				Endpoint: aws.String(endpoint),
 				Region:   aws.String(*region.RegionName),
 			}))
-			isHealthy := b.healthCheck(dyClient)
-			if isHealthy {
-				log.Println("[INFO]", *region.RegionName, "is healthy.")
-			} else {
-				log.Println("[WARN]", *region.RegionName, "is not healthy. Skip region lock.")
+			if global_table_health_check {
+				isHealthy := b.healthCheck(dyClient)
+				if isHealthy {
+					log.Println("[INFO]", *region.RegionName, "is healthy.")
+					dyClients = append(dyClients, dyClient)
+				} else {
+					log.Println("[WARN]", *region.RegionName, "is not healthy. Skip region lock.")
+				}
+			}else{
+				dyClients = append(dyClients, dyClient)
 			}
 		}
 
 		lockTableParam := &dynamodb.DescribeTableInput{
-			TableName: aws.String(b.tableName),
+			TableName: aws.String(b.lockTable),
 		}
 
 		for _, dyClient := range dyClients {
@@ -473,7 +485,7 @@ func (b *Backend) configure(ctx context.Context) error {
 		return err
 	}
 
-	b.dynGlobalClients, err = b.getGlobalClients(data.Get("endpoint").(string), sess)
+	b.dynGlobalClients, err = b.getGlobalClients(data.Get("endpoint").(string), sess, data.Get("global_table_health_check").(bool))
 	if err != nil {
 		return err
 	}
@@ -485,24 +497,60 @@ const errDynamoDBStateTable = `DynamoDB state table schema check error.
 
 Please create DynamoDB table using the following command:
 
-aws dynamodb delete-table --table-name %s && \
-aws dynamodb wait table-not-exists --table-name %s && \
+aws dynamodb delete-table --table-name %[1]s && \
+aws dynamodb wait table-not-exists --table-name %[1]s && \
 aws dynamodb create-table \
---table-name %s \
+--table-name %[1]s \
 --attribute-definitions AttributeName=StateID,AttributeType=S AttributeName=SegmentID,AttributeType=N \
 --key-schema AttributeName=StateID,KeyType=HASH AttributeName=SegmentID,KeyType=RANGE \
 --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
+
+or create the following resource:
+
+resource "aws_dynamodb_table" "terraform-dynamodb-state-table" {
+  name           = %[1]s
+  billing_mode   = "PROVISIONED" 
+  read_capacity  = 5
+  write_capacity = 5
+  hash_key       = "StateID"
+  range_key      = "SegmentID"
+
+  attribute {
+    name = "StateID"
+    type = "S"
+  }
+
+  attribute {
+    name = "SegmentID"
+    type = "N"
+  }
+}
 `
 
 const errDynamoDBLockTable = `DynamoDB lock table schema check error.
 
 Please create DynamoDB table using the following command:
 
-aws dynamodb delete-table --table-name %s && \
-aws dynamodb wait table-not-exists --table-name %s && \
+aws dynamodb delete-table --table-name %[1]s && \
+aws dynamodb wait table-not-exists --table-name %[1]s && \
 aws dynamodb create-table \
---table-name %s \
+--table-name %[1]s \
 --attribute-definitions AttributeName=LockID,AttributeType=S \
 --key-schema AttributeName=LockID,KeyType=HASH \
 --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
+
+or create the following resource:
+
+resource "aws_dynamodb_table" "terraform-dynamodb-lock-table" {
+  name           = %[1]s
+  billing_mode   = "PROVISIONED"
+  read_capacity  = 5
+  write_capacity = 5
+  hash_key       = "LockID"
+
+  attribute {
+    name = "LockID"
+    type = "S"
+  }
+}
 `

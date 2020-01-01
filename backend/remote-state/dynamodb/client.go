@@ -597,7 +597,7 @@ func (c *RemoteClient) getMD5() ([]byte, error) {
 	}
 
 	if len(c.dynGlobalClients) > 0 { //isGlobal
-		log.Println("[WARN] Working with Global Tables.")
+		log.Println("[INFO] Working with Global Tables.")
 		var sum []byte
 		for {
 			sums := make([][]byte, 0)
