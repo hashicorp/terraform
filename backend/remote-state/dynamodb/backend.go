@@ -208,7 +208,7 @@ func New() backend.Backend {
 				Default:     false,
 			},
 
-			"global_table_health_check" :{
+			"global_table_health_check": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: "Check DynamoDB service availability in all global table regions.",
@@ -379,7 +379,7 @@ func (b *Backend) getGlobalClients(endpoint string, sess *session.Session, globa
 				} else {
 					log.Println("[WARN]", *region.RegionName, "is not healthy. Skip region lock.")
 				}
-			}else{
+			} else {
 				dyClients = append(dyClients, dyClient)
 			}
 		}
