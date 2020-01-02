@@ -15,7 +15,7 @@ This backend supports
 * state locking and consistency checking via Amazon DynamoDB, which can be enabled by setting the `lock_table` field to an existing DynamoDB table name.
 * global-state can be enabled by setting the `lock_table` and `state_table` fields to an existing DynamoDB global table names.
 
-~> **Warning!** It is highly recommended that you enable versioning to allow 
+~> **Warning!** It is highly recommended that you enable versioning using `state_days_ttl` to allow 
 for state recovery in the case of accidental deletions and human error.
 
 ## Example Configuration without lock
@@ -25,6 +25,7 @@ terraform {
   backend "dynamodb" {
     state_table = "mytable"
     hash        = "hash_key"
+    region      = "eu-west-1"
   }
 }
 ```
@@ -43,6 +44,7 @@ terraform {
     state_table = "mytable"
     hash        = "hash_key"
     lock_table  = "mylock"
+    region      = "eu-west-1"
   }
 }
 ```
@@ -70,6 +72,8 @@ terraform {
 Stores the state and locking info on [Amazon Global DynamoDB](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/GlobalTables.html).
 This assumes we have a global table created called `mytable` and a global table called `mylock`.
 Before start to update your infrastructure the backend ensures that global lock is performed. 
+
+Use `AWS_REGION` or `AWS_DEFAULT_REGION` envs instead of `region` variable.
 
 ### DynamoDB Tables Permissions
 
@@ -207,9 +211,9 @@ The following configuration options or environment variables are supported:
  * `hash` - (Required) The hash key used to save state inside the table. When using
    a non-default [workspace](/docs/state/workspaces.html), the state hash will
    be `workspace_key_prefix=workspace_name/hash`
- * `compression` - (Optional) Enable state compression using gzip. This defaults to False.
+ * `compression` - (Optional) Enable state compression using gzip. You can enable/disable this feature at any time. This defaults to False.
  * `global_table_health_check` - (Optional) Enable global table health check. You can use this backend to deploy a disaster recovery solution. When the feature is enabled a test writing into DynamoDB global table is performed to assess region availability, if the check fails state locking for the unhealthy regions are skipped. This defaults to True.
- * `state_days_ttl` - (Optional) Enable state versioning. By default, the new state overrides the old one, by setting `state_days_ttl=0` a new item is created for each update. You can configure state expiration by setting a value greater than zero in `state_days_ttl` variable and enabling [DynamoDB TTL](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/TTL.html).  
+ * `state_days_ttl` - (Optional) Enable state versioning. By default, the new state overrides the old one, by setting `state_days_ttl=0` a new item is created for each update. You can configure state expiration by setting a value greater than zero in `state_days_ttl` variable and enabling [DynamoDB TTL](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/TTL.html). You can enable/disable this feature at any time, if versioning was enabled old states are retained until expiration.  
  * `region` / `AWS_REGION` / `AWS_DEFAULT_REGION` - (Optional) The region of the DynamoDB table. Use ENVs when deploy a disaster recovery solution.
  * `endpoint` / `AWS_DynamoDB_ENDPOINT` - (Optional) A custom endpoint for the
  DynamoDB API.
@@ -232,7 +236,7 @@ The following configuration options or environment variables are supported:
  * `external_id` - (Optional) The external ID to use when assuming the role.
  * `session_name` - (Optional) The session name to use when assuming the role.
  * `workspace_key_prefix` - (Optional) The prefix applied to the state hash key
-   inside the table. This is only relevant when using a non-default workspace.
+   inside the table. This is only relevant when using a non-default workspace. This defaults to "workspace"
  * `dynamodb_endpoint` / `AWS_DYNAMODB_ENDPOINT` - (Optional) A custom endpoint for the DynamoDB API.
  * `iam_endpoint` / `AWS_IAM_ENDPOINT` - (Optional) A custom endpoint for the IAM API.
  * `sts_endpoint` / `AWS_STS_ENDPOINT` - (Optional) A custom endpoint for the STS API.

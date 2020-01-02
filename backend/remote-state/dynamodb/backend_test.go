@@ -131,10 +131,11 @@ func TestGlobalTableLock(t *testing.T) {
 	defer deleteDynamoDBTable(t, b0.dynClient, lockTable)
 
 	config1 := map[string]interface{}{
-		"state_table": stateTable,
-		"hash":        "state",
-		"region":      region_us,
-		"lock_table":  lockTable,
+		"state_table":               stateTable,
+		"hash":                      "state",
+		"region":                    region_us,
+		"lock_table":                lockTable,
+		"global_table_health_check": false,
 	}
 
 	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config1)).(*Backend)

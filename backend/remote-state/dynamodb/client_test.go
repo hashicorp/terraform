@@ -359,4 +359,95 @@ func TestHugeState(t *testing.T) {
 		t.Fatal("Put and Get payload does not match")
 	}
 
+	_, err = b.Workspaces()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestVersioning(t *testing.T) {
+	testACC(t)
+
+	tableName := fmt.Sprintf("terraform-remote-dynamodb-state-%x", time.Now().Unix())
+	hashName := "test_state_tfstate"
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"state_table":    tableName,
+		"hash":           hashName,
+		"state_days_ttl": 0,
+	})).(*Backend)
+
+	createDynamoDBTable(t, b.dynClient, tableName, "state")
+	defer deleteDynamoDBTable(t, b.dynClient, tableName)
+
+	client := &RemoteClient{
+		dynClient:      b.dynClient,
+		tableName:      b.tableName,
+		path:           b.path("state"),
+		state_days_ttl: 0,
+	}
+
+	payload := []byte("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	num_versions := 10
+	for i := 1; i <= num_versions; i++ {
+		if err := client.Put(payload); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	states, _, err := client.getChunks()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if states[0].SegmentID != int64((num_versions-1)*2) {
+		t.Fatal(err)
+	}
+
+}
+
+func TestCompression(t *testing.T) {
+	testACC(t)
+
+	tableName := fmt.Sprintf("terraform-remote-dynamodb-state-%x", time.Now().Unix())
+	hashName := "test_state_tfstate"
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"state_table": tableName,
+		"hash":        hashName,
+		"compression": true,
+	})).(*Backend)
+
+	createDynamoDBTable(t, b.dynClient, tableName, "state")
+	defer deleteDynamoDBTable(t, b.dynClient, tableName)
+
+	client := &RemoteClient{
+		dynClient:   b.dynClient,
+		tableName:   b.tableName,
+		path:        b.path("state"),
+		compression: true,
+	}
+
+	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	dynamoDBItemSize := 2097152
+
+	payload := make([]byte, dynamoDBItemSize)
+	for i := range payload {
+		payload[i] = letterBytes[rand.Intn(len(letterBytes))]
+	}
+
+	if err := client.Put(payload); err != nil {
+		t.Fatal(err)
+	}
+
+	returned_payload, err := client.Get()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res := bytes.Compare(returned_payload.Data, payload)
+
+	if res != 0 {
+		t.Fatal("Put and Get payload does not match")
+	}
 }

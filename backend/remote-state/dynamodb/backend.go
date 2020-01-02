@@ -191,7 +191,7 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The prefix applied to the non-default state path inside the bucket.",
-				Default:     "",
+				Default:     "workspace",
 				ValidateFunc: func(v interface{}, s string) ([]string, []error) {
 					prefix := v.(string)
 					if strings.Contains(prefix, "=") || strings.Contains(prefix, "/") {
@@ -398,29 +398,6 @@ func (b *Backend) getGlobalClients(endpoint string, sess *session.Session, globa
 
 	return dyClients, nil
 }
-
-//func getRegion(region string, profile string) (string, error) {
-//	fmt.Println("profile ", profile)
-//	if region != "" {
-//		fmt.Println("region != ", region)
-//		return region, nil
-//	} else {
-//		cfg := &awsbase.Config{
-//			Profile: profile,
-//		}
-//		metaSession, err := awsbase.GetSession(cfg)
-//		if err != nil {
-//			return region, err
-//		}
-//		metaClient := ec2metadata.New(metaSession)
-//		region, _ = metaClient.Region()
-//		fmt.Println("metaregion != ", region)
-//		if region == "" {
-//			return region, fmt.Errorf("Please set env AWS_REGION or AWS_DEFAULT_REGION, otherwise set region or profile in backend configuration.")
-//		}
-//		return region, nil
-//	}
-//}
 
 func (b *Backend) configure(ctx context.Context) error {
 	if b.dynClient != nil {

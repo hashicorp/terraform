@@ -1,5 +1,0 @@
-- test scan workspaces
-- test versions
-- test compression
-- docs
-- multiregion endpoints
