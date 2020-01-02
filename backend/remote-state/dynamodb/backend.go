@@ -191,7 +191,7 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The prefix applied to the non-default state path inside the bucket.",
-				Default:     "workspace",
+				Default:     "",
 				ValidateFunc: func(v interface{}, s string) ([]string, []error) {
 					prefix := v.(string)
 					if strings.Contains(prefix, "=") || strings.Contains(prefix, "/") {
