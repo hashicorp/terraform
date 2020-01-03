@@ -28,7 +28,7 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
 - [Apigee](https://github.com/zambien/terraform-provider-apigee)
 - [Artifactory](https://github.com/atlassian/terraform-provider-artifactory)
 - [Auth](https://github.com/Shuttl-Tech/terraform-provider-auth)
-- [Auth0](https://github.com/bocodigitalmedia/terraform-provider-auth0)
+- [Auth0](https://github.com/alexkappa/terraform-provider-auth0)
 - [Automic Continuous Delivery](https://github.com/Automic/terraform-provider-cda)
 - [AVI](https://github.com/avinetworks/terraform-provider-avi)
 - [Aviatrix](https://github.com/AviatrixSystems/terraform-provider-aviatrix)
