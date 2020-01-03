@@ -3,6 +3,7 @@ package lang
 import (
 	"fmt"
 
+	"github.com/hashicorp/hcl/v2/ext/tryfunc"
 	ctyyaml "github.com/zclconf/go-cty-yaml"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
@@ -39,6 +40,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"base64sha256":     funcs.Base64Sha256Func,
 			"base64sha512":     funcs.Base64Sha512Func,
 			"bcrypt":           funcs.BcryptFunc,
+			"can":              tryfunc.CanFunc,
 			"ceil":             funcs.CeilFunc,
 			"chomp":            funcs.ChompFunc,
 			"cidrhost":         funcs.CidrHostFunc,
@@ -122,6 +124,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"trimprefix":       funcs.TrimPrefixFunc,
 			"trimspace":        funcs.TrimSpaceFunc,
 			"trimsuffix":       funcs.TrimSuffixFunc,
+			"try":              tryfunc.TryFunc,
 			"upper":            stdlib.UpperFunc,
 			"urlencode":        funcs.URLEncodeFunc,
 			"uuid":             funcs.UUIDFunc,
