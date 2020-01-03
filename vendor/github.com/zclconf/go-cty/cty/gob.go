@@ -3,6 +3,7 @@ package cty
 import (
 	"bytes"
 	"encoding/gob"
+	"errors"
 	"fmt"
 	"math/big"
 
@@ -15,6 +16,10 @@ import (
 // Currently it is not possible to represent values of capsule types in gob,
 // because the types themselves cannot be represented.
 func (val Value) GobEncode() ([]byte, error) {
+	if val.IsMarked() {
+		return nil, errors.New("value is marked")
+	}
+
 	buf := &bytes.Buffer{}
 	enc := gob.NewEncoder(buf)
 
