@@ -1,5 +1,15 @@
 # HCL Changelog
 
+## v2.3.0 (Jan 3, 2020)
+
+### Enhancements
+
+* ext/tryfunc: Optional functions `try` and `can` to include in your `hcl.EvalContext` when evaluating expressions, which allow users to make decisions based on the success of expressions. ([#330](https://github.com/hashicorp/hcl/pull/330))
+* ext/typeexpr: Now has an optional function `convert` which you can include in your `hcl.EvalContext` when evaluating expressions, allowing users to convert values to specific type constraints using the type constraint expression syntax. ([#330](https://github.com/hashicorp/hcl/pull/330))
+* ext/typeexpr: A new `cty` capsule type `typeexpr.TypeConstraintType` which, when used as either a type constraint for a function parameter or as a type constraint for a `hcldec` attribute specification will cause the given expression to be interpreted as a type constraint expression rather than a value expression. ([#330](https://github.com/hashicorp/hcl/pull/330))
+* ext/customdecode: An optional extension that allows overriding the static decoding behavior for expressions either in function arguments or `hcldec` attribute specifications. ([#330](https://github.com/hashicorp/hcl/pull/330))
+* ext/customdecode: New `cty` capsuletypes `customdecode.ExpressionType` and `customdecode.ExpressionClosureType` which, when used as either a type constraint for a function parameter or as a type constraint for a `hcldec` attribute specification will cause the given expression (and, for the closure type, also the `hcl.EvalContext` it was evaluated in) to be captured for later analysis, rather than immediately evaluated. ([#330](https://github.com/hashicorp/hcl/pull/330))
+
 ## v2.2.0 (Dec 11, 2019)
 
 ### Enhancements

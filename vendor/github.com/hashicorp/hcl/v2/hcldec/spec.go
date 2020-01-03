@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/ext/customdecode"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 	"github.com/zclconf/go-cty/cty/function"
@@ -191,6 +192,14 @@ func (s *AttrSpec) decode(content *hcl.BodyContent, blockLabels []blockLabel, ct
 		// We don't need to check required and emit a diagnostic here, because
 		// that would already have happened when building "content".
 		return cty.NullVal(s.Type), nil
+	}
+
+	if decodeFn := customdecode.CustomExpressionDecoderForType(s.Type); decodeFn != nil {
+		v, diags := decodeFn(attr.Expr, ctx)
+		if v == cty.NilVal {
+			v = cty.UnknownVal(s.Type)
+		}
+		return v, diags
 	}
 
 	val, diags := attr.Expr.Value(ctx)
@@ -1223,6 +1232,16 @@ func (s *BlockAttrsSpec) decode(content *hcl.BodyContent, blockLabels []blockLab
 
 	vals := make(map[string]cty.Value, len(attrs))
 	for name, attr := range attrs {
+		if decodeFn := customdecode.CustomExpressionDecoderForType(s.ElementType); decodeFn != nil {
+			attrVal, attrDiags := decodeFn(attr.Expr, ctx)
+			diags = append(diags, attrDiags...)
+			if attrVal == cty.NilVal {
+				attrVal = cty.UnknownVal(s.ElementType)
+			}
+			vals[name] = attrVal
+			continue
+		}
+
 		attrVal, attrDiags := attr.Expr.Value(ctx)
 		diags = append(diags, attrDiags...)
 

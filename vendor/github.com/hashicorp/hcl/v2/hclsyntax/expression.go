@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/ext/customdecode"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 	"github.com/zclconf/go-cty/cty/function"
@@ -350,26 +351,38 @@ func (e *FunctionCallExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnosti
 			param = varParam
 		}
 
-		val, argDiags := argExpr.Value(ctx)
-		if len(argDiags) > 0 {
+		var val cty.Value
+		if decodeFn := customdecode.CustomExpressionDecoderForType(param.Type); decodeFn != nil {
+			var argDiags hcl.Diagnostics
+			val, argDiags = decodeFn(argExpr, ctx)
 			diags = append(diags, argDiags...)
-		}
+			if val == cty.NilVal {
+				val = cty.UnknownVal(param.Type)
+			}
+		} else {
+			var argDiags hcl.Diagnostics
+			val, argDiags = argExpr.Value(ctx)
+			if len(argDiags) > 0 {
+				diags = append(diags, argDiags...)
+			}
 
-		// Try to convert our value to the parameter type
-		val, err := convert.Convert(val, param.Type)
-		if err != nil {
-			diags = append(diags, &hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid function argument",
-				Detail: fmt.Sprintf(
-					"Invalid value for %q parameter: %s.",
-					param.Name, err,
-				),
-				Subject:     argExpr.StartRange().Ptr(),
-				Context:     e.Range().Ptr(),
-				Expression:  argExpr,
-				EvalContext: ctx,
-			})
+			// Try to convert our value to the parameter type
+			var err error
+			val, err = convert.Convert(val, param.Type)
+			if err != nil {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid function argument",
+					Detail: fmt.Sprintf(
+						"Invalid value for %q parameter: %s.",
+						param.Name, err,
+					),
+					Subject:     argExpr.StartRange().Ptr(),
+					Context:     e.Range().Ptr(),
+					Expression:  argExpr,
+					EvalContext: ctx,
+				})
+			}
 		}
 
 		argVals[i] = val
