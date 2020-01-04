@@ -314,6 +314,28 @@ func (c *StateMvCommand) Run(args []string) int {
 				fmt.Sprintf("Cannot move %s: Terraform doesn't know how to move this object.", rawAddrFrom),
 			))
 		}
+
+		// Look for any dependencies that may be effected and
+		// remove them to ensure they are recreated in full.
+		for _, mod := range stateTo.Modules {
+			for _, res := range mod.Resources {
+				for _, ins := range res.Instances {
+					if ins.Current == nil {
+						continue
+					}
+
+					for _, dep := range ins.Current.Dependencies {
+						// check both directions here, since we may be moving
+						// an instance which is in a resource, or a module
+						// which can contain a resource.
+						if dep.TargetContains(rawAddrFrom) || rawAddrFrom.TargetContains(dep) {
+							ins.Current.Dependencies = nil
+							break
+						}
+					}
+				}
+			}
+		}
 	}
 
 	if dryRun {
