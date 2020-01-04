@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 )
@@ -93,6 +94,117 @@ func (n *EvalModuleCallArgument) Eval(ctx EvalContext) (interface{}, error) {
 	if n.IgnoreDiagnostics {
 		return nil, nil
 	}
+	return nil, diags.ErrWithWarnings()
+}
+
+// evalVariableValidations is an EvalNode implementation that ensures that
+// all of the configured custom validations for a variable are passing.
+//
+// This must be used only after any side-effects that make the value of the
+// variable available for use in expression evaluation, such as
+// EvalModuleCallArgument for variables in descendent modules.
+type evalVariableValidations struct {
+	Addr   addrs.AbsInputVariableInstance
+	Config *configs.Variable
+
+	// Expr is the expression that provided the value for the variable, if any.
+	// This will be nil for root module variables, because their values come
+	// from outside the configuration.
+	Expr hcl.Expression
+
+	// If this flag is set, this node becomes a no-op.
+	// This is here for consistency with EvalModuleCallArgument so that it
+	// can be populated with the same value, where needed.
+	IgnoreDiagnostics bool
+}
+
+func (n *evalVariableValidations) Eval(ctx EvalContext) (interface{}, error) {
+	if n.Config == nil || n.IgnoreDiagnostics || len(n.Config.Validations) == 0 {
+		log.Printf("[TRACE] evalVariableValidations: not active for %s, so skipping", n.Addr)
+		return nil, nil
+	}
+
+	var diags tfdiags.Diagnostics
+
+	// Variable nodes evaluate in the parent module to where they were declared
+	// because the value expression (n.Expr, if set) comes from the calling
+	// "module" block in the parent module.
+	//
+	// Validation expressions are statically validated (during configuration
+	// loading) to refer only to the variable being validated, so we can
+	// bypass our usual evaluation machinery here and just produce a minimal
+	// evaluation context containing just the required value, and thus avoid
+	// the problem that ctx's evaluation functions refer to the wrong module.
+	val := ctx.GetVariableValue(n.Addr)
+	hclCtx := &hcl.EvalContext{
+		Variables: map[string]cty.Value{
+			"var": cty.ObjectVal(map[string]cty.Value{
+				n.Config.Name: val,
+			}),
+		},
+		Functions: ctx.EvaluationScope(nil, EvalDataForNoInstanceKey).Functions(),
+	}
+
+	for _, validation := range n.Config.Validations {
+		const errInvalidCondition = "Invalid variable validation result"
+		const errInvalidValue = "Invalid value for variable"
+
+		result, moreDiags := validation.Condition.Value(hclCtx)
+		diags = diags.Append(moreDiags)
+		if moreDiags.HasErrors() {
+			log.Printf("[TRACE] evalVariableValidations: %s rule %s condition expression failed: %s", n.Addr, validation.DeclRange, diags.Err().Error())
+		}
+		if !result.IsKnown() {
+			log.Printf("[TRACE] evalVariableValidations: %s rule %s condition value is unknown, so skipping validation for now", n.Addr, validation.DeclRange)
+			continue // We'll wait until we've learned more, then.
+		}
+		if result.IsNull() {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity:    hcl.DiagError,
+				Summary:     errInvalidCondition,
+				Detail:      "Validation condition expression must return either true or false, not null.",
+				Subject:     validation.Condition.Range().Ptr(),
+				Expression:  validation.Condition,
+				EvalContext: hclCtx,
+			})
+			continue
+		}
+		var err error
+		result, err = convert.Convert(result, cty.Bool)
+		if err != nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity:    hcl.DiagError,
+				Summary:     errInvalidCondition,
+				Detail:      fmt.Sprintf("Invalid validation condition result value: %s.", tfdiags.FormatError(err)),
+				Subject:     validation.Condition.Range().Ptr(),
+				Expression:  validation.Condition,
+				EvalContext: hclCtx,
+			})
+			continue
+		}
+
+		if result.False() {
+			if n.Expr != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  errInvalidValue,
+					Detail:   fmt.Sprintf("%s\n\nThis was checked by the validation rule at %s.", validation.ErrorMessage, validation.DeclRange.String()),
+					Subject:  n.Expr.Range().Ptr(),
+				})
+			} else {
+				// Since we don't have a source expression for a root module
+				// variable, we'll just report the error from the perspective
+				// of the variable declaration itself.
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  errInvalidValue,
+					Detail:   fmt.Sprintf("%s\n\nThis was checked by the validation rule at %s.", validation.ErrorMessage, validation.DeclRange.String()),
+					Subject:  n.Config.DeclRange.Ptr(),
+				})
+			}
+		}
+	}
+
 	return nil, diags.ErrWithWarnings()
 }
 
